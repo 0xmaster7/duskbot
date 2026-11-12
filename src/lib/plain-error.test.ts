@@ -6,33 +6,33 @@ import { requestTooLargeMessage } from "../../shared/request-too-large";
 
 describe("plainErrorLine", () => {
   it.each([
-    ["Failed to fetch", "couldn't reach dusk bot. check that it's running, then try again."],
-    ["NetworkError when attempting to fetch resource.", "couldn't reach dusk bot. check that it's running, then try again."],
-    ["The operation was aborted due to timeout", "that took too long. try again."],
-    ["502 Bad Gateway", "something went wrong on the other end. try again."],
-    ["500 Internal Server Error", "something went wrong on the other end. try again."],
-    ["404 Not Found", "that couldn't be found. it may have been removed."],
-    ["413 Payload Too Large", "that's too large to send. try a smaller file or a shorter message."],
-    ["429 Too Many Requests", "too many requests right now. wait a moment, then try again."],
-    ['API Error: 529 {"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}', "the service is busy right now. try again in a moment."],
+    ["Failed to fetch", "Couldn't reach dusk bot. Check that it's running, then try again."],
+    ["NetworkError when attempting to fetch resource.", "Couldn't reach dusk bot. Check that it's running, then try again."],
+    ["The operation was aborted due to timeout", "That took too long. Try again."],
+    ["502 Bad Gateway", "Something went wrong on the other end. Try again."],
+    ["500 Internal Server Error", "Something went wrong on the other end. Try again."],
+    ["404 Not Found", "That couldn't be found. It may have been removed."],
+    ["413 Payload Too Large", "That's too large to send. Try a smaller file or a shorter message."],
+    ["429 Too Many Requests", "Too many requests right now. Wait a moment, then try again."],
+    ['API Error: 529 {"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}', "The service is busy right now. Try again in a moment."],
     ["API Error: 529 Overloaded. This is a server-side issue, usually temporary.", "Overloaded. This is a server-side issue, usually temporary."],
     ["API Error: 400 Claude Code 2.1.268 does not support this model; version 2.1.280 or newer is required.", "Claude Code 2.1.268 does not support this model; version 2.1.280 or newer is required."],
     ["OpenRouter HTTP 404: model qwen-9 not found", "model qwen-9 not found"],
-    ["HTTP 503", "the service is busy right now. try again in a moment."],
-    ["HTTP 502 Bad Gateway", "something went wrong on the other end. try again."],
-    ["upstream HTTP 503 Service Unavailable", "the service is busy right now. try again in a moment."],
-    ["EACCES: permission denied, open '/Users/sam/notes.md'", "this computer didn't allow that. check the file or folder permissions, then try again."],
-    ["upstream HTTP 401: {\"error\":{\"message\":\"invalid x-api-key\"}}", "access was refused. check the sign-in, then try again."],
-    ["read ECONNRESET", "the connection dropped. try again."],
-    ["TypeError: Cannot read properties of undefined (reading 'id')", "something went wrong. try again."],
-    ["Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON", "something went wrong. try again."],
-    ["claude exited 3 before result: fake-claude: simulated crash before result", "something went wrong. try again."],
-    ["claude exited null before result", "something went wrong. try again."],
-    ["codex exited null (signal SIGKILL) before turn/completed", "something went wrong. try again."],
-    ["DeepSeek Harness exited 3 before the prompt result: panicked at src/main.rs", "something went wrong. try again."],
-    ["Antigravity ACP exited SIGTERM.", "something went wrong. try again."],
-    ["rate_limited", "too many requests right now. wait a moment, then try again."],
-    ["Error\n    at fetchBots (store.tsx:12:3)", "something went wrong. try again."],
+    ["HTTP 503", "The service is busy right now. Try again in a moment."],
+    ["HTTP 502 Bad Gateway", "Something went wrong on the other end. Try again."],
+    ["upstream HTTP 503 Service Unavailable", "The service is busy right now. Try again in a moment."],
+    ["EACCES: permission denied, open '/Users/sam/notes.md'", "This computer didn't allow that. Check the file or folder permissions, then try again."],
+    ["upstream HTTP 401: {\"error\":{\"message\":\"invalid x-api-key\"}}", "Access was refused. Check the sign-in, then try again."],
+    ["read ECONNRESET", "The connection dropped. Try again."],
+    ["TypeError: Cannot read properties of undefined (reading 'id')", "Something went wrong. Try again."],
+    ["Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON", "Something went wrong. Try again."],
+    ["claude exited 3 before result: fake-claude: simulated crash before result", "Something went wrong. Try again."],
+    ["claude exited null before result", "Something went wrong. Try again."],
+    ["codex exited null (signal SIGKILL) before turn/completed", "Something went wrong. Try again."],
+    ["DeepSeek Harness exited 3 before the prompt result: panicked at src/main.rs", "Something went wrong. Try again."],
+    ["Antigravity ACP exited SIGTERM.", "Something went wrong. Try again."],
+    ["rate_limited", "Too many requests right now. Wait a moment, then try again."],
+    ["Error\n    at fetchBots (store.tsx:12:3)", "Something went wrong. Try again."],
   ])("reads %j as a plain line", (raw, line) => {
     expect(plainErrorLine(raw)).toBe(line);
   });
@@ -62,11 +62,11 @@ describe("a provider refusing a message as too large", () => {
 
   it("is said in the reader's language with the model's name", () => {
     const cause = requestTooLargeMessage("GLM 5.3 Flash");
-    expect(plainErrorLine(cause)).toBe("this message is too large for GLM 5.3 Flash. start a new chat or pick a model that accepts more.");
+    expect(plainErrorLine(cause)).toBe("This message is too large for GLM 5.3 Flash. Start a new chat or pick a model that accepts more.");
     setLocale("de");
     expect(plainErrorLine(cause)).toBe("Diese Nachricht ist zu groß für GLM 5.3 Flash. Starte einen neuen Chat oder wähle ein Modell, das mehr annimmt.");
     setLocale("ja");
     expect(plainErrorLine(`  ${requestTooLargeMessage("vendor/model-1.5")}\n`)).toBe("このメッセージは vendor/model-1.5 には大きすぎます。新しいチャットを始めるか、より多くを受け付けるモデルを選んでください。");
-    expect(plainErrorLine("this message is too large for the box.")).toBeUndefined();
+    expect(plainErrorLine("This message is too large for the box.")).toBeUndefined();
   });
 });

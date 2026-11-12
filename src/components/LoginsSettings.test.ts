@@ -58,7 +58,7 @@ async function type(name: string, value: string) {
   });
 }
 async function openOnePassword() {
-  await click("new item");
+  await click("New item");
   await act(async () => [...document.body.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].find((item) => item.getAttribute("aria-label") === "1Password")!.click());
 }
 async function submit() {
@@ -74,21 +74,21 @@ describe("Settings → Logins", () => {
     const rows = [...document.body.querySelectorAll("[data-login-row]")].map((row) => `${row.textContent} | ${row.getAttribute("data-login-detail")}`);
     expect(rows[0]).toContain("example.com");
     expect(rows[0]).toContain("alice@example.com");
-    expect(rows[0]).toContain("also signs in on login.microsoftonline.com");
+    expect(rows[0]).toContain("Also signs in on login.microsoftonline.com");
     expect(rows[0]).toContain("2FA");
-    expect(rows[0]).toContain("saved from a chat · Pepper · used 2 min ago");
-    expect(rows[1]).toContain("added here · all bots · not used yet");
-    expect(rows[1]).toContain("also signs in on crm.example.org");
-    expect(rows[2]).toContain("only on acme.okta.com");
+    expect(rows[0]).toContain("Saved from a chat · Pepper · Used 2 min ago");
+    expect(rows[1]).toContain("Added here · All bots · Not used yet");
+    expect(rows[1]).toContain("Also signs in on crm.example.org");
+    expect(rows[2]).toContain("Only on acme.okta.com");
     expect(document.body.querySelector("[data-logins-list]")!.querySelectorAll("input")).toHaveLength(0);
   });
 
   it("adds a login for the bots chosen, and keeps nothing it was typed once saved", async () => {
     fixture.api.mockResolvedValueOnce({ logins: [], onePassword: OFF }).mockResolvedValueOnce({ login: SHARED_LOGIN }).mockResolvedValueOnce({ logins: [SHARED_LOGIN], onePassword: OFF });
     await render();
-    expect(document.body.textContent).toContain("nothing saved yet");
-    await click("new item");
-    await click("add login");
+    expect(document.body.textContent).toContain("Nothing saved yet");
+    await click("New item");
+    await click("Add login");
     await type("site", "crm.example.org");
     await type("username", "team");
     await type("password", "fake-typed-pass");
@@ -103,13 +103,13 @@ describe("Settings → Logins", () => {
   it("keeps a new login to its exact address when asked", async () => {
     fixture.api.mockResolvedValueOnce({ logins: [], onePassword: OFF }).mockResolvedValueOnce({ login: TENANT_LOGIN }).mockResolvedValueOnce({ logins: [TENANT_LOGIN], onePassword: OFF });
     await render();
-    await click("new item");
-    await click("add login");
+    await click("New item");
+    await click("Add login");
     await type("site", "acme.okta.com");
     await type("password", "fake-tenant-pass");
     const exact = document.body.querySelector<HTMLInputElement>('input[name="exactHost"]')!;
     expect(exact.checked).toBe(false);
-    expect(exact.closest("label")!.textContent).toBe("only on this exact address, not elsewhere on its site");
+    expect(exact.closest("label")!.textContent).toBe("Only on this exact address, not elsewhere on its site");
     await act(async () => { exact.click(); });
     await submit();
     expect(fixture.api).toHaveBeenNthCalledWith(2, "/api/logins", { method: "POST", body: JSON.stringify({ site: "acme.okta.com", username: "", sealed: { keyId: "k", encapsulatedKey: "E", ciphertext: "login.create|acme.okta.com||password" }, bots: "all", exactHost: true }) });
@@ -118,7 +118,7 @@ describe("Settings → Logins", () => {
   it("replaces a password, keeps the 2FA key unless asked, and changes who may use it", async () => {
     fixture.api.mockResolvedValueOnce({ logins: [CARD_LOGIN], onePassword: OFF }).mockResolvedValueOnce({ login: CARD_LOGIN }).mockResolvedValueOnce({ logins: [CARD_LOGIN], onePassword: OFF });
     await render();
-    await click("change the login for example.com");
+    await click("Change the login for example.com");
     expect(document.body.querySelector<HTMLInputElement>('input[name="password"]')!.value).toBe("");
     await type("password", "fake-new-pass");
     await act(async () => { document.body.querySelector<HTMLInputElement>('input[type="radio"]')!.click(); });
@@ -129,9 +129,9 @@ describe("Settings → Logins", () => {
   it("keeps a login to its sign-in hosts, or lets it fill on its whole site again", async () => {
     fixture.api.mockResolvedValueOnce({ logins: [CARD_LOGIN], onePassword: OFF }).mockResolvedValueOnce({ login: CARD_LOGIN }).mockResolvedValueOnce({ logins: [CARD_LOGIN], onePassword: OFF });
     await render();
-    await click("change the login for example.com");
+    await click("Change the login for example.com");
     const exact = document.body.querySelector<HTMLInputElement>('input[name="exactHost"]')!;
-    expect(exact.closest("label")!.textContent).toBe("only on example.com, login.microsoftonline.com, not elsewhere on example.com");
+    expect(exact.closest("label")!.textContent).toBe("Only on example.com, login.microsoftonline.com, not elsewhere on example.com");
     await act(async () => { exact.click(); });
     await submit();
     expect(fixture.api).toHaveBeenNthCalledWith(2, "/api/logins/l1", { method: "PATCH", body: JSON.stringify({ bots: ["pepper"], exactHost: true }) });
@@ -140,10 +140,10 @@ describe("Settings → Logins", () => {
   it("deletes only on a second click", async () => {
     fixture.api.mockResolvedValueOnce({ logins: [CARD_LOGIN], onePassword: OFF }).mockResolvedValueOnce({ ok: true }).mockResolvedValueOnce({ logins: [], onePassword: OFF });
     await render();
-    await click("change the login for example.com");
-    await click("delete the login for example.com");
+    await click("Change the login for example.com");
+    await click("Delete the login for example.com");
     expect(fixture.api).toHaveBeenCalledTimes(1);
-    await click("delete for good");
+    await click("Delete for good");
     expect(fixture.api).toHaveBeenNthCalledWith(2, "/api/logins/l1", { method: "DELETE" });
   });
 
@@ -163,15 +163,15 @@ describe("Settings → Logins", () => {
     const field = document.body.querySelector<HTMLInputElement>('input[name="onePasswordToken"]')!;
     expect(field.type).toBe("password");
     await type("onePasswordToken", "ops_fake-typed-token");
-    await click("connect 1Password");
+    await click("Connect 1Password");
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
     expect(fixture.api).toHaveBeenNthCalledWith(2, "/api/logins/1password", { method: "POST", body: JSON.stringify({ sealed: { keyId: "k", encapsulatedKey: "E", ciphertext: "onepassword.connect||token" } }) });
-    expect(document.body.querySelector("[data-onepassword]")!.textContent).toContain("connected to Shared with dusk bot · 1 logins with a website");
+    expect(document.body.querySelector("[data-onepassword]")!.textContent).toContain("Connected to Shared with dusk bot · 1 logins with a website");
     expect(document.body.innerHTML).not.toContain("ops_fake-typed-token");
     const row = document.body.querySelector('[data-login-row="example.com"]')!;
-    expect(row.getAttribute("data-login-detail")).toContain("from 1Password · all bots");
+    expect(row.getAttribute("data-login-detail")).toContain("From 1Password · All bots");
     expect(row.querySelectorAll("button")).toHaveLength(0);
-    await click("disconnect");
+    await click("Disconnect");
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
     expect(fixture.api).toHaveBeenNthCalledWith(4, "/api/logins/1password", { method: "DELETE" });
     await openOnePassword();
@@ -188,15 +188,15 @@ describe("Settings → Logins", () => {
       .mockResolvedValueOnce({ logins: [{ ...VAULT_LOGIN, bots: ["quill"] }], onePassword: narrowed });
     await render();
     const row = () => document.body.querySelector('[data-vault="Shared with dusk bot"]')!;
-    expect(row().textContent).toContain("2 logins · all bots");
-    await click("change who can use Shared with dusk bot");
+    expect(row().textContent).toContain("2 logins · All bots");
+    await click("Change who can use Shared with dusk bot");
     await act(async () => { [...row().querySelectorAll<HTMLInputElement>('input[type="radio"]')][1]!.click(); });
     await act(async () => { [...row().querySelectorAll<HTMLInputElement>('input[type="checkbox"]')][1]!.click(); });
-    await click("save changes");
+    await click("Save changes");
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
     expect(fixture.api).toHaveBeenNthCalledWith(2, "/api/logins/1password/vaults/v1", { method: "PATCH", body: JSON.stringify({ bots: ["quill"] }) });
     expect(row().textContent).toContain("2 logins · Quill");
-    expect(document.body.querySelector('[data-login-row="example.com"]')!.getAttribute("data-login-detail")).toContain("from 1Password · Quill");
+    expect(document.body.querySelector('[data-login-row="example.com"]')!.getAttribute("data-login-detail")).toContain("From 1Password · Quill");
   });
 
   it("says why 1Password refused a token", async () => {
@@ -204,7 +204,7 @@ describe("Settings → Logins", () => {
     await render();
     await openOnePassword();
     await type("onePasswordToken", "ops_fake-wrong");
-    await click("connect 1Password");
+    await click("Connect 1Password");
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
     expect(document.body.querySelector('[data-panel-modal="onepassword"] [role=alert]')!.textContent).toBe("1Password did not accept the token.");
   });
@@ -213,7 +213,7 @@ describe("Settings → Logins", () => {
     fixture.admin = false;
     await render();
     expect(fixture.api).not.toHaveBeenCalled();
-    expect(document.body.textContent).toContain("only an admin of this installation can see and change saved logins.");
+    expect(document.body.textContent).toContain("Only an admin of this installation can see and change saved logins.");
   });
 });
 

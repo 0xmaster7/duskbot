@@ -241,7 +241,7 @@ export function BotAvatar({ bot, size = 44, label, readable = false, ...mascotPr
     >
       <img
         src={profile.avatarUrl}
-        alt={label ?? (bot.name ? `${bot.name} avatar` : "bot avatar")}
+        alt={label ?? (bot.name ? `${bot.name} avatar` : "Bot avatar")}
         width={size}
         height={size}
         draggable={false}

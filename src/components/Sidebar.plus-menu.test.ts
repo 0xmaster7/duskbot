@@ -59,7 +59,7 @@ function render() {
 function plusMenu(admin: boolean | null) {
   fixture.values = [];
   fixture.admin = admin;
-  render().find((node) => node.type === "button" && String(node.props["aria-label"]).startsWith("new"))!.props.onClick!();
+  render().find((node) => node.type === "button" && String(node.props["aria-label"]).startsWith("New"))!.props.onClick!();
   return render().filter((node) => node.props.role === "menuitem").map((node) => words(node.props.children));
 }
 
@@ -67,11 +67,11 @@ describe("the sidebar's + menu", () => {
   it("is grok's New Bot itself, with no menu, for someone who can make one, and while that isn't known yet", () => {
     for (const admin of [true, null]) {
       expect(plusMenu(admin)).toEqual([]);
-      expect(render().some((node) => node.type === "button" && node.props["aria-label"] === "new bot")).toBe(true);
+      expect(render().some((node) => node.type === "button" && node.props["aria-label"] === "New Bot")).toBe(true);
     }
   });
 
   it("offers neither to a User, who keeps New group chat", () => {
-    expect(plusMenu(false)).toEqual(["new group chat"]);
+    expect(plusMenu(false)).toEqual(["New group chat"]);
   });
 });

@@ -36,11 +36,11 @@ describe("connected-app status races", () => {
       expect(connectorActionLabel("ready", {
         busy: false, included: false, pending: true, canContinue: false,
         hasAccounts, failed: false,
-      })).toBe("check status");
+      })).toBe("Check status");
       expect(connectorActionLabel("ready", {
         busy: false, included: false, pending: true, canContinue: true,
         hasAccounts, failed: false,
-      })).toBe("continue");
+      })).toBe("Continue");
     }
   });
   it("does not render a dead Twitter connect action for managed installs", () => {
@@ -172,32 +172,32 @@ describe("connected-app status races", () => {
     expect(hasActiveConnection(gmail([], false))).toBe(false);
     expect(connectorActionLabel("ready", {
       busy: false, included: false, canContinue: false, reconnect: true, hasAccounts: true, failed: true,
-    })).toBe("reconnect");
+    })).toBe("Reconnect");
   });
 
   it("never presents unloaded account state as disconnected", () => {
-    expect(connectedInventoryCopy("loading").title).toBe("checking connected apps…");
+    expect(connectedInventoryCopy("loading").title).toBe("Checking connected apps…");
     expect(connectorActionLabel("loading", {
       busy: false,
       included: false,
       canContinue: false,
       hasAccounts: false,
       failed: false,
-    })).toBe("checking…");
+    })).toBe("Checking…");
     expect(connectorActionLabel("ready", {
       busy: false,
       included: false,
       canContinue: false,
       hasAccounts: true,
       failed: false,
-    })).toBe("add account");
+    })).toBe("Add account");
     expect(connectorActionLabel("error", {
       busy: false,
       included: false,
       canContinue: false,
       hasAccounts: false,
       failed: false,
-    })).toBe("unavailable");
+    })).toBe("Unavailable");
   });
 });
 

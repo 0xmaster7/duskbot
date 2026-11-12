@@ -39,7 +39,7 @@ describe("engine library", () => {
     const cline = instance({ driverKind: "clineAgent", displayName: "Cline", snapshot: { state: "available", authenticated: false } });
     expect(engineReady(cline)).toBe(false);
     expect(engineReady({ ...cline, snapshot: { state: "available" } })).toBe(false);
-    expect(renderToStaticMarkup(createElement(EngineCard, { instance: cline, children: null }))).toContain("sign-in required");
+    expect(renderToStaticMarkup(createElement(EngineCard, { instance: cline, children: null }))).toContain("Sign-in required");
     expect(engineReady({ ...cline, snapshot: { state: "available", authenticated: true } })).toBe(true);
   });
 
@@ -56,7 +56,7 @@ describe("engine library", () => {
     const row = instance({ snapshot: { state: "available", authenticated: false, account: { email: "private@example.test" } } });
     const render = (value: InstanceInfo) => renderToStaticMarkup(createElement(EngineCard, { instance: value, children: null }));
     expect(render(row)).not.toContain("private@example.test");
-    expect(render(row)).toContain("sign-in required");
+    expect(render(row)).toContain("Sign-in required");
     expect(render({ ...row, snapshot: { ...row.snapshot, authenticated: true } })).toContain("private@example.test");
   });
 

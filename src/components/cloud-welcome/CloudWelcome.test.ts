@@ -110,12 +110,12 @@ describe("CloudWelcome", () => {
   it("is one screen: the bots landing on the cloud, what is different now, and one thing to do, with no steps to go through", () => {
     render();
     expect(host.querySelector("[data-cloud-move-scene]")).not.toBeNull();
-    expect(host.querySelector("h1")?.textContent).toBe("welcome to dusk cloud");
+    expect(host.querySelector("h1")?.textContent).toBe("Welcome to dusk cloud");
     expect([...host.querySelectorAll("li")].map((item) => item.textContent)).toEqual([
-      "your bots work 24/7, even while your computer sleeps", "your phone reaches them from anywhere", "routines run on time, every time"]);
+      "Your bots work 24/7, even while your computer sleeps", "Your phone reaches them from anywhere", "Routines run on time, every time"]);
     expect(host.querySelector("[data-welcome-rail]")).toBeNull();
     expect(host.querySelector('[data-welcome-step="files"]')).toBeNull();
-    expect([...host.querySelectorAll("[data-welcome-action]")].map((node) => node.textContent)).toEqual(["connect your AI", "not now"]);
+    expect([...host.querySelectorAll("[data-welcome-action]")].map((node) => node.textContent)).toEqual(["Connect your AI", "Not now"]);
     expect(hintsPut()).toEqual([[SHOWN]]);
     render();
     expect(hintsPut(), "noted once").toEqual([[SHOWN]]);
@@ -134,24 +134,24 @@ describe("CloudWelcome", () => {
       return Boolean(host.querySelector("[data-bring-my-cloud]"));
     };
     expect(await bring(true, true)).toBe(true);
-    await vi.waitFor(() => expect(host.querySelector("h1")?.textContent).toBe("welcome to Studio Cloud"));
+    await vi.waitFor(() => expect(host.querySelector("h1")?.textContent).toBe("Welcome to Studio Cloud"));
     expect(await bring(false, true), "on My Cloud itself").toBe(false);
     expect(await bring(true, false), "in a browser").toBe(false);
   });
 
   it("with no AI working, Connect your AI leads with the Claude sign-in, folds the other ways under it, and Skip comes back", () => {
     render();
-    click("connect your AI");
+    click("Connect your AI");
     expect(host.querySelector('[data-welcome-step="engine"]')).not.toBeNull();
     expect(host.querySelector('[data-welcome-recommended="claude"] [data-engine-setup="claude"]')?.getAttribute("data-description"))
-      .toBe("use the Claude account you already have. you sign in on their own website, so your password stays with them.");
-    click("other ways");
+      .toBe("Use the Claude account you already have. You sign in on their own website, so your password stays with them.");
+    click("Other ways");
     expect(host.querySelector('[data-cloud-choice="codex"]')).not.toBeNull();
     expect(host.querySelector('[data-cloud-choice="claude"]'), "the recommended way is not offered twice").toBeNull();
-    click("skip for now");
+    click("Skip for now");
     expect(host.querySelector('[data-welcome-step="engine"]')).toBeNull();
     expect(hintsPut().at(-1)).toEqual(expect.arrayContaining([welcomeStepHint("engine")]));
-    expect(button("connect your AI"), "still the one thing to do").toBeDefined();
+    expect(button("Connect your AI"), "still the one thing to do").toBeDefined();
   });
 
   it("right after an AI is connected here, checks it with one tiny real message and says it works", async () => {
@@ -164,8 +164,8 @@ describe("CloudWelcome", () => {
       return { ok: true };
     });
     render();
-    click("connect your AI");
-    click("other ways");
+    click("Connect your AI");
+    click("Other ways");
     expect(checks).toEqual([]);
     fixture.state = { ...fixture.state, instances: [signedIn, codex] };
     render();
@@ -179,16 +179,16 @@ describe("CloudWelcome", () => {
     render();
     await vi.waitFor(() => expect(host.querySelector('[data-welcome-step="engine"]')).toBeNull());
     expect(hintsPut().at(-1)).toEqual(expect.arrayContaining([welcomeStepHint("engine")]));
-    expect(button("start chatting")).toBeDefined();
+    expect(button("Start chatting")).toBeDefined();
   });
 
   it("with an AI working, Start chatting ends it and opens the Chief of Staff, every step handled for the Set up card", () => {
     fixture.state.instances = [signedIn, codex];
     render();
-    click("start chatting");
+    click("Start chatting");
     expect(hintsPut().at(-1)).toEqual(expect.arrayContaining([SHOWN, CLOUD_WELCOME_DONE, ...STEPS, CLOUD_SETUP_MOVE_SKIPPED]));
     expect(fixture.dispatch.mock.calls.map(([action]) => action.type)).toEqual(expect.arrayContaining(["showChat"]));
-    expect(fixture.dispatch.mock.calls.some(([action]) => action.id === "b2" || action.botId === "b2"), "the chief of staff").toBe(true);
+    expect(fixture.dispatch.mock.calls.some(([action]) => action.id === "b2" || action.botId === "b2"), "the Chief of Staff").toBe(true);
     expect(welcome.current!.ended).toBe(true);
   });
 
@@ -198,7 +198,7 @@ describe("CloudWelcome", () => {
     render();
     expect(welcome.current!.aside).toBe(true);
     expect(hintsPut()).toEqual([[SHOWN]]);
-    click("not now");
+    click("Not now");
     expect(hintsPut().at(-1)).toEqual(expect.arrayContaining([CLOUD_WELCOME_DONE, ...STEPS]));
     expect(welcome.current!.ended).toBe(true);
   });
@@ -206,10 +206,10 @@ describe("CloudWelcome", () => {
   it("while this computer's bots come over says so in one line, then that they are here, and never calls that skipped", async () => {
     withSend(notice({ running: true, runningReason: "move" }));
     render();
-    await vi.waitFor(() => expect(host.querySelector('[data-welcome-arrived="sending"]')?.textContent).toBe("your bots are on their way here…"));
+    await vi.waitFor(() => expect(host.querySelector('[data-welcome-arrived="sending"]')?.textContent).toBe("Your bots are on their way here…"));
     flushSync(() => pushNotice(notice({ last: sentLast })));
-    await vi.waitFor(() => expect(host.querySelector('[data-welcome-arrived="sent"]')?.textContent).toBe("your bots are here"));
-    click("not now");
+    await vi.waitFor(() => expect(host.querySelector('[data-welcome-arrived="sent"]')?.textContent).toBe("Your bots are here"));
+    click("Not now");
     expect(hintsPut().at(-1)).not.toContain(CLOUD_SETUP_MOVE_SKIPPED);
   });
 
@@ -221,7 +221,7 @@ describe("CloudWelcome", () => {
     expect(state(notice()), "nothing sent and nothing on its way").toBeNull();
     expect(state(notice({ running: true, runningReason: "move" }))).toBe("sending");
     expect(state(notice({ last: last() }))).toBe("sent");
-    expect(state(notice({ last: last({ error: "this app could not sign in to My Cloud. Try again." }) })), "a send that failed as a whole").toBeNull();
+    expect(state(notice({ last: last({ error: "This app could not sign in to My Cloud. Try again." }) })), "a send that failed as a whole").toBeNull();
     expect(state(notice({ last: last({ reason: "logins" }) })), "one login sent by hand").toBeNull();
     for (const older of ["first", "auto"]) expect(state(notice({ last: last({ reason: older }) })), older).toBe("sent");
     expect(state({ ...notice(), auto: true }), "an older desktop's switch on, nothing gone yet").toBe("sending");

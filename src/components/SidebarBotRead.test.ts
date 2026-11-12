@@ -56,31 +56,31 @@ describe("bot menu bulk reads", () => {
     mode.advanced = false;
     const fetch = vi.fn(async (_url: unknown, init?: RequestInit) => response(JSON.parse(String(init?.body)).threadId));
     vi.stubGlobal("fetch", fetch); draw();
-    expect(button("mark as unread")).toBeUndefined();
-    flushSync(() => button("mark as read").click());
+    expect(button("Mark as Unread")).toBeUndefined();
+    flushSync(() => button("Mark as Read").click());
     await expect.poll(() => onClose.mock.calls.length).toBe(1);
     expect(state.bots[0]!.tasks!.every((task) => !task.unread)).toBe(true);
     draw();
-    expect(button("mark as read")).toBeUndefined();
-    flushSync(() => button("mark as unread").click());
+    expect(button("Mark as Read")).toBeUndefined();
+    flushSync(() => button("Mark as Unread").click());
     expect(state.bots[0]!.unread).toBe(true);
   });
 });
 
 describe("Simple mode's bot menu", () => {
   const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-  const sheet = () => document.querySelector<HTMLElement>('[data-bot-menu][aria-label="actions for Reviewer"]')!;
+  const sheet = () => document.querySelector<HTMLElement>('[data-bot-menu][aria-label="Actions for Reviewer"]')!;
   const move = () => document.querySelector<HTMLElement>("[data-bot-menu-move]")!;
-  const flyout = () => document.querySelector('[role="menu"][aria-label="move to"]');
+  const flyout = () => document.querySelector('[role="menu"][aria-label="Move to"]');
   const point = (target: Element, y: number) => target.dispatchEvent(new MouseEvent("pointerover", { bubbles: true, clientX: 60, clientY: y }));
   const words = () => [...sheet().children].map((node) => node.getAttribute("role") === "separator" ? "|" : text(node));
   beforeEach(() => { mode.advanced = false; });
 
   it("is grok's menu word for word: Pin and Mark as Read, Rename Bot, Copy conversation ID, Bot Settings, then Hide from sidebar and Delete", () => {
     draw();
-    expect(words()).toEqual(["pin", "mark as read", "|", "rename bot", "|", "copy conversation ID", "|", "bot settings", "|", "hide from sidebar", "delete"]);
+    expect(words()).toEqual(["Pin", "Mark as Read", "|", "Rename Bot", "|", "Copy conversation ID", "|", "Bot Settings", "|", "Hide from sidebar", "Delete"]);
     expect([...sheet().querySelectorAll("[data-icon-name]")].map((node) => node.getAttribute("data-icon-name"))).toEqual(["pin", "bell", "pencil-square", "copy", "gear", "eye-slash", "trash"]);
-    flushSync(() => button("rename bot").click());
+    flushSync(() => button("Rename Bot").click());
     expect(onRename).toHaveBeenCalledWith(bot.id);
   });
 
@@ -91,20 +91,20 @@ describe("Simple mode's bot menu", () => {
       children: createElement(BotContextMenu, { menu, onClose, onArchive: vi.fn(), onDelete: vi.fn(), onRename, onNewSection }),
     })));
     render();
-    expect(words().slice(0, 3)).toEqual(["pin", "move to new section", "mark as read"]);
-    flushSync(() => button("move to new section").click());
+    expect(words().slice(0, 3)).toEqual(["Pin", "Move to new section", "Mark as Read"]);
+    flushSync(() => button("Move to new section").click());
     expect(onNewSection).toHaveBeenCalledWith(bot.id);
     state = { ...state, sections: ["GOATS"], bots: [{ ...structuredClone(bot), section: "GOATS" }] };
     menu = { botId: bot.id, x: 50, y: 50 };
     render();
     flushSync(() => move().click());
-    expect([...flyout()!.children].map((node) => node.getAttribute("role") === "separator" ? "|" : `${node.getAttribute("aria-checked") === "true" ? "✓" : ""}${text(node)}`)).toEqual(["✓GOATS", "unassigned", "|", "create section"]);
+    expect([...flyout()!.children].map((node) => node.getAttribute("role") === "separator" ? "|" : `${node.getAttribute("aria-checked") === "true" ? "✓" : ""}${text(node)}`)).toEqual(["✓GOATS", "Unassigned", "|", "Create section"]);
   });
 
   it("opens Move to only after the pointer rests on it, closes it when a sibling row takes the pointer, and opens it at once on a click", async () => {
     state = { ...state, sections: ["GOATS"] };
     draw();
-    const pin = button("pin");
+    const pin = button("Pin");
     point(move(), 200);
     await wait(40);
     expect(flyout()).toBeNull();

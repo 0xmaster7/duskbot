@@ -117,7 +117,7 @@ describe("a picker that opens before its engine has listed its models", () => {
   };
 
   it.each([
-    ["switch AI", () => act(() => requestAiSwitch({ botId: "maus", threadId: "thread-1", turnId: "turn-1", place: "header" }))],
+    ["Switch AI", () => act(() => requestAiSwitch({ botId: "maus", threadId: "thread-1", turnId: "turn-1", place: "header" }))],
     ["the model chip", () => {
       act(() => root.render(createElement(ModelPicker, { bot: { ...onClaude, busy: false }, threadId: "thread-1" })));
       act(() => trigger().click());
@@ -127,13 +127,13 @@ describe("a picker that opens before its engine has listed its models", () => {
     readList([sonnet]);
     act(() => root.render(createElement(ModelPicker, { bot: onClaude, threadId: "thread-1" })));
     openPicker();
-    expect(text()).toContain("loading Claude models");
-    expect(text()).not.toContain("no local models found");
+    expect(text()).toContain("Loading Claude models");
+    expect(text()).not.toContain("No local models found");
     await act(async () => arrive());
     expect(text()).toContain("Claude Sonnet 5");
     expect(text()).not.toContain("Loading Claude models");
-    expect(text()).not.toContain("no local models found");
-    expect(text()).not.toContain("back to Claude models");
+    expect(text()).not.toContain("No local models found");
+    expect(text()).not.toContain("Back to Claude models");
   });
 
 });

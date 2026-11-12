@@ -2,7 +2,6 @@ import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
 
-import { t } from "@/lib/i18n";
 import { confirmCancelCls, mdDangerCls, mdPrimaryCls } from "./ui/GrokDialog";
 import { ScrimMotion, SheetMotion } from "./ui/SheetMotion";
 
@@ -96,7 +95,7 @@ export function ConfirmDialogCard({
   title,
   body,
   confirmLabel,
-  cancelLabel = t("common.cancel"),
+  cancelLabel = "Cancel",
   tone = "danger",
   onCancel,
   onConfirm,

@@ -43,7 +43,7 @@ describe("hidden providers in Settings", () => {
     flushSync(() => root.render(createElement(HiddenEngines)));
     await settle();
     const list = host.querySelector("[data-hidden-engines]")!;
-    expect(list.querySelector("[data-settings-heading]")!.textContent).toBe("hidden (2)");
+    expect(list.querySelector("[data-settings-heading]")!.textContent).toBe("Hidden (2)");
     expect(list.textContent).toContain("Hermes");
     flushSync(() => host.querySelector<HTMLButtonElement>('[data-unhide-engine="hermes"]')!.click());
     await settle();

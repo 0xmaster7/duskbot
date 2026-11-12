@@ -44,7 +44,7 @@ afterEach(() => {
 describe("a room's find bar", () => {
   it("opens and closes for a request naming the room's thread, from a menu outside the room", () => {
     flushSync(() => root.render(createElement(GroupView, { group: room })));
-    const bar = () => host.querySelector('input[aria-label="find in this conversation"]');
+    const bar = () => host.querySelector('input[aria-label="Find in this conversation"]');
     expect(bar()).toBeNull();
     flushSync(() => requestChatFind("another-thread"));
     expect(bar()).toBeNull();

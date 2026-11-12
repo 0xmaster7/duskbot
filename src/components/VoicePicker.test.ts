@@ -41,7 +41,7 @@ function Harness(props: Partial<Props>) {
     query,
     onQuery: setQuery,
     onPick: () => {},
-    defaultLabel: "pick a voice",
+    defaultLabel: "Pick a voice",
     ariaLabel: "Pepper's voice",
     ...props,
   });
@@ -76,14 +76,14 @@ describe("VoicePicker", () => {
     expect(sheet()!.style.position).toBe("fixed");
     expect(sheet()!.style.visibility).toBe("");
     expect(document.activeElement).toBe(search());
-    expect(search().placeholder).toBe("search voices or paste a link");
+    expect(search().placeholder).toBe("Search voices or paste a link");
   });
 
   it("shows each voice's name on one line and its description on one clamped line, with a check on the current voice", async () => {
     await mount({ value: NARRATOR.id });
     await open();
 
-    expect(options().map((row) => row.querySelector("span > span")!.textContent)).toEqual(["pick a voice", "British Narrator", "Studio Voice"]);
+    expect(options().map((row) => row.querySelector("span > span")!.textContent)).toEqual(["Pick a voice", "British Narrator", "Studio Voice"]);
     const description = [...options()[1]!.querySelectorAll("span")].find((span) => span.textContent === NARRATOR.description)!;
     expect(description.className).toContain("truncate");
     expect(description.getAttribute("title")).toBe(NARRATOR.description);
@@ -153,15 +153,15 @@ describe("VoicePicker", () => {
 
   it("shows skeleton rows while the first list loads, and a short note when nothing matches", async () => {
     await mount({ value: "c".repeat(32), voices: [], loading: true });
-    expect(trigger().textContent).toBe("loading voices…");
+    expect(trigger().textContent).toBe("Loading voices…");
     await open();
     expect(sheet()!.querySelectorAll("[data-voice-skeleton]")).toHaveLength(4);
     expect(options()).toHaveLength(0);
 
     await mount({ voices: [], query: "zzzz" });
     expect(options()).toHaveLength(0);
-    expect(sheet()!.textContent).toContain("no voices match");
-    expect(sheet()!.textContent).toContain("try another name, or paste a link to the voice.");
+    expect(sheet()!.textContent).toContain("No voices match");
+    expect(sheet()!.textContent).toContain("Try another name, or paste a link to the voice.");
   });
 
   it("puts your own voices above the ElevenLabs library and says once what picking a library voice does", async () => {
@@ -170,22 +170,22 @@ describe("VoicePicker", () => {
 
     expect(options().map((row) => row.querySelector("span > span")!.textContent)).toEqual(["Studio Voice", "Library Rachel"]);
     const text = sheet()!.querySelector('[role="listbox"]')!.textContent!;
-    expect(text.indexOf("your voices")).toBeLessThan(text.indexOf("Studio Voice"));
-    expect(text.indexOf("ElevenLabs voice library")).toBeLessThan(text.indexOf("Library Rachel"));
-    expect(text.match(/picking one adds it to your voices\./g)).toHaveLength(1);
+    expect(text.indexOf("Your voices")).toBeLessThan(text.indexOf("Studio Voice"));
+    expect(text.indexOf("ElevenLabs Voice Library")).toBeLessThan(text.indexOf("Library Rachel"));
+    expect(text.match(/Picking one adds it to your voices\./g)).toHaveLength(1);
 
     await mount({ voices: [STUDIO], query: "stu" });
-    expect(sheet()!.textContent).not.toContain("your voices");
+    expect(sheet()!.textContent).not.toContain("Your voices");
   });
 
   it("names a selected voice the list has not loaded yet", async () => {
     await mount({ value: "c".repeat(32), voices: [] });
-    expect(trigger().textContent).toBe("current agent voice");
+    expect(trigger().textContent).toBe("Current agent voice");
   });
 
   it("shows the library voice being added in the field and holds the field until it is", async () => {
     await mount({ value: STUDIO.id, pending: LIBRARY });
-    expect(trigger().textContent).toBe("Library Racheladding…");
+    expect(trigger().textContent).toBe("Library RachelAdding…");
     expect(trigger().disabled).toBe(true);
     expect(trigger().querySelector(".animate-spin")).not.toBeNull();
   });

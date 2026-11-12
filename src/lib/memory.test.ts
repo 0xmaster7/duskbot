@@ -15,9 +15,9 @@ import {
 
 it("reports organized notes rather than saying nothing was tidied", () => {
   const report = { at: 0, expired: 0, duplicates: 0, superseded: 0, deferred: 0, contradictionsChecked: false };
-  expect(tidySummary(report)).toBe("nothing to tidy");
-  expect(tidySummary({ ...report, organized: 1 })).toBe("filed 1 note into topics");
-  expect(tidySummary({ ...report, organized: 2 })).toBe("filed 2 notes into topics");
+  expect(tidySummary(report)).toBe("Nothing to tidy");
+  expect(tidySummary({ ...report, organized: 1 })).toBe("Filed 1 note into topics");
+  expect(tidySummary({ ...report, organized: 2 })).toBe("Filed 2 notes into topics");
 });
 
 const index = (overrides: Partial<MemoryCapacity> = {}): MemoryCapacity => ({
@@ -107,19 +107,19 @@ describe("journalSummary", () => {
   it("reads as a sentence about who did what to which file", () => {
     expect(journalSummary(row(), "Scout")).toBe("Scout added 2 lines to MEMORY.md");
     expect(journalSummary(row({ added: 1 }), "Scout")).toBe("Scout added 1 line to MEMORY.md");
-    expect(journalSummary(row({ added: 0, removed: 3, actor: "person", via: "ui" }), "Scout")).toBe("you removed 3 lines from MEMORY.md");
+    expect(journalSummary(row({ added: 0, removed: 3, actor: "person", via: "ui" }), "Scout")).toBe("You removed 3 lines from MEMORY.md");
     expect(journalSummary(row({ added: 2, removed: 1 }), "Scout")).toBe("Scout rewrote 2 lines in MEMORY.md");
     expect(journalSummary(row({ path: "memory/clients.md", kind: "created", added: 4, beforeHash: null }), "Scout")).toBe(
       "Scout created the clients topic with 4 lines",
     );
     expect(journalSummary(row({ path: "memory/clients.md", kind: "deleted", afterHash: null, actor: "person", via: "ui" }), "Scout")).toBe(
-      "you deleted the clients topic",
+      "You deleted the clients topic",
     );
     expect(journalSummary(row({ path: "memory/log/2026-09-10.md", kind: "created", added: 1 }), "Scout")).toBe(
       "Scout created the 2026-09-10 log with 1 line",
     );
-    expect(journalSummary(row({ actor: "import" }), "Scout")).toBe("an import added 2 lines to MEMORY.md");
-    expect(journalSummary(row({ actor: "upkeep", via: "capture" }), "Scout")).toBe("memory upkeep added 2 lines to MEMORY.md");
+    expect(journalSummary(row({ actor: "import" }), "Scout")).toBe("An import added 2 lines to MEMORY.md");
+    expect(journalSummary(row({ actor: "upkeep", via: "capture" }), "Scout")).toBe("Memory upkeep added 2 lines to MEMORY.md");
   });
 });
 
@@ -140,10 +140,10 @@ describe("journalSource", () => {
 
 describe("small helpers", () => {
   it("labels the file manager by platform", () => {
-    expect(fileManagerLabel("darwin")).toBe("show in finder");
-    expect(fileManagerLabel("win32")).toBe("show in explorer");
-    expect(fileManagerLabel("linux")).toBe("show in file manager");
-    expect(fileManagerLabel(undefined)).toBe("show in file manager");
+    expect(fileManagerLabel("darwin")).toBe("Show in Finder");
+    expect(fileManagerLabel("win32")).toBe("Show in Explorer");
+    expect(fileManagerLabel("linux")).toBe("Show in file manager");
+    expect(fileManagerLabel(undefined)).toBe("Show in file manager");
   });
 
   it("formats bytes the way the rest of settings does", () => {

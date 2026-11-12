@@ -46,7 +46,7 @@ async function newBot(request: never, action: Partial<Extract<Action, { type: "n
 beforeEach(() => { fixture.track.mockReset(); fixture.openBot.mockReset(); });
 afterEach(() => { vi.unstubAllGlobals(); setTeamPeople(null); setTeamChats(null); });
 
-describe("new bot", () => {
+describe("New bot", () => {
   it("leaves a plan's refusal to the popup: no error line beside it, and no onError", async () => {
     const onError = vi.fn();
     const request = vi.fn(async (path: string, init?: RequestInit) => {
@@ -118,12 +118,12 @@ describe("new bot", () => {
   it.each(["POST", "PATCH"] as const)("a failure (%s) shows one plain error and leaves no bot behind", async (on) => {
     const { calls, request } = server({}, { on, error: "this workspace is limited to 200 bots" });
     const sent = await newBot(request);
-    expect(sent).toEqual([{ type: "error", message: "couldn't make a new bot: this workspace is limited to 200 bots" }]);
+    expect(sent).toEqual([{ type: "error", message: "Couldn't make a new bot: this workspace is limited to 200 bots" }]);
     if (on === "PATCH") expect(calls.at(-1)).toMatchObject({ method: "DELETE", path: "/api/bots/created" });
     expect(fixture.track).not.toHaveBeenCalled();
     const onError = vi.fn();
     expect(await newBot(server({}, { on, error: "offline" }).request, { onError })).toEqual([]);
-    expect(onError).toHaveBeenCalledWith("couldn't make a new bot: offline");
+    expect(onError).toHaveBeenCalledWith("Couldn't make a new bot: offline");
   });
 
   it("starts a bot whose defaults say Auto on this computer on Ask, and says so", async () => {
@@ -131,7 +131,7 @@ describe("new bot", () => {
     const sent = await newBot(request);
     expect(calls.find((call) => call.method === "PATCH")!.body).toMatchObject({ approvalMode: "ask" });
     expect(sent.at(-1)).toEqual({ type: "notice", notice: { kind: "note", botName: null,
-      text: "Pixel will ask before acting. to let it act on this computer by itself, choose approve for me in its settings." } });
+      text: "Pixel will ask before acting. To let it act on this computer by itself, choose Approve for me in its settings." } });
   });
 
   it("from a paired device, sends one request and leaves the defaults to the host", async () => {

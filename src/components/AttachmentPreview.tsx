@@ -835,7 +835,7 @@ export function MarkdownImagePreview({
         )}
         {openUrl && (
           <a href={openUrl} target="_blank" rel="noreferrer" className="mt-1 inline-flex text-[11px] text-accent hover:underline">
-            open original
+            Open original
           </a>
         )}
       </span>

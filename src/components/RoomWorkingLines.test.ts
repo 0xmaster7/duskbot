@@ -50,7 +50,7 @@ describe("the room's working phrase", () => {
   it("names two or three bots as a list and calls more of them several", () => {
     expect(roomStatusPhrase(["Nova", "Quill"], "typing")).toBe("Nova and Quill are typing…");
     expect(roomStatusPhrase(["Nova", "Quill", "Rivet"], "working")).toBe("Nova, Quill, and Rivet are working…");
-    expect(roomStatusPhrase(["Nova", "Quill", "Rivet", "Echo"], "working")).toBe("several bots are working…");
+    expect(roomStatusPhrase(["Nova", "Quill", "Rivet", "Echo"], "working")).toBe("Several bots are working…");
   });
 });
 
@@ -63,7 +63,7 @@ describe("the room's working line", () => {
       group: { id: "room", turnStartedAt: 1 },
       members,
       workingIds,
-      speaker: { bot: members[0], visible: speakerVisible, markState, phrases: ["typing…"], phase, since: null },
+      speaker: { bot: members[0], visible: speakerVisible, markState, phrases: ["Typing…"], phase, since: null },
       slot: true,
     })));
     return { host, done: () => { flushSync(() => root.unmount()); host.remove(); } };

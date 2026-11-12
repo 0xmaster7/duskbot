@@ -67,10 +67,10 @@ function AboutSheet({ onClose }: { onClose: () => void }) {
           source-available. free for personal use.
         </p>
         <div className="mt-1.5 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[12px] leading-4">
-          <AboutLink href={DOCS_URL} label="docs" />
-          <AboutLink href={RELEASES_URL} label="releases" />
-          <AboutLink href={LICENSE_URL} label="license" />
-          <a href={THIRD_PARTY_NOTICES_URL} target="_blank" rel="license noopener noreferrer" className={aboutLinkCls}>third-party notices</a>
+          <AboutLink href={DOCS_URL} label="Docs" />
+          <AboutLink href={RELEASES_URL} label="Releases" />
+          <AboutLink href={LICENSE_URL} label="License" />
+          <a href={THIRD_PARTY_NOTICES_URL} target="_blank" rel="license noopener noreferrer" className={aboutLinkCls}>Third-party notices</a>
         </div>
         <button type="button" data-autofocus onClick={copy} className={cn(mdSecondaryCls, "mt-4")}>
           {copied ? t("about.copied") : t("about.copyVersion")}

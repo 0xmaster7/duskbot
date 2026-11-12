@@ -22,7 +22,7 @@ export function widgetDaysCaption(value: string): string {
   if (key === "mon,tue,wed,thu,fri") return t("widget.days.weekdays");
   if (key === "sat,sun") return t("widget.days.weekends");
   if (!picked.length) return t("widget.days.none");
-  return picked.map((day) => widgetDayNames().short[WIDGET_WEEKDAYS.indexOf(day)].toLowerCase()).join(", ");
+  return picked.map((day) => widgetDayNames().short[WIDGET_WEEKDAYS.indexOf(day)]).join(", ");
 }
 
 export function WidgetDayPicker({ node, labelledBy, end = false }: { node: WidgetNode; labelledBy?: string; end?: boolean }) {

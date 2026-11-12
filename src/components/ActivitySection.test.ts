@@ -24,10 +24,10 @@ describe("activity helpers", () => {
   });
 
   it("says what happened in the reader's words", () => {
-    expect(describeEntry(visibility)).toBe("changed who can see a bot: Payroll");
-    expect(describeEntry(approval)).toBe("approved: Bash in Ops");
+    expect(describeEntry(visibility)).toBe("Changed who can see a bot: Payroll");
+    expect(describeEntry(approval)).toBe("Approved: Bash in Ops");
     expect(describeEntry({ ...visibility, action: "future.thing", target: undefined })).toBe("future.thing");
-    expect(whoLabel("command line")).toBe("command line");
+    expect(whoLabel("Command line")).toBe("Command line");
     expect(whoLabel("")).toBe("—");
     expect(formatValue({ people: ["ada@example.test"] })).toBe('{"people":["ada@example.test"]}');
     expect(formatValue(null)).toBe("—");
@@ -38,14 +38,14 @@ describe("activity row", () => {
   it("shows who did what and offers the changed values", () => {
     const html = renderToStaticMarkup(createElement(ActivityRow, { entry: visibility }));
     expect(html).toContain("boss@example.test");
-    expect(html).toContain("changed who can see a bot: Payroll");
-    expect(html).toContain("changed: visibility");
+    expect(html).toContain("Changed who can see a bot: Payroll");
+    expect(html).toContain("Changed: visibility");
     expect(html).toContain('aria-expanded="false"');
   });
 
   it("shows an answered card with its summary", () => {
     const html = renderToStaticMarkup(createElement(ActivityRow, { entry: approval }));
-    expect(html).toContain("approved: Bash in Ops");
+    expect(html).toContain("Approved: Bash in Ops");
     expect(html).toContain("echo hi");
     expect(html).not.toContain("aria-expanded");
   });

@@ -33,8 +33,8 @@ describe("command allowlist menu access", () => {
     const select = vi.fn(), manage = vi.fn();
     render(select, manage).nodes.find((node) => node.props["aria-haspopup"] === "menu")!.props.onClick!();
     const open = render(select, manage);
-    expect(open.html.indexOf("full access")).toBeLessThan(open.html.indexOf("command allowlist"));
-    expect(open.html.indexOf("command allowlist")).toBeLessThan(open.html.indexOf("custom (config.toml)"));
+    expect(open.html.indexOf("Full access")).toBeLessThan(open.html.indexOf("Command allowlist"));
+    expect(open.html.indexOf("Command allowlist")).toBeLessThan(open.html.indexOf("Custom (config.toml)"));
     open.nodes.find((node) => node.props.role === "menuitem")!.props.onClick!();
     expect(manage).toHaveBeenCalledOnce();
     expect(select).not.toHaveBeenCalled();
@@ -45,7 +45,7 @@ describe("command allowlist menu access", () => {
     const select = vi.fn(), manage = vi.fn();
     fixture.open = true;
     const full = render(select, manage).nodes.filter((node) => node.props.role === "menuitemradio")
-      .find((node) => renderToStaticMarkup(node).includes("full access"))!;
+      .find((node) => renderToStaticMarkup(node).includes("Full access"))!;
     full.props.onClick!();
     expect(select).toHaveBeenCalledExactlyOnceWith("full");
     expect(manage).not.toHaveBeenCalled();
@@ -55,18 +55,18 @@ describe("command allowlist menu access", () => {
     const select = vi.fn();
     fixture.open = true;
     const open = render(select, undefined, false);
-    expect(open.html).not.toContain("custom (config.toml)");
-    expect(open.html).toContain("custom approval must be changed in the local packaged desktop app.");
+    expect(open.html).not.toContain("Custom (config.toml)");
+    expect(open.html).toContain("Custom approval must be changed in the local packaged desktop app.");
     expect(open.html).not.toContain("Full and Custom are available in the packaged desktop app.");
     open.nodes.filter((node) => node.props.role === "menuitemradio")
-      .find((node) => renderToStaticMarkup(node).includes("full access"))!.props.onClick!();
+      .find((node) => renderToStaticMarkup(node).includes("Full access"))!.props.onClick!();
     expect(select).toHaveBeenCalledExactlyOnceWith("full");
   });
 
   it("offers the action without trusted modes, and omits it when the caller lacks management authority", () => {
     fixture.open = true;
-    expect(render(vi.fn(), vi.fn(), false).html).toContain("command allowlist");
-    expect(render(vi.fn()).html).not.toContain("command allowlist");
+    expect(render(vi.fn(), vi.fn(), false).html).toContain("Command allowlist");
+    expect(render(vi.fn()).html).not.toContain("Command allowlist");
   });
 
   it("keeps every level selectable while the bot works, and says from when a change applies", () => {
@@ -75,13 +75,13 @@ describe("command allowlist menu access", () => {
     expect(trigger.props.disabled).toBeUndefined();
     trigger.props.onClick!();
     const open = render(select, undefined, true, true);
-    expect(open.html).toContain("the bot is working. a change applies from its next step");
+    expect(open.html).toContain("The bot is working. A change applies from its next step");
     const modes = open.nodes.filter((node) => node.props.role === "menuitemradio");
     expect(modes.length).toBeGreaterThan(0);
     expect(modes.every((mode) => !mode.props.disabled)).toBe(true);
-    modes.find((node) => renderToStaticMarkup(node).includes("full access"))!.props.onClick!();
+    modes.find((node) => renderToStaticMarkup(node).includes("Full access"))!.props.onClick!();
     expect(select).toHaveBeenCalledExactlyOnceWith("full");
     fixture.open = true;
-    expect(render(select).html).not.toContain("the bot is working");
+    expect(render(select).html).not.toContain("The bot is working");
   });
 });

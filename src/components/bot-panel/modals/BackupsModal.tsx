@@ -91,8 +91,8 @@ export function BackupsModal({ bot, derived }: {
                     <span className="flex shrink-0 items-center pr-0.5">
                       {chain.length > 1 && (
                         <>
-                          <RowIconButton reveal icon="arrow-up" data-modal-action="backup-up" label={`move ${name} up`} disabled={index === 0} onClick={() => move(index, index - 1)} />
-                          <RowIconButton reveal icon="arrow-down" data-modal-action="backup-down" label={`move ${name} down`} disabled={index === chain.length - 1} onClick={() => move(index, index + 1)} />
+                          <RowIconButton reveal icon="arrow-up" data-modal-action="backup-up" label={`Move ${name} up`} disabled={index === 0} onClick={() => move(index, index - 1)} />
+                          <RowIconButton reveal icon="arrow-down" data-modal-action="backup-down" label={`Move ${name} down`} disabled={index === chain.length - 1} onClick={() => move(index, index + 1)} />
                         </>
                       )}
                       <RowIconButton

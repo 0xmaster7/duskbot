@@ -40,9 +40,9 @@ afterEach(async () => {
 describe("the Talking style row", () => {
   it("offers the three styles and reads Warm before any is chosen", async () => {
     await show();
-    expect(host.textContent).toContain("talking style");
-    expect(select().getAttribute("aria-label")).toBe("talking style");
-    expect([...select().options].map((option) => [option.value, option.textContent])).toEqual([["casual", "casual"], ["warm", "warm"], ["native", "native"]]);
+    expect(host.textContent).toContain("Talking style");
+    expect(select().getAttribute("aria-label")).toBe("Talking style");
+    expect([...select().options].map((option) => [option.value, option.textContent])).toEqual([["casual", "Casual"], ["warm", "Warm"], ["native", "Native"]]);
     expect(select().value).toBe("warm");
   });
 

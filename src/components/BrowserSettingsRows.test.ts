@@ -22,7 +22,7 @@ vi.mock("@/state/store", () => ({
 let host: HTMLDivElement;
 let root: Root;
 const render = () => flushSync(() => root.render(createElement(NewBrowserSettings)));
-const toggle = () => host.querySelector<HTMLButtonElement>('button[aria-label="use the new browser"]')!;
+const toggle = () => host.querySelector<HTMLButtonElement>('button[aria-label="Use the new browser"]')!;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -74,8 +74,8 @@ describe("New browser setting", () => {
   });
 });
 
-describe("open sites on this server", () => {
-  const sites = () => host.querySelector<HTMLButtonElement>('button[aria-label="open sites on this server"]');
+describe("Open sites on this server", () => {
+  const sites = () => host.querySelector<HTMLButtonElement>('button[aria-label="Open sites on this server"]');
   const show = () => flushSync(() => root.render(createElement(ServerSitesRow)));
   afterEach(() => { owner.value = true; });
 

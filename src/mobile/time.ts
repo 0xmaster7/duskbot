@@ -13,7 +13,7 @@ export function listTime(at: number, now = Date.now()): string {
   const locale = activeLocale();
   const days = Math.round((startOfDay(now) - startOfDay(at)) / DAY);
   if (days <= 0) return new Intl.DateTimeFormat(locale, { hour: "numeric", minute: "2-digit" }).format(at);
-  if (days === 1) return new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(-1, "day");
+  if (days === 1) return new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(-1, "day").replace(/^./, (c) => c.toLocaleUpperCase(locale));
   if (days < 7) return new Intl.DateTimeFormat(locale, { weekday: "long" }).format(at);
   return new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", ...(new Date(at).getFullYear() !== new Date(now).getFullYear() ? { year: "numeric" } : {}) }).format(at);
 }

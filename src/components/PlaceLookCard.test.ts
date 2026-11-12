@@ -56,10 +56,10 @@ it("this computer, by default: plain, nothing chosen, in plain words with no pic
   expect([checked(), tint(), host.querySelector("[data-place-banner]")], "no colour, no tint, no picture: the sidebar as it always was").toEqual([[], null, null]);
   expect(host.querySelector("[data-place-picture]")?.getAttribute("data-place-picture")).toBe("none");
   const words = host.querySelector("[data-sidebar-look]")!.textContent!;
-  for (const said of ["sidebar color", "sidebar picture"]) expect(words).toContain(said);
+  for (const said of ["Sidebar color", "Sidebar picture"]) expect(words).toContain(said);
   expect(words, "no Cloud's words on this computer").not.toMatch(/This computer|place|workspace|Everyone here|admins/i);
-  expect(host.querySelector("[role='radiogroup']")?.getAttribute("aria-label")).toBe("sidebar color");
-  expect([swatch("slate").getAttribute("aria-label"), swatch("slate").disabled, button("use an image")?.disabled], "None, and both changeable here").toEqual(["none", false, false]);
+  expect(host.querySelector("[role='radiogroup']")?.getAttribute("aria-label")).toBe("Sidebar color");
+  expect([swatch("slate").getAttribute("aria-label"), swatch("slate").disabled, button("Use an image")?.disabled], "None, and both changeable here").toEqual(["None", false, false]);
 });
 
 it("this computer takes a colour and a picture, both shown at once; None and Remove make it plain again", async () => {
@@ -70,7 +70,7 @@ it("this computer takes a colour and a picture, both shown at once; None and Rem
   expect(tint(), "the sidebar takes it at once").toContain("var(--identity-teal)");
   await click(swatch("slate"));
   expect(workspaces.color).toHaveBeenLastCalledWith("slate");
-  expect([checked(), tint()], "none: no tint, and nothing chosen, as at first").toEqual([[], null]);
+  expect([checked(), tint()], "None: no tint, and nothing chosen, as at first").toEqual([[], null]);
 
   const input = host.querySelector("[data-place-picture-input]") as HTMLInputElement;
   const file = new File(["png"], "beach.png", { type: "image/png" });
@@ -83,14 +83,14 @@ it("this computer takes a colour and a picture, both shown at once; None and Rem
   const kept = await page({ ...COMPUTER, color: "teal", swatch: "green" }, { own: true, banner: SET });
   expect(host.querySelector("[data-place-banner] img")?.getAttribute("src"), "the server's word on the picture: the sidebar shows it").toBe("/api/workspace/banner?v=v1");
   expect(host.querySelector("[data-place-tint]")?.hasAttribute("data-under-banner"), "the colour waits under it").toBe(true);
-  expect(host.querySelector("[data-place-picture] img")?.getAttribute("alt"), "and Settings shows it").toBe("current picture");
-  await click(button("remove")!);
-  expect(kept.pictures.remove, "remove asks this computer's server to forget it").toHaveBeenCalled();
+  expect(host.querySelector("[data-place-picture] img")?.getAttribute("alt"), "and Settings shows it").toBe("Current picture");
+  await click(button("Remove")!);
+  expect(kept.pictures.remove, "Remove asks this computer's server to forget it").toHaveBeenCalled();
 });
 
 it("a solo Cloud's owner changes both its colour (on the Admin) and its picture", async () => {
   const { workspaces } = await page(look({ name: "My Cloud", color: null, swatch: null }));
-  expect([swatch("rose").disabled, button("use an image")?.disabled]).toEqual([false, false]);
+  expect([swatch("rose").disabled, button("Use an image")?.disabled]).toEqual([false, false]);
   await click(swatch("rose"));
   expect(workspaces.color).toHaveBeenCalledWith("rose");
   expect(checked()).toEqual(["rose"]);
@@ -112,19 +112,19 @@ it("choosing a swatch saves it through main, and the tint follows at once", asyn
 it("a team member sees the team's colour and picture and who may change them, and their clicks change nothing", async () => {
   const { workspaces, pictures } = await page(look({ name: "Acme", change: null, reason: "member" }), { owner: false, banner: SET });
   expect([...host.querySelectorAll("[data-swatch]")].every((candidate) => (candidate as HTMLButtonElement).disabled)).toBe(true);
-  expect(host.querySelector('[data-place-look="locked"]')?.textContent).toContain("only its admins can change its color.");
+  expect(host.querySelector('[data-place-look="locked"]')?.textContent).toContain("Only its admins can change its color.");
   await click(swatch("rose"));
   expect(workspaces.color).not.toHaveBeenCalled();
   expect(tint(), "they still see it").toContain("var(--identity-teal)");
-  expect([button("change image")?.disabled, button("remove")?.disabled]).toEqual([true, true]);
-  expect(host.querySelector("[data-place-picture]")?.textContent).toContain("only its admins can change its picture.");
-  await click(button("remove")!);
+  expect([button("Change image")?.disabled, button("Remove")?.disabled]).toEqual([true, true]);
+  expect(host.querySelector("[data-place-picture]")?.textContent).toContain("Only its admins can change its picture.");
+  await click(button("Remove")!);
   expect(pictures.remove).not.toHaveBeenCalled();
   expect(host.querySelector("[data-place-banner] img"), "they see the picture").toBeTruthy();
 });
 
 it("the Admin's refusal, an Admin without the route, and a failure: said plainly, and the colour stays", async () => {
-  for (const [outcome, words] of [["refused", "only its admins can change its color."], ["unsupported", "this cloud's color can't be changed from the app yet."], ["failed", "the color wasn't saved. try again."]] as const) {
+  for (const [outcome, words] of [["refused", "Only its admins can change its color."], ["unsupported", "This Cloud's color can't be changed from the app yet."], ["failed", "The color wasn't saved. Try again."]] as const) {
     await act(async () => root?.unmount());
     await page(look(), { answer: () => ({ outcome, look: look() }) });
     await click(swatch("rose"));
@@ -135,7 +135,7 @@ it("the Admin's refusal, an Admin without the route, and a failure: said plainly
 
 it("another Cloud of the person's own while the dusk cloud sign-in is away: locked, and says why", async () => {
   await page(look({ change: null, reason: "signed-out" }));
-  expect(host.querySelector('[data-place-look="locked"]')?.textContent).toContain("sign in to dusk cloud to change its color.");
+  expect(host.querySelector('[data-place-look="locked"]')?.textContent).toContain("Sign in to dusk cloud to change its color.");
   expect(swatch("rose").disabled).toBe(true);
 });
 
@@ -144,7 +144,7 @@ it("a browser or an older app: no colour and no tint, only the place's picture",
   expect(host.querySelector("[data-swatch]")).toBeNull();
   expect(host.querySelector("[data-place-tint]")).toBeNull();
   expect(host.querySelector("[data-place-picture]")).toBeTruthy();
-  expect(host.textContent).toContain("sidebar picture");
+  expect(host.textContent).toContain("Sidebar picture");
   await act(async () => root?.unmount());
   vi.resetModules();
   vi.doMock("@/state/store", () => ({ useStore: () => ({ state: { config: {} } }) }));

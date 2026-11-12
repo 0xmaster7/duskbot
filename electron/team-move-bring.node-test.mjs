@@ -78,10 +78,10 @@ test("moves nothing until the person agrees in main's own confirm, which says th
     const answer = await handlers.get("cloud-send:team-bring-move")(OWN, "atlas-bot-1");
     assert.deepEqual(answer, { started: false, move: null });
     assert.equal(journal.value, null);
-    assert.equal(asked[0].message, "move Atlas to Acme?");
+    assert.equal(asked[0].message, "Move Atlas to Acme?");
     assert.match(asked[0].detail, /no way back/);
     assert.match(asked[0].detail, /what Atlas remembers, your connections, and dusk/);
-    assert.deepEqual(asked[0].buttons, ["move to Acme", "cancel"]);
+    assert.deepEqual(asked[0].buttons, ["Move to Acme", "Cancel"]);
   } finally { done(); }
 });
 

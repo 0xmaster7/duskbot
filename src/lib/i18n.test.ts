@@ -32,19 +32,19 @@ describe("resolveLocale", () => {
 
 describe("t", () => {
   it("returns the English catalog value by default", () => {
-    expect(t("engines.cloud")).toBe("cloud");
+    expect(t("engines.cloud")).toBe("Cloud");
   });
 
   it("fills {app} with the product's name or the name a caller passes", () => {
-    expect(t("routines.runsOn.localHint")).toBe("starts while dusk bot is open here.");
-    expect(t("routines.runsOn.localHint", { app: "Acme" })).toBe("starts while Acme is open here.");
+    expect(t("routines.runsOn.localHint")).toBe("Starts while dusk bot is open here.");
+    expect(t("routines.runsOn.localHint", { app: "Acme" })).toBe("Starts while Acme is open here.");
   });
 
   it("setLocale reports the locale that actually took effect", () => {
     expect(setLocale("de-AT")).toBe("de");
     expect(t("engines.local")).toBe("Lokal");
     expect(setLocale("xx-YY")).toBe("en");
-    expect(t("engines.local")).toBe("local");
+    expect(t("engines.local")).toBe("Local");
   });
 
   it("resolves every registered locale to itself", () => {
@@ -102,7 +102,7 @@ describe("t", () => {
     try {
       expect(setLocale("zz")).toBe("zz");
       expect(t("engines.cloud")).toBe("Wolke");
-      expect(t("engines.local")).toBe("local");
+      expect(t("engines.local")).toBe("Local");
     } finally {
       delete locales["zz"];
       setLocale("en");
@@ -124,7 +124,7 @@ describe("tFromServer", () => {
     locales["zz"] = { "approval.held.native": "Der Anbieter verlangt deine Zustimmung." };
     try {
       setLocale("zz");
-      expect(tFromServer("approval.held.native", "the provider requires your approval for this action."))
+      expect(tFromServer("approval.held.native", "The provider requires your approval for this action."))
         .toBe("Der Anbieter verlangt deine Zustimmung.");
     } finally {
       delete locales["zz"];
@@ -193,7 +193,7 @@ describe("loading a language", () => {
     });
     const page = await import("./i18n");
     expect(await page.loadLocale("fr")).toBe("en");
-    expect(page.t("rail.thisComputer")).toBe("this computer");
+    expect(page.t("rail.thisComputer")).toBe("This computer");
     offline = false;
     expect(await page.loadLocale("fr")).toBe("fr");
     expect(page.t("rail.thisComputer")).toBe("Cet ordinateur");

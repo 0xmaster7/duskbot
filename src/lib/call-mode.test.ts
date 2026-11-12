@@ -14,18 +14,18 @@ describe("call mode", () => {
     expect(parseCallMode(null)).toBe("turns");
     expect(parseCallMode("live")).toBe("live");
     expect(parseCallMode("LIVE")).toBe("turns");
-    expect(CALL_MODES.map((mode) => t(mode.label))).toEqual(["take turns", "live"]);
+    expect(CALL_MODES.map((mode) => t(mode.label))).toEqual(["Take turns", "Live"]);
   });
 
   it("says, where Live is chosen, what a Live call sends to OpenAI", () => {
     const live = callModeHint("live");
-    expect(live).toContain("a live call sends your voice to OpenAI, along with the chat's recent messages, the bot's answers and the details of any approval it asks for. the OpenAI key stays on your computer.");
-    expect(callModeHint("turns")).toBe("you talk, then the bot answers in its own voice. listening stays on this computer.");
+    expect(live).toContain("A Live call sends your voice to OpenAI, along with the chat's recent messages, the bot's answers and the details of any approval it asks for. The OpenAI key stays on your computer.");
+    expect(callModeHint("turns")).toBe("You talk, then the bot answers in its own voice. Listening stays on this computer.");
   });
 
   it("says the OpenAI key stays on the Cloud when the chat is on the person's Cloud", () => {
     const live = callModeHint("live", { cloudHome: true });
-    expect(live).toContain("a live call sends your voice to OpenAI, along with the chat's recent messages, the bot's answers and the details of any approval it asks for. the OpenAI key stays in the cloud.");
+    expect(live).toContain("A Live call sends your voice to OpenAI, along with the chat's recent messages, the bot's answers and the details of any approval it asks for. The OpenAI key stays in the Cloud.");
     expect(live).not.toContain("your computer");
     expect(liveDisclosure({ cloudHome: true })).toBe(t("call.live.disclosureCloud"));
     expect(liveDisclosure({ cloudHome: false })).toBe(t("call.live.disclosure"));

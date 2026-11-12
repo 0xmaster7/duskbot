@@ -43,17 +43,17 @@ afterEach(() => {
 describe("Kimi on My Cloud, which has no terminal", () => {
   it("installs from Settings, with Moonshot's command only to copy", () => {
     const html = render(missing, desktop, true);
-    expect(html).toContain("install Kimi here");
-    expect(html).toContain("prefer a terminal?");
+    expect(html).toContain("Install Kimi here");
+    expect(html).toContain("Prefer a terminal?");
     expect(html).toContain(CURL);
-    expect(html).not.toContain("open install in Terminal");
+    expect(html).not.toContain("Open install in Terminal");
   });
 
   it("signs in with Kimi's code on the server's page, with no terminal command", () => {
     const html = render(signedOut, desktop, true);
     expect(html).toContain('data-device-sign-in="kimi"');
-    expect(html).toContain("sign in with your Kimi Code membership so your bots can use Kimi");
-    expect(html).toContain("sign in to Kimi");
+    expect(html).toContain("Sign in with your Kimi Code membership so your bots can use Kimi");
+    expect(html).toContain("Sign in to Kimi");
     expect(html).not.toContain("kimi login");
   });
 });
@@ -61,6 +61,6 @@ describe("Kimi on My Cloud, which has no terminal", () => {
 it("keeps `kimi login` behind Prefer a terminal? in the desktop app's own window", () => {
   const html = render(signedOut, desktop);
   expect(html).toContain('data-device-sign-in="kimi"');
-  expect(html).toContain("prefer a terminal?");
+  expect(html).toContain("Prefer a terminal?");
   expect(html).toContain("kimi login");
 });

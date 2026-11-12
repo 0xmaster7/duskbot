@@ -43,7 +43,7 @@ it("in the app on another server, says the update is that server's, for whoever 
   const workspaces = { state: vi.fn(async () => ({ local: false, name: "Office Mac", origin: "https://bots.example.test" })) };
   expect(await checkedRow({ duskDesktop: { app: { version: "0.1.127", ownPage: false }, workspaces }, location: { host: "bots.example.test" } })).toEqual({
     label: "Office Mac can update to 0.1.127",
-    subtitle: "whoever runs that server updates it with: npm install -g duskbot@latest, then restarts it",
+    subtitle: "Whoever runs that server updates it with: npm install -g duskbot@latest, then restarts it",
     attention: true,
   });
 });
@@ -56,8 +56,8 @@ it("names the server by its address until the app says its saved name", async ()
 
 it("keeps today's row in a browser on that server and in the app on this computer", async () => {
   const today = {
-    label: "version 0.1.127 available (release notes)",
-    subtitle: "update with: npm install -g duskbot@latest, then restart the app",
+    label: "Version 0.1.127 available (release notes)",
+    subtitle: "Update with: npm install -g duskbot@latest, then restart the app",
     attention: true,
   };
   expect(await checkedRow({ location: { host: "bots.example.test" } })).toEqual(today);

@@ -21,13 +21,13 @@ const nodes = (value: ReactNode): Node[] => !isValidElement(value) ? [] : [value
 it("says one plain thing, names OpenAI, and offers only the way to Settings → API keys", () => {
   const html = renderToStaticMarkup(createElement(LiveKeyNeeded));
   expect(html).toContain('<h2 id="live-key-title"');
-  expect(html).toContain("live calls use your own OpenAI key. add it in settings → API keys.");
-  expect(html).toContain(">open API keys</button>");
+  expect(html).toContain("Live calls use your own OpenAI key. Add it in Settings → API keys.");
+  expect(html).toContain(">Open API keys</button>");
   expect(html.match(/<button/g)).toHaveLength(1);
-  expect(html).toContain("the OpenAI key stays on your computer.");
+  expect(html).toContain("The OpenAI key stays on your computer.");
   for (const gone of ["Pro", "plan", "<input", "$15"]) expect(html).not.toContain(gone);
   f.cloudHome = true;
-  expect(renderToStaticMarkup(createElement(LiveKeyNeeded))).toContain("the OpenAI key stays in the cloud.");
+  expect(renderToStaticMarkup(createElement(LiveKeyNeeded))).toContain("The OpenAI key stays in the Cloud.");
 });
 
 it("opens Settings at the OpenAI key in Voice and calls, and puts the prompt away", () => {
@@ -45,12 +45,12 @@ it("opens Settings at the OpenAI key in Voice and calls, and puts the prompt awa
 it("with Azure chosen, asks for the endpoint, deployment and resource key in place, and names Azure rather than OpenAI", () => {
   f.live = { configured: false, provider: "azure", azureEndpoint: "https://my-res.openai.azure.com", voice: "", readTypedReplies: true, idleMinutes: 5 };
   const html = renderToStaticMarkup(createElement(LiveKeyNeeded));
-  expect(html).toContain("live calls through Azure OpenAI need the resource endpoint");
+  expect(html).toContain("Live calls through Azure OpenAI need the resource endpoint");
   expect(html).toContain('value="https://my-res.openai.azure.com"');
   expect(html).toContain('placeholder="gpt-live-1"');
-  expect(html).toContain('aria-label="Azure OpenAI key for live calls"');
-  expect(html).toContain("the Azure key stays on your computer.");
-  expect(html).not.toContain("open API keys");
+  expect(html).toContain('aria-label="Azure OpenAI key for Live calls"');
+  expect(html).toContain("The Azure key stays on your computer.");
+  expect(html).not.toContain("Open API keys");
   expect(html).not.toContain("OpenAI key stays");
 });
 
@@ -58,5 +58,5 @@ it("with Azure chosen and no endpoint yet, asks for the endpoint first: a key is
   f.live = { configured: false, provider: "azure", voice: "", readTypedReplies: true, idleMinutes: 5 };
   const html = renderToStaticMarkup(createElement(LiveKeyNeeded));
   expect(html).toContain('placeholder="https://my-resource.openai.azure.com"');
-  expect(html).not.toContain('aria-label="Azure OpenAI key for live calls"');
+  expect(html).not.toContain('aria-label="Azure OpenAI key for Live calls"');
 });

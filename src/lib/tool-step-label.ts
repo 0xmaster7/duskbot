@@ -56,7 +56,7 @@ const STEP_KEYS: Record<string, LocaleKey> = {
 
 function sentence(words: string): string {
   const flat = words.replace(/\s+/g, " ").trim();
-  return flat;
+  return flat ? flat[0]!.toLocaleUpperCase() + flat.slice(1) : flat;
 }
 
 /** Whose own app or MCP server a step used, after its label: "Fetch emails · using Ada's Gmail". */

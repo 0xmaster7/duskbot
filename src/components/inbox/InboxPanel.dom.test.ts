@@ -62,7 +62,7 @@ describe("the inbox panel", () => {
     expect(document.querySelector(`[data-inbox-reading="${messageRow.id}"]`)?.textContent).toContain("The launch moved to Friday.");
     expect(server.calls).toContainEqual({ path: `/api/inbox/${messageRow.id}/read`, method: "POST" });
     expect(document.querySelector("textarea"), "a message that waits on an answer takes a reply").not.toBeNull();
-    await click('[aria-label="back to the list"]');
+    await click('[aria-label="Back to the list"]');
     expect(listed()).toEqual([approvalRow.id, questionRow.id, messageRow.id, reportRow.id]);
   });
 
@@ -109,7 +109,7 @@ describe("the inbox's card in the chat", () => {
     const caughtUp = inboxView([messageRow, reportRow, { ...settledRow }]);
     shown({ ...caughtUp, anchor: settledRow.id });
     await mount(lines([settledRow.id, reportRow.id, messageRow.id]));
-    expect(document.querySelector('[data-inbox-card="caught-up"]')?.textContent).toContain("all caught up · 2 for your info");
+    expect(document.querySelector('[data-inbox-card="caught-up"]')?.textContent).toContain("All caught up · 2 for your info");
     const later = { ...approvalRow, id: "line-later" };
     await act(async () => { shown({ ...inboxView([later, messageRow, reportRow, settledRow]), anchor: later.id }); });
     await mount(lines([settledRow.id, reportRow.id, messageRow.id, later.id]));

@@ -398,7 +398,7 @@ describe("phone setup flow", () => {
 
     const success = phoneSetupReducer(started, {
       type: "paired",
-      deviceName: device?.name ?? "phone",
+      deviceName: device?.name ?? "Phone",
     });
     expect(
       derivePhoneSetupPhase(success, {
@@ -461,7 +461,7 @@ describe("phone setup flow", () => {
   it("turns a disabled start result into a stable actionable error", () => {
     expect(companionStartFailure({ enabled: true })).toBeNull();
     // never a pointer to a Settings section that does not exist
-    expect(companionStartFailure({ enabled: false })).toBe("remote access could not start. try turning remote access on again.");
+    expect(companionStartFailure({ enabled: false })).toBe("Remote access could not start. Try turning Remote access on again.");
     expect(companionStartFailure({ enabled: false, error: "Port 8811 is already in use" })).toBe(
       "Port 8811 is already in use",
     );
@@ -479,7 +479,7 @@ describe("phone setup flow", () => {
       pairing: fresh,
     }, null, 1_000)).toBeNull();
     expect(companionPairingOpenFailure({ enabled: true, pairing: null }, null, 1_000)).toContain(
-      "device pairing did not open",
+      "Device pairing did not open",
     );
     expect(companionPairingOpenFailure({
       enabled: true,
@@ -489,11 +489,11 @@ describe("phone setup flow", () => {
     expect(companionPairingOpenFailure({
       enabled: true,
       pairing: fresh,
-    }, token, 1_000)).toContain("device pairing did not open");
+    }, token, 1_000)).toContain("Device pairing did not open");
     expect(companionPairingOpenFailure({
       enabled: true,
       pairing: { ...fresh, expiresAt: 999 },
-    }, null, 1_000)).toContain("device pairing did not open");
+    }, null, 1_000)).toContain("Device pairing did not open");
   });
 
   it("unwraps Electron IPC account errors without exposing channel machinery", () => {
@@ -502,9 +502,9 @@ describe("phone setup flow", () => {
       new Error(
         `Error invoking remote method 'companion-account:request-code': Error: The secure connection request was not allowed. Try signing in again. Reference: ${requestId}.`,
       ),
-      "we could not send the code. try again.",
+      "We could not send the code. Try again.",
     );
-    expect(message).toBe(`we could not send the code. try again. reference: ${requestId}.`);
+    expect(message).toBe(`We could not send the code. Try again. Reference: ${requestId}.`);
     expect(message).not.toContain("remote method");
     expect(message).not.toContain("companion-account");
   });
@@ -519,7 +519,7 @@ describe("phone setup flow", () => {
         "We could not finish setup. Try again.",
       ),
     ).toBe(
-      `Secure HTTPS links are temporarily full. Try again in 10 minutes, or pair on this Wi-Fi or with Tailscale. reference: ${requestId}.`,
+      `Secure HTTPS links are temporarily full. Try again in 10 minutes, or pair on this Wi-Fi or with Tailscale. Reference: ${requestId}.`,
     );
   });
 
@@ -533,15 +533,15 @@ describe("phone setup flow", () => {
         ),
         "We could not finish setup. Try again.",
       ),
-    ).toBe(`${busy} reference: ${requestId}.`);
+    ).toBe(`${busy} Reference: ${requestId}.`);
   });
 
   it("replaces arbitrary IPC details with calm setup copy", () => {
     expect(
       normalizePhoneSetupActionError(
         new Error("Error invoking remote method 'companion-account:request-code': Error: /private/keychain failed"),
-        "we could not send the code. try again.",
+        "We could not send the code. Try again.",
       ),
-    ).toBe("we could not send the code. try again.");
+    ).toBe("We could not send the code. Try again.");
   });
 });

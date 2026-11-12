@@ -63,7 +63,7 @@ describe("file grants in the visible conversation", () => {
 
   it("uses only the visible branch", () => {
     const references = sharedFileReferences(bot([
-      reply("root", "start"),
+      reply("root", "Start"),
       reply("other", "[hidden](/workspace/report.md)", { parentId: "root" }),
       reply("visible", "[report](report.md)", { parentId: "root" }),
     ], { activeLeafId: "visible" }));
@@ -145,7 +145,7 @@ describe("recent file actions", () => {
   let root: Root;
   let container: HTMLDivElement;
   const render = (value: Bot) => flushSync(() => root.render(createElement(ComputerFilesPane, { bot: value })));
-  const saveButton = (name: string) => container.querySelector<HTMLButtonElement>(`button[aria-label="save a copy of ${name}"]`);
+  const saveButton = (name: string) => container.querySelector<HTMLButtonElement>(`button[aria-label="Save a copy of ${name}"]`);
 
   beforeEach(() => {
     container = document.createElement("div");
@@ -167,10 +167,10 @@ describe("recent file actions", () => {
       digest(["/workspace/data.csv", "/workspace/unshared.txt"]),
     ]));
     expect(saveButton("data.csv")).not.toBeNull();
-    expect(container.querySelector('button[aria-label="preview table: data.csv"]')).not.toBeNull();
+    expect(container.querySelector('button[aria-label="Preview table: data.csv"]')).not.toBeNull();
     expect(saveButton("unshared.txt")).toBeNull();
-    expect(container.textContent).toContain("not shared");
-    expect(container.querySelector('[title="ask the bot to share a file link in this chat to save a copy."]')).not.toBeNull();
+    expect(container.textContent).toContain("Not shared");
+    expect(container.querySelector('[title="Ask the bot to share a file link in this chat to save a copy."]')).not.toBeNull();
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -184,7 +184,7 @@ describe("recent file actions", () => {
     const download = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
     render(bot([reply("message / 1", `[report](${href})`), digest(["/workspace/release notes#1.md"])], { threadId: "thread / 1" }));
     saveButton("release notes#1.md")!.click();
-    await vi.waitFor(() => expect(container.textContent).toContain("downloaded"));
+    await vi.waitFor(() => expect(container.textContent).toContain("Downloaded"));
     expect(fetch).toHaveBeenCalledWith("/api/threads/thread%20%2F%201/messages/message%20%2F%201/file", expect.objectContaining({
       method: "POST", body: JSON.stringify({ path: href, listFolder: true }),
     }));

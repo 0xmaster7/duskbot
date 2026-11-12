@@ -94,9 +94,9 @@ describe("the phone composer", () => {
     openPlus();
     const keys = [...menu()!.querySelectorAll("[data-menu-key]")].map((row) => row.getAttribute("data-menu-key"));
     expect(keys.slice(0, 3)).toEqual(["attach:photos", "attach:camera", "attach"]);
-    expect(item("attach:photos")?.textContent).toContain("photo library");
-    expect(item("attach:camera")?.textContent).toContain("take photo");
-    expect(item("attach")?.textContent).toContain("files");
+    expect(item("attach:photos")?.textContent).toContain("Photo library");
+    expect(item("attach:camera")?.textContent).toContain("Take photo");
+    expect(item("attach")?.textContent).toContain("Files");
     const opened: HTMLInputElement[] = [];
     vi.spyOn(HTMLInputElement.prototype, "click").mockImplementation(function (this: HTMLInputElement) { opened.push(this); });
     click(item("attach:camera"));
@@ -112,11 +112,11 @@ describe("the phone composer", () => {
     expect(opened[2]?.hasAttribute("capture")).toBe(false);
   });
 
-  it("edit on a failed send puts its words back in the field, focused with the cursor at the end", async () => {
+  it("Edit on a failed send puts its words back in the field, focused with the cursor at the end", async () => {
     const draftId = `bot:${bot.id}:${bot.threadId}`;
     rememberFailedComposerSend(draftId, { sendId: "lost", text: "ship it friday", requestText: "ship it friday", threadId: bot.threadId });
     render({ bot });
-    expect(container.textContent).toContain("not sent");
+    expect(container.textContent).toContain("Not sent");
     click(container.querySelector("[data-failed-edit]"));
     await new Promise((done) => requestAnimationFrame(() => done(null)));
     const field = container.querySelector("textarea")!;

@@ -47,7 +47,7 @@ describe("CommandAllowlistDialog close button", () => {
     vi.stubGlobal("document", { body });
     const onClose = vi.fn();
     const view = render(onClose);
-    const close = view.nodes.find((node) => node.props["aria-label"] === "close command allowlist");
+    const close = view.nodes.find((node) => node.props["aria-label"] === "Close command allowlist");
     expect(close?.type).toBe("button");
     close!.props.onClick!();
     expect(onClose).toHaveBeenCalledOnce();

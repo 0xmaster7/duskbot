@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 // Settings → Bot access in a real DOM: the team's bots, each row opening the Share dialog; the team's people, each with
-// the bots they were added to and a Remove; and a viewer's "ask Ada to chat".
+// the bots they were added to and a Remove; and a viewer's "Ask Ada to chat".
 import { createElement } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
@@ -81,17 +81,17 @@ afterEach(() => {
 it("lists each team bot once with who looks after it and a plain summary, leaving out each person's own Dusk", async () => {
   await overview();
   expect(botRows().map((row) => row.dataset.accessRow)).toEqual(["helpdesk", "payroll"]);
-  expect(document.querySelector('[data-access-row="payroll"]')!.textContent).toContain("looked after by Cara");
-  expect(summaryOf("payroll")).toBe("only people added");
-  expect(summaryOf("helpdesk")).toBe("everyone can use it");
+  expect(document.querySelector('[data-access-row="payroll"]')!.textContent).toContain("Looked after by Cara");
+  expect(summaryOf("payroll")).toBe("Only people added");
+  expect(summaryOf("helpdesk")).toBe("Everyone can use it");
   expect(document.querySelector("[data-access-overview] table, [data-access-overview] select")).toBeNull();
 });
 
 it("says nobody looks after a bot nobody owns yet", async () => {
   server.bots = [bot({ id: "orphan", name: "Orphan", createdBy: undefined, access: { everyone: "view", people: {} } })];
   await overview();
-  expect(document.querySelector('[data-access-row="orphan"]')!.textContent).toContain("nobody looks after it yet");
-  expect(summaryOf("orphan"), "one column: a stored level reads the same").toBe("everyone can use it");
+  expect(document.querySelector('[data-access-row="orphan"]')!.textContent).toContain("Nobody looks after it yet");
+  expect(summaryOf("orphan"), "one column: a stored level reads the same").toBe("Everyone can use it");
 });
 
 it("stacks up to four faces of those with their own access, then +N, naming them all", async () => {
@@ -113,7 +113,7 @@ it("opens the bot's Share dialog from its row, and a change there applies at onc
   await choose("Bob's access", "remove");
   expect(server.calls.at(-1)).toEqual({ path: "/api/bots/payroll/access", body: { everyone: "none", people: {} } });
   const toast = document.querySelector<HTMLElement>("[data-access-toast]")!;
-  expect(toast.textContent).toContain("removed Bob");
+  expect(toast.textContent).toContain("Removed Bob");
   toast.querySelector("button")!.click();
   await settle();
   expect(server.calls.at(-1)).toEqual({ path: "/api/bots/payroll/access", body: payroll.access });
@@ -127,7 +127,7 @@ it("searches bots by name and by owner, and says when nothing matches", async ()
   expect(botRows().map((row) => row.dataset.accessRow)).toEqual(["payroll"]);
   await search("zzz");
   expect(botRows()).toEqual([]);
-  expect(document.querySelector("[data-access-overview]")!.textContent).toContain("no bot matches");
+  expect(document.querySelector("[data-access-overview]")!.textContent).toContain("No bot matches");
 });
 
 it("lists every User by person with how many bots they have, and the search follows", async () => {
@@ -140,7 +140,7 @@ it("lists every User by person with how many bots they have, and the search foll
   await search("dan@");
   expect([...document.querySelectorAll<HTMLElement>("[data-access-person]")].map((row) => row.dataset.accessPerson)).toEqual([DAN.email]);
   await search("zzz");
-  expect(document.querySelector("[data-access-overview]")!.textContent).toContain("nobody in the team matches");
+  expect(document.querySelector("[data-access-overview]")!.textContent).toContain("Nobody in the team matches");
 });
 
 it("shows a person's bots with a Remove on each they were added to, Undo after it, and goes back to their row", async () => {
@@ -149,7 +149,7 @@ it("shows a person's bots with a Remove on each they were added to, Undo after i
   await openPerson(BOB.email);
   expect([...document.querySelectorAll<HTMLElement>("[data-access-person-bot]")].map((row) => row.dataset.accessPersonBot)).toEqual(["helpdesk", "payroll"]);
   expect(document.querySelector('[data-access-person-bot="payroll"]')!.textContent).not.toContain("Can view");
-  document.querySelector<HTMLElement>('button[aria-label="remove Bob from Payroll"]')!.click();
+  document.querySelector<HTMLElement>('button[aria-label="Remove Bob from Payroll"]')!.click();
   await settle();
   expect(server.calls.at(-1)).toEqual({ path: "/api/bots/payroll/access", body: { everyone: "none", people: {} } });
   const toast = document.querySelector<HTMLElement>("[data-access-toast]")!;
@@ -167,20 +167,20 @@ it("offers no Remove for access that comes from everyone, and says who looks aft
   await byPerson();
   await openPerson(BOB.email);
   const shared = document.querySelector('[data-access-person-bot="helpdesk"]')!;
-  expect(shared.textContent).toContain("everyone in Acme can use it");
+  expect(shared.textContent).toContain("Everyone in Acme can use it");
   expect(shared.querySelector("button")).toBeNull();
   document.querySelector<HTMLElement>("[data-access-back]")!.click();
   await settle();
   await openPerson(CARA.email);
   const owned = document.querySelector('[data-access-person-bot="payroll"]')!;
-  expect(owned.textContent).toContain("looks after it");
+  expect(owned.textContent).toContain("Looks after it");
   expect(owned.querySelector("button")).toBeNull();
 });
 
 it("says so when there are no bots, nobody but admins, or a person with no bots", async () => {
   server.bots = [];
   await overview();
-  expect(document.querySelector("[data-access-overview]")!.textContent).toContain("there are no team bots yet.");
+  expect(document.querySelector("[data-access-overview]")!.textContent).toContain("There are no team bots yet.");
   await byPerson();
   await openPerson(BOB.email);
   expect(document.querySelector("[data-access-overview]")!.textContent).toContain("Bob has no bots yet.");
@@ -188,21 +188,21 @@ it("says so when there are no bots, nobody but admins, or a person with no bots"
   await settle();
   setTeamPeople({ people: [{ ...ADA, you: true }], me: { ...ADA, you: true }, admin: true, needsYou: [] });
   await settle();
-  expect(document.querySelector("[data-access-overview]")!.textContent).toContain("nobody but admins is on the team yet.");
+  expect(document.querySelector("[data-access-overview]")!.textContent).toContain("Nobody but admins is on the team yet.");
 });
 
 it("asks the bot's owner by name, then says it asked", async () => {
   server.answer = { asked: [{ email: CARA.email, name: "Cara" }] };
   render(createElement(AskToChat, { bot: payroll }));
   const button = host.querySelector<HTMLButtonElement>("[data-ask-to-chat]")!;
-  expect(button.textContent).toBe("ask Cara to chat");
+  expect(button.textContent).toBe("Ask Cara to chat");
   button.click();
   await settle();
   expect(server.calls).toEqual([{ path: "/api/bots/payroll/access-request", body: {} }]);
-  expect(host.querySelector('[data-ask-to-chat="asked"]')!.textContent).toBe("asked Cara");
+  expect(host.querySelector('[data-ask-to-chat="asked"]')!.textContent).toBe("Asked Cara");
 });
 
 it("asks the admins when nobody on the team owns the bot", () => {
   render(createElement(AskToChat, { bot: bot({ id: "orphan", createdBy: "gone@acme.test" }) }));
-  expect(host.querySelector("[data-ask-to-chat]")!.textContent).toBe("ask an admin to chat");
+  expect(host.querySelector("[data-ask-to-chat]")!.textContent).toBe("Ask an admin to chat");
 });

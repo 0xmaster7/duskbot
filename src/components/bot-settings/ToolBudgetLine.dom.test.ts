@@ -44,8 +44,8 @@ describe("a bot's tool budget", () => {
     render();
     await settle();
     expect(fixture.asked).toEqual(["/api/bots/scout/tool-budget"]);
-    expect(host.querySelector("[data-tool-budget]")?.firstElementChild?.textContent).toBe("its last turn listed 127 of the 128 tools its AI takes at once.");
-    expect(host.querySelector("[data-tool-budget-searched]")?.textContent).toBe("found through tool search instead: sogni and context7");
+    expect(host.querySelector("[data-tool-budget]")?.firstElementChild?.textContent).toBe("Its last turn listed 127 of the 128 tools its AI takes at once.");
+    expect(host.querySelector("[data-tool-budget-searched]")?.textContent).toBe("Found through tool search instead: sogni and context7");
   });
 
   it("leaves out the search line when every server was listed, and shows nothing before a turn ran", async () => {

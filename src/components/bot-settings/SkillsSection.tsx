@@ -62,7 +62,7 @@ export function useManagedSkills(bot: Bot) {
       setAddFromLibrary("");
       setError("");
     } catch (cause) {
-      if (!cancelled?.()) setError(cause instanceof Error ? cause.message : "could not load learned skills.");
+      if (!cancelled?.()) setError(cause instanceof Error ? cause.message : "Could not load learned skills.");
     } finally {
       if (!cancelled?.()) setLoading(false);
     }
@@ -98,7 +98,7 @@ export function useManagedSkills(bot: Bot) {
     try {
       await putAssignments(name);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "could not assign that skill.");
+      setError(cause instanceof Error ? cause.message : "Could not assign that skill.");
     } finally {
       assignmentBusy.current = false;
       setWorking("");
@@ -131,7 +131,7 @@ export function useManagedSkills(bot: Bot) {
       });
       await refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "could not update this skill.");
+      setError(cause instanceof Error ? cause.message : "Could not update this skill.");
     } finally {
       setWorking("");
     }
@@ -150,7 +150,7 @@ export function useManagedSkills(bot: Bot) {
       setReviewing(null);
       await refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "could not enable this skill.");
+      setError(cause instanceof Error ? cause.message : "Could not enable this skill.");
     } finally {
       setWorking("");
     }
@@ -223,10 +223,10 @@ export function SkillReviewDialog({
     >
       <div className="flex max-h-[min(760px,90vh)] w-full max-w-2xl flex-col rounded-2xl bg-card p-5 shadow-2xl">
         <div id="skill-review-title" className="text-[16px] font-semibold text-ink">
-          review {skill.name} before enabling
+          Review {skill.name} before enabling
         </div>
         <div className="mt-1 break-all text-[12px] text-ink-secondary">
-          source: {skill.source}
+          Source: {skill.source}
         </div>
         {skill.warnings.length > 0 && (
           <div className="mt-2 text-[12px] text-warning">
@@ -235,7 +235,7 @@ export function SkillReviewDialog({
         )}
         <pre
           tabIndex={0}
-          aria-label={`full SKILL.md for ${skill.name}`}
+          aria-label={`Full SKILL.md for ${skill.name}`}
           className="mt-3 min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-inset p-3 font-mono text-[12px] leading-relaxed text-ink"
         >
           {text}
@@ -248,7 +248,7 @@ export function SkillReviewDialog({
             onClick={onCancel}
             className="rounded-lg px-4 py-2 text-[13px] font-medium text-ink-secondary hover:bg-raised disabled:opacity-40"
           >
-            cancel
+            Cancel
           </button>
           <button
             type="button"
@@ -256,7 +256,7 @@ export function SkillReviewDialog({
             onClick={onEnable}
             className="rounded-lg bg-ink px-4 py-2 text-[13px] font-semibold text-app disabled:opacity-40"
           >
-            enable reviewed skill
+            Enable reviewed skill
           </button>
         </div>
       </div>
@@ -319,28 +319,28 @@ export function SkillsSection({ bot }: { bot: Bot }) {
   const remove = async (skill: ManagedSkill) => {
     if (skill.origin === "library") {
       if (assignmentBusy.current) return;
-      if (!window.confirm(`unassign “${skill.name}” from this bot? the skill stays in the library.`)) return;
+      if (!window.confirm(`Unassign “${skill.name}” from this bot? The skill stays in the library.`)) return;
       assignmentBusy.current = true;
       setWorking(skill.name);
       setError("");
       try {
         await putAssignments(skill.name, true);
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : "could not unassign that skill.");
+        setError(cause instanceof Error ? cause.message : "Could not unassign that skill.");
       } finally {
         assignmentBusy.current = false;
         setWorking("");
       }
       return;
     }
-    if (!window.confirm(`remove the learned skill “${skill.name}”?`)) return;
+    if (!window.confirm(`Remove the learned skill “${skill.name}”?`)) return;
     setWorking(skill.name);
     setError("");
     try {
       await api(`/api/bots/${bot.id}/skills/${encodeURIComponent(skill.name)}`, { method: "DELETE" });
       await refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "could not remove this skill.");
+      setError(cause instanceof Error ? cause.message : "Could not remove this skill.");
     } finally {
       setWorking("");
     }
@@ -354,7 +354,7 @@ export function SkillsSection({ bot }: { bot: Bot }) {
         : ((await api(`/api/bots/${bot.id}/skills/${encodeURIComponent(skill.name)}`)) as { text?: string });
       setViewing({ name: skill.name, text: result.text ?? "" });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "could not load this skill.");
+      setError(cause instanceof Error ? cause.message : "Could not load this skill.");
     }
   };
 
@@ -370,11 +370,11 @@ export function SkillsSection({ bot }: { bot: Bot }) {
         body: JSON.stringify({ source: trimmed }),
       })) as { installed?: unknown[] };
       const count = (result.installed ?? []).length;
-      setImportMessage(`imported ${count} skill${count === 1 ? "" : "s"} — review and enable below.`);
+      setImportMessage(`Imported ${count} skill${count === 1 ? "" : "s"} — review and enable below.`);
       setSource("");
       await refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "could not import that skill.");
+      setError(cause instanceof Error ? cause.message : "Could not import that skill.");
     } finally {
       setImporting(false);
     }
@@ -472,20 +472,20 @@ export function SkillsSection({ bot }: { bot: Bot }) {
                       </span>
                     )}
                     <div className="mt-0.5 line-clamp-2 text-[12px] text-ink-secondary">{skill.description}</div>
-                    <div className="mt-0.5 text-[11px] text-ink-secondary">used when the bot decides it's relevant</div>
+                    <div className="mt-0.5 text-[11px] text-ink-secondary">Used when the bot decides it's relevant</div>
                   </button>
                   {skill.origin !== "native" && (
                     <Switch
                       checked={skill.enabled}
-                      aria-label={`${skill.enabled ? "disable" : "enable"} ${skill.name}`}
+                      aria-label={`${skill.enabled ? "Disable" : "Enable"} ${skill.name}`}
                       disabled={Boolean(working)}
                       onClick={() => void toggle(skill)}
                     />
                   )}
                   {skill.origin !== "imported" && skill.origin !== "native" && (
                     <button
-                      aria-label={`remove ${skill.name}`}
-                      title="remove skill"
+                      aria-label={`Remove ${skill.name}`}
+                      title="Remove skill"
                       disabled={Boolean(working)}
                       onClick={() => void remove(skill)}
                       className="flex size-8 shrink-0 items-center justify-center rounded-md text-ink-secondary hover:bg-danger/10 hover:text-danger disabled:opacity-40"
@@ -494,7 +494,7 @@ export function SkillsSection({ bot }: { bot: Bot }) {
                     </button>
                   )}
                 </div>
-                <div className="mt-1 truncate text-[11px] text-ink-secondary" title={skill.source}>source: {skill.source}</div>
+                <div className="mt-1 truncate text-[11px] text-ink-secondary" title={skill.source}>Source: {skill.source}</div>
                 {skill.warnings.length > 0 && (
                   <div className="mt-1 text-[11px] text-warning">{skill.warnings.join(" · ")}</div>
                 )}
@@ -542,12 +542,12 @@ export function SkillsSection({ bot }: { bot: Bot }) {
                 onClick={() => setViewing(null)}
                 className="rounded-md px-2 py-1 text-[13px] text-ink-secondary hover:bg-control hover:text-ink"
               >
-                close
+                Close
               </button>
             </div>
             <pre
               tabIndex={0}
-              aria-label={`full SKILL.md for ${viewing.name}`}
+              aria-label={`Full SKILL.md for ${viewing.name}`}
               className="mt-3 min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-inset p-3 font-mono text-[12px] leading-relaxed text-ink"
             >
               {viewing.text}

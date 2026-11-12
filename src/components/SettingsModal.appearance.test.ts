@@ -107,38 +107,38 @@ describe("Settings → General → Appearance", () => {
   it("draws Grok's Appearance card: Theme, Accent and Language, with no Advanced mode switch", () => {
     fixture.section = "general";
     const html = render();
-    expect(trigger(html, "theme")).toBeTruthy();
-    expect(trigger(html, "accent")).toBe("neutral");
-    expect(trigger(html, "language")).toBeTruthy();
-    expect(html).not.toContain('aria-label="advanced mode"');
+    expect(trigger(html, "Theme")).toBeTruthy();
+    expect(trigger(html, "Accent")).toBe("Neutral");
+    expect(trigger(html, "Language")).toBeTruthy();
+    expect(html).not.toContain('aria-label="Advanced mode"');
   });
 
   it("shows the bot's colour as the Accent once chosen", () => {
     fixture.section = "general";
     fixture.colorUserBubbles = true;
-    expect(trigger(render(), "accent")).toBe("bot color");
+    expect(trigger(render(), "Accent")).toBe("Bot color");
   });
 
   it("keeps the app language reachable from a paired remote client", () => {
     fixture.section = "general";
     vi.stubGlobal("window", { duskDesktop: { remoteClient: { active: true } } });
     const html = render();
-    expect(html).toContain('aria-label="language"');
-    expect(html).not.toContain('aria-label="advanced mode"');
+    expect(html).toContain('aria-label="Language"');
+    expect(html).not.toContain('aria-label="Advanced mode"');
   });
 
   it("has no Advanced mode switch in Builder Controls: there is one layout", () => {
     fixture.section = "builder";
-    expect(render()).not.toContain('aria-label="advanced mode"');
+    expect(render()).not.toContain('aria-label="Advanced mode"');
   });
 
   it("folds the old Looks page into Appearance: the skins sit in the Theme select, with nothing about pins, fonts, widths or tool calls", () => {
-    expect(themeOptions().map((option) => option.label)).toEqual(expect.arrayContaining(["follow system", "light", "dark", "midnight", "halloween"]));
-    expect(themeOptions().map((option) => option.label)).not.toContain("grok dark");
+    expect(themeOptions().map((option) => option.label)).toEqual(expect.arrayContaining(["Follow System", "Light", "Dark", "Midnight", "Halloween"]));
+    expect(themeOptions().map((option) => option.label)).not.toContain("Grok Dark");
     for (const section of ["general", "looks"] as const) {
       fixture.section = section;
       const html = render();
-      expect(trigger(html, "theme")).toBeTruthy();
+      expect(trigger(html, "Theme")).toBeTruthy();
       for (const gone of ['aria-label="Skin"', "Pinned bots as circles", "Universal pins", "Show tool calls in chat", "Chat width", 'aria-label="Font"', "Show threads", "Show the run card"]) {
         expect(html, gone).not.toContain(gone);
       }
@@ -148,15 +148,15 @@ describe("Settings → General → Appearance", () => {
   it("has no Settings switch for the window's rail of places: its own button hides and shows it", () => {
     fixture.section = "general";
     fixture.rail = { available: true, hidden: true };
-    expect(render()).not.toContain("show your computers");
+    expect(render()).not.toContain("Show your computers");
   });
 
   it.each([true, false])("mutes notification sounds on this computer only when the switch is %s", (enabled) => {
     fixture.section = "general";
     fixture.notificationSounds = enabled;
     const html = render();
-    expect(html).toContain("play sound for notifications");
-    const toggle = fixture.switches.find((props) => props["aria-label"] === "notification sounds")!;
+    expect(html).toContain("Play Sound for Notifications");
+    const toggle = fixture.switches.find((props) => props["aria-label"] === "Notification sounds")!;
     expect(toggle.checked).toBe(enabled);
     toggle.onClick!({} as never);
     expect(fixture.setNotificationSounds).toHaveBeenCalledWith(!enabled);
@@ -184,8 +184,8 @@ describe("Settings → General → Appearance", () => {
     fixture.section = "general";
     fixture.sendKey = sendKey;
     const html = render();
-    expect(html).toContain("send messages with");
-    expect(trigger(html, "send messages with")).toBe(label);
+    expect(html).toContain("Send messages with");
+    expect(trigger(html, "Send messages with")).toBe(label);
     expect(fixture.setSendKey).not.toHaveBeenCalled();
     expect(fixture.api).not.toHaveBeenCalled();
     expect(fixture.dispatch).not.toHaveBeenCalled();
@@ -203,18 +203,18 @@ describe("Settings → General → Appearance", () => {
   it("keeps the experiments on their own page, with no timeouts or task limits, and recovery with the models", () => {
     fixture.section = "builder";
     const html = render();
-    expect(html).toContain("experimental features");
-    for (const gone of ["Group turn time limit", "Tasks at once per bot", "MCP tool call", "automatic recovery"]) expect(html, gone).not.toContain(gone);
+    expect(html).toContain("Experimental features");
+    for (const gone of ["Group turn time limit", "Tasks at once per bot", "MCP tool call", "Automatic recovery"]) expect(html, gone).not.toContain(gone);
     fixture.section = "general";
     const general = render();
-    for (const text of ["automatic recovery", "experimental features"]) expect(general, text).not.toContain(text);
+    for (const text of ["Automatic recovery", "Experimental features"]) expect(general, text).not.toContain(text);
   });
 
   it("keeps the local look reachable remotely without exposing server settings", () => {
     fixture.section = "looks";
     vi.stubGlobal("window", { duskDesktop: { remoteClient: { active: true } } });
     const html = render();
-    expect(html).toContain('aria-label="theme"');
+    expect(html).toContain('aria-label="Theme"');
     expect(html).not.toContain('data-settings-page="updates"');
     expect(html).not.toContain('data-settings-page="permissions"');
   });
@@ -222,7 +222,7 @@ describe("Settings → General → Appearance", () => {
   it("offers full backups in Privacy and Data", () => {
     fixture.section = "backups";
     const html = render();
-    expect(html).toContain("export full backup");
+    expect(html).toContain("Export full backup");
     expect(html).toContain('type="file" accept=".duskbackup,.ombbackup"');
   });
 
@@ -243,8 +243,8 @@ describe("Settings → General → Appearance", () => {
       setLocale("zz");
       fixture.section = "looks";
       const html = render();
-      expect(html).toContain("appearance");
-      expect(html).toContain('aria-label="theme"');
+      expect(html).toContain("How it looks");
+      expect(html).toContain('aria-label="Theme"');
       expect(html).not.toContain("settings.theme");
       expect(html).not.toContain("settings.section");
     } finally {
@@ -257,8 +257,8 @@ describe("Settings → General → Appearance", () => {
     fixture.section = "desktopWorkspaces";
     vi.stubGlobal("window", { duskDesktop: { environments: {} } });
     const local = render();
-    expect(local).toContain("connect by address");
-    expect(local).toContain("your servers");
+    expect(local).toContain("Connect by address");
+    expect(local).toContain("Your servers");
     fixture.section = "computer";
     vi.stubGlobal("window", { duskDesktop: { workspaces: {} } });
     expect(render()).not.toContain('data-settings-block="desktopWorkspaces"');
@@ -277,7 +277,7 @@ describe("Settings → General → Appearance", () => {
   it("offers personal Cloud in Usage and Billing, only through the local desktop bridge", () => {
     fixture.section = "cloudAccount";
     vi.stubGlobal("window", { duskDesktop: { cloudAccount: {} } });
-    expect(render()).toContain("free local use");
+    expect(render()).toContain("Free local use");
     vi.stubGlobal("window", {});
     expect(render()).not.toContain('data-settings-block="cloudAccount"');
   });

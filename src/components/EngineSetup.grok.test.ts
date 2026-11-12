@@ -9,7 +9,7 @@ import { BotEditorStore, type InstanceInfo, type useStore } from "@/state/store"
 import { EngineSetup, grokKeyInstead } from "./EngineSetup";
 
 const CURL = "curl -fsSL https://x.ai/cli/install.sh | bash";
-const NOT_INSTALLED = "Grok with your grok.com subscription isn't installed here. use an xAI API key instead.";
+const NOT_INSTALLED = "Grok with your grok.com subscription isn't installed here. Use an xAI API key instead.";
 const grok = (snapshot: InstanceInfo["snapshot"]): InstanceInfo => ({
   instanceId: "grok", driverKind: "grokAgent", displayName: "Grok",
   models: { default: "grok-4.7", options: [] }, snapshot,
@@ -49,17 +49,17 @@ describe("signed out: the in-app code", () => {
   it("signs in with xAI's code on a server's page, with no terminal command", () => {
     const html = render(signedOut, undefined);
     expect(html).toContain('data-device-sign-in="grok"');
-    expect(html).toContain("sign in with your grok.com account so your bots can use Grok");
-    expect(html).toContain("sign in to Grok");
+    expect(html).toContain("Sign in with your grok.com account so your bots can use Grok");
+    expect(html).toContain("Sign in to Grok");
     expect(html).not.toContain("grok login");
-    expect(html).not.toContain("prefer a terminal?");
+    expect(html).not.toContain("Prefer a terminal?");
     expect(html).not.toMatch(/Connect ChatGPT|ChatGPT security settings/);
   });
 
   it("keeps `grok login` behind Prefer a terminal? in the desktop app's own window", () => {
     const html = render(signedOut, desktop);
     expect(html).toContain('data-device-sign-in="grok"');
-    expect(html).toContain("prefer a terminal?");
+    expect(html).toContain("Prefer a terminal?");
     expect(html).toContain("grok login");
   });
 
@@ -86,7 +86,7 @@ describe("Grok cannot run here: an xAI key instead", () => {
     expect(html).toMatch(/<input[^>]*placeholder="xai-…"[^>]*aria-label="xAI API key"/);
     expect(html.match(/data-key-save=/g)).toHaveLength(1);
     expect(html).not.toContain(CURL);
-    expect(html).not.toContain("set up Grok");
+    expect(html).not.toContain("Set up Grok");
     expect(html).not.toContain("Terminal");
   });
 
@@ -105,7 +105,7 @@ describe("Grok cannot run here: an xAI key instead", () => {
   it("keeps the install on the desktop, where a terminal can run it", () => {
     const html = render(missing, desktop);
     expect(grokKeyInstead(missing, false)).toBe(false);
-    expect(html).toContain("set up Grok");
+    expect(html).toContain("Set up Grok");
     expect(html).toContain(CURL);
     expect(html).not.toContain("Add xAI key");
   });

@@ -49,14 +49,14 @@ describe("remote connection Settings", () => {
 
   it("pairs with another desktop from one row; its address and code wait in a small form", () => {
     const html = render({ remoteClient: { active: false } });
-    expect(html).toContain("pair with another desktop");
+    expect(html).toContain("Pair with another desktop");
     expect(html).toContain('data-settings-open="companion-pair"');
     // no fields, paragraphs, code blocks or big buttons on the page itself
     expect(html).not.toContain("<input");
     expect(html).not.toContain("<select");
     expect(html).not.toContain("<code");
     expect(html).not.toMatch(/<p[\s>]/);
-    expect(html).not.toContain("self-hosted server");
+    expect(html).not.toContain("Self-hosted server");
   });
 
   it("leaves server connections to Your servers when only the server bridge is there", () => {
@@ -67,7 +67,7 @@ describe("remote connection Settings", () => {
 
   it("keeps an active companion connection on its disconnect row", () => {
     const html = render({ environments: {}, remoteClient: { active: true } });
-    expect(html).toContain("disconnect and use this computer");
+    expect(html).toContain("Disconnect and use this computer");
     expect(html).not.toContain("<form");
     expect(html).not.toContain("<select");
   });

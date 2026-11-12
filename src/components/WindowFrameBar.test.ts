@@ -61,7 +61,7 @@ describe("the window frame's top bar", () => {
     expect(bar()!.hasAttribute("data-window-drag"), "the drag region every header marks (window-drag-regions.test.ts)").toBe(true);
     expect(host.querySelector("[data-frame-bar-start]")!.className).toContain("pl-20");
     const buttons = [...bar()!.querySelectorAll("button")].map((button) => button.getAttribute("aria-label"));
-    expect(buttons, "the rail's button, then the app's settings; no update while there is none").toEqual(["hide your computers", "app settings"]);
+    expect(buttons, "the rail's button, then the app's settings; no update while there is none").toEqual(["Hide your computers", "App settings"]);
     expect(bar()!.querySelector("[data-rail-toggle]")!.className).toContain("size-[22px]");
   });
 
@@ -85,17 +85,17 @@ describe("the window frame's top bar", () => {
   });
 
   it.each([
-    [{ local: true, name: "Mac mini" }, {}, "this computer"],
+    [{ local: true, name: "Mac mini" }, {}, "This computer"],
     [{ local: true, name: "Lab", localPath: "/Users/me/lab" }, {}, "Lab"],
-    [{ local: false, name: "saved name", home: true }, {}, "my cloud"],
-    [{ local: false, name: "Acme", role: "admin" }, { team: { name: "Acme" } }, "Acme"],
+    [{ local: false, name: "Saved name", home: true }, {}, "My Cloud"],
+    [{ local: false, name: "Acme", role: "Admin" }, { team: { name: "Acme" } }, "Acme"],
     [{ local: false, name: "Office", origin: "https://office.example" }, {}, "Office"],
   ] as const)("names %o as it should", async (shown, config, name) => {
     place = { ...shown };
     fixture.config = config;
     await mount(createElement(WindowFrameBar));
     expect(middle()!.querySelector("span:last-child")!.textContent).toBe(name);
-    expect(Boolean(middle()!.querySelector("svg.gi-laptop")), "this computer's laptop").toBe(shown.local);
+    expect(Boolean(middle()!.querySelector("svg.gi-laptop")), "This computer's laptop").toBe(shown.local);
   });
 
   it("names nothing where main says nothing (a browser, a remote client, an older app)", async () => {

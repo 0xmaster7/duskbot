@@ -30,7 +30,7 @@ test("one that doesn't answer is the person's choice: Cancel stays put, Remove f
   assert.equal(await serverOpens(office, { fetch: gone, dialog: cancel.dialog, forget: () => assert.fail("not asked to") }), false);
   assert.equal(cancel.shown[0].message, "pro cloud isn't answering");
   assert.match(cancel.shown[0].detail, /dusk-u-gone\.fly\.dev/);
-  assert.deepEqual(cancel.shown[0].buttons, ["try again", "remove from list", "cancel"]);
+  assert.deepEqual(cancel.shown[0].buttons, ["Try again", "Remove from list", "Cancel"]);
 
   const forgotten = [];
   const remove = asked([1]);

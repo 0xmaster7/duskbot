@@ -23,6 +23,6 @@ test("a priced turn's work line in the chat says nothing about money", async () 
   root = createRoot(host);
   await act(async () => root!.render(createElement(DigestChip, { message })));
   const text = host.textContent ?? "";
-  expect(text).toMatch(/worked for/);
+  expect(text).toMatch(/Worked for/);
   expect(text).not.toMatch(/[$€£₹¥]|\b0\.18\b|USD|cost/i);
 });

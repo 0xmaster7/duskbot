@@ -41,15 +41,15 @@ export function moveTeams(state) {
 /** What a native confirm says when a team's own page asks to bring a bot in: main's words, so no page can soften them. */
 export function teamMoveConfirmWords({ bot, team }) {
   return {
-    message: `move ${bot} to ${team}?`,
+    message: `Move ${bot} to ${team}?`,
     detail: [
-      `everyone in ${team} can use ${bot}. only ${team}'s admins can change it.`,
-      `goes with ${bot}: instructions, skills, files, routines, and your chats with ${bot}`,
-      "your chats stay private there: only you can see them.",
-      `stays on my cloud: what ${bot} remembers, your connections, and dusk`,
-      "there's no way back: you can't move it back to my cloud.",
+      `Everyone in ${team} can use ${bot}. Only ${team}'s admins can change it.`,
+      `Goes with ${bot}: instructions, skills, files, routines, and your chats with ${bot}`,
+      "Your chats stay private there: only you can see them.",
+      `Stays on My Cloud: what ${bot} remembers, your connections, and dusk`,
+      "There's no way back: you can't move it back to My Cloud.",
     ].join("\n\n"),
-    buttons: [`move to ${team}`, "cancel"],
+    buttons: [`Move to ${team}`, "Cancel"],
   };
 }
 
@@ -118,7 +118,7 @@ export function installTeamMove({ ipcMain, cloudPage, pageOrigin = () => null, c
   const sendStore = jsonFile(file);
 
   function open(move) {
-    const label = `move to ${move.team.name}`;
+    const label = `Move to ${move.team.name}`;
     const source = lazy(() => {
       const target = home();
       if (!target) return Promise.reject(new Error("This app has no My Cloud to move from."));
@@ -128,7 +128,7 @@ export function installTeamMove({ ipcMain, cloudPage, pageOrigin = () => null, c
     const facts = { threadId: null, label: null };
     const target = lazy(async () => {
       const team = teamOf(move.team.id);
-      if (!team) throw new Error(`you're no longer in ${move.team.name}.`);
+      if (!team) throw new Error(`You're no longer in ${move.team.name}.`);
       const client = account();
       if (!client) throw new Error("Sign in to dusk cloud first.");
       const member = await openOwnerSession({ origin: team.origin, grant: () => client.pairTeam(team.id) }, fetchImpl, { label, background: false });
@@ -231,7 +231,7 @@ export function installTeamMove({ ipcMain, cloudPage, pageOrigin = () => null, c
     if (bringList && Date.now() - bringList.at < BRING_LIST_MS) return bringList.bots;
     const target = home();
     if (!target) return [];
-    const session = await openOwnerSession(target, fetchImpl, { label: "move to a team", background: false });
+    const session = await openOwnerSession(target, fetchImpl, { label: "Move to a team", background: false });
     try {
       const listed = await session.call("GET", "/api/bots?messages=0");
       if (!listed.ok) throw new Error("My Cloud did not answer.");

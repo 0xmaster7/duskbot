@@ -12,7 +12,7 @@ const row = (phase: "request" | "result", output?: string): Message => ({
 });
 
 const render = (message: Message) =>
-  renderToStaticMarkup(createElement(HandoffChip, { message, bots: [], title: "open Mira", onClick: () => {} }));
+  renderToStaticMarkup(createElement(HandoffChip, { message, bots: [], title: "Open Mira", onClick: () => {} }));
 
 describe("HandoffChip", () => {
   it("shows the teammate's reply under the chip, with the rest behind a disclosure", () => {
@@ -33,7 +33,7 @@ describe("HandoffChip", () => {
   it("keeps the plain chip for the request row and for a reply with no text", () => {
     for (const message of [row("request", "why"), row("result")]) {
       const markup = render(message);
-      expect(markup).toContain('title="open Mira"');
+      expect(markup).toContain('title="Open Mira"');
       expect(markup).not.toContain("data-handoff-reply");
     }
   });
@@ -43,7 +43,7 @@ describe("HandoffChip", () => {
     const markup = render(sent);
     expect(markup).toContain("Sent to Mira");
     expect(markup).toContain("data-handoff-done-when");
-    expect(markup).toContain("done when: the export opens in Numbers");
+    expect(markup).toContain("Done when: the export opens in Numbers");
   });
 
   it("adds no done-when line when the hand-off set none", () => {

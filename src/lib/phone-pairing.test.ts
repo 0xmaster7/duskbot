@@ -55,14 +55,14 @@ describe("where Connect your phone pairs", () => {
   });
 });
 
-describe("connect your phone in the account menu", () => {
+describe("Connect your phone in the account menu", () => {
   it("on this computer: always there, to this computer, without asking the server", () => {
     expect(subtitle(connectPhoneEntry("computer", null))).toBe("to this computer");
     expect(connectPhoneEntry("computer", access(chatOnly, false))?.target).toBe("computer");
   });
 
   it("on the person's own Cloud: to the Cloud, for the owner's session", () => {
-    expect(subtitle(connectPhoneEntry("cloud", access(admin)))).toBe("to the cloud");
+    expect(subtitle(connectPhoneEntry("cloud", access(admin)))).toBe("to the Cloud");
     expect(connectPhoneEntry("cloud", access(chatOnly))).toBeNull();
   });
 
@@ -104,7 +104,7 @@ describe("asking the server", () => {
   });
 
   it("does not ask for the config of a session that cannot pair anyway", async () => {
-    const fetchImpl = respond({ "/api/auth/session": { kind: "session", id: "s", label: "phone", scopes: ["client"], expiresAt: 1 } });
+    const fetchImpl = respond({ "/api/auth/session": { kind: "session", id: "s", label: "Phone", scopes: ["client"], expiresAt: 1 } });
     expect(await loadPhonePairingAccess(fetchImpl)).toMatchObject({ pairingCodes: false });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
@@ -215,14 +215,14 @@ describe("the person's Cloud as a destination on this computer", () => {
   it("joins this computer's line, first, and only on this computer", () => {
     const here = connectPhoneEntry("computer", null);
     expect(phoneDestinations(here, "ready").map((d) => [d.id, d.target, t(d.subtitleKey)])).toEqual([
-      ["cloud", "cloud", "to the cloud (always on)"],
+      ["cloud", "cloud", "to the Cloud (always on)"],
       ["here", "computer", "to this computer"],
     ]);
-    expect(phoneDestinations(here, "not-ready").map((d) => [d.id, d.noteKey && t(d.noteKey)])).toEqual([["here", "the cloud shows here once it's ready."]]);
+    expect(phoneDestinations(here, "not-ready").map((d) => [d.id, d.noteKey && t(d.noteKey)])).toEqual([["here", "The Cloud shows here once it's ready."]]);
     expect(phoneDestinations(here, null).map((d) => [d.id, d.noteKey])).toEqual([["here", undefined]]);
     const cloud = connectPhoneEntry("cloud", access(admin));
     for (const state of ["ready", "not-ready", null] as const) {
-      expect(phoneDestinations(cloud, state).map((d) => [d.id, t(d.subtitleKey), d.noteKey])).toEqual([["here", "to the cloud", undefined]]);
+      expect(phoneDestinations(cloud, state).map((d) => [d.id, t(d.subtitleKey), d.noteKey])).toEqual([["here", "to the Cloud", undefined]]);
       expect(phoneDestinations(connectPhoneEntry("server", access(admin)), state).map((d) => d.id)).toEqual(["here"]);
       expect(phoneDestinations(null, state)).toEqual([]);
     }

@@ -639,7 +639,7 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
                 disabled={saving}
                 className={cn(mdSecondaryCls, "gap-1.5")}
               >
-                <FolderOpen size={14} /> choose
+                <FolderOpen size={14} /> Choose
               </button>
             )}
           </div>

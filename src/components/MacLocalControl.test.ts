@@ -19,18 +19,18 @@ describe("Mac local computer status", () => {
   it("shows the recorded Accessibility failure and its matching recovery actions", () => {
     const markup = renderToStaticMarkup(createElement(MacLocalControl));
     expect(markup).toContain("Accessibility is required for dusk bot");
-    expect(markup).toContain("open Accessibility settings");
-    expect(markup).toContain("relaunch dusk bot");
-    expect(markup).not.toContain("open Screen Recording settings");
+    expect(markup).toContain("Open Accessibility Settings");
+    expect(markup).toContain("Relaunch dusk bot");
+    expect(markup).not.toContain("Open Screen Recording Settings");
     expect(markup, "the driver detail shows inline, not folded").not.toContain("<details");
   });
 
   it("does not turn a missing reason into a claimed permission diagnosis", () => {
     fixture.localComputer = { available: false, status: "unavailable" } as DesktopCapabilities["localComputer"];
     const markup = renderToStaticMarkup(createElement(MacLocalControl));
-    expect(markup).toContain("local computer control is not ready");
+    expect(markup).toContain("Local computer control is not ready");
     expect(markup).not.toContain("Accessibility is required");
-    expect(markup).not.toContain("relaunch dusk bot</button>");
+    expect(markup).not.toContain("Relaunch dusk bot</button>");
   });
 
   it("does not offer host repair actions to a remote renderer", () => {

@@ -69,8 +69,8 @@ describe("room message actions", () => {
   it("gives a bot reply the same tray as a 1:1 answer", () => {
     const html = markup([text("a", "bot", "The build is green")]);
     expect(html).toContain('data-testid="message-actions"');
-    expect(html).toContain("copy message");
-    expect(html).toContain("reply to message");
+    expect(html).toContain("Copy message");
+    expect(html).toContain("Reply to message");
     expect(html).toContain('aria-haspopup="menu"');
     expect(html).not.toContain("Show raw markdown");
     expect(html).not.toContain("Pin message");
@@ -79,13 +79,13 @@ describe("room message actions", () => {
   it("offers reactions only to a viewer who may write in the room: one who may not sees who reacted, as labels", () => {
     const asked: Message = { ...text("a", "bot", "Shall I post it?"), reactions: [{ emoji: "👍", by: "p_ada", name: "Ada" }] };
     const open = markup([asked]);
-    expect(open).toContain('aria-label="add reaction"');
-    expect(open).toMatch(/<button[^>]*aria-label="thumbs up: yes, go ahead: Ada"/);
+    expect(open).toContain('aria-label="Add reaction"');
+    expect(open).toMatch(/<button[^>]*aria-label="Thumbs up: yes, go ahead: Ada"/);
     fixture.canWrite = false;
     const closed = markup([asked]);
-    expect(closed).not.toContain("add reaction");
-    expect(closed).not.toMatch(/<button[^>]*aria-label="thumbs up: yes, go ahead: Ada"/);
-    expect(closed).toMatch(/<span role="img" aria-label="thumbs up: yes, go ahead: Ada"/);
+    expect(closed).not.toContain("Add reaction");
+    expect(closed).not.toMatch(/<button[^>]*aria-label="Thumbs up: yes, go ahead: Ada"/);
+    expect(closed).toMatch(/<span role="img" aria-label="Thumbs up: yes, go ahead: Ada"/);
   });
 
   it("puts read aloud and pin in a room reply's more menu, with no developer items", () => {
@@ -96,16 +96,16 @@ describe("room message actions", () => {
     })));
     flushSync(() => host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.click());
     const items = [...host.querySelectorAll<HTMLButtonElement>("[role=menuitem]")];
-    expect(items.map((item) => item.textContent)).toEqual(["read this aloud", "pin message"]);
-    const speak = items.find((item) => item.textContent === "read this aloud");
-    expect(speak?.title).toBe("add an ElevenLabs key in an agent profile to read messages aloud");
+    expect(items.map((item) => item.textContent)).toEqual(["Read this aloud", "Pin message"]);
+    const speak = items.find((item) => item.textContent === "Read this aloud");
+    expect(speak?.title).toBe("Add an ElevenLabs key in an agent profile to read messages aloud");
     expect(speak?.disabled).toBe(true);
   });
 
   it("copies a person's message and folds a long one", () => {
     const html = markup([text("u", "user", "word ".repeat(200))]);
-    expect(html).toContain("copy message");
-    expect(html).toContain("show full message");
+    expect(html).toContain("Copy message");
+    expect(html).toContain("Show full message");
     expect(html).not.toContain("Show raw markdown");
   });
 
@@ -118,13 +118,13 @@ describe("room message actions", () => {
       ],
     };
     const html = markup([reply]);
-    expect(html.match(/title="save a copy"/g)).toHaveLength(1);
+    expect(html.match(/title="Save a copy"/g)).toHaveLength(1);
     expect(html).toContain(">notes.md<");
-    expect(html).not.toContain('aria-label="save a copy of notes.md"');
-    expect(html.match(/aria-label="save a copy of report\.pdf"/g)).toHaveLength(1);
+    expect(html).not.toContain('aria-label="Save a copy of notes.md"');
+    expect(html.match(/aria-label="Save a copy of report\.pdf"/g)).toHaveLength(1);
     expect(html).toMatch(/<section[^>]*class="mt-2\.5 /);
     expect(html).toContain('data-testid="message-actions"');
-    expect(html).toContain("reply to message");
+    expect(html).toContain("Reply to message");
     expect(html).toContain('aria-haspopup="menu"');
   });
 });

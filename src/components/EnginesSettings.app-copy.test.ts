@@ -6,7 +6,7 @@ import { BotEditorStore, initialState, type InstanceInfo, type useStore } from "
 import { EnginesSettings } from "./EnginesSettings";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-const NOTICE = "another copy of OpenCode on this computer doesn't start, so OpenCode now uses the copy dusk bot installed.";
+const NOTICE = "Another copy of OpenCode on this computer doesn't start, so OpenCode now uses the copy dusk bot installed.";
 const install: InstanceInfo["install"] = {
   platform: "linux", command: { linux: "npm install -g opencode-ai" }, needsNode: true,
   server: { standalone: { version: "1.19.4", downloadBytes: 64_291_659 } },
@@ -42,20 +42,20 @@ afterEach(() => { act(() => root.unmount()); host.remove(); vi.unstubAllGlobals(
 
 it("keeps saying OpenCode now runs the app's copy once the switched copy is Ready, until dismissed", async () => {
   mount([broken]);
-  await act(async () => button("install OpenCode here")!.click());
+  await act(async () => button("Install OpenCode here")!.click());
   expect(dispatch).toHaveBeenCalledWith({ type: "instances", instances: [ready] });
   // The store takes the returned instances: OpenCode is Ready, its setup panel gone, and the notice stays on its card.
   mount([ready]);
-  expect(button("install OpenCode here")).toBeUndefined();
-  expect(host.textContent).toContain("ready");
+  expect(button("Install OpenCode here")).toBeUndefined();
+  expect(host.textContent).toContain("Ready");
   expect(host.textContent).toContain(NOTICE);
-  act(() => button("dismiss")!.click());
+  act(() => button("Dismiss")!.click());
   expect(host.textContent).not.toContain(NOTICE);
 });
 
 it("forgets the notice when the person leaves Settings", async () => {
   mount([broken]);
-  await act(async () => button("install OpenCode here")!.click());
+  await act(async () => button("Install OpenCode here")!.click());
   mount([ready]);
   expect(host.textContent).toContain(NOTICE);
   act(() => root.unmount());

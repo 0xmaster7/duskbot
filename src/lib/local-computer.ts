@@ -42,7 +42,7 @@ export function localComputerDisabledReason({
     if (!capabilities.localComputer.enabled) return t("computer.problem.localTurnOn");
     return capabilities.localComputer.message ?? t("computer.problem.localNotReady");
   }
-  if (capabilities.host.label === "browser") return t("computer.problem.localNeedsApp");
+  if (capabilities.host.label === "Browser") return t("computer.problem.localNeedsApp");
   if (capabilities.host.platform === "win32") return t("computer.problem.localWindows");
   return t("computer.problem.localMac");
 }

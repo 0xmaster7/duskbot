@@ -3,36 +3,35 @@ import { ArrowRight, Loader2 } from "../icons";
 import { cn } from "@/lib/cn";
 import { routineDateTime } from "@/lib/routine-display";
 import { t } from "@/lib/i18n";
-import type { LocaleKey } from "@/locales";
 import type { RoutineRunCardData } from "../../shared/routine-run";
 import { openThread, useStore, type Message } from "@/state/store";
 
 const DETAIL_LIMIT = 280;
 
 const COPY = {
-  queued: { label: "routineRun.status.queued", tone: "text-ink-secondary" },
-  running: { label: "routineRun.status.running", tone: "text-accent" },
-  waiting: { label: "routineRun.status.waiting", tone: "text-warning" },
-  completed: { label: "routineRun.status.completed", tone: "text-ink-secondary" },
-  failed: { label: "routineRun.status.failed", tone: "text-danger" },
-  cancelled: { label: "routineRun.status.cancelled", tone: "text-ink-secondary" },
-  missed: { label: "routineRun.status.missed", tone: "text-danger" },
+  queued: { label: "Queued", tone: "text-ink-secondary" },
+  running: { label: "Running", tone: "text-accent" },
+  waiting: { label: "Waiting", tone: "text-warning" },
+  completed: { label: "Completed", tone: "text-ink-secondary" },
+  failed: { label: "Failed", tone: "text-danger" },
+  cancelled: { label: "Cancelled", tone: "text-ink-secondary" },
+  missed: { label: "Missed", tone: "text-danger" },
 } satisfies Record<
   RoutineRunCardData["status"],
-  { label: LocaleKey; tone: string }
+  { label: string; tone: string }
 >;
 
 const GOAL_COPY = {
   completed: COPY.completed,
-  "needs-input": { label: "routineRun.status.needsInput", tone: "text-warning" },
-  blocked: { label: "routineRun.status.blocked", tone: "text-danger" },
-  "limit-reached": { label: "routineRun.status.limitReached", tone: "text-warning" },
-  paused: { label: "routineRun.status.paused", tone: "text-warning" },
-  stopped: { label: "routineRun.status.stopped", tone: "text-ink-secondary" },
+  "needs-input": { label: "Needs your input", tone: "text-warning" },
+  blocked: { label: "Blocked", tone: "text-danger" },
+  "limit-reached": { label: "Turn limit reached", tone: "text-warning" },
+  paused: { label: "Paused", tone: "text-warning" },
+  stopped: { label: "Stopped", tone: "text-ink-secondary" },
   failed: COPY.failed,
 } satisfies Record<
   NonNullable<RoutineRunCardData["goalStatus"]>,
-  { label: LocaleKey; tone: string }
+  { label: string; tone: string }
 >;
 
 function compactDetail(value: string | undefined): string {
@@ -69,19 +68,18 @@ export function RoutineRunCard({
   const copy = run.goalStatus
     ? GOAL_COPY[run.goalStatus]
     : run.status === "queued" && run.deferredAt != null
-      ? { label: "routineRun.status.deferred" as LocaleKey, tone: "text-warning" }
+      ? { label: "Deferred: target busy", tone: "text-warning" }
       : COPY[run.status];
   const detail = compactDetail(
     run.status === "failed" || run.status === "missed"
       ? (run.error ?? run.summary)
       : (run.summary ?? run.error),
   );
-  const actionLabel = t(run.goalStatus === "needs-input" ? "routineRun.review" : "routineRun.openRun");
-  const statusLabel = t(copy.label);
+  const actionLabel = run.goalStatus === "needs-input" ? "Review" : "Open run";
 
   return (
     <section
-      aria-label={t("routineRun.aria", { name: run.routineName, status: statusLabel })}
+      aria-label={`${run.routineName} routine run: ${copy.label}`}
       className="w-full max-w-[680px] rounded-xl border border-transparent bg-card px-4 py-3"
     >
       <div className="flex items-start gap-3">
@@ -90,7 +88,7 @@ export function RoutineRunCard({
             <h3 className="truncate text-[14px] font-semibold text-ink">{run.routineName}</h3>
             <span aria-live="polite" className={cn("inline-flex items-center gap-1 text-[12px] font-semibold", copy.tone)}>
               {run.status === "running" && !run.goalStatus && <Loader2 aria-hidden="true" className="size-3 animate-spin" />}
-              {statusLabel}
+              {copy.label}
             </span>
           </div>
           <time dateTime={new Date(run.scheduledFor ?? message.at).toISOString()} className="mt-0.5 block text-[12px] text-ink-secondary">
@@ -106,7 +104,7 @@ export function RoutineRunCard({
           <button
             type="button"
             onClick={onOpen}
-            aria-label={t("routineRun.openRunFor", { action: actionLabel, name: run.routineName })}
+            aria-label={`${actionLabel} for ${run.routineName}`}
             className={cn(
               "flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[12px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent",
               run.goalStatus === "needs-input"

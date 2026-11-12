@@ -44,7 +44,7 @@ it("never shows a sleeping Cloud: opening the screen wakes it once and only says
   expect(host.querySelector("[data-home-screen]")?.getAttribute("data-home-screen")).toBe("asleep");
   expect(bridge.wake).toHaveBeenCalledTimes(1);
   expect(bridge.wake).toHaveBeenCalledWith("click", null);
-  expect(line()).toBe("connecting…");
+  expect(line()).toBe("Connecting…");
   expect(host.textContent).not.toMatch(/asleep/i);
   expect([...host.querySelectorAll("ol li div")].map((node) => node.textContent)).toEqual(["find flights to Goa", "Three options under ₹9,000."]);
   await act(async () => { host.querySelector<HTMLButtonElement>("nav button:nth-child(2)")!.click(); });
@@ -52,7 +52,7 @@ it("never shows a sleeping Cloud: opening the screen wakes it once and only says
   expect(host.querySelector("nav button[aria-current='page']")?.textContent).toBe("Quill");
   await key("h");
   expect(bridge.wake, "typing after the wake asks nothing more").toHaveBeenCalledTimes(1);
-  expect(composer().getAttribute("aria-label")).toBe("message Quill");
+  expect(composer().getAttribute("aria-label")).toBe("Message Quill");
 });
 
 it("a message written while it connects is held and sent once it is up", async () => {
@@ -66,7 +66,7 @@ it("a message written while it connects is held and sent once it is up", async (
   expect(send).toMatchObject({ botId: "scout", threadId: "t-scout", text: "hi there" });
   expect((send as { sendId: string }).sendId).toMatch(/^[A-Za-z0-9_-]{8,80}$/);
   await push({ screen: "asleep", waking: true, held: "hi there" });
-  expect(host.querySelector("[data-cloud-asleep-held]")?.textContent).toBe("hi theresends in a moment");
+  expect(host.querySelector("[data-cloud-asleep-held]")?.textContent).toBe("hi thereSends in a moment");
   expect(composer().value).toBe("");
 });
 
@@ -74,8 +74,8 @@ it("with nothing seen yet it still only connects; a failed wake offers Try again
   const empty = bridgeOf({ screen: "asleep" }, null);
   empty.bridge.wake.mockRejectedValueOnce(new Error("offline"));
   await mount(empty.bridge);
-  expect(host.textContent).toContain("no chats seen on this computer yet.");
-  const button = [...host.querySelectorAll("button")].find((node) => node.textContent === "try again")!;
+  expect(host.textContent).toContain("No chats seen on this computer yet.");
+  const button = [...host.querySelectorAll("button")].find((node) => node.textContent === "Try again")!;
   expect(button).toBeTruthy();
   await act(async () => { button.click(); });
   expect(empty.bridge.wake).toHaveBeenCalledTimes(2);

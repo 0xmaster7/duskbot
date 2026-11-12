@@ -27,8 +27,8 @@ describe("people helpers", () => {
     const estimated = mergePeople({ admins: ["ada@example.test"], members: [] }, [], [{ key: "user:ada@example.test", turns: 2, costUsd: 1.5, estimatedUsd: 0.5 }]);
     expect(estimated[0]).toMatchObject({ costUsd: 1.5, estimated: true });
     expect(renderToStaticMarkup(createElement(PeopleTable, { people: estimated, busy: false, onRole() {}, onRemove() {}, onLink() {} }))).toContain("~$1.50");
-    expect(lastSeenLabel(null)).toBe("never");
-    expect(lastSeenLabel(Date.now() - 60_000)).toBe("today");
+    expect(lastSeenLabel(null)).toBe("Never");
+    expect(lastSeenLabel(Date.now() - 60_000)).toBe("Today");
     expect(lastSeenLabel(Date.parse("2026-09-01T12:00:00Z"), Date.parse("2026-09-10T12:00:00Z"))).toBe("2026-09-01");
   });
 });
@@ -43,19 +43,19 @@ describe("people table", () => {
   it("shows role chips, devices, spend, and the actions that fit each row", () => {
     const html = renderToStaticMarkup(createElement(PeopleTable, { people, busy: false, onRole: noop, onRemove: noop, onLink: noop }));
     expect(html).toContain("ada@example.test");
-    expect(html).toContain("admin");
+    expect(html).toContain("Admin");
     expect(html).toContain("2 device(s)");
     expect(html).toContain("$3.50");
-    expect(html).toContain("never");
+    expect(html).toContain("Never");
     expect(html).toContain("everyone at acme.test");
-    expect(html).toContain(">make user<");
-    expect(html).toContain(">make admin<");
-    expect(html).toContain(">remove<");
-    expect(html).toContain('aria-label="invite link"');
+    expect(html).toContain(">Make user<");
+    expect(html).toContain(">Make admin<");
+    expect(html).toContain(">Remove<");
+    expect(html).toContain('aria-label="Invite link"');
     expect(html).not.toContain("<table");
   });
 
   it("says so when nobody is on the list", () => {
-    expect(renderToStaticMarkup(createElement(PeopleTable, { people: [], busy: false, onRole: noop, onRemove: noop, onLink: noop }))).toContain("nobody yet");
+    expect(renderToStaticMarkup(createElement(PeopleTable, { people: [], busy: false, onRole: noop, onRemove: noop, onLink: noop }))).toContain("Nobody yet");
   });
 });

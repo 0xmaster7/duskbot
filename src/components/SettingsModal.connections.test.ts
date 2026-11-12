@@ -28,7 +28,7 @@ describe("Settings → Connections", () => {
   it("points OpenCode users at `opencode auth login` for other providers, in that row's dialog", async () => {
     const { OpenCodeProviderKeys } = await import("./keys/KeyPanels");
     const html = renderToStaticMarkup(createElement(OpenCodeProviderKeys));
-    expect(html).toContain("more providers for OpenCode bots");
+    expect(html).toContain("More providers for OpenCode bots");
     expect(html).toContain('<code class="font-mono">opencode auth login</code>');
   });
 
@@ -38,7 +38,7 @@ describe("Settings → Connections", () => {
     const opencode = html.indexOf('data-api-key-row="opencodeGo"');
     expect(opencode).toBeGreaterThan(0);
     expect(html.indexOf('data-key-row="opencodeProviders"')).toBeGreaterThan(opencode);
-    expect(html).toContain("keys for other OpenCode providers");
+    expect(html).toContain("Keys for other OpenCode providers");
   });
 
   it("sends nobody on a Cloud to a terminal, only to the keys for other providers", async () => {
@@ -56,8 +56,8 @@ describe("Settings → Connections", () => {
     const html = renderToStaticMarkup(createElement(SettingsModal));
     expect(html).toContain("OpenCode API key");
     expect(html).not.toContain("opencode auth login");
-    expect(html).not.toContain("more providers for OpenCode bots");
-    expect(html).toContain("keys for other OpenCode providers");
+    expect(html).not.toContain("More providers for OpenCode bots");
+    expect(html).toContain("Keys for other OpenCode providers");
     const { OpenCodeProviderKeys } = await import("./keys/KeyPanels");
     const panel = renderToStaticMarkup(createElement(OpenCodeProviderKeys));
     expect(panel).toContain("data-opencode-provider-keys");

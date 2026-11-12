@@ -80,7 +80,7 @@ describe("the sidebar dusk cloud card", () => {
     buttons.find(button => button.props["data-sidebar-cloud-start"] === "").props.onClick();
     expect(f.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_invested", signIn: true });
     expect(track).toHaveBeenCalledWith("upsell_click", { source: "app_invested" });
-    buttons.find(button => button.props["aria-label"] === "hide for a few days").props.onClick();
+    buttons.find(button => button.props["aria-label"] === "Hide for a few days").props.onClick();
     expect(track).toHaveBeenCalledWith("upsell_dismiss", { source: "app_invested" });
     expect(storage.has("dusk-cloud-sidebar-card-until")).toBe(true);
   });

@@ -9,7 +9,7 @@ export function SkillRequestPreview({ request }: { request: SkillRequestCardData
   if (!reviewedSha256) {
     return (
       <div className="mt-3 text-[12px] leading-relaxed text-danger">
-        this proposal was created by an older build and cannot be safely applied. deny it, then ask the bot to
+        This proposal was created by an older build and cannot be safely applied. Deny it, then ask the bot to
         {request.action === "update" ? " propose the update again." : " create the skill again."}
       </div>
     );
@@ -18,16 +18,16 @@ export function SkillRequestPreview({ request }: { request: SkillRequestCardData
     <div className="mt-3 rounded-lg border border-transparent bg-inset p-3">
       <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-ink-secondary">
         <span>
-          review the complete SKILL.md{request.references?.length ? " and its reference files" : ""} before {request.action === "update" ? "replacing the current version" : "enabling"}
+          Review the complete SKILL.md{request.references?.length ? " and its reference files" : ""} before {request.action === "update" ? "replacing the current version" : "enabling"}
         </span>
         <span className="font-mono" title={`sha256 ${reviewedSha256}`}>
           sha256 {reviewedSha256.slice(0, 8)}
         </span>
       </div>
-      <div className="mt-1 break-all text-[11px] text-ink-secondary">source: {request.source || "unknown"}</div>
+      <div className="mt-1 break-all text-[11px] text-ink-secondary">Source: {request.source || "Unknown"}</div>
       <pre
         tabIndex={0}
-        aria-label={`full SKILL.md for ${request.name}`}
+        aria-label={`Full SKILL.md for ${request.name}`}
         className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words font-mono text-[12px] leading-relaxed text-ink"
       >
         {request.preview}
@@ -37,7 +37,7 @@ export function SkillRequestPreview({ request }: { request: SkillRequestCardData
           <div className="font-mono text-[11px] text-ink-secondary">{file.path}</div>
           <pre
             tabIndex={0}
-            aria-label={`full ${file.path} for ${request.name}`}
+            aria-label={`Full ${file.path} for ${request.name}`}
             className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap break-words font-mono text-[12px] leading-relaxed text-ink"
           >
             {file.content}

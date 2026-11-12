@@ -66,7 +66,7 @@ describe("conversational replies", () => {
 
   it("names the quick model quietly under the message it answered", async () => {
     await draw(profile({ replyStyle: "conversational" }));
-    expect(document.querySelector("[data-quick-model]")?.textContent).toBe("quick reply with Claude Haiku 4.5");
+    expect(document.querySelector("[data-quick-model]")?.textContent).toBe("Quick reply with Claude Haiku 4.5");
   });
 
   it("shows history bubbles at once, each part its own Simple bubble stacked close under the last", async () => {
@@ -103,13 +103,13 @@ describe("conversational replies", () => {
   it("keeps a reply's Reply beside the reaction button and its Copy in the … menu in Simple mode", async () => {
     await draw(profile({}));
     const row = document.querySelector("[data-mid='m2']")!;
-    expect(row.querySelector('[aria-label="reply to message"]')).not.toBeNull();
-    expect(row.querySelector('[aria-label="copy message"]')).toBeNull();
-    const more = row.querySelector<HTMLButtonElement>('button[aria-label="message actions"]')!;
+    expect(row.querySelector('[aria-label="Reply to message"]')).not.toBeNull();
+    expect(row.querySelector('[aria-label="Copy message"]')).toBeNull();
+    const more = row.querySelector<HTMLButtonElement>('button[aria-label="Message actions"]')!;
     flushSync(() => more.click());
-    const items = [...document.querySelectorAll('[role="menu"][aria-label="message actions"] [role="menuitem"]')].map((item) => item.textContent);
-    expect(items[0]).toBe("copy message");
-    expect(items).not.toContain("reply");
+    const items = [...document.querySelectorAll('[role="menu"][aria-label="Message actions"] [role="menuitem"]')].map((item) => item.textContent);
+    expect(items[0]).toBe("Copy message");
+    expect(items).not.toContain("Reply");
   });
 
   it("puts a formatted reply in the bot's bubble", async () => {

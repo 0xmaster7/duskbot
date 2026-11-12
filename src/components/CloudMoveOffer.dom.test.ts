@@ -72,13 +72,13 @@ afterEach(() => {
 it("asks in one line with Move and Later, then the same sheet follows the bots hopping across, and ends with All moved and Open dusk cloud", async () => {
   await render(createElement(CloudMoveOffer));
   expect(sheet()?.getAttribute("data-cloud-move")).toBe("ask");
-  expect(sheet()?.textContent).toBe("move your bots to dusk cloud? they'll keep working 24/7.latermove");
+  expect(sheet()?.textContent).toBe("Move your bots to dusk cloud? They'll keep working 24/7.LaterMove");
   expect(across()).toBe(0);
   expect(fixture.tracked).toEqual([["cloud_move_prompt", { action: "shown" }]]);
-  await press("move");
+  await press("Move");
   expect(calls).toEqual(["accept:prompt"]);
   expect(sheet()?.getAttribute("data-cloud-move")).toBe("moving");
-  expect(sheet()?.textContent).toBe("moving your bots to dusk cloud…hide");
+  expect(sheet()?.textContent).toBe("Moving your bots to dusk cloud…Hide");
   await push({ ...BASE, move: { phase: "copy", chats: { done: 60, total: 120 } } });
   expect(across()).toBe(1);
   await push({ ...BASE, move: { phase: "finishing" } });
@@ -87,20 +87,20 @@ it("asks in one line with Move and Later, then the same sheet follows the bots h
   expect(across(), "the bots never hop back").toBe(2);
   await push(DONE);
   expect(sheet()?.getAttribute("data-cloud-move")).toBe("done");
-  expect(sheet()?.textContent).toBe("all movedyour bots are working 24/7 on dusk cloud.open dusk cloud");
+  expect(sheet()?.textContent).toBe("All movedYour bots are working 24/7 on dusk cloud.Open dusk cloud");
   expect(across()).toBe(3);
-  await press("open dusk cloud");
+  await press("Open dusk cloud");
   expect(calls).toEqual(["accept:prompt", "open"]);
 });
 
 it("Later closes the sheet for good, then a slim line with Move asks; its close leaves only Settings", async () => {
   await render(createElement(CloudMoveOffer));
-  await press("later");
+  await press("Later");
   expect(calls).toEqual(["dismiss-offer:prompt"]);
   expect(sheet()).toBeNull();
-  expect(document.querySelector("[data-cloud-move-banner]")?.textContent).toBe("move your bots to dusk cloudmove");
+  expect(document.querySelector("[data-cloud-move-banner]")?.textContent).toBe("Move your bots to dusk cloudMove");
   expect(fixture.tracked).toContainEqual(["cloud_move_banner", { action: "shown" }]);
-  await act(async () => document.querySelector<HTMLButtonElement>('[aria-label="close"]')!.click());
+  await act(async () => document.querySelector<HTMLButtonElement>('[aria-label="Close"]')!.click());
   await settle();
   expect(calls).toEqual(["dismiss-offer:prompt", "dismiss-offer:banner"]);
   expect(document.querySelector("[data-cloud-move-banner]")).toBeNull();
@@ -118,7 +118,7 @@ it("the line's Move starts the move and opens the sheet on its way", async () =>
   current = { ...BASE, offer: { stage: "banner", bots: 2 } };
   await render(createElement(CloudMoveOffer));
   expect(sheet()).toBeNull();
-  await press("move");
+  await press("Move");
   expect(calls).toEqual(["accept:banner"]);
   expect(sheet()?.getAttribute("data-cloud-move")).toBe("moving");
 });
@@ -133,10 +133,10 @@ it("waits while Settings or another sheet is open", async () => {
 it("a start that fails is one friendly line and Try again, which starts it again", async () => {
   bridge.moveOfferAccept.mockRejectedValueOnce(new Error("Error invoking remote method 'cloud-send:move-offer-accept': Error: My Cloud did not answer."));
   await render(createElement(CloudMoveOffer));
-  await press("move");
+  await press("Move");
   expect(sheet()?.getAttribute("data-cloud-move")).toBe("failed");
-  expect(sheet()?.textContent).toBe("something got in the way. your bots are safe here.hidetry again");
-  await press("try again");
+  expect(sheet()?.textContent).toBe("Something got in the way. Your bots are safe here.HideTry again");
+  await press("Try again");
   expect(calls).toEqual(["accept:prompt"]);
   expect(bridge.moveOfferAccept).toHaveBeenCalledTimes(2);
   expect(sheet()?.getAttribute("data-cloud-move")).toBe("moving");
@@ -149,18 +149,18 @@ it("a move stuck on its way is the same friendly line, and Try again runs the mo
   current = { ...BASE, offer: { stage: "prompt", bots: 3 } };
   root.unmount(); root = createRoot(host);
   await render(createElement(CloudMoveOffer));
-  await press("move");
+  await press("Move");
   await push({ ...BASE, move: { phase: "copy", failing: { error: "My Cloud refused the pass because the freeze could not verify automations." } } });
-  expect(sheet()?.textContent).toBe("something got in the way. your bots are safe here.hidetry again");
-  await press("try again");
+  expect(sheet()?.textContent).toBe("Something got in the way. Your bots are safe here.HideTry again");
+  await press("Try again");
   expect(calls.at(-1)).toBe("retry");
 });
 
 it("on My Cloud's page, when the window got there first, says All moved and Open dusk cloud closes it", async () => {
   current = DONE;
   await render(createElement(CloudMoveOffer, { cloudHome: true }));
-  expect(sheet()?.textContent).toBe("all movedyour bots are working 24/7 on dusk cloud.open dusk cloud");
-  await press("open dusk cloud");
+  expect(sheet()?.textContent).toBe("All movedYour bots are working 24/7 on dusk cloud.Open dusk cloud");
+  await press("Open dusk cloud");
   expect(calls).toEqual(["dismiss:one-home"]);
   expect(sheet()).toBeNull();
 });
@@ -169,7 +169,7 @@ it("never says how the move works: no pauses, passes, checks or automations", as
   const seen: string[] = [];
   await render(createElement(CloudMoveOffer));
   seen.push(sheet()!.textContent!);
-  await press("move");
+  await press("Move");
   for (const move of [{ phase: "wait" }, { phase: "finishing" }, { phase: "copy", failing: { error: "check failed after three passes" } }] as const) {
     await push({ ...BASE, move });
     seen.push(sheet()!.textContent!);

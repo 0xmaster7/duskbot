@@ -93,12 +93,12 @@ export async function createConfiguredBot(
       });
       bot = { ...bot, ...result.bot };
     } catch (error) {
-      warnings.push(`review this bot's chief of staff setting: ${error instanceof Error ? error.message : String(error)}`);
+      warnings.push(`Review this bot's Chief of Staff setting: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
   for (const routine of routines.filter(routine => routine.enabled)) {
     try { await request(`/api/routines/${routine.id}`, { method: "PATCH", body: JSON.stringify({ enabled: true }) }); }
-    catch (error) { warnings.push(`could not activate a routine: ${error instanceof Error ? error.message : String(error)}`); }
+    catch (error) { warnings.push(`Could not activate a routine: ${error instanceof Error ? error.message : String(error)}`); }
   }
   return { bot, warnings };
 }

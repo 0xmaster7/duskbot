@@ -57,13 +57,13 @@ afterEach(() => {
 });
 
 describe("LiveCallBar's notice button", () => {
-  it("open in browser opens this page in the web browser", async () => {
+  it("Open in browser opens this page in the web browser", async () => {
     const openInBrowser = vi.fn();
     const request = vi.fn();
     configureLiveMedia({ getUserMedia: blocked, capabilities: onServerPage, pageMicrophone: async () => "refused", openInBrowser, request: request as never });
     await startLiveCall({ botId: bot.id, threadId: bot.threadId });
     render();
-    const open = button("open in browser");
+    const open = button("Open in browser");
     expect(open).not.toBeNull();
     open!.click();
     expect(openInBrowser).toHaveBeenCalledExactlyOnceWith(location.href);
@@ -88,7 +88,7 @@ describe("LiveCallBar's notice button", () => {
     });
     await startLiveCall({ botId: bot.id, threadId: bot.threadId });
     render();
-    const retry = button("try again");
+    const retry = button("Try again");
     expect(retry).not.toBeNull();
     allowed = true;
     retry!.click();

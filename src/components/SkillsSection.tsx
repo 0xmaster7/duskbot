@@ -27,7 +27,7 @@ export function filterLibrarySkills(
 export function LibrarySkillMeta({ skill }: { skill: SkillsLibrarySkillWire }) {
   return (
     <span className="flex flex-wrap items-center gap-x-1.5 text-[12px] leading-4 text-ink-secondary">
-      <span className="truncate" title={skill.source}>source: {skill.source}</span>
+      <span className="truncate" title={skill.source}>Source: {skill.source}</span>
       <span>· {skill.version ? t("skills.library.version", { version: skill.version }) : t("skills.library.noVersion")}</span>
       <span>· {t("skills.library.importedAt", { date: new Date(skill.importedAt).toLocaleDateString() })}</span>
       {skill.tags.map((tag) => <span key={tag}>· {tag}</span>)}
@@ -102,10 +102,10 @@ export function SkillsSection() {
         body: JSON.stringify({ skills: next }),
       });
       const body = (await response.json()) as { error?: string };
-      if (!response.ok) throw new Error(body.error ?? "could not update assignments.");
+      if (!response.ok) throw new Error(body.error ?? "Could not update assignments.");
       await refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "could not update assignments.");
+      setError(cause instanceof Error ? cause.message : "Could not update assignments.");
     } finally {
       busy.current = false;
       setWorking("");
@@ -134,11 +134,11 @@ export function SkillsSection() {
         body: JSON.stringify({ enabled: !skill.enabled }),
       });
       const body = (await response.json()) as { error?: string };
-      if (!response.ok) throw new Error(body.error ?? "could not update this skill.");
+      if (!response.ok) throw new Error(body.error ?? "Could not update this skill.");
       if (reviewed) setViewing(null);
       await refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "could not update this skill.");
+      setError(cause instanceof Error ? cause.message : "Could not update this skill.");
     } finally {
       busy.current = false;
       setWorking("");
@@ -157,10 +157,10 @@ export function SkillsSection() {
         body: JSON.stringify({ everyBot: !skill.everyBot }),
       });
       const body = (await response.json()) as { error?: string };
-      if (!response.ok) throw new Error(body.error ?? "could not update this skill.");
+      if (!response.ok) throw new Error(body.error ?? "Could not update this skill.");
       await refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "could not update this skill.");
+      setError(cause instanceof Error ? cause.message : "Could not update this skill.");
     } finally {
       busy.current = false;
       setWorking("");
@@ -172,11 +172,11 @@ export function SkillsSection() {
     try {
       const response = await fetch(`/api/skills-library/${encodeURIComponent(skill.name)}`);
       const body = (await response.json()) as { text?: string; error?: string };
-      if (!response.ok) throw new Error(body.error ?? "could not load this skill.");
+      if (!response.ok) throw new Error(body.error ?? "Could not load this skill.");
       if (!body.text) throw new Error("The skill contents are unavailable; import it again.");
       setViewing({ skill, text: body.text, review });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "could not load this skill.");
+      setError(cause instanceof Error ? cause.message : "Could not load this skill.");
     }
   };
 
@@ -193,13 +193,13 @@ export function SkillsSection() {
         body: JSON.stringify({ text }),
       });
       const body = (await response.json()) as { skill?: { name: string }; error?: string };
-      if (!response.ok) throw new Error(body.error ?? "could not import that skill.");
+      if (!response.ok) throw new Error(body.error ?? "Could not import that skill.");
       setImportMessage(t("skills.library.imported", { name: body.skill?.name ?? "" }));
       setImportText("");
       setImportOpen(false);
       await refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "could not import that skill.");
+      setError(cause instanceof Error ? cause.message : "Could not import that skill.");
     } finally {
       setImporting(false);
     }
@@ -328,7 +328,7 @@ function SkillSourceDialog({ viewing, error, working, onClose, onEnable }: {
         >
           <div className="flex max-h-[min(760px,90vh)] w-full max-w-2xl flex-col rounded-[14px] border border-transparent bg-app p-5">
             <div className="flex items-center justify-between gap-3">
-              <div id="skills-library-view-title" className="text-[15px] font-medium leading-[22px] text-ink">{viewing.review ? `review ${viewing.skill.name} before enabling` : viewing.skill.name}</div>
+              <div id="skills-library-view-title" className="text-[15px] font-medium leading-[22px] text-ink">{viewing.review ? `Review ${viewing.skill.name} before enabling` : viewing.skill.name}</div>
               <button
                 type="button"
                 disabled={working}
@@ -348,7 +348,7 @@ function SkillSourceDialog({ viewing, error, working, onClose, onEnable }: {
               {viewing.text}
             </pre>
             {error && <div role="alert" className="mt-2 text-[12px] text-danger">{error}</div>}
-            {viewing.review && <button type="button" disabled={working} onClick={onEnable} className="ui-button ui-button-primary mt-3 self-end">enable reviewed skill</button>}
+            {viewing.review && <button type="button" disabled={working} onClick={onEnable} className="ui-button ui-button-primary mt-3 self-end">Enable reviewed skill</button>}
           </div>
         </div>
   );

@@ -40,22 +40,22 @@ afterEach(() => {
 describe("call modes", () => {
   it("offers a Live call to one bot without on-device dictation or a configured voice", () => {
     setCallMode("turns");
-    expect(render(createElement(CallButton, { bot }))).toContain('aria-label="checking call availability"');
+    expect(render(createElement(CallButton, { bot }))).toContain('aria-label="Checking call availability"');
 
     setCallMode("live");
     const live = render(createElement(CallButton, { bot }));
-    expect(live).toContain('aria-label="live call with Atlas"');
+    expect(live).toContain('aria-label="Live call with Atlas"');
     expect(live).not.toContain("bg-warning");
   });
 
   it("puts a call mode chevron next to a one-to-one call button, not a room's", () => {
     const one = render(createElement(CallButton, { bot }));
-    expect(one).toContain('aria-label="call mode"');
+    expect(one).toContain('aria-label="Call mode"');
     expect(one).toContain('aria-haspopup="menu"');
     const group = render(createElement(CallTargetButton, {
       targetId: "room", targetName: "Room", voices: [undefined], requireExplicitVoices: true, onStart: vi.fn(),
     }));
-    expect(group).not.toContain('aria-label="call mode"');
+    expect(group).not.toContain('aria-label="Call mode"');
   });
 
   it("hangs up from the call button while this window is on a Live call", () => {
@@ -64,8 +64,8 @@ describe("call modes", () => {
     configureLiveMedia({ getUserMedia: () => new Promise<MediaStream>(() => {}) });
     void startLiveCall({ botId: bot.id, threadId: bot.threadId });
     const markup = render(createElement(CallButton, { bot }));
-    expect(markup).toContain('aria-label="hang up on Atlas"');
-    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*aria-label="call mode"/);
+    expect(markup).toContain('aria-label="Hang up on Atlas"');
+    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*aria-label="Call mode"/);
   });
 
   it("blocks other chats' call buttons while this window is on a Live call", () => {
@@ -75,12 +75,12 @@ describe("call modes", () => {
     for (const mode of ["live", "turns"] as const) {
       setCallMode(mode);
       const other = render(createElement(CallButton, { bot: { ...bot, id: "juniper", name: "Juniper" } }));
-      expect(other).toMatch(/<button[^>]*disabled=""[^>]*aria-label="on a live call"/);
+      expect(other).toMatch(/<button[^>]*disabled=""[^>]*aria-label="On a Live call"/);
     }
     const room = render(createElement(CallTargetButton, {
       targetId: "room", targetName: "Room", voices: [undefined], requireExplicitVoices: true, onStart: vi.fn(),
     }));
-    expect(room).toMatch(/<button[^>]*disabled=""[^>]*aria-label="on a live call"/);
+    expect(room).toMatch(/<button[^>]*disabled=""[^>]*aria-label="On a Live call"/);
   });
 
   it("says Live calls use the person's own OpenAI key, with a way to API keys, under the call button when the harness has none", async () => {
@@ -98,27 +98,27 @@ describe("call modes", () => {
         close() {},
       }) as unknown as RTCPeerConnection,
       request: async () => {
-        throw new ApiError("live calls use your own OpenAI key. add it in settings → API keys.", 409, { needsKey: true });
+        throw new ApiError("Live calls use your own OpenAI key. Add it in Settings → API keys.", 409, { needsKey: true });
       },
       stopRemote: () => {},
     });
     setCallMode("live");
     await startLiveCall({ botId: bot.id, threadId: bot.threadId });
     const header = render(createElement(CallButton, { bot }));
-    expect(header).toContain("live calls use your own OpenAI key. add it in settings → API keys.");
-    expect(header).toContain(">open API keys</button>");
+    expect(header).toContain("Live calls use your own OpenAI key. Add it in Settings → API keys.");
+    expect(header).toContain(">Open API keys</button>");
     // no plan to buy and no key field: the key goes in Settings → API keys
-    for (const gone of ["Pro plan", "start free trial", 'type="password"']) expect(header).not.toContain(gone);
-    expect(header).toMatch(/aria-expanded="true" aria-controls="[^"]+"[^>]*aria-label="live call with Atlas"/);
+    for (const gone of ["Pro plan", "Start free trial", 'type="password"']) expect(header).not.toContain(gone);
+    expect(header).toMatch(/aria-expanded="true" aria-controls="[^"]+"[^>]*aria-label="Live call with Atlas"/);
     const popup = /<div id="([^"]+)" class="animate-pop-in absolute right-0 z-30 max-h-/.exec(header);
     expect(popup).not.toBeNull();
     expect(header).toContain(`aria-controls="${popup![1]}"`);
     const composer = render(createElement(CallButton, { bot, placement: "composer" }));
-    expect(composer).toContain("live calls use your own OpenAI key.");
+    expect(composer).toContain("Live calls use your own OpenAI key.");
     expect(composer).toContain("bottom-full");
     expect(render(createElement(CallButton, { bot: { ...bot, id: "juniper" } }))).not.toContain("OpenAI key");
     dismissStartPrompt("juniper");
-    expect(render(createElement(CallButton, { bot }))).toContain("open API keys");
+    expect(render(createElement(CallButton, { bot }))).toContain("Open API keys");
     dismissStartPrompt(bot.id);
     expect(render(createElement(CallButton, { bot }))).not.toContain("OpenAI key");
   });

@@ -81,8 +81,8 @@ describe("a room's @ list", () => {
 
   it("shows each Quill by its role, and sends the picked one's id", () => {
     type(drafts[0]!, "@Qu");
-    expect(options().map((one) => one.textContent)).toEqual([expect.stringContaining("Analyst"), expect.stringContaining("chief of staff")]);
-    pick("Quill", "chief of staff");
+    expect(options().map((one) => one.textContent)).toEqual([expect.stringContaining("Analyst"), expect.stringContaining("Chief of Staff")]);
+    pick("Quill", "Chief of Staff");
     expect(input().value).toBe("@Quill ");
     send();
     expect(sent()).toEqual([expect.objectContaining({ type: "sendGroup", groupId: room.id, text: "@Quill", mentions: [chief.id] })]);
@@ -99,7 +99,7 @@ describe("a room's @ list", () => {
 
   it("keeps the pick with words a failed send hands back", () => {
     type(drafts[0]!, "@Qu");
-    pick("Quill", "chief of staff");
+    pick("Quill", "Chief of Staff");
     send();
     flushSync(() => sent()[0]!.onError());
     expect(input().value).toBe("@Quill ");

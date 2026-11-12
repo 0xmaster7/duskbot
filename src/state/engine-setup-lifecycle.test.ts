@@ -29,19 +29,19 @@ it("recovers from offline, detects installation, and becomes ready on focus with
     const instance = state.instances.find((value) => value.instanceId === "kimi");
     if (!instance) return null;
     return createElement(EngineCard, { instance, children: engineReady(instance)
-      ? createElement("p", null, "ready to use") : createElement(EngineSetup, { instance }) });
+      ? createElement("p", null, "Ready to use") : createElement(EngineSetup, { instance }) });
   }
   const host = document.createElement("div"); document.body.append(host);
   const root = createRoot(host);
   const check = async () => act(async () => {
-    Array.from(host.querySelectorAll("button")).find((node) => node.textContent === "check again")!.click();
+    Array.from(host.querySelectorAll("button")).find((node) => node.textContent === "Check again")!.click();
   });
   try {
     await act(async () => root.render(createElement(StoreProvider, null, createElement(Preview))));
     await act(async () => controls.refreshInstances({ reportErrors: true }));
     const card = host.querySelector("details")!;
     card.open = true;
-    expect(host.textContent).toContain("set up Kimi");
+    expect(host.textContent).toContain("Set up Kimi");
     offline = true;
     await check();
     expect(host.textContent).toContain("previous status is still shown");
@@ -49,13 +49,13 @@ it("recovers from offline, detects installation, and becomes ready on focus with
     offline = false;
     snapshot = { state: "available", authenticated: false, version: "1.0.0" };
     await check();
-    expect(host.textContent).toContain("sign in to Kimi");
-    expect(host.textContent).toContain("sign-in required");
+    expect(host.textContent).toContain("Sign in to Kimi");
+    expect(host.textContent).toContain("Sign-in required");
     expect(host.querySelector("details")).toBe(card);
     expect(card.open).toBe(true);
     snapshot = { state: "available", authenticated: true, version: "1.0.0" };
     await act(async () => { window.dispatchEvent(new Event("focus")); });
-    expect(host.textContent).toContain("ready to use");
+    expect(host.textContent).toContain("Ready to use");
     expect(host.querySelector("details")).toBe(card);
     expect(card.open).toBe(true);
   } finally {

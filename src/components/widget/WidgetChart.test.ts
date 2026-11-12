@@ -12,7 +12,7 @@ describe("WidgetChart", () => {
     if (!parsed.ok) throw new Error(parsed.error);
     const markup = renderToStaticMarkup(createElement(WidgetChart, { node: parsed.value.children![0]! }));
     expect(markup).toContain('role="img"');
-    expect(markup).toContain('aria-label="chart of Opus, Sonnet across 7 points"');
+    expect(markup).toContain('aria-label="Chart of Opus, Sonnet across 7 points"');
     expect(markup).toContain("height:184px");
     expect(renderToStaticMarkup(createElement(WidgetChart, { node: { type: "Chart", id: "n1" } }))).toBe("");
     expect(renderToStaticMarkup(createElement(WidgetChart, { node: { type: "Chart", id: "n1", data: [{ day: "Mon", a: 1 }], series: [] } }))).toBe("");

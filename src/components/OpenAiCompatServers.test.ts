@@ -48,14 +48,14 @@ describe("other OpenAI-compatible servers", () => {
     ]);
     expect(html).toContain("Zhipu");
     expect(html).toContain("https://open.bigmodel.cn/api/paas/v4");
-    expect(html).toContain('aria-label="remove Zhipu"');
+    expect(html).toContain('aria-label="Remove Zhipu"');
     expect(html).not.toContain("api.openai.com");
-    expect(html).not.toContain('aria-label="remove OpenAI"');
+    expect(html).not.toContain('aria-label="Remove OpenAI"');
   });
 
   it("says so when none are added", () => {
     const html = render([instance("openaiCompat", "Other (OpenAI-compatible)")]);
-    expect(html).toContain("no other servers yet.");
+    expect(html).toContain("No other servers yet.");
   });
 
   it("reads model IDs separated by commas, CJK commas or spaces", () => {
@@ -85,10 +85,10 @@ describe("adding another OpenAI-compatible server", () => {
     }
   }
   async function add() {
-    for (const [label, value] of [["display name", "Ada's lab box"], ["base URL", "https://ada.example.com/v1"], ["API key", KEY]] as const) {
+    for (const [label, value] of [["Display name", "Ada's lab box"], ["Base URL", "https://ada.example.com/v1"], ["API key", KEY]] as const) {
       form().find((node) => node.props["aria-label"] === label)!.props.onChange!({ target: { value } });
     }
-    form().find((node) => node.type === "button" && node.props.children && JSON.stringify(node.props.children).includes("add server"))!.props.onClick!();
+    form().find((node) => node.type === "button" && node.props.children && JSON.stringify(node.props.children).includes("Add server"))!.props.onClick!();
     await flush();
   }
 
@@ -112,10 +112,10 @@ describe("adding another OpenAI-compatible server", () => {
     fixture.api.mockResolvedValueOnce({ instances: [] });
     const button = (text: string) => form().find((node) => node.type === "button" && JSON.stringify(node.props.children ?? "").includes(text))!;
     expect(JSON.stringify(form().map((node) => node.props.children ?? ""))).not.toContain("aistudio.google.com");
-    button("fill in Google Gemini").props.onClick!();
+    button("Fill in Google Gemini").props.onClick!();
     expect(JSON.stringify(form().map((node) => node.props.children ?? ""))).toContain("aistudio.google.com/apikey");
     form().find((node) => node.props["aria-label"] === "API key")!.props.onChange!({ target: { value: "gemini-fixture" } });
-    button("add server").props.onClick!();
+    button("Add server").props.onClick!();
     await flush();
     expect(fixture.api).toHaveBeenCalledExactlyOnceWith("/api/instances/openai-compat", expect.objectContaining({ method: "POST" }));
     expect(JSON.parse(fixture.api.mock.calls[0][1].body)).toEqual({ displayName: "Google Gemini", url: "https://generativelanguage.googleapis.com/v1beta/openai", key: "gemini-fixture" });
@@ -182,8 +182,8 @@ describe("how long a server may take to reply", () => {
     fixture.api.mockReset();
     fixture.api.mockResolvedValue({ instances: [] });
     const select = builtInSelect("http://localhost:11434/v1")!;
-    expect(select.props["aria-label"]).toBe("how long to wait for Other (OpenAI-compatible) to reply");
-    expect(JSON.stringify(select.props.children)).toContain("wait 30 min");
+    expect(select.props["aria-label"]).toBe("How long to wait for Other (OpenAI-compatible) to reply");
+    expect(JSON.stringify(select.props.children)).toContain("Wait 30 min");
     select.props.onChange!({ target: { value: "30" } });
     await Promise.resolve();
     expect(fixture.api).toHaveBeenLastCalledWith("/api/instances/openaiCompat", { method: "PATCH", body: JSON.stringify({ replyWaitMinutes: 30 }) });
@@ -194,7 +194,7 @@ describe("how long a server may take to reply", () => {
   it("shows a saved wait that is not one of the usual choices", () => {
     fixture.values = [];
     const html = JSON.stringify(waitSelect(45).props.children);
-    expect(html).toContain("wait 45 min");
+    expect(html).toContain("Wait 45 min");
   });
 });
 
@@ -218,12 +218,12 @@ describe("LM Studio and Bionic setup", () => {
     const html = renderToStaticMarkup(createElement(LmStudioServer));
     expect(html).toContain("LM Studio (Bionic)");
     expect(html).toContain("Bionic is the current LM Studio app");
-    expect(html).toContain('aria-label="port"');
+    expect(html).toContain('aria-label="Port"');
     expect(html).toContain('aria-label="API token (optional)"');
     expect(html).toContain("http://127.0.0.1:1234/v1");
-    expect(html).not.toContain("display name");
-    expect(html).not.toContain("model IDs");
-    expect(html).not.toContain('aria-label="base URL"');
+    expect(html).not.toContain("Display name");
+    expect(html).not.toContain("Model IDs");
+    expect(html).not.toContain('aria-label="Base URL"');
   });
 
   it("adds LM Studio with the placeholder key when the token is empty", async () => {
@@ -287,7 +287,7 @@ describe("LM Studio and Bionic setup", () => {
       dispatch: vi.fn(), flushBotPatches: vi.fn(), refreshInstances: vi.fn(), refreshModels: vi.fn(),
     });
     const html = renderToStaticMarkup(createElement(LmStudioServer));
-    expect(html).toContain("this server is already added.");
+    expect(html).toContain("This server is already added.");
     expect(html).toContain("disabled");
   });
 });

@@ -88,7 +88,7 @@ const panelClose = () => document.querySelector<HTMLElement>("[data-computer-pan
 const chatButton = () => {
   const button = document.createElement("button");
   button.dataset.tour = "computer";
-  button.textContent = "computer";
+  button.textContent = "Computer";
   document.body.append(button);
   return button;
 };
@@ -185,9 +185,9 @@ describe("computer panel entry focus", () => {
     expect(document.activeElement).toBe(activeTab());
 
     // Auto resolves its surface, or a sign-in moves the tab.
-    flushSync(() => tabByLabel("browser").click());
+    flushSync(() => tabByLabel("Browser").click());
     await settle();
-    expect(document.activeElement).toBe(tabByLabel("browser"));
+    expect(document.activeElement).toBe(tabByLabel("Browser"));
   });
 
   it("stops following the selection once focus leaves the tab row", async () => {
@@ -197,7 +197,7 @@ describe("computer panel entry focus", () => {
     const content = document.querySelector<HTMLElement>('[role="tabpanel"]')!;
     flushSync(() => content.focus());
 
-    flushSync(() => tabByLabel("browser").click());
+    flushSync(() => tabByLabel("Browser").click());
     await settle();
     expect(document.activeElement).toBe(content);
   });

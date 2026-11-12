@@ -38,7 +38,7 @@ export async function fetchAppDocument(threadId: string, messageId: string, sign
   const query = new URLSearchParams({ origin: window.location.origin, ...(rev === undefined ? {} : { rev: String(rev) }) });
   try {
     const doc = await api<AppDocument>(`${appDocumentPath(threadId, messageId)}?${query}`, { signal });
-    if (!isRecord(doc) || typeof doc.srcdoc !== "string" || !isRecord(doc.can)) throw new AppDocumentError({ offline: false, status: 500, error: "the app's page did not arrive whole." });
+    if (!isRecord(doc) || typeof doc.srcdoc !== "string" || !isRecord(doc.can)) throw new AppDocumentError({ offline: false, status: 500, error: "The app's page did not arrive whole." });
     return doc;
   } catch (error) {
     if (error instanceof AppDocumentError) throw error;
@@ -58,14 +58,14 @@ export interface AppRpcRefusal {
 
 export type AppRpcOutcome = { ok: true; result: unknown } | ({ ok: false } & AppRpcRefusal);
 
-export const OFFLINE_ERROR: JsonRpcError = { code: RPC_HOST_REFUSED, message: "offline" };
+export const OFFLINE_ERROR: JsonRpcError = { code: RPC_HOST_REFUSED, message: "Offline" };
 
 function rpcRefusal(error: unknown): AppRpcRefusal {
   if (!(error instanceof ApiError)) return { status: 0, error: OFFLINE_ERROR };
   const body = isRecord(error.body) ? error.body : {};
   const given = isRecord(body.error) ? body.error : null;
   const code = given && typeof given.code === "number" && Number.isInteger(given.code) ? given.code : RPC_HOST_REFUSED;
-  const refusal: AppRpcRefusal = { status: error.status, error: { code, message: error.message || "the app's server refused this." } };
+  const refusal: AppRpcRefusal = { status: error.status, error: { code, message: error.message || "The app's server refused this." } };
   if (isRecord(body.signIn) && typeof body.signIn.server === "string") refusal.signIn = { server: body.signIn.server };
   if (isRecord(body.blocked) && typeof body.blocked.reason === "string") {
     refusal.blocked = { reason: body.blocked.reason as AppBlockedReason, ...(typeof body.blocked.text === "string" ? { text: body.blocked.text } : {}) };

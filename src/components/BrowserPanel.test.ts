@@ -139,10 +139,10 @@ describe("the browser panel's connection", () => {
       socket.control("unclaimed");
     });
     await flush();
-    expect(host.textContent).toContain("starting the browser…");
+    expect(host.textContent).toContain("Starting the browser…");
     await act(async () => socket.message(new ArrayBuffer(8)));
     await flush();
-    expect(host.textContent).not.toContain("starting the browser…");
+    expect(host.textContent).not.toContain("Starting the browser…");
   });
 
   it("says the browser closed after it sat unused, opens it again only when asked, and shows it once it runs", async () => {
@@ -162,12 +162,12 @@ describe("the browser panel's connection", () => {
 
   it("shows the tab's address and enables history from what the stream says", async () => {
     const socket = await streaming();
-    expect((host.querySelector<HTMLInputElement>('input[aria-label="browser address"]')!).value).toBe("https://example.com/");
-    expect(button("back").disabled).toBe(true);
+    expect((host.querySelector<HTMLInputElement>('input[aria-label="Browser address"]')!).value).toBe("https://example.com/");
+    expect(button("Back").disabled).toBe(true);
     await act(async () => socket.message({ type: "nav", tabId: "t1", url: "https://example.com/two", loading: true, canGoBack: true, canGoForward: false }));
-    expect((host.querySelector<HTMLInputElement>('input[aria-label="browser address"]')!).value).toBe("https://example.com/two");
-    expect(button("back").disabled).toBe(false);
-    expect(button("forward").disabled).toBe(true);
+    expect((host.querySelector<HTMLInputElement>('input[aria-label="Browser address"]')!).value).toBe("https://example.com/two");
+    expect(button("Back").disabled).toBe(false);
+    expect(button("Forward").disabled).toBe(true);
   });
 });
 
@@ -212,23 +212,23 @@ describe("a v1 live view whose stream dropped", () => {
     fixture.state.config.browserEngine = { kind: "engine", engine: "agent-browser" };
     await render();
     await emit("ready", { viewerId: "old-viewer" });
-    await emit("error", { message: "browser connection ended." });
-    expect(host.textContent).toContain("browser disconnected");
-    await act(async () => button("reconnect").click());
+    await emit("error", { message: "Browser connection ended." });
+    expect(host.textContent).toContain("Browser disconnected");
+    await act(async () => button("Reconnect").click());
     await flush();
     expect(live().url).toBe("/api/bots/pepper/browser/live?resume=old-viewer&width=1600&height=1000");
     await emit("ready", { viewerId: "new-viewer" });
-    expect(host.textContent).not.toContain("browser disconnected");
+    expect(host.textContent).not.toContain("Browser disconnected");
   });
 
   it("says the browser closed after it sat unused, and opens a new view only when asked", async () => {
     fixture.state.config.browserEngine = { kind: "engine", engine: "agent-browser" };
     await render();
     await emit("ready", { viewerId: "old-viewer" });
-    await emit("error", { retryable: false, asleep: true, message: "this browser closed after it sat unused, to save memory." });
+    await emit("error", { retryable: false, asleep: true, message: "This browser closed after it sat unused, to save memory." });
     await flush();
     expect(host.textContent).toContain(t("browser.panel.asleep"));
-    expect(host.textContent).not.toContain("browser disconnected");
+    expect(host.textContent).not.toContain("Browser disconnected");
     await act(async () => { window.dispatchEvent(new Event("focus")); });
     expect(FixtureEventSource.instances).toHaveLength(1);
     await act(async () => button(t("browser.panel.wake")).click());
@@ -248,12 +248,12 @@ describe("a v1 live view whose stream dropped", () => {
     }
     await emit("error", { retryable: true });
     expect(FixtureEventSource.instances).toHaveLength(6);
-    expect(host.textContent).toContain("browser disconnected");
+    expect(host.textContent).toContain("Browser disconnected");
     await act(async () => { window.dispatchEvent(new Event("focus")); });
     expect(FixtureEventSource.instances).toHaveLength(7);
     expect(live().url).toBe("/api/bots/pepper/browser/live?resume=old-viewer&width=1600&height=1000");
     await emit("ready", { viewerId: "back-viewer" });
-    expect(host.textContent).not.toContain("browser disconnected");
+    expect(host.textContent).not.toContain("Browser disconnected");
   });
 });
 
@@ -267,7 +267,7 @@ describe("who holds the browser", () => {
     expect(pill().dataset.pill).toBe("taking");
     await act(async () => socket.control("you"));
     await flush();
-    expect(pill().textContent).toContain("you have control");
+    expect(pill().textContent).toContain("You have control");
     await act(async () => pill().click());
     await flush();
     expect(socket.sent.at(-1)).toEqual({ type: "releaseControl" });
@@ -338,14 +338,14 @@ describe("who holds the browser", () => {
     const page = host.querySelector("textarea")!;
     page.focus();
     await act(async () => { page.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape", shiftKey: true, bubbles: true })); });
-    expect(document.activeElement).toBe(host.querySelector('input[aria-label="browser address"]'));
+    expect(document.activeElement).toBe(host.querySelector('input[aria-label="Browser address"]'));
   });
 });
 
 describe("what the person does in the panel", () => {
   it("navigates from the address bar, taking the browser first", async () => {
     const socket = await streaming("agent");
-    const address = host.querySelector<HTMLInputElement>('input[aria-label="browser address"]')!;
+    const address = host.querySelector<HTMLInputElement>('input[aria-label="Browser address"]')!;
     await act(async () => { address.focus(); });
     await act(async () => {
       const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
@@ -363,7 +363,7 @@ describe("what the person does in the panel", () => {
   it("types into the page from the typing dialog only while it holds the browser", async () => {
     vi.spyOn(HTMLDialogElement.prototype, "showModal").mockImplementation(function (this: HTMLDialogElement) { this.setAttribute("open", ""); });
     const socket = await streaming("you");
-    await act(async () => button("type or paste text…").click());
+    await act(async () => button("Type or paste text…").click());
     const field = host.querySelector<HTMLInputElement>('input[name="pageText"]')!;
     field.value = "hello there";
     await act(async () => { field.form!.requestSubmit(); });
@@ -374,9 +374,9 @@ describe("what the person does in the panel", () => {
 
   it("sizes and zooms the page from the menu while it holds the browser", async () => {
     const socket = await streaming("you");
-    await act(async () => button("phone · 390×844").click());
+    await act(async () => button("Phone · 390×844").click());
     expect(socket.sent).toContainEqual({ type: "viewport", setting: { mode: "preset", preset: "phone" } });
-    await act(async () => button("zoom in").click());
+    await act(async () => button("Zoom in").click());
     expect(socket.sent).toContainEqual({ type: "zoom", factor: 1.1 });
     await act(async () => socket.message({ type: "viewport", width: 1455, height: 909, zoom: 1.1, setting: { mode: "fill" } }));
     expect(host.textContent).toContain("110%");

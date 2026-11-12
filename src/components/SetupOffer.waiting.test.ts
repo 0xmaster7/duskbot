@@ -12,8 +12,8 @@ vi.mock("@/lib/cloud-guest", () => ({ useReactor: () => "user", currentReactor: 
 vi.mock("./AskCard", async (original) => ({ ...await original<typeof import("./AskCard")>(), returnFocusToComposer: vi.fn() }));
 import { SetupOffer } from "./SetupOffer";
 
-const FIXED = ["research and digging into topics", "keeping an eye on things for me", "email, calendar and messages",
-  "bookings, shopping and errands", "data, spreadsheets and reports"];
+const FIXED = ["Research and digging into topics", "Keeping an eye on things for me", "Email, calendar and messages",
+  "Bookings, shopping and errands", "Data, spreadsheets and reports"];
 const PERSONAL = ["Sort my receipts", "Check my unpaid invoices", "Draft a payment reminder", "Find a missing expense", "Remind me of tax deadlines"];
 const greeting = (extra: Partial<Message> = {}): Message => ({ id: "g1", role: "bot", kind: "text", at: Date.now(),
   text: "Hi, I'm Ava. What would you like me to do?", setupOffer: true, setupChoices: FIXED, ...extra }) as Message;
@@ -31,7 +31,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   fixture.api.mockReset().mockResolvedValue({ ok: true });
   fixture.bots = [{ id: "b1", threadId: "t1", name: "Ava", title: "", description: "", soul: "",
-    modelSelection: { instanceId: "claude", model: "claude-sonnet-5" }, tasks: [{ threadId: "t1", title: "new thread", createdAt: 1 }] } as unknown as Bot];
+    modelSelection: { instanceId: "claude", model: "claude-sonnet-5" }, tasks: [{ threadId: "t1", title: "New thread", createdAt: 1 }] } as unknown as Bot];
   fixture.instances = [{ instanceId: "claude", capabilities: { agentsMcp: true } }];
   container = document.createElement("div");
   root = createRoot(container);
@@ -45,15 +45,15 @@ afterEach(() => {
 describe("the setup card while its answers are written", () => {
   it("keeps a quiet frame with the title and the close button, takes no letter, and closes", () => {
     show(greeting({ setupChoicesPending: true }));
-    expect(card()!.textContent).toContain("what should i help you with first?");
+    expect(card()!.textContent).toContain("What should I help you with first?");
     expect(card()!.getAttribute("aria-busy")).toBe("true");
     expect(container.querySelectorAll("[data-setup-waiting] > div")).toHaveLength(6);
     expect(container.querySelectorAll("kbd")).toHaveLength(0);
-    expect(card()!.textContent).not.toContain("something else");
+    expect(card()!.textContent).not.toContain("Something else");
     press("a");
     press("f");
     expect(fixture.api).not.toHaveBeenCalled();
-    act(() => container.querySelector<HTMLButtonElement>('button[aria-label="close"]')!.click());
+    act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Close"]')!.click());
     expect(fixture.api).toHaveBeenCalledWith("/api/bots/b1/setup-request", { method: "DELETE", body: JSON.stringify({ threadId: "t1" }) });
     expect(card()).toBeNull();
   });
@@ -62,7 +62,7 @@ describe("the setup card while its answers are written", () => {
     show(greeting({ setupChoicesPending: true }));
     show(greeting({ setupChoices: PERSONAL }));
     expect(container.querySelector("[data-setup-waiting]")).toBeNull();
-    expect(labels()).toEqual([...PERSONAL, "something else"]);
+    expect(labels()).toEqual([...PERSONAL, "Something else"]);
     expect(card()!.getAttribute("aria-busy")).toBeNull();
     press("b");
     expect(fixture.api).toHaveBeenCalledWith("/api/bots/b1/setup-request", { method: "POST", body: JSON.stringify({ threadId: "t1", text: PERSONAL[1] }) });
@@ -74,29 +74,29 @@ describe("the setup card while its answers are written", () => {
     expect(container.querySelector("[data-setup-waiting]")).not.toBeNull();
     act(() => void vi.advanceTimersByTime(1));
     expect(container.querySelector("[data-setup-waiting]")).toBeNull();
-    expect(labels()).toEqual([...FIXED, "something else"]);
+    expect(labels()).toEqual([...FIXED, "Something else"]);
     act(() => root!.unmount());
     root = createRoot(container);
     show(greeting({ setupChoicesPending: true, at: Date.now() - 20_000 }));
     expect(container.querySelector("[data-setup-waiting]")).toBeNull();
-    expect(labels()).toEqual([...FIXED, "something else"]);
+    expect(labels()).toEqual([...FIXED, "Something else"]);
   });
 
   it("shows a settled card as a greyed list, never a waiting one", () => {
     const message = greeting({ setupChoicesPending: true });
     show(message, [message, { id: "u1", role: "user", kind: "text", at: Date.now(), text: "help me plan a trip" } as Message]);
     expect(container.querySelector("[data-setup-waiting]")).toBeNull();
-    expect(labels()).toEqual([...FIXED, "something else"]);
+    expect(labels()).toEqual([...FIXED, "Something else"]);
     expect([...container.querySelectorAll<HTMLButtonElement>("[data-ask-choice]")].every((button) => button.disabled)).toBe(true);
-    expect(container.querySelector('button[aria-label="close"]')).toBeNull();
+    expect(container.querySelector('button[aria-label="Close"]')).toBeNull();
   });
 
   it("keeps the first list it showed when the answers change afterwards, so a letter never picks a job that was not on screen", () => {
     show(greeting({ setupChoicesPending: true }));
     act(() => void vi.advanceTimersByTime(8_000));
-    expect(labels()).toEqual([...FIXED, "something else"]);
+    expect(labels()).toEqual([...FIXED, "Something else"]);
     show(greeting({ setupChoices: PERSONAL }));
-    expect(labels()).toEqual([...FIXED, "something else"]);
+    expect(labels()).toEqual([...FIXED, "Something else"]);
     press("c");
     expect(fixture.api).toHaveBeenCalledWith("/api/bots/b1/setup-request", { method: "POST", body: JSON.stringify({ threadId: "t1", text: FIXED[2] }) });
   });
@@ -112,7 +112,7 @@ describe("the setup card while a rename rewrites its answers", () => {
     show(greeting({ setupChoicesUpdating: Date.now() }));
     expect(rewriting()).toBe(true);
     expect(card()!.getAttribute("aria-busy")).toBe("true");
-    expect(labels()).toEqual([...FIXED, "something else"]);
+    expect(labels()).toEqual([...FIXED, "Something else"]);
     expect(buttons().every((button) => button.disabled)).toBe(true);
     press("a");
     press("f");
@@ -121,7 +121,7 @@ describe("the setup card while a rename rewrites its answers", () => {
     show(greeting({ setupChoices: PERSONAL }));
     expect(rewriting()).toBe(false);
     expect(card()!.getAttribute("aria-busy")).toBeNull();
-    expect(labels()).toEqual([...PERSONAL, "something else"]);
+    expect(labels()).toEqual([...PERSONAL, "Something else"]);
     press("b");
     expect(fixture.api).toHaveBeenCalledWith(...picked(PERSONAL[1]!));
   });
@@ -129,7 +129,7 @@ describe("the setup card while a rename rewrites its answers", () => {
   it("keeps its answers and takes picks again when the rewrite ends without new ones, also when first drawn mid-rewrite", () => {
     show(greeting({ setupChoices: PERSONAL, setupChoicesUpdating: Date.now() }));
     expect(rewriting()).toBe(true);
-    expect(labels()).toEqual([...PERSONAL, "something else"]);
+    expect(labels()).toEqual([...PERSONAL, "Something else"]);
     show(greeting({ setupChoices: PERSONAL }));
     expect(rewriting()).toBe(false);
     expect(buttons().some((button) => button.disabled)).toBe(false);
@@ -146,7 +146,7 @@ describe("the setup card while a rename rewrites its answers", () => {
     act(() => void vi.advanceTimersByTime(1));
     expect(rewriting()).toBe(false);
     show(greeting({ setupChoices: PERSONAL }));
-    expect(labels()).toEqual([...FIXED, "something else"]);
+    expect(labels()).toEqual([...FIXED, "Something else"]);
     show(greeting({ setupChoicesUpdating: Date.now() }));
     expect(rewriting(), "a later rename waits again").toBe(true);
     act(() => root!.unmount());

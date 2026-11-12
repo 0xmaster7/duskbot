@@ -39,7 +39,7 @@ describe("an image's loading tile", () => {
     act(() => root.render(createElement(ImageLoading, { name: "chart.png", className: "absolute inset-0" })));
     const tile = host.querySelector<HTMLElement>("[role=status]")!;
     const moving = () => [tile.classList.contains("animate-pulse"), tile.querySelector("svg")!.classList.contains("animate-spin")];
-    expect(tile.textContent).toBe("loading chart.png");
+    expect(tile.textContent).toBe("Loading chart.png");
     expect(moving()).toEqual([false, false]);
     act(() => observer.report!([{ target: tile, isIntersecting: true }]));
     expect(moving()).toEqual([true, true]);

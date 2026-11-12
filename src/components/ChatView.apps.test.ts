@@ -45,7 +45,7 @@ describe("app rows", () => {
     const markup = renderToStaticMarkup(createElement(ChatView, { bot: bot([message("m1", "count my coffees"), appRow]) }));
     expect(markup).toContain('data-app="a1"');
     expect(markup).toContain("Coffee counter");
-    expect(markup).toContain("page made by Pepper");
+    expect(markup).toContain("Page made by Pepper");
     // the readable fallback is for older clients: not drawn as a bubble here
     expect(markup).not.toContain("Cups of coffee today");
   });
@@ -66,10 +66,10 @@ describe("words an app sent as the person", () => {
         message("m3", "typed words"),
       ]),
     }));
-    expect(markup.match(/sent from Coffee counter/g)).toHaveLength(2); // the line and its tooltip
+    expect(markup.match(/Sent from Coffee counter/g)).toHaveLength(2); // the line and its tooltip
     expect(markup).toContain('data-sent-from-app="a1"');
-    expect(markup.indexOf("sent from Coffee counter")).toBeGreaterThan(markup.indexOf("I have had 3 cups"));
-    expect(markup.indexOf("sent from Coffee counter")).toBeLessThan(markup.indexOf("typed words"));
+    expect(markup.indexOf("Sent from Coffee counter")).toBeGreaterThan(markup.indexOf("I have had 3 cups"));
+    expect(markup.indexOf("Sent from Coffee counter")).toBeLessThan(markup.indexOf("typed words"));
     expect(markup).not.toContain("via call");
   });
 });

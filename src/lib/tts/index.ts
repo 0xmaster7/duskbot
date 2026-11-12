@@ -248,7 +248,7 @@ export class Speaker {
         this.set({ status: "speaking", botId: opts.botId, messageId: opts.messageId, caption: pending[at]! });
         const played = await this.play(rendered.blob, live, opts.messageId, at);
         if (!played || !live()) {
-          if (live()) this.set({ ...IDLE, error: "the generated voice clip couldn't be played." });
+          if (live()) this.set({ ...IDLE, error: "The generated voice clip couldn't be played." });
           controller.abort();
           return;
         }
@@ -346,7 +346,7 @@ export class Speaker {
       utterance.onend = () => finish(true);
       utterance.onerror = (event) => {
         const interrupted = event.error === "canceled" || event.error === "interrupted";
-        finish(false, interrupted ? undefined : "this Mac could not play its selected voice.");
+        finish(false, interrupted ? undefined : "This Mac could not play its selected voice.");
       };
       try {
         synth.speak(utterance);

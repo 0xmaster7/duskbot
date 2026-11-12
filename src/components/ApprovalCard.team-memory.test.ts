@@ -12,7 +12,7 @@ const { ApprovalCard } = await import("./ApprovalCard");
 const saved: Message = {
   id: "applied-card", role: "bot", kind: "options", at: 1,
   card: {
-    title: "Remember", subtitle: "person: Ada Lovelace — Runs the payroll review.", options: [], answered: "allow", dismissed: true,
+    title: "Remember", subtitle: "Person: Ada Lovelace — Runs the payroll review.", options: [], answered: "allow", dismissed: true,
     autoApplied: true, requestId: "memory-request", tool: "propose_team_memory",
     teamMemoryRequest: { section: "", entryId: "e", kind: "person", revision: "v1" },
   },
@@ -23,12 +23,12 @@ beforeEach(() => { fixture.admin = false; });
 
 it("offers no Undo on a department memory notice to a session that may not review team memory", () => {
   const html = render();
-  expect(html).toContain(">saved to department memory<");
-  expect(html).toContain(">person: Ada Lovelace<");
+  expect(html).toContain(">Saved to department memory<");
+  expect(html).toContain(">Person: Ada Lovelace<");
   expect(html).not.toContain(">Undo<");
 });
 
 it("keeps Undo for an admin", () => {
   fixture.admin = true;
-  expect(render()).toContain(">undo<");
+  expect(render()).toContain(">Undo<");
 });

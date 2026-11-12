@@ -46,7 +46,7 @@ const bot: Bot = {
 let host: HTMLDivElement;
 let root: Root;
 const render = (shown: Bot) => flushSync(() => root.render(createElement(ChatView, { bot: shown })));
-const retry = () => [...host.querySelectorAll("button")].find((button) => button.textContent?.includes("retry") || button.textContent?.includes("try again"));
+const retry = () => [...host.querySelectorAll("button")].find((button) => button.textContent?.includes("Retry") || button.textContent?.includes("Try again"));
 
 beforeEach(() => {
   fixture.dispatch.mockClear();
@@ -78,9 +78,9 @@ describe("a cancelled turn", () => {
   it("keeps a real error, including one that only mentions cancellation", () => {
     const cause = `${CANCELLED} See the logs.`;
     render({ ...bot, messages: [ask, { id: "error", role: "bot", kind: "activity", at: 2, tool: { name: `error: ${cause}`, ok: false } }] });
-    expect(host.textContent).toContain("bot failed to respond");
+    expect(host.textContent).toContain("Bot failed to respond");
     expect(host.querySelector("[data-failed-reply] [data-chat-error][role=alert]"), "a real error keeps the danger card, above the composer").not.toBeNull();
-    expect(host.textContent).not.toContain("stopped");
+    expect(host.textContent).not.toContain("Stopped");
     expect(retry()).toBeTruthy();
   });
 });

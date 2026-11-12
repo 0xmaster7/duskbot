@@ -1,6 +1,6 @@
 export const MIN_ROOM_TURN_TIMEOUT_MINUTES = 1;
 export const MAX_ROOM_TURN_TIMEOUT_MINUTES = 1_440;
-export const ROOM_TURN_TIMEOUT_INPUT_ERROR = "enter a whole number from 1 to 1,440.";
+export const ROOM_TURN_TIMEOUT_INPUT_ERROR = "Enter a whole number from 1 to 1,440.";
 
 export type RoomTurnTimeoutInput =
   | { ok: true; minutes: number }

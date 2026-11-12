@@ -43,12 +43,12 @@ describe("the notch and dock step", () => {
   it("lights up the real island while it shows, and says so", async () => {
     await show();
     expect(set).toHaveBeenCalledWith({ island: true });
-    expect(host.querySelector("[role=status]")?.textContent).toBe("live at the top of your screen right now");
+    expect(host.querySelector("[role=status]")?.textContent).toBe("Live at the top of your screen right now");
   });
 
   it("keeps the notch on when asked", async () => {
     await show();
-    await act(async () => { button("keep the notch on").click(); });
+    await act(async () => { button("Keep the notch on").click(); });
     expect(set).toHaveBeenLastCalledWith({ island: true });
     expect(onDone).toHaveBeenCalledWith("notch");
   });
@@ -56,7 +56,7 @@ describe("the notch and dock step", () => {
   it("goes back to just the side dock, which stays on", async () => {
     prefs.dock = false;
     await show();
-    await act(async () => { button("just the side dock").click(); });
+    await act(async () => { button("Just the side dock").click(); });
     expect(set).toHaveBeenLastCalledWith({ island: false, dock: true });
     expect(onDone).toHaveBeenCalledWith("dock");
     expect(prefs).toMatchObject({ island: false, dock: true });
@@ -81,10 +81,10 @@ describe("the notch and dock step", () => {
   it("says when the choice did not save, and stays", async () => {
     await show();
     set.mockRejectedValueOnce(new Error("no"));
-    await act(async () => { button("just the side dock").click(); });
-    expect(host.querySelector("[role=alert]")?.textContent).toBe("couldn't save this setting. try again.");
+    await act(async () => { button("Just the side dock").click(); });
+    expect(host.querySelector("[role=alert]")?.textContent).toBe("Couldn't save this setting. Try again.");
     expect(onDone).not.toHaveBeenCalled();
-    expect(button("just the side dock").disabled).toBe(false);
+    expect(button("Just the side dock").disabled).toBe(false);
   });
 
   it("walks the island through every mood on its own, and a tapped bot is cheered on", async () => {

@@ -16,7 +16,7 @@ import { packageSummary, parsePackageDocument } from "../../shared/package-forma
 const fixture = (name: string) => JSON.parse(readFileSync(join(import.meta.dirname, "..", "..", "shared", "package-fixtures", name), "utf8"));
 const text = (markup: string) => markup.replace(/<[^>]+>/g, " ").replace(/&#x27;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ");
 
-describe("share as preset", () => {
+describe("Share as preset", () => {
   it("asks for a preset file of the New bot defaults, named once, with notes and picture as chosen", () => {
     expect(presetShareBody({ name: " Support agent ", description: "", release: "", notes: "", includeNotes: true, dryRun: true })).toEqual({
       format: "package", version: 2, kind: "library", name: "Support agent", presetName: "Support agent",
@@ -33,23 +33,23 @@ describe("share as preset", () => {
     };
     const words = text(renderToStaticMarkup(createElement(SharePresetContents, { preview, localSkips: [] })));
     for (const line of [
-      "skills · arrive switched off 1 · objection-handling", "starter notes none", "pictures none",
-      "never included: model choices, folders, where bots work, approval levels, connected apps, MCP servers and routines.",
-      "removed what looked like a key or password from: Support agent · standing instructions",
+      "Skills · arrive switched off 1 · objection-handling", "Starter notes None", "Pictures None",
+      "Never included: model choices, folders, where bots work, approval levels, connected apps, MCP servers and routines.",
+      "Removed what looked like a key or password from: Support agent · standing instructions",
       "Support agent · skill · follow-up — a bot in the department has a different skill with this name",
     ]) expect(words).toContain(line);
   });
 
   it("previews a preset file's import as preset bots for New bot, with no team members", () => {
     const words = text(renderToStaticMarkup(createElement(TeamImportDetails, { pending: teamImportPreview(fixture("library-only.v2.json")), importedNames: [] })));
-    expect(words).toContain("preset bots: 1 · appear in new bot");
-    expect(words).toContain("preset bots (added to new bot) Support agent");
+    expect(words).toContain("Preset bots: 1 · appear in New bot");
+    expect(words).toContain("Preset bots (added to New bot) Support agent");
     expect(words).not.toContain("0 playbooks");
-    expect(words).toContain("offered skills (not added to any bot) follow-up");
-    expect(words).toContain("the preset bots appear in new bot, above the built-in roles.");
-    expect(words).not.toContain("team members");
+    expect(words).toContain("Offered skills (not added to any bot) follow-up");
+    expect(words).toContain("The preset bots appear in New bot, above the built-in roles.");
+    expect(words).not.toContain("Team members");
     expect(words).not.toContain("group chats");
     expect(text(renderToStaticMarkup(createElement(TeamImportDetails, { pending: teamImportPreview(fixture("full-team.v2.json")), importedNames: ["Morgan", "Scout", "Quill"] }))))
-      .toContain("preset bots: 1 · appear in new bot");
+      .toContain("Preset bots: 1 · appear in New bot");
   });
 });

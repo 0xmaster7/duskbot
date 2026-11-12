@@ -45,7 +45,7 @@ vi.mock("./DesktopCapabilities", async (importOriginal) => ({
 vi.mock("./CloudScreenPreview", () => ({
   CloudScreenPreview: ({ onOpen, onRetry }: { onOpen: () => void; onRetry: (discard: boolean) => void }) => createElement("div", null,
     createElement("button", { "data-preview": "", onClick: onOpen }, "preview"),
-    createElement("button", { onClick: () => onRetry(false) }, "retry live screen")),
+    createElement("button", { onClick: () => onRetry(false) }, "Retry live screen")),
 }));
 vi.mock("./LiveDesktop", () => ({
   LiveDesktop: (props: { target: string; expanded: boolean; onUnreachable: () => void; viewOnly?: boolean; onReadyChange?: (ready: boolean) => void; onTakeControl?: () => void; onOpenPreview?: () => void; originalViewer?: boolean; waking?: (expanded: boolean) => ReactNode }) => {
@@ -54,7 +54,7 @@ vi.mock("./LiveDesktop", () => ({
     const report = (value: boolean) => { setReady(value); props.onReadyChange?.(value); };
     fixture.live = { ...props, onReadyChange: report };
     useEffect(() => { fixture.connections++; report(fixture.ready); }, [props.target]);
-    return createElement("div", { "data-live-desktop": "", "data-target": props.target, "data-expanded": String(props.expanded), "data-view-only": String(props.viewOnly) }, ready ? null : props.waking?.(props.expanded), props.originalViewer && props.expanded && props.viewOnly ? createElement("button", { onClick: props.onTakeControl }, "take control") : null);
+    return createElement("div", { "data-live-desktop": "", "data-target": props.target, "data-expanded": String(props.expanded), "data-view-only": String(props.viewOnly) }, ready ? null : props.waking?.(props.expanded), props.originalViewer && props.expanded && props.viewOnly ? createElement("button", { onClick: props.onTakeControl }, "Take control") : null);
   },
 }));
 vi.mock("./BrowserPanel", () => ({ BrowserPanel: () => null }));
@@ -221,43 +221,43 @@ describe("taking control of a Local VM", () => {
     flushSync(() => publishLiveFrame({ kind: "computer-state", botId: "scout", resourceKey: "computer:vps:main:scout", state: "ready" }));
     await settle();
     expect(fixture.connections).toBe(1);
-    expect(button("take control")?.disabled).toBe(false);
+    expect(button("Take control")?.disabled).toBe(false);
   });
 
   it("does not take control before the first decoded frame", async () => {
     fixture.ready = false;
     await open(makeBot({ computer: "vm" }));
-    expect(button("take control")?.disabled).toBe(true);
+    expect(button("Take control")?.disabled).toBe(true);
     expect(fixture.controls).toEqual([]);
     flushSync(() => fixture.live!.onReadyChange?.(true));
-    await press("take control");
+    await press("Take control");
     expect(fixture.controls[0]?.action).toBe("take");
   });
 
   it("turns the panel's own picture into the live desktop at once; no window or tab opens", async () => {
     await open(makeBot({ computer: "vm" }));
-    await press("take control");
+    await press("Take control");
     await shownLive();
     expect(liveDesktop()!.dataset.target).toBe(`local/bot-${"a".repeat(64)}`);
     expect(window.duskDesktop!.desktopViewer!.open, "nothing may open in another window").not.toHaveBeenCalled();
     expect(window.open).not.toHaveBeenCalled();
     expect(fixture.controls).toEqual([{ action: "take", controlLeaseId: expect.stringMatching(/^[0-9a-f]{36}$/) }]);
-    expect(document.body.textContent).toContain("you're in control");
-    expect(button("hand control back")).toBeDefined();
+    expect(document.body.textContent).toContain("You're in control");
+    expect(button("Hand control back")).toBeDefined();
   });
 
   it("hands back at once and returns to watching", async () => {
     await open(makeBot({ computer: "vm" }));
-    await press("take control");
-    await press("hand control back");
+    await press("Take control");
+    await press("Hand control back");
     expect(fixture.controls.at(-1)).toEqual({ action: "release" });
     expect(liveDesktop()?.dataset.viewOnly).toBe("true");
-    expect(button("take control")).toBeDefined();
+    expect(button("Take control")).toBeDefined();
   });
 
   it("Full screen expands the watch without taking control", async () => {
     await open(makeBot({ computer: "vm" }));
-    await press("full screen");
+    await press("Full screen");
     expect(fixture.controls).toEqual([]);
     await shownLive();
     expect(liveDesktop()!.dataset.expanded).toBe("true");
@@ -265,7 +265,7 @@ describe("taking control of a Local VM", () => {
 
   it("closing the panel, leaving its Screen view or closing the page gives back the hold it took", async () => {
     await open(makeBot({ computer: "vm" }));
-    await press("take control");
+    await press("Take control");
     const lease = fixture.controls[0]!.controlLeaseId;
     root!.unmount();
     root = null;
@@ -277,7 +277,7 @@ describe("taking control of a Local VM", () => {
     await open(makeBot({ computer: "vm" }));
 
     fixture.beacons = [];
-    await press("take control");
+    await press("Take control");
     window.dispatchEvent(new Event("pagehide"));
     await settle();
     expect(releases(), "closing the page left the bot waiting").toHaveLength(1);
@@ -289,7 +289,7 @@ describe("taking control of a Local VM", () => {
     fixture.owned = false;
     heldElsewhere(true);
     await open(makeBot({ computer: "vm" }));
-    await press("full screen");
+    await press("Full screen");
     await shownLive();
     root!.unmount();
     root = null;
@@ -298,7 +298,7 @@ describe("taking control of a Local VM", () => {
 
   it("a hand-back from elsewhere ends the live view once it lasts, and a flicker does not", async () => {
     await open(makeBot({ computer: "vm" }));
-    await press("take control");
+    await press("Take control");
     await shownLive();
     heldElsewhere(false);
     await new Promise((resolve) => setTimeout(resolve, 300));
@@ -314,13 +314,13 @@ describe("taking control of a Local VM", () => {
 
   it("a desktop that never comes up gives the computer back and says so", async () => {
     await open(makeBot({ computer: "vm" }));
-    await press("take control");
+    await press("Take control");
     await shownLive();
     flushSync(() => fixture.live!.onUnreachable());
     await settle();
     expect(releases()).toHaveLength(1);
     expect(liveDesktop()).toBeNull();
-    expect(document.body.textContent).toContain("dusk bot couldn't open the live desktop. try again.");
+    expect(document.body.textContent).toContain("dusk bot couldn't open the live desktop. Try again.");
     expect(fixture.posts).toContain("/api/bots/scout/local-computer/screenshot");
   });
 });
@@ -334,7 +334,7 @@ describe("taking control of other computers", () => {
     expect(liveDesktop()).toBeNull();
     expect(fixture.posts).toContain("/api/bots/scout/computer/screenshot");
     expect(fixture.controls).toEqual([]);
-    await press("retry live screen");
+    await press("Retry live screen");
     await shownLive();
     expect(liveDesktop()?.dataset.viewOnly).toBe("true");
     expect(fixture.controls).toEqual([]);
@@ -348,7 +348,7 @@ describe("taking control of other computers", () => {
     fixture.cloudState = "stopped";
     flushSync(() => fixture.live!.onUnreachable());
     await settle();
-    expect(document.querySelector("button[aria-label='wake computer']"), document.body.textContent).not.toBeNull();
+    expect(document.querySelector("button[aria-label='Wake computer']"), document.body.textContent).not.toBeNull();
     expect(document.querySelector("[data-inline-computer]")?.getAttribute("data-stage")).toBe("asleep");
     expect(fixture.statusReads).toBe(reads + 1);
     expect(fixture.connections).toBe(1);
@@ -377,7 +377,7 @@ describe("taking control of other computers", () => {
     expect(liveDesktop()?.dataset.expanded).toBe("true");
     expect(liveDesktop()?.dataset.viewOnly).toBe("true");
     expect(fixture.controls).toEqual([]);
-    await press("take control");
+    await press("Take control");
     expect(liveDesktop()?.dataset.viewOnly).toBe("false");
     expect(fixture.connections).toBe(1);
     expect(fixture.controls[0]?.action).toBe("take");
@@ -393,7 +393,7 @@ describe("taking control of other computers", () => {
     // Auto, the place the server resolves to the bot's own cloud computer
     await open(makeBot({ busy: false }));
     expect(fixture.statusReads).toBe(1);
-    const card = document.querySelector<HTMLButtonElement>("[data-inline-computer] button[aria-label='wake computer']");
+    const card = document.querySelector<HTMLButtonElement>("[data-inline-computer] button[aria-label='Wake computer']");
     expect(card, document.body.innerHTML).not.toBeNull();
     expect(card!.disabled).toBe(false);
     expect(document.body.textContent).not.toMatch(/browser only|Checking/);
@@ -414,7 +414,7 @@ describe("taking control of other computers", () => {
     fixture.surface = "browser";
     await open(makeBot({ busy: false }));
     const card = document.querySelector<HTMLButtonElement>("[data-inline-computer] button[data-panel-action='open-computer']");
-    expect(card?.textContent).toBe("add cloud desktop…");
+    expect(card?.textContent).toBe("Add cloud desktop…");
     expect(card?.disabled).toBe(false);
     expect(document.body.textContent).not.toMatch(/browser only/);
   });
@@ -438,8 +438,8 @@ describe("taking control of other computers", () => {
     expect(liveDesktop()).toBeNull();
     expect(fixture.statusReads).toBe(reads + 1);
     expect(fixture.connections).toBe(1);
-    expect(button("take control")).toBeUndefined();
-    await press("retry preview");
+    expect(button("Take control")).toBeUndefined();
+    await press("Retry preview");
     await shownLive();
     expect(fixture.controls).toEqual([]);
     expect(liveDesktop()?.dataset.viewOnly).toBe("true");
@@ -447,11 +447,11 @@ describe("taking control of other computers", () => {
 
   it("a VPS is driven in place and handing back keeps its live watch connected", async () => {
     await open(makeBot({ computer: "cloud", cloudBackend: "vps" }));
-    await press("take control");
+    await press("Take control");
     await shownLive();
     expect(liveDesktop()!.dataset.target).toBe("vps/scout");
     expect(window.duskDesktop!.desktopViewer!.open).not.toHaveBeenCalled();
-    await press("hand control back");
+    await press("Hand control back");
     expect(fixture.beacons.some((beacon) => beacon.url.startsWith("/api/bots/scout/computer/viewer-close"))).toBe(false);
     expect(liveDesktop()?.dataset.viewOnly).toBe("true");
   });
@@ -460,7 +460,7 @@ describe("taking control of other computers", () => {
     await open(makeBot({ computer: "cloud", cloudBackend: "box" }));
     expect(fixture.live?.target).toBe("vps/scout");
     expect(fixture.live?.viewOnly).toBe(true);
-    flushSync(() => button("take control")!.click());
+    flushSync(() => button("Take control")!.click());
     await settle();
     expect(fixture.live?.viewOnly).toBe(false);
     expect(fixture.posts).not.toContain("/api/bots/scout/computer/join");

@@ -195,7 +195,7 @@ function applyUnreadBadge(win = mainWindow) {
     unreadOverlayIcon ??= nativeImage.createFromPath(APP_ICON).resize({ width: 16, height: 16 });
     win.setOverlayIcon(
       count > 0 && !unreadOverlayIcon.isEmpty() ? unreadOverlayIcon : null,
-      count > 0 ? `${count} unread conversation${count === 1 ? "" : "s"}` : "no unread conversations",
+      count > 0 ? `${count} unread conversation${count === 1 ? "" : "s"}` : "No unread conversations",
     );
     return;
   }
@@ -243,9 +243,9 @@ function askToOpenLinkHome(win, home, drop) {
   // the link's workspace is the chosen one already, only not on screen yet
   if (home ? active?.origin === home : !activeRemote(environmentsState)) { if (home) void showHome({ place: "cloud" }); return; }
   if (linkHomeAsk) return;
-  const name = home ? "my cloud" : "this computer";
-  linkHomeAsk = dialog.showMessageBox(win, { type: "question", buttons: [`open ${name}`, "not now"], defaultId: 0, cancelId: 1, noLink: true,
-    message: `open this link on ${name}?`, detail: `the window shows ${active?.name ?? "another server"} now; it stays there unless you choose ${name}.` })
+  const name = home ? "My Cloud" : "This computer";
+  linkHomeAsk = dialog.showMessageBox(win, { type: "question", buttons: [`Open ${name}`, "Not now"], defaultId: 0, cancelId: 1, noLink: true,
+    message: `Open this link on ${name}?`, detail: `The window shows ${active?.name ?? "another server"} now; it stays there unless you choose ${name}.` })
     .then(({ response }) => {
       if (response === 0) return workspaceMenuAction(() => (home ? showHome({ place: "cloud" }) : switchEnvironment(LOCAL_ID)));
       drop();
@@ -391,8 +391,8 @@ const serverSupervisor = createServerSupervisor({
     if (earlyVpsOpened && activeRemote(environmentsState)?.id === earlyVpsOpened && mainWindow && !mainWindow.isDestroyed()) return;
     dialog.showErrorBox(
       "The bot server stopped",
-      "automatic recovery could not restart the background server. quit and reopen dusk bot to try again. interrupted chat turns were not resent.\n\n" +
-        `server log: ${path.join(LOG_DIR, "server.log")}`,
+      "Automatic recovery could not restart the background server. Quit and reopen dusk bot to try again. Interrupted chat turns were not resent.\n\n" +
+        `Server log: ${path.join(LOG_DIR, "server.log")}`,
     );
   },
   log: slog,
@@ -824,7 +824,7 @@ function installationDisplayName() {
     .filter((character) => character.codePointAt(0) >= 32 && character.codePointAt(0) !== 127)
     .join("")
     .trim();
-  return hostname.slice(0, 80) || "this computer";
+  return hostname.slice(0, 80) || "This computer";
 }
 
 function ensureCompanionAccountService() {
@@ -920,7 +920,7 @@ function ensureCloudAccount() {
   if ((!app.isPackaged && !cloudTarget(process.env).custom) || desktopRemoteAccess) throw new Error("dusk cloud sign-in requires the local desktop app.");
   cloudAccount = createCloudAccountClient({
     store: cloudAccountStore(),
-    platform: process.platform, deviceName: os.hostname().slice(0, 100) || "my computer", appVersion: app.getVersion(), origin: cloudTarget(process.env).origin, custom: cloudTarget(process.env).custom,
+    platform: process.platform, deviceName: os.hostname().slice(0, 100) || "My computer", appVersion: app.getVersion(), origin: cloudTarget(process.env).origin, custom: cloudTarget(process.env).custom,
     openBrowser: url => shell.openExternal(url), awaitingWake: () => cloudPower.awaiting(), appLinks: app.isPackaged,
     onState: state => {
       cloudSync.accountChanged(state.account?.id ?? null); rememberCloudHome(state);
@@ -1003,7 +1003,7 @@ function ensureManagedDesktop() {
     log: message => slog(message),
   });
   managedDesktop = createManagedDesktopClient({
-    store, platform: process.platform, deviceName: os.hostname().slice(0, 100) || "my computer",
+    store, platform: process.platform, deviceName: os.hostname().slice(0, 100) || "My computer",
     applyConnection: connection => managedDesktopRelay.send(serverProc, connection),
     applyPolicy: policy => managedDesktopRelay.sendPolicy(serverProc, policy),
     migrateIdentity: identity => managedDesktopRelay.sendIdentity(serverProc, identity),
@@ -1171,8 +1171,8 @@ async function runCompanyBackup(kind, input, scheduled = null) {
     publishCompanyBackupState({ busy: false, ...(kind === "backup" ? { lastBackupAt: Date.now() } : {}) });
     return result;
   } catch (error) {
-    const message = controller.signal.aborted ? "cloud backup cancelled. this installation has not been replaced."
-      : error?.name === "CompanyBackupError" ? error.message : "cloud backup could not complete. check your organization connection and available disk space, then try again.";
+    const message = controller.signal.aborted ? "Cloud backup cancelled. This installation has not been replaced."
+      : error?.name === "CompanyBackupError" ? error.message : "Cloud backup could not complete. Check your organization connection and available disk space, then try again.";
     publishCompanyBackupState({ busy: false, pendingRestore: companyBackupState.pendingRestore, message });
     throw Object.assign(new Error(message), error?.code === "workspace_busy" ? { code: "workspace_busy" } : {});
   } finally {
@@ -1333,7 +1333,7 @@ async function startDevServer() {
     },
     gaveUp: (times) => {
       console.error(`[dev-server] stopped after ${times} quick exits; save a server file to try again`);
-      dialog.showErrorBox("The dev server keeps stopping", `it exited ${times} times right after starting. see the terminal running \`pnpm dev:app\`, then save a server file or restart.`);
+      dialog.showErrorBox("The dev server keeps stopping", `It exited ${times} times right after starting. See the terminal running \`pnpm dev:app\`, then save a server file or restart.`);
     },
     log: (line) => console.log(`[dev-server] ${line}`),
   });
@@ -1394,7 +1394,7 @@ function openDesktopViewer(owner, rawUrl, rawTitle, contextId) {
   if (!owner || owner.isDestroyed()) throw new Error("The dusk bot window is unavailable");
   const url = desktopViewerUrl(rawUrl);
   const titleCandidate = Object.prototype.toString.call(rawTitle) === "[object String]" ? rawTitle.trim() : "";
-  const title = titleCandidate ? titleCandidate.slice(0, 80) : "live desktop";
+  const title = titleCandidate ? titleCandidate.slice(0, 80) : "Live desktop";
 
   const nextContextId =
     Object.prototype.toString.call(contextId) === "[object String]" ? contextId.slice(0, 120) : null;
@@ -1479,13 +1479,13 @@ function openDesktopViewer(owner, rawUrl, rawTitle, contextId) {
   });
   viewer.webContents.on("did-fail-load", (_event, code, description, failedUrl, isMainFrame) => {
     if (!isMainFrame || code === -3 || viewer.isDestroyed() || failedUrl.startsWith("data:")) return;
-    void viewer.loadURL(desktopViewerErrorPage(description || "the viewer did not respond.", url.toString()));
+    void viewer.loadURL(desktopViewerErrorPage(description || "The viewer did not respond.", url.toString()));
   });
 
   notifyDesktopViewer(true);
   void viewer.loadURL(url.toString()).catch((error) => {
     if (viewer.isDestroyed()) return;
-    void viewer.loadURL(desktopViewerErrorPage(error?.message ?? "the viewer did not respond.", url.toString()));
+    void viewer.loadURL(desktopViewerErrorPage(error?.message ?? "The viewer did not respond.", url.toString()));
   });
   return true;
 }
@@ -1630,7 +1630,7 @@ installWorkspaceReconnectIpc({ ipcMain, reconnect: workspaceReconnect });
 
 async function workspaceMenuAction(action) {
   try { await action(); } catch (error) {
-    await dialog.showMessageBox({ type: "error", message: "could not update servers", detail: error.message });
+    await dialog.showMessageBox({ type: "error", message: "Could not update servers", detail: error.message });
   }
 }
 
@@ -1803,10 +1803,10 @@ const organizationEntry = createOrganizationEntry({
   confirm: async ({ kind, name, origin }) => {
     const { response } = await dialog.showMessageBox({
       type: "question",
-      buttons: [kind === "companion" ? "disconnect and restart locally" : "use this computer", "cancel"],
+      buttons: [kind === "companion" ? "Disconnect and restart locally" : "Use this computer", "Cancel"],
       defaultId: 1, cancelId: 1,
-      message: kind === "companion" ? `disconnect from ${name} to sign in locally?` : `leave ${name} and sign in on this computer?`,
-      detail: `${origin}\n\nOrganization sign-in connects company models to this computer. ${kind === "companion" ? "this disconnects desktop companion access and restarts the app. you can pair again later." : "the hosted connection stays saved and can be selected again from the server menu."} no remote bots, conversations or provider accounts are moved or deleted.`,
+      message: kind === "companion" ? `Disconnect from ${name} to sign in locally?` : `Leave ${name} and sign in on this computer?`,
+      detail: `${origin}\n\nOrganization sign-in connects company models to this computer. ${kind === "companion" ? "This disconnects desktop companion access and restarts the app. You can pair again later." : "The hosted connection stays saved and can be selected again from the Server menu."} No remote bots, conversations or provider accounts are moved or deleted.`,
     });
     return response === 0;
   },
@@ -1890,7 +1890,7 @@ async function addServerFromClipboard() {
   try {
     return await connectHostedWorkspace(clipboard.readText());
   } catch (error) {
-    await dialog.showMessageBox({ type: "info", message: "could not connect to the server", detail: `${error.message}\nYou can also choose connect to a server to enter an address in settings.` });
+    await dialog.showMessageBox({ type: "info", message: "Could not connect to the server", detail: `${error.message}\nYou can also choose Connect to a server to enter an address in Settings.` });
     return false;
   }
 }
@@ -1903,13 +1903,13 @@ async function connectHostedWorkspace(input, name) {
   const host = new URL(link.origin).host;
   const { response } = await dialog.showMessageBox({
     type: "question",
-    buttons: ["connect", "cancel"],
+    buttons: ["Connect", "Cancel"],
     defaultId: 0,
     cancelId: 1,
-    message: `connect to ${host}?`,
+    message: `Connect to ${host}?`,
     detail: link.code
-      ? "the pairing code in the link is used once, then this app stays signed in to that server."
-      : "the link has no pairing code; the server will ask for one.",
+      ? "The pairing code in the link is used once, then this app stays signed in to that server."
+      : "The link has no pairing code; the server will ask for one.",
   });
   if (response !== 0) return false;
   let next = withEnvironment(environmentsState, { origin: link.origin, name }, () => randomUUID());
@@ -1970,10 +1970,10 @@ function askRemoteMicrophone(origin) {
     const ask = (async () => {
       const options = {
         type: "question",
-        buttons: ["allow", "don’t allow"],
+        buttons: ["Allow", "Don’t Allow"],
         defaultId: 1,
         cancelId: 1,
-        message: `allow “${env.name}” to use the microphone?`,
+        message: `Allow “${env.name}” to use the microphone?`,
         detail: `${new URL(origin).host} wants to hear you for a Live call. Allow only a server you trust; this app remembers your answer for this server until you forget it.`,
       };
       const parent = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
@@ -1993,11 +1993,11 @@ async function forgetEnvironment(id, purge = false, confirmed = false) {
   if (env.kind !== "local" && !confirmed) {
     const { response } = await dialog.showMessageBox({
       type: "warning",
-      buttons: ["forget", "cancel"],
+      buttons: ["Forget", "Cancel"],
       defaultId: 1,
       cancelId: 1,
-      message: `forget “${env.name}”?`,
-      detail: "this app signs out of that server. the server keeps its own session list; revoke it there too if the device is gone.",
+      message: `Forget “${env.name}”?`,
+      detail: "This app signs out of that server. The server keeps its own session list; revoke it there too if the device is gone.",
     });
     if (response !== 0) return;
   }
@@ -2033,7 +2033,7 @@ async function forgetEnvironment(id, purge = false, confirmed = false) {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
   } catch (error) {
     slog(`forget server: logout skipped (${error?.message ?? error})`);
-    await dialog.showMessageBox({ type: "warning", message: "connection forgotten; server sign-out could not be confirmed", detail: "revoke this desktop’s session on that server when it is reachable again." });
+    await dialog.showMessageBox({ type: "warning", message: "Connection forgotten; server sign-out could not be confirmed", detail: "Revoke this desktop’s session on that server when it is reachable again." });
   }
   try {
     // Not cookies: Chromium's cookie storage is host-wide, not port-scoped, so other saved servers would sign out.
@@ -2355,7 +2355,7 @@ ipcMain.handle("clipboard:write-text", localOnly("clipboard:write-text", (_event
 ipcMain.handle("desktop:pick-folder", localOnly("desktop:pick-folder", async (event, current) => {
   const win = BrowserWindow.fromWebContents(event.sender) ?? undefined;
   const result = await dialog.showOpenDialog(win, {
-    title: "choose a working folder",
+    title: "Choose a working folder",
     properties: ["openDirectory", "createDirectory"],
     ...(typeof current === "string" && current ? { defaultPath: current } : {}),
   });
@@ -2367,7 +2367,7 @@ ipcMain.handle("desktop:export-diagnostics", localOrHome("desktop:export-diagnos
   const owner = BrowserWindow.fromWebContents(event.sender) ?? undefined;
   const report = await gatherDiagnostics();
   const result = await dialog.showSaveDialog(owner, {
-    title: "export diagnostics",
+    title: "Export diagnostics",
     defaultPath: diagnosticsFileName(),
     filters: [{ name: "Text", extensions: ["txt"] }],
   });
@@ -2393,8 +2393,8 @@ ipcMain.handle("desktop:save-file", localOnly("desktop:save-file", async (event,
     const parent = BrowserWindow.fromWebContents(event.sender);
     const defaultPath = await defaultSaveName(app.getPath("downloads"), defaultName);
     const choice = await dialog.showSaveDialog(parent ?? undefined, {
-      title: "where do you want to save it?",
-      message: "where do you want to save it?",
+      title: "Where do you want to save it?",
+      message: "Where do you want to save it?",
       defaultPath,
       buttonLabel: "Save",
       properties: ["createDirectory", "showOverwriteConfirmation"],
@@ -2748,7 +2748,7 @@ const localServerRequest = async (route, init = {}) => {
 };
 const teamProfileSeeds = createTeamProfileSeeds({ teamFetch: (...args) => session.defaultSession.fetch(...args), localRequest: localServerRequest, log: slog });
 const enrollMemory = jsonFile(path.join(app.getPath("userData"), "account-enroll.json")); const accountEnroll = createAccountEnroll({ client: ensureCloudAccount, localRequest: localServerRequest, readMemory: () => { try { return enrollMemory.read(); } catch { return null; } }, writeMemory: enrollMemory.write, log: slog }); const accountGate = installAccountGate({ ipcMain, guard: localWorkspaceOnly, client: ensureCloudAccount, required: accountGateNeeded, window: () => mainWindow, restored: cloudAccountRestored });
-const oneHome = installOneHome({ ipcMain, clean: cleanWorkspace, cloudPage: cloudPageAsking, pageOrigin: activePageOrigin, confirmMove: confirmTeamMove, server: () => serverProc, cookieFetch: (...args) => session.defaultSession.fetch(...args), home: () => (myCloud() && cloudAccount ? { origin: myCloud(), grant: () => cloudAccount.pairHome() } : null), power: cloudPower, file: () => path.join(app.getPath("userData"), "cloud-send.json"), localRequest: localServerRequest, space: { disk: () => cloudPlanDisk(ensureCloudAccount().state()), grow: sizeGb => ensureCloudAccount().growDisk(sizeGb) }, reconnect: origin => signInCloudSession({ origin, mine: myCloud(), pair: () => ensureCloudAccount().pairHome(), fetch: (...args) => session.defaultSession.fetch(...args) }), window: () => (desktopRemoteAccess ? null : mainWindow), localOrigin: rendererOrigin, account: () => cloudAccount, journalFile: () => path.join(app.getPath("userData"), "one-home.json"), tempRoot: () => path.join(app.getPath("temp"), "dusk-one-home"), phone: { paired: () => companionEnabledAtRest(), stop: () => stopDesktopCompanion({ remember: false }).then(() => {}), start: () => startDesktopCompanion({ waitForHosted: false, remember: false }).then(() => {}) }, openHome: () => void showHome({ place: "cloud" }), openTeam: team => void showHome({ place: { team: team.id, name: team.name } }), openLocal: () => void showHome(), restart: () => relaunchAfterDesktopRemoteChange(), version: app.getVersion(), log: slog, other: () => ownHome, accountsHere: () => accountRing()?.count() ?? 1, offer: { store: jsonFile(path.join(app.getPath("userData"), "cloud-move-offer.json")), track: (name, props) => productEvents.action(name, props) } }); ownHome = installOwnHome({ localRequest: localServerRequest, fetch: (...args) => session.defaultSession.fetch(...args), environments: () => environmentsState.environments, handoff: what => oneHome.handoff(what), cloudJournal: () => oneHome.journal(), journal: jsonFile(path.join(app.getPath("userData"), "own-home.json")), choice: jsonFile(path.join(app.getPath("userData"), "own-home-choice.json")), sendState: jsonFile(path.join(app.getPath("userData"), "own-home-send.json")), phone: { paired: () => companionEnabledAtRest(), stop: () => stopDesktopCompanion({ remember: false }).then(() => {}), start: () => startDesktopCompanion({ waitForHosted: false, remember: false }).then(() => {}) }, openHome: place => void workspaceMenuAction(() => switchEnvironment(place.id)), lastInput: oneHome.lastInput, version: app.getVersion(), log: slog, onChange: () => { oneHome.publish(); railChanged(); } }); twoPlaces = installTwoPlacesMain({ ipcMain, guard: localWorkspaceOnly, localRequest: localServerRequest, fetch: (...args) => session.defaultSession.fetch(...args), environments: () => environmentsState.environments, cloud: () => ({ origin: myCloud(), asleep: cloudPower.asleep() }), oneHome, ownHome, dismissed: jsonFile(path.join(app.getPath("userData"), "two-places.json")), account: () => cloudAccount, teamsRemembered: jsonFile(path.join(app.getPath("userData"), "team-places.json")), log: slog, tell: () => { if (mainWindow && !mainWindow.isDestroyed() && senderIsLocal({ sender: mainWindow.webContents })) mainWindow.webContents.send("two-places:changed"); } }); const vpsLink = installVpsLink({ ipcMain, powerMonitor, powerSaveBlocker, appVersion: app.getVersion(), pageOrigin: activePageOrigin, whenReady: () => app.whenReady(), guard: localWorkspaceOnly, userData: app.getPath("userData"), session, shell, encryption: cloudEncryption, jsonFile, environments: () => environmentsState, persist: persistEnvironments, withEnvironment, makeId: randomUUID, forgetEnvironment: id => forgetEnvironment(id, false, true), ownHome, localRequest: localServerRequest, switchTo: id => workspaceMenuAction(() => switchEnvironment(id)), relaunch: () => relaunchAfterDesktopRemoteChange(), dataDir: () => runningDataDir, label: () => os.hostname().replace(/\.local$/, "").slice(0, 60) || "my computer", log: slog, tell: view => { if (mainWindow && !mainWindow.isDestroyed() && senderIsLocal({ sender: mainWindow.webContents })) mainWindow.webContents.send("vps-link:changed", view); } });
+const oneHome = installOneHome({ ipcMain, clean: cleanWorkspace, cloudPage: cloudPageAsking, pageOrigin: activePageOrigin, confirmMove: confirmTeamMove, server: () => serverProc, cookieFetch: (...args) => session.defaultSession.fetch(...args), home: () => (myCloud() && cloudAccount ? { origin: myCloud(), grant: () => cloudAccount.pairHome() } : null), power: cloudPower, file: () => path.join(app.getPath("userData"), "cloud-send.json"), localRequest: localServerRequest, space: { disk: () => cloudPlanDisk(ensureCloudAccount().state()), grow: sizeGb => ensureCloudAccount().growDisk(sizeGb) }, reconnect: origin => signInCloudSession({ origin, mine: myCloud(), pair: () => ensureCloudAccount().pairHome(), fetch: (...args) => session.defaultSession.fetch(...args) }), window: () => (desktopRemoteAccess ? null : mainWindow), localOrigin: rendererOrigin, account: () => cloudAccount, journalFile: () => path.join(app.getPath("userData"), "one-home.json"), tempRoot: () => path.join(app.getPath("temp"), "dusk-one-home"), phone: { paired: () => companionEnabledAtRest(), stop: () => stopDesktopCompanion({ remember: false }).then(() => {}), start: () => startDesktopCompanion({ waitForHosted: false, remember: false }).then(() => {}) }, openHome: () => void showHome({ place: "cloud" }), openTeam: team => void showHome({ place: { team: team.id, name: team.name } }), openLocal: () => void showHome(), restart: () => relaunchAfterDesktopRemoteChange(), version: app.getVersion(), log: slog, other: () => ownHome, accountsHere: () => accountRing()?.count() ?? 1, offer: { store: jsonFile(path.join(app.getPath("userData"), "cloud-move-offer.json")), track: (name, props) => productEvents.action(name, props) } }); ownHome = installOwnHome({ localRequest: localServerRequest, fetch: (...args) => session.defaultSession.fetch(...args), environments: () => environmentsState.environments, handoff: what => oneHome.handoff(what), cloudJournal: () => oneHome.journal(), journal: jsonFile(path.join(app.getPath("userData"), "own-home.json")), choice: jsonFile(path.join(app.getPath("userData"), "own-home-choice.json")), sendState: jsonFile(path.join(app.getPath("userData"), "own-home-send.json")), phone: { paired: () => companionEnabledAtRest(), stop: () => stopDesktopCompanion({ remember: false }).then(() => {}), start: () => startDesktopCompanion({ waitForHosted: false, remember: false }).then(() => {}) }, openHome: place => void workspaceMenuAction(() => switchEnvironment(place.id)), lastInput: oneHome.lastInput, version: app.getVersion(), log: slog, onChange: () => { oneHome.publish(); railChanged(); } }); twoPlaces = installTwoPlacesMain({ ipcMain, guard: localWorkspaceOnly, localRequest: localServerRequest, fetch: (...args) => session.defaultSession.fetch(...args), environments: () => environmentsState.environments, cloud: () => ({ origin: myCloud(), asleep: cloudPower.asleep() }), oneHome, ownHome, dismissed: jsonFile(path.join(app.getPath("userData"), "two-places.json")), account: () => cloudAccount, teamsRemembered: jsonFile(path.join(app.getPath("userData"), "team-places.json")), log: slog, tell: () => { if (mainWindow && !mainWindow.isDestroyed() && senderIsLocal({ sender: mainWindow.webContents })) mainWindow.webContents.send("two-places:changed"); } }); const vpsLink = installVpsLink({ ipcMain, powerMonitor, powerSaveBlocker, appVersion: app.getVersion(), pageOrigin: activePageOrigin, whenReady: () => app.whenReady(), guard: localWorkspaceOnly, userData: app.getPath("userData"), session, shell, encryption: cloudEncryption, jsonFile, environments: () => environmentsState, persist: persistEnvironments, withEnvironment, makeId: randomUUID, forgetEnvironment: id => forgetEnvironment(id, false, true), ownHome, localRequest: localServerRequest, switchTo: id => workspaceMenuAction(() => switchEnvironment(id)), relaunch: () => relaunchAfterDesktopRemoteChange(), dataDir: () => runningDataDir, label: () => os.hostname().replace(/\.local$/, "").slice(0, 60) || "My computer", log: slog, tell: view => { if (mainWindow && !mainWindow.isDestroyed() && senderIsLocal({ sender: mainWindow.webContents })) mainWindow.webContents.send("vps-link:changed", view); } });
 // Every page may ask, and main answers for the server of the page that asks: a linked VPS is checked against its pinned identity.
 installSealTrust({ ipcMain, isLocal: event => senderIsLocal(event), pageOrigin: activePageOrigin, links: () => vpsLink });
 // Teams from the verified session as places this window shows (home-places.mjs): the one to open next time, and its lines.
@@ -2785,7 +2785,7 @@ const chromeRail = createChromeRail({ createView: options => new WebContentsView
 chromeRail.install(ipcMain);
 function railChanged() { chromeRail.refresh(); rail.changed(); void localUi?.refresh(); }
 const accountPages = [() => (mainWindow && !mainWindow.isDestroyed() && senderIsLocal({ sender: mainWindow.webContents }) ? mainWindow.webContents : null), () => ({ send: channel => chromeRail.send(channel) })];
-const accountRing = createDesktopRing({ allowed: () => app.isPackaged && !desktopRemoteAccess, active: cloudAccountStore, savedStore: () => createCloudAccountStore({ file: path.join(app.getPath("userData"), cloudTarget(process.env).saved), encryption: cloudEncryption }), stash: () => jsonFile(path.join(app.getPath("userData"), cloudTarget(process.env).places)), client: ensureCloudAccount, origin: cloudTarget(process.env).origin, makeClient: ({ store, onState }) => createCloudAccountClient({ store, onState, platform: process.platform, deviceName: os.hostname().slice(0, 100) || "my computer", appVersion: app.getVersion(), origin: cloudTarget(process.env).origin, custom: cloudTarget(process.env).custom, openBrowser: url => shell.openExternal(url) }), saved: () => environmentsState, persist: persistEnvironments, session: () => session.defaultSession, mine: () => myCloud(), leaveWindow: () => (mainWindow && !mainWindow.isDestroyed() && !senderIsLocal({ sender: mainWindow.webContents }) ? navigateMainWindow(rendererOrigin()) : null), rows: () => railList(), holding: () => oneHome.holding(), letGo: () => { homeWindow.accountLeaving(); homePlaces.remember(null); }, settled: () => showHome(), tell: () => { accounts.tell(); railChanged(); }, log: slog }); const accounts = installAccounts({ ipcMain, ownPage: event => chromeRail.owns(event) || cloudPageAsking(event) === "local", placePage: event => cloudPageAsking(event) !== null || ownCloudPage(event) !== null || homeWindow.homePage(event) || (Boolean(ownHome?.home()) && activeEnvironment(environmentsState)?.origin === ownHome.home().origin && workspaceSenderAllowed(event, mainWindow?.webContents, environmentsState, rendererOrigin())), account: () => (app.isPackaged && !desktopRemoteAccess ? cloudAccount : null), client: ensureCloudAccount, ring: accountRing, holdSheet: open => chromeRail.holdOpen(open), tellSheet: () => chromeRail.send("accounts:open-sheet"), tell: () => { for (const page of accountPages) page()?.send("accounts:changed"); } });
+const accountRing = createDesktopRing({ allowed: () => app.isPackaged && !desktopRemoteAccess, active: cloudAccountStore, savedStore: () => createCloudAccountStore({ file: path.join(app.getPath("userData"), cloudTarget(process.env).saved), encryption: cloudEncryption }), stash: () => jsonFile(path.join(app.getPath("userData"), cloudTarget(process.env).places)), client: ensureCloudAccount, origin: cloudTarget(process.env).origin, makeClient: ({ store, onState }) => createCloudAccountClient({ store, onState, platform: process.platform, deviceName: os.hostname().slice(0, 100) || "My computer", appVersion: app.getVersion(), origin: cloudTarget(process.env).origin, custom: cloudTarget(process.env).custom, openBrowser: url => shell.openExternal(url) }), saved: () => environmentsState, persist: persistEnvironments, session: () => session.defaultSession, mine: () => myCloud(), leaveWindow: () => (mainWindow && !mainWindow.isDestroyed() && !senderIsLocal({ sender: mainWindow.webContents }) ? navigateMainWindow(rendererOrigin()) : null), rows: () => railList(), holding: () => oneHome.holding(), letGo: () => { homeWindow.accountLeaving(); homePlaces.remember(null); }, settled: () => showHome(), tell: () => { accounts.tell(); railChanged(); }, log: slog }); const accounts = installAccounts({ ipcMain, ownPage: event => chromeRail.owns(event) || cloudPageAsking(event) === "local", placePage: event => cloudPageAsking(event) !== null || ownCloudPage(event) !== null || homeWindow.homePage(event) || (Boolean(ownHome?.home()) && activeEnvironment(environmentsState)?.origin === ownHome.home().origin && workspaceSenderAllowed(event, mainWindow?.webContents, environmentsState, rendererOrigin())), account: () => (app.isPackaged && !desktopRemoteAccess ? cloudAccount : null), client: ensureCloudAccount, ring: accountRing, holdSheet: open => chromeRail.holdOpen(open), tellSheet: () => chromeRail.send("accounts:open-sheet"), tell: () => { for (const page of accountPages) page()?.send("accounts:changed"); } });
 const rail = installCloudRail({ ipcMain, clipboard, openCloud: openOwnCloud, switchAccount: id => accountRing().switchTo(id), account: () => (app.isPackaged && !desktopRemoteAccess ? cloudAccount : null),
   guard: handler => (event, ...args) => (chromeRail.owns(event) ? handler(event, ...args) : workspaceOnly(handler)(event, ...args)),
   lists: event => chromeRail.owns(event), trusted: event => chromeRail.owns(event) || senderIsLocal(event), beside: () => chromeRail.shown(),
@@ -2816,7 +2816,7 @@ ipcMain.handle("dialog:confirm", localWorkspaceOnly("dialog:confirm", async (_ev
   const { response } = await dialog.showMessageBox(mainWindow, {
     type: "warning",
     message,
-    buttons: ["OK", "cancel"],
+    buttons: ["OK", "Cancel"],
     defaultId: 1,
     cancelId: 1,
   });
@@ -3020,7 +3020,7 @@ app.whenReady().then(async () => {
     } catch (error) {
       dialog.showErrorBox(
         "dusk bot could not start safely",
-        error?.message ?? "another process is using this dusk bot data folder.",
+        error?.message ?? "Another process is using this dusk bot data folder.",
       );
       app.quit();
       return;
@@ -3185,7 +3185,7 @@ app.whenReady().then(async () => {
           } catch (error) {
             dialog.showErrorBox(
               "dusk bot could not start safely",
-              error?.message ?? "another process is using this dusk bot data folder.",
+              error?.message ?? "Another process is using this dusk bot data folder.",
             );
             app.quit();
             return;

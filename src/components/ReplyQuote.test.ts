@@ -17,12 +17,12 @@ describe("composer reply strip", () => {
     expect(html).not.toMatch(/border-s|border-accent/);
     expect(html).toContain("truncate");
     expect(html).toContain("The user answered your questions.");
-    expect(html).toContain('aria-label="cancel reply"');
+    expect(html).toContain('aria-label="Cancel reply"');
   });
 
   it("names who it answers for screen readers, not as a second visible line", () => {
-    expect(html).toMatch(/role="group" aria-label="replying to Willow"/);
-    expect(html).toContain('<span class="sr-only">replying to Willow: </span>');
+    expect(html).toMatch(/role="group" aria-label="Replying to Willow"/);
+    expect(html).toContain('<span class="sr-only">Replying to Willow: </span>');
   });
 
   it("mirrors the arrow and keeps the excerpt's own direction in RTL", () => {

@@ -30,8 +30,8 @@ it("opening My Cloud from the app needs no click and no code to type", async () 
   vi.stubGlobal("window", { duskDesktop: { workspaces: {} } });
   f.pair.mockResolvedValue({ ok: true });
   const html = render(code);
-  expect(html).toContain("connecting to this dusk bot…");
-  expect(html).not.toContain("pairing code"); expect(html).not.toContain("<form");
+  expect(html).toContain("Connecting to this dusk bot…");
+  expect(html).not.toContain("Pairing code"); expect(html).not.toContain("<form");
   f.effects[0](); await flush();
   expect(f.pair).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ code }));
   expect(replaced).toEqual(["/"]);
@@ -47,15 +47,15 @@ it("a code that no longer works falls back to the form, with the reason", async 
 it("a browser keeps the code in the form for the person to confirm", () => {
   vi.stubGlobal("window", {});
   const html = render(code);
-  expect(html).toContain(`value="${code}"`); expect(html).toContain(">connect</button>");
+  expect(html).toContain(`value="${code}"`); expect(html).toContain(">Connect</button>");
   f.effects[0]?.(); expect(f.pair).not.toHaveBeenCalled();
 });
 
 it("My Cloud says where its connection starts, never 'the code shown on the server'", () => {
   const cloud = pairIntro({ mode: "code", sent: false, email: "", cloudHome: true });
   expect(cloud).toContain(`choose ${en["cloudHome.connect"]} in the dusk bot app`);
-  expect(cloud).toContain(`settings → ${en["settings.section.cloudAccount"]}`);
-  expect(cloud).toContain("on your plan page");
+  expect(cloud).toContain(`Settings → ${en["settings.section.cloudAccount"]}`);
+  expect(cloud).toContain("on your Plan page");
   expect(cloud).not.toContain("shown on the server");
   expect(pairIntro({ mode: "code", sent: false, email: "", cloudHome: false })).toContain("shown on the server");
   expect(pairIntro({ mode: "email", sent: true, email: "a@b.test", cloudHome: false })).toContain("a@b.test");
@@ -64,7 +64,7 @@ it("My Cloud says where its connection starts, never 'the code shown on the serv
 it("a team's Cloud is called by the team's name, a person's own Cloud My Cloud", () => {
   const descriptor = (capabilities: Record<string, unknown>) => ({ environmentId: "e", label: "Acme Labs", platform: "linux", version: "1", capabilities: { remoteSessions: true as const, selfUpdate: "operator" as const, ...capabilities } });
   expect(pairTitle(descriptor({ cloudHome: true, cloudTeam: true }), "code")).toBe("Acme Labs");
-  expect(pairTitle(descriptor({ cloudHome: true }), "code")).toBe("my cloud");
-  expect(pairTitle(descriptor({}), "email")).toBe("sign in to Acme Labs");
-  expect(pairTitle(null, "code")).toBe("connect to this dusk bot");
+  expect(pairTitle(descriptor({ cloudHome: true }), "code")).toBe("My Cloud");
+  expect(pairTitle(descriptor({}), "email")).toBe("Sign in to Acme Labs");
+  expect(pairTitle(null, "code")).toBe("Connect to this dusk bot");
 });

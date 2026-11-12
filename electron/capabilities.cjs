@@ -30,7 +30,7 @@ function linuxLocalControlSupport(platform, env) {
       available: false,
       session: "unknown",
       reasonCode: "unsupported-platform",
-      message: "local control is not available on this platform.",
+      message: "Local control is not available on this platform.",
     });
   }
   const session = linuxSession(platform, env);
@@ -41,14 +41,14 @@ function linuxLocalControlSupport(platform, env) {
       session,
       reasonCode: "linux-wayland-seat-safety-blocked",
       message:
-        "local control is not available on Wayland yet. sign out and choose Ubuntu on Xorg to use this computer.",
+        "Local control is not available on Wayland yet. Sign out and choose Ubuntu on Xorg to use This computer.",
     });
   }
   return Object.freeze({
     available: false,
     session,
     reasonCode: "headless-session",
-    message: "local control needs an active Ubuntu Xorg desktop session.",
+    message: "Local control needs an active Ubuntu Xorg desktop session.",
   });
 }
 
@@ -200,7 +200,7 @@ function desktopCapabilities({
             ? "Linux"
             : hostPlatform === "win32"
               ? "Windows"
-              : "desktop",
+              : "Desktop",
       session: hostSession,
       packaged: Boolean(packaged),
       // The sandboxed preload has no Node builtins; a remote page learns nothing about this computer's users.

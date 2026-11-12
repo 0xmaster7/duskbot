@@ -43,7 +43,7 @@ const plans = [
 ];
 const TRIAL_OFFER: CloudOffer = { plans, recommended: "pro", creditUsd: 5, refundDays: 14 };
 const PLAIN_OFFER: CloudOffer = { plans: plans.map(({ trialDays: _days, ...plan }) => plan), recommended: "pro", refundDays: 14 };
-const INTRO = "keep your bots working when this computer is off";
+const INTRO = "Keep your bots working when this computer is off";
 const STAR = "Enjoying dusk bot?";
 const signedOut: CloudAccountState = { status: "signed-out" };
 const free: CloudAccountState = { status: "connected", account: { id: "a", email: "person@example.test" }, entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 1 } };
@@ -158,9 +158,9 @@ describe("the card after the update", () => {
   it("offers the free trial to someone signed out who has used the app before, in the Admin's numbers, with Start free trial and Show me how", async () => {
     returning();
     const html = await launch();
-    const words = [INTRO, "free for 7 days", "dusk cloud runs your bots for you in the cloud, always on.", "routines run on time, day and night",
-      "reach your bots from your phone, even with this computer off", "$5 of Claude credit to start", "then from $15/month + tax. cancel any time.",
-      "14-day money-back on every plan.", "start free trial", "show me how", "sign in to your cloud plan", "not now"];
+    const words = [INTRO, "Free for 7 days", "dusk cloud runs your bots for you in the cloud, always on.", "Routines run on time, day and night",
+      "Reach your bots from your phone, even with this computer off", "$5 of Claude credit to start", "Then from $15/month + tax. Cancel any time.",
+      "14-day money-back on every plan.", "Start free trial", "Show me how", "Sign in to your Cloud plan", "Not now"];
     for (const text of words) expect(html).toContain(text);
     for (let i = 1; i < words.length; i++) expect(html.indexOf(words[i - 1]!), words[i]).toBeLessThan(html.indexOf(words[i]!));
     for (const gone of ["launch price", "first 100", "$89", "New features first", "Get Pro", STAR]) expect(html).not.toContain(gone);
@@ -174,7 +174,7 @@ describe("the card after the update", () => {
     now = NOW + 3 * 3600_000; expect(await launch()).toBe("");
     now = NOW + DAY; account = free;
     const again = await launch();
-    expect(again).toContain(INTRO); expect(again).not.toContain("sign in to your cloud plan");
+    expect(again).toContain(INTRO); expect(again).not.toContain("Sign in to your Cloud plan");
     expect(track).toHaveBeenCalledWith("cloud_card_shown", { variant: "free" });
   });
 
@@ -206,7 +206,7 @@ describe("the card after the update", () => {
 
   it("Start free trial opens the Add a Cloud dialog from the card, and the card is done for good", async () => {
     returning(); await launch();
-    press("start free trial"); await flush();
+    press("Start free trial"); await flush();
     expect(f.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_card" });
     expect(track).toHaveBeenCalledWith("cloud_card_action", { action: "start" });
     expect(storage.get(CLOUD_INTRO)).toBe("1"); expect(hints()).toContain(CLOUD_INTRO);
@@ -216,11 +216,11 @@ describe("the card after the update", () => {
 
   it("Show me how starts the one-step tip; Not now, the X and Escape end it for good, then say where Add a Cloud lives", async () => {
     returning(); await launch();
-    press("show me how");
+    press("Show me how");
     expect(f.dispatch).toHaveBeenCalledWith({ type: "cloudHowTo", open: true });
     expect(track).toHaveBeenCalledWith("cloud_card_action", { action: "howto" });
     expect(storage.get(CLOUD_INTRO)).toBe("1");
-    for (const close of ["not now", "dismiss for good", "Escape"]) {
+    for (const close of ["Not now", "Dismiss for good", "Escape"]) {
       storage.clear(); launchCardsSeen(); f.state.config.onboarding.hintsSeen = []; now += DAY;
       expect(await launch(), close).toContain(INTRO);
       if (close === "Escape") {
@@ -229,15 +229,15 @@ describe("the card after the update", () => {
         card.props.onKeyDown(event); expect(event.preventDefault).toHaveBeenCalled();
       } else press(close);
       expect(storage.get(CLOUD_INTRO), close).toBe("1"); expect(hints()).toContain(CLOUD_INTRO);
-      expect(render()).toContain("you can add a cloud any time from the menu on the left of the app.");
+      expect(render()).toContain("You can add a Cloud any time from the menu on the left of the app.");
     }
     expect(track).toHaveBeenCalledWith("cloud_card_action", { action: "not_now" });
     expect(track).toHaveBeenCalledWith("cloud_card_action", { action: "close" });
   });
 
-  it("sign in to your Cloud plan opens the sheet at its own sign-in and only hides the card for now", async () => {
+  it("Sign in to your Cloud plan opens the sheet at its own sign-in and only hides the card for now", async () => {
     returning(); await launch();
-    press("sign in to your cloud plan");
+    press("Sign in to your Cloud plan");
     expect(f.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_card", signIn: true });
     expect(storage.get(CLOUD_INTRO)).toBeUndefined(); expect(render()).toBe("");
     now = NOW + DAY; expect(await launch()).toContain(INTRO);
@@ -292,17 +292,17 @@ describe("the free trial's notice, here and on My Cloud", () => {
     account = paid({ trial: running }); snapshot = { status: "paid", tier: "pro", trial: running, notice: "active", credit: { grantedUsd: 5, remainingUsd: 3.2, state: "active" } };
     offer = { ...PLAIN_OFFER };
     const html = await launch();
-    expect(html).toContain("your free trial ends on"); expect(html).toContain("includes $5 of Claude credit: $3.20 left.");
-    expect(html).toContain("prefer Starter at $15?");
+    expect(html).toContain("Your free trial ends on"); expect(html).toContain("Includes $5 of Claude credit: $3.20 left.");
+    expect(html).toContain("Prefer Starter at $15?");
     expect(bridges.cloud.offer, "the trial's notice needs nothing from the offer").not.toHaveBeenCalled();
     expect(bridges.plan.noticeSeen).toHaveBeenCalledOnce();
     snapshot = { ...snapshot, notice: undefined };
-    expect(await settle()).toContain("your free trial ends on");
+    expect(await settle()).toContain("Your free trial ends on");
     expect(bridges.plan.noticeSeen).toHaveBeenCalledOnce();
-    press("manage subscription"); await flush();
+    press("Manage subscription"); await flush();
     expect(bridges.plan.manage).toHaveBeenCalledOnce();
     expect(render()).toBe("");
-    expect(await launch()).not.toContain("your free trial");
+    expect(await launch()).not.toContain("Your free trial");
   });
 
   it("on My Cloud's own page, only the trial's notice, after its sign-in and setup checklist", async () => {
@@ -311,7 +311,7 @@ describe("the free trial's notice, here and on My Cloud", () => {
     returning();
     snapshot = { status: "none", trial: trial("ended", { deleteAt: NOW + 3 * DAY, keep: "checkout" }), notice: "ended" };
     f.state.config.onboarding.hintsSeen = ["cloud-setup-hidden"];
-    expect(await launch()).toContain("your free trial has ended");
+    expect(await launch()).toContain("Your free trial has ended");
     f.state.instances = [{ instanceId: "claude", snapshot: { state: "available", authenticated: false } }];
     expect(await launch()).toBe("");
     f.state.instances = [{ instanceId: "claude", snapshot: { state: "available", authenticated: true } }];
@@ -331,14 +331,14 @@ describe("the first conversation after meeting the Chief", () => {
     f.state.bots = [{ tasks: [{ threadId: "first", usage: { turns: 0 } }] }];
     expect(await launch()).toBe("");
     f.state.bots = structuredClone(FIRST_REPLY);
-    expect(await launch()).toContain("your free trial ends on");
+    expect(await launch()).toContain("Your free trial ends on");
   });
 
   it("changes nothing for an install whose first run came before: its notices keep their own rules", async () => {
     const running = trial("active");
     account = paid({ trial: running }); snapshot = { status: "paid", tier: "pro", trial: running, notice: "active" };
     f.state.bots = [{ tasks: [{ threadId: "first", usage: { turns: 0 } }] }];
-    expect(await launch()).toContain("your free trial ends on");
+    expect(await launch()).toContain("Your free trial ends on");
   });
 });
 
@@ -351,15 +351,15 @@ describe("upstream promotional campaigns", () => {
 
   it("keeps an expired account's sign-in recovery", async () => {
     account = { status: "reauth-required", message: "expired", lastPlan: { tier: "pro", active: true } }; returning();
-    expect(await launch()).toContain("sign in again to reach the cloud");
-    press("sign in again"); await flush();
+    expect(await launch()).toContain("Sign in again to reach the Cloud");
+    press("Sign in again"); await flush();
     expect(bridges.cloud.signInAgain).toHaveBeenCalledOnce();
   });
 });
 
 describe("bots in two places", () => {
   const GARAGE = { key: "server:https://garage.example.test", name: "Garage server", kind: "server" as const };
-  const BODY = "your bots live in two places, so they can&#x27;t work together. bring them together on Garage server?";
+  const BODY = "Your bots live in two places, so they can&#x27;t work together. Bring them together on Garage server?";
   let suggest: { key: string; name: string; kind: "cloud" | "server" } | null;
   let accepted: string[], dismissed: string[];
   beforeEach(() => {
@@ -373,15 +373,15 @@ describe("bots in two places", () => {
     returning();
     const html = await launch();
     expect(html).toContain('data-notice="two-places"');
-    expect(html).toContain("bring your bots together");
+    expect(html).toContain("Bring your bots together");
     expect(html).toContain(BODY);
     expect(html).not.toContain(STAR);
-    press("bring them together");
+    press("Bring them together");
     const asking = await settle();
     expect(accepted, "one tap never moves anyone").toEqual([]);
-    expect(asking).toContain("move this computer&#x27;s bots to Garage server?");
-    expect(asking, "the undo switch is My Cloud's only").not.toContain("keep this computer&#x27;s bots on this computer");
-    press("move bots");
+    expect(asking).toContain("Move this computer&#x27;s bots to Garage server?");
+    expect(asking, "the undo switch is My Cloud's only").not.toContain("Keep this computer&#x27;s bots on this computer");
+    press("Move bots");
     await flush();
     expect(accepted).toEqual([GARAGE.key]);
     expect(track).toHaveBeenCalledWith("two_places_card", { action: "bring", kind: "server" });
@@ -392,24 +392,24 @@ describe("bots in two places", () => {
     returning();
     suggest = { key: "cloud:mine", name: "My Cloud", kind: "cloud" };
     await launch();
-    press("bring them together");
+    press("Bring them together");
     const asking = await settle();
-    expect(asking).toContain("move this computer&#x27;s bots to My Cloud?");
-    expect(asking, "My Cloud names the way back").toContain("keep this computer&#x27;s bots on this computer");
-    press("cancel");
+    expect(asking).toContain("Move this computer&#x27;s bots to My Cloud?");
+    expect(asking, "My Cloud names the way back").toContain("Keep this computer&#x27;s bots on this computer");
+    press("Cancel");
     const after = await settle();
     expect(accepted).toEqual([]);
     expect(dismissed).toEqual([]);
     expect(after).toContain('data-notice="two-places"');
-    expect(after).not.toContain("move bots");
-    expect(after).toContain("bring them together");
+    expect(after).not.toContain("Move bots");
+    expect(after).toContain("Bring them together");
     expect(tree().find(node => node.props["data-two-places-bring"])?.props.autoFocus, "focus returns to the button Cancel brought back").toBe(true);
   });
 
   it("Escape on the confirm step works as Cancel and never dismisses the card", async () => {
     returning();
     await launch();
-    press("bring them together");
+    press("Bring them together");
     await settle();
     const escape = { key: "Escape", preventDefault: vi.fn(), stopPropagation: vi.fn() };
     tree().find(node => node.props.role === "group")!.props.onKeyDown(escape);
@@ -418,7 +418,7 @@ describe("bots in two places", () => {
     expect(dismissed).toEqual([]);
     expect(accepted).toEqual([]);
     expect(after).toContain('data-notice="two-places"');
-    expect(after).not.toContain("move bots");
+    expect(after).not.toContain("Move bots");
   });
 
   it("a different suggested place starts a fresh card, so a confirm never carries over to it", async () => {
@@ -439,7 +439,7 @@ describe("bots in two places", () => {
   it("Not now hands main the place to remember, and the card goes", async () => {
     returning();
     expect(await launch()).toContain(BODY);
-    press("not now");
+    press("Not now");
     await flush();
     expect(dismissed).toEqual([GARAGE.key]);
     expect(await settle()).not.toContain('data-notice="two-places"');

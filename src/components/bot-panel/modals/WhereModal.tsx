@@ -36,7 +36,7 @@ export function WhereModal({ bot, derived, onClose }: {
   return (
     <SheetPane data-panel-modal="where" title={title}>
       <Card data-sheet-group="where" footnote={usingNow ? <span data-panel-using-now>{t("computer.simple.usingNow", { place: usingNow })}</span>
-        : !editable ? `only people who can edit ${bot.name} can change this.` : undefined}>
+        : !editable ? `Only people who can edit ${bot.name} can change this.` : undefined}>
         <div role="radiogroup" aria-label={title} className="contents">
           {rows.map((option) => (
             <CheckRow

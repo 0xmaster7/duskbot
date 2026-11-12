@@ -69,22 +69,22 @@ beforeEach(() => {
 describe("SignInRequestCard while it waits", () => {
   it("is grok's action card: the place in the titlebar, Action needed, the step and the bot's reason, Skip, I'm done and Take over", () => {
     const html = view();
-    expect(html).toMatch(/text-\[13px\] font-medium[^"]*">browser</);
-    expect(html).toContain("action needed");
-    expect(html).toMatch(/data-testid="sign-in-site"[^>]*>sign in to example\.com</);
+    expect(html).toMatch(/text-\[13px\] font-medium[^"]*">Browser</);
+    expect(html).toContain("Action needed");
+    expect(html).toMatch(/data-testid="sign-in-site"[^>]*>Sign in to example\.com</);
     expect(html).toContain("The report is behind a login.");
     expect(html).not.toContain("— Pepper");
-    for (const label of [">skip<", ">i&#x27;m done<", ">take over<"]) expect(html).toContain(label);
-    expect(html.indexOf(">skip<")).toBeLessThan(html.indexOf(">take over<"));
+    for (const label of [">Skip<", ">I&#x27;m done<", ">Take over<"]) expect(html).toContain(label);
+    expect(html.indexOf(">Skip<")).toBeLessThan(html.indexOf(">Take over<"));
     expect(html).not.toContain("shadow-(--shadow-float)");
     expect(html).not.toContain("<input");
   });
 
   it("shows the computer's screen edge to edge with grok's Take over pill on a computer, in a box reserved before the first frame", () => {
     const html = view({ place: "vm", reason: undefined });
-    expect(html).toMatch(/<button[^>]*aria-label="take over the computer"[^>]*data-sign-in-screen=""[^>]*class="[^"]*aspect-\[16\/10\] w-full/);
-    expect(html.indexOf("data-sign-in-screen")).toBeGreaterThan(html.indexOf("action needed"));
-    expect(html.indexOf("data-sign-in-screen")).toBeLessThan(html.indexOf(">skip<"));
+    expect(html).toMatch(/<button[^>]*aria-label="Take over the computer"[^>]*data-sign-in-screen=""[^>]*class="[^"]*aspect-\[16\/10\] w-full/);
+    expect(html.indexOf("data-sign-in-screen")).toBeGreaterThan(html.indexOf("Action needed"));
+    expect(html.indexOf("data-sign-in-screen")).toBeLessThan(html.indexOf(">Skip<"));
     expect(view({ place: "cloud" })).toContain("data-sign-in-screen");
   });
 
@@ -95,10 +95,10 @@ describe("SignInRequestCard while it waits", () => {
   it("paints Take over in ink and the other answers neutral, whatever the bot's colour", () => {
     const html = renderToStaticMarkup(createElement(SignInRequestCard, { ...props(), color: "teal" }));
     const tag = (label: string) => (html.match(/<button[^>]*>[^<]*<\/button>/g) ?? []).find((one) => one.includes(`>${label}<`))!;
-    expect(tag("take over")).toContain("ui-button-primary");
-    expect(tag("take over")).not.toContain("--bot-button");
-    expect(tag("skip")).toContain("bg-(--card-fill)");
-    expect(tag("skip")).toContain('title="cancel this request without doing the step. Pepper continues without it."');
+    expect(tag("Take over")).toContain("ui-button-primary");
+    expect(tag("Take over")).not.toContain("--bot-button");
+    expect(tag("Skip")).toContain("bg-(--card-fill)");
+    expect(tag("Skip")).toContain('title="Cancel this request without doing the step. Pepper continues without it."');
   });
 
   it.each([
@@ -107,7 +107,7 @@ describe("SignInRequestCard while it waits", () => {
     ["local", "on this computer, in the browser Pepper is using"],
   ])("names the place for %s on Take over", (place, words) => {
     expect(view({ place })).toContain(words);
-    expect(view({ place })).toMatch(/text-\[13px\] font-medium[^"]*">(computer|this computer)</);
+    expect(view({ place })).toMatch(/text-\[13px\] font-medium[^"]*">(Computer|This computer)</);
   });
 
   it("says the host computer, not this one, where this computer is somewhere else", () => {
@@ -116,46 +116,46 @@ describe("SignInRequestCard while it waits", () => {
   });
 
   it("Take over goes to the place the bot works", () => {
-    button(tree(), "take over").props.onClick!();
+    button(tree(), "Take over").props.onClick!();
     expect(dispatch).toHaveBeenCalledExactlyOnceWith({
       type: "openSignIn", botId: "pepper", messageId: "card-1", url: "https://example.com/login", site: "example.com", place: "browser",
     });
   });
 
-  it("open on this computer explains where to sign in instead", () => {
-    button(tree({ place: "local" }), "open").props.onClick!();
+  it("Open on this computer explains where to sign in instead", () => {
+    button(tree({ place: "local" }), "Open").props.onClick!();
     expect(dispatch).not.toHaveBeenCalled();
     // explained (the second useState) turns on
     expect(fixture.setters[1]).toHaveBeenCalledWith(true);
     fixture.setters = []; fixture.states = { 1: true };
-    expect(view({ place: "local" })).toContain("not the browser tab: it keeps its own sign-ins");
+    expect(view({ place: "local" })).toContain("Not the Browser tab: it keeps its own sign-ins");
   });
 
   it("offers to save a login in the built-in browser, which opens a masked form in place of the buttons", () => {
-    button(tree(), "save a login").props.onClick!();
+    button(tree(), "Save a login").props.onClick!();
     // saving (the third useState) turns on
     expect(fixture.setters[2]).toHaveBeenCalledWith(true);
     fixture.setters = []; fixture.states = { 2: true };
     const html = view();
-    expect(html).toContain("save the username and password for example.com.");
+    expect(html).toContain("Save the username and password for example.com.");
     expect(html).toContain('type="password"');
     expect(html).toMatch(/type="password" autocomplete="new-password"/iu);
-    expect(html).toContain("save and continue");
-    expect(html).not.toMatch(/>i&#x27;m done<|>take over</);
+    expect(html).toContain("Save and continue");
+    expect(html).not.toMatch(/>I&#x27;m done<|>Take over</);
     expect(saveLoginFromCard).not.toHaveBeenCalled();
   });
 
   it("names a sign-in page on another site, open in the browser, as a choice left unticked, and saves it only when ticked", async () => {
     const elsewhere = { site: "example.com", signInHost: "login.microsoftonline.com" };
     cardSaveTarget.mockResolvedValue(elsewhere);
-    button(tree(), "save a login").props.onClick!();
+    button(tree(), "Save a login").props.onClick!();
     await settle();
     expect(cardSaveTarget).toHaveBeenCalledExactlyOnceWith({ botId: "pepper", threadId: "thread-1", messageId: "card-1", place: "browser" });
     // target and the tick are the fourth and fifth useState
     expect(fixture.setters[3]).toHaveBeenCalledWith(elsewhere);
     fixture.setters = []; fixture.states = { 2: true, 3: elsewhere };
     const html = view();
-    expect(html).toContain("also fill it on login.microsoftonline.com, the sign-in page open in the browser now");
+    expect(html).toContain("Also fill it on login.microsoftonline.com, the sign-in page open in the browser now");
     const tick = /<input type="checkbox"[^>]*name="signInHost"[^>]*>/u.exec(html)?.[0];
     expect(tick).toBeDefined();
     expect(tick).not.toContain("checked");
@@ -170,16 +170,16 @@ describe("SignInRequestCard while it waits", () => {
   });
 
   it.each(["vm", "cloud", "local"])("does not offer to save a login on %s, where fill_login cannot reach yet", (place) => {
-    expect(view({ place })).not.toContain("save a login");
+    expect(view({ place })).not.toContain("Save a login");
   });
 
   it("does not offer to save a login from a desktop paired to another computer", () => {
     vi.stubGlobal("window", { duskDesktop: { remoteClient: { active: true } } });
-    expect(view()).not.toContain("save a login");
+    expect(view()).not.toContain("Save a login");
   });
 
   it.each(["done", "cancel"] as const)("%s settles this card", async (choice) => {
-    button(tree(), choice === "done" ? "i'm done" : "skip").props.onClick!();
+    button(tree(), choice === "done" ? "I'm done" : "Skip").props.onClick!();
     await settle();
     expect(answerSignIn).toHaveBeenCalledExactlyOnceWith({ botId: "pepper", threadId: "thread-1", messageId: "card-1", place: "browser" }, choice);
   });
@@ -206,20 +206,20 @@ describe("SignInRequestCard once settled", () => {
   it("folds into grok's one row, Done and the step, and opens to what happened", () => {
     const html = view({ done: true, resumed: true });
     expect(html).toContain('data-ask-card="settled"');
-    expect(html).toContain("done · sign in to example.com");
+    expect(html).toContain("Done · Sign in to example.com");
     expect(html).toContain('aria-expanded="false"');
-    expect(html).not.toMatch(/>i&#x27;m done<|>take over</);
-    expect(detailText({ done: true, resumed: true })).toContain("signed in to example.com · Pepper is continuing");
+    expect(html).not.toMatch(/>I&#x27;m done<|>Take over</);
+    expect(detailText({ done: true, resumed: true })).toContain("Signed in to example.com · Pepper is continuing");
   });
 
   it("says a login was saved, for the site it was saved for", () => {
-    expect(view({ done: true, resumed: true, savedLogin: "example.com and login.microsoftonline.com" })).toContain("login saved · sign in to example.com");
-    expect(detailText({ done: true, resumed: true, savedLogin: "example.com and login.microsoftonline.com" })).toContain("login saved for example.com and login.microsoftonline.com · Pepper is continuing");
+    expect(view({ done: true, resumed: true, savedLogin: "example.com and login.microsoftonline.com" })).toContain("Login saved · Sign in to example.com");
+    expect(detailText({ done: true, resumed: true, savedLogin: "example.com and login.microsoftonline.com" })).toContain("Login saved for example.com and login.microsoftonline.com · Pepper is continuing");
   });
 
   it("says a declined sign-in was skipped", () => {
-    expect(view({ cancelled: true, resumed: true })).toContain("skipped · sign in to example.com");
-    expect(detailText({ cancelled: true, resumed: true })).toContain("sign-in to example.com declined");
+    expect(view({ cancelled: true, resumed: true })).toContain("Skipped · Sign in to example.com");
+    expect(detailText({ cancelled: true, resumed: true })).toContain("Sign-in to example.com declined");
   });
 
   it("keeps a retry with the same answer when resuming failed", async () => {
@@ -234,8 +234,8 @@ describe("SignInRequestCard once settled", () => {
 
   it("stops offering anything once superseded", () => {
     const html = view({ superseded: true });
-    expect(html).toContain("superseded by a newer request · sign in to example.com");
-    expect(html).not.toMatch(/>i&#x27;m done<|>take over<|>skip</);
+    expect(html).toContain("Superseded by a newer request · Sign in to example.com");
+    expect(html).not.toMatch(/>I&#x27;m done<|>Take over<|>Skip</);
   });
 });
 
@@ -250,8 +250,8 @@ describe("SignInBanner", () => {
   it("names the asking bot and the site, and answers the card", async () => {
     const { html, nodes } = banner();
     expect(html).toContain("<b>Pepper</b> needs you to sign in to example.com");
-    expect(html).not.toContain("take control");
-    button(nodes, "done").props.onClick!();
+    expect(html).not.toContain("Take control");
+    button(nodes, "Done").props.onClick!();
     await settle();
     expect(answerSignIn).toHaveBeenCalledExactlyOnceWith(help, "done");
   });
@@ -259,7 +259,7 @@ describe("SignInBanner", () => {
   it("offers Take control only where it is given one", () => {
     const takeControl = { onClick: vi.fn() };
     const { html, nodes } = banner(takeControl);
-    expect(html).toContain("take control");
+    expect(html).toContain("Take control");
     nodes.find((node) => node.type === "button" && node.props.onClick === takeControl.onClick)!.props.onClick!();
     expect(takeControl.onClick).toHaveBeenCalledOnce();
   });

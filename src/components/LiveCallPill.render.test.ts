@@ -60,17 +60,17 @@ describe("LiveCallPill", () => {
     callAtlas();
     const onOpen = vi.fn();
     const { markup, tree } = renderPill({ onOpen, currentBotId: "juniper" });
-    expect(markup).toContain("on a live call with Atlas");
-    expect(markup).toContain('title="back to the call"');
-    expect(markup).toContain('aria-label="mute"');
-    expect(markup).toContain('aria-label="hang up"');
+    expect(markup).toContain("On a Live call with Atlas");
+    expect(markup).toContain('title="Back to the call"');
+    expect(markup).toContain('aria-label="Mute"');
+    expect(markup).toContain('aria-label="Hang up"');
 
-    findElement(tree(), (props) => props.title === "back to the call")?.props.onClick?.();
+    findElement(tree(), (props) => props.title === "Back to the call")?.props.onClick?.();
     expect(onOpen).toHaveBeenCalledWith("atlas", "thread-atlas");
 
-    findElement(tree(), (props) => props["aria-label"] === "mute")?.props.onClick?.();
+    findElement(tree(), (props) => props["aria-label"] === "Mute")?.props.onClick?.();
     expect(liveMedia().muted).toBe(true);
-    findElement(tree(), (props) => props["aria-label"] === "hang up")?.props.onClick?.();
+    findElement(tree(), (props) => props["aria-label"] === "Hang up")?.props.onClick?.();
     expect(liveMedia().phase).toBe("idle");
   });
 
@@ -78,14 +78,14 @@ describe("LiveCallPill", () => {
     callAtlas();
     expect(renderPill({ onOpen: vi.fn(), currentBotId: "atlas" }).markup).toBe("");
     fixture.bots = [{ ...atlas, threadId: "thread-other" }];
-    expect(renderPill({ onOpen: vi.fn(), currentBotId: "atlas" }).markup).toContain("on a live call with Atlas");
+    expect(renderPill({ onOpen: vi.fn(), currentBotId: "atlas" }).markup).toContain("On a Live call with Atlas");
   });
 
   it("fits the icons-only sidebar as round buttons", () => {
     callAtlas();
     const { markup } = renderPill({ onOpen: vi.fn(), currentBotId: null, iconOnly: true });
-    expect(markup).toContain('aria-label="on a live call with Atlas"');
-    expect(markup).toContain('aria-label="hang up"');
+    expect(markup).toContain('aria-label="On a Live call with Atlas"');
+    expect(markup).toContain('aria-label="Hang up"');
     expect(markup).not.toContain('<span class="truncate">');
   });
 });
@@ -95,7 +95,7 @@ describe("LiveCallChip", () => {
     expect(renderToStaticMarkup(createElement(LiveCallChip, { currentBotId: "juniper", onOpen: vi.fn() }))).toBe("");
     callAtlas();
     const markup = renderToStaticMarkup(createElement(LiveCallChip, { currentBotId: "juniper", onOpen: vi.fn() }));
-    expect(markup).toContain("back to the call");
+    expect(markup).toContain("Back to the call");
     expect(markup).toContain("md:hidden");
     expect(renderToStaticMarkup(createElement(LiveCallChip, { currentBotId: "atlas", onOpen: vi.fn() }))).toBe("");
   });

@@ -325,7 +325,7 @@ test("a saved company sign-in that can never be read is removed, and signing in 
   ]) {
     await electron43Store(file).write(grant());
     const f = fixture(t, { store: electron43Store(file, undefined, decrypt) });
-    assert.deepEqual(await f.client.start(), { status: "signed-out", message: "this computer's company sign-in couldn't be read, so it was removed. sign in again." });
+    assert.deepEqual(await f.client.start(), { status: "signed-out", message: "This computer's company sign-in couldn't be read, so it was removed. Sign in again." });
     await assert.rejects(fs.stat(file), { code: "ENOENT" });
     assert.equal((await f.client.begin({ portalOrigin: origin })).status, "connecting");
   }
@@ -340,7 +340,7 @@ test("a locked keychain never removes the saved company sign-in: it is read agai
   const f = fixture(t, { store, handler: (url, options) => url.endsWith("/api/desktop/session") && options.method !== "DELETE" ? Response.json(session(saved)) : null });
   const first = await f.client.start();
   assert.equal(first.status, "unavailable"); assert.equal(f.policies.length, 0);
-  assert.equal(first.message, "the saved company sign-in can't be read right now. dusk bot tries again every minute.");
+  assert.equal(first.message, "The saved company sign-in can't be read right now. dusk bot tries again every minute.");
   for (const delay of [15_000, 30_000, 60_000]) {
     const reads = store.reads;
     await f.tick(delay - 1); assert.equal(store.reads, reads, "not read again early");

@@ -57,9 +57,9 @@ describe("signed-in sites", () => {
     expect(fixture.api).toHaveBeenCalledTimes(1);
     expect(fixture.api).toHaveBeenCalledWith("/api/browser-sites?bot=pepper");
     expect(host.querySelector("details")).toBeNull();
-    expect(host.textContent).not.toContain("signed-in sites");
+    expect(host.textContent).not.toContain("Signed-in sites");
     expect(listed()).toEqual(["example.com", "google.com"]);
-    await click("sign out of example.com");
+    await click("Sign out of example.com");
     expect(fixture.api).toHaveBeenCalledTimes(2);
     expect(listed()).toEqual(["google.com"]);
   });
@@ -68,7 +68,7 @@ describe("signed-in sites", () => {
     fixture.api.mockResolvedValueOnce({ running: true, sites: [example, google] }).mockResolvedValueOnce({ running: true, sites: [example] });
     await render({ target: { bot: "pepper" }, sharedBy: ["Pepper"] });
     await open();
-    await click("sign out of google.com");
+    await click("Sign out of google.com");
     expect(fixture.api).toHaveBeenLastCalledWith("/api/browser-sites/sign-out", { method: "POST", body: JSON.stringify({ bot: "pepper", site: "google.com" }) });
     expect(listed()).toEqual(["example.com"]);
   });
@@ -78,7 +78,7 @@ describe("signed-in sites", () => {
     await render({ bare: true, target: { bot: "pepper" }, scope: { threadId: "ada-chat" }, sharedBy: ["Pepper"] });
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
     expect(fixture.api).toHaveBeenCalledWith("/api/browser-sites?bot=pepper&threadId=ada-chat");
-    await click("sign out of example.com");
+    await click("Sign out of example.com");
     expect(fixture.api).toHaveBeenLastCalledWith("/api/browser-sites/sign-out", { method: "POST", body: JSON.stringify({ bot: "pepper", threadId: "ada-chat", site: "example.com" }) });
   });
 
@@ -87,9 +87,9 @@ describe("signed-in sites", () => {
     await render({ target: { profile: "profile-work" }, sharedBy: ["Pepper", "Scout"] });
     await open();
     expect(host.textContent).toContain("Pepper, Scout share this browser: signing out here signs all of them out.");
-    await click("sign out of all");
+    await click("Sign out of all");
     expect(fixture.api).toHaveBeenLastCalledWith("/api/browser-sites/sign-out", { method: "POST", body: JSON.stringify({ profile: "profile-work" }) });
-    expect(host.textContent).toContain("not signed in to any site.");
+    expect(host.textContent).toContain("Not signed in to any site.");
     expect(host.querySelector("button")).toBeNull();
   });
 
@@ -102,7 +102,7 @@ describe("signed-in sites", () => {
     await render({ target: { profile: "profile-other" }, sharedBy: [], disabled: true });
     await act(async () => { host.querySelector("details")!.open = false; });
     await open();
-    expect(button("sign out of google.com").disabled).toBe(true);
-    expect(button("sign out of all").disabled).toBe(true);
+    expect(button("Sign out of google.com").disabled).toBe(true);
+    expect(button("Sign out of all").disabled).toBe(true);
   });
 });

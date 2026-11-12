@@ -59,8 +59,8 @@ describe("failed replies in a room", () => {
     expect(count(markup, "data-chat-error")).toBe(1);
     expect(markup).toContain("Echo, Quill and 2 more couldn&#x27;t respond");
     expect(markup).toContain("Claude isn&#x27;t signed in on this computer");
-    expect(markup).toContain("sign in</button>");
-    expect(markup).toContain('aria-label="dismiss"');
+    expect(markup).toContain("Sign in</button>");
+    expect(markup).toContain('aria-label="Dismiss"');
     expect(markup).not.toContain("/login");
     expect(markup).not.toContain("Not logged in");
   });
@@ -73,13 +73,13 @@ describe("failed replies in a room", () => {
   });
 
   it("maps a stored reason, says a plain cause as it is, and a technical one as a short generic line", () => {
-    expect(card([ask, failed("Echo", "x", { reason: "rate_limit" })])).toContain("this request has been rate limited, try again shortly");
-    expect(card([ask, failed("Echo", "The operation timed out.")])).toContain("the reply timed out");
+    expect(card([ask, failed("Echo", "x", { reason: "rate_limit" })])).toContain("This request has been rate limited, try again shortly");
+    expect(card([ask, failed("Echo", "The operation timed out.")])).toContain("The reply timed out");
     const plain = card([ask, failed("Echo", "Your Pro plan includes 2 cloud computers at once.")]);
     expect(plain).toContain("Echo couldn&#x27;t respond");
     expect(plain).toContain("Your Pro plan includes 2 cloud computers at once.");
     const technical = card([ask, failed("Echo", "TypeError: Cannot read properties of undefined (reading 'id')")]);
-    expect(technical).toContain("something went wrong. try again.");
+    expect(technical).toContain("Something went wrong. Try again.");
     expect(technical).not.toContain("TypeError");
   });
 
@@ -96,12 +96,12 @@ describe("failed replies in a room", () => {
     expect(rows.notices.map((m) => m.id)).toEqual(["n"]);
     const markup = card([ask, signedOut[0]!, notice]);
     expect(count(markup, "data-chat-error")).toBe(1);
-    expect(count(markup, "sign in</button>")).toBe(1);
+    expect(count(markup, "Sign in</button>")).toBe(1);
     expect(markup).not.toContain("Settings → AI");
   });
 
   it("titles a direct chat's card the way grok does", () => {
-    expect(card([ask, signedOut[0]!], false)).toContain("bot failed to respond");
+    expect(card([ask, signedOut[0]!], false)).toContain("Bot failed to respond");
   });
 
   it("says a member that timed out, or whose AI never answered, in the same card, with Try again", () => {
@@ -112,7 +112,7 @@ describe("failed replies in a room", () => {
     const markup = card([ask, failed("Echo", "API Error: 529 Overloaded"), timedOut, silent], true, () => {});
     expect(count(markup, "data-chat-error")).toBe(1);
     expect(markup).toContain("Echo, Rivet and 1 more couldn&#x27;t respond");
-    expect(markup).toContain("try again</button>");
+    expect(markup).toContain("Try again</button>");
     expect(markup).not.toContain("made no progress");
     expect(markup).not.toContain("hear back");
     // still waiting is no failure: the working line says it
@@ -126,16 +126,16 @@ describe("failed replies in a room", () => {
       tool: { name: "notice: Echo didn't hear back from Claude.", ok: true, rescue: { ...rescue, over: true } } };
     const markup = renderToStaticMarkup(createElement(FailedReplyCard, { rows: trailingRows([ask, silent]), botId: "echo", threadId: "main", onRetry: () => {} }));
     expect(count(markup, "data-chat-error")).toBe(1);
-    expect(markup).toContain("bot failed to respond");
+    expect(markup).toContain("Bot failed to respond");
     expect(markup).toContain("Echo didn&#x27;t hear back from Claude.");
-    expect(markup).toContain("switch AI</button>");
-    expect(markup).toContain("connect your subscription</button>");
+    expect(markup).toContain("Switch AI</button>");
+    expect(markup).toContain("Connect your subscription</button>");
     const waiting = { ...silent, tool: { ...silent.tool!, name: "notice: Echo hasn't heard back from Claude yet.", rescue } };
     expect(renderToStaticMarkup(createElement(FailedReplyCard, { rows: trailingRows([ask, waiting]), botId: "echo", threadId: "main" }))).toBe("");
   });
 
   it("offers no Try again when nothing can send the line again", () => {
-    expect(card([ask, failed("Echo", "API Error: 529 Overloaded")])).not.toContain("try again</button>");
+    expect(card([ask, failed("Echo", "API Error: 529 Overloaded")])).not.toContain("Try again</button>");
   });
 });
 
@@ -150,7 +150,7 @@ describe("a member's hand-off that failed", () => {
     };
     const markup = renderToStaticMarkup(createElement(RoomToolChip, { message, roomId: "room" }));
     expect(markup).toContain('data-handoff-row="result"');
-    expect(markup).toContain("model provider is overloaded");
+    expect(markup).toContain("Model provider is overloaded");
     expect(markup).not.toContain("529");
     expect(markup).not.toContain("text-danger");
   });

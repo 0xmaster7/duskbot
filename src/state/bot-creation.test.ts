@@ -23,7 +23,7 @@ function mount(request: typeof fetch) {
 }
 afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
-describe("new bot", () => {
+describe("New bot", () => {
   const bot = { id: "created", threadId: "created-main", name: "Scout", messages: [] };
   const defaults = { defaults: { profile: {}, memory: {}, skills: [], routines: [] }, modelSelection: { instanceId: "claude", model: "sonnet" }, suggestedName: "Scout" };
   const server = (create: () => Promise<Response>) => vi.fn<typeof fetch>(async (input, init) => {
@@ -60,7 +60,7 @@ describe("new bot", () => {
     const onError = vi.fn();
     const onCreated = vi.fn();
     dispatch({ type: "newBot", onError, onCreated });
-    await vi.waitFor(() => expect(onError).toHaveBeenCalledWith("couldn't make a new bot: offline"));
+    await vi.waitFor(() => expect(onError).toHaveBeenCalledWith("Couldn't make a new bot: offline"));
     expect(onCreated).not.toHaveBeenCalled();
     await flush();
     dispatch({ type: "newBot", onCreated });

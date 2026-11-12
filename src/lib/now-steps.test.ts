@@ -21,10 +21,10 @@ describe("the Now card's steps", () => {
       call("Bash", { step: { activity: "command", target: "scrape.py", detail: "python3 scrape.py --pages 40" } }),
     ];
     expect(nowSteps(messages, null).map(({ label, state, hover }) => ({ label, state, hover }))).toEqual([
-      { label: "searched the web for “Acme construction leads”", state: "done", hover: undefined },
-      { label: "read linkedin.com", state: "done", hover: "linkedin.com/company/acme" },
-      { label: "ran a command", state: "failed", hover: undefined },
-      { label: "running scrape.py", state: "now", hover: "python3 scrape.py --pages 40" },
+      { label: "Searched the web for “Acme construction leads”", state: "done", hover: undefined },
+      { label: "Read linkedin.com", state: "done", hover: "linkedin.com/company/acme" },
+      { label: "Ran a command", state: "failed", hover: undefined },
+      { label: "Running scrape.py", state: "now", hover: "python3 scrape.py --pages 40" },
     ]);
   });
 
@@ -32,18 +32,18 @@ describe("the Now card's steps", () => {
     const messages = [
       ask("Build the report"),
       ...Array.from({ length: 5 }, (_, n) => call("Read", { ok: true, step: { activity: "read", target: `notes-${n}.md` } })),
-      { id: "notice", role: "bot", kind: "activity", at: 99, tool: { name: "approve for me: …", ok: true } } as Message,
+      { id: "notice", role: "bot", kind: "activity", at: 99, tool: { name: "Approve for me: …", ok: true } } as Message,
       { ...call("ask_bot", { ok: true }), comm: { groupId: "g", withBotId: "b", withName: "Kai", withColor: "blue" } } as Message,
     ];
     const steps = nowSteps(messages, { activity: "write", itemId: "w1", file: "report.md", bytes: 9_000 });
-    expect(steps.map((step) => step.label)).toEqual(["read notes-2.md", "read notes-3.md", "read notes-4.md", "writing report.md"]);
+    expect(steps.map((step) => step.label)).toEqual(["Read notes-2.md", "Read notes-3.md", "Read notes-4.md", "Writing report.md"]);
     expect(steps.at(-1)?.state).toBe("now");
   });
 
   it("says a finished step it cannot name in plain past words, and keeps an unknown tool's own label", () => {
-    expect(stepLabel({ name: "Bash", ok: true }, "done")).toBe("ran a command");
-    expect(stepLabel({ name: "Grep", ok: true }, "done")).toBe("searched files");
-    expect(stepLabel({ name: "mcp__agents__ask_bot", ok: true }, "done")).toBe("asking a teammate");
+    expect(stepLabel({ name: "Bash", ok: true }, "done")).toBe("Ran a command");
+    expect(stepLabel({ name: "Grep", ok: true }, "done")).toBe("Searched files");
+    expect(stepLabel({ name: "mcp__agents__ask_bot", ok: true }, "done")).toBe("Asking a teammate");
   });
 
   it("says whose own app a step used, running or done", () => {

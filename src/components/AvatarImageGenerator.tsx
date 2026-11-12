@@ -13,7 +13,7 @@ import { fieldLabelCls, rowButtonCls, textFieldCls } from "./ui/GrokDialog";
 const PROVIDERS = {
   openai: { label: "OpenAI", keyLabel: "OpenAI image API key", credential: "openaiImageApiKey" },
   xai: { label: "Grok (xAI)", keyLabel: "Grok API key", credential: "xaiApiKey" },
-  custom: { label: "custom", keyLabel: "Custom image API key", credential: "customImageApiKey" },
+  custom: { label: "Custom", keyLabel: "Custom image API key", credential: "customImageApiKey" },
 } as const;
 
 const LABEL = cn(fieldLabelCls, "flex flex-col gap-1");
@@ -170,13 +170,13 @@ export function AvatarImageGenerator({
               value={customModel}
               disabled={busy}
               onChange={(event) => setModelDraft(event.target.value)}
-              placeholder="model ID from your image provider"
+              placeholder="Model ID from your image provider"
               autoComplete="off"
               className={textFieldCls}
             />
           </label>
           <p className={NOTE}>
-            OpenAI-compatible images API. localhost refers to the {productName()} server, including when you open this page remotely.
+            OpenAI-compatible Images API. localhost refers to the {productName()} server, including when you open this page remotely.
           </p>
         </>
       )}
@@ -199,10 +199,10 @@ export function AvatarImageGenerator({
         />
       </label>
       {provider === "xai" && (
-        <p className={NOTE}>shares the Grok API key in settings. changing or removing it also affects other Grok features.</p>
+        <p className={NOTE}>Shares the Grok API key in Settings. Changing or removing it also affects other Grok features.</p>
       )}
       {provider === "custom" && keyConfigured && (
-        <p className={NOTE}>the saved custom key will be used. remove it for a keyless connection.</p>
+        <p className={NOTE}>The saved custom key will be used. Remove it for a keyless connection.</p>
       )}
       <div className="flex items-center justify-end gap-2">
         {keyConfigured && (

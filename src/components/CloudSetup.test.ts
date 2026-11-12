@@ -113,28 +113,28 @@ it("on a new Cloud stays out of the way while the welcome fills the window", asy
 it("when the person steps away from the welcome, it is the welcome's steps in short, and Continue setup goes back to the step", async () => {
   await mount();
   let { html } = render();
-  expect(html).toContain("set up dusk cloud");
+  expect(html).toContain("Set up dusk cloud");
   expect(html).toContain("1 of 4 done");
-  expect(html).toContain("bring your stuff");
-  expect(html).toContain("bring your bots, chats and memory, or start fresh.");
-  for (const title of ["create the cloud", "connect your AI", "files and apps"]) expect(html).toContain(title);
-  expect(html).not.toContain("give it a first job");
+  expect(html).toContain("Bring your stuff");
+  expect(html).toContain("Bring your bots, chats and memory, or start fresh.");
+  for (const title of ["Create the Cloud", "Connect your AI", "Files and apps"]) expect(html).toContain(title);
+  expect(html).not.toContain("Give it a first job");
   expect(statuses()).toEqual({ cloud: "done", move: "todo", engine: "todo", files: "todo" });
-  button("continue setup")!.props.onClick!();
+  button("Continue setup")!.props.onClick!();
   expect(dispatched).toEqual([{ type: "showChat" }]);
   expect(takeWelcomeRequest()).toBe("bring");
   f.state.config.onboarding = { ...EMPTY_ONBOARDING, hintsSeen: [welcomeStepHint("bring"), CLOUD_SETUP_MOVE_SKIPPED] };
   ({ html } = render());
   expect(statuses()).toEqual({ cloud: "done", move: "skipped", engine: "todo", files: "todo" });
   expect(html).toContain("2 of 4 done");
-  expect(html).toContain("you&#x27;re on this step");
+  expect(html).toContain("You&#x27;re on this step");
   f.state.activeView = "routines";
   ({ html } = render());
-  expect(html).toContain("required. cloud bots use your own Claude or ChatGPT account, or an API key.");
-  button("continue setup")!.props.onClick!();
+  expect(html).toContain("Required. Cloud bots use your own Claude or ChatGPT account, or an API key.");
+  button("Continue setup")!.props.onClick!();
   expect(takeWelcomeRequest()).toBe("engine");
   expect(api).not.toHaveBeenCalled();
-  button("hide setup")!.props.onClick!(); await flush();
+  button("Hide setup")!.props.onClick!(); await flush();
   expect(api).toHaveBeenCalledWith("/api/config", { method: "PUT", body: JSON.stringify({ onboarding: { hintsSeen: [welcomeStepHint("bring"), CLOUD_SETUP_MOVE_SKIPPED, CLOUD_SETUP_HIDDEN] } }) });
   expect(cloudWelcomeShown("pending", welcomeNow())).toBe(false);
 });
@@ -143,11 +143,11 @@ it("after the welcome, it goes once an engine can run and asks for nothing else,
   f.state.instances = [signedOut];
   await mount();
   expect(statuses()).toEqual({ cloud: "done", engine: "todo", move: "done" });
-  expect(render().html).not.toContain("give it a first job");
+  expect(render().html).not.toContain("Give it a first job");
   f.state.instances = [ready];
   render(); for (const effect of f.effects) effect();
   f.values.splice(f.ownHooks);
-  expect(render().html).toContain("the cloud is ready");
+  expect(render().html).toContain("The Cloud is ready");
   f.values = [];
   welcomeShown = true;
   f.state.config.onboarding = { ...EMPTY_ONBOARDING, hintsSeen: [welcomeStepHint("bring"), welcomeStepHint("engine")] };
@@ -163,10 +163,10 @@ it("on a Cloud set up before the welcome, starts one step in and leads with a fi
   setUpBeforeWelcome();
   await mount();
   const { html } = render();
-  expect(html).toContain("set up dusk cloud");
+  expect(html).toContain("Set up dusk cloud");
   expect(html).toContain("1 of 3 done");
-  expect(html).toContain("give it a first job");
-  for (const title of ["create the cloud", "connect your AI"]) expect(html).toContain(title);
+  expect(html).toContain("Give it a first job");
+  for (const title of ["Create the Cloud", "Connect your AI"]) expect(html).toContain(title);
   expect(statuses()).toEqual({ cloud: "done", job: "todo", engine: "todo" });
   expect(html).not.toMatch(/workspace|organis/i);
   expect(html).not.toContain('aria-modal="true"');
@@ -175,9 +175,9 @@ it("on a Cloud set up before the welcome, starts one step in and leads with a fi
 it("connecting an AI is done when any engine can run; its action shows the existing sign-in when it is not on screen", async () => {
   f.state.config.onboarding = { ...EMPTY_ONBOARDING, hintsSeen: [CLOUD_INTENT_ASKED, CLOUD_INTENT_GIVEN] };
   await mount();
-  expect(button("connect")).toBeUndefined();
+  expect(button("Connect")).toBeUndefined();
   f.state.activeView = "routines";
-  button("connect")!.props.onClick!();
+  button("Connect")!.props.onClick!();
   expect(dispatched).toEqual([{ type: "showChat" }]);
   f.state.instances = [signedOut, ready];
   expect(statuses().engine).toBe("done");
@@ -188,7 +188,7 @@ it("a first job is done once given or once a turn has finished there, and Give i
   f.state.config.onboarding = { ...EMPTY_ONBOARDING, hintsSeen: [CLOUD_INTENT_ASKED] };
   await mount();
   expect(statuses().job).toBe("todo");
-  button("give it a job")!.props.onClick!();
+  button("Give it a job")!.props.onClick!();
   expect(reopenCloudIntent).toHaveBeenCalledWith(true);
   expect(dispatched).toEqual([{ type: "showChat" }]);
   f.state.config.onboarding = { ...EMPTY_ONBOARDING, hintsSeen: [CLOUD_INTENT_ASKED, CLOUD_INTENT_GIVEN] };
@@ -206,7 +206,7 @@ it("disappears once an engine can run and a bot has finished a turn there", asyn
 
 it("Hide setup is one click, kept in the Cloud's own settings", async () => {
   await mount();
-  button("hide setup")!.props.onClick!(); await flush();
+  button("Hide setup")!.props.onClick!(); await flush();
   expect(api).toHaveBeenCalledWith("/api/config", { method: "PUT", body: JSON.stringify({ onboarding: { hintsSeen: [CLOUD_SETUP_HIDDEN] } }) });
   expect(dispatched).toContainEqual({ type: "configStatus", config: expect.objectContaining({ onboarding: expect.objectContaining({ hintsSeen: [CLOUD_SETUP_HIDDEN] }) }) });
   expect(render().html).not.toContain("data-cloud-setup");
@@ -224,13 +224,13 @@ it("minimizes to its progress on this device, and opens again", async () => {
   toggle();
   let { html } = render();
   expect(html).toContain("1 of 3 done");
-  expect(html).not.toContain("give it a first job");
-  expect(button("hide setup")).toBeUndefined();
+  expect(html).not.toContain("Give it a first job");
+  expect(button("Hide setup")).toBeUndefined();
   expect(setItem).toHaveBeenLastCalledWith("dusk.cloudSetup.collapsed", "1");
   expect(api).not.toHaveBeenCalledWith("/api/config", expect.anything());
   toggle();
   ({ html } = render());
-  expect(html).toContain("give it a first job");
+  expect(html).toContain("Give it a first job");
   expect(setItem).toHaveBeenLastCalledWith("dusk.cloudSetup.collapsed", "0");
 });
 
@@ -238,14 +238,14 @@ it("says the Cloud is ready once, in the session that finished it", async () => 
   setUpBeforeWelcome();
   f.state.instances = [ready];
   await mount();
-  expect(render().html).toContain("set up dusk cloud");
+  expect(render().html).toContain("Set up dusk cloud");
   f.state.config.onboarding = { ...EMPTY_ONBOARDING, hintsSeen: [CLOUD_INTENT_ASKED], firstTurnAt: "2026-09-30T08:00:00.000Z" };
   render(); for (const effect of f.effects) effect();
   // The mocked hooks are one list across components: the finale is a new child, so it starts fresh.
   f.values.splice(f.ownHooks);
   const { html } = render();
-  expect(html).toContain("the cloud is ready");
-  expect(html).not.toContain("set up dusk cloud");
+  expect(html).toContain("The Cloud is ready");
+  expect(html).not.toContain("Set up dusk cloud");
 });
 
 it("fills its progress from the left by how many steps are done, whichever they are, and picking a step does not move it", async () => {
@@ -257,7 +257,7 @@ it("fills its progress from the left by how many steps are done, whichever they 
   expect(statuses()).toEqual({ cloud: "done", job: "done", engine: "todo", plan: "todo" });
   expect(filled()).toEqual([true, true, false, false]);
   expect(render().html).toContain('aria-valuenow="2"');
-  expand("approve its plan");
+  expand("Approve its plan");
   expect(filled()).toEqual([true, true, false, false]);
 });
 
@@ -268,7 +268,7 @@ it("counts a job as given the moment it is sent, before the Cloud's record answe
   markIntentSent("b1");
   await mount();
   expect(statuses()).toMatchObject({ job: "done", engine: "done", plan: "todo" });
-  expect(render().html).toContain("approve its plan");
+  expect(render().html).toContain("Approve its plan");
 });
 
 it("opens the chat the job went to as the bot's row does: with threads hidden at its main thread, not where an activity row left it", async () => {
@@ -277,9 +277,9 @@ it("opens the chat the job went to as the bot's row does: with threads hidden at
   markIntentSent("b1");
   f.state.activeView = "routines";
   f.state.bots = [{ id: "b1", threadId: "t1", mainThreadId: "main", name: "Maus",
-    tasks: [{ threadId: "t1", title: "routine report", createdAt: 1 }, { threadId: "main", title: "set up", createdAt: 2 }] }];
+    tasks: [{ threadId: "t1", title: "Routine report", createdAt: 1 }, { threadId: "main", title: "Set up", createdAt: 2 }] }];
   await mount();
-  button("open the chat")!.props.onClick!();
+  button("Open the chat")!.props.onClick!();
   expect(dispatched).toEqual([{ type: "showChat" }, { type: "switchTask", botId: "b1", threadId: "main" }]);
 });
 
@@ -288,15 +288,15 @@ it("is ready only once the job's routine exists, not when the bot's first turn a
   f.state.config.onboarding = { ...EMPTY_ONBOARDING, hintsSeen: [CLOUD_INTENT_ASKED, CLOUD_INTENT_GIVEN], firstTurnAt: "2026-10-06T08:00:00.000Z" };
   f.state.routines = [];
   await mount();
-  expect(render().html).toContain("set up dusk cloud");
+  expect(render().html).toContain("Set up dusk cloud");
   expect(statuses().plan).toBe("todo");
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1); tomorrow.setHours(8, 0, 0, 0);
   f.state.routines = [{ id: "r1", name: "Morning news digest", botId: "b1", createdAt: Date.now(), nextRunAt: tomorrow.getTime() }];
   render(); for (const effect of f.effects) effect();
   f.values.splice(f.ownHooks);
   const { html } = render();
-  expect(html).toContain("the cloud is ready");
+  expect(html).toContain("The Cloud is ready");
   expect(html).toContain("Morning news digest");
   expect(html).toContain("runs tomorrow at");
-  expect(html).toContain("run it now");
+  expect(html).toContain("Run it now");
 });

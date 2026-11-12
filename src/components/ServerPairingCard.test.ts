@@ -32,14 +32,14 @@ describe("pairing devices from a hosted server's settings", () => {
   it("offers every member of a Team Cloud a code for their own phone, never the admins' pairing", () => {
     const member = { kind: "session" as const, id: "s", label: "Desktop", scopes: ["client"], expiresAt: 1, team: { id: "team-acme-1", name: "Acme", role: "member" } };
     const html = renderToStaticMarkup(createElement(ServerPairingCard, { initialSession: member, cloudHome: true, team: "Acme" }));
-    expect(html).toContain("open on your phone");
-    expect(html).toContain("your phone opens Acme as you");
+    expect(html).toContain("Open on your phone");
+    expect(html).toContain("Your phone opens Acme as you");
     expect(html).toContain("data-phone-pairing-action");
     expect(html).not.toContain("data-server-pairing-chat-only");
     expect(html).not.toContain("server-pairing-scope");
     const admin = renderToStaticMarkup(createElement(ServerPairingCard, { initialSession: { ...member, scopes: ["admin", "client"], team: { ...member.team, role: "admin" } }, cloudHome: true, team: "Acme" }));
-    expect(admin).toContain("open on your phone");
-    expect(admin).not.toContain("pair a phone or another computer");
+    expect(admin).toContain("Open on your phone");
+    expect(admin).not.toContain("Pair a phone or another computer");
   });
 
   it("explains a chat-only connection instead of showing nothing", () => {
@@ -50,11 +50,11 @@ describe("pairing devices from a hosted server's settings", () => {
     const html = renderToStaticMarkup(createElement(ServerPairingCard, { initialSession: chatOnly }));
     expect(html).toContain("data-server-pairing-chat-only");
     expect(html).toContain("duskbot pair");
-    expect(html).not.toContain("create pairing code");
+    expect(html).not.toContain("Create pairing code");
     const admin = renderToStaticMarkup(createElement(ServerPairingCard, { initialSession: { ...chatOnly, scopes: ["admin", "client"] } }));
-    expect(admin).toContain("create pairing code");
+    expect(admin).toContain("Create pairing code");
     expect(admin).not.toContain("data-server-pairing-chat-only");
-    expect(admin).toMatch(/<button[^>]*data-phone-pairing-action[^>]*>create pairing code<\/button>/);
+    expect(admin).toMatch(/<button[^>]*data-phone-pairing-action[^>]*>Create pairing code<\/button>/);
     expect(admin.match(/data-phone-pairing-action/g)?.length).toBe(1);
     expect(admin).toContain('data-phone-pairing="server"');
     expect(html).toContain('data-phone-pairing="server"');
@@ -64,12 +64,12 @@ describe("pairing devices from a hosted server's settings", () => {
   it("on a dusk bot Cloud home, which is personal, offers no chat-only choice, lists only the owner's devices, and says why in one line", () => {
     const admin = { kind: "session" as const, id: "s", label: "Mac", scopes: ["admin", "client"], expiresAt: 1 };
     const cloud = renderToStaticMarkup(createElement(ServerPairingCard, { initialSession: admin, cloudHome: true }));
-    expect(cloud).toContain("create pairing code");
-    expect(cloud).not.toContain("chat and approvals only");
+    expect(cloud).toContain("Create pairing code");
+    expect(cloud).not.toContain("Chat and approvals only");
     expect(cloud).toContain("data-server-pairing-personal");
-    expect(cloud).toContain("the cloud is personal: only your own devices can connect");
+    expect(cloud).toContain("The Cloud is personal: only your own devices can connect");
     const elsewhere = renderToStaticMarkup(createElement(ServerPairingCard, { initialSession: admin }));
-    expect(elsewhere).toContain("chat and approvals only");
+    expect(elsewhere).toContain("Chat and approvals only");
     expect(elsewhere).not.toContain("data-server-pairing-personal");
     const devices = [
       { id: "a", label: "Mac", scopes: ["admin", "client"], lastSeenAt: 0, expiresAt: 1 },

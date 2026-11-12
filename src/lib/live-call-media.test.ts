@@ -105,7 +105,7 @@ describe("live call media", () => {
   });
 
   it("asks for a key and releases the microphone", async () => {
-    request.mockRejectedValueOnce(new ApiError("live calls use your own OpenAI key. add it in settings → API keys.", 409, { needsKey: true }));
+    request.mockRejectedValueOnce(new ApiError("Live calls use your own OpenAI key. Add it in Settings → API keys.", 409, { needsKey: true }));
     await startLiveCall({ botId: "b1", threadId: "t1" });
     expect(liveMedia()).toMatchObject({ phase: "idle", needsKey: true });
     expect(track.stopped).toBe(true);
@@ -129,7 +129,7 @@ describe("live call media", () => {
     expect(track.stopped).toBe(true);
     request.mockRejectedValueOnce(new ApiError("A Live call is already running.", 409, { activeCall: { ...other, client: "web" } }));
     await startLiveCall({ botId: "b1", threadId: "t1" });
-    expect(liveMedia().notice).toBe("another live call is running in a web browser. hang up there first.");
+    expect(liveMedia().notice).toBe("Another Live call is running in a web browser. Hang up there first.");
   });
 
   it.each([
@@ -139,7 +139,7 @@ describe("live call media", () => {
     configureLiveMedia({ ...fakes(), capabilities: windowIs(dictation) });
     request.mockRejectedValueOnce(new ApiError("A Live call is already running.", 409, { activeCall: { ...call, callId: "c0", client: "desktop", status: "live" } }));
     await startLiveCall({ botId: "b1", threadId: "t1" });
-    expect(liveMedia().notice).toBe("another live call is running in the desktop app. hang up there first.");
+    expect(liveMedia().notice).toBe("Another Live call is running in the desktop app. Hang up there first.");
   });
 
   it("releases media when the server ends the call", async () => {
@@ -148,7 +148,7 @@ describe("live call media", () => {
     expect(peer.channel.sent.map((s) => JSON.parse(s).type)).toContain("session.close");
     expect(peer.closed).toBe(true);
     expect(track.stopped).toBe(true);
-    expect(liveMedia()).toMatchObject({ phase: "failed", notice: "call dropped." });
+    expect(liveMedia()).toMatchObject({ phase: "failed", notice: "Call dropped." });
     expect(currentCall()).toBeNull();
   });
 
@@ -249,10 +249,10 @@ describe("live call media", () => {
   });
 
   it("names why a call ended", () => {
-    expect(endNotice("idle")).toEqual({ text: "call ended after a long silence.", dropped: false });
-    expect(endNotice("sideband-lost")).toEqual({ text: "call dropped.", dropped: true });
+    expect(endNotice("idle")).toEqual({ text: "Call ended after a long silence.", dropped: false });
+    expect(endNotice("sideband-lost")).toEqual({ text: "Call dropped.", dropped: true });
     expect(endNotice("hung-up").dropped).toBe(false);
-    expect(endNotice("signed-out")).toEqual({ text: "call ended: you were signed out.", dropped: false });
+    expect(endNotice("signed-out")).toEqual({ text: "Call ended: you were signed out.", dropped: false });
   });
 
   it("shows the harness's own words first, keeping the reason's drop and retry", async () => {
@@ -268,7 +268,7 @@ describe("live call media", () => {
     expect(liveMedia()).toMatchObject({ phase: "failed", notice: "The call connection to OpenAI dropped.", action: "retry" });
   });
 
-  describe("try again", () => {
+  describe("Try again", () => {
     it("is offered for a dropped call", async () => {
       await startLiveCall({ botId: "b1", threadId: "t1" });
       onServerCall({ ...call, status: "ended", endReason: "connection-lost" });
@@ -320,7 +320,7 @@ describe("live call media", () => {
       onServerCall({ ...call, status: "live" });
       refuseSignIn();
       await checkLiveSignIn();
-      expect(liveMedia()).toMatchObject({ phase: "ended", notice: "call ended: you were signed out.", action: null });
+      expect(liveMedia()).toMatchObject({ phase: "ended", notice: "Call ended: you were signed out.", action: null });
       expect(track.stopped).toBe(true);
       expect(peer.channel.sent.map((sent) => JSON.parse(sent).type)).toContain("session.close");
       expect(currentCall()).toBeNull();
@@ -341,7 +341,7 @@ describe("live call media", () => {
       await Promise.resolve();
       expect(liveMedia().phase).toBe("live");
       onLiveStreamConnected(false);
-      await vi.waitFor(() => expect(liveMedia()).toMatchObject({ phase: "ended", notice: "call ended: you were signed out." }));
+      await vi.waitFor(() => expect(liveMedia()).toMatchObject({ phase: "ended", notice: "Call ended: you were signed out." }));
     });
 
     it("says why when OpenAI closes the call because the sign-in ended", async () => {
@@ -349,7 +349,7 @@ describe("live call media", () => {
       onServerCall({ ...call, status: "live" });
       refuseSignIn();
       peer.channel.onmessage?.({ data: JSON.stringify({ type: "session.closed", reason: "close_requested" }) });
-      await vi.waitFor(() => expect(liveMedia()).toMatchObject({ phase: "ended", notice: "call ended: you were signed out." }));
+      await vi.waitFor(() => expect(liveMedia()).toMatchObject({ phase: "ended", notice: "Call ended: you were signed out." }));
     });
 
     it("does nothing without a call", async () => {
@@ -447,7 +447,7 @@ describe("live call media", () => {
     await startLiveCall({ botId: "b1", threadId: "t1" });
     expect(liveMedia()).toMatchObject({
       phase: "failed",
-      notice: "live calls need a microphone, and this window can't use one. open dusk bot at a secure https address to make the call.",
+      notice: "Live calls need a microphone, and this window can't use one. Open dusk bot at a secure https address to make the call.",
       action: null,
     });
     expect(currentCall()).toBeNull();
@@ -491,7 +491,7 @@ describe("live call media", () => {
   });
 
   it("drops the key prompt only for the bot it was left for", async () => {
-    request.mockRejectedValueOnce(new ApiError("live calls use your own OpenAI key. add it in settings → API keys.", 409, { needsKey: true }));
+    request.mockRejectedValueOnce(new ApiError("Live calls use your own OpenAI key. Add it in Settings → API keys.", 409, { needsKey: true }));
     await startLiveCall({ botId: "b1", threadId: "t1" });
     dismissStartPrompt("b2");
     expect(liveMedia()).toMatchObject({ needsKey: true, botId: "b1" });
@@ -518,7 +518,7 @@ describe("live call media", () => {
     onServerCall({ ...call, status: "live" });
     const remote = new FakeTrack();
     peer.ontrack!({ track: remote });
-    await vi.waitFor(() => expect(liveMedia().notice).toBe("click anywhere in the window to hear the call."));
+    await vi.waitFor(() => expect(liveMedia().notice).toBe("Click anywhere in the window to hear the call."));
     expect([...listeners.keys()].sort()).toEqual(["keydown", "pointerdown"]);
 
     listeners.get("pointerdown")!();
@@ -563,7 +563,7 @@ describe("ending a call", () => {
     expect(liveMedia()).toMatchObject({ phase: "ending", hangingUp: false, notice: null });
     expect(track.stopped).toBe(true);
     onServerCall({ ...call, status: "ended", endReason: "hung-up" });
-    expect(liveMedia()).toMatchObject({ phase: "ended", notice: "call ended.", action: null, hangingUp: false });
+    expect(liveMedia()).toMatchObject({ phase: "ended", notice: "Call ended.", action: null, hangingUp: false });
     expect(track.stopped).toBe(true);
     expect(currentCall()).toBeNull();
   });
@@ -573,7 +573,7 @@ describe("ending a call", () => {
     onServerCall({ ...call, status: "ending" });
     expect(liveMedia()).toMatchObject({ phase: "ending", hangingUp: false });
     onServerCall({ ...call, status: "ended", endReason: "idle" });
-    expect(liveMedia()).toMatchObject({ phase: "ended", notice: "call ended after a long silence.", action: null });
+    expect(liveMedia()).toMatchObject({ phase: "ended", notice: "Call ended after a long silence.", action: null });
   });
 
   it("stops capturing as soon as OpenAI closes the call, before the reason grace period", async () => {
@@ -583,7 +583,7 @@ describe("ending a call", () => {
     expect(track.stopped).toBe(true);
     expect(liveMedia()).toMatchObject({ phase: "live", notice: null });
     onServerCall({ ...call, status: "ended", endReason: "idle" });
-    expect(liveMedia()).toMatchObject({ phase: "ended", notice: "call ended after a long silence." });
+    expect(liveMedia()).toMatchObject({ phase: "ended", notice: "Call ended after a long silence." });
   });
 
   it("says Hanging up… after this window's own Hang up, and ends quietly on the computer's word", async () => {
@@ -629,7 +629,7 @@ describe("waiting for a Live call's audio to connect", () => {
 
     await vi.advanceTimersByTimeAsync(1);
     expect(liveMedia()).toMatchObject({
-      phase: "failed", botId: "b1", threadId: "t1", busyWith: null, notice: "call dropped: the audio could not connect.",
+      phase: "failed", botId: "b1", threadId: "t1", busyWith: null, notice: "Call dropped: the audio could not connect.",
     });
     expect(endRequests()).toEqual(["c1"]);
     expect(track.stopped).toBe(true);
@@ -695,7 +695,7 @@ describe("waiting for a Live call's audio to connect", () => {
     expect(endRequests()).toEqual(["c1"]);
 
     await vi.advanceTimersByTimeAsync(1);
-    expect(liveMedia()).toMatchObject({ phase: "failed", notice: "call dropped: the audio could not connect." });
+    expect(liveMedia()).toMatchObject({ phase: "failed", notice: "Call dropped: the audio could not connect." });
     expect(endRequests()).toEqual(["c1", "c2"]);
   });
 
@@ -724,15 +724,15 @@ describe("waiting for a Live call's audio to connect", () => {
     onServerCall({ ...call, status: "ended", endReason: "sideband-lost" });
     expect(vi.getTimerCount()).toBe(0);
     await vi.advanceTimersByTimeAsync(25_000);
-    expect(liveMedia()).toMatchObject({ phase: "failed", notice: "call dropped." });
+    expect(liveMedia()).toMatchObject({ phase: "failed", notice: "Call dropped." });
     expect(endRequests()).toEqual([]);
   });
 });
 
 describe("a blocked microphone", () => {
-  const APP_REFUSED = "the app didn't let this page use the microphone. open it in your web browser to make the live call.";
-  const COMPUTER = "the microphone is blocked. allow microphone access for this app in your computer's privacy settings, then try again.";
-  const BROWSER = "the microphone is blocked. allow it for this site in your browser, then try again.";
+  const APP_REFUSED = "The app didn't let this page use the microphone. Open it in your web browser to make the Live call.";
+  const COMPUTER = "The microphone is blocked. Allow microphone access for this app in your computer's privacy settings, then try again.";
+  const BROWSER = "The microphone is blocked. Allow it for this site in your browser, then try again.";
   const blockedIn = (
     dictation: Partial<DesktopCapabilities["dictation"]>,
     { reason = "NotAllowedError", pageMic }: { reason?: string; pageMic?: "allowed" | "refused" } = {},
@@ -766,7 +766,7 @@ describe("a blocked microphone", () => {
       pageMicrophone,
     });
     await startLiveCall({ botId: "b1", threadId: "t1" });
-    expect(liveMedia()).toMatchObject({ phase: "failed", notice: "live calls need a microphone, and this window can't use one. open dusk bot at a secure https address to make the call.", action: null });
+    expect(liveMedia()).toMatchObject({ phase: "failed", notice: "Live calls need a microphone, and this window can't use one. Open dusk bot at a secure https address to make the call.", action: null });
     expect(liveMedia().notice).not.toMatch(/browser/i);
     expect(pageMicrophone).not.toHaveBeenCalled();
   });
@@ -800,7 +800,7 @@ describe("a blocked microphone", () => {
   ] as const)("with no microphone at all, in %s, asks for one, then Try again", async (_where, dictation) => {
     blockedIn(dictation, { reason: "NotFoundError", pageMic: "refused" });
     await startLiveCall({ botId: "b1", threadId: "t1" });
-    expect(liveMedia()).toMatchObject({ phase: "failed", notice: "no microphone was found. connect one, then try again.", action: "retry" });
+    expect(liveMedia()).toMatchObject({ phase: "failed", notice: "No microphone was found. Connect one, then try again.", action: "retry" });
   });
 
   it("Try again starts the call again", async () => {
@@ -818,7 +818,7 @@ describe("a blocked microphone", () => {
     expect(request).toHaveBeenCalledWith("/api/live/session", expect.objectContaining({ method: "POST" }));
   });
 
-  it("open in browser opens this very page in the web browser", async () => {
+  it("Open in browser opens this very page in the web browser", async () => {
     vi.stubGlobal("location", { href: "https://dusk-u-0123456789ab.fly.dev/?bot=b1" });
     const openInBrowser = vi.fn();
     configureLiveMedia({

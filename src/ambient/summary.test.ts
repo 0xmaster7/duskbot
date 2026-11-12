@@ -7,7 +7,7 @@ import { ambientBot, ambientSnapshot } from "./summary";
 let at = 0;
 const message = (fields: Partial<Message>): Message => ({ id: `m${++at}`, at, role: "bot", kind: "text", ...fields }) as Message;
 const bot = (fields: Partial<Bot> = {}): Bot => ({ id: "nova", name: "Nova", color: "blue", threadId: "t1", messages: [], busy: false, unread: false, ...fields }) as unknown as Bot;
-const approval = (fields: Record<string, unknown> = {}) => message({ kind: "options", card: { title: "run a command", subtitle: "npm test", options: ["allow", "deny"], requestId: "r1", tool: "Bash", requestType: "permission", ...fields } } as Partial<Message>);
+const approval = (fields: Record<string, unknown> = {}) => message({ kind: "options", card: { title: "Run a command", subtitle: "npm test", options: ["Allow", "Deny"], requestId: "r1", tool: "Bash", requestType: "permission", ...fields } } as Partial<Message>);
 
 afterEach(() => resetTurnLive());
 
@@ -16,7 +16,7 @@ describe("the summary the island and the dock draw", () => {
     const busy = bot({ busy: true, messages: [message({ role: "user", text: "Fix the footer" })] });
     expect(ambientBot(busy, [], turnLive).status).toBe("working");
     noteTurnEvent({ type: "content.delta", threadId: "t1", turnId: "u1", streamKind: "reasoning_text", delta: "" } as never);
-    expect(ambientBot(busy, [], turnLive)).toMatchObject({ status: "thinking", detail: "thinking" });
+    expect(ambientBot(busy, [], turnLive)).toMatchObject({ status: "thinking", detail: "Thinking" });
     noteTurnEvent({ type: "content.delta", threadId: "t1", turnId: "u1", streamKind: "assistant_text", delta: "On it" } as never);
     expect(ambientBot(busy, [], turnLive).status).toBe("talking");
   });
@@ -24,10 +24,10 @@ describe("the summary the island and the dock draw", () => {
   it("offers a plain approval in place and leaves a proposal to its own card", () => {
     const asking = ambientBot(bot({ messages: [approval()] }), [], turnLive);
     expect(asking).toMatchObject({ status: "needs-you", asks: 1, approval: { requestId: "r1", threadId: "t1", title: "npm test" } });
-    expect(asking.detail).toMatch(/^wants to /);
+    expect(asking.detail).toMatch(/^Wants to /);
     const proposal = ambientBot(bot({ messages: [approval({ skillRequest: { action: "enable", name: "x" } })] }), [], turnLive);
     expect(proposal).toMatchObject({ status: "needs-you", approval: null });
-    const answered = ambientBot(bot({ messages: [approval({ answered: "allow" })] }), [], turnLive);
+    const answered = ambientBot(bot({ messages: [approval({ answered: "Allow" })] }), [], turnLive);
     expect(answered.status).not.toBe("needs-you");
     expect(ambientBot(bot({ activity: "waiting-on-you" }), [], turnLive).status).toBe("needs-you");
   });
@@ -48,11 +48,11 @@ describe("the summary the island and the dock draw", () => {
   });
 
   it("counts only a real ask as needing the person: never an intro's suggestions or a plain reply", () => {
-    const intro = message({ kind: "options", helperIntro: true, card: { title: "hey! i'm Nova. i'm new here.", options: ["Plan my week", "Sort my inbox"] } } as Partial<Message>);
+    const intro = message({ kind: "options", helperIntro: true, card: { title: "Hey! I'm Nova. I'm new here.", options: ["Plan my week", "Sort my inbox"] } } as Partial<Message>);
     expect(ambientBot(bot({ unread: true, messages: [intro] }), [], turnLive)).toMatchObject({ status: "done", waits: null, question: null });
     expect(ambientBot(bot({ messages: [intro] }), [], turnLive).status).toBe("idle");
     const signIn = message({ kind: "signin", signIn: { site: "Gmail" } } as unknown as Partial<Message>);
-    expect(ambientBot(bot({ messages: [signIn] }), [], turnLive)).toMatchObject({ status: "needs-you", waits: "sign-in", detail: "sign in to Gmail" });
+    expect(ambientBot(bot({ messages: [signIn] }), [], turnLive)).toMatchObject({ status: "needs-you", waits: "sign-in", detail: "Sign in to Gmail" });
   });
 
   it("takes a typed answer where the question allows one, and names the step a turn is on", () => {
@@ -104,7 +104,7 @@ describe("the summary the island and the dock draw", () => {
       bot({ id: "far", avatarUrl: "https://example.com/a.png", avatarCrop: "circle" } as Partial<Bot>),
     ], [], turnLive, "en");
     expect(snapshot.bots.map((entry) => [entry.id, entry.avatar])).toEqual([["nova", "/api/bots/nova/avatar.png"], ["far", null]]);
-    expect(snapshot.labels.idle).toBe("idle");
+    expect(snapshot.labels.idle).toBe("Idle");
     expect(snapshot.lang).toBe("en");
   });
 });

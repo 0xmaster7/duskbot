@@ -63,7 +63,7 @@ beforeEach(() => {
 describe("ChatMoreMenu, the round ⋯ for the bot panel", () => {
   it("is a round 32px button labelled More, on the raised surface", () => {
     const menu = menuOf(createElement(ChatMoreMenu, { bot }));
-    expect(menu.ariaLabel).toBe("more");
+    expect(menu.ariaLabel).toBe("More");
     expect(menu.placement).toBeUndefined();
     expect(menu.trigger).toContain('data-testid="chat-more"');
     expect(menu.trigger).toMatch(/class="[^"]*\bsize-8\b[^"]*\brounded-full\b[^"]*\bbg-composer\b[^"]*\binset-ring\b/);
@@ -74,7 +74,7 @@ describe("ChatMoreMenu, the round ⋯ for the bot panel", () => {
     expect(keys(menu.items)).toEqual(["find", "copy", "download"]);
     for (const item of menu.items) {
       expect(item.disabled, item.key).toBeFalsy();
-      expect(item.heading ?? "", item.key).not.toBe("in advanced mode");
+      expect(item.heading ?? "", item.key).not.toBe("In Advanced mode");
     }
   });
 
@@ -104,7 +104,7 @@ describe("ChatMoreMenu, the round ⋯ for the bot panel", () => {
 describe("ChatShareMenu, the bot panel's Share", () => {
   it("copies or downloads the conversation, in those words", () => {
     const menu = menuOf(createElement(ChatShareMenu, { bot, className: "" }));
-    expect(menu.items.map((item) => [item.key, item.label])).toEqual([["copy", "copy conversation"], ["download", "download conversation"]]);
+    expect(menu.items.map((item) => [item.key, item.label])).toEqual([["copy", "Copy conversation"], ["download", "Download conversation"]]);
   });
 });
 
@@ -112,7 +112,7 @@ describe("ChatHeaderMenu, a remote client's header ⋯", () => {
   it("keeps main's items, trigger and hover menu below the header", () => {
     const menu = menuOf(createElement(ChatHeaderMenu, { bot }));
     expect(keys(menu.items)).toEqual(["find", "copy", "download"]);
-    expect(menu.items.every((item) => !item.disabled && item.heading !== "in advanced mode")).toBe(true);
+    expect(menu.items.every((item) => !item.disabled && item.heading !== "In Advanced mode")).toBe(true);
     expect(menu).toMatchObject({ placement: "below", openOnHover: true });
     expect(menu.trigger).toMatch(/data-testid="chat-more" class="flex size-8 items-center justify-center rounded-full /);
   });

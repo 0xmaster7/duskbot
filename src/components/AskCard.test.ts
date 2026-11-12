@@ -11,11 +11,11 @@ const LONG = "Yes, the welcome text too, and the footer text of the pricing page
 
 describe("AskCard", () => {
   it("is one raised card in both modes: the composer's surface with no line round it, rounded 24, 560 wide", () => {
-    const html = renderToStaticMarkup(createElement(AskCard, { ariaLabel: "plan", title: "Choose a plan", explanation: "Why it asks." }));
+    const html = renderToStaticMarkup(createElement(AskCard, { ariaLabel: "Plan", title: "Choose a plan", explanation: "Why it asks." }));
     const card = classesOf(html, /^<div[^>]*class="([^"]*)"/);
     expect(card).toEqual(expect.arrayContaining(["bg-composer", "ring-[0.5px]", "ring-transparent", "rounded-[24px]", "max-w-[560px]", "w-full", "text-start"]));
     expect(html).toContain('role="group"');
-    expect(html).toContain('aria-label="plan"');
+    expect(html).toContain('aria-label="Plan"');
     expect(html).toContain("Why it asks.");
     expect(card).toContain("shadow-[0_2px_8px_var(--card-lift)]");
   });
@@ -29,9 +29,9 @@ describe("AskCard", () => {
   });
 
   it("offers a dismiss button only with a name for it", () => {
-    const base = { ariaLabel: "key", title: "API key" };
+    const base = { ariaLabel: "Key", title: "API key" };
     expect(renderToStaticMarkup(createElement(AskCard, { ...base, onDismiss: () => {} }))).not.toContain("<button");
-    expect(renderToStaticMarkup(createElement(AskCard, { ...base, onDismiss: () => {}, dismissLabel: "not now" }))).toContain('aria-label="not now"');
+    expect(renderToStaticMarkup(createElement(AskCard, { ...base, onDismiss: () => {}, dismissLabel: "Not now" }))).toContain('aria-label="Not now"');
   });
 });
 
@@ -93,23 +93,23 @@ describe("the card's buttons", () => {
 
 describe("grok's card anatomy", () => {
   it("puts a source titlebar over the title, a 20px tile and a medium 13px name, and keeps the dismiss in it", () => {
-    const html = renderToStaticMarkup(createElement(AskCard, { ariaLabel: "key", title: "API key", explanation: "Why.", source: { icon: "K", label: "Secrets" }, onDismiss: () => {}, dismissLabel: "not now" }));
+    const html = renderToStaticMarkup(createElement(AskCard, { ariaLabel: "Key", title: "API key", explanation: "Why.", source: { icon: "K", label: "Secrets" }, onDismiss: () => {}, dismissLabel: "Not now" }));
     expect(html).toMatch(/min-h-\[52px\][^"]*px-4 py-3\.5/);
     expect(html).toMatch(/size-5[^"]*rounded-\[6px\][^"]*border-transparent[^"]*bg-\(--card-fill\)/);
     expect(html).toMatch(/text-\[13px\] font-medium leading-\[18px\] text-ink">Secrets</);
     expect(html.indexOf("Secrets")).toBeLessThan(html.indexOf("API key"));
-    expect(html.indexOf('aria-label="not now"')).toBeLessThan(html.indexOf("API key"));
+    expect(html.indexOf('aria-label="Not now"')).toBeLessThan(html.indexOf("API key"));
     expect(html).toMatch(/class="px-5 py-1"><p class="[^"]*text-\[15px\] font-semibold leading-\[22px\]/);
   });
 
   it("folds a settled card to one 52px row in the same frame, rounded 18, which opens to its detail", () => {
-    const html = renderToStaticMarkup(createElement(CardSettledRow, { icon: "K", label: "Secrets", summary: "saved · Stripe key", title: "Stripe key", detail: "saved securely." }));
+    const html = renderToStaticMarkup(createElement(CardSettledRow, { icon: "K", label: "Secrets", summary: "Saved · Stripe key", title: "Stripe key", detail: "Saved securely." }));
     expect(html).toContain('data-ask-card="settled"');
     expect(html).toContain("rounded-[18px]");
     expect(html).toContain("ring-transparent");
     expect(html).toContain('aria-expanded="false"');
-    expect(html).toMatch(/text-ink-tertiary">saved · Stripe key</);
-    expect(html).not.toContain("saved securely.");
+    expect(html).toMatch(/text-ink-tertiary">Saved · Stripe key</);
+    expect(html).not.toContain("Saved securely.");
   });
 
   it("keeps a card field's hairline when focused, with only the keyboard's grey ring", () => {
@@ -130,8 +130,8 @@ describe("grok's card anatomy", () => {
 
 describe("AskReply", () => {
   it("is a field with an ink send button, which waits for words", () => {
-    const html = renderToStaticMarkup(createElement(AskReply, { label: "Answer", placeholder: "write your answer", color: "teal", value: "", onChange: () => {}, onSend: () => {} }));
-    expect(html).toContain('placeholder="write your answer"');
+    const html = renderToStaticMarkup(createElement(AskReply, { label: "Answer", placeholder: "Write your answer", color: "teal", value: "", onChange: () => {}, onSend: () => {} }));
+    expect(html).toContain('placeholder="Write your answer"');
     expect(html).toMatch(/<button type="submit" disabled=""[^>]*class="[^"]*ui-button-primary/);
   });
 });
@@ -148,15 +148,15 @@ describe("AskDetail", () => {
 
 describe("AskSettledLine", () => {
   it("settles into one calm line that announces itself, with its own mark for an answer, a stop and an expiry", () => {
-    const html = renderToStaticMarkup(createElement(AskSettledLine, { ariaLabel: "plan", children: settledAnswer("Yes, only the footer text", ["Yes, only the footer text", "No"]) }));
+    const html = renderToStaticMarkup(createElement(AskSettledLine, { ariaLabel: "Plan", children: settledAnswer("Yes, only the footer text", ["Yes, only the footer text", "No"]) }));
     expect(html).toContain('data-ask-card="settled"');
     expect(html).toContain('aria-live="polite"');
-    expect(html).toContain("you chose:");
+    expect(html).toContain("You chose:");
     expect(html).toContain("Yes, only the footer text");
     expect(html).toContain("text-success");
-    expect(renderToStaticMarkup(createElement(AskSettledLine, { children: settledAnswer("Not until tomorrow", ["Yes", "No"]) }))).toContain("you answered:");
-    expect(renderToStaticMarkup(createElement(AskSettledLine, { tone: "stopped", children: "stopped" }))).toContain('data-tone="stopped"');
-    expect(renderToStaticMarkup(createElement(AskSettledLine, { tone: "expired", children: "expired" }))).toContain('data-tone="expired"');
+    expect(renderToStaticMarkup(createElement(AskSettledLine, { children: settledAnswer("Not until tomorrow", ["Yes", "No"]) }))).toContain("You answered:");
+    expect(renderToStaticMarkup(createElement(AskSettledLine, { tone: "stopped", children: "Stopped" }))).toContain('data-tone="stopped"');
+    expect(renderToStaticMarkup(createElement(AskSettledLine, { tone: "expired", children: "Expired" }))).toContain('data-tone="expired"');
   });
 });
 

@@ -54,7 +54,7 @@ describe("the profile photo", () => {
     fixture.api.mockResolvedValue({ profile: { name: "Ada", email: "" } });
     await act(async () => root.render(createElement(ProfileFields)));
     expect(host.querySelector(`img[src="${photo}"]`)).not.toBeNull();
-    const remove = [...host.querySelectorAll("button")].find((button) => button.textContent === "remove photo")!;
+    const remove = [...host.querySelectorAll("button")].find((button) => button.textContent === "Remove photo")!;
     await act(async () => remove.click());
     expect(fixture.api).toHaveBeenCalledWith("/api/config", { method: "PUT", body: JSON.stringify({ profile: { avatarUrl: "" } }) });
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "profileSaved", profile: { avatarUrl: undefined } });
@@ -69,7 +69,7 @@ describe("the profile photo", () => {
     });
     try {
       await act(async () => root.render(createElement(ProfileFields)));
-      const name = host.querySelector<HTMLInputElement>('input[aria-label="your name"]')!;
+      const name = host.querySelector<HTMLInputElement>('input[aria-label="Your name"]')!;
       await act(async () => name.dispatchEvent(new FocusEvent("focusout", { bubbles: true })));
       expect(sent).toEqual([{ profile: { name: "Ada", email: "" } }]);
     } finally {
@@ -87,11 +87,11 @@ describe("the profile photo", () => {
       const email = host.querySelector<HTMLInputElement>('input[type="email"]')!;
       expect(email.readOnly).toBe(true);
       expect(email.value).toBe("bob@acme.test");
-      const name = host.querySelector<HTMLInputElement>('input[aria-label="your name"]')!;
+      const name = host.querySelector<HTMLInputElement>('input[aria-label="Your name"]')!;
       await act(async () => name.dispatchEvent(new FocusEvent("focusout", { bubbles: true })));
       expect(fixture.api).toHaveBeenCalledWith("/api/me", { method: "PUT", body: JSON.stringify({ name: "Bob" }), timeoutMs: 10_000 });
       expect(fixture.dispatch).toHaveBeenCalledWith({ type: "profileSaved", profile: { name: "Bob Builder", email: "bob@acme.test" } });
-      const remove = [...host.querySelectorAll("button")].find((button) => button.textContent === "remove photo")!;
+      const remove = [...host.querySelectorAll("button")].find((button) => button.textContent === "Remove photo")!;
       await act(async () => remove.click());
       expect(fixture.api).toHaveBeenLastCalledWith("/api/me", { method: "PUT", body: JSON.stringify({ avatarUrl: "" }), timeoutMs: 10_000 });
       expect(fetched).not.toHaveBeenCalled();

@@ -40,15 +40,15 @@ afterEach(() => {
   host.remove();
 });
 
-describe("open on your phone, on a Team Cloud: the phones it opened", () => {
+describe("Open on your phone, on a Team Cloud: the phones it opened", () => {
   it("lists the paired phone under the code as its device and its member, with Remove", async () => {
     flushSync(() => root.render(createElement(TeamPhoneCard, { team: "Acme" })));
     await vi.waitFor(() => expect(rows()).toHaveLength(1));
     expect(fixture.api).toHaveBeenCalledWith("/api/team/phones");
     expect(rows()[0]).toContain("Ada's iPhone · ada@acme.test");
     expect(rows()[0]).toContain("seen 3 min ago");
-    expect(host.textContent).toContain("paired devices");
-    expect(removeButtons().map((button) => button.textContent)).toEqual(["remove"]);
+    expect(host.textContent).toContain("Paired devices");
+    expect(removeButtons().map((button) => button.textContent)).toEqual(["Remove"]);
   });
 
   it("shows every phone the server lists for an admin, each with Remove, and removing one signs it out and drops it", async () => {
@@ -73,7 +73,7 @@ describe("open on your phone, on a Team Cloud: the phones it opened", () => {
   it("says when there is none yet, and shows the phone that scans the code without a reload", async () => {
     fixture.phones = [];
     flushSync(() => root.render(createElement(TeamPhoneCard, { team: "Acme" })));
-    await vi.waitFor(() => expect(host.textContent).toContain("no devices paired yet."));
+    await vi.waitFor(() => expect(host.textContent).toContain("No devices paired yet."));
     vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
     flushSync(() => host.querySelector<HTMLButtonElement>("[data-phone-pairing-action]")!.click());
     await vi.waitFor(() => expect(host.querySelector("[data-team-phone-code]")).not.toBeNull());

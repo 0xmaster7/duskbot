@@ -15,7 +15,7 @@ vi.mock("@/state/store", () => ({
 }));
 import { ConnectorCard } from "./ConnectorCard";
 
-const SENTENCE = "finish this sign-in in apps → MCP servers.";
+const SENTENCE = "Finish this sign-in in Apps → MCP servers.";
 const AUTH_URL = "https://mcp.linear.app/authorize?client_id=maus&state=s3cr3t";
 
 let host: HTMLDivElement;
@@ -28,7 +28,7 @@ const render = (connector: Partial<NonNullable<Message["connector"]>>) => flushS
     role: "bot",
     kind: "connector",
     at: 1,
-    connector: { slug: "linear", label: "Linear", description: "read issues", status: "required", resumeKey: "resume1", ...connector },
+    connector: { slug: "linear", label: "Linear", description: "Read issues", status: "required", resumeKey: "resume1", ...connector },
   },
 })));
 const press = (label: string) => {
@@ -56,7 +56,7 @@ afterEach(() => {
 describe("ConnectorCard authorize refusal", () => {
   it("shows an MCP server's refusal as its sentence, with no sign-in link anywhere on the card", async () => {
     render({ source: "mcp" });
-    press("sign in");
+    press("Sign in");
     await vi.waitFor(() => expect(host.querySelector('[role="status"]')?.textContent).toBe(SENTENCE));
     expect(fixture.api).toHaveBeenCalledWith("/api/bots/atlas/connector-cards/m1/authorize", { method: "POST", body: JSON.stringify({ threadId: "thread" }) });
     expect(host.querySelector('[role="alert"]')).toBeNull();
@@ -68,7 +68,7 @@ describe("ConnectorCard authorize refusal", () => {
 
   it("keeps a Composio app's 409 as the card's error", async () => {
     render({ source: "composio" });
-    press("connect");
+    press("Connect");
     await vi.waitFor(() => expect(host.querySelector('[role="alert"]')?.textContent).toBe(SENTENCE));
     expect(host.querySelector('[role="status"]')).toBeNull();
     expect(links()).toEqual([]);

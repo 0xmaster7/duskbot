@@ -135,7 +135,7 @@ describe.each(SEND_KEYS)("in %s mode", (mode) => {
   it("editing a sent message submits on the same key", () => {
     render(createElement(ChatView, { bot: { ...bot, messages: [{ id: "ask", role: "user", kind: "text", at: 1, text: "Try the new model" }] } }));
     flushSync(() => host.querySelector<HTMLButtonElement>('[data-mid="ask"] button[aria-haspopup="menu"]')!.click());
-    const edit = [...host.querySelectorAll<HTMLButtonElement>('[data-mid="ask"] [role=menuitem]')].find((item) => (item.textContent ?? "").startsWith("edit"))!;
+    const edit = [...host.querySelectorAll<HTMLButtonElement>('[data-mid="ask"] [role=menuitem]')].find((item) => (item.textContent ?? "").startsWith("Edit"))!;
     flushSync(() => edit.click());
     const editor = () => host.querySelector<HTMLTextAreaElement>("textarea:not([aria-label])")!;
     expect(editor().value).toBe("Try the new model");
@@ -146,7 +146,7 @@ describe.each(SEND_KEYS)("in %s mode", (mode) => {
   it("the Cloud's first job starts on the same key", () => {
     setPendingIntent("Watch my inbox");
     render(createElement(CloudIntent));
-    const job = () => textarea('textarea[aria-label="what should the cloud do while you\'re away?"]');
+    const job = () => textarea('textarea[aria-label="What should the Cloud do while you\'re away?"]');
     expect(job().value).toBe("Watch my inbox");
     const given = () => vi.mocked(api).mock.calls.filter(([, init]) => String(init?.body).includes("cloud-intent-given")).length;
     expectSendKey(mode, job, given);
@@ -162,7 +162,7 @@ describe("an input method in the composer's menus", () => {
     render(createElement(Composer, { group: room, members: [{ ...bot, name: "山田" }] }));
     type(textarea(), "@山田");
     for (const init of ime) {
-      for (const key of ["Enter", "tab", "ArrowDown"]) {
+      for (const key of ["Enter", "Tab", "ArrowDown"]) {
         expect(press(textarea(), { ...init, key }).defaultPrevented, JSON.stringify({ ...init, key })).toBe(false);
       }
       expect(textarea().value).toBe("@山田");
@@ -190,17 +190,17 @@ describe("the send key in hints", () => {
     fixture.instances = [{ instanceId: "test", driverKind: "codex", displayName: "Test", capabilities: { queueing: true } } as unknown as InstanceInfo];
     render(createElement(Composer, { bot }));
     type(textarea(), "hi");
-    expect(host.querySelector('button[aria-label="send message"]')?.getAttribute("title")).toBe("send (Enter)");
+    expect(host.querySelector('button[aria-label="Send message"]')?.getAttribute("title")).toBe("Send (Enter)");
     flushSync(() => setSendKey("shift-enter"));
-    expect(host.querySelector('button[aria-label="send message"]')?.getAttribute("title")).toBe("send (Shift+Enter)");
+    expect(host.querySelector('button[aria-label="Send message"]')?.getAttribute("title")).toBe("Send (Shift+Enter)");
     flushSync(() => setSendKey("mod-enter"));
-    expect(host.querySelector('button[aria-label="send message"]')?.getAttribute("title")).toBe("send (Ctrl+Enter)");
+    expect(host.querySelector('button[aria-label="Send message"]')?.getAttribute("title")).toBe("Send (Ctrl+Enter)");
   });
 
   it("names the key on the Cloud's first-job button", () => {
     setSendKey("mod-enter");
     render(createElement(CloudIntent));
-    expect(host.querySelector('button[aria-label="start setting it up"]')?.getAttribute("title")).toBe("start setting it up (Ctrl+Enter)");
+    expect(host.querySelector('button[aria-label="Start setting it up"]')?.getAttribute("title")).toBe("Start setting it up (Ctrl+Enter)");
   });
 });
 
@@ -210,7 +210,7 @@ describe("a message sent while a one-to-one bot works", () => {
   const working = { ...bot, busy: true, tasks: [{ ...bot.tasks![0]!, busy: true }] };
   const followUps = () => sends().map((action) => action.followUp);
   const sendButton = () => host.querySelector<HTMLButtonElement>("[data-composer-follow-up] > button")!;
-  const chooser = () => host.querySelector<HTMLButtonElement>('button[aria-label="choose how to send this message"]');
+  const chooser = () => host.querySelector<HTMLButtonElement>('button[aria-label="Choose how to send this message"]');
   const openChoices = () => {
     flushSync(() => chooser()!.click());
     return [...document.querySelectorAll<HTMLButtonElement>('[role="menu"] [role="menuitem"]')];
@@ -225,7 +225,7 @@ describe("a message sent while a one-to-one bot works", () => {
       expect(sends().at(-1), JSON.stringify(init)).toMatchObject({ type: "send", text: "words", followUp });
     }
     type(textarea(), "clicked");
-    expect(sendButton().getAttribute("title")).toBe("add this to what Pepper is doing · Ctrl+Enter: queue");
+    expect(sendButton().getAttribute("title")).toBe("Add this to what Pepper is doing · Ctrl+Enter: Queue");
     flushSync(() => sendButton().click());
     type(textarea(), "ctrl-clicked");
     flushSync(() => sendButton().dispatchEvent(new MouseEvent("click", { bubbles: true, ctrlKey: true })));
@@ -262,9 +262,9 @@ describe("a message sent while a one-to-one bot works", () => {
     type(textarea(), "start again with this");
     const choices = openChoices();
     expect(choices.map((choice) => choice.textContent)).toEqual([
-      "steer nowinterrupt what Pepper is doingEnter",
-      "queuerun after the current turnCtrl+Enter",
-      "restart turnstart the turn over with this message",
+      "Steer nowInterrupt what Pepper is doingEnter",
+      "QueueRun after the current turnCtrl+Enter",
+      "Restart turnStart the turn over with this message",
     ]);
     flushSync(() => choices[2]!.click());
     expect(sends().at(-1)).toMatchObject({ type: "send", text: "start again with this", followUp: "restart" });
@@ -280,8 +280,8 @@ describe("a message sent while a one-to-one bot works", () => {
     expect(followUps()).toEqual(["queue", "queue"]);
     type(textarea(), "c");
     expect(openChoices().map((choice) => choice.textContent)).toEqual([
-      "queuerun after the current turnEnter",
-      "restart turnstart the turn over with this message",
+      "QueueRun after the current turnEnter",
+      "Restart turnStart the turn over with this message",
     ]);
   });
 
