@@ -50,7 +50,7 @@ export function whoLabel(who: string): string {
   if (who === "This computer") return t("activity.actor.loopback");
   if (who === "Local service") return t("activity.actor.worker");
   if (who === "Command line") return t("activity.actor.cli");
-  return who || "—";
+  return who || "-";
 }
 
 function known(key: string): key is LocaleKey {
@@ -71,7 +71,7 @@ export function describeEntry(entry: ActivityEntry): string {
 }
 
 export function formatValue(value: unknown): string {
-  if (value === null || value === undefined) return "—";
+  if (value === null || value === undefined) return "-";
   if (typeof value === "string") return value;
   const text = JSON.stringify(value);
   return text.length > 160 ? `${text.slice(0, 157)}…` : text;

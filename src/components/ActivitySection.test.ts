@@ -28,9 +28,9 @@ describe("activity helpers", () => {
     expect(describeEntry(approval)).toBe("approved: Bash in Ops");
     expect(describeEntry({ ...visibility, action: "future.thing", target: undefined })).toBe("future.thing");
     expect(whoLabel("command line")).toBe("command line");
-    expect(whoLabel("")).toBe("—");
+    expect(whoLabel("")).toBe("-");
     expect(formatValue({ people: ["ada@example.test"] })).toBe('{"people":["ada@example.test"]}');
-    expect(formatValue(null)).toBe("—");
+    expect(formatValue(null)).toBe("-");
   });
 });
 

@@ -46,7 +46,7 @@ export function StatStrip({ items }: { items: Array<{ label: string; value: stri
 export function totalsStats(totals: TraceTotals & { usageStatus?: TraceRootSummary["usageStatus"] }, timeLabel: string) {
   const partial = totals.usageStatus === "partial" || totals.usageStatus === "unavailable";
   return [
-    { label: timeLabel, value: formatDuration(totals.durationMs) || "—" },
+    { label: timeLabel, value: formatDuration(totals.durationMs) || "-" },
     { label: t("trace.stat.cost"), value: formatCost(totals.costUsd) },
     {
       label: t("trace.stat.tokens"), value: totals.tokens ? `${formatTokens(totals.tokens)}${partial ? "*" : ""}` : partial ? t("trace.partial") : "0",

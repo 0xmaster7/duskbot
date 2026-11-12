@@ -22,7 +22,7 @@ export function usagePeriodRange(period: UsagePeriod, now = new Date()): { from:
 
 /** A cost as the trace prints it: a sliver of a cent reads "<$0.001", never "$0.000". */
 export function formatCost(usd: number | null | undefined): string {
-  if (!hasFiniteCost(usd)) return "—";
+  if (!hasFiniteCost(usd)) return "-";
   return usd > 0 && usd < 0.001 ? "<$0.001" : formatUsd(usd);
 }
 

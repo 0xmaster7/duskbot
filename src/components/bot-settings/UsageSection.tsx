@@ -45,7 +45,7 @@ export function UsageSection({ bot, bare = false }: { bot: Bot; bare?: boolean }
         <div>
           <div className="text-[12px] uppercase tracking-wide text-ink-secondary">{t("usage.colCost")}</div>
           <div className="mt-0.5 tabular-nums text-ink">
-            {hasFiniteCost(usage.costUsd) ? formatUsd(usage.costUsd) : "—"}
+            {hasFiniteCost(usage.costUsd) ? formatUsd(usage.costUsd) : <span className="text-ink-secondary">-</span>}
           </div>
         </div>
       </div>
