@@ -4,7 +4,8 @@ import { createHash, createPublicKey, randomBytes, timingSafeEqual, verify } fro
 import { accessSync, constants, readFileSync, realpathSync, statSync } from "node:fs";
 import { APP_COMMAND_ONLINE_MS, CLAIM_TTL_MS, COMMAND_KINDS, appSlug, COMMAND_TTL_MS, DASHBOARD_DISCOVERY_PATH, FAST_REPORT_MS, MAX_REPORT_BYTES, SIGNATURE_SKEW_MS, SLOW_REPORT_MS,
   freshnessOf, parseEnrollRequest, parseWorkspaceReport, signedPayload } from "../../../shared/dashboard-protocol.ts";
-import type { CommandKind, CommandView, ConnectorsAnswer, MachineSample, ReportAnswer, WorkspaceDetail, WorkspaceSummary } from "../../../shared/dashboard-protocol.ts";
+import type { CommandKind, CommandView, ConnectorsAnswer, MachineSample, ReportAnswer, WorkspaceDetail, WorkspaceReport, WorkspaceSummary } from "../../../shared/dashboard-protocol.ts";
+import { PULSE_INTERVAL_MS, PULSE_WINDOW_MS, PulseRing, type PulseAnswer } from "../../../shared/machine-pulse.ts";
 import { AuthError, createAuth, isAppCorsRoute } from "./auth/index.ts";
 import type { ProviderConfigs } from "./auth/providers.ts";
 import type { Mailer } from "./auth/mail.ts";
@@ -258,6 +259,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const commands = new Map<string, CommandView[]>();
   const seen = new Map<string, number>();
   const history = new Map<string, MachineSample[]>();
+  const pulses = new Map<string, PulseRing>();
+  const pulseSenders = new Set<string>();
   const waits = new Map<string, { finish: () => void; cancel: () => void }>();
   let closed = false;
 
@@ -272,6 +275,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     for (const [key, limit] of limits) if (limit.until <= time) limits.delete(key);
     for (const [signature, expiry] of replays) if (expiry < time) replays.delete(signature);
     for (const [id, until] of watching) if (until <= time) watching.delete(id);
+    for (const [id, ring] of pulses) if ((ring.last()?.t ?? 0) < time - 5 * PULSE_WINDOW_MS) pulses.delete(id);
     const workspaces = state.workspaces.filter(ws => ws.ownerAccountId !== null || time - ws.connectedAt < 24 * hourMs);
     if (workspaces.length !== state.workspaces.length) {
       for (const ws of state.workspaces) if (!workspaces.includes(ws)) forget(ws);
@@ -334,7 +338,22 @@ export function createDashboardApp(options: DashboardAppOptions) {
     commands.delete(ws.id);
     seen.delete(ws.id);
     history.delete(ws.id);
+    pulses.delete(ws.id);
+    pulseSenders.delete(ws.id);
     lastWatching.delete(ws.id);
+  }
+  /** a workspace's own samples once it sends any; until then (an older version) one per report from its machine section,
+   *  which would otherwise land ahead of samples taken earlier and delivered later */
+  function notePulse(id: string, report: WorkspaceReport) {
+    if (report.pulse && !pulseSenders.has(id)) { pulseSenders.add(id); pulses.get(id)?.clear(); }
+    const fresh = (report.pulse ?? []).filter(sample => sample.t <= now() + SIGNATURE_SKEW_MS);
+    const machine = pulseSenders.has(id) ? undefined : report.machine;
+    if (!fresh.length && !machine) return;
+    const ring = pulses.get(id) ?? new PulseRing();
+    pulses.set(id, ring);
+    for (const sample of fresh) ring.push(sample);
+    if (machine) ring.push({ t: report.at, cpu: Math.round(machine.cpu.percent * 10) / 10,
+      mem: machine.memory.totalBytes > 0 ? Math.round(Math.min(100, machine.memory.usedBytes / machine.memory.totalBytes * 100) * 10) / 10 : 0 });
   }
   function owned(id: string, owner: Account): StoredWorkspace {
     const ws = state.workspaces.find(item => item.id === id && item.ownerAccountId === owner.id);
@@ -542,6 +561,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
             rx: machine.network?.rxBytesPerSec ?? 0, tx: machine.network?.txBytesPerSec ?? 0 });
           history.set(ws.id, samples.slice(-240));
         }
+        notePulse(ws.id, report);
         for (const result of report.results ?? []) {
           const command = commands.get(ws.id)?.find(item => item.id === result.id && (item.status === "queued" || item.status === "sent"));
           if (command) {
@@ -609,6 +629,15 @@ export function createDashboardApp(options: DashboardAppOptions) {
       store.changed();
       analytics.track("app_paired", { accountId: owner.id, props: { via: "workspace", kind: ws.kind } });
       return json(res, 200, { workspace: summary(ws) });
+    }
+    const pulse = method === "GET" ? /^\/v1\/workspaces\/([^/]+)\/pulse$/.exec(path) : null;
+    if (pulse) {
+      const owner = account(req);
+      const ws = owned(pulse[1]!, owner);
+      watch(owner);
+      const after = Number(url.searchParams.get("after") ?? "0");
+      const answer: PulseAnswer = { v: 1, intervalMs: PULSE_INTERVAL_MS, samples: pulses.get(ws.id)?.since(Number.isFinite(after) ? after : 0) ?? [] };
+      return json(res, 200, answer);
     }
     const match = /^\/v1\/workspaces\/([^/]+)(\/commands)?$/.exec(path);
     if (match) {

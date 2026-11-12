@@ -76,8 +76,8 @@ export function linuxMemoryUsed(text: string, total: number, free: number): numb
   return Math.max(0, total - Math.min(total, available ? Number(available[1]) * 1024 : free));
 }
 
-type CpuTimes = { total: number; idle: number };
-const cpuTimes = (): CpuTimes => os.cpus().reduce((sum, cpu) => ({
+export type CpuTimes = { total: number; idle: number };
+export const cpuTimes = (): CpuTimes => os.cpus().reduce((sum, cpu) => ({
   total: sum.total + Object.values(cpu.times).reduce((a, b) => a + b, 0), idle: sum.idle + cpu.times.idle,
 }), { total: 0, idle: 0 });
 

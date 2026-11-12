@@ -5,6 +5,7 @@ import { APP_WATCH_MS, SIGNATURE_HEADERS, signedPayload } from "../shared/dashbo
 import type { CommandResult, DashboardCommand, EnrollAnswer, EnrollRequest, ReportAnswer, WorkspaceReport } from "../shared/dashboard-protocol.ts";
 import type { createDashboardCollector } from "./dashboard-report.ts";
 import type { UsageReport } from "../shared/usage-signals.ts";
+import type { PulseSample } from "../shared/machine-pulse.ts";
 
 interface LinkState {
   v: 1;
@@ -20,6 +21,8 @@ export interface DashboardReporterDeps {
   collect: ReturnType<typeof createDashboardCollector>;
   /** usage signals waiting for the next report (usage-signals.ts) */
   usage?: { take(): UsageReport | null; requeue(report: UsageReport): void };
+  /** recent cpu and memory samples; only those not yet sent ride a report, and only while someone watches */
+  pulse?: { since(after: number): PulseSample[] };
   execute(command: DashboardCommand): Promise<CommandResult>;
   fetch?: typeof fetch;
   now?: () => number;
@@ -130,6 +133,7 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
     let backoff = 5000;
     let devicesAt: number | null = null, activityAt: number | null = null, plansAt: number | null = null, appsAt: number | null = null;
     let lastPlans: WorkspaceReport["plans"] | null;
+    let pulseSent = 0;
     while (running && generation === run) {
       try {
         const at = now(), pending = [...results.values()].slice(0, 50);
@@ -148,6 +152,8 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
         if (!running || generation !== run) return;
         const usage = deps.usage?.take() ?? null;
         if (usage) report.usage = usage;
+        const pulse = watching ? deps.pulse?.since(pulseSent) ?? [] : [];
+        if (pulse.length) report.pulse = pulse;
         let answer: ReportAnswer;
         try { answer = await request("POST", "/v1/report", report); } catch (error) { if (usage) deps.usage?.requeue(usage); throw error; }
         if (!running || generation !== run) return;
@@ -156,6 +162,7 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
         if (report.activity) activityAt = at;
         if (plansDue) { plansAt = at; lastPlans = plans; }
         if (report.apps) appsAt = at;
+        if (pulse.length) pulseSent = pulse.at(-1)!.t;
         lastReportAt = now(); lastError = null; backoff = 5000;
         accept(answer, run);
         await pause(Math.max(2000, Math.min(600_000, Number(answer.nextReportMs) || 180_000)), true);

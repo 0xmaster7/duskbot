@@ -1,5 +1,6 @@
 import { appSlug, COMMAND_KINDS } from "../../../../shared/dashboard-protocol";
 import type { CommandKind, CommandView, ConnectorsAnswer, WorkspaceDetail } from "../../../../shared/dashboard-protocol";
+import { PULSE_INTERVAL_MS, PULSE_SIZE, type PulseAnswer, type PulseSample } from "../../../../shared/machine-pulse";
 import { ApiError, FIXTURE } from "../lib/api";
 import type { BundleId, CheckoutRequest, CloudDesktop, DesktopId, MachineSpec, NotificationPrefs, Selection, Subscription } from "./contracts";
 import { fixtureAccount, fixtureBilling, fixtureCatalog, fixtureClouds, fixtureConnections, fixturePendingApps, fixtureWorkspace, fixtureWorkspaces } from "./fixtures";
@@ -153,6 +154,16 @@ function advance(now: number) {
     s.connections[signIn.workspaceId] = [...new Set([...(s.connections[signIn.workspaceId] ?? []), signIn.slug])];
     s.pendingApps[signIn.workspaceId] = (s.pendingApps[signIn.workspaceId] ?? []).filter((slug) => slug !== signIn.slug);
   }
+}
+
+function fixturePulse(after: number, now: number): PulseSample[] {
+  const newest = Math.floor((now - 2000) / PULSE_INTERVAL_MS) * PULSE_INTERVAL_MS, out: PulseSample[] = [];
+  for (let t = newest - (PULSE_SIZE - 1) * PULSE_INTERVAL_MS; t <= newest; t += PULSE_INTERVAL_MS) {
+    if (t <= after) continue;
+    const k = t / PULSE_INTERVAL_MS, noise = Math.sin(k * 12.9898) * 43758.5453 % 1;
+    out.push({ t, cpu: Math.round((22 + 14 * Math.sin(t / 17_000) + 9 * Math.sin(t / 5_300) + 6 * Math.abs(noise)) * 10) / 10, mem: Math.round((41 + 3 * Math.sin(t / 40_000) + Math.abs(noise)) * 10) / 10 });
+  }
+  return out;
 }
 
 function workspaceDetail(detail: WorkspaceDetail, now: number): WorkspaceDetail {
@@ -341,6 +352,13 @@ function route(method: string, path: string, body: unknown, query: URLSearchPara
     if (typeof b.token !== "string" || !b.token) fail("Enter a claim token.");
     const id = `fx-claimed-${s.nextId++}`, detail = fixtureWorkspace(id, "Studio Mac", "mac", now);
     s.workspaces.set(id, detail); return { workspace: detail.workspace };
+  }
+  const pulse = method === "GET" ? path.match(/^\/v1\/workspaces\/([^/]+)\/pulse$/) : null;
+  if (pulse) {
+    const detail = s.workspaces.get(decodeURIComponent(pulse[1]!));
+    if (!detail) return fail("Workspace not found.", 404, "not_found");
+    const cloud = s.clouds.find((c) => c.workspaceId === detail.workspace.id);
+    return { v: 1, intervalMs: PULSE_INTERVAL_MS, samples: cloud && cloud.status !== "running" ? [] : fixturePulse(Number(query.get("after") ?? 0), now) } satisfies PulseAnswer;
   }
   const workspace = path.match(/^\/v1\/workspaces\/([^/]+)(\/commands)?$/);
   if (workspace) {

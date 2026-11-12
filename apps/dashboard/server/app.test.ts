@@ -7,6 +7,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync }
 import { CLAIM_TTL_MS, COMMAND_TTL_MS, FAST_REPORT_MS, MAX_REPORT_BYTES, SIGNATURE_SKEW_MS, SLOW_REPORT_MS, parseEnrollRequest, parseWorkspaceReport, signedPayload } from "../../../shared/dashboard-protocol.ts";
 import type { CommandView, EnrollAnswer, MachineReport, ReportAnswer, WorkspaceDetail, WorkspaceReport, WorkspaceSummary } from "../../../shared/dashboard-protocol.ts";
 import { createDashboardApp, pagePolicy } from "./app.ts";
+import { PULSE_INTERVAL_MS, PULSE_SIZE, type PulseAnswer } from "../../../shared/machine-pulse.ts";
 import { memoryMailer } from "./auth/mail.ts";
 import { AUTH_LIMITS } from "./auth/index.ts";
 import { CSRF_HEADER } from "../../../shared/account-api.ts";
@@ -203,6 +204,30 @@ describe("hosted dashboard service", () => {
     expect(detail.report!.machine).toEqual(machine);
     expect(detail.sectionAt.machine).toBe(time - 5000);
     expect(detail.history).toEqual([]);
+  });
+
+  it("keeps a two-minute pulse per workspace and answers only the owner with samples after a time", async () => {
+    const cookie = await login();
+    const id = await claim(cookie);
+    expect(await readJson(page(`/v1/workspaces/${id}/pulse`, undefined, cookie))).toEqual({ v: 1, intervalMs: PULSE_INTERVAL_MS, samples: [] });
+    expect((await signed("/v1/report", id, { ...report(), machine }).send()).status).toBe(200);
+    expect((await readJson<PulseAnswer>(page(`/v1/workspaces/${id}/pulse`, undefined, cookie))).samples).toEqual([{ t: time, cpu: 25, mem: 50 }]);
+    time += 5000;
+    const samples = Array.from({ length: PULSE_SIZE + 5 }, (_, i) => ({ t: time - (PULSE_SIZE + 5 - i) * PULSE_INTERVAL_MS, cpu: i, mem: 40 }));
+    expect((await signed("/v1/report", id, { ...report(2), machine, pulse: [...samples, { t: time, cpu: 400, mem: -3 }, { t: "x", cpu: 1, mem: 1 }] }).send()).status).toBe(200);
+    const all = await readJson<PulseAnswer>(page(`/v1/workspaces/${id}/pulse`, undefined, cookie));
+    expect(all.samples).toHaveLength(PULSE_SIZE);
+    expect(all.samples.at(-1)).toEqual({ t: time, cpu: 100, mem: 0 });
+    expect(all.samples[0]!.t).toBe(samples[6]!.t);
+    const after = all.samples.at(-3)!.t;
+    expect((await readJson<PulseAnswer>(page(`/v1/workspaces/${id}/pulse?after=${after}`, undefined, cookie))).samples.map(s => s.t)).toEqual(all.samples.slice(-2).map(s => s.t));
+    time += 5000;
+    expect((await signed("/v1/report", id, { ...report(3), machine, pulse: [samples[0]] }).send()).status).toBe(200);
+    time += 5000;
+    expect((await signed("/v1/report", id, { ...report(4), machine }).send()).status).toBe(200);
+    expect((await readJson<PulseAnswer>(page(`/v1/workspaces/${id}/pulse?after=${time - 10_000}`, undefined, cookie))).samples).toEqual([]);
+    expect((await page(`/v1/workspaces/${id}/pulse`, undefined, await login("other@example.com"))).status).toBe(404);
+    expect((await page(`/v1/workspaces/${id}/pulse`)).status).toBe(401);
   });
 
   it("refuses bad signatures, stale times, replays, old sequences and oversized reports", async () => {

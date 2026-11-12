@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { BotReport, WorkspaceDetail } from "../../../../shared/dashboard-protocol";
+import type { BotReport, WorkspaceDetail, WorkspaceKind } from "../../../../shared/dashboard-protocol";
 import { api, FIXTURE } from "../lib/api";
 import { botMood, type BotMood } from "./mood";
 import { useSession } from "./session";
@@ -15,7 +15,7 @@ export interface PlanWindow {
 }
 
 /** a bot on any workspace, with where it lives and what it is doing right now */
-export interface BotRow { bot: BotReport; where: string; mood: BotMood }
+export interface BotRow { bot: BotReport; where: string; workspaceId: string; kind: WorkspaceKind; mood: BotMood }
 
 interface Answer { detail: WorkspaceDetail | null; error: string | null }
 
@@ -67,7 +67,7 @@ export function useAccountUsage(): { month: UsageMonth | null; sources: UsageSou
       if (!item.detail) continue;
       const { report, sectionAt } = item.detail;
       sources.push({ workspaceId: item.workspace.id, workspaceName: item.workspace.name, activity: report?.activity ?? null, bots: report?.bots ?? [] });
-      for (const bot of report?.bots ?? []) bots.push({ bot, where: item.workspace.name, mood: botMood(bot, { freshness: item.workspace.freshness, computer: report?.computers?.computers.find((c) => c.botId === bot.id)?.state }) });
+      for (const bot of report?.bots ?? []) bots.push({ bot, where: item.workspace.name, workspaceId: item.workspace.id, kind: item.workspace.kind, mood: botMood(bot, { freshness: item.workspace.freshness, computer: report?.computers?.computers.find((c) => c.botId === bot.id)?.state }) });
       for (const provider of report?.plans?.providers ?? []) for (const window of provider.windows) {
         const key = JSON.stringify([provider.id, window.label]);
         const at = sectionAt.plans ?? report?.at ?? 0;

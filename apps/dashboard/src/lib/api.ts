@@ -1,5 +1,6 @@
 import type { DeletionBlocker, DeleteAccountOptions } from "../../../../shared/billing-api";
 import type { CommandKind, CommandView, ConnectorsAnswer, WorkspaceDetail, WorkspaceSummary } from "../../../../shared/dashboard-protocol";
+import type { PulseAnswer } from "../../../../shared/machine-pulse";
 import type { AccountDevice, AccountProfile, AuthProviders, BillingOverview, CheckoutAnswer, CheckoutRequest, CloudDesktop, DesktopId, EmailCodeStart, Identity, IdentityProvider, MachineSpec, NotificationPrefs, PlanCatalog, Selection, SlackWake } from "../data/contracts";
 import { track } from "./analytics";
 import { accountFromWire, billingFromWire, cartFromQuote, cartFromSelection, catalogFromWire, cloudFromWire, providersFromWire } from "../data/live";
@@ -212,6 +213,7 @@ export const api = {
   connections: () => call<ConnectorsAnswer>("/v1/connectors"),
   workspaces: (signal?: AbortSignal) => call<{ workspaces: WorkspaceSummary[] }>("/v1/workspaces", { signal }),
   workspace: (id: string, signal?: AbortSignal) => call<WorkspaceDetail>(workspacePath(id), { signal }),
+  pulse: (id: string, after: number, signal?: AbortSignal) => call<PulseAnswer>(`${workspacePath(id)}/pulse?after=${Math.max(0, Math.floor(after))}`, { signal }),
   command: (id: string, kind: CommandKind, target: string) => send<{ command: CommandView }>(`${workspacePath(id)}/commands`, "POST", { kind, target }),
   rename: (id: string, name: string) => send(workspacePath(id), "PATCH", { name }),
   forget: (id: string) => send(workspacePath(id), "DELETE"),
