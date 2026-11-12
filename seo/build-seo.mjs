@@ -47,6 +47,12 @@ export function writeScenes(site, records) {
   return scenes;
 }
 
+// the og6 cards (art-src/og6) that take over a seo page or hub, by address
+function og6Cards(site) {
+  const list = JSON.parse(fs.readFileSync(path.join(seoDir, 'art', 'og6.json'), 'utf8'));
+  return new Map(list.filter((c) => c.seo && fs.existsSync(path.join(site, 'art', 'og6', `${c.id}.jpg`))).map((c) => [c.seo, { image: `/art/og6/${c.id}.jpg`, alt: c.alt }]));
+}
+
 export function buildSeo(ctx) {
   const { site, layout, write, SITE_URL, release: downloads } = ctx;
   const p = plan();
@@ -61,6 +67,7 @@ export function buildSeo(ctx) {
     r.sources = [...(r.sources || []).filter((s) => s.url !== f.source), { label: `composio, ${f.name} toolkit (catalog version ${f.version})`, url: f.source, checked: f.fetched_at }];
   }
   const scenes = writeScenes(site, records);
+  const og6 = og6Cards(site);
   const mode = config.cta.mode === 'auto' ? (downloads.released ? 'download' : 'waitlist') : config.cta.mode;
   // the waitlist link carries the page that sent people, and goes straight home when the waitlist is the home page
   const cta = { ...config.cta[mode], ...(mode === 'waitlist' ? { source: true, ...(ctx.waitlistHome ? { href: '/' } : {}) } : {}) };
@@ -82,12 +89,12 @@ export function buildSeo(ctx) {
       { '@context': 'https://schema.org', '@type': 'Article', headline: r.h1, description: r.description, image: `${SITE_URL}/art/seo/${sceneId(r.path)}.webp`,
         datePublished: r.state.live_at || r.created || updated, dateModified: updated, author: org, publisher: org, mainEntityOfPage: `${SITE_URL}${r.path}` }];
     const html = layout({ title: r.title, description: r.description, body, page: r.path.slice(1), at: r.path, section: r.hub, kind: `p-doc p-seo p-seo-${r.kind}`,
-      og: 'seo', ogImage: `/art/seo/og/${sceneId(r.path)}.jpg`, ogType: 'article', ogAlt: r.alt, scripts: r.kind === 'tool' ? [`tools/${r.tool}.js`] : [], styles: ['seo.css'], jsonld, noindex: !r.indexable });
+      og: 'seo', ogImage: og6.get(r.path)?.image || `/art/seo/og/${sceneId(r.path)}.jpg`, ogType: 'article', ogAlt: og6.get(r.path)?.alt || r.alt, scripts: r.kind === 'tool' ? [`tools/${r.tool}.js`] : [], styles: ['seo.css'], jsonld, noindex: !r.indexable });
     rendered.push({ r, html, related });
   }
   const hubPages = hubs.map((h) => {
     const { body, pages } = t.hubPage(h);
-    const html = layout({ title: h.title, description: h.description, body, page: h.id, at: h.at, section: h.id, kind: 'p-seo-hub', og: 'seo', ogImage: `/art/seo/og/${sceneId(h.at)}.jpg`, ogAlt: HUBS[h.id]?.alt || h.alt,
+    const html = layout({ title: h.title, description: h.description, body, page: h.id, at: h.at, section: h.id, kind: 'p-seo-hub', og: 'seo', ogImage: og6.get(h.at)?.image || `/art/seo/og/${sceneId(h.at)}.jpg`, ogAlt: og6.get(h.at)?.alt || HUBS[h.id]?.alt || h.alt,
       styles: ['seo.css'], jsonld: [crumb([['Dusk Bot', '/'], [h.nav[0].toUpperCase() + h.nav.slice(1), h.at]])], noindex: preview && !pages.some((o) => o.indexable) });
     return { h, html, pages };
   });

@@ -1,0 +1,94 @@
+[
+ {
+  "id": "404",
+  "core": [
+   "404"
+  ],
+  "alt": "you found the bots' secret room: pixel bots asleep on a hill at night under the moon, one ghost bot wide awake"
+ },
+ {
+  "id": "home",
+  "core": [
+   "home",
+   "waitlist"
+  ],
+  "alt": "meet dusk bot: a big purple cat bot and four small pixel bots on a hill under a blue pixel sky, chatting \"can you sort my inbox?\" \"done. three need you.\""
+ },
+ {
+  "id": "pricing",
+  "core": [
+   "pricing"
+  ],
+  "alt": "a whole ai team, free on your laptop: six pixel bots on a hill around a sign saying \"free. really.\""
+ },
+ {
+  "id": "download",
+  "core": [
+   "download"
+  ],
+  "alt": "your new coworkers are ready: five pixel bots popping up from the bottom of a blue pixel sky"
+ },
+ {
+  "id": "docs",
+  "core": [
+   "docs"
+  ],
+  "alt": "everything your bots can do: a blue pixel bot reading over a big open notebook, a yellow bot sitting on a stack of books, a magnifying glass"
+ },
+ {
+  "id": "about",
+  "core": [
+   "about"
+  ],
+  "alt": "who's behind the bots: four pixel bots sitting on a cloud, chatting \"who made this?\" \"we did most of it.\""
+ },
+ {
+  "id": "changelog",
+  "core": [
+   "changelog"
+  ],
+  "alt": "the bots learned new tricks: three pixel bots balanced on each other's heads while the others cheer"
+ },
+ {
+  "id": "contact",
+  "core": [
+   "contact"
+  ],
+  "alt": "a human reads every message: a blue pixel bot beside a pink desk phone, chatting \"hello? anyone there?\" \"yes. a real person.\""
+ },
+ {
+  "id": "integrations",
+  "seo": "/integrations",
+  "alt": "your bots already know your apps: the gmail, slack, notion, github, calendar and linear marks floating around a pink pixel bot with heart eyes"
+ },
+ {
+  "id": "alternatives",
+  "seo": "/alternatives",
+  "alt": "before you pick an ai agent: two pixel bots back to back at a signpost, looking different ways"
+ },
+ {
+  "id": "openclaw",
+  "seo": "/alternatives/openclaw",
+  "alt": "tried openclaw? read this first: a yellow star bot scouting with binoculars, two small bots behind it"
+ },
+ {
+  "id": "guides",
+  "seo": "/guides",
+  "alt": "ai agents, explained like a friend would: a blue pixel bot leading a line of bots towards a map"
+ },
+ {
+  "id": "use-cases",
+  "seo": "/use-cases",
+  "alt": "what would you hand off first? four pixel bots, each beside its job: a mailbox, a chart, a briefcase and a clock"
+ },
+ {
+  "id": "claude-code",
+  "seo": "/run-claude-code-24-7",
+  "alt": "claude code, even while you sleep: a closed laptop under the moon at sunset, one pixel bot still working beside it, one asleep"
+ },
+ {
+  "id": "gmail",
+  "seo": "/integrations/gmail",
+  "alt": "your inbox, sorted before you wake up: a purple cat bot standing on a big gmail tile, chatting \"anything urgent?\" \"two. drafts are ready.\""
+ }
+]

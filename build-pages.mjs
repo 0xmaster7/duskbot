@@ -250,7 +250,10 @@ const OG = {
   legal: 'the fine print: pixel bots looking over a white card, in front of snowy hills and green fields',
   404: 'this page wandered off: a pixel bot looking over a white card, in front of a calm sea with one small island',
 };
-const ogCard = (name) => (OG[name] && has(`art/og-${name}.jpg`) ? { wide: `/art/og-${name}.jpg`, alt: OG[name] } : { wide: '/art/og.jpg', alt: HOME_ALT });
+// the og6 cards (art-src/og6) take over the pages they name; the rest keep their original card
+const OG6 = JSON.parse(fs.readFileSync(path.join(here, 'seo', 'art', 'og6.json'), 'utf8'));
+const og6 = (name) => OG6.find((c) => c.core?.includes(name) && has(`art/og6/${c.id}.jpg`));
+const ogCard = (name) => { const c = og6(name); if (c) return { wide: `/art/og6/${c.id}.jpg`, alt: c.alt }; return OG[name] && has(`art/og-${name}.jpg`) ? { wide: `/art/og-${name}.jpg`, alt: OG[name] } : { wide: '/art/og.jpg', alt: og6('home')?.alt || HOME_ALT }; };
 const ld = (data) => `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`;
 
 // page: its name (home, download, docs ...); at: its address on the site; section: the nav item it sits under;
