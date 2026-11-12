@@ -959,6 +959,20 @@ function cloudMenuSublabels() {
   return entry && line ? { [entry.id]: line } : {};
 }
 const cloudColorDot = colorDotIcons(nativeImage);
+// macOS tints template images (a "Template" file name) for light and dark menus; elsewhere a black glyph would vanish on a
+// dark menu, so the popup keeps its colour dots there.
+const placeKindIcon = (() => {
+  if (process.platform !== "darwin") return null;
+  const made = new Map(), file = { computer: "Computer", cloud: "Cloud", server: "Server" };
+  return kind => {
+    if (!made.has(kind)) {
+      let image = null;
+      try { image = file[kind] ? nativeImage.createFromPath(path.join(__dirname, "resources", `place${file[kind]}Template.png`)) : null; } catch {}
+      made.set(kind, image && !image.isEmpty() ? image : null);
+    }
+    return made.get(kind);
+  };
+})();
 function cloudMenuOptions(source = "app_menu") {
   return { sublabels: cloudMenuSublabels(), iconFor: cloudColorDot, ...(cloudOffersAllowed() ? { onAddCloud: () => void workspaceMenuAction(() => openCloudAdd(source)) } : {}) };
 }
@@ -2862,6 +2876,7 @@ ipcMain.handle("workspaces:menu", workspaceOnly(async (_event, from) => {
       onConnect: () => void workspaceMenuAction(openWorkspaceSettings),
       onForget: (id) => void workspaceMenuAction(() => forgetEnvironment(id)),
       ...cloudMenuOptions(from === "howto" ? "app_howto" : "app_menu"),
+      kindIcon: placeKindIcon,
       ...(await placesMenuOptions({ homeOrigin: homeWindow.cloudOrigin(), cloud: cloudHomeEntry(), home: oneHome.away() || ownHome?.away() === true, platform: process.platform, port: SERVER_PORT })),
     }));
     await new Promise((resolve) => menu.popup({ window: mainWindow, callback: resolve }));
