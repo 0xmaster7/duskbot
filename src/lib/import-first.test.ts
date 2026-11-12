@@ -13,9 +13,9 @@ it("leads Settings in the first five days", () => {
   expect(importFirst({ completedAt: "", lastOpenAt: null, bots: 0, now }), "not onboarded yet counts as new").toBe(true);
 });
 
-it("leads Settings again after two weeks away", () => {
-  expect(importFirst({ completedAt: ago(60), lastOpenAt: now - 15 * DAY, bots: 2, now })).toBe(true);
-  expect(importFirst({ completedAt: ago(60), lastOpenAt: now - 3 * DAY, bots: 2, now })).toBe(false);
+it("leads Settings again after three days away", () => {
+  expect(importFirst({ completedAt: ago(60), lastOpenAt: now - 3 * DAY, bots: 2, now })).toBe(true);
+  expect(importFirst({ completedAt: ago(60), lastOpenAt: now - 2 * DAY, bots: 2, now })).toBe(false);
 });
 
 it("stays at the bottom for someone who already has plenty of bots", () => {
