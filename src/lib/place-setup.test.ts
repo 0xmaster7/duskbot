@@ -38,6 +38,11 @@ describe("connecting by address", () => {
     expect(pairingLink("bots.example.com", "abcd 2345 efgh")).toEqual({ link: "https://bots.example.com/pair#code=ABCD-2345-EFGH" });
     expect(pairingLink("https://box.tail1234.ts.net/", "")).toEqual({ link: "https://box.tail1234.ts.net" });
     expect(pairingLink("http://127.0.0.1:8790", "ABCD-2345-EFGH")).toEqual({ link: "http://127.0.0.1:8790/pair#code=ABCD-2345-EFGH" });
+    // an SSH tunnel typed without its scheme is plain http, not https
+    expect(pairingLink("127.0.0.1:8790", "ABCD-2345-EFGH")).toEqual({ link: "http://127.0.0.1:8790/pair#code=ABCD-2345-EFGH" });
+    expect(pairingLink("localhost:8790", "")).toEqual({ link: "http://localhost:8790" });
+    expect(pairingLink("box.tail1234.ts.net", "")).toEqual({ link: "https://box.tail1234.ts.net" });
+    expect(pairingLink("abcd.trycloudflare.com", "")).toEqual({ link: "https://abcd.trycloudflare.com" });
     expect(pairingLink("https://c-12.example.net/pair#code=ABCD-2345-EFGH", "")).toEqual({ link: "https://c-12.example.net/pair#code=ABCD-2345-EFGH" });
   });
 

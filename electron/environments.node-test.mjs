@@ -90,6 +90,11 @@ test("hosted workspace input accepts addresses and keeps valid codes only in the
   assert.ok(parsed.url.includes("#code="));
   assert.ok(!parsed.origin.includes("ABCD"));
   assert.ok(env.parseHostedWorkspaceLink("http://127.0.0.1:19999"));
+  // an SSH tunnel typed without its scheme is plain http
+  assert.equal(env.parseHostedWorkspaceLink("127.0.0.1:8790")?.origin, "http://127.0.0.1:8790");
+  assert.equal(env.parseHostedWorkspaceLink("localhost:8790/pair#code=ABCD-EFGH-JKLM")?.url, "http://localhost:8790/pair#code=ABCD-EFGH-JKLM");
+  assert.equal(env.parseHostedWorkspaceLink("box.tail1234.ts.net")?.origin, "https://box.tail1234.ts.net");
+  assert.equal(env.parseHostedWorkspaceLink("localhost.evil.example")?.origin, "https://localhost.evil.example");
   for (const bad of ["", null, "ABCD-EFGH-JKLM", "https:example.com", "http://cloud.example.com", "https://a.example/other", "https://a.example/?code=SECRET", "https://a.example/pair#code=%", "https://a.example/pair#code=", "https://a.example/pair#code=%20", "https://user:password@a.example", "https://a.example\\@b.example", "javascript:alert(1)"]) {
     assert.equal(env.parseHostedWorkspaceLink(bad), null, String(bad));
   }

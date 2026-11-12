@@ -37,7 +37,9 @@ export function pairingLink(address: string, code: string): { link: string } | {
   if (!typed) return { error: "address" };
   if (/#code=/.test(typed)) return { link: typed };
   let url: URL;
-  try { url = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(typed) ? typed : `https://${typed}`); } catch { return { error: "address" }; }
+  // a bare loopback address is an SSH tunnel, which speaks plain http
+  const scheme = /^(?:localhost|127\.0\.0\.1|\[::1\])(?:[:/]|$)/i.test(typed) ? "http" : "https";
+  try { url = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(typed) ? typed : `${scheme}://${typed}`); } catch { return { error: "address" }; }
   const loopback = LOOPBACK.has(url.hostname);
   if (url.username || url.password || url.search || !(url.protocol === "https:" || (url.protocol === "http:" && loopback))) return { error: "address" };
   if (!loopback && !url.hostname.includes(".")) return { error: "address" };

@@ -57,7 +57,9 @@ function parseHostedWorkspaceLink(input) {
   const text = input.trim();
   if (!text || /[\s\\]/.test(text)) return null;
   try {
-    const url = new URL(text.includes("://") ? text : `https://${text}`);
+    // a bare loopback address is an SSH tunnel, which speaks plain http
+    const scheme = /^(?:localhost|127\.0\.0\.1|\[::1\])(?:[:/]|$)/i.test(text) ? "http" : "https";
+    const url = new URL(text.includes("://") ? text : `${scheme}://${text}`);
     const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
     if (url.protocol !== "https:" && !(url.protocol === "http:" && loopback)) return null;
     if (url.username || url.password || url.search || !["/", "/pair", "/pair/"].includes(url.pathname)) return null;
