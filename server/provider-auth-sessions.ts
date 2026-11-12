@@ -18,9 +18,21 @@ export class ProviderAuthSessions {
   private readonly flows = new Map<string, Flow>();
   /** A sign-in to this AI finished: whatever waited on it being signed out may use it again. */
   private readonly signedIn: (instanceId: string) => void;
+  /** How a sign-in went, for usage signals; `error` is read only to pick a reason code. */
+  private readonly outcome: (instanceId: string, outcome: "started" | "succeeded" | "failed" | "expired" | "cancelled", error?: unknown) => void;
+  private readonly told = new Set<string>();
 
-  constructor(options: { signedIn?: (instanceId: string) => void } = {}) {
+  constructor(options: { signedIn?: (instanceId: string) => void; outcome?: ProviderAuthSessions["outcome"] } = {}) {
     this.signedIn = options.signedIn ?? (() => {});
+    this.outcome = options.outcome ?? (() => {});
+  }
+
+  /** Each flow's end is told once, however often its status is read. */
+  private tell(instanceId: string, flowId: string | null, outcome: Parameters<ProviderAuthSessions["outcome"]>[1], error?: unknown): void {
+    const key = `${instanceId}|${flowId ?? ""}|${outcome === "started" ? "start" : "end"}`;
+    if (flowId && this.told.has(key)) return;
+    if (flowId) { this.told.add(key); if (this.told.size > 500) this.told.delete(this.told.values().next().value!); }
+    try { this.outcome(instanceId, outcome, error); } catch {}
   }
 
   /** A sign-in under way, until it expires: one whose provider call never returns stops counting then too. */
@@ -48,13 +60,16 @@ export class ProviderAuthSessions {
       flow.flowId = result.flowId;
       const expiry = Date.parse(result.expiresAt ?? "");
       if (Number.isFinite(expiry)) flow.expiresAt = expiry;
+      if (!resuming) this.tell(instance.instanceId, result.flowId, "started");
       if (result.phase === "succeeded") {
         this.flows.delete(instance.instanceId);
         this.signedIn(instance.instanceId);
+        this.tell(instance.instanceId, result.flowId, "succeeded");
       }
       return result;
     } catch (error) {
       if ((!resuming || flow.revoked) && this.flows.get(instance.instanceId) === flow) this.flows.delete(instance.instanceId);
+      this.tell(instance.instanceId, null, "failed", error);
       throw error;
     } finally {
       flow.busy = false;
@@ -78,6 +93,7 @@ export class ProviderAuthSessions {
     if (flow.revoked) throw failure("This sign-in session ended.", 404);
     if (status.phase !== "waiting") flow.expiresAt = 0;
     if (status.phase === "succeeded") this.signedIn(instanceId);
+    if (status.phase !== "waiting") this.tell(instanceId, flowId, status.phase, (status as { error?: unknown }).error);
     return status;
   }
 
@@ -86,9 +102,10 @@ export class ProviderAuthSessions {
     if (!flow.instance.completeAuthentication) throw failure("This provider does not use a callback URL.", 400);
     flow.busy = true;
     try {
-      await flow.instance.completeAuthentication(flowId, callbackUrl);
+      try { await flow.instance.completeAuthentication(flowId, callbackUrl); } catch (error) { this.tell(instanceId, flowId, "failed", error); throw error; }
       if (this.flows.get(instanceId) === flow) this.flows.delete(instanceId);
       this.signedIn(instanceId);
+      this.tell(instanceId, flowId, "succeeded");
     } finally { flow.busy = false; }
   }
 
@@ -96,7 +113,7 @@ export class ProviderAuthSessions {
     const flow = this.owned(instanceId, owner, flowId);
     flow.busy = true;
     try { await flow.instance.cancelAuthentication?.(); }
-    finally { flow.busy = false; flow.expiresAt = 0; }
+    finally { flow.busy = false; flow.expiresAt = 0; this.tell(instanceId, flowId, "cancelled"); }
   }
 
   /** Never pulls a login another admin is completing, and no one may start one while the credential is being removed. */

@@ -1,5 +1,7 @@
 // The product analytics catalogue: which events exist, who may send them, and the only properties each may carry.
 // Events hold counts, states, platforms and versions; never message content, prompts, files, emails, IPs or tokens.
+import { cleanSignal, isSignalName } from "../../../../shared/product-signals.ts";
+
 export const DAY_MS = 86_400_000;
 /** raw events live this long (a TTL index in MongoDB); the daily counts in analytics_daily are kept */
 export const RAW_RETENTION_DAYS = 400;
@@ -92,6 +94,9 @@ export function cleanProps(name: EventName, input: unknown): Props {
   const spec: EventSpec = EVENTS[name];
   const out: Props = {};
   if (!input || typeof input !== "object" || Array.isArray(input)) return out;
+  // a named product signal keeps exactly its catalogue's keys, or only its name
+  const signal = name === "app_action" ? (input as Record<string, unknown>).name : undefined;
+  if (isSignalName(signal)) return { name: signal, ...(cleanSignal(signal, input, "app") ?? {}) };
   for (const [key, check] of Object.entries(spec.props)) {
     const value = (input as Record<string, unknown>)[key];
     if (value !== undefined && check(value)) out[key] = value;

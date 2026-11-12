@@ -1,3 +1,6 @@
+import { cleanSignal, localeOf, screenBucket } from "../../shared/product-signals";
+import { activeLocale } from "./i18n";
+import { readSkinChoice, resolveSkin } from "./skins";
 export const APP_FEATURES = ["bot_created", "bot_edited", "bot_deleted", "routine_created", "routine_edited", "routine_deleted", "routine_ran", "room_created", "computer_used",
   "voice_used", "call_started", "file_uploaded", "app_connected", "cloud_opened", "chat_opened", "memory_edited", "skill_added", "webhook_created", "phone_paired",
   "search_used", "settings_opened", "settings_changed", "reaction_added", "team_imported"] as const;
@@ -220,6 +223,8 @@ export function configure(next: Options): void {
     if ((origin || next.relay) && !opened) {
       opened = true;
       track("app_open", { kind: next.kind, platform: next.platform, appVersion: options.version });
+      const env = environment(next.platform, typeof window === "undefined" ? undefined : window.ogb?.arch);
+      if (env) action("env", env);
     }
     schedule();
   } catch {}
@@ -273,4 +278,17 @@ export function noteRoutineRun(id: string, status: string): void {
   routineRuns.add(id);
   if (routineRuns.size > 200) routineRuns.delete(routineRuns.values().next().value!);
   feature("routine_ran");
+}
+
+/** the setup this app runs in, as words and counts only (shared/product-signals.ts env) */
+export function environment(platform: Platform, arch?: string): Record<string, string | number> | null {
+  try {
+    const now = new Date();
+    const scheme = typeof document === "undefined" ? "" : getComputedStyle(document.documentElement).colorScheme;
+    const dark = scheme.includes("dark") || (!scheme && typeof matchMedia === "function" && matchMedia("(prefers-color-scheme: dark)").matches);
+    const notifications = typeof Notification === "undefined" ? "unsupported" : Notification.permission;
+    const props = { os: platform, arch: arch === "x64" || arch === "arm64" ? arch : "other", locale: localeOf(activeLocale()), screen: screenBucket(typeof window === "undefined" ? 0 : window.innerWidth),
+      theme: dark ? "dark" : "light", skin: resolveSkin(readSkinChoice()).replace(/-/g, "_"), notifications, hour: now.getHours(), weekday: now.getDay() };
+    return cleanSignal("env", props, "app") as Record<string, string | number> | null;
+  } catch { return null; }
 }

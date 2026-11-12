@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -10,10 +11,14 @@ export interface UsageSignalsChoice { enabled: boolean; summaries: boolean }
 export function createUsageSignalsSwitch(dataDir: string, env: NodeJS.ProcessEnv = process.env) {
   const file = join(dataDir, "usage-signals.json");
   let choice: UsageSignalsChoice = { enabled: true, summaries: true };
+  // the salt for hashing bot, chat and routine ids in usage records; it never leaves this file
+  let salt = "";
   try {
-    const saved = JSON.parse(readFileSync(file, "utf8")) as Partial<UsageSignalsChoice>;
+    const saved = JSON.parse(readFileSync(file, "utf8")) as Partial<UsageSignalsChoice> & { salt?: unknown };
     choice = { enabled: saved.enabled !== false, summaries: saved.summaries !== false };
+    if (typeof saved.salt === "string" && /^[A-Za-z0-9_-]{22,}$/.test(saved.salt)) salt = saved.salt;
   } catch {}
+  const write = () => writeFileAtomic(file, JSON.stringify({ ...choice, salt }), { mode: 0o600 });
   const enabled = () => choice.enabled && env.DUSK_USAGE_SIGNALS !== "off";
   return {
     enabled,
@@ -21,7 +26,11 @@ export function createUsageSignalsSwitch(dataDir: string, env: NodeJS.ProcessEnv
     choice: (): UsageSignalsChoice => ({ enabled: enabled(), summaries: enabled() && choice.summaries }),
     set(next: Partial<UsageSignalsChoice>) {
       choice = { enabled: next.enabled ?? choice.enabled, summaries: next.summaries ?? choice.summaries };
-      writeFileAtomic(file, JSON.stringify(choice), { mode: 0o600 });
+      write();
+    },
+    salt(): string {
+      if (!salt) { salt = randomBytes(18).toString("base64url"); try { write(); } catch {} }
+      return salt;
     },
   };
 }

@@ -9,6 +9,9 @@ import type { StoredWorkspace } from "../store.ts";
 import type { Analytics } from "../analytics/index.ts";
 import type { Usage } from "../analytics/usage.ts";
 import { summarize as summarizeUsage, type AdoptionInput } from "../analytics/usage-summary.ts";
+import { moreFocus, moreOf } from "../analytics/usage-more.ts";
+/** the app and account events the deeper usage questions read */
+const MORE_EVENTS = ["app_action", "app_open", "app_close", "app_error", "app_feature", "onboarding_step", "onboarding_done", "page_view", "site_view", "cloud_state"] as const;
 import { EVENTS, EVENT_NAMES, isEventName } from "../analytics/events.ts";
 import type { StoredEvent } from "../analytics/sink.ts";
 import { brevoChecker, waitlistCsv, type WaitlistSource } from "./waitlist.ts";
@@ -111,12 +114,21 @@ export function createAdmin(options: AdminOptions) {
     const days = dayRange(to, span), previousDays = dayRange(Date.parse(`${days[0]}T00:00:00Z`) - 1, span);
     const start = Date.parse(`${days[0]}T00:00:00Z`), end = Date.parse(`${days.at(-1)}T00:00:00Z`) + DAY;
     const store = options.usage.store;
-    const [daily, previousDaily, people, previousPeople, snapshots, frustrations, digests, recentPeople] = await Promise.all([
+    const [daily, previousDaily, people, previousPeople, snapshots, frustrations, digests, recentPeople, signals, spans, events] = await Promise.all([
       store.daily(days[0]!, days.at(-1)!), store.daily(previousDays[0]!, previousDays.at(-1)!), store.people(days[0]!, days.at(-1)!),
       store.people(previousDays[0]!, previousDays.at(-1)!), store.snapshots(), store.records("frustration", start, end, 500), store.records("digest", start, end, 500),
-      store.people(dayKey(now() - 90 * DAY), dayKey(now())),
+      store.people(dayKey(now() - 90 * DAY), dayKey(now())), store.records("signal", start, end, 50_000), store.routines(),
+      analytics.sink.scan(start, end, MORE_EVENTS),
     ]);
-    return summarizeUsage({ days, daily, previousDaily, people, previousPeople: new Set(previousPeople.filter(row => row.turns > 0).map(row => row.accountId)).size, snapshots, frustrations, digests, adoption: adoption(snapshots, recentPeople) });
+    const answer = summarizeUsage({ days, daily, previousDaily, people, previousPeople: new Set(previousPeople.filter(row => row.turns > 0).map(row => row.accountId)).size, snapshots, frustrations, digests, adoption: adoption(snapshots, recentPeople) });
+    const signIns = signals.filter(record => (record.data as { name: string }).name === "engine_sign_in")
+      .map(record => ({ id: record.id, name: "engine_sign_in", at: record.at, accountId: record.accountId, props: (record.data as { props: StoredEvent["props"] }).props }));
+    const billingState = billing.store.state;
+    const more = moreOf({ days, daily: new Map(daily.map(row => [row.day, row.c])), people, snapshots, routines: spans, events: [...events, ...signIns],
+      billing: { checkouts: billingState.checkouts, subscriptions: billingState.subscriptions, feedback: billingState.feedback ?? [] },
+      accounts: directory().accounts, from: start, to: end, now: now() });
+    const focus = [...answer.focus, ...moreFocus(more)].sort((a, b) => b.weight - a.weight).slice(0, 5);
+    return { ...answer, focus, more };
   }
   function adoption(snapshots: Awaited<ReturnType<Usage["store"]["snapshots"]>>, recent: Awaited<ReturnType<Usage["store"]["people"]>>): AdoptionInput {
     const { accounts, sessions } = directory();
