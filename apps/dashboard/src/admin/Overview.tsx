@@ -16,6 +16,7 @@ import { PulseGrid } from "./Pulse";
 import { UsageSection } from "./Usage";
 import { ChartCard, ConversionList, LiveMap, LtvList, MainChart, PeakHours, SERIES, StackedBars, channelStacks, type ChartShow, type Insights } from "./charts";
 import { FunnelChart } from "./FunnelChart";
+import { RevenueStrip } from "./RevenuePage";
 import { Failed, Loading, n } from "./ui";
 
 const Globe = lazy(() => import("./globe/Globe"));
@@ -300,6 +301,8 @@ export function OverviewPage() {
               </div>
             </div>
           </section>
+
+          <div className="mt-4"><RevenueStrip days={Math.ceil((range.to - range.from) / 86_400_000)} /></div>
 
           <div className="mt-4 grid grid-cols-2 gap-4 max-lg:grid-cols-1">
             <RankCard title="where they came from" tabs={[{ id: "channel", label: "channel", icon: <Link2 {...I} /> }, { id: "referrer", label: "referrer" }, { id: "campaign", label: "campaign", icon: <Tag {...I} /> }, { id: "keyword", label: "keyword", icon: <Search {...I} /> }, { id: "ref", label: "ref" }]}

@@ -9,6 +9,8 @@ import { AdminHeader, Failed, Loading, n, SearchBox, stamp } from "./ui";
 import { AnimatePresence } from "../ui/motion";
 import { Avatar, CHANNEL, Chip, RangePicker, duration, personName, rangeOf, usd, where, type Range } from "./kit";
 import { Platform, deviceEmoji, flagOf } from "./person";
+import { BillingCard } from "./PersonBilling";
+import type { PersonBilling } from "./revenue-types";
 
 interface Person {
   id: string; seed: string; account: { id: string; email: string; name: string | null } | null; customer: boolean; signedUpAt: number | null; paidAt: number | null;
@@ -16,10 +18,10 @@ interface Person {
   device: string | null; os: string | null; browser: string | null; country: string | null; city: string | null; lastPage: string | null;
 }
 type StepKind = "view" | "goal" | "paid" | "refund" | "checkout" | "signup" | "signin" | "onboarding" | "plan" | "paired" | "install" | "app" | "reply" | "cloud" | "upsell" | "notice"
-  | "error" | "feedback" | "returned";
+  | "error" | "feedback" | "returned" | "billing";
 interface Step {
   at: number; kind: StepKind; surface: "site" | "account" | "app" | "server"; name: string; path: string | null; detail: string | null; amountCents: number | null; gapMs?: number;
-  ms?: number; scroll?: number;
+  ms?: number; scroll?: number; emoji?: string;
 }
 interface Session { start: number; end: number; ms: number; surface: Step["surface"]; source: string | null; channel: string | null; campaign: string | null; referrer: string | null; steps: Step[] }
 interface Profile {
@@ -28,6 +30,7 @@ interface Profile {
   firstSource: { at: number; source: string; channel: string; campaign: string | null; referrer: string | null; ref: string | null } | null;
   stats: { firstSeen: number | null; visits: number; pageviews: number; spentCents: number; refundedCents: number; payments: number; firstPaidAt: number | null; timeToPayMs: number | null };
   sessions: Session[];
+  billing: PersonBilling | null;
 }
 
 const FILTERS = [{ value: "all", label: "everyone" }, { value: "signups", label: "signed up" }, { value: "customers", label: "customers" }] as const;
@@ -86,7 +89,8 @@ export function PeoplePage({ tabs }: { tabs?: ReactNode }) {
 }
 
 const ICON: Record<StepKind, string> = { view: "📄", goal: "🎯", paid: "💰", refund: "↩️", checkout: "🛒", signup: "🧑‍💻", signin: "🔑", onboarding: "🧭", plan: "🧾", paired: "📲",
-  install: "💾", app: "🖥️", reply: "🤖", cloud: "☁️", upsell: "✨", notice: "💬", error: "⚠️", feedback: "⭐", returned: "🔁" };
+  install: "💾", app: "🖥️", reply: "🤖", cloud: "☁️", upsell: "✨", notice: "💬", error: "⚠️", feedback: "⭐", returned: "🔁", billing: "🧾" };
+const PLAN_CHANGE = new Set(["upgraded", "downgraded"]);
 const CHANNEL_ICON: Record<string, string> = { direct: "🔗", search: "🔎", social: "💬", ai: "🤖", referral: "🤝", email: "✉️", paid: "📣" };
 const day = (t: number) => new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", ...(new Date(t).getFullYear() !== new Date().getFullYear() ? { year: "numeric" } : {}) }).toLowerCase();
 const clock = (t: number) => new Date(t).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase();
@@ -127,7 +131,15 @@ function StepText({ step }: { step: Step }) {
     case "notice": return <Outcome did={step.name === "notice_ignored" ? null : NOTICE_DID[step.name] ?? step.name} what={<>the {step.detail ?? "corner"} notice</>} ms={step.ms} />;
     case "goal": return <><span className="font-medium text-accent-ink">{step.name}</span>{where}{detail}{step.ms !== undefined && <span className="text-ink-4"> · after <Time ms={step.ms} /></span>}</>;
     case "onboarding": return <>{step.name}{step.ms !== undefined && <span className="text-ink-4"> · <Time ms={step.ms} /> on the step before</span>}</>;
-    case "paid": case "refund": return <>{step.name}{amount}{detail}</>;
+    case "paid": return <>{step.name}{amount}{detail}</>;
+    case "refund": return <>{step.name}{step.amountCents !== null && <span className="font-mono text-ink-3 num"> {usd(step.amountCents)}</span>}{detail}</>;
+    case "billing": {
+      if (PLAN_CHANGE.has(step.name)) {
+        const delta = step.amountCents;
+        return <>{step.name}{step.detail && <> to <span className="font-medium">{step.detail}</span></>}{delta !== null && delta !== 0 && <span className={cx("font-mono num", delta > 0 ? "font-medium text-money" : "text-ink-3")}> {delta > 0 ? "+" : "-"}{usd(Math.abs(delta))}<span className="text-12 text-ink-4">/mo</span></span>}</>;
+      }
+      return <>{step.name}{step.amountCents !== null && <span className="font-mono text-ink-3 num"> {usd(Math.abs(step.amountCents))}</span>}{detail}</>;
+    }
     case "checkout": return <>{step.name}{amount}{detail}</>;
     case "returned": return <>returned{step.gapMs ? <span className="text-ink-4"> after {duration(step.gapMs)}</span> : null}</>;
     case "error": return <><span className="text-bad">{step.name}</span>{where}{detail}</>;
@@ -181,6 +193,7 @@ function ProfileDialog({ id, onClose }: { id: string; onClose(): void }) {
               note={data.stats.refundedCents ? `after ${usd(data.stats.refundedCents)} refunded` : data.stats.payments ? `${n(data.stats.payments)} payment${data.stats.payments === 1 ? "" : "s"}` : "nothing yet"} />
             <Stat label="time to first payment" value={data.stats.timeToPayMs !== null ? duration(data.stats.timeToPayMs) : "-"} note={data.stats.firstPaidAt ? `paid ${day(data.stats.firstPaidAt)}` : "not paid yet"} />
           </div>
+          {data.billing && <BillingCard billing={data.billing} />}
           <div className="mt-5 max-h-[52dvh] overflow-y-auto pe-1">
             {data.sessions.map((session) => {
               const label = sessionLabel(session);
@@ -196,7 +209,7 @@ function ProfileDialog({ id, onClose }: { id: string; onClose(): void }) {
                     {session.steps.map((step, i) => (
                       <li key={`${step.at}-${i}`} className="grid grid-cols-[64px_22px_minmax(0,1fr)] items-baseline gap-2 rounded-[10px] py-1.5 text-13">
                         <span className="font-mono text-12 text-ink-4 num">{clock(step.at)}</span>
-                        <span aria-hidden className="text-center">{step.kind === "app" && (step.detail === "ios" || step.detail === "android") ? "📱" : ICON[step.kind]}</span>
+                        <span aria-hidden className="text-center">{step.emoji ?? (step.kind === "app" && (step.detail === "ios" || step.detail === "android") ? "📱" : ICON[step.kind] ?? "•")}</span>
                         <span className="min-w-0 break-words text-ink"><StepText step={step} /></span>
                       </li>
                     ))}
