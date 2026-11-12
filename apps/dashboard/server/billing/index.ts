@@ -18,7 +18,7 @@ import type { Catalog } from "../../../../shared/billing-api.ts";
 import { createBillingStore } from "./store.ts";
 import { BillingError, createBillingService } from "./service.ts";
 import type { BillingNotice, OperatorGrant } from "./service.ts";
-import { BILLING_CONFIG, dodoProducts } from "./plans.ts";
+import { BILLING_CONFIG, dodoProducts, managedRegionConfig } from "./plans.ts";
 import { createFakeBillingProvider } from "./fake-provider.ts";
 import { createDodoProvider } from "./dodo-provider.ts";
 import { BillingProviderError } from "./types.ts";
@@ -70,7 +70,7 @@ export function createBilling(options: BillingOptions) {
   } else provider = fake ?? { name: "dodo", createCheckout: unavailable, portal: unavailable, verifyWebhook: unavailable, cancelAtPeriodEnd: unavailable, cancelNow: unavailable, refundPayment: unavailable, changePlan: unavailable, invoiceUrl: unavailable, invoicePdf: unavailable };
   let products: Record<string, string>;
   try { products = dodoProducts(env); } catch { throw new Error("Invalid DUSK_DODO_PRODUCTS."); }
-  const config = { ...BILLING_CONFIG, products };
+  let config = { ...BILLING_CONFIG, products };
   const sealKey = env.DUSK_CLOUD_SEAL_KEY ? parseSealKey(env.DUSK_CLOUD_SEAL_KEY) : null;
   const image = cloudProvider === "hetzner" ? required("DUSK_CLOUD_HOME_IMAGE") : env.DUSK_CLOUD_HOME_IMAGE ?? "ghcr.io/duskbot/duskbot-cloud-home:latest";
   const disabled: CloudProvider = { name: "fake", find: unavailable, create: unavailable, status: unavailable, power: unavailable, resize: unavailable, destroy: unavailable };
@@ -87,6 +87,9 @@ export function createBilling(options: BillingOptions) {
   let billingStore: ReturnType<typeof createBillingStore> | null = null;
   const managed = managedCloudFromEnv(env, { dataDir: options.dataDir, publicUrl: url.origin, loopback, sealKey, now, fetch: options.fetch,
     subscriptions: () => billingStore?.state.subscriptions ?? [], mail: options.mail, alert: options.alert });
+  // the region list is only what can really run: the managed backend's one region unless a regional provider is attached
+  const allManaged = !!managed && (["shared_s", "shared_m", "dedicated"] as const).every(kind => managed.kinds.includes(kind));
+  if (allManaged || (cloudProvider === "off" && poolDriver === "off")) config = managedRegionConfig(config);
   const realHome = createHomeClient({ fetch: options.fetch, now });
   const fakeHome: HomeClient = { healthy: async () => true, pair: async () => {
     const alphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ", bytes = randomBytes(12);

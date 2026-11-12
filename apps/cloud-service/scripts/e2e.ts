@@ -146,7 +146,7 @@ async function json(response: Response) { const text = await response.text(); tr
 try {
   mark("start");
   // 1. paid: a fake checkout completes and its signed webhooks activate the cloud
-  const answer = await billing.service.checkout(account, { kind: "cart", cart: { interval: "month", license: { kind: "none" }, desktop: { kind: "shared_s", region: "fsn1" } } } as never, { source: "e2e" } as never) as { cloudId: string };
+  const answer = await billing.service.checkout(account, { kind: "cart", cart: { interval: "month", license: { kind: "none" }, desktop: { kind: "shared_s", region: "us-west-2" } } } as never, { source: "e2e" } as never) as { cloudId: string };
   const checkout = (JSON.parse(readFileSync(join(dataDir, "billing.json"), "utf8")) as { checkouts: Array<{ providerSessionId: string | null; cloudId: string | null }> }).checkouts.at(-1)!;
   for (const delivery of billing.fake!.complete(checkout.providerSessionId!)) {
     const res = await fetch(`${hookBase}/v1/billing/webhooks/dodo`, { method: "POST", headers: { "content-type": "application/json", ...delivery.headers }, body: new Uint8Array(delivery.body) });

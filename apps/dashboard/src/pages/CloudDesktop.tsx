@@ -43,7 +43,7 @@ function Empty() {
             ))}
           </ul>
         ) : <Skeleton className="h-32" />}
-        {catalog && <p className="mt-4 text-13 text-ink-3">regions: {catalog.regions.map((r) => r.city).join(", ")}. every size has its own sandbox, network and disk.</p>}
+        {catalog && <p className="mt-4 text-13 text-ink-3">{catalog.regions.length === 1 ? "region" : "regions"}: {catalog.regions.map((r) => r.city).join(", ")}. every size has its own sandbox, network and disk.</p>}
       </Card>
     </div>
   );

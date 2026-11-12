@@ -12,7 +12,7 @@ import { memoryMailer } from "../auth/mail.ts";
 import { CSRF_HEADER } from "../../../../shared/account-api.ts";
 import { createBilling } from "./index.ts";
 import type { BillingOptions } from "./index.ts";
-import { BILLING_CONFIG } from "./plans.ts";
+import { BILLING_CONFIG, managedRegionConfig } from "./plans.ts";
 import { quote } from "./pricing.ts";
 import type { BillingState } from "./store.ts";
 
@@ -256,7 +256,10 @@ it("keeps billing off outside loopback, checks startup configuration, and never 
   const billing = createBilling(options()); cleanup.push(() => billing.close());
   const origin = await listen(createServer(async (req, res) => { if (!await billing.handle(req, res, new URL(req.url!, "https://dashboard.example.test"))) { res.writeHead(404); res.end(); } }));
   expect((await fetch(`${origin}/v1/billing/catalog`)).status).toBe(200);
-  expect((await fetch(`${origin}/v1/billing/quote`, { method: "POST", body: JSON.stringify({ cart: bundle("starter") }) })).status).toBe(200);
+  // no regional provider attached: only the managed backend's real region is on offer
+  expect((await (await fetch(`${origin}/v1/billing/catalog`)).json()).regions.map((region: { id: string }) => region.id)).toEqual(["us-west-2"]);
+  expect((await fetch(`${origin}/v1/billing/quote`, { method: "POST", body: JSON.stringify({ cart: bundle("starter") }) })).status).toBe(400);
+  expect((await fetch(`${origin}/v1/billing/quote`, { method: "POST", body: JSON.stringify({ cart: { ...bundle("starter"), desktop: { kind: "shared_s", region: "us-west-2" } } }) })).status).toBe(200);
   expect((await fetch(`${origin}/v1/billing/overview`)).status).toBe(503);
   const env = { DUSK_BILLING_PROVIDER: "dodo", DUSK_DODO_API_KEY: "fixture-key", DUSK_DODO_WEBHOOK_SECRET: `whsec_${Buffer.alloc(32).toString("base64")}`, DUSK_DODO_PRODUCTS: JSON.stringify({ "license_solo:month": "fixture-product" }) };
   for (const key of ["DUSK_DODO_API_KEY", "DUSK_DODO_WEBHOOK_SECRET", "DUSK_DODO_PRODUCTS"] as const) expect(() => createBilling(options({ env: { ...env, [key]: undefined } }))).toThrow(key);
@@ -269,7 +272,7 @@ it("keeps billing off outside loopback, checks startup configuration, and never 
     expect(() => createBilling(options({ env: cloudEnv }))).toThrow(key);
   }
   const noClouds = createBilling(options({ env: { DUSK_BILLING_PROVIDER: "fake" } })); cleanup.push(() => noClouds.close());
-  const checkout = await noClouds.service.checkout({ id: "a", email: "a@example.test" }, { kind: "cart", cart: { ...BILLING_CONFIG.bundles[1].cart, interval: "month" } });
+  const checkout = await noClouds.service.checkout({ id: "a", email: "a@example.test" }, { kind: "cart", cart: { ...managedRegionConfig(BILLING_CONFIG).bundles[1].cart, interval: "month" } });
   for (const delivery of noClouds.fake!.complete([...noClouds.fake!.sessions.keys()][0])) noClouds.service.handleWebhook(delivery.headers, delivery.body);
   await noClouds.clouds.reconcile(); expect(noClouds.clouds.get(checkout.cloudId!)!).toMatchObject({ status: "provisioning", error: "dusk cloud is not configured." });
 });

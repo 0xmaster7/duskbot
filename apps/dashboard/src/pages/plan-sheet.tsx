@@ -158,11 +158,15 @@ export function PlanSheet({ start, source, work = false, onClose }: { source: Ch
         </label>
       )}
       <div className="mt-6">
-        <Field label="region" htmlFor="plan-region" hint="pick the one closest to you. you can move it later.">
-          <Select id="plan-region" value={region} onChange={(e) => setRegion(e.target.value)}>
-            {regions.map((r) => <option key={r.id} value={r.id}>{r.city}, {r.name}</option>)}
-          </Select>
-        </Field>
+        {regions.length === 1 ? (
+          <p className="text-13 text-ink-3">region: {regions[0]!.city}, {regions[0]!.name}</p>
+        ) : (
+          <Field label="region" htmlFor="plan-region" hint="pick the one closest to you.">
+            <Select id="plan-region" value={region} onChange={(e) => setRegion(e.target.value)}>
+              {regions.map((r) => <option key={r.id} value={r.id}>{r.city}, {r.name}</option>)}
+            </Select>
+          </Field>
+        )}
       </div>
     </Sheet>
   );

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Cart } from "../../../../shared/billing-api.ts";
-import { BILLING_CONFIG as config, catalogView, dodoProducts } from "./plans.ts";
+import { BILLING_CONFIG as config, catalogView, dodoProducts, managedRegionConfig } from "./plans.ts";
 import { DEFAULT_RETENTION_DAYS } from "../../../cloud-service/src/retention.ts";
 import { changeCharge, dedicatedMonthlyCents, dodoCart, dodoCreditsCart, parseCart, quote } from "./pricing.ts";
 
@@ -8,6 +8,15 @@ const preset = (index: number, interval: Cart["interval"] = "month"): Cart => ({
 const products = Object.fromEntries(["month", "year"].flatMap(interval => ["license_solo", "license_team", "desktop_shared_s", "desktop_shared_m", "desktop_dedicated", "addon_member", "addon_shared_s", "addon_shared_m", "addon_dedicated", "addon_vcpu", "addon_ram_gb", "addon_disk_10gb"].map(key => [`${key}:${interval}`, `${key}_${interval}`])));
 
 describe("billing pricing", () => {
+  it("offers only the managed backend's real region when it runs every desktop kind", () => {
+    const managed = managedRegionConfig(config), catalog = catalogView(0, managed);
+    expect(catalog.regions).toEqual([{ id: "us-west-2", label: "Oregon", country: "US" }]);
+    expect(catalog.poolRegions).toEqual(["us-west-2"]);
+    expect(catalog.bundles.find(bundle => bundle.id === "team")!.monthlyCents).toBe(9000);
+    for (const bundle of managed.bundles.filter(item => item.cart.desktop.kind !== "none")) expect(parseCart({ ...bundle.cart, interval: "month" }, managed)).not.toBeNull();
+    expect(parseCart({ ...structuredClone(config.bundles[1]!.cart), interval: "month" }, managed)).toBeNull();
+  });
+
   it("keeps an ended cloud desktop as long as a managed one: 30 days", () => {
     expect(config.graceDays).toBe(30);
     expect(config.graceDays).toBe(DEFAULT_RETENTION_DAYS);

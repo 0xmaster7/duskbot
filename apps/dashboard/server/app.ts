@@ -14,7 +14,7 @@ import { createStore } from "./store.ts";
 import type { Account, StoredWorkspace } from "./store.ts";
 import { createBilling } from "./billing/index.ts";
 import type { BillingNotice } from "./billing/service.ts";
-import { BILLING_CONFIG } from "./billing/plans.ts";
+import { BILLING_CONFIG, MANAGED_REGION, regionLabel } from "./billing/plans.ts";
 import type { StoredCloud } from "./clouds/types.ts";
 import { DEFAULT_RETENTION_DAYS } from "../../cloud-service/src/retention.ts";
 import { accountDeletedEmail, cancelledEmail, cloudDeletedEmail, cloudNoticeEmail, cloudReadyEmail, emailConfig, paymentFailedEmail, receiptEmail, welcomeEmail } from "./email/templates.ts";
@@ -186,7 +186,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   };
   const retentionDays = Number(process.env.DUSK_MANAGED_RETENTION_DAYS) || DEFAULT_RETENTION_DAYS;
   const cloudFacts = (cloud: StoredCloud) => ({ name: cloud.name, plan: (BILLING_CONFIG.desktops[cloud.kind]?.label ?? cloud.kind).toLowerCase(),
-    machine: `${cloud.spec.vcpu} vcpu, ${cloud.spec.ramGb} gb memory, ${cloud.spec.diskGb} gb disk`, region: BILLING_CONFIG.regions.find(region => region.id === cloud.region)?.label.toLowerCase() ?? cloud.region });
+    machine: `${cloud.spec.vcpu} vcpu, ${cloud.spec.ramGb} gb memory, ${cloud.spec.diskGb} gb disk`, region: (regionLabel(cloud.backend ? MANAGED_REGION.id : cloud.region) ?? cloud.region).toLowerCase() });
   const cloudFromCents = Math.min(...Object.values(BILLING_CONFIG.desktops).flatMap(desktop => desktop.monthlyCents === null ? [] : [desktop.monthlyCents]));
   auth.onAccountCreated(owner => send(owner.email, welcomeEmail(emailCfg, { cloudFromCents })));
   auth.onAccountCreated(owner => analytics.track("signup", { accountId: owner.id, props: { method: auth.directory().identities.find(item => item.accountId === owner.id)?.provider ?? "email" } }));

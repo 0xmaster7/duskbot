@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import { join } from "node:path";
 import type { createAuth } from "../auth/index.ts";
 import type { createBilling } from "../billing/index.ts";
-import { BILLING_CONFIG } from "../billing/plans.ts";
+import { BILLING_CONFIG, MANAGED_REGION, regionLabel as labelOfRegion } from "../billing/plans.ts";
 import type { StoredCloud } from "../clouds/types.ts";
 import type { StoredWorkspace } from "../store.ts";
 import type { Analytics } from "../analytics/index.ts";
@@ -54,7 +54,7 @@ const rethrow = (error: unknown): never => {
 export const parseAdminEmails = (value: string | undefined) => [...new Set((value ?? "").split(",").map(item => item.trim().toLowerCase()).filter(item => /^[^\s@]+@[^\s@]+$/.test(item)))];
 const ACTIVE_NAMES = EVENT_NAMES.filter(name => "active" in EVENTS[name]);
 const bundleLabel = (id: string | null | undefined) => BILLING_CONFIG.bundles.find(bundle => bundle.id === id)?.label.toLowerCase() ?? (id ? "custom" : null);
-const regionLabel = (id: string) => BILLING_CONFIG.regions.find(region => region.id === id)?.label.toLowerCase() ?? id;
+const regionLabel = (id: string, managed: boolean) => (labelOfRegion(managed ? MANAGED_REGION.id : id) ?? id).toLowerCase();
 const int = (value: string | null, fallback: number, min: number, max: number) => {
   const n = value === null || value === "" ? fallback : Number(value);
   if (!Number.isInteger(n) || n < min || n > max) throw new AdminError(400, "invalid_request", "Invalid request.");
@@ -97,7 +97,7 @@ export function createAdmin(options: AdminOptions) {
     const usable = !c.ended && !(c.destroyAt !== null && c.destroyAt <= now());
     return {
       id: c.id, name: c.name, accountId: c.accountId, owner: emails.get(c.accountId) ?? null, kind: c.kind, plan: BILLING_CONFIG.desktops[c.kind]?.label.toLowerCase() ?? c.kind,
-      placement: c.placement, region: c.region, regionLabel: regionLabel(c.region), status, setupStep: c.setupStep, backend: c.backend ?? null, origin: c.origin,
+      placement: c.placement, region: c.region, regionLabel: regionLabel(c.region, !!c.backend), status, setupStep: c.setupStep, backend: c.backend ?? null, origin: c.origin,
       spec: c.spec, createdAt: c.createdAt, provisionedAt: c.provisionedAt ?? null, powerSince: c.powerSince, lastReportAt: view.lastReportAt,
       suspended: c.suspended !== null, ended: !!c.ended, destroyAt: c.destroyAt, error: c.error, subscription: sub ? { status: sub.status, periodEnd: sub.currentPeriodEnd } : null,
       actions: {

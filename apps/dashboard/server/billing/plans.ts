@@ -65,6 +65,21 @@ export const BILLING_CONFIG: BillingConfig = {
   products: dodoProducts(process.env),
 };
 
+/** the managed backend (InstaBox) runs every machine in AWS us-west-2 and has no region choice */
+export const MANAGED_REGION: Region = { id: "us-west-2", label: "Oregon", country: "US" };
+
+/** with every desktop kind on the managed backend, its one real region is the only one offered */
+export function managedRegionConfig(config: BillingConfig): BillingConfig {
+  const id = MANAGED_REGION.id;
+  return { ...config, regions: [MANAGED_REGION], defaultRegion: id, poolRegions: [id],
+    bundles: config.bundles.map(bundle => bundle.cart.desktop.kind === "none" ? bundle : { ...bundle, cart: { ...bundle.cart, desktop: { ...bundle.cart.desktop, region: id } } }) };
+}
+
+/** a region's label for any region a cloud may be stored with */
+export function regionLabel(id: string, config: BillingConfig = BILLING_CONFIG): string | null {
+  return [...config.regions, MANAGED_REGION].find(region => region.id === id)?.label ?? null;
+}
+
 export function catalogView(now: number, config: BillingConfig = BILLING_CONFIG): Catalog {
   return structuredClone({ v: 1, currency: config.currency, bundles: config.bundles.map(bundle => ({ ...bundle,
     monthlyCents: quote({ ...bundle.cart, interval: "month" }, config).totalCents,

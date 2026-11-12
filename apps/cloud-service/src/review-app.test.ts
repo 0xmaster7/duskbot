@@ -70,7 +70,7 @@ async function fixture() {
   }
   const snapshot = () => JSON.parse(readFileSync(join(dir, "billing.json"), "utf8")) as BillingState;
   async function buy(cookie: string) {
-    const checkout = await page("/v1/billing/checkout", { kind: "cart", cart: { interval: "month", license: { kind: "none" }, desktop: { kind: "shared_s", region: "fsn1" } } }, cookie);
+    const checkout = await page("/v1/billing/checkout", { kind: "cart", cart: { interval: "month", license: { kind: "none" }, desktop: { kind: "shared_s", region: "us-west-2" } } }, cookie);
     expect(checkout.status).toBe(200);
     const stored = snapshot().checkouts.at(-1)!;
     for (const delivery of billing.fake!.complete(stored.providerSessionId!)) {
