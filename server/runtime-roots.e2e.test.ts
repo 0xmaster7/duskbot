@@ -55,7 +55,7 @@ function readRuntimeDb(dataDir: string): RuntimeDb {
 const chipText = (message: any): string => [message.tool?.name, message.tool?.output, message.text].filter(Boolean).join("\n");
 
 type ModelAnswer = { say: string } | { call: true };
-type ModelRequest = { lastUser: string; toolsSinceUser: number };
+type ModelRequest = { lastUser: string; toolsSinceUser: number; tools: number };
 
 async function loopbackModel() {
   const requests: ModelRequest[] = [];
@@ -71,7 +71,7 @@ async function loopbackModel() {
     const text = (message: { content?: unknown }) => typeof message.content === "string" ? message.content
       : Array.isArray(message.content) ? message.content.map((part: any) => part?.text ?? "").join("\n") : "";
     const lastUserAt = sent.messages.map((message) => message.role).lastIndexOf("user");
-    const request = { lastUser: lastUserAt < 0 ? "" : text(sent.messages[lastUserAt]!), toolsSinceUser: sent.messages.slice(lastUserAt + 1).filter((message) => message.role === "tool").length };
+    const request = { lastUser: lastUserAt < 0 ? "" : text(sent.messages[lastUserAt]!), toolsSinceUser: sent.messages.slice(lastUserAt + 1).filter((message) => message.role === "tool").length, tools: sent.tools?.length ?? 0 };
     requests.push(request);
     const tool = sent.tools?.find((candidate) => candidate.function.name.endsWith("list_bots"))?.function.name ?? "missing_tool";
     const frame = (delta: unknown, finish: string | null) => `data: ${JSON.stringify({ choices: [{ index: 0, delta, finish_reason: finish }] })}\n\n`;
@@ -375,7 +375,8 @@ it("T6 continues a person's step-capped turn in place on the same root", async (
       const root = f.roots()[0];
       expect(root).toMatchObject({ status: "completed", outcome: "done", executions: 2, result: "T6-DONE: finished the rest." });
       expect(f.eventsOf(root.id)).toEqual(expect.arrayContaining(["started", "continued", "started", "settled"]));
-      expect(model.requests.filter((sent) => sent.lastUser.includes("T6-JOB") && !sent.lastUser.includes(STEP_CAP_CONTINUES))).toHaveLength(64);
+      // the engine's steps carry tools; the short progress line written beside the turn carries none
+      expect(model.requests.filter((sent) => sent.tools > 0 && sent.lastUser.includes("T6-JOB") && !sent.lastUser.includes(STEP_CAP_CONTINUES))).toHaveLength(64);
       const continued = model.requests.filter((sent) => sent.lastUser.includes(STEP_CAP_CONTINUES));
       expect(continued).toHaveLength(1);
       expect(continued[0]!.lastUser).toMatch(/Every step so far is listed in \S*handoffs\S*; read it before going on\./);
@@ -398,6 +399,7 @@ itHost("T7 queues a root on the computer seat at the wait ceiling and continues 
   const stateFile = join(home, "vm.json");
   const dumpFile = join(home, "dump.json");
   const finishFile = join(home, "finish");
+  const promptsFile = join(home, "prompts.jsonl");
   let output = "";
   let child: ChildProcess | null = null;
   const port = await freePortBlock([0, 1]);
@@ -441,7 +443,7 @@ itHost("T7 queues a root on the computer seat at the wait ceiling and continues 
     }), { mode: 0o600 });
     writeFileSync(join(data, "config.json"), JSON.stringify({ instances: { claude: {
       driver: "claudeAgent", config: { cli: join(ROOT, "server/testing/fake-claude-cli.ts") },
-      environment: { FAKE_CLAUDE_MODE: "slow", FAKE_CLAUDE_DUMP: dumpFile, FAKE_CLAUDE_SLOW_FINISH_GATE: finishFile },
+      environment: { FAKE_CLAUDE_MODE: "slow", FAKE_CLAUDE_DUMP: dumpFile, FAKE_CLAUDE_PROMPTS: promptsFile, FAKE_CLAUDE_SLOW_FINISH_GATE: finishFile },
     } } }));
     const proc = spawn(process.execPath, ["--import", pathToFileURL(join(ROOT, "server/testing/group-local-vm-hooks.mjs")).href,
       "--import", pathToFileURL(join(ROOT, "server/testing/desktop-parent.mjs")).href, join(ROOT, "server/index.ts")], {
@@ -504,8 +506,8 @@ itHost("T7 queues a root on the computer seat at the wait ceiling and continues 
       && events.slice(0, index).some((prior) => prior.assignmentId === id && prior.kind === "started"));
     expect(secondStart(root.id)).toBeGreaterThan(-1);
     expect(secondStart(root.id)).toBeLessThan(secondStart(root2.id));
-    const resumed = await dumpFor(second.id);
-    expect(JSON.stringify(resumed.prompt)).toContain(SEAT_FREE);
+    // the latest dump can be another bot's later turn, so the prompt log is read for this bot's resumed turn
+    expect(readFileSync(promptsFile, "utf8").split("\n").some((line) => line.includes(second.id) && line.includes(SEAT_FREE))).toBe(true);
     const after = (await api("GET", `/api/threads/${wait.threadId}/messages?limit=100`)).body.messages as any[];
     expect(after.filter((message) => chipText(message).includes("Parked: it continues automatically")).length).toBe(1);
     await until(() => taskOf(waiter.id, wait.threadId), (task) => task?.busy === false && task.activity === "idle");
