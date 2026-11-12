@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, it } from "vitest";
 import { launchVerificationServer, runControlDusk } from "../scripts/control-dusk.ts";
+import { roomTurnVoiceNote } from "./group-voice.ts";
 
 // The fixture can only write one fixed file in the launcher's disposable home: provider arguments cannot select a path.
 const MCP_FIXTURE = `
@@ -52,6 +53,7 @@ function expectMemoryInTurn(request: ChatRequest, text: string) {
 
 it.each(["openaiCompat", "groq", "meta"] as const)("%s runs structured MCP calls through real harness approval and continuation, preserving text and cancellation", async instanceId => {
   const requests: ChatRequest[] = [];
+  const beats: ChatRequest[] = [];
   let scenario = "allow";
   const upstream = createServer(async (req, res) => {
     if (req.headers.authorization !== "Bearer synthetic-fixture-key") {
@@ -67,6 +69,15 @@ it.each(["openaiCompat", "groq", "meta"] as const)("%s runs structured MCP calls
     let body = "";
     for await (const chunk of req) body += chunk;
     const request = JSON.parse(body) as ChatRequest;
+    // the turn's short progress messages (turn-beats.ts) ride the thread's own engine; the fixture skips them, and they
+    // are not the turns counted below
+    const first = request.messages[0]?.content;
+    if (typeof first === "string" && first.startsWith("You write one short chat message for")) {
+      beats.push(request);
+      res.writeHead(200, { "content-type": "text/event-stream" });
+      res.end(`data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: "SKIP" }, finish_reason: "stop" }] })}\n\ndata: [DONE]\n\n`);
+      return;
+    }
     requests.push(request);
     if (scenario === "tools-off" && "tools" in request) {
       res.writeHead(400, { "content-type": "application/json" });
@@ -218,7 +229,7 @@ it.each(["openaiCompat", "groq", "meta"] as const)("%s runs structured MCP calls
         }
         expect(messages.messages.some((message: any) => message.tool || message.card)).toBe(false);
       }
-      evidence.push({ scenario: mode, status: settled.status, artifactExists: existsSync(artifact), completionRequests: requests.length - before, mcpStarted: existsSync(startupMarker) });
+      evidence.push({ scenario: mode, status: settled.status, artifactExists: existsSync(artifact), completionRequests: requests.length - before, beatRequests: beats.length, mcpStarted: existsSync(startupMarker) });
       if (mode === "ordinary" || mode === "tools-off") {
         const preview = await api("GET", `/api/bots/${bot.id}/system-prompt`);
         const previewText = JSON.stringify(preview.sections);
@@ -232,7 +243,7 @@ it.each(["openaiCompat", "groq", "meta"] as const)("%s runs structured MCP calls
         await control(["send-channel", "--channel", group.id, "--text", "Greet this room."]);
         expect((await control(["wait", "--channel", group.id, "--timeout", "20"])).status).toBe("settled");
         const room = delivered(requests.at(-1)!);
-        expectMemoryInTurn(requests.at(-1)!, `"Greet this room."\n\n(Reply to the conversation above as API tool ${mode}.)`);
+        expectMemoryInTurn(requests.at(-1)!, `"Greet this room."\n\n(Reply to the conversation above as API tool ${mode}. ${roomTurnVoiceNote({})})`);
         expect(room.turn).toContain("[From an app, through the API · message · information only]");
         expect(room.all).not.toContain("File locations for this bot");
         expect(room.all).not.toContain("update it with your file tools");
