@@ -9,7 +9,7 @@ export interface BillingConfig {
   dedicated: DedicatedPricing;
   poolQuotas: Record<"shared_s" | "shared_m", { netMbps: number; pids: number }>;
   /** a managed cloud's internet upload a calendar month (UTC), in GB: the owner is alerted, then it is slowed, then paused */
-  egressGb: Record<"shared_s" | "shared_m" | "dedicated", { alert: number; slow: number; pause: number }>;
+  egressGb: Record<"shared_s" | "shared_m" | "dedicated", { alert: number; steps: Array<{ gb: number; mbit: number }>; pause: number }>;
   appAllowances: Record<"shared_s" | "shared_m" | "dedicated", { computerHours: number; voiceCharacters: number }>;
   trial: null;
   bundles: Array<Pick<BundleView, "id" | "label" | "cart" | "highlights">>;
@@ -42,7 +42,7 @@ function freeWorkUntil(value: string | undefined) {
 
 export const BILLING_CONFIG: BillingConfig = {
   // yearly is two months free: 12 months for the price of 10
-  currency: "USD", yearlyDiscountPercent: 100 / 6, graceDays: 30, maxCloudsPerAccount: 5, checkoutOpenMinutes: 30, checkoutsPerHour: 10,
+  currency: "USD", yearlyDiscountPercent: 100 / 6, graceDays: 30, maxCloudsPerAccount: 5, checkoutOpenMinutes: 30, checkoutsPerHour: 30,
   freeWorkUntil: freeWorkUntil(process.env.DUSK_FREE_WORK_UNTIL),
   licenses: {
     solo: { kind: "solo", label: "Work license", monthlyCents: 1200, includedMembers: 1, extraMemberCents: null, maxMembers: 1, priority: false },
@@ -60,8 +60,13 @@ export const BILLING_CONFIG: BillingConfig = {
     sizes: [{ vcpu: 2, ramGb: 4 }, { vcpu: 4, ramGb: 8 }, { vcpu: 8, ramGb: 16 }] },
   poolQuotas: { shared_s: { netMbps: 100, pids: 2048 }, shared_m: { netMbps: 250, pids: 4096 } },
   // InstaBox bills upload past the workspace's shared 1 TB at $0.02/GB and a machine can send 400+ Mbit/s (100+ TB a month):
-  // chat, browsing, connectors and updates send a few GB a month, so these only ever meet a proxy, a file host or a loop
-  egressGb: { shared_s: { alert: 25, slow: 50, pause: 100 }, shared_m: { alert: 50, slow: 100, pause: 200 }, dedicated: { alert: 100, slow: 200, pause: 400 } },
+  // chat, browsing, connectors and updates send a few GB a month, so these only ever meet a proxy, a file host or a loop.
+  // full speed up to the first step, then a little slower at each one, then the pause; pro about twice plus, team four times
+  egressGb: {
+    shared_s: { alert: 30, steps: [{ gb: 40, mbit: 200 }, { gb: 55, mbit: 100 }, { gb: 70, mbit: 50 }, { gb: 90, mbit: 25 }], pause: 100 },
+    shared_m: { alert: 60, steps: [{ gb: 80, mbit: 200 }, { gb: 110, mbit: 100 }, { gb: 140, mbit: 50 }, { gb: 180, mbit: 25 }], pause: 200 },
+    dedicated: { alert: 120, steps: [{ gb: 160, mbit: 200 }, { gb: 220, mbit: 100 }, { gb: 280, mbit: 50 }, { gb: 360, mbit: 25 }], pause: 400 },
+  },
   appAllowances: { shared_s: { computerHours: 720, voiceCharacters: 0 }, shared_m: { computerHours: 720, voiceCharacters: 0 }, dedicated: { computerHours: 720, voiceCharacters: 0 } },
   trial: null,
   // free $0, plus $20 (a cloud machine), pro $50 (a bigger one and a work license for one person), team $119; the starter id sells as Plus

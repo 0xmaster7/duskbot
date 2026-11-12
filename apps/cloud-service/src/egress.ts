@@ -2,28 +2,32 @@
 // a machine can send 400 to 600 Mbit/s (measured 2026-11-12), so one home running a proxy or a file host could cost
 // hundreds of dollars a month. Each
 // home's upload in the calendar month (UTC) is read from the provider's own meter (usage().egressBytes) every
-// EGRESS_READ_MS while it runs. Past `alert` GB the operator hears once; past `slow` its upload is limited to
-// EGRESS_SLOW_MBIT inside the machine (InstaBox has no network limit in its API) and the owner sees why; past `pause` the
-// machine is paused, and stays asleep, until the 1st. Everything lifts on the 1st. The limit runs inside a VM whose owner
-// has root, so it is put back at every read and after every wake, and a limited machine whose meter shows more than the
-// limit lets through is paused at once; the pause is the bound it cannot undo.
+// EGRESS_READ_MS while it runs. Past `alert` GB the operator hears once; from the first of the plan's `steps` its upload
+// is limited inside the machine (InstaBox has no network limit in its API) and the owner sees why, and each later step
+// limits it a little more; past `pause` the machine is paused, and stays asleep, until the 1st. Everything lifts on the
+// 1st. The limit runs inside a VM whose owner has root, so it is put back at every read and after every wake, and a
+// limited machine whose meter shows more than its step lets through is paused at once; the pause is the bound it cannot
+// undo.
 import { BILLING_CONFIG } from "../../dashboard/server/billing/plans.ts";
 import type { StoredCloud } from "../../dashboard/server/clouds/types.ts";
 import { monthOf } from "./power/ceiling.ts";
 import type { MachineProvider } from "./provider.ts";
 
 export const GB = 1e9;
-export const EGRESS_SLOW_MBIT = 5;
 /** how often a running home's meter is read (the meter itself showed a 100 MB upload within seconds, 2026-11-12) */
 export const EGRESS_READ_MS = 5 * 60_000;
 /** a limit that would not go in is tried again this often */
 const RETRY_MS = 5 * 60_000;
-const HOUR = 3_600_000, LIMIT_BYTES_PER_SECOND = EGRESS_SLOW_MBIT * 1e6 / 8;
-/** upload a limited machine may show past what the limit lets through: half again the rate, plus two minutes for the
- *  meter, which InstaBox updates within about 30 seconds */
-export function egressTampered(sent: number, ms: number): boolean { return sent > LIMIT_BYTES_PER_SECOND * (1.5 * ms / 1000 + 120); }
+const HOUR = 3_600_000;
+const bytesPerSecond = (mbit: number) => Math.round(mbit * 1e6 / 8);
+/** upload a machine limited to `mbit` may show past what the limit lets through: half again the rate, plus two minutes
+ *  for the meter, which InstaBox updates within about 30 seconds */
+export function egressTampered(sent: number, ms: number, mbit: number): boolean { return sent > bytesPerSecond(mbit) * (1.5 * ms / 1000 + 120); }
 
-export interface EgressLimits { alert: number; slow: number; pause: number }
+/** from `gb` this month the upload is limited to `mbit` */
+export interface EgressStep { gb: number; mbit: number }
+/** GB a month: the operator's alert, the slowing steps (rising GB, falling Mbit/s) and the pause */
+export interface EgressLimits { alert: number; steps: readonly EgressStep[]; pause: number }
 export type EgressLevel = "ok" | "alert" | "slow" | "pause";
 
 export interface EgressState {
@@ -38,8 +42,8 @@ export interface EgressState {
   alertedAt: number | null;
   slowAt: number | null;
   pausedAt: number | null;
-  /** the limit was last seen in place on this machine at `at`, first put there at `since` */
-  limited: { serverId: string; at: number; since: number } | null;
+  /** the limit was last seen in place on this machine at `at`, at `mbit` since `since` */
+  limited: { serverId: string; at: number; since: number; mbit: number } | null;
   /** the reading the tamper rule measures from: an hour after the limit first went in, once the meter shows only limited hours */
   watch: { serverId: string; bytes: number; at: number } | null;
   limitTryAt: number | null;
@@ -54,7 +58,14 @@ export function egressLimits(kind: string): EgressLimits {
   return table[kind] ?? BILLING_CONFIG.egressGb.shared_s;
 }
 export function egressLevel(bytes: number, limits: EgressLimits): EgressLevel {
-  return bytes >= limits.pause * GB ? "pause" : bytes >= limits.slow * GB ? "slow" : bytes >= limits.alert * GB ? "alert" : "ok";
+  const slow = limits.steps[0]?.gb ?? limits.pause;
+  return bytes >= limits.pause * GB ? "pause" : bytes >= slow * GB ? "slow" : bytes >= limits.alert * GB ? "alert" : "ok";
+}
+/** the upload limit in Mbit/s at this month's `bytes`: the last step reached, null below the first */
+export function egressMbit(bytes: number, limits: EgressLimits): number | null {
+  let mbit: number | null = null;
+  for (const step of limits.steps) if (bytes >= step.gb * GB) mbit = step.mbit;
+  return mbit;
 }
 export const egressTotal = (e: Pick<EgressState, "bytes" | "carried">) => e.carried + e.bytes;
 /** when this month's limits lift: the 1st, 00:00 UTC */
@@ -66,17 +77,24 @@ export function freshEgress(month: string, serverId: string | null, lift: string
 
 // the machine's way out: the interface its default route uses; nft as root (the machine user has passwordless sudo).
 // InstaBox's kernel has no shaping qdisc (no tbf, htb or fq; checked 2026-11-12), so the limit is an nftables byte
-// policer: packets past the rate are dropped and TCP backs off to it (a 100 MB upload measured 0.64 MB/s)
+// policer: packets past the rate are dropped and TCP backs off to it (a 100 MB upload measured 0.64 MB/s at 5 Mbit/s)
 const PATH = `export PATH="$PATH:/usr/sbin:/sbin"`;
 const DEV = `${PATH}; dev=$(ip -o route get 1.1.1.1 2>/dev/null | sed -n 's/.* dev \\([^ ]*\\).*/\\1/p'); [ -n "$dev" ] || { echo "no route"; exit 3; }`;
 const TABLE = "inet dusk_egress";
-// one table replaced whole in one transaction (made first so the delete always finds it); the burst
-// holds more than one 64 KB offloaded segment
-const RULES = `table ${TABLE}\\ndelete table ${TABLE}\\ntable ${TABLE} {\\n limit cap { rate over ${LIMIT_BYTES_PER_SECOND} bytes/second burst 262144 bytes; }\\n`
-  + ` chain sent { type filter hook output priority 0; policy accept; oifname "%s" limit name "cap" drop; }\\n`
-  + ` chain passed { type filter hook forward priority 0; policy accept; oifname "%s" limit name "cap" drop; }\\n}\\n`;
-/** every packet the machine sends (its bot computers' too, they are forwarded through it) through one shared bucket */
-export const EGRESS_LIMIT_COMMAND = `${DEV}; printf '${RULES}' "$dev" "$dev" | sudo -n nft -f - && sudo -n nft list table ${TABLE} | grep -q 'limit name' && echo "limited $dev"`;
+// one table replaced whole in one transaction (made first so the delete always finds it); the burst holds more than
+// one 64 KB offloaded segment and, at the faster steps, about 100 ms of the rate so TCP keeps its pace
+function rules(mbit: number): string {
+  const rate = bytesPerSecond(mbit), burst = Math.max(262_144, Math.round(rate / 10));
+  return `table ${TABLE}\\ndelete table ${TABLE}\\ntable ${TABLE} {\\n limit cap { rate over ${rate} bytes/second burst ${burst} bytes; }\\n`
+    + ` chain sent { type filter hook output priority 0; policy accept; oifname "%s" limit name "cap" drop; }\\n`
+    + ` chain passed { type filter hook forward priority 0; policy accept; oifname "%s" limit name "cap" drop; }\\n}\\n`;
+}
+/** every packet the machine sends (its bot computers' too, they are forwarded through it) through one shared bucket of
+ *  `mbit` Mbit/s; run again with another rate it replaces the one in place */
+export function egressLimitCommand(mbit: number): string {
+  if (!Number.isFinite(mbit) || mbit <= 0 || mbit > 10_000) throw new Error(`egress: bad limit ${mbit}`);
+  return `${DEV}; printf '${rules(mbit)}' "$dev" "$dev" | sudo -n nft -f - && sudo -n nft list table ${TABLE} | grep -q 'limit name' && echo "limited $dev"`;
+}
 export const EGRESS_LIFT_COMMAND = `${PATH}; if sudo -n nft list table ${TABLE} >/dev/null 2>&1; then sudo -n nft delete table ${TABLE} || exit 1; fi; echo lifted`;
 
 export interface EgressGuardDeps {
@@ -128,21 +146,21 @@ export function createEgressGuard(deps: EgressGuardDeps) {
       if (usage) e.bytes = Math.max(e.bytes, usage.egressBytes);
       // the limit runs where the owner has root: upload faster than it allows means it was taken off, and that pauses
       const on = e.limited?.serverId === serverId ? e.limited : null;
-      if (usage && on && e.pausedAt === null) {
+      if (usage && on && e.pausedAt === null && Number.isFinite(on.mbit)) {
         if (e.watch?.serverId !== serverId) { if (t - on.since >= HOUR) e.watch = { serverId, bytes: e.bytes, at: t }; }
-        else if (t - e.watch.at >= 30 * 60_000 && egressTampered(e.bytes - e.watch.bytes, t - e.watch.at)) {
+        else if (t - e.watch.at >= 30 * 60_000 && egressTampered(e.bytes - e.watch.bytes, t - e.watch.at, on.mbit)) {
           e.pausedAt = t;
           deps.log(c, "egress_paused", "limit_removed", { gb: gb(egressTotal(e)) });
-          deps.alert(c, `cloud ${c.id} sent ${gb(e.bytes - e.watch.bytes)} GB to the internet in ${Math.round((t - e.watch.at) / 60_000)} minutes while limited to ${EGRESS_SLOW_MBIT} Mbit/s (the limit was removed); it is paused until ${new Date(egressUntil(t)).toISOString().slice(0, 10)}`);
+          deps.alert(c, `cloud ${c.id} sent ${gb(e.bytes - e.watch.bytes)} GB to the internet in ${Math.round((t - e.watch.at) / 60_000)} minutes while limited to ${on.mbit} Mbit/s (the limit was removed); it is paused until ${new Date(egressUntil(t)).toISOString().slice(0, 10)}`);
         }
       }
       const limits = limitsOf(c), total = egressTotal(e), level = egressLevel(total, limits);
       if (level !== "ok" && e.alertedAt === null) {
         e.alertedAt = t;
         deps.log(c, "egress_alert", "over_alert", { gb: gb(total) });
-        deps.alert(c, `cloud ${c.id} sent ${gb(total)} GB to the internet this month (alert at ${limits.alert} GB, slowed at ${limits.slow}, paused at ${limits.pause})`);
+        deps.alert(c, `cloud ${c.id} sent ${gb(total)} GB to the internet this month (alert at ${limits.alert} GB, slowed ${limits.steps.map(s => `to ${s.mbit} Mbit/s at ${s.gb}`).join(", ")}, paused at ${limits.pause})`);
       }
-      if ((level === "slow" || level === "pause") && e.slowAt === null) { e.slowAt = t; deps.log(c, "egress_slowed", "over_slow", { gb: gb(total), mbit: EGRESS_SLOW_MBIT }); }
+      if ((level === "slow" || level === "pause") && e.slowAt === null) { e.slowAt = t; deps.log(c, "egress_slowed", "over_slow", { gb: gb(total), mbit: egressMbit(total, limits) }); }
       if (level === "pause" && e.pausedAt === null) {
         e.pausedAt = t;
         deps.log(c, "egress_paused", "over_pause", { gb: gb(total) });
@@ -150,13 +168,17 @@ export function createEgressGuard(deps: EgressGuardDeps) {
       }
     }
     // a cold boot drops the limit and the owner has root: put back after each wake and at every read
-    const stale = !e.limited || e.limited.serverId !== serverId || e.limited.at < c.powerSince;
-    if (e.slowAt !== null && e.pausedAt === null && (due || stale && (e.limited !== null || e.limitTryAt === null || t - e.limitTryAt >= RETRY_MS))) {
+    // the step for this month's total so far; a slowed machine keeps at least the first step's limit
+    const limits = limitsOf(c), mbit = egressMbit(egressTotal(e), limits) ?? limits.steps[0]?.mbit ?? null;
+    const stale = !e.limited || e.limited.serverId !== serverId || e.limited.at < c.powerSince || e.limited.mbit !== mbit;
+    if (e.slowAt !== null && e.pausedAt === null && mbit !== null && (due || stale && (e.limited !== null || e.limitTryAt === null || t - e.limitTryAt >= RETRY_MS))) {
       e.limitTryAt = t; dirty = true;
-      const done = await deps.provider.run(serverId, EGRESS_LIMIT_COMMAND, 30).catch(() => null);
+      const done = await deps.provider.run(serverId, egressLimitCommand(mbit), 30).catch(() => null);
       if (done?.ok && done.stdout.includes("limited")) {
-        if (!e.limited || e.limited.serverId !== serverId) deps.log(c, "egress_limit_applied", "slowed", { mbit: EGRESS_SLOW_MBIT });
-        e.limited = { serverId, at: t, since: e.limited?.serverId === serverId ? e.limited.since : t }; e.limitFailures = 0;
+        // a new step starts the tamper rule's watch over: the readings before it were at a faster rate
+        const same = e.limited?.serverId === serverId && e.limited.mbit === mbit;
+        if (!same) { deps.log(c, "egress_limit_applied", "slowed", { mbit }); e.watch = null; }
+        e.limited = { serverId, at: t, since: same ? e.limited!.since : t, mbit }; e.limitFailures = 0;
       } else {
         e.limited = null; e.watch = null; e.limitFailures++;
         if (e.limitFailures === 3) deps.alert(c, `cloud ${c.id}: its upload could not be limited (${(done?.stdout ?? "no answer").trim().slice(0, 60)}); it is paused at ${limitsOf(c).pause} GB`);
