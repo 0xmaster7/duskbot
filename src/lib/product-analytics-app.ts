@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { configure, feature, screen } from "./product-analytics";
 
 export function startDesktopAnalytics(): void {
-  const bridge = window.ogb;
+  const bridge = window.duskDesktop;
   if (!bridge) return;
   const platform = bridge.platform;
   if (platform !== "darwin" && platform !== "win32" && platform !== "linux") return;

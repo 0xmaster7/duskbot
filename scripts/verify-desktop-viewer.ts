@@ -6,15 +6,15 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { launchVerificationServer, runControlOmb, type VerificationServer } from "./control-omb.ts";
-import { agentBrowser, ensureUiBrowser, sessionEnv } from "./testing/control-omb-ui.ts";
+import { launchVerificationServer, runControlDusk, type VerificationServer } from "./control-dusk.ts";
+import { agentBrowser, ensureUiBrowser, sessionEnv } from "./testing/control-dusk-ui.ts";
 import { fixtureApi, mountPreview, type MountedPreview } from "./testing/preview-fixture.ts";
 import { connectCdp } from "../server/browser-sites.ts";
 import { fakeVnc } from "./testing/fake-vnc.ts";
 import { BASE_IMAGE_DIGEST, CUA_DRIVER_VERSION, IMAGE, IMAGE_LAYER_VERSION } from "../server/container-computer.ts";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
-const scratch = mkdtempSync(join(process.platform === "win32" ? tmpdir() : "/tmp", "omb-viewer-fixture-"));
+const scratch = mkdtempSync(join(process.platform === "win32" ? tmpdir() : "/tmp", "dusk-viewer-fixture-"));
 const bin = join(scratch, "bin");
 mkdirSync(bin);
 mkdirSync(join(scratch, "tmp"));
@@ -45,7 +45,7 @@ if (args[0] === 'inspect' && /^duskbot-vps-/.test(args[1])) result = [{
 }];
 else if (['start','stop'].includes(args[0]) && (/^duskbot-vps-/.test(args[1]) || args[1] === 'b'.repeat(64))) { if(args[0]==='start') fs.rmSync(stopped,{force:true}); else fs.writeFileSync(stopped,'stopped'); result = args[1]; }
 else if (args[0] === 'exec') result = args.includes('--version') ? 'cua-driver ${CUA_DRIVER_VERSION}'
-  : (args.includes('omb-desktop-probe') || args.includes('health_report')) ? {schema_version:'1',overall:'ok',checks:[]} : {};
+  : (args.includes('dusk-desktop-probe') || args.includes('health_report')) ? {schema_version:'1',overall:'ok',checks:[]} : {};
 else if (args[0] === 'info') result = 'fixture';
 else if (args[0] === 'image' && args[1] === 'inspect') result = [{Id:imageId,Config:{Labels:labels}}];
 else if (args[0] === 'inspect' && args[1] === 'duskbot-computer') result = [{
@@ -234,7 +234,7 @@ process.on('SIGTERM',()=>{fs.appendFileSync(log,'close ');process.exit(0)});
     assert.equal(await evaluate("window.liveComputerFixture.requests.filter(request => request.method === 'GET' && request.url.includes('/desktop-viewer/')).length"), 0);
   };
   if (process.argv.includes("--live-only")) {
-    await runControlOmb(["new-bot", "--name", "Live watch fixture", "--url", fixture.info.url]);
+    await runControlDusk(["new-bot", "--name", "Live watch fixture", "--url", fixture.info.url]);
     const { bots } = await api("GET", "/api/bots?messages=0");
     const bot = bots.find((candidate: { name: string }) => candidate.name === "Live watch fixture");
     await api("PATCH", "/api/config", { vps: { sshAlias: "viewer-fixture", independentScreens: false } });
@@ -404,7 +404,7 @@ process.on('SIGTERM',()=>{fs.appendFileSync(log,'close ');process.exit(0)});
   await nextConnection;
   await command("wait", "--fn", "document.getElementById('status').textContent === 'Desktop connected'");
   // Exercise the real VPS join route, SSH process lifecycle and the same UI.
-  await runControlOmb(["new-bot", "--name", "VPS fixture", "--url", fixture.info.url]);
+  await runControlDusk(["new-bot", "--name", "VPS fixture", "--url", fixture.info.url]);
   const { bots } = await api("GET", "/api/bots?messages=0");
   const vpsBot = bots.find((bot: { name: string }) => bot.name === "VPS fixture");
   await api("PATCH", "/api/config", { vps: { sshAlias: "viewer-fixture", independentScreens: false } });

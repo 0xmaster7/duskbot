@@ -8,7 +8,7 @@ import type { AddressInfo } from "node:net";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { launchVerificationServer, runControlOmb, type VerificationServer } from "../scripts/control-omb.ts";
+import { launchVerificationServer, runControlDusk, type VerificationServer } from "../scripts/control-dusk.ts";
 
 let session: VerificationServer | null = null;
 let pages: Server | null = null;
@@ -22,7 +22,7 @@ afterEach(async () => {
 async function launch(env: Record<string, string> = {}) {
   session = await launchVerificationServer({ ...env });
   const url = session.info.url;
-  const control = (args: string[]) => runControlOmb([...args, "--url", url]) as Promise<any>;
+  const control = (args: string[]) => runControlDusk([...args, "--url", url]) as Promise<any>;
   const api = async (method: string, path: string, body?: unknown) => {
     const response = await fetch(url + path, { method, headers: { "content-type": "application/json", origin: url }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
     return { status: response.status, body: await response.json().catch(() => null) as any };

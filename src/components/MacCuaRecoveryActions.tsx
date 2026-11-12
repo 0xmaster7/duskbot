@@ -13,13 +13,13 @@ export function MacCuaRecoveryActions({ reason, ownRetry = false }: { reason: st
   const { capabilities, ready } = useDesktopCapabilities();
   const permissions = missingMacCuaPermissions(reason);
   const currentPermissions = missingMacCuaPermissions(capabilities.localComputer.message);
-  // CuaDriver picks a grant up by itself and the app watches for it; Dusk Bot's own grant needs a relaunch
+  // CuaDriver picks a grant up by itself and the app watches for it; dusk bot's own grant needs a relaunch
   const helper = macCuaPermissionHelper(capabilities.localComputer.message);
   const [error, setError] = useState<string | null>(null);
   const [awaitingGrant, setAwaitingGrant] = useState(false);
   const checkAgain = async () => {
     try {
-      await window.ogb?.localControl?.retry();
+      await window.duskDesktop?.localControl?.retry();
       setError(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
@@ -42,11 +42,11 @@ export function MacCuaRecoveryActions({ reason, ownRetry = false }: { reason: st
   if (!permissions.length || permissions.join(",") !== currentPermissions.join(",") ||
       !ready || capabilities.host.platform !== "darwin" ||
       capabilities.localComputer.available !== false || capabilities.localComputer.reasonCode === "remote-server" ||
-      typeof window.ogb?.permOpenSettings !== "function") return null;
+      typeof window.duskDesktop?.permOpenSettings !== "function") return null;
 
   const openSettings = async (permission: MacCuaPermission) => {
     try {
-      await window.ogb?.permOpenSettings(permission);
+      await window.duskDesktop?.permOpenSettings(permission);
       setError(null);
       setAwaitingGrant(true);
     } catch (cause) {
@@ -56,7 +56,7 @@ export function MacCuaRecoveryActions({ reason, ownRetry = false }: { reason: st
 
   const relaunch = async () => {
     try {
-      await window.ogb?.relaunch?.();
+      await window.duskDesktop?.relaunch?.();
       setError(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
@@ -71,12 +71,12 @@ export function MacCuaRecoveryActions({ reason, ownRetry = false }: { reason: st
           {t(paneName[permission])}
         </button>
       ))}
-      {helper ? !ownRetry && typeof window.ogb.localControl?.retry === "function" && (
+      {helper ? !ownRetry && typeof window.duskDesktop.localControl?.retry === "function" && (
         <button type="button" onClick={() => void checkAgain()}
           className="ui-button h-6! min-h-6! px-2.5! text-[12px]! leading-4!">
           {t("computer.mac.permission.checkAgain")}
         </button>
-      ) : typeof window.ogb.relaunch === "function" && (
+      ) : typeof window.duskDesktop.relaunch === "function" && (
         <button type="button" onClick={() => void relaunch()}
           className="ui-button h-6! min-h-6! px-2.5! text-[12px]! leading-4!">
           {t("computer.mac.permission.relaunch")}

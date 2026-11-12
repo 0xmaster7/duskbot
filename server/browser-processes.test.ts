@@ -50,7 +50,7 @@ function start(command: string, args: string[], env: NodeJS.ProcessEnv): ChildPr
 
 describe.skipIf(!posix)("browsers whose engine was killed under them", () => {
   it("finds a Chrome of a session whose daemon is gone, by the session its environment names, and stops its group", async () => {
-    const home = mkdtempSync(join(tmpdir(), "omb-orphan-"));
+    const home = mkdtempSync(join(tmpdir(), "dusk-orphan-"));
     homes.push(home);
     // Its parent is this test, not a daemon: as good as re-parented to init.
     const profile = profileFolder(home);
@@ -79,7 +79,7 @@ describe.skipIf(!posix)("browsers whose engine was killed under them", () => {
   });
 
   it("stops a helper the browser started in its group, with the browser", async () => {
-    const home = mkdtempSync(join(tmpdir(), "omb-orphan-"));
+    const home = mkdtempSync(join(tmpdir(), "dusk-orphan-"));
     homes.push(home);
     const helperPid = join(home, "helper.pid");
     // Not named the way agent-browser names its own profile folders: kept.
@@ -104,7 +104,7 @@ describe.skipIf(!posix)("browsers whose engine was killed under them", () => {
   });
 
   it("stops a helper the browser starts while it exits, once the browser is gone", async () => {
-    const home = mkdtempSync(join(tmpdir(), "omb-orphan-"));
+    const home = mkdtempSync(join(tmpdir(), "dusk-orphan-"));
     homes.push(home);
     const latePid = join(home, "late.pid");
     const ready = join(home, "ready");
@@ -124,7 +124,7 @@ describe.skipIf(!posix)("browsers whose engine was killed under them", () => {
 describe.skipIf(!posix)("a saved session's kept profile", () => {
   /** A kept profile with a sign-in in it, locked the way Chrome locks one: SingletonLock -> "<host>-<pid>". */
   function keptProfile(lockedBy?: string) {
-    const root = mkdtempSync(join(tmpdir(), "omb-kept-"));
+    const root = mkdtempSync(join(tmpdir(), "dusk-kept-"));
     homes.push(root);
     const dir = join(root, "agent-browser-profiles", "0123456789abcdef0123456789abcdef");
     mkdirSync(join(dir, "Default"), { recursive: true });
@@ -248,7 +248,7 @@ describe("a browser on Windows", () => {
   });
 
   it("stops an orphaned Chrome that runs under the configured Chrome's own image name, and only that one", async () => {
-    const root = mkdtempSync(join(tmpdir(), "omb-win-custom-chrome-"));
+    const root = mkdtempSync(join(tmpdir(), "dusk-win-custom-chrome-"));
     homes.push(root);
     const dir = join(root, "Profile");
     mkdirSync(join(dir, "lockfile"), { recursive: true });
@@ -278,7 +278,7 @@ describe("a browser on Windows", () => {
   });
 
   it("gives up after a bounded wait when the stopped Chrome's lock stays held", async () => {
-    const root = mkdtempSync(join(tmpdir(), "omb-win-held-lock-"));
+    const root = mkdtempSync(join(tmpdir(), "dusk-win-held-lock-"));
     homes.push(root);
     const dir = join(root, "Profile");
     mkdirSync(join(dir, "lockfile"), { recursive: true });
@@ -306,7 +306,7 @@ describe("a browser on Windows", () => {
   });
 
   it("stops a Chrome whose daemon was killed under it, which would make every launch exit with code 21, and keeps a daemon's own", async () => {
-    const root = mkdtempSync(join(tmpdir(), "omb-win-profile-"));
+    const root = mkdtempSync(join(tmpdir(), "dusk-win-profile-"));
     homes.push(root);
     const dir = join(root, "Kept Profile");
     mkdirSync(join(dir, "Default"), { recursive: true });
@@ -388,7 +388,7 @@ describe("a browser on Windows", () => {
   });
 
   it("keeps a daemon's own Chrome that the launcher batch file runs under cmd.exe, and stops it once that shell or daemon is gone", async () => {
-    const root = mkdtempSync(join(tmpdir(), "omb-win-launcher-"));
+    const root = mkdtempSync(join(tmpdir(), "dusk-win-launcher-"));
     homes.push(root);
     const dir = join(root, "Kept Profile");
     mkdirSync(dir, { recursive: true });
@@ -418,7 +418,7 @@ describe("a browser on Windows", () => {
       return {} as ChildProcess;
     }) as unknown as typeof execFile);
     Object.defineProperty(process, "platform", { value: "win32", configurable: true });
-    const engine = "C:\\Dusk Bot\\resources\\browser-engine\\agent-browser.exe";
+    const engine = "C:\\dusk bot\\resources\\browser-engine\\agent-browser.exe";
     const launcher = "C:\\Users\\me\\AppData\\Roaming\\duskbot\\browser\\chrome-launcher.cmd";
     const killed = () => commands.filter(([file]) => file === "taskkill");
     await releaseBrowserProfile(dir, engine, launcher);
@@ -446,7 +446,7 @@ describe("a browser on Windows", () => {
   });
 
   it.runIf(process.platform === "win32")("lists a real browser under cmd.exe with its daemon, keeps it for that daemon and stops it for another", async () => {
-    const root = mkdtempSync(join(tmpdir(), "omb-win-cmd-"));
+    const root = mkdtempSync(join(tmpdir(), "dusk-win-cmd-"));
     homes.push(root);
     const dir = join(root, "Kept Profile");
     mkdirSync(join(dir, "lockfile"), { recursive: true });

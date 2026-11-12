@@ -17,7 +17,7 @@ afterEach(() => {
 });
 
 function fixture() {
-  const dataDir = mkdtempSync(join(tmpdir(), "omb-slack-secrets-"));
+  const dataDir = mkdtempSync(join(tmpdir(), "dusk-slack-secrets-"));
   directories.push(dataDir);
   const value = randomBytes(32).toString("hex");
   const key: SavedSecretsKey = { get: () => value, peek: () => value };

@@ -143,7 +143,7 @@ export function ContextMenu({ open, anchor, preview, actions, label, onClose }: 
   return createPortal(
     <AnimatePresence>
       {open && anchor && layout && (
-        <div className="omb-mobile-overlay fixed inset-0 z-50" key="context">
+        <div className="dusk-mobile-overlay fixed inset-0 z-50" key="context">
           <motion.div
             aria-hidden
             className="absolute inset-0 bg-[rgb(23_24_26/0.18)] [-webkit-backdrop-filter:blur(14px)] [backdrop-filter:blur(14px)]"
@@ -193,6 +193,6 @@ export function ContextMenu({ open, anchor, preview, actions, label, onClose }: 
         </div>
       )}
     </AnimatePresence>,
-    document.querySelector(".omb-mobile") ?? document.body,
+    document.querySelector(".dusk-mobile") ?? document.body,
   );
 }

@@ -34,7 +34,7 @@ let scratch = "";
 let release = "";
 
 beforeAll(async () => {
-  scratch = mkdtempSync(join(tmpdir(), "omb-cloud-move-"));
+  scratch = mkdtempSync(join(tmpdir(), "dusk-cloud-move-"));
   release = join(scratch, "release");
   mkdirSync(join(scratch, "turns"));
   writeFileSync(release, "");
@@ -194,13 +194,13 @@ it("a move carries everything, apps and keys first, and its check finds every ro
   for (const server of [
     { name: "dodo", command: "node", args: ["-e", "process.stdin.resume()"], env: { DODO_PAYMENTS_API_KEY: DODO_KEY } },
     { name: "docs", type: "http", url: "https://mcp.docs.example.test/mcp", headers: { Authorization: `Bearer ${DOCS_TOKEN}` } },
-    { name: "linear", type: "http", url: LINEAR_URL, oauth: { clientId: "omb-fixture-client", clientSecret: CLIENT_SECRET } },
+    { name: "linear", type: "http", url: LINEAR_URL, oauth: { clientId: "dusk-fixture-client", clientSecret: CLIENT_SECRET } },
   ]) {
     expect((await local("POST", "/api/mcp/servers", server)).status).toBe(201);
     expect((await local("PATCH", `/api/mcp/servers/${server.name}`, { enabled: true })).status).toBe(200);
   }
   const desktopSignIns = join(fx.root, "desktop", ".duskbot", "mcp-oauth.json");
-  writeFileSync(desktopSignIns, JSON.stringify({ servers: { linear: { url: LINEAR_URL, state: "signed-in", clientId: "omb-fixture-client", tokenAuth: "client_secret_post",
+  writeFileSync(desktopSignIns, JSON.stringify({ servers: { linear: { url: LINEAR_URL, state: "signed-in", clientId: "dusk-fixture-client", tokenAuth: "client_secret_post",
     tokenEndpoint, tokens: { access: ACCESS, refresh: REFRESH, expiresAt: Date.now() + 3_600_000 } } } }));
   expect((await local("PATCH", "/api/config", { openrouter: { key: OPENROUTER_KEY } })).status).toBe(200);
   const gmail = broker.account(fx.desktopInstallation!.userId, "gmail");

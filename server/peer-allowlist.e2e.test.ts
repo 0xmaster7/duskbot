@@ -44,7 +44,7 @@ const fixture = (displayName: string, dump?: string) => ({
 });
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-peer-allowlist-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-peer-allowlist-"));
   const data = join(home, ".duskbot");
   const staticDir = join(home, "static");
   mkdirSync(data, { recursive: true });

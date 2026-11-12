@@ -56,8 +56,8 @@ if (origin !== url.origin || url.protocol !== "https:" || !url.hostname.includes
 const env = { ...input.env, DUSK_PUBLIC_URL: origin };
 if (Object.values(env).some(v => /[\\r\\n\\0]/.test(v))) process.exit(1);
 fs.writeFileSync("/root/omb-home.env", Object.entries(env).map(([k,v]) => k + "=" + v).join("\\n") + "\\n", { mode: 0o600 });
-fs.writeFileSync("/srv/omb-data/${CLOUD_HOME.dataName}/dashboard-link.json", JSON.stringify(input.link), { mode: 0o600 });
-fs.writeFileSync("/srv/omb-data/${CLOUD_HOME_MARKER_FILE}", JSON.stringify({ version: 1, machine: input.cloudId }), { mode: 0o600 });
+fs.writeFileSync("/srv/dusk-data/${CLOUD_HOME.dataName}/dashboard-link.json", JSON.stringify(input.link), { mode: 0o600 });
+fs.writeFileSync("/srv/dusk-data/${CLOUD_HOME_MARKER_FILE}", JSON.stringify({ version: 1, machine: input.cloudId }), { mode: 0o600 });
 fs.writeFileSync("/etc/caddy/Caddyfile", url.host + " {\\n reverse_proxy 127.0.0.1:8080\\n}\\n");`;
   const payload = { cloudId: input.cloudId, template: input.originTemplate ?? "https://{ip-dashed}.sslip.io", env: homeEnv({ ...input, origin: "" }), link: input.link };
   const image = shellQuote(input.image);
@@ -70,8 +70,8 @@ for attempt in {1..30}; do
   sleep 1
 done
 if [ "\${#devices[@]}" -ne 1 ] || [ ! -b "\${devices[0]}" ]; then exit 1; fi
-install -d -m 700 /srv/omb-data
-mountpoint -q /srv/omb-data || mount -o discard,defaults "\${devices[0]}" /srv/omb-data
+install -d -m 700 /srv/dusk-data
+mountpoint -q /srv/dusk-data || mount -o discard,defaults "\${devices[0]}" /srv/dusk-data
 resize2fs "\${devices[0]}"
 `;
   const storageUnit = `[Unit]
@@ -103,13 +103,13 @@ DUSK_DOCKER_UNIT
 systemctl daemon-reload
 systemctl enable --now omb-storage
 systemctl enable --now docker
-install -d -m 700 /srv/omb-data /srv/omb-data/${CLOUD_HOME.dataName}
+install -d -m 700 /srv/dusk-data /srv/dusk-data/${CLOUD_HOME.dataName}
 ipv4="$(curl -fsS --max-time 10 http://169.254.169.254/hetzner/v1/metadata/public-ipv4)"
 node -e ${shellQuote(setup)} ${shellQuote(JSON.stringify(payload))} "$ipv4"
 maus_uid="$(docker run --rm --entrypoint id ${image} -u maus)"
 maus_gid="$(docker run --rm --entrypoint id ${image} -g maus)"
-chown -R "$maus_uid:$maus_gid" /srv/omb-data
-docker run -d --name omb-home --restart unless-stopped --env-file /root/omb-home.env -v /srv/omb-data:/data -p 127.0.0.1:8080:8080 ${image}
+chown -R "$maus_uid:$maus_gid" /srv/dusk-data
+docker run -d --name omb-home --restart unless-stopped --env-file /root/omb-home.env -v /srv/dusk-data:/data -p 127.0.0.1:8080:8080 ${image}
 chmod 644 /etc/caddy/Caddyfile
 systemctl enable caddy
 systemctl restart caddy

@@ -22,7 +22,7 @@ describe("duskbot sentinel", () => {
   let dir: string;
   let fixture: FixtureDataDir;
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "omb-sentinel-cli-"));
+    dir = mkdtempSync(join(tmpdir(), "dusk-sentinel-cli-"));
     fixture = fixtureDataDir(join(dir, "data"), [{ id: "b1", name: "Probe", threadId: "t1" }]);
   });
   afterEach(() => {
@@ -87,7 +87,7 @@ describe("duskbot sentinel", () => {
   it("parses its options and defaults the output to a folder of its own, outside the data", () => {
     const parsed = parseSentinelArgs(["--data-dir", "/data/omb"], {});
     expect(parsed).toMatchObject({ dataDir: expect.stringMatching(/omb$/), out: expect.stringMatching(/duskbot-sentinel[\\/]data-[0-9a-f]{12}$/), json: false });
-    expect("out" in parsed && parsed.out.includes(join("data", "omb"))).toBe(false);
+    expect("out" in parsed && parsed.out.includes(join("data", "dusk"))).toBe(false);
     expect(parseSentinelArgs(["--queue-wait", "600", "--cost", "2.5", "--json"], { DUSK_DATA_DIR: "/d" })).toMatchObject({ queueWaitMs: 600_000, costUsd: 2.5, json: true });
     expect(parseSentinelArgs(["--cost", "-1"], {})).toEqual({ error: expect.stringContaining("--cost"), json: false });
     // an unset variable in a script is an error, not a threshold of 0

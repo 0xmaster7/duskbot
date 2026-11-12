@@ -16,9 +16,9 @@ import { freePortBlock } from "./testing/ports.ts";
 import { TRIAL_CREDIT_OWN_AI, TRIAL_CREDIT_REFUSED } from "./trial-credit.ts";
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
-const HOST = "omb-t-0123456789ab.fly.dev";
+const HOST = "dusk-t-0123456789ab.fly.dev";
 const secret = randomBytes(32).toString("base64url");
-const TOKEN = `omb_ai_${randomBytes(32).toString("base64url")}`;
+const TOKEN = `dusk_ai_${randomBytes(32).toString("base64url")}`;
 /** The Admin's relay path; the Cloud is given `<origin>${RELAY_PATH}/v1`. */
 const RELAY_PATH = "/api/cloud/services/ai";
 /** The Admin's list: its default first, Sonnet, with Haiku still offered. */
@@ -112,7 +112,7 @@ beforeAll(async () => {
   // DUSK_CLOUD_AI_URL exactly as the Admin builds it: the origin, the relay path and `/v1`.
   const relay = `http://127.0.0.1:${(stub.address() as AddressInfo).port}${RELAY_PATH}/v1`;
 
-  home = mkdtempSync(join(tmpdir(), "omb-cloud-credit-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-cloud-credit-"));
   data = join(home, ".duskbot");
   mkdirSync(data, { recursive: true });
   // The person's own Claude Code, as on the image: signed out until the test
@@ -156,14 +156,14 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
     },
   }));
   mkdirSync(join(home, "web"));
-  writeFileSync(join(home, "web", "index.html"), "<!doctype html><title>Dusk Bot</title>");
+  writeFileSync(join(home, "web", "index.html"), "<!doctype html><title>dusk bot</title>");
   relayUrl = relay;
   await boot();
-  const body = JSON.stringify({ label: "Dusk Bot app (Cloud)", ttlSeconds: 300 });
+  const body = JSON.stringify({ label: "dusk bot app (Cloud)", ttlSeconds: 300 });
   const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
   const granted = await api("POST", "/api/cloud/pairing", { remote: true, headers: {
-    "content-type": "application/json", "x-omb-cloud-timestamp": timestamp, "x-omb-cloud-nonce": nonce,
-    "x-omb-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}`,
+    "content-type": "application/json", "x-dusk-cloud-timestamp": timestamp, "x-dusk-cloud-nonce": nonce,
+    "x-dusk-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}`,
   }, body: JSON.parse(body) });
   ownerToken = (await api("POST", "/api/auth/pair", { remote: true, body: { code: granted.body.code } })).body.token as string;
 }, 45_000);
@@ -211,7 +211,7 @@ describe("the free trial's Claude credit on a Cloud home", { timeout: 90_000 }, 
     expect(relayed).toContainEqual(expect.objectContaining({ method: "GET", path: `${RELAY_PATH}/v1/models`, bearer: `Bearer ${TOKEN}` }));
   });
 
-  it("answers on Sonnet through the relay's chat completions, on Dusk Bot's own chat engine: never Claude Code, never an Anthropic route", async () => {
+  it("answers on Sonnet through the relay's chat completions, on dusk bot's own chat engine: never Claude Code, never an Anthropic route", async () => {
     const settled = await turn("hello");
     expect(answered(settled)).toBe(true);
     expect(completions().at(-1)).toMatchObject({ method: "POST", path: `${RELAY_PATH}/v1/chat/completions`, bearer: `Bearer ${TOKEN}`, model: "claude-sonnet-5" });

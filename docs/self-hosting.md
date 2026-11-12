@@ -1,4 +1,4 @@
-# Self-hosting the Dusk Bot server
+# Self-hosting the dusk bot server
 
 Run the harness server on an always-on Linux box (a VPS, a home server, a
 Mac mini in a closet) and pair browsers, the desktop app, or phones with it.
@@ -14,7 +14,7 @@ The npm CLI supports a managed public tunnel, Tailscale, or your own proxy.
 > session. If several people use one server, read
 > [Loopback trust](#loopback-trust-owner-or-service) below.
 
-Step by step, for a server you do not have yet: [Deploy Dusk Bot on a
+Step by step, for a server you do not have yet: [Deploy dusk bot on a
 VPS](deploy-vps.md) walks through the three ways in (public address, own
 domain, Tailscale), signing engines in, pairing, keeping it running,
 updating and backups. This page is the reference behind it.
@@ -128,14 +128,14 @@ implicitly download a new release.
 ## Connect ChatGPT from the browser
 
 A browser paired with Full access can connect an installed Codex CLI without opening a
-terminal: **Settings → Engines → Codex → Connect ChatGPT**. Dusk Bot starts
+terminal: **Settings → Engines → Codex → Connect ChatGPT**. dusk bot starts
 `codex login --device-auth` on the server and shows a one-time code. Choose
 **Open ChatGPT sign-in**, enter the code on OpenAI's page, and complete sign-in
-with your own account. Dusk Bot checks for completion and refreshes the model list.
+with your own account. dusk bot checks for completion and refreshes the model list.
 You can cancel or request a fresh code after it expires.
 
 The server still needs Codex installed and runs it as the same operating-system
-user as Dusk Bot. Your password never goes through Dusk Bot; Codex stores its credentials
+user as dusk bot. Your password never goes through dusk bot; Codex stores its credentials
 on the server. Treat server access and backups as sensitive. Device-code login
 may need enabling in ChatGPT security settings or by your workspace admin; see
 [OpenAI's headless authentication guide](https://learn.chatgpt.com/docs/auth#login-on-headless-devices).
@@ -144,7 +144,7 @@ other providers retain their existing sign-in methods.
 
 Once connected, Settings shows the account email when Codex can report it.
 To switch accounts, open **Manage account and sign-in** under that line
-and choose **Sign out of ChatGPT**: Dusk Bot runs `codex logout` on the server as
+and choose **Sign out of ChatGPT**: dusk bot runs `codex logout` on the server as
 the same user and confirms with `codex login status`. New ChatGPT tasks need
 a connected account. Stop running Codex tasks before switching: sign-out does
 not cancel work already in progress. API-key logins are not removed by this
@@ -164,7 +164,7 @@ relative name (or `@` at the zone root). Server/proxy instructions are under
 The IP comes from this server's network interfaces, never the browser, tunnel
 hostname or an IP-echo service. Only a single unambiguous public IPv4 is shown.
 For containers/NAT or hosts with multiple public addresses, an administrator can
-set `DUSK_PUBLIC_IPV4` to the public IPv4 of the HTTPS proxy and restart Dusk Bot.
+set `DUSK_PUBLIC_IPV4` to the public IPv4 of the HTTPS proxy and restart dusk bot.
 This is a display hint, not proof of reachability; verification still checks
 HTTPS and the workspace identity. If the IP is missing or invalid, the UI asks
 for administrator help instead of inventing a DNS value.
@@ -175,12 +175,12 @@ To configure the connection:
    Add **AAAA** only when IPv6 routes to the same server.
 2. Configure HTTPS with a reverse proxy such as Caddy. The Settings example uses
    your actual app and webhook ports; the [supplied Caddyfile](../deploy/Caddyfile)
-   is the reference. Keep Dusk Bot listening on loopback, forward the original Host
+   is the reference. Keep dusk bot listening on loopback, forward the original Host
    and proxy headers, and keep event streams unbuffered. Caddy needs incoming
    ports 80/443 for its usual certificate setup. For containers, follow the
    Docker recipe below so Caddy can reach the loopback listener.
 3. Enter `bots.yourcompany.com` (or its bare `https://` origin) and choose
-   **Connect domain**. Dusk Bot checks HTTPS and the workspace identity at that
+   **Connect domain**. dusk bot checks HTTPS and the workspace identity at that
    domain before saving it. An incorrect domain leaves the existing address
    unchanged.
 
@@ -200,9 +200,9 @@ Requirements: Docker with Compose, a DNS name pointing at the machine, and
 ports 80/443 open.
 
 ```sh
-git clone https://github.com/goatedgrokbotalternative/duskbot && cd Dusk Bot/deploy
+git clone https://github.com/goatedgrokbotalternative/duskbot && cd dusk bot/deploy
 cp .env.example .env            # set DOMAIN
-docker compose pull omb && docker compose up -d
+docker compose pull dusk && docker compose up -d
 ```
 
 That uses the image CI publishes on every `main` push
@@ -214,8 +214,8 @@ the `data` volume, so they survive restarts and image upgrades) and mint a
 pairing code for your first device:
 
 ```sh
-docker compose exec omb claude                       # each CLI you listed in ENGINES
-docker compose exec omb node dist-server/duskbot.js pair # prints a code, a link and a QR
+docker compose exec dusk claude                       # each CLI you listed in ENGINES
+docker compose exec dusk node dist-server/duskbot.js pair # prints a code, a link and a QR
 ```
 
 Open the link (`https://<DOMAIN>/pair#code=…`) in a browser and it is
@@ -238,7 +238,7 @@ What the stack does, so you can adapt it:
   own pairing is the login. A shared-password `basic_auth` block is there,
   commented out, if you want a second wall in front of pairing.
 
-Upgrade with `docker compose pull omb && docker compose up -d` (or
+Upgrade with `docker compose pull dusk && docker compose up -d` (or
 `git pull && docker compose up -d --build`). State (chats, routines,
 engine logins, paired sessions) is on the `data` volume; back that up.
 
@@ -248,7 +248,7 @@ installed first, because those layers sit beneath the app and stay cached
 across code changes. To pick up the current ones, rebuild with a new tag:
 
 ```sh
-docker compose build --build-arg CHROME_CACHE_TAG=$(date +%F) omb && docker compose up -d
+docker compose build --build-arg CHROME_CACHE_TAG=$(date +%F) dusk && docker compose up -d
 ```
 
 ## From source
@@ -257,7 +257,7 @@ Requirements: Node 24+, pnpm, and at least one agent CLI installed and
 signed in on the server.
 
 ```sh
-git clone https://github.com/goatedgrokbotalternative/duskbot && cd Dusk Bot
+git clone https://github.com/goatedgrokbotalternative/duskbot && cd dusk bot
 pnpm install
 
 # choose where data lives and start the server
@@ -288,10 +288,10 @@ rely on routines running unattended.
 
 Engines whose installer is an npm package (Claude Code, Codex, OpenCode,
 MiniMax, pi) can be installed and updated from **Settings → Engines** when
-npm is on the server's PATH. Dusk Bot runs `npm install -g` as its own user into
+npm is on the server's PATH. dusk bot runs `npm install -g` as its own user into
 `<data dir>/tools/npm`, so nothing needs sudo and nothing touches a global
 prefix; that folder goes ahead of everything else on the engines' PATH, so
-the copy Dusk Bot installed is the one bots run. The package name comes from the
+the copy dusk bot installed is the one bots run. The package name comes from the
 engine's own install descriptor, never from the browser. Engines installed
 by a `curl | bash` script still need the command on the server.
 
@@ -323,7 +323,7 @@ Like `opencode` in a terminal, it reads provider keys from its environment
 (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`,
 `KIMI_API_KEY`, `MOONSHOT_API_KEY`, `MINIMAX_API_KEY`) and offers those
 providers' models, billed to that key. It does so only where the server's
-environment is one person's own: never on Dusk Cloud, an organisation-managed desktop, or a server whose sign-in list
+environment is one person's own: never on dusk cloud, an organisation-managed desktop, or a server whose sign-in list
 lets other people in (users, more than one admin, or a whole domain).
 Providers added with `opencode auth login` work everywhere.
 
@@ -353,8 +353,8 @@ reach it. On the server:
 
 ```sh
 npx duskbot pair                         # npm install
-pnpm omb pair                                # from a checkout
-docker compose exec omb node dist-server/duskbot.js pair   # Docker
+pnpm dusk pair                                # from a checkout
+docker compose exec dusk node dist-server/duskbot.js pair   # Docker
 ```
 
 It prints a 12-character code (single use, five minutes) and, when the
@@ -422,7 +422,7 @@ To move by hand instead, export a backup from this computer in **Settings →
 Backups → Export backup**, then import it on the server in **Settings → Backups
 → Import backup**. API keys, engine sign-ins and paired devices stay where they
 are on both sides; routines arrive paused. An older desktop app's **Copy this
-computer here** is answered with "Update Dusk Bot to bring your bots here by
+computer here** is answered with "Update dusk bot to bring your bots here by
 itself."
 
 Only conversations you start yourself on that server can use what you share;
@@ -495,7 +495,7 @@ server at all.
 For development, `pnpm dev:server` sets `DUSK_DEV_TRUST_LOCAL_BROWSER=1`, so a
 browser on Vite's dev page (`pnpm dev`) is the owner as before. The server
 honours it only when it runs from source with owner trust, logs a warning, and
-ignores it in a build, the desktop app and Dusk Cloud.
+ignores it in a build, the desktop app and dusk cloud.
 Run `DUSK_DEV_TRUST_LOCAL_BROWSER=0 pnpm dev:server` to try the sign-in.
 
 ### Loopback trust: owner or service
@@ -515,7 +515,7 @@ local requests: service trust (DUSK_LOOPBACK_TRUST); without a session, loopback
 | Trust | Default for | A session-less loopback request may |
 |---|---|---|
 | `owner` | a self-hosted server, the desktop app | do everything, as today |
-| `service` | Dusk Cloud; any server with `DUSK_LOOPBACK_TRUST=service` | read health, who-am-I, the bot list, a thread's messages and a bot's picture; open a thread; send through the guarded route; watch and stop its exact request; withdraw a queued line; **decline** a card; use the bots' own capability routes (`/api/internal/*`, which check their own per-turn token) |
+| `service` | dusk cloud; any server with `DUSK_LOOPBACK_TRUST=service` | read health, who-am-I, the bot list, a thread's messages and a bot's picture; open a thread; send through the guarded route; watch and stop its exact request; withdraw a queued line; **decline** a card; use the bots' own capability routes (`/api/internal/*`, which check their own per-turn token) |
 
 Under `service`, everything else from loopback needs a real session and
 answers 403: settings and keys (`/api/config`), instances, MCP servers,
@@ -526,7 +526,7 @@ approving or answering any card. Email sign-in and paired sessions keep their ow
 Set `DUSK_LOOPBACK_TRUST=service` on a self-hosted server people share (with
 an email sign-in list, say). `DUSK_LOOPBACK_TRUST=owner` grants local callers owner access. Any other value
 means `service`. The desktop app ignores the setting: its local changes
-already need the app's own per-launch capability. Dusk Cloud ignores
+already need the app's own per-launch capability. dusk cloud ignores
 it too and is always `service` (docs/cloud-pro.md).
 
 With `service` on a self-hosted server:
@@ -588,7 +588,7 @@ in `config.json` under `signIn.admins` and `signIn.members` and can be changed
 through the settings API without a restart; the environment variables win
 when set, which is how a container or a service unit is bootstrapped.
 
-The code itself comes from `dusk.bot`, the Dusk Bot
+The code itself comes from `dusk.bot`, the dusk bot
 account service, so your server needs no email credentials. Your server asks
 it to send the code, checks the answer, and then issues its own session
 cookie: the browser only ever talks to your server, and who is welcome is
@@ -607,7 +607,7 @@ Roles change with one click; removing someone stops new sign-ins.
 
 ### Who may answer a card
 
-Approval cards are the provider's own (see the approval modes); Dusk Bot
+Approval cards are the provider's own (see the approval modes); dusk bot
 adds none. On a workspace several people share, an email sign-in list that
 names users narrows only whose answer counts, and only when the card can
 be traced to a person:
@@ -735,7 +735,7 @@ is the reference implementation.
 
 In a paired admin browser, as in the desktop app, **Take control** turns the
 Computer panel's picture into the live desktop for Local VMs and your own VPS,
-through the same address as Dusk Bot; **Full screen** fills the window with
+through the same address as dusk bot; **Full screen** fills the window with
 the same session. Shared, per-bot and pool Local VMs connect through their
 managed container's loopback port. VPS desktops connect
 through an SSH tunnel opened by the server. Neither needs an additional public
@@ -786,7 +786,7 @@ than present the old session to it.
 Both native apps pair this way. `duskbot pair --phone android` prints the
 app-scheme QR that Android's scanner needs, and the iOS app accepts either
 that QR or the web link. Pass `--phone` whenever nothing is watching the
-terminal, such as `docker compose exec omb node dist-server/duskbot.js
+terminal, such as `docker compose exec dusk node dist-server/duskbot.js
 pair --phone android --public-url https://your-domain`, since a scripted run
 never reaches the question the interactive command asks. Nothing extra to install, and the phone becomes a
 session like any other.
@@ -1170,7 +1170,7 @@ For a foreground invocation, `npx --yes duskbot@X.Y.Z serve --tunnel`
 selects a particular published release; replace `X.Y.Z` with that version.
 
 ```sh
-docker compose -f deploy/docker-compose.yml pull omb && docker compose -f deploy/docker-compose.yml up -d   # Docker
+docker compose -f deploy/docker-compose.yml pull dusk && docker compose -f deploy/docker-compose.yml up -d   # Docker
 git pull && pnpm install && sudo systemctl restart duskbot          # from source
 ```
 

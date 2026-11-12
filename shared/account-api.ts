@@ -15,9 +15,18 @@ export const EMAIL_RESEND_SECONDS = 30;
 
 /** cookies the website session uses. the session cookie is HttpOnly; the csrf cookie is readable so the page can echo
  * it in CSRF_HEADER on every cookie-authenticated POST, PATCH and DELETE. */
-export const SESSION_COOKIE = "omb_dash";
-export const CSRF_COOKIE = "omb_csrf";
-export const CSRF_HEADER = "x-omb-csrf";
+export const SESSION_COOKIE = "dusk_dash";
+export const CSRF_COOKIE = "dusk_csrf";
+export const CSRF_HEADER = "x-dusk-csrf";
+/** a browser signed in before the rename holds the cookie under its old name until it signs in again */
+export const CSRF_COOKIE_BEFORE = "omb_csrf";
+export function readCsrfCookie(cookies: string): string | undefined {
+  for (const name of [CSRF_COOKIE, CSRF_COOKIE_BEFORE]) {
+    const part = cookies.split(";").map((item) => item.trim()).find((item) => item.startsWith(`${name}=`));
+    if (part) return part.slice(name.length + 1);
+  }
+  return undefined;
+}
 
 /** the deep link a phone sign-in returns to: duskbot://auth?code=...&state=... or ?error=...&state=... */
 export const APP_AUTH_REDIRECT = "duskbot://auth";

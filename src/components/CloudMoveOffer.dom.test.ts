@@ -57,7 +57,7 @@ beforeEach(() => {
   listener = null;
   current = { ...BASE, offer: { stage: "prompt", bots: 12 } };
   bridge.moveOfferAccept.mockClear();
-  (window as unknown as { ogb: unknown }).ogb = { cloudSendPage: bridge, workspaces };
+  (window as unknown as { duskDesktop: unknown }).duskDesktop = { cloudSendPage: bridge, workspaces };
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);

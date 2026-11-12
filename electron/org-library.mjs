@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import { constants } from "node:fs";
 import path from "node:path";
+import { withCurrentFormat } from "./legacy-names.mjs";
 
 export const LIBRARY_CATALOG_MAX_BYTES = 256 * 1024;
 export const LIBRARY_BLOB_MAX_BYTES = 4 * 1024 * 1024;
@@ -74,7 +75,8 @@ export function parseOrgLibraryCatalog(input, { organizationId } = {}) {
   if (typeof input === "string" || input instanceof Uint8Array) {
     try { value = JSON.parse(typeof input === "string" ? input : new TextDecoder("utf-8", { fatal: true }).decode(input)); } catch { return null; }
   }
-  if (!record(value) || value.format !== "openmaus.org-library" || value.version !== 1 || !count(value.libraryVersion) || !record(value.organization) ||
+  value = withCurrentFormat(value);
+  if (!record(value) || value.format !== "dusk.org-library" || value.version !== 1 || !count(value.libraryVersion) || !record(value.organization) ||
       !matches(UUID, value.organization.id) || !safeText(value.organization.name, 100) || !Array.isArray(value.packages) || value.packages.length > CATALOG_MAX_ENTRIES) return null;
   if (organizationId !== undefined && value.organization.id !== organizationId) return null;
   const seen = new Set(), packages = [];
@@ -82,7 +84,7 @@ export function parseOrgLibraryCatalog(input, { organizationId } = {}) {
     const entry = parseEntry(item);
     if (entry && !seen.has(entry.packageId)) { seen.add(entry.packageId); packages.push(entry); }
   }
-  return { format: "openmaus.org-library", version: 1, libraryVersion: value.libraryVersion, organization: { id: value.organization.id, name: value.organization.name },
+  return { format: "dusk.org-library", version: 1, libraryVersion: value.libraryVersion, organization: { id: value.organization.id, name: value.organization.name },
     ...(value.truncated === true ? { truncated: true } : {}), packages };
 }
 export function parseLibraryReportEntries(value) {

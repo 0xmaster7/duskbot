@@ -14,7 +14,7 @@ import { freePortBlock } from "./testing/ports.ts";
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(SERVER_DIR, "..");
 const FAKE_CLAUDE = join(SERVER_DIR, "testing", "fake-claude-cli.ts");
-const envelope = (decision: Record<string, string>) => `<openmaus-goal>${JSON.stringify(decision)}</openmaus-goal>`;
+const envelope = (decision: Record<string, string>) => `<dusk-goal>${JSON.stringify(decision)}</dusk-goal>`;
 
 let child: ChildProcess;
 let home = "";
@@ -55,7 +55,7 @@ const sendGoal = (bot: { id: string; threadId: string }, text: string, extra: Re
   api("POST", `/api/bots/${bot.id}/messages`, { text, mode: "goal", threadId: bot.threadId, ...extra });
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-one-on-one-goal-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-one-on-one-goal-"));
   slowGate = join(home, "slow-finish");
   patientGate = join(home, "patient-finish");
   const data = join(home, ".duskbot");
@@ -155,7 +155,7 @@ describe("one-on-one goal runs (a room of one)", () => {
 
     const messages = await messagesIn(bot.threadId);
     const afterGoal = messages.slice(messages.findIndex((message) => message.id === sent.body.message.id) + 1);
-    expect(JSON.stringify(messages)).not.toContain("openmaus-goal");
+    expect(JSON.stringify(messages)).not.toContain("dusk-goal");
     expect(afterGoal.filter((message) => message.kind === "text" && message.role === "bot").map((message) => message.text))
       .toEqual(["I fixed the parser test.", "Every test passes now."]);
     expect(messages.filter((message) => message.role === "user").map((message) => message.text)).toEqual(["Get every test passing"]);

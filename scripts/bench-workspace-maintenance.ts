@@ -7,7 +7,7 @@ import { DatabaseSync } from "node:sqlite";
 import { performance, monitorEventLoopDelay } from "node:perf_hooks";
 import { setTimeout as delay, setImmediate } from "node:timers/promises";
 
-const directory = mkdtempSync(join(tmpdir(), "omb-maintenance-probe-"));
+const directory = mkdtempSync(join(tmpdir(), "dusk-maintenance-probe-"));
 const previousDataDir = process.env.DUSK_DATA_DIR;
 process.env.DUSK_DATA_DIR = directory;
 const db = await import("../server/message-db.ts");

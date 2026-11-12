@@ -31,7 +31,7 @@ export function backgroundCallArgs(input: {
 
 /** Runs in an empty temp folder so no project settings or files leak in; the caller removes it once settled. */
 export function spawnBackgroundCall(cli: string, args: string[], env: NodeJS.ProcessEnv) {
-  const cwd = mkdtempSync(join(tmpdir(), "omb-claude-background-"));
+  const cwd = mkdtempSync(join(tmpdir(), "dusk-claude-background-"));
   const removeCwd = () => { try { rmSync(cwd, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); } catch {} };
   try {
     return { child: spawnCli(cli, args, { cwd, stdio: ["pipe", "pipe", "pipe"], env, botWork: true }), removeCwd };

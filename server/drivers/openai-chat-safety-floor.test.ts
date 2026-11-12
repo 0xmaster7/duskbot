@@ -66,7 +66,7 @@ function sse(response: ServerResponse, delta: unknown, finishReason: string) {
 /** A chat-completions provider that asks for one `shell_exec` call per
  * command, in order, then answers; and the fixture MCP server it calls. */
 async function fixture(commands: string[]) {
-  const directory = mkdtempSync(join(tmpdir(), "omb-chat-floor-"));
+  const directory = mkdtempSync(join(tmpdir(), "dusk-chat-floor-"));
   const requests: ChatRequest[] = [];
   const server = createServer(async (request, response) => {
     if (request.url === "/v1/models") {

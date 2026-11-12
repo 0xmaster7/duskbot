@@ -29,7 +29,7 @@ const input = (now = 1_000_000) => ({
 });
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), "omb-migrate-"));
+  root = mkdtempSync(join(tmpdir(), "dusk-migrate-"));
   home = join(root, "home");
   dataDir = join(home, ".duskbot");
   mkdirSync(dataDir, { recursive: true });

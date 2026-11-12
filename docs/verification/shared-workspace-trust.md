@@ -8,7 +8,7 @@ description is in [self-hosting](../self-hosting.md#loopback-trust-owner-or-serv
 ## Sub-features
 
 - **Loopback trust.** At start-up the server logs `local requests: owner
-  trust (…)` or `local requests: service trust (…)`. A self-hosted server defaults to `owner`; Dusk Cloud defaults to `service`.
+  trust (…)` or `local requests: service trust (…)`. A self-hosted server defaults to `owner`; dusk cloud defaults to `service`.
   `DUSK_LOOPBACK_TRUST=owner|service` overrides (anything else means
   `service`); the desktop app always keeps `owner` behind its per-launch
   capability. Under `service` a session-less loopback request may use only
@@ -95,7 +95,7 @@ pnpm exec vitest run server/request-auth.test.ts server/decision-log.test.ts \
 
 ## Observed local result — 2026-09-23
 
-On a disposable worktree rebased onto Dusk Bot main `0bb37982`:
+On a disposable worktree rebased onto dusk bot main `0bb37982`:
 `pnpm typecheck`, `pnpm lint`, `pnpm i18n:check`, `pnpm test:packaged-server`,
 and the files above plus `server/index.test.ts`,
 `server/chat-followups-restart.test.ts`, `server/steer-e2e.test.ts`,

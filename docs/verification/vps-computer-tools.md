@@ -54,5 +54,5 @@ DUSK_CDP_E2E=1 pnpm exec vitest run server/box-login-page.e2e.test.ts   # a real
 ```
 
 On a live VPS, the same argv `vpsExecArgs` builds can be run by hand against a bot's container
-(`docker exec -u cua -w /home/cua/workspace ... sh -c '<wrapper>' omb-exec 60 'ls -l' MARK:`); it prints the output and
+(`docker exec -u cua -w /home/cua/workspace ... sh -c '<wrapper>' dusk-exec 60 'ls -l' MARK:`); it prints the output and
 `MARK:<exit code>` on stderr.

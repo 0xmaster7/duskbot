@@ -19,7 +19,7 @@ import {
 } from "./message-file.ts";
 
 const referencesAttachment = (text: string, requested: string) => messageAttachmentName(text, requested) !== null;
-const suite = mkdtempSync(join(tmpdir(), "omb-message-file-"));
+const suite = mkdtempSync(join(tmpdir(), "dusk-message-file-"));
 const workspace = join(suite, "workspace");
 const outside = join(suite, "outside");
 

@@ -75,7 +75,7 @@ function openStream() {
 posixOnly("a routine run's task on the event stream", () => {
   beforeAll(async () => {
     chmodSync(FAKE_CLI, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-routine-broadcast-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-routine-broadcast-"));
     const data = join(home, ".duskbot");
     mkdirSync(data, { recursive: true });
     writeFileSync(join(data, "config.json"), JSON.stringify({

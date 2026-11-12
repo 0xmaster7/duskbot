@@ -36,7 +36,7 @@ import { CloudWelcome, sentHere } from "./CloudWelcome";
 import { CLOUD_SETUP_MOVE_SKIPPED, CLOUD_WELCOME_DONE, CLOUD_WELCOME_SHOWN as SHOWN, welcomeStepHint } from "@/lib/cloud-setup";
 import { resetCloudWelcome, returnToWelcome, useCloudWelcome } from "@/lib/cloud-welcome";
 
-const CLOUD = { name: "Studio Cloud", origin: "https://omb-u-1a2b3c4d5e6f.fly.dev" };
+const CLOUD = { name: "Studio Cloud", origin: "https://dusk-u-1a2b3c4d5e6f.fly.dev" };
 const quiet: CloudSendNotice = { ready: true, bots: [], updatedBots: [], skills: 0, logins: 0, onePassword: false, settings: 0, signature: "", dismissed: false, running: false, last: null, whole: null };
 const claude = { instanceId: "claude", driverKind: "claudeAgent", displayName: "Claude", access: "subscription", authentication: { method: "paste-code" }, snapshot: { state: "available", authenticated: false }, models: { default: "", options: [] } };
 const codex = { ...claude, instanceId: "codex", driverKind: "codex", displayName: "Codex" };
@@ -79,11 +79,11 @@ beforeEach(() => {
     if (patch.onboarding) return { ...fixture.state.config, onboarding: { ...fixture.state.config.onboarding, ...patch.onboarding } };
     throw new Error(`unexpected ${path}`);
   });
-  window.ogb = {
+  window.duskDesktop = {
     platform: "darwin", cloudPlan: { state: vi.fn() },
     cloudSendPage: { notice: vi.fn().mockResolvedValue(quiet), dismiss: vi.fn(), onNotice: vi.fn(() => () => {}) },
     workspaces: { state: vi.fn().mockResolvedValue({ local: false, name: "Studio Cloud", origin: CLOUD.origin }), menu: vi.fn() },
-  } as unknown as typeof window.ogb;
+  } as unknown as typeof window.duskDesktop;
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
@@ -91,7 +91,7 @@ beforeEach(() => {
 afterEach(() => {
   flushSync(() => root.unmount());
   host.remove();
-  delete window.ogb;
+  delete window.duskDesktop;
   vi.unstubAllGlobals();
 });
 
@@ -102,7 +102,7 @@ const sentLast = { at: 1, reason: "move", failed: 0, seen: false, sent: { bots: 
 let pushNotice: (value: CloudSendNotice) => void = () => {};
 const withSend = (value: CloudSendNotice | null, more: Record<string, unknown> = {}) => {
   const page = { notice: vi.fn().mockResolvedValue(value), dismiss: vi.fn(), onNotice: vi.fn((listener: (next: CloudSendNotice) => void) => { pushNotice = listener; return () => {}; }), ...more };
-  window.ogb = { ...window.ogb!, cloudSendPage: page } as unknown as typeof window.ogb;
+  window.duskDesktop = { ...window.duskDesktop!, cloudSendPage: page } as unknown as typeof window.duskDesktop;
   return page;
 };
 
@@ -127,7 +127,7 @@ describe("CloudWelcome", () => {
       root = createRoot(host);
       fixture.state.config = { ...fixture.state.config, ...(team ? { team: { id: "team-acme", name: "Acme" } } : { team: undefined }) };
       if (desktop) withSend(quiet, { teamBring: vi.fn(async () => ({ team: { id: "team-acme", name: "Acme", ready: true }, bots: [{ id: "atlas", name: "Atlas" }] })), teamBringMove: vi.fn() });
-      else window.ogb = { ...window.ogb!, cloudSendPage: undefined } as unknown as typeof window.ogb;
+      else window.duskDesktop = { ...window.duskDesktop!, cloudSendPage: undefined } as unknown as typeof window.duskDesktop;
       render();
       await vi.waitFor(() => expect(host.querySelector("h1")).not.toBeNull());
       await new Promise((resolve) => setTimeout(resolve, 0));

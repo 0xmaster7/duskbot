@@ -2,7 +2,7 @@
 
 When an Organization shares packages with its members, or a partner shares
 them with its Customers, Admin builds a catalog for each receiving
-Organization. A connected Dusk Bot desktop keeps a verified copy of that
+Organization. A connected dusk bot desktop keeps a verified copy of that
 catalog and of each package's release file, so **Templates → From
 {Organization}** can show and add them. This page describes the desktop's half
 of that channel: Electron main. The runtime's shelf, the Add button and the
@@ -29,7 +29,7 @@ update controls: the catalog always names the newest release.
 ## What main does with a new pointer
 
 1. `GET /api/desktop/library` (at most 256 KiB, 20 s). The catalog must be an
-   `openmaus.org-library` version 1 envelope for **this** Organization. A
+   `dusk.org-library` version 1 envelope for **this** Organization. A
    malformed envelope or another Organization's catalog is refused whole and
    the last good catalog stays. A malformed entry is dropped on its own;
    unknown fields are ignored.
@@ -133,8 +133,8 @@ Main waits 5 s after a snapshot arrives and sends only the newest one.
 
 | Desktop \ Admin | Admin without `capabilities.library` | Admin with it |
 |---|---|---|
-| Dusk Bot before this channel | as before | ignores the pointer, stays connected |
-| Dusk Bot with it | no library request, no shelf; file import and export work | the shelf |
+| dusk bot before this channel | as before | ignores the pointer, stays connected |
+| dusk bot with it | no library request, no shelf; file import and export work | the shelf |
 | No organization account | as before | — |
 
 This channel and the runtime's handler for `duskbot:managed-library`

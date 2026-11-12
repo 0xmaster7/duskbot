@@ -78,7 +78,7 @@ export function profileInitials(profile?: { name?: string; email?: string }): st
 export function useComputerName(enabled: boolean): string | null {
   const [name, setName] = useState<string | null>(null);
   useEffect(() => {
-    const bridge = window.ogb?.desktopProfile;
+    const bridge = window.duskDesktop?.desktopProfile;
     if (!enabled || !bridge) return;
     let active = true;
     void (async () => {
@@ -188,7 +188,7 @@ function useConnectPhoneEntry(cloudHome: boolean): ConnectPhoneEntry | null {
 }
 
 export function useCloudPhoneDestination(enabled: boolean): { cloud: CloudPhoneDestination; bridge?: CloudAccountBridge } {
-  const bridge = enabled && !window.ogb?.remoteClient?.active ? window.ogb?.cloudAccount : undefined;
+  const bridge = enabled && !window.duskDesktop?.remoteClient?.active ? window.duskDesktop?.cloudAccount : undefined;
   const [account, setAccount] = useState<CloudAccountState | null>(null);
   useEffect(() => {
     if (!bridge) return;
@@ -495,7 +495,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
   const simple = account !== undefined;
   const [menuOpen, setMenuOpen] = useState(false);
   const cloudUsage = cloudUsageSummary(useCloudPlanSnapshot(simple ? usageBridge(state.config?.cloudHome === true) : undefined));
-  const engineUsage = usePlanUsageSummary(simple && menuOpen && cloudUsage === null && window.ogb?.remoteClient?.active !== true);
+  const engineUsage = usePlanUsageSummary(simple && menuOpen && cloudUsage === null && window.duskDesktop?.remoteClient?.active !== true);
   const phone = useSidebarPhoneStatus();
   const connectPhone = useConnectPhoneEntry(state.config?.cloudHome === true);
   const cloudPhone = useCloudPhoneDestination(connectPhone?.target === "computer");
@@ -519,9 +519,9 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
   const computer = useComputerName(simple && !profile?.name?.trim() && !profile?.email?.trim());
   const name = computer ?? profileLabel(profile);
   const connectTo = (destination: PhoneDestination) => selectPhoneDestination(destination, { bridge: cloudPhone.bridge, dispatch });
-  const remote = window.ogb?.remoteClient?.active === true;
+  const remote = window.duskDesktop?.remoteClient?.active === true;
   const besideRail = railShown(usePlaces());
-  const cloudAccount = !remote && Boolean(window.ogb?.cloudAccount || (window.ogb?.cloudPlan && state.config?.cloudHome === true));
+  const cloudAccount = !remote && Boolean(window.duskDesktop?.cloudAccount || (window.duskDesktop?.cloudPlan && state.config?.cloudHome === true));
   const openCloudAccount = () => dispatch({ type: "toggleAppSettings", open: true, section: "cloudAccount" });
   const move = useAccountMove(state.config?.cloudHome === true, { onOpen: openCloudAccount, onPairPhone: () => dispatch(phonePairingSettingsAction()) });
   const accounts = useAccounts();

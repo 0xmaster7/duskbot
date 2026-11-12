@@ -33,8 +33,8 @@ export function finishReason(turn: { text: string; tools: number; plan: { open: 
 
 export function continueNote(reason: FinishReason): string {
   return reason.kind === "plan"
-    ? `[Dusk Bot: your plan still has ${reason.open} of ${reason.total} steps open and nobody asked you to stop. Carry on with the next open step now and finish the plan. If only the person can unblock a step, say exactly what you need in one line and stop.]`
-    : "[Dusk Bot: you agreed with the person's correction but did not act on it. Redo the work now with the correction applied. If nothing needs redoing, say so in one short line.]";
+    ? `[dusk bot: your plan still has ${reason.open} of ${reason.total} steps open and nobody asked you to stop. Carry on with the next open step now and finish the plan. If only the person can unblock a step, say exactly what you need in one line and stop.]`
+    : "[dusk bot: you agreed with the person's correction but did not act on it. Redo the work now with the correction applied. If nothing needs redoing, say so in one short line.]";
 }
 
 export interface FinishGuardDeps {

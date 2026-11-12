@@ -33,7 +33,7 @@ export class AuthError extends Error {
   }
 }
 const messages: Partial<Record<AccountErrorCode, string>> = {
-  billing_active: "Cancel your plan and Dusk Cloud before deleting your account.",
+  billing_active: "Cancel your plan and dusk cloud before deleting your account.",
   invalid_request: "Invalid request.", invalid_email: "Enter a valid email address.", wrong_code: "Code is incorrect.", invalid_code: "Code is incorrect.",
   expired: "Sign-in has expired.", rate_limited: "Try again later.", signup_closed: "New accounts are not available.", signed_out: "Sign in to continue.",
   csrf: "Refresh the page and try again.", not_found: "Not found.", invalid_token: "Session is invalid.", invalid_grant: "Grant is invalid.",
@@ -266,11 +266,11 @@ export function createAuth(options: AuthOptions) {
     return item && opaque(cookie) && equal(hash(cookie), item.bindingHash) ? item : undefined;
   }
   function binding(req: IncomingMessage) {
-    return req.headers.cookie?.split(";").map(item => item.trim()).find(item => item.startsWith("omb_oauth="))?.slice(10);
+    return req.headers.cookie?.split(";").map(item => item.trim()).find(item => item.startsWith("dusk_oauth="))?.slice(11);
   }
   function oauthCookie(res: ServerResponse, value = "") {
     const secure = publicUrl.startsWith("https:");
-    res.appendHeader("set-cookie", `omb_oauth=${value}; HttpOnly; Path=/v1/auth; Max-Age=${value ? 600 : 0}; SameSite=${secure ? "None; Secure" : "Lax"}`);
+    res.appendHeader("set-cookie", `dusk_oauth=${value}; HttpOnly; Path=/v1/auth; Max-Age=${value ? 600 : 0}; SameSite=${secure ? "None; Secure" : "Lax"}`);
   }
   function redirect(res: ServerResponse, location: string) { res.writeHead(302, { location, "referrer-policy": "no-referrer" }); res.end(); }
   function oauthError(res: ServerResponse, code: OAuthErrorCode, next = "/", flowId?: string) {

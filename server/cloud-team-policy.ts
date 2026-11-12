@@ -1,4 +1,4 @@
-// A Team Cloud's rules: one document the team's Owner and Admins keep on the Admin (openmaus-cloud docs/team-cloud.md
+// A Team Cloud's rules: one document the team's Owner and Admins keep on the Admin (dusk-cloud docs/team-cloud.md
 // "Rules"). The Cloud fetches it signed with its bootstrap secret at boot, on a timer and when the Admin nudges it,
 // keeps the last valid one on its volume, and feeds the one enforcement every caller already passes (managed-policy.ts).
 // Security invariants: the rules only restrict, and a change applies without a restart. Kept rules never lapse: an Admin
@@ -15,9 +15,10 @@ import type { CloudTeam } from "./cloud-team.ts";
 import type { ManagedDesktopPolicy, ManagedPolicy } from "./managed-policy.ts";
 import { TEAM_PHONE_PAIRING_PATH } from "./routes/team-phone.ts";
 import type { SessionRegistry } from "./sessions.ts";
+import { withLegacyHeaders } from "../electron/legacy-names.mjs";
 
 export const TEAM_POLICY_SCHEMA = 1;
-/** On the Admin; must match openmaus-cloud's TEAM_POLICY_MACHINE_PATH. */
+/** On the Admin; must match dusk-cloud's TEAM_POLICY_MACHINE_PATH. */
 export const TEAM_POLICY_ADMIN_PATH = "/api/cloud/machines/team-policy";
 /** The Admin's signed word that the rules changed: `{}`, fetched at once rather than at the next timer. */
 export const CLOUD_TEAM_POLICY_CHANGED_PATH = "/api/cloud/team/policy-changed";
@@ -57,11 +58,11 @@ function canonical(value: unknown): string {
   }
   return JSON.stringify(value);
 }
-/** Must match openmaus-cloud's teamPolicyFingerprint: its keys sorted, sixteen hex digits of its SHA-256. */
+/** Must match dusk-cloud's teamPolicyFingerprint: its keys sorted, sixteen hex digits of its SHA-256. */
 export function teamPolicyFingerprint(document: unknown): string {
   return createHash("sha256").update(canonical(document)).digest("hex").slice(0, 16);
 }
-/** Must match openmaus-cloud's teamPolicySignature. */
+/** Must match dusk-cloud's teamPolicySignature. */
 export function teamPolicySignature(secret: string, machineId: string, timestamp: string, nonce: string, body: string): string {
   const bodyHash = createHash("sha256").update(body).digest("base64url");
   return createHmac("sha256", secret).update(`omb-team-policy-v1\n${machineId}\n${timestamp}\n${nonce}\n${bodyHash}`).digest("base64url");
@@ -178,10 +179,10 @@ export function startTeamPolicyClient(options: TeamPolicyClientOptions): TeamPol
     const timestamp = String(Math.floor(now() / 1000)), nonce = randomBytes(18).toString("base64url");
     let response: Response;
     try {
-      response = await fetcher(`${options.adminOrigin}${TEAM_POLICY_ADMIN_PATH}`, { method: "POST", redirect: "error", cache: "no-store", body, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS), headers: {
-        accept: "application/json", "content-type": "application/json", "x-omb-cloud-machine": options.machineId, "x-omb-cloud-timestamp": timestamp, "x-omb-cloud-nonce": nonce,
-        "x-omb-cloud-signature": `v1=${teamPolicySignature(options.secret, options.machineId, timestamp, nonce, body)}`,
-      } });
+      response = await fetcher(`${options.adminOrigin}${TEAM_POLICY_ADMIN_PATH}`, { method: "POST", redirect: "error", cache: "no-store", body, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS), headers: withLegacyHeaders({
+        accept: "application/json", "content-type": "application/json", "x-dusk-cloud-machine": options.machineId, "x-dusk-cloud-timestamp": timestamp, "x-dusk-cloud-nonce": nonce,
+        "x-dusk-cloud-signature": `v1=${teamPolicySignature(options.secret, options.machineId, timestamp, nonce, body)}`,
+      }) });
     } catch (error) {
       log(`team rules: the Admin can't be reached (${error instanceof Error ? error.name : "error"}); keeping the last rules`);
       return;

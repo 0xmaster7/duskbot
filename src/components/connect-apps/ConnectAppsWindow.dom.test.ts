@@ -366,7 +366,7 @@ describe("the Connect Apps window", () => {
       await remountAt(5);
       expect(fixture.api).not.toHaveBeenCalledWith("/api/connectors/composio-connect/apps/attio", expect.objectContaining({ method: "POST" }));
       expect(fixture.opened).toEqual([]);
-      expect(JSON.parse(kept.get("omb.composioConnect.apps") ?? "{}")).toEqual({ attio: true });
+      expect(JSON.parse(kept.get("dusk.composioConnect.apps") ?? "{}")).toEqual({ attio: true });
       expect(primary(), "connected: nothing left to click").toBeNull();
       expect(fixture.api).toHaveBeenCalledWith("/api/mcp/servers/composio-connect", { method: "PATCH", body: JSON.stringify({ enabled: true }) });
     });
@@ -456,7 +456,7 @@ describe("the Connect Apps window", () => {
 
       it("a reload mid sign-in picks the wait up again", async () => {
         const kept = keep();
-        kept.set("omb.composioConnect.pending", JSON.stringify({ attio: { url: "https://connect.composio.dev/link/ln_attio", since: Date.now() - 60_000 } }));
+        kept.set("dusk.composioConnect.pending", JSON.stringify({ attio: { url: "https://connect.composio.dev/link/ln_attio", since: Date.now() - 60_000 } }));
         await remount({ kind: "detail", id: "attio" }, "unavailable");
         viaApi({ signedIn: true }, () => ({ status: "waiting" }));
         await remountAt(8);
@@ -466,7 +466,7 @@ describe("the Connect Apps window", () => {
 
       it("a saved wait is checked before it shows: one Composio no longer has, or one past its deadline, is dropped", async () => {
         const kept = keep();
-        kept.set("omb.composioConnect.pending", JSON.stringify({
+        kept.set("dusk.composioConnect.pending", JSON.stringify({
           attio: { url: "https://connect.composio.dev/link/ln_attio", since: Date.now() - 60_000 },
           asana: { url: "https://connect.composio.dev/link/ln_asana", since: Date.now() - 11 * 60_000 },
         }));
@@ -478,7 +478,7 @@ describe("the Connect Apps window", () => {
         expect(fixture.api, "past its deadline: not even asked").not.toHaveBeenCalledWith("/api/connectors/composio-connect/apps/asana", expect.anything());
         expect(shownLabel()).toBe("Connect Attio");
         expect(line()).toBeUndefined();
-        expect(JSON.parse(kept.get("omb.composioConnect.pending") ?? "{}")).toEqual({});
+        expect(JSON.parse(kept.get("dusk.composioConnect.pending") ?? "{}")).toEqual({});
       });
 
       it("Cancel stops the wait at once and says Connect again", async () => {

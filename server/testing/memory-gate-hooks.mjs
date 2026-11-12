@@ -9,8 +9,8 @@ if (!dataDir || dataDir !== process.env.HOME || process.env.DUSK_TEST_MEMORY_GAT
   throw new Error('The memory gate seam requires an explicitly isolated fixture');
 }
 const file = join(dataDir, 'host-memory.json');
-globalThis.__ombTestHostMemory = () => JSON.parse(readFileSync(file, 'utf8'));
-globalThis.__ombTestStarter = () => existsSync(join(dataDir, 'test-starter'));
+globalThis.__duskTestHostMemory = () => JSON.parse(readFileSync(file, 'utf8'));
+globalThis.__duskTestStarter = () => existsSync(join(dataDir, 'test-starter'));
 const gate = new URL('../engine-memory.ts', import.meta.url).href;
 const plan = new URL('../host/cloud-plan-tier.ts', import.meta.url).href;
 registerHooks({
@@ -19,12 +19,12 @@ registerHooks({
     if (url === plan) {
       const anchor = 'starter: () => tier === "starter",';
       if (!String(result.source).includes(anchor)) throw new Error('Plan seam changed');
-      return { ...result, source: String(result.source).replace(anchor, 'starter: () => globalThis.__ombTestStarter(),') };
+      return { ...result, source: String(result.source).replace(anchor, 'starter: () => globalThis.__duskTestStarter(),') };
     }
     if (url !== gate) return result;
     const source = String(result.source);
     const anchor = /export const engineMemory = new EngineMemory\(\{ enabled: [^\n]*\}\);/;
     if (!anchor.test(source)) throw new Error('Memory gate seam changed');
-    return { ...result, source: source.replace(anchor, 'export const engineMemory = new EngineMemory({ enabled: true, read: () => globalThis.__ombTestHostMemory(), groups: () => new Map(), tickMs: 100 });') };
+    return { ...result, source: source.replace(anchor, 'export const engineMemory = new EngineMemory({ enabled: true, read: () => globalThis.__duskTestHostMemory(), groups: () => new Map(), tickMs: 100 });') };
   },
 });

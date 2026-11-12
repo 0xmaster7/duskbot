@@ -15,7 +15,7 @@ import { bwrapArgs, planBox } from "./plan.ts";
 
 const detection = detectBox({ env: { ...process.env, DUSK_BOT_BOX: "1" } });
 const available = detection.box === "bwrap" && detection.tools !== null;
-const root = mkdtempSync(join(tmpdir(), "omb-box-ask-"));
+const root = mkdtempSync(join(tmpdir(), "dusk-box-ask-"));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 const home = join(root, "home"), dataDir = join(home, ".duskbot"), cwd = join(dataDir, "task-workspaces", "bot-a", "t-1");

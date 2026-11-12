@@ -5,9 +5,9 @@ import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it } from "vitest";
 import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { waitForExit } from "../../server/testing/cleanup.ts";
-import { runControlOmb } from "../control-omb.ts";
+import { runControlDusk } from "../control-dusk.ts";
 import { request } from "../mcp-server.ts";
-import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { UI_TOOLS_DIR } from "./control-dusk-ui.ts";
 import { openAdvancedSettings } from "./grok-nav.ts";
 import { openTemplatesWhenFree, waitStill } from "./grok-templates.ts";
 
@@ -17,7 +17,7 @@ const forced = process.env.DUSK_UI_E2E === "1";
 const enabled = forced || Boolean(binary);
 const launchTimeout = forced && !binary ? 600_000 : 180_000;
 if (!enabled) console.log("skipping presets UI e2e: set DUSK_UI_E2E=1 to install the pinned browser");
-const evidence = (name: string) => join(ROOT, ".omb-scratch", "verify-evidence", `presets-${name}.png`);
+const evidence = (name: string) => join(ROOT, ".dusk-scratch", "verify-evidence", `presets-${name}.png`);
 
 describe("Preset bots in the real renderer", () => {
   let child: ChildProcess | undefined;
@@ -27,7 +27,7 @@ describe("Preset bots in the real renderer", () => {
     let stdout = "";
     let stderr = "";
     let info: { ui: string; url: string; botId: string; dataDir: string; logPath: string };
-    child = spawn(process.execPath, ["--experimental-strip-types", join(ROOT, "scripts/control-omb.ts"), "ui", "launch"], {
+    child = spawn(process.execPath, ["--experimental-strip-types", join(ROOT, "scripts/control-dusk.ts"), "ui", "launch"], {
       cwd: ROOT, env: process.env, stdio: ["ignore", "pipe", "pipe"],
     });
     child.stdout!.on("data", (chunk: Buffer) => { stdout += String(chunk); });
@@ -37,7 +37,7 @@ describe("Preset bots in the real renderer", () => {
       if (child!.exitCode !== null || child!.signalCode !== null) throw new Error(`UI launcher exited: ${stderr}`);
       try { info = JSON.parse(stdout); return Boolean(info.ui); } catch { return false; }
     }, { timeout: launchTimeout, interval: 250 }).toBe(true);
-    const ui = (verb: string, ...args: string[]) => runControlOmb(["ui", verb, "--ui", info.ui, ...args]) as Promise<Record<string, any>>;
+    const ui = (verb: string, ...args: string[]) => runControlDusk(["ui", verb, "--ui", info.ui, ...args]) as Promise<Record<string, any>>;
     const evaluate = async (js: string) => (await ui("eval", "--js", js)).result;
     const click = (name: string) => ui("click", "--name", name).catch((error: Error) => { throw new Error(`clicking "${name}": ${error.message}`); });
     const snapshot = async () => (await ui("snapshot")).snapshot as string;
@@ -69,11 +69,11 @@ describe("Preset bots in the real renderer", () => {
     for (const line of ["Share New bot defaults as a preset", "follow-up", "Never included: model choices, folders, where bots work, approval levels"]) expect(dialog).toContain(line);
     await ui("screenshot", "--out", evidence("share"));
     await click("Save file");
-    await expect.poll(snapshot, { timeout: 10_000 }).toContain("Saved sky-1.0.0.openmaus.json");
+    await expect.poll(snapshot, { timeout: 10_000 }).toContain("Saved sky-1.0.0.dusk.json");
     await evaluate("window.__presetBlob.text().then((text) => { window.__presetText = text; }); true");
     await expect.poll(async () => typeof (await evaluate("window.__presetText")), { timeout: 5_000 }).toBe("string");
     const saved = JSON.parse(await evaluate("window.__presetText") as string);
-    expect(await evaluate("window.__presetDownload")).toBe("sky-1.0.0.openmaus.json");
+    expect(await evaluate("window.__presetDownload")).toBe("sky-1.0.0.dusk.json");
     expect(saved.package).toMatchObject({ id: "sky", agents: [], presets: [{ key: "new-bot-defaults", name: "Sky", skills: ["follow-up"], seed: { memory: { "MEMORY.md": "- Customers first.\n" } } }] });
     expect(JSON.stringify(saved)).not.toMatch(/"approvalMode"|"composio"|"modelSelection"|"enabled"/);
     await click("Done");
@@ -84,7 +84,7 @@ describe("Preset bots in the real renderer", () => {
 
     await openTemplatesWhenFree(ui);
     await click("Import");
-    await evaluate(`(() => { const input = document.querySelector('[role=dialog] input[type=file]'); const transfer = new DataTransfer(); transfer.items.add(new File([window.__presetText], 'sky-1.0.0.openmaus.json', { type: 'application/json' })); input.files = transfer.files; input.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+    await evaluate(`(() => { const input = document.querySelector('[role=dialog] input[type=file]'); const transfer = new DataTransfer(); transfer.items.add(new File([window.__presetText], 'sky-1.0.0.dusk.json', { type: 'application/json' })); input.files = transfer.files; input.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Preset bots and skills · no department");
     const preview = await snapshot();
     expect(preview).toContain("Preset bots: 1 · appear in New bot");

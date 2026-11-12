@@ -72,7 +72,7 @@ posixOnly("mid-turn steering e2e", () => {
     chmodSync(FAKE_CLAUDE, 0o755);
     chmodSync(FAKE_ACP, 0o755);
     chmodSync(FAKE_CODEX, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-steer-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-steer-"));
     mkdirSync(join(home, ".duskbot"), { recursive: true });
     steerGate = join(home, "delayed-steer.gate");
     steerFinishGate = join(home, "finish-steered-turn.gate");

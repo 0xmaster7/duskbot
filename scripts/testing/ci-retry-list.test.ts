@@ -86,7 +86,7 @@ describe("the job summary", () => {
 describe("the runner", () => {
   /** A one-file vitest project: a listed test that fails its first attempt. */
   function project() {
-    const directory = mkdtempSync(join(tmpdir(), "omb-ci-retry-"));
+    const directory = mkdtempSync(join(tmpdir(), "dusk-ci-retry-"));
     scratch.push(directory);
     writeFileSync(join(directory, "flaky.test.mjs"), [
       'import { existsSync, writeFileSync } from "node:fs";',
@@ -127,7 +127,7 @@ describe("the runner", () => {
   it("stops retrying a file's listed tests once one of them fails every attempt", async () => {
     // A broken fixture, not a flake: three attempts of every listed test
     // would multiply the shard's time past its job cap.
-    const directory = mkdtempSync(join(tmpdir(), "omb-ci-retry-"));
+    const directory = mkdtempSync(join(tmpdir(), "dusk-ci-retry-"));
     scratch.push(directory);
     writeFileSync(join(directory, "broken.test.mjs"), [
       'import { appendFileSync } from "node:fs";',
@@ -146,7 +146,7 @@ describe("the runner", () => {
   it("reads its own list in a happy-dom test file, where the global URL is the DOM's", async () => {
     // A jsdom/happy-dom file must still load the default list. Beside
     // node_modules so happy-dom resolves, outside Vitest's excluded dependency tree.
-    const directory = mkdtempSync(join(ROOT, ".omb-ci-retry-"));
+    const directory = mkdtempSync(join(ROOT, ".dusk-ci-retry-"));
     scratch.push(directory);
     writeFileSync(join(directory, "dom.test.mjs"), 'it("runs in a DOM", () => { expect(typeof document).toBe("object"); });\n');
     writeFileSync(join(directory, "vitest.config.mjs"), `export default { test: { globals: true, environment: "happy-dom", include: ["dom.test.mjs"], runner: ${JSON.stringify(RUNNER)} } };\n`);

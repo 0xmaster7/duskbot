@@ -96,10 +96,10 @@ async function seedFixture(url) {
 let fixtureUrl = null;
 
 async function fixturePort() {
-  const child = start(process.execPath, ["--experimental-strip-types", "scripts/control-omb.ts", "launch"], {
+  const child = start(process.execPath, ["--experimental-strip-types", "scripts/control-dusk.ts", "launch"], {
     ...process.env,
     FAKE_CLAUDE_REPLIES: JSON.stringify(REPLIES),
-    FAKE_CLAUDE_REPLY_STATE: join(mkdtempSync(join(tmpdir(), "omb-phone-preview-")), "replies"),
+    FAKE_CLAUDE_REPLY_STATE: join(mkdtempSync(join(tmpdir(), "dusk-phone-preview-")), "replies"),
   });
   return new Promise((resolve, reject) => {
     let output = "";

@@ -17,7 +17,7 @@ const cookieName = "fixture_session";
 const viewer = "/api/desktop-viewer/local/shared/websockify";
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), "omb-mobile-cors-"));
+  dir = mkdtempSync(join(tmpdir(), "dusk-mobile-cors-"));
   sessions = new SessionRegistry({ file: join(dir, "sessions.json") });
   phone = sessions.issue({ label: "Phone", scopes: ["admin", "client"] });
 });
@@ -37,12 +37,12 @@ function request(headers: Record<string, string | undefined> = {}, method = "GET
 
 it.each(origins)("allows only the requested preflight method and headers from %s", origin => {
   const { req, res, url } = request({ origin, "access-control-request-method": "POST",
-    "access-control-request-headers": "authorization, CONTENT-type, last-event-id, x-omb-background, x-omb-sha256" }, "OPTIONS");
+    "access-control-request-headers": "authorization, CONTENT-type, last-event-id, x-dusk-background, x-dusk-sha256" }, "OPTIONS");
   expect(answerMobilePreflight(req, res, url)).toBe(true);
   expect(res.statusCode).toBe(204);
   expect(res.getHeader("access-control-allow-origin")).toBe(origin);
   expect(res.getHeader("access-control-allow-methods")).toBe("POST");
-  expect(res.getHeader("access-control-allow-headers")).toBe("Authorization, Content-Type, Last-Event-ID, X-Omb-Background, X-Omb-Sha256");
+  expect(res.getHeader("access-control-allow-headers")).toBe("Authorization, Content-Type, Last-Event-ID, X-Dusk-Background, X-Dusk-Sha256");
   expect(res.getHeader("access-control-allow-credentials")).toBeUndefined();
 });
 

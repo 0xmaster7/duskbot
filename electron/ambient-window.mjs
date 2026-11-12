@@ -104,7 +104,7 @@ export function createAmbientWindow({ BrowserWindow, surface, url, level, platfo
         // its closing and opening play in full even while macOS reorders the panel
         backgroundThrottling: false,
         preload: PRELOAD,
-        additionalArguments: [`--omb-ambient=${surface}`, ...(trace ? ["--omb-ambient-trace=1"] : [])],
+        additionalArguments: [`--dusk-ambient=${surface}`, ...(trace ? ["--dusk-ambient-trace=1"] : [])],
       },
     });
     overlays.add(target);

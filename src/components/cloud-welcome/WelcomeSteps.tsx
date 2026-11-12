@@ -16,7 +16,7 @@ import { Footer, PRIMARY, QUIET, StepHeading } from "./parts";
  * it is and the step finishes itself; otherwise one recommended sign-in, every other way folded under it. */
 export function WelcomeEngine({ name, headingRef, onFinish }: { name: string; headingRef: Ref<HTMLHeadingElement>; onFinish: () => void }) {
   const engines = useCloudEngineChoices();
-  const plan = useCloudPlanSnapshot(window.ogb?.cloudPlan);
+  const plan = useCloudPlanSnapshot(window.duskDesktop?.cloudPlan);
   const own = engines.instances.some((instance) => !instance.trialCredit && engineReady(instance));
   const credit = own ? null : welcomeCredit(engines.instances, plan);
   const readyOnOpen = useRef(own || credit?.state === "active");

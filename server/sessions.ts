@@ -5,6 +5,7 @@ import { dirname } from "node:path";
 import { z } from "zod";
 import { writeFileAtomic } from "./atomic.ts";
 import { teamSessionExpiresAt, type TeamMember, type TeamRole } from "./cloud-team.ts";
+import { hasTokenPrefix } from "../electron/legacy-names.mjs";
 
 export type Scope = "admin" | "client";
 export const SCOPES: readonly Scope[] = ["admin", "client"];
@@ -142,7 +143,7 @@ export function generatePairingCredential(): string {
 }
 
 export function isPairingCredential(value: string): boolean {
-  return value.startsWith(PAIRING_CREDENTIAL_PREFIX);
+  return hasTokenPrefix(value, "pair");
 }
 
 export function normalizePairingCode(input: string): string {
@@ -401,7 +402,7 @@ export class SessionRegistry {
     const [pairing] = this.pairings.splice(index, 1);
     this.failures.delete(input.source);
     if (this.personal(pairing.scopes)) return { ok: false, status: 403, error: this.adminOnly! };
-    const token = `omb_sess_${randomBytes(32).toString("base64url")}`;
+    const token = `dusk_sess_${randomBytes(32).toString("base64url")}`;
     const checkedAt = pairing.memberCheckedAt ?? now;
     const record: SessionRecord = {
       id: randomUUID(),
@@ -444,7 +445,7 @@ export class SessionRegistry {
   issueMoveIn(input: { label: string; email: string; teamRole: TeamRole; bot: string }): { token: string; session: PublicSession } {
     this.prune();
     const now = this.now();
-    const token = `omb_sess_${randomBytes(32).toString("base64url")}`;
+    const token = `dusk_sess_${randomBytes(32).toString("base64url")}`;
     const record: SessionRecord = {
       id: randomUUID(), tokenHash: sha256(token), label: (deviceLabel(input.label) || "Moving a bot in").slice(0, 80), scopes: ["admin", "client"],
       createdAt: now, lastSeenAt: now, expiresAt: teamSessionExpiresAt(now, now + SESSION_TTL_MS),
@@ -471,7 +472,7 @@ export class SessionRegistry {
     this.refusePersonal(input.scopes);
     this.prune();
     const now = this.now();
-    const token = `omb_sess_${randomBytes(32).toString("base64url")}`;
+    const token = `dusk_sess_${randomBytes(32).toString("base64url")}`;
     const record: SessionRecord = {
       id: randomUUID(),
       tokenHash: sha256(token),
@@ -626,7 +627,7 @@ export class SessionRegistry {
     this.prune();
     const mine = [...this.tickets].filter(([, t]) => t.sessionId === sessionId).sort((a, b) => a[1].expiresAt - b[1].expiresAt);
     for (const [hash] of mine.slice(0, Math.max(0, mine.length - (MAX_STREAM_TICKETS_PER_SESSION - 1)))) this.tickets.delete(hash);
-    const ticket = `omb_tick_${randomBytes(24).toString("base64url")}`;
+    const ticket = `dusk_tick_${randomBytes(24).toString("base64url")}`;
     const expiresAt = this.now() + STREAM_TICKET_TTL_MS;
     this.tickets.set(sha256(ticket), { sessionId, expiresAt });
     return { ticket, expiresAt };

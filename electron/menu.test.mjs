@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("electron", () => ({
-  app: { name: "Dusk Bot" },
+  app: { name: "dusk bot" },
   Menu: { buildFromTemplate: (template) => template },
 }));
 
@@ -48,7 +48,7 @@ describe("buildApplicationMenu", () => {
     const onToggle = vi.fn();
     const template = build(platform, { openAtLogin: { checked: false, onToggle } });
     const item = template[0].submenu.find((entry) => entry.id === "open-at-login");
-    expect(template[0].label).toBe(platform === "darwin" ? "Dusk Bot" : "File");
+    expect(template[0].label).toBe(platform === "darwin" ? "dusk bot" : "File");
     expect(item).toMatchObject({ label: "Open at Login", type: "checkbox", checked: false });
     item.click();
     expect(onToggle).toHaveBeenCalledWith(true);
@@ -72,7 +72,7 @@ describe("buildApplicationMenu", () => {
     const item = template[0].submenu.find((entry) => entry.id === "quit");
     expect(item.role).toBeUndefined();
     expect(item.accelerator).toBe(platform === "win32" ? undefined : "CmdOrCtrl+Q");
-    expect(item.label).toBe(platform === "darwin" ? "Quit Dusk Bot" : platform === "win32" ? "Exit" : "Quit");
+    expect(item.label).toBe(platform === "darwin" ? "Quit dusk bot" : platform === "win32" ? "Exit" : "Quit");
     item.click(item, null, { triggeredByAccelerator: true });
     item.click(item, null, { triggeredByAccelerator: false });
     expect(onQuit.mock.calls).toEqual([[true], [false]]);
@@ -94,7 +94,7 @@ describe("buildApplicationMenu", () => {
     const template = build(platform);
     expect(template[0].role).toBe("fileMenu");
     for (const item of template) {
-      expect(item.label).not.toBe("Dusk Bot");
+      expect(item.label).not.toBe("dusk bot");
     }
   });
 
@@ -108,10 +108,10 @@ describe("buildApplicationMenu", () => {
   });
 
   it("mirrors Add a Cloud… under the saved servers only when main offers it, and names My Cloud's line", () => {
-    const servers = [{ id: "cloud", name: "My Cloud", origin: "https://omb-u-1.fly.dev" }];
+    const servers = [{ id: "cloud", name: "My Cloud", origin: "https://dusk-u-1.fly.dev" }];
     const without = build("darwin", { environments: servers }).find(entry => entry.label === "Server").submenu;
     expect(without.some(entry => entry.id === "add-cloud")).toBe(false);
-    expect(without.find(entry => entry.type === "radio" && entry.label.startsWith("My Cloud")).label).toBe("My Cloud — omb-u-1.fly.dev");
+    expect(without.find(entry => entry.type === "radio" && entry.label.startsWith("My Cloud")).label).toBe("My Cloud — dusk-u-1.fly.dev");
     const onAddCloud = vi.fn();
     const submenu = build("darwin", { environments: servers, onAddCloud, sublabels: { cloud: "Always on" } }).find(entry => entry.label === "Server").submenu;
     expect(submenu.map(entry => entry.id ?? entry.label ?? entry.type).slice(0, 4)).toEqual(["This computer", "My Cloud — Always on", "add-cloud", "separator"]);
@@ -121,7 +121,7 @@ describe("buildApplicationMenu", () => {
   });
 
   it("once My Cloud is home, lists only the other saved servers with Back to My Cloud, and has no Server menu without any", () => {
-    const home = { origin: "https://omb-t-1.fly.dev", onBack: vi.fn() };
+    const home = { origin: "https://dusk-t-1.fly.dev", onBack: vi.fn() };
     const cloud = { id: "c", name: "My Cloud", origin: home.origin };
     const office = { id: "o", name: "Office", origin: "https://office.example.test" };
     const alone = build("darwin", { environments: [cloud], activeId: "c", home });

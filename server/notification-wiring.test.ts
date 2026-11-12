@@ -51,7 +51,7 @@ const api = async (
 posixOnly("routine failure notification wiring", () => {
   beforeAll(async () => {
     chmodSync(FAKE_CLI, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-notifications-e2e-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-notifications-e2e-"));
     mkdirSync(join(home, ".duskbot"), { recursive: true });
     writeFileSync(
       join(home, ".duskbot", "config.json"),

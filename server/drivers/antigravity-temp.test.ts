@@ -39,7 +39,7 @@ afterEach(async () => {
 });
 
 function tempRoot(label: string): string {
-  const directory = mkdtempSync(join(tmpdir(), `omb-agy-temp-${label}-`));
+  const directory = mkdtempSync(join(tmpdir(), `dusk-agy-temp-${label}-`));
   scratch.push(directory);
   return directory;
 }
@@ -109,7 +109,7 @@ describe("reading an unpack folder's process ID", () => {
   });
 
   it("ignores anything that is not a PyInstaller unpack folder", () => {
-    for (const name of ["_MEI", "_MEI0", "_MEIabc", "MEI12342", "tmpabc123", ".omb-removing-_MEI173482-1"]) {
+    for (const name of ["_MEI", "_MEI0", "_MEIabc", "MEI12342", "tmpabc123", ".dusk-removing-_MEI173482-1"]) {
       expect(unpackFolderOwnerPids(name)).toBeNull();
     }
   });
@@ -134,7 +134,7 @@ describe("the automatic sweep", () => {
     const deadDecimal = unpackFolder(directory, decimalName(20004));
     const live = unpackFolder(directory, hexName(0x1111));
     const liveDecimal = unpackFolder(directory, decimalName(17348));
-    const claimed = unpackFolder(directory, `.omb-removing-${hexName(0x3333)}-abcdef12`);
+    const claimed = unpackFolder(directory, `.dusk-removing-${hexName(0x3333)}-abcdef12`);
     mkdirSync(join(directory, "keep-me"));
     writeFileSync(join(directory, hexName(0x4444)), "a file, not an unpack folder");
     writeFileSync(join(directory, "tmp_python_scratch"), "the runtime's own temp file");
@@ -168,7 +168,7 @@ describe("the automatic sweep", () => {
     expect(existsSync(system)).toBe(true);
   });
 
-  it("never follows a link out of Dusk Bot's own folder", async () => {
+  it("never follows a link out of dusk bot's own folder", async () => {
     const dataDir = tempRoot("links");
     const outside = tempRoot("outside");
     const precious = unpackFolder(outside, hexName(0x2222));
@@ -182,7 +182,7 @@ describe("the automatic sweep", () => {
     expect(existsSync(join(precious, "google3", "payload.bin"))).toBe(true);
   });
 
-  it("never follows a linked tmp folder out of Dusk Bot's own folder", async () => {
+  it("never follows a linked tmp folder out of dusk bot's own folder", async () => {
     const dataDir = tempRoot("linked-tmp");
     const outside = tempRoot("outside-tmp");
     const precious = unpackFolder(join(outside, "agy", antigravityTempDir(dataDir, "work").slice(-12)), hexName(0x2222));
@@ -217,7 +217,7 @@ describe("Free up space", () => {
       appLive: unpackFolder(antigravityTempDir(dataDir, "work"), hexName(0x1111)),
       leftover: unpackFolder(systemTemp, hexName(0x2222, 3), { markers: "both", ageMs: OLD, bytes: 10_000 }),
       leftoverDecimal: unpackFolder(systemTemp, decimalName(20004), { markers: "both", ageMs: OLD, bytes: 20_000 }),
-      claimed: unpackFolder(systemTemp, `.omb-removing-${hexName(0x5555)}-abcdef12`, { ageMs: OLD }),
+      claimed: unpackFolder(systemTemp, `.dusk-removing-${hexName(0x5555)}-abcdef12`, { ageMs: OLD }),
       recent: unpackFolder(systemTemp, hexName(0x3333), { markers: "both", ageMs: 60_000 }),
       running: unpackFolder(systemTemp, hexName(0x1111), { markers: "both", ageMs: OLD }),
       // Another PyInstaller app: only one of the two marker files.
@@ -249,7 +249,7 @@ describe("Free up space", () => {
     });
     for (const gone of [folders.app, folders.leftover, folders.leftoverDecimal, folders.claimed]) expect(existsSync(gone)).toBe(false);
     for (const kept of [folders.appLive, folders.recent, folders.running, folders.otherApp]) expect(existsSync(kept)).toBe(true);
-    expect(readdirSync(options.systemTemp).some((name) => name.startsWith(".omb-removing-"))).toBe(false);
+    expect(readdirSync(options.systemTemp).some((name) => name.startsWith(".dusk-removing-"))).toBe(false);
   });
 
   it("searches the system temp folder only on Windows", async () => {
@@ -273,7 +273,7 @@ describe("Free up space", () => {
     const racedDir = tempRoot("race-claimed");
     const raced = unpackFolder(antigravityTempDir(racedDir, "work"), hexName(0x2222));
     beforeRename.run = (from) => {
-      if (from === raced) renameSync(raced, join(dirname(raced), `.omb-removing-${hexName(0x2222)}-0therone`));
+      if (from === raced) renameSync(raced, join(dirname(raced), `.dusk-removing-${hexName(0x2222)}-0therone`));
     };
     expect(await removeAntigravityLeftovers({ dataDir: racedDir, isAlive: () => false, platform: "linux" }))
       .toEqual({ removed: 0, remaining: 0, freedBytes: 0 });

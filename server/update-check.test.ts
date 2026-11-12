@@ -16,12 +16,12 @@ const pair = generateKeyPairSync("ed25519");
 const testKey = { kid: "rel-test", x: pair.publicKey.export({ format: "jwk" }).x! };
 const signingKey = `rel-test:${pair.privateKey.export({ format: "der", type: "pkcs8" }).toString("base64url")}`;
 const sign = (version: string, kind: "desktop" | "home-package" = "desktop") =>
-  ({ v: 1, signature: signRelease({ kind, name: "Dusk Bot", version, sha256: "a".repeat(64), signedAt: 1 }, signingKey) });
+  ({ v: 1, signature: signRelease({ kind, name: "dusk bot", version, sha256: "a".repeat(64), signedAt: 1 }, signingKey) });
 
 describe("server update check", () => {
   it("tells how this server was installed", () => {
     const none = () => false;
-    const root = ["", "srv", "Dusk Bot", "server"].join(sep);
+    const root = ["", "srv", "dusk bot", "server"].join(sep);
     expect(installKind({ desktopManaged: true, managed: false, serverRoot: root, exists: () => true })).toBe("desktop");
     expect(installKind({ desktopManaged: false, managed: true, serverRoot: root, exists: () => true })).toBe("managed");
     expect(installKind({ desktopManaged: false, managed: false, serverRoot: root, exists: (path) => path === "/.dockerenv" })).toBe("docker");
@@ -80,7 +80,7 @@ describe("desktop update check", () => {
     ["the same release", () => sign("0.1.141")],
     ["another kind of artifact", () => sign("0.1.150", "home-package")],
     ["an unknown key", () => ({ v: 1, signature: sign("0.1.150").signature.replace("r1.rel-test.", "r1.rel-other.") })],
-    ["a tampered version", () => { const parts = sign("0.1.150").signature.split("."); parts[2] = Buffer.from(JSON.stringify({ v: 1, kind: "desktop", name: "Dusk Bot", version: "9.9.9", sha256: "a".repeat(64), signedAt: 1 })).toString("base64url"); return { v: 1, signature: parts.join(".") }; }],
+    ["a tampered version", () => { const parts = sign("0.1.150").signature.split("."); parts[2] = Buffer.from(JSON.stringify({ v: 1, kind: "desktop", name: "dusk bot", version: "9.9.9", sha256: "a".repeat(64), signedAt: 1 })).toString("base64url"); return { v: 1, signature: parts.join(".") }; }],
     ["an unsigned answer", () => ({ v: 1, version: "9.9.9" })],
   ])("offers nothing for %s", async (_name, body) => {
     const check = createUpdateChecker({ current: "0.1.141", install: "desktop", fetch: async () => new Response(JSON.stringify(body())), keys: [testKey] });

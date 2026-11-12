@@ -10,8 +10,8 @@ export function buildErrorPage({ allPortsOccupied, logDir }) {
   const serverLogPath = path.join(logDir, "server.log");
   const serverLogHref = pathToFileURL(serverLogPath).href;
   const reason = allPortsOccupied
-    ? "Every Dusk Bot port answered health checks from another process — likely a second copy of the app, or another program on ports 8799–28799. Quit that program, then quit and reopen Dusk Bot."
-    : "The background server didn't come up in time — this is usually slow startup, not a port conflict. Quit and reopen Dusk Bot.";
+    ? "Every dusk bot port answered health checks from another process — likely a second copy of the app, or another program on ports 8799–28799. Quit that program, then quit and reopen dusk bot."
+    : "The background server didn't come up in time — this is usually slow startup, not a port conflict. Quit and reopen dusk bot.";
   return (
     "data:text/html;charset=utf-8," +
     encodeURIComponent(

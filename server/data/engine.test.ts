@@ -11,7 +11,7 @@ import { DATA_LIMITS, DATA_RESULTS_SCHEMA } from "../../shared/data-surface.ts";
 import { CLOSE_DRAIN_MS, EXTENSION_INSTALL_TIMEOUT_MS, Lane, closeNames, createDataEngine, dataEngine, drainLanes, duckdbDirectory, instanceSettings, levenshtein, likePattern, loadExtensions, type DataEngineOptions } from "./engine.ts";
 import { DataFailure, type BotDatabase, type DataEngine } from "./types.ts";
 
-const root = mkdtempSync(join(tmpdir(), "omb-data-engine-"));
+const root = mkdtempSync(join(tmpdir(), "dusk-data-engine-"));
 const outOfTree = join(root, "duckdb-resources");
 const nodeApi = realpathSync(join(process.cwd(), "node_modules", "@duckdb", "node-api"));
 const bindings = realpathSync(join(nodeApi, "..", "node-bindings"));
@@ -396,9 +396,9 @@ describe("a bot's database", () => {
     await db.run("UPDATE counted SET replacement = 9", panel);
     expect((await db.stats("counted")).columns[0]).toMatchObject({ min: "9", max: "9", approxUnique: 1 });
     await db.materialise("SELECT 1 AS before", "cached", bot);
-    await db.stats("omb_results.cached");
+    await db.stats("dusk_results.cached");
     await db.materialise("SELECT 2 AS after", "cached", bot);
-    expect((await db.stats("omb_results.cached")).columns[0]).toMatchObject({ name: "after", min: "2", max: "2" });
+    expect((await db.stats("dusk_results.cached")).columns[0]).toMatchObject({ name: "after", min: "2", max: "2" });
   });
 
   it("bins numbers and dates into twenty equal widths and counts the top text values", async () => {

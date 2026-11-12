@@ -19,7 +19,7 @@ import { turnStdioMcpServers } from "./drivers/turn-mcp.ts";
 import { gateServer } from "./mcp-gate-config.ts";
 import { SPAWNED_PROXIES } from "./proxy-paths.ts";
 import { waitForExit } from "./testing/cleanup.ts";
-import { childEnv } from "./testing/omb-env.ts";
+import { childEnv } from "./testing/dusk-env.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 type Server = { command: string; args: string[]; env: Record<string, string> };
@@ -138,7 +138,7 @@ describe("every mount that puts a selection in front of the agents server", () =
       for (const absent of ["agents_find_tool", "agents_use_tool", "agents_vm_exec"]) expect(names, absent).not.toContain(absent);
       expect(names).toEqual(expect.arrayContaining(["agents_coordinate_bots", "agents_trigger", "agents_trigger_info", "agents_session_search"]));
       expect(names).not.toContain("agents_list_triggers");
-      // still Dusk Bot's own server, which never asks
+      // still dusk bot's own server, which never asks
       expect(session!.view("agents_trigger_info", {})).toMatchObject({ ask: false });
       expect(() => session!.validate("agents_use_tool", { name: "vm_exec" })).toThrow("not advertised for this turn");
     });

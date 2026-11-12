@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { createInterface } from "node:readline";
 import { expect, it } from "vitest";
 
-import { launchVerificationServer } from "../scripts/control-omb.ts";
+import { launchVerificationServer } from "../scripts/control-dusk.ts";
 import { startFakeConnectedApps } from "./testing/fake-connected-apps.ts";
 
 type Bridge = { command: string; args: string[]; env: Record<string, string> };
@@ -38,7 +38,7 @@ const acpBridge = (entry: { command: string; args: string[]; env: Array<{ name: 
 it("a bot given Gmail by its app switch reaches gmail.search_emails by name on Claude and on an ACP engine alike", async () => {
   const apps = await startFakeConnectedApps();
   apps.emails.push({ messageId: "m-ada", threadId: "t-ada", messageTimestamp: new Date().toISOString(), subject: "Q3 numbers", sender: "Ada <ada@example.test>", preview: { body: "Here they are" } });
-  const scratch = mkdtempSync(join(tmpdir(), "omb-app-tools-"));
+  const scratch = mkdtempSync(join(tmpdir(), "dusk-app-tools-"));
   const gate = join(scratch, "finish");
   const fixture = await launchVerificationServer({
     ...process.env, DUSK_COMPOSIO_BROKER_URL: apps.url, DUSK_COMPOSIO_BROKER_TOKEN: apps.token,

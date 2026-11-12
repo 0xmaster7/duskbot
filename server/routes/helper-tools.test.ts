@@ -13,7 +13,7 @@ import { openMessageFile } from "../message-file.ts";
 import { pdfFixture } from "../testing/pdf-fixture.ts";
 import { PASS } from "./table.ts";
 
-const home = mkdtempSync(join(tmpdir(), "omb-helper-tools-"));
+const home = mkdtempSync(join(tmpdir(), "dusk-helper-tools-"));
 const work = join(home, "work");
 const elsewhere = join(home, "elsewhere");
 mkdirSync(work);

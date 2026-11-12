@@ -140,8 +140,8 @@ export function cloudHomeChildEnvironments(config: CloudHomeConfig, env: NodeJS.
     [CLOUD_SECRETS_FD_ENV]: String(SECRETS_FD),
   };
   const edge: NodeJS.ProcessEnv = {
-    PATH: env.PATH ?? "/usr/local/bin:/usr/bin:/bin", HOME: "/tmp/omb-edge",
-    XDG_DATA_HOME: "/tmp/omb-edge/data", XDG_CONFIG_HOME: "/tmp/omb-edge/config",
+    PATH: env.PATH ?? "/usr/local/bin:/usr/bin:/bin", HOME: "/tmp/dusk-edge",
+    XDG_DATA_HOME: "/tmp/dusk-edge/data", XDG_CONFIG_HOME: "/tmp/dusk-edge/config",
     DUSK_CLOUD_PUBLIC_HOST: cloudHomeHost(config),
     DUSK_CLOUD_UPSTREAM_HOST: upstreamHost(cloudHomeHost(config), env.DUSK_CLOUD_UPSTREAM_HOST),
     // A plan whose home sleeps: requests wait this long for the server while it starts (deploy/fly/Caddyfile). Unset: 0s.
@@ -200,7 +200,7 @@ export function spawnWithSecrets(command: string, args: string[], env: NodeJS.Pr
 export function startCloudHome(env: NodeJS.ProcessEnv = process.env) {
   process.umask(0o077);
   const config = cloudHomeConfiguration(env);
-  if (!config) throw new Error("This image runs a My Cloud machine for Dusk Cloud; set its boot contract (docs/cloud-pro.md).");
+  if (!config) throw new Error("This image runs a My Cloud machine for dusk cloud; set its boot contract (docs/cloud-pro.md).");
   // Logged here once: the server child never sees what they are about.
   for (const warning of config.warnings) console.warn(`cloud home: ${warning}`);
   const home = env.HOME || "/data";

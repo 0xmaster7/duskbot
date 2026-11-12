@@ -31,7 +31,7 @@ type SealTrustBridge = { check(identity: string): Promise<{ ok: boolean; pinned:
 
 /** The desktop app's pin for the server this page belongs to; absent outside it. */
 function pinCheck(): SealTrustBridge["check"] | null {
-  const bridge = (globalThis as { ogb?: { sealTrust?: SealTrustBridge } }).ogb?.sealTrust;
+  const bridge = (globalThis as { duskDesktop?: { sealTrust?: SealTrustBridge } }).duskDesktop?.sealTrust;
   return bridge ? (identity) => bridge.check(identity) : null;
 }
 

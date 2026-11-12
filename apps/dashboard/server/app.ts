@@ -37,6 +37,7 @@ import { workspaceTurns } from "./admin/metrics.ts";
 import { createIncidents, type Incidents } from "./incidents/index.ts";
 import { memoryIncidentStore } from "./incidents/store.ts";
 import { createIncidentRoutes, IncidentRouteError } from "./incidents/routes.ts";
+import { aliasLegacyCookies, aliasLegacyHeaders } from "../../../electron/legacy-names.mjs";
 
 export interface DashboardAppOptions {
   dataDir: string;
@@ -358,8 +359,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
     return value as Record<string, unknown>;
   }
   function verifySignature(req: IncomingMessage, body: Buffer, publicKey: string) {
-    const timeHeader = req.headers["x-omb-time"];
-    const signature = req.headers["x-omb-signature"];
+    const timeHeader = req.headers["x-dusk-time"];
+    const signature = req.headers["x-dusk-signature"];
     const time = typeof timeHeader === "string" && /^\d{1,16}$/.test(timeHeader) ? Number(timeHeader) : NaN;
     if (!Number.isSafeInteger(time) || Math.abs(now() - time) > SIGNATURE_SKEW_MS) fail(401, "stale_time", "Request time is invalid.");
     if (typeof signature !== "string" || !/^[A-Za-z0-9+/]{86}==$/.test(signature)) fail(401, "bad_signature", "Signature is invalid.");
@@ -373,7 +374,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     replays.set(signature, time + SIGNATURE_SKEW_MS);
   }
   function signed(req: IncomingMessage, body: Buffer): StoredWorkspace {
-    const id = req.headers["x-omb-workspace"];
+    const id = req.headers["x-dusk-workspace"];
     const ws = typeof id === "string" ? state.workspaces.find(item => item.id === id) : undefined;
     if (!ws) fail(401, "unknown_workspace", "Workspace is unknown.");
     verifySignature(req, body, ws.publicKey);
@@ -411,6 +412,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   async function route(req: IncomingMessage, res: ServerResponse) {
     if (closed) fail(503, "closed", "Service is closed.");
     cleanup();
+    aliasLegacyHeaders(req.headers); aliasLegacyCookies(req.headers);
     const method = req.method ?? "GET";
     const url = new URL(req.url ?? "/", publicUrl);
     if (await pagesRoutes.handle(req, res, url)) return;
@@ -483,7 +485,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
         publicKey = der.toString("base64");
       } catch { fail(400, "invalid_key", "Public key is invalid."); }
       let ownerAccountId: string | null = null;
-      const proven = typeof input.enrollToken === "string" || req.headers["x-omb-signature"] !== undefined;
+      const proven = typeof input.enrollToken === "string" || req.headers["x-dusk-signature"] !== undefined;
       if (proven) verifySignature(req, body, publicKey);
       if (typeof input.enrollToken === "string") {
         ownerAccountId = auth.consumeEnrollGrant(input.enrollToken);
@@ -630,7 +632,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
           if (queue.filter(item => item.kind.startsWith("app.") && (item.status === "queued" || item.status === "sent")).length >= 5) fail(429, "rate_limited", "Too many app sign-ins at once. Try again in a minute.");
           if (now() - (seen.get(ws.id) ?? -Infinity) > APP_COMMAND_ONLINE_MS) fail(409, "workspace_offline", ws.kind === "vps"
             ? "This cloud is asleep or not answering. Wake it from clouds, then try again."
-            : "Your computer is asleep. Connect from the Dusk Bot app on it, or use Dusk Cloud.");
+            : "Your computer is asleep. Connect from the dusk bot app on it, or use dusk cloud.");
         }
         const command: CommandView = { id: `cmd_${random(16)}`, kind, target, issuedAt: now(), expiresAt: now() + COMMAND_TTL_MS, status: "queued", message: null, doneAt: null };
         queue.push(command);

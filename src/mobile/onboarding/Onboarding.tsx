@@ -20,7 +20,7 @@ import { MascotTrio, ONBOARDING_BG, SkyScene } from "./SkyScene";
 type Step = "intro" | "account" | "link" | "permission" | "denied" | "scan" | "code" | "paste";
 type Failure = { code: PairError["code"]; name: string; companion: boolean };
 
-const INTRO_SEEN = "omb.mobile.introSeen";
+const INTRO_SEEN = "dusk.mobile.introSeen";
 export const PRIMARY = "mobile-press flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[#f3f4f8] text-[17px] font-semibold text-[#121212] disabled:opacity-60";
 export const QUIET = "mobile-press h-12 w-full rounded-full text-[15px] font-medium text-white/70 disabled:opacity-60";
 
@@ -151,7 +151,7 @@ export function Onboarding({ initial = null, reason = null, startAtLink = false,
   );
 
   return (
-    <main className="omb-mobile omb-onboarding relative size-full overflow-hidden" style={{ background: ONBOARDING_BG }} data-scan-clear aria-busy={busy}>
+    <main className="dusk-mobile dusk-onboarding relative size-full overflow-hidden" style={{ background: ONBOARDING_BG }} data-scan-clear aria-busy={busy}>
       <SkyScene>
         <AnimatePresence mode="wait" initial={false}>
           {step === "intro" && (

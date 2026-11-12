@@ -60,7 +60,7 @@ let scratch: string;
 let bot: string;
 
 beforeEach(() => {
-  scratch = mkdtempSync(join(tmpdir(), "omb-skills-"));
+  scratch = mkdtempSync(join(tmpdir(), "dusk-skills-"));
   process.env.DUSK_TEST_UNUSED = scratch;
   bot = `test-bot-${Math.random().toString(36).slice(2, 10)}`;
 });

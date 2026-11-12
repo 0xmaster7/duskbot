@@ -3,7 +3,7 @@ import type { OneHomeView } from "../../electron/one-home.mjs";
 
 /** The move's page bridge, in the desktop app only: never in a browser. */
 export function moveOfferBridge(): CloudSendPageBridge | undefined {
-  return typeof window !== "undefined" && !window.ogb?.remoteClient?.active ? window.ogb?.cloudSendPage : undefined;
+  return typeof window !== "undefined" && !window.duskDesktop?.remoteClient?.active ? window.duskDesktop?.cloudSendPage : undefined;
 }
 
 /** Which ask the window shows by itself now: the sheet, the line at the top, or none (Settings keeps it either way). */

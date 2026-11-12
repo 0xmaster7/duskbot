@@ -6,7 +6,7 @@ import { connect, type Socket } from "node:net";
 import { join } from "node:path";
 import { afterEach, expect, it } from "vitest";
 
-import { launchVerificationServer, runControlOmb, type VerificationServer } from "../scripts/control-omb.ts";
+import { launchVerificationServer, runControlDusk, type VerificationServer } from "../scripts/control-dusk.ts";
 import { hostTimeout } from "./testing/host-timeout.ts";
 import { openSse, type SseRecorder } from "./testing/sse.ts";
 
@@ -29,7 +29,7 @@ it("waits for the person, tells them at once, and stops saying nobody answered t
     expect(response.status, `${method} ${path}: ${JSON.stringify(value)}`).toBeLessThan(300);
     return value;
   };
-  const bot = (await runControlOmb(["new-bot", "--name", "Inbox bot", "--url", url]) as any).bot;
+  const bot = (await runControlDusk(["new-bot", "--name", "Inbox bot", "--url", url]) as any).bot;
   // Each launch writes where the test can find its permission broker.
   const wrapper = join(dataDir, "claude-dumping.mjs");
   writeFileSync(wrapper, [
@@ -51,7 +51,7 @@ it("waits for the person, tells them at once, and stops saying nobody answered t
   await expect.poll(() => existsSync(dump), { timeout: hostTimeout(15_000) }).toBe(true);
   const launch = JSON.parse(readFileSync(dump, "utf8"));
   expect(launch.argv).toContain("--permission-prompt-tool");
-  socket = connect(launch.mcpConfig.mcpServers.ogb.args.at(-1));
+  socket = connect(launch.mcpConfig.mcpServers.dusk.args.at(-1));
   await new Promise<void>((resolve, reject) => { socket!.once("connect", resolve); socket!.once("error", reject); });
   const answers: any[] = [];
   socket.on("data", (chunk) => { for (const line of String(chunk).split("\n").filter(Boolean)) answers.push(JSON.parse(line)); });

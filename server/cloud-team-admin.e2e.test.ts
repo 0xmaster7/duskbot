@@ -13,7 +13,7 @@ import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 import { freePortBlock } from "./testing/ports.ts";
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
-const HOST = "omb-t-0123456789ab.fly.dev";
+const HOST = "dusk-t-0123456789ab.fly.dev";
 const secret = randomBytes(32).toString("base64url");
 const TEAM = { id: "team-7f3a", name: "Acme" };
 let home = "", dataDir = "", base = "", log = "";
@@ -25,12 +25,12 @@ async function call(method: string, path: string, options: { body?: string; head
 }
 function signed(method: "GET" | "POST", path: string, body = "") {
   const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
-  return call(method, path, { ...(body ? { body } : {}), headers: { ...(body ? { "content-type": "application/json" } : {}), "x-omb-cloud-timestamp": timestamp, "x-omb-cloud-nonce": nonce,
-    "x-omb-cloud-signature": `v1=${path === "/api/cloud/pairing" ? cloudPairingSignature(secret, timestamp, nonce, body) : cloudRequestSignature(secret, timestamp, nonce, method, path, body)}` } });
+  return call(method, path, { ...(body ? { body } : {}), headers: { ...(body ? { "content-type": "application/json" } : {}), "x-dusk-cloud-timestamp": timestamp, "x-dusk-cloud-nonce": nonce,
+    "x-dusk-cloud-signature": `v1=${path === "/api/cloud/pairing" ? cloudPairingSignature(secret, timestamp, nonce, body) : cloudRequestSignature(secret, timestamp, nonce, method, path, body)}` } });
 }
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-team-admin-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-team-admin-"));
   dataDir = join(home, ".duskbot");
   mkdirSync(dataDir, { recursive: true });
   const cli = join(home, "fixture-claude.mjs");
@@ -50,7 +50,7 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
     mcpServers: { linear: { type: "http", url: "https://mcp.linear.app/sse?token=query-never-shown", headers: { Authorization: "Bearer header-never-shown" } } },
   }));
   mkdirSync(join(home, "web"));
-  writeFileSync(join(home, "web", "index.html"), "<!doctype html><title>Dusk Bot</title>");
+  writeFileSync(join(home, "web", "index.html"), "<!doctype html><title>dusk bot</title>");
   const port = await freePortBlock([0, 1]);
   base = `http://127.0.0.1:${port}`;
   const prelude = `data:text/javascript,${encodeURIComponent("globalThis.fetch = async () => new Response(\"offline fixture\", { status: 503 });")}`;
@@ -96,7 +96,7 @@ it("the Admin reads a Team Cloud's shared connections and AI by a signed request
 
 it("an Owner or Admin's paired session (as the Admin holds one) sets a team key and removes an MCP server through the app's own routes; a User's can't; the team's default language is the server's until it sets its own", async () => {
   const session = async (role: string) => {
-    const granted = await signed("POST", "/api/cloud/pairing", JSON.stringify({ label: "Team admin (Dusk Cloud)", ttlSeconds: 300, team: TEAM, member: { email: `${role}@acme.test`, role } }));
+    const granted = await signed("POST", "/api/cloud/pairing", JSON.stringify({ label: "Team admin (dusk cloud)", ttlSeconds: 300, team: TEAM, member: { email: `${role}@acme.test`, role } }));
     const token = (await call("POST", "/api/auth/pair", { body: JSON.stringify({ code: granted.body.code }), headers: { "content-type": "application/json" } })).body.token as string;
     return (method: string, path: string, body?: unknown) => call(method, path, { ...(body === undefined ? {} : { body: JSON.stringify(body) }), headers: { authorization: `Bearer ${token}`, ...(body === undefined ? {} : { "content-type": "application/json" }) } });
   };

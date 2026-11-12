@@ -13,7 +13,7 @@ stopped, teammate included, by `--on-timeout stop`.
 
 ```sh
 pnpm exec vitest run server/headless-cli.e2e.test.ts
-pnpm exec vitest run server/headless/ server/job-view.test.ts server/routes/jobs.test.ts server/mcp-server.test.ts server/control-omb.test.ts
+pnpm exec vitest run server/headless/ server/job-view.test.ts server/routes/jobs.test.ts server/mcp-server.test.ts server/control-dusk.test.ts
 pnpm typecheck
 pnpm lint
 ```
@@ -21,15 +21,15 @@ pnpm lint
 By hand, against a fixture (`DUSK_TEST_PORTS` keeps it in a range):
 
 ```sh
-DUSK_TEST_PORTS=19975-19999 node --experimental-strip-types scripts/control-omb.ts launch
-pnpm control:omb doctor --url http://127.0.0.1:PORT
-pnpm control:omb team apply team.yaml --dry-run --url http://127.0.0.1:PORT
-pnpm control:omb team apply team.yaml --url http://127.0.0.1:PORT
-pnpm control:omb run --bot ID --text "Say hello" --url http://127.0.0.1:PORT
-pnpm control:omb export --thread THREAD_ID --out /tmp/omb-export --url http://127.0.0.1:PORT
+DUSK_TEST_PORTS=19975-19999 node --experimental-strip-types scripts/control-dusk.ts launch
+pnpm control:dusk doctor --url http://127.0.0.1:PORT
+pnpm control:dusk team apply team.yaml --dry-run --url http://127.0.0.1:PORT
+pnpm control:dusk team apply team.yaml --url http://127.0.0.1:PORT
+pnpm control:dusk run --bot ID --text "Say hello" --url http://127.0.0.1:PORT
+pnpm control:dusk export --thread THREAD_ID --out /tmp/dusk-export --url http://127.0.0.1:PORT
 ```
 
-`control-omb` runs the same verbs as `duskbot` (docs/headless-cli.md) and
+`control-dusk` runs the same verbs as `duskbot` (docs/headless-cli.md) and
 prints each JSON result; a verb that changes something needs the explicit
 `--url`. The job a wait watches is the server's own read,
 `GET /api/threads/:id/job`; keep its JSON with the run's result as evidence.

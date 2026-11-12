@@ -12,7 +12,7 @@ watchFocusNav();
 
 // The window's own rail of places (electron/chrome-rail.mjs): see-through but for the rail and its open sheets. Only
 // the desktop's preload gives this app's page a rail; anywhere else this address is the app.
-if (window.ogb?.rail?.expand) {
+if (window.duskDesktop?.rail?.expand) {
   applySkinChoice(readSkinChoice());
   applyFont(readFont());
   document.documentElement.style.background = document.body.style.background = "transparent";

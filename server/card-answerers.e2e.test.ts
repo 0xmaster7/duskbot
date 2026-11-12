@@ -109,7 +109,7 @@ const refusal = /Only the person who started this conversation or sent this requ
 posixOnly("who may answer a card on a shared workspace", () => {
   beforeAll(async () => {
     chmodSync(FAKE_CLI, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-card-answerers-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-card-answerers-"));
     const data = join(home, ".duskbot");
     mkdirSync(data, { recursive: true });
     writeFileSync(join(data, "config.json"), JSON.stringify({
@@ -302,7 +302,7 @@ posixOnly("who may answer a card on a shared workspace", () => {
 
     // A Slack-shaped request: the worker opens the thread and sends through
     // the guarded route, so no person can be named. Any member may approve it
-    // in Dusk Bot, as before; nothing waits on an admin.
+    // in dusk bot, as before; nothing waits on an admin.
     const task = await api("POST", `/api/bots/${bot.id}/tasks`, { title: "Slack · C1 · 1.0" });
     expect(task.status, JSON.stringify(task.body)).toBe(201);
     const threadId = task.body.task.threadId as string;

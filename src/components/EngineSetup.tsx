@@ -31,7 +31,7 @@ export function needsCli(instance: InstanceInfo | undefined): boolean {
 }
 
 export function serverTerminal(cloudHome: boolean): boolean {
-  return Boolean(window.ogb?.openInstallTerminal) && window.ogb?.remoteClient?.active !== true && !cloudHome;
+  return Boolean(window.duskDesktop?.openInstallTerminal) && window.duskDesktop?.remoteClient?.active !== true && !cloudHome;
 }
 
 export function grokKeyInstead(instance: InstanceInfo, cloudHome: boolean): boolean {
@@ -65,7 +65,7 @@ export function CommandRow({
     : status === "failed" ? <X size={size} className="text-danger" /> : <Copy size={size} />;
 
   const openTerminal = async () => {
-    const opened = await window.ogb!.openInstallTerminal!(command);
+    const opened = await window.duskDesktop!.openInstallTerminal!(command);
     settle(opened ? "opened" : "copied");
   };
 
@@ -344,7 +344,7 @@ function ManagedEngineSetup({ instance, signInOnly }: { instance: InstanceInfo; 
     }
     if (!auth.flowId || !auth.authorizationUrl) throw new Error(t("engineSetup.googleNoLink"));
     setFlow({ flowId: auth.flowId, authorizationUrl: auth.authorizationUrl });
-    if (window.ogb?.openExternal) await window.ogb.openExternal(auth.authorizationUrl);
+    if (window.duskDesktop?.openExternal) await window.duskDesktop.openExternal(auth.authorizationUrl);
     else window.open(auth.authorizationUrl, "_blank", "noopener,noreferrer");
   });
 
@@ -456,7 +456,7 @@ export const openKeysFor = (instance?: InstanceInfo) =>
   openKeySettings(instance ? keyForInstance(instance.instanceId) ?? (instance.driverKind === "openai-compat" ? "openaiCompat" : undefined) : undefined);
 
 export function ApiKeyHint({ instance }: { instance: InstanceInfo }) {
-  const key = window.ogb?.remoteClient?.active === true ? undefined : inlineKey(instance);
+  const key = window.duskDesktop?.remoteClient?.active === true ? undefined : inlineKey(instance);
   return (
     <>
       <div className="mt-0.5 text-[12px] leading-4 text-ink-tertiary">{t("model.apiKeyHint")}</div>
@@ -482,7 +482,7 @@ export function InstanceAccountNotes({ instance, listsModels }: { instance: Inst
 }
 
 function GrokKeyInstead({ className, unframed }: { className?: string; unframed: boolean }) {
-  const remote = window.ogb?.remoteClient?.active === true;
+  const remote = window.duskDesktop?.remoteClient?.active === true;
   return (
     <div data-engine-setup-key-instead className={cn(!unframed && "rounded-xl border border-transparent bg-control/30 p-3", className)}>
       <div className="flex items-start gap-2.5">
@@ -498,7 +498,7 @@ function GrokKeyInstead({ className, unframed }: { className?: string; unframed:
 
 function ApiKeyEngineSetup({ instance, className, unframed, configured = false }: { instance: InstanceInfo; className?: string; unframed: boolean; configured?: boolean }) {
   const { dispatch } = useStore();
-  const remote = window.ogb?.remoteClient?.active === true;
+  const remote = window.duskDesktop?.remoteClient?.active === true;
   const inline = remote ? undefined : inlineKey(instance);
   const copy = configured
     ? { title: "engineSetup.apiKey.configuredTitle", description: remote ? "engineSetup.apiKey.configuredRemote" : inline ? null : "engineSetup.apiKey.configuredDescription", action: "engineSetup.apiKey.change" } as const
@@ -748,7 +748,7 @@ function EngineSetupRows({ instance, title, description, command, installCommand
         <>
           <ItemRow title={title} hint={description}>
             {canOpen && (
-              <button type="button" className="ui-button" onClick={() => void window.ogb!.openInstallTerminal!(command!).then((done) => setOpened(Boolean(done)))}>
+              <button type="button" className="ui-button" onClick={() => void window.duskDesktop!.openInstallTerminal!(command!).then((done) => setOpened(Boolean(done)))}>
                 {opened ? t("engineSetup.opened") : t("engineSetup.terminal")}
               </button>
             )}

@@ -16,7 +16,7 @@ export const HOME_CADDY = { version: "2.10.2", sha512: "747df7ee74de188485157a38
 export const INSTABOX_USER_HOME = "/data/home";
 export const INSTABOX_BOOT_FILE = `${INSTABOX_USER_HOME}/.omb-boot.json`;
 export const INSTABOX_PACKAGE_FILE = `${INSTABOX_USER_HOME}/omb-home.tgz`;
-export const INSTABOX_RESTORE_FILE = `${INSTABOX_USER_HOME}/omb-restore.tar`;
+export const INSTABOX_RESTORE_FILE = `${INSTABOX_USER_HOME}/dusk-restore.tar`;
 export const INSTABOX_SNAPSHOT_FILE = `${INSTABOX_USER_HOME}/.omb-snapshot.tar`;
 export const INSTABOX_SETUP_FILE = `${INSTABOX_USER_HOME}/.omb-setup.sh`;
 export const INSTABOX_SETUP_LOG = `${INSTABOX_USER_HOME}/.omb-setup.log`;
@@ -95,7 +95,7 @@ export function homeSetupScript(options: { releaseKeys: readonly ReleaseKey[]; r
   const node = `node-v${HOME_NODE.version}-linux-x64`;
   const caddy = `caddy_${HOME_CADDY.version}_linux_amd64.tar.gz`;
   const unit = `[Unit]
-Description=Dusk Bot My Cloud home
+Description=dusk bot My Cloud home
 After=network-online.target omb-docker-gate.service
 Wants=network-online.target
 ConditionPathExists=${APP}/dist-server/cloud-home-start.js
@@ -118,7 +118,7 @@ OOMPolicy=continue
 WantedBy=multi-user.target
 `;
   const gate = `[Unit]
-Description=Dusk Bot docker gate for bot computers
+Description=dusk bot docker gate for bot computers
 After=docker.service
 Requires=docker.service
 ConditionPathExists=${APP}/link/docker-gate.mjs
@@ -146,7 +146,7 @@ WantedBy=multi-user.target
   // the bot computers' image, made ready by root beside the gate (which never builds): a failed try is tried again a
   // minute later, at low priority so the home answers while it builds
   const desktopImage = `[Unit]
-Description=Dusk Bot bot computer image
+Description=dusk bot bot computer image
 After=docker.service network-online.target
 Wants=network-online.target
 Requires=docker.service
@@ -175,7 +175,7 @@ echo "$(( $(awk '/MemTotal/ {print $2}' /proc/meminfo) / 2 ))K" > /sys/block/zra
 mkswap /dev/zram0 >/dev/null && swapon -p 100 /dev/zram0
 `;
   const zramUnit = `[Unit]
-Description=Dusk Bot compressed swap
+Description=dusk bot compressed swap
 
 [Service]
 Type=oneshot

@@ -63,7 +63,7 @@ async function mount(integrations: Parameters<typeof mountChatTools>[0], compute
   return session;
 }
 
-describe("Dusk Bot's own servers on the chat runtime", () => {
+describe("dusk bot's own servers on the chat runtime", () => {
   it("answers the agents server in this process with the turn's token, starting no child", async () => {
     const stub = await harness((_request, _body, response) => json(response, { bots: [{ id: "b2", name: "Quill", model: "fake" }] }));
     const session = await mount({ agents: agentsServer(stub.url) });
@@ -129,7 +129,7 @@ describe("Dusk Bot's own servers on the chat runtime", () => {
 
 describe("tool search scheduling", () => {
   it("lets catalog searches and calls of read-only tools overlap, and keeps other calls ordered", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "omb-chat-directory-"));
+    const dir = mkdtempSync(join(tmpdir(), "dusk-chat-directory-"));
     cleanups.push(async () => rmSync(dir, { recursive: true, force: true }));
     const tools = Array.from({ length: 130 }, (_, index) => ({ name: `tool_${index}`, description: `Fixture tool ${index}`,
       inputSchema: { type: "object", properties: {} }, ...(index % 2 ? {} : { annotations: { readOnlyHint: true } }) }));

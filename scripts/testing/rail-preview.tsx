@@ -122,7 +122,7 @@ const cloudAdd = { state: async () => addView, start: async () => ({ outcome: "o
 if (params.has("railpage")) {
   // The window's own rail page: see-through but for the rail, as main.tsx draws it.
   document.documentElement.style.background = document.body.style.background = "transparent";
-  Object.assign(window, { ogb: {
+  Object.assign(window, { duskDesktop: {
     platform: windows ? "win32" : "darwin", getCapabilities: capabilities, onCapabilitiesChanged: () => () => {}, applySkin: ok,
     workspaces: { places: async () => rail, open: ok, add: ok, recolor, onChanged: () => () => {} },
     cloudAdd, rail: { expand: ok, onSkin: () => () => {} },
@@ -141,7 +141,7 @@ if (params.has("railpage")) {
     if (chrome && !hidden) { document.head.append(room); document.body.append(railPage); } else { room.remove(); railPage.remove(); }
   };
   besidePage();
-  Object.assign(window, { ogb: {
+  Object.assign(window, { duskDesktop: {
     platform: windows ? "win32" : "darwin",
     app: { version: "0.1.130", ownPage: computer },
     getCapabilities: capabilities,
@@ -151,7 +151,7 @@ if (params.has("railpage")) {
     workspaces: {
       state: async () => (computer ? { local: true, name: "This computer" }
         : onTeam ? { local: false, name: teamName, origin: "https://acme.example", color: "purple", role: "Admin" }
-          : { local: false, name: "My Cloud", origin: "https://omb-u-1.fly.dev", color: "blue" }),
+          : { local: false, name: "My Cloud", origin: "https://dusk-u-1.fly.dev", color: "blue" }),
       menu: ok, line: async () => null, open: ok, add: ok,
       places: async () => (hidden ? { ...rail, places: [] } : chrome ? { ...rail, places: [], beside: true as const } : rail),
       onChanged: (heard: () => void) => { placesHeard.add(heard); return () => { placesHeard.delete(heard); }; },

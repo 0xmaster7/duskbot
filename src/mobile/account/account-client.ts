@@ -13,8 +13,8 @@ type StoredGrant = { origin: string; token: string; expiresAt: number; account: 
 export type AuthResult = false | SignInVerify | { outcome: OAuthErrorCode | "invalid-state" };
 const TOKEN = /^omc_[A-Za-z0-9_-]{43}$/;
 const OPAQUE = /^[A-Za-z0-9_-]{43}$/;
-const SECRET = "omb.account";
-const PENDING = "omb.account.pending";
+const SECRET = "dusk.account";
+const PENDING = "dusk.account.pending";
 const OAUTH_ERRORS: readonly string[] = ["oauth_denied", "oauth_failed", "oauth_expired", "provider_unavailable", "signup_closed", "identity_taken"];
 const object = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === "object" && !Array.isArray(value);
 const identity = (value: unknown): value is MobileAccount => object(value) && typeof value.id === "string" && Boolean(value.id) && typeof value.email === "string" && Boolean(cleanEmail(value.email));

@@ -19,7 +19,7 @@ export function createErrorReports(bridge: ErrorReportsBridge | undefined, path 
   };
 }
 
-const report = typeof window === "undefined" ? () => {} : createErrorReports(window.ogb?.errorReports);
+const report = typeof window === "undefined" ? () => {} : createErrorReports(window.duskDesktop?.errorReports);
 if (typeof window !== "undefined") {
   window.addEventListener("error", event => report(event.error ?? event.message));
   window.addEventListener("unhandledrejection", event => report(event.reason));

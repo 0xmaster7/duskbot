@@ -15,14 +15,14 @@ vi.mock("@/state/store", async importOriginal => {
 const { LocalComputerSection } = await import("./LocalComputerSection");
 
 afterEach(() => {
-  delete window.ogb;
+  delete window.duskDesktop;
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
 
 it("loads only local and VPS inventories and offers the existing VPS setup flow", async () => {
   vi.useFakeTimers();
-  window.ogb = { localControl: { retry: vi.fn() } } as any;
+  window.duskDesktop = { localControl: { retry: vi.fn() } } as any;
   const paths: string[] = [];
   vi.stubGlobal("fetch", vi.fn(async (path: string) => {
     paths.push(path);

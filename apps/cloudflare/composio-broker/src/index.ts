@@ -598,7 +598,7 @@ async function authorize(
     serviceAccounts,
     alias,
     MULTI_ACCOUNT_CONFIG.max_accounts_per_toolkit,
-    () => `omb-retry-${crypto.randomUUID()}`,
+    () => `dusk-retry-${crypto.randomUUID()}`,
   );
   if (!plan.ok) return json({ error: plan.error }, plan.status);
   for (const id of plan.replace) {

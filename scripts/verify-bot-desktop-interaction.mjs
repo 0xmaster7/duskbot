@@ -11,14 +11,14 @@ import { closeFixtureBrowser, connectMcp, driver, eventually, httpFixture, socke
 const run = promisify(execFile);
 const root = fileURLToPath(new URL("..", import.meta.url));
 const image = process.env.DUSK_VERIFY_DESKTOP_IMAGE || "omb-bot-desktop:lean-fixture";
-const evidence = await mkdtemp(join(process.platform === "win32" ? tmpdir() : "/tmp", "omb-di-"));
+const evidence = await mkdtemp(join(process.platform === "win32" ? tmpdir() : "/tmp", "dusk-di-"));
 const imageId = (await run("docker", ["image", "inspect", image, "--format", "{{.Id}}"])).stdout.trim();
 assert.match(imageId, /^sha256:[a-f0-9]{64}$/);
 const receipt = { image, imageId, evidence, results: [], ok: false };
 
 async function measure(forced) {
   const mode = forced ? "forced-accessibility" : "default-accessibility";
-  const name = `omb-interaction-${process.pid}-${forced ? "forced" : "default"}`;
+  const name = `dusk-interaction-${process.pid}-${forced ? "forced" : "default"}`;
   const started = performance.now();
   let container;
   let transport;
@@ -130,7 +130,7 @@ async function measure(forced) {
     }
     if (!forced) {
       const { boxChromeRelay, boxChromeExecArgs } = await import("../server/vps-local.ts");
-      const binary = process.env.DUSK_AGENT_BROWSER_PATH || join(root, ".omb-scratch", "verify-tools", "tools", "agent-browser", "0.37.0", "agent-browser");
+      const binary = process.env.DUSK_AGENT_BROWSER_PATH || join(root, ".dusk-scratch", "verify-tools", "tools", "agent-browser", "0.37.0", "agent-browser");
       const home = join(evidence, "app-home");
       const relay = await boxChromeRelay(() => spawn("docker", boxChromeExecArgs(container), { stdio: ["pipe", "pipe", "ignore"] }));
       try {
@@ -160,7 +160,7 @@ async function measure(forced) {
     throw error;
   } finally {
     if (container) {
-      const driverLog = await run("docker", ["exec", container, "cat", "/tmp/omb-log/cua-driver.error.log"]).then(answer => answer.stdout, () => "");
+      const driverLog = await run("docker", ["exec", container, "cat", "/tmp/dusk-log/cua-driver.error.log"]).then(answer => answer.stdout, () => "");
       await writeFile(join(evidence, `${mode}-driver.log`), driverLog);
     }
     await transport?.close();

@@ -79,7 +79,7 @@ const userDecisionsFor = async (requestId: string) => {
 posixOnly("a replayed respond for a settled card", () => {
   beforeAll(async () => {
     chmodSync(FAKE_CLI, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-respond-replay-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-respond-replay-"));
     const data = join(home, ".duskbot");
     mkdirSync(data, { recursive: true });
     writeFileSync(join(data, "config.json"), JSON.stringify({

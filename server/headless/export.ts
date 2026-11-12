@@ -9,6 +9,7 @@ import { EXIT, flag, HeadlessError, parseCount, parseSize, usageError } from "./
 import { readJob, type HeadlessClient } from "./client.ts";
 import { resolveTarget, type VerbContext, type VerbOutcome } from "./context.ts";
 import { redactDeep, type Output } from "./output.ts";
+import { readHeader } from "../../electron/legacy-names.mjs";
 
 type Rec = Record<string, any>;
 
@@ -181,7 +182,7 @@ export async function exportJob(client: HeadlessClient, options: ExportOptions, 
     if (files.length >= maxFiles) return void skipped.push({ ...about, reason: `more than --max-files ${maxFiles}` });
     const response = await fileRoute(threadId, messageId, { path: link, listFolder: true });
     if (!response?.ok) return void skipped.push({ ...about, reason: await refusal(response) });
-    if (response.headers.get("x-dusk-folder") !== "1") {
+    if (readHeader(response.headers, "x-dusk-folder") !== "1") {
       return keep(response, join(out, "files", folder), fileName(response.headers.get("content-disposition"), link), about, files);
     }
     const listing = await response.json() as Rec;

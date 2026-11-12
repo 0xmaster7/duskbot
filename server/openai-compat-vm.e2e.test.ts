@@ -88,7 +88,7 @@ const nativeToolNames = (threadId: string): string[] => {
 const idle = (botId: string) => until(() => api("GET", "/api/bots?messages=0"), s => !s.bots.find((b: any) => b.id === botId)?.busy);
 
 beforeAll(async () => {
-  fixtureHome = mkdtempSync(join(tmpdir(), "omb-openai-vm-"));
+  fixtureHome = mkdtempSync(join(tmpdir(), "dusk-openai-vm-"));
   stateFile = join(fixtureHome, "vm.json");
   dumpFile = join(fixtureHome, "dump.json");
   vmState({ containers: [] });

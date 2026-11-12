@@ -137,7 +137,7 @@ const settledReply = (threadId: string, text: string) => waitFor(async () => {
 posixOnly("per-bot visibility on a shared workspace", () => {
   beforeAll(async () => {
     chmodSync(FAKE_CLI, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-bot-visibility-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-bot-visibility-"));
     const data = join(home, ".duskbot");
     mkdirSync(data, { recursive: true });
     writeFileSync(join(data, "config.json"), JSON.stringify({
@@ -561,7 +561,7 @@ posixOnly("per-bot visibility on a shared workspace", () => {
         body: JSON.stringify({ name: "Layoff Modeler", role: "Models RIF scenarios", instructions: "SECRET-INSTR model the reduction",
           modelSelection: { instanceId: "grok", model: engine.models.default } }),
       });
-      // Applies at Ask too: Dusk Bot adds no card of its own.
+      // Applies at Ask too: dusk bot adds no card of its own.
       const made = await created.json() as { id: string; state: string };
       expect(created.status, JSON.stringify(made)).toBe(201);
       expect(made.state).toBe("applied");

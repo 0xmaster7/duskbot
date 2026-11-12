@@ -51,7 +51,7 @@ export function CloudWelcome() {
   const heading = useRef<HTMLHeadingElement>(null);
   const visible = state.bots.filter((bot) => !bot.hidden);
   const bot = visible.find((candidate) => candidate.chiefOfStaff) ?? visible[0] ?? null;
-  const sendBridge = window.ogb?.remoteClient?.active ? undefined : window.ogb?.cloudSendPage;
+  const sendBridge = window.duskDesktop?.remoteClient?.active ? undefined : window.duskDesktop?.cloudSendPage;
   const [notice] = useCloudSendNotice(sendBridge);
   const sent = sentHere(notice);
   const aiReady = state.instances.some(engineReady);

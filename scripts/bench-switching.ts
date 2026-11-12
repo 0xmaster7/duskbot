@@ -15,7 +15,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
-import { verificationServerArgs, verificationServerEnvironment } from "./control-omb.ts";
+import { verificationServerArgs, verificationServerEnvironment } from "./control-dusk.ts";
 import { launchChrome, type Page } from "./testing/bench-desktop-page.ts";
 import { liveEngineEnvironment, livePasses, STREAM_HANDLE } from "./testing/bench-switching-live.ts";
 import { removeTempDir, waitForExit } from "../server/testing/cleanup.ts";
@@ -35,7 +35,7 @@ const { values } = parseArgs({
     live: { type: "boolean", default: false },
   },
 });
-const STORAGE = { "omb-analytics-opt-out": "1", "omb-email-gate": "skipped", "omb-simple-mode-prompt": "1", "grok-move-2026-11": "1", "omb-advanced-mode": "0" } as Record<string, string>;
+const STORAGE = { "dusk-analytics-opt-out": "1", "dusk-email-gate": "skipped", "dusk-simple-mode-prompt": "1", "grok-move-2026-11": "1", "dusk-advanced-mode": "0" } as Record<string, string>;
 const log = (line: string) => process.stderr.write(`bench-switching: ${line}\n`);
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const median = (samples: number[]) => { const sorted = [...samples].sort((a, b) => a - b); return sorted.length ? sorted[Math.floor(sorted.length / 2)]! : NaN; };
@@ -159,7 +159,7 @@ async function run() {
   const chrome = await launchChrome(chromePath);
   const result: Record<string, unknown> = { messagesPerChat: Number(values.messages), latencyMs: Number(values.latency) };
   try {
-    if (values.advanced) STORAGE["omb-advanced-mode"] = "1";
+    if (values.advanced) STORAGE["dusk-advanced-mode"] = "1";
     if (values.probe) {
       const page = await chrome.newPage({ storage: STORAGE });
       await page.send("Page.navigate", { url });

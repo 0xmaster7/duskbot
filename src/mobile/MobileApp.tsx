@@ -140,7 +140,7 @@ function Shell() {
   ) : null;
 
   return (
-    <div ref={rootRef} className="omb-mobile relative">
+    <div ref={rootRef} className="dusk-mobile relative">
       <NavStack
         base={<HomeScreen onOpenChat={openChat} onOpenSheet={openSheet} />}
         page={page}

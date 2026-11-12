@@ -80,7 +80,7 @@ export async function syncCodexInstructions(
           role: "developer",
           content: [{
             type: "input_text",
-            text: "The following replaces the previous developer instruction block supplied by Dusk Bot, including its native configured rules and bot-specific instructions. Other Codex instructions and permissions still apply.\n\n"
+            text: "The following replaces the previous developer instruction block supplied by dusk bot, including its native configured rules and bot-specific instructions. Other Codex instructions and permissions still apply.\n\n"
               + (instructions || "No Dusk bot-specific instructions remain."),
           }],
         }],

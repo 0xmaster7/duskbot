@@ -224,7 +224,7 @@ describe("failures come back as reasons", () => {
 
 describe("the decision log", () => {
   it("writes one 0600 row per call with no message text and no key", async () => {
-    const dataDir = mkdtempSync(join(tmpdir(), "omb-decider-log-"));
+    const dataDir = mkdtempSync(join(tmpdir(), "dusk-decider-log-"));
     const logs: string[] = [];
     for (const method of ["log", "warn", "error", "info", "debug"] as const) {
       vi.spyOn(console, method).mockImplementation((...args: unknown[]) => { logs.push(args.map(String).join(" ")); });
@@ -300,7 +300,7 @@ describe("settings rules", () => {
 describe("Cloud Pro's included decisions", () => {
   // A Jev base URL whose one relay route is <DUSK_CLOUD_DECIDER_URL>/v1/systemone.
   const RELAY = "https://cloud.example.test/api/cloud/services/decider";
-  const INCLUDED = "omb_decide_unit_included_token_0123456789";
+  const INCLUDED = "dusk_decide_unit_included_token_0123456789";
   const cloudPro = () => {
     vi.stubEnv("DUSK_CLOUD_DECIDER_URL", RELAY);
     vi.stubEnv("DUSK_CLOUD_DECIDER_TOKEN", INCLUDED);
@@ -468,7 +468,7 @@ describe("Cloud Pro's included decisions", () => {
 
   it("the decision log never holds the token", async () => {
     cloudPro();
-    const dataDir = mkdtempSync(join(tmpdir(), "omb-decider-included-log-"));
+    const dataDir = mkdtempSync(join(tmpdir(), "dusk-decider-included-log-"));
     await route(decider({}, theo(), dataDir));
     await flushDeciderLog(dataDir);
     const dir = join(dataDir, DECIDER_LOG_DIR);
@@ -530,7 +530,7 @@ describe("OpenRouter as the provider", () => {
   });
 
   it("logs the provider and model, with no message text and no key", async () => {
-    const dataDir = mkdtempSync(join(tmpdir(), "omb-decider-or-log-"));
+    const dataDir = mkdtempSync(join(tmpdir(), "dusk-decider-or-log-"));
     const fetchImpl = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(answer("theo", { theo: 0.9, maya: 0.1 }))
       .mockResolvedValueOnce(new Response(`echo ${OR_KEY}`, { status: 402 }));
@@ -547,7 +547,7 @@ describe("OpenRouter as the provider", () => {
   });
 
   it("a Jev log row stays without a model", async () => {
-    const dataDir = mkdtempSync(join(tmpdir(), "omb-decider-jev-log-"));
+    const dataDir = mkdtempSync(join(tmpdir(), "dusk-decider-jev-log-"));
     await decider(ON, vi.fn<typeof fetch>(async () => jsonResponse(choiceBody("theo", { theo: 0.94, maya: 0.06 }))), dataDir).choose("roomRouting", STATE, QUESTION);
     await flushDeciderLog(dataDir);
     const dir = join(dataDir, DECIDER_LOG_DIR);
@@ -559,7 +559,7 @@ describe("OpenRouter as the provider", () => {
   it("OpenRouter picked with its own key comes before Cloud's included relay, whose token never goes to OpenRouter", async () => {
     const relay = "https://cloud.example.test/api/cloud/services/decider";
     vi.stubEnv("DUSK_CLOUD_DECIDER_URL", relay);
-    vi.stubEnv("DUSK_CLOUD_DECIDER_TOKEN", "omb_decide_unit_included_token_0123456789");
+    vi.stubEnv("DUSK_CLOUD_DECIDER_TOKEN", "dusk_decide_unit_included_token_0123456789");
     const fetchImpl = yes();
     const chose: AppConfig = { decider: { ...OR.decider } };
     expect(describeDecider(chose)).toMatchObject({ provider: "openrouter", configured: true, keySource: "own" });

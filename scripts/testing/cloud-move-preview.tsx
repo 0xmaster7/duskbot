@@ -28,7 +28,7 @@ const calls: string[] = [];
 Object.assign(window, { cloudMoveCalls: calls });
 let ticker: ReturnType<typeof setInterval> | null = null;
 
-window.ogb = {
+window.duskDesktop = {
   platform: "darwin",
   getCapabilities: async () => initialDesktopCapabilities(),
   onCapabilitiesChanged: () => () => {},
@@ -60,7 +60,7 @@ window.ogb = {
       return tell({ ...BASE, offer: { stage: which === "prompt" ? "banner" : "settings", bots: 12 } });
     },
   },
-} as unknown as typeof window.ogb;
+} as unknown as typeof window.duskDesktop;
 
 applySkin((params.get("skin") ?? "midnight") as SkinId);
 createRoot(document.getElementById("root")!).render(<App />);

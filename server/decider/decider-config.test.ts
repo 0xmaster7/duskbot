@@ -30,7 +30,7 @@ describe("decider config", () => {
 
   it("engines never inherit the key, nor Cloud Pro's included token", () => {
     const childEnv: Record<string, string | undefined> = {
-      DUSK_JEV_API_KEY: KEY, DUSK_OPENROUTER_DECIDER_KEY: OR_KEY, DUSK_CLOUD_DECIDER_TOKEN: "omb_decide_included", PATH: "/usr/bin",
+      DUSK_JEV_API_KEY: KEY, DUSK_OPENROUTER_DECIDER_KEY: OR_KEY, DUSK_CLOUD_DECIDER_TOKEN: "dusk_decide_included", PATH: "/usr/bin",
     };
     stripWorkspaceCredentialEnv(childEnv);
     expect(childEnv).toEqual({ PATH: "/usr/bin" });
@@ -39,7 +39,7 @@ describe("decider config", () => {
   it("on Cloud Pro, a key in the environment is the person's own and wins over the included decisions", async () => {
     const relay = "https://cloud.example.test/api/cloud/services/decider";
     vi.stubEnv("DUSK_CLOUD_DECIDER_URL", relay);
-    vi.stubEnv("DUSK_CLOUD_DECIDER_TOKEN", "omb_decide_included");
+    vi.stubEnv("DUSK_CLOUD_DECIDER_TOKEN", "dusk_decide_included");
     try {
       const fetchImpl = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ answers: { answer: { type: "noul", noul: 0.9 } } })));
       const decider = createDecider({ config: loadConfig, fetch: fetchImpl });
@@ -51,8 +51,8 @@ describe("decider config", () => {
       expect(describeDecider(loadConfig())).toEqual({ provider: "jev", configured: true, enabled: true, jobs: { roomRouting: true } });
       await decider.testKey();
       const calls = fetchImpl.mock.calls.map(([url, init]) => [String(url), (init!.headers as Record<string, string>).authorization]);
-      expect(calls).toEqual([[`${relay}/v1/systemone`, "Bearer omb_decide_included"], ["https://api.typesafe.ai/v1/systemone", `Bearer ${KEY}`]]);
-      expect(readFileSync(join(DATA_DIR, "config.json"), "utf8")).not.toContain("omb_decide_included");
+      expect(calls).toEqual([[`${relay}/v1/systemone`, "Bearer dusk_decide_included"], ["https://api.typesafe.ai/v1/systemone", `Bearer ${KEY}`]]);
+      expect(readFileSync(join(DATA_DIR, "config.json"), "utf8")).not.toContain("dusk_decide_included");
     } finally {
       vi.unstubAllEnvs();
     }

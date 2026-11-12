@@ -434,20 +434,20 @@
 }
 .turn-status-in {
   transform-origin: 0 18px;
-  animation: turn-status-in 180ms var(--omb-ease-out) backwards;
+  animation: turn-status-in 180ms var(--dusk-ease-out) backwards;
 }
 .turn-status-in .turn-status-mark {
-  animation: turn-mark-pop 340ms var(--omb-ease-back) backwards;
+  animation: turn-mark-pop 340ms var(--dusk-ease-back) backwards;
 }
 .turn-status-in .turn-label-slot {
-  animation: turn-label-rise 180ms var(--omb-ease-out) backwards;
+  animation: turn-label-rise 180ms var(--dusk-ease-out) backwards;
 }
 .turn-status-out {
   transform-origin: 0 18px;
-  animation: turn-status-out 140ms var(--omb-ease-out) forwards;
+  animation: turn-status-out 140ms var(--dusk-ease-out) forwards;
 }
 .turn-label-in {
-  animation: turn-label-rise 180ms var(--omb-ease-out) backwards;
+  animation: turn-label-rise 180ms var(--dusk-ease-out) backwards;
 }
 .status-shimmer {
   --status-shimmer-ink: var(--color-ink);
@@ -469,7 +469,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .turn-status-in, .turn-status-in .turn-status-mark, .turn-status-in .turn-label-slot, .turn-label-in { animation-name: chat-row-fade; }
-  .turn-status-out { animation-name: omb-fade-out; }
+  .turn-status-out { animation-name: dusk-fade-out; }
   .status-shimmer { animation: none; background-image: none; color: var(--color-ink-secondary); }
 }
 

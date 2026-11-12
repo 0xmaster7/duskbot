@@ -192,7 +192,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
       c.status = "stopped"; succeeded(c); return;
     }
     if (config.configured?.[c.placement] === false) {
-      c.error = "Dusk Cloud is not configured."; save(c); return;
+      c.error = "dusk cloud is not configured."; save(c); return;
     }
     if (c.suspended !== null) {
       if (!c.suspensionApplied || c.serverId && (await provider.status(c.serverId)).state !== "off") {
@@ -367,7 +367,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
       } if (!["running", "stopped", "sleeping"].includes(c.status) || c.suspended !== null || c.ended || c.destroyAt !== null && c.destroyAt <= now()) throw new CloudError(409, "unavailable"); if (action === "on" && (c.status === "stopped" || c.status === "sleeping")) c.wakeRequestedAt = now();
       c.wantPower = action; c.nextAttemptAt = 0; save(c); await service.reconcile(); if (c.wantPower === action && c.status !== (action === "on" ? "running" : "stopped") && c.status !== "error") await service.reconcile();
       if (c.backend && action === "on" && c.status !== "running") hurry(c.id); return c; },
-    async pair(accountId, id) { const c = requireOwned(accountId, id); if (c.status !== "running" || !c.origin || c.suspended !== null || c.ended || c.destroyAt !== null && c.destroyAt <= now()) throw new CloudError(409, "unavailable"); const result = await (c.backend ? options.managedHome ?? home : home).pair(c.origin, sealer.unseal(c.bootstrapSecret), { label: "Dusk Bot app (Cloud)", ttlSeconds: 300 }); return { origin: c.origin, code: result.code, expiresAt: result.expiresAt }; },
+    async pair(accountId, id) { const c = requireOwned(accountId, id); if (c.status !== "running" || !c.origin || c.suspended !== null || c.ended || c.destroyAt !== null && c.destroyAt <= now()) throw new CloudError(409, "unavailable"); const result = await (c.backend ? options.managedHome ?? home : home).pair(c.origin, sealer.unseal(c.bootstrapSecret), { label: "dusk bot app (Cloud)", ttlSeconds: 300 }); return { origin: c.origin, code: result.code, expiresAt: result.expiresAt }; },
     reconcile() {
       if (closed) return Promise.resolve();
       if (reconciling) return reconciling;

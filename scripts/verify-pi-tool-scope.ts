@@ -8,7 +8,7 @@ import { join, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
 const cli = resolve(process.argv[2] ?? "node_modules/.bin/pi");
-const home = mkdtempSync(join(tmpdir(), "omb-pi-selection-"));
+const home = mkdtempSync(join(tmpdir(), "dusk-pi-selection-"));
 process.env.HOME = home;
 process.env.USERPROFILE = home;
 process.env.DUSK_DATA_DIR = join(home, "data");

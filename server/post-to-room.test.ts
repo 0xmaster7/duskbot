@@ -187,7 +187,7 @@ beforeAll(async () => {
   PORT = base;
   WEBHOOK_PORT = base + 1;
   BASE = `http://127.0.0.1:${PORT}`;
-  home = mkdtempSync(join(tmpdir(), "omb-post-to-room-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-post-to-room-"));
   fakeClaudeDump = join(home, "fake-claude-dump.json");
   mentionerDump = join(home, "mentioner-dump.json");
   mkdirSync(join(home, ".duskbot"), { recursive: true });

@@ -20,7 +20,7 @@ test("a newer release is told once, and clicking opens the download page", async
   assert.equal(await notice.check(), "0.1.150");
   assert.equal(await notice.check(), null);
   assert.equal(notes.length, 1);
-  assert.equal(notes[0].title, "Dusk Bot 0.1.150 is available");
+  assert.equal(notes[0].title, "dusk bot 0.1.150 is available");
   notes[0].click();
   assert.deepEqual(opened, ["https://dusk.bot/download"]);
 });

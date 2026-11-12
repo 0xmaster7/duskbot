@@ -17,7 +17,7 @@ export interface CloudAccountState {
   entitlement?: { plan: "free" | "pro"; tier?: string; status: "active" | "inactive"; expiresAt: number | null; version: number };
   verifiedAt?: number;
   verifiedUntil?: number;
-  /** Connected, but the last checks with Dusk Cloud failed; the snapshot is the last verified one. */
+  /** Connected, but the last checks with dusk cloud failed; the snapshot is the last verified one. */
   checking?: true;
   /** Not connected (unavailable, or the sign-in ended): the paid plan last
    * verified for this account, for display only. It activates nothing. */
@@ -33,13 +33,13 @@ export interface CloudAccountState {
   addCloud?: { canAdd: true } | { canAdd: false; blocked: CloudAddBlock };
   /** With `clouds`, for the account a Team plan with organizations is billed to: whether ＋ may add one to it now. */
   organizations?: import("./cloud-list.mjs").CloudOrganizations;
-  /** The newest Dusk Bot release the Admin knows, while it follows releases (with `clouds`); absent otherwise. */
+  /** The newest dusk bot release the Admin knows, while it follows releases (with `clouds`); absent otherwise. */
   latestVersion?: string;
   /** Another Cloud this app is buying (in the last 24 hours): its id, name, swatch and plan, when its checkout opened,
    * whether main keeps that page (`link`), and `done` once it was opened or announced. */
   /** `cloudId` null: a checkout the Admin said is still open, before the session lists its Cloud. */
   adding?: { cloudId: string | null; name: string; color: import("./cloud-list.mjs").CloudSwatch | null; tier: string | null; startedAt: number; link?: true; done?: true };
-  /** A payment Dusk Cloud received and is still linking to this account. */
+  /** A payment dusk cloud received and is still linking to this account. */
   purchase?: import("./cloud-home.mjs").CloudPurchase;
   /** Connected: the free trial on this account's Cloud, when the Admin says (display only). */
   trial?: import("./cloud-home.mjs").CloudTrial;
@@ -232,7 +232,7 @@ export interface CloudPlanSnapshot {
 export interface CloudPlanBridge {
   state(): Promise<CloudPlanSnapshot>;
   manage(): Promise<void>;
-  /** This device's Dusk Cloud sign-in, again, once it has ended: only from the person's click. */
+  /** This device's dusk cloud sign-in, again, once it has ended: only from the person's click. */
   signIn?(): Promise<void>;
   /** The trial's popup due now was shown: main shows it no more today. Absent on an older app. */
   noticeSeen?(): Promise<void>;

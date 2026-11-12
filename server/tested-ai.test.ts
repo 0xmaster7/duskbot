@@ -135,7 +135,7 @@ describe("testing an AI with one tiny message before a new bot's default trusts 
     clock = 1_000_000;
     timers = [];
     company = () => false;
-    data = mkdtempSync(join(tmpdir(), "omb-tested-ai-"));
+    data = mkdtempSync(join(tmpdir(), "dusk-tested-ai-"));
     store = new FakeStore(() => pick);
     tested = make();
   });

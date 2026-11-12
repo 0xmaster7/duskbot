@@ -16,7 +16,7 @@ const idleMs = Number(process.argv.find(arg => arg.startsWith("--idle-ms="))?.sp
 assert.ok(idleMs >= 1000 && idleMs <= 30_000);
 const browserLimit = Number(process.argv.find(arg => arg.startsWith("--browser-limit="))?.split("=")[1] || 4);
 assert.ok(Number.isInteger(browserLimit) && browserLimit >= 1 && browserLimit <= 20);
-const evidence = await mkdtemp("/tmp/omb-screen-bench-");
+const evidence = await mkdtemp("/tmp/dusk-screen-bench-");
 const root = fileURLToPath(new URL("..", import.meta.url));
 const guestSources = [];
 if (process.argv.includes("--guest-source")) {
@@ -85,11 +85,11 @@ async function benchmark(count) {
   let container;
   let volume;
   try {
-    volume = `omb-screen-bench-home-${process.pid}-${count}`;
+    volume = `dusk-screen-bench-home-${process.pid}-${count}`;
     await run("docker", ["volume", "create", "--label", "bot.dusk.verification=screen-benchmark", volume]);
     result.volume = volume;
     const boot = performance.now();
-    container = (await run("docker", ["run", "--rm", "-d", "--name", `omb-screen-bench-${process.pid}-${count}`, "--label", "bot.dusk.verification=screen-benchmark",
+    container = (await run("docker", ["run", "--rm", "-d", "--name", `dusk-screen-bench-${process.pid}-${count}`, "--label", "bot.dusk.verification=screen-benchmark",
       "--network", "none", "--user", "1000:1000", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--read-only",
       "--memory", "4g", "--memory-swap", "4g", "--cpus", "2", "--pids-limit", "4096", "--shm-size", "512m",
       "--mount", `type=volume,source=${volume},target=/home/cua`, "--tmpfs", "/tmp:rw,nosuid,nodev,size=512m",
@@ -195,7 +195,7 @@ async function benchmark(count) {
       const appForm = async (target, recheck = false) => {
         const canonical = independentScreenTarget(target.botId, target.display, target.generation);
         const home = join(evidence, `home-${count}-${target.display}`);
-        const binary = process.env.DUSK_AGENT_BROWSER_PATH || join(root, ".omb-scratch/verify-tools/tools/agent-browser/0.37.0/agent-browser");
+        const binary = process.env.DUSK_AGENT_BROWSER_PATH || join(root, ".dusk-scratch/verify-tools/tools/agent-browser/0.37.0/agent-browser");
         const relay = await boxChromeRelay(() => spawn("docker", boxChromeExecArgs(container, canonical), { stdio: ["pipe", "pipe", "ignore"] }));
         const transport = await connectMcp(container, canonical.socket);
         const started = performance.now();

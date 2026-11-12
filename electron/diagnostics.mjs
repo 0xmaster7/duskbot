@@ -271,7 +271,7 @@ export function buildDiagnosticsReport({
   now = new Date().toISOString(),
 } = {}) {
   const lines = [];
-  lines.push("Dusk Bot diagnostics");
+  lines.push("dusk bot diagnostics");
   lines.push(`Generated: ${now}`);
   lines.push("");
   lines.push("## App");

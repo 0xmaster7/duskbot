@@ -1,4 +1,4 @@
-// Settings > Transfer: where the bots live now, moving them back to this computer, taking Dusk Bot off the server, and
+// Settings > Transfer: where the bots live now, moving them back to this computer, taking dusk bot off the server, and
 // the backups a move keeps
 import { useCallback, useEffect, useRef, useState } from "react";
 import { t } from "@/lib/i18n";
@@ -8,7 +8,7 @@ import { Card, CopyRow, ItemRow, NavRow, NoteRow } from "../ListRows";
 import { smallButtonCls } from "../ui/GrokDialog";
 import { deviceWord, message } from "./parts";
 
-const confirmAction = (text: string) => (window.ogb?.confirm ? window.ogb.confirm(text) : Promise.resolve(window.confirm(text)));
+const confirmAction = (text: string) => (window.duskDesktop?.confirm ? window.duskDesktop.confirm(text) : Promise.resolve(window.confirm(text)));
 
 function backupWhen(at: number): string {
   return new Date(at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
@@ -32,8 +32,8 @@ export function TransferSettings() {
   const loadSequence = useRef(0);
   const device = deviceWord();
   const { state, dispatch } = useStore();
-  // Dusk Cloud is the way offered here; a server of one's own stays on the Connect from elsewhere page
-  const cloud = Boolean(window.ogb?.cloudAccount) && window.ogb?.remoteClient?.active !== true && !state.config?.cloudHome;
+  // dusk cloud is the way offered here; a server of one's own stays on the Connect from elsewhere page
+  const cloud = Boolean(window.duskDesktop?.cloudAccount) && window.duskDesktop?.remoteClient?.active !== true && !state.config?.cloudHome;
 
   const load = useCallback(() => {
     if (!bridge) return;

@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { deflateSync } from "node:zlib";
-import { launchVerificationServer, type VerificationServer } from "./control-omb.ts";
+import { launchVerificationServer, type VerificationServer } from "./control-dusk.ts";
 import { fixtureApi } from "./testing/preview-fixture.ts";
 import { fakeVncDesktop } from "./testing/fake-vnc-desktop.ts";
 import { decodePng } from "./testing/png.ts";
@@ -103,7 +103,7 @@ async function waitFor(url: string, child: ChildProcess, headers: Record<string,
   throw new Error(`${url} did not come up`);
 }
 
-const scratch = mkdtempSync(join(tmpdir(), "omb-ios-local-vm-"));
+const scratch = mkdtempSync(join(tmpdir(), "dusk-ios-local-vm-"));
 const bin = join(scratch, "bin");
 const frames = join(scratch, "frames");
 const fixtureTarget = join(scratch, "target.json");

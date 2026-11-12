@@ -38,8 +38,8 @@ describe("hosted dashboard service", () => {
   let keys: { publicKey: KeyObject; privateKey: KeyObject };
 
   beforeEach(async () => {
-    dataDir = mkdtempSync("/private/tmp/omb-dashboard-test-");
-    staticDir = mkdtempSync("/private/tmp/omb-dashboard-static-");
+    dataDir = mkdtempSync("/private/tmp/dusk-dashboard-test-");
+    staticDir = mkdtempSync("/private/tmp/dusk-dashboard-static-");
     writeFileSync(`${staticDir}/index.html`, "<!doctype html><title>dashboard fixture</title>");
     writeFileSync(`${staticDir}/.env`, "fixture-only");
     time = Date.now();
@@ -79,7 +79,7 @@ describe("hosted dashboard service", () => {
     const raw = JSON.stringify({ v: 1, publicKey: keys.publicKey.export({ type: "spki", format: "der" }).toString("base64"), ...workspace });
     const at = time + ++nonce;
     const signature = sign(null, Buffer.from(signedPayload("POST", "/v1/enroll", at, createHash("sha256").update(raw).digest("hex"))), keys.privateKey).toString("base64");
-    return fetch(`${url}/v1/enroll`, { method: "POST", body: raw, headers: { "content-type": "application/json", origin, ...(withSignature ? { "x-omb-time": String(at), "x-omb-signature": signature } : {}) } });
+    return fetch(`${url}/v1/enroll`, { method: "POST", body: raw, headers: { "content-type": "application/json", origin, ...(withSignature ? { "x-dusk-time": String(at), "x-dusk-signature": signature } : {}) } });
   }
   async function enroll() {
     const response = await enrollRequest();
@@ -98,7 +98,7 @@ describe("hosted dashboard service", () => {
     const at = settings.time ?? time + ++nonce;
     const payload = signedPayload(method, path, at, createHash("sha256").update(raw).digest("hex"));
     const signature = sign(null, Buffer.from(payload), keys.privateKey).toString("base64");
-    const headers = { "content-type": "application/json", "x-omb-workspace": id, "x-omb-time": String(at), "x-omb-signature": settings.bad ? Buffer.alloc(64).toString("base64") : signature };
+    const headers = { "content-type": "application/json", "x-dusk-workspace": id, "x-dusk-time": String(at), "x-dusk-signature": settings.bad ? Buffer.alloc(64).toString("base64") : signature };
     return { raw, method, headers, send: () => fetch(`${url}${path}`, { method, headers, ...(method === "POST" ? { body: raw } : {}) }) };
   }
   function report(seq = 1): WorkspaceReport { return { v: 1, seq, at: time, workspace }; }

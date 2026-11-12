@@ -9,11 +9,11 @@
 // MCP servers) and then holds the turn open, so the turn's capability is
 // still good while this test starts the dumped agents server itself and
 // talks to it the way the engine would. Nothing here touches a person's
-// Dusk Bot: the server, its data and its home are the fixture's.
+// dusk bot: the server, its data and its home are the fixture's.
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import { expect, it } from "vitest";
-import { launchVerificationServer, runControlOmb } from "../scripts/control-omb.ts";
+import { launchVerificationServer, runControlDusk } from "../scripts/control-dusk.ts";
 import type { WireMessage } from "../shared/wire.ts";
 import { createToolBridge, type BridgeTool } from "./drivers/agents-bridge.ts";
 import { gateServer } from "./mcp-gate-config.ts";
@@ -21,7 +21,7 @@ import { AGENTS_TOOL_BRIDGE_PROMPT } from "./system-prompt.ts";
 import { turnEvidence } from "./turn-outcome.ts";
 import { waitForExit } from "./testing/cleanup.ts";
 import { hostTimeout } from "./testing/host-timeout.ts";
-import { childEnv } from "./testing/omb-env.ts";
+import { childEnv } from "./testing/dusk-env.ts";
 
 type McpServer = { command: string; args: string[]; env: Record<string, string> };
 type Launched = { pid: number; systemPrompt: string; mcpConfig: { mcpServers: Record<string, McpServer> } };
@@ -46,7 +46,7 @@ async function withFixture(run: (helpers: {
         const response = await fetch(`${fixture.info.url}${path}`, { method, headers: { "content-type": "application/json" }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
         return { status: response.status, body: await response.json() };
       },
-      control: (args) => runControlOmb([...args, "--url", fixture.info.url]),
+      control: (args) => runControlDusk([...args, "--url", fixture.info.url]),
       launched: async () => {
         await expect.poll(() => existsSync(fixture.fixtureDumpPath), { timeout: 30_000 }).toBe(true);
         const value = JSON.parse(readFileSync(fixture.fixtureDumpPath, "utf8")) as Launched;

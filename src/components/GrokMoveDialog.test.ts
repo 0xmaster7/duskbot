@@ -58,7 +58,7 @@ const plain = () => {
 
 beforeEach(() => {
   setLocale("en");
-  vi.stubGlobal("ogb", undefined);
+  vi.stubGlobal("duskDesktop", undefined);
   f.api.mockReset();
   f.track.mockReset();
   f.dispatch.mockReset();
@@ -163,7 +163,7 @@ describe("Move from Grok Bot", () => {
   });
 
   it("on the desktop app looks once it is open, and offers what it found in one tap", async () => {
-    vi.stubGlobal("ogb", { remoteClient: { active: false } });
+    vi.stubGlobal("duskDesktop", { remoteClient: { active: false } });
     f.api.mockImplementation(async (path: string) => (path === "/api/setup-import/grok"
       ? { files: [{ name: "grok-bot-export-drew.json", modifiedAt: 1, text: EXPORT }], bots: ["Job Search", "Scout"] }
       : path === "/api/mcp/servers" ? { servers: [] } : {}));

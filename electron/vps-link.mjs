@@ -739,7 +739,7 @@ export function createVpsLink(deps) {
   async function local(method, route, body) {
     const response = await localRequest(route, { method, ...(body === undefined ? {} : { headers: { "content-type": "application/json" }, body: JSON.stringify(body) }) });
     const parsed = await response.json().catch(() => ({}));
-    if (!response.ok) throw Object.assign(new Error(typeof parsed?.error === "string" ? parsed.error : "Dusk Bot on this Mac did not answer."), { status: response.status });
+    if (!response.ok) throw Object.assign(new Error(typeof parsed?.error === "string" ? parsed.error : "dusk bot on this Mac did not answer."), { status: response.status });
     return parsed;
   }
 
@@ -787,7 +787,7 @@ export function createVpsLink(deps) {
     const body = moving ? response.body.pipeThrough(new TransformStream({
       transform(chunk, controller) { received += chunk.byteLength; report(); controller.enqueue(chunk); },
     })) : response.body;
-    const saved = await deps.backups.save(`${at}-${made.id}.ombbackup`, body);
+    const saved = await deps.backups.save(`${at}-${made.id}.duskbackup`, body);
     report(true);
     if (typeof made.bytes === "number" && saved.bytes !== made.bytes) throw new Error("The backup was cut off while saving. Nothing was changed.");
     const entry = {
@@ -941,7 +941,7 @@ export function createVpsLink(deps) {
     return view();
   }
 
-  /** the line that takes Dusk Bot off the server again (apps/link-service/uninstall.sh), from the service it was linked through */
+  /** the line that takes dusk bot off the server again (apps/link-service/uninstall.sh), from the service it was linked through */
   function uninstallLine() { return `curl -fsSL ${currentLink()?.base ?? base}/uninstall | sh`; }
 
   function where() {

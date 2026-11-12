@@ -57,7 +57,7 @@ async function idle(id: string) {
 }
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-claude-account-api-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-claude-account-api-"));
   dataDir = join(home, ".duskbot");
   mkdirSync(dataDir, { recursive: true });
   cli = join(home, "fixture-claude.mjs");

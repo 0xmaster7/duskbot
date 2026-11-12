@@ -39,7 +39,7 @@ export function Unreachable({ record, others, attempts, trying, onRetry, onSwitc
   }, [trying, onRetry]);
 
   return (
-    <main className="omb-mobile omb-onboarding relative size-full overflow-hidden" style={{ background: ONBOARDING_BG }} aria-busy={trying}>
+    <main className="dusk-mobile dusk-onboarding relative size-full overflow-hidden" style={{ background: ONBOARDING_BG }} aria-busy={trying}>
       <SkyScene>
         <div className="absolute inset-0 flex flex-col">
           <Screen actions={<>

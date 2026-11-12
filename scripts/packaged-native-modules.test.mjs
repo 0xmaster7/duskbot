@@ -27,7 +27,7 @@ describe("packaged native modules", () => {
   });
 
   it("declares every natively required package in the npm manifest at the app's exact pin", () => {
-    const checkout = mkdtempSync(join(tmpdir(), "omb-npm-package-"));
+    const checkout = mkdtempSync(join(tmpdir(), "dusk-npm-package-"));
     temporaryDirectories.push(checkout);
     const pins = Object.fromEntries(nativelyRequired().map((name, i) => [name, `9.9.${i}`]));
     writeFileSync(join(checkout, "package.json"), JSON.stringify({ version: "0.0.1", dependencies: { ...pins, react: "19.0.0" } }));
@@ -47,6 +47,6 @@ describe("packaged native modules", () => {
     expect(text.indexOf("RUN node scripts/prepare-duckdb.mjs")).toBeGreaterThan(text.indexOf("COPY . ."));
     expect(text).toMatch(/^COPY --from=build \S+ \/src\/dist-native\/duckdb\/linux-x64 \.\/duckdb$/m);
     expect(text).toMatch(/^WORKDIR \/app$/m);
-    expect(text).toMatch(/\bOMB_DUCKDB_DIR=\/app\/duckdb\b/);
+    expect(text).toMatch(/\bDUSK_DUCKDB_DIR=\/app\/duckdb\b/);
   });
 });

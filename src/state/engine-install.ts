@@ -10,14 +10,14 @@ export interface EngineInstall {
   managed?: { label: string; downloadBytes: number };
   server?: { package?: string; standalone?: { version: string; downloadBytes: number } };
   settings?: "connections";
-  /** The CLI runs the copy Dusk Bot installed, which the person's terminal does not reach: set up in the app, not there. */
+  /** The CLI runs the copy dusk bot installed, which the person's terminal does not reach: set up in the app, not there. */
   appCopy?: boolean;
 }
 
 type Platform = NonNullable<EngineInstall["platform"]>;
 
 function hostPlatform(): Platform {
-  const platform = window.ogb?.platform;
+  const platform = window.duskDesktop?.platform;
   if (platform === "darwin" || platform === "win32" || platform === "linux") return platform;
   const userAgent = navigator.userAgent;
   if (userAgent.includes("Mac")) return "darwin";

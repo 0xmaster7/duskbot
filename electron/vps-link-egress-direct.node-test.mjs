@@ -168,7 +168,7 @@ test("a lost direct path ends its egress streams, and the next dial takes the re
 });
 
 test("the direct command hands its connection to the tunnel's process, which serves it in the hub", { timeout: 10_000 }, async () => {
-  const dir = mkdtempSync(join(tmpdir(), "omb-direct-sock-"));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-direct-sock-"));
   const file = join(dir, "direct.sock");
   const accepted = [];
   const hub = { accept: (input) => { accepted.push(input); input.on("data", (chunk) => input.write(Buffer.concat([Buffer.from("echo:"), chunk]))); } };

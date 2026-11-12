@@ -102,7 +102,7 @@ type RpcAnswer = { id: number; result?: { tools?: unknown[]; content?: Array<{ t
 /** One freshly spawned proxy's raw answer lines to `requests`, in the order
  * asked, read off its stdout as they arrive. */
 async function proxyLines(entry: string, env: Record<string, string>, requests: Array<{ method: string; params?: unknown }>): Promise<string[]> {
-  // A developer shell (or a Dusk Bot turn running this suite) can carry
+  // A developer shell (or a dusk bot turn running this suite) can carry
   // DUSK_* switches of its own; the profile must be the only source.
   const inherited = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("DUSK_")));
   const child = spawn(process.execPath, [entry], {
@@ -313,7 +313,7 @@ describe("agents proxy with the tool bridge on, from the packaged bundle", () =>
     // The proxy runs as its own process in a packaged build, so the bridge
     // and the ranker it searches with have to be inlined into the one
     // agents-proxy.js that scripts/bundle-server.mjs's options produce.
-    directory = realpathSync(mkdtempSync(join(tmpdir(), "omb-agents-proxy-bridge-bundle-")));
+    directory = realpathSync(mkdtempSync(join(tmpdir(), "dusk-agents-proxy-bridge-bundle-")));
     await build({
       entryPoints: [PROXY_SOURCE],
       bundle: true,

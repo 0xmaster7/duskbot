@@ -59,7 +59,7 @@ describe("pairing exchange", () => {
     const retry = JSON.parse(String(fetcher.mock.calls[1][1]?.body));
     expect(first.pairRequestId).toBe(retry.pairRequestId);
     expect(first).toMatchObject({ credential, deviceName: "Test phone" });
-    expect([...preferences.keys()]).toEqual([expect.stringMatching(/^omb\.mobile\.pairAttempt\.[a-f0-9]{12}$/)]);
+    expect([...preferences.keys()]).toEqual([expect.stringMatching(/^dusk\.mobile\.pairAttempt\.[a-f0-9]{12}$/)]);
     expect([...preferences.values()]).not.toContain(credential);
     expect(result.record).toMatchObject({ label: "Studio", environmentId: "studio", sessionId: "session-1", capabilities: { computerControl: true, routines: true, notifications: true, settingsWrite: true, openOnDesktop: false } });
     expect(result.record.sessionRef).toBe(`token.${result.record.id}`);
@@ -144,7 +144,7 @@ function v2Payload(): MobileLinkPayload {
 }
 function v2Answer(): MobileRedeemResponse {
   return {
-    token: "omb_sess_test", workspace: { name: "Studio", environmentId: "studio", kind: "vps" }, scopes: ["client", "admin"],
+    token: "dusk_sess_test", workspace: { name: "Studio", environmentId: "studio", kind: "vps" }, scopes: ["client", "admin"],
     device: { id: "device-1", name: "Test phone", platform: "ios", createdAt: 1, lastSeenAt: 1, expiresAt: 1000, relay: true, push: null },
     relay: { base: "https://relay.test", channel: "klmnopqrst", agentPub: Buffer.alloc(32, 7).toString("base64url") },
   };
@@ -185,7 +185,7 @@ describe("v2 pairing", () => {
     const channel = { request: vi.fn().mockRejectedValue(new TypeError("offline")), close: vi.fn() };
     vi.spyOn(relay, "open").mockReturnValue(channel);
     const fetcher = vi.fn<typeof fetch>().mockImplementation(async () => {
-      const id = preferences.get("omb.mobile.attempt.grant-id");
+      const id = preferences.get("dusk.mobile.attempt.grant-id");
       expect(id).toBeTruthy();
       expect(secrets.has(`relay.${id}`)).toBe(true);
       throw new TypeError("lost response");
@@ -329,7 +329,7 @@ describe("workspace reconnect", () => {
     preferences.set(outboxKey(record.id), "[]");
     await store.remove(record.id);
     expect(preferences.has(outboxKey(record.id))).toBe(false);
-    expect(deleted).toEqual([`omb-transcripts.${record.id}`]);
+    expect(deleted).toEqual([`dusk-transcripts.${record.id}`]);
   });
 
   it("keeps what was written offline when the same installation is linked again, and drops the old link's chats", async () => {
@@ -342,7 +342,7 @@ describe("workspace reconnect", () => {
     await store.save(again, "token-2");
     expect(preferences.has(outboxKey(record.id))).toBe(false);
     expect(preferences.get(outboxKey(again.id))).toBe("[\"held\"]");
-    expect(deleted).toEqual([`omb-transcripts.${record.id}`]);
+    expect(deleted).toEqual([`dusk-transcripts.${record.id}`]);
   });
 });
 
@@ -383,7 +383,7 @@ describe("push registration", () => {
     const { platform, fetcher, preferences, record } = await fixture();
     fetcher.mockRejectedValueOnce(new Error("offline"));
     await expect(registerPushForConnection(platform)).resolves.toBeUndefined();
-    expect(preferences.has(`omb.mobile.push.${record.id}`)).toBe(false);
+    expect(preferences.has(`dusk.mobile.push.${record.id}`)).toBe(false);
     await registerPushForConnection(platform);
     expect(puts(fetcher)).toHaveLength(2);
     platform.native = false;

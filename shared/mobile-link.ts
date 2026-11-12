@@ -87,7 +87,7 @@ export interface MobileDevice {
 }
 
 export interface MobileRedeemResponse {
-  /** The workspace session bearer token (`omb_sess_...`), the phone's only workspace credential. */
+  /** The workspace session bearer token (`dusk_sess_...`), the phone's only workspace credential. */
   token: string;
   device: MobileDevice;
   workspace: MobileLinkPayload["workspace"];
@@ -272,7 +272,7 @@ export interface MobileOpenTarget {
   view?: "chat" | "computer" | "profile" | "routines" | "settings" | "notifications";
 }
 
-const LEGACY_CREDENTIAL = /^omb_pair_[A-Za-z0-9_-]{43}$/;
+const LEGACY_CREDENTIAL = /^(?:dusk|omb)_pair_[A-Za-z0-9_-]{43}$/;
 const VIEWS = new Set<NonNullable<MobileOpenTarget["view"]>>(["chat", "computer", "profile", "routines", "settings", "notifications"]);
 
 /** The phone's view of a v2 payload: the first direct origin and the relay route pulled out of `via`. */

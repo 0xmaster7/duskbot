@@ -23,7 +23,7 @@ describe("analytics", () => {
   let sink: ReturnType<typeof memorySink>;
   let analytics: ReturnType<typeof createAnalytics>;
   beforeEach(() => {
-    dataDir = mkdtempSync(join(tmpdir(), "omb-analytics-test-"));
+    dataDir = mkdtempSync(join(tmpdir(), "dusk-analytics-test-"));
     time = Date.parse("2026-11-12T10:00:00Z");
     sink = memorySink(() => time);
     analytics = createAnalytics({ sink, dataDir, now: () => time, trustProxy: true });
@@ -148,7 +148,7 @@ describe.skipIf(!uri)("analytics in mongodb", () => {
 
 describe("ai crawlers", () => {
   it("keeps AI crawler requests apart, capped, with robots.txt and llms.txt by name", async () => {
-    const dataDir = mkdtempSync(join(tmpdir(), "omb-crawl-test-"));
+    const dataDir = mkdtempSync(join(tmpdir(), "dusk-crawl-test-"));
     const sink = memorySink(() => 1000);
     const analytics = createAnalytics({ sink, dataDir, now: () => 1000 });
     analytics.crawlerVisit(fakeReq({ "user-agent": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GPTBot/1.2; +https://openai.com/gptbot)" }, "/llms.txt"), "dusk.bot");

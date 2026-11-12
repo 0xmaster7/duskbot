@@ -43,7 +43,7 @@ async function boot(extraConfig: Record<string, unknown>) {
   for (const name of FAKES) chmodSync(fake(name), 0o755);
   const port = workerPort(18800, 10_000);
   const base = `http://127.0.0.1:${port}`;
-  const home = mkdtempSync(join(tmpdir(), "omb-helper-model-"));
+  const home = mkdtempSync(join(tmpdir(), "dusk-helper-model-"));
   mkdirSync(join(home, ".duskbot"), { recursive: true });
   const routes = join(home, "one-shot-routes.json");
   writeFileSync(routes, JSON.stringify({

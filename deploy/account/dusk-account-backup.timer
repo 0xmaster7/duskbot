@@ -1,5 +1,5 @@
 [Unit]
-Description=Daily Dusk Bot account service backup
+Description=Daily dusk bot account service backup
 
 [Timer]
 OnCalendar=*-*-* 03:17:00 UTC

@@ -206,7 +206,7 @@ describe("installed adapters", () => {
       expect(second.getAttribute("src")).toBe("blob:test-1");
       expect(sourceSet.getAttribute("srcset")).toBe("  blob:test-1 1x, blob:test-2 2x, data:image/svg+xml,/api/keep 3x, https://other.test/image 4x");
       expect(fetcher).toHaveBeenCalledTimes(2);
-      expect(first.getAttribute("data-omb-media")).toBe("1");
+      expect(first.getAttribute("data-dusk-media")).toBe("1");
       mutate(first);
       await Promise.resolve();
       expect(fetcher).toHaveBeenCalledTimes(2);
@@ -336,7 +336,7 @@ describe("a sleeping Cloud behind the phone's stream", () => {
   afterEach(() => resetCloudPowerForTests());
   it("an asleep answer on the stream itself puts the page to sleep without a probe", async () => {
     const failed = vi.fn();
-    const fetcher = vi.fn(async () => new Response("asleep", { status: 503, headers: { "x-omb-cloud-power": "asleep" } }));
+    const fetcher = vi.fn(async () => new Response("asleep", { status: 503, headers: { "x-dusk-cloud-power": "asleep" } }));
     const source = new BearerEventSource("/api/events", undefined, { url: "https://workspace.test/api/events", token: "t", fetch: fetcher, failed });
     await vi.waitFor(() => expect(source.readyState).toBe(source.CLOSED));
     expect(cloudAsleep()).toBe(true); expect(failed).not.toHaveBeenCalled();
@@ -349,14 +349,14 @@ describe("a sleeping Cloud behind the phone's stream", () => {
   });
   it("the probe is a background read that marks the page asleep, at most once in its gap", async () => {
     let clock = 0;
-    const send = vi.fn(async () => new Response("", { status: 503, headers: { "x-omb-cloud-power": "asleep" } }));
+    const send = vi.fn(async () => new Response("", { status: 503, headers: { "x-dusk-cloud-power": "asleep" } }));
     const probe = asleepProbe(send, "https://workspace.test", "secret", () => clock);
     probe(); probe();
     await vi.waitFor(() => expect(cloudAsleep()).toBe(true));
     expect(send).toHaveBeenCalledOnce();
     const [url, init] = send.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe("https://workspace.test/api/health");
-    expect(init.headers).toMatchObject({ Authorization: "Bearer secret", "x-omb-background": "1" });
+    expect(init.headers).toMatchObject({ Authorization: "Bearer secret", "x-dusk-background": "1" });
     clock = ASLEEP_PROBE_GAP_MS; probe();
     expect(send).toHaveBeenCalledTimes(2);
   });

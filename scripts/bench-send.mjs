@@ -1,8 +1,8 @@
 import { writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-import { launchVerificationServer, runControlOmb } from "./control-omb.ts";
+import { launchVerificationServer, runControlDusk } from "./control-dusk.ts";
 import { fixtureApi, mountPreview } from "./testing/preview-fixture.ts";
-import { agentBrowser, ensureUiBrowser, sessionEnv } from "./testing/control-omb-ui.ts";
+import { agentBrowser, ensureUiBrowser, sessionEnv } from "./testing/control-dusk-ui.ts";
 import { closeBrowserSession } from "../server/browser-engine.ts";
 
 const { values } = parseArgs({ options: { samples: { type: "string", default: "6" } } });
@@ -22,7 +22,7 @@ const waitUntil = async (ready) => {
 };
 const round = (value) => Math.round(value * 100) / 100;
 try {
-  const created = await runControlOmb(["new-bot", "--name", "Pepper", "--url", fixture.info.url]);
+  const created = await runControlDusk(["new-bot", "--name", "Pepper", "--url", fixture.info.url]);
   const { bots } = await api("GET", "/api/bots?messages=0");
   const bot = bots.find((candidate) => candidate.id === created.bot.id);
   if (!bot?.threadId) throw new Error("fixture bot has no thread");
@@ -52,7 +52,7 @@ try {
     await browser(["type", 'textarea[aria-label="Message Pepper"]', `Render latency fixture ${i}`]);
     await browser(["eval", "window.__sendBenchmark.send.push(performance.now())"]);
     await browser(["press", "Enter"]);
-    await runControlOmb(["wait", "--bot", bot.id, "--timeout", "15", "--url", fixture.info.url]);
+    await runControlDusk(["wait", "--bot", bot.id, "--timeout", "15", "--url", fixture.info.url]);
     await waitUntil(async () => (await browser(["eval", `(() => { const p = window.__sendBenchmark; const id = p.replies[${i}]; return Boolean(id && p.dom[id] !== undefined); })()`])).result);
   }
   const { result: data } = await browser(["eval", "window.__sendBenchmark"]);

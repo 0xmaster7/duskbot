@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CSRF_COOKIE, CSRF_HEADER } from "../../../../shared/account-api";
+import { CSRF_HEADER, readCsrfCookie } from "../../../../shared/account-api";
 
 export class AdminApiError extends Error {
   readonly status: number; readonly code: string | null;
@@ -9,7 +9,7 @@ export class AdminApiError extends Error {
 let fetchedCsrf: string | null = null;
 /** the CSRF cookie, or the token the account read hands out when the cookie is missing */
 async function csrf() {
-  const raw = document.cookie.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${CSRF_COOKIE}=`))?.slice(CSRF_COOKIE.length + 1) ?? "";
+  const raw = readCsrfCookie(document.cookie) ?? "";
   try { if (raw) return decodeURIComponent(raw); } catch { return raw; }
   if (fetchedCsrf) return fetchedCsrf;
   const me = await fetch("/v1/me", { credentials: "same-origin" }).then((res) => res.json() as Promise<{ csrfToken?: string }>).catch(() => null);

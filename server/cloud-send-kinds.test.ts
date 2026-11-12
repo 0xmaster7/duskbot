@@ -78,7 +78,7 @@ describe("what a move compares", () => {
 
 describe("My Cloud takes a routine", () => {
   it("under its own id, switched off, with its finished runs, this computer's folder named as its own, and as its owner's", async () => {
-    const cloud = mkdtempSync(join(tmpdir(), "omb-kinds-"));
+    const cloud = mkdtempSync(join(tmpdir(), "dusk-kinds-"));
     const held = routinesHeld();
     const d = deps(cloud, { routines: () => held });
     const runs = [run("run-1", "completed"), run("run-2", "running"), run("run-3", "failed", { routineId: "r9" })];
@@ -133,7 +133,7 @@ describe("My Cloud takes an app event", () => {
 
 describe("My Cloud takes a webhook and a call", () => {
   it("a webhook gets an address and a secret of its own there and starts off; taken again, it keeps them and its switch", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "omb-kinds-"));
+    const dir = mkdtempSync(join(tmpdir(), "dusk-kinds-"));
     const here = new WebhookManager({ file: join(dir, "here.json"), botState: () => "ready", enqueue: () => ({ runId: "x" }) } as never);
     const there = new WebhookManager({ file: join(dir, "there.json"), botState: () => "ready", enqueue: () => ({ runId: "x" }) } as never);
     const made = here.create({ name: "Orders", prompt: "File it.", botId: "b1" });
@@ -152,7 +152,7 @@ describe("My Cloud takes a webhook and a call", () => {
   });
 
   it("a scheduled call from a computer that still has them is taken as nothing, so the move goes on", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "omb-kinds-"));
+    const dir = mkdtempSync(join(tmpdir(), "dusk-kinds-"));
     const call = { id: "c1", name: "Sync", description: "", botIds: ["b1"], schedule: { type: "daily" as const, time: "10:00", weekdays: [1] }, durationMinutes: 30,
       attachments: [], nextRunAt: 999, createdAt: 1, updatedAt: 2 };
     expect((await take(deps(dir), itemKey.moved("call", "c1"), call)).status).toBe(200);

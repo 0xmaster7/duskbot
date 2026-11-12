@@ -44,10 +44,10 @@ beforeEach(() => {
     answerDeletes: vi.fn().mockResolvedValue(base), locate: vi.fn().mockResolvedValue(base), setOutputs: vi.fn().mockResolvedValue(base),
     open: vi.fn().mockResolvedValue(undefined), moreSpace: vi.fn().mockResolvedValue(undefined),
   };
-  window.ogb = { cloudAccount: { files: bridge } } as unknown as typeof window.ogb;
+  window.duskDesktop = { cloudAccount: { files: bridge } } as unknown as typeof window.duskDesktop;
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
-afterEach(() => { act(() => root.unmount()); host.remove(); document.body.replaceChildren(); delete window.ogb; });
+afterEach(() => { act(() => root.unmount()); host.remove(); document.body.replaceChildren(); delete window.duskDesktop; });
 
 describe("Shared with the Cloud", () => {
   it("says what sharing does, shows nothing shared yet, and always offers Add a folder", async () => {
@@ -216,7 +216,7 @@ describe("My Cloud's state", () => {
   it("shows nothing without a Ready My Cloud, or on a companion connected to another computer", async () => {
     await mount({ ...base, phase: "unavailable" });
     expect(page()).toBe("");
-    delete window.ogb;
+    delete window.duskDesktop;
     await mount();
     expect(page()).toBe("");
   });

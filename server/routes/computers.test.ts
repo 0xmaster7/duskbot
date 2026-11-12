@@ -107,7 +107,7 @@ const directories: string[] = [];
 afterEach(() => { for (const directory of directories.splice(0)) rmSync(directory, { recursive: true, force: true }); });
 
 function teamFixture() {
-  const directory = mkdtempSync(join(tmpdir(), "omb-team-vps-route-"));
+  const directory = mkdtempSync(join(tmpdir(), "dusk-team-vps-route-"));
   directories.push(directory);
   const registry = new TeamComputers(join(directory, "team-computers.json"), randomUUID());
   const computer = registry.create("Shared research desktop");

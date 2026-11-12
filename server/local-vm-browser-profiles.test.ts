@@ -14,7 +14,7 @@ afterEach(() => {
   for (const path of temporary.splice(0)) rmSync(path, { recursive: true, force: true });
 });
 const scratch = () => {
-  const dir = mkdtempSync(join(tmpdir(), "omb-vm-profiles-"));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-vm-profiles-"));
   temporary.push(dir);
   return dir;
 };
@@ -135,7 +135,7 @@ printf '%s\\n' "$*" >> '${log}'
 [ "$1" = cp ] || { echo "unexpected: $*" >&2; exit 64; }
 ${opts.fail ? `echo '${opts.fail}' >&2; exit 1` : ""}
 src="\${2#*:}"
-[ -e "${container}$src" ] || [ -L "${container}$src" ] || { echo "Error response from daemon: Could not find the file $src in container omb" >&2; exit 1; }
+[ -e "${container}$src" ] || [ -L "${container}$src" ] || { echo "Error response from daemon: Could not find the file $src in container dusk" >&2; exit 1; }
 [ -e "$3" ] && { echo "destination exists" >&2; exit 1; }
 cp -RP "${container}$src" "$3"
 `);

@@ -77,7 +77,7 @@ test("a reply's records go out as one write (sshd does not set nodelay for a cha
   assert.equal(writes.length, 1);
 });
 
-/** a fake Dusk Bot, an in-memory ssh channel to the real agent half, and a fake relay that serves the same frames */
+/** a fake dusk bot, an in-memory ssh channel to the real agent half, and a fake relay that serves the same frames */
 async function rig({ agentKey = KEY } = {}) {
   const seen = [];
   const slow = [];
@@ -267,7 +267,7 @@ test("the agent's key line allows one forced command and nothing else, and leave
   assert.throws(() => directKeyLine({ pub: `${publicKey}\nssh-ed25519 AAAA evil`, id: ID }));
   assert.throws(() => directKeyLine({ pub: "ssh-rsa AAAAB3NzaC1yc2E", id: ID }));
   assert.throws(() => directKeyLine({ pub: publicKey, id: ID, node: "/usr/bin/node\" evil" }));
-  const dir = mkdtempSync(join(tmpdir(), "omb-direct-key-"));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-direct-key-"));
   try {
     const file = join(dir, ".ssh", "authorized_keys");
     setDirectKey(ID, null, file);

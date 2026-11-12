@@ -6,7 +6,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { setLocale } from "@/lib/i18n";
-import type { CompanionAccountState } from "../types/ogb";
+import type { CompanionAccountState } from "../types/duskDesktop";
 import { PhoneSetupFlowView, usePhoneSetupController, type CompanionState } from "./PhoneSetupFlow";
 
 /** Settings' pairing panel: the flow with its own controller, as CompanionSection mounts it. */
@@ -97,11 +97,11 @@ beforeEach(() => {
 afterEach(() => {
   flushSync(() => root.unmount());
   host.remove();
-  delete (globalThis as { ogb?: unknown }).ogb;
+  delete (globalThis as { duskDesktop?: unknown }).duskDesktop;
 });
 
 async function startPairing(fake: ReturnType<typeof desktop>) {
-  (globalThis as { ogb?: unknown }).ogb = fake.bridge;
+  (globalThis as { duskDesktop?: unknown }).duskDesktop = fake.bridge;
   flushSync(() => root.render(createElement(PhoneSetupFlow)));
   await vi.waitFor(() => expect(button("Pair")?.disabled).toBe(false));
   button("Pair")!.click();

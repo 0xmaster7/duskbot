@@ -30,7 +30,7 @@ beforeEach(() => {
     state: vi.fn(async () => current),
     set: vi.fn(async (change: Partial<TalkShortcutState>) => (current = { ...current, ...change })),
   };
-  (window as unknown as { ogb: unknown }).ogb = { talkShortcut: bridge };
+  (window as unknown as { duskDesktop: unknown }).duskDesktop = { talkShortcut: bridge };
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
@@ -38,18 +38,18 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => { root.unmount(); });
   host.remove();
-  delete (window as unknown as { ogb?: unknown }).ogb;
+  delete (window as unknown as { duskDesktop?: unknown }).duskDesktop;
   vi.unstubAllGlobals();
 });
 
 describe("TalkShortcutRow", () => {
   it("is not shown without the bridge or where Apple speech is unavailable", async () => {
-    (window as unknown as { ogb: unknown }).ogb = {};
+    (window as unknown as { duskDesktop: unknown }).duskDesktop = {};
     await show();
     expect(host.textContent).toBe("");
     await act(async () => { root.unmount(); });
     root = createRoot(host);
-    (window as unknown as { ogb: unknown }).ogb = { talkShortcut: bridge };
+    (window as unknown as { duskDesktop: unknown }).duskDesktop = { talkShortcut: bridge };
     current = { ...base, available: false };
     await show();
     expect(host.textContent).toBe("");
@@ -108,10 +108,10 @@ describe("TalkShortcutRow", () => {
   });
 
   it("is found by search only where the row can show: the Mac app's own page", () => {
-    const mac = { platform: "darwin", talkShortcut: bridge } as unknown as Window["ogb"];
+    const mac = { platform: "darwin", talkShortcut: bridge } as unknown as Window["duskDesktop"];
     expect(talkShortcutKeywords(mac)).toContain("hold to talk");
-    expect(talkShortcutKeywords({ platform: "win32", talkShortcut: bridge } as unknown as Window["ogb"])).toEqual([]);
-    expect(talkShortcutKeywords({ platform: "darwin" } as unknown as Window["ogb"])).toEqual([]);
+    expect(talkShortcutKeywords({ platform: "win32", talkShortcut: bridge } as unknown as Window["duskDesktop"])).toEqual([]);
+    expect(talkShortcutKeywords({ platform: "darwin" } as unknown as Window["duskDesktop"])).toEqual([]);
     expect(talkShortcutKeywords(undefined)).toEqual([]);
   });
 

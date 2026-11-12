@@ -7,7 +7,7 @@ assert.equal(url.hostname, "127.0.0.1");
 assert.equal(url.pathname, "/__rich-tables.html");
 const { chromium } = await import(process.env.DUSK_VERIFY_PLAYWRIGHT || "playwright");
 const browser = await chromium.launch({ executablePath: process.env.DUSK_VERIFY_BROWSER_CHROME || undefined, headless: true });
-const output = process.env.DUSK_TABLE_EVIDENCE || "/tmp/omb-rich-tables-evidence";
+const output = process.env.DUSK_TABLE_EVIDENCE || "/tmp/dusk-rich-tables-evidence";
 await mkdir(output, { recursive: true });
 try {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, permissions: ["clipboard-read", "clipboard-write"] });

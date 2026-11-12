@@ -18,6 +18,7 @@ import { ephemeralWorkspaceTokenPath, excludedWorkspaceAuthPath, liveDataEngineP
 import { omittedAsTeamPrivate, stripTeamPrivate, TEAM_PRIVATE_NOTE, teamPrivateAttachments, teamPrivateThreads, withoutTeamPrivate } from "./workspace-backup-team-private.ts";
 import type { WorkspaceBackupClientState, WorkspaceBackupPrivateMetadata, WorkspaceBackupSummary, WorkspaceLeftBehind } from "../shared/workspace-backup.ts";
 import { isSafetyCopy } from "./registry-file.ts";
+import { withCurrentFormat } from "../electron/legacy-names.mjs";
 
 export type { WorkspaceBackupSummary, WorkspaceBackupPrivateMetadata } from "../shared/workspace-backup.ts";
 export const MAX_WORKSPACE_BACKUP_BYTES = 10 * 1024 ** 3;
@@ -414,7 +415,7 @@ export async function createWorkspaceBackupSnapshot(dataDir: string, options: Cr
     if (copiedLinks) warnings.push(`${copiedLinks} symbolic link(s) inside a workspace were saved as copies of what they point to; restoring creates regular files and folders there.`);
     if (skippedWorkLinks) warnings.push(`${skippedWorkLinks} symbolic link(s) in conversation work folders were omitted; what they point to is outside this backup.`);
     const summary: WorkspaceBackupSummary = {
-      format: "openmaus.workspace-backup", version: 1, id: job.id, createdAt: new Date().toISOString(),
+      format: "dusk.workspace-backup", version: 1, id: job.id, createdAt: new Date().toISOString(),
       appVersion: options.appVersion ?? "unknown", files: entries.filter((entry) => entry.type === "file").length,
       directories: entries.filter((entry) => entry.type === "directory").length, bytes,
       bots: countJsonArray(join(snapshot, "data", "bots.json")), groups: countJsonArray(join(snapshot, "data", "groups.json")),
@@ -426,7 +427,7 @@ export async function createWorkspaceBackupSnapshot(dataDir: string, options: Cr
     };
     writeJson(join(snapshot, "manifest.json"), manifest);
     validateManifest(privateJson(join(snapshot, "manifest.json")));
-    const path = join(job.directory, "workspace.ombbackup");
+    const path = join(job.directory, "workspace.duskbackup");
     const iv = randomBytes(12);
     const header = Buffer.concat([MAGIC, salt, iv]);
     const cipher = createCipheriv("aes-256-gcm", key, iv);
@@ -445,7 +446,7 @@ export async function createWorkspaceBackupSnapshot(dataDir: string, options: Cr
 }
 
 function validateManifest(value: unknown): Manifest {
-  if (!record(value) || !record(value.summary) || value.summary.format !== "openmaus.workspace-backup" || value.summary.version !== 1 ||
+  if (!record(value) || !record(value.summary) || withCurrentFormat(value.summary).format !== "dusk.workspace-backup" || value.summary.version !== 1 ||
     typeof value.summary.id !== "string" || !ID.test(value.summary.id) || typeof value.summary.createdAt !== "string" ||
     !Number.isFinite(Date.parse(value.summary.createdAt)) || typeof value.summary.appVersion !== "string" ||
     typeof value.sourceDataDir !== "string" || !(posix.isAbsolute(value.sourceDataDir) || win32.isAbsolute(value.sourceDataDir)) ||
@@ -609,7 +610,7 @@ export async function stageWorkspaceBackup(dataDir: string, archivePath: string,
     const versions = [manifest.summary.appVersion, options.currentAppVersion ?? ""].map((version) => /^(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/.exec(version)?.slice(1).map(Number));
     if (versions[0] && versions[1]) {
       for (let i = 0; i < 3; i++) {
-        if (versions[0][i] > versions[1][i]) throw new Error("This backup was made by a newer Dusk Bot version. Update the app before restoring it.");
+        if (versions[0][i] > versions[1][i]) throw new Error("This backup was made by a newer dusk bot version. Update the app before restoring it.");
         if (versions[0][i] < versions[1][i]) break;
       }
     }
@@ -865,13 +866,13 @@ export function readLastWorkspaceRestore(dataDir: string): LastWorkspaceRestore 
 function finishRestore(dataDir: string, id: string, consumePending = true): LastWorkspaceRestore {
   const root = backupRoot(dataDir);
   const { summary, clientState } = readStagedWorkspaceBackup(dataDir, id);
-  const draftAttachments = clientState["omb-draft-attachments"];
+  const draftAttachments = clientState["dusk-draft-attachments"];
   if (draftAttachments) {
     try {
       const value: unknown = JSON.parse(draftAttachments);
       const manifest = validateManifest(privateJson(join(jobPath(dataDir, id), "staged", "manifest.json")));
       restorePaths(manifest.sourceDataDir, resolve(dataDir)).fields(value);
-      clientState["omb-draft-attachments"] = JSON.stringify(value);
+      clientState["dusk-draft-attachments"] = JSON.stringify(value);
     } catch {}
   }
   const leftBehind = join(jobPath(dataDir, id), "left-behind.json");

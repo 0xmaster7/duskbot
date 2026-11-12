@@ -10,8 +10,8 @@ import { Mascot } from "../ui/Mascot";
 import { AnimatePresence } from "../ui/motion";
 import { PlanSheet } from "./plan-sheet";
 
-const SEEN = "omb-dash-routines-seen";
-const SHOWN = "omb-dash-routine-upsell-at";
+const SEEN = "dusk-dash-routines-seen";
+const SHOWN = "dusk-dash-routine-upsell-at";
 
 export function RoutineUpsell() {
   const { account, workspaces } = useSession();

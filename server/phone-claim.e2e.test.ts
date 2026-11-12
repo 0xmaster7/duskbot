@@ -107,7 +107,7 @@ async function withPhoneProxy<T>(spec: any, run: (call: (name: string) => Promis
 }
 
 beforeAll(async () => {
-  fixtureHome = mkdtempSync(join(tmpdir(), "omb-phone-claim-"));
+  fixtureHome = mkdtempSync(join(tmpdir(), "dusk-phone-claim-"));
   writeFileSync(join(fixtureHome, "devices"), 'process.stdout.write("List of devices attached\\n");');
   dumpFile = join(fixtureHome, "dump.json");
   finishFile = join(fixtureHome, "finish");

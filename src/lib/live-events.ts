@@ -1,6 +1,6 @@
 // EventSource hides SSE comment keepalives, so liveness comes from the server's visible `ping` frame.
 import type { ServerFrame } from "../../shared/wire";
-import { asleepAnswer, BACKGROUND_HEADER, cloudAsleep, markCloudAsleep, noteCloudAwake, onCloudPower, sleepingFrame } from "./cloud-power";
+import { asleepAnswer, BACKGROUND_HEADERS, cloudAsleep, markCloudAsleep, noteCloudAwake, onCloudPower, sleepingFrame } from "./cloud-power";
 import { recordBotTextMessage, recordRuntimeEvent } from "./voice-latency-probe";
 import { noteTurnEvent } from "@/state/turn-status";
 import { noteReplyEvent, noteReplyLanded } from "@/state/live-reply";
@@ -196,7 +196,7 @@ function browserPlatform(overrides: Partial<LiveEventsPlatform>): LiveEventsPlat
       overrides.isVisible ?? (() => !browserDocument || browserDocument.visibilityState === "visible"),
     isOnline: overrides.isOnline ?? (() => globalThis.navigator?.onLine !== false),
     now: overrides.now ?? Date.now,
-    cloudAnswers: overrides.cloudAnswers ?? (() => fetch("/api/health", { cache: "no-store", headers: { [BACKGROUND_HEADER]: "1" } })
+    cloudAnswers: overrides.cloudAnswers ?? (() => fetch("/api/health", { cache: "no-store", headers: BACKGROUND_HEADERS })
       .then((response) => { void response.body?.cancel().catch(() => {}); return response.ok && !asleepAnswer(response); }, () => false)),
   };
 }

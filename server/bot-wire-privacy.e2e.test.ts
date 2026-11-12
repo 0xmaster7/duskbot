@@ -78,7 +78,7 @@ describe("bot wire privacy against the real server", () => {
 
   beforeAll(() => {
     chmodSync(FAKE_CLI, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-bot-wire-privacy-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-bot-wire-privacy-"));
     data = join(home, "data");
     mkdirSync(data, { recursive: true });
   });

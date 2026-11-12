@@ -4,7 +4,7 @@ import { createServer } from "node:http";
 import { dirname, isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
-import { launchVerificationServer, runControlOmb } from "../scripts/control-omb.ts";
+import { launchVerificationServer, runControlDusk } from "../scripts/control-dusk.ts";
 import { waitForExit } from "./testing/cleanup.ts";
 
 // Deliberate opt-in: never discover the user's CLI; the supplied binary runs against synthetic config and an owned loopback API.
@@ -67,7 +67,7 @@ test("persists per-conversation OpenCode efforts and sends them through ACP afte
     return result;
   };
   const control = async (args: string[]) => {
-    const result = await runControlOmb([...args, "--url", url]) as any;
+    const result = await runControlDusk([...args, "--url", url]) as any;
     evidence.push({ command: args, result });
     return result;
   };
@@ -126,10 +126,10 @@ test("persists per-conversation OpenCode efforts and sends them through ACP afte
     ].join("\n"), { mode: 0o700 });
     // The shared launcher installs only Claude: seed this fixture's optional instance while stopped.
     await waitForExit(fixture.child, { signal: "SIGTERM" });
-    const ombConfigPath = join(dataDir, "config.json");
-    const ombConfig = JSON.parse(readFileSync(ombConfigPath, "utf8"));
-    ombConfig.instances.opencodeGo = { driver: "opencodeGo", displayName: "OpenCode fixture", config: { cli: wrapper } };
-    writeFileSync(ombConfigPath, JSON.stringify(ombConfig));
+    const duskConfigPath = join(dataDir, "config.json");
+    const duskConfig = JSON.parse(readFileSync(duskConfigPath, "utf8"));
+    duskConfig.instances.opencodeGo = { driver: "opencodeGo", displayName: "OpenCode fixture", config: { cli: wrapper } };
+    writeFileSync(duskConfigPath, JSON.stringify(duskConfig));
     await restart();
     const instances = (await api("GET", "/api/instances")).instances;
     const instance = instances.find((entry: any) => entry.instanceId === "opencodeGo");

@@ -109,7 +109,7 @@ export function createBrowserHost(deps: BrowserHostDeps) {
     idleMs,
     log: (line) => console.warn(line),
   });
-  // A tool call that would open Reddit from Dusk Cloud is refused before it reaches the browser. My Chrome is the
+  // A tool call that would open Reddit from dusk cloud is refused before it reaches the browser. My Chrome is the
   // person's own, outside the egress gate too.
   const browserRuntime = new RuntimeRouter(agentBrowserRuntime, chromeEngine, {
     refusal: (_session, spec, params) => (attachesToChrome(spec.env) ? null : browserEgress.callRefusal(params)),
@@ -386,7 +386,7 @@ export function createBrowserHost(deps: BrowserHostDeps) {
     return Promise.resolve(true);
   }
   /**
-   * The agent-browser whose saved sessions a deletion erases: the one Dusk Bot installed, or on a Cloud home the
+   * The agent-browser whose saved sessions a deletion erases: the one dusk bot installed, or on a Cloud home the
    * image's own. Another one on PATH may be a wrapper whose failing close would hold the cleanup journal forever, so
    * it only closes the running browser.
    */
@@ -415,7 +415,7 @@ export function createBrowserHost(deps: BrowserHostDeps) {
         return true;
       }
       const ok = await clearBrowserSessionState(engine.binaryPath, name, { encryptionKey: browserEngineEncryptionKey() });
-      if (!ok) console.warn(`browser cleanup: could not clear saved state for session ${name}; restart Dusk Bot to retry this profile's cleanup. Do not use state clear --all: it erases other profiles too.`);
+      if (!ok) console.warn(`browser cleanup: could not clear saved state for session ${name}; restart dusk bot to retry this profile's cleanup. Do not use state clear --all: it erases other profiles too.`);
       return ok;
     };
     const results = await Promise.all([eraseChromeBrowser(request), ...session ? [erased(session)] : []]);
@@ -436,7 +436,7 @@ export function createBrowserHost(deps: BrowserHostDeps) {
   /** Chrome receives private copies; a boxed agent-browser reads them from its own profile's folder. */
   function uploadPaths(files: ReadonlyArray<{ file: string; name: string | null }>, session: string, spec: Spec): Promise<string[]> {
     const chrome = chromeTarget(session, spec);
-    const folder = boxed && !chrome ? join(browserProfileDirectory(session), "omb-uploads") : join(DATA_DIR, "browser-uploads");
+    const folder = boxed && !chrome ? join(browserProfileDirectory(session), "dusk-uploads") : join(DATA_DIR, "browser-uploads");
     return namedUploadPaths(files, folder, Date.now(), { everyFile: boxed || Boolean(chrome) });
   }
   /** The saved sign-ins of a bot's or a shared profile's browser, for one audience. */

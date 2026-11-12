@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { runControlOmb } from "../scripts/control-omb.ts";
+import { runControlDusk } from "../scripts/control-dusk.ts";
 import { SNAPSHOT_REUSE_MS } from "./harness/registry.ts";
 import { freePortBlock } from "./testing/ports.ts";
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
@@ -38,7 +38,7 @@ function install(home: string) {
     expect(response.status, `${method} ${path}: ${JSON.stringify(result)}`).toBeLessThan(400);
     return result;
   };
-  const control = (args: string[]) => runControlOmb([...args, "--url", base]) as Promise<any>;
+  const control = (args: string[]) => runControlDusk([...args, "--url", base]) as Promise<any>;
   const send = (botId: string, threadId: string, text: string) => fetch(`${base}/api/bots/${botId}/messages`, {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, threadId }),
   }).then(response => response.status);
@@ -126,7 +126,7 @@ describe("removing the Computer engine", () => {
   /** Calls to the retired desktop provider's own agent: the place no turn may ever go. */
   const agentCalls: string[] = [];
   const fresh = () => {
-    const home = mkdtempSync(join(tmpdir(), "omb-computer-engine-"));
+    const home = mkdtempSync(join(tmpdir(), "dusk-computer-engine-"));
     homes.push(home);
     const server = install(home);
     running.push(server);

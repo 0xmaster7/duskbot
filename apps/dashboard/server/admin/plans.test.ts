@@ -29,7 +29,7 @@ describe("admin plan edits", () => {
   const csrf = new Map<string, string>();
 
   beforeEach(async () => {
-    dataDir = mkdtempSync(join(tmpdir(), "omb-admin-plans-"));
+    dataDir = mkdtempSync(join(tmpdir(), "dusk-admin-plans-"));
     time = Date.parse("2026-11-12T12:00:00Z");
     mailer = memoryMailer();
     csrf.clear();

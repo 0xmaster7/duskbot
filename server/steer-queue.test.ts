@@ -751,7 +751,7 @@ describe("steer-queue e2e (fake ACP fleet)", () => {
 
   beforeAll(async () => {
     chmodSync(FAKE_CLI, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-steer-test-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-steer-test-"));
     mkdirSync(join(home, ".duskbot"), { recursive: true });
     mkdirSync(join(home, "gates"), { recursive: true });
     drainGate = join(home, "gates", "drain.gate");
@@ -762,7 +762,7 @@ describe("steer-queue e2e (fake ACP fleet)", () => {
     dispatchGate = join(home, "gates", "early-dispatch.gate");
     roomGate = join(home, "gates", "room.gate");
     roomRpcAppend = join(home, "gates", "room.rpc-append");
-    evidencePath = join(tmpdir(), `omb-steer-evidence-${Date.now()}-${process.pid}.json`);
+    evidencePath = join(tmpdir(), `dusk-steer-evidence-${Date.now()}-${process.pid}.json`);
     // Delay only the adapter's returned acknowledgment, reproducing completion before sendTurn resolves.
     const prelude = join(home, "delayed-dispatch.mjs");
     writeFileSync(prelude, [

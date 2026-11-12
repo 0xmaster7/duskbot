@@ -3,7 +3,7 @@ import { closeSync, existsSync, openSync, readFileSync, writeFileSync } from "no
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
-import { launchVerificationServer, runControlOmb } from "../scripts/control-omb.ts";
+import { launchVerificationServer, runControlDusk } from "../scripts/control-dusk.ts";
 import { waitForExit } from "./testing/cleanup.ts";
 
 it("retains empty teams, moves existing bots, and keeps legacy imports additive through restart", async () => {
@@ -23,7 +23,7 @@ it("retains empty teams, moves existing bots, and keeps legacy imports additive 
   const sectionsFile = () => JSON.parse(readFileSync(join(dataDir, "section-contexts.json"), "utf8"));
   const brief = (section: string): string | undefined => sectionsFile().contexts?.[section]?.text;
   const control = async (...args: string[]) => {
-    const result = await runControlOmb([...args, "--url", url]);
+    const result = await runControlDusk([...args, "--url", url]);
     evidence.push({ command: args, result });
     return result;
   };
@@ -61,7 +61,7 @@ it("retains empty teams, moves existing bots, and keeps legacy imports additive 
     await api("/api/sidebar-sections?section=Launch", "PATCH", { name: "Untouched empty" }, 409);
 
     const imported = await api("/api/teams/import?mode=add", "POST", {
-      format: "openmaus.team", version: 2, team: { name: "Launch", members: [
+      format: "dusk.team", version: 2, team: { name: "Launch", members: [
         { key: "writer", name: "Fixture writer", appearance: { color: "purple" } },
       ] },
     }, 201);

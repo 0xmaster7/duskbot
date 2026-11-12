@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { launchVerificationServer } from "./control-omb.ts";
+import { launchVerificationServer } from "./control-dusk.ts";
 import { fixtureApi, mountPreview, type MountedPreview } from "./testing/preview-fixture.ts";
 import { startFakeOAuth } from "../server/testing/fake-oauth-server.ts";
 import { startFakeHttpMcp } from "../server/testing/fake-http-mcp-server.ts";
@@ -111,7 +111,7 @@ try {
   assert.equal(JSON.stringify(connected).includes(bearer), false, "The browser listing never includes the token");
   assert.equal(mcp.calls.length, 0, "Connecting never executes business tools");
   assert.equal((await status()).find((server: any) => server.name === "whop").command, "node");
-  const output = process.env.DUSK_UI_EVIDENCE_DIR || "/tmp/omb-whop-evidence";
+  const output = process.env.DUSK_UI_EVIDENCE_DIR || "/tmp/dusk-whop-evidence";
   mkdirSync(output, { recursive: true });
   await page.screenshot({ path: join(output, "connected.png"), fullPage: true });
   await page.locator('[data-apps-filter="connected"]').click();

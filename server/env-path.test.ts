@@ -35,11 +35,11 @@ describe("augmentedPath", () => {
   });
 
   it("prepends DUSK_EXTRA_PATH and dedupes", () => {
-    process.env.DUSK_EXTRA_PATH = ["/tmp/omb-extra", "/tmp/omb-extra"].join(delimiter);
+    process.env.DUSK_EXTRA_PATH = ["/tmp/dusk-extra", "/tmp/dusk-extra"].join(delimiter);
     resetPathCacheForTests();
     const parts = augmentedPath().split(delimiter);
-    expect(parts[0]).toBe("/tmp/omb-extra");
-    expect(parts.filter((p) => p === "/tmp/omb-extra")).toHaveLength(1);
+    expect(parts[0]).toBe("/tmp/dusk-extra");
+    expect(parts.filter((p) => p === "/tmp/dusk-extra")).toHaveLength(1);
   });
 
   posixIt("includes nvm bin dirs from the home dir, newest node first", () => {
@@ -68,14 +68,14 @@ describe("augmentedPath", () => {
   posixIt("makes a CLI in a known install dir spawnable despite a bare PATH", async () => {
     const bin = join(homedir(), ".local", "bin");
     mkdirSync(bin, { recursive: true });
-    const fake = join(bin, "omb-fake-cli");
+    const fake = join(bin, "dusk-fake-cli");
     writeFileSync(fake, "#!/bin/sh\necho found-me\n");
     chmodSync(fake, 0o755);
     resetPathCacheForTests();
 
     const stdout = await new Promise<string>((resolve, reject) => {
       execFile(
-        "omb-fake-cli",
+        "dusk-fake-cli",
         [],
         // bare GUI-style PATH + our augmentation — the augmentation must win
         { env: { PATH: augmentedPath() } },
@@ -168,7 +168,7 @@ describe("augmentedPath", () => {
 
   it.skipIf(process.platform !== "win32")("finds Antigravity installed after launch", () => {
     const previous = process.env.LOCALAPPDATA;
-    const localAppData = mkdtempSync(join(tmpdir(), "omb-localappdata-"));
+    const localAppData = mkdtempSync(join(tmpdir(), "dusk-localappdata-"));
     try {
       process.env.LOCALAPPDATA = localAppData;
       const agyBin = join(localAppData, "agy", "bin");
@@ -185,7 +185,7 @@ describe("augmentedPath", () => {
 
   it.skipIf(process.platform !== "win32")("finds Docker Desktop's bin dir (#2117)", () => {
     const previous = process.env.ProgramFiles;
-    const programFiles = mkdtempSync(join(tmpdir(), "omb-programfiles-"));
+    const programFiles = mkdtempSync(join(tmpdir(), "dusk-programfiles-"));
     try {
       process.env.ProgramFiles = programFiles;
       const dockerBin = join(programFiles, "Docker", "Docker", "resources", "bin");
@@ -227,7 +227,7 @@ describe("augmentedPath", () => {
   it("finds Cursor installed after launch on Windows", () => {
     const realPlatform = process.platform;
     const previous = { LOCALAPPDATA: process.env.LOCALAPPDATA, PATHEXT: process.env.PATHEXT };
-    const localAppData = mkdtempSync(join(tmpdir(), "omb-localappdata-"));
+    const localAppData = mkdtempSync(join(tmpdir(), "dusk-localappdata-"));
     try {
       Object.defineProperty(process, "platform", { value: "win32" });
       process.env.LOCALAPPDATA = localAppData;
@@ -254,7 +254,7 @@ describe("augmentedPath", () => {
   it("finds Podman installed after launch on Windows", () => {
     const realPlatform = process.platform;
     const previous = { ProgramFiles: process.env.ProgramFiles, PATHEXT: process.env.PATHEXT };
-    const programFiles = mkdtempSync(join(tmpdir(), "omb-programfiles-"));
+    const programFiles = mkdtempSync(join(tmpdir(), "dusk-programfiles-"));
     try {
       Object.defineProperty(process, "platform", { value: "win32" });
       process.env.ProgramFiles = programFiles;
@@ -321,7 +321,7 @@ EXIT /b
 :start
 SETLOCAL
 CALL :find_dp0
-"%dp0%\\node_modules\\pkg\\bin\\ombfake.exe"   %*
+"%dp0%\\node_modules\\pkg\\bin\\duskfake.exe"   %*
 `;
 
 // ...and for one whose bin is a node script (the "_prog" dance)
@@ -341,7 +341,7 @@ IF EXIST "%dp0%\\node.exe" (
   SET PATHEXT=%PATHEXT:;.JS;=;%
 )
 
-endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%"  "%dp0%\\node_modules\\pkg\\bin\\ombfake.js" %*
+endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%"  "%dp0%\\node_modules\\pkg\\bin\\duskfake.js" %*
 `;
 
 // ...and for one whose bin is an extensionless `#!/usr/bin/env node` script — cmd-shim keeps the
@@ -362,7 +362,7 @@ IF EXIST "%dp0%\\node.exe" (
   SET PATHEXT=%PATHEXT:;.JS;=;%
 )
 
-endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%"  "%dp0%\\node_modules\\pkg\\bin\\ombfake" %*
+endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%"  "%dp0%\\node_modules\\pkg\\bin\\duskfake" %*
 `;
 
 // ...and npm's own npm.cmd / npx.cmd, which Node's installer puts beside
@@ -412,7 +412,7 @@ winOnly("resolveCli (Windows)", () => {
   };
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "omb-shim-"));
+    dir = mkdtempSync(join(tmpdir(), "dusk-shim-"));
   });
   afterEach(async () => {
     delete process.env.DUSK_EXTRA_PATH;
@@ -423,29 +423,29 @@ winOnly("resolveCli (Windows)", () => {
   });
 
   it("parses an npm .cmd shim down to the .exe it wraps", () => {
-    shimWith("ombfake.cmd", EXE_SHIM, "ombfake.exe", "MZ-not-really");
+    shimWith("duskfake.cmd", EXE_SHIM, "duskfake.exe", "MZ-not-really");
     onPath();
-    expect(resolveCli("ombfake", ["-p", "hi"])).toEqual({
-      command: join(dir, "node_modules", "pkg", "bin", "ombfake.exe"),
+    expect(resolveCli("duskfake", ["-p", "hi"])).toEqual({
+      command: join(dir, "node_modules", "pkg", "bin", "duskfake.exe"),
       args: ["-p", "hi"],
     });
   });
 
   it("uses the supplied PATH and PATHEXT without depending on the app environment", () => {
-    shimWith("ombfake.cmd", EXE_SHIM, "ombfake.exe", "MZ-not-really");
-    expect(resolveCli("ombfake", ["acp"], { Path: dir, PATHEXT: ".CMD" })).toEqual({
-      command: join(dir, "node_modules", "pkg", "bin", "ombfake.exe"),
+    shimWith("duskfake.cmd", EXE_SHIM, "duskfake.exe", "MZ-not-really");
+    expect(resolveCli("duskfake", ["acp"], { Path: dir, PATHEXT: ".CMD" })).toEqual({
+      command: join(dir, "node_modules", "pkg", "bin", "duskfake.exe"),
       args: ["acp"],
     });
     onPath();
-    expect(resolveCli("ombfake", [], { PATH: "", PATHEXT: ".CMD" })).toEqual({ command: "ombfake", args: [] });
+    expect(resolveCli("duskfake", [], { PATH: "", PATHEXT: ".CMD" })).toEqual({ command: "duskfake", args: [] });
   });
 
   it("parses an npm .cmd shim down to `node <cli.js>`, never the shim's own node.exe", async () => {
-    shimWith("ombfake.cmd", JS_SHIM, "ombfake.js", "console.log('js target ' + process.argv.slice(2).join(','));\n");
+    shimWith("duskfake.cmd", JS_SHIM, "duskfake.js", "console.log('js target ' + process.argv.slice(2).join(','));\n");
     onPath();
-    const r = resolveCli("ombfake", ["-p", "hi"]);
-    expect(r.args).toEqual([join(dir, "node_modules", "pkg", "bin", "ombfake.js"), "-p", "hi"]);
+    const r = resolveCli("duskfake", ["-p", "hi"]);
+    expect(r.args).toEqual([join(dir, "node_modules", "pkg", "bin", "duskfake.js"), "-p", "hi"]);
     expect(r.command.toLowerCase()).toMatch(/node\.exe$/);
     const stdout = await new Promise<string>((resolve, reject) =>
       execFile(r.command, r.args, (err, out) => (err ? reject(err) : resolve(out))),
@@ -454,11 +454,11 @@ winOnly("resolveCli (Windows)", () => {
   });
 
   it("parses an npm .cmd shim down to the extensionless node script it wraps (#3594)", async () => {
-    shimWith("ombfake.cmd", EXTENSIONLESS_SHIM, "ombfake", "#!/usr/bin/env node\nconsole.log('shim target ' + process.argv.slice(2).join(','));\n");
+    shimWith("duskfake.cmd", EXTENSIONLESS_SHIM, "duskfake", "#!/usr/bin/env node\nconsole.log('shim target ' + process.argv.slice(2).join(','));\n");
     onPath();
-    const r = resolveCli("ombfake", ["-p", "hi"]);
+    const r = resolveCli("duskfake", ["-p", "hi"]);
     expect(r.command.toLowerCase()).toMatch(/node(\.exe)?$/);
-    expect(r.args).toEqual([join(dir, "node_modules", "pkg", "bin", "ombfake"), "-p", "hi"]);
+    expect(r.args).toEqual([join(dir, "node_modules", "pkg", "bin", "duskfake"), "-p", "hi"]);
     const stdout = await new Promise<string>((resolve, reject) =>
       execFile(r.command, r.args, (err, out) => (err ? reject(err) : resolve(out))),
     );
@@ -482,14 +482,14 @@ winOnly("resolveCli (Windows)", () => {
   });
 
   it("prefers the PATHEXT hit over the extensionless sibling npm installs beside it", () => {
-    shimWith("ombfake.cmd", EXE_SHIM, "ombfake.exe", "MZ-not-really");
-    writeFileSync(join(dir, "ombfake"), "#!/bin/sh\n# the POSIX shim — unrunnable here\n");
+    shimWith("duskfake.cmd", EXE_SHIM, "duskfake.exe", "MZ-not-really");
+    writeFileSync(join(dir, "duskfake"), "#!/bin/sh\n# the POSIX shim — unrunnable here\n");
     onPath();
-    expect(resolveCli("ombfake", []).command).toBe(join(dir, "node_modules", "pkg", "bin", "ombfake.exe"));
+    expect(resolveCli("duskfake", []).command).toBe(join(dir, "node_modules", "pkg", "bin", "duskfake.exe"));
   });
 
   it("runs a #!node script through node — Windows has no shebang support", async () => {
-    const script = join(dir, "ombfake-cli.ts");
+    const script = join(dir, "duskfake-cli.ts");
     writeFileSync(script, "#!/usr/bin/env node\nconsole.log('shebang ' + process.argv.slice(2).join(','));\n");
     const r = resolveCli(script, ["a", "b"]);
     expect(r.command.toLowerCase()).toMatch(/node(\.exe)?$/);
@@ -534,11 +534,11 @@ winOnly("resolveCli (Windows)", () => {
   });
 
   it("leaves a non-sibling or -Command PowerShell launcher as the .cmd", () => {
-    const outside = join(dir, "..", "omb-outside.ps1");
+    const outside = join(dir, "..", "dusk-outside.ps1");
     const escaped = join(dir, "escaped.cmd");
     const commanded = join(dir, "commanded.cmd");
     writeFileSync(outside, "Write-Output no\r\n");
-    writeFileSync(escaped, '%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -File "%SCRIPT_DIR%\\..\\omb-outside.ps1" %*\r\n');
+    writeFileSync(escaped, '%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -File "%SCRIPT_DIR%\\..\\dusk-outside.ps1" %*\r\n');
     writeFileSync(commanded, 'powershell.exe -Command "Write-Output hi"\r\n');
     writeFileSync(join(dir, "ok.ps1"), "Write-Output ok\r\n");
     const mixedCommand = join(dir, "mixed-command.cmd");
@@ -557,19 +557,19 @@ winOnly("resolveCli (Windows)", () => {
   });
 
   it("never crosses the no-shell boundary for an unparseable shim", () => {
-    const shim = join(dir, "ombfake.cmd");
+    const shim = join(dir, "duskfake.cmd");
     writeFileSync(shim, "@ECHO OFF\ncustom-launcher %*\n");
     onPath();
     const payload = JSON.stringify({
       mcpServers: {
-        ogb: {
+        dusk: {
           command: "C:\\Program Files\\nodejs\\node.exe",
           args: ["a b", "%PATH%", "x&y|z", "q^r", "<in>out"],
           env: { TOK: 'he said "hi"' },
         },
       },
     });
-    const resolved = resolveCli("ombfake", ["--mcp-config", payload]);
+    const resolved = resolveCli("duskfake", ["--mcp-config", payload]);
     expect(resolved.command.toLowerCase()).toBe(shim.toLowerCase());
     expect(resolved.args).toEqual(["--mcp-config", payload]);
   });
@@ -617,7 +617,7 @@ describe("resolveCli with wrapper commands", () => {
     const bin = join(homedir(), ".local", "bin");
     mkdirSync(bin, { recursive: true });
     // simulate "/Applications/My Tools/claude": a real file at a spaced path
-    const spacedDir = join(bin, "omb space dir");
+    const spacedDir = join(bin, "dusk space dir");
     mkdirSync(spacedDir, { recursive: true });
     const spaced = join(spacedDir, "myclaude");
     writeFileSync(spaced, "#!/bin/sh\n");
@@ -627,7 +627,7 @@ describe("resolveCli with wrapper commands", () => {
     });
     // a NONEXISTENT spaced string still splits (wrapper interpretation)
     expect(resolveCli(join(spacedDir, "nope two words"), ["--version"])).toEqual({
-      command: join(bin, "omb"),
+      command: join(bin, "dusk"),
       args: ["space", "dir/nope", "two", "words", "--version"],
     });
   });
@@ -637,7 +637,7 @@ describe("registerPathDir", () => {
   afterEach(() => resetPathCacheForTests());
 
   it("puts an app-managed directory ahead of PATH once it exists, and survives a rescan", () => {
-    const dir = mkdtempSync(join(tmpdir(), "omb-registered-path-"));
+    const dir = mkdtempSync(join(tmpdir(), "dusk-registered-path-"));
     const missing = join(dir, "not-yet");
     try {
       registerPathDir(missing);
@@ -661,7 +661,7 @@ describe("registerFallbackPathDir", () => {
   });
 
   posixIt("keeps an app-installed directory last even when the inherited PATH already lists it first", () => {
-    const dir = mkdtempSync(join(tmpdir(), "omb-fallback-path-"));
+    const dir = mkdtempSync(join(tmpdir(), "dusk-fallback-path-"));
     originalPath = process.env.PATH;
     try {
       const own = join(dir, "own-bin");
@@ -681,7 +681,7 @@ describe("registerFallbackPathDir", () => {
   });
 
   posixIt("puts an app-installed directory after PATH and the vendors' own folders, so a person's copy wins", () => {
-    const dir = mkdtempSync(join(tmpdir(), "omb-fallback-path-"));
+    const dir = mkdtempSync(join(tmpdir(), "dusk-fallback-path-"));
     originalPath = process.env.PATH;
     try {
       const own = join(dir, "own-bin");

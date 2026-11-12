@@ -1,4 +1,4 @@
-# App Store listing draft: Dusk Bot for iPhone
+# App Store listing draft: dusk bot for iPhone
 
 Draft text for App Store Connect. Nothing here names a price, a plan or a place to buy one (guideline 3.1.1). Limits are
 Apple's; the count beside each field is the draft's length.
@@ -7,7 +7,7 @@ Apple's; the count beside each field is the draft's length.
 
 | Field | Value |
 |---|---|
-| App name (30) | Dusk Bot (8) |
+| App name (30) | dusk bot (8) |
 | Subtitle (30) | Text your team of AI bots (25) |
 | Bundle ID | `bot.dusk.mobile` |
 | SKU | `dusk-mobile-ios` |
@@ -28,7 +28,7 @@ ping when the work is done. (148)
 
 ## Description (4000)
 
-Dusk Bot runs a team of AI bots on your own computer. This is the phone app: pair it with your computer once, and text
+dusk bot runs a team of AI bots on your own computer. This is the phone app: pair it with your computer once, and text
 your bots from anywhere.
 
 WHAT YOU CAN DO
@@ -43,7 +43,7 @@ WHAT YOU CAN DO
 
 HOW IT WORKS
 
-Your bots, their chats and their files live in your workspace: the Dusk Bot app on your Mac, Windows PC or Linux
+Your bots, their chats and their files live in your workspace: the dusk bot app on your Mac, Windows PC or Linux
 machine, or on a server of your own. Open Settings there, show the phone code, and scan it with this app. From then on
 the phone talks to your workspace directly, or through an encrypted link when you are away. Nothing is stored on the
 phone but the pairing.
@@ -61,7 +61,7 @@ PRIVATE BY DESIGN
 - Your chats stay in your own workspace
 - The pairing is kept in the iPhone Keychain
 
-Dusk Bot for your computer is at dusk.bot.
+dusk bot for your computer is at dusk.bot.
 
 ## Keywords (100)
 
@@ -69,7 +69,7 @@ ai,bots,agents,assistant,chat,automation,productivity,team,remote,tasks,routines
 
 ## What's New (4000)
 
-The first release of Dusk Bot for iPhone.
+The first release of dusk bot for iPhone.
 
 ## Age rating answers
 
@@ -101,7 +101,7 @@ tracking, advertising or analytics:
 | Contact Info: Email Address | Yes, if the person signs in | The account email (sign-in on the first screen) |
 | Identifiers: User ID | Yes, if the person signs in | The account's id |
 | Identifiers: Device ID | Yes, if notifications are allowed | The APNs device token, kept so a notification can be sent |
-| User Content: Other User Content | Yes, only with a Dusk Cloud computer | Messages and files, when the workspace the phone is paired with is a computer we host |
+| User Content: Other User Content | Yes, only with a dusk cloud computer | Messages and files, when the workspace the phone is paired with is a computer we host |
 | Diagnostics: Crash Data | No (today) | Off unless a build sets `DUSK_ERROR_DSN`; if you turn it on, add Crash Data, not linked |
 
 Not collected: location, contacts, photos (a photo the person attaches goes to their own workspace), audio, browsing or
@@ -125,7 +125,7 @@ self-classification; it is a legal statement made in the owner's name.
 
 ## App Review notes (paste into "Notes")
 
-Dusk Bot for iPhone is the companion to Dusk Bot for Mac, Windows and Linux (https://dusk.bot), where a person runs
+dusk bot for iPhone is the companion to dusk bot for Mac, Windows and Linux (https://dusk.bot), where a person runs
 their own team of AI bots. The iPhone app pairs with that workspace and lets them text their bots.
 
 You do not need a computer or an account to review it. The app has a built-in demo workspace:

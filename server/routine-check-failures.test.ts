@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { expect, it } from "vitest";
 
 it.each(["manual", "scheduled"])("contains a %s check's rejection after its result was saved", (mode) => {
-  const dir = mkdtempSync(join(tmpdir(), "omb-check-failure-"));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-check-failure-"));
   try {
     const child = spawnSync(process.execPath, ["--experimental-strip-types", "server/testing/routine-check-failures.ts", dir, mode], {
       encoding: "utf8", timeout: 10_000,

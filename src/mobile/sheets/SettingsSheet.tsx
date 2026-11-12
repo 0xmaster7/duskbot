@@ -111,7 +111,7 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
               ))}
               {error && <p role="alert" className="px-4 py-2 text-[14px] text-danger">{t("mobile.settings.workspaceError")}</p>}
               {demo && <SettingsRow icon={<LogOut />} label={t("mobile.settings.leaveDemo")} detail={t("mobile.settings.leaveDemoDetail")} onClick={() => { void leaveDemo(platform); }} />}
-              <SettingsRow icon={<Plus />} label={t("mobile.settings.link")} onClick={() => { onClose(); window.dispatchEvent(new Event("omb:link-another")); }} />
+              <SettingsRow icon={<Plus />} label={t("mobile.settings.link")} onClick={() => { onClose(); window.dispatchEvent(new Event("dusk:link-another")); }} />
             </SettingsSection>
             <SettingsSection title={t("mobile.settings.bots")}>
               <SettingsRow icon={<CalendarClock />} label={t("mobile.settings.routines")} onClick={() => onOpenSheet({ kind: "routines" })} />

@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, expect, it } from "vitest";
 import { LEGACY } from "../electron/legacy-names.mjs";
-import { runControlOmb, verificationServerEnvironment } from "../scripts/control-omb.ts";
+import { runControlDusk, verificationServerEnvironment } from "../scripts/control-dusk.ts";
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 import { freePortBlock } from "./testing/ports.ts";
 
@@ -38,7 +38,7 @@ async function boot(env: NodeJS.ProcessEnv, port: number) {
     expect(response.status).toBe(200);
     return response.json() as Promise<any>;
   };
-  return { base, get, control: (...args: string[]) => runControlOmb([...args, "--url", base]) as Promise<any>, stop: () => waitForExit(child, { signal: "SIGTERM" }) };
+  return { base, get, control: (...args: string[]) => runControlDusk([...args, "--url", base]) as Promise<any>, stop: () => waitForExit(child, { signal: "SIGTERM" }) };
 }
 
 /** the same variables under the names a build from before the rename read */

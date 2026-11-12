@@ -4,9 +4,9 @@
 
 Effective date: [Effective date].
 
-These terms govern your use of Dusk Bot, dusk.bot, the account dashboard at dusk.bot/dashboard, and the link service at link.dusk.bot. Your agreement is with [Legal entity name], at [Registered address]. In these terms, “we” and “us” mean that entity. Contact hello@dusk.bot with questions before you use the services.
+These terms govern your use of dusk bot, dusk.bot, the account dashboard at dusk.bot/dashboard, and the link service at link.dusk.bot. Your agreement is with [Legal entity name], at [Registered address]. In these terms, “we” and “us” mean that entity. Contact hello@dusk.bot with questions before you use the services.
 
-Your use of the software is also subject to its license. Read the [license summary](license.md) and the full license before you use Dusk Bot. These service terms do not expand your software license or grant commercial rights.
+Your use of the software is also subject to its license. Read the [license summary](license.md) and the full license before you use dusk bot. These service terms do not expand your software license or grant commercial rights.
 
 ## Eligibility and agreement
 
@@ -14,11 +14,11 @@ You must be at least 16 [or the age the owner picks]. You must be able to enter 
 
 By using the services after these terms take effect, you agree to them. If you do not agree, do not use the services. Any rights that the law gives you and does not allow you to waive remain in place.
 
-## How Dusk Bot works
+## How dusk bot works
 
-Dusk Bot is a desktop app for macOS, Windows and Linux, and a phone app for running a team of AI bots. It is local-first. Your bots, chats, files, memory and settings live on your own computer or your own server, including a VPS. If you buy Dusk Cloud, they live on your hosted cloud desktop.
+dusk bot is a desktop app for macOS, Windows and Linux, and a phone app for running a team of AI bots. It is local-first. Your bots, chats, files, memory and settings live on your own computer or your own server, including a VPS. If you buy dusk cloud, they live on your hosted cloud desktop.
 
-You choose the AI engines your bots use. You sign in to those providers yourself or add your own API keys. For example, you may choose Anthropic Claude, OpenAI Codex/ChatGPT, Google Gemini, xAI Grok or other engines. Prompts and replies travel directly from the machine running your bots to your chosen provider. Dusk Bot does not receive them through its account or link services.
+You choose the AI engines your bots use. You sign in to those providers yourself or add your own API keys. For example, you may choose Anthropic Claude, OpenAI Codex/ChatGPT, Google Gemini, xAI Grok or other engines. Prompts and replies travel directly from the machine running your bots to your chosen provider. dusk bot does not receive them through its account or link services.
 
 ## Accounts and credentials
 
@@ -26,11 +26,11 @@ The account service at dusk.bot/dashboard is optional. If you use it, give accur
 
 You are responsible for activity you authorise through your account. Do not use someone else's account without permission. Do not give bots access to accounts, systems or information you are not entitled to use.
 
-Your AI accounts and keys remain your responsibility. You pay any charges your chosen AI providers impose. You must comply with each provider's terms, usage limits and privacy rules. A Dusk Bot subscription does not replace those agreements or give you permission to bypass them.
+Your AI accounts and keys remain your responsibility. You pay any charges your chosen AI providers impose. You must comply with each provider's terms, usage limits and privacy rules. A dusk bot subscription does not replace those agreements or give you permission to bypass them.
 
 ## Acceptable use and bot actions
 
-You must use Dusk Bot lawfully. You must not use it to attack systems, gain unauthorised access, spread malware, harass people or send spam through bots. You must not evade safeguards or abuse the terms of an AI provider or connected app. Do not interfere with our services or other users' access.
+You must use dusk bot lawfully. You must not use it to attack systems, gain unauthorised access, spread malware, harass people or send spam through bots. You must not evade safeguards or abuse the terms of an AI provider or connected app. Do not interfere with our services or other users' access.
 
 You are responsible for what your bots do and for the actions you approve. Review the permissions you grant and the consequences of an action before approving it. Follow the laws where your bots act, including laws that apply to communications, personal information and access to computer systems.
 
@@ -40,13 +40,13 @@ You must have the rights and permissions needed for content you give to a bot. T
 
 Dodo Payments is the merchant of record for paid plans. It handles card data, tax and invoices. We store subscription status, plan lines, amounts and payment identifiers. We do not store card numbers. Review the price, billing period, renewal conditions and applicable payment terms shown when you purchase.
 
-Recurring plans renew as described at checkout until cancelled. Renewal notice and price change arrangements are [renewal notice and price change policy]. You can manage cancellation through [subscription cancellation method]. Cancellation takes effect under [cancellation timing and access policy]. Cancelling a Dusk Bot plan does not cancel your separate AI provider subscriptions.
+Recurring plans renew as described at checkout until cancelled. Renewal notice and price change arrangements are [renewal notice and price change policy]. You can manage cancellation through [subscription cancellation method]. Cancellation takes effect under [cancellation timing and access policy]. Cancelling a dusk bot plan does not cancel your separate AI provider subscriptions.
 
 Refunds are governed by [refund policy], subject to your mandatory legal rights. Contact hello@dusk.bot if you need help with a plan or payment. Do not assume that closing the app, disconnecting a workspace or stopping a bot cancels a paid plan.
 
-## Dusk Cloud desktops
+## dusk cloud desktops
 
-Dusk Cloud is a paid hosted, always-on computer for each customer. It runs on infrastructure from InstaBox. Your bots, chats and files live on that computer. Availability is best effort. There is no service level agreement unless we agree one with you separately. Interruptions may affect bot activity, access and connected tools.
+dusk cloud is a paid hosted, always-on computer for each customer. It runs on infrastructure from InstaBox. Your bots, chats and files live on that computer. Availability is best effort. There is no service level agreement unless we agree one with you separately. Interruptions may affect bot activity, access and connected tools.
 
 Cloud desktop backups are encrypted with a key held by the account service. After your plan ends, your desktop is retained for 30 days and then deleted; we email you 7 days before. If you ask to delete it yourself, it is deleted 7 days after you confirm. Keep copies of information you need before that period expires. Do not rely on continued access after deletion.
 
@@ -54,15 +54,15 @@ If you enable Wake for Slack, the account service holds your bot's Slack app-lev
 
 ## Your content and privacy
 
-Your content stays yours. These terms do not transfer ownership of your chats, files, prompts or other material to us. You authorise processing needed to provide the services you choose, including hosting your content on a Dusk Cloud desktop and carrying tool traffic for optional connected apps.
+Your content stays yours. These terms do not transfer ownership of your chats, files, prompts or other material to us. You authorise processing needed to provide the services you choose, including hosting your content on a dusk cloud desktop and carrying tool traffic for optional connected apps.
 
-Your chosen AI providers and connected apps apply their own terms and privacy policies. Review them before sending information. Our [privacy policy](privacy.md) explains what our services collect and how you can export or delete account data. Local content and data held by another provider are separate from your Dusk Bot account records.
+Your chosen AI providers and connected apps apply their own terms and privacy policies. Review them before sending information. Our [privacy policy](privacy.md) explains what our services collect and how you can export or delete account data. Local content and data held by another provider are separate from your dusk bot account records.
 
 ## Software license and feedback
 
 The source code is available under PolyForm Strict License 1.0.0, with separate upstream and third-party licenses as described on the [license page](license.md). Commercial use requires a separate commercial license. A payment for a service grants only the software rights expressly included in your applicable license agreement.
 
-You may send feedback to hello@dusk.bot. Do not include confidential material or information you lack permission to share. If you submit suggestions, you permit us to use them to improve Dusk Bot without paying you or owing attribution. You retain ownership of your feedback. You do not have to provide it.
+You may send feedback to hello@dusk.bot. Do not include confidential material or information you lack permission to share. If you submit suggestions, you permit us to use them to improve dusk bot without paying you or owing attribution. You retain ownership of your feedback. You do not have to provide it.
 
 ## Suspension and termination
 

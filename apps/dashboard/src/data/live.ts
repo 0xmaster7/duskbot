@@ -127,8 +127,8 @@ export function accountFromWire(answer: AccountAnswer, now = Date.now(), storage
   let onboarded = false;
   try {
     storage ??= typeof localStorage === "undefined" ? undefined : localStorage;
-    onboarded = storage?.getItem(`omb-dash-onboarded:${account.id}`) === "1";
-    const saved: unknown = JSON.parse(storage?.getItem("omb-dash-notify") ?? "null");
+    onboarded = storage?.getItem(`dusk-dash-onboarded:${account.id}`) === "1";
+    const saved: unknown = JSON.parse(storage?.getItem("dusk-dash-notify") ?? "null");
     if (saved && typeof saved === "object") for (const key of Object.keys(notifications) as Array<keyof NotificationPrefs>) {
       const value = (saved as Record<string, unknown>)[key];
       if (typeof value === "boolean") notifications[key] = value;

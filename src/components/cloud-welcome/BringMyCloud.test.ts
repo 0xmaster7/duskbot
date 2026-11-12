@@ -11,11 +11,11 @@ const movingAtlas = { bot: { id: "atlas", name: "Atlas" }, team: { id: "team-acm
 
 let host: HTMLElement, root: Root;
 beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
-afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.useRealTimers(); (window as { ogb?: unknown }).ogb = undefined; });
+afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.useRealTimers(); (window as { duskDesktop?: unknown }).duskDesktop = undefined; });
 
 function page(bots: unknown[], over: Record<string, unknown> = {}) {
   const bridge = { teamBring: vi.fn(async () => ({ team: TEAM, bots })), teamBringMove: vi.fn(async () => ({ started: true, move: movingAtlas })), teamBringStatus: vi.fn(async () => movingAtlas), ...over };
-  (window as { ogb?: unknown }).ogb = { cloudSendPage: bridge };
+  (window as { duskDesktop?: unknown }).duskDesktop = { cloudSendPage: bridge };
   return bridge;
 }
 const draw = async () => { await act(async () => { root.render(createElement(BringMyCloud)); }); await act(async () => {}); };
@@ -39,7 +39,7 @@ it("shows nothing with no bot to bring, on an older app, or in a browser", async
   page([ATLAS], { teamBringMove: undefined });
   await draw();
   expect(host.innerHTML).toBe("");
-  (window as { ogb?: unknown }).ogb = undefined;
+  (window as { duskDesktop?: unknown }).duskDesktop = undefined;
   await draw();
   expect(host.innerHTML).toBe("");
 });

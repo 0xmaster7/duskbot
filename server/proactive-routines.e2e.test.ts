@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { launchVerificationServer } from "../scripts/control-omb.ts";
+import { launchVerificationServer } from "../scripts/control-dusk.ts";
 import { startFakeConnectedApps, type FakeConnectedApps } from "./testing/fake-connected-apps.ts";
 
 // The proactive main agent end to end on a real server (temporary home, the fake Claude CLI) against a stand-in for the
@@ -52,7 +52,7 @@ describe("Dusk keeps an eye on the day, hidden from the sidebar", () => {
   let api: ReturnType<typeof client>;
   let chief: { id: string; threadId: string };
   let watch: { id: string };
-  const markers = join(tmpdir(), `omb-watch-markers-${process.pid}-${Date.now()}.json`);
+  const markers = join(tmpdir(), `dusk-watch-markers-${process.pid}-${Date.now()}.json`);
 
   beforeAll(async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -236,7 +236,7 @@ describe("a read-and-draft run", () => {
     await expect.poll(() => existsSync(join(fixture.info.dataDir, "decisions", `${month}.ndjson`)), { timeout: 5_000 }).toBe(true);
     const decisions = readFileSync(join(fixture.info.dataDir, "decisions", `${month}.ndjson`), "utf8");
     const dump = JSON.parse(readFileSync(fixture.fixtureDumpPath, "utf8"));
-    expect(Object.keys(dump.mcpConfig.mcpServers).sort()).toEqual(["agents", "composio", "ogb"]);
+    expect(Object.keys(dump.mcpConfig.mcpServers).sort()).toEqual(["agents", "composio", "dusk"]);
     expect(dump.systemPrompt).not.toContain("Your enabled automations");
     expect(dump.systemPrompt).not.toContain("Pause a temporary monitor");
     expect(dump.systemPrompt).toContain("within its read-and-draft limits");

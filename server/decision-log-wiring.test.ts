@@ -98,7 +98,7 @@ async function makePermissionBot(patch: Record<string, unknown>) {
 posixOnly("authorization decisions are logged", () => {
   beforeAll(async () => {
     chmodSync(FAKE_CLI, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-decisions-e2e-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-decisions-e2e-"));
     mkdirSync(join(home, ".duskbot"), { recursive: true });
     writeFileSync(
       join(home, ".duskbot", "config.json"),

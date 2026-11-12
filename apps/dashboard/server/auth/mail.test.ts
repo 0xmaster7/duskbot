@@ -67,6 +67,6 @@ describe("account mail", () => {
     expect(() => mailerFromEnv({ DUSK_MAIL_PROVIDER: "resend", DUSK_RESEND_API_KEY: "fixture-key" }, { dev: false })).toThrow("DUSK_MAIL_FROM");
     expect(mailerFromEnv({ DUSK_MAIL_PROVIDER: "resend", DUSK_RESEND_API_KEY: "fixture-key", DUSK_MAIL_FROM: "mail@example.test" }, { dev: false })).toHaveProperty("send");
     expect(() => mailerFromEnv({ DUSK_MAIL_PROVIDER: "brevo", DUSK_MAIL_FROM: "mail@example.test" }, { dev: false })).toThrow("DUSK_BREVO_API_KEY and DUSK_MAIL_FROM");
-    expect(mailerFromEnv({ DUSK_MAIL_PROVIDER: "brevo", DUSK_BREVO_API_KEY: "fixture-key", DUSK_MAIL_FROM: "Dusk Bot <hello@example.test>" }, { dev: false })).toHaveProperty("send");
+    expect(mailerFromEnv({ DUSK_MAIL_PROVIDER: "brevo", DUSK_BREVO_API_KEY: "fixture-key", DUSK_MAIL_FROM: "dusk bot <hello@example.test>" }, { dev: false })).toHaveProperty("send");
   });
 });

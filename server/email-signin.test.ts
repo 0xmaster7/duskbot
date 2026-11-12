@@ -87,7 +87,7 @@ async function openEvents(cookie: string) {
 
 beforeAll(async () => {
   stub = await startControlPlaneStub();
-  home = mkdtempSync(join(tmpdir(), "omb-email-signin-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-email-signin-"));
   const staticDir = join(home, "static");
   mkdirSync(join(home, ".duskbot"), { recursive: true });
   mkdirSync(join(staticDir, "assets"), { recursive: true });
@@ -171,7 +171,7 @@ describe("sign in with your email on a hosted server", () => {
     expect(right.body.session).toMatchObject({ label: "Her iPad", scopes: ["admin", "client"], email: "her@example.test" });
     expect(right.body.environment.environmentId).toBeTruthy();
     const cookie = cookieOf(right);
-    expect(cookie).toMatch(/^omb_session_/);
+    expect(cookie).toMatch(/^dusk_session_/);
     expect(String(right.headers["set-cookie"])).toMatch(/HttpOnly/);
 
     const me = await call("/api/auth/session", { headers: { cookie, origin: `https://${HOST}` } });

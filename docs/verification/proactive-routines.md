@@ -9,7 +9,7 @@ without a real Google account, a model or the Electron app.
 pnpm exec vitest run server/proactive-routines.e2e.test.ts
 ```
 
-It launches the same isolated fixture as `control-omb launch`: a temporary home
+It launches the same isolated fixture as `control-dusk launch`: a temporary home
 and data directory and the fake Claude CLI. It points the fixture at
 `server/testing/fake-connected-apps.ts`, a loopback stand-in for the
 connected-apps service that answers Composio's Gmail and Calendar tools from
@@ -46,7 +46,7 @@ Expected:
   draft to a stranger, draft twice and read. Only one reply draft to the
   thread's sender and the read reach the service. No card is shown, and the
   refusals are in the decision log. The run mounts only `agents`, `composio`
-  and Dusk Bot's answerer, and Gmail's answer reaches it as records. A later
+  and dusk bot's answerer, and Gmail's answer reaches it as records. A later
   ordinary turn's conversation search does not find the run.
 
 ## Dusk as the owner

@@ -22,7 +22,7 @@ import { startFakeInstaboxApi } from "../src/fake-instabox-api.ts";
 import { createInstaboxProvider } from "../src/instabox.ts";
 import { createCloudSend } from "../../../electron/cloud-send.mjs";
 import { openOwnerSession } from "../../../electron/cloud-send-main.mjs";
-import { launchVerificationServer } from "../../../scripts/control-omb.ts";
+import { launchVerificationServer } from "../../../scripts/control-dusk.ts";
 import { pagesRoutesFromEnv } from "../../dashboard/server/pages/routes.ts";
 import { createSealer, parseSealKey } from "../../dashboard/server/clouds/seal.ts";
 import { createPagesClient } from "../../../server/pages/client.ts";
@@ -40,7 +40,7 @@ function mark(step: string) { const now = Date.now(); marks.push({ step, ms: now
 function note(line: string) { console.log(`  ${line}`); if (ledger) appendFileSync(ledger, `${new Date().toISOString()} ${line}\n`); }
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-const dataDir = mkdtempSync(join(tmpdir(), "omb-managed-e2e-"));
+const dataDir = mkdtempSync(join(tmpdir(), "dusk-managed-e2e-"));
 const api = fake ? await startFakeInstaboxApi() : null;
 // --fake: a release key of this run's own signs every home package, so the update path runs signed end to end; each fake
 // machine keeps the version it runs and the one before, and a version listed here fails its self-test
@@ -165,10 +165,10 @@ try {
   // a synthetic engine on the home, so a bot can answer (test tooling only, never part of the product install)
   if (!fake) {
     const engine = readFileSync(resolve(option("--engine")!));
-    const wrapper = `#!/bin/sh\nif [ "$1" = auth ]; then echo '{"loggedIn":true,"email":"person@example.test"}'; exit 0; fi\nexport FAKE_CLAUDE_VERSION=2.1.284\nexec ${CLOUD_HOME.root}/node/bin/node /opt/omb-test/fake-claude.mjs "$@"\n`;
+    const wrapper = `#!/bin/sh\nif [ "$1" = auth ]; then echo '{"loggedIn":true,"email":"person@example.test"}'; exit 0; fi\nexport FAKE_CLAUDE_VERSION=2.1.284\nexec ${CLOUD_HOME.root}/node/bin/node /opt/dusk-test/fake-claude.mjs "$@"\n`;
     await ops.upload(cloud().serverId!, "/data/home/fake-claude.mjs", engine);
     await ops.upload(cloud().serverId!, "/data/home/claude-wrapper.sh", Buffer.from(wrapper));
-    const done = await ops.run(cloud().serverId!, "sudo install -d -m 0755 /opt/omb-test && sudo install -m 0755 /data/home/fake-claude.mjs /opt/omb-test/fake-claude.mjs && sudo install -m 0755 /data/home/claude-wrapper.sh /usr/local/bin/claude && sudo systemctl restart omb-home && sleep 10 && echo ok", 120);
+    const done = await ops.run(cloud().serverId!, "sudo install -d -m 0755 /opt/dusk-test && sudo install -m 0755 /data/home/fake-claude.mjs /opt/dusk-test/fake-claude.mjs && sudo install -m 0755 /data/home/claude-wrapper.sh /usr/local/bin/claude && sudo systemctl restart omb-home && sleep 10 && echo ok", 120);
     note(`synthetic engine installed: ${done.ok}`);
   }
 

@@ -1,4 +1,4 @@
-// Packaged: an embedded cua-driver daemon, so macOS TCC grants attribute to Dusk Bot; dev attaches to CuaDriver.app.
+// Packaged: an embedded cua-driver daemon, so macOS TCC grants attribute to dusk bot; dev attaches to CuaDriver.app.
 // Agents use the stdio MCP proxy, which executes nothing; the host-owned daemon does.
 
 import { app, ipcMain } from "electron";
@@ -157,7 +157,7 @@ export function resolveEmbeddedDriverBinary(binary) {
   if (process.platform !== "win32" || !app.isPackaged || process.env.CUA_DRIVER_PATH ||
       binary !== path.join(process.resourcesPath, "cua-driver.exe")) return binary;
   const background = path.join(process.resourcesPath, "cua-driver-background.exe");
-  if (!fs.existsSync(background)) throw new Error("Packaged background CUA driver is missing; reinstall Dusk Bot");
+  if (!fs.existsSync(background)) throw new Error("Packaged background CUA driver is missing; reinstall dusk bot");
   return background;
 }
 
@@ -283,7 +283,7 @@ async function startEmbedded(binary, signal) {
         !permissionStatus.accessibility && "Accessibility",
         !permissionStatus.screenRecording && "Screen Recording",
       ].filter(Boolean).join(" and ");
-      throw new Error(`${missing || "macOS permissions"} required; grant access in System Settings and restart Dusk Bot`);
+      throw new Error(`${missing || "macOS permissions"} required; grant access in System Settings and restart dusk bot`);
     }
   }
   // The native SDK owns the child lifecycle but exposes no windowsHide option.
@@ -371,7 +371,7 @@ export async function startCua({ attempt = 0 } = {}) {
     }
     nextConnection ??= {
       mode: "unavailable",
-      reason: "The computer helper (CuaDriver) did not answer. Press Retry; if it still fails, quit and reopen Dusk Bot.",
+      reason: "The computer helper (CuaDriver) did not answer. Press Retry; if it still fails, quit and reopen dusk bot.",
     };
   }
 

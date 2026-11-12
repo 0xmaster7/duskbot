@@ -49,7 +49,7 @@ export function createDevServerChild({
   const spawn = () => {
     timer = null;
     if (stopping) return;
-    const proc = fork(entry, [], { env, stdio: "inherit", execArgv: ["--experimental-strip-types"], serviceName: "Dusk Bot dev server" });
+    const proc = fork(entry, [], { env, stdio: "inherit", execArgv: ["--experimental-strip-types"], serviceName: "dusk bot dev server" });
     const startedAt = now();
     current = proc;
     let markExited;

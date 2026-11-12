@@ -574,7 +574,7 @@ describe("a Use my Mac link in an older bot message", () => {
 
   it("is plain text everywhere, even in this app with an older Cloud's bridge: this computer is lent by itself", () => {
     const offer = vi.fn(async () => {});
-    window.ogb = { platform: "darwin", cloudLending: { open: async () => {}, offer } } as unknown as typeof window.ogb;
+    window.duskDesktop = { platform: "darwin", cloudLending: { open: async () => {}, offer } } as unknown as typeof window.duskDesktop;
     try {
       const markup = renderToStaticMarkup(createElement(ChatMarkdown, { text }));
       expect(markup).toContain(">Use my Mac<");
@@ -582,7 +582,7 @@ describe("a Use my Mac link in an older bot message", () => {
       expect(markup).not.toContain('href="duskbot://');
       expect(offer).not.toHaveBeenCalled();
     } finally {
-      delete window.ogb;
+      delete window.duskDesktop;
     }
     expect(chatUrlTransform("duskbot://use-my-computer")).toBe("duskbot://use-my-computer");
   });
@@ -661,7 +661,7 @@ describe("a bot's link to a page it published", () => {
 
   it("in the desktop app, opens like the card's Open: in the bot's browser panel, never as a message", async () => {
     const openExternal = vi.fn(async () => {});
-    window.ogb = { platform: "darwin", openExternal } as unknown as typeof window.ogb;
+    window.duskDesktop = { platform: "darwin", openExternal } as unknown as typeof window.duskDesktop;
     const dispatch = vi.fn();
     try {
       const state = { ...initialState, selectedId: "pepper", bots: [{ id: "pepper" }], config: { features: { browser: true }, browserEngine: { kind: "engine" } } };
@@ -670,7 +670,7 @@ describe("a bot's link to a page it published", () => {
       expect(dispatch.mock.calls).toEqual([[{ type: "toggleComputer", open: true }]]);
       expect(openExternal).not.toHaveBeenCalled();
     } finally {
-      delete window.ogb;
+      delete window.duskDesktop;
     }
   });
 
@@ -881,7 +881,7 @@ describe("ChatMarkdown attachments", () => {
     const revealInFolder = vi.fn(async () => "shown" as const);
 
     it("offers Show in folder in the local desktop app, without printing the path", () => {
-      vi.stubGlobal("window", { ogb: { revealInFolder, remoteClient: { active: false } } });
+      vi.stubGlobal("window", { duskDesktop: { revealInFolder, remoteClient: { active: false } } });
       try {
         const html = render(true);
         expect(html).toContain("This file is outside this chat&#x27;s working folder, so it can&#x27;t be saved from here");
@@ -894,7 +894,7 @@ describe("ChatMarkdown attachments", () => {
     });
 
     it("shows the full path as selectable text to a remote client instead", () => {
-      vi.stubGlobal("window", { ogb: { revealInFolder, remoteClient: { active: true } } });
+      vi.stubGlobal("window", { duskDesktop: { revealInFolder, remoteClient: { active: true } } });
       try {
         const html = render(true);
         expect(html).not.toContain("Show in folder");
@@ -915,7 +915,7 @@ describe("ChatMarkdown attachments", () => {
     });
 
     it("leaves other failures alone", () => {
-      vi.stubGlobal("window", { ogb: { revealInFolder, remoteClient: { active: false } } });
+      vi.stubGlobal("window", { duskDesktop: { revealInFolder, remoteClient: { active: false } } });
       try {
         const html = render(false);
         expect(html).toContain("the linked file is outside this conversation&#x27;s workspace");

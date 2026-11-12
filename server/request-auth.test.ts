@@ -68,9 +68,9 @@ describe("origin and cookies", () => {
     expect(isSameOrigin(request({ host: "a.example", origin: "https://evil.example" }))).toBe(false);
   });
   it("parses cookies and names the session cookie per port and environment", () => {
-    expect(parseCookies("a=1; omb_session_8799_abc=tok; b = 2")).toEqual(new Map([["a", "1"], ["omb_session_8799_abc", "tok"], ["b", "2"]]));
+    expect(parseCookies("a=1; dusk_session_8799_abc=tok; b = 2")).toEqual(new Map([["a", "1"], ["dusk_session_8799_abc", "tok"], ["b", "2"]]));
     expect(parseCookies(undefined).size).toBe(0);
-    expect(sessionCookieName(8799, "3f2a-uuid-like-id")).toBe("omb_session_8799_3f2auuidlike");
+    expect(sessionCookieName(8799, "3f2a-uuid-like-id")).toBe("dusk_session_8799_3f2auuidlike");
     expect(serializeSessionCookie("c", "t", { secure: true, maxAgeSeconds: 60 })).toBe("c=t; Path=/; HttpOnly; SameSite=Lax; Max-Age=60; Secure");
     expect(serializeSessionCookie("c", "t", { secure: false, maxAgeSeconds: 60 })).not.toContain("Secure");
     expect(clearSessionCookie("c")).toContain("Max-Age=0");
@@ -225,12 +225,12 @@ describe("scopes", () => {
 describe("resolveRequestAuth", () => {
   let dir: string;
   let sessions: SessionRegistry;
-  const cookieName = "omb_session_8799_env";
+  const cookieName = "dusk_session_8799_env";
   const resolve = (headers: Record<string, string>, path = "/api/bots", method = "GET") =>
     resolveRequestAuth(request(headers, method), { sessions, cookieName, streamPath: "/api/events", url: new URL(path, "http://x") });
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "omb-auth-"));
+    dir = mkdtempSync(join(tmpdir(), "dusk-auth-"));
     sessions = new SessionRegistry({ file: join(dir, "sessions.json") });
   });
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
@@ -434,9 +434,9 @@ describe("resolveRequestAuth", () => {
     const signedIn = sessions.exchange({ code: credential, label: "Chrome on Mac", source: "1.2.3.4", browser: true });
     if (!signedIn.ok) throw new Error(signedIn.error);
     const cookie = `${cookieName}=${signedIn.token}`;
-    const cloud = { host: "omb-u-0123456789ab.fly.dev", "x-forwarded-proto": "https", cookie };
+    const cloud = { host: "dusk-u-0123456789ab.fly.dev", "x-forwarded-proto": "https", cookie };
     expect(resolve(cloud).auth?.kind).toBe("session");
-    expect(resolve({ ...cloud, origin: "https://omb-u-0123456789ab.fly.dev" }, "/api/bots", "POST").auth?.kind).toBe("session");
+    expect(resolve({ ...cloud, origin: "https://dusk-u-0123456789ab.fly.dev" }, "/api/bots", "POST").auth?.kind).toBe("session");
     expect(resolve({ ...cloud, "sec-fetch-site": "same-origin" }, "/api/bots", "DELETE").auth?.kind).toBe("session");
     for (const [headers, method] of [[{}, "POST"], [{}, "PUT"], [{}, "PATCH"], [{}, "DELETE"], [{ "sec-fetch-site": "none" }, "POST"], [{ "sec-fetch-site": "cross-site" }, "POST"],
       [{ "sec-fetch-site": "same-site" }, "POST"], [{ origin: "https://evil.example", "sec-fetch-site": "same-origin" }, "POST"]] as const) {
@@ -453,7 +453,7 @@ describe("resolveRequestAuth", () => {
     expect(resolve({ ...cloud, "sec-fetch-site": "same-origin" }, connectorRefresh, "GET").auth?.kind).toBe("session");
     expect(resolve({ ...cloud, "sec-fetch-site": "same-site" }, "/api/bots", "GET").auth?.kind).toBe("session");
     const paired = pairedToken();
-    expect(resolve({ host: "omb-u-0123456789ab.fly.dev", "x-forwarded-proto": "https", cookie: `${cookieName}=${paired}` }, "/api/bots", "POST").auth?.kind).toBe("session");
+    expect(resolve({ host: "dusk-u-0123456789ab.fly.dev", "x-forwarded-proto": "https", cookie: `${cookieName}=${paired}` }, "/api/bots", "POST").auth?.kind).toBe("session");
     expect(provesSameOrigin(request({ host: "a.example", origin: "http://a.example" }))).toBe(true);
     expect(provesSameOrigin(request({ host: "a.example" }))).toBe(false);
     expect(provesSameOrigin(request({ host: "a.example", origin: "https://evil.example", "sec-fetch-site": "same-origin" }))).toBe(false);
@@ -544,10 +544,10 @@ describe("an IPC listener (duskbot serve --tunnel) is remote by construction", (
   });
 
   it("never grants loopback trust over the socket, even with a loopback Host and no forwarded headers; a session works", () => {
-    const dir = mkdtempSync(join(tmpdir(), "omb-auth-ipc-"));
+    const dir = mkdtempSync(join(tmpdir(), "dusk-auth-ipc-"));
     try {
       const sessions = new SessionRegistry({ file: join(dir, "sessions.json") });
-      const gate = { sessions, cookieName: "omb_session_test", streamPath: "/api/events", url: new URL("/api/bots", "http://x") };
+      const gate = { sessions, cookieName: "dusk_session_test", streamPath: "/api/events", url: new URL("/api/bots", "http://x") };
       const denied = resolveRequestAuth(overSocket({ host: "127.0.0.1:8799" }), gate);
       expect(denied.auth).toBeNull();
       expect(denied.status).toBe(403);
@@ -566,7 +566,7 @@ describe("an IPC listener (duskbot serve --tunnel) is remote by construction", (
 describe("loopback trust: owner on one person's machine, service on a shared workspace", () => {
   let dir: string;
   let sessions: SessionRegistry;
-  const cookieName = "omb_session_8799_env";
+  const cookieName = "dusk_session_8799_env";
   const local = { host: "127.0.0.1:8799" };
   const check = (method: string, path: string, options: { trust?: "owner" | "service"; headers?: Record<string, string>; desktopToken?: string } = {}) =>
     resolveRequestAuth(request({ ...local, ...options.headers }, method), {
@@ -576,12 +576,12 @@ describe("loopback trust: owner on one person's machine, service on a shared wor
     });
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "omb-auth-trust-"));
+    dir = mkdtempSync(join(tmpdir(), "dusk-auth-trust-"));
     sessions = new SessionRegistry({ file: join(dir, "sessions.json") });
   });
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-  // Every call the deployed cloud Slack worker makes (openmaus-cloud server/slack-worker.ts, every released version): none may break.
+  // Every call the deployed cloud Slack worker makes (dusk-cloud server/slack-worker.ts, every released version): none may break.
   const SERVICE_CALLS: Array<[string, string]> = [
     ["GET", "/api/health"],
     ["GET", "/api/bots?messages=0"],
@@ -666,13 +666,13 @@ describe("loopback trust: owner on one person's machine, service on a shared wor
     expect(desktop.warning).toMatch(/ignored in the desktop app/);
   });
 
-  it("is always service on a Dusk Bot Cloud home, where a local request is only ever a process on the machine", () => {
+  it("is always service on a dusk bot Cloud home, where a local request is only ever a process on the machine", () => {
     const pick = (env: NodeJS.ProcessEnv) => resolveLoopbackTrust({ env, desktopManaged: false, cloudHome: true });
-    expect(pick({})).toEqual({ trust: "service", reason: "Dusk Cloud home", localBrowsers: false });
-    expect(pick({ DUSK_LOOPBACK_TRUST: "service" })).toEqual({ trust: "service", reason: "Dusk Cloud home", localBrowsers: false });
+    expect(pick({})).toEqual({ trust: "service", reason: "dusk cloud home", localBrowsers: false });
+    expect(pick({ DUSK_LOOPBACK_TRUST: "service" })).toEqual({ trust: "service", reason: "dusk cloud home", localBrowsers: false });
     const forced = pick({ DUSK_LOOPBACK_TRUST: "owner" });
     expect(forced.trust).toBe("service");
-    expect(forced.warning).toMatch(/ignored on a Dusk Cloud home/);
+    expect(forced.warning).toMatch(/ignored on a dusk cloud home/);
   });
 
   it("lets only the CLI that started the server, holding its secret, mint a pairing code under service trust", () => {
@@ -696,7 +696,7 @@ describe("loopback trust: owner on one person's machine, service on a shared wor
 describe("a browser on this machine is not the owner", () => {
   let dir: string;
   let sessions: SessionRegistry;
-  const cookieName = "omb_session_8799_env";
+  const cookieName = "dusk_session_8799_env";
   // What Chrome sends: Sec-Fetch-* on every request to a loopback address, Origin on every WebSocket handshake.
   const page = { host: "127.0.0.1:8799", "sec-fetch-site": "cross-site", "sec-fetch-mode": "no-cors", "sec-fetch-dest": "empty" };
   const navigation = { host: "127.0.0.1:8799", "sec-fetch-site": "none", "sec-fetch-mode": "navigate", "sec-fetch-dest": "document", "sec-fetch-user": "?1" };
@@ -711,7 +711,7 @@ describe("a browser on this machine is not the owner", () => {
     });
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "omb-auth-browser-"));
+    dir = mkdtempSync(join(tmpdir(), "dusk-auth-browser-"));
     sessions = new SessionRegistry({ file: join(dir, "sessions.json") });
   });
   afterEach(() => rmSync(dir, { recursive: true, force: true }));

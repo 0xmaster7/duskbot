@@ -1,4 +1,4 @@
-# Dusk Bot connected-apps broker
+# dusk bot connected-apps broker
 
 This Worker keeps the shared Composio project key out of desktop builds. Each
 installation receives a random bearer token stored only as a SHA-256 hash in
@@ -26,7 +26,7 @@ without affecting existing users.
 ## App events (Composio triggers)
 
 The broker also receives Composio trigger events for every installation and
-queues them until the installation's Dusk Bot server collects them. A desktop
+queues them until the installation's dusk bot server collects them. A desktop
 needs no public URL: Composio posts to the broker, the server long-polls it.
 
 ```
@@ -44,8 +44,8 @@ Composio --signed POST--> /v1/composio/webhook --> D1 queue per installation <--
 | `PATCH /v1/triggers/:triggerId` `{enabled}` | installation token | Enables or disables the instance at Composio (only disabled once no other binding wants it). A config change is a new `POST` plus a `DELETE` of the old instance. |
 | `DELETE /v1/triggers/:triggerId` | installation token | Removes the binding, its queued events and drop counts, and the Composio instance once nothing else binds it. Also deletes an unbound instance of this installation's Composio user. |
 | `GET /v1/triggers` | installation token | Bindings beside Composio's view (`remote.state`: `enabled`, `disabled` or `missing`), `unbound` instances, drop counts per trigger, limits and today's usage: everything the server's reconciliation needs. |
-| `GET /v1/events?after=<seq>&wait=<0-25>&limit=<1-50>` + header `x-omb-poller` | installation token | Acks every event at or below `after`, then returns the next events in arrival order, holding up to `wait` seconds. One poller at a time per installation: another `x-omb-poller` gets 409 until the 90 s lease runs out. |
-| `POST /v1/events/test` `{triggerId, data}` | installation token | Queues a synthetic event (`type: "omb.test"`) through the same queue and limits. |
+| `GET /v1/events?after=<seq>&wait=<0-25>&limit=<1-50>` + header `x-dusk-poller` | installation token | Acks every event at or below `after`, then returns the next events in arrival order, holding up to `wait` seconds. One poller at a time per installation: another `x-dusk-poller` gets 409 until the 90 s lease runs out. |
+| `POST /v1/events/test` `{triggerId, data}` | installation token | Queues a synthetic event (`type: "dusk.test"`) through the same queue and limits. |
 | `PUT /v1/installation/cloud` `{grant}` | installation token | Marks the installation as a paid Cloud's from an Admin-signed grant. |
 | `POST /v1/installation/share` `{for}` | installation token | A one-time code (10 minutes, only its hash kept) that lets the installation `for` act as this installation's Composio user. |
 | `POST /v1/installation/adopt` `{code}` | installation token | Redeems a code minted for this installation: from then on it acts as that Composio user (`shared_user_id`). Refused with 409 `has_connections` while it has active connected accounts of its own, which stay reachable. The code is spent either way. |
@@ -112,8 +112,8 @@ machine, at most once a minute per installation (`wake_requested_at`):
 ```
 POST <CLOUD_ADMIN_URL>/api/cloud/machines/wake
 content-type: application/json
-x-omb-wake-timestamp: <unix seconds>
-x-omb-wake-signature: v1=<base64url(HMAC-SHA256(CLOUD_GRANT_SECRET, "omb-cloud-wake:v1\n" + timestamp + "\n" + machineId))>
+x-dusk-wake-timestamp: <unix seconds>
+x-dusk-wake-signature: v1=<base64url(HMAC-SHA256(CLOUD_GRANT_SECRET, "omb-cloud-wake:v1\n" + timestamp + "\n" + machineId))>
 
 {"machineId":"<machine id>"}
 ```

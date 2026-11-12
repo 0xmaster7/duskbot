@@ -54,7 +54,7 @@ beforeEach(() => {
 });
 
 async function fixture(support: Partial<AcpSupport> = {}, environment: Record<string, string> = {}): Promise<Fixture> {
-  const scratch = mkdtempSync(join(tmpdir(), "omb-acp-shared-"));
+  const scratch = mkdtempSync(join(tmpdir(), "dusk-acp-shared-"));
   scratches.push(scratch);
   const spawned: ChildProcess[] = [];
   started.set(scratch, spawned);
@@ -140,7 +140,7 @@ describe("ACP threads sharing one agent process", () => {
 
   it("on a Team Cloud never shares a process between two audiences, whose engines have homes of their own", async () => {
     const f = await fixture();
-    const dataDir = mkdtempSync(join(tmpdir(), "omb-acp-homes-"));
+    const dataDir = mkdtempSync(join(tmpdir(), "dusk-acp-homes-"));
     scratches.push(dataDir);
     engineHomes.start({ dataDir, serverHome: dataDir, audienceOf: (threadId) => (threadId === "thread-c" ? "member:p_cleo" : "member:p_ada"), threads: () => [], log: () => {} });
     try {
@@ -229,8 +229,8 @@ describe("ACP threads sharing one agent process", () => {
 
   it("retires a process whose session stalled: later threads start a new one", async () => {
     const f = await fixture({}, { FAKE_ACP_HANG_ON: "HANG" });
-    const previous = process.env.OPENMAUS_ACP_PROMPT_IDLE_TIMEOUT_MS;
-    process.env.OPENMAUS_ACP_PROMPT_IDLE_TIMEOUT_MS = "300";
+    const previous = process.env.DUSK_ACP_PROMPT_IDLE_TIMEOUT_MS;
+    process.env.DUSK_ACP_PROMPT_IDLE_TIMEOUT_MS = "300";
     try {
       expect((await f.run("thread-b")).done).toMatchObject({ ok: true });
       expect((await f.run("thread-a", { text: "HANG" })).done).toMatchObject({ ok: false, stopReason: "rpc_error" });
@@ -239,8 +239,8 @@ describe("ACP threads sharing one agent process", () => {
       expect(f.spawned).toHaveLength(2);
       expect((await f.run("thread-b")).done).toMatchObject({ ok: true });
     } finally {
-      if (previous === undefined) delete process.env.OPENMAUS_ACP_PROMPT_IDLE_TIMEOUT_MS;
-      else process.env.OPENMAUS_ACP_PROMPT_IDLE_TIMEOUT_MS = previous;
+      if (previous === undefined) delete process.env.DUSK_ACP_PROMPT_IDLE_TIMEOUT_MS;
+      else process.env.DUSK_ACP_PROMPT_IDLE_TIMEOUT_MS = previous;
     }
   });
 

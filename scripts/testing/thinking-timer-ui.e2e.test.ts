@@ -12,12 +12,12 @@ import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { removeTempDir, waitForExit } from "../../server/testing/cleanup.ts";
-import { runControlOmb } from "../control-omb.ts";
-import { agentBrowser, sessionEnv, UI_TOOLS_DIR, type UiHandle } from "./control-omb-ui.ts";
+import { runControlDusk } from "../control-dusk.ts";
+import { agentBrowser, sessionEnv, UI_TOOLS_DIR, type UiHandle } from "./control-dusk-ui.ts";
 import { fixtureApi } from "./preview-fixture.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
-const CLI = join(ROOT, "scripts", "control-omb.ts");
+const CLI = join(ROOT, "scripts", "control-dusk.ts");
 const forced = process.env.DUSK_UI_E2E === "1";
 const binary = resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env });
 const enabled = forced || Boolean(binary);
@@ -29,7 +29,7 @@ const run = enabled ? it : it.skip;
 const LAUNCH_TIMEOUT_MS = forced ? 600_000 : 180_000;
 
 // DUSK_UI_EVIDENCE_DIR keeps the screenshot (CI uploads it); otherwise it is temporary.
-const evidenceDir = process.env.DUSK_UI_EVIDENCE_DIR ? resolve(ROOT, process.env.DUSK_UI_EVIDENCE_DIR) : mkdtempSync(join(tmpdir(), "omb-ui-evidence-"));
+const evidenceDir = process.env.DUSK_UI_EVIDENCE_DIR ? resolve(ROOT, process.env.DUSK_UI_EVIDENCE_DIR) : mkdtempSync(join(tmpdir(), "dusk-ui-evidence-"));
 const ownsEvidenceDir = !process.env.DUSK_UI_EVIDENCE_DIR;
 
 interface Launched {
@@ -85,7 +85,7 @@ function launch(args: string[]): Promise<Launched> {
 }
 
 const ui = (verb: string, handle: string, ...args: string[]) =>
-  runControlOmb(["ui", verb, "--ui", handle, ...args]) as Promise<Record<string, any>>;
+  runControlDusk(["ui", verb, "--ui", handle, ...args]) as Promise<Record<string, any>>;
 
 /** "42s" / "1m 05s" → seconds, so the readout can be compared to the stamp. */
 function elapsedSeconds(text: string): number {

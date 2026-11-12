@@ -179,9 +179,9 @@ describe("the plan cards", () => {
 
   it("this computer's Settings: Cancel trial for the account that pays, through main's own bridge; nothing for anyone else", async () => {
     const bridge = accountBridge(paidState(trial));
-    vi.stubGlobal("window", Object.assign(window, { ogb: { cloudAccount: bridge } }));
+    vi.stubGlobal("window", Object.assign(window, { duskDesktop: { cloudAccount: bridge } }));
     await show(createElement(CloudAccountSettings));
-    expect(text()).toContain("Pro active · verified by Dusk Cloud");
+    expect(text()).toContain("Pro active · verified by dusk cloud");
     expect(button("Manage Cloud subscription")).toBeTruthy();
     await click(button("Cancel trial"));
     await click(button("Missing a feature"));
@@ -189,15 +189,15 @@ describe("the plan cards", () => {
     expect(bridge.cancelPlan).toHaveBeenCalledExactlyOnceWith({ answer: "feature" });
     expect(text()).toContain("The Cloud page's Billing opened in your browser.");
     await act(async () => root.unmount()); root = createRoot(container);
-    vi.stubGlobal("window", Object.assign(window, { ogb: { cloudAccount: accountBridge(paidState()) } }));
+    vi.stubGlobal("window", Object.assign(window, { duskDesktop: { cloudAccount: accountBridge(paidState()) } }));
     await show(createElement(CloudAccountSettings));
-    expect(text()).toContain("Pro active · verified by Dusk Cloud");
+    expect(text()).toContain("Pro active · verified by dusk cloud");
     expect(button("Cancel trial")).toBeUndefined();
     expect(button("Cancel plan")).toBeUndefined();
     // Cancelled during the trial: Keep my plan is the way back, so the trial's own button doesn't offer a second one.
     const ending = { ...paidState(cancelledTrial), trial: { state: "ending" as const, tier: "pro", endsAt: END, amount: 4900, chargeAt: null, holdUntil: null, deleteAt: END + 3 * DAY, keep: "portal" as const } };
     await act(async () => root.unmount()); root = createRoot(container);
-    vi.stubGlobal("window", Object.assign(window, { ogb: { cloudAccount: accountBridge(ending) } }));
+    vi.stubGlobal("window", Object.assign(window, { duskDesktop: { cloudAccount: accountBridge(ending) } }));
     await show(createElement(CloudAccountSettings));
     expect(button("Keep my plan")).toBeTruthy();
     expect(button("Subscribe to keep it")).toBeUndefined();

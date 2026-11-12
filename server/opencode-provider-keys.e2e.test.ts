@@ -11,7 +11,7 @@ import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 import { freePortBlock } from "./testing/ports.ts";
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
-const HOST = "omb-t-0123456789ab.fly.dev";
+const HOST = "dusk-t-0123456789ab.fly.dev";
 const secret = randomBytes(32).toString("base64url");
 const VENICE = `venice-owner-${randomBytes(8).toString("hex")}`;
 const OWNER_ANTHROPIC = `anthropic-owner-${randomBytes(8).toString("hex")}`;
@@ -38,11 +38,11 @@ async function api(method: string, path: string, body?: unknown) {
 }
 
 async function adminPairing(): Promise<string> {
-  const body = JSON.stringify({ label: "Dusk Bot app (Cloud)", ttlSeconds: 300 });
+  const body = JSON.stringify({ label: "dusk bot app (Cloud)", ttlSeconds: 300 });
   const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
   const response = await fetch(`${base}/api/cloud/pairing`, { method: "POST", headers: {
     host: HOST, "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https", "content-type": "application/json",
-    "x-omb-cloud-timestamp": timestamp, "x-omb-cloud-nonce": nonce, "x-omb-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}`,
+    "x-dusk-cloud-timestamp": timestamp, "x-dusk-cloud-nonce": nonce, "x-dusk-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}`,
   }, body });
   const granted = await response.json() as { code: string };
   return (await api("POST", "/api/auth/pair", { code: granted.code })).body.token;
@@ -59,7 +59,7 @@ const written = (file: string, shape: "document" | "lines" = "document") => {
 };
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-opencode-keys-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-opencode-keys-"));
   dataDir = join(home, ".duskbot");
   mkdirSync(dataDir, { recursive: true });
   dump = join(home, "opencode.json");
@@ -101,7 +101,7 @@ afterAll(async () => {
 });
 
 it("saves keys for any OpenCode provider on a Cloud, shows only their names, and hands them to OpenCode alone", async () => {
-  expect(owner).toMatch(/^omb_sess_/);
+  expect(owner).toMatch(/^dusk_sess_/);
   expect((await api("GET", "/api/config")).body.opencodeGo).toEqual({ configured: false, providerKeys: [] });
   await expect.poll(() => written(dump), { timeout: 15_000 }).toBe(true);
   expect(started().env.ANTHROPIC_API_KEY).toBeUndefined();
@@ -145,11 +145,11 @@ it("saves keys for any OpenCode provider on a Cloud, shows only their names, and
   expect(started().env.ANTHROPIC_API_KEY).toBe(OWNER_ANTHROPIC);
 }, 90_000);
 
-it("refuses a name OpenMaus keeps, in one plain line, and saves nothing", async () => {
+it("refuses a name dusk bot keeps, in one plain line, and saves nothing", async () => {
   const before = readFileSync(join(dataDir, "config.json"), "utf8");
   const refused = await api("PUT", "/api/config", { opencodeGo: { providerKeys: { DUSK_CLOUD_VOICE_TOKEN: "x-token", VENICE_API_KEY: VENICE } } });
   expect(refused.status).toBe(400);
-  expect(refused.body.error).toBe("OpenMaus keeps DUSK_CLOUD_VOICE_TOKEN for itself, so OpenCode can't be given it here. Put this key in opencode.json instead.");
+  expect(refused.body.error).toBe("dusk bot keeps DUSK_CLOUD_VOICE_TOKEN for itself, so OpenCode can't be given it here. Put this key in opencode.json instead.");
   expect(readFileSync(join(dataDir, "config.json"), "utf8")).toBe(before);
   const opencodeKey = await api("PUT", "/api/config", { opencodeGo: { providerKeys: { OPENCODE_API_KEY: "zen" } } });
   expect(opencodeKey.status).toBe(400);

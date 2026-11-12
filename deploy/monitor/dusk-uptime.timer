@@ -1,5 +1,5 @@
 [Unit]
-Description=Dusk Bot uptime checks every minute
+Description=dusk bot uptime checks every minute
 
 [Timer]
 OnBootSec=1min
