@@ -16,9 +16,10 @@ import { openCreateBot } from "./CreateBotDialog";
 import { Icon, type IconName } from "./Icon";
 import { botPreview, groupPreview } from "./sidebar-preview";
 import { openBotSettingsPage } from "./bot-panel/panel-link";
+import { switchPlaceCommand } from "./SidebarPlaceButton";
 
 /** What a row does once picked: what it opens, or what it changes. */
-type Command = { id: string; name: string; detail?: string; icon: IconName; run: () => void };
+type Command = { id: string; name: string; detail?: string; also?: string; icon: IconName; run: () => void };
 
 type PaletteEntry =
   | { kind: "bot"; bot: Bot }
@@ -148,9 +149,11 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
   const settingsPane = (pane: "models" | "usage" | "advanced") => () =>
     void import("./SettingsModal").then(({ openSettings }) => dispatch(openSettings(pane))).catch(() => dispatch(settings("general")));
   const currentBot = state.bots.find((entry) => entry.id === state.selectedId);
+  const switchPlace = switchPlaceCommand();
   const commands: Command[] = [
     { id: "new-bot", name: "new bot", icon: "plus", run: () => openCreateBot() },
     { id: "new-group", name: t("sidebar.newChannel.title"), icon: "people", run: () => openNewGroup() },
+    ...(switchPlace ? [{ id: "switch-place", name: "switch place", detail: "this computer, clouds, servers", also: "workspace server cloud", icon: "chevrons-up-down" as const, run: switchPlace }] : []),
     { id: "shortcuts", name: "keyboard shortcuts", detail: "help", icon: "keyboard", run: () => dispatch({ type: "toggleShortcuts", open: true }) },
     { id: "settings-general", name: "settings: general", detail: "settings", icon: "settings-gear", run: () => dispatch(settings("general")) },
     { id: "settings-texting", name: "settings: texting", detail: "settings", icon: "chat-bubbles", run: () => dispatch(settings("texting")) },
@@ -167,7 +170,7 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
     { id: "theme-light", name: "theme: light", detail: "settings · appearance", icon: "sun", run: () => applySkinChoice(THEME_SKINS.light) },
   ];
   // With nothing typed: the bots, those with news first, then grok's short list; the rest wait for a query.
-  const shownCommands = q ? ranked(commands, (command) => command.name, q) : commands.filter((command) => IDLE_COMMANDS.has(command.id));
+  const shownCommands = q ? ranked(commands, (command) => (command.also ? `${command.name} ${command.also}` : command.name), q) : commands.filter((command) => IDLE_COMMANDS.has(command.id));
   // The sidebar's order, as ⌘1 to ⌘9 count it, so each row names the shortcut that opens it from anywhere.
   const liveBots = shortcutBots(state.bots.filter((b) => !b.hidden), shownBotIds(document.querySelector("[data-sidebar-root]")));
   const slot = new Map(liveBots.slice(0, 9).map((bot, index) => [bot.id, index + 1]));
