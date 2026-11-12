@@ -5,6 +5,7 @@ import { t } from "@/lib/i18n";
 import { Sheet } from "./Sheet";
 import type { MobileSheet, OpenSheet } from "./sheets";
 import { SHEET_PAGES } from "./sheets/registry";
+import "./sheets/sheets.css";
 
 /** The bot's own panel (profile, conversations, library, routines, computer) in a full sheet. The store still thinks
  * of it as the side panel, so opening and closing keep `settingsOpen` in step both ways. */

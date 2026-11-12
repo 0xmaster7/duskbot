@@ -3,6 +3,13 @@ import { useSyncExternalStore } from "react";
 export const USER_BUBBLE_COLOR_KEY = "dusk-color-user-bubbles";
 
 let sessionChoice: boolean | undefined;
+let unsetChoice = true;
+
+/** What an unset preference reads as: the phone keeps your bubbles one neutral tone in every chat and room. */
+export function setColorUserBubblesDefault(enabled: boolean): void {
+  unsetChoice = enabled;
+  notify();
+}
 const listeners = new Set<() => void>();
 
 function storage(): Storage | undefined {
@@ -16,9 +23,10 @@ function storage(): Storage | undefined {
 export function readColorUserBubbles(): boolean {
   if (sessionChoice !== undefined) return sessionChoice;
   try {
-    return storage()?.getItem(USER_BUBBLE_COLOR_KEY) !== "0";
+    const saved = storage()?.getItem(USER_BUBBLE_COLOR_KEY);
+    return saved == null ? unsetChoice : saved !== "0";
   } catch {
-    return true;
+    return unsetChoice;
   }
 }
 

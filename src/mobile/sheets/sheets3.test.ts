@@ -1,0 +1,91 @@
+import { describe, expect, it } from "vitest";
+import type { AppEntry } from "@/components/connect-apps/catalog";
+import type { NotificationLogEntry } from "../../../shared/notification";
+import { CATEGORY_SHOWN, groupApps } from "./ConnectorsSheet";
+import { stackByOwner } from "./NotificationsSheet";
+import { searchSnippetText } from "./SearchSheet";
+import { readableWorkspace, settingsIdentity } from "./SettingsSheet";
+import { vaultView } from "./VaultSheet";
+import { recedeStyle } from "../Sheet";
+
+const app = (id: string, categories: AppEntry["categories"], kind: AppEntry["kind"] = "composio"): AppEntry => ({ id, kind, label: id, description: "", categories, icon: {} });
+
+describe("connected apps grouping", () => {
+  const entries = [
+    app("gmail", ["communication"]),
+    app("slack", ["communication"]),
+    app("zoho", ["productivity"]),
+    app("zulip", ["communication"]),
+    ...Array.from({ length: 8 }, (_, i) => app(`tool${i}`, ["data"])),
+    app("misc", []),
+  ];
+
+  it("leads with what's connected, then the popular apps, then categories, each app once", () => {
+    const groups = groupApps(entries, new Set(["zoho"]));
+    expect(groups.map((group) => group.key)).toEqual(["connected", "popular", "communication", "data", "other"]);
+    expect(groups[0].entries.map((entry) => entry.id)).toEqual(["zoho"]);
+    expect(groups[1].entries.map((entry) => entry.id)).toEqual(["gmail", "slack"]);
+    const ids = groups.flatMap((group) => group.entries.map((entry) => entry.id));
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("shows a category's first few until it is expanded", () => {
+    const data = groupApps(entries, new Set()).find((group) => group.key === "data")!;
+    expect(data.entries).toHaveLength(CATEGORY_SHOWN);
+    expect(data.total).toBe(8);
+    expect(groupApps(entries, new Set(), new Set(["data"])).find((group) => group.key === "data")!.entries).toHaveLength(8);
+  });
+
+  it("files apps with no category under other", () => {
+    expect(groupApps(entries, new Set()).find((group) => group.key === "other")!.entries.map((entry) => entry.id)).toEqual(["misc"]);
+  });
+});
+
+describe("settings header", () => {
+  it("never shows a host and port, a URL or an IP as the subtitle", () => {
+    for (const value of ["127.0.0.1:5331", "localhost", "192.168.1.4", "http://studio.local:8799", "[::1]:8799", "studio.local:8799"]) {
+      expect(readableWorkspace(value)).toBeNull();
+    }
+    expect(readableWorkspace("Studio Mac")).toBe("Studio Mac");
+  });
+
+  it("prefers the account email, then the computer's name, then a plain phrase", () => {
+    expect(settingsIdentity({ name: "Sam", email: "sam@example.com", workspace: "127.0.0.1:5331", demo: false })).toEqual({ title: "Sam", subtitle: "sam@example.com" });
+    expect(settingsIdentity({ email: null, workspace: "Studio Mac", demo: false }).subtitle).toBe("Studio Mac");
+    const plain = settingsIdentity({ email: null, workspace: "127.0.0.1:5331", demo: false });
+    expect(plain.subtitle).not.toMatch(/\d+\.\d+|:\d+/);
+    expect(settingsIdentity({ email: "sam@example.com", demo: false }).title).toBe("sam");
+  });
+});
+
+describe("vault loading", () => {
+  it("shows the skeleton only before the first answer, so a reload never jumps", () => {
+    expect(vaultView({ loaded: false, loading: true, error: false, count: 0 })).toBe("skeleton");
+    expect(vaultView({ loaded: true, loading: true, error: false, count: 3 })).toBe("list");
+    expect(vaultView({ loaded: true, loading: false, error: false, count: 0 })).toBe("empty");
+    expect(vaultView({ loaded: false, loading: false, error: true, count: 0 })).toBe("error");
+  });
+});
+
+describe("notifications", () => {
+  const note = (id: string, botId: string, at: number, read = true): NotificationLogEntry => ({ id, botId, threadId: `t-${botId}`, title: `${botId} finished`, body: "", at, read } as NotificationLogEntry);
+
+  it("stacks a bot's notes into one row, newest on top, unread if any is", () => {
+    const stacks = stackByOwner([note("a", "tally", 1), note("b", "tally", 3, false), note("c", "rivet", 2)]);
+    expect(stacks.map((stack) => [stack.latest.id, stack.entries.length, stack.unread])).toEqual([["b", 2, true], ["c", 1, false]]);
+  });
+});
+
+describe("search snippets", () => {
+  it("drops markdown marks, including unbalanced ones", () => {
+    expect(searchSnippetText("the **launch** note**")).toBe("the launch note");
+  });
+});
+
+describe("page behind a sheet", () => {
+  it("steps back as the sheet rises and is untouched when closed", () => {
+    expect(recedeStyle(0)).toBeNull();
+    expect(recedeStyle(1)?.transform).toContain("scale(0.9300)");
+    expect(recedeStyle(1)?.borderRadius).toBe("14.0px");
+  });
+});

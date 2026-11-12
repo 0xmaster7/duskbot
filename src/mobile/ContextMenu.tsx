@@ -146,7 +146,7 @@ export function ContextMenu({ open, anchor, preview, actions, label, onClose }: 
         <div className="dusk-mobile-overlay fixed inset-0 z-50" key="context">
           <motion.div
             aria-hidden
-            className="absolute inset-0 bg-[rgb(23_24_26/0.18)] [-webkit-backdrop-filter:blur(14px)] [backdrop-filter:blur(14px)]"
+            className="absolute inset-0 bg-[rgb(23_24_26/0.22)] [-webkit-backdrop-filter:blur(5px)] [backdrop-filter:blur(5px)]"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.14 } }}
             transition={{ duration: 0.18 }}
             onClick={onClose}

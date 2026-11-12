@@ -47,13 +47,14 @@ function Shell() {
   // the status bar's clock and battery follow the look, when it is changed in Settings and when the system's changes
   const skin = useSyncExternalStore(subscribeSkin, readSkinChoice, () => "system");
   useEffect(() => {
-    const apply = () => platform.setStatusBar?.(document.documentElement.dataset.skin === THEME_SKINS.dark ? "light" : "dark");
+    // an open sheet steps the page back onto a dark ground, so the clock turns light over it
+    const apply = () => platform.setStatusBar?.(sheetOpen || document.documentElement.dataset.skin === THEME_SKINS.dark ? "light" : "dark");
     apply();
     const system = window.matchMedia?.("(prefers-color-scheme: dark)");
     const later = () => setTimeout(apply, 0);
     system?.addEventListener("change", later);
     return () => system?.removeEventListener("change", later);
-  }, [platform, skin]);
+  }, [platform, skin, sheetOpen]);
 
   // with the list in front, the chat last opened is not being read: its replies stay unread and still notify
   useEffect(() => { setChatCovered(chatId === null); return () => setChatCovered(false); }, [chatId]);

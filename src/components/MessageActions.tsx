@@ -140,7 +140,9 @@ export function MessageActions({
     if (!menuOpen) return;
     const menuBox = menuRef.current?.getBoundingClientRect();
     const more = moreRef.current?.getBoundingClientRect();
-    if (menuBox && more) setMenuAbove(more.bottom + 4 + menuBox.height > window.innerHeight - 8 && more.top - 4 - menuBox.height > 8);
+    // the composer floats over the transcript's bottom: a menu that would run under it opens upward
+    const floor = rootRef.current?.closest("main")?.querySelector("[data-grok-inset]")?.getBoundingClientRect().top ?? window.innerHeight;
+    if (menuBox && more) setMenuAbove(more.bottom + 4 + menuBox.height > Math.min(floor, window.innerHeight) - 8 && more.top - 4 - menuBox.height > 8);
     const rowBox = rootRef.current?.getBoundingClientRect();
     if (menuBox && rowBox) {
       const rtl = getComputedStyle(rootRef.current!).direction === "rtl";

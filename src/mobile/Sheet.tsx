@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { motion, useMotionValue, useTransform, type AnimationPlaybackControls } from "motion/react";
+import { motion, useMotionValue, useMotionValueEvent, useReducedMotion, useTransform, type AnimationPlaybackControls } from "motion/react";
 import { ChevronLeft, X } from "../icons";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
@@ -8,6 +8,14 @@ import { projectRelease, rubberband, settleTo } from "./motion";
 import { RoundButton } from "./RoundButton";
 
 const EXIT = { stiffness: 520, damping: 46 };
+
+/** The page under an open sheet steps back as the sheet rises (iOS's page sheet): it shrinks a little toward the top and
+ * rounds its corners, so the sliver above the sheet reads as the page behind, not as its header peeking out. */
+export function recedeStyle(progress: number): { transform: string; borderRadius: string } | null {
+  const p = Math.max(0, Math.min(1, progress));
+  if (p === 0) return null;
+  return { transform: `translate3d(0, calc(var(--m-safe-top) * ${(p * 0.5).toFixed(3)}), 0) scale(${(1 - 0.07 * p).toFixed(4)})`, borderRadius: `${(p * 14).toFixed(1)}px` };
+}
 const OPEN_SHEETS: Array<() => void> = [];
 
 /** Closes the top sheet, for Android's back and Escape. False when none is open. */
@@ -47,6 +55,25 @@ export function Sheet({ open, onClose, title, label, children, full = false, bac
   const opener = useRef<HTMLElement | null>(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
+  const reduced = useReducedMotion();
+  const page = useRef<HTMLElement | null>(null);
+  useMotionValueEvent(scrim, "change", (progress) => {
+    const nav = page.current;
+    if (!nav || reduced) return;
+    const style = recedeStyle(progress);
+    nav.style.transform = style?.transform ?? "";
+    nav.style.borderRadius = style?.borderRadius ?? "";
+    nav.style.transformOrigin = "50% 0";
+  });
+  useLayoutEffect(() => {
+    if (!mounted) return;
+    page.current = sheetRef.current?.closest(".dusk-mobile")?.querySelector<HTMLElement>(":scope > .mobile-nav") ?? null;
+    return () => {
+      const nav = page.current;
+      if (nav) { nav.style.transform = ""; nav.style.borderRadius = ""; }
+      page.current = null;
+    };
+  }, [mounted]);
 
   if (open && !mounted) setMounted(true);
 
@@ -108,8 +135,8 @@ export function Sheet({ open, onClose, title, label, children, full = false, bac
 
   if (!mounted) return null;
   return (
-    <div className="mobile-sheet-layer fixed inset-0 z-40" onKeyDown={(event) => { if (event.key === "Escape") { event.stopPropagation(); onClose(); } }}>
-      <motion.div aria-hidden className="absolute inset-0 bg-[rgb(23_24_26/0.34)]" style={{ opacity: scrim }} onClick={onClose} />
+    <div className="mobile-sheet-layer fixed inset-0 z-40" data-sheet-open="" onKeyDown={(event) => { if (event.key === "Escape") { event.stopPropagation(); onClose(); } }}>
+      <motion.div aria-hidden className="absolute inset-0 bg-[rgb(12_12_14/0.42)]" style={{ opacity: scrim }} onClick={onClose} />
       <motion.div
         ref={sheetRef}
         role="dialog"

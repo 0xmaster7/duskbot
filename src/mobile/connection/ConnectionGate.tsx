@@ -10,6 +10,7 @@ import { useMobileAccount } from "../account/AccountGate";
 import { enrollWorkspace } from "../account/enroll-workspace";
 import { installTransport } from "../transport/transport";
 import { Onboarding } from "../onboarding/Onboarding";
+import { SignInOffer } from "../account/SignInOffer";
 import { Success } from "../onboarding/Success";
 import { connectToWorkspace, createConnectionStore } from "./connections";
 import { PairError, parseTypedPairing, type TypedPairing } from "./pair";
@@ -75,7 +76,7 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
             await store.remove(active.record.id);
             if (!stopped) setState({ kind: "pair", reason: "revoked" });
           } else {
-            // offline or asleep is not unpaired: keep the link and the other saved installations reachable
+            // offline is not unpaired: keep the link and the other saved installations reachable
             const others = (await store.list().catch(() => [])).filter((record) => record.id !== active.record.id);
             if (!stopped) setState((s) => ({ kind: "offline", record: active.record, others, attempts: s.kind === "offline" ? s.attempts + 1 : 1, trying: false }));
           }
@@ -172,6 +173,7 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
             onLinked={linked} onCancel={() => { cancel(); setAdding(0); }} />
         </div>
       )}
+      {state.id !== DEMO_CONNECTION && <SignInOffer paused={Boolean(celebrate || incoming || adding > 0)} />}
       {success}
     </>
   );

@@ -9,8 +9,6 @@
 .dusk-cloud { animation: dusk-cloud 50s ease-in-out infinite alternate; }
 .dusk-scanline { animation: dusk-scanline 2.2s cubic-bezier(.45,0,.55,1) infinite alternate; }
 .dusk-pulse { animation: dusk-pulse 1.6s ease-in-out infinite; }
-.dusk-onboarding { color: #f3f4f8; color-scheme: dark; }
-.dusk-onboarding :focus-visible { outline: none; background-image: linear-gradient(rgb(243 244 248 / 0.14), rgb(243 244 248 / 0.14)); }
 @media (prefers-reduced-motion: reduce) {
   .dusk-twinkle, .dusk-float, .dusk-cloud, .dusk-scanline, .dusk-pulse { animation: none; }
 }

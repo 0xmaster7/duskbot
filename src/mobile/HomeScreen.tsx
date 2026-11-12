@@ -1,7 +1,7 @@
 import { memo, useCallback, useContext, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { motion, useTransform, type MotionValue } from "motion/react";
-import { BellDot, Check, MonitorSmartphone, Pin, PinOff, Plus, Search, Star, UserRound } from "../icons";
-import { api, useStore, type Bot, type Group } from "@/state/store";
+import { BellDot, Check, MonitorSmartphone, Pin, PinOff, Plus, RotateCcw, Search, Star, UserRound } from "../icons";
+import { api, retryLoad, useStore, type Bot, type Group } from "@/state/store";
 import { BotAvatar, MausAvatar } from "@/components/Avatar";
 import { GroupAvatar, useGroupYou } from "@/components/GroupAvatar";
 import { botPreview, groupPreview, lastPreviewable, sidebarPreviewMessages } from "@/components/sidebar-preview";
@@ -10,7 +10,7 @@ import { partitionSidebarBots, withPrimaryTile } from "@/lib/sidebar-layout";
 import { botShowsUnread } from "@/lib/bot-unread";
 import { botUnreadThreadIds, markBotRead } from "@/lib/folder-read";
 import { stateForBot } from "@/lib/mascot";
-import { cloudAsleep, cloudWaking, onCloudPower, onCloudWaking } from "@/lib/cloud-power";
+import { cloudWaking, onCloudWaking } from "@/lib/cloud-power";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { threadRefUrl } from "@/lib/thread-refs";
@@ -23,6 +23,8 @@ import { useQuietResume } from "./connection/quiet-resume";
 import { ActiveConnection } from "./connection/active";
 import { DEMO_CONNECTION } from "./demo/demo-mode";
 import { listTime } from "./time";
+import { EmptyState } from "./Illustration";
+import { useOffline } from "./network";
 import type { OpenSheet } from "./sheets";
 
 /** The row stays pressed while its chat builds offscreen, so the hand sees the tap land; cleared when the chat arrives. */
@@ -52,8 +54,7 @@ export function HomeScreen({ onOpenChat, onOpenSheet }: { onOpenChat: (id: strin
   const platform = usePlatform();
   const resuming = useQuietResume(platform);
   const demo = useContext(ActiveConnection) === DEMO_CONNECTION;
-  // a Cloud computer that went to sleep is not being reconnected to: it wakes on the person's next action
-  const asleep = useSyncExternalStore(onCloudPower, cloudAsleep, () => false);
+  const offline = useOffline();
   const waking = useSyncExternalStore(onCloudWaking, cloudWaking, () => false);
   const you = useGroupYou();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -114,18 +115,27 @@ export function HomeScreen({ onOpenChat, onOpenSheet }: { onOpenChat: (id: strin
           indicator={(progress, refreshing) => <RefreshMark bot={primary} progress={progress} refreshing={refreshing} />}
         >
           <div style={{ paddingTop: LIST_TOP }} className="pb-[calc(var(--m-safe-bottom)+24px)]">
-            {!state.hydrated ? <HomeSkeleton /> : pinned.length + entries.length === 0 ? (
-              <EmptyHome onCreate={() => onOpenSheet({ kind: "create" })} />
+            {!state.hydrated ? (state.loadFailed ? (
+              <EmptyState tone="error" art="signpost" className="pt-16" title={t("mobile.home.loadFailedTitle")} body={t(offline ? "mobile.home.loadFailedOffline" : "mobile.home.loadFailedBody")}
+                action={{ label: t("mobile.home.retry"), icon: <RotateCcw size={17} aria-hidden />, onClick: retryLoad }} />
+            ) : <HomeSkeleton />) : pinned.length + entries.length === 0 ? (
+              <EmptyState mascot="blue" className="pt-20" title={t("mobile.home.emptyTitle")} body={t("mobile.home.emptyBody")}
+                action={{ label: t("mobile.home.emptyAction"), icon: <Plus size={18} aria-hidden />, onClick: () => onOpenSheet({ kind: "create" }) }} />
             ) : (
               <>
                 {pinned.length > 0 && (
-                  <section aria-label={t("sidebar.section.pinned")} className="no-scrollbar flex gap-4 overflow-x-auto px-4 pb-3 pt-1" data-no-swipe>
+                  <section aria-labelledby="home-pinned" data-no-swipe>
+                  <h2 id="home-pinned" className="px-5 pb-1 text-[13px] font-semibold text-ink-secondary">{t("sidebar.section.pinned")}</h2>
+                  <div className="no-scrollbar flex gap-3 overflow-x-auto px-3 pb-2 pt-1">
                     {pinned.map((bot) => (
                       <PinnedTile key={bot.id} bot={bot} onOpen={onOpenChat} onMenu={(rect) => openMenu(botEntry(bot, state), rect, true)} />
                     ))}
+                  </div>
                   </section>
                 )}
                 {entries.length > 0 ? (
+                  <>
+                  {pinned.length > 0 && <h2 className="px-5 pb-1 pt-3 text-[13px] font-semibold text-ink-secondary">{t("mobile.home.chats")}</h2>}
                   <ul role="list" aria-label={t("mobile.home.chats")} className="px-2">
                     {entries.map((entry) => (
                       <li key={entry.id}>
@@ -133,10 +143,11 @@ export function HomeScreen({ onOpenChat, onOpenSheet }: { onOpenChat: (id: strin
                       </li>
                     ))}
                   </ul>
+                  </>
                 ) : (
                   <div className="mx-4 mt-4 flex flex-col items-start gap-3 rounded-[20px] bg-ink/[0.04] px-5 py-5">
                     <p className="text-[16px] font-semibold text-ink">{t("mobile.home.onlyPinnedTitle")}</p>
-                    <p className="text-[14px] leading-5 text-ink-secondary">{t("mobile.home.onlyPinnedBody")}</p>
+                    <p className="text-[15px] leading-[22px] text-ink-secondary">{t("mobile.home.onlyPinnedBody")}</p>
                     <button type="button" onClick={() => onOpenSheet({ kind: "create" })} className="mobile-press mt-1 flex h-11 items-center gap-2 rounded-full bg-ink px-5 text-[15px] font-medium text-app"><Plus size={18} />{t("mobile.home.emptyAction")}</button>
                   </div>
                 )}
@@ -160,9 +171,9 @@ export function HomeScreen({ onOpenChat, onOpenSheet }: { onOpenChat: (id: strin
             <span className="flex h-8 items-center rounded-full bg-composer px-3 text-[13px] text-ink-secondary mobile-float">{t("mobile.demo.banner")}</span>
           </button>
         )}
-        {state.hydrated && (!state.connected || asleep) && !resuming && (
-          <span role="status" data-testid="mobile-connection-status" className="pointer-events-auto flex min-h-8 min-w-0 items-center gap-2 rounded-[16px] bg-composer px-3 py-1 text-[13px] leading-4 text-ink-secondary mobile-float">
-            {asleep && !waking ? t("mobile.home.asleep") : <><WorkingDots size={3} />{t(waking ? "cloudAsleep.waking" : "mobile.home.reconnecting")}</>}
+        {state.hydrated && (!state.connected || waking || offline) && !resuming && (
+          <span role="status" data-testid="mobile-connection-status" className="pointer-events-auto flex h-8 min-w-0 items-center gap-2 whitespace-nowrap rounded-full bg-composer px-3 text-[13px] font-medium text-ink-secondary mobile-float">
+            {offline ? t("mobile.home.offline") : <><WorkingDots size={3} />{t(waking ? "cloudAsleep.waking" : "mobile.home.reconnecting")}</>}
           </span>
         )}
         <RoundButton floating label={t("mobile.home.search")} onClick={() => onOpenSheet({ kind: "search" })} className="pointer-events-auto"><Search size={19} strokeWidth={1.9} /></RoundButton>
@@ -220,7 +231,7 @@ function PinnedTileFace({ bot }: { bot: Bot }) {
         )}
         {unread && <span aria-hidden className="absolute right-0.5 top-0.5 size-3 rounded-full bg-ink ring-[3px] ring-app" />}
       </span>
-      <span className={cn("w-full truncate text-center text-[13px] leading-4", unread ? "font-semibold text-ink" : "text-ink-secondary")}>{bot.name}</span>
+      <span className={cn("line-clamp-2 w-full break-words text-center text-[13px] leading-4", unread ? "font-semibold text-ink" : "font-medium text-ink-secondary")}>{bot.name}</span>
     </span>
   );
 }
@@ -254,14 +265,14 @@ function RowFace({ entry }: { entry: Entry }) {
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline gap-2">
           <span className="min-w-0 flex-1 truncate text-[16px] font-semibold leading-5 text-ink">{name}</span>
-          {entry.at > 0 && <span className={cn("shrink-0 text-[13px] tabular-nums leading-5", entry.unread ? "text-ink" : "text-ink-tertiary")}>{listTime(entry.at)}</span>}
+          {entry.at > 0 && <span className={cn("shrink-0 text-[13px] tabular-nums leading-5", entry.unread ? "font-semibold text-ink" : "text-ink-secondary")}>{listTime(entry.at)}</span>}
+          {entry.unread && <span aria-hidden className="size-2.5 shrink-0 self-center rounded-full bg-ink" />}
         </span>
         <span className="mt-0.5 flex items-center gap-2">
           <span className={cn("min-w-0 flex-1 truncate text-[14px] leading-5", entry.unread ? "text-ink" : "text-ink-secondary")}>
             {working && <WorkingDots size={3} className="me-1.5 inline-flex align-middle" />}
             {entry.preview || " "}
           </span>
-          {entry.unread && <span aria-hidden className="size-2.5 shrink-0 rounded-full bg-ink" />}
         </span>
       </span>
     </span>
@@ -280,17 +291,6 @@ function HomeSkeleton() {
           <div className="flex-1 space-y-2"><div className="h-3.5 w-1/3 rounded-full bg-ink/[0.07]" /><div className="h-3 w-2/3 rounded-full bg-ink/[0.05]" /></div>
         </div>
       ))}
-    </div>
-  );
-}
-
-function EmptyHome({ onCreate }: { onCreate: () => void }) {
-  return (
-    <div className="flex flex-col items-center px-8 pt-24 text-center">
-      <MausAvatar color="blue" size={88} state="happy" label="" />
-      <h1 className="mt-6 text-[22px] font-semibold text-ink">{t("mobile.home.emptyTitle")}</h1>
-      <p className="mt-2 max-w-[280px] text-[15px] leading-6 text-ink-secondary">{t("mobile.home.emptyBody")}</p>
-      <button type="button" onClick={onCreate} className="mobile-press mt-6 h-12 rounded-full bg-ink px-6 text-[16px] font-medium text-app">{t("mobile.home.emptyAction")}</button>
     </div>
   );
 }

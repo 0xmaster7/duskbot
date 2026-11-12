@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { PHONE_LAYOUT, useMediaQuery } from "@/lib/use-media-query";
 import { splitReplyBlocks } from "@/lib/formatted-reply";
 import { activeLocale, t } from "@/lib/i18n";
 import { useReactor } from "@/lib/cloud-guest";
@@ -233,6 +234,7 @@ function RoomTextMessage({
                 ? cn("chat-text whitespace-pre-wrap [overflow-wrap:anywhere] text-ink", SIMPLE_USER_BUBBLE)
                 : SIMPLE_BOT_BUBBLE,
           )}
+          data-sending={user && m.id.startsWith("optimistic-") ? t("chat.sending") : undefined}
         >
           {m.replyToId && (() => {
             const target = transcript.find((candidate) => candidate.id === m.replyToId);
@@ -905,6 +907,8 @@ export function GroupView({ group: room }: { group: Group }) {
   const speaker = members.find((b) => b.id === group.busyBotId);
   const threadWorking = roomThreadWorking(group, group.threadId);
   const setupPending = !remoteClient && roomNeedsSetup(group);
+  // on a phone the setup form is the whole screen until it is saved or skipped: a locked field below it reads as part of it
+  const phone = useMediaQuery(PHONE_LAYOUT);
   const simpleHeader = simpleRoomHeader({ remoteClient, group, setupPending });
 
   const lastGroupMessage = group.messages.at(-1);
@@ -1152,7 +1156,7 @@ export function GroupView({ group: room }: { group: Group }) {
       <div className="pointer-events-auto">{trailing?.failures.length || trailing?.notices.length || setupPending || group.dm
         ? <FailedReplyCard rows={trailing} group threadId={group.threadId} onRetry={retry} />
         : <RoomHoldsBanner group={group} members={members} />}</div>
-      <RoomComposer
+      {!(phone && setupPending) && <RoomComposer
         key={group.threadId}
         group={group}
         members={members}
@@ -1161,7 +1165,7 @@ export function GroupView({ group: room }: { group: Group }) {
         onClearReply={clearReply}
         onConsumeReply={consumeReply}
         onRestoreReply={restoreReply}
-      />
+      />}
       </div>
       </GlassScrollFrame>
     </main>

@@ -12,6 +12,7 @@ import { Sheet } from "../Sheet";
 import { haptic } from "../haptics";
 import { SettingsSwitch } from "./SettingsRow";
 import { SwipeRow } from "./SwipeRow";
+import { EmptyState } from "../Illustration";
 import type { SheetPageProps } from "./registry";
 
 export function routineResultsThread(routine: Pick<Routine, "resultsThreadId">, bot: { threadId: string; mainThreadId?: string }): string {
@@ -78,24 +79,26 @@ export function RoutinesSheet({ sheet, open, onClose, onOpenChat }: SheetPagePro
   const back = () => { setSelectedId(null); setArmed(null); setError(null); setNotice(false); };
   const runs = selected ? state.routineRuns.filter((run) => run.routineId === selected.id).sort((a, b) => routineRunTime(b) - routineRunTime(a)) : [];
   const selectedBot = state.bots.find((entry) => entry.id === selected?.botId);
+  const askBot = bot ?? state.bots.find((entry) => entry.defaultBot && !entry.hidden) ?? state.bots.find((entry) => !entry.hidden);
+  const loadFailed = state.routinesLoadState === "error" || error === t("mobile.routines.loadError");
   const title = selected?.name ?? (bot ? t("mobile.routines.botTitle", { name: bot.name }) : t("mobile.routines.title"));
   return (
     <Sheet open={open} onClose={onClose} full title={title} back={selected ? back : undefined}>
       <div className="px-3 pt-2">
-        {error && <p role="alert" className="px-3 py-3 text-[14px] text-danger">{error}</p>}
-        {!selected && (state.routinesLoadState === "error" || error === t("mobile.routines.loadError")) && <button type="button" disabled={loading} onClick={() => void load()} className="mobile-press mx-3 min-h-11 rounded-full bg-ink/[0.05] px-5 text-[14px] font-semibold text-ink">{t("mobile.routines.retry")}</button>}
+        {error && (selected || !loadFailed || routines.length > 0) && <p role="alert" className="px-3 py-3 text-[15px] text-danger">{error}</p>}
+        {!selected && loadFailed && routines.length === 0 && !loading && <EmptyState tone="error" art="clock" title={t("mobile.routines.loadErrorTitle")} body={t("mobile.routines.loadErrorBody")} action={{ label: t("mobile.routines.retry"), onClick: () => void load() }} className="pt-16" />}
         {selected ? (
           <div className="flex flex-col gap-5 px-3">
-            <div><h2 className="text-[13px] text-ink-tertiary">{t("mobile.routines.schedule")}</h2><p className="mt-1 text-[16px] text-ink">{scheduleLabel(selected.schedule)}</p><p className="mt-1 text-[14px] text-ink-secondary">{routineNextLabel(selected)}</p></div>
+            <div><h2 className="text-[14px] font-medium text-ink-secondary">{t("mobile.routines.schedule")}</h2><p className="mt-1 text-[16px] text-ink">{scheduleLabel(selected.schedule)}</p><p className="mt-1 text-[14px] text-ink-secondary">{routineNextLabel(selected)}</p></div>
             <p className="whitespace-pre-wrap text-[16px] text-ink-secondary">{selected.prompt}</p>
             <button type="button" disabled={busy.includes(selected.id)} onClick={() => void work(selected, "run")} className="mobile-press flex h-12 items-center justify-center gap-2 rounded-full bg-ink text-[16px] font-semibold text-app disabled:opacity-40">{busy.includes(selected.id) && <WorkingDots size={4} />}{t("mobile.routines.run")}</button>
             {notice && <p role="status" className="text-[14px] text-ink-secondary">{t("mobile.routines.started")}</p>}
             <button type="button" disabled={!selectedBot} onClick={() => { if (selectedBot) { onClose(); onOpenChat(selectedBot.id); dispatch({ type: "switchTask", botId: selectedBot.id, threadId: routineResultsThread(selected, selectedBot) }); } }} className="mobile-press h-12 rounded-full bg-ink/[0.05] text-[16px] font-semibold text-ink disabled:opacity-40">{t("mobile.routines.results")}</button>
-            <section><h2 className="pb-2 text-[13px] text-ink-tertiary">{t("mobile.routines.runs")}</h2>
+            <section><h2 className="pb-2 text-[14px] font-medium text-ink-secondary">{t("mobile.routines.runs")}</h2>
               {runs.length ? <ul>{runs.map((run) => <li key={run.id} className="flex min-h-14 items-center justify-between gap-3 py-2"><span className="text-[16px] font-semibold text-ink">{routineRunLabel(run)}</span><time dateTime={new Date(routineRunTime(run)).toISOString()} className="text-right text-[14px] text-ink-secondary">{routineDateTime(routineRunTime(run))}</time></li>)}</ul> : <p className="py-3 text-[14px] text-ink-secondary">{t("mobile.routines.noRuns")}</p>}
             </section>
           </div>
-        ) : loading || state.routinesLoadState === "loading" && !error ? <p role="status" className="flex items-center gap-2 px-3 py-6 text-[14px] text-ink-secondary"><WorkingDots size={4} />{t("mobile.routines.loading")}</p> : routines.length ? (
+        ) : (loading || state.routinesLoadState === "loading" && !error) && !routines.length ? <div role="status" aria-label={t("mobile.routines.loading")}>{[0, 1, 2].map((key) => <div key={key} aria-hidden className="flex min-h-[84px] items-center gap-3 px-3 py-3"><span className="size-9 shrink-0 rounded-full bg-ink/[0.06]" /><span className="flex-1 space-y-2"><span className="block h-4 w-2/5 rounded-full bg-ink/[0.06]" /><span className="block h-3 w-3/5 rounded-full bg-ink/[0.05]" /></span></div>)}</div> : routines.length ? (
           <ul>{routines.map((routine) => {
             const owner = state.bots.find((entry) => entry.id === routine.botId);
             return <li key={routine.id} aria-busy={busy.includes(routine.id)}>
@@ -111,7 +114,7 @@ export function RoutinesSheet({ sheet, open, onClose, onOpenChat }: SheetPagePro
               </SwipeRow>
             </li>;
           })}</ul>
-        ) : !error && state.routinesLoadState === "ready" ? <div className="px-6 py-16 text-center"><p className="text-[18px] font-semibold text-ink">{t("mobile.routines.empty")}</p><p className="mt-2 text-[14px] leading-6 text-ink-secondary">{t("mobile.routines.emptyHint")}</p></div> : null}
+        ) : !error && state.routinesLoadState === "ready" ? <EmptyState art="clock" title={t("mobile.routines.empty")} body={t("mobile.routines.emptyHint")} action={askBot ? { label: t("mobile.routines.ask", { name: askBot.name }), onClick: () => { onClose(); onOpenChat(askBot.id); } } : undefined} className="pt-16" /> : null}
       </div>
     </Sheet>
   );

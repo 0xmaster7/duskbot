@@ -4,30 +4,38 @@ import { WorkingDots } from "@/components/WorkingIndicator";
 import { t } from "@/lib/i18n";
 import type { TypedPairing } from "../connection/pair";
 import { haptic } from "../haptics";
+import { ErrorLine } from "../onboarding/parts";
 import { useMobileAccount } from "./AccountGate";
 import type { CloudPairResult, MobileCloud } from "./account-client";
 import { cloudPairing, cloudPairingPayload } from "./cloud-pair";
 
 type Problem = { outcome: Exclude<CloudPairResult["outcome"], "paired">; name: string };
 
+/** an asleep cloud is woken by the tap that opens it, so it reads as ready like any other */
 function statusLine(cloud: MobileCloud): string {
-  if (cloud.asleep) return t("mobile.clouds.asleep");
   if (cloud.status === "ready" || cloud.status === "offline") return t("mobile.clouds.ready");
   if (cloud.status === "setting_up") return t("mobile.clouds.settingUp");
   return t("mobile.clouds.stopped");
 }
 
-const pairable = (cloud: MobileCloud) => Boolean(cloud.origin) && (cloud.status === "ready" || cloud.status === "offline");
+export const pairable = (cloud: MobileCloud) => Boolean(cloud.origin) && (cloud.status === "ready" || cloud.status === "offline");
 
-/** The signed-in account's own Clouds on the link screen: one tap pairs this phone with one. */
-export function CloudPicker({ busy, onPairing }: { busy: boolean; onPairing(payload: TypedPairing): Promise<void> }) {
+/** The signed-in account's own clouds: one tap pairs this phone with one, and with only one it pairs on its own. */
+export function CloudPicker({ busy, onPairing, autoPick = false, onNone }: {
+  busy: boolean;
+  onPairing(payload: TypedPairing): Promise<void>;
+  autoPick?: boolean;
+  /** the list came back empty */
+  onNone?(): void;
+}) {
   const account = useMobileAccount();
   const signedIn = Boolean(account?.account);
   const [clouds, setClouds] = useState<MobileCloud[] | null | undefined>(undefined);
-  const [working, setWorking] = useState<{ id: string; waking: boolean } | null>(null);
+  const [working, setWorking] = useState<string | null>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
   const [reload, setReload] = useState(0);
   const abort = useRef<AbortController | null>(null);
+  const picked = useRef(false);
 
   useEffect(() => {
     if (!signedIn || !account) return;
@@ -38,17 +46,15 @@ export function CloudPicker({ busy, onPairing }: { busy: boolean; onPairing(payl
   }, [account, signedIn, reload]);
   useEffect(() => () => abort.current?.abort(), []);
 
-  if (!signedIn || !account) return null;
-
   const pick = async (cloud: MobileCloud) => {
-    if (working || busy) return;
+    if (!account || working || busy) return;
     abort.current?.abort();
     const controller = new AbortController();
     abort.current = controller;
     setProblem(null);
-    setWorking({ id: cloud.id, waking: false });
+    setWorking(cloud.id);
     try {
-      const result = await cloudPairing(account, cloud, { signal: controller.signal, onWaking: () => setWorking({ id: cloud.id, waking: true }) });
+      const result = await cloudPairing(account, cloud, { signal: controller.signal });
       if (controller.signal.aborted) return;
       if (result.outcome !== "paired") { haptic("error"); setProblem({ outcome: result.outcome, name: cloud.name }); return; }
       await onPairing(cloudPairingPayload(cloud, result.grant));
@@ -57,38 +63,47 @@ export function CloudPicker({ busy, onPairing }: { busy: boolean; onPairing(payl
     }
   };
 
+  useEffect(() => {
+    if (!clouds) return;
+    if (clouds.length === 0) { onNone?.(); return; }
+    const ready = clouds.filter(pairable);
+    if (autoPick && !picked.current && ready.length === 1) { picked.current = true; void pick(ready[0]!); }
+  }, [clouds]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!signedIn || !account || clouds?.length === 0) return null;
+
   return (
     <section aria-label={t("mobile.clouds.title")} data-testid="mobile-cloud-picker" className="mt-7 w-full text-left">
-      <h2 className="mb-2 px-1 text-[13px] font-semibold uppercase tracking-[0.06em] text-white/45">{t("mobile.clouds.title")}</h2>
-      {clouds === undefined && <p role="status" className="flex items-center gap-2 px-1 text-[15px] text-white/60"><WorkingDots />{t("mobile.clouds.loading")}</p>}
+      <h2 className="mb-2 px-1 text-[15px] font-semibold text-ink-secondary">{t("mobile.clouds.title")}</h2>
+      {clouds === undefined && <p role="status" className="flex min-h-16 items-center gap-2.5 rounded-[18px] bg-ink/[0.04] px-4 text-[16px] text-ink-secondary"><WorkingDots />{t("mobile.clouds.loading")}</p>}
       {clouds === null && (
-        <button type="button" onClick={() => setReload((n) => n + 1)} className="mobile-press flex h-11 items-center gap-1.5 px-1 text-[15px] text-white/65"><RotateCw size={15} />{t("mobile.clouds.loadFailed")}</button>
+        <ErrorLine action={<button type="button" onClick={() => setReload((n) => n + 1)} className="mobile-press mt-1 flex min-h-11 items-center gap-1.5 font-semibold text-ink"><RotateCw size={15} />{t("mobile.onboarding.retry")}</button>}>
+          {t("mobile.clouds.loadFailed")}
+        </ErrorLine>
       )}
-      {clouds?.length === 0 && <p data-testid="mobile-cloud-none" className="px-1 text-[15px] leading-[1.45] text-white/60">{t("mobile.clouds.none")}</p>}
       {clouds && clouds.length > 0 && (
         <ul className="flex flex-col gap-2">
           {clouds.map((cloud) => {
-            const mine = working?.id === cloud.id;
+            const mine = working === cloud.id;
+            const can = pairable(cloud);
             return (
               <li key={cloud.id}>
-                <button type="button" data-testid="mobile-cloud-connect" data-cloud-id={cloud.id} disabled={busy || Boolean(working) || !pairable(cloud)}
-                  aria-label={t("mobile.clouds.connect", { name: cloud.name })} onClick={() => void pick(cloud)}
-                  className="mobile-press flex min-h-16 w-full items-center gap-3 rounded-[20px] bg-white/[0.08] px-4 py-3 text-left text-white ring-1 ring-white/10 disabled:opacity-60">
-                  <Cloud size={22} />
+                <button type="button" data-testid="mobile-cloud-connect" data-cloud-id={cloud.id} disabled={busy || Boolean(working) || !can}
+                  aria-label={t("mobile.clouds.connect", { name: cloud.name })} aria-busy={mine || undefined} onClick={() => void pick(cloud)}
+                  className="mobile-press flex min-h-16 w-full items-center gap-3 rounded-[18px] bg-ink/[0.05] px-4 py-3 text-left text-ink disabled:opacity-100">
+                  <Cloud size={22} className={can ? "text-ink" : "text-ink-tertiary"} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[16px] font-semibold">{cloud.name}</span>
-                    <span className="block text-[13px] text-white/55">{mine ? t(working?.waking ? "mobile.clouds.waking" : "mobile.clouds.connecting", { name: cloud.name }) : statusLine(cloud)}</span>
+                    <span className={`block truncate text-[17px] font-semibold ${can ? "" : "text-ink-secondary"}`}>{cloud.name}</span>
+                    <span className="mt-0.5 block text-[14px] text-ink-secondary">{mine ? t("mobile.clouds.connecting") : statusLine(cloud)}</span>
                   </span>
-                  {mine ? <WorkingDots /> : <ChevronRight size={18} />}
+                  {mine ? <WorkingDots /> : can && <ChevronRight size={18} className="text-ink-tertiary" />}
                 </button>
               </li>
             );
           })}
         </ul>
       )}
-      {problem && (
-        <p role="alert" className="mt-2 px-1 text-[14px] leading-[1.45] text-white/70">{t(`mobile.clouds.err.${problem.outcome}` as Parameters<typeof t>[0], { name: problem.name })}</p>
-      )}
+      {problem && <ErrorLine>{t(`mobile.clouds.err.${problem.outcome}` as Parameters<typeof t>[0], { name: problem.name })}</ErrorLine>}
     </section>
   );
 }

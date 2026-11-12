@@ -613,6 +613,8 @@ export interface AppState {
   unreadDividerPending?: string;
   connected: boolean;
   hydrated?: true;
+  /** the first chat snapshot failed; it is being asked for again (`retryLoad` asks now) */
+  loadFailed?: true;
   error: string | null;
   notice: { kind: "thread-gone" | "bot-gone" | "steer-images" | "note"; botName: string | null; text?: string } | null;
   revealThread: { threadId: string; nonce: number } | null;
@@ -782,6 +784,7 @@ export type Action =
   | { type: "setModel"; botId: string; selection: ModelSelection; threadId?: string; updateBotDefault?: boolean; resetApprovalToAsk?: boolean }
   | { type: "interrupt"; botId: string; threadId?: string; onError?: () => void }
   | { type: "connected"; value: boolean }
+  | { type: "loadFailed" }
   | { type: "error"; message: string | null }
   | { type: "notice"; notice: AppState["notice"] }
   | { type: "revealThread"; threadId: string }
@@ -924,6 +927,7 @@ export function reducer(state: AppState, action: Action): AppState {
         computerControl: action.computerControl,
         selectedId,
         hydrated: true as const,
+        loadFailed: undefined,
         backgroundThreadEvents: {},
         loadingOlder: {},
         transcriptGeneration: {},
@@ -1441,6 +1445,8 @@ export function reducer(state: AppState, action: Action): AppState {
     }
     case "connected":
       return { ...state, connected: action.value };
+    case "loadFailed":
+      return state.hydrated || state.loadFailed ? state : { ...state, loadFailed: true };
     case "error":
       return {
         ...(action.message && state.selectedId
@@ -2075,6 +2081,12 @@ function restoreBotSettingsSection(state: AppState): AppState {
   try { panelOpen = globalThis.localStorage?.getItem(BOT_PANEL_OPEN_KEY) === "1"; } catch {}
   const restored = panelOpen ? { ...state, settingsOpen: true } : state;
   return section ? { ...restored, botSettingsSection: section, botSettingsSectionStored: true } : restored;
+}
+
+let retryHydrate: (() => void) | null = null;
+/** Asks for the chat snapshot again now, when the first one failed (`AppState.loadFailed`). */
+export function retryLoad(): void {
+  retryHydrate?.();
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -3056,6 +3068,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     // Hydrate only after the stream's hello; queue frames during the REST snapshot and apply them on top.
     let hydrated = false;
     let hydrationPromise: Promise<boolean> | null = null;
+    let loadRetry: ReturnType<typeof setTimeout> | undefined, loadAttempts = 0;
     let rehydrateRequested = false;
     const pendingFrames: ServerFrame[] = [];
     let handleFrame: (frame: ServerFrame) => void;
@@ -3071,7 +3084,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           rehydrateRequested = false;
           loaded = await loadAll();
         } while (alive && rehydrateRequested);
-        if (!alive || !loaded) return false;
+        if (!alive) return false;
+        if (!loaded) {
+          rawDispatch({ type: "loadFailed" });
+          clearTimeout(loadRetry);
+          loadRetry = setTimeout(() => { if (!hydrated) void hydrate(); }, Math.min(30_000, 2_000 * 2 ** Math.min(loadAttempts++, 4)));
+          return false;
+        }
+        loadAttempts = 0;
         hydrated = true;
         for (const frame of pendingFrames.splice(0)) handleFrame(frame);
         return true;
@@ -3272,6 +3292,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         else pendingFrames.push(withoutScreenPixels(frame as ServerFrame));
       },
     }); };
+    retryHydrate = () => { if (!hydrated) { clearTimeout(loadRetry); void hydrate(); } };
     if (!bootChat) startLive(null);
     else void bootChat.then((answer) => {
       if (!alive) return;
@@ -3291,6 +3312,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       alive = false;
       lifecycle.abort();
       clearTimeout(hydrationFallback);
+      clearTimeout(loadRetry);
+      retryHydrate = null;
       for (const refresh of peripheralRefresh.values()) {
         if (refresh.timer) clearTimeout(refresh.timer);
       }

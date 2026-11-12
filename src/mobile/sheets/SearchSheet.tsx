@@ -3,7 +3,8 @@ import { useEffect, useRef, useState, type ComponentType } from "react";
 import { Search, X } from "../../icons";
 import { BotAvatar, MausAvatar } from "@/components/Avatar";
 import { GroupAvatar, useGroupYou } from "@/components/GroupAvatar";
-import { lastPreviewable, sidebarPreviewMessages } from "@/components/sidebar-preview";
+import { botPreview, lastPreviewable, sidebarPreviewMessages } from "@/components/sidebar-preview";
+import { plainPreviewText } from "@/lib/plain-preview";
 import { landOnSearchHit } from "@/lib/focus-message";
 import { t } from "@/lib/i18n";
 import type { SearchHit } from "@/lib/search-hit";
@@ -12,6 +13,7 @@ import { haptic } from "../haptics";
 import { Sheet } from "../Sheet";
 import { listTime } from "../time";
 import { SettingsSection } from "./SettingsRow";
+import { EmptyState } from "../Illustration";
 import type { SheetPageProps } from "./registry";
 
 export function normalizeSearch(text: string): string {
@@ -46,6 +48,11 @@ export function searchSnippetParts(text: string, query: string): Array<{ text: s
     else parts.push({ text: text[i], matched: marked[i] });
   }
   return parts;
+}
+
+/** A message as a search result shows it: one plain line, the markdown marks gone. */
+export function searchSnippetText(snippet: string): string {
+  return plainPreviewText(snippet).replace(/\s+/g, " ").trim();
 }
 
 function activity(bot: Bot): number {
@@ -125,14 +132,22 @@ export const SearchSheet: ComponentType<SheetPageProps<"search">> = ({ open, onC
       </div>
       {openError && <p role="alert" className="px-6 py-3 text-[14px] text-danger">{t("mobile.search.openError")}</p>}
       {!q ? (
-        <SettingsSection title={t("mobile.search.recent")}>
-          <div className="no-scrollbar flex gap-3 overflow-x-auto px-4 py-3" data-no-swipe>
-            {recent.map((bot) => <button key={bot.id} type="button" onClick={() => onOpenChat(bot.id)} className="mobile-press flex w-[72px] shrink-0 flex-col items-center gap-2 rounded-2xl py-1 text-ink">
-              <BotAvatar bot={bot} size={56} animated={false} label="" />
-              <span className="w-full truncate text-center text-[13px]">{bot.name}</span>
-            </button>)}
-          </div>
-        </SettingsSection>
+        <div className="px-2">
+          <SettingsSection title={t("mobile.search.recent")}>
+            <ul>
+              {recent.map((bot) => {
+                const at = activity(bot);
+                return <li key={bot.id}><button type="button" onClick={() => onOpenChat(bot.id)} className="mobile-row flex min-h-[64px] w-full items-center gap-3 rounded-2xl px-3 py-2 text-left">
+                  <BotAvatar bot={bot} size={40} animated={false} label="" />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-baseline gap-2"><span className="min-w-0 flex-1 truncate text-[16px] font-semibold text-ink">{bot.name}</span>{at > 0 && <time dateTime={new Date(at).toISOString()} className="shrink-0 text-[14px] font-medium tabular-nums text-ink-secondary">{listTime(at)}</time>}</span>
+                    <span className="mt-0.5 block truncate text-[14px] text-ink-secondary">{botPreview(bot, sidebarPreviewMessages(bot), state.instances) || " "}</span>
+                  </span>
+                </button></li>;
+              })}
+            </ul>
+          </SettingsSection>
+        </div>
       ) : <div className="px-2">
         {(bots.length > 0 || groups.length > 0) && <SettingsSection title={t("mobile.search.owners")}>
           <ul>
@@ -143,7 +158,7 @@ export const SearchSheet: ComponentType<SheetPageProps<"search">> = ({ open, onC
         {loading ? <div role="status" aria-label={t("mobile.search.loading")} className="px-4 py-2">
           {[0, 1, 2].map((i) => <div key={i} aria-hidden className="flex min-h-[76px] items-center gap-3"><span className="size-8 shrink-0 rounded-full bg-ink/[0.05]" /><span className="flex-1 space-y-2"><span className="block h-3 w-1/3 rounded-full bg-ink/[0.05]" /><span className="block h-3 w-4/5 rounded-full bg-ink/[0.05]" /><span className="block h-3 w-2/3 rounded-full bg-ink/[0.05]" /></span></div>)}
         </div> : current && results.status === "error" ? <div role="alert" className="px-4 py-5">
-          <p className="text-[14px] text-danger">{t("mobile.search.error")}</p>
+          <p className="text-[15px] text-danger">{t("mobile.search.error")}</p>
           <button type="button" onClick={() => { setResults({ query: q, status: "loading", hits: [] }); setRetry((value) => value + 1); }} className="mobile-press mt-3 h-12 rounded-full bg-ink px-6 text-[15px] font-semibold text-app">{t("mobile.search.retry")}</button>
         </div> : hits.length > 0 ? <SettingsSection title={t("mobile.search.messages")}>
           <ul aria-busy={opening}>
@@ -153,13 +168,13 @@ export const SearchSheet: ComponentType<SheetPageProps<"search">> = ({ open, onC
               return <li key={`${hit.threadId}:${hit.messageId}`}><button type="button" disabled={opening} onClick={() => { void openHit(hit); }} className="mobile-row flex min-h-[76px] w-full items-start gap-3 rounded-2xl px-4 py-3 text-left disabled:opacity-60">
                 <span className="shrink-0">{group ? <GroupAvatar members={state.bots.filter((candidate) => group.memberIds.includes(candidate.id))} size={32} you={you} /> : bot ? <BotAvatar bot={bot} size={32} animated={false} label="" /> : <MausAvatar color="blue" size={32} animated={false} label="" />}</span>
                 <span className="min-w-0 flex-1">
-                  <span className="flex items-baseline gap-2"><span className="min-w-0 flex-1 truncate text-[16px] font-semibold text-ink">{hit.name}</span><time dateTime={new Date(hit.at).toISOString()} className="shrink-0 text-[13px] text-ink-tertiary">{listTime(hit.at)}</time></span>
-                  <span className="mt-1 line-clamp-2 text-[14px] leading-5 text-ink-secondary">{searchSnippetParts(hit.snippet, q).map((part, index) => <span key={index} className={part.matched ? "font-semibold text-ink" : undefined}>{part.text}</span>)}</span>
+                  <span className="flex items-baseline gap-2"><span className="min-w-0 flex-1 truncate text-[16px] font-semibold text-ink">{hit.name}</span><time dateTime={new Date(hit.at).toISOString()} className="shrink-0 text-[14px] font-medium tabular-nums text-ink-secondary">{listTime(hit.at)}</time></span>
+                  <span className="mt-1 line-clamp-2 text-[15px] leading-5 text-ink-secondary">{searchSnippetParts(searchSnippetText(hit.snippet), q).map((part, index) => <span key={index} className={part.matched ? "font-semibold text-ink" : undefined}>{part.text}</span>)}</span>
                 </span>
               </button></li>;
             })}
           </ul>
-        </SettingsSection> : bots.length === 0 && groups.length === 0 && <p role="status" className="px-4 py-10 text-center text-[15px] text-ink-secondary">{t("mobile.search.noResults", { query: q })}</p>}
+        </SettingsSection> : bots.length === 0 && groups.length === 0 && <div role="status"><EmptyState art="map" title={t("mobile.search.noResults", { query: q })} body={t("mobile.search.noResultsHint")} className="pt-12" /></div>}
       </div>}
     </Sheet>
   );

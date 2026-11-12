@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
@@ -7,6 +7,9 @@ import { licenseFiles } from "../../scripts/license-files.ts";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
+// a git worktree links node_modules to the main checkout: the fonts and packages served from there are allowed too
+const modules = fileURLToPath(new URL("../../node_modules", import.meta.url));
+const allow = existsSync(modules) ? [repoRoot, realpathSync(modules)] : [repoRoot];
 const { version } = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as { version: string };
 const target = `http://127.0.0.1:${process.env.DUSK_PORT || 8799}`;
 
@@ -19,7 +22,7 @@ export default defineConfig({
     host: "127.0.0.1",
     port: Number(process.env.DUSK_MOBILE_PORT) || 5320,
     strictPort: true,
-    fs: { allow: [repoRoot] },
+    fs: { allow },
     proxy: {
       "/api": { ws: true, target },
       "/.well-known/duskbot/environment": { target },

@@ -51,12 +51,15 @@ export function CreateBotSheet({ open, onClose, onOpenChat }: SheetPageProps<"cr
   };
   return (
     <Sheet open={open} onClose={onClose} title={t("mobile.create.title")} bodyClassName="flex flex-col">
-      <form onSubmit={(event) => { event.preventDefault(); create(); }} className="flex flex-col gap-5 px-6 pt-3">
+      <form onSubmit={(event) => { event.preventDefault(); create(); }} className="flex flex-col gap-5 px-5 pt-1">
         <motion.div key={revision} initial={{ scale: revision && !reduced ? 0.94 : 1 }} animate={{ scale: 1 }} transition={spring.lively} className="self-center">
-          <MausAvatar bodyId={body} color={color} size={112} animated={false} label={t("mobile.create.preview")} />
+          <MausAvatar bodyId={body} color={color} size={96} animated={false} label={t("mobile.create.preview")} />
         </motion.div>
-        <label htmlFor={nameId} className="sr-only">{t("mobile.create.name")}</label>
-        <input id={nameId} name="botName" value={name} maxLength={80} autoComplete="off" onChange={(event) => setName(event.target.value)} placeholder={t("mobile.create.placeholder")} className="h-12 w-full rounded-full border-0 bg-ink/[0.05] px-4 text-center text-[17px] font-semibold text-ink placeholder:text-ink-tertiary" />
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={nameId} className="px-1 text-[14px] font-semibold text-ink-secondary">{t("mobile.create.name")}</label>
+          <input id={nameId} name="botName" value={name} maxLength={80} autoComplete="off" enterKeyHint="done" onChange={(event) => setName(event.target.value)} placeholder={t("mobile.create.placeholder")} className="h-12 w-full rounded-[14px] border-0 bg-ink/[0.06] px-4 text-[17px] font-medium text-ink outline-none placeholder:text-ink-tertiary focus-visible:ring-2 focus-visible:ring-ink/30" />
+        </div>
+        <p id={`${nameId}-look`} className="-mb-2 px-1 text-[14px] font-semibold text-ink-secondary">{t("mobile.create.look")}</p>
         <div role="radiogroup" aria-label={t("mobile.create.body")} onKeyDown={moveRadio} className="grid grid-cols-5 justify-items-center gap-y-3">
           {BODIES.map((id) => (
             <button key={id} type="button" role="radio" aria-checked={id === body} aria-label={DUSK_BODY_NAMES[id]} tabIndex={id === body ? 0 : -1} onClick={() => { if (id !== body) { setBody(id); setRevision((value) => value + 1); haptic("selection"); } }} className="mobile-press flex size-12 items-center justify-center rounded-full">
@@ -72,10 +75,11 @@ export function CreateBotSheet({ open, onClose, onOpenChat }: SheetPageProps<"cr
           ))}
         </div>
         <div className="sticky bottom-0 bg-app pb-1 pt-2">
-          <button type="submit" disabled={!name.trim() || pending} aria-busy={pending} className="mobile-press flex h-12 w-full items-center justify-center rounded-full bg-ink text-[16px] font-semibold text-app disabled:opacity-40">
+          <button type="submit" disabled={!name.trim() || pending} aria-busy={pending} aria-describedby={!name.trim() ? `${nameId}-hint` : undefined} className="mobile-press flex h-12 w-full items-center justify-center rounded-full bg-ink text-[16px] font-semibold text-app disabled:opacity-40">
             {pending ? <><WorkingDots size={4} /><span className="sr-only">{t("mobile.create.creating")}</span></> : t("mobile.create.submit")}
           </button>
-          {error && <p role="alert" className="mt-3 text-center text-[14px] text-danger">{t("mobile.create.error")}</p>}
+          {!name.trim() && !pending && <p id={`${nameId}-hint`} className="mt-2 text-center text-[14px] font-medium text-ink-secondary">{t("mobile.create.needsName")}</p>}
+          {error && <p role="alert" className="mt-3 text-center text-[15px] text-danger">{t("mobile.create.error")}</p>}
         </div>
       </form>
     </Sheet>

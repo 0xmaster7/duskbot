@@ -38,31 +38,27 @@ const type = (value: string) => act(async () => {
 beforeEach(() => { setLocale("en"); host = document.createElement("div"); document.body.append(host); Object.assign(window, { duskDesktop: {} }); });
 afterEach(async () => { await act(async () => root?.unmount()); root = null; host.remove(); });
 
-it("shows the last-seen chats read-only with the quiet line, and opening or reading never wakes it", async () => {
+it("never shows a sleeping Cloud: opening the screen wakes it once and only says it is connecting", async () => {
   const { bridge } = bridgeOf({ screen: "asleep" });
   await mount(bridge);
   expect(host.querySelector("[data-home-screen]")?.getAttribute("data-home-screen")).toBe("asleep");
-  expect(line()).toBe("Asleep · wakes when you type");
+  expect(bridge.wake).toHaveBeenCalledTimes(1);
+  expect(bridge.wake).toHaveBeenCalledWith("click", null);
+  expect(line()).toBe("Connecting…");
+  expect(host.textContent).not.toMatch(/asleep/i);
   expect([...host.querySelectorAll("ol li div")].map((node) => node.textContent)).toEqual(["find flights to Goa", "Three options under ₹9,000."]);
   await act(async () => { host.querySelector<HTMLButtonElement>("nav button:nth-child(2)")!.click(); });
   expect(host.querySelector("ol li div")?.textContent).toBe("Draft is ready.");
   expect(host.querySelector("nav button[aria-current='page']")?.textContent).toBe("Quill");
-  await key("Tab");
-  await key("c", { metaKey: true });
-  expect(bridge.wake, "moving around or copying is no intent").not.toHaveBeenCalled();
+  await key("h");
+  expect(bridge.wake, "typing after the wake asks nothing more").toHaveBeenCalledTimes(1);
   expect(composer().getAttribute("aria-label")).toBe("Message Quill");
 });
 
-it("the first key press wakes it once, with a clear waking line; the typed text stays and Enter holds it to send once awake", async () => {
+it("a message written while it connects is held and sent once it is up", async () => {
   const { bridge, push } = bridgeOf({ screen: "asleep" });
   await mount(bridge);
-  await key("h");
   await type("hi there");
-  await key("i");
-  expect(bridge.wake).toHaveBeenCalledTimes(1);
-  expect(bridge.wake).toHaveBeenCalledWith("type", null);
-  expect(line()).toBe("Waking up…");
-  expect(composer().value).toBe("hi there");
   await key("Enter");
   expect(bridge.wake).toHaveBeenCalledTimes(2);
   const [intent, send] = bridge.wake.mock.calls[1]!;
@@ -70,20 +66,18 @@ it("the first key press wakes it once, with a clear waking line; the typed text 
   expect(send).toMatchObject({ botId: "scout", threadId: "t-scout", text: "hi there" });
   expect((send as { sendId: string }).sendId).toMatch(/^[A-Za-z0-9_-]{8,80}$/);
   await push({ screen: "asleep", waking: true, held: "hi there" });
-  expect(host.querySelector("[data-cloud-asleep-held]")?.textContent).toBe("hi thereSends when it's awake");
+  expect(host.querySelector("[data-cloud-asleep-held]")?.textContent).toBe("hi thereSends in a moment");
   expect(composer().value).toBe("");
 });
 
-it("a click in the composer wakes it; with nothing seen yet, Wake it now is the one action", async () => {
-  const { bridge } = bridgeOf({ screen: "asleep" });
-  await mount(bridge);
-  await act(async () => { composer().dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); });
-  expect(bridge.wake).toHaveBeenCalledWith("click", null);
-  await act(async () => root?.unmount());
+it("with nothing seen yet it still only connects; a failed wake offers Try again", async () => {
   const empty = bridgeOf({ screen: "asleep" }, null);
+  empty.bridge.wake.mockRejectedValueOnce(new Error("offline"));
   await mount(empty.bridge);
   expect(host.textContent).toContain("No chats seen on this computer yet.");
-  const button = [...host.querySelectorAll("button")].find((node) => node.textContent === "Wake it now")!;
+  const button = [...host.querySelectorAll("button")].find((node) => node.textContent === "Try again")!;
+  expect(button).toBeTruthy();
   await act(async () => { button.click(); });
-  expect(empty.bridge.wake).toHaveBeenCalledWith("click", null);
+  expect(empty.bridge.wake).toHaveBeenCalledTimes(2);
+  expect(empty.bridge.wake).toHaveBeenLastCalledWith("click", null);
 });
