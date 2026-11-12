@@ -6,6 +6,7 @@ import { APP_COMMAND_ONLINE_MS, CLAIM_TTL_MS, COMMAND_KINDS, appSlug, COMMAND_TT
   freshnessOf, parseEnrollRequest, parseWorkspaceReport, signedPayload } from "../../../shared/dashboard-protocol.ts";
 import type { CommandKind, CommandView, ConnectorsAnswer, MachineSample, ReportAnswer, WorkspaceDetail, WorkspaceReport, WorkspaceSummary } from "../../../shared/dashboard-protocol.ts";
 import { PULSE_INTERVAL_MS, PULSE_WINDOW_MS, PulseRing, type PulseAnswer } from "../../../shared/machine-pulse.ts";
+import type { NotificationPrefs } from "../../../shared/account-api.ts";
 import { AuthError, createAuth, isAppCorsRoute } from "./auth/index.ts";
 import type { ProviderConfigs } from "./auth/providers.ts";
 import type { Mailer } from "./auth/mail.ts";
@@ -180,6 +181,9 @@ export function createDashboardApp(options: DashboardAppOptions) {
     if (to) void options.mailer.send({ to, ...message }).catch(() => console.warn("account: an email failed"));
   };
   const emailOf = (accountId: string) => auth.account(accountId)?.email;
+  const sendTo = (accountId: string, kind: "required" | keyof NotificationPrefs, message: Rendered) => {
+    if (kind === "required" || auth.wantsEmail(accountId, kind)) send(emailOf(accountId), message);
+  };
   const retentionDays = Number(process.env.DUSK_MANAGED_RETENTION_DAYS) || DEFAULT_RETENTION_DAYS;
   const cloudFacts = (cloud: StoredCloud) => ({ name: cloud.name, plan: (BILLING_CONFIG.desktops[cloud.kind]?.label ?? cloud.kind).toLowerCase(),
     machine: `${cloud.spec.vcpu} vcpu, ${cloud.spec.ramGb} gb memory, ${cloud.spec.diskGb} gb disk`, region: BILLING_CONFIG.regions.find(region => region.id === cloud.region)?.label.toLowerCase() ?? cloud.region });
@@ -197,9 +201,9 @@ export function createDashboardApp(options: DashboardAppOptions) {
   function billingNotice(notice: BillingNotice) {
     const cloud = notice.kind !== "receipt" && notice.cloudId ? billing.clouds.get(notice.cloudId) : null;
     if (notice.kind === "receipt") analytics.track("checkout_paid", { accountId: notice.accountId, props: { amountCents: notice.amountCents } });
-    if (notice.kind === "receipt") send(emailOf(notice.accountId), receiptEmail(emailCfg, { ...notice, receiptId: notice.invoiceId, cloud: notice.cloudId !== null }));
-    else if (notice.kind === "payment_failed") send(emailOf(notice.accountId), paymentFailedEmail(emailCfg, { ...notice, cloudName: cloud?.name ?? null }));
-    else send(emailOf(notice.accountId), cancelledEmail(emailCfg, { description: notice.description, cloudName: cloud?.name ?? null, endsAt: notice.endsAt,
+    if (notice.kind === "receipt") sendTo(notice.accountId, "required", receiptEmail(emailCfg, { ...notice, receiptId: notice.invoiceId, cloud: notice.cloudId !== null }));
+    else if (notice.kind === "payment_failed") sendTo(notice.accountId, "required", paymentFailedEmail(emailCfg, { ...notice, cloudName: cloud?.name ?? null }));
+    else sendTo(notice.accountId, "required", cancelledEmail(emailCfg, { description: notice.description, cloudName: cloud?.name ?? null, endsAt: notice.endsAt,
       keptPaused: cloud?.backend === "managed", keepDays: cloud?.backend === "managed" ? retentionDays : notice.graceDays }));
   }
   const billing = createBilling({ accountExists: id => auth.account(id) !== null,
@@ -207,11 +211,12 @@ export function createDashboardApp(options: DashboardAppOptions) {
     mail: (cloud, letter) => {
       if (!letter.notice) return mail(emailOf(cloud.accountId), letter.subject, letter.text);
       const email = cloudNoticeEmail(emailCfg, { ...letter.notice, name: cloud.name });
-      if (email) send(emailOf(cloud.accountId), email);
+      if (email) sendTo(cloud.accountId, letter.notice.kind === "recovered" ? "cloudStatus" : "required", email);
     },
     notify: notice => billingNotice(notice),
     cloudStatus: (cloud, from) => analytics.track("cloud_state", { accountId: cloud.accountId, props: { cloudId: cloud.id, kind: cloud.kind, region: cloud.region, from: from ?? "new", to: cloud.status } }),
-    cloudEvent: (kind, cloud) => send(emailOf(cloud.accountId), kind === "ready" ? cloudReadyEmail(emailCfg, cloudFacts(cloud)) : cloudDeletedEmail(emailCfg, { name: cloud.name, at: now() })),
+    cloudEvent: (kind, cloud) => kind === "ready" ? sendTo(cloud.accountId, "cloudStatus", cloudReadyEmail(emailCfg, cloudFacts(cloud)))
+      : sendTo(cloud.accountId, "required", cloudDeletedEmail(emailCfg, { name: cloud.name, at: now() })),
     // every other cloud alert also prints a "managed: ALERT" line, which the console tap already makes an incident
     alert: entry => options.incidents
       ? entry.action === "starts_alert" && incidents.report({ source: "log", name: "managed alert", message: `${entry.action} ${entry.cloudId}: ${entry.reason}` })

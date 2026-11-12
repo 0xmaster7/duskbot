@@ -53,7 +53,7 @@ export function fixtureAccount(scenario: Scenario, now = Date.now()): AccountDat
       { id: "fx-desktop", kind: "desktop", label: "MacBook-Pro", platform: "macOS 26.1", location: "Mumbai, IN", createdAt: now - 200 * DAY, lastSeenAt: now - 40_000, current: false },
       { id: "fx-phone", kind: "phone", label: "iPhone 17 Pro", platform: "iOS 26.1", location: "Pune, IN", createdAt: now - 34 * DAY, lastSeenAt: now - 20 * 60_000, current: false },
     ],
-    notifications: { cloudStatus: true, billing: true, botDigest: true, product: false },
+    notifications: { cloudStatus: true, product: true },
   };
 }
 

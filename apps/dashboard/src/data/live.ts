@@ -123,16 +123,11 @@ export function cloudFromWire(cloud: CloudDesktopView): CloudDesktop | null {
 
 export function accountFromWire(answer: AccountAnswer, now = Date.now(), storage?: Pick<Storage, "getItem">): AccountData {
   const { account } = answer;
-  const notifications: NotificationPrefs = { cloudStatus: true, billing: true, botDigest: true, product: false };
-  let onboarded = false;
+  const notifications: NotificationPrefs = { ...answer.notifications };
+  let onboarded = answer.onboarded;
   try {
     storage ??= typeof localStorage === "undefined" ? undefined : localStorage;
-    onboarded = storage?.getItem(`dusk-dash-onboarded:${account.id}`) === "1";
-    const saved: unknown = JSON.parse(storage?.getItem("dusk-dash-notify") ?? "null");
-    if (saved && typeof saved === "object") for (const key of Object.keys(notifications) as Array<keyof NotificationPrefs>) {
-      const value = (saved as Record<string, unknown>)[key];
-      if (typeof value === "boolean") notifications[key] = value;
-    }
+    onboarded ||= storage?.getItem(`dusk-dash-onboarded:${account.id}`) === "1";
   } catch {}
   const kinds = { web: "browser", desktop: "desktop", mobile: "phone" } as const;
   return {

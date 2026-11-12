@@ -150,20 +150,23 @@ const account: AccountAnswer = {
     { provider: "apple", label: null, email: null, addedAt: 4000 },
   ],
   sessions: ["web", "desktop", "mobile"].map((kind, index) => ({ id: String(index), kind: kind as "web" | "desktop" | "mobile", name: `Device ${index}`, platform: "Platform", appVersion: null, createdAt: 1000, lastSeenAt: 5000, expiresAt: 10000, current: index === 0 })),
+  notifications: { cloudStatus: true, product: false },
+  onboarded: false,
 };
 
-test("account prepends email, preserves OAuth identities, and maps devices and local preferences", () => {
+test("account prepends email, preserves OAuth identities, and maps devices, preferences and the onboarded mark", () => {
   const emptyStorage = { getItem: () => null };
   const result = accountFromWire(account, 5000, emptyStorage);
   assert.deepEqual(result.identities, [{ provider: "email", label: "me@example.test", linkedAt: 1000 }, { provider: "google", label: "My name", linkedAt: 2000 }, { provider: "x", label: "x@example.test", linkedAt: 3000 }, { provider: "apple", label: "", linkedAt: 4000 }]);
   assert.deepEqual(result.devices.map((device) => [device.kind, device.label, device.location, device.current]), [["browser", "Device 0", null, true], ["desktop", "Device 1", null, false], ["phone", "Device 2", null, false]]);
   assert.equal(result.profile.onboarded, false);
   assert.equal(result.profile.avatarUrl, null);
-  assert.deepEqual(result.notifications, { cloudStatus: true, billing: true, botDigest: true, product: false });
-  const saved = new Map([["dusk-dash-onboarded:account", "1"], ["dusk-dash-notify", JSON.stringify({ billing: false, product: true })]]);
+  assert.deepEqual(result.notifications, { cloudStatus: true, product: false });
+  const saved = new Map([["dusk-dash-onboarded:account", "1"], ["dusk-dash-notify", JSON.stringify({ cloudStatus: false, product: true })]]);
   const local = accountFromWire(account, 5000, { getItem: (key) => saved.get(key) ?? null });
-  assert.equal(local.profile.onboarded, true);
-  assert.deepEqual(local.notifications, { cloudStatus: true, billing: false, botDigest: true, product: true });
+  assert.equal(local.profile.onboarded, true, "the local mark is a cache");
+  assert.deepEqual(local.notifications, result.notifications, "notifications come from the account, never the browser");
+  assert.equal(accountFromWire({ ...account, onboarded: true }, 5000, emptyStorage).profile.onboarded, true, "onboarded in another browser");
   assert.equal(accountFromWire(account, 86_401_001, emptyStorage).profile.onboarded, true);
   assert.deepEqual(accountFromWire({ ...account, account: { ...account.account, providers: ["google"] } }, 5000, emptyStorage).identities, result.identities.slice(1));
   assert.deepEqual(accountFromWire(account, 5000, { getItem: () => { throw new Error("unavailable"); } }).notifications, result.notifications);

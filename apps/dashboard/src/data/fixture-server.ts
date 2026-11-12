@@ -245,7 +245,7 @@ function route(method: string, path: string, body: unknown, query: URLSearchPara
   }
   if (method === "POST" && path === "/v1/account/onboarded") { s.account.profile.onboarded = true; return s.account; }
   if (method === "PUT" && path === "/v1/account/notifications") {
-    for (const key of ["cloudStatus", "billing", "botDigest", "product"] as const) if (typeof b[key] !== "boolean") fail("Choose your notification preferences.");
+    for (const key of ["cloudStatus", "product"] as const) if (typeof b[key] !== "boolean") fail("Choose your notification preferences.");
     s.account.notifications = { ...b } as unknown as NotificationPrefs; return s.account.notifications;
   }
   const identity = path.match(/^\/v1\/account\/identities\/([^/]+)$/);

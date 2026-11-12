@@ -34,12 +34,7 @@ export interface AccountDevice {
   current: boolean;
 }
 
-export interface NotificationPrefs {
-  cloudStatus: boolean;
-  billing: boolean;
-  botDigest: boolean;
-  product: boolean;
-}
+export type { NotificationPrefs } from "../../../../shared/account-api.ts";
 
 /** which sign-in buttons work on this instance; a disabled one is not configured yet */
 export interface AuthProviders { providers: Array<{ id: IdentityProvider; enabled: boolean; comingSoon?: boolean }> }

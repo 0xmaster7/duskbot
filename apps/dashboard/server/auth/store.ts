@@ -2,9 +2,10 @@ import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createJsonStore } from "../billing/json-store.ts";
 import { randomBytes } from "node:crypto";
-import type { OAuthProvider, SessionView } from "../../../../shared/account-api.ts";
+import type { NotificationPrefs, OAuthProvider, SessionView } from "../../../../shared/account-api.ts";
 
-export interface Account { id: string; email: string; name: string | null; createdAt: number }
+/** `notifications`: only what the owner changed (NOTIFICATION_DEFAULTS fill the rest); `onboardedAt`: first-run steps done */
+export interface Account { id: string; email: string; name: string | null; createdAt: number; notifications?: Partial<NotificationPrefs>; onboardedAt?: number }
 export interface Identity { accountId: string; provider: OAuthProvider; subject: string; email: string | null; label: string | null; addedAt: number }
 /** `parentId`: the app session a handoff web session came from; it ends with that session. never sent to a client. */
 export interface Session extends Omit<SessionView, "current"> { accountId: string; tokenHash: string; parentId?: string }

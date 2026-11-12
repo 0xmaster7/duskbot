@@ -395,7 +395,7 @@ describe("hosted dashboard service", () => {
     expect(data.account.email).toBe("owner@example.com");
     expect(data.workspaces.map((ws: { id: string }) => ws.id)).toEqual([id]);
     expect(data.sessions.length).toBeGreaterThan(0);
-    expect(Object.keys(data).sort()).toEqual(["account", "cloudDesktops", "exportedAt", "identities", "payments", "sessions", "subscriptions", "v", "workspaces"]);
+    expect(Object.keys(data).sort()).toEqual(["account", "cloudDesktops", "exportedAt", "identities", "notifications", "onboarded", "payments", "sessions", "subscriptions", "v", "workspaces"]);
     for (const secret of ["tokenHash", "publicKey", "claimHash", "bootstrapSecret", cookie.split("=")[1]!, "other@example.com"]) expect(text).not.toContain(secret);
     expect(other).toBeTruthy();
   });

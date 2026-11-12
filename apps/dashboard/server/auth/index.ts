@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
-import { ACCOUNT_ROUTES as R, APP_AUTH_REDIRECT, CSRF_COOKIE, CSRF_HEADER, EMAIL_CODE_TRIES, EMAIL_CODE_TTL_SECONDS, EMAIL_RESEND_SECONDS, HANDOFF_PLANS, OAUTH_PROVIDERS, SESSION_COOKIE } from "../../../../shared/account-api.ts";
-import type { AccountAnswer, AccountErrorCode, AccountView, AppGrant, AppSessionIdentity, HandoffAnswer, OAuthErrorCode, OAuthProvider, WebHandoffAnswer } from "../../../../shared/account-api.ts";
+import { ACCOUNT_ROUTES as R, APP_AUTH_REDIRECT, CSRF_COOKIE, CSRF_HEADER, EMAIL_CODE_TRIES, EMAIL_CODE_TTL_SECONDS, EMAIL_RESEND_SECONDS, HANDOFF_PLANS, NOTIFICATION_DEFAULTS, OAUTH_PROVIDERS, SESSION_COOKIE } from "../../../../shared/account-api.ts";
+import type { AccountAnswer, AccountErrorCode, AccountView, AppGrant, NotificationPrefs, AppSessionIdentity, HandoffAnswer, OAuthErrorCode, OAuthProvider, WebHandoffAnswer } from "../../../../shared/account-api.ts";
 import { CHECKOUT_SOURCES } from "../../../../shared/billing-api.ts";
 import { createAuthStore } from "./store.ts";
 import type { Account, Identity, Session } from "./store.ts";
@@ -156,10 +156,13 @@ export function createAuth(options: AuthOptions) {
     return found;
   }
   function view(owner: Account): AccountView {
-    return { ...owner, providers: ["email", ...OAUTH_PROVIDERS.filter(provider => state.identities.some(item => item.accountId === owner.id && item.provider === provider))] };
+    return { id: owner.id, email: owner.email, name: owner.name, createdAt: owner.createdAt, providers: ["email", ...OAUTH_PROVIDERS.filter(provider => state.identities.some(item => item.accountId === owner.id && item.provider === provider))] };
+  }
+  function notificationsOf(owner: Account): NotificationPrefs {
+    return { cloudStatus: owner.notifications?.cloudStatus ?? NOTIFICATION_DEFAULTS.cloudStatus, product: owner.notifications?.product ?? NOTIFICATION_DEFAULTS.product };
   }
   function accountAnswer(owner: Account, current: string | undefined): AccountAnswer {
-    return { account: view(owner), identities: state.identities.filter(item => item.accountId === owner.id).map(({ provider, email, label, addedAt }) => ({ provider, email, label, addedAt })),
+    return { notifications: notificationsOf(owner), onboarded: owner.onboardedAt !== undefined, account: view(owner), identities: state.identities.filter(item => item.accountId === owner.id).map(({ provider, email, label, addedAt }) => ({ provider, email, label, addedAt })),
       sessions: state.sessions.filter(item => item.accountId === owner.id).sort((a, b) => b.createdAt - a.createdAt).map(({ id, kind, name, platform, appVersion, createdAt, lastSeenAt, expiresAt }) =>
         ({ id, kind, name, platform, appVersion, createdAt, lastSeenAt, expiresAt, current: id === current })) };
   }
@@ -414,7 +417,7 @@ export function createAuth(options: AuthOptions) {
   }
   async function handle(req: IncomingMessage, res: ServerResponse, url: URL, helpers: BodyHelpers): Promise<boolean> {
     const path = url.pathname, method = req.method ?? "GET", cors = isAppCorsRoute(path);
-    const routes: string[] = [R.providers, R.emailStart, R.emailVerify, R.signOut, R.me, R.account, R.signOutEverywhere, R.deleteAccount, R.deviceLookup, R.deviceApprove, R.deviceDeny,
+    const routes: string[] = [R.providers, R.emailStart, R.emailVerify, R.signOut, R.me, R.account, R.notifications, R.onboarded, R.signOutEverywhere, R.deleteAccount, R.deviceLookup, R.deviceApprove, R.deviceDeny,
       R.appEmailStart, R.appEmailVerify, R.desktopAuthorize, R.desktopToken, R.appSession, R.enrollGrant, R.webHandoff, R.handoffRedeem, R.appToken, R.appStart];
     if (!routes.includes(path) && !path.startsWith("/v1/auth/oauth/") && !path.startsWith("/v1/account/identities/") && !path.startsWith("/v1/account/sessions/") && !cors) return false;
     res.setHeader("cache-control", "no-store");
@@ -442,7 +445,7 @@ export function createAuth(options: AuthOptions) {
         appFlows.set(flowId, { challenge, state: appState, expiresAt: now() + 600_000 });
         oauthStart(req, res, url, provider, flowId); return true;
       }
-      const mutation = ["POST", "PATCH", "DELETE"].includes(method);
+      const mutation = ["POST", "PUT", "PATCH", "DELETE"].includes(method);
       const data = mutation ? helpers.bodyObject(await helpers.readBody(req)) : {};
       if (method === "POST" && path === R.appToken) {
         const key = opaque(data.code) ? hash(data.code) : "", code = appCodes.get(key);
@@ -472,6 +475,18 @@ export function createAuth(options: AuthOptions) {
           owner.name = data.name === null ? null : (data.name as string).trim(); store.changed();
         }
         json(accountAnswer(owner, webSession(req)?.session.id));
+      } else if ((method === "GET" || method === "PUT") && path === R.notifications) {
+        const owner = requireWeb(req, { mutation });
+        if (mutation) {
+          const keys = Object.keys(data);
+          if (!keys.length || keys.some(key => !Object.hasOwn(NOTIFICATION_DEFAULTS, key) || typeof data[key] !== "boolean")) fail(400, "invalid_request");
+          owner.notifications = { ...owner.notifications, ...data as Partial<NotificationPrefs> }; store.changed();
+        }
+        json(notificationsOf(owner));
+      } else if (method === "POST" && path === R.onboarded) {
+        const owner = requireWeb(req, { mutation: true });
+        if (owner.onboardedAt === undefined) { owner.onboardedAt = now(); store.changed(); }
+        json({ onboarded: true });
       } else if (method === "DELETE" && path.startsWith("/v1/account/identities/")) {
         const owner = requireWeb(req, { mutation: true }), provider = path.slice("/v1/account/identities/".length);
         const linked = state.identities.find(item => item.accountId === owner.id && item.provider === provider);
@@ -567,11 +582,13 @@ export function createAuth(options: AuthOptions) {
   }
   return {
     handle, webSession, requireWeb, appSession, account,
+    /** whether an optional email may go to this account; required mail (billing, security, deletion) never asks */
+    wantsEmail: (accountId: string, kind: keyof NotificationPrefs) => { const owner = account(accountId); return owner !== null && notificationsOf(owner)[kind]; },
     accountByEmail: (email: string) => state.accounts.find(item => item.email === email) ?? null,
     /** what the account holds, for its owner's export: no token, hash or code */
     exportAccount(owner: Account) {
-      const { account: profile, identities, sessions } = accountAnswer(owner, undefined);
-      return { account: profile, identities, sessions: sessions.map(({ current: _current, ...session }) => session) };
+      const { account: profile, identities, sessions, notifications, onboarded } = accountAnswer(owner, undefined);
+      return { account: profile, identities, sessions: sessions.map(({ current: _current, ...session }) => session), notifications, onboarded };
     },
     extendSession(fn: (accountId: string) => Promise<Record<string, unknown>> | Record<string, unknown>) { extensions.push(fn); },
     beforeAccountDelete(fn: (owner: Account, body: Record<string, unknown>) => void | Promise<void>) { beforeDeleteHooks.push(fn); },

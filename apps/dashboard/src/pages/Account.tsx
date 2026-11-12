@@ -15,9 +15,7 @@ import { useNow } from "../lib/now";
 
 const PROVIDERS: Array<{ id: IdentityProvider; label: string }> = [{ id: "google", label: "google" }, { id: "apple", label: "apple" }, { id: "x", label: "X" }, { id: "email", label: "email" }];
 const NOTIFICATIONS: Array<{ id: keyof NotificationPrefs; label: string; hint: string }> = [
-  { id: "cloudStatus", label: "dusk cloud status", hint: "when it is ready, goes to sleep or needs attention." },
-  { id: "billing", label: "billing", hint: "receipts and payment problems." },
-  { id: "botDigest", label: "weekly bot digest", hint: "what your bots did this week." },
+  { id: "cloudStatus", label: "dusk cloud status", hint: "when it is ready, or was set up again from a backup." },
   { id: "product", label: "product news", hint: "new features, a few times a year." },
 ];
 const ICON = { size: 16, strokeWidth: 1.5 } as const;
@@ -124,6 +122,7 @@ export function AccountPage() {
     <section className="mt-10" aria-labelledby="notifications-title">
       <SectionTitle id="notifications-title">notifications</SectionTitle>
       <ul className="">{NOTIFICATIONS.map((item) => <li key={item.id} className="flex items-center gap-4 py-3"><div className="min-w-0 flex-1"><label htmlFor={`notification-${item.id}`} className="text-14 text-ink">{item.label}</label><p className="mt-0.5 text-13 text-ink-3">{item.hint}</p></div><Switch id={`notification-${item.id}`} label={item.label} checked={prefs[item.id]} disabled={notificationBusy} onChange={(checked) => void toggle(item.id, checked)} /></li>)}</ul>
+      <p className="mt-2 text-13 text-ink-3">receipts, payment problems, sign-in codes and deletion warnings always send.</p>
     </section>
     <DataSharing />
     <section className="mt-10" aria-labelledby="appearance-title">

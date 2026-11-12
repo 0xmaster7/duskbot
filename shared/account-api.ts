@@ -85,6 +85,8 @@ export const ACCOUNT_ROUTES = {
   me: "/v1/me", //                              GET  -> MeAnswer
   signOut: "/v1/auth/signout", //               POST {} -> { ok: true } (this browser only)
   account: "/v1/account", //                    GET  -> AccountAnswer; PATCH { name } -> AccountAnswer
+  notifications: "/v1/account/notifications", // GET -> NotificationPrefs; PUT Partial<NotificationPrefs> -> NotificationPrefs
+  onboarded: "/v1/account/onboarded", //        POST {} -> { onboarded: true }
   identity: (provider: OAuthProvider) => `/v1/account/identities/${provider}`, // DELETE -> AccountAnswer (refused for the last way in)
   session: (id: string) => `/v1/account/sessions/${encodeURIComponent(id)}`, //  DELETE -> { ok: true }
   signOutEverywhere: "/v1/account/signout-everywhere", // POST {} -> { ok: true } (every browser and app, this one too)
@@ -120,7 +122,16 @@ export interface ProvidersAnswer { v: 1; providers: ProviderView[]; signupOpen: 
 export interface EmailStartAnswer { attempt: string; expiresIn: number; resendAfter: number; signupOpen: boolean }
 export interface WebSignInAnswer { account: AccountView; csrfToken: string; created: boolean; redirect?: string }
 export interface MeAnswer { account: AccountView; csrfToken: string }
-export interface AccountAnswer { account: AccountView; identities: IdentityView[]; sessions: SessionView[] }
+/** the optional emails an account gets. receipts, payment problems, sign-in codes and deletion warnings always send. */
+export interface NotificationPrefs {
+  /** a cloud is ready, or was set up again from a backup */
+  cloudStatus: boolean;
+  /** launches and feature news */
+  product: boolean;
+}
+export const NOTIFICATION_DEFAULTS: NotificationPrefs = { cloudStatus: true, product: true };
+/** `onboarded`: the page's first-run steps were finished, in any browser */
+export interface AccountAnswer { account: AccountView; identities: IdentityView[]; sessions: SessionView[]; notifications: NotificationPrefs; onboarded: boolean }
 export interface DeviceLookupAnswer { device: { name: string; platform: string }; userCode: string; expiresAt: number }
 /** what an app sign-in ends in (Admin contract v1's verify answer). */
 export interface AppGrant {

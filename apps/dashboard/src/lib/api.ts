@@ -150,7 +150,13 @@ export const api = {
     if (FIXTURE) return call("/v1/account");
     const answer = await call<AccountAnswer>("/v1/account");
     rememberAccount(answer.account);
-    return accountFromWire(answer);
+    const data = accountFromWire(answer);
+    const key = `dusk-dash-onboarded:${answer.account.id}`;
+    try {
+      if (answer.onboarded) localStorage.setItem(key, "1");
+      else if (data.profile.onboarded && localStorage.getItem(key) === "1") void send("/v1/account/onboarded", "POST").catch(() => {});
+    } catch {}
+    return data;
   },
   updateProfile: async (profile: { name: string }) => {
     if (FIXTURE) return send<AccountData>("/v1/account", "PATCH", profile);
@@ -159,14 +165,11 @@ export const api = {
   finishOnboarding: async () => {
     if (FIXTURE) return send("/v1/account/onboarded", "POST");
     if (!accountId) await api.me();
-    localStorage.setItem(`dusk-dash-onboarded:${accountId}`, "1");
+    try { localStorage.setItem(`dusk-dash-onboarded:${accountId}`, "1"); } catch {}
+    await send("/v1/account/onboarded", "POST").catch(() => {});
     trackOnboardingDone();
   },
-  setNotifications: async (prefs: NotificationPrefs) => {
-    if (FIXTURE) return send("/v1/account/notifications", "PUT", prefs);
-    localStorage.setItem("dusk-dash-notify", JSON.stringify(prefs));
-    return prefs;
-  },
+  setNotifications: (prefs: NotificationPrefs) => send<NotificationPrefs>("/v1/account/notifications", "PUT", prefs),
   unlinkIdentity: async (provider: IdentityProvider) => {
     const path = `/v1/account/identities/${encodeURIComponent(provider)}`;
     if (FIXTURE) return send(path, "DELETE");
