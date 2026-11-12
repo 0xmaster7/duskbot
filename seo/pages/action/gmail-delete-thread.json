@@ -14,7 +14,9 @@
   "answer": "**that old thread can take the signed attachment with it.** delete thread removes every message in a gmail conversation immediately and permanently. it skips trash, so there is no undo. use it only for mail you want gone for good. sending approval does not hold deletion; tell the bot to ask before it removes anything.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "gmail",

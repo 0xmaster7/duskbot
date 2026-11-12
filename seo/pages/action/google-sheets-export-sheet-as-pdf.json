@@ -14,7 +14,9 @@
   "answer": "**get a printable roster without exporting the budget beside it.** a bot can export one google sheets tab or rectangle as a pdf. give the original sheet link and tab name, then choose portrait, gridlines or fit to width. dusk counts export as a change, so it needs read and write access. your source cells stay untouched.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "google-sheets",

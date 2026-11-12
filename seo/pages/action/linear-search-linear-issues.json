@@ -15,7 +15,9 @@
   "answer": "**stop asking the team who remembers that ticket.** give the bot words from the problem, title or issue reference. it searches linear and brings back matches, including archived work when you ask. use the separate team-listing action when you need one team’s backlog: putting a team, project or person’s name in this search only adds words.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "linear",

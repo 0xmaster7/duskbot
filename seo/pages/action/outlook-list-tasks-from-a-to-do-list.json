@@ -14,7 +14,9 @@
   "answer": "**see what needs doing before the week gets away from you.** through outlook, a bot reads one microsoft to do list with task statuses and due dates. name the list and it finds it.\n\nyou get a private checklist with undated work kept separate. long lists arrive in parts; ask it to reach the end.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "microsoft to do",

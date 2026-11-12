@@ -15,7 +15,9 @@
   "answer": "**fix the deadline while the rest of the ticket stays intact.** the bot finds and reads a linear issue, then changes the date, owner, priority or description you name. labels replace the whole label list. edits skip sending approval, so put a preview-and-agree step in the job before giving it write access.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "linear",

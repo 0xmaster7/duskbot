@@ -14,7 +14,9 @@
   "answer": "**find the reply you meant to finish last week.** a bot lists saved gmail drafts with recipients, subjects and full text, using read access alone. ask what each draft still needs and get a useful to-do list back. gmail returns drafts without a fixed order, in batches. new drafts can take time to appear, so let the bot finish the list.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "gmail",

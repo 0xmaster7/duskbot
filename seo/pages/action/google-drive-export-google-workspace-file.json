@@ -14,7 +14,9 @@
   "answer": "**take a copy without sharing the live original.** a bot can export google docs, sheets, slides and other supported workspace files into a format you choose. give it the file link and say 'pdf' or 'word'. google caps exported content at 10 mb. dusk requires read and write access for this export.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "google-drive",

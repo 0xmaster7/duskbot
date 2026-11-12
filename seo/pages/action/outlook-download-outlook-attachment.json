@@ -14,7 +14,9 @@
   "answer": "**get the delivery note out of the email before the van arrives.** a bot can find an outlook message, list its attachments and download the file you name. give the copy a filename you will recognise next week. read-only outlook access is enough. this action needs an actual attached file; cloud links and embedded items need a different route.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "outlook",

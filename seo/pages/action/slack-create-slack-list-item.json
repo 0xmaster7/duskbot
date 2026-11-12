@@ -14,7 +14,9 @@
   "answer": "**rescue the repair request before channel scroll buries it.** a bot adds a slack list item with starting values, copies an existing row or creates a subtask. give the list link and columns to fill. ask for a row preview before creation: this counts as a write, so the sending setting won't pause it for you.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "slack",

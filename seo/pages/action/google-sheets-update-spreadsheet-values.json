@@ -14,7 +14,9 @@
   "answer": "**fix the opening hours without retyping the weekly sheet.** give the bot the spreadsheet, tab and replacement values. it can update a known block while leaving the rest alone.\n\nbut the write stretches to fit incoming data. ask for old values, replacements and their row and column counts before it writes.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "cell updates",

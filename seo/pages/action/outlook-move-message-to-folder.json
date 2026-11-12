@@ -14,7 +14,9 @@
   "answer": "**get completed claims out of your inbox and into the folder you'll search later.** a bot finds the outlook message and destination, then moves it within the same mailbox. ask for a subject-and-folder preview before it moves anything. this is a write, so the sending setting won't pause it for review. you get a result for each move.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "outlook",

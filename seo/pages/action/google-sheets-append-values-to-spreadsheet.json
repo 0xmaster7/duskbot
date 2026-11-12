@@ -14,7 +14,9 @@
   "answer": "**get this week’s records into the sheet without replacing last week’s.** the bot adds rows after your google sheets table. paste the link, name the tab and give the column order. the range helps it find the table’s end; it does not choose an exact empty cell. ask for a row preview and a pause before it writes.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "append rows",

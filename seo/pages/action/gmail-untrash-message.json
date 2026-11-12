@@ -14,7 +14,9 @@
   "answer": "**bring back the email you meant to keep.** tell the bot which gmail account, who sent it and roughly when. it finds the message in trash and restores the match you choose. restoration needs write access and does not automatically pause. ask to see the subject and date first so a familiar title does not pick the wrong email.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "gmail",

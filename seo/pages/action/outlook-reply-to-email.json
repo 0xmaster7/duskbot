@@ -14,7 +14,9 @@
   "answer": "**answer the delivery question with the certificate already attached.** the bot replies to a specific outlook email with text you approve, files and optional cc or bcc. name the mailbox and original message so it lands in the right conversation. this action sends; ask for text here first if you still want to edit.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "outlook replies",

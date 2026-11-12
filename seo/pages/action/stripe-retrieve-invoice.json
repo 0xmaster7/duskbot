@@ -15,7 +15,9 @@
   "answer": "**answer the billing question with the actual bill in front of you.** give the bot the customer and invoice context. it lists or searches stripe invoices, finds the match and opens the bill. if several fit, it asks you to choose.\n\nyou get invoice details in chat while billing records and payments stay untouched.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "stripe",

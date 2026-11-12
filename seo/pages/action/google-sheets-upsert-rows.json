@@ -14,7 +14,9 @@
   "answer": "**stop adding a fresh row every time a delivery changes.** a bot matches records to a key column, updates existing rows and appends new ones. header names do the matching, whatever their order. missing headers become new columns. name the key and preview new headers first, then ask for confirmation before the bot writes to your sheet.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "upsert",

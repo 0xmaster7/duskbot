@@ -14,7 +14,9 @@
   "answer": "**a useful bug report saves the next person a round of questions.** give your bot the repository and what you saw. it can file an issue with a title, body, labels and assignees. the repository must allow issues. creation is a write, so say \"show me before you file it\" when you want a review.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "github issues",

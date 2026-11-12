@@ -1,6 +1,6 @@
 {
  "/": {
-  "hash": "0bfce69bda6797aa",
+  "hash": "75c96620d102454a",
   "lastmod": "2026-11-12"
  },
  "/download": {
@@ -12,7 +12,7 @@
   "lastmod": "2026-11-12"
  },
  "/pricing": {
-  "hash": "fbcd1dd2e3d29548",
+  "hash": "8c561eb4ddcfc2a7",
   "lastmod": "2026-11-12"
  },
  "/about": {
@@ -36,7 +36,7 @@
   "lastmod": "2026-11-12"
  },
  "/privacy": {
-  "hash": "8638abd771eca5d9",
+  "hash": "8de39bead38e7eb8",
   "lastmod": "2026-11-12"
  },
  "/license": {
@@ -52,7 +52,7 @@
   "lastmod": "2026-11-12"
  },
  "/docs/dusk-cloud": {
-  "hash": "e237c1b54c870c18",
+  "hash": "746698c683c7d30a",
   "lastmod": "2026-11-12"
  },
  "/docs/phone": {
@@ -60,7 +60,7 @@
   "lastmod": "2026-11-12"
  },
  "/docs/your-own-server": {
-  "hash": "ad80c5a717f5c792",
+  "hash": "daf7da5cd1d3d7fb",
   "lastmod": "2026-11-12"
  },
  "/docs/tips": {
@@ -76,7 +76,7 @@
   "lastmod": "2026-11-12"
  },
  "/docs/group-chats": {
-  "hash": "4c163daa8f47621f",
+  "hash": "d9607f222b04c641",
   "lastmod": "2026-11-12"
  },
  "/docs/memory": {
@@ -88,7 +88,7 @@
   "lastmod": "2026-11-12"
  },
  "/docs/computer": {
-  "hash": "9a60fc61e904850f",
+  "hash": "0d3b1ca4d09d2afb",
   "lastmod": "2026-11-12"
  },
  "/docs/account-and-billing": {
@@ -112,459 +112,819 @@
   "lastmod": "2026-11-12"
  },
  "/agents-when-laptop-closed": {
-  "hash": "ad7d90522c765397",
+  "hash": "1fd7eb20c95c272a",
   "lastmod": "2026-11-12"
  },
  "/ai-agent-that-controls-your-computer": {
-  "hash": "1ac33b5cf0a08ee9",
+  "hash": "0e4cc0ad1392bb1a",
   "lastmod": "2026-11-12"
  },
  "/ai-chief-of-staff": {
-  "hash": "88a45f4d76baed76",
+  "hash": "6dd8621faea8fd1d",
   "lastmod": "2026-11-12"
  },
  "/ai-employees": {
-  "hash": "b0d2bafb3f1809a3",
+  "hash": "01a7996c88346993",
   "lastmod": "2026-11-12"
  },
  "/ai-executive-assistant": {
-  "hash": "3a9138fbf70b67af",
+  "hash": "364f96ecbe39c584",
   "lastmod": "2026-11-12"
  },
  "/ai-group-chat": {
-  "hash": "f750e14e6d481dee",
+  "hash": "c4293e26a3515700",
   "lastmod": "2026-11-12"
  },
  "/ai-teammates": {
-  "hash": "b51a7d3d6a84dc19",
+  "hash": "1fd4bcd94c7f242f",
   "lastmod": "2026-11-12"
  },
  "/alternatives/ai-assistant-you-text": {
-  "hash": "e5d5fd547a5d3d08",
+  "hash": "9580e6ebb8fcdbf4",
   "lastmod": "2026-11-12"
  },
  "/alternatives/chatgpt-agent": {
-  "hash": "8d61f9365027e71e",
+  "hash": "c15618b69a902f60",
   "lastmod": "2026-11-12"
  },
  "/alternatives/claude-cowork": {
-  "hash": "e2f92ba30350760c",
+  "hash": "4d65ebe313358109",
   "lastmod": "2026-11-12"
  },
  "/alternatives/genspark": {
-  "hash": "d4acaadbd156b767",
+  "hash": "6cea33c1ae822ceb",
   "lastmod": "2026-11-12"
  },
  "/alternatives/gumloop": {
-  "hash": "267e1fc0b0370269",
+  "hash": "4333eb279acfbd40",
   "lastmod": "2026-11-12"
  },
  "/alternatives/hermes-agent": {
-  "hash": "c629949c4a9c0441",
+  "hash": "5b814fbb5521deeb",
   "lastmod": "2026-11-12"
  },
  "/alternatives/lindy": {
-  "hash": "7f582f7f6a1e4d5f",
+  "hash": "090b464f81c1b7cf",
   "lastmod": "2026-11-12"
  },
  "/alternatives/manus": {
-  "hash": "6316a88caa3cf7f4",
+  "hash": "94623b2e8f30662f",
   "lastmod": "2026-11-12"
  },
  "/alternatives/n8n": {
-  "hash": "32e0b875ddb41c32",
+  "hash": "6a98e602b786a143",
   "lastmod": "2026-11-12"
  },
  "/alternatives/openclaw": {
-  "hash": "5fff2a346cf96ec2",
+  "hash": "e0521ded6aead7bf",
   "lastmod": "2026-11-12"
  },
  "/alternatives/openclaw-hosting": {
-  "hash": "b22224990241f9ee",
+  "hash": "62075d9acf9cdfd9",
   "lastmod": "2026-11-12"
  },
  "/alternatives/openclaw-no-setup": {
-  "hash": "570597fbb5a0d827",
+  "hash": "861a07a2fcba0786",
   "lastmod": "2026-11-12"
  },
  "/alternatives/perplexity-comet": {
-  "hash": "e863bc1d2c1b23e5",
+  "hash": "efee3585d3aba005",
   "lastmod": "2026-11-12"
  },
  "/alternatives/poke": {
-  "hash": "ad1b45be4d53279d",
+  "hash": "c0dc79c7c4561299",
   "lastmod": "2026-11-12"
  },
  "/alternatives/relevance-ai": {
-  "hash": "37e9a92969b3d1a3",
+  "hash": "4e6b1905217c15bb",
   "lastmod": "2026-11-12"
  },
  "/alternatives/sintra": {
-  "hash": "117b8b248eaa046c",
+  "hash": "5d6406a333bc9ac3",
   "lastmod": "2026-11-12"
  },
  "/alternatives/zapier-agents": {
-  "hash": "c57938c4d49a1a63",
+  "hash": "a3299fada5ba578a",
   "lastmod": "2026-11-12"
  },
  "/claude-code-from-your-phone": {
-  "hash": "62fd2b44c612e76a",
+  "hash": "f3bb2ae38f2a352f",
   "lastmod": "2026-11-12"
  },
  "/for/ecommerce": {
-  "hash": "bd055a83c1c04d89",
+  "hash": "305e812f971b078f",
   "lastmod": "2026-11-12"
  },
  "/for/founders": {
-  "hash": "6eb58fea6f5105c1",
+  "hash": "57dcc89541bef9aa",
   "lastmod": "2026-11-12"
  },
  "/for/product-managers": {
-  "hash": "fd9d11f6bcba11cb",
+  "hash": "5271676133ac5349",
   "lastmod": "2026-11-12"
  },
  "/for/real-estate-agents": {
-  "hash": "98cface5e7b8cd12",
+  "hash": "5564557e4bb9ee3f",
   "lastmod": "2026-11-12"
  },
  "/for/recruiters": {
-  "hash": "8ba44ce093a32268",
+  "hash": "afddde2baf5cbe19",
   "lastmod": "2026-11-12"
  },
  "/for/small-business-owners": {
-  "hash": "d74ec6d6245c9236",
+  "hash": "fe49d006dc61050f",
   "lastmod": "2026-11-12"
  },
  "/for/students": {
-  "hash": "0ad8d67d49f41fc5",
+  "hash": "f86090b672b51e43",
   "lastmod": "2026-11-12"
  },
  "/glossary/always-on-ai-agent": {
-  "hash": "091f9ee66b8fb1d2",
+  "hash": "0effed8916affe0c",
   "lastmod": "2026-11-12"
  },
  "/guides/apps-that-use-your-ai-subscription": {
-  "hash": "0dc522c4b0c8af78",
+  "hash": "6b84894e16b5f126",
   "lastmod": "2026-11-12"
  },
  "/guides/chatgpt-scheduled-tasks": {
-  "hash": "daf8a7af698f67dd",
+  "hash": "c51a9ec7d6c5d19b",
   "lastmod": "2026-11-12"
  },
  "/guides/claude-code-for-email": {
-  "hash": "5ea8c450ccf600b3",
+  "hash": "618464b0ff2769d8",
   "lastmod": "2026-11-12"
  },
  "/guides/claude-code-for-marketing": {
-  "hash": "56b643504c321b09",
+  "hash": "956131bafac24a85",
   "lastmod": "2026-11-12"
  },
  "/guides/claude-code-for-non-developers": {
-  "hash": "b5173d806098f59a",
+  "hash": "3fe482de19196c4f",
   "lastmod": "2026-11-12"
  },
  "/guides/claude-code-routines": {
-  "hash": "2ec47a4d989f0a3d",
+  "hash": "972bc64b926ad73e",
   "lastmod": "2026-11-12"
  },
  "/guides/claude-code-telegram-discord-slack": {
-  "hash": "752380ea8ad42426",
+  "hash": "91d61247d55075ac",
   "lastmod": "2026-11-12"
  },
  "/guides/claude-connectors": {
-  "hash": "20eaa4ef43664d9a",
+  "hash": "e6307441f6657d98",
   "lastmod": "2026-11-12"
  },
  "/guides/claude-cowork-pricing": {
-  "hash": "494bd0af1b1513da",
+  "hash": "6bf56ffafe362413",
   "lastmod": "2026-11-12"
  },
  "/guides/claude-cowork-windows": {
-  "hash": "3958fdacc2e6a4e6",
+  "hash": "146a565104728810",
   "lastmod": "2026-11-12"
  },
  "/guides/claude-scheduled-tasks": {
-  "hash": "9fb1dba03109f656",
+  "hash": "5047fe01617f3781",
   "lastmod": "2026-11-12"
  },
  "/guides/claude-skills": {
-  "hash": "12d982835d5430c7",
+  "hash": "b5ffebc923f46cf9",
   "lastmod": "2026-11-12"
  },
  "/guides/claude-subscription-vs-api": {
-  "hash": "3ba13c88afbd6f8a",
+  "hash": "54e7344ea46c1a98",
   "lastmod": "2026-11-12"
  },
  "/guides/gemini-scheduled-actions": {
-  "hash": "f890e125c3942601",
+  "hash": "e53889c31ea7594c",
   "lastmod": "2026-11-12"
  },
  "/guides/grok-tasks": {
-  "hash": "0e25353322cec43a",
+  "hash": "84368c0451f3560d",
   "lastmod": "2026-11-12"
  },
  "/guides/how-much-does-an-ai-agent-cost": {
-  "hash": "4c9b40a1931f4dca",
+  "hash": "d859c6605d03fb11",
   "lastmod": "2026-11-12"
  },
  "/guides/is-it-safe-to-let-ai-control-your-computer": {
-  "hash": "980a309a2720449f",
+  "hash": "82519945eb658c78",
   "lastmod": "2026-11-12"
  },
  "/guides/is-openclaw-safe": {
-  "hash": "987a23fb4f1d95c1",
+  "hash": "d9dbac3ef7bd6cb9",
   "lastmod": "2026-11-12"
  },
  "/guides/openclaw-clawdbot-moltbot-explained": {
-  "hash": "7c0d95bf2330d7bd",
+  "hash": "6e51602a666082f0",
   "lastmod": "2026-11-12"
  },
  "/guides/what-is-an-ai-agent": {
-  "hash": "da3b9f6c9846d9c3",
+  "hash": "5e5d85e6897bf5f2",
   "lastmod": "2026-11-12"
  },
  "/guides/what-is-mcp": {
-  "hash": "3059b9e59610c43e",
+  "hash": "907011e1c5c385e3",
   "lastmod": "2026-11-12"
  },
  "/integrations/airtable": {
-  "hash": "0bd1fce6ae8e654e",
+  "hash": "32ee462ba66bf39a",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/airtable/create-records": {
+  "hash": "381144f0500c1c11",
   "lastmod": "2026-11-12"
  },
  "/integrations/asana": {
-  "hash": "ed55ab6520ac6ed7",
+  "hash": "05310b634871476a",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/asana/create-task-comment": {
+  "hash": "dbf8f2644b0164c3",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/asana/get-a-task": {
+  "hash": "02069f2bc2bda51c",
   "lastmod": "2026-11-12"
  },
  "/integrations/canva": {
-  "hash": "cffe15158193986b",
+  "hash": "4bb56194c25532cc",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/canva/list-user-designs": {
+  "hash": "47088e070197da0f",
   "lastmod": "2026-11-12"
  },
  "/integrations/discord": {
-  "hash": "f89132be59ee9198",
+  "hash": "c4fd96bbd8334092",
   "lastmod": "2026-11-12"
  },
  "/integrations/excel": {
-  "hash": "0991134638b1735b",
+  "hash": "0ce7aba95e8046a9",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/excel/add-table": {
+  "hash": "594a6713ce17615a",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/excel/search-drive-files": {
+  "hash": "375a965bc664bbb6",
   "lastmod": "2026-11-12"
  },
  "/integrations/figma": {
-  "hash": "d56fa1362888ca76",
+  "hash": "098d954f2c8a256a",
   "lastmod": "2026-11-12"
  },
  "/integrations/github": {
-  "hash": "1061fa24aa6f10a6",
+  "hash": "c54f03cf0a69fdfd",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/github/add-labels-to-an-issue": {
+  "hash": "69ee26794aa0abcd",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/github/close-an-issue": {
+  "hash": "1e17d0a743abc957",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/github/create-an-issue": {
+  "hash": "a05f297d45f76ab6",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/github/create-an-issue-comment": {
+  "hash": "99e288b621f85e20",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/github/get-a-pull-request": {
+  "hash": "2093907ba83297e9",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/github/list-repository-issues": {
+  "hash": "6b11947cd9b7425d",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/github/search-issues-and-pull-requests": {
+  "hash": "fd8bc609282f321f",
   "lastmod": "2026-11-12"
  },
  "/integrations/gmail": {
-  "hash": "4943fca74814420f",
+  "hash": "585350f9ad6bdc50",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/gmail/batch-modify-gmail-messages": {
+  "hash": "adb3f521cb0d034a",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/gmail/create-email-draft": {
+  "hash": "939e0ce4b7304439",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/gmail/delete-thread": {
+  "hash": "b2524b5c278d7860",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/gmail/fetch-emails": {
+  "hash": "769c553830115b20",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/gmail/get-gmail-attachment": {
+  "hash": "dcf9241b42883d32",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/gmail/list-drafts": {
+  "hash": "2ed1f3f1dfce3545",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/gmail/move-to-trash": {
+  "hash": "f27cd9ddd68336bf",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/gmail/reply-to-email-thread": {
+  "hash": "735f8fa758fe40a4",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/gmail/search-people": {
+  "hash": "64ba3be598c261dc",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/gmail/send-draft": {
+  "hash": "b447754dff8e4950",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/gmail/send-email": {
+  "hash": "a09e779096d41a46",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/gmail/untrash-message": {
+  "hash": "8b3ccb2100920e16",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/gmail/update-draft": {
+  "hash": "ac3bb6bca920d305",
   "lastmod": "2026-11-12"
  },
  "/integrations/google-calendar": {
-  "hash": "260e086fdb104df9",
+  "hash": "a232fe2a189d076b",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-calendar/create-a-new-calendar": {
+  "hash": "56386406bb0ec5b9",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-calendar/create-event": {
+  "hash": "74830d7f97cc38b6",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-calendar/delete-event": {
+  "hash": "ada7fe494b58130f",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-calendar/find-event": {
+  "hash": "619a719dc6f2603d",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-calendar/get-event-instances": {
+  "hash": "d337f5195a89b5c8",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-calendar/list-events-from-all-calendars": {
+  "hash": "13ac3d7a4ed9e6da",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-calendar/patch-event": {
+  "hash": "03560cac5bff9064",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-calendar/query-calendar-availability": {
+  "hash": "4b0a2e5fc88322d4",
   "lastmod": "2026-11-12"
  },
  "/integrations/google-drive": {
-  "hash": "2f37e76733b0c808",
+  "hash": "959604e88b749860",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-drive/create-a-folder": {
+  "hash": "5e497c5bf34ebadc",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-drive/create-permission": {
+  "hash": "57e02e859522b5cf",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-drive/export-google-workspace-file": {
+  "hash": "025086093de8ea79",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-drive/find-file": {
+  "hash": "35e6cf17d7b04ff0",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-drive/move-file": {
+  "hash": "c739e8f409a3672b",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-drive/upload-file": {
+  "hash": "c3a316a88cc0dcea",
   "lastmod": "2026-11-12"
  },
  "/integrations/google-sheets": {
-  "hash": "0bef19ba2093c574",
+  "hash": "204609690afdd5ad",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-sheets/append-values-to-spreadsheet": {
+  "hash": "f92ddb63239e9515",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-sheets/copy-sheet-to-another-spreadsheet": {
+  "hash": "01ba7257ea64a9d5",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-sheets/create-a-google-sheet": {
+  "hash": "77fe131a0e14c7db",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-sheets/export-sheet-as-pdf": {
+  "hash": "e0f4d17ae6f148b3",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-sheets/get-spreadsheet-values": {
+  "hash": "709b0d0fda3ee111",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-sheets/search-spreadsheets": {
+  "hash": "4d20d922d44cd35e",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-sheets/set-basic-filter": {
+  "hash": "40630b9e0241ad35",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-sheets/set-data-validation-rule": {
+  "hash": "96150e62a8b61149",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-sheets/sort-range": {
+  "hash": "80e701b31d9d3bda",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-sheets/update-spreadsheet-values": {
+  "hash": "758c56fd74636005",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-sheets/upsert-rows": {
+  "hash": "3f9d1a555eff8270",
   "lastmod": "2026-11-12"
  },
  "/integrations/hubspot": {
-  "hash": "c847314d4488fde1",
+  "hash": "4941afbd19bc3c5a",
   "lastmod": "2026-11-12"
  },
  "/integrations/jira": {
-  "hash": "1766d5eb5bccb00c",
+  "hash": "ce067658def6a69e",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/jira/add-comment": {
+  "hash": "97e49c012dd8ecbb",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/jira/assign-issue": {
+  "hash": "07ac10ba7baf8e2d",
   "lastmod": "2026-11-12"
  },
  "/integrations/linear": {
-  "hash": "e403b8455b848a81",
+  "hash": "0961192015251666",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/linear/search-linear-issues": {
+  "hash": "e6bfb81ce631944e",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/linear/update-issue": {
+  "hash": "236fa40f4dea6a17",
   "lastmod": "2026-11-12"
  },
  "/integrations/linkedin": {
-  "hash": "0febfd836312b34e",
+  "hash": "9ae4cded5e3f758f",
   "lastmod": "2026-11-12"
  },
  "/integrations/notion": {
-  "hash": "2cb777e726b61012",
+  "hash": "89f11b13aabb2a8b",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/notion/add-multiple-content-blocks": {
+  "hash": "ac6cd13616865225",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/notion/create-comment": {
+  "hash": "9fd4f3edfd12af56",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/notion/create-notion-page": {
+  "hash": "755216933c6f5d31",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/notion/fetch-comments": {
+  "hash": "f04ff720dabd55d2",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/notion/get-page-markdown": {
+  "hash": "1e07051258c50a38",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/notion/insert-row-database": {
+  "hash": "f34d6c0dac1e5614",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/notion/move-page": {
+  "hash": "bb6a8572d125d7ec",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/notion/query-database-with-filter": {
+  "hash": "f7dcabd398553a9b",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/notion/replace-page-content": {
+  "hash": "948f55b437242a57",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/notion/search-notion-pages-and-databases": {
+  "hash": "43945735aaa608f9",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/notion/update-page": {
+  "hash": "3235e1d403612651",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/notion/upsert-database-rows": {
+  "hash": "b0cee9b3aed09d6e",
   "lastmod": "2026-11-12"
  },
  "/integrations/obsidian": {
-  "hash": "7084cd6f196f9dde",
+  "hash": "e1539cde322ced86",
   "lastmod": "2026-11-12"
  },
  "/integrations/outlook": {
-  "hash": "1430620c505af178",
+  "hash": "baa81ecb621217a7",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/outlook/create-calendar-event": {
+  "hash": "425d6ca0a2720a94",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/outlook/create-email-draft": {
+  "hash": "dc002990d40a7dd5",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/outlook/create-to-do-task": {
+  "hash": "79f20f82bb19f021",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/outlook/decline-calendar-event": {
+  "hash": "b79c75ab193520e5",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/outlook/download-outlook-attachment": {
+  "hash": "8ecd024c5144458c",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/outlook/find-meeting-times": {
+  "hash": "802d7e034eaf6448",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/outlook/list-tasks-from-a-to-do-list": {
+  "hash": "92fedc7ea521cc09",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/outlook/move-message-to-folder": {
+  "hash": "e5423e4f8549d0c4",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/outlook/query-emails": {
+  "hash": "e211cbf1db349538",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/outlook/reply-to-email": {
+  "hash": "244723055cc58f8c",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/outlook/search-calendar-events": {
+  "hash": "94559ec893e600b6",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/outlook/send-email": {
+  "hash": "34fa84eac922d90b",
   "lastmod": "2026-11-12"
  },
  "/integrations/salesforce": {
-  "hash": "f01aae7095518f45",
+  "hash": "83b4014c77404404",
   "lastmod": "2026-11-12"
  },
  "/integrations/shopify": {
-  "hash": "9415d74eca1d6a90",
+  "hash": "3efaaa93bed92983",
   "lastmod": "2026-11-12"
  },
  "/integrations/slack": {
-  "hash": "9a258f8e6ca42a56",
+  "hash": "2c3af081e792c05e",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/slack/add-reaction-to-message": {
+  "hash": "35c02f308d011149",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/slack/create-a-reminder": {
+  "hash": "4cdd1825b3326357",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/slack/create-slack-canvas": {
+  "hash": "e623b2f10f72850c",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/slack/create-slack-list-item": {
+  "hash": "c9b299c29ed17155",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/slack/fetch-conversation-history": {
+  "hash": "5b252fec8bb7e908",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/slack/list-unread-channel-messages": {
+  "hash": "c4d4008eec22dae2",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/slack/schedule-message": {
+  "hash": "2b828eaa93d0b4e7",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/slack/search-messages": {
+  "hash": "824136dd0d29b0b7",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/slack/send-message": {
+  "hash": "c5531597846a45d4",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/slack/update-a-slack-message": {
+  "hash": "8f5a6eef406cb7b0",
   "lastmod": "2026-11-12"
  },
  "/integrations/stripe": {
-  "hash": "2671fb5d5579685e",
+  "hash": "51bcd9833ae250fb",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/stripe/retrieve-invoice": {
+  "hash": "b9216e5086eb2dbd",
   "lastmod": "2026-11-12"
  },
  "/integrations/twitter": {
-  "hash": "80e0f13d90957739",
+  "hash": "021920fbfe23ed06",
   "lastmod": "2026-11-12"
  },
  "/integrations/whatsapp": {
-  "hash": "cbfaa2c6d24034de",
+  "hash": "92abd68bca67a3dd",
   "lastmod": "2026-11-12"
  },
  "/integrations/youtube": {
-  "hash": "fedfb59f4b0e4975",
+  "hash": "5cbafd2c43345d9d",
   "lastmod": "2026-11-12"
  },
  "/personal-ai-agent": {
-  "hash": "259b05a00ec21c49",
+  "hash": "0ccf8996df954cb8",
   "lastmod": "2026-11-12"
  },
  "/routines/github-issue-triage": {
-  "hash": "7896ce1f7aec95a1",
+  "hash": "73777d53e0536ac8",
   "lastmod": "2026-11-12"
  },
  "/routines/meeting-prep-brief": {
-  "hash": "674e2e711257d116",
+  "hash": "a3614c1161e78983",
   "lastmod": "2026-11-12"
  },
  "/routines/slack-channel-digest": {
-  "hash": "181643c354829b19",
+  "hash": "2cbe14178813a658",
   "lastmod": "2026-11-12"
  },
  "/routines/weekly-calendar-preview": {
-  "hash": "811a2da2dc9782ab",
+  "hash": "0b46abd4c6e6bc70",
   "lastmod": "2026-11-12"
  },
  "/routines/weekly-receipts-sweep": {
-  "hash": "0c5b9a698c03efae",
+  "hash": "30b56dbefbcb9ca6",
   "lastmod": "2026-11-12"
  },
  "/run-claude-code-24-7": {
-  "hash": "4a7770018bbac99d",
+  "hash": "e78592b416d2c72e",
   "lastmod": "2026-11-12"
  },
  "/scheduled-ai-tasks": {
-  "hash": "6f62c65062902800",
+  "hash": "475e481f964977f6",
   "lastmod": "2026-11-12"
  },
  "/tools/always-on-cost": {
-  "hash": "46e20451369df33a",
+  "hash": "555a20bd226c6e3b",
   "lastmod": "2026-11-12"
  },
  "/use-cases/competitor-monitoring": {
-  "hash": "1e1473bf75d72a9b",
+  "hash": "7fb3a2f9fba282e8",
   "lastmod": "2026-11-12"
  },
  "/use-cases/daily-briefing": {
-  "hash": "edc00f9a907d3a30",
+  "hash": "568f3b977e4a9020",
   "lastmod": "2026-11-12"
  },
  "/use-cases/email-triage": {
-  "hash": "0d9d0ab9a39b6ac1",
+  "hash": "3b29e104f4ff0ff5",
   "lastmod": "2026-11-12"
  },
  "/use-cases/file-organizer": {
-  "hash": "097662159ca49326",
+  "hash": "a7ce1535ad8c13f1",
   "lastmod": "2026-11-12"
  },
  "/use-cases/invoice-follow-up": {
-  "hash": "b04771a76403ff46",
+  "hash": "9f4ebd48315c1d0c",
   "lastmod": "2026-11-12"
  },
  "/use-cases/lead-research": {
-  "hash": "a7e596f43045f59b",
+  "hash": "ffd2b02f49a8415c",
   "lastmod": "2026-11-12"
  },
  "/use-cases/market-research": {
-  "hash": "5c73f109ff429e0c",
+  "hash": "289d2859248df5b1",
   "lastmod": "2026-11-12"
  },
  "/use-cases/newsletter": {
-  "hash": "5f0a2d6d948c9560",
+  "hash": "6f7f1167f98093fb",
   "lastmod": "2026-11-12"
  },
  "/use-cases/social-media-posting": {
-  "hash": "990e340c68c94113",
+  "hash": "c3337f06f837f4b2",
   "lastmod": "2026-11-12"
  },
  "/use-cases/web-scraping": {
-  "hash": "708640b45069412e",
+  "hash": "a3eca425ddc6187e",
   "lastmod": "2026-11-12"
  },
  "/use-your-ai-subscription": {
-  "hash": "2f4d107860c998d0",
+  "hash": "960f771fc9ce27fd",
   "lastmod": "2026-11-12"
  },
  "/vs/ai-agent-vs-chatbot": {
-  "hash": "80720e6090b54b34",
+  "hash": "b0d255236d6c2bfa",
   "lastmod": "2026-11-12"
  },
  "/vs/chatgpt-agent": {
-  "hash": "97ca09dd1586666a",
+  "hash": "97120867158aa667",
   "lastmod": "2026-11-12"
  },
  "/vs/claude-cowork": {
-  "hash": "53c8664d46774085",
+  "hash": "9996b3354f01b278",
   "lastmod": "2026-11-12"
  },
  "/vs/lindy": {
-  "hash": "cca0e78c3fa2fc7d",
+  "hash": "71ef9b33b84cdcd7",
   "lastmod": "2026-11-12"
  },
  "/vs/manus": {
-  "hash": "26d615f1bf1488b5",
+  "hash": "1d8c4174c5da1d06",
   "lastmod": "2026-11-12"
  },
  "/vs/openclaw": {
-  "hash": "51e0ad95ad110292",
+  "hash": "ca462aee2a539199",
   "lastmod": "2026-11-12"
  },
  "/vs/openclaw-vs-hermes-agent": {
-  "hash": "0ab30934a4cdc444",
+  "hash": "14d01f8d9f5fbc47",
   "lastmod": "2026-11-12"
  },
  "/vs/poke": {
-  "hash": "258a3a2e98a7daf2",
+  "hash": "9d6f3972e2bda32e",
   "lastmod": "2026-11-12"
  },
  "/guides": {
-  "hash": "61fad26a061ddd4b",
+  "hash": "c47a58e324dd7d15",
   "lastmod": "2026-11-12"
  },
  "/alternatives": {
-  "hash": "c7d99dcfc4c9f7c3",
+  "hash": "1bc919e1c372d61b",
   "lastmod": "2026-11-12"
  },
  "/integrations": {
-  "hash": "62d2288ebf978e4e",
+  "hash": "4c06aba5ed00b48b",
   "lastmod": "2026-11-12"
  },
  "/use-cases": {
-  "hash": "a7395fafcd1db09d",
+  "hash": "ae29fc8671770ada",
   "lastmod": "2026-11-12"
  },
  "/routines": {
-  "hash": "b041971112fb0e6c",
+  "hash": "cb1d9c6f3f39637c",
   "lastmod": "2026-11-12"
  },
  "/glossary": {
-  "hash": "2e338e3b56b00e45",
+  "hash": "f962f6dabfe5ac86",
   "lastmod": "2026-11-12"
  },
  "/tools": {
-  "hash": "894e26ee71820de1",
+  "hash": "19448ce2a5fa16a8",
   "lastmod": "2026-11-12"
  }
 }

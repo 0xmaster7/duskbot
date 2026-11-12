@@ -14,7 +14,9 @@
   "answer": "**write it on friday. let slack deliver it when the monday shift starts.** a bot can queue a channel message, direct message or thread reply for a future time. give the destination, wording, time and time zone. once queued, slack posts it later without another yes, so review the note before scheduling.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "slack",

@@ -15,7 +15,9 @@
   "answer": "**stop making your team hunt through email for the latest date.** a bot finds the right asana task and puts a plain text update beside it. you get the news where the work lives, with the project confirmed before posting. comments count as sends and ask first by default. set a sending rule when every comment needs your review.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "asana",

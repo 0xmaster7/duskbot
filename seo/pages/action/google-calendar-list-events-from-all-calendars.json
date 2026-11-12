@@ -14,7 +14,9 @@
   "answer": "**put your gallery visits, travel and classes on one list.** a bot can gather events across selected google calendars and remove duplicates. give it start and end times with your time zone. ask it to put calendar errors before the appointments. this action only looks, but dusk counts it as a write, so allow it by name.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "google calendar",

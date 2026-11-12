@@ -14,7 +14,9 @@
   "answer": "**get back to the notion page whose title you almost remember.** give the bot a few words and say whether you want a page or a database. it searches titles your connection can access, starting with pages by default. it can keep fetching results or list accessible items without a phrase. recently created or shared items can take time to appear.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "notion search",

@@ -47,6 +47,7 @@
     "discord"
   ],
   "related": [
+    "/integrations/canva/list-user-designs",
     "/guides/what-is-mcp",
     "/guides/claude-skills",
     "/integrations/gmail",

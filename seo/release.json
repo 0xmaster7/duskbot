@@ -31,8 +31,9 @@
     {
       "id": "05",
       "week": "2026w46",
-      "label": "app actions, batch 1: 93 actions of 9 apps",
-      "planned": "2026-11-12"
+      "label": "app actions, batch 1: 90 actions of 9 apps (released by the owner, 12 november 2026)",
+      "planned": "2026-11-12",
+      "released": "2026-11-12"
     }
   ],
   "pages": {
@@ -333,11 +334,13 @@
     },
     "/integrations/excel/add-table": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/excel/search-drive-files": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/figma": {
       "cohort": "02",
@@ -351,31 +354,38 @@
     },
     "/integrations/github/add-labels-to-an-issue": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/github/close-an-issue": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/github/create-an-issue": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/github/create-an-issue-comment": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/github/get-a-pull-request": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/github/list-repository-issues": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/github/search-issues-and-pull-requests": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/gmail": {
       "cohort": "01",
@@ -384,55 +394,68 @@
     },
     "/integrations/gmail/batch-modify-gmail-messages": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/gmail/create-email-draft": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/gmail/delete-thread": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/gmail/fetch-emails": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/gmail/get-gmail-attachment": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/gmail/list-drafts": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/gmail/move-to-trash": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/gmail/reply-to-email-thread": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/gmail/search-people": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/gmail/send-draft": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/gmail/send-email": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/gmail/untrash-message": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/gmail/update-draft": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-calendar": {
       "cohort": "01",
@@ -441,35 +464,43 @@
     },
     "/integrations/google-calendar/create-a-new-calendar": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-calendar/create-event": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-calendar/delete-event": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-calendar/find-event": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-calendar/get-event-instances": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-calendar/list-events-from-all-calendars": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-calendar/patch-event": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-calendar/query-calendar-availability": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-drive": {
       "cohort": "02",
@@ -478,27 +509,33 @@
     },
     "/integrations/google-drive/create-a-folder": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-drive/create-permission": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-drive/export-google-workspace-file": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-drive/find-file": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-drive/move-file": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-drive/upload-file": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-sheets": {
       "cohort": "01",
@@ -507,47 +544,58 @@
     },
     "/integrations/google-sheets/append-values-to-spreadsheet": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-sheets/copy-sheet-to-another-spreadsheet": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-sheets/create-a-google-sheet": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-sheets/export-sheet-as-pdf": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-sheets/get-spreadsheet-values": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-sheets/search-spreadsheets": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-sheets/set-basic-filter": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-sheets/set-data-validation-rule": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-sheets/sort-range": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-sheets/update-spreadsheet-values": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/google-sheets/upsert-rows": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/hubspot": {
       "cohort": "03",
@@ -576,51 +624,63 @@
     },
     "/integrations/notion/add-multiple-content-blocks": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/notion/create-comment": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/notion/create-notion-page": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/notion/fetch-comments": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/notion/get-page-markdown": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/notion/insert-row-database": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/notion/move-page": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/notion/query-database-with-filter": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/notion/replace-page-content": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/notion/search-notion-pages-and-databases": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/notion/update-page": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/notion/upsert-database-rows": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/obsidian": {
       "cohort": "03",
@@ -634,51 +694,63 @@
     },
     "/integrations/outlook/create-calendar-event": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/outlook/create-email-draft": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/outlook/create-to-do-task": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/outlook/decline-calendar-event": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/outlook/download-outlook-attachment": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/outlook/find-meeting-times": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/outlook/list-tasks-from-a-to-do-list": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/outlook/move-message-to-folder": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/outlook/query-emails": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/outlook/reply-to-email": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/outlook/search-calendar-events": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/outlook/send-email": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/salesforce": {
       "cohort": "03",
@@ -697,43 +769,53 @@
     },
     "/integrations/slack/add-reaction-to-message": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/slack/create-a-reminder": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/slack/create-slack-canvas": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/slack/create-slack-list-item": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/slack/fetch-conversation-history": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/slack/list-unread-channel-messages": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/slack/schedule-message": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/slack/search-messages": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/slack/send-message": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/slack/update-a-slack-message": {
       "cohort": "05",
-      "status": "queued"
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/integrations/stripe": {
       "cohort": "02",
@@ -892,6 +974,51 @@
     },
     "/vs/poke": {
       "cohort": "04",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/integrations/airtable/create-records": {
+      "cohort": "05",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/integrations/asana/create-task-comment": {
+      "cohort": "05",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/integrations/asana/get-a-task": {
+      "cohort": "05",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/integrations/canva/list-user-designs": {
+      "cohort": "05",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/integrations/jira/add-comment": {
+      "cohort": "05",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/integrations/jira/assign-issue": {
+      "cohort": "05",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/integrations/linear/search-linear-issues": {
+      "cohort": "05",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/integrations/linear/update-issue": {
+      "cohort": "05",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/integrations/stripe/retrieve-invoice": {
+      "cohort": "05",
       "status": "live",
       "live_at": "2026-11-12"
     }

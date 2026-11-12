@@ -15,7 +15,9 @@
   "answer": "**stop typing the same attendance list twice.** give the bot your sign-in sheet and airtable destination. it matches the fields and adds up to ten new rows per request, leaving existing records alone.\n\nrow creation can run without asking. put a preview in the routine so you choose what goes in.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "airtable",

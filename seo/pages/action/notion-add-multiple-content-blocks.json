@@ -14,7 +14,9 @@
   "answer": "**get the latest test notes under the heading where people will read them.** a bot can add paragraphs, headings and lists to an existing notion page. append them at the bottom or insert them after a chosen block. keep long notes in shorter blocks: text can cut off, so open the saved section and read its final line.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "notion",

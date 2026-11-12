@@ -14,7 +14,9 @@
   "answer": "**get the answer back into the conversation where it belongs.** the bot replies in an existing gmail thread, keeps its subject and quotes the last returned message. you name the recipients and can attach files. this action sends the reply; choose create email draft when you want to keep editing in gmail.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "gmail",

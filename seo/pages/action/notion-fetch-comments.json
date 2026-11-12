@@ -14,7 +14,9 @@
   "answer": "**walk into the review knowing what still needs an answer.** a bot reads unresolved comments on a notion page or one block and brings the questions to your chat. it only reads, with access to that page and its comments. resolved discussions stay out. name the page or paragraph you mean, and ask it to finish the list before summarising.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "notion comments",

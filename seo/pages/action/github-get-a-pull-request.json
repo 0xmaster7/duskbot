@@ -14,7 +14,9 @@
   "answer": "**walk into standup knowing what the pr does.** paste the github link and a bot reads the pull request into plain words. the link gives it the repository owner, name and request number. you get the returned details without changing the pr. fetch changed files, reviews and test results separately when you're deciding whether to merge.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "github",

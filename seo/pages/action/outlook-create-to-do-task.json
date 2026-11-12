@@ -14,7 +14,9 @@
   "answer": "**the promise you made on a call deserves better than a sticky note.** tell the bot the next step and the microsoft to do list it belongs in. it can add notes, source links, categories, dates and reminders. give real deadlines when you have them; leave the date blank when you never agreed one.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "outlook",

@@ -197,9 +197,13 @@ ${toc}
     const pages = records.filter((o) => o.hub === hub.id && o.built && (preview || o.indexable));
     const groups = hub.groups.map((g) => [g, pages.filter((o) => g.types.includes(o.type))]).filter(([, l]) => l.length);
     const others = Object.entries(HUBS).filter(([id]) => id !== hub.id && ctx.hubs.some((h) => h.id === id));
+    // every live action, grouped by app, so each one has a way in from the hub
+    const acts = hub.id === 'integrations' ? pages.filter((o) => o.type === 'integration').map((app) => [app, records.filter((o) => o.kind === 'action' && o.action?.toolkit === app.app?.toolkit && o.built && (preview || o.indexable))]).filter(([, l]) => l.length) : [];
+    const actBlock = acts.length ? `<section class="wrap seo-hub seo-hubs" aria-labelledby="actions"><h2 id="actions">what a bot can do, app by app</h2>${acts.map(([app, l]) => `<h3>${esc(app.nav || app.h1)}</h3><ul>${l.map((o) => `<li><a href="${o.path}">${esc(o.nav || o.h1)}</a></li>`).join('')}</ul>`).join('')}</section>` : '';
     const body = `<header class="phead wrap"><p class="crumb"><a href="/">dusk bot</a><span aria-hidden="true">/</span>${esc(hub.nav)}</p><h1>${esc(hub.h1)}</h1><p class="lede">${esc(hub.lede)}</p></header>
 <figure class="wrap seo-hub-hero"><img src="/art/seo/${sceneId(hub.at)}.webp" srcset="/art/seo/${sceneId(hub.at)}-660.webp 660w, /art/seo/${sceneId(hub.at)}.webp 1320w" sizes="(max-width: 760px) 100vw, 1160px" alt="${esc(HUBS[hub.id].alt)}" width="1320" height="528" fetchpriority="high" decoding="async"></figure>
 ${groups.map(([g, l], i) => `<section class="wrap seo-hub" aria-labelledby="${g.id}"><h2 id="${g.id}">${esc(g.title)}</h2><ul class="seo-cards">${l.map((o) => card(o, i > 0 || l.indexOf(o) > 2)).join('')}</ul></section>`).join('\n')}
+${actBlock}
 ${others.length ? `<nav class="wrap seo-hubs" aria-label="more"><h2>more to read</h2><ul>${others.map(([, h]) => `<li><a href="${h.at}">${esc(h.nav)}</a></li>`).join('')}<li><a href="/docs">the docs</a></li></ul></nav>` : ''}`;
     return { body, pages };
   }

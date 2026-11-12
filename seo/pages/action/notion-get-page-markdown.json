@@ -14,7 +14,9 @@
   "answer": "**turn a long notion page into the few lines you need before the meeting.** paste its link or ask the bot to find the title. it reads the page as markdown and makes a summary, comparison or checklist. the source stays untouched. have it name shortened text and unreadable blocks so you know which parts still need opening.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "notion markdown",

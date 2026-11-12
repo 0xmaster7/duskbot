@@ -14,7 +14,9 @@
   "answer": "**let the contractor open the brief without making the folder public.** a bot can grant google drive access to a person, group, domain or anyone. name the file, audience and role. sharing counts as a change even when google emails the recipient. put 'ask me before sharing anything' in your request to review the audience first.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "drive sharing",

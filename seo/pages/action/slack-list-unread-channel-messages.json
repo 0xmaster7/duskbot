@@ -14,7 +14,9 @@
   "answer": "**catch up privately before you jump into the channel.** the bot reads unread slack posts and tells you what needs attention here. unread follows your connected account's reading position. read only is enough. this list leaves out thread replies, and starts at the oldest posts if slack has no saved reading position.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "unread posts",

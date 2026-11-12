@@ -14,7 +14,9 @@
   "answer": "**the meeting is next week. the title has completely left your head.** give the bot a topic, person or date range and it finds candidates in one google calendar. descriptions and attendee details can match too. ask for dates beside the results so you can spot the appointment without opening every day yourself.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "google-calendar",

@@ -14,7 +14,9 @@
   "answer": "**get finished work out of the open queue, with the right reason attached.** the bot can close a github issue as completed or not planned. paste its full link so it finds the right repository. want the final say? tell it to show the title and closure reason, then wait for your answer. closures do not pause automatically.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "issue closure",

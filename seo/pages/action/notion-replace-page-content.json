@@ -14,7 +14,9 @@
   "answer": "**see the whole rewrite before the old checklist goes.** this action replaces a notion page's child blocks and offers a dry run first. it can also make a backup. some blocks and nested content stay out of that backup, and a staged replacement can fail halfway. use the preview to decide whether a full rewrite is worth it.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "notion",

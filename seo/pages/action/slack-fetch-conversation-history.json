@@ -14,7 +14,9 @@
   "answer": "**come back from holiday knowing what the team announced.** name a slack channel or direct conversation and the dates you missed. a bot reads the main timeline your account can access and brings back a recap. thread replies need their own read, so ask it to flag those. read only access keeps the catch-up from changing slack.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "slack",

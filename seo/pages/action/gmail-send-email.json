@@ -14,7 +14,9 @@
   "answer": "**get the payroll email ready without assembling it again every friday.** a bot can send through your connected gmail, with cc, bcc, attachments and your signature. give at least one address and a subject or body. sends ask first by default unless you set a daily amount. review the recipients as carefully as the words before tapping allow.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "gmail",

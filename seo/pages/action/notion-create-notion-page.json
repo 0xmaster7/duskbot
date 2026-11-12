@@ -14,7 +14,9 @@
   "answer": "**get the field notes out of chat and into the project.** a bot can create a notion page with a title and markdown, or start a blank page for later. give it an existing parent page or database.\n\nthat's where the new note will live; this action can't make a top-level workspace page.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "notion",

@@ -14,7 +14,9 @@
   "answer": "**walk into the call with the signed agreement open.** give the bot the sender, subject and filename. it finds the gmail message, selects the attachment and returns a download in your chat.\n\nyou get a copy. the original email and attachment stay in gmail, ready to find again.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "gmail",

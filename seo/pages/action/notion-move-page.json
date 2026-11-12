@@ -14,7 +14,9 @@
   "answer": "**put the finished brief where your team will look for it.** a bot moves an existing notion page under another page or into a database, keeping its contents intact. give it the source link and destination link. you get the original page in its new home, without a second copy to keep in sync.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "notion",

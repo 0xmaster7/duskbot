@@ -14,7 +14,9 @@
   "answer": "**hand the trainer real dates instead of saying every tuesday.** the bot finds your recurring google calendar event and lists its occurrences within a chosen window. include cancellations so nobody travels for a skipped session. this only lists dates, but dusk classes the action as a write. give it read and write access limited to this job.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "recurring meetings",

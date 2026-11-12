@@ -14,7 +14,9 @@
   "answer": "**fix the announcement people already bookmarked.** paste its slack link and ask the bot to read the original, then show replacement wording. it can update that message instead of creating a competing announcement. edits count as writes, so sending approvals do not pause them. tell the bot to wait for your agreement before replacing the text.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "slack",

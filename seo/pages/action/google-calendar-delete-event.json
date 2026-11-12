@@ -14,7 +14,9 @@
   "answer": "**free the slot without wiping the whole series.** a bot can delete a google calendar event, including one occurrence of a repeating meeting. name the calendar and date so it finds the right one. deletion counts as a calendar change, so put the confirmation step in your request rather than relying on sending approval.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "google-calendar",

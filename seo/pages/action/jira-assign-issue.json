@@ -15,7 +15,9 @@
   "answer": "**give the issue an owner before it spends another week in limbo.** a bot can find a jira issue, look up the teammate you name and assign it. you can also choose the project default or clear the owner. put a confirmation step in the routing routine; assignments don't wait for sending approval.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "jira",

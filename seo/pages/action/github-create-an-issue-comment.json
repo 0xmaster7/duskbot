@@ -14,7 +14,9 @@
   "answer": "**get the missing detail without writing another follow-up yourself.** the bot reads a github issue or pull request and drafts a markdown comment. paste the discussion link so it lands in the right repository.\n\ncomments count as sends. they ask by default, and you can set a daily amount for the bot.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "github",

@@ -14,7 +14,9 @@
   "answer": "**get the new email written before choosing who gets it.** the bot can save an outlook draft with a subject, body and optional files. recipients can stay blank. it starts a new conversation rather than replying in an old thread. saving needs read and write access, but this action does not send the email.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "outlook",

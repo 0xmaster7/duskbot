@@ -14,7 +14,9 @@
   "answer": "**turn the maintenance calendar into a notice the team can use.** a bot can post to an accessible slack channel, direct message or private group, and reply in a thread. show it the destination and the wording to send. sends ask first by default unless you allow a daily amount. after an uncertain result, open slack before retrying to avoid a duplicate.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "slack",

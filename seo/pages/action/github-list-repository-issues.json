@@ -14,7 +14,9 @@
   "answer": "**walk into the handover knowing which issues still need an owner.** give the bot a github repository and narrow it by label, assignee, milestone or recent updates. it brings the matching work here without editing the queue. github includes pull requests too, so ask for those in a separate list.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "github",

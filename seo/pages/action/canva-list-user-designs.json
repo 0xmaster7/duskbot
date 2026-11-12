@@ -15,7 +15,9 @@
   "answer": "**find the deck without asking everyone to resend it.** a bot searches canva designs you own, designs people shared with you, or both. put recent edits first and get matching titles here. you get a shortlist to open, instead of another round of 'can you send that link again?'",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "canva",

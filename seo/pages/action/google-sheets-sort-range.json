@@ -14,7 +14,9 @@
   "answer": "**put dispatch in due-date order, with every customer still beside their own job.** the bot can sort a google sheets range by several columns. later rules break ties, such as customer name after due date. include the full width of each record, with headers and totals outside. ask it to show the range and wait before reordering.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "google sheets",

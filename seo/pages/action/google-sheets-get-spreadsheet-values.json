@@ -14,7 +14,9 @@
   "answer": "**get the figures for your decision without digging through the workbook.** name the file, tab and cells. the bot can read displayed figures, raw calculated values or formulas from that range. dusk labels this lookup as a write, so allow read and write and limit the bot to this retrieval action.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "google sheets",

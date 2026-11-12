@@ -14,7 +14,9 @@
   "answer": "**get the approved purchase out of your notes and into the tracker.** a bot adds a notion database row with table properties and a short page body. missing fields can stay empty. share the database with the connection first, and use a database with one data source. put any approval step in the request.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "notion",

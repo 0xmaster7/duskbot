@@ -14,7 +14,9 @@
   "answer": "**put the approved poster where the printer can find it.** give the bot a file up to 5 mb and a google drive folder. it creates a new copy rather than replacing an older file. a bad or missing destination can silently send it to drive's top level. uploads bypass sending approval, so ask for the folder preview before it writes.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "drive upload",

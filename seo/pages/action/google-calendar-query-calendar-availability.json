@@ -14,7 +14,9 @@
   "answer": "**find a room without reading everyone's meeting titles.** name the calendars, dates and time zone. the bot returns busy intervals, which you can compare before booking. use **find free slots** for calculated openings.\n\ndusk classes this query as a write. allow this action alone, or use **find free slots** to keep the bot read only.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "availability",

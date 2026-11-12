@@ -14,7 +14,9 @@
   "answer": "**give a project its own calendar before it crowds your personal one.** a bot can create a secondary google calendar with a title, description, location and time zone. your connected account owns it. name the time zone because the default is utc. creation won't ask first unless you put that instruction in the job.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "google calendar",

@@ -14,7 +14,9 @@
   "answer": "**put the agreed visit in outlook while the details are still fresh.** give a bot the subject, start, end and time zone. it can add a location, guests or repeating dates. leave the calendar unnamed and it uses your main one. creation counts as a change, so ask to review the entry first; sending approval won't pause it.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "outlook calendar",

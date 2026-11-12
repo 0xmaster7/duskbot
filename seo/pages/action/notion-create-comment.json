@@ -14,7 +14,9 @@
   "answer": "**put the review question where the document owner will actually see it.** the bot can leave a notion page comment or reply in an existing discussion. it cannot start a new inline thread on a block. draft the wording in dusk chat, choose the page or thread, and keep sending on **Ask every time** so posting waits for you.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "notion",

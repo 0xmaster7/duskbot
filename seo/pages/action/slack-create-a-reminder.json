@@ -14,7 +14,9 @@
   "answer": "**remember the samples before the courier arrives.** tell the bot what slack should remind you to do and when. it can create a one-off or repeating reminder for your connected account. slack handles the repetition after that. reminder creation is a write, so ask for a preview and a pause if you want to approve the text and time first.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "slack",

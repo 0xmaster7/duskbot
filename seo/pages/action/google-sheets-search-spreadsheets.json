@@ -14,7 +14,9 @@
   "answer": "**the supplier sent the sheet. now the link is buried.** a bot finds accessible google spreadsheets by name, content, dates or sharing status. it returns candidate files without changing cells. name searches start at the beginning of filenames, so give it the opening words or ask for a broader match when you only remember the middle.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "google-sheets",

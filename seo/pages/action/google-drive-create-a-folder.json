@@ -14,7 +14,9 @@
   "answer": "**put the new project where you'll actually find it.** your bot can create a google drive folder inside an existing parent. paste the parent link when names repeat; a name alone picks the first match. missing parents need separate creation. ask for a name and location preview before this write, then get the new folder link back.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "google drive",

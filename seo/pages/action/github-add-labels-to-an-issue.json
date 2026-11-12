@@ -14,7 +14,9 @@
   "answer": "**give every keyboard bug the same label, without losing the labels already there.** paste a github issue and the exact names to add. the bot keeps existing labels. missing names become new labels, so a typo becomes part of your system. label changes bypass sending approval; put an ask-first instruction in the job if you want a preview.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "issue labels",

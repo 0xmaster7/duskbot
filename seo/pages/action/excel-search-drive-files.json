@@ -14,7 +14,9 @@
   "answer": "**get the right workbook without opening every file named final.** give the bot a name fragment or project phrase. it searches onedrive, including shared files if you ask, and lists matching excel files. pick the copy you want, then ask it to read the cells. the search itself opens and changes nothing.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "excel",

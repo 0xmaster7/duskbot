@@ -14,7 +14,9 @@
   "answer": "**someone may have solved that bug before you lost the morning to it.** a bot searches github issues and pull requests by repository, author, label or status. it brings back matches and the search words it used. start in the repository where the error happens, then read the closest report for symptoms and affected versions.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "github",

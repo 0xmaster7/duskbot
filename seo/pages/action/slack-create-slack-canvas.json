@@ -14,7 +14,9 @@
   "answer": "**give the next shift a handover they can find.** a bot turns your notes into a new slack canvas, with an optional title and channel tab. leave out the notes to start blank.\n\nnaming a channel adds a tab with write permissions. include content and placement in your review; creation doesn't wait for sending approval.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "canvas",

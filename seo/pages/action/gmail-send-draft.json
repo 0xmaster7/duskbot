@@ -14,7 +14,9 @@
   "answer": "**finish the proposal in gmail, then release it when the client says yes.** the bot sends the saved draft to its saved recipients, including cc and bcc. it uses the text exactly as it stands. open that copy before allowing the send; edits in chat need a separate draft update.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "gmail",

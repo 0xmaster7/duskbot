@@ -403,4 +403,6 @@ for (const [from, to] of Object.entries(redirects)) {
   if (target.startsWith('/') && !built.some((p) => p.address === target) && !fs.existsSync(path.join(site, target))) throw new Error(`redirects.json: ${from} goes to ${to}, which is not a page`);
 }
 fs.writeFileSync(path.join(site, '_redirects.json'), JSON.stringify(redirects));
+// the app demo (built from the dusk bot repo) gets the analytics tag too
+await import('./inject-tracker.mjs');
 console.log(`built ${built.length} pages into ${site} (${docs} of them docs; downloads ${release.released ? `open, version ${release.version || 'unknown'}` : 'not open yet'})`);

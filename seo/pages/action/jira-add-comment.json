@@ -15,7 +15,9 @@
   "answer": "**give the next person enough detail to repeat your test.** a bot turns your notes into a jira comment with steps, links and a clear result. it finds the issue from the project and problem you name. posting counts as a send and asks first by default. read the wording and audience before you approve.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "jira",

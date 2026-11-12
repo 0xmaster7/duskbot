@@ -29,6 +29,7 @@
     "stripe"
   ],
   "related": [
+    "/integrations/stripe/retrieve-invoice",
     "/integrations/gmail",
     "/integrations/stripe",
     "/routines/weekly-receipts-sweep"

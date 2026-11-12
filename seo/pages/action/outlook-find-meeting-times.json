@@ -14,7 +14,9 @@
   "answer": "**skip another round of “does tuesday work?”** give the bot attendee emails, duration and a time window. outlook returns meeting options without booking anything. this action needs a work or school microsoft account. tell it everyone must be free when everyone matters: the default can suggest a time with only half the attendees available.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "outlook",

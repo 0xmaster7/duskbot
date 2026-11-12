@@ -52,6 +52,7 @@
 .seo-hub .seo-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .seo-hubs { margin-top: 72px; }
 .inner .seo-hubs h2 { font-size: 22px; }
+.seo-hubs h3 { font-size: 16px; margin: 22px 0 0; }
 .seo-hubs ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
 .seo-hubs a { display: inline-block; padding: 8px 16px; border-radius: 999px; background: var(--wash); text-decoration: none; }
 .seo-hubs a:hover { background: #ebebe8; }

@@ -15,7 +15,9 @@
   "answer": "**start your shift knowing who owns the work and when it's due.** name the asana task and project. a bot reads its owner, due date and instructions into a short brief. ask for those details by name; the default view can leave them out. your account controls which tasks it can open. comments need their own lookup.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "asana",

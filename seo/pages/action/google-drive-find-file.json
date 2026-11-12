@@ -14,7 +14,9 @@
   "answer": "**stop opening five files called final.** a bot searches drive by name, type, date or folder and returns names, dates and links. it can cover my drive and shared drives your connected account can open. give it the clues you remember and get a shortlist, with the files left where they are.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "google-drive",

@@ -14,7 +14,9 @@
   "answer": "**say \"shorter\" instead of rewriting the email yourself.** a bot can revise a saved gmail draft's wording, subject or recipients. it updates the draft without sending it.\n\nevery edit rebuilds the message, so attachments need adding again. ask for a proposed revision if you want to read it before the saved draft changes.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
   },
   "tags": [
     "gmail",
