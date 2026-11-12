@@ -107,13 +107,16 @@ it("lets Dusk read the unread notifications and mark finished work read, not onc
     expect((await callTool(agents, "mark_notifications_read", { ids: "all" })).result?.isError).toBe(true);
 
     // Sign-in members make the workspace shared: the app filters the feed per viewer, which the bot cannot be.
+    await control(["interrupt", "--bot", maus.id]);
+    await expect.poll(async () => ((await api("/api/bots")).bots as any[]).some((bot) => bot.busy), { timeout: 30_000 }).toBe(false);
     const shared = await fetch(`${fixture.info.url}/api/config`, { method: "PUT", headers: { "content-type": "application/json" },
       body: JSON.stringify({ signIn: { admins: ["boss@example.test"], members: ["ada@example.test"] } }), signal: AbortSignal.timeout(10_000) });
     expect(shared.status, await shared.text()).toBe(200);
-    const refused = await callTool(agents, "list_unread_notifications", {});
+    const sharedAgents = await launch(maus.id);
+    const refused = await callTool(sharedAgents, "list_unread_notifications", {});
     expect(refused.result?.isError, text(refused)).toBe(true);
     expect(text(refused)).toContain("read in the app");
-    expect((await callTool(agents, "mark_notifications_read", { ids: ["no-such-notification"] })).result?.isError).toBe(true);
+    expect((await callTool(sharedAgents, "mark_notifications_read", { ids: ["no-such-notification"] })).result?.isError).toBe(true);
 
     const { bot: clive } = await control(["new-bot", "--name", "Clive"]);
     const other = await launch(clive.id);
