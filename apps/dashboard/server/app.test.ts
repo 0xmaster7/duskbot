@@ -133,6 +133,14 @@ describe("hosted dashboard service", () => {
     expect((await page("/v1/auth/start", { email: "owner@example.com" })).status).toBe(429);
   });
 
+  it("holds a PUT to the same JSON and Origin rule as every other change", async () => {
+    const cookie = await login();
+    const put = (headers: Record<string, string>) => fetch(`${url}/v1/account/analytics`, { method: "PUT", headers: { cookie, [CSRF_HEADER]: csrf.get(cookie) ?? "", ...headers }, body: JSON.stringify({ optOut: true }) });
+    const foreign = await put({ "content-type": "application/json", origin: "https://elsewhere.test" });
+    expect(foreign.status).toBe(403);
+    expect((await readJson<{ code: string }>(foreign)).code).toBe("forbidden");
+    expect((await put({ "content-type": "text/plain", origin })).status).toBe(403);
+  });
   it("sets secure cookie attributes for https and expires web sessions after 30 days", async () => {
     app.close();
     app = createDashboardApp({ dataDir, publicUrl: "https://dashboard.test", mailer, staticDir, now: () => time });

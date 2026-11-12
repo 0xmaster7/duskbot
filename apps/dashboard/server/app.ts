@@ -78,6 +78,7 @@ const hash = (value: string | Buffer) => createHash("sha256").update(value).dige
 const random = (bytes: number) => randomBytes(bytes).toString("base64url");
 const hourMs = 60 * 60_000;
 const sections = ["machine", "computers", "bots", "activity", "devices", "plans", "apps"] as const;
+const MUTATIONS = ["POST", "PUT", "PATCH", "DELETE"];
 
 /** the page's content security policy: its own scripts plus the hashes of its inline ones (the theme bootstrap) */
 export function pagePolicy(html: string): string {
@@ -313,7 +314,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     res.writeHead(status, { location, "cache-control": status === 301 ? "public, max-age=3600" : "no-store" }); res.end();
   }
   function account(req: IncomingMessage): Account {
-    return auth.requireWeb(req, { mutation: ["POST", "PATCH", "DELETE"].includes(req.method ?? "GET") });
+    return auth.requireWeb(req, { mutation: MUTATIONS.includes(req.method ?? "GET") });
   }
   function summary(ws: StoredWorkspace): WorkspaceSummary {
     return { id: ws.id, name: ws.name, kind: ws.kind, version: ws.version, connectedAt: ws.connectedAt, lastReportAt: ws.lastReportAt, freshness: freshnessOf(ws.lastReportAt, now()) };
@@ -461,7 +462,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       if (database && !database.ok) return json(res, 503, { ok: false, error: "database writes are failing" });
       return json(res, 200, { ok: true, version: options.version ?? null });
     }
-    const mutation = ["POST", "PATCH", "DELETE"].includes(method);
+    const mutation = MUTATIONS.includes(method);
     const appleCallback = method === "POST" && path === "/v1/auth/oauth/apple/callback" && req.headers["content-type"]?.split(";")[0]?.trim().toLowerCase() === "application/x-www-form-urlencoded";
     if (mutation && !isAppCorsRoute(path) && !appleCallback && path !== TRACK_PATH && path !== APP_EVENTS_PATH) {
       if (req.headers["content-type"]?.split(";")[0]?.trim().toLowerCase() !== "application/json") fail(403, "forbidden", "JSON is required.");
