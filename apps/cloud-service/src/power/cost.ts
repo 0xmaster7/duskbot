@@ -12,6 +12,8 @@ export type PoolCounts = Record<PoolWindow, number>;
 export interface ProviderCostProfile {
   /** compute per hour while running, in cents (billed per second, nothing while stopped) */
   computeCentsPerHour(spec: MachineSpec): number;
+  /** a size's own disk per hour while its machine exists, paused or not (none when the provider does not bill it) */
+  diskCentsPerHour?(spec: MachineSpec): number;
   /** the cheapest size's compute per hour: the monthly ceiling counts the month ahead only at its margin */
   floorCentsPerHour: number;
   /** starts the account's plan includes per rolling window, and past how many the provider refuses one */

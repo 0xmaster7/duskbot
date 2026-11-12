@@ -163,3 +163,36 @@ describe("the spend ledger", () => {
     expect(alerts.filter(a => a.includes("stays up"))).toHaveLength(1);
   });
 });
+
+describe("the home's own disk", () => {
+  it("counts in both spend and ceiling while its machine exists, so it is bounded without taking slack from compute", () => {
+    const disk = 20 * 8 / 730, plain = openBook(NOV, open()), withDisk = openBook(NOV, { ...open(), disk });
+    advanceBook(plain, NOV + 100 * HOUR); advanceBook(withDisk, NOV + 100 * HOUR);
+    expect(withDisk.diskCents).toBeCloseTo(disk * 100, 6);
+    expect(spentCents(withDisk) - spentCents(plain)).toBeCloseTo(disk * 100, 6);
+    expect(withDisk.ceilingCents - plain.ceilingCents).toBeCloseTo(disk * 100, 6);
+    expect(slackCents(withDisk)).toBeCloseTo(slackCents(plain), 6);
+    // the machine deleted (an archived home): no more disk on either side
+    applySpend(withDisk, { e: "disk", rate: 0 });
+    advanceBook(withDisk, NOV + 200 * HOUR);
+    expect(withDisk.diskCents).toBeCloseTo(disk * 100, 6);
+    // a month that ends carries the rate and starts its own disk count
+    applySpend(withDisk, { e: "disk", rate: disk });
+    advanceBook(withDisk, DEC + HOUR);
+    expect(withDisk.month).toBe("2026-12");
+    expect(withDisk.diskCents).toBeCloseTo(disk, 6);
+  });
+  it("is replayed from the log", () => {
+    const store = memorySpendStore();
+    let t = NOV + HOUR;
+    const make = () => createSpendLedger({ store, profile, reserveStarts: N, now: () => t });
+    const a = make();
+    a.record("c1", () => ({ rate: 1.8, up: true, bytes: 0, prepaid: false, before: false, disk: 0.2 }), { e: "disk", rate: 0.3 });
+    t += 10 * HOUR;
+    const before = a.book("c1").current!;
+    const b = make().book("c1").current!;
+    expect(b.disk).toBe(0.3);
+    expect(b.diskCents).toBeCloseTo(before.diskCents, 6);
+    expect(b.diskCents).toBeCloseTo(3, 6);
+  });
+});

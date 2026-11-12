@@ -1,7 +1,8 @@
 // The hard monthly ceiling on what one home may cost, for any provider. A home's book for a calendar month (UTC) counts
 // everything it spends: compute while its machine may be running, every start at the worst price it could have had
-// until the pool ledger proves less, backup storage, and any second machine (a retired disk's keep-alive). The ceiling is
-// the month's always-on compute times CEILING_FACTOR, prorated by the hours spent at each size. docs/power.md has the
+// until the pool ledger proves less, backup storage, any second machine (a retired disk's keep-alive), and the home's own
+// disk while its machine exists. The ceiling is the month's always-on compute times CEILING_FACTOR, prorated by the hours
+// spent at each size, plus that disk: the plan sells its disk, so it is in both and only the rest is bounded by the factor. docs/power.md has the
 // proof that spend never passes it; the rules that keep it are in rails.ts.
 import { HOUR, type ProviderCostProfile } from "./cost.ts";
 
@@ -50,9 +51,11 @@ export interface SpendBook {
   /** the cheapest size's compute price: the future ceiling is only counted at its margin, so a downsize can never strand spend */
   floor: number;
   bytes: number;
+  /** the home's own disk, cents per hour while its machine exists (0 once it is deleted) */
+  disk: number;
   /** the ceiling accrued for [start, at) */
   ceilingCents: number;
-  computeCents: number; startCents: number; storageCents: number; extraCents: number;
+  computeCents: number; startCents: number; storageCents: number; extraCents: number; diskCents: number;
   /** the next start was paid for by the stop before it (ours, not the provider's) */
   prepaid: boolean;
   /** starts this month nobody paid for with a stop: failures, retries, provider stops, rebuilds */
@@ -63,7 +66,7 @@ export interface SpendBook {
 }
 
 export type SpendEvent =
-  | { e: "open"; rate: number; floor: number; up: boolean; bytes: number; prepaid: boolean; /** spend before `t` this month is unknown: priced as always-on */ before: boolean }
+  | { e: "open"; rate: number; floor: number; up: boolean; bytes: number; prepaid: boolean; /** spend before `t` this month is unknown: priced as always-on */ before: boolean; disk?: number }
   | { e: "start"; kind: string; cents: number }
   /** the start's price once known: `cents` back; `void`: it never happened (the provider refused it) */
   | { e: "settle"; cents: number; void?: boolean }
@@ -71,16 +74,17 @@ export type SpendEvent =
   | { e: "stop" }
   | { e: "rate"; rate: number }
   | { e: "bytes"; bytes: number }
+  | { e: "disk"; rate: number }
   | { e: "extra"; cents: number; why: string };
 
-export const spentCents = (b: SpendBook) => b.computeCents + b.startCents + b.storageCents + b.extraCents;
+export const spentCents = (b: SpendBook) => b.computeCents + b.startCents + b.storageCents + b.extraCents + b.diskCents;
 export const storageRate = (b: Pick<SpendBook, "bytes" | "hours">, s: CeilingSettings = DEFAULT_CEILING) => b.bytes / 1e9 * s.storageCentsPerGbMonth / b.hours;
 
 export function openBook(at: number, open: Extract<SpendEvent, { e: "open" }>, s: CeilingSettings = DEFAULT_CEILING): SpendBook {
   const m = monthOf(at), f = ceilingFactor(m.hours, s), before = (at - m.start) / HOUR;
   const b: SpendBook = { month: m.key, start: m.start, end: m.end, hours: m.hours, at, up: open.up, rate: open.rate, floor: Math.min(open.floor, open.rate), bytes: Math.max(0, open.bytes),
-    ceilingCents: open.rate * f * before, computeCents: 0, startCents: 0, storageCents: 0, extraCents: 0, prepaid: open.prepaid, unplanned: 0, starts: 0, lastPlanned: false };
-  if (open.before) { b.computeCents = open.rate * before; b.storageCents = storageRate(b, s) * before; }
+    disk: Math.max(0, open.disk ?? 0), ceilingCents: open.rate * f * before, computeCents: 0, startCents: 0, storageCents: 0, extraCents: 0, diskCents: 0, prepaid: open.prepaid, unplanned: 0, starts: 0, lastPlanned: false };
+  if (open.before) { b.computeCents = open.rate * before; b.storageCents = storageRate(b, s) * before; b.diskCents = b.disk * before; b.ceilingCents += b.disk * before; }
   return b;
 }
 
@@ -89,14 +93,15 @@ export function advanceBook(b: SpendBook, to: number, s: CeilingSettings = DEFAU
   const closed: SpendBook[] = [];
   while (to > b.at) {
     const until = Math.min(to, b.end), h = (until - b.at) / HOUR;
-    b.ceilingCents += b.rate * ceilingFactor(b.hours, s) * h;
+    b.ceilingCents += (b.rate * ceilingFactor(b.hours, s) + b.disk) * h;
     if (b.up) b.computeCents += b.rate * h;
+    b.diskCents += b.disk * h;
     b.storageCents += storageRate(b, s) * h;
     b.at = until;
     if (until < b.end) break;
     closed.push({ ...b });
     const m = monthOf(b.end);
-    Object.assign(b, { month: m.key, start: m.start, end: m.end, hours: m.hours, at: m.start, ceilingCents: 0, computeCents: 0, startCents: 0, storageCents: 0, extraCents: 0, unplanned: 0, starts: 0 });
+    Object.assign(b, { month: m.key, start: m.start, end: m.end, hours: m.hours, at: m.start, ceilingCents: 0, computeCents: 0, startCents: 0, storageCents: 0, extraCents: 0, diskCents: 0, unplanned: 0, starts: 0 });
   }
   return closed;
 }
@@ -128,6 +133,7 @@ export function applySpend(b: SpendBook, ev: SpendEvent): void {
     case "stop": b.prepaid = true; break;
     case "rate": b.rate = ev.rate; b.floor = Math.min(b.floor, ev.rate); break;
     case "bytes": b.bytes = Math.max(0, ev.bytes); break;
+    case "disk": b.disk = Math.max(0, ev.rate); break;
     case "extra": b.extraCents += ev.cents; break;
     case "open": break;
   }

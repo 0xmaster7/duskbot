@@ -32,7 +32,7 @@ export function memorySpendStore(): SpendStore & { all: Array<{ month: string; l
 }
 
 /** what a home's book opens with when the log has none for it */
-export interface SpendInit { rate: number; up: boolean; bytes: number; prepaid: boolean; before: boolean }
+export interface SpendInit { rate: number; up: boolean; bytes: number; prepaid: boolean; before: boolean; disk?: number }
 type Line = SpendEvent & { t: number; c: string };
 
 const CLOUD = /^[A-Za-z0-9_-]{1,80}$/;
@@ -42,12 +42,13 @@ function parse(raw: string): Line | null {
     if (!v || typeof v !== "object" || !Number.isFinite(v.t) || typeof v.c !== "string" || !CLOUD.test(v.c)) return null;
     const num = (x: unknown) => typeof x === "number" && Number.isFinite(x);
     switch (v.e) {
-      case "open": return num(v.rate) && num(v.floor) && num(v.bytes) && typeof v.up === "boolean" && typeof v.prepaid === "boolean" && typeof v.before === "boolean" ? v : null;
+      case "open": return num(v.rate) && num(v.floor) && num(v.bytes) && typeof v.up === "boolean" && typeof v.prepaid === "boolean" && typeof v.before === "boolean" && (v.disk === undefined || num(v.disk) && v.disk >= 0) ? v : null;
       case "start": return num(v.cents) && typeof v.kind === "string" ? v : null;
       case "settle": return num(v.cents) && v.cents >= 0 && (v.void === undefined || typeof v.void === "boolean") ? v : null;
       case "extra": return num(v.cents) ? v : null;
       case "rate": return num(v.rate) && v.rate >= 0 ? v : null;
       case "bytes": return num(v.bytes) ? v : null;
+      case "disk": return num(v.rate) && v.rate >= 0 ? v : null;
       case "up": case "down": case "stop": return v;
       default: return null;
     }
@@ -118,7 +119,7 @@ export function createSpendLedger(options: {
     const t = clock();
     let b = books.get(c);
     if (!b) {
-      const i = init(), ev: SpendEvent = { e: "open", rate: i.rate, floor: Math.min(profile.floorCentsPerHour, i.rate), up: i.up, bytes: i.bytes, prepaid: i.prepaid, before: i.before };
+      const i = init(), ev: SpendEvent = { e: "open", rate: i.rate, floor: Math.min(profile.floorCentsPerHour, i.rate), up: i.up, bytes: i.bytes, prepaid: i.prepaid, before: i.before, ...(i.disk ? { disk: i.disk } : {}) };
       write(t, c, ev); b = openBook(t, ev, s); books.set(c, b);
       return { b, t };
     }
@@ -126,7 +127,7 @@ export function createSpendLedger(options: {
     if (t >= b.end) {
       roll(c, b, monthOf(t).start);
       // the carried state, as of the month's first moment, so this month's log replays on its own
-      if (b.month !== month) write(b.start, c, { e: "open", rate: b.rate, floor: b.floor, up: b.up, bytes: b.bytes, prepaid: b.prepaid, before: false });
+      if (b.month !== month) write(b.start, c, { e: "open", rate: b.rate, floor: b.floor, up: b.up, bytes: b.bytes, prepaid: b.prepaid, before: false, ...(b.disk ? { disk: b.disk } : {}) });
     }
     roll(c, b, t);
     return { b, t };
