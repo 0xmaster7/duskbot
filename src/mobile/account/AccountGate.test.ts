@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { setLocale } from "@/lib/i18n";
 import { AccountGate, mobileAccountOrigin, providersFor, useMobileAccount } from "./AccountGate";
+import { MobileSignIn } from "./MobileSignIn";
 import { PlatformContext, webPlatform, type MobilePlatform } from "../platform";
 
 vi.mock("@/components/Avatar", () => ({ MausAvatar: () => createElement("span") }));
@@ -27,50 +28,60 @@ beforeEach(() => {
   fetcher = vi.fn<typeof fetch>(); vi.stubGlobal("fetch", fetcher);
 });
 afterEach(async () => { await act(async () => root?.unmount()); host.remove(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
-const gate = (children: ReactNode = createElement("p", null, "workspace")) => createElement(PlatformContext, { value: platform }, createElement(AccountGate, { children }));
+/** what the app shows: the workspace once signed in, else the sign-in a person can choose to open */
+function Probe() {
+  const value = useMobileAccount();
+  return value?.account ? createElement("p", null, `workspace ${value.account.email}`) : createElement(MobileSignIn, { onSignedIn: () => {} });
+}
+const gate = (children: ReactNode = createElement(Probe)) => createElement(PlatformContext, { value: platform }, createElement(AccountGate, { children }));
 const mount = (children?: ReactNode, strict = false) => act(async () => {
   root = createRoot(host); root.render(strict ? createElement(StrictMode, null, gate(children)) : gate(children));
 });
-const heading = () => expect(host.querySelector("h1")?.textContent).toBe("Sign in to dusk bot");
-const typeEmail = () => act(async () => {
-  const field = host.querySelector<HTMLInputElement>("input[type=email]")!;
-  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(field, account.email);
+const heading = () => expect(host.querySelector("h1")?.textContent).toBe("Log in to dusk");
+const type = (selector: string, value: string) => act(async () => {
+  const field = host.querySelector<HTMLInputElement>(selector)!;
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(field, value);
   field.dispatchEvent(new Event("input", { bubbles: true }));
 });
+const typeEmail = () => type("input[type=email]", account.email);
 const submit = () => act(async () => { host.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })); });
 
 const save = () => secrets.set("dusk.account", JSON.stringify({ origin, token, expiresAt: Date.now() + 60_000, account, deviceId: "phone" }));
+const signedIn = `workspace ${account.email}`;
 
-it("requires an account in the native app", async () => {
-  await mount(); heading(); expect(host.textContent).not.toContain("workspace");
+it("never blocks the native app: signed out, the app shows and the sign-in is something to open", async () => {
+  fetcher.mockResolvedValue(response({ v: 1, providers: [], signupOpen: true }));
+  function Plain() { const value = useMobileAccount(); return createElement("p", null, `app ${value?.offered} ${value?.account === null}`); }
+  await mount(createElement(Plain)); expect(host.textContent).toBe("app true true");
 });
-it("passes through browser children unless the development query requires an account", async () => {
+it("passes through browser children and offers no account unless the development query asks for one", async () => {
   platform.native = false; platform.kind = "web";
-  expect(renderToStaticMarkup(gate())).toBe("<p>workspace</p>");
-  window.history.replaceState({}, "", "/?account=1"); await mount(); heading(); expect(host.textContent).not.toContain("workspace");
+  expect(renderToStaticMarkup(gate(createElement("p", null, "workspace")))).toBe("<p>workspace</p>");
+  function Offered() { return createElement("p", null, String(useMobileAccount()?.offered)); }
+  await mount(createElement(Offered)); expect(host.textContent).toBe("false");
 });
 it("honors the native signed-out development override", () => {
-  vi.stubEnv("VITE_DUSK_ALLOW_SIGNED_OUT", "1"); expect(renderToStaticMarkup(gate())).toBe("<p>workspace</p>");
+  vi.stubEnv("VITE_DUSK_ALLOW_SIGNED_OUT", "1"); expect(renderToStaticMarkup(gate(createElement("p", null, "workspace")))).toBe("<p>workspace</p>");
 });
 it("restores an account and provides its identity through context", async () => {
   save(); fetcher.mockResolvedValue(response({}));
-  function Child() { const value = useMobileAccount(); return createElement("p", null, value?.account?.email); }
-  await mount(createElement(Child)); expect(host.textContent).toBe(account.email); expect(host.querySelector("h1")).toBeNull();
+  await mount(); expect(host.textContent).toBe(signedIn); expect(host.querySelector("h1")).toBeNull();
 });
-it("returns to the gate on sign-out", async () => {
+it("signs out back to signed-out", async () => {
   save(); fetcher.mockResolvedValue(response({}));
-  function Child() { const value = useMobileAccount(); return createElement("button", { onClick: () => void value?.signOut() }, "leave"); }
+  function Child() { const value = useMobileAccount(); return value?.account ? createElement("button", { onClick: () => void value?.signOut() }, "leave") : createElement("p", null, "signed out"); }
   await mount(createElement(Child));
   expect(host.querySelector("button")?.textContent).toBe("leave");
   await act(async () => host.querySelector("button")!.click());
-  heading(); expect(secrets.has("dusk.account")).toBe(false);
+  expect(host.textContent).toBe("signed out"); expect(secrets.has("dusk.account")).toBe(false);
 });
-it("handles auth links and leaves pairing links to ConnectionGate", async () => {
+it("handles auth links, leaves pairing links to ConnectionGate and says why a sign-in failed", async () => {
+  fetcher.mockResolvedValue(response({ v: 1, providers: [], signupOpen: true }));
   await mount(); heading(); expect(listener?.("duskbot://pair?code=abc")).toBe(false);
   await act(async () => { expect(listener?.("duskbot://auth?code=abc&state=bad")).toBe(true); });
-  expect(host.textContent).toContain("This sign-in expired. Please start again.");
+  expect(host.querySelector("[role=alert]")?.textContent).toContain("This sign-in expired. Please start again.");
 });
-it("shows children after the email and code flow", async () => {
+it("signs in with an emailed code typed into one field", async () => {
   fetcher.mockImplementation(async input => {
     const url = String(input);
     if (url.endsWith("/v1/auth/providers")) return response({ v: 1, providers: [], signupOpen: true });
@@ -78,13 +89,23 @@ it("shows children after the email and code flow", async () => {
     return response({ cloudContractVersion: 1, accessToken: token, expiresAt: Date.now() + 60_000, device: { id: "phone" }, account });
   });
   await mount(); await typeEmail(); await submit();
-  await act(async () => {
-    const event = new Event("paste", { bubbles: true, cancelable: true });
-    Object.defineProperty(event, "clipboardData", { value: { getData: () => "12345678" } });
-    host.querySelector('input[aria-label="Digit 1 of 8"]')!.dispatchEvent(event);
+  expect(host.querySelector("h1")?.textContent).toBe("Check your email");
+  await type("input[autocomplete=one-time-code]", "1234 5678");
+  expect(host.textContent).toBe(signedIn);
+});
+it("says a wrong code next to the code field, in the danger colour", async () => {
+  fetcher.mockImplementation(async input => {
+    const url = String(input);
+    if (url.endsWith("/v1/auth/providers")) return response({ v: 1, providers: [], signupOpen: true });
+    if (url.endsWith("/sign-in/start")) return response({ cloudContractVersion: 1, attempt: "a".repeat(43), expiresIn: 600, resendAfter: 30, signupOpen: true });
+    return response({ error: "invalid_code" }, 400);
   });
-  await submit();
-  expect(host.textContent).toBe("workspace");
+  await mount(); await typeEmail(); await submit();
+  await type("input[autocomplete=one-time-code]", "11111111");
+  const alert = host.querySelector("[role=alert]")!;
+  expect(alert.textContent).toContain("That code isn't right");
+  expect(alert.className).toContain("text-danger");
+  expect(host.querySelector("input[autocomplete=one-time-code]")?.getAttribute("aria-invalid")).toBe("true");
 });
 const providers = (...enabled: string[]) => response({ v: 1, signupOpen: true, providers: ["google", "apple", "x"].map(id => ({ id, enabled: enabled.includes(id), comingSoon: false })) });
 const buttons = () => [...host.querySelectorAll("button")].map(button => button.textContent ?? "");
@@ -95,10 +116,12 @@ it("an iPhone offers another company's sign-in only beside Sign in with Apple, a
   expect(providersFor("ios", [])).toEqual([]);
   expect(providersFor("android", ["google", "x"])).toEqual(["google", "x"]);
 });
-it("shows only the sign-in buttons the service has switched on", async () => {
+it("shows only the sign-in buttons the service has switched on, all with the same weight", async () => {
   fetcher.mockResolvedValue(providers("google", "apple"));
   await mount();
-  expect(buttons().filter(text => text.startsWith("Continue with"))).toEqual(["Continue with Apple", "Continue with Google"]);
+  const shown = [...host.querySelectorAll("button")].filter(button => button.textContent?.startsWith("Continue with"));
+  expect(shown.map(button => button.textContent)).toEqual(["Continue with Apple", "Continue with Google"]);
+  expect(new Set(shown.map(button => button.className)).size).toBe(1);
 });
 it("shows no provider button the service cannot vouch for, so none leads nowhere", async () => {
   fetcher.mockRejectedValue(new TypeError("offline"));
@@ -106,22 +129,16 @@ it("shows no provider button the service cannot vouch for, so none leads nowhere
   expect(buttons().some(text => text.startsWith("Continue with"))).toBe(false);
   expect(host.querySelector("input[type=email]")).not.toBeNull();
 });
-it("the sign-in screen links the terms and the privacy policy and offers the demo", async () => {
+it("the sign-in screen links the terms and the privacy policy", async () => {
   fetcher.mockResolvedValue(providers());
   await mount();
   expect(buttons()).toEqual(expect.arrayContaining(["Terms of use", "Privacy policy"]));
   await act(async () => { [...host.querySelectorAll("button")].find(button => button.textContent === "Privacy policy")!.click(); });
   expect(platform.openExternal).toHaveBeenCalledWith("https://dusk.bot/privacy");
-  expect(buttons().some(text => text.startsWith("Try the demo"))).toBe(true);
 });
-it("the demo workspace opens without an account", async () => {
-  prefs.set("dusk.mobile.demo", "1");
-  await mount();
-  expect(host.textContent).toBe("workspace"); expect(fetcher).not.toHaveBeenCalled();
-});
-it("an account signed out or deleted elsewhere returns to the gate when the app comes back", async () => {
+it("an account signed out or deleted elsewhere is dropped when the app comes back", async () => {
   save(); fetcher.mockResolvedValue(response({}));
-  await mount(); expect(host.textContent).toBe("workspace");
+  await mount(); expect(host.textContent).toBe(signedIn);
   fetcher.mockResolvedValue(response({ error: "invalid_token" }, 401));
   await act(async () => { resume?.(); await new Promise(resolve => setTimeout(resolve, 0)); });
   heading(); expect(secrets.has("dusk.account")).toBe(false);
@@ -131,7 +148,7 @@ it("a resume while the service cannot be reached keeps the account", async () =>
   await mount();
   fetcher.mockRejectedValue(new TypeError("offline"));
   await act(async () => { resume?.(); await new Promise(resolve => setTimeout(resolve, 0)); });
-  expect(host.textContent).toBe("workspace"); expect(secrets.has("dusk.account")).toBe(true);
+  expect(host.textContent).toBe(signedIn); expect(secrets.has("dusk.account")).toBe(true);
 });
 
 it("allows only bare safe origins in the development query", () => {
@@ -146,6 +163,6 @@ it("finishes a cold-launch auth link through StrictMode effect replay", async ()
   let launch: string | null = "duskbot://auth?code=abc&state=state";
   platform.onAppUrl = cb => { if (launch && cb(launch)) launch = null; return () => {}; };
   fetcher.mockResolvedValue(response({ cloudContractVersion: 1, accessToken: token, expiresAt: Date.now() + 60_000, device: { id: "phone" }, account }));
-  await mount(undefined, true);
-  expect(host.textContent).toBe("workspace"); expect(fetcher).toHaveBeenCalledOnce();
+  await mount(createElement(function Child() { return createElement("p", null, useMobileAccount()?.account?.email ?? "none"); }), true);
+  expect(host.textContent).toBe(account.email); expect(fetcher).toHaveBeenCalledOnce();
 });

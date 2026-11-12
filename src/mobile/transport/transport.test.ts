@@ -1,7 +1,7 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RelayGoneError } from "./relay";
 import { ASLEEP_PROBE_GAP_MS, asleepProbe, BearerEventSource, createSseParser, installTransport, mediaUrl, rewriteApiUrl } from "./transport";
-import { cloudAsleep, resetCloudPowerForTests } from "@/lib/cloud-power";
+import { cloudAsleep, noteCloudPageActivity, resetCloudPowerForTests } from "@/lib/cloud-power";
 
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
@@ -333,6 +333,8 @@ describe("relay transport", () => {
 });
 
 describe("a sleeping Cloud behind the phone's stream", () => {
+  // an untouched phone: one in use wakes the home straight back (src/lib/cloud-power.test.ts)
+  beforeEach(() => noteCloudPageActivity(0));
   afterEach(() => resetCloudPowerForTests());
   it("an asleep answer on the stream itself puts the page to sleep without a probe", async () => {
     const failed = vi.fn();

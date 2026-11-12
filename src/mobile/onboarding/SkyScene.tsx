@@ -1,13 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { MausAvatar, type MausAvatarHandle } from "@/components/Avatar";
 import type { MausColor } from "@/lib/mascot";
 import { haptic } from "../haptics";
 import { spring } from "../motion";
 import "./onboarding.css";
-
-/** The near-black the app's dark Home and the dashboard sit on. */
-export const ONBOARDING_BG = "#121212";
 
 export function useScreen(): { w: number; h: number } {
   const [size, setSize] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }));
@@ -43,14 +40,5 @@ export function MascotTrio({ scale = 1.6, className }: { scale?: number; classNa
       <TrioMascot color="blue" size={48 * scale} raise={12 * scale} delay={-2.1} />
       <TrioMascot color="green" size={36 * scale} raise={0} delay={-4.2} />
     </motion.div>
-  );
-}
-
-/** Every onboarding and pairing screen sits on the app's own dark, nothing else behind it. */
-export function SkyScene({ children }: { children?: ReactNode }) {
-  return (
-    <div className="absolute inset-0 overflow-hidden" data-scan-clear style={{ background: ONBOARDING_BG }}>
-      {children}
-    </div>
   );
 }

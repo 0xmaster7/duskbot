@@ -1,18 +1,24 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { MausAvatar } from "@/components/Avatar";
-import { SignIn } from "@/components/account-gate/SignIn";
+import type { SignInVerify } from "@/components/account-gate/bridge";
 import { problemLine } from "@/components/cloud-buy/SignInScreen";
 import { t } from "@/lib/i18n";
-import { THEME_SKINS } from "@/lib/skins";
+import type { CloudSignInStart } from "../../../electron/cloud-account.mjs";
 import type { OAuthProvider } from "../../../shared/account-api";
-import { demoOn, enterDemo } from "../demo/demo-mode";
-import { LEGAL_LINKS } from "../legal";
-import { MARKS } from "../onboarding/AccountStep";
 import { usePlatform, type MobilePlatform } from "../platform";
 import { createMobileAccount, isAccountAuthUrl, type AuthResult, type CloudPairResult, type MobileAccount, type MobileCloud } from "./account-client";
 
-type AccountContextValue = { account: MobileAccount | null; origin: string; signOut(): Promise<void>; enrollGrant(): Promise<{ enrollToken: string; dashboardUrl: string } | null>;
-  clouds(): Promise<MobileCloud[] | null>; pairCloud(cloud: MobileCloud): Promise<CloudPairResult>; wakeCloud(): Promise<boolean> };
+type AccountContextValue = { account: MobileAccount | null; origin: string;
+  /** this app keeps a dusk account (the native app, or the preview's ?account=1) */
+  offered: boolean; signOut(): Promise<void>; enrollGrant(): Promise<{ enrollToken: string; dashboardUrl: string } | null>;
+  clouds(): Promise<MobileCloud[] | null>; pairCloud(cloud: MobileCloud): Promise<CloudPairResult>; wakeCloud(): Promise<boolean>;
+  /** what the sign-in screen asks of the account service */
+  signIn: {
+    providers(): Promise<OAuthProvider[]>; emailStart(email: string): Promise<CloudSignInStart>; emailVerify(code: string): Promise<SignInVerify>;
+    cancelEmail(): void; browser(provider: OAuthProvider): Promise<void>;
+    /** a sign-in that came back through duskbot://auth and did not finish */
+    problem?: string; signedIn(): void;
+  } };
 const AccountContext = createContext<AccountContextValue | null>(null);
 export const useMobileAccount = () => useContext(AccountContext);
 
@@ -50,15 +56,6 @@ function authProblem(result: AuthResult): string | undefined {
   }
 }
 
-/** Apple's button rules: its mark beside the words, on a plain white or black fill. The others carry their mark only. */
-const PROVIDER_MARKS = {
-  apple: { icon: MARKS.apple, className: "border-transparent bg-[#f3f4f8] text-[#121212]" },
-  google: { icon: MARKS.google },
-  x: { icon: MARKS.x },
-};
-
-const QUIET_LINK = "min-h-11 rounded-full px-3 text-[13px] text-ink-secondary underline underline-offset-2 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
-
 export function AccountGate({ children }: { children: ReactNode }) {
   const platform = usePlatform();
   const params = new URLSearchParams(location.search);
@@ -66,18 +63,9 @@ export function AccountGate({ children }: { children: ReactNode }) {
   const origin = mobileAccountOrigin(platform.native, params);
   const client = useMemo(() => createMobileAccount({ platform, origin }), [platform, origin]);
   const [account, setAccount] = useState<MobileAccount | null>(null);
-  const [demo, setDemo] = useState<boolean | null>(wanted ? null : false);
   const [restoring, setRestoring] = useState(wanted);
   const [problem, setProblem] = useState<string>();
   const pendingAuth = useRef<Promise<AuthResult> | null>(null);
-  // the demo workspace needs no account: it is how someone looks around before they have one
-  const required = wanted && demo === false;
-  useEffect(() => {
-    if (!wanted) return;
-    let active = true;
-    void demoOn(platform).then((on) => { if (active) setDemo(on); });
-    return () => { active = false; };
-  }, [platform, wanted]);
   useEffect(() => {
     let active = true;
     let revision = 0;
@@ -108,23 +96,17 @@ export function AccountGate({ children }: { children: ReactNode }) {
     }) : undefined;
     return () => { active = false; stop?.(); stopResume?.(); };
   }, [client, platform, wanted]);
-  const context = useMemo<AccountContextValue>(() => ({ account, origin,
+  const context = useMemo<AccountContextValue>(() => ({ account, origin, offered: wanted,
     signOut: async () => { setAccount(null); setProblem(undefined); await client.signOut(); },
     enrollGrant: () => client.enrollGrant(),
     clouds: () => client.clouds(), pairCloud: cloud => client.pairCloud(cloud), wakeCloud: () => client.wakeCloud(),
-  }), [account, origin, client]);
-  if (wanted && (demo === null || (restoring && required))) return <div className="dusk-mobile flex size-full items-center justify-center bg-app"><MausAvatar color="green" size={56} state="idle" animated={false} personality={false} /></div>;
-  return <AccountContext value={context}>{required && !account ? <div data-skin={THEME_SKINS.dark} className="dusk-mobile size-full bg-app text-ink"><SignIn mobile emailStart={email => client.emailStart(email)} emailVerify={code => client.emailVerify(code)} cancelEmail={async () => { client.cancelEmail(); }} browser={provider => { setProblem(undefined); return client.oauthStart(provider); }} onSignedIn={() => { setAccount(client.account()); setProblem(undefined); }} notice={problem}
-    options={async () => ({ providers: providersFor(platform.kind, await client.providers()), recovery: false })} marks={PROVIDER_MARKS}>
-    <div className="flex flex-col items-center gap-1 border-t border-transparent pt-4">
-      <button type="button" onClick={() => void enterDemo(platform)} className="flex min-h-11 w-full flex-col items-center justify-center rounded-full border border-transparent px-5 py-2 text-[14px] font-medium outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
-        {t("mobile.demo.try")}<span className="text-[12px] font-normal text-ink-secondary">{t("mobile.demo.tryDetail")}</span>
-      </button>
-      <p className="mt-2 text-center text-[12px] leading-5 text-ink-tertiary">{t("mobile.account.legal")}</p>
-      <div className="flex gap-1">
-        <button type="button" className={QUIET_LINK} onClick={() => void platform.openExternal(LEGAL_LINKS.terms)}>{t("mobile.settings.terms")}</button>
-        <button type="button" className={QUIET_LINK} onClick={() => void platform.openExternal(LEGAL_LINKS.privacy)}>{t("mobile.settings.privacy")}</button>
-      </div>
-    </div>
-  </SignIn></div> : children}</AccountContext>;
+    signIn: {
+      providers: async () => providersFor(platform.kind, await client.providers()),
+      emailStart: email => client.emailStart(email), emailVerify: code => client.emailVerify(code), cancelEmail: () => client.cancelEmail(),
+      browser: provider => { setProblem(undefined); return client.oauthStart(provider); },
+      problem, signedIn: () => { setAccount(client.account()); setProblem(undefined); },
+    },
+  }), [account, origin, wanted, client, platform.kind, problem]);
+  if (wanted && restoring) return <div className="dusk-mobile flex size-full items-center justify-center bg-app"><MausAvatar color="green" size={56} state="idle" animated={false} personality={false} /></div>;
+  return <AccountContext value={context}>{children}</AccountContext>;
 }

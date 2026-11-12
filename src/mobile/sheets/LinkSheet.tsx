@@ -6,8 +6,10 @@ import { mobileLinkUrl } from "../../../shared/mobile-link";
 import { Sheet } from "../Sheet";
 import { usePlatform } from "../platform";
 import { haptic } from "../haptics";
+import { PixelArt } from "../Illustration";
 import { pairError, PairError, parseTypedPairing, resolveTypedCode } from "../connection/pair";
 import type { SheetPageProps } from "./registry";
+import { ErrorLine } from "../onboarding/parts";
 
 export function LinkSheet({ open, onClose }: SheetPageProps<"link">) {
   const platform = usePlatform();
@@ -65,15 +67,18 @@ export function LinkSheet({ open, onClose }: SheetPageProps<"link">) {
   };
   return (
     <Sheet open={open} onClose={onClose} title={t("mobile.link.title")}>
-      <div className="flex flex-col gap-5 px-6 pt-4">
-        <p className="text-[16px] leading-6 text-ink-secondary">{t("mobile.link.computer")}<br />{t("mobile.link.steps")}</p>
-        {platform.scanQr && <button type="button" disabled={scanning || resolving} aria-busy={scanning || resolving} onClick={() => void scan()} className="mobile-press flex h-12 items-center justify-center gap-2 rounded-full bg-ink text-[16px] font-semibold text-app disabled:opacity-40">{scanning ? <WorkingDots size={4} /> : <QrCode size={20} />}<span>{t("mobile.link.scan")}</span></button>}
+      <div className="flex flex-col gap-5 px-6 pb-[calc(var(--m-safe-bottom)+16px)] pt-4">
+        <div className="flex flex-col items-center text-center">
+          <PixelArt name="computer" size={72} />
+          <p className="mt-4 max-w-[300px] text-[16px] leading-6 text-ink-secondary">{t("mobile.entry.codeBody")}</p>
+        </div>
+        {platform.scanQr && <button type="button" disabled={scanning || resolving} aria-busy={scanning || resolving} onClick={() => void scan()} className="mobile-press flex h-[52px] items-center justify-center gap-2 rounded-full bg-ink/[0.06] text-[17px] font-semibold text-ink disabled:opacity-50">{scanning ? <WorkingDots size={4} /> : <QrCode size={20} />}<span>{t("mobile.link.scan")}</span></button>}
         <form onSubmit={(event) => { event.preventDefault(); void link(value); }} className="flex flex-col gap-3">
-          <label htmlFor={id} className="text-[13px] text-ink-tertiary">{t("mobile.pair.linkOrCode")}</label>
-          <input id={id} name="pairLink" autoCapitalize="none" autoCorrect="off" autoComplete="off" spellCheck={false} value={value} onChange={(event) => { setValue(event.target.value); setError(null); }} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} placeholder={t("mobile.pair.linkOrCode")} className="h-12 min-w-0 rounded-full border-0 bg-ink/[0.05] px-4 text-[16px] text-ink placeholder:text-ink-tertiary" />
-          <button type="submit" disabled={!value.trim() || scanning || resolving} aria-busy={resolving} className="mobile-press h-12 rounded-full bg-ink text-[16px] font-semibold text-app disabled:opacity-40">{t("mobile.link.submit")}</button>
+          <label htmlFor={id} className="px-1 text-[15px] font-medium text-ink">{t("mobile.pair.linkOrCode")}</label>
+          <input id={id} name="pairLink" autoCapitalize="none" autoCorrect="off" autoComplete="off" spellCheck={false} value={value} onChange={(event) => { setValue(event.target.value); setError(null); }} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} placeholder={t("mobile.pair.linkOrCode")} className="h-[52px] min-w-0 rounded-[16px] border-0 bg-ink/[0.05] px-4 text-[17px] text-ink placeholder:text-ink-tertiary aria-[invalid=true]:bg-danger/[0.08]" />
+          <button type="submit" disabled={!value.trim() || scanning || resolving} aria-busy={resolving} className="mobile-press h-[52px] rounded-full bg-ink text-[17px] font-semibold text-app disabled:bg-ink/[0.08] disabled:text-ink-tertiary">{t("mobile.link.submit")}</button>
         </form>
-        {error && <p id={`${id}-error`} role="alert" className="text-[14px] text-danger">{error === "scanError" ? t("mobile.link.scanError") : t(`mobile.pair.${error}`)}</p>}
+        {error && <ErrorLine id={`${id}-error`}>{error === "scanError" ? t("mobile.link.scanError") : t(`mobile.pair.${error}`)}</ErrorLine>}
       </div>
     </Sheet>
   );
