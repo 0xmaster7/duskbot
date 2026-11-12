@@ -18,13 +18,13 @@ describe("Plan usage presentation", () => {
         id: "fixture", name: "Fixture provider", driver: "claude", plan: "Pro", ok: true, error: null,
         fiveHour: { available: true, remainingPercent: 68, usedPercent: 32, resetsAt: null },
         weekly: { available: false, remainingPercent: null, usedPercent: null, resetsAt: null }, extra: [],
-        models: [{ name: "Sonnet", windows: [{ label: "Weekly", remainingPercent: 30, usedPercent: 70, resetsAt: null }] }],
+        models: [{ name: "Sonnet", windows: [{ label: "weekly", remainingPercent: 30, usedPercent: 70, resetsAt: null }] }],
       }],
     };
     const html = renderToStaticMarkup(createElement(PlanUsage));
     expect(html).toContain("68% left");
     expect(html).toContain("70% used");
-    expect(html).toContain("Not reported by this plan");
+    expect(html).toContain("not reported by this plan");
     expect(html).not.toContain("100% left");
     expect(html).toContain('aria-valuenow="32"');
     expect(html).toContain('aria-valuenow="70"');
@@ -37,12 +37,12 @@ describe("Plan usage presentation", () => {
         id: "fixture", name: "Fixture provider", driver: "claude", plan: "Enterprise", ok: true, error: null,
         fiveHour: { available: false, remainingPercent: null, usedPercent: null, resetsAt: null },
         weekly: { available: false, remainingPercent: null, usedPercent: null, resetsAt: null },
-        extra: [{ label: "Monthly spend", remainingPercent: 90.7, usedPercent: 9.3, resetsAt: null, spend: { usedMinor: 4_631, limitMinor: 50_000, currency: "USD", exponent: 2 } }],
+        extra: [{ label: "monthly spend", remainingPercent: 90.7, usedPercent: 9.3, resetsAt: null, spend: { usedMinor: 4_631, limitMinor: 50_000, currency: "USD", exponent: 2 } }],
         models: [],
       }],
     };
     const html = renderToStaticMarkup(createElement(PlanUsage));
-    expect(html).toContain("Monthly spend");
+    expect(html).toContain("monthly spend");
     expect(html).toContain("9% used");
     expect(html).toContain("$46.31 of $500.00 spent");
     expect(html).toContain('aria-valuenow="9"');
@@ -59,9 +59,9 @@ describe("Plan usage presentation", () => {
   });
 
   it("shows an account error without inventing zero usage", () => {
-    fixture.report = { providers: [{ id: "fixture", name: "Fixture provider", ok: false, error: "Sign in to this account." }] };
+    fixture.report = { providers: [{ id: "fixture", name: "Fixture provider", ok: false, error: "sign in to this account." }] };
     const html = renderToStaticMarkup(createElement(PlanUsage));
-    expect(html).toContain("Sign in to this account.");
+    expect(html).toContain("sign in to this account.");
     expect(html).not.toContain('role="meter"');
     expect(html).not.toContain("100% left");
   });
@@ -84,7 +84,7 @@ describe("Usage & billing in Simple mode", () => {
 
   it("stands a plan's monthly budget in for the weekly figure when it has none", async () => {
     const { monthlySpend } = await import("./PlanUsage");
-    const budget = { label: "Monthly spend", remainingPercent: 91, usedPercent: 9, resetsAt: null };
+    const budget = { label: "monthly spend", remainingPercent: 91, usedPercent: 9, resetsAt: null };
     expect(monthlySpend({ providers: [{ ...provider("claude", true, null), extra: [budget] }] })).toMatchObject({ provider: { id: "claude" }, budget });
     expect(monthlySpend({ providers: [{ ...provider("claude", true, 40), extra: [budget] }] })).toBeNull();
     expect(monthlySpend({ providers: [{ ...provider("claude", false, null), extra: [budget] }] })).toBeNull();

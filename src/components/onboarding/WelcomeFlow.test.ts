@@ -94,20 +94,20 @@ afterEach(async () => {
 describe("a new install's first run", () => {
   it("is one screen: a job picked and started lands in Dusk's chat with the job already sent", async () => {
     await show();
-    expect(host.querySelector("h1")?.textContent).toBe("What should Dusk take off your plate?");
-    for (const gone of ["Next", "Back", "How should your Bots talk?", "Give each Bot a job"]) expect(text()).not.toContain(gone);
-    expect([...host.querySelectorAll("[data-job]")].map((chip) => chip.textContent)).toEqual(["Summarize my inbox", "Watch a price", "Plan a trip", "Research a topic"]);
-    expect(button("Start")!.disabled, "nothing to start until there is a job").toBe(true);
+    expect(host.querySelector("h1")?.textContent).toBe("what should Dusk take off your plate?");
+    for (const gone of ["next", "back", "how should your bots talk?", "give each bot a job"]) expect(text()).not.toContain(gone);
+    expect([...host.querySelectorAll("[data-job]")].map((chip) => chip.textContent)).toEqual(["summarize my inbox", "watch a price", "plan a trip", "research a topic"]);
+    expect(button("start")!.disabled, "nothing to start until there is a job").toBe(true);
 
-    await press("Watch a price");
-    expect(composer().value).toContain("AirPods Pro");
-    expect(composer().value.slice(composer().selectionStart, composer().selectionEnd), "the example is selected to type over").toBe("AirPods Pro");
+    await press("watch a price");
+    expect(composer().value).toContain("AirPods pro");
+    expect(composer().value.slice(composer().selectionStart, composer().selectionEnd), "the example is selected to type over").toBe("AirPods pro");
     expect(host.querySelector("[data-job=price]")?.getAttribute("aria-pressed")).toBe("true");
-    await press("Start");
+    await press("start");
 
     expect(f.dispatch).toHaveBeenCalledWith({ type: "updateBot", botId: "maus", patch: { welcomed: true, outbound: { policy: "ask", dailyCap: 25 } } });
     expect(f.onDone).toHaveBeenCalledExactlyOnceWith("maus");
-    expect(sent()).toEqual([expect.objectContaining({ botId: "maus", text: expect.stringContaining("AirPods Pro"), sendId: expect.any(String) })]);
+    expect(sent()).toEqual([expect.objectContaining({ botId: "maus", text: expect.stringContaining("AirPods pro"), sendId: expect.any(String) })]);
     expect(introStaged("maus"), "the job is the first thing in the chat, not a staged greeting").toBe(false);
     await act(async () => {});
     expect(saved()).toEqual([{ onboarding: expect.objectContaining({ version: WELCOME_VERSION, hintsSeen: [MET_CHIEF_HINT] }) }]);
@@ -124,28 +124,28 @@ describe("a new install's first run", () => {
     await show();
     expect(f.checks).toEqual(["/api/instances/claude/check"]);
     await act(async () => {});
-    expect(host.querySelector("[data-ai-line=ready]")?.textContent).toContain("Using your Claude account");
+    expect(host.querySelector("[data-ai-line=ready]")?.textContent).toContain("using your Claude account");
     expect(host.querySelector("[data-sign-in]")).toBeNull();
   });
 
   it("says in plain words what Dusk asks about before it does it", async () => {
     await show();
-    expect(host.querySelector("[data-safe-line]")?.textContent).toBe("Dusk reads, searches and drafts on its own. It asks you before it sends, posts or pays for anything.");
+    expect(host.querySelector("[data-safe-line]")?.textContent).toBe("Dusk reads, searches and drafts on its own. it asks you before it sends, posts or pays for anything.");
   });
 
   it("keeps a sending rule the person already chose", async () => {
     f.state = { ...f.state, bots: [{ ...maus, outbound: { policy: "allow", dailyCap: 3 } }] };
     await show();
     await type("Plan my week");
-    await press("Start");
+    await press("start");
     expect(f.dispatch).toHaveBeenCalledWith({ type: "updateBot", botId: "maus", patch: { welcomed: true } });
   });
 });
 
-describe("Skip", () => {
+describe("skip", () => {
   it("lands in Dusk's chat with nothing sent, its greeting staged", async () => {
     await show();
-    await press("Skip for now");
+    await press("skip for now");
     expect(sent()).toEqual([]);
     expect(f.dispatch).toHaveBeenCalledWith({ type: "updateBot", botId: "maus", patch: { welcomed: true } });
     expect(f.onDone).toHaveBeenCalledExactlyOnceWith("maus");
@@ -167,15 +167,15 @@ describe("Dusk as the Chief", () => {
   it("makes Dusk the Chief only where there is none", async () => {
     f.state = { ...f.state, bots: [{ ...maus, chiefOfStaff: false }] };
     await show();
-    await press("Skip for now");
+    await press("skip for now");
     expect(f.dispatch).toHaveBeenCalledWith({ type: "updateBot", botId: "maus", patch: { welcomed: true, chiefOfStaff: true } });
   });
 
   it("still sends the job to Dusk once Dusk has met the person, with nothing else changed", async () => {
     f.state = { ...f.state, bots: [{ ...maus, welcomed: true }] };
     await show();
-    await press("Plan a trip");
-    await press("Start");
+    await press("plan a trip");
+    await press("start");
     expect(f.dispatch).toHaveBeenCalledWith({ type: "updateBot", botId: "maus", patch: { outbound: { policy: "ask", dailyCap: 25 } } });
     expect(f.onDone).toHaveBeenCalledExactlyOnceWith("maus");
     expect(sent()).toHaveLength(1);
@@ -184,7 +184,7 @@ describe("Dusk as the Chief", () => {
   it("skips to no bot where another bot is already the Chief", async () => {
     f.state = { ...f.state, bots: [{ ...maus, chiefOfStaff: false }, { ...maus, id: "research", threadId: "r", name: "Research", defaultBot: undefined, chiefOfStaff: true }] };
     await show();
-    await press("Skip for now");
+    await press("skip for now");
     expect(f.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "updateBot" }));
     expect(f.onDone).toHaveBeenCalledExactlyOnceWith(null);
   });
@@ -194,7 +194,7 @@ describe("Dusk as the Chief", () => {
     f.state = { ...f.state, bots: [other] };
     await show();
     await type("Research flights");
-    await press("Start");
+    await press("start");
     expect(sent()).toEqual([expect.objectContaining({ botId: "ada" })]);
   });
 });
@@ -203,11 +203,11 @@ describe("with no AI of the person's own", () => {
   it("runs jobs on the free backup, says so, and keeps one tap to sign in", async () => {
     f.state = { ...f.state, instances: [freeOpenCode, signIn()] };
     await show();
-    expect(host.querySelector("[data-ai-line=free]")?.textContent).toContain("Running on a free model for now.");
-    expect(button("Use your Claude account")).toBeDefined();
+    expect(host.querySelector("[data-ai-line=free]")?.textContent).toContain("running on a free model for now.");
+    expect(button("use your Claude account")).toBeDefined();
     await type("Research standing desks");
-    expect(button("Start")!.disabled, "the free model never blocks a job").toBe(false);
-    await press("Start");
+    expect(button("start")!.disabled, "the free model never blocks a job").toBe(false);
+    await press("start");
     expect(sent()).toHaveLength(1);
   });
 
@@ -215,11 +215,11 @@ describe("with no AI of the person's own", () => {
     f.state = { ...f.state, instances: [signIn()] };
     await show();
     expect(host.querySelector("[data-ai-line=connect]")).not.toBeNull();
-    expect(button("Sign in with Claude")).toBeDefined();
-    await press("Plan a trip");
-    expect(button("Start")!.disabled).toBe(true);
-    await press("Other ways to connect");
-    expect(host.querySelector("[data-connect-ai]")?.textContent).toContain("Connect an AI");
+    expect(button("sign in with Claude")).toBeDefined();
+    await press("plan a trip");
+    expect(button("start")!.disabled).toBe(true);
+    await press("other ways to connect");
+    expect(host.querySelector("[data-connect-ai]")?.textContent).toContain("connect an AI");
     await act(async () => { host.querySelector("[data-connect-ai]")!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); });
     expect(host.querySelector("[data-connect-ai]")).toBeNull();
     expect(f.onDone, "Escape closed the dialog only").not.toHaveBeenCalled();
@@ -238,7 +238,7 @@ describe("with no AI of the person's own", () => {
     f.state = { ...f.state, instances: [freeOpenCode, claude(true)] };
     await show();
     await act(async () => {});
-    expect(host.querySelector("[data-ai-line=ready]")?.textContent).toContain("Using your Claude account");
+    expect(host.querySelector("[data-ai-line=ready]")?.textContent).toContain("using your Claude account");
   });
 });
 
@@ -247,21 +247,21 @@ describe("optional moments", () => {
     vi.stubGlobal("duskDesktop", { ambient: { prefs: async () => ({ available: true, island: false, dock: true }), set: vi.fn() } });
     await show();
     await act(async () => {});
-    await press("See where your bots live");
+    await press("see where your bots live");
     expect(f.tour).toHaveBeenCalledOnce();
     expect(f.onDone).not.toHaveBeenCalled();
   });
 
   it("offers neither the tour nor the cloud where the app has no island or cloud account", async () => {
     await show();
-    expect(button("See where your bots live")).toBeUndefined();
-    expect(button("Keep it running in the cloud")).toBeUndefined();
+    expect(button("see where your bots live")).toBeUndefined();
+    expect(button("keep it running in the cloud")).toBeUndefined();
   });
 
   it("opens the cloud desktop sheet over the screen from the desktop app", async () => {
     vi.stubGlobal("duskDesktop", { remoteClient: { active: false }, cloudAccount: {} });
     await show();
-    await press("Keep it running in the cloud");
+    await press("keep it running in the cloud");
     expect(f.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_onboarding" });
     expect(f.onDone).not.toHaveBeenCalled();
   });
@@ -271,7 +271,7 @@ describe("other first runs", () => {
   it("a replay from Settings records nothing about a first chat", async () => {
     f.state = { ...f.state, config: { onboarding: { ...EMPTY_ONBOARDING, completedAt: "2026-09-01T00:00:00.000Z", version: WELCOME_VERSION } } };
     await show({ replay: true });
-    await press("Skip for now");
+    await press("skip for now");
     await act(async () => {});
     expect(saved()[0].onboarding).not.toHaveProperty("hintsSeen");
     expect(introStaged("maus"), "a replay lands in a chat that may be long under way").toBe(false);

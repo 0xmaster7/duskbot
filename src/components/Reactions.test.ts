@@ -21,7 +21,7 @@ let root: Root;
 async function render(element: ReturnType<typeof createElement>) {
   await act(async () => root.render(element));
 }
-const button = () => host.querySelector<HTMLButtonElement>('button[aria-label="Add reaction"]')!;
+const button = () => host.querySelector<HTMLButtonElement>('button[aria-label="add reaction"]')!;
 const toolbar = () => host.querySelector<HTMLElement>('[role="toolbar"]');
 const choices = () => [...(toolbar()?.querySelectorAll<HTMLButtonElement>("button") ?? [])];
 const key = (target: Element, name: string) => act(async () => {
@@ -51,14 +51,14 @@ describe("the react button on a bot's message", () => {
     expect(button().getAttribute("aria-expanded")).toBe("false");
     await click(button());
     expect(button().getAttribute("aria-expanded")).toBe("true");
-    expect(toolbar()?.getAttribute("aria-label")).toBe("Reactions");
+    expect(toolbar()?.getAttribute("aria-label")).toBe("reactions");
     expect(choices().map((choice) => [choice.textContent, choice.getAttribute("aria-label"), choice.getAttribute("aria-pressed")])).toEqual([
-      ["👍", "Thumbs up: yes, go ahead", "false"],
-      ["👎", "Thumbs down: no, not that", "false"],
-      ["❤️", "Heart", "false"],
-      ["😂", "Laughing", "false"],
-      ["🎉", "Celebrate", "false"],
-      ["👀", "Eyes", "false"],
+      ["👍", "thumbs up: yes, go ahead", "false"],
+      ["👎", "thumbs down: no, not that", "false"],
+      ["❤️", "heart", "false"],
+      ["😂", "laughing", "false"],
+      ["🎉", "celebrate", "false"],
+      ["👀", "eyes", "false"],
     ]);
     expect(document.activeElement).toBe(choices()[0]);
     await key(choices()[0]!, "ArrowRight");
@@ -179,10 +179,10 @@ describe("reaction chips under a message", () => {
 
   it("shows each reaction once, in the offered order, with how many and who chose it", async () => {
     await render(createElement(ReactionChips, { threadId: "t1", message: reacted }));
-    expect(host.querySelector('[role="group"]')?.getAttribute("aria-label")).toBe("Reactions");
+    expect(host.querySelector('[role="group"]')?.getAttribute("aria-label")).toBe("reactions");
     expect(chips().map((chip) => [chip.tagName, chip.textContent, chip.getAttribute("aria-label"), chip.getAttribute("aria-pressed"), chip.getAttribute("title")])).toEqual([
-      ["BUTTON", "👍2", "Thumbs up: yes, go ahead: You, alice@example.test", "true", "You, alice@example.test"],
-      ["BUTTON", "❤️", "Heart: Bob", "false", "Bob"],
+      ["BUTTON", "👍2", "thumbs up: yes, go ahead: You, alice@example.test", "true", "You, alice@example.test"],
+      ["BUTTON", "❤️", "heart: Bob", "false", "Bob"],
     ]);
   });
 
@@ -202,8 +202,8 @@ describe("reaction chips under a message", () => {
     await render(createElement(ReactionChips, { threadId: "t1", message: reacted, canReact: false }));
     expect(host.querySelectorAll("button")).toHaveLength(0);
     expect(chips().map((chip) => [chip.getAttribute("role"), chip.getAttribute("aria-label")])).toEqual([
-      ["img", "Thumbs up: yes, go ahead: You, alice@example.test"],
-      ["img", "Heart: Bob"],
+      ["img", "thumbs up: yes, go ahead: You, alice@example.test"],
+      ["img", "heart: Bob"],
     ]);
   });
 

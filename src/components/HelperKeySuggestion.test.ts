@@ -38,9 +38,9 @@ beforeEach(() => {
 describe("the add-a-key suggestion card", () => {
   it("is a plain message with Add key and Not now, in the device's words, not an approval card", () => {
     const view = render(message());
-    expect(view.html).toContain("Want me to sort your email? Add a Jev key.");
-    expect(view.html).toContain("Add key");
-    expect(view.html).toContain("Not now");
+    expect(view.html).toContain("want me to sort your email? add a Jev key.");
+    expect(view.html).toContain("add key");
+    expect(view.html).toContain("not now");
     expect(view.html).not.toContain("data-ask-card");
     expect(richRowKind(message())).toBe("widget");
   });

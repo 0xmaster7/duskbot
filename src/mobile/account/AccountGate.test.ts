@@ -31,7 +31,7 @@ const gate = (children: ReactNode = createElement("p", null, "workspace")) => cr
 const mount = (children?: ReactNode, strict = false) => act(async () => {
   root = createRoot(host); root.render(strict ? createElement(StrictMode, null, gate(children)) : gate(children));
 });
-const heading = () => expect(host.querySelector("h1")?.textContent).toBe("Sign in to dusk bot");
+const heading = () => expect(host.querySelector("h1")?.textContent).toBe("sign in to dusk bot");
 const typeEmail = () => act(async () => {
   const field = host.querySelector<HTMLInputElement>("input[type=email]")!;
   Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(field, account.email);
@@ -68,7 +68,7 @@ it("returns to the gate on sign-out", async () => {
 it("handles auth links and leaves pairing links to ConnectionGate", async () => {
   await mount(); heading(); expect(listener?.("duskbot://pair?code=abc")).toBe(false);
   await act(async () => { expect(listener?.("duskbot://auth?code=abc&state=bad")).toBe(true); });
-  expect(host.textContent).toContain("This sign-in expired. Please start again.");
+  expect(host.textContent).toContain("this sign-in expired. please start again.");
 });
 it("shows children after the email and code flow", async () => {
   fetcher.mockImplementation(async input => {
@@ -81,7 +81,7 @@ it("shows children after the email and code flow", async () => {
   await act(async () => {
     const event = new Event("paste", { bubbles: true, cancelable: true });
     Object.defineProperty(event, "clipboardData", { value: { getData: () => "12345678" } });
-    host.querySelector('input[aria-label="Digit 1 of 8"]')!.dispatchEvent(event);
+    host.querySelector('input[aria-label="digit 1 of 8"]')!.dispatchEvent(event);
   });
   await submit();
   expect(host.textContent).toBe("workspace");
@@ -98,21 +98,21 @@ it("an iPhone offers another company's sign-in only beside Sign in with Apple, a
 it("shows only the sign-in buttons the service has switched on", async () => {
   fetcher.mockResolvedValue(providers("google", "apple"));
   await mount();
-  expect(buttons().filter(text => text.startsWith("Continue with"))).toEqual(["Continue with Apple", "Continue with Google"]);
+  expect(buttons().filter(text => text.startsWith("continue with"))).toEqual(["continue with Apple", "continue with Google"]);
 });
 it("shows no provider button the service cannot vouch for, so none leads nowhere", async () => {
   fetcher.mockRejectedValue(new TypeError("offline"));
   await mount(); heading();
-  expect(buttons().some(text => text.startsWith("Continue with"))).toBe(false);
+  expect(buttons().some(text => text.startsWith("continue with"))).toBe(false);
   expect(host.querySelector("input[type=email]")).not.toBeNull();
 });
 it("the sign-in screen links the terms and the privacy policy and offers the demo", async () => {
   fetcher.mockResolvedValue(providers());
   await mount();
-  expect(buttons()).toEqual(expect.arrayContaining(["Terms of use", "Privacy policy"]));
-  await act(async () => { [...host.querySelectorAll("button")].find(button => button.textContent === "Privacy policy")!.click(); });
+  expect(buttons()).toEqual(expect.arrayContaining(["terms of use", "privacy policy"]));
+  await act(async () => { [...host.querySelectorAll("button")].find(button => button.textContent === "privacy policy")!.click(); });
   expect(platform.openExternal).toHaveBeenCalledWith("https://dusk.bot/privacy");
-  expect(buttons().some(text => text.startsWith("Try the demo"))).toBe(true);
+  expect(buttons().some(text => text.startsWith("try the demo"))).toBe(true);
 });
 it("the demo workspace opens without an account", async () => {
   prefs.set("dusk.mobile.demo", "1");

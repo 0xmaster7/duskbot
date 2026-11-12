@@ -51,12 +51,12 @@ afterEach(() => vi.unstubAllGlobals());
 describe("Your MCP servers inside the Apps pop-up", () => {
   it("lists each server with Test, Edit and an on/off switch, plus one Add MCP server", () => {
     const html = render(true);
-    expect(html).toContain("Your MCP servers");
-    expect(html).toContain("Add MCP server");
+    expect(html).toContain("your MCP servers");
+    expect(html).toContain("add MCP server");
     expect(html.match(/role="switch"/g)?.length).toBeGreaterThanOrEqual(3); // two servers + the Claude Code switch
-    expect(html).toMatch(/aria-label="Turn notes off" type="button" role="switch" aria-checked="true"/);
-    expect(html).toMatch(/aria-label="Turn docs on" type="button" role="switch" aria-checked="false"/);
-    expect(html).toContain('aria-label="Edit notes"');
+    expect(html).toMatch(/aria-label="turn notes off" type="button" role="switch" aria-checked="true"/);
+    expect(html).toMatch(/aria-label="turn docs on" type="button" role="switch" aria-checked="false"/);
+    expect(html).toContain('aria-label="edit notes"');
     expect(html.match(/> Test</g)).toHaveLength(2);
     expect(html).not.toContain("overflow-y-auto");
   });
@@ -65,26 +65,26 @@ describe("Your MCP servers inside the Apps pop-up", () => {
     const oauth = { clientId: "c", scopes: [], clientSecretConfigured: false, redirectUri: "http://127.0.0.1:1/cb" };
     fixture.servers = [{ name: "notes", type: "http", url: "http://127.0.0.1:9/mcp", headerKeys: [], enabled: true, oauth, runsOn: { environmentId: "env-1", label: "Milind's MacBook" } }];
     const html = render(true).replaceAll("&#x27;", "'");
-    expect(html).toContain("Runs on Milind's MacBook, so it isn't started here.");
-    expect(html).not.toContain("Sign in");
+    expect(html).toContain("runs on Milind's MacBook, so it isn't started here.");
+    expect(html).not.toContain("sign in");
     fixture.servers = [{ name: "docs", type: "http", url: "https://mcp.example.com/mcp", headerKeys: [], enabled: true, oauth }];
-    expect(render(true)).toContain("Sign in");
+    expect(render(true)).toContain("sign in");
   });
 
   it("keeps its own scroll and wording when shown on its own", () => {
     const html = render(false);
     expect(html).toContain("overflow-y-auto");
-    expect(html).toContain("Add server");
+    expect(html).toContain("add server");
   });
 
   it.each(HOSTED_MCP_APPS)("offers $label setup with no API key form or forced installation", (app) => {
     fixture.servers = [];
     const html = render(true, true);
     expect(html).toContain(`data-app-tile="${app.id}"`);
-    expect(html).toContain(`aria-label="Connect ${app.label}"`);
-    expect(html).toContain("No API key needed");
+    expect(html).toContain(`aria-label="connect ${app.label}"`);
+    expect(html).toContain("no API key needed");
     expect(html).not.toContain("<textarea");
-    expect(html).not.toContain("Your MCP servers");
+    expect(html).not.toContain("your MCP servers");
     expect(html).not.toContain("Paste config");
   });
 
@@ -98,7 +98,7 @@ describe("Your MCP servers inside the Apps pop-up", () => {
     const html = render(true);
     expect(html).toContain(`data-hosted-server="${app.id}"`);
     expect(html).toContain(`Disconnect ${app.label}`);
-    expect(html).toContain("Bot access");
+    expect(html).toContain("bot access");
   });
 
   it.each(HOSTED_MCP_APPS)("does not brand an unrelated endpoint just because its name is $id", (app) => {
@@ -114,10 +114,10 @@ describe("Your MCP servers inside the Apps pop-up", () => {
       { name: "docs", type: "http", url: "https://mcp.example.com/mcp", headerKeys: [], enabled: false },
     ];
     const listed = render(true);
-    expect(listed).toContain('aria-label="Edit docs"');
+    expect(listed).toContain('aria-label="edit docs"');
     for (const app of HOSTED_MCP_APPS) expect(listed).toContain(`data-hosted-server="${app.id}"`);
     const hidden = render(true, false, true);
-    expect(hidden).toContain('aria-label="Edit docs"');
+    expect(hidden).toContain('aria-label="edit docs"');
     expect(hidden).not.toContain("data-hosted-server");
   });
 
@@ -131,10 +131,10 @@ describe("Your MCP servers inside the Apps pop-up", () => {
       expect(html).toContain('id="mcp-callback-whop"');
       if (pasteBack) {
         expect(html).toContain("your browser shows a page that can&#x27;t load. Copy that page&#x27;s full address and paste it here.");
-        expect(html).not.toContain("Signing in from another computer?");
+        expect(html).not.toContain("signing in from another computer?");
       } else {
         expect(html).toContain("<summary");
-        expect(html).toContain("Signing in from another computer?");
+        expect(html).toContain("signing in from another computer?");
         expect(html).not.toContain("a page that can&#x27;t load");
       }
     }

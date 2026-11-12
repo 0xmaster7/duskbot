@@ -19,7 +19,7 @@ let root: Root;
 
 const settle = async () => { for (let i = 0; i < 3; i++) await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); }); };
 const show = async () => { await act(async () => { root.render(createElement(TalkShortcutRow)); }); await settle(); };
-const toggle = () => host.querySelector<HTMLButtonElement>('button[aria-label="Talk to Dusk from any app"]')!;
+const toggle = () => host.querySelector<HTMLButtonElement>('button[aria-label="talk to dusk from any app"]')!;
 const click = async (element: HTMLElement) => { await act(async () => { element.click(); }); await settle(); };
 
 beforeEach(() => {
@@ -57,7 +57,7 @@ describe("TalkShortcutRow", () => {
 
   it("shows the switch on with the key in its subtitle, and turns it off", async () => {
     await show();
-    expect(host.textContent).toContain("Talk to Dusk from any app");
+    expect(host.textContent).toContain("talk to dusk from any app");
     expect(host.textContent).toContain("Hold ⌃⌥Space, speak, let go");
     await click(toggle());
     expect(bridge.set).toHaveBeenCalledWith({ enabled: false });
@@ -83,7 +83,7 @@ describe("TalkShortcutRow", () => {
     await show();
     bridge.set.mockRejectedValueOnce(new Error("refused"));
     await click(toggle());
-    expect(host.querySelector('[role="alert"]')?.textContent).toBe("Could not change this. Try again.");
+    expect(host.querySelector('[role="alert"]')?.textContent).toBe("could not change this. try again.");
     expect(toggle().getAttribute("aria-checked")).toBe("true");
     expect(toggle().disabled).toBe(false);
     await click(toggle());
@@ -118,6 +118,6 @@ describe("TalkShortcutRow", () => {
   it("says when another app holds the key", async () => {
     current = { ...base, taken: true };
     await show();
-    expect(host.querySelector('[role="alert"]')?.textContent).toBe("⌃⌥Space is used by another app. Pick another shortcut.");
+    expect(host.querySelector('[role="alert"]')?.textContent).toBe("⌃⌥Space is used by another app. pick another shortcut.");
   });
 });

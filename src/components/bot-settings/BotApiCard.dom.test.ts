@@ -55,7 +55,7 @@ describe("the Bot API card", () => {
     fixture.starter = true;
     Object.assign(fixture.view!, { enabled: true });
     await mount({ webhooksLink: true });
-    expect(find("bot-api-starter")!.textContent).toBe("Bot API comes with a higher plan.");
+    expect(find("bot-api-starter")!.textContent).toBe("bot API comes with a higher plan.");
     for (const gone of ["bot-api-switch", "bot-api-curl", "bot-api-copy", "bot-api-new-key", "bot-api-key-note", "bot-api-webhooks"]) expect(find(gone), gone).toBeNull();
     expect(fixture.read).toEqual([]);
     await click("bot-api-upgrade");
@@ -78,7 +78,7 @@ describe("the Bot API card", () => {
     fixture.starter = false;
     await mount({ className: "x" });
     expect(find("bot-api-switch")).not.toBeNull();
-    expect(find("bot-api-password")!.textContent).toBe("A key is like a password: whoever holds it can read what this bot can read.");
+    expect(find("bot-api-password")!.textContent).toBe("a key is like a password: whoever holds it can read what this bot can read.");
   });
 
   it("says in one plain line when this bot's AI can't take calls", async () => {
@@ -87,7 +87,7 @@ describe("the Bot API card", () => {
     unmount();
     Object.assign(fixture.view!, { canTakeCalls: false });
     await mount();
-    expect(find("bot-api-cant-take")!.textContent).toBe("This bot's AI can't take Bot API calls. Choose another AI to use them.");
+    expect(find("bot-api-cant-take")!.textContent).toBe("this bot's AI can't take bot API calls. choose another AI to use them.");
   });
 
   it("keeps Copy off the command, so nothing in it is hidden", async () => {
@@ -100,7 +100,7 @@ describe("the Bot API card", () => {
 
   it("is off with no command until switched on", async () => {
     await mount();
-    expect(find("bot-api")!.textContent).toContain("Bot API");
+    expect(find("bot-api")!.textContent).toContain("bot API");
     expect(find("bot-api-switch")!.getAttribute("aria-checked")).toBe("false");
     expect(find("bot-api-curl")).toBeNull();
   });
@@ -142,7 +142,7 @@ describe("the Bot API card", () => {
     expect(find("bot-api-switch")!.hasAttribute("disabled")).toBe(true);
     expect(find("bot-api-new-key")).toBeNull();
     expect(find("bot-api-calls")).toBeNull();
-    expect(find("bot-api-webhooks")!.textContent).toBe("Webhooks: 2 triggers");
+    expect(find("bot-api-webhooks")!.textContent).toBe("webhooks: 2 triggers");
     await click("bot-api-webhooks");
     expect(fixture.dispatched).toEqual([{ type: "toggleSettings", open: true, section: "routines", botId: "b1" }]);
   });

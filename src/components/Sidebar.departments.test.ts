@@ -136,7 +136,7 @@ afterEach(() => vi.unstubAllGlobals());
 describe("Simple's sidebar before anyone drags", () => {
   it("looks as it did: the same sections and rows, nothing marked, each row ready to drag", () => {
     expect(sections()).toEqual([userSectionId("Work"), BOTS_SECTION_ID, CHANNELS_SECTION_ID]);
-    expect(headers().map((props) => props.name)).toEqual(["Work", "Unassigned", "Group chats"]);
+    expect(headers().map((props) => props.name)).toEqual(["Work", "Unassigned", "group chats"]);
     expect(listed()).toEqual(["dodo", "echo", "atlas", "bea", "cleo"]);
     for (const props of rows()) {
       expect(props.botDrop).toBeNull();
@@ -281,16 +281,16 @@ describe("a section's menu", () => {
   };
 
   it("is grok's: Rename, Move up, Move down and Delete; Unassigned only moves", () => {
-    expect(Object.keys(openMenu("Work"))).toEqual(["Rename", "Move up", "Move down", "Delete"]);
-    expect(openMenu("Work")["Move up"]!.disabled).toBe(true);
+    expect(Object.keys(openMenu("Work"))).toEqual(["Rename", "move up", "move down", "Delete"]);
+    expect(openMenu("Work")["move up"]!.disabled).toBe(true);
     fixture.values = [];
-    expect(Object.keys(openMenu("Unassigned"))).toEqual(["Move up", "Move down"]);
+    expect(Object.keys(openMenu("Unassigned"))).toEqual(["move up", "move down"]);
   });
 
   it("renames it in place", async () => {
     openMenu("Work")["Rename"]!.onClick();
     const naming = header("Work").naming!;
-    expect([naming.value, naming.label]).toEqual(["Work", "Rename section"]);
+    expect([naming.value, naming.label]).toEqual(["Work", "rename section"]);
     naming.onCommit("Clients");
     await vi.waitFor(() => expect(actions()).toEqual([{ type: "sections", sections: ["Clients"] }]));
     expect(fixture.requests).toEqual([{ path: "/api/sidebar-sections?section=Work", method: "PATCH", body: { name: "Clients" } }]);
@@ -299,14 +299,14 @@ describe("a section's menu", () => {
   it("deletes it saying the bots stay, out of any department", () => {
     openMenu("Work")["Delete"]!.onClick();
     const dialog = render().find((node) => node.type === ConfirmDialog && node.props.open === true)!;
-    expect([dialog.props.title, dialog.props.body, dialog.props.confirmLabel]).toEqual(["Delete \u201cWork\u201d", "Its Bots move to Unassigned. No Bots are deleted.", "Delete"]);
+    expect([dialog.props.title, dialog.props.body, dialog.props.confirmLabel]).toEqual(["delete \u201cWork\u201d", "its bots move to unassigned. no bots are deleted.", "Delete"]);
   });
 
   it("is the same menu in Advanced, from a right-click on its name", () => {
     fixture.advanced = true;
     const button = { getBoundingClientRect: () => ({ right: 280, bottom: 300 }), focus: vi.fn(), isConnected: true } as unknown as HTMLButtonElement;
     header("Work").onContextMenu!({ preventDefault: () => {}, clientX: 10, clientY: 10, currentTarget: { querySelector: () => button } } as never);
-    expect(render().filter((node) => node.props.role === "menuitem").map(words)).toEqual(["Rename", "Move up", "Move down", "Delete"]);
+    expect(render().filter((node) => node.props.role === "menuitem").map(words)).toEqual(["Rename", "move up", "move down", "Delete"]);
   });
 });
 
@@ -331,7 +331,7 @@ describe("a bot's menu in Simple", () => {
     fixture.state = { ...fixture.state, sections: ["Work", "Home"] };
     const props = menuProps("dodo");
     const items = open(props);
-    expect(items.map(label)).toEqual(["Work", "Home", "Unassigned", "Create section"]);
+    expect(items.map(label)).toEqual(["Work", "Home", "Unassigned", "create section"]);
     expect(items.map((item) => item.props["aria-checked"])).toEqual([true, false, false, undefined]);
     (items[1]!.props.onClick as () => void)();
     (items[2]!.props.onClick as () => void)();
@@ -347,7 +347,7 @@ describe("a bot's menu in Simple", () => {
     fixture.state = { ...fixture.state, sections: [], bots: [bot("atlas"), bot("bea")] };
     const props = menuProps("atlas");
     fixture.index = 0;
-    const item = nodes(BotContextMenu(props)).find((node) => node.props.role === "menuitem" && label(node) === "Move to new section")!;
+    const item = nodes(BotContextMenu(props)).find((node) => node.props.role === "menuitem" && label(node) === "move to new section")!;
     (item.props.onClick as () => void)();
     expect(props.onNewSection).toHaveBeenCalledWith("atlas");
   });
@@ -365,7 +365,7 @@ describe("deleting a Chief of Staff", () => {
     const dialog = openDialog()!;
     expect(dialog.props.body).toBe("It's your Chief of Staff. Archive it instead to keep its chats. Its chats, memory, files and private desktop go too. This can't be undone.");
     const alternative = dialog.props.alternative as { label: string; onClick: () => void };
-    expect(alternative.label).toBe("Archive instead");
+    expect(alternative.label).toBe("archive instead");
     alternative.onClick();
     await vi.waitFor(() => expect(fixture.requests).toContainEqual({ path: "/api/bots/atlas", method: "PATCH", body: { hidden: true, chiefOfStaff: false } }));
     expect(openDialog()).toBeUndefined();

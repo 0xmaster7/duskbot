@@ -111,11 +111,11 @@ describe("a card waiting on someone", () => {
 
   it("says whose answer it waits for in a shared chat, and nothing in a private one", () => {
     setTeamPeople(asBob());
-    expect(asking("fox-main")).toContain("Asking Ada");
+    expect(asking("fox-main")).toContain("asking Ada");
     expect(asking("fox-bob")).toBe("");
     setTeamPeople({ ...asBob(), people: [ADA, BOB] });
     const mine = renderToStaticMarkup(withStore({ ...initialState, bots: [{ ...fox, reportsTo: BOB.email }] } as AppState, createElement(AskingLine, { botId: "fox", threadId: "fox-main" })));
-    expect(mine).toContain("Asking you");
+    expect(mine).toContain("asking you");
   });
 
   it("says nothing off a team", () => {
@@ -123,14 +123,14 @@ describe("a card waiting on someone", () => {
   });
 });
 
-describe("Needs you, on a server older than this page", () => {
+describe("needs you, on a server older than this page", () => {
   afterEach(() => setInboxSupport("unknown"));
   const render = () => renderToStaticMarkup(withStore({ ...initialState, bots: [bot()] } as AppState, createElement(NeedsYouButton)));
 
   it("counts what bots ask of this person, and hides when nothing does", () => {
     setInboxSupport("no");
     setTeamPeople(asBob([{ kind: "question", id: "q1", at: 1, botId: "fox", threadId: "fox-main", text: "Which landing page?" }]));
-    expect(render()).toContain('aria-label="Needs you, 1"');
+    expect(render()).toContain('aria-label="needs you, 1"');
     setTeamPeople(asBob());
     expect(render()).toBe("");
   });

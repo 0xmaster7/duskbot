@@ -272,12 +272,12 @@ beforeEach(() => {
   onClose.mockReset();
   fixture.derived = {
     patch, approvalMode: "ask", engine: engine(), trustedModesAvailable: false, activeState: "idle",
-    botRoutines: [], canCoordinate: true, sectionName: "General", mascotMotion: null,
+    botRoutines: [], canCoordinate: true, sectionName: "general", mascotMotion: null,
     canUseConnectedApps: true, connectedAppsConfigured: true, connectedAppsEnabled: true, browserEnabled: true,
   };
   fixture.apps = { phase: "ready", apps: [], connectedSlugs: [] };
   fixture.places = {
-    cloud: [true, true, "Cloud desktop"], vm: [true, true, "Private desktop"], local: [true, true, "Your screen"], browser: [true, true, "Web pages only"],
+    cloud: [true, true, "cloud desktop"], vm: [true, true, "private desktop"], local: [true, true, "your screen"], browser: [true, true, "web pages only"],
   };
   (window as unknown as { duskDesktop?: unknown }).duskDesktop = undefined;
 });
@@ -288,13 +288,13 @@ describe("the bot panel in Simple mode", () => {
     const rendered = panel(bot);
     expect(ofType(rendered, PanelShareMenu)!.props.bot).toBe(bot);
     expect(has(rendered, "data-panel-gear")).toBe(false);
-    click(find(rendered, "aria-label", "Close"));
+    click(find(rendered, "aria-label", "close"));
     expect(onClose).toHaveBeenCalled();
     const hero = ofType(rendered, PanelHero)!;
     expect(hero.props.bot).toBe(bot);
     expect(hero.props.patch).toBe(patch);
     const tabs = [...rendered.html.matchAll(/data-panel-tab="(\w+)"[^>]*>([^<]+)<\/button>/g)].map((match) => [match[1], match[2]]);
-    expect(tabs).toEqual([["details", "Details"], ["computer", "Computer"], ["advanced", "Advanced"]]);
+    expect(tabs).toEqual([["details", "details"], ["computer", "computer"], ["advanced", "advanced"]]);
     expect(shown(rendered)).toEqual({ tab: "details", page: undefined });
     expect(ofType(rendered, DetailsTab)!.props.bot).toBe(bot);
     expect(rendered.html).toContain('id="bot-settings-title"');
@@ -320,8 +320,8 @@ describe("the bot panel in Simple mode", () => {
     expect(ofType(settings, PanelShareMenu)).toBeDefined();
     (ofType(settings, AdvancedTab)!.props.onOpen as (page: string) => void)("apps");
     const apps = panel(bot);
-    expect(header(apps)).toEqual({ back: "Advanced", title: "Apps it can use" });
-    expect(apps.html).toContain("Switch on the apps Scout may use. Everything else stays off.");
+    expect(header(apps)).toEqual({ back: "advanced", title: "apps it can use" });
+    expect(apps.html).toContain("switch on the apps Scout may use. everything else stays off.");
     goBack(apps);
     expect(shown(panel(bot))).toEqual({ tab: "advanced", page: undefined });
   });
@@ -335,10 +335,10 @@ describe("the bot panel in Simple mode", () => {
     // one closed disclosure holds what few people change
     expect(rendered.html.match(/<details/g)).toHaveLength(1);
     expect(rendered.html).not.toMatch(/<details[^>]* open/);
-    for (const label of ["Voice chat", "This bot", "More settings", "Actions", "Advanced features"]) expect(rendered.html).toContain(`>${label}<`);
+    for (const label of ["voice chat", "this bot", "more settings", "actions", "advanced features"]) expect(rendered.html).toContain(`>${label}<`);
     // an empty library is grok's centred line, with no heading or card over it
-    expect(rendered.html).not.toContain(">Library<");
-    expect(rendered.html).not.toContain(">Settings for the whole app<");
+    expect(rendered.html).not.toContain(">library<");
+    expect(rendered.html).not.toContain(">settings for the whole app<");
     click(find(rendered, "data-panel-row", "advanced-features"));
     expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "toggleAppSettings", open: true, section: "advanced" });
   });
@@ -349,19 +349,19 @@ describe("the bot panel in Simple mode", () => {
     const page = panel(bot);
     expect(shown(page)).toEqual({ tab: undefined, page: "routines" });
     expect(has(page, "role", "tablist")).toBe(false);
-    expect(header(page)).toEqual({ back: "Details", title: "Routines" });
+    expect(header(page)).toEqual({ back: "details", title: "routines" });
     expect(page.html).toContain('id="bot-settings-title"');
     goBack(page);
     expect(shown(panel(bot))).toEqual({ tab: "details", page: undefined });
 
     selectTab(panel(bot), "advanced");
     (ofType(panel(bot), AdvancedTab)!.props.onOpen as (page: string) => void)("memory");
-    expect(header(panel(bot))).toEqual({ back: "Advanced", title: "What it remembers" });
+    expect(header(panel(bot))).toEqual({ back: "advanced", title: "what it remembers" });
     goBack(panel(bot));
 
     selectTab(panel(bot), "computer");
     (ofType(panel(bot), ComputerTab)!.props.onOpen as (page: string) => void)("browser");
-    expect(header(panel(bot))).toEqual({ back: "Computer", title: "Signed-in sites" });
+    expect(header(panel(bot))).toEqual({ back: "computer", title: "signed-in sites" });
   });
 
   it("goes back on Escape from a page, and leaves Escape to the dialog on a tab", () => {
@@ -447,8 +447,8 @@ describe("the bot panel in Simple mode", () => {
     }
     openSettings(bot);
     const settings = panel(bot).html;
-    expect(settings).not.toContain('aria-label="Work until done"');
-    expect(settings).not.toContain('aria-label="Hide from sidebar"');
+    expect(settings).not.toContain('aria-label="work until done"');
+    expect(settings).not.toContain('aria-label="hide from sidebar"');
   });
 
 });
@@ -459,8 +459,8 @@ describe("the hero", () => {
 
   it("names the avatar Edit Bot avatar, tips it Edit Avatar, and shows whether the editor is open", () => {
     const rendered = hero(makeBot(), true);
-    expect(find(rendered, "data-panel-avatar").props["aria-label"]).toBe("Edit Bot avatar");
-    expect(find(rendered, "data-panel-avatar").props.title).toBe("Edit Avatar");
+    expect(find(rendered, "data-panel-avatar").props["aria-label"]).toBe("edit bot avatar");
+    expect(find(rendered, "data-panel-avatar").props.title).toBe("edit avatar");
     expect(find(rendered, "data-panel-avatar").props["aria-expanded"]).toBe(true);
     expect(rendered.html).toContain("brightness-[0.3]");
   });
@@ -504,7 +504,7 @@ describe("the hero", () => {
   it("sets the name at 17px, with no label line under it", () => {
     expect(find(hero(makeBot()), "data-panel-rename").props.className).toContain("text-[17px]");
     expect(has(hero(makeBot({ title: "Researcher" })), "data-panel-label")).toBe(false);
-    expect(hero(makeBot()).html).not.toContain("Add a label");
+    expect(hero(makeBot()).html).not.toContain("add a label");
   });
 
 });
@@ -518,8 +518,8 @@ describe("the avatar editor", () => {
     expect([...rendered.html.matchAll(/aria-label="(\w+) character shape"/g)].map((match) => match[1]))
       .toEqual([...DUSK_BODY_IDS]);
     expect([...rendered.html.matchAll(/aria-label="(\w+) character color"/g)].map((match) => match[1]))
-      .toEqual(["Blue", "Cyan", "Teal", "Green", "Yellow", "Orange", "Coral", "Red", "Pink", "Purple"]);
-    expect(rendered.html).not.toContain("More looks");
+      .toEqual(["blue", "cyan", "teal", "green", "yellow", "orange", "coral", "red", "pink", "purple"]);
+    expect(rendered.html).not.toContain("more looks");
     expect(find(rendered, "aria-label", "kit character shape").props["aria-pressed"]).toBe(true);
     expect(find(editor(makeBot({ mascotBody: "teardrop" as Bot["mascotBody"] })), "aria-label", "drip character shape").props["aria-pressed"]).toBe(true);
     click(find(rendered, "aria-label", "pip character shape"));
@@ -549,7 +549,7 @@ describe("the avatar editor", () => {
 
     click(find(generate, "data-avatar-tab", "upload"));
     const upload = editor(bot);
-    expect(upload.html).toContain("Drop a picture here, or choose one");
+    expect(upload.html).toContain("drop a picture here, or choose one");
     expect(upload.html).toContain("PNG, JPEG, GIF, or WebP · up to 10 MB");
     expect(segment(upload, "data-avatar-crop").options.map((option) => [option.value, option.disabled])).toEqual([
       ["circle", true], ["rounded", true], ["square", true],
@@ -564,7 +564,7 @@ describe("the avatar editor", () => {
     expect(segment(withImage, "data-avatar-crop").value).toBe("circle");
     segment(withImage, "data-avatar-crop").onChange("square");
     expect(patch).toHaveBeenLastCalledWith({ avatarCrop: "square" });
-    click(find(withImage, "aria-label", "Remove custom avatar image"));
+    click(find(withImage, "aria-label", "remove custom avatar image"));
     expect(patch).toHaveBeenLastCalledWith({ avatarUrl: null, avatarCrop: "mascot", avatarZoom: AVATAR_ZOOM_MIN, avatarFocusX: AVATAR_FOCUS_CENTER, avatarFocusY: AVATAR_FOCUS_CENTER });
   });
 
@@ -586,19 +586,19 @@ describe("the Details tab", () => {
     for (const gone of ['data-panel-card="call"', 'data-panel-row="voice"', 'data-panel-gear', 'data-conversations-new', 'data-panel-row="goal"', 'data-panel-row="approval"', 'data-panel-row="call-mode"']) {
       expect(rendered.html, gone).not.toContain(gone);
     }
-    expect(rendered.html).not.toContain(">Routines<");
+    expect(rendered.html).not.toContain(">routines<");
     expect(switches(rendered.html)).toBe(0);
   });
 
   it("says what routines are while the bot has none, in Grok's words, and lists them once it has some", () => {
     const empty = botTab(makeBot());
-    expect(empty.html).toContain(">Routines are recurring tasks this Bot runs on a schedule. Ask it in chat to set one up.<");
+    expect(empty.html).toContain(">routines are recurring tasks this bot runs on a schedule. ask it in chat to set one up.<");
     // routines are set up in chat, so the panel offers no button of its own
     expect(empty.html).not.toContain('data-panel-action="new-routine"');
     fixture.storeState = { ...fixture.storeState, routines: [routine()] };
     const some = botTab(makeBot());
     expect(some.html).not.toContain('data-panel-empty="routines"');
-    expect(some.html).toContain(">Routines<");
+    expect(some.html).toContain(">routines<");
   });
 
   it("lists each routine in the order it was made, with its switch and its schedule in plain words, opened in place", () => {
@@ -606,8 +606,8 @@ describe("the Details tab", () => {
     const rendered = botTab(makeBot());
     expect([...rendered.html.matchAll(/data-panel-routine="([^"]+)"/g)].map((match) => match[1])).toEqual(["r1", "r2"]);
     expect(switches(rendered.html)).toBe(2);
-    expect(rendered.html).toContain(">Paused<");
-    expect(rendered.html).toContain(">Every weekday at 9 AM<");
+    expect(rendered.html).toContain(">paused<");
+    expect(rendered.html).toContain(">every weekday at 9 AM<");
     expect(rendered.html).toContain('aria-expanded="false"');
     expect(rendered.html).not.toContain('data-panel-action="new-routine"');
   });
@@ -637,19 +637,19 @@ describe("the Bot settings page", () => {
       click(find(rendered, "data-panel-page", page));
       expect(onOpen).toHaveBeenLastCalledWith(page);
     }
-    for (const gone of ['data-panel-row="approval"', "Before Scout acts", "data-panel-done"]) expect(rendered.html).not.toContain(gone);
+    for (const gone of ['data-panel-row="approval"', "before Scout acts", "data-panel-done"]) expect(rendered.html).not.toContain(gone);
   });
 
   it("draws every row on one line with its value on the right, as Grok's Voice row, and no helper lines", () => {
     const rendered = settingsPage(makeBot({ memoryEnabled: false }));
     const row = (page: string) => find(rendered, "data-panel-page", page).props;
-    expect(row("memory").value).toBe("Off");
-    expect(row("skills").value).toBe("None");
-    expect(row("backups").value).toBe("None");
+    expect(row("memory").value).toBe("off");
+    expect(row("skills").value).toBe("none");
+    expect(row("backups").value).toBe("none");
     for (const page of ["instructions", "memory", "skills", "folder", "backups"]) expect(row(page).hint, page).toBeUndefined();
     // instructions already written need no value; an empty one says None
     expect(row("instructions").value).toBeUndefined();
-    expect(find(settingsPage(makeBot({ soul: "" })), "data-panel-page", "instructions").props.value).toBe("None");
+    expect(find(settingsPage(makeBot({ soul: "" })), "data-panel-page", "instructions").props.value).toBe("none");
   });
 
   it("has no rows for apps, signed-in sites, the API, conversations, Work until done, Hide, Call mode or the label", () => {
@@ -670,16 +670,16 @@ describe("the Library", () => {
   it("says what it will hold while the bot has made nothing, in Grok's words, and nothing else", () => {
     const rendered = library(makeBot());
     expect(rendered.html).toContain('data-panel-empty="library"');
-    expect(rendered.html).toContain(">Pages, files, and apps this Bot makes show up here<");
+    expect(rendered.html).toContain(">pages, files, and apps this bot makes show up here<");
     for (const gone of ["memory", "skills", "folder"]) expect(has(rendered, "data-panel-page", gone), gone).toBe(false);
   });
 
   it("sits on top of the Advanced tab as a Library section, Grok's centred empty line until the bot makes something, with no View all", () => {
     const rendered = librarySection(makeBot());
     expect(rendered.html).toContain('data-panel-card="library"');
-    expect(rendered.html).not.toContain(">Library<");
+    expect(rendered.html).not.toContain(">library<");
     expect(rendered.html).not.toContain("data-panel-card-surface");
-    expect(rendered.html).toContain(">Pages, files, and apps this Bot makes show up here<");
+    expect(rendered.html).toContain(">pages, files, and apps this bot makes show up here<");
     expect(has(rendered, "data-panel-page", "library")).toBe(false);
   });
 });
@@ -701,7 +701,7 @@ describe("the Computer tab", () => {
     expect(rendered.html).toContain('data-asleep-mascot=""');
     expect(rendered.html).toContain('computer-asleep-breathe');
     expect(rendered.html).toContain('var(--color-ink) 56%');
-    expect(rendered.html).toContain(">Computer is asleep<");
+    expect(rendered.html).toContain(">computer is asleep<");
     expect(rendered.html).toContain("Scout&#x27;s screen");
     expect(rendered.html).not.toContain('animate-spin');
     for (const gone of ["where", "browser"]) expect(has(rendered, "data-panel-page", gone), gone).toBe(false);
@@ -713,16 +713,16 @@ describe("the Computer tab", () => {
     const live = rendered.nodes.find((node) => node.props.inline === true);
     expect(live?.props.bot).toMatchObject({ id: "scout" });
     expect(rendered.html).not.toContain("<img");
-    expect(rendered.html).not.toContain(">Take control<");
+    expect(rendered.html).not.toContain(">take control<");
   });
 
   it("keeps Off truthful and shows the old asleep placeholder while Auto resolves", () => {
     const off = computer(makeBot({ computer: "off" }));
     expect(has(off, "data-panel-action", "open-computer")).toBe(false);
-    expect(off.html).toContain(">No screen<");
+    expect(off.html).toContain(">no screen<");
     const auto = computer(makeBot());
     expect(auto.html).toContain('data-asleep-mascot=""');
-    expect(auto.html).toContain(">Computer is asleep<");
+    expect(auto.html).toContain(">computer is asleep<");
   });
 
   it("keeps the panel and dropdown in place while its inline viewer owns opening and control", () => {
@@ -739,13 +739,13 @@ describe("the Computer tab", () => {
     const card = rendered.html.indexOf('data-panel-card="runs-on"'), screen = rendered.html.indexOf('data-asleep-mascot=""');
     expect(card).toBeGreaterThan(-1);
     expect(screen).toBeGreaterThan(card);
-    expect(rendered.html).toContain(">Runs on<");
+    expect(rendered.html).toContain(">runs on<");
     const card2 = runsOn(cloudBot());
     expect(card2.html).toContain('data-runs-on="vps"');
     expect(card2.html).toContain(">Studio VPS<");
     expect(card2.html).toMatch(/data-runs-on-status="(asleep|offline)"/);
     fixture.otherServer = null;
-    expect(runsOn(cloudBot()).html).toContain(">This PC<");
+    expect(runsOn(cloudBot()).html).toContain(">this PC<");
     fixture.otherServer = "Studio VPS";
     const before = fixture.storeState;
     fixture.storeState = { ...before, config: { cloudHome: true } };
@@ -759,12 +759,12 @@ describe("the Computer tab", () => {
   });
 
   it("picks the screen inside the card, naming the VPS's desktop as the VPS, with nothing to add there", () => {
-    fixture.places.browser = [true, false, "Not installed"];
+    fixture.places.browser = [true, false, "not installed"];
     const select = placeSelect(runsOn(cloudBot()));
     expect(select.props.value).toBe("cloud");
-    expect(select.props["aria-label"]).toBe("Where Scout works");
+    expect(select.props["aria-label"]).toBe("where Scout works");
     expect((select.props.options as Array<{ value: string; label: string; disabled?: boolean; title?: string }>).map((option) => [option.value, option.label, Boolean(option.disabled), option.title]))
-      .toEqual([["local", "This PC", false, undefined], ["cloud", "Your VPS", false, undefined]]);
+      .toEqual([["local", "this PC", false, undefined], ["cloud", "your VPS", false, undefined]]);
     (select.props.onChange as (value: string) => void)("local");
     expect(patch).toHaveBeenLastCalledWith({ computer: "local" });
     patch.mockReset();
@@ -784,7 +784,7 @@ describe("the Computer tab", () => {
     expect(card.html).toContain('data-cloud-cta="get"');
     expect(card.html).toContain('data-cloud-hop="laptop"');
     expect(card.html).toContain(">keep Scout working 24/7 on dusk cloud<");
-    expect(card.html).toContain(">Get dusk cloud<");
+    expect(card.html).toContain(">get dusk cloud<");
     click(find(card, "data-panel-action", "move-cloud"));
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_bot_panel" });
   });
@@ -794,10 +794,10 @@ describe("the Computer tab", () => {
     const openHome = vi.fn(() => Promise.resolve());
     const desktop = { openHome } as unknown as Parameters<typeof CloudCtaCard>[0]["cloudDesktop"];
     const ready = cta(cloudBot(), "ready", desktop);
-    expect(ready.html).toContain(">Move to dusk cloud<");
+    expect(ready.html).toContain(">move to dusk cloud<");
     expect(ready.html).toContain('data-cloud-hop="laptop"');
     const moved = cta(cloudBot(), "moved", desktop);
-    expect(moved.html).toContain(">Switch to dusk cloud<");
+    expect(moved.html).toContain(">switch to dusk cloud<");
     expect(moved.html).toContain('data-cloud-hop="cloud"');
     expect(moved.html).toContain(">Scout works 24/7 on dusk cloud<");
     click(find(moved, "data-panel-action", "move-cloud"));
@@ -817,7 +817,7 @@ describe("the Where it works page", () => {
   it("offers Let it choose, this computer, the bot's browser and the Cloud desktop, with the chosen one checked", () => {
     // The tests run on no platform in particular, so this computer is a PC; a Mac says This Mac.
     expect(choices(where(makeBot()))).toEqual([
-      ["auto", "Let it choose", false, true], ["local", "This PC", false, false], ["browser", "Browser", false, false], ["cloud", "Cloud desktop", false, false],
+      ["auto", "let it choose", false, true], ["local", "this PC", false, false], ["browser", "browser", false, false], ["cloud", "cloud desktop", false, false],
     ]);
     expect(where(makeBot()).html).toContain('role="radiogroup"');
   });
@@ -837,7 +837,7 @@ describe("the Where it works page", () => {
     expect(patch).not.toHaveBeenCalled();
   });
 
-  it.each([["vm", "Private desktop"], ["off", "Off"]] as const)("shows a bot kept on %s as a last, checked choice it cannot pick again", (place, label) => {
+  it.each([["vm", "private desktop"], ["off", "off"]] as const)("shows a bot kept on %s as a last, checked choice it cannot pick again", (place, label) => {
     const rendered = where(makeBot({ computer: place }));
     expect(choices(rendered).at(-1)).toEqual([place, label, true, true]);
     choose(rendered, place);
@@ -847,7 +847,7 @@ describe("the Where it works page", () => {
   });
 
   it("holds a place the bot cannot use with the reason as its hint, and leaves out the Cloud desktop when none is offered", () => {
-    fixture.places.cloud = [true, false, "Not ready"];
+    fixture.places.cloud = [true, false, "not ready"];
     expect(find(where(makeBot()), "data-panel-choice", "cloud").props).toMatchObject({ disabled: true, hint: "Not ready." });
     fixture.places.cloud = [false, false, "Not offered"];
     expect(choices(where(makeBot())).map(([value]) => value)).toEqual(["auto", "local", "browser"]);
@@ -859,13 +859,13 @@ describe("the Where it works page", () => {
 
   it("names the browser My Chrome when the bot's profile is the person's own Chrome", () => {
     fixture.storeState = { ...fixture.storeState, config: { browserEngine: { myChrome: true }, browserProfiles: [{ id: "bank", name: "Bank", browser: "chrome" }] } };
-    expect(find(where(makeBot({ browserProfile: "bank" })), "data-panel-choice", "browser").props.title).toBe("My Chrome");
-    expect(find(where(makeBot()), "data-panel-choice", "browser").props.title).toBe("Browser");
+    expect(find(where(makeBot({ browserProfile: "bank" })), "data-panel-choice", "browser").props.title).toBe("my Chrome");
+    expect(find(where(makeBot()), "data-panel-choice", "browser").props.title).toBe("browser");
   });
 
   it("says where the bot works right now when that is not the place chosen", () => {
     const html = where(makeBot({ computer: "cloud", tasks: [{ threadId: "thread-scout", title: "Main", surface: "local" }] as Bot["tasks"] })).html;
-    expect(html).toContain("Right now: This PC");
+    expect(html).toContain("right now: this PC");
   });
 
   it("warns before this computer for a bot that decides alone", () => {
@@ -900,7 +900,7 @@ describe("the drill-in pages", () => {
     const rendered = body("apps");
     expect(switches(rendered.html)).toBe(3);
     expect(rendered.html).not.toContain("Let Scout use apps");
-    expect(rendered.html).not.toContain("Read only");
+    expect(rendered.html).not.toContain("read only");
     expect(rendered.html).not.toContain("github things");
     click(find(rendered, "aria-label", "Scout can use Github"));
     expect(patch).toHaveBeenLastCalledWith({ connectorScopes: { apps: { gmail: "write", slack: "write" } } });
@@ -924,12 +924,12 @@ describe("the drill-in pages", () => {
 
   it("says what it knows about the apps: checking, unreadable, empty or unusable, and leads to the catalog", () => {
     fixture.apps = { phase: "loading", apps: [], connectedSlugs: [] };
-    expect(body("apps").html).toContain("Checking…");
+    expect(body("apps").html).toContain("checking…");
     fixture.apps = { phase: "unknown", apps: [], connectedSlugs: [] };
     expect(body("apps").html).toContain("Couldn&#x27;t check your apps just now.");
     fixture.apps = { phase: "ready", apps: [], connectedSlugs: [] };
     const empty = body("apps");
-    expect(empty.html).toContain("No apps connected yet.");
+    expect(empty.html).toContain("no apps connected yet.");
     click(find(empty, "data-panel-link", "add-app"));
     expect((fixture.dispatch as ReturnType<typeof vi.fn>).mock.calls).toEqual([
       [{ type: "togglePlugins", open: true, surface: "apps" }],
@@ -945,8 +945,8 @@ describe("the drill-in pages", () => {
     fixture.storeState = { ...fixture.storeState, routines: [routine()] };
     const rendered = body("routines");
     expect(ofType(rendered, BotRoutines)!.props).toMatchObject({ label: false });
-    expect(rendered.html).toMatch(/aria-label="Pause Morning brief, Every weekday at 9 AM"[^>]*role="switch" aria-checked="true"/);
-    expect(rendered.html).not.toContain("Open schedules");
+    expect(rendered.html).toMatch(/aria-label="pause Morning brief, Every weekday at 9 AM"[^>]*role="switch" aria-checked="true"/);
+    expect(rendered.html).not.toContain("open schedules");
     expect(has(rendered, "data-panel-action", "routine-logs")).toBe(false);
     expect(rendered.html).not.toContain('data-panel-action="new-routine"');
   });
@@ -958,8 +958,8 @@ describe("the drill-in pages", () => {
     expect(rendered.html).toContain("Uses Resolve Studio");
     expect(rendered.html).not.toContain("# Notes");
     expect(switches(rendered.html)).toBe(0);
-    for (const text of ["Tidy now", "Upkeep", "Obsidian", "Daily logs", "Journal"]) expect(rendered.html).not.toContain(text);
-    click(rendered.nodes.filter((node) => node.props.label === "Forget")[0]!);
+    for (const text of ["Tidy now", "Upkeep", "Obsidian", "daily logs", "Journal"]) expect(rendered.html).not.toContain(text);
+    click(rendered.nodes.filter((node) => node.props.label === "forget")[0]!);
     await Promise.resolve();
     expect(fixture.saveMemory).toHaveBeenLastCalledWith("scout", "MEMORY.md", "# Notes\n\n- Uses Resolve Studio\n", "h1", false);
     await Promise.resolve();
@@ -972,16 +972,16 @@ describe("the drill-in pages", () => {
   });
 
   it("says when memory is off, empty or unreadable, and re-reads on a conflict", async () => {
-    expect(body("memory", makeBot({ memoryEnabled: false })).html).toContain("Memory is off for Scout.");
+    expect(body("memory", makeBot({ memoryEnabled: false })).html).toContain("memory is off for Scout.");
     expect(has(body("memory", makeBot({ memoryEnabled: false })), "data-panel-form", "memory-add")).toBe(false);
     fixture.memory.docs = [memoryDoc("")];
-    expect(body("memory").html).toContain("Nothing remembered yet.");
+    expect(body("memory").html).toContain("nothing remembered yet.");
     fixture.memory = { ...fixture.memory, docs: null, error: true };
     expect(body("memory").html).toContain("Couldn&#x27;t read the memory file just now.");
 
     fixture.memory = { ...fixture.memory, docs: [memoryDoc("- Old\n")], error: false };
     fixture.saveMemory = vi.fn(() => Promise.resolve({ ok: false, conflict: true, current: "- New\n", currentHash: "h3" }));
-    click(find(body("memory"), "label", "Forget"));
+    click(find(body("memory"), "label", "forget"));
     await Promise.resolve();
     await Promise.resolve();
     expect(fixture.memory.reload).toHaveBeenCalled();
@@ -996,7 +996,7 @@ describe("the drill-in pages", () => {
     expect(row(rendered, "skill:summarise").props).toMatchObject({ checked: false, label: "Use summarise", hint: "summarise helper", disabled: false });
     (row(rendered, "skill:summarise").props.onChange as () => void)();
     expect(fixture.skills.toggle).toHaveBeenCalledWith(off);
-    expect(rendered.html).not.toContain("Write a command");
+    expect(rendered.html).not.toContain("write a command");
 
     click(find(rendered, "data-panel-action", "remove-skill:summarise"));
     await Promise.resolve();
@@ -1021,7 +1021,7 @@ describe("the drill-in pages", () => {
     fixture.skills.working = "triage";
     expect(row(body("skills"), "skill:summarise").props.disabled).toBe(true);
     fixture.skills.skills = [];
-    expect(body("skills").html).toContain("No skills yet.");
+    expect(body("skills").html).toContain("no skills yet.");
   });
 
   it("keeps the bot's own private folder, or a folder chosen with the native picker, saved through the bot route", async () => {
@@ -1031,7 +1031,7 @@ describe("the drill-in pages", () => {
     expect(find(rendered, "data-panel-choice", "private").props.checked).toBe(true);
     expect(find(rendered, "data-panel-choice", "pick").props.checked).toBe(false);
     expect(has(rendered, "data-panel-action", "pick-folder")).toBe(false);
-    expect(rendered.html).not.toContain("Changed in this chat");
+    expect(rendered.html).not.toContain("changed in this chat");
     click(find(rendered, "data-panel-choice", "pick"));
     await Promise.resolve();
     expect(pickFolder).toHaveBeenCalledWith(undefined);
@@ -1067,7 +1067,7 @@ describe("the drill-in pages", () => {
     expect(ofType(rendered, SignedInSites)!.props).toMatchObject({ bare: true, target: { bot: "scout" }, sharedBy: ["Scout"], disabled: false });
     expect(switches(rendered.html)).toBe(0);
     expect(rendered.html).not.toContain("Record");
-    expect(rendered.html).not.toContain(">Logins<");
+    expect(rendered.html).not.toContain(">logins<");
     const onOpenBrowser = vi.fn();
     click(find(capture(() => BrowserLogins({ bot: makeBot(), browserEnabled: true, onOpenBrowser })), "data-panel-action", "add-login"));
     expect(onOpenBrowser).toHaveBeenCalled();

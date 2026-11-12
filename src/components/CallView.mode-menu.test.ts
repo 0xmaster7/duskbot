@@ -116,23 +116,23 @@ describe("the call button", () => {
 
   it("is not there in Live mode while another device holds the Live line, on any bot", () => {
     setCallMode("live");
-    expect(renderButton()).toContain('aria-label="Live call with Atlas"');
+    expect(renderButton()).toContain('aria-label="live call with Atlas"');
     fixture.liveCall = phoneCall;
     expect(renderButton()).toBe("");
     fixture.liveCall = { ...phoneCall, status: "ended", endReason: "hung-up" };
-    expect(renderButton()).toContain('aria-label="Live call with Atlas"');
+    expect(renderButton()).toContain('aria-label="live call with Atlas"');
   });
 
   it("keeps Take turns while another device holds the Live line", () => {
     setCallMode("turns");
     fixture.liveCall = phoneCall;
-    expect(renderButton()).toContain('aria-label="Call Atlas"');
+    expect(renderButton()).toContain('aria-label="call Atlas"');
     const onStart = vi.fn();
     pressPhone(onStart);
     expect(currentCall()).toBe("atlas");
     expect(liveMedia().phase).toBe("idle");
     expect(onStart).toHaveBeenCalledWith("turns");
-    expect(renderButton()).toContain('aria-label="Hang up on Atlas"');
+    expect(renderButton()).toContain('aria-label="hang up on Atlas"');
   });
 
   it("keeps a running Take-turns call's Hang up when a phone takes the Live line, in either mode", () => {
@@ -140,14 +140,14 @@ describe("the call button", () => {
     fixture.liveCall = phoneCall;
     for (const mode of ["turns", "live"] as const) {
       setCallMode(mode);
-      expect(renderButton()).toContain('aria-label="Hang up on Atlas"');
+      expect(renderButton()).toContain('aria-label="hang up on Atlas"');
     }
   });
 
   it("tells a blocked microphone on a server's page who blocked it, whatever the page's config says", async () => {
     for (const [pageMic, notice] of [
-      ["allowed", "Allow microphone access for this app in your computer's privacy settings"],
-      ["refused", "Open it in your web browser to make the Live call."],
+      ["allowed", "allow microphone access for this app in your computer's privacy settings"],
+      ["refused", "open it in your web browser to make the live call."],
     ] as const) {
       for (const cloudHome of [true, false]) {
         resetLiveMedia();
@@ -185,35 +185,35 @@ describe("the call mode menu", () => {
   it("offers both modes as radio items, the current one checked", () => {
     const markup = renderToStaticMarkup(createElement(CallModeMenu, { id: "m", mode: "live", onChoose: vi.fn(), onClose: vi.fn() }));
     expect(markup).toContain('role="menu"');
-    expect(markup).toContain('aria-label="Call mode"');
+    expect(markup).toContain('aria-label="call mode"');
     const items = markup.split('role="menuitemradio"').slice(1);
     expect(items).toHaveLength(2);
-    expect(items[0]).toContain(">Take turns<");
+    expect(items[0]).toContain(">take turns<");
     expect(items[0]).toMatch(/^ aria-checked="false"/);
-    expect(items[1]).toContain(">Live<");
+    expect(items[1]).toContain(">live<");
     expect(items[1]).toMatch(/^ aria-checked="true"/);
   });
 
   it("says where the OpenAI key stays: this computer, or the person's Cloud", () => {
     const props = { id: "m", mode: "live" as const, onChoose: vi.fn(), onClose: vi.fn() };
-    expect(renderToStaticMarkup(createElement(CallModeMenu, props))).toContain("The OpenAI key stays on your computer.");
+    expect(renderToStaticMarkup(createElement(CallModeMenu, props))).toContain("the OpenAI key stays on your computer.");
     const cloud = renderToStaticMarkup(createElement(CallModeMenu, { ...props, cloudHome: true }));
-    expect(cloud).toContain("The OpenAI key stays in the Cloud.");
+    expect(cloud).toContain("the OpenAI key stays in the cloud.");
     expect(cloud).not.toContain("stays on your computer");
   });
 
   it("shows Take turns disabled with its reason where this page can't take turns", () => {
     const turnsUnavailable = {
-      label: "Calls where you take turns need the desktop app",
-      reason: "They listen from this computer, so they need Dusk on a Mac, Windows or Linux computer.",
+      label: "calls where you take turns need the desktop app",
+      reason: "they listen from this computer, so they need Dusk on a Mac, Windows or Linux computer.",
     };
     const markup = renderToStaticMarkup(createElement(CallModeMenu, { id: "m", mode: "live", turnsUnavailable, onChoose: vi.fn(), onClose: vi.fn() }));
     const [turns, live] = markup.split('role="menuitemradio"').slice(1);
     expect(turns).toMatch(/^ aria-checked="false" aria-disabled="true"/);
     expect(turns).not.toContain('disabled=""');
-    expect(turns).toContain(">Take turns<");
+    expect(turns).toContain(">take turns<");
     expect(turns).toContain("Calls where you take turns need the desktop app. They listen from this computer, so they need Dusk on a Mac, Windows or Linux computer.");
-    expect(turns).not.toContain("Listening stays on this computer");
+    expect(turns).not.toContain("listening stays on this computer");
     expect(live).toMatch(/^ aria-checked="true"/);
     expect(live).not.toMatch(/aria-disabled="true"|disabled=""/);
     expect(renderToStaticMarkup(createElement(CallModeMenu, { id: "m", mode: "turns", onChoose: vi.fn(), onClose: vi.fn() }))).not.toMatch(/aria-disabled="true"|disabled=""/);

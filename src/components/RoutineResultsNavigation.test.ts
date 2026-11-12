@@ -28,7 +28,7 @@ const bot: Bot = {
   notifications: true, unread: false, busy: false, messages: [],
   modelSelection: { instanceId: "test", model: "test" },
   tasks: [
-    { threadId: "execution", title: "Run details", createdAt: 1, routineRunId: "run", busy: false },
+    { threadId: "execution", title: "run details", createdAt: 1, routineRunId: "run", busy: false },
     { threadId: "new-results", title: "New destination", createdAt: 2 },
     { threadId: "original-source", title: "Original conversation", createdAt: 0 },
   ],
@@ -84,8 +84,8 @@ describe("routine results navigation", () => {
   it("returns from an execution chat to its group-owned source task", () => {
     fixture.state!.routineRuns = [{ ...run, sourceThreadId: "original-room-source" }];
     const buttons = buttonsFrom(() => ChatView({ bot }));
-    expect(buttons.has("Back to results")).toBe(true);
-    buttons.get("Back to results")!.onClick!();
+    expect(buttons.has("back to results")).toBe(true);
+    buttons.get("back to results")!.onClick!();
     expect(fixture.dispatch.mock.calls).toEqual([
       [{ type: "select", id: group.id }],
       [{ type: "switchGroupTask", groupId: group.id, threadId: "original-room-source" }],
@@ -95,13 +95,13 @@ describe("routine results navigation", () => {
 
   it("omits Back to results when the execution's recorded destination was deleted", () => {
     fixture.state!.routineRuns = [{ ...run, resultsThreadId: "deleted-destination" }];
-    expect(buttonsFrom(() => ChatView({ bot })).has("Back to results")).toBe(false);
+    expect(buttonsFrom(() => ChatView({ bot })).has("back to results")).toBe(false);
   });
 
   it("shows no run banner when the run worked inside the conversation its results go to", () => {
     fixture.state!.routineRuns = [{ ...run, resultsThreadId: "execution", sourceThreadId: "execution" }];
     const buttons = buttonsFrom(() => ChatView({ bot }));
-    expect(buttons.has("Back to results")).toBe(false);
-    expect(buttons.has("Open routine")).toBe(false);
+    expect(buttons.has("back to results")).toBe(false);
+    expect(buttons.has("open routine")).toBe(false);
   });
 });

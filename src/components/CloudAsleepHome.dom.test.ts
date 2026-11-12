@@ -42,7 +42,7 @@ it("shows the last-seen chats read-only with the quiet line, and opening or read
   const { bridge } = bridgeOf({ screen: "asleep" });
   await mount(bridge);
   expect(host.querySelector("[data-home-screen]")?.getAttribute("data-home-screen")).toBe("asleep");
-  expect(line()).toBe("Asleep · wakes when you type");
+  expect(line()).toBe("asleep · wakes when you type");
   expect([...host.querySelectorAll("ol li div")].map((node) => node.textContent)).toEqual(["find flights to Goa", "Three options under ₹9,000."]);
   await act(async () => { host.querySelector<HTMLButtonElement>("nav button:nth-child(2)")!.click(); });
   expect(host.querySelector("ol li div")?.textContent).toBe("Draft is ready.");
@@ -50,7 +50,7 @@ it("shows the last-seen chats read-only with the quiet line, and opening or read
   await key("Tab");
   await key("c", { metaKey: true });
   expect(bridge.wake, "moving around or copying is no intent").not.toHaveBeenCalled();
-  expect(composer().getAttribute("aria-label")).toBe("Message Quill");
+  expect(composer().getAttribute("aria-label")).toBe("message Quill");
 });
 
 it("the first key press wakes it once, with a clear waking line; the typed text stays and Enter holds it to send once awake", async () => {
@@ -61,7 +61,7 @@ it("the first key press wakes it once, with a clear waking line; the typed text 
   await key("i");
   expect(bridge.wake).toHaveBeenCalledTimes(1);
   expect(bridge.wake).toHaveBeenCalledWith("type", null);
-  expect(line()).toBe("Waking up…");
+  expect(line()).toBe("waking up…");
   expect(composer().value).toBe("hi there");
   await key("Enter");
   expect(bridge.wake).toHaveBeenCalledTimes(2);
@@ -82,8 +82,8 @@ it("a click in the composer wakes it; with nothing seen yet, Wake it now is the 
   await act(async () => root?.unmount());
   const empty = bridgeOf({ screen: "asleep" }, null);
   await mount(empty.bridge);
-  expect(host.textContent).toContain("No chats seen on this computer yet.");
-  const button = [...host.querySelectorAll("button")].find((node) => node.textContent === "Wake it now")!;
+  expect(host.textContent).toContain("no chats seen on this computer yet.");
+  const button = [...host.querySelectorAll("button")].find((node) => node.textContent === "wake it now")!;
   await act(async () => { button.click(); });
   expect(empty.bridge.wake).toHaveBeenCalledWith("click", null);
 });

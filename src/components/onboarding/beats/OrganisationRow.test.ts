@@ -114,9 +114,9 @@ describe("organisation sign-in row in the welcome flow", () => {
     expect(render().html).toBe("");
     await mount();
     const html = render().html;
-    expect(html).toContain("Using Dusk at work?");
-    expect(html).toContain("Sign in with your organization.");
-    expect(html).toContain("Other Admin address");
+    expect(html).toContain("using Dusk at work?");
+    expect(html).toContain("sign in with your organization.");
+    expect(html).toContain("other admin address");
     expect(bridge.begin).not.toHaveBeenCalled();
     expect(bridge.settingsOpened).not.toHaveBeenCalled();
     expect(fetch).not.toHaveBeenCalled();
@@ -124,22 +124,22 @@ describe("organisation sign-in row in the welcome flow", () => {
 
   it("signs in to the default Admin once, then follows the browser step to connected", async () => {
     await mount();
-    const signIn = button("Sign in")!;
+    const signIn = button("sign in")!;
     signIn.props.onClick!();
     signIn.props.onClick!();
     await flush();
     expect(bridge.begin).toHaveBeenCalledExactlyOnceWith({ portalOrigin: "https://dusk.bot" });
 
     let html = render().html;
-    expect(html).toContain("Finish in your browser");
+    expect(html).toContain("finish in your browser");
     expect(html).toContain("ABCDE-FGHIJ");
-    expect(html).not.toContain("Using Dusk at work?");
+    expect(html).not.toContain("using Dusk at work?");
     expect(onConnected).not.toHaveBeenCalled();
 
     push(connected);
     html = render().html;
-    expect(html).toContain("Signed in to Fixture Company");
-    expect(html).toContain("Company models: 3");
+    expect(html).toContain("signed in to Fixture Company");
+    expect(html).toContain("company models: 3");
     expect(html).not.toContain("ABCDE-FGHIJ");
     expect(onConnected).toHaveBeenCalledOnce();
     push(connected);
@@ -149,15 +149,15 @@ describe("organisation sign-in row in the welcome flow", () => {
 
   it("can cancel a sign-in in progress", async () => {
     await mount(connecting);
-    button("Cancel sign-in")!.props.onClick!();
+    button("cancel sign-in")!.props.onClick!();
     await flush();
     expect(bridge.cancelEnrollment).toHaveBeenCalledOnce();
-    expect(render().html).toContain("Using Dusk at work?");
+    expect(render().html).toContain("using Dusk at work?");
   });
 
   it("sends another Admin address to Settings instead of asking here", async () => {
     await mount();
-    button("Other Admin address")!.props.onClick!();
+    button("other admin address")!.props.onClick!();
     expect(onOpenSettings).toHaveBeenCalledOnce();
     expect(bridge.begin).not.toHaveBeenCalled();
   });
@@ -165,8 +165,8 @@ describe("organisation sign-in row in the welcome flow", () => {
   it("says when the organisation has approved no models yet", async () => {
     await mount({ ...connected, providers: [] });
     const html = render().html;
-    expect(html).toContain("Signed in to Fixture Company");
-    expect(html).toContain("No company models are available yet");
+    expect(html).toContain("signed in to Fixture Company");
+    expect(html).toContain("no company models are available yet");
     expect(onConnected).not.toHaveBeenCalled();
   });
 
@@ -175,18 +175,18 @@ describe("organisation sign-in row in the welcome flow", () => {
     const html = render().html;
     expect(html).toContain("Fixture Company");
     expect(html).toContain("Fixture reason");
-    expect(button("Sign in")).toBeUndefined();
-    button("Organization settings")!.props.onClick!();
+    expect(button("sign in")).toBeUndefined();
+    button("organization settings")!.props.onClick!();
     expect(onOpenSettings).toHaveBeenCalledOnce();
   });
 
   it("shows product copy for a failed action, never the IPC error", async () => {
     await mount();
     vi.mocked(bridge.begin).mockRejectedValueOnce(new Error("Private /path token-secret"));
-    button("Sign in")!.props.onClick!();
+    button("sign in")!.props.onClick!();
     await flush();
     const html = render().html;
-    expect(html).toContain("Could not complete this action");
+    expect(html).toContain("could not complete this action");
     expect(html).not.toContain("token-secret");
   });
 
@@ -194,7 +194,7 @@ describe("organisation sign-in row in the welcome flow", () => {
     const cleanup = await mount();
     let resolveBegin!: (state: ManagedDesktopState) => void;
     vi.mocked(bridge.begin).mockImplementation(() => new Promise((resolve) => { resolveBegin = resolve; }));
-    button("Sign in")!.props.onClick!();
+    button("sign in")!.props.onClick!();
     if (typeof cleanup === "function") cleanup();
     push(connected);
     resolveBegin(connecting);

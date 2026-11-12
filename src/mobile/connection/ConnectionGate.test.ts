@@ -43,13 +43,13 @@ const click = (text: string) => act(async () => { [...host.querySelectorAll("but
 it("an offline server at launch keeps the link, retries, and offers the other saved installations", async () => {
   fetcher.mockRejectedValue(new TypeError("offline"));
   await mount(); await settle();
-  expect(host.querySelector("h1")?.textContent).toBe("Can't reach Studio Mac");
+  expect(host.querySelector("h1")?.textContent).toBe("can't reach Studio Mac");
   expect(host.textContent).not.toContain("Link to your");
   expect(host.textContent).toContain("Box");
   expect(prefs.get("dusk.mobile.active.v1")).toBe("mac");
 
   fetcher.mockResolvedValue(new Response("{}"));
-  await click("Try again"); await settle();
+  await click("try again"); await settle();
   expect(host.textContent).toBe("home");
 });
 
@@ -64,7 +64,7 @@ it("switches to another saved installation from the unreachable screen", async (
 it("a refused token still goes to pairing", async () => {
   fetcher.mockResolvedValue(new Response("{}", { status: 401 }));
   await mount(); await settle();
-  expect(host.querySelector("h1")?.textContent).not.toContain("Can't reach");
+  expect(host.querySelector("h1")?.textContent).not.toContain("can't reach");
   expect(prefs.get("dusk.mobile.active.v1")).toBeUndefined();
 });
 
@@ -77,7 +77,7 @@ it("a phone removed on the computer while the app is open leaves for pairing at 
   await act(async () => { await api("/api/bots").catch(() => {}); await sessionCheck(); });
   await settle();
   expect(host.textContent).not.toBe("home");
-  expect(host.textContent).toContain("This phone was unlinked");
+  expect(host.textContent).toContain("this phone was unlinked");
   expect(prefs.get("dusk.mobile.active.v1")).toBeUndefined();
   expect(prefs.get("dusk.mobile.connections.v1")).not.toContain("Studio Mac");
   expect(sessionEnded()).toBe(false);

@@ -64,7 +64,7 @@ describe("VoiceSettings", () => {
     await pickLibraryVoice();
 
     expect(fixture.api).toHaveBeenCalledWith("/api/tts/voices/add", expect.objectContaining({ method: "POST" }));
-    expect(trigger().textContent).toContain("Adding…");
+    expect(trigger().textContent).toContain("adding…");
     await act(async () => resolve({ voiceId: "added-1" }));
     expect(onPatch).toHaveBeenCalledWith({ voice: "added-1" });
     expect(trigger().disabled).toBe(false);
@@ -77,7 +77,7 @@ describe("VoiceSettings", () => {
     await pickLibraryVoice();
 
     await render(bot("salt"), onPatch);
-    expect(trigger().textContent).not.toContain("Adding…");
+    expect(trigger().textContent).not.toContain("adding…");
     await act(async () => resolve({ voiceId: "added-1" }));
     expect(onPatch).not.toHaveBeenCalled();
   });
@@ -86,7 +86,7 @@ describe("VoiceSettings", () => {
     fixture.api.mockResolvedValue({ voices: [] });
     await render(bot("pepper"), vi.fn());
     const radios = [...host.querySelectorAll<HTMLElement>('[role="radiogroup"] [role="radio"]')];
-    expect(radios.map((radio) => radio.textContent)).toEqual(["ElevenLabs", "Fish Audio", "Grok (xAI)", "Gemini", "Built-in Mac voices", "Chatterbox (local)"]);
+    expect(radios.map((radio) => radio.textContent)).toEqual(["ElevenLabs", "Fish Audio", "Grok (xAI)", "Gemini", "built-in Mac voices", "Chatterbox (local)"]);
     expect(radios.map((radio) => radio.className.match(/col-span-\d/)?.[0])).toEqual([
       "col-span-2", "col-span-2", "col-span-2", "col-span-2", "col-span-2", "col-span-2",
     ]);

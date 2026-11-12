@@ -37,17 +37,17 @@ describe("a turn whose reply came back but a step failed", () => {
     expect(html).toContain("warning");
     expect(html).not.toMatch(/danger|gi-triangle-alert|gi-alert-triangle/);
     expect(html).toMatch(/<details[\s\S]*Details[\s\S]*Stopped because the tool call/);
-    expect(html).toContain("Retry");
+    expect(html).toContain("retry");
   });
 
   it("is still the red failure row when the turn did not finish", () => {
     const html = show(failedTurnTool(cause, { terminal: true }));
     expect(html).toContain("danger");
-    expect(html).not.toContain("Partly done");
+    expect(html).not.toContain("partly done");
   });
 
   it("says partly done in the chat list preview too", () => {
-    expect(activityPreview(failedTurnTool(cause, { partial: true }), undefined)).toBe("Partly done: a step didn't work");
-    expect(activityPreview(failedTurnTool(cause), undefined)).not.toContain("Partly done");
+    expect(activityPreview(failedTurnTool(cause, { partial: true }), undefined)).toBe("partly done: a step didn't work");
+    expect(activityPreview(failedTurnTool(cause), undefined)).not.toContain("partly done");
   });
 });

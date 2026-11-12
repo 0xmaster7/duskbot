@@ -26,7 +26,7 @@ describe("ThreadCleanupSettings", () => {
     expect(markup).toContain('id="thread-log-retention-enabled"');
     expect(markup).toContain('id="thread-log-cap-enabled"');
     expect(markup.match(/role="switch"[^>]*aria-checked="false"/g)).toHaveLength(2);
-    expect(markup.match(/>Off</g)).toHaveLength(2);
+    expect(markup.match(/>off</g)).toHaveLength(2);
     // the number fields live in each knob's own dialog
     expect(markup).not.toContain("<input");
   });

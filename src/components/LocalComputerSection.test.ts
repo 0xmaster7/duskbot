@@ -68,7 +68,7 @@ describe("computer inventory request wiring", () => {
     expect(request).toBeNull();
     expect(confirm).toHaveBeenCalledOnce();
     expect(confirm).toHaveBeenCalledWith(
-      "Delete Research's private desktop? Its durable folder and website sign-ins are kept. Apps installed inside the desktop and files outside the durable folder are deleted.",
+      "delete Research's private desktop? Its durable folder and website sign-ins are kept. Apps installed inside the desktop and files outside the durable folder are deleted.",
     );
   });
 
@@ -113,12 +113,12 @@ describe("Local VM inventory UI", () => {
         cloudVm,
         {
           botId: "off-bot",
-          name: "Archive",
+          name: "archive",
           destination: "off",
           container: "stopped",
           ready: false,
           managed: true,
-          problem: "This desktop image cannot safely resume; recreate the Local VM",
+          problem: "this desktop image cannot safely resume; recreate the Local VM",
           inUse: true,
         },
       ],
@@ -132,19 +132,19 @@ describe("Local VM inventory UI", () => {
     }));
 
     expect(markup).toContain("2/4 created");
-    expect(markup).toContain("Current destination: Cloud");
-    expect(markup).toContain("Current destination: Off");
-    expect(markup).toContain("In use");
-    expect(markup).toContain("Stop this bot&#x27;s turn before deleting its desktop.");
+    expect(markup).toContain("current destination: cloud");
+    expect(markup).toContain("current destination: off");
+    expect(markup).toContain("in use");
+    expect(markup).toContain("stop this bot&#x27;s turn before deleting its desktop.");
     expect(markup).toContain("disabled=\"\"");
     expect(markup).not.toMatch(/viewer_url|workspace_path|password=/);
   });
 
   it("keeps state labels honest", () => {
-    expect(localVmInventoryState(cloudVm)).toBe("Running");
-    expect(localVmInventoryState({ ...cloudVm, ready: false })).toBe("Needs attention");
-    expect(localVmInventoryState({ ...cloudVm, container: "stopped", ready: false })).toBe("Stopped");
-    expect(localVmInventoryState({ ...cloudVm, inUse: true })).toBe("In use");
+    expect(localVmInventoryState(cloudVm)).toBe("running");
+    expect(localVmInventoryState({ ...cloudVm, ready: false })).toBe("needs attention");
+    expect(localVmInventoryState({ ...cloudVm, container: "stopped", ready: false })).toBe("stopped");
+    expect(localVmInventoryState({ ...cloudVm, inUse: true })).toBe("in use");
   });
 
   it("does not claim there are no VMs when the runtime cannot be inspected", () => {
@@ -159,9 +159,9 @@ describe("Local VM inventory UI", () => {
       onDelete: vi.fn(),
     }));
 
-    expect(markup).toContain("Inventory unavailable");
+    expect(markup).toContain("inventory unavailable");
     expect(markup).toContain("Start docker first");
-    expect(markup).not.toContain("No per-bot desktops have been created");
+    expect(markup).not.toContain("no per-bot desktops have been created");
   });
 
   it("disables deletion while refreshing an existing inventory", () => {
@@ -196,7 +196,7 @@ describe("Local VM inventory UI", () => {
       onDelete: vi.fn(),
     }));
 
-    expect(markup).toContain("Not managed");
+    expect(markup).toContain("not managed");
     expect(markup).toContain("not managed by Dusk");
     expect(markup).toContain("remove it directly in Docker or Podman");
     expect(markup).not.toContain(">Delete</button>");
@@ -247,9 +247,9 @@ describe("VPS computer inventory UI", () => {
 
     expect(markup).toContain("production-vps · 2 desktops");
     expect(markup).toContain("Research");
-    expect(markup).toContain("Leftover desktop · ID ef123456");
-    expect(markup).toContain("Running");
-    expect(markup).toContain("Stopped");
+    expect(markup).toContain("leftover desktop · ID ef123456");
+    expect(markup).toContain("running");
+    expect(markup).toContain("stopped");
     expect(markup).not.toMatch(new RegExp(`${ownedVps.name}|${orphanName}|containerId|VNC_PW|password`));
   });
 
@@ -261,8 +261,8 @@ describe("VPS computer inventory UI", () => {
   it("disables removal while the owner is working", () => {
     const markup = renderCard({ instances: [{ ...ownedVps, inUse: true }] });
 
-    expect(markup).toContain("In use");
-    expect(markup).toContain("Stop this bot&#x27;s work before removing its desktop.");
+    expect(markup).toContain("in use");
+    expect(markup).toContain("stop this bot&#x27;s work before removing its desktop.");
     expect(markup).toContain("disabled=\"\"");
   });
 
@@ -275,7 +275,7 @@ describe("VPS computer inventory UI", () => {
   it("keeps disconnected, unavailable, and empty states distinct", () => {
     expect(renderCard({ configured: false, aliases: [] })).toBe("");
     expect(renderCard({ unavailableReason: "SSH host cannot be reached" })).toContain("SSH host cannot be reached");
-    expect(renderCard()).toContain("None yet");
+    expect(renderCard()).toContain("none yet");
   });
 
   it("tags computers on more than one server and keeps reachable rows beside the warning", () => {
@@ -302,12 +302,12 @@ describe("VPS computer inventory UI", () => {
   });
 
   it("uses honest status labels", () => {
-    expect(vpsComputerInventoryState(ownedVps)).toBe("Running");
-    expect(vpsComputerInventoryState({ ...ownedVps, state: "exited" })).toBe("Stopped");
-    expect(vpsComputerInventoryState({ ...ownedVps, state: "paused" })).toBe("Paused");
-    expect(vpsComputerInventoryState({ ...ownedVps, state: "restarting" })).toBe("Restarting");
-    expect(vpsComputerInventoryState({ ...ownedVps, state: "dead" })).toBe("Needs attention");
-    expect(vpsComputerInventoryState({ ...ownedVps, inUse: true })).toBe("In use");
+    expect(vpsComputerInventoryState(ownedVps)).toBe("running");
+    expect(vpsComputerInventoryState({ ...ownedVps, state: "exited" })).toBe("stopped");
+    expect(vpsComputerInventoryState({ ...ownedVps, state: "paused" })).toBe("paused");
+    expect(vpsComputerInventoryState({ ...ownedVps, state: "restarting" })).toBe("restarting");
+    expect(vpsComputerInventoryState({ ...ownedVps, state: "dead" })).toBe("needs attention");
+    expect(vpsComputerInventoryState({ ...ownedVps, inUse: true })).toBe("in use");
   });
 
   it("keeps running and paused VPS badge colors when labels are translated", () => {
@@ -315,7 +315,7 @@ describe("VPS computer inventory UI", () => {
     const running = renderCard({ instances: [ownedVps] });
     expect(running).toContain('data-computer-state="good" class="shrink-0 text-[13px] leading-[18px] text-success">Em execução</span>');
     expect(running).toContain("Remover");
-    expect(running).not.toContain(">Remove</button>");
+    expect(running).not.toContain(">remove</button>");
     expect(renderCard({ instances: [{ ...ownedVps, state: "paused" }] }))
       .toContain('data-computer-state="idle" class="shrink-0 text-[13px] leading-[18px] text-ink-secondary">Pausado</span>');
   });
@@ -327,15 +327,15 @@ describe("Settings → Computers on a dusk bot Cloud home", () => {
   const cards = () => [...renderToStaticMarkup(createElement(LocalComputerSection)).matchAll(/<(?:div|h3)[^>]*data-(?:row-title|settings-heading)=""[^>]*>([^<]+)<\/(?:div|h3)>/g)].map((match) => match[1]);
 
   it("sets up a Local VM on a desktop or self-hosted server", () => {
-    expect(cards()).toEqual(expect.arrayContaining(["Your VPS", "Private desktop", "Setup and options"]));
+    expect(cards()).toEqual(expect.arrayContaining(["your VPS", "private desktop", "setup and options"]));
   });
 
   it("shows no Local VM, and no steps to install one, where it cannot exist", () => {
     storeFixture.config = { cloudHome: true };
     const titles = cards();
-    expect(titles).toContain("Your VPS");
-    expect(titles).not.toContain("Private desktop");
-    expect(titles).not.toContain("Setup and options");
+    expect(titles).toContain("your VPS");
+    expect(titles).not.toContain("private desktop");
+    expect(titles).not.toContain("setup and options");
   });
 });
 
@@ -354,7 +354,7 @@ describe("Local VM idle timeout setting", () => {
       disabled: false,
       onSave: async () => {},
     }));
-    expect(row).toContain("Stop idle desktops after");
+    expect(row).toContain("stop idle desktops after");
     expect(row).toContain("30 minutes");
     expect(row).not.toContain("<input");
     const field = renderToStaticMarkup(createElement(LocalVmIdleTimeoutField, { value: "30", disabled: false, error: "", onChange: () => {} }));

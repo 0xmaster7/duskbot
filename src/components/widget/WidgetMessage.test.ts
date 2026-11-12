@@ -178,10 +178,10 @@ describe("drawing a widget", () => {
     mount(row(sample("sources")));
     expect(all('[role="listitem"]')).toHaveLength(2);
     const more = button(t("widget.showAll", { count: 3 }))!;
-    expect(more.textContent).toBe("Show all (3)");
+    expect(more.textContent).toBe("show all (3)");
     act(() => more.click());
     expect(all('[role="listitem"]')).toHaveLength(3);
-    expect(button("Show all (3)")).toBeUndefined();
+    expect(button("show all (3)")).toBeUndefined();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -226,7 +226,7 @@ describe("drawing a widget", () => {
   it("lets a clipped button label be read in full, with a link's address under it", () => {
     mount(row(sample("kitchenSink")));
     expect(button("Send feedback")!.title).toBe("Send feedback");
-    expect(button("Open the docs")!.title).toBe("Open the docs\nhttps://dusk.bot/docs");
+    expect(button("open the docs")!.title).toBe("open the docs\nhttps://dusk.bot/docs");
     mount(row(sample("pullRequests")));
     expect(button("Merge the two ready")!.title).toBe("Merge the two ready");
     expect(button("Fix #719 first")!.title).toBe("Fix #719 first");
@@ -248,8 +248,8 @@ describe("drawing a widget", () => {
     const report = field<HTMLSelectElement>("report");
     expect(all<HTMLLabelElement>("label").find((label) => label.textContent === "Report to")!.htmlFor).toBe(report.id);
     expect(report.getAttribute("aria-label")).toBe("Report to");
-    expect(find('[role="group"][aria-label="Runs on"]')).not.toBeNull();
-    expect(all<HTMLLabelElement>("label").find((label) => label.textContent === "Runs on")!.htmlFor).toBe("");
+    expect(find('[role="group"][aria-label="runs on"]')).not.toBeNull();
+    expect(all<HTMLLabelElement>("label").find((label) => label.textContent === "runs on")!.htmlFor).toBe("");
     const at = field<HTMLButtonElement>("at");
     expect(at.getAttribute("role")).toBe("combobox");
     expect(at.value).toBe("09:00");
@@ -282,7 +282,7 @@ describe("a settled widget", () => {
     const card = find('[data-widget="w1"]')!;
     expect(card.parentElement!.id).toBe(details.getAttribute("aria-controls"));
     expect(card.getAttribute("data-widget-state")).toBe("settled");
-    expect(card.textContent).toContain("New routine: release check");
+    expect(card.textContent).toContain("new routine: release check");
     const controls = all<HTMLInputElement | HTMLSelectElement>("[data-widget-field]");
     expect(controls.length).toBe(5);
     expect(controls.every((control) => control.disabled)).toBe(true);
@@ -457,14 +457,14 @@ describe("pressing", () => {
     const enter = () => act(async () => {
       field("q").dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
     });
-    const link = { type: "Button", label: "Search the web", submit: true, onClickAction: { type: "open_url", payload: { url: "https://example.com/search" } } };
+    const link = { type: "Button", label: "search the web", submit: true, onClickAction: { type: "open_url", payload: { url: "https://example.com/search" } } };
     const only = parseWidgetInput({ type: "Card", children: [{ type: "Form", onSubmitAction: { type: "q.ask" }, children: [{ type: "Input", name: "q", defaultValue: "widgets" }, link] }] });
     if (!only.ok) throw new Error(only.error);
     mount(row(only.value));
     await enter();
     expect(openExternal).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
-    await press(button("Search the web")!);
+    await press(button("search the web")!);
     expect(openExternal).toHaveBeenCalledWith("https://example.com/search");
 
     openExternal.mockClear();
@@ -521,11 +521,11 @@ describe("pressing", () => {
     await press(link);
     expect(openExternal).toHaveBeenCalledWith("https://developers.openai.com/api/docs/guides/chatkit-widgets");
     expect(all('[role="listitem"]')[1]!.querySelector("button")).not.toBeNull();
-    act(() => button("Show all (3)")!.click());
+    act(() => button("show all (3)")!.click());
     expect(all('[role="listitem"]')[2]!.querySelector("button, [role=button]")).toBeNull();
 
     mount(row(sample("kitchenSink")));
-    await press(button("Open the docs")!);
+    await press(button("open the docs")!);
     expect(openExternal).toHaveBeenLastCalledWith("https://dusk.bot/docs");
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -534,22 +534,22 @@ describe("pressing", () => {
     const PAGE = "https://abcdefghijklmnopqrstuvwxyz.page.dusk.bot/";
     const dispatch = vi.fn();
     const withBrowser = { ...store, dispatch, state: { selectedId: "scout", bots: [{ id: "scout" }], groups: [], config: { features: { browser: true }, browserEngine: { kind: "engine" } } } } as unknown as ReturnType<typeof useStore>;
-    const parsed = parseWidgetInput({ type: "Card", children: [{ type: "Button", label: "Open page", onClickAction: { type: "open_url", payload: { url: PAGE } } }] });
+    const parsed = parseWidgetInput({ type: "Card", children: [{ type: "Button", label: "open page", onClickAction: { type: "open_url", payload: { url: PAGE } } }] });
     if (!parsed.ok) throw new Error(parsed.error);
     act(() => root.render(createElement(BotEditorStore, { value: withBrowser, children: createElement(WidgetMessage, { botId: "scout", threadId: "t1", message: row(parsed.value) }) })));
-    await press(button("Open page")!);
+    await press(button("open page")!);
     expect(dispatch.mock.calls).toEqual([[{ type: "toggleComputer", open: true }]]);
     expect(openExternal).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("shows the server's sentence in the card when a press is refused, and stays live", async () => {
-    fetchMock.mockImplementation(async () => reply(409, { error: "This was already answered." }));
+    fetchMock.mockImplementation(async () => reply(409, { error: "this was already answered." }));
     mount(row(sample("routineForm")));
     await press(button("Create routine")!);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const alert = find('[data-widget="w1"] [role="alert"]')!;
-    expect(alert.textContent).toBe("This was already answered.");
+    expect(alert.textContent).toBe("this was already answered.");
     expect(find('[data-widget="w1"]')!.getAttribute("data-widget-state")).toBe("live");
     expect(button("Create routine")!.disabled).toBe(false);
     expect(field<HTMLInputElement>("at").disabled).toBe(false);
@@ -631,11 +631,11 @@ describe("pressing", () => {
   });
 
   it("shows the server's refusal of a press on a stale revision, and stays live", async () => {
-    fetchMock.mockImplementation(async () => reply(409, { error: "This widget changed. Check it and press again." }));
+    fetchMock.mockImplementation(async () => reply(409, { error: "this widget changed. Check it and press again." }));
     mount(row(sample("routineForm"), { rev: 2 }));
     await press(button("Create routine")!);
     expect(posted().body.widgetAction.rev).toBe(2);
-    expect(find('[role="alert"]')!.textContent).toBe("This widget changed. Check it and press again.");
+    expect(find('[role="alert"]')!.textContent).toBe("this widget changed. Check it and press again.");
     expect(find('[data-ask-card="settled"]')).toBeNull();
     expect(button("Create routine")!.disabled).toBe(false);
   });

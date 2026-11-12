@@ -31,7 +31,7 @@ describe("MessageActions", () => {
 
   it("moves the rest behind a closed more menu", () => {
     const html = render({ menu: [pin] });
-    expect(html).toContain('aria-label="Message actions"');
+    expect(html).toContain('aria-label="message actions"');
     expect(html).toContain('aria-haspopup="menu"');
     expect(html).toContain('aria-expanded="false"');
     expect(html).not.toContain("Pin message");

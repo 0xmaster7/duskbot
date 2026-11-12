@@ -12,7 +12,7 @@ const PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwA
 function preset(overrides: Partial<BotPreset> = {}): BotPreset {
   return {
     id: "p1", source: "file", key: "support", name: "Support agent", description: "Kind and precise.", packageName: "Sales skills", release: "2.0.1",
-    bot: { name: "Sky", title: "Support", soul: "Be kind.\n", appearance: { color: "blue", mascotExpression: "happy", avatar: { mime: "image/png", data: PNG, crop: "rounded" } } },
+    bot: { name: "Sky", title: "support", soul: "Be kind.\n", appearance: { color: "blue", mascotExpression: "happy", avatar: { mime: "image/png", data: PNG, crop: "rounded" } } },
     skills: [{ name: "objection-handling", description: "Answer common objections." }], skillsEnabled: false,
     playbooks: ["Qualify a lead"], notes: ["MEMORY.md"],
     ...overrides,
@@ -29,14 +29,14 @@ describe("presets in New bot", () => {
       preset({ id: "f1" }),
     ]);
     expect(groups.map((group) => [group.label, group.presets.map((entry) => entry.id)])).toEqual([
-      ["From Acme Partners", ["o1", "o2"]],
-      ["Imported presets", ["f1"]],
+      ["from Acme Partners", ["o1", "o2"]],
+      ["imported presets", ["f1"]],
     ]);
   });
 
   it("fills only the name, words and look: never a model, computer, approval or connected apps", () => {
     const patch = presetDraftPatch(preset());
-    expect(patch).toEqual({ name: "Sky", title: "Support", description: "", soul: "Be kind.\n", color: "blue", mascotExpression: "happy" });
+    expect(patch).toEqual({ name: "Sky", title: "support", description: "", soul: "Be kind.\n", color: "blue", mascotExpression: "happy" });
     expect(presetDraftPatch(preset({ bot: {} })).name).toBe("Support agent");
     const draft = new BotCreationDraft({ ...EMPTY_BOT_DEFAULTS, profile: { approvalMode: "auto", computer: "local", composio: true, modelSelection: { instanceId: "claude", model: "opus" } } }, vi.fn());
     draft.patch(patch);
@@ -52,11 +52,11 @@ describe("presets in New bot", () => {
 
   it("says where a preset came from and what it adds, switched on only from the organization", () => {
     expect(presetSummaryLines(preset())).toEqual([
-      "From Sales skills 2.0.1", "Kind and precise.", "Skills, added switched off: objection-handling",
-      "Starter notes: MEMORY.md", "Playbooks: Qualify a lead", "The model, where it works, approval level and connected apps stay as set here.",
+      "from Sales skills 2.0.1", "Kind and precise.", "skills, added switched off: objection-handling",
+      "starter notes: MEMORY.md", "playbooks: Qualify a lead", "the model, where it works, approval level and connected apps stay as set here.",
     ]);
     expect(presetSummaryLines(preset({ source: "org", publisherName: "Acme Partners", skillsEnabled: true })).slice(0, 3)).toEqual([
-      "From Sales skills 2.0.1 · Acme Partners", "Kind and precise.", "Skills, added switched on: objection-handling",
+      "from Sales skills 2.0.1 · Acme Partners", "Kind and precise.", "skills, added switched on: objection-handling",
     ]);
   });
 
@@ -111,6 +111,6 @@ describe("sharing with a preset", () => {
     expect(describePart("presets[new-bot-defaults].bot.soul", document)).toBe("Support agent · standing instructions");
     expect(describePart("presets[new-bot-defaults].skills[follow-up]", document)).toBe("Support agent · skill · follow-up");
     expect(describePart("presets[new-bot-defaults].seed.memory[\"MEMORY.md\"]", document)).toBe("Support agent · starter notes · MEMORY.md");
-    expect(describeSkip({ part: "presets[new-bot-defaults]", reason: "preset_empty" })).toBe("New bot defaults preset — empty: give your New bot defaults a name, instructions, skills or notes first");
+    expect(describeSkip({ part: "presets[new-bot-defaults]", reason: "preset_empty" })).toBe("New bot defaults preset — empty: give your new bot defaults a name, instructions, skills or notes first");
   });
 });

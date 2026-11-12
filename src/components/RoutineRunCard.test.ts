@@ -44,7 +44,7 @@ describe("RoutineRunCard", () => {
     expect(markup).toContain("Morning brief");
     expect(markup).toContain("Completed");
     expect(markup).toContain("The brief is ready with three follow-ups.");
-    expect(markup).toContain("Open run");
+    expect(markup).toContain("open run");
     expect(markup).toContain('aria-label="Morning brief routine run: Completed"');
   });
 
@@ -55,11 +55,11 @@ describe("RoutineRunCard", () => {
       onOpen: vi.fn(),
     }));
 
-    expect(markup).toContain("Show report");
+    expect(markup).toContain("show report");
     expect(markup).toContain(summary);
     expect(markup).toContain("<details ");
     expect(markup).not.toContain("<details open");
-    expect(markup).toContain('aria-label="Open run for Morning brief"');
+    expect(markup).toContain('aria-label="open run for Morning brief"');
   });
 
   it("keeps a terminal team-goal outcome distinct from scheduler completion", () => {
@@ -92,13 +92,13 @@ describe("RoutineRunCard", () => {
 
   it("does not describe delegated work as a question or approval", () => {
     const markup = renderToStaticMarkup(createElement(RoutineRunCard, {
-      message: message("waiting", { summary: "Waiting for work it handed on to finish." }),
+      message: message("waiting", { summary: "waiting for work it handed on to finish." }),
       onOpen: vi.fn(),
     }));
 
-    expect(markup).toContain("Waiting for work it handed on to finish.");
-    expect(markup).toContain("Open run");
-    expect(markup).not.toContain("Needs your input");
+    expect(markup).toContain("waiting for work it handed on to finish.");
+    expect(markup).toContain("open run");
+    expect(markup).not.toContain("needs your input");
     expect(markup).not.toContain("Review");
   });
 
@@ -107,8 +107,8 @@ describe("RoutineRunCard", () => {
       message: message("waiting", { goalStatus: "needs-input", summary: "Which region should I use?" }),
       onOpen: vi.fn(),
     }));
-    expect(markup).toContain("Needs your input");
-    expect(markup).toContain('aria-label="Review for Morning brief"');
+    expect(markup).toContain("needs your input");
+    expect(markup).toContain('aria-label="review for Morning brief"');
   });
 
   it("shows a concise error without dumping a verbose run log into chat", () => {
@@ -144,7 +144,7 @@ describe("RoutineRunCard", () => {
     }));
 
     expect(markup).toContain("Missed");
-    expect(markup).not.toContain("Open run");
+    expect(markup).not.toContain("open run");
   });
 
   it("recognizes only an execution thread still present in the owning bot's tasks", () => {

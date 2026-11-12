@@ -14,7 +14,7 @@ describe("macOS CUA permission recovery", () => {
     expect(missingMacCuaPermissions(reason)).toEqual(["screen"]);
     expect(macCuaPermissionHelper(reason)).toBe("CuaDriver");
     const message = macCuaPermissionMessage(["screen"], reason);
-    expect(message).toContain("Turn on CuaDriver");
+    expect(message).toContain("turn on CuaDriver");
     expect(message).toContain("Screen Recording");
     expect(message).not.toContain("relaunch");
     expect(macCuaPermissionMessage(["screen", "accessibility"], reason)).toContain("Screen Recording and Accessibility");

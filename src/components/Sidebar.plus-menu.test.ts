@@ -72,6 +72,6 @@ describe("the sidebar's + menu", () => {
   });
 
   it("offers neither to a User, who keeps New group chat", () => {
-    expect(plusMenu(false)).toEqual(["New group chat"]);
+    expect(plusMenu(false)).toEqual(["new group chat"]);
   });
 });

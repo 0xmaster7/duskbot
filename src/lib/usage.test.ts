@@ -13,9 +13,9 @@ describe("usage formatting", () => {
   it("distinguishes missing cache reports from zero in last-turn details", () => {
     const usage = { input: 100, output: 8, costUsd: null, turns: 1 };
     expect(lastTurnDetail({ ...usage, lastTurn: usage }))
-      .toBe("Last message: 100 input (cached + uncached) · 8 output");
+      .toBe("last message: 100 input (cached + uncached) · 8 output");
     expect(lastTurnDetail({ ...usage, lastTurn: { ...usage, cachedInput: 0 } }))
-      .toBe("Last message: 100 uncached input · 0 cached input · 8 output");
+      .toBe("last message: 100 uncached input · 0 cached input · 8 output");
   });
 
   it("sums complete cache reports without losing an explicit zero", () => {
@@ -126,14 +126,14 @@ describe("usage formatting", () => {
       { turns: 700, input: 199_000_000, cachedInput: 198_400_000, output: 200_000, costUsd: null },
     ]);
     expect(formatTokens(headlineTokens(total))).toBe("2.1M");
-    expect(tokensColumnLabel(total)).toBe("New tokens");
+    expect(tokensColumnLabel(total)).toBe("new tokens");
     const note = cachedUsageNote(total)!;
     expect(note).toContain("498M");
     expect(note).toContain("500M went through the model");
     expect(note).not.toMatch(/count everything/i);
 
     const uncached = { input: 1_900_000, output: 12_000, costUsd: null, turns: 12 };
-    expect(tokensColumnLabel(uncached)).toBe("Tokens");
+    expect(tokensColumnLabel(uncached)).toBe("tokens");
     expect(cachedUsageNote(uncached)).toBeNull();
   });
 
@@ -155,13 +155,13 @@ describe("usage formatting", () => {
     expect(contextShare({ ...base, context: { tokens: 40_000, window: 200_000 } })).toMatchObject({ percent: 20, tone: "quiet" });
     expect(contextChip({ ...base, context: { tokens: 142_000, window: 272_000 } })).toBe("52% context used");
     expect(contextChip({ ...base, context: { tokens: 142_000 } })).toBe("142k context used");
-    expect(contextDetail({ ...base, context: { tokens: 142_000, window: 272_000 } })).toBe("Context 142k (52% of 272k)");
-    expect(contextDetail({ ...base, context: { tokens: 142_000 } })).toBe("Context 142k");
+    expect(contextDetail({ ...base, context: { tokens: 142_000, window: 272_000 } })).toBe("context 142k (52% of 272k)");
+    expect(contextDetail({ ...base, context: { tokens: 142_000 } })).toBe("context 142k");
   });
 
   it("says what the last message alone cost", () => {
     expect(lastTurnDetail({ input: 0, output: 0, costUsd: null, turns: 0 })).toBeNull();
     expect(lastTurnDetail({ input: 500_000, output: 5_000, costUsd: null, turns: 3, lastTurn: { input: 210_000, output: 1_200, cachedInput: 209_000, costUsd: null } }))
-      .toBe("Last message: 1k uncached input · 209k cached input · 1.2k output");
+      .toBe("last message: 1k uncached input · 209k cached input · 1.2k output");
   });
 });

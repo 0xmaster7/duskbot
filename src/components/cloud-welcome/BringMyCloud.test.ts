@@ -24,12 +24,12 @@ const moveButton = (id: string) => host.querySelector<HTMLButtonElement>(`[data-
 it("lists My Cloud's bots with one Move each, and says why Dusk stays", async () => {
   page([MAUS, ATLAS, BEACON]);
   await draw();
-  expect(host.textContent).toContain("Move a bot here from My Cloud");
+  expect(host.textContent).toContain("move a bot here from my cloud");
   expect(moveButton("atlas")).not.toBeNull();
   expect(moveButton("beacon")).not.toBeNull();
   expect(moveButton("maus")).toBeNull();
   expect(host.querySelector('[data-bring-bot="maus"]')?.textContent).toContain("Dusk");
-  expect(host.querySelector('[data-bring-bot="maus"]')?.textContent).toContain("Stays on My Cloud: everyone on a team gets their own");
+  expect(host.querySelector('[data-bring-bot="maus"]')?.textContent).toContain("stays on my cloud: everyone on a team gets their own");
 });
 
 it("shows nothing with no bot to bring, on an older app, or in a browser", async () => {

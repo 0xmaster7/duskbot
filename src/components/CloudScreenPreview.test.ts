@@ -19,14 +19,14 @@ describe("cloud screen connection feedback", () => {
     const html = renderToStaticMarkup(createElement(CloudScreenPreview, defaults));
     expect(html).toContain('role="status"');
     expect(html).toContain('aria-busy="true"');
-    expect(html).toContain("Connecting to the screen…");
+    expect(html).toContain("connecting to the screen…");
   });
 
   it("does not present an undecoded image as an openable desktop", () => {
     const html = renderToStaticMarkup(createElement(CloudScreenPreview, {
       ...defaults, src: "data:image/jpeg;base64,bm90IGFuIGltYWdl",
     }));
-    expect(html).toContain("Connecting to the screen…");
+    expect(html).toContain("connecting to the screen…");
     expect(html).toMatch(/<button[^>]*disabled=""/);
     expect(html).toContain("invisible");
     expect(html).not.toContain('>Open</span>');
@@ -34,17 +34,17 @@ describe("cloud screen connection feedback", () => {
 
   it("distinguishes starting the computer from waiting for a frame", () => {
     const html = renderToStaticMarkup(createElement(CloudScreenPreview, { ...defaults, starting: true }));
-    expect(html).toContain("Starting your bot&#x27;s desktop…");
-    expect(html).not.toContain("Connecting to the screen…");
+    expect(html).toContain("starting your bot&#x27;s desktop…");
+    expect(html).not.toContain("connecting to the screen…");
   });
 
   it("surfaces request failures with a retry action instead of a permanent loader", () => {
     const html = renderToStaticMarkup(createElement(CloudScreenPreview, {
-      ...defaults, error: "The screen took too long to update. Try again.",
+      ...defaults, error: "the screen took too long to update. try again.",
     }));
     expect(html).toContain('role="alert"');
     expect(html).toContain("took too long");
-    expect(html).toContain("Retry preview");
+    expect(html).toContain("retry preview");
     expect(html).not.toContain('role="status"');
     expect(html).toContain('aria-busy="false"');
   });

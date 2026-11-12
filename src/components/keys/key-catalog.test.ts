@@ -71,7 +71,7 @@ describe("every credential has one home on the keys page", () => {
 
   it("names each section plainly and says what each row is for in one line", () => {
     expect(KEY_SECTIONS.map((section) => t(section.titleKey))).toEqual([
-      "AI providers", "Your own model servers", "Voice and calls", "Computers and browser", "Apps and tools", "Helpers and pictures",
+      "AI providers", "your own model servers", "voice and calls", "computers and browser", "apps and tools", "helpers and pictures",
     ]);
     for (const entry of KEY_CATALOG) {
       const purpose = t(entry.purposeKey);
@@ -100,7 +100,7 @@ describe("searching the keys", () => {
   it("matches a provider's name, what the key is for, and its section's title", () => {
     expect(found("fish")).toEqual(["fishAudio"]);
     expect(found("ElevenLabs")).toEqual(["elevenlabs"]);
-    expect(found("Computers and browser")).toEqual(["vps", "onePassword"]);
+    expect(found("computers and browser")).toEqual(["vps", "onePassword"]);
     expect(found("voice")).toEqual(expect.arrayContaining(["liveCalls", "liveKey", "elevenlabs", "fishAudio"]));
     expect(found("openai")).toEqual(expect.arrayContaining(["openai", "liveCalls", "liveKey", "imageOpenai"]));
     expect(found("gmail")).toEqual(["composio"]);

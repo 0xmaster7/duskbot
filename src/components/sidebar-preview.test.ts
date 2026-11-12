@@ -10,7 +10,7 @@ const bot = { id: "ada", name: "Ada", messages: [], busy: false } as unknown as 
 describe("sidebar previews", () => {
   it("keeps partial bot and room previews meaningful and overlays streamed updates", () => {
     const person = message({ role: "user", text: "Tidy my inbox" });
-    const question = message({ kind: "options", card: { title: "Question", subtitle: "Which folder?", options: [], requestId: "q" } } as Partial<Message>);
+    const question = message({ kind: "options", card: { title: "question", subtitle: "Which folder?", options: [], requestId: "q" } } as Partial<Message>);
     const reply = message({ text: "Archived the newsletters." });
     const step = message({ kind: "activity", tool: { name: "Read", ok: true } });
     const partial = { ...bot, transcriptLoaded: false, previewMessages: [person, question, reply, step], messages: [step, screen()] };
@@ -59,8 +59,8 @@ describe("sidebar previews", () => {
 
   it("says a helper's intro card by its first line in the reader's language instead of its stored English title", () => {
     const intro = message({ kind: "options", helperIntro: true, card: { title: "Hi! I'm Ada, your Chief of Staff.", options: [] } } as unknown as Partial<Message>);
-    expect(botPreview({ ...bot, chiefOfStaff: true } as Bot, [intro], [])).toBe("Hey! I'm Ada. I'm new here.");
-    expect(botPreview(bot, [intro], [])).toBe("Hi! I'm Ada, your helper for everything here.");
+    expect(botPreview({ ...bot, chiefOfStaff: true } as Bot, [intro], [])).toBe("hey! i'm Ada. i'm new here.");
+    expect(botPreview(bot, [intro], [])).toBe("hi! i'm Ada, your helper for everything here.");
   });
 
   it("quotes the bot in a group chat too", () => {
@@ -69,18 +69,18 @@ describe("sidebar previews", () => {
     expect(groupPreview(group, [bot], [])).toBe("Ada: Here is the plan.");
   });
 
-  it("says a message of files only as grok does: Sent 1 PDF, Sent 1 spreadsheet, Sent 1 video, and a mix as files", () => {
+  it("says a message of files only as grok does: sent 1 PDF, Sent 1 spreadsheet, Sent 1 video, and a mix as files", () => {
     const file = (mime: string, name: string) => ({ kind: "file" as const, path: name, mime, name });
     const sent = (attachments: Message["attachments"], text = "") => botPreview(bot, [message({ text, attachments })], []);
-    expect(sent([file("application/pdf", "trip.pdf")])).toBe("Sent 1 PDF");
-    expect(sent([file("text/plain", "orders.csv")])).toBe("Sent 1 spreadsheet");
-    expect(sent([file("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "q3.xlsx")])).toBe("Sent 1 spreadsheet");
-    expect(sent([file("video/mp4", "demo.mp4")])).toBe("Sent 1 video");
-    expect(sent([{ kind: "image", path: "a.png", mime: "image/png" }, { kind: "image", path: "b.png", mime: "image/png" }])).toBe("Sent 2 images");
-    expect(sent([file("application/pdf", "a.pdf"), file("video/mp4", "b.mp4")])).toBe("Sent 2 files");
+    expect(sent([file("application/pdf", "trip.pdf")])).toBe("sent 1 PDF");
+    expect(sent([file("text/plain", "orders.csv")])).toBe("sent 1 spreadsheet");
+    expect(sent([file("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "q3.xlsx")])).toBe("sent 1 spreadsheet");
+    expect(sent([file("video/mp4", "demo.mp4")])).toBe("sent 1 video");
+    expect(sent([{ kind: "image", path: "a.png", mime: "image/png" }, { kind: "image", path: "b.png", mime: "image/png" }])).toBe("sent 2 images");
+    expect(sent([file("application/pdf", "a.pdf"), file("video/mp4", "b.mp4")])).toBe("sent 2 files");
     expect(sent([file("application/pdf", "trip.pdf")], "Here is your checklist.")).toBe("Here is your checklist.");
     const from = { botId: "ada", name: "Ada", color: "green" } as Message["from"];
-    expect(groupPreview({ id: "g", name: "Room", messages: [message({ from, attachments: [file("application/pdf", "a.pdf")] })] } as unknown as Group, [bot], [])).toBe("Ada: Sent 1 PDF");
+    expect(groupPreview({ id: "g", name: "Room", messages: [message({ from, attachments: [file("application/pdf", "a.pdf")] })] } as unknown as Group, [bot], [])).toBe("Ada: sent 1 PDF");
   });
 
   it("skips screen frames in a group chat's preview too", () => {

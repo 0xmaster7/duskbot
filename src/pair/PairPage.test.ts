@@ -31,7 +31,7 @@ it("opening My Cloud from the app needs no click and no code to type", async () 
   f.pair.mockResolvedValue({ ok: true });
   const html = render(code);
   expect(html).toContain("Connecting to this Dusk…");
-  expect(html).not.toContain("Pairing code"); expect(html).not.toContain("<form");
+  expect(html).not.toContain("pairing code"); expect(html).not.toContain("<form");
   f.effects[0](); await flush();
   expect(f.pair).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ code }));
   expect(replaced).toEqual(["/"]);
@@ -55,7 +55,7 @@ it("My Cloud says where its connection starts, never 'the code shown on the serv
   const cloud = pairIntro({ mode: "code", sent: false, email: "", cloudHome: true });
   expect(cloud).toContain(`choose ${en["cloudHome.connect"]} in the Dusk app`);
   expect(cloud).toContain(`Settings → ${en["settings.section.cloudAccount"]}`);
-  expect(cloud).toContain("on your Plan page");
+  expect(cloud).toContain("on your plan page");
   expect(cloud).not.toContain("shown on the server");
   expect(pairIntro({ mode: "code", sent: false, email: "", cloudHome: false })).toContain("shown on the server");
   expect(pairIntro({ mode: "email", sent: true, email: "a@b.test", cloudHome: false })).toContain("a@b.test");
@@ -65,6 +65,6 @@ it("a team's Cloud is called by the team's name, a person's own Cloud My Cloud",
   const descriptor = (capabilities: Record<string, unknown>) => ({ environmentId: "e", label: "Acme Labs", platform: "linux", version: "1", capabilities: { remoteSessions: true as const, selfUpdate: "operator" as const, ...capabilities } });
   expect(pairTitle(descriptor({ cloudHome: true, cloudTeam: true }), "code")).toBe("Acme Labs");
   expect(pairTitle(descriptor({ cloudHome: true }), "code")).toBe("My Cloud");
-  expect(pairTitle(descriptor({}), "email")).toBe("Sign in to Acme Labs");
-  expect(pairTitle(null, "code")).toBe("Connect to this Dusk");
+  expect(pairTitle(descriptor({}), "email")).toBe("sign in to Acme Labs");
+  expect(pairTitle(null, "code")).toBe("connect to this Dusk");
 });

@@ -23,8 +23,8 @@ describe("KeyboardShortcutsModal", () => {
     const html = renderToStaticMarkup(createElement(KeyboardShortcutsModal, { open: true, onClose: vi.fn() }));
     expect(html).toContain('role="dialog"');
     expect(html).toMatch(/<h2 id="[^"]+"[^>]*>keyboard shortcuts<\/h2>/i);
-    expect(html).toContain('aria-label="Close"');
-    expect(html).toContain('aria-label="Navigation"');
+    expect(html).toContain('aria-label="close"');
+    expect(html).toContain('aria-label="navigation"');
     expect(html).toContain('aria-label="Calls"');
     expect(html).not.toContain("Search shortcuts");
     expect(html).not.toContain("Done");
@@ -39,7 +39,7 @@ describe("KeyboardShortcutsModal", () => {
   ] as const)("shows the send key chosen in Settings (%s)", (sendKey, send, newLine) => {
     fixture.sendKey = sendKey;
     const html = renderToStaticMarkup(createElement(KeyboardShortcutsModal, { open: true, onClose: vi.fn() }));
-    expect(keys(html, "Send message")).toEqual(send);
+    expect(keys(html, "send message")).toEqual(send);
     expect(keys(html, "Insert new line without sending")).toEqual(newLine);
     fixture.sendKey = "enter";
   });

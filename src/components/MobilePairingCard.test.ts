@@ -22,8 +22,8 @@ describe("mobile workspace pairing", () => {
   });
 
   it("detects a new id even when its name matches an existing phone", () => {
-    const phone = device("new", "Phone");
-    expect(newDeviceSince(["old"], [device("old", "Phone"), phone])).toBe(phone);
+    const phone = device("new", "phone");
+    expect(newDeviceSince(["old"], [device("old", "phone"), phone])).toBe(phone);
   });
 
   it("ignores reordering, renames and last-seen updates", () => {

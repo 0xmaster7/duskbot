@@ -14,10 +14,10 @@ const avatarBots: Bot[] = ["Atlas", "Juniper"].map((name, i) => ({
   messages: [],
 }));
 const receipt: Message = { id: "receipt", role: "bot", kind: "activity", at: fixtureAt,
-  tool: { name: "Message from @Juniper", ok: true },
+  tool: { name: "message from @Juniper", ok: true },
   comm: { withBotId: "juniper", withName: "Juniper", withColor: "purple", groupId: "fixture-dm" } };
 const avatarGroup: Group = {
-  id: "fixture-room", threadId: "thread-room", name: "Group",
+  id: "fixture-room", threadId: "thread-room", name: "group",
   memberIds: ["atlas", "juniper"], defaultResponder: { kind: "member", botId: "atlas" },
   bulletin: "", unread: false, createdAt: fixtureAt, setupCompletedAt: fixtureAt,
   messages: [
@@ -52,14 +52,14 @@ describe("uploaded bot identity portraits", () => {
   it("renders the receipt sender image while preserving its navigation button", () => {
     const html = render(createElement(RoomToolChip, { message: receipt }));
     expect(html).toContain('<img src="/api/attachments/fixture-1.png"');
-    expect(html).toContain('title="Open Juniper"');
-    expect(html).toContain("Message from @Juniper");
+    expect(html).toContain('title="open Juniper"');
+    expect(html).toContain("message from @Juniper");
   });
   it("keeps a deleted receipt sender readable with a mascot fallback", () => {
     const html = render(createElement(RoomToolChip, { message: { ...receipt, comm: { ...receipt.comm!, withBotId: "deleted" } } }));
     expect(html).toContain("<svg");
     expect(html).not.toContain("<img");
-    expect(html).toContain("Message from @Juniper");
+    expect(html).toContain("message from @Juniper");
   });
   it("renders uploaded group header and sender portraits", () => {
     const html = render(createElement(GroupView, { group: avatarGroup }));

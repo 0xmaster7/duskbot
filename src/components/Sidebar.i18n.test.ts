@@ -44,7 +44,7 @@ describe("sidebar rows", () => {
 
     expect(markup).toContain(`<span class="sr-only">${t("chat.activity.working")}</span>`);
     expect(t("chat.activity.working")).not.toBe("Working");
-    expect(markup).not.toContain("Chief of Staff");
+    expect(markup).not.toContain("chief of staff");
 
     setLocale("ja");
     expect(renderRow(bot())).toContain(`aria-label="${t("sidebar.bot.actions", { name: "Atlas" })}"`);
@@ -69,16 +69,16 @@ describe("archive / delete confirmation copy", () => {
 describe("room delete confirmation copy", () => {
   it("names the group chat and says in one line what goes and what stays", () => {
     const copy = roomDeleteCopy({ name: "Launch plan" });
-    expect(copy.title).toBe("Delete Launch plan?");
-    expect(copy.body).toBe("Its messages, threads and routines go too. The bots stay.");
+    expect(copy.title).toBe("delete Launch plan?");
+    expect(copy.body).toBe("its messages, threads and routines go too. the bots stay.");
     expect(copy.confirmLabel).toBe(t("sidebar.room.deleteChannel"));
     expect(copy.tone).toBe("danger");
   });
 
   it("calls a bot-to-bot room a chat, never a thread", () => {
     const copy = roomDeleteCopy({ name: "Pen ⇄ Ink", dm: true });
-    expect(copy.title).toBe("Delete Pen ⇄ Ink?");
-    expect(copy.body).toBe("Its messages go too. The bots stay.");
+    expect(copy.title).toBe("delete Pen ⇄ Ink?");
+    expect(copy.body).toBe("its messages go too. the bots stay.");
     expect(copy.body).not.toMatch(/thread/);
     expect(copy.body).not.toMatch(/group chat/);
     expect(copy.confirmLabel).toBe(t("sidebar.room.deleteBotChat"));
@@ -92,18 +92,18 @@ describe("room delete confirmation copy", () => {
       onConfirm: vi.fn(),
     }));
     expect(markup).toContain('role="alertdialog"');
-    expect(markup).toContain("Delete Launch plan?");
-    expect(markup.indexOf(">Cancel</button>")).toBeLessThan(markup.indexOf(">Delete group chat</button>"));
+    expect(markup).toContain("delete Launch plan?");
+    expect(markup.indexOf(">cancel</button>")).toBeLessThan(markup.indexOf(">delete group chat</button>"));
     expect(markup).toContain("bg-danger");
   });
 
   it("offers a gentler way beside the destructive one when there is one, after Cancel", () => {
     const markup = renderToStaticMarkup(createElement(ConfirmDialogCard, {
-      open: true, title: "Delete Chief?", body: "Its chats hold your setup.", confirmLabel: "Delete", tone: "danger",
-      onCancel: vi.fn(), onConfirm: vi.fn(), alternative: { label: "Archive instead", onClick: vi.fn() },
+      open: true, title: "delete Chief?", body: "Its chats hold your setup.", confirmLabel: "Delete", tone: "danger",
+      onCancel: vi.fn(), onConfirm: vi.fn(), alternative: { label: "archive instead", onClick: vi.fn() },
     }));
-    expect(markup.indexOf(">Cancel</button>")).toBeLessThan(markup.indexOf(">Archive instead</button>"));
-    expect(markup.indexOf(">Archive instead</button>")).toBeLessThan(markup.indexOf(">Delete</button>"));
+    expect(markup.indexOf(">cancel</button>")).toBeLessThan(markup.indexOf(">archive instead</button>"));
+    expect(markup.indexOf(">archive instead</button>")).toBeLessThan(markup.indexOf(">Delete</button>"));
   });
 
   it("keeps the room's name intact in other languages", () => {

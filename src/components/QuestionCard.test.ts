@@ -95,14 +95,14 @@ describe("QuestionCard", () => {
     for (const choice of CHOICES) expect(html).toContain(`>${choice}</span>`);
     expect(html.match(/data-ask-choice=""/g)).toHaveLength(3);
     expect(html).not.toContain("aria-keyshortcuts");
-    expect(html).toContain('placeholder="Something else…"');
-    expect(html).not.toContain("Submit");
+    expect(html).toContain('placeholder="something else…"');
+    expect(html).not.toContain("submit");
   });
 
   it("asks an open question with a reply field and an ink send button, no choices", () => {
     const html = render(asked({ options: [], subtitle: "What wording should the new footer text use?" }));
     expect(html).not.toContain("data-ask-choice");
-    expect(html).toContain('placeholder="Type your answer"');
+    expect(html).toContain('placeholder="type your answer"');
     expect(html).toMatch(/<button type="submit"[^>]*class="[^"]*ui-button-primary/);
   });
 
@@ -110,12 +110,12 @@ describe("QuestionCard", () => {
     const markup = render(message());
     expect(markup).toContain("Claude Opus 5");
     expect(markup).toContain("What the bot had before.");
-    expect(markup).not.toContain("Allow once");
+    expect(markup).not.toContain("allow once");
   });
 
   it("badges an agent-composed ask, and only one", () => {
-    expect(render(message({ questionRequest: { ...questionRequest, origin: "output" } }))).toContain("Agent-composed question");
-    expect(render(message())).not.toContain("Agent-composed question");
+    expect(render(message({ questionRequest: { ...questionRequest, origin: "output" } }))).toContain("agent-composed question");
+    expect(render(message())).not.toContain("agent-composed question");
   });
 
   it("gives every question of a set a tab, counts the answers, and waits for all of them", () => {
@@ -131,7 +131,7 @@ describe("QuestionCard", () => {
       questionRequest: { version: 1, questions: [{ question: "Which article?", custom: false, options: [{ label: "Machines of Loving Grace" }, { label: "Reasoning models" }] }] },
     }));
     expect(markup).toContain("Machines of Loving Grace");
-    expect(markup).not.toContain("Something else");
+    expect(markup).not.toContain("something else");
   });
 
   it("is a radio group per question, and a checkbox group with a Done button when several may be picked", () => {
@@ -144,7 +144,7 @@ describe("QuestionCard", () => {
   it("offers the full question when a long one leads the card", () => {
     const question = "Quick onboarding check. ".repeat(20);
     const markup = render(message({ questionRequest: { version: 1, questions: [{ question, options: [] }] } }));
-    expect(markup).toContain("Show full question");
+    expect(markup).toContain("show full question");
     expect(markup).toContain("line-clamp-4");
   });
 
@@ -156,7 +156,7 @@ describe("QuestionCard", () => {
 
   it("says where an inbox's copy was asked, as a link back there, in its own header", () => {
     const copy = render(asked({}, { inbox: { kind: "ask", from: { name: "Ledger", botId: "ledger" }, origin: { botId: "ledger", threadId: "work", title: "Pricing page: fix" } } }));
-    expect(copy).toMatch(/<button[^>]*aria-label="Open Pricing page: fix"[^>]*>· in Pricing page: fix<\/button>/);
+    expect(copy).toMatch(/<button[^>]*aria-label="open Pricing page: fix"[^>]*>· in Pricing page: fix<\/button>/);
   });
 });
 
@@ -165,13 +165,13 @@ describe("a settled question", () => {
     const html = render(asked({ answered: "answer", answeredText: CHOICES[0] }));
     expect(html).toContain('data-ask-card="answered"');
     expect(html).toContain('data-letter="A"');
-    expect(html).toContain("You chose:");
+    expect(html).toContain("you chose:");
     expect(html).toContain(CHOICES[0]);
     expect(html).not.toContain("data-ask-choice");
   });
 
   it("says You answered for the person's own words", () => {
-    expect(render(asked({ answered: "answer", answeredText: "Not until tomorrow" }))).toContain("You answered:");
+    expect(render(asked({ answered: "answer", answeredText: "Not until tomorrow" }))).toContain("you answered:");
   });
 
   it("folds a set into one line, with the full answer behind Details", () => {
@@ -180,7 +180,7 @@ describe("a settled question", () => {
       answeredText: "The user answered your questions.\n\nQ: Which model should Hazelnut run on by default?\nA: Claude Opus 5\n\nQ: Which style should it write in?\nA: Terse",
     }));
     expect(markup).toContain("Model: Claude Opus 5 · Style: Terse");
-    expect(markup).toContain("Details");
+    expect(markup).toContain("details");
     expect(markup).not.toContain("The user answered your questions.");
   });
 
@@ -188,8 +188,8 @@ describe("a settled question", () => {
     expect(render(asked({ answered: "unavailable", dismissed: true, stopped: true }))).toMatch(/data-tone="stopped"[\s\S]*Stopped before you answered/);
     expect(render(asked({ expired: true }))).toMatch(/data-tone="expired"[\s\S]*Expired before anyone answered/);
     const closed = render(asked({ answered: "unavailable" }));
-    expect(closed).toContain("Closed without an answer");
-    expect(closed).not.toContain("Details");
+    expect(closed).toContain("closed without an answer");
+    expect(closed).not.toContain("details");
   });
 
   it("renders nothing for a card that asks nothing", () => {

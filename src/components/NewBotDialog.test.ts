@@ -103,7 +103,7 @@ describe("new bot defaults dialog", () => {
 
   it("can cancel a loading draft without saving anything", () => {
     const result = render();
-    result.nodes.find(node => node.type === "button" && node.props["aria-label"] === "Close")!.props.onClick!();
+    result.nodes.find(node => node.type === "button" && node.props["aria-label"] === "close")!.props.onClick!();
     expect(fixture.close).toHaveBeenCalledOnce();
     expect(fixture.dispatch).not.toHaveBeenCalled();
     expect(fixture.api).not.toHaveBeenCalled();
@@ -121,10 +121,10 @@ describe("new bot defaults dialog", () => {
 
   it("is the section editor for the defaults, never a way to create a bot", () => {
     const result = render();
-    expect(result.html).toContain("Defaults for new bots");
-    expect(result.html).toContain("Save defaults");
+    expect(result.html).toContain("defaults for new bots");
+    expect(result.html).toContain("save defaults");
     expect(result.html).not.toContain(">Create bot<");
-    expect(result.html).not.toContain("Who can see it");
+    expect(result.html).not.toContain("who can see it");
   });
 
   it("starts from a built-in role", () => {

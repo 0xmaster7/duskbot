@@ -54,7 +54,7 @@ describe("the sidebar card", () => {
   });
 });
 
-describe("Upgrade", () => {
+describe("upgrade", () => {
   it("moves up to the cheapest bigger plan in the app, opens the Cloud page when the app can't, and has nothing above Max or a team's plan", () => {
     const two = usage([], { tier: "starter", upgrades: [{ tier: "max", amount: 9900 }, { tier: "pro", amount: 4900 }] });
     expect(nextPlan(two)).toEqual({ tier: "pro", amount: 4900 });
@@ -62,7 +62,7 @@ describe("Upgrade", () => {
     expect(upgradePath(usage([], { upgrades: [] }))).toBe("browser");
     expect(upgradePath(usage([], { tier: "max", upgrades: [] }))).toBe("top");
     expect(upgradePath(usage([], { tier: "team", upgrades: [] }))).toBe("top");
-    expect(upgradeLabel({ tier: "max", amount: 9900 })).toBe("Upgrade to Max · $99/month");
+    expect(upgradeLabel({ tier: "max", amount: 9900 })).toBe("upgrade to Max · $99/month");
   });
   it("says in the confirm what the new plan costs, what today's charge is and when the next payment comes", () => {
     const next = Date.UTC(2026, 10, 18);
@@ -71,7 +71,7 @@ describe("Upgrade", () => {
     expect(upgradeConfirmBody({ plan: "pro", trial: false, price: 4900, chargeNow: 2574, tax: 234 }))
       .toBe("Pro is $49 a month and starts right away. Today you pay $25.74 with tax, the difference for the rest of this billing month.");
     expect(upgradeConfirmBody({ plan: "max", trial: true, price: 9900, chargeNow: 0, tax: 0, nextBillingAt: next }, { now: Date.UTC(2026, 10, 1) }))
-      .toBe("Your free trial moves to Max now, and nothing is charged today. Your first payment on Nov 18 will be $99, plus any tax.");
+      .toBe("your free trial moves to Max now, and nothing is charged today. your first payment on Nov 18 will be $99, plus any tax.");
   });
 
   describe("on a free trial", () => {
@@ -84,16 +84,16 @@ describe("Upgrade", () => {
         expect(said).toMatch(/^Your free trial moves to Max now\. Your first payment on Nov \d+ will be \$99, plus any tax\.$/);
         expect(said).not.toContain("charged today");
       }
-      expect(upgradeConfirmBody(preview(), { trialEndsAt: now + DAY, now })).toBe("Your free trial moves to Max now. When it ends, Max is $99 a month, plus any tax.");
+      expect(upgradeConfirmBody(preview(), { trialEndsAt: now + DAY, now })).toBe("your free trial moves to Max now. when it ends, Max is $99 a month, plus any tax.");
     });
 
     it("reads as it always did on a 3-day trial", () => {
-      expect(upgradeConfirmBody(preview(now + 3 * DAY), { now })).toBe("Your free trial moves to Max now, and nothing is charged today. Your first payment on Nov 7 will be $99, plus any tax.");
-      expect(upgradeConfirmBody(preview(), { trialEndsAt: now + 3 * DAY, now })).toBe("Your free trial moves to Max now, and nothing is charged today. When it ends, Max is $99 a month, plus any tax.");
+      expect(upgradeConfirmBody(preview(now + 3 * DAY), { now })).toBe("your free trial moves to Max now, and nothing is charged today. your first payment on Nov 7 will be $99, plus any tax.");
+      expect(upgradeConfirmBody(preview(), { trialEndsAt: now + 3 * DAY, now })).toBe("your free trial moves to Max now, and nothing is charged today. when it ends, Max is $99 a month, plus any tax.");
     });
 
     it("promises nothing about today when nobody here knows when the charge is", () => {
-      expect(upgradeConfirmBody(preview(), { now })).toBe("Your free trial moves to Max now. When it ends, Max is $99 a month, plus any tax.");
+      expect(upgradeConfirmBody(preview(), { now })).toBe("your free trial moves to Max now. when it ends, Max is $99 a month, plus any tax.");
     });
   });
 });
@@ -106,8 +106,8 @@ describe("the words", () => {
     expect(meterAmounts(meter("x", 4_700, 5_000))).toBe("4,700 of 5,000 calls");
     expect(meterAmounts(meter("research", 4.2, 15))).toBe("$4.20 of $15");
     expect(meterAmounts(meter("storage", 120, 100))).toBe("100 of 100 GB");
-    expect(resetLine(usage([]))).toBe("Resets on Nov 1.");
-    expect(resetLine(usage([], { trialEndsAt: Date.UTC(2026, 9, 27) }))).toBe("Your full allowance starts on Oct 27.");
+    expect(resetLine(usage([]))).toBe("resets on Nov 1.");
+    expect(resetLine(usage([], { trialEndsAt: Date.UTC(2026, 9, 27) }))).toBe("your full allowance starts on Oct 27.");
   });
 });
 

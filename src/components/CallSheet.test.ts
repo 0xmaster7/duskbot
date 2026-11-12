@@ -11,7 +11,7 @@ const at = 1_700_000_000_000;
 const msg = (id: string, fields: Partial<Message>): Message => ({ id, role: "bot", kind: "text", at, ...fields }) as Message;
 const record = msg("row", {
   kind: "call",
-  text: "Call with Kiwi · 0:45",
+  text: "call with Kiwi · 0:45",
   call: { callId: "c1", botId: "bot", client: "desktop", startedAt: at - 45_000, endedAt: at, seconds: 45, endReason: "hung-up" },
 });
 const transcript: Message[] = [
@@ -42,7 +42,7 @@ describe("CallSheet", () => {
     expect(sheet()).toBeNull();
     const button = host.querySelector('[data-testid="call-record"] button');
     expect(button?.getAttribute("aria-haspopup")).toBe("dialog");
-    expect(button?.getAttribute("aria-label")).toBe("Open the call: Call with Kiwi");
+    expect(button?.getAttribute("aria-label")).toBe("open the call: call with Kiwi");
   });
 
   it("opens on a click anywhere on the row, not only its title", () => {
@@ -56,7 +56,7 @@ describe("CallSheet", () => {
     openSheet();
     const text = sheet()!.textContent ?? "";
     expect(sheet()!.getAttribute("role")).toBe("dialog");
-    expect(text).toContain("Call with Kiwi");
+    expect(text).toContain("call with Kiwi");
     expect(text).toContain("0:45");
     const asked = text.indexOf("Hey Kiwi, what are the two issues I should pick up");
     const did = text.indexOf("Running a command");
@@ -71,19 +71,19 @@ describe("CallSheet", () => {
     // what was typed is not the call's
     expect(text).not.toContain("typed before the call");
     expect(text).not.toContain("Typed answer.");
-    expect(text).toContain("Nothing else said on the call is kept.");
+    expect(text).toContain("nothing else said on the call is kept.");
   });
 
   it("says so when nothing was asked on the call", () => {
     draw([record]);
     openSheet();
-    expect(sheet()!.textContent).toContain("Nothing was asked on this call.");
+    expect(sheet()!.textContent).toContain("nothing was asked on this call.");
   });
 
   it("closes from its button and from Escape", () => {
     draw();
     openSheet();
-    flushSync(() => sheet()!.querySelector<HTMLButtonElement>('button[aria-label="Close"]')!.click());
+    flushSync(() => sheet()!.querySelector<HTMLButtonElement>('button[aria-label="close"]')!.click());
     expect(sheet()).toBeNull();
 
     openSheet();

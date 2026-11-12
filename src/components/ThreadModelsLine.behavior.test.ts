@@ -59,12 +59,12 @@ describe("ThreadModelsLine's Switch them too", () => {
 
   it("says when a busy thread kept its own model, instead of looking like nothing happened", async () => {
     await clickAndSettle(ada(1), { busy: 1 });
-    expect(note()).toBe("1 thread is busy, so it kept its own model. Try again when it's done.");
+    expect(note()).toBe("1 thread is busy, so it kept its own model. try again when it's done.");
   });
 
   it("counts several busy threads, and clears the note once a retry gets through", async () => {
     await clickAndSettle(ada(3), { busy: 2 });
-    expect(note()).toBe("2 threads are busy, so they kept their own model. Try again when they're done.");
+    expect(note()).toBe("2 threads are busy, so they kept their own model. try again when they're done.");
     await act(async () => host.querySelector<HTMLButtonElement>("[data-switch-them-too]")!.click());
     await act(async () => (fixture.dispatch.mock.lastCall![0] as { onSettled: Settled }).onSettled({ busy: 0 }));
     expect(note()).toBeNull();

@@ -29,11 +29,11 @@ describe("an empty key row", () => {
     expect(html).toContain("Anthropic API key");
     expect(html).toContain("Claude models, billed per token");
     expect(html).toMatch(/<input[^>]*type="password"[^>]*placeholder="sk-ant-…"[^>]*aria-label="Anthropic API key"[^>]*value=""/);
-    expect(html).toContain('aria-label="Show key"');
+    expect(html).toContain('aria-label="show key"');
     expect(html.match(/data-key-save=/g)).toHaveLength(1);
     expect(html).toMatch(/data-key-save="true"[^>]*disabled=""/);
     expect(html).toMatch(/<a href="https:\/\/console\.anthropic\.com\/settings\/keys"[^>]*>Get a key/);
-    expect(html).not.toContain("Connected");
+    expect(html).not.toContain("connected");
     expect(html).not.toContain("data-key-masked");
   });
 
@@ -48,7 +48,7 @@ describe("a saved key", () => {
     const html = render({ id: "anthropic" });
     expect(html).toContain("••••••••a1b2");
     expect(html).toContain("Anthropic API key is saved and ends in a1b2");
-    expect(html).toContain(">Connected<");
+    expect(html).toContain(">connected<");
     expect(html).toContain("data-key-replace");
     expect(html).toContain("data-key-remove");
     expect(html).not.toContain("<input");
@@ -58,8 +58,8 @@ describe("a saved key", () => {
   it("says Saved, not Connected, for a key nothing can test", () => {
     fixture.config = { deepseek: { configured: true, last4: "9z9z" } };
     const html = render({ id: "deepseek" });
-    expect(html).toContain(">Saved<");
-    expect(html).not.toContain(">Connected<");
+    expect(html).toContain(">saved<");
+    expect(html).not.toContain(">connected<");
     expect(html).toContain("••••••••9z9z");
   });
 
@@ -83,7 +83,7 @@ describe("a saved key", () => {
       snapshot: { state: "available", authenticated: false }, models: { default: "m", options: [] } } as unknown as InstanceInfo];
     const html = render({ id: "openai" });
     expect(html).toContain(">Didn&#x27;t work<");
-    expect(html).toContain("Didn&#x27;t work: The provider rejected this key.");
+    expect(html).toContain("Didn&#x27;t work: the provider rejected this key.");
     expect(html).toContain("••••••••a1b2");
     expect(html).toContain("data-key-replace");
   });
@@ -128,8 +128,8 @@ describe("a key that comes with the Cloud plan", () => {
   it("says it is included and offers the person's own key only on request", () => {
     fixture.config = { composio: { configured: true, mode: "managed" } };
     const html = render({ id: "composio" });
-    expect(html).toContain("Included with your Cloud plan");
-    expect(html).toContain("Use your own key");
+    expect(html).toContain("included with your cloud plan");
+    expect(html).toContain("use your own key");
     expect(html).not.toContain("<input");
     expect(html).not.toContain("data-key-remove");
   });

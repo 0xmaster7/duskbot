@@ -55,8 +55,8 @@ describe("trace helpers", () => {
     expect(opened.map((row) => row.node.id)).toEqual(["chief", "c-s1", "writer"]);
     expect(traceRows([chief], new Set(["w-g1"]), T0).map((row) => row.node.id)).toContain("w-b3");
     expect(toolLabel({ name: "mcp__browser__agent_browser_type", icon: "browser" })).toBe("Type");
-    expect(groupLabel({ icon: "browser", count: 14, name: "x" })).toBe("Used the browser · 14 steps");
-    expect(groupLabel({ icon: "computer", count: 23, name: "x" })).toBe("Used the computer · 23 actions");
+    expect(groupLabel({ icon: "browser", count: 14, name: "x" })).toBe("used the browser · 14 steps");
+    expect(groupLabel({ icon: "computer", count: 23, name: "x" })).toBe("used the computer · 23 actions");
   });
 
   it("marks the slowest step or tool and the most expensive span", () => {
@@ -65,10 +65,10 @@ describe("trace helpers", () => {
 
   it("names the groupings that are not a person in plain words", () => {
     expect(usageGroupLabel("user", { key: "owner", label: "This computer" })).toBe("This computer");
-    expect(usageGroupLabel("user", { key: "bot", label: "Bot to bot" })).toBe("Bot to bot");
-    expect(usageGroupLabel("user", { key: "routine:r1", label: "Routine: Morning digest" })).toBe("Routine: Morning digest");
+    expect(usageGroupLabel("user", { key: "bot", label: "bot to bot" })).toBe("bot to bot");
+    expect(usageGroupLabel("user", { key: "routine:r1", label: "routine: Morning digest" })).toBe("routine: Morning digest");
     expect(usageGroupLabel("user", { key: "user:ada@example.test", label: "ada@example.test" })).toBe("ada@example.test");
-    expect(usageGroupLabel("routine", { key: "manual", label: "Not from a routine" })).toBe("Not from a routine");
+    expect(usageGroupLabel("routine", { key: "manual", label: "not from a routine" })).toBe("not from a routine");
   });
 
   it("ranks models by tokens, so a subscription model with no price still shows", () => {
@@ -90,9 +90,9 @@ describe("trace helpers", () => {
 
   it("draws the waterfall with its stat strip, Live badge, time and cost labels, badges and a red error", () => {
     const html = renderToStaticMarkup(createElement(TraceWaterfall, { detail, now: T0 + 51_000 }));
-    for (const text of ["Launch the new pricing page by Friday", "Duration", "51s", "$0.42", "85.2k", "AI steps", "Tool uses", "Live",
-      "Chief", "Writer", "AI step", "Search the web", "Rate limited", "Used the browser · 3 steps",
-      "6.9s · $0.12", "23s · $0.09", "Slowest", "Most expensive", "0s", "20s", "40s", "1m"]) expect(html).toContain(text);
+    for (const text of ["Launch the new pricing page by Friday", "Duration", "51s", "$0.42", "85.2k", "AI steps", "tool uses", "Live",
+      "Chief", "Writer", "AI step", "search the web", "Rate limited", "used the browser · 3 steps",
+      "6.9s · $0.12", "23s · $0.09", "Slowest", "most expensive", "0s", "20s", "40s", "1m"]) expect(html).toContain(text);
     expect(html).toMatch(/text-danger[^>]*>Search the web/);
     expect(html).toContain("trace-bar-error");
     expect(html.match(/role="treeitem"/g)).toHaveLength(7);

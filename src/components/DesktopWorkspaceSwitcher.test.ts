@@ -9,8 +9,8 @@ afterEach(() => { vi.unstubAllGlobals(); });
 it("names the saved-server switcher with the product word, not workspace", () => {
   vi.stubGlobal("window", { duskDesktop: { workspaces: { state: () => new Promise(() => {}), menu: () => Promise.resolve() } } });
   const html = renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher));
-  expect(html).toContain('aria-label="Switch server: Servers"');
-  expect(html).toContain(">Servers<");
+  expect(html).toContain('aria-label="switch server: servers"');
+  expect(html).toContain(">servers<");
   expect(html).not.toMatch(/workspace/i);
 });
 
@@ -34,7 +34,7 @@ it("says My Cloud while a Cloud home is showing, in a browser too, never always 
   vi.stubGlobal("window", { duskDesktop: { workspaces: { state: () => new Promise(() => {}), menu: () => Promise.resolve() } } });
   const desktop = renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher, { cloudHome: true }));
   expect(visibleText(desktop)).toBe("My Cloud");
-  expect(desktop).toContain('aria-label="Switch server: My Cloud"');
+  expect(desktop).toContain('aria-label="switch server: My Cloud"');
   expect(desktop).toContain("data-cloud-home-indicator");
   const elsewhere = renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher));
   expect(elsewhere).not.toContain("always on");
@@ -44,11 +44,11 @@ it("says My Cloud while a Cloud home is showing, in a browser too, never always 
 it("names whose Cloud a browser signed in to under My Cloud, quietly", () => {
   vi.stubGlobal("window", {});
   const browser = renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher, { cloudHome: true, owner: "ada@example.test" }));
-  expect(visibleText(browser)).toBe("My Cloudada@example.test’s Cloud");
-  expect(browser).toContain('title="My Cloud · ada@example.test’s Cloud"');
-  expect(browser).toContain('<span class="block truncate text-[12px] font-normal text-ink-secondary">ada@example.test’s Cloud</span>');
+  expect(visibleText(browser)).toBe("My Cloudada@example.test’s cloud");
+  expect(browser).toContain('title="My Cloud · ada@example.test’s cloud"');
+  expect(browser).toContain('<span class="block truncate text-[12px] font-normal text-ink-secondary">ada@example.test’s cloud</span>');
   const compact = renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher, { cloudHome: true, owner: "ada@example.test", compact: true }));
-  expect(compact).toContain('<span class="sr-only">My Cloud · ada@example.test’s Cloud</span>');
+  expect(compact).toContain('<span class="sr-only">My Cloud · ada@example.test’s cloud</span>');
   expect(renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher, { owner: "ada@example.test" }))).toBe("");
 });
 
@@ -76,8 +76,8 @@ it("is the Show me how tip's anchor, and opens the menu as reached from the tip 
 it("draws Simple mode's switcher as a rounded pill that names the server in full, swapping to the laptop icon only when the row is too narrow", () => {
   vi.stubGlobal("window", { duskDesktop: { workspaces: { state: () => new Promise(() => {}), menu: () => Promise.resolve() } } });
   const pill = renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher, { inline: true, pill: true }));
-  expect(pill).toMatch(/aria-label="Switch server: Servers" aria-haspopup="menu" aria-expanded="false"[^>]*class="[^"]*\bh-8\b[^"]*\brounded-full\b[^"]*\bbg-raised\/50\b[^"]*\btext-\[13px\][^"]*\bfont-medium\b/);
-  expect(pill).toContain('<span class="min-w-0 truncate @max-[124px]/sidebar-top:hidden">Servers</span>');
+  expect(pill).toMatch(/aria-label="switch server: servers" aria-haspopup="menu" aria-expanded="false"[^>]*class="[^"]*\bh-8\b[^"]*\brounded-full\b[^"]*\bbg-raised\/50\b[^"]*\btext-\[13px\][^"]*\bfont-medium\b/);
+  expect(pill).toContain('<span class="min-w-0 truncate @max-[124px]/sidebar-top:hidden">servers</span>');
   expect(pill).toContain("gi-chevron-down");
   expect(pill).toContain('class="gi gi-laptop hidden shrink-0 text-ink-secondary @max-[124px]/sidebar-top:block"');
   expect(pill).not.toContain("@max-[96px]");

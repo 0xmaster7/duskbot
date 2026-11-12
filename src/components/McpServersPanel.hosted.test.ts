@@ -88,7 +88,7 @@ afterEach(async () => {
 
 describe.each(HOSTED_MCP_APPS)("The $label card", (app) => {
   async function connect() {
-    await act(async () => button(app, "Connect").click());
+    await act(async () => button(app, "connect").click());
     await settle();
   }
 
@@ -102,8 +102,8 @@ describe.each(HOSTED_MCP_APPS)("The $label card", (app) => {
       await connect();
       expect(testRequest).not.toBeNull();
       expect(card(app).querySelector('[role="status"]')?.textContent).toContain(`Signed in. Loading ${app.label}’s tools…`);
-      expect(card(app).textContent).not.toContain("Waiting");
-      expect(button(app, "Cancel")).toBeTruthy();
+      expect(card(app).textContent).not.toContain("waiting");
+      expect(button(app, "cancel")).toBeTruthy();
 
       await act(async () => testRequest!.resolve({ ok: false, error: "The server did not answer in time." }));
       await settle();
@@ -112,7 +112,7 @@ describe.each(HOSTED_MCP_APPS)("The $label card", (app) => {
         `Signed in, but ${app.label}’s tools could not be loaded: The server did not answer in time. Please connect again to retry.`,
       ]);
       expect(calls("PATCH")).toEqual([]);
-      expect(button(app, "Connect")).toBeTruthy();
+      expect(button(app, "connect")).toBeTruthy();
     });
 
     it("keeps the reason when the test request itself is refused", async () => {
@@ -134,7 +134,7 @@ describe.each(HOSTED_MCP_APPS)("The $label card", (app) => {
     it("closes the test request when the person cancels", async () => {
       await connect();
       expect(testRequest?.signal?.aborted).toBe(false);
-      await act(async () => button(app, "Cancel").click());
+      await act(async () => button(app, "cancel").click());
       await settle();
       expect(testRequest?.signal?.aborted).toBe(true);
       expect(card(app).querySelector('[role="alert"]')).toBeNull();
@@ -150,7 +150,7 @@ describe.each(HOSTED_MCP_APPS)("The $label card", (app) => {
     it("leaves the other hosted apps' buttons alone while this one signs in", async () => {
       await connect();
       for (const other of HOSTED_MCP_APPS.filter((candidate) => candidate !== app)) {
-        expect(button(other, "Cancel")).toBeUndefined();
+        expect(button(other, "cancel")).toBeUndefined();
         expect(card(other).querySelector("button")!.disabled).toBe(true);
       }
     });
@@ -187,8 +187,8 @@ describe.each(HOSTED_MCP_APPS)("The $label card", (app) => {
   it("turns the server off before signing out", async () => {
     servers = [listing(app, { enabled: true, auth: "signed-in" })];
     await mount();
-    expect(card(app).textContent).toContain("Connected");
-    await act(async () => button(app, "Disconnect").click());
+    expect(card(app).textContent).toContain("connected");
+    await act(async () => button(app, "disconnect").click());
     await settle();
     expect(fixture.api.mock.calls.map(([path]) => path).slice(-2)).toEqual([`/api/mcp/servers/${app.id}`, `/api/mcp/servers/${app.id}/sign-out`]);
     expect(calls("PATCH")).toEqual([[`/api/mcp/servers/${app.id}`, { enabled: false }]]);
@@ -197,19 +197,19 @@ describe.each(HOSTED_MCP_APPS)("The $label card", (app) => {
   it("cannot connect a server the organization manages or a policy that allows no custom servers", async () => {
     servers = [listing(app, { managedBy: "Acme" })];
     await mount();
-    expect((button(app, "Connect") as HTMLButtonElement).disabled).toBe(true);
+    expect((button(app, "connect") as HTMLButtonElement).disabled).toBe(true);
     await act(async () => root.unmount());
     host.remove();
     servers = [];
     fixture.store = { ...fixture.store, config: { managedPolicy: { organizationName: "Acme", mcp: { allowCustom: false, allowlist: [] } } } };
     await mount();
-    expect((button(app, "Connect") as HTMLButtonElement).disabled).toBe(true);
+    expect((button(app, "connect") as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("opens each visible bot's Access settings on its MCP page from Bot access", async () => {
     await mount();
     const buttons = [...card(app).querySelectorAll("[data-hosted-access] button")];
-    expect(buttons.map((element) => element.textContent)).toEqual(["Manage Atlas’s access"]);
+    expect(buttons.map((element) => element.textContent)).toEqual(["manage Atlas’s access"]);
     await act(async () => (buttons[0] as HTMLButtonElement).click());
     expect(fixture.openBotSettings).toHaveBeenCalledWith(fixture.dispatch, "access", { botId: "atlas", page: "mcp" });
   });

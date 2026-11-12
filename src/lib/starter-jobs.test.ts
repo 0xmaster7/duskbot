@@ -6,10 +6,10 @@ setLocale("en");
 
 describe("starter jobs", () => {
   it("are the four first asks, each a whole sentence with its example selected for typing over", () => {
-    expect(STARTER_JOBS.map((job) => t(job.label))).toEqual(["Summarize my inbox", "Watch a price", "Plan a trip", "Research a topic"]);
+    expect(STARTER_JOBS.map((job) => t(job.label))).toEqual(["summarize my inbox", "watch a price", "plan a trip", "research a topic"]);
     const price = jobDraft(STARTER_JOBS[1]!, t);
-    expect(price.text).toBe("Find the best price for AirPods Pro at a few big shops right now, and offer to keep watching it for drops.");
-    expect(price.text.slice(...price.select)).toBe("AirPods Pro");
+    expect(price.text).toBe("find the best price for AirPods Pro at a few big shops right now, and offer to keep watching it for drops.");
+    expect(price.text.slice(...price.select)).toBe("AirPods pro");
     const inbox = jobDraft(STARTER_JOBS[0]!, t);
     expect(inbox.select, "a job with nothing to fill in puts the caret at the end").toEqual([inbox.text.length, inbox.text.length]);
   });
@@ -36,8 +36,8 @@ describe("the AI line", () => {
   });
 
   it("lets a job start on any AI that can run it, never on an empty ask", () => {
-    for (const line of ["ready", "checking", "free"] as const) expect(canStart(line, "Plan a trip")).toBe(true);
-    expect(canStart("connect", "Plan a trip")).toBe(false);
+    for (const line of ["ready", "checking", "free"] as const) expect(canStart(line, "plan a trip")).toBe(true);
+    expect(canStart("connect", "plan a trip")).toBe(false);
     expect(canStart("ready", "   ")).toBe(false);
   });
 });

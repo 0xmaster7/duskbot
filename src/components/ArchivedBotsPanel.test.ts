@@ -35,17 +35,17 @@ describe("ArchivedBotRow", () => {
       onDelete: vi.fn(),
     }));
 
-    expect(markup).toContain(">Restore</button>");
-    expect(markup).toContain('aria-label="Delete Waffle"');
+    expect(markup).toContain(">restore</button>");
+    expect(markup).toContain('aria-label="delete Waffle"');
     expect(markup).toContain(">Delete</button>");
     expect(markup).toContain("text-danger");
   });
 
   it("spells out that Delete all permanently removes every archived bot", () => {
     const copy = archivedDeleteAllCopy();
-    expect(copy.title).toBe("Delete all archived bots?");
+    expect(copy.title).toBe("delete all archived bots?");
     expect(copy.body).toMatch(/can't be undone/i);
-    expect(copy.confirmLabel).toBe("Delete all");
+    expect(copy.confirmLabel).toBe("delete all");
     expect(copy.tone).toBe("danger");
   });
 
@@ -61,7 +61,7 @@ describe("ArchivedBotRow", () => {
 
     expect(markup.match(/disabled=""/g)?.length).toBeGreaterThanOrEqual(2);
     expect(markup).toContain("animate-spin");
-    expect(markup).toContain(">Restore</button>");
+    expect(markup).toContain(">restore</button>");
     expect(markup).toContain(">Delete</button>");
   });
 });

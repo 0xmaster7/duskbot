@@ -75,9 +75,9 @@ describe("a bot's backup AIs in Simple", () => {
   it("say when they are used, with no switch to turn them on", () => {
     render();
     const card = host.querySelector("[data-panel-row=backups]")!;
-    expect(card.textContent).toContain("Backup AIs");
-    expect(card.textContent).toContain("Used only when Scout's AI is at its usage limit or can't start on a message.");
-    expect(card.textContent).toContain("After a usage limit resets, the conversation goes back.");
+    expect(card.textContent).toContain("backup AIs");
+    expect(card.textContent).toContain("used only when Scout's AI is at its usage limit or can't start on a message.");
+    expect(card.textContent).toContain("after a usage limit resets, the conversation goes back.");
     expect(card.querySelector('[role="switch"], input[type="checkbox"]')).toBeNull();
     expect(host.querySelectorAll("[data-backup]")).toHaveLength(0);
   });
@@ -86,7 +86,7 @@ describe("a bot's backup AIs in Simple", () => {
     render();
     click(host.querySelector("[data-panel-action=backup-add]"));
     await settle();
-    expect(menu()?.getAttribute("aria-label")).toBe("Choose a backup AI");
+    expect(menu()?.getAttribute("aria-label")).toBe("choose a backup AI");
     expect(providers()).toEqual(["codex", "gemini"]);
     expect(menu()?.querySelector("[data-current-model]")).toBeNull();
     click(modelRow("GPT-5.5 mini"));
@@ -98,7 +98,7 @@ describe("a bot's backup AIs in Simple", () => {
     render([{ instanceId: "codex", model: "gpt-5.5" }, { instanceId: "gemini", model: "gemini-3-pro" }]);
     const rows = host.querySelectorAll("[data-backup]");
     expect([...rows].map((row) => row.querySelector("[data-panel-action=backup-change]")?.getAttribute("aria-label")))
-      .toEqual(["Backup 1: GPT-5.5", "Backup 2: Gemini 3 Pro"]);
+      .toEqual(["backup 1: GPT-5.5", "backup 2: Gemini 3 Pro"]);
     click(rows[0]!.querySelector("[data-panel-action=backup-change]"));
     await settle();
     expect(providers()).toEqual(["codex"]);
@@ -117,7 +117,7 @@ describe("a bot's backup AIs in Simple", () => {
   it("removes one and keeps the rest in order", () => {
     render([{ instanceId: "codex", model: "gpt-5.5" }, { instanceId: "gemini", model: "gemini-3-pro" }]);
     const remove = host.querySelector('[data-backup="codex"] [data-panel-action=backup-remove]');
-    expect(remove?.getAttribute("aria-label")).toBe("Remove GPT-5.5 from backups");
+    expect(remove?.getAttribute("aria-label")).toBe("remove GPT-5.5 from backups");
     click(remove);
     expect(onChange).toHaveBeenCalledWith([{ instanceId: "gemini", model: "gemini-3-pro" }]);
   });
@@ -127,7 +127,7 @@ describe("a bot's backup AIs in Simple", () => {
     render(full);
     expect(host.querySelectorAll("[data-backup]")).toHaveLength(MAX_BACKUPS);
     expect(host.querySelector("[data-panel-action=backup-add]")).toBeNull();
-    expect(host.querySelector("[data-backup]")?.textContent).toContain("Unavailable");
+    expect(host.querySelector("[data-backup]")?.textContent).toContain("unavailable");
   });
 
   it("offers the bot's own account too, without its own model, and says it shares the usage limit", async () => {
@@ -136,8 +136,8 @@ describe("a bot's backup AIs in Simple", () => {
     click(host.querySelector("[data-panel-action=backup-add]"));
     await settle();
     expect(providers()).toEqual(["claude", "codex", "gemini"]);
-    expect(menu()!.querySelector('[data-simple-provider="claude"]')?.textContent).toContain("Same account as the main AI: it shares the usage limit.");
-    expect(menu()!.querySelector('[data-simple-provider="codex"]')?.textContent).not.toContain("Same account");
+    expect(menu()!.querySelector('[data-simple-provider="claude"]')?.textContent).toContain("same account as the main AI: it shares the usage limit.");
+    expect(menu()!.querySelector('[data-simple-provider="codex"]')?.textContent).not.toContain("same account");
     expect(modelRow("Claude Sonnet 5")).toBeUndefined();
     click(modelRow("Claude Opus 5"));
     expect(onChange).toHaveBeenCalledWith([{ instanceId: "claude", model: "claude-opus-5" }]);
@@ -158,7 +158,7 @@ describe("a bot's backup AIs in Simple", () => {
     render([{ instanceId: "codex", model: "gpt-5.5" }, { instanceId: "codex", model: "gpt-5.5-mini" }]);
     const rows = host.querySelectorAll("[data-backup]");
     expect([...rows].map((row) => row.querySelector("[data-panel-action=backup-change]")?.getAttribute("aria-label")))
-      .toEqual(["Backup 1: GPT-5.5", "Backup 2: GPT-5.5 mini"]);
+      .toEqual(["backup 1: GPT-5.5", "backup 2: GPT-5.5 mini"]);
     click(rows[1]!.querySelector("[data-panel-action=backup-remove]"));
     expect(onChange).toHaveBeenCalledWith([{ instanceId: "codex", model: "gpt-5.5" }]);
   });

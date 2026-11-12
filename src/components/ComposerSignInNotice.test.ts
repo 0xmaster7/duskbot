@@ -40,7 +40,7 @@ describe("the sign-in notice above the composer", () => {
   it("says the bot's AI is signed out, with Sign in, before anything is sent", () => {
     const html = show(bot());
     expect(html).toContain("Claude isn&#x27;t signed in on this computer");
-    expect(html).toContain("Sign in</button>");
+    expect(html).toContain("sign in</button>");
     expect(html).toContain('role="status"');
   });
 
@@ -57,7 +57,7 @@ describe("the sign-in notice above the composer", () => {
 
   it("still shows when the only backup is signed out too", () => {
     fixture.instances = [engine("claude", "Claude", false), engine("codex", "Codex", false)];
-    expect(show(bot({ fallback: [{ instanceId: "codex", model: "gpt" }] }))).toContain("Sign in</button>");
+    expect(show(bot({ fallback: [{ instanceId: "codex", model: "gpt" }] }))).toContain("sign in</button>");
   });
 
   it("is said in the reader's language", () => {
@@ -73,8 +73,8 @@ describe("the free backup line above the composer", () => {
   it("says a free backup model is answering once the person has written, with a way to connect their own", () => {
     fixture.instances = [engine("claude", "Claude", false), free()];
     const html = show(bot({ ...wrote, modelSelection: { instanceId: "opencode", model: "free" } }));
-    expect(html).toContain("A free backup model from OpenCode is answering");
-    expect(html).toContain("Connect your AI</button>");
+    expect(html).toContain("a free backup model from OpenCode is answering");
+    expect(html).toContain("connect your AI</button>");
     expect(show(bot({ messages: [], modelSelection: { instanceId: "opencode", model: "free" } }))).toBe("");
   });
 

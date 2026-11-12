@@ -49,7 +49,7 @@ describe("shouldHideOnboardingCard", () => {
       card: {
         title: "Approval needed",
         subtitle: "run rm",
-        options: ["Allow", "Deny"],
+        options: ["allow", "deny"],
         requestId: "req-1",
         tool: "Bash",
       },
@@ -71,7 +71,7 @@ describe("shouldHideOnboardingCard", () => {
 
 describe("OptionCard", () => {
   it("names its icon-only dismiss button", () => {
-    const card = msg({ id: "quiz", kind: "options", card: { title: "Pick one", subtitle: "", options: ["A thing"] } });
+    const card = msg({ id: "quiz", kind: "options", card: { title: "pick one", subtitle: "", options: ["A thing"] } });
     const markup = renderToStaticMarkup(createElement(StoreProvider, null, createElement(OptionCard, { botId: "atlas", message: card })));
     expect(markup).toContain(`aria-label="${t("onboarding.card.dismiss")}"`);
     expect(markup).toContain('<textarea dir="auto"');
@@ -88,17 +88,17 @@ describe("OptionCard", () => {
     expect(markup).toContain("Where should the bucket live?");
     expect(markup.match(/data-ask-choice=""/g)).toHaveLength(2);
     expect(markup).not.toContain("aria-keyshortcuts");
-    expect(markup).toContain('placeholder="Something else…"');
+    expect(markup).toContain('placeholder="something else…"');
   });
 
   it("offers a closed set of choices with no free-text box", () => {
-    const offer = { title: "Claude is out of quota", subtitle: "Continue this conversation with another AI?", options: ["Codex", "Not now"], requestId: "r1" };
+    const offer = { title: "Claude is out of quota", subtitle: "Continue this conversation with another AI?", options: ["Codex", "not now"], requestId: "r1" };
     // an open question keeps its box; the same card marked fixedOptions drops it
     expect(render(offer)).toContain("<textarea");
     const markup = render({ ...offer, fixedOptions: true });
     expect(markup).toContain('data-ask-card="pending"');
     expect(markup).toContain("Codex");
-    expect(markup).toContain("Not now");
+    expect(markup).toContain("not now");
     expect(markup).not.toContain("<textarea");
   });
 
@@ -130,10 +130,10 @@ describe("canDismissOptionCard", () => {
 
   it("keeps approval and settled-card dismissal behavior", () => {
     expect(canDismissOptionCard({
-      title: "Approval needed", subtitle: "run command", options: ["Allow", "Deny"], requestId: "req-2", tool: "Bash",
+      title: "Approval needed", subtitle: "run command", options: ["allow", "deny"], requestId: "req-2", tool: "Bash",
     })).toBe(true);
     expect(canDismissOptionCard({
-      title: "Question", subtitle: "answered", options: [], requestId: "req-3", requestType: "question", answered: "answer",
+      title: "question", subtitle: "answered", options: [], requestId: "req-3", requestType: "question", answered: "answer",
     })).toBe(true);
   });
 });

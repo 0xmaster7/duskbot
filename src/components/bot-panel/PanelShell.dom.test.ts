@@ -26,7 +26,7 @@ const stub = (name: string) => (props: Record<string, unknown>) =>
   createElement("div", { [`data-stub-${name}`]: true, "data-editing-instructions": props.editingInstructions === true ? "true" : undefined });
 vi.mock("./DetailsTab", () => ({
   DetailsTab: (props: { onOpen: (page: string) => void }) =>
-    createElement("div", { "data-stub-details": true }, createElement("button", { type: "button", "data-panel-gear": true, onClick: () => props.onOpen("settings") }, "Bot settings")),
+    createElement("div", { "data-stub-details": true }, createElement("button", { type: "button", "data-panel-gear": true, onClick: () => props.onOpen("settings") }, "bot settings")),
 }));
 vi.mock("./LibraryTab", () => ({ LibraryPage: stub("library"), LibrarySection: stub("library-section"), libraryItems: () => ({ pages: [], apps: [], shared: [], unshared: [] }) }));
 vi.mock("./ComputerTab", () => ({ ComputerTab: stub("computer") }));
@@ -207,7 +207,7 @@ describe("the panel's tabs", () => {
     render(null);
     await settle();
     expect([...host.querySelectorAll('[role="tab"]')].map((element) => [element.getAttribute("data-panel-tab"), element.textContent]))
-      .toEqual([["details", "Details"], ["computer", "Computer"], ["advanced", "Advanced"]]);
+      .toEqual([["details", "details"], ["computer", "computer"], ["advanced", "advanced"]]);
     expect(tab()).toBe("details");
     expect(host.querySelector("[data-panel-tabs]")!.className.split(" ")).toEqual(expect.arrayContaining(["sticky", "top-0", "bg-app"]));
     expect(host.querySelector('[role="tablist"]')!.className.split(" ")).toEqual(expect.arrayContaining(["gap-0.5"]));
@@ -225,8 +225,8 @@ describe("the panel's top", () => {
     render(null);
     await settle();
     const top = [...host.querySelectorAll("button")].slice(0, 2);
-    expect(top.map((button) => button.getAttribute("aria-label") ?? button.getAttribute("title"))).toEqual(["Share and more", "Close"]);
-    expect(top[0]!.getAttribute("title")).toBe("Share");
+    expect(top.map((button) => button.getAttribute("aria-label") ?? button.getAttribute("title"))).toEqual(["share and more", "close"]);
+    expect(top[0]!.getAttribute("title")).toBe("share");
     for (const button of [moreButton()!, top[1]!]) expect(button.querySelector("span, svg, i")).not.toBeNull();
     click(moreButton());
     const rows = () => [...menu()!.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')];
@@ -234,7 +234,7 @@ describe("the panel's top", () => {
     // an empty chat has nothing to copy or download yet
     expect(rows().filter((row) => row.disabled).map((row) => row.getAttribute("data-panel-share-item"))).toEqual(["copy", "download"]);
     expect(menu()!.querySelectorAll('[role="separator"]')).toHaveLength(0);
-    expect(menu()!.textContent).toContain("Create a copy");
+    expect(menu()!.textContent).toContain("create a copy");
     click(rows()[0]!);
     expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "duplicateBot", botId: "scout" });
     expect(shareOpen()).toBe(false);
@@ -251,7 +251,7 @@ describe("the panel's top", () => {
     click(host.querySelector("[data-panel-gear]"));
     expect([tab(), page()]).toEqual(["advanced", null]);
     expect(host.querySelector("[data-panel-back]")).toBeNull();
-    expect(host.querySelector('[role="tabpanel"]')!.getAttribute("aria-label")).toBe("Advanced");
+    expect(host.querySelector('[role="tabpanel"]')!.getAttribute("aria-label")).toBe("advanced");
   });
 
   it("puts the name right under the avatar, with no call button beside it", async () => {
@@ -284,7 +284,7 @@ describe("the chat header's pill", () => {
       const button = header.querySelector<HTMLButtonElement>("[data-chathead-pill]")!;
       // the hover chevron is an icon-font glyph, so read the name itself
       expect(button.querySelector('span[dir="auto"]')?.textContent).toBe("Scout");
-      expect(button.getAttribute("aria-label")).toBe("Open Scout's profile");
+      expect(button.getAttribute("aria-label")).toBe("open Scout's profile");
       expect(button.getAttribute("aria-expanded")).toBe("false");
       expect(button.hasAttribute("aria-controls")).toBe(false);
       expect(header.querySelector("[data-chathead-chevron]")).toBeNull();
@@ -315,14 +315,14 @@ describe("the chat header's pill", () => {
     try {
       const button = header.querySelector<HTMLButtonElement>("[data-chathead-pill]")!;
       expect(header.querySelector("[data-chathead-conversation]")!.textContent).toBe("Plan the launch");
-      expect(button.getAttribute("aria-label")).toBe("Open Scout's profile, Plan the launch");
+      expect(button.getAttribute("aria-label")).toBe("open Scout's profile, Plan the launch");
       expect(header.querySelector("[data-chathead-chevron]")).toBeNull();
     } finally {
       done();
     }
-    const untitled = pill({ bot: { ...withTasks, mainThreadId: "other", tasks: [{ ...withTasks.tasks![0]!, title: "New thread" }, withTasks.tasks![1]!] } });
+    const untitled = pill({ bot: { ...withTasks, mainThreadId: "other", tasks: [{ ...withTasks.tasks![0]!, title: "new thread" }, withTasks.tasks![1]!] } });
     try {
-      expect(untitled.header.querySelector("[data-chathead-conversation]")!.textContent).toBe("New conversation");
+      expect(untitled.header.querySelector("[data-chathead-conversation]")!.textContent).toBe("new conversation");
     } finally {
       untitled.done();
     }
@@ -332,7 +332,7 @@ describe("the chat header's pill", () => {
     const quiet = pill({ bot: { ...withTasks, tasks: withTasks.tasks!.map((task) => ({ ...task, unread: false })) }, privacy: { kind: "private" } });
     try {
       expect(quiet.header.querySelector("[data-chathead-elsewhere]")).toBeNull();
-      expect(quiet.header.querySelector('[data-chathead-privacy="private"]')!.textContent).toBe("Private · only you");
+      expect(quiet.header.querySelector('[data-chathead-privacy="private"]')!.textContent).toBe("private · only you");
     } finally {
       quiet.done();
     }

@@ -9,7 +9,7 @@ it("separates output from input in both the chip and the latest speaker detail",
     lastTurn: { input: 100, cachedInput: 80, output: 10, costUsd: null }, lastSpeaker: { botId: "one", name: "One" },
   } }));
   expect(html).toContain("20 uncached input · 80 cached input · 10 output");
-  expect(html).toContain("Last turn · One");
+  expect(html).toContain("last turn · One");
   expect(html).toContain(">20 uncached input</span>");
 });
 

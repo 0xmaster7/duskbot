@@ -31,7 +31,7 @@ describe("CommandAllowlistDialog Escape", () => {
 
   function open(onClose: () => void) {
     const opener = document.createElement("button");
-    opener.textContent = "Manage command allowlist";
+    opener.textContent = "manage command allowlist";
     document.body.append(opener);
     added.push(opener);
     opener.focus();
@@ -52,7 +52,7 @@ describe("CommandAllowlistDialog Escape", () => {
     window.addEventListener("keydown", behind);
     const opener = open(onClose);
     expect(document.activeElement).toBe(opener);
-    expect(document.body.textContent).toContain("Command allowlist");
+    expect(document.body.textContent).toContain("command allowlist");
 
     const event = press("Escape");
     expect(onClose).toHaveBeenCalledOnce();

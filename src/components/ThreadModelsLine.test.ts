@@ -42,12 +42,12 @@ describe("ThreadModelsLine", () => {
       task("two", { modelSelection: { ...opus, effort: "high" }, followsBotModel: false }),
     ]);
     expect(html(bot)).toContain("2 threads use their own model.");
-    expect(html(bot)).toContain("Switch them too");
+    expect(html(bot)).toContain("switch them too");
   });
 
   it("says one thread in the singular", () => {
     const line = html(ada([task("one", { modelSelection: codex, followsBotModel: false })]));
     expect(line).toContain("1 thread uses its own model.");
-    expect(line).toContain("Switch it too");
+    expect(line).toContain("switch it too");
   });
 });

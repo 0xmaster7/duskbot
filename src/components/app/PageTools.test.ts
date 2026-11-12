@@ -97,9 +97,9 @@ describe("a bot's page in the chat", () => {
     expect(card().querySelector("[data-page-version]")?.textContent).toBe("v1");
     expect(inlineFrame().getAttribute("sandbox")).toBe("allow-scripts allow-forms");
     expect(card().querySelector<HTMLElement>("[data-app-box]")!.style.height).toBe(`${PAGE_HEIGHT.start}px`);
-    for (const label of ["Point", "Share", "Full screen"]) expect(button(label, card()).disabled, label).toBe(false);
-    expect(button("Open in new tab", card()).disabled).toBe(true);
-    expect(button("Open in new tab", card()).title).toBe("Share the page to open it in a new tab");
+    for (const label of ["point", "share", "full screen"]) expect(button(label, card()).disabled, label).toBe(false);
+    expect(button("open in new tab", card()).disabled).toBe(true);
+    expect(button("open in new tab", card()).title).toBe("share the page to open it in a new tab");
     expect(documents()[0]!.searchParams.get("origin")).toBe(window.location.origin);
   });
 
@@ -109,12 +109,12 @@ describe("a bot's page in the chat", () => {
     expect(host.querySelectorAll("[data-app]")).toHaveLength(1);
     expect(card().querySelector("[data-page-version]")?.textContent).toBe("v2");
     expect(card().querySelector("[data-page-updated]")?.textContent).toBe("Updated");
-    await click("Earlier version", card());
+    await click("earlier version", card());
     expect(card().querySelector("[data-page-version]")?.textContent).toBe("v1 of 2");
     expect(documents().at(-1)!.searchParams.get("rev")).toBe("0");
     expect(inlineFrame().srcdoc).toContain("<p>version 1</p>");
-    expect(button("Earlier version", card()).disabled).toBe(true);
-    await click("Back to the latest", card());
+    expect(button("earlier version", card()).disabled).toBe(true);
+    await click("back to the latest", card());
     expect(card().querySelector("[data-page-version]")?.textContent).toBe("v2");
     expect(inlineFrame().srcdoc).toContain("<p>newest</p>");
   });
@@ -124,54 +124,54 @@ describe("a bot's page in the chat", () => {
     const posted = vi.spyOn(inlineFrame().contentWindow!, "postMessage").mockImplementation(() => {});
     await fromFrame(PICK, inlineFrame().contentWindow);
     expect(chips()).toEqual([]);
-    await click("Point", card());
+    await click("point", card());
     expect(posted).toHaveBeenLastCalledWith({ jsonrpc: "2.0", method: "dusk/point", params: { on: true } }, "*");
-    expect(card().textContent).toContain("Click the part of the page you want changed.");
+    expect(card().textContent).toContain("click the part of the page you want changed.");
     await fromFrame(PICK, window);
     expect(chips()).toEqual([]);
     await fromFrame(PICK, inlineFrame().contentWindow);
     expect(chips()).toEqual([{ appId: "a1", rev: 0, title: "Pricing", tag: "button", role: "button", text: "Choose Pro",
       selector: "main > section:nth-of-type(2) > button", html: "<button>Choose Pro</button>" }]);
-    expect(button("Point", card()).getAttribute("aria-pressed")).toBe("false");
-    await click("Point", card());
+    expect(button("point", card()).getAttribute("aria-pressed")).toBe("false");
+    await click("point", card());
     await act(async () => { window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })); });
-    expect(button("Point", card()).getAttribute("aria-pressed")).toBe("false");
+    expect(button("point", card()).getAttribute("aria-pressed")).toBe("false");
     expect(posted).toHaveBeenLastCalledWith({ jsonrpc: "2.0", method: "dusk/point", params: { on: false } }, "*");
   });
 
   it("shares the version on screen; the card the server patches shows the link with Copy, opens it, and unpublishes it", async () => {
     await render(row(payload()));
-    await click("Share", card());
+    await click("share", card());
     await settle();
     expect(posts("/app/publish")).toEqual([{ rev: 0 }]);
     await render(row(payload(), LIVE));
     expect(card().querySelector("[data-page-link]")?.textContent).toContain(LINK);
-    expect(button("Copy link", card())).toBeDefined();
-    expect(button("Open in new tab", card()).disabled).toBe(false);
-    await click("Open in new tab", card());
+    expect(button("copy link", card())).toBeDefined();
+    expect(button("open in new tab", card()).disabled).toBe(false);
+    await click("open in new tab", card());
     expect(openExternal).toHaveBeenCalledWith(LINK);
-    await click("Update link", card());
+    await click("update link", card());
     await settle();
-    expect(card().querySelector("[data-page-link]")?.textContent).toContain("Updated at the same link");
-    await click("Unpublish", card());
+    expect(card().querySelector("[data-page-link]")?.textContent).toContain("updated at the same link");
+    await click("unpublish", card());
     await settle();
     expect(fetchMock.mock.calls.some(([path, init]) => path === `/api/published-pages/${LIVE.pageId}/unpublish` && init?.method === "POST")).toBe(true);
     await render(row(payload(), { ...LIVE, state: "unpublished" }));
     expect(card().querySelector("[data-page-link]")).toBeNull();
-    expect(card().textContent).toContain("Unpublished. The link no longer opens.");
-    expect(button("Open in new tab", card()).disabled).toBe(true);
+    expect(card().textContent).toContain("unpublished. the link no longer opens.");
+    expect(button("open in new tab", card()).disabled).toBe(true);
   });
 
   it("shows publish_page's link on the page it published", async () => {
     await render(row(payload(), LIVE));
-    expect(card().querySelector("[data-page-link]")?.textContent).toContain("Published");
-    expect(button("Open in new tab", card()).disabled).toBe(false);
+    expect(card().querySelector("[data-page-link]")?.textContent).toContain("published");
+    expect(button("open in new tab", card()).disabled).toBe(false);
     expect(fetchMock.mock.calls.some(([path]) => path.includes("/publish"))).toBe(false);
   });
 
   it("opens Full screen over the chat, points there too, and closes on Escape or after a pick", async () => {
     await render(row(payload()));
-    await click("Full screen", card());
+    await click("full screen", card());
     expect(overlay()?.getAttribute("role")).toBe("dialog");
     expect(wideFrame().style.height).toBe("100%");
     expect(card().querySelector("iframe")).toBeNull();
@@ -180,12 +180,12 @@ describe("a bot's page in the chat", () => {
     await settle();
     expect(inlineFrame()).toBeTruthy();
 
-    await click("Full screen", card());
+    await click("full screen", card());
     vi.spyOn(wideFrame().contentWindow!, "postMessage").mockImplementation(() => {});
-    await click("Point", overlay()!);
+    await click("point", overlay()!);
     await act(async () => { window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })); });
     expect(overlay()).not.toBeNull();
-    await click("Point", overlay()!);
+    await click("point", overlay()!);
     await fromFrame(PICK, wideFrame().contentWindow);
     expect(chips()).toHaveLength(1);
     expect(overlay()).toBeNull();

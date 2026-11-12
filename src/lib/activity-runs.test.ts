@@ -36,7 +36,7 @@ describe("groupActivityRuns", () => {
   });
 
   it("never folds an opened-thread chip into a run — it is navigation, not work", () => {
-    const opened: Message = { ...tool("Opened thread #QA PR 245 on Scout"),
+    const opened: Message = { ...tool("opened thread #QA PR 245 on Scout"),
       threadRef: { botId: "scout", threadId: "qa-245", title: "QA PR 245" } };
     const items = groupActivityRuns([tool("Edit"), tool("Edit"), opened, tool("Write"), tool("Write")]);
     expect(items.map((i) => i.kind)).toEqual(["run", "message", "run"]);
@@ -66,7 +66,7 @@ describe("groupActivityRuns", () => {
   });
 
   it("keeps recovery visible between successful tool runs", () => {
-    const recovery = tool("recovery: Automatic recovery: trying a backup once.");
+    const recovery = tool("recovery: automatic recovery: trying a backup once.");
     const messages = [tool("Read"), tool("Edit"), recovery, tool("Bash"), tool("Write")];
     expect(isRecoveryActivity(recovery)).toBe(true);
     expect(isRecoveryActivity(text("recovery: ordinary text"))).toBe(false);
@@ -78,9 +78,9 @@ describe("groupActivityRuns", () => {
   });
 
   it("keeps a stopped turn visible between successful tool runs", () => {
-    const stopped = tool("stopped: Stopped");
+    const stopped = tool("stopped: stopped");
     const messages = [tool("Read"), tool("Edit"), stopped, tool("Bash"), tool("Write")];
-    expect(statusActivity(stopped)).toEqual({ kind: "stopped", text: "Stopped" });
+    expect(statusActivity(stopped)).toEqual({ kind: "stopped", text: "stopped" });
     for (const group of [groupActivityRuns, groupTranscript]) {
       const items = group(messages);
       expect(items.map(item => item.kind)).toEqual(["run", "message", "run"]);
@@ -153,7 +153,7 @@ describe("groupActivityRuns", () => {
 });
 
 describe("isToolStep", () => {
-  const opened: Message = { ...tool("Opened thread #QA PR 245 on Scout"),
+  const opened: Message = { ...tool("opened thread #QA PR 245 on Scout"),
     threadRef: { botId: "scout", threadId: "qa-245", title: "QA PR 245" } };
   const messaged: Message = { ...tool("Messaged @Ada"),
     comm: { groupId: "g1", withBotId: "ada", withName: "Ada", withColor: "blue" } };
@@ -170,7 +170,7 @@ describe("isToolStep", () => {
       opened,
       messaged,
       tool("notice: the engine runs another model"),
-      tool("recovery: Automatic recovery: trying a backup once."),
+      tool("recovery: automatic recovery: trying a backup once."),
       tool("error: the CLI exited"),
     ];
     expect(rows.filter((row) => isToolStep(row))).toEqual([]);
@@ -194,7 +194,7 @@ describe("isToolStep", () => {
 
 describe("describeRun", () => {
   it("counts repeats and names the tools in order of first use", () => {
-    expect(describeRun([tool("Edit"), tool("Bash"), tool("Edit"), tool("Edit")])).toBe("4 steps · Edit ×3, Bash");
+    expect(describeRun([tool("Edit"), tool("Bash"), tool("Edit"), tool("Edit")])).toBe("4 steps · edit ×3, Bash");
   });
 
   it("names a single repeat without a multiplier", () => {
@@ -208,12 +208,12 @@ describe("describeRun", () => {
   });
 
   it("names a step by the line the harness wrote for it, not its raw tool name", () => {
-    const labelled: Message = { ...tool("mcp__agents__mcp_server"), tool: { name: "mcp__agents__mcp_server", ok: true, label: "Added MCP server linear · Turned on · Test: 3 tools" } };
-    expect(describeRun([labelled, tool("Bash")])).toBe("2 steps · Added MCP server linear · Turned on · Test: 3 tools, Bash");
+    const labelled: Message = { ...tool("mcp__agents__mcp_server"), tool: { name: "mcp__agents__mcp_server", ok: true, label: "added MCP server linear · turned on · Test: 3 tools" } };
+    expect(describeRun([labelled, tool("Bash")])).toBe("2 steps · added MCP server linear · turned on · Test: 3 tools, Bash");
   });
 
   it("names steps by the label it is given, counting steps that read the same together", () => {
-    const plain = ({ name }: { name: string }) => (name === "Bash" || name.includes(" ") ? "Run a command" : name);
+    const plain = ({ name }: { name: string }) => (name === "Bash" || name.includes(" ") ? "run a command" : name);
     expect(describeRun([tool("Bash"), tool("ls -la"), tool("Edit")], plain)).toBe("3 steps · Run a command ×2, Edit");
   });
 });
@@ -248,7 +248,7 @@ describe("groupTranscript", () => {
 
     const items = groupTranscript([user, ack, search, read, helper, fetch, final]);
     expect(items.map((item) => item.kind === "message" ? item.message.id : item.kind)).toEqual([user.id, ack.id, "turn", helper.id, final.id]);
-    expect(items[2]).toMatchObject({ kind: "turn", id: "turn:turn-1", label: "Worked for 29s", messages: [search, read, fetch] });
+    expect(items[2]).toMatchObject({ kind: "turn", id: "turn:turn-1", label: "worked for 29s", messages: [search, read, fetch] });
   });
 
   it("shows just the answer for a turn with nothing to say: its steps fold, no line of it is hidden", () => {

@@ -60,7 +60,7 @@ describe("a member's room reply", () => {
       { ...note("final", "Fixed: the title now reads Launch.", 9_000), turnTerminal: true },
     ];
     render(transcript(messages));
-    expect(host.textContent).not.toContain("Worked for");
+    expect(host.textContent).not.toContain("worked for");
     expect(host.textContent!.indexOf("I'll check my own work history")).toBeLessThan(host.textContent!.indexOf("Fixed: the title"));
     expect(host.textContent!.match(/Lead/g)).toHaveLength(1);
   });
@@ -69,15 +69,15 @@ describe("a member's room reply", () => {
     render(transcript([ask, note("n1", "I'll check my own work history…", 2_000), note("n2", "Good, correct layer id…", 3_000)]));
     expect(host.textContent).toContain("I'll check my own work history");
     expect(host.textContent).toContain("Good, correct layer id");
-    expect(host.textContent).not.toContain("Worked for");
+    expect(host.textContent).not.toContain("worked for");
   });
 });
 
 describe("held room members", () => {
   it("lists who is held and resumes one from the banner", () => {
     render(createElement(RoomHoldsBanner, { group: { ...room, holds: { bee: { at: 1 } } }, members: [lead, bee] }));
-    expect(host.textContent).toContain("Stopped by you: Bee.");
-    const resume = [...host.querySelectorAll("button")].find((button) => button.textContent === "Resume Bee")!;
+    expect(host.textContent).toContain("stopped by you: Bee.");
+    const resume = [...host.querySelectorAll("button")].find((button) => button.textContent === "resume Bee")!;
     flushSync(() => resume.click());
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "setGroupHold", groupId: "room", botId: "bee", held: false });
   });

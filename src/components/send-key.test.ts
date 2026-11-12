@@ -162,7 +162,7 @@ describe("an input method in the composer's menus", () => {
     render(createElement(Composer, { group: room, members: [{ ...bot, name: "山田" }] }));
     type(textarea(), "@山田");
     for (const init of ime) {
-      for (const key of ["Enter", "Tab", "ArrowDown"]) {
+      for (const key of ["Enter", "tab", "ArrowDown"]) {
         expect(press(textarea(), { ...init, key }).defaultPrevented, JSON.stringify({ ...init, key })).toBe(false);
       }
       expect(textarea().value).toBe("@山田");
@@ -190,17 +190,17 @@ describe("the send key in hints", () => {
     fixture.instances = [{ instanceId: "test", driverKind: "codex", displayName: "Test", capabilities: { queueing: true } } as unknown as InstanceInfo];
     render(createElement(Composer, { bot }));
     type(textarea(), "hi");
-    expect(host.querySelector('button[aria-label="Send message"]')?.getAttribute("title")).toBe("Send (Enter)");
+    expect(host.querySelector('button[aria-label="send message"]')?.getAttribute("title")).toBe("Send (Enter)");
     flushSync(() => setSendKey("shift-enter"));
-    expect(host.querySelector('button[aria-label="Send message"]')?.getAttribute("title")).toBe("Send (Shift+Enter)");
+    expect(host.querySelector('button[aria-label="send message"]')?.getAttribute("title")).toBe("Send (Shift+Enter)");
     flushSync(() => setSendKey("mod-enter"));
-    expect(host.querySelector('button[aria-label="Send message"]')?.getAttribute("title")).toBe("Send (Ctrl+Enter)");
+    expect(host.querySelector('button[aria-label="send message"]')?.getAttribute("title")).toBe("Send (Ctrl+Enter)");
   });
 
   it("names the key on the Cloud's first-job button", () => {
     setSendKey("mod-enter");
     render(createElement(CloudIntent));
-    expect(host.querySelector('button[aria-label="Start setting it up"]')?.getAttribute("title")).toBe("Start setting it up (Ctrl+Enter)");
+    expect(host.querySelector('button[aria-label="start setting it up"]')?.getAttribute("title")).toBe("Start setting it up (Ctrl+Enter)");
   });
 });
 
@@ -210,7 +210,7 @@ describe("a message sent while a one-to-one bot works", () => {
   const working = { ...bot, busy: true, tasks: [{ ...bot.tasks![0]!, busy: true }] };
   const followUps = () => sends().map((action) => action.followUp);
   const sendButton = () => host.querySelector<HTMLButtonElement>("[data-composer-follow-up] > button")!;
-  const chooser = () => host.querySelector<HTMLButtonElement>('button[aria-label="Choose how to send this message"]');
+  const chooser = () => host.querySelector<HTMLButtonElement>('button[aria-label="choose how to send this message"]');
   const openChoices = () => {
     flushSync(() => chooser()!.click());
     return [...document.querySelectorAll<HTMLButtonElement>('[role="menu"] [role="menuitem"]')];
@@ -225,7 +225,7 @@ describe("a message sent while a one-to-one bot works", () => {
       expect(sends().at(-1), JSON.stringify(init)).toMatchObject({ type: "send", text: "words", followUp });
     }
     type(textarea(), "clicked");
-    expect(sendButton().getAttribute("title")).toBe("Add this to what Pepper is doing · Ctrl+Enter: Queue");
+    expect(sendButton().getAttribute("title")).toBe("add this to what Pepper is doing · Ctrl+Enter: queue");
     flushSync(() => sendButton().click());
     type(textarea(), "ctrl-clicked");
     flushSync(() => sendButton().dispatchEvent(new MouseEvent("click", { bubbles: true, ctrlKey: true })));

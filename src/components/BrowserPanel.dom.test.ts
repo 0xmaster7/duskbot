@@ -51,7 +51,7 @@ const settle = async () => {
 };
 
 const panel = () => host.querySelector<HTMLElement>("[data-browser-transport]")!;
-const maximizeButton = () => host.querySelector<HTMLButtonElement>('[aria-label="Maximize"], [aria-label="Restore size"]');
+const maximizeButton = () => host.querySelector<HTMLButtonElement>('[aria-label="maximize"], [aria-label="restore size"]');
 const skyward = () => panel().className.split(" ").includes("inset-0");
 
 beforeEach(() => {
@@ -72,7 +72,7 @@ describe("the browser panel's Maximize", () => {
   it("overlays the window from the control, then Escape restores the panel without closing a dialog beneath", async () => {
     click(maximizeButton());
     expect(skyward()).toBe(true);
-    expect(maximizeButton()?.getAttribute("aria-label")).toBe("Restore size");
+    expect(maximizeButton()?.getAttribute("aria-label")).toBe("restore size");
 
     const event = pressEscape();
     expect(event.defaultPrevented).toBe(true);
@@ -82,12 +82,12 @@ describe("the browser panel's Maximize", () => {
   });
 
   it("does not look like Full screen: each has its own icon and says what it fills", () => {
-    const fullscreen = host.querySelector<HTMLButtonElement>('[aria-label="Full screen"]')!;
+    const fullscreen = host.querySelector<HTMLButtonElement>('[aria-label="full screen"]')!;
     const icon = (button: HTMLButtonElement | null) => button?.querySelector("svg")?.getAttribute("class");
     expect(icon(maximizeButton())).toBe("gi gi-app-window");
     expect(icon(fullscreen)).toBe("gi gi-maximize");
-    expect(maximizeButton()?.title).toBe("Maximize (fill the app window)");
-    expect(fullscreen.title).toBe("Full screen (whole display)");
+    expect(maximizeButton()?.title).toBe("maximize (fill the app window)");
+    expect(fullscreen.title).toBe("full screen (whole display)");
   });
 
   it("leaves Escape to the app while the panel is its usual size", () => {
@@ -99,12 +99,12 @@ describe("the browser panel's Maximize", () => {
   it("restores the panel when clicking Restore size", async () => {
     click(maximizeButton());
     expect(skyward()).toBe(true);
-    expect(maximizeButton()?.getAttribute("aria-label")).toBe("Restore size");
+    expect(maximizeButton()?.getAttribute("aria-label")).toBe("restore size");
 
     click(maximizeButton());
     await settle();
     expect(skyward()).toBe(false);
-    expect(maximizeButton()?.getAttribute("aria-label")).toBe("Maximize");
+    expect(maximizeButton()?.getAttribute("aria-label")).toBe("maximize");
   });
 
   it("opts out of window dragging so toolbar clicks reach buttons instead of moving the window", () => {
@@ -114,8 +114,8 @@ describe("the browser panel's Maximize", () => {
 
 describe("the browser panel's Full screen", () => {
   it("toggles full screen and exits cleanly", async () => {
-    const fullscreenButton = () => host.querySelector<HTMLButtonElement>('[aria-label="Full screen"], [aria-label="Exit full screen"]');
-    expect(fullscreenButton()?.getAttribute("aria-label")).toBe("Full screen");
+    const fullscreenButton = () => host.querySelector<HTMLButtonElement>('[aria-label="full screen"], [aria-label="exit full screen"]');
+    expect(fullscreenButton()?.getAttribute("aria-label")).toBe("full screen");
 
     const p = panel();
     p.requestFullscreen = vi.fn().mockImplementation(() => {
@@ -131,10 +131,10 @@ describe("the browser panel's Full screen", () => {
 
     click(fullscreenButton());
     await settle();
-    expect(fullscreenButton()?.getAttribute("aria-label")).toBe("Exit full screen");
+    expect(fullscreenButton()?.getAttribute("aria-label")).toBe("exit full screen");
 
     click(fullscreenButton());
     await settle();
-    expect(fullscreenButton()?.getAttribute("aria-label")).toBe("Full screen");
+    expect(fullscreenButton()?.getAttribute("aria-label")).toBe("full screen");
   });
 });

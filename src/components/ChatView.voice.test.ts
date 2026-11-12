@@ -40,7 +40,7 @@ describe("voice notes in the chat transcript", () => {
     const message: Message = { id: "m1", at: 1, role: "bot", kind: "text", text: "Standup summary inside", attachments: [note] };
     const markup = renderToStaticMarkup(createElement(ChatView, { bot: { ...bot, messages: [message] } }));
     expect(markup).toContain('data-test-voice-note=""');
-    expect(markup).toContain('aria-label="Play voice note"');
+    expect(markup).toContain('aria-label="play voice note"');
     expect(markup).toContain('src="/api/attachments/123e4567-e89b-12d3-a456-426614174000.mp3"');
     expect(markup).toContain("Standup summary inside");
     expect(markup.indexOf("data-test-voice-note")).toBeLessThan(markup.indexOf("Standup summary inside"));

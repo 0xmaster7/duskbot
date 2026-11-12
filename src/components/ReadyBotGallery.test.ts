@@ -57,10 +57,10 @@ describe("ready-made bots gallery", () => {
 
   it("narrows to a category and back to all", () => {
     render();
-    flushSync(() => button("Design").click());
+    flushSync(() => button("design").click());
     expect(cards()).toEqual(["design-critic"]);
-    expect(button("Design").getAttribute("aria-pressed")).toBe("true");
-    flushSync(() => button("All").click());
+    expect(button("design").getAttribute("aria-pressed")).toBe("true");
+    flushSync(() => button("all").click());
     expect(cards()).toHaveLength(READY_BOTS.length);
   });
 

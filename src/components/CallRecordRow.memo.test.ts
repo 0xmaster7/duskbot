@@ -18,7 +18,7 @@ const at = 1_700_000_000_000;
 const msg = (id: string, fields: Partial<Message>): Message => ({ id, role: "bot", kind: "text", at, ...fields }) as Message;
 const record = msg("row", {
   kind: "call",
-  text: "Call with Pepper · 1:42",
+  text: "call with Pepper · 1:42",
   call: { callId: "c1", botId: "bot", client: "ios", startedAt: at - 102_000, endedAt: at, seconds: 102, endReason: "hung-up" },
 });
 const withCall = (fields: Partial<NonNullable<Message["call"]>>): Message => ({ ...record, call: { ...record.call!, ...fields } });
@@ -43,21 +43,21 @@ describe("CallRecordRow's lines", () => {
   it("are worked out once per transcript and call, not on every render", () => {
     draw(record, transcript);
     expect(callRecordLines).toHaveBeenCalledTimes(1);
-    expect(host.textContent).toContain("Searching the web");
+    expect(host.textContent).toContain("searching the web");
 
     draw(withCall({ title: "Pune weather check" }), transcript);
     expect(host.textContent).toContain("Pune weather check");
     draw(record, transcript, "Ada");
-    expect(host.textContent).toContain("Call with Ada");
+    expect(host.textContent).toContain("call with Ada");
     expect(callRecordLines).toHaveBeenCalledTimes(1);
 
     const later = [...transcript, step("a2", { name: "Read", spoken: "reading a file", ok: true })];
     draw(record, later);
     expect(callRecordLines).toHaveBeenCalledTimes(2);
-    expect(host.textContent).toContain("Reading a file");
+    expect(host.textContent).toContain("reading a file");
 
     draw(withCall({ callId: "c2" }), later);
     expect(callRecordLines).toHaveBeenCalledTimes(3);
-    expect(host.textContent).not.toContain("Searching the web");
+    expect(host.textContent).not.toContain("searching the web");
   });
 });

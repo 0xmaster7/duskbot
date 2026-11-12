@@ -15,7 +15,7 @@ let host: HTMLDivElement, root: Root | null;
 const mount = () => act(async () => { root = createRoot(host); root.render(createElement(AccountGate, { bridge })); });
 const button = (name: string) => [...host.querySelectorAll("button")].find(node => node.textContent === name)!;
 const email = () => host.querySelector<HTMLInputElement>("input[type=email]")!;
-const digit = (n: number) => host.querySelector<HTMLInputElement>(`input[aria-label="Digit ${n} of 8"]`)!;
+const digit = (n: number) => host.querySelector<HTMLInputElement>(`input[aria-label="digit ${n} of 8"]`)!;
 const type = (field: HTMLInputElement, value: string) => act(async () => {
   Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(field, value);
   field.dispatchEvent(new Event("input", { bubbles: true }));
@@ -45,12 +45,12 @@ afterEach(async () => { await act(async () => root?.unmount()); host.remove(); v
 
 it("renders the title, providers and email step, and focuses the email field", async () => {
   const html = renderToStaticMarkup(createElement(AccountGate, { bridge }));
-  expect(html).toContain("Sign in to dusk bot");
-  expect(html).toContain("One account for your bots, your Mac and your cloud desktop.");
+  expect(html).toContain("sign in to dusk bot");
+  expect(html).toContain("one account for your bots, your Mac and your cloud desktop.");
   for (const name of ["Google", "Apple", "X"]) expect(html).toContain(`Continue with ${name}`);
-  expect(html).toContain('type="email"'); expect(html).toContain("Send code");
+  expect(html).toContain('type="email"'); expect(html).toContain("send code");
   await mount();
-  expect(host.querySelector("h1")?.textContent).toBe("Sign in to dusk bot");
+  expect(host.querySelector("h1")?.textContent).toBe("sign in to dusk bot");
   expect(document.activeElement).toBe(email());
 });
 
@@ -81,16 +81,16 @@ it("keeps the code boxes' arrow and backspace behavior", async () => {
 it("shows the browser enrollment code and cancels", async () => {
   state = { ...state, status: "connecting", enrollment: { userCode: "HELLO-WORLD", expiresAt: Date.now() + 60_000 } };
   await mount();
-  expect(host.querySelector("h1")?.textContent).toBe("Finish signing in in your browser");
+  expect(host.querySelector("h1")?.textContent).toBe("finish signing in in your browser");
   expect(host.querySelector("code")?.textContent).toBe("HELLO-WORLD");
-  await act(async () => button("Cancel").click());
+  await act(async () => button("cancel").click());
   expect(bridge.cancel).toHaveBeenCalledOnce(); expect(email()).toBeTruthy();
 });
 
 it.each(["access-ended", "expired"])("explains an ended session: %s", async message => {
   state = { ...state, status: "reauth-required", message };
   await mount();
-  expect(host.querySelector('[role="status"]')?.textContent).toBe("Your session ended. Sign in again.");
+  expect(host.querySelector('[role="status"]')?.textContent).toBe("your session ended. sign in again.");
 });
 
 it("reloads when the gate stops blocking and removes its listener on unmount", async () => {
@@ -106,36 +106,36 @@ it("reloads when the gate stops blocking and removes its listener on unmount", a
 it("shows only the providers the account service says sign in, and none when it can't be asked", async () => {
   bridge.options = vi.fn(async () => ({ providers: ["google" as const, "apple" as const], recovery: true }));
   await mount();
-  expect(button("Continue with Google")).toBeTruthy(); expect(button("Continue with Apple")).toBeTruthy();
-  expect(button("Continue with X")).toBeUndefined();
+  expect(button("continue with Google")).toBeTruthy(); expect(button("continue with Apple")).toBeTruthy();
+  expect(button("continue with X")).toBeUndefined();
   await act(async () => root?.unmount()); root = null; host.innerHTML = "";
   bridge.options = vi.fn(async () => { throw new Error("offline"); });
   await mount();
-  expect([...host.querySelectorAll("button")].some(node => node.textContent?.startsWith("Continue with"))).toBe(false);
+  expect([...host.querySelectorAll("button")].some(node => node.textContent?.startsWith("continue with"))).toBe(false);
   expect([...host.querySelectorAll("div")].some(node => node.textContent === "or")).toBe(false); expect(email()).toBeTruthy();
 });
 
 it("Can't sign in? sends a recovery code, says what comes, and gives plain help when the address is lost", async () => {
   bridge.options = vi.fn(async () => ({ providers: ["google" as const], recovery: true }));
   await mount();
-  await act(async () => button("Can't sign in?").click());
-  expect(host.querySelector("h1")?.textContent).toBe("Can't sign in?");
-  expect(button("Continue with Google")).toBeUndefined();
-  expect(host.querySelector("h2")?.textContent).toBe("Lost access to that email?");
+  await act(async () => button("can't sign in?").click());
+  expect(host.querySelector("h1")?.textContent).toBe("can't sign in?");
+  expect(button("continue with Google")).toBeUndefined();
+  expect(host.querySelector("h2")?.textContent).toBe("lost access to that email?");
   expect(host.textContent).toContain("write to hello@dusk.bot from any email with your receipt");
   await type(email(), "person@example.com"); await submit();
   expect(bridge.signInStart).toHaveBeenCalledExactlyOnceWith("person@example.com", { recover: true });
-  expect(host.textContent).toContain("If an account uses this email, the code is on its way");
+  expect(host.textContent).toContain("if an account uses this email, the code is on its way");
   await paste(digit(1), "12345678"); await submit();
   expect(bridge.signInVerify).toHaveBeenCalledExactlyOnceWith("12345678");
 });
 
-it("Back to sign in returns to the providers and a plain code", async () => {
+it("back to sign in returns to the providers and a plain code", async () => {
   bridge.options = vi.fn(async () => ({ providers: ["apple" as const], recovery: true }));
   await mount();
-  await act(async () => button("Can't sign in?").click());
-  await act(async () => button("Back to sign in").click());
-  expect(host.querySelector("h1")?.textContent).toBe("Sign in to dusk bot");
+  await act(async () => button("can't sign in?").click());
+  await act(async () => button("back to sign in").click());
+  expect(host.querySelector("h1")?.textContent).toBe("sign in to dusk bot");
   await type(email(), "person@example.com"); await submit();
   expect(bridge.signInStart).toHaveBeenCalledExactlyOnceWith("person@example.com");
 });
@@ -143,18 +143,18 @@ it("Back to sign in returns to the providers and a plain code", async () => {
 it("waits for the browser to come back from a provider, reopens it and cancels", async () => {
   state = { ...state, status: "connecting", browser: "google" };
   await mount();
-  expect(host.querySelector("h1")?.textContent).toBe("Finish signing in in your browser");
+  expect(host.querySelector("h1")?.textContent).toBe("finish signing in in your browser");
   expect(host.querySelector("code")).toBeNull();
-  await act(async () => button("Open the browser again").click());
+  await act(async () => button("open the browser again").click());
   expect(bridge.reopen).toHaveBeenCalledOnce();
-  await act(async () => button("Cancel").click());
+  await act(async () => button("cancel").click());
   expect(bridge.cancel).toHaveBeenCalledOnce(); expect(email()).toBeTruthy();
 });
 
 it.each([
-  ["signin-cancelled", "Sign-in was canceled. Try again when you are ready."],
-  ["enrollment-expired", "This sign-in expired. Please start again."],
-  ["signin-failed", "Browser sign-in failed. Please try again."],
+  ["signin-cancelled", "sign-in was canceled. try again when you are ready."],
+  ["enrollment-expired", "this sign-in expired. please start again."],
+  ["signin-failed", "browser sign-in failed. please try again."],
 ])("says why a browser sign-in came back without one: %s", async (message, line) => {
   state = { ...state, status: "signed-out", message };
   await mount();

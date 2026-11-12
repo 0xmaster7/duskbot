@@ -102,7 +102,7 @@ afterEach(() => {
 describe("composer call button", () => {
   it("is a Send-sized filled button with a waveform, labelled for the bot", () => {
     const { html, button } = render();
-    expect(button.props["aria-label"]).toBe("Call Pepper");
+    expect(button.props["aria-label"]).toBe("call Pepper");
     expect(String(button.props.className).split(" ")).toEqual(expect.arrayContaining(["size-8", "rounded-l-3xl", "rounded-r-lg", "active:rounded-3xl", "transition-[color,background,border-radius]", "bg-control"]));
     expect(html).toContain("gi-audio-lines");
     expect(html).not.toContain("gi-phone");
@@ -131,7 +131,7 @@ describe("composer call button", () => {
   it("shows a hang-up state during the call and hangs up", () => {
     fixture.onCall = "pepper";
     const { html, button } = render();
-    expect(button.props["aria-label"]).toBe("Hang up on Pepper");
+    expect(button.props["aria-label"]).toBe("hang up on Pepper");
     expect(String(button.props.className)).toContain("bg-danger");
     expect(html).toContain("gi-phone-off");
     button.props.onClick!();
@@ -143,12 +143,12 @@ describe("composer call button", () => {
     fixture.config = { tts: { configured: false } };
     fixture.helpShown = true;
     const { html, button } = render();
-    expect(button.props["aria-label"]).toBe("Set up a voice in an agent profile to make calls");
+    expect(button.props["aria-label"]).toBe("set up a voice in an agent profile to make calls");
     expect(button.props["aria-controls"]).toBeTruthy();
-    expect(html).toContain("Call unavailable");
-    expect(html).toContain("Set up voice");
-    expect(html).not.toContain("Open agent settings");
-    expect(html).toMatch(/role="group" aria-label="Call unavailable" class="[^"]*\bbottom-full\b/);
+    expect(html).toContain("call unavailable");
+    expect(html).toContain("set up voice");
+    expect(html).not.toContain("open agent settings");
+    expect(html).toMatch(/role="group" aria-label="call unavailable" class="[^"]*\bbottom-full\b/);
     button.props.onClick!();
     expect(fixture.startCall).not.toHaveBeenCalled();
   });
@@ -158,7 +158,7 @@ describe("composer call button", () => {
     const getUserMedia = vi.fn(() => new Promise<MediaStream>(() => {}));
     configureLiveMedia({ getUserMedia });
     const { html, button } = render();
-    expect(button.props["aria-label"]).toBe("Live call with Pepper");
+    expect(button.props["aria-label"]).toBe("live call with Pepper");
     expect(html).not.toContain("bg-warning");
     button.props.onClick!();
     expect(getUserMedia).toHaveBeenCalledTimes(1);
@@ -172,9 +172,9 @@ describe("composer call button", () => {
     for (const host of ["win32", "darwin"] as const) {
       fixture.host = host;
       const { html, button } = render();
-      expect(button.props["aria-label"], host).toBe("Live call with Pepper");
+      expect(button.props["aria-label"], host).toBe("live call with Pepper");
       expect(html, host).not.toContain("bg-warning");
-      expect(html, host).not.toContain("Call unavailable");
+      expect(html, host).not.toContain("call unavailable");
       expect(html, host).not.toContain("Choose This computer");
     }
   });
@@ -195,8 +195,8 @@ describe("composer call button", () => {
     expect(classes).not.toContain("bg-control");
     expect(button.props.style).toEqual({ backgroundColor: "#8057c8", color: "#ffffff" });
     expect(html).toContain('data-icon-name="waveform"');
-    expect(html).not.toContain('aria-label="Call mode"');
-    expect(renderToStaticMarkup(createElement(() => CallButton({ bot, placement: "composer" })))).toContain('aria-label="Call mode"');
+    expect(html).not.toContain('aria-label="call mode"');
+    expect(renderToStaticMarkup(createElement(() => CallButton({ bot, placement: "composer" })))).toContain('aria-label="call mode"');
   });
 
   it("drops the bot's colour for the red hang-up during a call", () => {
@@ -219,6 +219,6 @@ describe("composer call button", () => {
     const { html, button } = render("header");
     expect(String(button.props.className).split(" ")).toContain("size-9");
     expect(html).toContain("gi-phone");
-    expect(html).not.toMatch(/role="group" aria-label="Call unavailable" class="[^"]*\bbottom-full\b/);
+    expect(html).not.toMatch(/role="group" aria-label="call unavailable" class="[^"]*\bbottom-full\b/);
   });
 });

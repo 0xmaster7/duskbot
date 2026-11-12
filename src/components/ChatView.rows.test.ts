@@ -138,9 +138,9 @@ afterAll(() => {
 describe("chat transcript rows", () => {
   it("draws every row once on mount", () => {
     expect(document.querySelectorAll("[data-mid]")).toHaveLength(messages.length);
-    expect(document.body.textContent).toContain("Today");
+    expect(document.body.textContent).toContain("today");
     expect(document.body.textContent).toContain("Answer 1");
-    expect(document.body.textContent).toContain("Read file 2");
+    expect(document.body.textContent).toContain("read file 2");
   });
 
   it("renders no row when another bot changes", async () => {
@@ -158,17 +158,17 @@ describe("chat transcript rows", () => {
 
   it("renders only the tool chip that changed", async () => {
     expect(await rowRendersAfter((current) => reducer(current, {
-      type: "messagePatched", threadId: "pepper-thread", message: { ...running, tool: { name: "Read file 2, page 2" } },
+      type: "messagePatched", threadId: "pepper-thread", message: { ...running, tool: { name: "read file 2, page 2" } },
     }))).toEqual({ botText: 0, userText: 0, toolChip: 1, speak: 0 });
-    expect(document.body.textContent).toContain("Read file 2, page 2");
+    expect(document.body.textContent).toContain("read file 2, page 2");
   });
 
   it("moves Today on to Yesterday after midnight, at the next store event", async () => {
     vi.setSystemTime(new Date(2026, 9, 4, 0, 30));
     const scout = state.bots.find((bot) => bot.id === "scout")!;
     await rowRendersAfter((current) => reducer(current, { type: "botPatched", bot: { ...scout, unread: true } }));
-    expect(document.body.textContent).toContain("Yesterday");
-    expect(document.body.textContent).not.toContain("Today");
+    expect(document.body.textContent).toContain("yesterday");
+    expect(document.body.textContent).not.toContain("today");
   });
 
   it("offers Regenerate on the last answer only, and not during a turn", async () => {

@@ -72,7 +72,7 @@ it("ends the flow with Claude Code's own words when it refuses the code, and off
   fixture.api.mockResolvedValueOnce({ auth: waiting }).mockRejectedValueOnce(new ApiError(refused, 500)).mockResolvedValueOnce({ auth: { ...waiting, phase: "failed" } });
   await startAndPaste("bad-12345678");
   expect(fixture.values[AUTH]).toMatchObject({ phase: "failed", message: refused });
-  expect(JSON.stringify(render().filter((node) => node.type === "button").map((node) => node.props.children))).toContain("Try again");
+  expect(JSON.stringify(render().filter((node) => node.type === "button").map((node) => node.props.children))).toContain("try again");
   expect(fixture.track).not.toHaveBeenCalled();
 });
 
@@ -90,7 +90,7 @@ it("reports no sign-in when the person cancels or the code expires", async () =>
   fixture.api.mockResolvedValueOnce({ auth: waiting }).mockResolvedValueOnce({});
   render().find((node) => node.type === "button")!.props.onClick!();
   await flush();
-  const cancel = render().filter((node) => node.type === "button").find((node) => JSON.stringify(node.props.children).includes("Cancel"))!;
+  const cancel = render().filter((node) => node.type === "button").find((node) => JSON.stringify(node.props.children).includes("cancel"))!;
   await cancel.props.onClick!();
   await flush();
   expect(fixture.values[AUTH]).toBeNull();

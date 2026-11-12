@@ -21,11 +21,11 @@ describe("rich table rendering", () => {
   it("gives a short table outside a card its actions without the search box and row count a long one needs", () => {
     const table = (length: number) => renderToStaticMarkup(createElement(RichTable, { columns: [{ text: "ID" }], rows: Array.from({ length }, (_, i) => [{ text: String(i) }]), card: false }));
     const short = table(8);
-    expect(short).not.toContain('aria-label="Search all rows…"');
+    expect(short).not.toContain('aria-label="search all rows…"');
     expect(short).not.toContain("8 of 8 rows");
-    expect(short).toContain('aria-label="Copy results as CSV"');
+    expect(short).toContain('aria-label="copy results as CSV"');
     const long = table(9);
-    expect(long).toContain('aria-label="Search all rows…"');
+    expect(long).toContain('aria-label="search all rows…"');
     expect(long).toContain("9 of 9 rows");
   });
   it("bounds the DOM for a large table", () => {
@@ -36,9 +36,9 @@ describe("rich table rendering", () => {
   it("offers file previews only for message-scoped attachments or authored links", () => {
     const file = { name: "report.csv", path: "/workspace/report.csv", private: true };
     const message = { threadId: "t", messageId: "m" };
-    expect(renderToStaticMarkup(createElement(AttachedFileChip, { file, message }))).toContain("Preview table: report.csv");
-    expect(renderToStaticMarkup(createElement(AttachedFileChip, { file }))).not.toContain("Preview table:");
-    expect(renderToStaticMarkup(createElement(AttachedFileChip, { file: { ...file, private: false }, message }))).not.toContain("Preview table:");
+    expect(renderToStaticMarkup(createElement(AttachedFileChip, { file, message }))).toContain("preview table: report.csv");
+    expect(renderToStaticMarkup(createElement(AttachedFileChip, { file }))).not.toContain("preview table:");
+    expect(renderToStaticMarkup(createElement(AttachedFileChip, { file: { ...file, private: false }, message }))).not.toContain("preview table:");
   });
   it("reads chunked UTF-8 data and rejects too-large responses", async () => {
     const signal = new AbortController().signal;
@@ -63,10 +63,10 @@ describe("a reply's table card", () => {
     // grok keeps 24px above the header row, where the plate floats on hover.
     const plate = html.match(/<div class="(table-plate [^"]*)"/)?.[1] ?? "";
     expect(plate.split(" ")).toEqual(expect.arrayContaining(["absolute", "top-1.5", "end-1.5", "opacity-0", "group-hover/table:opacity-100", "focus-within:opacity-100", "touch:opacity-100"]));
-    expect(html).toContain('aria-label="Copy table"');
+    expect(html).toContain('aria-label="copy table"');
     // download and expand sit behind grok's Copy options chevron
-    expect(html).toContain('aria-label="Copy options"');
-    expect(html).not.toContain('aria-label="Sort by Sender"');
+    expect(html).toContain('aria-label="copy options"');
+    expect(html).not.toContain('aria-label="sort by Sender"');
     expect(html).toContain("border-t border-transparent");
     expect(html).not.toContain("<footer");
     expect(html).not.toContain(`aria-label="${"Search all rows…"}"`);
@@ -75,7 +75,7 @@ describe("a reply's table card", () => {
 
   it("puts search and the row count inside the card once a table runs past eight rows", () => {
     const html = card(12);
-    expect(html).toContain('aria-label="Search all rows…"');
+    expect(html).toContain('aria-label="search all rows…"');
     expect(html).toContain("12 of 12 rows · 2 columns");
     expect(html).not.toContain("<footer");
   });

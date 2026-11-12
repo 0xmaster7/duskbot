@@ -7,29 +7,29 @@ import { isLimitSkip, routineRunLabel, routineRunTone, routineRunsOn } from "./r
 describe("where a routine runs", () => {
   it("on the Cloud, every routine runs on schedule even when the person's computer is off", () => {
     expect(routineRunsOn({ roomGoal: false, cloudHome: true })).toEqual({
-      label: "The Cloud", hint: "Runs on schedule, even when your computer is off.",
+      label: "the cloud", hint: "runs on schedule, even when your computer is off.",
     });
     expect(routineRunsOn({ roomGoal: false, runOn: "cloud", cloudHome: true })).toEqual({
-      label: "Cloud desktop", hint: "Runs the whole job on the bot's cloud desktop, even when your computer is off.",
+      label: "cloud desktop", hint: "runs the whole job on the bot's cloud desktop, even when your computer is off.",
     });
     expect(routineRunsOn({ roomGoal: false, computer: "cloud", cloudHome: true })).toEqual({
-      label: "The bot's cloud desktop", hint: "Runs on schedule, even when your computer is off.",
+      label: "the bot's cloud desktop", hint: "runs on schedule, even when your computer is off.",
     });
     expect(routineRunsOn({ roomGoal: true, cloudHome: true })).toEqual({
-      label: "The Cloud, with the whole group", hint: "Runs on schedule, even when your computer is off.",
+      label: "the cloud, with the whole group", hint: "runs on schedule, even when your computer is off.",
     });
-    expect(routineRunsOn({ roomGoal: false, computer: "vm", cloudHome: true }).label).toBe("The Cloud");
+    expect(routineRunsOn({ roomGoal: false, computer: "vm", cloudHome: true }).label).toBe("the cloud");
   });
 
   it("on a desktop, a routine starts while Dusk is open there", () => {
     expect(routineRunsOn({ roomGoal: false, cloudHome: false })).toEqual({
-      label: "This computer", hint: "Starts while Dusk is open here.",
+      label: "This computer", hint: "starts while Dusk is open here.",
     });
     expect(routineRunsOn({ roomGoal: false, runOn: "cloud", cloudHome: false })).toEqual({
-      label: "Cloud desktop", hint: "Runs the whole job on the bot's cloud desktop while Dusk is open.",
+      label: "cloud desktop", hint: "runs the whole job on the bot's cloud desktop while Dusk is open.",
     });
-    expect(routineRunsOn({ roomGoal: false, computer: "vm", cloudHome: false }).label).toBe("The bot's private desktop");
-    expect(routineRunsOn({ roomGoal: true, cloudHome: false }).label).toBe("This computer, with the whole group");
+    expect(routineRunsOn({ roomGoal: false, computer: "vm", cloudHome: false }).label).toBe("the bot's private desktop");
+    expect(routineRunsOn({ roomGoal: true, cloudHome: false }).label).toBe("this computer, with the whole group");
   });
 
   it("never names retired desktop provider or a cloud runner", () => {
@@ -46,15 +46,15 @@ describe("a run's status", () => {
   const run = (patch: Partial<RoutineRun>) => ({ id: "r", routineId: "x", routineName: "Brief", botId: "b", status: "failed", manual: false, scheduledFor: 0, createdAt: 0, ...patch }) as RoutineRun;
 
   it("reads partly done, in the waiting colour, when only a step failed after the reply came back", () => {
-    expect(routineRunLabel(run({ partial: true }))).toBe("Partly done");
+    expect(routineRunLabel(run({ partial: true }))).toBe("partly done");
     expect(routineRunTone(run({ partial: true }))).toBe("text-warning");
-    expect(routineRunLabel(run({ partial: true, retried: "failed" }))).toBe("Retried after a failure · Partly done");
+    expect(routineRunLabel(run({ partial: true, retried: "failed" }))).toBe("retried after a failure · partly done");
   });
 
   it("still reads failed, in red, for any other failure", () => {
-    expect(routineRunLabel(run({}))).toBe("Failed");
+    expect(routineRunLabel(run({}))).toBe("failed");
     expect(routineRunTone(run({}))).toBe("text-danger");
-    expect(routineRunLabel(run({ status: "completed", partial: true }))).toBe("Completed");
+    expect(routineRunLabel(run({ status: "completed", partial: true }))).toBe("completed");
   });
 });
 
@@ -63,11 +63,11 @@ describe("a run the weekly limit skipped", () => {
     scheduledFor: 0, status: "missed", manual: false, createdAt: 0, ...extra });
 
   it("reads as skipped, never as a failure that needs the person", () => {
-    const skipped = run({ error: "Skipped: weekly limit reached. It resets Monday 12:00 AM, in 5 days." });
+    const skipped = run({ error: "skipped: weekly limit reached. it resets Monday 12:00 AM, in 5 days." });
     expect(isLimitSkip(skipped)).toBe(true);
-    expect(runLine(skipped)).toMatchObject({ mark: "–", text: "Skipped: weekly limit" });
+    expect(runLine(skipped)).toMatchObject({ mark: "–", text: "skipped: weekly limit" });
     expect(automationStatus({ enabled: true, runs: [skipped] }).state).not.toBe("needs-you");
-    expect(isLimitSkip(run({ error: "This computer was offline for more than 12 hours after the scheduled time" }))).toBe(false);
-    expect(isLimitSkip(run({ status: "failed", error: "Skipped: weekly limit reached. It resets Monday 12:00 AM, in 5 days." }))).toBe(false);
+    expect(isLimitSkip(run({ error: "this computer was offline for more than 12 hours after the scheduled time" }))).toBe(false);
+    expect(isLimitSkip(run({ status: "failed", error: "skipped: weekly limit reached. it resets Monday 12:00 AM, in 5 days." }))).toBe(false);
   });
 });

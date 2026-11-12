@@ -45,7 +45,7 @@ import { ArchivedBotsPanel, BotContextMenu, Sidebar } from "./Sidebar";
 const left = (id: string, extra: Partial<Bot> = {}): Bot => ({
   id, threadId: `${id}-left`, mainThreadId: `${id}-main`, name: id, title: "", description: "", notifications: true,
   color: "green", unread: false, modelSelection: { instanceId: "fake", model: "m" }, messages: [],
-  tasks: [{ threadId: `${id}-left`, title: "Routine report", createdAt: 1, unread: true }, { threadId: `${id}-main`, title: "Main chat", createdAt: 2 }],
+  tasks: [{ threadId: `${id}-left`, title: "routine report", createdAt: 1, unread: true }, { threadId: `${id}-main`, title: "Main chat", createdAt: 2 }],
   ...extra,
 });
 
@@ -102,7 +102,7 @@ describe("with threads hidden", () => {
     await flush();
     expect(actions()).toEqual([opened("atlas")]);
     fixture.dispatch.mockReset();
-    panel().find((node) => node.type === "button" && label(node) === "Restore all")!.props.onClick!();
+    panel().find((node) => node.type === "button" && label(node) === "restore all")!.props.onClick!();
     await flush();
     expect(actions()).toEqual([opened("scout")]);
   });

@@ -398,7 +398,7 @@ describe("phone setup flow", () => {
 
     const success = phoneSetupReducer(started, {
       type: "paired",
-      deviceName: device?.name ?? "Phone",
+      deviceName: device?.name ?? "phone",
     });
     expect(
       derivePhoneSetupPhase(success, {
@@ -502,7 +502,7 @@ describe("phone setup flow", () => {
       new Error(
         `Error invoking remote method 'companion-account:request-code': Error: The secure connection request was not allowed. Try signing in again. Reference: ${requestId}.`,
       ),
-      "We could not send the code. Try again.",
+      "we could not send the code. try again.",
     );
     expect(message).toBe(`We could not send the code. Try again. Reference: ${requestId}.`);
     expect(message).not.toContain("remote method");
@@ -540,8 +540,8 @@ describe("phone setup flow", () => {
     expect(
       normalizePhoneSetupActionError(
         new Error("Error invoking remote method 'companion-account:request-code': Error: /private/keychain failed"),
-        "We could not send the code. Try again.",
+        "we could not send the code. try again.",
       ),
-    ).toBe("We could not send the code. Try again.");
+    ).toBe("we could not send the code. try again.");
   });
 });

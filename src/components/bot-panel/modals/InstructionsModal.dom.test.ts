@@ -41,8 +41,8 @@ describe("the Instructions dialog", () => {
   it("is one calm card under the prompt in a pane of the sheet, Save at its bottom right, with no counter or rule", () => {
     mount({});
     expect(sheet().getAttribute("role")).toBeNull();
-    expect(sheet().querySelector("h2")!.textContent).toBe("Instructions");
-    expect(sheet().querySelector("[data-instructions-card]")!.previousElementSibling!.textContent).toBe("How should Scout work? What should it always or never do?");
+    expect(sheet().querySelector("h2")!.textContent).toBe("instructions");
+    expect(sheet().querySelector("[data-instructions-card]")!.previousElementSibling!.textContent).toBe("how should Scout work? what should it always or never do?");
     const card = sheet().querySelector<HTMLElement>("[data-instructions-card]")!;
     expect(card.className).toContain("rounded-[12px]");
     // no fill, one hairline that stays put on focus
@@ -75,7 +75,7 @@ describe("the Instructions dialog", () => {
 
   it("leaves the instructions as they were when the pane goes without Save", () => {
     const { patch } = mount({});
-    type("Something else");
+    type("something else");
     flushSync(() => root!.unmount());
     expect(patch).not.toHaveBeenCalled();
     root = null;
@@ -98,6 +98,6 @@ describe("the Instructions dialog", () => {
   it("is read-only for someone who can only view the bot", () => {
     mount({ yourAccess: "view" });
     expect(field().disabled).toBe(true);
-    expect(sheet().textContent).toContain("Only people who can edit Scout can change this.");
+    expect(sheet().textContent).toContain("only people who can edit Scout can change this.");
   });
 });

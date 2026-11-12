@@ -52,13 +52,13 @@ describe("LibrarySkillMeta", () => {
       skill: skill({ tags: ["orders"], version: "2.1.0" }),
     }));
     expect(html).toContain("Source: local-import");
-    expect(html).toContain("Version 2.1.0");
+    expect(html).toContain("version 2.1.0");
     expect(html).toContain("orders");
   });
 
   it("says there is no version instead of rendering a blank", () => {
     const html = renderToStaticMarkup(createElement(LibrarySkillMeta, { skill: skill() }));
-    expect(html).toContain("No version");
+    expect(html).toContain("no version");
     expect(html).not.toContain("Version ");
   });
 });

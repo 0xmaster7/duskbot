@@ -41,7 +41,7 @@ describe("BotProfileAvatarCard body picker", () => {
   it("renders one option per body catalog entry, labeled by name", () => {
     const markup = renderCard(makeBot());
 
-    expect(markup).toContain(">Body<");
+    expect(markup).toContain(">body<");
     for (const id of DUSK_BODY_IDS) {
       expect(markup).toContain(`aria-label="Use the ${DUSK_BODY_NAMES[id]} body"`);
     }
@@ -89,7 +89,7 @@ describe("BotProfileAvatarCard body picker", () => {
   it("hides the body picker for flat crops that have no mascot to wear one", () => {
     const markup = renderCard(makeBot({ avatarCrop: "circle" }));
 
-    expect(markup).not.toContain(">Body<");
+    expect(markup).not.toContain(">body<");
     expect(markup).not.toContain(`aria-label="Use the ${DUSK_BODY_NAMES.loaf} body"`);
   });
 
@@ -97,7 +97,7 @@ describe("BotProfileAvatarCard body picker", () => {
     for (const crop of ["rounded", "square"] as const) {
       const markup = renderCard(makeBot({ avatarCrop: crop }));
 
-      expect(markup).not.toContain(">Body<");
+      expect(markup).not.toContain(">body<");
     }
   });
 });

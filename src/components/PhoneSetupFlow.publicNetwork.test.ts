@@ -76,7 +76,7 @@ describe("the Wi-Fi pairing panel on a Windows Public network", () => {
       { state: { ...state, publicNetwork: undefined } },
       { pairingExpired: true },
     ]) {
-      expect(render(over)).not.toContain("set to Public");
+      expect(render(over)).not.toContain("set to public");
     }
   });
 });

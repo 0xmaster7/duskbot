@@ -23,8 +23,8 @@ describe("select mode rows", () => {
     const markup = row({});
     expect(markup).toContain('role="checkbox"');
     expect(markup).toContain('aria-checked="true"');
-    expect(markup).toContain('aria-label="Select Old chat"');
-    expect(markup).not.toContain("Actions for");
+    expect(markup).toContain('aria-label="select Old chat"');
+    expect(markup).not.toContain("actions for");
   });
   it("marks a running thread as disabled", () => {
     expect(row({ busy: true, activity: "working" })).toContain('aria-disabled="true"');
@@ -36,14 +36,14 @@ describe("select mode rows", () => {
       onSelect: noop, onRename: noop, onDelete: noop,
     }));
     expect(markup).not.toContain('role="checkbox"');
-    expect(markup).toContain("Actions for");
+    expect(markup).toContain("actions for");
   });
 });
 
 describe("select mode controls", () => {
   it("shows the quick filters and Done", () => {
     const markup = renderToStaticMarkup(createElement(BulkSelectFilters, { rows, selected: new Set<string>(), now: 0, onChange: noop, onDone: noop }));
-    for (const label of ["Select all", "Older than 30 days", "Archived", "Clear", "Done"]) expect(markup).toContain(label);
+    for (const label of ["select all", "older than 30 days", "Archived", "clear", "Done"]) expect(markup).toContain(label);
   });
   it("disables Delete with nothing selected and shows the count", () => {
     const markup = renderToStaticMarkup(createElement(BulkSelectBar, { rows, selected: new Set<string>(), freshConversation: true, onChange: noop, onDelete: noop }));
@@ -56,7 +56,7 @@ describe("select mode controls", () => {
     expect(ok).not.toMatch(/<button[^>]*disabled=""[^>]*>Delete 1</);
     const over = renderToStaticMarkup(createElement(BulkSelectBar, { rows, selected: new Set(["a", "b"]), maxDeletable: 1, freshConversation: false, onChange: noop, onDelete: noop }));
     expect(over).toMatch(/<button[^>]*disabled=""[^>]*>Delete 2</);
-    expect(over).toContain("A channel keeps at least one thread");
+    expect(over).toContain("a channel keeps at least one thread");
   });
 });
 
@@ -67,8 +67,8 @@ describe("thread list footer", () => {
   }));
   it("offers Show all and Select threads outside select mode", () => {
     const markup = footer(false, { canShowAll: true, canSelect: true });
-    expect(markup).toContain("Show all 5 threads");
-    expect(markup).toContain("Select threads");
+    expect(markup).toContain("show all 5 threads");
+    expect(markup).toContain("select threads");
     expect(footer(false, {})).toBe("");
   });
   it("shows the delete bar in select mode", () => {

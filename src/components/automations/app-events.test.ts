@@ -77,13 +77,13 @@ describe("app events, set up by the person", () => {
     });
     const onSaved = vi.fn();
     const container = mount(createElement(AppEventEditor, { bots: [scout], onClose: vi.fn(), onSaved }));
-    await vi.waitFor(() => expect(container.querySelector('select[aria-label="App"]')).not.toBeNull());
+    await vi.waitFor(() => expect(container.querySelector('select[aria-label="app"]')).not.toBeNull());
     expect(fixture.api).toHaveBeenCalledWith("/api/app-triggers/events?botId=bot-a");
-    expect([...container.querySelectorAll('select[aria-label="App"] option')].map((option) => option.textContent)).toEqual(["Gmail"]);
-    expect(container.textContent).toContain("Checks for new ones every 15 minutes.");
+    expect([...container.querySelectorAll('select[aria-label="app"] option')].map((option) => option.textContent)).toEqual(["Gmail"]);
+    expect(container.textContent).toContain("checks for new ones every 15 minutes.");
     type(container.querySelector('input[placeholder="acme.com"]') as HTMLInputElement, "acme.com");
     type(container.querySelector("textarea") as HTMLTextAreaElement, "Draft a reply.");
-    flushSync(() => button(container, "Set it up").click());
+    flushSync(() => button(container, "set it up").click());
     await vi.waitFor(() => expect(onSaved).toHaveBeenCalled());
     const [, init] = fixture.api.mock.calls.find(([path]) => path === "/api/app-triggers") as [string, RequestInit];
     expect(JSON.parse(String(init.body))).toMatchObject({ botId: "bot-a", app: "gmail", event: "GMAIL_NEW_GMAIL_MESSAGE", prompt: "Draft a reply.", filter: { from: "acme.com" } });
@@ -92,8 +92,8 @@ describe("app events, set up by the person", () => {
   it("points to connecting an app when the bot has none with events", async () => {
     fixture.api.mockResolvedValue({ apps: [], notConnected: catalog.notConnected });
     const container = mount(createElement(AppEventEditor, { bots: [scout], onClose: vi.fn() }));
-    await vi.waitFor(() => expect(container.textContent).toContain("No connected app this bot may use has events yet."));
-    flushSync(() => button(container, "Connect an app").click());
+    await vi.waitFor(() => expect(container.textContent).toContain("no connected app this bot may use has events yet."));
+    flushSync(() => button(container, "connect an app").click());
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "togglePlugins", open: true, surface: "apps" });
   });
 });

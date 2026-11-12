@@ -14,7 +14,7 @@ const view = (connector: Partial<NonNullable<Message["connector"]>>) => renderTo
     role: "bot",
     kind: "connector",
     at: 1,
-    connector: { slug: "github", label: "GitHub", description: "Read pull requests", status: "required", resumeKey: "resume1", ...connector },
+    connector: { slug: "github", label: "GitHub", description: "read pull requests", status: "required", resumeKey: "resume1", ...connector },
   },
 }));
 
@@ -62,14 +62,14 @@ describe("ConnectorCard ask card", () => {
 
   it("reads as a sign-in for an MCP server and as today for a Composio app", () => {
     const mcp = view({ source: "mcp", slug: "linear", label: "Linear" });
-    expect(mcp).toContain("Sign in to Linear");
+    expect(mcp).toContain("sign in to Linear");
     expect(mcp).toMatch(/<button[^>]*>(?:(?!<\/button>)[^])*Sign in<\/button>/);
     expect(mcp).not.toMatch(new RegExp(`<button[^>]*>${t("connectors.action.connect")}</button>`));
     expect(mcp).toContain(t("connectors.card.mcpSignInHint"));
     expect(mcp).not.toContain(t("connectors.card.signInHint"));
     const composio = view({ source: "composio" });
     expect(composio).toMatch(new RegExp(`<button[^>]*>${t("connectors.action.connect")}</button>`));
-    expect(composio).not.toContain("Sign in to");
+    expect(composio).not.toContain("sign in to");
     expect(composio).toContain(t("connectors.card.signInHint"));
     expect(composio).not.toContain(t("connectors.card.mcpSignInHint"));
   });

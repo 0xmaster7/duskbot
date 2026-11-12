@@ -43,10 +43,10 @@ describe("context warning", () => {
 
   it("offers Compact now in the 1:1 header, locked while the bot works", () => {
     const idle = renderToStaticMarkup(createElement(ThreadContextWarningView, { name: "Scout", percent: 91, busy: false, pending: false, onCompact: vi.fn() }));
-    expect(text(idle)).toBe("Context 91% Compact now");
+    expect(text(idle)).toBe("context 91% Compact now");
     expect(idle).not.toContain("disabled=\"\"");
     const busy = renderToStaticMarkup(createElement(ThreadContextWarningView, { name: "Scout", percent: 91, busy: true, pending: false, onCompact: vi.fn() }));
     expect(busy).toContain("disabled=\"\"");
-    expect(busy).toContain("Stop this bot&#x27;s turn first");
+    expect(busy).toContain("stop this bot&#x27;s turn first");
   });
 });

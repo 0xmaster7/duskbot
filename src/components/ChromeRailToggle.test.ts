@@ -45,13 +45,13 @@ it("once main says this window has a rail, the button hides it and shows it agai
   const { rail } = bridge({ available: true, hidden: false });
   await page(rail);
   expect(rail.state, "one offer from the page, whatever asks").toHaveBeenCalledTimes(1);
-  expect(said()).toEqual(["Hide your computers", "Hide your computers", "true"]);
+  expect(said()).toEqual(["hide your computers", "hide your computers", "true"]);
   await click(button());
   expect(rail.setHidden).toHaveBeenLastCalledWith(true);
-  expect(said()).toEqual(["Show your computers", "Show your computers", "false"]);
+  expect(said()).toEqual(["show your computers", "show your computers", "false"]);
   await click(button());
   expect(rail.setHidden).toHaveBeenLastCalledWith(false);
-  expect(said()).toEqual(["Hide your computers", "Hide your computers", "true"]);
+  expect(said()).toEqual(["hide your computers", "hide your computers", "true"]);
 });
 
 it("main's word wins: a click it refuses puts the button back, and with one place left the button goes", async () => {
@@ -59,11 +59,11 @@ it("main's word wins: a click it refuses puts the button back, and with one plac
   await page(rail);
   await click(button());
   expect(rail.setHidden).toHaveBeenCalledWith(true);
-  expect(said()).toEqual(["Hide your computers", "Hide your computers", "true"]);
+  expect(said()).toEqual(["hide your computers", "hide your computers", "true"]);
   await push({ available: false, hidden: false });
   expect(button()).toBeNull();
   await push({ available: true, hidden: true });
-  expect(said()).toEqual(["Show your computers", "Show your computers", "false"]);
+  expect(said()).toEqual(["show your computers", "show your computers", "false"]);
 });
 
 it("nothing in a browser, on an older app, on a page that isn't beside the rail, or with one place", async () => {

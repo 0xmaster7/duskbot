@@ -62,9 +62,9 @@ it("keeps the name, shape and colour and says why when the bot could not be made
   type("Rex");
   flushSync(() => button("hearty character shape").click());
   flushSync(() => button("Create").click());
-  flushSync(() => fixture.dispatch.mock.calls[0]![0].onError("Couldn't make a new bot: offline"));
+  flushSync(() => fixture.dispatch.mock.calls[0]![0].onError("couldn't make a new bot: offline"));
   expect(dialog()).not.toBeNull();
-  expect(dialog()!.querySelector("[data-create-bot-error]")!.textContent).toBe("Couldn't make a new bot: offline");
+  expect(dialog()!.querySelector("[data-create-bot-error]")!.textContent).toBe("couldn't make a new bot: offline");
   expect(dialog()!.querySelector("input")!.value).toBe("Rex");
   expect(button("hearty character shape").getAttribute("aria-pressed")).toBe("true");
   expect(button("Create").disabled, "it can be tried again").toBe(false);

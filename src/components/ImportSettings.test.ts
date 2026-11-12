@@ -25,9 +25,9 @@ describe("Settings → Import", () => {
     expect(markup).toContain('data-import-section="apps"');
     expect(markup).toContain('data-import-section="grok"');
     const shown = text(markup);
-    expect(shown).toContain("From your AI apps");
-    expect(shown).toContain("Skills and tools from your other AI apps");
-    expect(shown).toContain("Move from Grok Bot");
+    expect(shown).toContain("from your AI apps");
+    expect(shown).toContain("skills and tools from your other AI apps");
+    expect(shown).toContain("move from Grok bot");
     expect(markup).toContain("data-grok-move-open");
     expect(markup).not.toContain("data-grok-move=");
     expect(markup.indexOf('data-import-section="apps"')).toBeLessThan(markup.indexOf('data-import-section="grok"'));
@@ -49,14 +49,14 @@ describe("Settings → Import", () => {
     const shown = apps();
     expect(shown).toContain("2 from Claude Code and Codex");
     expect(shown).toContain("1 MCP server from Cursor");
-    expect(shown).toContain("Added switched off.");
-    expect(shown).toContain("Bring them in");
+    expect(shown).toContain("added switched off.");
+    expect(shown).toContain("bring them in");
   });
 
   it("says what happened: looking, nothing new, not this computer, or the result", () => {
-    expect(apps({ detection: undefined })).toContain("Looking on this computer…");
-    expect(apps({ detection: { skills: [], tools: [] } })).toContain("Nothing new to bring in from your AI apps.");
-    expect(apps({ local: false })).toContain("Only the desktop app on the computer running Dusk");
-    expect(apps({ result: { skills: { added: ["pdf"], present: [], skipped: [], filesLeftOut: 0, review: [] } } })).toContain("Added 1 skill.");
+    expect(apps({ detection: undefined })).toContain("looking on this computer…");
+    expect(apps({ detection: { skills: [], tools: [] } })).toContain("nothing new to bring in from your AI apps.");
+    expect(apps({ local: false })).toContain("only the desktop app on the computer running Dusk");
+    expect(apps({ result: { skills: { added: ["pdf"], present: [], skipped: [], filesLeftOut: 0, review: [] } } })).toContain("added 1 skill.");
   });
 });

@@ -46,25 +46,25 @@ describe("the sidebar card", () => {
   };
   it("shows the tight allowance, used of included with its bar, when it starts over, Upgrade and a quiet hide", () => {
     const { html, tree, onUpgrade, onHide, onSeeAll } = card();
-    for (const text of ["You&#x27;re close to your plan&#x27;s limit", "Cloud desktop hours", "285 of 300 hours", "Resets on Nov 1.", "Upgrade to Max", "See all usage"]) expect(html).toContain(text);
+    for (const text of ["You&#x27;re close to your plan&#x27;s limit", "cloud desktop hours", "285 of 300 hours", "resets on Nov 1.", "upgrade to Max", "see all usage"]) expect(html).toContain(text);
     expect(html).toContain('role="progressbar"'); expect(html).toContain('aria-valuenow="95"'); expect(html).toContain('data-band="near"');
-    expect(html).not.toContain("Voice replies");
-    button(tree, "Upgrade to Max")!.props.onClick();
+    expect(html).not.toContain("voice replies");
+    button(tree, "upgrade to Max")!.props.onClick();
     expect(onUpgrade).toHaveBeenCalledOnce();
-    tree.find(node => node.type === "button" && node.props["aria-label"] === "Hide for now")!.props.onClick();
-    button(tree, "See all usage")!.props.onClick();
+    tree.find(node => node.type === "button" && node.props["aria-label"] === "hide for now")!.props.onClick();
+    button(tree, "see all usage")!.props.onClick();
     expect([onHide, onSeeAll].map(fn => fn.mock.calls.length)).toEqual([1, 1]);
   });
   it("says a limit is reached; with no in-app upgrade it opens the Cloud page; on the top plan there is no Upgrade", () => {
     expect(card({ band: "full", meters: [{ kind: "x", used: 5_000, max: 5_000, usedUp: true }] }).html).toContain("You&#x27;ve reached your plan&#x27;s limit");
     const browser = card({ usage: usage({ upgrades: [] }) });
-    expect(button(browser.tree, "Upgrade")).toBeTruthy(); expect(browser.html).not.toContain("Upgrade to");
+    expect(button(browser.tree, "upgrade")).toBeTruthy(); expect(browser.html).not.toContain("upgrade to");
     const top = card({ usage: usage({ tier: "max", upgrades: [] }) });
-    expect(top.html).not.toContain(">Upgrade"); expect(top.html).toContain("See all usage");
+    expect(top.html).not.toContain(">upgrade"); expect(top.html).toContain("see all usage");
   });
 });
 
-describe("Settings → General", () => {
+describe("settings → general", () => {
   const section = (current: CloudUsage) => {
     const onUpgrade = vi.fn(), all = { usage: current, upgrade: { busy: null, note: null, onUpgrade } };
     return { html: renderToStaticMarkup(createElement(CloudUsageSettingsView, all)), tree: nodes(CloudUsageSettingsView(all)), onUpgrade };
@@ -72,9 +72,9 @@ describe("Settings → General", () => {
   it("lists every allowance with its meter and the plan, and offers each bigger plan", () => {
     const { html, tree, onUpgrade } = section(usage({ tier: "starter", upgrades: [{ tier: "max", amount: 9900 }, { tier: "pro", amount: 4900 }] }));
     for (const text of ["dusk cloud usage", "What your Starter plan includes this month", "285 of 300 hours", "12,000 of 60,000 characters", "41.2 of 100 GB",
-      "Resets on Nov 1.", "Upgrade to Pro · $49/month", "Upgrade to Max · $99/month"]) expect(html).toContain(text);
+      "resets on Nov 1.", "upgrade to Pro · $49/month", "upgrade to Max · $99/month"]) expect(html).toContain(text);
     expect(html.match(/role="progressbar"/g)).toHaveLength(3);
-    button(tree, "Upgrade to Max")!.props.onClick();
+    button(tree, "upgrade to Max")!.props.onClick();
     expect(onUpgrade).toHaveBeenCalledWith("max");
   });
   it("on Max says it is the top plan, and a team's plan changes by writing to us", () => {
@@ -83,7 +83,7 @@ describe("Settings → General", () => {
   });
 });
 
-describe("Upgrade", () => {
+describe("upgrade", () => {
   it("previews first and changes nothing; only the confirm's own button sends the change, once", async () => {
     const b = bridge(), current = usage(), dispatchEvent = vi.fn();
     vi.stubGlobal("window", { dispatchEvent });
@@ -94,7 +94,7 @@ describe("Upgrade", () => {
     expect(b.upgrade).not.toHaveBeenCalled();
     const asking = render();
     expect(asking.confirming).toBe(true);
-    expect(asking.dialog.props).toMatchObject({ open: true, title: "Upgrade to Max?", confirmLabel: "Upgrade to Max", cancelLabel: "Not now" });
+    expect(asking.dialog.props).toMatchObject({ open: true, title: "upgrade to Max?", confirmLabel: "upgrade to Max", cancelLabel: "not now" });
     expect(String(asking.dialog.props.body)).toBe("Max is $99 a month and starts right away. Today you pay $33, the difference for the rest of this billing month. From Nov 18 it's $99 a month, plus any tax.");
     // Not now: nothing is sent, the confirm closes.
     asking.dialog.props.onCancel();
@@ -106,7 +106,7 @@ describe("Upgrade", () => {
     expect(b.upgrade).toHaveBeenCalledOnce();
     expect(b.upgrade).toHaveBeenCalledWith("max", "app_usage");
     const after = render();
-    expect([after.confirming, after.note]).toEqual([false, { tone: "good", text: "You're on Max now. Your new allowances are ready." }]);
+    expect([after.confirming, after.note]).toEqual([false, { tone: "good", text: "you're on Max now. your new allowances are ready." }]);
     // Every meter on the page reads the plan again at once.
     expect(dispatchEvent.mock.calls.map(([event]) => (event as Event).type)).toEqual(["dusk:cloud-plan-changed"]);
   });
@@ -120,30 +120,30 @@ describe("Upgrade", () => {
       await flush();
       return String(render().dialog.props.body);
     };
-    expect(await asked(Date.now() + 3 * DAY)).toBe("Your free trial moves to Max now, and nothing is charged today. When it ends, Max is $99 a month, plus any tax.");
-    expect(await asked(Date.now() + DAY / 2)).toBe("Your free trial moves to Max now. When it ends, Max is $99 a month, plus any tax.");
+    expect(await asked(Date.now() + 3 * DAY)).toBe("your free trial moves to Max now, and nothing is charged today. when it ends, Max is $99 a month, plus any tax.");
+    expect(await asked(Date.now() + DAY / 2)).toBe("your free trial moves to Max now. when it ends, Max is $99 a month, plus any tax.");
   });
   it("opens the Cloud page when the app can't change plans, and never previews or changes then", async () => {
     const b = bridge();
-    expect(await previewUpgrade(b, usage({ upgrades: [] }), "app_settings")).toEqual({ note: { tone: "info", text: "Your Plan page opened in your browser. You can change your plan there." } });
+    expect(await previewUpgrade(b, usage({ upgrades: [] }), "app_settings")).toEqual({ note: { tone: "info", text: "your plan page opened in your browser. you can change your plan there." } });
     expect(b.manage).toHaveBeenCalledOnce();
     expect([b.upgradePreview.mock.calls.length, b.upgrade.mock.calls.length]).toEqual([0, 0]);
   });
   it("says what happened in plain words, and that nothing was charged when nothing was", async () => {
     const refused = bridge({ upgradePreview: vi.fn(async () => ({ outcome: "refused" as const, code: "plan_change_unavailable" as const })) });
     expect(await previewUpgrade(refused, usage(), "app_usage")).toEqual({ note: { tone: "bad",
-      text: "Your plan can't be changed from the app right now. Nothing was charged. Open your Plan page to see your options." } });
+      text: "your plan can't be changed from the app right now. nothing was charged. open your plan page to see your options." } });
     const settled = bridge({ upgradePreview: vi.fn(async () => ({ outcome: "settled" as const, status: "pending" as const, tier: "pro" })) });
-    expect(await previewUpgrade(settled, usage(), "app_usage")).toEqual({ note: { tone: "info", text: "Your upgrade is going through. This can take a minute." } });
+    expect(await previewUpgrade(settled, usage(), "app_usage")).toEqual({ note: { tone: "info", text: "your upgrade is going through. this can take a minute." } });
     // A change already gone through, to another plan than the one asked for, names the plan it is on now.
     const elsewhere = bridge({ upgradePreview: vi.fn(async () => ({ outcome: "settled" as const, status: "upgraded" as const, tier: "pro" })) });
-    expect(await previewUpgrade(elsewhere, usage(), "app_usage", "max")).toEqual({ note: { tone: "good", text: "You're on Pro now. Your new allowances are ready." }, upgraded: "pro" });
+    expect(await previewUpgrade(elsewhere, usage(), "app_usage", "max")).toEqual({ note: { tone: "good", text: "you're on Pro now. your new allowances are ready." }, upgraded: "pro" });
     const declined = bridge({ upgrade: vi.fn(async () => ({ outcome: "refused" as const, code: "payment_failed" as const })) });
     expect(await confirmUpgrade(declined, PREVIEW, "app_usage")).toEqual({ tone: "bad",
-      text: "Your payment didn't go through, so your plan hasn't changed. Update your card on your Plan page, then try again." });
+      text: "your payment didn't go through, so your plan hasn't changed. update your card on your plan page, then try again." });
     const changed = bridge({ upgrade: vi.fn(async () => ({ outcome: "refused" as const, code: "price_changed" as const })) });
-    expect((await confirmUpgrade(changed, PREVIEW, "app_usage")).text).toBe("The price changed since you looked, so nothing was charged. Choose Upgrade to see the new price.");
+    expect((await confirmUpgrade(changed, PREVIEW, "app_usage")).text).toBe("the price changed since you looked, so nothing was charged. choose upgrade to see the new price.");
     const lost = bridge({ upgrade: vi.fn(async () => ({ outcome: "unconfirmed" as const })) });
-    expect((await confirmUpgrade(lost, PREVIEW, "app_usage")).text).toBe("We couldn't confirm your upgrade yet. Check back in a minute before trying again.");
+    expect((await confirmUpgrade(lost, PREVIEW, "app_usage")).text).toBe("we couldn't confirm your upgrade yet. check back in a minute before trying again.");
   });
 });

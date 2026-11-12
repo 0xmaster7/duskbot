@@ -34,9 +34,9 @@ it("one step on the menu that keeps Add a Cloud, with Skip; nothing when not ask
   render(); f.effects.forEach(effect => effect());
   const html = render();
   expect(html).toContain('data-spotlight="server-switcher"'); expect(html).toContain('data-placement="below"');
-  expect(html).toContain("Add a Cloud from here");
+  expect(html).toContain("add a cloud from here");
   expect(html).toContain("Click this menu, then choose Add a Cloud. It&#x27;s also where you switch between this computer and the Cloud.");
-  expect(html).toContain(">Skip<");
+  expect(html).toContain(">skip<");
   f.state = { cloudHowTo: false }; expect(render()).toBe("");
 });
 
@@ -46,5 +46,5 @@ it("with the menu off screen, the dialog opens instead and says where the menu i
   expect(f.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_howto" });
   expect(track).toHaveBeenCalledWith("cloud_howto", { result: "no_button" });
   f.state = { cloudHowTo: false };
-  expect(render()).toContain("Next time, Add a Cloud is in the menu on the left of the app.");
+  expect(render()).toContain("next time, add a cloud is in the menu on the left of the app.");
 });
