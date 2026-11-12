@@ -111,10 +111,41 @@ export interface UsageTurn {
   place: UsagePlace;
   /** the turn was in a room (a group chat) */
   room: boolean;
+  /** time to the first model step's end, a stand-in for the first reply token */
+  firstMs?: number;
+  /** the model's family when it is a known public one (like claude-sonnet or gpt-5), else "other" */
+  model?: string;
+  /** tool kinds and apps whose call failed in this turn */
+  failedTools?: UsageTool[];
+  failedApps?: string[];
+  /** a connected app's action names (like gmail_send_email), from its catalog, for curated apps only */
+  actions?: string[];
+  /** a salted hash of the bot and of the chat, kept on the workspace: counts turns per bot and per chat, names neither */
+  bot?: string;
+  chat?: string;
 }
-export interface UsageRun { id: string; at: number; trigger: UsageRunTrigger; outcome: UsageOutcome; reason?: UsageReason }
+export interface UsageRun {
+  id: string; at: number; trigger: UsageRunTrigger; outcome: UsageOutcome; reason?: UsageReason;
+  /** how long the run took */
+  ms?: number;
+  /** how often the routine is set to run */
+  every?: RunEvery;
+  /** a salted hash of the routine, so a routine's runs can be counted over weeks without naming it */
+  routine?: string;
+}
+export const RUN_EVERY = ["once", "minutes", "hourly", "daily", "weekdays", "weekly", "monthly", "event", "other"] as const;
+export type RunEvery = (typeof RUN_EVERY)[number];
 /** counts only: how much of each thing the workspace has */
-export interface UsageSnapshot { bots: number; rooms: number; routines: number; webhooks: number; appEvents: number; skills: number }
+export interface UsageSnapshot {
+  bots: number; rooms: number; routines: number; webhooks: number; appEvents: number; skills: number;
+  chats?: number; archived?: number;
+  /** the memory folder's size as a bucket: 0 empty, 1 under 10 KB, 2 under 100 KB, 3 under 1 MB, 4 under 10 MB, 5 more */
+  memory?: number;
+  /** bots per engine family */
+  botEngines?: Partial<Record<UsageEngine, number>>;
+}
+/** a named signal from the workspace (shared/product-signals.ts) */
+export interface UsageSignal { id: string; at: number; name: string; props: Record<string, string | number | boolean> }
 export const FRUSTRATION_SIGNALS = ["thumbs_down", "stopped", "retried", "failed", "corrective", "shouting", "swearing"] as const;
 export type FrustrationSignal = (typeof FRUSTRATION_SIGNALS)[number];
 /** a chat that went badly: what the person did, what the turn touched, and an abstract line the person's own engine
@@ -134,11 +165,43 @@ export interface UsageFrustration {
 }
 /** a weekly line about what one person uses Dusk for, written by their own engine on the workspace and scrubbed there */
 export interface UsageDigest { id: string; at: number; turns: number; days: number; summary: string }
-export interface UsageReport { turns: UsageTurn[]; runs: UsageRun[]; frustrations?: UsageFrustration[]; digests?: UsageDigest[]; snapshot?: UsageSnapshot }
+export interface UsageReport { turns: UsageTurn[]; runs: UsageRun[]; frustrations?: UsageFrustration[]; digests?: UsageDigest[]; signals?: UsageSignal[]; snapshot?: UsageSnapshot }
 
-export const USAGE_TURN_KEYS = ["id", "at", "engine", "outcome", "reason", "ms", "tools", "apps", "category", "from", "place", "room"] as const;
-export const USAGE_RUN_KEYS = ["id", "at", "trigger", "outcome", "reason"] as const;
+export const USAGE_TURN_KEYS = ["id", "at", "engine", "outcome", "reason", "ms", "tools", "apps", "category", "from", "place", "room", "firstMs", "model", "failedTools", "failedApps", "actions", "bot", "chat"] as const;
+export const USAGE_RUN_KEYS = ["id", "at", "trigger", "outcome", "reason", "ms", "every", "routine"] as const;
 export const USAGE_SNAPSHOT_KEYS = ["bots", "rooms", "routines", "webhooks", "appEvents", "skills"] as const;
+export const USAGE_SNAPSHOT_EXTRA_KEYS = ["chats", "archived", "memory", "botEngines"] as const;
+export const USAGE_SIGNAL_KEYS = ["id", "at", "name", "props"] as const;
+export const MAX_REPORT_SIGNALS = 300;
+const HASH = /^[A-Za-z0-9_-]{10}$/;
+/** a model name's public family, or "other": a name someone typed for a custom endpoint never matches */
+export function modelFamily(model: unknown): string {
+  if (typeof model !== "string") return "other";
+  const bare = model.toLowerCase().split(/[/:]/).at(-1)!.replace(/\[.*$/, "");
+  const known = /^(claude-(?:opus|sonnet|haiku)(?:-\d+(?:[.-]\d+)?)?|gpt-\d+(?:\.\d+)?(?:-(?:mini|nano|codex|pro))?|o\d(?:-mini|-pro)?|gemini-\d+(?:\.\d+)?-(?:pro|flash|flash-lite)|grok-\d+(?:\.\d+)?(?:-(?:fast|mini|code))?|kimi-k\d+(?:\.\d+)?|deepseek-(?:v\d+(?:\.\d+)?|r\d|chat|reasoner)|qwen\d*(?:\.\d+)?-(?:coder|max|plus)|glm-\d+(?:\.\d+)?|mistral-(?:large|medium|small)|llama-?\d+(?:\.\d+)?)/.exec(bare);
+  return known ? known[1]! : "other";
+}
+const ACTION = /^[a-z0-9]+(?:_[a-z0-9]+){1,7}$/;
+/** a connected app's action name from a Composio-style tool name, when the app is a curated one */
+export function appAction(name: string): string | null {
+  const bare = name.replace(/^mcp__[^_]+(?:_[^_]+)*?__/, "");
+  const match = /^([A-Z][A-Z0-9]+)_[A-Z0-9_]+$/.exec(bare);
+  if (!match || !APP_SET.has(match[1]!.toLowerCase())) return null;
+  const action = bare.toLowerCase().slice(0, 60);
+  return ACTION.test(action) ? action : null;
+}
+/** the frequency of a routine's schedule as a bucket */
+export function runEvery(schedule: { type?: string; everyMinutes?: number; weekdays?: number[]; cron?: string; expression?: string } | undefined, eventDriven = false): RunEvery {
+  if (eventDriven) return "event";
+  if (!schedule?.type) return "other";
+  if (schedule.type === "once") return "once";
+  if (schedule.type === "interval") { const m = schedule.everyMinutes ?? 0; return m < 60 ? "minutes" : m < 24 * 60 ? "hourly" : m < 7 * 24 * 60 ? "daily" : "weekly"; }
+  if (schedule.type === "daily") { const days = schedule.weekdays?.length ?? 7; return days >= 7 || days === 0 ? "daily" : days === 5 ? "weekdays" : days === 1 ? "weekly" : "other"; }
+  const cron = (schedule.cron ?? schedule.expression ?? "").trim().split(/\s+/);
+  if (cron.length >= 5) { if (cron[0]!.includes("/") || cron[1] === "*") return cron[1] === "*" ? (cron[0] === "0" ? "hourly" : "minutes") : "daily";
+    if (cron[2] !== "*") return "monthly"; if (cron[4] !== "*") return cron[4]!.includes("-") || cron[4]!.includes(",") ? "weekdays" : "weekly"; return "daily"; }
+  return "other";
+}
 export const USAGE_FRUSTRATION_KEYS = ["id", "at", "engine", "category", "tools", "apps", "reason", "signals", "retries", "summary"] as const;
 export const MAX_REPORT_TURNS = 500;
 export const MAX_REPORT_FRUSTRATIONS = 50;
@@ -161,7 +224,13 @@ export function cleanUsageTurn(input: unknown, now = Date.now()): UsageTurn | nu
   const tools = [...new Set(v.tools.slice(0, USAGE_TOOLS.length).filter((tool): tool is UsageTool => oneOf(USAGE_TOOLS, tool)))].sort();
   const apps = [...new Set(v.apps.slice(0, 20).filter((app): app is string => typeof app === "string" && (APP_SET.has(app) || app === "other_app")))].sort();
   const reason = v.outcome === "ok" ? undefined : oneOf(USAGE_REASONS, v.reason) ? v.reason : "unknown";
-  return { id: v.id, at: v.at as number, engine: v.engine, outcome: v.outcome, ...(reason ? { reason } : {}), ms: v.ms, tools, apps, category: v.category, from: v.from, place: v.place, room: v.room };
+  const failedTools = Array.isArray(v.failedTools) ? [...new Set(v.failedTools.filter((tool): tool is UsageTool => oneOf(USAGE_TOOLS, tool)))].sort() : [];
+  const failedApps = Array.isArray(v.failedApps) ? [...new Set(v.failedApps.filter((app): app is string => typeof app === "string" && (APP_SET.has(app) || app === "other_app")))].sort() : [];
+  const actions = Array.isArray(v.actions) ? [...new Set(v.actions.slice(0, 20).filter((action): action is string => typeof action === "string" && ACTION.test(action) && APP_SET.has(action.split("_")[0]!)))].slice(0, 10) : [];
+  const model = typeof v.model === "string" ? modelFamily(v.model) : undefined;
+  return { id: v.id, at: v.at as number, engine: v.engine, outcome: v.outcome, ...(reason ? { reason } : {}), ms: v.ms, tools, apps, category: v.category, from: v.from, place: v.place, room: v.room,
+    ...(count(v.firstMs, 7 * DAY) && v.firstMs <= v.ms ? { firstMs: v.firstMs } : {}), ...(model ? { model } : {}), ...(failedTools.length ? { failedTools } : {}), ...(failedApps.length ? { failedApps } : {}),
+    ...(actions.length ? { actions } : {}), ...(typeof v.bot === "string" && HASH.test(v.bot) ? { bot: v.bot } : {}), ...(typeof v.chat === "string" && HASH.test(v.chat) ? { chat: v.chat } : {}) };
 }
 
 export function cleanUsageRun(input: unknown, now = Date.now()): UsageRun | null {
@@ -169,7 +238,8 @@ export function cleanUsageRun(input: unknown, now = Date.now()): UsageRun | null
   const v = input as Record<string, unknown>;
   if (typeof v.id !== "string" || !ID.test(v.id) || !time(v.at, now) || !oneOf(USAGE_RUN_TRIGGERS, v.trigger) || !oneOf(USAGE_OUTCOMES, v.outcome)) return null;
   const reason = v.outcome === "ok" ? undefined : oneOf(USAGE_REASONS, v.reason) ? v.reason : "unknown";
-  return { id: v.id, at: v.at as number, trigger: v.trigger, outcome: v.outcome, ...(reason ? { reason } : {}) };
+  return { id: v.id, at: v.at as number, trigger: v.trigger, outcome: v.outcome, ...(reason ? { reason } : {}), ...(count(v.ms, 7 * DAY) ? { ms: v.ms } : {}),
+    ...(oneOf(RUN_EVERY, v.every) ? { every: v.every } : {}), ...(typeof v.routine === "string" && HASH.test(v.routine) ? { routine: v.routine } : {}) };
 }
 
 /** a frustration record as it may be sent and stored; a summary the scrubber would change is dropped, the record kept */
@@ -215,20 +285,29 @@ export function cleanUsageSnapshot(input: unknown): UsageSnapshot | null {
   const v = input as Record<string, unknown>;
   const out: Record<string, number> = {};
   for (const key of USAGE_SNAPSHOT_KEYS) { if (!count(v[key], 100_000)) return null; out[key] = v[key] as number; }
-  return out as unknown as UsageSnapshot;
+  for (const key of ["chats", "archived"] as const) if (count(v[key], 1_000_000)) out[key] = v[key] as number;
+  if (count(v.memory, 6)) out.memory = v.memory as number;
+  const engines = v.botEngines && typeof v.botEngines === "object" && !Array.isArray(v.botEngines)
+    ? Object.fromEntries(Object.entries(v.botEngines as Record<string, unknown>).filter(([key, value]) => oneOf(USAGE_ENGINES, key) && count(value, 10_000))) : {};
+  return { ...(out as unknown as UsageSnapshot), ...(Object.keys(engines).length ? { botEngines: engines as UsageSnapshot["botEngines"] } : {}) };
 }
 
 /** a report's usage section, bounded; null when nothing in it is usable */
-export function cleanUsageReport(input: unknown, now = Date.now()): UsageReport | null {
+export function cleanUsageReport(input: unknown, now = Date.now(), cleanSignal?: (name: unknown, props: unknown) => UsageSignal["props"] | null): UsageReport | null {
   if (!input || typeof input !== "object" || Array.isArray(input)) return null;
   const v = input as Record<string, unknown>;
   const turns = Array.isArray(v.turns) ? v.turns.slice(0, MAX_REPORT_TURNS).map(item => cleanUsageTurn(item, now)).filter((item): item is UsageTurn => !!item) : [];
   const runs = Array.isArray(v.runs) ? v.runs.slice(0, MAX_REPORT_RUNS).map(item => cleanUsageRun(item, now)).filter((item): item is UsageRun => !!item) : [];
   const frustrations = Array.isArray(v.frustrations) ? v.frustrations.slice(0, MAX_REPORT_FRUSTRATIONS).map(item => cleanUsageFrustration(item, now)).filter((item): item is UsageFrustration => !!item) : [];
   const digests = Array.isArray(v.digests) ? v.digests.slice(0, 2).map(item => cleanUsageDigest(item, now)).filter((item): item is UsageDigest => !!item) : [];
+  const signals = cleanSignal && Array.isArray(v.signals) ? v.signals.slice(0, MAX_REPORT_SIGNALS).flatMap((item): UsageSignal[] => {
+    if (!item || typeof item !== "object") return [];
+    const raw = item as Record<string, unknown>, props = cleanSignal(raw.name, raw.props);
+    return props && typeof raw.id === "string" && ID.test(raw.id) && time(raw.at, now) ? [{ id: raw.id, at: raw.at as number, name: raw.name as string, props }] : [];
+  }) : [];
   const snapshot = v.snapshot === undefined ? null : cleanUsageSnapshot(v.snapshot);
-  if (!turns.length && !runs.length && !frustrations.length && !digests.length && !snapshot) return null;
-  return { turns, runs, ...(frustrations.length ? { frustrations } : {}), ...(digests.length ? { digests } : {}), ...(snapshot ? { snapshot } : {}) };
+  if (!turns.length && !runs.length && !frustrations.length && !digests.length && !signals.length && !snapshot) return null;
+  return { turns, runs, ...(frustrations.length ? { frustrations } : {}), ...(digests.length ? { digests } : {}), ...(signals.length ? { signals } : {}), ...(snapshot ? { snapshot } : {}) };
 }
 
 /** a routine run's start as a usage trigger */

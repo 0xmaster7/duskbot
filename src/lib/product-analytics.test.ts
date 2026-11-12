@@ -12,7 +12,9 @@ const watchDocument = () => vi.spyOn(document, "addEventListener");
 let windowEvents: ReturnType<typeof watchWindow>;
 let documentEvents: ReturnType<typeof watchDocument>;
 const bodies = (): Payload[] => fetcher.mock.calls.map(([, init]) => JSON.parse(String(init?.body)) as Payload);
-const events = () => bodies().flatMap(body => body.events);
+/** the env signal every app start sends is checked on its own; the other tests read around it */
+const isEnv = (event: { name: string; props?: Record<string, unknown> }) => event.name === "app_action" && event.props?.name === "env";
+const events = () => bodies().flatMap(body => body.events).filter(event => !isEnv(event));
 
 beforeEach(async () => {
   vi.useFakeTimers();
@@ -141,7 +143,7 @@ describe("product analytics", () => {
     expect(fetcher).not.toHaveBeenCalled();
     const [batch] = relay.send.mock.calls[0] as unknown as [Payload];
     expect(batch.install).toMatch(/^[A-Za-z0-9_-]{22}$/);
-    expect(batch.events.map(event => event.name)).toEqual(["app_open", "app_feature"]);
+    expect(batch.events.filter(event => !isEnv(event)).map(event => event.name)).toEqual(["app_open", "app_feature"]);
     expect(batch).not.toHaveProperty("token");
     client.setUsageAnalytics(false);
     expect(relay.clear).toHaveBeenCalledOnce();
@@ -153,7 +155,7 @@ describe("product analytics", () => {
     await client.flush();
     await client.flush();
     expect(relay.send).toHaveBeenCalledTimes(2);
-    expect((relay.send.mock.calls[1] as unknown as [Payload])[0].events.map(event => event.name)).toEqual(["app_open"]);
+    expect((relay.send.mock.calls[1] as unknown as [Payload])[0].events.filter(event => !isEnv(event)).map(event => event.name)).toEqual(["app_open"]);
   });
 
   it("replaces a malformed persisted install id", async () => {
@@ -178,9 +180,18 @@ describe("product analytics", () => {
     client.configure(config);
     for (let i = 0; i < 121; ++i) client.feature("search_used");
     await client.flush();
-    expect(bodies().map(body => body.events.length)).toEqual([50, 50, 22]);
+    expect(bodies().map(body => body.events.length)).toEqual([50, 50, 23]);
     await vi.advanceTimersByTimeAsync(60_000);
     expect(fetcher).toHaveBeenCalledTimes(3);
+  });
+
+  it("sends the env signal once per start with only its catalogue's words and numbers", async () => {
+    client.configure(config);
+    await client.flush();
+    const env = bodies().flatMap(body => body.events).filter(isEnv);
+    expect(env).toHaveLength(1);
+    expect(Object.keys(env[0]!.props).sort()).toEqual(["arch", "hour", "locale", "name", "notifications", "os", "screen", "skin", "theme"]);
+    for (const value of Object.values(env[0]!.props)) expect(typeof value === "number" || /^[a-z0-9_]{1,32}$/.test(String(value))).toBe(true);
   });
 
   it("drops the oldest events beyond the 200 event bound", async () => {
@@ -188,8 +199,9 @@ describe("product analytics", () => {
     for (let i = 0; i < 205; ++i) client.error("test", `event_${i}`);
     client.configure(config);
     await client.flush();
-    expect(events()).toHaveLength(200);
-    expect(events()[0].props.code).toBe("event_6");
+    // 200 kept: the newest errors, app_open and the env signal (left out of events())
+    expect(events()).toHaveLength(199);
+    expect(events()[0].props.code).toBe("event_7");
   });
 
   it("folds ids, removes query strings and dedupes consecutive folded screens", async () => {

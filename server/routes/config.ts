@@ -53,6 +53,8 @@ export type ModelSelectionCheck = { ok: true; selection: ModelSelection } | { ok
 export type ConfigStatus = Record<string, unknown>;
 
 export interface ConfigRouteDeps {
+  /** which config fields a change named, for usage signals: field names only, never values */
+  settingsChanged?(keys: string[]): void;
   store: Pick<Store, "bots" | "patchBot" | "clearVoiceSelections">;
   cfg: AppConfig;
   registry: Pick<ProviderRegistry, "get" | "forgetSnapshots">;
@@ -116,6 +118,7 @@ export function createConfigRoutes(deps: ConfigRouteDeps): RouteHandler {
       if (!opened.ok) return json(res, opened.status, opened.body);
       const body = opened.body;
       const patch = parseConfigPatch(body as JsonValue);
+      deps.settingsChanged?.(Object.keys(patch));
       if (patch.profile && ownProfile) {
         // The address is the verified claim's; a profile names no other.
         const { email: _email, ...own } = patch.profile;

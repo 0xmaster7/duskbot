@@ -2,7 +2,7 @@
 // USAGE_RETENTION_DAYS and rolled up per day into counts that are kept. Records hold words, counts and times, plus the
 // scrubbed summaries a workspace wrote; never message content.
 import type { Db } from "mongodb";
-import { USAGE_REASONS, type UsageDigest, type UsageFrustration, type UsageReport, type UsageRun, type UsageSnapshot, type UsageTurn } from "../../../../shared/usage-signals.ts";
+import { USAGE_REASONS, type UsageDigest, type UsageFrustration, type UsageReport, type UsageRun, type UsageSignal, type UsageSnapshot, type UsageTurn } from "../../../../shared/usage-signals.ts";
 import { DAY_MS, dayOf } from "./events.ts";
 
 export const USAGE_RETENTION_DAYS = 90;
@@ -12,10 +12,14 @@ export const PEOPLE_RETENTION_DAYS = 400;
 export const LATENCY_EDGES = [2, 5, 10, 20, 30, 60, 120, 300, 600, Infinity] as const;
 export const latencyBucket = (ms: number) => LATENCY_EDGES.findIndex(edge => ms / 1000 <= edge);
 
-type Kind = "turn" | "run" | "frustration" | "digest";
-export interface UsageRecord { id: string; kind: Kind; at: number; accountId: string; workspaceId: string; data: UsageTurn | UsageRun | UsageFrustration | UsageDigest }
-/** `appTurns`: turns that used a connected app, so the adoption view can count people who use one */
-export interface PersonDay { day: string; accountId: string; turns: number; failed: number; runs: number; frustrations: number; appTurns: number }
+type Kind = "turn" | "run" | "frustration" | "digest" | "signal";
+export interface UsageRecord { id: string; kind: Kind; at: number; accountId: string; workspaceId: string; data: UsageTurn | UsageRun | UsageFrustration | UsageDigest | UsageSignal }
+/** `appTurns`: turns that used a connected app, so the adoption view can count people who use one; `bots` and `chats`:
+ * turns per salted bot and chat hash, for per-bot share and turns per chat */
+export interface PersonDay { day: string; accountId: string; turns: number; failed: number; runs: number; frustrations: number; appTurns: number; bots?: Record<string, number>; chats?: Record<string, number> }
+type PersonCounts = Partial<Pick<PersonDay, "turns" | "failed" | "runs" | "frustrations" | "appTurns">>;
+/** one routine by its salted hash: its first and last run, for "still running a week later" */
+export interface RoutineSpan { workspaceId: string; accountId: string; routine: string; first: number; last: number; runs: number }
 export interface SnapshotRow { workspaceId: string; accountId: string; at: number; snapshot: UsageSnapshot }
 
 export interface UsageStore {
@@ -23,7 +27,9 @@ export interface UsageStore {
   insert(records: UsageRecord[]): Promise<UsageRecord[]>;
   bump(day: string, inc: Record<string, number>): Promise<void>;
   /** adds to a person's day; true when it is the person's first record that day */
-  person(day: string, accountId: string, inc: Partial<Omit<PersonDay, "day" | "accountId">>): Promise<boolean>;
+  person(day: string, accountId: string, inc: PersonCounts, maps?: { bots?: Record<string, number>; chats?: Record<string, number> }): Promise<boolean>;
+  routine(span: Omit<RoutineSpan, "runs">): Promise<void>;
+  routines(): Promise<RoutineSpan[]>;
   snapshot(row: SnapshotRow): Promise<void>;
   daily(fromDay: string, toDay: string): Promise<Array<{ day: string; c: Record<string, number> }>>;
   people(fromDay: string, toDay: string): Promise<PersonDay[]>;
@@ -36,6 +42,7 @@ export interface UsageStore {
 }
 
 export function memoryUsageStore(now: () => number = Date.now): UsageStore {
+  const spans = new Map<string, RoutineSpan>();
   const records = new Map<string, UsageRecord>(), daily = new Map<string, Record<string, number>>(), people = new Map<string, PersonDay>(), snaps = new Map<string, SnapshotRow>(), marks = new Set<string>();
   const sweep = () => { const cutoff = now() - USAGE_RETENTION_DAYS * DAY_MS; for (const [id, record] of records) if (record.at < cutoff) records.delete(id); };
   return {
@@ -46,13 +53,19 @@ export function memoryUsageStore(now: () => number = Date.now): UsageStore {
       return fresh;
     },
     async bump(day, inc) { const row = daily.get(day) ?? {}; for (const [key, by] of Object.entries(inc)) row[key] = (row[key] ?? 0) + by; daily.set(day, row); },
-    async person(day, accountId, inc) {
+    async person(day, accountId, inc, maps = {}) {
       const key = `${day}|${accountId}`, row = people.get(key), first = !row;
-      const next = row ?? { day, accountId, turns: 0, failed: 0, runs: 0, frustrations: 0, appTurns: 0 };
+      const next: PersonDay = row ?? { day, accountId, turns: 0, failed: 0, runs: 0, frustrations: 0, appTurns: 0 };
       for (const [field, by] of Object.entries(inc)) (next as unknown as Record<string, number>)[field]! += by ?? 0;
+      for (const kind of ["bots", "chats"] as const) for (const [hash, by] of Object.entries(maps[kind] ?? {})) { const map = (next[kind] ??= {}); map[hash] = (map[hash] ?? 0) + by; }
       people.set(key, next);
       return first;
     },
+    async routine(span) {
+      const key = `${span.workspaceId}|${span.routine}`, row = spans.get(key);
+      spans.set(key, row ? { ...row, first: Math.min(row.first, span.first), last: Math.max(row.last, span.last), runs: row.runs + 1 } : { ...span, runs: 1 });
+    },
+    async routines() { return [...spans.values()]; },
     async snapshot(row) { snaps.set(row.workspaceId, row); },
     async daily(fromDay, toDay) { return [...daily].filter(([day]) => day >= fromDay && day <= toDay).map(([day, c]) => ({ day, c: { ...c } })); },
     async people(fromDay, toDay) { return [...people.values()].filter(row => row.day >= fromDay && row.day <= toDay); },
@@ -63,6 +76,7 @@ export function memoryUsageStore(now: () => number = Date.now): UsageStore {
       for (const [key, record] of records) if (record.accountId === accountId) records.delete(key);
       for (const [key, row] of people) if (row.accountId === accountId) people.delete(key);
       for (const [key, row] of snaps) if (row.accountId === accountId) snaps.delete(key);
+      for (const [key, row] of spans) if (row.accountId === accountId) spans.delete(key);
     },
     async forgetWorkspace(workspaceId) {
       for (const [key, record] of records) if (record.workspaceId === workspaceId) records.delete(key);
@@ -77,10 +91,12 @@ export async function mongoUsageStore(db: Db): Promise<UsageStore> {
   const events = db.collection<RecordDoc>("usage_events"), daily = db.collection<{ _id: string; day: string; c: Record<string, number> }>("usage_daily");
   const people = db.collection<{ _id: string; day: string; accountId: string; at: Date; turns: number; failed: number; runs: number; frustrations: number; appTurns: number }>("usage_people");
   const snaps = db.collection<{ _id: string; accountId: string; at: Date; snapshot: UsageSnapshot }>("usage_snapshots"), marks = db.collection<{ _id: string }>("usage_marks");
+  const spans = db.collection<{ _id: string; workspaceId: string; accountId: string; routine: string; first: Date; last: Date; runs: number }>("usage_routines");
   await Promise.all([
     events.createIndexes([{ key: { at: 1 }, expireAfterSeconds: USAGE_RETENTION_DAYS * 86_400 }, { key: { kind: 1, at: -1 } }, { key: { accountId: 1 } }, { key: { workspaceId: 1 } }]),
     people.createIndexes([{ key: { at: 1 }, expireAfterSeconds: PEOPLE_RETENTION_DAYS * 86_400 }, { key: { day: 1 } }, { key: { accountId: 1 } }]),
     snaps.createIndexes([{ key: { accountId: 1 } }]),
+    spans.createIndexes([{ key: { last: 1 }, expireAfterSeconds: PEOPLE_RETENTION_DAYS * 86_400 }, { key: { accountId: 1 } }]),
   ]);
   const toRecord = (doc: RecordDoc): UsageRecord => ({ id: doc._id.slice(doc.workspaceId.length + 1), kind: doc.kind, at: doc.at.getTime(), accountId: doc.accountId, workspaceId: doc.workspaceId, data: doc.data });
   return {
@@ -97,10 +113,16 @@ export async function mongoUsageStore(db: Db): Promise<UsageStore> {
       return list.filter((_, index) => !failed.has(index));
     },
     async bump(day, inc) { await daily.updateOne({ _id: day }, { $setOnInsert: { day }, $inc: Object.fromEntries(Object.entries(inc).map(([key, by]) => [`c.${key}`, by])) }, { upsert: true }); },
-    async person(day, accountId, inc) {
-      const result = await people.updateOne({ _id: `${day}|${accountId}` }, { $setOnInsert: { day, accountId, at: new Date(`${day}T12:00:00Z`) }, $inc: { turns: 0, failed: 0, runs: 0, frustrations: 0, appTurns: 0, ...inc } }, { upsert: true });
+    async person(day, accountId, inc, maps = {}) {
+      const mapped = Object.fromEntries((["bots", "chats"] as const).flatMap(kind => Object.entries(maps[kind] ?? {}).filter(([hash]) => /^[A-Za-z0-9_-]{10}$/.test(hash)).map(([hash, by]) => [`${kind}.${hash}`, by])));
+      const result = await people.updateOne({ _id: `${day}|${accountId}` }, { $setOnInsert: { day, accountId, at: new Date(`${day}T12:00:00Z`) }, $inc: { turns: 0, failed: 0, runs: 0, frustrations: 0, appTurns: 0, ...inc, ...mapped } }, { upsert: true });
       return result.upsertedCount === 1;
     },
+    async routine(span) {
+      await spans.updateOne({ _id: `${span.workspaceId}|${span.routine}` }, { $setOnInsert: { workspaceId: span.workspaceId, accountId: span.accountId, routine: span.routine },
+        $min: { first: new Date(span.first) }, $max: { last: new Date(span.last) }, $inc: { runs: 1 } }, { upsert: true });
+    },
+    async routines() { return (await spans.find({}).toArray()).map(doc => ({ workspaceId: doc.workspaceId, accountId: doc.accountId, routine: doc.routine, first: doc.first.getTime(), last: doc.last.getTime(), runs: doc.runs })); },
     async snapshot(row) { await snaps.replaceOne({ _id: row.workspaceId }, { accountId: row.accountId, at: new Date(row.at), snapshot: row.snapshot }, { upsert: true }); },
     async daily(fromDay, toDay) { return (await daily.find({ _id: { $gte: fromDay, $lte: toDay } }).toArray()).map(doc => ({ day: doc.day, c: doc.c ?? {} })); },
     async people(fromDay, toDay) {
@@ -109,7 +131,7 @@ export async function mongoUsageStore(db: Db): Promise<UsageStore> {
     async snapshots() { return (await snaps.find({}).toArray()).map(doc => ({ workspaceId: doc._id, accountId: doc.accountId, at: doc.at.getTime(), snapshot: doc.snapshot })); },
     async records(kind, since, until, limit) { return (await events.find({ kind, at: { $gte: new Date(since), $lt: new Date(until) } }).sort({ at: -1 }).limit(limit).toArray()).map(toRecord); },
     async once(key) { try { await marks.insertOne({ _id: key }); return true; } catch (error) { if ((error as { code?: number }).code === 11000) return false; throw error; } },
-    async forget(accountId) { await Promise.all([events.deleteMany({ accountId }), people.deleteMany({ accountId }), snaps.deleteMany({ accountId })]); },
+    async forget(accountId) { await Promise.all([events.deleteMany({ accountId }), people.deleteMany({ accountId }), snaps.deleteMany({ accountId }), spans.deleteMany({ accountId })]); },
     async forgetWorkspace(workspaceId) { await Promise.all([events.deleteMany({ workspaceId }), snaps.deleteOne({ _id: workspaceId })]); },
   };
 }
@@ -126,6 +148,11 @@ export function rollup(records: UsageRecord[]): Map<string, Record<string, numbe
     if (record.kind === "turn") {
       const t = record.data as UsageTurn, failed = t.outcome === "failed", bucket = latencyBucket(t.ms);
       add(day, "turns"); add(day, t.outcome); add(day, `lat:${bucket}`); add(day, `ms`, t.ms);
+      if (t.firstMs !== undefined) { const first = latencyBucket(t.firstMs); add(day, `first:${first}`); add(day, `first_engine:${t.engine}:${first}`); if (t.model) add(day, `first_model:${t.model}:${first}`); }
+      if (t.model) { add(day, `model:${t.model}`); add(day, `lat_model:${t.model}:${bucket}`); if (failed) add(day, `model_fail:${t.model}`); }
+      for (const tool of t.failedTools ?? []) add(day, `tool_err:${tool}`);
+      for (const app of t.failedApps ?? []) add(day, `app_err:${app}`);
+      for (const action of t.actions ?? []) add(day, `action:${action}`);
       add(day, `engine:${t.engine}`); add(day, `lat_engine:${t.engine}:${bucket}`); add(day, `category:${t.category}`); add(day, `from:${t.from}`); add(day, `place:${t.place}`);
       if (t.room) add(day, "room");
       for (const tool of t.tools) add(day, `tool:${tool}`);
@@ -140,11 +167,17 @@ export function rollup(records: UsageRecord[]): Map<string, Record<string, numbe
     } else if (record.kind === "run") {
       const r = record.data as UsageRun;
       add(day, "runs"); add(day, `run:${r.trigger}`);
+      if (r.every) { add(day, `every:${r.every}`); if (r.outcome === "failed") add(day, `every_fail:${r.every}`); }
+      if (r.ms !== undefined) add(day, `run_ms:${latencyBucket(r.ms)}`);
       if (r.outcome === "failed") { add(day, "run_failed"); add(day, `run_fail:${r.trigger}`); add(day, `run_reason:${r.reason ?? "unknown"}`); }
     } else if (record.kind === "frustration") {
       const f = record.data as UsageFrustration;
       add(day, "frustrations"); add(day, `fr_group:${problemKey(f)}`);
       for (const signal of f.signals) add(day, `fr_signal:${signal}`);
+    } else if (record.kind === "signal") {
+      const g = record.data as UsageSignal;
+      add(day, `sig:${g.name}`);
+      for (const [key, value] of Object.entries(g.props)) if (typeof value === "string" || typeof value === "number") add(day, `sig:${g.name}:${key}:${value}`);
     } else add(day, "digests");
   }
   return days;
@@ -169,19 +202,29 @@ export function createUsage(options: {
         ...report.runs.map(data => ({ id: data.id, kind: "run" as const, at: data.at, accountId, workspaceId, data })),
         ...(report.frustrations ?? []).map(data => ({ id: data.id, kind: "frustration" as const, at: data.at, accountId, workspaceId, data: summaries ? data : { ...data, summary: undefined } })),
         ...(summaries ? report.digests ?? [] : []).map(data => ({ id: data.id, kind: "digest" as const, at: data.at, accountId, workspaceId, data })),
+        ...(report.signals ?? []).map(data => ({ id: data.id, kind: "signal" as const, at: data.at, accountId, workspaceId, data })),
       ];
       const fresh = await store.insert(records);
       const writes: Array<Promise<unknown>> = [];
       for (const [day, inc] of rollup(fresh)) writes.push(store.bump(day, inc));
-      const perDay = new Map<string, { turns: number; failed: number; runs: number; frustrations: number; appTurns: number }>();
+      const perDay = new Map<string, { turns: number; failed: number; runs: number; frustrations: number; appTurns: number; bots: Record<string, number>; chats: Record<string, number> }>();
       for (const record of fresh) {
-        const day = dayOf(record.at), row = perDay.get(day) ?? { turns: 0, failed: 0, runs: 0, frustrations: 0, appTurns: 0 };
-        if (record.kind === "turn") { row.turns++; if ((record.data as UsageTurn).outcome === "failed") row.failed++; if ((record.data as UsageTurn).apps.length) row.appTurns++; }
-        if (record.kind === "run") row.runs++;
+        const day = dayOf(record.at), row = perDay.get(day) ?? { turns: 0, failed: 0, runs: 0, frustrations: 0, appTurns: 0, bots: {}, chats: {} };
+        if (record.kind === "turn") {
+          const t = record.data as UsageTurn;
+          row.turns++; if (t.outcome === "failed") row.failed++; if (t.apps.length) row.appTurns++;
+          if (t.bot) row.bots[t.bot] = (row.bots[t.bot] ?? 0) + 1;
+          if (t.chat) row.chats[t.chat] = (row.chats[t.chat] ?? 0) + 1;
+        }
+        if (record.kind === "run") {
+          row.runs++;
+          const r = record.data as UsageRun;
+          if (r.routine) writes.push(store.routine({ workspaceId, accountId, routine: r.routine, first: r.at, last: r.at }));
+        }
         if (record.kind === "frustration") row.frustrations++;
         perDay.set(day, row);
       }
-      for (const [day, inc] of perDay) writes.push(store.person(day, accountId, inc).then(first => first ? store.bump(day, { people: 1 }) : undefined));
+      for (const [day, { bots, chats, ...inc }] of perDay) writes.push(store.person(day, accountId, inc, { bots, chats }).then(first => first ? store.bump(day, { people: 1 }) : undefined));
       if (report.snapshot) writes.push(store.snapshot({ workspaceId, accountId, at: now(), snapshot: report.snapshot }));
       await Promise.all(writes);
       for (const record of fresh) if (record.kind === "frustration" && options.newProblem) {

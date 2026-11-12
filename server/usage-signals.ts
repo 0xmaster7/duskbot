@@ -1,14 +1,14 @@
 // Security: everything queued here passes the shared clean* functions first, so only words from fixed lists, counts and
 // times (and a scrubbed abstract summary) can leave the workspace. Message text is read only inside this process, to
 // spot a correction or a repeated request, and is never stored or sent.
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { writeFileAtomic } from "./atomic.ts";
 import {
-  MAX_REPORT_FRUSTRATIONS, MAX_REPORT_RUNS, MAX_REPORT_TURNS, categorize, cleanUsageFrustration, cleanUsageRun, cleanUsageSnapshot, cleanUsageTurn, engineFamily, failureReason,
-  runTrigger, scrubSummary, toolSignals,
+  MAX_REPORT_FRUSTRATIONS, MAX_REPORT_RUNS, MAX_REPORT_SIGNALS, MAX_REPORT_TURNS, categorize, cleanUsageFrustration, cleanUsageRun, cleanUsageSnapshot, cleanUsageTurn, engineFamily, failureReason,
+  appAction, modelFamily, runTrigger, scrubSummary, toolSignals, type RunEvery, type UsageSignal,
   type FrustrationSignal, type UsageFrom, type UsageFrustration, type UsageOutcome, type UsagePlace, type UsageReport, type UsageRun, type UsageSnapshot, type UsageTurn, type UsageDigest,
 } from "../shared/usage-signals.ts";
 
@@ -24,6 +24,18 @@ export interface TurnFacts {
   toolNames: readonly string[];
   trigger: { kind: string };
   room: boolean;
+  failedNames?: readonly string[];
+  firstStepAt?: number;
+  model?: string;
+  /** salted hashes from `hashId`, never the ids */
+  bot?: string;
+  chat?: string;
+}
+
+/** a salted hash of an id, short enough to count with and impossible to turn back into the id without the salt, which
+ * never leaves this workspace */
+export function hashId(salt: string, id: string): string {
+  return createHash("sha256").update(`${salt}|${id}`).digest("base64url").slice(0, 10);
 }
 
 /** a turn's facts as a usage record; the reason line and tool names are read here and only their words kept */
@@ -33,44 +45,59 @@ export function turnRecord(facts: TurnFacts, place: UsagePlace, now: number): Us
   const from: UsageFrom = facts.trigger.kind === "routine" ? "routine" : facts.trigger.kind === "bot" ? "bot" : facts.trigger.kind === "helper" ? "helper"
     : facts.trigger.kind === "user" ? "remote" : "app";
   const end = facts.endedAt ?? now, start = facts.startedAt ?? end;
+  const failed = toolSignals(facts.failedNames ?? []);
+  const actions = [...new Set(facts.toolNames.map(appAction).filter((action): action is string => !!action))];
+  const ms = Math.max(0, Math.min(7 * 86_400_000 - 1, Math.round(end - start)));
+  const firstMs = facts.firstStepAt !== undefined ? Math.round(facts.firstStepAt - start) : undefined;
   return cleanUsageTurn({ id: newId(), at: end, engine: engineFamily(facts.driverKind), outcome, ...(outcome === "ok" ? {} : { reason: outcome === "cancelled" ? "unknown" : failureReason(facts.reason) }),
-    ms: Math.max(0, Math.min(7 * 86_400_000 - 1, Math.round(end - start))), tools, apps, category: categorize({ tools, apps }), from, place, room: facts.room }, now);
+    ms, tools, apps, category: categorize({ tools, apps }), from, place, room: facts.room, ...(firstMs !== undefined && firstMs >= 0 && firstMs <= ms ? { firstMs } : {}),
+    ...(facts.model ? { model: modelFamily(facts.model) } : {}), failedTools: failed.tools, failedApps: failed.apps, actions, ...(facts.bot ? { bot: facts.bot } : {}), ...(facts.chat ? { chat: facts.chat } : {}) }, now);
 }
 
 /** records waiting for the next dashboard report: memory only, oldest dropped past the cap */
 export function createUsageOutbox(options: { now?: () => number; snapshot?: () => UsageSnapshot | null; enabled?: () => boolean } = {}) {
   const now = options.now ?? Date.now;
-  let turns: UsageTurn[] = [], runs: UsageRun[] = [], frustrations: UsageFrustration[] = [], digests: UsageDigest[] = [];
+  let turns: UsageTurn[] = [], runs: UsageRun[] = [], frustrations: UsageFrustration[] = [], digests: UsageDigest[] = [], signals: UsageSignal[] = [];
   const seenRuns = new Set<string>();
   const on = () => options.enabled?.() !== false;
   const cap = <T>(list: T[], max: number) => list.length > max ? list.slice(-max) : list;
   return {
     turn(record: UsageTurn | null) { if (record && on()) turns = cap([...turns, record], OUTBOX_TURNS); },
     /** a routine run once it ends; each run counts once */
-    run(run: { id: string; status: string; triggerSource?: string; eventSource?: string; manual?: boolean; finishedAt?: number; error?: string }) {
+    run(run: { id: string; status: string; triggerSource?: string; eventSource?: string; manual?: boolean; startedAt?: number; finishedAt?: number; error?: string }, about: { every?: RunEvery; routine?: string } = {}) {
       if (!on() || !["completed", "failed", "cancelled", "missed"].includes(run.status) || seenRuns.has(run.id)) return;
       seenRuns.add(run.id);
       if (seenRuns.size > 5000) seenRuns.delete(seenRuns.values().next().value!);
       const outcome: UsageOutcome = run.status === "completed" ? "ok" : run.status === "cancelled" ? "cancelled" : "failed";
-      const record = cleanUsageRun({ id: newId(), at: run.finishedAt ?? now(), trigger: runTrigger(run), outcome, ...(outcome === "failed" ? { reason: run.status === "missed" ? "timeout" : failureReason(run.error) } : {}) }, now());
+      const ms = run.startedAt && run.finishedAt && run.finishedAt >= run.startedAt ? Math.round(run.finishedAt - run.startedAt) : undefined;
+      const record = cleanUsageRun({ id: newId(), at: run.finishedAt ?? now(), trigger: runTrigger(run), outcome, ...(outcome === "failed" ? { reason: run.status === "missed" ? "timeout" : failureReason(run.error) } : {}),
+        ...(ms !== undefined ? { ms } : {}), ...about }, now());
       if (record) runs = cap([...runs, record], OUTBOX_RUNS);
     },
     frustration(record: UsageFrustration | null) { if (record && on()) frustrations = cap([...frustrations, record], MAX_REPORT_FRUSTRATIONS); },
     digest(record: UsageDigest | null) { if (record && on()) digests = cap([...digests, record], 2); },
+    /** a named workspace signal; `clean` is cleanSignal from shared/product-signals.ts, and a signal it refuses is dropped */
+    signal(name: string, props: Record<string, unknown>, clean: (name: unknown, props: unknown) => UsageSignal["props"] | null) {
+      if (!on()) return;
+      const kept = clean(name, props);
+      if (kept) signals = cap([...signals, { id: newId(), at: now(), name, props: kept }], OUTBOX_RUNS);
+    },
     /** the next report's usage section, taken out of the outbox; `requeue` puts it back when the report fails */
     take(): UsageReport | null {
-      if (!on()) { turns = []; runs = []; frustrations = []; digests = []; return null; }
+      if (!on()) { turns = []; runs = []; frustrations = []; digests = []; signals = []; return null; }
       const snapshot = (() => { try { return cleanUsageSnapshot(options.snapshot?.()); } catch { return null; } })();
-      const report: UsageReport = { turns: turns.slice(0, MAX_REPORT_TURNS), runs: runs.slice(0, MAX_REPORT_RUNS), ...(frustrations.length ? { frustrations } : {}), ...(digests.length ? { digests } : {}), ...(snapshot ? { snapshot } : {}) };
-      turns = turns.slice(MAX_REPORT_TURNS); runs = runs.slice(MAX_REPORT_RUNS); frustrations = []; digests = [];
-      return report.turns.length || report.runs.length || report.frustrations || report.digests || report.snapshot ? report : null;
+      const report: UsageReport = { turns: turns.slice(0, MAX_REPORT_TURNS), runs: runs.slice(0, MAX_REPORT_RUNS), ...(frustrations.length ? { frustrations } : {}), ...(digests.length ? { digests } : {}),
+        ...(signals.length ? { signals: signals.slice(0, MAX_REPORT_SIGNALS) } : {}), ...(snapshot ? { snapshot } : {}) };
+      turns = turns.slice(MAX_REPORT_TURNS); runs = runs.slice(MAX_REPORT_RUNS); frustrations = []; digests = []; signals = signals.slice(MAX_REPORT_SIGNALS);
+      return report.turns.length || report.runs.length || report.frustrations || report.digests || report.signals || report.snapshot ? report : null;
     },
     requeue(report: UsageReport) {
       turns = cap([...report.turns, ...turns], OUTBOX_TURNS); runs = cap([...report.runs, ...runs], OUTBOX_RUNS);
       frustrations = cap([...(report.frustrations ?? []), ...frustrations], MAX_REPORT_FRUSTRATIONS);
       digests = cap([...(report.digests ?? []), ...digests], 2);
+      signals = cap([...(report.signals ?? []), ...signals], OUTBOX_RUNS);
     },
-    size: () => ({ turns: turns.length, runs: runs.length, frustrations: frustrations.length, digests: digests.length }),
+    size: () => ({ turns: turns.length, runs: runs.length, frustrations: frustrations.length, digests: digests.length, signals: signals.length }),
     /** this week's turns so far by category and tool, for the digest's prompt */
     mix(): { categories: string[]; tools: string[] } {
       const top = (values: string[]) => [...values.reduce((map, value) => map.set(value, (map.get(value) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([key]) => key);
