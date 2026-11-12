@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { TRANSCRIPT_GAP, transcriptEndPad } from "./composer-dock";
+import { followedEndPad, TRANSCRIPT_GAP, transcriptEndPad } from "./composer-dock";
 
 describe("transcriptEndPad", () => {
   it("adds one gap-3 of black above the measured composer", () => {
@@ -18,5 +18,11 @@ describe("transcriptEndPad", () => {
 
   it("uses a one-line empty-composer fallback, not the old two-row slot", () => {
     expect(transcriptEndPad(Number.NaN)).toBe("calc(64px + 0.75rem)");
+  });
+});
+
+describe("followedEndPad", () => {
+  it("reads the composer's live height first, so the transcript rides the pill's spring", () => {
+    expect(followedEndPad(71.2)).toBe("calc(var(--composer-dock, 72px) + 0.75rem)");
   });
 });

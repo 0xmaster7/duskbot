@@ -892,7 +892,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const remoteClient = window.duskDesktop?.remoteClient?.active === true;
   const { dragProps: headerDragProps, noDragStyle: headerNoDragStyle } = useCaptionChrome();
   const composerDockRef = useRef<HTMLDivElement>(null);
-  const composerDock = useComposerDockPad(composerDockRef);
+  const composerDock = useComposerDockPad(composerDockRef, () => scrollRef.current);
   const phone = useMediaQuery(PHONE_LAYOUT);
   const phoneMenu = phone && !remoteClient;
   const simpleHead = !remoteClient;

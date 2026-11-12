@@ -876,7 +876,7 @@ export function GroupView({ group: room }: { group: Group }) {
   const { state, dispatch } = useStore();
   const remoteClient = window.duskDesktop?.remoteClient?.active === true;
   const composerDockRef = useRef<HTMLDivElement>(null);
-  const composerDock = useComposerDockPad(composerDockRef);
+  const composerDock = useComposerDockPad(composerDockRef, () => scrollRef.current);
   const [folderOpen, setFolderOpen] = useState(false);
   const [membersOpen, setMembersOpen] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
