@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArrowUpRight, Bot, ChartNoAxesColumn, Check, ChevronsUpDown, CircleUser, Cloud, CreditCard, House, LayoutGrid, LogOut, Menu, Monitor, Plus, X } from "@/icons";
+import { ArrowUpRight, Bot, Shield, ChartNoAxesColumn, Check, ChevronsUpDown, CircleUser, Cloud, CreditCard, House, LayoutGrid, LogOut, Menu, Monitor, Plus, X } from "@/icons";
 import type { WorkspaceSummary } from "../../../../shared/dashboard-protocol";
 import { cloudForWorkspace, useCloud } from "../data/cloud";
 import type { CloudDesktop } from "../data/contracts";
@@ -11,12 +11,15 @@ import { RoutineUpsell } from "../pages/routine-upsell";
 import { PlanSheet } from "../pages/plan-sheet";
 import { Button, cx, FreshnessTag } from "./kit";
 import { Mascot } from "./Mascot";
+import { Avatar } from "./Avatar";
+import { adminCall } from "../admin/api";
 import { SITE_NAME, SITE_URL } from "../lib/site";
 import mark from "../../favicon.svg";
 import { useNow } from "../lib/now";
 import { useToasts } from "../lib/toast";
 import { CheerBot } from "./CheerBot";
-import { AnimatePresence, EASE_OUT, GLIDE, m, PageIn, Pop, ToastStack } from "./motion";
+import type { Transition } from "motion/react";
+import { AnimatePresence, EASE_OUT, GLIDE, m, PageIn, Pop, ToastStack, usePill } from "./motion";
 import { useAccountUsage } from "../data/usage";
 import { investedLine, investedNoteDue, markInvestedNote } from "../lib/fun";
 import type { InvestedFacts } from "../../../../shared/cloud-upsell";
@@ -95,12 +98,32 @@ function WorkspaceSwitcher({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
+const ADMIN_KEY = "dusk-dash-admin";
+let adminAsked: Promise<boolean> | null = null;
+
+/** the server's own admin check, asked once a visit */
+function useIsAdmin(accountId: string | undefined) {
+  const [admin, setAdmin] = useState(() => { try { return sessionStorage.getItem(ADMIN_KEY) === accountId; } catch { return false; } });
+  useEffect(() => {
+    if (!accountId) return;
+    let live = true;
+    adminAsked ??= adminCall<{ admin: true }>("/me").then((me) => me.admin === true, () => false);
+    void adminAsked.then((yes) => {
+      try { if (yes) sessionStorage.setItem(ADMIN_KEY, accountId); else sessionStorage.removeItem(ADMIN_KEY); } catch {}
+      if (live) setAdmin(yes);
+    });
+    return () => { live = false; };
+  }, [accountId]);
+  return admin;
+}
+
 function UserRow() {
   const { account, setAccount } = useSession();
-  const { billing, catalog } = useCloud();
+  const { billing, catalog, account: profile } = useCloud();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useDismiss(open, () => setOpen(false), ref);
+  const admin = useIsAdmin(account?.id);
   if (!account) return null;
   const name = account.name || (account.email.split("@")[0] ?? account.email);
   const sel = billing?.subscription?.selection;
@@ -112,11 +135,12 @@ function UserRow() {
       <Pop open={open} className="pop absolute inset-x-0 bottom-full z-30 mb-1.5 origin-bottom rounded-[18px] bg-pop p-1.5" style={{ boxShadow: "var(--pop-shadow)" }}>
           <div className="truncate px-2.5 py-2 text-13 text-ink-3">{account.email}</div>
           <button role="menuitem" onClick={() => { setOpen(false); navigate("/account"); }} className="hover-ghost flex w-full items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-14 text-ink-2"><CircleUser size={16} strokeWidth={1.75} aria-hidden /> account</button>
+          {admin && <button role="menuitem" onClick={() => { setOpen(false); navigate("/admin"); }} className="hover-ghost flex w-full items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-14 text-ink-2"><Shield size={16} strokeWidth={1.75} aria-hidden /> admin</button>}
           <a role="menuitem" href={SITE_URL} className="hover-ghost flex w-full items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-14 text-ink-2"><ArrowUpRight size={16} strokeWidth={1.75} aria-hidden /> {SITE_NAME}</a>
           <button role="menuitem" onClick={() => void api.signOut().finally(() => setAccount(null))} className="hover-ghost flex w-full items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-14 text-ink-2"><LogOut size={16} strokeWidth={1.75} aria-hidden /> sign out</button>
       </Pop>
       <button aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="hover-side flex w-full items-center gap-3 rounded-[18px] px-2.5 py-2 text-start">
-        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-ink text-14 font-medium lowercase text-bg" aria-hidden>{name.slice(0, 1)}</span>
+        <Avatar name={name} email={account.email} photo={profile?.profile.avatarUrl} size={36} />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-14 text-ink">{name}</span>
           <span className="block truncate text-12 text-ink-3">{label}</span>
@@ -203,23 +227,37 @@ function SideUpsellCard({ onHide, onOpen }: { onHide: () => void; onOpen: (sourc
   );
 }
 
+const NAV_PILL: Transition = { type: "spring", visualDuration: 0.2, bounce: 0 };
+
 function Nav({ onNavigate }: { onNavigate?: () => void }) {
   const { path } = useLocation();
+  const pill = usePill();
+  // the pressed item is active from pointer-down on, before the next page has rendered
+  const [pressed, setPressed] = useState<string | null>(null);
+  useEffect(() => setPressed(null), [path]);
+  const current = pressed ?? NAV.flatMap((g) => g.items).find((item) => active(path, item.to))?.to ?? null;
   return (
     <nav aria-label="dashboard" className="flex flex-col gap-5">
       {NAV.map((group, i) => (
         <div key={i} className="flex flex-col gap-0.5">
           {group.label && <div className="t-meta px-3.5 pb-1.5">{group.label}</div>}
           {group.items.map((item) => {
-            const on = active(path, item.to);
+            const on = current === item.to;
             return (
               <Link
                 key={item.to}
                 to={item.to}
+                onPointerDown={(e) => {
+                  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+                  setPressed(item.to);
+                  // a press dragged away never clicks: let go of it once the pointer is up and the click (if any) is through
+                  window.addEventListener("pointerup", () => setTimeout(() => setPressed(null), 0), { once: true });
+                }}
                 onClick={onNavigate}
                 aria-current={on ? "page" : undefined}
-                className={cx("relative flex h-10 items-center gap-3 rounded-full px-3.5 text-14 transition-colors duration-150", on ? "bg-pop font-medium text-ink" : "hover-side text-ink-2")}
+                className={cx("relative flex h-10 items-center gap-3 rounded-full px-3.5 text-14", on ? "font-medium text-ink" : "hover-side text-ink-2")}
               >
+                {on && <m.span layoutId={pill} aria-hidden className="absolute inset-0 rounded-full bg-pop" transition={NAV_PILL} />}
                 <span className={cx("relative", on ? "text-ink" : "text-ink-3")}>{item.icon}</span>
                 <span className="relative">{item.label}</span>
                 {item.to === "/cloud" && <CloudBadge />}

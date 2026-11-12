@@ -11,14 +11,14 @@ import { CommandButton, WorkspaceGate } from "./common";
 import { appLink, openApp } from "../lib/app-link";
 import { useNow } from "../lib/now";
 
-const PLACE: Record<NonNullable<BotReport["computer"]>, string> = { vps: "cloud computer", "local-vm": "this mac's vm", team: "shared computer" };
+const PLACE: Record<NonNullable<BotReport["computer"]>, string> = { vps: "cloud computer", "local-vm": "this mac's vm", team: "bot computer" };
 
 export function computerFor(detail: WorkspaceDetail, bot: BotReport): ComputerReport | null {
   return detail.report?.computers?.computers.find((c) => c.botId === bot.id) ?? null;
 }
 
 export function StatePill({ state }: { state: ComputerReport["state"] }) {
-  const map = { running: ["text-good", "running"], asleep: ["text-ink-4", "asleep"], starting: ["text-warn", "waking"], missing: ["text-ink-4", "not set up"], unknown: ["text-ink-4", "unknown"] } as const;
+  const map = { running: ["text-good", "running"], asleep: ["text-ink-4", "asleep"], starting: ["text-warn", "waking"], missing: ["text-ink-4", "not set up yet"], unknown: ["text-ink-4", "unknown"] } as const;
   const [tone, label] = map[state];
   return <span className="inline-flex items-center gap-2 whitespace-nowrap text-13 text-ink-2"><span className={cx("live-dot !size-1.5", tone)} data-live={state === "starting"} aria-hidden />{label}</span>;
 }

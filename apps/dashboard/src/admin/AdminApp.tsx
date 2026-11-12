@@ -110,7 +110,7 @@ export function AdminApp() {
   const theme = useTheme();
   const dark = theme === "dark" || (theme === "system" && typeof matchMedia !== "undefined" && matchMedia("(prefers-color-scheme: dark)").matches);
   const [moreOpen, setMoreOpen] = useState(inMore);
-  useEffect(() => { document.title = `${ALL.find((item) => on(path, item))?.label ?? "admin"} · dusk bot admin`; }, [path]);
+  useEffect(() => { document.title = `${ALL.find((item) => on(path, item))?.label ?? "admin"} / dusk bot admin`; }, [path]);
   useEffect(() => { const to = MOVED[path]; if (to) navigate(to, { replace: true }); }, [path]);
   if (me.error) {
     return (
@@ -172,13 +172,13 @@ export function AdminApp() {
           {me.data && <span className="truncate px-2 text-12 text-ink-3" title={me.data.email}>{me.data.email}</span>}
           {me.data && <span className="t-meta px-2 !text-[11.5px]">{me.data.environment} · {me.data.version ?? "dev"}</span>}
           <button type="button" onClick={() => setTheme(dark ? "light" : "dark")} className="hover-ghost mt-2 flex h-9 items-center gap-2 rounded-full px-2 text-13 text-ink-3">{dark ? <Sun size={15} strokeWidth={1.75} aria-hidden /> : <Moon size={15} strokeWidth={1.75} aria-hidden />}{dark ? "light mode" : "dark mode"}</button>
-          <Link to="/" className="hover-ghost flex h-9 items-center gap-2 rounded-full px-2 text-13 text-ink-3"><ArrowUpRight size={15} strokeWidth={1.75} aria-hidden /> your account</Link>
+          <Link to="/" className="hover-ghost flex h-9 items-center gap-2 rounded-full px-2 text-13 text-ink-3"><ArrowUpRight size={15} strokeWidth={1.75} aria-hidden /> app</Link>
         </div>
       </aside>
       <header className="sticky top-0 z-20 bg-bg/95 backdrop-blur lg:hidden">
         <div className="flex h-12 items-center justify-between px-4">
           <Link to="/admin" className="flex items-center gap-2" aria-label="dusk bot admin, overview"><img src={mark} alt="" width={22} height={22} className="size-[22px]" /><span className="text-[15px] font-[550] tracking-[-0.02em]">dusk bot</span><span className="tag !h-[22px] !px-2">admin</span></Link>
-          <Link to="/" className="text-link text-13">your account</Link>
+          <Link to="/" className="text-link text-13">app</Link>
         </div>
         <nav aria-label="admin" className="scroll-x flex gap-1 px-3 pb-2">
           {ALL.map((item, i) => (

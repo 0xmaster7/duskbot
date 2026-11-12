@@ -116,8 +116,8 @@ export function CloudCard({ cloud, detail }: { cloud: CloudDesktop; detail: Work
           </section>
           <section className="min-w-0 rounded-[20px] bg-pop px-4 pb-2 pt-4" aria-labelledby="cloud-pulse-title">
             <h3 id="cloud-pulse-title" className="sr-only">cpu and memory, last two minutes</h3>
-            <PulseChart compact samples={pulse?.samples ?? []} lag={pulse?.lag ?? 0}
-              empty={asleep ? "asleep. wake it to see cpu and memory." : cloud.status === "waking" ? "waking up" : cloud.status === "error" ? "it stopped answering. waking it usually fixes this." : null} />
+            <PulseChart compact samples={pulse?.samples ?? []} lag={pulse?.lag ?? 0} sleeping={asleep}
+              empty={cloud.status === "waking" ? "waking up" : cloud.status === "error" ? "it stopped answering. waking it usually fixes this." : null} />
           </section>
         </div>
       )}

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { AppWindow, Check } from "@/icons";
 import { useCloud } from "../data/cloud";
 import type { CloudDesktop, DesktopTier, PlanCatalog, SlackWake } from "../data/contracts";
-import { desktopMonthly, desktopOf, dollars, gb, specLine } from "../data/pricing";
+import { desktopMonthly, desktopOf, dollars, gb, planTotal, specLine } from "../data/pricing";
 import { useSession } from "../data/session";
 import { api, ApiError } from "../lib/api";
 import { longDate, MONTH_NAMES } from "../lib/format";
@@ -10,7 +10,7 @@ import { SETUP_LABELS } from "../data/live";
 import { SETUP_STEPS } from "../data/wire";
 import { Link } from "../lib/router";
 import { appLink, openApp } from "../lib/app-link";
-import { Choice, Modal, Switch } from "../ui/controls";
+import { Switch } from "../ui/controls";
 import { Button, Card, cx, KV, PageHeader, SectionTitle, Skeleton } from "../ui/kit";
 import { Mascot } from "../ui/Mascot";
 import { useWorkspaceDetail } from "../data/detail";
@@ -18,7 +18,7 @@ import { CloudPitch, CloudStatus, PowerButton, Provisioning, regionName, tierNam
 import { DeleteDataAction, DeletionBanner } from "./DeleteData";
 import { canDeleteData, deletion } from "../data/delete-data";
 import { MachineView } from "./Machine";
-import { money, useChangeCharge } from "./plan-sheet";
+import { ResizeDialog } from "./resize-sheet";
 import { useNow } from "../lib/now";
 import { useAccountUsage } from "../data/usage";
 import { MoveGuide } from "./cloud-card";
@@ -84,22 +84,12 @@ function SettingUp({ cloud }: { cloud: CloudDesktop }) {
 /** the size it is, what that includes, and the next size up */
 function Size({ cloud, catalog }: { cloud: CloudDesktop; catalog: PlanCatalog }) {
   const { billing } = useCloud();
-  const { toast } = useSession();
   const [open, setOpen] = useState(false);
-  const [to, setTo] = useState<DesktopTier["id"]>(cloud.tier);
-  const target = billing?.subscription ? { ...billing.subscription.selection, desktop: to, size: null } : null;
-  const { charge, apply } = useChangeCharge(target);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [focus, setFocus] = useState<DesktopTier["id"] | null>(null);
   const sub = billing?.subscription;
   const current = desktopOf(catalog, cloud.tier);
   const next = catalog.desktops[catalog.desktops.findIndex((d) => d.id === cloud.tier) + 1] ?? null;
-  const go = async () => {
-    if (!sub) return;
-    setBusy(true); setError(null);
-    try { if (await apply({ ...sub.selection, desktop: to, size: null })) { toast(`resizing ${cloud.name}. it restarts once, in under a minute.`); setOpen(false); } }
-    catch (e) { setError((e as Error).message); } finally { setBusy(false); }
-  };
+  const total = sub ? planTotal(catalog, sub.selection) : null;
   const includes = [
     specLine(cloud),
     cloud.placement === "shared" ? "its own sandbox on our machines" : "a whole machine of its own",
@@ -107,8 +97,8 @@ function Size({ cloud, catalog }: { cloud: CloudDesktop; catalog: PlanCatalog })
   ];
   return (
     <Card aria-labelledby="size-title" className="flex flex-col">
-      <SectionTitle id="size-title" action={<Button size="sm" onClick={() => { setTo(cloud.tier); setOpen(true); }} disabled={!sub}>resize</Button>}>size</SectionTitle>
-      <p className="flex items-baseline gap-2"><span className="text-24 font-medium tracking-[-0.035em] text-ink">{current?.name ?? tierName(catalog, cloud)}</span>{current && <span className="num text-14 text-ink-3">{dollars(desktopMonthly(current, null, catalog.custom))}/mo</span>}</p>
+      <SectionTitle id="size-title" action={<Button size="sm" onClick={() => { setFocus(null); setOpen(true); }} disabled={!sub}>resize</Button>}>size</SectionTitle>
+      <p className="flex flex-wrap items-baseline gap-x-2"><span className="text-24 font-medium tracking-[-0.035em] text-ink">{current?.name ?? tierName(catalog, cloud)}</span>{total ? <span className="num text-14 text-ink-3">{total.amount}{total.unit} {total.note === "cloud size only" ? "" : total.note}</span> : current && <span className="num text-14 text-ink-3">{dollars(desktopMonthly(current, null, catalog.custom))}/mo</span>}</p>
       <ul className="mt-4 flex flex-col gap-2">
         {includes.map((line) => <li key={line} className="flex gap-2.5 text-14 text-ink-2"><Check size={15} strokeWidth={1.75} className="mt-0.5 shrink-0 text-ink-4" aria-hidden />{line}</li>)}
       </ul>
@@ -116,23 +106,11 @@ function Size({ cloud, catalog }: { cloud: CloudDesktop; catalog: PlanCatalog })
         <div className="mt-auto pt-6">
           <div className="rounded-[16px] bg-btn px-4 py-3.5">
             <p className="text-13 leading-[1.5] text-ink-3"><span className="text-ink-2">need more room?</span> {next.name} gives you {next.vcpu} vcpu, {gb(next.ramGb)} ram and {gb(next.diskGb)} disk{next.priority && !current?.priority ? ", with priority wake" : ""}.</p>
-            <button type="button" onClick={() => { setTo(next.id); setOpen(true); }} disabled={!sub} className="text-link mt-2 inline-flex h-8 items-center text-13 disabled:opacity-45">upgrade to {next.name}</button>
+            <button type="button" onClick={() => { setFocus(next.id); setOpen(true); }} disabled={!sub} className="text-link mt-2 inline-flex h-8 items-center text-13 disabled:opacity-45">upgrade to {next.name}</button>
           </div>
         </div>
       )}
-      <Modal open={open} onClose={() => setOpen(false)} title={`resize ${cloud.name}`} wide footer={<><Button onClick={() => setOpen(false)}>cancel</Button><Button variant="primary" onClick={() => void go()} disabled={busy || to === cloud.tier}>{busy ? "resizing" : charge !== null ? `pay ${money(charge)} and resize` : "resize"}</Button></>}>
-        <p>it restarts once, usually in under a minute. bots, files and logins come along. a bigger size charges the difference now; you see the amount before you confirm.</p>
-        <fieldset className="mt-4 min-w-0">
-          <legend className="sr-only">size</legend>
-          <div className="flex flex-col gap-1">
-            {catalog.desktops.map((d) => (
-              <Choice key={d.id} name="resize" value={d.id} checked={to === d.id} onChange={() => setTo(d.id)} title={<>{d.name}{d.id === cloud.tier && <span className="ms-2 text-13 text-ink-3">current</span>}</>} detail={`${specLine(d)}${d.priority ? ", priority wake" : ""}`} aside={<>{dollars(desktopMonthly(d, null, catalog.custom))}<span className="text-ink-3">/mo</span></>} />
-            ))}
-          </div>
-        </fieldset>
-        {charge !== null && <p role="status" className="num mt-3 text-13 text-ink-2">you pay {money(charge)} now, then the new size's price from {longDate(billing?.subscription?.currentPeriodEnd ?? 0)}.</p>}
-        {error && <p role="alert" className="mt-3 text-13 text-bad">{error}</p>}
-      </Modal>
+      <ResizeDialog open={open} onClose={() => setOpen(false)} cloud={cloud} catalog={catalog} focus={focus} />
     </Card>
   );
 }

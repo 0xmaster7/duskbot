@@ -83,3 +83,11 @@ export const yearlyPerk = (c: Pick<PlanCatalog, "yearlyDiscount">) => (Math.abs(
 
 /** a measured wake as it reads on a card: one decimal under 10 s, never "0.0" */
 export const wakeSeconds = (medianMs: number): string => (Math.max(100, medianMs) / 1000).toFixed(medianMs < 9_950 ? 1 : 0);
+
+/** what the whole plan costs a period once the cloud is this size, license and all, as the plans page prices it */
+export function planTotal(catalog: PlanCatalog, selection: Selection) {
+  const cart = priceCart(selection, catalog);
+  const year = selection.interval === "year", n = year ? cart.dueNow : cart.perMonth;
+  const license = selection.license !== "personal" ? licenseOf(catalog, selection.license) : null;
+  return { amount: dollars(n, !Number.isInteger(Math.round(n * 100) / 100)), unit: year ? "/yr" : "/mo", note: license ? `with your ${license.name.toLowerCase()} license` : "cloud size only" };
+}

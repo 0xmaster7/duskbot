@@ -2,6 +2,7 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "re
 import { PULSE_INTERVAL_MS, PULSE_WINDOW_MS, type PulseSample } from "../../../../shared/machine-pulse";
 import { percent } from "../lib/format";
 import { useReducedMotion } from "./motion";
+import { Mascot } from "./Mascot";
 
 export const PULSE_SERIES = { cpu: "var(--viz-visitors)", mem: "var(--viz-renewal)" } as const;
 const PAD = { top: 8, right: 4, bottom: 22, left: 34 };
@@ -53,11 +54,13 @@ function useWidth() {
   return [ref, width] as const;
 }
 
+const NONE: PulseSample[] = [];
 const ago = (ms: number) => ms < 4000 ? "now" : `${Math.round(ms / 1000)} s ago`;
 
 /** cpu and memory over the last two minutes, sliding left as time passes: the paths are drawn once per new sample in
  * time space, and only the group's transform moves each frame */
-export function PulseChart({ samples, lag, empty, compact = false }: { samples: PulseSample[]; lag: number; empty?: string | null; compact?: boolean }) {
+export function PulseChart({ samples: given, lag, empty, compact = false, sleeping = false }: { samples: PulseSample[]; lag: number; empty?: string | null; compact?: boolean; sleeping?: boolean }) {
+  const samples = sleeping ? NONE : given;
   const H = compact ? 118 : 196, BASE = H - PAD.bottom, TALL = BASE - PAD.top;
   const [box, width] = useWidth();
   const clip = useId().replace(/:/g, "");
@@ -116,7 +119,7 @@ export function PulseChart({ samples, lag, empty, compact = false }: { samples: 
       </div>
       <div ref={box} className="relative mt-3">
         <svg width="100%" height={H} viewBox={`0 0 ${Math.max(1, width)} ${H}`} role="img" className="block touch-pan-y"
-          aria-label={current ? `cpu ${percent(current.cpu)}, memory ${percent(current.mem)} of capacity, over the last two minutes` : "cpu and memory, no samples yet"}
+          aria-label={sleeping ? "asleep, so no cpu or memory right now" : current ? `cpu ${percent(current.cpu)}, memory ${percent(current.mem)} of capacity, over the last two minutes` : "cpu and memory, no samples yet"}
           onPointerMove={(e) => ready && pick(e.clientX, e.currentTarget.getBoundingClientRect())} onPointerLeave={() => setHover(null)}>
           <defs>
             <clipPath id={clip}><rect x={PAD.left} y={0} width={inner} height={H} /></clipPath>
@@ -130,6 +133,9 @@ export function PulseChart({ samples, lag, empty, compact = false }: { samples: 
           ))}
           <text x={PAD.left} y={H - 6} className="fill-ink-4 font-mono text-[11px]">2 min ago</text>
           <text x={PAD.left + inner} y={H - 6} textAnchor="end" className="fill-ink-4 font-mono text-[11px]">now</text>
+          {sleeping && width > 0 && (["mem", "cpu"] as const).map((key) => (
+            <line key={key} x1={PAD.left} x2={PAD.left + inner} y1={BASE - (key === "cpu" ? 1 : 3)} y2={BASE - (key === "cpu" ? 1 : 3)} stroke={PULSE_SERIES[key]} strokeOpacity={0.45} strokeWidth={2} strokeLinecap="round" />
+          ))}
           {ready && (
             <g clipPath={`url(#${clip})`}>
               <g ref={slide}>
@@ -145,7 +151,8 @@ export function PulseChart({ samples, lag, empty, compact = false }: { samples: 
             </g>
           )}
         </svg>
-        {!ready && <p className="absolute inset-x-0 top-1/2 -translate-y-1/2 px-10 text-center text-13 font-medium text-ink-3" style={{ marginTop: -PAD.bottom / 2 }}>{empty ?? "reading cpu and memory"}</p>}
+        {sleeping && <span className="pointer-events-none absolute inset-0 grid place-items-center" style={{ paddingLeft: PAD.left, paddingBottom: PAD.bottom }} aria-hidden><Mascot color="silver" size={compact ? 34 : 44} state="sleeping" /></span>}
+        {!ready && !sleeping && <p className="absolute inset-x-0 top-1/2 -translate-y-1/2 px-10 text-center text-13 font-medium text-ink-3" style={{ marginTop: -PAD.bottom / 2 }}>{empty ?? "reading cpu and memory"}</p>}
       </div>
     </div>
   );

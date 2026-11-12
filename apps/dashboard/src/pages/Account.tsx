@@ -1,3 +1,4 @@
+import { Avatar } from "../ui/Avatar";
 import type { DeletionBlocker } from "../../../../shared/billing-api";
 import { useEffect, useState } from "react";
 import { Globe, Monitor, Smartphone } from "@/icons";
@@ -95,7 +96,7 @@ export function AccountPage() {
       <SectionTitle id="profile-title">profile</SectionTitle>
       <div className="">
         <div className="flex min-w-0 items-center gap-3 py-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-card-2 text-14 font-medium uppercase text-ink-2" aria-hidden>{displayName.slice(0, 1)}</span>
+          <Avatar name={displayName} email={profile.email} photo={profile.avatarUrl} size={40} />
           <div className="min-w-0 flex-1"><p className="truncate text-14 font-medium text-ink">{displayName}</p><p className="truncate text-13 text-ink-3">{profile.email}</p></div>
           {!editing && <Button size="sm" variant="ghost" className="-me-3.5" onClick={() => { setName(profile.name ?? ""); setProfileError(null); setEditing(true); }}>edit name</Button>}
         </div>
