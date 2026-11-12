@@ -96,11 +96,13 @@ describe("Dusk keeps an eye on the day, hidden from the sidebar", () => {
   });
 
   it("with nothing connected yet, a check reads nothing and starts no turn", async () => {
+    // reads the server made on its own before this (address, calendars, the next minute's meetings) happened while connected
+    const seen = apps.calls.length;
     apps.connected = { gmail: false, googlecalendar: false };
     const run = await settled((await runNow()).id);
     expect(run).toMatchObject({ status: "completed", report: { state: "quiet" } });
     expect(run.threadId).toBeUndefined();
-    expect(apps.calls).toEqual([]);
+    expect(apps.calls.slice(seen)).toEqual([]);
     apps.connected = { gmail: true, googlecalendar: true };
   });
 
