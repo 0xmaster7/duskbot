@@ -180,6 +180,8 @@ win:
 
 nsis:
   differentialPackage: false
+  # build/installerSidebar.bmp, uninstallerSidebar.bmp and installerHeader.bmp (node build/art/render.mjs) are picked up
+  # by name, but electron-builder 26 shows them only on the assisted installer's pages; oneClick never draws them
   oneClick: true
   perMachine: false
   shortcutName: Dusk Bot

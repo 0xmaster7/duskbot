@@ -10,7 +10,7 @@ export function CrashSky() {
   return (
     <main className="grid min-h-[100dvh] place-items-center bg-bg px-6 py-14 text-center">
       <div className="flex max-w-[44ch] flex-col items-center">
-        <svg viewBox={`0 0 ${goo.G} ${goo.G}`} width={112} height={112} aria-hidden="true" shapeRendering="crispEdges" className="rotate-[8deg]">
+        <svg viewBox={`0 0 ${goo.G} ${goo.G}`} width={112} height={112} aria-hidden="true" shapeRendering="crispEdges">
           <path d={goo.body} fill={BOT_COLOURS.orange} />
           <path d={goo.eyes} fill="#ffffff" />
         </svg>
