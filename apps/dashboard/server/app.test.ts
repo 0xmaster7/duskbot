@@ -418,6 +418,10 @@ describe("hosted dashboard service", () => {
     expect(fallback.headers.get("content-security-policy")).toContain("script-src 'self'; ");
     expect(fallback.headers.get("x-frame-options")).toBe("DENY");
     expect(fallback.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(fallback.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+    const head = await page("/claim", undefined, undefined, "HEAD");
+    expect(head.status).toBe(200);
+    expect(head.headers.get("content-type")).toContain("text/html");
     expect(fallback.headers.get("cache-control")).toBe("no-cache");
     mkdirSync(`${staticDir}/assets`);
     writeFileSync(`${staticDir}/assets/app.js`, "document.title = 'fixture';");
