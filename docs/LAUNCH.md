@@ -139,9 +139,60 @@ and redirect (app to `/dashboard`, dev home, www to the apex); old `/app/...` an
   same origin, rate limited, forwarded through the same scrubber), the desktop app (main process, page and child
   process crashes), the bundled server (inherits the DSN only while the person keeps reports on), the phone app
   (`DUSK_ERROR_DSN` at build time). Without a DSN every one of them sends nothing.
-- `deploy/monitor/uptime-check.sh` + `dusk-uptime.{service,timer}`: every minute checks https://dusk.bot/,
-  /install.sh, https://dusk.bot/v1/health and https://link.dusk.bot/healthz; mails the operator through Resend
-  after three misses and again on recovery.
+- Owner alert emails ("something's wrong"), see **Alerts** below: downtime from the Oracle box, and every server
+  error, crash, failed email, database write failure, cloud `ALERT` line and client error, grouped and throttled.
+
+### Alerts
+
+What sends an email, to `DUSK_ALERT_EMAILS` (empty: `DUSK_ADMIN_EMAILS`), all lowercase, in the shared email layout:
+
+| Trigger | Where it comes from |
+| --- | --- |
+| a site, dashboard, API, waitlist-count, installer or link check fails twice in a row, from outside | `deploy/monitor/uptime-check.mjs` on the Oracle box, every minute |
+| a TLS certificate of dusk.bot, preview.dusk.bot or link.dusk.bot has under 14 days left | same, hourly |
+| any 5xx answer (thrown errors with their stack, and the billing routes' own 500s, webhooks included) | `apps/dashboard/server/app.ts` |
+| the site behind dusk.bot stops answering the proxy (502) | same, as `SiteUpstreamDown` |
+| an uncaught exception or unhandled rejection that kills the service | spooled to `<data>/incident-spool`, mailed by the next start |
+| MongoDB state writes failing (checked every 30 s) | `incidents/process.ts` |
+| any `console.error` line, and `console.warn` lines with `ALERT` or a failure in them: failed emails, lease renewal failures, cloud setup, restore, backup, cost-ceiling and machine `ALERT` lines, the billing duplicate-subscription `ALERT` | console tap in `incidents/process.ts` |
+| a page error on the dashboard or /admin, or an error in the desktop app's page or main process | `POST /v1/errors` |
+
+Throttle rules (`RULES` in `apps/dashboard/server/incidents/index.ts`):
+
+- One problem is one fingerprint: source + error name + newest frame in our code (no line number, no bundle hash) +
+  route with ids folded; a line without a stack uses its text with numbers removed.
+- A new fingerprint is mailed within about 20 seconds; new ones in the same window share one email.
+- Repeats of a mailed fingerprint go into a "still happening" digest, at most one every 15 minutes, with counts.
+- A fingerprint quiet for 24 hours that comes back is new again. A restart loads the last day, so it re-mails nothing.
+- At most 12 alert emails an hour. Client fingerprints: at most 3 mailed fast an hour, at most 100 new ones an hour
+  (the rest fold into one `TooManyClientErrors` incident); `/v1/errors` takes 60 reports an hour per address and
+  16 KB each.
+- A daily summary at 08:00 UTC when anything happened the day before.
+- A failed alert email is retried every minute for an hour (`DUSK_RESEND_API_KEY` adds a second sender). The
+  Oracle checker keeps a failed email in its state file and retries it each run for a day.
+- Uptime: down after 2 misses, a reminder every 3 hours while down, one "back up" email with the downtime. When the
+  Oracle box cannot reach the internet either, it sends nothing.
+
+Privacy: messages are masked before they are stored or mailed (secrets, bearer tokens, sign-in codes, query strings,
+connection strings; emails become `si***@gmail.com`). Client text gets the stronger scrub of `error-report.mjs`, and
+the desktop app scrubs on the device before sending, without its token or cookies, only while `errorReports` is on.
+
+Incidents live in MongoDB `incidents` (one document per fingerprint, TTL 30 days after last seen). Owner-only routes:
+`GET /v1/admin/incidents?limit=50&before=<lastSeen ms>&source=<source>` (newest first, `next` is the keyset cursor),
+`POST /v1/admin/incidents/test`, `POST /v1/admin/incidents/<id>/mute` with `{"hours": 24}` (0 unmutes).
+
+Silence or test:
+
+- Mute one problem: the mute route above. Stop all service emails: `DUSK_ALERTS=off` and restart.
+- Stop uptime emails: `sudo systemctl disable --now dusk-uptime.timer` on the Oracle box.
+- Test a server alert: `POST /v1/admin/incidents/test` as an admin, or on the VPS
+  `systemctl kill -s USR2 dusk-account-prod` (`dusk-account` for preview).
+- Test a client alert: `curl -X POST https://dusk.bot/v1/errors -H 'content-type: application/json'
+  -d '{"source":"web","type":"TestClientError","message":"a test","path":"/dashboard"}'`.
+- Test downtime: on the Oracle box, run `sudo systemd-run --wait --pipe -p EnvironmentFile=/etc/dusk-uptime.env
+  -E DUSK_UPTIME_STATE=/tmp/uptime-test -E DUSK_UPTIME_TLS= -E DUSK_UPTIME_TARGETS=test=https://dead.invalid/
+  /usr/bin/node /opt/dusk-uptime/uptime-check.mjs` twice (down email), then once more with
+  `DUSK_UPTIME_TARGETS=test=https://dusk.bot/` (back up email).
 
 ### Owner
 
@@ -155,11 +206,13 @@ and redirect (app to `/dashboard`, dev home, www to the apex); old `/app/...` an
    writes `"duskbot": { "errorDsn": "<dsn>" }` into package.json before packaging. Until then desktop builds send
    nothing.
 4. Phone builds: build with `DUSK_ERROR_DSN=<dsn> pnpm mobile:build` once the privacy label says so.
-5. **Uptime**: on the Oracle VPS (it watches the Contabo box from outside):
-   `install -D -m 0755 deploy/monitor/uptime-check.sh /opt/dusk-uptime/uptime-check.sh`, write `/etc/dusk-uptime.env`
-   (0600: `DUSK_RESEND_API_KEY`, `DUSK_ALERT_TO`, `DUSK_ALERT_FROM`), copy the two units to `/etc/systemd/system/`,
-   `systemctl enable --now dusk-uptime.timer`. Needs `node` and `curl` there. Or use UptimeRobot's free plan with
-   the same four URLs.
+5. **Uptime** (installed on the Oracle VPS 2026-11-12; it watches the Contabo box from outside). To reinstall:
+   `install -D -m 0755 deploy/monitor/uptime-check.mjs /opt/dusk-uptime/uptime-check.mjs`,
+   `install -m 0644 apps/dashboard/server/email/layout.ts /opt/dusk-uptime/layout.ts`, write `/etc/dusk-uptime.env`
+   (root, 0600: `DUSK_BREVO_API_KEY`, `DUSK_ALERT_TO`, `DUSK_ALERT_FROM`, optional `DUSK_RESEND_API_KEY`), copy the
+   two units to `/etc/systemd/system/`, `systemctl enable --now dusk-uptime.timer`. Needs Node 23.6 or newer.
+6. **Desktop error reports** now reach `POST /v1/errors` from packaged builds while the `errorReports` preference is
+   on (it defaults to on and has no Settings switch yet): add the switch and a privacy-policy line before launch.
 
 ## 4. Legal and trust
 
