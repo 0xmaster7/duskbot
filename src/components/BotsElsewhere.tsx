@@ -156,8 +156,6 @@ export function PlacesHub({ places, counts, lit, opening = null, failed = null, 
                 )}
               </Fragment>
             ))}
-          </div>
-          <div data-settings-rows="" className={cn(SIMPLE_CARD, "mt-3 p-1.5")}>
             <CloudMoveRow otherwise={getCloud
               ? <NavRow data-settings-open="get-cloud" pixel="cloud" title={t("settings.docs.ws.getCloud")} hint={t("settings.docs.ws.getCloudHint")} onClick={getCloud} />
               : null} />
