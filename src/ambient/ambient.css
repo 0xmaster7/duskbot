@@ -73,9 +73,9 @@
    snapping is left out: Chromium re-snaps it to a later row as the panel opens) */
 .amb-strip-wrap { position: relative; }
 .amb-strip {
-  --amb-cell-w: 48px; --amb-cell-h: 64px; --amb-strip-gap: 4px;
-  display: flex; flex-wrap: wrap; justify-content: center; gap: var(--amb-strip-gap) 2px; margin: 0; padding: 4px; list-style: none;
-  box-sizing: border-box; max-height: calc(4 * var(--amb-cell-h) + 3 * var(--amb-strip-gap) + 8px); overflow-x: hidden; overflow-y: auto;
+  --amb-cell-w: 48px; --amb-cell-h: 64px; --amb-strip-gap: 12px;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: var(--amb-strip-gap) 6px; margin: 0; padding: 6px 4px; list-style: none;
+  box-sizing: border-box; max-height: calc(4 * var(--amb-cell-h) + 3 * var(--amb-strip-gap) + 12px); overflow-x: hidden; overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin; scrollbar-color: rgb(245 245 245 / 0.18) transparent;
 }
