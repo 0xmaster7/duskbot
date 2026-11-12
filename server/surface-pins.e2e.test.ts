@@ -1,7 +1,6 @@
 // A restartable fixture home lets tests seed bots.json between boots: the sourceless pin shapes only exist on disk.
 import { spawn, type ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { createServer, type Server } from "node:http";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -20,16 +19,15 @@ describe("surface pin provenance against the real server", () => {
   let ui = "";
   let stateFile = "";
   let dumpFile = "";
+  let vpsStateFile = "";
   let finishFile = "";
   let cuaDescriptor = "";
   let inertBrowser = "";
   let output = "";
   let child: ChildProcess | null = null;
   let base = "";
-  let retiredServer: Server;
-  let retiredDown = false;
-
   const vmState = (state: Record<string, unknown> = {}) => writeFileAtomic(stateFile, JSON.stringify(state));
+  const vpsState = (state: Record<string, unknown> = {}) => writeFileAtomic(vpsStateFile, JSON.stringify(state));
   const resetTurn = () => { vmState(); rmSync(dumpFile, { force: true }); rmSync(finishFile, { force: true }); };
   const api = async (method: string, path: string, body?: unknown) => {
     const response = await fetch(base + path, {
@@ -86,7 +84,7 @@ describe("surface pin provenance against the real server", () => {
         HOME: home, USERPROFILE: home, DUSK_DATA_DIR: data,
         APPDATA: join(home, "appdata"), LOCALAPPDATA: join(home, "localappdata"),
         TEMP: home, TMP: home, TMPDIR: home,
-        DUSK_PORT: String(port), DUSK_WEBHOOK_PORT: String(port + 1), DUSK_STATIC_DIR: ui, DUSK_TEST_VM_STATE: stateFile,
+        DUSK_PORT: String(port), DUSK_WEBHOOK_PORT: String(port + 1), DUSK_STATIC_DIR: ui, DUSK_TEST_VM_STATE: stateFile, DUSK_TEST_VPS_STATE: vpsStateFile,
         DUSK_USER_DATA: join(home, "user-data"), DUSK_TEST_DESKTOP_CUA_CONNECTION: cuaDescriptor,
         ...(withBrowser ? { DUSK_AGENT_BROWSER_PATH: inertBrowser, AGENT_BROWSER_EXECUTABLE_PATH: inertBrowser } : {}),
       }, stdio: ["ignore", "pipe", "pipe"],
@@ -118,35 +116,30 @@ describe("surface pin provenance against the real server", () => {
     ui = join(home, "static");
     stateFile = join(home, "vm.json");
     dumpFile = join(home, "dump.json");
+    vpsStateFile = join(home, "vps.json");
     finishFile = join(home, "finish");
     cuaDescriptor = join(home, "user-data", "cua-connection.json");
     inertBrowser = join(home, "agent-browser");
     writeFileSync(inertBrowser, "#!/bin/sh\nexit 0\n", { mode: 0o755 });
     vmState();
+    vpsState();
     mkdirSync(data);
+    // an existing shared desktop home is what lets Auto find the fake Local VM at boot
+    mkdirSync(join(data, "vm-home"));
     mkdirSync(join(ui, "assets"), { recursive: true });
     writeFileSync(join(ui, "index.html"), "<title>Surface pins</title>");
     writeFileSync(join(ui, "assets", "test.css"), "body{}");
-    retiredServer = createServer(async (req, res) => {
-      res.setHeader("content-type", "application/json");
-      const path = new URL(req.url ?? "/", "http://box.fixture").pathname;
-      if (retiredDown && path.startsWith("/sandboxes")) { res.statusCode = 503; return res.end(JSON.stringify({ error: "Fixture retired desktop provider unavailable" })); }
-      if (path === "/sandboxes") return res.end(JSON.stringify({ sandboxes: [] }));
-      return res.end("{}");
-    });
-    await new Promise<void>(resolve => retiredServer.listen(0, "127.0.0.1", resolve));
     writeFileSync(join(data, "config.json"), JSON.stringify({ instances: { claude: {
       driver: "claudeAgent", config: { cli: join(ROOT, "server/testing/fake-claude-cli.ts") },
-      // the first computer call is what reaches the retired desktop provider, as with a real model.
+      // the first computer call is what reaches the VPS computer, as with a real model.
       environment: { FAKE_CLAUDE_MODE: "slow", FAKE_CLAUDE_DUMP: dumpFile, FAKE_CLAUDE_SLOW_FINISH_GATE: finishFile, FAKE_CLAUDE_USES_CLOUD_COMPUTER: "1" },
     } } }));
   });
   afterAll(async () => {
     await stop();
-    if (retiredServer) await new Promise<void>(resolve => retiredServer.close(() => resolve()));
     if (home) await removeTempDir(home);
   });
-  afterEach(async () => { await stop(); resetTurn(); retiredDown = false; });
+  afterEach(async () => { await stop(); resetTurn(); vpsState(); });
 
   it("marks a person's thread pin as theirs and clears provenance with the pin", async () => {
     await start();
@@ -390,7 +383,7 @@ describe("surface pin provenance against the real server", () => {
     await start();
     const { bot } = await apiOk("POST", "/api/bots", { name: "Failed place bot" });
     const { task } = await apiOk("POST", `/api/bots/${bot.id}/tasks`, {});
-    await apiOk("PUT", "/api/config", { box: { token: "box_fixture" } });
+    await apiOk("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", mode: "per-bot" } });
     const lastRow = async () => {
       const { messages } = await apiOk("GET", `/api/threads/${task.threadId}/messages?limit=30`);
       return String(messages.filter((message: any) => message.kind !== "digest").at(-1)?.tool?.name ?? "");
@@ -402,11 +395,11 @@ describe("surface pin provenance against the real server", () => {
     const selected = await fetch(base + "/api/internal/computer/select", { method: "POST",
       headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ surface: "cloud" }) });
     expect(await selected.json()).toMatchObject({ status: "pending", surface: "cloud" });
-    retiredDown = true;
+    vpsState({ unreachable: "the fixture VPS does not answer" });
     writeFileSync(finishFile, "finish");
     await until(() => lastRow(), row => row.startsWith("error:"));
     await idle(bot.id, task.threadId);
-    expect(await lastRow()).toBe("error: Cloud desktops can't start right now. It isn't anything you did. This conversation is back on Auto. Send your message again.");
+    expect(await lastRow()).toBe("error: The fixture VPS does not answer. This conversation is back on Auto. Send your message again.");
     const cleared = savedTask(bot.id, task.threadId)!;
     expect(cleared.surface).toBeUndefined();
     expect(cleared.surfaceSource).toBeUndefined();
@@ -423,9 +416,8 @@ describe("surface pin provenance against the real server", () => {
     await apiOk("POST", `/api/bots/${bot.id}/messages`, { text: "Use the cloud computer.", threadId: task.threadId });
     await until(() => lastRow(), row => row.startsWith("error:"));
     await idle(bot.id, task.threadId);
-    expect(await lastRow()).toBe("error: Cloud desktops can't start right now. It isn't anything you did. Clear this conversation's place in the composer to continue.");
+    expect(await lastRow()).toBe("error: The fixture VPS does not answer. Clear this conversation's place in the composer to continue.");
     expect(savedTask(bot.id, task.threadId)).toMatchObject({ surface: "cloud", surfaceSource: "user" });
-    retiredDown = false;
     await apiOk("DELETE", `/api/bots/${bot.id}`);
     await stop();
   });
@@ -435,7 +427,7 @@ describe("surface pin provenance against the real server", () => {
     const { bot } = await apiOk("POST", "/api/bots", { name: "Relayed place bot" });
     // An Ask thread, as a Slack relay's guarded send expects.
     const { task } = await apiOk("POST", `/api/bots/${bot.id}/tasks`, { approvalMode: "ask" });
-    await apiOk("PUT", "/api/config", { box: { token: "box_fixture" } });
+    await apiOk("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", mode: "per-bot" } });
     const lastRow = async () => {
       const { messages } = await apiOk("GET", `/api/threads/${task.threadId}/messages?limit=30`);
       return String(messages.filter((message: any) => message.kind !== "digest").at(-1)?.tool?.name ?? "");
@@ -449,12 +441,11 @@ describe("surface pin provenance against the real server", () => {
     const selected = await fetch(base + "/api/internal/computer/select", { method: "POST",
       headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ surface: "cloud" }) });
     expect(await selected.json()).toMatchObject({ status: "pending", surface: "cloud" });
-    retiredDown = true;
+    vpsState({ unreachable: "the fixture VPS does not answer" });
     writeFileSync(finishFile, "finish");
     await until(() => lastRow(), row => row.startsWith("error:"));
     await idle(bot.id, task.threadId);
     expect(savedTask(bot.id, task.threadId)).not.toHaveProperty("askedAt");
-    retiredDown = false;
     await apiOk("DELETE", `/api/bots/${bot.id}`);
     await stop();
   });

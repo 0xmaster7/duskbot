@@ -18,11 +18,13 @@ export async function vpsComputerStatus(cfg, ownerId) {
   const state = read();
   const alias = cfg.vps?.sshAlias || null;
   const container = state.containers?.[ownerId] ?? 'missing';
-  const ready = Boolean(alias) && container === 'running';
+  // unreachable: the VPS answers no ssh, so its desktop can be neither inspected nor started
+  const reachable = Boolean(alias) && !state.unreachable;
+  const ready = reachable && container === 'running';
   return {
-    configured: Boolean(alias), sshAlias: alias, desktop: 'cua', daemonUp: Boolean(alias), image: true, imageMatches: true,
+    configured: Boolean(alias), sshAlias: alias, desktop: 'cua', daemonUp: reachable, image: true, imageMatches: true,
     managed: container !== 'missing', container, network: 'private', mounts: 'none', security: 'hardened',
-    desktopReady: ready, desktop_error: null, ready, problem: ready ? null : 'Fixture VPS computer is not running',
+    desktopReady: ready, desktop_error: null, ready, problem: ready ? null : state.unreachable || 'Fixture VPS computer is not running',
     container_name: vpsContainerName(ownerId), container_id: container === 'missing' ? null : createHash('sha256').update(ownerId).digest('hex'),
     image_id: 'sha256:fixture-image', image_ref: 'fixture-desktop', base_image_ref: 'fixture-base', driver_version: 'fixture',
   };
@@ -31,6 +33,7 @@ export async function vpsComputerStatus(cfg, ownerId) {
 export async function vpsComputerAction(action, cfg, ownerId) {
   const before = await vpsComputerStatus(cfg, ownerId);
   if (!before.configured) throw new Error('Connect a VPS first');
+  if (!before.daemonUp) throw new Error(before.problem);
   if (action === 'provision' && before.ready) return before;
   const state = read();
   const operation = action === 'provision' ? before.container === 'missing' ? 'create' : 'start' : action;

@@ -4,9 +4,10 @@
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { afterAll, beforeAll, expect, it } from "vitest";
 
+import { createTeamVpsFixture } from "../scripts/testing/team-vps-fixture.ts";
 import { launchCloudSendFixture, type CloudSendFixture, type CloudTeamFixture } from "../scripts/testing/cloud-send-fixture.ts";
 import { TEAM_POLICY_ADMIN_PATH, teamPolicyFingerprint } from "./cloud-team-policy.ts";
 import { startBrokerFake, type BrokerFake } from "./testing/broker-fake.ts";
@@ -23,6 +24,7 @@ const ORDERS = { name: "lookup_order", server: "orders", input: {} };
 const GMAIL = { name: "COMPOSIO_MULTI_EXECUTE_TOOL", server: "composio", input: { tools: [{ tool_slug: "GMAIL_FETCH_EMAILS", arguments: { max_results: 1 } }] } };
 
 let adminServer: Server, relay: Server, gateway: FakeHttpMcp, broker: BrokerFake, fx: CloudSendFixture, team: CloudTeamFixture;
+let vps: Awaited<ReturnType<typeof createTeamVpsFixture>>;
 let owner = "", botId = "", teamUser = "";
 let answer: unknown = { policy: null }, version = 0;
 const reports: { loaded: { fingerprint: string } | null }[] = [];
@@ -94,8 +96,10 @@ beforeAll(async () => {
   await new Promise<void>((resolve) => relay.listen(0, "127.0.0.1", resolve));
   gateway = await startFakeHttpMcp({ tools: [{ name: "lookup_order", inputSchema: { type: "object", properties: {} } }], callResult: () => ({ content: [{ type: "text", text: "order 7 shipped" }] }) });
   broker = await startBrokerFake();
+  vps = await createTeamVpsFixture();
   fx = await launchCloudSendFixture({ onePasswordToken: "ops_fake-running-turn", broker, team: { id: "team-acme-1", name: "Acme", engine: ENGINE, env: {
-    DUSK_BOT_BOX: "0", FIXTURE_ADMIN_STAND_IN: `http://127.0.0.1:${(adminServer.address() as AddressInfo).port}`,
+    FIXTURE_ADMIN_STAND_IN: `http://127.0.0.1:${(adminServer.address() as AddressInfo).port}`,
+    DUSK_EXTRA_PATH: [vps.localVm.binDir].join(delimiter), CONTAINER_HOST: vps.localVm.host, CONTAINER_SSHKEY: vps.localVm.sshKey,
   } } });
   team = fx.team!;
   writeFileSync(join(team.home, "reply.txt"), FINISHED);
@@ -112,6 +116,7 @@ afterAll(async () => {
   await fx?.close();
   await gateway?.close();
   await broker?.close();
+  await vps?.close();
   await new Promise((resolve) => adminServer?.close(resolve));
   await new Promise((resolve) => relay?.close(resolve));
 });
@@ -175,10 +180,12 @@ it("a connected-app tool is refused from the moment the rule lands, mid-turn, an
 }, hostTimeout(120_000));
 
 it("a computer it has not claimed yet is refused from the moment the rule lands: the turn stops there, in the rule's words", async () => {
-  const refusal = "Acme does not allow bots to use cloud computers. Ask a team admin.";
+  const refusal = "Acme does not allow bots to use VPS computers. Ask a team admin.";
+  const connected = await team.as(owner, "PUT", "/api/config", { vps: { sshAlias: "fixture-vps" } });
+  expect(connected.status, JSON.stringify(connected.body)).toBeLessThan(400);
   expect((await team.as(owner, "PATCH", `/api/bots/${botId}`, { computer: "cloud" })).status).toBe(200);
   try {
-    const { launched, words } = await ruleLandsMidTurn({ allowedComputers: ["vps"] }, [WAIT, { name: "screenshot", server: "computer", input: {} }], "uses a computer", { ended: refusal });
+    const { launched, words } = await ruleLandsMidTurn({ allowedComputers: ["memberComputer"] }, [WAIT, { name: "screenshot", server: "computer", input: {} }], "uses a computer", { ended: refusal });
     expect(Object.keys(launched.mcpConfig?.mcpServers ?? {})).toContain("computer");
     expect(words).not.toMatch(/didn't start/);
     expect(words).not.toContain(FINISHED);
