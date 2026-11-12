@@ -3,7 +3,7 @@ import { EventEmitter } from "node:events";
 import test from "node:test";
 import { createUserPresence } from "./user-presence.mjs";
 import {
-  AVAILABILITY, RESULT, VERIFICATION_OPERATION_IID, WINDOWS_HELLO_SCRIPT, encodedCommand, helloOutcome, parseHelloOutput,
+  AVAILABILITY, INTEROP_IID, RESULT, STATICS_IID, VERIFICATION_OPERATION_IID, WINDOWS_HELLO_SCRIPT, encodedCommand, helloOutcome, parseHelloOutput,
   runWindowsHello, windowHandleText, windowsPowerShell, winrtPinterfaceIid,
 } from "./windows-hello.mjs";
 
@@ -31,6 +31,10 @@ test("WinRT parameterized IIDs match the ones Windows publishes", () => {
   assert.equal(winrtPinterfaceIid("pinterface({9fc2b0bb-e446-44e2-aa61-9cab8f636af2};string)"), "3e1fe603-f897-5263-b328-0806426b8a79");
   assert.match(VERIFICATION_OPERATION_IID, /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   assert.ok(WINDOWS_HELLO_SCRIPT.includes(VERIFICATION_OPERATION_IID));
+  // the Windows SDK's IUserConsentVerifierStatics and IUserConsentVerifierInterop
+  assert.equal(STATICS_IID, "af4f3f91-564c-4ddc-b8b5-973447627c65");
+  assert.equal(INTEROP_IID, "39e050c3-4e74-441a-8dc0-b81104df949c");
+  for (const iid of [STATICS_IID, INTEROP_IID]) assert.ok(WINDOWS_HELLO_SCRIPT.includes(iid));
 });
 
 test("the helper script carries no input and fits a Windows command line", () => {

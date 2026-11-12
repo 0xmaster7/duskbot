@@ -22,6 +22,10 @@ export function winrtPinterfaceIid(signature) {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
+// windows.security.credentials.ui.idl and userconsentverifierinterop.h (Windows SDK 10.0.22000+).
+export const STATICS_IID = "af4f3f91-564c-4ddc-b8b5-973447627c65";
+export const INTEROP_IID = "39e050c3-4e74-441a-8dc0-b81104df949c";
+
 /** IAsyncOperation<UserConsentVerificationResult>, the riid RequestVerificationForWindowAsync is asked for. */
 export const VERIFICATION_OPERATION_IID = winrtPinterfaceIid(`pinterface({${IASYNC_OPERATION}};enum(Windows.Security.Credentials.UI.UserConsentVerificationResult;i4))`);
 
@@ -71,7 +75,7 @@ public static class DuskHello {
     } finally { Marshal.Release(info); }
   }
   static void Work(string mode, long hwnd, string message) {
-    IntPtr statics = Factory("AF4F3F91-564C-4DDC-B8B8-973447627C8C", "statics");
+    IntPtr statics = Factory("${STATICS_IID}", "statics");
     try {
       IntPtr check; Ok(Slot<OutPtr>(statics, 6)(statics, out check), "availability");
       int availability;
@@ -82,7 +86,7 @@ public static class DuskHello {
       try {
         IntPtr op = IntPtr.Zero;
         try {
-          IntPtr interop = Factory("39E050C3-4E74-441A-8DC0-B81104DF949C", "interop");
+          IntPtr interop = Factory("${INTEROP_IID}", "interop");
           try { Guid riid = new Guid("${VERIFICATION_OPERATION_IID}"); Ok(Slot<ForWindow>(interop, 6)(interop, new IntPtr(hwnd), text, ref riid, out op), "interop-call"); }
           finally { Marshal.Release(interop); }
           Emit("parented=1");
