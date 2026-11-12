@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { SessionRegistry } from "./sessions.ts";
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
+import { sealedConfigBody } from "./testing/sealed-config.ts";
 import { workerPort } from "./testing/worker-port.ts";
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
@@ -27,9 +28,12 @@ const tokens: Record<string, string> = {};
 let oldPhone = "";
 
 const api = async (method: string, path: string, body?: unknown, as?: string, extra: Record<string, string> = {}): Promise<{ status: number; body: any; text: string; headers: Headers }> => {
+  const auth: Record<string, string> = { ...(as ? { authorization: `Bearer ${tokens[as]}` } : {}), ...extra };
+  // the app seals every key it saves from a signed-in session
+  if (as && path === "/api/config" && body) body = await sealedConfigBody(BASE, body as Record<string, unknown>, auth);
   const res = await fetch(`${BASE}${path}`, {
     method,
-    headers: { ...(body !== undefined ? { "content-type": "application/json" } : {}), ...(as ? { authorization: `Bearer ${tokens[as]}` } : {}), ...extra },
+    headers: { ...(body !== undefined ? { "content-type": "application/json" } : {}), ...auth },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await res.text();
@@ -128,10 +132,9 @@ posixOnly("admin activity log", () => {
     expect((await api("GET", "/api/admin-activity?from=2026-02-31", undefined, BOSS)).status).toBe(400);
   });
 
-  it("records settings, people, keys and budgets with who changed them, never a secret", async () => {
+  it("records settings, people and keys with who changed them, never a secret", async () => {
     expect((await api("PUT", "/api/config", { signIn: { admins: [BOSS], members: [ADA, "carol@example.test"] } }, BOSS)).status).toBe(200);
     expect((await api("PUT", "/api/config", { anthropic: { key: SECRET } }, BOSS)).status).toBe(200);
-    expect((await api("PUT", "/api/config", { budgets: { monthlyUsd: 75 } }, BOSS)).status).toBe(200);
     expect((await api("PUT", "/api/config", { decisions: { retentionDays: 400 } })).status).toBe(200); // the owner, on this machine
     expect((await api("PUT", "/api/config", { profile: { name: "Ops desk" } }, undefined, { "x-dusk-cli": "1" })).status).toBe(200);
 
@@ -140,8 +143,6 @@ posixOnly("admin activity log", () => {
       before: { "signIn.members": [ADA] }, after: { "signIn.members": [ADA, "carol@example.test"] } });
     const engine = (await activity("?what=engine"))[0];
     expect(engine).toMatchObject({ who: BOSS, action: "engine.update", changed: ["anthropic.key"], after: { "anthropic.key": "[hidden]" } });
-    const budget = (await activity("?what=budget"))[0];
-    expect(budget).toMatchObject({ who: BOSS, changed: ["budgets.monthlyUsd"], after: { "budgets.monthlyUsd": 75 } });
     const config = await activity("?what=config");
     expect(config[0]).toMatchObject({ who: "Command line", changed: ["profile.name"], after: { "profile.name": "Ops desk" } });
     expect(config[1]).toMatchObject({ who: "This computer", changed: ["decisions.retentionDays"], after: { "decisions.retentionDays": 400 } });

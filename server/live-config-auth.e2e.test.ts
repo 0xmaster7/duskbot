@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { launchVerificationServer } from "../scripts/control-dusk.ts";
 import type { LiveSettings } from "../shared/wire.ts";
+import { sealedConfigBody } from "./testing/sealed-config.ts";
 
 describe("Live credential config authorization", () => {
   it("refuses paired client replacement and clearing while preserving owner/admin settings writes", async () => {
@@ -37,7 +38,8 @@ describe("Live credential config authorization", () => {
       expect((await api("GET", "/api/auth/session", undefined, client)).body.scopes).toEqual(["client"]);
 
       expect((await api("PATCH", "/api/config", { live: { key: "fixture-live-owner" } })).status).toBe(200);
-      expect((await api("PUT", "/api/config", { live: { key: "fixture-live-admin" } }, admin)).status).toBe(200);
+      expect(await api("PUT", "/api/config", { live: { key: "fixture-live-admin" } }, admin)).toMatchObject({ status: 400, body: { code: "seal_required" } });
+      expect((await api("PUT", "/api/config", await sealedConfigBody(fixture.info.url, { live: { key: "fixture-live-admin" } }, admin), admin)).status).toBe(200);
       expect(persistedLive()?.key).toBe("fixture-live-admin");
       const before = readFileSync(join(fixture.info.dataDir, "config.json"), "utf8");
       for (const method of ["PUT", "PATCH"]) {

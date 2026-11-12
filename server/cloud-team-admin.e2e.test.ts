@@ -11,6 +11,7 @@ import { cloudPairingSignature, cloudRequestSignature } from "./cloud-home.ts";
 import { CLOUD_TEAM_ADMIN_PATH } from "./cloud-team-admin.ts";
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 import { freePortBlock } from "./testing/ports.ts";
+import { sealedConfigBody } from "./testing/sealed-config.ts";
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
 const HOST = "dusk-t-0123456789ab.fly.dev";
@@ -98,7 +99,12 @@ it("an Owner or Admin's paired session (as the Admin holds one) sets a team key 
   const session = async (role: string) => {
     const granted = await signed("POST", "/api/cloud/pairing", JSON.stringify({ label: "Team admin (dusk cloud)", ttlSeconds: 300, team: TEAM, member: { email: `${role}@acme.test`, role } }));
     const token = (await call("POST", "/api/auth/pair", { body: JSON.stringify({ code: granted.body.code }), headers: { "content-type": "application/json" } })).body.token as string;
-    return (method: string, path: string, body?: unknown) => call(method, path, { ...(body === undefined ? {} : { body: JSON.stringify(body) }), headers: { authorization: `Bearer ${token}`, ...(body === undefined ? {} : { "content-type": "application/json" }) } });
+    const auth = { host: HOST, "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https", authorization: `Bearer ${token}` };
+    return async (method: string, path: string, body?: unknown) => {
+      // the app seals every key it saves from a remote client
+      if (path === "/api/config" && body) body = await sealedConfigBody(base, body as Record<string, unknown>, auth);
+      return call(method, path, { ...(body === undefined ? {} : { body: JSON.stringify(body) }), headers: { authorization: auth.authorization, ...(body === undefined ? {} : { "content-type": "application/json" }) } });
+    };
   };
   // Only admins so far: a Team Cloud keeps its admin activity anyway (it is shared by definition).
   const admin = await session("admin");

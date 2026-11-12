@@ -9,6 +9,7 @@ import { spawnWithSecrets } from "./cloud-home-start.ts";
 import { cloudPairingSignature } from "./cloud-home.ts";
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 import { freePortBlock } from "./testing/ports.ts";
+import { sealedConfigBody } from "./testing/sealed-config.ts";
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
 const HOST = "dusk-t-0123456789ab.fly.dev";
@@ -23,14 +24,17 @@ let child: ChildProcess;
 let log = "";
 let owner = "";
 
+const remote = () => ({
+  host: HOST, "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https", origin: `https://${HOST}`,
+  authorization: `Bearer ${owner}`,
+});
+
 async function api(method: string, path: string, body?: unknown) {
+  // the app seals every key it saves from a remote client
+  if (path === "/api/config" && method !== "GET" && body) body = await sealedConfigBody(base, body as Record<string, unknown>, remote());
   const response = await fetch(`${base}${path}`, {
     method,
-    headers: {
-      host: HOST, "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https", origin: `https://${HOST}`,
-      authorization: `Bearer ${owner}`,
-      ...(body === undefined ? {} : { "content-type": "application/json" }),
-    },
+    headers: { ...remote(), ...(body === undefined ? {} : { "content-type": "application/json" }) },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await response.text();
