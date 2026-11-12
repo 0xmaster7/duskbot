@@ -1,6 +1,6 @@
 {
  "/": {
-  "hash": "18fcca6a37f83103",
+  "hash": "06c39f735e40e050",
   "lastmod": "2026-11-13"
  },
  "/download": {
@@ -12,7 +12,7 @@
   "lastmod": "2026-11-12"
  },
  "/pricing": {
-  "hash": "d5b7219b0fdff3a9",
+  "hash": "a7e72da4e465e8d7",
   "lastmod": "2026-11-13"
  },
  "/about": {
@@ -32,8 +32,8 @@
   "lastmod": "2026-11-12"
  },
  "/terms": {
-  "hash": "068e3587ae973111",
-  "lastmod": "2026-11-12"
+  "hash": "0c5a77144e8ae981",
+  "lastmod": "2026-11-13"
  },
  "/privacy": {
   "hash": "3a04c9433539f114",
@@ -44,7 +44,7 @@
   "lastmod": "2026-11-12"
  },
  "/refunds": {
-  "hash": "5fece10f5e735c1b",
+  "hash": "162d8af8008dbb30",
   "lastmod": "2026-11-13"
  },
  "/acceptable-use": {
@@ -68,7 +68,7 @@
   "lastmod": "2026-11-12"
  },
  "/docs/dusk-cloud": {
-  "hash": "6d57d759fc68049e",
+  "hash": "04faacfd1a493deb",
   "lastmod": "2026-11-13"
  },
  "/docs/phone": {
@@ -108,7 +108,7 @@
   "lastmod": "2026-11-12"
  },
  "/docs/account-and-billing": {
-  "hash": "e4a42ba0682f1fe6",
+  "hash": "d8e7f95685f8448b",
   "lastmod": "2026-11-13"
  },
  "/docs/privacy-and-data": {
@@ -140,8 +140,8 @@
   "lastmod": "2026-11-12"
  },
  "/ai-employees": {
-  "hash": "7497ce88b673a7f5",
-  "lastmod": "2026-11-12"
+  "hash": "bb2394b4db8199a8",
+  "lastmod": "2026-11-13"
  },
  "/ai-executive-assistant": {
   "hash": "a88660ef5f34eb5f",
@@ -188,8 +188,8 @@
   "lastmod": "2026-11-12"
  },
  "/alternatives/n8n": {
-  "hash": "71f882264c445b44",
-  "lastmod": "2026-11-12"
+  "hash": "248d526bec172da1",
+  "lastmod": "2026-11-13"
  },
  "/alternatives/openclaw": {
   "hash": "c478c8a90996ff0c",
@@ -216,8 +216,8 @@
   "lastmod": "2026-11-12"
  },
  "/alternatives/sintra": {
-  "hash": "ed594940ab6ba04a",
-  "lastmod": "2026-11-12"
+  "hash": "63b88fe7454d218e",
+  "lastmod": "2026-11-13"
  },
  "/alternatives/zapier-agents": {
   "hash": "96cde63e1335a0a5",
@@ -836,8 +836,8 @@
   "lastmod": "2026-11-12"
  },
  "/tools/always-on-cost": {
-  "hash": "440ebabd0df8ce82",
-  "lastmod": "2026-11-12"
+  "hash": "99592ba9b6600e02",
+  "lastmod": "2026-11-13"
  },
  "/use-cases/competitor-monitoring": {
   "hash": "7fb3a2f9fba282e8",

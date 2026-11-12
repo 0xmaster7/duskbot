@@ -101,7 +101,7 @@
         "label": "cloud entry price",
         "cells": [
           "starter 20 eur/month billed annually, with 2,500 executions",
-          "dusk cloud plus $20/month or $200/year; ai usage separate"
+          "dusk cloud plus $20/month or $220/year; ai usage separate"
         ],
         "src": [
           2,
@@ -112,7 +112,7 @@
         "label": "larger plan",
         "cells": [
           "pro 50 eur/month billed annually, with 10,000 executions",
-          "dusk cloud pro $50/month or $500/year; for heavy workloads"
+          "dusk cloud pro $50/month or $550/year; for heavy workloads"
         ],
         "src": [
           2,
