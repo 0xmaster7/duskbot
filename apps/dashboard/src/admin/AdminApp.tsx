@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowUpRight, ChartNoAxesColumn, ChartNoAxesCombined, ChevronDown, Cloud, CreditCard, Gauge, Globe as GlobeIcon, History, Inbox, LayoutDashboard, Moon, Repeat, Sun, Users } from "@/icons";
+import { ArrowUpRight, ChartNoAxesColumn, ChartNoAxesCombined, ChevronDown, Cloud, CreditCard, Gauge, Globe as GlobeIcon, History, Inbox, LayoutDashboard, Moon, Repeat, Server, Sun, Users } from "@/icons";
 import { setTheme, useTheme } from "../lib/theme";
 import { ButtonLink, cx } from "../ui/kit";
 import { Modal } from "../ui/controls";
@@ -20,6 +20,7 @@ import { CloudsPage } from "./Clouds";
 import { WaitlistPage } from "./Waitlist";
 import { EventsPage } from "./Events";
 import { AuditPage, HealthPage } from "./Health";
+import { OpsPage } from "./Ops";
 import { Loading, Tabs } from "./ui";
 import { AnimatePresence, m, PageIn, ToastStack } from "../ui/motion";
 
@@ -31,6 +32,7 @@ const GROUPS: Array<{ label: string; items: NavItem[] }> = [
     { to: "/admin/live", key: "l", label: "live", icon: <GlobeIcon {...ICON} /> },
     { to: "/admin/people", key: "p", label: "people", icon: <Users {...ICON} />, also: ["/admin/users"] },
     { to: "/admin/revenue", key: "m", label: "revenue", icon: <CreditCard {...ICON} /> },
+    { to: "/admin/ops", key: "x", label: "ops", icon: <Server {...ICON} /> },
   ] },
   { label: "product", items: [
     { to: "/admin/product", key: "i", label: "product", icon: <ChartNoAxesCombined {...ICON} /> },
@@ -62,6 +64,7 @@ function page(path: string): ReactNode {
   if (user) return <UserPage id={decodeURIComponent(user[1]!)} />;
   if (path === "/admin/product" || path.startsWith("/admin/product/")) return <ProductPage path={path} />;
   if (path === "/admin/revenue") return <RevenuePage />;
+  if (path === "/admin/ops") return <OpsPage />;
   if (path === "/admin/retention") return <RetentionPage />;
   if (path === "/admin/waitlist") return <WaitlistPage />;
   if (path === "/admin/clouds") return <CloudsPage />;
