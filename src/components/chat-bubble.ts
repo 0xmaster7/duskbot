@@ -31,6 +31,7 @@ export function grokUserBubbleFill(color: MausColor | undefined): string | undef
   return color ? GROK_BOT_FILLS[color]?.bubble : undefined;
 }
 
+// oxlint-disable-next-line no-misleading-character-class -- zwj, vs16 and keycap are matched one code point at a time on purpose
 const EMOJI_RUN = /^(?:\p{Extended_Pictographic}|\p{Regional_Indicator}|[\u{1F3FB}-\u{1F3FF}\u{E0020}-\u{E007F}\u200d\ufe0f\u20e3\s])+$/u;
 const EMOJI_MAX = 3;
 

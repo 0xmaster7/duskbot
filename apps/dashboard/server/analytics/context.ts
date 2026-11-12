@@ -50,6 +50,7 @@ const label = (value: unknown, max = 60) => {
   if (typeof value !== "string") return undefined;
   let text = value;
   try { text = decodeURIComponent(value); } catch {}
+  // oxlint-disable-next-line no-control-regex -- control characters are what this strips or refuses
   text = text.replace(/[\u0000-\u001f<>"]/g, "").trim().slice(0, max);
   return text || undefined;
 };

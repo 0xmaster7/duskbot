@@ -128,6 +128,7 @@ export function createPagesService(options: {
         if (form.getAll("manifest").length !== 1 || typeof form.get("manifest") !== "string") throw new Error();
         manifest = JSON.parse(form.get("manifest") as string);
       } catch { return failure(400, "invalid_page", "Invalid page manifest."); }
+      // oxlint-disable-next-line no-control-regex -- control characters are what this strips or refuses
       if (!manifest || typeof manifest.title !== "string" || manifest.title.length < 1 || manifest.title.length > 200 || /[\x00-\x1f\x7f-\x9f]/.test(manifest.title) || !Array.isArray(manifest.files) || !manifest.files.length) return failure(400, "invalid_page", "Invalid page manifest.");
       if (manifest.files.length > limits.files) return failure(413, "too_large", "This page has too many files.");
       const files: PageFile[] = [], bodies: Buffer[] = [], paths = new Set<string>();

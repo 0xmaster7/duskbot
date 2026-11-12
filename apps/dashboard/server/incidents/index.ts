@@ -208,6 +208,7 @@ export function createIncidents(options: IncidentsOptions) {
 
   async function retry(): Promise<void> {
     const time = now();
+    // oxlint-disable-next-line no-useless-spread -- a copy, because the loop splices outbox
     for (const job of [...outbox]) {
       if (job.until < time) { outbox.splice(outbox.indexOf(job), 1); log("an alert email was given up after an hour of retries"); continue; }
       if (await deliver(job)) outbox.splice(outbox.indexOf(job), 1);

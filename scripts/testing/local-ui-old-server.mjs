@@ -46,7 +46,7 @@ const server = fixture.info.url;
 const described = await Promise.any(["duskbot", "openmausbot"].map(async (name) => { const response = await fetch(`${server}/.well-known/${name}/environment`); if (!response.ok) throw new Error(); return response.json(); })).catch(() => ({}));
 console.log(`old server ${server} version ${described.version} data ${fixture.info.dataDir}`);
 const api = async (method, route, body) => {
-  const response = await fetch(`${server}${route}`, { method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
+  const response = await fetch(`${server}${route}`, { method, headers: { "content-type": "application/json" }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   const answer = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(`${method} ${route}: ${response.status} ${answer.error ?? ""}`);
   return answer;

@@ -148,7 +148,7 @@ export function sentenceCase(text: string): string {
     if (!ABBREVIATION_BEFORE.test(text.slice(0, at))) starts.push(at);
   }
   for (const start of starts) {
-    const lead = text.slice(start).match(/^[“"'(\[]*/)?.[0].length ?? 0;
+    const lead = text.slice(start).match(/^[“"'([]*/)?.[0].length ?? 0;
     const at = start + lead;
     if (protectedAt(at)) continue;
     const word = text.slice(at).match(/^[a-z][a-z'’]*(?![A-Za-z0-9_@/]|:\S)/)?.[0];

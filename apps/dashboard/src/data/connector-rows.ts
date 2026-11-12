@@ -39,6 +39,7 @@ export const FIXTURE_EXTRAS: ConnectorExtras = {
 
 /** shows an app whose sign-in was started and not finished as needing sign-in, next to the connected ones */
 export function withPending(connections: Record<string, string[]>, pending: Record<string, string[]>, base: ConnectorExtras = {}): { connections: Record<string, string[]>; extras: ConnectorExtras } {
+  // oxlint-disable-next-line no-unused-vars -- status is dropped from the rest
   const extras: ConnectorExtras = Object.fromEntries(Object.entries(base).map(([id, { status: _, ...rest }]) => [id, rest]));
   const merged: Record<string, string[]> = { ...connections };
   for (const [workspace, slugs] of Object.entries(pending)) for (const slug of slugs) {

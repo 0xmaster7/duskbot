@@ -328,6 +328,7 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
   }
 
   async function saveNote(actor: string, input: Record<string, unknown>, id?: string) {
+    // oxlint-disable-next-line no-control-regex -- control characters are what this strips or refuses
     const text = typeof input.text === "string" ? input.text.replace(/[\u0000-\u001f]/g, " ").trim() : "";
     const at = Number(input.at);
     if (!text || text.length > 140 || !Number.isSafeInteger(at) || at < 0 || at > now() + 365 * DAY) throw bad("A note needs a date and 1 to 140 characters.");

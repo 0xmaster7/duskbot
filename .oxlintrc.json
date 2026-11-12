@@ -19,5 +19,20 @@
     "release/**",
     "third_party/**",
     "electron/resources/**"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "apps/dashboard/tracker/*.js"
+      ],
+      "rules": {
+        "no-unused-vars": [
+          "warn",
+          {
+            "caughtErrors": "none"
+          }
+        ]
+      }
+    }
   ]
 }

@@ -207,7 +207,7 @@
       var meta = { section: sectionOf(el), label: labelOf(el) };
       for (var k = 0; k < el.attributes.length; k++) {
         var attr = el.attributes[k];
-        if (/^data-dusk-/.test(attr.name) && !/^data-dusk-(goal|section|label)$/.test(attr.name)) meta[attr.name.slice(10)] = attr.value;
+        if (attr.name.startsWith("data-dusk-") && !/^data-dusk-(goal|section|label)$/.test(attr.name)) meta[attr.name.slice(10)] = attr.value;
       }
       return meta;
     }

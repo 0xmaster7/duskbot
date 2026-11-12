@@ -92,7 +92,7 @@ export function runJob(job: Job): Summary {
 let HOST: "pooled" | "instabox" = "instabox";
 async function runAll(all: Job[]): Promise<Summary[]> {
   const jobs = all.map(j => ({ ...j, host: HOST, ...(HOST === "instabox" && j.group === "fleet" ? { label: `${j.users.n} users` } : {}) }));
-  const out: Summary[] = new Array(jobs.length);
+  const out = Array.from<Summary>({ length: jobs.length });
   let next = 0;
   const self = fileURLToPath(import.meta.url), width = Math.max(1, Math.min(jobs.length, availableParallelism() - 1));
   await Promise.all(Array.from({ length: width }, () => (async () => {

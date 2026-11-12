@@ -12,6 +12,7 @@ export interface ObjectStore {
 
 const hash = (body: string | Buffer) => createHash("sha256").update(body).digest("hex");
 function safeKey(key: string) {
+  // oxlint-disable-next-line no-control-regex -- control characters are what this strips or refuses
   if (!key || key.includes("..") || key.includes("\\") || isAbsolute(key) || key.split("/").some(part => !part || part === ".") || /[\x00-\x1f\x7f]/.test(key)) throw new Error("Invalid object key.");
   return key;
 }

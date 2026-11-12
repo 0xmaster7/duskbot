@@ -18,7 +18,7 @@ export class PulseRing {
   private readonly slots: Array<PulseSample | undefined>;
   private head = 0;
   private count = 0;
-  constructor(size = PULSE_SIZE) { this.slots = new Array(Math.max(1, size)); }
+  constructor(size = PULSE_SIZE) { this.slots = Array.from({ length: Math.max(1, size) }); }
   get length() { return this.count; }
   last(): PulseSample | null { return this.count ? this.slots[(this.head - 1 + this.slots.length) % this.slots.length]! : null; }
   push(sample: PulseSample): boolean {

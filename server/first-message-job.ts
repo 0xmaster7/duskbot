@@ -20,6 +20,7 @@ const ORIENTATION = /^(?:help|what can you do|what do you do|who are you|what ar
 
 function words(text: string): string[] {
   return text.toLowerCase().normalize("NFKC")
+    // oxlint-disable-next-line no-misleading-character-class -- strips zwj and vs16 one code point at a time
     .replace(/[\p{Extended_Pictographic}\p{Emoji_Modifier}‍️]/gu, " ")
     .replace(/[^\p{L}\p{N}'\s]+/gu, " ")
     .split(/\s+/).filter(Boolean);

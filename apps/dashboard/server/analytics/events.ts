@@ -100,7 +100,7 @@ export function cleanProps(name: EventName, input: unknown): Props {
   if (!input || typeof input !== "object" || Array.isArray(input)) return out;
   // a named product signal keeps exactly its catalogue's keys, or only its name
   const signal = name === "app_action" ? (input as Record<string, unknown>).name : undefined;
-  if (isSignalName(signal)) return { name: signal, ...(cleanSignal(signal, input, "app") ?? {}) };
+  if (isSignalName(signal)) return { name: signal, ...cleanSignal(signal, input, "app") };
   for (const [key, check] of Object.entries(spec.props)) {
     const value = (input as Record<string, unknown>)[key];
     if (value !== undefined && check(value)) out[key] = value;
