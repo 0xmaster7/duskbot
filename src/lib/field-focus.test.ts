@@ -50,7 +50,7 @@ describe("text field focus", () => {
     expect(rules.length).toBeGreaterThan(0);
     const [, selector, declarations] = rules[0]!;
     expect(declarations).toMatch(/border-color:\s*transparent/);
-    expect(declarations).toMatch(/background-color:\s*color-mix\(in srgb, var\(--color-ink\) 5%, transparent\)/);
+    expect(declarations).toMatch(/background-color:\s*color-mix\(in srgb, var\(--color-ink\) 8%, transparent\)/);
     expect(selector).toMatch(/:has\(> :is\(input/);
   });
 
