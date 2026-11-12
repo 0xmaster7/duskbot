@@ -325,7 +325,8 @@ describe("mobile channel rate limits", () => {
   it("limits frame text to 64 MiB per rolling minute", async () => {
     await put();
     const frames = Array(3).fill("a".repeat(1024 * 1024));
-    for (let i = 0; i < 21; i += 1) { expect((await post(frames)).status).toBe(200); await take(); }
+    // a second apart, so the tunnel's own byte rate (4 MB/s) is never what stops it
+    for (let i = 0; i < 21; i += 1) { expect((await post(frames)).status).toBe(200); await take(); time += 1000; }
     expect((await post([frames[0]])).status).toBe(200);
     await take();
     const limited = await post(["a"]);

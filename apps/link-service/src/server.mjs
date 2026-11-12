@@ -3,11 +3,14 @@
 //   LINK_DATA_DIR     where state.json lives, default ./data
 //   LINK_PACKAGES_DIR the private server builds install.sh downloads, default $LINK_DATA_DIR/packages
 //   LINK_TRUST_PROXY  "0" when nothing sits in front of it (then forwarded headers are ignored), default "1"
+//   DUSK_LINK_GRANT_KEYS  kid:x,... the account service's Ed25519 public keys for link grants, default the pinned ones
+//   DUSK_LINK_OPEN    "1" opens setup sessions to anyone without a dusk account (local development only)
 import "./legacy.mjs";
 import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
 
 import { createLinkService } from "./app.mjs";
+import { PINNED_GRANT_KEYS, parseGrantKeys } from "./grant.mjs";
 
 export const DEFAULT_BASE = "https://link.dusk.bot";
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -23,6 +26,7 @@ const service = createLinkService({
   scriptPath: `${root}install.sh`,
   agentPath: `${root}agent.mjs`,
   trustProxy: process.env.LINK_TRUST_PROXY !== "0",
+  grantKeys: process.env.DUSK_LINK_OPEN === "1" ? null : parseGrantKeys(process.env.DUSK_LINK_GRANT_KEYS) ?? PINNED_GRANT_KEYS,
   log: (line) => console.error(line),
 });
 const server = createServer({ requestTimeout: 300_000, headersTimeout: 30_000 }, (req, res) => void service.handler(req, res));

@@ -9,6 +9,7 @@ import { isIP } from "node:net";
 import { dirname, join } from "node:path";
 import { pipeline } from "node:stream/promises";
 
+import { verifyLinkGrant } from "./grant.mjs";
 import { createPackages } from "./packages.mjs";
 import { createPushRelay } from "./push-relay.mjs";
 import { slackCallback } from "./slack-callback.mjs";
@@ -56,6 +57,23 @@ const LOOKUP_MISSES_PER_HOUR = 60;
 const MAX_LOOKUPS = 5000;
 /** downloads (server build and desktop kit together) one install session may make; install.sh retries three times */
 const PACKAGE_DOWNLOADS = 10;
+/** a tunnel's sustained relay rate, the burst it may post at once, and its daily total (both directions together) */
+export const TUNNEL_BYTES_PER_SECOND = 4 * 1024 * 1024;
+const TUNNEL_BURST_BYTES = 16 * 1024 * 1024;
+export const TUNNEL_BYTES_PER_DAY = 30 * 1024 ** 3;
+/** the egress lane (a bot's web traffic routed through the person's computer) while it rides the relay */
+export const LANE_BYTES_PER_SECOND = 2 * 1024 * 1024;
+const LANE_BURST_BYTES = 4 * 1024 * 1024;
+/** a frame nobody read in this long is dropped: its reader is gone, and it must not hold memory */
+export const FRAME_TTL_MS = 60_000;
+/** every queued frame across every tunnel and channel; past it new frames are refused, never the process */
+export const MAX_QUEUED_BYTES = 1024 ** 3;
+/** linked servers one dusk account may have at once */
+export const TUNNELS_PER_ACCOUNT = 5;
+/** per client address: requests in flight at once, and a request rate (a bucket that refills per second) */
+export const IP_CONCURRENT = 128;
+export const IP_REQUESTS_PER_SECOND = 100;
+const IP_REQUEST_BURST = 1000;
 const nonnegativeInteger = (value) => Number.isSafeInteger(value) && value >= 0;
 
 function installerProgress(value) {
@@ -118,14 +136,17 @@ export function publicIp(ip) {
  * queues of sealed frames, one per direction per tunnel, with long-poll waiters. never persisted. a post marked `lane`
  * (egress: a bot's handshakes) is read out ahead of what waits in the main queue, in its own order.
  */
-function frameQueue(onPush = () => {}) {
-  const frames = [];
-  const lane = [];
+function frameQueue(onPush = () => {}, memory = { bytes: 0 }, now = Date.now) {
+  const frames = [], times = [];
+  const lane = [], laneTimes = [];
   let bytes = 0, laneBytes = 0, reader = 0, gap = null, reading = null;
+  const sizeOf = (list) => list.reduce((sum, frame) => sum + frame.length, 0);
   const waiters = new Set();
   const order = { epoch: null, next: 0, held: new Map(), retired: [] };
+  function unhold(at) { const list = order.held.get(at); if (!list) return; order.held.delete(at); memory.bytes -= sizeOf(list); }
+  function dropHeld() { for (const at of [...order.held.keys()]) unhold(at); }
   function drainHeld() {
-    while (order.held.has(order.next) && queue.push(order.held.get(order.next))) { order.held.delete(order.next); order.next += 1; }
+    while (order.held.has(order.next) && queue.push(order.held.get(order.next))) { unhold(order.next); order.next += 1; }
     if (!order.held.size) { clearTimeout(gap); gap = null; }
   }
   function armGap() {
@@ -141,26 +162,44 @@ function frameQueue(onPush = () => {}) {
   }
   const queue = {
     push(list, first = false) {
-      const size = list.reduce((sum, frame) => sum + frame.length, 0);
+      queue.expire();
+      const size = sizeOf(list), t = now();
       // the lane has room of its own: a main queue full of desktop frames never refuses a handshake
       if (first ? lane.length + list.length > LANE_FRAMES || laneBytes + size > LANE_BYTES : frames.length + list.length > QUEUE_FRAMES || bytes + size > QUEUE_BYTES) return false;
-      if (first) { lane.push(...list); laneBytes += size; }
-      else { frames.push(...list); bytes += size; }
+      if (first) { lane.push(...list); laneTimes.push(...list.map(() => t)); laneBytes += size; }
+      else { frames.push(...list); times.push(...list.map(() => t)); bytes += size; }
+      memory.bytes += size;
       for (const wake of waiters) wake();
       waiters.clear();
       onPush();
       return true;
     },
     take(max = 256, maxBytes = 4 * 1024 * 1024) {
+      queue.expire();
       const out = [];
       let size = 0;
-      for (const from of [lane, frames]) {
+      for (const [from, stamps] of [[lane, laneTimes], [frames, times]]) {
         let count = 0, taken = 0;
         while (count < from.length && out.length + count < max && (out.length + count === 0 || size + from[count].length <= maxBytes)) { size += from[count].length; taken += from[count++].length; }
         out.push(...from.splice(0, count));
+        stamps.splice(0, count);
         if (from === lane) laneBytes -= taken; else bytes -= taken;
+        memory.bytes -= taken;
       }
       return out;
+    },
+    /** drops frames queued longer than FRAME_TTL_MS ago */
+    expire() {
+      const cutoff = now() - FRAME_TTL_MS;
+      for (const [from, stamps] of [[lane, laneTimes], [frames, times]]) {
+        let count = 0;
+        while (count < stamps.length && stamps[count] <= cutoff) count += 1;
+        if (!count) continue;
+        const dropped = sizeOf(from.splice(0, count));
+        stamps.splice(0, count);
+        if (from === lane) laneBytes -= dropped; else bytes -= dropped;
+        memory.bytes -= dropped;
+      }
     },
     get length() { return frames.length + lane.length; },
     wait(ms, signal) {
@@ -182,12 +221,14 @@ function frameQueue(onPush = () => {}) {
         if (order.epoch !== null) order.retired = [...order.retired.slice(-3), order.epoch];
         order.epoch = from;
         order.next = 0;
-        order.held.clear();
+        dropHeld();
       }
       if (at < order.next) return true;
       if (at > order.next) {
+        if (order.held.has(at)) return true;
         if (order.held.size >= HELD_POSTS) return false;
         order.held.set(at, list);
+        memory.bytes += sizeOf(list);
         armGap();
         return true;
       }
@@ -200,7 +241,13 @@ function frameQueue(onPush = () => {}) {
     claim() { reading?.abort(); reading = new AbortController(); reader += 1; for (const wake of waiters) wake(); waiters.clear(); return reader; },
     get signal() { return reading?.signal; },
     holds: (turn) => turn === reader,
-    close() { clearTimeout(gap); gap = null; order.held.clear(); reading?.abort(); reader += 1; queue.wakeAll(); },
+    close() {
+      clearTimeout(gap); gap = null; dropHeld();
+      memory.bytes -= bytes + laneBytes;
+      frames.length = times.length = lane.length = laneTimes.length = 0;
+      bytes = laneBytes = 0;
+      reading?.abort(); reader += 1; queue.wakeAll();
+    },
   };
   return queue;
 }
@@ -218,10 +265,19 @@ function frameQueue(onPush = () => {}) {
  *   now?: () => number,
  *   fetch?: typeof fetch,
  *   log?: (line: string) => void,
+ *   grantKeys?: { kid: string, x: string }[] | null,
+ *   maxQueuedBytes?: number,
+ *   ipLimits?: { concurrent: number, perSecond: number, burst: number },
  * }} options
+ * `grantKeys`: the account service's public keys a new session's link grant must verify against; null opens sessions to
+ * anyone (local development and tests only, server.mjs refuses it unless DUSK_LINK_OPEN=1).
  */
-export function createLinkService({ base, dataDir = null, scriptPath, uninstallPath = join(dirname(scriptPath), "uninstall.sh"), agentPath, gatePath = join(dirname(agentPath), "docker-gate.mjs"), packagesDir, trustProxy = true, now = Date.now, fetch: fetchImpl = fetch, log = () => {}, push = createPushRelay({ log }) }) {
+export function createLinkService({ base, dataDir = null, scriptPath, uninstallPath = join(dirname(scriptPath), "uninstall.sh"), agentPath, gatePath = join(dirname(agentPath), "docker-gate.mjs"), packagesDir, trustProxy = true, now = Date.now, fetch: fetchImpl = fetch, log = () => {}, push = createPushRelay({ log }), grantKeys = null, maxQueuedBytes = MAX_QUEUED_BYTES,
+  ipLimits = { concurrent: IP_CONCURRENT, perSecond: IP_REQUESTS_PER_SECOND, burst: IP_REQUEST_BURST } }) {
   const store = createStore({ dir: dataDir, now, onChannelDelete: clearChannel, onTunnelDelete: (tunnel) => dropTunnelState(tunnel.id) });
+  const memory = { bytes: 0 };
+  const tunnelRates = new Map();
+  const ipLoad = new Map();
   const packages = createPackages(packagesDir !== undefined ? packagesDir : dataDir ? join(dataDir, "packages") : null);
   const sessionWaiters = new Map();
   const queues = new Map();
@@ -234,7 +290,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
   const lookupCreated = new Map();
   const lookupMisses = new Map();
   const sweepStore = store.sweep;
-  store.sweep = () => { sweepStore(); sweepLookups(); sweepCreated(); };
+  store.sweep = () => { sweepStore(); sweepLookups(); sweepCreated(); sweepQueues(); };
 
   function file(path) {
     const mtime = statSync(path).mtimeMs;
@@ -315,7 +371,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     if (!found) queues.set(key, (found = frameQueue(() => {
       const channel = store.channels.get(tunnelId);
       if (dir === "to-vps" && channel) channelReaders.get(channel.tunnel)?.wakeAll();
-    })));
+    }, memory, now)));
     return found;
   }
 
@@ -328,7 +384,57 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
   function dropTunnelState(id) {
     channelReaders.get(id)?.close();
     channelReaders.delete(id);
+    tunnelRates.delete(id);
     clearQueues(id);
+  }
+  function sweepQueues() {
+    for (const q of queues.values()) q.expire();
+    const t = now();
+    for (const [ip, load] of ipLoad) if (!load.open && t - load.at > 60_000) ipLoad.delete(ip);
+  }
+  const refill = (tokens, at, t, perSecond, burst) => Math.min(burst, tokens + Math.max(0, t - at) * perSecond / 1000);
+  /**
+   * whether a post fits its tunnel's relay budget: a sustained rate with a burst, the egress lane's own lower rate, and a
+   * daily total kept on the tunnel (so a restart does not reset it). sizes are the frames' decoded bytes. answers the
+   * charge to make once the frames were queued, or null after refusing
+   */
+  function tunnelBudget(res, tunnelId, frames, lane) {
+    const tunnel = store.tunnels.get(tunnelId);
+    if (!tunnel) return () => {};
+    const size = Math.floor(frames.reduce((sum, frame) => sum + frame.length, 0) * 3 / 4), t = now(), day = Math.floor(t / 86_400_000);
+    if (tunnel.day !== day) { tunnel.day = day; tunnel.dayBytes = 0; }
+    if (tunnel.dayBytes + size > TUNNEL_BYTES_PER_DAY) {
+      fail(res, 429, "This link reached its daily limit of 30 GB through the relay. It resets at midnight UTC.", "daily_limit");
+      return null;
+    }
+    let rate = tunnelRates.get(tunnelId);
+    if (!rate) tunnelRates.set(tunnelId, (rate = { at: t, tokens: TUNNEL_BURST_BYTES, lane: LANE_BURST_BYTES }));
+    rate.tokens = refill(rate.tokens, rate.at, t, TUNNEL_BYTES_PER_SECOND, TUNNEL_BURST_BYTES);
+    rate.lane = refill(rate.lane, rate.at, t, LANE_BYTES_PER_SECOND, LANE_BURST_BYTES);
+    rate.at = t;
+    const short = Math.max(size - rate.tokens, lane ? size - rate.lane : 0);
+    if (short > 0) {
+      const wait = Math.ceil(Math.max(short / TUNNEL_BYTES_PER_SECOND, lane ? short / LANE_BYTES_PER_SECOND : 0));
+      send(res, 429, { error: "This link is sending faster than the relay allows. Try again in a moment.", code: "rate_limited" }, { "retry-after": String(Math.max(1, wait)) });
+      return null;
+    }
+    return () => {
+      rate.tokens -= size;
+      if (lane) rate.lane -= size;
+      tunnel.dayBytes += size;
+    };
+  }
+  /** every queue together stays under maxQueuedBytes: past it a post is refused, the process keeps its memory */
+  function roomFor(res, frames) {
+    if (memory.bytes + frames.reduce((sum, frame) => sum + frame.length, 0) <= maxQueuedBytes) return true;
+    send(res, 503, { error: "The link service is busy. Try again in a moment.", code: "busy" }, { "retry-after": "2" });
+    return false;
+  }
+  /** how many live tunnels a dusk account has */
+  function accountTunnels(acct) {
+    let count = 0;
+    for (const tunnel of store.tunnels.values()) if (tunnel.acct === acct) count += 1;
+    return count;
   }
   function touchTunnel(tunnel) {
     const t = now();
@@ -359,7 +465,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
   }
   function channelReader(id) {
     let q = channelReaders.get(id);
-    if (!q) { q = frameQueue(); q.after = null; channelReaders.set(id, q); }
+    if (!q) { q = frameQueue(undefined, memory, now); q.after = null; channelReaders.set(id, q); }
     return q;
   }
   function channelBatch(id, reader) {
@@ -384,7 +490,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     if (!rate) { rate = { at: t, tokens: PHONE_POST_BURST, posts: [], reads: [] }; channelRates.set(channel.id, rate); }
     let ok;
     if (method === "POST") {
-      rate.tokens = Math.min(PHONE_POST_BURST, rate.tokens + Math.max(0, t - rate.at) * PHONE_POSTS_PER_SECOND / 1000);
+      rate.tokens = refill(rate.tokens, rate.at, t, PHONE_POSTS_PER_SECOND, PHONE_POST_BURST);
       rate.at = t;
       ok = rate.tokens >= 1;
       if (ok) rate.tokens -= 1;
@@ -426,9 +532,12 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       return fail(res, 400, "frames must be 1-256 base64url strings");
     }
     if (phone && !phoneRate(res, channel, "BYTES", frames.reduce((sum, frame) => sum + frame.length, 0))) return;
+    const charge = roomFor(res, frames) && tunnelBudget(res, channel.tunnel, frames, false);
+    if (!charge) return;
     const ordered = typeof body.epoch === "string" && EPOCH.test(body.epoch) && Number.isSafeInteger(body.seq) && body.seq >= 0;
     const q = queue(id, dir);
     if (!(ordered ? q.pushInOrder(frames, body.epoch, body.seq) : q.push(frames, body.lane === true))) return fail(res, 429, "the other side is behind; try again", "queue_full");
+    charge();
     return send(res, 200, { ok: true, ordered: true });
   }
 
@@ -582,15 +691,25 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       store.sweep();
       if (store.sessions.size >= MAX_SESSIONS) return fail(res, 503, "The link service is busy. Try again in a minute.", "busy");
       const body = await readJson(req);
+      let acct = null, byAccount = null;
+      if (grantKeys) {
+        const verdict = verifyLinkGrant(body?.grant, { keys: grantKeys, now: now() });
+        if (!verdict.ok) return fail(res, 401, "Sign in to your dusk bot account in the app to link a server.", "account_required");
+        acct = verdict.acct;
+        if (accountTunnels(acct) >= TUNNELS_PER_ACCOUNT) return fail(res, 409, `This account already has ${TUNNELS_PER_ACCOUNT} linked servers. Remove one in the app to link another.`, "tunnel_limit");
+        byAccount = (created.get(`acct:${acct}`) ?? []).filter((at) => t - at < 3_600_000);
+        if (byAccount.length >= CREATE_PER_HOUR) return fail(res, 429, "Too many new links from this account. Try again in a while.", "rate_limited");
+      }
       if (!HEX64.test(body?.verifier ?? "")) return fail(res, 400, "verifier must be 64 hex characters");
       if (typeof body?.appPub !== "string" || !B64URL.test(body.appPub) || body.appPub.length > 64) return fail(res, 400, "appPub must be a base64url x25519 key");
       const label = typeof body?.label === "string" ? body.label.replace(/[^\p{L}\p{N} ._'-]/gu, "").slice(0, 60) : "";
       let id;
       do id = randomB32(10); while (store.sessions.has(id) || store.tunnels.has(id) || store.channels.has(id));
       const watch = randomBytes(32).toString("base64url");
-      store.sessions.set(id, { id, createdAt: t, state: "waiting", vpsVerifier: body.verifier, watchVerifier: sha256hex(watch), appPub: body.appPub, label, events: [], seq: 0 });
+      store.sessions.set(id, { id, createdAt: t, state: "waiting", vpsVerifier: body.verifier, watchVerifier: sha256hex(watch), appPub: body.appPub, label, events: [], seq: 0, ...(acct ? { acct } : {}) });
       recent.push(t);
       created.set(ip, recent);
+      if (byAccount) { byAccount.push(t); created.set(`acct:${acct}`, byAccount); }
       store.save();
       return send(res, 201, { id, watch, expiresAt: t + 30 * 60_000, base, install: `curl -fsSL ${base}/i/` });
     }
@@ -681,7 +800,10 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
         if (tunnel !== undefined && (!HEX64.test(tunnel?.vps ?? "") || !HEX64.test(tunnel?.app ?? ""))) return fail(res, 400, "tunnel verifiers must be 64 hex characters");
         if (tunnel) {
           if (store.tunnels.size >= MAX_TUNNELS) return fail(res, 503, "The link service is full.", "busy");
-          store.tunnels.set(id, { id, createdAt: now(), vpsVerifier: tunnel.vps, appVerifier: tunnel.app, seenAt: null });
+          if (session.acct && accountTunnels(session.acct) >= TUNNELS_PER_ACCOUNT) {
+            return fail(res, 409, `This account already has ${TUNNELS_PER_ACCOUNT} linked servers. Remove one in the app to link another.`, "tunnel_limit");
+          }
+          store.tunnels.set(id, { id, createdAt: now(), vpsVerifier: tunnel.vps, appVerifier: tunnel.app, seenAt: null, ...(session.acct ? { acct: session.acct } : {}) });
           session.tunnel = id;
         }
         session.state = "linked";
@@ -868,8 +990,11 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
           return fail(res, 400, "frames must be 1-256 base64url strings");
         }
         const ordered = typeof body.epoch === "string" && EPOCH.test(body.epoch) && Number.isSafeInteger(body.seq) && body.seq >= 0;
+        const charge = roomFor(res, frames) && tunnelBudget(res, id, frames, !ordered && body.lane === true);
+        if (!charge) return;
         const q = queue(id, action);
         if (!(ordered ? q.pushInOrder(frames, body.epoch, body.seq) : q.push(frames, body.lane === true))) return fail(res, 429, "the other side is behind; try again", "queue_full");
+        charge();
         return send(res, 200, { ok: true, ordered: true });
       }
       if (method === "GET") {
@@ -955,9 +1080,30 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     }
   }
 
+  /** per client address: requests in flight and a request rate, so one address cannot hold every socket or flood the service */
+  function admit(req, res) {
+    const ip = clientIp(req), t = now();
+    let load = ipLoad.get(ip);
+    if (!load) ipLoad.set(ip, (load = { open: 0, at: t, tokens: ipLimits.burst }));
+    load.tokens = refill(load.tokens, load.at, t, ipLimits.perSecond, ipLimits.burst);
+    load.at = t;
+    if (load.open >= ipLimits.concurrent || load.tokens < 1) {
+      send(res, 429, { error: "Too many requests from here. Try again in a moment.", code: "rate_limited" }, { "retry-after": "5" });
+      return false;
+    }
+    load.tokens -= 1;
+    load.open += 1;
+    let done = false;
+    const release = () => { if (!done) { done = true; load.open -= 1; } };
+    res.once("close", release);
+    res.once("finish", release);
+    return true;
+  }
+
   return {
     store,
     async handler(req, res) {
+      if (!admit(req, res)) return;
       try {
         await handle(req, res);
       } catch (error) {

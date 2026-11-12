@@ -453,10 +453,30 @@ cd apps/link-service && npm start                       # PORT (default 8790)
 | `DUSK_LINK_DASHBOARD_URL` | unset | advertised at `/.well-known/duskbot/dashboard` |
 | `DUSK_APNS_KEY_FILE`, `DUSK_APNS_KEY_ID`, `DUSK_APNS_TEAM_ID`, `DUSK_APNS_TOPIC` | unset | APNs for the push relay; all four or it stays off |
 | `DUSK_FCM_SERVICE_ACCOUNT_FILE` | unset | FCM for the push relay |
+| `DUSK_LINK_GRANT_KEYS` | the pinned entitlement key | `kid:x,...` Ed25519 public keys the account service signs link grants with |
+| `DUSK_LINK_OPEN` | unset | `1` opens setup sessions without a dusk account (local development only) |
 
 `.env.example` lists the same names. The proxy must set `X-Real-IP` to the connecting address (overwriting any the
-client sent), or every per-address rate limit can be dodged. A tunnel whose server has not polled for 30 days is
+client sent), or every per-address rate limit can be dodged. A tunnel whose server has not polled for 7 days is
 dropped by the sweep; that server links again with a new command. Health: `GET /healthz` (or `/health`).
+
+## Limits
+
+The relay is not a free pipe: every setup session needs a dusk account, and every tunnel has a byte budget.
+
+- **Account.** `POST /v1/sessions` takes `grant`, a five-minute token the signed-in app gets from the account service
+  (`POST /v1/app/link-grant`, bearer app session; `src/grant.mjs` has the format). Without a valid one the answer is
+  401 `account_required`. One account has at most 5 live tunnels (409 `tunnel_limit`) and opens at most 30 sessions an
+  hour, besides the 30 an hour per address. The VPS side (install.sh, the agent, the phone's channels) needs nothing:
+  the session the app opened already carries the account.
+- **Bytes.** Each tunnel, both directions and its phone channels together: 4 MB/s sustained with a 16 MB burst, and 30 GB
+  per UTC day (kept on the tunnel, so a restart does not reset it). Egress lane posts ("route traffic through this
+  computer" on the relay) also stay under 2 MiB/s; the app sends them at 1.75 MiB/s. Sizes are decoded bytes. Over the
+  rate: 429 `rate_limited` with `retry-after`; over the day: 429 `daily_limit`.
+- **Memory.** A frame nobody read for 60 s is dropped. All queues together hold at most 1 GiB; past it posts get 503
+  `busy` and the process keeps running.
+- **Per address.** 128 requests in flight and 100 requests a second (burst 1000); past either, 429 `rate_limited`.
+  Generous because many people share one address behind carrier NAT; nginx's own `limit_conn`/`limit_req` sit in front.
 
 The app's base comes from `DUSK_LINK_BASE` (default `https://link.dusk.bot`).
 

@@ -12,7 +12,7 @@ export const MAX_SESSIONS = 5000;
 export const MAX_TUNNELS = 20000;
 export const MAX_CHANNELS_PER_TUNNEL = 32;
 /** a tunnel whose server has not polled for this long is dropped, so dead links cannot fill MAX_TUNNELS for good */
-export const TUNNEL_IDLE_MS = 30 * 24 * 60 * 60_000;
+export const TUNNEL_IDLE_MS = 7 * 24 * 60 * 60_000;
 
 /** @param {{ dir?: string | null, now?: () => number, onChannelDelete?: (channel: any) => void, onTunnelDelete?: (tunnel: any) => void }} options */
 export function createStore({ dir = null, now = Date.now, onChannelDelete = () => {}, onTunnelDelete = () => {} } = {}) {
