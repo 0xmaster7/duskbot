@@ -602,6 +602,7 @@ export function createTunnelProxy({ base, id, route = `${base}/v1/tunnels/${id}`
         if (response.ok && !ordered && !lane) ordered = /"ordered":true/.test(said);
         if (response.ok) { successfulPosts += 1; pollRetry?.abort(); return true; }
         if (response.status === 404) { closed = true; abort.abort(); fail("This server was unlinked."); return false; }
+        if (response.status === 429 && /"code":"daily_limit"/.test(said)) { if (!lane) fail(JSON.parse(said).error); return false; }
       } catch { if (closed) return false; }
       if (attempt >= 6) { if (!lane) fail("The link service did not answer."); return false; }
       await sleep(Math.min(5000, 200 * 2 ** attempt), undefined, { signal: abort.signal }).catch(() => {});

@@ -64,6 +64,7 @@ const plain = (error, fallback) => {
  *   direct?: { newKey(): { privateKey: string, publicKey: string }, connector(config: { host: string, port: number, user: string, privateKey: string, hostKeys: string[] }): () => Promise<any>, wssConnector?(config: { url: string, spki: string }): () => Promise<any> },
  *   egress?: Parameters<typeof createTunnelProxy>[0]["egress"],
  *   appVersion?: string,
+ *   linkGrant?(): Promise<string | null>,
  *   now?(): number,
  *   onChange?(view: any): void,
  *   log?(line: string): void,
@@ -202,7 +203,10 @@ export function createVpsLink(deps) {
     const keys = newLinkKeys();
     let made;
     try {
-      made = await relay.create({ verifier: keys.verifier, appPub: keys.pub, label: deps.label().slice(0, 60) }, abort.signal);
+      // the link service opens a setup session only for a signed-in dusk account (apps/link-service/src/grant.mjs)
+      const grant = deps.linkGrant ? await deps.linkGrant().catch(() => null) : null;
+      if (deps.linkGrant && !active()) return view();
+      made = await relay.create({ verifier: keys.verifier, appPub: keys.pub, label: deps.label().slice(0, 60), ...(grant ? { grant } : {}) }, abort.signal);
       if (!active()) { revokeUnused(made); return view(); }
       const [watchP, privP] = await Promise.all([protect(made.watch), protect(keys.priv)]);
       if (!active()) { revokeUnused(made); return view(); }

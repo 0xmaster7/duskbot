@@ -2,6 +2,7 @@
 // their own processes and home folder) and a fake dusk bot on each side: command, live steps, the sealed result, the
 // app signed in through the tunnel, AI sign-ins sent from this mac, and the move with its backup first.
 import { execFile, spawn } from "node:child_process";
+import { generateKeyPairSync, sign } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, request as httpRequest } from "node:http";
 import { tmpdir } from "node:os";
@@ -29,6 +30,13 @@ const until = async (check, ms = 8000) => {
 };
 
 let dir, relayServer, service, base, vpsServer, vpsPort, home, tunnelChild;
+// the link service opens setup sessions only with the account service's signed grant (apps/link-service/src/grant.mjs)
+const grantKey = generateKeyPairSync("ed25519");
+const grantKeys = [{ kid: "test-1", x: grantKey.publicKey.export({ format: "jwk" }).x }];
+function linkGrant() {
+  const head = `l1.test-1.${Buffer.from(JSON.stringify({ v: 1, aud: "link", acct: "a".repeat(32), iat: Date.now(), exp: Date.now() + 300_000 })).toString("base64url")}`;
+  return `${head}.${sign(null, Buffer.from(head), grantKey.privateKey).toString("base64url")}`;
+}
 const vpsSeen = [];
 
 /** fetch over node:http that keeps a host's cookies, as the app's session does, and reaches *.localhost on loopback */
@@ -55,7 +63,7 @@ beforeAll(async () => {
   dir = mkdtempSync(join(tmpdir(), "dusk-vps-link-"));
   home = join(dir, "vps-home");
   mkdirSync(home);
-  service = createLinkService({ base: "http://placeholder", dataDir: null, scriptPath: fileURLToPath(new URL("../apps/link-service/install.sh", import.meta.url)), agentPath, trustProxy: false });
+  service = createLinkService({ base: "http://placeholder", dataDir: null, scriptPath: fileURLToPath(new URL("../apps/link-service/install.sh", import.meta.url)), agentPath, trustProxy: false, grantKeys });
   relayServer = createServer((req, res) => void service.handler(req, res));
   base = `http://127.0.0.1:${await listen(relayServer)}`;
   // dusk bot on the vps
@@ -109,10 +117,11 @@ function localServer({ exportFails = false } = {}) {
   return { calls, localRequest };
 }
 
-function controller({ local, ownHome, store, onChange = () => {} }) {
+function controller({ local, ownHome, store, onChange = () => {}, grant = async () => linkGrant() }) {
   const saved = [];
   const link = createVpsLink({
     base,
+    linkGrant: grant,
     serverFetch: cookieFetch(),
     store,
     protect: async (text) => `p:${text}`,
@@ -150,6 +159,13 @@ const memoryStore = () => { let value = null; return { read: () => value, write:
 const post = (route, token, body) => fetch(`${base}${route}`, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
 
 describe("Add your VPS", () => {
+  it("needs this computer signed in to a dusk account to make a command", async () => {
+    const { link } = controller({ local: localServer(), ownHome: { start: async () => {}, view: () => null, away: () => false, home: () => null, chosen: () => null }, store: memoryStore(), grant: async () => null });
+    await expect(link.start()).rejects.toThrow("Sign in to your dusk bot account in the app to link a server.");
+    expect(link.view().stage).not.toBe("command");
+    await link.close();
+  });
+
   it("links a server, signs its AI in from this mac, and moves everything with a backup first", async () => {
     const local = localServer();
     let phase = null;

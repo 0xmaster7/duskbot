@@ -568,6 +568,16 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
         return { enrollToken: result.enrollToken, dashboardUrl: result.dashboardUrl };
       } catch (error) { if (signInEnded(error)) await refresh().catch(() => {}); return null; }
     },
+    /** A five-minute signed grant for the link service, so a VPS setup session belongs to this account; null when signed out. */
+    async linkGrant() {
+      const signedIn = grant;
+      if (!signedIn || state().status !== "connected") return null;
+      try {
+        const result = await request("", { path: "/v1/app/link-grant", method: "POST", body: {}, token: signedIn.token });
+        if (grant !== signedIn || result?.v !== 1 || typeof result.grant !== "string" || !/^l1\.[a-z0-9-]{1,32}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(result.grant) || result.grant.length > 1024) return null;
+        return result.grant;
+      } catch (error) { if (signInEnded(error)) await refresh().catch(() => {}); return null; }
+    },
     emailStart, emailVerify,
     emailCancel() { emailed = null; },
     finishLink, signInOptions,

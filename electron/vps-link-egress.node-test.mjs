@@ -306,3 +306,21 @@ test("the proxy closes connections from outside the allowed range before reading
     await once(socket, "close");
   } finally { await proxy.stop(); }
 });
+
+test("a stream on the relay is held under the relay's lane rate, a direct one only under the overall rate", async () => {
+  const { EventEmitter } = await import("node:events");
+  const fakeSocket = () => Object.assign(new EventEmitter(), { paused: 0, setNoDelay() {}, setTimeout() {}, pause() { this.paused += 1; }, resume() {}, write() {}, end() {}, destroy() {}, writableLength: 0 });
+  const sockets = [];
+  const dialer = { open: async () => { const socket = fakeSocket(); sockets.push(socket); return { socket }; } };
+  const path = (live) => ({ send() {}, bytes() {}, queued: () => 0, onDrain() {}, ...(live ? { live: () => true } : {}) });
+  const endpoint = createEgressEndpoint({ ...path(false), direct: path(true), dialer, now: () => 0, bytesPerSecond: 8_000_000, relayBytesPerSecond: 2_000_000 });
+  endpoint.handle({ t: "dial", r: "aaaaaaaaaaaa", host: "example.com", port: 443 }, "relay");
+  endpoint.handle({ t: "dial", r: "bbbbbbbbbbbb", host: "example.com", port: 443 }, "direct");
+  await new Promise((resolve) => setImmediate(resolve));
+  const [relayed, direct] = sockets;
+  direct.emit("data", Buffer.alloc(3_000_000));
+  assert.equal(direct.paused, 0);
+  relayed.emit("data", Buffer.alloc(3_000_000));
+  assert.equal(relayed.paused, 1);
+  endpoint.close();
+});

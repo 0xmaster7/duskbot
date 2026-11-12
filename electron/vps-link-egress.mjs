@@ -17,6 +17,8 @@ export const EGRESS_MAX_STREAMS = 128;
 export const EGRESS_DIALS_PER_MINUTE = 600;
 /** download bytes per second this computer relays for the vps, all streams together */
 export const EGRESS_BYTES_PER_SECOND = 8 * 1024 * 1024;
+/** the same while a stream rides the relay, under the link service's 2 MiB/s lane limit (apps/link-service/src/app.mjs) */
+export const EGRESS_RELAY_BYTES_PER_SECOND = Math.floor(1.75 * 1024 * 1024);
 /** a stream's reads pause while this much waits for the tunnel, so the desktop and the api keep their share */
 export const EGRESS_QUEUE_HIGH = 1024 * 1024;
 export const EGRESS_HELLO_MS = 15_000;
@@ -117,21 +119,24 @@ export function seenAsCache(fetchIp, { ttlMs = SELF_TTL_MS, retryMs = SELF_RETRY
  */
 export function createEgressEndpoint({
   send, bytes, queued, onDrain, direct = null, dialer = createEgressDialer(), log = () => {}, now = Date.now, onUse = () => {},
-  maxStreams = EGRESS_MAX_STREAMS, dialsPerMinute = EGRESS_DIALS_PER_MINUTE, bytesPerSecond = EGRESS_BYTES_PER_SECOND,
+  maxStreams = EGRESS_MAX_STREAMS, dialsPerMinute = EGRESS_DIALS_PER_MINUTE, bytesPerSecond = EGRESS_BYTES_PER_SECOND, relayBytesPerSecond = EGRESS_RELAY_BYTES_PER_SECOND,
   queueHigh = EGRESS_QUEUE_HIGH, helloMs = EGRESS_HELLO_MS, idleMs = IDLE_MS,
 }) {
   const relay = { send, bytes, queued, onDrain };
   const streams = new Map();
   const dials = [];
-  let budget = bytesPerSecond, refilledAt = now(), closed = false, hello = null;
+  let budget = bytesPerSecond, relayBudget = relayBytesPerSecond, refilledAt = now(), closed = false, hello = null;
   const stats = { relayed: 0, refused: 0 };
 
-  function take(size) {
-    const t = now();
-    budget = Math.min(bytesPerSecond, budget + ((t - refilledAt) / 1000) * bytesPerSecond);
+  function take(size, path) {
+    const t = now(), seconds = (t - refilledAt) / 1000;
+    budget = Math.min(bytesPerSecond, budget + seconds * bytesPerSecond);
+    relayBudget = Math.min(relayBytesPerSecond, relayBudget + seconds * relayBytesPerSecond);
     refilledAt = t;
     budget -= size;
-    return budget >= 0 ? 0 : Math.ceil((-budget / bytesPerSecond) * 1000);
+    if (path === relay) relayBudget -= size;
+    const waitMs = (left, rate) => (left >= 0 ? 0 : Math.ceil((-left / rate) * 1000));
+    return Math.max(waitMs(budget, bytesPerSecond), path === relay ? waitMs(relayBudget, relayBytesPerSecond) : 0);
   }
 
   function forget(r, tell, over = null) {
@@ -155,7 +160,7 @@ export function createEgressEndpoint({
       if (streams.get(r) !== entry) return;
       onUse();
       path.bytes(r, chunk);
-      const wait = take(chunk.length);
+      const wait = take(chunk.length, path);
       if (path.queued() >= queueHigh) { entry.paused = true; socket.pause(); path.onDrain(() => { entry.paused = false; if (!entry.wait) resume(); }); }
       else if (wait > 0 && !entry.wait) { socket.pause(); entry.wait = setTimeout(resume, wait); }
     });

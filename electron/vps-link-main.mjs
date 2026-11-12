@@ -121,6 +121,7 @@ export function installLinkDirectIpc({ ipcMain, pageOrigin, link }) {
  *   powerSaveBlocker?: { start(type: string): number, stop(id: number): void, isStarted(id: number): boolean },
  *   pageOrigin?(event: any): string | null,
  *   appVersion?: string,
+ *   linkGrant?(): Promise<string | null>,
  * }} deps
  */
 export function installVpsLink(deps) {
@@ -147,6 +148,7 @@ export function installVpsLink(deps) {
   const link = createVpsLink({
     base,
     appVersion: deps.appVersion,
+    linkGrant: deps.linkGrant,
     egress: (tunnel) => createEgressEndpoint({ ...tunnel, dialer: createEgressDialer({ seenAs }), ...(awake ? { onUse: awake.touch } : {}) }),
     serverFetch: (...args) => session.defaultSession.fetch(...args),
     store: jsonFile(path.join(userData, "vps-link.json")),

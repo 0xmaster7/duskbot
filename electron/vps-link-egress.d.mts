@@ -5,6 +5,7 @@ export declare const EGRESS_PORTS: readonly number[];
 export declare const EGRESS_MAX_STREAMS: number;
 export declare const EGRESS_DIALS_PER_MINUTE: number;
 export declare const EGRESS_BYTES_PER_SECOND: number;
+export declare const EGRESS_RELAY_BYTES_PER_SECOND: number;
 export declare const EGRESS_QUEUE_HIGH: number;
 export declare const EGRESS_HELLO_MS: number;
 export type EgressRefusal = "port" | "home-network" | "loopback" | "metadata" | "link-local" | "reserved";
@@ -37,6 +38,6 @@ export interface EgressEndpoint {
   close(): void;
 }
 export declare function createEgressEndpoint(options: EgressTunnel & {
-  dialer?: EgressDialer; now?(): number; maxStreams?: number; dialsPerMinute?: number; bytesPerSecond?: number;
+  dialer?: EgressDialer; now?(): number; maxStreams?: number; dialsPerMinute?: number; bytesPerSecond?: number; relayBytesPerSecond?: number;
   queueHigh?: number; helloMs?: number; idleMs?: number;
 }): EgressEndpoint;
