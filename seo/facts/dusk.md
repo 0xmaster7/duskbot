@@ -11,7 +11,7 @@ make that claim. Never invent features, numbers, integrations, users, ratings or
 - Free for personal use on your own computer, with every feature. No account, no card. An account is only needed to buy a plan. (/docs/account-and-billing)
 - Source-available under the PolyForm Strict license: free for personal use, no changing or passing it on; work use needs a work license. Not open source. (/docs/faq, /license)
 - Independent; not owned by, paid for by or affiliated with any AI company whose models it runs. (/about)
-- Began from OpenMausBot, an open project by Milind Soni and contributors (Apache 2.0). (/about)
+- Began from OpenMausBot, an open project by Milind Soni and contributors; that original code stays under Apache 2.0. Dusk Bot itself is source-available, never call it open source or Apache licensed. (/about, /license)
 
 ## the ai
 - Dusk Bot has no model of its own. Bots think with an AI you already use: Claude, ChatGPT, Gemini, Grok and others. You sign in the usual way from the first screen. (/docs/getting-started)
