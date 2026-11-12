@@ -2,7 +2,7 @@
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { expect, it } from "vitest";
-import { Island } from "./Island";
+import { GRACE, HOVER_OUT_MS, Island } from "./Island";
 import type { AmbientAct, AmbientBot, AmbientBridge, AmbientSnapshot } from "./types";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -87,7 +87,7 @@ it("opens into a grid of mascots with their names, the newest line in a tip just
   await act(async () => root.unmount());
 });
 
-it("closes in a balanced beat: a pointer in the margin or back within 260 ms keeps it open, then it folds", async () => {
+it("closes soon after the pointer leaves: a pointer in the small margin or back within HOVER_OUT_MS keeps it open, then it folds", async () => {
   let feed: (snapshot: AmbientSnapshot) => void = () => {};
   const bridge: AmbientBridge = {
     surface: "island", onState: (cb) => { feed = cb; return () => {}; }, onLayout: () => () => {}, pointer() {}, open() {}, act() {}, order() {}, ready() {},
@@ -104,20 +104,20 @@ it("closes in a balanced beat: a pointer in the margin or back within 260 ms kee
   expect(stage.hasAttribute("data-open")).toBe(true);
   await wait(300);
   // just past the panel's side, inside the margin: still on it
-  await move(280 + 432 / 2 + 10, 40);
-  await wait(300);
+  await move(280 + 432 / 2 + GRACE, 40);
+  await wait(HOVER_OUT_MS + 100);
   expect(stage.hasAttribute("data-open")).toBe(true);
-  // away, and back in time: nothing happened
-  await move(10, 490);
-  await wait(80);
+  // past the margin, and back in time: nothing happened
+  await move(280 + 432 / 2 + GRACE + 8, 40);
+  await wait(HOVER_OUT_MS / 3);
   await move(280, 40);
-  await wait(300);
+  await wait(HOVER_OUT_MS + 100);
   expect(stage.hasAttribute("data-open")).toBe(true);
-  // away for good: open a beat, then folded
+  // away for good: a short grace, then folded
   await move(10, 490);
-  await wait(200);
+  await wait(HOVER_OUT_MS / 3);
   expect(stage.hasAttribute("data-open")).toBe(true);
-  await wait(120);
+  await wait(HOVER_OUT_MS);
   expect(stage.hasAttribute("data-open")).toBe(false);
   await act(async () => root.unmount());
 });

@@ -1,8 +1,8 @@
 // The bot dock: a slim black column of mascots against the right edge of the screen that flares into it at both ends.
 // At rest only a sliver shows, ticked where a bot works, replied or waits. The pointer at the edge slides the column in;
 // resting on a bot (or moving onto it) brings out one card beside the column with that bot's status, its ask answered
-// right there. The card is one element for the whole visit: it glides and resizes from bot to bot and only goes once
-// the pointer has left both. A mascot carries a bubble only for news: an ask, an unseen reply, an unseen failure.
+// right there. The card is one element for the whole visit: it jumps to each bot and swaps its words in place, and only
+// goes once the pointer has left both. A mascot carries a bubble only for news: an ask, an unseen reply, an unseen failure.
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
 import { AnimatePresence, Reorder, motion, useDragControls, useReducedMotion, useTransform } from "motion/react";
 import { Plus } from "../icons";
@@ -11,7 +11,7 @@ import { HISTORY, MiniChat, type ChatScroll } from "./MiniChat";
 import { useRowMoments } from "./rows";
 import { LOOK_MS, attention, dotOf, eventKey, isFresh, isSeenEvent, newsOf, useSeen, type News } from "./seen";
 import { say, type AmbientLabels } from "./say";
-import { BotMark, EASE_OUT, FADE, FADE_OUT, LIVELY, SETTLE, SOFT_EXIT, useAllClear, useSettledSignal, useTraceTransitions, useAmbientFeed, useNow, usePointerRegion, useSurfaceValue } from "./shared";
+import { BotMark, EASE_OUT, EXIT, FADE, FADE_OUT, LIVELY, SETTLE, useAllClear, useSettledSignal, useTraceTransitions, useAmbientFeed, useNow, usePointerRegion, useSurfaceValue } from "./shared";
 import type { AmbientAct, AmbientBot, AmbientBridge, AmbientMessage, DockLayout } from "./types";
 
 export { dotOf, newsOf };
@@ -21,11 +21,12 @@ const EDGE = 14;
 /** Off the bots and the card, the card goes almost at once (a slip of the pointer is forgiven); the column follows a
  * good while later, so the two never vanish together. */
 export const CARD_LEAVE_MS = 90;
-export const HIDE_MS = 520;
+export const HIDE_MS = 320;
 /** This much around the card and the column still counts as on them, so heading back never closes anything. */
 const GRACE = 16;
-/** The first card of a visit waits for intent: resting on a bot this long, or moving this far on the column. */
-export const DWELL_MS = 450;
+/** The first card of a visit waits for intent: resting on a bot this long, or moving this far on the column. Only long
+ * enough that sweeping past the edge opens nothing. */
+export const DWELL_MS = 90;
 const NUDGE_PX = 6;
 /** A bot that starts needing the person, or fails, brings the dock out this long. */
 const PEEK_MS = 3600;
@@ -34,15 +35,15 @@ export const CARD_W = 304;
 /** The card's chat at its tallest, as a share of the screen's height (never under CHAT_MIN_H); messages scroll inside. */
 export const CHAT_SHARE = 0.75;
 const CHAT_MIN_H = 360;
-/** Moving from bot to bot, the card's words swap in place and settle from slightly faint in this long. */
-export const SWAP_MS = 120;
 /** The longest stretch of a bot's chat the card keeps between visits. */
 const KEPT_MESSAGES = 120;
 
 const CARD_GAP = 10;
 const CARD_MARGIN = 8;
-/** The card leaves quickly and smoothly, words and all: a fade with a touch of scale and drift. */
-const CARD_OUT = { duration: 0.14, ease: EASE_OUT } as const;
+/** The card pops in and out: a short fade with a touch of scale and drift, no spring, no glide between bots. */
+const CARD_IN = { duration: 0.1, ease: EASE_OUT } as const;
+const CARD_OUT = { duration: 0.1, ease: EASE_OUT } as const;
+const JUMP = { duration: 0 } as const;
 // one empty list for "nothing yet": a fresh [] each render would rerun the order effect forever
 const NONE: readonly never[] = [];
 const FALLBACK_DOCK: DockLayout["dock"] = { cell: 56, tile: 36, column: 64, open: 404, pad: 8, ear: 18, sliver: 6, margin: 28, overhang: 4 };
@@ -134,7 +135,7 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
   const bodyH = Math.min(contentH, maxBody);
   const traceAs = (what: string) => (bridge.trace ? (event: string, detail?: string) => bridge.trace!(`${what}:${event}`, detail) : undefined);
   const h = useSurfaceValue(bodyH, reduced, undefined, undefined, traceAs("height"));
-  const slide = useSurfaceValue(slidOut ? 0 : d.column - d.sliver, reduced, slidOut, SOFT_EXIT, traceAs("column"));
+  const slide = useSurfaceValue(slidOut ? 0 : d.column - d.sliver, reduced, slidOut, EXIT, traceAs("column"));
   useTraceTransitions(bridge);
   const top = useTransform(h, (value) => Math.round((stageH - value) / 2));
   const clip = useTransform(() => {
@@ -165,10 +166,6 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
   }, [shownId, contentH, ids, bodyH, top]);
   const cardY = Math.round(Math.min(stageH - cardH - CARD_MARGIN, Math.max(CARD_MARGIN, anchor - cardH / 2)));
   const cardShown = card !== null;
-  // gliding is for moving between bots; a card coming out appears where the bot is
-  const wasShown = useRef(false);
-  const glide = wasShown.current && !reduced ? SETTLE : { duration: 0 };
-  useEffect(() => { wasShown.current = cardShown; });
 
   const live = useRef({ slidOut, cardShown, cardY, cardH });
   live.current = { slidOut, cardShown, cardY, cardH };
@@ -341,19 +338,7 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
     bridge.viewing?.(history.id ? { botId: history.id, limit: history.limit } : null);
   }, [bridge, history]);
   const chatMax = Math.round(Math.min(stageH - 2 * CARD_MARGIN, Math.max(CHAT_MIN_H, stageH * CHAT_SHARE)));
-  // one card, one chat: moving to another bot swaps the words in place (no blank frame, nothing mounted again) and
-  // they settle in from slightly faint
-  const page = useRef<HTMLDivElement>(null);
-  const pageOf = useRef<string | null>(null);
-  useLayoutEffect(() => {
-    const was = pageOf.current;
-    pageOf.current = cardBot?.id ?? null;
-    if (!was || !cardBot || was === cardBot.id || !wasShown.current) return;
-    page.current?.animate?.(
-      reduced ? [{ opacity: 0.5 }, { opacity: 1 }] : [{ opacity: 0.5, transform: "translateY(3px)" }, { opacity: 1, transform: "none" }],
-      { duration: SWAP_MS, easing: `cubic-bezier(${EASE_OUT.join(", ")})` },
-    );
-  }, [cardBot?.id, reduced]);
+  // one card, one chat: moving to another bot swaps the words in place at once (no blank frame, nothing mounted again)
   // the mascots' handlers, the same functions for the whole visit, so a mascot is drawn again only when it changes
   const handlers = useRef<MascotHandlers>(null!);
   handlers.current = {
@@ -418,13 +403,14 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
         animate={cardShown
           ? { opacity: 1, scale: 1, x: 0, y: cardY, height: cardH }
           : { opacity: 0, scale: reduced ? 1 : 0.97, x: reduced ? 0 : 6, y: cardY, height: cardH }}
+        // beside the bot it shows at once: switching bots never glides across the column
         transition={cardShown
-          ? { opacity: FADE, scale: glide === SETTLE ? SETTLE : LIVELY, x: SETTLE, y: glide, height: glide }
-          : { opacity: CARD_OUT, scale: CARD_OUT, x: CARD_OUT, y: { duration: 0 }, height: { duration: 0 } }}
+          ? { opacity: CARD_IN, scale: CARD_IN, x: CARD_IN, y: JUMP, height: JUMP }
+          : { opacity: CARD_OUT, scale: CARD_OUT, x: CARD_OUT, y: JUMP, height: JUMP }}
       >
         <div ref={cardInner} className="amb-card-inner">
           {cardBot && (
-            <div ref={page} className="amb-card-page" data-page={cardBot.id}>
+            <div className="amb-card-page" data-page={cardBot.id}>
               <MiniChat
                 bot={cardBot}
                 labels={labels}
