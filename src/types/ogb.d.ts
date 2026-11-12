@@ -152,6 +152,7 @@ const __APP_VERSION__: string;
       desktopProfile?: { systemName(): Promise<string | null>; loginName?(): Promise<string | null> };
       desktopAnalytics?: import("../../electron/desktop-prefs.mjs").DesktopAnalyticsBridge;
       productEvents?: import("../../electron/product-events.mjs").ProductEventsBridge;
+      errorReports?: import("../../electron/account-errors.mjs").ErrorReportsBridge;
       desktopLanguage?: import("../../electron/desktop-prefs.mjs").DesktopLanguageBridge;
       companyBackups?: {
         state(): Promise<CompanyBackupState>;

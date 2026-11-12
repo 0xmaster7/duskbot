@@ -772,6 +772,10 @@ const bridge = {
     send: batch => ipcRenderer.invoke("product-events:send", batch),
     clear: () => ipcRenderer.invoke("product-events:clear"),
   },
+  // An error's type, message, stack and page path only; main sends it while error reports are on.
+  errorReports: {
+    send: report => ipcRenderer.invoke("error-reports:send", report),
+  },
   desktopAnalytics: {
     enabled: () => {
       if (analyticsChoice === undefined) analyticsChoice = savedAnalyticsChoice();
