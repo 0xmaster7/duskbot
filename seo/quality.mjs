@@ -9,16 +9,13 @@ import path from 'node:path';
 import { sceneId } from './art/scene.mjs';
 import { HUBS } from './records.mjs';
 
-// claims the owner has not cleared (vendor terms on using consumer subscriptions in other apps are unsettled, see
-// omb-ref/seo-research/03-keywords-competitors.md section 7). say "the ai apps you already use" or "sign in to" instead
+// claims no page may make, whatever else it says: that an ai vendor endorses, approves or partners with dusk bot, or that
+// its ai is free or unlimited. (the owner cleared plain wording about using the ai subscription you already have on
+// 2026-11-12; statements about vendor terms must still be factual, dated and sourced)
 export const SUBSCRIPTION = [
-  [/\b(?:use|reuse|run on|bring)\s+(?:your|my)\s+(?:own\s+)?(?:claude|chatgpt|gemini|grok|anthropic|openai)(?:\s+(?:pro|max|plus|team))?\s+(?:subscription|plan|account)s?\b/i, 'says "use your <vendor> subscription"'],
-  [/\b(?:without|no|skip(?:s|ping)?(?: the)?)\s+(?:an?\s+)?api[ -]keys?\b(?!\s*\?)(?![^.]{0,60}\b(?:local|ollama|lm studio)\b)/i, 'promises "no api key"'],
-  [/\bno api (?:bills?|costs?|fees?)\b/i, 'promises "no api cost"'],
   [/\b(?:endorsed|approved|certified|partnered|sponsored|backed)\s+(?:by|with)\s+(?:anthropic|openai|google|xai|microsoft)\b/i, 'implies vendor endorsement'],
   [/\b(?:official|authori[sz]ed)\s+(?:anthropic|openai|google|xai|claude|chatgpt|gemini|grok)\s+(?:partner|app|client|integration)\b/i, 'implies vendor endorsement'],
   [/\b(?:free|unlimited)\s+(?:claude|chatgpt|gemini|grok)\b/i, 'promises free or unlimited ai'],
-  [/\bsubscriptions?\s+instead\s+of\s+(?:an?\s+)?api\b/i, 'says "subscription instead of api"'],
 ];
 const PLACEHOLDER = /\b(?:lorem|ipsum|todo|tbd|fixme|xxx+|placeholder|insert (?:here|link|name)|coming soon)\b|\[\s*(?:insert|link|source|citation needed)/i;
 

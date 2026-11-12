@@ -22,7 +22,7 @@ make that claim. Never invent features, numbers, integrations, users, ratings or
 - If your AI plan runs out, the bot says so; wait for the reset or switch it to another AI. (/docs/bots, /docs/troubleshooting)
 - What you say to a bot goes straight from your machine to your AI provider, on your plan with them. It does not pass through Dusk. (/docs/getting-started, /docs/privacy-and-data)
 - AI usage is never on the Dusk bill; the AI provider bills you. (/docs/account-and-billing)
-- WORDING RULE (legal, pending owner): say "works with the AI apps you already use" or "sign in to the AI you already use". Never say "use your Claude/ChatGPT subscription", "no API key needed", "subscription instead of API", or anything implying a vendor endorses Dusk Bot. Vendor terms decide what a sign-in may be used for; pages say so plainly.
+- WORDING RULE (owner, 2026-11-12): plain wording like "use the AI subscription you already have" is fine. Never imply a vendor endorses, approves or partners with Dusk Bot, and never call any AI free or unlimited. Every statement about a vendor's terms is factual, dated and sourced to the vendor's own page; vendor terms decide what a sign-in may be used for, and pages say so plainly.
 
 ## bots and chats
 - Make a bot with New bot: name, shape, colour, one job in plain words. Change any of it later. (/docs/bots)

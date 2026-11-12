@@ -18,6 +18,11 @@ const repo = process.argv[2] || path.join(process.env.HOME, 'Desktop/code/OpenMa
 // DUSK_APP_URL is a path on this origin (default /app, where preview.dusk.bot serves the app) or a full address
 export const APP_URL = (process.env.DUSK_APP_URL || '/dashboard').replace(/\/+$/, '');
 export const SITE_URL = (process.env.SITE_URL || 'https://dusk.bot').replace(/\/+$/, '');
+// DUSK_WAITLIST_HOME=1 is dusk.bot before launch: the waitlist page is the home page, on its own (no header, footer or
+// links out, as waitlist-only.mjs had it), /waitlist sends people there, and every other page is the full site
+export const WAITLIST_HOME = process.env.DUSK_WAITLIST_HOME === '1';
+export const soloWaitlist = (html) => html.replace(/<a class="skip"[^>]*>[\s\S]*?<\/a>\s*/, '').replace(/<header class="bar">[\s\S]*?<\/header>\s*/, '')
+  .replace(/<footer class="foot">[\s\S]*?<\/footer>\s*/, '').replace(/\s*<a class="wl-link" href="\/">[\s\S]*?<\/a>/, '').replace('<body>', '<body class="solo">');
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 function inline(text) {
@@ -223,7 +228,7 @@ export const macros = (html) => withBots(withLinks(withRelease(withParts(html).r
 const NAV = [['/download', 'download'], ['/docs', 'docs'], ['/pricing', 'pricing']];
 const MENU = [...NAV, ['/changelog', "what's new"], ['/about', 'about'], ['/contact', 'contact']];
 const FOOT = [
-  ['product', [['/download', 'download'], ['/pricing', 'pricing'], ['/changelog', "what's new"], ['/waitlist', 'join the waitlist'], [`${APP_URL}/`, 'sign in']]],
+  ['product', [['/download', 'download'], ['/pricing', 'pricing'], ['/changelog', "what's new"], [WAITLIST_HOME ? '/' : '/waitlist', 'join the waitlist'], [`${APP_URL}/`, 'sign in']]],
   ['learn', [['/docs', 'docs'], ['/docs/getting-started', 'get started'], ['/docs/your-own-server', 'your own server'], ['/docs/faq', 'questions']]],
   ['dusk bot', [['/about', 'about'], ['/contact', 'contact'], ['/brand', 'brand'], ['/security', 'security']]],
   ['legal', [['/terms', 'terms'], ['/privacy', 'privacy'], ['/license', 'license']]],
@@ -323,7 +328,12 @@ const withStrips = (html) => html.replace(/\{\{strip ([\w-]+)(?: \| ([^}]+))?\}\
 
 const pages = JSON.parse(fs.readFileSync(path.join(here, 'pages.json'), 'utf8'));
 for (const page of pages) {
+  if (WAITLIST_HOME && page.name === 'home') continue;
   const body = withStrips(fs.readFileSync(path.join(here, 'pages', `${page.name}.html`), 'utf8'));
+  if (WAITLIST_HOME && page.name === 'waitlist') {
+    write('/', soloWaitlist(layout({ ...page, page: page.name, at: '/', kind: page.kind || 'p-waitlist', body, jsonld: [orgLd] })));
+    continue;
+  }
   const at = page.name === 'home' ? '/' : page.name === '404' ? '/404.html' : `/${page.name}`;
   const jsonld = page.name === 'home' ? [appLd, orgLd, ...faqLd(macros(body))] : page.name === 'about' ? [orgLd, ...faqLd(macros(body))] : faqLd(macros(body));
   write(at, layout({ ...page, page: page.name, at, kind: page.kind || `p-${page.name}`, body, jsonld, noindex: page.name === '404' }), { index: page.name !== '404' });
@@ -367,12 +377,12 @@ for (const [name, colour] of CREW) fs.writeFileSync(path.join(bots_, `${name}.sv
 fs.writeFileSync(path.join(bots_, 'kit-white.svg'), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="400" height="400" shape-rendering="crispEdges">${pixelBot('kit').replace('fill="#fff" d', 'fill="#212121" d').replace('currentColor', '#fff')}</svg>\n`);
 
 const docs = buildDocs({ here, site, markdown, layout, macros, strip, slug, text, write, esc, icon });
-const seo = buildSeo({ site, markdown, layout, macros, text, write, esc, icon, bot, SITE_URL, release });
+const seo = buildSeo({ site, markdown, layout, macros, text, write, esc, icon, bot, SITE_URL, release, waitlistHome: WAITLIST_HOME });
 
 // the rest of what a site answers: where robots may go, every page, the installable-app manifest, and the short addresses
 fs.writeFileSync(path.join(site, 'robots.txt'), robotsTxt(SITE_URL));
 // the sitemap index, one sitemap for the core pages, one for the hubs and one per seo cohort, each with real lastmod dates
-writeSitemaps({ site, SITE_URL, built, cohorts: seo.cohorts });
+writeSitemaps({ site, SITE_URL, built, cohorts: seo.cohorts, persist: !WAITLIST_HOME });
 // the indexnow key, at the site root where search engines look for it (seo/jobs/indexnow.mjs uses it)
 const indexNowKey = fs.readFileSync(path.join(here, 'seo', 'indexnow-key.txt'), 'utf8').trim();
 for (const f of fs.readdirSync(site)) if (/^[0-9a-f]{32}\.txt$/.test(f) && f !== `${indexNowKey}.txt`) fs.rmSync(path.join(site, f));
@@ -385,6 +395,8 @@ fs.writeFileSync(path.join(site, 'site.webmanifest'), JSON.stringify({
 }, null, 2) + '\n');
 // server.js reads this: short and old addresses, each sent on to the page that answers it
 const redirects = { ...JSON.parse(fs.readFileSync(path.join(here, 'redirects.json'), 'utf8')), ...seo.redirects };
+// with the waitlist at home, its own address and everything that pointed at it go home
+if (WAITLIST_HOME) { fs.rmSync(path.join(site, 'waitlist'), { recursive: true, force: true }); for (const [k, v] of Object.entries(redirects)) if (v.split('#')[0] === '/waitlist') redirects[k] = '/'; redirects['/waitlist'] = '/'; }
 for (const [from, to] of Object.entries(redirects)) {
   const target = to.split('#')[0];
   if (target.startsWith('/') && !built.some((p) => p.address === target) && !fs.existsSync(path.join(site, target))) throw new Error(`redirects.json: ${from} goes to ${to}, which is not a page`);

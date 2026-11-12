@@ -12,14 +12,15 @@ const ledgerFile = path.join(seoDir, 'lastmod.json');
 // what counts as a change: the page's main content without asset version stamps, or the record for seo pages
 const keyOf = (k) => createHash('sha256').update(String(k).includes('<main') ? (/<main[\s\S]*<\/main>/.exec(k)?.[0] || k).replace(/\?v=[0-9a-f]{8}/g, '') : String(k)).digest('hex').slice(0, 16);
 
-export function writeSitemaps({ site, SITE_URL, built, cohorts, today = localDay() }) {
+export function writeSitemaps({ site, SITE_URL, built, cohorts, today = localDay(), persist = true }) {
   const ledger = fs.existsSync(ledgerFile) ? JSON.parse(fs.readFileSync(ledgerFile, 'utf8')) : {};
   const next = {};
   for (const p of built.filter((b) => b.index)) {
     const hash = keyOf(p.lastmodKey), was = ledger[p.address];
     next[p.address] = was && was.hash === hash ? was : { hash, lastmod: today };
   }
-  fs.writeFileSync(ledgerFile, JSON.stringify(next, null, 1) + '\n');
+  // a variant build (the waitlist home) reads the ledger but leaves it as the main build wrote it
+  if (persist) fs.writeFileSync(ledgerFile, JSON.stringify(next, null, 1) + '\n');
   const dir = path.join(site, 'sitemaps');
   fs.rmSync(dir, { recursive: true, force: true });
   fs.mkdirSync(dir, { recursive: true });

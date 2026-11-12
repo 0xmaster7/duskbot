@@ -49,9 +49,12 @@ the record carries what is this page's own. Read one finished exemplar of the sa
 - About AI vendors' own features and terms, use only `seo/facts/vendors.json` the same way.
 - Never invent: features, numbers, users, ratings, testimonials, measured results, quotes, dates. Example outputs are allowed only where the template labels them as examples, and must use made-up names (sam, priya, acme).
 
-## words the build refuses (legal, until the owner clears wording)
+## claims the build refuses
 
-Do not write "use your Claude/ChatGPT/Gemini/Grok subscription", "no API key", "subscription instead of API", "free Claude", or anything implying a vendor endorses or partners with Dusk Bot. Write "the AI you already sign in to", "works with the AI apps you already use", "billed by your AI provider on your plan with them". Pages about vendor terms state what the vendor's own page says, dated and linked, and tell people to check their provider's current terms.
+Never imply that an AI vendor endorses, approves or partners with Dusk Bot, and never call any AI free or unlimited (the
+list is `SUBSCRIPTION` in `seo/quality.mjs`). Plain wording about using the AI subscription you already have is fine
+(owner, 2026-11-12). Pages about vendor terms state what the vendor's own page says, dated and linked, and tell people to
+check their provider's current terms.
 
 ## check
 

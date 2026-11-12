@@ -2,7 +2,8 @@
 # deploy the dusk.bot site server with the deploy CLI. safe to rerun; a rerun is also how
 # install.sh gets refreshed. dusk.bot itself is the account service (deploy/account/deploy.sh production in the
 # Dusk Bot repo), which proxies every non-account path to this app on 127.0.0.1:3103; app., dev. and www. are its
-# aliases and redirect. before launch the landing folder is the waitlist-only build (node waitlist-only.mjs).
+# aliases and redirect. before launch dusk.bot's home is the waitlist page on its own and every other page is the full
+# site: the landing build runs with DUSK_WAITLIST_HOME=1 (set DUSK_WAITLIST_HOME=0 for the full home page at launch).
 #   sites/dusk/deploy.sh            # landing (the app dusk-landing, reached through dusk.bot)
 # DUSK_REPO is the Dusk Bot checkout (pages read docs/legal there); INSTALLER overrides where install.sh comes from.
 # LANDING_ENV is the landing app's env file (mongodb + brevo for the waitlist, names in .env.example); it is uploaded
@@ -23,16 +24,21 @@ SITES=(
 
 # the pages and the legal drafts (docs/legal in the Dusk Bot repo) become the landing site's html
 if [ "$WHICH" = all ] || [ "$WHICH" = landing ]; then
-  node "$HERE/build-pages.mjs" "$DUSK_REPO"
+  DUSK_WAITLIST_HOME="${DUSK_WAITLIST_HOME:-1}" node "$HERE/build-pages.mjs" "$DUSK_REPO"
   # no deploy with a link, picture or anchor that leads nowhere
   node "$HERE/check-links.mjs"
-  # the live app in the home page's hero is built from the app itself (kept out of this repo: it is 24 MB of build output)
-  if [ -f "$DUSK_REPO/apps/site-demo/build.mjs" ]; then (cd "$DUSK_REPO" && node apps/site-demo/build.mjs "$HERE/public/landing/demo"); fi
-  [ -f "$HERE/public/landing/demo/index.html" ] || echo "warning: public/landing/demo is missing; the home page falls back to a still picture of the app" >&2
+  if [ "${DUSK_WAITLIST_HOME:-1}" = 1 ]; then
+    # the committed build stays the full site (preview.dusk.bot serves it); it is put back once the stage has its copy
+    RESTORE=1
+  else
+    # the live app in the home page's hero is built from the app itself (kept out of this repo: it is 24 MB of build output)
+    if [ -f "$DUSK_REPO/apps/site-demo/build.mjs" ]; then (cd "$DUSK_REPO" && node apps/site-demo/build.mjs "$HERE/public/landing/demo"); fi
+    [ -f "$HERE/public/landing/demo/index.html" ] || echo "warning: public/landing/demo is missing; the home page falls back to a still picture of the app" >&2
+  fi
 fi
 
 stage=$(mktemp -d "${TMPDIR:-/tmp}/dusk-sites.XXXXXX")
-trap 'rm -rf "$stage"' EXIT
+trap 'rm -rf "$stage"; if [ "${RESTORE:-0}" = 1 ]; then node "$HERE/build-pages.mjs" "$DUSK_REPO" > /dev/null; fi' EXIT
 
 ran=0
 for row in "${SITES[@]}"; do

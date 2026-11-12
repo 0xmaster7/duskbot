@@ -57,7 +57,8 @@ export function buildSeo(ctx) {
   }
   const scenes = writeScenes(site, records);
   const mode = config.cta.mode === 'auto' ? (downloads.released ? 'download' : 'waitlist') : config.cta.mode;
-  const cta = config.cta[mode];
+  // the waitlist link carries the page that sent people, and goes straight home when the waitlist is the home page
+  const cta = { ...config.cta[mode], ...(mode === 'waitlist' ? { source: true, ...(ctx.waitlistHome ? { href: '/' } : {}) } : {}) };
   const byPath = new Map(records.map((r) => [r.path, r]));
   const t = templates({ ...ctx, records, byPath, config, cta, preview, hubs });
   const crumb = (list) => ({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: list.map(([name, at], i) => ({ '@type': 'ListItem', position: i + 1, name, item: `${SITE_URL}${at}` })) });
