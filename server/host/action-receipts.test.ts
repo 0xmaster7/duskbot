@@ -1,4 +1,4 @@
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -52,6 +52,17 @@ describe("evidence", () => {
 });
 
 describe("action receipts", () => {
+  it("drops receipt months that ended more than 30 days ago, so the folder cannot grow forever", async () => {
+    const dataDir = mkdtempSync(join(tmpdir(), "dusk-receipts-"));
+    dirs.push(dataDir);
+    mkdirSync(join(dataDir, "receipts"));
+    for (const name of ["2026-01.jsonl", "2026-09.jsonl", "notes.txt"]) writeFileSync(join(dataDir, "receipts", name), "{}\n");
+    const receipts = createActionReceipts({ dataDir, botOf: () => "bot-1", mark: () => true, now: () => Date.parse("2026-11-12T00:00:00Z") });
+    receipts.record("t1", "GMAIL_SEND_EMAIL");
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(readdirSync(join(dataDir, "receipts")).sort()).toEqual(["2026-11.jsonl", "notes.txt"]);
+  });
+
   it("marks a reply that claims a send its turn has no receipt for", () => {
     const h = harness();
     h.send({ type: "turn.started", turnId: "turn-1" });

@@ -1,12 +1,13 @@
 // Every outbound action a turn takes (a send, a booking, a purchase, a saved file, a download) leaves a receipt: the
 // connected-apps relay writes one for each call it carried, and the turn's own tool calls add theirs. When the turn
 // ends, a reply that claims such an action with no receipt behind it is marked "Not confirmed" for the person. Receipts
-// go to <data>/receipts/<month>.jsonl (0600) and name the tool only, never what was sent.
+// go to <data>/receipts/<month>.jsonl (0600), kept 30 days past their month, and name the tool only, never what was sent.
 import { appendFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 
 import type { ActionKind } from "../../shared/wire.ts";
 import type { RuntimeEvent } from "../contracts.ts";
+import { pruneMonthFiles } from "../decision-log.ts";
 
 export type { ActionKind };
 type Evidence = ActionKind | "browser" | "shell";
@@ -85,11 +86,15 @@ export interface ActionReceiptDeps {
 interface Turn { turnId?: string; text: string; evidence: Set<Evidence>; pending: Map<string, { title?: string; summary?: string }> }
 
 const MAX_PENDING = 256;
+export const RECEIPT_RETENTION_DAYS = 30;
+const RECEIPT_FILE = /^(\d{4})-(\d{2})\.jsonl$/;
+const PRUNE_EVERY_MS = 60 * 60_000;
 const RELAY_FAILED = /"successful"\s*:\s*false|"isError"\s*:\s*true/;
 
 export function createActionReceipts(deps: ActionReceiptDeps) {
   const now = deps.now ?? Date.now;
   const turns = new Map<string, Turn>();
+  let lastPrune = 0;
   const turn = (threadId: string): Turn => {
     let current = turns.get(threadId);
     if (!current) turns.set(threadId, current = { text: "", evidence: new Set(), pending: new Map() });
@@ -104,6 +109,11 @@ export function createActionReceipts(deps: ActionReceiptDeps) {
     const dir = join(deps.dataDir, "receipts");
     void mkdir(dir, { recursive: true, mode: 0o700 })
       .then(() => appendFile(join(dir, `${at.toISOString().slice(0, 7)}.jsonl`), line, { mode: 0o600 }))
+      .then(async () => {
+        if (at.getTime() - lastPrune < PRUNE_EVERY_MS) return;
+        lastPrune = at.getTime();
+        await pruneMonthFiles(dir, RECEIPT_RETENTION_DAYS, at, RECEIPT_FILE);
+      })
       .catch((error: unknown) => console.error(`receipts: not written: ${error instanceof Error ? error.message : String(error)}`));
   }
 

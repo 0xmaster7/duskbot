@@ -154,7 +154,7 @@ export async function pruneDecisions(dataDir: string, days: number, now = new Da
   return removed;
 }
 
-export async function pruneMonthFiles(dir: string, days: number, now = new Date()): Promise<string[]> {
+export async function pruneMonthFiles(dir: string, days: number, now = new Date(), pattern: RegExp = MONTH_FILE): Promise<string[]> {
   const cutoff = now.getTime() - days * DAY_MS;
   const removed: string[] = [];
   let names: string[] = [];
@@ -163,7 +163,7 @@ export async function pruneMonthFiles(dir: string, days: number, now = new Date(
   } catch {
   }
   for (const name of names) {
-    const match = MONTH_FILE.exec(name);
+    const match = pattern.exec(name);
     if (!match || Date.UTC(Number(match[1]), Number(match[2]), 1) > cutoff) continue;
     try {
       await unlink(join(dir, name));
