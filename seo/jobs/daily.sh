@@ -12,7 +12,7 @@
 set -euo pipefail
 cd "${DUSK_SEO_REPO:?set DUSK_SEO_REPO to the deployd checkout}/sites/dusk"
 git pull --rebase --autostash --quiet
-node seo/jobs/release.mjs --apply || { echo "gate is red: nothing released, see the numbers above"; }
+node seo/jobs/release.mjs --apply || { echo "gate is red (or the job failed): nothing released, see above"; }
 if ! git diff --quiet -- seo/release.json; then
   node build-pages.mjs "${DUSK_REPO:?set DUSK_REPO to the dusk bot checkout}"
   node check-links.mjs

@@ -73,9 +73,14 @@ export async function run({ apply = false, today = localDay(), snapshotFile, sit
   if (!going) {
     if (!last) verdict = { state: 'green', why: 'no cohort is out yet: this is the seed' };
     else {
+      // too young to measure: say so without asking google
+      const seed = last === release.cohorts[0], need = seed ? growth.gate.seed_index_rate.at_day : growth.measure_day, age = daysBetween(last.released, today);
+      if (age < need) return log(`wait: cohort ${last.id} is ${age} days old; it is measured at day ${need} (${addDays(last.released, need)})`), { state: 'wait' };
       let snapshot = null;
       if (snapshotFile) snapshot = JSON.parse(fs.readFileSync(snapshotFile, 'utf8'));
-      else if (gscConfigured()) snapshot = await takeSnapshot(inCohort(last.id).filter((r) => r.indexable).map((r) => siteUrl + r.path), today);
+      else if (gscConfigured()) {
+        try { snapshot = await takeSnapshot(inCohort(last.id).filter((r) => r.indexable).map((r) => siteUrl + r.path), today); } catch (err) { return log(`hold: search console did not answer (${err.cause?.code || err.message}); trying again tomorrow`), { state: 'hold' }; }
+      }
       if (!snapshot) return log(`hold: search console is not connected (${GSC_ENV.credentials}, ${GSC_ENV.site}), so cohort ${next.id} waits. see omb-ref/SEO-SYSTEM.md "connect search console"`), { state: 'hold' };
       const week = Math.floor(daysBetween(release.cohorts[0].released, today) / 7) + 1;
       verdict = evaluateGate({ cohort: last, pages: inCohort(last.id).filter((r) => r.indexable).map((r) => siteUrl + r.path), snapshot, growth, today, seed: last === release.cohorts[0], weekOfProgram: week });
