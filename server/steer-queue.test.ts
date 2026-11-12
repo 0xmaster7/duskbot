@@ -809,6 +809,9 @@ describe("steer-queue e2e (fake ACP fleet)", () => {
     writeFileSync(
       join(home, ".duskbot", "config.json"),
       JSON.stringify({
+        // the echo repeats the whole prompt, and warm's "You're right" example would read as an
+        // agreed correction and start a carry-on turn; casual has no such line
+        talkingStyle: "casual",
         instances: {
           steer: {
             driver: "grokAgent",
@@ -981,7 +984,7 @@ describe("steer-queue e2e (fake ACP fleet)", () => {
   );
 
   it(
-    "drains the queue after an interrupt — stop-then-steer",
+    "drains the queue after an interrupt: stop-then-steer",
     async () => {
       const bot = await newBot("steerStop", "Stoppable");
 

@@ -80,7 +80,9 @@ posixOnly("work digest e2e (every fake engine)", () => {
       environment: { FAKE_ACP_MODE: "echo-gated" },
       config: { cli: fake("fake-acp-cli.ts"), fullAuto: true },
     };
-    writeFileSync(join(home, ".duskbot", "config.json"), JSON.stringify({ instances }));
+    // the echo fakes repeat the whole prompt, and warm's "You're right" example would read as an
+    // agreed correction and start a carry-on turn; casual has no such line
+    writeFileSync(join(home, ".duskbot", "config.json"), JSON.stringify({ instances, talkingStyle: "casual" }));
 
     const env: NodeJS.ProcessEnv = { HOME: home, USERPROFILE: home, DUSK_PORT: String(PORT) };
     if (process.env.PATH) env.PATH = process.env.PATH;
