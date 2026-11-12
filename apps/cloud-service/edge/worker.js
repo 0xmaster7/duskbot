@@ -15,6 +15,25 @@ import { envelope, queueReady } from "./hook-queue.js";
 
 export { HookQueue, QUEUE_LIMITS } from "./hook-queue.js";
 const ROUTE_TTL_S = 60;
+/**
+ * a label the account service maps to no home is not asked about again for this long, per colo (cache api). short,
+ * because a home being set up or restored has no upstream yet and must become reachable soon after it gets one
+ */
+export const MISSING_TTL_S = 60;
+/** unknown labels one client address may have looked up per minute, per isolate, before it gets 404s without a lookup */
+export const MISSES_PER_MINUTE = 30;
+const MISS_WINDOW_MS = 60_000, MAX_MISS_KEYS = 10_000;
+const misses = new Map();
+function tooManyMisses(ip, now) {
+  const seen = misses.get(ip);
+  return !!seen && now - seen.from < MISS_WINDOW_MS && seen.count >= MISSES_PER_MINUTE;
+}
+function noteMiss(ip, now) {
+  const seen = misses.get(ip);
+  if (seen && now - seen.from < MISS_WINDOW_MS) { seen.count += 1; return; }
+  if (misses.size >= MAX_MISS_KEYS) misses.clear();
+  misses.set(ip, { from: now, count: 1 });
+}
 /** a held request waits this long for a waking home; webhook senders time out not much later */
 export const HOLD_MS = 25_000;
 const MAX_HELD_BODY = 2 * 1024 * 1024;
@@ -25,10 +44,17 @@ export async function routeFor(label, env, ctx, { fresh = false } = {}) {
   const cache = globalThis.caches?.default, key = cacheKey(label);
   if (!fresh && cache) {
     const hit = await cache.match(key);
-    if (hit) return { ...(await hit.json()), awake: true };
+    if (hit) {
+      const cached = await hit.json();
+      return cached.missing ? null : { ...cached, awake: true };
+    }
   }
   const route = await lookupRoute(label, env);
-  if (!route) return null;
+  if (!route) {
+    // floods of made-up labels must not each reach the account service
+    if (cache) ctx.waitUntil(cache.put(key, new Response(JSON.stringify({ missing: true }), { headers: { "cache-control": `max-age=${MISSING_TTL_S}` } })));
+    return null;
+  }
   // only an awake home's route is cached: a sleeping one is asked again until it answers
   if (route.awake && cache) ctx.waitUntil(cache.put(key, new Response(JSON.stringify({ upstream: route.upstream }), { headers: { "cache-control": `max-age=${ROUTE_TTL_S}` } })));
   return route;
@@ -117,9 +143,11 @@ export default {
     const url = new URL(request.url);
     const label = url.hostname.endsWith(`.${env.PUBLIC_DOMAIN}`) ? url.hostname.slice(0, -env.PUBLIC_DOMAIN.length - 1) : "";
     if (!LABEL.test(label)) return new Response("Not found", { status: 404 });
+    const ip = request.headers.get("cf-connecting-ip") ?? "unknown", at = Date.now();
+    if (tooManyMisses(ip, at)) return new Response("Not found", { status: 404 });
     let route;
     try { route = await routeFor(label, env, ctx); } catch { return new Response("Unavailable", { status: 503, headers: { "retry-after": "5" } }); }
-    if (!route) return new Response("Not found", { status: 404 });
+    if (!route) { noteMiss(ip, at); return new Response("Not found", { status: 404 }); }
     const reason = wakeReason(request, url);
     // a webhook's body is read first, so it can still reach the home after a wake, exactly as it was sent
     let body;
