@@ -318,7 +318,7 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
 /* where it runs: three cards on a picture. each panel is the same slice of the real app, in the hero demo's own sizes and
    colours: a few bot rows, then one status card. only the picture sits behind the panel */
 /* two ways, dusk cloud first: the one people should pick carries the only dark button. an own server is one line under them */
-.ways { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gut); }
+.ways { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gut); }
 .way-art { position: relative; aspect-ratio: 4 / 3; border-radius: var(--r-xl); overflow: hidden; }
 .way > .way-tag { display: flex; align-items: center; gap: 10px; margin: 22px 0 0; font: 500 12.5px/1 var(--mono); color: var(--ink-3); }
 .way-tag span { padding: 5px 10px; border-radius: 999px; background: var(--wash); font: 500 13px/1 var(--sans); color: var(--ink); }
