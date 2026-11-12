@@ -7,6 +7,7 @@ import { takeImportName } from "../shared/import-name.ts";
 import type { BotRecord, Message, Store } from "./store.ts";
 
 export type DefaultBotStore = Pick<Store, "bots" | "bot" | "createBot" | "patchBot" | "appendMessage" | "messagesFor" | "createTask" | "setChiefOfStaff">;
+export type LegacyNameStore = Pick<Store, "bots" | "patchBot" | "patchTask" | "messagesFor" | "patchMessage">;
 
 /** Where each place (key "") and Team Cloud member (their email) is recorded as having had its Dusk, so one that is
  * gone is never made twice. */
@@ -75,9 +76,10 @@ export function forgetDefaultBot(dataDir: string, person: string): void {
 
 /** A new install's own Dusk from before it was marked: the place's oldest bot, still live, outside any department,
  * not installed from a package, and still named Dusk or still in the colour a new install gave it. */
-export function seededDusk(bots: readonly BotRecord[]): BotRecord | undefined {
+export function seededDusk(bots: readonly BotRecord[], legacy = false): BotRecord | undefined {
   const oldest = bots.reduce<BotRecord | undefined>((first, bot) => !first || bot.createdAt < first.createdAt ? bot : first, undefined);
   if (!oldest || oldest.hidden || oldest.movedTo || oldest.section?.trim() || oldest.installedPackage) return undefined;
+  if (legacy) return legacyNamed(oldest) ? oldest : undefined;
   return oldest.name === DEFAULT_BOT_NAME || oldest.color === STARTER_COLOR ? oldest : undefined;
 }
 
@@ -104,11 +106,41 @@ export function createDefaultBot(store: DefaultBotStore, options: { person?: str
   return bot;
 }
 
+/** The helper's name before the rename. */
+export const LEGACY_DEFAULT_BOT_NAME = "MausBot";
+
+const legacyNamed = (bot: Pick<BotRecord, "name">): boolean => bot.name.trim() === LEGACY_DEFAULT_BOT_NAME;
+
+/** Every helper still called MausBot becomes Dusk, and its seeded intro (and the task that holds it) says so. Runs
+ * at every start, on any place, frozen or not, so a copy the island or the dock still reads never shows the old
+ * name. A bot someone renamed keeps its name; only an intro still naming MausBot is rewritten. */
+export function renameLegacyDefaultBots(store: LegacyNameStore): number {
+  let renamed = 0;
+  for (const bot of [...store.bots]) {
+    if (!legacyNamed(bot) || (!bot.defaultBot && seededDusk(store.bots, true)?.id !== bot.id)) continue;
+    const name = DEFAULT_BOT_NAME;
+    store.patchBot(bot.id, { name });
+    for (const task of bot.tasks ?? []) if (task.title === `What ${LEGACY_DEFAULT_BOT_NAME} can do`) store.patchTask(bot.id, task.threadId, { title: `What ${name} can do` });
+    const threads = new Set([bot.threadId, ...(bot.tasks ?? []).map((task) => task.threadId)]);
+    for (const threadId of threads) {
+      for (const message of store.messagesFor(threadId)) {
+        if (!message.helperIntro || !message.text?.includes(LEGACY_DEFAULT_BOT_NAME)) continue;
+        const swap = (value: string | undefined) => value?.replaceAll(LEGACY_DEFAULT_BOT_NAME, name);
+        store.patchMessage(threadId, message.id, {
+          text: swap(message.text),
+          ...(message.card ? { card: { ...message.card, ...(message.card.title ? { title: swap(message.card.title) } : {}), ...(message.card.subtitle ? { subtitle: swap(message.card.subtitle) } : {}) } } : {}),
+        });
+      }
+    }
+    renamed++;
+  }
+  return renamed;
+}
+
 /** Makes sure this place (no `person`) or this Team Cloud member has had its Dusk once: the one it has, the new
  * install's own adopted, or a new one. A Dusk that is gone is never made again. Two marked ones keep the oldest. A
  * place with no Chief of Staff at all gets Dusk as its Chief, so someone keeps an eye on the day; one that has a
  * Chief keeps it. */
-const LEGACY_DEFAULT_BOT_NAME = "MausBot";
 
 export function ensureDefaultBot(store: DefaultBotStore, options: { dataDir: string; person?: string; team?: string | null }): BotRecord | null {
   const person = options.person?.trim().toLowerCase() ?? "";
@@ -117,7 +149,6 @@ export function ensureDefaultBot(store: DefaultBotStore, options: { dataDir: str
   for (const extra of marked.slice(1)) store.patchBot(extra.id, { defaultBot: undefined, sidebarHidden: undefined });
   if (marked[0]) {
     remember(options.dataDir, person, marked[0].id);
-    if (marked[0].name.trim() === LEGACY_DEFAULT_BOT_NAME) return store.patchBot(marked[0].id, { name: DEFAULT_BOT_NAME }) ?? marked[0];
     return marked[0];
   }
   if (Object.hasOwn(ledger(options.dataDir), person)) return null;

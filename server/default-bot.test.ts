@@ -7,7 +7,7 @@ import { MOVE_BOT_FIELDS, moveKindsRoute, type MoveKindsDeps } from "./cloud-sen
 import { chiefLevel, readTeamRolesWith } from "./chief-level.ts";
 import { DATA_DIR } from "./config.ts";
 import type { ModelSelection } from "./contracts.ts";
-import { defaultBotPatchRefusal, ensureDefaultBot } from "./default-bot.ts";
+import { defaultBotPatchRefusal, ensureDefaultBot, helperIntroMessage, renameLegacyDefaultBots } from "./default-bot.ts";
 import * as mdb from "./message-db.ts";
 import { Store, type BotRecord } from "./store.ts";
 import { availableTools, catalogProfileFromEnv } from "./drivers/agents-catalog.ts";
@@ -32,13 +32,33 @@ describe("Dusk, every person's helper", () => {
   beforeEach(() => rmSync(DATA_DIR, { recursive: true, force: true }));
   afterEach(() => readTeamRolesWith(() => null));
 
-  it("renames a Dusk still called MausBot", () => {
+  it("renames a Dusk still called MausBot and rewrites its seeded intro, card and all", () => {
     const store = new Store(selection);
     store.seedIfEmpty();
     const dusk = boot(store)!;
     store.patchBot(dusk.id, { name: "MausBot" });
-    expect(boot(store)?.name).toBe("Dusk");
+    const intro = store.messagesFor(dusk.threadId).find((message) => message.helperIntro)!;
+    const legacy = helperIntroMessage({ name: "MausBot", chiefOfStaff: true });
+    store.patchMessage(dusk.threadId, intro.id, { text: legacy.text, card: legacy.card });
+    const typed = store.appendMessage(dusk.threadId, { role: "user", kind: "text", text: "is MausBot your old name?" });
+    expect(renameLegacyDefaultBots(store)).toBe(1);
     expect(store.bot(dusk.id)?.name).toBe("Dusk");
+    const after = store.messagesFor(dusk.threadId);
+    const rewritten = after.find((message) => message.id === intro.id)!;
+    expect(rewritten.text).toBe(helperIntroMessage({ name: "Dusk", chiefOfStaff: true }).text);
+    expect(rewritten.card?.title).toBe("Hey! I'm Dusk. I'm new here.");
+    expect(after.find((message) => message.id === typed.id)?.text).toBe("is MausBot your old name?");
+    expect(renameLegacyDefaultBots(store)).toBe(0);
+  });
+
+  it("renames an unmarked first bot still called MausBot, so the next start adopts it, but not a later bot someone named so", () => {
+    const store = new Store(selection);
+    const first = store.createBot({ name: "MausBot", color: "silver" });
+    const later = store.createBot({ name: "MausBot" });
+    expect(renameLegacyDefaultBots(store)).toBe(1);
+    expect(store.bot(first.id)?.name).toBe("Dusk");
+    expect(store.bot(later.id)?.name).toBe("MausBot");
+    expect(boot(store)?.id).toBe(first.id);
   });
 
   it("gives a fresh install one Dusk, its Chief, in chrome, introduced once", () => {
