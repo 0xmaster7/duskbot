@@ -21,6 +21,8 @@ export const DESKTOP_NETWORK = "openmausbot-desktops";
 export const DESKTOP_BRIDGE = "omb-desk0";
 export const DESKTOP_HOME = "/home/cua";
 export const DESKTOP_NAME = /^openmausbot-vps-[a-z0-9]{1,12}-[a-f0-9]{12}$/;
+// an update sets the old desktop aside under this name and puts it back if the new one fails (server/vps-computer.ts)
+const PREVIOUS_SUFFIX = "-previous";
 export const FREE_CAPABILITIES = ["AUDIT_WRITE", "CHOWN", "DAC_OVERRIDE", "FOWNER", "FSETID", "KILL", "NET_BIND_SERVICE", "SETGID", "SETUID", "SYS_CHROOT"];
 export const STRICT_CAPABILITIES = ["NET_ADMIN", "SETGID", "SETUID"];
 
@@ -306,7 +308,7 @@ function homeMount(value, name) {
 
 function checkDesktop(config, name, runsc) {
   if (config.get("labels")[VPS_LABEL] !== "1") refuse(`label ${VPS_LABEL} must be 1`);
-  if (typeof name !== "string" || !DESKTOP_NAME.test(name)) refuse(`a Dusk Bot computer must be named like ${DESKTOP_NAME.source}`);
+  if (typeof name !== "string" || !DESKTOP_NAME.test(name)) refuse(`a bot computer must be named like ${DESKTOP_NAME.source}`);
   if (!config.get("image")) refuse("Image is required");
   const host = struct(config.get("hostconfig"), "HostConfig", HOST_RULES);
   const strict = host.get("readonlyrootfs") === true && noNewPrivileges(host.get("securityopt"));
@@ -449,7 +451,7 @@ function assertRunsSafely(detail) {
     (Array.isArray(host.MaskedPaths) && host.MaskedPaths.length === 0) ||
     (Array.isArray(host.ReadonlyPaths) && host.ReadonlyPaths.length === 0) ||
     (Array.isArray(detail.Mounts) && detail.Mounts.some((mount) => mount?.Type !== "volume" && mount?.Type !== "tmpfs"));
-  if (unsafe) refuse("this computer was not made with the gate's safe flags; remove it and let Dusk Bot recreate it");
+  if (unsafe) refuse("this computer was not made with the gate's safe flags; remove it and let dusk bot recreate it");
 }
 
 const CONTAINER_OPS = {
@@ -461,6 +463,7 @@ const CONTAINER_OPS = {
   "POST resize": { query: ["h", "w"] },
   "POST attach": { query: ["stream", "stdin", "stdout", "stderr", "logs", "detachKeys"], probe: true, safe: true, hijack: true },
   "POST update": { query: [], body: "update", safe: true },
+  "POST rename": { query: ["name"], rename: true },
   "POST exec": { query: [], body: "exec", safe: true },
   "GET json": { query: ["size"], probe: true },
   "GET logs": { query: ["follow", "stdout", "stderr", "since", "until", "timestamps", "tail", "details"] },
@@ -468,6 +471,17 @@ const CONTAINER_OPS = {
   "GET stats": { query: ["stream", "one-shot"] },
   "DELETE ": { query: ["force", "v"], probe: true },
 };
+
+/** A bot computer is renamed only between its own name and its own set-aside name, never to anyone else's. */
+export function checkRename(current, next) {
+  const base = (name) => {
+    const plain = typeof name === "string" ? name.replace(/^\//, "") : "";
+    const stem = plain.endsWith(PREVIOUS_SUFFIX) ? plain.slice(0, -PREVIOUS_SUFFIX.length) : plain;
+    return DESKTOP_NAME.test(stem) ? stem : null;
+  };
+  const from = base(current), to = base(next);
+  if (!from || !to || from !== to || current.replace(/^\//, "") === next) refuse("a bot computer can only be set aside under its own name");
+}
 
 function decodeComponent(value) {
   try {
@@ -587,8 +601,9 @@ async function route(method, target, body, ctx) {
     if (found.status === 404) refuse(found.json?.message ?? `No such container: ${ref}`, 404);
     if (found.status !== 200 || !FULL_ID.test(found.json?.Id ?? "")) throw new Error("docker returned no container");
     const detail = found.json;
-    if (detail.Config?.Labels?.[VPS_LABEL] !== "1") refuse("this container is not a Dusk Bot computer");
+    if (detail.Config?.Labels?.[VPS_LABEL] !== "1") refuse("this container is not a bot computer");
     if (rule.safe) assertRunsSafely(detail);
+    if (rule.rename) checkRename(detail.Name, query.get("name"));
     return pass(`/containers/${detail.Id}${op ? `/${op}` : ""}`, {
       json: Boolean(rule.body),
       hijack: Boolean(rule.hijack),

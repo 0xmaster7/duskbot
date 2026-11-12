@@ -379,6 +379,21 @@ describe("docker gate routing", () => {
     expect(await decide("POST", `/v1.47/containers/${PROBE_ID}/exec`, json({ Cmd: ["iptables", "-F"] }), ctx)).toMatchObject({ allow: false, status: 404 });
   });
 
+  it("renames a bot computer only to its own set-aside name and back", async () => {
+    const previous = `${NAME}-previous`;
+    const other = `${DOCKER_NAMES.vpsPrefix}-xyz-ba9876543210`;
+    const ctx = fakeContext({ [NAME]: { ...own, Name: `/${NAME}` }, [previous]: { ...own, Name: `/${previous}` }, foreign: { ...foreign, Name: `/${other}` } });
+    expect(await decide("POST", `/v1.47/containers/${NAME}/rename?name=${previous}`, null, ctx)).toMatchObject({ allow: true, target: `/v1.47/containers/${CID}/rename?name=${previous}` });
+    expect(await decide("POST", `/v1.47/containers/${previous}/rename?name=${NAME}`, null, ctx)).toMatchObject({ allow: true });
+    expect(await decide("POST", `/v1.47/containers/${NAME}/rename?name=${other}`, null, ctx)).toMatchObject({ allow: false, message: /own name/ });
+    expect(await decide("POST", `/v1.47/containers/${NAME}/rename?name=${other}-previous`, null, ctx)).toMatchObject({ allow: false });
+    expect(await decide("POST", `/v1.47/containers/${NAME}/rename?name=${NAME}`, null, ctx)).toMatchObject({ allow: false });
+    expect(await decide("POST", `/v1.47/containers/${NAME}/rename?name=web`, null, ctx)).toMatchObject({ allow: false });
+    expect(await decide("POST", `/v1.47/containers/${NAME}/rename`, null, ctx)).toMatchObject({ allow: false });
+    expect(await decide("POST", `/v1.47/containers/${NAME}/rename?name=${previous}&force=1`, null, ctx)).toMatchObject({ allow: false });
+    expect(await decide("POST", `/v1.47/containers/foreign/rename?name=${other}-previous`, null, ctx)).toMatchObject({ allow: false, status: 403 });
+  });
+
   it("limits updates and execs, and starts only execs it saw created", async () => {
     const ctx = fakeContext({ [NAME]: own });
     expect(await decide("POST", `/v1.47/containers/${NAME}/update`, json({ Memory: 1, RestartPolicy: { Name: "no" } }), ctx)).toMatchObject({ allow: true });
