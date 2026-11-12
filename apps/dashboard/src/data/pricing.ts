@@ -1,7 +1,7 @@
 import type { Bundle, BillingInterval, CustomPricing, DesktopTier, LicenseTier, MachineSpec, PlanCatalog, Selection } from "./contracts";
 
 export function sizedMonthly(spec: MachineSpec, p: CustomPricing): number {
-  return Math.round(p.base + spec.vcpu * p.perVcpu + spec.ramGb * p.perGbRam + (Math.max(0, spec.diskGb - (p.includedDiskGb ?? 0)) / 10) * p.per10GbDisk);
+  return Math.round(p.base + spec.vcpu * p.perVcpu + spec.ramGb * p.perGbRam + (Math.max(0, spec.diskGb - (p.includedDiskGb ?? 0)) / 20) * p.per20GbDisk);
 }
 
 export const licenseOf = (c: PlanCatalog, id: string): LicenseTier | null => c.licenses.find((l) => l.id === id) ?? null;

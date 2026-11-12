@@ -25,10 +25,10 @@ export function catalogFromWire(catalog: Catalog): PlanCatalog {
     ...(catalog.wake ? { wake: Object.fromEntries(Object.entries(catalog.wake).map(([kind, stat]) => [desktopIds[kind as keyof typeof catalog.wake], stat])) } : {}),
     desktops: catalog.desktops.map((desktop) => {
       const machine = desktop.machine;
-      const cents = desktop.monthlyCents ?? pricing.baseCents + machine.vcpu * pricing.perVcpuCents + machine.ramGb * pricing.perGbRamCents + Math.max(0, machine.diskGb - pricing.includedDiskGb) / 10 * pricing.per10GbDiskCents;
+      const cents = desktop.monthlyCents ?? pricing.baseCents + machine.vcpu * pricing.perVcpuCents + machine.ramGb * pricing.perGbRamCents + Math.max(0, machine.diskGb - pricing.includedDiskGb) / 20 * pricing.per20GbDiskCents;
       return { id: desktopIds[desktop.kind], name: desktop.label.toLowerCase(), monthly: Math.round(cents) / 100, ...machine, placement: desktop.placement === "pool" ? "shared" : "dedicated", botComputers: desktop.botComputers, priority: desktop.priority, sizable: desktop.kind === "dedicated", blurb: "" };
     }),
-    custom: { base: pricing.baseCents / 100, perVcpu: pricing.perVcpuCents / 100, perGbRam: pricing.perGbRamCents / 100, per10GbDisk: pricing.per10GbDiskCents / 100, includedDiskGb: pricing.includedDiskGb, vcpu: pricing.vcpu, ramGb: pricing.ramGb, diskGb: pricing.diskGb },
+    custom: { base: pricing.baseCents / 100, perVcpu: pricing.perVcpuCents / 100, perGbRam: pricing.perGbRamCents / 100, per20GbDisk: pricing.per20GbDiskCents / 100, includedDiskGb: pricing.includedDiskGb, vcpu: pricing.vcpu, ramGb: pricing.ramGb, diskGb: pricing.diskGb },
     bundles: catalog.bundles.map((bundle) => {
       const license = licenseIds[bundle.cart.license.kind];
       return { id: bundle.id, name: bundle.label.toLowerCase(), monthly: bundle.monthlyCents / 100, license, members: bundle.cart.license.members ?? licenses.find((item) => item.id === license)!.includedMembers, desktop: desktopIds[bundle.cart.desktop.kind], blurb: bundleBlurbs[bundle.id], features: bundle.highlights, recommended: bundle.id === "pro" };

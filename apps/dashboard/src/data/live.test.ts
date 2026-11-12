@@ -15,7 +15,7 @@ const catalog: Catalog = {
     { kind: "shared_m", label: "Shared M", monthlyCents: 4000, machine: { vcpu: 4, ramGb: 8, diskGb: 80 }, placement: "pool", botComputers: 5, priority: true },
     { kind: "dedicated", label: "Dedicated", monthlyCents: null, machine: { vcpu: 8, ramGb: 16, diskGb: 165 }, placement: "dedicated", botComputers: null, priority: true },
   ],
-  dedicated: { baseCents: 600, perVcpuCents: 350, perGbRamCents: 125, per10GbDiskCents: 51, includedDiskGb: 100, vcpu: { min: 2, max: 32, step: 2 }, ramGb: { min: 4, max: 64, step: 4 }, diskGb: { min: 40, max: 1000, step: 20 } },
+  dedicated: { baseCents: 600, perVcpuCents: 350, perGbRamCents: 125, per20GbDiskCents: 102, includedDiskGb: 100, vcpu: { min: 2, max: 32, step: 2 }, ramGb: { min: 4, max: 64, step: 4 }, diskGb: { min: 40, max: 1000, step: 20 } },
   bundles: [
     { id: "free", label: "Free", monthlyCents: 0, yearlyMonthlyCents: 0, cart: { license: { kind: "none" }, desktop: { kind: "none" } }, highlights: ["Personal use"] },
     { id: "starter", label: "Starter", monthlyCents: 2000, yearlyMonthlyCents: 1600, cart: { license: { kind: "solo" }, desktop: { kind: "shared_s" } }, highlights: ["Always on"] },
@@ -35,7 +35,7 @@ test("catalog maps ids, prices, bundles, custom pricing and the default region",
   assert.equal(result.custom.base, 6);
   assert.equal(result.custom.perVcpu, 3.5);
   assert.equal(result.custom.perGbRam, 1.25);
-  assert.equal(result.custom.per10GbDisk, 0.51);
+  assert.equal(result.custom.per20GbDisk, 1.02);
   assert.deepEqual(result.custom.diskGb, catalog.dedicated.diskGb);
   assert.deepEqual(result.bundles.map((bundle) => [bundle.license, bundle.members, bundle.desktop, bundle.monthly, bundle.recommended]), [["personal", 1, "none", 0, false], ["starter", 1, "shared-s", 20, false], ["starter", 1, "shared-m", 50, true], ["team", 3, "dedicated", 100, false]]);
   assert.equal(result.bundles[0]!.blurb, "for personal use on your computer or your own vps");

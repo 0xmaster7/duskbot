@@ -101,8 +101,8 @@ export interface CustomPricing {
   base: number;
   perVcpu: number;
   perGbRam: number;
-  /** per 10 GB past includedDiskGb */
-  per10GbDisk: number;
+  /** per 20 GB past includedDiskGb, so diskGb.step is 20 */
+  per20GbDisk: number;
   includedDiskGb: number;
   vcpu: Range;
   ramGb: Range;

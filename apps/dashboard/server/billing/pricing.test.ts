@@ -5,7 +5,7 @@ import { DEFAULT_RETENTION_DAYS } from "../../../cloud-service/src/retention.ts"
 import { changeCharge, dedicatedMonthlyCents, dodoCart, dodoCreditsCart, parseCart, quote } from "./pricing.ts";
 
 const preset = (index: number, interval: Cart["interval"] = "month"): Cart => ({ ...structuredClone(config.bundles[index].cart), interval });
-const products = Object.fromEntries(["month", "year"].flatMap(interval => ["license_solo", "license_team", "desktop_shared_s", "desktop_shared_m", "desktop_dedicated", "addon_member", "addon_shared_s", "addon_shared_m", "addon_dedicated", "addon_vcpu", "addon_ram_gb", "addon_disk_10gb"].map(key => [`${key}:${interval}`, `${key}_${interval}`])));
+const products = Object.fromEntries(["month", "year"].flatMap(interval => ["license_solo", "license_team", "desktop_shared_s", "desktop_shared_m", "desktop_dedicated", "addon_member", "addon_shared_s", "addon_shared_m", "addon_dedicated", "addon_vcpu", "addon_ram_gb", "addon_disk_20gb"].map(key => [`${key}:${interval}`, `${key}_${interval}`])));
 
 describe("billing pricing", () => {
   it("offers only the managed backend's real region when it runs every desktop kind", () => {
@@ -52,7 +52,7 @@ describe("billing pricing", () => {
   it("prices and validates dedicated units, ranges and steps", () => {
     expect(dedicatedMonthlyCents({ vcpu: 8, ramGb: 16, diskGb: 160 }, config)).toBe(6000);
     for (const spec of [{ vcpu: 2, ramGb: 4, diskGb: 40 }, { vcpu: 32, ramGb: 64, diskGb: 1000 }]) expect(parseCart({ ...preset(3), desktop: { kind: "dedicated", region: "sin", spec } }, config)).not.toBeNull();
-    for (const spec of [{ vcpu: 3, ramGb: 16, diskGb: 160 }, { vcpu: 34, ramGb: 16, diskGb: 160 }, { vcpu: 8, ramGb: 6, diskGb: 160 }, { vcpu: 8, ramGb: 68, diskGb: 160 }, { vcpu: 8, ramGb: 16, diskGb: 45 }, { vcpu: 8, ramGb: 16, diskGb: 1010 }]) expect(parseCart({ ...preset(3), desktop: { kind: "dedicated", region: "fsn1", spec } }, config)).toBeNull();
+    for (const spec of [{ vcpu: 3, ramGb: 16, diskGb: 160 }, { vcpu: 34, ramGb: 16, diskGb: 160 }, { vcpu: 8, ramGb: 6, diskGb: 160 }, { vcpu: 8, ramGb: 68, diskGb: 160 }, { vcpu: 8, ramGb: 16, diskGb: 45 }, { vcpu: 8, ramGb: 16, diskGb: 50 }, { vcpu: 8, ramGb: 16, diskGb: 1010 }]) expect(parseCart({ ...preset(3), desktop: { kind: "dedicated", region: "fsn1", spec } }, config)).toBeNull();
   });
   it("rejects malformed carts and normalizes solo members", () => {
     for (const cart of [null, {}, { ...preset(1), interval: "week" }, { ...preset(1), license: { kind: "bad" } }, { ...preset(1), license: { kind: "team", members: config.licenses.team.includedMembers - 1 } }, { ...preset(1), license: { kind: "team", members: 51 } }, { ...preset(1), license: { kind: "team", members: 3.5 } }, { ...preset(1), license: { kind: "solo", members: 2 } }, { ...preset(1), desktop: { kind: "shared_s", region: "sin" } }, { ...preset(1), desktop: { kind: "shared_s", region: "missing" } }, { ...preset(1), desktop: { kind: "shared_s", region: "fsn1", spec: {} } }, { ...preset(1), desktop: { kind: "none", spec: {} } }, { ...preset(1), unexpected: true }]) expect(parseCart(cart, config)).toBeNull();
@@ -64,12 +64,12 @@ describe("billing pricing", () => {
     expect(dodoCart(preset(1), products)).toEqual([{ productId: "desktop_shared_s_month", quantity: 1, addons: [] }]);
     expect(dodoCart({ ...preset(1), license: { kind: "solo" } }, products)).toEqual([{ productId: "license_solo_month", quantity: 1, addons: [{ addonId: "addon_shared_s_month", quantity: 1 }] }]);
     expect(dodoCart({ ...preset(2), license: { kind: "none" } }, products)).toEqual([{ productId: "desktop_shared_m_month", quantity: 1, addons: [] }]);
-    const addons = [{ addonId: "addon_vcpu_year", quantity: 8 }, { addonId: "addon_ram_gb_year", quantity: 16 }, { addonId: "addon_disk_10gb_year", quantity: 12 }];
+    const addons = [{ addonId: "addon_vcpu_year", quantity: 8 }, { addonId: "addon_ram_gb_year", quantity: 16 }, { addonId: "addon_disk_20gb_year", quantity: 6 }];
     expect(dodoCart(preset(3, "year"), products)).toEqual([{ productId: "license_team_year", quantity: 1, addons: [{ addonId: "addon_dedicated_year", quantity: 1 }, ...addons] }]);
     expect(dodoCart({ ...preset(3, "year"), license: { kind: "none" } }, products)).toEqual([{ productId: "desktop_dedicated_year", quantity: 1, addons }]);
     expect(dodoCart({ ...preset(3), license: { kind: "team", members: 5 } }, products)![0].addons[0]).toEqual({ addonId: "addon_member_month", quantity: 5 - config.licenses.team.includedMembers });
     const minimum = { ...preset(3), desktop: { kind: "dedicated" as const, region: "fsn1", spec: { vcpu: 2, ramGb: 4, diskGb: 40 } } };
-    expect(dodoCart(minimum, products)![0].addons).not.toContainEqual(expect.objectContaining({ addonId: "addon_disk_10gb_month" }));
+    expect(dodoCart(minimum, products)![0].addons).not.toContainEqual(expect.objectContaining({ addonId: "addon_disk_20gb_month" }));
     expect(dodoCart(preset(1), {})).toBeNull(); expect(dodoCart({ ...preset(1), license: { kind: "solo" } }, { "license_solo:month": "solo" })).toBeNull();
     expect(dodoCreditsCart("c10", {})).toBeNull(); expect(dodoCreditsCart("c10", { credits_c10: "credits" })).toEqual([{ productId: "credits", quantity: 1, addons: [] }]);
   });

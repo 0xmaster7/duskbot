@@ -33,7 +33,7 @@ export function parseCart(input: unknown, config: BillingConfig = BILLING_CONFIG
 
 export function dedicatedMonthlyCents(spec: MachineSpec, config: BillingConfig = BILLING_CONFIG) {
   const p = config.dedicated;
-  return p.baseCents + spec.vcpu * p.perVcpuCents + spec.ramGb * p.perGbRamCents + (spec.diskGb - p.includedDiskGb) / 10 * p.per10GbDiskCents;
+  return p.baseCents + spec.vcpu * p.perVcpuCents + spec.ramGb * p.perGbRamCents + (spec.diskGb - p.includedDiskGb) / 20 * p.per20GbDiskCents;
 }
 export function sameCart(a: Cart, b: Cart) {
   return a.interval === b.interval && a.license.kind === b.license.kind && (a.license.members ?? 1) === (b.license.members ?? 1)
@@ -78,7 +78,7 @@ export function dodoCart(cart: Cart, products: Record<string, string>, config: B
   if (hasLicense && cart.desktop.kind !== "none") add(`addon_${cart.desktop.kind}`, 1);
   if (cart.desktop.kind === "dedicated") {
     add("addon_vcpu", cart.desktop.spec!.vcpu); add("addon_ram_gb", cart.desktop.spec!.ramGb);
-    add("addon_disk_10gb", (cart.desktop.spec!.diskGb - config.dedicated.includedDiskGb) / 10);
+    add("addon_disk_20gb", (cart.desktop.spec!.diskGb - config.dedicated.includedDiskGb) / 20);
   }
   return missing ? null : [{ productId, quantity: 1, addons }];
 }

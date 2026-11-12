@@ -53,8 +53,8 @@ export interface DedicatedPricing {
   baseCents: number;
   perVcpuCents: number;
   perGbRamCents: number;
-  /** per 10 GB past includedDiskGb */
-  per10GbDiskCents: number;
+  /** per 20 GB past includedDiskGb, so diskGb.step is 20 */
+  per20GbDiskCents: number;
   includedDiskGb: number;
   vcpu: Range;
   ramGb: Range;

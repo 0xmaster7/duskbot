@@ -18,7 +18,7 @@ export interface BillingConfig {
  * DUSK_DODO_PRODUCTS is a JSON object mapping these keys to dodo ids, with month and year intervals:
  * license_solo:<interval>, license_team:<interval>, desktop_shared_s:<interval>, desktop_shared_m:<interval>, desktop_dedicated:<interval>;
  * addon_member:<interval>, addon_shared_s:<interval>, addon_shared_m:<interval>, addon_dedicated:<interval>,
- * addon_vcpu:<interval>, addon_ram_gb:<interval>, addon_disk_10gb:<interval>; credits_c10, credits_c25, credits_c50.
+ * addon_vcpu:<interval>, addon_ram_gb:<interval>, addon_disk_20gb:<interval>; credits_c10, credits_c25, credits_c50.
  * base products and addons must match this config's prices; yearly prices include its yearly discount.
  */
 export function dodoProducts(env: Record<string, string | undefined>): Record<string, string> {
@@ -47,8 +47,8 @@ export const BILLING_CONFIG: BillingConfig = {
     shared_m: { kind: "shared_m", label: "Shared M", placement: "pool", monthlyCents: 3800, machine: { vcpu: 4, ramGb: 8, diskGb: 80 }, botComputers: 5, priority: true },
     dedicated: { kind: "dedicated", label: "Dedicated", placement: "dedicated", monthlyCents: null, machine: { vcpu: 8, ramGb: 16, diskGb: 160 }, botComputers: null, priority: true },
   },
-  dedicated: { baseCents: 1400, perVcpuCents: 300, perGbRamCents: 100, per10GbDiskCents: 50, includedDiskGb: 40,
-    vcpu: { min: 2, max: 32, step: 2 }, ramGb: { min: 4, max: 64, step: 4 }, diskGb: { min: 40, max: 1000, step: 10 } },
+  dedicated: { baseCents: 1400, perVcpuCents: 300, perGbRamCents: 100, per20GbDiskCents: 100, includedDiskGb: 40,
+    vcpu: { min: 2, max: 32, step: 2 }, ramGb: { min: 4, max: 64, step: 4 }, diskGb: { min: 40, max: 1000, step: 20 } },
   poolQuotas: { shared_s: { netMbps: 100, pids: 2048 }, shared_m: { netMbps: 250, pids: 4096 } },
   appAllowances: { shared_s: { computerHours: 720, voiceCharacters: 0 }, shared_m: { computerHours: 720, voiceCharacters: 0 }, dedicated: { computerHours: 720, voiceCharacters: 0 } },
   trial: null,
