@@ -234,7 +234,7 @@ describe("Settings → Logins with My Cloud", () => {
     fixture.config = { cloudHome: true };
     fixture.api.mockResolvedValueOnce({ logins: [SHARED_LOGIN], onePassword: OFF });
     await render();
-    expect(document.body.querySelector("[data-logins-cloud-own]")!.textContent).toContain("come here by themselves");
+    expect(document.body.querySelector("[data-logins-cloud-own]")!.textContent).toContain("come along when you move your bots here");
     expect(document.body.querySelector("[data-also-cloud]")).toBeNull();
   });
 });
