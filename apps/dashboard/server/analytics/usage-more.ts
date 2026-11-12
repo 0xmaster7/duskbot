@@ -1,6 +1,6 @@
 // The deeper product questions behind the usage section: setup, reliability, engagement, bots, apps, routines, money,
 // feature discovery and the setups people run. Built from usage rollups, app events and billing records; plain counts.
-import { LATENCY_EDGES, type PersonDay, type RoutineSpan, type SnapshotRow } from "./usage.ts";
+import { LATENCY_EDGES, REASON_WORDS, type PersonDay, type RoutineSpan, type SnapshotRow } from "./usage.ts";
 import type { StoredEvent } from "./sink.ts";
 import type { FocusItem } from "./usage-summary.ts";
 
@@ -173,7 +173,7 @@ const seconds = (ms: number) => ms >= 60_000 ? `${Math.round(ms / 60_000)} min` 
 export function moreFocus(m: MoreAnswer): FocusItem[] {
   const out: FocusItem[] = [];
   const signIn = m.setup.signIn.filter(row => row.total >= 5 && row.rate !== null && row.rate < 0.7).sort((a, b) => (a.rate ?? 1) - (b.rate ?? 1))[0];
-  if (signIn) out.push({ id: `signin:${signIn.key}`, target: "setup", weight: 80 + (0.7 - signIn.rate!) * 40, text: `only ${pct(signIn.rate!)} of ${signIn.key} sign-ins finish${signIn.reason ? ` (mostly ${signIn.reason.replace(/_/g, " ")})` : ""}: people can't even start there.` });
+  if (signIn) out.push({ id: `signin:${signIn.key}`, target: "setup", weight: 80 + (0.7 - signIn.rate!) * 40, text: `only ${pct(signIn.rate!)} of ${signIn.key} sign-ins finish${signIn.reason ? ` (mostly ${REASON_WORDS[signIn.reason as keyof typeof REASON_WORDS] ?? signIn.reason.replace(/_/g, " ")})` : ""}: people can't even start there.` });
   const c = m.money.checkouts;
   if (c.started >= 5 && c.rate !== null && c.rate < 0.5) out.push({ id: "checkout", target: "money", weight: 70 + (0.5 - c.rate) * 40, text: `${pct(1 - c.rate)} of checkouts are left unpaid (${c.abandoned} of ${c.started}): look at the checkout step.` });
   const s = m.routines.survival;

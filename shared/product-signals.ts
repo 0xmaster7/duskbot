@@ -32,12 +32,12 @@ export type SignalName = keyof typeof SIGNALS;
 export type SignalProps = Record<string, string | number | boolean>;
 export const isSignalName = (value: unknown): value is SignalName => typeof value === "string" && Object.hasOwn(SIGNALS, value);
 
-/** a signal's props exactly as allowed, or null when any key or value is not; `name` stays out of the result */
+/** a signal's props exactly as allowed, or null when any key or value is not; an app action's own `name` stays out */
 export function cleanSignal(name: unknown, props: unknown, source?: "app" | "workspace"): SignalProps | null {
   if (!isSignalName(name) || (source && SIGNALS[name].source !== source) || !props || typeof props !== "object" || Array.isArray(props)) return null;
   const allowed: Record<string, Check> = SIGNALS[name].props, out: SignalProps = {};
   for (const [key, value] of Object.entries(props as Record<string, unknown>)) {
-    if (key === "name") continue;
+    if (key === "name" && value === name) continue;
     const check = allowed[key];
     if (!check || !check(value)) return null;
     out[key] = value as string | number;
