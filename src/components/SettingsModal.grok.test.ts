@@ -88,13 +88,14 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(title(html)).toBe("general");
   });
 
-  it("opens General as Account, Appearance, System, Notifications and Grok's Import, with Theme, Accent and Language as selects", () => {
+  it("opens General as you, how it looks, typing and sending, notifications and import, with data sharing under advanced", () => {
     const html = open("general");
-    expect(groups(html)).toEqual(["account", "appearance", "system", "notifications", "data sharing", "import"]);
+    expect(groups(html)).toEqual(["you", "how it looks", "typing and sending", "notifications", "bring your stuff", "data sharing"]);
     expect(markers(html)).toEqual([]);
     expect(html).toContain('data-panel-page="import"');
     expect(markers(open("import"))).toEqual(["import"]);
-    for (const label of ["theme", "accent", "Language"]) expect(html).toContain(`role="combobox" aria-label="${label}`);
+    for (const label of ["theme", "language"]) expect(html).toContain(`role="combobox" aria-label="${label}`);
+    expect(html).toContain('role="radiogroup" aria-label="accent"');
     expect(html).toContain("play sound for notifications");
     expect(html).toContain('aria-label="notification sound"');
     expect(html).toContain("open blip");
@@ -106,10 +107,10 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(open("general")).not.toContain('aria-label="notification sound"');
   });
 
-  it("opens Advanced features on one card of its rarer pages, with no shortcuts to places the sidebar already has", () => {
+  it("opens Advanced features on one titled group of its rarer pages, with no shortcuts to places the sidebar already has", () => {
     const html = open("advanced");
     expect(title(html)).toBe("advanced features");
-    expect(groups(html)).toEqual([]);
+    expect(groups(html)).toEqual(["everything else"]);
     expect([...html.matchAll(/data-settings-open="([^"]+)"/g)].map((match) => match[1])).toEqual([]);
     expect([...html.matchAll(/data-settings-advanced="([^"]+)"/g)].map((match) => match[1]))
       .toEqual(["apps", "team", "data", "builder"]);
@@ -139,7 +140,7 @@ describe("Settings, drawn as Grok Bot's", () => {
   it("opens Usage & Billing as Grok's pane: the limits, an empty state when none report, then the plan", () => {
     const html = open("usage");
     expect(current(html)).toBe("usage");
-    expect(title(html)).toBe("Usage &amp; Billing");
+    expect(title(html)).toBe("usage &amp; billing");
     expect(html).toContain("no usage limits to show");
     expect(html).toContain("usage breakdown");
     expect(markers(open("cloudAccount"))).toContain("cloudAccount");
@@ -193,7 +194,7 @@ describe("Settings, drawn as Grok Bot's", () => {
   it("shows a paired remote client General, Texting and Computer, with its look in General", () => {
     vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), duskDesktop: { remoteClient: { active: true }, environments: {} } });
     expect(panes(open("general"))).toEqual(["general", "texting", "computer"]);
-    expect(groups(open("general"))).toEqual(["appearance", "notifications"]);
+    expect(groups(open("general"))).toEqual(["how it looks", "notifications"]);
     expect(current(open("looks"))).toBe("general");
     expect(current(open("engines"))).toBe("general");
   });

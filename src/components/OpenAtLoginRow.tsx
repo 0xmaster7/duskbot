@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { t } from "@/lib/i18n";
+import { t, tOptional } from "@/lib/i18n";
 import { SettingRow, Switch } from "./SettingsPrimitives";
 
 type OpenAtLogin = { available: boolean; on: boolean };
@@ -19,7 +19,7 @@ export function OpenAtLoginRow({ simple = false }: { simple?: boolean }) {
     setBusy(true); setFailed(false);
     void bridge.set(on).then(setState, () => setFailed(true)).finally(() => setBusy(false));
   };
-  return <SettingRow title={t("settings.openAtLogin.title")} subtitle={simple ? t("settings.docs.openAtLogin.hint") : t("settings.openAtLogin.subtitle")}
+  return <SettingRow title={t("settings.openAtLogin.title")} subtitle={simple ? tOptional("settings.docs.openAtLogin.hint") : t("settings.openAtLogin.subtitle")}
     message={failed ? <span role="alert" className="text-danger">{t("settings.openAtLogin.failed")}</span> : undefined}>
     <Switch checked={state.on} disabled={busy} aria-label={t("settings.openAtLogin.title")} onClick={() => set(!state.on)} />
   </SettingRow>;

@@ -55,14 +55,14 @@ describe("settings → general", () => {
   it("stays English when no language is picked", async () => {
     setLocale("en");
     const html = await renderSettings();
-    expect(html).toContain('aria-label="Settings"');
+    expect(html).toContain('aria-label="settings"');
     expect(html).toContain(">general</h2>");
-    expect(html).toContain('aria-label="Language"');
+    expect(html).toContain('aria-label="language"');
   });
 
   it("keeps the rail, which a phone shows as its own list of panes under a titled header", async () => {
     const html = await renderSettings();
-    expect(html).toMatch(/<nav aria-label="settings sections" class="settings-nav"><div class="settings-phone-head"><h2 class="settings-phone-title">Settings<\/h2><button type="button" aria-label="close"/);
+    expect(html).toMatch(/<nav aria-label="settings sections" class="settings-nav"><div class="settings-phone-head"><h2 class="settings-phone-title">settings<\/h2><button type="button" aria-label="close"/);
     expect(html).not.toContain('aria-label="settings section"');
   });
 });

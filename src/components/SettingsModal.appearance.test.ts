@@ -99,7 +99,9 @@ afterEach(() => {
 
 const render = () => renderToStaticMarkup(createElement(SettingsModal));
 
-const trigger = (html: string, label: string) => html.match(new RegExp(`role="combobox" aria-label="${label}"[^>]*>(?:<[^>]+>)*([^<]+)<`))?.[1];
+// a select's shown value: a chip's label, or the checked segment of a segmented pill
+const trigger = (html: string, label: string) => html.match(new RegExp(`role="combobox" aria-label="${label}"[^>]*>(?:<[^>]+>)*([^<]+)<`))?.[1]
+  ?? html.match(new RegExp(`role="radiogroup" aria-label="${label}".*?role="radio" aria-checked="true"[^>]*>([^<]+)<`))?.[1];
 
 describe("Settings → General → Appearance", () => {
   it("draws Grok's Appearance card: Theme, Accent and Language, with no Advanced mode switch", () => {
@@ -107,7 +109,7 @@ describe("Settings → General → Appearance", () => {
     const html = render();
     expect(trigger(html, "theme")).toBeTruthy();
     expect(trigger(html, "accent")).toBe("neutral");
-    expect(trigger(html, "Language")).toBeTruthy();
+    expect(trigger(html, "language")).toBeTruthy();
     expect(html).not.toContain('aria-label="advanced mode"');
   });
 
@@ -121,7 +123,7 @@ describe("Settings → General → Appearance", () => {
     fixture.section = "general";
     vi.stubGlobal("window", { duskDesktop: { remoteClient: { active: true } } });
     const html = render();
-    expect(html).toContain('aria-label="Language"');
+    expect(html).toContain('aria-label="language"');
     expect(html).not.toContain('aria-label="advanced mode"');
   });
 
@@ -131,7 +133,7 @@ describe("Settings → General → Appearance", () => {
   });
 
   it("folds the old Looks page into Appearance: the skins sit in the Theme select, with nothing about pins, fonts, widths or tool calls", () => {
-    expect(themeOptions().map((option) => option.label)).toEqual(expect.arrayContaining(["Follow System", "Light", "Dark", "midnight", "halloween"]));
+    expect(themeOptions().map((option) => option.label)).toEqual(expect.arrayContaining(["follow system", "light", "dark", "midnight", "halloween"]));
     expect(themeOptions().map((option) => option.label)).not.toContain("grok dark");
     for (const section of ["general", "looks"] as const) {
       fixture.section = section;

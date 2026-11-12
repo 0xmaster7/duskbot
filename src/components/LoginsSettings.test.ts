@@ -86,7 +86,7 @@ describe("Settings → Logins", () => {
   it("adds a login for the bots chosen, and keeps nothing it was typed once saved", async () => {
     fixture.api.mockResolvedValueOnce({ logins: [], onePassword: OFF }).mockResolvedValueOnce({ login: SHARED_LOGIN }).mockResolvedValueOnce({ logins: [SHARED_LOGIN], onePassword: OFF });
     await render();
-    expect(document.body.textContent).toContain("nothing saved yet.");
+    expect(document.body.textContent).toContain("nothing saved yet");
     await click("new item");
     await click("add login");
     await type("site", "crm.example.org");

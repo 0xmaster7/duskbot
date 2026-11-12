@@ -72,6 +72,17 @@ export function tFromServer(key: string | undefined, fallback: string | undefine
   return key && Object.hasOwn(en, key) ? t(key as LocaleKey) : fallback;
 }
 
+/** A newer English wording where the active language has it, else an older key it already translated: new copy never
+ * turns a translated screen back into English. */
+export function tPreferred(key: LocaleKey, translated: LocaleKey, params?: Record<string, string | number>): string {
+  return active === "en" || activePack[key] !== undefined || activePack[translated] === undefined ? t(key, params) : t(translated, params);
+}
+
+/** A line that is only worth showing in the active language: nothing where it has not been translated yet. */
+export function tOptional(key: LocaleKey, params?: Record<string, string | number>): string | undefined {
+  return active === "en" || activePack[key] !== undefined ? t(key, params) : undefined;
+}
+
 /** `{app}` is the product's name as a person reads it (productName) unless `params` names it. */
 export function t(key: LocaleKey, params?: Record<string, string | number>): string {
   const template = activePack[key] ?? en[key];

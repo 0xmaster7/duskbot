@@ -101,7 +101,7 @@ describe.each(HOSTED_MCP_APPS)("The $label card", (app) => {
     it(`says it is loading ${app.label}'s tools while the test runs, then shows why it failed in one line`, async () => {
       await connect();
       expect(testRequest).not.toBeNull();
-      expect(card(app).querySelector('[role="status"]')?.textContent).toContain(`Signed in. Loading ${app.label}’s tools…`);
+      expect(card(app).querySelector('[role="status"]')?.textContent).toContain(`signed in. loading ${app.label}’s tools…`);
       expect(card(app).textContent).not.toContain("waiting");
       expect(button(app, "cancel")).toBeTruthy();
 
@@ -109,7 +109,7 @@ describe.each(HOSTED_MCP_APPS)("The $label card", (app) => {
       await settle();
 
       expect([...card(app).querySelectorAll('[role="alert"]')].map((element) => element.textContent)).toEqual([
-        `Signed in, but ${app.label}’s tools could not be loaded: The server did not answer in time. Please connect again to retry.`,
+        `signed in, but ${app.label}’s tools could not be loaded: The server did not answer in time. please connect again to retry.`,
       ]);
       expect(calls("PATCH")).toEqual([]);
       expect(button(app, "connect")).toBeTruthy();
@@ -120,7 +120,7 @@ describe.each(HOSTED_MCP_APPS)("The $label card", (app) => {
       await act(async () => { testRequest!.resolve(Promise.reject(new Error("Two MCP connection tests are already running."))); });
       await settle();
       expect(card(app).querySelector('[role="alert"]')?.textContent)
-        .toBe(`Signed in, but ${app.label}’s tools could not be loaded: Two MCP connection tests are already running. Please connect again to retry.`);
+        .toBe(`signed in, but ${app.label}’s tools could not be loaded: Two MCP connection tests are already running. please connect again to retry.`);
     });
 
     it("ends a reason that has no period of its own, like a proxy's 504", async () => {
@@ -128,7 +128,7 @@ describe.each(HOSTED_MCP_APPS)("The $label card", (app) => {
       await act(async () => { testRequest!.resolve(Promise.reject(new Error("504 Gateway Timeout"))); });
       await settle();
       expect(card(app).querySelector('[role="alert"]')?.textContent)
-        .toBe(`Signed in, but ${app.label}’s tools could not be loaded: 504 Gateway Timeout. Please connect again to retry.`);
+        .toBe(`signed in, but ${app.label}’s tools could not be loaded: 504 Gateway Timeout. please connect again to retry.`);
     });
 
     it("closes the test request when the person cancels", async () => {

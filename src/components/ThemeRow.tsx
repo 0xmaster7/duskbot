@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { t } from "@/lib/i18n";
+import { t, tOptional } from "@/lib/i18n";
 import { SKINS, THEME_SKINS, applySkinChoice, readSkinChoice, subscribeSkin, type SkinChoice } from "@/lib/skins";
 import { SettingRow } from "./SettingsPrimitives";
 import { SettingsSelect } from "./SettingsSelect";
@@ -49,7 +49,7 @@ export const themeOptions = () => [
 export function ThemeRow() {
   const choice = useSkinChoice();
   return (
-    <SettingRow title={t("settings.theme.title")} subtitle={t("settings.docs.theme.hint")}>
+    <SettingRow title={t("settings.theme.title")} subtitle={tOptional("settings.docs.theme.hint")}>
       <SettingsSelect
         data-settings-select="theme"
         value={choice}

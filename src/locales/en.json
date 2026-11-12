@@ -8016,7 +8016,7 @@
   "settings.docs.sendKey.hint": "the key that sends. the others start a new line.",
   "settings.docs.followUp.hint": "what happens to a message you send while a bot is busy.",
   "settings.docs.openAtLogin.hint": "dusk opens quietly when you sign in to this computer.",
-  "settings.docs.shortcuts.hint": "everything you can do without the mouse. most of it works from anywhere in the app.",
+  "settings.docs.shortcuts.hint": "everything you can do without reaching for the mouse.",
   "settings.docs.vault.empty": "nothing saved yet",
   "settings.docs.vault.emptyBody": "add a login with new item, or save a secret when a bot asks for one. bots never see what's inside.",
   "settings.docs.ws.title": "where your bots live",

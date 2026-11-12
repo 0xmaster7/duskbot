@@ -524,7 +524,7 @@ describe("the avatar editor", () => {
     expect(find(editor(makeBot({ mascotBody: "teardrop" as Bot["mascotBody"] })), "aria-label", "drip character shape").props["aria-pressed"]).toBe(true);
     click(find(rendered, "aria-label", "pip character shape"));
     expect(patch).toHaveBeenLastCalledWith({ mascotBody: "pip" });
-    click(find(rendered, "aria-label", "Blue character color"));
+    click(find(rendered, "aria-label", "blue character color"));
     expect(patch).toHaveBeenLastCalledWith({ color: "blue" });
     expect(rendered.html).not.toContain("Silver character color");
   });
@@ -848,7 +848,7 @@ describe("the Where it works page", () => {
 
   it("holds a place the bot cannot use with the reason as its hint, and leaves out the Cloud desktop when none is offered", () => {
     fixture.places.cloud = [true, false, "not ready"];
-    expect(find(where(makeBot()), "data-panel-choice", "cloud").props).toMatchObject({ disabled: true, hint: "Not ready." });
+    expect(find(where(makeBot()), "data-panel-choice", "cloud").props).toMatchObject({ disabled: true, hint: "not ready." });
     fixture.places.cloud = [false, false, "Not offered"];
     expect(choices(where(makeBot())).map(([value]) => value)).toEqual(["auto", "local", "browser"]);
     fixture.places.local = [false, false, "Not offered"];
@@ -926,7 +926,7 @@ describe("the drill-in pages", () => {
     fixture.apps = { phase: "loading", apps: [], connectedSlugs: [] };
     expect(body("apps").html).toContain("checking…");
     fixture.apps = { phase: "unknown", apps: [], connectedSlugs: [] };
-    expect(body("apps").html).toContain("Couldn&#x27;t check your apps just now.");
+    expect(body("apps").html).toContain("couldn&#x27;t check your apps just now.");
     fixture.apps = { phase: "ready", apps: [], connectedSlugs: [] };
     const empty = body("apps");
     expect(empty.html).toContain("no apps connected yet.");
@@ -937,7 +937,7 @@ describe("the drill-in pages", () => {
     fixture.derived.canUseConnectedApps = false;
     fixture.apps = { phase: "ready", connectedSlugs: ["gmail"], apps: [app("gmail", "write")] };
     const cannot = body("apps");
-    expect(cannot.html).toContain("The model Scout runs on can&#x27;t use apps.");
+    expect(cannot.html).toContain("the model Scout runs on can&#x27;t use apps.");
     expect(switches(cannot.html)).toBe(0);
   });
 
@@ -945,7 +945,7 @@ describe("the drill-in pages", () => {
     fixture.storeState = { ...fixture.storeState, routines: [routine()] };
     const rendered = body("routines");
     expect(ofType(rendered, BotRoutines)!.props).toMatchObject({ label: false });
-    expect(rendered.html).toMatch(/aria-label="pause Morning brief, Every weekday at 9 AM"[^>]*role="switch" aria-checked="true"/);
+    expect(rendered.html).toMatch(/aria-label="pause Morning brief, every weekday at 9 AM"[^>]*role="switch" aria-checked="true"/);
     expect(rendered.html).not.toContain("open schedules");
     expect(has(rendered, "data-panel-action", "routine-logs")).toBe(false);
     expect(rendered.html).not.toContain('data-panel-action="new-routine"');
@@ -977,7 +977,7 @@ describe("the drill-in pages", () => {
     fixture.memory.docs = [memoryDoc("")];
     expect(body("memory").html).toContain("nothing remembered yet.");
     fixture.memory = { ...fixture.memory, docs: null, error: true };
-    expect(body("memory").html).toContain("Couldn&#x27;t read the memory file just now.");
+    expect(body("memory").html).toContain("couldn&#x27;t read the memory file just now.");
 
     fixture.memory = { ...fixture.memory, docs: [memoryDoc("- Old\n")], error: false };
     fixture.saveMemory = vi.fn(() => Promise.resolve({ ok: false, conflict: true, current: "- New\n", currentHash: "h3" }));
@@ -993,7 +993,7 @@ describe("the drill-in pages", () => {
     const shared = skill("triage", true, "library");
     fixture.skills.skills = [shared, off];
     const rendered = body("skills");
-    expect(row(rendered, "skill:summarise").props).toMatchObject({ checked: false, label: "Use summarise", hint: "summarise helper", disabled: false });
+    expect(row(rendered, "skill:summarise").props).toMatchObject({ checked: false, label: "use summarise", hint: "summarise helper", disabled: false });
     (row(rendered, "skill:summarise").props.onChange as () => void)();
     expect(fixture.skills.toggle).toHaveBeenCalledWith(off);
     expect(rendered.html).not.toContain("write a command");

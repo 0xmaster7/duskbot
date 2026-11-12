@@ -33,7 +33,7 @@ describe("pairing devices from a hosted server's settings", () => {
     const member = { kind: "session" as const, id: "s", label: "Desktop", scopes: ["client"], expiresAt: 1, team: { id: "team-acme-1", name: "Acme", role: "member" } };
     const html = renderToStaticMarkup(createElement(ServerPairingCard, { initialSession: member, cloudHome: true, team: "Acme" }));
     expect(html).toContain("open on your phone");
-    expect(html).toContain("Your phone opens Acme as you");
+    expect(html).toContain("your phone opens Acme as you");
     expect(html).toContain("data-phone-pairing-action");
     expect(html).not.toContain("data-server-pairing-chat-only");
     expect(html).not.toContain("server-pairing-scope");
@@ -54,7 +54,7 @@ describe("pairing devices from a hosted server's settings", () => {
     const admin = renderToStaticMarkup(createElement(ServerPairingCard, { initialSession: { ...chatOnly, scopes: ["admin", "client"] } }));
     expect(admin).toContain("create pairing code");
     expect(admin).not.toContain("data-server-pairing-chat-only");
-    expect(admin).toMatch(/<button[^>]*data-phone-pairing-action[^>]*>Create pairing code<\/button>/);
+    expect(admin).toMatch(/<button[^>]*data-phone-pairing-action[^>]*>create pairing code<\/button>/);
     expect(admin.match(/data-phone-pairing-action/g)?.length).toBe(1);
     expect(admin).toContain('data-phone-pairing="server"');
     expect(html).toContain('data-phone-pairing="server"');

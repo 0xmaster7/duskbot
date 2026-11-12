@@ -198,7 +198,7 @@ export function AvatarEditorCard({ bot, onPatch, onClose }: {
                   type="button"
                   onClick={removeImage}
                   disabled={busy}
-                  aria-label="Remove custom avatar image"
+                  aria-label={t("botIdentity.removeAvatar")}
                   title={t("botPanel.avatar.remove")}
                   className="ml-auto flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-ink-secondary hover:bg-ink/[0.06] hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50"
                 >
