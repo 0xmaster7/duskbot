@@ -30,7 +30,8 @@ async function sent(response, what) {
  *   fetch: typeof fetch,
  *   environments(): any[],
  *   cloud(): { origin: string | null, asleep: boolean },
- *   oneHome: { journal(): unknown, keep: { state(): { shown: boolean, on: boolean, moved: boolean }, set(on: boolean): Promise<unknown> } },
+ *   oneHome: { journal(): unknown, keep: { state(): { shown: boolean, on: boolean, moved: boolean }, set(on: boolean): Promise<unknown> },
+ *     offer?(): null | { state(): { stage: string }, accept(from: string): Promise<unknown> } },
  *   ownHome: { owns(place: any): boolean, offers(place: any): boolean, start(id: string): Promise<unknown>, active(): boolean, away(): boolean, refresh(): void },
  *   dismissed: { read(): unknown, write(value: unknown): void },
  *   account?: () => ({ state(): any } | null),
@@ -53,7 +54,7 @@ export function installTwoPlacesMain({ ipcMain, guard, localRequest, fetch: fetc
       out.push({ key: `cloud:${mine.origin}`, name: "My Cloud", kind: "cloud",
         read: async () => (cloud().asleep ? null : json(await request("/api/cloud-send?move=1"))),
         tell: async (payload) => sent(await request(ROUTE, { ...put(payload), headers: { "content-type": "application/json" } }), "My Cloud"),
-        ...(keep.on && !keep.moved ? { bring: () => oneHome.keep.set(false) } : {}) });
+        ...(keep.on && !keep.moved ? { bring: () => bringHere() } : {}) });
     }
     for (const place of environments().filter((entry) => handSaved(entry) && ownHome.owns(entry))) {
       const server = serverRequests(place, fetchImpl);
@@ -63,6 +64,11 @@ export function installTwoPlacesMain({ ipcMain, guard, localRequest, fetch: fetc
         ...(ownHome.offers(place) ? { bring: () => ownHome.start(place.id) } : {}) });
     }
     return [...out, ...teams()];
+  };
+  /** The yes the first move waits for, where main asks for one; otherwise letting go of the choice to keep them here. */
+  const bringHere = () => {
+    const offer = oneHome.offer?.();
+    return offer && offer.state().stage !== "none" ? offer.accept("two_places") : oneHome.keep.set(false);
   };
   const journal = () => parseJournal(oneHome.journal());
   /** This computer's bots moved: to My Cloud, or to a server of the person's own. */

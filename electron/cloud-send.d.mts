@@ -86,6 +86,8 @@ export interface CloudSendNotice {
   move?: import("./one-home.mjs").OneHomeView;
   /** On My Cloud's page: a bot moving into a team, while its line shows; absent from an older desktop. */
   teamMove?: import("./team-move.mjs").TeamMoveView;
+  /** The offer to move this computer's bots to My Cloud, while one shows; absent from an older desktop. */
+  offer?: import("./cloud-move-offer.mjs").CloudMoveOfferState;
 }
 export type CloudSendTold = { at: number; reason: string; failed: number; seen: boolean; sent: CloudSendCounts; final?: boolean } & CloudSendFailure;
 export interface CloudSendArrived extends CloudSendCounts { chats: { conversations: number; messages: number } }
@@ -111,6 +113,10 @@ export interface CloudSendPageBridge {
   teamRetry?(): Promise<import("./team-move.mjs").TeamMoveView | null>;
   /** Shows that team's page, where the bot now lives. */
   openTeam?(teamId: string): Promise<void>;
+  /** The person's yes to the move offer (a real click on My Cloud's page); absent from an older desktop. */
+  moveOfferAccept?(from: "prompt" | "banner" | "settings"): Promise<CloudSendNotice>;
+  /** The offer's sheet or line closed. */
+  moveOfferDismiss?(which: "prompt" | "banner"): Promise<CloudSendNotice>;
   /** The switch "Keep this computer's bots on this computer"; absent from an older desktop. */
   keepHere?(): Promise<KeepHereState>;
   /** Turns it (a real click on My Cloud's page). */

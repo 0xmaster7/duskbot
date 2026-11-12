@@ -73,7 +73,7 @@ export async function openOwnerSession(target, fetchImpl, { label = SESSION_LABE
  * `moveSession`: the one session every pass of the move uses (move-session.mjs); without it each pass opens its own.
  */
 export function installCloudSend({ ipcMain, cloudPage, server, local, home, cookieFetch, reconnect, power, file, window, localOrigin,
-  fetch: fetchImpl = globalThis.fetch, engineWaitMs, space, move = () => null, teamMove = () => null, moveSession = null }) {
+  fetch: fetchImpl = globalThis.fetch, engineWaitMs, space, move = () => null, teamMove = () => null, moveSession = null, offer = () => null }) {
   const handoff = createLoginHandoffClient();
   const pageOf = () => {
     const win = window();
@@ -86,8 +86,8 @@ export function installCloudSend({ ipcMain, cloudPage, server, local, home, cook
   const moving = () => move()?.view() ?? null;
   /** The notice either page gets, with the one-time move's line when there is one. */
   const notice = (snapshot) => {
-    const line = moving(), team = pageOf() === "cloud" ? teamMove()?.view() ?? null : null;
-    return { ...sendNotice(snapshot), ...(line ? { move: line } : {}), ...(team ? { teamMove: team } : {}) };
+    const line = moving(), team = pageOf() === "cloud" ? teamMove()?.view() ?? null : null, asked = offer();
+    return { ...sendNotice(snapshot), ...(line ? { move: line } : {}), ...(team ? { teamMove: team } : {}), ...(asked && asked.stage !== "none" ? { offer: asked } : {}) };
   };
   const deliver = (snapshot) => {
     if (pageOf()) window().webContents.send("cloud-send:notice-changed", notice(snapshot));
@@ -156,6 +156,8 @@ export function installCloudSend({ ipcMain, cloudPage, server, local, home, cook
     snapshot: () => send.snapshot(),
     /** The move's line changed: both pages get it again. */
     publish: () => deliver(send.snapshot()),
+    /** What either page is told now. */
+    notice: () => notice(send.snapshot()),
   };
 }
 

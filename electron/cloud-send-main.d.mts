@@ -22,6 +22,8 @@ export function installCloudSend(deps: {
   move?: () => { view(): unknown; seen(): unknown; retry(): Promise<unknown> } | null;
   /** The one session every pass of the move uses (move-session.mjs). */
   moveSession?: { open(target: CloudTarget): Promise<CloudSendSession> };
+  /** The offer to move this computer's bots to My Cloud, which either page is told while it shows. */
+  offer?: () => import("./cloud-move-offer.mjs").CloudMoveOfferState | null;
 }): {
   receive(proc: unknown, message: unknown): boolean;
   /** This computer's server's private port, asked as a send asks it: another move's sends share it. */
@@ -31,4 +33,5 @@ export function installCloudSend(deps: {
   switches(): Record<string, boolean>;
   snapshot(): CloudSendSnapshot;
   publish(): void;
+  notice(): import("./cloud-send.mjs").CloudSendNotice;
 };

@@ -13,7 +13,7 @@ export function createGoneCheck(deps: { ask(origin: string): Promise<string | nu
 
 type SendDeps = Parameters<typeof installCloudSend>[0];
 
-export function installOneHome(deps: Omit<SendDeps, "local" | "move" | "moveSession"> & {
+export function installOneHome(deps: Omit<SendDeps, "local" | "move" | "moveSession" | "offer"> & {
   /** This computer's server, as its owner. */
   localRequest(route: string, init?: RequestInit & { duplex?: "half" }): Promise<Response>;
   /** The Dusk Cloud sign-in (cloud-account.mjs). */
@@ -42,6 +42,9 @@ export function installOneHome(deps: Omit<SendDeps, "local" | "move" | "moveSess
   reportTimers?: { set(work: () => void, ms: number): unknown; clear(timer: unknown): void };
   /** The move to a server of the person's own: while it is chosen no move to My Cloud starts, and its line is this computer's page's. */
   other?(): null | { view(): unknown; seen(): unknown; retry(): Promise<unknown>; active(): boolean };
+  accountsHere?(): number;
+  /** The first move waits for the person's yes (cloud-move-offer.mjs); without it the first move starts by itself. */
+  offer?: { store: { read(): unknown; write(value: unknown): void }; track?(name: string, props: Record<string, string | number | boolean>): void };
 }): ReturnType<typeof installCloudSend> & {
   keep: { state(): KeepHereState; set(on: boolean): Promise<void> };
   /** Why the account signed in can't be left now, else null. */
@@ -51,6 +54,7 @@ export function installOneHome(deps: Omit<SendDeps, "local" | "move" | "moveSess
   view(): OneHomeView | null;
   close(): void;
   oneHome: ReturnType<typeof createOneHome>;
+  offer(): import("./cloud-move-offer.mjs").CloudMoveOffer | null;
   journal(): unknown;
   moveStatus: { read(): import("./move-status.mjs").MoveStatusReport; flush(): Promise<void> };
   marker(): Promise<{ frozen: boolean; cloud?: string; busy?: string }>;

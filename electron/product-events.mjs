@@ -59,6 +59,8 @@ export function createProductEvents({ origin, token = () => null, platform, vers
   const endpoint = `${new URL(origin).origin}/v1/app/events`;
   const app = { platform: String(platform), version: VERSION.test(String(version)) ? String(version) : "0.0.0" };
   let queue = [], timer = null, sending = null, failures = 0, closed = false;
+  /** The install and session of the page's last batch: main's own events ride with them, and wait until one came. */
+  let rider = null, waiting = [];
 
   const stop = () => { if (timer !== null) clearTimer(timer); timer = null; };
   function schedule(delay) {
@@ -109,23 +111,41 @@ export function createProductEvents({ origin, token = () => null, platform, vers
     finally { sending = null; if (!closed) schedule(failures ? backoff() : FLUSH_MS); }
   }
 
+  function enqueue() {
+    if (!failures) schedule(queue.length >= BATCH ? 0 : FLUSH_MS);
+    else schedule(backoff());
+  }
+
   return {
     /** One renderer batch: `{ install, session?, events }`; anything malformed is dropped, never sent. */
     send(input) {
       if (closed || !input || typeof input !== "object" || !ID.test(input.install) || !Array.isArray(input.events)) return false;
       const session = typeof input.session === "string" && ID.test(input.session) ? input.session : null;
       const at = now();
+      rider = { install: input.install, session };
+      for (const event of waiting.splice(0)) queue.push({ ...rider, event });
       for (const raw of input.events.slice(0, MAX_QUEUE)) {
         const event = cleanAppEvent(raw, at);
         if (event) queue.push({ install: input.install, session, event });
       }
       if (queue.length > MAX_QUEUE) queue.splice(0, queue.length - MAX_QUEUE);
-      if (!failures) schedule(queue.length >= BATCH ? 0 : FLUSH_MS);
-      else schedule(backoff());
+      enqueue();
       return true;
     },
-    /** The person switched usage analytics off: nothing queued is sent. */
-    clear() { queue = []; stop(); failures = 0; },
+    /** An `app_action` of main's own (`name`, with `props`): sent with the page's install and session, so only while the
+     * page sends its own (usage analytics on); held in memory until it does. */
+    action(name, props = {}) {
+      if (closed) return false;
+      const event = cleanAppEvent({ name: "app_action", at: now(), props: { ...props, name } }, now());
+      if (!event) return false;
+      if (!rider) { waiting.push(event); if (waiting.length > BATCH) waiting.splice(0, waiting.length - BATCH); return true; }
+      queue.push({ ...rider, event });
+      if (queue.length > MAX_QUEUE) queue.splice(0, queue.length - MAX_QUEUE);
+      enqueue();
+      return true;
+    },
+    /** The person switched usage analytics off: nothing queued is sent, and main's own events wait for the page again. */
+    clear() { queue = []; waiting = []; rider = null; stop(); failures = 0; },
     flush,
     size: () => queue.length,
     /** One last try at up to four batches, without retries. */

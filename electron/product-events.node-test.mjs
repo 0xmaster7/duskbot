@@ -120,3 +120,23 @@ test("clear drops the queue, and close makes one last try then takes nothing mor
   assert.equal(calls.length, 1);
   assert.equal(events.send({ install: INSTALL, events: [event()] }), false);
 });
+
+test("main's own events ride with the page's install and session, wait for the page's first batch, and stop once analytics are switched off", async () => {
+  const { events, calls } = harness();
+  assert.equal(events.action("cloud_move", { step: "started", from: "prompt" }), true);
+  assert.equal(events.action("cloud_move", { step: "has spaces" }), true, "a value that is not a word is left out, the event goes");
+  assert.equal(events.size(), 0, "nothing goes before the page sent its own");
+  events.send({ install: INSTALL, session: SESSION, events: [event()] });
+  await events.flush();
+  assert.deepEqual(calls[0].body.events.filter((sent) => sent.name === "app_action"), [
+    { name: "app_action", at: NOW, props: { name: "cloud_move", step: "started", from: "prompt" } },
+    { name: "app_action", at: NOW, props: { name: "cloud_move" } },
+  ]);
+  events.action("cloud_move", { step: "succeeded", bots: 12 });
+  await events.flush();
+  assert.deepEqual(calls[1].body.events, [{ name: "app_action", at: NOW, props: { name: "cloud_move", step: "succeeded", bots: 12 } }]);
+  events.clear();
+  events.action("cloud_move", { step: "failed", reason: "unanswered" });
+  await events.flush();
+  assert.equal(calls.length, 2, "after the person switched analytics off, main's events wait for a page that sends again");
+});

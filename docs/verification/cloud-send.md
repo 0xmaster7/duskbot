@@ -170,3 +170,27 @@ tests check:
   minutes otherwise, holds off six hours from an Admin without the route, and a
   send that fails, throws or never answers changes nothing in the move.
 
+
+## The offer: the first move waits for a yes
+
+```sh
+node --test electron/cloud-move-offer.node-test.mjs electron/cloud-send.node-test.mjs electron/product-events.node-test.mjs
+pnpm exec vitest run src/components/CloudMoveOffer.dom.test.ts server/cloud-move-offer.e2e.test.ts
+node --experimental-strip-types scripts/verify-cloud-move.ts
+```
+
+`electron/cloud-move-offer.mjs` holds the first move to My Cloud until the person says yes, while this computer has
+bots or automations the move would carry; a computer with nothing to carry moves by itself as before. Everything is
+read from state, so a Cloud that became ready while the app was closed asks at the next launch. The sheet asks once;
+closed, a slim line at the top of either page (this computer's, or My Cloud's before the move) asks; closed too,
+Settings → Computer keeps **Move bots to dusk cloud** beside the workspace switch. Choices are kept per Cloud in
+`userData/cloud-move-offer.json`. Main says `cloud_move_prompt|banner|settings` (`accepted`, `dismissed`) and
+`cloud_move` (`started`, `failed` with the failure's reason code once per code, `succeeded` with counts) as
+`app_action` events that ride with the page's own batches, so nothing goes while usage analytics are off; the page says
+each `shown`.
+
+`server/cloud-move-offer.e2e.test.ts` runs it over the two-server fixture with `offer: true`: no move before the yes,
+Not now then the line's Move now, the bots arrive on the Cloud home and stay here, and the window opens My Cloud.
+`scripts/verify-cloud-move.ts` serves the whole app with the bridge played in the page
+(`?offer=prompt|banner|settings`, `?move=copy|failing|done`) for screenshots; `POST /__fixture/cloud?home=1` makes the
+page a Cloud home for the done sheet.

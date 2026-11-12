@@ -14,6 +14,8 @@ export declare const MAX_BACKOFF_MS: number;
 export declare function cleanAppEvent(input: unknown, at?: number): AppEvent | null;
 export interface ProductEvents {
   send(input: unknown): boolean;
+  /** An app_action of main's own, sent with the page's install and session once the page sent a batch. */
+  action(name: string, props?: Record<string, string | number | boolean>): boolean;
   clear(): void;
   flush(): Promise<boolean | undefined>;
   size(): number;

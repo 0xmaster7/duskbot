@@ -567,6 +567,11 @@ const bridge = {
     teamBringMove: botId => navigator.userActivation?.isActive === true
       ? ipcRenderer.invoke("cloud-send:team-bring-move", String(botId)) : Promise.reject(new Error("Choose Move to move the bot.")),
     teamBringStatus: () => ipcRenderer.invoke("cloud-send:team-bring-status"),
+    // The offer to move this computer's bots to My Cloud: the sheet, the line at the top and Settings → Computer.
+    moveOfferAccept: from => isLocalPage || navigator.userActivation?.isActive === true
+      ? ipcRenderer.invoke("cloud-send:move-offer-accept", ["prompt", "banner", "settings"].includes(from) ? from : "settings")
+      : Promise.reject(new Error("Choose Move to move your bots.")),
+    moveOfferDismiss: which => ipcRenderer.invoke("cloud-send:move-offer-dismiss", which === "banner" ? "banner" : "prompt"),
     // Settings → Dusk Cloud, Advanced: "Keep this computer's bots on this computer".
     keepHere: () => ipcRenderer.invoke("one-home:keep"),
     setKeepHere: on => isLocalPage || navigator.userActivation?.isActive === true

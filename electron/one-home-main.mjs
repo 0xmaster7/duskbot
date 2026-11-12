@@ -17,6 +17,7 @@ import { createMoveStatusReport, moveStatus } from "./move-status.mjs";
 import { createHomeAgain } from "./one-home-again.mjs";
 import { awayIn, createOneHome, parseJournal, underWay } from "./one-home.mjs";
 import { teamPlan } from "./cloud-team-plan.mjs";
+import { createCloudMoveOffer } from "./cloud-move-offer.mjs";
 import { installTeamMove } from "./team-move-main.mjs";
 
 const MOVE_LABEL = "Move to My Cloud";
@@ -120,7 +121,9 @@ async function answer(response) {
  *   other?(): null | { view(): unknown, seen(): unknown, retry(): Promise<unknown>, active(): boolean },
  *   accountsHere?(): number,
  *   clean?: import("./clean-workspace.mjs").CleanWorkspace | null,
- * }} deps `accountsHere`: how many accounts are signed in on this device: with more than one, which Cloud this computer's bots
+ *   offer?: { store: { read(): unknown, write(value: unknown): void }, track?(name: string, props: Record<string, string | number | boolean>): void },
+ * }} deps `offer`: the first move waits for the person's yes (cloud-move-offer.mjs), kept in `offer.store`; without it the
+ * first move starts by itself.  `accountsHere`: how many accounts are signed in on this device: with more than one, which Cloud this computer's bots
  * belong in is the person's to say, so no first move starts by itself. `localRequest`: this computer's server, as its owner (main adds the owner's header), and only its own copy while `clean`
  * (the clean workspace) runs. `account`: the Dusk
  * Cloud sign-in (cloud-account.mjs). `journal`: where the move's journal is kept, journalFile by default; `keep`: the
@@ -132,7 +135,7 @@ async function answer(response) {
  * installCloudSend's.
  */
 export function installOneHome({ localRequest: anyServer, clean = null, account, journalFile, tempRoot, lend, phone, openHome, openLocal, restart, version, log = () => {}, journal: kept, keep: keptChoice, openTeam, teamJournal,
-  reportTimers, other = () => null, accountsHere = () => 1, ...sendDeps }) {
+  reportTimers, other = () => null, accountsHere = () => 1, offer: offerDeps = null, ...sendDeps }) {
   const fetchImpl = sendDeps.fetch ?? globalThis.fetch;
   const localRequest = clean ? clean.realCopy(anyServer) : anyServer;
   const onOwnCopy = (work) => (clean ? clean.holding(work) : work());
@@ -142,7 +145,8 @@ export function installOneHome({ localRequest: anyServer, clean = null, account,
   let teamMove = null;
   // One owner session for the whole move, every pass and check and the switch: each new one is one of the Admin's codes.
   const moveSession = createMoveSession({ open: (target) => openOwnerSession(target, fetchImpl, { label: MOVE_LABEL, background: false }) });
-  const send = installCloudSend({ ...sendDeps, local: (route, init) => localRequest(route, { method: init?.method ?? "GET", signal: AbortSignal.timeout(30_000) }),
+  let offer = null;
+  const send = installCloudSend({ ...sendDeps, offer: () => { void offer?.refresh(); return offer?.state() ?? null; }, local: (route, init) => localRequest(route, { method: init?.method ?? "GET", signal: AbortSignal.timeout(30_000) }),
     move: () => (home?.view() === null && other()?.view() ? other() : home), teamMove: () => teamMove, moveSession });
   teamMove = installTeamMove({ ipcMain: sendDeps.ipcMain, cloudPage: sendDeps.cloudPage, pageOrigin: sendDeps.pageOrigin, confirmMove: sendDeps.confirmMove, home: sendDeps.home, account: () => account(), fetch: fetchImpl, openTeam,
     file: () => join(dirname(journalFile()), "team-move-send.json"), journalFile: () => join(dirname(journalFile()), "team-moves.json"), ...(teamJournal ? { journal: teamJournal } : {}),
@@ -229,7 +233,10 @@ export function installOneHome({ localRequest: anyServer, clean = null, account,
     cloud: () => {
       typed();
       const cloud = oneHomeCloud(account()?.state()), moved = parseJournal(journal.read());
-      return cloud && (other()?.active() || (accountsHere() > 1 && (!moved || moved.phase === "back"))) ? { ...cloud, moves: false } : cloud;
+      const first = !moved || moved.phase === "back";
+      // With more than one account here, which Cloud this computer's bots belong in is the person's to say.
+      const waits = first && (accountsHere() > 1 ? !offer?.accepted() : Boolean(offer) && !offer.consent());
+      return cloud && (other()?.active() || waits) ? { ...cloud, moves: false } : cloud;
     },
     send,
     local: {
@@ -264,7 +271,7 @@ export function installOneHome({ localRequest: anyServer, clean = null, account,
     },
     lastInput: typed,
     ownCopy: () => clean?.ownCopy() ?? true,
-    onChange: () => { send.publish(); report.changed(); },
+    onChange: () => { send.publish(); report.changed(); offer?.observe(); },
   });
 
   /** The switch "Keep this computer's bots on this computer": `shown` only to someone with a Cloud of their own the move
@@ -278,6 +285,22 @@ export function installOneHome({ localRequest: anyServer, clean = null, account,
     if (!sendDeps.cloudPage(event)) throw new Error(`${channel} is only available in this app's window`);
     return handler(...args);
   };
+  if (offerDeps) {
+    offer = createCloudMoveOffer({
+      store: offerDeps.store,
+      cloud: () => oneHomeCloud(account()?.state()),
+      journal: () => journal.read(),
+      keep: { on: () => home.keeps(), set: (on) => home.keep(on) },
+      own: () => Boolean(other()?.active()),
+      summary: () => local.json("/api/cloud-send?move=1"),
+      kick: () => home.kick(),
+      onChange: () => send.publish(),
+      track: offerDeps.track,
+      log,
+    });
+    sendDeps.ipcMain.handle("cloud-send:move-offer-accept", onPage("cloud-send:move-offer-accept", async (from) => { await offer.accept(String(from)); return send.notice(); }));
+    sendDeps.ipcMain.handle("cloud-send:move-offer-dismiss", onPage("cloud-send:move-offer-dismiss", (which) => { offer.dismiss(String(which)); return send.notice(); }));
+  }
   sendDeps.ipcMain.handle("one-home:keep", onPage("one-home:keep", keepState));
   sendDeps.ipcMain.handle("one-home:keep-set", onPage("one-home:keep-set", (on) => {
     if (on === true && !keepState().shown) throw new Error("This computer has no My Cloud to keep its bots from.");
@@ -292,7 +315,7 @@ export function installOneHome({ localRequest: anyServer, clean = null, account,
     /** Why the account signed in can't be left now: its move, or a bot of its own moving into a team, is under way. */
     holding: () => { const bot = teamMove.view()?.phase; return home.moving() || (bot && !["done", "failed"].includes(bot)) ? "moving" : null; },
     /** Goes on with the move, and with any bot moving into a team: at launch, and whenever the Dusk Cloud sign-in changes. */
-    kick: () => { void teamMove.kick(); return home.kick(); },
+    kick: () => { void teamMove.kick(); void offer?.refresh(); return home.kick(); },
     /** Home is My Cloud: this computer's own server is frozen for good, and its phone link stays off. */
     away: () => home.away(),
     view: () => home.view(),
@@ -300,6 +323,8 @@ export function installOneHome({ localRequest: anyServer, clean = null, account,
     /** A bot moving from My Cloud into a team (team-move-main.mjs). */
     teamMove,
     oneHome: home,
+    /** The offer to move this computer's bots to My Cloud, when the first move waits for the person's yes. */
+    offer: () => offer,
     /** The journal as it is on disk. */
     journal: () => journal.read(),
     /** Where the move stands as the Admin is told it (move-status.mjs), and that report sent now if it is due. */

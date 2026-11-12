@@ -66,6 +66,9 @@ export interface CloudSendFixture {
   handoff(what: ConnectionAsk): Promise<any>;
   /** The one-time move (one-home.mjs), as main runs it in the app that is open now. */
   oneHome: { kick(): Promise<void>; view(): OneHomeView | null; away(): boolean };
+  /** With `offer`: the offer the first move waits for, and the product events main said. */
+  offer(): import("../../electron/cloud-move-offer.mjs").CloudMoveOffer | null;
+  tracked: Array<[string, Record<string, string | number | boolean>]>;
   /** The Dusk Cloud sign-in main reads: the Admin's word on this account's Cloud, its export of a held one, the Admin
    * taking a computer's word that its move is done (when a test sets it), and the Admin's team pairing for one of the
    * account's teams (`state.teams`). */
@@ -159,7 +162,7 @@ exports.createClient = async ({ auth }) => {
  * with an installation of its own as the desktop app registers one, My Cloud registering itself as a Cloud home does.
  * `env`: more of both servers' environment. `cloudEngine`: lines run at the start of My
  * Cloud's synthetic Claude CLI, to script its turns (fake-claude-cli.ts). */
-export async function launchCloudSendFixture({ onePasswordToken, cloudOnePasswordToken = onePasswordToken, toolCalls = 0, broker, env = {}, cloudEnv = {}, cloudEngine = "", desktopEngine = "", space, cloudSignedIn = true, team }: {
+export async function launchCloudSendFixture({ onePasswordToken, cloudOnePasswordToken = onePasswordToken, toolCalls = 0, broker, env = {}, cloudEnv = {}, cloudEngine = "", desktopEngine = "", space, cloudSignedIn = true, team, offer = false }: {
   onePasswordToken: string; cloudOnePasswordToken?: string; toolCalls?: number;
   /** A Team Cloud too (DUSK_CLOUD_ROLE=team), with its own environment and synthetic Claude CLI lines. */
   team?: { id: string; name: string; env?: NodeJS.ProcessEnv; engine?: string; noAi?: boolean };
@@ -174,6 +177,8 @@ export async function launchCloudSendFixture({ onePasswordToken, cloudOnePasswor
   space?: { disk(): unknown; grow(sizeGb: number): Promise<unknown> };
   /** False: My Cloud's own Claude is signed out, as on a new Cloud. */
   cloudSignedIn?: boolean;
+  /** True: main's first move waits for the person's yes, as the app wires it (cloud-move-offer.mjs). */
+  offer?: boolean;
 }): Promise<CloudSendFixture> {
   const root = mkdtempSync(join(tmpdir(), "omb-cloud-send-"));
   const secret = randomBytes(32).toString("base64url");
@@ -372,6 +377,8 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
     pairTeam: async () => { throw Object.assign(new Error("You're no longer in this team."), { gone: true }); },
   };
   const spies: CloudSendFixture["spies"] = { lent: [], phoneStops: 0, phoneStarts: 0, opened: [], relaunches: 0 };
+  const tracked: CloudSendFixture["tracked"] = [];
+  const offerFile = join(root, "cloud-move-offer.json");
   const fixture = { beforeJournalWrite: null as CloudSendFixture["beforeJournalWrite"], intercept: null as CloudSendFixture["intercept"], beforeTeamJournalWrite: null as CloudSendFixture["beforeTeamJournalWrite"] };
   const chatRequests: CloudSendFixture["chatRequests"] = [];
   const sessions: CloudSendFixture["sessions"] = [];
@@ -424,6 +431,10 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
     restart: () => { spies.relaunches++; },
     version: "0.1.120",
     log: (line: string) => { logs += `[main] ${line}\n`; },
+    ...(offer ? { offer: {
+      store: { read: () => { try { return JSON.parse(readFileSync(offerFile, "utf8")); } catch { return null; } }, write: (value: unknown) => { writeFileSync(offerFile, JSON.stringify(value ?? null)); } },
+      track: (name: string, props: Record<string, string | number | boolean>) => { tracked.push([name, props]); },
+    } } : {}),
   });
   let main = wire();
   const asks = createLoginHandoffClient();
@@ -536,6 +547,8 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
     get intercept() { return fixture.intercept; },
     set intercept(hook) { fixture.intercept = hook; },
     oneHome: { kick: () => main.kick(), view: () => main.view(), away: () => main.away() },
+    tracked,
+    offer: () => main.offer(),
     async relaunch({ kill = true, cloud: cloudMore } = {}) {
       main.close();
       await waitForExit(desktop, { signal: kill ? "SIGKILL" : "SIGTERM" });

@@ -1,0 +1,61 @@
+// The whole app with the move offer's desktop bridge played in the page (scripts/verify-cloud-move.ts serves it):
+// ?offer=prompt|banner|settings picks the ask, ?move=copy|failing|done the move, and the buttons move between them as main
+// would. Accept starts a copy whose chats count up; ?skin= picks a skin.
+import { createRoot } from "react-dom/client";
+import type { CloudSendNotice } from "../../electron/cloud-send.mjs";
+import type { OneHomeView } from "../../electron/one-home.mjs";
+import App from "../../src/App";
+import { initialDesktopCapabilities } from "../../src/lib/desktop";
+import { applySkin, type SkinId } from "../../src/lib/skins";
+import "../../src/styles.css";
+
+const params = new URLSearchParams(location.search);
+const BASE: CloudSendNotice = { ready: false, bots: [], updatedBots: [], skills: 0, logins: 0, onePassword: false, settings: 0, signature: "", dismissed: false, running: false, last: null };
+const MOVES: Record<string, OneHomeView> = {
+  copy: { phase: "copy", chats: { done: 34, total: 142 } },
+  failing: { phase: "copy", failing: { error: "My Cloud did not answer." } },
+  done: { phase: "done", counts: { bots: 12, skills: 5, logins: 2, onePassword: false, chats: 142, routines: 4 }, phone: false, held: [] },
+};
+const offer = params.get("offer");
+let notice: CloudSendNotice = {
+  ...BASE,
+  ...(offer === "prompt" || offer === "banner" || offer === "settings" ? { offer: { stage: offer, bots: 12 } } : {}),
+  ...(params.get("move") && MOVES[params.get("move")!] ? { move: MOVES[params.get("move")!] } : {}),
+};
+const listeners = new Set<(next: CloudSendNotice) => void>();
+const tell = (next: CloudSendNotice) => { notice = next; for (const listener of listeners) listener(next); return next; };
+const calls: string[] = [];
+Object.assign(window, { cloudMoveCalls: calls });
+let ticker: ReturnType<typeof setInterval> | null = null;
+
+window.ogb = {
+  platform: "darwin",
+  getCapabilities: async () => initialDesktopCapabilities(),
+  onCapabilitiesChanged: () => () => {},
+  // the page opens Settings as main's menu would: window.cloudMoveOpenSettings()
+  onOpenAppSettings: (open: (section?: string) => void) => { Object.assign(window, { cloudMoveOpenSettings: open }); return () => {}; },
+  workspaces: {
+    state: async () => ({ local: true, name: "This computer" }),
+    menu: async () => { calls.push("workspace-menu"); },
+    onChanged: () => () => {},
+  },
+  cloudSendPage: {
+    notice: async () => notice,
+    onNotice: (listener: (next: CloudSendNotice) => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
+    dismiss: async (signature: string) => { calls.push(`dismiss:${signature}`); return tell({ ...notice, move: undefined }); },
+    moveRetry: async () => { calls.push("retry"); return tell({ ...notice, move: MOVES.copy }); },
+    moveOfferAccept: async (from: string) => {
+      calls.push(`accept:${from}`);
+      let done = 34;
+      ticker ??= setInterval(() => { done = Math.min(142, done + 9); tell({ ...notice, move: { phase: "copy", chats: { done, total: 142 } } }); }, 700);
+      return tell({ ...BASE, move: MOVES.copy });
+    },
+    moveOfferDismiss: async (which: string) => {
+      calls.push(`dismiss-offer:${which}`);
+      return tell({ ...BASE, offer: { stage: which === "prompt" ? "banner" : "settings", bots: 12 } });
+    },
+  },
+} as unknown as typeof window.ogb;
+
+applySkin((params.get("skin") ?? "midnight") as SkinId);
+createRoot(document.getElementById("root")!).render(<App />);

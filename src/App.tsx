@@ -36,6 +36,7 @@ import { CloudAsleepStrip } from "@/components/CloudAsleepStrip";
 import { useCloudLastSeen, useHeldSend } from "@/lib/cloud-last-seen";
 import { LiveConnectionStrip } from "@/components/LiveConnectionStrip";
 import { CloudSendStrip } from "@/components/CloudSendStrip";
+import { CloudMoveOffer } from "@/components/CloudMoveOffer";
 import { HomeLine } from "@/components/HomeLine";
 import { useTeamChats } from "@/state/team-chats";
 import { needsYouVersion, useTeamPeopleLoader } from "@/state/team-people";
@@ -274,6 +275,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
     <LiveConnectionStrip connected={state.connected} hydrated={state.hydrated === true} />
     <CloudSendStrip cloudHome={state.config?.cloudHome === true} />
     <HomeLine />
+    <CloudMoveOffer cloudHome={state.config?.cloudHome === true} />
     <AppNotices quiet={paletteOpen || drawerOpen} viewer={viewer} />
     <RoutineCloudUpsell quiet={paletteOpen || drawerOpen || Boolean(firstRun)} />
     <EgressFallbackNotice />

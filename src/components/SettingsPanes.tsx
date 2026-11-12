@@ -31,6 +31,7 @@ import { KeyboardShortcutsModal } from "./KeyboardShortcutsModal";
 import { LocalComputerSection } from "./LocalComputerSection";
 import { CLOUD_SETUP_PAGE, PHONE_ADVANCED_PAGE, PRIVATE_SETUP_PAGE, PROFILE_PAGE } from "./settings-page-ids";
 import { CloudDesktopKeys } from "./keys/KeysPage";
+import { CloudMoveSettings } from "./CloudMoveSettings";
 import { LoginsSettings } from "./LoginsSettings";
 import { McpServersPanel } from "./McpServersPanel";
 import { NotificationRows } from "./NotificationSettingsRows";
@@ -267,6 +268,7 @@ export function ComputerPane({ has, remoteAccess, servers, transfer }: { has: Ha
   const showProfiles = builtInBrowserEnabled(state.config) || profiles.length > 0;
   return (
     <>
+      <CloudMoveSettings cloudHome={state.config?.cloudHome === true} />
       {has("computer") && (
         <RowsCard data-settings-block="computer">
           <PageRow page="computers" title={t("settings.rows.desktops")} hint={t("settings.hint.desktops")} />

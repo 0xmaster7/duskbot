@@ -9,7 +9,9 @@ export function installTwoPlacesMain(deps: {
   environments(): any[];
   /** My Cloud's address while it is ready, and whether it sleeps now. */
   cloud(): { origin: string | null; asleep: boolean };
-  oneHome: { journal(): unknown; keep: { state(): { shown: boolean; on: boolean; moved: boolean }; set(on: boolean): Promise<unknown> } };
+  oneHome: { journal(): unknown; keep: { state(): { shown: boolean; on: boolean; moved: boolean }; set(on: boolean): Promise<unknown> };
+    /** The offer the first move waits for (cloud-move-offer.mjs). */
+    offer?(): null | { state(): { stage: string }; accept(from: string): Promise<unknown> } };
   ownHome: { owns(place: any): boolean; offers(place: any): boolean; start(id: string): Promise<unknown>; active(): boolean; away(): boolean; refresh(): void };
   dismissed: { read(): unknown; write(value: unknown): void };
   /** The verified account, whose state lists the person's teams; with `teamsRemembered`, each team is a place read for its bots. */
