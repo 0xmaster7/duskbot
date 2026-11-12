@@ -8525,8 +8525,15 @@ async function beginTurn(
         skipComputer(!namedPlace || !placeSource ? error : await asPlaceFailure(error, namedPlace, placeSource, bot));
       }
 
+      // a bot whose Local VM awaits its update goes through attachLocalVm, which waits for it or bars this computer
+      const ownLocalVmAwaitsUpdate = async () => {
+        const target = localVmTargetForStatus(bot.id, threadId);
+        if (!mountsComputerMcp || (!localVmSeen.has(target.key) && !opts?.automationSource)) return false;
+        return localVmUpdates.observe(target, await containerComputerStatus(undefined, undefined, target).catch(() => null));
+      };
       const nativeAutoReady = wants === undefined && !vpsSshAliasForBot(cfg, bot) && !computerPlaceRefusal("thisComputer")
-        && shouldMountLocalComputer({ requested: undefined, hostPlatform: process.platform, providerSupportsLocal: mountsLocalComputer }) && Boolean(desktopComputer.connection());
+        && shouldMountLocalComputer({ requested: undefined, hostPlatform: process.platform, providerSupportsLocal: mountsLocalComputer }) && Boolean(desktopComputer.connection())
+        && !(await ownLocalVmAwaitsUpdate());
       if (wants === undefined && !nativeAutoReady && !vpsSshAliasForBot(cfg, bot) && !deferredSharedComputer && !integrations.localComputer && !computerPlaceRefusal("localVm") && await attachLocalVm(false)) computerKind = "vm";
       // An unattended run with a VPS configured never lands on the host's own desktop, nor does a bot whose own desktop awaits an update.
       const hostBarred = Boolean(teamComputer) || Boolean(vpsSshAliasForBot(cfg, bot)) || deferredSharedComputer || autoVpsOutdated || Boolean(vmUpdateNote);
