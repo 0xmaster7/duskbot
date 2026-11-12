@@ -35,7 +35,7 @@ export function PlaceSetup({ onClose, start }: { onClose: () => void; start?: Vi
   const [from, setFrom] = useState<"next" | "back">("next");
   const setView = (next: View) => { setFrom(ORDER.indexOf(next) < ORDER.indexOf(view) ? "back" : "next"); setViewNow(next); };
   const cloud = () => { onClose(); dispatch({ type: "openCloudAdd", source: "app_settings" }); };
-  return <RailSheet focusKey={view} onClose={onClose}>
+  return <RailSheet above focusKey={view} onClose={onClose}>
     <div key={view} data-place-setup={view} data-from={from} className="place-step">
       {view === "choose" && <div className={BODY}>
         <Heading title={t("placeSetup.title")} />

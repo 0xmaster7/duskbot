@@ -111,3 +111,12 @@ it("adding a place opens the guided setup, not Settings", async () => {
   expect(open).toBe(true);
   closePlaceSetup();
 });
+
+it("the add-a-place sheet opens over the picker and closing it returns there, not to this computer's empty app", async () => {
+  await render();
+  await act(async () => { host.querySelector<HTMLButtonElement>("[data-settings-open=add-workspace]")!.click(); });
+  expect(screen()?.getAttribute("data-elsewhere")).toBe("bots-on");
+  const { closePlaceSetup } = await import("@/lib/place-setup");
+  await act(async () => { closePlaceSetup(); });
+  expect(screen()?.getAttribute("data-elsewhere")).toBe("bots-on");
+});

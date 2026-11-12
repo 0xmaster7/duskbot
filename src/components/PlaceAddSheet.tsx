@@ -67,7 +67,8 @@ export function Choice({ icon, title, sub, onClick, kind, tag, art = false }: { 
 const FOCUSABLE = "button:not([disabled]):not([tabindex='-1']), input:not([disabled]):not([tabindex='-1']), [href], [tabindex='0']";
 
 /** The sheet over the app, like the buying sheet's: Escape and Close close it, Tab stays in it, focus goes back after. */
-export function RailSheet({ wide = false, focusKey, onClose, children }: { wide?: boolean; focusKey: string; onClose: () => void; children: ReactNode }) {
+/** `above`: over the full-screen places picker (z-[60]), which stays up behind it so closing returns there */
+export function RailSheet({ wide = false, above = false, focusKey, onClose, children }: { wide?: boolean; above?: boolean; focusKey: string; onClose: () => void; children: ReactNode }) {
   const sheet = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
@@ -87,7 +88,7 @@ export function RailSheet({ wide = false, focusKey, onClose, children }: { wide?
     if (sheet.current?.contains(document.activeElement) && document.activeElement !== sheet.current) return;
     (sheet.current?.querySelector<HTMLElement>("[data-autofocus]") ?? sheet.current?.querySelector<HTMLElement>("#cloud-add-title"))?.focus();
   }, [focusKey]);
-  return <div className="ui-dialog-scrim fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+  return <div className={cn("ui-dialog-scrim fixed inset-0 flex items-center justify-center p-4 sm:p-6", above ? "z-[61]" : "z-[60]")} onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <div ref={sheet} role="dialog" aria-modal="true" aria-labelledby="cloud-add-title" data-place-add-sheet tabIndex={-1}
       className={cn("relative max-h-full w-full overflow-y-auto overscroll-contain rounded-[14px] border border-transparent bg-menu outline-none", wide ? "max-w-[900px]" : "max-w-[560px]")}>
       <button type="button" onClick={onClose} aria-label={t("cloudAdd.close")} className="ui-icon-button absolute end-3.5 top-3.5 z-10"><X size={18} /></button>

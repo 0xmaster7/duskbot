@@ -9,7 +9,7 @@ import { cn } from "@/lib/cn";
 import { useCloudMoveOpen } from "@/lib/cloud-move";
 import { t } from "@/lib/i18n";
 import { usePlaces } from "@/lib/places";
-import { openPlaceSetup, usePlaceSetupOpen } from "@/lib/place-setup";
+import { openPlaceSetup } from "@/lib/place-setup";
 import { openAddVps, useAddVpsOpen } from "@/lib/vps-link";
 import {
   choosePlacesHere, devToolsShown, dismissKey, dismissedPlaces, dismissPlace, elsewhereCovered, elsewhereScreen, emptyHere, macEmptyFrom, parseBotCounts,
@@ -61,8 +61,9 @@ export function BotsElsewhere() {
   const [opening, setOpening] = useState<string | null>(null);
   // the place that last failed to open: its row says so and stays clickable
   const [failed, setFailed] = useState<string | null>(null);
+  // the add-a-place sheet opens over this screen rather than hiding it, so closing the sheet comes back here
   const covered = elsewhereCovered({
-    settings: state.appSettingsOpen, cloudAdd: Boolean(state.cloudAdd), addVps: useAddVpsOpen(), cloudMove: Boolean(useCloudMoveOpen()), placeSetup: usePlaceSetupOpen(),
+    settings: state.appSettingsOpen, cloudAdd: Boolean(state.cloudAdd), addVps: useAddVpsOpen(), cloudMove: Boolean(useCloudMoveOpen()),
   });
   // picked here, this run: the page is this computer's from now on, whatever main's older answer said
   const [stayed, setStayed] = useState(false);
