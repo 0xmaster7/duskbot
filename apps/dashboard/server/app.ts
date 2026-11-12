@@ -215,6 +215,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
         ...(entry.previousMrrCents !== null ? { previousMrrCents: entry.previousMrrCents } : {}), ...(entry.plan ? { plan: entry.plan } : {}), ...(entry.interval ? { interval: entry.interval } : {}) };
       analytics.track("billing", { accountId: entry.accountId, at: entry.at, props });
     }
+    if (entry.via === "sync") return;
     const paidBefore = !!entry.accountId && billing.store.state.invoices.some(invoice => invoice.accountId === entry.accountId && invoice.status !== "failed" && invoice.amountCents > 0);
     alerts.money(entry, { email: entry.accountId ? auth.account(entry.accountId)?.email ?? null : null, paidBefore, mrr: mrrAtTime(ledgerState(), now()) });
   }
