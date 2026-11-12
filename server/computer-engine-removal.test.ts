@@ -44,14 +44,16 @@ describe("moving saved bots off the engine", () => {
   const newBotDefault = () => ({ instanceId: "claude", model: "claude-model" });
   const replacement = { instanceId: "claude", model: "claude-model" };
   const removed = new Set(["computer"]);
-  /** This server has a retired desktop provider account, the bot's cloud backend is retired desktop provider, and no
-   * team computer serves its section: on Auto, the removed engine ran on the
-   * bot's own cloud computer. */
-  const retired = { driverKind: "claudeAgent", canWorkOnCloud: true, keepCloud: (bot: BotRecord) => bot.cloudBackend !== "vps" };
+  /** Bots without a connected VPS; every other bot has one and no team computer serves its section (index.ts passes
+   * the same test): on Auto, the removed engine ran on the bot's own cloud computer. */
+  const withoutVps = new Set<string>();
+  beforeEach(() => withoutVps.clear());
+  const hasVps = (bot: BotRecord) => !withoutVps.has(bot.id);
+  const retired = { driverKind: "claudeAgent", canWorkOnCloud: true, keepCloud: hasVps };
   const noRetiredDesktop = { driverKind: "claudeAgent", canWorkOnCloud: true, keepCloud: () => false };
   /** The same server, but the engine a new bot gets has no computer tools:
    * an OpenAI-compatible endpoint without computer use, like Mistral. */
-  const chatOnly = { driverKind: "mistral", canWorkOnCloud: false, keepCloud: (bot: BotRecord) => bot.cloudBackend !== "vps" };
+  const chatOnly = { driverKind: "mistral", canWorkOnCloud: false, keepCloud: hasVps };
 
   it("moves the bot's model, each conversation's model and its backups once, and keeps Works on", () => {
     const store = new Store(newBotDefault);
@@ -84,8 +86,8 @@ describe("moving saved bots off the engine", () => {
   it("keeps an Auto bot on its cloud computer, where the removed engine always ran", () => {
     const store = new Store(newBotDefault);
     const auto = store.createBot({ modelSelection: { instanceId: "computer", model: "claude-fable-5" } }, { seedMessages: false });
-    const vps = store.createBot({ modelSelection: { instanceId: "computer", model: "claude-fable-5" } }, { seedMessages: false });
-    store.patchBot(vps.id, { cloudBackend: "vps" });
+    const noVps = store.createBot({ modelSelection: { instanceId: "computer", model: "claude-fable-5" } }, { seedMessages: false });
+    withoutVps.add(noVps.id);
     const local = store.createBot({ modelSelection: { instanceId: "computer", model: "claude-fable-5" } }, { seedMessages: false });
     store.patchBot(local.id, { computer: "local" });
 
@@ -94,8 +96,8 @@ describe("moving saved bots off the engine", () => {
     const reloaded = new Store(newBotDefault);
     expect(reloaded.bot(auto.id)?.computer).toBe("cloud");
     expect(moves.find(move => move.botId === auto.id)?.cloud).toBe(true);
-    expect(reloaded.bot(vps.id)?.computer).toBeUndefined();
-    expect(moves.find(move => move.botId === vps.id)?.cloud).toBe(false);
+    expect(reloaded.bot(noVps.id)?.computer).toBeUndefined();
+    expect(moves.find(move => move.botId === noVps.id)?.cloud).toBe(false);
     expect(reloaded.bot(local.id)?.computer).toBe("local");
     expect(moves.find(move => move.botId === local.id)?.cloud).toBe(false);
   });
