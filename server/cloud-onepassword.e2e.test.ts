@@ -17,6 +17,8 @@ import { LOGIN_ERRORS } from "./routes/logins.ts";
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 import { hostTimeout } from "./testing/host-timeout.ts";
 import { freePortBlock } from "./testing/ports.ts";
+import { fetchSealKey } from "./testing/sealed-config.ts";
+import { sealValues } from "../src/lib/card-seal.ts";
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
 const HOST = "dusk-t-0123456789ab.fly.dev";
@@ -48,6 +50,12 @@ async function api(method: string, path: string, body?: unknown) {
   let parsed: any = null;
   try { parsed = JSON.parse(text); } catch {}
   return { status: response.status, body: parsed };
+}
+
+/** What the app sends from a remote client: the token sealed for this server, never in the clear. */
+async function connectOnePassword(token: string) {
+  const key = await fetchSealKey(base, { host: HOST, "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https", authorization: `Bearer ${owner}` });
+  return api("POST", "/api/logins/1password", { sealed: await sealValues({ token }, key, "onepassword.connect", []) });
 }
 
 async function pairOwner(): Promise<string> {
@@ -169,7 +177,8 @@ it("when an image lacks the SDK, says so plainly and never blames the token", as
     base = `http://127.0.0.1:${port}`;
     owner = "";
     owner = await pairOwner();
-    const refused = await api("POST", "/api/logins/1password", { token: TOKEN });
+    expect(await api("POST", "/api/logins/1password", { token: TOKEN })).toMatchObject({ status: 400, body: { code: "seal_required" } });
+    const refused = await connectOnePassword(TOKEN);
     expect(refused.status).toBe(400);
     expect(refused.body.error).toMatch(/^1Password could not start on this server, so your token was not checked/u);
     expect(missingLog).toContain("1Password: the SDK did not load: Cannot find module '@1password/sdk'");
@@ -182,10 +191,10 @@ it("when an image lacks the SDK, says so plainly and never blames the token", as
 });
 
 it("connects a 1Password service account on a Cloud home, and says plainly what is wrong with a token that is not one", async () => {
-  expect((await api("POST", "/api/logins/1password", { token: "eyJhbGciOiJFUzI1NiJ9.fake-connect-token" })).body.error).toBe(LOGIN_ERRORS.notServiceAccount);
-  expect((await api("POST", "/api/logins/1password", { token: `ops_wrong-${"x".repeat(30)}` })).body.error).toBe(ONE_PASSWORD_REFUSED);
-  expect((await api("POST", "/api/logins/1password", { token: "ops_short" })).body.error).toMatch(/^That is not a whole 1Password service account token/u);
-  const connected = await api("POST", "/api/logins/1password", { token: TOKEN });
+  expect((await connectOnePassword("eyJhbGciOiJFUzI1NiJ9.fake-connect-token")).body.error).toBe(LOGIN_ERRORS.notServiceAccount);
+  expect((await connectOnePassword(`ops_wrong-${"x".repeat(30)}`)).body.error).toBe(ONE_PASSWORD_REFUSED);
+  expect((await connectOnePassword("ops_short")).body.error).toMatch(/^That is not a whole 1Password service account token/u);
+  const connected = await connectOnePassword(TOKEN);
   expect(connected, log).toMatchObject({ status: 200, body: { onePassword: { connected: true, vaults: [{ id: "v1", title: "Shared with dusk bot", items: 1 }], items: 1 } } });
   expect((await api("GET", "/api/logins")).body.logins).toEqual([expect.objectContaining({ site: "example.test", username: "person@example.test", source: "1password" })]);
   expect(log).not.toContain("SDK did not load");
@@ -213,7 +222,7 @@ it("a bot asks for the 1Password token through request_credential's own slot, an
   const provided = () => api("POST", `/api/bots/${bot.id}/secret-cards/${card.id}/provided`, { threadId: bot.threadId });
   expect(await provided()).toMatchObject({ status: 409, body: { error: "1Password service account token was not saved yet" } });
   // What the card sends: the token goes to Logins, never the settings file or the chat.
-  expect((await api("POST", "/api/logins/1password", { token: TOKEN })).status).toBe(200);
+  expect((await connectOnePassword(TOKEN)).status).toBe(200);
   expect(await provided()).toMatchObject({ status: 200, body: { provided: true } });
   expect((await tools.call("request_credential", { credential_id: "onePasswordToken" })).content[0].text).toBe("1Password service account token is already configured. Continue the task.");
   expect(readFileSync(join(home, ".duskbot", "config.json"), "utf8")).not.toContain(TOKEN);
