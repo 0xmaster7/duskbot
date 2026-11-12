@@ -1,4 +1,5 @@
 // The setup card under a new bot's greeting (server/setup-request.ts): "What should I help you with first?" with a few
+import { PHONE_LAYOUT, useMediaQuery } from "@/lib/use-media-query";
 // answers, then Something else. A pick sends its words, which the server runs as setup at once; Something else is
 // answered by the bot's own line, and the next thing the person types is what the bot sets itself up for. While it
 // waits, a chip above the message box says so and its x stops it. Once answered, the card stays, quiet, with the answer.
@@ -30,6 +31,7 @@ const PLACEHOLDER_WIDTHS = ["62%", "48%", "56%", "44%", "58%", "30%"];
 export function SetupOffer({ botId, threadId, message, transcript }: { botId: string; threadId: string; message: Message; transcript: Message[] }) {
   const { state, dispatch } = useStore();
   const [busy, setBusy] = useState(false);
+  const phone = useMediaQuery(PHONE_LAYOUT);
   const [closed, setClosed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [waitedOut, setWaitedOut] = useState(false);
@@ -59,7 +61,8 @@ export function SetupOffer({ botId, threadId, message, transcript }: { botId: st
   const capable = state.instances.find((instance) => instance.instanceId === selection?.instanceId)?.capabilities?.agentsMcp === true;
   // The first line written here settles the card; it is the card's answer when it set the bot up.
   const first = transcript.find((line) => line.role === "user");
-  if (first ? !first.setupRequest && !capable : !(blank(bot) && capable)) return null;
+  // a phone has no room for a card the person skipped by writing something else
+  if (first ? !first.setupRequest && (phone || !capable) : !(blank(bot) && capable)) return null;
   const settled = first !== undefined;
   const answer = first?.setupRequest ? first : undefined;
   const pending = waiting && !settled;

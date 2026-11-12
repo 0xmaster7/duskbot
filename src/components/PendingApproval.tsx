@@ -307,6 +307,7 @@ export function PendingApprovalActions({
     <button
       key="deny"
       {...marked("deny")}
+      data-approval-deny=""
       type="button"
       onClick={() => decide("deny")}
       autoFocus={titled}

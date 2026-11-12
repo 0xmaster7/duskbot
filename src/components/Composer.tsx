@@ -540,7 +540,8 @@ export function Composer({
   const stoppable = busy || Boolean(!group && bot?.waitingForTeammates);
   // Simple mode's round button is the call, Send while there is text, and Stop while the bot works.
   const stopInSlot = simpleDock && stoppable && !locked && !hasContent && !calling;
-  const callShown = !simpleDock || (!hasContent && !stopInSlot);
+  // a phone shows one round button at the end of the pill: stop while it works, send once there is text, else the call
+  const callShown = !hasContent && (singleRow ? !busy : !stopInSlot);
   // the round button's glyph pops in only when it swaps here (call, send, stop); a fresh composer, as on a chat
   // switch, shows it at rest like grok's
   const glyphShape = `${hasContent}|${stopInSlot}|${callShown}`;
@@ -936,7 +937,8 @@ export function Composer({
             data-composer-stop={simpleDock ? (stopInSlot ? "slot" : "beside") : undefined}
             className={cn(
               "flex shrink-0 items-center justify-center rounded-full",
-              !simpleDock ? "size-8 text-ink-secondary hover:bg-raised hover:text-ink max-md:size-10"
+              singleRow ? "size-10 bg-ink text-app"
+                : !simpleDock ? "size-8 text-ink-secondary hover:bg-raised hover:text-ink max-md:size-10"
                 : stopInSlot ? cn("composer-press size-7", slot.button.className)
                 : SIMPLE_CONTROL,
             )}

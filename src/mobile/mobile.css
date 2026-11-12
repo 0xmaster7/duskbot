@@ -98,3 +98,32 @@ html[data-mobile-app], html[data-mobile-app] body { overflow: hidden; overscroll
 .dusk-mobile .side-panel > div > div > button[aria-label],
 .dusk-mobile .side-panel [data-panel-share],
 .dusk-mobile [data-mobile-chat] form button { min-width: 44px; min-height: 44px; }
+
+/* a message still on its way: after a beat (a send that lands at once never shows it) it dims and says so */
+@keyframes m-sending { to { opacity: 1; } }
+@keyframes m-sending-dim { to { opacity: .6; } }
+.dusk-mobile [data-chat-bubble][data-sending] { animation: m-sending-dim .2s ease-out 1.2s forwards; }
+.dusk-mobile [data-chat-bubble][data-sending]::after {
+  content: attr(data-sending);
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: end;
+  opacity: 0;
+  animation: m-sending .2s ease-out 1.2s forwards;
+}
+
+/* the safe answer to an approval is a real button on a phone, not a bare word beside the filled one */
+.dusk-mobile [data-approval-deny] {
+  min-height: 44px;
+  padding-inline: 18px;
+  border-radius: 9999px;
+  background-color: color-mix(in srgb, var(--color-ink) 7%, transparent);
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dusk-mobile [data-chat-bubble][data-sending], .dusk-mobile [data-chat-bubble][data-sending]::after { animation-duration: .01s; }
+}
