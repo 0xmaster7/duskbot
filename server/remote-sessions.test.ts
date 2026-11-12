@@ -6,6 +6,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { SERVER_API_LEVEL } from "../shared/server-api.ts";
 import { LOCKOUT } from "./sessions.ts";
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 import { openSse } from "./testing/sse.ts";
@@ -186,6 +187,7 @@ describe("before pairing", () => {
     expect(descriptor.body.version).toBe("9.9.9-test");
     // Exact, so a new pre-pairing field has to be added here on purpose.
     expect(descriptor.body.capabilities).toEqual({
+      api: SERVER_API_LEVEL,
       remoteSessions: true,
       selfUpdate: "operator",
       emailSignIn: false,
@@ -519,7 +521,8 @@ describe("pairing", () => {
       expect(config.savedKeys.openaiLiveKey).toEqual({ configured: true, last4: "b2c3" });
       expect(config.opencodeGo).toEqual({ configured: false, providerKeys: ["VENICE_API_KEY"] });
       expect(config.profile).toEqual({ name: "Updated fixture", email: "updated-private@example.invalid", aboutMe: "" });
-      expect(config.vps).toEqual({ configured: true, sshAlias: "fixture-private-host" });
+      // the admin also reads the VPS settings themselves; the private alias is the part a client must not see
+      expect(config.vps).toMatchObject({ configured: true, sshAlias: "fixture-private-host" });
       expect(config.browserProfiles).toEqual([{ id: "fixture", name: "Fixture browser", partitionId: "fixture-private-partition" }]);
     }
     try {
