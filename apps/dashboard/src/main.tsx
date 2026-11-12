@@ -124,7 +124,13 @@ function App() {
   const search = query.toString();
   useEffect(() => trackPage(path, new URLSearchParams(search)), [path, search]);
   const { account, accountError, retryAccount } = useSession();
-  useEffect(() => { document.title = `${TITLES[path] ?? (path.startsWith("/bots/") ? "bot" : path.startsWith("/workspaces/") ? "workspace" : deletePageId(path) !== null ? "delete cloud data" : "account")} · dusk bot`; }, [path]);
+  useEffect(() => {
+    // the admin panel names its own tabs
+    if (account && (path === "/admin" || path.startsWith("/admin/"))) return;
+    const page = account === null ? (path === "/signup" ? "make your account" : "sign in")
+      : TITLES[path] ?? (path.startsWith("/bots/") ? "bot" : path.startsWith("/workspaces/") ? "workspace" : deletePageId(path) !== null ? "delete cloud data" : "not found");
+    document.title = `${page} · dusk bot`;
+  }, [path, account]);
   if (accountError) return <main className="flex min-h-[100dvh] items-center justify-center bg-bg px-6"><SkyEmpty art="cat" title="can't reach your account right now." action={<Button variant="primary" onClick={retryAccount}>try again</Button>} className="w-full max-w-[520px]">check your connection. your bots are fine, they live on your own computers.</SkyEmpty></main>;
   if (account === undefined) return <div className="min-h-[100dvh] bg-bg" aria-busy="true" />;
   if (account === null) return <AuthScreen mode={path === "/signup" ? "signup" : "signin"} note={path === "/claim" ? "sign in to connect the workspace you opened this from." : path === "/cloud/desktop" ? "sign in to finish signing in the desktop app." : deleteSignInNote(path)} />;

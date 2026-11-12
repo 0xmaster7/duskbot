@@ -156,9 +156,8 @@ duskbot run "Room Lead" "Rehearse the launch of https://example.com" --export ./
 duskbot help run       # every verb: doctor, run, wait, send, export, events, team, engine, connect, mcp
 \`\`\`
 
-[Setup guide](${app.homepage}/blob/custom/docs/cli-onboarding.md)
-· [Scripts and CI](${app.homepage}/blob/custom/docs/headless-cli.md)
-· [Hosting guide](${app.homepage}/blob/custom/docs/self-hosting.md)
+[Docs](https://dusk.bot/docs)
+· [Your own server](https://dusk.bot/docs/your-own-server)
 `,
 );
 console.log(`npm package assembled at ${out} (duskbot@${app.version})`);

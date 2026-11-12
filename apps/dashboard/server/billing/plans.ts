@@ -54,7 +54,7 @@ export const BILLING_CONFIG: BillingConfig = {
   trial: null,
   // free $0, plus $20 (a cloud desktop), pro $50 (a bigger one and a work license for one person); the starter id sells as Plus
   bundles: [
-    { id: "free", label: "Free", cart: { license: { kind: "none" }, desktop: { kind: "none" } }, highlights: ["Your bots, on your Mac", "Personal use", "No subscription"] },
+    { id: "free", label: "Free", cart: { license: { kind: "none" }, desktop: { kind: "none" } }, highlights: ["Your bots, on your computer", "Personal use", "No subscription"] },
     { id: "starter", label: "Plus", cart: { license: { kind: "none" }, desktop: { kind: "shared_s", region: "fsn1" } }, highlights: ["Your bots work 24/7", "dusk cloud, on 24/7", "2 bot computers"] },
     { id: "pro", label: "Pro", cart: { license: { kind: "solo" }, desktop: { kind: "shared_m", region: "fsn1" } }, highlights: ["A bigger dusk cloud, always on", "5 bot computers, priority wake", "Work license for one person"] },
     { id: "team", label: "Team", cart: { license: { kind: "team", members: 2 }, desktop: { kind: "dedicated", region: "fsn1", spec: { vcpu: 8, ramGb: 16, diskGb: 160 } } }, highlights: ["Team license, 2 members", "Dedicated dusk cloud, unlimited bot computers", "8 vCPU, 16 GB RAM, 160 GB disk"] },

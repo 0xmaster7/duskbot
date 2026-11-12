@@ -4,7 +4,7 @@
 
 **A source-available Grok Bot alternative: your own team of AI bots, in a chat app.**
 
-[**dusk.bot**](https://dusk.bot) &nbsp;·&nbsp; [Download](https://dusk.bot/download) &nbsp;·&nbsp; [Source-available Grok Bot alternative, compared](https://dusk.bot/blog/grok-bot-vs-duskbot)
+[**dusk.bot**](https://dusk.bot) &nbsp;·&nbsp; [Download](https://dusk.bot/download) &nbsp;·&nbsp; [Source-available Grok Bot alternative, compared](https://dusk.bot/alternatives)
 
 <sub>dusk bot is a source-available Grok Bot alternative: an independent project inspired by **Grok Bot**, and a source-available alternative to **Meta Muse**, **OpenAI dots** and **Cue**: bring-your-own-agent, local-first, on the models you already have. Not affiliated with the makers of those products.</sub>
 
@@ -21,7 +21,7 @@ Talk to them like contacts. Watch them work. Approve what matters.
 
 <br>
 
-<a href="https://github.com/goatedgrokbotalternative/duskbot/releases/latest/download/Dusk Bot.dmg">
+<a href="https://github.com/goatedgrokbotalternative/duskbot/releases/latest/download/DuskBot.dmg">
   <img src="https://img.shields.io/github/v/release/goatedgrokbotalternative/duskbot?style=for-the-badge&label=%E2%AC%87%EF%B8%8F%20%20Download%20for%20Mac%20%28Apple%20silicon%29&labelColor=070707&color=1084fe&cacheSeconds=300" alt="Download the latest dusk bot for Mac with Apple silicon (.dmg)" height="40">
 </a>
 &nbsp;
@@ -55,7 +55,7 @@ Talk to them like contacts. Watch them work. Approve what matters.
 
 One assistant in one box is the wrong shape for agents. dusk bot is an independent, source-available project inspired by **Grok Bot**:
 it keeps the idea (AI as a *messaging app*: a roster of bots you chat with, each with its own personality,
-memory of its thread, model, computer, and apps) and rebuilds it open, local-first, and on the agents you
+memory of its thread, model, computer, and apps) and rebuilds it source-available, local-first, and on the agents you
 already have:
 
 - **Bring your own agents.** Bots run on the `claude`, `codex`, and `grok` CLIs installed on your own machine
@@ -78,14 +78,14 @@ apps, running on your machine under the PolyForm Strict license. If you searched
 
 | Looking for | What it is | How dusk bot differs | Read more |
 | --- | --- | --- | --- |
-| **Source-available Grok Bot** | xAI's roster of bots on one shared cloud computer, Grok only, from a SuperGrok or Cursor plan | Same roster shape; any model per bot; your own machine; approval cards | [Grok Bot vs dusk bot](https://dusk.bot/blog/grok-bot-vs-duskbot) |
+| **Source-available Grok Bot** | xAI's roster of bots on one shared cloud computer, Grok only, from a SuperGrok or Cursor plan | Same roster shape; any model per bot; your own machine; approval cards | [Grok Bot vs dusk bot](https://dusk.bot/alternatives) |
 | **Open Muse** | Meta's single personal agent in a Meta cloud VM, US and Canada only | A team instead of one agent; runs anywhere; data in `~/.duskbot` | [Alternatives](https://dusk.bot/alternatives) |
-| **Open dots** | OpenAI's always-on agent inside ChatGPT, GPT only, Pro and Business Premium plans | Several agents; your Claude, ChatGPT or Grok login; no plan required | [OpenAI dots alternative](https://dusk.bot/blog/openai-dots-alternative) |
-| **Open Cue** | Invite-only agents with their own phone, email and wallet | No invite; OAuth instead of passwords; source-available | [Agent comparisons](https://dusk.bot/blog/muse-vs-grok-bot-vs-dots-vs-cue) |
-| **Open Instinct** | Spear Street's invite-only agent that holds your passwords on a cloud computer | Ask for approval when you want it; signs in over OAuth; your machine | [Instinct AI alternative](https://dusk.bot/blog/instinct-ai-alternative) |
+| **Open dots** | OpenAI's always-on agent inside ChatGPT, GPT only, Pro and Business Premium plans | Several agents; your Claude, ChatGPT or Grok login; no plan required | [OpenAI dots alternative](https://dusk.bot/alternatives) |
+| **Open Cue** | Invite-only agents with their own phone, email and wallet | No invite; OAuth instead of passwords; source-available | [Agent comparisons](https://dusk.bot/alternatives) |
+| **Open Instinct** | Spear Street's invite-only agent that holds your passwords on a cloud computer | Ask for approval when you want it; signs in over OAuth; your machine | [Instinct AI alternative](https://dusk.bot/alternatives) |
 
-All five side by side: [Muse vs Grok Bot vs Dots vs Cue](https://dusk.bot/blog/muse-vs-grok-bot-vs-dots-vs-cue),
-and a decision guide in five questions: [Which AI agent should I use?](https://dusk.bot/blog/which-ai-agent-should-i-use)
+All five side by side: [Muse vs Grok Bot vs Dots vs Cue](https://dusk.bot/alternatives),
+and a decision guide in five questions: [Which AI agent should I use?](https://dusk.bot/alternatives)
 
 ## Features
 
@@ -310,10 +310,10 @@ See [Run dusk bot from scripts and CI](docs/headless-cli.md).
 
 | | Download | Install |
 |---|---|---|
-| **macOS** (Apple silicon) | [Dusk Bot.dmg](https://github.com/goatedgrokbotalternative/duskbot/releases/latest/download/Dusk Bot.dmg) | Drag it to Applications, open it. Signed & notarized. |
+| **macOS** (Apple silicon) | [DuskBot.dmg](https://github.com/goatedgrokbotalternative/duskbot/releases/latest/download/DuskBot.dmg) | Drag it to Applications, open it. Signed & notarized. |
 | **macOS** (Intel) | [DuskBot-intel.dmg](https://github.com/goatedgrokbotalternative/duskbot/releases/latest/download/DuskBot-intel.dmg) | Same app, built for Intel Macs. Signed & notarized. |
 | **Windows** (x64) | [DuskBot-setup.exe](https://github.com/goatedgrokbotalternative/duskbot/releases/latest/download/DuskBot-setup.exe) | Run it — one-click, per-user, no admin rights. The installer isn't code-signed yet, so SmartScreen shows "unknown publisher": **More info → Run anyway**. |
-| **Ubuntu 24.04** (x64) | [DuskBot-amd64.deb](https://github.com/goatedgrokbotalternative/duskbot/releases/latest/download/DuskBot-amd64.deb) · [Dusk Bot.AppImage](https://github.com/goatedgrokbotalternative/duskbot/releases/latest/download/Dusk Bot.AppImage) | Install the `.deb` with APT (recommended), or make the AppImage executable and run it. Beta; GNOME is the supported desktop. |
+| **Ubuntu 24.04** (x64) | [DuskBot-amd64.deb](https://github.com/goatedgrokbotalternative/duskbot/releases/latest/download/DuskBot-amd64.deb) · [DuskBot.AppImage](https://github.com/goatedgrokbotalternative/duskbot/releases/latest/download/DuskBot.AppImage) | Install the `.deb` with APT (recommended), or make the AppImage executable and run it. Beta; GNOME is the supported desktop. |
 
 See the [Ubuntu Desktop guide](docs/linux-desktop.md) for installation, capabilities, and troubleshooting.
 Any desktop build can also pair as a client to another Windows, macOS, or Ubuntu host over Tailscale; see [desktop-to-desktop companion mode](docs/desktop-companion.md).
@@ -322,7 +322,7 @@ Any desktop build can also pair as a client to another Windows, macOS, or Ubuntu
 **From source:**
 
 ```sh
-git clone https://github.com/goatedgrokbotalternative/duskbot && cd dusk bot
+git clone https://github.com/goatedgrokbotalternative/duskbot && cd duskbot
 pnpm install
 
 pnpm dev:server    # harness server → 127.0.0.1:8799

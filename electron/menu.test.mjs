@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("electron", () => ({
   app: { name: "dusk bot" },
   Menu: { buildFromTemplate: (template) => template },
+  shell: { openExternal: vi.fn(async () => {}) },
 }));
 
 import { buildApplicationMenu } from "./menu.mjs";
@@ -58,7 +59,7 @@ describe("buildApplicationMenu", () => {
   it("macOS app menu wires an explicit Preferences item to the settings callback", () => {
     const onOpenSettings = vi.fn();
     const template = build("darwin", { onOpenSettings });
-    const item = template[0].submenu.find((entry) => entry.label === "Preferences…");
+    const item = template[0].submenu.find((entry) => entry.label === "Settings…");
     expect(item).toBeDefined();
     expect(item.accelerator).toBe("CmdOrCtrl+,");
     expect(item.click).toBeTypeOf("function");
@@ -135,5 +136,13 @@ describe("buildApplicationMenu", () => {
     expect(items.some((entry) => /This computer|organization|Add a Cloud|Connect to a server/.test(entry.label))).toBe(false);
     const onCloud = build("darwin", { environments: [cloud, office], activeId: "c", home }).find((entry) => entry.label === "Server").submenu;
     expect(onCloud.find((entry) => entry.id === "back-to-my-cloud").enabled).toBe(false);
+  });
+
+  it.each(["darwin", "linux", "win32"])("has a Help menu with the docs, what's new and support on %s", async platform => {
+    const { shell } = await import("electron");
+    const help = build(platform).find((entry) => entry.role === "help");
+    expect(help.submenu.filter((entry) => entry.label).map((entry) => entry.label)).toEqual(["dusk bot Help", "What's New", "Contact Support"]);
+    for (const entry of help.submenu) entry.click?.();
+    expect(shell.openExternal.mock.calls.slice(-3).map(([url]) => url)).toEqual(["https://dusk.bot/docs", "https://dusk.bot/changelog", "mailto:hello@dusk.bot"]);
   });
 });

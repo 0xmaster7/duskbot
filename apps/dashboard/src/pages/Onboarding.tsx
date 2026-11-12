@@ -77,7 +77,7 @@ function PlanStep({ catalog, home, setHome, plan, setPlan }: { catalog: PlanCata
         <Monitor size={20} strokeWidth={1.5} className="shrink-0 text-ink-3" aria-hidden />
         <span className="min-w-0 flex-1">
           <span className="block text-15 font-medium text-ink">this computer</span>
-          <span className="block text-13 leading-[1.4] text-ink-3">bots work while it's awake. add dusk cloud anytime.</span>
+          <span className="block text-13 leading-[1.4] text-ink-3">bots work while it's awake. add dusk cloud any time.</span>
         </span>
         <span className="num shrink-0 text-14 text-ink-2">free</span>
       </label>
@@ -183,7 +183,7 @@ export function Onboarding() {
               <img src={meadow} alt="" width={800} height={354} className="h-12 w-16 shrink-0 rounded-[10px] object-cover object-bottom" draggable={false} />
               <span className="min-w-0 flex-1">
                 <span className="block text-14 font-medium text-ink">dusk cloud, {chosen?.name.toLowerCase() ?? "plus"}</span>
-                <span className="num block text-13 text-ink-3">{price ? `${price.amount}${price.unit}, cancel anytime` : <Skeleton className="h-4 w-28" />}</span>
+                <span className="num block text-13 text-ink-3">{price ? `${price.amount}${price.unit}, cancel any time` : <Skeleton className="h-4 w-28" />}</span>
               </span>
               <button type="button" onClick={() => go("plan")} className="text-link h-11 shrink-0 rounded-full px-1 text-14">change</button>
             </div>
@@ -198,7 +198,7 @@ export function Onboarding() {
           {catalog ? <PlanStep catalog={catalog} home={home} setHome={(h) => { setHome(h); setError(null); }} plan={plan} setPlan={setPlan} /> : <div className="flex flex-col gap-2" aria-busy="true"><Skeleton className="h-[300px] !rounded-[22px]" /><Skeleton className="h-[72px] !rounded-[18px]" /></div>}
           {error && <p role="alert" className="mt-3 text-14 text-bad">{error}</p>}
           <Button variant="primary" className={cx("mt-5", big)} onClick={() => void choose()} disabled={busy || !catalog}>{busy ? <Busy>opening checkout</Busy> : home === "cloud" && price ? `continue to checkout, ${price.amount}${price.unit}` : "continue with free"}</Button>
-          <div className="mt-2 flex items-center justify-between gap-3">{back("name")}{home === "cloud" && <span className="t-meta">cancel anytime</span>}</div>
+          <div className="mt-2 flex items-center justify-between gap-3">{back("name")}{home === "cloud" && <span className="t-meta">cancel any time</span>}</div>
         </div>
       ) : (
         <div key="app" className="step-in">

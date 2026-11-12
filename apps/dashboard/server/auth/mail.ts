@@ -10,12 +10,13 @@ export function memoryMailer() {
 export function consoleMailer(): Mailer {
   return { async send(message) { console.log(`code for ${message.to}: ${message.text.match(/\b\d{8}\b/)?.[0] ?? ""}`); } };
 }
+export const REPLY_TO = "hello@dusk.bot";
 export function resendMailer(options: { apiKey: string; from: string; fetch?: typeof fetch }): Mailer {
   const request = options.fetch ?? fetch;
   return { async send(message) {
     try {
       const response = await request("https://api.resend.com/emails", { method: "POST", redirect: "error", signal: AbortSignal.timeout(15_000),
-        headers: { authorization: `Bearer ${options.apiKey}`, "content-type": "application/json" }, body: JSON.stringify({ from: options.from, ...message }) });
+        headers: { authorization: `Bearer ${options.apiKey}`, "content-type": "application/json" }, body: JSON.stringify({ from: options.from, reply_to: REPLY_TO, ...message }) });
       await response.body?.cancel();
       if (!response.ok) throw new Error();
     } catch { throw new Error("Email delivery failed."); }
@@ -30,7 +31,7 @@ export function brevoMailer(options: { apiKey: string; from: string; fetch?: typ
     try {
       const response = await request("https://api.brevo.com/v3/smtp/email", { method: "POST", redirect: "error", signal: AbortSignal.timeout(15_000),
         headers: { "api-key": options.apiKey, "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify({ sender, to: [{ email: message.to }], subject: message.subject, textContent: message.text, htmlContent: message.html }) });
+        body: JSON.stringify({ sender, replyTo: { email: REPLY_TO }, to: [{ email: message.to }], subject: message.subject, textContent: message.text, htmlContent: message.html }) });
       await response.body?.cancel();
       if (!response.ok) throw new Error();
     } catch { throw new Error("Email delivery failed."); }

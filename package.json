@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.141",
   "description": "A local-first chat app for running a team of AI agents.",
-  "homepage": "https://github.com/goatedgrokbotalternative/duskbot",
+  "homepage": "https://dusk.bot",
   "repository": {
     "type": "git",
     "url": "https://github.com/goatedgrokbotalternative/duskbot.git"

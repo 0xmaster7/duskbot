@@ -15,7 +15,7 @@ import { planSelection, type PaidPlan } from "./plan-sheet";
 export const CLOUD_POINTS = [
   "on 24/7, even with your laptop shut",
   "routines run on time, day and night",
-  "text your bots from your phone, anytime",
+  "text your bots from your phone, any time",
   "ready in a minute, nothing to install",
 ] as const;
 

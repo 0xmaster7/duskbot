@@ -48,11 +48,15 @@ We keep first-party usage records in our own database, never with a third-party 
 - **Retention**: raw events are deleted after 400 days, and raw records of your bots' work and summaries after 90 days. Per-day counts linked to you, and the first and last run of each routine code, are deleted after 400 days. Daily totals and chart notes without any personal link are kept. Deleting your account deletes the events, records and summaries linked to it.
 - Only the operator can see these records, in an admin panel that logs each opening of a person's record.
 
+## Waitlist
+
+If you join the waitlist on dusk.bot, we store your email address, your place in line, when you joined, the page or campaign you came from and a short hash of your browser type, in our own database and on a Brevo contact list. We use it only to tell you when dusk bot opens to you. Every email sent to the list has an unsubscribe link, and you can ask privacy@dusk.bot to remove you at any time. Joining the waitlist does not create an account.
+
 ## Payments and transactional email
 
 Dodo Payments is the merchant of record for paid plans. It handles card data, tax and invoices. dusk bot stores subscription status, plan lines, amounts and payment identifiers. We never store card numbers. Dodo's handling of payment data is also subject to its own applicable privacy terms.
 
-We use Resend for transactional email, including sign-in codes and account and billing notices. It processes your delivery address and the email content needed to send those messages. Transactional messages are part of providing account and billing functions. They are not product analytics or advertising.
+We use Brevo for transactional email, including sign-in codes and account and billing notices. It processes your delivery address and the email content needed to send those messages. Transactional messages are part of providing account and billing functions. They are not product analytics or advertising.
 
 ## dusk cloud desktops
 
@@ -76,7 +80,7 @@ Tool traffic can include information needed to carry out your requested action i
 
 ## Website, hosting and logs
 
-The website, account service and link service run on a server rented from Contabo GmbH, Germany, [confirm data center region]. Cloudflare runs the connected-apps broker and the cloud desktops' public edge. Spaceship provides DNS. Let's Encrypt provides TLS certificates.
+The website, account service and link service run on a server rented from Contabo GmbH, Germany, [confirm data center region]. Cloudflare runs the connected-apps broker and the cloud desktops' public edge, provides DNS and forwards mail sent to our dusk.bot addresses. Spaceship is the domain registrar. Let's Encrypt provides TLS certificates.
 
 Server access logs include IP addresses. We keep them for [log retention, for example 14 days] for security and abuse prevention. We do not use advertising or third-party analytics. Visiting the website does not give us access to content held on your computer or VPS.
 
@@ -95,14 +99,14 @@ Provider legal roles, including any independent controller role for payments, ar
 | Name | Purpose | Data involved | Location |
 | --- | --- | --- | --- |
 | Contabo GmbH | Website, account and link hosting | Account records, service records and access logs; sealed relay traffic | Germany, [confirm data center region] |
-| Cloudflare | Connected-apps broker and cloud desktop public edge | Tool traffic, broker token hashes and cloud edge traffic | [Cloudflare processing locations] |
+| Cloudflare | Connected-apps broker, cloud desktop public edge, DNS and email forwarding | Tool traffic, broker token hashes, cloud edge traffic and mail sent to dusk.bot addresses | [Cloudflare processing locations] |
 | InstaBox | Cloud desktop infrastructure, sub-processor | Your hosted bots, chats, files and desktop data | [InstaBox processing locations: AWS us-west-2, United States] |
 | Dodo Payments | Merchant of record, payments, tax and invoices | Billing details, card data and transaction records; dusk bot receives no card numbers | [Dodo Payments processing locations] |
-| Resend | Transactional email delivery | Email address, sign-in codes and account or billing notice content | [Resend processing locations] |
+| Brevo | Transactional email delivery and the waitlist | Email address, sign-in codes, account or billing notice content, and waitlist sign-ups | [Brevo processing locations] |
 | Composio | Connected-app tools and OAuth connections | OAuth connections and tool request and response data | [Composio processing locations] |
 | Apple APNs | Phone push delivery | Device push token, bot name and identifiers, never message text | [Apple APNs processing locations] |
 | Google FCM | Phone push delivery | Device push token, bot name and identifiers, never message text | [Google FCM processing locations] |
-| Spaceship | DNS only | DNS queries and domain routing information, no bot content | [Spaceship DNS processing locations] |
+| Spaceship | Domain registrar | Domain registration records, no user data | [Spaceship processing locations] |
 | Let's Encrypt | TLS certificates | Certificate information, no personal data | [Let's Encrypt certificate service locations] |
 | [error tracking provider: self-hosted GlitchTip on our server, or Sentry] | Conditional crash and error reporting | Scrubbed errors, app-relative frames, app version and platform | [error tracker processing location] |
 
