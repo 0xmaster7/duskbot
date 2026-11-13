@@ -82,7 +82,11 @@ export function createAuth(options: AuthOptions) {
   const pendingIdentities = new Map<string, PendingIdentity>();
   const appFlows = new Map<string, AppFlow>();
   const appCodes = new Map<string, { challenge: string; accountId: string; expiresAt: number }>();
-  const attempts = new Map<string, Attempt>();
+  // sign-in codes in flight are saved (only their hmac), so a deploy between sending a code and typing it does not kill it
+  const attempts = new Map<string, Attempt>((state.codes ?? []).map(({ id, ...item }) => [id, item]));
+  const saveAttempts = () => { state.codes = [...attempts].map(([id, item]) => ({ id, ...item })); store.changed(); };
+  attempts.set = function (key, value) { Map.prototype.set.call(this, key, value); saveAttempts(); return this; };
+  attempts.delete = function (key) { const had = Map.prototype.delete.call(this, key); if (had) saveAttempts(); return had; };
   const devices = new Map<string, DeviceAuthorization>();
   const expiredDevices = new Map<string, number>();
   const grants = new Map<string, { accountId: string; sessionId: string; expiresAt: number }>();
@@ -243,7 +247,7 @@ export function createAuth(options: AuthOptions) {
     let owner = state.accounts.find(item => item.email === attempt.email);
     const supplied = hmac(`${data.attempt}:${typeof data.code === "string" ? data.code : ""}`);
     if (!timingSafeEqual(Buffer.from(supplied), Buffer.from(attempt.codeHash))) {
-      if (++attempt.tries >= EMAIL_CODE_TRIES) attempts.delete(key);
+      if (++attempt.tries >= EMAIL_CODE_TRIES) attempts.delete(key); else saveAttempts();
       return fail(400, app ? "invalid_code" : "wrong_code");
     }
     attempts.delete(key);

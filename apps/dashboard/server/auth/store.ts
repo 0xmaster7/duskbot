@@ -9,7 +9,9 @@ export interface Account { id: string; email: string; name: string | null; creat
 export interface Identity { accountId: string; provider: OAuthProvider; subject: string; email: string | null; label: string | null; addedAt: number }
 /** `parentId`: the app session a handoff web session came from; it ends with that session. never sent to a client. */
 export interface Session extends Omit<SessionView, "current"> { accountId: string; tokenHash: string; parentId?: string }
-interface AuthState { accounts: Account[]; identities: Identity[]; sessions: Session[] }
+/** a sign-in code in flight: only its hmac, kept so a restart between sending a code and typing it does not kill it */
+export interface StoredCode { id: string; email: string; codeHash: string; pending?: string; device: { name: string; platform: string; appVersion: string | null } | null; expiresAt: number; tries: number }
+interface AuthState { accounts: Account[]; identities: Identity[]; sessions: Session[]; codes?: StoredCode[] }
 
 export function createAuthStore(dataDir: string) {
   mkdirSync(dataDir, { recursive: true, mode: 0o700 });

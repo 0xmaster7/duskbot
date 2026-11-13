@@ -117,6 +117,12 @@ Changeable live from the admin relay page (`relay-limits.json`).
 | New pairing sessions | 120 an hour per ip; queued bytes 16 MiB per direction, frames dropped after 60 s, 1 GiB queued in all |
 | Per ip | 512 connections, 200 requests a second |
 | Phone channels | 50 posts a second, 256 MiB a minute, 600 reads a minute |
+| Who can make a tunnel | only a signed-in dusk bot account (anonymous sessions get 401) |
+| nginx in front (Contabo only) | 512 connections and 200 requests a second per ip, 10 new sessions a minute; Oracle's Caddy has none |
+
+Load test (2026-11-13): 100 tunnels with 3 clients each and a full reconnect storm ran clean on both nodes. On Contabo
+the 150-tunnel cap is reached while the process is near one full core; on Oracle (2 cores) the box itself is near 100%
+cpu at 140 to 150 tunnels, so Oracle's real ceiling is about 100 to 120.
 
 Alerts (every minute): a node down 2 min, bandwidth past 60% of the ceiling for 10 min, the month on course past 70% of
 the allowance, cpu or memory past 80% for 10 min, tunnels past 70% of the max for 5 min.
@@ -166,6 +172,7 @@ records, `workspaces`. At today's sizes this is years away from mattering; the 5
 - **Cloud backups are read into memory** whole (up to 4 GiB, twice while it is checked) in the account service on the
   shared Contabo box, one cloud at a time.
 - **nginx worker connections** (section 9): fine for hundreds of computers, raise before thousands.
-- **Rate limit counters live in memory** and reset when the account service restarts.
+- **Rate limit counters live in memory** and reset when the account service restarts (sign-in codes in flight are
+  saved, so a deploy no longer kills them).
 - **Bot tools reaching private addresses** on a dusk cloud: the bot has a shell on its own machine by design, so this is
   the owner's own machine, not ours.

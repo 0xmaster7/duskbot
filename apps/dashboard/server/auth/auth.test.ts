@@ -107,6 +107,20 @@ describe("local account service", () => {
     expect(await body(call("/v1/auth/start", { email, pending: "unknown" }))).toMatchObject({ code: "invalid_request" });
   });
 
+  it("keeps a sent code and its wrong guesses through a restart, and never saves the code itself", async () => {
+    const { attempt } = await start();
+    const wrong = code() === "00000000" ? "11111111" : "00000000";
+    for (let i = 0; i < 4; i++) expect(await body(call("/v1/auth/verify", { attempt, code: wrong }))).toMatchObject({ code: "wrong_code" });
+    restart();
+    expect(readFileSync(`${dataDir}/auth.json`, "utf8")).not.toContain(code());
+    // the fifth wrong guess still ends it, so a restart never hands out fresh guesses
+    const second = await (async () => { time += 30_000; return start(); })();
+    restart();
+    expect((await call("/v1/auth/verify", { attempt: second.attempt, code: code() })).status).toBe(200);
+    expect(await body(call("/v1/auth/verify", { attempt, code: wrong }))).toMatchObject({ code: "wrong_code" });
+    expect((await call("/v1/auth/verify", { attempt, code: wrong })).status).toBe(410);
+  });
+
   it("limits each code to five wrong guesses, expires attempts and consumes successful codes", async () => {
     const { attempt } = await start();
     const wrong = code() === "00000000" ? "11111111" : "00000000";
@@ -569,7 +583,7 @@ describe("local account service", () => {
     expect((await call("/v1/auth/verify", { attempt: attempt.attempt, code: code() })).status).toBe(410);
     expect(await body(poll(authorization))).toEqual({ error: "invalid_grant" });
     app.close();
-    expect(JSON.parse(readFileSync(`${dataDir}/auth.json`, "utf8"))).toEqual({ accounts: [], identities: [], sessions: [] });
+    expect(JSON.parse(readFileSync(`${dataDir}/auth.json`, "utf8"))).toEqual({ accounts: [], identities: [], sessions: [], codes: [] });
     expect(JSON.parse(readFileSync(`${dataDir}/state.json`, "utf8"))).toEqual({ accounts: [], sessions: [], workspaces: [], commands: [] });
   });
 
