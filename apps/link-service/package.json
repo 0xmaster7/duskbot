@@ -6,6 +6,7 @@
   "type": "module",
   "engines": { "node": ">=20" },
   "scripts": {
-    "start": "node src/server.mjs"
+    "start": "node src/server.mjs",
+    "chaos": "node chaos/run.mjs"
   }
 }
