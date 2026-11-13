@@ -640,6 +640,9 @@ function slog(line) {
   }
 }
 
+// a closed terminal or a parent that quit leaves stdout as a dead pipe; logging must never crash the app
+for (const stream of [process.stdout, process.stderr]) stream?.on?.("error", (error) => { if (error?.code !== "EPIPE") slog(`stdio error: ${error?.message ?? error}`); });
+
 // Synchronous: a fatal exception can end Electron before an async write flushes.
 // uncaughtExceptionMonitor observes Node's fatal path without handling it, so the process still exits.
 installDesktopCrashListeners({
