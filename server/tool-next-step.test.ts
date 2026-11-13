@@ -46,6 +46,6 @@ describe("tool failure next steps", () => {
   });
 
   it("keeps every hint free of em dashes", () => {
-    for (const text of ["429", "401 Unauthorized", "403", "timed out", "not found"]) expect(nextStepHint(text)).not.toContain("—");
+    for (const text of ["429", "401 Unauthorized", "403", "timed out", "not found"]) expect(nextStepHint(text)).not.toContain("\u2014");
   });
 });
