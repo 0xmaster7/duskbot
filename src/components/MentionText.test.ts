@@ -28,3 +28,12 @@ it("removes decoration when a peer is renamed or archived", () => {
     expect(renderToStaticMarkup(createElement(MentionText, { text: "@Atlas", peers }))).toBe("@Atlas");
   }
 });
+
+it("marks web addresses as pills, a link in a sent message and paint only in the composer", () => {
+  const props = { text: "try example.com/@Atlas or @Atlas", peers: [{ name: "Atlas" }] };
+  const open = renderToStaticMarkup(createElement(MentionText, { ...props, links: "open" }));
+  expect(open).toBe('try <a href="https://example.com/@Atlas" target="_blank" rel="noreferrer" dir="ltr" class="link-pill">example.com/@Atlas</a> or <span class="mention-highlight">@Atlas</span>');
+  const painted = renderToStaticMarkup(createElement(MentionText, { ...props, links: "highlight" }));
+  expect(painted).toContain('<span class="link-pill">example.com/@Atlas</span>');
+  expect(renderToStaticMarkup(createElement(MentionText, props))).not.toContain("link-pill");
+});

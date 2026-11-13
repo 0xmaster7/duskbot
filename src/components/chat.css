@@ -3,27 +3,11 @@
   from { opacity: 0; }
 }
 
-/* a link reads as the text around it, in medium weight, with a quiet underline that firms up on hover */
+/* a link is a soft pill in the skin's link colour (.link-pill in styles.css), in medium weight */
 .chat-link {
-  color: inherit;
   font-weight: 500;
   overflow-wrap: anywhere;
   unicode-bidi: isolate;
-}
-.chat-link-text {
-  text-decoration-line: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
-  text-decoration-color: color-mix(in srgb, currentColor var(--chat-underline), transparent);
-}
-.chat-link:hover .chat-link-text,
-.chat-link:focus-visible .chat-link-text {
-  text-decoration-color: currentColor;
-}
-.chat-link:focus-visible {
-  outline: none;
-  outline-offset: 2px;
-  border-radius: 4px;
 }
 /* the site's mark rides on the link's first word so the two never wrap apart */
 .chat-link-lead {
@@ -101,7 +85,6 @@
   --chat-code-wash: 4%;
   --chat-quote-bar: 24%;
   --chat-rule: 12%;
-  --chat-underline: 12%;
   --chat-ts: 56%;
 }
 :root:is([data-skin="grok-dark"], [data-skin="midnight"], [data-skin="dusk"], [data-skin="foundry"], [data-skin="graphite"], [data-skin="halloween"]) {
@@ -114,7 +97,6 @@
   --chat-code-wash: 2%;
   --chat-quote-bar: 22%;
   --chat-rule: 10%;
-  --chat-underline: 10%;
   --chat-ts: 54%;
 }
 

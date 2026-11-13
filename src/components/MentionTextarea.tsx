@@ -51,7 +51,7 @@ export function MentionTextarea({ inputRef, peers, everyone = false, wrapperClas
   }, [inputRef, resize, sync]);
   return <div className={cn("mention-editor relative min-w-0 flex-1 self-center", wrapperClassName)}>
     <div ref={mirrorRef} dir={props.dir} aria-hidden="true" className="mention-editor-mirror pointer-events-none absolute inset-0 overflow-hidden">
-      <MentionText text={String(props.value ?? "")} peers={peers} everyone={everyone} />{"\n"}
+      <MentionText text={String(props.value ?? "")} peers={peers} everyone={everyone} links="highlight" />{"\n"}
     </div>
     <textarea {...props} ref={inputRef} onScroll={(event) => { sync(); props.onScroll?.(event); }} />
   </div>;

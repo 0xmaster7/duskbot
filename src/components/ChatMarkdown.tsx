@@ -646,7 +646,7 @@ function MarkdownLink({ href, children, ...rest }: { href?: string; children?: R
   }
   if (!/^https?:\/\//i.test(href)) {
     return (
-      <a href={href} target="_blank" rel="noreferrer" dir="auto" className="chat-link">
+      <a href={href} target="_blank" rel="noreferrer" dir="auto" className="chat-link link-pill">
         <span className="chat-link-text">{children}</span>
       </a>
     );
@@ -661,7 +661,7 @@ function MarkdownLink({ href, children, ...rest }: { href?: string; children?: R
           <span>{children}</span>
         </a>
       ) : (
-        <a {...anchor} href={href} target="_blank" rel="noreferrer" dir="auto" className="chat-link">
+        <a {...anchor} href={href} target="_blank" rel="noreferrer" dir="auto" className="chat-link link-pill">
           <LinkWithFavicon href={href}>{children}</LinkWithFavicon>
         </a>
       )}</>; }}

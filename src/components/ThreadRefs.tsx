@@ -1,6 +1,6 @@
 import { MentionText } from "./MentionText";
 import type { MentionPeer } from "@/lib/mentions";
-import { createContext, Fragment, useContext, useMemo, useRef, type ReactNode } from "react";
+import { createContext, useContext, useMemo, useRef, type ReactNode } from "react";
 import { botOpensTo, openBot, openThread, useStore, type Action, type AppState, type Bot, type Group, type ThreadTarget } from "@/state/store";
 import { useStoreRef } from "@/state/store-ref";
 import { t } from "@/lib/i18n";
@@ -129,7 +129,7 @@ export function ThreadRefText({ text, peers, everyone = false }: {
   const { threads, currentBotId } = useThreadRefs();
   const spans = useMemo(() => splitThreadRefsForDisplay(text, threads, currentBotId), [text, threads, currentBotId]);
   const plain = (run: string, key: number) =>
-    peers ? <MentionText key={key} text={run} peers={peers} everyone={everyone} /> : <Fragment key={key}>{run}</Fragment>;
+    <MentionText key={key} text={run} peers={peers ?? []} everyone={everyone} links="open" />;
   if (!spans.some((span) => span.ref)) return plain(text, 0);
   return (
     <>
