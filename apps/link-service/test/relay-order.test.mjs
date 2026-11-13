@@ -56,6 +56,15 @@ describe("the egress lane", () => {
 });
 
 describe("numbered posts", () => {
+  it("from a writer that was writing before this node restarted start where they are, after a moment, not 5 s", async () => {
+    await post(["resumed"], { epoch: "r".repeat(12), seq: 41 });
+    expect((await take()).frames).toEqual([]);
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect((await take()).frames).toEqual(["resumed"]);
+    await post(["next"], { epoch: "r".repeat(12), seq: 42 });
+    expect((await take()).frames).toEqual(["next"]);
+  });
+
   it("say the relay orders them, and land in the writer's order however they arrive", async () => {
     expect(await post(["cccc"], { epoch: "e".repeat(12), seq: 2 })).toEqual({ ok: true, ordered: true });
     await post(["bbbb"], { epoch: "e".repeat(12), seq: 1 });

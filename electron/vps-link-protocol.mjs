@@ -904,7 +904,8 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
           for (const sealed of frames) {
             let frame = null;
             try { frame = openFrame(key, id, "to-app", sealed, guard); } catch { log("vps link: dropped a frame that did not open"); }
-            if (frame) deliver(frame);
+            // one request's broken answer must not end the read that carries every other request's
+            if (frame) try { deliver(frame); } catch (error) { log(`vps link: a reply could not be handed on (${error?.message ?? error})`); }
           }
         });
       } catch (error) {
@@ -953,6 +954,8 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
       via: pick(),
       touch,
       head: (status, out) => {
+        // a GET sent again may be answered twice; the first answer stands
+        if (res.headersSent) return;
         eventStream = /^text\/event-stream\b/i.test(String(out["content-type"] ?? ""));
         res.writeHead(status, out);
         res.flushHeaders?.();

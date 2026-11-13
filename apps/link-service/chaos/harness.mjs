@@ -144,8 +144,11 @@ export async function createFront({ key, cert, target }) {
   let fault = null;
   const agent = new Agent({ keepAlive: true, maxSockets: 4096 });
   const HOP = new Set(["connection", "keep-alive", "transfer-encoding", "upgrade", "proxy-connection", "http2-settings", "te", "host"]);
+  const perSecond = new Map();
   const server = createSecureServer({ key, cert, allowHTTP1: true, settings: { initialWindowSize: 4 * 1024 * 1024 } }, (req, res) => {
     const path = req.url;
+    const second = Math.floor(Date.now() / 1000);
+    perSecond.set(second, (perSecond.get(second) ?? 0) + 1);
     if (fault === "5xx" || (fault === "sync" && path.startsWith("/internal/"))) {
       res.writeHead(502, { "content-type": "text/html" });
       res.end("<html><body>502 Bad Gateway</body></html>");
@@ -174,7 +177,7 @@ export async function createFront({ key, cert, target }) {
   server.on("error", () => {});
   server.on("sessionError", () => {});
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
-  return { port: server.address().port, setFault: (next) => { fault = next; }, close: () => new Promise((resolve) => { server.close(resolve); agent.destroy(); }) };
+  return { port: server.address().port, perSecond, setFault: (next) => { fault = next; }, close: () => new Promise((resolve) => { server.close(resolve); agent.destroy(); }) };
 }
 
 /** a real link service node (src/server.mjs) as its own process, restartable on the same data folder */

@@ -1931,6 +1931,8 @@ export function createServing({ server = SERVER, sink, stopped = () => false, co
   async function handle(frame) {
     if (frame.t === "req" && typeof frame.r === "string" && typeof frame.path === "string" && frame.path.startsWith("/")) {
       if (allow && !allow(frame.method, frame.path.split("?", 1)[0])) return emit({ t: "err", r: frame.r, message: "This pairing channel only redeems its grant." });
+      // the app sends an unanswered GET again when it fears the first was lost; one that did arrive is not run twice
+      if (pending.has(frame.r)) return;
       return startRequest(frame);
     }
     if (frame.t === "body") {

@@ -50,23 +50,24 @@ async function crowd(world, count) {
 
 export const SCENARIOS = [
   {
-    name: "reconnect-storm", title: "60 servers and apps on a node that restarts (down 5 s)", budgetMs: 30_000,
+    name: "reconnect-storm", title: "60 servers and apps on a node that restarts (down 5 s)", quick: true, budgetMs: 30_000,
     async run(world) {
       const many = await crowd(world, 60);
       try {
         const pingAll = async () => (await Promise.all(many.list.map((one) => one.proxy.control("ping", null, 4000).then(() => 1, () => 0)))).reduce((a, b) => a + b, 0);
         await sleep(3000);
         const before = await pingAll();
-        world.net.contabo.stats.perSecond.clear();
+        world.fronts.contabo.perSecond.clear();
         await world.nodes.contabo.kill();
         await sleep(5000);
         await world.nodes.contabo.start();
         const back = at();
         let all = null;
         while (at() - back < 60_000) { if ((await pingAll()) === many.list.length) { all = at() - back; break; } await sleep(500); }
-        const seconds = [...world.net.contabo.stats.perSecond.values()];
+        // requests the node's proxy saw per second from the restart until all answered again
+        const seconds = [...world.fronts.contabo.perSecond].filter(([second]) => second * 1000 >= back - 1000).map(([, count]) => count);
         const peak = Math.max(0, ...seconds);
-        return { clearedAt: back, pass: before === many.list.length && all !== null, note: `${before}/${many.list.length} answered before; all again ${all === null ? "never" : `${(all / 1000).toFixed(1)} s`} after the node came back; peak ${peak} new connections in one second` };
+        return { clearedAt: back, pass: before === many.list.length && all !== null, note: `${before}/${many.list.length} answered before; all again ${all === null ? "never" : `${(all / 1000).toFixed(1)} s`} after the node came back; peak ${peak} requests in one second at the node` };
       } finally { await many.close(); }
     },
   },
@@ -243,7 +244,7 @@ export const SCENARIOS = [
     },
   },
   {
-    name: "laptop-sleep", title: "laptop asleep 3 minutes, wakes (wake event)", quick: true, budgetMs: 15_000,
+    name: "laptop-sleep", title: "laptop asleep 3 minutes, wakes (wake event)", budgetMs: 15_000,
     async run(world) {
       world.probe.hold();
       world.app.pause();

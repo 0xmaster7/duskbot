@@ -49,6 +49,7 @@ const LANE_FRAMES = 512;
 const LANE_BYTES = 4 * 1024 * 1024;
 const HELD_POSTS = 8;
 const GAP_MS = 5000;
+const FRESH_GAP_MS = 300;
 const EPOCH = /^[a-z2-7]{12}$/;
 const CREATE_PER_HOUR = 120;
 const CHANNEL_GRANT_MS = 24 * 60 * 60_000;
@@ -192,18 +193,21 @@ function frameQueue(onPush = () => {}, memory = { bytes: 0 }, now = Date.now) {
   function unhold(at) { const list = order.held.get(at); if (!list) return; order.held.delete(at); memory.bytes -= sizeOf(list); }
   function dropHeld() { for (const at of [...order.held.keys()]) unhold(at); }
   function drainHeld() {
-    while (order.held.has(order.next) && queue.push(order.held.get(order.next))) { unhold(order.next); order.next += 1; }
+    while (order.held.has(order.next) && queue.push(order.held.get(order.next))) { unhold(order.next); order.next += 1; order.fresh = false; }
     if (!order.held.size) { clearTimeout(gap); gap = null; }
   }
   function armGap() {
     if (gap) return;
+    // a writer's first posts here with numbers past 0: it was writing before this process started, so its first post
+    // is whatever comes first, not a gap to wait out
+    const ms = order.fresh ? FRESH_GAP_MS : GAP_MS;
     gap = setTimeout(() => {
       gap = null;
       if (!order.held.size) return;
       order.next = Math.min(...order.held.keys());
       drainHeld();
       if (order.held.size) armGap();
-    }, GAP_MS);
+    }, ms);
     gap.unref?.();
   }
   const queue = {
@@ -267,6 +271,7 @@ function frameQueue(onPush = () => {}, memory = { bytes: 0 }, now = Date.now) {
         if (order.epoch !== null) order.retired = [...order.retired.slice(-3), order.epoch];
         order.epoch = from;
         order.next = 0;
+        order.fresh = true;
         dropHeld();
       }
       if (at < order.next) return true;
@@ -279,6 +284,7 @@ function frameQueue(onPush = () => {}, memory = { bytes: 0 }, now = Date.now) {
         return true;
       }
       if (!queue.push(list)) return false;
+      order.fresh = false;
       order.next += 1;
       drainHeld();
       return true;

@@ -136,12 +136,15 @@ function createProbe(world) {
     });
   }
   let held = false;
+  const pending = new Set();
   function tick() {
     if (stopped || held || inFlight >= 16) return;
     inFlight += 1;
     const at = Date.now();
+    pending.add(at);
     void call("/api/ping").then((answer) => {
       inFlight -= 1;
+      pending.delete(at);
       let error = null;
       if (answer.status !== 200) {
         try { error = JSON.parse(answer.body.toString("utf8")).error ?? `status ${answer.status}`; } catch { error = answer.error ?? `status ${answer.status}`; }
@@ -189,7 +192,8 @@ function createProbe(world) {
     pings,
     gaps: () => (downSince === null ? gaps : [...gaps, { from: downSince, to: null }]),
     liveNow: () => Date.now() - lastEventAt < 5000,
-    okNow: () => { const recent = pings.filter((ping) => ping.done > Date.now() - 2000); return recent.length > 0 && recent.every((ping) => ping.ok); },
+    // a ping still out after 1.5 s counts against it as much as one that failed
+    okNow: () => { const recent = pings.filter((ping) => ping.done > Date.now() - 2000); return recent.length > 0 && recent.every((ping) => ping.ok) && ![...pending].some((at) => at < Date.now() - 1500); },
   };
 }
 
