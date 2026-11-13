@@ -94,6 +94,8 @@ it("a home whose final backup cannot succeed is woken for it ever less often, no
   expect(wakes).toBeGreaterThan(1);
   expect(wakes).toBeLessThanOrEqual(10);
   expect(c.managed!.backupProblem).toBe("too_large");
+  // a backup stopped part way leaves nothing on disk
+  expect(f.backups.list(c.id)).toEqual([]);
 });
 
 it("a provider outage of two hours during a first setup is waited out, never a failed cloud", async () => {

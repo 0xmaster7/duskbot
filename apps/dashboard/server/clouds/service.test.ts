@@ -107,6 +107,19 @@ it("moves a managed cloud between placements, and only a managed one", () => {
   expect(plain.service.movable?.(other.id, dedicatedPlan)).toBe(false);
   expect(() => plain.service.changePlan(other.id, dedicatedPlan)).toThrow(CloudError);
 });
+it("looks after dusk cloud machines a few at a time, so one slow step does not hold up the rest", async () => {
+  const kinds = ["shared_s", "shared_m", "dedicated"] as const;
+  let busy = 0, most = 0; const seen: string[] = [], gates: Array<() => void> = [];
+  const backend = { kinds, fresh: () => ({}), retryAt: () => null, view: () => ({}), afterPass: async () => {}, resizing: () => false, close() {},
+    reconcile: async (c: StoredCloud) => { busy++; most = Math.max(most, busy); seen.push(c.id); await new Promise<void>(resolve => gates.push(resolve)); busy--; } } as unknown as ManagedCloud;
+  const f = fixture({ managed: { kinds, create: () => backend } });
+  const list = Array.from({ length: 7 }, () => { const c = f.order(poolPlan); f.service.activate(c.id, "sub", poolPlan); return c; });
+  const pass = f.service.reconcile();
+  await vi.waitFor(() => expect(busy).toBe(4));
+  while (seen.length < list.length || gates.length) { gates.shift()?.(); await new Promise(resolve => setTimeout(resolve, 0)); }
+  await pass;
+  expect(most).toBe(4); expect(new Set(seen)).toEqual(new Set(list.map(c => c.id))); expect(seen).toHaveLength(7);
+});
 it("resizes a stopped dedicated desktop without powering it back on", async () => {
   const f = fixture(), c = f.order(); f.service.activate(c.id, "sub", dedicatedPlan); await f.ready(c); await f.service.power("a", c.id, "off");
   f.service.changePlan(c.id, { ...dedicatedPlan, spec: { ...dedicatedPlan.spec, ramGb: 8 } });

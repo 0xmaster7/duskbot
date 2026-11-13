@@ -4,7 +4,8 @@
 // retention reconciler removes one (lifecycle.ts).
 import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
 import { createCipheriv, createDecipheriv, createHash, hkdfSync, randomBytes } from "node:crypto";
-import { chmodSync, closeSync, existsSync, fstatSync, mkdirSync, openSync, readdirSync, readSync, rmSync, statSync, writeSync } from "node:fs";
+import { chmodSync, closeSync, existsSync, fstatSync, linkSync, mkdirSync, openSync, readdirSync, readSync, rmSync, statSync, writeSync } from "node:fs";
+import { open } from "node:fs/promises";
 import { join } from "node:path";
 
 const MAGIC = Buffer.from("OMBB2\n");
@@ -67,22 +68,140 @@ export function makeTar(files: Array<{ name: string; data: Buffer | string; mode
 
 /** whether a tar is this cloud's home volume: its marker names the cloud */
 export function homeVolumeProblem(tar: Buffer, cloudId: string): string | null {
-  let entries;
-  try { entries = tarEntries(tar); } catch { return "unreadable"; }
-  const marker = entries.find(e => e.name.split("/").slice(-1)[0] === MARKER_FILE && e.name.split("/").length <= 3);
-  if (!marker) return "no_marker";
-  try { if ((JSON.parse(marker.data.toString("utf8")) as { machine?: unknown }).machine !== cloudId) return "other_cloud"; } catch { return "bad_marker"; }
-  // a cloud home's data folder keeps its name from before the rename (CLOUD_HOME), so its backups do too
-  if (!entries.some(e => e.name.split("/").slice(0, -1).includes(CLOUD_HOME.dataName))) return "no_data";
-  return null;
+  const scan = homeVolumeScan(cloudId);
+  scan.push(tar);
+  return scan.end();
 }
+
+/** the most of an entry's data a scan keeps: a marker, a long name or a pax header, never file contents */
+const KEEP_BYTES = 64 * 1024;
+
+/** homeVolumeProblem over a tar that arrives in pieces: the same rules as tarEntries, holding one header and at most
+ *  KEEP_BYTES of an entry at a time, so a volume of any size is checked in a few kilobytes */
+export function homeVolumeScan(cloudId: string) {
+  const header = Buffer.alloc(512);
+  let have = 0, left = 0, pad = 0, done = false, broken = false, longName: string | null = null;
+  let entry: { name: string; type: string; keep: Buffer[] | null; kept: number; marker: boolean } | null = null;
+  let marker: Buffer | null | "too_large" = null, data = false;
+  function finish() {
+    const e = entry!; entry = null;
+    const body = e.keep ? Buffer.concat(e.keep) : null;
+    if (e.type === "L") longName = body!.toString("utf8").replace(/\0.*$/s, "");
+    else if (e.type === "x") { const path = /\d+ path=([^\n]*)\n/.exec(body!.toString("utf8")); if (path) longName = path[1]!; }
+    else if (e.marker && marker === null) marker = e.kept > KEEP_BYTES ? "too_large" : body!;
+  }
+  function begin(block: Buffer) {
+    if (block.every(byte => byte === 0)) { done = true; return; }
+    const field = (start: number, length: number) => block.subarray(start, start + length).toString("utf8").replace(/\0.*$/s, "");
+    const sum = parseInt(field(148, 8).trim() || "0", 8);
+    let check = 0;
+    for (let i = 0; i < 512; i++) check += i >= 148 && i < 156 ? 32 : block[i]!;
+    if (sum !== check) { broken = true; return; }
+    const size = parseInt(field(124, 12).trim() || "0", 8), type = field(156, 1) || "0", prefix = field(345, 155);
+    let name = longName ?? (prefix ? `${prefix}/${field(0, 100)}` : field(0, 100));
+    longName = null;
+    name = name.replace(/^\.\//, "");
+    const parts = name.split("/"), isMarker = type !== "L" && type !== "x" && parts.at(-1) === MARKER_FILE && parts.length <= 3;
+    // a cloud home's data folder keeps its name from before the rename (CLOUD_HOME), so its backups do too
+    if (type !== "L" && type !== "x" && parts.slice(0, -1).includes(CLOUD_HOME.dataName)) data = true;
+    entry = { name, type, keep: type === "L" || type === "x" || isMarker ? [] : null, kept: 0, marker: isMarker };
+    left = size; pad = Math.ceil(size / 512) * 512 - size;
+    if (left === 0) finish();
+  }
+  return {
+    push(chunk: Uint8Array) {
+      let at = 0;
+      while (at < chunk.length && !done && !broken) {
+        if (left > 0) {
+          const n = Math.min(left, chunk.length - at), e = entry!;
+          if (e.keep && e.kept + n <= KEEP_BYTES) e.keep.push(Buffer.from(chunk.subarray(at, at + n)));
+          else if (e.keep) e.keep = e.type === "L" || e.type === "x" ? (broken = true, null) : [];
+          e.kept += n; left -= n; at += n;
+          if (left === 0) finish();
+        } else if (pad > 0) {
+          const n = Math.min(pad, chunk.length - at); pad -= n; at += n;
+        } else {
+          const n = Math.min(512 - have, chunk.length - at);
+          header.set(chunk.subarray(at, at + n), have); have += n; at += n;
+          if (have === 512) { have = 0; begin(header); }
+        }
+      }
+    },
+    /** the verdict once every piece is in: null for this cloud's volume */
+    end(): string | null {
+      if (broken || left > 0) return "unreadable";
+      if (marker === null) return "no_marker";
+      if (marker === "too_large") return "bad_marker";
+      try { if ((JSON.parse((marker as Buffer).toString("utf8")) as { machine?: unknown }).machine !== cloudId) return "other_cloud"; } catch { return "bad_marker"; }
+      return data ? null : "no_data";
+    },
+  };
+}
+
+const CHUNK = 1 << 20;
 
 export function createBackupStore(options: { dir: string; now?: () => number }) {
   const now = options.now ?? Date.now;
   mkdirSync(options.dir, { recursive: true, mode: 0o700 });
   const dirOf = (cloudId: string) => { if (!CLOUD_ID.test(cloudId)) throw new Error("Invalid cloud id."); return join(options.dir, cloudId); };
   function pathOf(cloudId: string, file: string) { if (!FILE.test(file)) throw new Error("Invalid backup name."); return join(dirOf(cloudId), file); }
+  // a generation half written when the service stopped is never finished: only this service writes here
+  for (const cloud of readdirSync(options.dir)) {
+    if (!CLOUD_ID.test(cloud) || !statSync(join(options.dir, cloud)).isDirectory()) continue;
+    for (const name of readdirSync(join(options.dir, cloud))) if (name.endsWith(".part")) rmSync(join(options.dir, cloud, name), { force: true });
+  }
   return {
+    /** seals one generation as it arrives, a piece at a time (the volume is never held whole); `inspect` sees each plain
+     *  piece first and may throw to stop. written beside its name and linked into place once whole, so a generation
+     *  either exists complete or not at all, and never overwrites */
+    async writeStream(cloudId: string, key: Buffer, source: AsyncIterable<Uint8Array>, inspect: (chunk: Uint8Array) => void = () => {}): Promise<BackupRecord & { plainBytes: number }> {
+      const dir = dirOf(cloudId), at = now();
+      mkdirSync(dir, { recursive: true, mode: 0o700 });
+      const file = `${String(at).padStart(13, "0")}-${randomBytes(4).toString("hex")}.ombb`, path = join(dir, file), part = join(dir, `.${file}.part`);
+      const iv = randomBytes(IV_BYTES), cipher = createCipheriv("aes-256-gcm", key, iv), hash = createHash("sha256");
+      cipher.setAAD(Buffer.from(cloudId));
+      const fh = await open(part, "wx", 0o600);
+      let bytes = 0, plainBytes = 0;
+      const put = async (piece: Buffer) => { if (!piece.length) return; hash.update(piece); bytes += piece.length; for (let off = 0; off < piece.length;) off += (await fh.write(piece, off, piece.length - off)).bytesWritten; };
+      try {
+        await put(Buffer.concat([MAGIC, iv]));
+        for await (const chunk of source) { inspect(chunk); plainBytes += chunk.length; await put(cipher.update(chunk)); }
+        await put(cipher.final()); await put(cipher.getAuthTag());
+        await fh.sync(); await fh.close();
+        chmodSync(part, 0o400); linkSync(part, path);
+      } finally {
+        await fh.close().catch(() => {});
+        rmSync(part, { force: true });
+      }
+      return { file, at, bytes, sha256: hash.digest("hex"), verifiedAt: null, plainBytes };
+    },
+    /** opens one generation a piece at a time and checks it end to end: authenticated, bound to its cloud, this cloud's
+     *  volume (homeVolumeScan), and the sha256 of the file as stored. memory stays at one read buffer */
+    async check(cloudId: string, key: Buffer, file: string): Promise<{ problem: string | null; sha256: string | null }> {
+      const path = pathOf(cloudId, file);
+      let fh;
+      try { fh = await open(path, "r"); } catch { return { problem: "unreadable", sha256: null }; }
+      try {
+        const size = (await fh.stat()).size, hash = createHash("sha256"), buf = Buffer.alloc(CHUNK);
+        if (size < MAGIC.length + IV_BYTES + TAG_BYTES) return { problem: "unreadable", sha256: null };
+        const head = Buffer.alloc(MAGIC.length + IV_BYTES), tag = Buffer.alloc(TAG_BYTES);
+        await fh.read(head, 0, head.length, 0); await fh.read(tag, 0, TAG_BYTES, size - TAG_BYTES);
+        if (!head.subarray(0, MAGIC.length).equals(MAGIC)) return { problem: "unreadable", sha256: null };
+        const decipher = createDecipheriv("aes-256-gcm", key, head.subarray(MAGIC.length));
+        decipher.setAAD(Buffer.from(cloudId)); decipher.setAuthTag(tag);
+        const scan = homeVolumeScan(cloudId), bodyEnd = size - TAG_BYTES;
+        hash.update(head);
+        for (let pos = head.length; pos < bodyEnd;) {
+          const { bytesRead } = await fh.read(buf, 0, Math.min(CHUNK, bodyEnd - pos), pos);
+          if (bytesRead === 0) return { problem: "unreadable", sha256: null };
+          const sealed = buf.subarray(0, bytesRead);
+          hash.update(sealed); scan.push(decipher.update(sealed)); pos += bytesRead;
+        }
+        hash.update(tag);
+        try { scan.push(decipher.final()); } catch { return { problem: "unreadable", sha256: hash.digest("hex") }; }
+        return { problem: scan.end(), sha256: hash.digest("hex") };
+      } finally { await fh.close(); }
+    },
     /** seals one generation; never overwrites */
     write(cloudId: string, key: Buffer, tar: Buffer): BackupRecord {
       const dir = dirOf(cloudId), at = now();

@@ -28,6 +28,9 @@ export interface CloudsConfig {
   originTemplate?: string;
   poolQuota(kind: DesktopPlan["kind"], spec: MachineSpec, botComputers: number | null): SlotQuota;
   maxAttempts?: number;
+  /** how many dusk cloud (managed) machines one upkeep pass looks after at once; a slow one (a backup, a wake) no longer
+   *  holds up the rest. the older pool and dedicated clouds still go one by one */
+  upkeepConcurrency?: number;
 }
 export interface CloudWorkspaces {
   register(input: { accountId: string; name: string; publicKey: string }): string;
@@ -58,6 +61,9 @@ export interface CloudsServiceOptions {
 }
 export type CloudEventKind = "ready" | "deleted";
 interface State { v: 1; clouds: StoredCloud[] }
+/** dusk cloud machines looked after at once in one upkeep pass: enough that one slow backup does not stall the rest, few
+ *  enough to stay gentle on the shared box (each backup streams through a small buffer) and on the provider's start limits */
+const UPKEEP_CONCURRENCY = 4;
 const sameSpec = (a: MachineSpec, b: MachineSpec) => a.vcpu === b.vcpu && a.ramGb === b.ramGb && a.diskGb === b.diskGb;
 const sameQuota = (a: SlotQuota | undefined, b: SlotQuota) => a && (Object.keys(b) as Array<keyof SlotQuota>).every(k => a[k] === b[k]);
 
@@ -408,11 +414,15 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
       if (closed) return Promise.resolve();
       if (reconciling) return reconciling;
       reconciling = exclusive(async () => {
-        for (const c of store.state.clouds) {
-          if (closed) break;
-          if (c.nextAttemptAt > now()) continue;
+        const step = async (c: StoredCloud) => {
+          if (closed || c.nextAttemptAt > now()) return;
           try { await reconcileCloud(c); } catch (error) { retry(c, error); }
-        }
+        };
+        const due = store.state.clouds.filter(c => c.nextAttemptAt <= now()), hosted = due.filter(c => c.backend), queue = [...hosted];
+        const lanes = Array.from({ length: Math.min(hosted.length, Math.max(1, config.upkeepConcurrency ?? UPKEEP_CONCURRENCY)) }, async () => {
+          for (let c = queue.shift(); c; c = queue.shift()) await step(c);
+        });
+        await Promise.all([(async () => { for (const c of due) if (!c.backend) await step(c); })(), ...lanes]);
         if (managed && !closed) await managed.afterPass(store.state.clouds).catch(() => console.warn("clouds: the managed backend's pass failed; it runs again later"));
         if (!closed) await deliverSignIns().catch(() => console.warn("clouds: the held AI sign-ins pass failed; it runs again later"));
       }).finally(() => { reconciling = null; });

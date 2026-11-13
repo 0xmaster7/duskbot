@@ -13,7 +13,7 @@ import type { SpendInit, SpendLedger } from "./spend.ts";
 import { linkKeys } from "../../dashboard/server/clouds/bootstrap.ts";
 import { ProviderBusyError, ProviderError, ProviderLimitError, type MachineProvider, type MachineImage } from "./provider.ts";
 import type { ReleaseKey } from "./release-signing.ts";
-import { homeBackupKey, homeVolumeProblem, type BackupStore } from "./backups.ts";
+import { homeBackupKey, homeVolumeScan, type BackupStore } from "./backups.ts";
 import { DAY_MS, DEFAULT_DELETE_DELAY_DAYS, DEFAULT_RETENTION_DAYS, deletionVerdict, dueNotice, type Entitlement, type NoticeKind, type Verdict } from "./retention.ts";
 import type { Audit, AuditActor } from "./audit.ts";
 import { RetryableCloudError } from "../../dashboard/server/clouds/http.ts";
@@ -290,31 +290,43 @@ export function createLifecycle(deps: LifecycleDeps) {
     let stream: ReadableStream<Uint8Array>;
     try { stream = await provider.snapshotTar(snapshot.id, image.homeVolume); }
     catch (error) { b.backupProblem = "snapshot_read"; deps.save(c); log(c, "backup_failed", "reconciler", "snapshot_read"); throw error; }
-    const chunks: Buffer[] = [];
-    let size = 0;
+    // streamed to disk as it is read, sealed and hashed on the way, and checked as a tar on the way too: memory stays at
+    // a chunk or two whatever the volume's size
+    const scan = homeVolumeScan(c.id), key = keyOf(c);
+    let size = 0, tooLarge = false;
     const reader = stream.getReader();
-    try {
+    async function* pieces() {
       for (;;) {
         const { done, value } = await reader.read();
-        if (done) break;
-        size += value.length;
-        if (size > settings.maxBackupBytes) { await reader.cancel(); b.backupProblem = "too_large"; deps.save(c); log(c, "backup_skipped", "reconciler", "too_large"); return false; }
-        chunks.push(Buffer.from(value));
+        if (done) return;
+        yield value;
       }
+    }
+    let written: Awaited<ReturnType<BackupStore["writeStream"]>>;
+    try {
+      written = await deps.backups.writeStream(c.id, key, pieces(), chunk => {
+        size += chunk.length;
+        if (size > settings.maxBackupBytes) { tooLarge = true; throw new Error("too_large"); }
+        scan.push(chunk);
+      });
+    } catch (error) {
+      if (tooLarge) { await reader.cancel().catch(() => {}); b.backupProblem = "too_large"; deps.save(c); log(c, "backup_skipped", "reconciler", "too_large"); return false; }
+      await reader.cancel().catch(() => {}); throw error;
     } finally { reader.releaseLock(); }
-    const tar = Buffer.concat(chunks), problem = homeVolumeProblem(tar, c.id);
-    if (problem) { b.backupProblem = problem; deps.save(c); log(c, "backup_refused", "reconciler", problem); return false; }
-    // its storage until the month ends is charged before it is written (the pruning after only gives some back)
-    const storage = deps.spend ? deps.spend.storageCents(c.id, () => spendInit(c), tar.length) : 0;
+    const { plainBytes, ...record } = written, problem = scan.end();
+    if (problem) { deps.backups.remove(c.id, record.file); b.backupProblem = problem; deps.save(c); log(c, "backup_refused", "reconciler", problem); return false; }
+    // its storage until the month ends is charged before it is kept (the pruning after only gives some back)
+    const storage = deps.spend ? deps.spend.storageCents(c.id, () => spendInit(c), plainBytes) : 0;
     if (costChargeRefusal(spendView(c), storage, now())) {
-      b.backupProblem = "cost_ceiling"; deps.save(c); log(c, "backup_skipped", "reconciler", "cost_ceiling", { bytes: tar.length });
+      deps.backups.remove(c.id, record.file);
+      b.backupProblem = "cost_ceiling"; deps.save(c); log(c, "backup_skipped", "reconciler", "cost_ceiling", { bytes: plainBytes });
       deps.spend?.alert(c.id, "backup", `cloud ${c.id}: a backup was skipped, its storage would pass the monthly cost ceiling`);
       return false;
     }
-    const key = keyOf(c), record = deps.backups.write(c.id, key, tar);
     if (deps.spend) spendNote(c, { e: "bytes", bytes: b.backups.reduce((n, g) => n + g.bytes, 0) + record.bytes });
-    // restorable means: it opens with this cloud's key and is still this cloud's volume
-    const verified = homeVolumeProblem(deps.backups.read(c.id, key, record.file), c.id) === null && deps.backups.sha256(c.id, record.file) === record.sha256;
+    // restorable means: it opens with this cloud's key and is still this cloud's volume, read back from disk a piece at a time
+    const opened = await deps.backups.check(c.id, key, record.file);
+    const verified = opened.problem === null && opened.sha256 === record.sha256;
     b.backups.push({ ...record, verifiedAt: verified ? now() : null, snapshotAt: takenAt });
     b.backupProblem = verified ? null : "unverified";
     log(c, "backup", "reconciler", reason, { file: record.file, bytes: record.bytes, verified });
@@ -527,11 +539,11 @@ export function createLifecycle(deps: LifecycleDeps) {
   }
 
   /** the final backup, opened now with this service's key and checked to be this cloud's volume: the copy deletion relies on */
-  function finalBackupOpens(c: StoredCloud): boolean {
+  async function finalBackupOpens(c: StoredCloud): Promise<boolean> {
     const final = latestVerified(state(c));
     let problem: string | null = "no_final_backup";
     if (final) {
-      try { problem = homeVolumeProblem(deps.backups.read(c.id, keyOf(c), final.file), c.id); } catch { problem = "unreadable"; }
+      try { problem = (await deps.backups.check(c.id, keyOf(c), final.file)).problem; } catch { problem = "unreadable"; }
     }
     if (problem === null) return true;
     log(c, "delete_refused", "reconciler", `backup_${problem}`);
@@ -555,7 +567,7 @@ export function createLifecycle(deps: LifecycleDeps) {
       if (!rereadStored(c)) return;
       const again = verdictFor(c);
       if (!again.delete) { log(c, "delete_refused", "reconciler", again.reason); return; }
-      if (again.reason === "retention_over" && !neverSetUp(c) && !finalBackupOpens(c)) return;
+      if (again.reason === "retention_over" && !neverSetUp(c) && !(await finalBackupOpens(c))) return;
       // recorded before the call, so a lost answer is never read as a lost machine (and rebuilt)
       c.status = "destroying"; b.deletion = { serverId: c.serverId, operationId: null, at: now(), reason: verdict.reason, sent: false }; deps.save(c);
       log(c, "delete_requested", "reconciler", verdict.reason);
@@ -575,7 +587,7 @@ export function createLifecycle(deps: LifecycleDeps) {
       if (!rereadStored(c)) return;
       const again = verdictFor(c);
       if (!again.delete) { log(c, "delete_refused", "reconciler", again.reason); return; }
-      if (again.reason === "retention_over" && !neverSetUp(c) && !finalBackupOpens(c)) return;
+      if (again.reason === "retention_over" && !neverSetUp(c) && !(await finalBackupOpens(c))) return;
       await provider.deleteSnapshot(b.archive.snapshotId);
       log(c, "snapshot_deleted", "reconciler", verdict.reason, { snapshot: b.archive.snapshotId });
       b.archive = null; deps.save(c);
