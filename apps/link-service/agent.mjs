@@ -52,7 +52,7 @@ export const SERVER = { host: "127.0.0.1", port: Number(process.env.LINK_SERVER_
 export const LINK_PROTOCOL = 2;
 export const LINK_MIN_APP = 1;
 export const LINK_MIN_SERVER = 1;
-export const AGENT_VERSION = "2.1.0";
+export const AGENT_VERSION = "2.2.0";
 export const AGENT_CAPS = Object.freeze(["direct-ssh", "direct-wss", "egress", "egress-lane", "self-update", "cloud-relay"]);
 /** what this agent says about itself, in its direct hello and its answer to the app's `hello` */
 export const agentHello = () => ({ protocol: LINK_PROTOCOL, minApp: LINK_MIN_APP, minServer: LINK_MIN_SERVER, agent: AGENT_VERSION, caps: [...AGENT_CAPS] });
@@ -1933,6 +1933,8 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
   let stopped = false;
   let terminal = "stopped";
   let successfulPosts = 0, pollRetry = null;
+  // when the link service last answered, and last said it is full: the node watch moves the tunnel on either (tunnel())
+  let lastOkAt = Date.now(), busyAt = null;
   const abort = new AbortController();
 
   function stop(reason = "stopped") {
@@ -1959,8 +1961,9 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
         // read, not cancelled: a cancelled body closes the socket the next post would reuse
         const said = await response.text().catch(() => "");
         if (response.ok && !ordered && !lane) ordered = /"ordered":true/.test(said);
-        if (response.ok) { successfulPosts += 1; pollRetry?.abort(); return true; }
+        if (response.ok) { successfulPosts += 1; lastOkAt = Date.now(); pollRetry?.abort(); return true; }
         if (response.status === 404) { stop("unlinked"); return false; }
+        if (response.status === 503 && /"relay_busy"/.test(said)) busyAt = Date.now();
       } catch { /* retried below */ }
       if (stopped) break;
       await wait(Math.min(5000, 200 * 2 ** attempt));
@@ -2010,9 +2013,11 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
           return "unlinked";
         }
         if (!response.ok) throw new Error(`link service answered ${response.status}`);
+        lastOkAt = Date.now();
         await readFrameBatches(response, (frames) => {
           heard = true;
           failures = 0;
+          lastOkAt = Date.now();
           for (const sealed of frames) {
             let frame = null;
             try { frame = openFrame(key, id, "to-vps", sealed, guard); } catch { log("link: dropped a frame that did not open"); }
@@ -2038,7 +2043,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
     unwarm();
     return terminal;
   }
-  return { run, stop, egress, direct: hub, updater };
+  return { run, stop, egress, direct: hub, updater, lastOkAt: () => lastOkAt, busyAt: () => busyAt };
 }
 
 export function harnessSync(server = SERVER) {
@@ -2522,6 +2527,66 @@ async function direct() {
   return why === "closed" || why === "stopped" ? 0 : 1;
 }
 
+// ---- link service nodes ----
+/** a tunnel that heard nothing from its node this long, or was told the node is full, asks where to go */
+export const NODE_SILENT_MS = 60_000;
+export const NODE_WATCH_MS = 15_000;
+const nodesFile = () => join(configDir(), "nodes.json");
+const origin = (value) => { try { const url = new URL(value); return /^https?:$/.test(url.protocol) && url.pathname === "/" ? url.origin : null; } catch { return null; } };
+
+/** the server's round trip to each node's /healthz, the best of three, in ms (missing: no answer) */
+export async function measureNodes(list, fetchImpl = fetch) {
+  const out = {};
+  await Promise.all(list.map(async (node) => {
+    let best = Infinity;
+    for (let i = 0; i < 3; i += 1) {
+      const started = performance.now();
+      try {
+        const response = await fetchImpl(`${node.url}/healthz`, { signal: AbortSignal.timeout(3000) });
+        await response.arrayBuffer();
+        if (response.ok) best = Math.min(best, performance.now() - started);
+      } catch { break; }
+    }
+    if (Number.isFinite(best)) out[node.id] = Math.round(best);
+  }));
+  return out;
+}
+
+/**
+ * asks where this tunnel should live: the node it was linked through first, then every node it learned of before.
+ * answers { url, node, nodes } or null when no node answered (the caller keeps the last home)
+ */
+export async function placeTunnel({ base, id, token, known = [], fetchImpl = fetch, log = () => {} }) {
+  const urls = [...new Set([base, ...known.map((node) => node.url)].map(origin).filter(Boolean))];
+  let rtt = {};
+  if (known.length > 1) rtt = await measureNodes(known.filter((node) => origin(node.url)), fetchImpl).catch(() => ({}));
+  for (const url of urls) {
+    try {
+      const response = await fetchImpl(`${url}/v1/tunnels/${id}/place`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ rtt }), signal: AbortSignal.timeout(10_000) });
+      if (response.status === 404 && url === origin(base)) return { unlinked: true };
+      if (!response.ok) continue;
+      const answer = await response.json();
+      const nodes = Array.isArray(answer?.nodes) ? answer.nodes.filter((node) => typeof node?.id === "string" && origin(node.url)).map((node) => ({ id: node.id, url: origin(node.url), region: node.region ?? null })).slice(0, 16) : [];
+      const target = origin(answer?.url);
+      // one node: nothing to choose, the tunnel stays where it was linked
+      if (nodes.length < 2) return null;
+      if (!target || !nodes.some((node) => node.url === target)) continue;
+      log(`link: this server lives on node ${answer.node} (${answer.reason ?? "placed"})`);
+      return { url: target, node: answer.node, nodes };
+    } catch { /* the next node */ }
+  }
+  return null;
+}
+
+/** whether the tunnel still exists, asked of the node it was linked through: true, false (gone), or null (no answer) */
+async function stillLinked({ base, id, token, fetchImpl = fetch }) {
+  try {
+    const response = await fetchImpl(`${base}/v1/tunnels/${id}/node`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000) });
+    return response.ok ? true : response.status === 404 ? false : null;
+  } catch { return null; }
+}
+// ---- end link service nodes ----
+
 async function tunnel() {
   let saved;
   try { saved = JSON.parse(readFileSync(tunnelFile(), "utf8")); } catch { console.error("link: not linked yet; nothing to do"); return 0; }
@@ -2534,7 +2599,16 @@ async function tunnel() {
     if (release) return launchRelease(release);
   }
   try { if (refreshDirectKey(saved.id)) console.error("link: the app's direct key now runs this agent"); } catch (error) { console.error(`link: the app's direct key was not refreshed (${error?.message ?? error})`); }
-  const agent = createTunnelAgent({ ...saved, ...(updates ? { update: {} } : {}), egress: {
+  // the node this tunnel lives on: placed by the link service on every start, the last one kept when none answers.
+  // the node it was linked through stays its origin: updates, server builds and "is it really unlinked" ask there
+  let cache = null;
+  try { cache = JSON.parse(readFileSync(nodesFile(), "utf8")); } catch {}
+  const known = Array.isArray(cache?.nodes) ? cache.nodes : [];
+  const placed = process.env.DUSK_LINK_NODES === "off" ? null : await placeTunnel({ base: saved.base, id: saved.id, token: saved.token, known, log: (line) => console.error(line) });
+  if (placed?.url) { try { writePrivate(nodesFile(), JSON.stringify({ v: 1, home: placed.url, nodes: placed.nodes })); } catch {} }
+  const home = placed?.url ?? (origin(cache?.home) && known.some((node) => node.url === cache.home) ? cache.home : saved.base);
+  const nodesKnown = placed?.nodes ?? known;
+  const agent = createTunnelAgent({ ...saved, base: home, ...(updates ? { update: { base: saved.base } } : {}), egress: {
     report: async (state) => { const answer = await local("POST", "/api/computer/egress/agent", state); return answer.status === 200 ? answer.body : null; },
   } });
   let phones = null;
@@ -2548,7 +2622,7 @@ async function tunnel() {
       else console.error("link: phone keys could not be read; phones are off until the file is fixed or removed");
     }
     if (keys && (typeof keys.pub !== "string" || typeof keys.priv !== "string")) { console.error("link: phone keys are not valid; phones are off"); keys = null; }
-    if (keys) phones = createPhoneHub({ base: saved.base, id: saved.id, token: saved.token, keys, origin: saved.mode === "direct" ? saved.origin : null, spki: null, sync: harnessSync(SERVER) });
+    if (keys) phones = createPhoneHub({ base: home, id: saved.id, token: saved.token, keys, origin: saved.mode === "direct" ? saved.origin : null, spki: null, sync: harnessSync(SERVER) });
   }
   const serverUpdates = process.env.DUSK_LINK_SERVER_UPDATES === "off" ? null : createServerUpdater({ base: saved.base, id: saved.id, token: saved.token, log: (line) => console.error(line) });
   serverUpdates?.start();
@@ -2557,8 +2631,35 @@ async function tunnel() {
   const cloud = relayUrl ? createCloudRelay({ url: relayUrl, id: saved.id, key: saved.key, hub: agent.direct }) : null;
   cloud?.start();
   for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { cloud?.stop(); serverUpdates?.stop(); phones?.stop(); agent.stop(); directSocket?.close(); directWs?.close(); process.exit(0); });
+  // the node watch: silent for a minute, or full, and another node is known: ask where to go; a different answer
+  // restarts the agent (systemd brings it back in seconds) so everything reconnects there at once
+  let moving = false;
+  const watch = nodesKnown.length > 1 ? setInterval(async () => {
+    const silent = Date.now() - agent.lastOkAt() > NODE_SILENT_MS, busy = agent.busyAt() !== null && Date.now() - agent.busyAt() < NODE_WATCH_MS * 2;
+    if (moving || (!silent && !busy)) return;
+    moving = true;
+    try {
+      const next = await placeTunnel({ base: saved.base, id: saved.id, token: saved.token, known: nodesKnown, log: (line) => console.error(line) });
+      if (next?.url && next.url !== home) {
+        try { writePrivate(nodesFile(), JSON.stringify({ v: 1, home: next.url, nodes: next.nodes })); } catch {}
+        console.error(`link: moving to node ${next.node} (${silent ? "this node went quiet" : "this node is full"})`);
+        process.exit(75);
+      }
+    } finally { moving = false; }
+  }, NODE_WATCH_MS) : null;
+  watch?.unref();
   const phoneRun = phones?.run();
-  const how = await agent.run();
+  let how = await agent.run();
+  // a node it moved to says unlinked: only the node it was linked through decides that
+  if (how === "unlinked" && origin(home) !== origin(saved.base)) {
+    const linked = await stillLinked({ base: saved.base, id: saved.id, token: saved.token });
+    if (linked !== false) {
+      try { writePrivate(nodesFile(), JSON.stringify({ v: 1, home: saved.base, nodes: nodesKnown })); } catch {}
+      console.error("link: the node it moved to does not know this server; trying again");
+      process.exit(75);
+    }
+  }
+  clearInterval(watch);
   cloud?.stop();
   phones?.stop();
   await phoneRun;

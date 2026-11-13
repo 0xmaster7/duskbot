@@ -14,8 +14,11 @@ export const MAX_CHANNELS_PER_TUNNEL = 32;
 /** a tunnel whose server has not polled for this long is dropped, so dead links cannot fill MAX_TUNNELS for good */
 export const TUNNEL_IDLE_MS = 7 * 24 * 60 * 60_000;
 
-/** @param {{ dir?: string | null, now?: () => number, onChannelDelete?: (channel: any) => void, onTunnelDelete?: (tunnel: any) => void }} options */
-export function createStore({ dir = null, now = Date.now, onChannelDelete = () => {}, onTunnelDelete = () => {} } = {}) {
+/**
+ * @param {{ dir?: string | null, now?: () => number, onChannelDelete?: (channel: any) => void, onTunnelDelete?: (tunnel: any) => void, mayExpire?: (tunnel: any) => boolean }} options
+ * `mayExpire`: whether this node drops an idle tunnel (with several nodes, only its home does; the others never see it poll)
+ */
+export function createStore({ dir = null, now = Date.now, onChannelDelete = () => {}, onTunnelDelete = () => {}, mayExpire = () => true } = {}) {
   /** @type {Map<string, any>} */
   const sessions = new Map();
   /** @type {Map<string, any>} */
@@ -65,7 +68,7 @@ export function createStore({ dir = null, now = Date.now, onChannelDelete = () =
       if (endedAt !== null && t > endedAt + SESSION_KEEP_MS) { sessions.delete(id); changed = true; }
     }
     for (const [id, tunnel] of tunnels) {
-      if (t - (tunnel.seenAt ?? tunnel.createdAt ?? 0) > TUNNEL_IDLE_MS) { tunnels.delete(id); onTunnelDelete(tunnel); changed = true; }
+      if (t - (tunnel.seenAt ?? tunnel.createdAt ?? 0) > TUNNEL_IDLE_MS && mayExpire(tunnel)) { tunnels.delete(id); onTunnelDelete(tunnel); changed = true; }
     }
     for (const [id, channel] of channels) {
       if ((channel.expiresAt != null && channel.expiresAt <= t) || !tunnels.has(channel.tunnel)) {

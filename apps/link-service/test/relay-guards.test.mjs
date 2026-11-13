@@ -173,7 +173,8 @@ describe("the owner's relay ops endpoints", () => {
     expect((await read()).frames).toHaveLength(3);
     time += 1000;
     const body = await (await ops("/ops/relay/stats")).json();
-    expect(Object.keys(body).sort()).toEqual(["busy", "limits", "month", "now", "relay", "today", "top"]);
+    expect(Object.keys(body).sort()).toEqual(["box", "busy", "limits", "month", "node", "nodes", "now", "relay", "today", "top", "turn"]);
+    expect(body.node).toMatchObject({ id: "contabo", default: true, accepting: true });
     expect(body.relay).toBe("contabo");
     expect(Object.keys(body.now).sort()).toEqual(["accounts", "bytesPerSecIn", "bytesPerSecOut", "cpu", "rssMb", "tunnels"]);
     expect(body.now).toMatchObject({ tunnels: 1, accounts: 1, bytesPerSecIn: Math.round(3 * MB / 10), bytesPerSecOut: Math.round(3 * MB / 10) });

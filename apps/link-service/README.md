@@ -140,6 +140,58 @@ stays on the relay; a transport that failed on a network is tried last there for
   port 22 without `DUSK_LINK_DIRECT_PORT`, or outbound port 22 blocked on the person's network, and no HTTPS address for
   443: the app logs it and stays on the relay.
 
+## Nodes
+
+The relay runs on more than one node: `contabo` (link.dusk.bot, eu, the default) and `oracle-in` (link-in.dusk.bot,
+Oracle Mumbai, asia). `LINK_NODES` lists them the same way on every node (`id=https://host@region,...`, the first is the
+default home), `LINK_NODE_ID` says which one this is, `LINK_PEER_TOKEN` (32+ characters, the same everywhere) guards the
+copy between them. `src/nodes.mjs`.
+
+- **Directory.** Every node keeps the whole tunnel and phone channel table (ids, sha256 verifiers, the account ref, the
+  node a tunnel lives on; never a token or anything sealed) and copies changes to the others with `POST
+  /internal/v1/sync` at once and every 5 s; newer revisions win, deletes leave a 30 day tombstone so a node that was away
+  cannot bring a tunnel back. That sync is also the health check: a peer silent for 30 s is down. Setup sessions stay
+  on the node that made them. Why not the account service's Mongo: the link service has no dependencies and must keep
+  relaying while the account service (on the Contabo box) is down; with a copy on every node either one answers alone.
+- **Placement.** The agent asks `POST /v1/tunnels/<id>/place` (vps token, `{rtt: {node: ms}}` from its own /healthz
+  round trips) on every start. It stays on its home unless home is down, past 85% of its month allowance or at its
+  tunnel cap, or crowded (85%) while another node is under 50%. A new one goes to the lowest score among nodes that take
+  new servers: 0.5 x max(active tunnels / cap, out rate / ceiling) + 0.3 x month on course / 70% + 0.2 x its share of
+  homed servers + up to 0.5 for a slower round trip (300 ms behind the best = 0.5). A node takes no new servers when
+  down, paused, at 90% tunnels, 85% bandwidth, 70% of its month allowance on course (box traffic, `LINK_ALLOWANCE_TB`;
+  Oracle's free 10 TB), or 90% cpu or memory. A peer that may not hold the record yet is never chosen. Answer: `{node,
+  url, reason, nodes}`. The tunnel's home moves when its server polls a node.
+- **Finding it.** `GET /v1/tunnels/<id>/node` (app or vps token) and `GET /v1/channels/<id>/node` (phone channel token)
+  answer `{node, url, region, up, nodes: [{id, url, region, up}]}` on any node; `GET /v1/nodes` (public) lists the
+  nodes. A tunnel with no home (from before nodes, or an agent that never asks) lives on the default node.
+- **Failover.** The agent watches its node: silent for 60 s or answering `relay_busy`, it asks again (the node it was
+  linked through first, then every node it learned of, cached in `~/.config/duskbot-link/nodes.json`) and restarts on
+  the new node. The app's relay (`createTunnelProxy` with `follow`) asks where the tunnel lives at start, after two
+  failed reads, and on `relay_busy`, and moves there; the phone does the same after a failed or unanswered request. A
+  404 from a node it moved to is "unlinked" only once the node it was linked through says 404 too. One node listed:
+  nothing moves.
+- **Ops.** `GET /ops/relay/stats` adds `node` (id, region, url, default, homed, accepting, refuses, load), `nodes` (each
+  as this one sees it), `box` (cpu, memory, interface rates, month bytes kept in `box-usage.json`) and `turn`. The
+  account service lists every node (`DUSK_LINK_NODES`, plus the first node's own peers) and mails early warnings
+  (`apps/dashboard/server/admin/ops/relay-alerts.ts`).
+
+### TURN
+
+coturn runs beside each node as a second turn tier (Cloudflare Realtime TURN is the first). Short-lived credentials in
+the TURN REST API shape, valid on every node (`LINK_TURN_SECRET`, coturn's `static-auth-secret`):
+
+```
+GET /v1/tunnels/<id>/turn     bearer: the app or vps token
+GET /v1/channels/<id>/turn    bearer: the phone channel token
+-> { "iceServers": [ { "urls": ["stun:stun.cloudflare.com:3478"] },
+                     { "urls": ["turn:<home>:3478?transport=udp", "turn:<home>:3478?transport=tcp", ...every other node],
+                       "username": "<unix expiry>:<id>", "credential": "<base64 hmac-sha1(secret, username)>" } ],
+     "ttl": 3600, "expiresAt": <ms> }
+```
+
+`iceServers` goes straight into `RTCPeerConnection`; ask again before `expiresAt`. 404 `no_turn` when the node has no
+secret set. The node checks its own coturn with a STUN binding every 30 s (`turn` in the ops stats).
+
 ## Versions and updates
 
 - **Handshake.** The agent says what it speaks (`LINK_PROTOCOL`, the oldest app and server it works with, `AGENT_VERSION`

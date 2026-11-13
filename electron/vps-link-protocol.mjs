@@ -582,7 +582,7 @@ function clampedDial(host, port) {
  * the tunnel's stream api; without it the vps's stream requests go unanswered. on the relay it has a queue and posts of
  * its own; while the direct path is up the agent dials over that instead, in the direct writer's lane.
  */
-export function createTunnelProxy({ base, id, route = `${base}/v1/tunnels/${id}`, key: keyText, token, port = 0, fetch: given, log = () => {}, replyTimeoutMs = 90_000, stallMs = STREAM_STALL_MS, direct: directSpec = null, directFactory = createDirectLink, egress: makeEgress = null, waitS = 25, aheadMs = STREAM_AHEAD_MS, hello = {} }) {
+export function createTunnelProxy({ base, id, route: givenRoute = null, key: keyText, token, port = 0, fetch: given, log = () => {}, replyTimeoutMs = 90_000, stallMs = STREAM_STALL_MS, direct: directSpec = null, directFactory = createDirectLink, egress: makeEgress = null, waitS = 25, aheadMs = STREAM_AHEAD_MS, hello = {}, follow = false }) {
   const fetchImpl = given ?? relayFetch({ dial: clampedDial });
   const stream = streamChoice();
   let unwarm = () => {};
@@ -593,11 +593,61 @@ export function createTunnelProxy({ base, id, route = `${base}/v1/tunnels/${id}`
   let server = null, server6 = null, polling = false, closed = false, listeningPort = port;
   let successfulPosts = 0, pollRetry = null, pollNudge = null;
   const abort = new AbortController();
+  // the link service may run on several nodes: the server's tunnel lives on one of them, and the node it was linked
+  // through (`base`) says which (GET /v1/tunnels/<id>/node, any node answers it). a node that stops answering, says it
+  // is full (relay_busy) or does not know the tunnel sends the app to ask again
+  let node = base, route = givenRoute ?? `${base}/v1/tunnels/${id}`, known = [], locating = null, lastLocate = 0;
+  const originOf = (value) => { try { const url = new URL(value); return /^https?:$/.test(url.protocol) ? url.origin : null; } catch { return null; } };
+  async function askWhere(at) {
+    const response = await fetchImpl(`${at}/v1/tunnels/${id}/node`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.any([abort.signal, AbortSignal.timeout(8000)]) });
+    const body = await response.json().catch(() => null);
+    if (response.status === 404) return { gone: true };
+    if (!response.ok || !body) return null;
+    // one node: nothing to follow, the relay stays where it was linked
+    if (!Array.isArray(body.nodes) || body.nodes.length < 2) return null;
+    if (Array.isArray(body.nodes)) known = body.nodes.map((item) => ({ id: item?.id, url: originOf(item?.url) })).filter((item) => typeof item.id === "string" && item.url).slice(0, 16);
+    const url = originOf(body.url);
+    return url && (url === originOf(base) || known.some((item) => item.url === url)) ? { url, node: body.node, up: body.up !== false } : null;
+  }
+  /** where the tunnel lives now: moves the relay there when it changed; { gone: true } when the origin no longer knows it */
+  function locate({ force = false } = {}) {
+    if (!follow || givenRoute || closed) return Promise.resolve(null);
+    if (locating) return locating;
+    if (!force && Date.now() - lastLocate < 10_000) return Promise.resolve(null);
+    lastLocate = Date.now();
+    locating = (async () => {
+      for (const at of [...new Set([originOf(base), ...known.map((item) => item.url)])].filter(Boolean)) {
+        let answer = null;
+        try { answer = await askWhere(at); } catch { continue; }
+        if (answer?.gone) { if (at === originOf(base)) return answer; continue; }
+        if (!answer) continue;
+        if (answer.url !== node) {
+          log(`vps link: this server is on node ${answer.node ?? answer.url}; the relay follows it`);
+          node = answer.url;
+          route = `${node}/v1/tunnels/${id}`;
+          if (!given) { unwarm(); unwarm = fetchImpl.warm(node); }
+          pollNudge?.abort();
+          pollRetry?.abort();
+          return { moved: true, url: node };
+        }
+        return { moved: false, url: node };
+      }
+      return null;
+    })().finally(() => { locating = null; });
+    return locating;
+  }
+  /** a 404 from a node the tunnel moved to is not "unlinked" until the node it was linked through says so too */
+  async function reallyGone() {
+    if (!follow || givenRoute || originOf(node) === originOf(base)) return true;
+    const answer = await locate({ force: true }).catch(() => null);
+    return answer?.gone === true;
+  }
 
   const epoch = randomB32(12);
   let ordered = false;
   // the egress lane's posts carry no sequence: they never wait in the relay behind the main queue's held posts
   async function post(frames, at, lane = false) {
+    let busy = false;
     for (let attempt = 0; !closed; attempt += 1) {
       try {
         const response = await fetchImpl(`${route}/to-vps`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify(lane ? { frames, lane: true } : { frames, epoch, seq: at }), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(60_000)]) });
@@ -605,10 +655,20 @@ export function createTunnelProxy({ base, id, route = `${base}/v1/tunnels/${id}`
         const said = await response.text().catch(() => "");
         if (response.ok && !ordered && !lane) ordered = /"ordered":true/.test(said);
         if (response.ok) { successfulPosts += 1; pollRetry?.abort(); return true; }
-        if (response.status === 404) { closed = true; abort.abort(); fail("This server was unlinked."); return false; }
+        // a node it moved to may not know the tunnel yet: that waits and tries again like any failed post
+        if (response.status === 404 && await reallyGone()) { closed = true; abort.abort(); fail("This server was unlinked."); return false; }
         if (response.status === 429 && /"code":"daily_limit"/.test(said)) { if (!lane) fail(JSON.parse(said).error); return false; }
-      } catch { if (closed) return false; }
-      if (attempt >= 6) { if (!lane) fail("The link service did not answer."); return false; }
+        if (response.status === 503 && /"code":"relay_busy"/.test(said)) {
+          // full: the server moves to a node with room on its own; follow it, and the direct path carries on meanwhile
+          busy = true;
+          const where = await locate({ force: attempt === 0 }).catch(() => null);
+          if (where?.moved) continue;
+        } else if (attempt >= 1 && response.status !== 404) void locate();
+      } catch { if (closed) return false; if (attempt >= 1) void locate(); }
+      if (attempt >= 6) {
+        if (!lane) fail(busy ? "The relay is full right now. Your server will connect another way, or try again in a minute." : "The link service did not answer.");
+        return false;
+      }
       await sleep(Math.min(5000, 200 * 2 ** attempt), undefined, { signal: abort.signal }).catch(() => {});
     }
     return false;
@@ -716,7 +776,7 @@ export function createTunnelProxy({ base, id, route = `${base}/v1/tunnels/${id}`
         }
         if (!response.ok) {
           await response.body?.cancel();
-          if (response.status === 404) { closed = true; abort.abort(); fail("This server was unlinked."); break; }
+          if (response.status === 404 && await reallyGone()) { closed = true; abort.abort(); fail("This server was unlinked."); break; }
           throw new Error(`link service answered ${response.status}`);
         }
         await readFrameBatches(response, (frames) => {
@@ -738,6 +798,8 @@ export function createTunnelProxy({ base, id, route = `${base}/v1/tunnels/${id}`
         }
         failures += 1;
         if (failures === 1 || failures % 20 === 0) log(`vps link: tunnel retrying (${error?.message ?? error})`);
+        // the node may be gone: its servers move to another within about a minute, so keep asking where
+        if (failures >= 2) void locate();
         if (postsBefore === successfulPosts) {
           pollRetry = new AbortController();
           await sleep(Math.min(15_000, 300 * 2 ** Math.min(failures, 6)), undefined, { signal: AbortSignal.any([abort.signal, pollRetry.signal]) }).catch(() => {});
@@ -875,14 +937,17 @@ export function createTunnelProxy({ base, id, route = `${base}/v1/tunnels/${id}`
       const v6 = createServer(onRequest);
       v6.on("upgrade", onUpgrade);
       await new Promise((resolve) => { v6.once("error", () => resolve()); v6.listen(listeningPort, "::1", () => { server6 = v6; resolve(); }); });
-      if (!given) unwarm = fetchImpl.warm(base);
+      if (!given) unwarm = fetchImpl.warm(node);
       void poll();
+      void locate({ force: true }).catch(() => {});
       if (directSpec) useDirect(directSpec);
       egress?.start();
       return `http://${host}:${listeningPort}`;
     },
     /** gives the direct path a way to connect (null: relay only); it dials in the background */
     useDirect,
+    /** the link service node the relay talks to now */
+    node: () => node,
     /** the path a request started now would take */
     transport: () => (direct?.ready() ? "direct" : "relay"),
     /** what the agent said in its last direct hello, or null */

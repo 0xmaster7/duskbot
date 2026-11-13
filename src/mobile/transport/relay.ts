@@ -98,7 +98,10 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
   subtle();
   const root = new URL(base);
   if (!["http:", "https:"].includes(root.protocol) || root.username || root.password || root.pathname !== "/" || root.search || root.hash || !/^[a-z2-7]{10}$/.test(channel) || key.length !== 32) throw new Error("invalid relay route");
-  const route = `${root.origin}/v1/channels/${channel}`;
+  // the link service may run on several nodes; the channel lives on its server's node. any node answers where that is
+  // (GET /v1/channels/<id>/node), so a failed or unanswered request asks again and the next one goes there
+  let node = root.origin, route = `${node}/v1/channels/${channel}`;
+  let known: string[] = [], locating: Promise<void> | null = null, lastLocate = 0;
   const postFetch = fetch;
   const streamFetch = typeof window === "undefined" ? fetch : (window as Window & { CapacitorWebFetch?: typeof fetch }).CapacitorWebFetch ?? window.fetch;
   const guard = frameGuard();
@@ -116,9 +119,33 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
     closed = true;
     if (link) drop(link);
   };
-  /** the relay answers 404 for a channel it does not have, whatever the token */
+  const originOf = (value: unknown) => { try { const url = new URL(String(value)); return ["http:", "https:"].includes(url.protocol) ? url.origin : null; } catch { return null; } };
+  /** asks the node it was given, then nodes it heard of, where the channel lives; a 404 there means it is really gone */
+  const relocate = () => {
+    if (locating || closed || Date.now() - lastLocate < 10_000) return locating ?? Promise.resolve();
+    lastLocate = Date.now();
+    locating = (async () => {
+      for (const at of [...new Set([root.origin, ...known])]) {
+        try {
+          const response = await postFetch(`${at}/v1/channels/${channel}/node`, { headers: { Authorization: `Bearer ${token}` }, credentials: "omit", redirect: "error", signal: AbortSignal.timeout(8000) });
+          if (response.status === 404 && at === root.origin) { gone = true; return; }
+          if (!response.ok) continue;
+          const body = await response.json() as { url?: string; nodes?: Array<{ url?: string }> };
+          if ((body.nodes?.length ?? 0) < 2) return;
+          known = (body.nodes ?? []).map((item) => originOf(item.url)).filter((url): url is string => !!url).slice(0, 16);
+          const url = originOf(body.url);
+          if (url && (url === root.origin || known.includes(url)) && url !== node) { node = url; route = `${node}/v1/channels/${channel}`; if (link) drop(link); }
+          return;
+        } catch { /* the next node */ }
+      }
+    })().finally(() => { locating = null; });
+    return locating;
+  };
+  /** the relay answers 404 for a channel it does not have, whatever the token; a node it moved to may not be the one asked */
   const refused = (status: number) => {
+    void relocate();
     if (status !== 404) return new Error(`relay ${status}`);
+    if (node !== root.origin) return new Error("relay moved");
     gone = true;
     return new RelayGoneError();
   };
@@ -135,7 +162,7 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
       noteRelayDate(response.headers.get("date"));
       if (!response.ok) throw refused(response.status);
     });
-    on.posts = next.catch((error) => { drop(on, error instanceof RelayGoneError ? error : undefined); });
+    on.posts = next.catch((error) => { if (!(error instanceof RelayGoneError) && !on.abort.signal.aborted) void relocate(); drop(on, error instanceof RelayGoneError ? error : undefined); });
     return next;
   };
   const poll = async (on: Link) => {
@@ -164,7 +191,7 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
           }
         });
       }
-    } catch (error) { drop(on, error instanceof RelayGoneError ? error : undefined); }
+    } catch (error) { if (!(error instanceof RelayGoneError) && !on.abort.signal.aborted) void relocate(); drop(on, error instanceof RelayGoneError ? error : undefined); }
   };
   return {
     close,
@@ -177,7 +204,7 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
       return new Promise<Response>((resolve, reject) => {
         let controller: ReadableStreamDefaultController<Uint8Array>;
         let headed = false, finished = false, empty = false;
-        let timer = setTimeout(() => cancel(new Error("relay request timed out")), 15_000);
+        let timer = setTimeout(() => { void relocate(); cancel(new Error("relay request timed out")); }, 15_000);
         const cleanup = () => { finished = true; clearTimeout(timer); pending.delete(r); signal?.removeEventListener("abort", onAbort); };
         const fail = (error: unknown) => { if (finished) return; cleanup(); controller.error(error); reject(error); };
         const cancel = (error: unknown) => { fail(error); void post(on, [{ t: "cancel", r }]).catch(() => {}); };

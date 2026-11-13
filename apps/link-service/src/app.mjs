@@ -13,9 +13,11 @@ import { setTimeout as delay } from "node:timers/promises";
 import { verifyLinkGrant } from "./grant.mjs";
 import { createPackages } from "./packages.mjs";
 import { createPushRelay } from "./push-relay.mjs";
+import { choosePlacement, createCluster, loadOf, refusesNew, sameSecret } from "./nodes.mjs";
 import { ACTIVE_MS, DEFAULT_LIMITS, MONTH_ALLOWANCE_BYTES, createRelayUsage, loadLimits, saveLimits, validateLimits } from "./relay-limits.mjs";
 import { slackCallback } from "./slack-callback.mjs";
 import { MAX_CHANNELS_PER_TUNNEL, MAX_EVENTS, MAX_SESSIONS, MAX_TUNNELS, SESSION_LIFE_MS, createStore } from "./store.mjs";
+import { STUN_PUBLIC, turnCredential, turnUrls } from "./turn.mjs";
 
 const B32 = "abcdefghijklmnopqrstuvwxyz234567";
 export const ID = /^[a-z2-7]{10}$/;
@@ -314,15 +316,26 @@ function frameQueue(onPush = () => {}, memory = { bytes: 0 }, now = Date.now) {
  *   limits?: Partial<typeof DEFAULT_LIMITS>,
  *   monthAllowanceBytes?: number,
  *   sleep?: (ms: number) => Promise<unknown>,
+ *   nodes?: ReturnType<typeof import("./nodes.mjs").parseNodes>,
+ *   peerToken?: string | null,
+ *   turn?: { secret: string, tls?: boolean } | null,
+ *   box?: ReturnType<typeof import("./box-meter.mjs").createBoxMeter> | null,
+ *   turnWatch?: ReturnType<typeof import("./turn.mjs").createTurnWatch> | null,
  * }} options
+ * `nodes`, `peerToken`: this node and its peers (nodes.mjs); null runs alone. `turn`: the turn servers' shared secret,
+ * null hides the turn routes. `box`, `turnWatch`: the box's own numbers and its turn server's health, for ops.
  * `limits`: start values under any saved relay-limits.json (tests); `sleep`: how a post waits for its share (tests).
  * `grantKeys`: the account service's public keys a new session's link grant must verify against; null opens sessions to
  * anyone (local development and tests only, server.mjs refuses it unless DUSK_LINK_OPEN=1).
  */
 export function createLinkService({ base, dataDir = null, scriptPath, uninstallPath = join(dirname(scriptPath), "uninstall.sh"), agentPath, gatePath = join(dirname(agentPath), "docker-gate.mjs"), packagesDir, trustProxy = true, now = Date.now, fetch: fetchImpl = fetch, log = () => {}, push = createPushRelay({ log }), grantKeys = null, maxQueuedBytes = MAX_QUEUED_BYTES, statsToken = null,
   ipLimits = { concurrent: IP_CONCURRENT, perSecond: IP_REQUESTS_PER_SECOND, burst: IP_REQUEST_BURST }, limits: startLimits = {},
-  monthAllowanceBytes = MONTH_ALLOWANCE_BYTES, sleep = (ms) => delay(ms) }) {
-  const store = createStore({ dir: dataDir, now, onChannelDelete: clearChannel, onTunnelDelete: (tunnel) => dropTunnelState(tunnel.id) });
+  monthAllowanceBytes = MONTH_ALLOWANCE_BYTES, sleep = (ms) => delay(ms), nodes = null, peerToken = null, turn: turnConfig = null, box = null, turnWatch = null }) {
+  const nodeId = nodes?.self.id ?? "contabo";
+  // a tunnel's home node (the default one for tunnels from before nodes) is the one that drops it when idle
+  const homeOf = (tunnel) => tunnel.home ?? nodes?.defaultId ?? nodeId;
+  const store = createStore({ dir: dataDir, now, onChannelDelete: clearChannel, onTunnelDelete: (tunnel) => { dropTunnelState(tunnel.id); cluster?.removed("tunnel", tunnel.id); },
+    mayExpire: (tunnel) => !nodes || homeOf(tunnel) === nodeId });
   const memory = { bytes: 0 };
   const tunnelRates = new Map();
   const limits = loadLimits(dataDir, { ...DEFAULT_LIMITS, ...startLimits });
@@ -342,8 +355,14 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
   const lookupMisses = new Map();
   const serverReads = new Map();
   const serverDownloads = new Map();
+  const cluster = nodes && peerToken ? createCluster({ config: nodes, store, token: peerToken, dir: dataDir, now, fetch: fetchImpl, log, health: nodeHealth,
+    onRemoved: (kind, record) => {
+      if (kind === "channel") { clearChannel(record); return; }
+      for (const channel of [...store.channels.values()]) if (channel.tunnel === record.id) { store.channels.delete(channel.id); clearChannel(channel); }
+      dropTunnelState(record.id);
+    } }) : null;
   const sweepStore = store.sweep;
-  store.sweep = () => { sweepStore(); sweepLookups(); sweepCreated(); sweepQueues(); usage.save(); };
+  store.sweep = () => { sweepStore(); sweepLookups(); sweepCreated(); sweepQueues(); usage.save(); cluster?.sweep(); };
 
   function file(path) {
     const mtime = statSync(path).mtimeMs;
@@ -562,14 +581,67 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       accounts.set(key, entry);
     }
     const busy = limits.paused || active.length >= limits.maxTunnels || rates.in >= limits.globalCeilingBytesPerSec * 0.9;
+    const self = cluster ? cluster.view().find((node) => node.self) : { health: nodeHealth() };
     return {
-      relay: "contabo",
+      relay: nodeId,
+      node: { id: nodeId, region: nodes?.self.region ?? null, url: nodes?.self.url ?? base, default: (nodes?.defaultId ?? nodeId) === nodeId, homed: self.health.homed,
+        accepting: !refusesNew({ up: true, health: self.health }), refuses: refusesNew({ up: true, health: self.health }), load: loadOf(self.health) },
+      nodes: cluster ? cluster.view().map((node) => ({ id: node.id, url: node.url, region: node.region, self: node.self, up: node.up, lastOkAt: node.lastOkAt, lastError: node.lastError ?? null,
+        homed: node.health?.homed ?? null, tunnels: node.health?.tunnels ?? null, accepting: node.health ? !refusesNew(node) : null })) : [{ id: nodeId, url: base, region: null, self: true, up: true, lastOkAt: t, lastError: null, homed: self.health.homed, tunnels: active.length, accepting: !refusesNew({ up: true, health: self.health }) }],
+      box: box?.reading() ?? null,
+      turn: turnConfig ? { ...(turnWatch?.state() ?? { ok: null, at: null, rttMs: null, downSince: null }), urls: turnUrls(new URL(nodes?.self.url ?? base).hostname, { tls: !!turnConfig.tls }) } : null,
       now: { tunnels: active.length, accounts: new Set(active.map((tunnel) => tunnel.acct ?? tunnel.id)).size, bytesPerSecOut: rates.out, bytesPerSecIn: rates.in, cpu, rssMb: Math.round(process.memoryUsage().rss / 1024 ** 2) },
       today: { bytesOut: totals.day.out, bytesIn: totals.day.in },
       month: { bytesOut: totals.month.out, bytesIn: totals.month.in, projectedBytesOut: Math.round(totals.month.out / usage.monthElapsed()), allowanceBytes: monthAllowanceBytes },
       limits: { ...limits },
       top: [...accounts.values()].sort((a, b) => b.bytesToday - a.bytesToday).slice(0, 10),
       busy,
+    };
+  }
+  /** this node's summary for its peers' placement and the ops page */
+  function nodeHealth() {
+    const t = now(), month = usage.totals().month, reading = box?.reading() ?? null;
+    let homed = 0;
+    for (const tunnel of store.tunnels.values()) if (homeOf(tunnel) === nodeId) homed += 1;
+    return {
+      at: t, id: nodeId, paused: !!limits.paused, tunnels: activeTunnels(t), homed, maxTunnels: limits.maxTunnels,
+      bytesPerSecOut: usage.rate().out, ceilingBytesPerSec: limits.globalCeilingBytesPerSec,
+      // the box's own count when it has one: the allowance is for everything the box sends
+      monthBytesOut: reading?.monthBytesOut ?? month.out, projectedBytesOut: reading?.projectedBytesOut ?? Math.round(month.out / usage.monthElapsed()),
+      allowanceBytes: monthAllowanceBytes, cpu: reading?.cpu ?? null, mem: reading?.mem ?? null, turn: turnWatch ? turnWatch.state().ok : null,
+    };
+  }
+  /** the server polls this node: it lives here now */
+  function attach(tunnel) {
+    if (!cluster || tunnel.home === nodeId) return;
+    const from = tunnel.home ?? null;
+    tunnel.home = nodeId;
+    cluster.changed(tunnel);
+    if (from) log(`link: tunnel ${tunnel.id} moved here from ${from}`);
+  }
+  /** where a tunnel lives, as the app and phones ask it */
+  function whereIs(tunnel) {
+    const home = homeOf(tunnel), view = cluster ? cluster.view() : [{ id: nodeId, url: base, region: null, up: true }];
+    const node = view.find((item) => item.id === home) ?? { id: home, url: cluster?.urlOf(home) ?? base, region: null, up: false };
+    return { node: node.id, url: node.url, region: node.region ?? null, up: node.up, nodes: view.map((item) => ({ id: item.id, url: item.url, region: item.region ?? null, up: item.up })) };
+  }
+  /** a server asking where to connect: sticky to its home, or the best node that holds its record */
+  async function place(tunnel, body) {
+    const rtt = {};
+    if (body?.rtt && typeof body.rtt === "object") for (const [id, ms] of Object.entries(body.rtt).slice(0, 16)) if (/^[a-z][a-z0-9-]{1,30}$/.test(id) && Number.isFinite(ms) && ms >= 0 && ms < 60_000) rtt[id] = ms;
+    if (!cluster) return { node: nodeId, url: base, reason: "single node", nodes: [{ id: nodeId, url: base, region: null, up: true }] };
+    let choice = choosePlacement({ nodes: cluster.view(tunnel), home: tunnel.home ?? null, rtt, defaultId: nodes.defaultId });
+    if (choice.node !== nodeId && !(await cluster.ensureOn(choice.node, tunnel))) choice = { node: nodeId, reason: `${choice.node} is behind` };
+    const where = whereIs(tunnel);
+    return { node: choice.node, url: cluster.urlOf(choice.node), reason: choice.reason, nodes: where.nodes };
+  }
+  /** turn credentials and every node's turn urls, the tunnel's home first, in RTCPeerConnection's iceServers shape */
+  function turnAnswer(label, tunnel) {
+    const credential = turnCredential(turnConfig.secret, label, now());
+    const home = homeOf(tunnel), list = nodes ? [...nodes.nodes].sort((a, b) => (a.id === home ? -1 : b.id === home ? 1 : 0)) : [{ url: base }];
+    return {
+      iceServers: [{ urls: [...STUN_PUBLIC] }, { urls: list.flatMap((node) => turnUrls(new URL(node.url).hostname, { tls: !!turnConfig.tls })), username: credential.username, credential: credential.credential }],
+      ttl: credential.ttl, expiresAt: credential.expiresAt,
     };
   }
   /** how many live tunnels a dusk account has */
@@ -592,6 +664,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     store.channels.delete(channel.id);
     clearChannel(channel);
     store.save();
+    cluster?.removed("channel", channel.id);
   }
   function liveChannel(id) {
     const channel = store.channels.get(id);
@@ -775,6 +848,18 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     }
     if (method === "GET" && (path === "/healthz" || path === "/health")) return send(res, 200, { ok: true });
     if (method === "GET" && path === "/v1/ip") return send(res, 200, { ip: clientIp(req) });
+    // public: the nodes and whether this one sees them up, so a server or app that lost its node finds another
+    if (method === "GET" && path === "/v1/nodes") {
+      const view = cluster ? cluster.view() : [{ id: nodeId, url: base, region: null, up: true }];
+      return send(res, 200, { self: nodeId, default: nodes?.defaultId ?? nodeId, nodes: view.map((node) => ({ id: node.id, url: node.url, region: node.region ?? null, up: node.up })) });
+    }
+    // node to node: the directory's copy (nodes.mjs), behind LINK_PEER_TOKEN
+    if (path === "/internal/v1/sync") {
+      if (!cluster || !sameSecret(bearer(req), peerToken)) return fail(res, 404, "not found");
+      if (method !== "POST") return fail(res, 405, "method not allowed");
+      const answer = cluster.receive(await readJson(req, 8 * 1024 * 1024));
+      return answer ? send(res, 200, answer) : fail(res, 400, "unknown node");
+    }
     // the account service's ops page; LINK_STATS_TOKEN unset hides it
     const opsAllowed = () => {
       if (!statsToken) { fail(res, 404, "not found"); return false; }
@@ -993,6 +1078,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
             return fail(res, 409, `This account already has ${limits.tunnelsPerAccount} linked servers. Remove one in the app to link another.`, "tunnel_limit");
           }
           store.tunnels.set(id, { id, createdAt: now(), vpsVerifier: tunnel.vps, appVerifier: tunnel.app, seenAt: null, ...(session.acct ? { acct: session.acct } : {}) });
+          cluster?.changed(store.tunnels.get(id));
           session.tunnel = id;
         }
         session.state = "linked";
@@ -1071,6 +1157,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       const owner = tunnelFor(req, res, id, "vps");
       if (!owner) return;
       touchTunnel(owner);
+      if (method === "GET") attach(owner);
       if (!aggregate && !cid && method === "PUT") {
         const body = await readJson(req);
         if (!tunnelFor(req, res, id, "vps")) return;
@@ -1093,9 +1180,14 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
         for (const channel of list) {
           const kept = store.channels.get(channel.id);
           if (kept) {
+            const same = kept.verifier === channel.verifier && kept.kind === channel.kind && (kept.expiresAt ?? null) === (channel.expiresAt ?? null);
             if (kept.verifier !== channel.verifier) clearQueues(channel.id);
             Object.assign(kept, { verifier: channel.verifier, kind: channel.kind, expiresAt: channel.expiresAt ?? null });
-          } else store.channels.set(channel.id, { id: channel.id, tunnel: id, verifier: channel.verifier, kind: channel.kind, expiresAt: channel.expiresAt ?? null, createdAt: t, seenAt: null });
+            if (!same) cluster?.changed(kept);
+          } else {
+            store.channels.set(channel.id, { id: channel.id, tunnel: id, verifier: channel.verifier, kind: channel.kind, expiresAt: channel.expiresAt ?? null, createdAt: t, seenAt: null });
+            cluster?.changed(store.channels.get(channel.id));
+          }
         }
         store.save();
         channelReaders.get(id)?.wakeAll();
@@ -1165,6 +1257,23 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       return fail(res, 405, "method not allowed");
     }
 
+    // where a server lives (the app, either token), where it should go (its agent, on start and after losing its node),
+    // and turn credentials for the webrtc path; phones ask the same about their channel
+    if ((parts = /^\/v1\/(tunnels|channels)\/([a-z2-7]{10})\/(node|place|turn)$/.exec(path))) {
+      const [, kind, id, action] = parts;
+      if (kind === "channels" && action === "place") return fail(res, 404, "not found");
+      if (action === "place" ? method !== "POST" : method !== "GET") return fail(res, 405, "method not allowed");
+      const channel = kind === "channels" ? channelFor(req, res, id) : null;
+      if (kind === "channels" && !channel) return;
+      const tunnel = channel ? store.tunnels.get(channel.tunnel) : tunnelFor(req, res, id, action === "place" ? "vps" : "either");
+      if (!tunnel) return channel ? fail(res, 404, "not found", "not_found") : undefined;
+      res.setHeader("cache-control", "no-store");
+      if (action === "node") return send(res, 200, whereIs(tunnel));
+      if (action === "place") return send(res, 200, await place(tunnel, await readJson(req)));
+      if (!turnConfig) return fail(res, 404, "turn is not set up on this link service", "no_turn");
+      return send(res, 200, turnAnswer(id, tunnel));
+    }
+
     if ((parts = /^\/v1\/tunnels\/([a-z2-7]{10})(?:\/(to-vps|to-app|status))?$/.exec(path))) {
       const [, id, action] = parts;
       // either end may end it: the app forgetting the server, or uninstall.sh on the server with the vps token
@@ -1175,6 +1284,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
         for (const channel of store.channels.values()) if (channel.tunnel === id) deleteChannel(channel);
         dropTunnelState(id);
         store.save();
+        cluster?.removed("tunnel", id);
         return send(res, 200, { ok: true });
       }
       if (action === "status" && method === "GET") {
@@ -1189,6 +1299,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       const tunnel = tunnelFor(req, res, id, role);
       if (!tunnel) return;
       if (role === "vps") touchTunnel(tunnel);
+      if (role === "vps" && method === "GET") attach(tunnel);
       if (method === "POST") {
         const body = await readJson(req, MAX_BODY);
         const frames = body?.frames;
@@ -1319,6 +1430,8 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
         else res.end();
       }
     },
-    close() { for (const q of queues.values()) q.close(); for (const q of channelReaders.values()) q.close(); store.close(); usage.save(); },
+    cluster,
+    start() { cluster?.start(); box?.start(); turnWatch?.start(); },
+    close() { cluster?.stop(); box?.stop(); turnWatch?.stop(); for (const q of queues.values()) q.close(); for (const q of channelReaders.values()) q.close(); store.close(); usage.save(); },
   };
 }
