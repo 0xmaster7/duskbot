@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { writeFileAtomic } from "./atomic.ts";
 import { appSlug } from "../shared/dashboard-protocol.ts";
 import { COMPOSIO_CONNECT_URL, composioCallFailure, composioConnectServer, manageAppConnection, type AppConnection } from "./composio-connect.ts";
+import { MAX_REMOTE_MCP_BYTES, RemoteMcpClient } from "./mcp-http.ts";
 import type { StoredRemoteMcpServer } from "./mcp-registry.ts";
 import type { RemoteMcpSpec } from "./contracts.ts";
 
@@ -32,7 +33,32 @@ export interface CloudComposioConnectDeps {
   /** starts the OAuth sign-in for the person's browser, coming back to the cloud's public address */
   startSignIn(name: string, url: string): Promise<{ authorizationUrl: string | null }>;
   manage?: typeof manageAppConnection;
+  /** removes the person's account for one app through Composio Connect; false when its tool offers no way to */
+  remove?: (spec: RemoteMcpSpec, slug: string) => Promise<boolean>;
   now?: () => number;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === "object" && !Array.isArray(value);
+/** the remove action Composio Connect's manage tool advertises, if any (its live schema, never assumed) */
+export function removeActionOf(tools: unknown): string | null {
+  const list = isRecord(tools) && Array.isArray(tools.tools) ? tools.tools : [];
+  const tool = list.find((t) => isRecord(t) && t.name === "COMPOSIO_MANAGE_CONNECTIONS");
+  const found = JSON.stringify(isRecord(tool) ? tool.inputSchema ?? {} : {}).match(/"(remove|disconnect|delete)"/);
+  return found ? found[1]! : null;
+}
+
+/** asks the live tool for its remove action and uses it; false when it has none */
+export async function removeViaConnect(spec: RemoteMcpSpec, slug: string): Promise<boolean> {
+  const signal = AbortSignal.timeout(30_000);
+  const client = new RemoteMcpClient(spec, { maxBytes: MAX_REMOTE_MCP_BYTES });
+  try {
+    await client.initialize("dusk bot", signal);
+    const action = removeActionOf(await client.request("tools/list", {}, signal));
+    if (!action) return false;
+    const result = await client.request("tools/call", { name: "COMPOSIO_MANAGE_CONNECTIONS", arguments: { toolkits: [{ name: slug, action }] } }, signal);
+    if (isRecord(result) && result.isError === true) throw new CloudConnectError(`Composio would not remove ${slug}.`, 502);
+    return true;
+  } finally { await client.close().catch(() => {}); }
 }
 
 const trustedLink = (value: string) => {
@@ -48,6 +74,10 @@ export function createCloudComposioConnect(deps: CloudComposioConnectDeps) {
   const file = join(deps.dataDir, APPS_FILE);
   const tracked = (): string[] => {
     try { const list = JSON.parse(readFileSync(file, "utf8")) as unknown; return Array.isArray(list) ? list.flatMap((s) => appSlug(s) ?? []) : []; } catch { return []; }
+  };
+  const untrack = (slug: string) => {
+    const list = tracked();
+    if (list.includes(slug)) try { writeFileAtomic(file, JSON.stringify(list.filter((s) => s !== slug)), { mode: 0o600 }); } catch {}
   };
   const track = (slug: string) => {
     const list = tracked();
@@ -118,6 +148,25 @@ export function createCloudComposioConnect(deps: CloudComposioConnectDeps) {
         track(entry.slug);
         return answer.status === "started" ? trustedLink(answer.url) : null;
       } catch { return null; }
+    },
+    /** the dashboard's disconnect, through the same Composio Connect */
+    async disconnect(input: string): Promise<{ removed: number }> {
+      const slug = appSlug(input);
+      if (!slug) throw new CloudConnectError("This app could not be found.", 400);
+      const found = composioConnectServer(deps.servers());
+      const spec = found ? await signedInSpec(found) : null;
+      if (!spec) { untrack(slug); return { removed: 0 }; }
+      const now = await ask(spec, slug, "list");
+      if (now.status !== "connected" && now.status !== "waiting") { untrack(slug); return { removed: 0 }; }
+      let removed: boolean;
+      try { removed = await (deps.remove ?? removeViaConnect)(spec, slug); } catch (error) {
+        if (error instanceof CloudConnectError) throw error;
+        const failure = composioCallFailure(error);
+        throw new CloudConnectError(failure.body.error, failure.status);
+      }
+      if (!removed) throw new CloudConnectError(`Composio Connect can't remove ${slug} from here. Remove it in your Composio account on composio.dev, and it goes from this cloud too.`, 409);
+      untrack(slug);
+      return { removed: 1 };
     },
     /** apps connected (or being connected) this way, for the dashboard's apps report; null when Composio Connect is not signed in */
     async apps(): Promise<Array<{ slug: string; connected: boolean; pending: boolean }> | null> {

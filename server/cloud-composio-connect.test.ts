@@ -2,14 +2,14 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { createCloudComposioConnect, type CloudComposioConnectDeps } from "./cloud-composio-connect.ts";
+import { createCloudComposioConnect, removeActionOf, type CloudComposioConnectDeps } from "./cloud-composio-connect.ts";
 import { COMPOSIO_CONNECT_URL, type AppConnection } from "./composio-connect.ts";
 import { dashboardApps } from "./dashboard-apps.ts";
 
 const dirs: string[] = [];
 afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }); });
 
-function cloud(answers: Record<string, AppConnection> = {}) {
+function cloud(answers: Record<string, AppConnection> = {}, removes = true) {
   const dataDir = mkdtempSync(join(tmpdir(), "dusk-cloud-connect-"));
   dirs.push(dataDir);
   const servers: Record<string, unknown> = {};
@@ -21,6 +21,7 @@ function cloud(answers: Record<string, AppConnection> = {}) {
     signedIn: () => state.signedIn,
     withToken: async (_name, server) => ({ type: "http", url: server.url } as never),
     startSignIn: async () => { state.signIns++; return { authorizationUrl: `https://connect.composio.dev/oauth/authorize?client_id=c&state=st${state.signIns}` }; },
+    remove: async (_spec, slug) => { state.asked.push(`remove:${slug}`); return removes; },
     manage: async (_spec, slug, _signal, action) => { state.asked.push(`${action}:${slug}`); return answers[`${action}:${slug}`] ?? { status: "none" }; },
   };
   return { connect: createCloudComposioConnect(deps), state, servers };
@@ -61,5 +62,26 @@ describe("connecting an app on a dusk cloud with no Composio key", () => {
     const source = { connectorAvailability: () => "unconfigured" as const, connectedServicesInventory: async () => { throw new Error("unused"); } };
     expect(await dashboardApps({} as never, source, () => c.connect.apps())).toEqual({ available: true, complete: true, services: [{ slug: "gmail", connected: true, pending: false }] });
     expect(await dashboardApps({} as never, source)).toEqual({ available: false, complete: true, services: [] });
+  });
+
+  it("disconnects through the same Composio Connect, or says where to remove it when its tool cannot", async () => {
+    const c = cloud({ "add:gmail": { status: "started", url: "https://connect.composio.dev/link/lk_4" }, "list:gmail": { status: "connected" } });
+    c.state.signedIn = true;
+    await c.connect.connect("gmail");
+    expect(await c.connect.disconnect("gmail")).toEqual({ removed: 1 });
+    expect(c.state.asked).toContain("remove:gmail");
+    expect(await c.connect.apps()).toEqual([]);
+    const stuck = cloud({ "list:gmail": { status: "connected" } }, false);
+    stuck.state.signedIn = true;
+    stuck.servers["composio-connect"] = { type: "http", url: COMPOSIO_CONNECT_URL, enabled: true };
+    await expect(stuck.connect.disconnect("gmail")).rejects.toMatchObject({ status: 409, message: expect.stringContaining("composio.dev") });
+    expect(await cloud().connect.disconnect("gmail")).toEqual({ removed: 0 });
+  });
+
+  it("reads a remove action only from the live tool's own schema", () => {
+    const schema = (actions: string[]) => ({ tools: [{ name: "COMPOSIO_MANAGE_CONNECTIONS", inputSchema: { properties: { toolkits: { items: { properties: { action: { enum: actions } } } } } } }] });
+    expect(removeActionOf(schema(["list", "add"]))).toBeNull();
+    expect(removeActionOf(schema(["list", "add", "remove"]))).toBe("remove");
+    expect(removeActionOf({})).toBeNull();
   });
 });
