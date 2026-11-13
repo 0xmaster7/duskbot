@@ -35,7 +35,7 @@ const LIMITS: Record<string, { label: string; unit: Unit; hint?: string }> = {
   chatBytesPerSec: { label: "chat speed", unit: UNITS.rate, hint: "past the slowest, enough for chat and approvals" },
   accountBurstSeconds: { label: "burst while slowed", unit: { label: "s", factor: 1 } },
 };
-const describe = (key: string) => LIMITS[key] ?? { label: key.replace(/([A-Z])/g, " $1").toLowerCase(), unit: /PerSec$/.test(key) ? UNITS.rate : /Bytes$/.test(key) ? UNITS.gb : UNITS.count };
+const describe = (key: string) => LIMITS[key] ?? { label: key.replace(/([A-Z])/g, " $1").toLowerCase(), unit: key.endsWith("PerSec") ? UNITS.rate : key.endsWith("Bytes") ? UNITS.gb : UNITS.count };
 const shown = (key: string, value: number | null | undefined) => {
   if (value === null || value === undefined) return "off";
   const { unit } = describe(key);

@@ -113,7 +113,7 @@ async function keepInstructions(files: NonNullable<SetupImportResult["instructio
   if (!botId) return 0;
   let kept = 0;
   // one topic per tool, holding each of its files (Windsurf keeps one in its old place and one in Devin's)
-  for (const source of [...new Set(files.map((file) => file.source))]) {
+  for (const source of new Set(files.map((file) => file.source))) {
     const own = files.filter((file) => file.source === source);
     const app = t(`onboarding.import.source.${source}` as LocaleKey);
     const text = `# Instructions from ${app}\n\nWhat you told ${app} in its ${[...new Set(own.map((file) => file.name))].join(" and ")}, brought over when you moved.\n\n${own.map((file) => file.text.trim()).join("\n\n")}\n`;

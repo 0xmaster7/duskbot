@@ -39,7 +39,7 @@ const lineWay = (way: Way): way is LineWay => "flag" in way;
 /** the relay's line with a way on the end: `… | sh` becomes `… | sh -s -- --tailscale` */
 export function wayLine(line: string, way: LineWay | undefined): string {
   if (!way) return line;
-  return /\| sh$/.test(line) ? `${line} -s -- ${way.flag}` : line;
+  return line.endsWith("| sh") ? `${line} -s -- ${way.flag}` : line;
 }
 export const wayOf = (key: string): Way | undefined => WAYS.find((entry) => entry.key === key);
 

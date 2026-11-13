@@ -2194,7 +2194,7 @@ describe("ACP turns (fake CLI)", () => {
     await instance.adapter.sendTurn({ threadId: "t-qwen-retry", text: "go" });
     expect(await recorder.until(e => e.type === "turn.completed")).toMatchObject({ ok: true });
     const notices = (recorder.events.filter(e => e.type === "runtime.notice") as Array<{ message: string }>).map(n => n.message);
-    expect(notices.some(m => /^Hit a rate limit, trying again in 20 s\./.test(m))).toBe(true);
+    expect(notices.some(m => m.startsWith("Hit a rate limit, trying again in 20 s."))).toBe(true);
     expect(recorder.events.some(e => e.type === "runtime.error")).toBe(false);
   });
 

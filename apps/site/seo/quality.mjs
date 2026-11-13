@@ -22,7 +22,7 @@ export const SUBSCRIPTION = [
 export const FILLER = /\b(?:it'?s worth noting|it is worth noting|it'?s important to note|it is important to|please note|in today'?s|whether you'?re|in conclusion|furthermore|moreover|additionally,|in order to|unlock|supercharge|seamless(?:ly)?|game[- ]changer|revolutionary|effortless(?:ly)?|leverage|delve|robust|cutting[- ]edge|harness the power|elevate|empower|streamline|a wide range of|plethora|myriad|navigate the|the world of|look no further|at the end of the day|needless to say|this page|this guide (?:does|will)|documented|establish(?:es|ed)?|supplie[ds]|specif(?:y|ied|ies)|explicitly)\b/i;
 const PASSIVE = /\b(?:is|are|was|were|be|been|being|gets?|got)\s+(?:\w+ly\s+)?\w+(?:ed|en|wn|ung|ept|ent|ade|old|ound)\b/i;
 export function voice(html) {
-  const article = (/<article class="doc prose seo-page">([\s\S]*?)<\/article>/.exec(html) || [, html])[1]
+  const article = (/<article class="doc prose seo-page">([\s\S]*?)<\/article>/.exec(html) || [null, html])[1]
     .replace(/<pre[\s\S]*?<\/pre>/g, ' ').replace(/<table[\s\S]*?<\/table>/g, ' ').replace(/<(\w+)[^>]*class="[^"]*\bseo-boiler\b[^"]*"[^>]*>[\s\S]*?<\/\1>/g, ' ').replace(/<section class="seo-sources"[\s\S]*?<\/section>/, ' ').replace(/<p class="[^"]*\bseo-answer\b[^"]*">[\s\S]*?<\/p>/g, ' ');
   const paras = [...article.matchAll(/<(?:p|li)[^>]*>([\s\S]*?)<\/(?:p|li)>/g)].map((m) => plain(m[1])).filter((t) => t.split(/\s+/).length > 3);
   const sentences = paras.flatMap((t) => t.split(/(?<=[.!?:])\s+(?=[a-z0-9"“(])/)).map((x) => x.trim()).filter((x) => x.split(/\s+/).length > 2);
@@ -42,7 +42,7 @@ const plain = (html) => html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\
 const words = (s) => s.toLowerCase().match(/[a-z0-9$€£%']+/g) || [];
 // the article's own words: without the parts every page of its kind shares, the sidebar and the "on this page" list
 export function ownText(html) {
-  const article = (/<article class="doc prose seo-page">([\s\S]*?)<\/article>/.exec(html) || [, html])[1];
+  const article = (/<article class="doc prose seo-page">([\s\S]*?)<\/article>/.exec(html) || [null, html])[1];
   let out = article;
   for (let before; before !== out;) { before = out; out = out.replace(/<(\w+)[^>]*class="[^"]*\bseo-boiler\b[^"]*"[^>]*>(?:(?!<\1[\s>])[\s\S])*?<\/\1>/g, ' '); }
   return plain(out.replace(/<p class="crumb">[\s\S]*?<\/p>/, ' ').replace(/<section class="seo-sources"[\s\S]*?<\/section>/, ' '));

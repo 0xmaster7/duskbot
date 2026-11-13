@@ -405,19 +405,19 @@
     pause() { this.paused = true; return this; }
     resume() { this.paused = false; wake(); return this; }
     destroy() {
-      bots.delete(this); io && io.unobserve(this.el); this.timers.forEach(clearTimeout);
+      bots.delete(this); if (io) io.unobserve(this.el); this.timers.forEach(clearTimeout);
       if (this._tap) this.el.removeEventListener('click', this._tap);
       delete this.el.__px;
     }
     later(ms, f) { this.timers.push(setTimeout(() => { f(); wake(); }, ms)); }
 
     tick(dt) {
-      const T = (this.T += dt), pe = this.pe, P = this.P, def = this.def, N = def.N, rnd = this.rng;
+      const T = (this.T += dt), P = this.P, def = this.def, N = def.N, rnd = this.rng;
       Object.assign(P, { sq: 0, lean: 0, gx: 0, gy: 0, dx: 0, yaw: 0, snap: null, lift: 0, eyes: 'open', eyesR: null, blink: 1, look: 1, m: !reduce && !this.o.calm });
       STATES[this.state].pose?.(this, T - this.sT, P);
       if (this.state == 'idle' && P.m && T > this.nap) { this.nap = T + 10 + rnd() * 10; if (this.o.settle !== false) this.kick(1.3); }
       const r = this.rx;
-      if (r) { r.t += dt; if (r.t >= r.d) this.rx = null; else r.pose && r.pose(this, r.t, P, r); }
+      if (r) { r.t += dt; if (r.t >= r.d) this.rx = null; else if (r.pose) r.pose(this, r.t, P, r); }
       // gaze: eyes shift a pixel toward a manual target, a neighbour, or a nearby pointer. the body stays put
       if (P.look) {
         let tg = null;

@@ -113,7 +113,7 @@ describe("bringing notes in", () => {
       if (path === "/api/config") return { profile: JSON.parse(init!.body!).profile };
       const read = /^\/api\/bots\/(\w+)\/memory\/file\?path=(.+)$/.exec(path);
       if (read) return { text: topics.get(`${read[1]}:${decodeURIComponent(read[2]!)}`) ?? "" };
-      if (/\/memory\/file$/.test(path) && init?.method === "PUT") {
+      if (path.endsWith("/memory/file") && init?.method === "PUT") {
         const body = JSON.parse(init.body!);
         topics.set(`${path.split("/")[3]}:${body.path}`, body.text);
       }

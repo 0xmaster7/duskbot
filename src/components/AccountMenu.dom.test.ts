@@ -32,7 +32,7 @@ it("the accounts sheet asks before signing out of dusk cloud, with art and what 
   expect(dialog()?.textContent).toContain("sign out of dusk cloud?");
   expect(dialog()?.textContent).toContain("Your plan and your cloud bots keep going.");
   expect(dialog()?.querySelector("svg, canvas, img, [data-pixel-icon]")).not.toBeNull();
-  await act(async () => { button("Cancel")?.click() ?? button("cancel")!.click(); });
+  await act(async () => { (button("Cancel") ?? button("cancel")!).click(); });
   expect(dialog()).toBeNull();
   expect(bridge.signOut).not.toHaveBeenCalled();
   await act(async () => { host.querySelector<HTMLButtonElement>("[data-accounts-sign-out]")!.click(); });

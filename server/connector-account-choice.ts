@@ -33,7 +33,7 @@ function writeAccountChoices(choices: AccountChoices, dir: string): void {
 
 /** The account each app uses for one bot: its own pick, else the app's default. */
 export function accountsForBot(botId: string, choices = readAccountChoices()): Record<string, string> {
-  return { ...choices.defaults, ...(choices.bots[botId] ?? {}) };
+  return { ...choices.defaults, ...choices.bots[botId] };
 }
 
 /** Sets (or with null clears) the default for an app, or one bot's pick for it. */

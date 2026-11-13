@@ -141,7 +141,7 @@ for (const file of pages.filter((f) => f.endsWith('.html') && !servedElsewhere(a
   images.forEach((url, i) => {
     cards++;
     const p = url.replace(/^https:\/\/[^/]+/, ''), f = fileFor(p);
-    if (!/^https:\/\//.test(url) || !f) return problems.push(`${at}: og:image ${url} is not on the site`);
+    if (!url.startsWith('https://') || !f) return problems.push(`${at}: og:image ${url} is not on the site`);
     const b = fs.readFileSync(f), size = jpegSize(b);
     if (!size || `${size[0]}x${size[1]}` !== `${widths[i]}x${heights[i]}`) problems.push(`${at}: og:image ${p} is ${size?.join('x')}, the tags say ${widths[i]}x${heights[i]}`);
     if (b.length > 150 * 1024) problems.push(`${at}: og:image ${p} is ${Math.round(b.length / 1024)} kb, over 150`);

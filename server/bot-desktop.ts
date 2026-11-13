@@ -296,7 +296,7 @@ async function waitForHostBuild(run: DockerRun, statusFile: string): Promise<voi
  * probes, which run with NET_ADMIN on the host's network.
  */
 export function dockerHostBuilds(env: NodeJS.ProcessEnv = process.env): boolean {
-  return !/\/duskbot-docker\/docker\.sock$/.test(env.DOCKER_HOST?.trim() ?? "");
+  return !(env.DOCKER_HOST?.trim() ?? "").endsWith("/duskbot-docker/docker.sock");
 }
 
 /** Pulls BOT_DESKTOP_IMAGE, else builds it on the docker host from the kit this server ships; refuses plainly when neither works. */

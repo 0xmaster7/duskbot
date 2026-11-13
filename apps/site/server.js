@@ -255,7 +255,7 @@ const server = http.createServer((req, res) => {
     'Content-Type': type,
     // the installer, its checksum and the update manifest must never be served stale after a refresh; a url
     // stamped with its content hash never changes, so it can be kept for good
-    'Cache-Control': status >= 400 ? 'no-store' : /\.(sh|sha256|json)$/.test(file) ? 'no-cache' : /[?&]v=[0-9a-f]{8}\b/.test(req.url || '') ? 'public, max-age=31536000, immutable' : /\.woff2$/.test(file) ? 'public, max-age=86400' : 'public, max-age=300',
+    'Cache-Control': status >= 400 ? 'no-store' : /\.(sh|sha256|json)$/.test(file) ? 'no-cache' : /[?&]v=[0-9a-f]{8}\b/.test(req.url || '') ? 'public, max-age=31536000, immutable' : file.endsWith('.woff2') ? 'public, max-age=86400' : 'public, max-age=300',
   };
   if (/^text\/|svg|json/.test(type) && body.length > 1024) {
     headers.Vary = 'Accept-Encoding';

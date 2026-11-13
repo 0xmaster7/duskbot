@@ -624,6 +624,7 @@ export function createSecretCards(deps: SecretCardsDeps) {
   function requestCustomSecret(from: BotRecord, threadId: string, room: boolean, body: Record<string, unknown>): { status: number; body: Record<string, unknown> } {
     const asked = customRequest(body);
     if ("error" in asked) return { status: 400, body: asked };
+    // oxlint-disable-next-line no-control-regex -- control characters are what this strips or refuses
     const failed = typeof body.failed === "string" ? body.failed.replace(/[\u0000-\u001f\u007f]/gu, " ").trim().slice(0, FAILED_MAX) : "";
     let vaulted: VaultFailure = {};
     if (failed) {

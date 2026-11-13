@@ -226,7 +226,7 @@
     const split = el => {
       const groups = [], words = [];
       const walk = node => {
-        for (const c of [...node.childNodes]) {
+        for (const c of Array.from(node.childNodes)) {
           if (c.nodeType === 1) { if (!c.matches('svg, img, br')) walk(c); continue; }
           if (c.nodeType !== 3 || !c.textContent.trim()) continue;
           const frag = document.createDocumentFragment(), made = [];
@@ -294,7 +294,7 @@
       running.delete(el);
       const m = el._mk;
       if (m) { m.restore(); el._mk = null; }
-      for (const [node, p, prev] of el._mkInline || []) prev ? node.style.setProperty(p, prev) : node.style.removeProperty(p);
+      for (const [node, p, prev] of el._mkInline || []) { if (prev) node.style.setProperty(p, prev); else node.style.removeProperty(p); }
       el._mkInline = null;
       el._mkLoad = false;
       el.classList.remove('mk-armed');
@@ -407,8 +407,8 @@
       destroy() {
         alive = false;
         stops.forEach(s => s());
-        for (const [el, anims] of [...running]) { anims.forEach(a => a.cancel()); finish(el); }
-        for (const el of [...armed]) finish(el);
+        for (const [el, anims] of Array.from(running)) { anims.forEach(a => a.cancel()); finish(el); }
+        for (const el of Array.from(armed)) finish(el);
         armed.clear(); pending.clear();
         html.classList.remove('mk-io');
       },
@@ -433,12 +433,12 @@
     const down = el => {
       if (el._mkDown) return;
       el._mkDown = true;
-      calm() ? go(el, 'opacity', .82, { duration: .1 }) : go(el, 'scale', .97, wapi(SPRING.press));
+      if (calm()) go(el, 'opacity', .82, { duration: .1 }); else go(el, 'scale', .97, wapi(SPRING.press));
     };
     const up = el => {
       if (!el._mkDown) return;
       el._mkDown = false;
-      calm() ? go(el, 'opacity', 1, { duration: .18 }, true) : go(el, 'scale', 1, wapi(tuned(el, SPRING.release)), true);
+      if (calm()) go(el, 'opacity', 1, { duration: .18 }, true); else go(el, 'scale', 1, wapi(tuned(el, SPRING.release)), true);
     };
     for (const el of els) {
       on(el, 'pointerdown', e => {
@@ -744,7 +744,7 @@
     if (!M || !list.length) return null;
     const stops = list.map(el => {
       const sel = el.getAttribute('data-mk-progress'), target = sel ? document.querySelector(sel) : null;
-      return M.scroll((v, info) => {
+      return M.scroll((v) => {
         const s = Math.round(v * 1000) / 1000;
         if (s !== el._mkP) { el._mkP = s; el.style.scale = `${s} 1`; }
       }, target ? { target, offset: ['start start', 'end end'] } : {});
@@ -768,7 +768,7 @@
       setStep(s, 0);
       // progress runs across the steps themselves, so equal-height steps switch as each reaches the reading line
       const target = s.items[0]?.parentElement || s.el;
-      return M.scroll((v, info) => {
+      return M.scroll((v) => {
         setStep(s, Math.min(s.n - 1, Math.floor(v * s.n)));
         if (!s.ps.length || !desk()) return;
         const p = Math.round(v * 10000) / 10000;
@@ -839,10 +839,10 @@
       measure() { secs.forEach(s => { s.g = geom(s.el); }); links.forEach(l => { l.g = geom(l.el); }); navH = nav ? nav.offsetHeight : 0; },
       update(y, vh) {
         const t = themeAt(y + vh / 2);
-        if (t !== theme) { theme = t; t ? html.setAttribute('data-mk-theme-active', t) : html.removeAttribute('data-mk-theme-active'); }
+        if (t !== theme) { theme = t; if (t) html.setAttribute('data-mk-theme-active', t); else html.removeAttribute('data-mk-theme-active'); }
         if (!nav) return;
         const u = themeAt(y + navH / 2);
-        if (u !== under) { under = u; u ? nav.setAttribute('data-mk-on', u) : nav.removeAttribute('data-mk-on'); }
+        if (u !== under) { under = u; if (u) nav.setAttribute('data-mk-on', u); else nav.removeAttribute('data-mk-on'); }
         const sc = y > 4;
         if (sc !== scrolled) { scrolled = sc; nav.toggleAttribute('data-mk-scrolled', sc); }
         const line = y + vh * .4;

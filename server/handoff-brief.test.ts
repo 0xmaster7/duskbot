@@ -15,6 +15,6 @@ it("every prompt that hands work on says a brief stands alone: goal, what is don
 
 it("coordinate_bots asks for a message that stands alone", () => {
   const tool = agentsToolList({}).available.find((entry) => entry.name === "coordinate_bots");
-  const message = (tool?.inputSchema as unknown as { properties: { message: { description: string } } }).properties.message.description;
+  const message = (tool!.inputSchema as unknown as { properties: { message: { description: string } } }).properties.message.description;
   expect(message).toContain("standing alone: the goal, what is already done or found, and what you need back");
 });

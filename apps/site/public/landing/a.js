@@ -4,7 +4,7 @@
   "use strict";
   function noop() {}
   function safe(fn) {
-    return function () { try { return fn.apply(this, arguments); } catch (e) {} };
+    return function () { try { return fn.apply(this, arguments); } catch {} };
   }
   try {
     var w = window, d = document, n = navigator, loc = w.location;
@@ -18,7 +18,7 @@
       if (ignore === "1") w.localStorage.setItem("dusk_ignore", "1");
       if (ignore === "0") w.localStorage.removeItem("dusk_ignore");
       ignored = w.localStorage.getItem("dusk_ignore") === "1";
-    } catch (e) { ignored = ignore === "1"; }
+    } catch { ignored = ignore === "1"; }
     var local = /^(localhost|0\.0\.0\.0|\[::1\])$|^127\.|\.local$/i.test(loc.hostname) || loc.protocol === "file:";
     if (ignored || n.webdriver || n.globalPrivacyControl === true || n.doNotTrack === "1" ||
         (local && !(script && script.hasAttribute("data-allow-local"))) ||
@@ -28,7 +28,7 @@
       try {
         var match = d.cookie.match(new RegExp("(?:^|;\\s*)" + name + "=([^;]*)"));
         return match ? match[1] : "";
-      } catch (e) { return ""; }
+      } catch { return ""; }
     }
     var vid = read("dusk_vid"), sid = read("dusk_sid"), first = !sid;
     // nothing is stored until the service answers a page view with {persist: true}; where consent would be needed it
@@ -37,7 +37,7 @@
     var suffix = "; path=/; SameSite=Lax" + (loc.protocol === "https:" ? "; Secure" : "");
     if (parts.length > 1 && !/^\d+$/.test(parts[parts.length - 1])) for (var i = parts.length - 2; i >= 0; i--) domains.push(parts.slice(i).join("."));
     function cookie(name, value, age, at) {
-      try { d.cookie = name + "=" + value + suffix + "; max-age=" + age + (at ? "; domain=" + at : ""); } catch (e) {}
+      try { d.cookie = name + "=" + value + suffix + "; max-age=" + age + (at ? "; domain=" + at : ""); } catch {}
     }
     function remember(persist) {
       keep = persist;
@@ -127,10 +127,10 @@
           return w.fetch(endpoint, { method: "POST", body: json, keepalive: true, credentials: "include", headers: { "content-type": "text/plain" } })
             .then(function (res) { return res.json(); })
             .then(function (answer) { remember(!!answer && answer.persist === true); }, function () { asking = false; });
-        } catch (e) { asking = false; }
+        } catch { asking = false; }
       }
-      try { if (n.sendBeacon && n.sendBeacon(endpoint, new Blob([json], { type: "text/plain" }))) return; } catch (e) {}
-      try { w.fetch(endpoint, { method: "POST", body: json, keepalive: true, headers: { "content-type": "text/plain" } }).catch(noop); } catch (e) {}
+      try { if (n.sendBeacon && n.sendBeacon(endpoint, new Blob([json], { type: "text/plain" }))) return; } catch {}
+      try { w.fetch(endpoint, { method: "POST", body: json, keepalive: true, headers: { "content-type": "text/plain" } }).catch(noop); } catch {}
     }
     function measure() {
       var height = Math.max(d.documentElement.scrollHeight, d.body ? d.body.scrollHeight : 0);
@@ -185,7 +185,7 @@
       });
       if (Object.keys(utm).length) extra.u = utm;
       if (first && d.referrer) {
-        try { var host = new URL(d.referrer).hostname; if (host && host !== loc.hostname) extra.r = host; } catch (e) {}
+        try { var host = new URL(d.referrer).hostname; if (host && host !== loc.hostname) extra.r = host; } catch {}
       }
       first = false;
       send("pageview", extra);
@@ -305,5 +305,5 @@
           email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) goal("waitlist_join");
     }), true);
     start();
-  } catch (e) {}
+  } catch {}
 })();

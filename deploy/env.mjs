@@ -103,7 +103,7 @@ if (cmd === "compare") {
   const old = parse(readFileSync(oldFile, "utf8"));
   const hash = (v) => (v === undefined ? null : createHash("sha256").update(v).digest("hex"));
   let bad = 0;
-  for (const name of [...new Set([...Object.keys(old), ...Object.keys(now)])]) {
+  for (const name of new Set([...Object.keys(old), ...Object.keys(now)])) {
     const state = !(name in old) ? "only in new" : !(name in now) ? "only in old" : hash(old[name]) === hash(now[name]) ? "match" : "MISMATCH";
     if (state !== "match") bad++;
     console.log(`${name.padEnd(42)} ${state}`);

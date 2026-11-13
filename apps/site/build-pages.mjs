@@ -201,7 +201,7 @@ const stamped = (file) => {
 };
 
 // {{app}} and {{app /billing}} are addresses in the account web app; {{site /docs}} is an absolute address of this site
-const withLinks = (html) => html.replace(/\{\{app( \/[\w\/?=&-]*)?\}\}/g, (_, rest) => APP_URL + (rest ? rest.trim() : '/')).replace(/\{\{site( \/[\w\/.-]*)?\}\}/g, (_, rest) => SITE_URL + (rest ? rest.trim() : ''));
+const withLinks = (html) => html.replace(/\{\{app( \/[\w/?=&-]*)?\}\}/g, (_, rest) => APP_URL + (rest ? rest.trim() : '/')).replace(/\{\{site( \/[\w/.-]*)?\}\}/g, (_, rest) => SITE_URL + (rest ? rest.trim() : ''));
 
 // what can be downloaded today. releases.json names the files; a release is out once publish-downloads.sh has put
 // releases/latest.json on the site (or releases.json says "released": true). DUSK_RELEASED=1 or 0 forces either state,
@@ -388,7 +388,7 @@ const LEGAL_ABOUT = {
   license: 'The dusk bot license: free for personal use, what needs a work license, and the notices that come with the code.',
   security: 'How to report a security problem in dusk bot, what is in scope, and what to expect from us.',
 };
-for (const [name, title, short] of legal) {
+for (const [name, title] of legal) {
   // the site never shows a person's name as copyright holder
   const html = markdown(fs.readFileSync(path.join(repo, 'docs', 'legal', `${name}.md`), 'utf8').replace(/Copyright (\d{4}) [^.\n]+\./g, 'Copyright $1 dusk bot.'));
   const toc = [...html.matchAll(/<h2 id="([^"]+)">([\s\S]*?)<\/h2>/g)].map((m) => `<li><a href="#${m[1]}">${m[2]}</a></li>`).join('');

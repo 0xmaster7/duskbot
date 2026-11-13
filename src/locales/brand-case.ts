@@ -202,5 +202,6 @@ export function entryCase(key: string, value: string): string {
   // the names are held as placeholders while the rest is cased, so they come back exactly as written
   const names: string[] = [];
   const held = value.replace(QUOTED_BUTTON, (name) => `{\u0000${names.push(name) - 1}}`);
+  // oxlint-disable-next-line no-control-regex -- the NUL marks a held button name no catalog string can contain
   return sentenceCase(brandCaseEntry(key, held)).replace(/\{\u0000(\d+)\}/g, (_, index: string) => names[Number(index)]!);
 }

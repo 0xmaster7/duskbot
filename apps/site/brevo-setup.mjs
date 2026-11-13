@@ -9,7 +9,7 @@ if (!key) { console.error('set BREVO_API_KEY'); process.exit(2); }
 const api = async (method, p, body) => {
   const r = await fetch(`https://api.brevo.com/v3${p}`, {
     method, headers: { 'api-key': key, accept: 'application/json', ...(body ? { 'content-type': 'application/json' } : {}) },
-    body: body ? JSON.stringify(body) : undefined,
+    ...(body ? { body: JSON.stringify(body) } : {}),
   });
   const text = await r.text();
   const data = text ? JSON.parse(text) : {};

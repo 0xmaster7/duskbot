@@ -225,17 +225,17 @@
 
   // what every bot answers the same way
   const SHARED = [
-    [/^\s*(hi|hey|hello|yo|hiya|good (morning|afternoon|evening))\b/i, null, null, (b) => [['b', `Hi! I\'m ${b.name}. Tap one of the suggestions below, or ask me something.`]]],
+    [/^\s*(hi|hey|hello|yo|hiya|good (morning|afternoon|evening))\b/i, null, null, (b) => [['b', `Hi! I'm ${b.name}. Tap one of the suggestions below, or ask me something.`]]],
     [/thank|thanks|great|perfect|awesome|nice|cool|love it/i, null, null, () => [['b', 'Anytime. I\'ll be here when you need the next thing.']]],
-    [/who are you|what are you|are you (an? )?(ai|bot|real|human)/i, null, null, (b) => [['b', `I\'m ${b.name}, one of your bots in dusk bot. I run on your own AI subscription and do the work on a computer of my own.`]]],
+    [/who are you|what are you|are you (an? )?(ai|bot|real|human)/i, null, null, (b) => [['b', `I'm ${b.name}, one of your bots in dusk bot. I run on your own AI subscription and do the work on a computer of my own.`]]],
     [/price|cost|free|pay for|how much|subscription/i, null, null, () => [['b', 'It\'s free on your computer. dusk bot runs on the Claude, ChatGPT, Gemini or Grok you already pay for. The paid add-on, dusk cloud, keeps your bots working when your laptop is closed.']]],
     [/safe|privacy|private|data|secure|trust/i, null, null, () => [['b', 'Everything runs on your machine or your own cloud desktop. Your chats and files stay yours, and I ask before anything risky, like sending money or deleting things.']]],
   ];
 
   const INSTALL = [
-    (b) => `That one I need to really do, on my own computer. Install dusk bot, ask me again, and I\'ll get on it.`,
-    (b) => `I\'m enjoying this, but in this demo my answers are canned. Install dusk bot and ${b.name} will do this for real.`,
-    (b) => `This is where the demo ends for me. Once dusk bot is installed I can actually do it, and remember how you like it.`,
+    () => `That one I need to really do, on my own computer. Install dusk bot, ask me again, and I'll get on it.`,
+    (b) => `I'm enjoying this, but in this demo my answers are canned. Install dusk bot and ${b.name} will do this for real.`,
+    () => `This is where the demo ends for me. Once dusk bot is installed I can actually do it, and remember how you like it.`,
   ];
 
   const state = {};
@@ -298,7 +298,7 @@
     return out;
   }
 
-  function piece(m, bot) {
+  function piece(m) {
     const [kind, a, b, c] = m;
     if (kind === 'u') return h('div', { class: 'ad-msg ad-me' }, a);
     if (kind === 'b') return h('div', { class: 'ad-msg ad-bubble' }, prose(a));
@@ -345,7 +345,7 @@
     r.setAttribute('aria-current', String(id === current && (!phone.matches || app.dataset.view === 'chat')));
     r.setAttribute('aria-label', `${BOTS[id].name}${s.unread && id !== current ? ', unread' : ''}`);
   }
-  const mascot = (id, mood) => { try { window.duskBots && window.duskBots.state(row(id).querySelector('svg.bot'), mood); } catch {} };
+  const mascot = (id, mood) => { try { if (window.duskBots) window.duskBots.state(row(id).querySelector('svg.bot'), mood); } catch {} };
 
   // the chat
   let thread, col, input, send, chipsEl;

@@ -118,7 +118,7 @@ const legacyNamed = (bot: Pick<BotRecord, "name">): boolean => legacyName(bot) !
  * name. A bot someone renamed keeps its name; only an intro still naming the old name is rewritten. */
 export function renameLegacyDefaultBots(store: LegacyNameStore): number {
   let renamed = 0;
-  for (const bot of [...store.bots]) {
+  for (const bot of store.bots.slice()) {
     if (!legacyNamed(bot) || (!bot.defaultBot && seededDusk(store.bots, true)?.id !== bot.id)) continue;
     const name = DEFAULT_BOT_NAME, old = legacyName(bot)!;
     store.patchBot(bot.id, { name });
