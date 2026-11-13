@@ -28,11 +28,14 @@ export function PanelSlot({ open, children }: { open: boolean; children: ReactNo
       el.style.width = "0px";
       void el.offsetWidth;
     }
-    el.style.width = `${open ? PANEL_WIDTH : 0}px`;
+    // the slide starts in the frame after the one that mounted or swapped the content: a heavy commit then delays the
+    // start by a frame instead of eating the first ~100ms of the slide, which showed as a jump
+    const frame = requestAnimationFrame(() => { el.style.width = `${open ? PANEL_WIDTH : 0}px`; });
+    return () => cancelAnimationFrame(frame);
   }, [open, mounted]);
   useEffect(() => {
     if (open) return;
-    const timer = setTimeout(() => setMounted(false), DURATION_MS);
+    const timer = setTimeout(() => setMounted(false), DURATION_MS + 50);
     return () => clearTimeout(timer);
   }, [open]);
   if (!mounted) return null;

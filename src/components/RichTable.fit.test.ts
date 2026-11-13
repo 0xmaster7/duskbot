@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { createElement } from "react";
+import { createElement, Profiler } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
@@ -58,13 +58,16 @@ describe("a table in a reply", () => {
     expect(fitsColumns({ wrap: true, virtual: false, minimums, available: needed - 1 })).toBe(false);
     let report: () => void = () => undefined;
     vi.stubGlobal("ResizeObserver", class { constructor(callback: () => void) { report = callback; } observe() {} disconnect() {} });
+    let regionWidth = 300;
     const width = vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(function (this: HTMLElement) {
-      return this.getAttribute("role") === "region" ? 300 : 0;
+      return this.getAttribute("role") === "region" ? regionWidth : 0;
     });
     const host = document.createElement("div");
     const root = createRoot(host);
     try {
-      flushSync(() => root.render(createElement(RichTable, { columns: header.map((text) => ({ text })), rows: Array.from({ length: 10 }, () => row.map((text) => ({ text }))) })));
+      let commits = 0;
+      flushSync(() => root.render(createElement(Profiler, { id: "table", onRender: () => { commits += 1; } },
+        createElement(RichTable, { columns: header.map((text) => ({ text })), rows: Array.from({ length: 10 }, () => row.map((text) => ({ text }))) }))));
       expect(host.querySelector("table")!.className).toContain("table-auto");
       flushSync(() => report());
       const viewport = host.querySelector<HTMLElement>("[role=region]")!;
@@ -72,6 +75,9 @@ describe("a table in a reply", () => {
       expect(host.querySelectorAll("col")).toHaveLength(7);
       expect(viewport.dataset.fit).toBeUndefined();
       expect(viewport.style.maxHeight).toBe("");
+      const settled = commits;
+      for (const next of [290, 280, 310]) { regionWidth = next; flushSync(() => report()); }
+      expect(commits, "a resize that keeps the fit redraws nothing").toBe(settled);
     } finally {
       root.unmount();
       width.mockRestore();

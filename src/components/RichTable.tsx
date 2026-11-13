@@ -165,15 +165,24 @@ function TableViewport({ columns, rows, order, name, wrap, large, sort, onSort, 
   }, []);
   const virtual = order.length > 80;
   const minimums = useMemo(() => columnMinimums(columns.map((column) => column.text), rows.map((row) => row.map((cell) => cell.text))), [columns, rows]);
-  const [available, setAvailable] = useState<number | null>(null);
+  // the width is read every resize but redraws only when it flips whether the columns fit: a side panel sliding open
+  // resizes the chat every frame, and redrawing every table then cost a long frame at the slide's start
+  const available = useRef<number | null>(null);
+  const fitInput = useRef({ wrap, virtual, minimums });
+  fitInput.current = { wrap, virtual, minimums };
+  const [, redraw] = useState(0);
   useEffect(() => {
     const element = scroll.current;
     if (!element || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(() => setAvailable(element.clientWidth || null));
+    const observer = new ResizeObserver(() => {
+      const before = available.current;
+      available.current = element.clientWidth || null;
+      if (fitsColumns({ ...fitInput.current, available: before }) !== fitsColumns({ ...fitInput.current, available: available.current })) redraw((n) => n + 1);
+    });
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
-  const fit = fitsColumns({ wrap, virtual, minimums, available });
+  const fit = fitsColumns({ wrap, virtual, minimums, available: available.current });
   const widths = useMemo(() => columns.map((column, index) => column.width ?? Math.min(320, Math.max(140,
     Math.max(column.text.length, ...rows.slice(0, 100).map((row) => Math.min(40, row[index]?.text.length ?? 0))) * 7 + 40,
   ))), [columns, rows]);
