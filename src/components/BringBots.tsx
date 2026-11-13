@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 
 import { track } from "@/lib/analytics";
 import { cn } from "@/lib/cn";
+import { DEFAULT_BOT_NAME } from "@/lib/default-bot";
 import { activeLocale, t } from "@/lib/i18n";
 import { BOTS_LOOK_TIME_BOX_MS, lookForOtherBots, movable, outcome, planBotMove, planCounts, countsLine, runBotMove, type BotMovePlan } from "@/lib/bot-move";
 import { api, useStore, type Bot } from "@/state/store";
@@ -93,7 +94,7 @@ export function BringBotsView({ plan, step, bot, variant, onBring, onSkip, onCon
 }) {
   const reduced = usePrefersReducedMotion();
   const apps = appNames(plan) || t("botMove.dialogTitle");
-  const name = bot?.name ?? "Dusk";
+  const name = bot?.name ?? DEFAULT_BOT_NAME;
   const mood = step.kind === "moving" ? "thinking" : step.kind === "done" && step.moved ? "proud" : "idle";
   const screen = variant === "screen";
   const title = step.kind === "done" ? t("botMove.doneTitle") : step.kind === "nothing" ? t("botMove.nothing")

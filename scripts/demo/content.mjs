@@ -229,7 +229,7 @@ export function threads() {
         script: [
           { u: "What's in the inbox this morning?" },
           tool("Read", { file_path: "inbox/today.json" }),
-          { b: "Five new emails:\n\n| Priority | From | About |\n| --- | --- | --- |\n| High | Order 1187 | Mug arrived cracked, photo attached |\n| High | Order 1192 | Wrong glaze sent (Ember instead of Frost) |\n| Medium | Café on Elm St | Wholesale price for 40 mugs |\n| Low | Order 1179 | Asks if mugs are dishwasher safe |\n| Low | Newsletter | Unsubscribe request, done |\n\nI drafted replies for the first two; both need your yes before I offer a replacement." },
+          { b: "Two of the five new emails need you: order 1187's mug arrived cracked, and order 1192 got the wrong glaze. I drafted replies for both; each needs your yes before I offer a replacement.\n\n| Priority | From | About |\n| --- | --- | --- |\n| High | Order 1187 | Mug arrived cracked, photo attached |\n| High | Order 1192 | Wrong glaze sent (Ember instead of Frost) |\n| Medium | Café on Elm St | Wholesale price for 40 mugs |\n| Low | Order 1179 | Asks if mugs are dishwasher safe |\n| Low | Newsletter | Unsubscribe request, done |" },
         ],
       },
     ],
@@ -267,7 +267,7 @@ export function threads() {
 
 export const ROOMS = [
   {
-    key: "standup", name: "Test shop standup", members: ["nova", "quill", "rivet", "echo"],
+    key: "standup", name: "Shop standup", members: ["nova", "quill", "rivet", "echo"],
     responder: { kind: "member", botId: "nova" },
     bulletin: "Daily standup for the Juniper Lane test team. What you did, what's next, what's blocked. One line each.",
     ago: 3 * H,

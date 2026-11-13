@@ -75,12 +75,12 @@ export function forgetDefaultBot(dataDir: string, person: string): void {
 }
 
 /** A new install's own Dusk from before it was marked: the place's oldest bot, still live, outside any department,
- * not installed from a package, and still named Dusk or still in the colour a new install gave it. */
+ * not installed from a package, and still named dusk bot (or an earlier name) or still in the colour a new install gave it. */
 export function seededDusk(bots: readonly BotRecord[], legacy = false): BotRecord | undefined {
   const oldest = bots.reduce<BotRecord | undefined>((first, bot) => !first || bot.createdAt < first.createdAt ? bot : first, undefined);
   if (!oldest || oldest.hidden || oldest.movedTo || oldest.section?.trim() || oldest.installedPackage) return undefined;
   if (legacy) return legacyNamed(oldest) ? oldest : undefined;
-  return oldest.name === DEFAULT_BOT_NAME || oldest.color === STARTER_COLOR ? oldest : undefined;
+  return oldest.name === DEFAULT_BOT_NAME || legacyNamed(oldest) || oldest.color === STARTER_COLOR ? oldest : undefined;
 }
 
 /** Puts the intro where its person sees it next: in its open conversation while nobody has written there, else at the
@@ -106,26 +106,28 @@ export function createDefaultBot(store: DefaultBotStore, options: { person?: str
   return bot;
 }
 
-/** The helper's name before the rename. */
-export const LEGACY_DEFAULT_BOT_NAME = "MausBot";
+/** The helper's earlier names, oldest first. */
+export const LEGACY_DEFAULT_BOT_NAMES = ["MausBot", "Dusk"] as const;
+export const LEGACY_DEFAULT_BOT_NAME = LEGACY_DEFAULT_BOT_NAMES[0];
 
-const legacyNamed = (bot: Pick<BotRecord, "name">): boolean => bot.name.trim() === LEGACY_DEFAULT_BOT_NAME;
+const legacyName = (bot: Pick<BotRecord, "name">): string | undefined => LEGACY_DEFAULT_BOT_NAMES.find((name) => bot.name.trim() === name);
+const legacyNamed = (bot: Pick<BotRecord, "name">): boolean => legacyName(bot) !== undefined;
 
-/** Every helper still called MausBot becomes Dusk, and its seeded intro (and the task that holds it) says so. Runs
+/** Every helper still called by an earlier name becomes dusk bot, and its seeded intro (and the task that holds it) says so. Runs
  * at every start, on any place, frozen or not, so a copy the island or the dock still reads never shows the old
- * name. A bot someone renamed keeps its name; only an intro still naming MausBot is rewritten. */
+ * name. A bot someone renamed keeps its name; only an intro still naming the old name is rewritten. */
 export function renameLegacyDefaultBots(store: LegacyNameStore): number {
   let renamed = 0;
   for (const bot of [...store.bots]) {
     if (!legacyNamed(bot) || (!bot.defaultBot && seededDusk(store.bots, true)?.id !== bot.id)) continue;
-    const name = DEFAULT_BOT_NAME;
+    const name = DEFAULT_BOT_NAME, old = legacyName(bot)!;
     store.patchBot(bot.id, { name });
-    for (const task of bot.tasks ?? []) if (task.title === `What ${LEGACY_DEFAULT_BOT_NAME} can do`) store.patchTask(bot.id, task.threadId, { title: `What ${name} can do` });
+    for (const task of bot.tasks ?? []) if (task.title === `What ${old} can do`) store.patchTask(bot.id, task.threadId, { title: `What ${name} can do` });
     const threads = new Set([bot.threadId, ...(bot.tasks ?? []).map((task) => task.threadId)]);
     for (const threadId of threads) {
       for (const message of store.messagesFor(threadId)) {
-        if (!message.helperIntro || !message.text?.includes(LEGACY_DEFAULT_BOT_NAME)) continue;
-        const swap = (value: string | undefined) => value?.replaceAll(LEGACY_DEFAULT_BOT_NAME, name);
+        if (!message.helperIntro || !message.text?.includes(`I'm ${old}`)) continue;
+        const swap = (value: string | undefined) => value?.replaceAll(`I'm ${old}`, `I'm ${name}`);
         store.patchMessage(threadId, message.id, {
           text: swap(message.text),
           ...(message.card ? { card: { ...message.card, ...(message.card.title ? { title: swap(message.card.title) } : {}), ...(message.card.subtitle ? { subtitle: swap(message.card.subtitle) } : {}) } } : {}),

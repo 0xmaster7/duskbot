@@ -42,13 +42,30 @@ describe("Dusk, every person's helper", () => {
     store.patchMessage(dusk.threadId, intro.id, { text: legacy.text, card: legacy.card });
     const typed = store.appendMessage(dusk.threadId, { role: "user", kind: "text", text: "is MausBot your old name?" });
     expect(renameLegacyDefaultBots(store)).toBe(1);
-    expect(store.bot(dusk.id)?.name).toBe("Dusk");
+    expect(store.bot(dusk.id)?.name).toBe("dusk bot");
     const after = store.messagesFor(dusk.threadId);
     const rewritten = after.find((message) => message.id === intro.id)!;
-    expect(rewritten.text).toBe(helperIntroMessage({ name: "Dusk", chiefOfStaff: true }).text);
-    expect(rewritten.card?.title).toBe("Hey! I'm Dusk. I'm new here.");
+    expect(rewritten.text).toBe(helperIntroMessage({ name: "dusk bot", chiefOfStaff: true }).text);
+    expect(rewritten.card?.title).toBe("Hey! I'm dusk bot. I'm new here.");
     expect(after.find((message) => message.id === typed.id)?.text).toBe("is MausBot your old name?");
     expect(renameLegacyDefaultBots(store)).toBe(0);
+  });
+
+  it("renames a helper still called Dusk to dusk bot, intro included, and leaves a bot someone else named Dusk alone", () => {
+    const store = new Store(selection);
+    store.seedIfEmpty();
+    const dusk = boot(store)!;
+    store.patchBot(dusk.id, { name: "Dusk" });
+    const intro = store.messagesFor(dusk.threadId).find((message) => message.helperIntro)!;
+    const old = helperIntroMessage({ name: "Dusk", chiefOfStaff: true });
+    store.patchMessage(dusk.threadId, intro.id, { text: old.text, card: old.card });
+    const later = store.createBot({ name: "Dusk" });
+    expect(renameLegacyDefaultBots(store)).toBe(1);
+    expect(store.bot(dusk.id)?.name).toBe("dusk bot");
+    expect(store.bot(later.id)?.name).toBe("Dusk");
+    const rewritten = store.messagesFor(dusk.threadId).find((message) => message.id === intro.id)!;
+    expect(rewritten.text).toBe(helperIntroMessage({ name: "dusk bot", chiefOfStaff: true }).text);
+    expect(rewritten.card?.title).toBe("Hey! I'm dusk bot. I'm new here.");
   });
 
   it("renames an unmarked first bot still called MausBot, so the next start adopts it, but not a later bot someone named so", () => {
@@ -56,7 +73,7 @@ describe("Dusk, every person's helper", () => {
     const first = store.createBot({ name: "MausBot", color: "silver" });
     const later = store.createBot({ name: "MausBot" });
     expect(renameLegacyDefaultBots(store)).toBe(1);
-    expect(store.bot(first.id)?.name).toBe("Dusk");
+    expect(store.bot(first.id)?.name).toBe("dusk bot");
     expect(store.bot(later.id)?.name).toBe("MausBot");
     expect(boot(store)?.id).toBe(first.id);
   });
@@ -71,7 +88,7 @@ describe("Dusk, every person's helper", () => {
     boot(again);
     expect(again.bots).toHaveLength(1);
     const maus = placeDusks(again)[0]!;
-    expect(maus).toMatchObject({ name: "Dusk", color: "chrome", chiefOfStaff: true, defaultBot: {} });
+    expect(maus).toMatchObject({ name: "dusk bot", color: "chrome", chiefOfStaff: true, defaultBot: {} });
     expect(intros(again, maus)).toHaveLength(1);
   });
 
@@ -92,7 +109,7 @@ describe("Dusk, every person's helper", () => {
     store.createBot({ name: "Writer", title: "Writer", soul: "Write." });
     const before = structuredClone(store.bot(chief.id));
     const maus = boot(store)!;
-    expect(maus).toMatchObject({ name: "Dusk", color: "chrome", defaultBot: {} });
+    expect(maus).toMatchObject({ name: "dusk bot", color: "chrome", defaultBot: {} });
     expect(maus.chiefOfStaff).toBeFalsy();
     expect(chiefLevel(maus)).toBe(true);
     expect(store.bot(chief.id)).toEqual(before);
@@ -137,7 +154,7 @@ describe("Dusk, every person's helper", () => {
     const maus = boot(store)!;
     expect(store.bot(maus.id)?.chiefOfStaff).toBe(true);
     expect(briefChief(store)?.id).toBe(maus.id);
-    expect(intros(store, maus)[0]?.text).toContain("Hey! I'm Dusk. I'm new here. I'm here to be your Chief of Staff. I can manage your other bots.");
+    expect(intros(store, maus)[0]?.text).toContain("Hey! I'm dusk bot. I'm new here. I'm here to be your Chief of Staff. I can manage your other bots.");
   });
 
   it("makes an adopted Dusk the Chief when its place has none left", () => {
@@ -217,9 +234,9 @@ describe("Dusk, every person's helper", () => {
     const store = new Store(selection);
     const maus = boot(store)!;
     const other = store.createBot({ name: "Writer" });
-    expect(() => store.deleteBot(maus.id)).toThrow(/Dusk can't be deleted or archived/);
+    expect(() => store.deleteBot(maus.id)).toThrow(/dusk bot can't be deleted or archived/);
     expect(store.bot(maus.id)).toBeTruthy();
-    expect(defaultBotPatchRefusal(maus, { hidden: true })).toMatch(/Show Dusk in the sidebar/);
+    expect(defaultBotPatchRefusal(maus, { hidden: true })).toMatch(/Show dusk bot in the sidebar/);
     expect(defaultBotPatchRefusal(other, { sidebarHidden: true })).toMatch(/Only your helper/);
     expect(defaultBotPatchRefusal(maus, { sidebarHidden: "yes" })).toBe("sidebarHidden must be true or false");
     expect(defaultBotPatchRefusal(maus, { sidebarHidden: true })).toBeNull();
@@ -257,7 +274,7 @@ describe("Dusk, every person's helper", () => {
     const ada = ensureDefaultBot(store, { dataDir: DATA_DIR, person: "Ada@Example.com", team: "Acme" })!;
     const bea = ensureDefaultBot(store, { dataDir: DATA_DIR, person: "bea@example.com", team: "Acme" })!;
     expect(ensureDefaultBot(store, { dataDir: DATA_DIR, person: "ada@example.com", team: "Acme" })?.id).toBe(ada.id);
-    expect(ada).toMatchObject({ name: "Dusk", defaultBot: { person: "ada@example.com" }, visibility: { people: ["ada@example.com"] } });
+    expect(ada).toMatchObject({ name: "dusk bot", defaultBot: { person: "ada@example.com" }, visibility: { people: ["ada@example.com"] } });
     expect(bea).toMatchObject({ defaultBot: { person: "bea@example.com" }, visibility: { people: ["bea@example.com"] } });
     expect(ada.chiefOfStaff).toBeFalsy();
     expect(intros(store, ada)[0]?.text).toContain("On Acme, I'm here for you and look after your own bots.");

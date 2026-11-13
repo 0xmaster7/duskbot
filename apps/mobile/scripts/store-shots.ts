@@ -83,7 +83,7 @@ async function shoot(base: string) {
       await page.send("Page.enable");
 
       await open("light");
-      await page.until(`document.body.textContent.includes("Test shop standup")`, 30_000);
+      await page.until(`document.body.textContent.includes("Shop standup")`, 30_000);
       await shot("01-your-bots");
 
       await chat("Rivet", "the checkout button now works on phones");
@@ -91,7 +91,7 @@ async function shoot(base: string) {
       await back(page);
       await delay(1000);
 
-      await chat("Test shop standup", "Test shop standup");
+      await chat("Shop standup", "Shop standup");
       await shot("03-rooms");
       await back(page);
       await delay(1000);
@@ -102,7 +102,7 @@ async function shoot(base: string) {
       await delay(1000);
 
       await open("dark");
-      await page.until(`document.body.textContent.includes("Test shop standup")`, 30_000);
+      await page.until(`document.body.textContent.includes("Shop standup")`, 30_000);
       await shot("05-dark");
 
       await open("dark", "&pair=1");

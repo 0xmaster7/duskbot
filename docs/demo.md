@@ -40,7 +40,7 @@ one **Test bots** section: Nova (research), Quill (copy), Rivet (engineer), Tall
   summary and a failed tool call.
 - **A pending question card**: Quill asks which subject line to send. Answering it really reaches Quill.
 - **Unread chats**: Quill and Echo (Echo also has a sample delivery from its webhook).
-- **A room**, Test shop standup. **Library files**: Nova's price CSV and Tally's October summary.
+- **A room**, Shop standup. **Library files**: Nova's price CSV and Tally's October summary.
 - **Memory** for Nova, Quill, Tally and Moss. **Skills**: price-check, subject-lines, release-checklist.
 - **Routines**: six, all off, with past runs in the log. **Webhooks**: Storefront CI failed, Payment received, New
   support email (a "post" webhook: it writes into Echo's chat with no AI turn).
