@@ -4,7 +4,6 @@ import { ThreadLinkContext } from "@/components/ThreadLinkMenu";
 import { ChevronLeft, ChevronRight, Copy, Monitor, RefreshCw, Square, Webhook } from "../icons";
 import { WorkingDots } from "@/components/WorkingIndicator";
 import { ACTION_ICON, ChatBusyContext, MESSAGE_ROW, MessageActions, messageActionClass, ReplyAction, type MessageMenuItem } from "@/components/MessageActions";
-import { UnconfirmedMark } from "@/components/UnconfirmedMark";
 import { copyMessage } from "@/lib/message-copy";
 import { ReactAction, ReactionChips } from "@/components/Reactions";
 import { useBotMessageMenu, userMessageMenu } from "@/components/message-menu";
@@ -543,7 +542,6 @@ const Bubble = memo(function Bubble({
         {!tabled && botActions}
       </div>
       <time dateTime={new Date(message.at).toISOString()} className="chat-row-ts" aria-label={new Date(message.at).toLocaleTimeString()}>{formatTime(message.at)}</time>
-      {!user && message.unconfirmed?.length ? <UnconfirmedMark kinds={message.unconfirmed} /> : null}
       {!floatReactions && <ReactionChips threadId={threadId} message={message} bots={bots} align={user ? "end" : "start"} canReact={canReact} />}
       {forks.length > 1 && (
         <div className="mt-1 flex items-center gap-0.5 pr-1 text-[12px] text-ink-secondary">

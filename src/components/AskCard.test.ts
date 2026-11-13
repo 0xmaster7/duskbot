@@ -112,9 +112,9 @@ describe("grok's card anatomy", () => {
     expect(html).not.toContain("saved securely.");
   });
 
-  it("draws a card field borderless and 48 tall with 16px text, a light tonal fill that deepens a step on hover and focus", () => {
+  it("draws a card field borderless, 40 tall with 14px text (48 and 16px on touch), a light tonal fill that deepens a step on hover and focus", () => {
     const classes = CARD_FIELD.split(" ");
-    expect(classes).toEqual(expect.arrayContaining(["bg-ink/[0.04]", "hover:bg-ink/[0.06]", "focus:bg-ink/[0.07]", "rounded-[12px]", "h-12", "text-[16px]"]));
+    expect(classes).toEqual(expect.arrayContaining(["bg-ink/[0.04]", "hover:bg-ink/[0.06]", "focus:bg-ink/[0.07]", "rounded-[10px]", "h-10", "text-[14px]", "pointer-coarse:h-12", "pointer-coarse:text-[16px]"]));
     // no `border` token: the app-wide 8% field fill in styles.css keys on it
     expect(classes).not.toContain("border");
     expect(CARD_FIELD).not.toMatch(/ring-(accent|focus|blue)/);
