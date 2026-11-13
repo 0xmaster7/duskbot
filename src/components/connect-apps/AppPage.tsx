@@ -306,7 +306,7 @@ export function RemoteAccounts({ remote, name, accounts }: { remote: NonNullable
                 <span data-glyph="" aria-hidden="true"><Icon name="person" size={16} /></span>
                 <span>
                   {title}
-                  {account.stale && <span className="ca-account-tag" data-needs-reconnect="">{t("connectApps.account.needsReconnect")}</span>}
+                  {account.stale && <span className="ca-account-tag" data-tone="quiet" data-needs-reconnect="">{t("connectApps.account.needsReconnect")}</span>}
                   {working.length > 1 && usual?.name === account.name && <span className="ca-account-tag" data-tone="quiet">{t("connectApps.account.default")}</span>}
                 </span>
                 {working.length > 1 && account.signedIn && usual?.name !== account.name && (
@@ -387,7 +387,7 @@ function AccountRow({ account, service, busy, isDefault, onMakeDefault, onReconn
         <span data-glyph="" aria-hidden="true"><Icon name="person" size={16} /></span>
         <span title={account.alias ? undefined : account.id}>
           {title}
-          {stale && <span className="ca-account-tag">{t("connectApps.account.needsReconnect")}</span>}
+          {stale && <span className="ca-account-tag" data-tone="quiet">{t("connectApps.account.needsReconnect")}</span>}
           {isDefault && <span className="ca-account-tag" data-tone="quiet">{t("connectApps.account.default")}</span>}
         </span>
         {onMakeDefault && !confirming && (
