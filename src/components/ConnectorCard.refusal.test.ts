@@ -56,7 +56,7 @@ afterEach(() => {
 describe("ConnectorCard authorize refusal", () => {
   it("shows an MCP server's refusal as its sentence, with no sign-in link anywhere on the card", async () => {
     render({ source: "mcp" });
-    press("sign in");
+    press("Sign in");
     await vi.waitFor(() => expect(host.querySelector('[role="status"]')?.textContent).toBe(SENTENCE));
     expect(fixture.api).toHaveBeenCalledWith("/api/bots/atlas/connector-cards/m1/authorize", { method: "POST", body: JSON.stringify({ threadId: "thread" }) });
     expect(host.querySelector('[role="alert"]')).toBeNull();
@@ -68,7 +68,7 @@ describe("ConnectorCard authorize refusal", () => {
 
   it("keeps a Composio app's 409 as the card's error", async () => {
     render({ source: "composio" });
-    press("connect");
+    press("Connect");
     await vi.waitFor(() => expect(host.querySelector('[role="alert"]')?.textContent).toBe(SENTENCE));
     expect(host.querySelector('[role="status"]')).toBeNull();
     expect(links()).toEqual([]);

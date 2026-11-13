@@ -634,7 +634,7 @@ describe("application and rejected Markdown links", () => {
       text: "![Note](obsidian://open?vault=botbrain&file=agents%2Fchief)",
     }));
     expect(host.querySelector("img, a, button")).toBeNull();
-    expect(host.querySelector('[role="alert"]')?.textContent).toBe("image unavailable");
+    expect(host.querySelector('[role="alert"]')?.textContent).toBe("Image unavailable");
   });
 });
 
@@ -737,8 +737,8 @@ describe("ChatMarkdown attachments", () => {
       text: "![Launch art](https://assets.example/hero.png)",
     }));
 
-    expect(html).toContain("external image hidden for privacy");
-    expect(html).toContain("load image");
+    expect(html).toContain("External image hidden for privacy");
+    expect(html).toContain("Load image");
     expect(html).not.toContain("src=\"https://assets.example/hero.png\"");
   });
 
@@ -748,7 +748,7 @@ describe("ChatMarkdown attachments", () => {
       message: { threadId: "thread-1", messageId: "message-1" },
     }));
 
-    expect(html).toContain("external image hidden for privacy");
+    expect(html).toContain("External image hidden for privacy");
     expect(html).not.toContain("src=\"//assets.example/hero.png\"");
   });
 
@@ -801,7 +801,7 @@ describe("ChatMarkdown attachments", () => {
       }));
       expect(html).toContain('title="Save a copy"');
       expect(html).not.toContain('href=""');
-      expect(html).not.toContain("image unavailable");
+      expect(html).not.toContain("Image unavailable");
       expect(save.mock.calls[0]?.[0]).toBe("C:\\Users\\Maus\\.duskbot\\report.md");
       expect(preview.mock.calls[0]?.[0].filePath).toBe("C:\\Users\\Maus\\.duskbot\\chart.png");
     } finally {
@@ -851,7 +851,7 @@ describe("ChatMarkdown attachments", () => {
       const html = renderToStaticMarkup(createElement(ChatMarkdown, {
         text: "[post](Instagram/04_post/)", message: { threadId: "thread-1", messageId: "message-1" },
       }));
-      expect(html).toContain("aria-label=\"files in 04_post\"");
+      expect(html).toContain("aria-label=\"Files in 04_post\"");
       expect(html).toContain("cover.png");
       expect(html).toContain("2 KB");
     } finally {
@@ -884,9 +884,9 @@ describe("ChatMarkdown attachments", () => {
       vi.stubGlobal("window", { duskDesktop: { revealInFolder, remoteClient: { active: false } } });
       try {
         const html = render(true);
-        expect(html).toContain("this file is outside this chat&#x27;s working folder, so it can&#x27;t be saved from here");
+        expect(html).toContain("This file is outside this chat&#x27;s working folder, so it can&#x27;t be saved from here");
         expect(html).not.toContain("the linked file is outside");
-        expect(html).toContain("show in folder");
+        expect(html).toContain("Show in folder");
         expect(html).not.toContain("<code");
       } finally {
         vi.unstubAllGlobals();
@@ -897,7 +897,7 @@ describe("ChatMarkdown attachments", () => {
       vi.stubGlobal("window", { duskDesktop: { revealInFolder, remoteClient: { active: true } } });
       try {
         const html = render(true);
-        expect(html).not.toContain("show in folder");
+        expect(html).not.toContain("Show in folder");
         expect(html).toMatch(/<code[^>]*select-all[^>]*>C:\\Users\\Maus\\_draft\\ollama-gen\.js<\/code>/);
       } finally {
         vi.unstubAllGlobals();
@@ -919,7 +919,7 @@ describe("ChatMarkdown attachments", () => {
       try {
         const html = render(false);
         expect(html).toContain("the linked file is outside this conversation&#x27;s workspace");
-        expect(html).not.toContain("show in folder");
+        expect(html).not.toContain("Show in folder");
         expect(html).not.toContain(filePath);
       } finally {
         vi.unstubAllGlobals();

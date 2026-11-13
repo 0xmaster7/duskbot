@@ -35,7 +35,7 @@ describe("bot-attached files", () => {
     const html = render("");
     expect(html).toContain("song.mp3");
     expect(html).toContain("deck.pptx");
-    expect(html).toContain("play song.mp3");
+    expect(html).toContain("Play song.mp3");
     expect(render("Done: [the deck](/store/cccc.pptx)")).toBe(html);
   });
 
@@ -139,9 +139,9 @@ describe("message gallery", () => {
     }));
     expect(markup).toContain("3 attachments");
     expect(markup).toContain("Overview.png");
-    expect(markup).toContain("load video");
-    expect(markup).toContain("save a copy of demo.mp4");
-    expect(markup).toContain("save a copy of report.pdf");
+    expect(markup).toContain("Load video");
+    expect(markup).toContain("Save a copy of demo.mp4");
+    expect(markup).toContain("Save a copy of report.pdf");
     expect(markup).toContain("loading=\"lazy\"");
     expect(markup).not.toContain("<video");
     expect(markup).not.toContain("src=\"/workspace/");
@@ -154,7 +154,7 @@ describe("message gallery", () => {
       message,
     }));
     expect(markup).toContain("6 attachments");
-    expect(markup).toContain("show 2 more");
+    expect(markup).toContain("Show 2 more");
     expect(markup).toContain("aria-expanded=\"false\"");
     expect(markup).not.toContain("file3.pdf");
     expect(markup).not.toContain("file4.pdf");
@@ -165,7 +165,7 @@ describe("message gallery", () => {
     expect(markup).toContain("Old.png");
     expect(markup).toContain("demo.mp4");
     expect(markup).toContain("unavailable");
-    expect(markup).not.toContain("load video");
+    expect(markup).not.toContain("Load video");
     expect(markup).not.toContain("<button");
     expect(markup).not.toContain("<img");
   });

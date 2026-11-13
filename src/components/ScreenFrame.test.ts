@@ -23,7 +23,7 @@ describe("screen frame preview", () => {
     const html = renderToStaticMarkup(createElement(ScreenFrame, { threadId: "t1", message: shot({ mime: "image/jpeg", media: { screen: { w: 1280, h: 800 } } }) }));
 
     expect(html).toContain("role=\"button\"");
-    expect(html).toContain("aria-label=\"open image full screen\"");
+    expect(html).toContain("aria-label=\"Open image full screen\"");
     expect(html).toContain("src=\"/api/threads/t1/messages/shot%201/image\"");
     expect(html).toContain("alt=\"Bot&#x27;s screen\"");
     expect(html).toContain("width:min(100%, 307px)");

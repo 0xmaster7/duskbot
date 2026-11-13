@@ -816,7 +816,7 @@ describe("one approval, one card", () => {
     const open = render();
     expect(open).toContain(">Waiting for<");
     expect(open).toContain(">the build<");
-    expect(open).toContain(">cancel<");
+    expect(open).toContain(">Cancel<");
     for (const [settled, line] of [["fired", ">Finished waiting for<"], ["expired", ">Stopped waiting for<"], ["cancelled", ">Cancelled waiting for<"]] as const) {
       const ended = render(settled);
       expect(ended, settled).toContain(line);

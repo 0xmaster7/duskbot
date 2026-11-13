@@ -178,10 +178,10 @@ describe("drawing a widget", () => {
     mount(row(sample("sources")));
     expect(all('[role="listitem"]')).toHaveLength(2);
     const more = button(t("widget.showAll", { count: 3 }))!;
-    expect(more.textContent).toBe("show all (3)");
+    expect(more.textContent).toBe("Show all (3)");
     act(() => more.click());
     expect(all('[role="listitem"]')).toHaveLength(3);
-    expect(button("show all (3)")).toBeUndefined();
+    expect(button("Show all (3)")).toBeUndefined();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -521,7 +521,7 @@ describe("pressing", () => {
     await press(link);
     expect(openExternal).toHaveBeenCalledWith("https://developers.openai.com/api/docs/guides/chatkit-widgets");
     expect(all('[role="listitem"]')[1]!.querySelector("button")).not.toBeNull();
-    act(() => button("show all (3)")!.click());
+    act(() => button("Show all (3)")!.click());
     expect(all('[role="listitem"]')[2]!.querySelector("button, [role=button]")).toBeNull();
 
     mount(row(sample("kitchenSink")));

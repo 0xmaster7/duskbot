@@ -178,7 +178,7 @@ describe("Computer panel tabs", () => {
       const row = rendered.nodes.find((node) => Children.toArray(node.props.children)
         .some((child) => isValidElement(child) && (child as Node).props["data-testid"] === "computer-tabs"))!;
       expect(String(row.props.className).split(" ")).toEqual(expect.arrayContaining(["relative", "flex", "justify-center"]));
-      const close = rendered.nodes.find((node) => node.props["aria-label"] === "close the screen panel")!;
+      const close = rendered.nodes.find((node) => node.props["aria-label"] === "Close the screen panel")!;
       expect(String(close.props.className).split(" ")).toEqual(expect.arrayContaining(["absolute", "right-0"]));
     }
   });
@@ -204,7 +204,7 @@ describe("Simple Browser tab with the browser off", () => {
     fixture.view.current = "browser";
     fixture.config = { features: { browser: false }, browserEngine: { kind: "engine" } };
     const rendered = render(makeBot());
-    expect(rendered.html).toContain("the browser is off");
+    expect(rendered.html).toContain("The browser is off");
     expect(rendered.html).not.toContain("BROWSER-PANEL");
     (browserSwitch(rendered).props.onClick as () => void)();
     await vi.waitFor(() => expect(fixture.dispatch).toHaveBeenCalledWith({ type: "configStatus", config: { features: { browser: true } } }));
@@ -246,13 +246,13 @@ describe("Simple Browser tab with the browser off", () => {
     fixture.view.current = "browser";
     fixture.config = { features: { browser: false }, browserEngine: { kind: "engine" } };
     const rendered = render(makeBot());
-    expect(rendered.html).toContain("the browser is off");
+    expect(rendered.html).toContain("The browser is off");
     expect(browserSwitch(rendered).props.checked).toBe(false);
   });
 });
 
 function browserSwitch(rendered: ReturnType<typeof render>) {
-  return rendered.nodes.find((node) => node.props["aria-label"] === "let Scout use a browser")!;
+  return rendered.nodes.find((node) => node.props["aria-label"] === "Let Scout use a browser")!;
 }
 
 describe("Choosing a place in the panel", () => {
@@ -293,20 +293,20 @@ describe("A chat pinned to a place", () => {
 
   it("leads a person's pin back to the grid's choice, which Simple has no composer chip for", () => {
     const button = unpin(render(pinned()))!;
-    expect(text(button.props.children)).toBe("use auto");
+    expect(text(button.props.children)).toBe("Use auto");
     expect(button.props.disabled).toBe(false);
     (button.props.onClick as () => void)();
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "updateTask", botId: "scout", threadId: "thread-scout", patch: { surface: null } });
 
     fresh();
-    expect(text(unpin(render(pinnedOn("local")))!.props.children)).toBe("use this Mac");
+    expect(text(unpin(render(pinnedOn("local")))!.props.children)).toBe("Use this Mac");
 
   });
 
   it("waits out a running turn, as the server refuses a busy chat's place change", () => {
     const button = unpin(render(pinnedOn(undefined, { busy: true })))!;
     expect(button.props.disabled).toBe(true);
-    expect(button.props.title).toBe("wait for the current turn to finish");
+    expect(button.props.title).toBe("Wait for the current turn to finish");
   });
 
   it("says nothing of a pin Auto recorded, one matching Works on, or one Off overrides", () => {
@@ -340,7 +340,7 @@ describe("Technical controls", () => {
     const simple = render(cloud());
     const row = simple.nodes.find((node) => node.props["data-testid"] === "computer-actions")!;
     expect(nodes(row.props.children).filter((node) => node.type === "button").map((node) => text(node.props.children)))
-      .toEqual(["take control", "full screen", "sleep"]);
+      .toEqual(["Take control", "Full screen", "Sleep"]);
 
   });
 
@@ -357,7 +357,7 @@ describe("Technical controls", () => {
     expect(simple.html).not.toContain("delete this bot");
     const row = simple.nodes.find((node) => node.props["data-testid"] === "computer-actions")!;
     expect(nodes(row.props.children).filter((node) => node.type === "button").map((node) => text(node.props.children)))
-      .toEqual(["take control", "full screen"]);
+      .toEqual(["Take control", "Full screen"]);
 
   });
 

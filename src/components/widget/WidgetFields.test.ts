@@ -183,7 +183,8 @@ describe("DayPicker", () => {
     for (const day of ["tue", "wed", "fri", "sat", "sun"]) tap(day);
     expect(caption()).toBe("mon, thu");
     expect(widgetDaysCaption("")).toBe(t("widget.days.none"));
-    for (const value of ["mon,tue,wed,thu,fri,sat,sun", "mon,tue,wed,thu,fri", "sat,sun", "mon,thu", "tue,sun"]) expect(widgetDaysCaption(value)).toBe(dayList(value).toLowerCase());
+    for (const value of ["mon,tue,wed,thu,fri,sat,sun", "mon,tue,wed,thu,fri", "sat,sun"]) expect(widgetDaysCaption(value)).toBe(dayList(value));
+    for (const value of ["mon,thu", "tue,sun"]) expect(widgetDaysCaption(value)).toBe(dayList(value).toLowerCase());
     await act(async () => { button("Save")!.click(); });
     expect(sent()).toEqual({ days: "mon,thu" });
   });

@@ -144,7 +144,7 @@ describe("SecretRequestCard ask card", () => {
   it("keeps a retry on the line when resuming after the save failed", () => {
     const html = view({ provided: true, error: "The bot could not be resumed." });
     expect(html).toContain('data-ask-card="settled"');
-    expect(html).toContain("try again");
+    expect(html).toContain("Try again");
     expect(html).toContain("The bot could not be resumed.");
     expect(html).not.toContain('type="password"');
   });

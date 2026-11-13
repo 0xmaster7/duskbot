@@ -48,8 +48,8 @@ describe("HtmlPreviewFrame", () => {
 describe("file chip preview button", () => {
   it("offers a page preview for HTML and keeps the table preview for CSV", () => {
     expect(chip("report.html")).toContain("preview page: report.html");
-    expect(chip("report.html")).not.toContain("preview table:");
-    expect(chip("data.csv")).toContain("preview table: data.csv");
+    expect(chip("report.html")).not.toContain("Preview table:");
+    expect(chip("data.csv")).toContain("Preview table: data.csv");
     expect(chip("notes.txt")).not.toMatch(/Preview (page|table):/);
   });
 
@@ -63,14 +63,14 @@ describe("HTML file chip (#4406)", () => {
   it("opens the preview from the file name and keeps saving on its own button", () => {
     const html = chip("report.html");
     expect(html).toMatch(/aria-label="preview page: report.html"[^>]*>[^]*report\.html/);
-    expect(html).not.toMatch(/<button[^>]*aria-label="save a copy of report.html"[^>]*class="flex min-h-10/);
-    expect(html).toMatch(/class="table-action" aria-label="save a copy of report.html"/);
+    expect(html).not.toMatch(/<button[^>]*aria-label="Save a copy of report.html"[^>]*class="flex min-h-10/);
+    expect(html).toMatch(/class="table-action" aria-label="Save a copy of report.html"/);
   });
 
   it("leaves other files as they were: the name saves, the side button previews", () => {
     const csv = chip("data.csv");
-    expect(csv).toMatch(/aria-label="save a copy of data.csv"/);
-    expect(csv).toContain("preview table: data.csv");
+    expect(csv).toMatch(/aria-label="Save a copy of data.csv"/);
+    expect(csv).toContain("Preview table: data.csv");
     expect(csv).not.toContain("preview page:");
   });
 });

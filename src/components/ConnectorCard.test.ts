@@ -25,7 +25,7 @@ describe("ConnectorCard ask card", () => {
     expect(html).toContain('data-tour="connector"');
     expect(html).toMatch(/text-\[14px\] font-medium leading-5 tracking-\[0\.01em\] text-ink"><bdi dir="auto">/);
     expect(html).not.toContain("text-accent-text\"><bdi");
-    expect(html).toMatch(new RegExp(`<button[^>]*>${t("connectors.action.connect")}</button>`));
+    expect(html).toMatch(new RegExp(`<button[^>]*>${t("connectors.card.connect")}</button>`));
     expect(html).toContain(`aria-label="${t("connectors.card.notNow")}"`);
   });
 
@@ -34,7 +34,7 @@ describe("ConnectorCard ask card", () => {
     expect(html).toContain('data-ask-card="settled"');
     expect(html).toContain(t("connectors.card.connected"));
     expect(html).toContain(t("connectors.card.continuing"));
-    expect(html).not.toMatch(new RegExp(`<button[^>]*>${t("connectors.action.connect")}</button>`));
+    expect(html).not.toMatch(new RegExp(`<button[^>]*>${t("connectors.card.connect")}</button>`));
     expect(html).not.toContain(t("connectors.card.notNow"));
   });
 
@@ -49,7 +49,7 @@ describe("ConnectorCard ask card", () => {
     expect(html).toContain(`aria-label="${t("connectors.aliasAriaAnother", { service: "GitHub" })}"`);
     expect(html).toContain(t("connectors.aliasNeeded"));
     expect(html).not.toContain("Add an account alias");
-    expect(html.match(/<button[^>]*>(?:(?!<\/button>)[^])*try again/)?.[0]).toContain('disabled=""');
+    expect(html.match(/<button[^>]*>(?:(?!<\/button>)[^])*Try again/)?.[0]).toContain('disabled=""');
 
     const taken = view({ status: "failed", alias: "work", error: 'Account alias "work" is already in use for github' });
     expect(taken).toContain(t("connectors.aliasTaken"));
@@ -62,13 +62,13 @@ describe("ConnectorCard ask card", () => {
 
   it("reads as a sign-in for an MCP server and as today for a Composio app", () => {
     const mcp = view({ source: "mcp", slug: "linear", label: "Linear" });
-    expect(mcp).toContain("sign in to Linear");
-    expect(mcp).toMatch(/<button[^>]*>(?:(?!<\/button>)[^])*sign in<\/button>/);
-    expect(mcp).not.toMatch(new RegExp(`<button[^>]*>${t("connectors.action.connect")}</button>`));
+    expect(mcp).toContain("Sign in to Linear");
+    expect(mcp).toMatch(/<button[^>]*>(?:(?!<\/button>)[^])*Sign in<\/button>/);
+    expect(mcp).not.toMatch(new RegExp(`<button[^>]*>${t("connectors.card.connect")}</button>`));
     expect(mcp).toContain(t("connectors.card.mcpSignInHint"));
     expect(mcp).not.toContain(t("connectors.card.signInHint"));
     const composio = view({ source: "composio" });
-    expect(composio).toMatch(new RegExp(`<button[^>]*>${t("connectors.action.connect")}</button>`));
+    expect(composio).toMatch(new RegExp(`<button[^>]*>${t("connectors.card.connect")}</button>`));
     expect(composio).not.toContain("sign in to");
     expect(composio).toContain(t("connectors.card.signInHint"));
     expect(composio).not.toContain(t("connectors.card.mcpSignInHint"));
