@@ -121,9 +121,19 @@ describe("the room transcript", () => {
     }
   });
 
+  it("hands over the lines older than the window, rendered only from where they are asked for", () => {
+    const { lines, earlier } = transcript(thread()).window("room", "Omkar", undefined, "editor");
+    expect(earlier.ids).toEqual(["old0", "old1", "old2", "old3", "old4"]);
+    expect(lines.some((line) => earlier.ids.includes(line.id))).toBe(false);
+    expect(earlier.lines(3)).toEqual([
+      { id: "old3", text: "Omkar: Earlier line 3.", person: true },
+      { id: "old4", text: "Omkar: Earlier line 4.", person: true },
+    ]);
+  });
+
   it("is empty for a thread with nothing to read", () => {
     expect(transcript([row("activity", { role: "bot", kind: "activity", tool: { name: "Bash", ok: true } })]).window("room", "Omkar"))
-      .toEqual({ text: "", lines: [], order: [], readable: [] });
+      .toMatchObject({ text: "", lines: [], order: [], readable: [], earlier: { ids: [] } });
   });
 });
 

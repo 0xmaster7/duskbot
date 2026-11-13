@@ -125,7 +125,7 @@ describe("Store", () => {
     expect(allowsTool((restored as unknown as { toolScope: unknown }).toolScope, { kind: "native", name: "read" })).toBe(false);
   });
 
-  it("takes a deleted bot out of every room it was in and hands its lead role to everyone", () => {
+  it("takes a deleted bot out of every room it was in and hands its lead role to the first member left", () => {
     const store = new Store(selection);
     const [ada, ben, cleo] = [store.createBot({}), store.createBot({}), store.createBot({})];
     const room = store.createGroup("Launch team", [ada.id, ben.id, cleo.id], false);
@@ -135,7 +135,7 @@ describe("Store", () => {
     store.onChange((change) => changes.push(change));
 
     expect(store.deleteBot(ben.id)).toBe(true);
-    expect(store.group(room.id)).toMatchObject({ memberIds: [ada.id, cleo.id], defaultResponder: { kind: "everyone" } });
+    expect(store.group(room.id)).toMatchObject({ memberIds: [ada.id, cleo.id], defaultResponder: { kind: "member", botId: ada.id, leader: true } });
     expect(store.group(room.id)?.turnStartedAt).toBeUndefined();
     expect(store.group(pair.id)?.memberIds).toEqual([ada.id, ben.id]);
     expect(changes).toContainEqual({ type: "group", groupId: room.id });
@@ -171,7 +171,7 @@ describe("Store", () => {
     writeFileSync(groupsFile, JSON.stringify(saved));
 
     const restarted = new Store(selection);
-    expect(restarted.group(room.id)).toMatchObject({ memberIds: [ada.id, cleo.id], defaultResponder: { kind: "everyone" } });
+    expect(restarted.group(room.id)).toMatchObject({ memberIds: [ada.id, cleo.id], defaultResponder: { kind: "member", botId: ada.id, leader: true } });
     const persisted = JSON.parse(readFileSync(groupsFile, "utf8")).find((g: { id: string }) => g.id === room.id);
     expect(persisted.memberIds).toEqual([ada.id, cleo.id]);
   });
@@ -639,7 +639,7 @@ describe("Store", () => {
       const restored = new Store(selection);
       expect(restored.bot(bot.id)?.tasks?.[0].threadId).toBe(bot.threadId);
       expect(restored.group(group.id)?.tasks?.[0].threadId).toBe(group.threadId);
-      expect(restored.group(group.id)?.defaultResponder).toEqual({ kind: "everyone" });
+      expect(restored.group(group.id)?.defaultResponder).toEqual({ kind: "member", botId: restored.group(group.id)!.memberIds[0] });
       expect(restored.messagesFor(bot.threadId)).toEqual(botMessages);
       expect(restored.messagesFor(group.threadId)).toEqual(groupMessages);
       expect(JSON.parse(readFileSync(join(DATA_DIR, "bots.json"), "utf8"))[0].tasks).toHaveLength(1);
@@ -970,20 +970,20 @@ describe("Store", () => {
     expect(first.color).not.toBe(second.color);
   });
 
-  it("defaults a room to everyone at once, keeps a chosen first member, and goes back to everyone when the lead leaves", () => {
+  it("defaults a room to its first member as lead, keeps a chosen member, and hands the lead on when it leaves", () => {
     const store = new Store(selection);
     const first = store.createBot();
     const second = store.createBot();
     const group = store.createGroup("Team", [first.id, second.id]);
 
-    expect(group.defaultResponder).toEqual({ kind: "everyone" });
+    expect(group.defaultResponder).toEqual({ kind: "member", botId: first.id, leader: true });
     store.patchGroup(group.id, { defaultResponder: { kind: "member", botId: first.id } });
     expect(new Store(selection).group(group.id)?.defaultResponder).toEqual({ kind: "member", botId: first.id });
     store.patchGroup(group.id, { memberIds: [second.id] });
-    expect(group.defaultResponder).toEqual({ kind: "everyone" });
+    expect(group.defaultResponder).toEqual({ kind: "member", botId: second.id });
 
     const reloaded = new Store(selection);
-    expect(reloaded.group(group.id)?.defaultResponder).toEqual({ kind: "everyone" });
+    expect(reloaded.group(group.id)?.defaultResponder).toEqual({ kind: "member", botId: second.id });
   });
 
   it("persists a channel's context when it is created", () => {

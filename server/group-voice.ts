@@ -2,6 +2,8 @@
 import { isMentionBoundary, isMentionNameContinuation } from "../shared/mention-boundary.ts";
 import { proseOnly } from "../shared/person-mention.ts";
 
+const nameList = (names: readonly string[]) => names.length === 1 ? names[0]! : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+
 /** Rules for every turn, whatever the engine or style: they ride with the talking-style guide in the stable half. */
 export const VOICE_RULES = "\n\nIn every message you write (a chat, a group, a routine's result, a report to a teammate):" +
   "\n- Never use em dashes. Use a comma, a period or a new line." +
@@ -15,9 +17,10 @@ export function roomTalkRules(input: { person?: string; dm?: boolean }): string 
   return [
     `You are in a group chat. Talk like a person in it, not a status report: usually one to three short sentences, in the talking style below.`,
     `Talk to ${person ? `${person} as "you" (their name is ${person})` : `the person as "you"`}; never write "@you".`,
-    `Use @Name only for a teammate, when you hand them something or ask them a question; they'll see the conversation and respond.`,
+    `Use @Name only for a teammate, when you hand them something or ask them a question; it wakes them, they see the conversation and respond. To credit or thank someone, write their name without the @.`,
     !input.dm && person ? `When you're blocked on ${person} and need them to act, tag them once as @${person}.` : "",
-    `Speak for your own part. Don't repeat what a teammate already said in the chat, and don't list the team's open items unless you were asked to.`,
+    `Speak for your own part. Don't repeat what a teammate already said in the chat or redo work they did or have in hand, and don't list the team's open items unless you were asked to.`,
+    `When a teammate already covered everything you would say, reply with just (pass): it isn't shown.`,
     `When everyone is asked the same thing and nothing changed for you, one short line in your own words is enough.`,
     `A "[reacted 👍 to …]" line is that person's whole reply to the message it names: 👍 means yes, go ahead, and 👎 means no.`,
   ].filter(Boolean).join(" ");
@@ -28,8 +31,27 @@ export function roomTurnVoiceNote(input: { alsoAnswering?: readonly string[] }):
   const others = (input.alsoAnswering ?? []).filter(Boolean);
   const base = "Short and human, in the person's talking style: no name prefix, no em dashes, no status-report lines, and \"you\" for the person.";
   if (!others.length) return base;
-  const list = others.length === 1 ? others[0]! : `${others.slice(0, -1).join(", ")} and ${others.at(-1)}`;
-  return `${base} ${list} ${others.length === 1 ? "is" : "are"} answering this same message at the same time and can't see your reply: speak only for your own part, in a line or two, and leave their work and the team's open list out.`;
+  return `${base} ${nameList(others)} ${others.length === 1 ? "is" : "are"} answering this same message at the same time and can't see your reply: speak only for your own part, in a line or two, and leave their work and the team's open list out.`;
+}
+
+/** Why this bot speaks now, when a teammate's @mention woke it rather than the person. */
+export function mentionCueNote(cue: { by: { name: string }; closing: boolean }, person?: string): string {
+  const by = cue.by.name;
+  const who = person?.trim() || "the person";
+  if (cue.closing) {
+    return `${by} answered what you handed them, just above. This is your last turn on this request: check their part against what ${who} asked, ` +
+      `then give ${who} one short wrap-up of the result and anything still open. Don't hand out new work now; a teammate you @mention won't be woken. ` +
+      `If ${by}'s reply already answers ${who} fully, reply with just (pass).`;
+  }
+  return `${by} @mentioned you just above. Do the part ${by} asked of you, not the whole request again, and don't restate what ${by} or anyone else already said. ` +
+    `If ${by} needs your result to finish (to check it or carry on), end with @${by} once; if your answer settles it, don't tag anyone.`;
+}
+
+/** For a bot answering the person's message after teammates already did, in the same round. */
+export function answeredAboveNote(names: readonly string[]): string {
+  const others = names.filter(Boolean);
+  if (!others.length) return "";
+  return `${nameList(others)} already answered this message just above: add only what's new from your side and don't repeat them. If they covered your part, reply with just (pass).`;
 }
 
 type Edit = { start: number; end: number; text: string };

@@ -31,5 +31,6 @@ export function normalizeGroupDefaultResponder(
     }
   }
   if (memberIds.length === 0) return { kind: "mentions" };
-  return { kind: "everyone" };
+  // a room nobody chose for gets one voice, as the app's own rooms do: the first member leads and hands work out
+  return memberIds.length === 1 ? { kind: "member", botId: memberIds[0]! } : { kind: "member", botId: memberIds[0]!, leader: true };
 }

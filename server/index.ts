@@ -79,7 +79,7 @@ import { RoomTurnDeadline, RoomTurnStallRegistry, effectiveRoomTurnTimeoutMinute
 import { roomTurnEnd, type RoomClaimEnd } from "./room-turn-end.ts";
 import { applyHoldDirective, classifyHoldDirective, heldMemberLine, rememberHeldMessage, stopWordPlacement } from "./room-holds.ts";
 import { createPersonStop } from "./host/person-stop.ts"; import { createTurnOrder } from "./host/turn-order.ts"; import { createQueuedNotes, createWaitWords } from "./host/wait-words.ts"; import { settleParkedFiles, type ParkedTurnAttachment } from "./host/turn-attachments.ts"; import type { DirectSendInput, DirectSendReceipt } from "./direct-send.ts";
-import { finishedWithoutSummaryLine, ROOM_SUMMARY_REASK, roomTurnNarrationIds, roomTurnReply } from "./room-reply.ts"; import { cleanBotVoice, roomTalkRules, roomTurnVoiceNote } from "./group-voice.ts"; import { replyBubbles } from "./reply-bubbles.ts";
+import { finishedWithoutSummaryLine, isPassText, ROOM_SUMMARY_REASK, roomTurnNarrationIds, roomTurnReply } from "./room-reply.ts"; import { answeredAboveNote, cleanBotVoice, mentionCueNote, roomTalkRules, roomTurnVoiceNote } from "./group-voice.ts"; import { MentionChain } from "./room-mention-chain.ts"; import { teammatesNote, workInProgressNote, type InHand } from "./room-team-context.ts"; import { createRoomEarlier, ROOM_EARLIER_LABEL } from "./host/room-earlier.ts"; import { replyBubbles } from "./reply-bubbles.ts";
 import { pickComputer } from "./computer-selection.ts";
 import { keyHint, keyStatus, nestedKeyStatus, withoutKeyHints } from "./key-hint.ts";
 import { chartRenderer, compileChart, dataEngine, validateVegaLite } from "./data/deps.ts";
@@ -6733,6 +6733,8 @@ bus.subscribe((event: RuntimeEvent) => {
       pushStoppedTurn(turnId);
       return;
     }
+    // a room member's "(pass)" is its choice to stay quiet, never a line in the room
+    if (group && isPassText(spoken.text) && spoken.text.trim()) return;
     const voiced = cleanBotVoice(spoken.text, (speaker ?? bot)?.name); if (voiced.taggedLine && turnId && group && !personTaggedTurns.has(`${event.threadId}:${turnId}`)) personTaggedTurns.set(`${event.threadId}:${turnId}`, voiced.taggedLine);
     for (const bubble of replyBubbles(voiced.text)) pushMessage({ role: "bot", kind: "text", text: bubble, turnId });
     lastReply.set(event.threadId, voiced.text);
@@ -9905,7 +9907,6 @@ handoffTicks.start({ pace: () => enginesRead || parkedNodesToReconcile.size > 0 
 function reconcileParkedRoots(): void {
   for (const node of coordinator.active()) if (!reconcileParkedNode(node) && node.status === "waiting" && node.cards?.length && !anyCardLive(store, node.threadId, node.cards)) coordinator.releaseParked(node.id, "The card it waited on was replaced or closed");
 }
-const MAX_GROUP_HOPS = 1;
 
 type GroupMemberTurnOutcome = GoalStepOutcome;
 type GroupTurnOrchestration = {
@@ -9955,6 +9956,42 @@ function roomTurnBrief(threadId: string, bot: BotRecord, hop: number, latestUser
   if (mention?.from) return `Mentioned by ${mention.from.name} (hop ${hop}): ${mention.text ?? ""}`;
   return latestUser?.text ?? "";
 }
+
+const mentionChains = new WeakMap<Set<string>, MentionChain>();
+/** One chain per round: `spoken` is the set every turn answering the same message of the person's shares. */
+function mentionChainFor(spoken: Set<string>): MentionChain {
+  let chain = mentionChains.get(spoken);
+  if (!chain) mentionChains.set(spoken, chain = new MentionChain());
+  return chain;
+}
+
+/** Teammates whose reply to the person's latest message is already in the room. */
+function answeredSince(threadId: string, latestUser: Message | undefined, selfId: string): string[] {
+  if (!latestUser) return [];
+  const path = store.activePath(threadId);
+  const narration = roomTurnNarrationIds(path);
+  const names = new Set<string>();
+  const at = path.findIndex((message) => message.id === latestUser.id);
+  if (at < 0) return [];
+  for (const message of path.slice(at + 1)) {
+    if (message.role === "bot" && message.kind === "text" && message.text?.trim() && message.from && message.from.botId !== selfId && !narration.has(message.id)) names.add(message.from.name);
+  }
+  return [...names];
+}
+
+function inHandFor(groupId: string, threadId: string, selfId: string): InHand[] {
+  return coordinator.active().flatMap((node) => {
+    if (node.groupId !== groupId || node.threadId !== threadId || !node.parentId || node.botId === selfId) return [];
+    if (node.status !== "queued" && node.status !== "running" && node.status !== "waiting") return [];
+    const name = store.bot(node.botId)?.name;
+    return name ? [{ botName: name, task: node.text, state: node.status }] : [];
+  });
+}
+
+const roomEarlier = createRoomEarlier({
+  writer: (botId) => sideJobs.text("compaction", botId)?.generateText ?? null,
+  log: (line) => console.log(line),
+});
 
 function goalRunLive(groupId: string, threadId: string, runId: string): boolean {
   return [...(groupTurnOperations.get(groupId) ?? [])].some((operation) =>
@@ -10435,6 +10472,7 @@ async function runClaimedGroupMemberTurn(
     bot.description && `About: ${bot.description}`,
     `Room members: ${roster}, and ${typeof userName === "string" ? `${userName} (the human)` : roomPeople(threadId, userName)}.`,
     readyGroup.bulletin.trim() && `Room bulletin (shared instructions for everyone):\n${readyGroup.bulletin.trim()}`,
+    !(integrations.agents && roomLeaderId(readyGroup) === bot.id && !roomHandoff?.parentId) && teammatesNote(roomMembers, bot.id),
     roomTalkRules({ person: personNameIn(threadId), dm: readyGroup.dm }),
     outsideRoom.length > 0 && roomPeerRosterSystemPrompt(outsideRoom), sharedNamesNote(roomMembers.filter((member) => member.id !== bot.id), Boolean(integrations.agents)),
     integrations.agents && (CREDENTIAL_PROMPT + (orchestration && !orchestration.roomHandoffId ? THREADS_PROMPT : "")).trim(),
@@ -10471,7 +10509,12 @@ async function runClaimedGroupMemberTurn(
   const liveRosterBlock = !orchestration?.liveRoster || orchestration.resumed ? "" : `\n\n${orchestration.liveRoster}`;
   const heldReplay = heldReplayFor(group.id, conversationOfRun(threadId), bot.id, userName, roomContext);
   const alsoAnswering = parseMemberRun(threadId) && operation ? [...operation.botIds].filter((id) => id !== bot.id).map((id) => store.bot(id)?.name ?? "") : [];
-  const roomTail = `\n\n(Reply to the conversation above as ${bot.name}. ${roomTurnVoiceNote({ alsoAnswering })})${learnBlock}${heldReplay.block}${cardContinuation ? `\n\n${cardContinuation}` : ""}${coordinationReminder}${liveRosterBlock}`;
+  const cue = orchestration ? undefined : mentionChainFor(spoken).takeCue(bot.id);
+  const teamNotes = [
+    cue ? mentionCueNote(cue, personNameIn(threadId)) : !orchestration && !cardContinuation && !alsoAnswering.length ? answeredAboveNote(answeredSince(threadId, latestUser, bot.id)) : "",
+    orchestration ? "" : workInProgressNote(inHandFor(readyGroup.id, conversationOfRun(threadId), bot.id)),
+  ].filter(Boolean).map((note) => `\n\n${note}`).join("");
+  const roomTail = `\n\n(Reply to the conversation above as ${bot.name}. ${roomTurnVoiceNote({ alsoAnswering })})${teamNotes}${learnBlock}${heldReplay.block}${cardContinuation ? `\n\n${cardContinuation}` : ""}${coordinationReminder}${liveRosterBlock}`;
   const text = roomContext + roomTail;
 
   const worksInWorkspace = supportsWorkspaceFiles(instance.driverKind);
@@ -10487,6 +10530,7 @@ async function runClaimedGroupMemberTurn(
   }
   const roomMemory = memorySystemPrompt(teamHost.layer(bot.id, threadId), { managedWrites: Boolean(integrations.agents), fileTools: worksInWorkspace, enabled: bot.memoryEnabled !== false }) + teamHost.sharedNotesPrompt(bot.id, threadId);
   const recentLines = recentWork(recentWorkSources(bot), bot, { userName: typeof userName === "string" ? userName : "the team", currentThreadId: threadId, ...recentWorkFilter(threadId) });
+  const earlierInRoom = await roomEarlier.prompt(conversationOfRun(threadId), bot.id, roomWindow.earlier);
   if (roomPlan.browser && !(roomPlan.computer === undefined && roomTeamComputer)) {
     const selectedProfile = readyBot.browserProfile;
     const browser = await browserIntegration(readyBot.id, selectedProfile, { threadId, generation: internalGeneration });
@@ -10530,6 +10574,7 @@ async function runClaimedGroupMemberTurn(
     { id: "recall", label: "Recall", text: integrations.agents && bot.memoryEnabled !== false ? SESSION_SEARCH_SYSTEM_PROMPT : "" }, { id: "just-do-it", label: "Just do it", text: preparedApprovalMode === "full" && !isUnattended(bot.id, threadId) ? JUST_DO_IT_PROMPT : "" },
     teamAvailabilityPart(outsideRoom),
     { id: "recent", label: "Recent work", text: recentWorkPrompt(recentLines, Date.now(), personTimeZone(proactive.brief.timeZone())) },
+    { id: "room-earlier", label: ROOM_EARLIER_LABEL, text: earlierInRoom },
     { id: "memory", label: "Memory", text: roomMemory ? `\n${roomMemory.trim()}` : "" },
     { id: "skills", label: "Skills index", text: workspace ? skillsHost.skillsIndex(bot, threadId, instance) : "" },
     { id: "skill-instructions", label: "Skill instructions", text: renderSkillInstructions(selectedSkills, { includeRoot: Boolean(workspace) }) },
@@ -10656,7 +10701,9 @@ async function runClaimedGroupMemberTurn(
     }
     if (roomReset || displaced) broadcast({ kind: "group", group: publicGroupState(store.group(groupId) ?? group) });
     const roomShareNote = skillsHost.shareNote(bot, threadId, Boolean(workspace));
-    const clock = turnClockLine(Date.now(), personTimeZone(proactive.brief.timeZone())) + habitReminder(chatMessageCount(store.activePath(threadId)));
+    const clock = turnClockLine(Date.now(), personTimeZone(proactive.brief.timeZone())) +
+      (hop === 0 && !orchestration && !cardContinuation && latestUser ? quietGapNote(previousPersonMessageAt(store.activePath(threadId), latestUser.id), Date.now()) : "") +
+      habitReminder(chatMessageCount(store.activePath(threadId)));
     const roomToolScope = toolScopeForTurn(readyBot.id), roomUserMcp = claudeUserMcpEnabled(cfg) && !managedPolicy.restrictsMcp();
     const roomSession = roomSessions.dispatch({
       threadId, botId: readyBot.id, claimId: internalGeneration, instance, guestConfined: roomGuestConfined, reset: Boolean(roomReset), hooks: Boolean(integrations.hooks),
@@ -10725,6 +10772,8 @@ async function runClaimedGroupMemberTurn(
   // Revoke before any chained teammate work, so a retained proxy cannot act during the next member's generation.
   revokeInternalCapabilityGeneration(threadId, internalGeneration);
   const replyText = roomTurnReply(turnTexts);
+  // passing is quiet only once a teammate has answered the person; a lone pass still gets the re-ask below
+  const passed = !replyText && Boolean(turnTexts.at(-1)?.trim()) && answeredSince(threadId, latestUser, bot.id).length > 0;
   const heldMidTurn = heldInterrupts.delete(`${threadId}:${bot.id}`);
   retainRoomVmLease = outcome === "timed_out" || outcome === "stalled";
   if (!retainRoomVmLease) releaseRoomVmLease();
@@ -10805,7 +10854,7 @@ async function runClaimedGroupMemberTurn(
     !orchestration &&
     outcome === "settled" &&
     turnCompletedOk &&
-    !replyText &&
+    !replyText && !passed &&
     !isCancelled?.() &&
     !roomHeld(store.group(group.id), bot.id)
   ) {
@@ -10848,7 +10897,6 @@ async function runClaimedGroupMemberTurn(
     roomRoot !== undefined && roomRoot.parentId === undefined &&
     !handedOut &&
     !isCancelled?.() &&
-    hop < MAX_GROUP_HOPS &&
     replyText.trim()
   ) {
     const members = group.memberIds
@@ -10868,14 +10916,18 @@ async function runClaimedGroupMemberTurn(
         },
       });
     }
+    const chain = mentionChainFor(spoken);
+    const speakerClosing = chain.closing(bot.id) && hop > 0;
     for (const next of roomResponders(replyText, members, { kind: "mentions" })) {
       if (isCancelled?.()) return false;
-      if (spoken.has(next.id)) continue;
+      const turn = chain.decide(bot, next.id, hop, spoken, speakerClosing);
+      if (!turn) continue;
       const nextThreadId = parseMemberRun(threadId) ? memberRunThreadId(conversationOfRun(threadId), next.id) : threadId;
       if (operation) {
         const verdict = await waitForChatRoomMember(operation, threadId, next);
         if (verdict === "stop") return false;
         if (verdict === "skip") {
+          chain.takeCue(next.id);
           spoken.add(next.id);
           continue;
         }
@@ -10885,7 +10937,7 @@ async function runClaimedGroupMemberTurn(
         groupId,
         nextThreadId,
         next.id,
-        hop + 1,
+        turn.hop,
         spoken,
         undefined,
         undefined,

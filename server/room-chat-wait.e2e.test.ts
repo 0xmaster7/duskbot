@@ -235,7 +235,8 @@ describe("chat rooms wait for a member busy elsewhere", { timeout: 45_000 }, () 
         waitChipOk: true,
         waitChips: 1,
         skipped: false,
-        speakers: ["Ace", "Bee"],
+        // the slow fixture echoes its prompt, so Bee's reply tags @Ace back and Ace takes its one closing turn
+        speakers: ["Ace", "Bee", "Ace"],
       });
 
       expect(await directReply(bee.id, "Bee, finish this first")).toBe(true);

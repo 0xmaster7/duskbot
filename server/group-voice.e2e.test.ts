@@ -61,7 +61,7 @@ it("puts the person's talking style and the voice rules in every turn type, and 
     expectVoice(dump()?.systemPrompt ?? "");
 
     // a room where everyone answers at once
-    const room = (await api("POST", "/api/groups", { name: "Standup", memberIds: [basil.id, nova.id] })).group as { id: string; threadId: string };
+    const room = (await api("POST", "/api/groups", { name: "Standup", memberIds: [basil.id, nova.id], defaultResponder: { kind: "everyone" } })).group as { id: string; threadId: string };
     await api("PATCH", `/api/groups/${room.id}/setup`, { action: "skip" });
     await api("POST", `/api/groups/${room.id}/messages`, { text: "status-check, everyone" });
     await expect.poll(async () => (await roomReplies(room.threadId)).length, POLL).toBe(2);

@@ -38,8 +38,8 @@ async function harness(env: Record<string, string>) {
     const bots = [];
     for (const name of names) bots.push((await control("new-bot", "--name", name)).bot as { id: string; name: string });
     if (approvalMode) for (const bot of bots) await api("PATCH", `/api/bots/${bot.id}`, { approvalMode });
-    // the app's own path: the room takes the server's default responder, and setup is skipped
-    const created = (await api("POST", "/api/groups", { name: "Launch room", memberIds: bots.map((bot) => bot.id) })).group as WireGroup;
+    // a room set to everyone, with setup skipped
+    const created = (await api("POST", "/api/groups", { name: "Launch room", memberIds: bots.map((bot) => bot.id), defaultResponder: { kind: "everyone" } })).group as WireGroup;
     await api("PATCH", `/api/groups/${created.id}/setup`, { action: "skip" });
     return { bots, roomId: created.id, threadId: created.threadId };
   };

@@ -29,9 +29,10 @@ describe("stored rooms", () => {
     expect(normalizeGroupDefaultResponder({ kind: "auto" }, IDS, true)).toEqual({ kind: "mentions" });
   });
 
-  it("old rooms without the field, and unknown kinds, get today's default: everyone at once", () => {
-    expect(normalizeGroupDefaultResponder(undefined, IDS)).toEqual({ kind: "everyone" });
-    expect(normalizeGroupDefaultResponder({ kind: "round-robin" }, IDS)).toEqual({ kind: "everyone" });
+  it("a room with no choice, or an unknown kind, is led by its first member", () => {
+    expect(normalizeGroupDefaultResponder(undefined, IDS)).toEqual({ kind: "member", botId: "maya", leader: true });
+    expect(normalizeGroupDefaultResponder({ kind: "round-robin" }, IDS)).toEqual({ kind: "member", botId: "maya", leader: true });
+    expect(normalizeGroupDefaultResponder(undefined, ["maya"])).toEqual({ kind: "member", botId: "maya" });
     expect(normalizeGroupDefaultResponder({ kind: "member", botId: "ravi" }, IDS)).toEqual({ kind: "member", botId: "ravi" });
   });
 

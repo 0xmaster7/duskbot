@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { cleanBotVoice, roomTalkRules, roomTurnVoiceNote, VOICE_RULES } from "./group-voice.ts";
+import { answeredAboveNote, cleanBotVoice, mentionCueNote, roomTalkRules, roomTurnVoiceNote, VOICE_RULES } from "./group-voice.ts";
+import { teammatesNote, workInProgressNote } from "./room-team-context.ts";
 import { buildMentionNotification } from "./notify.ts";
 import { buildSystemPrompt } from "./system-prompt.ts";
 import { TALKING_STYLES } from "../shared/talking-style.ts";
@@ -34,6 +35,38 @@ describe("the room's talk rules", () => {
     expect(together).toContain("speak only for your own part");
     expect(roomTurnVoiceNote({ alsoAnswering: ["Quill"] })).toContain("Quill is answering");
     expect(together).not.toContain(EM);
+  });
+
+  it("tells a teammate woken by an @mention to do only its part, and the asker's closing turn to wrap up or pass", () => {
+    const handed = mentionCueNote({ by: { name: "Ada" }, closing: false }, "Sidd");
+    expect(handed).toContain("Ada @mentioned you just above");
+    expect(handed).toContain("not the whole request again");
+    expect(handed).toContain("end with @Ada once");
+    const closing = mentionCueNote({ by: { name: "Ben" }, closing: true }, "Sidd");
+    expect(closing).toContain("last turn on this request");
+    expect(closing).toContain("give Sidd one short wrap-up");
+    expect(closing).toContain("won't be woken");
+    expect(closing).toContain("(pass)");
+    expect(answeredAboveNote([])).toBe("");
+    expect(answeredAboveNote(["Ada", "Ben"])).toContain("Ada and Ben already answered this message");
+    for (const note of [handed, closing, answeredAboveNote(["Ada"])]) expect(note).not.toContain(EM);
+    expect(roomTalkRules({})).toContain("write their name without the @");
+  });
+
+  it("names what each teammate does and what is already in hand", () => {
+    const members = [
+      { id: "a", name: "Ada", title: "Project lead" },
+      { id: "b", name: "Ben", title: "Researcher", description: "Pulls usage numbers." },
+      { id: "c", name: "Cal" },
+    ];
+    const note = teammatesNote(members, "a");
+    expect(note).toContain("- Ben: Researcher: Pulls usage numbers.");
+    expect(note).not.toContain("Ada");
+    expect(note).not.toContain("Cal");
+    expect(teammatesNote([{ id: "c", name: "Cal" }], "a")).toBe("");
+    expect(workInProgressNote([])).toBe("");
+    expect(workInProgressNote([{ botName: "Ben", task: "Pull last month's\nexport numbers", state: "running" }]))
+      .toContain('- Ben (working on it): "Pull last month\'s export numbers"');
   });
 
   it("rides with the talking style in every turn's prompt, for every style", () => {

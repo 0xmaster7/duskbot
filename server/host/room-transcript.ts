@@ -20,6 +20,12 @@ export interface RoomWindow {
   lines: RoomLine[];
   order: string[];
   readable: string[];
+  /** The readable lines older than the window, oldest first: ids at once, words rendered only for those asked for. */
+  earlier: { ids: string[]; lines(from: number): EarlierLine[] };
+}
+
+export interface EarlierLine extends RoomLine {
+  person: boolean;
 }
 
 export function isRoomContextMessage(m: Pick<Message, "kind" | "text" | "digest" | "roomRequest">): boolean {
@@ -45,32 +51,37 @@ export function createRoomTranscript({ store, teammateReportContext }: RoomTrans
     const context = messages.filter(isRoomContextMessage);
     const readable = context.filter((m) => !narration.has(m.id));
     const shown = readable.slice(-GROUP_CONTEXT_MESSAGES);
-    const texts = shown
-      .map((m) => {
-        if (m.kind === "digest" && m.digest) {
-          return digestPromptLine(m.digest, m.from ? peerName(m.from.name) : "a bot");
-        }
-        if (m.roomRequest?.phase === "result") {
-          return teammateReportContext(m.roomRequest.id, readerBotId);
-        }
-        const overridden = overrides.get(m.id);
-        const rendered = overridden !== undefined ? { ...m, text: overridden } : m;
-        const person = speakerOf(userName, m);
-        const speaker = m.role === "user" ? person : m.from ? peerName(m.from.name) : "Bot";
-        const body = escapeNotes(transcriptText(rendered, messagesById, userName));
-        // An outside app chose these words: the bot it is shown as reads the note too, and one JSON string cannot start a line of its own.
-        if (m.webhookPost && m.role === "bot") return `${webhookPostNote(m.from?.name ?? "Bot")}\n${speaker}: ${JSON.stringify(body)}`;
-        const note = lineNote(m, { shared: false, name: () => person });
-        if (note) return `${note}\n${speaker}: ${JSON.stringify(body)}${roomReactionNote(m, userName)}`;
-        const line = `${speaker}: ${body}${roomReactionNote(m, userName)}`;
-        if (!m.peerPost || !m.from || m.from.botId === readerBotId) return line;
-        return `${peerProvenanceNote({ botName: m.from.name, delivery: "post_to_room", unattended: m.peerPost.unattended })}\n${line}`;
-      });
+    const older = readable.slice(0, readable.length - shown.length);
+    const render = (m: Message): string => {
+      if (m.kind === "digest" && m.digest) {
+        return digestPromptLine(m.digest, m.from ? peerName(m.from.name) : "a bot");
+      }
+      if (m.roomRequest?.phase === "result") {
+        return teammateReportContext(m.roomRequest.id, readerBotId);
+      }
+      const overridden = overrides.get(m.id);
+      const rendered = overridden !== undefined ? { ...m, text: overridden } : m;
+      const person = speakerOf(userName, m);
+      const speaker = m.role === "user" ? person : m.from ? peerName(m.from.name) : "Bot";
+      const body = escapeNotes(transcriptText(rendered, messagesById, userName));
+      // An outside app chose these words: the bot it is shown as reads the note too, and one JSON string cannot start a line of its own.
+      if (m.webhookPost && m.role === "bot") return `${webhookPostNote(m.from?.name ?? "Bot")}\n${speaker}: ${JSON.stringify(body)}`;
+      const note = lineNote(m, { shared: false, name: () => person });
+      if (note) return `${note}\n${speaker}: ${JSON.stringify(body)}${roomReactionNote(m, userName)}`;
+      const line = `${speaker}: ${body}${roomReactionNote(m, userName)}`;
+      if (!m.peerPost || !m.from || m.from.botId === readerBotId) return line;
+      return `${peerProvenanceNote({ botName: m.from.name, delivery: "post_to_room", unattended: m.peerPost.unattended })}\n${line}`;
+    };
+    const texts = shown.map(render);
     return {
       text: texts.join("\n"),
       lines: shown.map((m, index) => ({ id: m.id, text: texts[index]! })),
       order: context.map((m) => m.id),
       readable: readable.map((m) => m.id),
+      earlier: {
+        ids: older.map((m) => m.id),
+        lines: (from) => older.slice(Math.max(0, from)).map((m) => ({ id: m.id, text: render(m), person: m.role === "user" })),
+      },
     };
   }
 
