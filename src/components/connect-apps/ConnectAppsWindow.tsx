@@ -512,6 +512,22 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     }
   };
 
+  // focus can drop to the page (the button pressed turned busy, or the sign-in page took the window away and gave it
+  // back): Escape still closes the window then; inside it, onDialogKey answers
+  const escape = useRef({ onClose, menuOpen });
+  escape.current = { onClose, menuOpen };
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented || escape.current.menuOpen) return;
+      const at = document.activeElement;
+      if (at && at !== document.body && at !== document.documentElement) return;
+      event.preventDefault();
+      escape.current.onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
   const onDialogKey = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.defaultPrevented || menuOpen) return;
     if (event.key === "Escape") {

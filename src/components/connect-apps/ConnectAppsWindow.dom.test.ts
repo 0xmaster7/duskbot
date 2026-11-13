@@ -595,6 +595,35 @@ describe("the Connect Apps window", () => {
         expect(shownLabel()).toBe("retry");
       });
 
+      // regression: after a cancelled authorize, Retry posted the server again, got 409, and never opened the page
+      it("Retry after an authorize that did not finish reuses the server it added, and opens the page", async () => {
+        await remount({ kind: "detail", id: "attio" }, "unavailable");
+        const base = fixture.api.getMockImplementation()!;
+        let added = false;
+        let phase = "failed";
+        fixture.api.mockImplementation(async (path: string, init?: RequestInit) => {
+          if (path === "/api/connectors/composio-connect") return { added, name: added ? "composio-connect" : null, signedIn: false, enabled: false };
+          if (path === "/api/mcp/servers" && init?.method === "POST") {
+            if (added) throw new ApiError("An MCP server with that name already exists", 409, { error: "An MCP server with that name already exists" });
+            added = true;
+            return { servers: [] };
+          }
+          if (path === "/api/mcp/servers/composio-connect/sign-in") return { auth: phase === "failed" ? { phase, flowId: null, authorizationUrl: null, message: "cancelled" } : { phase, flowId: "f2", authorizationUrl: "https://connect.composio.dev/oauth/f2" } };
+          if (path === "/api/mcp/servers/composio-connect/sign-in/f2") return { auth: { phase: "waiting", flowId: "f2", authorizationUrl: null } };
+          return base(path, init);
+        });
+        await act(async () => { primary()!.click(); });
+        await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+        expect(line()).toBe("Composio wasn't authorized. Try again.");
+        phase = "waiting";
+        const posts = () => fixture.api.mock.calls.filter(([path, init]) => path === "/api/mcp/servers" && (init as RequestInit | undefined)?.method === "POST").length;
+        await act(async () => { primary()!.click(); });
+        await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+        expect(posts(), "the server is added once").toBe(1);
+        expect(fixture.opened, "the Composio page opens").toContain("https://connect.composio.dev/oauth/f2");
+        expect(shownLabel()).toBe("waiting for Composio…");
+      });
+
       it("a reload mid sign-in picks the wait up again", async () => {
         const kept = keep();
         kept.set("dusk.composioConnect.pending", JSON.stringify({ attio: { url: "https://connect.composio.dev/link/ln_attio", since: Date.now() - 60_000 } }));
@@ -809,6 +838,18 @@ describe("the Connect Apps window", () => {
     expect(dialog().querySelector('[role="listbox"]')).toBeNull();
     expect(onClose).not.toHaveBeenCalled();
     await act(async () => { input.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  // regression: on Gmail's page, once its button turned busy, focus fell to the page and Escape did nothing
+  it("closes on Escape when focus has dropped out of the window, as on Gmail's page after Connect", async () => {
+    act(() => root.unmount());
+    root = createRoot(document.body.appendChild(document.createElement("div")));
+    await act(async () => { root.render(createElement(ConnectAppsWindow, { page: { kind: "detail", id: "gmail" }, nonce: 6, onClose, onTemplates: vi.fn() })); });
+    await flush();
+    (document.activeElement as HTMLElement | null)?.blur();
+    expect(document.activeElement).toBe(document.body);
+    await act(async () => { document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })); });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

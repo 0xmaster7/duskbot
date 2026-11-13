@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { ApiError } from "@/state/api";
 import { api } from "@/state/store";
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
@@ -462,10 +463,25 @@ export function useConnectors(): Connectors {
 
   const signInComposio = async (launch: ConnectionPage, signal: AbortSignal): Promise<boolean> => {
     try {
-      const name = viaNow.current?.added ? viaNow.current.name ?? COMPOSIO_CONNECT_NAME : COMPOSIO_CONNECT_NAME;
-      if (!viaNow.current?.added) {
-        await api("/api/mcp/servers", { method: "POST", body: JSON.stringify({ name, type: "http", url: COMPOSIO_CONNECT_URL, enabled: false }) });
+      // a try that was cancelled or failed left its server entry behind: read what is there now and reuse it, never add twice
+      const read = async () => {
+        const now = await api("/api/connectors/composio-connect", { signal }) as ComposioConnect;
+        viaNow.current = now;
+        setVia(now);
+        return now;
+      };
+      let now = viaNow.current?.added ? viaNow.current : await read();
+      if (!now.added) {
+        try {
+          await api("/api/mcp/servers", { method: "POST", body: JSON.stringify({ name: COMPOSIO_CONNECT_NAME, type: "http", url: COMPOSIO_CONNECT_URL, enabled: false }) });
+        } catch (cause) {
+          // added meanwhile (another window, a slow first try): use that one
+          if (!(cause instanceof ApiError && cause.status === 409)) throw cause;
+          now = await read();
+          if (!now.added) throw cause;
+        }
       }
+      const name = now.added ? now.name ?? COMPOSIO_CONNECT_NAME : COMPOSIO_CONNECT_NAME;
       const result = await runMcpSignIn(name, { api, open: async (url) => { await launch.open(url); }, signal });
       if (result.phase !== "succeeded" || signal.aborted) return false;
       await api(`/api/mcp/servers/${encodeURIComponent(name)}`, { method: "PATCH", body: JSON.stringify({ enabled: true }) });
