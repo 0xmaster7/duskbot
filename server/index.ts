@@ -343,7 +343,8 @@ import {
   workspaceDir,
   botSettingsFile,
 } from "./workspace.ts";
-import { memoryDate, writeMemoryFile, writeMemoryTopic } from "./workspace.ts";
+import { memoryDate, memoryLinesMentioning, writeMemoryFile, writeMemoryTopic } from "./workspace.ts";
+import { landingSite, siteNotes, withSiteNotes } from "./browser-site-notes.ts";
 import {
   beginMemoryTurn,
   endMemoryTurn,
@@ -13459,7 +13460,12 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
           }
         }, stepContext(bot, internalCapability, () => liveTurnByThread.get(internalCapability.threadId) ?? null));
         requireActiveInternalCapability(); if (body.method === "tools/call") { browserSeats.used(internalCapability, browser.session); if (!(result as { isError?: boolean })?.isError) noteVpsTurnActivity(internalCapability); }
-        return json(res, 200, { result: body.method === "tools/call" && result && typeof result === "object" ? browserLoops.answer(internalCapability.threadId, String(params?.name ?? ""), params?.arguments, result) : result });
+        const site = body.method === "tools/call" ? landingSite(params?.name, params?.arguments) : null;
+        // Security: notes are read for the capability's own bot only, and never into a guest's or the Bot API's turn.
+        const notes = site && bot.memoryEnabled !== false && !cloudGuestDriven(internalCapability.threadId) && !botApiThread(internalCapability.threadId)
+          ? siteNotes({ memoryIds: (id, threadId) => teamHost.memoryIds(id, threadId), lines: memoryLinesMentioning }, internalCapability.botId, internalCapability.threadId, site) : null;
+        const landed = withSiteNotes(result, notes);
+        return json(res, 200, { result: body.method === "tools/call" && landed && typeof landed === "object" ? browserLoops.answer(internalCapability.threadId, String(params?.name ?? ""), params?.arguments, landed) : landed });
       }
       // DuckDB runs here on the bot's own database; the agent process holds only the turn's capability.
       if (method === "POST" && path === DATA_INTERNAL_MCP_PATH) {

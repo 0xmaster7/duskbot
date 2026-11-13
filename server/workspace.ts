@@ -255,6 +255,31 @@ export function searchMemoryFiles(botId: string, query: string, limit = 12, mode
   return recallMemory(query, botId, limit, mode);
 }
 
+const NOTE_LINE_MAX = 280;
+
+/** Lines of `botId`'s topic notes, archive and logs that name `needle`, newest files first. MEMORY.md is left out: it
+ * already loads into every turn. */
+export function memoryLinesMentioning(botId: string, needle: string, limit: number): string[] {
+  const wanted = needle.toLowerCase();
+  const lines: string[] = [];
+  for (const hit of searchMemoryFiles(botId, needle, 8)) {
+    if (hit.file === "MEMORY.md") continue;
+    let text: string;
+    try {
+      text = searchableMemoryText(hit.file, readMemoryText(join(workspaceDir(botId), hit.file)));
+    } catch {
+      continue;
+    }
+    for (const raw of text.split("\n")) {
+      const line = raw.trim().replace(BULLET, "");
+      if (!line || !line.toLowerCase().includes(wanted) || lines.includes(line)) continue;
+      lines.push(redactSecretsInText(line.length > NOTE_LINE_MAX ? `${line.slice(0, NOTE_LINE_MAX)}…` : line));
+      if (lines.length >= limit) return lines;
+    }
+  }
+  return lines;
+}
+
 export interface MemoryUpdate {
   action: "append" | "replace" | "remove" | "supersede";
   text?: string;
