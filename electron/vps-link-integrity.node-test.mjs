@@ -146,3 +146,36 @@ test("the server's tunnel process restarting ends a reply that was streaming thr
     assert.equal(answer.complete, false);
   } finally { await proxy.close(); }
 });
+
+test("posts of a given-up epoch stop at once, so none lands after the new epoch and hijacks the relay's order", { timeout: 25_000 }, async () => {
+  const seen = [];
+  let refuse = false;
+  const fetch = async (url, init) => {
+    url = String(url);
+    if (url.endsWith("/to-vps")) {
+      const body = JSON.parse(init.body);
+      seen.push({ epoch: body.epoch, at: Date.now() });
+      return refuse ? Response.json({ error: "busy", code: "busy" }, { status: 503 }) : Response.json({ ok: true, ordered: true });
+    }
+    await new Promise((resolve) => { init.signal?.addEventListener("abort", resolve, { once: true }); setTimeout(resolve, 200); });
+    return Response.json({ frames: [] });
+  };
+  const proxy = createTunnelProxy({ base: "http://relay.test", id, key, token: "t", fetch });
+  try {
+    await proxy.start();
+    // one post answered says the relay orders posts, so several go out at once; then they all fail, the first gives up
+    // and a new epoch starts while the others are still retrying
+    await proxy.control("ping", null, 500).catch(() => {});
+    refuse = true;
+    const failing = [];
+    for (let i = 0; i < 3; i += 1) { failing.push(assert.rejects(proxy.control("ping", null, 20_000))); await new Promise((resolve) => setTimeout(resolve, 700)); }
+    await Promise.all(failing);
+    refuse = false;
+    const turned = Date.now();
+    void proxy.control("ping", null, 1000).catch(() => {});
+    await new Promise((resolve) => setTimeout(resolve, 6000));
+    const epochs = [...new Set(seen.map((one) => one.epoch))];
+    const old = seen.filter((one) => one.epoch !== epochs.at(-1) && one.at > turned);
+    assert.deepEqual(old, [], "no post of an older epoch after the new one began");
+  } finally { await proxy.close(); }
+});

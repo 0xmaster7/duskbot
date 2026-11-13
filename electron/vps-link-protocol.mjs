@@ -724,6 +724,9 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
     // a post keeps the epoch it was numbered in; one still out when a new epoch starts lands in the old one, retired
     const started = Date.now(), mine = epoch;
     for (let attempt = 0; !closed; attempt += 1) {
+      // its epoch was given up (what it carried was failed with it): one arriving late would make the relay switch back
+      // to that epoch and drop every post of the new one as retired
+      if (!lane && mine !== epoch) return true;
       try {
         const response = await fetchImpl(`${route}/to-vps`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify(lane ? { frames, lane: true } : { frames, epoch: mine, seq: at }), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(60_000)]) });
         // read, not cancelled: a cancelled body closes the socket the next post would reuse
