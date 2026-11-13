@@ -62,6 +62,8 @@ const render = (avatars: Array<Partial<MausAvatarProps> & { ref?: React.Ref<Maus
   act(() => root.render(avatars.map((props, key) => createElement(MausAvatar, { key, color: "green", ...props }))));
 const run = (ms: number) => act(() => { vi.advanceTimersByTime(ms); });
 const markOf = () => host.querySelector("[data-dusk-mark]")!;
+/** The box the engine draws in: the mark's body, fitted inside the mark. */
+const drawnOf = () => markOf().firstElementChild!;
 /** Frames the shared loop asks for over `ms`, after the marks have had `settle` ms. */
 const framesOver = (ms: number) => {
   frameRequests = 0;
@@ -120,9 +122,9 @@ describe("marks on the shared loop", () => {
   it("stops drawing a mascot that leaves the screen", () => {
     render([{ state: "working", size: 36 }]);
     run(200);
-    act(() => observed.callback!([{ target: markOf(), isIntersecting: false }]));
+    act(() => observed.callback!([{ target: drawnOf(), isIntersecting: false }]));
     expect(framesOver(1000)).toBe(0);
-    act(() => observed.callback!([{ target: markOf(), isIntersecting: true }]));
+    act(() => observed.callback!([{ target: drawnOf(), isIntersecting: true }]));
     expect(framesOver(500)).toBeGreaterThan(5);
   });
 

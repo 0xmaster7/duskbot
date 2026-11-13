@@ -277,7 +277,8 @@ export function TurnPresence({
           presencePhase === "out" && (simple ? "turn-status-out" : "turn-mascot-out"),
         )}
       >
-        {simple ? <span className="turn-status-mark inline-flex shrink-0">{avatar}</span> : avatar}
+        {/* a px down: the words' optical middle sits between cap and x-height, below their line box's middle */}
+        {simple ? <span className="turn-status-mark relative top-px inline-flex shrink-0">{avatar}</span> : avatar}
         {expandable && (!simple || step) ? (
           <button
             ref={toggle}
