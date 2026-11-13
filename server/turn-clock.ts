@@ -23,6 +23,17 @@ const parts = (at: number, timeZone: string) => {
 
 export const TURN_CLOCK_LEAD = "Current time when this message was sent: ";
 
+export function partOfDay(hour: number): string {
+  if (hour >= 5 && hour < 12) return "morning";
+  if (hour >= 12 && hour < 17) return "afternoon";
+  if (hour >= 17 && hour < 21) return "evening";
+  return "night";
+}
+
+export function personTimeZone(told: string | undefined): string {
+  return told || hostTimeZone();
+}
+
 export function turnClockLine(at: number, timeZone: string): string {
   let read: ReturnType<typeof parts>;
   try {
@@ -34,7 +45,7 @@ export function turnClockLine(at: number, timeZone: string): string {
   // longOffset spells UTC as a bare "GMT", and some ICU builds write the minus sign as U+2212.
   const offset = part("timeZoneName").replace(/^GMT/, "").replace("\u2212", "-") || "+00:00";
   const plain = plainTimeZone(read.timeZone);
-  return `${TURN_CLOCK_LEAD}${part("weekday")}, ${part("year")}-${part("month")}-${part("day")} ${part("hour")}:${part("minute")} ${read.timeZone} (${plain === read.timeZone ? "" : `${plain}, `}UTC${offset}).`;
+  return `${TURN_CLOCK_LEAD}${part("weekday")} ${partOfDay(Number(part("hour")))}, ${part("year")}-${part("month")}-${part("day")} ${part("hour")}:${part("minute")} ${read.timeZone} (${plain === read.timeZone ? "" : `${plain}, `}UTC${offset}).`;
 }
 
 /** Not for an empty text or a slash command: a prefix would turn an engine's own command into prose. */

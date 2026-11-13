@@ -1,36 +1,48 @@
 import { describe, expect, it } from "vitest";
-import { hostTimeZone, takesTurnClock, turnClockLine, withTurnClock } from "./turn-clock.ts";
+import { hostTimeZone, partOfDay, personTimeZone, takesTurnClock, turnClockLine, withTurnClock } from "./turn-clock.ts";
 
 const at = (iso: string) => Date.parse(iso);
 
 describe("turnClockLine", () => {
   it("names the weekday, local date and time, IANA timezone and UTC offset", () => {
     expect(turnClockLine(at("2026-10-08T16:48:00Z"), "Asia/Baghdad"))
-      .toBe("Current time when this message was sent: Thursday, 2026-10-08 19:48 Asia/Baghdad (Iraq time, UTC+03:00).");
+      .toBe("Current time when this message was sent: Thursday evening, 2026-10-08 19:48 Asia/Baghdad (Iraq time, UTC+03:00).");
     expect(turnClockLine(at("2026-10-08T16:48:00Z"), "Asia/Kolkata"))
-      .toBe("Current time when this message was sent: Thursday, 2026-10-08 22:18 Asia/Kolkata (India time, UTC+05:30).");
+      .toBe("Current time when this message was sent: Thursday night, 2026-10-08 22:18 Asia/Kolkata (India time, UTC+05:30).");
     expect(turnClockLine(at("2026-10-08T16:48:00Z"), "UTC"))
-      .toBe("Current time when this message was sent: Thursday, 2026-10-08 16:48 UTC (UTC+00:00).");
+      .toBe("Current time when this message was sent: Thursday afternoon, 2026-10-08 16:48 UTC (UTC+00:00).");
   });
 
   it("follows daylight saving and writes a western offset with an ASCII minus", () => {
     expect(turnClockLine(at("2026-01-15T17:05:00Z"), "America/New_York"))
-      .toBe("Current time when this message was sent: Thursday, 2026-01-15 12:05 America/New_York (Eastern time, UTC-05:00).");
+      .toBe("Current time when this message was sent: Thursday afternoon, 2026-01-15 12:05 America/New_York (Eastern time, UTC-05:00).");
     expect(turnClockLine(at("2026-07-15T16:05:00Z"), "America/New_York"))
-      .toBe("Current time when this message was sent: Wednesday, 2026-07-15 12:05 America/New_York (Eastern time, UTC-04:00).");
+      .toBe("Current time when this message was sent: Wednesday afternoon, 2026-07-15 12:05 America/New_York (Eastern time, UTC-04:00).");
   });
 
   it("uses the local calendar day, not the UTC one, near midnight", () => {
     // 22:30 UTC on the 8th is already Friday the 9th in Baghdad
-    expect(turnClockLine(at("2026-10-08T22:30:00Z"), "Asia/Baghdad")).toContain("Friday, 2026-10-09 01:30 Asia/Baghdad");
+    expect(turnClockLine(at("2026-10-08T22:30:00Z"), "Asia/Baghdad")).toContain("Friday night, 2026-10-09 01:30 Asia/Baghdad");
     // 03:00 UTC on the 9th is still Thursday the 8th in Los Angeles
-    expect(turnClockLine(at("2026-10-09T03:00:00Z"), "America/Los_Angeles")).toContain("Thursday, 2026-10-08 20:00 America/Los_Angeles");
-    expect(turnClockLine(at("2026-10-08T21:00:00Z"), "Asia/Baghdad")).toContain("Friday, 2026-10-09 00:00");
+    expect(turnClockLine(at("2026-10-09T03:00:00Z"), "America/Los_Angeles")).toContain("Thursday evening, 2026-10-08 20:00 America/Los_Angeles");
+    expect(turnClockLine(at("2026-10-08T21:00:00Z"), "Asia/Baghdad")).toContain("Friday night, 2026-10-09 00:00");
   });
 
   it("falls back to UTC for a timezone the runtime does not know, instead of failing the turn", () => {
     expect(turnClockLine(at("2026-10-08T16:48:00Z"), "Nowhere/Atlantis"))
-      .toBe("Current time when this message was sent: Thursday, 2026-10-08 16:48 UTC (UTC+00:00).");
+      .toBe("Current time when this message was sent: Thursday afternoon, 2026-10-08 16:48 UTC (UTC+00:00).");
+  });
+
+  it("says the part of the day, so a 21:30 turn never reads as morning", () => {
+    expect([4, 5, 11, 12, 16, 17, 20, 21, 23, 0].map(partOfDay))
+      .toEqual(["night", "morning", "morning", "afternoon", "afternoon", "evening", "evening", "night", "night", "night"]);
+    expect(turnClockLine(at("2026-11-11T16:00:00Z"), "Asia/Kolkata")).toContain("Wednesday night, 2026-11-11 21:30 Asia/Kolkata");
+    expect(turnClockLine(at("2026-11-11T03:30:00Z"), "Asia/Kolkata")).toContain("Wednesday morning, 2026-11-11 09:00");
+  });
+
+  it("tells time in the zone the person's app gave, else this computer's", () => {
+    expect(personTimeZone("America/New_York")).toBe("America/New_York");
+    expect(personTimeZone(undefined)).toBe(hostTimeZone());
   });
 
   it("reads the host timezone the routine scheduler uses", () => {
@@ -71,8 +83,8 @@ describe("withTurnClock", () => {
   it("stamps each turn of a long conversation with its own time", () => {
     const first = withTurnClock(turnClockLine(at("2026-10-08T20:59:00Z"), "Asia/Baghdad"), "remind me tomorrow");
     const second = withTurnClock(turnClockLine(at("2026-10-08T21:01:00Z"), "Asia/Baghdad"), "and what day is it now?");
-    expect(first).toContain("Thursday, 2026-10-08 23:59 Asia/Baghdad");
-    expect(second).toContain("Friday, 2026-10-09 00:01 Asia/Baghdad");
+    expect(first).toContain("Thursday night, 2026-10-08 23:59 Asia/Baghdad");
+    expect(second).toContain("Friday night, 2026-10-09 00:01 Asia/Baghdad");
     expect(second).not.toContain("2026-10-08");
   });
 });
