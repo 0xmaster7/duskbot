@@ -2,6 +2,7 @@ import { Component, type ReactNode } from "react";
 
 import { t } from "@/lib/i18n";
 import { stillSvgPaths } from "@/pixel/core";
+import { isStaleChunkError, reloadForStaleChunks } from "@/lib/stale-chunks";
 
 const goo = stillSvgPaths("goo", { scale: 1 });
 
@@ -12,6 +13,12 @@ export class PageBoundary extends Component<{ children: ReactNode }, { error: Er
 
   static getDerivedStateFromError(error: unknown) {
     return { error: error instanceof Error ? error : new Error(String(error)) };
+  }
+
+  // the page lost a file it loads later (the app or dev server swapped its files): one quiet reload fixes it
+  componentDidCatch(error: unknown) {
+    console.error(error);
+    if (isStaleChunkError(error)) reloadForStaleChunks();
   }
 
   render() {
@@ -25,7 +32,6 @@ export class PageBoundary extends Component<{ children: ReactNode }, { error: Er
           </svg>
           <h1 className="mt-5 text-lg font-semibold tracking-[-0.01em] text-ink">{t("page.broken.title")}</h1>
           <p className="mt-1.5 text-sm font-medium text-ink-secondary">{t("page.broken.body")}</p>
-          <p className="mt-3 max-w-full break-words rounded-lg bg-ink/[0.05] px-3 py-2 font-mono text-xs text-ink-secondary">{this.state.error.message}</p>
           <button type="button" className="mt-5 inline-flex h-10 cursor-pointer items-center rounded-full bg-[#c9f63f] px-5 text-sm font-semibold text-[#1b1b1f] transition-colors hover:bg-[#bde834] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink active:scale-[0.97]" onClick={() => location.reload()}>
             {t("page.broken.reload")}
           </button>

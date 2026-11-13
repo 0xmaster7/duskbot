@@ -24,7 +24,7 @@ describe("PageBoundary", () => {
     flushSync(() => root.render(createElement(PageBoundary, null, createElement(Broken))));
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(host.textContent).toContain("this page hit an error.");
-    expect(host.textContent).toContain("desktop.shown is not a function");
+    expect(host.textContent, "no raw error text on screen").not.toContain("desktop.shown is not a function");
     expect(host.querySelector("button")?.textContent).toBe("reload");
     root.unmount();
     host.remove();
