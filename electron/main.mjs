@@ -89,7 +89,7 @@ import {
 import capabilitiesModule from "./capabilities.cjs";
 import environmentsModule from "./environments.cjs";
 import localOriginModule from "./local-origin.cjs";
-import { aboutPanelOptions, buildApplicationMenu } from "./menu.mjs"; import { installDesktopBots } from "./desktop-bots.mjs"; import { startDesktopErrorReporting } from "./desktop-errors.mjs"; import { createUpdateNotice } from "./update-notice.mjs"; import { createAppUpdater, developerIdSigned, quietNow, squirrelInstaller } from "./app-update.mjs"; import { quietSignals } from "./update-when-quiet-main.mjs";
+import { aboutPanelOptions, buildApplicationMenu } from "./menu.mjs"; import { installDesktopBots } from "./desktop-bots.mjs"; import { installReloadKeys } from "./reload-keys.mjs"; import { startDesktopErrorReporting } from "./desktop-errors.mjs"; import { createUpdateNotice } from "./update-notice.mjs"; import { createAppUpdater, developerIdSigned, quietNow, squirrelInstaller } from "./app-update.mjs"; import { quietSignals } from "./update-when-quiet-main.mjs";
 import { acquireDataDirLease } from "./data-dir-lease.mjs";
 import { switchLocalEnvironment } from "./environment-switch.mjs";
 import { createManagedDesktopClient, createManagedDesktopRelay, createManagedDesktopStore } from "./managed-desktop.mjs";
@@ -2573,6 +2573,7 @@ const ambientSurfaces = installAmbient({ ipcMain, BrowserWindow, page: () => mai
   openChat: (botId, threadId, origin) => origin && desktopNotifications.openAt(origin, { botId, threadId }), reveal: revealForLink, log: slog,
   activity: { app, powerMonitor, focused: () => Boolean(BrowserWindow.getFocusedWindow()) } });
 // ⌘Q waits for a hold while this computer's bots work, and the menu's Stop commands (desktop-bots.mjs)
+installReloadKeys({ app, fromContents: contents => BrowserWindow.fromWebContents(contents) });
 const desktopBots = installDesktopBots({ ipcMain, app, window: () => mainWindow, isLocal: contents => senderIsLocal({ sender: contents }) });
 
 ipcMain.handle("companion:state", localOnly("companion:state", () => desktopCompanionState()));
