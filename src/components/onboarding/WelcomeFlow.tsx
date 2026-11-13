@@ -120,6 +120,14 @@ export function WelcomeFlow({
   const steps = funnelSteps({ account: Boolean(account) && !firstKnown.current?.signedIn, desktop, bring: bringing.current, cloud });
 
   const [at, setAt] = useState<FunnelStep>(() => resumeBeat(steps, saved));
+  // the second click of a double click lands on the step it opened: it must not choose there
+  const stepShownAt = useRef(0);
+  useEffect(() => { stepShownAt.current = Date.now(); }, [at]);
+  const swallowDoubleClick = (event: { detail: number; preventDefault(): void; stopPropagation(): void }) => {
+    if (event.detail < 2 || Date.now() - stepShownAt.current > 600) return;
+    event.preventDefault();
+    event.stopPropagation();
+  };
   const [from, setFrom] = useState<"next" | "back">("next");
   const tested = useWelcomeAi(state.instances);
 
@@ -275,6 +283,7 @@ export function WelcomeFlow({
       aria-labelledby={at === "bring" ? "bot-move-title" : "welcome-title"}
       tabIndex={-1}
       onKeyDown={onKeyDown}
+      onClickCapture={swallowDoubleClick}
       data-welcome={at}
       className={cn("welcome-screen flex overflow-y-auto bg-app outline-none", embedded ? "relative h-full w-full" : "fixed inset-0 z-50")}
     >

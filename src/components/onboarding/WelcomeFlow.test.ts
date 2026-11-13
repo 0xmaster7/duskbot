@@ -224,6 +224,18 @@ describe("on the desktop app", () => {
     expect(f.onDone).toHaveBeenCalledExactlyOnceWith("maus");
   });
 
+  it("a double click on get started does not also choose where bots live", async () => {
+    desktop();
+    await show();
+    await press("get started");
+    const second = new MouseEvent("click", { bubbles: true, cancelable: true, detail: 2 });
+    await act(async () => { host.querySelector<HTMLElement>("[data-funnel-place=mac]")!.dispatchEvent(second); });
+    await settle();
+    expect(step()).toBe("place");
+    await choose("[data-funnel-place=mac]");
+    expect(step()).toBe("ai");
+  });
+
   it("stays on where bots live when dusk cloud's sheet closes unpaid", async () => {
     desktop({ cloudAccount: { state: async () => ({ status: "connected", clouds: [] }), onState: () => () => {} } });
     await show({ initialBeat: "place" });
