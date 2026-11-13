@@ -23,6 +23,7 @@ afterEach(async () => {
   // This computer's imported skills are one set for the whole data folder: each test starts without any.
   rmSync(IMPORTED_SKILLS_DIR, { recursive: true, force: true });
   rmSync(join(DATA_DIR, "skill-state", "imported-skills.json"), { force: true });
+  rmSync(join(DATA_DIR, "skill-state", "imported-instructions.json"), { force: true });
 });
 
 function fixtureHome(): string {
@@ -228,6 +229,52 @@ describe("finding what another AI tool already set up on this computer", () => {
     ]);
   });
 
+  it("reads Windsurf's and VS Code's MCP servers in their own shapes", () => {
+    const home = fixtureHome();
+    put(home, ".codeium/windsurf/mcp_config.json", JSON.stringify({ mcpServers: { linear: { serverUrl: "https://mcp.linear.app/sse" }, git: { command: "uvx", args: ["mcp-server-git"] } } }));
+    put(home, "Library/Application Support/Code/User/mcp.json", JSON.stringify({ servers: { playwright: { type: "stdio", command: "npx", args: ["@playwright/mcp"] } }, inputs: [] }));
+    const { machine } = machineFor(home);
+    expect(detectSetup(machine, hostFor().host).tools).toEqual([
+      { name: "linear", source: "windsurf" }, { name: "git", source: "windsurf" }, { name: "playwright", source: "vscode" },
+    ]);
+    const { host, servers } = hostFor();
+    applySetupImport(machine, host, { tools: true, sources: ["vscode"] });
+    expect(Object.keys(servers()), "only the chosen tool's servers").toEqual(["playwright"]);
+  });
+
+  it("offers each tool's standing instructions until they are brought in, and again once they change", () => {
+    const home = fixtureHome();
+    put(home, ".claude/CLAUDE.md", "Use pnpm. Token ghp_abcdefghijklmnopqrstuvwxyz0123456789 is old.\n");
+    put(home, ".codex/AGENTS.md", "Prefer small commits.\n");
+    put(home, ".gemini/GEMINI.md", "   \n");
+    put(home, ".codeium/windsurf/memories/global_rules.md", "Answer in British English.\n");
+    const { machine } = machineFor(home);
+    const { host } = hostFor();
+    expect(detectSetup(machine, host).instructions).toEqual([
+      { name: "CLAUDE.md", source: "claudeCode" }, { name: "AGENTS.md", source: "codex" }, { name: "global_rules.md", source: "windsurf" },
+    ]);
+    const brought = applySetupImport(machine, host, { instructions: true, sources: ["claudeCode", "windsurf"] }).instructions!;
+    expect(brought.map((file) => file.name)).toEqual(["CLAUDE.md", "global_rules.md"]);
+    expect(brought[0]!.text).toContain("Use pnpm.");
+    expect(brought[0]!.text, "a token in the file is redacted").not.toContain("ghp_abcdefghijklmnopqrstuvwxyz0123456789");
+    expect(detectSetup(machine, host).instructions).toEqual([{ name: "AGENTS.md", source: "codex" }]);
+    put(home, ".claude/CLAUDE.md", "Use bun now.\n");
+    expect(detectSetup(machine, host).instructions?.map((file) => file.name)).toEqual(["CLAUDE.md", "AGENTS.md"]);
+  });
+
+  it("follows a linked instructions file only to Markdown in the home folder, never into Documents", () => {
+    const home = fixtureHome();
+    put(home, "dotfiles/CLAUDE.md", "From dotfiles.\n");
+    put(home, "Documents/private.md", SENTINEL);
+    mkdirSync(join(home, ".claude"), { recursive: true });
+    mkdirSync(join(home, ".codex"), { recursive: true });
+    symlinkSync(join(home, "dotfiles", "CLAUDE.md"), join(home, ".claude", "CLAUDE.md"));
+    symlinkSync(join(home, "Documents", "private.md"), join(home, ".codex", "AGENTS.md"));
+    const { machine, touched } = machineFor(home, "darwin");
+    expect(detectSetup(machine, hostFor().host).instructions).toEqual([{ name: "CLAUDE.md", source: "claudeCode" }]);
+    expect(touched().filter((path) => path.startsWith(join(home, "Documents") + sep))).toEqual([]);
+  });
+
   it("finds Claude Desktop's config where each system keeps it", () => {
     for (const [platform, path, env] of [
       ["win32", "Roaming/Claude/claude_desktop_config.json", { APPDATA: "Roaming" }],
@@ -311,12 +358,12 @@ describe("finding what another AI tool already set up on this computer", () => {
 
     const allowed = setupPaths(machine);
     const roots = allowed.skills.map((skill) => skill.root);
-    const files = new Set(allowed.tools.map((tool) => tool.path));
+    const files = new Set([...allowed.tools.map((tool) => tool.path), ...allowed.instructions.map((file) => file.path)]);
     const inRoot = (path: string) => roots.some((root) => path === root || path.startsWith(root + sep));
     // Opened or listed: the tools' config files and what is inside their skills folders, nothing else.
     expect(ops.filter(({ op, path }) => (op === "read" || op === "readdir") && !files.has(path) && !inRoot(path))).toEqual([]);
     // Only looked at, never opened: also the home folder and the tools' own folders on the way.
-    const passed = new Set([home, ...[".claude", ".codex", ".gemini", ".cursor"].map((folder) => join(home, folder))]);
+    const passed = new Set([home, ...[".claude", ".codex", ".gemini", ".cursor", ".codeium", ".codeium/windsurf", ".codeium/windsurf/memories"].map((folder) => join(home, folder))]);
     expect(ops.filter(({ path }) => !files.has(path) && !inRoot(path) && !passed.has(path))).toEqual([]);
     for (const path of planted) expect(touched()).not.toContain(path);
     const inSkills = touched().filter((path) => roots.some((root) => path.startsWith(root + sep))).map((path) => relative(home, path));
@@ -366,7 +413,7 @@ describe("finding what another AI tool already set up on this computer", () => {
     rmSync(join(home, ".codex", "skills"), { recursive: true, force: true });
     link(join(home, ".codex"), ".codex/skills");
     expect(detectSetup(machine, host).skills).toEqual([]);
-    const configs = new Set(setupPaths(machine).tools.map((tool) => tool.path));
+    const configs = new Set([...setupPaths(machine).tools.map((tool) => tool.path), ...setupPaths(machine).instructions.map((file) => file.path)]);
     expect(touched().filter((path) => path.startsWith(join(home, ".codex") + sep) && !path.startsWith(join(home, ".codex", "skills")) && !configs.has(path))).toEqual([]);
   });
 

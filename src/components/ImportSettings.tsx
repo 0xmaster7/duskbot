@@ -4,17 +4,18 @@ import { BookOpen, Plug } from "../icons";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { track } from "@/lib/analytics";
+import { copyNotesPrompt } from "@/lib/assistant-notes";
 import { t } from "@/lib/i18n";
 import { importOutcome, localSetupImport, setupImportApi, skillsSummary, toolsSummary, type SetupImportClient } from "@/lib/setup-import";
 import { useStore } from "@/state/store";
-import { detectionCount, detectionSources, type SetupDetection, type SetupImportResult, type SetupSource } from "../../shared/setup-import";
+import { detectionSources, type SetupDetection, type SetupImportResult, type SetupSource } from "../../shared/setup-import";
 import { GrokBotMark } from "./GrokBotMark";
 import { BringBotsDialog, GrokMoveDialog } from "./lazy-screens";
 import { ClaudeMark, CodexMark, CursorMark, PresetProviderMark } from "./ProviderIcons";
 import { Card as RowsCard, CheckRow, ItemRow, NoteRow } from "./ListRows";
 
 function SourceMarks({ sources }: { sources: readonly SetupSource[] }) {
-  const marks = [...new Set(sources.map((source) => (source === "claudeDesktop" ? "claudeCode" : source)))];
+  const marks = [...new Set(sources.flatMap((source) => (source === "claudeDesktop" ? ["claudeCode"] : source === "windsurf" || source === "vscode" ? [] : [source])))];
   return (
     <span className="mr-1.5 inline-flex items-center gap-1 align-[-1px]" aria-hidden="true">
       {marks.map((source) => {
@@ -70,7 +71,7 @@ export function AiAppsImportView({ local, detection, chosen, status, result, onC
   else if (result) {
     const { line, notes } = importOutcome(result);
     body = <div role="status" className="contents"><ItemRow title={line} hint={notes.length ? notes.join(" ") : undefined} /></div>;
-  } else if (!detection || detectionCount(detection) === 0) {
+  } else if (!detection || detection.skills.length + detection.tools.length === 0) {
     body = <NoteRow>{detection === null ? t("onboarding.import.error") : t("settings.import.appsNothing")}</NoteRow>;
   } else {
     body = (
@@ -89,7 +90,7 @@ export function AiAppsImportView({ local, detection, chosen, status, result, onC
       </>
     );
   }
-  const offering = Boolean(local && detection && !result && detectionCount(detection) > 0);
+  const offering = Boolean(local && detection && !result && detection.skills.length + detection.tools.length > 0);
   return (
     <section data-import-section="apps" className="contents">
       <RowsCard>
@@ -136,6 +137,27 @@ function AiAppsImport({ client, local }: { client: SetupImportClient; local: boo
   return <AiAppsImportView local={local} detection={detection} chosen={chosen} status={status} result={result} onChoose={setChosen} onBring={() => void bring()} />;
 }
 
+/** Notes from an AI online: the first run's prompt, any time. Its answer comes in wherever it is pasted. */
+export function NotesImportSection() {
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 2_000);
+    return () => clearTimeout(timer);
+  }, [copied]);
+  return (
+    <section data-import-section="notes" className="contents">
+      <RowsCard>
+        <ItemRow title={t("settings.import.notesTitle")} hint={t("settings.import.notesHint")}>
+          <button type="button" data-notes-prompt-copy onClick={() => void copyNotesPrompt().then(setCopied)} className="ui-button">
+            {copied ? t("settings.import.notesCopied") : t("settings.import.notesCopy")}
+          </button>
+        </ItemRow>
+      </RowsCard>
+    </section>
+  );
+}
+
 export function GrokImportSection() {
   const [open, setOpen] = useState(false);
   return (
@@ -172,6 +194,7 @@ export function ImportSettings({ client = setupImportApi }: { client?: SetupImpo
     <>
       {local && <BotsImportSection />}
       {local && <AiAppsImport client={client} local />}
+      <NotesImportSection />
       <GrokImportSection />
     </>
   );

@@ -6,7 +6,7 @@ export const KEEP_WORDS: ReadonlySet<string> = new Set([
   "Foundry", "Gemini", "Gmail", "Google", "Greenference", "Grok", "Groq", "Jev", "Kimi", "Linux", "Mac", "Markdown",
   "Mermaid", "Meta", "Microsoft", "Mistral", "Moonshot", "Muse", "Node", "Notion", "Ollama", "OpenClaw", "Outlook", "Pi", "Podman",
   "PowerShell", "Qwen", "Reddit", "Safari", "Slack", "Stripe", "Tailscale", "Telegram", "Terminal", "Twitter", "Ubuntu",
-  "Unsloth", "Venice", "Vercel", "Wayland", "Whop", "Windows", "Xorg", "Accessibility",
+  "Unsloth", "Venice", "Vercel", "Wayland", "Whop", "Windows", "Windsurf", "Xorg", "Accessibility",
   // people and places
   "Milind", "Omkar", "Karan", "Bansal", "Europe", "Lisbon",
   // days, months, languages
@@ -25,7 +25,7 @@ export const KEEP_PHRASES: readonly string[] = [
   "Home Screen", "App Store", "Google Play", "Apple Pay", "Google Pay", "G Pay", "Mac mini",
   "Dusk Bot", "Claude Code", "Hermes Agent", "Kimi Code", "Fish Audio", "LM Studio", "Google AI Studio", "Hacker News", "Vercel AI Gateway",
   "Cloudflare Workers AI", "OpenCode Zen, Go", "OpenCode Zen and Go", "DeepSeek Harness", "Grok Imagine", "Muse Wonder",
-  "Cua Driver", "Node.js", "Wi-Fi", "Gmail, Calendar or Drive", "Outlook, Calendar or OneDrive", "Google Drive",
+  "Cua Driver", "VS Code", "Node.js", "Wi-Fi", "Gmail, Calendar or Drive", "Outlook, Calendar or OneDrive", "Google Drive",
   "1Password", "AirPods Pro", "Google Calendar", "Google Sheets", "Google Docs", "Google Meet", "Microsoft Teams", "X Developer",
 ];
 

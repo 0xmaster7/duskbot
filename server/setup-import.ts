@@ -5,12 +5,14 @@
 // and out of the tools' own logins and history. Skills are copied once into this computer's imported skills, which every bot uses (imported-skills.ts);
 // MCP servers go through the same parser as Plugins → MCP servers → Paste config, switched off.
 import { createHash } from "node:crypto";
-import { closeSync, constants, fstatSync, lstatSync, openSync, readdirSync, readlinkSync, readSync, realpathSync, statSync, type Stats } from "node:fs";
+import { closeSync, constants, fstatSync, lstatSync, openSync, readdirSync, readFileSync, readlinkSync, readSync, realpathSync, statSync, type Stats } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 
-import type { SetupDetection, SetupImportRequest, SetupImportResult, SetupSource, SkillSkip, SkillSource, ToolSkip } from "../shared/setup-import.ts";
-import { holdsCredential } from "../shared/redact.ts";
+import type { InstructionsSource, SetupDetection, SetupImportRequest, SetupImportResult, SetupSource, SkillSkip, SkillSource, ToolSkip } from "../shared/setup-import.ts";
+import { holdsCredential, redactSecretsInText } from "../shared/redact.ts";
+import { writeFileAtomic } from "./atomic.ts";
+import { DATA_DIR } from "./config.ts";
 import { parseSkillMd, scanSkillText, SKILL_FILE_MAX_BYTES, type ParsedSkill } from "../shared/skill-md.ts";
 import { importedSkillIntact, readImportedSkills, storeImportedSkills, type ImportedSkillEntry, type ImportedSkillInput } from "./imported-skills.ts";
 import { importedMcpServerName, isRemoteMcpServer, MAX_MCP_SERVERS, parseMcpServersImport, parseStoredMcpServer, type StoredMcpServer } from "./mcp-registry.ts";
@@ -90,9 +92,11 @@ export function thisMachine(): SetupMachine {
   return { home: homedir(), platform: process.platform, env: process.env, fs: nodeFs };
 }
 
-type ToolFormat = "claudeJson" | "json" | "toml";
+type ToolFormat = "claudeJson" | "json" | "vscode" | "toml";
 
 const CONFIG_MAX_BYTES = 1024 * 1024;
+/** A standing-instructions file bigger than this is someone's notes folder, not instructions: it is not offered. */
+export const INSTRUCTIONS_MAX_BYTES = 64 * 1024;
 /** ~/.claude.json also keeps every project's history, so it can be large; only its mcpServers member is parsed. */
 const CLAUDE_JSON_MAX_BYTES = 256 * 1024 * 1024;
 
@@ -105,6 +109,9 @@ export function setupPaths(machine: Pick<SetupMachine, "home" | "platform" | "en
     : platform === "win32" ? join(absolute(env.APPDATA) ?? join(home, "AppData", "Roaming"), "Claude")
       : join(home, ".config", "Claude");
   const codexLabel = codexHome === join(home, ".codex") ? "~/.codex/skills" : "$CODEX_HOME/skills";
+  const vscode = platform === "darwin" ? join(home, "Library", "Application Support", "Code", "User")
+    : platform === "win32" ? join(absolute(env.APPDATA) ?? join(home, "AppData", "Roaming"), "Code", "User")
+      : join(home, ".config", "Code", "User");
   return {
     codexHome,
     skills: [
@@ -117,7 +124,15 @@ export function setupPaths(machine: Pick<SetupMachine, "home" | "platform" | "en
       { source: "cursor", path: join(home, ".cursor", "mcp.json"), format: "json", max: CONFIG_MAX_BYTES },
       { source: "codex", path: join(codexHome, "config.toml"), format: "toml", max: CONFIG_MAX_BYTES },
       { source: "gemini", path: join(home, ".gemini", "settings.json"), format: "json", max: CONFIG_MAX_BYTES },
+      { source: "windsurf", path: join(home, ".codeium", "windsurf", "mcp_config.json"), format: "json", max: CONFIG_MAX_BYTES },
+      { source: "vscode", path: join(vscode, "mcp.json"), format: "vscode", max: CONFIG_MAX_BYTES },
     ] satisfies Array<{ source: SetupSource; path: string; format: ToolFormat; max: number }>,
+    instructions: [
+      { source: "claudeCode", path: join(home, ".claude", "CLAUDE.md"), name: "CLAUDE.md" },
+      { source: "codex", path: join(codexHome, "AGENTS.md"), name: "AGENTS.md" },
+      { source: "gemini", path: join(home, ".gemini", "GEMINI.md"), name: "GEMINI.md" },
+      { source: "windsurf", path: join(home, ".codeium", "windsurf", "memories", "global_rules.md"), name: "global_rules.md" },
+    ] satisfies Array<{ source: InstructionsSource; path: string; name: string }>,
   };
 }
 
@@ -399,13 +414,16 @@ export function claudeCodeSkillInputs(machine: SetupMachine = thisMachine()): Im
 
 /** One copy for every bot, made once however many bots there are or will be. One the scan flags comes in switched off:
  * a person switches it on for a bot after reading it, as with any other import. */
-function importSkills(machine: SetupMachine): NonNullable<SetupImportResult["skills"]> {
+const fromSources = <Item extends { source: SetupSource }>(items: Item[], sources?: readonly SetupSource[]) =>
+  (sources ? items.filter((item) => sources.includes(item.source)) : items);
+
+function importSkills(machine: SetupMachine, sources?: readonly SetupSource[]): NonNullable<SetupImportResult["skills"]> {
   const index = readImportedSkills();
   const budget = { bytes: 0 };
   const result: NonNullable<SetupImportResult["skills"]> = { added: [], present: [], skipped: [], filesLeftOut: 0, review: [] };
   const skip = (name: string, reason: SkillSkip) => result.skipped.push({ name, reason });
   const inputs: ImportedSkillInput[] = [];
-  for (const skill of findSkills(machine)) {
+  for (const skill of fromSources(findSkills(machine), sources)) {
     const held = index[skill.name];
     if (alreadyHere(skill, held)) {
       result.present.push(skill.name);
@@ -578,8 +596,8 @@ function pasteEntry(source: SetupSource, raw: Record<string, unknown>): Record<s
   if (source === "gemini") {
     if (typeof raw.httpUrl === "string") return remote("http", raw.httpUrl);
     if (typeof raw.url === "string") return remote(raw.type === "http" ? "http" : "sse", raw.url);
-  } else if (typeof raw.url === "string") {
-    return remote(typeof raw.type === "string" && /sse/i.test(raw.type) ? "sse" : "http", raw.url);
+  } else if (typeof raw.url === "string" || (source === "windsurf" && typeof raw.serverUrl === "string")) {
+    return remote(typeof raw.type === "string" && /sse/i.test(raw.type) ? "sse" : "http", raw.url ?? raw.serverUrl);
   }
   const env = textValues(raw.env);
   return {
@@ -609,7 +627,7 @@ function toolEntries(machine: SetupMachine, tool: ReturnType<typeof setupPaths>[
       return isRecord(servers) ? servers : null;
     }
     const parsed: unknown = tool.format === "toml" ? parseToml(text) : JSON.parse(withoutTrailingCommas(withoutJsonComments(text)));
-    const servers = isRecord(parsed) ? parsed[tool.format === "toml" ? "mcp_servers" : "mcpServers"] : undefined;
+    const servers = isRecord(parsed) ? parsed[tool.format === "toml" ? "mcp_servers" : tool.format === "vscode" ? "servers" : "mcpServers"] : undefined;
     return isRecord(servers) ? servers : null;
   } catch {
     return null;
@@ -630,7 +648,7 @@ function foundTool(source: SetupSource, rawName: string, raw: Record<string, unk
 
 /** Every server the tools list, normalised and switched off by Paste config's parser, sorted into new, already here,
  * named like a different one here, and refused by the organization; a server two tools list is kept once. */
-function findTools(machine: SetupMachine, current: Record<string, unknown>, host: Pick<SetupHost, "mcpPolicyRefusal" | "claudeUserMcp">) {
+function findTools(machine: SetupMachine, current: Record<string, unknown>, host: Pick<SetupHost, "mcpPolicyRefusal" | "claudeUserMcp">, sources?: readonly SetupSource[]) {
   const existing = Object.entries(current).flatMap(([name, raw]) => {
     const parsed = parseStoredMcpServer(name, raw);
     return parsed.ok ? [identity(parsed.server)] : [];
@@ -645,7 +663,7 @@ function findTools(machine: SetupMachine, current: Record<string, unknown>, host
   const refused: FoundTool[] = [];
   const inPlace = host.claudeUserMcp?.() === true;
   for (const tool of setupPaths(machine).tools) {
-    if (inPlace && tool.source === "claudeCode") continue;
+    if ((inPlace && tool.source === "claudeCode") || (sources && !sources.includes(tool.source))) continue;
     const entries = toolEntries(machine, tool);
     for (const [rawName, raw] of Object.entries(entries ?? {})) {
       if (!isRecord(raw)) continue;
@@ -662,16 +680,16 @@ function findTools(machine: SetupMachine, current: Record<string, unknown>, host
   return { fresh, present, conflicts, refused };
 }
 
-function importTools(machine: SetupMachine, host: SetupHost): NonNullable<SetupImportResult["tools"]> {
+function importTools(machine: SetupMachine, host: SetupHost, sources?: readonly SetupSource[]): NonNullable<SetupImportResult["tools"]> {
   const skipped = (tools: FoundTool[], reason: ToolSkip) => tools.map((tool) => ({ name: tool.name, reason }));
   // Single-flight with the MCP servers routes: a read of the list must not interleave with another save.
   if (host.mcpConfigBusy.get()) {
-    return { added: [], present: [], skipped: skipped(findTools(machine, host.mcpServers(), host).fresh, "busy") };
+    return { added: [], present: [], skipped: skipped(findTools(machine, host.mcpServers(), host, sources).fresh, "busy") };
   }
   host.mcpConfigBusy.set(true);
   try {
     const current = host.mcpServers();
-    const { fresh, present, conflicts, refused } = findTools(machine, current, host);
+    const { fresh, present, conflicts, refused } = findTools(machine, current, host, sources);
     const room = Math.max(0, MAX_MCP_SERVERS - Object.keys(current).length);
     const adding = fresh.slice(0, room);
     let saved = true;
@@ -695,6 +713,47 @@ function importTools(machine: SetupMachine, host: SetupHost): NonNullable<SetupI
   }
 }
 
+const INSTRUCTIONS_INDEX = () => join(DATA_DIR, "skill-state", "imported-instructions.json");
+
+/** Each instructions file brought in, by path, and the hash of the text it had. */
+function readInstructionsIndex(): Record<string, string> {
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(INSTRUCTIONS_INDEX(), "utf8"));
+    return isRecord(parsed) ? Object.fromEntries(Object.entries(parsed).filter((entry): entry is [string, string] => typeof entry[1] === "string")) : {};
+  } catch {
+    return {};
+  }
+}
+
+/** The tools' standing-instructions files with text in them that is new since it was last brought in. A link (a
+ * dotfiles folder, say) is followed only while it stays in the home folder and out of the folders macOS guards, and
+ * only to a Markdown file. */
+function findInstructions(machine: SetupMachine) {
+  const index = readInstructionsIndex();
+  const real = machine.fs.realpath(machine.home);
+  const places = { homes: [...new Set([machine.home, ...(real ? [real] : [])])], darwin: machine.platform === "darwin" };
+  return setupPaths(machine).instructions.flatMap((file) => {
+    const found = locate(machine, places, file.path);
+    if (!found?.info.isFile() || !/\.md$/i.test(found.path)) return [];
+    const bytes = machine.fs.read(found.path, INSTRUCTIONS_MAX_BYTES, false, true);
+    const text = bytes ? utf8(bytes)?.trim() : null;
+    if (!text) return [];
+    const hash = sha256(text);
+    return index[file.path] === hash ? [] : [{ ...file, text, hash }];
+  });
+}
+
+function importInstructions(machine: SetupMachine, sources?: readonly SetupSource[]): NonNullable<SetupImportResult["instructions"]> {
+  const found = fromSources(findInstructions(machine), sources);
+  if (!found.length) return [];
+  try {
+    writeFileAtomic(INSTRUCTIONS_INDEX(), `${JSON.stringify({ ...readInstructionsIndex(), ...Object.fromEntries(found.map((file) => [file.path, file.hash])) }, null, 2)}\n`, { mode: 0o600 });
+  } catch {
+    // offered again next time: better than lost
+  }
+  return found.map(({ name, source, text }) => ({ name, source, text: redactSecretsInText(text) }));
+}
+
 /** What is new here, by name and source; an empty list when nothing is. */
 export function detectSetup(machine: SetupMachine, host: SetupHost): SetupDetection {
   const index = readImportedSkills();
@@ -703,7 +762,8 @@ export function detectSetup(machine: SetupMachine, host: SetupHost): SetupDetect
   const tools = Object.keys(current).length < MAX_MCP_SERVERS
     ? findTools(machine, current, host).fresh.map(({ name, source }) => ({ name, source }))
     : [];
-  return { skills, tools };
+  const instructions = findInstructions(machine).map(({ name, source }) => ({ name, source }));
+  return { skills, tools, ...(instructions.length ? { instructions } : {}) };
 }
 
 /** Each kind on its own: one that fails reports what it was bringing in as failed, and the other still comes in. */
@@ -717,20 +777,28 @@ export function applySetupImport(machine: SetupMachine, host: SetupHost, request
   };
   const skills = (): NonNullable<SetupImportResult["skills"]> => {
     try {
-      return importSkills(machine);
+      return importSkills(machine, request.sources);
     } catch {
       return { added: [], present: [], skipped: failed(() => findSkills(machine).map((skill) => skill.name), "failed"), filesLeftOut: 0, review: [] };
     }
   };
   const tools = (): NonNullable<SetupImportResult["tools"]> => {
     try {
-      return importTools(machine, host);
+      return importTools(machine, host, request.sources);
     } catch {
       return { added: [], present: [], skipped: failed(() => findTools(machine, host.mcpServers(), host).fresh.map((tool) => tool.name), "failed") };
+    }
+  };
+  const instructions = () => {
+    try {
+      return importInstructions(machine, request.sources);
+    } catch {
+      return [];
     }
   };
   return {
     ...(request.skills ? { skills: skills() } : {}),
     ...(request.tools ? { tools: tools() } : {}),
+    ...(request.instructions ? { instructions: instructions() } : {}),
   };
 }

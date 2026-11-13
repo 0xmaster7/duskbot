@@ -1,18 +1,22 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ClipboardEvent as ReactClipboardEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import { setEmailGateDone, track } from "@/lib/analytics";
 import { openExternalLink } from "@/lib/app-links";
 import { cn } from "@/lib/cn";
 import { chiefFor, chiefStepFits, createChiefPatch, myDefaultBot, stageIntro, useViewerEmail } from "@/lib/default-bot";
 import { completionPatch, DEFAULT_ADMIN_ORIGIN, firstRunPatch, markWelcomeFinished, resumeBeat, showWelcome, type BeatId } from "@/lib/onboarding";
 import { clearWelcomeDraft, readWelcomeDraft, saveWelcomeDraft } from "@/lib/welcome-draft";
-import { movable } from "@/lib/bot-move";
+import { looksLikeNotes } from "@/lib/assistant-notes";
+import { bringChosen, localFinds, useBringRun } from "@/lib/first-run-import";
 import { openPlaceSetup, usePlaceSetupOpen } from "@/lib/place-setup";
-import { localSetupImport } from "@/lib/setup-import";
+import { detectSetupWithin, localSetupImport, setupImportApi } from "@/lib/setup-import";
 import { api, useStore } from "@/state/store";
-import { BringBotsView, useBotMove } from "../BringBots";
+import type { SetupDetection } from "../../../shared/setup-import";
+import { useBotMove } from "../BringBots";
+import { useNotesIntake } from "../NotesWaiting";
 import { GrokMoveDialog } from "../lazy-screens";
 import { AccountStep } from "./AccountStep";
 import { AiStep } from "./AiStep";
+import { BringStatus, BringStep } from "./BringStep";
 import { funnelSteps, nextStep, previousStep, type FunnelStep } from "./funnel";
 import { funnelAccount, type FunnelAccountState } from "./funnel-account";
 import { FunnelBar, PhoneStep, PlaceStep, WelcomeStep } from "./FunnelSteps";
@@ -107,17 +111,24 @@ export function WelcomeFlow({
   const draft = useMemo(() => (keepsDraft ? readWelcomeDraft() : null), [keepsDraft]);
   const [cloud, setCloud] = useState(draft?.cloud === true);
 
-  // bots another agent app keeps on this computer: their own step, only when there are some
+  // what other AI apps left on this computer: looked for from the start, in the background, so the step is ready by the
+  // time it shows; the step itself is there either way, for the AIs that live online
   const offersMove = !replay && desktop && localSetupImport(state.config?.cloudHome === true);
   const move = useBotMove({ look: offersMove });
+  const [detection, setDetection] = useState<SetupDetection | null | undefined>(offersMove ? undefined : null);
+  useEffect(() => {
+    if (!offersMove) return;
+    const look = detectSetupWithin(setupImportApi, 4_000);
+    void look.found.then(setDetection);
+    return look.cancel;
+  }, [offersMove]);
+  const finds = useMemo(() => (move.plan && detection !== undefined ? localFinds(move.plan, detection) : null), [move.plan, detection]);
+  const bringRun = useBringRun();
+  const [notesLine, setNotesLine] = useState<string | null>(null);
   const [grokOpen, setGrokOpen] = useState(false);
-  const moveFound = Boolean(move.plan && (movable(move.plan) || move.plan.grokWaiting.length));
 
   const saved = initialBeat ?? draft?.beat;
-  // once found, the step stays, so it still counts after its bots came over
-  const bringing = useRef(saved === "bring");
-  if (moveFound) bringing.current = true;
-  const steps = funnelSteps({ account: Boolean(account) && !firstKnown.current?.signedIn, desktop, bring: bringing.current, cloud });
+  const steps = funnelSteps({ account: Boolean(account) && !firstKnown.current?.signedIn, desktop, bring: offersMove, cloud });
 
   const [at, setAt] = useState<FunnelStep>(() => resumeBeat(steps, saved));
   // the second click of a double click lands on the step it opened: it must not choose there
@@ -225,10 +236,19 @@ export function WelcomeFlow({
   };
   const chooseMac = () => { setCloud(false); next(); };
 
-  // a run resumed on the bring step whose bots are gone meanwhile goes on
-  useEffect(() => {
-    if (at === "bring" && move.step.kind === "nothing") { bringing.current = false; go(nextStep(steps, "bring"), "next"); }
-  }, [at, move.step.kind, steps, go]);
+  const bring = (chosen: Parameters<typeof bringChosen>[0]) => {
+    track("onboarding_bring", { apps: chosen.length });
+    void bringChosen(chosen, { dispatch, firstBotId: maus?.id ?? null });
+    next();
+  };
+  // notes from another AI pasted on any step come in from here too
+  const takeNotes = useNotesIntake();
+  const onPaste = (event: ReactClipboardEvent<HTMLDivElement>) => {
+    const pasted = event.clipboardData.getData("text/plain");
+    if (!looksLikeNotes(pasted)) return;
+    event.preventDefault();
+    takeNotes(pasted, setNotesLine);
+  };
 
   const overlayOpen = Boolean(state.cloudAdd) || Boolean(placeSheet) || grokOpen;
   const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -237,7 +257,7 @@ export function WelcomeFlow({
       event.preventDefault();
       // Escape is "not now": past an optional step, never past an account the app needs
       if (at === "account" && known?.required) return;
-      if (at === "welcome" || at === "account" || at === "place" || at === "making" || move.step.kind === "moving") return;
+      if (at === "welcome" || at === "account" || at === "place" || at === "making") return;
       next();
       return;
     }
@@ -259,12 +279,7 @@ export function WelcomeFlow({
       body = <AiStep tested={tested} onNext={next} />;
       break;
     case "bring":
-      body = move.plan ? (
-        <div className="mx-auto my-auto flex w-full flex-col items-center px-6 pb-12 pt-20">
-          <BringBotsView plan={move.plan} step={move.step} bot={maus} variant="screen" onBring={() => void move.bring()}
-            onSkip={next} onContinue={next} onGrok={() => setGrokOpen(true)} />
-        </div>
-      ) : null;
+      body = <BringStep finds={finds} grokWaiting={move.plan?.grokWaiting ?? []} onGrok={() => setGrokOpen(true)} onBring={bring} onNext={next} />;
       break;
     case "phone":
       body = <PhoneStep onNext={next} />;
@@ -280,10 +295,11 @@ export function WelcomeFlow({
       ref={root}
       role="dialog"
       aria-modal
-      aria-labelledby={at === "bring" ? "bot-move-title" : "welcome-title"}
+      aria-labelledby="welcome-title"
       tabIndex={-1}
       onKeyDown={onKeyDown}
       onClickCapture={swallowDoubleClick}
+      onPaste={onPaste}
       data-welcome={at}
       className={cn("welcome-screen flex overflow-y-auto bg-app outline-none", embedded ? "relative h-full w-full" : "fixed inset-0 z-50")}
     >
@@ -291,6 +307,7 @@ export function WelcomeFlow({
       <div key={at} data-from={from} className="place-step relative flex min-h-full w-full flex-col">
         {body}
       </div>
+      <BringStatus working={bringRun.kind === "working"} line={notesLine ?? (bringRun.kind === "done" ? bringRun.line : null)} />
       {grokOpen && <GrokMoveDialog onClose={() => { setGrokOpen(false); void move.look(); }} />}
     </div>
   );

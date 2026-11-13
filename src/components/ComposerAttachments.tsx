@@ -18,6 +18,7 @@ import { AttachmentPreviewDialog, FileGlyph, previewImage, type PreviewImage } f
 import { movesLess } from "./composer-wrap";
 import { rememberImageSize } from "@/lib/image-cache";
 import { t } from "@/lib/i18n";
+import { notesInFiles } from "@/lib/assistant-notes";
 import { UploadRing } from "./UploadRing";
 
 /** Electron 32 removed File.path, so only the preload can name a file. */
@@ -31,6 +32,7 @@ export function ComposerAttachments({
   onAdd,
   allowImages = true,
   onNotice,
+  onNotes,
   onPendingChange,
   onDraggingChange,
   uploadImage,
@@ -40,6 +42,8 @@ export function ComposerAttachments({
   onAdd: (attachments: Attachment[]) => void;
   allowImages?: boolean;
   onNotice: (notice: string | null) => void;
+  /** A dropped file of notes another AI wrote: brought in, not attached. */
+  onNotes?: (text: string) => void;
   onPendingChange?: (pending: boolean) => void;
   onDraggingChange?: (dragging: boolean) => void;
   uploadImage: (file: File) => Promise<Attachment | null>;
@@ -53,8 +57,8 @@ export function ComposerAttachments({
   // A drop past the images the message can still take is left out with a notice.
   const imageSlots = imageSlotsLeft(items);
   const imageBytes = imageBytesLeft(items);
-  const callbacks = useRef({ onAdd, onNotice, onPendingChange, allowImages, imageSlots, imageBytes, uploadImage, uploadFile });
-  callbacks.current = { onAdd, onNotice, onPendingChange, allowImages, imageSlots, imageBytes, uploadImage, uploadFile };
+  const callbacks = useRef({ onAdd, onNotice, onNotes, onPendingChange, allowImages, imageSlots, imageBytes, uploadImage, uploadFile });
+  callbacks.current = { onAdd, onNotice, onNotes, onPendingChange, allowImages, imageSlots, imageBytes, uploadImage, uploadFile };
   const pendingDrops = useRef(new Set<symbol>());
   const draggingChanged = useRef(onDraggingChange);
   draggingChanged.current = onDraggingChange;
@@ -83,7 +87,13 @@ export function ComposerAttachments({
       e.preventDefault();
       depth.current = 0;
       setDragging(false);
-      const files = Array.from(e.dataTransfer?.files ?? []);
+      let files = Array.from(e.dataTransfer?.files ?? []);
+      const notes = callbacks.current.onNotes ? await notesInFiles(files) : null;
+      if (notes) {
+        callbacks.current.onNotes?.(notes.text);
+        files = files.filter((file) => file.name !== notes.name);
+        if (!files.length) return;
+      }
       const operation = Symbol("attachment-drop");
       pendingDrops.current.add(operation);
       callbacks.current.onPendingChange?.(true);

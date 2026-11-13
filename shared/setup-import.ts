@@ -1,18 +1,25 @@
 // "Bring what you already use": the skills and MCP servers of a person's other AI tools that the welcome flow finds
 // on this computer and brings in.
 
-export type SetupSource = "claudeCode" | "claudeDesktop" | "cursor" | "codex" | "gemini";
+export type SetupSource = "claudeCode" | "claudeDesktop" | "cursor" | "codex" | "gemini" | "windsurf" | "vscode";
 export type SkillSource = Extract<SetupSource, "claudeCode" | "codex">;
+/** A tool whose standing instructions (CLAUDE.md, AGENTS.md, GEMINI.md, global rules) live in one file. */
+export type InstructionsSource = Extract<SetupSource, "claudeCode" | "codex" | "gemini" | "windsurf">;
 
 /** Names only, never a file's contents or an env or header value. Everything listed is new here. */
 export interface SetupDetection {
   skills: Array<{ name: string; source: SkillSource }>;
   tools: Array<{ name: string; source: SetupSource }>;
+  /** Instruction files new or changed since they were last brought in, by the file's own name. */
+  instructions?: Array<{ name: string; source: InstructionsSource }>;
 }
 
 export interface SetupImportRequest {
   skills?: boolean;
   tools?: boolean;
+  instructions?: boolean;
+  /** Only these tools' things; absent means every tool's. */
+  sources?: SetupSource[];
 }
 
 export type SkillSkip = "conflict" | "failed";
@@ -23,10 +30,12 @@ export type ToolSkip = "limit" | "policy" | "busy" | "conflict" | "failed";
 export interface SetupImportResult {
   skills?: { added: string[]; present: string[]; skipped: Array<{ name: string; reason: SkillSkip }>; filesLeftOut: number; review: string[] };
   tools?: { added: string[]; present: string[]; skipped: Array<{ name: string; reason: ToolSkip }> };
+  /** The files' text, credentials redacted, for the first bot's memory; recorded as brought in once read. */
+  instructions?: Array<{ name: string; source: InstructionsSource; text: string }>;
 }
 
 export function detectionCount(detection: SetupDetection | null | undefined): number {
-  return detection ? detection.skills.length + detection.tools.length : 0;
+  return detection ? detection.skills.length + detection.tools.length + (detection.instructions?.length ?? 0) : 0;
 }
 
 /** Each source once, in the order first found. */

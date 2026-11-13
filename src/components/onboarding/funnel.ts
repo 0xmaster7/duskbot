@@ -10,7 +10,7 @@ export interface FunnelFacts {
   account: boolean;
   /** this is the desktop app's own window, where bots can live on this Mac, in dusk cloud or on a server */
   desktop: boolean;
-  /** another agent app on this computer has bots to bring in */
+  /** this window can bring in what other AI apps left on this computer (and offer the prompt for ones online) */
   bring?: boolean;
   /** a dusk cloud was bought in this run: the bots live there, so the run ends by waiting for it */
   cloud?: boolean;

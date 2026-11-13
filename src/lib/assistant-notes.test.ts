@@ -1,0 +1,118 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const f = vi.hoisted(() => ({ api: vi.fn(), runBotMove: vi.fn(), copy: vi.fn() }));
+vi.mock("@/state/store", () => ({ api: f.api }));
+vi.mock("./bot-move", () => ({ runBotMove: f.runBotMove }));
+vi.mock("./copy-text", () => ({ copyText: f.copy }));
+vi.mock("./own-profile", () => ({ saveTeamProfile: vi.fn() }));
+import { setLocale } from "@/lib/i18n";
+import { NOTES_FORMAT } from "../../shared/assistant-notes";
+import { GrokImportError } from "../../shared/grok-import";
+import {
+  copyNotesPrompt, importNotes, notesErrorLine, notesInFiles, notesOutcomeLine, notesWaiting, REMIND_AFTER_MS, scheduleNotesReminder, stopWaiting,
+} from "./assistant-notes";
+
+const memoryStorage = () => {
+  const values = new Map<string, string>();
+  return { getItem: (k: string) => values.get(k) ?? null, setItem: (k: string, v: string) => void values.set(k, String(v)), removeItem: (k: string) => void values.delete(k) };
+};
+const notes = (extra: Record<string, unknown> = {}) => `\`\`\`json\n${JSON.stringify({
+  format: NOTES_FORMAT, version: 1, from: "Claude", about_me: ["Name is Sam."], instructions: "Be brief.", memories: ["Bakery launch in March."],
+  bots: [{ name: "Recipe helper", instructions: "Scale recipes." }], ...extra,
+})}\n\`\`\``;
+
+beforeEach(() => {
+  setLocale("en");
+  vi.stubGlobal("localStorage", memoryStorage());
+  f.api.mockReset();
+  f.runBotMove.mockReset();
+  f.copy.mockReset();
+});
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
+
+describe("waiting for notes from another AI", () => {
+  it("starts on a copy, keeps its first start on a second copy, and stops", async () => {
+    f.copy.mockResolvedValue("copied");
+    expect(await copyNotesPrompt(1_000)).toBe(true);
+    expect(await copyNotesPrompt(9_000)).toBe(true);
+    expect(notesWaiting()).toEqual({ since: 1_000 });
+    stopWaiting();
+    expect(notesWaiting()).toBeNull();
+    f.copy.mockResolvedValue("failed");
+    expect(await copyNotesPrompt()).toBe(false);
+    expect(notesWaiting(), "nothing to wait for when the copy failed").toBeNull();
+  });
+
+  it("reminds once, 15 minutes after the copy, only while still waiting", async () => {
+    vi.useFakeTimers();
+    f.copy.mockResolvedValue("copied");
+    await copyNotesPrompt(Date.now());
+    const show = vi.fn();
+    scheduleNotesReminder(show);
+    vi.advanceTimersByTime(REMIND_AFTER_MS - 1);
+    expect(show).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(show).toHaveBeenCalledOnce();
+    scheduleNotesReminder(show);
+    vi.advanceTimersByTime(REMIND_AFTER_MS * 2);
+    expect(show, "never a second time").toHaveBeenCalledOnce();
+  });
+
+  it("doesn't remind late for a copy made before the app was closed, or after the notes came", async () => {
+    vi.useFakeTimers();
+    f.copy.mockResolvedValue("copied");
+    await copyNotesPrompt(Date.now() - REMIND_AFTER_MS * 4);
+    const show = vi.fn();
+    scheduleNotesReminder(show);
+    vi.advanceTimersByTime(REMIND_AFTER_MS);
+    expect(show).not.toHaveBeenCalled();
+    stopWaiting();
+    await copyNotesPrompt(Date.now());
+    scheduleNotesReminder(show);
+    stopWaiting();
+    vi.advanceTimersByTime(REMIND_AFTER_MS);
+    expect(show).not.toHaveBeenCalled();
+  });
+});
+
+describe("bringing notes in", () => {
+  it("puts facts and instructions in About me, memories in the first bot's memory, and makes a bot for each of its own", async () => {
+    f.copy.mockResolvedValue("copied");
+    await copyNotesPrompt();
+    f.api.mockImplementation(async (path: string, init?: { method?: string; body?: string }) => {
+      if (path === "/api/config") return { profile: JSON.parse(init!.body!).profile };
+      if (path.startsWith("/api/bots/dusk/memory/file?")) return { text: "" };
+      if (path === "/api/mcp/servers") return { servers: [] };
+      return { ok: true };
+    });
+    f.runBotMove.mockResolvedValue([{ report: { bots: [{ id: "r" }], failed: [] } }]);
+    const dispatch = vi.fn();
+    const outcome = await importNotes(`Here you go:\n${notes()}`, { bots: [], aboutMe: "I bake.", team: false, firstBotId: "dusk", dispatch });
+    const about = JSON.parse(f.api.mock.calls.find(([path]) => path === "/api/config")![1].body).profile.aboutMe;
+    expect(about).toContain("I bake.\n\nFrom Claude:\n- Name is Sam.");
+    expect(about).toContain("Be brief.");
+    const memory = JSON.parse(f.api.mock.calls.find(([path, init]) => path === "/api/bots/dusk/memory/file" && init?.method === "PUT")![1].body);
+    expect(memory.path).toBe("memory/notes-from-claude.md");
+    expect(f.runBotMove.mock.calls[0]![0].apps[0].preview.plans.map((plan: { name: string }) => plan.name)).toEqual(["Recipe helper"]);
+    expect(dispatch).toHaveBeenCalledWith({ type: "profileSaved", profile: { aboutMe: about } });
+    expect(notesOutcomeLine(outcome)).toBe("Brought in from Claude: 2 things about you, 1 memory, and 1 bot.");
+    expect(notesWaiting(), "the waiting ends once they came in").toBeNull();
+  });
+
+  it("says what went wrong in plain words, and what a cut-off paste still brought", async () => {
+    expect(notesErrorLine(new GrokImportError("cutOff"))).toBe("That answer looks cut off. Ask for the rest in the same shape, then paste it too.");
+    expect(notesErrorLine(new Error("boom"))).toBe("Couldn't bring in your notes. Try pasting them again.");
+    expect(notesOutcomeLine({ from: "Gemini", facts: 0, memories: 0, bots: 0, failed: [], partial: true }))
+      .toBe("Nothing new from Gemini. It was all here already. The end was cut off. Ask for the rest and paste it here too.");
+  });
+
+  it("finds notes among dropped files, skipping other kinds and other text", async () => {
+    const file = (name: string, text: string) => ({ name, size: text.length, text: async () => text });
+    expect(await notesInFiles([file("photo.png", notes()), file("readme.md", "# hi {"), file("claude-notes.json", notes())]))
+      .toEqual({ name: "claude-notes.json", text: notes() });
+    expect(await notesInFiles([file("readme.md", "plain")])).toBeNull();
+  });
+});

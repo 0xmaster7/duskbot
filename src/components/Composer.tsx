@@ -73,6 +73,7 @@ import { useThreadApproval } from "./thread-approval";
 import { usePillHeight, useSlideOnChange, useStackedField } from "./composer-wrap";
 import "@/styles/composer.css";
 import { ComposerReplyStrip } from "./ReplyQuote";
+import { NotesWaitingLine, useNotesIntake } from "./NotesWaiting"; import { looksLikeNotes } from "@/lib/assistant-notes";
 import { escapeCancelsReply } from "@/lib/replies";
 import { useThreadRefs } from "./ThreadRefs";
 import {
@@ -237,6 +238,7 @@ export function Composer({
   const [dismissedSlashAt, setDismissedSlashAt] = useState<number | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [attachmentNotice, setAttachmentNotice] = useState<string | null>(null);
+  const takeNotes = useNotesIntake();
   const stacked = useStackedField(inputRef, !singleRow, text, simpleDock) || (simpleDock && (attachments.length > 0 || Boolean(attachmentNotice)));
   // grok's expanded composer: the text above the buttons, attachments or a reply strip; corners and height change together
   const multiline = simpleDock && (stacked || Boolean(replyTo));
@@ -682,6 +684,12 @@ export function Composer({
       return;
     }
     const pasted = e.clipboardData.getData("text/plain");
+    // notes another AI wrote for dusk bot come in, wherever they are pasted, instead of being sent
+    if (looksLikeNotes(pasted)) {
+      e.preventDefault();
+      takeNotes(pasted, setAttachmentNotice);
+      return;
+    }
     const reference = threadTokenFromPaste(pasted, threads, currentBotId);
     if (reference) {
       e.preventDefault();
@@ -759,11 +767,13 @@ export function Composer({
           onAdd={addAttachments}
           allowImages={engineSupportsImages}
           onNotice={setAttachmentNotice}
+          onNotes={(notes) => takeNotes(notes, setAttachmentNotice)}
           onPendingChange={(pending) => changeDraftAttachmentPending(draftId, pending)}
           onDraggingChange={setDragOver}
           uploadImage={uploadImage}
           uploadFile={uploadFile}
         />
+        <NotesWaitingLine botId={group ? undefined : bot?.id} />
         <QueuedComposerMessages
           items={queuedMessages}
           oneThreadPerBot={state.config?.cloudStarter === true}

@@ -25,7 +25,11 @@ export const SETUP_IMPORT_PATH = "/api/setup-import";
 export const GROK_LOOK_PATH = "/api/setup-import/grok";
 export const BOTS_LOOK_PATH = "/api/setup-import/bots";
 const LOCAL_ONLY = "Only the desktop app on the computer running dusk bot can bring in that computer's skills and tools.";
-const requestSchema = z.object({ skills: z.boolean().optional(), tools: z.boolean().optional() }).strict();
+const SOURCES = ["claudeCode", "claudeDesktop", "cursor", "codex", "gemini", "windsurf", "vscode"] as const;
+const requestSchema = z.object({
+  skills: z.boolean().optional(), tools: z.boolean().optional(), instructions: z.boolean().optional(),
+  sources: z.array(z.enum(SOURCES)).max(SOURCES.length).optional(),
+}).strict();
 
 /** GET finds what is new here; POST brings in the chosen kinds. Only the owner's own loopback, never a paired device,
  * a browser elsewhere, a bot's shell on a service server, a Cloud home or a hosted server. */
@@ -55,8 +59,8 @@ export function createSetupImportRoutes(deps: SetupImportRouteDeps): RouteHandle
       return json(res, 415, { error: "content-type must be application/json" });
     }
     const parsed = requestSchema.safeParse(await readBody(req, 4_096));
-    if (!parsed.success || (!parsed.data.skills && !parsed.data.tools)) {
-      return json(res, 400, { error: "Choose skills, tools or both." });
+    if (!parsed.success || (!parsed.data.skills && !parsed.data.tools && !parsed.data.instructions)) {
+      return json(res, 400, { error: "Choose skills, tools or instructions." });
     }
     return json(res, 200, applySetupImport(machine(), host, parsed.data));
   };

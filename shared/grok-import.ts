@@ -119,7 +119,7 @@ function isCredentialKey(key: string): boolean {
   return /password/i.test(key) || CREDENTIAL_KEY.test(key.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/[\s-]+/g, "_"));
 }
 
-function credentialKeys(value: unknown, path = "", inApps = false): string[] {
+export function credentialKeys(value: unknown, path = "", inApps = false): string[] {
   if (Array.isArray(value)) return value.flatMap((item, index) => credentialKeys(item, `${path}[${index}]`, inApps));
   if (!isRecord(value)) return [];
   return Object.entries(value).flatMap(([key, child]) => {
@@ -145,7 +145,7 @@ function dropTrailingCommas(text: string): string {
   return out;
 }
 
-function looseJson(text: string): unknown {
+export function looseJson(text: string): unknown {
   for (const attempt of [text, dropTrailingCommas(text)]) {
     try {
       return JSON.parse(attempt) as unknown;
@@ -157,7 +157,7 @@ function looseJson(text: string): unknown {
 }
 
 /** Every top-level {…} in a chat reply, by brace matching that respects JSON strings. */
-function bracedObjects(text: string): string[] {
+export function bracedObjects(text: string): string[] {
   const found: string[] = [];
   let unbalanced = 0;
   for (let at = text.indexOf("{"); at >= 0 && unbalanced < MAX_UNBALANCED;) {
@@ -214,7 +214,7 @@ function readApp(app: unknown): GrokApp[] {
 }
 
 /** The current shape, and the fields the earlier dusk.grok/1 prompt asked for. */
-function readBot(bot: Record<string, unknown>): GrokBot {
+export function readBot(bot: Record<string, unknown>): GrokBot {
   return {
     name: oneLine(first(bot.name)),
     title: oneLine(first(bot.title)),
@@ -245,7 +245,7 @@ function readBot(bot: Record<string, unknown>): GrokBot {
   };
 }
 
-function redactStrings<T>(value: T): T {
+export function redactStrings<T>(value: T): T {
   if (typeof value === "string") return redactSecretsInText(value) as T;
   if (Array.isArray(value)) return value.map((item: unknown) => redactStrings(item)) as T;
   if (isRecord(value)) return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, redactStrings(child)])) as T;

@@ -9,6 +9,7 @@ import { introStaged, stageIntro } from "@/lib/default-bot";
 import { setLocale } from "@/lib/i18n";
 import { EMPTY_ONBOARDING, MET_CHIEF_HINT, WELCOME_VERSION } from "@/lib/onboarding";
 import type { InstanceInfo } from "@/state/store";
+import { resetBringRunForTests } from "@/lib/first-run-import";
 
 const f = vi.hoisted(() => ({ state: {} as Record<string, unknown>, dispatch: vi.fn(), api: vi.fn(), onDone: vi.fn(),
   improve: [] as unknown[] }));
@@ -91,6 +92,7 @@ beforeEach(() => {
   f.onDone.mockReset();
   f.api.mockReset();
   f.improve = [];
+  resetBringRunForTests();
   f.api.mockImplementation(async (path: string, init?: { body?: string; method?: string }) => {
     if (path.endsWith("/check")) return { ok: true };
     if (path === "/api/dashboard/usage-signals") { if (init?.body) f.improve.push(JSON.parse(init.body)); return init?.body ? JSON.parse(init.body) : { enabled: true }; }
@@ -200,24 +202,26 @@ describe("connecting an AI", () => {
 describe("on the desktop app", () => {
   const desktop = (extra: Record<string, unknown> = {}) => vi.stubGlobal("duskDesktop", { remoteClient: { active: false }, requireUserPresence: async () => true, ...extra });
 
-  it("walks where bots live, the AI, the phone, then the chat, with back and progress, and no email step", async () => {
+  it("walks where bots live, the AI, what to bring, the phone, then the chat, with back and progress, and no email step", async () => {
     desktop();
     await show();
     await press("get started");
     expect(step()).toBe("place");
-    expect(host.querySelector("[data-funnel-progress]")?.getAttribute("data-funnel-progress")).toBe("2/4");
+    expect(host.querySelector("[data-funnel-progress]")?.getAttribute("data-funnel-progress")).toBe("2/5");
     expect(text()).toContain("this Mac");
     expect(text()).toContain("dusk cloud");
     expect(text()).toContain("from $20 a month");
     await choose("[data-funnel-place=mac]");
     expect(step()).toBe("ai");
     await press("continue");
+    expect(step()).toBe("bring");
+    await press("skip");
     expect(step()).toBe("phone");
     expect(host.querySelector(".phone-frame img"), "the phone app's own screen").not.toBeNull();
     expect(button("skip")?.className, "skip is a real button").toContain("ui-button-lg");
     await press("back");
-    expect(step()).toBe("ai");
-    await press("continue");
+    expect(step()).toBe("bring");
+    await press("skip");
     await press("show the code");
     expect(host.querySelector("[data-phone-offer]")).not.toBeNull();
     await press("continue");
@@ -354,33 +358,49 @@ describe("bots from another app on this computer", () => {
     routines: [{ name: "Morning", instruction: "Brief me.", trigger: "schedule", cron: "0 8 * * *", when: "", timeZone: "UTC", paused: false, skills: [], details: "" }],
     apps: [],
   }] }] };
-  const desktop = (bots: unknown) => {
+  const desktop = (bots: unknown, setup: unknown = { skills: [], tools: [] }) => {
     vi.stubGlobal("duskDesktop", { remoteClient: { active: false } });
     const base = f.api.getMockImplementation()!;
-    f.api.mockImplementation(async (path: string, init?: { body?: string }) => {
+    f.api.mockImplementation(async (path: string, init?: { body?: string; method?: string }) => {
       if (path === "/api/setup-import/bots") return bots;
+      if (path === "/api/setup-import") return init?.method === "POST"
+        ? { skills: { added: ["pdf"], present: [], skipped: [], filesLeftOut: 0, review: [] }, tools: { added: [], present: [], skipped: [] }, instructions: [] }
+        : setup;
       if (path === "/api/mcp/servers") return { servers: [] };
       if (path.startsWith("/api/teams/import")) return { bots: [{ ...maus, id: "molty", name: JSON.parse(init!.body!).package.name, defaultBot: undefined }], routines: [] };
       return base(path, init);
     });
   };
 
-  it("offers them on the bring step, moves them on one press, and goes on to the phone", async () => {
-    desktop(found);
+  it("lists what this Mac holds, all chosen, and brings it in on one press while the run goes on to the phone", async () => {
+    desktop(found, { skills: [{ name: "pdf", source: "claudeCode" }], tools: [{ name: "notion", source: "cursor" }] });
     await show({ initialBeat: "bring" });
-    expect(host.querySelector("#bot-move-title")?.textContent).toBe("bring your bots from OpenClaw?");
+    expect(title()).toBe("bring what you already use");
     expect(text()).toContain("Molty");
-    await press("bring them over");
+    expect([...host.querySelectorAll("[data-bring-find]")].map((row) => [row.getAttribute("data-bring-find"), row.getAttribute("aria-checked")]))
+      .toEqual([["bots:openclaw", "true"], ["setup:claudeCode", "true"], ["setup:cursor", "true"]]);
+    await choose('[data-bring-find="setup:cursor"]');
+    await press("bring it in");
+    expect(step(), "the run goes on at once").toBe("phone");
+    await settle();
+    const applied = f.api.mock.calls.filter(([path, init]) => path === "/api/setup-import" && init?.method === "POST").map(([, init]) => JSON.parse(init.body));
+    expect(applied).toEqual([{ skills: true, tools: true, instructions: true, sources: ["claudeCode"] }]);
     expect(f.api.mock.calls.filter(([path]) => String(path).startsWith("/api/teams/import"))).toHaveLength(1);
-    expect(host.querySelector("#bot-move-title")?.textContent).toBe("your bots are here");
-    await press("continue");
-    expect(step()).toBe("phone");
+    expect(host.querySelector("[data-bring-status]")?.textContent).toBe("Brought in 1 bot and 1 skill.");
   });
 
-  it("has no step at all when no other app is here", async () => {
+  it("with nothing on this Mac, offers the prompt for an AI online: copy, then go on without waiting", async () => {
     desktop({ apps: [] });
+    const writeText = vi.fn(async () => {});
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
     await show({ initialBeat: "bring" });
-    expect(host.querySelector("#bot-move-title")).toBeNull();
+    expect(step()).toBe("bring");
+    expect(host.querySelector("[data-bring-find]")).toBeNull();
+    await press("copy the prompt");
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("dusk-bot-notes"));
+    expect(host.querySelector("[data-bring-copied]")?.textContent).toContain("Copied.");
+    expect(JSON.parse(localStorage.getItem("dusk.notesWaiting")!)).toHaveProperty("since");
+    await press("continue");
     expect(step()).toBe("phone");
   });
 });
