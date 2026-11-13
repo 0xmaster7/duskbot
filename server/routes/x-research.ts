@@ -3,6 +3,7 @@
 // The handler runs inside index.ts's /api/internal/ block, after the capability bearer is checked (the route table runs
 // before that block). It re-checks the credential and the bot's own switch on every call: the tool list a bot was shown
 // at the start of its turn is not permission to spend.
+import { createHash } from "node:crypto";
 import type { ServerResponse } from "node:http";
 import { z } from "zod";
 import type { json as sendJson } from "../harness/http.ts";
@@ -20,7 +21,7 @@ import {
   type XResearchErrorCode,
 } from "../x-research.ts";
 import { PASS } from "./table.ts";
-import { webSearchMany, WEB_SEARCH_NOT_CONFIGURED } from "../web-search-many.ts";
+import { WebSearchCache, webSearchMany, WEB_SEARCH_NOT_CONFIGURED } from "../web-search-many.ts";
 
 export interface XResearchDeps {
   /** The person's own treg key, else the plan's relay credential (researchCredential), read per request. */
@@ -123,6 +124,7 @@ async function research(action: string, body: unknown, client: ResearchClient): 
 export function createXResearchInternalRoutes(deps: XResearchDeps) {
   const xClientFor = deps.client ?? ((credential: ServiceCredential) => createXClient(credential));
   const researchClientFor = deps.research ?? ((credential: ServiceCredential) => createResearchClient(credential));
+  const searches = new WebSearchCache();
   return async (ctx: XInternalContext): Promise<typeof PASS | void> => {
     if (ctx.method !== "POST") return PASS;
     const prefix = ctx.path.startsWith(X_PREFIX) ? X_PREFIX : ctx.path.startsWith(RESEARCH_PREFIX) ? RESEARCH_PREFIX : null;
@@ -134,7 +136,8 @@ export function createXResearchInternalRoutes(deps: XResearchDeps) {
     if (!deps.botEnabled(ctx.botId)) return void ctx.json(ctx.res, 403, { error: X_MESSAGES.botOff });
     const body = await ctx.readBody();
     try {
-      if (prefix === RESEARCH_PREFIX && action === "web-search-many") return void ctx.json(ctx.res, 200, await webSearchMany(body, researchClientFor(credential), deps.researchOff));
+      if (prefix === RESEARCH_PREFIX && action === "web-search-many") return void ctx.json(ctx.res, 200, await webSearchMany(body, researchClientFor(credential), deps.researchOff,
+        { store: searches, credential: createHash("sha256").update(JSON.stringify(credential)).digest("hex") }));
       ctx.json(ctx.res, 200, prefix === X_PREFIX ? await run(action, body, xClientFor(credential)) : await research(action, body, researchClientFor(credential)));
     } catch (error) {
       if (!(error instanceof XResearchError)) throw error;

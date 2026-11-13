@@ -884,7 +884,7 @@
     },
     {
       "name": "web_search_many",
-      "description": "Search the web for 1 to 10 independent queries concurrently in one call. Prefer this for 2 or more searches. Returns up to 5 top results per query, each with title, url and snippet. Uses Perplexity Fast Search through treg, billed to the user's treg balance or Cloud research allowance; reports cost when available. A failed query does not discard the others.",
+      "description": "Search the web for 1 to 10 independent queries concurrently in one call. Prefer this for 2 or more searches. Returns up to 5 top results per query, each with title, url and snippet; a page found by several queries is listed once. Uses Perplexity Fast Search through treg, billed to the user's treg balance or Cloud research allowance; reports cost when available. The same query again within 20 minutes reuses its results at no charge. A failed query does not discard the others.",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,

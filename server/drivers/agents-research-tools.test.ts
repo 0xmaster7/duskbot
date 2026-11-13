@@ -22,3 +22,31 @@ describe("web_search_many on the agents server", () => {
     expect(apiResponse).not.toHaveBeenCalled();
   });
 });
+
+describe("web_search_many results as text", () => {
+  it("lists each page once, numbered, with what each query cost or that it was reused", async () => {
+    const { searchResultsText } = await import("./agents-research-tools.ts");
+    const page = (n: number, url = `https://site${n}.com/a`) => ({ title: `Page ${n}`, url, snippet: `About ${n}.` });
+    const result = searchResultsText([
+      { query: "notion pricing", results: [page(1), page(2)], cost: "$0.0010" },
+      { query: "coda pricing", results: [page(3), { ...page(1), url: "https://www.site1.com/a/?ref=x" }], cached: true },
+      { query: "broken", results: [], error: "Web search failed. Try again shortly." },
+    ]);
+    expect(result).toEqual({ text: [
+      "## notion pricing ($0.0010)",
+      "1. Page 1\n   https://site1.com/a\n   About 1.",
+      "2. Page 2\n   https://site2.com/a\n   About 2.",
+      "## coda pricing (reused from a search minutes ago, no charge)",
+      "3. Page 3\n   https://site3.com/a\n   About 3.",
+      "Also here: #1 above.",
+      "## broken",
+      "Failed: Web search failed. Try again shortly.",
+    ].join("\n") });
+  });
+
+  it("is a failed call only when every query failed", async () => {
+    const { searchResultsText } = await import("./agents-research-tools.ts");
+    expect(searchResultsText([{ query: "a", results: [], error: "Web search failed. Try again shortly." }])).toMatchObject({ isError: true });
+  });
+});
+

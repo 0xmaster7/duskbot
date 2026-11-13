@@ -32,13 +32,45 @@ export async function callResearchTool(name: string, args: Json, context: ToolCa
   }
   const { ok, body } = await context.client.apiResponse(`/api/internal/${RESEARCH_ROUTES[member]}`, { method: "POST", body: JSON.stringify(input) });
   if (ok && name === "web_search_many" && typeof body.message === "string") return { text: body.message };
+  if (ok && name === "web_search_many" && Array.isArray(body.results)) return searchResultsText(body.results);
   return ok ? { text: JSON.stringify(body) } : { text: String(body.error ?? "Research failed. Try again shortly."), isError: true };
+}
+
+const pageKey = (url: string) => url.replace(/^https?:\/\/(?:www\.)?/i, "").replace(/[?#].*$/, "").replace(/\/+$/, "").toLowerCase();
+
+/** A batch's answers as short numbered lines, each page once: a page that answers several queries is listed under the
+ * first and named by number after it. */
+export function searchResultsText(answers: readonly unknown[]): ToolCallResult {
+  const seen = new Map<string, number>();
+  const lines: string[] = [];
+  let failed = 0;
+  let found = 0;
+  for (const answer of answers) {
+    if (!answer || typeof answer !== "object") continue;
+    const { query, results, error, cost, cached } = answer as Json;
+    lines.push(`## ${String(query ?? "")}${cached ? " (reused from a search minutes ago, no charge)" : typeof cost === "string" ? ` (${cost})` : ""}`);
+    if (typeof error === "string") { failed += 1; lines.push(`Failed: ${error}`); continue; }
+    const rows = Array.isArray(results) ? results.filter((row): row is Json => Boolean(row) && typeof row === "object") : [];
+    if (!rows.length) lines.push("No results.");
+    const again: number[] = [];
+    for (const row of rows) {
+      const url = String(row.url ?? "");
+      const earlier = seen.get(pageKey(url));
+      if (earlier !== undefined) { again.push(earlier); continue; }
+      seen.set(pageKey(url), (found += 1));
+      const snippet = String(row.snippet ?? "").replace(/\s+/g, " ").trim();
+      lines.push(`${found}. ${String(row.title ?? "").trim() || url}\n   ${url}${snippet ? `\n   ${snippet}` : ""}`);
+    }
+    if (again.length) lines.push(`Also here: ${again.map((index) => `#${index}`).join(", ")} above.`);
+  }
+  if (failed === answers.length) return { text: lines.join("\n"), isError: true };
+  return { text: lines.join("\n") };
 }
 
 export const RESEARCH_TOOL_DEFINITIONS = [
   {
     name: "web_search_many",
-    description: "Search the web for 1 to 10 independent queries concurrently in one call. Prefer this for 2 or more searches. Returns up to 5 top results per query, each with title, url and snippet. Uses Perplexity Fast Search through treg, billed to the user's treg balance or Cloud research allowance; reports cost when available. A failed query does not discard the others.",
+    description: "Search the web for 1 to 10 independent queries concurrently in one call. Prefer this for 2 or more searches. Returns up to 5 top results per query, each with title, url and snippet; a page found by several queries is listed once. Uses Perplexity Fast Search through treg, billed to the user's treg balance or Cloud research allowance; reports cost when available. The same query again within 20 minutes reuses its results at no charge. A failed query does not discard the others.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
