@@ -8506,6 +8506,7 @@
   "tokenApps.description.stripe": "customers, payments, invoices and refunds",
   "tokenApps.description.cloudflare": "workers, DNS, KV, R2 and D1 in your account",
   "tokenApps.description.googledrive": "files dusk bot makes or you open with it",
+  "tokenApps.description.dropbox": "files and folders in your Dropbox",
   "tokenApps.line.open": "Open {name} and sign in.",
   "tokenApps.line.paste": "Paste it here.",
   "tokenApps.line.signIn": "Sign in with your {name} account.",

@@ -100,7 +100,7 @@ function remoteIcon(app: DirectoryApp): AppEntry["icon"] {
 const TOKEN_CATEGORY: Record<TokenAppId, string> = {
   github: "developer code", notion: "documents notes", linear: "project management", airtable: "database", todoist: "task",
   trello: "project management", clickup: "project management", hubspot: "crm", jira: "project management", shopify: "commerce",
-  stripe: "payments", cloudflare: "developer cloud", googledrive: "file storage",
+  stripe: "payments", cloudflare: "developer cloud", googledrive: "file storage", dropbox: "file storage",
 };
 
 function nativeEntries(): AppEntry[] {
