@@ -82,11 +82,11 @@ describe("a move's routes and private port", () => {
     expect(mcpOAuth.authState("linear", LINEAR)).toBe("none");
   });
 
-  it("tells a bot on My Cloud, and only there", () => {
+  it("tells a bot on My Cloud with the link, and one on the person's computer that it is signed out right now", () => {
     const desktop = host(false), cloud = host(true);
     cloud.mcpOAuth.markNeedsSignIn("linear", LINEAR);
     desktop.mcpOAuth.markNeedsSignIn("linear", LINEAR);
     expect(cloud.connections.prompt({})).toContain("linear (sign in here: https://dusk-u-1.fly.dev/?connect=mcp%3Alinear)");
-    expect(desktop.connections.prompt({})).toBe("");
+    expect(desktop.connections.prompt({})).toBe(" Signed out right now: the MCP server linear. When a task needs one, tell the person in one line to sign in to it in dusk bot's Apps; do not try its tools until then.");
   });
 });

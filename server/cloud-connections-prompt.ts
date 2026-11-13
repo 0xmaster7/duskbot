@@ -1,5 +1,5 @@
-// What a bot on My Cloud is told about the connections it reaches for that need the person, or another computer, read
-// from this Cloud's own state on each turn: an MCP server that needs a sign-in here, connected apps
+// What a bot is told about the connections it reaches for that need the person, or on My Cloud another computer, read
+// from this server's own state on each turn: an MCP server that needs a sign-in here, connected apps
 // assigned to the bot but not connected here, an MCP server that runs on the person's computer, and what stayed on the
 // computer the bots moved here from. So the bot says so in plain words, with the link that connects it.
 import type { ConnectorToolGrant } from "../shared/wire.ts";
@@ -24,8 +24,9 @@ export interface ConnectionPromptSources {
 
 export type ConnectionPromptBot = { mcpServers?: string[]; composio?: boolean; connectorTools?: Record<string, ConnectorToolGrant> };
 
-/** `origin`: My Cloud's public address, where `/?connect=<id>` opens the page that connects it. */
-export function createConnectionPrompt(sources: ConnectionPromptSources, origin: string): (bot: ConnectionPromptBot) => string {
+/** `origin`: My Cloud's public address, where `/?connect=<id>` opens the page that connects it; null on the person's own
+ * computer, where the same lines name what is not connected right now without a link or a move. */
+export function createConnectionPrompt(sources: ConnectionPromptSources, origin: string | null): (bot: ConnectionPromptBot) => string {
   const known = new Map<string, { at: number; connected: boolean }>();
   let reading: Promise<void> | null = null;
   let failedAt = 0;
@@ -44,11 +45,12 @@ export function createConnectionPrompt(sources: ConnectionPromptSources, origin:
   }
 
   const link = (id: string) => `${origin}/?connect=${encodeURIComponent(id)}`;
+  const local = origin === null;
 
   return (bot) => {
     const toConnect: string[] = [];
     const elsewhere = new Map<string, string[]>();
-    for (const stayed of stayedConnectors(sources.mcpServers(), sources.programs?.() ?? [])) {
+    for (const stayed of local ? [] : stayedConnectors(sources.mcpServers(), sources.programs?.() ?? [])) {
       if (bot.mcpServers !== undefined && !bot.mcpServers.includes(stayed.name)) continue;
       elsewhere.set(stayed.computer, [...elsewhere.get(stayed.computer) ?? [], `${stayed.name} (${stayedWhyText(stayed)})`]);
     }
@@ -59,11 +61,17 @@ export function createConnectionPrompt(sources: ConnectionPromptSources, origin:
       const server = parsed.server;
       if (!server.runsOn && isRemoteMcpServer(server)) {
         const auth = sources.mcpAuth(name, server.url);
-        if (auth === "needs-sign-in" || (auth === "none" && server.oauth)) toConnect.push(`${name} (sign in here: ${link(`mcp:${name}`)})`);
+        if (auth === "needs-sign-in" || (auth === "none" && server.oauth)) toConnect.push(local ? name : `${name} (sign in here: ${link(`mcp:${name}`)})`);
       }
     }
     const granted = bot.composio === false ? [] : Object.keys(bot.connectorTools ?? {});
     const apps = connected(granted.filter((slug) => SLUG.test(slug))).filter(([, on]) => !on).map(([slug]) => toolkitName(slug.toUpperCase()));
+    if (local) {
+      return [
+        toConnect.length ? ` Signed out right now: the MCP server${toConnect.length > 1 ? "s" : ""} ${toConnect.join(", ")}. When a task needs one, tell the person in one line to sign in to it in dusk bot's Apps; do not try its tools until then.` : "",
+        apps.length ? ` Assigned to this bot but not connected right now: ${apps.join(", ")}. Do not offer or try their tools; when a task needs one, call COMPOSIO_MANAGE_CONNECTIONS for it, which shows the person a card to connect it, and end the turn.` : "",
+      ].join("");
+    }
     const from = sources.movedFrom?.() ?? null;
     return [
       from ? ` You moved to My Cloud from the person's computer ${from}, with everything in dusk bot. What lives outside dusk bot stayed on ${from}: its other folders and files, passkeys, the person's own browser sessions and apps, Local VM disks and model servers on its home network. When a task needs one, use ${from} if it is lent to My Cloud and online; otherwise say in plain words that it stayed there.` : "",

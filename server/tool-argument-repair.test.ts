@@ -82,6 +82,11 @@ describe("argumentOutline", () => {
     );
   });
 
+  it("leaves out the optional marker when every field is required", () => {
+    expect(argumentOutline({ type: "object", properties: { queries: { type: "array", items: { type: "string" } } }, required: ["queries"] }))
+      .toBe("It takes { queries: list of strings }.");
+  });
+
   it("says when a tool takes nothing", () => {
     expect(argumentOutline({ type: "object", properties: {} })).toBe("It takes no arguments: send {}.");
   });

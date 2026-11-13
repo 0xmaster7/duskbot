@@ -161,5 +161,6 @@ export function argumentOutline(schema: unknown): string {
   const ordered = [...entries.filter(([name]) => required.has(name)), ...entries.filter(([name]) => !required.has(name))];
   const shown = ordered.slice(0, OUTLINE_FIELDS).map(([name, field]) => `${name}${required.has(name) ? "" : "?"}: ${typeWords(field)}`);
   const more = ordered.length > OUTLINE_FIELDS ? `, and ${ordered.length - OUTLINE_FIELDS} more` : "";
-  return shown.length ? `It takes { ${shown.join(", ")}${more} } (? = optional).` : "It takes no arguments: send {}.";
+  const optional = ordered.some(([name]) => !required.has(name)) ? " (? = optional)" : "";
+  return shown.length ? `It takes { ${shown.join(", ")}${more} }${optional}.` : "It takes no arguments: send {}.";
 }

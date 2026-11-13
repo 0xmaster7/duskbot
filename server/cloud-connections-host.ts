@@ -50,8 +50,8 @@ export function createCloudConnectionsHost(deps: CloudConnectionsHostDeps) {
   const composioConnected = async (slugs: string[]) =>
     Object.fromEntries(Object.entries(await composio.connectionStatus(deps.config(), slugs)).map(([slug, state]) => [slug, state.connected]));
   const programs = () => (commands ??= launchersOnPath());
-  const prompt = deps.cloudHome ? createConnectionPrompt({ mcpServers: () => deps.config().mcpServers, mcpAuth, programs,
-    composioConnected, movedFrom: () => (deps.dataDir ? movedFrom(deps.dataDir)?.computer ?? null : null) }, deps.cloudHome.publicOrigin) : null;
+  const prompt = createConnectionPrompt({ mcpServers: () => deps.config().mcpServers, mcpAuth, programs,
+    composioConnected, movedFrom: () => (deps.dataDir ? movedFrom(deps.dataDir)?.computer ?? null : null) }, deps.cloudHome?.publicOrigin ?? null);
   const stayed = deps.cloudHome && deps.dataDir && deps.stayedNotices ? createStayedNotices({ ...deps.stayedNotices, origin: deps.cloudHome.publicOrigin, file: join(deps.dataDir, "connectors-stayed-told.json"), servers: () => deps.config().mcpServers, programs, mailConnected: () => (deps.email?.accounts().length ?? 0) > 0 }) : null;
   const connections = async () => {
     const cfg = deps.config();
@@ -96,7 +96,7 @@ export function createCloudConnectionsHost(deps: CloudConnectionsHostDeps) {
       return answerConnection(what.id, sources());
     },
 
-    prompt: (bot: ConnectionPromptBot): string => prompt?.(bot) ?? "",
+    prompt: (bot: ConnectionPromptBot): string => prompt(bot),
     /** What stayed on the person's computer: said when the move ends, and in the first conversation with each bot. */
     moved: (language?: string): void => stayed?.moved(language),
     personTurn: (bot: Parameters<NonNullable<typeof stayed>["personTurn"]>[0], threadId: string): void => stayed?.personTurn(bot, threadId),
