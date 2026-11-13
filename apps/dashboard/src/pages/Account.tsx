@@ -168,7 +168,7 @@ function DataSharing() {
   return (
     <section className="mt-10" aria-labelledby="data-sharing-title">
       <SectionTitle id="data-sharing-title">privacy</SectionTitle>
-      {state ? <div className="flex items-center gap-4 rounded-[14px] py-3"><div className="min-w-0 flex-1"><label htmlFor="sharing-improve" className="text-14 text-ink">{label}</label><p className="mt-0.5 text-13 text-ink-3">share anonymous usage info, like which features you use and where things get stuck. we never see your messages, names or files.</p></div><Switch id="sharing-improve" label={label} checked={!state.optOut} onChange={(on) => void save(on)} /></div>
+      {state ? <div className="flex items-center gap-4 rounded-[14px] py-3"><div className="min-w-0 flex-1"><label htmlFor="sharing-improve" className="text-14 text-ink">{label}</label><p className="mt-0.5 text-13 text-ink-3">share anonymous usage info, like which features you use and where things get stuck. we never see your messages or files, and names are removed.</p></div><Switch id="sharing-improve" label={label} checked={!state.optOut} onChange={(on) => void save(on)} /></div>
         : !error && <Skeleton className="h-16 !rounded-card" />}
       {error && <p role="alert" className="mt-2 text-13 text-bad">{error}</p>}
     </section>
