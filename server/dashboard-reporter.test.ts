@@ -31,7 +31,7 @@ function collector(): ReturnType<typeof createDashboardCollector> {
 async function fixture(prefix = "") {
   const dir = mkdtempSync(join(tmpdir(), "dashboard-reporter-")); dirs.push(dir);
   const reports: WorkspaceReport[] = [], signatures: boolean[] = [], enrollKeys: string[] = [], enrollTokens: unknown[] = [], enrollSignatures: (boolean | null)[] = [];
-  let publicKey = "", nextCommand: DashboardCommand | null = null, removed = false, watching = false, waits = 0;
+  let publicKey = "", nextCommand: DashboardCommand | null = null, removed = false, watching = false, waits = 0, hold = false;
   const server = createServer(async (req, res) => {
     const chunks: Buffer[] = []; for await (const chunk of req) chunks.push(Buffer.from(chunk));
     const bytes = Buffer.concat(chunks);
@@ -52,14 +52,14 @@ async function fixture(prefix = "") {
     if (removed) return reply(401, { code: "workspace_removed" });
     let commands: DashboardCommand[] = [];
     if (req.url === `${prefix}/v1/report`) reports.push(JSON.parse(bytes.toString()));
-    if (req.url === `${prefix}/v1/wait?wait=25`) { waits++; if (nextCommand) { commands = [nextCommand]; nextCommand = null; } }
+    if (req.url === `${prefix}/v1/wait?wait=25`) { waits++; if (hold) return; if (nextCommand) { commands = [nextCommand]; nextCommand = null; } }
     reply(200, { v: 1, watching, nextReportMs: 600_000, commands });
   });
   servers.push(server); await new Promise<void>((ready) => server.listen(0, "127.0.0.1", ready));
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}${prefix}`;
   const execute = vi.fn(async (command: DashboardCommand) => ({ id: command.id, ok: true, message: "Paused Morning brief.", at: Date.now() }));
-  const make = (collect = collector(), pulse?: { since(after: number): Array<{ t: number; cpu: number; mem: number }> }) => { const reporter = createDashboardReporter({ dataDir: dir, collect, execute, pulse }); reporters.push(reporter); return reporter; };
-  return { dir, base, reports, signatures, enrollKeys, enrollTokens, enrollSignatures, execute, make, queue: (command: DashboardCommand) => { nextCommand = command; }, remove: () => { removed = true; }, watch: () => { watching = true; }, waits: () => waits };
+  const make = (collect = collector(), pulse?: { since(after: number): Array<{ t: number; cpu: number; mem: number }> }, clock?: { now: () => number; tickMs: number }) => { const reporter = createDashboardReporter({ dataDir: dir, collect, execute, pulse, ...clock }); reporters.push(reporter); return reporter; };
+  return { dir, base, reports, signatures, enrollKeys, enrollTokens, enrollSignatures, execute, make, queue: (command: DashboardCommand) => { nextCommand = command; }, remove: () => { removed = true; }, watch: () => { watching = true; }, waits: () => waits, hold: (on: boolean) => { hold = on; } };
 }
 const command: DashboardCommand = { id: "command", kind: "routine.pause", target: "routine", issuedAt: Date.now(), expiresAt: Date.now() + 60_000 };
 
@@ -126,6 +126,20 @@ describe("dashboard reporter", () => {
     expect(f.reports[0]!.pulse).toBeUndefined();
     f.watch(); await vi.waitFor(() => expect(f.reports.length).toBeGreaterThan(1));
     expect(f.reports[1]!.pulse).toEqual(samples);
+  });
+  it("drops requests left open across a suspend and reconnects at once, so a command queued after a wake runs", async () => {
+    let skew = 0;
+    const f = await fixture(), reporter = f.make(collector(), undefined, { now: () => Date.now() + skew, tickMs: 50 });
+    f.hold(true);
+    await reporter.link(f.base);
+    await vi.waitFor(() => expect(f.waits()).toBe(1));
+    await vi.waitFor(() => expect(f.reports).toHaveLength(1));
+    f.hold(false); f.queue({ ...command, id: "after-wake", issuedAt: Date.now(), expiresAt: Date.now() + 60 * 60_000 });
+    const reports = f.reports.length;
+    skew = 40 * 60_000;
+    await vi.waitFor(() => expect(f.execute).toHaveBeenCalledWith(expect.objectContaining({ id: "after-wake" })), { timeout: 2000 });
+    expect(f.reports.length).toBeGreaterThan(reports);
+    expect(reporter.status().lastError).toBeNull();
   });
   it("stops both loops on a removed workspace while keeping the link and human error", async () => {
     const f = await fixture(), reporter = f.make(); await reporter.link(f.base);

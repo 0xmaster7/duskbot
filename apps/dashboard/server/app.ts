@@ -96,6 +96,7 @@ const hash = (value: string | Buffer) => createHash("sha256").update(value).dige
 const random = (bytes: number) => randomBytes(bytes).toString("base64url");
 const hourMs = 60 * 60_000;
 const sections = ["machine", "computers", "bots", "activity", "devices", "plans", "apps"] as const;
+const COMMAND_REDELIVER_MS = 10_000;
 const MUTATIONS = ["POST", "PUT", "PATCH", "DELETE"];
 
 /** the page's content security policy: its own scripts plus the hashes of its inline ones (the theme bootstrap) */
@@ -326,6 +327,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const lastWatching = new Map<string, boolean>();
   const replays = new Map<string, number>();
   const commands = new Map<string, CommandView[]>();
+  const deliveredAt = new Map<string, number>();
   const seen = new Map<string, number>();
   const history = new Map<string, MachineSample[]>();
   const pulses = new Map<string, PulseRing>();
@@ -353,6 +355,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     }
     for (const queue of commands.values()) for (const command of queue) {
       if ((command.status === "queued" || command.status === "sent") && command.expiresAt <= time) { command.status = "expired"; command.doneAt = time; }
+      if (command.status !== "sent") deliveredAt.delete(command.id);
     }
   }
   function rate(req: IncomingMessage, kind: string, max: number) {
@@ -387,14 +390,19 @@ export function createDashboardApp(options: DashboardAppOptions) {
   function summary(ws: StoredWorkspace): WorkspaceSummary {
     return { id: ws.id, name: ws.name, kind: ws.kind, version: ws.version, connectedAt: ws.connectedAt, lastReportAt: ws.lastReportAt, freshness: freshnessOf(ws.lastReportAt, now()) };
   }
+  /** a sent command with no result yet goes out again: an answer can land on a connection the workspace already lost
+   *  (a cloud suspended mid long-poll), and the workspace runs each command id once */
+  function due(command: CommandView) {
+    return command.status === "queued" || (command.status === "sent" && now() - (deliveredAt.get(command.id) ?? 0) >= COMMAND_REDELIVER_MS);
+  }
   function isWatching(ws: StoredWorkspace) { return ws.ownerAccountId !== null && (watching.get(ws.ownerAccountId) ?? -Infinity) > now(); }
   function answer(ws: StoredWorkspace): ReportAnswer {
     cleanup();
     const watched = isWatching(ws);
     lastWatching.set(ws.id, watched);
-    const queued = (commands.get(ws.id) ?? []).filter(command => command.status === "queued" && command.expiresAt > now());
+    const queued = (commands.get(ws.id) ?? []).filter(command => due(command) && command.expiresAt > now());
     const delivery = queued.map(({ id, kind, target, issuedAt, expiresAt }) => ({ id, kind, target, issuedAt, expiresAt }));
-    for (const command of queued) command.status = "sent";
+    for (const command of queued) { command.status = "sent"; deliveredAt.set(command.id, now()); }
     return { v: 1, watching: watched, nextReportMs: watched ? FAST_REPORT_MS : SLOW_REPORT_MS, commands: delivery };
   }
   function watch(owner: Account) {
@@ -404,6 +412,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   }
   function forget(ws: StoredWorkspace) {
     waits.get(ws.id)?.cancel();
+    for (const command of commands.get(ws.id) ?? []) deliveredAt.delete(command.id);
     commands.delete(ws.id);
     seen.delete(ws.id);
     history.delete(ws.id);
@@ -695,7 +704,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       const seconds = Number(url.searchParams.get("wait") ?? "25");
       if (!Number.isFinite(seconds) || seconds < 1 || seconds > 30) fail(400, "invalid_wait", "Wait must be 1 to 30 seconds.");
       waits.get(ws.id)?.finish();
-      if ((commands.get(ws.id) ?? []).some(command => command.status === "queued") || (isWatching(ws) && !lastWatching.get(ws.id))) return json(res, 200, answer(ws));
+      if ((commands.get(ws.id) ?? []).some(due) || (isWatching(ws) && !lastWatching.get(ws.id))) return json(res, 200, answer(ws));
       let timer: ReturnType<typeof setTimeout>;
       const clear = () => { clearTimeout(timer); waits.delete(ws.id); res.off("close", clear); };
       const finish = () => { clear(); json(res, 200, answer(ws)); };

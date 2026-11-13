@@ -27,9 +27,14 @@ export interface DashboardReporterDeps {
   fetch?: typeof fetch;
   now?: () => number;
   log?: (line: string) => void;
+  /** how often the clock is read to notice a resume; tests shorten it */
+  tickMs?: number;
 }
 let sequence = Date.now();
 const REMOVED = "This workspace was removed from the dashboard. Connect it again from the app.";
+/** a wall clock this far past the tick means the machine was suspended (a dusk cloud sleeps when idle): requests open
+ *  across a suspend never answer, so they are dropped and sent again at once */
+const RESUME_JUMP_MS = 15_000;
 
 export function createDashboardReporter(deps: DashboardReporterDeps) {
   const file = join(deps.dataDir, "dashboard-link.json"), fetcher = deps.fetch ?? fetch, now = deps.now ?? Date.now;
@@ -37,6 +42,8 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
   let lastReportAt: number | null = null, lastError: string | null = null, watching = false;
   let running = false, generation = 0, removed = false;
   let wakeReport: (() => void) | undefined, urgent = false;
+  const tickMs = deps.tickMs ?? 5_000;
+  let clock: ReturnType<typeof setInterval> | undefined, lastTick = 0, resumes = 0;
   // a command changes devices or routines: the next report carries them at once
   let changed = false, appsWatchUntil = 0;
   const requests = new Set<AbortController>(), sleepers = new Set<() => void>();
@@ -62,11 +69,21 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
   function stop() {
     running = false;
     generation++;
+    clearInterval(clock); clock = undefined;
     for (const request of requests) request.abort();
     for (const finish of Array.from(sleepers)) finish();
     wakeReport = undefined;
   }
   function requestReport() { urgent = true; wakeReport?.(); }
+  function tick() {
+    const at = now();
+    if (at - lastTick > tickMs + RESUME_JUMP_MS) {
+      resumes++;
+      for (const request of requests) request.abort();
+      requestReport();
+    }
+    lastTick = at;
+  }
   function pause(ms: number, report = false): Promise<void> {
     if (report && urgent) { urgent = false; return Promise.resolve(); }
     return new Promise((resolve) => {
@@ -133,7 +150,7 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
     let backoff = 5000;
     let devicesAt: number | null = null, activityAt: number | null = null, plansAt: number | null = null, appsAt: number | null = null;
     let lastPlans: WorkspaceReport["plans"] | null;
-    let pulseSent = 0;
+    let pulseSent = 0, seen = resumes;
     while (running && generation === run) {
       try {
         const at = now(), pending = [...results.values()].slice(0, 50);
@@ -168,12 +185,13 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
         await pause(Math.max(2000, Math.min(600_000, Number(answer.nextReportMs) || 180_000)), true);
       } catch {
         if (!running || generation !== run) return;
+        if (seen !== resumes) { seen = resumes; continue; }
         failure("report"); await pause(backoff); backoff = Math.min(60_000, backoff * 2);
       }
     }
   }
   async function wait(run: number) {
-    let backoff = 5000;
+    let backoff = 5000, seen = resumes;
     while (running && generation === run) {
       try {
         const answer = await request("GET", "/v1/wait?wait=25");
@@ -182,6 +200,7 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
         await pause(100);
       } catch {
         if (!running || generation !== run) return;
+        if (seen !== resumes) { seen = resumes; await pause(100); continue; }
         failure("wait"); await pause(backoff); backoff = Math.min(60_000, backoff * 2);
       }
     }
@@ -190,6 +209,9 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
     if (running || !state || removed) return;
     running = true;
     const run = ++generation;
+    lastTick = now();
+    clock = setInterval(tick, tickMs);
+    clock.unref?.();
     void reports(run); void wait(run);
   }
   async function link(url: string, { enrollToken }: { enrollToken?: string } = {}): Promise<EnrollAnswer> {

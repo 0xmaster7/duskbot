@@ -22,8 +22,10 @@ const CATALOG_PAGE = 30;
 const openConnect = (app: { label: string }) => openApp(appLink.app, `opening dusk bot. connect ${app.label} from apps there.`);
 
 function ConnectAction({ app, flow, onConnect }: { app: DashApp; flow: AppFlow | undefined; onConnect(): void }) {
+  if (flow?.phase === "waking") return <Button size="sm" disabled aria-label={`waking ${flow.workspaceName} to connect ${app.label}`}>waking</Button>;
   if (flow?.phase === "waiting") return <Button size="sm" disabled aria-label={`connecting ${app.label}`}>connecting</Button>;
   if (flow?.phase === "sign-in" && flow.url) return <a className="text-link shrink-0 px-2 text-13" href={flow.url} target="_blank" rel="noopener noreferrer">finish sign-in</a>;
+  if (flow?.phase === "failed") return <Button size="sm" onClick={onConnect} aria-label={`try connecting ${app.label} again`} title={flow.message ?? undefined}>try again</Button>;
   return <Button size="sm" onClick={onConnect} aria-label={`connect ${app.label}`}>connect</Button>;
 }
 
@@ -167,7 +169,7 @@ export function ConnectorsPage() {
     for (const w of workspaces ?? []) if (!row.workspaces.some((x) => x.id === w.id)) items.push({ label: `add to ${w.name}`, onSelect: () => start(w, row, slug) });
     if (slug) for (const listed of row.workspaces) {
       const w = byId.get(listed.id);
-      if (w) items.push({ label: `disconnect from ${w.name}`, danger: true, disabled: flows[flowKey(w.id, slug)]?.phase === "waiting", onSelect: () => { const { away, wake } = reach(w); if (away) toast(away, "bad"); else disconnect(w, slug, row.label, wake); } });
+      if (w) items.push({ label: `disconnect from ${w.name}`, danger: true, disabled: ["waking", "waiting"].includes(flows[flowKey(w.id, slug)]?.phase ?? ""), onSelect: () => { const { away, wake } = reach(w); if (away) toast(away, "bad"); else disconnect(w, slug, row.label, wake); } });
     }
     return items;
   };

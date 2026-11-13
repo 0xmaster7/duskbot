@@ -288,11 +288,16 @@ describe("hosted dashboard service", () => {
     const delivered = await readJson<ReportAnswer>(signed("/v1/report", id, report()).send());
     expect(delivered.commands[0].id).toBe(queued.command.id);
     expect(delivered.commands[0]).not.toHaveProperty("status");
-    expect((await readJson<ReportAnswer>(signed("/v1/report", id, { ...report(2), results: [{ id: queued.command.id, ok: true, message: "Awake.", at: time }] }).send())).commands).toEqual([]);
+    expect((await readJson<ReportAnswer>(signed("/v1/report", id, report(2)).send())).commands).toEqual([]);
+    // an answer can be lost on a connection the workspace dropped: unanswered, it goes out again
+    time += 10_000;
+    expect((await readJson<ReportAnswer>(signed("/v1/wait?wait=25", id).send())).commands.map(command => command.id)).toEqual([queued.command.id]);
+    expect((await readJson<ReportAnswer>(signed("/v1/wait?wait=1", id).send())).commands).toEqual([]);
+    expect((await readJson<ReportAnswer>(signed("/v1/report", id, { ...report(3), results: [{ id: queued.command.id, ok: true, message: "Awake.", at: time }] }).send())).commands).toEqual([]);
     let detail = await readJson<WorkspaceDetail>(page(`/v1/workspaces/${id}`, undefined, cookie));
     expect(detail.commands[0]).toMatchObject({ status: "done", message: "Awake.", doneAt: time });
     await page(`/v1/workspaces/${id}/commands`, { kind: "phone.revoke", target: "phone1" }, cookie);
-    await signed("/v1/report", id, report(3)).send();
+    await signed("/v1/report", id, report(4)).send();
     time += COMMAND_TTL_MS + 1;
     detail = await readJson<WorkspaceDetail>(page(`/v1/workspaces/${id}`, undefined, cookie));
     expect(detail.commands[1].status).toBe("expired");
@@ -338,6 +343,7 @@ describe("hosted dashboard service", () => {
     const queued = await readJson<{ command: CommandView }>(page(`/v1/workspaces/${id}/commands`, { kind: "computer.sleep", target: "bot1" }, cookie));
     const response = await Promise.race([pending, pause(1000).then(() => { throw new Error("Command did not wake wait."); })]);
     expect((await readJson<ReportAnswer>(response)).commands[0].id).toBe(queued.command.id);
+    await signed("/v1/report", id, { ...report(), results: [{ id: queued.command.id, ok: true, message: "Asleep.", at: time }] }).send();
     const waiting = signed("/v1/wait?wait=25", id).send();
     await pause(25);
     await page("/v1/workspaces", undefined, cookie);
