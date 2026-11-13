@@ -83,11 +83,23 @@ export function tOptional(key: LocaleKey, params?: Record<string, string | numbe
   return active === "en" || activePack[key] !== undefined ? t(key, params) : undefined;
 }
 
-/** `{app}` is the product's name as a person reads it (productName) unless `params` names it. */
+/** What people call the computer this app runs on: "Mac", "PC" (Windows), else "computer". */
+export function deviceWord(platform: string | undefined = desktopPlatform()): string {
+  return t(platform === "darwin" ? "vpsLink.device.mac" : platform === "win32" ? "vpsLink.device.pc" : "vpsLink.device.computer");
+}
+
+function desktopPlatform(): string | undefined {
+  if (typeof window !== "undefined" && window.duskDesktop?.platform) return window.duskDesktop.platform;
+  const agent = typeof navigator === "undefined" ? "" : navigator.userAgent;
+  return /Mac OS X|Macintosh/.test(agent) && !/iPhone|iPad/.test(agent) ? "darwin" : /Windows/.test(agent) ? "win32" : undefined;
+}
+
+/** `{app}` is the product's name as a person reads it (productName), `{device}` this computer's word (deviceWord), unless
+ * `params` names them. */
 export function t(key: LocaleKey, params?: Record<string, string | number>): string {
   const template = activePack[key] ?? en[key];
-  if (!params && !template.includes("{app}")) return template;
+  if (!params && !template.includes("{")) return template;
   return template.replace(/\{(\w+)\}/g, (match, name: string) =>
-    params && name in params ? String(params[name]) : name === "app" ? productName() : match,
+    params && name in params ? String(params[name]) : name === "app" ? productName() : name === "device" ? deviceWord() : match,
   );
 }

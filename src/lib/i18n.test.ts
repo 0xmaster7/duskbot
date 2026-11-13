@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { documentLanguage, resolveLocale, setLocale, t, tFromServer } from "./i18n";
+import { deviceWord, documentLanguage, resolveLocale, setLocale, t, tFromServer } from "./i18n";
 import { en, localeChoices, locales } from "@/locales";
 
 afterEach(() => {
@@ -38,6 +38,12 @@ describe("t", () => {
   it("fills {app} with the product's name or the name a caller passes", () => {
     expect(t("routines.runsOn.localHint")).toBe("Starts while dusk bot is open here.");
     expect(t("routines.runsOn.localHint", { app: "Acme" })).toBe("Starts while Acme is open here.");
+  });
+
+  it("names this computer the way its platform does, never a Mac on Linux or Windows", () => {
+    expect([deviceWord("darwin"), deviceWord("win32"), deviceWord("linux")]).toEqual(["Mac", "PC", "computer"]);
+    expect(t("funnel.place.macSub")).toBe(`Your bots work while your ${deviceWord()} is on.`);
+    expect(t("funnel.place.macSub", { device: "PC" })).toBe("Your bots work while your PC is on.");
   });
 
   it("setLocale reports the locale that actually took effect", () => {

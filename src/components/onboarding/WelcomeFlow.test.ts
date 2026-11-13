@@ -202,13 +202,21 @@ describe("connecting an AI", () => {
 describe("on the desktop app", () => {
   const desktop = (extra: Record<string, unknown> = {}) => vi.stubGlobal("duskDesktop", { remoteClient: { active: false }, requireUserPresence: async () => true, ...extra });
 
+  it("opens a server from the app on its AI, without the hello the person already saw", async () => {
+    desktop({ remoteClient: { active: true } });
+    await show();
+    expect(step()).toBe("ai");
+    expect(host.querySelector("[data-funnel-progress]"), "one screen has no progress to show").toBeNull();
+  });
+
   it("walks where bots live, the AI, what to bring, the phone, then the chat, with back and progress, and no email step", async () => {
-    desktop();
+    desktop({ platform: "linux" });
     await show();
     await press("get started");
     expect(step()).toBe("place");
     expect(host.querySelector("[data-funnel-progress]")?.getAttribute("data-funnel-progress")).toBe("2/5");
-    expect(text()).toContain("this Mac");
+    expect(text()).toContain("this computer");
+    expect(text(), "never a Mac on Linux").not.toContain("Mac");
     expect(text()).toContain("dusk cloud");
     expect(text()).toContain("from $20 a month");
     await choose("[data-funnel-place=mac]");

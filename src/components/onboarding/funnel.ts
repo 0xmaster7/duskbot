@@ -14,11 +14,14 @@ export interface FunnelFacts {
   bring?: boolean;
   /** a dusk cloud was bought in this run: the bots live there, so the run ends by waiting for it */
   cloud?: boolean;
+  /** the hello screen; false for a server opened from the desktop app, whose person has already met dusk bot there */
+  hello?: boolean;
 }
 
 /** The screens this person gets, in order. */
 export function funnelSteps(facts: FunnelFacts): FunnelStep[] {
   return FUNNEL_STEPS.filter((step) => {
+    if (step === "welcome") return facts.hello !== false;
     if (step === "account") return facts.account;
     if (step === "place") return facts.desktop;
     if (step === "bring") return facts.desktop && Boolean(facts.bring) && !facts.cloud;

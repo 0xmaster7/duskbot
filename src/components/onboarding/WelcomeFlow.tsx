@@ -128,7 +128,8 @@ export function WelcomeFlow({
   const [grokOpen, setGrokOpen] = useState(false);
 
   const saved = initialBeat ?? draft?.beat;
-  const steps = funnelSteps({ account: Boolean(account) && !firstKnown.current?.signedIn, desktop, bring: offersMove, cloud });
+  const steps = funnelSteps({ account: Boolean(account) && !firstKnown.current?.signedIn, desktop, bring: offersMove, cloud,
+    hello: window.duskDesktop?.remoteClient?.active !== true });
 
   const [at, setAt] = useState<FunnelStep>(() => resumeBeat(steps, saved));
   // the second click of a double click lands on the step it opened: it must not choose there
@@ -301,9 +302,9 @@ export function WelcomeFlow({
       onClickCapture={swallowDoubleClick}
       onPaste={onPaste}
       data-welcome={at}
-      className={cn("welcome-screen flex overflow-y-auto bg-app outline-none", embedded ? "relative h-full w-full" : "fixed inset-0 z-50")}
+      className={cn("welcome-screen flex overflow-y-auto bg-app outline-none", embedded ? "relative h-full w-full" : "fixed inset-y-0 left-[var(--rail-beside,0px)] right-0 z-50")}
     >
-      {at !== "welcome" && <FunnelBar at={index} count={steps.length} onBack={back ? () => go(back, "back") : null} />}
+      {at !== "welcome" && steps.length > 1 && <FunnelBar at={index} count={steps.length} onBack={back ? () => go(back, "back") : null} />}
       <div key={at} data-from={from} className="place-step relative flex min-h-full w-full flex-col">
         {body}
       </div>

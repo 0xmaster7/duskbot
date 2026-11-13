@@ -12,6 +12,10 @@ describe("the funnel's steps", () => {
     expect(funnelSteps({ account: false, desktop: false })).toEqual(["welcome", "ai"]);
   });
 
+  it("skips the hello on a server opened from the desktop app, where the person already met dusk bot", () => {
+    expect(funnelSteps({ account: false, desktop: false, hello: false })).toEqual(["ai"]);
+  });
+
   it("offers bringing bots in only when another app has some", () => {
     expect(funnelSteps({ account: false, desktop: true, bring: true })).toEqual(["welcome", "place", "ai", "bring", "phone"]);
   });
