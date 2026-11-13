@@ -10,28 +10,31 @@ export interface FunnelFacts {
   account: boolean;
   /** this is the desktop app's own window, where bots can live on this Mac, in dusk cloud or on a server */
   desktop: boolean;
+  /** another agent app on this computer has bots to bring in */
+  bring?: boolean;
+  /** a dusk cloud was bought in this run: the bots live there, so the run ends by waiting for it */
+  cloud?: boolean;
 }
 
 /** The screens this person gets, in order. */
 export function funnelSteps(facts: FunnelFacts): FunnelStep[] {
   return FUNNEL_STEPS.filter((step) => {
     if (step === "account") return facts.account;
-    if (step === "place" || step === "bring" || step === "phone") return facts.desktop;
+    if (step === "place") return facts.desktop;
+    if (step === "bring") return facts.desktop && Boolean(facts.bring) && !facts.cloud;
+    if (step === "phone") return facts.desktop && !facts.cloud;
+    if (step === "making") return facts.desktop && Boolean(facts.cloud);
     return true;
   });
 }
 
-/** Where Next goes from `at`: the next screen, passing over the AI one when an account the person already uses answered. */
-export function nextStep(steps: readonly FunnelStep[], at: FunnelStep, skipAi: boolean): FunnelStep | null {
-  for (let index = steps.indexOf(at) + 1; index < steps.length; index++) {
-    const step = steps[index]!;
-    if (step === "ai" && skipAi) continue;
-    return step;
-  }
-  return null;
+/** Where Next goes from `at`; null is the chat. */
+export function nextStep(steps: readonly FunnelStep[], at: FunnelStep): FunnelStep | null {
+  const index = steps.indexOf(at);
+  return index >= 0 && index + 1 < steps.length ? steps[index + 1]! : null;
 }
 
-/** Back goes one screen back, the AI one included, so a skipped AI can still be changed. */
+/** Back goes one screen back; the cloud being made has no way back to the purchase. */
 export function previousStep(steps: readonly FunnelStep[], at: FunnelStep): FunnelStep | null {
   const index = steps.indexOf(at);
   return index > 0 ? steps[index - 1]! : null;
@@ -83,11 +86,4 @@ export function aiName(instance: { instanceId: string; driverKind: string; displ
 /** The ready free model, if there is one: a way to start now and connect a better AI later. */
 export function freeModel<Instance extends AiTileInstance>(instances: readonly Instance[], ready: (instance: Instance) => boolean): Instance | undefined {
   return instances.find((instance) => ready(instance) && freeFallback(instance));
-}
-
-/** A ChatGPT plan or a Claude account that answered its test: the AI step has nothing to ask. */
-export function skipsAi(found: { instance: { driverKind: string; access?: string }; state: string } | null): boolean {
-  if (!found || (found.state !== "passed" && found.state !== "untestable")) return false;
-  const { driverKind, access } = found.instance;
-  return (driverKind === "claudeAgent" || driverKind === "codex") && access !== "api";
 }

@@ -9,6 +9,7 @@ import { createPoolProvider } from "../clouds/pool.ts";
 import { createHetznerProvider } from "../clouds/hetzner.ts";
 import { createHomeClient } from "../clouds/home-client.ts";
 import { createSealer, parseSealKey } from "../clouds/seal.ts";
+import { createAiStash, memoryAiStashStore, type AiStashStore } from "../clouds/ai-stash.ts";
 import type { CloudProvider, HomeClient } from "../clouds/types.ts";
 import type { StoredCloud } from "../clouds/types.ts";
 import { managedCloudFromEnv } from "../../../cloud-service/src/index.ts";
@@ -47,6 +48,8 @@ export interface BillingOptions {
   cloudEvent?: (kind: CloudEventKind, cloud: StoredCloud) => void;
   /** every cloud status change */
   cloudStatus?: (cloud: StoredCloud, from: StoredCloud["status"] | null) => void;
+  /** where AI sign-ins for a Cloud still being made are held (clouds/ai-stash.ts); in memory when absent */
+  aiStash?: AiStashStore;
   /** the operator's alert for every deletion action of a managed cloud */
   alert?: (entry: { at: number; cloudId: string; action: string; actor: string; reason: string }) => void;
 }
@@ -114,10 +117,13 @@ export function createBilling(options: BillingOptions) {
     entitle: (origin, secret, token) => fakeOrigin(origin) ? Promise.resolve({ expiresAt: now() + 3_600_000 }) : realHome.entitle!(origin, secret, token),
     healthy: (origin, secret) => (fakeOrigin(origin) ? fakeHome : realHome).healthy(origin, secret),
     pair: (origin, secret, input) => (fakeOrigin(origin) ? fakeHome : realHome).pair(origin, secret, input),
+    signIns: (origin, secret, items) => (fakeOrigin(origin) ? Promise.resolve() : realHome.signIns!(origin, secret, items)),
   };
   // every hosted home refuses clients without a signed entitlement, so a service that runs homes must be able to sign one
   const entitlements = entitlementSignerFromEnv(env, { dataDir: options.dataDir, loopback, now, required: !loopback && (cloudProvider !== "off" || poolDriver !== "off" || managed !== null) });
-  const clouds = createCloudsService({ entitlements, onEvent: options.cloudEvent, onStatus: options.cloudStatus, dataDir: options.dataDir, now, providers: { pool, dedicated }, home, sealer: createSealer(sealKey), managed, managedHome: realHome,
+  const sealer = createSealer(sealKey);
+  const aiStash = createAiStash({ store: options.aiStash ?? memoryAiStashStore(now), sealer, now });
+  const clouds = createCloudsService({ aiStash, entitlements, onEvent: options.cloudEvent, onStatus: options.cloudStatus, dataDir: options.dataDir, now, providers: { pool, dedicated }, home, sealer, managed, managedHome: realHome,
     workspaces: {
       register({ accountId, name, publicKey }) {
         const id = `ws_${randomBytes(16).toString("base64url")}`;

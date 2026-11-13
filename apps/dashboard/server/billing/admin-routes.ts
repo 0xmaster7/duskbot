@@ -5,7 +5,8 @@ import { CloudError } from "../clouds/service.ts";
 import type { AccountRef } from "./types.ts";
 import type { BillingContext } from "./index.ts";
 import { BillingError } from "./service.ts";
-import { body, cloudName, color, invalid, json, optionalText, survey, text } from "./http.ts";
+import { body, cloudName, color, invalid, json, object, optionalText, rawBody, survey, text } from "./http.ts";
+import { AI_STASH_TTL_MS, parseAiSignIns } from "../clouds/ai-stash.ts";
 
 /** what a wake request may name to wake a sleeping desktop; anything else (open, view) leaves it asleep */
 export const WAKE_INTENTS = ["type", "click", "send", "connector", "routine"];
@@ -95,7 +96,7 @@ export function createAdminRoutes(ctx: BillingContext) {
     if (!path.startsWith("/api/cloud/desktop/")) return false;
     const route = path.slice("/api/cloud/desktop/".length);
     // identity, devices and the session belong to the accounts service
-    if (!/^(?:license|checkout|clouds|clouds\/[^/]+(?:\/(?:hide|cancel|keep))?|feedback|upgrade|upgrade\/preview|pairing|wake|resize-now|moved-to)$/.test(route)) return false;
+    if (!/^(?:license|checkout|clouds|clouds\/[^/]+(?:\/(?:hide|cancel|keep|ai-signins))?|feedback|upgrade|upgrade\/preview|pairing|wake|resize-now|moved-to)$/.test(route)) return false;
     try {
       const match = /^Bearer (omc_[A-Za-z0-9_-]{43})$/.exec(req.headers.authorization ?? "");
       const account = match ? await ctx.accounts.fromBearer(req) : null;
@@ -103,6 +104,21 @@ export function createAdminRoutes(ctx: BillingContext) {
       available();
       const send = (value: object) => { json(res, 200, { ...value, cloudContractVersion: 1 }); return true; };
       if (route === "license" && method === "GET") return send(service.licenseCheck(account));
+      const held = /^clouds\/([^/]+)\/ai-signins$/.exec(route);
+      if (held) {
+        // the request carries sign-ins: never log it, its body or its answer
+        const cloud = requireCloud(account, held[1]);
+        if (!clouds.holdSignIns || !clouds.dropSignIns) throw new BillingError(503, "unavailable");
+        if (method === "DELETE") { await clouds.dropSignIns(account.id, cloud.id); return send({ ok: true }); }
+        if (method !== "POST") throw new BillingError(404, "not_found");
+        const raw = (await rawBody(req, 96 * 1024)).toString("utf8");
+        let parsed: unknown;
+        try { parsed = JSON.parse(raw || "{}"); } catch { invalid(); }
+        const items = parseAiSignIns(object(parsed).items);
+        if (!items) invalid();
+        await clouds.holdSignIns(account.id, cloud.id, items);
+        return send({ ok: true, expiresInMs: AI_STASH_TTL_MS });
+      }
       const cloudRoute = /^clouds\/([^/]+)(?:\/(hide|cancel|keep))?$/.exec(route);
       if (cloudRoute && (method === "POST" || method === "PATCH")) {
         const cloud = requireCloud(account, cloudRoute[1]), data = await body(req);

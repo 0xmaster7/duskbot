@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent a
 import { setEmailGateDone, track } from "@/lib/analytics";
 import { openExternalLink } from "@/lib/app-links";
 import { cn } from "@/lib/cn";
-import { t } from "@/lib/i18n";
 import { chiefFor, chiefStepFits, createChiefPatch, myDefaultBot, stageIntro, useViewerEmail } from "@/lib/default-bot";
 import { completionPatch, DEFAULT_ADMIN_ORIGIN, firstRunPatch, markWelcomeFinished, resumeBeat, showWelcome, type BeatId } from "@/lib/onboarding";
 import { clearWelcomeDraft, readWelcomeDraft, saveWelcomeDraft } from "@/lib/welcome-draft";
@@ -11,13 +10,13 @@ import { openPlaceSetup, usePlaceSetupOpen } from "@/lib/place-setup";
 import { localSetupImport } from "@/lib/setup-import";
 import { api, useStore } from "@/state/store";
 import { BringBotsView, useBotMove } from "../BringBots";
-import { openConnectApps } from "../connect-apps/open";
 import { GrokMoveDialog } from "../lazy-screens";
 import { AccountStep } from "./AccountStep";
 import { AiStep } from "./AiStep";
-import { funnelSteps, nextStep, previousStep, skipsAi, type FunnelStep } from "./funnel";
+import { funnelSteps, nextStep, previousStep, type FunnelStep } from "./funnel";
 import { funnelAccount, type FunnelAccountState } from "./funnel-account";
-import { FunnelBar, MailStep, PhoneStep, PlaceStep, WelcomeStep } from "./FunnelSteps";
+import { FunnelBar, PhoneStep, PlaceStep, WelcomeStep } from "./FunnelSteps";
+import { MakingStep } from "./MakingStep";
 import { useWelcomeAi } from "./welcome-ai";
 import { localDesktopPage } from "./WelcomeGate";
 import "../../styles/onboarding.css";
@@ -39,6 +38,14 @@ async function nameFromComputer(config: Config, done: (config: NonNullable<Confi
   }
 }
 
+/** The plan sheet ended in a purchase: the account's own Cloud is paid for (being made, made, or a payment linking). */
+export function cloudBought(account: { purchase?: unknown; machine?: { status: string }; clouds?: Array<{ primary: boolean; runsOn: string; status: string }> } | null): boolean {
+  if (!account) return false;
+  if (account.purchase) return true;
+  if (account.clouds?.some((entry) => entry.primary && entry.runsOn === "cloud" && (entry.status === "setting_up" || entry.status === "ready"))) return true;
+  return account.machine?.status === "provisioning" || account.machine?.status === "ready";
+}
+
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /** Tab and Shift+Tab stay inside `root`, the way a modal dialog keeps them. */
@@ -57,9 +64,10 @@ export function trapTab(event: ReactKeyboardEvent<HTMLElement>, root: HTMLElemen
   }
 }
 
-/** The first run, one calm screen at a time: the welcome, a dusk bot account, where the bots live, an AI, things to
- * bring in, the phone. It ends in Dusk's chat (Dusk made the Chief of Staff where no other bot is one), where Dusk
- * greets and asks for whatever is still missing. An AI the person already uses (Claude, a ChatGPT plan) skips its step. */
+/** The first run, one calm screen at a time: the welcome, a dusk bot account, where the bots live, an AI, bots from
+ * another app (only when there are some), the phone. It ends in Dusk's chat (Dusk made the Chief of Staff where no other
+ * bot is one), where Dusk greets and asks for whatever is still missing. On dusk cloud it is the plan sheet, the AI, then
+ * the Cloud being made, and it ends in that Cloud's chat. */
 export function WelcomeFlow({
   onDone,
   replay = false,
@@ -96,17 +104,29 @@ export function WelcomeFlow({
     return () => { alive = false; stop(); };
   }, [account]);
   const desktop = !embedded && localDesktopPage() && window.duskDesktop?.remoteClient?.active !== true;
-  const steps = funnelSteps({ account: Boolean(account) && !firstKnown.current?.signedIn, desktop });
+  const draft = useMemo(() => (keepsDraft ? readWelcomeDraft() : null), [keepsDraft]);
+  const [cloud, setCloud] = useState(draft?.cloud === true);
 
-  const [at, setAt] = useState<FunnelStep>(() => resumeBeat(steps, initialBeat ?? (keepsDraft ? readWelcomeDraft()?.beat : undefined)));
+  // bots another agent app keeps on this computer: their own step, only when there are some
+  const offersMove = !replay && desktop && localSetupImport(state.config?.cloudHome === true);
+  const move = useBotMove({ look: offersMove });
+  const [grokOpen, setGrokOpen] = useState(false);
+  const moveFound = Boolean(move.plan && (movable(move.plan) || move.plan.grokWaiting.length));
+
+  const saved = initialBeat ?? draft?.beat;
+  // once found, the step stays, so it still counts after its bots came over
+  const bringing = useRef(saved === "bring");
+  if (moveFound) bringing.current = true;
+  const steps = funnelSteps({ account: Boolean(account) && !firstKnown.current?.signedIn, desktop, bring: bringing.current, cloud });
+
+  const [at, setAt] = useState<FunnelStep>(() => resumeBeat(steps, saved));
   const [from, setFrom] = useState<"next" | "back">("next");
   const tested = useWelcomeAi(state.instances);
-  const skipAi = skipsAi(tested);
 
   useEffect(() => {
     track("onboarding_step", { step: at, replay });
-    if (keepsDraft && !finishing.current) saveWelcomeDraft({ beat: at });
-  }, [at, replay, keepsDraft]);
+    if (keepsDraft && !finishing.current) saveWelcomeDraft({ beat: at, ...(cloud ? { cloud: true as const } : {}) });
+  }, [at, replay, keepsDraft, cloud]);
 
   // A Cloud sheet opened over the welcome never switches the window away from it (CloudAddDialog).
   useEffect(() => (embedded ? undefined : showWelcome()), [embedded]);
@@ -155,7 +175,7 @@ export function WelcomeFlow({
     setFrom(direction);
     setAt(step);
   }, [toChat]);
-  const next = useCallback(() => go(nextStep(steps, at, skipAi), "next"), [go, steps, at, skipAi]);
+  const next = useCallback(() => go(nextStep(steps, at), "next"), [go, steps, at]);
   const back = previousStep(steps, at);
 
   // signing in in the browser comes back here by itself
@@ -166,7 +186,8 @@ export function WelcomeFlow({
     else if (signedOutSeen.current) { signedOutSeen.current = false; next(); }
   }, [at, known, next]);
 
-  // dusk cloud's sheet opens over the funnel, which goes on to the AI once it is closed
+  // dusk cloud's sheet opens over the funnel; once it is paid for, the sheet closes and the AI step follows, then the
+  // Cloud being made. Closed without a purchase, the choice stays open.
   const [cloudOpen, setCloudOpen] = useState(false);
   const cloudSeen = useRef(false);
   useEffect(() => {
@@ -175,8 +196,14 @@ export function WelcomeFlow({
     if (!cloudSeen.current) return;
     cloudSeen.current = false;
     setCloudOpen(false);
-    if (at === "place") next();
-  }, [cloudOpen, state.cloudAdd, at, next]);
+    void window.duskDesktop?.cloudAccount?.state().then((account) => {
+      if (!cloudBought(account)) return;
+      track("onboarding_cloud", { action: "bought" });
+      setCloud(true);
+      setFrom("next");
+      setAt("ai");
+    }, () => {});
+  }, [cloudOpen, state.cloudAdd]);
   const placeSheet = usePlaceSetupOpen();
   const chooseCloud = () => {
     track("onboarding_cloud", { action: "open" });
@@ -188,12 +215,12 @@ export function WelcomeFlow({
     void openExternalLink(`${DEFAULT_ADMIN_ORIGIN}/pricing`).catch(() => {});
     next();
   };
+  const chooseMac = () => { setCloud(false); next(); };
 
-  // bots another agent app keeps on this computer, offered on the bring step of the desktop app's own first run
-  const offersMove = !replay && desktop && localSetupImport(state.config?.cloudHome === true);
-  const move = useBotMove({ look: offersMove });
-  const [grokOpen, setGrokOpen] = useState(false);
-  const moveFound = Boolean(move.plan && (movable(move.plan) || move.plan.grokWaiting.length));
+  // a run resumed on the bring step whose bots are gone meanwhile goes on
+  useEffect(() => {
+    if (at === "bring" && move.step.kind === "nothing") { bringing.current = false; go(nextStep(steps, "bring"), "next"); }
+  }, [at, move.step.kind, steps, go]);
 
   const overlayOpen = Boolean(state.cloudAdd) || Boolean(placeSheet) || grokOpen;
   const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -202,7 +229,7 @@ export function WelcomeFlow({
       event.preventDefault();
       // Escape is "not now": past an optional step, never past an account the app needs
       if (at === "account" && known?.required) return;
-      if (at === "welcome" || at === "account" || at === "place" || move.step.kind === "moving") return;
+      if (at === "welcome" || at === "account" || at === "place" || at === "making" || move.step.kind === "moving") return;
       next();
       return;
     }
@@ -218,26 +245,24 @@ export function WelcomeFlow({
       body = account ? <AccountStep account={account} known={known} onDone={next} onSkip={known?.required ? null : next} /> : null;
       break;
     case "place":
-      body = <PlaceStep onMac={next} onCloud={chooseCloud} onServer={() => openPlaceSetup("server")} />;
+      body = <PlaceStep onMac={chooseMac} onCloud={chooseCloud} onServer={() => openPlaceSetup("server")} />;
       break;
     case "ai":
-      body = <AiStep tested={tested} onNext={next} onLater={next} />;
+      body = <AiStep tested={tested} onNext={next} />;
       break;
     case "bring":
-      body = moveFound && move.plan && move.step.kind !== "nothing" ? (
+      body = move.plan ? (
         <div className="mx-auto my-auto flex w-full flex-col items-center px-6 pb-12 pt-20">
           <BringBotsView plan={move.plan} step={move.step} bot={maus} variant="screen" onBring={() => void move.bring()}
             onSkip={next} onContinue={next} onGrok={() => setGrokOpen(true)} />
-          {(move.step.kind === "offer" || move.step.kind === "error") && (
-            <button type="button" onClick={() => openConnectApps()} className="mt-1 min-h-9 rounded-full px-3 text-[13px] leading-[18px] text-ink-secondary hover:text-ink">
-              {t("funnel.mail.too")}
-            </button>
-          )}
         </div>
-      ) : <MailStep onConnect={() => openConnectApps()} onNext={next} />;
+      ) : null;
       break;
     case "phone":
       body = <PhoneStep onNext={next} />;
+      break;
+    case "making":
+      body = <MakingStep onOpened={() => void finish("completed", null)} />;
       break;
   }
 
@@ -247,7 +272,7 @@ export function WelcomeFlow({
       ref={root}
       role="dialog"
       aria-modal
-      aria-labelledby={at === "bring" && moveFound ? "bot-move-title" : "welcome-title"}
+      aria-labelledby={at === "bring" ? "bot-move-title" : "welcome-title"}
       tabIndex={-1}
       onKeyDown={onKeyDown}
       data-welcome={at}

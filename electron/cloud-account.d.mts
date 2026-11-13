@@ -61,6 +61,9 @@ export interface CloudAccountState {
   /** Connected: the plan's renewal, only while this account pays for a plan that runs: what Cancel and Keep act on (display only). */
   renewal?: import("./cloud-list.mjs").CloudRenewal;
 }
+/** What holding the first run's AI sign-ins did: `held` for the Cloud being made, `nothing` to hold, `no-cloud` (none
+ * being made for this account), or `failed`. */
+export interface CloudHeldSignIns { outcome: "held" | "nothing" | "no-cloud" | "failed" }
 /** The cancel sheet's reasons. */
 export type CloudCancelAnswer = "feature" | "price" | "setup" | "broken" | "later" | "other";
 /** The cancel sheet's survey: one reason (words without one are kept as `other`) and two optional boxes, at most 2,000 characters each. */
@@ -169,6 +172,8 @@ export interface CloudAccountBridge {
   /** Cancel trial / Cancel plan, after the survey when it says anything; Keep my plan. The Cloud is the verified session's own, never the page's. Absent on an older app. */
   cancelPlan?(survey: CloudCancelSurvey | null): Promise<CloudRenewalResult>;
   keepPlan?(): Promise<CloudRenewalResult>;
+  /** The first run on dusk cloud: this computer's AI sign-ins, held for the account's own Cloud until it runs. */
+  holdSignIns?(): Promise<CloudHeldSignIns>;
   onState(callback: (state: CloudAccountState) => void): () => void;
   files?: import("./cloud-sync.mjs").CloudFilesBridge;
 }
@@ -318,6 +323,7 @@ export interface CloudAccountClient {
   cancelPlan(survey: unknown): Promise<CloudRenewalResult>;
   /** POST /api/cloud/desktop/clouds/<the session's own Cloud>/keep. */
   keepPlan(): Promise<CloudRenewalResult>;
+  holdSignIns(items: Array<{ kind: "codex-auth"; auth: string }>): Promise<CloudHeldSignIns>;
   /** POST /api/cloud/desktop/room: Not now on the room card for the session's own Cloud; false when it couldn't be said. */
   roomNotNow(id: string): Promise<boolean>;
   /** POST /api/cloud/desktop/resize-now: the bigger size after an upgrade goes at once. */

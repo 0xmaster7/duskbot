@@ -2493,6 +2493,15 @@ ipcMain.handle("window:state", (event) => {
   return { maximized: Boolean(win && !win.isDestroyed() && win.isMaximized()) };
 });
 
+ipcMain.handle("desktop:focus-window", localOnly("desktop:focus-window", (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender) ?? mainWindow;
+  if (!win || win.isDestroyed()) return false;
+  if (win.isMinimized()) win.restore();
+  win.show();
+  app.focus({ steal: true });
+  win.focus();
+  return true;
+}));
 // Links resolved after Chromium's click gesture ended would be blocked as popups via window.open.
 ipcMain.handle("desktop:open-external", localOnly("desktop:open-external", async (_event, rawUrl) => {
   await shell.openExternal(externalLinkUrl(rawUrl));
@@ -2696,6 +2705,13 @@ ipcMain.handle("cloud-account:openTeam", localWorkspaceOnly("cloud-account:openT
 // Cancel trial / Cancel plan and Keep my plan: the page sends the survey's words only; the Cloud is the verified session's own.
 ipcMain.handle("cloud-account:cancelPlan", localWorkspaceOnly("cloud-account:cancelPlan", (_event, survey) => ensureCloudAccount().cancelPlan(survey)));
 ipcMain.handle("cloud-account:keepPlan", localWorkspaceOnly("cloud-account:keepPlan", () => ensureCloudAccount().keepPlan()));
+// a ChatGPT plan's login on this Mac, for the account's own Cloud being made; the Claude sign-in is never held by dusk bot's servers
+ipcMain.handle("cloud-account:holdSignIns", localWorkspaceOnly("cloud-account:holdSignIns", async () => {
+  const file = path.join(process.env.CODEX_HOME || path.join(os.homedir(), ".codex"), "auth.json");
+  let auth = null;
+  try { auth = await fs.promises.readFile(file, "utf8"); JSON.parse(auth); } catch { auth = null; }
+  return ensureCloudAccount().holdSignIns(auth ? [{ kind: "codex-auth", auth }] : []);
+}));
 ipcMain.handle("organization:settings-opened", localWorkspaceOnly("organization:settings-opened", () => organizationEntry.settingsOpened()));
 ipcMain.handle("organization:state", localWorkspaceOnly("organization:state", () => ensureManagedDesktop().state()));
 ipcMain.handle("organization:begin", localWorkspaceOnly("organization:begin", (_event, input) => ensureManagedDesktop().begin(input)));

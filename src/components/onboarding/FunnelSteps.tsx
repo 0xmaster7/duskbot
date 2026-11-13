@@ -1,5 +1,5 @@
 // The first-run funnel's frame (back, progress, a step that slides in from where it was reached) and its simpler steps:
-// the welcome, where bots live, bringing things in, and the phone.
+// the welcome, where bots live, and the phone.
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { ChevronLeft, Check } from "../../icons";
@@ -17,8 +17,11 @@ import { Art, type ArtName } from "../ui/Art";
 import { PlaceArt, type PlaceArtName } from "../ui/PlaceArt";
 import { Toggle } from "../ui/Toggle";
 import { DEFAULT_BOT_NAME } from "@/lib/default-bot";
+import phoneChat from "../../assets/onboarding/phone-chat.webp";
 
 export const PRIMARY = "ui-button ui-button-pill ui-button-lg ui-button-primary w-[288px] max-w-full font-normal tracking-[0.14px]";
+/** The quiet way past a step that still reads as a button: a soft fill, no outline. */
+export const SECONDARY = "ui-button ui-button-pill ui-button-lg w-[288px] max-w-full font-normal tracking-[0.14px]";
 export const QUIET = "min-h-11 rounded-full px-3 text-[13px] leading-[18px] text-ink-secondary transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none";
 /** A tonal choice: a soft fill, no outline, a deeper fill on hover and while chosen. */
 export const TILE = "rounded-2xl bg-ink/[0.035] transition-[background-color,transform] duration-150 ease-[ease] hover:bg-ink/[0.06] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none motion-reduce:active:scale-100";
@@ -124,17 +127,6 @@ export function PlaceStep({ onMac, onCloud, onServer }: { onMac: () => void; onC
   );
 }
 
-/** Email and calendar, when nothing from another app is here to bring. */
-export function MailStep({ onConnect, onNext }: { onConnect: () => void; onNext: () => void }) {
-  return (
-    <StepFrame art={<StepArt art="mailbox" />} title={t("funnel.mail.title")} sub={t("funnel.mail.sub")}
-      footer={<>
-        <button type="button" data-primary="" data-funnel-mail="" onClick={onConnect} className={PRIMARY}>{t("funnel.mail.connect")}</button>
-        <button type="button" data-funnel-skip="" onClick={onNext} className={QUIET}>{t("funnel.skip")}</button>
-      </>} />
-  );
-}
-
 type Pairing = { kind: "idle" } | { kind: "busy" } | { kind: "offer"; offer: MobilePairingResponse; before: string[] } | { kind: "linked"; name: string };
 
 /** The phone: one press shows a QR code (after the desktop app checks someone is here), and it says when the phone joins. */
@@ -180,36 +172,56 @@ export function PhoneStep({ onNext }: { onNext: () => void }) {
 
   const expired = waiting ? waiting.offer.expiresAt <= now : false;
   const code = waiting?.offer.code?.replace(/[^a-z0-9]/gi, "").match(/.{1,4}/g)?.join(" ");
+  const showing = pairing.kind === "offer" && !expired;
   return (
-    <StepFrame
-      art={pairing.kind === "offer" && !expired ? undefined : <StepArt place="phone" />}
-      title={pairing.kind === "linked" ? t("mobile.desktop.linked", { name: pairing.name }) : t("funnel.phone.title")}
-      sub={pairing.kind === "linked" ? t("mobile.desktop.linkedHint") : pairing.kind === "offer" ? undefined : t("funnel.phone.sub")}
-      footer={pairing.kind === "linked" || (pairing.kind === "offer" && !expired)
-        ? <button type="button" data-primary="" data-funnel-done="" onClick={onNext} className={PRIMARY}>{t("funnel.next")}</button>
-        : <>
-          <button type="button" data-primary="" data-funnel-phone="" disabled={pairing.kind === "busy"} onClick={() => void show()} className={PRIMARY}>
-            {expired ? t("settings.mobile.newCode") : t("funnel.phone.show")}
-          </button>
-          <button type="button" data-funnel-skip="" onClick={onNext} className={QUIET}>{t("funnel.skip")}</button>
-        </>}
-    >
-      {pairing.kind === "offer" && !expired && (
-        <div data-phone-offer="" className="place-reveal flex flex-col items-center gap-3">
-          <div role="img" aria-label={t("settings.mobile.qr")} className="rounded-[18px] bg-white p-2.5">
-            <QRCodeSVG value={pairing.offer.link} size={168} level="M" includeMargin={false} bgColor="#ffffff" fgColor="#1b1b1f" aria-hidden="true" />
+    <div className="mx-auto my-auto flex w-full max-w-[760px] flex-col items-center gap-10 px-6 pb-12 pt-20 sm:flex-row sm:items-center sm:gap-14">
+      <PhoneFrame />
+      <div className="flex min-w-0 flex-1 flex-col items-center text-center sm:items-start sm:text-start">
+        <h1 id="welcome-title" tabIndex={-1} className="text-balance text-[28px] font-normal leading-[34px] tracking-[-0.02em] text-ink outline-none">
+          {pairing.kind === "linked" ? t("mobile.desktop.linked", { name: pairing.name }) : t("funnel.phone.title")}
+        </h1>
+        <p className="mt-2 max-w-[360px] text-pretty text-[15px] leading-[22px] text-ink-secondary">
+          {pairing.kind === "linked" ? t("mobile.desktop.linkedHint") : showing ? t("funnel.phone.scan") : t("funnel.phone.sub")}
+        </p>
+        {showing && (
+          <div data-phone-offer="" className="place-reveal mt-6 flex flex-col items-center gap-3 sm:items-start">
+            <div role="img" aria-label={t("settings.mobile.qr")} className="rounded-[18px] bg-white p-2.5">
+              <QRCodeSVG value={pairing.offer.link} size={152} level="M" includeMargin={false} bgColor="#ffffff" fgColor="#1b1b1f" aria-hidden="true" />
+            </div>
+            {code && <code aria-label={t("settings.mobile.code")} className="select-all whitespace-nowrap font-mono text-[17px] leading-7 tracking-[0.1em] text-ink">{code}</code>}
+            <p role="status" className="flex items-center gap-2 text-[13px] leading-[18px] text-ink-secondary">
+              <span aria-hidden="true" className="funnel-wait inline-block size-1.5 rounded-full bg-ink" />
+              {t("mobile.desktop.waiting")}
+              <span className="text-ink-tertiary">· {t("settings.mobile.expires", { minutes: minutesLeft(pairing.offer.expiresAt, now) })}</span>
+            </p>
           </div>
-          {code && <code aria-label={t("settings.mobile.code")} className="select-all whitespace-nowrap font-mono text-[18px] leading-7 tracking-[0.1em] text-ink">{code}</code>}
-          <p role="status" className="flex items-center gap-2 text-[13px] leading-[18px] text-ink-secondary">
-            <span aria-hidden="true" className="funnel-wait inline-block size-1.5 rounded-full bg-ink" />
-            {t("mobile.desktop.waiting")}
-            <span className="text-ink-tertiary">· {t("settings.mobile.expires", { minutes: minutesLeft(pairing.offer.expiresAt, now) })}</span>
-          </p>
+        )}
+        {pairing.kind === "linked" && <span className="place-mark mt-6 grid size-12 place-items-center rounded-full bg-success/10 text-success"><Check size={24} aria-hidden="true" /></span>}
+        {expired && <p role="status" className="mt-4 text-[13px] text-ink-secondary">{t("settings.mobile.expired")}</p>}
+        {error && <p role="alert" className="mt-4 text-[13px] leading-[18px] text-danger">{error}</p>}
+        <div className="mt-8 flex w-full flex-col items-center gap-2 sm:items-start">
+          {pairing.kind === "linked" || showing
+            ? <button type="button" data-primary="" data-funnel-done="" onClick={onNext} className={PRIMARY}>{pairing.kind === "linked" ? t("funnel.next") : t("funnel.phone.later")}</button>
+            : <>
+              <button type="button" data-primary="" data-funnel-phone="" disabled={pairing.kind === "busy"} onClick={() => void show()} className={PRIMARY}>
+                {expired ? t("settings.mobile.newCode") : t("funnel.phone.show")}
+              </button>
+              <button type="button" data-funnel-skip="" onClick={onNext} className={SECONDARY}>{t("funnel.skip")}</button>
+            </>}
         </div>
-      )}
-      {pairing.kind === "linked" && <span className="place-mark grid size-12 place-items-center rounded-full bg-success/10 text-success"><Check size={24} aria-hidden="true" /></span>}
-      {expired && <p role="status" className="text-[13px] text-ink-secondary">{t("settings.mobile.expired")}</p>}
-      {error && <p role="alert" className="text-[13px] leading-[18px] text-danger">{error}</p>}
-    </StepFrame>
+      </div>
+    </div>
+  );
+}
+
+/** The phone app's own chat screen (a real capture with demo bots), in a plain phone outline. */
+function PhoneFrame() {
+  return (
+    <div aria-hidden="true" className="phone-frame w-[208px] shrink-0 rounded-[38px] bg-[#1b1b1f] p-[6px] shadow-[0_24px_48px_-24px_rgba(27,27,31,0.45)]">
+      <div className="relative overflow-hidden rounded-[32px] bg-white">
+        <img src={phoneChat} alt="" width={196} height={426} draggable={false} className="block h-auto w-full select-none" />
+        <span className="absolute left-1/2 top-[7px] h-[18px] w-[64px] -translate-x-1/2 rounded-full bg-[#1b1b1f]" />
+      </div>
+    </div>
   );
 }

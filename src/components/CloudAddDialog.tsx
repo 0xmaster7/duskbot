@@ -219,9 +219,13 @@ export function CloudAddDialog({ now = Date.now }: { now?: () => number }) {
     const timer = setTimeout(() => { void bridge.setLook?.(shownLook.name, look.color).catch(() => {}); }, 400);
     return () => clearTimeout(timer);
   }, [look?.typed, look?.color]);
+  // Bought from the first run: the run itself goes on to the AI and then shows the Cloud being made.
+  useEffect(() => {
+    if (request?.source === "app_onboarding" && (kind === "starting" || kind === "ready")) close();
+  }, [kind]);
   // Ready while this sheet is open in the focused window: "Opening in 3…", then the Cloud opens; Not now stops it.
   useEffect(() => {
-    if (kind !== "ready" || auto !== null) return;
+    if (kind !== "ready" || auto !== null || request?.source === "app_onboarding") return;
     // a Cloud bought to move bots there: the move's own sheet takes over, so the window stays here while they move
     if (request?.source === "app_computer_move") { close(); openCloudMove(); return; }
     setAuto(!overWelcome && typeof document.hasFocus === "function" && document.hasFocus() ? 3 : "off");

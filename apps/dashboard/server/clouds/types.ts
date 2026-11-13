@@ -79,6 +79,8 @@ export interface HomeClient {
   entitle?(origin: string, secret: string, token: string): Promise<{ expiresAt: number }>;
   /** tells the home its plan was cancelled or renewed, so it holds its routines (docs/cloud-pro.md) */
   plan?(origin: string, secret: string, input: { cancelled: boolean }): Promise<void>;
+  /** hands the home AI sign-ins held for it (ai-stash.ts); resolves once it applied them */
+  signIns?(origin: string, secret: string, items: import("./ai-stash.ts").AiSignIn[]): Promise<void>;
   /** the home's own report after an update (server/update-state.ts): the version it runs, its self-test, its finished runs */
   update?(origin: string, secret: string): Promise<HomeUpdateReport>;
 }
@@ -202,6 +204,10 @@ export interface CloudsService {
   hide(accountId: string, cloudId: string): StoredCloud;
   power(accountId: string, cloudId: string, action: PowerAction): Promise<StoredCloud>;
   pair(accountId: string, cloudId: string): Promise<{ origin: string; code: string; expiresAt: number }>;
+  /** holds AI sign-ins for the account's Cloud until it runs (ai-stash.ts); refused for a Cloud that ended */
+  holdSignIns?(accountId: string, cloudId: string, items: import("./ai-stash.ts").AiSignIn[]): Promise<void>;
+  /** deletes what is held for the account's Cloud */
+  dropSignIns?(accountId: string, cloudId: string): Promise<void>;
   /** one pass over every desktop that needs work; safe to run concurrently with itself (serialized inside) */
   reconcile(): Promise<void>;
   /** the managed backend when one is configured: owner delete requests, operator holds, resizes */

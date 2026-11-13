@@ -354,6 +354,8 @@ const __APP_VERSION__: string;
       copyText?(text: string): Promise<boolean>;
       /** Opens an http(s) link in the user's default browser. */
       openExternal?(url: string): Promise<boolean>;
+      /** Brings this window back to the front, after a sign-in finished in the browser. */
+      focusWindow?(): Promise<boolean>;
       /** Recolor the native window chrome for a skin; absent on older builds. */
       applySkin?(skin: string): Promise<boolean>;
       /** The window's own frame, this desktop's choice (Settings → Appearance). Absent on an older app. */

@@ -38,6 +38,7 @@ import { opsFixture } from "./admin/ops/fixture.ts";
 import { createOps } from "./admin/ops/index.ts";
 import { memoryOpsStore, type OpsStore } from "./admin/ops/store.ts";
 import { AsyncLocalStorage } from "node:async_hooks";
+import { mongoAiStashStore } from "./clouds/ai-stash.ts";
 import type { Db } from "mongodb";
 import { AdminError, createAdmin, parseAdminEmails } from "./admin/index.ts";
 import { createErrorCounter } from "./admin/health.ts";
@@ -231,7 +232,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     const paidBefore = !!entry.accountId && billing.store.state.invoices.some(invoice => invoice.accountId === entry.accountId && invoice.status !== "failed" && invoice.amountCents > 0);
     alerts.money(entry, { email: entry.accountId ? auth.account(entry.accountId)?.email ?? null : null, paidBefore, mrr: mrrAtTime(ledgerState(), now()) });
   }
-  const billing = createBilling({ accountExists: id => auth.account(id) !== null,
+  const billing = createBilling({ ...(options.analytics?.db ? { aiStash: mongoAiStashStore(options.analytics.db, now) } : {}), accountExists: id => auth.account(id) !== null,
     findAccount: email => { const found = auth.accountByEmail(email); return found ? { id: found.id, email: found.email } : null; },
     mail: (cloud, letter) => {
       if (!letter.notice) return mail(emailOf(cloud.accountId), letter.subject, letter.text);

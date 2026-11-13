@@ -12,6 +12,7 @@ import type { CloudProvider, CloudsService, DesktopPlan, HomeClient, SlotQuota, 
 import type { ManagedCloud, ManagedCloudFactory } from "./managed.ts";
 import { lockDataDir } from "../data-dir-lock.ts";
 import { stateBackend } from "../persistence/backend.ts";
+import type { AiStash } from "./ai-stash.ts";
 
 export class CloudError extends Error {
   readonly status: number;
@@ -52,6 +53,8 @@ export interface CloudsServiceOptions {
   onEvent?: (kind: CloudEventKind, cloud: StoredCloud) => void;
   /** every status change, after it is stored */
   onStatus?: (cloud: StoredCloud, from: CloudStatus | null) => void;
+  /** AI sign-ins held for a Cloud still being made, handed to its home once it runs (ai-stash.ts) */
+  aiStash?: AiStash | null;
 }
 export type CloudEventKind = "ready" | "deleted";
 interface State { v: 1; clouds: StoredCloud[] }
@@ -89,6 +92,27 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
     for (const kind of events) try { options.onEvent?.(kind, c); } catch { console.warn(`clouds: the ${kind} notice failed`); }
     const from = statusOf.get(c.id) ?? null;
     if (from !== c.status) { statusOf.set(c.id, c.status); try { options.onStatus?.(c, from); } catch { console.warn("clouds: the status notice failed"); } }
+    if (options.aiStash && (c.ended || ["destroying", "destroyed", "error", "suspended"].includes(c.status))) void options.aiStash.drop(c.id).catch(() => console.warn("clouds: held AI sign-ins could not be dropped; they expire on their own"));
+  }
+  /** Held AI sign-ins go to each Cloud that runs now, once, then are deleted; a Cloud that can't take them any more drops them. */
+  async function deliverSignIns() {
+    const stash = options.aiStash;
+    if (!stash) return;
+    for (const id of await stash.pending()) {
+      if (closed) return;
+      const c = get(id);
+      if (!c || c.ended || ["destroying", "destroyed", "error", "suspended"].includes(c.status)) { await stash.drop(id); continue; }
+      if (c.status !== "running" || !c.origin || c.suspended !== null) continue;
+      const client = c.backend ? options.managedHome ?? home : home;
+      if (!client.signIns) continue;
+      const held = await stash.open(id);
+      if (!held) continue;
+      if (held.accountId !== c.accountId) { await stash.drop(id); continue; }
+      try {
+        await client.signIns(c.origin, sealer.unseal(c.bootstrapSecret), held.items);
+        await stash.drop(id);
+      } catch { console.warn(`clouds: handing held AI sign-ins to cloud ${c.id} failed; it is tried again on the next pass`); }
+    }
   }
   function get(id: string) { return store.state.clouds.find(c => c.id === id) ?? null; }
   function requireCloud(id: string) { const cloud = get(id); if (!cloud) throw new CloudError(404, "not_found"); return cloud; }
@@ -371,6 +395,14 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
       c.wantPower = action; c.nextAttemptAt = 0; save(c); await service.reconcile(); if (c.wantPower === action && c.status !== (action === "on" ? "running" : "stopped") && c.status !== "error") await service.reconcile();
       if (c.backend && action === "on" && c.status !== "running") hurry(c.id); return c; },
     async pair(accountId, id) { const c = requireOwned(accountId, id); if (c.status !== "running" || !c.origin || c.suspended !== null || c.ended || c.destroyAt !== null && c.destroyAt <= now()) throw new CloudError(409, "unavailable"); const result = await (c.backend ? options.managedHome ?? home : home).pair(c.origin, sealer.unseal(c.bootstrapSecret), { label: "dusk bot app (Cloud)", ttlSeconds: 300 }); return { origin: c.origin, code: result.code, expiresAt: result.expiresAt }; },
+    async holdSignIns(accountId, id, items) {
+      const c = requireOwned(accountId, id);
+      if (!options.aiStash) throw new CloudError(503, "unavailable");
+      if (c.ended || !["checkout", "provisioning", "running"].includes(c.status)) throw new CloudError(409, "unavailable");
+      if (!(await options.aiStash.hold(accountId, c.id, items))) throw new CloudError(503, "unavailable");
+      if (c.status === "running") kick();
+    },
+    async dropSignIns(accountId, id) { const c = requireOwned(accountId, id); await options.aiStash?.drop(c.id); },
     reconcile() {
       if (closed) return Promise.resolve();
       if (reconciling) return reconciling;
@@ -381,6 +413,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
           try { await reconcileCloud(c); } catch (error) { retry(c, error); }
         }
         if (managed && !closed) await managed.afterPass(store.state.clouds).catch(() => console.warn("clouds: the managed backend's pass failed; it runs again later"));
+        if (!closed) await deliverSignIns().catch(() => console.warn("clouds: the held AI sign-ins pass failed; it runs again later"));
       }).finally(() => { reconciling = null; });
       return reconciling;
     },

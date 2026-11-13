@@ -1,18 +1,19 @@
-// Connecting an AI, as one step of the first run: every AI this app can use as a button with its own logo. A pick opens
-// its way in under the grid: the provider's own sign-in where there is one (SignInPill), else its setup (EngineSetup:
-// an API key, an install, a local endpoint). When one answers its test message the step says so and goes on.
-import { useState } from "react";
+// Connecting an AI, as one step of the first run: every AI this app can use as a button with its own logo. A press opens
+// that provider's own sign-in in the browser (SignInPill's flows), or its setup under the grid where it has no sign-in
+// (EngineSetup: an API key, an install, a local endpoint). A connected AI shows as connected and can't be pressed again;
+// the window comes back to the front when a sign-in finishes, and more can be added before going on.
+import { useEffect, useRef, useState } from "react";
 import { Check, LoaderCircle, RefreshCw, Server } from "../../icons";
 import { EngineSetup } from "@/components/EngineSetup";
 import { engineReady } from "@/components/EngineLibrary";
-import { CursorMark, InstanceProviderMark, PresetProviderMark, ProviderMark } from "@/components/ProviderIcons";
+import { CursorMark, PresetProviderMark, ProviderMark } from "@/components/ProviderIcons";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import { aiWorks, plainSignIn } from "@/lib/onboarding";
+import { plainSignIn } from "@/lib/onboarding";
 import { useStore, type InstanceInfo } from "@/state/store";
 import { ConnectAiDialog } from "./ConnectAi";
 import { aiName, aiTiles, freeModel, type AiTile, type AiTileId } from "./funnel";
-import { PRIMARY, QUIET, StepArt, StepFrame, TILE } from "./FunnelSteps";
+import { PRIMARY, QUIET, SECONDARY, StepArt, StepFrame, TILE } from "./FunnelSteps";
 import { SignInPill, pillWay, useSignInPill } from "./SignInPill";
 import type { WelcomeAiNow } from "./welcome-ai";
 
@@ -41,14 +42,22 @@ function setupFor(instance: InstanceInfo) {
     : { intent: "cloud" as const };
 }
 
-/** The picked AI's way in: its sign-in button, then the code or the wait, in the pill's own slot. */
+/** The pressed AI's way in. A website sign-in or an install starts on the press itself; what is left here is the wait,
+ * the code to paste back or to enter, or the setup for an AI without a sign-in. */
 function Connect({ instance, testing }: { instance: InstanceInfo; testing: boolean }) {
   const pill = useSignInPill(instance);
   const [dialog, setDialog] = useState(false);
-  if (ready(instance)) {
-    return <p role="status" className="flex items-center gap-2 text-[14px] text-success"><Check size={15} strokeWidth={2.5} aria-hidden="true" />{t("funnel.ai.connectedName", { name: aiName(instance) })}</p>;
-  }
-  if (pillWay(instance) !== "dialog") {
+  const way = pillWay(instance);
+  const begin = useRef(pill);
+  begin.current = pill;
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    if (way === "install") void begin.current.install();
+    else if (way === "sign-in") void begin.current.start();
+  }, [way]);
+  if (way !== "dialog") {
     return (
       <div className="flex flex-col items-center gap-2.5">
         <SignInPill pill={pill} instance={{ ...instance, displayName: aiName(instance) }} waiting={testing} onDialog={() => setDialog(true)} />
@@ -60,54 +69,70 @@ function Connect({ instance, testing }: { instance: InstanceInfo; testing: boole
   return <EngineSetup instance={instance} {...setupFor(instance)} className="w-full max-w-[440px] rounded-2xl border-0 bg-ink/[0.035] p-4 text-start" />;
 }
 
-export function AiStep({ tested, onNext, onLater }: { tested: WelcomeAiNow | null; onNext: () => void; onLater: () => void }) {
+function AiTileButton({ tile, connected, picked, onPick }: { tile: AiTile<InstanceInfo>; connected: boolean; picked: boolean; onPick: () => void }) {
+  if (connected) {
+    return (
+      <div data-funnel-ai={tile.id} data-connected="" role="listitem" aria-label={t("funnel.ai.connectedName", { name: label(tile) })}
+        className="ai-connected place-reveal relative flex h-[96px] flex-col items-center justify-center gap-1.5 rounded-2xl bg-success/[0.09] px-2">
+        <span className="grid size-7 place-items-center"><TileMark tile={tile} size={26} /></span>
+        <span className="flex max-w-full flex-col items-center">
+          <span className="max-w-full truncate text-[13px] leading-[18px] text-ink">{label(tile)}</span>
+          <span className="flex items-center gap-1 text-[12px] leading-4 text-success">
+            <Check size={12} strokeWidth={2.5} aria-hidden="true" className="shrink-0" />{t("funnel.ai.ready")}
+          </span>
+        </span>
+      </div>
+    );
+  }
+  return (
+    <div role="listitem" className="flex">
+      <button type="button" data-funnel-ai={tile.id} aria-pressed={picked} onClick={onPick}
+        className={cn(TILE, "relative flex h-[96px] w-full flex-col items-center justify-center gap-2 px-2", picked && "bg-ink/[0.08] hover:bg-ink/[0.08]")}>
+        <span className="grid size-7 place-items-center"><TileMark tile={tile} size={26} /></span>
+        <span className="max-w-full truncate text-[13px] leading-[18px] text-ink">{label(tile)}</span>
+      </button>
+    </div>
+  );
+}
+
+/** Brings the app back to the front when an AI becomes connected while this step is open (a sign-in in the browser). */
+function useFocusOnConnect(connectedIds: readonly string[]) {
+  const seen = useRef<Set<string> | null>(null);
+  const key = connectedIds.join(",");
+  useEffect(() => {
+    const now = new Set(key ? key.split(",") : []);
+    const before = seen.current;
+    seen.current = now;
+    if (before && [...now].some((id) => !before.has(id))) void window.duskDesktop?.focusWindow?.().catch(() => {});
+  }, [key]);
+}
+
+export function AiStep({ tested, onNext }: { tested: WelcomeAiNow | null; onNext: () => void }) {
   const { state } = useStore();
   const [picked, setPicked] = useState<AiTileId | null>(null);
-  const [changing, setChanging] = useState(false);
   const [more, setMore] = useState(false);
   const tiles = aiTiles(state.instances, ready);
   const free = freeModel(state.instances, ready);
-  const connected = tested && aiWorks(tested) ? tested.instance : undefined;
-  const chosen = tiles.find((tile) => tile.id === picked);
-
-  if (connected && !changing) {
-    return (
-      <StepFrame
-        art={<span className="place-mark grid size-16 place-items-center rounded-[20px] bg-ink/[0.035]"><InstanceProviderMark instance={connected} size={34} /></span>}
-        title={t("funnel.ai.using", { name: aiName(connected) })}
-        sub={t("funnel.ai.usingSub")}
-        footer={<>
-          <button type="button" data-primary="" data-funnel-ai-continue="" autoFocus onClick={onNext} className={PRIMARY}>{t("funnel.next")}</button>
-          <button type="button" data-funnel-ai-change="" onClick={() => setChanging(true)} className={QUIET}>{t("funnel.ai.change")}</button>
-        </>} />
-    );
-  }
+  const connected = tiles.filter((tile) => ready(tile.instance));
+  const chosen = tiles.find((tile) => tile.id === picked && !ready(tile.instance));
+  useFocusOnConnect(connected.map((tile) => tile.id));
 
   return (
-    <StepFrame art={<StepArt art="plug" />} title={t("funnel.ai.title")} sub={t("funnel.ai.sub")} wide
+    <StepFrame art={<StepArt art="plug" />} title={t("funnel.ai.title")} sub={connected.length ? t("funnel.ai.subMore") : t("funnel.ai.sub")} wide
       footer={<>
-        {connected && <button type="button" data-primary="" onClick={onNext} className={PRIMARY}>{t("funnel.next")}</button>}
-        {!connected && free && <button type="button" data-funnel-free="" onClick={onNext} className={QUIET}>{t("funnel.ai.free")}</button>}
+        {connected.length > 0
+          ? <button type="button" data-primary="" data-funnel-ai-continue="" onClick={onNext} className={PRIMARY}>{t("funnel.next")}</button>
+          : free && <button type="button" data-funnel-free="" onClick={onNext} className={SECONDARY}>{t("funnel.ai.free")}</button>}
         <span className="flex flex-wrap items-center justify-center gap-1">
           <button type="button" data-funnel-ai="more" onClick={() => setMore(true)} className={QUIET}>{t("funnel.ai.more")}</button>
-          {!connected && <button type="button" data-funnel-later="" onClick={onLater} className={QUIET}>{t("funnel.ai.later")}</button>}
+          {connected.length === 0 && <button type="button" data-funnel-later="" onClick={onNext} className={QUIET}>{t("funnel.ai.later")}</button>}
         </span>
       </>}>
-      <div role="group" aria-label={t("funnel.ai.title")} className="grid w-full grid-cols-2 gap-2.5 sm:grid-cols-4">
-        {tiles.map((tile) => {
-          const on = ready(tile.instance);
-          return (
-            <button key={tile.id} type="button" data-funnel-ai={tile.id} aria-pressed={picked === tile.id}
-              onClick={() => setPicked(picked === tile.id ? null : tile.id)}
-              className={cn(TILE, "relative flex h-[92px] flex-col items-center justify-center gap-2.5 px-2", picked === tile.id && "bg-ink/[0.08] hover:bg-ink/[0.08]")}>
-              <span className="grid size-7 place-items-center"><TileMark tile={tile} size={26} /></span>
-              <span className="max-w-full truncate text-[13px] leading-[18px] text-ink">{label(tile)}</span>
-              {on && <span className="absolute end-2 top-2 grid size-4 place-items-center rounded-full bg-success text-app" title={t("funnel.ai.ready")}>
-                <Check size={10} strokeWidth={3} aria-hidden="true" /><span className="sr-only">{t("funnel.ai.ready")}</span>
-              </span>}
-            </button>
-          );
-        })}
+      <div role="list" aria-label={t("funnel.ai.title")} className="grid w-full grid-cols-2 gap-2.5 sm:grid-cols-4">
+        {tiles.map((tile) => (
+          <AiTileButton key={tile.id} tile={tile} connected={ready(tile.instance)} picked={picked === tile.id}
+            onPick={() => setPicked(picked === tile.id ? null : tile.id)} />
+        ))}
       </div>
 
       {tested?.state === "testing" && (

@@ -672,6 +672,20 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       const { cloudId: answered, ...renewal } = result?.cloudContractVersion === 1 ? parseCloudRenewal([result.cloud]) ?? {} : {};
       return { outcome: "cancelled", renewal: answered === cloudId ? renewal : null, surveyed, state: await refresh().catch(() => state()) };
     },
+    /**
+     * The first run's AI sign-ins for the account's own Cloud while it is being made: the Admin holds them sealed, for a
+     * day at most, and hands them to that Cloud once it runs. The Cloud is the session's own, never one a page names;
+     * `items` never reach a log here.
+     */
+    async holdSignIns(items) {
+      const signedIn = grant, current = state();
+      const cloud = current.clouds?.find(entry => entry.primary && entry.runsOn === "cloud" && ["checkout", "setting_up", "ready"].includes(entry.status));
+      if (!signedIn || current.status !== "connected" || !cloud) return { outcome: "no-cloud" };
+      if (!Array.isArray(items) || !items.length) return { outcome: "nothing" };
+      try { await request(`clouds/${encodeURIComponent(cloud.id)}/ai-signins`, { method: "POST", body: { items }, token: signedIn.token, timeoutMs: 30_000 }); }
+      catch { return { outcome: "failed" }; }
+      return { outcome: "held" };
+    },
     /** Keep my plan: renewal back on for the same Cloud, as `cancelPlan` names it. */
     async keepPlan() {
       const signedIn = grant, cloudId = renewalCloud;

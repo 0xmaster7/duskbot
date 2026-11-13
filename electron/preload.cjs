@@ -399,6 +399,8 @@ const bridge = {
   copyText: (text) => ipcRenderer.invoke("clipboard:write-text", text),
   /** Unlike window.open, this still works after an asynchronous API request. */
   openExternal: (url) => ipcRenderer.invoke("desktop:open-external", url),
+  /** Brings this window back to the front, after a sign-in finished in the browser. */
+  focusWindow: () => ipcRenderer.invoke("desktop:focus-window"),
   applySkin: (skin) => ipcRenderer.invoke("desktop:skin", skin),
   windowControls: {
     minimize: () => ipcRenderer.invoke("window:minimize"),
@@ -528,6 +530,7 @@ const bridge = {
     // Cancel trial / Cancel plan and Keep my plan: the survey's words only; main names the Cloud from the verified session.
     cancelPlan: survey => ipcRenderer.invoke("cloud-account:cancelPlan", survey ?? null),
     keepPlan: () => ipcRenderer.invoke("cloud-account:keepPlan"),
+    holdSignIns: () => ipcRenderer.invoke("cloud-account:holdSignIns"),
     onState: cb => {
       const handler = (_event, state) => cb(state);
       ipcRenderer.on("cloud-account:state-changed", handler);

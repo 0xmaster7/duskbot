@@ -81,7 +81,7 @@ export function hintSeenPatch(
 
 
 /** Every screen the first run can show, in the order it shows them; the chat comes after the last. */
-export const BEAT_ORDER = ["welcome", "account", "place", "ai", "bring", "phone"] as const;
+export const BEAT_ORDER = ["welcome", "account", "place", "ai", "bring", "phone", "making"] as const;
 export type BeatId = (typeof BEAT_ORDER)[number];
 
 /** Where a reloaded first run opens: the saved screen while it is offered, else the first. */

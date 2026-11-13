@@ -61,6 +61,10 @@ export function createHomeClient(options: { fetch?: typeof fetch; now?: () => nu
     async plan(origin, secret, input) {
       await request(origin, secret, "POST", "/api/cloud/plan", JSON.stringify({ v: 1, cancelled: input.cancelled }));
     },
+    async signIns(origin, secret, items) {
+      const value = await request(origin, secret, "POST", "/api/cloud/ai-signins", JSON.stringify({ v: 1, items })) as { ok?: unknown } | null;
+      if (value?.ok !== true) throw new Error("Invalid cloud sign-ins answer.");
+    },
     async pair(origin, secret, input) {
       const value = await request(origin, secret, "POST", "/api/cloud/pairing", JSON.stringify(input)) as { code?: unknown; expiresAt?: unknown } | null;
       if (!value || typeof value.code !== "string" || !/^[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}$/.test(value.code) || !Number.isSafeInteger(value.expiresAt) || (value.expiresAt as number) <= now() || (value.expiresAt as number) > now() + 600_000) throw new Error("Invalid cloud pairing answer.");

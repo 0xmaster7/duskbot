@@ -13,6 +13,7 @@ import { CLOUD_TEAM_POLICY_CHANGED_PATH } from "../cloud-team-policy.ts";
 import type { CloudHealth } from "../cloud-health.ts";
 import { CLOUD_ENTITLEMENT_PATH, type CloudEntitlement } from "../cloud-entitlement.ts";
 import { CLOUD_IDLE_ACTIVITY_MS, CLOUD_POWER_PATH, CLOUD_POWER_SLEEP_PATH, type CloudPower } from "../cloud-power.ts";
+import { CLOUD_AI_SIGNINS_PATH, parseCloudAiSignIns, type CloudAiSignIn } from "../cloud-ai-signins.ts";
 import { json } from "../harness/http.ts";
 import { requestSource } from "../request-auth.ts";
 import type { SessionRegistry } from "../sessions.ts";
@@ -52,6 +53,8 @@ export function createCloudSignedRoutes(deps: {
   planTier?: ((tier: string) => void) | null;
   /** A hosted home's signed entitlement: pushed by the Admin, and required before it opens pairing. */
   entitlement?: Pick<CloudEntitlement, "accept" | "gate"> | null;
+  /** AI sign-ins the Admin held while this Cloud was being made; absent on a server that is not a Cloud home. */
+  aiSignIns?: ((items: CloudAiSignIn[]) => Promise<void>) | null;
   now?: () => number;
 }) {
   const pairing = createCloudPairing({ secret: deps.secret, sessions: deps.sessions, team: deps.team ?? null, now: deps.now });
@@ -64,6 +67,7 @@ export function createCloudSignedRoutes(deps: {
   const planRequests = createCloudRequestVerifier({ secret: deps.secret, now: deps.now });
   const policyNudges = createCloudRequestVerifier({ secret: deps.secret, now: deps.now });
   const entitlementPushes = createCloudRequestVerifier({ secret: deps.secret, now: deps.now });
+  const signInPushes = createCloudRequestVerifier({ secret: deps.secret, now: deps.now });
   /** True when the request was one of these and has been answered. */
   return async ({ req, res, url, path, method }: CloudSignedRequest): Promise<boolean> => {
     const power = path === CLOUD_POWER_PATH || path === CLOUD_POWER_SLEEP_PATH ? deps.power?.() ?? null : null;
@@ -72,7 +76,8 @@ export function createCloudSignedRoutes(deps: {
     const plan = path === CLOUD_PLAN_PATH && (deps.plan || deps.planTier) ? true : null;
     const policyChanged = path === CLOUD_TEAM_POLICY_CHANGED_PATH && deps.team ? deps.policyChanged ?? null : null;
     const entitlement = path === CLOUD_ENTITLEMENT_PATH ? deps.entitlement ?? null : null;
-    if (path !== CLOUD_PAIRING_PATH && path !== CLOUD_HEALTH_PATH && !entitlement && path !== CLOUD_BOX_PATH && !power && !teamAdmin && !memberLeft && !plan && !policyChanged) return false;
+    const aiSignIns = path === CLOUD_AI_SIGNINS_PATH ? deps.aiSignIns ?? null : null;
+    if (path !== CLOUD_PAIRING_PATH && path !== CLOUD_HEALTH_PATH && !entitlement && !aiSignIns && path !== CLOUD_BOX_PATH && !power && !teamAdmin && !memberLeft && !plan && !policyChanged) return false;
     res.setHeader("cache-control", "no-store");
     const source = requestSource(req);
     const header = (name: string) => { const value = req.headers[name]; return typeof value === "string" ? value : undefined; };
@@ -142,6 +147,21 @@ export function createCloudSignedRoutes(deps: {
       if ((cancelled !== undefined && !saysCancelled) || (tier !== undefined && !saysTier) || (!saysCancelled && !saysTier)) { json(res, 400, { error: "invalid_plan" }); return true; }
       if (saysCancelled) deps.plan?.(cancelled);
       if (saysTier) deps.planTier?.(tier);
+      json(res, 200, { ok: true });
+      return true;
+    }
+    if (aiSignIns) {
+      // carries sign-ins: never log the body
+      if (method !== "POST") { json(res, 405, { error: "method_not_allowed" }); return true; }
+      if (!/^application\/json\b/i.test(String(req.headers["content-type"] ?? ""))) { json(res, 415, { error: "send the sign-ins as JSON (content-type: application/json)" }); return true; }
+      let body: Buffer;
+      try { body = await readSignedBody(req, 96 * 1024); } catch { json(res, 413, { error: "too_large" }); return true; }
+      const verdict = signInPushes.verify({ ...signed, method, target: `${path}${url.search}`, body });
+      if (!verdict.ok) { console.warn(`cloud sign-ins push refused from ${source}: ${verdict.error}`); json(res, verdict.status, { error: verdict.error }); return true; }
+      let items: CloudAiSignIn[] | null = null;
+      try { items = parseCloudAiSignIns(JSON.parse(body.toString("utf8"))); } catch { items = null; }
+      if (!items) { json(res, 400, { error: "invalid_body" }); return true; }
+      try { await aiSignIns(items); } catch { json(res, 500, { error: "not_applied" }); return true; }
       json(res, 200, { ok: true });
       return true;
     }
