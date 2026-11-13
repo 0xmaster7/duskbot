@@ -1400,6 +1400,9 @@ export const rtcOffer = (value) => (value?.type === "offer" && typeof value.sdp 
   && /^a=fingerprint:sha-256 [0-9A-F:]{95}\r?$/im.test(value.sdp) && /^m=application /m.test(value.sdp) && !/^m=(?:audio|video) /m.test(value.sdp) ? value.sdp : null);
 
 /** answers the app's offer; the channel, once open, is one more direct session of the tunnel's hub (sealed frames only) */
+/** the stun servers webrtc asks for this server's public address; DUSK_LINK_STUN (stun:host:port,...) replaces them */
+export const rtcStun = (env = process.env) => (env.DUSK_LINK_STUN ? env.DUSK_LINK_STUN.split(",").map((item) => item.trim()).filter((item) => /^stun:[^\s,]+$/.test(item)) : ["stun:stun.cloudflare.com:3478", "stun:stun.l.google.com:19302"]);
+
 export async function directRtc(data, context, lib = rtcLibrary()) {
   if (process.env.DUSK_LINK_DIRECT === "off") throw new Error("direct links are off on this server");
   if (!lib) {
@@ -1411,7 +1414,7 @@ export async function directRtc(data, context, lib = rtcLibrary()) {
   if (!context.hub) throw new Error("no tunnel here");
   if (rtcPeers >= RTC_MAX) throw new Error("too many webrtc links");
   const range = /^(\d{4,5})-(\d{4,5})$/.exec(process.env.DUSK_SCREEN_DIRECT_PORTS ?? "");
-  const pc = new lib.PeerConnection("dusk-link", { iceServers: ["stun:stun.cloudflare.com:3478", "stun:stun.l.google.com:19302"], maxMessageSize: 256 * 1024,
+  const pc = new lib.PeerConnection("dusk-link", { iceServers: rtcStun(), maxMessageSize: 256 * 1024,
     ...(range ? { portRangeBegin: Number(range[1]), portRangeEnd: Number(range[2]) } : {}) });
   rtcPeers += 1;
   let ended = false, accepted = false;

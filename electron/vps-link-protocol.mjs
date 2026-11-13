@@ -943,7 +943,9 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
     direct?.close();
     direct = null;
     if (!spec || closed) return;
-    direct = directFactory({ id, key: keyText, guard, connect: spec.connect, onFrame: (frame) => deliver(frame, "direct"), onChange: directChanged, onFailure: spec.onFailure ?? (() => {}), log, hello, ...(spec.pingMs ? { pingMs: spec.pingMs } : {}) });
+    // a better way that comes back is taken when nothing rides the direct path (createDirectLink's upgrade)
+    const idle = () => ![...waiting.values()].some((entry) => entry.via === "direct");
+    direct = directFactory({ id, key: keyText, guard, connect: spec.connect, onFrame: (frame) => deliver(frame, "direct"), onChange: directChanged, onFailure: spec.onFailure ?? (() => {}), log, hello, ...(spec.pingMs ? { pingMs: spec.pingMs } : {}), ...(spec.connect?.better ? { better: spec.connect.better, idle } : {}) });
     direct.start();
   }
 

@@ -326,6 +326,8 @@ export function wsDuplex(socket, { client, head = null, onText = null, heartbeat
 
 /** a port an isp blocks is tried less and less often, down to twice an hour, until the network changes */
 export const BACKOFF_MS = [1000, 5000, 15_000, 60_000, 3 * 60_000, 10 * 60_000, 30 * 60_000];
+/** up over a lesser way, the better ones are tried again after these (the last repeats) */
+export const UPGRADE_MS = [20_000, 60_000, 2 * 60_000, 5 * 60_000, 10 * 60_000];
 /** a link that lasted this long was really up: its loss starts the backoff over */
 const STABLE_MS = 60_000;
 
@@ -349,7 +351,7 @@ export function networkFingerprint(interfaces = networkInterfaces()) {
  * one direct link, kept up in the background: dial, wait for the agent's sealed hello, ping for liveness and rtt, redial
  * with backoff. `connect()` gives { readable, writable, close }. while it is not up, the caller uses the relay.
  */
-export function createDirectLink({ id, key: keyText, guard, connect, onFrame, onChange = () => {}, onFailure = () => {}, log = () => {}, pingMs = 5000, helloMs = 20_000, connectMs = 30_000, backoff = BACKOFF_MS, network = networkFingerprint, watchMs = 15_000, hello = {} }) {
+export function createDirectLink({ id, key: keyText, guard, connect, onFrame, onChange = () => {}, onFailure = () => {}, log = () => {}, pingMs = 5000, helloMs = 20_000, connectMs = 30_000, backoff = BACKOFF_MS, network = networkFingerprint, watchMs = 15_000, hello = {}, better = null, idle = () => true, upgradeMs = UPGRADE_MS }) {
   const key = Buffer.from(keyText, "base64url");
   let state = "idle", conn = null, writer = null, closed = false, attempt = 0, retryTimer = null, watchTimer = null, pingTimer = null, helloTimer = null;
   let rtt = null, everUp = false, pingSeq = 0, suspect = false, heardAt = 0, upAt = 0, failing = false, failedOn = null, via = null, peer = null;
@@ -416,6 +418,37 @@ export function createDirectLink({ id, key: keyText, guard, connect, onFrame, on
     setTimeout(check, limit).unref?.();
   }
 
+  /**
+   * up over a lesser way (the cloudflare tunnel, a relay): the better ones are tried again now and then, and taken when
+   * one connects while nothing rides this link, so a stream is never cut for it
+   */
+  let upgradeTimer = null, upgradeStep = 0;
+  function planUpgrade() {
+    clearTimeout(upgradeTimer);
+    if (!better || closed || !conn) return;
+    upgradeTimer = setTimeout(async () => {
+      if (closed || !conn || state !== "up") return;
+      if (!idle()) { planUpgrade(); return; }
+      const from = via;
+      const next = await better(from).catch(() => null);
+      if (!next) { upgradeStep += 1; planUpgrade(); return; }
+      if (closed || !conn || via !== from || state !== "up" || !idle()) { next.close?.(); planUpgrade(); return; }
+      log(`vps link: the direct path moves up from ${from} to ${next.via}`);
+      const old = conn;
+      conn = null;
+      clearInterval(pingTimer);
+      clearTimeout(helloTimer);
+      outstanding.clear();
+      writer?.close();
+      writer = null;
+      try { old.close(); } catch { /* already closed */ }
+      upgradeStep = 0;
+      set("connecting");
+      adopt(next);
+    }, upgradeMs[Math.min(upgradeStep, upgradeMs.length - 1)]);
+    upgradeTimer.unref?.();
+  }
+
   async function dial() {
     if (closed || conn || state === "connecting") return;
     clearTimeout(retryTimer);
@@ -434,6 +467,10 @@ export function createDirectLink({ id, key: keyText, guard, connect, onFrame, on
       return;
     } finally { clearTimeout(deadline); }
     if (closed) { link.close(); return; }
+    adopt(link);
+  }
+
+  function adopt(link) {
     conn = link;
     via = link.via ?? "ssh";
     const mine = link;
@@ -463,6 +500,7 @@ export function createDirectLink({ id, key: keyText, guard, connect, onFrame, on
         pingTimer = setInterval(() => ping(), every);
         pingTimer.unref?.();
         ping();
+        planUpgrade();
         return;
       }
       if (frame.t === "pong") {
@@ -529,6 +567,7 @@ export function createDirectLink({ id, key: keyText, guard, connect, onFrame, on
       if (closed) return;
       closed = true;
       clearTimeout(retryTimer);
+      clearTimeout(upgradeTimer);
       clearInterval(watchTimer);
       const gone = conn;
       conn = null;
@@ -693,32 +732,91 @@ export function wssConnector({ url, spki, timeoutMs = 15_000, connect: dial = ne
 /** a transport that failed on a network is tried last there for this long, so a blocked port costs nothing per dial */
 const SKIP_FAILED_MS = 30 * 60_000;
 
+/** after one way connects, a better ranked one still dialling gets this long to connect too and be taken instead */
+export const PREFER_GRACE_MS = 3000;
+/** ways start this far apart, best first, so a quick good one spares the others the dial */
+export const STAGGER_MS = 250;
+
 /**
- * one connect() over several transports, in order (ssh, then 443): the first that connects is used. one that failed on
- * this network goes to the back of the line there for a while. the error of the last try is thrown with every other
- * try's error in `errors`.
+ * one connect() over several transports, best first (ssh, 443, webrtc, the cloudflare tunnel, then the cloud relay):
+ * the ways that did not fail on this network start together, STAGGER_MS apart, and the best ranked one that connects
+ * wins (a lesser one that connects first waits PREFER_GRACE_MS for the better ones); the losers are closed. a way that
+ * failed on this network is tried after them, one at a time, and `last` ways (the cloud relay, billed per message) only
+ * when nothing else connected. the error of the last try is thrown with every try's error in `errors`, best first.
+ * `connect.better(via)` dials only the ways ranked above `via`, for an upgrade: a link, or null.
  */
-export function orderedConnect(list, { network = networkFingerprint, now = Date.now, log = () => {} } = {}) {
+export function orderedConnect(list, { network = networkFingerprint, now = Date.now, log = () => {}, last = new Set(["cloud"]), graceMs = PREFER_GRACE_MS, staggerMs = STAGGER_MS } = {}) {
   const failed = new Map();
   const here = () => { try { return network(); } catch { return null; } };
-  return async () => {
+  const rank = (name) => list.findIndex((one) => one.name === name);
+  /** the ways in `group` together: the best that connects, or null with their errors pushed */
+  async function race(group, errors, at) {
+    if (!group.length) return null;
+    return new Promise((resolve) => {
+      const results = new Map();
+      let settled = false, graceTimer = null;
+      const timers = [];
+      const finish = () => {
+        if (settled) return;
+        const done = group.every((one) => results.has(one.name));
+        const best = group.find((one) => results.get(one.name)?.link);
+        if (!best) { if (done) { settled = true; resolve(null); } return; }
+        // a better ranked way still dialling gets a moment
+        const better = group.slice(0, group.indexOf(best)).some((one) => !results.has(one.name));
+        if (better && graceTimer !== false) { if (!graceTimer) graceTimer = setTimeout(() => { graceTimer = false; finish(); }, graceMs); return; }
+        settled = true;
+        clearTimeout(graceTimer);
+        for (const timer of timers) clearTimeout(timer);
+        for (const [name, result] of results) if (result.link && name !== best.name) result.link.close?.();
+        resolve({ ...results.get(best.name).link, via: best.name });
+      };
+      const started = new Set();
+      const launch = (i) => {
+        const one = group[i];
+        if (settled || !one || started.has(one.name)) return;
+        started.add(one.name);
+        clearTimeout(timers[i]);
+        void Promise.resolve().then(() => one.connect()).then((link) => {
+          failed.delete(one.name);
+          if (settled) { link?.close?.(); return; }
+          results.set(one.name, { link });
+          finish();
+        }, (error) => {
+          failed.set(one.name, { on: at, at: now() });
+          const tagged = Object.assign(error ?? new Error("failed"), { via: one.name });
+          errors.push(tagged);
+          if (list.length > 1) log(`vps link: direct path over ${one.name} did not connect (${error?.message ?? error})`);
+          results.set(one.name, { error: tagged });
+          // the next way starts now instead of waiting for its turn
+          launch(group.findIndex((other) => !started.has(other.name)));
+          finish();
+        });
+      };
+      group.forEach((_one, i) => { timers[i] = setTimeout(() => launch(i), i * staggerMs); timers[i].unref?.(); });
+      launch(0);
+    });
+  }
+  async function connect(ways = list) {
     const at = here();
     const fresh = (name) => { const seen = failed.get(name); return !seen || seen.on !== at || now() - seen.at > SKIP_FAILED_MS; };
-    const order = [...list.filter((one) => fresh(one.name)), ...list.filter((one) => !fresh(one.name))];
     const errors = [];
-    for (const one of order) {
-      try {
-        const link = await one.connect();
-        failed.delete(one.name);
-        return { ...link, via: one.name };
-      } catch (error) {
-        failed.set(one.name, { on: at, at: now() });
-        errors.push(Object.assign(error ?? new Error("failed"), { via: one.name }));
-        if (order.length > 1) log(`vps link: direct path over ${one.name} did not connect (${error?.message ?? error})`);
-      }
+    const first = ways.filter((one) => !last.has(one.name) && fresh(one.name));
+    const won = await race(first, errors, at);
+    if (won) return won;
+    for (const one of ways.filter((way) => !first.includes(way))) {
+      const link = await race([one], errors, at);
+      if (link) return link;
     }
+    errors.sort((a, b) => rank(a.via) - rank(b.via));
     throw Object.assign(errors.at(-1) ?? new Error("no direct transport"), { errors });
+  }
+  const go = () => connect();
+  go.better = async (via) => {
+    const above = list.slice(0, Math.max(0, rank(via))).filter((one) => !last.has(one.name));
+    if (!above.length) return null;
+    try { return await connect(above); } catch { return null; }
   };
+  return go;
 }
 
 /** the cloud relay (apps/cloudflare/link-relay): DUSK_RELAY_URL moves it, `off` turns it off */
