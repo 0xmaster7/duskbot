@@ -55,8 +55,8 @@
 .wl-done { display: flex; flex-direction: column; align-items: center; margin-top: 28px; }
 .wl-done[hidden] { display: none; }
 .wl-ticket { display: inline-flex; flex-direction: column; align-items: center; gap: 8px; margin: 0; padding: 18px 36px 26px; background: var(--paper); color: #212121; clip-path: var(--step); box-shadow: inset 0 -6px 0 var(--u-lemon); animation: rise var(--dur-spring) var(--ease-spring) backwards; }
-.wl-ticket span { font: 500 12.5px/1 var(--mono); color: #55555e; }
-.wl-ticket b { font: 600 clamp(48px, 5vw, 64px)/1 var(--pixel); }
+.wl-ticket span { font: 500 14px/1 var(--sans); color: #55555e; }
+.wl-ticket b { font: 650 clamp(48px, 5vw, 64px)/1 var(--sans); letter-spacing: -0.03em; }
 .wl-link { margin-top: 18px; padding: 10px 4px; color: #fff; font-size: 16px; font-weight: 550; text-decoration-color: rgba(255, 255, 255, 0.6); }
 .wl-link:hover { text-decoration-color: #fff; }
 
