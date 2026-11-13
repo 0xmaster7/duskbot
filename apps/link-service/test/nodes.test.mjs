@@ -8,7 +8,8 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { placeTunnel } from "../agent.mjs";
+import { createAddressBook, placeTunnel } from "../agent.mjs";
+import { createTunnelProxy } from "../../../electron/vps-link-protocol.mjs";
 import { createLinkService, sha256hex } from "../src/app.mjs";
 import { choosePlacement, loadOf, parseNodes, refusesNew } from "../src/nodes.mjs";
 import { turnCredential } from "../src/turn.mjs";
@@ -148,6 +149,13 @@ describe("two nodes", () => {
       expect(await call(one.url, `/v1/tunnels/${id}/node`, { token: app }).then((res) => res.json())).toMatchObject({ node: "oracle-in", url: oracle.url, up: true });
     }
 
+    // the node it linked through queues nothing for a server that reads on oracle: it says where to go instead
+    const refused = await call(contabo.url, `/v1/tunnels/${id}/to-vps`, { token: app, method: "POST", body: { frames: ["aGk"] } });
+    expect(refused.status).toBe(409);
+    expect(await refused.json()).toMatchObject({ code: "moved", node: "oracle-in", url: oracle.url });
+    expect((await call(contabo.url, `/v1/tunnels/${id}/to-app?wait=0`, { token: app })).status).toBe(409);
+    expect(contabo.service.store.tunnels.get(id)).toMatchObject({ home: "oracle-in" });
+
     // relayed end to end on oracle
     expect((await call(oracle.url, `/v1/tunnels/${id}/to-vps`, { token: app, method: "POST", body: { frames: ["aGk"] } })).status).toBe(200);
     expect(await call(oracle.url, `/v1/tunnels/${id}/to-vps`, { token: vps }).then((res) => res.json())).toEqual({ frames: ["aGk"] });
@@ -189,6 +197,33 @@ describe("two nodes", () => {
     expect((await call(contabo.url, `/v1/tunnels/${id}/to-vps`, { token: vps })).status).toBe(200);
     expect(await call(contabo.url, `/v1/channels/${channel}/node`, { token: phone }).then((res) => res.json())).toMatchObject({ node: "contabo" });
     expect((await call(contabo.url, `/v1/channels/${channel}/to-vps`, { token: phone, method: "POST", body: { frames: ["aGk"] } })).status).toBe(200);
+  });
+
+  it("keeps the server's sealed address in the directory: any node hands it to the app, nobody else opens it", async () => {
+    const ports = await freePorts();
+    const contabo = await boot("contabo", ports), oracle = await boot("oracle-in", ports);
+    link(contabo);
+    await contabo.service.cluster.syncAll();
+    const key = Buffer.alloc(32, 3).toString("base64url");
+    let address = { mode: "direct", via: "cloudflare", origin: "https://one-two.trycloudflare.com", spki: null };
+    const book = createAddressBook({ base: oracle.url, id, key, token: vps, read: async () => address });
+    expect(await book.publish()).toBe(true);
+    expect(await book.publish()).toBe(false);
+    await oracle.service.cluster.syncAll();
+    const stored = contabo.service.store.tunnels.get(id).addr;
+    expect(stored).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(stored).not.toContain("trycloudflare");
+    expect((await call(contabo.url, `/v1/tunnels/${id}/address`, { token: app, method: "PUT", body: { sealed: "x" } })).status).toBe(404);
+
+    const proxy = createTunnelProxy({ base: contabo.url, id, key, token: app, follow: true });
+    try {
+      expect(await proxy.sealedAddress()).toEqual(address);
+      expect(await proxy.sealedAddress()).toBeNull();
+      address = { ...address, origin: "https://three-four.trycloudflare.com" };
+      expect(await book.publish()).toBe(true);
+      await oracle.service.cluster.syncAll();
+      expect(await proxy.sealedAddress()).toEqual(address);
+    } finally { await proxy.close(); }
   });
 
   it("a delete on one node stays deleted on the other, even one that was away", async () => {

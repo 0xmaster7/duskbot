@@ -13,7 +13,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { verifyLinkGrant } from "./grant.mjs";
 import { createPackages } from "./packages.mjs";
 import { createPushRelay } from "./push-relay.mjs";
-import { choosePlacement, createCluster, loadOf, refusesNew, sameSecret } from "./nodes.mjs";
+import { SEALED_ADDRESS_MAX, choosePlacement, createCluster, loadOf, refusesNew, sameSecret } from "./nodes.mjs";
 import { ACTIVE_MS, DEFAULT_LIMITS, MONTH_ALLOWANCE_BYTES, createRelayUsage, loadLimits, saveLimits, validateLimits } from "./relay-limits.mjs";
 import { APP_TOKENS_CALLBACK_ROUTE, appTokenCallback } from "./app-token-callback.mjs";
 import { slackCallback } from "./slack-callback.mjs";
@@ -619,6 +619,16 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     tunnel.home = nodeId;
     cluster.changed(tunnel);
     if (from) log(`link: tunnel ${tunnel.id} moved here from ${from}`);
+  }
+  /**
+   * the app's and phones' traffic for a tunnel whose server reads on another node: nobody would ever read it here, so it
+   * is refused with where to go instead of queued (a 409 any client treats as a failed request, and newer ones follow)
+   */
+  function elsewhere(res, tunnel) {
+    if (!cluster || !tunnel || homeOf(tunnel) === nodeId) return false;
+    const where = whereIs(tunnel);
+    send(res, 409, { error: "This server is reached through another link service node.", code: "moved", ...where }, { "cache-control": "no-store" });
+    return true;
   }
   /** where a tunnel lives, as the app and phones ask it */
   function whereIs(tunnel) {
@@ -1235,6 +1245,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       const channel = channelFor(req, res, id);
       if (!channel) return;
       if (!action && method === "DELETE") { deleteChannel(channel); return send(res, 200, { ok: true }); }
+      if (action && elsewhere(res, store.tunnels.get(channel.tunnel))) return;
       if (action === "to-vps" && method === "POST") {
         if (!phoneRate(res, channel, "POST")) return;
         return postFrames(req, res, id, action, () => channelFor(req, res, id), true);
@@ -1261,6 +1272,15 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
 
     // where a server lives (the app, either token), where it should go (its agent, on start and after losing its node),
     // and turn credentials for the webrtc path; phones ask the same about their channel
+    if ((parts = /^\/v1\/tunnels\/([a-z2-7]{10})\/address$/.exec(path))) {
+      if (method !== "PUT") return fail(res, 405, "method not allowed");
+      const tunnel = tunnelFor(req, res, parts[1], "vps");
+      if (!tunnel) return;
+      const sealed = (await readJson(req))?.sealed;
+      if (typeof sealed !== "string" || sealed.length > SEALED_ADDRESS_MAX || !B64URL.test(sealed)) return fail(res, 400, "invalid address");
+      if (tunnel.addr !== sealed) { tunnel.addr = sealed; if (cluster) cluster.changed(tunnel); else store.save(); }
+      return send(res, 200, { ok: true });
+    }
     if ((parts = /^\/v1\/(tunnels|channels)\/([a-z2-7]{10})\/(node|place|turn)$/.exec(path))) {
       const [, kind, id, action] = parts;
       if (kind === "channels" && action === "place") return fail(res, 404, "not found");
@@ -1270,7 +1290,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       const tunnel = channel ? store.tunnels.get(channel.tunnel) : tunnelFor(req, res, id, action === "place" ? "vps" : "either");
       if (!tunnel) return channel ? fail(res, 404, "not found", "not_found") : undefined;
       res.setHeader("cache-control", "no-store");
-      if (action === "node") return send(res, 200, whereIs(tunnel));
+      if (action === "node") return send(res, 200, { ...whereIs(tunnel), ...(!channel && tunnel.addr ? { address: tunnel.addr } : {}) });
       if (action === "place") return send(res, 200, await place(tunnel, await readJson(req)));
       if (!turnConfig) return fail(res, 404, "turn is not set up on this link service", "no_turn");
       return send(res, 200, turnAnswer(id, tunnel));
@@ -1300,6 +1320,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       const role = method === "POST" ? writer : writer === "app" ? "vps" : "app";
       const tunnel = tunnelFor(req, res, id, role);
       if (!tunnel) return;
+      if (role === "app" && elsewhere(res, tunnel)) return;
       if (role === "vps") touchTunnel(tunnel);
       if (role === "vps" && method === "GET") attach(tunnel);
       if (method === "POST") {

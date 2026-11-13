@@ -172,6 +172,15 @@ copy between them. `src/nodes.mjs`.
 - **Finding it.** `GET /v1/tunnels/<id>/node` (app or vps token) and `GET /v1/channels/<id>/node` (phone channel token)
   answer `{node, url, region, up, nodes: [{id, url, region, up}]}` on any node; `GET /v1/nodes` (public) lists the
   nodes. A tunnel with no home (from before nodes, or an agent that never asks) lives on the default node.
+- **Only the home relays.** The app's and phones' reads and writes for a tunnel whose server reads on another node are
+  refused with `409 {code: "moved", node, url, nodes}` instead of queued where nobody reads them; the app moves there at
+  once. A request over the relay with no answer at all for 8 s makes the app ask where the tunnel lives as well (a node
+  whose copy of the directory lags), and on a move an unanswered GET goes again to the new node while anything else
+  that waited fails with a short message.
+- **The sealed address.** The agent puts its address (what `hello` answers, sealed with the tunnel key, AAD
+  `<id>|address`) in the directory with `PUT /v1/tunnels/<id>/address` on start and whenever it changes (checked every
+  30 s, so a quick tunnel's new name lands within a minute). `GET .../node` with the app token carries it as `address`;
+  the app opens it when its server stops answering at its address and the relay cannot carry the handshake.
 - **Failover.** The agent watches its node: silent for 60 s or answering `relay_busy`, it asks again (the node it was
   linked through first, then every node it learned of, cached in `~/.config/duskbot-link/nodes.json`) and restarts on
   the new node. The app's relay (`createTunnelProxy` with `follow`) asks where the tunnel lives at start, after two

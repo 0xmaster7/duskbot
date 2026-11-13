@@ -23,7 +23,9 @@ export const TOMBSTONE_MS = 30 * 24 * 60 * 60_000;
 export const PLACE_STOP_FRACTION = 0.7;
 /** a server already on a node moves off it on reconnect once the month's traffic passed this share */
 export const MOVE_OFF_FRACTION = 0.85;
-export const TUNNEL_FIELDS = Object.freeze(["id", "createdAt", "vpsVerifier", "appVerifier", "acct", "home", "rev"]);
+export const TUNNEL_FIELDS = Object.freeze(["id", "createdAt", "vpsVerifier", "appVerifier", "acct", "home", "addr", "rev"]);
+/** a server's sealed address (agent.mjs createAddressBook), opaque here */
+export const SEALED_ADDRESS_MAX = 4096;
 export const CHANNEL_FIELDS = Object.freeze(["id", "tunnel", "verifier", "kind", "expiresAt", "createdAt", "rev"]);
 
 /** LINK_NODES, LINK_NODE_ID: the node list and which one this is; null when this service runs alone */
@@ -168,7 +170,8 @@ export function createCluster({ config, store, token, dir = null, now = Date.now
   }
 
   const validTunnel = (r) => typeof r?.id === "string" && /^[a-z2-7]{10}$/.test(r.id) && /^[0-9a-f]{64}$/.test(r.vpsVerifier ?? "") && /^[0-9a-f]{64}$/.test(r.appVerifier ?? "")
-    && Number.isFinite(r.rev) && (r.home === undefined || r.home === null || NODE_ID.test(r.home)) && (r.acct === undefined || typeof r.acct === "string");
+    && Number.isFinite(r.rev) && (r.home === undefined || r.home === null || NODE_ID.test(r.home)) && (r.acct === undefined || typeof r.acct === "string")
+    && (r.addr === undefined || (typeof r.addr === "string" && r.addr.length <= SEALED_ADDRESS_MAX && /^[A-Za-z0-9_-]+$/.test(r.addr)));
   const validChannel = (r) => typeof r?.id === "string" && /^[a-z2-7]{10}$/.test(r.id) && /^[a-z2-7]{10}$/.test(r.tunnel ?? "") && /^[0-9a-f]{64}$/.test(r.verifier ?? "")
     && (r.kind === "grant" || r.kind === "device") && Number.isFinite(r.rev);
 

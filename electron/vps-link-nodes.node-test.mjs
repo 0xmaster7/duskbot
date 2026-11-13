@@ -81,3 +81,45 @@ test("a 404 from a node it moved to is checked with the node it linked through",
     assert.match(message, /not connected/);
   } finally { await proxy.close(); }
 });
+
+test("a node that is not the tunnel's home answers 409 moved, and the app goes where it says at once", { timeout: 5000 }, async () => {
+  const raw = Buffer.from(key, "base64url");
+  let control = null, asked = 0;
+  const moved = () => Response.json({ error: "elsewhere", code: "moved", node: "b", url: B, up: true, nodes }, { status: 409 });
+  const proxy = createTunnelProxy({ ...options, fetch: async (url, init) => {
+    url = String(url);
+    // the node it linked through still says the old home: only the 409 knows better
+    if (url.endsWith("/node")) { asked += 1; return Response.json({ node: "a", url: A, up: true, nodes }); }
+    if (url.startsWith(A)) return moved();
+    if (url.includes("/to-vps")) { control = openFrame(raw, id, "to-vps", JSON.parse(init.body).frames[0]).r; return Response.json({ ok: true }); }
+    return pollFor(init, () => { const r = control; control = null; return r; }, raw);
+  } });
+  try {
+    await proxy.start();
+    assert.deepEqual(await proxy.control("ping", null, 3000), { ok: true });
+    assert.equal(proxy.node(), B);
+    assert.equal(asked, 1);
+  } finally { await proxy.close(); }
+});
+
+test("a request with no answer at all makes the app ask again where the tunnel lives", { timeout: 15000 }, async () => {
+  const raw = Buffer.from(key, "base64url");
+  let home = A, control = null;
+  const proxy = createTunnelProxy({ ...options, fetch: async (url, init) => {
+    url = String(url);
+    if (url.endsWith("/node")) return Response.json({ node: home === A ? "a" : "b", url: home, up: true, nodes });
+    // node a takes posts and never delivers anything: its copy of the directory has not heard the server moved
+    if (url.startsWith(A)) return url.includes("/to-vps") ? Response.json({ ok: true }) : hold(init);
+    if (url.includes("/to-vps")) { control = openFrame(raw, id, "to-vps", JSON.parse(init.body).frames[0]).r; return Response.json({ ok: true }); }
+    return pollFor(init, () => { const r = control; control = null; return r; }, raw);
+  } });
+  try {
+    await proxy.start();
+    home = B;
+    const answered = proxy.control("ping", null, 14_000);
+    // the ping went to a and is lost; the app asks where after 8 s of silence and sends it again to b
+    await until(() => proxy.node() === B, 13_000);
+    assert.deepEqual(await answered, { ok: true });
+    assert.deepEqual(await proxy.control("ping", null, 2000), { ok: true });
+  } finally { await proxy.close(); }
+});

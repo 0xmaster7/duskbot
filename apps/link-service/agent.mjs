@@ -403,6 +403,9 @@ export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, 
   const h1 = keepAliveFetch({ maxSockets, tls: tlsOptions });
   const h1Origins = new Set();
   let session = null, opening = null, tlsSession = null, lastUsed = 0, checking = null;
+  // the one h2 connection belongs to one origin: the one warmed (a link service node). other origins (asking another
+  // node where a tunnel lives) take http/1.1, and warming a different origin (the tunnel moved) replaces the connection
+  let sessionOrigin = null, homeOrigin = null;
   const live = (one) => Boolean(one && !one.closed && !one.destroyed);
   /** a ping answered keeps the connection; none in time drops it, failing what is on it so the callers ask again */
   const check = (one) => {
@@ -439,7 +442,7 @@ export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, 
   });
   async function sessionFor(url) {
     if (live(session)) return session;
-    opening ??= open(url).then((next) => { if (next) session = next; return next; }).finally(() => { opening = null; });
+    opening ??= open(url).then((next) => { if (next) { session = next; sessionOrigin = url.origin; } return next; }).finally(() => { opening = null; });
     return opening;
   }
   const request = (one, url, init) => new Promise((resolve, reject) => {
@@ -479,12 +482,12 @@ export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, 
   const go = async (input, init = {}) => {
     const url = new URL(input);
     if (init.signal?.aborted) throw init.signal.reason;
-    if (url.protocol !== "https:" || h1Origins.has(url.origin)) return h1(input, init);
+    if (url.protocol !== "https:" || h1Origins.has(url.origin) || (homeOrigin && url.origin !== homeOrigin) || (live(session) && sessionOrigin !== url.origin)) return h1(input, init);
     lastUsed = Date.now();
     // a connection the relay is closing (goaway) or that died refuses a request unprocessed: once more on a fresh one
     for (let attempt = 0; ; attempt += 1) {
       const one = await until(sessionFor(url), init.signal);
-      if (!one) return h1(input, init);
+      if (!one || sessionOrigin !== url.origin) return h1(input, init);
       init.onConnected?.();
       try { return await request(one, url, init); }
       catch (error) {
@@ -498,6 +501,8 @@ export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, 
   go.multiplexed = () => live(session);
   go.postsInFlight = () => (live(session) ? H2_POSTS_IN_FLIGHT : POSTS_IN_FLIGHT);
   go.warm = (base) => {
+    const origin = new URL(base).origin;
+    if (homeOrigin !== origin) { homeOrigin = origin; if (session && sessionOrigin !== origin) { session.destroy(); session = null; } }
     const stopH1 = h1.warm(base, () => h1Origins.has(new URL(base).origin) || !base.startsWith("https:"));
     // nginx closes an h2 connection idle for its keepalive timeout; the streamed read usually keeps it busy anyway
     const timer = setInterval(() => { if (live(session) && Date.now() - lastUsed >= WARM_MS - 5000) check(session); }, WARM_MS);
@@ -2578,6 +2583,35 @@ export async function placeTunnel({ base, id, token, known = [], fetchImpl = fet
   return null;
 }
 
+export const ADDRESS_EVERY_MS = 30_000;
+/**
+ * keeps this server's address in the link service directory, sealed with the tunnel key (only the app opens it): an app
+ * that cannot reach the server any other way (a quick tunnel that came back under a new name while the relay path
+ * failed) still learns where it is from any node. published on start and whenever it changes
+ */
+export function createAddressBook({ base, id, key: keyText, token, read = currentAddress, fetchImpl = fetch, everyMs = ADDRESS_EVERY_MS, now = relayNow }) {
+  const key = Buffer.from(keyText, "base64url");
+  let last = null, timer = null, stopped = false;
+  async function publish() {
+    const address = await read().catch(() => null);
+    if (!address) return false;
+    const text = JSON.stringify(address);
+    if (text === last) return false;
+    const sealed = seal(key, `${id}|address`, Buffer.from(JSON.stringify({ v: 1, address, ts: now() })));
+    try {
+      const response = await fetchImpl(`${base}/v1/tunnels/${id}/address`, { method: "PUT", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ sealed }), signal: AbortSignal.timeout(10_000) });
+      await response.arrayBuffer().catch(() => {});
+      if (response.ok) { last = text; return true; }
+    } catch {}
+    return false;
+  }
+  return {
+    publish,
+    start() { const tick = () => { if (stopped) return; void publish().finally(() => { if (!stopped) { timer = setTimeout(tick, everyMs); timer.unref?.(); } }); }; tick(); },
+    stop() { stopped = true; clearTimeout(timer); },
+  };
+}
+
 /** whether the tunnel still exists, asked of the node it was linked through: true, false (gone), or null (no answer) */
 async function stillLinked({ base, id, token, fetchImpl = fetch }) {
   try {
@@ -2627,10 +2661,12 @@ async function tunnel() {
   const serverUpdates = process.env.DUSK_LINK_SERVER_UPDATES === "off" ? null : createServerUpdater({ base: saved.base, id: saved.id, token: saved.token, log: (line) => console.error(line) });
   serverUpdates?.start();
   const [directSocket, directWs] = await Promise.all([listenDirectSocket(agent.direct), process.env.DUSK_LINK_DIRECT === "off" ? null : listenDirectWss(agent.direct)]);
+  const addressBook = createAddressBook({ base: home, id: saved.id, key: saved.key, token: saved.token });
+  addressBook.start();
   const relayUrl = cloudRelayUrl();
   const cloud = relayUrl ? createCloudRelay({ url: relayUrl, id: saved.id, key: saved.key, hub: agent.direct }) : null;
   cloud?.start();
-  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { cloud?.stop(); serverUpdates?.stop(); phones?.stop(); agent.stop(); directSocket?.close(); directWs?.close(); process.exit(0); });
+  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { addressBook.stop(); cloud?.stop(); serverUpdates?.stop(); phones?.stop(); agent.stop(); directSocket?.close(); directWs?.close(); process.exit(0); });
   // the node watch: silent for a minute, or full, and another node is known: ask where to go; a different answer
   // restarts the agent (systemd brings it back in seconds) so everything reconnects there at once
   let moving = false;
@@ -2660,6 +2696,7 @@ async function tunnel() {
     }
   }
   clearInterval(watch);
+  addressBook.stop();
   cloud?.stop();
   phones?.stop();
   await phoneRun;

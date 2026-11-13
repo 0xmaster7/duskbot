@@ -458,6 +458,15 @@ export function createVpsLink(deps) {
   const relayOrigins = new Map();
   const addressTimers = new Map();
 
+  /** where the server is now: its agent over the relay, or, when that cannot answer, the address it sealed into the directory */
+  async function relearn(link, proxy) {
+    const before = link.away?.origin ?? link.origin;
+    await handshake(link, proxy);
+    if ((link.away?.origin ?? link.origin) !== before || closed || proxies.get(link.id) !== proxy) return;
+    const sealed = await proxy.sealedAddress?.().catch(() => null);
+    if (sealed && !closed && proxies.get(link.id) === proxy) readdress(link, sealed);
+  }
+
   async function answers(origin) {
     try {
       const response = await serverFetch(`${origin}/api/health`, { cache: "no-store", headers: { accept: "application/json" }, signal: AbortSignal.timeout(10_000) });
@@ -498,11 +507,11 @@ export function createVpsLink(deps) {
         if (!state.links.includes(link)) { /* still linking */ }
         else if (link.away) {
           if (await answers(link.away.origin)) comeBack(link);
-          else await handshake(link, proxy);
+          else await relearn(link, proxy);
         }
         else if (link.mode === "direct" && link.origin) {
           if (await answers(link.origin)) misses = 0;
-          else if (++misses === 1) await handshake(link, proxy);
+          else if (++misses === 1) await relearn(link, proxy);
           else {
             misses = 0;
             if (!closed && proxies.get(link.id) === proxy && link.mode === "direct" && standIn(link)) {

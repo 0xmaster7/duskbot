@@ -565,6 +565,10 @@ const MOVE_AFTER_MS = 3000;
  * once a dial failed on this network it waits for nothing
  */
 export const UPGRADE_HOLD_MS = 700;
+/** a request over the relay with no answer at all this long sends the app to ask which node its server reads on */
+const SILENT_ASK_MS = 8000;
+/** a request sent this recently when the relay moves may still be on its way there, so it is left to finish */
+const RESEND_AFTER_MS = 2000;
 
 // the same for every other request this process makes (the relay client, pairing, the vps checks)
 setDefaultResultOrder("ipv4first");
@@ -610,18 +614,56 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
   // the link service may run on several nodes: the server's tunnel lives on one of them, and the node it was linked
   // through (`base`) says which (GET /v1/tunnels/<id>/node, any node answers it). a node that stops answering, says it
   // is full (relay_busy) or does not know the tunnel sends the app to ask again
-  let node = base, route = givenRoute ?? `${base}/v1/tunnels/${id}`, known = [], locating = null, lastLocate = 0;
+  let node = base, route = givenRoute ?? `${base}/v1/tunnels/${id}`, known = [], locating = null, lastLocate = 0, addressSeen = 0;
   const originOf = (value) => { try { const url = new URL(value); return /^https?:$/.test(url.protocol) ? url.origin : null; } catch { return null; } };
+  /** a node's answer about where the tunnel lives (GET .../node, or a 409 "moved"): { url, node, up } or null */
+  function readWhere(body) {
+    // one node: nothing to follow, the relay stays where it was linked
+    if (!body || !Array.isArray(body.nodes) || body.nodes.length < 2) return null;
+    known = body.nodes.map((item) => ({ id: item?.id, url: originOf(item?.url) })).filter((item) => typeof item.id === "string" && item.url).slice(0, 16);
+    const url = originOf(body.url);
+    return url && (url === originOf(base) || known.some((item) => item.url === url)) ? { url, node: body.node, up: body.up !== false } : null;
+  }
   async function askWhere(at) {
     const response = await fetchImpl(`${at}/v1/tunnels/${id}/node`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.any([abort.signal, AbortSignal.timeout(8000)]) });
     const body = await response.json().catch(() => null);
     if (response.status === 404) return { gone: true };
     if (!response.ok || !body) return null;
-    // one node: nothing to follow, the relay stays where it was linked
-    if (!Array.isArray(body.nodes) || body.nodes.length < 2) return null;
-    if (Array.isArray(body.nodes)) known = body.nodes.map((item) => ({ id: item?.id, url: originOf(item?.url) })).filter((item) => typeof item.id === "string" && item.url).slice(0, 16);
-    const url = originOf(body.url);
-    return url && (url === originOf(base) || known.some((item) => item.url === url)) ? { url, node: body.node, up: body.up !== false } : null;
+    return readWhere(body);
+  }
+  function moveTo(answer) {
+    if (!answer || answer.url === node) return false;
+    log(`vps link: this server is on node ${answer.node ?? answer.url}; the relay follows it`);
+    node = answer.url;
+    route = `${node}/v1/tunnels/${id}`;
+    if (!given && polling) { unwarm(); unwarm = fetchImpl.warm(node); }
+    pollNudge?.abort();
+    pollRetry?.abort();
+    resend();
+    return true;
+  }
+  /**
+   * after a move, what the old node took and nobody answered may never arrive: a GET goes again to the new node, and
+   * anything else that waited a while fails now instead of after the reply timeout (a POST is never sent twice)
+   */
+  function resend() {
+    const cutoff = Date.now() - RESEND_AFTER_MS;
+    for (const [r, at] of Array.from(unanswered)) {
+      const entry = waiting.get(r);
+      if (!entry || entry.via !== "relay") { unanswered.delete(r); continue; }
+      if (entry.replay?.()) { unanswered.set(r, Date.now()); continue; }
+      if (at > cutoff) continue;
+      unanswered.delete(r);
+      waiting.delete(r);
+      entry.fail("The connection to your server changed. Try again.");
+    }
+  }
+  /** a node that is not the tunnel's home refuses with 409 "moved" and where it lives: the relay goes there at once */
+  function movedBy(status, text) {
+    if (status !== 409 || !follow || givenRoute || closed) return false;
+    let body = null;
+    try { body = JSON.parse(text); } catch { return false; }
+    return body?.code === "moved" && moveTo(readWhere(body));
   }
   /** where the tunnel lives now: moves the relay there when it changed; { gone: true } when the origin no longer knows it */
   function locate({ force = false } = {}) {
@@ -635,16 +677,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
         try { answer = await askWhere(at); } catch { continue; }
         if (answer?.gone) { if (at === originOf(base)) return answer; continue; }
         if (!answer) continue;
-        if (answer.url !== node) {
-          log(`vps link: this server is on node ${answer.node ?? answer.url}; the relay follows it`);
-          node = answer.url;
-          route = `${node}/v1/tunnels/${id}`;
-          if (!given && polling) { unwarm(); unwarm = fetchImpl.warm(node); }
-          pollNudge?.abort();
-          pollRetry?.abort();
-          return { moved: true, url: node };
-        }
-        return { moved: false, url: node };
+        return { moved: moveTo(answer), url: node };
       }
       return null;
     })().finally(() => { locating = null; });
@@ -669,6 +702,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
         const said = await response.text().catch(() => "");
         if (response.ok && !ordered && !lane) ordered = /"ordered":true/.test(said);
         if (response.ok) { successfulPosts += 1; pollRetry?.abort(); return true; }
+        if (movedBy(response.status, said)) continue;
         // a node it moved to may not know the tunnel yet: that waits and tries again like any failed post
         if (response.status === 404 && await reallyGone()) { closed = true; abort.abort(); fail("This server was unlinked."); return false; }
         if (response.status === 429 && /"code":"daily_limit"/.test(said)) { if (!lane) fail(JSON.parse(said).error); return false; }
@@ -695,10 +729,25 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
   let direct = null, moveTimer = null;
   // a stream keeps its path while that connection lasts (a suspect one included); only new requests avoid it
   const pathOf = (r) => (waiting.get(r)?.via === "direct" && direct?.state() === "up" ? direct : relayPath);
+  // requests sent over the relay and not answered at all yet: a node that queues them while the server reads elsewhere
+  // (an older node, or one whose copy of the directory lags) shows up as silence, so a long one asks where the tunnel is
+  const unanswered = new Map();
   const emit = (frame) => {
     const path = pathOf(frame.r);
-    if (frame.t === "cancel") path.discard(frame.r);
+    if (frame.t === "cancel") { path.discard(frame.r); unanswered.delete(frame.r); }
+    else if (path === relayPath && (frame.t === "req" || frame.t === "ctl")) unanswered.set(frame.r, Date.now());
     path.push(frame);
+  };
+  let silenceTimer = null;
+  const watchSilence = () => {
+    silenceTimer = setInterval(() => {
+      const cutoff = Date.now() - SILENT_ASK_MS;
+      for (const [r, at] of unanswered) {
+        if (!waiting.has(r)) { unanswered.delete(r); continue; }
+        if (at < cutoff) { void locate(); break; }
+      }
+    }, 2000);
+    silenceTimer.unref?.();
   };
   const sendBytes = (r, chunk) => pathOf(r).bytes(r, chunk);
   const onDrain = (r, resume) => pathOf(r).onDrain(resume);
@@ -750,6 +799,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
   }
 
   function deliver(frame, via = "relay") {
+    if (frame.r) unanswered.delete(frame.r);
     if (egress?.handle(frame, via)) return;
     const entry = waiting.get(frame.r);
     if (!entry) return;
@@ -789,7 +839,8 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
           }, aheadMs);
         }
         if (!response.ok) {
-          await response.body?.cancel();
+          const said = response.status === 409 ? await response.text().catch(() => "") : (await response.body?.cancel(), "");
+          if (movedBy(response.status, said)) continue;
           if (response.status === 404 && await reallyGone()) { closed = true; abort.abort(); fail("This server was unlinked."); break; }
           throw new Error(`link service answered ${response.status}`);
         }
@@ -957,6 +1008,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
       if (follow && !givenRoute) await Promise.race([locate({ force: true }).catch(() => null), sleep(4000)]);
       if (!given) unwarm = fetchImpl.warm(node);
       void poll();
+      if (follow && !givenRoute) watchSilence();
       if (directSpec) useDirect(directSpec);
       egress?.start();
       return `http://${host}:${listeningPort}`;
@@ -965,6 +1017,25 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
     useDirect,
     /** the link service node the relay talks to now */
     node: () => node,
+    /**
+     * the server's own address as its agent last sealed it into the link service directory (any node answers), for
+     * when the relay path cannot carry the handshake; null when no node has one this app can open
+     */
+    async sealedAddress() {
+      let best = null;
+      for (const at of [...new Set([originOf(base), originOf(node), ...known.map((item) => item.url)])].filter(Boolean)) {
+        try {
+          const response = await fetchImpl(`${at}/v1/tunnels/${id}/node`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.any([abort.signal, AbortSignal.timeout(8000)]) });
+          const body = await response.json().catch(() => null);
+          if (!response.ok || typeof body?.address !== "string") continue;
+          const value = JSON.parse(open(key, `${id}|address`, body.address).toString("utf8"));
+          if (value?.v === 1 && Number.isFinite(value.ts) && value.address && typeof value.address === "object" && (!best || value.ts > best.ts)) best = value;
+        } catch { /* the next node */ }
+      }
+      if (!best || best.ts <= addressSeen) return null;
+      addressSeen = best.ts;
+      return best.address;
+    },
     /** the path a request started now would take */
     transport: () => (direct?.ready() ? "direct" : "relay"),
     /** what the agent said in its last direct hello, or null */
@@ -997,6 +1068,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
       if (egress && !closed) { egress.close(); await sleep(300); }
       closed = true;
       clearTimeout(moveTimer);
+      clearInterval(silenceTimer);
       direct?.close();
       direct = null;
       abort.abort();
