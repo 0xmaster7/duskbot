@@ -15,6 +15,7 @@ import { isContextMessage, type HandedState } from "../delta-context.ts";
 import { wakeHoldOf } from "../routine-due.ts";
 import type { Routine, RoutineRun } from "../routines.ts";
 import { serverLine } from "../server-lines.ts";
+import { planSteps } from "./finish-guard.ts";
 import type { Message, Store } from "../store.ts";
 import type { WaitRecord } from "../waits.ts";
 import { createWarmSummary, WARM_SUMMARY_MIN_TOKENS, WARM_SUMMARY_RETRY_MS, type WarmSummaryOutcome, type WarmSummaryPlan, type WarmSummaryTarget } from "../warm-summary.ts";
@@ -59,16 +60,29 @@ export interface WarmSummaryHostDeps {
   log?(line: string): void;
 }
 
-/** What the summary must keep: questions still waiting and the person's own words for what is current. */
+/** The steps still open in the newest plan the bot wrote in this conversation. */
+export function openPlanSteps(messages: readonly Message[]): string[] {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const tool = messages[i]!.kind === "activity" ? messages[i]!.tool : undefined;
+    const plan = tool ? planSteps(tool.name, tool.input) : null;
+    if (plan) return plan.steps ?? [];
+  }
+  return [];
+}
+
+/** What the summary must keep: questions still waiting, open plan steps and the person's own words for what is current. */
 export function summaryInstructions(messages: readonly Message[]): string {
   const open = messages.filter((m) => m.kind === "options" && m.card?.requestType === "question" && !m.card.answered &&
     !m.card.dismissed && !m.card.expired && !m.card.stopped)
     .map((m) => [m.card!.title, m.card!.subtitle].filter((part) => part?.trim()).join(": ").replace(/\s+/g, " ").trim().slice(0, 300))
     .filter(Boolean).slice(-5);
+  const steps = openPlanSteps(messages).slice(0, 6).map((step) => step.slice(0, 100));
   return [
     "Keep the person's latest requests, corrections and decisions in their own words, and every question still waiting for an answer, theirs and yours.",
-    "Say which work is finished and which is still open.",
+    "Say which work is finished, with what it produced and where, and which is still open, including anything you promised the person.",
+    "Copy names, numbers, prices, dates, links, paths and ids exactly, and mark claims nothing confirmed as unverified.",
     ...(open.length ? [`Questions waiting for the person: ${open.map((q) => `"${q}"`).join("; ")}.`] : []),
+    ...(steps.length ? [`Plan steps still open: ${steps.map((step) => `"${step}"`).join("; ")}.`] : []),
   ].join(" ");
 }
 

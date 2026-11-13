@@ -94,6 +94,9 @@ describe("recentWorkLines + recentWorkPrompt", () => {
     expect(whenLabel(new Date(2026, 8, 16, 7, 3).getTime(), now)).toBe("today 07:03");
     expect(whenLabel(new Date(2026, 8, 15, 23, 59).getTime(), now)).toBe("yesterday 23:59");
     expect(whenLabel(new Date(2026, 8, 14, 12, 0).getTime(), now)).toBe("2026-09-14 12:00");
+    // the person's zone, not the server's: 20:30 UTC on the 15th is already the 16th in India
+    expect(whenLabel(Date.UTC(2026, 8, 15, 20, 30), Date.UTC(2026, 8, 16, 4, 0), "Asia/Kolkata")).toBe("today 02:00");
+    expect(whenLabel(Date.UTC(2026, 8, 15, 20, 30), Date.UTC(2026, 8, 16, 4, 0), "UTC")).toBe("yesterday 20:30");
   });
 });
 

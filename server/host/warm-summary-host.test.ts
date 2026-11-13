@@ -5,7 +5,7 @@ import type { HandedState } from "../delta-context.ts";
 import type { Message } from "../store.ts";
 import { WARM_SUMMARY_IDLE_MS, WARM_SUMMARY_RETRY_MS, WARM_SUMMARY_SOON_MS } from "../warm-summary.ts";
 import { addServerLinePacks } from "../server-lines.ts";
-import { createWarmSummaryHost, keptAfterSummary, PRESENCE_HOLD_MS, summaryInstructions, type WarmSummaryHostDeps } from "./warm-summary-host.ts";
+import { createWarmSummaryHost, keptAfterSummary, openPlanSteps, PRESENCE_HOLD_MS, summaryInstructions, type WarmSummaryHostDeps } from "./warm-summary-host.ts";
 
 let at = 0;
 const line = (role: "user" | "bot", text: string, extra: Partial<Message> = {}): Message =>
@@ -40,6 +40,18 @@ describe("what a summary keeps", () => {
     expect(instructions).not.toContain("Old question");
     expect(instructions).not.toContain("Stopped");
     expect(summaryInstructions([line("user", "hi")])).not.toContain("Questions waiting");
+  });
+
+  it("asks the summary to keep the newest plan's open steps", () => {
+    const plan = (todos: Array<{ content: string; status: string }>) => ({ ...line("bot", ""), kind: "activity" as const, text: undefined,
+      tool: { name: "TodoWrite", input: JSON.stringify({ todos }) } });
+    const messages = [plan([{ content: "Old step", status: "pending" }]), line("user", "go"),
+      plan([{ content: "Find flights", status: "completed" }, { content: "Compare hotels", status: "in_progress" }, { content: "Draft the itinerary", status: "pending" }])];
+    expect(openPlanSteps(messages)).toEqual(["Compare hotels", "Draft the itinerary"]);
+    const instructions = summaryInstructions(messages);
+    expect(instructions).toContain('Plan steps still open: "Compare hotels"; "Draft the itinerary".');
+    expect(instructions).not.toContain("Old step");
+    expect(summaryInstructions([line("user", "hi")])).not.toContain("Plan steps");
   });
 });
 
