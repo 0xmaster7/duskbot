@@ -85,7 +85,8 @@ const plain = (error, fallback) => {
  *   relaunch(): void,
  *   dataSize?(): Promise<number | null>,
  *   proxyFactory?: typeof createTunnelProxy,
- *   direct?: { newKey(): { privateKey: string, publicKey: string }, connector(config: { host: string, port: number, user: string, privateKey: string, hostKeys: string[] }): () => Promise<any>, wssConnector?(config: { url: string, spki: string }): () => Promise<any> },
+ *   direct?: { newKey(): { privateKey: string, publicKey: string }, connector(config: { host: string, port: number, user: string, privateKey: string, hostKeys: string[] }): () => Promise<any>, wssConnector?(config: { url: string, spki: string }): () => Promise<any>,
+ *     cloud?: { url: string | null, connector(config: { url: string, id: string, key: string }): () => Promise<any>, register(config: { url: string, id: string, key: string, grant: string | null }): Promise<void> } },
  *   egress?: Parameters<typeof createTunnelProxy>[0]["egress"],
  *   appVersion?: string,
  *   linkGrant?(): Promise<string | null>,
@@ -214,6 +215,7 @@ export function createVpsLink(deps) {
     if (origin.protocol !== "https:" || origin.origin !== address.origin || origin.port) return;
     const spki = typeof address.spki === "string" && /^[A-Za-z0-9+/]{43}=$/.test(address.spki) ? address.spki : null;
     if (address.spki != null && !spki) return;
+    if (!spki && address.via !== "tailscale" && address.via !== "cloudflare") return;
     if (link.mode === "direct" && link.origin === origin.origin && (link.spki ?? null) === spki && (link.via ?? "direct") === address.via) return;
     const from = link.origin;
     log(`vps link: ${link.name} is now at ${origin.origin} (${address.via})`);
@@ -491,13 +493,40 @@ export function createVpsLink(deps) {
     }
   }
 
-  /** the ways to the server's own address, ssh first, then https on 443; the relay stays underneath them */
+  const CLOUD_RETRY_MS = 60 * 60_000;
+  /**
+   * the cloud relay for this link: registered once with a link grant (which binds the tunnel to this dusk account), again
+   * when the relay forgot it, at most hourly after a refusal. null where the agent or the account cannot use it
+   */
+  async function cloudFor(link, proxy) {
+    const cloud = deps.direct.cloud;
+    if (!cloud?.url || !peers.get(link.id)?.caps?.includes("cloud-relay")) return null;
+    const key = await unprotect(link.keyP);
+    if (closed || proxies.get(link.id) !== proxy) return null;
+    if (link.cloud?.url !== cloud.url) {
+      if (link.cloudCheckedAt && now() - link.cloudCheckedAt < CLOUD_RETRY_MS) return null;
+      try {
+        const grant = deps.linkGrant ? await deps.linkGrant().catch(() => null) : null;
+        await cloud.register({ url: cloud.url, id: link.id, key, grant });
+        link.cloud = { url: cloud.url, at: now() };
+        delete link.cloudCheckedAt;
+      } catch (error) {
+        link.cloudCheckedAt = now();
+        log(`vps link: ${link.name} stays on the link service relay (${error?.message ?? error})`);
+      }
+      write();
+      if (!link.cloud || closed || proxies.get(link.id) !== proxy) return null;
+    }
+    return { name: "cloud", connect: cloud.connector({ url: cloud.url, id: link.id, key }) };
+  }
+
+  /** the ways to the server, ssh first, then https on 443, then the cloud relay; the link service relay stays underneath them */
   async function directFor(link, proxy) {
     if (!deps.direct || closed || proxy.useDirect === undefined) return;
-    if (link.directOff) { if (link.directRevoke) await revokeDirect(link, proxy); return; }
-    await Promise.all([sshFor(link, proxy), wssFor(link, proxy)]);
-    if (closed || proxies.get(link.id) !== proxy || link.directOff) return;
-    const ssh = directValid(link.direct) ? link.direct : null, wss = wssValid(link.wss) ? link.wss : null;
+    if (link.directOff && link.directRevoke) await revokeDirect(link, proxy);
+    if (!link.directOff) await Promise.all([sshFor(link, proxy), wssFor(link, proxy)]);
+    if (closed || proxies.get(link.id) !== proxy) return;
+    const ssh = !link.directOff && directValid(link.direct) ? link.direct : null, wss = !link.directOff && wssValid(link.wss) ? link.wss : null;
     const ways = [];
     if (ssh) {
       const privateKey = await unprotect(ssh.keyP);
@@ -505,9 +534,14 @@ export function createVpsLink(deps) {
       ways.push({ name: "ssh", connect: deps.direct.connector({ host: ssh.host, port: ssh.port, user: ssh.user, privateKey, hostKeys: ssh.hostKeys }) });
     }
     if (wss) ways.push({ name: "wss", connect: deps.direct.wssConnector({ url: wss.url, spki: wss.spki }) });
+    const cloud = await cloudFor(link, proxy);
+    if (closed || proxies.get(link.id) !== proxy) return;
+    if (cloud) ways.push(cloud);
     if (!ways.length) return;
+    const registered = link.cloud;
     proxy.useDirect({
       connect: ways.length === 1 ? ways[0].connect : orderedConnect(ways, { log }),
+      pingMs: (via) => (via === "cloud" ? 20_000 : 5000),
       // the key was removed, the server was reinstalled or its https key changed: ask again over the sealed tunnel, at most once an hour
       onFailure: (error) => {
         let again = false;
@@ -516,6 +550,14 @@ export function createVpsLink(deps) {
             log(`vps link: ${link.name}'s direct path needs a new key (${one?.message ?? one})`);
             delete link.direct;
             again = true;
+          }
+          if (one?.via === "cloud" || (ways.length === 1 && cloud)) {
+            if (one?.status === 404 && registered && link.cloud === registered && !(registered.at && now() - registered.at < REPROVISION_MS)) {
+              log(`vps link: the cloud relay forgot ${link.name}; registering it again`);
+              delete link.cloud;
+              again = true;
+            }
+            continue;
           }
           if (one?.code === "PIN" && wss && link.wss === wss && !(wss.at && now() - wss.at < REPROVISION_MS)) {
             log(`vps link: ${link.name}'s https key changed; asking the server for it again`);
@@ -553,7 +595,7 @@ export function createVpsLink(deps) {
     const link = linkAt(origin);
     if (!link || link.mode !== "relay" || !deps.direct) return null;
     const proxy = proxies.get(link.id);
-    const path = proxy?.transport?.() === "direct" ? "direct" : "relay";
+    const path = proxy?.transport?.() === "direct" && proxy.directVia?.() !== "cloud" ? "direct" : "relay";
     return { on: !link.directOff, path, ...(path === "direct" && proxy?.directVia?.() ? { via: proxy.directVia() } : {}) };
   }
 
@@ -576,6 +618,8 @@ export function createVpsLink(deps) {
     }
     proxy?.useDirect?.(null);
     if (proxy && link.directRevoke) await revokeDirect(link, proxy);
+    // the cloud relay is a relay, not a direct path: it stays on
+    if (proxy) void directFor(link, proxy);
     return directSetting(origin);
   }
 

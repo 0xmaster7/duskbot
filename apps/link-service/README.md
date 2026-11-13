@@ -7,6 +7,24 @@ nothing tied to dusk.bot or Cloudflare.
 curl -fsSL https://link.dusk.bot/i/<code> | sh
 ```
 
+## Ways in
+
+`| sh -s -- --tailscale` (or `--cloudflare`, `--domain NAME`, `--direct`, `--ssh`, `--relay`) after the line picks
+how the app reaches the server ([docs/self-hosting.md](../../docs/self-hosting.md#from-the-app-one-line-any-way-in)). The
+installer's `address` step sets it up and writes `/etc/duskbot-address.json` (`{v, mode, via, host, pin, quick?}`, no
+secret in it). `agent.mjs link` seals `via` with the result; the agent's `hello` answer carries `address` (`{mode, via,
+origin, spki}`): a quick tunnel's current name from cloudflared's metrics, and the key of a pinned address read from the
+server itself, or nothing when that key cannot be read. The app takes an `https` address from there, pins its key (none
+for tailscale and cloudflare, which hold their own certificates), moves the saved server to it and signs in again.
+
+What only the person can do goes to the app as a step event with `ask` (`installerAsk` in `src/app.mjs`):
+`{kind: "tailscale-login" | "tailscale-https" | "cloudflare-login", url}` (only on login.tailscale.com or
+dash.cloudflare.com), `{kind: "dns", host, type: "A", value}`, `{kind: "ports", ip?}`, `{kind: "ssh", user, host}`, each
+with `state` waiting, found or done; `{kind: "none"}` clears it. Anything else is refused with 400.
+
+A claim reply may carry `"cloudflare": {"token", "hostname"}`, a tunnel made for this server on the service's own
+Cloudflare account: `--cloudflare` then runs that tunnel (`tunnel run` with `TUNNEL_TOKEN`) instead of a quick one.
+
 ## Phone push
 
 `POST /v1/push` sends one push for a workspace that holds no APNs or FCM keys of its own; `GET /v1/push` lists the

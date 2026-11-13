@@ -7,7 +7,8 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 
-import { currentAddress } from "../agent.mjs";
+import { currentAddress, sealKeyOf, x25519Pair } from "../agent.mjs";
+import { newLinkKeys, openResult, seal } from "../../../electron/vps-link-protocol.mjs";
 import { installerAsk } from "../src/app.mjs";
 
 const run = promisify(execFile);
@@ -105,5 +106,19 @@ describe("what the installer may ask the app to show", () => {
     expect(installerAsk({ kind: "ssh", user: "a;rm -rf /", host: "203.0.113.7" })).toBeUndefined();
     expect(installerAsk({ kind: "none" })).toEqual({ kind: "none" });
     expect(installerAsk({ kind: "anything" })).toBeUndefined();
+  });
+});
+
+describe("the sealed result the app opens", () => {
+  const sealed = (fields) => {
+    const app = newLinkKeys(), vps = x25519Pair(), id = "abcdefghij";
+    const body = { v: 1, name: "box", pairing: { code: "ABCD-2345-EFGH" }, tunnel: { id, key: "k", token: "t" }, ...fields };
+    return () => openResult({ id, priv: app.priv, pub: app.pub, vpsPub: vps.pub, sealed: seal(sealKeyOf(vps.priv, vps.pub, app.pub, id), id, Buffer.from(JSON.stringify(body))) });
+  };
+  it("takes an unpinned address only from tailscale or cloudflare, which hold their own certificates", () => {
+    expect(sealed({ mode: "direct", via: "tailscale", origin: "https://box.tail1.ts.net", spki: null })()).toMatchObject({ via: "tailscale" });
+    expect(sealed({ mode: "direct", via: "cloudflare", origin: "https://a-b.trycloudflare.com", spki: null })()).toMatchObject({ via: "cloudflare" });
+    expect(sealed({ mode: "direct", via: "domain", origin: "https://bots.example.com", spki: null })).toThrow(/not one this app understands/);
+    expect(sealed({ mode: "direct", via: "direct", origin: "https://1-2-3-4.sslip.io", spki: "k".repeat(43) + "=" })()).toMatchObject({ via: "direct" });
   });
 });

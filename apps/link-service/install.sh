@@ -1576,10 +1576,13 @@ https_up() { # host -> its https address answers, served by caddy here with the 
   wait_health "https://$1/api/health" 120
 }
 
-# the A records a name has, asked of a public resolver so this server's own cache never answers for it
+# the A records a name has: asked of a public resolver first, so this server's own cache never answers for it, then of
+# this server's own resolver (some networks only let that one through)
 dns_a() {
-  curl -fsS --proto =https --proto-redir =https -m 10 -H 'accept: application/dns-json' "https://cloudflare-dns.com/dns-query?name=$1&type=A" 2>/dev/null \
-    | /usr/bin/node -e 'let t="";process.stdin.on("data",(c)=>t+=c).on("end",()=>{try{for(const a of JSON.parse(t).Answer??[])if(a.type===1)console.log(a.data)}catch{}})' 2>/dev/null || true
+  _found=$(curl -fsS --proto =https --proto-redir =https -m 10 -H 'accept: application/dns-json' "https://cloudflare-dns.com/dns-query?name=$1&type=A" 2>/dev/null \
+    | /usr/bin/node -e 'let t="";process.stdin.on("data",(c)=>t+=c).on("end",()=>{try{for(const a of JSON.parse(t).Answer??[])if(a.type===1)console.log(a.data)}catch{}})' 2>/dev/null || true)
+  [ -n "$_found" ] || _found=$(getent ahostsv4 "$1" 2>/dev/null | awk '{ print $1 }' | sort -u || true)
+  printf '%s\n' "$_found" | grep -E '^[0-9.]+$' || true
 }
 address_domain() {
   host=$WANT_DOMAIN

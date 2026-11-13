@@ -516,13 +516,17 @@ export function newLinkKeys() {
   return { secret, ...pair, verifier: sha256hex(vpsTokenOf(secret)) };
 }
 
+const UNPINNED_VIAS = new Set(["tailscale", "cloudflare"]);
+
 /** the sealed result, opened and checked; throws on anything that is not exactly what a vps agent makes */
 export function openResult({ id, priv, pub, vpsPub, sealed }) {
   const value = JSON.parse(open(sealKeyOf(priv, pub, vpsPub, id), id, sealed).toString("utf8"));
   const ok = value && value.v === 1 && (value.mode === "relay" || value.mode === "direct")
     && typeof value.pairing?.code === "string" && /^[A-Z0-9-]{4,40}$/.test(value.pairing.code)
     && typeof value.tunnel?.key === "string" && typeof value.tunnel?.token === "string" && value.tunnel.id === id
-    && (value.mode === "relay" || (typeof value.origin === "string" && /^https:\/\/[a-z0-9.-]+$/.test(value.origin) && typeof value.spki === "string"));
+    && (value.mode === "relay" || (typeof value.origin === "string" && /^https:\/\/[a-z0-9.-]+$/.test(value.origin)
+      // tailscale and cloudflare hold their own certificates and change their keys: those addresses alone go unpinned
+      && (typeof value.spki === "string" || (value.spki === null && UNPINNED_VIAS.has(value.via)))));
   if (!ok) throw new Error("The server's answer was not one this app understands. Update dusk bot and try again.");
   return { ...value, name: typeof value.name === "string" && value.name.trim() ? value.name.trim().slice(0, 60) : "My server" };
 }
@@ -667,7 +671,7 @@ export function createTunnelProxy({ base, id, route = `${base}/v1/tunnels/${id}`
     direct?.close();
     direct = null;
     if (!spec || closed) return;
-    direct = directFactory({ id, key: keyText, guard, connect: spec.connect, onFrame: (frame) => deliver(frame, "direct"), onChange: directChanged, onFailure: spec.onFailure ?? (() => {}), log, hello });
+    direct = directFactory({ id, key: keyText, guard, connect: spec.connect, onFrame: (frame) => deliver(frame, "direct"), onChange: directChanged, onFailure: spec.onFailure ?? (() => {}), log, hello, ...(spec.pingMs ? { pingMs: spec.pingMs } : {}) });
     direct.start();
   }
 
@@ -883,7 +887,7 @@ export function createTunnelProxy({ base, id, route = `${base}/v1/tunnels/${id}`
     transport: () => (direct?.ready() ? "direct" : "relay"),
     /** what the agent said in its last direct hello, or null */
     agentHello: () => direct?.peer?.() ?? null,
-    /** how the direct path is connected while it is up: "ssh" or "wss" */
+    /** how the direct path is connected while it is up: "ssh", "wss" or "cloud" (the cloud relay) */
     directVia: () => (direct?.ready() ? direct.via?.() ?? "ssh" : null),
     /** after a sleep or a network change: the relay reconnects at once on fresh sockets, the direct path proves itself */
     nudge() {
