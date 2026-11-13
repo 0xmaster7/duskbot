@@ -8592,5 +8592,6 @@
   "placeSetup.via.ssh": "Linked over your SSH port, with the dusk relay as a backup.",
   "placeSetup.via.domain": "Linked straight to your domain, no relay in between.",
   "placeSetup.via.tailscale": "Linked over your tailnet, private to your devices.",
-  "placeSetup.via.cloudflare": "Linked through your Cloudflare tunnel."
+  "placeSetup.via.cloudflare": "Linked through your Cloudflare tunnel.",
+  "placeSetup.fellBack": "{way} didn't finish, so it's linked through the dusk relay instead."
 }

@@ -50,7 +50,10 @@ Whatever needs you (a sign-in, a DNS record, open ports) shows in the terminal
 and in the app's sheet at the same time, with a live "waiting" that turns into
 "found". A way that cannot finish (no sign-in within 30 minutes, no DNS record
 within 45, ports that stay closed) links through the relay instead and says
-why, in amber. Running the install again with `--repair` and another way moves
+why, in amber. Later, when an address the app uses stops answering (a quick
+tunnel that restarted under a new name, a tailnet this computer left), the app
+asks the server where it is now and, until the address answers again, goes
+through the relay. Running the install again with `--repair` and another way moves
 the server to it; the app follows. The line is single use and expires after 30
 minutes; [the link service](../apps/link-service/README.md) has the details.
 

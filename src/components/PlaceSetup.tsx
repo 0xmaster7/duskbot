@@ -218,6 +218,9 @@ export function InstallSetup({ way, title: named, onBack, onClose }: { way?: Lin
       : phase === "failed" ? [t("vpsLink.install.stuck"), line ? t("vpsLink.install.rerun") : null]
         : [named ?? (way ? t(way.title) : t("placeSetup.install.title")), way ? t(way.sub) : t("placeSetup.install.what")];
   const via = shown.via ?? shown.mode ?? null;
+  // the way on the line could not finish and the installer linked through the relay instead
+  const fellBack = phase === "done" && way !== undefined && way.key !== "ssh" && (via === "relay" || via === "ssh") ? way : null;
+  const reason = fellBack && shown.fallback ? sentence(shown.fallback.replace(/; using the private relay.*$/, "")) : "";
   const steps3 = [t("placeSetup.steps.first"), t("placeSetup.steps.run"), t(way?.last ?? "placeSetup.steps.relay")];
   // in Settings the page's own title names the way, so only a change of state gets a heading
   const headed = Boolean(onBack) || stopped || phase === "done";
@@ -244,6 +247,9 @@ export function InstallSetup({ way, title: named, onBack, onClose }: { way?: Lin
     {phase === "done" && via && <p data-setup-via={via} className="place-reveal -mt-1 flex items-center gap-2 text-[13px] leading-[18px] text-ink-secondary">
       <PlaceArt name={shown.mode === "direct" ? "direct" : "relay"} size={22} />{t(`placeSetup.via.${via}`)}
     </p>}
+    {fellBack && <p data-setup-fell-back="" role="status" className="place-reveal -mt-2 text-[13px] leading-[18px] text-warning [text-wrap:pretty]">
+      {t("placeSetup.fellBack", { way: capitalized(t(fellBack.title)) })}{reason ? ` ${reason}` : ""}
+    </p>}
     {phase !== "starting" && <div aria-live="polite"><Checklist items={steps} /></div>}
     {ask && phase !== "failed" && phase !== "expired" && <AskPanel ask={ask} />}
     {phase === "failed" && <p role="alert" className="place-reveal text-[13px] leading-[18px] text-danger [overflow-wrap:anywhere]">{failure}</p>}
@@ -261,6 +267,9 @@ export function InstallSetup({ way, title: named, onBack, onClose }: { way?: Lin
     </div>
   </div>;
 }
+
+const capitalized = (text: string) => (text ? `${text[0].toUpperCase()}${text.slice(1)}` : text);
+const sentence = (text: string) => { const words = text.trim().replace(/\.$/, ""); return words ? `${words[0].toUpperCase()}${words.slice(1)}.` : ""; };
 
 const FIELD = "w-full rounded-lg border border-transparent bg-inset px-3 py-2 text-[14px] font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus/60";
 

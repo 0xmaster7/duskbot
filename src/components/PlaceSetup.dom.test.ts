@@ -186,6 +186,19 @@ it("each way is the same one line with the way on the end, three plain steps, an
   expect(q("[data-setup-ask]")).toBeNull();
 });
 
+it("a way that could not finish says so in amber, with the installer's reason, once linked through the relay", async () => {
+  const link = fakeLink();
+  vi.stubGlobal("duskDesktop", { vpsLink: link.bridge, workspaces: { add: vi.fn() } });
+  await act(async () => { root.render(createElement(PlaceSetup, { onClose: vi.fn() })); });
+  await click(q("[data-setup-method=tailscale]"));
+  await settle();
+  await link.emit({ ...EMPTY_VIEW, stage: "linked", server: SERVER, mode: "relay", via: "relay", fallback: "Tailscale is not signed in; using the private relay", steps: VPS_STEP_IDS.map((id) => ({ id, status: "done" })) });
+  expect(q("[data-setup-via]")?.getAttribute("data-setup-via")).toBe("relay");
+  expect(q("[data-setup-fell-back]")?.textContent).toBe("Tailscale didn't finish, so it's linked through the dusk relay instead. Tailscale is not signed in.");
+  await link.emit({ ...EMPTY_VIEW, stage: "linked", server: SERVER, mode: "direct", via: "tailscale", steps: VPS_STEP_IDS.map((id) => ({ id, status: "done" })) });
+  expect(q("[data-setup-fell-back]")).toBeNull();
+});
+
 it("your own domain goes into the line, and the DNS record it needs shows live until it is found", async () => {
   const link = fakeLink();
   vi.stubGlobal("duskDesktop", { vpsLink: link.bridge, workspaces: { add: vi.fn() } });

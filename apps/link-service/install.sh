@@ -1672,7 +1672,9 @@ ts_with_link() { # kind seconds pattern words... -- command...
 "; shift; done; shift
   : > "$TMP/ts.out"
   rm -f "$TMP/ts.rc"
-  ( "$@" > "$TMP/ts.out" 2>&1; echo $? > "$TMP/ts.rc" ) &
+  # set +e: under the step's set -e (dash), a command that fails would end this subshell before it leaves its code,
+  # and the wait would last the whole $_secs instead of ending at once
+  ( set +e; "$@" > "$TMP/ts.out" 2>&1; echo $? > "$TMP/ts.rc" ) &
   _pid=$! _t=0 _asked=""
   while [ ! -f "$TMP/ts.rc" ]; do
     _url=$(grep -o "$_pat" "$TMP/ts.out" 2>/dev/null | head -n 1)

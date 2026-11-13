@@ -2,6 +2,7 @@
 // writes for the agent, what the agent tells the app, and what the link service lets through to the app
 import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -14,7 +15,7 @@ import { installerAsk } from "../src/app.mjs";
 const run = promisify(execFile);
 const script = (await readFile(new URL("../install.sh", import.meta.url), "utf8")).replace(/\nmain "\$@"\s*$/, "\n");
 
-async function sourced(body, args = []) {
+async function sourced(body, args = [], shell = "sh") {
   const dir = await mkdtemp(join(tmpdir(), "omb-ways-"));
   try {
     const file = join(dir, "fixture.sh");
@@ -23,7 +24,7 @@ STATE=${dir}/state ADDRESS=${dir}/address.json UNITS=${dir}/units
 mkdir -p "$STATE" "$UNITS"
 ${body}
 `);
-    const out = await run("sh", [file, ...args], { env: { PATH: "/usr/bin:/bin", TERM: "dumb" } }).then((done) => done, (error) => error);
+    const out = await run(shell, [file, ...args], { env: { PATH: "/usr/bin:/bin", TERM: "dumb" } }).then((done) => done, (error) => error);
     let address = null;
     try { address = JSON.parse(await readFile(join(dir, "address.json"), "utf8")); } catch { /* none written */ }
     return { stdout: out.stdout, stderr: out.stderr, code: out.code ?? 0, address };
@@ -75,6 +76,18 @@ describe("the line's way", () => {
     expect((await unit("tailscale")).stdout).toContain("--public-url https://h.example.com");
     expect((await unit("cloudflare")).stdout).not.toContain("--public-url");
     expect((await unit("cloudflare", "1")).stdout).toContain("--public-url https://h.example.com");
+  });
+});
+
+// debian and ubuntu run the line with dash, whose subshells keep set -e
+const dash = ["/bin/dash", "/usr/bin/dash"].find((path) => existsSync(path));
+describe("a wait for the person (tailscale's sign-in and https)", () => {
+  it.skipIf(!dash)("ends as soon as the command fails, under the step's set -e, not when the wait runs out", async () => {
+    const started = Date.now();
+    const out = await sourced('set -e; TMP=$STATE; redact() { cat; }; ask() { cat >/dev/null; }\n'
+      + 'if ts_with_link tailscale-login 30 "x" "words" -- sh -c "exit 3"; then echo ok; else echo gave-up; fi', [], dash);
+    expect(out.stdout.trim()).toBe("gave-up");
+    expect(Date.now() - started).toBeLessThan(10_000);
   });
 });
 

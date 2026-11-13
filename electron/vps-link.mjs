@@ -94,6 +94,7 @@ const plain = (error, fallback) => {
  *   onChange?(view: any): void,
  *   log?(line: string): void,
  *   pollMs?: number,
+ *   addressCheckMs?: number,
  * }} deps
  */
 export function createVpsLink(deps) {
@@ -133,7 +134,7 @@ export function createVpsLink(deps) {
   const currentLink = () => state.links.find((link) => link.id === state.current) ?? null;
 
   // the install's live terminal: lines each step streams while it runs. kept in memory only, never in the store
-  const emptyLive = (id) => ({ id, steps: {}, feed: [], updatedAt: 0, progressAt: 0, error: null, ask: null });
+  const emptyLive = (id) => ({ id, steps: {}, feed: [], updatedAt: 0, progressAt: 0, error: null, ask: null, fallback: null });
   let live = emptyLive(null);
   const LIVE_STEP_LINES = 200;
   const LIVE_FEED = 400;
@@ -169,6 +170,7 @@ export function createVpsLink(deps) {
       server: link ? { id: link.envId, name: link.name, origin: link.origin } : null,
       mode: link?.mode ?? null,
       via: link ? link.via ?? link.mode : null,
+      fallback: link?.fallback ?? null,
       compat: link ? compatView(link) : null,
       error: lastError,
       move: move ? { step: move.step, status: move.status, ...(move.chats ? { chats: move.chats } : {}), ...(move.bytes ? { bytes: move.bytes } : {}), ...(move.waitingFor ? { waitingFor: move.waitingFor } : {}), ...(move.error ? { error: move.error } : {}), ...(move.retryAt ? { retryAt: move.retryAt } : {}), ...(move.backupId ? { backupId: move.backupId } : {}), ...(move.kept ? { kept: true } : {}) } : null,
@@ -217,9 +219,13 @@ export function createVpsLink(deps) {
     if (address.spki != null && !spki) return;
     if (!spki && address.via !== "tailscale" && address.via !== "cloudflare") return;
     if (link.mode === "direct" && link.origin === origin.origin && (link.spki ?? null) === spki && (link.via ?? "direct") === address.via) return;
+    // the same address the relay stands in for: the address check moves back once it answers
+    if (link.away && link.away.origin === origin.origin && (link.away.spki ?? null) === spki) return;
     const from = link.origin;
     log(`vps link: ${link.name} is now at ${origin.origin} (${address.via})`);
     Object.assign(link, { mode: "direct", via: address.via, origin: origin.origin, spki });
+    delete link.away;
+    delete link.fallback;
     deps.pin?.(origin.host, spki);
     if (from && from !== origin.origin) deps.retarget?.(from, origin.origin);
     write();
@@ -348,6 +354,8 @@ export function createVpsLink(deps) {
               if (typeof event.cmd === "string") own.cmd = event.cmd.slice(0, 300);
               own.lines = own.lines.concat(lines).slice(-LIVE_STEP_LINES);
               mirror.feed = mirror.feed.concat(lines.map((text) => ({ step: event.step, text }))).slice(-LIVE_FEED);
+              // the way asked for could not finish (install.sh relay_address): why, kept for the done screen
+              if (event.step === "address") for (const line of lines) if (/; using the private relay/.test(line)) mirror.fallback = line.trim().slice(0, 200);
               streamed = true;
               // a late batch never takes a finished step back to running
               if (event.status === "running" && pending.steps[event.step]) continue;
@@ -421,6 +429,7 @@ export function createVpsLink(deps) {
         }
         if (closed) throw new Error("The app is closing.");
         const port = Number(new URL(origin).port);
+        relayOrigins.set(link.id, origin);
         if (link.mode === "relay" && link.origin !== origin) {
           if (link.origin) deps.retarget?.(link.origin, origin);
           link.origin = origin;
@@ -428,6 +437,7 @@ export function createVpsLink(deps) {
           write();
         }
         void handshake(link, proxy).finally(() => directFor(link, proxy));
+        watchAddress(link, proxy);
         return proxy;
       } catch (error) {
         if (proxies.get(link.id) === proxy) proxies.delete(link.id);
@@ -438,6 +448,74 @@ export function createVpsLink(deps) {
     proxyStarts.set(link.id, starting);
     try { return await starting; }
     finally { if (proxyStarts.get(link.id) === starting) proxyStarts.delete(link.id); }
+  }
+
+  // ---- an https address (tailscale, cloudflare, a domain, the server's IP) that stops answering ----
+  // checked every minute while its tunnel is open: on a miss the agent is asked where its server is now (a quick tunnel
+  // gets a new name when it restarts); still no answer, and the window goes through the relay (link.away keeps the
+  // address) until the address answers again
+
+  const ADDRESS_CHECK_MS = deps.addressCheckMs ?? 60_000;
+  const relayOrigins = new Map();
+  const addressTimers = new Map();
+
+  async function answers(origin) {
+    try {
+      const response = await serverFetch(`${origin}/api/health`, { cache: "no-store", headers: { accept: "application/json" }, signal: AbortSignal.timeout(10_000) });
+      return response.ok;
+    } catch { return false; }
+  }
+
+  /** the window goes through the relay while the address does not answer; null when there is no relay to use */
+  function standIn(link) {
+    const relayOrigin = relayOrigins.get(link.id);
+    if (!relayOrigin || link.mode !== "direct" || !link.origin) return null;
+    log(`vps link: ${link.name} does not answer at ${link.origin}; using the relay until it does`);
+    const from = link.origin;
+    link.away = { via: link.via ?? "direct", origin: link.origin, spki: link.spki ?? null };
+    Object.assign(link, { mode: "relay", via: "relay", origin: relayOrigin, port: Number(new URL(relayOrigin).port), spki: null });
+    if (from !== relayOrigin) deps.retarget?.(from, relayOrigin);
+    return link;
+  }
+
+  function comeBack(link) {
+    const { away } = link;
+    delete link.away;
+    log(`vps link: ${link.name} answers at ${away.origin} again`);
+    const from = link.origin;
+    Object.assign(link, { mode: "direct", via: away.via, origin: away.origin, spki: away.spki });
+    if (away.spki) deps.pin?.(new URL(away.origin).host, away.spki);
+    if (from && from !== away.origin) deps.retarget?.(from, away.origin);
+    write();
+    void signedIn(link).catch((error) => log(`vps link: ${link.name} sign-in at ${away.origin} failed (${error?.message ?? error})`));
+  }
+
+  function watchAddress(link, proxy) {
+    if (addressTimers.has(link.id)) return;
+    let misses = 0;
+    const tick = async () => {
+      if (closed || proxies.get(link.id) !== proxy) { addressTimers.delete(link.id); return; }
+      try {
+        if (!state.links.includes(link)) { /* still linking */ }
+        else if (link.away) {
+          if (await answers(link.away.origin)) comeBack(link);
+          else await handshake(link, proxy);
+        }
+        else if (link.mode === "direct" && link.origin) {
+          if (await answers(link.origin)) misses = 0;
+          else if (++misses === 1) await handshake(link, proxy);
+          else {
+            misses = 0;
+            if (!closed && proxies.get(link.id) === proxy && link.mode === "direct" && standIn(link)) {
+              write();
+              void signedIn(link).catch((error) => log(`vps link: ${link.name} sign-in through the relay failed (${error?.message ?? error})`));
+            }
+          }
+        }
+      } catch (error) { log(`vps link: checking ${link.name}'s address failed (${error?.message ?? error})`); }
+      if (!closed && addressTimers.has(link.id)) addressTimers.set(link.id, setTimeout(tick, ADDRESS_CHECK_MS));
+    };
+    addressTimers.set(link.id, setTimeout(tick, ADDRESS_CHECK_MS));
   }
 
   // ---- the direct path: this app's own ssh key on the server, restricted to the agent's direct command ----
@@ -659,10 +737,16 @@ export function createVpsLink(deps) {
         spki: result.spki ?? null, environmentId: result.environmentId ?? null, envId: null, at: now(), keyP, tokenP,
         // pinned here when the agent sent it inside the sealed result; an older agent's link pins it on first use instead
         sealIdentity: typeof result.sealIdentity === "string" && SEAL_IDENTITY.test(result.sealIdentity) ? result.sealIdentity : null,
+        ...(result.mode !== "direct" && live.id === pending.id && live.fallback ? { fallback: live.fallback } : {}),
       };
       if (link.mode === "direct") deps.pin?.(new URL(link.origin).host, link.spki);
       const proxy = await proxyFor(link);
       if (!active()) return;
+      // an address this computer cannot reach (not on the tailnet yet, a name still spreading): the relay until it can
+      if (link.mode === "direct" && !(await answers(link.origin))) {
+        if (!active()) return;
+        standIn(link);
+      }
       let paired;
       try { paired = await signInTo(link.origin, result.pairing.code, signal); }
       catch {
@@ -1053,6 +1137,7 @@ export function createVpsLink(deps) {
   async function resume() {
     await Promise.all(state.links.map(async (link) => {
       if (link.mode === "direct" && link.spki && link.origin) deps.pin?.(new URL(link.origin).host, link.spki);
+      if (link.away?.spki) deps.pin?.(new URL(link.away.origin).host, link.away.spki);
       await proxyFor(link).catch((error) => log(`vps link: ${link.name} tunnel did not open (${error?.message ?? error})`));
     }));
     if (state.pending) follow();
@@ -1090,6 +1175,6 @@ export function createVpsLink(deps) {
       await proxyFor(link);
       return !closed && state.links.includes(link) ? { id: envId, origin: link.origin } : null;
     },
-    async close() { closed = true; invalidateSetup(); stopFollowing(); clearTimeout(moveTimer); for (const flow of signIns.values()) flow.abort?.abort(); await Promise.allSettled(proxyStarts.values()); await Promise.all([...proxies.values()].map((proxy) => proxy.close())); },
+    async close() { closed = true; invalidateSetup(); stopFollowing(); clearTimeout(moveTimer); for (const timer of addressTimers.values()) clearTimeout(timer); addressTimers.clear(); for (const flow of signIns.values()) flow.abort?.abort(); await Promise.allSettled(proxyStarts.values()); await Promise.all([...proxies.values()].map((proxy) => proxy.close())); },
   };
 }

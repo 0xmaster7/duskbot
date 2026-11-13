@@ -41,6 +41,8 @@ export interface VpsLinkView {
   mode?: "relay" | "direct" | null;
   /** How the app reaches the linked server (install.sh's way): omitted by older desktop builds. */
   via?: VpsLinkVia | null;
+  /** Why the way asked for on the line fell back to the relay (the installer's own words), once linked. */
+  fallback?: string | null;
   /** What the installer needs the person to do now (sign in, add a DNS record, open ports), while a line runs. */
   ask?: VpsLinkAsk | null;
 }
