@@ -889,7 +889,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         if (!isQuestion && !isPermission) {
           if (isMcpElicitation) {
             send({ jsonrpc: "2.0", id: msg.id, result: { action: "decline" } });
-            emit({ ...base(threadId, turnId), type: "runtime.notice", message: `${boundedLabel(params.serverName) ?? "An MCP server"} asked for input dusk bot can't show yet, so the request was declined.` });
+            emit({ ...base(threadId, turnId), type: "runtime.notice", message: `${boundedLabel(params.serverName) ?? "An app"} asked for something that can't be shown here yet, so it was skipped.` });
           } else {
             send({
               jsonrpc: "2.0",
@@ -1538,7 +1538,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
           );
         }
         emit({ ...base(threadId, turnId), type: "session.started", sessionId: codexThreadId, model: startedModel ?? turn.model ?? null, ...(rebuiltFromReplay ? { rebuilt: true } : {}) });
-        if (rebuiltFromReplay) emit({ ...base(threadId, turnId), type: "runtime.notice", message: rebuiltSessionNotice("Codex") });
+        if (rebuiltFromReplay) emit({ ...base(threadId, turnId), type: "runtime.notice", message: rebuiltSessionNotice() });
         const turnInput = [
           ...(promptText ? [{ type: "text" as const, text: promptText }] : []),
           ...await codexImageInputs(turn.images),

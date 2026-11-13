@@ -62,6 +62,6 @@ describe("unsupportedCallsSince", () => {
 });
 
 it("names the refused tools and what to do", () => {
-  expect(unsupportedCallsNotice(["retry_thread"])).toMatch(/^Codex could not run the tool retry_thread \("unsupported call"\)/);
+  expect(unsupportedCallsNotice(["retry_thread"])).toBe("Couldn't use retry_thread with this model. Pick another model for this bot to use it.");
   expect(unsupportedCallsNotice(["a", "b", "c", "d", "e", "f", "g", "h"])).toContain("a, b, c, d, e, f and 2 more");
 });

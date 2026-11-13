@@ -372,7 +372,7 @@ describe("GitHub Copilot ACP driver", () => {
     const { turnId } = await instance.adapter.sendTurn({ threadId: "copilot-gone", text: "hello", model: "retired-model", approvalMode: "ask" });
     await recorder.until((event) => event.type === "turn.completed" && event.turnId === turnId);
     expect(prompts().at(-1)).toMatchObject({ model: "auto" });
-    expect(recorder.events.some((event) => event.type === "runtime.notice" && /no longer offers retired-model/.test(String((event as { message?: unknown }).message)))).toBe(true);
+    expect(recorder.events.some((event) => event.type === "runtime.notice" && /retired-model isn't available anymore/.test(String((event as { message?: unknown }).message)))).toBe(true);
   });
 
   it("reports a missing login as a sign-in step, not a raw RPC error", async () => {

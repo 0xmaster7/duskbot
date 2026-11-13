@@ -125,7 +125,7 @@ describe("picking the session model before the setter runs", () => {
   it("falls back to the driver's pick with one notice per session for a model the session no longer offers", () => {
     const session = { sessionConfigResult: modern("one") };
     const support = { displayName: "Agent", fallbackModel: () => "one" };
-    expect(pick(support, "retired", session)).toMatchObject({ turn: { model: "one" }, reportedModel: "one", notice: expect.stringContaining("no longer offers retired") });
+    expect(pick(support, "retired", session)).toMatchObject({ turn: { model: "one" }, reportedModel: "one", notice: expect.stringContaining("retired isn't available anymore") });
     expect(pick(support, "retired", session)).toMatchObject({ turn: { model: "one" }, notice: null });
     expect(pick({ displayName: "Agent" }, "retired", session)).toMatchObject({ turn: { model: "retired" }, notice: null });
   });

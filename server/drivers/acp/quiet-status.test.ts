@@ -93,14 +93,14 @@ describe("parseOpenCodeLogLine", () => {
 
 describe("describeQuiet", () => {
   it("says it in plain words", () => {
-    expect(describeQuiet("Qwen", { kind: "retrying", status: 429, delayMs: 20_000, attempt: 1 }, 90_000, 900_000))
-      .toBe("Qwen hit a rate limit (HTTP 429) and is retrying (attempt 2). Next try in 20 s. It is still working.");
-    expect(describeQuiet("Qwen", { kind: "waiting-model", nearFullContext: false }, 125_000, 900_000)).toContain("no reply for 2 min");
-    expect(describeQuiet("Qwen", { kind: "no-signs" }, 180_000, 900_000)).toContain("stopped after 15 min");
-    expect(describeQuiet("Qwen", { kind: "between-requests" }, 25_000, 900_000))
-      .toBe("Qwen has sent nothing for 25 s and has no request open to its model right now. It may be waiting before a retry. Still waiting; press Stop to end the turn.");
-    expect(describeQuiet("OpenCode", { kind: "provider-error", message: "Rate limit exceeded. Please try again later." }, 75_000, 900_000))
-      .toBe('OpenCode\'s model request failed: "Rate limit exceeded. Please try again later." OpenCode may retry or stop; no reply for 75 s so far.');
+    expect(describeQuiet({ kind: "retrying", status: 429, delayMs: 20_000, attempt: 1 }, 90_000, 900_000))
+      .toBe("Hit a rate limit, trying again in 20 s. Still working.");
+    expect(describeQuiet({ kind: "waiting-model", nearFullContext: false }, 125_000, 900_000)).toContain("no reply for 2 min");
+    expect(describeQuiet({ kind: "no-signs" }, 180_000, 900_000)).toContain("stops by itself after 15 min");
+    expect(describeQuiet({ kind: "between-requests" }, 25_000, 900_000))
+      .toBe("Nothing new for 25 s, maybe waiting to try again. Press Stop to end it.");
+    expect(describeQuiet({ kind: "provider-error", message: "Rate limit exceeded. Please try again later." }, 75_000, 900_000))
+      .toBe('The model hit an error and may try again: "Rate limit exceeded. Please try again later."');
   });
 
   it("a new retry attempt is news; the same state is not", () => {

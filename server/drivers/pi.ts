@@ -62,7 +62,7 @@ const PI_AGENT_END_GRACE_MS = 60_000;
 /** A prompt sent before pi answers new_session or switch_session runs on a session pi then replaces, so the turn waits
  *  for that answer however long it takes, and says so in the chat after this long. */
 const PI_SESSION_SLOW_MS = 20_000;
-const PI_SESSION_SLOW = "Pi is taking longer than usual to start this conversation's session. The turn goes on when Pi answers. Press Stop to cancel it.";
+const PI_SESSION_SLOW = "Taking longer than usual to start. Press Stop to cancel.";
 
 /** pi answered success:false: an explicit refusal from a live runtime, not a transport failure. */
 class PiRpcRefusalError extends Error {}

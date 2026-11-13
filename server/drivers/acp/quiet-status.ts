@@ -391,36 +391,32 @@ const minutes = (ms: number): string => {
   return `${Math.round(ms / 60_000)} min`;
 };
 
-export function describeQuiet(name: string, state: QuietState, quietMs: number, stopAfterMs: number): string {
+export function describeQuiet(state: QuietState, quietMs: number, stopAfterMs: number): string {
   const quiet = minutes(quietMs);
   switch (state.kind) {
     case "retrying": {
-      const why = state.status === 429 ? "hit a rate limit (HTTP 429)"
-        : state.status !== null && state.status >= 500 ? `got a server error from its model provider (HTTP ${state.status})`
-        : state.status !== null ? `got an error from its model provider (HTTP ${state.status})`
-        : "had a failed model request";
-      const next = state.delayMs !== null ? ` Next try in ${Math.max(1, Math.round(state.delayMs / 1000))} s.` : "";
-      const attempt = state.attempt !== null ? ` (attempt ${state.attempt + 1})` : "";
-      return `${name} ${why} and is retrying${attempt}.${next} It is still working.`;
+      const why = state.status === 429 ? "Hit a rate limit"
+        : state.status !== null && state.status >= 500 ? "The model's service had a hiccup"
+        : "A model request failed";
+      const next = state.delayMs !== null ? ` in ${Math.max(1, Math.round(state.delayMs / 1000))} s` : "";
+      return `${why}, trying again${next}. Still working.`;
     }
     case "provider-error":
-      return `${name}'s model request failed: "${state.message}" ${name} may retry or stop; no reply for ${quiet} so far.`;
+      return `The model hit an error and may try again: "${state.message}"`;
     case "compressing":
-      return `${name} is compressing its conversation history to make room. This can take a few minutes; it is still working.`;
+      return "Tidying up a long chat to make room. This can take a few minutes.";
     case "waiting-model":
       return state.nearFullContext
-        ? `${name} is waiting on its model: no reply for ${quiet}, but its request is still open. Its history is nearly full, so it may be compressing it.`
-        : `${name} is waiting on its model: no reply for ${quiet}, but its request is still open. Slow models and rate limits look like this.`;
+        ? `Waiting on the model, no reply for ${quiet}. The chat is nearly full, so it may be tidying up.`
+        : `Waiting on the model, no reply for ${quiet}. Slow models can take a while.`;
     case "busy":
-      return `${name} is busy on this computer but has sent nothing for ${quiet}.`;
+      return `Still busy, nothing new for ${quiet}.`;
     case "between-requests":
-      return `${name} has sent nothing for ${quiet} and has no request open to its model right now. ` +
-        "It may be waiting before a retry. Still waiting; press Stop to end the turn.";
+      return `Nothing new for ${quiet}, maybe waiting to try again. Press Stop to end it.`;
     case "no-signs":
-      return `${name} has sent nothing for ${quiet}, has no open request to its model, and is not using the CPU. It may be stuck. ` +
-        `Press Stop to end the turn; otherwise it is stopped after ${minutes(stopAfterMs)} of silence.`;
+      return `No progress for ${quiet}, it may be stuck. Press Stop, or it stops by itself after ${minutes(stopAfterMs)}.`;
     case "unknown":
-      return `${name} has sent nothing for ${quiet}. Still waiting; press Stop to end the turn.`;
+      return `Nothing new for ${quiet}. Press Stop to end it.`;
   }
 }
 

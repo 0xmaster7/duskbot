@@ -80,8 +80,7 @@ export function unsupportedCallsSince(mark: RolloutMark | null, maxBytes = ROLLO
 
 export function unsupportedCallsNotice(tools: readonly string[]): string {
   const named = tools.slice(0, 6).join(", ") + (tools.length > 6 ? ` and ${tools.length - 6} more` : "");
-  return `Codex could not run ${tools.length === 1 ? "the tool" : "the tools"} ${named} ("unsupported call"): the AI provider sent ` +
-    "the call back without the tool's app name, so it never reached the tool. Pick a model for this bot whose provider handles tool calls fully.";
+  return `Couldn't use ${named} with this model. Pick another model for this bot to use ${tools.length === 1 ? "it" : "them"}.`;
 }
 
 /** Logs and tells the thread about every call codex refused since `mark`, so a dropped namespace is never silent. */

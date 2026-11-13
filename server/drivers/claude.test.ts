@@ -4310,7 +4310,7 @@ describe("ClaudeDriver resume recovery (fake CLI)", () => {
       expect.objectContaining({ rebuilt: true, sessionId: expect.not.stringMatching(/idle-since-september/) }),
     ]);
     const notices = () => recorder.events.filter((e) => e.type === "runtime.notice");
-    expect(notices()).toEqual([expect.objectContaining({ message: rebuiltSessionNotice("Claude Code") })]);
+    expect(notices()).toEqual([expect.objectContaining({ message: rebuiltSessionNotice() })]);
     expect(launches(prompts)).toBe(2);
     const seen = JSON.parse(readFileSync(dump, "utf8"));
     expect(seen.argv).not.toContain("--resume");

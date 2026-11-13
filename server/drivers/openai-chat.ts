@@ -898,7 +898,7 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
           failure = "Tool processes could not be stopped; their execution state is uncertain.";
         }
         if (abort.signal.aborted) { ok = false; stopReason = "interrupted"; }
-        if (!ok && (unread.length || turnEntry.asides.length)) emit({ ...base(turn.threadId, turnId), type: "runtime.notice", message: "This turn ended before the model read a message sent while it ran. Send that message again." });
+        if (!ok && (unread.length || turnEntry.asides.length)) emit({ ...base(turn.threadId, turnId), type: "runtime.notice", message: "The reply ended before your last message was read. Send it again." });
         if (failure && (!abort.signal.aborted || cleanupFailed)) {
           // "upstream" (an OpenAI-compatible URL) names no provider, so its raw line is kept.
           const message = options.httpErrorLabel === "upstream" ? failure : plainFailureMessage(options.httpErrorLabel, failure);

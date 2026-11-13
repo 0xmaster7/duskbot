@@ -2279,6 +2279,7 @@
   "chat.voiceNote.speed": "Playback speed {speed}x",
   "chat.activity.thinking": "Thinking",
   "chat.activity.working": "Working",
+  "chat.activity.noticeShort": "Heads up",
   "chat.typing": "Typing…",
   "chat.teammatesWorking": "Teammates working",
   "chat.friendly.thinking": "Thinking it through",

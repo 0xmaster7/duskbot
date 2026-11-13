@@ -790,7 +790,7 @@ describe("cursor ACP model namespace (NS: set_model wiring)", () => {
       const done = await recorder.until((e) => e.type === "turn.completed");
       expect(done).toMatchObject({ type: "turn.completed", ok: true });
       expect(recorder.events.filter((e) => e.type === "runtime.notice")).toEqual([
-        expect.objectContaining({ message: expect.stringContaining("did not accept gpt-5.3-codex in this session, so it runs Auto") }),
+        expect.objectContaining({ message: expect.stringContaining("gpt-5.3-codex isn't available here, so this chat uses Auto") }),
       ]);
     } finally {
       recorder.stop();
@@ -816,7 +816,7 @@ describe("cursor ACP model namespace (NS: set_model wiring)", () => {
         expect(await recorder.until((e) => e.type === "turn.completed" && e.turnId === turn.turnId)).toMatchObject({ ok: true });
       }
       expect(recorder.events.filter((e) => e.type === "runtime.notice")).toEqual([
-        expect.objectContaining({ message: expect.stringContaining("did not accept grok-4.7-high-fast in this session, so it runs Grok") }),
+        expect.objectContaining({ message: expect.stringContaining("grok-4.7-high-fast isn't available here, so this chat uses Grok") }),
       ]);
     } finally {
       recorder.stop();
@@ -854,7 +854,7 @@ describe("cursor ACP model namespace (NS: set_model wiring)", () => {
       ]);
       expect(recorder.events.filter((e) => e.type === "runtime.notice")).toEqual([
         expect.objectContaining({
-          message: expect.stringContaining("rather than grok-4.7-medium-fast"),
+          message: expect.stringContaining("grok-4.7-medium-fast isn't available here, so this chat uses "),
         }),
       ]);
       const second = await instance.adapter.sendTurn({ threadId: "t-cursor-effort", text: "again", model: "grok-4.7-medium-fast" });

@@ -102,11 +102,22 @@ export function stepStatus(step: LiveStep): LiveStatus {
     : { activity: step.activity, file: step.target };
 }
 
+/** Longest notice sentence the status line says as is; a longer one would be cut off mid-sentence there. */
+export const NOTICE_LABEL_MAX = 48;
+
+/** A notice as the status line says it: its first sentence without the full stop, or a short label when that is long (the
+ * whole notice stays in the chat). */
+export function noticeLabel(text: string): string | undefined {
+  const first = /[^.!?。！？]+[.!?。！？]?/u.exec(text.trim())?.[0]?.trim();
+  if (!first) return undefined;
+  return first.length > NOTICE_LABEL_MAX ? t("chat.activity.noticeShort") : first.replace(/[.。]$/u, "");
+}
+
 /** The status line's "now": the engine's own report when it made one, else what the server just said about the turn (it
  * is waiting for memory, say), else the tool call still running in the chat, else nothing, and the line shows its timer alone. */
 export function turnNowPhrases(status: LiveStatus | null, message?: Message): LiveActivityPhrases | null {
   if (status) return liveStatusPhrases(status);
-  const notice = message?.kind === "activity" && message.tool?.name.startsWith("notice:") ? /[^.!?。！？]+[.!?。！？]?/u.exec(message.tool.name.slice("notice:".length).trim())?.[0] : undefined;
+  const notice = message?.kind === "activity" && message.tool?.name.startsWith("notice:") ? noticeLabel(message.tool.name.slice("notice:".length)) : undefined;
   if (notice) return { phase: `notice:${notice}`, phrases: [notice] };
   if (message?.kind !== "activity" || !message.tool || message.tool.ok !== undefined || message.comm) return null;
   const phrases = toolActivityPhrases(message.tool);

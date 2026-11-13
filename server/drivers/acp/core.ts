@@ -578,7 +578,7 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
           emit({
             ...base(threadId, current.turnId),
             type: "runtime.notice",
-            message: describeQuiet(support.displayName, next, quietMs, promptIdleTimeoutMs()),
+            message: describeQuiet(next, quietMs, promptIdleTimeoutMs()),
           });
         };
         const timer = setInterval(() => { void tick(); }, tickMs);

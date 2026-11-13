@@ -2234,7 +2234,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
     expect(calls.map((call: { method: string }) => call.method)).toEqual(["initialize", "initialized", "config/read", "thread/resume", "thread/start", "turn/start"]);
     expect(calls.find((call: { method: string }) => call.method === "turn/start").params.input).toEqual([{ type: "text", text: recoveryText }]);
     expect(recorder.events.filter((e) => e.type === "session.started")).toMatchObject([{ rebuilt: true }]);
-    expect(recorder.events.filter((e) => e.type === "runtime.notice")).toEqual([expect.objectContaining({ message: rebuiltSessionNotice("Codex") })]);
+    expect(recorder.events.filter((e) => e.type === "runtime.notice")).toEqual([expect.objectContaining({ message: rebuiltSessionNotice() })]);
   });
 
   it("unarchives an archived native thread and resumes it instead of failing every retry", async () => {
@@ -2918,7 +2918,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
 
     expect(recorder.events.some((event) => event.type === "request.opened")).toBe(false);
     expect(JSON.parse(readFileSync(dump, "utf8")).decision).toEqual({ action: "decline" });
-    expect(recorder.events.find((event) => event.type === "runtime.notice")?.message).toBe("example asked for input dusk bot can't show yet, so the request was declined.");
+    expect(recorder.events.find((event) => event.type === "runtime.notice")?.message).toBe("example asked for something that can't be shown here yet, so it was skipped.");
   });
 
   it("grants Codex additional permissions with their native response shape", async () => {

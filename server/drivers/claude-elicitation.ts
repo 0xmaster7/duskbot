@@ -53,8 +53,8 @@ export function claudeElicitations(write: (frame: unknown) => Promise<boolean>, 
         emit({
           type: "runtime.notice",
           message: r.mode === "url"
-            ? `${server} asked you to open a link to continue${/^https:\/\//i.test(url) ? `: ${url}` : ""}. dusk bot can't open it from here, so the request was declined. Open the link yourself, then ask the bot to try again.`
-            : `${server} asked you to fill in ${fields === 1 ? "a field" : `${fields} fields`}${message ? ` ("${message}")` : ""}. dusk bot can't show that form yet, so the request was declined.`,
+            ? `${server} needs you to open a link${/^https:\/\//i.test(url) ? `: ${url}` : ""}. Open it yourself, then ask the bot to try again.`
+            : `${server} asked for ${fields === 1 ? "a detail" : `${fields} details`}${message ? ` ("${message}")` : ""} that can't be filled in here yet, so it was skipped.`,
         });
         return true;
       }

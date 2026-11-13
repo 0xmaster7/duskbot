@@ -1480,7 +1480,7 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
                 held.continuationSilence.unref?.();
               }
               emit({ ...base(threadId, currentTurnId()), type: "session.started", sessionId: o.session_id, model: o.model, ...(retry.rebuilt ? { rebuilt: true } : {}), ...failedCustomMcp(o.mcp_servers, session.turn?.input.integrations?.custom) });
-              if (retry.rebuilt) emit({ ...base(threadId, currentTurnId()), type: "runtime.notice", message: rebuiltSessionNotice("Claude Code") });
+              if (retry.rebuilt) emit({ ...base(threadId, currentTurnId()), type: "runtime.notice", message: rebuiltSessionNotice() });
               retry.rebuilt = false;
             } else if (o.subtype === "compact_boundary") {
               session.volatile = null; // only the system prompt survives a compaction: the next turn re-sends the volatile half

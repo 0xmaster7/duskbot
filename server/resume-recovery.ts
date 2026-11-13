@@ -41,6 +41,7 @@ export function recoveryPromptFor(input: RecoveryPromptInput): RecoveryPrompt {
   return { text: replay, replayed: true };
 }
 
-export function rebuiltSessionNotice(engine: string): string {
-  return `${engine} could not reopen this conversation's session, so it went on in a new one started from the chat; results of earlier tool calls did not carry over.`;
+/** Said when the engine could not reopen its own history and carried on from the chat alone. */
+export function rebuiltSessionNotice(): string {
+  return "Started fresh from the chat. Earlier steps may need a quick redo.";
 }

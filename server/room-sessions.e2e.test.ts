@@ -322,7 +322,7 @@ it("sends the whole window after a failed turn and after a stopped one, and when
   for (const sentinel of ["ALPHA_4", "INDIA_4", "JULIET_4", "KILO_4"]) expect(count(f.text(rebuilt), sentinel), sentinel).toBe(1);
   // The driver's own notice, neither added to nor suppressed.
   const notices = (await f.messages(bay.activeTaskId)).filter((message) => (message.tool?.name ?? "").startsWith("notice: "));
-  expect(notices.map((notice) => notice.tool!.name)).toEqual([expect.stringContaining("Claude Code could not reopen this conversation's session")]);
+  expect(notices.map((notice) => notice.tool!.name)).toEqual([expect.stringContaining("Started fresh from the chat")]);
 
   // The replacement is the session the room knows now: the next turn is a delta against it.
   f.replies(editor.id, "Shared. NOVEMBER_4");

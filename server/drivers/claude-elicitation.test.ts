@@ -57,14 +57,14 @@ describe("claudeElicitations", () => {
     const { elicit, written, events } = harness();
     expect(elicit.frame(ask("e4", { requested_schema: { type: "object", properties: { token: { type: "string" } } } }))).toBe(true);
     expect(written).toEqual([sent("e4", { action: "decline" })]);
-    expect(events).toEqual([{ type: "runtime.notice", message: expect.stringContaining("github asked you to fill in a field") }]);
+    expect(events).toEqual([{ type: "runtime.notice", message: expect.stringContaining("github asked for a detail") }]);
   });
 
   it("declines a form whose required fields are not listed as properties", async () => {
     const { elicit, written, events } = harness();
     expect(elicit.frame(ask("e4b", { requested_schema: { type: "object", properties: {}, required: ["token"] } }))).toBe(true);
     expect(written).toEqual([sent("e4b", { action: "decline" })]);
-    expect(events).toEqual([{ type: "runtime.notice", message: expect.stringContaining("github asked you to fill in a field") }]);
+    expect(events).toEqual([{ type: "runtime.notice", message: expect.stringContaining("github asked for a detail") }]);
   });
 
   it("declines a link request and passes on only a web link", async () => {

@@ -1429,7 +1429,7 @@ describe("a configured MCP server that cannot mount", () => {
       await f.start({ integrations: { custom: { ...f.integrations!.custom, slack: { command: process.execPath, args: [broken], env: {} } } } });
       expect(await f.completed()).toMatchObject({ ok: true });
     } finally { console.warn = warn; }
-    expect(f.recorder.events).toContainEqual(expect.objectContaining({ type: "runtime.notice", message: expect.stringContaining(`MCP server "slack" was skipped`) }));
+    expect(f.recorder.events).toContainEqual(expect.objectContaining({ type: "runtime.notice", message: expect.stringContaining("Couldn't connect slack this time") }));
     expect(f.recorder.events.some((event) => event.type === "runtime.error")).toBe(false);
     const names = f.requests[0].tools!.map((tool) => tool.function.name);
     expect(names).toContain("audit_write");
@@ -1477,11 +1477,11 @@ describe("a turn with the person's Windows computer, the built-in browser and th
     expect(names).toHaveLength(128);
     expect(names.at(-1)).toBe("ask_user");
     expect(f.recorder.events).toContainEqual(expect.objectContaining({ type: "runtime.notice",
-      message: `"data" listed 2 of 5 tools, "device" listed 0 of 23 tools to fit the model's 128-tool limit; the rest are left out of this turn.` }));
+      message: "Left out some of data and device this time to fit the model's limit." }));
     expect(f.recorder.events.some((event) => event.type === "runtime.error")).toBe(false);
   });
 
-  it("reaches a configured server past the limit through the tool search, says so in one line, and keeps the bot's tool budget", async () => {
+  it("reaches a configured server past the limit through the tool search, quietly, and keeps the bot's tool budget", async () => {
     const f = await fixture((_body, response) => answer(response));
     await f.start({ botId: "mira", integrations: integrations(42, { custom: { notes: catalog(syntheticToolNames("note", 14)) } }) });
     expect(await f.completed()).toMatchObject({ ok: true });
@@ -1489,7 +1489,7 @@ describe("a turn with the person's Windows computer, the built-in browser and th
     expect(names).toHaveLength(118);
     expect(names.slice(-4)).toEqual(["mcp_search_tools", "mcp_describe_tool", "mcp_call_tool", "ask_user"]);
     expect(f.recorder.events.filter((event) => event.type === "runtime.notice").map((event) => (event as { message: string }).message))
-      .toEqual([`The tools of "notes" are reached through tool search to keep this turn's tool list small and within the model's 128-tool limit.`]);
+      .toEqual([]);
     expect(toolBudgetOf("mira")).toEqual({ limit: 128, listed: 117, servers: [{ name: "notes", tools: 14, direct: false }] });
   });
 });

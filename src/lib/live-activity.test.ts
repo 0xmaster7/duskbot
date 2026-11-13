@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { activityStepLabel, formatProgressSize, liveActivityLabel, liveActivityPhrases, phraseAt, phraseHoldMs, turnNowPhrases } from "./live-activity";
+import { activityStepLabel, formatProgressSize, liveActivityLabel, liveActivityPhrases, phraseAt, phraseHoldMs, turnNowPhrases, NOTICE_LABEL_MAX } from "./live-activity";
 import { friendlyNowPhrases } from "./friendly-activity";
 import type { Message } from "@/state/store";
 
@@ -130,10 +130,19 @@ describe("phraseAt", () => {
 describe("turnNowPhrases: what the status line says is happening now", () => {
   it("says what the server just said about the turn, in its first sentence, until the engine reports", () => {
     const waiting = activity("notice: waiting for memory on this cloud. running now: 1. Ahead of this one: 0.", { ok: true });
-    expect(turnNowPhrases(null, waiting)?.phrases).toEqual(["waiting for memory on this cloud."]);
-    expect(friendlyNowPhrases(null, waiting).phrases).toEqual(["waiting for memory on this cloud."]);
-    expect(turnNowPhrases(null, activity("notice: 在等待。运行中：1。", { ok: true }))?.phrases).toEqual(["在等待。"]);
+    expect(turnNowPhrases(null, waiting)?.phrases).toEqual(["waiting for memory on this cloud"]);
+    expect(friendlyNowPhrases(null, waiting).phrases).toEqual(["waiting for memory on this cloud"]);
+    expect(turnNowPhrases(null, activity("notice: 在等待。运行中：1。", { ok: true }))?.phrases).toEqual(["在等待"]);
     expect(turnNowPhrases({ activity: "thinking" }, waiting)?.phrases[0]).toBe("Thinking");
+  });
+
+  it("never cuts a long notice off mid-sentence: it says a short label and leaves the words to the chat", () => {
+    const long = activity("notice: Codex could not reopen this conversation's session, so it went on in a new one started from the chat.", { ok: true });
+    expect(turnNowPhrases(null, long)?.phrases).toEqual(["Heads up"]);
+    expect(friendlyNowPhrases(null, long).phrases).toEqual(["Heads up"]);
+    const short = activity("notice: Started fresh from the chat. Earlier steps may need a quick redo.", { ok: true });
+    expect(turnNowPhrases(null, short)?.phrases).toEqual(["Started fresh from the chat"]);
+    for (const phrase of [turnNowPhrases(null, long)!.phrases[0]!, turnNowPhrases(null, short)!.phrases[0]!]) expect(phrase.length).toBeLessThanOrEqual(NOTICE_LABEL_MAX);
   });
 
   it("names the file being written and how much, from the engine's own report", () => {

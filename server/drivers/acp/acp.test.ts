@@ -2159,7 +2159,7 @@ describe("ACP turns (fake CLI)", () => {
     expect(await recorder.until(e => e.type === "turn.completed")).toMatchObject({ ok: true });
     const notices = recorder.events.filter(e => e.type === "runtime.notice") as Array<{ message: string }>;
     expect(notices.length).toBeGreaterThanOrEqual(1);
-    expect(notices[0].message).toMatch(/^Grok (is waiting on its model|is busy|has sent nothing)/);
+    expect(notices[0].message).toMatch(/^(Waiting on the model|Still busy|Nothing new for)/);
     expect(recorder.events.some(e => e.type === "runtime.error")).toBe(false);
   });
 
@@ -2194,7 +2194,7 @@ describe("ACP turns (fake CLI)", () => {
     await instance.adapter.sendTurn({ threadId: "t-qwen-retry", text: "go" });
     expect(await recorder.until(e => e.type === "turn.completed")).toMatchObject({ ok: true });
     const notices = (recorder.events.filter(e => e.type === "runtime.notice") as Array<{ message: string }>).map(n => n.message);
-    expect(notices.some(m => /Qwen hit a rate limit \(HTTP 429\) and is retrying \(attempt 2\)\. Next try in 20 s\./.test(m))).toBe(true);
+    expect(notices.some(m => /^Hit a rate limit, trying again in 20 s\./.test(m))).toBe(true);
     expect(recorder.events.some(e => e.type === "runtime.error")).toBe(false);
   });
 

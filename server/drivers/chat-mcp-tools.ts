@@ -366,22 +366,17 @@ function openPeer(server: Server, computerUse: boolean, builtIn: boolean): McpPe
 
 export function trimmedToolsNotice(trimmed: readonly TrimmedChatMcpServer[]): string | undefined {
   if (!trimmed.length) return undefined;
-  const servers = trimmed.map(({ server, listed, of }) => `"${server}" listed ${listed} of ${of} tools`).join(", ");
-  return `${servers} to fit the model's ${TOOL_COUNT}-tool limit; the rest are left out of this turn.`;
-}
-
-export function searchedServersNotice(budget: ToolBudget): string | undefined {
-  const names = budget.servers.filter((server) => !server.direct).map((server) => `"${server.name}"`);
-  if (!names.length) return undefined;
+  const names = trimmed.map(({ server }) => server);
   const listed = names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
-  return `The tools of ${listed} are reached through tool search to keep this turn's tool list small and within the model's ${budget.limit}-tool limit.`;
+  return `Left out some of ${listed} this time to fit the model's limit.`;
 }
 
 /** What the person hears about a turn's MCP servers before the model runs, one line each. */
-export function chatToolNotices(session: Pick<ChatToolSession, "skipped" | "trimmed" | "budget">): string[] {
+export function chatToolNotices(session: Pick<ChatToolSession, "skipped" | "trimmed">): string[] {
   return [
-    ...session.skipped.map(({ server, reason }) => `MCP server "${server}" was skipped for this turn: ${reason}`),
-    trimmedToolsNotice(session.trimmed), searchedServersNotice(session.budget),
+    // the reason stays in the log; searched servers still work, so they say nothing
+    ...session.skipped.map(({ server }) => `Couldn't connect ${server} this time, so the bot went on without it.`),
+    trimmedToolsNotice(session.trimmed),
   ].filter((line): line is string => line !== undefined);
 }
 

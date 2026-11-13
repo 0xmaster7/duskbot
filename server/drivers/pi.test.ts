@@ -696,7 +696,7 @@ describe("PiDriver turns (fake CLI)", () => {
       const order = readFileSync(dump, "utf8").split("\n").filter(Boolean)
         .map((line) => Object.keys(JSON.parse(line) as object)[0]).filter((key) => ["sessionReplied", "setModel", "prompt"].includes(key));
       expect(order).toEqual(["sessionReplied", "setModel", "prompt"]);
-      expect(recorder.events.find((e) => e.type === "runtime.notice" && e.turnId === turnId)).toMatchObject({ message: expect.stringMatching(/Pi is taking longer than usual/) });
+      expect(recorder.events.find((e) => e.type === "runtime.notice" && e.turnId === turnId)).toMatchObject({ message: expect.stringMatching(/Taking longer than usual to start/) });
     } finally {
       vi.useRealTimers();
       removeTempDir(dir);

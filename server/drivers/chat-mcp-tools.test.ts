@@ -811,7 +811,7 @@ describe("Chat MCP tool limit", () => {
       expect(names.filter((name) => name.startsWith("data_"))).toEqual(["data_table_1", "data_table_2"]);
       expect(session.skipped).toEqual([]);
       expect(session.trimmed).toEqual([{ server: "data", listed: 2, of: 5 }, { server: "email", listed: 0, of: 20 }, { server: "device", listed: 0, of: 23 }]);
-      expect(trimmedToolsNotice(session.trimmed)).toBe(`"data" listed 2 of 5 tools, "email" listed 0 of 20 tools, "device" listed 0 of 23 tools to fit the model's 128-tool limit; the rest are left out of this turn.`);
+      expect(trimmedToolsNotice(session.trimmed)).toBe("Left out some of data, email and device this time to fit the model's limit.");
       expect(trimmedToolsNotice([])).toBeUndefined();
     } finally { warn.mockRestore(); }
   });
@@ -875,7 +875,7 @@ describe("Chat MCP servers past the tool limit", () => {
     expect(session.budget).toEqual({ limit: 128, listed: 127, servers: [
       { name: "notes", tools: 124, direct: true }, { name: "extra", tools: 3, direct: false }, { name: "audit", tools: 1, direct: false },
     ] });
-    expect(chatToolNotices(session)).toEqual(['The tools of "extra" and "audit" are reached through tool search to keep this turn\'s tool list small and within the model\'s 128-tool limit.']);
+    expect(chatToolNotices(session)).toEqual([]);
     expect(session.definitions.at(-3)!.function.description).toContain('the MCP servers "extra", "audit"');
 
     const found = JSON.parse((await session.execute("mcp_search_tools", { query: "fixture write" }, signal)).text);

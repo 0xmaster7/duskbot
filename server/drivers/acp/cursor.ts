@@ -487,7 +487,7 @@ const support = (run: typeof execCli): AcpSupport => ({
     try {
       await request("session/set_model", { sessionId, modelId });
       if (match && !match.exact) {
-        notice(`Cursor offers ${modelId} rather than ${turn.model} in this session, so this conversation uses ${modelId}.`);
+        notice(`${turn.model} isn't available here, so this chat uses ${modelId}.`);
       }
     } catch (e) {
       const err = e as Error & { code?: unknown };
@@ -498,8 +498,7 @@ const support = (run: typeof execCli): AcpSupport => ({
         const current = sessionModels?.find((m) => m.modelId === currentModelId);
         const running = current?.name ?? currentModelId;
         notice(
-          `Cursor did not accept ${turn.model} in this session, so it runs ${running ?? "its default model"}. ` +
-            "Choose another model for this bot to stop seeing this.",
+          `${turn.model} isn't available here, so this chat uses ${running ?? "the default model"}. Pick another model to stop seeing this.`,
         );
         return;
       }

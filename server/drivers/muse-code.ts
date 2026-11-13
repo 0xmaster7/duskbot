@@ -571,7 +571,7 @@ export const MuseCodeDriver: ProviderDriver<MuseConfig> = {
       attach(state, host);
       if (servers.length && !host.grantedMcp) {
         emit({ type: "runtime.notice", threadId: state.threadId, turnId,
-          message: "This Muse Code cannot take dusk bot's tools (browser, teammates, apps). Update Muse Code to use them." });
+          message: "This Muse Code can't use the browser, teammates or apps. Update it to use them." });
       }
       const config = servers.length && host.grantedMcp ? { config: { mcpServers } } : {};
       const resumeId = cursor ?? state.sessionId;

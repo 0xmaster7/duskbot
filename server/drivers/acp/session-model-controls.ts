@@ -158,8 +158,7 @@ export function pickSessionModel(
       const noticeKey = wanted ? `${wanted}\n${fallback}` : null;
       if (noticeKey && session.fallbackNotice !== noticeKey) {
         session.fallbackNotice = noticeKey;
-        notice = `${support.displayName} no longer offers ${wanted}, so this conversation uses ${fallback}. ` +
-          "Choose another model for this bot to stop seeing this.";
+        notice = `${wanted} isn't available anymore, so this chat uses ${fallback}. Pick another model to stop seeing this.`;
       }
       turn = { ...turn, model: fallback };
       reportedModel = fallback;
