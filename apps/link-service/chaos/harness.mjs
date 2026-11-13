@@ -210,7 +210,17 @@ export function createNode({ id, port, dataDir, nodes, base, env = {}, log = () 
     id, port, lines,
     start,
     alive: () => child !== null,
-    async kill(signal = "SIGKILL") { const one = child; if (!one) return; one.kill(signal); await new Promise((resolve) => (one.exitCode !== null || one.signalCode ? resolve() : one.once("exit", resolve))); },
+    async kill(signal = "SIGKILL") {
+      const one = child;
+      if (!one) return;
+      one.kill("SIGCONT");
+      one.kill(signal);
+      const exited = new Promise((resolve) => (one.exitCode !== null || one.signalCode ? resolve() : one.once("exit", resolve)));
+      // a graceful stop that does not finish in 5 s is not graceful
+      const late = setTimeout(() => one.kill("SIGKILL"), 5000);
+      await exited;
+      clearTimeout(late);
+    },
     pause() { child?.kill("SIGSTOP"); },
     resume() { child?.kill("SIGCONT"); },
     exits: () => exits,
