@@ -87,7 +87,7 @@ export function createIncidents(options: IncidentsOptions) {
     const frames = stackFrames(`${name}\n${input.stack ?? ""}`);
     const route = routeOf(input.route);
     const message = text(input.message ?? "");
-    const id = input.key ? fingerprint({ source: input.source, name, message: input.key, frames: [], route })
+    const id = input.key ? fingerprint({ source: input.source, name, message: "", key: input.key, frames: [], route })
       : fingerprint({ source: input.source, name, message, frames, route });
     const short = (value: string | null | undefined, max: number) => value ? maskText(value, max).replace(/[^\w ./:+()-]/g, "") || null : null;
     return { id, env: options.env, source: input.source, name, message, route, status: input.status ?? null, stack: shortStack(frames),

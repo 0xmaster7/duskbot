@@ -162,13 +162,14 @@ copy between them. `src/nodes.mjs`.
   on the node that made them. Why not the account service's Mongo: the link service has no dependencies and must keep
   relaying while the account service (on the Contabo box) is down; with a copy on every node either one answers alone.
 - **Placement.** The agent asks `POST /v1/tunnels/<id>/place` (vps token, `{rtt: {node: ms}}` from its own /healthz
-  round trips) on every start. It stays on its home unless home is down, past 85% of its month allowance or at its
-  tunnel cap, or crowded (85%) while another node is under 50%. A new one goes to the lowest score among nodes that take
+  round trips) on every start. It stays on its home unless home is down, paused, past 85% of its month allowance or at
+  its tunnel cap, crowded (85%) while another node is under 50%, or out of the server's own reach (it measured another
+  node but not its home: a node whose nginx died still syncs out, so its peers see it up). A new one goes to the lowest score among nodes that take
   new servers: 0.5 x max(active tunnels / cap, out rate / ceiling) + 0.3 x month on course / 70% + 0.2 x its share of
   homed servers + up to 0.5 for a slower round trip (300 ms behind the best = 0.5). A node takes no new servers when
   down, paused, at 90% tunnels, 85% bandwidth, 70% of its month allowance on course (box traffic, `LINK_ALLOWANCE_TB`;
   Oracle's free 10 TB), or 90% cpu or memory. A peer that may not hold the record yet is never chosen. Answer: `{node,
-  url, reason, nodes}`. The tunnel's home moves when its server polls a node.
+  url, reason, nodes}`. The directory records the new home at once, and again when its server polls a node.
 - **Finding it.** `GET /v1/tunnels/<id>/node` (app or vps token) and `GET /v1/channels/<id>/node` (phone channel token)
   answer `{node, url, region, up, nodes: [{id, url, region, up}]}` on any node; `GET /v1/nodes` (public) lists the
   nodes. A tunnel with no home (from before nodes, or an agent that never asks) lives on the default node.
@@ -181,14 +182,20 @@ copy between them. `src/nodes.mjs`.
   `<id>|address`) in the directory with `PUT /v1/tunnels/<id>/address` on start and whenever it changes (checked every
   30 s, so a quick tunnel's new name lands within a minute). `GET .../node` with the app token carries it as `address`;
   the app opens it when its server stops answering at its address and the relay cannot carry the handshake.
-- **Failover.** The agent watches its node: silent for 60 s or answering `relay_busy`, it asks again (the node it was
-  linked through first, then every node it learned of, cached in `~/.config/duskbot-link/nodes.json`) and restarts on
-  the new node. The app's relay (`createTunnelProxy` with `follow`) asks where the tunnel lives at start, after two
-  failed reads, and on `relay_busy`, and moves there (its one http/2 connection goes to the new node; asking other nodes
-  takes http/1.1); the phone does the same after a failed or unanswered request. Measured 2026-11-13 with the Oracle
-  node stopped: the server moved after 74 s, the app followed 17 s later, about 100 s without the relay in all. A
-  404 from a node it moved to is "unlinked" only once the node it was linked through says 404 too. One node listed:
-  nothing moves.
+- **Failover.** The agent watches its node: reads failing for 12 s, silent for 35 s, or answering `relay_busy`, it
+  asks again (at most every 15 s; the node it was linked through first, then every node it learned of, cached in
+  `~/.config/duskbot-link/nodes.json`) and restarts on the new node. The app's relay (`createTunnelProxy` with
+  `follow`) asks where the tunnel lives at start, after two failed reads, on `relay_busy`, on a 409 and after 8 s of
+  silence, and moves there (its one http/2 connection goes to the new node; asking other nodes takes http/1.1); the
+  phone does the same after a failed or unanswered request. A 404 from a node it moved to is "unlinked" only once the
+  node it was linked through says 404 too. One node listed: nothing moves. Retries on both ends wait a random half to
+  all of their backoff, so the servers and apps of a restarted node do not all come back in one second.
+- **Restarts and lost frames.** Queues live in memory. Every answer carries `x-link-boot` (random per process): an app
+  that sees it change sends unanswered GETs again and fails what else was on the relay with a short message. A writer
+  whose numbered posts reach a node that never saw its epoch starts where it is after 300 ms. Each end counts the bytes
+  of every stream it sends (`{t: "mark", r, n}` every 256 KB or 2 s, and `n` on the end); a receiver whose count
+  differs ends that stream as failed, so a lost frame is a failed download or a reconnecting event stream, never a
+  file with a hole. Older ends ignore both.
 - **Ops.** `GET /ops/relay/stats` adds `node` (id, region, url, default, homed, accepting, refuses, load), `nodes` (each
   as this one sees it), `box` (cpu, memory, interface rates, month bytes kept in `box-usage.json`) and `turn`. The
   account service lists every node (`DUSK_LINK_NODES`, plus the first node's own peers) and mails early warnings
@@ -559,6 +566,21 @@ those packages: it marks them automatic and purges only the ones apt would then 
 later that needs one keeps it; it never removes `curl` or `ca-certificates`, and it clears Docker's build cache. When
 Docker is one of them, purging it also empties `/var/lib/docker` (every container and volume, not only ours), and the
 plan says so before it asks. Docker's socket unit is stopped first so a later install's Docker starts cleanly.
+
+### Chaos run
+
+`node apps/link-service/chaos/run.mjs` (or `npm run chaos` here) brings up two real nodes (`src/server.mjs`) behind a
+tls front with h2 like nginx, a fault proxy in front of each node and one for each side's own network, a stand-in dusk
+bot server, the real agent (`agent.mjs link`, then `tunnel` restarted like systemd) and the app's relay code
+(`electron/vps-link-protocol.mjs`, in `chaos/app-runner.mjs`), all on loopback with a throwaway ca. It then breaks one
+thing at a time (`chaos/scenarios.mjs`: a node killed, restarted, blackholed, frozen, slow, answering 502, paused; both
+down; the copy between nodes failing; flapping; the server and its agent restarting; a fast server clock; a full disk;
+a laptop asleep, offline, on a new network, without dns, on one address family, behind a captive portal or a bad
+link; 100 MB through the relay; 60 servers through a node restart) while a probe sends a request every half second
+and holds an event stream open. Each row says how long until both worked again, what failed and what a person would
+see. `--quick` is the short set ci runs (`.github/workflows/link-chaos.yml`), `--only a,b` picks scenarios, `--home
+oracle-in` places the server on the node the app did not link through, `--md` / `--json` write the matrix, `--verbose`
+streams every process's log. Needs node and openssl only.
 
 ## Run it
 

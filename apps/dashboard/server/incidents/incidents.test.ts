@@ -274,6 +274,20 @@ describe("an ops alert's end", () => {
     expect(mailer.outbox[1]!.subject).toBe("back to normal: contabo disk");
     expect(mailer.outbox[1]!.text).toContain("contabo disk is back to normal: 60%.");
   });
+  it("mails a node's second outage on the same day as its own incident, down and back", async () => {
+    const { time, mailer, incidents } = setup();
+    const first = incidents.report({ source: "ops", name: "link node oracle-in down", message: "no answer", key: "ops-relay-node-oracle-in-down-1794579000000" })!;
+    await incidents.flushNew();
+    time.now += 10 * 60_000;
+    expect(await incidents.recovered(first, "back")).toBe(true);
+    time.now += 2 * HOUR;
+    const second = incidents.report({ source: "ops", name: "link node oracle-in down", message: "no answer", key: "ops-relay-node-oracle-in-down-1794586870000" })!;
+    expect(second).not.toBe(first);
+    await incidents.flushNew();
+    time.now += 5 * 60_000;
+    expect(await incidents.recovered(second, "back")).toBe(true);
+    expect(mailer.outbox.map((mail) => mail.subject.split(":")[0])).toEqual(["something's wrong", "back to normal", "something's wrong", "back to normal"]);
+  });
   it("sends nothing for a problem that was never mailed", async () => {
     const { mailer, incidents } = setup();
     const id = incidents.report({ source: "ops", name: "r2 storage", message: "9 gb", key: "ops-r2-1" })!;

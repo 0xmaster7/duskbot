@@ -62,11 +62,15 @@ export function shortStack(frames: ErrorFrame[], count = 6): string[] {
 /** text without the parts that differ between two sightings of one problem: ids, counts, times */
 export const normalize = (text: string) => text.toLowerCase().replace(/\S*\d\S*/g, "#").replace(/\[[a-z]+\]/g, "#").replace(/\s+/g, " ").trim().slice(0, 160);
 
-export interface FingerprintInput { source: string; name: string; message: string; frames: ErrorFrame[]; route: string | null }
+export interface FingerprintInput { source: string; name: string; message: string; frames: ErrorFrame[]; route: string | null; key?: string }
 
-/** one problem, however often it happens: error name + top frame + route; a line without a stack uses its normalized text */
+/**
+ * one problem, however often it happens: error name + top frame + route; a line without a stack uses its normalized
+ * text. a caller's own key is taken as it is: an ops rule keys each outage by when it began, and normalizing those
+ * digits away folded a node's second outage into its first, so nobody heard about it
+ */
 export function fingerprint(input: FingerprintInput): string {
-  const where = topFrame(input.frames) ?? normalize(input.message);
+  const where = input.key ? `key:${input.key}` : topFrame(input.frames) ?? normalize(input.message);
   return createHash("sha256").update([input.source, input.name, where, input.route ?? ""].join("|")).digest("hex").slice(0, 20);
 }
 
