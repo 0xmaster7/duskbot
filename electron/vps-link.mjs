@@ -636,6 +636,21 @@ export function createVpsLink(deps) {
     return { name: "cf", connect: deps.direct.wssConnector({ url: link.cf.url, spki: null, via: "cf" }) };
   }
 
+  const SETUP_AGAIN_MS = deps.setupAgainMs ?? [15_000, 30_000, 60_000, 2 * 60_000, 5 * 60_000];
+  const setupTries = new Map();
+  function setupAgain(link, proxy) {
+    const was = setupTries.get(link.id);
+    if (was?.timer || closed) return;
+    const tries = was?.tries ?? 0;
+    const timer = setTimeout(() => {
+      setupTries.set(link.id, { tries: tries + 1 });
+      if (closed || proxies.get(link.id) !== proxy) return;
+      void (peers.has(link.id) ? Promise.resolve() : handshake(link, proxy)).finally(() => directFor(link, proxy));
+    }, SETUP_AGAIN_MS[Math.min(tries, SETUP_AGAIN_MS.length - 1)]);
+    timer.unref?.();
+    setupTries.set(link.id, { tries, timer });
+  }
+
   /** the ways to the server: ssh, https on 443, webrtc, then the cloudflare backup, then the cloud relay; the link service relay stays underneath them */
   async function directFor(link, proxy) {
     if (!deps.direct || closed || proxy.useDirect === undefined) return;
@@ -658,6 +673,9 @@ export function createVpsLink(deps) {
     const cloud = await cloudFor(link, proxy);
     if (closed || proxies.get(link.id) !== proxy) return;
     if (cloud) ways.push(cloud);
+    // nothing to dial yet (the hello or the key exchange failed, say behind a captive portal): set up again soon
+    if (!peers.has(link.id) || (!ways.length && !link.directOff)) setupAgain(link, proxy);
+    else setupTries.delete(link.id);
     if (!ways.length) return;
     const registered = link.cloud;
     proxy.useDirect({
@@ -768,7 +786,7 @@ export function createVpsLink(deps) {
     for (const [id, proxy] of proxies) {
       proxy.nudge?.();
       const link = state.links.find((entry) => entry.id === id);
-      if (link && !peers.has(id)) void handshake(link, proxy);
+      if (link && !peers.has(id)) void handshake(link, proxy).finally(() => directFor(link, proxy));
     }
   }
 
@@ -1233,6 +1251,6 @@ export function createVpsLink(deps) {
       await proxyFor(link);
       return !closed && state.links.includes(link) ? { id: envId, origin: link.origin } : null;
     },
-    async close() { closed = true; invalidateSetup(); stopFollowing(); clearTimeout(moveTimer); for (const timer of addressTimers.values()) clearTimeout(timer); addressTimers.clear(); for (const flow of signIns.values()) flow.abort?.abort(); await Promise.allSettled(proxyStarts.values()); await Promise.all([...proxies.values()].map((proxy) => proxy.close())); },
+    async close() { closed = true; invalidateSetup(); for (const one of setupTries.values()) clearTimeout(one.timer); stopFollowing(); clearTimeout(moveTimer); for (const timer of addressTimers.values()) clearTimeout(timer); addressTimers.clear(); for (const flow of signIns.values()) flow.abort?.abort(); await Promise.allSettled(proxyStarts.values()); await Promise.all([...proxies.values()].map((proxy) => proxy.close())); },
   };
 }

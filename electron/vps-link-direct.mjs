@@ -324,8 +324,8 @@ export function wsDuplex(socket, { client, head = null, onText = null, heartbeat
 // ---- end direct transport ----
 
 
-/** a port an isp blocks is tried less and less often, down to twice an hour, until the network changes */
-export const BACKOFF_MS = [1000, 5000, 15_000, 60_000, 3 * 60_000, 10 * 60_000, 30 * 60_000];
+/** a port an isp blocks is tried less and less often, down to every two minutes (the relay carries the window meanwhile, so it is not left there long) */
+export const BACKOFF_MS = [1000, 5000, 15_000, 30_000, 60_000, 2 * 60_000];
 /** up over a lesser way, the better ones are tried again after these (the last repeats) */
 export const UPGRADE_MS = [20_000, 60_000, 2 * 60_000, 5 * 60_000, 10 * 60_000];
 /** a link that lasted this long was really up: its loss starts the backoff over */

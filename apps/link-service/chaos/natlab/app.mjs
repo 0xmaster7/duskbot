@@ -30,29 +30,31 @@ const call = (path) => new Promise((resolve) => {
   req.end();
 });
 
-const ways = [];
-const hello = await proxy.control("hello", {}, 20_000).catch((error) => ({ error: error.message }));
-const caps = hello?.caps ?? [];
-if (!config.skip?.includes("ssh") && caps.includes("direct-ssh")) {
-  const pair = newDirectKey();
-  const answer = await proxy.control("direct-key", { pub: pair.publicKey }, 20_000).catch(() => null);
-  if (answer?.host) ways.push({ name: "ssh", connect: sshConnector({ host: answer.host, port: answer.port, user: answer.user, privateKey: pair.privateKey, hostKeys: answer.hostKeys, timeoutMs: 10_000 }) });
-}
-const ndc = loadDataChannel([fileURLToPath(new URL("../../../..", import.meta.url))]);
-if (!config.skip?.includes("rtc") && ndc && caps.includes("direct-rtc")) {
-  const connect = rtcConnector({ ndc, signal: (offer) => proxy.control("direct-rtc", { offer }, 15_000), stun: config.stun ?? [], turn: async () => config.turn ?? [] });
-  ways.push({ name: "rtc", connect: async () => { const opened = await connect(); log(`rtc ${opened.path} ${opened.pair}`); say({ rtc: opened.pair, rtcPath: opened.path }); return opened; } });
-}
-if (!config.skip?.includes("cf") && caps.includes("direct-cf")) {
-  let url = null;
-  for (let i = 0; i < 20 && !url; i += 1) {
-    url = await proxy.control("direct-cf", {}, 10_000).then((answer) => answer?.url, () => null);
-    if (!url) await new Promise((resolve) => setTimeout(resolve, 2000));
+// as the app's directFor: hello, the ssh key, webrtc and the cloudflare address asked once each over the relay; when
+// the hello failed or nothing came back (a captive portal at open), all of it again 15 s later
+async function setup() {
+  const ways = [];
+  const hello = await proxy.control("hello", {}, 15_000).catch(() => null);
+  const caps = hello?.caps ?? [];
+  if (!config.skip?.includes("ssh") && caps.includes("direct-ssh")) {
+    const pair = newDirectKey();
+    const answer = await proxy.control("direct-key", { pub: pair.publicKey }, 20_000).catch(() => null);
+    if (answer?.host) ways.push({ name: "ssh", connect: sshConnector({ host: answer.host, port: answer.port, user: answer.user, privateKey: pair.privateKey, hostKeys: answer.hostKeys, timeoutMs: 10_000 }) });
   }
-  if (url) ways.push({ name: "cf", connect: wssConnector({ url, spki: null, via: "cf", proxy: config.proxy ? () => config.proxy : null }) });
+  const ndc = loadDataChannel([fileURLToPath(new URL("../../../..", import.meta.url))]);
+  if (!config.skip?.includes("rtc") && ndc && caps.includes("direct-rtc")) {
+    const connect = rtcConnector({ ndc, signal: (offer) => proxy.control("direct-rtc", { offer }, 15_000), stun: config.stun ?? [], turn: async () => config.turn ?? [] });
+    ways.push({ name: "rtc", connect: async () => { const opened = await connect(); log(`rtc ${opened.path} ${opened.pair}`); say({ rtc: opened.pair, rtcPath: opened.path }); return opened; } });
+  }
+  if (!config.skip?.includes("cf") && caps.includes("direct-cf")) {
+    const url = await proxy.control("direct-cf", {}, 10_000).then((answer) => answer?.url, () => null);
+    if (url) ways.push({ name: "cf", connect: wssConnector({ url, spki: null, via: "cf", proxy: config.proxy ? () => config.proxy : null }) });
+  }
+  say({ ways: ways.map((way) => way.name), setupMs: Date.now() - t0 });
+  if (ways.length) proxy.useDirect({ connect: orderedConnect(ways, { log }), pingMs: 5000 });
+  if (!hello || !ways.length) setTimeout(setup, 15_000).unref();
 }
-say({ ways: ways.map((way) => way.name), setupMs: Date.now() - t0 });
-if (ways.length) proxy.useDirect({ connect: orderedConnect(ways, { log }), pingMs: 5000 });
+void setup();
 
 const waitDirect = async (ms) => { const end = Date.now() + ms; while (Date.now() < end && proxy.transport() !== "direct") await new Promise((resolve) => setTimeout(resolve, 200)); return proxy.transport() === "direct"; };
 const direct = await waitDirect(config.waitMs ?? 45_000);

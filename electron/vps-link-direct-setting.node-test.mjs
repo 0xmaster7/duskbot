@@ -14,15 +14,15 @@ const until = async (check, ms = 2000) => {
   }
 };
 
-function setup({ direct = true, controlFails = new Set(), extra = {} } = {}) {
+function setup({ direct = true, controlFails = new Set(), extra = {}, deps = {} } = {}) {
   let value = { v: 1, current: "cccccccccc", links: [{ id: "cccccccccc", base: "http://relay.invalid", name: "box", mode: "relay", origin: ORIGIN, port: 5555, envId: "env-1", keyP: "p:k", tokenP: "p:t", ...extra }] };
   const store = { read: () => value, write: (next) => { value = JSON.parse(JSON.stringify(next)); } };
-  const controls = [], uses = [];
+  const controls = [], uses = [], hellos = [];
   const proxy = {
     start: async () => ORIGIN,
     close: async () => {},
     control: async (op) => {
-      if (op === "hello") return { protocol: 2, caps: ["direct-ssh"] };
+      if (op === "hello") { hellos.push(op); if (controlFails.has(op)) throw new Error("Your server did not answer. Is it on?"); return { protocol: 2, caps: ["direct-ssh"] }; }
       controls.push(op);
       if (controlFails.has(op)) throw new Error("Your server did not answer. Is it on?");
       if (op === "direct-key") return { v: 1, host: "203.0.113.9", port: 22, user: "maus", hostKeys: [HOST_KEY] };
@@ -40,9 +40,10 @@ function setup({ direct = true, controlFails = new Set(), extra = {} } = {}) {
     ownHomeReset: () => {}, localRequest: async () => new Response("{}"), backups: { save: async () => ({}), open: async () => ({}) },
     localCredentials: { codexAuth: async () => null, claudeCli: async () => null, claudeToken: async () => "" }, relaunch: () => {},
     proxyFactory: () => proxy,
+    ...deps,
     ...(direct ? { direct: { newKey: () => ({ privateKey: "private", publicKey: `ssh-ed25519 ${"B".repeat(68)}` }), connector: () => async () => ({}) } } : {}),
   });
-  return { link, controls, uses, stored: () => value.links[0] };
+  return { link, controls, uses, hellos, stored: () => value.links[0] };
 }
 
 test("the direct path comes up by itself once the tunnel is open", async () => {
@@ -123,4 +124,16 @@ test("main names the link from the page asking, never from the page's words", as
   await assert.rejects(async () => handlers.get("link-direct:set")({}, false));
   assert.deepEqual(await handlers.get("link-direct:set")({ origin: ORIGIN }, "yes"), { on: false, path: "relay" });
   assert.deepEqual(asked, [["state", ORIGIN], ["set", ORIGIN, false]]);
+});
+
+test("a server not reachable when the app opens (a captive portal) gets its direct path once it answers, not never", async () => {
+  const controlFails = new Set(["hello", "direct-key"]);
+  const { link, controls, uses, hellos } = setup({ controlFails, deps: { setupAgainMs: [20] } });
+  await link.resume();
+  await until(() => hellos.length >= 2);
+  assert.deepEqual(uses, []);
+  controlFails.clear();
+  await until(() => uses.includes("on"));
+  assert.ok(controls.includes("direct-key"));
+  await link.close();
 });

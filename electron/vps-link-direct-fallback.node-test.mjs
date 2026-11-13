@@ -106,7 +106,7 @@ for (const [name, connect] of [
   });
 }
 
-test("a blocked ssh port backs off to twice an hour, a wake on the same network does not redial, a new network does", { timeout: 20_000 }, async () => {
+test("a blocked ssh port backs off to every two minutes, a wake on the same network does not redial, a new network does", { timeout: 20_000 }, async () => {
   mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
   let net = "en0 192.168.1.5", dials = 0;
   const link = createDirectLink({ id: ID, key: KEY, guard: () => true, onFrame: () => {}, network: () => net,
@@ -119,9 +119,9 @@ test("a blocked ssh port backs off to twice an hour, a wake on the same network 
     assert.equal(dials, 1);
     assert.equal(link.failing(), true);
     await advance(2 * 60 * 60_000, 5000);
-    // 1 s, 5 s, 15 s, 1 min, 3 min, 10 min, then every 30 min: a handful of tries in two hours, not ninety
-    assert.ok(dials >= 8 && dials <= 11, `${dials} dials in two hours`);
-    assert.equal(BACKOFF_MS.at(-1), 30 * 60_000);
+    // 1 s, 5 s, 15 s, 30 s, 1 min, then every 2 min (the relay carries the window meanwhile): about sixty in two hours
+    assert.ok(dials >= 55 && dials <= 65, `${dials} dials in two hours`);
+    assert.equal(BACKOFF_MS.at(-1), 2 * 60_000);
     const before = dials;
     link.nudge();
     await flush();
