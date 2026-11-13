@@ -1,7 +1,6 @@
 import { t } from "@/lib/i18n";
-import { Icon } from "../Icon";
-import { CancelLink, ConnectedMark } from "./AppRow";
-import { PrimaryButton, type Primary } from "./PrimaryButton";
+import { ConnectBlock } from "./ConnectBlock";
+import type { Primary } from "./PrimaryButton";
 import { viaLine } from "./ComposioKeyStep";
 import type { ConnectorPhase } from "./use-connectors";
 import type { ViaFlow } from "./via-flow";
@@ -14,8 +13,6 @@ export interface GmailCardModel {
   /** the one button on the card, null once there is nothing left to click */
   action: Primary | null;
   line: { text: string; tone: "status" | "alert" | "done" } | null;
-  /** how the sign-in goes, said before it starts */
-  fine: string | null;
   onOwnKey?: () => void;
 }
 
@@ -53,29 +50,17 @@ export function gmailCard(input: GmailInput): GmailCardModel {
     state,
     action,
     line,
-    fine: connected ? null : t(input.via ? "connectApps.gmail.howVia" : "connectApps.gmail.how"),
     ...(input.onOwnKey && input.via && !input.viaSignedIn && !connected ? { onOwnKey: input.onOwnKey } : {}),
   };
 }
 
 export function GmailCard({ model }: { model: GmailCardModel }) {
-  const { action, line } = model;
+  const own = model.onOwnKey;
   return (
-    <section className="ca-card" data-gmail-card="" data-state={model.state} aria-label={t("connectApps.connectApp", { name: model.name })}>
-      <div className="ca-card-row ca-gmail-head">
-        <p>
-          {t("connectApps.gmail.what")}
-          {model.fine && <small>{model.fine}{model.onOwnKey && <>{" "}<button type="button" className="ca-link" onClick={model.onOwnKey}>{t("connectApps.signIn.ownKey")}</button></>}</small>}
-        </p>
-        {action?.onCancel && (action.busy || action.waiting) && <CancelLink onCancel={action.onCancel} />}
-        {action ? <PrimaryButton primary={action} /> : model.state === "connected" && <ConnectedMark />}
-      </div>
-      {line && (
-        <p role={line.tone === "alert" ? "alert" : "status"} className="ca-card-row ca-key-line" data-tone={line.tone} data-gmail-line="">
-          <Icon name={line.tone === "alert" ? "exclamation-circle" : line.tone === "done" ? "check" : "clock"} size={13} />
-          <span>{line.text}</span>
-        </p>
-      )}
-    </section>
+    <ConnectBlock data-gmail-card="" data-state={model.state} aria-label={t("connectApps.connectApp", { name: model.name })}
+      note={model.state === "connected" ? null : t("connectApps.gmail.what")}
+      primary={model.action} connected={model.state === "connected"} line={model.line} lineMarker="data-gmail-line">
+      {own && <button type="button" className="ca-link ca-connect-alt" onClick={own}>{t("connectApps.signIn.ownKey")}</button>}
+    </ConnectBlock>
   );
 }

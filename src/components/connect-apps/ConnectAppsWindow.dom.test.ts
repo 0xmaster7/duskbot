@@ -195,7 +195,7 @@ describe("the Connect Apps window", () => {
     expect(row("asana").querySelector("[data-cancel]")).toBeNull();
   });
 
-  it("lists every Composio app the live catalog lacks, with what it can do and how you sign in on its page", async () => {
+  it("lists every Composio app the live catalog lacks, with what it can do on its page", async () => {
     expect(dialog().querySelector('[data-app-row="attio"] .ca-row-subtitle')?.textContent).toBe("A CRM built for you");
     await act(async () => { dialog().querySelector<HTMLButtonElement>('[data-app-row="attio"] .ca-row-open')!.click(); });
     await flush();
@@ -215,7 +215,7 @@ describe("the Connect Apps window", () => {
       search.dispatchEvent(new Event("input", { bubbles: true }));
     });
     expect(abilities(), "the search narrows the list").toEqual(["Find person"]);
-    expect(page.textContent).toContain("your account, API key");
+    expect(page.textContent, "no category or sign-in facts, they are noise").not.toContain("your account, API key");
   });
 
   it("sends an app Composio has no managed sign-in for to Composio to set up, then Check again connects it", async () => {
@@ -301,7 +301,7 @@ describe("the Connect Apps window", () => {
       expect(step.textContent).toContain("Attio connects through your own free Composio account. You only do this once.");
       expect(step.querySelectorAll("[data-guide-step]"), "one button, no numbered steps").toHaveLength(0);
       expect(step.querySelector("[data-composio-sign-in]")?.textContent, "the one button signs in to Composio").toContain("sign in to Composio");
-      expect(dialog().querySelector("[data-app-page] .ca-detail-header .ca-primary"), "one main action: none in the header too").toBeNull();
+      expect(dialog().querySelectorAll("[data-app-page] .ca-primary").length, "one main action on the page").toBe(1);
       await act(async () => { [...step.querySelectorAll("button")].find((element) => element.textContent === "use an API key instead")!.click(); });
       expect([...step.querySelectorAll(".ca-guide-text")].map((item) => item.textContent), "one short line per step").toEqual([
         "Open Composio's website.", "Copy your key from the keys page.", "Paste it here. We check it right away.",
@@ -328,7 +328,7 @@ describe("the Connect Apps window", () => {
         return base(path, init);
       });
     };
-    const primary = () => dialog().querySelector<HTMLButtonElement>("[data-app-page] .ca-detail-header .ca-primary, [data-app-page] [data-composio-key] .ca-primary");
+    const primary = () => dialog().querySelector<HTMLButtonElement>("[data-app-page] [data-connect] .ca-primary");
     const shownLabel = () => primary()?.querySelector("span:not([aria-hidden])")?.textContent;
     const keyCard = () => dialog().querySelector("[data-app-page] [data-composio-key]");
     const line = () => dialog().querySelector("[data-via-line] > span:last-child")?.textContent;
@@ -353,7 +353,7 @@ describe("the Connect Apps window", () => {
         const state = { signedIn: false, enabled: false as boolean | undefined };
         viaApi(state, (method) => method === "POST" ? { status: "started", url: "https://connect.composio.dev/link/ln_attio" } : { status: connected ? "connected" : "waiting" });
         expect(shownLabel(), "the first time, the one button signs in to Composio").toBe("sign in to Composio");
-        expect(keyCard()?.querySelector(".ca-link-step > :first-child"), "the one-time card has its mascot").not.toBeNull();
+        expect(keyCard()?.querySelector("svg[shape-rendering=crispEdges], [data-pixel-state]"), "no art on the one-time step").toBeNull();
         await act(async () => { primary()!.click(); });
         await flush();
         expect(fixture.api).toHaveBeenCalledWith("/api/mcp/servers", { method: "POST", body: JSON.stringify({ name: "composio-connect", type: "http", url: "https://connect.composio.dev/mcp", enabled: false }) });
@@ -542,7 +542,7 @@ describe("the Connect Apps window", () => {
       it("Cancel stops the wait at once and says Connect again", async () => {
         await waitingThen(() => ({ status: "waiting" }), 0);
         expect(shownLabel()).toBe("open page again");
-        const cancel = dialog().querySelector<HTMLButtonElement>("[data-app-page] .ca-detail-header [data-cancel]")!;
+        const cancel = dialog().querySelector<HTMLButtonElement>("[data-app-page] [data-connect] [data-cancel]")!;
         expect(cancel.textContent).toBe("cancel");
         await act(async () => { cancel.click(); });
         expect(shownLabel()).toBe("connect Attio");
@@ -645,11 +645,16 @@ describe("the Connect Apps window", () => {
     expect(dialog().querySelector('[data-app-row="_1password"]'), "composio's listing folds into ours").toBeNull();
     await act(async () => { dialog().querySelector<HTMLButtonElement>('[data-app-row="1password"] .ca-row-open')!.click(); });
     await flush();
+    expect(dialog().querySelector("[data-ways]"), "our own way leads; the rest wait behind one toggle").toBeNull();
+    const toggle = dialog().querySelector<HTMLButtonElement>("[data-other-ways] > button")!;
+    expect(toggle.textContent).toBe("other ways to connect");
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    await act(async () => { toggle.click(); });
     const ways = [...dialog().querySelectorAll("[data-ways] [data-way]")];
     expect(ways.map((way) => [way.getAttribute("data-way"), way.querySelector("span")?.textContent])).toEqual([
-      ["own", "share a vault (built in)"], ["composio", "connect via Composio"],
+      ["composio", "connect via Composio"],
     ]);
-    await act(async () => { ways[1]!.querySelector<HTMLButtonElement>(".ca-pill")!.click(); });
+    await act(async () => { ways[0]!.querySelector<HTMLButtonElement>(".ca-pill")!.click(); });
     await flush();
     expect(fixture.api).toHaveBeenCalledWith("/api/connectors/_1password/authorize", { method: "POST" });
     expect(dialog().querySelector("[data-app-page]")?.getAttribute("data-app-page"), "it stays on our page").toBe("1password");

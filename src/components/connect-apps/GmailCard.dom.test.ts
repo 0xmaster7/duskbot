@@ -51,12 +51,11 @@ afterEach(() => {
 });
 
 describe("Gmail connects on one card", () => {
-  it("idle: the promise, how the sign-in goes, and one Connect Gmail button; no step list, no tool list", async () => {
+  it("idle: one short safety line and one Connect Gmail button; no step list, no tool list", async () => {
     const connectors = connectorsWith();
     await render(model(connectors, { kind: "connect" }));
     expect(card().getAttribute("data-state")).toBe("idle");
-    expect(card().textContent).toContain("Read and draft first. Nothing is sent without your OK.");
-    expect(card().textContent).toContain("You sign in with Google on its own page, so dusk bot never sees your password.");
+    expect(card().querySelector(".ca-connect-note")?.textContent).toBe("Sign in with Google. Nothing is sent without your OK.");
     expect(primaries()).toHaveLength(1);
     expect(card().contains(primaries()[0]!)).toBe(true);
     expect(shown(primaries()[0]!)).toBe("connect Gmail");
@@ -121,7 +120,6 @@ describe("Gmail connects on one card", () => {
       await render(page);
       expect(primaries()).toHaveLength(1);
       expect(shown(primaries()[0]!)).toBe("connect Gmail");
-      expect(card().textContent).toContain("You sign in to Composio once, then to Google, so dusk bot never sees your password.");
       await act(async () => { primaries()[0]!.click(); });
       expect(connectors.authorizeComposio).toHaveBeenCalledWith("gmail");
       const own = [...card().querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent === "use my own Composio API key")!;
@@ -163,6 +161,24 @@ describe("Gmail connects on one card", () => {
     });
   });
 
+  it("with the app password leading, the Composio card waits behind one other-ways toggle", async () => {
+    await render(model(connectorsWith(), { kind: "connect" }, { ownFirst: true }));
+    expect(document.querySelector("[data-gmail-card]")).toBeNull();
+    expect(document.querySelector("[data-app-page] .ca-primary"), "nothing competes with the steps").toBeNull();
+    const toggle = document.querySelector<HTMLButtonElement>("[data-other-ways] > button")!;
+    expect(toggle.textContent).toBe("other ways to connect");
+    await act(async () => { toggle.click(); });
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(card().querySelector(".ca-primary")?.textContent).toContain("connect Gmail");
+  });
+
+  it("a Composio sign-in under way opens the other ways by itself, its status beside its button", async () => {
+    await render(model(connectorsWith(), { kind: "continue", url: null }, { ownFirst: true }));
+    const row = card().querySelector(".ca-connect-row")!;
+    expect(row.querySelector(".ca-primary")).not.toBeNull();
+    expect(row.querySelector("[data-gmail-line] > span:last-child")?.textContent).toBe("Finish signing in on the page that opened. This updates by itself.");
+  });
+
   it("other apps keep their own page: no Gmail card", async () => {
     const connectors = connectorsWith();
     const page = model(connectors, { kind: "connect" }, {
@@ -171,6 +187,7 @@ describe("Gmail connects on one card", () => {
     });
     await render(page);
     expect(document.querySelector("[data-gmail-card]")).toBeNull();
-    expect(document.querySelector("[data-app-page] .ca-detail-header .ca-primary")?.textContent).toContain("connect Slack");
+    expect(document.querySelector("[data-app-page] [data-connect] .ca-primary")?.textContent).toContain("connect Slack");
+    expect(document.querySelector("[data-app-page] .ca-detail-header .ca-primary"), "the button sits under the name, not beside it").toBeNull();
   });
 });

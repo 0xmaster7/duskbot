@@ -527,7 +527,8 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
 
   const detailEntry = detailId ? byId.get(detailId) : undefined;
   const tokenShown = detailEntry?.kind === "token" ? detailEntry.id as TokenAppId : null;
-  const gmailShown = detailEntry?.id === GMAIL;
+  // gmail's app password leads its page, unless Composio is how it is connected
+  const gmailShown = detailEntry?.id === GMAIL && !(composioConnected(detailEntry) && gmailConnected !== true);
   const sub = page.kind === "detail" || page.kind === "yours";
 
   const body = (() => {
@@ -578,7 +579,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
         ...(slug ? { composioSlug: slug } : {}),
         ways,
         connectors,
-        categoryLabel: detailEntry.categories[0] ? label(detailEntry.categories[0]) : null,
+        ownFirst: gmailShown || (OWN_KINDS.has(detailEntry.kind) && ways.length > 1),
         usedBy: card && connection(detailEntry.id) === "connected" ? botsUsingService(state.bots, state.instances, card.slug).map((bot) => bot.name) : [],
         appBots: card ? botsUsingService(state.bots, state.instances, card.slug).map((bot) => ({ id: bot.id, name: bot.name })) : [],
         ...(detailEntry.kind === "composio" ? { toolkit: snapshotToolkit(detailEntry.id) } : {}),
@@ -783,17 +784,18 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
                 <div className={nativeCardsShown || hostedShown || onePasswordShown || tokenShown || gmailShown ? "ca-native-host" : "hidden"} data-native-host="">
                   {tokenShown && <TokenCard key={`${tokenShown}:${replacing?.app === tokenShown ? replacing.id : ""}`} app={tokenShown} tokens={tokens}
                     {...(replacing?.app === tokenShown ? { replacing: replacing.id } : {})} />}
-                  {gmailShown && <GmailPasswordNote />}
+                  {gmailShown && <GmailPasswordNote connected={gmailConnected === true} />}
                   <div className={hostedShown ? "contents" : "hidden"}>
                     <McpServersPanel hostedCards={{ shown: (id) => id === hostedShown, onConnections: setHosted }} />
                   </div>
                   <div className={nativeCardsShown === "x" ? "contents" : "hidden"}><XCard onConnection={nativeSetters.x} /></div>
-                  <div className={nativeCardsShown === "email" || gmailShown ? "contents" : "hidden"}><EmailCard onConnection={nativeSetters.email} /></div>
+                  <div className={nativeCardsShown === "email" || gmailShown ? "contents" : "hidden"}><EmailCard onConnection={nativeSetters.email} guided={gmailShown} /></div>
+                  {gmailShown && gmailConnected !== true && <p className="ca-fine">{t("tokenApps.gmail.work")}</p>}
                   {onePasswordShown && <OnePasswordBody status={onePassword} onChange={setOnePassword} onManage={() => leaveFor(SETTINGS("logins"))} />}
                 </div>
                 {detailEntry && detailEntry.kind !== "composio" && detailEntry.id !== CUSTOM_MCP && (
                   <div className="ca-native-facts">
-                    <AppFacts facts={appFacts({ entry: detailEntry, categoryLabel: detailEntry.categories[0] ? label(detailEntry.categories[0]) : null, usedBy: [] })} />
+                    <AppFacts facts={appFacts({ entry: detailEntry, usedBy: [] })} />
                   </div>
                 )}
               </div>

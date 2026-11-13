@@ -539,7 +539,6 @@
   flex-direction: column;
   gap: 24px;
 }
-.ca-detail-top { display: flex; flex-direction: column; gap: 12px; }
 .ca-detail-header {
   display: flex;
   align-items: center;
@@ -668,33 +667,7 @@
   font-size: 13px;
 }
 .ca-alias input { outline: none; }
-/* connect's own key step: a line on why, three numbered steps, then the key */
-.ca-key-why { color: var(--ca-ink-68); }
-.ca-key-steps { margin: 0; padding: 0; list-style: none; }
-.ca-key-steps .ca-card-row > [data-step] {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border: 1px solid transparent;
-  border-radius: 9999px;
-  color: var(--ca-ink-68);
-  font-size: 11px;
-  line-height: 1;
-}
-.ca-key-steps [data-step] + span { flex: 1 1 auto; min-width: 0; }
 a.ca-pill { color: inherit; text-decoration: none; }
-.ca-key-problem { gap: 6px; color: var(--color-danger); }
-/* the two composio steps: done ones show a check, the next one waits in grey */
-.ca-key-steps [data-state="done"] > [data-step] { border-color: transparent; color: var(--color-success); }
-.ca-key-steps [data-state="done"] { color: var(--ca-ink-56); }
-.ca-key-steps [data-state="next"] { color: var(--ca-ink-56); }
-.ca-key-sub { display: block; color: var(--ca-ink-56); font-size: 12px; }
-.ca-key-line { gap: 6px; color: var(--ca-ink-68); }
-.ca-key-line[data-tone="alert"] { color: var(--color-danger); }
-.ca-key-line[data-tone="done"] > i { color: var(--color-success); }
 .ca-card-row > .ca-primary:first-child,
 .ca-card-row > .ca-pill:first-child { flex: 0 0 auto; }
 /* grok's accounts: a name, a needs-reconnect mark, Disconnect that asks once more in place */
@@ -707,7 +680,61 @@ a.ca-pill { color: inherit; text-decoration: none; }
 .ca-window > div { position: absolute; inset-inline: 0; top: 0; will-change: transform; }
 .ca-window .ca-row { height: 64px; }
 .ca-native-host { margin-top: 24px; }
-.ca-native-facts { margin-top: 16px; }
+
+/* an app page reads top down: name, the one way in (ours or Composio's), the other ways folded, then the facts */
+.ca-pane:has(> .ca-detail) { display: flex; flex-direction: column; }
+.ca-pane:has(> .ca-detail) > .ca-other-ways { order: 1; }
+.ca-pane:has(> .ca-detail) > .ca-facts,
+.ca-pane:has(> .ca-detail) > .ca-native-facts { order: 2; }
+.ca-native-facts { margin-top: 24px; }
+.ca-native-facts > .ca-facts { margin-top: 0; }
+
+/* the one way in: a short line, then the button with Cancel and where it stands beside it */
+.ca-connect { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.ca-connect-title { margin: 0; color: var(--color-ink); font-size: inherit; font-weight: inherit; line-height: 18px; }
+.ca-connect-note { margin: 0; color: var(--ca-ink-68); line-height: 18px; }
+.ca-connect-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-height: 36px; }
+.ca-connect-status { display: inline-flex; align-items: center; gap: 6px; margin: 0; color: var(--ca-ink-68); font-size: 13px; line-height: 18px; }
+.ca-connect-status > svg { flex: 0 0 auto; }
+.ca-connect-status[data-tone="alert"] { color: var(--color-danger); }
+.ca-connect-status[data-tone="done"] > svg { color: var(--color-success); }
+.ca-connect-alt { font-size: 12px; line-height: 16px; }
+.ca-connect .ca-guide { align-self: stretch; }
+
+/* every other way to connect, behind one quiet toggle */
+.ca-other-ways { margin-top: 24px; }
+.ca-other-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ca-ink-68);
+  font: inherit;
+  font-size: 13px;
+  line-height: 18px;
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+.ca-other-toggle > svg { transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.ca-other-toggle[aria-expanded="true"] > svg { transform: rotate(180deg); }
+.ca-other-toggle:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) { .ca-other-toggle:hover { color: var(--color-ink); } }
+.ca-other-body { margin-top: 12px; animation: ca-other-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+@keyframes ca-other-in { from { opacity: 0; transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) {
+  .ca-other-toggle > svg { transition: none; }
+  .ca-other-body { animation-name: ca-other-fade; }
+  @keyframes ca-other-fade { from { opacity: 0; } }
+}
+
+/* the facts, and any fine print, as one quiet line each */
+.ca-facts { display: flex; flex-wrap: wrap; gap: 4px 0; margin: 24px 0 0; color: var(--ca-ink-56); font-size: 12px; line-height: 16px; }
+.ca-facts > span + span::before { content: "\00b7"; margin-inline: 8px; }
+.ca-facts [data-value] { color: var(--ca-ink-68); }
+.ca-fine { margin: 12px 0 0; padding-inline-start: 40px; color: var(--ca-ink-56); font-size: 12px; line-height: 16px; }
 
 .ca-notice {
   margin: 0 0 16px;
@@ -924,8 +951,8 @@ a.ca-pill { color: inherit; text-decoration: none; }
 .ca-guide-steps { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .ca-guide-step {
   display: grid;
-  grid-template-columns: 20px auto minmax(0, 1fr);
-  align-items: center;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: start;
   gap: 10px;
   padding: 8px 10px;
   border-radius: 12px;
@@ -946,8 +973,8 @@ a.ca-pill { color: inherit; text-decoration: none; }
   line-height: 1;
 }
 .ca-guide-step[data-state="done"] .ca-guide-number { background: color-mix(in srgb, var(--color-success) 16%, transparent); color: var(--color-success); }
-.ca-guide-art { display: inline-flex; align-items: flex-end; gap: 2px; }
-.ca-guide-body { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.ca-guide-number { margin-top: -1px; }
+.ca-guide-body { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; gap: 8px; }
 .ca-guide-text { color: var(--color-ink); line-height: 18px; }
 .ca-guide-step[data-state="done"] .ca-guide-text { color: var(--ca-ink-68); }
 .ca-guide-action { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
@@ -962,20 +989,19 @@ a.ca-pill { color: inherit; text-decoration: none; }
   font-size: 13px;
 }
 .ca-guide-action input:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 1px; }
-.ca-guide-tick { color: var(--color-success); display: inline-flex; align-items: center; gap: 4px; font-size: 12px; }
 .ca-guide-finished { display: flex; align-items: center; gap: 10px; margin: 0; padding: 8px 10px; border-radius: 12px; background: color-mix(in srgb, var(--color-success) 10%, transparent); color: var(--color-ink); }
+.ca-guide-finished > svg { color: var(--color-success); }
+/* gmail: the email form under the app-password steps, lined up with their text */
+.ca-kit[data-guided] { padding-inline-start: 40px; }
+.ca-kit[data-guided] > form { max-width: 420px; }
+/* on an app page the form reads left to right under its steps: tonal fields that show focus, the button where the eye is */
+.ca-native-host .ca-kit-field > input,
+.ca-native-host .ca-kit-input { background: var(--ca-ink-6); }
+.ca-native-host .ca-kit-field > input:focus-visible,
+.ca-native-host .ca-kit-input:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 1px; }
+.ca-native-host .ca-kit-actions { justify-content: flex-start; }
+.ca-native-host [data-gmail-password] { margin-bottom: 12px; }
 @media (prefers-reduced-motion: reduce) { .ca-guide-step { transition: none; } }
-.ca-notice[data-via-line] { display: flex; align-items: center; gap: 8px; }
-
-/* the one-time Composio link: a mascot, one line, the one button, and a quiet way to use a key instead */
-.ca-card-row.ca-link-step { align-items: flex-start; gap: 12px; padding: 12px 14px; }
-.ca-card-row.ca-link-step > :first-child { flex: 0 0 auto; }
-.ca-link-step-body { display: flex; flex: 1 1 auto; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
-.ca-link-step-title { margin: 0; color: var(--color-ink); font-size: inherit; font-weight: inherit; line-height: 18px; }
-.ca-link-step-text { margin: 0; color: var(--ca-ink-68); line-height: 18px; }
-.ca-link-step-actions { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 6px; }
-.ca-link-step-switch { font-size: 12px; line-height: 16px; }
-.ca-link-step .ca-guide { margin-top: 2px; }
 
 /* what an app can do: one quiet row with its count, opening to a search and the list */
 .ca-card-row.ca-abilities-toggle {
@@ -1012,5 +1038,6 @@ a.ca-pill { color: inherit; text-decoration: none; }
 
 /* an app page's cards read as Settings' do: a tonal fill on the window, no outline */
 .ca-detail .ca-card,
+.ca-other-ways .ca-card,
 .ca-native-host .ca-card,
 .ca-native-facts .ca-card { background: var(--color-card); }

@@ -1,22 +1,20 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 
 import { t } from "@/lib/i18n";
-import type { LocaleKey } from "@/locales";
 import { KEEP_WORDS } from "@/locales/brand-case";
 import { needsReconnect } from "@/lib/connector-status";
 import { connectorSetupNotice } from "./connector-helpers";
 import type { ToolkitCard } from "../ServiceIcon";
 import { Icon } from "../Icon";
-import { AppTile, CancelLink, ConnectedMark, RowPill, type RowAction } from "./AppRow";
+import { AppTile, ConnectedMark, RowPill, type RowAction } from "./AppRow";
 import type { AppEntry, Connection } from "./catalog";
 import type { ConnectorPhase, Connectors } from "./use-connectors";
 import { COMPOSIO_AUTH_CONFIGS_URL } from "../../../shared/connector-availability";
 import { composioPage, loadToolkitActions, type SnapshotToolkit, type ToolkitActions } from "./composio-snapshot";
 import { ComposioKeyStep, viaLine } from "./ComposioKeyStep";
-import { DuskMark } from "../mascot-view";
-import { MASCOT_INK } from "@/lib/mascot";
 import { GmailCard, gmailCard } from "./GmailCard";
-import { PrimaryButton, type Primary } from "./PrimaryButton";
+import type { Primary } from "./PrimaryButton";
+import { ConnectBlock } from "./ConnectBlock";
 import type { ConnectorAccount } from "@/lib/connector-status";
 import { activeAccounts, defaultAccount, nextAccountName, useAccountChoices } from "./account-choices";
 import type { RemoteAccount } from "./use-remote-apps";
@@ -38,7 +36,8 @@ export interface AppPageModel {
   phase: ConnectorPhase | null;
   card: ToolkitCard | undefined;
   connectors: Connectors;
-  categoryLabel: string | null;
+  /** The page's own way in (the native card under it) leads; everything here is another way to connect. */
+  ownFirst?: boolean;
   usedBy: string[];
   /** The bots that can use this app, for picking which of its accounts each one uses. */
   appBots: Array<{ id: string; name: string }>;
@@ -60,7 +59,8 @@ export interface AppPageModel {
   };
 }
 
-/** One app's page: its tile, name and main action, what it does, its accounts, and the facts about it. */
+/** One app's page, top down: its tile, name and what it does, then the one way to connect, its accounts, the other ways
+ * folded behind one toggle, and a quiet line of facts. */
 export function AppPage({ model }: { model: AppPageModel }) {
   const { entry, phase, card, connectors } = model;
   const [alias, setAlias] = useState("");
@@ -98,10 +98,11 @@ export function AppPage({ model }: { model: AppPageModel }) {
 
   const remoteAccounts = model.remote?.accounts ?? [];
   const remoteStale = model.connection === "connected" ? undefined : remoteAccounts.find((account) => account.stale);
+  const remoteLeads = model.remote !== undefined && (entry.kind === "remote" || !(connectors.configured || viaSignedIn));
   const primary = ((): Primary | null => {
     // our own card connects in its body below
     if (entry.kind !== "composio" && entry.kind !== "remote") return null;
-    if (model.remote && (entry.kind === "remote" || !(connectors.configured || viaSignedIn))) {
+    if (model.remote && remoteLeads) {
       const remote = model.remote;
       if (remoteStale && remote.onReconnect) {
         return { label: t("connectors.action.reconnect"), busy: remote.busy, onClick: () => remote.onReconnect!(remoteStale.name), onCancel: remote.onCancel };
@@ -150,124 +151,153 @@ export function AppPage({ model }: { model: AppPageModel }) {
   const facts = appFacts(model);
   const keyCard = Boolean(firstTime) && !gmail;
   const ownCard = entry.kind !== "composio";
+  const ownFirst = model.ownFirst === true;
+  // one way shows at a time: the rest are rows behind the other-ways toggle
+  const leadWay: Way["key"] = ownFirst ? "own" : remoteLeads ? "remote" : "composio";
+  const otherWays = ways ? ways.filter((way) => way.key !== "own" && way.key !== leadWay) : [];
+  const remoteNote = model.remote && remoteLeads ? t(model.remote.open ? "connectApps.remote.open" : "connectApps.remote.note", { name: entry.label }) : null;
+  const block = !gmail && !keyCard && Boolean(primary || viaStatus || remoteNote);
+  const othersBusy = otherWays.some((way) => way.connected || way.action?.busy === true || way.action?.pending === true)
+    || (ownFirst && (flow !== undefined || askingKey || askingAlias || accounts.length > 0 || model.remote?.busy === true
+      || remoteAccounts.some((account) => account.signedIn || account.stale)
+      || (phase !== null && ["connecting", "continue", "failed", "reconnect"].includes(phase.kind))));
+  const [othersOpen, setOthersOpen] = useState(false);
+  useEffect(() => { setOthersOpen(false); }, [entry.id]);
+  useEffect(() => { if (othersBusy) setOthersOpen(true); }, [othersBusy, entry.id]);
+
+  const groups = (
+    <div className="ca-groups">
+      {gmail && <GmailCard model={gmail} />}
+      {block && <ConnectBlock note={remoteNote} primary={primary} line={viaStatus} lineMarker="data-via-line" />}
+      {keyCard && <ComposioKeyStep slug={slug} name={entry.label} connectors={connectors} primary={primary} />}
+      {setup && (
+        <p className="ca-notice" data-tone={setup.tone === "warning" ? "danger" : undefined}>
+          {t(setup.key)}{" "}
+          {!model.remoteClient && <button type="button" className="ca-link" onClick={model.onOpenKeys}>{t("connectors.openSettings")}</button>}
+        </p>
+      )}
+      {phase?.kind === "unavailable" && <p className="ca-notice">{phase.reason}</p>}
+      {phase?.kind === "setup" && (
+        <p className="ca-notice" data-composio-setup="">
+          {/* the official broker's project cannot use the person's own auth config, their own key can */}
+          {t(connectors.mode === "managed" ? "connectApps.composioSetupKey" : "connectApps.composioSetup", { name: entry.label })}{" "}
+          <a className="ca-link" href={COMPOSIO_AUTH_CONFIGS_URL} target="_blank" rel="noopener noreferrer">{t("connectApps.openComposio")}</a>
+          {connectors.mode === "managed" && !model.remoteClient && <>{" "}<button type="button" className="ca-link" onClick={() => connectors.askKey(slug)}>{t("connectApps.key.add")}</button></>}
+        </p>
+      )}
+      {ownFirst && otherWays.length > 0 && <WayRows ways={otherWays} name={entry.label} />}
+      {model.remote && !model.remote.open && remoteAccounts.some((account) => account.signedIn || account.stale) && (
+        <RemoteAccounts remote={model.remote} name={entry.label} accounts={remoteAccounts} />
+      )}
+      {composio && (accounts.length > 0 || askingAlias) && (
+        <div data-accounts="">
+          <h3 className="ca-group-label">{t("connectApps.accounts")}</h3>
+          <div className="ca-card">
+            {accounts.map((account) => (
+              <AccountRow key={account.id} account={account} service={entry.label} busy={phase?.kind === "connecting"}
+                isDefault={active.length > 1 && usual?.id === account.id}
+                {...(active.length > 1 && usual?.id !== account.id && /^active$/i.test(account.status) ? { onMakeDefault: () => pick(account.id) } : {})}
+                onReconnect={() => void connectors.connect(slug, account.alias, account)}
+                onDisconnect={() => connectors.disconnect(slug, account.id)} />
+            ))}
+            {askingAlias && (
+              <form className="ca-alias" onSubmit={(event) => {
+                event.preventDefault();
+                const name = alias.trim();
+                if (!name) { connectors.setError({ key: "connectors.aliasRequired" }); return; }
+                void connectors.connect(slug, name);
+              }}>
+                <input autoFocus value={alias} maxLength={64} onChange={(event) => setAlias(event.target.value)}
+                  placeholder={t("connectors.aliasPlaceholder")}
+                  aria-label={accounts.length ? t("connectors.aliasAriaAnother", { service: entry.label }) : t("connectors.aliasAriaNew", { service: entry.label })} />
+                <button type="submit" className="ca-primary" disabled={phase?.kind === "connecting" || !alias.trim()}><span>{t("connectors.action.continue")}</span></button>
+              </form>
+            )}
+            {aliasError && <p role="alert" className="ca-card-row">{aliasError}</p>}
+            {!askingAlias && accounts.length > 0 && (
+              <div className="ca-card-row">
+                <button type="button" className="ca-pill" disabled={phase?.kind === "connecting"} onClick={addAccount}>
+                  <span>{t("connectors.action.addAccount")}</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {composio && active.length > 1 && (model.appBots?.length ?? 0) > 0 && usual && (
+        <div data-account-bots="">
+          <h3 className="ca-group-label">{t("connectApps.botsUse")}</h3>
+          <div className="ca-card">
+            {(model.appBots ?? []).map((bot) => {
+              const own = choices.bots[bot.id]?.[slug];
+              return (
+                <label key={bot.id} className="ca-card-row" data-account-bot={bot.id}>
+                  <span>{bot.name}</span>
+                  <select className="ca-account-select" value={own && active.some((account) => account.id === own) ? own : ""}
+                    aria-label={t("connectApps.botsUse.aria", { bot: bot.name, service: entry.label })}
+                    onChange={(event) => pick(event.target.value || null, bot.id)}>
+                    <option value="">{t("connectApps.botsUse.default", { name: accountName(usual) })}</option>
+                    {active.map((account) => <option key={account.id} value={account.id}>{accountName(account)}</option>)}
+                  </select>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {choiceFailed && <p role="alert" className="ca-notice" data-tone="danger">{t("connectApps.account.choiceFailed")}</p>}
+      {model.toolkit && !gmail && <ToolkitAbilities toolkit={model.toolkit} name={entry.label} />}
+    </div>
+  );
 
   return (
-    <div className="ca-detail" data-app-page={entry.id}>
-      <div className="ca-detail-top">
+    <>
+      <div className="ca-detail" data-app-page={entry.id}>
         <header className="ca-detail-header">
           <AppTile entry={entry} size={56} />
           <span className="ca-detail-title">
             <h3 className="ca-detail-name" data-detail-hero-title="">{entry.label}</h3>
             <p className="ca-detail-desc" title={entry.description}>{entry.description}</p>
           </span>
-          {!gmail && !keyCard && primary?.onCancel && (primary.busy || primary.waiting) && <CancelLink onCancel={primary.onCancel} />}
-          {gmail || keyCard ? null : primary ? <PrimaryButton primary={primary} /> : (entry.kind === "composio" || entry.kind === "remote") && model.connection === "connected" && <ConnectedMark />}
+          {!ownFirst && !gmail && !keyCard && !primary && (entry.kind === "composio" || entry.kind === "remote") && model.connection === "connected" && <ConnectedMark />}
         </header>
+        {!ownFirst && groups}
       </div>
-      <div className="ca-groups">
-        {gmail && <GmailCard model={gmail} />}
-        {setup && (
-          <p className="ca-notice" data-tone={setup.tone === "warning" ? "danger" : undefined}>
-            {t(setup.key)}{" "}
-            {!model.remoteClient && <button type="button" className="ca-link" onClick={model.onOpenKeys}>{t("connectors.openSettings")}</button>}
-          </p>
-        )}
-        {phase?.kind === "unavailable" && <p className="ca-notice">{phase.reason}</p>}
-        {phase?.kind === "setup" && (
-          <p className="ca-notice" data-composio-setup="">
-            {/* the official broker's project cannot use the person's own auth config, their own key can */}
-            {t(connectors.mode === "managed" ? "connectApps.composioSetupKey" : "connectApps.composioSetup", { name: entry.label })}{" "}
-            <a className="ca-link" href={COMPOSIO_AUTH_CONFIGS_URL} target="_blank" rel="noopener noreferrer">{t("connectApps.openComposio")}</a>
-            {connectors.mode === "managed" && !model.remoteClient && <>{" "}<button type="button" className="ca-link" onClick={() => connectors.askKey(slug)}>{t("connectApps.key.add")}</button></>}
-          </p>
-        )}
-        {ways && (
-          <div data-ways="">
-            <h3 className="ca-group-label">{t("connectApps.ways")}</h3>
-            <div className="ca-card">
-              {ways.map((way) => (
-                <div key={way.key} className="ca-card-row" data-way={way.key}>
-                  <span>{way.label}</span>
-                  {way.connected ? <ConnectedMark /> : way.action && <RowPill action={way.action} name={`${entry.label}, ${way.label}`} />}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {model.remote && !ways && <p className="ca-notice">{t(model.remote.open ? "connectApps.remote.open" : "connectApps.remote.note", { name: entry.label })}</p>}
-        {model.remote && !model.remote.open && remoteAccounts.some((account) => account.signedIn || account.stale) && (
-          <RemoteAccounts remote={model.remote} name={entry.label} accounts={remoteAccounts} />
-        )}
-        {keyCard && <ComposioKeyStep slug={slug} name={entry.label} connectors={connectors} primary={primary} />}
-        {viaStatus && !gmail && (
-          <p role={viaStatus.tone === "alert" ? "alert" : "status"} className="ca-notice ca-key-line" data-tone={viaStatus.tone} data-via-line="">
-            {viaStatus.tone === "done"
-              ? <DuskMark body="kit" colour={MASCOT_INK.green} state="celebrate" size={28} label={null} />
-              : <Icon name={viaStatus.tone === "alert" ? "exclamation-circle" : "clock"} size={13} />}
-            <span>{viaStatus.text}</span>
-          </p>
-        )}
-        {composio && (accounts.length > 0 || askingAlias) && (
-          <div data-accounts="">
-            <h3 className="ca-group-label">{t("connectApps.accounts")}</h3>
-            <div className="ca-card">
-              {accounts.map((account) => (
-                <AccountRow key={account.id} account={account} service={entry.label} busy={phase?.kind === "connecting"}
-                  isDefault={active.length > 1 && usual?.id === account.id}
-                  {...(active.length > 1 && usual?.id !== account.id && /^active$/i.test(account.status) ? { onMakeDefault: () => pick(account.id) } : {})}
-                  onReconnect={() => void connectors.connect(slug, account.alias, account)}
-                  onDisconnect={() => connectors.disconnect(slug, account.id)} />
-              ))}
-              {askingAlias && (
-                <form className="ca-alias" onSubmit={(event) => {
-                  event.preventDefault();
-                  const name = alias.trim();
-                  if (!name) { connectors.setError({ key: "connectors.aliasRequired" }); return; }
-                  void connectors.connect(slug, name);
-                }}>
-                  <input autoFocus value={alias} maxLength={64} onChange={(event) => setAlias(event.target.value)}
-                    placeholder={t("connectors.aliasPlaceholder")}
-                    aria-label={accounts.length ? t("connectors.aliasAriaAnother", { service: entry.label }) : t("connectors.aliasAriaNew", { service: entry.label })} />
-                  <button type="submit" className="ca-primary" disabled={phase?.kind === "connecting" || !alias.trim()}><span>{t("connectors.action.continue")}</span></button>
-                </form>
-              )}
-              {aliasError && <p role="alert" className="ca-card-row">{aliasError}</p>}
-              {!askingAlias && accounts.length > 0 && (
-                <div className="ca-card-row">
-                  <button type="button" className="ca-pill" disabled={phase?.kind === "connecting"} onClick={addAccount}>
-                    <span>{t("connectors.action.addAccount")}</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-        {composio && active.length > 1 && (model.appBots?.length ?? 0) > 0 && usual && (
-          <div data-account-bots="">
-            <h3 className="ca-group-label">{t("connectApps.botsUse")}</h3>
-            <div className="ca-card">
-              {(model.appBots ?? []).map((bot) => {
-                const own = choices.bots[bot.id]?.[slug];
-                return (
-                  <label key={bot.id} className="ca-card-row" data-account-bot={bot.id}>
-                    <span>{bot.name}</span>
-                    <select className="ca-account-select" value={own && active.some((account) => account.id === own) ? own : ""}
-                      aria-label={t("connectApps.botsUse.aria", { bot: bot.name, service: entry.label })}
-                      onChange={(event) => pick(event.target.value || null, bot.id)}>
-                      <option value="">{t("connectApps.botsUse.default", { name: accountName(usual) })}</option>
-                      {active.map((account) => <option key={account.id} value={account.id}>{accountName(account)}</option>)}
-                    </select>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-        )}
-        {choiceFailed && <p role="alert" className="ca-notice" data-tone="danger">{t("connectApps.account.choiceFailed")}</p>}
-        {model.toolkit && !gmail && <ToolkitAbilities toolkit={model.toolkit} name={entry.label} />}
-        {!ownCard && <AppFacts facts={facts} />}
-      </div>
+      {(ownFirst || otherWays.length > 0) && (
+        <OtherWays open={othersOpen} onToggle={() => setOthersOpen(!othersOpen)}>
+          {ownFirst ? groups : <WayRows ways={otherWays} name={entry.label} />}
+        </OtherWays>
+      )}
+      {!ownCard && <AppFacts facts={facts} />}
+    </>
+  );
+}
+
+/** The ways in that are not the page's main one, each with its own button. */
+function WayRows({ ways, name }: { ways: Way[]; name: string }) {
+  return (
+    <div className="ca-card" data-ways="">
+      {ways.map((way) => (
+        <div key={way.key} className="ca-card-row" data-way={way.key}>
+          <span>{way.label}</span>
+          {way.connected ? <ConnectedMark /> : way.action && <RowPill action={way.action} name={`${name}, ${way.label}`} />}
+        </div>
+      ))}
     </div>
+  );
+}
+
+/** Every other way to connect, folded behind one quiet toggle under the main one. */
+function OtherWays({ open, onToggle, children }: { open: boolean; onToggle: () => void; children: ReactNode }) {
+  const id = useId();
+  return (
+    <section className="ca-other-ways" data-other-ways="" data-open={open ? "" : undefined}>
+      <button type="button" className="ca-other-toggle" aria-expanded={open} aria-controls={id} onClick={onToggle}>
+        <span>{t("connectApps.otherWays")}</span>
+        <Icon name="chevron-down" size={12} />
+      </button>
+      {open && <div id={id} className="ca-other-body">{children}</div>}
+    </section>
   );
 }
 
@@ -425,23 +455,8 @@ function AccountRow({ account, service, busy, isDefault, onMakeDefault, onReconn
   );
 }
 
-const AUTH_LABEL: Record<string, LocaleKey> = {
-  OAUTH2: "connectApps.auth.account", OAUTH1: "connectApps.auth.account", DCR_OAUTH: "connectApps.auth.account", S2S_OAUTH2: "connectApps.auth.account",
-  API_KEY: "connectApps.auth.key", BEARER_TOKEN: "connectApps.auth.token", BASIC: "connectApps.auth.password", BASIC_WITH_JWT: "connectApps.auth.password",
-  NO_AUTH: "connectApps.auth.none",
-};
-
-/** How you sign in to a Composio app, in words: "Your account, API key". */
-export function signInLabel(schemes: readonly string[] | undefined): string | null {
-  const labels = [...new Set((schemes ?? []).flatMap((scheme) => AUTH_LABEL[scheme] ? [t(AUTH_LABEL[scheme])] : []))];
-  return labels.length ? labels.join(", ") : null;
-}
-
-export function appFacts(model: Pick<AppPageModel, "entry" | "categoryLabel" | "usedBy" | "toolkit">): Array<[string, string]> {
+export function appFacts(model: Pick<AppPageModel, "entry" | "usedBy">): Array<[string, string]> {
   const facts: Array<[string, string]> = [];
-  if (model.categoryLabel) facts.push([t("connectApps.info.category"), model.categoryLabel]);
-  const signIn = signInLabel(model.toolkit?.auth);
-  if (signIn) facts.push([t("connectApps.info.signIn"), signIn]);
   if (model.entry.website) facts.push([t("connectApps.info.website"), model.entry.website]);
   if (model.usedBy.length) facts.push([t("connectApps.info.usedBy"), model.usedBy.join(", ")]);
   return facts;
@@ -516,20 +531,12 @@ function ToolkitAbilities({ toolkit, name }: { toolkit: SnapshotToolkit; name: s
   );
 }
 
-/** Grok's Information card: a label, then a bordered list of facts with their values at the end. */
+/** The facts about an app, as one quiet line at the foot of its page. */
 export function AppFacts({ facts }: { facts: Array<[string, string]> }) {
   if (!facts.length) return null;
   return (
-    <div>
-      <h3 className="ca-group-label">{t("connectApps.information")}</h3>
-      <dl className="ca-card">
-        {facts.map(([term, value]) => (
-          <div key={term} className="ca-card-row">
-            <dt>{term}</dt>
-            <dd title={value}>{value}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
+    <p className="ca-facts" data-app-facts="">
+      {facts.map(([term, value]) => <span key={term} title={value}>{term} <span data-value="">{value}</span></span>)}
+    </p>
   );
 }

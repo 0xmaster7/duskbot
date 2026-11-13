@@ -64,10 +64,10 @@ export function TokenCard({ app, tokens, replacing: startReplacing }: { app: Tok
   const filled = spec.fields.every((field) => values[field.key]?.trim());
 
   const tokenSteps: GuideStep[] = !spec.fields.length ? [] : [
-    { key: "open", pixel: "globe", text: t("tokenApps.line.open", { name: spec.label }), done: opened || filled,
+    { key: "open", text: t("tokenApps.line.open", { name: spec.label }), done: opened || filled,
       action: <KitButton onClick={() => { setOpened(true); void openExternalLink(spec.settingsUrl); }}>{t("tokenApps.openApp", { name: spec.label })}</KitButton> },
-    { key: "make", pixel: "key", text: t(`tokenApps.how.${app}` as LocaleKey), done: filled },
-    { key: "paste", pixel: "note", text: t("tokenApps.line.paste"), done: false,
+    { key: "make", text: t(`tokenApps.how.${app}` as LocaleKey), done: filled },
+    { key: "paste", text: t("tokenApps.line.paste"), done: false,
       action: (
         <form data-token-form="" className="ca-guide-action" onSubmit={(event) => void submit(event)}>
           {spec.fields.map((field) => (
@@ -80,10 +80,10 @@ export function TokenCard({ app, tokens, replacing: startReplacing }: { app: Tok
       ) },
   ];
   const nativeSteps: GuideStep[] = [
-    { key: "sign-in", pixel: "idcard", text: t("tokenApps.line.signIn", { name: spec.label }), done: flow !== null,
+    { key: "sign-in", text: t("tokenApps.line.signIn", { name: spec.label }), done: flow !== null,
       action: <KitButton disabled={!nativeReady} onClick={() => void signIn()}>{t("tokenApps.signIn", { name: spec.label })}</KitButton> },
     flow?.start.userCode
-      ? { key: "code", pixel: "keyboard", text: t("tokenApps.line.code", { name: spec.label }), done: false,
+      ? { key: "code", text: t("tokenApps.line.code", { name: spec.label }), done: false,
         action: (
           <>
             <span className="ca-token-code" data-device-code="">{flow.start.userCode}</span>
@@ -91,7 +91,7 @@ export function TokenCard({ app, tokens, replacing: startReplacing }: { app: Tok
             <KitButton variant="secondary" onClick={() => void navigator.clipboard?.writeText(flow.start.userCode!)}>{t("tokenApps.device.copy")}</KitButton>
           </>
         ) }
-      : { key: "finish", pixel: "check", text: t("tokenApps.line.finish", { name: spec.label }), done: false,
+      : { key: "finish", text: t("tokenApps.line.finish", { name: spec.label }), done: false,
         action: flow ? <KitButton variant="secondary" onClick={() => void openExternalLink(flow.start.verificationUrl)}>{t("tokenApps.device.openAgain")}</KitButton> : undefined },
   ];
 
@@ -119,6 +119,7 @@ export function TokenCard({ app, tokens, replacing: startReplacing }: { app: Tok
       {guiding && (
         <StepGuide label={t("tokenApps.guide", { name: spec.label })} steps={byToken ? tokenSteps : nativeSteps} />
       )}
+      {error && <KitStatus tone="danger">{error}</KitStatus>}
       {flow && flow.state === "waiting" && <KitStatus>{t("tokenApps.device.waiting")}</KitStatus>}
       {flow && flow.state === "failed" && <KitStatus tone="danger">{flow.message ?? t("tokenApps.device.expired")}</KitStatus>}
       {(flow || replacing) && <KitActions><KitButton variant="secondary" onClick={() => { tokens.stopDevice(); setReplacing(undefined); }}>{t("common.cancel")}</KitButton></KitActions>}
@@ -126,7 +127,6 @@ export function TokenCard({ app, tokens, replacing: startReplacing }: { app: Tok
       {guiding && !flow && nativeReady && spec.fields.length > 0 && (
         <KitLink onClick={() => { setPreferToken(!preferToken); setError(null); }}>{t(preferToken ? "tokenApps.useSignIn" : "tokenApps.useToken", { name: spec.label })}</KitLink>
       )}
-      {error && <KitStatus tone="danger">{error}</KitStatus>}
       {justConnected && accounts.length > 0 && !guiding && (
         <StepGuide label={t("tokenApps.guide", { name: spec.label })} steps={[]} finished={t("tokenApps.done", { name: spec.label })} />
       )}
@@ -140,18 +140,19 @@ export function TokenCard({ app, tokens, replacing: startReplacing }: { app: Tok
   );
 }
 
-/** Gmail without a review: a personal account's app password on the built-in email connector, as a guide. */
+/** Gmail without a review: the steps to a personal account's app password, on top; the built-in email form under them
+ * takes it. Once connected the form's account list says so, and the steps step aside. */
 export function GmailPasswordNote({ connected }: { connected?: boolean }) {
   const [opened, setOpened] = useState(false);
+  if (connected) return null;
   return (
     <KitBody data-gmail-password="">
-      <StepGuide label={t("tokenApps.guide", { name: "Gmail" })} finished={connected ? t("tokenApps.done", { name: "Gmail" }) : null} steps={[
-        { key: "open", pixel: "shield", text: t("tokenApps.gmail.step1"), done: opened || connected,
+      <StepGuide label={t("tokenApps.guide", { name: "Gmail" })} steps={[
+        { key: "open", text: t("tokenApps.gmail.step1"), done: opened,
           action: <KitButton onClick={() => { setOpened(true); void openExternalLink("https://myaccount.google.com/apppasswords"); }}>{t("tokenApps.gmail.make")}</KitButton> },
-        { key: "copy", pixel: "key", text: t("tokenApps.gmail.step2"), done: connected },
-        { key: "paste", pixel: "note", text: t("tokenApps.gmail.step3"), done: connected },
+        { key: "copy", text: t("tokenApps.gmail.step2") },
+        { key: "paste", text: t("tokenApps.gmail.step3") },
       ]} />
-      <KitText>{t("tokenApps.gmail.work")}</KitText>
     </KitBody>
   );
 }

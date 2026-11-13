@@ -24,9 +24,11 @@ export function EmailServerInputs({ value, onChange, className = field }: { valu
   );
 }
 
-/** Email on its Connect Apps page: any mailbox on any mail host, connected with an address and a password. */
-export function EmailCard({ refreshKey = 0, onConnection }: {
+/** Email on its Connect Apps page: any mailbox on any mail host, connected with an address and a password. Guided, it is
+ * the form under a step-by-step guide (Gmail's app password): open from the start, lined up with the steps. */
+export function EmailCard({ refreshKey = 0, onConnection, guided = false }: {
   refreshKey?: number;
+  guided?: boolean;
   /** true once connected, false otherwise, null until the server has answered */
   onConnection?: (connected: boolean | null) => void;
 }) {
@@ -84,13 +86,14 @@ export function EmailCard({ refreshKey = 0, onConnection }: {
   if (status?.state === "unavailable") return null;
   const accounts = status?.accounts ?? [];
   const connected = accounts.length > 0;
+  const formShown = open || (guided && status !== null && !connected);
 
   return (
-    <KitBody data-app-tile="email" data-email-state={status?.state ?? "loading"}>
+    <KitBody data-app-tile="email" data-email-state={status?.state ?? "loading"} data-guided={guided && !connected ? "" : undefined}>
       {status === null && (loadFailed
         ? <KitActions><KitButton variant="secondary" onClick={() => void load()}>{t("connectors.action.retry")}</KitButton></KitActions>
         : <KitStatus>{t("common.checking")}</KitStatus>)}
-      {status !== null && !open && <KitText>{t("email.help")}</KitText>}
+      {status !== null && !formShown && !guided && <KitText>{t("email.help")}</KitText>}
       {connected && (
         <div className="ca-kit-card">
           <KitCard label={t("connectApps.accounts")} count={accounts.length}>
@@ -106,25 +109,25 @@ export function EmailCard({ refreshKey = 0, onConnection }: {
       )}
       {done && <KitStatus tone="ok">{done}</KitStatus>}
       {error && <KitStatus tone="danger">{error}</KitStatus>}
-      {status !== null && !open && (
+      {status !== null && !formShown && (
         <KitActions>
           <KitButton variant={connected ? "secondary" : "primary"} onClick={() => { setOpen(true); setError(null); }}>
             {connected ? t("email.addAnother") : t("connectors.action.connect")}
           </KitButton>
         </KitActions>
       )}
-      {open && (
+      {formShown && (
         <form data-email-form className="ca-kit" style={{ alignSelf: "stretch" }} onSubmit={(event) => { event.preventDefault(); void connect(); }}>
-          <KitText>{t("email.help")}</KitText>
+          {!guided && <KitText>{t("email.help")}</KitText>}
           <KitField label={t("email.address")} type="email" autoComplete="off" spellCheck={false} dir="ltr" value={address} onChange={(event) => setAddress(event.target.value)} />
-          <KitField label={t("email.password")} type="password" autoComplete="new-password" spellCheck={false} dir="ltr" value={password} onChange={(event) => setPassword(event.target.value)} />
+          <KitField label={guided ? t("connectApps.way.appPassword") : t("email.password")} type="password" autoComplete="new-password" spellCheck={false} dir="ltr" value={password} onChange={(event) => setPassword(event.target.value)} />
           {needsServer && <EmailServerInputs value={server} onChange={setServer} className="ca-kit-input" />}
           <KitActions>
             <KitButton type="submit" disabled={busy || !address.trim() || !password}>{busy ? t("connectApps.connecting") : t("connectors.action.connect")}</KitButton>
-            <KitButton variant="secondary" disabled={busy} onClick={() => { setOpen(false); setError(null); }}>{t("common.cancel")}</KitButton>
+            {(!guided || connected) && <KitButton variant="secondary" disabled={busy} onClick={() => { setOpen(false); setError(null); }}>{t("common.cancel")}</KitButton>}
           </KitActions>
           {busy && <KitStatus>{t("email.checking")}</KitStatus>}
-          {!needsServer && !busy && <KitLink onClick={() => setNeedsServer(true)}>{t("email.typeServer")}</KitLink>}
+          {!needsServer && !busy && !guided && <KitLink onClick={() => setNeedsServer(true)}>{t("email.typeServer")}</KitLink>}
         </form>
       )}
     </KitBody>
