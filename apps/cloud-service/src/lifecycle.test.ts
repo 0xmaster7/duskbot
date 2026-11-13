@@ -450,3 +450,29 @@ it("tells a busy home's open apps it is going to sleep on the owner's pause, the
   await f.service.power(c.accountId, c.id, "off");
   expect(f.home.sleep).toHaveBeenCalledTimes(2);
 });
+
+it("keeps an awake home up while its owner has the dashboard on it, capped like an open app, and counts several minutes of use", async () => {
+  const f = await homeFixture();
+  const { c } = await f.paid();
+  f.power.idle = true; f.power.busy = [];
+  // the dashboard's pulse every minute: the home stays up past the base idle
+  for (let n = 0; n < 20; n++) { f.service.managed!.noteView!(c); f.advance(60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
+  expect(c.status).toBe("running");
+  expect(c.managed!.stayReason).toBe("focused");
+  // still on screen, but no input for half an hour: the hint runs out
+  for (let n = 0; n < 30 && c.status === "running"; n++) { f.service.managed!.noteView!(c); f.advance(60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
+  expect(c.status).toBe("sleeping");
+});
+
+it("waits half an hour after the last input once the owner has used the home in several separate minutes", async () => {
+  const f = await homeFixture();
+  const { c } = await f.paid();
+  f.power.idle = false; f.power.busy = ["recent-activity"];
+  for (let n = 0; n < 4; n++) { f.advance(3 * 60_000); f.power.lastActivityAt = f.now(); c.nextAttemptAt = 0; await f.service.reconcile(); }
+  const last = f.now();
+  f.power.idle = true; f.power.busy = [];
+  for (let n = 0; n < 40 && c.status === "running"; n++) { f.advance(60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
+  expect(c.status).toBe("sleeping");
+  const slept = f.audit.entries(c.id).filter(e => e.action === "sleep").at(-1)!;
+  expect(slept.at - last).toBeGreaterThanOrEqual(30 * 60_000);
+});

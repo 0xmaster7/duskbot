@@ -27,6 +27,8 @@ export interface HomeLifecycleState {
   edgeWakes?: number[];
   /** when an open, focused app began keeping the home up (the sleep policy caps it at 30 minutes) */
   focusSince?: number | null;
+  /** the owner's dashboard last showed this home (lifecycle `noteView`) */
+  viewedAt?: number | null;
   /** the power policy's memory of this home: its starts, stops, failed starts, breaker and learned activity */
   power?: PowerMemory;
   /** the runs ahead as the home last reported them */

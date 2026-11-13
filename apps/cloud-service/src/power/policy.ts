@@ -156,6 +156,8 @@ export function createPowerPolicy(options: { profile: ProviderCostProfile; pool(
       const refusal = stopRefusal({ now, awakeSince: s.awakeSince, busy: s.busy, focusSince: s.focusSince, lastActivityAt: s.lastActivityAt, wakeRequestedAt: s.wakeRequestedAt ?? null,
         nextRunAt: next ? runnableFrom(next) : null, memory: s.memory, pool, profile, spend: s.spend ?? null }, rails);
       if (refusal) return stay(refusal.reason, refusal.recheckAt);
+      // past the rails with no work under way: a cost guess never keeps a home up this long after the last input
+      if (now - Math.max(s.lastActivityAt ?? 0, s.awakeSince) >= rails.maxNoInputMs) return { action: "stop", reason: "no_input_cap", recheckAt: now, idleMinutes };
       const rate = profile.computeCentsPerHour(s.spec) / HOUR;
       const startCents = startValueCents(profile, pool.used, params.prices);
       const share = connectorShare(s.memory.stats);

@@ -402,6 +402,12 @@ export function createDashboardApp(options: DashboardAppOptions) {
     if (++current.count > max) fail(429, "rate_limited", "Try again later.");
     limits.set(key, current);
   }
+  /** the owner has the dashboard open on their dusk cloud: its power policy keeps it up a while (a hint, never a wake) */
+  function viewed(ws: StoredWorkspace) {
+    if (ws.kind !== "vps" || !billing.clouds.managed?.noteView) return;
+    const cloud = billing.clouds.all?.().find(item => item.workspaceId === ws.id && item.status === "running");
+    if (cloud) billing.clouds.managed.noteView(cloud);
+  }
   /** a dusk cloud at full cpu for hours on end is mining or a runaway loop: one incident a day, before instabox flags our account */
   function pinned(ws: StoredWorkspace, samples: Array<{ t: number; cpu: number }>) {
     if (!cpuPinned(samples, now())) return;
@@ -824,7 +830,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     if (pulse) {
       const owner = account(req);
       const ws = owned(pulse[1]!, owner);
-      watch(owner);
+      watch(owner); viewed(ws);
       const after = Number(url.searchParams.get("after") ?? "0");
       const answer: PulseAnswer = { v: 1, intervalMs: PULSE_INTERVAL_MS, samples: pulses.get(ws.id)?.since(Number.isFinite(after) ? after : 0) ?? [] };
       return json(res, 200, answer);
@@ -834,7 +840,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       const owner = account(req);
       const ws = owned(match[1]!, owner);
       if (!match[2] && method === "GET") {
-        watch(owner);
+        watch(owner); viewed(ws);
         const detail: WorkspaceDetail = { workspace: summary(ws), report: ws.report, sectionAt: ws.sectionAt, history: history.get(ws.id) ?? [], commands: (commands.get(ws.id) ?? []).map(commandView) };
         return json(res, 200, detail);
       }

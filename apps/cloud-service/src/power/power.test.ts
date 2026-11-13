@@ -5,7 +5,7 @@ import { breakEvenMs, DAY, HOUR, MINUTE, startValueCents, type PoolCounts } from
 import { createRollingPool } from "./pool.ts";
 import { createPowerPolicy, DEFAULT_POLICY, type PowerSnapshot } from "./policy.ts";
 import { freshStats, observe, predict, validStats, GRID_MS } from "./predictor.ts";
-import { DEFAULT_RAILS, flaps, freshMemory, noteFailure, noteHealthy, noteStart, noteStop, startRefusal, stopRefusal, type StopContext } from "./rails.ts";
+import { DEFAULT_RAILS, engaged, flaps, freshMemory, noteFailure, noteHealthy, noteStart, noteStop, noteUse, startRefusal, stopRefusal, type StopContext } from "./rails.ts";
 import { plannedRuns, prewake, spreadOf } from "./schedule.ts";
 
 const T0 = Date.UTC(2026, 10, 9, 12), SMALL = { vcpu: 2, ramGb: 4, diskGb: 40 };
@@ -132,6 +132,32 @@ describe("the rails", () => {
     expect(stopRefusal(stopContext({ busy: ["focus"], focusSince: T0 - 40 * MINUTE }))).toBeNull();
   });
 
+  it("waits longer after the last input while someone has been using the home this hour, and caps every hint", () => {
+    const rails = { ...DEFAULT_RAILS, minIdleMs: 12 * MINUTE };
+    const memory = freshMemory(T0 - DAY);
+    // one burst of use: the base idle
+    noteUse(memory, T0 - 15 * MINUTE, T0 - 15 * MINUTE);
+    expect(engaged(memory, T0, rails)).toBe(false);
+    expect(stopRefusal(stopContext({ memory, lastActivityAt: T0 - 15 * MINUTE }), rails)).toBeNull();
+    // the same minute read twice is one use; three separate minutes in the hour is someone using it
+    noteUse(memory, T0 - 15 * MINUTE + 20_000, T0 - 14 * MINUTE);
+    noteUse(memory, T0 - 40 * MINUTE, T0 - 14 * MINUTE);
+    expect(engaged(memory, T0, rails)).toBe(false);
+    noteUse(memory, T0 - 25 * MINUTE, T0 - 14 * MINUTE);
+    expect(engaged(memory, T0, rails)).toBe(true);
+    expect(stopRefusal(stopContext({ memory, lastActivityAt: T0 - 15 * MINUTE }), rails)).toMatchObject({ reason: "in_use", recheckAt: T0 + 15 * MINUTE });
+    expect(stopRefusal(stopContext({ memory, lastActivityAt: T0 - 31 * MINUTE }), rails)).toBeNull();
+    // uses age out of the hour
+    expect(engaged(memory, T0 + 50 * MINUTE, rails)).toBe(false);
+    // a provider whose flap cap is under the base never shortens it
+    expect(stopRefusal(stopContext({ memory, lastActivityAt: T0 - 15 * MINUTE }), { ...rails, maxMinIdleMs: 10 * MINUTE })?.reason).toBe("in_use");
+    expect(stopRefusal(stopContext({ lastActivityAt: T0 - 11 * MINUTE }), { ...rails, maxMinIdleMs: 10 * MINUTE })?.reason).toBe("min_idle");
+    // an open app holds at most focusCapMs from the later of it opening and the last input, and never past maxNoInputMs
+    expect(stopRefusal(stopContext({ busy: ["focus"], focusSince: T0 - 20 * MINUTE, lastActivityAt: T0 - 50 * MINUTE }), { ...rails, maxNoInputMs: 15 * MINUTE })).toBeNull();
+    // work is never capped
+    expect(stopRefusal(stopContext({ busy: ["turn"], lastActivityAt: T0 - 5 * HOUR }), rails)?.reason).toBe("busy:turn");
+  });
+
   it("doubles the minimum idle for each stop that a start followed within ten minutes", () => {
     const memory = freshMemory(T0 - DAY);
     for (let i = 0; i < 3; i++) { noteStop(memory, T0 - 5 * HOUR + i * HOUR); noteStart(memory, T0 - 5 * HOUR + i * HOUR + 2 * MINUTE); }
@@ -195,6 +221,15 @@ describe("the decision", () => {
     expect(d.action).toBe("stop");
     expect(d.stopCents!).toBeLessThan(d.stayCents!);
     expect(d.idleMinutes).toBe(60);
+  });
+
+  it("never keeps a home up on a cost guess past the no-input cap, and never stops work for it", () => {
+    const memory = freshMemory(T0 - 14 * DAY);
+    // an owner who always comes back: the cost model alone would keep the home up
+    for (let d = 14; d >= 1; d--) for (let k = 0; k < 40; k++) observe(memory.stats, T0 - d * DAY - 3 * HOUR + k * 6 * MINUTE, "user");
+    const capped = createPowerPolicy({ profile, pool: () => idlePool, params: { ...DEFAULT_POLICY, rails: { ...DEFAULT_RAILS, maxNoInputMs: 20 * MINUTE } } });
+    expect(capped.decide(snapshot({ memory, lastActivityAt: T0 - 25 * MINUTE }))).toMatchObject({ action: "stop", reason: "no_input_cap" });
+    expect(capped.decide(snapshot({ memory, lastActivityAt: T0 - 25 * MINUTE, busy: ["run"], homeIdle: false })).action).toBe("stay");
   });
 
   it("keeps a monitor's home up between runs every 15 minutes: staying is cheaper than a start each time", () => {

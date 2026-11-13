@@ -188,6 +188,7 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
         cancelDelete: c => lifecycle.cancelDelete(c),
         operatorDelete: (c, reason) => lifecycle.operatorDelete(c, reason),
         resizeNow: c => lifecycle.resizeNow(c),
+        noteView: c => lifecycle.noteView(c),
         resizing: c => lifecycle.resizing(c),
         setHold: (c, hold) => lifecycle.setHold(c, hold),
         usage: async (c, from) => c.serverId ? provider.usage(c.serverId, from).catch(() => null) : null,

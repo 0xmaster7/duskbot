@@ -5,7 +5,7 @@ import { pooledCostProfile } from "./pooled-profile.ts";
 import { DAY, HOUR, MINUTE } from "./cost.ts";
 import { MIX, PERSONAS } from "./personas.ts";
 import { DEFAULT_POLICY } from "./policy.ts";
-import { countSince, DEFAULT_RAILS, flaps, freshMemory, noteFailure, noteHealthy, noteStart, noteStop, startRefusal, stopRefusal } from "./rails.ts";
+import { countSince, DEFAULT_RAILS, freshMemory, minIdleFor, noteFailure, noteHealthy, noteStart, noteStop, startRefusal, stopRefusal } from "./rails.ts";
 import { adaptiveDecider, mulberry32, simulate, type Faults, type Persona, type SimUser } from "./sim.ts";
 
 const START = Date.UTC(2026, 10, 2), SMALL = { vcpu: 2, ramGb: 4, diskGb: 40 }, RAILS = DEFAULT_RAILS;
@@ -44,7 +44,7 @@ describe("the rails, on random event streams", () => {
           if (!refused) {
             expect(t >= busyUntil).toBe(true);
             expect(t - awakeSince).toBeGreaterThanOrEqual(RAILS.minUptimeMs);
-            const minIdle = Math.min(RAILS.maxMinIdleMs, RAILS.minIdleMs * 2 ** flaps(memory, t, RAILS));
+            const minIdle = minIdleFor(memory, t, RAILS).ms;
             expect(t - Math.max(lastActivity ?? 0, awakeSince)).toBeGreaterThanOrEqual(minIdle);
             noteStop(memory, t); up = false;
           }

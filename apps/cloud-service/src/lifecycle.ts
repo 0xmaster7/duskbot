@@ -5,7 +5,7 @@ import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypt
 import { readFileSync } from "node:fs";
 import type { SleepPolicy } from "./power/policy.ts";
 import type { ProviderCostProfile } from "./power/cost.ts";
-import { costChargeRefusal, costStopRefusal, DEFAULT_RAILS, freshMemory, noteFailure, noteHealthy, noteStart, noteStop, prune, startRefusal, stopRefusal, type PowerMemory, type RailSettings } from "./power/rails.ts";
+import { costChargeRefusal, costStopRefusal, DEFAULT_RAILS, freshMemory, noteFailure, noteHealthy, noteStart, noteStop, noteUse, prune, startRefusal, stopRefusal, type PowerMemory, type RailSettings } from "./power/rails.ts";
 import { validStats } from "./power/predictor.ts";
 import { nextRun, plannedRuns, runnableFrom } from "./power/schedule.ts";
 import { StartCapError, type StartKind, type StartLedger } from "./starts.ts";
@@ -25,6 +25,8 @@ import { createEgressGuard } from "./egress.ts";
 
 /** how long open apps have between the owner's pause notice and the machine stopping (the reconciler's next pass or so) */
 export const OWNER_SLEEP_GRACE_MS = 10_000;
+/** a dashboard view (its live pulse, polled only while the page shows an awake cloud) counts as an open app this long */
+export const VIEW_FRESH_MS = 2 * 60_000;
 const MINUTE = 60_000, HOUR = 3_600_000, BACKUP_RETRY_MS = 10 * MINUTE, SETUP_TRIES = 3, RESTORE_TRIES = 3, SETUP_PATIENCE_MS = 6 * HOUR, SETUP_ERROR_RETRY_MS = 6 * HOUR;
 
 export interface ManagedSettings {
@@ -58,7 +60,7 @@ export interface ManagedSettings {
   lostAfterMs: number;
 }
 export const DEFAULT_MANAGED_SETTINGS: ManagedSettings = {
-  idleMinutes: 3, leaseSeconds: 2 * 3600, backupEveryMs: 24 * HOUR, backupKeep: 3, retentionDays: DEFAULT_RETENTION_DAYS,
+  idleMinutes: 12, leaseSeconds: 2 * 3600, backupEveryMs: 24 * HOUR, backupKeep: 3, retentionDays: DEFAULT_RETENTION_DAYS,
   deleteDelayDays: DEFAULT_DELETE_DELAY_DAYS, backupTailMs: 30 * DAY_MS, wakeLeadMs: 2 * MINUTE, edgeWakesPerHour: 20, powerReadMs: MINUTE, package: null, requireSigned: false, publicDomain: null, claims: false, maxBackupBytes: 4 * 1024 ** 3, lostAfterMs: 30 * MINUTE,
 };
 
@@ -83,7 +85,7 @@ export function managedSettingsFromEnv(env: NodeJS.ProcessEnv, options: { loopba
   if (!pkg) throw new Error("A managed cloud needs DUSK_MANAGED_HOME_PACKAGE_URL (or _FILE) with DUSK_MANAGED_HOME_PACKAGE_SHA256.");
   return { ...DEFAULT_MANAGED_SETTINGS, package: pkg, publicDomain,
     requireSigned: !options.loopback, claims: !options.loopback,
-    idleMinutes: number("DUSK_MANAGED_IDLE_MINUTES", 1, 24 * 60, 3),
+    idleMinutes: number("DUSK_MANAGED_IDLE_MINUTES", 1, 24 * 60, 12),
     leaseSeconds: number("DUSK_MANAGED_LEASE_HOURS", 1, 720, 2) * 3600,
     backupEveryMs: number("DUSK_MANAGED_BACKUP_HOURS", 1, 24 * 7, 24) * HOUR,
     backupKeep: number("DUSK_MANAGED_BACKUP_KEEP", 2, 30, 3),
@@ -862,15 +864,18 @@ export function createLifecycle(deps: LifecycleDeps) {
     if (await deps.updates?.step(c, { origin: c.origin!, upstream: homeOrigin(c), secret: secret(c), busy: power?.busy ?? null })) { deps.save(c); return; }
     if (!power) { deps.save(c); return; }
     const m = memory(c);
-    b.busy = power.busy; b.nextDueAt = power.nextDueAt; b.upcoming = power.upcoming ?? null;
-    b.focusSince = power.busy.includes("focus") ? b.focusSince ?? now() : null;
-    if (power.lastActivityAt !== null) deps.sleepPolicy.observe(m, power.lastActivityAt, "user");
-    const snapshot = { now: now(), cloudId: c.id, spec: c.spec, homeIdle: power.idle, awakeSince: c.powerSince, lastActivityAt: power.lastActivityAt, busy: power.busy, focusSince: b.focusSince ?? null,
+    // the dashboard on screen is a hint like the app's focus: the rails cap both from the later of it starting and the last input
+    const viewing = b.viewedAt != null && now() - b.viewedAt < VIEW_FRESH_MS;
+    const busy = viewing && !power.busy.includes("focus") ? [...power.busy, "focus"] : power.busy;
+    b.busy = busy; b.nextDueAt = power.nextDueAt; b.upcoming = power.upcoming ?? null;
+    b.focusSince = busy.includes("focus") ? b.focusSince ?? now() : null;
+    if (power.lastActivityAt !== null) { deps.sleepPolicy.observe(m, power.lastActivityAt, "user"); noteUse(m, power.lastActivityAt, now()); }
+    const snapshot = { now: now(), cloudId: c.id, spec: c.spec, homeIdle: power.idle, awakeSince: c.powerSince, lastActivityAt: power.lastActivityAt, busy, focusSince: b.focusSince ?? null,
       nextDueAt: power.nextDueAt, upcoming: b.upcoming, wakeRequestedAt: c.wakeRequestedAt ?? null, memory: m, spend: spendView(c) };
     const decision = deps.sleepPolicy.decide(snapshot);
     // the rails again, whatever the policy said: no policy stops a home they hold up
     const next = nextRun(plannedRuns(power.nextDueAt, b.upcoming, now()), now());
-    const held = decision.action === "stop" ? stopRefusal({ now: now(), awakeSince: c.powerSince, busy: power.busy, focusSince: b.focusSince ?? null, lastActivityAt: power.lastActivityAt,
+    const held = decision.action === "stop" ? stopRefusal({ now: now(), awakeSince: c.powerSince, busy, focusSince: b.focusSince ?? null, lastActivityAt: power.lastActivityAt,
       wakeRequestedAt: c.wakeRequestedAt ?? null, nextRunAt: next ? runnableFrom(next) : null, memory: m, pool: pool(), profile: deps.costProfile, spend: spendView(c) }, rails) : null;
     const reason = decision.action === "stay" ? decision.reason : held?.reason ?? null;
     if (b.stayReason !== reason) b.stayReason = reason;
@@ -943,6 +948,14 @@ export function createLifecycle(deps: LifecycleDeps) {
       return { ok: true, status: 202 };
     },
     reconcile,
+    /** its owner has the dashboard open on it (VIEW_FRESH_MS): a hint for the power policy, never use, never a wake */
+    noteView(c: StoredCloud) {
+      if (!c.managed || c.status !== "running") return;
+      const b = state(c), at = now();
+      const stale = b.viewedAt == null || at - b.viewedAt >= MINUTE;
+      b.viewedAt = at;
+      if (stale) deps.save(c);
+    },
     egress: (c: StoredCloud) => egress.view(c),
     verdict: (c: StoredCloud) => verdictFor(c),
     /** its data is still kept: within retention, with no deletion under way */

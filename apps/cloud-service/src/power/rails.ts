@@ -21,6 +21,8 @@ export interface PowerMemory {
   /** starts that did not bring the home up, in the last day */
   failures: number[];
   breaker: { trips: number; openUntil: number; probeAt: number | null } | null;
+  /** the minutes the person used the home in the last hour (one entry a minute; absent on older records) */
+  uses?: number[];
 }
 export function freshMemory(now: number): PowerMemory { return { stats: freshStats(now), starts: [], stops: [], failures: [], breaker: null }; }
 
@@ -29,6 +31,11 @@ export interface RailSettings {
   minUptimeMs: number;
   /** never stop within this long of a person's last action */
   minIdleMs: number;
+  /** someone using the home in earnest (engagedUses separate minutes of use in the last hour): never stop within this long of their last action */
+  engagedIdleMs: number;
+  engagedUses: number;
+  /** no hint (an open app, a dashboard on screen) and no cost guess keeps a home up longer than this after the last input; only work does */
+  maxNoInputMs: number;
   /** an asked-for wake is delivered first: no stop this long after one */
   wakeGraceMs: number;
   /** an open, focused app keeps a home up this long at most without use */
@@ -55,7 +62,7 @@ export interface RailSettings {
   costReserveStarts: number;
 }
 export const DEFAULT_RAILS: RailSettings = {
-  minUptimeMs: 6 * MINUTE, minIdleMs: 3 * MINUTE, wakeGraceMs: 3 * MINUTE, focusCapMs: 30 * MINUTE, routineGuardMs: 5 * MINUTE,
+  minUptimeMs: 6 * MINUTE, minIdleMs: 3 * MINUTE, engagedIdleMs: 30 * MINUTE, engagedUses: 3, maxNoInputMs: 2 * HOUR, wakeGraceMs: 3 * MINUTE, focusCapMs: 30 * MINUTE, routineGuardMs: 5 * MINUTE,
   maxStartsPerHour: 4, maxStartsPerDay: 16, flapMs: 10 * MINUTE, maxMinIdleMs: 2 * HOUR,
   breakerFailures: 3, breakerWindowMs: 30 * MINUTE, breakerBaseMs: 5 * MINUTE, breakerMaxMs: 2 * HOUR, poolSoftShare: 0.5, hardCapShare: 0.9,
   costReserveStarts: 5,
@@ -80,6 +87,21 @@ export function flaps(memory: PowerMemory, now: number, rails: RailSettings): nu
 }
 
 export const countSince = (list: readonly number[], from: number) => list.reduce((n, t) => n + (t > from ? 1 : 0), 0);
+
+/** the person used the home at `at` (the home's last activity, read about once a minute): kept as its minute, for the last hour */
+export function noteUse(memory: PowerMemory, at: number, now: number) {
+  const uses = (memory.uses ?? []).filter(t => t > now - HOUR && t <= now + MINUTE), minute = Math.floor(at / MINUTE) * MINUTE;
+  if (at > now - HOUR && at <= now + MINUTE && !uses.includes(minute)) uses.push(minute);
+  memory.uses = uses.sort((a, b) => a - b).slice(-60);
+}
+/** using it in earnest: several separate minutes of use in the last hour */
+export const engaged = (memory: PowerMemory, now: number, rails: RailSettings) => countSince(memory.uses ?? [], now - HOUR) >= rails.engagedUses;
+/** the shortest idle before a stop: longer while someone has been using the home, doubled per flap, never past maxMinIdleMs
+ *  unless the base itself is longer */
+export function minIdleFor(memory: PowerMemory, now: number, rails: RailSettings): { ms: number; base: number } {
+  const base = engaged(memory, now, rails) ? Math.max(rails.minIdleMs, rails.engagedIdleMs) : rails.minIdleMs;
+  return { ms: Math.min(Math.max(rails.maxMinIdleMs, base), base * 2 ** flaps(memory, now, rails)), base };
+}
 
 export interface StopContext {
   now: number;
@@ -140,12 +162,12 @@ export function stopRefusal(c: StopContext, rails: RailSettings = DEFAULT_RAILS)
   if (now - c.awakeSince < rails.minUptimeMs) return no("min_uptime", c.awakeSince + rails.minUptimeMs);
   if (c.wakeRequestedAt !== null && now - c.wakeRequestedAt < rails.wakeGraceMs) return no("wake_grace", c.wakeRequestedAt + rails.wakeGraceMs);
   if (c.focusSince !== null && c.busy.includes("focus")) {
-    const until = Math.max(c.focusSince, c.lastActivityAt ?? 0) + rails.focusCapMs;
+    const until = Math.max(c.focusSince, c.lastActivityAt ?? 0) + Math.min(rails.focusCapMs, rails.maxNoInputMs);
     if (now < until) return no("focused", Math.min(until, now + 5 * MINUTE));
   }
-  const minIdle = Math.min(rails.maxMinIdleMs, rails.minIdleMs * 2 ** flaps(memory, now, rails));
+  const { ms: minIdle, base } = minIdleFor(memory, now, rails);
   const idleFrom = Math.max(c.lastActivityAt ?? 0, c.awakeSince);
-  if (now - idleFrom < minIdle) return no(minIdle > rails.minIdleMs ? "flap_backoff" : "min_idle", idleFrom + minIdle);
+  if (now - idleFrom < minIdle) return no(minIdle > base ? "flap_backoff" : base > rails.minIdleMs ? "in_use" : "min_idle", idleFrom + minIdle);
   if (c.nextRunAt !== null && c.nextRunAt - now <= rails.routineGuardMs) return no("routine_due", c.nextRunAt + MINUTE);
   if (memory.breaker && memory.breaker.openUntil > now) return no("starts_failing", memory.breaker.openUntil);
   const hourStarts = countSince(memory.starts, now - HOUR), dayStarts = countSince(memory.starts, now - DAY);

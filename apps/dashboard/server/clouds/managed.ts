@@ -62,6 +62,8 @@ export interface ManagedCloud {
   /** apply a pending plan change now instead of at the next idle sleep */
   resizeNow(cloud: StoredCloud): void;
   resizing(cloud: StoredCloud): boolean;
+  /** its owner has the dashboard open on it: a hint that keeps an awake home up a while, never a wake */
+  noteView?(cloud: StoredCloud): void;
   /** an operator hold: nothing is deleted while it is set */
   setHold(cloud: StoredCloud, hold: boolean): void;
   /** what the provider measured for the cloud's current machine, this month or from `from` until now */
