@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useCloud } from "../data/cloud";
 import type { CloudDesktop, DesktopTier, PlanCatalog, Selection } from "../data/contracts";
-import { dollars, planTotal, specLine } from "../data/pricing";
+import { dollars, priceCart, specLine } from "../data/pricing";
 import { useSession } from "../data/session";
 import { ApiError } from "../lib/api";
 import { longDate } from "../lib/format";
-import { Modal } from "../ui/controls";
-import { Button, cx } from "../ui/kit";
+import { Choice, Modal } from "../ui/controls";
+import { Button } from "../ui/kit";
 
 const UNDO_MS = 3000;
 const money = (n: number) => dollars(n, !Number.isInteger(Math.round(n * 100) / 100));
@@ -23,10 +23,11 @@ export function ResizeDialog({ open, onClose, cloud, catalog, focus }: { open: b
   const { billing, changeCharge, changePlan } = useCloud();
   const { toast } = useSession();
   const sub = billing?.subscription ?? null;
+  const [to, setTo] = useState<DesktopTier["id"]>(cloud.tier);
   const [quotes, setQuotes] = useState<Record<string, Quote>>({});
-  const [pending, setPending] = useState<string | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [pending, setPending] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectionFor = (id: DesktopTier["id"]): Selection | null => (sub ? { ...sub.selection, desktop: id, size: null } : null);
 
@@ -40,78 +41,81 @@ export function ResizeDialog({ open, onClose, cloud, catalog, focus }: { open: b
     );
   };
 
-  // every price is in before anyone clicks, so the button can say exactly what it charges
+  // every price is in before anyone picks, so the button can say exactly what it charges
   useEffect(() => {
-    if (!open || !sub) return;
-    setErrors({}); setPending(null);
-    for (const d of catalog.desktops) if (d.id !== cloud.tier) quote(d.id);
+    if (!open) return;
+    setTo(focus ?? cloud.tier); setError(""); setPending(false);
+    if (sub) for (const d of catalog.desktops) if (d.id !== cloud.tier) quote(d.id);
   }, [open, sub?.id, cloud.tier]);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
-  const apply = async (d: DesktopTier) => {
-    const selection = selectionFor(d.id), q = quotes[d.id];
-    setPending(null);
-    if (!selection || q?.state !== "ready") return;
-    setBusy(d.id);
+  const cancelPending = () => { if (timer.current) { clearTimeout(timer.current); timer.current = null; } setPending(false); };
+  const pick = (id: DesktopTier["id"]) => { if (busy) return; cancelPending(); setError(""); setTo(id); };
+
+  const target = catalog.desktops.find((d) => d.id === to) ?? null;
+  const changed = to !== cloud.tier && target !== null;
+  const q = changed ? quotes[to] : undefined;
+  const shownError = error || (q?.state === "error" ? q.message : "");
+
+  const apply = async (d: DesktopTier, usd: number) => {
+    const selection = selectionFor(d.id);
+    setPending(false);
+    if (!selection) return;
+    setBusy(true);
     try {
-      await changePlan(selection, q.usd);
+      await changePlan(selection, usd);
       toast(`switching ${cloud.name} to ${d.name}. it restarts once, in under a minute.`);
       onClose();
     } catch (e) {
-      setErrors((x) => ({ ...x, [d.id]: plainError(e) }));
+      setError(plainError(e));
       if (e instanceof ApiError && e.code === "price_changed") quote(d.id);
-    } finally { setBusy(null); }
+    } finally { setBusy(false); }
   };
-  const press = (d: DesktopTier) => {
-    if (timer.current) clearTimeout(timer.current);
-    if (pending === d.id) { timer.current = null; setPending(null); return; }
-    setErrors((x) => ({ ...x, [d.id]: "" }));
-    setPending(d.id);
-    timer.current = setTimeout(() => { timer.current = null; void apply(d); }, UNDO_MS);
+  const press = () => {
+    if (!target || !changed) return;
+    if (pending) { cancelPending(); return; }
+    if (q?.state !== "ready") { setError(""); quote(target.id); return; }
+    setError("");
+    setPending(true);
+    const usd = q.usd;
+    timer.current = setTimeout(() => { timer.current = null; void apply(target, usd); }, UNDO_MS);
   };
-  const close = () => { if (timer.current) { clearTimeout(timer.current); timer.current = null; } setPending(null); onClose(); };
+  const close = () => { cancelPending(); onClose(); };
+
+  const label = !target ? "" : busy ? "switching" : pending ? "undo" : shownError && q?.state !== "ready" ? "try again"
+    : q?.state === "ready" ? `switch to ${target.name} · ${q.usd > 0 ? `${money(q.usd)} today` : "nothing today"}` : `switch to ${target.name}`;
 
   return (
-    <Modal open={open} onClose={close} title={`resize ${cloud.name}`} wide>
-      <p>it restarts once, usually in under a minute. bots, files and logins come along. a bigger size charges the difference for the rest of this period today; each button says how much.</p>
-      <ul className="mt-4 flex flex-col gap-1">
-        {catalog.desktops.map((d) => {
-          const current = d.id === cloud.tier;
-          const selection = selectionFor(d.id);
-          const total = selection ? planTotal(catalog, selection) : null;
-          const q = quotes[d.id];
-          const error = errors[d.id] || (q?.state === "error" ? q.message : "");
-          const waiting = pending === d.id;
-          const label = busy === d.id ? "switching" : waiting ? "undo" : error ? "try again" : q?.state === "ready" ? (q.usd > 0 ? `switch to ${d.name} · ${money(q.usd)} today` : `switch to ${d.name} · nothing today`) : `switch to ${d.name}`;
-          return (
-            <li key={d.id} className={cx("grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-3 rounded-[18px] px-4 py-3.5", (current || focus === d.id) && "bg-btn")}>
-              <div className="min-w-0">
-                <p className="text-15 text-ink">{d.name}{current && <span className="ms-2 text-13 text-ink-3">current</span>}</p>
-                <p className="num mt-0.5 text-13 text-ink-3">{specLine(d)}{d.priority ? ", priority wake" : ""}</p>
-              </div>
-              {total && (
-                <div className="text-end">
-                  <p className="num text-15 text-ink">{total.amount}<span className="text-ink-3">{total.unit}</span></p>
-                  <p className="text-12 text-ink-3">{total.note}</p>
-                </div>
-              )}
-              {!current && (
-                <div className="col-span-2 flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
-                  {error && <p role="alert" className="me-auto text-13 text-bad">{error}</p>}
-                  {waiting && <p role="status" className="me-auto text-13 text-ink-2">switching to {d.name} in a moment</p>}
-                  <Button size="sm" variant={!waiting && focus === d.id ? "primary" : "outline"} className="max-sm:w-full"
-                    disabled={!sub || busy !== null || (pending !== null && !waiting) || (!error && q?.state !== "ready")}
-                    aria-busy={busy === d.id || q?.state === "loading"}
-                    onClick={() => (error && !waiting ? (q?.state === "ready" ? press(d) : quote(d.id)) : press(d))}>
-                    {label}
-                  </Button>
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-      {sub && <p className="mt-3 text-13 text-ink-3">from {longDate(sub.currentPeriodEnd ?? 0)} you pay the new size's price above.</p>}
+    <Modal open={open} onClose={close} title={`resize ${cloud.name}`} wide
+      footer={changed ? (
+        <div className="flex w-full flex-wrap items-center justify-end gap-x-3 gap-y-2">
+          {shownError && !pending && <p role="alert" className="me-auto text-13 text-bad">{shownError}</p>}
+          {pending && <p role="status" className="me-auto text-13 text-ink-2">switching to {target?.name} in a moment</p>}
+          <Button variant={pending ? "outline" : "primary"} className="max-sm:w-full"
+            disabled={!sub || busy || (q?.state === "loading" && !pending)}
+            aria-busy={busy || q?.state === "loading"}
+            onClick={press}>
+            {label}
+          </Button>
+        </div>
+      ) : undefined}>
+      <p>it restarts once, usually in under a minute. bots, files and logins come along. a bigger size charges the difference for the rest of this period today.</p>
+      <fieldset className="mt-4 min-w-0">
+        <legend className="sr-only">size</legend>
+        <div className="flex flex-col gap-1">
+          {catalog.desktops.map((d) => {
+            const selection = selectionFor(d.id);
+            const perMonth = selection ? priceCart(selection, catalog).perMonth : null;
+            return (
+              <Choice key={d.id} name="resize" value={d.id} checked={to === d.id} onChange={() => pick(d.id)}
+                title={<>{d.name}{d.id === cloud.tier && <span className="ms-2 text-13 text-ink-3">current</span>}</>}
+                detail={`${specLine(d)}${d.priority ? ", priority wake" : ""}`}
+                aside={perMonth !== null ? <>{money(perMonth)}<span className="text-ink-3">/mo</span></> : null} />
+            );
+          })}
+        </div>
+      </fieldset>
+      {sub && <p className="mt-3 text-13 text-ink-3">prices are your whole plan per month. from {longDate(sub.currentPeriodEnd ?? 0)} you pay the new one.</p>}
     </Modal>
   );
 }

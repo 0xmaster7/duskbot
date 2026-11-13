@@ -86,11 +86,11 @@ export function AccountPage() {
     finally { setBusy(null); }
   };
   const close = () => { if (!busy) { setConfirm(null); setConfirmError(null); setConfirmEmail(""); setBlockers(null); setDestroyDesktopsNow(false); setConfirmDestroy(false); } };
-  if (!account) return <div className="max-w-[640px]"><PageHeader title="account" />{cloud.error ? <section><p role="alert" className="text-13 text-bad">could not load your account. {cloud.error}</p><Button className="mt-4" size="sm" onClick={cloud.refresh}>retry</Button></section> : <div className="flex flex-col gap-4" aria-busy="true" aria-label="loading account"><Skeleton className="h-52 !rounded-card" /><Skeleton className="h-64 !rounded-card" /><Skeleton className="h-60 !rounded-card" /></div>}</div>;
+  if (!account) return <div className="mx-auto max-w-[720px]"><PageHeader title="account" />{cloud.error ? <section><p role="alert" className="text-13 text-bad">could not load your account. {cloud.error}</p><Button className="mt-4" size="sm" onClick={cloud.refresh}>retry</Button></section> : <div className="flex flex-col gap-4" aria-busy="true" aria-label="loading account"><Skeleton className="h-52 !rounded-card" /><Skeleton className="h-64 !rounded-card" /><Skeleton className="h-60 !rounded-card" /></div>}</div>;
   const profile = account.profile;
   const displayName = profile.name || profile.email.split("@")[0] || profile.email;
   const prefs = notifications ?? account.notifications;
-  return <div className="min-w-0 max-w-[640px]">
+  return <div className="mx-auto min-w-0 max-w-[720px]">
     <PageHeader title="account" />
     <section aria-labelledby="profile-title">
       <SectionTitle id="profile-title">profile</SectionTitle>

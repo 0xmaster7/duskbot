@@ -37,11 +37,10 @@ function computerLine(c: ComputerReport, now: number): string {
 
 export function ComputerRow({ c, detail, now }: { c: ComputerReport; detail: WorkspaceDetail; now: number }) {
   const bot = detail.report?.bots?.find((b) => b.id === c.botId) ?? null;
-  const mem = c.memoryBytes !== null && c.memoryLimitBytes ? (c.memoryBytes / c.memoryLimitBytes) * 100 : null;
   const name = computerName(c);
   const sleepy = c.state !== "running" && c.state !== "starting";
   return (
-    <li className="grid grid-cols-[minmax(0,1fr)_110px_200px_auto] items-center gap-4 py-3 max-md:grid-cols-[minmax(0,1fr)_auto]">
+    <li className="grid grid-cols-[minmax(0,1fr)_110px_auto] items-center gap-4 py-3 max-md:grid-cols-[minmax(0,1fr)_auto]">
       <div className="flex min-w-0 items-center gap-3">
         {bot ? <BotMascot bot={bot} size={30} mood={sleepy ? "sleeping" : undefined} /> : <Mascot color={COMPUTER_COLOURS[pastelIndex(c.id)]} size={30} state={sleepy ? "sleeping" : "idle"} />}
         <div className="min-w-0">
@@ -50,10 +49,6 @@ export function ComputerRow({ c, detail, now }: { c: ComputerReport; detail: Wor
         </div>
       </div>
       <div className="max-md:hidden"><StatePill state={c.state} /></div>
-      <div className="min-w-0 max-md:hidden">
-        {c.state !== "missing" && <div className="num truncate text-13 text-ink-2">{c.memoryBytes !== null ? `${bytes(c.memoryBytes)}${c.memoryLimitBytes ? ` of ${bytes(c.memoryLimitBytes, 0)}` : ""}` : c.state === "running" ? "reading memory" : "using no memory"}{c.state === "running" && c.cpuPercent !== null && <span className="text-ink-4"> · {percent(c.cpuPercent)} cpu</span>}</div>}
-        {mem !== null && <Bar value={mem} className="mt-2" label={`${name} memory used`} />}
-      </div>
       <div className="flex justify-end">
         {c.state === "missing"
           ? <Button size="sm" onClick={() => openApp(c.botId ? appLink.bot(c.botId) : appLink.app)} aria-label={`set up ${name} in the app`}>set up</Button>
@@ -100,7 +95,10 @@ export function MachineView({ detail, now, region }: { detail: WorkspaceDetail; 
       <Card aria-labelledby="computers-title">
         <SectionTitle id="computers-title" action={<span className="num text-13 text-ink-3">{running} running</span>}>bot computers</SectionTitle>
         {computers?.computers.length ? (
-          <ul className="">{computers.computers.map((c) => <ComputerRow key={c.id} c={c} detail={detail} now={now} />)}</ul>
+          <>
+            <ul className="">{computers.computers.map((c) => <ComputerRow key={c.id} c={c} detail={detail} now={now} />)}</ul>
+            <p className="num mt-2 text-13 text-ink-3">they all share this machine: {percent(m.cpu.percent)} cpu, {bytes(m.memory.usedBytes)} of {bytes(m.memory.totalBytes)} memory in use.</p>
+          </>
         ) : (
           <div className="flex items-center gap-4 py-2">
             <Mascot color="silver" size={36} state="sleeping" />
@@ -128,7 +126,7 @@ export function MachineView({ detail, now, region }: { detail: WorkspaceDetail; 
           <SectionTitle>services</SectionTitle>
           <ul className="">
             {m.services.map((s) => <ServiceRow key={s.id} id={s.id} name={s.name} tone={s.state === "running" ? "text-good" : s.state === "stopped" ? "text-bad" : "text-ink-4"} state={s.state === "running" ? "running" : s.state === "stopped" ? "stopped" : "unknown"} />)}
-            {link && <ServiceRow id="phone" name="phone link" tone={link.mode === "off" ? "text-ink-4" : link.connected ? "text-good" : "text-warn"} state={link.mode === "off" ? "off" : link.connected ? `${LINK[link.mode]}${link.since ? ` · since ${ago(link.since, now)}` : ""}` : "reconnecting"} />}
+            {link && <ServiceRow id="phone" name="phone link" tone={link.mode === "off" ? "text-ink-4" : link.connected ? "text-good" : "text-warn"} state={link.mode === "off" ? "off" : link.connected ? LINK[link.mode] : "reconnecting"} />}
           </ul>
         </Card>
       </div>
