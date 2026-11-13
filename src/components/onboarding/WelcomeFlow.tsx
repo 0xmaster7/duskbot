@@ -1,20 +1,27 @@
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import { setEmailGateDone, track } from "@/lib/analytics";
+import { openExternalLink } from "@/lib/app-links";
 import { cn } from "@/lib/cn";
+import { t } from "@/lib/i18n";
 import { chiefFor, chiefStepFits, createChiefPatch, myDefaultBot, stageIntro, useViewerEmail } from "@/lib/default-bot";
-import { BEAT_ORDER, completionPatch, firstRunPatch, markWelcomeFinished, resumeBeat, showWelcome, type BeatId } from "@/lib/onboarding";
+import { completionPatch, DEFAULT_ADMIN_ORIGIN, firstRunPatch, markWelcomeFinished, resumeBeat, showWelcome, type BeatId } from "@/lib/onboarding";
 import { clearWelcomeDraft, readWelcomeDraft, saveWelcomeDraft } from "@/lib/welcome-draft";
 import { movable } from "@/lib/bot-move";
+import { openPlaceSetup, usePlaceSetupOpen } from "@/lib/place-setup";
 import { localSetupImport } from "@/lib/setup-import";
 import { api, useStore } from "@/state/store";
 import { BringBotsView, useBotMove } from "../BringBots";
-import { engineReady } from "../EngineLibrary";
+import { openConnectApps } from "../connect-apps/open";
 import { GrokMoveDialog } from "../lazy-screens";
-import { freeFallback } from "../../../shared/ai-ranking";
-import { SignInStep } from "./SignInStep";
-import { aiLine, useWelcomeAi } from "./welcome-ai";
+import { AccountStep } from "./AccountStep";
+import { AiStep } from "./AiStep";
+import { funnelSteps, nextStep, previousStep, skipsAi, type FunnelStep } from "./funnel";
+import { funnelAccount, type FunnelAccountState } from "./funnel-account";
+import { FunnelBar, MailStep, PhoneStep, PlaceStep, WelcomeStep } from "./FunnelSteps";
+import { useWelcomeAi } from "./welcome-ai";
 import { localDesktopPage } from "./WelcomeGate";
 import "../../styles/onboarding.css";
+import "../../styles/place-setup.css";
 
 type Config = ReturnType<typeof useStore>["state"]["config"];
 
@@ -50,12 +57,9 @@ export function trapTab(event: ReactKeyboardEvent<HTMLElement>, root: HTMLElemen
   }
 }
 
-/** How long the first run waits for the bots and the AIs to be listed before it goes to the chat anyway. */
-export const AI_WAIT_MS = 4_000;
-
-/** The first run lands in the chat, where Dusk (made the Chief of Staff where no other bot is one) greets the person
- * and asks for what is still missing. Before it, only what can't happen there: bots another app keeps on this computer,
- * and a sign-in when nothing at all can answer the bot yet. */
+/** The first run, one calm screen at a time: the welcome, a dusk bot account, where the bots live, an AI, things to
+ * bring in, the phone. It ends in Dusk's chat (Dusk made the Chief of Staff where no other bot is one), where Dusk
+ * greets and asks for whatever is still missing. An AI the person already uses (Claude, a ChatGPT plan) skips its step. */
 export function WelcomeFlow({
   onDone,
   replay = false,
@@ -70,16 +74,39 @@ export function WelcomeFlow({
   const { state, dispatch } = useStore();
   const maus = myDefaultBot(state.bots, useViewerEmail());
   const keepsDraft = !replay && !embedded;
-  const [beat] = useState<BeatId>(() => resumeBeat(BEAT_ORDER, initialBeat ?? (keepsDraft ? readWelcomeDraft()?.beat : undefined)));
   const root = useRef<HTMLDivElement>(null);
   const finishing = useRef(false);
   const record = useRef(state.config?.onboarding);
   record.current = state.config?.onboarding;
 
+  // the account: asked once where this window can sign in; a step only for someone not signed in yet
+  const account = useMemo(() => (embedded ? null : funnelAccount()), [embedded]);
+  const [known, setKnown] = useState<FunnelAccountState | null>(null);
+  const firstKnown = useRef<FunnelAccountState | null>(null);
   useEffect(() => {
-    track("onboarding_step", { step: beat, replay });
-    if (keepsDraft && !finishing.current) saveWelcomeDraft({ beat });
-  }, [beat, replay, keepsDraft]);
+    if (!account) return;
+    let alive = true;
+    const read = () => void account.state().then((next) => {
+      if (!alive) return;
+      firstKnown.current ??= next;
+      setKnown(next);
+    }, () => {});
+    read();
+    const stop = account.onChange(read);
+    return () => { alive = false; stop(); };
+  }, [account]);
+  const desktop = !embedded && localDesktopPage() && window.duskDesktop?.remoteClient?.active !== true;
+  const steps = funnelSteps({ account: Boolean(account) && !firstKnown.current?.signedIn, desktop });
+
+  const [at, setAt] = useState<FunnelStep>(() => resumeBeat(steps, initialBeat ?? (keepsDraft ? readWelcomeDraft()?.beat : undefined)));
+  const [from, setFrom] = useState<"next" | "back">("next");
+  const tested = useWelcomeAi(state.instances);
+  const skipAi = skipsAi(tested);
+
+  useEffect(() => {
+    track("onboarding_step", { step: at, replay });
+    if (keepsDraft && !finishing.current) saveWelcomeDraft({ beat: at });
+  }, [at, replay, keepsDraft]);
 
   // A Cloud sheet opened over the welcome never switches the window away from it (CloudAddDialog).
   useEffect(() => (embedded ? undefined : showWelcome()), [embedded]);
@@ -87,15 +114,18 @@ export function WelcomeFlow({
     if (!replay && !embedded) void nameFromComputer(state.config, (config) => dispatch({ type: "configStatus", config }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // each step's title takes focus, so a screen reader hears where it is
   useEffect(() => {
-    root.current?.focus({ preventScroll: true });
-  }, []);
+    const title = root.current?.querySelector<HTMLElement>("#welcome-title");
+    if (title && !root.current?.querySelector("[autofocus]")) title.focus({ preventScroll: true });
+    else if (!title) root.current?.focus({ preventScroll: true });
+  }, [at]);
 
   const finish = useCallback(
     async (reason: "completed" | "skipped", botId: string | null) => {
       if (finishing.current) return;
       finishing.current = true;
-      track("onboarding_completed", { reason, at: beat, replay });
+      track("onboarding_completed", { reason, at, replay });
       setEmailGateDone("submitted");
       if (!replay && !embedded) markWelcomeFinished();
       if (keepsDraft) clearWelcomeDraft();
@@ -107,10 +137,10 @@ export function WelcomeFlow({
       } catch {
       }
     },
-    [beat, dispatch, onDone, replay, embedded, keepsDraft],
+    [at, dispatch, onDone, replay, embedded, keepsDraft],
   );
 
-  // where it fits, Dusk becomes the Chief of Staff and greets in its chat, as grok's default bot does, with no screen to ask
+  // where it fits, Dusk becomes the Chief of Staff and greets in its chat, with no screen to ask
   const toChat = useCallback(() => {
     if (finishing.current) return;
     const chief = Boolean(maus && chiefStepFits(state.bots, maus));
@@ -120,75 +150,113 @@ export function WelcomeFlow({
     void finish(botId ? "completed" : "skipped", botId);
   }, [maus, state.bots, dispatch, finish, replay]);
 
-  // Escape goes on: past the bots from another app, then to the chat
-  const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "Escape" && showMove) {
-      event.preventDefault();
-      if (move.step.kind !== "moving" && !grokOpen) setMoveSettled(true);
+  const go = useCallback((step: FunnelStep | null, direction: "next" | "back") => {
+    if (!step) { if (direction === "next") toChat(); return; }
+    setFrom(direction);
+    setAt(step);
+  }, [toChat]);
+  const next = useCallback(() => go(nextStep(steps, at, skipAi), "next"), [go, steps, at, skipAi]);
+  const back = previousStep(steps, at);
+
+  // signing in in the browser comes back here by itself
+  const signedOutSeen = useRef(false);
+  useEffect(() => {
+    if (at !== "account" || !known) return;
+    if (!known.signedIn) signedOutSeen.current = true;
+    else if (signedOutSeen.current) { signedOutSeen.current = false; next(); }
+  }, [at, known, next]);
+
+  // dusk cloud's sheet opens over the funnel, which goes on to the AI once it is closed
+  const [cloudOpen, setCloudOpen] = useState(false);
+  const cloudSeen = useRef(false);
+  useEffect(() => {
+    if (!cloudOpen) return;
+    if (state.cloudAdd) { cloudSeen.current = true; return; }
+    if (!cloudSeen.current) return;
+    cloudSeen.current = false;
+    setCloudOpen(false);
+    if (at === "place") next();
+  }, [cloudOpen, state.cloudAdd, at, next]);
+  const placeSheet = usePlaceSetupOpen();
+  const chooseCloud = () => {
+    track("onboarding_cloud", { action: "open" });
+    if (window.duskDesktop?.cloudAccount && window.duskDesktop.remoteClient?.active !== true) {
+      dispatch({ type: "openCloudAdd", source: "app_onboarding" });
+      setCloudOpen(true);
       return;
     }
+    void openExternalLink(`${DEFAULT_ADMIN_ORIGIN}/pricing`).catch(() => {});
+    next();
+  };
+
+  // bots another agent app keeps on this computer, offered on the bring step of the desktop app's own first run
+  const offersMove = !replay && desktop && localSetupImport(state.config?.cloudHome === true);
+  const move = useBotMove({ look: offersMove });
+  const [grokOpen, setGrokOpen] = useState(false);
+  const moveFound = Boolean(move.plan && (movable(move.plan) || move.plan.grokWaiting.length));
+
+  const overlayOpen = Boolean(state.cloudAdd) || Boolean(placeSheet) || grokOpen;
+  const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Escape") {
-      if (event.defaultPrevented) return;
+      if (event.defaultPrevented || overlayOpen) return;
       event.preventDefault();
-      toChat();
+      // Escape is "not now": past an optional step, never past an account the app needs
+      if (at === "account" && known?.required) return;
+      if (at === "welcome" || at === "account" || at === "place" || move.step.kind === "moving") return;
+      next();
       return;
     }
     trapTab(event, root.current);
   };
 
-  // bots another agent app keeps on this computer are offered first, on the desktop app's own first run only
-  const offersMove = !replay && !embedded && localDesktopPage() && localSetupImport(state.config?.cloudHome === true);
-  const move = useBotMove({ look: offersMove });
-  const [moveSettled, setMoveSettled] = useState(!offersMove);
-  const [grokOpen, setGrokOpen] = useState(false);
-  const moveFound = Boolean(move.plan && (movable(move.plan) || move.plan.grokWaiting.length));
-  useEffect(() => {
-    if (move.plan && !moveFound) setMoveSettled(true);
-  }, [move.plan, moveFound]);
-  useEffect(() => {
-    if (!moveFound || moveSettled) return;
-    track("onboarding_step", { step: "bring_bots", replay });
-  }, [moveFound, moveSettled, replay]);
-  const showMove = offersMove && !moveSettled;
+  let body: ReactNode;
+  switch (at) {
+    case "welcome":
+      body = <WelcomeStep onStart={next} />;
+      break;
+    case "account":
+      body = account ? <AccountStep account={account} known={known} onDone={next} onSkip={known?.required ? null : next} /> : null;
+      break;
+    case "place":
+      body = <PlaceStep onMac={next} onCloud={chooseCloud} onServer={() => openPlaceSetup("server")} />;
+      break;
+    case "ai":
+      body = <AiStep tested={tested} onNext={next} onLater={next} />;
+      break;
+    case "bring":
+      body = moveFound && move.plan && move.step.kind !== "nothing" ? (
+        <div className="mx-auto my-auto flex w-full flex-col items-center px-6 pb-12 pt-20">
+          <BringBotsView plan={move.plan} step={move.step} bot={maus} variant="screen" onBring={() => void move.bring()}
+            onSkip={next} onContinue={next} onGrok={() => setGrokOpen(true)} />
+          {(move.step.kind === "offer" || move.step.kind === "error") && (
+            <button type="button" onClick={() => openConnectApps()} className="mt-1 min-h-9 rounded-full px-3 text-[13px] leading-[18px] text-ink-secondary hover:text-ink">
+              {t("funnel.mail.too")}
+            </button>
+          )}
+        </div>
+      ) : <MailStep onConnect={() => openConnectApps()} onNext={next} />;
+      break;
+    case "phone":
+      body = <PhoneStep onNext={next} />;
+      break;
+  }
 
-  // the AI: a sign-in screen only when nothing at all can answer, else (or once one can) straight to the chat
-  const tested = useWelcomeAi(state.instances);
-  const backup = state.instances.some((instance) => engineReady(instance) && freeFallback(instance));
-  const line = aiLine(tested, backup);
-  const [waited, setWaited] = useState(false);
-  useEffect(() => {
-    const timer = setTimeout(() => setWaited(true), AI_WAIT_MS);
-    return () => clearTimeout(timer);
-  }, []);
-  // the bots and the AIs are known before anything is decided; a server that never lists them still reaches the chat
-  const known = Boolean(state.hydrated) && state.instances.length > 0;
-  const askNow = known && line === "connect";
-  const ready = !showMove && (known ? !askNow : waited);
-  useEffect(() => {
-    if (ready) toChat();
-  }, [ready, toChat]);
-
+  const index = steps.indexOf(at);
   return (
     <div
       ref={root}
       role="dialog"
       aria-modal
-      aria-labelledby={showMove && moveFound ? "bot-move-title" : askNow ? "welcome-title" : undefined}
+      aria-labelledby={at === "bring" && moveFound ? "bot-move-title" : "welcome-title"}
       tabIndex={-1}
       onKeyDown={onKeyDown}
-      data-welcome={showMove ? "bring-bots" : askNow ? "sign-in" : "chat"}
+      data-welcome={at}
       className={cn("welcome-screen flex overflow-y-auto bg-app outline-none", embedded ? "relative h-full w-full" : "fixed inset-0 z-50")}
     >
-      {!showMove ? askNow ? <SignInStep bot={maus} tested={tested} onLater={toChat} />
-        : <div data-welcome-looking="" aria-busy="true" className="min-h-full w-full" />
-        : moveFound && move.plan ? (
-          <div key={move.step.kind} className="onboarding-step-in relative flex min-h-full w-full flex-col items-center px-4">
-            <div className="my-auto flex w-full flex-col items-center pb-10 pt-16">
-              <BringBotsView plan={move.plan} step={move.step} bot={maus} variant="screen" onBring={() => void move.bring()}
-                onSkip={() => setMoveSettled(true)} onContinue={() => setMoveSettled(true)} onGrok={() => setGrokOpen(true)} />
-            </div>
-          </div>
-        ) : <div data-welcome-looking="" aria-busy="true" className="min-h-full w-full" />}
+      {at !== "welcome" && <FunnelBar at={index} count={steps.length} onBack={back ? () => go(back, "back") : null} />}
+      <div key={at} data-from={from} className="place-step relative flex min-h-full w-full flex-col">
+        {body}
+      </div>
       {grokOpen && <GrokMoveDialog onClose={() => { setGrokOpen(false); void move.look(); }} />}
     </div>
   );

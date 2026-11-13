@@ -1,20 +1,30 @@
 # Welcome flow
 
-The first run lands in Dusk's chat. Dusk greets in three short bubbles, looks
-around, follows up, and offers chips for what is still missing (an AI, email
-and calendar, the phone, dusk cloud). Under the chips, in small muted words, is
-the "help improve dusk bot" switch, on by default; it goes with the chips once
-the person writes. Only two things can come before the chat: bots another agent
-app keeps on this computer (desktop app only), and one sign-in screen when
-nothing at all can answer the bot yet ("Connect an AI and Dusk can start.",
-one pill, other ways, set up later). Signing in, or set up later, goes on to
-the chat. There is no job screen. Dusk becomes Chief only when there is no
-existing Chief.
+The first run is a funnel of calm, single screens with back and a progress
+bar: the welcome (with the "help improve dusk bot" switch, on by default and
+saved the moment it changes), a dusk bot account (Google or an emailed code;
+only where this window can sign in and isn't yet, and "continue without an
+account" only where the app works without one), where the bots live (this
+Mac, dusk cloud whose sheet opens over the funnel, or your own server), an AI
+(a grid of ChatGPT, Claude, Grok, Gemini, Cursor, GitHub Copilot, OpenRouter
+and a local model, more ways, and the free model when it is ready; skipped
+when a Claude account or a ChatGPT plan already answers), bringing bots from
+other apps or connecting email and calendar, and the phone (a QR code). It
+ends in Dusk's chat, where Dusk greets in three bubbles, follows up and offers
+chips for what is still missing. There is no job screen. Dusk becomes Chief
+only when there is no existing Chief. Where, how far and which step are in
+`src/components/onboarding/funnel.ts`. The packaged app's account gate
+(`src/components/account-gate`) still comes before the app itself, so there the
+funnel's account step is passed over.
+
+Headless walk (Nov 13 2026): `~/.playwright-mcp/funnel-sheet.png`, both cases
+(nothing signed in; Claude already signed in) on a fresh fixture with a fake
+desktop bridge and staged AI list.
 
 The current offline checks are:
 
 ```sh
-pnpm exec vitest run src/components/onboarding/WelcomeFlow.test.ts src/components/onboarding/WelcomeGate.test.ts src/components/onboarding/ConnectAi.test.ts src/components/HelperIntro.test.ts src/lib/default-bot.test.ts server/routes/helper-followup.test.ts electron/system-name.test.mjs src/components/CardHint.test.ts
+pnpm exec vitest run src/components/onboarding/WelcomeFlow.test.ts src/components/onboarding/WelcomeGate.test.ts src/components/onboarding/ConnectAi.test.ts src/components/onboarding/funnel.test.ts src/components/HelperIntro.test.ts src/lib/default-bot.test.ts server/routes/helper-followup.test.ts electron/system-name.test.mjs src/components/CardHint.test.ts
 ```
 
 They cover navigation, AI readiness and sign-in errors, talking-style saves,

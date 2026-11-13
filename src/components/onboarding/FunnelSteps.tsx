@@ -1,0 +1,215 @@
+// The first-run funnel's frame (back, progress, a step that slides in from where it was reached) and its simpler steps:
+// the welcome, where bots live, bringing things in, and the phone.
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { QRCodeSVG } from "qrcode.react";
+import { ChevronLeft, Check } from "../../icons";
+import { cn } from "@/lib/cn";
+import { t } from "@/lib/i18n";
+import { useHelpImprove } from "@/lib/help-improve";
+import { minutesLeft } from "@/lib/pairing-time";
+import { companionBridge } from "@/lib/companion-bridge";
+import { requireUserPresence } from "@/lib/user-presence";
+import { api } from "@/state/store";
+import type { MobileDevice, MobilePairingRequest, MobilePairingResponse } from "../../../shared/mobile-link";
+import { MausAvatar } from "../Avatar";
+import { usePrefersReducedMotion } from "../mascot-clock";
+import { Art, type ArtName } from "../ui/Art";
+import { PlaceArt, type PlaceArtName } from "../ui/PlaceArt";
+import { Toggle } from "../ui/Toggle";
+import { DEFAULT_BOT_NAME } from "@/lib/default-bot";
+
+export const PRIMARY = "ui-button ui-button-pill ui-button-lg ui-button-primary w-[288px] max-w-full font-normal tracking-[0.14px]";
+export const QUIET = "min-h-11 rounded-full px-3 text-[13px] leading-[18px] text-ink-secondary transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none";
+/** A tonal choice: a soft fill, no outline, a deeper fill on hover and while chosen. */
+export const TILE = "rounded-2xl bg-ink/[0.035] transition-[background-color,transform] duration-150 ease-[ease] hover:bg-ink/[0.06] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none motion-reduce:active:scale-100";
+
+// the brand's lilac, a shade deeper than the pastel so the mark reads on the light canvas
+const BRAND_LILAC: [string, string, string] = ["#d0cefb", "#b99af2", "#d0cefb"];
+
+/** Back, and how far along the setup is, over every step but the first. */
+export function FunnelBar({ at, count, onBack }: { at: number; count: number; onBack: (() => void) | null }) {
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-14 items-center justify-center px-4">
+      {onBack && (
+        <button type="button" data-funnel-back="" onClick={onBack}
+          className="pointer-events-auto absolute start-4 inline-flex min-h-11 items-center gap-0.5 rounded-full py-1 pe-3 ps-1.5 text-[13px] leading-[18px] text-ink-secondary transition-colors hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none">
+          <ChevronLeft size={16} strokeWidth={1.5} aria-hidden="true" className="rtl:-scale-x-100" />{t("funnel.back")}
+        </button>
+      )}
+      <div role="progressbar" aria-label={t("funnel.progress")} aria-valuemin={1} aria-valuemax={count} aria-valuenow={at + 1}
+        aria-valuetext={t("funnel.progressAt", { at: String(at + 1), count: String(count) })} data-funnel-progress={`${at + 1}/${count}`}
+        className="flex items-center gap-1.5">
+        {Array.from({ length: count }, (_, index) => (
+          <span key={index} aria-hidden="true"
+            className={cn("h-1 rounded-full transition-[width,background-color] duration-300 ease-[var(--dusk-ease-quint)] motion-reduce:transition-none",
+              index === at ? "w-6 bg-ink" : index < at ? "w-3 bg-ink/45" : "w-3 bg-ink/12")} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** One step's page: a picture that explains it, the title, a short line, what to do, and the way on. */
+export function StepFrame({ art, title, sub, children, footer, wide = false }: {
+  art?: ReactNode; title: ReactNode; sub?: ReactNode; children?: ReactNode; footer?: ReactNode; wide?: boolean;
+}) {
+  return (
+    <div className={cn("mx-auto my-auto flex w-full flex-col items-center px-6 pb-12 pt-20 text-center", wide ? "max-w-[640px]" : "max-w-[520px]")}>
+      {art && <div aria-hidden="true" className="mb-6 flex h-16 items-end justify-center">{art}</div>}
+      <h1 id="welcome-title" tabIndex={-1} className="text-balance text-[28px] font-normal leading-[34px] tracking-[-0.02em] text-ink outline-none">{title}</h1>
+      {sub && <p className="mt-2 max-w-[420px] text-pretty text-[15px] leading-[22px] text-ink-secondary">{sub}</p>}
+      {children && <div className="mt-8 flex w-full flex-col items-center">{children}</div>}
+      {footer && <div className="mt-8 flex w-full flex-col items-center gap-2">{footer}</div>}
+    </div>
+  );
+}
+
+/** Pixel art from either set, at the step's size. */
+export function StepArt({ art, place }: { art?: ArtName; place?: PlaceArtName }) {
+  if (place) return <PlaceArt name={place} size={60} className="place-mark" />;
+  return art ? <Art name={art} size="xl" className="place-mark h-16" /> : null;
+}
+
+/** "help improve dusk bot": on by default, small and muted, saved the moment it is switched. */
+function ImproveSwitch() {
+  const improve = useHelpImprove();
+  const id = useId();
+  if (typeof improve.on !== "boolean") return null;
+  return (
+    <div data-help-improve="" className="flex max-w-[420px] items-start gap-2.5 text-start text-[12px] leading-4 text-ink-tertiary">
+      <Toggle checked={improve.on} aria-labelledby={id} onClick={() => void improve.set(!improve.on)} className="mt-px" />
+      <span id={id}>{t("helperIntro.improve")}</span>
+      {improve.failed && <span role="alert" className="sr-only">{t("settings.dataSharing.error")}</span>}
+    </div>
+  );
+}
+
+export function WelcomeStep({ onStart }: { onStart: () => void }) {
+  const reduced = usePrefersReducedMotion();
+  return (
+    <div className="flex min-h-full w-full flex-col">
+      <StepFrame
+        art={<MausAvatar color="purple" gradient={BRAND_LILAC} size={72} state="excited" animated={!reduced} label={DEFAULT_BOT_NAME} />}
+        title={t("funnel.welcome.title")}
+        sub={t("funnel.welcome.sub")}
+        footer={<button type="button" data-primary="" data-funnel-start="" autoFocus onClick={onStart} className={PRIMARY}>{t("funnel.welcome.start")}</button>}
+      />
+      <div className="flex justify-center px-6 pb-8"><ImproveSwitch /></div>
+    </div>
+  );
+}
+
+function PlaceChoice({ kind, art, title, sub, tag, onClick }: { kind: string; art: PlaceArtName; title: string; sub: string; tag: string; onClick: () => void }) {
+  return (
+    <button type="button" data-funnel-place={kind} onClick={onClick} className={cn(TILE, "flex min-w-0 flex-1 flex-col items-start gap-3 p-5 text-start")}>
+      <span className="flex w-full items-start justify-between gap-2">
+        <PlaceArt name={art} size={44} />
+        <span className="rounded-full bg-ink/[0.06] px-2 py-0.5 text-[12px] leading-4 text-ink-secondary">{tag}</span>
+      </span>
+      <span className="text-[15px] font-semibold leading-5 text-ink">{title}</span>
+      <span className="text-[13px] leading-[18px] text-ink-secondary">{sub}</span>
+    </button>
+  );
+}
+
+export function PlaceStep({ onMac, onCloud, onServer }: { onMac: () => void; onCloud: () => void; onServer: () => void }) {
+  return (
+    <StepFrame title={t("funnel.place.title")} sub={t("funnel.place.sub")} wide
+      footer={<button type="button" data-funnel-place="server" onClick={onServer} className={QUIET}>{t("funnel.place.server")}</button>}>
+      <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
+        <PlaceChoice kind="mac" art="mac" title={t("funnel.place.mac")} sub={t("funnel.place.macSub")} tag={t("funnel.place.macTag")} onClick={onMac} />
+        <PlaceChoice kind="cloud" art="cloud" title={t("funnel.place.cloud")} sub={t("funnel.place.cloudSub")} tag={t("funnel.place.cloudTag")} onClick={onCloud} />
+      </div>
+    </StepFrame>
+  );
+}
+
+/** Email and calendar, when nothing from another app is here to bring. */
+export function MailStep({ onConnect, onNext }: { onConnect: () => void; onNext: () => void }) {
+  return (
+    <StepFrame art={<StepArt art="mailbox" />} title={t("funnel.mail.title")} sub={t("funnel.mail.sub")}
+      footer={<>
+        <button type="button" data-primary="" data-funnel-mail="" onClick={onConnect} className={PRIMARY}>{t("funnel.mail.connect")}</button>
+        <button type="button" data-funnel-skip="" onClick={onNext} className={QUIET}>{t("funnel.skip")}</button>
+      </>} />
+  );
+}
+
+type Pairing = { kind: "idle" } | { kind: "busy" } | { kind: "offer"; offer: MobilePairingResponse; before: string[] } | { kind: "linked"; name: string };
+
+/** The phone: one press shows a QR code (after the desktop app checks someone is here), and it says when the phone joins. */
+export function PhoneStep({ onNext }: { onNext: () => void }) {
+  const [pairing, setPairing] = useState<Pairing>({ kind: "idle" });
+  const [error, setError] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  const live = useRef(true);
+  useEffect(() => () => { live.current = false; }, []);
+
+  const show = useCallback(async () => {
+    setPairing({ kind: "busy" });
+    setError(null);
+    try {
+      const { devices } = await api<{ devices: MobileDevice[] }>("/api/mobile/devices");
+      if (!(await requireUserPresence())) { if (live.current) setPairing({ kind: "idle" }); return; }
+      const request: MobilePairingRequest = {};
+      const companion = companionBridge();
+      if (companion) {
+        try { request.companion = (await companion.start()).endpoints; } catch {}
+      }
+      const offer = await api<MobilePairingResponse>("/api/mobile/pairing", { method: "POST", body: JSON.stringify(request) });
+      if (live.current) { setPairing({ kind: "offer", offer, before: devices.map((device) => device.id) }); setNow(Date.now()); }
+    } catch (cause) {
+      if (!live.current) return;
+      setError(cause instanceof Error && cause.message ? cause.message : t("settings.mobile.error"));
+      setPairing({ kind: "idle" });
+    }
+  }, []);
+
+  const waiting = pairing.kind === "offer" ? pairing : null;
+  useEffect(() => {
+    if (!waiting) return;
+    const clock = setInterval(() => setNow(Date.now()), 1_000);
+    const poll = setInterval(() => {
+      void api<{ devices: MobileDevice[] }>("/api/mobile/devices").then(({ devices }) => {
+        const added = devices.find((device) => !waiting.before.includes(device.id));
+        if (added && live.current) setPairing({ kind: "linked", name: added.name });
+      }, () => {});
+    }, 2_000);
+    return () => { clearInterval(clock); clearInterval(poll); };
+  }, [waiting]);
+
+  const expired = waiting ? waiting.offer.expiresAt <= now : false;
+  const code = waiting?.offer.code?.replace(/[^a-z0-9]/gi, "").match(/.{1,4}/g)?.join(" ");
+  return (
+    <StepFrame
+      art={pairing.kind === "offer" && !expired ? undefined : <StepArt place="phone" />}
+      title={pairing.kind === "linked" ? t("mobile.desktop.linked", { name: pairing.name }) : t("funnel.phone.title")}
+      sub={pairing.kind === "linked" ? t("mobile.desktop.linkedHint") : pairing.kind === "offer" ? undefined : t("funnel.phone.sub")}
+      footer={pairing.kind === "linked" || (pairing.kind === "offer" && !expired)
+        ? <button type="button" data-primary="" data-funnel-done="" onClick={onNext} className={PRIMARY}>{t("funnel.next")}</button>
+        : <>
+          <button type="button" data-primary="" data-funnel-phone="" disabled={pairing.kind === "busy"} onClick={() => void show()} className={PRIMARY}>
+            {expired ? t("settings.mobile.newCode") : t("funnel.phone.show")}
+          </button>
+          <button type="button" data-funnel-skip="" onClick={onNext} className={QUIET}>{t("funnel.skip")}</button>
+        </>}
+    >
+      {pairing.kind === "offer" && !expired && (
+        <div data-phone-offer="" className="place-reveal flex flex-col items-center gap-3">
+          <div role="img" aria-label={t("settings.mobile.qr")} className="rounded-[18px] bg-white p-2.5">
+            <QRCodeSVG value={pairing.offer.link} size={168} level="M" includeMargin={false} bgColor="#ffffff" fgColor="#1b1b1f" aria-hidden="true" />
+          </div>
+          {code && <code aria-label={t("settings.mobile.code")} className="select-all whitespace-nowrap font-mono text-[18px] leading-7 tracking-[0.1em] text-ink">{code}</code>}
+          <p role="status" className="flex items-center gap-2 text-[13px] leading-[18px] text-ink-secondary">
+            <span aria-hidden="true" className="funnel-wait inline-block size-1.5 rounded-full bg-ink" />
+            {t("mobile.desktop.waiting")}
+            <span className="text-ink-tertiary">· {t("settings.mobile.expires", { minutes: minutesLeft(pairing.offer.expiresAt, now) })}</span>
+          </p>
+        </div>
+      )}
+      {pairing.kind === "linked" && <span className="place-mark grid size-12 place-items-center rounded-full bg-success/10 text-success"><Check size={24} aria-hidden="true" /></span>}
+      {expired && <p role="status" className="text-[13px] text-ink-secondary">{t("settings.mobile.expired")}</p>}
+      {error && <p role="alert" className="text-[13px] leading-[18px] text-danger">{error}</p>}
+    </StepFrame>
+  );
+}

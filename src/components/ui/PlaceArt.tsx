@@ -213,6 +213,20 @@ const ART = {
     "..7RRRRR7..",
     "...77777...",
   ],
+  // this Mac: an open laptop, its screen catching the light, on a lilac base
+  mac: [
+    "...........",
+    ".222222222.",
+    ".2BBBBBBB2.",
+    ".2BbBBBBB2.",
+    ".2BBbBBBB2.",
+    ".2BBBbBBB2.",
+    ".2BBBBBBB2.",
+    ".222222222.",
+    "2VVVVVVVVV2",
+    "22222222222",
+    "...........",
+  ],
   // a phone: lilac case, sky screen catching the light, a pink home dot
   phone: [
     "..2222222..",

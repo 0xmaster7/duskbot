@@ -1,8 +1,7 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/cn";
 import { introChips, introStaged, stageIntro, useWelcomingBot } from "@/lib/default-bot";
-import { useHelpImprove } from "@/lib/help-improve";
 import { activeLocale, t } from "@/lib/i18n";
 import { detectSetupWithin, localSetupImport, setupImportApi } from "@/lib/setup-import";
 import { api, useStore, type Bot, type InstanceInfo, type Message } from "@/state/store";
@@ -16,7 +15,6 @@ import { loadAppCards } from "./bot-settings/useBotApps";
 import { engineReady } from "./EngineLibrary";
 import { IntroChips } from "./HelperSetup";
 import { usePrefersReducedMotion } from "./mascot-clock";
-import { Toggle } from "./ui/Toggle";
 import { preloadConnectedApps } from "@/lib/connected-apps";
 
 /** How long after the part before each part arrives, when a first run has just landed here: the three lines, the typing
@@ -112,22 +110,9 @@ function useArrival(first: boolean, ai: boolean, ready: boolean): { shown: numbe
   return { shown: run ?? (animate ? 0 : ALL), staged: run !== null };
 }
 
-/** The one "help improve dusk bot" switch, small under the intro's asks, on by default; Settings keeps it after. */
-function ImproveLine() {
-  const improve = useHelpImprove();
-  const id = useId();
-  if (typeof improve.on !== "boolean") return null;
-  return (
-    <div data-help-improve="" className="animate-msg-in mt-2 flex items-center gap-2 text-[12px] leading-4 text-ink-tertiary">
-      <Toggle checked={improve.on} aria-labelledby={id} onClick={() => void improve.set(!improve.on)} />
-      <span id={id}>{t("helperIntro.improve")}</span>
-    </div>
-  );
-}
-
 /** Dusk's first messages in Simple mode, in the viewer's language: three short bubbles, its follow-up once it has looked
  * around (a real message, helperFollowup, which a first run asks the server for) and chips for what is still missing.
- * The chips, and the help-improve switch under them, go once the person writes anything after it (`answered`). */
+ * The chips go once the person writes anything after it (`answered`). */
 export function SimpleHelperIntro({ botId, threadId, message, answered, followup }: {
   botId: string; threadId: string; message: Message; answered: boolean; followup?: Message;
 }) {
@@ -206,7 +191,6 @@ export function SimpleHelperIntro({ botId, threadId, message, answered, followup
         </div>
       )}
       <IntroChips chips={chips} />
-      {!answered && shown >= ALL && facts && <ImproveLine />}
     </div>
   );
 }

@@ -73,3 +73,9 @@
   .onboarding-step-in { animation-duration: 150ms; }
 }
 @keyframes onboarding-fade-out { to { opacity: 0; } }
+
+/* The funnel's "waiting for your phone" dot: a slow breath while nothing has happened yet. Held still in reduced motion. */
+.funnel-wait { animation: funnel-wait 1.6s ease-in-out infinite; }
+@keyframes funnel-wait { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) { .funnel-wait { animation: none; } }
+:root[data-reduced-motion="true"] .funnel-wait { animation: none; }

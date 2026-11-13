@@ -80,14 +80,13 @@ export function hintSeenPatch(
 }
 
 
-export type BeatId = "meet" | "chief";
-
-/** Every screen the first run can show, in the order it shows them. */
-export const BEAT_ORDER: readonly BeatId[] = ["meet", "chief"];
+/** Every screen the first run can show, in the order it shows them; the chat comes after the last. */
+export const BEAT_ORDER = ["welcome", "account", "place", "ai", "bring", "phone"] as const;
+export type BeatId = (typeof BEAT_ORDER)[number];
 
 /** Where a reloaded first run opens: the saved screen while it is offered, else the first. */
 export function resumeBeat(beats: readonly BeatId[], saved: BeatId | undefined): BeatId {
-  return saved && beats.includes(saved) ? saved : beats[0] ?? "meet";
+  return saved && beats.includes(saved) ? saved : beats[0] ?? "welcome";
 }
 
 export function onboardingCloudOffered(record: OnboardingStatus | undefined): boolean {
