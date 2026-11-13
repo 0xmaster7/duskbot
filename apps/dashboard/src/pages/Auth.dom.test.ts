@@ -47,7 +47,7 @@ test("trouble signing in? asks for the address, sends a recovery start and says 
   await type(host.querySelector<HTMLInputElement>("#recover-email")!, "sid@duskbot.test");
   await act(async () => button(host, "send sign-in link")!.click());
   expect(start).toHaveBeenCalledWith("sid@duskbot.test", "signin", undefined, true);
-  expect(host.textContent).toContain("if an account uses sid@duskbot.test, we sent a link and a 8-digit code.");
+  expect(host.textContent).toContain("if an account uses sid@duskbot.test, we sent a link and an 8-digit code.");
   await act(async () => button(host, "use a different email")!.click());
   expect(host.querySelector("h1")?.textContent).toBe("trouble signing in?");
 });
@@ -81,4 +81,17 @@ test("every sign-in button shows; one without keys yet says so in place instead 
   expect(assign).not.toHaveBeenCalled();
   expect(host.querySelector("#auth-soon")?.textContent).toBe("x sign-in is coming soon. use email or google for now.");
   expect(host.textContent).toContain("don't have an account? sign up");
+});
+
+test("the sent code reads with the right article for its length", async () => {
+  for (const [codeLength, line] of [[8, "we sent an 8-digit code to sid@duskbot.test."], [6, "we sent a 6-digit code to sid@duskbot.test."]] as const) {
+    history.replaceState(null, "", "/sign-in");
+    vi.spyOn(state.api, "start").mockResolvedValue({ attempt: "a".repeat(43), resendAfter: 30, expiresIn: 600, codeLength });
+    const host = await render();
+    await type(host.querySelector<HTMLInputElement>('input[type="email"]')!, "sid@duskbot.test");
+    await act(async () => button(host, "continue")!.click());
+    expect(host.textContent).toContain(line);
+    await act(async () => roots.pop()!.unmount());
+    host.remove();
+  }
 });

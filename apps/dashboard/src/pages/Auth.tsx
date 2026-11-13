@@ -302,8 +302,8 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
         <form key="code" className="step-in" noValidate onSubmit={(e) => { e.preventDefault(); if (attempt) void verify(); else void send(recovering, true); }}>
           <h1 className="t-title">{linked && !sentTo ? "your link is ready." : "check your email."}</h1>
           <p className="mt-3 text-16 text-ink-2">{linked && !sentTo ? "it signs you in once, and works for 10 minutes."
-            : recovering ? <>if an account uses <span className="text-ink [overflow-wrap:anywhere]">{sentTo}</span>, we sent a link and a {length}-digit code. it works for 10 minutes.</>
-            : <>we sent a {length}-digit code to <span className="text-ink [overflow-wrap:anywhere]">{sentTo}</span>. it works for 10 minutes.</>}</p>
+            : recovering ? <>if an account uses <span className="text-ink [overflow-wrap:anywhere]">{sentTo}</span>, we sent a link and {length === 8 ? "an" : "a"} {length}-digit code. it works for 10 minutes.</>
+            : <>we sent {length === 8 ? "an" : "a"} {length}-digit code to <span className="text-ink [overflow-wrap:anywhere]">{sentTo}</span>. it works for 10 minutes.</>}</p>
           <label htmlFor="code" className="mb-2 mt-7 block text-14 text-ink-2">code</label>
           <CodeBoxes input={codeRef} boxes={boxes} length={length} value={code} invalid={Boolean(error)} disabled={busy !== null} onFocus={setFocused}
             onChange={(v) => {
