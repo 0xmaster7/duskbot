@@ -143,3 +143,29 @@ describe("installer transport", () => {
     for (const line of calls) expect(line, line).toContain('--proto "$PROTO" --proto-redir "$PROTO"');
   });
 });
+
+describe("basics", () => {
+  // ffmpeg (the bot browser's H.264 live view) is best effort: a server where it cannot be installed still installs
+  it.each([["installs", 0], ["fails", 1]])("asks for ffmpeg and carries on when apt %s", async (_name, fail) => {
+    const dir = await mkdtemp(join(tmpdir(), "omb-install-"));
+    try {
+      const file = join(dir, "fixture.sh");
+      await writeFile(file, `${script}
+set -eu
+calls=$1
+fail=$2
+apt_install() { printf 'apt_install %s\\n' "$*" >> "$calls"; [ "$1" != ffmpeg ] || [ "$fail" = 0 ]; }
+bwrap_userns() { printf 'bwrap\\n' >> "$calls"; }
+do_basics
+printf 'done\\n' >> "$calls"
+`);
+      const calls = join(dir, "calls");
+      await run("sh", [file, calls, String(fail)], { env: { PATH: "/usr/bin:/bin", TERM: "dumb" } });
+      const lines = (await readFile(calls, "utf8")).trim().split("\n");
+      expect(lines).toContain("apt_install ffmpeg");
+      expect(lines.slice(-2)).toEqual(["bwrap", "done"]);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});

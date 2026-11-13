@@ -724,6 +724,9 @@ clock_check() {
 
 do_basics() {
   apt_install curl ca-certificates gnupg iproute2 procps tar xz-utils bubblewrap socat
+  # the bot browser's live view goes as H.264 through this ffmpeg (server/browser/viewers/h264-encoder.ts); best effort:
+  # without it the view stays JPEG, so it never fails the install
+  apt_install ffmpeg || echo "ffmpeg could not be installed; the live browser view stays JPEG"
   bwrap_userns
 }
 

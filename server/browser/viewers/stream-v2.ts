@@ -16,7 +16,13 @@ import { WebSocketServer, type RawData, type WebSocket } from "ws";
 import { BrowserHostError, SETUP_COMMAND } from "../chrome/host-setup.ts";
 import type { BrowserService, BrowserTarget } from "../service.ts";
 import { FRAME_CAP_LIMITS, type Viewer, type ViewerOptions, type ViewerOutput } from "./core.ts";
-import { H264Stream, h264Encoder, type H264Config } from "./h264-encoder.ts";
+import { H264Stream, h264Encoder, VIDEO_LIMITS, type H264Config } from "./h264-encoder.ts";
+
+/** A screencast cap at most VIDEO_LIMITS wide, its height scaled with it. */
+function videoCap(maxWidth: number, maxHeight: number): { maxWidth: number; maxHeight: number } {
+  const fit = Math.min(1, VIDEO_LIMITS.maxWidth / maxWidth);
+  return { maxWidth: Math.round(maxWidth * fit), maxHeight: Math.max(1, Math.round(maxHeight * fit)) };
+}
 import { requestedSize } from "./viewport.ts";
 import { displayUrl } from "./live-v1.ts";
 
@@ -115,6 +121,7 @@ class StreamSession {
   #early: unknown[] = [];
   #restarting = false;
   #video: H264Stream | null = null;
+  get hasVideo(): boolean { return this.#video !== null; }
   /** The encoding the client was last told, once it asked for video. */
   #encoding: "jpeg" | "h264" | null = null;
 
@@ -238,6 +245,12 @@ class StreamSession {
       void this.#restart(service);
       return;
     }
+    // a video view stays at 1x, even when the app asks for a sharper picture later (h264-encoder.ts VIDEO_LIMITS)
+    const cap = message as { type?: unknown; maxWidth?: unknown; maxHeight?: unknown } | null;
+    if (this.#video && cap?.type === "frameCap" && typeof cap.maxWidth === "number" && typeof cap.maxHeight === "number") {
+      void this.viewer?.input({ ...cap, ...videoCap(cap.maxWidth, cap.maxHeight) });
+      return;
+    }
     void this.viewer?.input(message);
   }
 
@@ -351,6 +364,8 @@ export class StreamV2 {
     };
     try {
       if (params.get("codec") === "h264") session.video(await h264Encoder());
+      // video is encoded at 1x: the screencast is asked for no more, so a 2x screen costs no 2x JPEG decode either
+      if (session.hasVideo) Object.assign(options, videoCap(options.maxWidth, options.maxHeight));
       const viewer = await this.#service.attachViewer(request.target, options, (output) => session.push(output));
       if (session.closed || session.closing) await viewer.close({ dropped: session.lost && session.theirs() });
       else session.attached(viewer, this.#service);

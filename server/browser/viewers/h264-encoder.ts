@@ -87,12 +87,24 @@ export function h264Level(width: number, height: number): number | null {
   return levels.find(([limit]) => blocks <= limit)?.[1] ?? null;
 }
 
+/** Video goes at 1x: a 2x (Retina) screencast is scaled down to this before encoding, which keeps a view's encoder cheap. */
+export const VIDEO_LIMITS = { maxWidth: 1280, maxPixels: 1_200_000 } as const;
+
+/** The encoded picture for a screencast frame of this size: at most VIDEO_LIMITS, aspect kept, even sides. */
+export function videoSize(width: number, height: number): { width: number; height: number } {
+  const fit = Math.min(1, VIDEO_LIMITS.maxWidth / width, Math.sqrt(VIDEO_LIMITS.maxPixels / (width * height)));
+  return { width: Math.max(2, Math.floor((width * fit) / 2) * 2), height: Math.max(2, Math.floor((height * fit) / 2) * 2) };
+}
+
+/** A machine with two cores or fewer encodes with the faster preset, so one view stays near a tenth of a core. */
+export const x264Preset = (cores: number = availableParallelism()) => (cores <= 2 ? "superfast" : "veryfast");
+
 /** Constrained baseline at `level`, as WebCodecs names it. */
 export const h264Codec = (level: number) => `avc1.42E0${level.toString(16).toUpperCase().padStart(2, "0")}`;
 
-export function ffmpegArgs(encoder: Pick<H264Encoder, "library" | "fpsMode">, level: number): string[] {
+export function ffmpegArgs(encoder: Pick<H264Encoder, "library" | "fpsMode">, level: number, size: { width: number; height: number }, preset = x264Preset()): string[] {
   const codec = encoder.library === "libx264"
-    ? ["-c:v", "libx264", "-profile:v", "baseline", "-level:v", (level / 10).toFixed(1), "-preset", "veryfast", "-tune", "zerolatency", "-crf", "26", "-bf", "0"]
+    ? ["-c:v", "libx264", "-profile:v", "baseline", "-level:v", (level / 10).toFixed(1), "-preset", preset, "-tune", "zerolatency", "-crf", "26", "-bf", "0"]
     : ["-c:v", "libopenh264", "-profile:v", "constrained_baseline", "-b:v", "2M"];
   return [
     "-hide_banner", "-loglevel", "error", "-nostdin",
@@ -101,7 +113,7 @@ export function ffmpegArgs(encoder: Pick<H264Encoder, "library" | "fpsMode">, le
     "-an", ...(encoder.fpsMode ? ["-fps_mode", "passthrough"] : ["-vsync", "passthrough"]),
     // H.264 4:2:0 needs even sides: an odd last row or column is dropped. Chromium draws WebCodecs frames as limited-range
     // BT.709 (measured in headless Chromium), so the screencast's full-range BT.601 JPEG becomes that; accurate_rnd keeps grays gray.
-    "-vf", "crop=trunc(iw/2)*2:trunc(ih/2)*2,scale=in_range=full:out_range=limited:in_color_matrix=bt601:out_color_matrix=bt709:flags=accurate_rnd,setparams=range=tv:colorspace=bt709:color_primaries=bt709:color_trc=bt709", "-pix_fmt", "yuv420p",
+    "-vf", `crop=trunc(iw/2)*2:trunc(ih/2)*2,scale=${size.width}:${size.height}:in_range=full:out_range=limited:in_color_matrix=bt601:out_color_matrix=bt709:flags=accurate_rnd,setparams=range=tv:colorspace=bt709:color_primaries=bt709:color_trc=bt709`, "-pix_fmt", "yuv420p",
     ...codec, "-g", "300", "-threads", "2",
     "-flush_packets", "1", "-flvflags", "no_duration_filesize", "-f", "flv", "pipe:1",
   ];
@@ -182,7 +194,12 @@ export interface H264StreamOptions {
   canSend(): boolean;
   spawn?: (command: string, args: string[]) => ChildProcess;
   now?: () => number;
+  /** pictures go to the encoder at most this often; the newest waits (default: videoInterval()) */
+  minIntervalMs?: number;
 }
+
+/** A machine with two cores or fewer encodes at most 20 pictures a second, so one view stays under about 15% of a core. */
+export const videoInterval = (cores: number = availableParallelism()) => (cores <= 2 ? 50 : 0);
 
 /** Pictures written to ffmpeg and not yet out: one decoding, one encoding. More waits as the single newest picture. */
 const IN_ENCODER = 2;
@@ -213,6 +230,9 @@ export class H264Stream {
   readonly #canSend: () => boolean;
   readonly #spawn: (command: string, args: string[]) => ChildProcess;
   readonly #now: () => number;
+  readonly #minInterval: number;
+  #lastWrite = Number.NEGATIVE_INFINITY;
+  #paceTimer: ReturnType<typeof setTimeout> | null = null;
   #proc: ChildProcess | null = null;
   #size: { width: number; height: number } | null = null;
   /** Acks of the pictures written, in order: each goes with the unit that comes out for it. */
@@ -233,6 +253,7 @@ export class H264Stream {
     this.#canSend = options.canSend;
     this.#spawn = options.spawn ?? spawnFfmpeg;
     this.#now = options.now ?? Date.now;
+    this.#minInterval = options.minIntervalMs ?? videoInterval();
   }
 
   /** A view's encoder, or null while as many run on this machine as it has room for. close() gives its place back. */
@@ -251,7 +272,7 @@ export class H264Stream {
   push(jpeg: Buffer, ack: () => void): boolean {
     if (this.#dead || this.#closed) return false;
     const size = jpegSize(jpeg);
-    const even = size && { width: size.width & ~1, height: size.height & ~1 };
+    const even = size && size.width >= 2 && size.height >= 2 ? videoSize(size.width, size.height) : null;
     if (!even || even.width < 2 || even.height < 2 || h264Level(even.width, even.height) === null) {
       this.#stop();
       this.#release();
@@ -273,6 +294,13 @@ export class H264Stream {
   pump(): void {
     const proc = this.#proc;
     if (!proc || !this.#waiting || this.#written.length >= IN_ENCODER || !this.#canSend()) return;
+    const early = this.#lastWrite + this.#minInterval - this.#now();
+    if (early > 0) {
+      this.#paceTimer ??= setTimeout(() => { this.#paceTimer = null; this.pump(); }, early);
+      this.#paceTimer.unref?.();
+      return;
+    }
+    this.#lastWrite = this.#now();
     const { jpeg, ack } = this.#waiting;
     this.#waiting = null;
     this.#write(proc, jpeg, ack);
@@ -297,6 +325,8 @@ export class H264Stream {
   close(): void {
     if (this.#closed) return;
     this.#closed = true;
+    if (this.#paceTimer) clearTimeout(this.#paceTimer);
+    this.#paceTimer = null;
     if (this.#keyTimer) clearTimeout(this.#keyTimer);
     this.#keyTimer = null;
     this.#stop();
@@ -318,7 +348,7 @@ export class H264Stream {
     const level = h264Level(size.width, size.height)!;
     let proc: ChildProcess;
     try {
-      proc = this.#spawn(this.#encoder.command, ffmpegArgs(this.#encoder, level));
+      proc = this.#spawn(this.#encoder.command, ffmpegArgs(this.#encoder, level, size));
     } catch {
       this.#failed();
       return;

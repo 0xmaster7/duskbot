@@ -5,7 +5,7 @@ import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
 import { describe, expect, it, vi } from "vitest";
 
-import { ffmpegArgs, findH264Encoder, flvUnits, h264Codec, h264Level, H264Stream, jpegSize, type H264Config, type H264Encoder } from "./h264-encoder.ts";
+import { ffmpegArgs, findH264Encoder, flvUnits, h264Codec, h264Level, H264Stream, jpegSize, videoInterval, videoSize, x264Preset, type H264Config, type H264Encoder } from "./h264-encoder.ts";
 
 /** A JPEG's first bytes up to its SOF0, enough for jpegSize. */
 const jpeg = (width: number, height: number, tag = 0) => Buffer.from([
@@ -61,7 +61,7 @@ class FakeFfmpeg extends EventEmitter {
 const X264: H264Encoder = { command: "ffmpeg", library: "libx264", fpsMode: true };
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 
-function harness({ canSend = () => true, now = () => 0 }: { canSend?: () => boolean; now?: () => number } = {}) {
+function harness({ canSend = () => true, now = () => 0, minIntervalMs = 0 }: { canSend?: () => boolean; now?: () => number; minIntervalMs?: number } = {}) {
   const procs: FakeFfmpeg[] = [];
   const configs: H264Config[] = [];
   const units: Array<{ data: Buffer; ack: () => void }> = [];
@@ -73,6 +73,7 @@ function harness({ canSend = () => true, now = () => 0 }: { canSend?: () => bool
   }, {
     canSend,
     now,
+    minIntervalMs,
     spawn: (_command, args) => {
       const proc = new FakeFfmpeg(args);
       procs.push(proc);
@@ -119,7 +120,7 @@ describe("H.264 framing", () => {
     expect(h264Level(3200, 2000)).toBe(51);
     expect(h264Level(7680, 4320)).toBeNull();
     expect(h264Codec(31)).toBe("avc1.42E01F");
-    expect(ffmpegArgs(X264, 32)).toEqual(expect.arrayContaining(["-level:v", "3.2", "-tune", "zerolatency", "-bf", "0"]));
+    expect(ffmpegArgs(X264, 32, { width: 1280, height: 800 })).toEqual(expect.arrayContaining(["-level:v", "3.2", "-tune", "zerolatency", "-bf", "0"]));
   });
 
   it("splits FLV into Annex B access units across any chunking, with SPS and PPS in front of each keyframe", () => {
@@ -212,14 +213,12 @@ describe("a view's H.264 stream", () => {
     stream.close();
   });
 
-  it("sends a picture too large for H.264 back as JPEG, then takes video again", () => {
+  it("encodes a picture larger than 1x at 1x, and a same-size 1x picture keeps the encoder", () => {
     const { stream, procs, configs } = harness();
-    const ack = vi.fn();
-    expect(stream.push(jpeg(7680, 4320), ack)).toBe(false);
-    expect(ack).not.toHaveBeenCalled();
-    expect(procs).toHaveLength(0);
-    expect(stream.push(jpeg(1280, 800), () => {})).toBe(true);
-    expect(configs).toHaveLength(1);
+    expect(stream.push(jpeg(7680, 4320), () => {})).toBe(true);
+    expect(configs.at(-1)).toMatchObject({ width: 1280, height: 720 });
+    expect(stream.push(jpeg(1280, 720), () => {})).toBe(true);
+    expect(procs).toHaveLength(1);
     stream.close();
   });
 
@@ -296,4 +295,49 @@ describe.runIf(ffmpeg)("with this machine's ffmpeg", () => {
       stream.close();
     }
   }, 30_000);
+});
+
+describe("video size and preset", () => {
+  it("encodes at 1x: a 2x screencast is scaled to at most 1280 wide, aspect kept, even sides", () => {
+    expect(videoSize(2560, 1600)).toEqual({ width: 1280, height: 800 });
+    expect(videoSize(1280, 800)).toEqual({ width: 1280, height: 800 });
+    expect(videoSize(801, 601)).toEqual({ width: 800, height: 600 });
+    const tall = videoSize(1170, 2532);
+    expect(tall.width * tall.height).toBeLessThanOrEqual(1_200_000);
+    expect(tall.width % 2 + tall.height % 2).toBe(0);
+    expect(ffmpegArgs(X264, 32, { width: 1280, height: 800 }).join(" ")).toContain("scale=1280:800:");
+  });
+
+  it("paces pictures on a small machine: the newest waits for its turn and still arrives", async () => {
+    vi.useFakeTimers();
+    try {
+      let time = 0;
+      const { stream, procs, units } = harness({ now: () => time, minIntervalMs: 50 });
+      stream.push(jpeg(640, 480, 0), () => {});
+      procs[0]!.out(true);
+      await vi.advanceTimersByTimeAsync(0);
+      time = 10;
+      stream.push(jpeg(640, 480, 1), () => {});
+      const dropped = vi.fn();
+      stream.push(jpeg(640, 480, 2), dropped);
+      stream.push(jpeg(640, 480, 3), () => {});
+      await vi.advanceTimersByTimeAsync(0);
+      expect(procs[0]!.pictures()).toEqual([0]);
+      expect(dropped).toHaveBeenCalledOnce();
+      time = 50;
+      await vi.advanceTimersByTimeAsync(40);
+      expect(procs[0]!.pictures()).toEqual([0, 3]);
+      expect(units).toHaveLength(1);
+      stream.close();
+    } finally { vi.useRealTimers(); }
+    expect(videoInterval(2)).toBe(50);
+    expect(videoInterval(8)).toBe(0);
+  });
+
+  it("uses the faster preset on a machine with two cores or fewer", () => {
+    expect(x264Preset(1)).toBe("superfast");
+    expect(x264Preset(2)).toBe("superfast");
+    expect(x264Preset(4)).toBe("veryfast");
+    expect(ffmpegArgs(X264, 32, { width: 1280, height: 800 }, "superfast")).toEqual(expect.arrayContaining(["-preset", "superfast"]));
+  });
 });
