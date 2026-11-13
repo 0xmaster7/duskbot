@@ -594,6 +594,7 @@ import { createThreadModelRoutes } from "./routes/thread-models.ts";
 import { createUndoRoutes } from "./routes/undo.ts";
 import { createDesktopViewer, desktopViewerUrl } from "./routes/desktop-viewer.ts";
 import { createUpgrades } from "./routes/upgrades.ts";
+import { createScreenDirect, directPortRange } from "./screen-direct.ts";
 import { createBrowserViewerRoutes } from "./routes/browser-viewers.ts";
 import { localDesktopTarget, localVmViewerStatus } from "./desktop-viewer-targets.ts";
 import { viewerTargetId } from "../shared/desktop-viewer.ts";
@@ -4605,6 +4606,8 @@ function audienceChanged(): void {
 const upgrades = createUpgrades();
 const desktopViewer = createDesktopViewer({
   upgrades,
+  // the live screen peer to peer (WebRTC) where the network lets it, the relay otherwise; DUSK_SCREEN_DIRECT=off turns it off
+  direct: createScreenDirect({ ports: directPortRange(process.env.DUSK_SCREEN_DIRECT_PORTS), log: (line) => console.log(line) }),
   target: (id, threadId) => {
     if (id.startsWith("vps/")) {
       const requestedOwner = id.slice(4);

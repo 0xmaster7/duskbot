@@ -387,6 +387,13 @@ describe("local account service", () => {
     expect(verifyLinkGrant(answer.grant, { keys, now: time + LINK_GRANT_TTL_MS + 3 * 60_000 })).toEqual({ ok: false, error: "expired" });
   });
 
+  it("mints screen TURN credentials only for a signed-in app, and says when TURN is off", async () => {
+    expect((await call("/v1/app/screen-ice", {})).status).toBe(401);
+    const grant = await appLogin();
+    expect((await call("/v1/app/screen-ice", {}, { ...bearer(grant), origin: "https://evil.example" })).status).toBe(403);
+    expect(await body(call("/v1/app/screen-ice", {}, bearer(grant)))).toMatchObject({ code: "turn_off" });
+  });
+
   it("claims an unclaimed workspace and re-enrolls one the same account owns, but never one another account owns", async () => {
     const owner = await appLogin();
     const firstGrant = await body<EnrollGrantAnswer>(call("/v1/app/enroll-grant", {}, bearer(owner)));
@@ -730,6 +737,8 @@ describe("local account service", () => {
         await client.emailStart(email);
         expect((await client.emailVerify(code())).outcome).toBe("signed-in");
         expect(await client.linkGrant()).toMatch(/^l1\./);
+        // this service has no TURN key: the screen tries direct, then the link relay
+        expect(await client.screenIce()).toBeNull();
         expect(await client.webHandoff({ plan: "plus", source: "app_card" })).toEqual({ opened: true });
         expect(opened.at(-1)).toMatch(new RegExp(`^${url}/dashboard/handoff#t=[A-Za-z0-9_-]{43}$`));
         expect(await body(redeem(opened.at(-1)!.split("#t=")[1]!, { origin: url }))).toMatchObject({ account: { email }, next: "/billing?plan=plus&src=app_card" });

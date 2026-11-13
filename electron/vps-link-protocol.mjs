@@ -582,7 +582,16 @@ function clampedDial(host, port) {
  * the tunnel's stream api; without it the vps's stream requests go unanswered. on the relay it has a queue and posts of
  * its own; while the direct path is up the agent dials over that instead, in the direct writer's lane.
  */
-export function createTunnelProxy({ base, id, route: givenRoute = null, key: keyText, token, port = 0, fetch: given, log = () => {}, replyTimeoutMs = 90_000, stallMs = STREAM_STALL_MS, direct: directSpec = null, directFactory = createDirectLink, egress: makeEgress = null, waitS = 25, aheadMs = STREAM_AHEAD_MS, hello = {}, follow = false }) {
+/** Answered by the app's own proxy, never sent to the server: { iceServers } for src/lib/screen-direct.ts. */
+export const SCREEN_ICE_PATH = "/__dusk/screen-ice";
+
+async function answerScreenIce(res, screenIce) {
+  const iceServers = await Promise.resolve(screenIce?.()).catch(() => null);
+  res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
+  res.end(JSON.stringify({ iceServers: Array.isArray(iceServers) ? iceServers : [] }));
+}
+
+export function createTunnelProxy({ base, id, route: givenRoute = null, key: keyText, token, port = 0, fetch: given, log = () => {}, replyTimeoutMs = 90_000, stallMs = STREAM_STALL_MS, direct: directSpec = null, directFactory = createDirectLink, egress: makeEgress = null, waitS = 25, aheadMs = STREAM_AHEAD_MS, hello = {}, follow = false, screenIce = null }) {
   const fetchImpl = given ?? relayFetch({ dial: clampedDial });
   const stream = streamChoice();
   let unwarm = () => {};
@@ -814,6 +823,8 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
     const hostHeader = String(req.headers.host ?? "");
     if (hostHeader !== `${host}:${listeningPort}`) { res.writeHead(421, { "content-type": "text/plain" }); res.end("wrong host"); return; }
     if (closed) { res.writeHead(502, { "content-type": "application/json" }); res.end(JSON.stringify({ error: "This server is not connected." })); return; }
+    // the app itself answers this one: TURN servers for the direct screen path, from the signed-in account (never the server)
+    if (req.method === "GET" && req.url === SCREEN_ICE_PATH) { void answerScreenIce(res, screenIce); return; }
     const r = randomB32(12);
     const headers = {};
     for (const [name, value] of Object.entries(req.headers)) if (!HOP.has(name)) headers[name] = value;

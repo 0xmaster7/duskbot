@@ -88,6 +88,7 @@ const plain = (error, fallback) => {
  *   egress?: Parameters<typeof createTunnelProxy>[0]["egress"],
  *   appVersion?: string,
  *   linkGrant?(): Promise<string | null>,
+ *   screenIce?(): Promise<Array<{ urls: string[], username?: string, credential?: string }> | null>,
  *   now?(): number,
  *   onChange?(view: any): void,
  *   log?(line: string): void,
@@ -413,7 +414,7 @@ export function createVpsLink(deps) {
       const [key, token] = await Promise.all([unprotect(link.keyP), unprotect(link.tokenP)]);
       if (closed) throw new Error("The app is closing.");
       const hello = { protocol: APP_LINK_PROTOCOL, app: deps.appVersion ?? null };
-      let proxy = makeProxy({ base: link.base ?? base, id: link.id, key, token, port: link.port ?? 0, log, egress: deps.egress, hello, follow: true });
+      let proxy = makeProxy({ base: link.base ?? base, id: link.id, key, token, port: link.port ?? 0, log, egress: deps.egress, hello, follow: true, screenIce: deps.screenIce });
       proxies.set(link.id, proxy);
       let origin;
       try {
@@ -421,7 +422,7 @@ export function createVpsLink(deps) {
         catch (error) {
           if (error?.code !== "EADDRINUSE" || closed) throw error;
           await proxy.close();
-          proxy = makeProxy({ base: link.base ?? base, id: link.id, key, token, port: 0, log, egress: deps.egress, hello, follow: true });
+          proxy = makeProxy({ base: link.base ?? base, id: link.id, key, token, port: 0, log, egress: deps.egress, hello, follow: true, screenIce: deps.screenIce });
           proxies.set(link.id, proxy);
           origin = await proxy.start();
         }

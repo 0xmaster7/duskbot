@@ -558,3 +558,33 @@ it("answers a VPS desktop's handshake on the server when the viewer asks, so the
   expect(messages[0]).toBe("RFB 003.008\n");
   expect(messages[1]).toBe(Buffer.concat([Buffer.from([1, 1, 0, 0, 0, 0]), Buffer.alloc(20), Buffer.from([0, 0, 0, 1]), Buffer.from("x")]).toString("latin1"));
 });
+
+function post(path: string, body: unknown, extra: Record<string, string> = {}) {
+  return new Promise<{ status: number; body: { error?: string; reason?: string } }>((resolve, reject) => {
+    const req = request({ hostname: "127.0.0.1", port: appPort, path, method: "POST", headers: { ...headers(), "content-type": "application/json", ...extra } }, res => {
+      let text = "";
+      res.on("data", chunk => text += chunk);
+      res.on("end", () => resolve({ status: res.statusCode!, body: JSON.parse(text) }));
+    });
+    req.once("error", reject);
+    req.end(JSON.stringify(body));
+  });
+}
+
+it("guards the direct screen's signaling exactly like the relay socket, and says when the server has no direct path", async () => {
+  vpsTarget = { key: "vps/test-bot", resolve: async () => ({ port: desktopPort, password: null }) };
+  const offer = { type: "offer", sdp: "v=0" };
+  expect((await post("/api/desktop-viewer/vps/test-bot/direct", offer, { cookie: `test_session=${member.token}` })).status).toBe(403);
+  expect((await post("/api/desktop-viewer/vps/test-bot/direct", offer, { origin: "https://evil.example" })).status).toBe(403);
+  expect((await post("/api/desktop-viewer/vps/test-bot/direct", offer, { cookie: "test_session=revoked" })).status).toBe(401);
+  expect((await get("/api/desktop-viewer/vps/test-bot/direct")).status).toBe(405);
+  expect((await post("/api/desktop-viewer/local/shared/direct?botId=test-bot&controlLeaseId=lease-0000000000000000", offer)).status).toBe(409);
+  // this viewer was made without node-datachannel: the app hears why and opens the relay
+  expect(await post("/api/desktop-viewer/vps/test-bot/direct", offer)).toEqual({ status: 503, body: { error: "direct path is off", reason: "server-off" } });
+  expect(inspected).toEqual([]);
+});
+
+it("shows how screens connected to an admin only", async () => {
+  expect((await get("/api/desktop-viewer/transport", { cookie: `test_session=${member.token}` })).status).toBe(403);
+  expect(await get("/api/desktop-viewer/transport")).toMatchObject({ status: 200, body: { available: false } });
+});

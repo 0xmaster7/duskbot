@@ -42,14 +42,16 @@ writeFileSync(
       license: "SEE LICENSE IN LICENSE",
       type: "module",
       bin: { duskbot: "cli.js" },
-      // Never bundled, so npm installs them beside the server: DuckDB and
-      // resvg are native addons that npm picks per platform from their
-      // optional packages, and the 1Password SDK reads its WebAssembly core
+      // Never bundled, so npm installs them beside the server: DuckDB,
+      // resvg and node-datachannel (the direct screen path) are native addons
+      // that npm picks per platform from their optional packages (linux x64
+      // and arm64 included), and the 1Password SDK reads its WebAssembly core
       // from beside itself.
       dependencies: {
         "@1password/sdk": app.dependencies["@1password/sdk"],
         "@duckdb/node-api": app.dependencies["@duckdb/node-api"],
         "@resvg/resvg-js": app.dependencies["@resvg/resvg-js"],
+        "node-datachannel": app.dependencies["node-datachannel"],
       },
       files: ["cli.js", "dist-server", "dist", "skills", "LICENSE", "LICENSING.md", "licenses", "README.md"],
       engines: { node: ">=24" },

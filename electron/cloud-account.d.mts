@@ -286,6 +286,8 @@ export interface CloudAccountClient {
   enrollGrant(): Promise<{ enrollToken: string; dashboardUrl: string } | null>;
   /** A five-minute signed grant for the link service (apps/link-service/src/grant.mjs); null when signed out. */
   linkGrant(): Promise<string | null>;
+  /** Short-lived Cloudflare TURN servers for the direct screen path; null when signed out or TURN is off. */
+  screenIce(): Promise<Array<{ urls: string[]; username?: string; credential?: string }> | null>;
   /** Only when the sign-in has ended: forget it and start a new one. */
   signInAgain(): Promise<CloudAccountState>;
   reopen(): Promise<CloudAccountState>;

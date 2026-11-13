@@ -52,6 +52,8 @@ import { memoryIncidentStore } from "./incidents/store.ts";
 import { createIncidentRoutes, IncidentRouteError } from "./incidents/routes.ts";
 import { aliasLegacyCookies, aliasLegacyHeaders } from "../../../electron/legacy-names.mjs";
 import { LINK_GRANT_PATH, linkGrantSignerFromEnv, signLinkGrant } from "./link-grant.ts";
+import { screenIceMinterFromEnv } from "./screen-ice.ts";
+import { ACCOUNT_ROUTES } from "../../../shared/account-api.ts";
 
 export interface DashboardAppOptions {
   dataDir: string;
@@ -161,6 +163,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   state.sessions = [];
   store.changed();
   const linkGrants = linkGrantSignerFromEnv(process.env, { dataDir: options.dataDir, loopback: dev });
+  const screenIce = screenIceMinterFromEnv(process.env, options.fetch ?? fetch);
   auth.onSignedIn(owner => {
     const existing = state.accounts.find(item => item.id === owner.id);
     if (existing) existing.email = owner.email; else state.accounts.push({ id: owner.id, email: owner.email });
@@ -533,6 +536,14 @@ export function createDashboardApp(options: DashboardAppOptions) {
       if (!found) fail(401, "invalid_token", "Session is invalid.");
       if (!linkGrants) fail(503, "link_grants_off", "Linking a server is not available right now.");
       return json(res, 200, signLinkGrant(found.account.id, linkGrants, now()));
+    }
+    // TURN credentials for the direct screen path, minted per signed-in app; the TURN key never leaves this service
+    if (method === "POST" && path === ACCOUNT_ROUTES.screenIce) {
+      rate(req, "screen-ice", 120);
+      if (!auth.appSession(req)) fail(401, "invalid_token", "Session is invalid.");
+      const minted = screenIce ? await screenIce.mint(now()).catch(() => null) : null;
+      if (!minted) fail(503, "turn_off", "TURN is not available right now.");
+      return json(res, 200, minted);
     }
     if (await analytics.handle(req, res, url, { readBody, bodyObject, json, rate, appAccount: request => auth.appSession(request)?.account.id ?? null,
       isOwner: isAdminRequest, account: (request, strict) => {

@@ -1,5 +1,6 @@
 import RFB from "@novnc/novnc";
 import { DESKTOP_VIEWER_TARGET } from "../../shared/desktop-viewer";
+import { directScreenWanted, linkProxyTurn, onLinkProxy, openDirectScreen, type DirectScreen } from "./screen-direct";
 
 export interface DesktopConnectionEvents {
   connected(): void;
@@ -49,9 +50,19 @@ export async function connectDesktop(screen: HTMLElement, target: string, option
   cancelled.throwIfAborted();
   // a VPS server answers the desktop's handshake itself, so the first picture is one round trip away, not five
   const socketQuery = target.startsWith("vps/") ? `?${new URLSearchParams({ ...(options.threadId ? { threadId: options.threadId } : {}), rfb: "server" })}` : query;
+  // a server on another machine is asked for a direct (WebRTC) path first; whatever fails, the relay carries it as before
+  let direct: Extract<DirectScreen, { channel: RTCDataChannel }> | undefined;
+  let fallback: string | undefined;
+  if (directScreenWanted(location.hostname)) {
+    const attempt = await openDirectScreen(`${path}/direct${socketQuery}`, { signal, ...(onLinkProxy(location.hostname) ? { turn: () => linkProxyTurn() } : {}) });
+    cancelled.throwIfAborted();
+    if ("channel" in attempt) direct = attempt;
+    else fallback = attempt.fallback;
+  }
   const websocket = new URL(`${path}/websockify${socketQuery}`, location.href);
   websocket.protocol = location.protocol === "https:" ? "wss:" : "ws:";
-  const client = new RFB(screen, websocket.href, {
+  if (fallback) websocket.searchParams.set("direct", fallback);
+  const client = new RFB(screen, direct?.channel ?? websocket.href, {
     credentials: { password: config?.password ?? "", username: "", target: "" },
   });
   hideDesktopPointer(client);

@@ -118,6 +118,8 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
   origin = cloudOrigin(origin, fixture, custom);
   const staging = origin === STAGING_CLOUD_ORIGIN;
   let grant = null, issued = null, cleanup = null, pending = null, cleanupNeeded = false;
+  /** @type {{ grant: unknown, until: number, iceServers: Array<{ urls: string[], username?: string, credential?: string }> } | null} */
+  let screenIceCache = null;
   let value = { status: "signed-out", message: "restoring" }, generation = 0, timer = null, closed = false, clearing = null, refreshing = null;
   let verifiedUntil = 0, restoring = false, controller = new AbortController(), failures = 0;
   // expiries the account service issues are in its own time: read against its clock (its Date header), so a computer
@@ -576,6 +578,20 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
         const result = await request("", { path: "/v1/app/link-grant", method: "POST", body: {}, token: signedIn.token });
         if (grant !== signedIn || result?.v !== 1 || typeof result.grant !== "string" || !/^l1\.[a-z0-9-]{1,32}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(result.grant) || result.grant.length > 1024) return null;
         return result.grant;
+      } catch (error) { if (signInEnded(error)) await refresh().catch(() => {}); return null; }
+    },
+    /** Short-lived Cloudflare TURN servers for the direct screen path, kept until shortly before they expire; null when signed out or off. */
+    async screenIce() {
+      const signedIn = grant;
+      if (!signedIn || state().status !== "connected") return null;
+      if (screenIceCache?.grant === signedIn && screenIceCache.until > serverNow()) return screenIceCache.iceServers;
+      try {
+        const result = await request("", { path: "/v1/app/screen-ice", method: "POST", body: {}, token: signedIn.token });
+        const servers = Array.isArray(result?.iceServers) ? result.iceServers.filter((one) => one && Array.isArray(one.urls) && one.urls.every((url) => typeof url === "string" && /^(?:stuns?|turns?):[a-z0-9.-]+\.cloudflare\.com(?::\d{1,5})?(?:\?transport=(?:udp|tcp))?$/i.test(url))
+          && (one.username === undefined || (typeof one.username === "string" && typeof one.credential === "string"))).slice(0, 4) : [];
+        if (grant !== signedIn || result?.v !== 1 || !servers.length || !Number.isSafeInteger(result.expiresAt)) return null;
+        screenIceCache = { grant: signedIn, until: Math.min(result.expiresAt - 10 * 60_000, serverNow() + 60 * 60_000), iceServers: servers };
+        return servers;
       } catch (error) { if (signInEnded(error)) await refresh().catch(() => {}); return null; }
     },
     emailStart, emailVerify,

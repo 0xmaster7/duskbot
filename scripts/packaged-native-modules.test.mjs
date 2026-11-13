@@ -22,8 +22,8 @@ function nativelyRequired() {
 }
 
 describe("packaged native modules", () => {
-  it("finds the Data engine, chart rendering and 1Password loads in the server", () => {
-    expect(nativelyRequired()).toEqual(["@1password/sdk", "@duckdb/node-api", "@resvg/resvg-js"]);
+  it("finds the Data engine, chart rendering, 1Password and direct screen loads in the server", () => {
+    expect(nativelyRequired()).toEqual(["@1password/sdk", "@duckdb/node-api", "@resvg/resvg-js", "node-datachannel"]);
   });
 
   it("declares every natively required package in the npm manifest at the app's exact pin", () => {
@@ -31,7 +31,7 @@ describe("packaged native modules", () => {
     temporaryDirectories.push(checkout);
     const pins = Object.fromEntries(nativelyRequired().map((name, i) => [name, `9.9.${i}`]));
     writeFileSync(join(checkout, "package.json"), JSON.stringify({ version: "0.0.1", dependencies: { ...pins, react: "19.0.0" } }));
-    for (const file of ["dist-server/index.js", "dist-server/duskbot.js", "dist/index.html", "LICENSE"]) {
+    for (const file of ["dist-server/index.js", "dist-server/duskbot.js", "dist/index.html", "LICENSE", "docs/LICENSING.md", "third_party/openmausbot/NOTICE"]) {
       mkdirSync(join(checkout, file, ".."), { recursive: true });
       writeFileSync(join(checkout, file), "");
     }

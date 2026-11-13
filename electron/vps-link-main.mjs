@@ -122,6 +122,7 @@ export function installLinkDirectIpc({ ipcMain, pageOrigin, link }) {
  *   pageOrigin?(event: any): string | null,
  *   appVersion?: string,
  *   linkGrant?(): Promise<string | null>,
+ *   screenIce?(): Promise<Array<{ urls: string[], username?: string, credential?: string }> | null>,
  * }} deps
  */
 export function installVpsLink(deps) {
@@ -149,6 +150,7 @@ export function installVpsLink(deps) {
     base,
     appVersion: deps.appVersion,
     linkGrant: deps.linkGrant,
+    screenIce: deps.screenIce,
     egress: (tunnel) => createEgressEndpoint({ ...tunnel, dialer: createEgressDialer({ seenAs }), ...(awake ? { onUse: awake.touch } : {}) }),
     serverFetch: (...args) => session.defaultSession.fetch(...args),
     store: jsonFile(path.join(userData, "vps-link.json")),

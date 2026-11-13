@@ -104,6 +104,8 @@ export const ACCOUNT_ROUTES = {
   enrollGrant: "/v1/app/enroll-grant", //       POST {} -> EnrollGrantAnswer
   /** bearer app session: a five-minute signed grant the app hands the link service to open a VPS setup session. */
   linkGrant: "/v1/app/link-grant", //           POST {} -> { v: 1, grant, expiresAt }
+  /** bearer app session: short-lived Cloudflare TURN credentials for the direct screen path; 503 when TURN is off. */
+  screenIce: "/v1/app/screen-ice", //           POST {} -> { v: 1, iceServers, expiresAt }
   /** bearer app session: a one-time link that opens the website signed in to the same account (WebHandoffRequest). */
   webHandoff: "/v1/app/web-handoff", //         POST WebHandoffRequest -> WebHandoffAnswer
   /** website, same-origin only (Origin must be the service's): redeems a WebHandoffAnswer link's token.
