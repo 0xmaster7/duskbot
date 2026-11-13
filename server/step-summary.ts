@@ -234,7 +234,22 @@ function firstChangedPath(parsed: Record<string, unknown> | string | undefined):
 }
 
 const WEB_SEARCH = /web.?search|search.?(?:the.?)?web|google.?search|brave.?search|bing.?search|tavily|exa.?search|duckduckgo|perplexity|internet.?search/i;
-const FETCH = /fetch|read.?page|read.?url|get.?page|scrape|crawl/i;
+const FETCH = /fetch|read.?page|read.?url|get.?page|scrape|crawl|browser_(?:open|navigate|read)$|open.?url|navigate$/i;
+const EXEC = /(?:^|_)(?:vm_exec|exec|run_command|shell|terminal)$/i;
+
+/** A search tool's query: its `query`, or the first of a batch's `queries` (web_search_many). */
+function searchQuery(parsed: Record<string, unknown> | string | undefined): string | undefined {
+  if (typeof parsed === "string" && !parsed.trimStart().startsWith("{")) return parsed;
+  const one = inputField(parsed, ["query", "q", "search_query", "searchQuery"]);
+  if (one) return one;
+  if (parsed && typeof parsed === "object" && Array.isArray(parsed.queries)) {
+    const first = parsed.queries.find((query): query is string => typeof query === "string" && query.trim().length > 0);
+    return first?.trim();
+  }
+  const first = typeof parsed === "string" ? /"queries"\s*:\s*\[\s*"((?:[^"\\]|\\.)*)"/.exec(parsed) : null;
+  if (!first) return undefined;
+  try { return (JSON.parse(`"${first[1]}"`) as string).trim() || undefined; } catch { return undefined; }
+}
 const WRITE = /^(?:write|write.?file|create.?file)$/i;
 const EDIT = /^(?:edit|multi.?edit|notebook.?edit|str.?replace|replace|apply.?patch)$/i;
 const READ = /^(?:read|read.?file|view|open.?file)$/i;
@@ -251,8 +266,13 @@ export function toolStep(call: { title?: string; summary?: string; input?: strin
     const target = commandTarget(call.summary);
     return target ? withDetail({ activity: "command", target }, maskAssignments(call.summary)) : undefined;
   }
+  if (EXEC.test(title)) {
+    const command = inputField(parsed, ["command", "cmd"]);
+    const target = command ? commandTarget(command) : undefined;
+    return target ? withDetail({ activity: "command", target }, maskAssignments(command!)) : undefined;
+  }
   if (WEB_SEARCH.test(title)) {
-    const query = typeof parsed === "string" && !parsed.trimStart().startsWith("{") ? parsed : inputField(parsed, ["query", "q", "search_query", "searchQuery"]);
+    const query = searchQuery(parsed);
     if (!query) return undefined;
     const target = cut(query, STEP_TARGET_MAX);
     return target ? withDetail({ activity: "web", target }, query) : undefined;

@@ -98,6 +98,19 @@ describe("toolStep", () => {
       .toEqual({ activity: "edit", target: "index.html" });
   });
 
+  it("reads dusk bot's own batch search, shell and browser pages by what they work on", () => {
+    expect(toolStep({ title: "mcp__agents__web_search_many", input: toolDetailPreview({ queries: ["keyboard reviews", "  best budget keyboard "] }) }))
+      .toEqual({ activity: "web", target: "keyboard reviews" });
+    expect(toolStep({ title: "agents_web_search_many", input: '{"queries":["keyboard reviews","best budg' })).toEqual({ activity: "web", target: "keyboard reviews" });
+    expect(toolStep({ title: "mcp__agents__vm_exec", input: toolDetailPreview({ command: "API_KEY=abc python3 make_report.py && ls -l report.pdf" }) }))
+      .toEqual({ activity: "command", target: "make_report.py", detail: "API_KEY=… python3 make_report.py && ls -l report.pdf" });
+    expect(toolStep({ title: "mcp__browser__agent_browser_open", input: toolDetailPreview({ url: "https://www.amazon.in/s?k=keyboard" }) }))
+      .toEqual({ activity: "fetch", target: "amazon.in", detail: "amazon.in/s" });
+    expect(toolStep({ title: "browser_agent_browser_navigate", input: toolDetailPreview({ url: "https://example.org/" }) })).toEqual({ activity: "fetch", target: "example.org" });
+    expect(toolStep({ title: "browser_agent_browser_navigate", input: toolDetailPreview({ action: "back" }) })).toBeUndefined();
+    expect(toolStep({ title: "mcp__agents__vm_exec", input: toolDetailPreview({ timeout_seconds: 5 }) })).toBeUndefined();
+  });
+
   it("cuts a long query to the cap and keeps the rest for the hover", () => {
     const query = "Acme construction leads with building permits filed this quarter, application deadlines 2026";
     const step = toolStep({ title: "WebSearch", input: toolDetailPreview({ query }) })!;

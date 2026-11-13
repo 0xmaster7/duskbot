@@ -6,6 +6,8 @@ import { progressSize, type LiveStep } from "../../shared/turn-progress";
 
 // Keys, not labels: this array is built at import time, and t() reads the active pack when called.
 const FALLBACK_LABELS: Array<[RegExp, LocaleKey]> = [
+  [/(?:^|_)coordinate_bots$/i, "chat.activity.handoff"],
+  [/(?:^|_)session_search$/i, "chat.activity.searching"],
   [/\b(?:bash|shell|terminal|exec|command|run_command)\b/i, "chat.activity.runCommand"],
   [/\b(?:read|read_file|view|open_file)\b/i, "chat.activity.readFile"],
   [/\b(?:write|write_file|create_file)\b/i, "chat.activity.writeFile"],

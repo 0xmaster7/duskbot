@@ -47,6 +47,19 @@ const STEP_KEYS: Record<string, LocaleKey> = {
   agent: "toolStep.askHelper",
   think: "toolStep.think",
   list_bots: "toolStep.checkTeam",
+  list_rooms: "toolStep.checkTeam",
+  list_room_targets: "toolStep.checkTeam",
+  web_search_many: "toolStep.searchWeb",
+  vm_exec: "toolStep.runCommand",
+  x_search: "toolStep.searchX",
+  coordinate_bots: "toolStep.askTeammate",
+  post_to_room: "toolStep.postToRoom",
+  session_search: "toolStep.searchPastChats",
+  memory_update: "toolStep.updateMemory",
+  memory_log: "toolStep.updateMemory",
+  attach_file: "toolStep.attachFile",
+  tool_result_read: "toolStep.readResult",
+  select_computer: "toolStep.pickComputer",
   trigger: "toolStep.manageAutomations",
   trigger_info: "toolStep.checkAutomations",
   tool: "toolStep.useTool",
@@ -54,9 +67,10 @@ const STEP_KEYS: Record<string, LocaleKey> = {
   mcp: "toolStep.useTool",
 };
 
+/** Everything in the chat window is sentence case, a name made from a tool's own id too. */
 function sentence(words: string): string {
   const flat = words.replace(/\s+/g, " ").trim();
-  return flat;
+  return flat.charAt(0).toUpperCase() + flat.slice(1);
 }
 
 /** Whose own app or MCP server a step used, after its label: "Fetch emails · using Ada's Gmail". */
@@ -74,7 +88,8 @@ function stepWords(tool: StepTool): string {
   // Codex and ACP title a command's chip with the command line; only a command carries a summary.
   if (tool.summary) return t("toolStep.runCommand");
   if (/\s/.test(name)) return name;
-  const bare = name.replace(/^mcp__.+?__(?=.)/, "");
+  // Claude names a call mcp__agents__tool; the chat runtime names it agents_tool.
+  const bare = name.replace(/^mcp__.+?__(?=.)/, "").replace(/^agents_(?=.)/, "");
   if (/(?:^|_)browser_/i.test(bare)) return t("toolStep.useBrowser");
   const key = STEP_KEYS[bare.toLowerCase()];
   if (key) return t(key);
