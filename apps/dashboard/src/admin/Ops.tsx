@@ -1,20 +1,19 @@
-import { useId, useState, type ReactNode } from "react";
-import { ChevronDown, RefreshCw } from "@/icons";
-import { Button, cx, Segmented } from "../ui/kit";
-import { Table, Td, Th } from "../ui/table";
-import { AnimatePresence, m } from "../ui/motion";
+import { useState, type ReactNode } from "react";
+import { RefreshCw } from "@/icons";
+import { Button, cx } from "../ui/kit";
+import { m } from "../ui/motion";
 import { ago, compact } from "../lib/format";
 import { Link } from "../lib/router";
 import { useNow } from "../lib/now";
 import { toast } from "../lib/toast";
 import { adminCall, useAdmin } from "./api";
 import { Avatar, percent, personName, usd } from "./kit";
-import { BarRow, ChartCard } from "./charts";
-import { Sparkline } from "./RevenueCharts";
-import { AdminHeader, Failed, Loading, n, Section } from "./ui";
-import type { OpsAnswer, OpsBox, OpsCheck, OpsCheckGroup, OpsInstabox, OpsLevel, OpsMeter, OpsRule, OpsSource, OpsSourceId, OpsSpend } from "./ops-types";
+import { AdminHeader, Failed, Loading, n } from "./ui";
+import { Chevron, Fold, Reveal } from "./Fold";
+import type { OpsAnswer, OpsBox, OpsCheck, OpsLevel, OpsMeter, OpsRule, OpsSource, OpsSourceId, OpsSpend } from "./ops-types";
 
 const personLink = (accountId: string) => `/admin/people/visitors?person=${encodeURIComponent(accountId)}`;
+const here = (id: string) => `/admin/ops#${id}`;
 function size(value: number | null | undefined) {
   if (value === null || value === undefined || !Number.isFinite(value)) return "-";
   const units = ["b", "kb", "mb", "gb", "tb"];
@@ -28,513 +27,439 @@ const gb = (value: number) => `${Math.round(value * 10) / 10} gb`;
 const hours = (value: number) => `${n(Math.round(value))} h`;
 
 const LEVEL_DOT: Record<OpsLevel, string> = { ok: "bg-good", watch: "bg-warn", bad: "bg-bad", unknown: "bg-ink-4" };
-const LEVEL_WORD: Record<OpsLevel, string> = { ok: "ok", watch: "watch", bad: "bad", unknown: "unknown" };
 const RULE_LEVEL: Record<OpsRule["state"], OpsLevel> = { ok: "ok", pending: "watch", firing: "bad" };
+const RANK: Record<OpsLevel, number> = { bad: 0, watch: 1, unknown: 2, ok: 3 };
+
+function Dot({ level }: { level: OpsLevel }) {
+  return <span aria-hidden className={cx("inline-block size-[7px] shrink-0 rounded-[2px]", LEVEL_DOT[level])} />;
+}
 
 /** a level as a small square plus its word, so colour is never the only signal */
-function Level({ level, word, quiet }: { level: OpsLevel; word?: string; quiet?: boolean }) {
+function Level({ level, word }: { level: OpsLevel; word?: string }) {
   return (
     <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-      <span aria-hidden className={cx("inline-block size-[7px] shrink-0 rounded-[2px]", LEVEL_DOT[level])} />
-      <span className={cx("text-12", quiet && level === "ok" ? "sr-only" : level === "ok" || level === "unknown" ? "text-ink-3" : "text-ink-2")}>{word ?? LEVEL_WORD[level]}</span>
+      <Dot level={level} />
+      <span className={cx("text-12", level === "ok" || level === "unknown" ? "text-ink-3" : "text-ink-2")}>{word ?? level}</span>
     </span>
   );
 }
 
-function Stat({ label, value, note, money, tone }: { label: string; value: string; note?: string; money?: boolean; tone?: "bad" }) {
+/** a titled card with a light inner panel; every section on the page uses this one shape */
+function Panel({ id, title, meta, children, foot }: { id: string; title: string; meta?: ReactNode; children: ReactNode; foot?: ReactNode }) {
   return (
-    <div className={cx("min-w-0 rounded-[14px] px-3 py-2.5", money ? "bg-wash-lime" : "bg-card")} title={note}>
-      <div className="truncate text-12 text-ink-3">{label}</div>
-      <div className={cx("mt-0.5 truncate font-mono text-15 font-medium num", money ? "text-money" : tone === "bad" ? "text-bad" : "text-ink")}>{value}</div>
-    </div>
+    <section id={id} aria-labelledby={`${id}-title`} className="flex min-w-0 scroll-mt-6 flex-col rounded-[24px] bg-card p-2">
+      <div className="flex min-h-9 flex-wrap items-center justify-between gap-2 px-2 pb-1.5 pt-1">
+        <h2 id={`${id}-title`} className="text-14 font-medium text-ink">{title}</h2>
+        {meta && <span className="t-meta">{meta}</span>}
+      </div>
+      <div className="flex-1 rounded-[18px] bg-pop p-1.5">{children}</div>
+      {foot}
+    </section>
   );
-}
-
-function Meta({ children }: { children: ReactNode }) {
-  return <span className="t-meta">{children}</span>;
 }
 
 function Empty({ children }: { children: ReactNode }) {
-  return <p className="px-1 py-3 text-13 text-ink-3">{children}</p>;
+  return <p className="px-2.5 py-5 text-13 text-ink-3">{children}</p>;
 }
 
-/** one quota: what's used against the plan, with a tick where the period ends at this pace */
-function Meter({ label, meter, format }: { label: string; meter: OpsMeter; format(v: number): string }) {
-  const limit = meter.limit && meter.limit > 0 ? meter.limit : null;
-  const used = limit ? Math.min(1, meter.used / limit) : 0;
-  const pace = limit && meter.projected !== null ? Math.min(1, meter.projected / limit) : null;
-  const over = limit && meter.projected !== null && meter.projected > limit;
+/** label and value pairs for an opened row */
+function Facts({ items }: { items: Array<[string, ReactNode]> }) {
   return (
-    <div className="min-w-0">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-        <span className="flex items-center gap-2 text-13 text-ink-2">{label} <Level level={meter.level} quiet /></span>
-        <span className="font-mono text-12 text-ink-3 num"><span className="text-ink">{format(meter.used)}</span>{limit ? ` of ${format(limit)}` : ""}</span>
-      </div>
-      <div className="relative mt-2 h-2 rounded-full bg-track" role="img" aria-label={`${label}: ${format(meter.used)}${limit ? ` of ${format(limit)}` : ""}${meter.projected !== null ? `, ${format(meter.projected)} at this pace` : ""}`}>
-        {limit && <span className={cx("bar-fill absolute inset-0 block rounded-full", meter.level === "bad" ? "bg-bad" : meter.level === "watch" ? "bg-warn" : "bg-accent")} style={{ transform: `scaleX(${Math.max(0.01, used)})` }} />}
-        {pace !== null && <span aria-hidden className="absolute -top-1 h-4 w-0.5 -translate-x-1/2 rounded-full bg-ink-2" style={{ left: `${pace * 100}%` }} />}
-      </div>
-      {meter.projected !== null && <div className="mt-1.5 text-12 text-ink-3">month pace <span className="font-mono text-ink-2 num">{format(meter.projected)}</span>{over ? ", past the plan" : ""}</div>}
-    </div>
+    <dl className="grid grid-cols-2 gap-x-6 gap-y-1 max-sm:grid-cols-1">
+      {items.map(([label, value]) => (
+        <div key={label} className="flex min-w-0 items-baseline justify-between gap-3 text-12">
+          <dt className="truncate text-ink-3">{label}</dt>
+          <dd className="shrink-0 font-mono text-ink-2 num">{value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
-/** a provider block that has nothing yet: one quiet line, never an error wall */
-function NotYet({ title, source }: { title: string; source: OpsSource | undefined }) {
+function Bar({ share, level, tick }: { share: number; level: OpsLevel; tick?: number | null }) {
   return (
-    <ChartCard title={title}>
-      <p className="text-13 text-ink-3">
-        {!source || !source.configured ? "not set up yet." : source.error ? `not collected yet: ${source.error}` : "not collected yet."}
-      </p>
-    </ChartCard>
+    <span aria-hidden className="relative block h-1.5 rounded-full bg-track">
+      <span className="absolute inset-0 overflow-hidden rounded-full">
+        {level !== "unknown" && <span className={cx("bar-fill absolute inset-0 block rounded-full", level === "bad" ? "bg-bad" : level === "watch" ? "bg-warn" : "bg-accent")} style={{ transform: `scaleX(${Math.max(0.01, Math.min(1, share))})` }} />}
+      </span>
+      {tick !== null && tick !== undefined && <span className="absolute -top-[3px] h-3 w-0.5 -translate-x-1/2 rounded-full bg-ink-2" style={{ left: `${Math.min(1, tick) * 100}%` }} />}
+    </span>
+  );
+}
+
+/** one quota: used against what the plan includes, with a tick where the month ends at this pace */
+function Meter({ label, meter, format }: { label: string; meter: OpsMeter; format(v: number): string }) {
+  const limit = meter.limit && meter.limit > 0 ? meter.limit : null;
+  return (
+    <div className="min-w-0" role="img" aria-label={`${label}: ${format(meter.used)}${limit ? ` of ${format(limit)}` : ""}${meter.projected !== null ? `, ${format(meter.projected)} at this pace` : ""}`}>
+      <div className="flex items-baseline justify-between gap-3 text-12">
+        <span className="truncate text-ink-3">{label}</span>
+        <span className="shrink-0 font-mono text-ink-3 num"><span className="text-ink-2">{format(meter.used)}</span>{limit ? ` of ${format(limit)}` : ""}</span>
+      </div>
+      {limit && <div className="mt-1.5"><Bar share={meter.used / limit} level={meter.level} tick={meter.projected !== null ? meter.projected / limit : null} /></div>}
+    </div>
   );
 }
 
 function Person({ accountId, email, fallback, sub }: { accountId: string | null; email: string | null; fallback?: string; sub?: ReactNode }) {
-  const body = (
+  return (
     <span className="flex min-w-0 items-center gap-2.5">
       {accountId && <Avatar seed={accountId} size={20} customer />}
       <span className="min-w-0">
         <span className="block truncate text-13 text-ink">{accountId ? personName(accountId, email) : email ?? fallback ?? "unknown"}</span>
-        {sub && <span className="block truncate text-12 text-ink-4">{sub}</span>}
+        {sub && <span className="block truncate text-12 text-ink-3">{sub}</span>}
       </span>
     </span>
   );
-  return body;
 }
 
+function PersonRow({ accountId, children }: { accountId: string | null; children: ReactNode }) {
+  const cls = "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] px-2.5 py-2";
+  return <li>{accountId ? <Link to={personLink(accountId)} className={cx("hover-row", cls)}>{children}</Link> : <div className={cls}>{children}</div>}</li>;
+}
 
-function Glance({ data }: { data: OpsAnswer }) {
-  const t = data.spend.totals;
+const gaugeLevel = (v: number | null): OpsLevel => v === null ? "unknown" : v >= 90 ? "bad" : v >= 75 ? "watch" : "ok";
+
+type Item = { key: string; level: OpsLevel; label: string; why: string; to: string };
+/** everything that is not ok right now, worst first */
+function attention(data: OpsAnswer): Item[] {
+  const items: Item[] = [];
+  const { workers, r2, brevo, composio, instabox } = data.spend;
+  for (const rule of data.alerts) if (rule.state !== "ok") items.push({ key: `rule:${rule.id}`, level: RULE_LEVEL[rule.state], label: rule.label, why: `alert ${rule.state}${rule.value ? `, now ${rule.value}` : ""}, over ${rule.threshold}`, to: here("ops-services") });
+  for (const check of data.health.checks) if (check.level === "bad" || check.level === "watch") items.push({ key: `check:${check.id}`, level: check.level, label: check.name, why: check.detail ?? check.value, to: here("ops-services") });
+  const ruled = new Set(items.map((item) => item.label));
+  for (const box of data.health.boxes) {
+    for (const [what, value] of [["cpu", box.cpu], ["memory", box.mem], ["disk", box.disk]] as const) {
+      const level = gaugeLevel(value), label = `${box.name} ${what}`;
+      if ((level === "bad" || level === "watch") && !ruled.has(label)) items.push({ key: `box:${label}`, level, label, why: `${Math.round(value ?? 0)}% used`, to: here("ops-machines") });
+    }
+  }
+  const meters: Array<[string, OpsMeter | undefined, (v: number) => string]> = [
+    ["cloudflare workers requests", workers?.requests, short], ["cloudflare workers cpu time", workers?.cpuMs, (v) => `${short(v)} ms`],
+    ["r2 storage", r2?.total, size], ["brevo emails today", brevo?.daily, n], ["brevo emails this month", brevo?.monthly, n],
+  ];
+  for (const [label, meter, format] of meters) {
+    if (meter && (meter.level === "bad" || meter.level === "watch") && !ruled.has(label)) items.push({ key: `meter:${label}`, level: meter.level, label,
+      why: `${format(meter.used)}${meter.limit ? ` of ${format(meter.limit)} included` : ""}${meter.projected !== null ? `, ${format(meter.projected)} at this pace` : ""}`, to: here("ops-spend") });
+  }
+  if (composio?.nearLimit) items.push({ key: "composio", level: "watch", label: "composio", why: `${n(composio.nearLimit)} ${composio.nearLimit === 1 ? "install is" : "installs are"} past 80% of their daily limit`, to: here("ops-spend") });
+  for (const source of data.sources) if (source.configured && !source.ok) items.push({ key: `source:${source.id}`, level: "bad", label: source.label, why: source.error ? `collector failing: ${source.error}` : "collector failing, numbers are stale", to: here("ops-sources") });
+  for (const row of instabox.limited) items.push({ key: `limited:${row.cloudId}`, level: row.state === "paused" ? "bad" : "watch", label: personName(row.accountId, row.email), why: `cloud ${row.state}, ${gb(row.egressGb)} out this month`, to: personLink(row.accountId) });
+  return items.sort((a, b) => RANK[a.level] - RANK[b.level]);
+}
+
+function Summary({ data, items }: { data: OpsAnswer; items: Item[] }) {
+  const checks = data.health.checks, ok = checks.filter((check) => check.level === "ok").length;
   const firing = data.alerts.filter((rule) => rule.state === "firing").length;
-  const bad = data.health.checks.filter((check) => check.level === "bad").length;
+  const level: OpsLevel = items.some((item) => item.level === "bad") ? "bad" : items.length ? "watch" : "ok";
   return (
-    <section className="rounded-[28px] bg-card p-2" aria-label="at a glance">
-      <div className="grid grid-cols-5 gap-1.5 max-lg:grid-cols-3 max-sm:grid-cols-2">
-        <Stat label="spend this month" value={usd(t.monthCents)} money />
-        <Stat label="month pace" value={usd(t.projectedCents)} money />
-        <Stat label="today" value={usd(t.todayCents)} money />
-        <Stat label="alerts firing" value={n(firing)} tone={firing ? "bad" : undefined} note={`${n(data.alerts.length)} rules`} />
-        <Stat label="checks bad" value={n(bad)} tone={bad ? "bad" : undefined} note={`${n(data.health.checks.length)} checks`} />
+    <section aria-labelledby="ops-summary" className="rounded-[24px] bg-card p-2">
+      <div className="flex min-h-9 flex-wrap items-center justify-between gap-x-4 gap-y-1 px-2 pb-1.5 pt-1">
+        <h2 id="ops-summary" className="flex items-center gap-2 text-14 font-medium text-ink"><Dot level={level} />{items.length ? `${n(items.length)} ${items.length === 1 ? "thing needs" : "things need"} a look` : "everything is ok"}</h2>
+        <span className="t-meta">{n(ok)} of {n(checks.length)} checks ok · {n(firing)} {firing === 1 ? "alert" : "alerts"} firing</span>
+      </div>
+      <div className="rounded-[18px] bg-pop p-1.5">
+        {items.length ? (
+          <ul>
+            {items.map((item) => (
+              <li key={item.key}>
+                <Link to={item.to} className="hover-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] px-2.5 py-2">
+                  <span className="flex min-w-0 items-baseline gap-2.5">
+                    <span className="translate-y-[-1px]"><Dot level={item.level} /></span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-13 text-ink">{item.label}</span>
+                      <span className="block truncate text-12 text-ink-3">{item.why}</span>
+                    </span>
+                  </span>
+                  <span className={cx("text-12", item.level === "bad" ? "text-bad" : "text-ink-3")}>{item.level === "bad" ? "bad" : "watch"}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : <p className="px-2.5 py-2 text-13 text-ink-3">no alert is firing, every check passes and nothing is past its plan.</p>}
       </div>
     </section>
   );
 }
 
-
-const LINE_COLS = "grid-cols-[minmax(0,1.2fr)_96px_96px_minmax(0,2fr)] max-md:grid-cols-[minmax(0,1fr)_auto]";
-function Lines({ spend }: { spend: OpsSpend }) {
-  return (
-    <ChartCard title="by provider" action={<Meta>so far and month pace</Meta>}>
-      <div className={cx("-mx-1 grid gap-4 px-2.5 pb-1 t-meta max-md:hidden", LINE_COLS)}><span>provider</span><span className="text-end">so far</span><span className="text-end">month pace</span><span>note</span></div>
-      <ul className="-mx-1">
-        {spend.lines.map((line) => (
-          <li key={line.provider} className={cx("grid items-center gap-x-4 gap-y-0.5 rounded-[12px] px-2.5 py-2", LINE_COLS)}>
-            <span className="truncate text-13 text-ink">{line.label}</span>
-            <span className={cx("text-end font-mono text-13 num", line.monthCents > 0 ? "font-medium text-money" : "text-ink-4")}>{usd(line.monthCents)}</span>
-            <span className="text-end font-mono text-13 text-money num max-md:hidden">{usd(line.projectedCents)}</span>
-            <span className="truncate text-12 text-ink-3 max-md:col-span-2" title={line.note}><span className="md:hidden">pace <span className="font-mono text-money num">{usd(line.projectedCents)}</span> · </span>{line.note}</span>
-          </li>
-        ))}
-      </ul>
-    </ChartCard>
-  );
+function NotYet({ source }: { source: OpsSource | undefined }) {
+  return <p className="text-12 text-ink-3">{!source || !source.configured ? "not set up yet." : source.error ? `not collected yet: ${source.error}` : "not collected yet."}</p>;
 }
 
-type Sort = "cost" | "awake" | "egress";
-const CUSTOMER_COLS = "grid-cols-[minmax(0,2fr)_72px_72px_84px_84px] max-md:grid-cols-[minmax(0,1fr)_auto]";
-function Instabox({ box }: { box: OpsInstabox }) {
-  const [sort, setSort] = useState<Sort>("cost");
-  const [open, setOpen] = useState(false);
-  const machinesId = useId();
-  const t = box.totals;
-  const customers = [...box.customers].sort((a, b) => sort === "cost" ? b.costCents - a.costCents : sort === "awake" ? b.awakeHours - a.awakeHours : b.egressGb - a.egressGb);
-  return (
-    <ChartCard title="instabox" action={<Meta>{n(t.machines)} {t.machines === 1 ? "machine" : "machines"}, {n(t.customers)} {t.customers === 1 ? "customer" : "customers"}</Meta>}>
-      <div className="grid grid-cols-6 gap-1.5 max-xl:grid-cols-3 max-sm:grid-cols-2">
-        <Stat label="so far" value={usd(t.costCents)} money />
-        <Stat label="month pace" value={usd(t.projectedCents)} money />
-        <Stat label="today" value={usd(t.todayCents)} money />
-        <Stat label="awake" value={hours(t.awakeHours)} note={`${n(Math.round(t.vcpuHours))} vcpu hours, ${n(Math.round(t.memGiBHours))} gib hours of memory`} />
-        <Stat label="vcpu hours" value={n(Math.round(t.vcpuHours))} />
-        <Stat label="egress" value={gb(t.egressGb)} />
-      </div>
-
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 px-1">
-        <h3 className="text-13 font-medium text-ink">per customer</h3>
-        <Segmented<Sort> label="sort customers by" value={sort} onChange={setSort} options={[{ value: "cost", label: "cost" }, { value: "awake", label: "awake" }, { value: "egress", label: "egress" }]} />
-      </div>
-      {customers.length ? (
-        <>
-          <div className={cx("mt-1 grid gap-4 px-2.5 py-2 t-meta max-md:hidden", CUSTOMER_COLS)}><span>customer</span><span className="text-end">awake</span><span className="text-end">egress</span><span className="text-end">so far</span><span className="text-end">month pace</span></div>
-          <ul className="-mx-1">
-            {customers.map((c) => (
-              <m.li key={c.accountId} layout="position" transition={{ layout: { type: "spring", visualDuration: 0.26, bounce: 0 } }}>
-                <Link to={personLink(c.accountId)} className={cx("hover-row grid items-center gap-4 rounded-[12px] px-2.5 py-2", CUSTOMER_COLS)}>
-                  <Person accountId={c.accountId} email={c.email} sub={<>{c.plan} · {n(c.machines)} {c.machines === 1 ? "machine" : "machines"}<span className="md:hidden"> · {hours(c.awakeHours)} · {gb(c.egressGb)}</span>{c.egressState && <span className="text-warn"> · egress {c.egressState}</span>}</>} />
-                  <span className="text-end font-mono text-13 text-ink num max-md:hidden">{hours(c.awakeHours)}</span>
-                  <span className="text-end font-mono text-13 text-ink num max-md:hidden">{gb(c.egressGb)}</span>
-                  <span className="text-end font-mono text-13 font-medium text-money num">{usd(c.costCents)}</span>
-                  <span className="text-end font-mono text-13 text-money num max-md:hidden">{usd(c.projectedCents)}</span>
-                </Link>
-              </m.li>
-            ))}
-          </ul>
-        </>
-      ) : <Empty>no managed cloud usage this month yet.</Empty>}
-
-      <button type="button" aria-expanded={open} aria-controls={machinesId} onClick={() => setOpen((v) => !v)} className="hover-ghost mt-3 inline-flex h-9 items-center gap-2 rounded-full px-3 text-13 text-ink-2">
-        {open ? "hide machines" : `show machines (${n(box.machines.length)})`}
-        <m.span aria-hidden className="inline-flex" initial={false} animate={{ rotate: open ? 180 : 0 }}><ChevronDown size={14} strokeWidth={1.75} /></m.span>
-      </button>
-      <AnimatePresence initial={false}>
-        {open && (
-          <m.div key="machines" id={machinesId} className="overflow-hidden" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ type: "spring", visualDuration: 0.24, bounce: 0 }}>
-            <Table label="instabox machines" className="mt-1 px-1">
-              <thead><tr><Th>owner</Th><Th>server</Th><Th className="text-end">awake</Th><Th className="text-end">vcpu h</Th><Th className="text-end">disk</Th><Th className="text-end">egress</Th><Th className="text-end">today</Th><Th className="text-end">so far</Th></tr></thead>
-              <tbody>
-                {box.machines.map((machine) => (
-                  <tr key={machine.cloudId}>
-                    <Td className="!h-11 max-w-[220px] truncate text-13"><Link to={personLink(machine.accountId)} className="text-link">{personName(machine.accountId, machine.email)}</Link>{machine.egressState && <span className="text-12 text-warn"> · {machine.egressState}</span>}</Td>
-                    <Td className="t-id !h-11 whitespace-nowrap text-ink-3">{machine.serverId}</Td>
-                    <Td className="!h-11 text-end font-mono text-13 num">{hours(machine.awakeHours)}</Td>
-                    <Td className="!h-11 text-end font-mono text-13 num">{n(Math.round(machine.vcpuHours))}</Td>
-                    <Td className="!h-11 text-end font-mono text-13 num">{n(machine.diskGiB)} gib</Td>
-                    <Td className="!h-11 text-end font-mono text-13 num">{gb(machine.egressGb)}</Td>
-                    <Td className="!h-11 text-end font-mono text-13 text-money num">{usd(machine.todayCents)}</Td>
-                    <Td className="!h-11 text-end font-mono text-13 font-medium text-money num">{usd(machine.costCents)}</Td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </m.div>
-        )}
-      </AnimatePresence>
-
-      <div className="mt-4 grid grid-cols-2 gap-4 max-lg:grid-cols-1">
-        <div className="min-w-0">
-          <h3 className="px-1 pb-1 text-13 font-medium text-ink">furthest from the median</h3>
-          {box.outliers.length ? (
-            <ul className="-mx-1">
-              {box.outliers.map((o) => (
-                <li key={`${o.accountId}-${o.metric}`}>
-                  <Link to={personLink(o.accountId)} className="hover-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] px-2.5 py-2">
-                    <Person accountId={o.accountId} email={o.email} sub={<>{o.metric.replace(/_/g, " ")} {n(Math.round(o.value))}, median {n(Math.round(o.median))}</>} />
-                    <span className="font-mono text-13 text-ink num">{o.ratio !== null ? `${Math.round(o.ratio * 10) / 10}x` : o.z !== null ? `z ${Math.round(o.z * 10) / 10}` : "-"}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : <Empty>nobody stands out this month.</Empty>}
-        </div>
-        <div className="min-w-0">
-          <h3 className="px-1 pb-1 text-13 font-medium text-ink">at a slowed or paused egress step</h3>
-          {box.limited.length ? (
-            <ul className="-mx-1">
-              {box.limited.map((row) => (
-                <li key={row.cloudId}>
-                  <Link to={personLink(row.accountId)} className="hover-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] px-2.5 py-2">
-                    <Person accountId={row.accountId} email={row.email} sub={`${gb(row.egressGb)} out this month`} />
-                    <Level level={row.state === "paused" ? "bad" : "watch"} word={row.state} />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : <Empty>no cloud is slowed or paused.</Empty>}
-        </div>
-      </div>
-    </ChartCard>
-  );
-}
-
-function Providers({ spend, sources }: { spend: OpsSpend; sources: OpsSource[] }) {
+/** the opened part of one provider's spend row */
+function SpendDetail({ provider, spend, sources, now }: { provider: OpsSpend["lines"][number]["provider"]; spend: OpsSpend; sources: OpsSource[]; now: number }) {
   const source = (id: OpsSourceId) => sources.find((s) => s.id === id);
-  const { workers, r2, composio, brevo, dodo, relay } = spend;
-  return (
-    <div className="grid grid-cols-2 items-start gap-4 max-lg:grid-cols-1">
-      {workers ? (
-        <ChartCard title="cloudflare workers" action={<Meta>{workers.plan.label}</Meta>}>
-          <div className="flex flex-col gap-4">
-            <Meter label="requests" meter={workers.requests} format={short} />
-            <Meter label="cpu time" meter={workers.cpuMs} format={(v) => `${short(v)} ms`} />
-          </div>
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-12 text-ink-3">
-            <span>base <span className="font-mono text-money num">{usd(workers.plan.baseCents)}</span></span>
-            <span>overage at this pace <span className="font-mono font-medium text-money num">{usd(workers.overageCents)}</span></span>
-          </div>
-          {workers.scripts.length > 0 && (
-            <Table label="workers scripts" className="mt-3">
-              <thead><tr><Th>script</Th><Th className="text-end">requests</Th><Th className="text-end">cpu</Th><Th className="text-end">errors</Th><Th className="text-end">today</Th></tr></thead>
-              <tbody>
-                {workers.scripts.map((s) => (
-                  <tr key={s.name}>
-                    <Td className="t-id !h-10 max-w-[200px] truncate">{s.name}</Td>
-                    <Td className="!h-10 whitespace-nowrap text-end font-mono text-13 num">{short(s.requests)}</Td>
-                    <Td className="!h-10 whitespace-nowrap text-end font-mono text-13 num">{short(s.cpuMs)} ms</Td>
-                    <Td className={cx("!h-10 whitespace-nowrap text-end font-mono text-13 num", s.errors ? "text-warn" : "text-ink-4")}>{short(s.errors)}</Td>
-                    <Td className="!h-10 whitespace-nowrap text-end font-mono text-13 text-ink-3 num">{short(s.todayRequests)}</Td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          )}
-        </ChartCard>
-      ) : <NotYet title="cloudflare workers" source={source("cloudflare")} />}
-
-      {r2 ? (
-        <ChartCard title="r2 storage" action={<Meta>{size(r2.freeBytes)} free</Meta>}>
-          <Meter label="stored" meter={r2.total} format={size} />
-          <div className="mt-3 text-12 text-ink-3">overage at this pace <span className="font-mono font-medium text-money num">{usd(r2.overageCents)}</span></div>
-          {r2.buckets.length > 0 && (
-            <ul className="-mx-1 mt-2">
-              {r2.buckets.map((b) => (
-                <li key={b.name} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 rounded-[12px] px-2.5 py-1.5">
-                  <span className="t-id truncate text-ink">{b.name}</span>
-                  <span className="font-mono text-12 text-ink-3 num">{n(b.objects)} objects</span>
-                  <span className="w-16 text-end font-mono text-13 text-ink num">{size(b.bytes)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </ChartCard>
-      ) : <NotYet title="r2 storage" source={source("cloudflare")} />}
-
-      {composio ? (
-        <ChartCard title="composio" action={<Meta>limits {n(composio.limits.installation)} a day per install, {n(composio.limits.account)} per account</Meta>}>
-          <div className="grid grid-cols-4 gap-1.5 max-sm:grid-cols-2">
-            <Stat label="calls today" value={n(composio.today.calls)} note={`${n(composio.today.installations)} installations`} />
-            <Stat label="this week" value={n(composio.week.calls)} />
-            <Stat label="near the limit" value={n(composio.nearLimit)} tone={composio.nearLimit ? "bad" : undefined} note="past 80% of their daily limit" />
-            <Stat label="queue" value={composio.queue ? n(composio.queue.events) : "-"} note={composio.queue ? size(composio.queue.bytes) : "not measured"} />
-          </div>
-          {composio.top.length > 0 && (
-            <>
-              <h3 className="mt-4 px-1 pb-1 text-13 font-medium text-ink">top installations today</h3>
-              <ul className="flex flex-col gap-px">
-                <AnimatePresence initial={false}>
-                  {composio.top.map((row) => <BarRow key={row.installationId} label={row.email ?? row.installationId} value={n(row.today)} note={`${percent(row.share)} · ${n(row.week)} this week`} share={Math.min(1, row.share)} color="bg-wash-lilac" />)}
-                </AnimatePresence>
-              </ul>
-            </>
-          )}
-          {composio.registrationsTopIp.length > 0 && (
-            <>
-              <h3 className="mt-4 px-1 pb-1 text-13 font-medium text-ink">registrations by ip today</h3>
-              <ul className="-mx-1">
-                {composio.registrationsTopIp.map((row) => (
-                  <li key={row.ip} className="flex items-center justify-between gap-3 rounded-[12px] px-2.5 py-1.5"><span className="t-id truncate text-ink">{row.ip}</span><span className="font-mono text-13 text-ink num">{n(row.today)}</span></li>
-                ))}
-              </ul>
-            </>
-          )}
-        </ChartCard>
-      ) : <NotYet title="composio" source={source("composio")} />}
-
-      {brevo ? (
-        <ChartCard title="brevo" action={brevo.plan ? <Meta>{brevo.plan}</Meta> : undefined}>
-          <div className="flex flex-col gap-4">
-            <Meter label="today" meter={brevo.daily} format={n} />
-            <Meter label="this month" meter={brevo.monthly} format={n} />
-          </div>
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-12 text-ink-3">
-            <span>sent <span className="font-mono text-ink num">{n(brevo.today.sent)}</span></span>
-            <span>delivered <span className="font-mono text-ink num">{n(brevo.today.delivered)}</span></span>
-            <span>bounced <span className="font-mono text-ink num">{n(brevo.today.bounced)}</span></span>
-            <span>blocked <span className="font-mono text-ink num">{n(brevo.today.blocked)}</span></span>
-          </div>
-        </ChartCard>
-      ) : <NotYet title="brevo" source={source("brevo")} />}
-
-      <ChartCard title="dodo fees" action={dodo.estimated ? <Meta>estimated</Meta> : undefined}>
-        <div className="grid grid-cols-4 gap-1.5 max-sm:grid-cols-2">
-          <Stat label="fees this month" value={usd(dodo.monthCents)} money />
-          <Stat label="fees today" value={usd(dodo.todayCents)} money />
-          <Stat label="gross" value={usd(dodo.grossCents)} money />
-          <Stat label="payments" value={n(dodo.payments)} />
-        </div>
-        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-12 text-ink-3">
-          <span>{percent(dodo.rate.rate)} + {usd(dodo.rate.fixedCents)} a payment</span>
-          <span>last webhook {ago(dodo.lastWebhookAt)}</span>
-        </div>
-      </ChartCard>
-
-      {relay ? (
-        <ChartCard title="link relay" action={<Meta>{size(relay.dailyLimitBytes)} a day per tunnel</Meta>}>
-          <div className="grid grid-cols-4 gap-1.5 max-sm:grid-cols-2">
-            <Stat label="today" value={size(relay.today.bytes)} />
-            <Stat label="this month" value={size(relay.month.bytes)} />
-            <Stat label="tunnels today" value={n(relay.today.tunnels)} />
-            <Stat label="limited today" value={n(relay.today.limited)} tone={relay.today.limited ? "bad" : undefined} />
-          </div>
-          {relay.top.length > 0 && (
-            <>
-              <h3 className="mt-4 px-1 pb-1 text-13 font-medium text-ink">top tunnels</h3>
-              <ul className="-mx-1">
-                {relay.top.map((row) => {
-                  const body = <><Person accountId={row.accountId} email={row.email} fallback={row.tunnelId} sub={`${size(row.monthBytes)} this month${row.limited ? `, limited ${n(row.limited)}x` : ""}`} /><span className="font-mono text-13 text-ink num">{size(row.todayBytes)}</span></>;
-                  const cls = "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] px-2.5 py-2";
-                  return <li key={row.tunnelId}>{row.accountId ? <Link to={personLink(row.accountId)} className={cx("hover-row", cls)}>{body}</Link> : <div className={cls}>{body}</div>}</li>;
-                })}
-              </ul>
-            </>
-          )}
-        </ChartCard>
-      ) : <NotYet title="link relay" source={source("relay")} />}
-    </div>
-  );
-}
-
-
-const gaugeLevel = (v: number | null): OpsLevel => v === null ? "unknown" : v >= 90 ? "bad" : v >= 75 ? "watch" : "ok";
-function Gauge({ label, value, total }: { label: string; value: number | null; total?: number | null }) {
-  const level = gaugeLevel(value);
-  return (
-    <div className="min-w-0">
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="flex items-center gap-2 text-12 text-ink-3">{label} <Level level={level} quiet /></span>
-        <span className="font-mono text-13 text-ink num">{value === null ? "-" : `${Math.round(value)}%`}</span>
-      </div>
-      <div className="relative mt-1.5 h-1.5 overflow-hidden rounded-full bg-track" aria-hidden>
-        <span className={cx("bar-fill absolute inset-0 block rounded-full", level === "bad" ? "bg-bad" : level === "watch" ? "bg-warn" : "bg-accent")} style={{ transform: `scaleX(${Math.max(0.01, (value ?? 0) / 100)})` }} />
-      </div>
-      {total ? <div className="mt-1 font-mono text-[11.5px] text-ink-4 num">of {size(total)}</div> : null}
-    </div>
-  );
-}
-
-function Box({ box, now }: { box: OpsBox; now: number }) {
-  return (
-    <ChartCard title={box.name} action={<Meta>{box.at ? `sampled ${ago(box.at, now)}` : "no sample yet"}</Meta>}>
-      <div className="grid grid-cols-3 gap-4">
-        <Gauge label="cpu" value={box.cpu} />
-        <Gauge label="memory" value={box.mem} total={box.memTotalBytes} />
-        <Gauge label="disk" value={box.disk} total={box.diskTotalBytes} />
-      </div>
-      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-12 text-ink-3">
-        <span>load <span className="font-mono text-ink num">{box.load ? box.load.map((v) => v.toFixed(2)).join(" ") : "-"}</span>{box.cores ? ` on ${box.cores} cores` : ""}</span>
-        {box.net ? (
-          <>
-            <span>net today <span className="font-mono text-ink num">{size(box.net.inToday)}</span> in, <span className="font-mono text-ink num">{size(box.net.outToday)}</span> out</span>
-            <span>now <span className="font-mono text-ink num">{perSecond(box.net.inRate)}</span> in, <span className="font-mono text-ink num">{perSecond(box.net.outRate)}</span> out</span>
-          </>
-        ) : <span>no network numbers</span>}
-      </div>
-      {box.series.length > 1 && (
-        <div className="mt-3">
-          <div className="t-meta pb-1">cpu, last 24 hours</div>
-          <Sparkline values={box.series.map((p) => p.cpu)} color="var(--viz-visitors)" height={40} label={`${box.name} cpu over the last 24 hours`} />
-        </div>
-      )}
-    </ChartCard>
-  );
-}
-
-const GROUPS: Array<[OpsCheckGroup, string]> = [["boxes", "boxes"], ["services", "services"], ["data", "data"], ["providers", "providers"], ["backups", "backups"], ["certs", "certificates"]];
-function Checks({ checks }: { checks: OpsCheck[] }) {
-  const groups = GROUPS.map(([id, label]) => [label, checks.filter((check) => check.group === id)] as const).filter(([, list]) => list.length);
-  if (!groups.length) return <Empty>no checks have run yet.</Empty>;
-  return (
-    <div className="grid grid-cols-3 items-start gap-4 max-xl:grid-cols-2 max-md:grid-cols-1">
-      {groups.map(([label, list]) => (
-        <ChartCard key={label} title={label} action={<Meta>{n(list.filter((c) => c.level === "ok").length)} of {n(list.length)} ok</Meta>}>
-          <ul className="-my-1 flex flex-col">
-            {list.map((check) => (
-              <li key={check.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 py-1.5" title={check.detail ?? undefined}>
-                <span className="flex min-w-0 items-center gap-2">
-                  <span aria-hidden className={cx("inline-block size-[7px] shrink-0 rounded-[2px]", LEVEL_DOT[check.level])} />
-                  <span className="truncate text-13 text-ink">{check.name}</span>
-                  <span className="sr-only">, {LEVEL_WORD[check.level]}</span>
-                </span>
-                <span className="font-mono text-12 text-ink-2 num">{check.value}{check.latencyMs !== null ? <span className="text-ink-4"> · {n(check.latencyMs)} ms</span> : null}</span>
-                {(check.level === "watch" || check.level === "bad" || check.detail) && (
-                  <span className="col-span-2 ps-[15px] text-12 text-ink-3">{check.level === "watch" || check.level === "bad" ? <span className={check.level === "bad" ? "text-bad" : "text-warn"}>{check.level}{check.detail ? ", " : ""}</span> : null}{check.detail}</span>
-                )}
-              </li>
+  const { instabox, workers, r2, composio, brevo, dodo, relay } = spend;
+  if (provider === "instabox") {
+    const t = instabox.totals, customers = [...instabox.customers].sort((a, b) => b.costCents - a.costCents).slice(0, 8);
+    return (
+      <>
+        <Facts items={[["machines", n(t.machines)], ["customers", n(t.customers)], ["awake", hours(t.awakeHours)], ["vcpu hours", n(Math.round(t.vcpuHours))], ["egress", gb(t.egressGb)], ["today", <span className="text-money">{usd(t.todayCents)}</span>]]} />
+        {customers.length > 0 && (
+          <ul className="-mx-2.5 mt-2">
+            {customers.map((c) => (
+              <PersonRow key={c.accountId} accountId={c.accountId}>
+                <Person accountId={c.accountId} email={c.email} sub={<>{c.plan} · {hours(c.awakeHours)} awake · {gb(c.egressGb)}{c.egressState && <span className="text-warn"> · {c.egressState}</span>}</>} />
+                <span className="font-mono text-13 text-money num">{usd(c.costCents)}</span>
+              </PersonRow>
             ))}
           </ul>
-        </ChartCard>
-      ))}
-    </div>
+        )}
+      </>
+    );
+  }
+  if (provider === "workers") {
+    if (!workers) return <NotYet source={source("cloudflare")} />;
+    return (
+      <div className="flex flex-col gap-3">
+        <Meter label="requests" meter={workers.requests} format={short} />
+        <Meter label="cpu time" meter={workers.cpuMs} format={(v) => `${short(v)} ms`} />
+        <Facts items={[["plan", workers.plan.label], ["base", <span className="text-money">{usd(workers.plan.baseCents)}</span>], ["overage at this pace", <span className="text-money">{usd(workers.overageCents)}</span>],
+          ...workers.scripts.map((s) => [s.name, <>{short(s.requests)} req{s.errors ? <span className="text-warn"> · {short(s.errors)} errors</span> : null}</>] as [string, ReactNode])]} />
+      </div>
+    );
+  }
+  if (provider === "r2") {
+    if (!r2) return <NotYet source={source("cloudflare")} />;
+    return (
+      <div className="flex flex-col gap-3">
+        <Meter label="stored" meter={r2.total} format={size} />
+        <Facts items={[["free tier", size(r2.freeBytes)], ["overage at this pace", <span className="text-money">{usd(r2.overageCents)}</span>], ...r2.buckets.map((b) => [b.name, `${size(b.bytes)} · ${n(b.objects)} objects`] as [string, ReactNode])]} />
+      </div>
+    );
+  }
+  if (provider === "brevo") {
+    if (!brevo) return <NotYet source={source("brevo")} />;
+    return (
+      <div className="flex flex-col gap-3">
+        <Meter label="today" meter={brevo.daily} format={n} />
+        <Meter label="this month" meter={brevo.monthly} format={n} />
+        <Facts items={[["sent today", n(brevo.today.sent)], ["delivered", n(brevo.today.delivered)], ["bounced", n(brevo.today.bounced)], ["blocked", n(brevo.today.blocked)]]} />
+      </div>
+    );
+  }
+  if (provider === "composio") {
+    if (!composio) return <NotYet source={source("composio")} />;
+    return (
+      <>
+        <Facts items={[["calls today", n(composio.today.calls)], ["this week", n(composio.week.calls)], ["installs past 80%", n(composio.nearLimit)], ["queue", composio.queue ? `${n(composio.queue.events)} · ${size(composio.queue.bytes)}` : "-"],
+          ["limit per install", `${n(composio.limits.installation)} a day`], ["limit per account", `${n(composio.limits.account)} a day`]]} />
+        {composio.top.length > 0 && (
+          <ul className="-mx-2.5 mt-2">
+            {composio.top.slice(0, 5).map((row) => (
+              <PersonRow key={row.installationId} accountId={row.accountId}>
+                <Person accountId={row.accountId} email={row.email} fallback={row.installationId} sub={`${percent(row.share)} of the limit · ${n(row.week)} this week`} />
+                <span className="font-mono text-13 text-ink num">{n(row.today)}</span>
+              </PersonRow>
+            ))}
+          </ul>
+        )}
+      </>
+    );
+  }
+  if (provider === "relay") {
+    if (!relay) return <NotYet source={source("relay")} />;
+    return (
+      <>
+        <Facts items={[["today", size(relay.today.bytes)], ["this month", size(relay.month.bytes)], ["tunnels today", n(relay.today.tunnels)], ["limited today", n(relay.today.limited)], ["limit per tunnel", `${size(relay.dailyLimitBytes)} a day`]]} />
+        {relay.top.length > 0 && (
+          <ul className="-mx-2.5 mt-2">
+            {relay.top.slice(0, 5).map((row) => (
+              <PersonRow key={row.tunnelId} accountId={row.accountId}>
+                <Person accountId={row.accountId} email={row.email} fallback={row.tunnelId} sub={`${size(row.monthBytes)} this month${row.limited ? `, limited ${n(row.limited)}x` : ""}`} />
+                <span className="font-mono text-13 text-ink num">{size(row.todayBytes)}</span>
+              </PersonRow>
+            ))}
+          </ul>
+        )}
+      </>
+    );
+  }
+  return (
+    <Facts items={[["fees today", <span className="text-money">{usd(dodo.todayCents)}</span>], ["charged this month", <span className="text-money">{usd(dodo.grossCents)}</span>], ["payments", n(dodo.payments)],
+      ["rate", `${percent(dodo.rate.rate)} + ${usd(dodo.rate.fixedCents)}`], ["last webhook", dodo.lastWebhookAt ? ago(dodo.lastWebhookAt, now) : "never"], ["figures", dodo.estimated ? "estimated" : "from dodo"]]} />
   );
 }
 
+/** what each provider's meter means in the spend row: used against what the plan includes */
+function included(provider: string, spend: OpsSpend): { share: number; level: OpsLevel; text: string } | null {
+  const pick = provider === "workers" ? spend.workers && ([spend.workers.requests, (v: number) => `${short(v)} requests`] as const)
+    : provider === "r2" ? spend.r2 && ([spend.r2.total, size] as const)
+    : provider === "brevo" ? spend.brevo && ([spend.brevo.monthly, (v: number) => `${n(v)} emails`] as const) : null;
+  if (!pick) return null;
+  const [meter, format] = pick;
+  if (!meter.limit) return null;
+  return { share: meter.used / meter.limit, level: meter.level, text: `${format(meter.used)} of ${format(meter.limit)} included` };
+}
 
-function Abuse({ list }: { list: OpsAnswer["abuse"] }) {
-  if (!list.length) return <p className="rounded-[18px] bg-card px-4 py-6 text-center text-14 text-ink-3">nothing unusual right now.</p>;
+const SPEND_COLS = "grid-cols-[minmax(0,1fr)_76px_76px_14px] max-sm:grid-cols-[minmax(0,1fr)_68px_68px_14px]";
+function Spend({ spend, sources, now }: { spend: OpsSpend; sources: OpsSource[]; now: number }) {
+  const [open, setOpen] = useState<string | null>(null);
+  const t = spend.totals;
   return (
-    <ChartCard title="ranked by score" action={<Meta>{n(list.length)}</Meta>}>
-      <ol className="-mx-1">
-        {list.map((s, i) => {
-          const who = s.accountId ? personName(s.accountId, s.email) : s.email ?? s.ip ?? s.key;
+    <Panel id="ops-spend" title="spend this month" meta={`today ${usd(t.todayCents)}`}>
+      <div className={cx("grid gap-3 px-2.5 pb-1 pt-1 t-meta", SPEND_COLS)}><span>provider</span><span className="text-end">so far</span><span className="text-end">pace</span><span /></div>
+      <ul>
+        {spend.lines.map((line) => {
+          const meter = included(line.provider, spend), isOpen = open === line.provider, panel = `ops-spend-${line.provider}`;
           return (
-            <li key={s.key} className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-start gap-3 rounded-[12px] px-2.5 py-2.5">
-              <span className="pt-0.5 font-mono text-12 text-ink-4 num">{i + 1}</span>
-              <span className="min-w-0">
-                <span className="flex min-w-0 flex-wrap items-center gap-x-2">
-                  {s.accountId ? <Link to={personLink(s.accountId)} className="text-link truncate text-13 font-medium">{who}</Link> : <span className="truncate text-13 font-medium text-ink">{who}</span>}
-                  {s.ip && s.accountId && <span className="t-id text-ink-4">{s.ip}</span>}
-                </span>
-                <span className="mt-0.5 block text-13 text-ink-2">{s.why}</span>
-                <span className="mt-1.5 flex flex-wrap gap-1">
-                  {s.signals.map((sig) => (
-                    <span key={sig.kind} className="inline-flex h-6 items-center gap-1.5 rounded-full bg-card px-2.5 text-12 text-ink-2" title={`${sig.label}: ${n(Math.round(sig.value))}, median ${n(Math.round(sig.median))}`}>
-                      {sig.label}{sig.ratio !== null && <span className="font-mono text-ink-3 num">{Math.round(sig.ratio * 10) / 10}x</span>}
+            <li key={line.provider}>
+              <button type="button" aria-expanded={isOpen} aria-controls={panel} onClick={() => setOpen(isOpen ? null : line.provider)}
+                className={cx("hover-row grid w-full items-center gap-3 rounded-[12px] px-2.5 py-2 text-start", SPEND_COLS)}>
+                <span className="min-w-0">
+                  <span className="block truncate text-13 text-ink">{line.label}</span>
+                  {meter ? (
+                    <span className="mt-1 flex items-center gap-2.5">
+                      <span className="w-16 shrink-0"><Bar share={meter.share} level={meter.level} /></span>
+                      <span className="truncate text-12 text-ink-3">{meter.text}</span>
                     </span>
-                  ))}
+                  ) : <span className="block truncate text-12 text-ink-3">{line.note}</span>}
                 </span>
-              </span>
-              <span className="text-end">
-                <span className="block font-mono text-15 font-medium text-ink num">{Math.round(s.score)}</span>
-                <span className="t-meta">score</span>
-              </span>
+                <span className={cx("text-end font-mono text-13 num", line.monthCents > 0 ? "text-money" : "text-ink-4")}>{usd(line.monthCents)}</span>
+                <span className={cx("text-end font-mono text-13 num", line.projectedCents > 0 ? "text-money" : "text-ink-4")}>{usd(line.projectedCents)}</span>
+                <Chevron open={isOpen} />
+              </button>
+              <Reveal open={isOpen} id={panel}><div className="px-2.5 pb-3 pt-1">{<SpendDetail provider={line.provider} spend={spend} sources={sources} now={now} />}</div></Reveal>
             </li>
           );
         })}
-      </ol>
-    </ChartCard>
+        <li className={cx("mt-1 grid items-center gap-3 rounded-[12px] bg-wash-lime px-2.5 py-2", SPEND_COLS)}>
+          <span className="text-13 font-medium text-ink">total</span>
+          <span className="text-end font-mono text-13 font-medium text-money num">{usd(t.monthCents)}</span>
+          <span className="text-end font-mono text-13 font-medium text-money num">{usd(t.projectedCents)}</span>
+          <span />
+        </li>
+      </ul>
+    </Panel>
   );
 }
 
-const ALERT_COLS = "grid-cols-[110px_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] max-md:grid-cols-[minmax(0,1fr)_auto]";
-function Alerts({ rules, now }: { rules: OpsRule[]; now: number }) {
-  if (!rules.length) return <Empty>no alert rules yet.</Empty>;
-  const order = { firing: 0, pending: 1, ok: 2 } as const;
-  const sorted = [...rules].sort((a, b) => order[a.state] - order[b.state]);
+function Machine({ box, now }: { box: OpsBox; now: number }) {
+  const gauges: Array<[string, number | null, number | null]> = [["cpu", box.cpu, null], ["memory", box.mem, box.memTotalBytes], ["disk", box.disk, box.diskTotalBytes]];
   return (
-    <ChartCard title="rules" action={<Meta>{n(rules.filter((r) => r.state === "firing").length)} firing</Meta>}>
-      <div className={cx("-mx-1 grid gap-4 px-2.5 pb-1 t-meta max-md:hidden", ALERT_COLS)}><span>state</span><span>rule</span><span>threshold</span><span>now</span><span>since or last</span></div>
-      <ul className="-mx-1">
-        {sorted.map((rule) => (
-          <li key={rule.id} className={cx("grid items-center gap-x-4 gap-y-0.5 rounded-[12px] px-2.5 py-2", ALERT_COLS)}>
-            <span className="max-md:order-2 max-md:justify-self-end"><Level level={RULE_LEVEL[rule.state]} word={rule.state} /></span>
-            <span className="truncate text-13 text-ink max-md:order-1">{rule.label}</span>
-            <span className="truncate text-12 text-ink-3 max-md:order-3 max-md:col-span-2">{rule.threshold}<span className="md:hidden"> · now {rule.value ?? "-"}</span></span>
-            <span className="truncate font-mono text-12 text-ink-2 num max-md:hidden">{rule.value ?? "-"}</span>
-            <span className="truncate text-12 text-ink-3 max-md:order-4 max-md:col-span-2">{rule.state !== "ok" && rule.since ? `since ${ago(rule.since, now)}` : rule.lastFiredAt ? `last fired ${ago(rule.lastFiredAt, now)}` : "never fired"}</span>
-          </li>
-        ))}
-      </ul>
-    </ChartCard>
+    <li className="px-2.5 py-2.5">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-13 text-ink">{box.name}</span>
+        <span className="truncate text-12 text-ink-3">{box.at ? `sampled ${ago(box.at, now)}` : "no sample yet"}</span>
+      </div>
+      <div className="mt-2.5 grid grid-cols-3 gap-4 max-sm:gap-3">
+        {gauges.map(([label, value, total]) => {
+          const level = gaugeLevel(value);
+          return (
+            <div key={label} className="min-w-0" title={total ? `of ${size(total)}` : undefined}>
+              <div className="flex items-baseline justify-between gap-2 text-12">
+                <span className="truncate text-ink-3">{label}</span>
+                <span className="font-mono text-ink-2 num">{value === null ? "-" : `${Math.round(value)}%`}<span className="sr-only">{level === "ok" || level === "unknown" ? "" : `, ${level}`}</span></span>
+              </div>
+              <div className="mt-1.5"><Bar share={(value ?? 0) / 100} level={level} /></div>
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-2.5 truncate text-12 text-ink-3">
+        load <span className="font-mono text-ink-2 num">{box.load ? box.load.map((v) => v.toFixed(2)).join(" ") : "-"}</span>{box.cores ? ` on ${box.cores} cores` : ""}
+        {box.net && <> · now <span className="font-mono text-ink-2 num">{perSecond(box.net.inRate)}</span> in, <span className="font-mono text-ink-2 num">{perSecond(box.net.outRate)}</span> out</>}
+      </p>
+    </li>
+  );
+}
+
+function Machines({ boxes, now }: { boxes: OpsBox[]; now: number }) {
+  return (
+    <Panel id="ops-machines" title="machines" meta={`${n(boxes.length)} ${boxes.length === 1 ? "box" : "boxes"}`}>
+      {boxes.length ? <ul>{boxes.map((box) => <Machine key={box.name} box={box} now={now} />)}</ul> : <Empty>no machine has reported yet.</Empty>}
+    </Panel>
+  );
+}
+
+const SERVICE_COLS = "grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)_64px] max-sm:grid-cols-[minmax(0,1fr)_64px]";
+function Services({ checks, rules, now }: { checks: OpsCheck[]; rules: OpsRule[]; now: number }) {
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const sorted = [...checks].sort((a, b) => RANK[a.level] - RANK[b.level]);
+  const ok = checks.filter((check) => check.level === "ok").length;
+  const firing = rules.filter((rule) => rule.state === "firing").length;
+  const order = { firing: 0, pending: 1, ok: 2 } as const;
+  return (
+    <Panel id="ops-services" title="services" meta={`${n(ok)} of ${n(checks.length)} ok`} foot={rules.length > 0 && (
+      <div className="px-1 pt-1.5">
+        <button type="button" aria-expanded={rulesOpen} aria-controls="ops-rules" onClick={() => setRulesOpen((v) => !v)} className="hover-ghost flex min-h-11 w-full items-center justify-between gap-3 rounded-[16px] px-2 text-start text-13 text-ink-2">
+          <span>alert rules</span><span className="flex items-center gap-2"><span className="t-meta">{n(rules.length)} rules, {n(firing)} firing</span><Chevron open={rulesOpen} /></span>
+        </button>
+        <Reveal open={rulesOpen} id="ops-rules">
+          <ul className="pb-1 pt-1">
+            {[...rules].sort((a, b) => order[a.state] - order[b.state]).map((rule) => (
+              <li key={rule.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-2 py-1.5">
+                <span className="min-w-0">
+                  <span className="block truncate text-13 text-ink">{rule.label}</span>
+                  <span className="block truncate text-12 text-ink-3">{rule.threshold}{rule.value ? ` · now ${rule.value}` : ""} · {rule.state !== "ok" && rule.since ? `since ${ago(rule.since, now)}` : rule.lastFiredAt ? `last fired ${ago(rule.lastFiredAt, now)}` : "never fired"}</span>
+                </span>
+                <Level level={RULE_LEVEL[rule.state]} word={rule.state} />
+              </li>
+            ))}
+          </ul>
+        </Reveal>
+      </div>
+    )}>
+      {sorted.length ? (
+        <>
+          <div className={cx("grid gap-3 px-2.5 pb-1 pt-1 t-meta", SERVICE_COLS)}><span>check</span><span className="max-sm:hidden">now</span><span className="text-end">latency</span></div>
+          <ul>
+            {sorted.map((check) => {
+              const loud = check.level === "bad" || check.level === "watch";
+              return (
+                <li key={check.id} className={cx("grid items-baseline gap-x-3 rounded-[12px] px-2.5 py-1.5", SERVICE_COLS)} title={check.detail ?? undefined}>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <Dot level={check.level} />
+                    <span className="truncate text-13 text-ink">{check.name}</span>
+                    <span className="sr-only">, {check.level}</span>
+                  </span>
+                  <span className="truncate text-12 text-ink-3 max-sm:hidden">{check.value}</span>
+                  <span className="text-end font-mono text-12 text-ink-3 num">{check.latencyMs !== null ? `${n(check.latencyMs)} ms` : "-"}</span>
+                  <span className={cx("col-span-full truncate ps-[15px] text-12 text-ink-3", !loud && !check.detail && "sm:hidden")}>{loud && <span className={check.level === "bad" ? "text-bad" : "text-warn"}>{check.level}, </span>}<span className="sm:hidden">{check.value}{check.detail ? ", " : ""}</span>{check.detail}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      ) : <Empty>no checks have run yet.</Empty>}
+    </Panel>
+  );
+}
+
+function People({ list }: { list: OpsAnswer["abuse"] }) {
+  const [all, setAll] = useState(false);
+  const shown = all ? list : list.slice(0, 5);
+  return (
+    <Panel id="ops-people" title="people to look at" meta={list.length ? "by score" : undefined}>
+      {shown.length ? (
+        <ul>
+          {shown.map((s) => (
+            <PersonRow key={s.key} accountId={s.accountId}>
+              <Person accountId={s.accountId} email={s.email} fallback={s.ip ?? s.key} sub={<span title={s.signals.map((sig) => `${sig.label}${sig.ratio !== null ? ` ${Math.round(sig.ratio * 10) / 10}x` : ""}`).join(", ")}>{s.why}</span>} />
+              <span className="text-end font-mono text-13 text-ink num" title="score">{Math.round(s.score)}</span>
+            </PersonRow>
+          ))}
+        </ul>
+      ) : <Empty>nobody stands out right now.</Empty>}
+      {list.length > 5 && <button type="button" onClick={() => setAll((v) => !v)} className="text-link mx-auto block h-9 px-3 text-12">{all ? "show fewer" : `show all ${n(list.length)}`}</button>}
+    </Panel>
   );
 }
 
 const EVERY_MS = { "5m": 300_000, "1h": 3_600_000 } as const;
 function Sources({ sources, now }: { sources: OpsSource[]; now: number }) {
+  const failing = sources.filter((s) => s.configured && !s.ok).length;
+  const ready = sources.filter((s) => s.configured).length;
   return (
-    <footer aria-labelledby="ops-sources" className="mt-10">
-      <h2 id="ops-sources" className="t-meta mb-2">where these numbers come from</h2>
-      <ul className="grid grid-cols-3 gap-x-6 gap-y-1.5 max-lg:grid-cols-2 max-sm:grid-cols-1">
+    <Fold id="ops-sources" title="where these numbers come from" meta={`${n(ready)} of ${n(sources.length)} set up${failing ? `, ${n(failing)} failing` : ""}`} defaultOpen={failing > 0}>
+      <ul className="grid grid-cols-3 gap-x-6 gap-y-2 rounded-[18px] bg-pop p-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
         {sources.map((s) => {
           const stale = s.at !== null && now - s.at > EVERY_MS[s.every] * 3;
           const level: OpsLevel = !s.configured ? "unknown" : !s.ok ? "bad" : stale || s.at === null ? "watch" : "ok";
           return (
             <li key={s.id} className="min-w-0 text-12">
-              <span className="flex items-center gap-2">
-                <span aria-hidden className={cx("inline-block size-[7px] shrink-0 rounded-[2px]", LEVEL_DOT[level])} />
-                <span className="text-ink-2">{s.label}</span>
-                <span className="text-ink-4">every {s.every.replace("m", " min").replace("h", " h")}</span>
-              </span>
-              <span className="block ps-[15px] text-ink-3">
+              <span className="flex items-center gap-2"><Dot level={level} /><span className="text-ink-2">{s.label}</span><span className="text-ink-4">every {s.every.replace("m", " min").replace("h", " h")}</span></span>
+              <span className="block truncate ps-[15px] text-ink-3">
                 {!s.configured ? "not set up" : `${s.at ? `collected ${ago(s.at, now)}` : "never collected"}${stale ? ", late" : ""}`}
                 {s.error && <span className="text-bad">, {s.error}</span>}
               </span>
@@ -542,7 +467,7 @@ function Sources({ sources, now }: { sources: OpsSource[]; now: number }) {
           );
         })}
       </ul>
-    </footer>
+    </Fold>
   );
 }
 
@@ -575,28 +500,23 @@ export function OpsPage() {
   return (
     <>
       <AdminHeader title="ops"
-        sub={data ? <span className="inline-flex flex-wrap items-center gap-2">{data.month}, {percent(data.elapsed)} of the month gone · updated {ago(data.now, now)}{data.fixture && <span className="tag !h-[22px] !px-2">sample data</span>}</span> : "spend, health, abuse and alerts in one place"}
+        sub={data ? <span className="inline-flex flex-wrap items-center gap-2">{data.month}, {percent(data.elapsed)} of the month gone · updated {ago(data.now, now)}{data.fixture && <span className="tag !h-[22px] !px-2">sample data</span>}</span> : "spend, machines, services and people to look at"}
         action={<Collect onDone={reload} />} />
       {error && <Failed error={error} retry={reload} />}
       {!data && loading && <Loading rows={8} />}
       {data && (
-        <div className="flex flex-col">
-          <Glance data={data} />
-          <Section title="spend and usage">
-            <div className="flex flex-col gap-4">
-              <Lines spend={data.spend} />
-              <Instabox box={data.spend.instabox} />
-              <Providers spend={data.spend} sources={data.sources} />
+        <div className="flex flex-col gap-4">
+          <Summary data={data} items={attention(data)} />
+          <div className="grid grid-cols-2 items-start gap-4 max-lg:grid-cols-1">
+            <div className="flex min-w-0 flex-col gap-4">
+              <Spend spend={data.spend} sources={data.sources} now={now} />
+              <People list={data.abuse} />
             </div>
-          </Section>
-          <Section title="health">
-            <div className="flex flex-col gap-4">
-              {data.health.boxes.length > 0 && <div className="grid grid-cols-2 items-start gap-4 max-lg:grid-cols-1">{data.health.boxes.map((box) => <Box key={box.name} box={box} now={now} />)}</div>}
-              <Checks checks={data.health.checks} />
+            <div className="flex min-w-0 flex-col gap-4">
+              <Machines boxes={data.health.boxes} now={now} />
+              <Services checks={data.health.checks} rules={data.alerts} now={now} />
             </div>
-          </Section>
-          <Section title="abuse and outliers"><Abuse list={data.abuse} /></Section>
-          <Section title="alerts"><Alerts rules={data.alerts} now={now} /></Section>
+          </div>
           <Sources sources={data.sources} now={now} />
         </div>
       )}
