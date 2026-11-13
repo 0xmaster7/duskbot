@@ -295,8 +295,8 @@ export function ComputerTab({ bot, derived, cloudFor }: {
             <ComputerPanel bot={bot} inline visible={onScreen} onReport={setReport} />
           </Suspense>
         </div>
-        <div className="mt-[5px] flex min-h-6 items-center pl-1">
-          <span data-panel-screen-of="" className="min-w-0 truncate text-[12px] leading-4 tracking-normal text-ink/[0.56]">{host.name ? `${screenOf} · ${host.name}` : screenOf}</span>
+        <div className="mt-[5px] flex min-h-6 items-center justify-center">
+          <span data-panel-screen-of="" className="min-w-0 truncate text-[12px] leading-4 tracking-normal text-ink/[0.56]">{screenOf}</span>
         </div>
         {detail && <Card><NoteRow data-sheet-row="problem-detail">{detail}</NoteRow></Card>}
         {toCloud && <CloudDesktopCta bots={cloudBots} stage={stage} label={cloudLabel} />}
