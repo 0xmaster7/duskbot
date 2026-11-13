@@ -429,7 +429,7 @@ jobs:
     # <App/> against the isolated fake-engine fixture, and keeps the screenshot.
     name: renderer smoke (control-dusk ui, Ubuntu 24.04)
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -451,6 +451,18 @@ jobs:
           DUSK_UI_E2E: "1"
           DUSK_UI_EVIDENCE_DIR: .dusk-scratch/verify-evidence
         run: pnpm exec vitest run scripts/testing/control-dusk-ui.e2e.test.ts scripts/testing/bot-tools-ui.e2e.test.ts scripts/testing/thinking-timer-ui.e2e.test.ts scripts/testing/team-share-ui.e2e.test.ts scripts/testing/org-library-ui.e2e.test.ts scripts/testing/presets-ui.e2e.test.ts scripts/testing/browser-evidence.e2e.test.ts scripts/testing/browser-fill.e2e.test.ts scripts/testing/rich-table-composer-ui.e2e.test.ts scripts/testing/computer-panel-focus-ui.e2e.test.ts scripts/testing/mobile-code-blocks-ui.e2e.test.ts
+      - name: Draw every chat card in the gallery and check its layout
+        # its own verdict even when a recipe above failed
+        if: ${{ !cancelled() }}
+        # scripts/testing/chat-gallery.e2e.test.ts: each card kind and state (chat-gallery/fixtures.ts) in the real chat, at
+        # desktop and phone widths, settled, arriving and re-keyed. A row painting over another, text cut off or out of
+        # the window, a second field look, a native checkbox or a control with no focus look fails it.
+        env:
+          DUSK_UI_E2E: "1"
+          DUSK_UI_EVIDENCE_DIR: .dusk-scratch/verify-evidence
+          DUSK_GALLERY_SKINS: grok,grok-dark,midnight
+        timeout-minutes: 20
+        run: pnpm exec vitest run scripts/testing/chat-gallery.e2e.test.ts
       - name: Upload the renderer screenshot
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
@@ -461,6 +473,7 @@ jobs:
             .dusk-scratch/verify-evidence/thinking-timer-anchored.png
             .dusk-scratch/verify-evidence/share-team-dialog.png
             .dusk-scratch/verify-evidence/mobile-code-blocks/
+            .dusk-scratch/verify-evidence/chat-gallery/
           if-no-files-found: warn
           retention-days: 7
 
