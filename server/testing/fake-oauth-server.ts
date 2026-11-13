@@ -12,6 +12,8 @@ export interface FakeOAuthOptions {
   beforeToken?: () => Promise<void>;
   /** omit registration_endpoint from the metadata */
   noRegistration?: boolean;
+  /** advertise client_id_metadata_document_supported */
+  metadataDocument?: boolean;
   /** refuse to register a client for a redirect URI this matches */
   refuseRedirect?: (redirectUri: string) => boolean;
   /** answer every refresh with invalid_grant */
@@ -122,6 +124,7 @@ export async function startFakeOAuth(options: FakeOAuthOptions = {}): Promise<Fa
           authorization_endpoint: `${issuer}/authorize`,
           token_endpoint: `${issuer}/token`,
           ...(options.noRegistration ? {} : { registration_endpoint: `${issuer}/register` }),
+          ...(options.metadataDocument ? { client_id_metadata_document_supported: true } : {}),
           revocation_endpoint: `${issuer}/revoke`,
           code_challenge_methods_supported: ["S256"],
           ...(options.tokenAuthMethods ? { token_endpoint_auth_methods_supported: options.tokenAuthMethods } : {}),

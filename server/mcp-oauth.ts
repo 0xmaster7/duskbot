@@ -5,6 +5,7 @@ import { createServer, type Server } from "node:http";
 
 import { handoffPage } from "../electron/pixel-page.mjs";
 
+import { MCP_CLIENT_ID, MCP_CLIENT_METADATA_FIRST, MCP_CLIENT_METADATA_PORT } from "../shared/mcp-client-metadata.ts";
 import type { McpServerSpec } from "./contracts.ts";
 import { discoverMcpAuth, type McpAuthMetadata } from "./mcp-oauth-discovery.ts";
 import { McpOAuthStore, type McpOAuthRecord, type McpOAuthTokens } from "./mcp-oauth-store.ts";
@@ -472,7 +473,7 @@ export class McpOAuthManager {
     if (!meta) throw new McpOAuthError("not-oauth", "This server does not offer an OAuth sign-in. Add its token as a header instead.");
     const registered = this.clients(name, url);
 
-    if (!registered && starting.browser.remote && starting.browser.origin) {
+    if (!registered && starting.browser.remote && starting.browser.origin && !MCP_CLIENT_METADATA_FIRST.has(url)) {
       const redirectUri = `${starting.browser.origin}${CALLBACK_PATH}`;
       let clientId: string | null = null;
       try {
@@ -483,29 +484,47 @@ export class McpOAuthManager {
       if (clientId) return { ...this.open(name, url, starting, meta, redirectUri, { id: clientId, method: "none" }, null, meta.scopes).status };
     }
 
-    const server = createServer();
-    try {
-      await listen(server, preferredPort(url));
-    } catch {
-      if (registered) {
-        throw new McpOAuthError("port-busy", `Port ${preferredPort(url)} on this computer is in use, and sign-ins for this server's app return there. Close what is using it and try again.`);
+    // a vendor that takes our metadata document instead of registering: when it registers nobody, refused us, or is
+    // known to admit only reviewed clients that way
+    const metadataDocument = !registered && meta.clientIdMetadataDocument === true;
+    let useDocument = metadataDocument && (!meta.registrationEndpoint || MCP_CLIENT_METADATA_FIRST.has(url));
+    for (;;) {
+      const server = createServer();
+      const fixed = registered || useDocument;
+      const port = useDocument ? MCP_CLIENT_METADATA_PORT : preferredPort(url);
+      try {
+        await listen(server, port);
+      } catch {
+        if (fixed) {
+          throw new McpOAuthError("port-busy", `Port ${port} on this computer is in use, and sign-ins for this server return there. Close what is using it and try again.`);
+        }
+        await listen(server, 0);
       }
-      await listen(server, 0);
-    }
-    try {
-      const address = server.address();
-      if (!address || typeof address === "string") throw new Error("The sign-in listener could not start.");
-      const redirectUri = `http://127.0.0.1:${address.port}${CALLBACK_PATH}`;
-      const client: ClientAuth = registered
-        ? { id: registered.clientId, ...(registered.clientSecret ? { secret: registered.clientSecret } : {}), method: tokenAuthMethod(meta, registered.clientSecret) }
-        : { id: await this.register(meta, redirectUri), method: "none" };
-      const scopes = registered?.scopes?.length ? registered.scopes : meta.scopes;
-      const flow = this.open(name, url, starting, meta, redirectUri, client, server, scopes);
-      server.on("request", (request, response) => void this.callback(flow, request, response));
-      return { ...flow.status };
-    } catch (error) {
-      server.close();
-      throw error;
+      try {
+        const address = server.address();
+        if (!address || typeof address === "string") throw new Error("The sign-in listener could not start.");
+        const redirectUri = `http://127.0.0.1:${address.port}${CALLBACK_PATH}`;
+        let client: ClientAuth;
+        if (registered) client = { id: registered.clientId, ...(registered.clientSecret ? { secret: registered.clientSecret } : {}), method: tokenAuthMethod(meta, registered.clientSecret) };
+        else if (useDocument) client = { id: MCP_CLIENT_ID, method: "none" };
+        else {
+          try {
+            client = { id: await this.register(meta, redirectUri), method: "none" };
+          } catch (error) {
+            if (!(error instanceof RegistrationRefused) || !metadataDocument) throw error;
+            server.close();
+            useDocument = true;
+            continue;
+          }
+        }
+        const scopes = registered?.scopes?.length ? registered.scopes : meta.scopes;
+        const flow = this.open(name, url, starting, meta, redirectUri, client, server, scopes);
+        server.on("request", (request, response) => void this.callback(flow, request, response));
+        return { ...flow.status };
+      } catch (error) {
+        server.close();
+        throw error;
+      }
     }
   }
 

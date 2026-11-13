@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { cardOwner, McpOAuthError, McpOAuthManager, mcpCallbackOrigin, mcpOAuthRedirectUri, type McpSignInPhase, type McpSignInStatus, withMcpSignIn, withoutPendingSignIn } from "./mcp-oauth.ts";
 import type { McpOAuthClientConfig } from "./mcp-registry.ts";
+import { MCP_CLIENT_ID, MCP_CLIENT_METADATA, MCP_CLIENT_METADATA_REDIRECT } from "../shared/mcp-client-metadata.ts";
 import { startFakeHttpMcp, type FakeHttpMcp } from "./testing/fake-http-mcp-server.ts";
 import { startFakeOAuth, type FakeOAuth, type FakeOAuthOptions } from "./testing/fake-oauth-server.ts";
 import { engineMcpSignIn, MCP_OAUTH_PROXY_PATH, mcpOAuthProxyRoutes } from "./mcp-oauth-proxy.ts";
@@ -118,6 +119,22 @@ describe("McpOAuthManager sign-in", () => {
   it("explains a server that offers no client registration", async () => {
     await setup({ noRegistration: true });
     await expect(manager.start("docs", mcp.url)).rejects.toMatchObject({ code: "no-registration" });
+  });
+
+  it("signs in with dusk bot's client metadata document where a server registers nobody but takes one", async () => {
+    await setup({ noRegistration: true, metadataDocument: true });
+    const status = await manager.start("docs", mcp.url);
+    const authorize = new URL(status.authorizationUrl!);
+    expect(authorize.searchParams.get("client_id")).toBe(MCP_CLIENT_ID);
+    expect(authorize.searchParams.get("redirect_uri")).toBe(MCP_CLIENT_METADATA_REDIRECT);
+    manager.cancel("docs");
+  });
+
+  it("falls back to the metadata document when a server refuses to register dusk bot", async () => {
+    await setup({ refuseRedirect: () => true, metadataDocument: true });
+    const status = await manager.start("docs", mcp.url);
+    expect(new URL(status.authorizationUrl!).searchParams.get("client_id")).toBe(MCP_CLIENT_ID);
+    manager.cancel("docs");
   });
 
   it("refuses a server that does not use OAuth", async () => {
@@ -863,5 +880,13 @@ describe("MCP OAuth through the local proxy", () => {
     const spec = await engineSpec();
     expect((await initialize({ ...spec, headers: { Authorization: "Bearer not-the-route-bearer" } })).status).toBe(403);
     expect((await initialize({ url: `${spec.url}x`, headers: spec.headers })).status).toBe(403);
+  });
+});
+
+describe("dusk bot's client metadata document", () => {
+  it("names itself as its own client id and lists only the fixed loopback redirect", () => {
+    expect(MCP_CLIENT_METADATA.client_id).toBe(MCP_CLIENT_ID);
+    expect(MCP_CLIENT_METADATA.redirect_uris).toEqual([MCP_CLIENT_METADATA_REDIRECT]);
+    expect(MCP_CLIENT_METADATA.token_endpoint_auth_method).toBe("none");
   });
 });

@@ -23,12 +23,43 @@ folder (key in `app-tokens-key`, both 0600) and added as an MCP server:
   the app's own API origin.
 
 Native sign-ins are rows in `shared/native-connectors.json`: a device-code flow (the person types a code on the
-vendor's page) or a loopback code flow with PKCE, the env names that hold the client id and secret, scopes, endpoints,
-a check URL and how bots use the token. Adding one is a row plus its client values in the release environment;
-`scripts/bundle-server.mjs` bakes exactly the env names the rows list. Today: GitHub (dusk bot's own GitHub App, device
-flow, `DUSK_GITHUB_APP_CLIENT_ID`) and Google Drive (`drive.file` only, which needs no Google review,
-`DUSK_GOOGLE_DRIVE_CLIENT_ID` and `DUSK_GOOGLE_DRIVE_CLIENT_SECRET`). Never add a sensitive or restricted Google scope
-to that Google project.
+vendor's page), a loopback code flow with PKCE, or Trello's token page (the token comes back in the address's
+fragment, which a small same-origin page posts to the server). Each row names the env vars that hold the client id
+and secret, scopes, endpoints, the loopback name the app was registered with (`127.0.0.1` unless `redirectHost` says
+`localhost`), how the client authenticates at the token endpoint (`tokenAuth`: form or HTTP Basic; `tokenBody`: form
+or JSON), a check URL (GET or POST) and how bots use the token. `scripts/bundle-server.mjs` bakes exactly the env
+names the rows list. Today:
+
+| App | Flow | Redirect | Client env | Notes |
+|---|---|---|---|---|
+| GitHub | device | none | `DUSK_GITHUB_APP_CLIENT_ID` | GitHub App, not registered yet |
+| Google Drive | device | none | `DUSK_GOOGLE_DRIVE_CLIENT_ID`, `_SECRET` | `drive.file` only |
+| Notion | code | `http://localhost:8799/api/app-tokens/callback` | `DUSK_OAUTH_NOTION_*` | Basic auth, JSON body |
+| Linear | code | `http://127.0.0.1:8799/api/app-tokens/callback` | `DUSK_OAUTH_LINEAR_*` | token goes to Linear's MCP |
+| Airtable | code | same | `DUSK_OAUTH_AIRTABLE_*` | Basic auth |
+| Todoist | code | same | `DUSK_OAUTH_TODOIST_*` | |
+| ClickUp | code | same | `DUSK_OAUTH_CLICKUP_*` | |
+| Dropbox | code | same | `DUSK_OAUTH_DROPBOX_CLIENT_ID` | PKCE only, no secret; Dropbox's own MCP refuses unreviewed clients |
+| Trello | fragment | same | `DUSK_OAUTH_TRELLO_API_KEY` | the API key is public |
+
+Not native, on purpose: Slack and Calendly accept no loopback redirect, Spotify's app is capped at 5 allowlisted
+users, and GitLab and Miro already sign in through their own MCP servers. Never add a sensitive or restricted Google
+scope to the Drive project.
+
+Signed-in tokens are renewed in the background every 5 minutes when they expire within 10, and again when an app
+refuses one mid-call (the call is retried once). When the vendor refuses the refresh token itself, or a pasted token
+stops working, the account shows `needsReconnect`; reconnecting with `replaces: <account id>` (on
+`POST /api/app-tokens/:app` or `POST /api/app-tokens/:app/device`) keeps the same MCP server name, so every bot keeps
+its access. The bot's tool answer names the app and says to reconnect it, or how long to wait when the app is
+rate limiting.
+
+## Vendor MCP servers and the client metadata document
+
+`server/connectors/remote-mcp.ts` lists vendors' own MCP servers. They sign in with dynamic client registration, or,
+where a vendor registers nobody but supports OAuth client ID metadata documents (Railway, MongoDB Atlas, and Vercel,
+which admits only reviewed clients otherwise), with `https://dusk.bot/v1/oauth/mcp-client.json`: the account service
+serves it (`shared/mcp-client-metadata.ts`) and its only redirect is `http://127.0.0.1:47615/mcp-oauth/callback`. Run
+`node --experimental-strip-types scripts/probe-remote-mcp.ts` to check every row live with no account.
 
 ## Your own Composio
 

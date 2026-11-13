@@ -7,6 +7,8 @@ export interface McpAuthMetadata {
   registrationEndpoint?: string;
   revocationEndpoint?: string;
   scopes?: string[];
+  /** `client_id_metadata_document_supported`: an https URL may stand in for a registered client id. */
+  clientIdMetadataDocument?: boolean;
   /** RFC 8414 `token_endpoint_auth_methods_supported`; absent means client_secret_basic. */
   tokenEndpointAuthMethods?: string[];
   /** The MCP URL, sent as the RFC 8707 `resource` so tokens are audience-bound. */
@@ -140,6 +142,7 @@ export async function discoverMcpAuth(
     ...(revocationEndpoint ? { revocationEndpoint } : {}),
     ...(scopes?.length ? { scopes } : {}),
     ...(tokenEndpointAuthMethods?.length ? { tokenEndpointAuthMethods } : {}),
+    ...(metadata.client_id_metadata_document_supported === true ? { clientIdMetadataDocument: true } : {}),
     resource: target.toString(),
     source: named === undefined ? "origin" : "protected-resource",
   };

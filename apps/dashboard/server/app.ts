@@ -7,6 +7,7 @@ import { APP_COMMAND_ONLINE_MS, CLAIM_TTL_MS, COMMAND_KINDS, appSlug, COMMAND_TT
 import type { CommandKind, CommandView, ConnectorsAnswer, MachineSample, ReportAnswer, WorkspaceDetail, WorkspaceReport, WorkspaceSummary } from "../../../shared/dashboard-protocol.ts";
 import { PULSE_INTERVAL_MS, PULSE_WINDOW_MS, PulseRing, type PulseAnswer } from "../../../shared/machine-pulse.ts";
 import type { NotificationPrefs } from "../../../shared/account-api.ts";
+import { MCP_CLIENT_METADATA, MCP_CLIENT_METADATA_PATH } from "../../../shared/mcp-client-metadata.ts";
 import { AuthError, createAuth, isAppCorsRoute } from "./auth/index.ts";
 import type { ProviderConfigs } from "./auth/providers.ts";
 import type { Mailer } from "./auth/mail.ts";
@@ -503,6 +504,11 @@ export function createDashboardApp(options: DashboardAppOptions) {
     }
     if (site && !ACCOUNT_PREFIXES.some(prefix => path.startsWith(prefix)) && !(path === pageBase || path.startsWith(`${pageBase}/`))
       && !(method === "GET" && PAGE_ROUTES.some(route => path === route || path.startsWith(`${route}/`)))) { analytics.crawlerVisit(req, new URL(publicUrl).hostname); return site(req, res); }
+    if ((method === "GET" || method === "HEAD") && path === MCP_CLIENT_METADATA_PATH) {
+      res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=3600", "access-control-allow-origin": "*" });
+      res.end(method === "HEAD" ? undefined : JSON.stringify(MCP_CLIENT_METADATA));
+      return;
+    }
     if ((method === "GET" || method === "HEAD") && path === "/v1/health") {
       try { accessSync(options.dataDir, constants.W_OK); } catch { return json(res, 503, { ok: false, error: "data folder is not writable" }); }
       const database = stateBackend()?.health();

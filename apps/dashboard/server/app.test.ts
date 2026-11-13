@@ -383,6 +383,14 @@ describe("hosted dashboard service", () => {
     expect(health.headers.get("cache-control")).toBe("no-store");
   });
 
+  it("serves dusk bot's MCP client metadata document under the address it names as its client id", async () => {
+    const answer = await page("/v1/oauth/mcp-client.json");
+    expect(answer.status).toBe(200);
+    const body = await answer.json();
+    expect(body).toMatchObject({ client_id: "https://dusk.bot/v1/oauth/mcp-client.json", redirect_uris: ["http://127.0.0.1:47615/mcp-oauth/callback"], token_endpoint_auth_method: "none" });
+    expect(answer.headers.get("content-type")).toContain("application/json");
+  });
+
   it("exports the signed-in account's own data with no tokens or keys", async () => {
     expect((await page("/v1/account/export")).status).toBe(401);
     const cookie = await login();
