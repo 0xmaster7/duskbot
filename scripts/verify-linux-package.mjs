@@ -397,7 +397,7 @@ const fields = execFileSync(
 for (const expected of [
   "Package: duskbot",
   "Architecture: amd64",
-  "Maintainer: Milind Soni",
+  "Maintainer: dusk bot <hello@dusk.bot>",
   "Section: utils",
   "Priority: optional",
 ]) {
