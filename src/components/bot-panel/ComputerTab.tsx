@@ -61,7 +61,7 @@ export function usePlaceChoices(bot: Bot) {
   const myChrome = state.config?.browserEngine?.myChrome === true
     && (state.config?.browserProfiles ?? []).some((profile) => profile.id === bot.browserProfile && profile.browser === "chrome");
   const placeLabel = (place: Place) => (place === "browser" && myChrome ? t("botPanel.ui.settingsProfilesMyChrome")
-    : place === "local" ? t(platform === "darwin" ? "botPanel.place.thisMac" : "botPanel.place.thisPc") : t(PANEL_PLACE_LABEL[place]));
+    : place === "local" ? t(platform === "darwin" ? "botPanel.place.thisMac" : platform === "win32" ? "botPanel.place.thisPc" : "botPanel.place.thisComputer") : t(PANEL_PLACE_LABEL[place]));
   const choice = (place: Place): PlaceOption => {
     const { view, reachable } = placeViews[place];
     return { value: place, label: placeLabel(place), disabled: !reachable, hint: !reachable || placeHasIssue(view) ? view.line : undefined };

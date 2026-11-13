@@ -133,6 +133,6 @@ export const SIMPLE_PLACE_LABEL = {
 } as const satisfies Record<string, LocaleKey>;
 
 export function worksOnSimpleLabel(computer: Bot["computer"], platform: DesktopCapabilities["host"]["platform"]): string {
-  if (computer === "local") return t(platform === "darwin" ? "computer.simple.dest.thisMac" : "computer.simple.dest.thisPc");
+  if (computer === "local") return t(platform === "darwin" ? "computer.simple.dest.thisMac" : platform === "win32" ? "computer.simple.dest.thisPc" : "computer.simple.dest.thisComputer");
   return t(SIMPLE_PLACE_LABEL[computer ?? "auto"]);
 }

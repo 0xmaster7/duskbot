@@ -570,7 +570,8 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
     onAbout: () => setAboutOpen(true),
     onHelp: () => void openExternalLink(HELP_CENTER_URL),
     onFeedback: () => void openExternalLink(FEEDBACK_URL),
-    onAccount: openCloudAccount,
+    // signed out, the row reads sign in: the same sheet as the simple menu, not settings
+    onAccount: accounts.view && !accounts.view.active ? () => accounts.add() : openCloudAccount,
     onDashboard: () => void openAccountDashboard(),
   });
   const noteworthy = update && updateNoteworthy(update.phase, update.pending);

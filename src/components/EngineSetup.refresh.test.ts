@@ -75,7 +75,7 @@ it("never opens a local terminal to install on a paired remote server", () => {
   mount(createElement(EngineSetup, { instance: engine }));
   expect(host.textContent).not.toContain("open install in Terminal");
   expect(host.textContent).toContain("fixture-install");
-  expect(host.textContent).toContain("the machine it runs on, not this device");
+  expect(host.textContent).toContain("sign in on the computer your bots run on");
 });
 
 it("says plainly when the engine now runs the copy the app installed", async () => {
