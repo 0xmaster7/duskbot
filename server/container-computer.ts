@@ -1096,10 +1096,16 @@ const EXEC_DEFAULT_SECONDS = 60;
 const EXEC_MAX_SECONDS = 300;
 const EXEC_OUTPUT_LIMIT = 20_000;
 
+/** The line standing in for the middle of a long output: how much is gone and the one way to read it, since running
+ * the same command again prints the same cut. */
+export function execOmission(chars: number): string {
+  return `[… ${chars} characters omitted here. To read them, run the command again with its output saved to a file (… > out.txt 2>&1), then read just the part you need: grep -n 'word' out.txt, sed -n '200,300p' out.txt or tail -n 100 out.txt. …]`;
+}
+
 export function clipExecOutput(text: string, limit = EXEC_OUTPUT_LIMIT): string {
   if (text.length <= limit) return text;
   const head = Math.floor(limit / 5);
-  return `${text.slice(0, head)}\n… ${text.length - limit} characters omitted …\n${text.slice(text.length - (limit - head))}`;
+  return `${text.slice(0, head)}\n${execOmission(text.length - limit)}\n${text.slice(text.length - (limit - head))}`;
 }
 
 const defaultExecRunner: ContainerExecRunner = async (command, args, options) => {

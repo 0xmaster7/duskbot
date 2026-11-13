@@ -60,10 +60,10 @@ describe("containerExec", () => {
   it("keeps the start and the end of a long output, where the error usually is", () => {
     const long = `START${"x".repeat(50_000)}END`;
     const clipped = clipExecOutput(long);
-    expect(clipped.length).toBeLessThan(20_100);
+    expect(clipped.length).toBeLessThan(20_400);
     expect(clipped.startsWith("START")).toBe(true);
     expect(clipped.endsWith("END")).toBe(true);
-    expect(clipped).toContain("characters omitted");
+    expect(clipped).toContain(`[… ${long.length - 20_000} characters omitted here. To read them, run the command again with its output saved to a file`);
     expect(clipExecOutput("short")).toBe("short");
   });
 });
