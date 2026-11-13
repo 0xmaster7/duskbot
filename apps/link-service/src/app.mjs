@@ -95,6 +95,36 @@ function installerProgress(value) {
     ...(bytes ? { receivedBytes: value.receivedBytes, totalBytes: value.totalBytes } : {}), ...(label ? { label } : {}) };
 }
 
+const ASK_LINKS = { "tailscale-login": "login.tailscale.com", "tailscale-https": "login.tailscale.com", "cloudflare-login": "dash.cloudflare.com" };
+const ASK_HOST = /^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{0,61}[a-z0-9]$/;
+const ASK_IP = /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)$/;
+const ASK_STATES = new Set(["waiting", "found", "done"]);
+/**
+ * what the installer needs the person to do, shown by the app: open a sign-in link (only on the provider's own host),
+ * add a DNS record, open ports, or (ssh) the tunnel command to reach it. `{kind: "none"}` clears it. undefined: invalid
+ */
+export function installerAsk(value) {
+  if (!value || typeof value !== "object") return undefined;
+  if (value.kind === "none") return { kind: "none" };
+  const state = ASK_STATES.has(value.state) ? value.state : "waiting";
+  if (Object.hasOwn(ASK_LINKS, value.kind)) {
+    let url;
+    try { url = new URL(value.url); } catch { return undefined; }
+    if (url.protocol !== "https:" || url.hostname !== ASK_LINKS[value.kind] || url.username || url.password || value.url.length > 600) return undefined;
+    return { kind: value.kind, url: url.href, state };
+  }
+  if (value.kind === "dns") {
+    if (!ASK_HOST.test(value.host ?? "") || value.type !== "A" || !ASK_IP.test(value.value ?? "")) return undefined;
+    return { kind: "dns", host: value.host, type: "A", value: value.value, state };
+  }
+  if (value.kind === "ports") return { kind: "ports", ...(ASK_IP.test(value.ip ?? "") ? { ip: value.ip } : {}), state };
+  if (value.kind === "ssh") {
+    if (!/^[a-z_][a-z0-9_-]{0,31}$/.test(value.user ?? "") || !(ASK_IP.test(value.host ?? "") || ASK_HOST.test(value.host ?? ""))) return undefined;
+    return { kind: "ssh", user: value.user, host: value.host, state };
+  }
+  return undefined;
+}
+
 function installerActivity(value) {
   if (!value || !nonnegativeInteger(value.elapsedMs) || !nonnegativeInteger(value.quietMs) || value.quietMs > value.elapsedMs) return null;
   return { elapsedMs: value.elapsedMs, quietMs: value.quietMs };
@@ -790,6 +820,8 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
         if (!STEP.test(body?.step ?? "") || !STATUSES.has(body?.status)) return fail(res, 400, "step and status are required");
         const progress = body.progress === undefined ? undefined : installerProgress(body.progress);
         const activity = body.activity === undefined ? undefined : installerActivity(body.activity);
+        const ask = body.ask === undefined ? undefined : installerAsk(body.ask);
+        if (body.ask !== undefined && !ask) return fail(res, 400, "invalid installer ask");
         if (progress === null || activity === null || (body.heartbeat !== undefined && typeof body.heartbeat !== "boolean")) return fail(res, 400, "invalid installer progress or activity");
         if (body.lines !== undefined && (!Array.isArray(body.lines) || body.lines.length > MAX_LINES || body.lines.some((line) => typeof line !== "string"))) {
           return fail(res, 400, `lines must be up to ${MAX_LINES} strings`);
@@ -813,7 +845,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
         }
         if (session.events.length >= MAX_EVENTS) session.events.splice(1, session.events.length - MAX_EVENTS + 1);
         const event = { seq: ++session.seq, at: now(), step: body.step, status: body.status, ...(log ? { log } : {}), ...(cmd ? { cmd } : {}), ...(lines ? { lines } : {}),
-          ...(progress ? { progress } : {}), ...(activity ? { activity } : {}), ...(body.heartbeat ? { heartbeat: true } : {}) };
+          ...(progress ? { progress } : {}), ...(activity ? { activity } : {}), ...(body.heartbeat ? { heartbeat: true } : {}), ...(ask ? { ask } : {}) };
         session.events.push(event);
         store.save();
         wakeSession(id);

@@ -1,5 +1,6 @@
 // Add a place, without leaving where the person is: dusk cloud (the buying sheet), or a server of their own, linked by one
-// line through the relay with its progress shown live, or reached at an address it serves after one command there.
+// line (with the way it should be reached on the end) with its progress and anything it needs from the person shown live,
+// or a dusk bot already running somewhere, by its address and code.
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Building2, ChevronRight, Loader2, UserRound } from "../icons";
 import type { RailAddChoices } from "../../electron/cloud-rail.mjs";
@@ -9,7 +10,8 @@ import { useCopyFeedback } from "@/lib/copy-text";
 import { t } from "@/lib/i18n";
 import { installChecklist, installPhase, pairingLink } from "@/lib/place-setup";
 import { usePlaces } from "@/lib/places";
-import { openAddVps, useVpsLink, vpsLinkAvailable, type VpsLinkView } from "@/lib/vps-link";
+import { openExternalLink } from "@/lib/app-links";
+import { openAddVps, useVpsLink, vpsLinkAvailable, type VpsLinkAsk, type VpsLinkView } from "@/lib/vps-link";
 import { AddCloudFlow } from "./cloud-buy/AddCloudFlow";
 import { NewOrganization } from "./cloud-buy/NewOrganization";
 import { BackLink, Checklist, Heading, Tag } from "./cloud-buy/parts";
@@ -19,21 +21,29 @@ import { message, useNow } from "./vps-link/parts";
 import { PlaceArt, type PlaceArtName } from "./ui/PlaceArt";
 import "../styles/place-setup.css";
 
-// Node for npx on Ubuntu and Debian (docs/deploy-vps.md), so each way's line works on a fresh server
-const NODE = "curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash - && sudo apt-get install -y nodejs && ";
-
-/** The ways a server of one's own connects besides the relay, in the order they are offered. Each is one line that
- * installs and starts dusk bot on the server, then the address and code it prints. */
+/** The ways a server of one's own connects besides the plain relay line, in the order they are offered. Each but the
+ * last is the same one line with a way on the end (apps/link-service/install.sh): it installs dusk bot, sets up the way,
+ * shows here what only the person can do (a sign-in, a DNS record) and links by itself. The last connects to a dusk bot
+ * that is already running somewhere, by its address and pairing code. */
 export const WAYS = [
-  { key: "tailscale", title: "placeSetup.way.tailscale", sub: "placeSetup.way.tailscaleSub", command: `${NODE}npx -y duskbot serve --tailscale`, placeholder: "https://your-server.your-tailnet.ts.net" },
-  { key: "tunnel", title: "placeSetup.way.tunnel", sub: "placeSetup.way.tunnelSub", command: `${NODE}npx -y duskbot login && npx -y duskbot serve --tunnel`, placeholder: "https://c-….cloud.dusk.bot" },
-  { key: "domain", title: "placeSetup.way.domain", sub: "placeSetup.way.domainSub", command: `${NODE}npx -y duskbot serve --domain bots.example.com`, placeholder: "https://bots.example.com" },
-  // the server's dusk bot listens on 8799, and so does this computer's own, so the tunnel lands on 8790 here
-  { key: "ssh", title: "placeSetup.way.ssh", sub: "placeSetup.way.sshSub", command: `${NODE}npx -y duskbot serve`, local: "ssh -N -L 8790:127.0.0.1:8799 you@your-server", address: "http://127.0.0.1:8790", placeholder: "http://127.0.0.1:8790" },
-  { key: "address", title: "placeSetup.way.address", sub: "placeSetup.way.addressSub", command: `${NODE}npx -y duskbot serve --public-url https://bots.example.com`, placeholder: "https://bots.example.com" },
-] as const satisfies ReadonlyArray<{ key: string; title: string; sub: string; command: string; placeholder: string; local?: string; address?: string }>;
+  { key: "tailscale", title: "placeSetup.way.tailscale", sub: "placeSetup.way.tailscaleSub", flag: "--tailscale", last: "placeSetup.steps.tailscale" },
+  { key: "cloudflare", title: "placeSetup.way.cloudflare", sub: "placeSetup.way.cloudflareSub", flag: "--cloudflare", last: "placeSetup.steps.cloudflare" },
+  { key: "domain", title: "placeSetup.way.domain", sub: "placeSetup.way.domainSub", flag: "--domain", last: "placeSetup.steps.domain" },
+  { key: "direct", title: "placeSetup.way.direct", sub: "placeSetup.way.directSub", flag: "--direct", last: "placeSetup.steps.direct" },
+  { key: "ssh", title: "placeSetup.way.ssh", sub: "placeSetup.way.sshSub", flag: "--ssh", last: "placeSetup.steps.ssh" },
+  { key: "address", title: "placeSetup.way.address", sub: "placeSetup.way.addressSub", placeholder: "https://bots.example.com" },
+] as const satisfies ReadonlyArray<{ key: string; title: string; sub: string; flag?: string; last?: string; placeholder?: string }>;
 export type WayKey = (typeof WAYS)[number]["key"];
 type Way = (typeof WAYS)[number];
+type LineWay = Extract<Way, { flag: string }>;
+const lineWay = (way: Way): way is LineWay => "flag" in way;
+const DOMAIN = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{0,61}[a-z0-9]$/;
+/** the relay's line with a way on the end: `… | sh` becomes `… | sh -s -- --tailscale` */
+export function wayLine(line: string, way: LineWay | undefined, domain = ""): string {
+  if (!way) return line;
+  const flag = way.flag === "--domain" ? `--domain ${domain || "bots.example.com"}` : way.flag;
+  return /\| sh$/.test(line) ? `${line} -s -- ${flag}` : line;
+}
 export const wayOf = (key: string): Way | undefined => WAYS.find((entry) => entry.key === key);
 
 export type PlaceSetupView = "choose" | "server" | "install" | "cloud" | "organization" | `way:${WayKey}`;
@@ -113,7 +123,7 @@ export function ServerWays({ onPick }: { onPick: (key: "relay" | WayKey) => void
   const address = Boolean(window.duskDesktop?.workspaces?.add);
   const rows = [
     ...(relay ? [{ key: "relay" as const, title: t("placeSetup.relay"), sub: t("placeSetup.relaySub"), tag: true }] : []),
-    ...(address ? WAYS.map((entry) => ({ key: entry.key, title: t(entry.title), sub: t(entry.sub), tag: false })) : []),
+    ...WAYS.filter((entry) => (lineWay(entry) ? relay : address)).map((entry) => ({ key: entry.key, title: t(entry.title), sub: t(entry.sub), tag: false })),
   ];
   return <div className="flex flex-col gap-1.5">
     {rows.map((row, index) => <button key={row.key} type="button" data-autofocus={index === 0 ? "" : undefined} data-setup-method={row.key} className={ROW} onClick={() => onPick(row.key)}>
@@ -144,9 +154,10 @@ const PHASE_ART: Record<ReturnType<typeof installPhase>, PlaceArtName> = {
 
 const STEP_WORD = { waiting: "placeSetup.step.waiting", found: "placeSetup.step.found", connecting: "placeSetup.step.connecting", done: "placeSetup.step.done" } as const;
 
-/** One line through the relay: the line, then the server checking in, setting up and linking, then on to signing in its AI
- * and moving the bots. `onBack` absent: drawn inline on a page that has its own title and way back (Settings). */
-export function InstallSetup({ onBack, onClose }: { onBack?: () => void; onClose: () => void }) {
+/** One line through the relay, with a way on the end or none: two or three plain steps, the line, then the server checking
+ * in, setting up (with anything it needs from the person shown here) and linking, then on to signing in its AI and moving
+ * the bots. `onBack` absent: drawn inline on a page that has its own title and way back (Settings). */
+export function InstallSetup({ way, title: named, onBack, onClose }: { way?: LineWay; title?: string; onBack?: () => void; onClose: () => void }) {
   const { view, bridge, ready, update } = useVpsLink();
   const now = useNow(5_000);
   const [busy, setBusy] = useState(false);
@@ -154,6 +165,9 @@ export function InstallSetup({ onBack, onClose }: { onBack?: () => void; onClose
   const asked = useRef(false);
   // until the first line is asked for, a server linked before reads as "starting", never as this setup's "connected"
   const [making, setMaking] = useState(true);
+  const [domain, setDomain] = useState("");
+  // what the server asked for stays shown once it has linked (the ssh command, the record that was added)
+  const lastAsk = useRef<VpsLinkAsk | null>(null);
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   const run = useCallback((work: () => Promise<VpsLinkView>) => {
@@ -178,7 +192,13 @@ export function InstallSetup({ onBack, onClose }: { onBack?: () => void; onClose
   const progress = vpsProgress(shown);
   const stopped = phase === "failed" || phase === "expired";
   // a failed step's line still works: pasting it again picks up where it stopped
-  const line = shown.command && phase !== "expired" && phase !== "done" ? shown.command : null;
+  const typed = domain.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+  const domainOk = DOMAIN.test(typed);
+  const raw = shown.command && phase !== "expired" && phase !== "done" ? shown.command : null;
+  const line = raw ? wayLine(raw, way, domainOk ? typed : "") : null;
+  if (shown.ask !== undefined && shown.ask !== null) lastAsk.current = shown.ask;
+  else if (shown.ask === null && phase !== "done") lastAsk.current = null;
+  const ask = shown.ask ?? (phase === "done" && lastAsk.current?.kind === "ssh" ? lastAsk.current : null);
   const steps = installChecklist(shown, now).map((step) => ({
     key: step.key, state: stopped && step.state === "now" ? "next" as const : step.state,
     title: t(step.key === "waiting" && step.state === "done" ? "placeSetup.step.waited" : STEP_WORD[step.key]),
@@ -196,7 +216,9 @@ export function InstallSetup({ onBack, onClose }: { onBack?: () => void; onClose
   const [title, sub] = phase === "done" ? [t("placeSetup.doneTitle", { name }), t("placeSetup.doneBody")]
     : phase === "expired" ? [t("placeSetup.expiredTitle"), t("placeSetup.expired")]
       : phase === "failed" ? [t("vpsLink.install.stuck"), line ? t("vpsLink.install.rerun") : null]
-        : [t("placeSetup.install.title"), t("placeSetup.install.what")];
+        : [named ?? (way ? t(way.title) : t("placeSetup.install.title")), way ? t(way.sub) : t("placeSetup.install.what")];
+  const via = shown.via ?? shown.mode ?? null;
+  const steps3 = [t("placeSetup.steps.first"), t("placeSetup.steps.run"), t(way?.last ?? "placeSetup.steps.relay")];
   // in Settings the page's own title names the way, so only a change of state gets a heading
   const headed = Boolean(onBack) || stopped || phase === "done";
 
@@ -209,12 +231,21 @@ export function InstallSetup({ onBack, onClose }: { onBack?: () => void; onClose
       {headed ? <Heading title={title} sub={sub ?? undefined} />
         : <p className="self-center text-[14px] leading-5 text-ink-secondary [text-wrap:pretty]">{sub}</p>}
     </div>
+    {line && phase === "waiting" && <ol data-setup-steps="" className="flex list-none flex-col gap-1 text-[13px] leading-[18px] text-ink-secondary">
+      {steps3.map((text, index) => <li key={index} className="flex gap-2"><span aria-hidden="true" className="w-3 shrink-0 tabular-nums text-ink-tertiary">{index + 1}</span><span className="[text-wrap:pretty]">{text}</span></li>)}
+    </ol>}
+    {way?.flag === "--domain" && line && phase === "waiting" && <label className="flex flex-col gap-1.5 text-[13px] text-ink">{t("placeSetup.domainLabel")}
+      <input data-autofocus="" data-setup-domain="" value={domain} onChange={(event) => setDomain(event.target.value)} placeholder="bots.example.com"
+        autoCapitalize="none" autoCorrect="off" autoComplete="off" spellCheck={false} aria-describedby="setup-domain-hint" className={FIELD} />
+      <span id="setup-domain-hint" className="text-[12px] leading-4 text-ink-secondary">{t("placeSetup.domainHint")}</span>
+    </label>}
     {line && <CopyLine text={line} label={t("vpsLink.copyAria")} />}
     {phase === "starting" && <p role="status" className="flex min-h-11 items-center rounded-[12px] bg-inset px-3.5 text-[13px] text-ink-secondary motion-safe:animate-pulse">{t("vpsLink.command.making")}</p>}
-    {phase === "done" && shown.mode && <p data-setup-via={shown.mode} className="place-reveal -mt-1 flex items-center gap-2 text-[13px] leading-[18px] text-ink-secondary">
-      <PlaceArt name={shown.mode === "direct" ? "direct" : "relay"} size={22} />{t(shown.mode === "direct" ? "placeSetup.via.direct" : "placeSetup.via.relay")}
+    {phase === "done" && via && <p data-setup-via={via} className="place-reveal -mt-1 flex items-center gap-2 text-[13px] leading-[18px] text-ink-secondary">
+      <PlaceArt name={shown.mode === "direct" ? "direct" : "relay"} size={22} />{t(`placeSetup.via.${via}`)}
     </p>}
     {phase !== "starting" && <div aria-live="polite"><Checklist items={steps} /></div>}
+    {ask && phase !== "failed" && phase !== "expired" && <AskPanel ask={ask} />}
     {phase === "failed" && <p role="alert" className="place-reveal text-[13px] leading-[18px] text-danger [overflow-wrap:anywhere]">{failure}</p>}
     <div className="flex flex-wrap items-center gap-2">
       {phase === "done" && <>
@@ -236,8 +267,13 @@ const FIELD = "w-full rounded-lg border border-transparent bg-inset px-3 py-2 te
 /** A way that needs an address: one command on the server (and, for an SSH tunnel, one here), then the address and code it
  * prints; main asks before it connects. `onBack` absent: drawn inline on a page that has its own title and way back. */
 export function WaySetup({ way, title, onBack, onClose }: { way: Way; title?: string; onBack?: () => void; onClose: () => void }) {
-  const fixed = "address" in way ? way.address : "";
-  const [address, setAddress] = useState(fixed);
+  if (lineWay(way)) return <InstallSetup way={way} title={title} onBack={onBack} onClose={onClose} />;
+  return <AddressSetup way={way} title={title} onBack={onBack} onClose={onClose} />;
+}
+
+/** A dusk bot already running somewhere (`npx duskbot serve` prints its address and code): connected by those two. */
+function AddressSetup({ way, title, onBack, onClose }: { way: Extract<Way, { key: "address" }>; title?: string; onBack?: () => void; onClose: () => void }) {
+  const [address, setAddress] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<{ field: "address" | "code" | null; text: string } | null>(null);
@@ -262,29 +298,52 @@ export function WaySetup({ way, title, onBack, onClose }: { way: Way; title?: st
   return <form data-place-setup-way={way.key} noValidate onSubmit={(event) => void submit(event)} className={onBack ? BODY : INLINE}>
     {onBack && <BackLink label={t("rail.back")} onClick={onBack} />}
     {onBack || title ? <Heading title={title ?? t(way.title)} sub={t(way.sub)} /> : <p className="text-[14px] leading-5 text-ink-secondary [text-wrap:pretty]">{t(way.sub)}</p>}
-    <div className="flex flex-col gap-2">
-      <p className={note}>{t("placeSetup.run")}</p>
-      <CopyLine text={way.command} label={t("vpsLink.copyAria")} />
-    </div>
-    {"local" in way && <div className="flex flex-col gap-2">
-      <p className={note}>{t("placeSetup.runLocal")}</p>
-      <CopyLine text={way.local} label={t("vpsLink.copyAria")} />
-    </div>}
-    {!fixed && <label className="flex flex-col gap-1.5 text-[13px] text-ink">{t("placeSetup.addressLabel")}
+    <p className={note}>{t("placeSetup.addressHow")}</p>
+    <label className="flex flex-col gap-1.5 text-[13px] text-ink">{t("placeSetup.addressLabel")}
       <input data-autofocus="" data-setup-address="" value={address} disabled={busy} onChange={(event) => { setAddress(event.target.value); setError(null); }}
         placeholder={way.placeholder} autoCapitalize="none" autoCorrect="off" autoComplete="off" spellCheck={false}
         aria-invalid={error?.field === "address" || undefined} aria-describedby={error?.field === "address" ? "setup-error setup-address-hint" : "setup-address-hint"} className={FIELD} />
       <span id="setup-address-hint" className="text-[12px] leading-4 text-ink-secondary">{t("placeSetup.addressHint")}</span>
-    </label>}
+    </label>
     {!linked && <label className="flex flex-col gap-1.5 text-[13px] text-ink">{t("placeSetup.codeLabel")}
-      <input data-autofocus={fixed ? "" : undefined} data-setup-code="" value={code} disabled={busy} onChange={(event) => { setCode(event.target.value); setError(null); }}
+      <input data-setup-code="" value={code} disabled={busy} onChange={(event) => { setCode(event.target.value); setError(null); }}
         placeholder="ABCD-2345-EFGH" autoCapitalize="characters" autoCorrect="off" autoComplete="off" spellCheck={false}
         aria-invalid={error?.field === "code" || undefined} aria-describedby={error?.field === "code" ? "setup-error setup-code-hint" : "setup-code-hint"} className={cn(FIELD, "font-mono")} />
       <span id="setup-code-hint" className="text-[12px] leading-4 text-ink-secondary">{t("placeSetup.codeHint")}</span>
     </label>}
     {error && <p id="setup-error" role="alert" className="text-[13px] leading-[18px] text-danger [overflow-wrap:anywhere]">{error.text}</p>}
-    <div><button type="submit" disabled={busy || !address.trim() || (Boolean(fixed) && !code.trim())} className="ui-button ui-button-primary inline-flex items-center gap-2">
+    <div><button type="submit" disabled={busy || !address.trim()} className="ui-button ui-button-primary inline-flex items-center gap-2">
       {busy && <Loader2 size={14} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />}{busy ? t("placeSetup.connecting") : t("placeSetup.connect")}
     </button></div>
   </form>;
+}
+
+/** What only the person can do for the line to finish, as the server asks for it: a sign-in link to open, a DNS record to
+ * add, ports to open; or, for an SSH way, the tunnel that opens it in a browser here. Live: "waiting" turns to "found". */
+function AskPanel({ ask }: { ask: VpsLinkAsk }) {
+  const status = ask.state === "waiting" ? t("placeSetup.ask.waiting") : ask.state === "found" ? t("placeSetup.ask.found") : null;
+  const head = (title: string, body: string) => <div className="flex flex-col gap-0.5">
+    <p className="text-[14px] leading-5 text-ink">{title}</p>
+    <p className="text-[13px] leading-[18px] text-ink-secondary [text-wrap:pretty]">{body}</p>
+  </div>;
+  return <div data-setup-ask={ask.kind} data-ask-state={ask.state} role="status" className="place-reveal flex flex-col gap-3 rounded-[12px] bg-ink/[0.04] px-4 py-3.5">
+    {(ask.kind === "tailscale-login" || ask.kind === "tailscale-https" || ask.kind === "cloudflare-login") && <>
+      {head(t(`placeSetup.ask.${ask.kind}`), t(`placeSetup.ask.${ask.kind}Body`))}
+      <div><button type="button" data-ask-open="" className="ui-button ui-button-primary" onClick={() => void openExternalLink(ask.url)}>{t(ask.kind === "cloudflare-login" ? "placeSetup.ask.openCloudflare" : "placeSetup.ask.openTailscale")}</button></div>
+    </>}
+    {ask.kind === "dns" && <>
+      {head(t("placeSetup.ask.dns"), t("placeSetup.ask.dnsBody", { host: ask.host }))}
+      <dl data-dns-record="" className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-[13px] leading-[18px]">
+        <dt className="text-ink-secondary">{t("placeSetup.ask.dnsType")}</dt><dd className="font-mono text-ink">A</dd>
+        <dt className="text-ink-secondary">{t("placeSetup.ask.dnsName")}</dt><dd className="font-mono text-ink [overflow-wrap:anywhere]">{ask.host}</dd>
+      </dl>
+      <CopyLine text={ask.value} label={t("vpsLink.copyAria")} />
+    </>}
+    {ask.kind === "ports" && head(t("placeSetup.ask.ports"), t("placeSetup.ask.portsBody"))}
+    {ask.kind === "ssh" && <>
+      {head(t("placeSetup.ask.ssh"), t("placeSetup.ask.sshBody"))}
+      <CopyLine text={`ssh -N -L 8790:127.0.0.1:8799 ${ask.user}@${ask.host}`} label={t("vpsLink.copyAria")} />
+    </>}
+    {status && <p data-ask-status="" className={cn("text-[13px] leading-[18px]", ask.state === "found" ? "text-ink" : "text-ink-secondary motion-safe:animate-pulse")}>{status}</p>}
+  </div>;
 }

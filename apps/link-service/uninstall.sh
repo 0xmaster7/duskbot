@@ -25,7 +25,7 @@ OPT=/opt/duskbot-link
 MANIFEST=/var/lib/duskbot/install-manifest
 FENCE=/usr/local/sbin/omb-host-fence
 UNITS=/etc/systemd/system
-OUR_UNITS="duskbot-server-update.timer duskbot-server-update.service duskbot-link.service duskbot.service duskbot-engines.path duskbot-restart.service duskbot-handoff.service omb-docker-gate.service omb-box-fence.service"
+OUR_UNITS="duskbot-server-update.timer duskbot-server-update.service duskbot-link.service duskbot-cloudflared.service duskbot.service duskbot-engines.path duskbot-restart.service duskbot-handoff.service omb-docker-gate.service omb-box-fence.service"
 # the accounts install.sh splits the server into (link agent, docker gate) and their files
 LINK_USER=omb-link
 LINK_HOME=/var/lib/omb-link
@@ -743,7 +743,9 @@ do_files() {
     command -v apparmor_parser >/dev/null 2>&1 && apparmor_parser -R "$BWRAP_PROFILE" >/dev/null 2>&1 || true
     x rm -f "$BWRAP_PROFILE"; removed="$removed $BWRAP_PROFILE"
   fi
-  for path in "$OPT" "$LOGS_DIR" "$STATE" "$FENCE" "$LIB" "$ETC"; do
+  # the tailnet address this server served dusk bot at
+  if in_manifest "tailscale-serve 443" && command -v tailscale >/dev/null 2>&1; then x tailscale serve --https=443 off 2>&1 || true; fi
+  for path in "$OPT" "$LOGS_DIR" "$STATE" "$FENCE" "$LIB" "$ETC" /etc/duskbot-address.json /etc/duskbot-cloudflared; do
     if [ -e "$path" ]; then x rm -rf "$path"; removed="$removed $path"; fi
   done
   # the manifest keeps only what is still installed (packages, apt sources), so a later --all can take those too

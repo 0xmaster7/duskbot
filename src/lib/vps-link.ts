@@ -39,7 +39,17 @@ export interface VpsLinkView {
   error: string | null;
   move: VpsLinkMove | null;
   mode?: "relay" | "direct" | null;
+  /** How the app reaches the linked server (install.sh's way): omitted by older desktop builds. */
+  via?: VpsLinkVia | null;
+  /** What the installer needs the person to do now (sign in, add a DNS record, open ports), while a line runs. */
+  ask?: VpsLinkAsk | null;
 }
+export type VpsLinkVia = "relay" | "ssh" | "direct" | "domain" | "tailscale" | "cloudflare";
+export type VpsLinkAsk =
+  | { kind: "tailscale-login" | "tailscale-https" | "cloudflare-login"; url: string; state: "waiting" | "found" | "done" }
+  | { kind: "dns"; host: string; type: "A"; value: string; state: "waiting" | "found" | "done" }
+  | { kind: "ports"; ip?: string; state: "waiting" | "found" | "done" }
+  | { kind: "ssh"; user: string; host: string; state: "waiting" | "found" | "done" };
 export interface VpsEngine { instanceId: string; kind: "claude" | "codex"; name: string; signedIn: boolean }
 export interface VpsSignIn {
   flowId: string | null;

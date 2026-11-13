@@ -330,6 +330,43 @@ describe("Add your VPS", () => {
     expect(store.read().links[0].sealIdentity).toBe(SEAL_ID);
     await old.close();
   });
+
+  it("shows what the installer asks of the person live, and clears it when that step ends", async () => {
+    const { link } = controller({ local: localServer(), ownHome: { start: async () => {}, view: () => null, away: () => false, home: () => null, chosen: () => null }, store: memoryStore() });
+    const made = await link.start();
+    const [id, secret] = /\/i\/([a-z2-7]{10}-[a-z2-7]{26}) \| sh$/.exec(made.command)[1].split("-");
+    const vpsToken = vpsTokenOf(secret);
+    await post(`/v1/sessions/${id}/claim`, vpsToken, {});
+    await post(`/v1/sessions/${id}/events`, vpsToken, { step: "address", status: "running" });
+    const ask = { kind: "dns", host: "bots.example.com", type: "A", value: "203.0.113.7", state: "waiting" };
+    expect((await post(`/v1/sessions/${id}/events`, vpsToken, { step: "address", status: "running", ask })).status).toBe(200);
+    expect((await until(() => link.view().ask)).value).toBe("203.0.113.7");
+    // a link to anywhere but the provider's own sign-in host never reaches the app
+    expect((await post(`/v1/sessions/${id}/events`, vpsToken, { step: "address", status: "running", ask: { kind: "tailscale-login", url: "https://evil.example/a/1" } })).status).toBe(400);
+    await post(`/v1/sessions/${id}/events`, vpsToken, { step: "address", status: "running", ask: { ...ask, state: "found" } });
+    await until(() => link.view().ask?.state === "found");
+    await post(`/v1/sessions/${id}/events`, vpsToken, { step: "address", status: "done" });
+    await until(() => link.view().ask === null);
+    await link.close();
+  });
+
+  it("follows the agent to a new address it names inside the sealed tunnel, and signs in there", async () => {
+    const store = memoryStore();
+    store.write({ v: 1, current: "cccccccccc", links: [{ id: "cccccccccc", name: "quick box", mode: "direct", via: "cloudflare", origin: "https://old-name.trycloudflare.com", spki: null, envId: "env-3", keyP: "p:k", tokenP: "p:t" }] });
+    const retargeted = [], pinned = [];
+    const address = { mode: "direct", via: "cloudflare", origin: "https://new-name.trycloudflare.com", spki: null };
+    const linked = createVpsLink({
+      ...linkDeps(localServer(), { start: async () => {}, view: () => null, away: () => false, home: () => null, chosen: () => null }, store),
+      retarget: (from, to) => retargeted.push([from, to]), pin: (host, spki) => pinned.push([host, spki]),
+      proxyFactory: () => ({ start: async () => "http://vps-cccccccccc.localhost:1", control: async (op) => (op === "hello" ? { protocol: 3, address } : {}), close: async () => {} }),
+    });
+    await linked.resume();
+    await until(() => store.read().links[0].origin === "https://new-name.trycloudflare.com");
+    expect(retargeted).toEqual([["https://old-name.trycloudflare.com", "https://new-name.trycloudflare.com"]]);
+    expect(pinned).toContainEqual(["new-name.trycloudflare.com", null]);
+    expect(linked.view()).toMatchObject({ via: "cloudflare", server: { origin: "https://new-name.trycloudflare.com" } });
+    await linked.close();
+  });
 });
 
 function linkDeps(local, ownHome, store) {

@@ -155,25 +155,80 @@ it("every way to connect is one row in order, relay first, with no art", async (
   vi.stubGlobal("duskDesktop", { vpsLink: fakeLink().bridge, workspaces: { add: vi.fn() } });
   await act(async () => { root.render(createElement(PlaceSetup, { onClose: vi.fn() })); });
   expect([...document.querySelectorAll("[data-setup-method]")].map((row) => row.getAttribute("data-setup-method")))
-    .toEqual(["relay", "tailscale", "tunnel", "domain", "ssh", "address"]);
+    .toEqual(["relay", "tailscale", "cloudflare", "domain", "direct", "ssh", "address"]);
   expect(q("[data-setup-method] [data-place-art]")).toBeNull();
   for (const row of document.querySelectorAll("[data-setup-method]")) expect(row.querySelectorAll("span.block").length).toBe(1);
 });
 
-it("a way by address shows one full command, explains each field, and checks what was typed", async () => {
+it("each way is the same one line with the way on the end, three plain steps, and nothing to type back", async () => {
+  const link = fakeLink();
+  vi.stubGlobal("duskDesktop", { vpsLink: link.bridge, workspaces: { add: vi.fn() } });
+  await act(async () => { root.render(createElement(PlaceSetup, { onClose: vi.fn() })); });
+  await click(q("[data-setup-method=tailscale]"));
+  await settle();
+  expect(q("[data-setup-command]")?.textContent).toBe("curl -fsSL https://link.example/i/abc | sh -s -- --tailscale");
+  expect(document.querySelectorAll("[data-setup-steps] li")).toHaveLength(3);
+  expect(document.body.textContent).toContain("Sign in to Tailscale when it asks.");
+  expect(q("[data-setup-address]")).toBeNull();
+  expect(q("[data-setup-code]")).toBeNull();
+  // the server asks for a sign-in: shown here with the link, opened outside the app
+  const openExternal = vi.fn(async () => {});
+  vi.stubGlobal("duskDesktop", { vpsLink: link.bridge, workspaces: { add: vi.fn() }, openExternal });
+  await link.emit({ ...EMPTY_VIEW, stage: "installing", command: "curl -fsSL https://link.example/i/abc | sh", expiresAt: Date.now() + 60_000,
+    steps: VPS_STEP_IDS.map((id, index) => ({ id, status: index < 8 ? "done" : index === 8 ? "running" : "waiting" })),
+    ask: { kind: "tailscale-login", url: "https://login.tailscale.com/a/abc123", state: "waiting" } });
+  expect(q("[data-setup-ask=tailscale-login]")?.textContent).toContain("sign in to Tailscale");
+  expect(q("[data-ask-status]")?.textContent).toBe("waiting for you…");
+  await click(q("[data-ask-open]"));
+  expect(openExternal).toHaveBeenCalledWith("https://login.tailscale.com/a/abc123");
+  await link.emit({ ...EMPTY_VIEW, stage: "linked", server: SERVER, mode: "direct", via: "tailscale", steps: VPS_STEP_IDS.map((id) => ({ id, status: "done" })) });
+  expect(q("[data-setup-via]")?.getAttribute("data-setup-via")).toBe("tailscale");
+  expect(q("[data-setup-ask]")).toBeNull();
+});
+
+it("your own domain goes into the line, and the DNS record it needs shows live until it is found", async () => {
+  const link = fakeLink();
+  vi.stubGlobal("duskDesktop", { vpsLink: link.bridge, workspaces: { add: vi.fn() } });
+  await act(async () => { root.render(createElement(PlaceSetup, { onClose: vi.fn() })); });
+  await click(q("[data-setup-method=domain]"));
+  expect(q("[data-setup-command]")?.textContent).toBe("curl -fsSL https://link.example/i/abc | sh -s -- --domain bots.example.com");
+  await type(q<HTMLInputElement>("[data-setup-domain]")!, "https://Bots.Mine.dev/");
+  await settle();
+  expect(q("[data-setup-command]")?.textContent).toBe("curl -fsSL https://link.example/i/abc | sh -s -- --domain bots.mine.dev");
+  const ask = { kind: "dns" as const, host: "bots.mine.dev", type: "A" as const, value: "203.0.113.7", state: "waiting" as const };
+  const steps = VPS_STEP_IDS.map((id, index) => ({ id, status: index < 8 ? "done" as const : index === 8 ? "running" as const : "waiting" as const }));
+  await link.emit({ ...EMPTY_VIEW, stage: "installing", command: "curl -fsSL https://link.example/i/abc | sh", expiresAt: Date.now() + 60_000, steps, ask });
+  expect(q("[data-dns-record]")?.textContent).toContain("bots.mine.dev");
+  expect([...document.querySelectorAll("[data-setup-command]")].map((node) => node.textContent)).toContain("203.0.113.7");
+  await link.emit({ ...EMPTY_VIEW, stage: "installing", command: "curl -fsSL https://link.example/i/abc | sh", expiresAt: Date.now() + 60_000, steps, ask: { ...ask, state: "found" } });
+  expect(q("[data-ask-status]")?.textContent).toBe("Found it. Carrying on.");
+});
+
+it("the SSH way shows the tunnel command with the server's own login and address once it says them", async () => {
+  const link = fakeLink();
+  vi.stubGlobal("duskDesktop", { vpsLink: link.bridge, workspaces: { add: vi.fn() } });
+  await act(async () => { root.render(createElement(PlaceSetup, { onClose: vi.fn() })); });
+  await click(q("[data-setup-method=ssh]"));
+  expect(q("[data-setup-command]")?.textContent).toBe("curl -fsSL https://link.example/i/abc | sh -s -- --ssh");
+  await link.emit({ ...EMPTY_VIEW, stage: "installing", command: "curl -fsSL https://link.example/i/abc | sh", expiresAt: Date.now() + 60_000,
+    steps: VPS_STEP_IDS.map((id, index) => ({ id, status: index < 9 ? "done" : "waiting" })), ask: { kind: "ssh", user: "ubuntu", host: "203.0.113.7", state: "done" } });
+  await link.emit({ ...EMPTY_VIEW, stage: "linked", server: SERVER, mode: "relay", via: "ssh", steps: VPS_STEP_IDS.map((id) => ({ id, status: "done" })) });
+  const commands = [...document.querySelectorAll("[data-setup-command]")].map((node) => node.textContent);
+  expect(commands).toContain("ssh -N -L 8790:127.0.0.1:8799 ubuntu@203.0.113.7");
+});
+
+it("a dusk bot already running is connected by its address and code, and what was typed is checked", async () => {
   const workspaces = { add: vi.fn(async () => true) };
   vi.stubGlobal("duskDesktop", { workspaces });
   const onClose = vi.fn();
   await act(async () => { root.render(createElement(PlaceSetup, { onClose })); });
-  await click(q("[data-setup-method=tailscale]"));
-  expect(q("[data-setup-command]")?.textContent).toMatch(/^curl -fsSL https:\/\/deb\.nodesource\.com\/setup_24\.x .* npx -y duskbot serve --tailscale$/);
-  expect(document.body.textContent).toContain("The https:// address the command prints.");
-  expect(document.body.textContent).toContain("The code the command prints");
+  expect(q("[data-setup-method=tailscale]"), "line ways need the relay").toBeNull();
+  await click(q("[data-setup-method=address]"));
+  expect(document.body.textContent).toContain("The https:// address it prints.");
   await type(q<HTMLInputElement>("[data-setup-address]")!, "http://10.0.0.5:8799");
   await act(async () => { q<HTMLFormElement>("form")!.requestSubmit(); });
   expect(q("[role=alert]")?.textContent).toBe("Use an https:// address. Plain http only works through an SSH tunnel, at http://127.0.0.1.");
   expect(workspaces.add).not.toHaveBeenCalled();
-  // a whole pairing link carries its code, so the code field goes
   await type(q<HTMLInputElement>("[data-setup-address]")!, "https://box.tail1.ts.net/pair#code=ABCD-2345-EFGH");
   expect(q("[data-setup-code]")).toBeNull();
   await type(q<HTMLInputElement>("[data-setup-address]")!, "box.tail1.ts.net");
@@ -182,20 +237,6 @@ it("a way by address shows one full command, explains each field, and checks wha
   await settle();
   expect(workspaces.add).toHaveBeenCalledWith("link", "https://box.tail1.ts.net/pair#code=ABCD-2345-EFGH");
   expect(onClose).toHaveBeenCalled();
-});
-
-it("an SSH tunnel lands on 8790 here, so this computer's own 8799 is never asked, and only the code is typed", async () => {
-  const workspaces = { add: vi.fn(async () => true) };
-  vi.stubGlobal("duskDesktop", { workspaces });
-  await act(async () => { root.render(createElement(PlaceSetup, { onClose: vi.fn() })); });
-  await click(q("[data-setup-method=ssh]"));
-  const commands = [...document.querySelectorAll("[data-setup-command]")].map((node) => node.textContent);
-  expect(commands[1]).toBe("ssh -N -L 8790:127.0.0.1:8799 you@your-server");
-  expect(q("[data-setup-address]")).toBeNull();
-  await type(q<HTMLInputElement>("[data-setup-code]")!, "ABCD-2345-EFGH");
-  await act(async () => { q<HTMLFormElement>("form")!.requestSubmit(); });
-  await settle();
-  expect(workspaces.add).toHaveBeenCalledWith("link", "http://127.0.0.1:8790/pair#code=ABCD-2345-EFGH");
 });
 
 it("from the rail it offers a new organization and another account under the two choices", async () => {

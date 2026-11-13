@@ -33,6 +33,30 @@ function installProgress(value) {
   return null;
 }
 
+/** the ways a linked server is reached (install.sh `use_address`) */
+export const ADDRESS_VIAS = new Set(["relay", "ssh", "direct", "domain", "tailscale", "cloudflare"]);
+const ASK_LINK_HOSTS = { "tailscale-login": "login.tailscale.com", "tailscale-https": "login.tailscale.com", "cloudflare-login": "dash.cloudflare.com" };
+const ASK_NAME = /^[a-z0-9.-]{1,253}$/;
+const ASK_IP = /^\d{1,3}(?:\.\d{1,3}){3}$/;
+
+/** what the installer asks the person to do, as the link service let it through: null clears it, undefined is ignored.
+ * links open only on the provider's own host, since the page opens them outside the app */
+export function installAsk(value) {
+  if (!record(value)) return undefined;
+  if (value.kind === "none") return null;
+  const state = ["waiting", "found", "done"].includes(value.state) ? value.state : "waiting";
+  if (Object.hasOwn(ASK_LINK_HOSTS, value.kind)) {
+    try {
+      const url = new URL(value.url);
+      return url.protocol === "https:" && url.hostname === ASK_LINK_HOSTS[value.kind] ? { kind: value.kind, url: url.href, state } : undefined;
+    } catch { return undefined; }
+  }
+  if (value.kind === "dns") return ASK_NAME.test(value.host ?? "") && ASK_IP.test(value.value ?? "") ? { kind: "dns", host: value.host, type: "A", value: value.value, state } : undefined;
+  if (value.kind === "ports") return { kind: "ports", ...(ASK_IP.test(value.ip ?? "") ? { ip: value.ip } : {}), state };
+  if (value.kind === "ssh") return /^[a-z_][a-z0-9_-]{0,31}$/.test(value.user ?? "") && (ASK_IP.test(value.host ?? "") || ASK_NAME.test(value.host ?? "")) ? { kind: "ssh", user: value.user, host: value.host, state } : undefined;
+  return undefined;
+}
+
 /** a plain sentence for a person, never a stack or a status code alone */
 const plain = (error, fallback) => {
   const message = typeof error?.message === "string" ? error.message.trim() : "";
@@ -108,7 +132,7 @@ export function createVpsLink(deps) {
   const currentLink = () => state.links.find((link) => link.id === state.current) ?? null;
 
   // the install's live terminal: lines each step streams while it runs. kept in memory only, never in the store
-  const emptyLive = (id) => ({ id, steps: {}, feed: [], updatedAt: 0, progressAt: 0, error: null });
+  const emptyLive = (id) => ({ id, steps: {}, feed: [], updatedAt: 0, progressAt: 0, error: null, ask: null });
   let live = emptyLive(null);
   const LIVE_STEP_LINES = 200;
   const LIVE_FEED = 400;
@@ -138,10 +162,12 @@ export function createVpsLink(deps) {
       expiresAt: pending?.expiresAt ?? null,
       steps: steps(),
       terminal: state.pending && live.id === state.pending.id ? live.feed : [],
+      ask: pending && live.id === pending.id ? live.ask : null,
       ...(pending && live.id === pending.id && live.updatedAt ? { activity: { updatedAt: live.updatedAt, progressAt: live.progressAt, ...(live.error ? { error: live.error } : {}) } }
         : move ? { activity: { updatedAt: move.updatedAt ?? move.startedAt, progressAt: move.progressAt ?? move.startedAt } } : {}),
       server: link ? { id: link.envId, name: link.name, origin: link.origin } : null,
       mode: link?.mode ?? null,
+      via: link ? link.via ?? link.mode : null,
       compat: link ? compatView(link) : null,
       error: lastError,
       move: move ? { step: move.step, status: move.status, ...(move.chats ? { chats: move.chats } : {}), ...(move.bytes ? { bytes: move.bytes } : {}), ...(move.waitingFor ? { waitingFor: move.waitingFor } : {}), ...(move.error ? { error: move.error } : {}), ...(move.retryAt ? { retryAt: move.retryAt } : {}), ...(move.backupId ? { backupId: move.backupId } : {}), ...(move.kept ? { kept: true } : {}) } : null,
@@ -168,6 +194,7 @@ export function createVpsLink(deps) {
       } else said = null;
     }
     if (closed || proxies.get(link.id) !== proxy) return;
+    readdress(link, said?.address);
     const info = agentInfo(said);
     const before = JSON.stringify(compatView(link));
     peers.set(link.id, info);
@@ -176,6 +203,25 @@ export function createVpsLink(deps) {
     // an agent too old for this app or its server that can update itself looks for a release now, not in six hours
     if (after.update === "agent" && info.caps.includes("self-update")) void proxy.control("update", {}, 180_000).catch((error) => log(`vps link: ${link.name} did not update its link (${error?.message ?? error})`));
     if (JSON.stringify(after) !== before) onChange(view());
+  }
+
+  /** the agent's word, inside the sealed tunnel, on where its server is now: a quick tunnel's new name after a restart,
+   * or another way chosen when the install ran again. the app follows it and signs in there again */
+  function readdress(link, address) {
+    if (!record(address) || address.mode !== "direct" || !ADDRESS_VIAS.has(address.via)) return;
+    let origin;
+    try { origin = new URL(address.origin); } catch { return; }
+    if (origin.protocol !== "https:" || origin.origin !== address.origin || origin.port) return;
+    const spki = typeof address.spki === "string" && /^[A-Za-z0-9+/]{43}=$/.test(address.spki) ? address.spki : null;
+    if (address.spki != null && !spki) return;
+    if (link.mode === "direct" && link.origin === origin.origin && (link.spki ?? null) === spki && (link.via ?? "direct") === address.via) return;
+    const from = link.origin;
+    log(`vps link: ${link.name} is now at ${origin.origin} (${address.via})`);
+    Object.assign(link, { mode: "direct", via: address.via, origin: origin.origin, spki });
+    deps.pin?.(origin.host, spki);
+    if (from && from !== origin.origin) deps.retarget?.(from, origin.origin);
+    write();
+    if (state.links.includes(link)) void signedIn(link).catch((error) => log(`vps link: ${link.name} sign-in at its new address failed (${error?.message ?? error})`));
   }
 
   // ---- setup ----
@@ -288,6 +334,11 @@ export function createVpsLink(deps) {
             }
             if (record(event.activity) || event.heartbeat === true) streamed = true;
             if (event.heartbeat === true) continue;
+            if (record(event.ask)) {
+              const ask = installAsk(event.ask);
+              if (ask !== undefined) { contact.ask = ask; streamed = true; }
+              continue;
+            }
             if (Array.isArray(event.lines) || typeof event.cmd === "string") {
               const mirror = liveFor(pending.id);
               const lines = (Array.isArray(event.lines) ? event.lines : []).filter((line) => typeof line === "string").map((line) => line.slice(0, 400));
@@ -306,6 +357,7 @@ export function createVpsLink(deps) {
             if (previous?.status === event.status && previous?.log === nextLog) continue;
             if (event.status === "running" && previous && previous.status !== "running") contact.steps[event.step] = { lines: [] };
             pending.steps[event.step] = { status: event.status, ...(nextLog ? { log: nextLog } : {}) };
+            if (event.step === "address" && event.status !== "running" && contact.ask?.state !== "done") contact.ask = null;
             changed = true;
           }
           if (got.state === "installing" && pending.state === "waiting") { pending.state = "installing"; changed = true; }
@@ -559,7 +611,7 @@ export function createVpsLink(deps) {
       const [keyP, tokenP] = await Promise.all([protect(result.tunnel.key), protect(result.tunnel.token)]);
       if (!active()) return;
       link = {
-        id: pending.id, base, name: result.name, mode: result.mode, origin: result.mode === "direct" ? result.origin : null, port: null,
+        id: pending.id, base, name: result.name, mode: result.mode, via: ADDRESS_VIAS.has(result.via) ? result.via : result.mode, origin: result.mode === "direct" ? result.origin : null, port: null,
         spki: result.spki ?? null, environmentId: result.environmentId ?? null, envId: null, at: now(), keyP, tokenP,
         // pinned here when the agent sent it inside the sealed result; an older agent's link pins it on first use instead
         sealIdentity: typeof result.sealIdentity === "string" && SEAL_IDENTITY.test(result.sealIdentity) ? result.sealIdentity : null,

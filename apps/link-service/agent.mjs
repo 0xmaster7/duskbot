@@ -925,6 +925,37 @@ export function spkiOf(host, port = 443, tlsOptions = {}) {
   });
 }
 
+const ADDRESS_HOST = /^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{0,61}[a-z0-9]$/;
+const ADDRESS_VIAS = new Set(["relay", "ssh", "direct", "domain", "tailscale", "cloudflare"]);
+export const addressFile = () => process.env.DUSK_LINK_ADDRESS_FILE || "/etc/duskbot-address.json";
+
+/** a quick tunnel's current name, from cloudflared's own metrics on this machine */
+export async function quickTunnelHost(url, fetchImpl = fetch) {
+  const at = new URL(url);
+  if (at.hostname !== "127.0.0.1" || at.protocol !== "http:") return null;
+  const answer = await fetchImpl(at, { signal: AbortSignal.timeout(3_000) });
+  const host = answer.ok ? (await answer.json())?.hostname : null;
+  return typeof host === "string" && /^[a-z0-9-]+\.trycloudflare\.com$/.test(host) ? host : null;
+}
+
+/**
+ * where the app reaches this server, as install.sh set it up ($ADDRESS there): the relay, or an https address, with the
+ * certificate's key the app pins when this server's own Caddy holds it. null when unknown or unreadable, so the app
+ * keeps what it has; a pinned address whose key cannot be read now is unknown too, never sent without its pin
+ */
+export async function currentAddress({ read = () => readFileSync(addressFile(), "utf8"), quick = quickTunnelHost, spki = spkiOf } = {}) {
+  let saved;
+  try { saved = JSON.parse(read()); } catch { return null; }
+  if (saved?.v !== 1 || !ADDRESS_VIAS.has(saved.via)) return null;
+  if (saved.mode !== "direct") return saved.mode === "relay" ? { mode: "relay", via: saved.via, origin: null, spki: null } : null;
+  let host = saved.host;
+  if (typeof saved.quick === "string") host = (await quick(saved.quick).catch(() => null)) ?? host;
+  if (typeof host !== "string" || !ADDRESS_HOST.test(host)) return null;
+  let key = null;
+  if (saved.pin === true) { key = await spki(host).catch(() => null); if (!key) return null; }
+  return { mode: "direct", via: saved.via, origin: `https://${host}`, spki: key };
+}
+
 async function probe() {
   const base = env("LINK_BASE"), id = env("LINK_ID"), token = env("LINK_TOKEN");
   const nonce = randomBytes(16).toString("hex");
@@ -962,12 +993,14 @@ async function link() {
     local("GET", "/.well-known/duskbot/environment"),
   ]);
   if (pairing.status !== 200 || typeof pairing.body?.code !== "string") throw new Error(`The dusk bot server here would not make a pairing code (${pairing.status})`);
+  const via = ADDRESS_VIAS.has(process.env.LINK_VIA ?? "") ? process.env.LINK_VIA : mode;
   const origin = mode === "direct" ? `https://${env("LINK_HOST")}` : null;
-  const spki = mode === "direct" ? await spkiOf(env("LINK_HOST")) : null;
+  // tailscale and cloudflare hold their own certificates and change their keys, so those addresses go unpinned
+  const spki = mode === "direct" && process.env.LINK_PIN !== "0" ? await spkiOf(env("LINK_HOST")) : null;
   const tunnel = { key: randomBytes(32).toString("base64url"), vps: randomBytes(32).toString("base64url"), app: randomBytes(32).toString("base64url") };
   const mine = x25519Pair();
   const payload = {
-    v: 1, mode, origin, spki, name,
+    v: 1, mode, via, origin, spki, name,
     environmentId: typeof environment.body?.environmentId === "string" ? environment.body.environmentId : null,
     // the server's long-term identity, which signs each key the app seals secrets for: the app pins it from here
     sealIdentity: typeof environment.body?.sealIdentity === "string" ? environment.body.sealIdentity : null,
@@ -1135,7 +1168,10 @@ export async function serverLink(read = () => local("GET", "/.well-known/duskbot
 
 export async function control(op, data, context = {}) {
   if (op === "ping") return { ok: true };
-  if (op === "hello") return { ...agentHello(), server: await (context.serverLink ?? serverLink)(), ...(context.updater ? { update: context.updater.status() } : {}) };
+  if (op === "hello") {
+    const [server, address] = await Promise.all([(context.serverLink ?? serverLink)(), (context.address ?? currentAddress)().catch(() => null)]);
+    return { ...agentHello(), server, ...(address ? { address } : {}), ...(context.updater ? { update: context.updater.status() } : {}) };
+  }
   if (op === "update") {
     if (!context.updater) throw new Error("this agent does not update itself here");
     await context.updater.check();
