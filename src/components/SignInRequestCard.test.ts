@@ -13,9 +13,11 @@ vi.mock("react", async (importOriginal) => {
   } };
 });
 const dispatch = vi.fn();
+const storeApi = vi.fn();
 vi.mock("@/state/store", async (original) => ({
   ...await original<typeof import("@/state/store")>(),
   useStore: () => ({ dispatch, state: { computerControl: {} } }),
+  api: (...args: unknown[]) => storeApi(...args),
 }));
 const answerSignIn = vi.fn();
 const here = { value: true };
@@ -129,6 +131,7 @@ describe("SignInRequestCard while it waits", () => {
   });
 
   it.each([["cloud", "vps/pepper"]])("Take over on a %s computer takes control right in the card, not by opening the panel", async (place, target) => {
+    storeApi.mockReset().mockResolvedValue({ ready: true });
     const nodes = tree({ place });
     const takeOver = nodes.find((node) => node.type === "button" && (node.props as Record<string, unknown>)["data-sign-in-take-over"] === "")!;
     takeOver.props.onClick!();
@@ -136,6 +139,19 @@ describe("SignInRequestCard while it waits", () => {
     expect(dispatch).not.toHaveBeenCalled();
     // the card's own live desktop is pointed at the bot's computer
     expect(fixture.setters.some((setter) => setter.mock.calls.some(([value]) => value === target))).toBe(true);
+    expect(storeApi).toHaveBeenCalledTimes(1);
+  });
+
+  it("wakes a cloud computer that went to sleep while the card waited, then opens its screen", async () => {
+    storeApi.mockReset().mockResolvedValueOnce({ ready: false, container: "stopped" }).mockResolvedValueOnce({ ready: true });
+    const nodes = tree({ place: "cloud" });
+    nodes.find((node) => node.type === "button" && (node.props as Record<string, unknown>)["data-sign-in-take-over"] === "")!.props.onClick!();
+    await settle();
+    expect(storeApi.mock.calls.map(([path, init]) => [path, (init as { method?: string } | undefined)?.method ?? "GET"])).toEqual([
+      ["/api/bots/pepper/computer?threadId=thread-1", "GET"],
+      ["/api/bots/pepper/computer/provision?threadId=thread-1", "POST"],
+    ]);
+    expect(fixture.setters.some((setter) => setter.mock.calls.some(([value]) => value === "vps/pepper"))).toBe(true);
   });
 
   it("open on this computer explains where to sign in instead", () => {

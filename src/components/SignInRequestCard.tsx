@@ -172,7 +172,7 @@ export function SignInRequestCard({ botId, botName, threadId, message }: CardPro
     <AskCard
       ariaLabel={t(card.check ? "signIn.cardLabelCheck" : "signIn.cardLabel", { name: botName, site: card.site })}
       source={source}
-      media={saving ? null : control.media ?? (screen && <SignInScreen path={screen} name={botName} onOpen={open} onFrame={setFrame} disabled={pending !== null || control.taking} busy={control.taking} />)}
+      media={saving ? null : control.media ?? (screen && <SignInScreen path={screen} name={botName} onOpen={open} onFrame={setFrame} disabled={pending !== null || control.taking} busy={control.taking} waking={control.waking} />)}
       title={t("signIn.actionNeeded")}
       explanation={<>
         <span dir="ltr" className="break-all" data-testid="sign-in-site">{instruction}</span>

@@ -26,13 +26,15 @@ export function frameAddress(reply: { image?: unknown; png?: unknown; format?: u
  * moves, with the Take over pill over it. The picture refreshes slowly and only while the card is on screen and the
  * page is shown; pressing it takes over, like the card's own button.
  */
-export function SignInScreen({ path, name, onOpen, onFrame, disabled, busy }: {
+export function SignInScreen({ path, name, onOpen, onFrame, disabled, busy, waking }: {
   path: string; name: string; onOpen: () => void;
   /** Each new picture, so the live view that replaces this one can show it until its own first frame. */
   onFrame?: (frame: string) => void;
   disabled?: boolean;
   /** Take over is on its way: the pill holds a spinner. */
   busy?: boolean;
+  /** The computer is being woken for Take over: the pill says so. */
+  waking?: boolean;
 }) {
   const framed = useRef(onFrame);
   framed.current = onFrame;
@@ -96,14 +98,16 @@ export function SignInScreen({ path, name, onOpen, onFrame, disabled, busy }: {
       {frame
         ? <img src={frame} alt={t("computer.screenOf", { name })} draggable={false} className="absolute inset-0 size-full object-cover" />
         : tried
-          ? <Icon name="device-desktop" size={12} />
+          ? null
           : <span className="flex items-center gap-1.5"><Loader2 size={16} aria-hidden="true" className="motion-safe:animate-spin" />{t("computer.preview.connecting")}</span>}
       {frame && <span aria-hidden="true" className="absolute inset-0 bg-[rgb(0_0_0/0.2)]" />}
-      <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center">
+      <span aria-hidden="true" className="absolute inset-0 flex flex-col items-center justify-center gap-2">
         <span className="flex items-center gap-1.5 rounded-full bg-[rgb(0_0_0/0.9)] px-3 py-1.5 text-[12px] font-medium leading-4 text-[#fff]">
           {busy && <Loader2 size={12} aria-hidden="true" className="motion-safe:animate-spin" />}
-          {t("signIn.takeOver")}
+          {waking ? t("computer.wakingUp") : t("signIn.takeOver")}
         </span>
+        {/* no picture (the computer is asleep or busy): said under the pill rather than leaving a black box */}
+        {!frame && tried && !busy && <span data-sign-in-screen-note="" className="flex items-center gap-1.5"><Icon name="device-desktop" size={12} />{t("botPanel.screen.resting")}</span>}
       </span>
     </button>
   );

@@ -10,9 +10,21 @@ import { useComputerTakeover } from "./computer-takeover";
 const loadLiveDesktop = () => import("./LiveDesktop").then((module) => ({ default: module.LiveDesktop }));
 const LiveDesktop = lazy(loadLiveDesktop);
 
-/** The live desktop a sign-in card can hand over: the bot's cloud computer or its Local VM; null for anywhere else. */
-async function liveTargetFor(place: string, botId: string, threadId: string, signal: AbortSignal): Promise<string | null> {
-  if (place === "cloud") return `vps/${botId}`;
+/** A computer can sleep while its card waits for the person (idle sleep): it is woken before its screen is asked for. */
+const WAKE_TIMEOUT_MS = 180_000;
+
+/** The live desktop a sign-in card can hand over: the bot's cloud computer or its Local VM; null for anywhere else. A
+ * cloud computer that went to sleep while the card waited is woken first (`onWaking` says so on the card). */
+async function liveTargetFor(place: string, botId: string, threadId: string, signal: AbortSignal, onWaking: () => void): Promise<string | null> {
+  const bot = encodeURIComponent(botId), thread = encodeURIComponent(threadId);
+  if (place === "cloud") {
+    const status = await api(`/api/bots/${bot}/computer?threadId=${thread}`, { signal });
+    if (status?.ready !== true) {
+      onWaking();
+      await api(`/api/bots/${bot}/computer/provision?threadId=${thread}`, { method: "POST", body: "{}", signal, timeoutMs: WAKE_TIMEOUT_MS });
+    }
+    return `vps/${botId}`;
+  }
   if (place !== "vm") return null;
   const status = await api(`/api/bots/${encodeURIComponent(botId)}/local-computer?threadId=${encodeURIComponent(threadId)}`, { signal });
   return status?.viewer_url && typeof status.target_key === "string" ? viewerTargetId({ key: status.target_key }) : null;
@@ -38,6 +50,7 @@ export function useSignInTakeover({ botId, threadId, name, place, poster, onDone
   const [ready, setReady] = useState(false);
   const [taking, setTaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [waking, setWaking] = useState(false);
   // a take the person asked for, run once the live desktop paints
   const wanted = useRef(false);
   const resolving = useRef<AbortController | null>(null);
@@ -82,7 +95,7 @@ export function useSignInTakeover({ botId, threadId, name, place, poster, onDone
     resolving.current = controller;
     setTaking(true);
     try {
-      const next = await liveTargetFor(place, botId, threadId, controller.signal);
+      const next = await liveTargetFor(place, botId, threadId, controller.signal, () => setWaking(true));
       if (controller.signal.aborted) return;
       if (!next) throw new Error(t("computer.err.openDesktop"));
       setTarget(next);
@@ -92,7 +105,7 @@ export function useSignInTakeover({ botId, threadId, name, place, poster, onDone
       wanted.current = false;
       setError(friendlyError(cause));
     } finally {
-      if (!controller.signal.aborted) setTaking(false);
+      if (!controller.signal.aborted) { setTaking(false); setWaking(false); }
     }
   };
 
@@ -124,12 +137,14 @@ export function useSignInTakeover({ botId, threadId, name, place, poster, onDone
             setReady(false);
             wanted.current = false;
             if (takeover.here) takeover.leave();
+            // back to the card's own picture (never a dead box), with what went wrong under it; a retry wakes it again
             setShown(false);
-            setError(t("computer.err.openDesktop"));
+            setTarget(null);
+            setError(friendlyError(new Error(t("computer.err.openDesktop"))));
           }} />
       </Suspense>
     </div>
   ) : null;
 
-  return { open, done, media, here: takeover.here, expanded: takeover.expanded, expand: () => takeover.setExpanded(true), taking, finishing, error };
+  return { open, done, media, here: takeover.here, expanded: takeover.expanded, expand: () => takeover.setExpanded(true), taking, waking, finishing, error };
 }

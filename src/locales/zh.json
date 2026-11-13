@@ -3974,7 +3974,6 @@
   "computer.err.frameTimeout": "屏幕更新耗时过长。请重试。",
   "computer.err.screenUnavailable": "屏幕当前不可用。请稍后重试。",
   "computer.err.noDesktopLink": "无法获取实时桌面的链接。请尝试重新打开。",
-  "computer.err.openDesktop": "{app} 无法打开实时桌面。请重试。",
   "computer.confirm.replaceVm": "替换 {name} 的私有桌面？其持久文件夹和网站登录会保留。安装在桌面内的应用以及持久文件夹以外的文件会被删除。",
   "computer.phase.checking": "正在检查…",
   "computer.phase.starting": "正在启动机器人的桌面…",

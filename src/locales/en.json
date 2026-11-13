@@ -4543,7 +4543,7 @@
   "computer.err.frameTimeout": "The screen took too long to update. Try again.",
   "computer.err.screenUnavailable": "The screen isn't available right now. Try again in a moment.",
   "computer.err.noDesktopLink": "Couldn't get a link to the live desktop. Try opening it again.",
-  "computer.err.openDesktop": "{app} couldn't open the live desktop. Try again.",
+  "computer.err.openDesktop": "Couldn't open the live screen. Try again.",
   "computer.confirm.replaceVm": "Replace {name}'s private desktop? Its durable folder and website sign-ins are kept. Apps installed inside the desktop and files outside the durable folder are deleted.",
   "computer.phase.checking": "Checking…",
   "computer.phase.starting": "Starting your bot's desktop…",
