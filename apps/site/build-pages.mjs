@@ -356,7 +356,9 @@ for (const page of pages) {
   }
   const at = page.name === 'home' ? '/' : page.name === '404' ? '/404.html' : `/${page.name}`;
   const jsonld = page.name === 'home' ? [appLd, orgLd, ...faqLd(macros(body))] : page.name === 'about' ? [orgLd, ...faqLd(macros(body))] : faqLd(macros(body));
-  write(at, layout({ ...page, page: page.name, at, kind: page.kind || `p-${page.name}`, body, jsonld, noindex: page.name === '404' }), { index: page.name !== '404' });
+  // the waitlist never carries the site's bar or footer, wherever it is served
+  const html = layout({ ...page, page: page.name, at, kind: page.kind || `p-${page.name}`, body, jsonld, noindex: page.name === '404' });
+  write(at, page.name === 'waitlist' ? soloWaitlist(html) : html, { index: page.name !== '404' });
 }
 
 // the changelog is one markdown file: a "## version · date" heading per release, newest first, then a list
