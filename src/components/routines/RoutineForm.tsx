@@ -30,6 +30,11 @@ export function parseTypedTime(text: string): string | null {
   return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
+/** "Around" saves money only where a cloud desktop sleeps between runs: a cloud home, or a routine that runs on one. */
+export function aroundSavesSleep({ cloudHome, runOn }: { cloudHome: boolean; runOn?: RoutineRunOn }): boolean {
+  return cloudHome || runOn === "cloud";
+}
+
 const shownTime = (time: string) => {
   const [h, m] = time.split(":").map(Number);
   return new Date(2026, 0, 1, h ?? 0, m ?? 0).toLocaleTimeString(activeLocale(), { hour: "numeric", minute: "2-digit" });
@@ -79,7 +84,7 @@ export function RoutineForm({ bot, routine, defaultRunOn, onDone }: {
   defaultRunOn?: RoutineRunOn;
   onDone: (saved?: Routine) => void;
 }) {
-  const { dispatch } = useStore();
+  const { state, dispatch } = useStore();
   const { request } = useBotEditor();
   const id = useId();
   const [name, setName] = useState(routine?.name ?? "");
@@ -159,7 +164,7 @@ export function RoutineForm({ bot, routine, defaultRunOn, onDone }: {
           <div className="mt-1.5">
             <Segmented label={upperFirst(t("routines.timing.label"))} attr="routine-timing" compact value={timing} onChange={setTiming}
               options={[{ value: "exact", label: upperFirst(t("routines.timing.exact")) }, { value: "around", label: upperFirst(t("routines.timing.around")) }]} />
-            {timing === "around" && <p className="m-0 mt-1 text-[12px] leading-4 text-ink-secondary">{t("routines.timing.aroundHint")}</p>}
+            {timing === "around" && aroundSavesSleep({ cloudHome: state.config?.cloudHome === true, runOn: routine?.runOn ?? defaultRunOn }) && <p className="m-0 mt-1 text-[12px] leading-4 text-ink-secondary">{t("routines.timing.aroundHint")}</p>}
           </div>
         )}
         {when.preset === "hourly" && (
