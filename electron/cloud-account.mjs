@@ -570,6 +570,16 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
         return { enrollToken: result.enrollToken, dashboardUrl: result.dashboardUrl };
       } catch (error) { if (signInEnded(error)) await refresh().catch(() => {}); return null; }
     },
+    /** Takes a workspace this account owns off its dashboard (a server this app forgot): true once it is gone, null when
+     * signed out or the account service did not answer. */
+    async unlinkWorkspace(workspaceId) {
+      const signedIn = grant;
+      if (!signedIn || state().status !== "connected" || typeof workspaceId !== "string" || !/^ws_[A-Za-z0-9_-]{1,64}$/.test(workspaceId)) return null;
+      try {
+        const result = await request("", { path: "/v1/app/workspace-unlink", method: "POST", body: { workspaceId }, token: signedIn.token });
+        return result?.ok === true ? true : null;
+      } catch (error) { if (signInEnded(error)) await refresh().catch(() => {}); return null; }
+    },
     /** A five-minute signed grant for the link service, so a VPS setup session belongs to this account; null when signed out. */
     async linkGrant() {
       const signedIn = grant;

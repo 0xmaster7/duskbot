@@ -22,6 +22,9 @@ export interface VpsCloudMoveBridge {
   /** Only before anything moved. */
   cancel(): Promise<VpsCloudMoveView>;
   onChange(callback: (view: VpsCloudMoveView) => void): () => void;
+  /** True once when the person asked for this server's move sheet from elsewhere (the rail, the dashboard). */
+  asked?(): Promise<boolean>;
+  onShow?(callback: () => void): () => void;
 }
 
 export const SIGN_IN_FIRST = "Sign in to dusk cloud first.";

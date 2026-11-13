@@ -82,6 +82,19 @@ export async function makeHome(id: string): Promise<true | string> {
   }
 }
 
+/** Move to dusk cloud, from a server's menu: main opens that server with its move sheet. True once it did, else main's
+ * own words for why not. */
+export async function cloudMove(id: string): Promise<true | string> {
+  const open = bridge()?.cloudMove;
+  if (!open) return t("rail.cloudMoveFailed");
+  try {
+    await open(id);
+    return true;
+  } catch (cause) {
+    return ipcErrorText(cause) ?? t("rail.cloudMoveFailed");
+  }
+}
+
 /** Whether a rail of places stands beside this page: the window's own (main says so: `beside`), or one drawn on it from a
  * list main gave it (two places or more). */
 export const railShown = (state: RailState): boolean => state.beside === true || state.places.length > 0;

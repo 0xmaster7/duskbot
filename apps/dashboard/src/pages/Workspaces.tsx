@@ -6,6 +6,7 @@ import type { CloudDesktop } from "../data/contracts";
 import { useWorkspaceDetail } from "../data/detail";
 import { useSession } from "../data/session";
 import { api } from "../lib/api";
+import { appLink, openApp } from "../lib/app-link";
 import { ago, longDate } from "../lib/format";
 import { Link, navigate } from "../lib/router";
 import { DOWNLOAD_URL } from "../lib/usage";
@@ -147,6 +148,20 @@ function CloudColumn({ hasCloud }: { hasCloud: boolean }) {
   );
 }
 
+/** a server of the person's own: one quiet offer, on its own page, to move it to dusk cloud. the dusk bot app that linked
+ *  it runs the move (its bots, chats and memory go straight across), so the button opens the app there */
+function ServerToCloud({ w }: { w: WorkspaceSummary }) {
+  const { catalog } = useCloud();
+  const from = monthlyOf(catalog, "starter");
+  return <div className="surface flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-card bg-card px-6 py-4">
+    <div className="min-w-0 flex-1">
+      <p className="text-14 text-ink">move {w.name} to dusk cloud</p>
+      <p className="mt-1 text-13 text-ink-3">always on, with nothing to keep running. we handle updates and backups.{from ? ` from ${from} a month.` : ""}</p>
+    </div>
+    <Button size="sm" onClick={() => openApp(appLink.serverMove(w.id), "opening dusk bot. the move starts there.")}>move to dusk cloud</Button>
+  </div>;
+}
+
 function WorkspaceDevices({ detail, now, ready }: { detail: WorkspaceDetail; now: number; ready: boolean }) {
   const devices = detail.report?.devices;
   return <Card>
@@ -177,6 +192,7 @@ export function WorkspacePage({ id }: { id: string }) {
       <div className="flex flex-col gap-4">
         {cloud && <div className="surface flex flex-wrap items-center justify-between gap-3 rounded-card bg-card px-6 py-4"><div className="min-w-0"><p className="text-14 text-ink">{tierName(catalog, cloud)} · {regionName(catalog, cloud.region)}</p><CloudStatus cloud={cloud} className="mt-1" /></div><ButtonLink to="/cloud" size="sm">open dusk cloud</ButtonLink></div>}
         {!detail || selected?.id !== id ? selected?.id === id && detailError ? <Card><LoadError error={detailError} retry={refresh} /></Card> : <Skeleton className="h-60 !rounded-card" /> : cloud?.resting ? <Skeleton className="h-60 !rounded-card" /> : !detail.report ? <SkyEmpty title="waiting for its first report">keep dusk bot running there. its first report usually arrives in a few seconds.</SkyEmpty> : <><MachineView detail={detail} now={now} /><WorkspaceDevices detail={detail} now={now} ready={selected?.id === id} /></>}
+        {w.kind === "vps" && !cloud && clouds !== null && <ServerToCloud w={w} />}
       </div>
     </>}
   </div>;

@@ -370,6 +370,23 @@ describe("local account service", () => {
     expect(saved.workspaces[0].claimHash).toBeNull();
   });
 
+  it("takes a workspace off the dashboard for the app that forgot it, only the account's own", async () => {
+    const owner = await appLogin();
+    const grant = await body<EnrollGrantAnswer>(call("/v1/app/enroll-grant", {}, bearer(owner)));
+    const request = enrollment(grant.enrollToken);
+    const enrolled = await body<EnrollAnswer>(call("/v1/enroll", request.input, request.headers));
+    expect((await call("/v1/app/workspace-unlink", { workspaceId: enrolled.workspaceId })).status).toBe(401);
+    expect((await call("/v1/app/workspace-unlink", { workspaceId: "../x" }, bearer(owner))).status).toBe(400);
+    const other = await appLogin("other@example.test");
+    expect(await body(call("/v1/app/workspace-unlink", { workspaceId: enrolled.workspaceId }, bearer(other)))).toEqual({ ok: true, removed: false });
+    time += 30_000;
+    const web = await login();
+    expect(await body(call("/v1/workspaces", undefined, browserHeaders(web)))).toMatchObject({ workspaces: [{ id: enrolled.workspaceId }] });
+    expect(await body(call("/v1/app/workspace-unlink", { workspaceId: enrolled.workspaceId }, bearer(owner)))).toEqual({ ok: true, removed: true });
+    expect(await body(call("/v1/workspaces", undefined, browserHeaders(web)))).toEqual({ workspaces: [] });
+    expect(await body(call("/v1/app/workspace-unlink", { workspaceId: enrolled.workspaceId }, bearer(owner)))).toEqual({ ok: true, removed: false });
+  });
+
   it("signs a link grant only for a signed-in app, behind the json and origin checks, that the link service accepts", async () => {
     expect((await call("/v1/app/link-grant", {})).status).toBe(401);
     const grant = await appLogin();

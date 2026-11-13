@@ -184,6 +184,9 @@ const bridge = {
     // Make a server of the person's own their bots' home, from a click on the rail's own page (main refuses any other page).
     makeHome: (id) => isLocalPage || navigator.userActivation?.isActive === true
       ? ipcRenderer.invoke("workspaces:make-home", String(id)) : Promise.reject(new Error("Choose Make my home.")),
+    // Open a server of the person's own with its move to dusk cloud sheet, from a click on the rail's own page.
+    cloudMove: (id) => isLocalPage || navigator.userActivation?.isActive === true
+      ? ipcRenderer.invoke("workspaces:cloud-move", String(id)) : Promise.reject(new Error("Choose Move to dusk cloud.")),
     onChanged: (cb) => {
       const handler = () => cb();
       ipcRenderer.on("workspaces:changed", handler);
@@ -599,6 +602,13 @@ const bridge = {
     retry: () => navigator.userActivation?.isActive === true
       ? ipcRenderer.invoke("vps-cloud-move:retry") : Promise.reject(new Error("Choose Try again to move.")),
     cancel: () => ipcRenderer.invoke("vps-cloud-move:cancel"),
+    // whether the person asked for this server's move sheet (its menu on the rail, or the dashboard): true once, then false
+    asked: () => ipcRenderer.invoke("vps-cloud-move:asked"),
+    onShow: cb => {
+      const handler = () => cb();
+      ipcRenderer.on("vps-cloud-move:show", handler);
+      return () => ipcRenderer.removeListener("vps-cloud-move:show", handler);
+    },
     onChange: cb => {
       const handler = (_event, view) => cb(view);
       ipcRenderer.on("vps-cloud-move:changed", handler);

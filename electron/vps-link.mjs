@@ -71,7 +71,7 @@ const plain = (error, fallback) => {
  *   unprotect(text: string): Promise<string>,
  *   label(): string,
  *   saveServer(server: { origin: string, name: string }): string,
- *   forgetServer(id: string): void,
+ *   forgetServer(id: string, how?: { replaced?: boolean }): void,
  *   retarget?(from: string, to: string): void,
  *   switchTo(id: string): Promise<void> | void,
  *   pin?(host: string, spki: string): void,
@@ -764,7 +764,7 @@ export function createVpsLink(deps) {
         await proxies.get(old.id)?.close();
         proxies.delete(old.id);
         peers.delete(old.id);
-        if (old.envId && old.envId !== link.envId) deps.forgetServer(old.envId);
+        if (old.envId && old.envId !== link.envId) deps.forgetServer(old.envId, { replaced: true });
         if (state.move?.linkId === old.id) state.move.linkId = link.id;
       }
       state.links = [...state.links.filter((entry) => entry.id !== link.id && !replaced.includes(entry)), link];
@@ -1167,6 +1167,15 @@ export function createVpsLink(deps) {
     engines, signIn, signInStatus, signInCode, signInCancel,
     preview, move, retryMove, moveBack, backups, backupNow: async () => ({ id: (await backupNow("manual")).id }), restore, forget, where,
     open: async () => { const link = needLink(); await deps.switchTo(link.envId); },
+    /** the servers linked here with the install line, by their saved place; `key` is the server's own id when it sent one */
+    servers: () => state.links.filter((link) => link.envId).map((link) => ({ id: link.envId, key: link.environmentId ?? link.envId, name: link.name })),
+    /** a request at a linked server as this app, its owner, signing in again through its agent when that lapsed */
+    async ownerCall(envId, method, route, body) {
+      const link = state.links.find((entry) => entry.envId === envId);
+      if (!link || closed) throw new Error("That server isn't linked here any more.");
+      await signedIn(link);
+      return serverCall(link, method, route, body);
+    },
     readyServer: async (envId) => {
       const link = state.links.find(entry => entry.envId === envId);
       if (!link || closed) return null;

@@ -205,6 +205,8 @@ const __APP_VERSION__: string;
         remove?: (id: string) => Promise<{ outcome: import("../../electron/cloud-account.mjs").CloudRemoveOutcome }>;
         /** Make a server of the person's own, which the rail lists with `makeHome`, their bots' home: the move starts. */
         makeHome?: (id: string) => Promise<{ started: true }>;
+        /** Opens a server the rail lists with `cloudMove`, with its move to dusk cloud sheet. */
+        cloudMove?: (id: string) => Promise<boolean>;
         /** Main's word that the places or the sign-in changed: read them again. */
         onChanged?: (callback: () => void) => () => void;
       };

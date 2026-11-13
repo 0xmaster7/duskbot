@@ -294,6 +294,20 @@ test("Remove from list from a circle's menu: only the rail's own page, only a ci
   assert.deepEqual(making.opened, ["cloud:c-b"], "its own screen, never a saved place or an address");
 });
 
+test("Move to dusk cloud: only on a server main says may move, from the rail's own page, by main's own word for it", async () => {
+  const movable = new Set(["vps"]), asked = [];
+  const r = rail({ places: () => railPlaces({ saved: saved(), home: HOME, mine: HOME, state: session(),
+    cloudMoves: entry => movable.has(entry.id) || entry.id === "home" || entry.id === "a" }), cloudMove: id => { asked.push(id); return true; } });
+  const places = (await r.call("workspaces:places")).places;
+  assert.deepEqual(places.filter(place => place.cloudMove).map(place => place.id), ["vps"], "never a Cloud, whatever main says");
+  assert.equal(await r.call("workspaces:cloud-move", "vps"), true);
+  for (const id of ["home", "a", "https://box.example.test"]) assert.throws(() => r.call("workspaces:cloud-move", id), /can't move to dusk cloud/, id);
+  assert.deepEqual(asked, ["vps"]);
+  r.w.lists = false;
+  assert.throws(() => r.call("workspaces:cloud-move", "vps"), /only available/, "any other page: refused");
+  assert.throws(() => rail().call("workspaces:cloud-move", "vps"), /can't move to dusk cloud/, "a main that offers it nowhere");
+});
+
 test("Make … my home: only on a server connected by hand that main offers it for, from the rail's own page, by main's own word for it", async () => {
   const offered = new Set(["vps"]), made = [];
   const r = rail({ places: () => railPlaces({ saved: saved("home", [{ id: "box", kind: "remote", name: "Box", origin: "https://box.example.test" }]), home: HOME, mine: HOME, state: session(),
@@ -326,7 +340,7 @@ function preload(origin, { activation = false } = {}) {
 
 test("a Cloud's page gets the rail and the add sheet's narrow bridges; a circle, ＋ and checkout open only from the person's click", async () => {
   const page = preload(HOME);
-  assert.deepEqual(Object.keys(page.bridge.workspaces), ["state", "menu", "line", "places", "open", "add", "look", "color", "recolor", "remove", "makeHome", "onChanged"]);
+  assert.deepEqual(Object.keys(page.bridge.workspaces), ["state", "menu", "line", "places", "open", "add", "look", "color", "recolor", "remove", "makeHome", "cloudMove", "onChanged"]);
   assert.deepEqual(Object.keys(page.bridge.cloudAdd), ["state", "start", "reopen", "copyLink", "open", "interest", "sheet", "organization"]);
   await page.bridge.workspaces.places();
   await page.bridge.cloudAdd.state();
@@ -341,6 +355,7 @@ test("a Cloud's page gets the rail and the add sheet's narrow bridges; a circle,
   await assert.rejects(page.bridge.workspaces.recolor("vps", "rose"), /Choose a color/);
   await assert.rejects(page.bridge.workspaces.remove("old"), /Choose Remove from list/, "Remove from list only from the person's click");
   await assert.rejects(page.bridge.workspaces.makeHome("vps"), /Choose Make my home/, "a move starts only from the person's click");
+  await assert.rejects(page.bridge.workspaces.cloudMove("vps"), /Choose Move to dusk cloud/, "the move sheet opens only from the person's click");
   await page.bridge.workspaces.look();
   assert.deepEqual(page.invoked.at(-1), ["workspaces:look"]);
   const clicked = preload(HOME, { activation: true });

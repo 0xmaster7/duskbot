@@ -114,7 +114,7 @@ export function installLinkDirectIpc({ ipcMain, pageOrigin, link }) {
  *   ipcMain: any, guard(channel: string, handler: Function): Function, userData: string, session: any, shell: any,
  *   encryption: { available(): Promise<boolean>, encrypt(text: string): Promise<Buffer>, decrypt(value: Buffer): Promise<string | { result: string }> },
  *   jsonFile(file: string): { read(): unknown, write(value: unknown): void },
- *   environments(): any, persist(next: any): void, withEnvironment: Function, makeId(): string, forgetEnvironment(id: string): unknown,
+ *   environments(): any, persist(next: any): void, withEnvironment: Function, makeId(): string, forgetEnvironment(id: string, how?: { replaced?: boolean }): unknown,
  *   ownHome: any, localRequest(route: string, init?: RequestInit): Promise<Response>, switchTo(id: string): unknown, relaunch(): void,
  *   dataDir(): string | null, label(): string, tell(view: unknown): void, log(line: string): void, base?: string,
  *   powerMonitor?: { on(event: string, listener: () => void): unknown, isOnBatteryPower?(): boolean },
@@ -161,7 +161,7 @@ export function installVpsLink(deps) {
       deps.persist(next);
       return next.environments.find((entry) => entry.origin === origin)?.id;
     },
-    forgetServer: (id) => deps.forgetEnvironment(id),
+    forgetServer: (id, how) => deps.forgetEnvironment(id, how),
     retarget(from, to) {
       const state = deps.environments();
       deps.persist({ ...state, environments: state.environments.map((entry) => (entry.origin === from ? { ...entry, origin: to } : entry)) });

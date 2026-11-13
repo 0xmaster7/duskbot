@@ -554,6 +554,23 @@ export function createDashboardApp(options: DashboardAppOptions) {
       if (!linkGrants) fail(503, "link_grants_off", "Linking a server is not available right now.");
       return json(res, 200, signLinkGrant(found.account.id, linkGrants, now()));
     }
+    // the app forgot a server it linked to this account: its workspace leaves the dashboard. only the account's own, and
+    // never a dusk cloud's (that goes with the cloud itself); one already gone is not an error
+    if (method === "POST" && path === ACCOUNT_ROUTES.workspaceUnlink) {
+      rate(req, "workspace-unlink", 120);
+      const found = auth.appSession(req);
+      if (!found) fail(401, "invalid_token", "Session is invalid.");
+      const data = bodyObject(await readBody(req));
+      if (typeof data.workspaceId !== "string" || !/^ws_[A-Za-z0-9_-]{1,64}$/.test(data.workspaceId)) fail(400, "invalid_request", "Invalid workspace.");
+      const ws = state.workspaces.find(item => item.id === data.workspaceId && item.ownerAccountId === found.account.id);
+      if (!ws) return json(res, 200, { ok: true, removed: false });
+      if (billing.clouds.list(found.account.id, true).some(cloud => billing.clouds.view(cloud).workspaceId === ws.id)) fail(409, "cloud_workspace", "A dusk cloud's workspace goes with the cloud.");
+      forget(ws);
+      void usage.forgetWorkspace(ws.id);
+      state.workspaces = state.workspaces.filter(item => item !== ws);
+      store.changed();
+      return json(res, 200, { ok: true, removed: true });
+    }
     // TURN credentials for the direct screen path, minted per signed-in app; the TURN key never leaves this service
     if (method === "POST" && path === ACCOUNT_ROUTES.screenIce) {
       rate(req, "screen-ice", 120);

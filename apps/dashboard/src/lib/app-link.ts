@@ -6,6 +6,8 @@ export const appLink = {
   app: "duskbot://",
   bot: (id: string) => `duskbot://bot/${encodeURIComponent(id)}`,
   cloud: "duskbot://cloud",
+  /** a server the app linked here opens with its move to dusk cloud (electron/server-enroll.mjs); an id, never an address */
+  serverMove: (workspaceId: string) => `duskbot://cloud-move/${encodeURIComponent(workspaceId)}`,
 };
 
 const GIVE_UP_MS = 1600;

@@ -102,6 +102,9 @@ export const ACCOUNT_ROUTES = {
   appToken: "/v1/auth/app/token", //            POST { code, codeVerifier, deviceName, platform, appVersion? } -> AppGrant
   /** bearer app session: a one-time token the app hands its own workspace so it enrolls into this account's dashboard. */
   enrollGrant: "/v1/app/enroll-grant", //       POST {} -> EnrollGrantAnswer
+  /** bearer app session: takes a workspace this account owns off its dashboard, as when the app forgets a server it
+   * linked there. never a dusk cloud's own workspace. */
+  workspaceUnlink: "/v1/app/workspace-unlink", // POST { workspaceId } -> { ok: true, removed: boolean }
   /** bearer app session: a five-minute signed grant the app hands the link service to open a VPS setup session. */
   linkGrant: "/v1/app/link-grant", //           POST {} -> { v: 1, grant, expiresAt }
   /** bearer app session: short-lived Cloudflare TURN credentials for the direct screen path; 503 when TURN is off. */

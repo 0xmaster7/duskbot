@@ -6,7 +6,7 @@
 // main says this computer's bots may move to (one tap: main starts the move). With several accounts signed in here, the tiles
 // are grouped by account with a thin divider, and a click on another account's tile switches to it first (main does that).
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
-import { House, Laptop, Loader2, MoreHorizontal, Plus, Search, Server, UserRound } from "../icons";
+import { Cloud, House, Laptop, Loader2, MoreHorizontal, Plus, Search, Server, UserRound } from "../icons";
 import type { CloudSwatch } from "../../electron/cloud-list.mjs";
 import type { PlaceColorOutcome } from "../../electron/place-look.mjs";
 import { track } from "@/lib/analytics";
@@ -15,7 +15,7 @@ import { cloudColor, cloudColorFill } from "@/lib/cloud-look";
 import { activeLocale, t } from "@/lib/i18n";
 import { localizedRelativeTime } from "@/lib/relative-time";
 import { useBesideFramed } from "@/lib/chrome-rail";
-import { makeHome, placeInitials, recolorPlace, removePlace, usePlaces, type RailPlace } from "@/lib/places";
+import { cloudMove, makeHome, placeInitials, recolorPlace, removePlace, usePlaces, type RailPlace } from "@/lib/places";
 import { AccountsSheet, switchNote } from "./AccountMenu";
 import { useDesktopCapabilities, windowFramed } from "./DesktopCapabilities";
 import { MENU_ROW, MENU_SHEET } from "./menu-recipe";
@@ -200,8 +200,8 @@ function PlaceMenu({ place, top, onClose }: { place: RailPlace; top: number; onC
   const [pending, setPending] = useState<CloudSwatch | null>(null);
   const [outcome, setOutcome] = useState<PlaceColorOutcome | null>(null);
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => { (ref.current?.querySelector<HTMLElement>("[role='radio'][tabindex='0']") ?? ref.current?.querySelector<HTMLElement>("[data-rail-remove-ask], [data-rail-make-home-start]"))?.focus(); }, []);
-  if (!paint && !place.removable && !place.makeHome) return null;
+  useEffect(() => { (ref.current?.querySelector<HTMLElement>("[role='radio'][tabindex='0']") ?? ref.current?.querySelector<HTMLElement>("[data-rail-remove-ask], [data-rail-make-home-start], [data-rail-cloud-move-start]"))?.focus(); }, []);
+  if (!paint && !place.removable && !place.makeHome && !place.cloudMove) return null;
   const name = place.kind === "computer" ? t("rail.thisComputer") : place.name;
   const choose = (swatch: CloudSwatch) => {
     if (!paint || paint.locked || pending || swatch === paint.swatch) return;
@@ -225,7 +225,33 @@ function PlaceMenu({ place, top, onClose }: { place: RailPlace; top: number; onC
       {outcome === "failed" && <p role="alert" className="px-2 pb-1 text-[12px] text-danger">{t("placeLook.failed")}</p>}
     </>}
     {place.makeHome && <MakeHomeRow place={place} onStarted={onClose} />}
+    {place.cloudMove && <CloudMoveRow place={place} onOpened={onClose} />}
     {place.removable && <RemoveRow place={place} onRemoved={onClose} />}
+  </div>;
+}
+
+/** Move to dusk cloud in a server's menu: one tap opens that server with its move sheet, which says the price and runs the
+ * rest; the menu closes once main opened it. Main's own words when it can't. */
+function CloudMoveRow({ place, onOpened }: { place: RailPlace; onOpened: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [said, setSaid] = useState<string | null>(null);
+  const open = () => {
+    setBusy(true); setSaid(null);
+    track("rail_cloud_move_opened", {});
+    void cloudMove(place.id).then((outcome) => {
+      setBusy(false);
+      if (outcome === true) onOpened(); else setSaid(outcome);
+    });
+  };
+  return <div data-rail-cloud-move className="flex flex-col gap-0.5 border-t border-transparent px-0.5 pt-1.5">
+    <button type="button" data-rail-cloud-move-start className={cn(MENU_ROW, "h-auto min-h-[30px] items-start py-1.5 touch:h-auto")} disabled={busy} aria-busy={busy || undefined} onClick={open}>
+      {busy ? <Loader2 size={15} aria-hidden="true" className="mt-0.5 shrink-0 animate-spin motion-reduce:animate-none" /> : <Cloud size={15} aria-hidden="true" className="mt-0.5 shrink-0" />}
+      <span className="flex min-w-0 flex-col text-start">
+        <span className="text-[13px] text-ink">{t("rail.cloudMove")}</span>
+        <span className="text-[12px] leading-snug text-ink-secondary">{t("rail.cloudMoveSub")}</span>
+      </span>
+    </button>
+    {said && <p role="alert" className="px-1.5 pb-1 text-[12px] text-danger">{said}</p>}
   </div>;
 }
 

@@ -284,6 +284,8 @@ export interface CloudAccountClient {
   start(): Promise<CloudAccountState>;
   begin(intent?: { plan: string; source: string } | null, options?: { provider?: string }): Promise<CloudAccountState>;
   enrollGrant(): Promise<{ enrollToken: string; dashboardUrl: string } | null>;
+  /** Takes a workspace this account owns off its dashboard; true once gone, null when signed out or unanswered. */
+  unlinkWorkspace(workspaceId: string): Promise<true | null>;
   /** A five-minute signed grant for the link service (apps/link-service/src/grant.mjs); null when signed out. */
   linkGrant(): Promise<string | null>;
   /** Short-lived Cloudflare TURN servers for the direct screen path; null when signed out or TURN is off. */

@@ -69,6 +69,20 @@ export function installVpsCloudMoveMain(deps) {
     return place;
   };
 
+  // asked from elsewhere (the rail's menu, the dashboard's link): the server's own page opens the sheet once, then never again
+  let asked = null;
+  move.ask = (id) => {
+    const place = deps.environments().find((entry) => entry.id === id && handSaved(entry));
+    if (!place) throw new Error("That server isn't in this app any more.");
+    asked = { id: place.id, at: Date.now() };
+    return place;
+  };
+  deps.ipcMain.handle("vps-cloud-move:asked", (event) => {
+    const place = placeOf(event);
+    const yes = Boolean(asked && place && place.id === asked.id && Date.now() - asked.at < 120_000);
+    if (yes) asked = null;
+    return yes;
+  });
   deps.ipcMain.handle("vps-cloud-move:view", (event) => { reading(event); return move.view(); });
   deps.ipcMain.handle("vps-cloud-move:start", async (event) => { const place = acting(event); return move.start(place.id); });
   deps.ipcMain.handle("vps-cloud-move:buy", async (event, plan) => {

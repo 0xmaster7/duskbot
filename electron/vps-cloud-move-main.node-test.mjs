@@ -59,3 +59,14 @@ test("signed out, the buy says so and the page goes to sign-in", async () => {
   const { call } = setup({ handoff: async () => ({ signedOut: true }) });
   await assert.rejects(call("vps-cloud-move:buy", { origin: VPS.origin }, "pro"), /Sign in to dusk cloud first/);
 });
+
+test("asked from the rail or the dashboard, only that server's own page opens the sheet, once", () => {
+  const { move, call } = setup();
+  assert.equal(call("vps-cloud-move:asked", { origin: VPS.origin }), false, "nothing asked yet");
+  assert.throws(() => move.ask("cloud"), /isn't in this app/, "never a Cloud");
+  move.ask(VPS.id);
+  assert.equal(call("vps-cloud-move:asked", { origin: "https://cloud.example.test" }), false, "another page never");
+  assert.equal(call("vps-cloud-move:asked", { local: true }), false);
+  assert.equal(call("vps-cloud-move:asked", { origin: VPS.origin }), true);
+  assert.equal(call("vps-cloud-move:asked", { origin: VPS.origin }), false, "once");
+});
