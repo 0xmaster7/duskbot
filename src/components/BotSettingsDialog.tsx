@@ -31,7 +31,8 @@ export function BotSettingsDialog({ bot, overlay = false }: {
     focusHandoff = null;
     const previousFocus = inherited ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     const dialog = dialogRef.current;
-    dialog?.focus();
+    // opened, it takes focus; swapped for the next bot's panel as chats change, focus stays with the chat box
+    if (!inherited) dialog?.focus();
 
     const onKey = (event: KeyboardEvent) => {
       const nested = dialog?.querySelector<HTMLElement>('[role="dialog"], [role="alertdialog"]');

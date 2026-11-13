@@ -38,7 +38,7 @@ it("swapping the panel for the clicked bot's never pulls focus back to a row, an
   focused.length = 0;
   await show("bottom");
   expect(focused, "the swap leaves the top row alone, so the sidebar does not scroll to it").toEqual([]);
-  expect(document.activeElement?.id).toBe("bot-panel");
+  expect(document.activeElement, "nor pulls focus into the panel: the chat box takes it as the chat opens").toBe(rows.bottom);
 
   // closing from inside the panel hands focus to what opened it
   await show(null);
