@@ -131,7 +131,7 @@ export function BotsElsewhere() {
       simulated={simulated}
       onOpen={(id) => (places.find((place) => place.id === id)?.active ? stay() : open(id))}
       getCloud={!hasCloud && canBuy ? () => dispatch({ type: "openCloudAdd", source: "app_settings" }) : null}
-      onAdd={openPlaceSetup}
+      onAdd={() => openPlaceSetup()}
     />
   );
 }

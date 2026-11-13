@@ -144,10 +144,14 @@ export function InstallScreen({ view, onRetry }: { view: VpsLinkView; onRetry: (
           </>
         : <Mirror view={view} className={cn(centered, "top-[calc(50%+4px)] h-[112px]")} />}
       <Footer>
-        {progress.error && <ErrorNote>{progress.error}</ErrorNote>}
+        {/* a failed step's own log is already in the window above */}
+        {progress.error && !failed && <ErrorNote>{progress.error}</ErrorNote>}
         {failed || view.error
           ? <>
-              <button type="button" data-primary="" className={PILL} onClick={onRetry}>{t("vpsLink.tryAgain")}</button>
+              {/* the same line still works, so a new one is the second choice; with no line, try again makes one */}
+              {view.command
+                ? <button type="button" data-new-line="" className={SOFT_PILL} onClick={onRetry}>{t("vpsLink.command.newOne")}</button>
+                : <button type="button" data-primary="" className={PILL} onClick={onRetry}>{t("vpsLink.tryAgain")}</button>}
               {failed?.log && <CopyLog text={failed.log} />}
             </>
           : <p className="m-0 text-[13px] leading-[18px] text-ink/56">{t("vpsLink.install.closeOk")}</p>}

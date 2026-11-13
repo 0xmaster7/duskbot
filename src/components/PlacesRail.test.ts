@@ -132,39 +132,30 @@ const submit = async (form: Element | null) => {
   await act(async () => { (form as HTMLFormElement).requestSubmit(); await Promise.resolve(); await Promise.resolve(); });
 };
 
-it("＋ offers buying a Cloud or adding the person's own server: a box to paste its pairing link, sent to main's own Connect dialog", async () => {
+it("＋ opens the one add-a-place sheet: dusk cloud, or a server of one's own handed to the app window's guided setup, never a link to paste", async () => {
+  rail = { places: PLACES, add: { cloud: true, link: true, address: true } };
   await mount(createElement(PlacesRail));
   await click(host.querySelector("[data-rail-add]"));
   const sheet = document.querySelector("[data-place-add-sheet]")!;
+  expect(sheet.querySelector("h2")?.textContent).toBe("add a place");
   expect([...sheet.querySelectorAll("[data-place-add-choice]")].map((choice) => choice.getAttribute("data-place-add-choice"))).toEqual(["cloud", "server"]);
+  expect(sheet.querySelector("input"), "no box to paste a link into").toBeNull();
   await click(sheet.querySelector('[data-place-add-choice="server"]'));
-  const form = document.querySelector('[data-place-add="own-server"]')!;
-  expect(form.textContent).toContain("paste pairing link");
-  expect(form.textContent, "no install commands: the server's Settings shows its link").not.toContain("npx");
-  expect(document.activeElement).toBe(form.querySelector("[data-own-server-link]"));
-  const connect = [...form.querySelectorAll("button")].find((button) => button.textContent === "connect")!;
-  expect(connect.disabled, "nothing pasted yet").toBe(true);
-  await type(form.querySelector("[data-own-server-link]"), "  https://bots.example.test/#pair=abc  ");
-  await submit(form);
-  expect(workspaces.add.mock.calls).toEqual([["link", "https://bots.example.test/#pair=abc"]]);
+  expect(workspaces.add.mock.calls).toEqual([["address"]]);
   expect(document.querySelector("[data-place-add-sheet]")).toBeNull();
 });
 
-it("a pasted link main can't open says so and keeps the sheet; cancelling main's Connect keeps it too", async () => {
+it("where the app window can't take the setup, the rail's sheet lists the ways itself and each reaches main as a link", async () => {
   await mount(createElement(PlacesRail));
   await click(host.querySelector("[data-rail-add]"));
   await click(document.querySelector('[data-place-add-choice="server"]'));
-  const form = document.querySelector('[data-place-add="own-server"]')!;
-  await type(form.querySelector("[data-own-server-link]"), "not a link");
-  workspaces.add.mockRejectedValueOnce(new Error("Enter an HTTPS server address or a full pairing link."));
-  await submit(form);
-  expect(form.querySelector('[role="alert"]')?.textContent).toContain("isn't a pairing link");
-  expect(document.querySelector("[data-place-add-sheet]")).toBeTruthy();
-  await type(form.querySelector("[data-own-server-link]"), "https://bots.example.test/#pair=abc");
-  expect(form.querySelector('[role="alert"]'), "editing the link clears the error").toBeNull();
-  workspaces.add.mockResolvedValueOnce(false);
-  await submit(form);
-  expect(document.querySelector("[data-place-add-sheet]"), "the person cancelled Connect").toBeTruthy();
+  expect([...document.querySelectorAll("[data-setup-method]")].map((row) => row.getAttribute("data-setup-method"))).toEqual(["tailscale", "tunnel", "domain", "ssh", "address"]);
+  await click(document.querySelector('[data-setup-method="domain"]'));
+  await type(document.querySelector("[data-setup-address]"), "bots.example.test");
+  await type(document.querySelector("[data-setup-code]"), "ABCD-2345-EFGH");
+  await submit(document.querySelector("[data-place-setup-way]")!);
+  expect(workspaces.add.mock.calls).toEqual([["link", "https://bots.example.test/pair#code=ABCD-2345-EFGH"]]);
+  expect(document.querySelector("[data-place-add-sheet]")).toBeNull();
 });
 
 const createButton = () => [...document.querySelectorAll<HTMLButtonElement>('[data-place-add="organization"] button[type="submit"]')][0];
@@ -175,7 +166,7 @@ it("＋ for the account a Team plan's organizations are billed to: New organizat
   await mount(createElement(PlacesRail));
   await click(host.querySelector("[data-rail-add]"));
   const sheet = document.querySelector("[data-place-add-sheet]")!;
-  expect([...sheet.querySelectorAll("[data-place-add-choice]")].map((choice) => choice.getAttribute("data-place-add-choice"))).toEqual(["organization", "cloud", "server"]);
+  expect([...sheet.querySelectorAll("[data-place-add-choice]")].map((choice) => choice.getAttribute("data-place-add-choice"))).toEqual(["cloud", "server", "organization"]);
   await click(sheet.querySelector('[data-place-add-choice="organization"]'));
   await act(async () => { await Promise.resolve(); });
   const form = document.querySelector('[data-place-add="organization"]')!;
@@ -281,12 +272,12 @@ it("a server of the person's own that signed in: a small server mark, the offlin
   expect(workspaces.open.mock.calls, "one saved by hand opens as it always did").toEqual([["vps"]]);
   await click(host.querySelector('[data-rail-place="signed-in:s-render"]'));
   expect(workspaces.open.mock.calls).toHaveLength(1);
-  const connect = document.querySelector('[data-place-add="connect-server"]')!;
-  expect(connect.textContent).toContain("connect Render VPS");
-  expect(connect.textContent, "it runs dusk bot already: only its pairing link is left").not.toContain("npx");
-  await type(connect.querySelector("[data-own-server-link]"), "https://render.example.test/#pair=xyz");
+  const connect = document.querySelector("[data-place-setup-way=address]")!;
+  expect(connect.querySelector("h2")?.textContent).toBe("connect Render VPS");
+  await type(connect.querySelector("[data-setup-address]"), "https://render.example.test");
+  await type(connect.querySelector("[data-setup-code]"), "abcd-2345-efgh");
   await submit(connect);
-  expect(workspaces.add.mock.calls).toEqual([["link", "https://render.example.test/#pair=xyz"]]);
+  expect(workspaces.add.mock.calls).toEqual([["link", "https://render.example.test/pair#code=ABCD-2345-EFGH"]]);
 });
 
 it("where no pairing link can be pasted here, a signed-in server not connected yet opens nothing", async () => {

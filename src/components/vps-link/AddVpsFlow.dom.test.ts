@@ -297,7 +297,7 @@ describe("add your VPS", () => {
     expect(text()).toContain("Two chats did not arrive.");
     expect(text()).toContain("Nothing was removed from this Mac");
     await fake.emit({ ...fake.view(), stage: "moved", move: { step: "done", status: "done", kept: true } });
-    expect(text()).toContain("All moved. Your Mac is free.");
+    expect(text()).toContain("all moved!");
     expect(text()).toContain("A backup stays on this Mac");
     expect(text()).toContain("this Mac kept its copy too");
     await click(button("open My VPS"));

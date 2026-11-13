@@ -262,7 +262,7 @@ describe("Choosing a place in the panel", () => {
     const admin = render(makeBot({ computer: "cloud" }));
     expect(admin.html).toContain("Connect your own machine in settings to give bots their own private desktops.");
     expect(admin.html).not.toMatch(/\x42oat|API key|paid service/);
-    const action = admin.button("add your VPS")!;
+    const action = admin.button("add your own server")!;
     (action.props.onClick as () => void)();
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "toggleAppSettings", open: true, section: "computer" });
 
@@ -271,7 +271,7 @@ describe("Choosing a place in the panel", () => {
     phaseIndex = -1;
     const user = render(makeBot({ computer: "cloud" }));
     expect(user.html).toContain("Ask an admin to change it.");
-    expect(user.button("add your VPS")).toBeUndefined();
+    expect(user.button("add your own server")).toBeUndefined();
   });
 
 });

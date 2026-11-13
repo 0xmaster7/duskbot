@@ -105,10 +105,10 @@ it("adding a place opens the guided setup, not Settings", async () => {
   await act(async () => { host.querySelector<HTMLButtonElement>("[data-settings-open=add-workspace]")!.click(); });
   expect(fixture.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "toggleAppSettings" }));
   const { usePlaceSetupOpen, closePlaceSetup } = await import("@/lib/place-setup");
-  let open = false;
+  let open: ReturnType<typeof usePlaceSetupOpen> = null;
   function Probe() { open = usePlaceSetupOpen(); return null; }
   await act(async () => { root.render(createElement(Probe)); });
-  expect(open).toBe(true);
+  expect(open, "the first choice, not a click event as its start").toEqual({});
   closePlaceSetup();
 });
 

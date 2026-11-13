@@ -1,54 +1,9 @@
-import { pairFailed } from "@/lib/product-analytics";
-// ＋ at the end of the rail: one sheet of choices. A new organization on the Team plan the person pays for (when they run
-// one), buy a Cloud (the buying sheet: another Cloud right here, or the first one on this computer's own sheet), or add a
-// server of the person's own by pasting its pairing link.
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { Building2, Cloud, Loader2, Server, UserRound, X } from "../icons";
-import type { RailAddChoices } from "../../electron/cloud-rail.mjs";
-import { track } from "@/lib/analytics";
+// The add-a-place sheet's frame and its choice cards (the sheet itself is PlaceSetup.tsx).
+import { useEffect, useRef, type ReactNode } from "react";
+import { X } from "../icons";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import { AddCloudFlow } from "./cloud-buy/AddCloudFlow";
-import { NewOrganization } from "./cloud-buy/NewOrganization";
-import { BackLink, Heading, Tag } from "./cloud-buy/parts";
-
-/** A server's pairing link, pasted here: main checks it and asks "Connect to <host>?" itself, then opens it. The sheet
- * stays open when the person cancels, and says so when the link isn't one. `connect`: a server of theirs that signed in
- * with their account, not connected to this app yet. */
-export function OwnServerLink({ onBack, onConnected, connect = null }: { onBack: (() => void) | null; onConnected: () => void; connect?: { name: string } | null }) {
-  const [link, setLink] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    const pasted = link.trim();
-    if (!pasted || busy) return;
-    track("rail_add", { step: "link" });
-    setBusy(true);
-    setFailed(false);
-    try {
-      if (await window.duskDesktop?.workspaces?.add?.("link", pasted) !== false) onConnected();
-    } catch {
-      pairFailed("unknown");
-      setFailed(true);
-    } finally {
-      setBusy(false);
-    }
-  };
-  return <form data-place-add={connect ? "connect-server" : "own-server"} onSubmit={(event) => void submit(event)} className="flex flex-col gap-4 px-[30px] pb-[26px] pt-7">
-    {onBack && <div><BackLink label={t("rail.back")} onClick={onBack} /></div>}
-    <Heading title={connect ? t("rail.connectTitle", { name: connect.name }) : t("rail.own")} sub={t(connect ? "rail.connectPasteLede" : "rail.pasteLede")} />
-    <label className="flex flex-col gap-1.5 text-[13px] font-medium text-ink">{t("rail.paste")}
-      <input data-autofocus data-own-server-link value={link} disabled={busy} onChange={(event) => { setLink(event.target.value); setFailed(false); }}
-        placeholder="https://" autoCapitalize="none" autoCorrect="off" autoComplete="off" spellCheck={false} aria-invalid={failed || undefined}
-        className="w-full rounded-lg border border-transparent bg-inset px-3 py-2 text-[14px] font-normal text-ink outline-none focus:border-accent/50" />
-    </label>
-    {failed && <p role="alert" className="text-[13px] text-danger">{t("rail.linkFailed")}</p>}
-    <div><button type="submit" disabled={busy || !link.trim()} className="ui-button ui-button-primary inline-flex items-center gap-2">
-      {busy && <Loader2 size={14} className="animate-spin" aria-hidden="true" />}{t("rail.connect")}
-    </button></div>
-  </form>;
-}
+import { Tag } from "./cloud-buy/parts";
 
 /** `art`: the icon is a drawn mark of its own, shown as it is rather than on a tinted tile. */
 export function Choice({ icon, title, sub, onClick, kind, tag, art = false }: { icon: ReactNode; title: string; sub: string; onClick: () => void; kind: string; tag?: string; art?: boolean }) {
@@ -95,36 +50,4 @@ export function RailSheet({ wide = false, above = false, focusKey, onClose, chil
       {children}
     </div>
   </div>;
-}
-
-export function PlaceAddSheet({ choices, connect = null, onClose, onAccount }: { choices: RailAddChoices; connect?: { name: string } | null; onClose: () => void; onAccount?: () => void }) {
-  const server = choices.link, organization = choices.organization === true, account = choices.account === true && Boolean(onAccount);
-  const several = [organization, choices.cloud, server, account].filter(Boolean).length > 1;
-  const [view, setView] = useState<"choose" | "cloud" | "server" | "organization">(connect ? "server" : several ? "choose" : organization ? "organization" : choices.cloud ? "cloud" : "server");
-  const [wide, setWide] = useState(false);
-  const workspaces = window.duskDesktop?.workspaces;
-  const firstCloud = () => {
-    track("rail_add", { step: "cloud" });
-    onClose();
-    void workspaces?.add?.("cloud").catch(() => {});
-  };
-  return <RailSheet wide={view === "cloud" && wide} focusKey={view} onClose={onClose}>
-    {view === "choose" && <div data-place-add="choose" className="flex flex-col gap-5 px-[30px] pb-[26px] pt-7">
-      <Heading title={t("rail.add")} />
-      <div className="flex flex-col gap-3 sm:flex-row">
-        {organization && <Choice kind="organization" icon={<Building2 size={19} />} title={t("rail.org")} sub={t("rail.orgSub")} onClick={() => setView("organization")} />}
-        {choices.cloud && <Choice kind="cloud" icon={<Cloud size={19} />} title={t("rail.buy")} sub={t("rail.buySub")} tag={organization ? undefined : t("rail.recommended")} onClick={() => setView("cloud")} />}
-        {server && !choices.cloud && <Choice kind="server" icon={<Server size={19} />} title={t("rail.own")} sub={t("rail.ownSub")} onClick={() => setView("server")} />}
-        {account && <Choice kind="account" icon={<UserRound size={19} />} title={t("accounts.add")} sub={t("rail.accountSub")} onClick={() => onAccount!()} />}
-      </div>
-      {/* a server of one's own is for people who run one: offered, never weighed against dusk cloud */}
-      {server && choices.cloud && <button type="button" data-place-add-choice="server" onClick={() => setView("server")}
-        className="-ms-1 inline-flex min-h-8 items-center gap-1.5 self-start rounded-full px-1 text-[13px] leading-[18px] text-ink-secondary transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none">
-        <Server size={15} strokeWidth={1.5} aria-hidden="true" />{t("rail.ownAdvanced")}
-      </button>}
-    </div>}
-    {view === "server" && <OwnServerLink onBack={several && !connect ? () => setView("choose") : null} onConnected={onClose} connect={connect} />}
-    {view === "cloud" && <AddCloudFlow onClose={onClose} onFirstCloud={firstCloud} onWide={setWide} onBack={several ? () => setView("choose") : null} />}
-    {view === "organization" && <NewOrganization onClose={onClose} onBack={several ? () => setView("choose") : null} />}
-  </RailSheet>;
 }

@@ -1,6 +1,5 @@
-// Adding a place from the places hub or the switcher: dusk cloud, or a server of the person's own, linked by one line
-// through the relay (electron/vps-link.mjs) or reached at an address it already has (a pairing link, main's
-// connectHostedWorkspace). The sheet itself is components/PlaceSetup.tsx.
+// Adding a place: dusk cloud, or a server of the person's own, linked by one line through the relay
+// (electron/vps-link.mjs) or reached at an address it serves (main's connectHostedWorkspace).
 import { useSyncExternalStore } from "react";
 import type { VpsLinkView } from "./vps-link";
 
@@ -50,11 +49,13 @@ export function pairingLink(address: string, code: string): { link: string } | {
   return { link: `${url.origin}/pair#code=${parts[1]}-${parts[2]}-${parts[3]}` };
 }
 
-let open = false;
+/** Where the sheet opens: the first choice, or straight at a server's ways to connect. */
+export type PlaceSetupStart = "choose" | "server";
+let open: { start?: PlaceSetupStart } | null = null;
 const watchers = new Set<() => void>();
 const tell = () => { for (const watch of Array.from(watchers)) watch(); };
-export function openPlaceSetup(): void { open = true; tell(); }
-export function closePlaceSetup(): void { open = false; tell(); }
-export function usePlaceSetupOpen(): boolean {
-  return useSyncExternalStore((watch) => { watchers.add(watch); return () => { watchers.delete(watch); }; }, () => open, () => false);
+export function openPlaceSetup(start?: PlaceSetupStart): void { open = start ? { start } : {}; tell(); }
+export function closePlaceSetup(): void { open = null; tell(); }
+export function usePlaceSetupOpen(): { start?: PlaceSetupStart } | null {
+  return useSyncExternalStore((watch) => { watchers.add(watch); return () => { watchers.delete(watch); }; }, () => open, () => null);
 }

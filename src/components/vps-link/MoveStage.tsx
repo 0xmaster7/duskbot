@@ -98,6 +98,8 @@ export function MoveScreen({ view, preview, previewError, onReload, bridge, onMo
   view: VpsLinkView; preview: VpsMovePreview | null; previewError: string; onReload: () => void; bridge: VpsLinkBridge; onMove: () => void; onBack: () => void;
 }) {
   const name = view.server?.name ?? t("vpsLink.yourServer");
+  // a server name like instance-20261103-1451 wraps whole, never at its hyphens
+  const unbroken = name.replace(/-/g, "\u2011");
   const device = deviceWord();
   const phase = movePhase(view);
   const move = view.move;
@@ -117,9 +119,9 @@ export function MoveScreen({ view, preview, previewError, onReload, bridge, onMo
   if (phase === "moved") {
     return (
       <>
-        <Heading>{t("vpsLink.move.allMoved", { device })}</Heading>
+        <Heading>{t("vpsLink.move.allMoved")}</Heading>
         <div role="status" className={cn(centered, "top-[calc(50%-36px)] flex flex-col items-center gap-2 text-center")}>
-          <p className="m-0 text-[14px] leading-5 text-ink/68 text-pretty">{t("vpsLink.move.allMovedHint", { name, device })}</p>
+          <p className="m-0 text-[14px] leading-5 text-ink/68 text-pretty">{t("vpsLink.move.allMovedHint", { name: unbroken, device })}</p>
           {move?.kept && <p className="m-0 text-[13px] leading-[18px] text-warning text-pretty">{t("vpsLink.move.kept", { device })}</p>}
         </div>
         {preview && <div className={cn(centered, "top-[calc(50%+40px)] flex justify-center")}><Counts preview={preview} /></div>}
@@ -185,7 +187,7 @@ export function MoveScreen({ view, preview, previewError, onReload, bridge, onMo
             ? <><Bots preview={preview} /><Counts preview={preview} /></>
             : <p role="status" className="m-0 text-[13px] leading-[18px] text-ink/56">{t("vpsLink.move.counting")}</p>}
       </div>
-      <Footer note={<p className="m-0 max-w-[320px] text-[12px] leading-4 text-ink/56 text-pretty">{t("vpsLink.move.safety", { name, device })}</p>}>
+      <Footer note={<p className="m-0 max-w-[320px] text-[12px] leading-4 text-ink/56 text-pretty">{t("vpsLink.move.safety", { name: unbroken, device })}</p>}>
         {view.error && <ErrorNote>{view.error}</ErrorNote>}
         <button type="button" data-primary="" className={PILL} disabled={!preview} onClick={onMove}>{t("vpsLink.move.action")}</button>
         <button type="button" className={SOFT_PILL} onClick={onBack}>{t("onboarding.step.back")}</button>

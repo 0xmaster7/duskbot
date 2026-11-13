@@ -435,12 +435,16 @@ An SSH tunnel still works, and is the right answer when the server has no
 address of its own:
 
 ```sh
-ssh -L 8799:localhost:8799 you@your-server
-# then run `duskbot pair` on the server and open the "this computer:" link it prints
+ssh -N -L 8790:127.0.0.1:8799 you@your-server
+# then run `npx duskbot pair` on the server and type its code at http://127.0.0.1:8790/pair
 ```
 
-The browser signs in once through the tunnel, like any browser on the server
-itself.
+Port 8790 on this side keeps clear of the desktop app's own server on 8799.
+The "this computer:" link `pair` prints names the server's own port, so type
+the code rather than opening that link. In the desktop app, choose **SSH
+tunnel** when adding a server: the address is filled in and only the code is
+asked for. The browser signs in once through the tunnel, like any browser on
+the server itself.
 
 ### A browser signs in
 

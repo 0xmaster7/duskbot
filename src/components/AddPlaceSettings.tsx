@@ -3,17 +3,16 @@ import { t } from "@/lib/i18n";
 import { buyOfferAllowed, usd } from "@/lib/cloud-plan";
 import { usePlaces } from "@/lib/places";
 import { useCloudOffer } from "@/lib/use-cloud-offer";
-import { vpsLinkAvailable } from "@/lib/vps-link";
 import { useStore } from "@/state/store";
 import { NavRow, useSubPage } from "./ListRows";
-import { AddressSetup, InstallSetup, ServerWays } from "./PlaceSetup";
+import { InstallSetup, ServerWays, WaySetup, wayOf } from "./PlaceSetup";
 import { useCloudPlan } from "./ProIntroduction";
 import { SettingsRows } from "./SettingsPrimitives";
-import { ADD_PLACE_PAGE, PLACE_ADDRESS_PAGE, PLACE_INSTALL_PAGE, PLACE_SERVER_PAGE } from "./settings-page-ids";
+import { ADD_PLACE_PAGE, PLACE_INSTALL_PAGE, PLACE_SERVER_PAGE, PLACE_WAY_PAGE } from "./settings-page-ids";
 import { Tag } from "./cloud-buy/parts";
 import { PlaceArt } from "./ui/PlaceArt";
 
-export const isAddPlacePage = (at: string | undefined) => at === ADD_PLACE_PAGE || at === PLACE_SERVER_PAGE || at === PLACE_INSTALL_PAGE || at === PLACE_ADDRESS_PAGE;
+export const isAddPlacePage = (at: string | undefined) => at === ADD_PLACE_PAGE || at === PLACE_SERVER_PAGE || at === PLACE_INSTALL_PAGE || Boolean(at?.startsWith(PLACE_WAY_PAGE));
 
 /** Settings → Computer → add a place: dusk cloud up front, a server of one's own below it, and that server's whole guided
  * setup on the pages after it. */
@@ -21,16 +20,13 @@ export function AddPlacePage() {
   const sub = useSubPage();
   const { dispatch } = useStore();
   const close = () => dispatch({ type: "toggleAppSettings", open: false });
-  const workspaces = window.duskDesktop?.workspaces;
+  const way = sub.at?.startsWith(PLACE_WAY_PAGE) ? wayOf(sub.at.slice(PLACE_WAY_PAGE.length)) : undefined;
   if (sub.at === PLACE_INSTALL_PAGE) return <div data-settings-block="add-place-install" className="contents"><InstallSetup onClose={close} /></div>;
-  if (sub.at === PLACE_ADDRESS_PAGE) return <div data-settings-block="add-place-address" className="contents"><AddressSetup onClose={close} /></div>;
+  if (way) return <div data-settings-block="add-place-way" className="contents"><WaySetup key={way.key} way={way} onClose={close} /></div>;
   if (sub.at === PLACE_SERVER_PAGE) {
     return (
       <div data-settings-block="add-place-server" className="flex flex-col gap-4">
-        <p className="text-[14px] leading-5 text-ink-secondary">{t("placeSetup.serverSub")}</p>
-        <ServerWays
-          onRelay={vpsLinkAvailable() ? () => sub.open(PLACE_INSTALL_PAGE, t("placeSetup.relay")) : undefined}
-          onAddress={workspaces?.add ? () => sub.open(PLACE_ADDRESS_PAGE, t("placeSetup.addressTitle")) : undefined} />
+        <ServerWays onPick={(key) => (key === "relay" ? sub.open(PLACE_INSTALL_PAGE, t("placeSetup.relay")) : sub.open(`${PLACE_WAY_PAGE}${key}`, t(wayOf(key)!.title)))} />
       </div>
     );
   }
@@ -73,7 +69,7 @@ function CloudWay() {
           {!mine && <Tag>{t("rail.recommended")}</Tag>}
         </span>
         <p className="text-[13px] leading-[18px] text-ink-secondary">{t("placeSetup.cloudSub")}</p>
-        {!mine && cheapest !== null && <p data-add-place-price="" className="text-[12px] leading-4 text-ink-secondary">{t("pro.fromPrice", { price: usd(cheapest / 100) })}</p>}
+        {!mine && cheapest !== null && <p data-add-place-price="" className="text-[12px] leading-4 text-ink-secondary">{t("placeSetup.cloudFrom", { price: usd(cheapest / 100) })}</p>}
         <div className="mt-2.5">
           {mine
             ? mine.active

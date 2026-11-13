@@ -7,7 +7,8 @@ import { cloudColor } from "@/lib/cloud-look";
 import { askConfirm } from "./ConfirmDialog";
 import { textFieldCls } from "./ui/GrokDialog";
 import { PixelIcon } from "./ui/PixelIcon";
-import { openAddVps, vpsLinkAvailable } from "@/lib/vps-link";
+import { openPlaceSetup } from "@/lib/place-setup";
+import { vpsLinkAvailable } from "@/lib/vps-link";
 
 type SavedWorkspaces = Awaited<ReturnType<NonNullable<NonNullable<Window["duskDesktop"]>["environments"]>["state"]>>;
 
@@ -91,7 +92,7 @@ export function ConnectedWorkspacesSettings() {
             {entry.id !== "local" && forgetButton(t("settings.s2.servers.forget", { name: entry.name }), () => void perform(() => bridge.forget(entry.id)))}
           </ItemRow>;
         })}
-      {vpsLinkAvailable() && <NavRow data-settings-open="add-vps" title={t("vpsLink.add")} hint={t("vpsLink.addHint")} onClick={openAddVps} />}
+      {vpsLinkAvailable() && <NavRow data-settings-open="add-vps" title={t("vpsLink.add")} hint={t("vpsLink.addHint")} onClick={() => openPlaceSetup("server")} />}
       <NavRow data-settings-open="connect-server" title={t("vpsLink.connectByAddress")} hint={t("settings.s2.servers.connectHint")} onClick={() => { setError(""); setAdding(true); }} />
       {error && saved && !adding && <NoteRow tone="danger">{error}</NoteRow>}
     </RowsCard>

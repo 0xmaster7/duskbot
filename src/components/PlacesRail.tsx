@@ -19,7 +19,7 @@ import { makeHome, placeInitials, recolorPlace, removePlace, usePlaces, type Rai
 import { AccountsSheet, switchNote } from "./AccountMenu";
 import { useDesktopCapabilities, windowFramed } from "./DesktopCapabilities";
 import { MENU_ROW, MENU_SHEET } from "./menu-recipe";
-import { PlaceAddSheet } from "./PlaceAddSheet";
+import { PlaceSetup } from "./PlaceSetup";
 import { SwatchRadios } from "./SwatchRadios";
 
 /** Tiles before ⋯ opens the searchable list of every place. */
@@ -334,8 +334,10 @@ export function PlacesRail({ chrome = false }: { chrome?: boolean }) {
     {menu && <div ref={menuRef} style={noDrag}>
       <PlaceMenu key={menu.place.id} place={state.places.find((entry) => entry.id === menu.place.id) ?? menu.place} top={menu.top} onClose={() => setMenu(null)} />
     </div>}
-    {adding && <PlaceAddSheet choices={state.add} onClose={() => setAdding(false)} onAccount={() => { setAdding(false); setAccounts({ adding: "", note: null }); }} />}
+    {adding && <PlaceSetup choices={state.add} onClose={() => setAdding(false)} onAccount={() => { setAdding(false); setAccounts({ adding: "", note: null }); }}
+      onBuy={() => void window.duskDesktop?.workspaces?.add?.("cloud").catch(() => {})}
+      onServer={state.add.address ? () => void window.duskDesktop?.workspaces?.add?.("address").catch(() => {}) : undefined} />}
     {accounts && <AccountsSheet adding={accounts.adding} note={accounts.note} onClose={() => setAccounts(null)} />}
-    {connecting !== null && <PlaceAddSheet choices={state.add} connect={{ name: connecting }} onClose={() => setConnecting(null)} />}
+    {connecting !== null && <PlaceSetup choices={state.add} connect={connecting} onClose={() => setConnecting(null)} />}
   </nav>;
 }

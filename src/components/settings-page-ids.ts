@@ -11,4 +11,5 @@ export const PROFILE_PAGE = "profile:";
 export const ADD_PLACE_PAGE = "add-place";
 export const PLACE_SERVER_PAGE = "add-place:server";
 export const PLACE_INSTALL_PAGE = "add-place:install";
-export const PLACE_ADDRESS_PAGE = "add-place:address";
+/** followed by a way's key (PlaceSetup WAYS) */
+export const PLACE_WAY_PAGE = "add-place:way:";

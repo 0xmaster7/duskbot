@@ -12,7 +12,7 @@ import { SettingsSelect } from "./SettingsSelect";
 import { useCopyFeedback } from "@/lib/copy-text";
 import { cn } from "@/lib/cn";
 import { useStore } from "@/state/store";
-import { openAddVps } from "@/lib/vps-link";
+import { openPlaceSetup } from "@/lib/place-setup";
 import { VpsComputersCard } from "./VpsComputersCard";
 import { DirectLinkRow } from "./DirectLinkRow";
 import { RouteTrafficRow } from "./RouteTrafficRow";
@@ -841,7 +841,7 @@ export function LocalComputerSection() {
     <>
       {announcer}
       <RowsCard label={t("settings.w6.group.cloudDesktop")} data-settings-block="vps-desktops">
-        {vpsConfigured === false && !vpsLoading && !vpsUnavailableReason && (typeof window === "undefined" || window.duskDesktop?.remoteClient?.active !== true) && <NavRow title={t("vpsLink.add")} hint={t("vpsLink.addHint")} onClick={openAddVps} />}
+        {vpsConfigured === false && !vpsLoading && !vpsUnavailableReason && (typeof window === "undefined" || window.duskDesktop?.remoteClient?.active !== true) && <NavRow title={t("vpsLink.add")} hint={t("vpsLink.addHint")} onClick={() => openPlaceSetup("server")} />}
         <VpsComputersCard
           instances={vpsInventory}
           configured={vpsConfigured}

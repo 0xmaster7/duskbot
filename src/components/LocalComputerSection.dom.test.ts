@@ -3,8 +3,8 @@ import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, it, vi } from "vitest";
 
-const local = vi.hoisted(() => ({ openAddVps: vi.fn() }));
-vi.mock("@/lib/vps-link", () => ({ openAddVps: local.openAddVps }));
+const local = vi.hoisted(() => ({ openPlaceSetup: vi.fn() }));
+vi.mock("@/lib/place-setup", () => ({ openPlaceSetup: local.openPlaceSetup }));
 vi.mock("./DesktopCapabilities", () => ({ useDesktopCapabilities: () => ({ ready: true, capabilities: { host: { platform: "darwin" }, localComputer: { available: true } } }) }));
 
 vi.mock("@/state/store", async importOriginal => {
@@ -40,8 +40,8 @@ it("loads only local and VPS inventories and offers the existing VPS setup flow"
   try {
     await act(async () => { root.render(createElement(LocalComputerSection)); });
     expect(paths.sort()).toEqual(["/api/computer/egress", "/api/computers/vps", "/api/local-computer", "/api/mac"]);
-    expect(container.textContent).toContain("add your VPS");
-    expect(local.openAddVps).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("add your own server");
+    expect(local.openPlaceSetup).not.toHaveBeenCalled();
     expect(container.textContent).not.toMatch(/\x42oat|credit|cloud desktop/i);
     await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
     expect(paths.filter(path => path === "/api/local-computer")).toHaveLength(2);

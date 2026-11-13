@@ -14,7 +14,7 @@ import { AmbientPublisher } from "@/ambient/AmbientPublisher";
 import { useAmbientAway } from "@/ambient/away";
 import { BotsElsewhere, DevFreshInstallButton } from "@/components/BotsElsewhere";
 import { MacEmptyMain, useMacEmptyPrompt } from "@/components/MacEmptyMain";
-import { PlaceSetupHost } from "@/components/PlaceSetup";
+import { PlaceSetupHost } from "@/components/PlaceSetupHost";
 import { useMacEmpty } from "@/lib/bots-elsewhere";
 import { openPlaceSetup } from "@/lib/place-setup";
 import { ThreadRefsProvider } from "@/components/ThreadRefs";
@@ -112,9 +112,9 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   useEffect(() => {
     if (!window.duskDesktop?.environments) return;
     const open = () => dispatch({ type: "toggleAppSettings", open: true, section: "desktopWorkspaces" });
-    // connect a server (the switcher, the rail's address choice): the guided setup, never Settings; sharing this computer
+    // connect a server (the switcher, the rail's ＋): the guided setup at its ways to connect, never Settings; sharing this computer
     // with one still lands on its Settings page
-    const connect = (computerId?: string | null) => (computerId ? open() : openPlaceSetup());
+    const connect = (computerId?: string | null) => (computerId ? open() : openPlaceSetup("server"));
     const url = new URL(window.location.href);
     const requestedSettings = url.searchParams.get("desktop-settings");
     const cloud = ["cloud", "cloud-settings", "cloud-add", "cloud-add-howto"].includes(requestedSettings ?? "");
