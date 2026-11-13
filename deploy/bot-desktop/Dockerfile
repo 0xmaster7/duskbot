@@ -109,7 +109,7 @@ ARG BOT_DESKTOP_VERSION=5
 # label names from before the rename: servers and apps find this image by them (DOCKER_NAMES, electron/legacy-names.mjs)
 LABEL com.openmausbot.bot-desktop="${BOT_DESKTOP_VERSION}" \
       com.openmausbot.cua-driver="${CUA_DRIVER_VERSION}" \
-      org.opencontainers.image.title="omb-bot-desktop" \
+      org.opencontainers.image.title="dusk-desktop" \
       org.opencontainers.image.description="dusk bot computer: a sandboxed dark Linux desktop" \
       org.opencontainers.image.source="https://github.com/DuskBotAI/duskbot"
 

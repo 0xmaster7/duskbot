@@ -215,11 +215,11 @@ describe("bot desktop isolation checks", () => {
 
   it("keeps build.sh's fallback tag and host-fence.sh's bridge in step with the constants", () => {
     const script = readFileSync(new URL("../deploy/bot-desktop/build.sh", import.meta.url), "utf8");
-    expect(script).toContain(`image="\${image:-ghcr.io/duskbotai/bot-desktop:v$version}"`);
+    expect(script).toContain(`image="\${image:-ghcr.io/duskbotai/dusk-desktop:v$version}"`);
     expect(script).toContain(`version="\${version:-${BOT_DESKTOP_VERSION}}"`);
     expect(readFileSync(new URL("../deploy/bot-desktop/Dockerfile", import.meta.url), "utf8")).toContain(`ARG BOT_DESKTOP_VERSION=${BOT_DESKTOP_VERSION}\n`);
     expect(readFileSync(new URL("../deploy/bot-desktop/rootfs/usr/local/bin/omb-session", import.meta.url), "utf8")).toContain('${DUSK_BROWSER_AT_START:-off}');
-    expect(BOT_DESKTOP_IMAGE).toBe(`ghcr.io/duskbotai/bot-desktop:v${BOT_DESKTOP_VERSION}`);
+    expect(BOT_DESKTOP_IMAGE).toBe(`ghcr.io/duskbotai/dusk-desktop:v${BOT_DESKTOP_VERSION}`);
     expect(readFileSync(new URL("../deploy/bot-desktop/host-fence.sh", import.meta.url), "utf8")).toContain("BRIDGE=omb-desk0\n");
   });
 
