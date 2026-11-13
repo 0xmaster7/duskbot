@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { RuntimeEvent } from "../contracts.ts";
-import { announcesStep, asksToCarryOn, continueNote, createFinishGuard, finishReason, MAX_CONTINUES, planSteps, type FinishReason } from "./finish-guard.ts";
+import { announcesStep, asksToCarryOn, continueNote, createFinishGuard, finishReason, MAX_CONTINUES, MAX_PLAN_CONTINUES, planSteps, type FinishReason } from "./finish-guard.ts";
 
 type Body = RuntimeEvent extends infer E ? E extends RuntimeEvent ? Omit<E, "eventId" | "provider" | "threadId" | "createdAt"> : never : never;
 const PLAN = JSON.stringify({ todos: [{ content: "Read", status: "completed" }, { content: "Draft", status: "in_progress" }, { content: "Send", status: "pending" }] });
@@ -30,24 +30,49 @@ function harness(held = false) {
 }
 
 describe("finish guard", () => {
-  it("reads open steps from a plan tool's input", () => {
-    expect(planSteps("TodoWrite", PLAN)).toEqual({ open: 2, total: 3 });
+  it("reads open steps, with their words, from a plan tool's input", () => {
+    expect(planSteps("TodoWrite", PLAN)).toEqual({ open: 2, total: 3, steps: ["Draft", "Send"] });
     expect(planSteps("update_plan", '{"plan":[{"step":"a","status":"completed"}]}')).toEqual({ open: 0, total: 1 });
+    expect(planSteps("update_plan", '{"plan":[{"step":"Check  fares","status":"pending"}]}')).toEqual({ open: 1, total: 1, steps: ["Check fares"] });
+    // a clipped input still counts its steps
+    expect(planSteps("TodoWrite", PLAN.slice(0, -3))).toEqual({ open: 2, total: 3 });
     expect(planSteps("Bash", PLAN)).toBeNull();
   });
 
-  it("carries a turn on when its plan has open steps, at most twice for one message of the person's", () => {
+  it("names the open steps in the carry-on note and keeps the approval rule", () => {
+    const note = continueNote({ kind: "plan", open: 2, total: 3, steps: ["Draft", "Send"] });
+    expect(note).toContain("Still open: 1. Draft; 2. Send.");
+    expect(note).toContain("still needs their yes");
+  });
+
+  it("carries an open plan on while each carry-on closes a step, and stops when one makes no progress", () => {
     const h = harness();
     h.turn("Drafted the reply.", { plan: PLAN });
     expect(h.carried).toHaveLength(1);
-    expect(h.carried[0]!.note).toBe(continueNote({ kind: "plan", open: 2, total: 3 }));
-    expect(h.lines).toEqual([{ kind: "plan", open: 2, total: 3 }]);
+    expect(h.carried[0]!.note).toBe(continueNote({ kind: "plan", open: 2, total: 3, steps: ["Draft", "Send"] }));
+    expect(h.lines).toEqual([{ kind: "plan", open: 2, total: 3, steps: ["Draft", "Send"] }]);
+    // the same open steps again: no progress, so it stops
     h.turn("Still going.", { plan: PLAN });
-    h.turn("Still going.", { plan: PLAN });
-    expect(h.carried).toHaveLength(MAX_CONTINUES);
+    expect(h.carried).toHaveLength(1);
 
     h.turn("New ask from the person, half done.", { plan: PLAN });
-    expect(h.carried).toHaveLength(MAX_CONTINUES + 1);
+    expect(h.carried).toHaveLength(2);
+  });
+
+  it("caps carry-ons that only announced a step lower than an open plan's", () => {
+    const h = harness();
+    for (let i = 0; i < MAX_CONTINUES + 1; i += 1) h.turn("Found three. Let me check their prices.", { tools: 1 });
+    expect(h.carried).toHaveLength(MAX_CONTINUES);
+  });
+
+  it("follows a long plan through many steps, up to its own cap", () => {
+    const h = harness();
+    const steps = Array.from({ length: 10 }, (_, i) => `Step ${i + 1}`);
+    const plan = (done: number) => JSON.stringify({ todos: steps.map((content, i) => ({ content, status: i < done ? "completed" : "pending" })) });
+    // each turn below is a carry-on of the one before, until the guard stops carrying on
+    for (let done = 1; done <= MAX_PLAN_CONTINUES + 1; done += 1) h.turn(`Did step ${done}.`, { plan: plan(done) });
+    expect(h.carried).toHaveLength(MAX_PLAN_CONTINUES);
+    expect(h.carried.at(-1)!.note).toContain("Still open: 1. Step 7;");
   });
 
   it("carries on after agreeing to a correction with no tool call, and not once it acted", () => {

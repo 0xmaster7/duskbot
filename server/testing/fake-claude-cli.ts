@@ -40,6 +40,7 @@
 //     (default 30000) as 2.1.306 does; hold "busy" | "idle" | "network" also keeps a stand-in child process that burns CPU,
 //     sleeps, or holds a loopback TCP connection, as the call's command would
 //   FAKE_CLAUDE_TOOL_CALLS_FILE  path of the same JSON, read again each turn (a warm process's turns differ); missing: none
+//   FAKE_CLAUDE_TOOL_CALLS_BY_TURN  JSON array, one FAKE_CLAUDE_TOOL_CALLS list per reply of FAKE_CLAUDE_REPLIES (by its REPLY_STATE)
 //   FAKE_CLAUDE_SCRIPT  JSON array of steps each happy turn plays in order instead of its replies and tool calls:
 //     {"text": "..."} is an assistant message of its own, {"tool": {name, input?, ok?, output?}} a tool_use answered by its
 //     tool_result (output default "ok"), {"waitMs": n} a pause; e.g. an ack, set_status with a search, a plan, a wait, a result
@@ -195,6 +196,14 @@ const turnScript = ((): ScriptStep[] | null => {
   });
 })();
 const turnToolCalls = (): ScriptedToolCall[] | null => {
+  const byTurn = process.env.FAKE_CLAUDE_TOOL_CALLS_BY_TURN;
+  if (byTurn) {
+    let index = scriptedReplyIndex;
+    try { index = Number(readFileSync(process.env.FAKE_CLAUDE_REPLY_STATE ?? "", "utf8")) || 0; } catch {}
+    const turns = JSON.parse(byTurn) as unknown[];
+    // the turn's reply is taken before its tool calls run, so the counter already points past it
+    return parseToolCalls(JSON.stringify(turns[Math.min(Math.max(0, index - 1), turns.length - 1)] ?? [])) ?? [];
+  }
   const file = process.env.FAKE_CLAUDE_TOOL_CALLS_FILE;
   if (!file) return scriptedToolCallsAtStart;
   try { return parseToolCalls(readFileSync(file, "utf8")) ?? []; } catch { return []; }
