@@ -136,7 +136,7 @@ describe("relay channel", () => {
       expect(new Set(fixture.posts.map((batch) => batch.epoch)).size).toBe(1);
       expect(fixture.posts[0].epoch).toMatch(/^[a-z2-7]{12}$/);
       expect(fixture.streamFetch.mock.calls[0]).toEqual(["https://relay.test/v1/channels/abcdefghij/to-app?wait=25&stream=1", expect.objectContaining({ headers: { Authorization: "Bearer channel-secret" } })]);
-      expect(fixture.fetcher.mock.calls.every(([url]) => String(url).endsWith("/to-vps"))).toBe(true);
+      expect(fixture.fetcher.mock.calls.every(([url]) => String(url).endsWith("/to-vps") || String(url).endsWith("/node"))).toBe(true);
       await reader.cancel();
       await vi.waitFor(() => expect(fixture.controls.some((frame) => frame.t === "cancel")).toBe(true));
     } finally { client.close(); }

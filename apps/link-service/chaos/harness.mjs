@@ -274,7 +274,7 @@ export function patternBytes(length) {
  * an upload that answers its hash, a websocket echo. `restart()` drops it for a moment like a server upgrade does.
  */
 export async function createBotServer() {
-  let server = null, port = 0, down = false;
+  let server = null, port = 0, down = false, phone = null, phoneAgentPub = null;
   const big = new Map();
   const streams = new Set();
   const handler = (req, res) => {
@@ -312,7 +312,20 @@ export async function createBotServer() {
       req.on("end", () => json(res, { length, sha256: hash.digest("hex") }));
       return;
     }
-    if (url.pathname === "/api/mobile/relay/sync") return json(res, { channels: [] });
+    if (url.pathname === "/api/mobile/relay/sync") {
+      // the server's side of phone pairing: the channels it hands the agent (one phone, when the run set one)
+      const chunks = [];
+      req.on("data", (chunk) => chunks.push(chunk));
+      req.on("end", () => {
+        let body = {};
+        try { body = JSON.parse(Buffer.concat(chunks).toString("utf8")); } catch {}
+        if (typeof body.pub === "string") phoneAgentPub = body.pub;
+        const answer = () => json(res, { rev: phone ? 1 : 0, channels: phone ? [phone] : [] });
+        if ((body.applied ?? 0) >= (phone ? 1 : 0) && body.wait > 0) { const timer = setTimeout(answer, Math.min(body.wait, 20) * 1000); res.on("close", () => clearTimeout(timer)); }
+        else answer();
+      });
+      return;
+    }
     return json(res, { error: "not here" }, 404);
   };
   const onUpgrade = (req, socket, head) => {
@@ -333,6 +346,9 @@ export async function createBotServer() {
   return {
     get port() { return port; },
     isDown: () => down,
+    /** a phone channel to hand the agent ({ id, verifier, kind: "device", pub }), and the agent's key it sent */
+    setPhone(channel) { phone = channel; },
+    agentPub: () => phoneAgentPub,
     async stop() { down = true; for (const res of streams) res.destroy(); await new Promise((resolve) => { server.closeAllConnections?.(); server.close(resolve); }); },
     start,
     close() { server?.closeAllConnections?.(); server?.close(); },
@@ -392,14 +408,14 @@ export function createAgent({ home, serverPort, ca, restartMs = 5000, env = {}, 
 }
 
 /** the app's real relay code (electron/vps-link-protocol.mjs createTunnelProxy, follow on) in its own process */
-export function createApp({ link, ca, log = () => {} }) {
+export function createApp({ link, ca, log = () => {}, runner = "app-runner.mjs" }) {
   let child = null, origin = null, exited = false;
   const lines = [];
   const pending = new Map();
   let seq = 0;
   function start() {
     exited = false;
-    child = fork(join(chaosDir, "app-runner.mjs"), [], { env: { ...process.env, NODE_EXTRA_CA_CERTS: ca }, execArgv: ["--import", join(chaosDir, "preload.mjs")], stdio: ["ignore", "pipe", "pipe", "ipc"] });
+    child = fork(join(chaosDir, runner), [], { env: { ...process.env, NODE_EXTRA_CA_CERTS: ca }, execArgv: ["--import", join(chaosDir, "preload.mjs"), "--import", join(chaosDir, "ts-hooks.mjs")], stdio: ["ignore", "pipe", "pipe", "ipc"] });
     const keep = (data) => { for (const line of String(data).split("\n").filter(Boolean)) { lines.push(`${new Date().toISOString().slice(11, 23)} ${line}`); log(`[app] ${line}`); } if (lines.length > 4000) lines.splice(0, 1000); };
     child.stdout.on("data", keep);
     child.stderr.on("data", keep);

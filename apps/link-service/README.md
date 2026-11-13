@@ -195,6 +195,16 @@ copy between them. `src/nodes.mjs`.
   phone does the same after a failed or unanswered request. A 404 from a node it moved to is "unlinked" only once the
   node it was linked through says 404 too. One node listed: nothing moves. Retries on both ends wait a random half to
   all of their backoff, so the servers and apps of a restarted node do not all come back in one second.
+- **Beats.** A streamed read writes an empty line after 5 s idle and says `x-link-beat: 5`; the app, the agent and the
+  phone drop a connection that stays silent for three beats and read again, so a network switch (wifi to a hotspot)
+  costs about 15 s without any help, and the desktop's address watch makes it a few.
+- **Proxies.** The app opens its relay connections inside the CONNECT tunnel of the proxy chromium would use for the
+  url (`session.resolveProxy`, http proxies; DIRECT otherwise) and sends setup sessions through chromium's network; the
+  agent honours `HTTPS_PROXY` and `NO_PROXY`.
+- **Resumable downloads.** The agent sends a reply's length as `x-dusk-length`; a GET answered 200 with
+  `accept-ranges: bytes` and a strong ETag or Last-Modified that loses bytes on the relay goes on with `Range` and
+  `If-Range` from where it broke (after 1, 2, 4, 8 s, five times at most); the browser sees one download. Uploads do
+  not resume: a body that lost bytes fails.
 - **Restarts and lost frames.** Queues live in memory. Every answer carries `x-link-boot` (random per process): an app
   that sees it change sends unanswered GETs again and fails what else was on the relay with a short message. A writer
   whose numbered posts reach a node that never saw its epoch starts where it is after 300 ms. Each end counts the bytes
@@ -586,8 +596,11 @@ a laptop asleep, offline, on a new network, without dns, on one address family, 
 link; 100 MB through the relay; 60 servers through a node restart) while a probe sends a request every half second
 and holds an event stream open. Each row says how long until both worked again, what failed and what a person would
 see. `--quick` is the short set ci runs (`.github/workflows/link-chaos.yml`), `--only a,b` picks scenarios, `--home
-oracle-in` places the server on the node the app did not link through, `--md` / `--json` write the matrix, `--verbose`
-streams every process's log. Needs node and openssl only.
+oracle-in` places the server on the node the app did not link through, `--client phone` puts the phone app's own
+transport (`src/mobile/transport/relay.ts`, on a device channel the stand-in server hands the agent) where the desktop's
+relay code is, `--direct rtc` adds the webrtc direct path (node-datachannel from this checkout) on top of the relay,
+`--md` / `--json` write the matrix, `--verbose` streams every process's log. Needs node and openssl only (and the
+checkout's node-datachannel for `--direct rtc`).
 
 ## Run it
 
@@ -620,15 +633,16 @@ The relay is not a free pipe: every setup session needs a dusk account, and ever
 - **Account.** `POST /v1/sessions` takes `grant`, a five-minute token the signed-in app gets from the account service
   (`POST /v1/app/link-grant`, bearer app session; `src/grant.mjs` has the format). Without a valid one the answer is
   401 `account_required`. One account has at most 20 live tunnels by default (409 `tunnel_limit`) and opens at most 120 sessions an
-  hour, besides the 120 an hour per address. The VPS side (install.sh, the agent, the phone's channels) needs nothing:
+  hour and 10 a minute, besides 120 an hour and 30 a minute per address; it holds 5 unused ones at most (a sixth retires
+  its oldest), so no account can fill a node's 5,000 session store. The VPS side (install.sh, the agent, the phone's channels) needs nothing:
   the session the app opened already carries the account.
 - **Bytes.** Defaults, changeable at runtime (below): each tunnel, both directions and its phone channels together, 3 MiB/s
   sustained with a 24 MiB burst, and 25 GiB per UTC day (kept on the tunnel, so a restart does not reset it). All tunnels
   together stay under a 10 MiB/s ceiling (~88 Mbit/s on the wire, under Contabo's 100 Mbit/s average rule): while several
-  tunnels are busy each is slowed to an even share of it. Egress lane posts also stay under 6 MiB/s (8 MiB burst). Sizes
+  are busy the ceiling is split evenly between busy accounts, then between an account's busy tunnels. Egress lane posts also stay under 6 MiB/s (8 MiB burst). Sizes
   are the frames' base64url text, the bytes on the wire. Past its rate a post is held (slowed), not refused; only a wait
   over 20 s gets 429 `rate_limited` with `retry-after`. Over the day: 429 `daily_limit`.
-- **Busy.** At most 150 tunnels relay at once (bytes in the last 2 minutes); a new one past that, or any new one while the
+- **Busy.** At most 150 tunnels relay at once (oracle-in is set to 110 in its limits, Contabo keeps 150; both on the ops page) (bytes in the last 2 minutes); a new one past that, or any new one while the
   owner paused the relay, gets 503 `relay_busy` with `retry-after: 60` and should use a Cloudflare tunnel, SSH or Tailscale.
   Tunnels already relaying are never cut off.
 - **Ops.** `GET /ops/relay/stats` and `PUT /ops/relay/limits` with `authorization: Bearer $LINK_STATS_TOKEN` (the account

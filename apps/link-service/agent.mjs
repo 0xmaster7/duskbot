@@ -53,7 +53,7 @@ export const SERVER = { host: "127.0.0.1", port: Number(process.env.LINK_SERVER_
 export const LINK_PROTOCOL = 2;
 export const LINK_MIN_APP = 1;
 export const LINK_MIN_SERVER = 1;
-export const AGENT_VERSION = "2.4.1";
+export const AGENT_VERSION = "2.4.2";
 export const AGENT_CAPS = Object.freeze(["direct-ssh", "direct-wss", "direct-rtc", "egress", "egress-lane", "self-update", "cloud-relay"]);
 /** what this agent says about itself, in its direct hello and its answer to the app's `hello` */
 export const agentHello = () => ({ protocol: LINK_PROTOCOL, minApp: LINK_MIN_APP, minServer: LINK_MIN_SERVER, agent: AGENT_VERSION, caps: [...AGENT_CAPS] });
@@ -2037,7 +2037,7 @@ export function createEgressProxy({
 export const MARK_BYTES = 256 * 1024;
 export const MARK_MS = 2000;
 
-export function createServing({ server = SERVER, sink, stopped = () => false, context = {}, controls = true, forwardedFor = "192.0.2.10", allow = null, log = () => {} }) {
+export function createServing({ server = SERVER, sink, stopped = () => false, context = {}, controls = true, forwardedFor = "192.0.2.10", allow = null, log = () => {}, since = null }) {
   const pending = new Map();
   const emit = (frame) => { if (!stopped()) sink.push(frame); };
   // replies count what they send (marks, and `n` on the end) so the app can tell one that lost bytes on the way; an
@@ -2117,7 +2117,8 @@ export function createServing({ server = SERVER, sink, stopped = () => false, co
       for (const [name, value] of Object.entries(res.headers)) if (!HOP.has(name)) out[name] = value;
       // the length travels apart (content-length is per hop): the app needs it to pick a broken download up again
       if (/^\d+$/.test(String(res.headers["content-length"] ?? ""))) out["x-dusk-length"] = res.headers["content-length"];
-      emit({ t: "head", r: frame.r, status: res.statusCode ?? 502, headers: out });
+      // `since`: when this process started, so a phone sees the agent restarted and ends what went through the one before
+      emit({ t: "head", r: frame.r, status: res.statusCode ?? 502, headers: out, ...(since ? { since } : {}) });
       res.on("data", (chunk) => {
         if (!pending.has(frame.r) || stopped()) return;
         if (!sendBytes(frame.r, chunk)) {
@@ -2376,7 +2377,7 @@ async function readChannelBatches(response, onBatch) {
 }
 
 export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = harnessSync(server), origin = null, spki = null, fetchImpl: given, log = (line) => console.error(line), waitS = 25, aheadMs = STREAM_AHEAD_MS }) {
-  const fetchImpl = given ?? relayFetch({ proxy: envProxy() }), stream = streamChoice();
+  const fetchImpl = given ?? relayFetch({ proxy: envProxy() }), stream = streamChoice(), startedAt = relayNow();
   const abort = new AbortController(), channels = new Map();
   // a channel the relay dropped and the sync brought back keeps its replay guard, or the relay could replay its frames
   const guards = new Map();
@@ -2429,7 +2430,7 @@ export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = 
       return false;
     };
     const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, cid, "to-app", r, bytes), post, delayMs: () => (fetchImpl.multiplexed?.() ? 0 : H1_POST_DELAY_MS), signal: closed.signal, parallel: () => (ordered ? fetchImpl.postsInFlight?.() ?? POSTS_IN_FLIGHT : 1), onError: () => { if (channels.get(cid) === channel) drop(cid); } });
-    channel.serving = createServing({ server, controls: false, stopped: () => closed.signal.aborted,
+    channel.serving = createServing({ server, controls: false, since: startedAt, stopped: () => closed.signal.aborted,
       forwardedFor: `198.51.100.${1 + (createHash("sha256").update(cid).digest()[0] % 254)}`,
       allow: channel.kind === "grant" ? (method, path) => (method === "POST" && path === "/api/mobile/redeem") || (method === "GET" && ["/.well-known/duskbot/environment", "/api/health"].includes(fromLegacyPath(path))) : null,
       sink: { push: (frame) => outbox.push(sealFrame(key, cid, "to-app", frame), frame.r), bytes: outbox.bytes, onDrain: outbox.onDrain, discard: outbox.discard },

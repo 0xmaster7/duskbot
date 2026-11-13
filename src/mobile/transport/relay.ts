@@ -12,6 +12,8 @@ export type RelayFrame = {
   d?: string;
   b?: Uint8Array;
   message?: string;
+  /** on a "head" frame: when the server's link process started, in the link service's time */
+  since?: number;
 };
 
 type FrameGuard = (iv: string, ts: unknown) => boolean;
@@ -92,7 +94,7 @@ export interface RelayChannel {
 /** One run of posts and polls. A failed post or poll ends it, and the next request starts another under a new epoch,
  * which the relay reads as the writer restarting. */
 type Link = { abort: AbortController; epoch: string; seq: number; posts: Promise<void>; polling: boolean };
-type Pending = { link: Link; head(frame: RelayFrame): void; data(bytes: Uint8Array): void; end(): void; fail(error: unknown): void };
+type Pending = { link: Link; at: number; head(frame: RelayFrame): void; data(bytes: Uint8Array): void; end(): void; fail(error: unknown): void };
 
 export function open(base: string, channel: string, token: string, key: Uint8Array): RelayChannel {
   subtle();
@@ -109,6 +111,7 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
   let link: Link | null = null;
   let closed = false;
   let gone = false;
+  let agentSince: number | null = null;
 
   const drop = (broken: Link, error: unknown = new Error("relay closed")) => {
     if (link === broken) link = null;
@@ -149,6 +152,8 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
     gone = true;
     return new RelayGoneError();
   };
+  // learn the other nodes now, while the one it was given answers: after that node dies is too late to ask it
+  void relocate();
   const post = (on: Link, frames: RelayFrame[]) => {
     const next = on.posts.then(async () => {
       if (on.abort.signal.aborted) throw new Error("relay closed");
@@ -188,6 +193,12 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
             let frame: RelayFrame | null;
             try { frame = await openFrame(key, channel, "to-app", sealed, guard); } catch { continue; }
             if (!frame) continue;
+            // the server's link process started again (its replies say since when): what went through the one before
+            // (a live stream) is gone
+            if (frame.t === "head" && typeof frame.since === "number") {
+              if (agentSince !== null && frame.since > agentSince) for (const [id, one] of [...pending]) if (id !== frame.r && one.at < frame.since - 1000) one.fail(new Error("relay restarted"));
+              agentSince = Math.max(agentSince ?? 0, frame.since);
+            }
             const request = pending.get(frame.r);
             if (!request) continue;
             if (frame.t === "head") request.head(frame);
@@ -222,6 +233,7 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
         }, { highWaterMark: 8 * 1024 * 1024, size: (chunk) => chunk.byteLength });
         pending.set(r, {
           link: on,
+          at: relayNow(),
           head(frame) {
             if (headed) return;
             try {

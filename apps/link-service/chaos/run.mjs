@@ -13,7 +13,8 @@ import { join } from "node:path";
 
 import { createAgent, createApp, createBotServer, createFaultProxy, createFront, createImpostor, createNode, freePort, makeCerts, removeScratch, scratch, sleep, STATS_TOKEN } from "./harness.mjs";
 import { SCENARIOS } from "./scenarios.mjs";
-import { createRelayClient, newLinkKeys, openResult, vpsTokenOf } from "../../../electron/vps-link-protocol.mjs";
+import { randomBytes } from "node:crypto";
+import { createRelayClient, newLinkKeys, openResult, randomB32, sealKeyOf, sha256hex, vpsTokenOf, x25519Pair } from "../../../electron/vps-link-protocol.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name) => args.includes(name);
@@ -47,7 +48,11 @@ async function bringUp() {
    * far away, so it lives there while the app knows only the node it linked through
    */
   async function linkServer({ name = "server", placeOn = null } = {}) {
-    const agent = createAgent({ home: join(dir, `${name}-home`), serverPort: bot.port, ca: certs.ca, log, env: { DUSK_CHAOS_PORTS: ids.map((id) => `${pub[id]}:${agentNet[id].port}`).join(",") } });
+    const phone = option("--client") === "phone";
+    const rtc = option("--direct") === "rtc";
+    const agent = createAgent({ home: join(dir, `${name}-home`), serverPort: bot.port, ca: certs.ca, log, env: { DUSK_CHAOS_PORTS: ids.map((id) => `${pub[id]}:${agentNet[id].port}`).join(","), ...(phone ? { DUSK_LINK_PHONES: "on" } : {}),
+      // --direct rtc: the agent answers webrtc offers with the node-datachannel this checkout has
+      ...(rtc ? { DUSK_LINK_DIRECT: "on", DUSK_LINK_NDC_DIR: fileURLToPath(new URL("../../..", import.meta.url)), DUSK_LINK_RTC_FETCH: "off", DUSK_LINK_WSS_PORT: String(await freePort()) } : {}) } });
     const relay = createRelayClient({ base });
     const keys = newLinkKeys();
     const made = await relay.create({ verifier: keys.verifier, appPub: keys.pub });
@@ -62,9 +67,22 @@ async function bringUp() {
       for (const id of ids) await agentNet[id].set("pass");
     }
     process.env.DUSK_CHAOS_PORTS = ids.map((id) => `${pub[id]}:${appNet[id].port}`).join(",");
-    const app = createApp({ link, ca: certs.ca, log });
+    let app;
+    if (phone) {
+      // --client phone: the phone app's transport on a device channel the stand-in server hands the agent
+      const pair = x25519Pair(), cid = randomB32(10), token = randomBytes(32).toString("base64url");
+      bot.setPhone({ id: cid, verifier: sha256hex(token), kind: "device", pub: pair.pub });
+      for (let i = 0; i < 200 && !bot.agentPub(); i += 1) await sleep(100);
+      if (!bot.agentPub()) throw new Error("the agent never asked the server for phone channels");
+      await sleep(1500);
+      app = createApp({ link: { base, id: cid, token, key: sealKeyOf(pair.priv, pair.pub, bot.agentPub(), cid).toString("base64url") }, ca: certs.ca, log, runner: "phone-runner.mjs" });
+    } else {
+      if (rtc) process.env.DUSK_CHAOS_DIRECT = "rtc";
+      app = createApp({ link, ca: certs.ca, log });
+    }
     await app.start();
     delete process.env.DUSK_CHAOS_PORTS;
+    delete process.env.DUSK_CHAOS_DIRECT;
     return { agent, app, link };
   }
   const { agent, app, link } = await linkServer({ placeOn: option("--home") });
@@ -269,6 +287,12 @@ async function main() {
   }
   if (first === null) throw new Error(`the link never worked:\n${world.agent.lines.slice(-20).join("\n")}\n${world.app.lines.slice(-20).join("\n")}`);
   say(`linked (${world.link.id}), home ${await world.homeOf()}`);
+  if (option("--direct") === "rtc") {
+    for (let i = 0; i < 40 && !(await world.app.node()).via; i += 1) await sleep(500);
+    const via = (await world.app.node()).via;
+    say(`direct path: ${via ?? "not up"}`);
+    if (via !== "rtc" && via !== "ssh") throw new Error(`the webrtc direct path did not come up:\n${world.app.lines.slice(-15).join("\n")}\n${world.agent.lines.slice(-15).join("\n")}`);
+  }
   const rows = [];
   for (const scenario of chosen) {
     await world.reset();
