@@ -737,7 +737,7 @@ describe("the Computer tab", () => {
     expect(rendered.html).toContain(">Scout&#x27;s screen<");
     expect(rendered.html, "no server name under the screen").not.toContain("Studio VPS");
     expect(rendered.html).toContain(">Move to dusk cloud<");
-    expect(rendered.html).toContain(">Let us run Scout<");
+    expect(rendered.html).toContain(">Keep Scout working<");
     expect(rendered.html, "a server is always on: no sleep pitch").not.toMatch(/never sleeps|asleep or off/);
     for (const gone of ['data-panel-card="runs-on"', 'data-panel-select="place"', 'data-panel-advanced="computer"', 'data-panel-action="move-home"', 'data-panel-action="move-vps"']) {
       expect(rendered.html, gone).not.toContain(gone);

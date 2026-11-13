@@ -8266,7 +8266,7 @@
   "runsOn.cta.body": "On dusk cloud, {name} keeps replying even when this {device} is asleep or off.",
   "runsOn.cta.titleThere": "{name} is on dusk cloud",
   "runsOn.cta.bodyThere": "It keeps working while this {device} sleeps.",
-  "runsOn.ctaDesktop.title": "Let us run {name}",
+  "runsOn.ctaDesktop.title": "Keep {name} working",
   "runsOn.ctaDesktop.body": "On dusk cloud there's no server to look after. We handle updates and backups.",
   "runsOn.ctaDesktop.titleThere": "{name} is on cloud desktop",
   "runsOn.ctaDesktop.bodyThere": "Open it to see its screen.",
