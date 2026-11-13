@@ -127,7 +127,7 @@ describe("SecretRequestCard ask card", () => {
   it("says the bot's purpose quietly and the privacy promise once, beside the lock", () => {
     const html = view({ target: "customSecret", label: "instagram.com", delivery: "login", reason: "To post your photo.", description: "To post your photo.", helpUrl: "" });
     expect(html).toMatch(/line-clamp-2 text-\[13px\][^"]*text-ink-tertiary">To post your photo\./);
-    expect(html.match(/never sees it/g)).toHaveLength(1);
+    expect(html.match(/never shown to your bot/g)).toHaveLength(1);
     expect(html).toContain("Private. Filled in for you, never shown to your bot.");
   });
 
