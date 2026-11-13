@@ -1,5 +1,5 @@
 import type { NewBotDefaults } from "../../shared/new-bot-defaults";
-import { api, type Action, type Bot, type ModelSelection } from "@/state/store";
+import { api, type Action, type Bot } from "@/state/store";
 import { teamChats } from "@/state/team-chats";
 import { currentTeamPeople, departmentOwner, type TeamPeople } from "@/state/team-people";
 import { openBot } from "@/state/thread-navigation";
@@ -9,8 +9,9 @@ import { isBotLimitRefusal } from "./bot-limit";
 import { createConfiguredBot } from "./create-configured-bot";
 import { t } from "./i18n";
 import { botCreated } from "./product-events";
+import { readBotDefaults, type BotDefaultsAnswer } from "./bot-defaults-prefetch";
 
-export interface BotDefaultsAnswer { defaults: NewBotDefaults; modelSelection: ModelSelection; suggestedName: string }
+export type { BotDefaultsAnswer } from "./bot-defaults-prefetch";
 
 /** The saved New bot defaults, with the workspace's default AI when they name none; `named` also gives the bot a name. */
 export function startingTemplate(answer: BotDefaultsAnswer, named: boolean): NewBotDefaults {
@@ -36,10 +37,17 @@ export function reportsToFor(chosen: string | null, section: string | undefined,
   return departmentOwner(department, team)?.email ?? team.me?.email ?? null;
 }
 
-/** A bot just made joins the sidebar and, unless the caller keeps its own place, its chat opens: on a team's Cloud the
- * creator's own conversation, never the main chat every member reads. */
+/** The bot says hello in its own voice as its chat opens; the server skips it once anyone has spoken there, and a bot
+ * with no AI to answer simply stays quiet. */
+export function greetNewBot(bot: Pick<Bot, "id">, request: typeof api = api): void {
+  void request(`/api/bots/${bot.id}/intro`, { method: "POST" }).catch(() => {});
+}
+
+/** A bot just made joins the sidebar and, unless the caller keeps its own place, its chat opens (and the bot greets the
+ * person there): on a team's Cloud the creator's own conversation, never the main chat every member reads. */
 export function announceNewBot(dispatch: (action: Action) => void, bot: Bot, warnings: readonly string[],
-  { preserveSelection = false, source, role }: { preserveSelection?: boolean; source: BotSource; role?: string }) {
+  { preserveSelection = false, source, role, request = api }: { preserveSelection?: boolean; source: BotSource; role?: string; request?: typeof api }) {
+  if (!preserveSelection) greetNewBot(bot, request);
   botCreated(source, role);
   dispatch({ type: "botAdded", bot, preserveSelection });
   if (!preserveSelection && teamChats()) openBot(dispatch, bot);
@@ -56,7 +64,7 @@ async function createNewBot(section: string | undefined, bots: readonly Bot[], t
     const { bot } = await request<{ bot: Bot }>("/api/bots", { method: "POST", body: JSON.stringify({ greeting: false, ...(section === undefined ? {} : { section }), ...named }) });
     return { bot, warnings: [] as string[], startsOnAsk: false };
   }
-  const template = startingTemplate(await request<BotDefaultsAnswer>("/api/bot-defaults"), true);
+  const template = startingTemplate(await readBotDefaults(request), true);
   // A name the person typed is theirs as typed; only the suggested one steps aside for a bot that has it.
   if (look) Object.assign(template.profile, look);
   else template.profile.name = freeName(template.profile.name!, bots);
@@ -86,7 +94,7 @@ export async function makeNewBot(action: Extract<Action, { type: "newBot" }>, bo
     else dispatch({ type: "error", message });
     return;
   }
-  announceNewBot(dispatch, made.bot, made.warnings, { preserveSelection: action.preserveSelection, source: "blank" });
+  announceNewBot(dispatch, made.bot, made.warnings, { preserveSelection: action.preserveSelection, source: "blank", request });
   if (made.startsOnAsk) dispatch({ type: "notice", notice: { kind: "note", botName: null, text: t("newBot.startsOnAsk", { name: made.bot.name }) } });
   action.onCreated?.(made.bot);
 }

@@ -1024,8 +1024,9 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   }, [bot.busy, bot.id, bot.threadId, bot.turnStartedAt]);
   const presenceSeed = `${bot.id}:${bot.threadId ?? ""}:${busySince ?? ""}`;
   // grok's line comes 0.55 to 1.2 s after a send, wordless; a bubble waiting on its typing beat brings it at once
-  // a turn whose start this client does not know (a chat opened mid-turn from an older server) shows its line at once
-  const mountDue = useReached(!bot.busy ? null : bot.turnStartedAt ? bot.turnStartedAt + lifeDraw(presenceSeed, "mount", STATUS_MOUNT_MS) : 0);
+  // a turn whose start this client does not know (a chat opened mid-turn from an older server) shows its line at once,
+  // and so does a new bot's hello in a chat with nothing in it yet: there is no send for the wait to follow
+  const mountDue = useReached(!bot.busy ? null : bot.turnStartedAt && messages.length > 0 ? bot.turnStartedAt + lifeDraw(presenceSeed, "mount", STATUS_MOUNT_MS) : 0);
   const presenceVisible = hold.typing ? !hold.leaving : (waiting && mountDue) || teammatesWorking;
   // the bubble the line hangs under keeps its pinched corner until the line has finished leaving, as grok's does
   const presenceShown = useLingering(presenceVisible, 140);

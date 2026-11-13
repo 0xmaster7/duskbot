@@ -66,10 +66,10 @@ describe("new bot", () => {
     expect(calls).toEqual([]);
   });
 
-  it("makes a bot at once from the New bot defaults and opens its chat", async () => {
+  it("makes a bot at once from the New bot defaults, opens its chat and has it greet the person", async () => {
     const { calls, request, created } = server();
     const sent = await newBot(request);
-    expect(calls.map((call) => `${call.method} ${call.path}`)).toEqual(["GET /api/bot-defaults", "POST /api/bots", "PATCH /api/bots/created"]);
+    expect(calls.map((call) => `${call.method} ${call.path}`)).toEqual(["GET /api/bot-defaults", "POST /api/bots", "PATCH /api/bots/created", "POST /api/bots/created/intro"]);
     expect(created()).toMatchObject({ name: "Pixel", modelSelection: { instanceId: "claude", model: "sonnet" }, requireAvailableModel: true, useDefaults: false });
     expect(created()).not.toHaveProperty("reportsTo");
     expect(sent).toEqual([{ type: "botAdded", bot: expect.objectContaining({ id: "created", name: "Pixel" }), preserveSelection: false }]);
@@ -109,9 +109,12 @@ describe("new bot", () => {
   it("keeps a department dialog where it is", async () => {
     setTeamChats({ teamId: "acme", member: true, opened: [] });
     const onCreated = vi.fn();
-    const sent = await newBot(server().request, { section: "Sales", preserveSelection: true, onCreated });
+    const kept = server();
+    const sent = await newBot(kept.request, { section: "Sales", preserveSelection: true, onCreated });
     expect(sent).toEqual([expect.objectContaining({ type: "botAdded", preserveSelection: true })]);
     expect(fixture.openBot).not.toHaveBeenCalled();
+    // nobody is looking at its chat, so it does not say hello into it
+    expect(kept.calls.some((call) => call.path.endsWith("/intro"))).toBe(false);
     expect(onCreated).toHaveBeenCalledWith(expect.objectContaining({ id: "created" }));
   });
 
@@ -138,7 +141,8 @@ describe("new bot", () => {
     vi.stubGlobal("window", { duskDesktop: { remoteClient: { active: true } } });
     const { calls, request } = server();
     const sent = await newBot(request, { section: "Sales" });
-    expect(calls).toEqual([{ method: "POST", path: "/api/bots", body: { greeting: false, section: "Sales" } }]);
+    expect(calls).toEqual([{ method: "POST", path: "/api/bots", body: { greeting: false, section: "Sales" } },
+      { method: "POST", path: "/api/bots/created/intro", body: {} }]);
     expect(sent.map((action) => action.type)).toEqual(["botAdded"]);
   });
 
@@ -146,6 +150,7 @@ describe("new bot", () => {
     vi.stubGlobal("window", { duskDesktop: { remoteClient: { active: true } } });
     const { calls, request } = server();
     await newBot(request, { look: { name: "Ada", color: "blue", mascotBody: "puff" } });
-    expect(calls).toEqual([{ method: "POST", path: "/api/bots", body: { greeting: false, name: "Ada", settings: { color: "blue", mascotBody: "puff" } } }]);
+    expect(calls).toEqual([{ method: "POST", path: "/api/bots", body: { greeting: false, name: "Ada", settings: { color: "blue", mascotBody: "puff" } } },
+      { method: "POST", path: "/api/bots/created/intro", body: {} }]);
   });
 });

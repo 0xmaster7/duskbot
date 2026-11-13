@@ -829,6 +829,15 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
   }, [remoteClient]);
 
   useEffect(() => (remoteClient ? undefined : onOpenTemplates(() => setTeamLibraryOpen(true))), [remoteClient]);
+  // Templates is fetched ahead, once launch is over (or at once when the menu that offers it opens), so its first open
+  // draws in one frame instead of after the fetch
+  useEffect(() => {
+    if (remoteClient) return;
+    const fetchTemplates = () => void TeamLibraryPanel.preload().catch(() => {});
+    if (plusOpen) return fetchTemplates();
+    const timer = setTimeout(fetchTemplates, 4_000);
+    return () => clearTimeout(timer);
+  }, [plusOpen, remoteClient]);
 
   useEffect(() => {
     if (!teamFeedback) return;

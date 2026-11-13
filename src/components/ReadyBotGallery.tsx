@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Loader2 } from "../icons";
 import { stoppedAtBotLimit } from "@/lib/bot-limit";
 import { BotCreationDraft } from "@/lib/bot-creation-draft";
 import { createConfiguredBot } from "@/lib/create-configured-bot";
-import { announceNewBot, reportsToFor, startingTemplate, type BotDefaultsAnswer } from "@/lib/new-bot";
+import { announceNewBot, reportsToFor, startingTemplate } from "@/lib/new-bot";
+import { prefetchBotDefaults, readBotDefaults } from "@/lib/bot-defaults-prefetch";
 import { useTeamPeople } from "@/state/team-people";
 import { MausAvatar } from "./Avatar";
 import { LocalComputerAutoWarning } from "./LocalComputerAutoWarning";
@@ -11,7 +12,7 @@ import { READY_BOT_CATEGORIES, READY_BOTS, matchesReadyBot, readyBot, readyBotTe
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
-import { api, useStore, type Bot } from "@/state/store";
+import { useStore, type Bot } from "@/state/store";
 
 const CATEGORY_KEYS: Record<ReadyBotCategory, LocaleKey> = {
   everyday: "readyBots.category.everyday", work: "readyBots.category.work", writing: "readyBots.category.writing",
@@ -29,6 +30,7 @@ export function ReadyBotGallery({ search, onDialog, onAdded }: {
   const [confirming, setConfirming] = useState<string | null>(null);
   const [making, setMaking] = useState<string | null>(null);
   const team = useTeamPeople();
+  useEffect(() => { if (!window.duskDesktop?.remoteClient?.active) prefetchBotDefaults(); }, []);
   const ask = (id: string | null) => { setConfirming(id); onDialog(id !== null); };
   // one click makes the bot, as Grok's create does; it is tuned afterwards in its settings
   const add = async (id: string, allowLocalAuto = false) => {
@@ -40,7 +42,7 @@ export function ReadyBotGallery({ search, onDialog, onAdded }: {
     dispatch({ type: "botCreationPending", on: true });
     let draft: BotCreationDraft | undefined;
     try {
-      const defaults = startingTemplate(await api<BotDefaultsAnswer>("/api/bot-defaults"), true);
+      const defaults = startingTemplate(await readBotDefaults(), true);
       draft = new BotCreationDraft(readyBotTemplate(defaults, ready), () => {});
       draft.role = ready.id;
       // auto approvals on this computer need an explicit yes

@@ -55,6 +55,10 @@ interface DirectoryCandidate {
 
 const DIRECTORY_COLORS = ["cyan", "red", "purple", "green", "orange"] as const;
 
+// the last catalog read, so a second open draws the list at once and only refreshes it quietly
+let shownCatalog: TeamCatalog | null = null;
+const LEAVE_MS = 120;
+
 async function openExternal(url: string): Promise<void> {
   if (window.duskDesktop?.openExternal) {
     await window.duskDesktop.openExternal(url);
@@ -87,8 +91,8 @@ export function TeamLibraryPanel({
   const dialogRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<TeamTab>("explore");
-  const [catalog, setCatalog] = useState<TeamCatalog | null>(null);
-  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalog, setCatalog] = useState<TeamCatalog | null>(shownCatalog);
+  const [catalogLoading, setCatalogLoading] = useState(shownCatalog === null);
   const [catalogError, setCatalogError] = useState("");
   const [busySlug, setBusySlug] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingTeamImport | null>(null);
@@ -115,6 +119,17 @@ export function TeamLibraryPanel({
   const [orgError, setOrgError] = useState("");
   const [pendingOrg, setPendingOrg] = useState<OrgLibraryPackage | null>(null);
   const tabChosen = useRef(false);
+  const [leaving, setLeaving] = useState(false);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  // a close the person asks for fades out first; adding a bot closes at once, as its chat opens behind
+  const leaveTimer = useRef<number | null>(null);
+  const leave = useCallback(() => {
+    if (leaveTimer.current !== null) return;
+    setLeaving(true);
+    leaveTimer.current = window.setTimeout(() => closeRef.current(), LEAVE_MS);
+  }, []);
+  useEffect(() => () => { if (leaveTimer.current !== null) window.clearTimeout(leaveTimer.current); }, []);
   // Monotonic scout token: a late response from an older scout must never overwrite a newer one's state.
   const scoutRequest = useRef(0);
 
@@ -123,13 +138,15 @@ export function TeamLibraryPanel({
   const importedNames = pending?.members.map((member) => takeImportName(member.name, takenNames)) ?? [];
 
   const loadCatalog = useCallback(async () => {
-    setCatalogLoading(true);
+    const quiet = shownCatalog !== null;
+    if (!quiet) setCatalogLoading(true);
     setCatalogError("");
     try {
       // SAFETY: this endpoint is owned by the app and returns TeamCatalog.
-      setCatalog((await api("/api/team-library/catalog")) as TeamCatalog);
+      shownCatalog = (await api("/api/team-library/catalog")) as TeamCatalog;
+      setCatalog(shownCatalog);
     } catch (cause) {
-      setCatalogError(cause instanceof Error ? cause.message : String(cause));
+      if (!quiet) setCatalogError(cause instanceof Error ? cause.message : String(cause));
     } finally {
       setCatalogLoading(false);
     }
@@ -168,7 +185,7 @@ export function TeamLibraryPanel({
         if (pending) {
           setPending(null);
           setPendingOrg(null);
-        } else onClose();
+        } else leave();
         return;
       }
       if (event.key !== "Tab") return;
@@ -191,7 +208,7 @@ export function TeamLibraryPanel({
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [importing, onClose, pending, nestedDialog]);
+  }, [importing, leave, pending, nestedDialog]);
 
   const previewManifest = (preview: PendingTeamImport, nextSource: ImportSource) => {
     setPending(preview);
@@ -425,8 +442,9 @@ export function TeamLibraryPanel({
   return createPortal(
     // Dim only: a full-window backdrop blur is redrawn every frame without a GPU and keeps the page laggy while it is open.
     <div
-      className="ui-dialog-scrim fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-      onMouseDown={(event) => event.target === event.currentTarget && !importing && onClose()}
+      className="ui-dialog-scrim templates-scrim fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+      data-leaving={leaving ? "" : undefined}
+      onMouseDown={(event) => event.target === event.currentTarget && !importing && leave()}
     >
       <div
         ref={dialogRef}
@@ -434,7 +452,7 @@ export function TeamLibraryPanel({
         aria-modal="true"
         aria-labelledby="team-library-title"
         tabIndex={-1}
-        className="flex h-[min(780px,calc(100dvh-2rem))] w-full max-w-[1040px] flex-col overflow-hidden rounded-[14px] border border-transparent bg-menu outline-none"
+        className="templates-sheet flex h-[min(780px,calc(100dvh-2rem))] w-full max-w-[1040px] flex-col overflow-hidden rounded-[14px] border border-transparent bg-menu outline-none"
       >
         <header className="flex items-start justify-between gap-4 px-6 pb-3 pt-6 sm:px-8 sm:pt-7">
           <div className="min-w-0">
@@ -482,7 +500,7 @@ export function TeamLibraryPanel({
               </button>
             )}
             <button
-              onClick={onClose}
+              onClick={leave}
               disabled={importing}
               className="rounded-lg p-2 text-ink-secondary hover:bg-raised hover:text-ink disabled:opacity-50"
               aria-label={t("templates.close")}
@@ -637,7 +655,7 @@ export function TeamLibraryPanel({
                     {search ? t("templates.searchResults") : t("templates.communityTemplates")}
                   </div>
                   {catalogLoading && (
-                    <div className="flex items-center justify-center gap-2 py-24 text-[13px] text-ink-secondary">
+                    <div className="templates-wait flex items-center justify-center gap-2 py-24 text-[13px] text-ink-secondary">
                       <Loader2 size={16} className="animate-spin" /> {t("templates.loading")}
                     </div>
                   )}
@@ -648,7 +666,7 @@ export function TeamLibraryPanel({
                     </div>
                   )}
                   {!catalogLoading && catalog && (
-                    <div className="grid grid-cols-1 gap-x-10 md:grid-cols-2">
+                    <div className="templates-fade grid grid-cols-1 gap-x-10 md:grid-cols-2">
                       {visibleTeams.map((entry, index) => {
                         const copy = catalogCopy(entry);
                         return (

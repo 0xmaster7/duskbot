@@ -31,6 +31,8 @@ import { cancelSteeredMessage, holdSteeredQueue, queuedSteeredMessage, restoreHe
 import type { BotRecord, GroupRecord, Message, Store } from "../store.ts";
 import { extractSteerImages } from "../turn-images.ts";
 import { followupFacts, helperFollowup, helperFollowupBody, mayFollowUp } from "../helper-followup.ts";
+import { introAllowed, introPrompt } from "../bot-intro.ts";
+import { conversationLanguage } from "../server-lines.ts";
 import type { UsageTrigger } from "../usage-ledger.ts";
 import { noteTypedSend } from "../typed-sends.ts";
 import { parseMentionPicks } from "../../shared/room-mentions.ts";
@@ -447,6 +449,19 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
       if ("existing" in next) return json(res, 200, { message: next.existing });
       if ("skip" in next) return json(res, 200, { skipped: true });
       return json(res, 201, { message: store.appendMessage(threadId, next.append) });
+    }
+    // a bot just made greets the person in its own voice; its chat holds nothing yet, or this is a no-op
+    m = path.match(/^\/api\/bots\/([\w-]+)\/intro$/);
+    if (m && method === "POST") {
+      const bot = store.bot(m[1]!);
+      if (!bot || bot.hidden) return json(res, 404, { error: "no such bot" });
+      const notYours = cloudThreadRefusal(auth, bot.threadId);
+      if (notYours) return json(res, 403, { error: notYours });
+      if (!introAllowed(store.messagesFor(bot.threadId)) || threadBusy(bot.id, bot.threadId)) return json(res, 200, { skipped: true });
+      await startTurn(bot.id, introPrompt(conversationLanguage(bot.threadId)), {
+        threadId: bot.threadId, cardContinuation: true, trigger: usageTriggerFor(auth),
+      });
+      return json(res, 202, { ok: true, threadId: bot.threadId });
     }
     m = path.match(/^\/api\/bots\/([\w-]+)\/compact$/);
     if (m && method === "POST") {

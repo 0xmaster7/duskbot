@@ -88,6 +88,20 @@
   animation: none;
 }
 
+/* Templates opens as Settings moves: the scrim fades in quickly while the sheet settles from a 6px rise on the app's out
+   curve in 240ms; the list it fetches fades in, and a wait that ends fast never shows its spinner. Reduced motion keeps
+   the fades and drops the travel. */
+@keyframes templates-sheet-in { from { opacity: 0; transform: translate3d(0, 6px, 0) scale(0.985); } }
+.ui-dialog-scrim.templates-scrim { animation: overlay-fade-in 160ms var(--ease-out-bencho); }
+.templates-sheet { animation: templates-sheet-in 240ms var(--ease-out-bencho); }
+.templates-fade { animation: overlay-fade-in 160ms var(--ease-out-bencho); }
+.templates-wait { animation: overlay-fade-in 160ms var(--ease-out-bencho) 200ms backwards; }
+.ui-dialog-scrim.templates-scrim[data-leaving] { pointer-events: none; animation: overlay-fade-out 120ms var(--ease-out-bencho) forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .templates-sheet { animation: overlay-fade-in 160ms ease-out; }
+}
+:root[data-reduced-motion="true"] .templates-sheet { animation: overlay-fade-in 160ms ease-out; }
+
 /* A dialog, as Grok's kit dialog: the elevated tone on a 1px ink/12 edge at 14px corners, no lift over the scrim. */
 .ui-dialog {
   border: 1px solid transparent;

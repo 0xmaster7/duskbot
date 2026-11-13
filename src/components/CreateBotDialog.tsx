@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type FocusEvent as ReactFocusEvent,
 import { DUSK_BODY_IDS, type DuskBodyId } from "../../shared/body-migration";
 import { MAUS_COLOR_LABEL, PICKER_COLORS, colorSwatch, rowsOfFive, type MausColor } from "@/lib/mascot";
 import { useStore } from "@/state/store";
+import { prefetchBotDefaults } from "@/lib/bot-defaults-prefetch";
 import { stoppedAtBotLimit } from "@/lib/bot-limit";
 import { CREATE_BOT_EVENT, openCreateBot, takeCreateBotSection } from "@/lib/create-bot-request";
 import { openNewGroup } from "@/lib/new-group-request";
@@ -54,6 +55,8 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const started = useRef(false);
+  // the defaults the bot is made from are read while the name is typed, so Create goes straight to making it
+  useEffect(() => { if (!window.duskDesktop?.remoteClient?.active) prefetchBotDefaults(); }, []);
   const canCreate = name.trim().length > 0 && !pending && !creating;
   useEffect(() => {
     if (pending) started.current = true;
