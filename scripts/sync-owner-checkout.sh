@@ -41,7 +41,8 @@ fi
 if [ "$behind" -gt 0 ]; then
   changed=$(git -C "$OWNER" diff --name-only "$head" "$target")
   dirty=$(git -C "$OWNER" status --porcelain --untracked-files=all | sed -E 's/^...//; s/.* -> //')
-  clash=$(printf '%s\n' "$dirty" | grep -Fxf - <(printf '%s\n' "$changed") 2>/dev/null || true)
+  printf '%s\n' "$changed" > "$HOME_DIR/changed.txt"
+  clash=$(printf '%s\n' "$dirty" | grep -Fx -f "$HOME_DIR/changed.txt" || true)
   [ -z "$clash" ] || stop "local changes in files the update touches; nothing changed:
 $clash"
 fi
