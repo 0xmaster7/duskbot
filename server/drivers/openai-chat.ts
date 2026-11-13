@@ -31,6 +31,7 @@ import { refusesRequestSize, RequestTooLargeError, sizeChange, smallerResend } f
 import { requestTooLargeMessage } from "../../shared/request-too-large.ts";
 import { toolSchemaProfileFor } from "../tool-schema-profile.ts";
 import { classifyContinuable, writeTurnHandoff } from "../turn-continuation.ts";
+import { repairToolArguments } from "../tool-argument-repair.ts";
 import { KEY_REJECTED_REASON, keyRejected, noteKeyAccepted, noteKeyRejected, rejectsKey } from "../key-rejections.ts";
 import type { Agent } from "undici";
 
@@ -795,6 +796,7 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
               let args: unknown;
               try { args = JSON.parse(call.function.arguments); }
               catch { throw new ChatProtocolError("tool arguments are not complete JSON"); }
+              if (typeof args === "string") args = repairToolArguments(undefined, args)?.args ?? args;
               if (!object(args)) throw new ChatProtocolError("tool arguments must be a JSON object");
               const inputPreview = preview(args);
               if (call.function.name === ASK_USER_TOOL) {
@@ -823,7 +825,7 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
                 if (refused) { skipRepeatCount = true; throw new Error(refused); }
                 session.validate(call.function.name, args);
                 const shown = session.view(call.function.name, args as Record<string, unknown>); title = shown.title;
-                const shownPreview = shown.input === args ? inputPreview : preview(shown.input);
+                const shownPreview = preview(shown.input);
                 // This runtime has no provider reviewer, so Full access is honoured here.
                 const full = (turn.approvalModeNow?.() ?? turn.approvalMode) === "full";
                 const floored = approval.floored({ full, threadId: turn.threadId, botId: turn.botId, shown, summary: shownPreview });

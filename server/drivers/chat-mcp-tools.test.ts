@@ -1040,6 +1040,27 @@ describe("Chat MCP startup budgets", () => {
 });
 
 describe("Chat MCP schema validation", () => {
+  it("repairs a call that misses only by shape, and runs the repaired arguments", async () => {
+    const f = fixture("", { type: "object", additionalProperties: false, required: ["value", "tags"],
+      properties: { value: { type: "string" }, tags: { type: "array", items: { type: "string" } }, count: { type: "integer" }, mode: { type: "string", enum: ["fast", "full"] } } });
+    const session = await f.mount();
+    const args: Record<string, unknown> = { value: "receipt", tags: '["a","b"]', count: "3", mode: "Full", note: undefined };
+    delete args.note;
+    expect(() => session.validate("audit_write", args)).not.toThrow();
+    expect(args).toEqual({ value: "receipt", tags: ["a", "b"], count: 3, mode: "full" });
+    await session.execute("audit_write", args, f.controller.signal);
+    expect(f.read().calls.at(-1)).toMatchObject({ method: "tools/call", params: { arguments: { value: "receipt", tags: ["a", "b"], count: 3, mode: "full" } } });
+  });
+
+  it("refuses a misfit it cannot repair with what is wrong and what the tool takes", async () => {
+    const f = fixture("", { type: "object", additionalProperties: false, required: ["value"], properties: { value: { type: "string" }, count: { type: "integer" } } });
+    const session = await f.mount();
+    expect(() => session.validate("audit_write", { count: "many" })).toThrow(
+      "Tool arguments do not match the advertised input schema; use its required fields and types. Nothing ran. Wrong: must have required property 'value'. It takes { value: string, count?: integer } (? = optional). Fix the arguments and call it again.",
+    );
+    expect(f.read().calls.some((call) => call.method === "tools/call")).toBe(false);
+  });
+
   it("retains native unsigned/composition constraints while exposing an object schema", async () => {
     const f = fixture("", { type: "object", properties: { value: { type: "integer", format: "uint32" } },
       anyOf: [{ required: ["value"] }], additionalProperties: false });

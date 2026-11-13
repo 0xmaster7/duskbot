@@ -18,6 +18,7 @@ import { AppObserver, modelVisible, withUiExtension } from "../mcp-app-observer.
 import { appMountFor, mcpStdioServer } from "../mcp-gate-config.ts";
 import { REMOTE_MCP_STARTUP_MS, remoteMcpSpec } from "../mcp-http.ts";
 import { compileServerToolSchema, schemaProblems } from "../mcp-schema-validator.ts";
+import { argumentOutline, repairToolArguments } from "../tool-argument-repair.ts";
 import { fitToolList } from "../mcp-tool-schema.ts";
 import { listsComputerTool } from "../computer-tool-list.ts";
 import { capToolList, shareToolBudget, toolLimitFromEnv } from "../tool-count-limit.ts";
@@ -454,6 +455,21 @@ const parallelRead = (origin: ToolOrigin, tool: Record<string, unknown>): boolea
   && tool.annotations.readOnlyHint === true && tool.annotations.destructiveHint !== true;
 const ARGUMENTS_MISFIT = "Tool arguments do not match the advertised input schema; use its required fields and types";
 
+/** Holds `args` to the tool's schema. A call that misses only by a meaning-keeping shape is repaired in place and runs;
+ * any other misfit is refused with what is wrong and what the tool takes. */
+function fitArguments(schema: ValidateFunction, args: Record<string, unknown>): void {
+  if (schema(args)) return;
+  const problems = schemaProblems(schema.errors, 4);
+  const repaired = repairToolArguments(schema.schema, args);
+  if (repaired?.repairs.length && schema(repaired.args)) {
+    for (const key of Object.keys(args)) delete args[key];
+    Object.assign(args, repaired.args);
+    return;
+  }
+  const outline = argumentOutline(schema.schema);
+  throw new Error(`${ARGUMENTS_MISFIT}. Nothing ran. ${problems.length ? `Wrong: ${problems.join("; ")}. ` : ""}${outline ? `${outline} ` : ""}Fix the arguments and call it again.`);
+}
+
 function checkedTools(tools: readonly unknown[]): CheckedTool[] {
   const names = new Set<string>();
   return tools.map((tool) => {
@@ -691,7 +707,8 @@ export async function mountChatTools(integrations: SendTurnInput["integrations"]
     if (!tool) throw new Error("The requested tool was not advertised for this turn");
     if (selectionExcludes(tool, args)) throw new Error("Tool selection excludes this tool");
     omitBlankDefaults(tool.builtInBrowser, tool.name, args);
-    if (!object(args) || (!(tool.searched && isDirectoryTool(tool.name)) && !tool.schema(args))) throw new Error(ARGUMENTS_MISFIT);
+    if (!object(args)) throw new Error(ARGUMENTS_MISFIT);
+    if (!(tool.searched && isDirectoryTool(tool.name))) fitArguments(tool.schema, args);
   };
   const viewOf = (tool: RegisteredTool, args: Record<string, unknown>, title: string): ChatToolCallView => {
     const runs = target(tool, args);
