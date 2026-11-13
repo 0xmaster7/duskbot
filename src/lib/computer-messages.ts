@@ -22,8 +22,16 @@ export function localizeComputerProblem(problem: string | null | undefined): str
   const key = exact[problem];
   if (key) return t(key);
   const desktopFailure = /^The Local VM desktop failed to start: (.+)$/.exec(problem);
-  if (desktopFailure) return t("computer.problem.desktopFailed", { detail: desktopFailure[1]! });
-  return problem;
+  if (desktopFailure) return looksRaw(desktopFailure[1]!) ? t("computer.err.screenUnavailable") : t("computer.problem.desktopFailed", { detail: desktopFailure[1]! });
+  return looksRaw(problem) ? t("computer.err.screenUnavailable") : problem;
+}
+
+// a tool's own output (docker, a build, a registry, a log tail) never reaches the panel: the computer stays usable, and
+// the full text is in the server log
+const RAW_OUTPUT = /[\r\n]|error response from daemon|failed to solve|\bERROR:|manifest unknown|access to the resource is denied|sha256:|ghcr\.io|docker\.io|moby\/|buildkit|buildx|\bexit (?:status|code)\b|unexpected docker|stderr|traceback|\b(?:ECONN[A-Z]+|ENOENT|EACCES|EPIPE|ETIMEDOUT)\b|(?:^|\s)\/(?:usr|var|run|tmp|home|etc|opt)\//i;
+
+export function looksRaw(text: string): boolean {
+  return text.length > 280 || RAW_OUTPUT.test(text);
 }
 
 /** A Computer panel error worded by locale key, so it is translated when shown rather than when thrown. */

@@ -293,7 +293,7 @@ our_networks() {
 our_images() {
   { for _l in com.openmausbot.bot-desktop com.openmausbot.cua-base com.openmausbot.image-layer; do docker images -q --no-trunc --filter "label=$_l"; done
     docker images --no-trunc --format '{{.Repository}} {{.ID}}' |
-      awk '$1 ~ /^(ghcr\.io\/sidddevz\/omb-bot-desktop|omb-bot-desktop|(docker\.io\/)?trycua\/xfce-cua)$/ { print $2 }'
+      awk '$1 ~ /^(ghcr\.io\/duskbotai\/bot-desktop|ghcr\.io\/sidddevz\/omb-bot-desktop|omb-bot-desktop|(docker\.io\/)?trycua\/xfce-cua)$/ { print $2 }'
     _img=$(state_get desktop-image)
     [ -n "$_img" ] && docker image inspect -f '{{.Id}}' "$_img"
   } 2>/dev/null | sort -u

@@ -4,8 +4,9 @@ The bot's own computer: a small dark Linux desktop in a hardened container, one 
 locally in Docker). Bots drive it through Cua Driver exactly as they drive the Cua XFCE image (screenshots, clicks,
 typing, AT-SPI, Chromium over CDP); people see it through noVNC when they take control.
 
-Image: `ghcr.io/sidddevz/omb-bot-desktop:v5` (`BOT_DESKTOP_IMAGE` in `shared/bot-desktop.ts`). linux/arm64 and
-linux/amd64.
+Image: `ghcr.io/duskbotai/bot-desktop:v5` (`BOT_DESKTOP_IMAGE` in `shared/bot-desktop.ts`). linux/arm64 and
+linux/amd64, published from main by `.github/workflows/bot-desktop-image.yml` and pulled anonymously, so the package is
+public. Versions up to 5 were tagged `ghcr.io/sidddevz/omb-bot-desktop`; desktops made from those keep running.
 
 ## What is inside
 
@@ -68,11 +69,12 @@ makes `sudo` inert. Read-only root filesystem; same network rules plus the host'
 The placeholders below use `electron/legacy-names.mjs`: `<name>` uses `DOCKER_NAMES.vpsPrefix`,
 `<desktop-network>` is `DOCKER_NAMES.desktopNetwork`, and each `<...-label>` is `DOCKER_NAMES.label("...")`.
 
-1. `docker pull ghcr.io/sidddevz/omb-bot-desktop:v5` unless present. If the pull fails (not published, private
+1. `docker pull ghcr.io/duskbotai/bot-desktop:v5` unless present. If the pull fails (not published, private
    package, registry down) it builds the image on the docker host from this folder as shipped with the server
    (`deploy/bot-desktop/` beside `dist-server/`, or `DUSK_BOT_DESKTOP_KIT`), only when its Dockerfile's
    `ARG BOT_DESKTOP_VERSION` equals `BOT_DESKTOP_VERSION`; the turn's chat says the build is running. When neither
-   works, provisioning refuses with the reason and creates nothing; it never falls back to the Cua XFCE desktop.
+   works (or the server reaches docker through the docker gate, which forwards no build), provisioning refuses with a
+   short try-again message (docker's own output goes to the server log) and creates nothing; it never falls back to the Cua XFCE desktop.
    `DUSK_VPS_DESKTOP=cua` forces Cua.
 2. `docker network create --driver bridge --opt com.docker.network.bridge.enable_icc=false
    --opt com.docker.network.bridge.name=omb-desk0 --label <vps-network-label>=1 <desktop-network>`
@@ -166,19 +168,22 @@ out in this order:
 
 1. Bump `BOT_DESKTOP_VERSION` and `BOT_DESKTOP_IMAGE` in `shared/bot-desktop.ts` and `ARG BOT_DESKTOP_VERSION` in the
    Dockerfile together; the server builds only a kit whose Dockerfile matches.
-2. Optionally publish the image: `deploy/bot-desktop/build.sh --push`, and make the registry package public, since
-   VPSes pull anonymously. Without it every server builds its own copy (Docker with BuildKit, `docker-buildx` on
-   Ubuntu; about 90 s warm, longer on a small VPS).
+2. Merge to main: the "Bot computer image" workflow builds amd64 and arm64 natively and pushes the tag, then checks it
+   can be pulled without signing in. A published tag is never rebuilt, so kit changes need a version bump.
+   `node scripts/check-bot-desktop-published.mjs` says whether it is; `scripts/build-vps-package.mjs` and the release
+   workflow refuse to ship a server that points at an image nobody can pull.
 3. Publish the VPS package to the link service (`apps/link-service/README.md`, "The server build"). It carries this folder
    twice: as the installer's kit and inside the server package.
 4. Update the server on each linked VPS to that package. New bot computers then pull or build the new image on first
    use. To prepare it ahead of time, run `IMAGE=<BOT_DESKTOP_IMAGE> sh deploy/bot-desktop/build.sh` from the
    installed package folder.
-5. Existing desktops of the old version update themselves. The server's background pass (a minute after it starts, then
-   every 15 minutes) replaces each one nothing is using, and a wake replaces it on the spot: the new image is pulled or
-   built first, the old container is stopped and set aside as `<name>-previous`, the new one is created on the same home
-   volume, and the old one is removed once the new one is up. If the new one fails, the old one is put back as it was and
-   the update is tried again later. Saved files and browser sign-ins stay; anything installed outside the home is gone.
+5. Existing desktops of the old version update themselves, and never stop working for it. The server's background pass
+   (a minute after it starts, then every 15 minutes) first gets the new image onto the host (pull, else build) without
+   holding anything, then replaces each desktop nothing is using: the old container is stopped and set aside as
+   `<name>-previous`, the new one is created on the same home volume, and the old one is removed once the new one is
+   up. If the new one fails, the old one is put back as it was and the update is tried again 30 minutes later. A wake
+   never downloads: it swaps in the new version only when its image is already on the host, and otherwise (or when the
+   swap fails) starts the old desktop as it is, on its own image and Cua Driver. Saved files and browser sign-ins stay; anything installed outside the home is gone.
    An older Cua desktop keeps nothing inside it, so a person still updates that one with the update button.
 
 The desktop app talking to a VPS over an SSH alias ships no kit, so it can only pull; when the registry refuses, the

@@ -10,7 +10,8 @@ import { parseArgs } from "node:util";
 
 export const DEFAULT_LISTEN = "/run/duskbot-docker/docker.sock";
 export const DEFAULT_UPSTREAM = "/var/run/docker.sock";
-export const DEFAULT_PULL = ["ghcr.io/sidddevz/omb-bot-desktop", "docker.io/trycua/xfce-cua"];
+// the bot computer image (BOT_DESKTOP_IMAGE in shared/bot-desktop.ts), and where versions up to 5 were tagged
+export const DEFAULT_PULL = ["ghcr.io/duskbotai/bot-desktop", "ghcr.io/sidddevz/omb-bot-desktop", "docker.io/trycua/xfce-cua"];
 
 // docker names from before the rename, kept: the bot computers, volumes and network on a server and the published
 // image carry them (the app's copy is DOCKER_NAMES in electron/legacy-names.mjs; this file stands alone)

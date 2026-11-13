@@ -296,7 +296,7 @@ describe("VPS computer preparation", () => {
     expect(document.querySelector("[data-live-screen]")).toBeNull();
   });
 
-  it("an older computer that updates itself just looks asleep, and its wake says it is updating", async () => {
+  it("an older computer that updates itself just looks asleep, and its wake simply wakes it", async () => {
     fixture.container = "stopped";
     fixture.imageMatches = false;
     fixture.outdated = true;
@@ -311,7 +311,9 @@ describe("VPS computer preparation", () => {
     expect(reports.at(-1)?.detail ?? null).toBeNull();
     flushSync(() => document.querySelector<HTMLButtonElement>("[data-panel-screen] button")!.click());
     await settle();
-    expect(text()).toContain("Updating Scout's computer…");
+    // the wake starts it as it is unless its update is already on the host: never "updating" for a download
+    expect(text()).not.toContain("Updating Scout's computer…");
+    expect(text()).toContain("Scout is waking up");
     // one wake: the server updates it on its home volume, nothing is removed from here
     expect(fixture.posts).toEqual(["/api/bots/scout/computer/provision"]);
     release();

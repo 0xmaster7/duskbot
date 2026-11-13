@@ -5,7 +5,7 @@ const READY_RECHECK_MS = 3_000;
 
 /** False once a status shows something only a person can fix, so waiting longer cannot make it ready. */
 export function readinessCanImprove(status: VpsComputerStatus): boolean {
-  return status.daemonUp && status.image && status.imageMatches && status.managed && status.container === "running" &&
+  return status.daemonUp && ((status.image && status.imageMatches) || status.runsOlderVersion === true) && status.managed && status.container === "running" &&
     status.network === "private" && status.mounts === "none" && status.security === "hardened";
 }
 

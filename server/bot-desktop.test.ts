@@ -15,7 +15,9 @@ import {
   botDesktopNetworkIsPrivate,
   botDesktopRunArgs,
   botDesktopVolume,
+  BOT_DESKTOP_SETUP_LATER,
   containerBotDesktopMode,
+  dockerHostBuilds,
   containerDesktopKind,
   hostBuildTiming,
   hostIsolation,
@@ -213,13 +215,31 @@ describe("bot desktop isolation checks", () => {
 
   it("keeps build.sh's fallback tag and host-fence.sh's bridge in step with the constants", () => {
     const script = readFileSync(new URL("../deploy/bot-desktop/build.sh", import.meta.url), "utf8");
-    expect(script).toContain(`image="\${image:-ghcr.io/sidddevz/omb-bot-desktop:v$version}"`);
+    expect(script).toContain(`image="\${image:-ghcr.io/duskbotai/bot-desktop:v$version}"`);
     expect(script).toContain(`version="\${version:-${BOT_DESKTOP_VERSION}}"`);
     expect(readFileSync(new URL("../deploy/bot-desktop/Dockerfile", import.meta.url), "utf8")).toContain(`ARG BOT_DESKTOP_VERSION=${BOT_DESKTOP_VERSION}\n`);
     expect(readFileSync(new URL("../deploy/bot-desktop/rootfs/usr/local/bin/omb-session", import.meta.url), "utf8")).toContain('${DUSK_BROWSER_AT_START:-off}');
-    expect(BOT_DESKTOP_IMAGE).toBe(`ghcr.io/sidddevz/omb-bot-desktop:v${BOT_DESKTOP_VERSION}`);
+    expect(BOT_DESKTOP_IMAGE).toBe(`ghcr.io/duskbotai/bot-desktop:v${BOT_DESKTOP_VERSION}`);
     expect(readFileSync(new URL("../deploy/bot-desktop/host-fence.sh", import.meta.url), "utf8")).toContain("BRIDGE=omb-desk0\n");
   });
+
+  it("publishes every version it points at: the workflow runs on a bump, in the namespace the repository's token pushes to", () => {
+    const workflow = readFileSync(new URL("../.github/workflows/bot-desktop-image.yml", import.meta.url), "utf8");
+    for (const path of ["shared/bot-desktop.ts", "deploy/bot-desktop/**"]) expect(workflow).toContain(`      - ${path}\n`);
+    expect(workflow).toMatch(/branches: \[main\]/);
+    expect(workflow).toContain("runner: ubuntu-24.04-arm");
+    expect(workflow).toContain('-t "$IMAGE-$ARCH" --push deploy/bot-desktop');
+    expect(workflow).toContain('imagetools create -t "$IMAGE" "$IMAGE-amd64" "$IMAGE-arm64"');
+    expect(workflow).toContain("node scripts/check-bot-desktop-published.mjs");
+    // GITHUB_TOKEN of DuskBotAI/duskbot can push only under ghcr.io/duskbotai
+    expect(BOT_DESKTOP_IMAGE).toMatch(/^ghcr\.io\/duskbotai\/[a-z0-9-]+:v\d+$/);
+    const gate = readFileSync(new URL("../apps/link-service/docker-gate.mjs", import.meta.url), "utf8");
+    expect(/^export const DEFAULT_PULL = (\[.*\]);$/m.exec(gate)?.[1]).toContain(`"${BOT_DESKTOP_IMAGE.slice(0, BOT_DESKTOP_IMAGE.lastIndexOf(":"))}"`);
+    // a server build and a release refuse an image nobody can pull
+    expect(readFileSync(new URL("../scripts/build-vps-package.mjs", import.meta.url), "utf8")).toContain("checkBotDesktopPublished()");
+    expect(readFileSync(new URL("../.github/workflows/release.yml", import.meta.url), "utf8")).toContain("run: node scripts/check-bot-desktop-published.mjs");
+  });
+
 });
 
 describe("bot desktop provisioning", () => {
@@ -281,14 +301,25 @@ describe("bot desktop provisioning", () => {
     vi.stubEnv("DUSK_BOT_DESKTOP_KIT", join(tmpdir(), "dusk-no-such-kit"));
     try {
       const fake = host({ pull: false, network: true });
-      await expect(provisionBotDesktop(fake.run, input)).rejects.toMatchObject({ status: 409, code: "bot_desktop_unavailable",
-        message: expect.stringMatching(/not on the VPS and could not be downloaded \(Error response from daemon: denied\).*no copy of its build kit/) });
+      await expect(provisionBotDesktop(fake.run, input)).rejects.toMatchObject({ status: 409, code: "bot_desktop_unavailable", message: BOT_DESKTOP_SETUP_LATER });
       expect(steps(fake.calls)).toEqual([`pull ${BOT_DESKTOP_IMAGE}`]);
     } finally { vi.unstubAllEnvs(); }
+    // docker's and the build's own words stay in the server log
     const broken = host({ pull: false, network: true, build: false });
-    await expect(provisionBotDesktop(broken.run, input)).rejects.toMatchObject({ status: 409,
-      message: expect.stringContaining("building it on the VPS failed: ERROR: failed to solve") });
+    await expect(provisionBotDesktop(broken.run, input)).rejects.toMatchObject({ status: 409, message: BOT_DESKTOP_SETUP_LATER });
     expect(broken.calls.map(args => args[0])).toEqual(["pull", "build"]);
+  });
+
+  it("never tries to build behind the docker gate, which forwards no build", async () => {
+    expect(dockerHostBuilds({ DOCKER_HOST: "unix:///run/duskbot-docker/docker.sock" })).toBe(false);
+    expect(dockerHostBuilds({ DOCKER_HOST: "unix:///var/run/docker.sock" })).toBe(true);
+    expect(dockerHostBuilds({})).toBe(true);
+    vi.stubEnv("DOCKER_HOST", "unix:///run/duskbot-docker/docker.sock");
+    try {
+      const gated = host({ pull: false, network: true });
+      await expect(provisionBotDesktop(gated.run, input)).rejects.toMatchObject({ code: "bot_desktop_unavailable", message: BOT_DESKTOP_SETUP_LATER });
+      expect(gated.calls.map(args => args[0])).toEqual(["pull"]);
+    } finally { vi.unstubAllEnvs(); }
   });
 
   describe("on a managed cloud home, whose own machine builds the image", () => {
@@ -423,6 +454,8 @@ describe("bot desktop on the VPS path", () => {
       if (command === "info") return { stdout: '{"runc":{}}', stderr: "" };
       if (command === "run" && docker[1] === "--rm") return { stdout: "", stderr: "" };
       if (command === "stop") { state.running = false; return { stdout: "", stderr: "" }; }
+      if (command === "start") { if (!state.container) throw new Error("Error: No such container"); state.running = true; return { stdout: "", stderr: "" }; }
+      if (command === "update") return { stdout: "", stderr: "" };
       if (command === "rename") {
         const labels = (state as unknown as { labels: Record<string, string> }).labels;
         if (docker[1] === `${name}-previous`) {
@@ -504,14 +537,13 @@ describe("bot desktop on the VPS path", () => {
     expect(fake.state).toMatchObject({ container: true, running: false, containerImageId: oldImage });
   });
 
-  it("updates a managed v1 computer by itself when woken: new image first, then the old one set aside, on the same home volume", async () => {
+  it("updates a managed v1 computer by itself when woken with the new image already here: the old one set aside, on the same home volume", async () => {
     const fake = daemon();
-    await makeV1(fake, true);
+    await makeV1(fake);
     const status = await vpsComputerAction("provision", CONFIG, BOT, fake.runner);
     expect(status).toMatchObject({ ready: true, imageMatches: true, outdated: false, container: "running" });
     const order = fake.calls.map((args) => args[0]);
-    expect(order.indexOf("stop")).toBeGreaterThan(-1);
-    expect(order.indexOf("stop")).toBeLessThan(order.indexOf("rename"));
+    expect(order).not.toContain("pull");
     expect(order.indexOf("rename")).toBeLessThan(order.lastIndexOf("run"));
     // the old desktop is removed only after the new one is up
     expect(order.lastIndexOf("rm")).toBeGreaterThan(order.lastIndexOf("run"));
@@ -519,17 +551,56 @@ describe("bot desktop on the VPS path", () => {
     expect(inspected(name)._mounts[0].Name).toBe(botDesktopVolume(name));
   });
 
-  it("puts the old computer back exactly as it was when the new one fails, and keeps the home volume", async () => {
+  it("puts the old computer back exactly as it was when the new one fails, and wakes that one instead", async () => {
     const fake = daemon();
     const oldImage = await makeV1(fake);
     fake.state.failRun = true;
-    await expect(vpsComputerAction("provision", CONFIG, BOT, fake.runner)).rejects.toThrow(/could not start/);
-    expect(fake.state).toMatchObject({ container: true, running: false, containerImageId: oldImage, previous: null });
+    expect(await vpsComputerAction("provision", CONFIG, BOT, fake.runner)).toMatchObject({ ready: true, outdated: true, runsOlderVersion: true, container: "running", problem: null });
+    expect(fake.state).toMatchObject({ container: true, running: true, containerImageId: oldImage, previous: null });
     expect((fake.state as unknown as { labels: Record<string, string> }).labels[BOT_DESKTOP_LABEL]).toBe("1");
     expect(inspected(name)._mounts[0].Name).toBe(botDesktopVolume(name));
-    // and the next try updates it
+    // and the background update swaps it once the new one can start
     fake.state.failRun = false;
-    expect(await vpsComputerAction("provision", CONFIG, BOT, fake.runner)).toMatchObject({ ready: true, imageMatches: true });
+    expect(await vpsComputerAction("update", CONFIG, BOT, fake.runner)).toMatchObject({ imageMatches: true, outdated: false });
+  });
+
+  it("wakes the old computer at once when the new version can be neither pulled nor built, and updates quietly later", async () => {
+    const fake = daemon();
+    const oldImage = await makeV1(fake);
+    fake.state.image = false;
+    let registry = false;
+    const runner: VpsCommandRunner = async (args, options) => {
+      const [command] = args.slice(2);
+      if (command === "pull" || command === "build") fake.calls.push(args.slice(2));
+      if (command === "pull") { if (!registry) throw new Error("Error response from daemon: manifest unknown"); fake.state.image = true; return { stdout: "", stderr: "" }; }
+      if (command === "build") throw new Error("ERROR: failed to solve: docker.io/moby/buildkit: pull refused by the gate");
+      return fake.runner(args, options);
+    };
+    const asleep = await vpsComputerStatus(CONFIG, BOT, runner);
+    expect(asleep).toMatchObject({ outdated: true, runsOlderVersion: true, container: "stopped", image: false });
+    expect(asleep.problem).not.toMatch(/older version|update/i);
+
+    // the wake neither downloads nor builds: it starts the computer as it is
+    const woken = await vpsComputerAction("provision", CONFIG, BOT, runner);
+    expect(woken).toMatchObject({ ready: true, container: "running", outdated: true, runsOlderVersion: true, problem: null });
+    expect(fake.calls.some((args) => ["pull", "build", "rename", "rm"].includes(args[0]!))).toBe(false);
+    expect(fake.state).toMatchObject({ running: true, containerImageId: oldImage });
+
+    // the background update fails quietly, short words only, and leaves the running computer alone
+    await vpsComputerAction("stop", CONFIG, BOT, runner);
+    fake.calls.length = 0;
+    const failed = await vpsComputerAction("update", CONFIG, BOT, runner).then(() => null, (error: Error) => error);
+    expect(failed?.message).toBe(BOT_DESKTOP_SETUP_LATER);
+    expect(fake.calls.map((args) => args[0])).toEqual(expect.arrayContaining(["pull", "build"]));
+    expect(fake.calls.some((args) => ["rename", "rm", "run", "stop"].includes(args[0]!))).toBe(false);
+    expect(fake.state).toMatchObject({ container: true, containerImageId: oldImage, previous: null });
+    expect(await vpsComputerAction("provision", CONFIG, BOT, runner)).toMatchObject({ ready: true, runsOlderVersion: true });
+
+    // once the image is published the next pass swaps it in, and the wake after starts the new one
+    registry = true;
+    await vpsComputerAction("stop", CONFIG, BOT, runner);
+    expect(await vpsComputerAction("update", CONFIG, BOT, runner)).toMatchObject({ imageMatches: true, outdated: false, container: "stopped" });
+    expect(await vpsComputerAction("provision", CONFIG, BOT, runner)).toMatchObject({ ready: true, imageMatches: true, outdated: false });
   });
 
   it("the background update leaves the new computer asleep and does nothing to one that is current", async () => {

@@ -32,7 +32,7 @@ import { PIDS_LIMIT, raisePidsLimit } from "./container-limits.ts";
 import { admitVpsDesktop, desktopLimitArgs, desktopLimits, desktopUpdateArgs, type VpsDesktopLimits } from "./vps-capacity.ts";
 import {
   BOT_DESKTOP_IMAGE, botDesktopIsHardened, botDesktopLabelsMatch, botDesktopMountsAreSafe, botDesktopNetworkIsPrivate,
-  containerBotDesktopMode, containerDesktopKind, preferredVpsDesktop, provisionBotDesktop, type BotDesktopProgress, type VpsDesktopKind,
+  containerBotDesktopMode, containerDesktopKind, fetchBotDesktopImage, preferredVpsDesktop, provisionBotDesktop, type BotDesktopProgress, type VpsDesktopKind,
 } from "./bot-desktop.ts";
 import { DATA_DIR, isValidSshAlias, vpsSshAlias, type AppConfig } from "./config.ts";
 import { augmentedPath } from "./env-path.ts";
@@ -64,6 +64,7 @@ const CONTAINER_NAME = /^[a-zA-Z0-9][a-zA-Z0-9_.-]+$/;
 const CONTAINER_ID = /^[a-f0-9]{12,64}$/i;
 const FULL_CONTAINER_ID = /^[a-f0-9]{64}$/i;
 const IMAGE_ID = /^sha256:[a-f0-9]{64}$/i;
+const DRIVER_VERSION = /^\d{1,4}\.\d{1,4}\.\d{1,4}$/;
 const SCREENSHOT_PATH = "/tmp/duskbot-vps-preview.png";
 // The Cua XFCE base ships Pillow in /opt/venv; a container without it returns the original PNG.
 const SCREENSHOT_TRANSFER = `/opt/venv/bin/python -I -c 'import base64, io, sys
@@ -83,14 +84,16 @@ const DESKTOP_PROBE = `version="$("$1" --version)"
 "$1" call health_report '{}' --socket "$3"
 "$1" call get_desktop_state '{}' --socket "$3" >/dev/null`;
 
-export function vpsDesktopProbeArgs(container: string): string[] {
+/** `driver`: the desktop's own Cua Driver version, older than CUA_DRIVER_VERSION on a desktop still running an older image. */
+export function vpsDesktopProbeArgs(container: string, driver = CUA_DRIVER_VERSION): string[] {
+  if (!DRIVER_VERSION.test(driver)) throw new Error("invalid Cua Driver version");
   const args = cuaExecArgs([], { container });
-  return [...args.slice(0, -1), "sh", "-ec", DESKTOP_PROBE, "dusk-desktop-probe", CUA_EXECUTABLE, `cua-driver ${CUA_DRIVER_VERSION}`, CUA_SOCKET];
+  return [...args.slice(0, -1), "sh", "-ec", DESKTOP_PROBE, "dusk-desktop-probe", CUA_EXECUTABLE, `cua-driver ${driver}`, CUA_SOCKET];
 }
 
-export function vpsDesktopWaitProbeArgs(container: string, waitMs: number): string[] {
+export function vpsDesktopWaitProbeArgs(container: string, waitMs: number, driver = CUA_DRIVER_VERSION): string[] {
   if (!Number.isFinite(waitMs) || waitMs <= 0) throw new Error("invalid VPS desktop wait");
-  const args = vpsDesktopProbeArgs(container);
+  const args = vpsDesktopProbeArgs(container, driver);
   args[args.indexOf("-ec") + 1] = `timeout "$4" sh -ec 'until "$1" status --socket "$3" >/dev/null 2>&1; do sleep 0.05; done' dusk-desktop-wait "$1" "$2" "$3"
 ${DESKTOP_PROBE}`;
   return [...args, (Math.max(100, Math.floor(waitMs / 100) * 100) / 1000).toFixed(1)];
@@ -188,6 +191,8 @@ export interface VpsComputerStatus {
   image_id: string | null;
   /** A bot desktop dusk bot made from an older image, otherwise safe: it is replaced on its home volume by itself. */
   outdated?: boolean;
+  /** An outdated desktop that runs as it is, on its own image and Cua Driver, until its update is ready on the host. */
+  runsOlderVersion?: boolean;
   /** That replacement is under way. */
   updating?: boolean;
 }
@@ -443,14 +448,14 @@ function hasNoPublishedPorts(config: {
 function statusProblem(status: VpsComputerStatus): string | null {
   if (!status.configured) return "Configure a VPS SSH alias in Settings → API keys";
   if (!status.daemonUp) return "Docker over SSH could not reach the VPS; check the SSH alias and Docker on the VPS";
-  if (status.outdated) return "This computer is on an older version and updates itself before its next use";
-  if (!status.image) {
+  if (status.outdated && !status.runsOlderVersion) return "This computer is on an older version and updates itself before its next use";
+  if (!status.image && !status.runsOlderVersion) {
     return status.desktop === "cua"
       ? `Prepare the pinned dusk bot Cua image on the VPS (Driver ${CUA_DRIVER_VERSION})`
       : `Prepare the dusk bot desktop image on the VPS (${BOT_DESKTOP_IMAGE})`;
   }
   if (status.container === "missing") return "No dusk bot container exists for this bot on the VPS";
-  if (!status.imageMatches) return "The VPS container uses an incompatible or untrusted dusk bot image";
+  if (!status.imageMatches && !status.runsOlderVersion) return "The VPS container uses an incompatible or untrusted dusk bot image";
   if (!status.managed) return "The VPS container name is occupied by a container dusk bot did not create";
   if (status.network === "unsafe") return "The VPS container uses an unapproved network or publishes ports; refusing to use it";
   if (status.mounts === "unsafe") return "The VPS container has host mounts; refusing to use it";
@@ -583,11 +588,16 @@ async function computeVpsComputerStatus(
       viewerConnections.delete(connectionKey);
     }
 
+    status.outdated = vpsDesktopReplaceable(status);
+    const ownDriver = labels?.[DRIVER_LABEL];
+    status.runsOlderVersion = Boolean(status.outdated && status.container_id && detail?.Image && IMAGE_ID.test(detail.Image) &&
+      labels?.[VPS_VIEWER_LABEL] === VIEWER_VERSION && ownDriver && DRIVER_VERSION.test(ownDriver));
+    if (status.runsOlderVersion) status.driver_version = ownDriver!;
+
     const containerRef = status.container_id;
     const canProbe =
       status.container === "running" &&
-      status.image &&
-      status.imageMatches &&
+      runsAnImage(status) &&
       status.managed &&
       status.network === "private" &&
       status.mounts === "none" &&
@@ -599,7 +609,7 @@ async function computeVpsComputerStatus(
     } else if (canProbe && containerRef && options.probe !== false) {
       verifiedDesktops.delete(connectionKey);
       try {
-        const health = await run(vpsDesktopProbeArgs(containerRef), 20_000);
+        const health = await run(vpsDesktopProbeArgs(containerRef, status.driver_version), 20_000);
         validateVpsDesktopReport(health.stdout);
         status.desktopReady = true;
         verifiedDesktops.set(connectionKey, { containerId: containerRef, startedAt: status.container_started_at, at: Date.now() });
@@ -865,10 +875,14 @@ export function previousDesktopName(containerName: string): string {
   return `${containerName}-previous`;
 }
 
+/** The current image, or an outdated desktop's own until its update is ready on the host. */
+export function runsAnImage(status: Pick<VpsComputerStatus, "image" | "imageMatches" | "runsOlderVersion">): boolean {
+  return (status.image && status.imageMatches) || status.runsOlderVersion === true;
+}
+
 function assertUsableContainer(status: VpsComputerStatus) {
   if (
-    !status.image ||
-    !status.imageMatches ||
+    !runsAnImage(status) ||
     !status.managed ||
     status.network !== "private" ||
     status.mounts !== "none" ||
@@ -918,7 +932,7 @@ async function waitForVpsReady(
     waitAndProbe: async (status, waitMs) => {
       const key = `${alias}:${status.container_name}`;
       verifiedDesktops.delete(key);
-      const health = await boundedRunner(vpsDockerArgs(alias, vpsDesktopWaitProbeArgs(status.container_id!, waitMs)), { timeoutMs: waitMs + 1_000 });
+      const health = await boundedRunner(vpsDockerArgs(alias, vpsDesktopWaitProbeArgs(status.container_id!, waitMs, status.driver_version)), { timeoutMs: waitMs + 1_000 });
       validateVpsDesktopReport(health.stdout);
       verifiedDesktops.set(key, { containerId: status.container_id!, startedAt: status.container_started_at, at: Date.now() });
     },
@@ -1067,17 +1081,35 @@ export async function vpsComputerAction(
       const wake = () => admit(limits => run(desktopUpdateArgs(containerRef, limits), 30_000).catch(() => {}).then(() => run(["start", containerRef])));
       if ((action === "provision" || action === "update") && before.outdated) {
         if (action === "provision") guard.onStarting?.();
-        await replaceOutdatedDesktop(before, containerRef, {
-          run, restore: (args) => runner(vpsDockerArgs(alias, args), { timeoutMs: 2 * 60_000 }),
-          provision: (beforeCreate) => provisionBotDesktop((args, timeoutMs) => run(args, timeoutMs), {
-            containerName: before.container_name, imageId: before.image ? before.image_id : null, hostKey: alias,
-            labels: vpsOwnershipLabels(before.container_name), viewerSecret: randomBytes(18).toString("base64url"), onProgress: guard.onProgress, admit, beforeCreate,
-          }),
-        });
+        // a wake never waits on a download: it swaps in the new version only when its image is already here and the
+        // old desktop is asleep, and otherwise starts the old one; the background update fetches the image meanwhile
+        const swap = action === "update" || !before.runsOlderVersion || (before.image && before.container === "stopped");
+        let swapped = false;
+        if (swap) {
+          try {
+            await replaceOutdatedDesktop(before, containerRef, {
+              run, restore: (args) => runner(vpsDockerArgs(alias, args), { timeoutMs: 2 * 60_000 }),
+              provision: (beforeCreate) => provisionBotDesktop((args, timeoutMs) => run(args, timeoutMs), {
+                containerName: before.container_name, imageId: before.image ? before.image_id : null, hostKey: alias,
+                labels: vpsOwnershipLabels(before.container_name), viewerSecret: randomBytes(18).toString("base64url"), onProgress: guard.onProgress, admit, beforeCreate,
+              }),
+            });
+            swapped = true;
+          } catch (error) {
+            if (action === "update" || !before.runsOlderVersion) throw error;
+            console.warn(`computer update: ${before.container_name} could not update on wake, starting the old one: ${error instanceof Error ? error.message.slice(0, 300) : String(error)}`);
+          }
+        }
         // the background update leaves the new desktop asleep (nothing could use the old one); the next wake starts it
         if (action === "update") {
           await run(["stop", before.container_name]).catch(() => {});
           return await computeVpsComputerStatus(cfg, botId, runner);
+        }
+        if (!swapped) {
+          // a failed swap put the old desktop back as it was, under the same id
+          const now = swap ? await computeVpsComputerStatus(cfg, botId, runner, undefined, { probe: false }) : before;
+          assertUsableContainer(now);
+          if (now.container === "stopped") await wake();
         }
       } else if (action === "provision") {
         if (before.container === "missing" || before.container === "stopped") guard.onStarting?.();
@@ -1127,7 +1159,9 @@ export async function vpsComputerAction(
       invalidateVpsStatus(key);
     }
   };
-  // a wake behind the background update waits for it, then starts the new desktop
+  // fetched before the update takes the lock, so a wake meanwhile starts the old desktop instead of waiting on a download
+  if (action === "update") await prefetchUpdateImage(cfg, botId, alias, guardedRunner);
+  // a wake behind the background update waits for it (only the swap, seconds), then starts the new desktop
   const updating = pendingUpdates.get(key);
   if (updating && action !== "update") await updating.catch(() => {});
   else if (updating) return updating;
@@ -1136,6 +1170,12 @@ export async function vpsComputerAction(
   registry?.set(key, preparation);
   try { return await preparation; }
   finally { if (registry?.get(key) === preparation) registry.delete(key); }
+}
+
+async function prefetchUpdateImage(cfg: AppConfig, botId: string, alias: string, runner: VpsCommandRunner): Promise<void> {
+  const status = await computeVpsComputerStatus(cfg, botId, runner, undefined, { probe: false });
+  if (!status.daemonUp || !status.outdated || status.image) return;
+  await fetchBotDesktopImage((args, timeoutMs) => runner(vpsDockerArgs(alias, args), { timeoutMs: timeoutMs ?? 2 * 60_000 }), alias);
 }
 
 /**

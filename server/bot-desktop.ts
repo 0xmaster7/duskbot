@@ -259,14 +259,17 @@ export function botDesktopKit(env: NodeJS.ProcessEnv = process.env): string | nu
   }
 }
 
-function unavailable(message: string): Error {
-  return Object.assign(new Error(message), { status: 409, code: "bot_desktop_unavailable" });
+function unavailable(message: string, cause?: unknown): Error {
+  return Object.assign(new Error(message), { status: 409, code: "bot_desktop_unavailable", ...(cause === undefined ? {} : { cause }) });
 }
 
 function lastLine(error: unknown): string {
   const text = (error instanceof Error ? error.message : String(error)).trim().split("\n").filter(Boolean).at(-1) ?? "";
   return text.length > 300 ? `${text.slice(0, 297)}...` : text;
 }
+
+/** What a person sees when the image can't be had: never docker's or a build's own output, which goes to the server log. */
+export const BOT_DESKTOP_SETUP_LATER = "This computer couldn't be set up yet. It tries again by itself; try again in a few minutes.";
 
 /** how a home whose own machine builds the image (a managed cloud) waits for it; tests shorten it */
 export const hostBuildTiming = { pollMs: 5_000, limitMs: 45 * 60_000 };
@@ -281,32 +284,56 @@ async function waitForHostBuild(run: DockerRun, statusFile: string): Promise<voi
     if (await run(["image", "inspect", BOT_DESKTOP_IMAGE], 20_000).then(() => true, () => false)) return;
     let status = "";
     try { status = readFileSync(statusFile, "utf8").trim(); } catch { status = ""; }
-    if (status === "failed") throw unavailable(`This cloud computer could not build the bot computer image ${BOT_DESKTOP_IMAGE}; it tries again by itself within a minute. Nothing was created.`);
-    if (Date.now() > until) throw unavailable(`This cloud computer is still building the bot computer image ${BOT_DESKTOP_IMAGE}. Try again in a few minutes. Nothing was created.`);
+    if (status === "failed") throw unavailable("This cloud computer could not build its new version yet. It tries again by itself within a minute.");
+    if (Date.now() > until) throw unavailable("This cloud computer is still building its new version. Try again in a few minutes.");
     await new Promise((done) => setTimeout(done, hostBuildTiming.pollMs));
   }
 }
 
-/** Pulls BOT_DESKTOP_IMAGE, else builds it on the docker host from the kit this server ships; refuses clearly when neither works. */
+/**
+ * Whether builds can run on this docker host. Behind the docker gate (a server set up by the link service) they never
+ * can: the gate forwards no build, and must not, since a built image could stand in for the trusted one in the host
+ * probes, which run with NET_ADMIN on the host's network.
+ */
+export function dockerHostBuilds(env: NodeJS.ProcessEnv = process.env): boolean {
+  return !/\/duskbot-docker\/docker\.sock$/.test(env.DOCKER_HOST?.trim() ?? "");
+}
+
+/** Pulls BOT_DESKTOP_IMAGE, else builds it on the docker host from the kit this server ships; refuses plainly when neither works. */
 async function obtainBotDesktopImage(run: DockerRun, onProgress?: (step: BotDesktopProgress) => void): Promise<void> {
   onProgress?.("pulling");
   const pullError = await run(["pull", BOT_DESKTOP_IMAGE], 15 * 60_000).then(() => null, (error: unknown) => error);
   if (!pullError) return;
+  console.warn(`bot computer image: could not pull ${BOT_DESKTOP_IMAGE}: ${lastLine(pullError)}`);
   const hostBuild = process.env.DUSK_BOT_DESKTOP_HOST_BUILD?.trim();
   if (hostBuild) {
     onProgress?.("building");
     return waitForHostBuild(run, hostBuild);
   }
-  const kit = botDesktopKit();
-  if (!kit) {
-    throw unavailable(`The bot computer image ${BOT_DESKTOP_IMAGE} is not on the VPS and could not be downloaded (${lastLine(pullError)}), and this app has no copy of its build kit. Build it on the VPS with deploy/bot-desktop/build.sh, or update the server from the link service. Nothing was created.`);
-  }
+  const kit = dockerHostBuilds() ? botDesktopKit() : null;
+  if (!kit) throw unavailable(BOT_DESKTOP_SETUP_LATER, pullError);
   onProgress?.("building");
   try {
     await run(["build", "--build-arg", `BOT_DESKTOP_VERSION=${BOT_DESKTOP_VERSION}`, "-t", BOT_DESKTOP_IMAGE, kit], 45 * 60_000);
   } catch (error) {
-    throw unavailable(`The bot computer image ${BOT_DESKTOP_IMAGE} could not be downloaded, and building it on the VPS failed: ${lastLine(error)}. Docker needs BuildKit (docker-buildx) for this build. Nothing was created.`);
+    console.warn(`bot computer image: could not build ${BOT_DESKTOP_IMAGE} on the docker host: ${lastLine(error)}`);
+    throw unavailable(BOT_DESKTOP_SETUP_LATER, error);
   }
+}
+
+const pendingFetches = new Map<string, Promise<void>>();
+
+/**
+ * Gets BOT_DESKTOP_IMAGE onto the host ahead of an update, while the old desktop keeps working: nothing switches to a
+ * new version until its image is here. One fetch per host at a time.
+ */
+export function fetchBotDesktopImage(run: DockerRun, hostKey: string): Promise<void> {
+  let fetching = pendingFetches.get(hostKey);
+  if (!fetching) {
+    fetching = obtainBotDesktopImage(run).finally(() => pendingFetches.delete(hostKey));
+    pendingFetches.set(hostKey, fetching);
+  }
+  return fetching;
 }
 
 async function prepareBotDesktop(run: DockerRun, imageId: string | null, onProgress?: (step: BotDesktopProgress) => void): Promise<BotDesktopPreparation> {

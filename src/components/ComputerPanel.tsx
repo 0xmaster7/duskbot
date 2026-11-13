@@ -74,7 +74,7 @@ interface VpsComputerStatus {
   viewerKey?: string;
   state?: "starting" | "ready" | "stopped";
   teamComputer?: { id: string; name: string; section?: string; scope?: "workspace" };
-  /** an older desktop that updates itself on its next wake (or in the background) */
+  /** an older desktop: it runs as it is until its update is ready, then updates itself in the background */
   outdated?: boolean;
   updating?: boolean;
 }
@@ -508,20 +508,20 @@ export function ComputerPanel({
           setPhase("ready");
           return;
         }
-        // an older computer updates itself: asleep until woken (the wake updates it), or updating in the background now
+        // an older computer updates itself in the background; until then it wakes and runs as it is
         if (status.updating) {
           setError(null);
           setPhase("starting");
           readinessTimer = window.setTimeout(() => setRetry(value => value + 1), 3000);
           return;
         }
-        if (status.outdated) {
+        if (status.outdated && status.container !== "running") {
           setContainerState("stopped");
           setError(null);
           setPhase("vps-stopped");
           return;
         }
-        if (status.managed && status.container !== "missing" && !status.imageMatches) {
+        if (status.managed && status.container !== "missing" && !status.imageMatches && !status.outdated) {
           setError(status.problem);
           setPhase("vps-incompatible");
           return;
@@ -534,7 +534,7 @@ export function ComputerPanel({
           setPhase("vps-stopped");
           return;
         }
-        if ((status.state === "starting" || (status.container === "running" && status.managed && status.imageMatches)) && vpsReadinessAttempts.current < STARTING_POLLS) {
+        if ((status.state === "starting" || (status.container === "running" && status.managed && (status.imageMatches || status.outdated))) && vpsReadinessAttempts.current < STARTING_POLLS) {
           vpsReadinessAttempts.current++;
           setError(null);
           setPhase("starting");
@@ -1145,7 +1145,7 @@ export function ComputerPanel({
   });
 
   // a wake that updates the computer says so, rather than "waking up" for minutes
-  const updatingComputer = Boolean(vpsStatus?.updating || (vpsStatus?.outdated && (pending === "provision" || phase === "starting")));
+  const updatingComputer = Boolean(vpsStatus?.updating);
   const wakingView = (cover = false) => <ComputerWaking bot={bot} cover={cover} updating={updatingComputer} />;
   const remoteFrame = (liveHere || livePreview) && liveTarget ? (
       <Suspense fallback={null}>

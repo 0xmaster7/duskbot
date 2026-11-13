@@ -1,0 +1,120 @@
+name: Bot computer image
+
+# Publishes BOT_DESKTOP_IMAGE (shared/bot-desktop.ts) for linux/amd64 and linux/arm64 whenever the image's version or
+# its kit (deploy/bot-desktop) changes on main. Servers pull it anonymously, so the package must be public; the last
+# step fails until it is. A published tag is never rebuilt: kit changes ship by bumping BOT_DESKTOP_VERSION.
+# server/bot-desktop.test.ts keeps the triggers and the image's namespace in step with shared/bot-desktop.ts.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - shared/bot-desktop.ts
+      - deploy/bot-desktop/**
+      - .github/workflows/bot-desktop-image.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bot-desktop-image
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    name: Read the image tag
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      image: ${{ steps.read.outputs.image }}
+      version: ${{ steps.read.outputs.version }}
+      published: ${{ steps.published.outputs.published }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: read
+        run: |
+          read_const() { sed -n "s/^export const $1 = \"\\(.*\\)\";.*/\\1/p" shared/bot-desktop.ts | head -n 1; }
+          version=$(read_const BOT_DESKTOP_VERSION)
+          image=$(read_const BOT_DESKTOP_IMAGE)
+          owner=$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          case "$image" in
+            "ghcr.io/$owner/"*":v$version") ;;
+            *) echo "::error::BOT_DESKTOP_IMAGE ($image) must be ghcr.io/$owner/<name>:v$version, the namespace this repository's token can push to"; exit 1 ;;
+          esac
+          grep -qx "ARG BOT_DESKTOP_VERSION=$version" deploy/bot-desktop/Dockerfile || {
+            echo "::error::deploy/bot-desktop/Dockerfile must say ARG BOT_DESKTOP_VERSION=$version"; exit 1; }
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - id: published
+        env:
+          IMAGE: ${{ steps.read.outputs.image }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin >/dev/null
+          if docker buildx imagetools inspect "$IMAGE" >/dev/null 2>&1; then
+            echo "::notice::$IMAGE is already published; bump BOT_DESKTOP_VERSION to publish changes to deploy/bot-desktop"
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Servers can pull it without signing in
+        if: steps.published.outputs.published == 'true'
+        run: node scripts/check-bot-desktop-published.mjs
+
+  build:
+    name: Build ${{ matrix.arch }}
+    needs: tag
+    if: needs.tag.outputs.published != 'true'
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build and push linux/${{ matrix.arch }}
+        env:
+          IMAGE: ${{ needs.tag.outputs.image }}
+          VERSION: ${{ needs.tag.outputs.version }}
+          ARCH: ${{ matrix.arch }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin >/dev/null
+          docker buildx build --platform "linux/$ARCH" --provenance=false \
+            --build-arg BOT_DESKTOP_VERSION="$VERSION" \
+            -t "$IMAGE-$ARCH" --push deploy/bot-desktop
+
+  publish:
+    name: Publish the multi-arch tag
+    needs: [tag, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - env:
+          IMAGE: ${{ needs.tag.outputs.image }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin >/dev/null
+          docker buildx imagetools create -t "$IMAGE" "$IMAGE-amd64" "$IMAGE-arm64"
+          docker buildx imagetools inspect "$IMAGE"
+      - name: Servers can pull it without signing in
+        run: node scripts/check-bot-desktop-published.mjs

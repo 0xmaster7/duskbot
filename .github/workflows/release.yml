@@ -61,6 +61,9 @@ jobs:
             fi
           fi
           echo "should_release=$should_release" >> "$GITHUB_OUTPUT"
+      - name: Refuse a release whose bot computer image is not published
+        if: steps.pin.outputs.should_release == 'true'
+        run: node scripts/check-bot-desktop-published.mjs
       - name: Refuse to overwrite a published canonical release
         if: steps.pin.outputs.should_release == 'true'
         env:

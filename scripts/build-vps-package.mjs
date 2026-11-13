@@ -6,6 +6,7 @@
 //   node scripts/build-vps-package.mjs                       # build, pack into release/vps/
 //   node scripts/build-vps-package.mjs --skip-build          # pack what dist-server/ and dist/ already hold
 //   node scripts/build-vps-package.mjs --publish <data dir>  # also hand it to a link service: <dir>/packages/
+//   --allow-unpublished-desktop                              # a test build whose BOT_DESKTOP_IMAGE is not published yet
 //
 // It reuses the npm package layout (scripts/build-npm-package.mjs): the
 // bundled server, the built UI, skills, the CLI, and the three native
@@ -23,6 +24,7 @@ import { createHash } from "node:crypto";
 import { copyFileSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkBotDesktopPublished } from "./check-bot-desktop-published.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -38,6 +40,15 @@ const option = (name) => {
   return resolve(value);
 };
 const publishTo = option("--publish");
+
+// a server pointing at a bot computer image nobody can pull could never set up a new computer
+if (!flag("--allow-unpublished-desktop")) {
+  const problem = await checkBotDesktopPublished().catch((error) => `could not be checked: ${error.message}`);
+  if (problem) {
+    console.error(`bot computer image: ${problem}. Publish it first, or pass --allow-unpublished-desktop for a test build.`);
+    process.exit(1);
+  }
+}
 
 const run = (cmd, argv, cwd = root) => execFileSync(cmd, argv, { cwd, stdio: "inherit" });
 const quiet = (cmd, argv, cwd = root) => execFileSync(cmd, argv, { cwd, encoding: "utf8" }).trim();

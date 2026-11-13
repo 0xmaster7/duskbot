@@ -1,6 +1,8 @@
-// The bot computer image (deploy/bot-desktop). One line each: deploy/bot-desktop/build.sh reads these two constants.
+// The bot computer image (deploy/bot-desktop). One line each: deploy/bot-desktop/build.sh and
+// .github/workflows/bot-desktop-image.yml read these two constants. A bump publishes the image from main (amd64 + arm64);
+// servers switch to it only once it is on the host, and keep running the version before until then.
 export const BOT_DESKTOP_VERSION = "5";
-export const BOT_DESKTOP_IMAGE = "ghcr.io/sidddevz/omb-bot-desktop:v5";
+export const BOT_DESKTOP_IMAGE = "ghcr.io/duskbotai/bot-desktop:v5";
 
 /** Image label carrying BOT_DESKTOP_VERSION; containers made from the image carry it too. */
 export const BOT_DESKTOP_LABEL = DOCKER_NAMES.label("bot-desktop");

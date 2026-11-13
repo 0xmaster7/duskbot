@@ -321,7 +321,7 @@ createServer(socket => socket.end()).listen(port, '127.0.0.1');
     } finally { rmSync(marker, { force: true }); }
   });
 
-  it("shows a v1 managed desktop as updating by itself, and leaves it untouched when its update cannot get ready", async () => {
+  it("shows a v1 managed desktop as updating by itself, and wakes it as it is when its update cannot get ready", async () => {
     expect((await api("PUT", "/api/config", { vps: { sshAlias: "production-vps", mode: "per-bot" } })).status).toBe(200);
     const bot = (await api("POST", "/api/bots")).body.bot;
     const imageFile = join(dirname(dockerLog), "image.json"), containerFile = join(dirname(dockerLog), "container.json.tpl");
@@ -342,11 +342,13 @@ createServer(socket => socket.end()).listen(port, '127.0.0.1');
       expect(status.status).toBe(200);
       expect(status.body).toMatchObject({ backend: "vps", image_ref: BOT_DESKTOP_IMAGE, managed: true, ready: false, mounts: "none", outdated: true });
       expect(status.body.problem).not.toMatch(/\d|version \d|Replace the desktop|managed computer/);
-      // the fake host cannot prepare the new desktop (no network commands): the old one is never set aside
-      const refused = await api("POST", `/api/bots/${bot.id}/computer/provision`, {});
-      expect(refused.status).toBeGreaterThanOrEqual(400);
-      expect(readFileSync(containerFile, "utf8")).toBe(configured);
-      expect(readFileSync(dockerLog, "utf8").slice(offset)).not.toMatch(/ssh:\/\/production-vps (run -d|start|stop|rm|rename|pull|build|update|exec) /);
+      // the fake host cannot prepare the new desktop (no network commands): the old one is never set aside, and starts
+      const woken = await api("POST", `/api/bots/${bot.id}/computer/provision`, {});
+      expect(woken.status).toBe(200);
+      expect(woken.body).toMatchObject({ ready: true, container: "running", outdated: true, runsOlderVersion: true, problem: null });
+      const calls = readFileSync(dockerLog, "utf8").slice(offset);
+      expect(calls).toMatch(/ssh:\/\/production-vps start /);
+      expect(calls).not.toMatch(/ssh:\/\/production-vps (run -d|stop|rm|rename|pull|build) /);
     } finally {
       writeFileSync(imageFile, originalImage); writeFileSync(containerFile, originalContainer);
     }
