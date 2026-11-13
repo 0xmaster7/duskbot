@@ -254,6 +254,8 @@ export interface CustomerRow {
   accountId: string; email: string | null; plan: string; interval: "month" | "year" | null;
   status: "active" | "past_due" | "on_hold" | "cancelling" | "churned" | "comped";
   mrr: number; ltv: number; payments: number; failed: number; refunds: number; firstPaidAt: number | null; renewsAt: number | null; churnedAt: number | null;
+  /** their newest payment, before tax */
+  lastPaidAt: number | null; lastPaidCents: number | null;
   source: string; channel: string; country: string | null; activeDays: number | null; health: Health;
 }
 export interface FeedItem {
@@ -279,7 +281,9 @@ export function subscriptionReport(input: SubscriptionsInput) {
   const label = (plan: string | null) => plan ? input.planLabel(plan) : "custom";
 
   const paidBy = new Map<string, number>(), refundedBy = new Map<string, number>(), paymentsBy = new Map<string, number>(), firstPaid = new Map<string, number>(), countryBy = new Map<string, string>();
+  const lastPaid = new Map<string, Pay>();
   for (const pay of pays) {
+    if ((lastPaid.get(pay.accountId)?.at ?? -Infinity) <= pay.at) lastPaid.set(pay.accountId, pay);
     paidBy.set(pay.accountId, (paidBy.get(pay.accountId) ?? 0) + pay.amountCents); paymentsBy.set(pay.accountId, (paymentsBy.get(pay.accountId) ?? 0) + 1);
     if (!firstPaid.has(pay.accountId)) firstPaid.set(pay.accountId, pay.at);
     if (pay.country) countryBy.set(pay.accountId, pay.country);
@@ -312,6 +316,7 @@ export function subscriptionReport(input: SubscriptionsInput) {
     rows.push({ accountId, email: input.accounts.get(accountId)?.email ?? null, plan: input.planOf(sub), interval: sub.cart.interval, status, mrr: mrrNow.get(accountId) ?? 0,
       ltv: (paidBy.get(accountId) ?? 0) - (refundedBy.get(accountId) ?? 0), payments: paymentsBy.get(accountId) ?? 0, failed: failedBy.get(accountId) ?? 0,
       refunds: refundedBy.get(accountId) ?? 0, firstPaidAt: firstPaid.get(accountId) ?? null, renewsAt, churnedAt: live.length ? null : Math.max(...list.map(life => life.end ?? 0)),
+      lastPaidAt: lastPaid.get(accountId)?.at ?? null, lastPaidCents: lastPaid.get(accountId)?.amountCents ?? null,
       source: touch?.source ?? "unknown", channel: touch?.channel ?? "unknown", country: touch?.country ?? countryBy.get(accountId) ?? null, activeDays: days, health });
   }
   rows.sort((a, b) => b.mrr - a.mrr || b.ltv - a.ltv);

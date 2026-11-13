@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
-import { ArrowUpRight, RefreshCw } from "@/icons";
+import { RefreshCw } from "@/icons";
 import { Button, cx, Segmented } from "../ui/kit";
 import { SkyEmpty } from "../ui/Sky";
 import { AnimatePresence, m, Pill, usePill, useSlots } from "../ui/motion";
@@ -576,29 +576,89 @@ export function RevenuePage() {
   );
 }
 
-/** the overview's money line: mrr, net new and customers, and the path from visitor to a second month's payment */
+const BUYER_COLS = "grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_88px_96px] max-md:grid-cols-[minmax(0,1fr)_auto]";
+const paidAt = (c: CustomerRow) => c.lastPaidAt ?? c.firstPaidAt ?? 0;
+
+/** who bought: the newest payers first, and the whole list with search and filters one tap away */
+function Buyers({ customers }: { customers: CustomerRow[] }) {
+  const now = useNow(60_000);
+  const [all, setAll] = useState(false);
+  const [q, setQ] = useState(""), [plan, setPlan] = useState("all"), [status, setStatus] = useState("all");
+  const plans = useMemo(() => [...new Set(customers.map((c) => c.plan))].sort(), [customers]);
+  const sorted = useMemo(() => [...customers].filter((c) => c.payments > 0 || c.lastPaidAt !== null).sort((a, b) => paidAt(b) - paidAt(a)), [customers]);
+  const rows = useMemo(() => {
+    if (!all) return sorted.slice(0, 5);
+    const needle = q.trim().toLowerCase();
+    return sorted.filter((c) => (plan === "all" || c.plan === plan) && (status === "all" || c.status === status)
+      && (!needle || [c.email ?? "", personName(c.accountId, c.email)].some((v) => v.toLowerCase().includes(needle))));
+  }, [sorted, all, q, plan, status]);
+  const slots = useSlots(rows.map((c) => c.accountId));
+  const filtered = all && (q.trim() !== "" || plan !== "all" || status !== "all");
+  const toggle = () => { setAll((v) => !v); setQ(""); setPlan("all"); setStatus("all"); };
+  return (
+    <div className="rounded-[18px] bg-pop p-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1.5 pb-1 pt-0.5">
+        <h3 id="buyers-title" className="text-13 font-medium text-ink">who bought <span className="ms-1 font-mono text-12 font-normal text-ink-4">{filtered ? `${n(rows.length)} of ${n(sorted.length)}` : n(sorted.length)}</span></h3>
+        {sorted.length > 5 && <button type="button" onClick={toggle} aria-expanded={all} aria-controls="buyers-list" className="text-link inline-flex h-8 items-center px-1.5 text-12">{all ? "show latest" : `show all ${n(sorted.length)}`}</button>}
+      </div>
+      {all && (
+        <div className="flex flex-wrap items-center gap-2 px-1 pb-2 pt-1">
+          <SearchBox value={q} onChange={setQ} label="search customers by email" placeholder="search by email" />
+          <Filter label="plan" value={plan} onChange={setPlan} options={[["all", "any plan"], ...plans.map((p) => [p, p] as [string, string])]} />
+          <Filter label="status" value={status} onChange={setStatus} options={[["all", "any status"], ...Object.entries(STATUS).map(([k, v]) => [k, v.label] as [string, string])]} />
+        </div>
+      )}
+      {rows.length ? (
+        <ul id="buyers-list" aria-labelledby="buyers-title">
+          <AnimatePresence initial={false} mode="popLayout">
+            {rows.map((c, i) => (
+              <m.li key={slots[i]} layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.1 } }} transition={{ layout: { type: "spring", visualDuration: 0.25, bounce: 0 }, opacity: { duration: 0.16 } }}>
+                <Link to={personLink(c.accountId)} className={cx("hover-row grid items-center gap-4 rounded-[12px] px-2 py-2", BUYER_COLS)}>
+                  <PersonCell accountId={c.accountId} email={c.email} sub={<>
+                    <Chip wash={STATUS[c.status].wash}>{STATUS[c.status].label}</Chip>
+                    {c.country && <span title={countryName(c.country)}><span aria-hidden>{flagOf(c.country)}</span><span className="sr-only">{countryName(c.country)}</span></span>}
+                    <span className="truncate md:hidden">{c.plan}{c.interval ? `, ${c.interval === "year" ? "yearly" : "monthly"}` : ""}</span>
+                  </>} />
+                  <span className="min-w-0 truncate text-13 text-ink-2 max-md:hidden">{c.plan}{c.interval && <span className="text-ink-4">, {c.interval === "year" ? "yearly" : "monthly"}</span>}</span>
+                  <span className="text-end font-mono text-14 num">
+                    <span className={c.lastPaidCents ? "font-medium text-money" : "text-ink-4"}>{c.lastPaidCents ? usd(c.lastPaidCents) : "-"}</span>
+                    <span className="block font-sans text-12 text-ink-4 md:hidden">{ago(paidAt(c) || null, now).toLowerCase()}</span>
+                  </span>
+                  <span className="truncate text-end text-12 text-ink-3 max-md:hidden">{ago(paidAt(c) || null, now).toLowerCase()}</span>
+                </Link>
+              </m.li>
+            ))}
+          </AnimatePresence>
+        </ul>
+      ) : <Empty>{filtered ? "no one matches these filters." : "no one has paid yet. the first customer shows up here."}</Empty>}
+      {rows.length > 0 && <p className="px-2 pb-1 pt-1 text-12 text-ink-4">amounts are their latest payment, before tax.</p>}
+    </div>
+  );
+}
+
+/** the overview's money line: mrr, net new and customers, the path from visitor to a second month's payment, and who bought */
 export function RevenueStrip({ days }: { days: number }) {
   const { data } = useAdmin<SubscriptionReport>(`/revenue?days=${Math.min(400, Math.max(7, days))}`, 120_000);
   if (!data) return <div className="h-[120px] rounded-[24px] bg-card" aria-busy="true" />;
   const h = data.headline;
   return (
-    <section aria-labelledby="revenue-strip" className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-1.5 rounded-[24px] bg-card p-2 max-lg:grid-cols-1">
-      <div className="flex flex-col rounded-[18px] bg-wash-lime p-3">
-        <div className="flex items-center justify-between gap-2">
+    <section aria-labelledby="revenue-strip" className="flex flex-col gap-1.5 rounded-[24px] bg-card p-2">
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-1.5 max-lg:grid-cols-1">
+        <div className="flex flex-col rounded-[18px] bg-pop p-3">
           <h2 id="revenue-strip" className="text-14 font-medium text-ink">subscriptions</h2>
-          <Link to="/admin/revenue" className="text-link inline-flex h-8 items-center gap-1 text-12">open revenue <ArrowUpRight size={13} strokeWidth={1.75} aria-hidden /></Link>
+          <div className="mt-2 grid grid-cols-3 gap-3">
+            <div className="min-w-0"><div className="truncate text-12 text-ink-3">mrr</div><div className="truncate font-mono text-[22px] font-medium leading-8 tracking-[-0.04em] text-money num"><Figure value={usd(h.mrr, true)} className="!font-mono !text-[22px] !leading-8 !tracking-[-0.04em] ![color:inherit]" /></div><MoneyDelta now={h.mrr} before={h.previous.mrr} /></div>
+            <div className="min-w-0"><div className="truncate text-12 text-ink-3">net new</div><div className={cx("truncate font-mono text-[22px] font-medium leading-8 tracking-[-0.04em] num", h.netNewMrr >= 0 ? "text-money" : "text-ink-2")}>{signed(h.netNewMrr)}</div><span className="text-12 text-ink-4">this month</span></div>
+            <div className="min-w-0"><div className="truncate text-12 text-ink-3">customers</div><div className="truncate font-mono text-[22px] font-medium leading-8 tracking-[-0.04em] text-ink num"><Figure value={n(h.customers)} className="!font-mono !text-[22px] !leading-8 !tracking-[-0.04em]" /></div><MoneyDelta now={h.customers} before={h.previous.customers} /></div>
+          </div>
+          <div className="mt-auto pt-4"><Sparkline values={data.months.map((row) => row.mrr)} color="var(--ink-4)" height={40} label="mrr over the last 12 months" /></div>
         </div>
-        <div className="mt-2 grid grid-cols-3 gap-3">
-          <div className="min-w-0"><div className="truncate text-12 text-ink-3">mrr</div><div className="truncate font-mono text-[22px] font-medium leading-8 tracking-[-0.04em] text-money num"><Figure value={usd(h.mrr, true)} className="!font-mono !text-[22px] !leading-8 !tracking-[-0.04em] ![color:inherit]" /></div><MoneyDelta now={h.mrr} before={h.previous.mrr} /></div>
-          <div className="min-w-0"><div className="truncate text-12 text-ink-3">net new</div><div className={cx("truncate font-mono text-[22px] font-medium leading-8 tracking-[-0.04em] num", h.netNewMrr >= 0 ? "text-money" : "text-ink-2")}>{signed(h.netNewMrr)}</div><span className="text-12 text-ink-4">this month</span></div>
-          <div className="min-w-0"><div className="truncate text-12 text-ink-3">customers</div><div className="truncate font-mono text-[22px] font-medium leading-8 tracking-[-0.04em] text-ink num"><Figure value={n(h.customers)} className="!font-mono !text-[22px] !leading-8 !tracking-[-0.04em]" /></div><MoneyDelta now={h.customers} before={h.previous.customers} /></div>
+        <div className="rounded-[18px] bg-pop p-3">
+          <div className="mb-2 flex items-center justify-between gap-2"><h3 className="text-13 font-medium text-ink">visitor to paying</h3><span className="t-meta">first seen in the last {data.funnel.days} days</span></div>
+          <RevenueFunnel steps={data.funnel.steps} compact />
         </div>
-        <div className="mt-auto pt-4"><Sparkline values={data.months.map((row) => row.mrr)} color="var(--viz-new)" height={40} label="mrr over the last 12 months" /></div>
       </div>
-      <div className="rounded-[18px] bg-pop p-3">
-        <div className="mb-2 flex items-center justify-between gap-2"><h3 className="text-13 font-medium text-ink">visitor to paying</h3><span className="t-meta">first seen in the last {data.funnel.days} days</span></div>
-        <RevenueFunnel steps={data.funnel.steps} compact />
-      </div>
+      <Buyers customers={data.customers} />
     </section>
   );
 }

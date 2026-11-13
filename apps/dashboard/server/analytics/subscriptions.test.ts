@@ -93,6 +93,10 @@ describe("subscription metrics", () => {
     const report = subscriptionReport(fixture());
     expect(report.customers.find(c => c.accountId === "C")).toMatchObject({ ltv: 0, status: "churned", health: "gone" });
     expect(report.customers.find(c => c.accountId === "B")).toMatchObject({ ltv: 10000, mrr: 10000 });
+    // the newest payment, not the first; F's failed charge on may 3 does not count
+    expect(report.customers.find(c => c.accountId === "B")).toMatchObject({ lastPaidAt: at(5, 10), lastPaidCents: 5000 });
+    expect(report.customers.find(c => c.accountId === "F")).toMatchObject({ lastPaidAt: at(5, 5), lastPaidCents: 4000 });
+    expect(report.customers.find(c => c.accountId === "E")).toMatchObject({ lastPaidAt: null, lastPaidCents: null });
     expect(report.refunds).toMatchObject({ count: 1, cents: 24000, disputes: 1, disputesOpen: 1 });
     expect(report.refunds.rate).toBeCloseTo(1 / 9);
     expect(report.cash).toMatchObject({ gross: 52000, refunds: 24000, afterTax: 28000 });

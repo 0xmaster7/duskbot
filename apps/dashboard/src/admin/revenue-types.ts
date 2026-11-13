@@ -12,6 +12,8 @@ export type CustomerStatus = "active" | "past_due" | "on_hold" | "cancelling" | 
 export interface CustomerRow {
   accountId: string; email: string | null; plan: string; interval: "month" | "year" | null; status: CustomerStatus;
   mrr: number; ltv: number; payments: number; failed: number; refunds: number; firstPaidAt: number | null; renewsAt: number | null; churnedAt: number | null;
+  /** their newest payment, before tax */
+  lastPaidAt: number | null; lastPaidCents: number | null;
   source: string; channel: string; country: string | null; activeDays: number | null; health: Health;
 }
 export type FeedKind = "new" | "renewal" | "payment" | "failed" | "refund" | "dispute" | "dispute_closed" | "cancel_scheduled" | "kept" | "churned" | "upgrade" | "downgrade" | "recovered" | "abandoned";
