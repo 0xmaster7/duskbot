@@ -38,7 +38,9 @@ const MAX_LINE = 400;
 const MAX_LINES_BYTES = 16 * 1024;
 const MAX_CMD = 300;
 const KEEP_LINE_EVENTS = 150;
-const MAX_WAIT_S = 25;
+// a waiting server's standby read: 55 s each (the app's own reads ask 25), one request a minute and a beat every 10 s,
+// so an idle server costs the node as little as it can
+const MAX_WAIT_S = 55;
 const FRAME_MAX = 1024 * 1024 + 64;
 const QUEUE_FRAMES = 1024;
 const QUEUE_BYTES = 16 * 1024 * 1024;
@@ -52,7 +54,9 @@ const LANE_BYTES = 4 * 1024 * 1024;
 const HELD_POSTS = 32;
 const GAP_MS = 15_000;
 const FRESH_GAP_MS = 300;
-const BEAT_MS = 5000;
+// a streamed read's beat: often enough that a dead connection shows within half a minute, rare enough that thousands
+// of idle servers cost the node little (each beat is a write per open read)
+const BEAT_MS = 10_000;
 const EPOCH = /^[a-z2-7]{12}$/;
 const CREATE_PER_HOUR = 120;
 /** new setup sessions per address or account in any minute, and the unused ones an account may hold */

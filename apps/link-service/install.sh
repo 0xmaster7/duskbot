@@ -1688,6 +1688,9 @@ do_address() {
     # a way an older line chose that is no longer offered
     *) relay_address "the $WANT way is no longer offered; using the private relay" ;;
   esac
+  # every server keeps a cloudflare quick tunnel as a backup path, run by the link agent (no account, no login): the
+  # package comes from cloudflare's signed apt repository here, best effort (the agent fetches a pinned one otherwise)
+  [ "$WANT" = cloudflare ] || [ "${DUSK_LINK_BACKUP:-}" = off ] || ( cloudflared_install ) >/dev/null 2>&1 || true
 }
 
 install_output() {

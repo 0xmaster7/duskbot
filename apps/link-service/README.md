@@ -197,9 +197,9 @@ copy between them. `src/nodes.mjs`.
   phone does the same after a failed or unanswered request. A 404 from a node it moved to is "unlinked" only once the
   node it was linked through says 404 too. One node listed: nothing moves. Retries on both ends wait a random half to
   all of their backoff, so the servers and apps of a restarted node do not all come back in one second.
-- **Beats.** A streamed read writes an empty line after 5 s idle and says `x-link-beat: 5`; the app, the agent and the
-  phone drop a connection that stays silent for three beats and read again, so a network switch (wifi to a hotspot)
-  costs about 15 s without any help, and the desktop's address watch makes it a few.
+- **Beats.** A streamed read writes an empty line after 10 s idle and says `x-link-beat: 10`; the app, the agent and
+  the phone drop a connection that stays silent for two beats and 3 s and read again, so a network switch (wifi to a
+  hotspot) costs about 25 s without any help, and the desktop's address watch makes it a few.
 - **Proxies.** The app opens its relay connections inside the CONNECT tunnel of the proxy chromium would use for the
   url (`session.resolveProxy`, http proxies; DIRECT otherwise) and sends setup sessions through chromium's network; the
   agent honours `HTTPS_PROXY` and `NO_PROXY`.

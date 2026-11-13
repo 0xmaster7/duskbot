@@ -195,7 +195,7 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
     on.polling = true;
     try {
       while (!on.abort.signal.aborted) {
-        // a node that beats (x-link-beat) and then says nothing for three beats is on a dead connection (a network
+        // a node that beats (x-link-beat) and then says nothing for two beats and a bit is on a dead connection (a network
         // switch leaves it silent, not closed): the read ends and the next one dials afresh
         const quiet = new AbortController();
         const response = await streamFetch(`${route}/to-app?wait=25&stream=1`, {
@@ -206,7 +206,7 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
         noteRelayDate(response.headers.get("date"));
         const beatMs = Number(response.headers.get("x-link-beat")) * 1000;
         let heardAt = Date.now();
-        const beat = beatMs > 0 ? setInterval(() => { if (Date.now() - heardAt > beatMs * 3) quiet.abort(new Error("relay read went silent")); }, Math.min(1000, beatMs)) : null;
+        const beat = beatMs > 0 ? setInterval(() => { if (Date.now() - heardAt > beatMs * 2 + 3000) quiet.abort(new Error("relay read went silent")); }, Math.min(1000, beatMs)) : null;
         try { await readFrameBatches(response, async (frames) => {
           heardAt = Date.now();
           for (const sealed of frames) {

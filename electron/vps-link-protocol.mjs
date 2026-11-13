@@ -566,15 +566,16 @@ export async function readFrameBatches(response, onFrames) {
 }
 
 /**
- * a streamed read from a node that says it beats (x-link-beat, seconds) and then says nothing for three beats is on a
- * dead connection: `silent` rejects and `lost()` runs (drop the connection). a node without the header is never judged
+ * a streamed read from a node that says it beats (x-link-beat, seconds) and then says nothing for two beats and a bit is
+ * on a dead connection: `silent` rejects and `lost()` runs (drop the connection). a node without the header is never
+ * judged
  */
 export function beatWatch(response, lost) {
   const beatMs = Number(response.headers?.get?.("x-link-beat")) * 1000;
   let last = Date.now(), timer = null;
   const silent = new Promise((_resolve, reject) => {
     if (!(beatMs > 0)) return;
-    timer = setInterval(() => { if (Date.now() - last > beatMs * 3) { clearInterval(timer); lost(); reject(new Error("the streamed read went silent")); } }, Math.min(1000, beatMs));
+    timer = setInterval(() => { if (Date.now() - last > beatMs * 2 + 3000) { clearInterval(timer); lost(); reject(new Error("the streamed read went silent")); } }, Math.min(1000, beatMs));
     timer.unref?.();
   });
   silent.catch(() => {});

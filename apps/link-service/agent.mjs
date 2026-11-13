@@ -54,7 +54,7 @@ export const LINK_PROTOCOL = 2;
 export const LINK_MIN_APP = 1;
 export const LINK_MIN_SERVER = 1;
 export const AGENT_VERSION = "2.4.2";
-export const AGENT_CAPS = Object.freeze(["direct-ssh", "direct-wss", "direct-rtc", "egress", "egress-lane", "self-update", "cloud-relay"]);
+export const AGENT_CAPS = Object.freeze(["direct-ssh", "direct-wss", "direct-rtc", "direct-cf", "egress", "egress-lane", "self-update", "cloud-relay"]);
 /** what this agent says about itself, in its direct hello and its answer to the app's `hello` */
 export const agentHello = () => ({ protocol: LINK_PROTOCOL, minApp: LINK_MIN_APP, minServer: LINK_MIN_SERVER, agent: AGENT_VERSION, caps: [...AGENT_CAPS] });
 const FRAME_SKEW_MS = 5 * 60_000;
@@ -602,15 +602,16 @@ export async function readFrameBatches(response, onFrames) {
 }
 
 /**
- * a streamed read from a node that says it beats (x-link-beat, seconds) and then says nothing for three beats is on a
- * dead connection: `silent` rejects and `lost()` runs (drop the connection). a node without the header is never judged
+ * a streamed read from a node that says it beats (x-link-beat, seconds) and then says nothing for two beats and a bit is
+ * on a dead connection: `silent` rejects and `lost()` runs (drop the connection). a node without the header is never
+ * judged
  */
 export function beatWatch(response, lost) {
   const beatMs = Number(response.headers?.get?.("x-link-beat")) * 1000;
   let last = Date.now(), timer = null;
   const silent = new Promise((_resolve, reject) => {
     if (!(beatMs > 0)) return;
-    timer = setInterval(() => { if (Date.now() - last > beatMs * 3) { clearInterval(timer); lost(); reject(new Error("the streamed read went silent")); } }, Math.min(1000, beatMs));
+    timer = setInterval(() => { if (Date.now() - last > beatMs * 2 + 3000) { clearInterval(timer); lost(); reject(new Error("the streamed read went silent")); } }, Math.min(1000, beatMs));
     timer.unref?.();
   });
   silent.catch(() => {});
@@ -1245,6 +1246,70 @@ async function directWss(context, readSpki = spkiOf) {
   return { v: 1, url, spki: await readSpki(target.hostname, Number(target.port) || 443) };
 }
 
+// ---- the cloudflare backup path ----
+/**
+ * cloudflared the agent fetches for itself when the installer's apt package is not there: pinned release and sha256
+ * (github's own digests), never run unchecked
+ */
+export const CLOUDFLARED = Object.freeze({
+  version: "2026.11.0",
+  x64: { asset: "cloudflared-linux-amd64", sha256: "51f7c68b57ed7269164075d7e789efce5b59355982f06392deeb037d982a51fd" },
+  arm64: { asset: "cloudflared-linux-arm64", sha256: "abe54a006acf9faf2d19ee9d953cb0d0804e92f59c5382a162e57b84d086f56f" },
+});
+const BACKUP_RESTART_MS = [30_000, 60_000, 120_000, 300_000, 600_000];
+
+/** a cloudflared to run: the installer's, one on PATH, or the pinned one this agent fetched into its own folder */
+export async function cloudflaredBinary({ dir = join(configDir(), "bin"), fetchImpl = fetch, arch = process.arch, platform = process.platform, log = () => {} } = {}) {
+  for (const candidate of ["/usr/bin/cloudflared", "/usr/local/bin/cloudflared", ...String(process.env.PATH ?? "").split(":").filter(Boolean).map((one) => join(one, "cloudflared"))]) {
+    try { if (statSync(candidate).isFile()) return candidate; } catch { /* not here */ }
+  }
+  const pin = CLOUDFLARED[arch], file = join(dir, `cloudflared-${CLOUDFLARED.version}`);
+  if (!pin || platform !== "linux") return null;
+  try { if (createHash("sha256").update(readFileSync(file)).digest("hex") === pin.sha256) return file; } catch { /* not fetched yet */ }
+  const answer = await fetchImpl(`https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED.version}/${pin.asset}`, { signal: AbortSignal.timeout(5 * 60_000) });
+  if (!answer.ok) throw new Error(`cloudflared download answered ${answer.status}`);
+  const bytes = Buffer.from(await answer.arrayBuffer());
+  if (createHash("sha256").update(bytes).digest("hex") !== pin.sha256) throw new Error("cloudflared download did not match its pinned hash");
+  mkdirSync(dir, { recursive: true, mode: 0o700 });
+  writeFileSync(`${file}.tmp`, bytes, { mode: 0o700 });
+  renameSync(`${file}.tmp`, file);
+  log(`link: fetched cloudflared ${CLOUDFLARED.version} for the backup path`);
+  return file;
+}
+
+/**
+ * every server keeps a cloudflare quick tunnel (no account, no login) to its own direct listener as a backup path: the
+ * app reaches it as wss://<name>.trycloudflare.com/omb-direct when its direct ways fail and before the link relay.
+ * frames on it are sealed with the tunnel key like on every path, so cloudflare carries only ciphertext. best effort: no
+ * cloudflared, no backup, and everything else goes on. `url()` is the current address or null
+ */
+export function createBackupTunnel({ wssPort, binary = cloudflaredBinary, run = spawn, fetchImpl = fetch, log = () => {}, everyMs = 10_000 }) {
+  let child = null, host = null, stopped = false, timer = null, restarts = 0, metrics = null;
+  const freePort = () => new Promise((resolve, reject) => { const probe = createTcpServer(); probe.once("error", reject); probe.listen(0, "127.0.0.1", () => { const { port } = probe.address(); probe.close(() => resolve(port)); }); });
+  async function start() {
+    if (stopped) return;
+    let file;
+    try { file = await binary({ log }); } catch (error) { log(`link: no backup path (${error?.message ?? error})`); }
+    if (!file || stopped) { if (!stopped) again(); return; }
+    metrics = await freePort();
+    child = run(file, ["tunnel", "--no-autoupdate", "--metrics", `127.0.0.1:${metrics}`, "--url", `http://127.0.0.1:${wssPort}`], { stdio: "ignore" });
+    child.once("error", () => {});
+    child.once("exit", () => { child = null; host = null; if (!stopped) again(); });
+  }
+  function again() { const wait = BACKUP_RESTART_MS[Math.min(restarts++, BACKUP_RESTART_MS.length - 1)]; setTimeout(() => void start(), wait).unref?.(); }
+  async function look() {
+    if (!child || !metrics) return;
+    const found = await quickTunnelHost(`http://127.0.0.1:${metrics}/quicktunnel`, fetchImpl).catch(() => null);
+    if (found && found !== host) { host = found; restarts = 0; log(`link: backup path at ${host}`); }
+  }
+  return {
+    start() { if (stopped || child) return; void start(); timer = setInterval(() => void look(), everyMs); timer.unref?.(); },
+    stop() { stopped = true; clearInterval(timer); child?.kill(); child = null; },
+    url: () => (host ? `wss://${host}${WS_PATH}` : null),
+  };
+}
+let backupTunnel = null;
+
 // ---- the direct path over webrtc: electron/vps-link-rtc.mjs is the app's end ----
 // ---- shared with electron/vps-link-rtc.mjs (keep both in step; a test checks they interoperate) ----
 export const RTC_LABEL = "dusk-link";
@@ -1408,6 +1473,11 @@ export async function control(op, data, context = {}) {
   }
   if (op === "direct-key") return directKey(data, context);
   if (op === "direct-wss") return directWss(context, context.spkiOf);
+  if (op === "direct-cf") {
+    const url = (context.backup ?? backupTunnel)?.url() ?? null;
+    if (!url) throw new Error("this server has no backup path right now");
+    return { v: 1, url };
+  }
   if (op === "direct-rtc") return directRtc(data, context);
   if (op === "direct-off") { if (context.id) setDirectKey(context.id, null); return { ok: true }; }
   if (op === "pair") {
@@ -2195,7 +2265,11 @@ export function envProxy(env = process.env) {
   return (target) => (skip.some((item) => item === "*" || target.hostname === item.replace(/^\./, "") || target.hostname.endsWith(item.startsWith(".") ? item : `.${item}`)) ? null : proxy);
 }
 
-export function createTunnelAgent({ base, id, key: keyText, token, origin = null, server = SERVER, fetchImpl: given, log = (line) => console.error(line), stallMs = STREAM_STALL_MS, egress: egressOptions = null, update: updateOptions = null, waitS = 25, aheadMs = STREAM_AHEAD_MS }) {
+/** the agent's standby read on the relay: as long as the node allows (55 s), the next one 4 s before it ends */
+export const STANDBY_WAIT_S = 55;
+const STANDBY_AHEAD_MS = 51_000;
+
+export function createTunnelAgent({ base, id, key: keyText, token, origin = null, server = SERVER, fetchImpl: given, log = (line) => console.error(line), stallMs = STREAM_STALL_MS, egress: egressOptions = null, update: updateOptions = null, waitS = STANDBY_WAIT_S, aheadMs = STANDBY_AHEAD_MS }) {
   const context = { id, origin };
   // the app's last use of this link: anything but liveness, the handshake and the update op itself
   let lastUse = Date.now();
@@ -2291,7 +2365,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
       const hung = new Promise((_resolve, reject) => { hangTimer = setTimeout(() => { log("link: a read hung; starting over on a fresh connection"); fetchImpl.reset?.(); reject(new Error("a read hung")); }, waitS * 1000 + READ_HANG_MS); });
       hung.catch(() => {});
       try {
-        const response = await Promise.race([next ?? read(AbortSignal.any([abort.signal, stall.signal, AbortSignal.timeout(40_000)]), armStall), hung]);
+        const response = await Promise.race([next ?? read(AbortSignal.any([abort.signal, stall.signal, AbortSignal.timeout(waitS * 1000 + 15_000)]), armStall), hung]);
         if (streaming) aheadTimer = setTimeout(() => { ahead = read(AbortSignal.any([abort.signal, AbortSignal.timeout(aheadMs + 40_000)])); ahead.catch(() => {}); }, aheadMs);
         if (response.status === 404) {
           log("link: this server was unlinked in the app; the tunnel stops");
@@ -2524,7 +2598,7 @@ export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = 
       if (!next && !fetchImpl.connectAware) armStall();
       const get = (signal, onConnected) => fetchImpl(`${route}/to-vps?wait=${waitS}${streaming ? "&stream=1" : ""}`, { headers: { authorization: headers.authorization }, signal, onConnected });
       try {
-        const response = await (next ?? get(AbortSignal.any([abort.signal, stall.signal, AbortSignal.timeout(40_000)]), armStall));
+        const response = await (next ?? get(AbortSignal.any([abort.signal, stall.signal, AbortSignal.timeout(waitS * 1000 + 15_000)]), armStall));
         if (streaming) aheadTimer = setTimeout(() => { ahead = get(AbortSignal.any([abort.signal, AbortSignal.timeout(aheadMs + 40_000)])); ahead.catch(() => {}); }, aheadMs);
         if (!response.ok) {
           await response.body?.cancel();
@@ -2992,12 +3066,21 @@ async function tunnel() {
   const [directSocket, directWs] = await Promise.all([listenDirectSocket(agent.direct), process.env.DUSK_LINK_DIRECT === "off" ? null : listenDirectWss(agent.direct)]);
   // a server from before webrtc fetches node-datachannel for the app's link a minute after start (best effort)
   setTimeout(() => void ensureRtc(), 60_000).unref();
-  const addressBook = createAddressBook({ base: home, id: saved.id, key: saved.key, token: saved.token });
+  // the cloudflare backup path to the direct listener, whatever way this server was linked (DUSK_LINK_BACKUP=off: none)
+  backupTunnel = directWs && process.env.DUSK_LINK_BACKUP !== "off" ? createBackupTunnel({ wssPort: Number(process.env.DUSK_LINK_WSS_PORT) || 8797, log: (line) => console.error(line) }) : null;
+  backupTunnel?.start();
+  process.on("exit", () => backupTunnel?.stop());
+  // the sealed address in the directory carries the backup too, so an app whose relay path fails still finds it
+  const addressBook = createAddressBook({ base: home, id: saved.id, key: saved.key, token: saved.token, read: async () => {
+    const address = await currentAddress().catch(() => null), backup = backupTunnel?.url() ?? null;
+    if (!address && !backup) return null;
+    return { ...(address ?? { mode: "relay", via: "relay", origin: null, spki: null }), ...(backup ? { backup } : {}) };
+  } });
   addressBook.start();
   const relayUrl = cloudRelayUrl();
   const cloud = relayUrl ? createCloudRelay({ url: relayUrl, id: saved.id, key: saved.key, hub: agent.direct }) : null;
   cloud?.start();
-  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { addressBook.stop(); cloud?.stop(); serverUpdates?.stop(); phones?.stop(); agent.stop(); directSocket?.close(); directWs?.close(); process.exit(0); });
+  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { backupTunnel?.stop(); addressBook.stop(); cloud?.stop(); serverUpdates?.stop(); phones?.stop(); agent.stop(); directSocket?.close(); directWs?.close(); process.exit(0); });
   // the node watch: silent, or full, and another node is known: ask where to go (at most every NODE_ASK_MS); a
   // different answer restarts the agent (systemd brings it back in seconds) so everything reconnects there at once
   let moving = false, askedAt = 0;
@@ -3029,6 +3112,7 @@ async function tunnel() {
     }
   }
   clearInterval(watch);
+  backupTunnel?.stop();
   addressBook.stop();
   cloud?.stop();
   phones?.stop();

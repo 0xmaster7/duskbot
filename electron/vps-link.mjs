@@ -620,7 +620,23 @@ export function createVpsLink(deps) {
     } };
   }
 
-  /** the ways to the server, ssh first, then https on 443, then webrtc, then the cloud relay; the link service relay stays underneath them */
+  /**
+   * the server's cloudflare backup path (a quick tunnel to its direct listener; the frames on it are sealed like on every
+   * path): asked over the sealed tunnel, or read from the address it sealed into the directory when that cannot answer
+   */
+  const CF_ASK_MS = 10 * 60_000;
+  async function cfFor(link, proxy) {
+    if (!peers.get(link.id)?.caps?.includes("direct-cf") || !deps.direct?.wssConnector) return null;
+    if (!link.cf || now() - (link.cf.at ?? 0) > CF_ASK_MS) {
+      let url = await proxy.control("direct-cf", {}, 10_000).then((answer) => answer?.url, () => null);
+      url ??= (await proxy.sealedAddress?.().catch(() => null))?.backup ?? null;
+      if (typeof url === "string" && /^wss:\/\/[a-z0-9-]+\.trycloudflare\.com\/[A-Za-z0-9._~/-]*$/.test(url)) { link.cf = { url, at: now() }; write(); }
+    }
+    if (!link.cf?.url) return null;
+    return { name: "cf", connect: deps.direct.wssConnector({ url: link.cf.url, spki: null, via: "cf" }) };
+  }
+
+  /** the ways to the server: ssh, https on 443, webrtc, then the cloudflare backup, then the cloud relay; the link service relay stays underneath them */
   async function directFor(link, proxy) {
     if (!deps.direct || closed || proxy.useDirect === undefined) return;
     if (link.directOff && link.directRevoke) await revokeDirect(link, proxy);
@@ -636,6 +652,9 @@ export function createVpsLink(deps) {
     if (wss) ways.push({ name: "wss", connect: deps.direct.wssConnector({ url: wss.url, spki: wss.spki }) });
     const rtc = rtcFor(link, proxy);
     if (rtc) ways.push(rtc);
+    const cf = await cfFor(link, proxy);
+    if (closed || proxies.get(link.id) !== proxy) return;
+    if (cf) ways.push(cf);
     const cloud = await cloudFor(link, proxy);
     if (closed || proxies.get(link.id) !== proxy) return;
     if (cloud) ways.push(cloud);
@@ -643,7 +662,7 @@ export function createVpsLink(deps) {
     const registered = link.cloud;
     proxy.useDirect({
       connect: ways.length === 1 ? ways[0].connect : orderedConnect(ways, { log }),
-      pingMs: (via) => (via === "cloud" ? 20_000 : 5000),
+      pingMs: (via) => (via === "cloud" || via === "cf" ? 20_000 : 5000),
       // the key was removed, the server was reinstalled or its https key changed: ask again over the sealed tunnel, at most once an hour
       onFailure: (error) => {
         let again = false;
@@ -659,6 +678,12 @@ export function createVpsLink(deps) {
               delete link.cloud;
               again = true;
             }
+            continue;
+          }
+          // a quick tunnel's name changes when cloudflared restarts: a failed one is asked for again (at most every minute)
+          if ((one?.via === "cf" || (ways.length === 1 && cf)) && link.cf && now() - (link.cf.at ?? 0) > 60_000) {
+            delete link.cf;
+            again = true;
             continue;
           }
           if (one?.code === "PIN" && wss && link.wss === wss && !(wss.at && now() - wss.at < REPROVISION_MS)) {

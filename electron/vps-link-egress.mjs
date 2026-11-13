@@ -125,7 +125,7 @@ export function createEgressEndpoint({
   const relay = { send, bytes, queued, onDrain };
   const streams = new Map();
   const dials = [];
-  let budget = bytesPerSecond, relayBudget = relayBytesPerSecond, refilledAt = now(), closed = false, hello = null;
+  let budget = bytesPerSecond, relayBudget = relayBytesPerSecond, refilledAt = now(), closed = false, hello = null, say = null;
   const stats = { relayed: 0, refused: 0 };
 
   function take(size, path) {
@@ -204,10 +204,12 @@ export function createEgressEndpoint({
     start() {
       if (hello || closed) return;
       dialer.warm?.();
-      const say = () => {
+      // over the direct path while it is up, the relay only otherwise: a hello on the relay every 15 s kept every open
+      // desktop counted as a busy tunnel there
+      say = () => {
         const hello = { t: "egress", v: 1, ready: true, max: maxStreams };
-        send(hello);
         if (direct?.live()) direct.send(hello);
+        else send(hello);
       };
       say();
       hello = setInterval(say, helloMs);
@@ -233,6 +235,8 @@ export function createEgressEndpoint({
     pathLost(name) {
       if (name !== "direct" || !direct) return;
       for (const [r, entry] of Array.from(streams)) if (entry.path === direct) forget(r, true, relay);
+      // the server heard the last hellos on the path that just went: say it again where it can hear
+      if (!closed && hello) say?.();
     },
     close() {
       if (closed) return;
