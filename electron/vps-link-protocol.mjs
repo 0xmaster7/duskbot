@@ -421,7 +421,13 @@ export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, 
     let stream;
     try { stream = one.request(headers, { endStream: !body }); } catch (error) { reject(error); return; }
     let answered = false;
-    const quiet = setTimeout(() => { if (!answered) check(one); }, checkMs);
+    // a body that could not even be sent in that time: the connection's flow window is held (a proxy that answered
+    // without reading an earlier body), and a ping would still pass, so the connection goes
+    const quiet = setTimeout(() => {
+      if (answered) return;
+      if (body && !stream.writableFinished && one.state?.remoteWindowSize === 0) { if (session === one) session = null; one.destroy(); return; }
+      check(one);
+    }, checkMs);
     quiet.unref?.();
     const stop = () => { stream.close(h2Constants.NGHTTP2_CANCEL); if (!answered) reject(signal.reason); };
     signal?.addEventListener("abort", stop, { once: true });
@@ -715,10 +721,11 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
   // the egress lane's posts carry no sequence: they never wait in the relay behind the main queue's held posts
   async function post(frames, at, lane = false) {
     let busy = false;
-    const started = Date.now();
+    // a post keeps the epoch it was numbered in; one still out when a new epoch starts lands in the old one, retired
+    const started = Date.now(), mine = epoch;
     for (let attempt = 0; !closed; attempt += 1) {
       try {
-        const response = await fetchImpl(`${route}/to-vps`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify(lane ? { frames, lane: true } : { frames, epoch, seq: at }), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(60_000)]) });
+        const response = await fetchImpl(`${route}/to-vps`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify(lane ? { frames, lane: true } : { frames, epoch: mine, seq: at }), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(60_000)]) });
         // read, not cancelled: a cancelled body closes the socket the next post would reuse
         const said = await response.text().catch(() => "");
         if (response.ok && !ordered && !lane) ordered = /"ordered":true/.test(said);
@@ -728,7 +735,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
         if (response.status === 404 && await reallyGone()) { closed = true; abort.abort(); fail("This server was unlinked."); return false; }
         if (response.status === 429 && /"code":"daily_limit"/.test(said)) { if (!lane) { epoch = randomB32(12); fail(JSON.parse(said).error); } return false; }
         // the server reads slower than this computer sends (a big upload): that is waiting, not failing, for a minute
-        if (response.status === 429 && /"code":"queue_full"/.test(said) && Date.now() - started < BEHIND_PATIENCE_MS) attempt = Math.min(attempt, 3);
+        if (response.status === 429 && /"code":"queue_full"/.test(said) && Date.now() - started < BEHIND_PATIENCE_MS) attempt = Math.min(attempt, 1);
         else if (response.status === 503 && /"code":"relay_busy"/.test(said)) {
           // full: the server moves to a node with room on its own; follow it, and the direct path carries on meanwhile
           busy = true;

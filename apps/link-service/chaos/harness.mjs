@@ -160,6 +160,8 @@ export async function createFront({ key, cert, target }) {
     const second = Math.floor(Date.now() / 1000);
     perSecond.set(second, (perSecond.get(second) ?? 0) + 1);
     if (fault === "5xx" || (fault === "sync" && path.startsWith("/internal/"))) {
+      // nginx reads and drops the body it will not pass on; an h2 body left unread holds the connection's window
+      req.resume();
       res.writeHead(502, { "content-type": "text/html" });
       res.end("<html><body>502 Bad Gateway</body></html>");
       return;

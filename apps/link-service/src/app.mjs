@@ -47,7 +47,9 @@ const STREAM_LINE_BYTES = 256 * 1024;
 /** the egress lane's own room: its frames are small (dials, answers, a page's first bytes) */
 const LANE_FRAMES = 512;
 const LANE_BYTES = 4 * 1024 * 1024;
-const HELD_POSTS = 8;
+// more than the posts a writer has out at once (8 over http/2), so retries landing out of order after a blip are held,
+// not refused
+const HELD_POSTS = 32;
 const GAP_MS = 15_000;
 const FRESH_GAP_MS = 300;
 const EPOCH = /^[a-z2-7]{12}$/;

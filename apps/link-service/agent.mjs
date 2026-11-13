@@ -456,7 +456,13 @@ export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, 
     let stream;
     try { stream = one.request(headers, { endStream: !body }); } catch (error) { reject(error); return; }
     let answered = false;
-    const quiet = setTimeout(() => { if (!answered) check(one); }, checkMs);
+    // a body that could not even be sent in that time: the connection's flow window is held (a proxy that answered
+    // without reading an earlier body), and a ping would still pass, so the connection goes
+    const quiet = setTimeout(() => {
+      if (answered) return;
+      if (body && !stream.writableFinished && one.state?.remoteWindowSize === 0) { if (session === one) session = null; one.destroy(); return; }
+      check(one);
+    }, checkMs);
     quiet.unref?.();
     const stop = () => { stream.close(h2Constants.NGHTTP2_CANCEL); if (!answered) reject(signal.reason); };
     signal?.addEventListener("abort", stop, { once: true });
@@ -1999,6 +2005,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
   let ordered = false;
   // the egress lane's posts carry no sequence: they never wait in the relay behind the main queue's held posts
   const post = async (frames, at, lane = false) => {
+    let fullSince = null;
     for (let attempt = 0; !stopped; attempt += 1) {
       try {
         const response = await fetchImpl(`${base}/v1/tunnels/${id}/to-app`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify(lane ? { frames, lane: true } : { frames, epoch, seq: at }), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(60_000)]) });
@@ -2008,6 +2015,8 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
         if (response.ok) { successfulPosts += 1; lastOkAt = Date.now(); pollRetry?.abort(); return true; }
         if (response.status === 404) { stop("unlinked"); return false; }
         if (response.status === 503 && /"relay_busy"/.test(said)) busyAt = Date.now();
+        // the relay holds later posts for this one, or the app reads a moment behind: soon, not after a growing backoff
+        if (response.status === 429 && /"queue_full"/.test(said) && Date.now() - (fullSince ??= Date.now()) < 10_000) { await wait(spread(400)); continue; }
       } catch { /* retried below */ }
       if (stopped) break;
       await wait(spread(Math.min(5000, 200 * 2 ** attempt)));
