@@ -4,6 +4,7 @@ import { t } from "@/lib/i18n";
 import { api, useStore } from "@/state/store";
 import type { LiveProvider, LiveSettings } from "../../shared/wire";
 import { Select } from "./Select";
+import { friendlyError } from "@/lib/plain-error";
 
 type ProviderPatch = Partial<Pick<LiveSettings, "provider" | "azureEndpoint" | "azureDeployment">>;
 
@@ -26,7 +27,7 @@ export function LiveProviderSettings() {
       const body = await api<{ live: LiveSettings }>("/api/live/settings", { method: "PATCH", body: JSON.stringify(patch) });
       if (state.config) dispatch({ type: "configStatus", config: { ...state.config, live: body.live } });
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : String(saveError));
+      setError(friendlyError(saveError));
     } finally {
       setSaving(false);
     }

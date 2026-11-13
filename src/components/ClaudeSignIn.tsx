@@ -5,6 +5,7 @@ import { t } from "@/lib/i18n";
 import { openExternalLink } from "@/lib/app-links";
 import { engineSignedIn } from "@/lib/product-events";
 import { type DeviceSignInStatus } from "./DeviceSignIn";
+import { friendlyError } from "@/lib/plain-error";
 
 const SIGN_IN_HOSTS = ["claude.com", "claude.ai", "console.anthropic.com", "platform.claude.com"];
 
@@ -72,7 +73,7 @@ export function ClaudeSignIn({ instanceId, autoStart = false, onDone }: {
       const opened = claudeSignInLink(next.authorizationUrl);
       if (opened) await openExternalLink(opened).catch(() => {});
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t("engineSetup.device.failed"));
+      setError(friendlyError(cause, t("engineSetup.device.failed")));
     } finally {
       setBusy(null);
     }
@@ -93,7 +94,7 @@ export function ClaudeSignIn({ instanceId, autoStart = false, onDone }: {
       await api(`${base}/complete`, { method: "POST", body: JSON.stringify({ flowId: auth.flowId, code: code.trim() }) });
       await succeeded();
     } catch (cause) {
-      const message = cause instanceof Error ? cause.message : t("engineSetup.device.failed");
+      const message = friendlyError(cause, t("engineSetup.device.failed"));
       if (cause instanceof ApiError && [401, 403, 404, 410].includes(cause.status)) {
         setAuth(ended("expired"));
         return;

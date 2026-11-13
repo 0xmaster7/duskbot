@@ -3,6 +3,7 @@ import { Loader2 } from "../icons";
 import { t } from "@/lib/i18n";
 import { api } from "@/state/store";
 import { Switch } from "./SettingsPrimitives";
+import { friendlyError } from "@/lib/plain-error";
 
 export function McpAppsSwitch<T>({ server, disabled, onSaved }: {
   server: { name: string; apps?: boolean; hasApps?: boolean };
@@ -21,7 +22,7 @@ export function McpAppsSwitch<T>({ server, disabled, onSaved }: {
       const result = await api<{ servers?: T[] }>(`/api/mcp/servers/${encodeURIComponent(server.name)}`, { method: "PATCH", body: JSON.stringify({ apps: !on }) });
       onSaved(result.servers ?? []);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setBusy(false);
     }

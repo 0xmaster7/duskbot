@@ -13,6 +13,7 @@ import { WEBHOOK_DEFAULT_MAX_PENDING_RUNS, WEBHOOK_MAX_PENDING_RUNS_LIMIT, webho
 import { api, useStore, type Bot } from "@/state/store";
 import { Icon } from "./Icon";
 import { fieldLabelCls, formBodyCls, formCloseCls, formFooterCls, formHeaderCls, formSheetCls, formTitleCls, mdPrimaryCls, mdSecondaryCls, textAreaCls, textFieldCls } from "./ui/GrokDialog";
+import { friendlyError } from "@/lib/plain-error";
 
 /** A name when the person gives none: the instructions' first words, or the bot's. */
 export function suggestedName(prompt: string, bot?: Bot) {
@@ -52,7 +53,7 @@ export function WebhookEditor({ webhook, bots, initialBotId, onClose, onCredenti
       onClose();
       if (response.credential) onCredential(response.credential, response.webhook.id);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setSaving(false);
     }

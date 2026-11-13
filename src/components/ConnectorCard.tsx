@@ -14,6 +14,7 @@ import { ServiceTile } from "./ServiceIcon";
 import { appLogo } from "./connect-apps/logos";
 import { openConnectApps } from "./connect-apps/open";
 import { Icon } from "./Icon";
+import { friendlyError } from "@/lib/plain-error";
 
 const STATUS_CHECK_MS = 4_000;
 /** Composio marks an unfinished account EXPIRED shortly after its link lapses; the card keeps asking until it can say so. */
@@ -109,8 +110,8 @@ export function ConnectorCard({ botId, threadId, message }: { botId: string; col
       }
     } catch (error) {
       if (!isCurrent()) return;
-      if (isMcp && error instanceof ApiError && error.status === 409) setRefusal(error.message);
-      else setLocalError(error instanceof Error ? error.message : String(error));
+      if (isMcp && error instanceof ApiError && error.status === 409) setRefusal(friendlyError(error));
+      else setLocalError(friendlyError(error));
     } finally {
       launch.cancel();
       if (isCurrent()) {
@@ -126,7 +127,7 @@ export function ConnectorCard({ botId, threadId, message }: { botId: string; col
     try {
       await api(`${endpoint}/resume`, { method: "POST", body: JSON.stringify({ threadId }) });
     } catch (error) {
-      setLocalError(error instanceof Error ? error.message : String(error));
+      setLocalError(friendlyError(error));
     } finally {
       setBusy(false);
     }

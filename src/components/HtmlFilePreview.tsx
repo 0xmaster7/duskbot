@@ -4,6 +4,7 @@ import { requestMessageFile, useLocalFileSave, type MessageAttachmentContext } f
 import { TableDialog } from "./RichTable";
 import { readTableResponse } from "./TableFilePreview";
 import { t } from "@/lib/i18n";
+import { friendlyError } from "@/lib/plain-error";
 
 export const HTML_PREVIEW_MAX_BYTES = 2 * 1024 * 1024;
 
@@ -81,7 +82,7 @@ export function OpenInBrowserButton({ source, name, onError }: { source: string;
   const label = t("html.openInBrowser", { name });
   return <button type="button" className="table-action" aria-label={label} title={label} onClick={() => {
     onError("");
-    open(source, name).catch((reason: unknown) => onError(reason instanceof Error && reason.message ? reason.message : t("html.openFailed")));
+    open(source, name).catch((reason: unknown) => onError(friendlyError(reason, t("html.openFailed"))));
   }}><ExternalLink size={14} /></button>;
 }
 

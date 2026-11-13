@@ -6,6 +6,7 @@ import { phoneAppChips, phonePlatformLabel, phoneRemovePath, usePhones } from ".
 import { relative } from "./CompanionSection";
 import { SettingRow, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
 import { PlaceArt } from "./ui/PlaceArt";
+import { friendlyError } from "@/lib/plain-error";
 
 export function PhonesList() {
   const { phase, phones, refresh } = usePhones();
@@ -17,7 +18,7 @@ export function PhonesList() {
     if (removing) return;
     setRemoving(key);
     void api(phoneRemovePath(key), { method: "DELETE" })
-      .catch((error: unknown) => dispatch({ type: "error", message: error instanceof Error ? error.message : String(error) }))
+      .catch((error: unknown) => dispatch({ type: "error", message: friendlyError(error) }))
       .finally(() => {
         setRemoving(null);
         refresh();

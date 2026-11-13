@@ -33,6 +33,7 @@ import { FilePreviewButton } from "./FilePreviewButton";
 import { MermaidViewer } from "./MermaidViewer";
 import { SaveIconButton, useHtmlPreview } from "./HtmlFilePreview";
 import "./chat.css";
+import { friendlyError } from "@/lib/plain-error";
 
 const mermaidCache = new Map<string, string>();
 const MERMAID_CACHE_MAX = 50;
@@ -243,7 +244,7 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
       })
       .catch((cause: unknown) => {
         if (!alive) return;
-        const message = cause instanceof Error ? cause.message : String(cause);
+        const message = friendlyError(cause);
         setError(message.length > 300 ? `${message.slice(0, 300)}…` : message);
       });
     return () => {

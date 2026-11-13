@@ -8,6 +8,7 @@ import {
 } from "../../../shared/written-skill";
 import { useBotEditor } from "./BotEditorContext";
 import { inputCls } from "./field";
+import { friendlyError } from "@/lib/plain-error";
 
 const PROBLEM_KEY = {
   name: "skills.write.problem.name",
@@ -53,7 +54,7 @@ export function WriteCommandCard({ bot, taken, onSaved }: { bot: Bot; taken: rea
       setInstructions("");
       onSaved();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t("skills.write.failed"));
+      setError(friendlyError(cause, t("skills.write.failed")));
     } finally {
       setSaving(false);
     }

@@ -12,6 +12,7 @@ import { api, useStore, type ConfigStatus } from "@/state/store";
 import { AdminOnly } from "../AdminOnly";
 import { buttonCls, Card, fieldCls, ItemRow, LinkRow, NoteRow, rowCls, Segmented } from "../bot-panel/rows";
 import { SettingsSelect } from "../SettingsSelect";
+import { friendlyError } from "@/lib/plain-error";
 
 export type JevProvider = "gateway" | "openrouter" | "jev";
 type Api = "chat" | "decisions";
@@ -114,7 +115,7 @@ function JevReady({ ready, onChange }: { ready: boolean; onChange: () => void })
     try {
       dispatch({ type: "configStatus", config: await api<ConfigStatus>("/api/config", { method: "PUT", body: JSON.stringify({ decider: { enabled: true, jobs: { roomRouting: true } } }) }) });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setBusy(false);
     }
@@ -169,7 +170,7 @@ function JevForm({ onDone }: { onDone?: () => void }) {
       const result = await api<TestResult>("/api/decider/test", { method: "POST", body: JSON.stringify({ provider, ...(draft ? { key: draft } : {}) }) });
       setVerdict(result.ok ? { ok: true, text: t("room.jev.works", { ms: String(result.latencyMs) }) } : { ok: false, text: jevFailureText(result) });
     } catch (cause) {
-      setVerdict({ ok: false, text: cause instanceof Error ? cause.message : String(cause) });
+      setVerdict({ ok: false, text: friendlyError(cause) });
     } finally {
       setTesting(false);
     }
@@ -195,7 +196,7 @@ function JevForm({ onDone }: { onDone?: () => void }) {
       setKey("");
       onDone?.();
     } catch (cause) {
-      setVerdict({ ok: false, text: cause instanceof Error ? cause.message : String(cause) });
+      setVerdict({ ok: false, text: friendlyError(cause) });
     } finally {
       setSaving(false);
     }

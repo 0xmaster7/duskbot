@@ -81,6 +81,7 @@ import { SectionPicker } from "./SidebarSectionPicker";
 export { PinnedBotCircle, PinnedCircleThreadSection } from "./PinnedCircleThreads";
 export { ArchivedBotRow, ArchivedBotsPanel, archivedDeleteAllCopy, botConfirmCopy, type BotConfirmKind } from "./ArchivedBotsPanel";
 import { roomDeleteCopy } from "./room-delete-copy"; export { roomDeleteCopy };
+import { friendlyError } from "@/lib/plain-error";
 
 /** The centre of macOS's traffic lights (14px tall) with the window's frame off, where the window puts them at 16,16. */
 export const MAC_TRAFFIC_LIGHT_CENTER_Y = 23;
@@ -602,7 +603,7 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
                 if (remoteClient) {
                   void api(`/api/bots/${bot.id}/profile`, { method: "PATCH", body: JSON.stringify({ name }) })
                     .then(({ bot: updated }) => dispatch({ type: "botPatched", bot: updated }))
-                    .catch((cause) => dispatch({ type: "error", message: cause instanceof Error ? cause.message : String(cause) }));
+                    .catch((cause) => dispatch({ type: "error", message: friendlyError(cause) }));
                 } else {
                   dispatch({ type: "updateBot", botId: bot.id, patch: { name } });
                 }
@@ -869,7 +870,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
       openBot(dispatch, response.bot);
       setTeamFeedback({ error: false, text: t("sidebar.archived.restored", { name: bot.name }) });
     } catch (cause) {
-      setTeamFeedback({ error: true, text: cause instanceof Error ? cause.message : String(cause) });
+      setTeamFeedback({ error: true, text: friendlyError(cause) });
     }
   };
 
@@ -1327,7 +1328,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
           setTeamDeletePending(true);
           void api(`/api/sidebar-sections?section=${encodeURIComponent(name)}`, { method: "DELETE" })
             .then(({ sections }) => { dispatch({ type: "sectionDeleted", section: name, sections }); setDeletingTeam(null); })
-            .catch(cause => setTeamFeedback({ error: true, text: cause instanceof Error ? cause.message : String(cause) }))
+            .catch(cause => setTeamFeedback({ error: true, text: friendlyError(cause) }))
             .finally(() => { teamDeleteRunning.current = false; setTeamDeletePending(false); });
         }} />
       <RoomContextMenu

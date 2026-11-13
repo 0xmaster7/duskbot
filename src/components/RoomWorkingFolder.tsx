@@ -5,6 +5,7 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { shortPath } from "@/lib/short-path";
 import { useDesktopCapabilities } from "./DesktopCapabilities";
+import { friendlyError } from "@/lib/plain-error";
 
 /**
  * PATCHed directly, not via patchGroup: the server validates the path, and a rejected folder must not stick in local
@@ -28,7 +29,7 @@ export function RoomWorkingFolder({ group, heading = true }: { group: Group; hea
       await api(`/api/groups/${group.id}`, { method: "PATCH", body: JSON.stringify({ cwd }) });
       setDraft(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(friendlyError(e));
     } finally {
       setSaving(false);
     }

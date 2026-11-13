@@ -3,6 +3,7 @@ import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { SettingRow } from "./SettingsPrimitives";
+import { friendlyError } from "@/lib/plain-error";
 
 /**
  * Where this app's logs are, and the recent part of them to share with support. Security: the report never holds
@@ -21,7 +22,7 @@ export function DiagnosticsRow({ simple = false }: { simple?: boolean }) {
       const path = await window.duskDesktop.exportDiagnostics();
       if (path) setResult({ kind: "success", message: t("settings.diagnostics.saved", { path }) });
     } catch (e) {
-      setResult({ kind: "error", message: e instanceof Error ? e.message : String(e) });
+      setResult({ kind: "error", message: friendlyError(e) });
     } finally {
       setExporting(false);
     }
@@ -35,7 +36,7 @@ export function DiagnosticsRow({ simple = false }: { simple?: boolean }) {
       setFolder(opened.folder);
       if (!opened.opened) setResult({ kind: "error", message: t("settings.diagnostics.openFailed", { folder: opened.folder }) });
     } catch (e) {
-      setResult({ kind: "error", message: e instanceof Error ? e.message : String(e) });
+      setResult({ kind: "error", message: friendlyError(e) });
     }
   };
 

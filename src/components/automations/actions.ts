@@ -7,6 +7,7 @@ import type { RoutineRun } from "@/lib/routines";
 import { keptWebhookAddress, loadWebhookCredentials, removeWebhookCredential, saveWebhookCredential, webhookCredentialStore } from "@/lib/webhook-credentials";
 import type { WebhookCredential } from "@/lib/webhooks";
 import { api, openBotThread, useStore } from "@/state/store";
+import { friendlyError } from "@/lib/plain-error";
 
 export function useAutomationActions() {
   const { state, dispatch } = useStore();
@@ -22,7 +23,7 @@ export function useAutomationActions() {
     setError("");
     setErrorFor(null);
     try { await work(); }
-    catch (failure) { setError(failure instanceof Error ? failure.message : String(failure)); setErrorFor(key); }
+    catch (failure) { setError(friendlyError(failure)); setErrorFor(key); }
     finally { setBusy(null); }
   };
 

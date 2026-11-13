@@ -9,6 +9,7 @@ import { cn } from "@/lib/cn";
 import { dialogPrimaryCls, fieldLabelCls, footnoteCls, formBodyCls, formCloseCls, formFooterCls, formHeaderCls, formSheetCls, formTitleCls, mdPrimaryCls, mdSecondaryCls, rowHintCls, textAreaCls, textFieldCls } from "./ui/GrokDialog";
 import type { NewBotDefaults } from "../../shared/new-bot-defaults";
 import type { PackageDocument, PackageSummary } from "../../shared/package-format";
+import { friendlyError } from "@/lib/plain-error";
 
 const shareLabelCls = "pl-3.5 text-[12px] leading-4 tracking-[0.01em] text-ink/68";
 const shareCardCls = "rounded-[14px] bg-menu px-3.5 py-2.5 text-[13px] leading-[18px] outline-1 -outline-offset-1 outline-transparent [outline-style:solid]";
@@ -140,7 +141,7 @@ export function SharePresetDialog({ onClose }: { onClose: () => void }) {
         .catch((cause) => {
           if (id !== request.current) return;
           setPreview(null);
-          setError(cause instanceof Error ? cause.message : String(cause));
+          setError(friendlyError(cause));
         });
     }, 250);
     return () => window.clearTimeout(timer);
@@ -156,7 +157,7 @@ export function SharePresetDialog({ onClose }: { onClose: () => void }) {
       saveShareFile(result.filename, result.document);
       setSaved(result);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setSaving(false);
     }

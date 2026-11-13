@@ -9,6 +9,7 @@ import { api, useStore, type Bot } from "@/state/store";
 import { BOT_API_KEY_PLACEHOLDER, BOT_API_UPGRADE, botApiCurl } from "../../../shared/bot-api";
 import { NoteLine, useCloudUsage, useUpgrade } from "../CloudUsageMeter";
 import { Switch } from "../SettingsPrimitives";
+import { friendlyError } from "@/lib/plain-error";
 
 export interface BotApiCall {
   id: string;
@@ -113,7 +114,7 @@ function BotApiSection({ bot, webhooksLink = false, className }: { bot: Bot; web
       setView(next);
       setFreshKey(key ?? null);
     } catch (failure) {
-      setError(failure instanceof Error && failure.message ? failure.message : t("botApi.error"));
+      setError(friendlyError(failure, t("botApi.error")));
     } finally {
       setBusy(false);
     }

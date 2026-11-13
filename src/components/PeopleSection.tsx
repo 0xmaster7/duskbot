@@ -11,6 +11,7 @@ import { SettingRow } from "./SettingsPrimitives";
 import { SettingsSelect } from "./SettingsSelect";
 import { CopyRow, FormDialog, FormField, ItemRow, NoteRow } from "./ListRows";
 import { textFieldCls } from "./ui/GrokDialog";
+import { friendlyError } from "@/lib/plain-error";
 
 export type Role = "admin" | "member";
 
@@ -142,7 +143,7 @@ export function PeopleSection() {
       if (typeof domain?.publicUrl === "string" && domain.publicUrl) setBase(domain.publicUrl);
       setEmailOffered(environment?.capabilities?.emailSignIn === true ? true : environment ? false : null);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setLoading(false);
     }
@@ -162,7 +163,7 @@ export function PeopleSection() {
       await api("/api/config", { method: "PUT", body: JSON.stringify({ signIn: next }) });
       await load();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setBusy(false);
     }

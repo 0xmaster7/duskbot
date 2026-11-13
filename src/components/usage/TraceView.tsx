@@ -6,6 +6,7 @@ import { listenLiveFrames } from "@/lib/live-events";
 import { fetchTrace } from "@/lib/usage-trace";
 import type { TraceDetail } from "../../../shared/usage-trace";
 import { TraceWaterfall } from "./TraceWaterfall";
+import { friendlyError } from "@/lib/plain-error";
 
 /** Refetches at most this often while the run is live; the now-line ticks in between. */
 const LIVE_REFRESH_MS = 1_000;
@@ -24,7 +25,7 @@ export function useTrace(id: string, at?: number): { detail: TraceDetail | null;
     load.current = () => {
       void fetchTrace(id, at)
         .then((next) => { if (current) { setDetail(next); setError(null); setNow(Date.now()); } })
-        .catch((cause) => { if (current) setError(cause instanceof Error ? cause.message : String(cause)); });
+        .catch((cause) => { if (current) setError(friendlyError(cause)); });
     };
     setDetail(null);
     load.current();

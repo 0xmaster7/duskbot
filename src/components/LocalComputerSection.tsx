@@ -17,6 +17,7 @@ import { VpsComputersCard } from "./VpsComputersCard";
 import { DirectLinkRow } from "./DirectLinkRow";
 import { RouteTrafficRow } from "./RouteTrafficRow";
 import { MacControlRow } from "./MacControlRow";
+import { friendlyError } from "@/lib/plain-error";
 
 type Action = "pull" | "run" | "start" | "stop" | "remove" | "recreate";
 
@@ -422,7 +423,7 @@ export function LocalVmIdleTimeoutSetting({
       setError("");
       setOpen(false);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t("vm.idle.error"));
+      setError(friendlyError(cause, t("vm.idle.error")));
     } finally {
       setSaving(false);
     }
@@ -519,7 +520,7 @@ export function LocalComputerSection() {
       } catch (e) {
         if (active && !(e instanceof DOMException && e.name === "AbortError")) {
           setStatus(null);
-          setError(e instanceof Error ? e.message : String(e));
+          setError(friendlyError(e));
         }
       } finally {
         if (active) {
@@ -549,7 +550,7 @@ export function LocalComputerSection() {
     void refreshInventory(controller.signal)
       .catch((e) => {
         if (!(e instanceof DOMException && e.name === "AbortError")) {
-          setInventoryError(e instanceof Error ? e.message : String(e));
+          setInventoryError(friendlyError(e));
         }
       })
       .finally(() => {
@@ -564,7 +565,7 @@ export function LocalComputerSection() {
     void refreshVpsInventory(controller.signal)
       .catch((e) => {
         if (!(e instanceof DOMException && e.name === "AbortError")) {
-          setVpsUnavailableReason(e instanceof Error ? e.message : String(e));
+          setVpsUnavailableReason(friendlyError(e));
         }
       })
       .finally(() => {
@@ -630,7 +631,7 @@ export function LocalComputerSection() {
       );
     } catch (e) {
       if (controller.signal.aborted) return;
-      setError(e instanceof Error ? e.message : String(e));
+      setError(friendlyError(e));
     } finally {
       actionController.current = null;
       if (!controller.signal.aborted) setPending(null);
@@ -651,7 +652,7 @@ export function LocalComputerSection() {
       setStatus((current) => current ? { ...current, mode, max_instances: maxInstances } : current);
       await refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(friendlyError(e));
     } finally {
       setPolicyPending(false);
     }
@@ -687,7 +688,7 @@ export function LocalComputerSection() {
       await refreshInventory();
       setAnnouncement(t("vm.announce.deletedBot", { name: instance.name }));
     } catch (e) {
-      setInventoryError(e instanceof Error ? e.message : String(e));
+      setInventoryError(friendlyError(e));
     } finally {
       setDeletingBotId(null);
     }
@@ -715,7 +716,7 @@ export function LocalComputerSection() {
         }),
       );
     } catch (e) {
-      setVpsError(e instanceof Error ? e.message : String(e));
+      setVpsError(friendlyError(e));
     } finally {
       setVpsRemovingName(null);
     }

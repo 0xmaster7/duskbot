@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type Dispatch } from "react";
 import { api } from "./api";
 import type { Action, AppState, Bot, Group, Message } from "./store";
 import type { TranscriptCache } from "./transcript-cache";
+import { friendlyError } from "@/lib/plain-error";
 
 /** How many of each conversation's newest messages the one startup read brings. */
 export const BULK_PAGE = 50;
@@ -87,7 +88,7 @@ export function useSelectedTranscript(state: AppState, dispatch: Dispatch<Action
       }, (error) => {
         if (stopped) return;
         attempts += 1;
-        if (attempts === 3) dispatch({ type: "error", message: error instanceof Error ? error.message : String(error) });
+        if (attempts === 3) dispatch({ type: "error", message: friendlyError(error) });
         retry = setTimeout(load, Math.min(30_000, 1_000 * 2 ** Math.min(attempts - 1, 5)));
       });
     };

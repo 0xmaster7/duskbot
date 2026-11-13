@@ -3,6 +3,7 @@ import { Check, CircleAlert, LoaderCircle, RefreshCw } from "../icons";
 import { engineReady } from "@/components/EngineLibrary";
 import { t } from "@/lib/i18n";
 import { api, type InstanceInfo } from "@/state/store";
+import { friendlyError } from "@/lib/plain-error";
 
 export type EngineLiveCheck = { state: "checking" } | { state: "working" } | { state: "failed"; error: string };
 type Answer = { ok: true } | { ok: false; error: string } | { ok: null };
@@ -19,7 +20,7 @@ export function useEngineLiveCheck(engines: readonly InstanceInfo[]) {
       const answer = await api<Answer>(`/api/instances/${encodeURIComponent(instanceId)}/check`, { method: "POST", body: "{}", timeoutMs: 120_000 });
       next = answer.ok === true ? { state: "working" } : answer.ok === false ? { state: "failed", error: answer.error } : null;
     } catch (error) {
-      next = { state: "failed", error: error instanceof Error ? error.message : String(error) };
+      next = { state: "failed", error: friendlyError(error) };
     }
     setChecks(({ [instanceId]: _done, ...rest }) => next ? { ...rest, [instanceId]: next } : rest);
   }, []);

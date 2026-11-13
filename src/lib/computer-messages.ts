@@ -1,5 +1,6 @@
 import { t } from "./i18n";
 import type { LocaleKey } from "@/locales";
+import { friendlyError } from "@/lib/plain-error";
 
 /**
  * Computer status responses come from the server so they can also be useful
@@ -49,5 +50,6 @@ export function panelErrorText(error: Error | string | null): string | null {
   if (error instanceof LocalizedPanelError) {
     return t(error.key, error.fallbackKey ? { problem: localizeComputerProblem(error.problem) ?? t(error.fallbackKey) } : undefined);
   }
-  return localizeComputerProblem(error instanceof Error ? error.message : error);
+  const text = localizeComputerProblem(error instanceof Error ? error.message : error);
+  return text ? friendlyError(text) : text;
 }

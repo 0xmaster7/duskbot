@@ -18,6 +18,7 @@ import type { ToolkitCard } from "../ServiceIcon";
 import { cachedComposioSnapshot, loadComposioSnapshot, mergeCatalog } from "./composio-snapshot";
 import { plainConnectError } from "./connector-helpers";
 import { classifyViaError, keepPendingVia, readPendingVia, VIA_DEADLINE_MS, VIA_READ_MS, viaDelay, watchReturn, type ViaFailure, type ViaFlow } from "./via-flow";
+import { friendlyError } from "@/lib/plain-error";
 
 export type ConnectorError = string | { key: LocaleKey } | null;
 /** Composio Connect, Composio's own MCP server, signed in with Composio's page: apps connect through it with no key. */
@@ -319,7 +320,7 @@ export function useConnectors(): Connectors {
         viaNow.current = next;
         setVia(next);
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : String(cause));
+        setError(friendlyError(cause));
       }
     }
   };
@@ -578,6 +579,7 @@ export function useConnectors(): Connectors {
       if (!await launch.open(url) && opening.current.get(slug) === launch) setError({ key: "connectors.popupBlockedContinue" });
     } catch (cause) {
       if (opening.current.get(slug) !== launch) return;
+      // raw words to tell the failures apart; plainConnectError gives the line a person reads
       const message = cause instanceof Error ? cause.message : String(cause);
       if (needsComposioAuthConfig(message) && modeNow.current === "managed") {
         // the broker's project cannot sign in to it; Composio Connect, or the person's own key, can
@@ -611,7 +613,7 @@ export function useConnectors(): Connectors {
     setError(null);
     void launch.open(url)
       .then((opened) => { if (!opened && opening.current.get(slug) === launch) setError({ key: "connectors.popupBlockedContinue" }); })
-      .catch((cause) => setError(cause instanceof Error ? cause.message : String(cause)))
+      .catch((cause) => setError(friendlyError(cause)))
       .finally(() => {
         launch.cancel();
         if (opening.current.get(slug) === launch) opening.current.delete(slug);
@@ -638,7 +640,7 @@ export function useConnectors(): Connectors {
       // the key's project may have the app connected already: then there is nothing to sign in to
       goOn = !hasActiveConnection(inventory.services[slug]);
     } catch (cause) {
-      if (opening.current.get(slug) === launch) setError(cause instanceof Error ? cause.message : String(cause));
+      if (opening.current.get(slug) === launch) setError(friendlyError(cause));
     } finally {
       if (!goOn) {
         launch.cancel();

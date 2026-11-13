@@ -4,6 +4,7 @@ import { useStore, type InstanceInfo } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { InstanceProviderMark } from "./ProviderIcons";
+import { friendlyError } from "@/lib/plain-error";
 
 export function engineReady(instance: InstanceInfo): boolean {
   if (instance.driverKind === "clineAgent") {
@@ -108,7 +109,7 @@ export function RefreshEngines({ onChecked }: { onChecked?: () => void } = {}) {
       setError(null);
       setChecked(false);
       try { await refreshInstances({ reportErrors: true }); setChecked(true); onChecked?.(); }
-      catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+      catch (cause) { setError(friendlyError(cause)); }
       finally { setBusy(false); }
     }} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-[12px] font-medium text-ink-secondary hover:bg-control hover:text-ink focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-50">
       <RefreshCw size={13} aria-hidden="true" className={cn(busy && "animate-spin")} />

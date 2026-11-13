@@ -7,6 +7,7 @@ import { addedServers } from "@/lib/openai-compat-endpoints";
 import { cn } from "@/lib/cn";
 import { KEY_FIELD } from "./keys/KeyRow";
 import { Select } from "./Select";
+import { friendlyError } from "@/lib/plain-error";
 
 export function modelIds(text: string): string[] {
   return [...new Set(text.split(/[,，、\s]+/).map((id) => id.trim()).filter(Boolean))];
@@ -57,7 +58,7 @@ export function BuiltInReplyWait() {
         if (Array.isArray(instances)) dispatch({ type: "instances", instances: instances as InstanceInfo[] });
         else await refreshInstances({ reportErrors: true });
       })
-      .catch((e: Error) => setError(e.message || t("apiInstances.failed")))
+      .catch((e: unknown) => setError(friendlyError(e, t("apiInstances.failed"))))
       .finally(() => setBusy(false));
   };
   return (
@@ -94,7 +95,7 @@ function AddedServers({ servers }: { servers: Array<InstanceInfo & { url?: strin
         else await refreshInstances({ reportErrors: true });
         onDone?.();
       })
-      .catch((e: Error) => setError(e.message || t("apiInstances.failed")))
+      .catch((e: unknown) => setError(friendlyError(e, t("apiInstances.failed"))))
       .finally(() => setBusy(null));
   };
 
@@ -223,7 +224,7 @@ export function LmStudioServer({ heading = true }: { heading?: boolean } = {}) {
       },
       (cause: unknown) => {
         keySaved("custom_endpoint", "settings", "error");
-        setError(cause instanceof Error && cause.message ? cause.message : t("apiInstances.failed"));
+        setError(friendlyError(cause, t("apiInstances.failed")));
       },
     ).finally(() => setBusy(false));
   };

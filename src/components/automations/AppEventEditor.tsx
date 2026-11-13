@@ -13,6 +13,7 @@ import { Select } from "../Select";
 import { suggestedName } from "../WebhookTrigger";
 import { Icon } from "../Icon";
 import { fieldLabelCls, formBodyCls, formCloseCls, formFooterCls, formHeaderCls, formSheetCls, formTitleCls, mdPrimaryCls, mdSecondaryCls, rowButtonCls, textAreaCls, textFieldCls } from "../ui/GrokDialog";
+import { friendlyError } from "@/lib/plain-error";
 
 const FIELD = textFieldCls;
 const LABEL = cn(fieldLabelCls, "mb-1 block");
@@ -44,7 +45,7 @@ export function AppEventEditor({ trigger, bots, initialBotId, onClose, onSaved }
         const first = next.apps.find((candidate) => candidate.events.length);
         setApp((current) => next.apps.some((candidate) => candidate.app === current) ? current : first?.app ?? "");
       })
-      .catch((cause: unknown) => { if (alive) setError(cause instanceof Error ? cause.message : String(cause)); });
+      .catch((cause: unknown) => { if (alive) setError(friendlyError(cause)); });
     return () => { alive = false; };
   }, [botId, trigger]);
 
@@ -74,7 +75,7 @@ export function AppEventEditor({ trigger, bots, initialBotId, onClose, onSaved }
       onSaved?.(saved);
       onClose();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setSaving(false);
     }

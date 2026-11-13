@@ -415,6 +415,7 @@ function openedUnreadDivider(state: AppState, threadId: string, unread: boolean,
 }
 
 import type { BrowserEngineSummary, BrowserProfile, ConfigStatus, ManagedPolicySummary } from "./config-status";
+import { friendlyError } from "@/lib/plain-error";
 export type { BrowserEngineSummary, BrowserProfile, ConfigStatus, ManagedPolicySummary };
 
 // A section left out here is wiped from state.config whenever a config frame lands.
@@ -1981,7 +1982,7 @@ export async function persistBotUpdate(
       } catch (error) {
         throw new Error(
           `The cancelled ${approvalMode === "full" ? "Full access" : "Custom approval"} grant could not be revoked: ${
-            error instanceof Error ? error.message : String(error)
+            friendlyError(error)
           }`,
         );
       }
@@ -2154,7 +2155,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const olderPagesInFlight = new Set<string>();
     const newTaskOnce = createNewTaskOnce();
     let creatingBot = false;
-    const showError = (e: unknown) => { if (isBotLimitRefusal(e)) return; if (isNoAiRefusal(e)) wrapped({ type: "notice", notice: { kind: "note", botName: null, text: e.message } }); else rawDispatch({ type: "error", message: e instanceof Error ? e.message : String(e) }); };
+    const showError = (e: unknown) => { if (isBotLimitRefusal(e)) return; if (isNoAiRefusal(e)) wrapped({ type: "notice", notice: { kind: "note", botName: null, text: e.message } }); else rawDispatch({ type: "error", message: friendlyError(e) }); };
     const showSavedState = (owner: SavedOwner) => (error: unknown) => {
       showError(error);
       void api<SavedSnapshot>("/api/bots?messages=0").then((snapshot) => {
@@ -2378,7 +2379,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         case "loadDataSheet":
           api(DATA_ROUTES.sheet(action.botId))
             .then((body) => rawDispatch({ type: "dataSheet", sheet: dataSheetFromResponse(body, action.botId), tables: dataTablesFromResponse(body) }))
-            .catch((error) => (action.onError ?? showError)(error instanceof Error ? error.message : String(error)));
+            .catch((error) => (action.onError ?? showError)(friendlyError(error)));
           break;
         case "markRoutineRunSeen":
           api(`/api/routine-runs/${action.runId}/seen`, { method: "POST" }).catch(showError);
@@ -2538,7 +2539,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             .catch((error) => {
               // A failed settings flush stops the response so work never resumes under a stale approval level.
               showError(error);
-              action.onError?.(error instanceof Error ? error.message : String(error));
+              action.onError?.(friendlyError(error));
             });
           break;
         }
@@ -2775,22 +2776,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             .then(({ bot, project }) => {
               dispatch({ type: "botPatched", bot });
               action.onCreated?.(project);
-            }).catch((error) => { showError(error); action.onError?.(error instanceof Error ? error.message : String(error)); });
+            }).catch((error) => { showError(error); action.onError?.(friendlyError(error)); });
           break;
         case "updateProject":
           api(`/api/bots/${action.botId}/projects/${action.projectId}`, { method: "PATCH", body: JSON.stringify(action.patch) })
             .then(({ bot }) => { dispatch({ type: "botPatched", bot }); action.onSaved?.(); })
-            .catch((error) => { showError(error); action.onError?.(error instanceof Error ? error.message : String(error)); });
+            .catch((error) => { showError(error); action.onError?.(friendlyError(error)); });
           break;
         case "deleteProject":
           api(`/api/bots/${action.botId}/projects/${action.projectId}`, { method: "DELETE" })
             .then(({ bot }) => { dispatch({ type: "botPatched", bot }); action.onDeleted?.(); })
-            .catch((error) => { showError(error); action.onError?.(error instanceof Error ? error.message : String(error)); });
+            .catch((error) => { showError(error); action.onError?.(friendlyError(error)); });
           break;
         case "reorderProjects":
           api(`/api/bots/${action.botId}/projects/order`, { method: "PATCH", body: JSON.stringify({ projectIds: action.projectIds }) })
             .then(({ bot }) => { dispatch({ type: "botPatched", bot }); action.onSaved?.(); })
-            .catch((error) => { showError(error); action.onError?.(error instanceof Error ? error.message : String(error)); });
+            .catch((error) => { showError(error); action.onError?.(friendlyError(error)); });
           break;
         case "interrupt":
           sendStop(api, action, showError);
@@ -2820,7 +2821,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               if (action.type === "switchTask" && navigation.get(action.botId) === revision) {
                 rawDispatch({ type: "switchTaskFailed", botId: action.botId, threadId: action.threadId });
               }
-              const message = error instanceof Error ? error.message : String(error);
+              const message = friendlyError(error);
               settle(message);
               if (action.type === "newTask" && action.onError) action.onError(message);
               else showError(error);

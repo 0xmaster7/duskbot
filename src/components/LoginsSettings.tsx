@@ -17,6 +17,7 @@ import { DialogPane, GrokDialog, mdPrimaryCls, mdSecondaryCls, textFieldCls } fr
 import { cn } from "@/lib/cn";
 import { Icon } from "./Icon";
 import { siteIconUrl } from "@/lib/site-icon";
+import { friendlyError } from "@/lib/plain-error";
 
 // Security: a row never shows the password, which no route returns.
 
@@ -147,7 +148,7 @@ export function LoginsSettings() {
       setOnePassword(answer.onePassword ?? { connected: false });
       setError(null);
     }
-    catch (cause) { setError(cause instanceof Error && cause.message ? cause.message : t("settings.logins.loadError")); }
+    catch (cause) { setError(friendlyError(cause, t("settings.logins.loadError"))); }
   };
   useEffect(() => { if (ownerOrAdmin) void load(); }, [ownerOrAdmin]);
 
@@ -172,7 +173,7 @@ export function LoginsSettings() {
     if (deleting !== id) { setDeleting(id); return; }
     setBusy(true);
     try { await deleteLogin(id); setDeleting(null); setEditing(null); await load(); }
-    catch (cause) { setError(cause instanceof Error && cause.message ? cause.message : t("settings.logins.deleteError")); }
+    catch (cause) { setError(friendlyError(cause, t("settings.logins.deleteError"))); }
     finally { setBusy(false); }
   };
 
@@ -337,7 +338,7 @@ function VaultAccess({ vault, bots, botNames, disabled, onChange }: {
     setBusy(true);
     setError(null);
     try { await onChange(await grantVault(vault.id, value)); setEditing(false); }
-    catch (cause) { setError(cause instanceof Error && cause.message ? cause.message : t("settings.logins.onePassword.error")); }
+    catch (cause) { setError(friendlyError(cause, t("settings.logins.onePassword.error"))); }
     finally { setBusy(false); }
   };
   return (
@@ -379,7 +380,7 @@ function OnePasswordConnection({ status, disabled, bots, botNames, onChange, ope
     setBusy(kind);
     setError(null);
     try { await onChange(await work()); if (kind === "connect") { setToken(""); setConnecting(false); } }
-    catch (cause) { setError(cause instanceof Error && cause.message ? cause.message : t("settings.logins.onePassword.error")); }
+    catch (cause) { setError(friendlyError(cause, t("settings.logins.onePassword.error"))); }
     finally { setBusy(null); }
   };
   const connect = (event: FormEvent) => {

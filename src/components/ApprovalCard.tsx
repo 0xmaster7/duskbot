@@ -26,6 +26,7 @@ import { lowerFirst } from "../lib/lower-first";
 import { appActionLine } from "@/lib/app-action";
 import { ServiceTile } from "./ServiceIcon";
 import { appLogo } from "./connect-apps/logos";
+import { friendlyError } from "@/lib/plain-error";
 
 interface ToolLabels {
   [tool: string]: LocaleKey;
@@ -314,7 +315,7 @@ function AppliedChangeLine({
     api<{ shared: SkillShareRecord }>(`/api/threads/${threadId}/share-skill`, { method: "POST", body: JSON.stringify({ requestId }) })
       .then((response) => setSharedNow({ requestId, shared: response.shared }))
       .catch((failure: unknown) => {
-        setError(t("approval.applied.shareFailed", { error: failure instanceof Error ? failure.message : String(failure) }));
+        setError(t("approval.applied.shareFailed", { error: friendlyError(failure) }));
       })
       .finally(() => setSharing(false));
   };
@@ -331,7 +332,7 @@ function AppliedChangeLine({
         setError(failure instanceof ApiError && failure.body?.code === "changed-since"
           ? t("approval.applied.changedSince")
           : cancels ? t("approval.applied.cancelFailed", { name })
-            : t("approval.applied.undoFailed", { error: failure instanceof Error ? failure.message : String(failure) }));
+            : t("approval.applied.undoFailed", { error: friendlyError(failure) }));
       })
       .finally(() => setUndoing(false));
   };

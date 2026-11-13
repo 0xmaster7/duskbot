@@ -13,6 +13,7 @@ import { SettingRow } from "./SettingsPrimitives";
 import { SettingsSelect } from "./SettingsSelect";
 import { textFieldCls } from "./ui/GrokDialog";
 import { PROFILE_PAGE } from "./settings-page-ids";
+import { friendlyError } from "@/lib/plain-error";
 
 /** Security: the server owns session routing and erasure; this UI never handles cookies or partitions. */
 export function BrowserProfilesManager({ bot, onProfileChanged, disabled = false, folded = false }: {
@@ -45,7 +46,7 @@ export function BrowserProfilesManager({ bot, onProfileChanged, disabled = false
   }, []);
 
   const failed = async (cause: unknown) => {
-    setError(cause instanceof Error ? cause.message : t("settings.profiles.saveError"));
+    setError(friendlyError(cause, t("settings.profiles.saveError")));
     if (cause instanceof ApiError && cause.status === 409) {
       try {
         const config: ConfigStatus = await api("/api/config");

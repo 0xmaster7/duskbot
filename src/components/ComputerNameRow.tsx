@@ -4,6 +4,7 @@ import { t } from "@/lib/i18n";
 import { api, type ConfigStatus } from "@/state/store";
 import { FormDialog, FormField, NavRow } from "./ListRows";
 import { textFieldCls } from "./ui/GrokDialog";
+import { friendlyError } from "@/lib/plain-error";
 
 /** What a paired phone calls this computer; empty keeps the default. The row shows it, a small form changes it. */
 export function ComputerNameRow({ saved, onSaved }: { saved: string; onSaved: (name: string) => void }) {
@@ -23,7 +24,7 @@ export function ComputerNameRow({ saved, onSaved }: { saved: string; onSaved: (n
       onSaved(config.computerName ?? next);
       setOpen(false);
     } catch (e) {
-      setError(t("remote.computerName.error", { error: e instanceof Error ? e.message : String(e) }));
+      setError(t("remote.computerName.error", { error: friendlyError(e) }));
     } finally {
       setSaving(false);
     }

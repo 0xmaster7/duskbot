@@ -13,6 +13,7 @@ import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { api, useStore, type Bot, type Message } from "@/state/store";
 import { ASK_CARD_LIFT, ASK_CARD_RING, ASK_CHOICE, ChoiceLetter, moveChoiceFocus, returnFocusToComposer } from "./AskCard";
+import { friendlyError } from "@/lib/plain-error";
 
 const blank = (bot: Pick<Bot, "soul" | "description">): boolean => !bot.soul?.trim() && !bot.description?.trim();
 const LETTERS = "ABCDEFGH";
@@ -87,7 +88,7 @@ export function SetupOffer({ botId, threadId, message, transcript }: { botId: st
         if (reply?.message) dispatch({ type: "messageAdded", threadId, message: reply.message });
         returnFocusToComposer();
       })
-      .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : String(cause)))
+      .catch((cause: unknown) => setError(friendlyError(cause)))
       .finally(() => {
         sending.current = false;
         setBusy(false);

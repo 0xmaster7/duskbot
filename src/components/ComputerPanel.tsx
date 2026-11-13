@@ -60,6 +60,7 @@ import type { LocaleKey } from "@/locales";
 import { LiveScreenVideo } from "./bot-panel/LiveScreenVideo";
 import { smallButtonCls } from "./ui/GrokDialog";
 import { LIVE_FPS, useLiveScreen } from "./bot-panel/local-screen-stream";
+import { friendlyError } from "@/lib/plain-error";
 
 interface VpsComputerStatus {
   configured: boolean;
@@ -737,7 +738,7 @@ export function ComputerPanel({
       } catch (e) {
         if (!controller.signal.aborted) {
           retryDelay = 5000;
-          if (initialAttempt) setError(e instanceof Error ? e.message : String(e));
+          if (initialAttempt) setError(friendlyError(e));
           else setPreviewError(e instanceof Error ? e : new LocalizedPanelError("computer.err.screenUnavailable"));
         }
       } finally {
@@ -831,7 +832,7 @@ export function ComputerPanel({
       await transitionControl(action);
       return true;
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
       return false;
     } finally {
       setControlPending(false);
@@ -946,7 +947,7 @@ export function ComputerPanel({
     try {
       await api(threadPath("computer/remove"), { method: "POST", signal: controller.signal });
     } catch (e) {
-      if (!controller.signal.aborted) { setError(e instanceof Error ? e.message : String(e)); setPhase("error"); }
+      if (!controller.signal.aborted) { setError(friendlyError(e)); setPhase("error"); }
       return;
     } finally {
       if (computerAction.current === controller) { computerAction.current = null; setPending(null); }
@@ -989,7 +990,7 @@ export function ComputerPanel({
       setPhase("vm");
     } catch (e) {
       if (controller.signal.aborted) return;
-      setError(e instanceof Error ? e.message : String(e));
+      setError(friendlyError(e));
       setPhase("vm-unavailable");
     } finally {
       if (vmActionController.current === controller && !controller.signal.aborted) {
@@ -1023,7 +1024,7 @@ export function ComputerPanel({
       }
       if (profileBot.browser === false) dispatch({ type: "updateBot", botId: profileBot.id, patch: { browser: true } });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t("settings.experimental.error"));
+      setError(friendlyError(cause, t("settings.experimental.error")));
     } finally {
       setBrowserTurningOn(false);
     }

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/state/store";
 import { openExternalLink } from "@/lib/app-links";
 import type { DevicePoll, DeviceStart, TokenAccountView, TokenAppId, TokenAppsStatus } from "../../../shared/app-tokens";
+import { friendlyError } from "@/lib/plain-error";
 
 // kept across opens, so the window's first frame already knows what is connected
 let remembered: TokenAppsStatus | null = null;
@@ -25,7 +26,7 @@ export interface TokenApps {
   stopDevice: () => void;
 }
 
-const message = (cause: unknown) => (cause instanceof Error ? cause.message : String(cause));
+const message = (cause: unknown) => (friendlyError(cause));
 
 /** Apps connected with the person's own token or a device code: what is connected, and connecting one. */
 export function useTokenApps(): TokenApps {

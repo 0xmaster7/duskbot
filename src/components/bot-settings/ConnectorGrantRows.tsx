@@ -7,6 +7,7 @@ import { Card, CheckRow, NavRow, NoteRow, SwitchRow, useSubPage } from "../ListR
 import { textFieldCls } from "../ui/GrokDialog";
 import { preloadConnectorTools, VERB_LABELS, VERB_ORDER, type ToolListing } from "./AccessSection";
 import type { useBotSettingsDerived } from "./useBotSettingsDerived";
+import { friendlyError } from "@/lib/plain-error";
 
 type Patch = ReturnType<typeof useBotSettingsDerived>["patch"];
 
@@ -54,7 +55,7 @@ export function ConnectorGrantPage({ bot, patch, slug, slugs }: { bot: Bot; patc
     let cancelled = false;
     preloadConnectorTools()
       .then((services) => { if (!cancelled) setTools(services); })
-      .catch((error: unknown) => { if (!cancelled) setToolsError(error instanceof Error ? error.message : String(error)); });
+      .catch((error: unknown) => { if (!cancelled) setToolsError(friendlyError(error)); });
     return () => { cancelled = true; };
   }, [tools, toolsError]);
 

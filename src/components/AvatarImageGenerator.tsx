@@ -9,6 +9,7 @@ import { putConfig } from "@/lib/sealed-send";
 import { productName } from "@/lib/brand";
 import { cn } from "@/lib/cn";
 import { fieldLabelCls, rowButtonCls, textFieldCls } from "./ui/GrokDialog";
+import { friendlyError } from "@/lib/plain-error";
 
 const PROVIDERS = {
   openai: { label: "OpenAI", keyLabel: "OpenAI image API key", credential: "openaiImageApiKey" },
@@ -98,7 +99,7 @@ export function AvatarImageGenerator({
     try {
       await saveConfig({ imageGen: { provider: next } });
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : String(saveError));
+      setError(friendlyError(saveError));
     } finally {
       setProviderDraft(null);
       setPending(false);
@@ -129,7 +130,7 @@ export function AvatarImageGenerator({
         setModelDraft(null);
       }
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : String(saveError));
+      setError(friendlyError(saveError));
     } finally {
       setPending(false);
     }
@@ -142,7 +143,7 @@ export function AvatarImageGenerator({
     try {
       await saveCredential("");
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : String(saveError));
+      setError(friendlyError(saveError));
     } finally {
       setPending(false);
     }

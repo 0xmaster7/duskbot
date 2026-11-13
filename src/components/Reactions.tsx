@@ -10,6 +10,7 @@ import type { LocaleKey } from "@/locales";
 import { api, type Bot, type Message } from "@/state/store";
 import { useStoreRef } from "@/state/store-ref";
 import { action, feature } from "@/lib/product-analytics";
+import { friendlyError } from "@/lib/plain-error";
 
 const REACTION_WORD: Record<Reaction, string> = { "👍": "yes", "👎": "no", "❤️": "love", "😂": "laugh", "🎉": "celebrate", "👀": "looking" };
 
@@ -62,7 +63,7 @@ function useReaction(threadId: string, message: Message) {
       .catch((error: unknown) => {
         const now = latest.current.reactions?.find((reaction) => reaction.by === me);
         if (newest() && (sameEntry(now, shown) || sameEntry(now, own))) dispatch({ type: "messagePatched", threadId, message: withOwn(latest.current, me, own) });
-        dispatch({ type: "error", message: error instanceof Error ? error.message : String(error) });
+        dispatch({ type: "error", message: friendlyError(error) });
       })
       .finally(() => { if (newest()) newestTap.delete(key); });
   };

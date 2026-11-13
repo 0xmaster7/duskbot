@@ -14,6 +14,7 @@ import { SettingsSelect } from "./SettingsSelect";
 import { Card as RowsCard, ItemRow, NavRow, NoteRow, RowText, rowCls } from "./ListRows";
 import { TraceView } from "./usage/TraceView";
 import { LiveBadge, modelName, totalsStats } from "./usage/TraceWaterfall";
+import { friendlyError } from "@/lib/plain-error";
 
 export type UsageGroupBy = "bot" | "model" | "user" | "day" | "engine" | "routine" | "department";
 const OTHER_GROUPINGS: readonly UsageGroupBy[] = ["model", "user", "department", "day", "engine", "routine"];
@@ -178,7 +179,7 @@ export function UsageSection() {
     let current = true;
     void fetchTraces(range)
       .then((next) => { if (current) { setList(next); setError(null); } })
-      .catch((cause) => { if (current) setError(cause instanceof Error ? cause.message : String(cause)); });
+      .catch((cause) => { if (current) setError(friendlyError(cause)); });
     return () => { current = false; };
   }, [range, version]);
 

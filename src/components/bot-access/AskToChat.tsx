@@ -4,6 +4,7 @@ import { botOwner } from "../../../shared/bot-owner";
 import { t } from "@/lib/i18n";
 import { api, type Bot } from "@/state/store";
 import { useTeamPeople } from "@/state/team-people";
+import { friendlyError } from "@/lib/plain-error";
 
 type Asked = Array<{ email: string; name: string }>;
 
@@ -26,7 +27,7 @@ export function AskToChat({ bot }: { bot: Pick<Bot, "id" | "createdBy" | "report
       const answer = await api<{ asked?: Asked }>(`/api/bots/${bot.id}/access-request`, { method: "POST", body: "{}" });
       setAsked(answer.asked ?? []);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setBusy(false);
     }

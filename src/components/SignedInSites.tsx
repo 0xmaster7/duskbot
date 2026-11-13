@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { LogOut } from "../icons";
 import { api } from "@/state/store";
 import { t } from "@/lib/i18n";
+import { friendlyError } from "@/lib/plain-error";
 
 interface SignedInSite { site: string; cookies: number; storage: number }
 interface SignedInSitesAnswer { running: boolean; sites: SignedInSite[] }
@@ -23,7 +24,7 @@ export function SignedInSites({ target, scope = {}, sharedBy, disabled = false, 
     setBusy(true);
     setError("");
     try { setSites((await request()).sites); }
-    catch (cause) { setError(cause instanceof Error && cause.message ? cause.message : t("settings.sites.error")); }
+    catch (cause) { setError(friendlyError(cause, t("settings.sites.error"))); }
     finally { setBusy(false); }
   };
   const load = () => run(() => api(`/api/browser-sites?${new URLSearchParams({ ...target, ...scope }).toString()}`));

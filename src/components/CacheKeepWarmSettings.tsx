@@ -3,6 +3,7 @@ import { api, useStore, type ConfigStatus } from "@/state/store";
 import { t } from "@/lib/i18n";
 import { Card, Switch } from "./SettingsPrimitives";
 import { Select } from "./Select";
+import { friendlyError } from "@/lib/plain-error";
 
 type KeepWarm = NonNullable<ConfigStatus["cacheKeepWarm"]>;
 
@@ -28,7 +29,7 @@ export function CacheKeepWarmSettings() {
       });
       dispatch({ type: "configStatus", config });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t("settings.keepWarm.error"));
+      setError(friendlyError(cause, t("settings.keepWarm.error")));
     } finally {
       inFlight.current = false;
       setSaving(false);

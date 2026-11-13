@@ -1,5 +1,6 @@
 import { t } from "@/lib/i18n";
 import { api, openBot, type Action, type Bot } from "@/state/store";
+import { friendlyError } from "@/lib/plain-error";
 
 /** The sidebar's corner notice: "Archived {name}" with Undo, or why an archive failed. */
 export interface ArchiveNotice {
@@ -61,6 +62,6 @@ export async function archiveBotWithNotice(bot: Bot, context: {
       restoreBot: { id: bot.id, name: bot.name },
     });
   } catch (cause) {
-    notify({ error: true, text: cause instanceof Error ? cause.message : String(cause) });
+    notify({ error: true, text: friendlyError(cause) });
   }
 }

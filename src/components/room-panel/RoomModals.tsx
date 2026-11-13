@@ -15,6 +15,7 @@ import { Card, CheckRow, FormDialog, FormField, NavRow, NoteRow, SheetPane } fro
 import { RadioRow, radioArrows } from "../bot-panel/rows";
 import { JevSetup } from "./JevSetup";
 import { textFieldCls } from "../ui/GrokDialog";
+import { friendlyError } from "@/lib/plain-error";
 
 export type RoomDialog = "responder" | "folder" | "instructions" | "about";
 
@@ -76,7 +77,7 @@ export function RoomFolderModal({ group }: { group: Group; onClose: () => void }
     try {
       await api(`/api/groups/${group.id}`, { method: "PATCH", body: JSON.stringify({ cwd: next }) });
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(friendlyError(e));
     } finally {
       setSaving(false);
     }

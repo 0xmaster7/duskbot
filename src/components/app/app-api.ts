@@ -3,6 +3,7 @@ import type { AppBlockedReason, AppDocument } from "../../../shared/app";
 import type { PublishedPageCard } from "../../../shared/published-page";
 import { RPC_HOST_REFUSED, type AppContextUpdate, type AppRpcMethod, type JsonRpcError } from "../../../shared/app-frame/bridge";
 import { randomUuid } from "@/lib/random-uuid";
+import { friendlyError } from "@/lib/plain-error";
 
 export function appDocumentPath(threadId: string, messageId: string): string {
   return `/api/threads/${encodeURIComponent(threadId)}/messages/${encodeURIComponent(messageId)}/app`;
@@ -28,7 +29,7 @@ export class AppDocumentError extends Error {
 }
 
 function failureOf(error: unknown): AppFetchFailure {
-  if (error instanceof ApiError) return { offline: false, status: error.status, error: error.message };
+  if (error instanceof ApiError) return { offline: false, status: error.status, error: friendlyError(error) };
   return { offline: true };
 }
 
@@ -124,7 +125,7 @@ export async function publishAppPage(threadId: string, messageId: string, rev: n
   } catch (error) {
     if (!(error instanceof ApiError)) return { ok: false, error: OFFLINE_ERROR.message };
     const card = isRecord(error.body) && isRecord(error.body.card) ? error.body.card as unknown as PublishedPageCard : undefined;
-    return { ok: false, error: error.message, ...(card ? { card } : {}) };
+    return { ok: false, error: friendlyError(error), ...(card ? { card } : {}) };
   }
 }
 

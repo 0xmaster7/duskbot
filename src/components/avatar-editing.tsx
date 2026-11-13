@@ -7,6 +7,7 @@ import { AVATAR_FOCUS_CENTER, AVATAR_ZOOM_MAX, AVATAR_ZOOM_MIN, botAvatarUrlFrom
 import { DEFAULT_BOT_BODY } from "../../shared/bot-body";
 import { BotAvatar } from "./Avatar";
 import { useBotEditor } from "./bot-settings/BotEditorContext";
+import { friendlyError } from "@/lib/plain-error";
 
 export type AvatarPatch = Partial<
   Pick<Bot, "avatarCrop" | "avatarUrl" | "avatarZoom" | "avatarFocusX" | "avatarFocusY" | "color" | "mascotExpression" | "mascotBody" | "mascotFaceColor">
@@ -145,7 +146,7 @@ export function useAvatarImage(bot: Bot, onPatch: (patch: AvatarPatch) => void) 
         avatarFocusY: AVATAR_FOCUS_CENTER,
       });
     } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : String(uploadError));
+      setError(friendlyError(uploadError));
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -185,7 +186,7 @@ export function useAvatarImage(bot: Bot, onPatch: (patch: AvatarPatch) => void) 
             : latestCrop,
       });
     } catch (generateError) {
-      setError(generateError instanceof Error ? generateError.message : String(generateError));
+      setError(friendlyError(generateError));
     } finally {
       setGenerating(false);
     }

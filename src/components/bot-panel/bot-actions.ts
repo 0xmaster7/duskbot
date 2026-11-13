@@ -7,6 +7,7 @@ import { api, useStore, type Bot } from "@/state/store";
 import { announceArchiveNotice, archiveBotWithNotice } from "../bot-archive";
 import { moveBotsToSection } from "../bot-sections";
 import { currentArchivableBot, type BotConfirmKind } from "../Sidebar";
+import { friendlyError } from "@/lib/plain-error";
 
 export function useBotActions(bot: Bot) {
   const { state, dispatch } = useStore();
@@ -35,7 +36,8 @@ export function useBotActions(bot: Bot) {
       await markBotRead(bot, api, (updated) => dispatch({ type: "botPatched", bot: updated }));
     } catch (error) {
       const guidance = t("sidebar.bot.markAllReadFailed");
-      setReadError(error instanceof Error ? `${guidance} ${error.message}` : guidance);
+      const why = error instanceof Error ? friendlyError(error, "") : "";
+      setReadError(why ? `${guidance} ${why}` : guidance);
     } finally {
       readInFlight.current = false;
       setReading(false);

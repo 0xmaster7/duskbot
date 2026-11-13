@@ -17,6 +17,7 @@ import { Icon, type IconName } from "./Icon";
 import { botPreview, groupPreview } from "./sidebar-preview";
 import { openBotSettingsPage } from "./bot-panel/panel-link";
 import { switchPlaceCommand } from "./SidebarPlaceButton";
+import { friendlyError } from "@/lib/plain-error";
 
 /** What a row does once picked: what it opens, or what it changes. */
 type Command = { id: string; name: string; detail?: string; also?: string; icon: IconName; run: () => void };
@@ -194,7 +195,7 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
       try {
         await landOnSearchHit(entry.hit, state, dispatch);
       } catch (error) {
-        dispatch({ type: "error", message: error instanceof Error ? error.message : String(error) });
+        dispatch({ type: "error", message: friendlyError(error) });
       }
     } else if (entry.kind === "bot") {
       openBot(dispatch, entry.bot);

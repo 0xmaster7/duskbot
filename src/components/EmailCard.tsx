@@ -4,6 +4,7 @@ import { api } from "@/state/store";
 import { t } from "@/lib/i18n";
 import type { EmailConnectAnswer, EmailServerFields, EmailStatus } from "../../shared/email";
 import { KitActions, KitBody, KitButton, KitCard, KitField, KitLink, KitRow, KitStatus, KitText } from "./connect-apps/detail-kit";
+import { friendlyError } from "@/lib/plain-error";
 
 const field = "h-8 w-full min-w-0 rounded-lg bg-inset px-2.5 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none focus:ring-1 focus:ring-focus";
 
@@ -73,14 +74,14 @@ export function EmailCard({ refreshKey = 0, onConnection, guided = false }: {
       setDone(answer.sending.ok ? t("email.connected", { count: answer.inbox.messages }) : t("email.connectedNoSending", { count: answer.inbox.messages }));
       await load();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally { setBusy(false); }
   };
 
   const disconnect = async (mailbox: string) => {
     setDone(null);
     try { setStatus(await api(`/api/email/accounts/${encodeURIComponent(mailbox)}`, { method: "DELETE" }) as EmailStatus); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    catch (cause) { setError(friendlyError(cause)); }
   };
 
   if (status?.state === "unavailable") return null;

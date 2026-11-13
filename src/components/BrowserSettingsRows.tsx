@@ -5,6 +5,7 @@ import { t } from "@/lib/i18n";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import { SettingRow, Switch } from "./SettingsPrimitives";
+import { friendlyError } from "@/lib/plain-error";
 
 /** Saves one config change through PATCH /api/config, one at a time, and shows the server's answer or its error. */
 function useConfigSave() {
@@ -22,7 +23,7 @@ function useConfigSave() {
       });
       dispatch({ type: "configStatus", config });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t("settings.experimental.error"));
+      setError(friendlyError(cause, t("settings.experimental.error")));
     } finally {
       setSaving(false);
     }

@@ -12,6 +12,7 @@ import { buttonCls, fieldCls } from "../bot-panel/rows";
 import { Card as RowsCard, NoteRow, rowCls, SwitchRow } from "../ListRows";
 import { Art } from "../ui/Art";
 import { LoadFailedRow } from "./LoadFailedRow";
+import { friendlyError } from "@/lib/plain-error";
 
 const amountOf = (text: string) => { const value = Number(text); return Number.isFinite(value) && value > 0 ? Math.round(value * 100) / 100 : null; };
 
@@ -59,7 +60,7 @@ export function AllowanceCard() {
     setBusy(true);
     setError(null);
     try { setReport(await change()); setEditing(null); setVersion((n) => n + 1); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    catch (cause) { setError(friendlyError(cause)); }
     finally { setBusy(false); }
   };
 

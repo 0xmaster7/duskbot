@@ -22,6 +22,7 @@ import { VoicePicker, type PickerVoice } from "./VoicePicker";
 import { Select } from "./Select";
 import { Switch } from "./SettingsPrimitives";
 import { KeysLink } from "./keys/KeysLink";
+import { friendlyError } from "@/lib/plain-error";
 
 const SAMPLE = "Morning. Overnight the tests went green, and I left two notes for you in the thread.";
 const FISH_MODELS = [
@@ -197,7 +198,7 @@ export function VoiceSettings({
       body: JSON.stringify({ publicOwnerId: voice.publicOwnerId, voiceId: voice.id, name: voice.label }),
     })
       .then((r: { voiceId: string }) => current() && chooseVoice(r.voiceId))
-      .catch((e: Error) => current() && setAddError(e.message))
+      .catch((e: unknown) => current() && setAddError(friendlyError(e)))
       .finally(() => current() && setAddingVoice(null));
   };
 
@@ -208,7 +209,7 @@ export function VoiceSettings({
     setError(null);
     api("/api/config", { method: "PUT", body: JSON.stringify({ tts: { provider: next } }) })
       .then((status: ConfigStatus) => dispatch({ type: "configStatus", config: status }))
-      .catch((e: Error) => setError(e.message))
+      .catch((e: unknown) => setError(friendlyError(e)))
       .finally(() => setSwitching(false));
   };
 
@@ -228,7 +229,7 @@ export function VoiceSettings({
         dispatch({ type: "configStatus", config: status });
         setKeyDraft({ provider: null, value: "" });
       })
-      .catch((e: Error) => setError(e.message))
+      .catch((e: unknown) => setError(friendlyError(e)))
       .finally(() => setSaving(false));
   };
 
@@ -243,7 +244,7 @@ export function VoiceSettings({
     setError(null);
     return api("/api/config", { method: "PUT", body: JSON.stringify({ tts: { baseUrl: next, model: model.trim() } }) })
       .then((status: ConfigStatus) => dispatch({ type: "configStatus", config: status }))
-      .catch((e: Error) => setError(e.message))
+      .catch((e: unknown) => setError(friendlyError(e)))
       .finally(() => setSavingServer(false));
   };
 
@@ -253,7 +254,7 @@ export function VoiceSettings({
     setError(null);
     api("/api/config", { method: "PUT", body: JSON.stringify({ tts: { fishModel: next } }) })
       .then((status: ConfigStatus) => dispatch({ type: "configStatus", config: status }))
-      .catch((e: Error) => setError(e.message))
+      .catch((e: unknown) => setError(friendlyError(e)))
       .finally(() => setSavingFishModel(false));
   };
 
@@ -467,7 +468,7 @@ export function VoiceSettings({
           <Select value={tts.model || "gemini-3.8-flash-lite-tts"} className="mt-2 w-full" onChange={(event) => {
             void api("/api/config", { method: "PUT", body: JSON.stringify({ tts: { model: event.target.value } }) })
               .then((status: ConfigStatus) => dispatch({ type: "configStatus", config: status }))
-              .catch((error: Error) => setError(error.message));
+              .catch((error: unknown) => setError(friendlyError(error)));
           }}>
             <option value="gemini-3.8-flash-lite-tts">Gemini 3.8 Flash-Lite TTS</option>
             <option value="gemini-3.8-flash-tts">Gemini 3.8 Flash TTS</option>

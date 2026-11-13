@@ -18,6 +18,7 @@ import { PlaceArt, type PlaceArtName } from "../ui/PlaceArt";
 import { Toggle } from "../ui/Toggle";
 import { DEFAULT_BOT_NAME } from "@/lib/default-bot";
 import phoneHome from "../../assets/onboarding/phone-home.webp";
+import { friendlyError } from "@/lib/plain-error";
 
 export const PRIMARY = "ui-button ui-button-pill ui-button-lg ui-button-primary w-[288px] max-w-full font-normal tracking-[0.14px]";
 /** The quiet way past a step that still reads as a button: a soft fill, no outline. */
@@ -152,7 +153,7 @@ export function PhoneStep({ onNext }: { onNext: () => void }) {
       if (live.current) { setPairing({ kind: "offer", offer, before: devices.map((device) => device.id) }); setNow(Date.now()); }
     } catch (cause) {
       if (!live.current) return;
-      setError(cause instanceof Error && cause.message ? cause.message : t("settings.mobile.error"));
+      setError(friendlyError(cause, t("settings.mobile.error")));
       setPairing({ kind: "idle" });
     }
   }, []);

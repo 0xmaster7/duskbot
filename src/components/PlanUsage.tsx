@@ -7,6 +7,7 @@ import { SIMPLE_CARD } from "./SettingsPrimitives";
 import { Card as RowsCard, ItemRow, NoteRow, rowCls } from "./ListRows";
 import { UsageSummaryCard } from "./CloudUsageMeter";
 import { formatPlanSpend, type PlanSpend } from "@/lib/plan-spend";
+import { friendlyError } from "@/lib/plain-error";
 
 interface PlanWindow {
   available: boolean;
@@ -168,7 +169,7 @@ function usePlanUsage() {
       setReport(data);
       setNow(Date.now());
     } catch (cause) {
-      setError(cause instanceof Error && cause.message ? cause.message : t("planUsage.fetchError"));
+      setError(friendlyError(cause, t("planUsage.fetchError")));
     } finally {
       setLoading(false);
     }

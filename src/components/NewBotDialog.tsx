@@ -24,6 +24,7 @@ import { RoutineForm } from "./routines/RoutineForm";
 import { SharePresetDialog } from "./SharePresetDialog";
 import { Select } from "./Select";
 import { formCloseCls, formFooterCls, formHeaderCls, formTitleCls, mdPrimaryCls, mdSecondaryCls, rowButtonCls } from "./ui/GrokDialog";
+import { friendlyError } from "@/lib/plain-error";
 
 const SECTIONS = ["Identity", "Soul", "Skills", "Memory", "Routines", "Access", "Permissions", "Voice & alerts"] as const;
 type Section = typeof SECTIONS[number];
@@ -55,7 +56,7 @@ export function BotDefaultsDialog({ onClose }: { onClose: () => void }) {
         if (cancelled) return;
         setDraft(new BotCreationDraft(startingTemplate(result, false), () => render(value => value + 1)));
         setReady(true);
-      }).catch(cause => { if (!cancelled) setError(String(cause)); });
+      }).catch(cause => { if (!cancelled) setError(friendlyError(cause)); });
     return () => { cancelled = true; };
   }, []);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
@@ -88,7 +89,7 @@ export function BotDefaultsDialog({ onClose }: { onClose: () => void }) {
     try {
       await api("/api/config", { method: "PATCH", body: JSON.stringify({ newBotDefaults: await preparedBotTemplate(draft) }) });
       savingRef.current = false; if (alive.current) closeRef.current();
-    } catch (cause) { if (alive.current) setError(cause instanceof Error ? cause.message : String(cause)); }
+    } catch (cause) { if (alive.current) setError(friendlyError(cause)); }
     finally {
       savingRef.current = false;
       if (alive.current) setSaving(false);

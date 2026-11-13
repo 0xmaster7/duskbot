@@ -31,6 +31,7 @@ import { ImageLoading } from "./ImageLoading";
 import { Icon } from "./Icon";
 import { imageReady, knownImageSize, noteImageLoaded, reservedAspect, type MediaSize } from "@/lib/image-cache";
 import { canonicalDownloadFilename } from "@/lib/download-filename";
+import { friendlyError } from "@/lib/plain-error";
 
 export { canonicalDownloadFilename, contentDispositionFilename, safeDownloadFilename } from "@/lib/download-filename";
 
@@ -237,7 +238,7 @@ export function useLocalFileSave(filePath: string, name?: string, message?: Mess
       }, 4000);
     } catch (error) {
       if (!mounted.current || controller.signal.aborted) return;
-      setReason(error instanceof Error ? error.message : t("attach.saveFailed"));
+      setReason(friendlyError(error, t("attach.saveFailed")));
       setOutsideWorkspace((error as { code?: unknown } | null)?.code === "outside_workspace");
       setState("failed");
     } finally {

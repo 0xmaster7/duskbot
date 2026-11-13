@@ -1,6 +1,7 @@
 import { api } from "@/state/store";
 import type { WidgetOther, WidgetValues } from "../../../shared/widget";
 import { randomUuid } from "@/lib/random-uuid";
+import { friendlyError } from "@/lib/plain-error";
 
 export interface WidgetPress {
   botId: string;
@@ -33,6 +34,6 @@ export async function sendWidgetAction(press: WidgetPress): Promise<WidgetSendRe
     return { ok: true };
   } catch (error) {
     const refused = typeof (error as { status?: unknown } | null)?.status === "number";
-    return { ok: false, refused, ...(refused && error instanceof Error && error.message ? { error: error.message } : {}) };
+    return { ok: false, refused, ...(refused && error instanceof Error && error.message ? { error: friendlyError(error) } : {}) };
   }
 }

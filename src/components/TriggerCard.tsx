@@ -10,6 +10,7 @@ import { api, ApiError, useStore, type OptionCardData } from "@/state/store";
 import { appWaitingLine } from "@/lib/app-automations";
 import { useAppTriggers } from "@/lib/app-triggers";
 import { useAllAutomationActions } from "./automations/app-actions";
+import { friendlyError } from "@/lib/plain-error";
 
 // a routine is edited in its bot's panel; the other kinds' editors load only when Edit is pressed
 const WebhookEditor = lazy(async () => ({ default: (await import("./WebhookTrigger")).WebhookEditor }));
@@ -61,7 +62,7 @@ export function TriggerCard({ card, threadId }: { card: OptionCardData; threadId
     api(`/api/threads/${threadId}/undo`, { method: "POST", body: JSON.stringify({ requestId: card.requestId }) })
       .catch((failure: unknown) => setError(failure instanceof ApiError && failure.body?.code === "changed-since"
         ? t("automations.card.changedSince")
-        : failure instanceof Error ? failure.message : String(failure)))
+        : friendlyError(failure)))
       .finally(() => setUndoing(false));
   };
   const visibleBots = state.bots.filter((bot) => !bot.hidden);

@@ -12,6 +12,7 @@ import { ASK_QUIET_BUTTON, AskCard, CardSettledRow, cardPrimary, cardSecondary, 
 import { Icon } from "./Icon";
 import { SignInScreen, signInScreenPath } from "./SignInScreen";
 import { LoginForm } from "./LoginForm";
+import { friendlyError } from "@/lib/plain-error";
 
 // Security: a saved login is encrypted on the server and filled by fill_login; neither the bot nor any screen ever gets
 // it back.
@@ -74,7 +75,7 @@ export function SignInRequestCard({
       await answerSignIn(ref, choice);
       returnFocusToComposer();
     } catch (cause) {
-      setLocalError(cause instanceof Error ? cause.message : String(cause));
+      setLocalError(friendlyError(cause));
     } finally {
       setPending(null);
     }
@@ -197,7 +198,7 @@ export function SignInBanner({
     setPending(choice);
     onError?.(null);
     try { await answerSignIn(help, choice); }
-    catch (cause) { onError?.(cause instanceof Error ? cause.message : String(cause)); }
+    catch (cause) { onError?.(friendlyError(cause)); }
     finally { setPending(null); }
   };
   return (

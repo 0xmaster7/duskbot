@@ -10,6 +10,7 @@ import { textFieldCls } from "./ui/GrokDialog";
 import { SettingsSelect } from "./SettingsSelect";
 import { cn } from "@/lib/cn";
 import type { SkillsLibrarySkillWire } from "../../shared/wire";
+import { friendlyError } from "@/lib/plain-error";
 
 export function filterLibrarySkills(
   skills: readonly SkillsLibrarySkillWire[],
@@ -67,7 +68,7 @@ export function SkillsSection() {
       setSkills(body.skills ?? []);
       setError("");
     } catch (cause) {
-      if (!cancelled?.()) setError(cause instanceof Error ? cause.message : t("skills.library.loadError"));
+      if (!cancelled?.()) setError(friendlyError(cause, t("skills.library.loadError")));
     } finally {
       if (!cancelled?.()) setLoading(false);
     }
@@ -105,7 +106,7 @@ export function SkillsSection() {
       if (!response.ok) throw new Error(body.error ?? "could not update assignments.");
       await refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "could not update assignments.");
+      setError(friendlyError(cause, "could not update assignments."));
     } finally {
       busy.current = false;
       setWorking("");
@@ -138,7 +139,7 @@ export function SkillsSection() {
       if (reviewed) setViewing(null);
       await refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "could not update this skill.");
+      setError(friendlyError(cause, "could not update this skill."));
     } finally {
       busy.current = false;
       setWorking("");
@@ -160,7 +161,7 @@ export function SkillsSection() {
       if (!response.ok) throw new Error(body.error ?? "could not update this skill.");
       await refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "could not update this skill.");
+      setError(friendlyError(cause, "could not update this skill."));
     } finally {
       busy.current = false;
       setWorking("");
@@ -176,7 +177,7 @@ export function SkillsSection() {
       if (!body.text) throw new Error("The skill contents are unavailable; import it again.");
       setViewing({ skill, text: body.text, review });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "could not load this skill.");
+      setError(friendlyError(cause, "could not load this skill."));
     }
   };
 
@@ -199,7 +200,7 @@ export function SkillsSection() {
       setImportOpen(false);
       await refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "could not import that skill.");
+      setError(friendlyError(cause, "could not import that skill."));
     } finally {
       setImporting(false);
     }

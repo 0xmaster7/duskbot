@@ -5,9 +5,10 @@ import { deleteMemoryDoc, fetchMemoryDoc, MEMORY_INDEX, saveMemoryDoc, type Memo
 import type { Bot } from "@/state/store";
 import { panelMemoryNotes, withMemoryNote, withoutMemoryNote, type PanelMemoryNote } from "../memory-notes";
 import { useMemoryDoc } from "../use-memory-doc";
+import { friendlyError } from "@/lib/plain-error";
 
 function errorText(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
+  return friendlyError(error, fallback);
 }
 
 /** MEMORY.md's bullets, and on a Team Cloud the person's own notes. Every write goes through the memory file route with

@@ -10,6 +10,7 @@ import { useEffect } from "react";
 import { api } from "./api";
 import type { Action, Bot } from "./store";
 import { readSessionState } from "@/lib/session";
+import { friendlyError } from "@/lib/plain-error";
 
 /** The team on screen, whether this person is a Member (no admin scope), and the conversations the server says they
  * opened: null anywhere but a team's Cloud. */
@@ -64,7 +65,7 @@ export function openOwnTeamChat(dispatch: (action: Action) => void, bot: BotLike
       dispatch({ type: "taskSwitched", bot: response.bot });
       dispatch({ type: "select", id: bot.id });
     })
-    .catch((error: unknown) => dispatch({ type: "error", message: error instanceof Error ? error.message : String(error) }))
+    .catch((error: unknown) => dispatch({ type: "error", message: friendlyError(error) }))
     .finally(() => making.delete(bot.id));
   return true;
 }

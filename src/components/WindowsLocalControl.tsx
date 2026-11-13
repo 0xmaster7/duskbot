@@ -2,6 +2,7 @@ import { useState } from "react";
 import { AlertTriangle, Loader2, MonitorX } from "../icons";
 import { useDesktopCapabilities } from "./DesktopCapabilities";
 import { t } from "@/lib/i18n";
+import { friendlyError } from "@/lib/plain-error";
 
 /** On a PC whose screen control isn't running: that bots, and the person's Cloud's bots, can't use its apps and screen,
  * why, and the one fix. */
@@ -18,7 +19,7 @@ export function WindowsLocalControl() {
     try {
       await window.duskDesktop?.localControl?.retry();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : String(reason));
+      setError(friendlyError(reason));
     } finally {
       setPending(false);
     }

@@ -5,6 +5,7 @@ import { api } from "@/state/store";
 import { readSessionState, type SessionState } from "../lib/session";
 import { canPairDevices } from "./ServerPairingCard";
 import { Card } from "./SettingsPrimitives";
+import { friendlyError } from "@/lib/plain-error";
 
 export interface SignInLists {
   admins: string[];
@@ -49,7 +50,7 @@ export function SignInAccessCard() {
       const domain = await api("/api/settings/custom-domain").catch(() => null);
       setPublicUrl(typeof domain?.publicUrl === "string" ? domain.publicUrl : null);
     } catch (e) {
-      setError(t("remote.signInAccess.error", { error: e instanceof Error ? e.message : String(e) }));
+      setError(t("remote.signInAccess.error", { error: friendlyError(e) }));
     }
   }
 
@@ -69,7 +70,7 @@ export function SignInAccessCard() {
       await api("/api/config", { method: "PUT", body: JSON.stringify({ signIn: next }) });
       setLists(next);
     } catch (e) {
-      setError(t("remote.signInAccess.error", { error: e instanceof Error ? e.message : String(e) }));
+      setError(t("remote.signInAccess.error", { error: friendlyError(e) }));
     } finally {
       setBusy(false);
     }

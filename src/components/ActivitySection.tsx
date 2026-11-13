@@ -8,6 +8,7 @@ import { Card as RowsCard, FormDialog, FormField, ItemRow, NavRow, NoteRow } fro
 import { SettingRow } from "./SettingsPrimitives";
 import { SettingsSelect } from "./SettingsSelect";
 import { textFieldCls } from "./ui/GrokDialog";
+import { friendlyError } from "@/lib/plain-error";
 
 /** One entry: who did what as the row, when (and what was approved) as its quiet line; an admin change opens its
  * before and after under it, one path a line. */
@@ -53,7 +54,7 @@ export function ActivitySection() {
       setTotal(body.total);
       setDays(body.retentionDays);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setLoading(false);
     }

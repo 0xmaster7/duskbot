@@ -8,6 +8,7 @@ import { t } from "@/lib/i18n";
 import { api, useStore, type Message } from "@/state/store";
 import { ASK_PRIMARY_BUTTON, ASK_QUIET_BUTTON } from "./AskCard";
 import { openKeySettings } from "./keys/key-focus";
+import { friendlyError } from "@/lib/plain-error";
 
 export function HelperKeySuggestion({ threadId, message }: { threadId?: string; message: Message }) {
   const { dispatch } = useStore();
@@ -22,7 +23,7 @@ export function HelperKeySuggestion({ threadId, message }: { threadId?: string; 
     try {
       await api("/api/helpers/suggestion/not-now", { method: "POST", body: JSON.stringify({ threadId, messageId: message.id }) });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setSaving(false);
     }

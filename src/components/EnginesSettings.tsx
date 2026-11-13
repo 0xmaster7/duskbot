@@ -19,6 +19,7 @@ import { Card, FormDialog, FormField, ItemRow, NavRow, NoteRow, useSubPage } fro
 import { textFieldCls } from "./ui/GrokDialog";
 import { InstanceProviderMark } from "./ProviderIcons";
 import { OtherOpenAiCompatServers } from "./OpenAiCompatServers";
+import { friendlyError } from "@/lib/plain-error";
 
 const RowsCard = Card;
 
@@ -78,7 +79,7 @@ function CustomPicker({ instance, cliDefault, onClose, onSaved }: {
     })
       .then(() => Promise.resolve(onSaved()).catch(() => {}))
       .then(onClose)
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) => setError(friendlyError(e)))
       .finally(() => setSaving(false));
   };
 
@@ -94,7 +95,7 @@ function CustomPicker({ instance, cliDefault, onClose, onSaved }: {
         setProbe(result);
         if (result.ok) persist();
       })
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) => setError(friendlyError(e)))
       .finally(() => setProbing(false));
   };
 
@@ -175,7 +176,7 @@ function EngineAdvanced({ instance }: { instance: InstanceInfo }) {
       body: JSON.stringify({ cli: "" }),
     })
       .then(() => Promise.resolve(refreshInstances()).catch(() => {}))
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) => setError(friendlyError(e)))
       .finally(() => setSwitching(false));
   };
 
@@ -186,7 +187,7 @@ function EngineAdvanced({ instance }: { instance: InstanceInfo }) {
     setError(null);
     api(`/api/instances/${encodeURIComponent(instance.instanceId)}`, { method: "PATCH", body: JSON.stringify({ hidden: true }) })
       .then(() => Promise.resolve(refreshInstances()).catch(() => {}))
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) => setError(friendlyError(e)))
       .finally(() => setSwitching(false));
   };
 
@@ -203,7 +204,7 @@ function EngineAdvanced({ instance }: { instance: InstanceInfo }) {
         setUpdatedVersion(version);
         await Promise.resolve(refreshInstances()).catch(() => {});
       })
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) => setError(friendlyError(e)))
       .finally(() => setUpdating(false));
   };
 
@@ -261,7 +262,7 @@ function AntigravityAccountAction({ instance, action }: { instance: InstanceInfo
       if (Array.isArray(instances)) dispatch({ type: "instances", instances });
       else await refreshInstances();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setRunning(false);
     }
@@ -388,7 +389,7 @@ export function HiddenEngines() {
     setError(null);
     api(`/api/instances/${encodeURIComponent(instanceId)}`, { method: "PATCH", body: JSON.stringify({ hidden: false }) })
       .then(() => Promise.resolve(refreshInstances()).catch(() => {}))
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) => setError(friendlyError(e)))
       .finally(() => setBusy(null));
   };
   return (

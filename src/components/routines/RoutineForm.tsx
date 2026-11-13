@@ -12,6 +12,7 @@ import { useBotEditor } from "../bot-settings/BotEditorContext";
 import { buttonCls, fieldCls, Segmented } from "../bot-panel/rows";
 import { SelectPill } from "../ui/SelectPill";
 import { AlwaysOnNote } from "../CloudUpsell";
+import { friendlyError } from "@/lib/plain-error";
 
 const labelCls = "block text-[12px] leading-4 tracking-[0.01em] text-ink-secondary";
 const primaryCls = cn(buttonCls, "bg-ink text-app shadow-none enabled:hover:bg-ink/85");
@@ -123,7 +124,7 @@ export function RoutineForm({ bot, routine, defaultRunOn, onDone }: {
       dispatch({ type: "routinePatched", routine: response.routine });
       onDone(response.routine as Routine);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
       setSaving(false);
     }
   };

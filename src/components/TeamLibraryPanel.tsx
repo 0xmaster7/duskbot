@@ -18,6 +18,7 @@ import { ReadyBotGallery } from "./ReadyBotGallery";
 import { OrgLibraryTab } from "./TeamLibraryPanelOrg";
 import { MAX_TEAM_BACKUP_BYTES } from "../../shared/team-backup";
 import { takeImportName } from "../../shared/import-name";
+import { friendlyError } from "@/lib/plain-error";
 const COMMUNITY_TEAMS_REPOSITORY = UPSTREAM.teamLibrary.repository;
 
 export { TeamImportDetails };
@@ -146,7 +147,7 @@ export function TeamLibraryPanel({
       shownCatalog = (await api("/api/team-library/catalog")) as TeamCatalog;
       setCatalog(shownCatalog);
     } catch (cause) {
-      if (!quiet) setCatalogError(cause instanceof Error ? cause.message : String(cause));
+      if (!quiet) setCatalogError(friendlyError(cause));
     } finally {
       setCatalogLoading(false);
     }
@@ -237,7 +238,7 @@ export function TeamLibraryPanel({
     try {
       previewManifest(teamImportPreview(await api(`/api/team-library/teams/${entry.slug}`)), "library");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setBusySlug(null);
     }
@@ -258,7 +259,7 @@ export function TeamLibraryPanel({
       });
       previewManifest(teamImportPreview(manifest), "github");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setGithubLoading(false);
     }
@@ -287,7 +288,7 @@ export function TeamLibraryPanel({
         ...(response.presets?.length ? { presets: response.presets.length } : {}),
       });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setImporting(false);
     }
@@ -303,7 +304,7 @@ export function TeamLibraryPanel({
       setPendingOrg(entry);
       setError("");
     } catch (cause) {
-      setOrgError(cause instanceof Error ? cause.message : String(cause));
+      setOrgError(friendlyError(cause));
     } finally {
       setOrgBusy(null);
     }
@@ -340,7 +341,7 @@ export function TeamLibraryPanel({
       if (!response.alreadyAdded) setOrgNotice(t("orgLibrary.addedSkills", { name: entry.name }));
       await loadOrgLibrary();
     } catch (cause) {
-      const message = cause instanceof Error ? cause.message : String(cause);
+      const message = friendlyError(cause);
       if (pendingOrg) setError(message);
       else setOrgError(message);
       await loadOrgLibrary();
@@ -377,7 +378,7 @@ export function TeamLibraryPanel({
         });
     } catch (cause) {
       if (request !== scoutRequest.current) return;
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       if (request === scoutRequest.current) setScouting(false);
     }
@@ -430,7 +431,7 @@ export function TeamLibraryPanel({
         members: response.bots.length,
       });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setCreating(false);
     }
@@ -714,7 +715,7 @@ export function TeamLibraryPanel({
                       const file = event.currentTarget.files?.[0];
                       event.currentTarget.value = "";
                       if (!file) return;
-                      void readFile(file).catch((cause) => setError(cause instanceof Error ? cause.message : String(cause)));
+                      void readFile(file).catch((cause) => setError(friendlyError(cause)));
                     }}
                   />
                   <div className="mb-3 text-[12px] font-medium text-ink-secondary">{t("templates.bringYourOwn")}</div>
@@ -731,7 +732,7 @@ export function TeamLibraryPanel({
                         event.preventDefault();
                         setDragging(false);
                         const file = event.dataTransfer.files[0];
-                        if (file) void readFile(file).catch((cause) => setError(cause instanceof Error ? cause.message : String(cause)));
+                        if (file) void readFile(file).catch((cause) => setError(friendlyError(cause)));
                       }}
                       className={cn(
                         "flex min-h-56 flex-col items-center justify-center rounded-2xl border border-dashed px-6 text-center transition-colors",

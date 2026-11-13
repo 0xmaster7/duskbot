@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { useDesktopCapabilities } from "./DesktopCapabilities";
+import { friendlyError } from "@/lib/plain-error";
 
 const LINUX_GUIDE_URL =
   "https://github.com/goatedgrokbotalternative/duskbot/blob/main/docs/linux-desktop.md#enable-local-control";
@@ -43,7 +44,7 @@ export function LinuxLocalControl() {
       }
       await window.duskDesktop.localControl[action]();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : String(reason));
+      setError(friendlyError(reason));
     } finally {
       setPending(null);
     }

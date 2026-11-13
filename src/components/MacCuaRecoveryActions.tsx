@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { macCuaPermissionHelper, missingMacCuaPermissions, type MacCuaPermission } from "@/lib/mac-cua-permissions";
 import { t } from "@/lib/i18n";
 import { useDesktopCapabilities } from "./DesktopCapabilities";
+import { friendlyError } from "@/lib/plain-error";
 
 const paneName: Record<MacCuaPermission, "computer.mac.permission.screenSettings" | "computer.mac.permission.accessibilitySettings"> = {
   screen: "computer.mac.permission.screenSettings",
@@ -22,7 +23,7 @@ export function MacCuaRecoveryActions({ reason, ownRetry = false }: { reason: st
       await window.duskDesktop?.localControl?.retry();
       setError(null);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     }
   };
   useEffect(() => {
@@ -50,7 +51,7 @@ export function MacCuaRecoveryActions({ reason, ownRetry = false }: { reason: st
       setError(null);
       setAwaitingGrant(true);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     }
   };
 
@@ -59,7 +60,7 @@ export function MacCuaRecoveryActions({ reason, ownRetry = false }: { reason: st
       await window.duskDesktop?.relaunch?.();
       setError(null);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     }
   };
 

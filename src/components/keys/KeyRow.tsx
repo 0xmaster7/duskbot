@@ -11,6 +11,7 @@ import { keyEntry, keyForInstance, looksLikeOtherKey, savedState, shownKeyEntry,
 import { checkKey, cleanKey, looksLikeKey, saveKey } from "./key-save";
 import { CopyRow, FormDialog } from "../ListRows";
 import { fieldLabelCls, smallButtonCls } from "../ui/GrokDialog";
+import { friendlyError } from "@/lib/plain-error";
 
 /** A key field: the panel's quiet hairline box, no fill, unchanged on hover and focus (the caret marks it). */
 export const KEY_FIELD = "h-7 w-full min-w-0 rounded-lg border border-transparent bg-transparent px-2.5 font-mono text-[12px] leading-7 text-ink placeholder:font-sans placeholder:text-ink-tertiary outline-none disabled:opacity-60";
@@ -109,7 +110,7 @@ export function KeyPlainRow({ mark, title, hint, value, actions, titleId, classN
 }
 
 function errorText(cause: unknown): string {
-  return cause instanceof Error ? cause.message.replace(/^Error invoking remote method '[^']*': (?:\w+: )?/, "") : String(cause);
+  return friendlyError(cause);
 }
 
 export function KeyRow({

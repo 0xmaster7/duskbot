@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { t } from "@/lib/i18n";
-import { plainErrorLine } from "@/lib/plain-error";
+import { friendlyError } from "@/lib/plain-error";
 import type { AppState } from "@/state/store";
 import { Icon } from "./Icon";
 import { NoticeGlyph } from "./ui/Notice";
@@ -70,10 +70,10 @@ export function ChatErrorCard({ tone = "danger", icon, title, details, detailsLa
 
 export function ChatErrorBanner({ message, onDismiss }: { message: string | null; onDismiss: () => void }) {
   if (!message) return null;
-  const plain = plainErrorLine(message);
+  const plain = friendlyError(message);
   return (
     <div className="mb-2 w-full px-5">
-      <ChatErrorCard title={plain ?? message} details={plain ? message : null} onDismiss={onDismiss} />
+      <ChatErrorCard title={plain} details={plain !== message ? message : null} onDismiss={onDismiss} />
     </div>
   );
 }

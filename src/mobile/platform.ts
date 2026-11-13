@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react";
 import type { MobileOpenTarget } from "../../shared/mobile-link";
+import { friendlyError } from "@/lib/plain-error";
 
 export type HapticKind = "light" | "soft" | "medium" | "selection" | "error" | "success";
 
@@ -159,7 +160,7 @@ export function webPlatform(): MobilePlatform {
                   onCode(rawValue);
                 }
               }).catch((error: unknown) => {
-                if (!stopped) onError?.(error instanceof Error ? error.message : String(error));
+                if (!stopped) onError?.(friendlyError(error));
               }).finally(() => { detecting = false; });
             };
             frame = requestAnimationFrame(scan);

@@ -5,6 +5,7 @@ import { liveDisclosure } from "@/lib/call-mode";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { putConfig } from "@/lib/sealed-send";
+import { friendlyError } from "@/lib/plain-error";
 
 export function LiveKeySetup({ onSaved, compact = false }: { onSaved: () => void; compact?: boolean }) {
   const { state, dispatch } = useStore();
@@ -32,7 +33,7 @@ export function LiveKeySetup({ onSaved, compact = false }: { onSaved: () => void
       setKey("");
       onSaved();
     } catch (saveError) {
-      if (mounted.current) setError(saveError instanceof Error ? saveError.message : String(saveError));
+      if (mounted.current) setError(friendlyError(saveError));
     } finally {
       if (mounted.current) setSaving(false);
     }

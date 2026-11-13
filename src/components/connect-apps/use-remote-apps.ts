@@ -10,6 +10,7 @@ import type { DirectoryAnswer, DirectoryApp } from "../../../shared/connector-di
 import { isRemoteMcpListing, type McpServerListing, type RemoteMcpListing } from "../mcp-draft";
 import type { Connection } from "./catalog";
 import { VIA_DEADLINE_MS, VIA_STALL_MS, watchReturn } from "./via-flow";
+import { friendlyError } from "@/lib/plain-error";
 
 let directory: Promise<DirectoryApp[]> | null = null;
 // kept across opens, so the window's first frame already has them
@@ -184,7 +185,7 @@ export function useRemoteApps(options: { needsPanel: () => boolean; openPanel: (
       }
       if (!server.enabled || app.auth === "oauth") listed((await api(`/api/mcp/servers/${encodeURIComponent(name)}`, { method: "PATCH", body: JSON.stringify({ enabled: true }) })).servers);
     } catch (cause) {
-      if (!controller.signal.aborted || gaveUp) setError(cause instanceof Error ? cause.message : String(cause));
+      if (!controller.signal.aborted || gaveUp) setError(friendlyError(cause));
       void reload().catch(() => {});
     } finally {
       unwatch();

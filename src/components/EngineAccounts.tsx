@@ -14,6 +14,7 @@ import { CommandRow, EngineSetup, EngineUpdateNotice, EngineWarningNotice } from
 import { MENU_SHEET } from "./menu-recipe";
 import { Card as RowsCard, FormDialog, FormField, NavRow, NoteRow, rowCls } from "./ListRows";
 import { textFieldCls } from "./ui/GrokDialog";
+import { friendlyError } from "@/lib/plain-error";
 
 /** Providers whose accounts are listed together on one card, each signed in on its own. */
 export type AccountGroup = "claude" | "chatgpt";
@@ -102,7 +103,7 @@ function AccountMenu({ group, instance, onRename }: { group: AccountGroup; insta
       if (Array.isArray(instances)) dispatch({ type: "instances", instances });
       else await refreshInstances().catch(() => {});
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setBusy(false);
     }
@@ -167,7 +168,7 @@ function RenameForm({ instance, onDone }: { instance: InstanceInfo; onDone: () =
       if (Array.isArray(instances)) dispatch({ type: "instances", instances });
       onDone();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setSaving(false);
     }
@@ -263,7 +264,7 @@ export function AddAccount({ label, endpoint, extra, folder: offerFolder = false
       setFolder("");
       if (typeof created.instanceId === "string") onAdded(created.instanceId);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setSaving(false);
     }

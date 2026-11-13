@@ -123,12 +123,12 @@ describe.each(HOSTED_MCP_APPS)("The $label card", (app) => {
         .toBe(`Signed in, but ${app.label}’s tools could not be loaded: Two MCP connection tests are already running. Please connect again to retry.`);
     });
 
-    it("ends a reason that has no period of its own, like a proxy's 504", async () => {
+    it("ends a reason that has no period of its own, in plain words for a proxy's 504", async () => {
       await connect();
       await act(async () => { testRequest!.resolve(Promise.reject(new Error("504 Gateway Timeout"))); });
       await settle();
       expect(card(app).querySelector('[role="alert"]')?.textContent)
-        .toBe(`Signed in, but ${app.label}’s tools could not be loaded: 504 Gateway Timeout. Please connect again to retry.`);
+        .toBe(`Signed in, but ${app.label}’s tools could not be loaded: That took too long. Try again. Please connect again to retry.`);
     });
 
     it("closes the test request when the person cancels", async () => {

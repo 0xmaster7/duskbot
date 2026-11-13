@@ -13,6 +13,7 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { useStore, type Bot } from "@/state/store";
+import { friendlyError } from "@/lib/plain-error";
 
 const CATEGORY_KEYS: Record<ReadyBotCategory, LocaleKey> = {
   everyday: "readyBots.category.everyday", work: "readyBots.category.work", writing: "readyBots.category.writing",
@@ -55,7 +56,7 @@ export function ReadyBotGallery({ search, onDialog, onAdded }: {
       announceNewBot(dispatch, bot, warnings, { source: "template", role: ready.id });
       onAdded(bot);
     } catch (cause) {
-      dispatch({ type: "error", message: cause instanceof Error ? cause.message : String(cause) });
+      dispatch({ type: "error", message: friendlyError(cause) });
     } finally {
       draft?.dispose();
       dispatch({ type: "botCreationPending", on: false });

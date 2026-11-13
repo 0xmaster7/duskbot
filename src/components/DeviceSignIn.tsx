@@ -8,6 +8,7 @@ import { engineSignedIn } from "@/lib/product-events";
 import type { LocaleKey } from "@/locales";
 import { deviceSignInLink, isDeviceSignInCode, type DeviceSignInProvider } from "../../shared/device-sign-in";
 import { CodexMark } from "./ProviderIcons";
+import { friendlyError } from "@/lib/plain-error";
 
 export interface DeviceSignInStatus {
   phase: "waiting" | "succeeded" | "failed" | "expired" | "cancelled";
@@ -183,7 +184,7 @@ export function DeviceSignIn({ instanceId, browserPkce = false, provider = "code
             setError(null);
             return;
           }
-          setError(cause instanceof Error ? cause.message : failed);
+          setError(friendlyError(cause, failed));
           setAuth({ ...auth });
         });
     }, 2000);
@@ -206,7 +207,7 @@ export function DeviceSignIn({ instanceId, browserPkce = false, provider = "code
         if (link) await openExternalLink(link);
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : failed);
+      setError(friendlyError(cause, failed));
     } finally { setBusy(false); }
   };
 
@@ -220,7 +221,7 @@ export function DeviceSignIn({ instanceId, browserPkce = false, provider = "code
       onDone?.(false);
     } catch (cause) {
       if (deviceFlowUnavailable(cause)) setAuth(endedFlow("failed", browserPkce));
-      else setError(cause instanceof Error ? cause.message : failed);
+      else setError(friendlyError(cause, failed));
     } finally { setBusy(false); }
   };
 

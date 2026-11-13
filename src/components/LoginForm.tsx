@@ -6,6 +6,7 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { fieldLabelCls, textFieldCls } from "./ui/GrokDialog";
 import type { LoginFieldsInput } from "@/lib/logins";
+import { friendlyError } from "@/lib/plain-error";
 
 // Security: the browser is asked not to fill or remember these fields, what was typed is dropped once saved, and a
 // saved password is never shown.
@@ -55,7 +56,7 @@ export function LoginForm({
       setPassword("");
       setTotp("");
     } catch (cause) {
-      setError(cause instanceof Error && cause.message ? cause.message : t("logins.saveError"));
+      setError(friendlyError(cause, t("logins.saveError")));
     } finally {
       setPending(false);
     }

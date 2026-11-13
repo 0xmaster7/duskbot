@@ -6,11 +6,12 @@ import { t } from "@/lib/i18n";
 import { useStore, type Bot } from "@/state/store";
 import { useBotEditor } from "../../bot-settings/BotEditorContext";
 import { useManagedSkills, type ManagedSkill } from "../../bot-settings/SkillsSection";
+import { friendlyError } from "@/lib/plain-error";
 
 const SKILLS_SITE = "https://skills.sh";
 
 function errorText(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
+  return friendlyError(error, fallback);
 }
 
 /** A bot's skills with what the panel does to them: switch, remove after asking, add from a link, browse for more. */

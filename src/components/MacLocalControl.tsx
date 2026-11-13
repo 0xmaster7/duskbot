@@ -4,6 +4,7 @@ import { useDesktopCapabilities } from "./DesktopCapabilities";
 import { macCuaPermissionMessage, missingMacCuaPermissions } from "@/lib/mac-cua-permissions";
 import { MacCuaRecoveryActions } from "./MacCuaRecoveryActions";
 import { t } from "@/lib/i18n";
+import { friendlyError } from "@/lib/plain-error";
 
 export function MacLocalControl() {
   const { capabilities } = useDesktopCapabilities();
@@ -19,7 +20,7 @@ export function MacLocalControl() {
     try {
       await window.duskDesktop?.localControl?.retry();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : String(reason));
+      setError(friendlyError(reason));
     } finally {
       setPending(false);
     }
@@ -33,7 +34,7 @@ export function MacLocalControl() {
       await window.duskDesktop?.permOpenSettings?.("screen");
     } catch (reason) {
       setAwaitingGrant(false);
-      setError(reason instanceof Error ? reason.message : String(reason));
+      setError(friendlyError(reason));
     }
   };
 

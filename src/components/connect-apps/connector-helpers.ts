@@ -1,6 +1,8 @@
 import type { Bot, InstanceInfo } from "@/state/store";
 import type { LocaleKey } from "@/locales";
 import { connectorServiceAccess } from "@/lib/connector-grants";
+import { t } from "@/lib/i18n";
+import { friendlyError } from "@/lib/plain-error";
 
 export type ConnectorSetup = "ready" | "needs-setup" | "service-unavailable";
 
@@ -34,5 +36,5 @@ export function plainConnectError(message: string): string | { key: LocaleKey } 
   if (/HTTP \d{3}|unavailable|unreachable|fetch failed|network|timed? ?out|ECONN|abort|service|[{}_]|Composio|\bID\b/i.test(message) || message.length > 140) {
     return { key: "connectors.connectFailed" };
   }
-  return message;
+  return friendlyError(message, t("connectors.connectFailed"));
 }

@@ -1,6 +1,7 @@
 // connecting an app through composio connect: authorize composio once, then sign in to the app on composio's page.
 // composio's sign-in link expires in 10 minutes (its own instruction text), so a wait that long is a timeout.
 import { ApiError } from "@/state/api";
+import { friendlyError } from "@/lib/plain-error";
 
 export type ViaFailure = "authorize" | "cancelled" | "timeout" | "signedOut" | "offline" | "refused";
 
@@ -30,7 +31,7 @@ export function classifyViaError(cause: unknown): { kind: "signedOut" } | { kind
   const code = typeof cause.body?.code === "string" ? cause.body.code : "";
   if (code === "composio_connect_signed_out" || code === "composio_connect_missing") return { kind: "signedOut" };
   if (cause.status >= 500 || cause.status === 408 || cause.status === 429) return { kind: "trouble" };
-  return { kind: "refused", message: cause.message };
+  return { kind: "refused", message: friendlyError(cause) };
 }
 
 const PENDING = "dusk.composioConnect.pending";

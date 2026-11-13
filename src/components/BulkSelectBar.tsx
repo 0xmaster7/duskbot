@@ -3,6 +3,7 @@ import { t } from "@/lib/i18n";
 import { archivedIds, chunkIds, clearSelection, clickRow, isTickable, olderThanIds, selectAll, summarizeDelete, type DeleteResponse, type SelectableRow } from "@/lib/bulk-select";
 import { api, type Action, type BotAnnouncement, type Group } from "@/state/store";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { friendlyError } from "@/lib/plain-error";
 
 export type BulkDeleteResult = { responses: DeleteResponse[]; error?: string };
 type Selection = ReadonlySet<string>;
@@ -20,7 +21,7 @@ export async function deleteThreadsInBulk(owner: { botId: string } | { groupId: 
     }
     return { responses };
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = friendlyError(error);
     dispatch({ type: "error", message });
     return { responses, error: message };
   }

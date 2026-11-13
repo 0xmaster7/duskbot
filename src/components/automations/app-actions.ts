@@ -4,6 +4,7 @@ import { useState } from "react";
 import { appTriggerApi } from "@/lib/app-triggers";
 import type { Automation } from "@/lib/automations";
 import { useAutomationActions } from "./actions";
+import { friendlyError } from "@/lib/plain-error";
 
 export function useAllAutomationActions() {
   const base = useAutomationActions();
@@ -14,7 +15,7 @@ export function useAllAutomationActions() {
     setBusy(key);
     setError("");
     try { await work(); }
-    catch (failure) { setError(failure instanceof Error ? failure.message : String(failure)); }
+    catch (failure) { setError(friendlyError(failure)); }
     finally { setBusy(null); }
   };
   return {

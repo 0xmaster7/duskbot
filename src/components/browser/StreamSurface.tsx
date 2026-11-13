@@ -38,6 +38,7 @@ import { copyText } from "@/lib/copy-text";
 import { AgentCursor } from "./AgentCursor";
 import { AuthPrompt } from "./AuthPrompt";
 import { SelectPopup, type SelectPopupOption } from "./SelectPopup";
+import { friendlyError } from "@/lib/plain-error";
 
 export interface StreamSurfaceHandle {
   /** The canvas once it shows a frame, to seed picture in picture. */
@@ -612,7 +613,7 @@ export function StreamSurface(props: {
     if (!chooser) return;
     setFileChooser(null);
     void uploadPreviewStreamFiles(chooser, files).catch((cause: unknown) =>
-      notify({ kind: "error", message: t("browser.stream.uploadFailed", { error: cause instanceof Error ? cause.message : String(cause) }) }));
+      notify({ kind: "error", message: t("browser.stream.uploadFailed", { error: friendlyError(cause) }) }));
   };
 
   const direct = (message: PreviewStreamInput) => clientRef.current?.send(message);

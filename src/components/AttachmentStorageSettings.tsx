@@ -4,6 +4,7 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { api } from "@/state/store";
 import { SettingRow } from "./SettingsPrimitives";
+import { friendlyError } from "@/lib/plain-error";
 
 interface Usage { usedBytes: number; maxBytes: number }
 interface Cleared extends Usage { removed: number; freedBytes: number; failed: number }
@@ -37,7 +38,7 @@ export function AttachmentStorageSettings() {
         ? { kind: "error", message: `${cleared} ${t("settings.attachments.failed", { count: body.failed })}` }
         : { kind: "success", message: cleared });
     } catch (error) {
-      setResult({ kind: "error", message: error instanceof Error ? error.message : String(error) });
+      setResult({ kind: "error", message: friendlyError(error) });
     } finally {
       setClearing(false);
       setConfirming(false);

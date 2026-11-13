@@ -33,6 +33,7 @@ import { openKeySettings } from "../keys/key-focus";
 import { KeysLink } from "../keys/KeysLink";
 import type { ConnectorScope, ConnectorScopes } from "../../../shared/connector-scopes";
 import type { useBotSettingsDerived } from "./useBotSettingsDerived";
+import { friendlyError } from "@/lib/plain-error";
 
 /**
  * Claude keeps sessions per project folder, so the server pins each task's folder on its first turn. PATCHed directly,
@@ -52,7 +53,7 @@ export function useWorkingFolder(bot: Pick<Bot, "id" | "cwd">) {
       await api(`/api/bots/${bot.id}`, { method: "PATCH", body: JSON.stringify({ cwd }) });
       setDraft(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(friendlyError(e));
     } finally {
       setSaving(false);
     }
@@ -260,7 +261,7 @@ export function ConnectorToolsGrants({
         if (!cancelled) setTools(services);
       })
       .catch((e: unknown) => {
-        if (!cancelled) setToolsError(e instanceof Error ? e.message : String(e));
+        if (!cancelled) setToolsError(friendlyError(e));
       });
     return () => {
       cancelled = true;
@@ -552,7 +553,7 @@ export function VpsAliasField({ bot }: { bot: Bot }) {
       setNotice(saved?.notice ?? null);
       setDraft(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(friendlyError(e));
     } finally {
       setSaving(false);
     }

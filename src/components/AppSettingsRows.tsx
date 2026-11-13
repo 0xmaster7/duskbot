@@ -13,6 +13,7 @@ import { alternateSendLabel, parseFollowUpDefault, setFollowUpDefault, useFollow
 import { effectiveLanguage, setLanguageChoice, useLanguageChoice } from "@/lib/language-preference";
 import { SettingsSelect } from "./SettingsSelect";
 import { TALKING_STYLES, talkingStyleOf } from "../../shared/talking-style";
+import { friendlyError } from "@/lib/plain-error";
 
 export function NewBotEffortRow() {
   const { state, dispatch } = useStore();
@@ -31,7 +32,7 @@ export function NewBotEffortRow() {
       });
       dispatch({ type: "configStatus", config });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t("settings.newBotEffort.error"));
+      setError(friendlyError(cause, t("settings.newBotEffort.error")));
     } finally {
       setSaving(false);
     }
@@ -72,7 +73,7 @@ export function TalkingStyleRow() {
       const config: ConfigStatus = await api("/api/config", { method: "PATCH", body: JSON.stringify({ talkingStyle: talkingStyleOf(value) }) });
       dispatch({ type: "configStatus", config });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t("settings.talkingStyle.error"));
+      setError(friendlyError(cause, t("settings.talkingStyle.error")));
     } finally {
       setSaving(false);
     }
@@ -108,7 +109,7 @@ export function QuickUpdatesRow() {
       });
       dispatch({ type: "configStatus", config });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t("settings.quickUpdates.error"));
+      setError(friendlyError(cause, t("settings.quickUpdates.error")));
     } finally {
       setSaving(false);
     }
@@ -209,7 +210,7 @@ export function ExperimentalFeaturesRow({ lead }: { lead?: ReactNode }) {
       });
       dispatch({ type: "configStatus", config });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t("settings.experimental.error"));
+      setError(friendlyError(cause, t("settings.experimental.error")));
     } finally {
       setSaving(false);
     }

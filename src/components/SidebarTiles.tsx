@@ -17,6 +17,7 @@ import { openBotContextMenu, useVisibleMessages, type BotRowProps } from "./Side
 import { sidebarBotStatus } from "./SidebarBotActivity";
 import { SIMPLE_ROW_FOCUS } from "./SidebarSimpleTop";
 import { useBotUnread } from "./unread-notice";
+import { friendlyError } from "@/lib/plain-error";
 
 const RING = "ring-2 ring-[var(--tile)]";
 
@@ -40,7 +41,7 @@ export const SidebarBotTile = memo(function SidebarBotTile({ primary = false, dr
     if (!remoteClient) return dispatch({ type: "updateBot", botId: bot.id, patch: { name } });
     void api(`/api/bots/${bot.id}/profile`, { method: "PATCH", body: JSON.stringify({ name }) })
       .then(({ bot: updated }) => dispatch({ type: "botPatched", bot: updated }))
-      .catch((cause) => dispatch({ type: "error", message: cause instanceof Error ? cause.message : String(cause) }));
+      .catch((cause) => dispatch({ type: "error", message: friendlyError(cause) }));
   };
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (renaming) return;

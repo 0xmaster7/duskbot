@@ -6,6 +6,7 @@ import { api, useStore } from "@/state/store";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { dialogPrimaryCls, fieldLabelCls, footnoteCls, formBodyCls, formCloseCls, formHeaderCls, formSheetCls, formTitleCls, listCardCls, rowHintCls, textAreaCls, textFieldCls } from "./ui/GrokDialog";
+import { friendlyError } from "@/lib/plain-error";
 
 // Electron collects -webkit-app-region from layout boxes and ignores z-index, so the chat header's drag strip swallows
 // clicks on top of it.
@@ -72,7 +73,7 @@ export function CommandAllowlistDialog({ botId, botName, threadId, onClose }: {
         setCwd(result.context.cwd ?? "");
       })
       .catch((cause: unknown) => {
-        if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : String(cause));
+        if (!controller.signal.aborted) setError(friendlyError(cause));
       })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
@@ -95,7 +96,7 @@ export function CommandAllowlistDialog({ botId, botName, threadId, onClose }: {
       setData(result);
       if (!rule) setCommand("");
     } catch (cause) {
-      if (mounted.current) setError(cause instanceof Error ? cause.message : String(cause));
+      if (mounted.current) setError(friendlyError(cause));
     } finally {
       if (mounted.current) {
         setSaving(null);

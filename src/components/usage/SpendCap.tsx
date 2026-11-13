@@ -5,6 +5,7 @@ import { upperFirst } from "@/lib/lower-first";
 import { saveCap } from "@/lib/spend";
 import { formatCost } from "@/lib/usage-trace";
 import { buttonCls, fieldCls } from "../bot-panel/rows";
+import { friendlyError } from "@/lib/plain-error";
 
 /** A weekly cap in dollars for one bot or routine: shown, set, changed or removed in place. */
 export function SpendCap({ kind, id, capUsd, onSaved, className, sentence = false }: {
@@ -30,7 +31,7 @@ export function SpendCap({ kind, id, capUsd, onSaved, className, sentence = fals
       setEditing(false);
       onSaved();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setBusy(false);
     }

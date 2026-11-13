@@ -10,6 +10,7 @@ import { inputCls } from "./field";
 import { OrgSkillsCard } from "./OrgSkillsCard";
 import { WriteCommandCard } from "./WriteCommandCard";
 import { Select } from "../Select";
+import { friendlyError } from "@/lib/plain-error";
 
 export interface ManagedSkill {
   name: string;
@@ -62,7 +63,7 @@ export function useManagedSkills(bot: Bot) {
       setAddFromLibrary("");
       setError("");
     } catch (cause) {
-      if (!cancelled?.()) setError(cause instanceof Error ? cause.message : "could not load learned skills.");
+      if (!cancelled?.()) setError(friendlyError(cause, "could not load learned skills."));
     } finally {
       if (!cancelled?.()) setLoading(false);
     }
@@ -98,7 +99,7 @@ export function useManagedSkills(bot: Bot) {
     try {
       await putAssignments(name);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "could not assign that skill.");
+      setError(friendlyError(cause, "could not assign that skill."));
     } finally {
       assignmentBusy.current = false;
       setWorking("");
@@ -131,7 +132,7 @@ export function useManagedSkills(bot: Bot) {
       });
       await refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "could not update this skill.");
+      setError(friendlyError(cause, "could not update this skill."));
     } finally {
       setWorking("");
     }
@@ -150,7 +151,7 @@ export function useManagedSkills(bot: Bot) {
       setReviewing(null);
       await refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "could not enable this skill.");
+      setError(friendlyError(cause, "could not enable this skill."));
     } finally {
       setWorking("");
     }
@@ -326,7 +327,7 @@ export function SkillsSection({ bot }: { bot: Bot }) {
       try {
         await putAssignments(skill.name, true);
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : "could not unassign that skill.");
+        setError(friendlyError(cause, "could not unassign that skill."));
       } finally {
         assignmentBusy.current = false;
         setWorking("");
@@ -340,7 +341,7 @@ export function SkillsSection({ bot }: { bot: Bot }) {
       await api(`/api/bots/${bot.id}/skills/${encodeURIComponent(skill.name)}`, { method: "DELETE" });
       await refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "could not remove this skill.");
+      setError(friendlyError(cause, "could not remove this skill."));
     } finally {
       setWorking("");
     }
@@ -354,7 +355,7 @@ export function SkillsSection({ bot }: { bot: Bot }) {
         : ((await api(`/api/bots/${bot.id}/skills/${encodeURIComponent(skill.name)}`)) as { text?: string });
       setViewing({ name: skill.name, text: result.text ?? "" });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "could not load this skill.");
+      setError(friendlyError(cause, "could not load this skill."));
     }
   };
 
@@ -374,7 +375,7 @@ export function SkillsSection({ bot }: { bot: Bot }) {
       setSource("");
       await refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "could not import that skill.");
+      setError(friendlyError(cause, "could not import that skill."));
     } finally {
       setImporting(false);
     }

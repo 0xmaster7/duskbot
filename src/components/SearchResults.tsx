@@ -8,6 +8,7 @@ import { t } from "@/lib/i18n";
 import { withoutCitationTraces } from "@/lib/citations";
 import type { SearchHit } from "@/lib/search-hit";
 import { landOnSearchHit } from "@/lib/focus-message";
+import { friendlyError } from "@/lib/plain-error";
 
 export const MIN_QUERY = 2;
 const DEBOUNCE_MS = 250;
@@ -30,7 +31,7 @@ export function SearchResults({ query, onLanded }: { query: string; onLanded: ()
     const timer = setTimeout(() => {
       api(`/api/search?q=${encodeURIComponent(q)}&limit=40`)
         .then((r: { hits: SearchHit[] }) => alive && (feature("search_used"), setHits(r.hits), setError(null)))
-        .catch((e: unknown) => alive && setError(e instanceof Error ? e.message : String(e)));
+        .catch((e: unknown) => alive && setError(friendlyError(e)));
     }, DEBOUNCE_MS);
     return () => {
       alive = false;
@@ -45,7 +46,7 @@ export function SearchResults({ query, onLanded }: { query: string; onLanded: ()
       await landOnSearchHit(hit, state, dispatch);
       onLanded();
     } catch (e) {
-      dispatch({ type: "error", message: e instanceof Error ? e.message : String(e) });
+      dispatch({ type: "error", message: friendlyError(e) });
     }
   };
 

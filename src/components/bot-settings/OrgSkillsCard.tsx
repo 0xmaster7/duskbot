@@ -5,6 +5,7 @@ import type { Bot } from "@/state/store";
 import { t } from "@/lib/i18n";
 import type { OfferedOrgSkill } from "@/lib/org-library";
 import { useBotEditor } from "./BotEditorContext";
+import { friendlyError } from "@/lib/plain-error";
 
 export function OrgSkillsCard({ bot, onAdded }: { bot: Bot; onAdded: () => void }) {
   const { request, draft } = useBotEditor();
@@ -52,7 +53,7 @@ export function OrgSkillsCard({ bot, onAdded }: { bot: Bot; onAdded: () => void 
       await refresh();
       onAdded();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setWorking("");
     }

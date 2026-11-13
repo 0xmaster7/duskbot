@@ -15,6 +15,7 @@ import { ShareBotDialog } from "./ShareBotDialog";
 import { EntryFace } from "./ShareControls";
 import { Card as RowsCard, NoteRow, rowCls } from "../ListRows";
 import { textFieldCls } from "../ui/GrokDialog";
+import { friendlyError } from "@/lib/plain-error";
 
 type Change = { botId: string; before: BotAccess; after: BotAccess; text: string };
 type Listing = "bot" | "person";
@@ -70,7 +71,7 @@ export function AccessOverview() {
       await saveAccess(bot.id, after);
       setChange({ botId: bot.id, before, after, text });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     }
   };
 

@@ -9,6 +9,7 @@ import { smallButtonCls } from "../ui/GrokDialog";
 import type { KeyEntry } from "./key-catalog";
 import { KEY_FIELD, KeyMarkIcon, KeyPlainRow } from "./KeyRow";
 import { cleanKey, looksLikeKey } from "./key-save";
+import { friendlyError } from "@/lib/plain-error";
 
 /** Security: write-only; the server returns names, never keys, and hands the keys to OpenCode alone. */
 export function OpenCodeProviderKeys() {
@@ -37,7 +38,7 @@ export function OpenCodeProviderKeys() {
     setError(null);
     put(target, value)
       .then(() => { setName(""); setKey(""); })
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) => setError(friendlyError(e)))
       .finally(() => setAdding(false));
   };
 
@@ -46,7 +47,7 @@ export function OpenCodeProviderKeys() {
     setRemoving(target);
     setError(null);
     put(target, "")
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) => setError(friendlyError(e)))
       .finally(() => setRemoving(null));
   };
 
@@ -117,7 +118,7 @@ export function AnthropicEveryClaudeBot() {
     setError(null);
     api("/api/config", { method: "PUT", body: JSON.stringify({ anthropic: { everyClaudeBot: !on } }) })
       .then((status: ConfigStatus) => dispatch({ type: "configStatus", config: status }))
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) => setError(friendlyError(e)))
       .finally(() => setSaving(false));
   };
   return (
@@ -172,7 +173,7 @@ export function OpenAiCompatUrl() {
     setError(null);
     api("/api/config", { method: "PUT", body: JSON.stringify({ openaiCompat: { url: value.trim() } }) })
       .then((status: ConfigStatus) => dispatch({ type: "configStatus", config: status }))
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) => setError(friendlyError(e)))
       .finally(() => { savingRef.current = false; setSaving(false); });
   };
 

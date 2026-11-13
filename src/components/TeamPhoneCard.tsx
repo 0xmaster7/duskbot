@@ -6,6 +6,7 @@ import { t } from "@/lib/i18n";
 import { lastSeen, minutesLeft } from "@/lib/pairing-time";
 import { api } from "@/state/store";
 import { Card } from "./SettingsPrimitives";
+import { friendlyError } from "@/lib/plain-error";
 
 export const TEAM_PHONE_PAIRING = "/api/team/phone-pairing";
 export const TEAM_PHONES = "/api/team/phones";
@@ -28,7 +29,7 @@ export function TeamPhoneCard({ team, blocked }: { team: string; blocked?: strin
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
-  const fail = (cause: unknown) => setError(t("remote.serverPairing.error", { error: cause instanceof Error ? cause.message : String(cause) }));
+  const fail = (cause: unknown) => setError(t("remote.serverPairing.error", { error: friendlyError(cause) }));
 
   async function loadPhones() {
     try {

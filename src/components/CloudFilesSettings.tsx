@@ -9,6 +9,7 @@ import type { LocaleKey } from "@/locales";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { Card, Switch } from "./SettingsPrimitives";
 import { MENU_SHEET } from "./menu-recipe";
+import { friendlyError } from "@/lib/plain-error";
 
 const REFUSAL: Record<string, LocaleKey> = {
   "too-broad": "files.refusal.tooBroad", "app-data": "files.refusal.appData", "already-shared": "files.refusal.alreadyShared",
@@ -42,8 +43,7 @@ export function folderStatus(folder: SharedFolder): string {
 
 // Electron wraps what main threw: "Error invoking remote method 'files:share': Error: …". One line of it, no stack.
 export function failureText(error: unknown): string {
-  const message = (error instanceof Error ? error.message : String(error ?? "")).replace(/^Error invoking remote method '[^']*': (?:\w*Error: )?/, "");
-  const line = message.split("\n")[0]!.trim();
+  const line = friendlyError(error, "");
   return line ? t("files.failedWith", { reason: line }) : t("files.failed");
 }
 

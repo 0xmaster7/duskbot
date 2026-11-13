@@ -7,6 +7,7 @@ import { useStore, type Bot } from "@/state/store";
 import { useBotEditor } from "./bot-settings/BotEditorContext";
 import { inputCls } from "./bot-settings/field";
 import { t } from "@/lib/i18n";
+import { friendlyError } from "@/lib/plain-error";
 
 type SoulRead = { soul: string; revision: string; bytes: number; limit: number; file: string; drift: boolean; fileText?: string };
 
@@ -56,7 +57,7 @@ export function SoulField({
         body: JSON.stringify({ fileText: info.fileText, expectedRevision: info.revision }),
       });
     } catch (error: unknown) {
-      dispatch({ type: "error", message: error instanceof Error ? error.message : String(error) });
+      dispatch({ type: "error", message: friendlyError(error) });
     } finally {
       await refresh();
       setResolving(false);

@@ -11,6 +11,7 @@ import { mayChangeOwner, ownerChanged, ownerOf, useTeamPeople, type TeamPeople, 
 import { MENU_SHEET } from "../menu-recipe";
 import { accessOfBot, addablePeople, canShare, levelWhenAdded, nameOf, personOf, saveAccess, saveOwner, withPerson } from "./access";
 import { choiceItem, EntryFace, PersonMenu, QuietMenu } from "./ShareControls";
+import { friendlyError } from "@/lib/plain-error";
 
 export interface AccessChange { before: BotAccess; after: BotAccess; text: string }
 
@@ -51,7 +52,7 @@ export function ShareBotDialog({ bot, teamName, onClose, onChanged, headerMenu }
     try {
       await work();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setBusy(false);
     }

@@ -8,6 +8,7 @@ import { BOTS_SECTION_ID, userSectionName } from "@/lib/sidebar-layout";
 import { BOT_ROW_DRAG_TYPE, botDropPlace, botListOf, planBotDrop, sameBotDrop, stepBot, unusedName, type BotDrop, type BotDropPlace, type BotMove } from "@/lib/sidebar-bot-drop";
 import type { Action, Bot } from "@/state/store";
 import { moveBotsToSection, renameDepartment, saveBotOrder, useMayMoveBots } from "./bot-sections";
+import { friendlyError } from "@/lib/plain-error";
 
 /** The department being named, before it exists. The server trims names and never keeps a control character. */
 export const NEW_DEPARTMENT = "\u0000new";
@@ -27,7 +28,7 @@ type Naming = { kind: "new"; botIds: string[]; name: string } | { kind: "rename"
 type Arranged = { enabled: boolean; lists: Map<string, string[]>; bots: Bot[]; taken: string[] };
 
 const carries = (event: DragEvent<HTMLElement>) => event.dataTransfer.types.includes(BOT_ROW_DRAG_TYPE);
-const failure = (cause: unknown) => (cause instanceof Error ? cause.message : String(cause));
+const failure = (cause: unknown) => (friendlyError(cause));
 
 export function botRowDropClass(drop: BotDropPlace | null | undefined, dragging: boolean | undefined, simple = false): string {
   return cn(dragging && (simple ? "opacity-50" : "opacity-40"), drop === "group" && "rounded-[12px] bg-accent/10 outline outline-2 -outline-offset-2 outline-accent/70");

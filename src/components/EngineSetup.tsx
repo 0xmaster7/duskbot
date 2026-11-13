@@ -16,6 +16,7 @@ import { openKeySettings } from "./keys/key-focus";
 import { KeyRow, SavedKeyLine } from "./keys/KeyRow";
 import { Card, CopyRow, ItemRow, NavRow, NoteRow, rowCls } from "./ListRows";
 import { openExternalLink } from "@/lib/app-links";
+import { friendlyError } from "@/lib/plain-error";
 
 export function needsSignIn(instance: InstanceInfo | undefined): boolean {
   return instance?.snapshot.state === "available" && instance.snapshot.authenticated === false;
@@ -189,7 +190,7 @@ function ServerEngineInstall({ instance, mode, command, quiet = false, rows }: {
       setDone(true);
       await refreshModels(instance.instanceId).catch(() => {});
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setBusy(false);
     }
@@ -335,7 +336,7 @@ function ManagedEngineSetup({ instance, signInOnly }: { instance: InstanceInfo; 
     setBusy(kind);
     setError(null);
     try { await action(); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    catch (cause) { setError(friendlyError(cause)); }
     finally { setBusy(null); }
   };
 
@@ -754,7 +755,7 @@ function EngineSetupRows({ instance, title, description, command, installCommand
     setChecking(true);
     setCheckError(null);
     try { await refreshInstances({ reportErrors: true }); setChecked(true); }
-    catch (cause) { setCheckError(cause instanceof Error ? cause.message : String(cause)); }
+    catch (cause) { setCheckError(friendlyError(cause)); }
     finally { setChecking(false); }
   };
   return (

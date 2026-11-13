@@ -11,6 +11,7 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { PixelIcon } from "./ui/PixelIcon";
 import { cn } from "@/lib/cn";
 import { footnoteCls, formBodyCls, formCloseCls, formHeaderCls, formSheetCls, formTitleCls, rowHintCls, smallButtonCls } from "./ui/GrokDialog";
+import { friendlyError } from "@/lib/plain-error";
 
 const dangerSmallCls = "dusk-press inline-flex h-6 shrink-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-full px-2 text-[12px] leading-4 tracking-[0.01em] text-danger outline-none hover:bg-danger/10 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-default disabled:opacity-40";
 
@@ -155,7 +156,7 @@ export function ArchivedBotsPanel({
       onRestored(t("sidebar.archived.restored", { name: bot.name }));
       if (bots.length === 1) onClose();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setBusyId(null);
     }
@@ -183,7 +184,7 @@ export function ArchivedBotsPanel({
       );
       onClose();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setRestoringAll(false);
     }

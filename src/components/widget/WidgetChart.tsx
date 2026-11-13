@@ -6,6 +6,7 @@ import { vegaConfig } from "../../../shared/vega-config";
 import type { WidgetNode } from "../../../shared/widget";
 import { WIDGET_CHART_WIDTH, widgetChartHeight, widgetChartSpec } from "../../../shared/widget-chart";
 import { boxStyle } from "./widget-style";
+import { friendlyError } from "@/lib/plain-error";
 
 export function WidgetChart({ node }: { node: WidgetNode }) {
   const theme = useColorScheme();
@@ -43,7 +44,7 @@ export function WidgetChart({ node }: { node: WidgetNode }) {
       if (!alive) { result.finalize(); return; }
       drawn.current = result;
     })().catch((cause) => {
-      if (alive) setFailed(cause instanceof Error ? cause.message : String(cause));
+      if (alive) setFailed(friendlyError(cause));
     });
     return () => {
       alive = false;

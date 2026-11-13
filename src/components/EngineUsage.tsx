@@ -10,6 +10,7 @@ import {
 import type { Routine } from "@/lib/routines";
 import { api, useStore } from "@/state/store";
 import { openBotSettings } from "./bot-panel/panel-link";
+import { friendlyError } from "@/lib/plain-error";
 
 /** The stopped turn's "Continue at 3:40 PM when your limit resets": one click sets up a one-time automation in this
  * conversation that picks up where it stopped. Undefined when there is nothing to offer. */
@@ -29,7 +30,7 @@ export function useLimitResetContinue(botId: string | undefined, threadId: strin
         })
         .catch((cause) => {
           setState("idle");
-          dispatch({ type: "error", message: cause instanceof Error ? cause.message : String(cause) });
+          dispatch({ type: "error", message: friendlyError(cause) });
         });
     },
   };

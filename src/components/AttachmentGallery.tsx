@@ -20,6 +20,7 @@ import {
   type MessageAttachmentContext,
   type PreviewImage,
 } from "./AttachmentPreview";
+import { friendlyError } from "@/lib/plain-error";
 
 export interface GalleryFile extends TranscriptFileAttachment {
   linked?: boolean;
@@ -236,7 +237,7 @@ function VideoAttachment({ file, message }: { file: GalleryFile; message: Messag
       const blob = await loadMessageVideo(file, message, controller.signal);
       if (!controller.signal.aborted) setPreview(URL.createObjectURL(blob));
     } catch (reason) {
-      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : t("attach.videoUnavailable"));
+      if (!controller.signal.aborted) setError(friendlyError(reason, t("attach.videoUnavailable")));
     } finally {
       if (!controller.signal.aborted) setLoading(false);
       if (request.current === controller) request.current = null;
@@ -360,7 +361,7 @@ function AudioAttachment({ file, message }: { file: GalleryFile; message: Messag
       const blob = await loadMessageAudio(file, message, controller.signal);
       if (!controller.signal.aborted) setSrc(URL.createObjectURL(blob));
     } catch (reason) {
-      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : t("attach.audioUnavailable"));
+      if (!controller.signal.aborted) setError(friendlyError(reason, t("attach.audioUnavailable")));
     } finally {
       if (!controller.signal.aborted) setLoading(false);
       if (request.current === controller) request.current = null;

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { HardDrive, Loader2 } from "../icons";
 import { api, type InstanceInfo } from "@/state/store";
 import { t } from "@/lib/i18n";
+import { friendlyError } from "@/lib/plain-error";
 
 type Phase =
   | { kind: "idle" }
@@ -36,7 +37,7 @@ export function AntigravityFreeSpace({ instance, initial = { kind: "idle" } }: {
       const found = await api<{ bytes: number; folders: number; complete: boolean }>(base);
       setPhase(found.folders > 0 ? { kind: "found", bytes: found.bytes, complete: found.complete } : { kind: "none" });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
       setPhase({ kind: "idle" });
     }
   };
@@ -51,7 +52,7 @@ export function AntigravityFreeSpace({ instance, initial = { kind: "idle" } }: {
       });
       setPhase({ kind: "done", freedBytes: result.freedBytes, remaining: result.remaining });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
       setPhase({ kind: "idle" });
     }
   };

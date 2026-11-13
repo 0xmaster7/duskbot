@@ -11,6 +11,7 @@ import { BotAvatar } from "./Avatar";
 import { imageAttachmentFromFile } from "@/lib/composer-attachments";
 import { botAvatarUrlFromStoredPath } from "../../shared/bot-avatar";
 import { BOT_PROFILE_LIMITS } from "../../shared/bot-profile";
+import { friendlyError } from "@/lib/plain-error";
 
 type RemoteProfilePatch = Partial<
   Pick<Bot, "name" | "title" | "description" | "avatarUrl" | "avatarCrop" | "voice" | "speakReplies" | "notifications">
@@ -47,7 +48,7 @@ export function RemoteAgentSettingsPanel({ bot, overlay = false }: {
           });
           dispatch({ type: "botPatched", bot: result.bot });
         } catch (cause) {
-          setError(cause instanceof Error ? cause.message : t("remoteAgent.updateFailed"));
+          setError(friendlyError(cause, t("remoteAgent.updateFailed")));
         }
       }
     };
@@ -68,7 +69,7 @@ export function RemoteAgentSettingsPanel({ bot, overlay = false }: {
       if (!avatarUrl) throw new Error(t("settings.profile.avatar.invalidType"));
       await patch({ avatarUrl, avatarCrop: bot.avatarCrop === "square" ? "square" : "circle" });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setUploading(false);
       if (avatarInput.current) avatarInput.current.value = "";

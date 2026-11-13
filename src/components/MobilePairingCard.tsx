@@ -17,6 +17,7 @@ import { Card as RowsCard, CopyRow, ItemRow, NoteRow } from "./ListRows";
 import { PhoneHomeShot, StoreMarks } from "./PhoneHomeShot";
 import { GROK_FOCUS } from "./SidebarSimpleTop";
 import { PlaceArt } from "./ui/PlaceArt";
+import { friendlyError } from "@/lib/plain-error";
 
 export function platformLabelKey(platform: string) {
   return platform === "ios" ? "settings.mobile.ios" : platform === "android" ? "settings.mobile.android" : "settings.mobile.phone";
@@ -89,7 +90,7 @@ export function MobilePairingCard({ remote, children }: {
         setOffer(null);
         setHidden(true);
       } else {
-        setError(cause instanceof Error ? cause.message : t("settings.mobile.error"));
+        setError(friendlyError(cause, t("settings.mobile.error")));
         haptic("error");
       }
     }
@@ -157,7 +158,7 @@ export function MobilePairingCard({ remote, children }: {
       haptic("success");
     } catch (cause) {
       if (generation.current === epoch) {
-        setError(cause instanceof Error ? cause.message : t("settings.mobile.error"));
+        setError(friendlyError(cause, t("settings.mobile.error")));
         haptic("error");
       }
     } finally {
@@ -174,7 +175,7 @@ export function MobilePairingCard({ remote, children }: {
       if (generation.current === epoch) await loadDevices(epoch);
     } catch (cause) {
       if (generation.current === epoch) {
-        setError(cause instanceof Error ? cause.message : t("settings.mobile.error"));
+        setError(friendlyError(cause, t("settings.mobile.error")));
         haptic("error");
       }
     } finally {

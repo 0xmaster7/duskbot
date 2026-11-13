@@ -18,6 +18,7 @@ import { createLiveStreamClient, type LiveResume, type LiveStreamClient } from "
 import { BROWSER_HELD_ELSEWHERE } from "../../shared/browser-held";
 import { passkeyWallAt } from "../../shared/passkey-wall";
 import { browserScope, withBrowserScope } from "@/lib/team-browser";
+import { friendlyError } from "@/lib/plain-error";
 
 const button = "rounded-md p-1.5 text-ink-secondary hover:bg-inset hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed";
 const NO_NAV: BrowserNav = { url: "", loading: false, canGoBack: false, canGoForward: false };
@@ -382,7 +383,7 @@ export function BrowserPanel({ bot, signIn, page }: { bot: Bot; signIn?: Browser
   const install = async () => {
     setError(null); setRequested(true);
     try { await api("/api/browser-engine/install", { method: "POST" }); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    catch (cause) { setError(friendlyError(cause)); }
     finally { setRequested(false); }
   };
   if (bot.browser === false) return <div className="p-5 text-[13px] text-ink-secondary">{t("browser.panel.enableBot")}</div>;

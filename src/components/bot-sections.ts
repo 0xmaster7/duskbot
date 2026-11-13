@@ -1,8 +1,9 @@
 import type { Dispatch } from "react";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { api, type Action, type AppState, type Bot } from "@/state/store";
+import { friendlyError } from "@/lib/plain-error";
 
-const failure = (cause: unknown) => (cause instanceof Error ? cause.message : String(cause));
+const failure = (cause: unknown) => (friendlyError(cause));
 
 /** Whether this person may move bots, from a menu or by dragging: into or out of a department, or to another place in
  * a list. */

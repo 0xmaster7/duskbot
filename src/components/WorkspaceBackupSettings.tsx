@@ -7,6 +7,7 @@ import { Card as RowsCard, CardLabel, FormDialog, FormField, ItemRow, NavRow, No
 import { textFieldCls } from "./ui/GrokDialog";
 import { GROK_HOVER_TINT } from "./SidebarSimpleTop";
 import { cn } from "@/lib/cn";
+import { friendlyError } from "@/lib/plain-error";
 
 type BackupStatus = { busy: boolean; pendingRestore?: boolean; lastRestoreId?: string };
 const buttonClass = cn("cursor-pointer inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-[13px] font-medium text-accent-ink disabled:opacity-40", GROK_HOVER_TINT);
@@ -75,7 +76,7 @@ export function WorkspaceBackupSettings() {
       const result: BackupStatus = await api("/api/workspace-backup/status");
       if (alive.current) { setStatus(result); setError(null); }
     } catch (cause) {
-      if (alive.current) { setStatus(null); setError(cause instanceof Error ? cause.message : String(cause)); }
+      if (alive.current) { setStatus(null); setError(friendlyError(cause)); }
     }
   };
   useEffect(() => {
@@ -90,7 +91,7 @@ export function WorkspaceBackupSettings() {
     setBusy(operation);
     setError(null);
     try { await work(); }
-    catch (cause) { if (alive.current) setError(cause instanceof Error ? cause.message : String(cause)); }
+    catch (cause) { if (alive.current) setError(friendlyError(cause)); }
     finally { lock.current = false; if (alive.current) setBusy(null); }
   };
 
@@ -235,7 +236,7 @@ export function WorkspaceBackupRecovery({ children }: { children: ReactNode }) {
       applyWorkspaceClientState(result.clientState);
       localStorage.removeItem(WORKSPACE_RESTORE_MARKER);
       window.location.reload();
-    })().catch((cause) => { if (alive) setError(cause instanceof Error ? cause.message : String(cause)); });
+    })().catch((cause) => { if (alive) setError(friendlyError(cause)); });
     return () => { alive = false; };
   }, [restoreId, attempt]);
   if (ready) return children;
@@ -243,7 +244,7 @@ export function WorkspaceBackupRecovery({ children }: { children: ReactNode }) {
     try {
       localStorage.removeItem(WORKSPACE_RESTORE_MARKER);
       window.location.reload();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    } catch (cause) { setError(friendlyError(cause)); }
   };
   return <main className="flex h-dvh flex-col items-center justify-center gap-4 bg-app p-6 text-ink">
     {restartRequired ? <WorkspaceBackupRestartNotice onRetry={() => { setRestartRequired(false); setAttempt((value) => value + 1); }} /> : <p className="max-w-lg text-[14px]">{t("backup.recovering")}</p>}

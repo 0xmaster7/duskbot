@@ -15,6 +15,7 @@ import { Card as RowsCard, ItemRow, NoteRow } from "./ListRows";
 import { TeamPhoneCard } from "./TeamPhoneCard";
 import { ComputerNameRow } from "./ComputerNameRow";
 import { PairingTile, type PhoneParts } from "./MobilePairingCard";
+import { friendlyError } from "@/lib/plain-error";
 
 export interface PairingOffer {
   id: string;
@@ -73,7 +74,7 @@ export function ServerPairingCard({ initialSession = null, cloudHome = false, fo
       setDevices(Array.isArray(body?.sessions) ? body.sessions : []);
       setCurrent(typeof body?.current === "string" ? body.current : null);
     } catch (e) {
-      setError(t("remote.serverPairing.error", { error: e instanceof Error ? e.message : String(e) }));
+      setError(t("remote.serverPairing.error", { error: friendlyError(e) }));
     }
   }
 
@@ -156,7 +157,7 @@ export function ServerPairingCard({ initialSession = null, cloudHome = false, fo
       setOffer(body);
       setNow(Date.now());
     } catch (e) {
-      setError(t("remote.serverPairing.error", { error: e instanceof Error ? e.message : String(e) }));
+      setError(t("remote.serverPairing.error", { error: friendlyError(e) }));
     } finally {
       setBusy(false);
     }
@@ -168,7 +169,7 @@ export function ServerPairingCard({ initialSession = null, cloudHome = false, fo
       await api(`/api/auth/sessions/${encodeURIComponent(id)}`, { method: "DELETE" });
       await loadDevices();
     } catch (e) {
-      setError(t("remote.serverPairing.error", { error: e instanceof Error ? e.message : String(e) }));
+      setError(t("remote.serverPairing.error", { error: friendlyError(e) }));
     }
   }
 

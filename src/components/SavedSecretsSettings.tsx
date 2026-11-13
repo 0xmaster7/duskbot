@@ -5,6 +5,7 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { api } from "@/state/store";
 import { DialogPane, GrokDialog, mdSecondaryCls } from "./ui/GrokDialog";
+import { friendlyError } from "@/lib/plain-error";
 
 // Security: nothing here ever holds a value, which no route returns. A saved secret is only ever removed.
 
@@ -19,7 +20,7 @@ export function useSavedSecrets(enabled: boolean) {
       setError(null);
     } catch (cause) {
       setSecrets([]);
-      setError(cause instanceof Error && cause.message ? cause.message : t("settings.secrets.loadError"));
+      setError(friendlyError(cause, t("settings.secrets.loadError")));
     }
   };
   useEffect(() => { if (enabled) void load(); }, [enabled]);

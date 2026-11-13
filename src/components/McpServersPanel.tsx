@@ -38,6 +38,7 @@ import { CHAT_TOOL_LIMIT, chatToolBudgetFit } from "../../shared/tool-budget";
 import { openBotSettings } from "./bot-panel/panel-link";
 import { closeConnectApps } from "./connect-apps/open";
 import { KitActions, KitBody, KitButton, KitStatus, KitText } from "./connect-apps/detail-kit";
+import { friendlyError } from "@/lib/plain-error";
 
 export interface ProbeResult {
   ok: boolean;
@@ -65,7 +66,7 @@ async function toolsCheck(
     return await request(`/api/mcp/servers/${encodeURIComponent(name)}/test`, { method: "POST", signal });
   } catch (cause) {
     if (signal?.aborted) throw cause;
-    return { ok: false, error: cause instanceof Error ? cause.message : String(cause), reason: "unreachable" };
+    return { ok: false, error: friendlyError(cause), reason: "unreachable" };
   }
 }
 
@@ -167,7 +168,7 @@ export function McpServersPanel({ embedded = false, rows = false, hostedCards, h
         }
       })
       .catch((cause) => {
-        if (generation === loadGeneration.current) setError(cause instanceof Error ? cause.message : String(cause));
+        if (generation === loadGeneration.current) setError(friendlyError(cause));
       })
       .finally(() => {
         if (generation === loadGeneration.current) setBusy(null);
@@ -218,7 +219,7 @@ export function McpServersPanel({ embedded = false, rows = false, hostedCards, h
         listed((await api(`/api/mcp/servers/${encodeURIComponent(name)}`, { method: "PATCH", body: JSON.stringify({ enabled: true }) })).servers);
         switchedOn.current[name] = Date.now();
       } catch (cause) {
-        result = { ok: false, error: cause instanceof Error ? cause.message : String(cause) };
+        result = { ok: false, error: friendlyError(cause) };
       }
     }
     if (saved) result = { ...result, saved: true };
@@ -253,7 +254,7 @@ export function McpServersPanel({ embedded = false, rows = false, hostedCards, h
         added.push(item.name);
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     }
     setBusy(null);
     if (added.length) closeEditor();
@@ -290,7 +291,7 @@ export function McpServersPanel({ embedded = false, rows = false, hostedCards, h
       if (ownKey) await api(`/api/team/my-connections/mcp/${encodeURIComponent(item.name)}/key`, { method: "PUT", body: JSON.stringify({ value: ownKey, url: body.url }) });
       closeEditor();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
       setBusy(null);
       return;
     }
@@ -317,7 +318,7 @@ export function McpServersPanel({ embedded = false, rows = false, hostedCards, h
         stateKey: server.enabled ? "mcp.state.off" : "mcp.state.on",
       });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setBusy(null);
     }
@@ -365,7 +366,7 @@ export function McpServersPanel({ embedded = false, rows = false, hostedCards, h
         setProbe((current) => ({ ...current, [server.name]: { ok: false, error: result.message || t("mcp.auth.failed") } }));
       }
     } catch (cause) {
-      if (mounted.current && !controller.signal.aborted) setProbe((current) => ({ ...current, [server.name]: { ok: false, error: cause instanceof Error ? cause.message : String(cause) } }));
+      if (mounted.current && !controller.signal.aborted) setProbe((current) => ({ ...current, [server.name]: { ok: false, error: friendlyError(cause) } }));
     } finally {
       if (signInAbort.current === controller) {
         signInAbort.current = null;
@@ -397,7 +398,7 @@ export function McpServersPanel({ embedded = false, rows = false, hostedCards, h
       added = listed(result.servers).find((server: McpServerListing) => server.name === name && hostedOf(server) === app);
       if (!added) throw new Error(t("hostedMcp.setupFailed", { service: app.label }));
     } catch (cause) {
-      if (mounted.current) setCardFailure({ id: app.id, message: cause instanceof Error ? cause.message : String(cause) });
+      if (mounted.current) setCardFailure({ id: app.id, message: friendlyError(cause) });
     } finally { if (mounted.current) setBusy(null); }
     if (added && mounted.current) await signIn(added);
   };
@@ -411,7 +412,7 @@ export function McpServersPanel({ embedded = false, rows = false, hostedCards, h
       const result = await completeMcpSignIn(signingIn, signInFlow.flowId, callbackUrl, api);
       if (signInAbort.current === controller) signInComplete.current?.(result);
     } catch (cause) {
-      if (signInAbort.current === controller) setCallbackError(cause instanceof Error ? cause.message : String(cause));
+      if (signInAbort.current === controller) setCallbackError(friendlyError(cause));
     } finally {
       if (signInAbort.current === controller) setCompletingSignIn(false);
     }
@@ -430,7 +431,7 @@ export function McpServersPanel({ embedded = false, rows = false, hostedCards, h
       }
       listed((await api(`/api/mcp/servers/${server.name}/sign-out`, { method: "POST" })).servers);
     } catch (cause) {
-      const message = cause instanceof Error ? cause.message : String(cause);
+      const message = friendlyError(cause);
       if (card) setCardFailure({ id: card.id, message }); else setError(message);
     } finally {
       setBusy(null);
@@ -449,7 +450,7 @@ export function McpServersPanel({ embedded = false, rows = false, hostedCards, h
       forgetProbe(server.name);
       if (editing === server.name) closeEditor();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setBusy(null);
     }

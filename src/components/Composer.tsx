@@ -95,6 +95,7 @@ import {
 } from "@/lib/composer-commands";
 import { useSlashSkills } from "@/lib/use-slash-skills";
 import { randomUuid } from "@/lib/random-uuid";
+import { friendlyError } from "@/lib/plain-error";
 
 const supportsAgents = (instances: InstanceInfo[], candidate?: Bot) =>
   Boolean(candidate && instances.find((instance) => instance.instanceId === candidate.modelSelection.instanceId)?.capabilities?.agentsMcp);
@@ -510,7 +511,7 @@ export function Composer({
     if (!failed || failed.kind === "paste") return;
     changeDraftAttachmentPending(draftId, true);
     void retryPlacedUpload(draftId, failed)
-      .catch((error: unknown) => setAttachmentNotice(`${failed.name}: ${error instanceof Error ? error.message : "upload failed"}`))
+      .catch((error: unknown) => setAttachmentNotice(`${failed.name}: ${friendlyError(error, "upload failed")}`))
       .finally(() => changeDraftAttachmentPending(draftId, false));
   }, [attachments, draftId]);
   const pickFiles = async (picked: ArrayLike<File> | null) => {
@@ -688,7 +689,7 @@ export function Composer({
             if (result.status === "rejected") {
               dispatch({
                 type: "error",
-                message: result.reason instanceof Error ? result.reason.message : "image upload failed",
+                message: friendlyError(result.reason, "image upload failed"),
               });
             }
           }

@@ -10,6 +10,7 @@ import { plainSignIn } from "@/lib/onboarding";
 import { engineSignedIn } from "@/lib/product-events";
 import { api, useStore, type InstanceInfo } from "@/state/store";
 import { deviceSignInLink, isDeviceSignInCode } from "../../../shared/device-sign-in";
+import { friendlyError } from "@/lib/plain-error";
 
 const POLL_MS = 2_000;
 /** Checks in a row that got no answer before the sign-in says it lost track, instead of waiting forever. */
@@ -55,7 +56,7 @@ export function useSignInPill(instance: InstanceInfo | undefined) {
 
   const fail = (cause: unknown) => {
     if (!live.current) return;
-    setError(cause instanceof Error ? cause.message : t("engineSetup.device.failed"));
+    setError(friendlyError(cause, t("engineSetup.device.failed")));
     setSlot({ kind: "start" });
   };
 

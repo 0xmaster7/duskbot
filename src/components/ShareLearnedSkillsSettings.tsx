@@ -5,6 +5,7 @@ import { shareLearnedSkillsMode, skillAuthoringEnabled, skillsLibraryEnabled } f
 import { t } from "@/lib/i18n";
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import { SkillReviewSettings } from "./SkillReviewSettings";
+import { friendlyError } from "@/lib/plain-error";
 
 const MODES = [
   { value: "off", label: "settings.experimental.shareSkillsOff" },
@@ -31,7 +32,7 @@ export function ShareLearnedSkillsSettings() {
       });
       dispatch({ type: "configStatus", config });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t("settings.experimental.error"));
+      setError(friendlyError(cause, t("settings.experimental.error")));
     } finally {
       setSaving(false);
     }

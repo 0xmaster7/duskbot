@@ -4,6 +4,7 @@ import { t } from "@/lib/i18n";
 import { connectOnePassword, disconnectOnePassword, refreshOnePassword } from "@/lib/logins";
 import type { OnePasswordStatus } from "../../../shared/logins";
 import { KitActions, KitBody, KitButton, KitField, KitLink, KitStatus, KitText } from "./detail-kit";
+import { friendlyError } from "@/lib/plain-error";
 
 /** 1Password on its Connect Apps page: a service account token for one vault, then the vaults it reaches. */
 export function OnePasswordBody({ status, onChange, onManage }: {
@@ -22,7 +23,7 @@ export function OnePasswordBody({ status, onChange, onManage }: {
       onChange(await work());
       if (kind === "connect") setToken("");
     } catch (cause) {
-      setError(cause instanceof Error && cause.message ? cause.message : t("settings.logins.onePassword.error"));
+      setError(friendlyError(cause, t("settings.logins.onePassword.error")));
     } finally {
       setBusy(null);
     }

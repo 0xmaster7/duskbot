@@ -105,6 +105,7 @@ import { RoomHeader } from "./RoomHeader";
 import { mdPrimaryCls, mdSecondaryCls, textAreaCls, textFieldCls } from "./ui/GrokDialog";
 import { useChatFindRequests } from "@/lib/chat-find";
 import { simpleRoomHeader } from "@/lib/room-panel";
+import { friendlyError } from "@/lib/plain-error";
 
 export function RoomToolChip({ message, roomId, threadId, live = false }: { message: Message; roomId?: string; threadId?: string; live?: boolean }) {
   const { state, dispatch } = useStore();
@@ -594,7 +595,7 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
       };
       dispatch({ type: "groupPatched", group: nextGroup });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
     } finally {
       setSaving(false);
     }

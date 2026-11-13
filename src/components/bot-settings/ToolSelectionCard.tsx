@@ -6,6 +6,7 @@ import { TOOL_SCOPE_SUPPORT } from "../../../shared/tool-scope-support";
 import { useBotEditor } from "./BotEditorContext";
 import { inputCls } from "./field";
 import { Select } from "../Select";
+import { friendlyError } from "@/lib/plain-error";
 
 type Draft = { custom: boolean; onlyListed: boolean; allow: string; deny: string };
 const lines = (text: string) => text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
@@ -41,7 +42,7 @@ export function useToolSelection(bot: Bot, engineKind?: string) {
       await request(`/api/bots/${bot.id}`, { method: "PATCH", body: JSON.stringify({ toolScope }) });
       if (alive.current) setDraft(null);
     } catch (cause) {
-      if (alive.current) setError(cause instanceof Error ? cause.message : String(cause));
+      if (alive.current) setError(friendlyError(cause));
     } finally {
       pending.current = false;
       if (alive.current) setSaving(false);
