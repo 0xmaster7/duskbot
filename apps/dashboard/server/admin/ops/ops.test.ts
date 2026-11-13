@@ -231,6 +231,16 @@ describe("ops alerts into incidents", () => {
     expect((await quiet.answer()).alerts.find(rule => rule.id === "oracle-disk")?.state).toBe("firing");
   });
 
+  it("counts emails and sign-in codes per account into the top accounts table", async () => {
+    const f = fixture();
+    f.ops.noteMail("heavy", true); f.ops.noteMail("heavy", true); f.ops.noteMail("heavy", false);
+    await f.ops.collectHealth();
+    await f.infra.put([infraRow("heavy", "cheavy", "2026-11-12", 5, 8)]);
+    const answer = await f.ops.accounts([]);
+    expect(answer.rows.find(row => row.accountId === "heavy")).toMatchObject({ email: "heavy@example.test", emails: 3, codes: 2, relay: null });
+    expect(answer.reported).toEqual({ relay: false, cloud: true, mail: true });
+  });
+
   it("collects on demand and builds the page from what was stored", async () => {
     const f = fixture({ DUSK_CF_ANALYTICS_TOKEN: "t", DUSK_CF_ACCOUNT_ID: "a" });
     const answer0 = await f.ops.answer();

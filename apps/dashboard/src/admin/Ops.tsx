@@ -10,7 +10,9 @@ import { adminCall, useAdmin } from "./api";
 import { Avatar, percent, personName, usd } from "./kit";
 import { AdminHeader, Failed, Loading, n } from "./ui";
 import { Chevron, Fold, Reveal } from "./Fold";
-import { Relays } from "./OpsRelays";
+import { mbit, monthOut, Relays, RelaySummary, useRelays } from "./OpsRelays";
+import { TopAccounts } from "./OpsAccounts";
+import type { OpsRelayCard } from "./ops-types";
 import type { OpsAnswer, OpsBox, OpsCheck, OpsLevel, OpsMeter, OpsRule, OpsSource, OpsSourceId, OpsSpend } from "./ops-types";
 
 const personLink = (accountId: string) => `/admin/people/visitors?person=${encodeURIComponent(accountId)}`;
@@ -77,7 +79,7 @@ export function Facts({ items }: { items: Array<[string, ReactNode]> }) {
   );
 }
 
-function Bar({ share, level, tick }: { share: number; level: OpsLevel; tick?: number | null }) {
+export function Bar({ share, level, tick }: { share: number; level: OpsLevel; tick?: number | null }) {
   return (
     <span aria-hidden className="relative block h-1.5 rounded-full bg-track">
       <span className="absolute inset-0 overflow-hidden rounded-full">
@@ -494,16 +496,63 @@ function Collect({ onDone }: { onDone(): void }) {
   );
 }
 
+function Tile({ id, title, big, money, sub, bar }: { id: string; title: string; big: ReactNode; money?: boolean; sub: ReactNode; bar?: { meter: OpsMeter } | null }) {
+  const limit = bar?.meter.limit ?? null;
+  return (
+    <Panel id={id} title={title}>
+      <div className="flex min-h-[84px] flex-col justify-center gap-1 px-2 py-1.5">
+        <span className={cx("font-mono text-[22px] font-medium leading-8 tracking-[-0.04em] num", money ? "text-money" : "text-ink")}>{big}</span>
+        {bar && limit ? <Bar share={bar.meter.used / limit} level={bar.meter.level} tick={bar.meter.projected !== null ? bar.meter.projected / limit : null} /> : null}
+        <span className="text-12 leading-[1.45] text-ink-3">{sub}</span>
+      </div>
+    </Panel>
+  );
+}
+const levelOf = (used: number, limit: number | null, projected: number | null): OpsLevel => !limit ? "unknown" : used >= limit ? "bad" : used >= limit * 0.8 || (projected ?? 0) >= limit ? "watch" : "ok";
+
+/** the month's usage and what it costs, one tile each: dusk cloud, emails, each node's traffic, cloudflare */
+function Glance({ data, relays }: { data: OpsAnswer | null; relays: OpsRelayCard[] | null }) {
+  const spend = data?.spend, box = spend?.instabox.totals, brevo = spend?.brevo ?? null, workers = spend?.workers ?? null;
+  const workersLine = spend?.lines.find((line) => line.provider === "workers");
+  const links = (relays ?? []).filter((card) => card.id !== "cloudflare");
+  const cfRelay = (relays ?? []).find((card) => card.id === "cloudflare")?.stats?.cost ?? null;
+  const dash = <span className="text-ink-4">-</span>;
+  return (
+    <div className="grid grid-cols-5 gap-4 max-xl:grid-cols-3 max-md:grid-cols-2 max-sm:grid-cols-1">
+      <Tile id="ops-tile-cloud" title="dusk cloud" big={box ? `${n(Math.round(box.awakeHours))} h` : dash}
+        sub={box ? <>machine-hours this month · instabox <span className="text-money">{usd(box.costCents)}</span>, <span className="text-money">{usd(box.projectedCents)}</span> at this pace</> : "not reported yet"} />
+      <Tile id="ops-tile-emails" title="emails" big={brevo ? n(brevo.monthly.used) : dash} bar={brevo ? { meter: brevo.monthly } : null}
+        sub={brevo ? <>of {n(brevo.monthly.limit)} this month · {n(brevo.today.sent)} today{brevo.monthly.projected !== null ? ` · ${n(brevo.monthly.projected)} at this pace` : ""}</> : "brevo not reported yet"} />
+      {links.map((card) => {
+        const stats = card.stats, month = stats ? monthOut(stats) : null;
+        return (
+          <Tile key={card.id} id={`ops-tile-${card.id}`} title={`${card.label.replace(/ relay.*/, "")} traffic`} big={month ? size(month.used) : dash}
+            bar={month ? { meter: { used: month.used, limit: month.allowance, projected: month.projected, level: levelOf(month.used, month.allowance, month.projected) } } : null}
+            sub={stats && month ? <>out this month{month.allowance ? ` of ${size(month.allowance)}` : ""}{month.projected !== null ? ` · ${size(month.projected)} at this pace` : ""} · now {mbit(stats.box?.bytesPerSecOut ?? stats.now.bytesPerSecOut)}</> : card.error ?? "not reported yet"} />
+        );
+      })}
+      <Tile id="ops-tile-cloudflare" title="cloudflare" money={!!(workersLine || cfRelay)} big={workersLine || cfRelay ? usd((workersLine?.projectedCents ?? 0) + (cfRelay?.projectedCents ?? 0)) : dash}
+        sub={workersLine || cfRelay ? <>our workers at this pace, est.{workers ? ` · ${short(workers.requests.used)} of ${short(workers.requests.limit ?? 0)} requests` : ""}{cfRelay ? ` · relay ${usd(cfRelay.projectedCents)}` : ""}</> : "not reported yet"} />
+    </div>
+  );
+}
+
 /** everything that costs money or can go down, from what the collectors last stored */
 export function OpsPage() {
   const { data, error, loading, reload } = useAdmin<OpsAnswer>("/ops", 60_000);
   const now = useNow(30_000);
+  const relays = useRelays();
   return (
     <>
       <AdminHeader title="ops"
         sub={data ? <span className="inline-flex flex-wrap items-center gap-2">{data.month}, {percent(data.elapsed)} of the month gone · updated {ago(data.now, now)}{data.fixture && <span className="tag !h-[22px] !px-2">sample data</span>}</span> : "spend, machines, services and people to look at"}
         action={<Collect onDone={reload} />} />
-      <Relays />
+      <div className="mb-4 flex flex-col gap-4">
+        <RelaySummary data={relays.data} error={relays.error} />
+        <TopAccounts />
+        <Glance data={data} relays={relays.data?.relays ?? null} />
+      </div>
+      <Relays data={relays.data} error={relays.error} setData={relays.setData} />
       {error && <Failed error={error} retry={reload} />}
       {!data && loading && <Loading rows={8} />}
       {data && (

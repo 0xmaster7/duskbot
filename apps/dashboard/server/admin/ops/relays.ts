@@ -4,6 +4,7 @@
 // node's own list of its peers, so a node added there shows up here by itself.
 import type { OpsRelayCard, OpsRelayId, OpsRelayStats } from "../../../src/admin/ops-types.ts";
 import { linkAccountRef } from "../../link-grant.ts";
+import { FIXTURE_PEOPLE } from "./fixture.ts";
 
 export class RelayError extends Error {
   status: number; code: string;
@@ -54,9 +55,18 @@ const MBIT = 1_000_000 / 8, GB = 1e9;
 function fixtureStats(now: number, accounts: ReadonlyArray<{ id: string }>, limits: Record<OpsRelayId, OpsRelayStats["limits"]>): Record<OpsRelayId, OpsRelayStats> {
   const day = new Date(now).getUTCDate(), people = accounts.slice(0, 5).map(account => linkAccountRef(account.id));
   const top = (scale: number) => people.map((account, i) => ({ account, tunnels: 1 + (i % 2), bytesToday: Math.round(scale / (i + 1) ** 1.4) }));
+  const heavy = [["acct_fx_ravi", 96], ["acct_fx_oskar", 47], ["acct_fx_mara", 23], ["acct_fx_lin", 12.4], ["acct_fx_tess", 6.1], ["acct_fx_juno", 2.2], ["acct_fx_bo", 0.8]] as const;
+  const fairUse = (share: number) => ({ month: new Date(now).toISOString().slice(0, 7), accounts: heavy.map(([id, gb], i) => ({ account: linkAccountRef(id), tunnel: null, monthBytes: gb * GB, hereBytes: Math.round(gb * GB * share),
+    bytesPerSec: gb >= 80 ? 32_000 : gb >= 20 ? Math.round(3 * 1024 ** 2 * (1 - (gb - 20) / 60) + 250_000) : i === 0 ? 0 : 3 * 1024 ** 2 })) });
+  const node = (id: string, region: string | null, homed: number) => ({ id, region, url: `https://${id}.link.test`, default: id === "contabo", homed, accepting: true, refuses: null,
+    load: { active: 0.2, bandwidth: 0.3, budget: 0.1, spent: 0.07, box: 0.2 } });
   return {
-    contabo: { relay: "contabo", now: { tunnels: 38, accounts: 31, bytesPerSecOut: 41 * MBIT, bytesPerSecIn: 6 * MBIT, cpu: 23, rssMb: 412 }, today: { bytesOut: 182 * GB, bytesIn: 21 * GB },
-      month: { bytesOut: 2_310 * GB, bytesIn: 240 * GB, projectedBytesOut: Math.round(2_310 * GB / day * 30), allowanceBytes: 32_000 * GB }, limits: limits.contabo, top: top(24 * GB), busy: !!limits.contabo.paused },
+    contabo: { relay: "contabo", now: { tunnels: 38, connected: 74, servers: 196, accounts: 31, bytesPerSecOut: 41 * MBIT, bytesPerSecIn: 6 * MBIT, cpu: 23, rssMb: 412 }, today: { bytesOut: 182 * GB, bytesIn: 21 * GB },
+      month: { bytesOut: 2_310 * GB, bytesIn: 240 * GB, projectedBytesOut: Math.round(2_310 * GB / day * 30), allowanceBytes: 32_000 * GB }, limits: limits.contabo, top: top(24 * GB), busy: !!limits.contabo.paused,
+      node: node("contabo", null, 214), fairUse: fairUse(0.7) },
+    "oracle-in": { relay: "oracle-in", now: { tunnels: 9, connected: 22, servers: 61, accounts: 8, bytesPerSecOut: 12 * MBIT, bytesPerSecIn: 2 * MBIT, cpu: 9, rssMb: 188 }, today: { bytesOut: 41 * GB, bytesIn: 5 * GB },
+      month: { bytesOut: 512 * GB, bytesIn: 61 * GB, projectedBytesOut: Math.round(512 * GB / day * 30), allowanceBytes: 10_000 * GB }, limits: limits["oracle-in"]!, top: top(7 * GB), busy: !!limits["oracle-in"]!.paused,
+      node: node("oracle-in", "mumbai", 66), fairUse: fairUse(0.3) },
     cloudflare: { relay: "cloudflare", now: { tunnels: 12, accounts: 11, bytesPerSecOut: 9 * MBIT, bytesPerSecIn: 1.5 * MBIT, cpu: null, rssMb: null }, today: { bytesOut: 34 * GB, bytesIn: 4 * GB },
       month: { bytesOut: 420 * GB, bytesIn: 51 * GB, projectedBytesOut: Math.round(420 * GB / day * 30), allowanceBytes: null }, limits: limits.cloudflare, top: top(9 * GB), busy: !!limits.cloudflare.paused,
       cost: { estimated: true, monthCents: 1_840, projectedCents: Math.round(1_840 / day * 30), awakeHours: 3_270, messages: 4_100_000 } },
@@ -67,13 +77,17 @@ export function createRelays(options: { env: NodeJS.ProcessEnv; fetch?: typeof f
   const fetcher = options.fetch ?? fetch;
   const targets = relayTargets(options.env);
   const sample: Record<OpsRelayId, OpsRelayStats["limits"]> = {
-    contabo: { perTunnelBytesPerSec: 25 * MBIT, burstBytes: 32 * 1024 * 1024, perTunnelDailyBytes: 150 * 1024 ** 3, tunnelsPerAccount: 5, globalCeilingBytesPerSec: 800 * MBIT, maxTunnels: 400, paused: false },
+    contabo: { perTunnelBytesPerSec: 25 * MBIT, burstBytes: 32 * 1024 * 1024, tunnelsPerAccount: 5, globalCeilingBytesPerSec: 120 * MBIT, maxTunnels: 400, maxConnected: 600, maxServers: 1500,
+      accountFullSpeedBytes: 20 * GB, accountFloorAtBytes: 80 * GB, paused: false },
+    "oracle-in": { perTunnelBytesPerSec: 25 * MBIT, burstBytes: 32 * 1024 * 1024, tunnelsPerAccount: 5, globalCeilingBytesPerSec: 400 * MBIT, maxTunnels: 150, maxConnected: 250, maxServers: 500,
+      accountFullSpeedBytes: 20 * GB, accountFloorAtBytes: 80 * GB, paused: false },
     cloudflare: { perTunnelBytesPerSec: 25 * MBIT, burstBytes: null, perTunnelDailyBytes: null, tunnelsPerAccount: 10, globalCeilingBytesPerSec: null, maxTunnels: 5000,
       accountBytesPerSec: 25 * MBIT, accountFullSpeedBytes: 50 * GB, floorBytesPerSec: 2 * MBIT, paused: false },
   };
   const fixtureCard = (target: RelayTarget, who: ReturnType<typeof people>): OpsRelayCard =>
-    ({ id: target.id, label: target.label, url: target.url, at: options.now(), configured: true, ok: true, error: null, stats: shape(fixtureStats(options.now(), options.accounts(), sample)[target.id as "contabo" | "cloudflare"], who) });
-  const fixtureTargets = () => targets.filter(target => target.id === "contabo" || target.id === "cloudflare");
+    ({ id: target.id, label: target.label, url: target.url, at: options.now(), configured: true, ok: true, error: null, stats: shape(fixtureStats(options.now(), options.accounts(), sample)[target.id]!, who) });
+  const fixtureOracle: RelayTarget = { id: "oracle-in", label: linkLabel("oracle-in", "mumbai"), url: "https://oracle-in.link.test", token: null, tokenEnv: "DUSK_LINK_STATS_TOKEN", link: true };
+  const fixtureTargets = () => [targets[0]!, fixtureOracle, targets.at(-1)!];
 
   async function call(target: RelayTarget, path: string, init: RequestInit = {}) {
     let res: Response;
@@ -92,7 +106,7 @@ export function createRelays(options: { env: NodeJS.ProcessEnv; fetch?: typeof f
   /** the relay's acct is a hash of the account id (link grants); map it back, and the plain id too, for names and links */
   function people() {
     const map = new Map<string, { accountId: string; email: string }>();
-    for (const account of options.accounts()) {
+    for (const account of [...options.accounts(), ...(options.fixture ? FIXTURE_PEOPLE.map(([id, email]) => ({ id, email })) : [])]) {
       const person = { accountId: account.id, email: account.email };
       map.set(linkAccountRef(account.id), person);
       map.set(account.id, person);
@@ -145,10 +159,10 @@ export function createRelays(options: { env: NodeJS.ProcessEnv; fetch?: typeof f
       return { relays: cards, at: options.now() };
     },
     async setLimits(id: string, body: Record<string, unknown>): Promise<OpsRelayCard> {
-      if (!targets.some(item => item.id === id) && NODE_ID.test(id)) await this.list();
-      const target = targets.find(item => item.id === id);
+      if (!targets.some(item => item.id === id) && NODE_ID.test(id) && !options.fixture) await this.list();
+      const target = (options.fixture ? fixtureTargets() : targets).find(item => item.id === id);
       if (!target) throw new RelayError(404, "not_found", "Not found.");
-      if (options.fixture) { const key = target.id as "contabo" | "cloudflare"; sample[key] = { ...sample[key], ...cleanLimits(body) }; return fixtureCard(target, people()); }
+      if (options.fixture) { sample[target.id] = { ...sample[target.id], ...cleanLimits(body) }; return fixtureCard(target, people()); }
       if (!target.token) throw new RelayError(409, "not_configured", `Set ${target.tokenEnv} first.`);
       const limits = cleanLimits(body);
       await call(target, "/ops/relay/limits", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(limits) });

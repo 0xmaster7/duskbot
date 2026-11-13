@@ -5,13 +5,13 @@ import { ago } from "../lib/format";
 import { useNow } from "../lib/now";
 import { toast } from "../lib/toast";
 import { adminCall, useAdmin } from "./api";
-import { usd } from "./kit";
+import { percent, usd } from "./kit";
 import { n } from "./ui";
-import { Empty, Facts, Level, Meter, Panel, Person, PersonRow, size } from "./Ops";
+import { Bar, Empty, Facts, Level, Meter, Panel, Person, PersonRow, size } from "./Ops";
 import type { OpsLevel, OpsMeter, OpsRelayCard, OpsRelayLimits, OpsRelayStats } from "./ops-types";
 
 /** bytes per second as megabits, the way link speeds are talked about */
-function mbit(value: number | null | undefined) {
+export function mbit(value: number | null | undefined) {
   if (value === null || value === undefined || !Number.isFinite(value)) return "-";
   const v = (value * 8) / 1e6;
   return `${v >= 100 ? Math.round(v) : v >= 10 ? v.toFixed(0) : v.toFixed(1)} mbit/s`;
@@ -238,9 +238,87 @@ function RelayCard({ relay, now, onSaved }: { relay: OpsRelayCard; now: number; 
   );
 }
 
+type RelaysAnswer = { relays: OpsRelayCard[]; at: number };
 /** every link relay node and the cloudflare relay, live: refreshed every 10 s while the page is visible */
-export function Relays() {
-  const { data, error, setData } = useAdmin<{ relays: OpsRelayCard[]; at: number }>("/ops/relays", 10_000);
+export function useRelays() {
+  return useAdmin<RelaysAnswer>("/ops/relays", 10_000);
+}
+
+const isLink = (card: OpsRelayCard) => card.id !== "cloudflare";
+const sum = (list: Array<number | null | undefined>) => list.some((v) => v === null || v === undefined) ? null : list.reduce<number>((a, v) => a + (v as number), 0);
+/** what a node sends this month against its allowance: the whole box when it reports it, else the relay's own */
+export function monthOut(stats: OpsRelayStats) {
+  const box = stats.box?.monthBytesOut !== null && stats.box?.monthBytesOut !== undefined;
+  return { used: box ? stats.box!.monthBytesOut! : stats.month.bytesOut, projected: box ? stats.box!.projectedBytesOut : stats.month.projectedBytesOut, allowance: stats.month.allowanceBytes };
+}
+
+function Of({ used, cap, format = n }: { used: number | null | undefined; cap: number | null | undefined; format?(v: number): string }) {
+  return <span className="font-mono num"><span className="text-ink">{used === null || used === undefined ? "-" : format(used)}</span>{cap ? <span className="text-ink-3"> / {format(cap)}</span> : null}</span>;
+}
+function MonthCell({ used, cap, projected }: { used: number; cap: number | null; projected: number | null }) {
+  const meter = meterOf(used, cap, projected);
+  return (
+    <span className="block min-w-[150px]">
+      <span className="flex items-baseline justify-end gap-1.5"><Of used={used} cap={cap} format={size} /></span>
+      {cap ? <span className="mt-1 block"><Bar share={used / cap} level={meter.level} tick={projected !== null ? projected / cap : null} /></span> : null}
+      <span className="mt-0.5 block text-end text-12 text-ink-3">{projected !== null ? `${size(projected)} at this pace` : "no pace yet"}</span>
+    </span>
+  );
+}
+
+const SUMMARY_COLS = "grid grid-cols-[minmax(110px,1fr)_minmax(96px,auto)_minmax(84px,auto)_minmax(84px,auto)_minmax(150px,1fr)_80px_minmax(160px,1.3fr)] items-center gap-3";
+/** both link nodes and their totals in one table: what is on them now, against every cap, and the month against the allowance */
+export function RelaySummary({ data, error }: { data: RelaysAnswer | null; error: Error | null }) {
+  const links = (data?.relays ?? []).filter(isLink);
+  const read = links.flatMap((card) => card.stats ? [card.stats] : []);
+  const paths = read.map((stats) => stats.paths).filter((p): p is NonNullable<OpsRelayStats["paths"]> => !!p);
+  const split = paths.length ? { direct: paths.reduce((a, p) => a + p.direct, 0), cloudflare: paths.reduce((a, p) => a + p.cloudflare, 0), relay: paths.reduce((a, p) => a + p.relay, 0) } : null;
+  const splitTotal = split ? split.direct + split.cloudflare + split.relay : 0;
+  const row = (key: string, label: ReactNode, list: OpsRelayStats[], total = false) => {
+    const months = list.map(monthOut);
+    const cells: ReactNode[] = [
+      <Of used={sum(list.map((s) => s.now.servers))} cap={sum(list.map((s) => s.limits.maxServers))} />,
+      <Of used={sum(list.map((s) => s.now.connected))} cap={sum(list.map((s) => s.limits.maxConnected))} />,
+      <Of used={sum(list.map((s) => s.now.tunnels))} cap={sum(list.map((s) => s.limits.maxTunnels))} />,
+      <Of used={sum(list.map((s) => s.now.bytesPerSecOut))} cap={sum(list.map((s) => s.limits.globalCeilingBytesPerSec))} format={mbit} />,
+      <span className="font-mono text-ink num">{size(sum(list.map((s) => s.today.bytesOut)))}</span>,
+      <MonthCell used={sum(months.map((m) => m.used)) ?? 0} cap={sum(months.map((m) => m.allowance))} projected={sum(months.map((m) => m.projected))} />,
+    ];
+    return (
+      <div key={key} role="row" className={cx(SUMMARY_COLS, "rounded-[12px] px-2.5 py-2 text-13", total && "bg-wash-lime")}>
+        <span role="rowheader" className={cx("min-w-0 truncate", total ? "font-medium text-ink" : "text-ink")}>{label}</span>
+        {cells.map((cell, i) => <span key={i} role="cell" className="text-end">{cell}</span>)}
+      </div>
+    );
+  };
+  return (
+    <Panel id="ops-relays-summary" title="relays now" meta={data ? `${n(read.length)} of ${n(links.length)} ${links.length === 1 ? "node" : "nodes"} answering` : undefined}>
+      {error && !data && <Empty>relays can't be read right now: {error.message}</Empty>}
+      {!data && !error && <div className="h-[132px] animate-pulse rounded-[12px] bg-card" />}
+      {data && (
+        <div role="region" className="scroll-x" tabIndex={0} aria-label="relay nodes, scrolls sideways on a small screen">
+          <div role="table" aria-label="relay nodes now and this month" className="min-w-[900px]">
+            <div role="row" className={cx(SUMMARY_COLS, "px-2.5 pb-1 pt-1 t-meta")}>
+              {["node", "servers", "in use", "busy", "out now, of ceiling", "today out", "this month out, of allowance"].map((label, i) => <span key={label} role="columnheader" className={i ? "text-end" : undefined}>{label}</span>)}
+            </div>
+            {links.map((card) => card.stats ? row(card.id, card.label.replace(/ relay/, ""), [card.stats])
+              : <div key={card.id} role="row" className={cx(SUMMARY_COLS, "px-2.5 py-2 text-13")}><span role="rowheader" className="truncate text-ink">{card.label.replace(/ relay/, "")}</span><span role="cell" className="col-span-6 text-end text-12 text-ink-3">{card.error ?? "no numbers yet."}</span></div>)}
+            {read.length > 1 && row("total", "every node", read, true)}
+          </div>
+        </div>
+      )}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-2.5 pb-1.5 pt-2.5 text-12">
+        <span className="text-ink-3">how apps reach their server this month</span>
+        {split && splitTotal > 0
+          ? <span className="font-mono text-ink-2 num">direct {percent(split.direct / splitTotal)} · their cloudflare {percent(split.cloudflare / splitTotal)} · our relay {percent(split.relay / splitTotal)}</span>
+          : <span className="text-ink-3">not reported yet</span>}
+      </div>
+    </Panel>
+  );
+}
+
+/** every relay's own card: limits, pause, its top accounts */
+export function Relays({ data, error, setData }: { data: RelaysAnswer | null; error: Error | null; setData: ReturnType<typeof useRelays>["setData"] }) {
   const now = useNow(10_000);
   const saved = (card: OpsRelayCard) => setData((d) => d && { ...d, relays: d.relays.map((one) => one.id === card.id ? card : one) });
   return (
@@ -248,13 +326,6 @@ export function Relays() {
       {error && !data && <p className="rounded-[24px] bg-card px-4 py-3 text-13 text-ink-3">relays can't be read right now: {error.message}</p>}
       {!data && !error && <div className="grid grid-cols-2 gap-4 max-lg:grid-cols-1">{[0, 1].map((i) => <div key={i} className="h-[420px] animate-pulse rounded-[24px] bg-card" />)}</div>}
       {data && <div className={cx("grid grid-cols-2 items-start gap-4 max-lg:grid-cols-1")}>{data.relays.map((relay) => <RelayCard key={relay.id} relay={relay} now={now} onSaved={saved} />)}</div>}
-      {data && (
-        <div className="mt-4">
-          <Panel id="ops-relay-paths" title="how apps connect" meta={<Level level="unknown" word="no reports yet" />}>
-            <Empty>the share of sessions that go direct, through cloudflare turn, or through our relay shows here once the app reports it.</Empty>
-          </Panel>
-        </div>
-      )}
     </section>
   );
 }

@@ -137,5 +137,30 @@ export interface OpsRelayStats {
   box?: { iface: string | null; cpu: number | null; mem: number | null; cores: number; bytesPerSecOut: number | null; bytesPerSecIn: number | null; monthBytesOut: number | null; monthBytesIn: number | null; projectedBytesOut: number | null; countingSince: number | null } | null;
   /** the node's own turn server (the webrtc fallback's second tier) */
   turn?: { ok: boolean | null; at: number | null; rttMs: number | null; downSince: number | null; urls: string[] } | null;
+  /** how app sessions reached their server this month, counted by the link service when the apps report it: straight
+   *  (webrtc), through the person's own cloudflare tunnel, or through our relay. absent until a node reports it */
+  paths?: { direct: number; cloudflare: number; relay: number; since?: number | null } | null;
 }
 export interface OpsRelayCard { id: OpsRelayId; label: string; url: string; at: number; configured: boolean; ok: boolean; error: string | null; stats: OpsRelayStats | null }
+
+/** GET /v1/admin/ops/accounts: who uses the most this month, one row per account. null means "not reported yet" */
+export type OpsFairStage = "full" | "slowing" | "chat";
+export interface OpsAccountFlag { kind: "check" | "throttled" | "abuse"; why: string }
+export interface OpsAccountRow {
+  /** null when the relay knows the account only by its link ref and the account service has no such account */
+  accountId: string | null; ref: string | null; email: string | null;
+  /** relay bytes this month on every node together, its share of all relay traffic (0 to 1), the fair use step and the rate it gives now */
+  relay: { monthBytes: number; share: number; stage: OpsFairStage; bytesPerSec: number } | null;
+  cloud: { awakeHours: number; costCents: number; egressState: "slowed" | "paused" | null } | null;
+  /** every email the service sent the account this month, and how many were sign-in codes */
+  emails: number | null; codes: number | null;
+  flags: OpsAccountFlag[];
+}
+export interface OpsAccountsAnswer {
+  now: number; month: string;
+  /** "own", or the live site's label ("dusk.bot") when preview's admin reads it */
+  data: string; fixture: boolean;
+  fairUse: { fullSpeedBytes: number; floorAtBytes: number };
+  reported: { relay: boolean; cloud: boolean; mail: boolean };
+  rows: OpsAccountRow[];
+}

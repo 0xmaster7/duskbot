@@ -1,6 +1,6 @@
 import { timingSafeEqual, createHash } from "node:crypto";
 import type { Db } from "mongodb";
-import type { OpsAnswer, OpsBox, OpsCheck, OpsLevel, OpsMeter, OpsRule, OpsSource, OpsSourceId, OpsSpend } from "../../../src/admin/ops-types.ts";
+import type { OpsAccountsAnswer, OpsAnswer, OpsBox, OpsCheck, OpsLevel, OpsMeter, OpsRule, OpsSource, OpsSourceId, OpsSpend } from "../../../src/admin/ops-types.ts";
 import type { StoredCloud } from "../../clouds/types.ts";
 import type { LedgerEntry } from "../../billing/ledger.ts";
 import type { ErrorCounter } from "../health.ts";
@@ -13,6 +13,9 @@ import { median, ratioOf, robustZ, step, suspects, type SignalInput, type Signal
 import type { OpsDaily, OpsRuleState, OpsStore } from "./store.ts";
 import { RELAY_RULE_PREFIX, relayNodeReadings } from "./relay-alerts.ts";
 import { createRelays } from "./relays.ts";
+import { topAccounts } from "./accounts.ts";
+import type { OpsRelayCard } from "../../../src/admin/ops-types.ts";
+import { FIXTURE_MAIL, FIXTURE_PEOPLE } from "./fixture.ts";
 
 const MINUTE = 60_000, HOUR = 60 * MINUTE, DAY = 24 * HOUR, GB_BYTES = 1e9;
 /** Cloudflare Workers Paid, as of 2026-11: $5 a month with 10m requests and 30m CPU ms, then $0.30 per million requests and $0.02 per million CPU ms */
@@ -20,6 +23,7 @@ export const WORKERS_PLAN = { label: "workers paid", baseCents: 500, includedReq
 /** R2 standard storage: 10 gb-month free, then $0.015 per gb-month */
 export const R2_PLAN = { freeBytes: 10 * GB_BYTES, centsPerGbMonth: 1.5 } as const;
 /** the composio broker's limits (apps/cloudflare/composio-broker/src/budgets.ts) */
+export const BREVO_MONTHLY_BUDGET = 10_000;
 export const COMPOSIO_LIMITS = { installation: 10_000, account: 50_000 } as const;
 
 export const THRESHOLDS = {
@@ -106,7 +110,7 @@ export function createOps(options: OpsOptions) {
   // production only unless DUSK_OPS_ALERTS says otherwise, so preview on the same box never doubles an email
   const alertsOn = options.env.DUSK_OPS_ALERTS === "on" || (options.env.DUSK_OPS_ALERTS !== "off" && options.environment === "production");
   const targets = probeTargets(options.env.DUSK_OPS_PROBES, options.selfUrl);
-  const counters = { limited: new Map<string, number>(), signups: new Map<string, { count: number; accounts: Set<string> }>() };
+  const counters = { limited: new Map<string, number>(), signups: new Map<string, { count: number; accounts: Set<string> }>(), mail: new Map<string, { sent: number; codes: number }>() };
   let hostPrev: { data: HostData; at: number } | null = null;
   let running: Promise<string[]> | null = null, closed = false;
   const timers: Array<ReturnType<typeof setInterval>> = [];
@@ -130,7 +134,8 @@ export function createOps(options: OpsOptions) {
     const day = dayKey(now()), rows: OpsDaily[] = [];
     for (const [ip, count] of counters.limited) rows.push({ source: "limited", day, key: ip, accountId: null, values: { count } });
     for (const [ip, item] of counters.signups) rows.push({ source: "signups", day, key: ip, accountId: [...item.accounts].at(-1) ?? null, values: { count: item.count } });
-    counters.limited.clear(); counters.signups.clear();
+    for (const [accountId, item] of counters.mail) rows.push({ source: "mail", day, key: accountId, accountId, values: { sent: item.sent, codes: item.codes } });
+    counters.limited.clear(); counters.signups.clear(); counters.mail.clear();
     await store.addDaily(rows);
   }
 
@@ -326,7 +331,8 @@ export function createOps(options: OpsOptions) {
     if (!data) return null;
     const free = data.plan?.type === "free";
     const daily = free || !data.plan ? config.brevoDaily : null;
-    const monthly = config.brevoMonthly ?? (!free && data.plan?.credits != null ? data.plan.credits + data.month.sent : null);
+    // the owner budgets 10,000 a month when neither the env nor the plan says
+    const monthly = config.brevoMonthly ?? (!free && data.plan?.credits != null ? data.plan.credits + data.month.sent : BREVO_MONTHLY_BUDGET);
     return { today: data.today, month: data.month, plan: data.plan?.type ?? null,
       daily: meter(data.today.sent, daily, null), monthly: meter(data.month.sent, monthly, Math.round(data.month.sent / elapsedOf(snap.time))) };
   }
@@ -591,6 +597,33 @@ export function createOps(options: OpsOptions) {
     authorizeReport,
     evaluate,
     noteLimited(ip: string | null) { if (ip) counters.limited.set(ip, (counters.limited.get(ip) ?? 0) + 1); },
+    /** an email the service sent to an account's address; `code` when it was a sign-in code */
+    noteMail(accountId: string, code: boolean) {
+      const item = counters.mail.get(accountId) ?? { sent: 0, codes: 0 };
+      item.sent++; if (code) item.codes++;
+      counters.mail.set(accountId, item);
+    },
+    /** the top accounts table, from this service's own numbers */
+    async accounts(relays: readonly OpsRelayCard[]): Promise<OpsAccountsAnswer> {
+      const time = now(), from = dayKey(monthStart(time)), today = dayKey(time), month = from.slice(0, 7);
+      const [infraRows, mailRows, latest] = await Promise.all([options.infra.range(from, today), store.daily("mail", from, today), store.latest()]);
+      const emails = options.emails();
+      if (options.fixture && latest.length === 0 && infraRows.length === 0) {
+        const sample = options.fixture();
+        const fx = sample.spend.instabox.machines.map(m => ({ day: today, cloudId: m.cloudId, accountId: m.accountId, serverId: m.serverId, runningSeconds: m.awakeHours * 3600, vcpuSeconds: 0, memGiBSeconds: 0,
+          diskGiBSeconds: 0, egressBytes: m.egressGb * GB_BYTES, computeCents: m.costCents, diskCents: 0, costCents: m.costCents, collectedAt: time }));
+        const states = new Map(sample.spend.instabox.customers.map(c => [c.accountId, c.egressState]));
+        return topAccounts({ now: time, month, data: "own", fixture: true, accounts: [...[...emails].map(([id, email]) => ({ id, email })), ...FIXTURE_PEOPLE.map(([id, email]) => ({ id, email }))],
+          relays, infra: fx, mail: FIXTURE_MAIL.map(([accountId, sent, codes]) => ({ source: "mail", day: today, key: accountId, accountId, values: { sent, codes } })),
+          egress: id => states.get(id) ?? null, suspects: sample.abuse });
+      }
+      const clouds = options.clouds();
+      const egress = (accountId: string) => { const states = clouds.filter(c => c.accountId === accountId).map(c => options.egress(c)); return states.includes("paused") ? "paused" as const : states.includes("slowed") ? "slowed" as const : null; };
+      const snap = await snapshot();
+      const people = [...emails].map(([id, email]) => ({ id, email })), sample = options.fixture ? FIXTURE_PEOPLE.map(([id, email]) => ({ id, email })) : [];
+      return topAccounts({ now: time, month, data: "own", accounts: [...people, ...sample], relays, infra: infraRows, mail: mailRows, egress,
+        suspects: abuseOf(snap, spendOf(snap, emails), emails) });
+    },
     noteSignup(ip: string | null, accountId: string) {
       if (!ip) return;
       const item = counters.signups.get(ip) ?? { count: 0, accounts: new Set<string>() };

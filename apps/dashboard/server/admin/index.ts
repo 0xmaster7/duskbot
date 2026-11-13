@@ -23,6 +23,8 @@ import { BillingError } from "../billing/service.ts";
 import { PlanError, createPlanEditor } from "./plans.ts";
 import { marginReport, type InfraStore } from "./infra.ts";
 import { RelayError, createRelays } from "./ops/relays.ts";
+import { topAccounts } from "./ops/accounts.ts";
+import type { OpsAccountsAnswer, OpsRelayCard } from "../../src/admin/ops-types.ts";
 import { DAY, choseCloud, dayKey, dayRange, funnel, isPaying, perDay, wasPaid, workspaceTurns } from "./metrics.ts";
 
 export class AdminError extends Error {
@@ -51,7 +53,7 @@ export interface AdminOptions {
   /** daily InstaBox usage per managed cloud, for the revenue page's cost and margin */
   infra?: { store: InfraStore };
   /** the ops page: spend, health, outliers and alert rules, from what the ops collectors stored */
-  ops?: { answer(): Promise<unknown>; collect(): Promise<unknown> };
+  ops?: { answer(): Promise<unknown>; collect(): Promise<unknown>; accounts(relays: readonly OpsRelayCard[]): Promise<OpsAccountsAnswer> };
   /** the local fixture: made-up relay cards instead of asking the relays */
   relayFixture?: boolean;
   service: { version: string | null; startedAt: number; environment: string; dataDir: string; backupDir: string | null; database: () => { ok: boolean; detail: string } | null };
@@ -425,6 +427,14 @@ export function createAdmin(options: AdminOptions) {
         return send(await options.ops.answer());
       }
       if (route === "/ops/relays") return send(await relays.list());
+      if (route === "/ops/accounts") {
+        if (!options.ops) throw new AdminError(404, "not_found", "The ops page is not connected.");
+        const [view, cards] = await Promise.all([viewOf(req), relays.list()]);
+        if (!view.live) return send(await options.ops.accounts(cards.relays));
+        const time = now(), from = `${new Date(time).toISOString().slice(0, 7)}-01`, today = new Date(time).toISOString().slice(0, 10);
+        const [infra, mail] = await Promise.all([live!.infra(from, today).catch(() => null), live!.daily("mail", from, today).catch(() => null)]);
+        return send(topAccounts({ now: time, month: from.slice(0, 7), data: live!.label, accounts: view.directory().accounts, relays: cards.relays, infra, mail }));
+      }
       try {
         if (route === "/revenue") return send(await deep.revenue(url));
         const view = /^\/(?:web|funnel|journeys|realtime|retention|app|product)(?:\/|$)/.test(route) ? await viewOf(req) : ownView, reads = view.deep;

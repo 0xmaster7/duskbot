@@ -10,7 +10,7 @@ import type { NotificationPrefs } from "../../../shared/account-api.ts";
 import { MCP_CLIENT_METADATA, MCP_CLIENT_METADATA_PATH } from "../../../shared/mcp-client-metadata.ts";
 import { AuthError, createAuth, isAppCorsRoute } from "./auth/index.ts";
 import type { ProviderConfigs } from "./auth/providers.ts";
-import type { Mailer } from "./auth/mail.ts";
+import type { Mailer, MailMessage } from "./auth/mail.ts";
 import { createStore } from "./store.ts";
 import type { Account, StoredCommand, StoredWorkspace } from "./store.ts";
 import { createBilling } from "./billing/index.ts";
@@ -18,7 +18,7 @@ import type { BillingNotice } from "./billing/service.ts";
 import { BILLING_CONFIG, MANAGED_REGION, regionLabel } from "./billing/plans.ts";
 import type { StoredCloud } from "./clouds/types.ts";
 import { DEFAULT_RETENTION_DAYS } from "../../cloud-service/src/retention.ts";
-import { accountDeletedEmail, cancelledEmail, cloudDeletedEmail, cloudNoticeEmail, cloudReadyEmail, emailConfig, paymentFailedEmail, receiptEmail, welcomeEmail } from "./email/templates.ts";
+import { CODE_SUBJECT, accountDeletedEmail, cancelledEmail, cloudDeletedEmail, cloudNoticeEmail, cloudReadyEmail, emailConfig, paymentFailedEmail, receiptEmail, welcomeEmail } from "./email/templates.ts";
 import type { Rendered } from "./email/templates.ts";
 import { render } from "./email/layout.ts";
 import { BillingError } from "./billing/service.ts";
@@ -205,7 +205,10 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const errorsSeen = createErrorCounter(now);
   const dev = options.dev ?? (new URL(publicUrl).protocol === "http:" && ["127.0.0.1", "localhost"].includes(new URL(publicUrl).hostname));
   const mailLimitSay = { hour: "the hourly", day: "the daily", new: "the daily signup share of the" } as const;
-  const auth = createAuth({ dataDir: options.dataDir, publicUrl, pageBase, mailPerHour: options.mailPerHour, mailPerDay: options.mailPerDay, mailer: options.mailer,
+  // every email to an account's address counts toward its row in admin ops, sign-in codes on their own
+  let noteMail: (message: MailMessage) => void = () => {};
+  const mailer: Mailer = { send: message => { try { noteMail(message); } catch { /* counting never stops an email */ } return options.mailer.send(message); } };
+  const auth = createAuth({ dataDir: options.dataDir, publicUrl, pageBase, mailPerHour: options.mailPerHour, mailPerDay: options.mailPerDay, mailer: mailer,
     // one incident a day, whichever limit it was: someone (or a bot) is asking for sign-in codes faster than we will send them
     onMailLimit: kind => incidents.report({ source: "server", name: "SignInMailLimit", key: `auth-mail-${new Date(now()).toISOString().slice(0, 10)}`,
       message: `sign-in emails reached ${mailLimitSay[kind]} limit, so more codes are refused until it resets. a spike of signups or someone spraying addresses; check admin > health for rate-limited ips` }), now, fetch: options.fetch, oauth: options.oauth,
@@ -233,7 +236,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     const message = render(emailCfg, { subject, preheader: text.slice(0, 120), tag: owner ? "alert" : "dusk cloud", say: owner ? "a cloud needs a look" : "a note about your cloud",
       accent: owner ? "pink" : "sky", blocks: [{ t: "h1", text: subject.toLowerCase() }, { t: "p", text }],
       reason: owner ? "you got this because your address is in DUSK_OPS_ALERT_EMAIL for this dusk bot service." : "you got this because you have a dusk bot account. it's about your account, so it can't be turned off." });
-    void options.mailer.send({ to, ...message }).catch(() => console.warn("clouds: a notice email failed"));
+    void mailer.send({ to, ...message }).catch(() => console.warn("clouds: a notice email failed"));
   };
   const ownIncidents = options.incidents ? null : createIncidents({ env: options.admin?.environment ?? "development", store: memoryIncidentStore(), to: () => [], mailers: [],
     email: emailCfg, panelUrl: `${publicUrl}${ADMIN_PATH}/health`, mail: false, timers: false, now });
@@ -246,7 +249,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     } });
   analytics.onForget(id => void usage.forget(id));
   const send = (to: string | null | undefined, message: Rendered) => {
-    if (to) void options.mailer.send({ to, ...message }).catch(() => console.warn("account: an email failed"));
+    if (to) void mailer.send({ to, ...message }).catch(() => console.warn("account: an email failed"));
   };
   const emailOf = (accountId: string) => auth.account(accountId)?.email;
   const sendTo = (accountId: string, kind: "required" | keyof NotificationPrefs, message: Rendered) => {
@@ -330,7 +333,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const infra = createInfraCollector({ store: infraStore, clouds: () => billing.clouds.all?.() ?? [], usage: managedUsage ? (c, from) => managedUsage(c, from) : null, now });
   infra.start();
   const admin = createAdmin({ emails: adminEmails, auth, billing, workspaces: () => state.workspaces, analytics, usage, infra: { store: infraStore },
-    ops: { answer: () => ops.answer(), collect: () => ops.collect() }, wakeStats: () => slackEdge?.edge.wakeStats() ?? {},
+    ops: { answer: () => ops.answer(), collect: () => ops.collect(), accounts: relays => ops.accounts(relays) }, wakeStats: () => slackEdge?.edge.wakeStats() ?? {},
     waitlist: options.analytics?.waitlist ?? null, live: options.admin?.live ?? null, now, fetch: options.fetch, env: options.admin?.env, errors: errorsSeen, readBody, bodyObject, json, relayFixture: options.admin?.opsFixture,
     service: { version: options.version ?? null, startedAt, environment: options.admin?.environment ?? (dev ? "development" : "production"), dataDir: options.dataDir,
       backupDir: options.admin?.backupDir ?? null, database: () => stateBackend()?.health() ?? null } });
@@ -349,6 +352,10 @@ export function createDashboardApp(options: DashboardAppOptions) {
     selfUrl: dev ? null : new URL(publicUrl).origin, environment: options.admin?.environment ?? (dev ? "development" : "production"),
     fixture: options.admin?.opsFixture ? () => opsFixture(now()) : undefined, host: !options.admin?.opsFixture && !!options.analytics?.ops });
   if (options.analytics?.ops) ops.start();
+  noteMail = message => {
+    const to = message.to.trim().toLowerCase(), account = auth.directory().accounts.find(item => item.email.toLowerCase() === to);
+    if (account) ops.noteMail(account.id, CODE_SUBJECT.test(message.subject));
+  };
   auth.onAccountCreated(owner => ops.noteSignup(requestIp.getStore() ?? null, owner.id));
   auth.onAccountCreated(owner => alerts.signup(owner.email, auth.directory().identities.find(item => item.accountId === owner.id)?.provider ?? "email"));
   analytics.onTrack((name, input = {}) => {

@@ -3,6 +3,16 @@ import type { OpsAnswer, OpsBox, OpsCheck } from "../../../src/admin/ops-types.t
 const DAY = 86_400_000, GB_BYTES = 1e9;
 const dayKey = (t: number) => new Date(t).toISOString().slice(0, 10);
 
+export const FIXTURE_PEOPLE = [
+  ["acct_fx_mara", "mara@duskbot.test", "pro"], ["acct_fx_oskar", "oskar@duskbot.test", "starter"], ["acct_fx_lin", "lin@duskbot.test", "pro"],
+  ["acct_fx_tess", "tess@duskbot.test", "starter"], ["acct_fx_ravi", "ravi@duskbot.test", "max"], ["acct_fx_juno", "juno@duskbot.test", "starter"],
+  ["acct_fx_ikaika", "ikaika@duskbot.test", "pro"], ["acct_fx_bo", "bo@duskbot.test", "starter"],
+] as const;
+/** sign-in emails in the made-up month: account, emails sent, of them codes */
+export const FIXTURE_MAIL: ReadonlyArray<readonly [string, number, number]> = [
+  ["acct_fx_ravi", 41, 34], ["acct_fx_oskar", 12, 11], ["acct_fx_mara", 6, 3], ["acct_fx_lin", 4, 2], ["acct_fx_tess", 3, 1], ["acct_fx_juno", 2, 1],
+];
+
 /** made-up numbers for the fixture service and screenshots; never served when anything real was collected */
 export function opsFixture(now: number): OpsAnswer {
   const start = Date.UTC(new Date(now).getUTCFullYear(), new Date(now).getUTCMonth(), 1);
@@ -10,11 +20,7 @@ export function opsFixture(now: number): OpsAnswer {
   const elapsed = Math.max(1 / 30, (now - start) / (end - start));
   const days = Array.from({ length: Math.max(1, Math.ceil((now - start) / DAY)) }, (_, i) => dayKey(start + i * DAY));
   const wave = (i: number, base: number, swing: number) => Math.round(base + swing * Math.sin(i * 1.3) + swing * 0.4 * Math.cos(i * 0.7));
-  const people = [
-    ["acct_fx_mara", "mara@duskbot.test", "pro"], ["acct_fx_oskar", "oskar@duskbot.test", "starter"], ["acct_fx_lin", "lin@duskbot.test", "pro"],
-    ["acct_fx_tess", "tess@duskbot.test", "starter"], ["acct_fx_ravi", "ravi@duskbot.test", "max"], ["acct_fx_juno", "juno@duskbot.test", "starter"],
-    ["acct_fx_ikaika", "ikaika@duskbot.test", "pro"], ["acct_fx_bo", "bo@duskbot.test", "starter"],
-  ] as const;
+  const people = FIXTURE_PEOPLE;
   const customers = people.map(([accountId, email, plan], i) => {
     const heavy = i === 4, awakeHours = heavy ? 690 : wave(i, 120, 60), egressGb = heavy ? 412 : i === 1 ? 140 : wave(i, 18, 9);
     const costCents = Math.round(awakeHours * 4.1 + egressGb * 0.9);
@@ -82,7 +88,7 @@ export function opsFixture(now: number): OpsAnswer {
           .map(([installationId, accountId, email, today]) => ({ installationId: installationId as string, accountId: accountId as string | null, email: email as string | null, today: today as number, week: (today as number) * 5, share: Math.round((today as number) / 10_650 * 1000) / 1000 })),
         nearLimit: 1, queue: { events: 14, bytes: 42_000 }, registrationsTopIp: [{ ip: "203.0.113.9", today: 22 }, { ip: "198.51.100.4", today: 3 }],
       },
-      brevo: { today: { sent: 41, delivered: 40, bounced: 1, blocked: 0 }, month: { sent: 612 }, daily: { used: 41, limit: 300, projected: null, level: "ok" }, monthly: { used: 612, limit: 9_000, projected: Math.round(612 / elapsed), level: "ok" }, plan: "free" },
+      brevo: { today: { sent: 41, delivered: 40, bounced: 1, blocked: 0 }, month: { sent: 612 }, daily: { used: 41, limit: 300, projected: null, level: "ok" }, monthly: { used: 612, limit: 10_000, projected: Math.round(612 / elapsed), level: "ok" }, plan: "free" },
       dodo: { monthCents: 410, todayCents: 46, payments: 9, grossCents: 4_100, rate: { rate: 0.06, fixedCents: 40 }, estimated: true, lastWebhookAt: now - 3 * 3_600_000 },
       relay: {
         dailyLimitBytes: 20 * 1024 ** 3, today: { bytes: 6.1 * GB_BYTES, tunnels: 23, limited: 2 }, month: { bytes: 74 * GB_BYTES },

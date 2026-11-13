@@ -51,6 +51,8 @@ const SAY = {
 const billingLink = (cfg: EmailConfig, before: string): Block => ({ t: "link", before, label: "billing page", href: `${cfg.app}/billing` });
 
 /** the sign-in or sign-up code */
+/** the subject both sign-in code emails end with */
+export const CODE_SUBJECT = / is your dusk bot code$/;
 export function codeEmail(cfg: EmailConfig, { code }: { code: string }): Rendered {
   return render(cfg, {
     subject: `${code} is your dusk bot code`, preheader: `your dusk bot code is ${code}. it works for 10 minutes.`, tag: "sign in", ...SAY.code,

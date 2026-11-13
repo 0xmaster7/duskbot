@@ -1,6 +1,8 @@
 import { MongoClient, type Db } from "mongodb";
 import { readonlySink, type AnalyticsSink } from "../analytics/sink.ts";
 import type { Account } from "../auth/store.ts";
+import type { InfraDay } from "./infra.ts";
+import type { OpsDaily } from "./ops/store.ts";
 
 /** another service's analytics the admin reads, never writes: preview's admin showing dusk.bot's visitors, sessions and
  *  sign-ups from dusk_prod. its money, clouds and devices stay on that service's own admin. */
@@ -9,6 +11,9 @@ export interface LiveData {
   sink: AnalyticsSink;
   /** that service's accounts, only what the analytics pages name people with */
   accounts(): Promise<Account[]>;
+  /** that service's dusk cloud usage days and its ops daily counters ("mail"), for the ops page's top accounts */
+  infra(fromDay: string, toDay: string): Promise<InfraDay[]>;
+  daily(source: string, fromDay: string, toDay: string): Promise<OpsDaily[]>;
 }
 
 export function liveData(db: Db, label: string, now: () => number = Date.now, ttlMs = 30_000): LiveData {
@@ -24,6 +29,14 @@ export function liveData(db: Db, label: string, now: () => number = Date.now, tt
         list.catch(() => { if (cached?.list === list) cached = null; });
       }
       return cached.list;
+    },
+    async infra(fromDay, toDay) {
+      const docs = await db.collection("infra_usage_daily").find({ day: { $gte: fromDay, $lte: toDay } }, { projection: { _id: 0 } }).limit(50_000).toArray();
+      return docs.map(doc => ({ ...doc, collectedAt: doc.collectedAt instanceof Date ? doc.collectedAt.getTime() : Number(doc.collectedAt) || 0 }) as InfraDay);
+    },
+    async daily(source, fromDay, toDay) {
+      const docs = await db.collection("ops_daily").find({ source, day: { $gte: fromDay, $lte: toDay } }).limit(50_000).toArray();
+      return docs.map(doc => ({ source: doc.source, day: doc.day, key: doc.key, accountId: doc.accountId ?? null, values: doc.values ?? {} }));
     },
   };
 }
