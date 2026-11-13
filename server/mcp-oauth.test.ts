@@ -843,9 +843,19 @@ describe("MCP OAuth through the local proxy", () => {
     const spec = await engineSpec();
     refusedTokens.add(`Bearer ${(await manager.accessToken("docs", mcp.url))!}`);
     const answer = await initialize(spec);
-    expect(answer.status).toBe(502);
-    expect(((await answer.json()) as { error: { message: string } }).error.message).toContain("Sign in to it again");
+    expect(answer.status).toBe(200);
+    expect(await answer.json()).toEqual({ jsonrpc: "2.0", id: 1, error: { code: -32001, message: expect.stringContaining("reconnect docs in Connect apps") } });
     expect(manager.authState("docs", mcp.url)).toBe("needs-sign-in");
+  });
+
+  it("answers each request in a refused batch, and a lone notification with nothing to show", async () => {
+    await signedIn({ rejectRefresh: true });
+    const spec = await engineSpec();
+    refusedTokens.add(`Bearer ${(await manager.accessToken("docs", mcp.url))!}`);
+    const post = (body: unknown) => fetch(spec.url, { method: "POST", headers: { ...spec.headers, "content-type": "application/json" }, body: JSON.stringify(body) });
+    const batch = await post([{ jsonrpc: "2.0", id: "a", method: "tools/call" }, { jsonrpc: "2.0", method: "notifications/x" }, { jsonrpc: "2.0", id: 2, method: "tools/list" }]);
+    expect(((await batch.json()) as Array<{ id: unknown }>).map((answer) => answer.id)).toEqual(["a", 2]);
+    expect((await post({ jsonrpc: "2.0", method: "notifications/initialized" })).status).toBe(202);
   });
 
   it("refuses a request without its route's bearer", async () => {

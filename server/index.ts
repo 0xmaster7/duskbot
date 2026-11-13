@@ -390,7 +390,6 @@ import {
   cloudHomePrompt, syncedFolders,
   computerPrompt,
   composioSystemPrompt,
-  customMcpPrompt,
   CREDENTIAL_PROMPT,
   longCommandsPrompt,
   THREADS_PROMPT, WIDGET_PROMPT, JUST_DO_IT_PROMPT,
@@ -564,7 +563,7 @@ import { gzipTunnelReplies, json, onJsonBody, parsedBodyOf, readBody } from "./h
 import { holdBodyDeadline } from "./body-deadline.ts";
 import { createNoAiNotice } from "./host/no-ai-notice.ts"; import { PASS, ROUTES, dispatchRoutes } from "./routes/table.ts"; import { createSecretCards } from "./host/secret-cards.ts"; import { createInternalCredentialRequestRoutes, createSavedSecretRoutes, createSecretCardRoutes } from "./routes/secret-cards.ts"; import { SavedSecretStore, desktopSavedSecretsKey, fileSavedSecretsKey } from "./saved-secrets.ts"; import { applyIncludedPagesMessage } from "./pages/access.ts"; import { createPublishedPages } from "./pages/service.ts"; import { createInternalToolRoutes } from "./routes/internal-tools.ts"; import { createHelperSuggestionRoutes } from "./routes/helper-suggestion.ts"; import { createXConnectorRoutes } from "./routes/x-connector.ts"; import { createMoveFreeze, switchAutomationsOff } from "./move-freeze.ts"; import { createMoveFreezeRoutes } from "./routes/move-freeze.ts"; import { createMoveWaits } from "./move-waits.ts"; import { assertBotHere, createBotMoves } from "./bot-moves.ts"; import { createBotMoveRoutes } from "./routes/bot-moves.ts"; import { createTeamMoveIn, moveInRefusal } from "./team-move-in.ts";
 import { createCardSealer, loadSealIdentity } from "./card-seal.ts"; import { createSealKeyRoutes } from "./routes/seal-key.ts";
-import { createConnectorDirectoryRoutes } from "./routes/connector-directory.ts"; import { createComposioConnectRoutes } from "./composio-connect.ts"; import { withMcpSignIn as signedInMcp } from "./mcp-oauth.ts"; import { harnessPort } from "./harness-port.ts"; import { composioProvider } from "./connectors/composio-provider.ts"; import { remoteMcpProvider } from "./connectors/remote-mcp.ts";
+import { createConnectorDirectoryRoutes } from "./routes/connector-directory.ts"; import { createComposioConnectRoutes } from "./composio-connect.ts"; import { withMcpSignIn as signedInMcp } from "./mcp-oauth.ts"; import { harnessPort } from "./harness-port.ts"; import { composioProvider } from "./connectors/composio-provider.ts"; import { remoteMcpProvider } from "./connectors/remote-mcp.ts"; import { mcpServersPrompt } from "./mcp-apps-prompt.ts";
 import { createBotPresetRoutes } from "./routes/bot-presets.ts"; import { createWorkspaceBannerRoutes, workspaceBannerStore, workspaceBannerSummary } from "./routes/workspace-banner.ts";
 import { createBotMemoryRoutes } from "./routes/bot-memory.ts";
 import { createBotCreateRoutes } from "./routes/bots-create.ts";
@@ -2909,7 +2908,7 @@ function previewSystemPrompt(bot: BotRecord) {
     { id: "composio", label: "Connected apps", text: caps?.composioMcp && bot.composio !== false && composio.configured(cfg) ? composioSystemPrompt(bot.connectorTools, previewPlan.computer !== undefined && Boolean(previewPlan.browser)) + describeConnectorScopes(bot.connectorScopes) : "" },
     { id: "email", label: "Email", text: caps?.emailMcp === true ? emailHost.prompt(bot) : "" },
     ...phones.previewParts(bot, caps?.deviceMcp === true),
-    { id: "mcp", label: "MCP servers", text: caps?.customMcp ? customMcpPrompt(Object.keys(engineMcpServers(bot)), mcpServersHost.off(bot)) : "" }, { id: "to-connect", label: "Connections to make", text: cloudConnections.prompt(bot) },
+    { id: "mcp", label: "MCP servers", text: caps?.customMcp ? mcpPrompt(bot, engineMcpServers(bot)) : "" }, { id: "to-connect", label: "Connections to make", text: cloudConnections.prompt(bot) },
     { id: "browser", label: "Browser", text: previewPlan.browser ? browserPromptFor(bot, agentsMounted) : "" },
     { id: "coordination", label: "Team", text: agentsMounted && coordination ? ` ${coordination}` : "" },
     { id: "credential", label: "Credentials", text: agentsMounted ? CREDENTIAL_PROMPT : "" },
@@ -8716,7 +8715,7 @@ async function beginTurn(
         { id: "plan", label: "Surface", text: surfacePrompt({ computer: mountedComputer, browser: Boolean(integrations.browser) }, { pinned: plan.pinned, note: plan.note + vpsUnavailableNote + vmUpdateNote + (computerSkipped && plan.computer !== "off" ? computerSkippedNote(redactSecretsInText(computerSkipped)) : ""), canSelect: computerSelectionTurns.has(threadId), cloudHome: Boolean(CLOUD_HOME), botOpened: plan.botOpened }) },
         { id: "cloud-home", label: "My Cloud", text: CLOUD_HOME ? cloudHomePrompt(syncedFolders(DATA_DIR)) : "" },
         { id: "composio", label: "Connected apps", text: integrations.composio ? composioSystemPrompt(liveBot?.connectorTools ?? bot.connectorTools, Boolean(integrations.browser)) + describeConnectorScopes((liveBot ?? bot).connectorScopes) : "" },
-        { id: "mcp", label: "MCP servers", text: customMcpPrompt(Object.keys(integrations.custom ?? {}), mcpServersHost.off(bot)) }, { id: "to-connect", label: "Connections to make", text: cloudConnections.prompt(liveBot ?? bot) + teamConnections.prompt(threadId, dispatchClaimId, integrations) },
+        { id: "mcp", label: "MCP servers", text: mcpPrompt(bot, integrations.custom ?? {}) }, { id: "to-connect", label: "Connections to make", text: cloudConnections.prompt(liveBot ?? bot) + teamConnections.prompt(threadId, dispatchClaimId, integrations) },
         { id: "browser", label: "Browser", text: integrations.browser ? browserPromptFor(bot, Boolean(integrations.agents)) : "" },
         { id: "data", label: "Data", text: integrations.data ? BUILT_IN_DATA_SYSTEM_PROMPT : "" },
         { id: "email", label: "Email", text: instance.adapter.capabilities.emailMcp === true ? emailHost.prompt(liveBot ?? bot) : "" },
@@ -10490,7 +10489,7 @@ async function runClaimedGroupMemberTurn(
     { id: "user-profile", label: "About the user", text: userProfileSystemPrompt(teamHost.profileFor(threadId, cfg.profile)) }, { id: "people", label: "People", text: teamMessages.prompt(bot.id, threadId, Boolean(integrations.agents)) },
     { id: "files", label: "File locations", text: workspace ? workspaceLocationsPrompt(bot.id, cwd, readyBot.cwd, { attachFile: Boolean(integrations.agents) && !CLOUD_HOME }) : "" },
     { id: "shell", label: "Long-running commands", text: workspace ? longCommandsPrompt(roomComputerPromptKind) : "" },
-    { id: "mcp", label: "MCP servers", text: customMcpPrompt(Object.keys(integrations.custom ?? {}), mcpServersHost.off(bot)) + teamConnections.prompt(threadId, internalGeneration, integrations) },
+    { id: "mcp", label: "MCP servers", text: mcpPrompt(bot, integrations.custom ?? {}) + teamConnections.prompt(threadId, internalGeneration, integrations) },
     { id: "computer", label: "Computer", text: computerPrompt(roomComputerPromptKind) + (roomComputerPromptKind === "vps" && !integrations.browser && Boolean(integrations.agents) ? savedLoginsPrompt(botLogins.sitesFor(bot.id)) : "") },
     { id: "team-computer", label: "Team computer", text: teamComputerPrompt(roomTeamComputer) },
     { id: "plan", label: "Surface", text: surfacePrompt({ computer: roomTeamComputer ? "cloud" : roomVmTarget ? "vm" : surfaceOfComputerKind(roomComputerKind), browser: Boolean(integrations.browser) }, { note: roomPlan.note, cloudHome: Boolean(CLOUD_HOME) }) },
@@ -12129,6 +12128,13 @@ function configForAccess(status: ReturnType<typeof configStatus>, admin: boolean
 }
 
 function engineMcpServers(bot: BotRecord) { return teamConnections.engineMcp(bot); }
+
+function mcpPrompt(bot: BotRecord, mounted: Readonly<Record<string, unknown>>): string {
+  return mcpServersPrompt({
+    mounted: Object.keys(mounted), configured: mcpServersHost.mounted(bot), off: mcpServersHost.off(bot),
+    needsSignIn: (name, url) => mcpOAuth.authState(name, url) === "needs-sign-in",
+  });
+}
 
 function teamAdminHost() {
   if (!CLOUD_TEAM) return undefined;

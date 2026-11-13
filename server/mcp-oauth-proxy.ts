@@ -8,6 +8,7 @@ import { Readable } from "node:stream";
 
 import type { McpServerSpec } from "./contracts.ts";
 import { harnessPort } from "./harness-port.ts";
+import { mcpServerLabel } from "./remote-mcp-label.ts";
 import { withoutPendingSignIn, type McpOAuthManager } from "./mcp-oauth.ts";
 import { PASS, type RouteContext, type RouteHandler } from "./routes/table.ts";
 
@@ -79,6 +80,32 @@ function refuse(res: ServerResponse, status: number, message: string): void {
   res.end(JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: -32001, message } }));
 }
 
+const requestIds = (body: Buffer | undefined): Array<string | number> | null => {
+  if (!body) return null;
+  try {
+    const parsed: unknown = JSON.parse(body.toString("utf8"));
+    const ids = (Array.isArray(parsed) ? parsed : [parsed]).flatMap((frame) =>
+      frame && typeof frame === "object" && "method" in frame && (typeof frame.id === "string" || typeof frame.id === "number") ? [frame.id] : []);
+    return ids;
+  } catch {
+    return null;
+  }
+};
+
+/** A refusal as the answer to each request in the body, so an engine shows its message as the tool's error. An engine
+ * reports a bare HTTP 5xx as the app being down, which sends the bot retrying a call no retry can fix. */
+function refuseCall(res: ServerResponse, body: Buffer | undefined, message: string): void {
+  const ids = requestIds(body);
+  if (!ids) return refuse(res, 502, message);
+  if (!ids.length) { res.writeHead(202); res.end(); return; }
+  const answers = ids.map((id) => ({ jsonrpc: "2.0", id, error: { code: -32001, message } }));
+  res.writeHead(200, { "content-type": "application/json" });
+  res.end(JSON.stringify(answers.length === 1 ? answers[0] : answers));
+}
+
+const signInRedo = (label: string, why: string) =>
+  `${label} ${why}, so nothing was done. Ask the person to reconnect ${label} in Connect apps, then try again; retrying before that won't work.`;
+
 export async function mcpOAuthProxyRoutes({ req, res, path, method }: RouteContext): ReturnType<RouteHandler> {
   if (!path.startsWith(MCP_OAUTH_PROXY_PATH)) return PASS;
   const routeId = path.slice(MCP_OAUTH_PROXY_PATH.length);
@@ -102,19 +129,20 @@ export async function mcpOAuthProxyRoutes({ req, res, path, method }: RouteConte
     method, headers: { ...headers, authorization: `Bearer ${token}` }, ...(body ? { body } : {}),
     redirect: "error", signal: AbortSignal.any([abort.signal, AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)]),
   });
+  const label = mcpServerLabel(route.name, route.url);
   let answer: Response;
   try {
     const token = await route.manager.accessToken(route.name, route.url);
-    if (!token) return refuse(res, 502, `${route.name} needs you to sign in again in dusk bot.`);
+    if (!token) return refuseCall(res, body, signInRedo(label, "needs signing in again"));
     answer = await send(token);
     if (answer.status === 401) {
       void answer.body?.cancel().catch(() => {});
       const fresh = await route.manager.refreshRejected(route.name, route.url, token);
-      if (!fresh) return refuse(res, 502, `${route.name} refused its sign-in. Sign in to it again in dusk bot.`);
+      if (!fresh) return refuseCall(res, body, signInRedo(label, "refused its sign-in (it expired or was revoked)"));
       answer = await send(fresh);
       if (answer.status === 401) {
         void answer.body?.cancel().catch(() => {});
-        return refuse(res, 502, `${route.name} refused its sign-in. Sign in to it again in dusk bot.`);
+        return refuseCall(res, body, signInRedo(label, "refused its sign-in (it expired or was revoked)"));
       }
     }
   } catch (error) {
