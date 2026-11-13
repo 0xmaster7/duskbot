@@ -64,6 +64,15 @@ describe("choosePlacement", () => {
       .toEqual({ node: "oracle-in", reason: "home is crowded" });
   });
 
+  it("moves a server off a paused home, and off a home the server itself cannot reach while it reaches another", () => {
+    const base = { defaultId: "contabo" };
+    expect(choosePlacement({ ...base, nodes: [node("contabo", healthy({ paused: true })), node("oracle-in")], home: "contabo", rtt: {} })).toEqual({ node: "oracle-in", reason: "home paused" });
+    // both nodes see each other up, but the server measured only oracle: contabo's front is down for it
+    expect(choosePlacement({ ...base, nodes: [node("contabo"), node("oracle-in")], home: "contabo", rtt: { "oracle-in": 40 } })).toEqual({ node: "oracle-in", reason: "home is out of the server's reach" });
+    // nothing measured (one node known, or an older agent): no conclusion
+    expect(choosePlacement({ ...base, nodes: [node("contabo"), node("oracle-in")], home: "contabo", rtt: {} }).node).toBe("contabo");
+  });
+
   it("never sends a server to a peer that may not hold its record yet, and falls back to the default node when none takes new ones", () => {
     expect(choosePlacement({ nodes: [node("contabo"), node("oracle-in", healthy(), { acked: false })], rtt: { "oracle-in": 1, contabo: 300 }, defaultId: "contabo" }).node).toBe("contabo");
     const full = healthy({ paused: true });
@@ -141,8 +150,8 @@ describe("two nodes", () => {
     // the app's token only reads; it cannot place
     expect((await call(contabo.url, `/v1/tunnels/${id}/place`, { token: app, method: "POST", body: {} })).status).toBe(404);
 
-    // before the server polls, the app is sent to the default node; once it polls oracle, both nodes say oracle
-    expect((await call(contabo.url, `/v1/tunnels/${id}/node`, { token: app }).then((res) => res.json())).node).toBe("contabo");
+    // placed means moved: the app is sent to oracle even before the server's first poll there
+    expect((await call(contabo.url, `/v1/tunnels/${id}/node`, { token: app }).then((res) => res.json())).node).toBe("oracle-in");
     expect((await call(oracle.url, `/v1/tunnels/${id}/to-vps`, { token: vps })).status).toBe(200);
     await oracle.service.cluster.syncAll();
     for (const one of [contabo, oracle]) {

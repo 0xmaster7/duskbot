@@ -334,6 +334,8 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
   monthAllowanceBytes = MONTH_ALLOWANCE_BYTES, sleep = (ms) => delay(ms), nodes = null, peerToken = null, turn: turnConfig = null, box = null, turnWatch = null }) {
   const nodeId = nodes?.self.id ?? "contabo";
   // a tunnel's home node (the default one for tunnels from before nodes) is the one that drops it when idle
+  // queues live in memory: a client that sees this change knows what it sent before may never arrive
+  const boot = randomBytes(9).toString("base64url");
   const homeOf = (tunnel) => tunnel.home ?? nodes?.defaultId ?? nodeId;
   const store = createStore({ dir: dataDir, now, onChannelDelete: clearChannel, onTunnelDelete: (tunnel) => { dropTunnelState(tunnel.id); cluster?.removed("tunnel", tunnel.id); },
     mayExpire: (tunnel) => !nodes || homeOf(tunnel) === nodeId });
@@ -388,7 +390,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
 
   function send(res, status, body, headers = {}) {
     const text = body === null ? "" : JSON.stringify(body);
-    res.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", ...headers });
+    res.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "x-link-boot": boot, ...headers });
     res.end(text);
   }
   const fail = (res, status, error, code, extra = {}) => send(res, status, { error, ...(code ? { code } : {}), ...extra });
@@ -643,6 +645,8 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     if (!cluster) return { node: nodeId, url: base, reason: "single node", nodes: [{ id: nodeId, url: base, region: null, up: true }] };
     let choice = choosePlacement({ nodes: cluster.view(tunnel), home: tunnel.home ?? null, rtt, defaultId: nodes.defaultId });
     if (choice.node !== nodeId && !(await cluster.ensureOn(choice.node, tunnel))) choice = { node: nodeId, reason: `${choice.node} is behind` };
+    // the directory says where the server goes at once, so an app asking now is not sent to the node it leaves
+    if (homeOf(tunnel) !== choice.node) { tunnel.home = choice.node; cluster.changed(tunnel); await cluster.ensureOn(choice.node, tunnel); }
     const where = whereIs(tunnel);
     return { node: choice.node, url: cluster.urlOf(choice.node), reason: choice.reason, nodes: where.nodes };
   }
@@ -1358,7 +1362,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     const turn = q.claim();
     signal = AbortSignal.any([signal, q.signal, AbortSignal.timeout(ms)]);
     const until = Date.now() + ms;
-    res.writeHead(200, { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "x-accel-buffering": "no" });
+    res.writeHead(200, { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "x-accel-buffering": "no", "x-link-boot": boot });
     let first = true;
     try {
       while (!signal.aborted && q.holds(turn) && alive() && Date.now() < until) {
@@ -1377,7 +1381,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
   async function streamChannels(res, id, reader, turn, ms, signal) {
     signal = AbortSignal.any([signal, reader.signal, AbortSignal.timeout(ms)]);
     const until = Date.now() + ms;
-    res.writeHead(200, { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "x-accel-buffering": "no" });
+    res.writeHead(200, { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "x-accel-buffering": "no", "x-link-boot": boot });
     try {
       await writeLine(res, { frames: [] }, signal);
       while (!signal.aborted && reader.holds(turn) && store.tunnels.has(id) && Date.now() < until) {

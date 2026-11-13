@@ -63,16 +63,23 @@ export async function createFaultProxy({ port = 0, target, impostor }) {
   const stats = { accepted: 0, perSecond: new Map() };
   const delayFor = () => latencyMs + Math.random() * jitterMs;
   function pipeSlow(from, to, pair) {
-    // per chunk delay, in order, with an optional rate limit
-    let chain = Promise.resolve();
+    // latency shifts each chunk by the same delay (plus jitter, never reordering); a rate limit spaces them out
+    let lastDue = 0, held = 0;
     from.on("data", (chunk) => {
       if (mode === "blackhole" || pair.stranded) return;
-      const wait = delayFor() + (bytesPerSec ? (chunk.length / bytesPerSec) * 1000 : 0);
-      if (!wait) { if (!to.destroyed) to.write(chunk); return; }
-      from.pause();
-      chain = chain.then(() => sleep(wait)).then(() => { if (!to.destroyed) to.write(chunk); from.resume(); });
+      const extra = delayFor(), rate = bytesPerSec ? (chunk.length / bytesPerSec) * 1000 : 0;
+      if (!extra && !rate && !held) { if (!to.destroyed) to.write(chunk); return; }
+      const due = Math.max(Date.now() + extra, lastDue) + rate;
+      lastDue = due;
+      held += chunk.length;
+      if (held > 1024 * 1024) from.pause();
+      setTimeout(() => {
+        held -= chunk.length;
+        if (!to.destroyed && !pair.stranded && mode !== "blackhole") to.write(chunk);
+        if (held <= 256 * 1024) from.resume();
+      }, Math.max(0, due - Date.now()));
     });
-    from.on("end", () => { void chain.then(() => to.end()); });
+    from.on("end", () => { setTimeout(() => to.end(), Math.max(0, lastDue - Date.now())); });
   }
   function onConnection(client) {
     stats.accepted += 1;

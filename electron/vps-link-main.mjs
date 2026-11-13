@@ -9,6 +9,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
 import { createMacControlHost } from "./mac-control.mjs";
+import { watchNetwork } from "./network-change.mjs";
 import { createLinkAwake } from "./vps-link-awake.mjs";
 import { createMacExecutor } from "./mac-control-tools.mjs";
 import { cloudConnector, cloudRegister, cloudRelayUrl, newDirectKey, sshConnector, wssConnector } from "./vps-link-direct.mjs";
@@ -234,15 +235,18 @@ export function installVpsLink(deps) {
   };
   for (const method of METHODS) ipcMain.handle(`vps-link:${method}`, guard(`vps-link:${method}`, handlers[method]));
   installLinkDirectIpc({ ipcMain, pageOrigin: deps.pageOrigin ?? (() => null), link });
+  let stopNetwork = () => {}, closedLink = false;
   // safeStorage only works once electron is ready, and every saved tunnel key needs it
   void (deps.whenReady?.() ?? Promise.resolve()).then(() => {
     // a wake or an unlocked screen: sockets may be dead, so the tunnels reconnect now instead of after their timeouts
     // (powerMonitor only works once electron is ready)
     for (const event of ["resume", "unlock-screen"]) deps.powerMonitor?.on(event, () => link.nudge());
+    // and a network switch with the lid open: the same, without waiting for the dead connections to time out
+    if (!closedLink) stopNetwork = watchNetwork(() => link.nudge());
     for (const event of ["on-ac", "on-battery"]) deps.powerMonitor?.on(event, () => awake?.check());
     return link.resume();
   }).then(() => followMac(link.view())).catch((error) => log(`vps link: ${error?.message ?? error}`));
   const closeLink = link.close;
-  link.close = () => { macHost?.close(); awake?.close(); return closeLink(); };
+  link.close = () => { closedLink = true; stopNetwork(); macHost?.close(); awake?.close(); return closeLink(); };
   return link;
 }

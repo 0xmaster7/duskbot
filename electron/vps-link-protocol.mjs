@@ -569,6 +569,11 @@ export const UPGRADE_HOLD_MS = 700;
 const SILENT_ASK_MS = 8000;
 /** a request sent this recently when the relay moves may still be on its way there, so it is left to finish */
 const RESEND_AFTER_MS = 2000;
+/** a stream's sender says how many bytes it sent so far after this many more, or this long, so a gap shows */
+export const MARK_BYTES = 256 * 1024;
+/** a retry wait between half and all of `ms`: apps that lost the same node do not all come back in the same second */
+const spread = (ms) => Math.round(ms * (0.5 + Math.random() / 2));
+export const MARK_MS = 2000;
 
 // the same for every other request this process makes (the relay client, pairing, the vps checks)
 setDefaultResultOrder("ipv4first");
@@ -717,7 +722,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
         if (!lane) fail(busy ? "The relay is full right now. Your server will connect another way, or try again in a minute." : "The link service did not answer.");
         return false;
       }
-      await sleep(Math.min(5000, 200 * 2 ** attempt), undefined, { signal: abort.signal }).catch(() => {});
+      await sleep(spread(Math.min(5000, 200 * 2 ** attempt)), undefined, { signal: abort.signal }).catch(() => {});
     }
     return false;
   }
@@ -732,16 +737,37 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
   // requests sent over the relay and not answered at all yet: a node that queues them while the server reads elsewhere
   // (an older node, or one whose copy of the directory lags) shows up as silence, so a long one asks where the tunnel is
   const unanswered = new Map();
+  // every request on the relay and when it went out, until it ends: a node that restarted lost what it held of them
+  const onRelay = new Map();
   const emit = (frame) => {
     const path = pathOf(frame.r);
-    if (frame.t === "cancel") { path.discard(frame.r); unanswered.delete(frame.r); }
-    else if (path === relayPath && (frame.t === "req" || frame.t === "ctl")) unanswered.set(frame.r, Date.now());
+    if (frame.t === "cancel") { path.discard(frame.r); unanswered.delete(frame.r); onRelay.delete(frame.r); }
+    else if (path === relayPath && (frame.t === "req" || frame.t === "ctl")) { unanswered.set(frame.r, Date.now()); onRelay.set(frame.r, Date.now()); }
     path.push(frame);
   };
+  /**
+   * the node restarted (its boot changed) while these were on it: what it held is gone. an unanswered GET goes again,
+   * the rest fail now with a short message (a stream reconnects) instead of hanging or arriving with a hole
+   */
+  function lostOnRestart(before) {
+    for (const [r, at] of Array.from(onRelay)) {
+      const entry = waiting.get(r);
+      if (!entry || entry.via !== "relay") { onRelay.delete(r); continue; }
+      if (at > before) continue;
+      if (unanswered.has(r) && entry.replay?.()) { unanswered.set(r, Date.now()); onRelay.set(r, Date.now()); continue; }
+      onRelay.delete(r);
+      unanswered.delete(r);
+      waiting.delete(r);
+      emit({ t: "cancel", r });
+      entry.fail("The connection to your server dropped. Try again.");
+    }
+  }
   let silenceTimer = null;
   const watchSilence = () => {
     silenceTimer = setInterval(() => {
       const cutoff = Date.now() - SILENT_ASK_MS;
+      for (const r of sentCount.keys()) if (!waiting.has(r)) sentCount.delete(r);
+      for (const r of onRelay.keys()) if (!waiting.has(r)) onRelay.delete(r);
       for (const [r, at] of unanswered) {
         if (!waiting.has(r)) { unanswered.delete(r); continue; }
         if (at < cutoff) { void locate(); break; }
@@ -749,7 +775,17 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
     }, 2000);
     silenceTimer.unref?.();
   };
-  const sendBytes = (r, chunk) => pathOf(r).bytes(r, chunk);
+  // what went out per stream, so the agent can tell a body that lost bytes on the way (it ignores marks if it is older)
+  const sentCount = new Map();
+  const sendBytes = (r, chunk) => {
+    let count = sentCount.get(r);
+    if (!count) sentCount.set(r, (count = { n: 0, marked: 0, at: Date.now() }));
+    count.n += chunk.length;
+    const more = pathOf(r).bytes(r, chunk);
+    if (count.n - count.marked >= MARK_BYTES || Date.now() - count.at >= MARK_MS) { count.marked = count.n; count.at = Date.now(); emit({ t: "mark", r, n: count.n }); }
+    return more;
+  };
+  const sentOf = (r) => { const n = sentCount.get(r)?.n ?? 0; sentCount.delete(r); return n; };
   const onDrain = (r, resume) => pathOf(r).onDrain(resume);
   /** the path a new request takes */
   const pick = () => (direct?.ready() ? "direct" : "relay");
@@ -804,14 +840,25 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
     const entry = waiting.get(frame.r);
     if (!entry) return;
     entry.touch();
+    // the server counts what it sent (`n` on marks and the end): a reply that lost bytes on the way fails, never ends short
+    const short = (n) => {
+      if (!Number.isSafeInteger(n) || n === (entry.got ?? 0)) return false;
+      waiting.delete(frame.r);
+      emit({ t: "cancel", r: frame.r });
+      log(`vps link: a reply lost ${n - (entry.got ?? 0)} bytes on the way; it is ended`);
+      entry.fail("Part of this reply was lost on the way. Try again.");
+      return true;
+    };
     if (frame.t === "head") entry.head(frame.status, frame.headers ?? {});
-    else if (frame.t === "data") entry.data(Buffer.from(frame.d ?? "", "base64"));
-    else if (frame.t === "bytes") entry.data(frame.b);
-    else if (frame.t === "end") { waiting.delete(frame.r); entry.end(); }
+    else if (frame.t === "data") { const bytes = Buffer.from(frame.d ?? "", "base64"); entry.got = (entry.got ?? 0) + bytes.length; entry.data(bytes); }
+    else if (frame.t === "bytes") { entry.got = (entry.got ?? 0) + frame.b.length; entry.data(frame.b); }
+    else if (frame.t === "mark") short(frame.n);
+    else if (frame.t === "end") { onRelay.delete(frame.r); if (short(frame.n)) return; waiting.delete(frame.r); entry.end(); }
     else if (frame.t === "err") { waiting.delete(frame.r); entry.fail(frame.message ?? "The server did not answer."); }
     else if (frame.t === "ctl") { waiting.delete(frame.r); entry.ctl(frame); }
   }
 
+  const nodeBoot = { id: null, node: null, okAt: 0 };
   async function poll() {
     if (polling) return;
     polling = true;
@@ -831,6 +878,12 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
       const read = (signal, onConnected) => fetchImpl(`${route}/to-app?wait=${waitS}${streaming ? "&stream=1" : ""}`, { headers: { authorization: `Bearer ${token}` }, signal, onConnected });
       try {
         const response = await (next?.response ?? read(AbortSignal.any([abort.signal, stall.signal, nudged.signal, AbortSignal.timeout(40_000)]), armStall));
+        const boot = response.headers?.get?.("x-link-boot") ?? null;
+        if (boot && boot !== nodeBoot.id) {
+          if (nodeBoot.id && nodeBoot.node === node) { log("vps link: the link service restarted; what it held is sent again or failed"); lostOnRestart(Math.max(nodeBoot.okAt, nodeBoot.failAt ?? 0)); }
+          Object.assign(nodeBoot, { id: boot, node });
+        }
+        if (response.ok) Object.assign(nodeBoot, { okAt: Date.now(), failAt: null });
         if (streaming) {
           aheadTimer = setTimeout(() => {
             const own = new AbortController();
@@ -847,6 +900,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
         await readFrameBatches(response, (frames) => {
           heard = true;
           failures = 0;
+          nodeBoot.okAt = Date.now();
           for (const sealed of frames) {
             let frame = null;
             try { frame = openFrame(key, id, "to-app", sealed, guard); } catch { log("vps link: dropped a frame that did not open"); }
@@ -862,12 +916,13 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
           continue;
         }
         failures += 1;
+        nodeBoot.failAt ??= Date.now();
         if (failures === 1 || failures % 20 === 0) log(`vps link: tunnel retrying (${error?.message ?? error})`);
         // the node may be gone: its servers move to another within about a minute, so keep asking where
         if (failures >= 2) void locate();
         if (postsBefore === successfulPosts) {
           pollRetry = new AbortController();
-          await sleep(Math.min(15_000, 300 * 2 ** Math.min(failures, 6)), undefined, { signal: AbortSignal.any([abort.signal, pollRetry.signal]) }).catch(() => {});
+          await sleep(spread(Math.min(15_000, 300 * 2 ** Math.min(failures, 6))), undefined, { signal: AbortSignal.any([abort.signal, pollRetry.signal]) }).catch(() => {});
           pollRetry = null;
         }
       } finally { clearTimeout(stallTimer); clearTimeout(aheadTimer); }
@@ -925,7 +980,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
     emit(request);
     if (bodyless) return;
     req.on("data", (chunk) => { if (waiting.has(r) && !sendBytes(r, chunk)) { req.pause(); onDrain(r, () => req.resume()); } });
-    req.on("end", () => { if (waiting.has(r)) emit({ t: "body", r, end: true }); });
+    req.on("end", () => { if (waiting.has(r)) emit({ t: "body", r, end: true, n: sentOf(r) }); });
   }
 
   /** a websocket (the live desktop): the handshake travels like a request, then its bytes both ways, raw and sealed */
@@ -1008,7 +1063,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
       if (follow && !givenRoute) await Promise.race([locate({ force: true }).catch(() => null), sleep(4000)]);
       if (!given) unwarm = fetchImpl.warm(node);
       void poll();
-      if (follow && !givenRoute) watchSilence();
+      watchSilence();
       if (directSpec) useDirect(directSpec);
       egress?.start();
       return `http://${host}:${listeningPort}`;

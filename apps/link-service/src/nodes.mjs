@@ -77,6 +77,7 @@ export function refusesNew(node, stop = PLACE_STOP_FRACTION) {
 /** why a server should leave the node it is on when it reconnects, or null to stay (sticky) */
 export function mustLeave(node, move = MOVE_OFF_FRACTION) {
   if (!node || !node.up) return "down";
+  if (node.health?.paused) return "paused";
   const load = loadOf(node.health);
   if (load.spent >= move) return "month traffic";
   if (load.active >= 1) return "tunnels";
@@ -107,14 +108,17 @@ export function choosePlacement({ nodes, home = null, rtt = {}, defaultId, stop 
     return 0.5 * Math.max(load.active, load.bandwidth) + 0.3 * (load.budget / stop) + 0.2 * fraction(node.health?.homed ?? 0, Math.max(1, homed)) + latency(node);
   };
   const open = usable.filter((node) => !refusesNew(node, stop)).sort((a, b) => score(a) - score(b) || (a.id === defaultId ? -1 : b.id === defaultId ? 1 : 0));
-  const current = home ? usable.find((node) => node.id === home) : null;
+  // the server measured other nodes but not its home: it cannot reach it, whatever the nodes see of each other
+  const unreached = home && rtts.length > 0 && !Number.isFinite(rtt[home]);
+  const current = home && !unreached ? usable.find((node) => node.id === home) : null;
   if (current && !mustLeave(current)) {
     const load = loadOf(current.health), alternative = open.find((node) => node.id !== current.id);
     const crowded = Math.max(load.active, load.bandwidth) >= 0.85 && alternative && Math.max(loadOf(alternative.health).active, loadOf(alternative.health).bandwidth) <= 0.5;
     if (!crowded) return { node: current.id, reason: "home" };
     return { node: alternative.id, reason: "home is crowded" };
   }
-  if (open.length) return { node: open[0].id, reason: home ? `home ${current ? mustLeave(current) : "is down"}` : "new" };
+  const away = open.filter((node) => !unreached || node.id !== home);
+  if (away.length) return { node: away[0].id, reason: home ? `home ${unreached ? "is out of the server's reach" : current ? mustLeave(current) : "is down"}` : "new" };
   const fallback = usable.find((node) => node.id === defaultId) ?? usable[0];
   return { node: fallback?.id ?? defaultId, reason: "no node takes new servers" };
 }
@@ -253,7 +257,9 @@ export function createCluster({ config, store, token, dir = null, now = Date.now
     const peer = typeof body?.from === "string" ? peers.get(body.from) : null;
     if (!peer) return null;
     const applied = apply(peer.id, body.records);
-    if (body.health && typeof body.health === "object") { peer.health = body.health; peer.lastOkAt = now(); }
+    // a peer's own sync proves it runs, not that anyone can reach it (its nginx may be down): up is only what this
+    // node's syncs to it see
+    if (body.health && typeof body.health === "object") peer.health = body.health;
     return { ok: true, applied, health: health() };
   }
 

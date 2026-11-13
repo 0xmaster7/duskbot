@@ -4,7 +4,9 @@ import { createHash } from "node:crypto";
 import { chmodSync } from "node:fs";
 import { join } from "node:path";
 
-import { patternBytes, sleep } from "./harness.mjs";
+import { createTunnelAgent } from "../agent.mjs";
+import { createRelayClient, createTunnelProxy, newLinkKeys, seal, sha256hex, vpsTokenOf } from "../../../electron/vps-link-protocol.mjs";
+import { patternBytes, randomBytes, sleep } from "./harness.mjs";
 
 const at = () => Date.now();
 const homeNode = async (world) => (await world.homeOf()) ?? "contabo";
@@ -25,7 +27,49 @@ async function failover(world, { kill = true } = {}) {
   return { pass: moved !== home && moved !== null, note: `moved ${home} -> ${moved} in ${Math.round((workedAt - started) / 1000)} s`, clearedAt: started };
 }
 
+/** `count` more servers and apps on the default node, in this process: the agent's and the app's relay code each */
+async function crowd(world, count) {
+  const base = world.url("contabo"), relay = createRelayClient({ base }), out = [];
+  for (let i = 0; i < count; i += 1) {
+    const keys = newLinkKeys();
+    const made = await relay.create({ verifier: keys.verifier, appPub: keys.pub });
+    const vps = vpsTokenOf(keys.secret);
+    const post = (path, body) => fetch(`${base}/v1/sessions/${made.id}/${path}`, { method: "POST", headers: { authorization: `Bearer ${vps}`, "content-type": "application/json" }, body: JSON.stringify(body) });
+    await post("claim", {});
+    const tunnel = { key: randomBytes(32).toString("base64url"), vps: randomBytes(32).toString("base64url"), app: randomBytes(32).toString("base64url") };
+    const done = await post("result", { sealed: seal(Buffer.alloc(32), made.id, Buffer.from("{}")), vpsPub: keys.pub, tunnel: { vps: sha256hex(tunnel.vps), app: sha256hex(tunnel.app) } });
+    if (!done.ok) throw new Error(`crowd link ${i} answered ${done.status}`);
+    const agent = createTunnelAgent({ base, id: made.id, key: tunnel.key, token: tunnel.vps, server: { host: "127.0.0.1", port: world.bot.port }, log: () => {} });
+    const running = agent.run();
+    const proxy = createTunnelProxy({ base, id: made.id, key: tunnel.key, token: tunnel.app, follow: true });
+    await proxy.start();
+    out.push({ agent, running, proxy });
+  }
+  return { list: out, async close() { for (const one of out) { one.agent.stop(); await one.proxy.close(); await one.running.catch(() => {}); } } };
+}
+
 export const SCENARIOS = [
+  {
+    name: "reconnect-storm", title: "60 servers and apps on a node that restarts (down 5 s)", budgetMs: 30_000,
+    async run(world) {
+      const many = await crowd(world, 60);
+      try {
+        const pingAll = async () => (await Promise.all(many.list.map((one) => one.proxy.control("ping", null, 4000).then(() => 1, () => 0)))).reduce((a, b) => a + b, 0);
+        await sleep(3000);
+        const before = await pingAll();
+        world.net.contabo.stats.perSecond.clear();
+        await world.nodes.contabo.kill();
+        await sleep(5000);
+        await world.nodes.contabo.start();
+        const back = at();
+        let all = null;
+        while (at() - back < 60_000) { if ((await pingAll()) === many.list.length) { all = at() - back; break; } await sleep(500); }
+        const seconds = [...world.net.contabo.stats.perSecond.values()];
+        const peak = Math.max(0, ...seconds);
+        return { clearedAt: back, pass: before === many.list.length && all !== null, note: `${before}/${many.list.length} answered before; all again ${all === null ? "never" : `${(all / 1000).toFixed(1)} s`} after the node came back; peak ${peak} new connections in one second` };
+      } finally { await many.close(); }
+    },
+  },
   {
     name: "cross-node", title: "a new server lives on the node the app did not link through", quick: true, budgetMs: 0,
     async run(world) {
@@ -227,6 +271,16 @@ export const SCENARIOS = [
     async run(world) {
       for (const id of world.ids) world.appNet[id].strand();
       return { clearedAt: at() };
+    },
+  },
+  {
+    name: "network-switch-watched", title: "wifi to hotspot, the app notices its addresses changed", budgetMs: 10_000,
+    async run(world) {
+      for (const id of world.ids) world.appNet[id].strand();
+      // electron/network-change.mjs looks every 3 s and waits for one more look
+      await sleep(6000);
+      await world.app.nudge();
+      return { clearedAt: at() - 6000 };
     },
   },
   {

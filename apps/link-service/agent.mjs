@@ -1819,14 +1819,43 @@ export function createEgressProxy({
  * what the app's frames ask of this server, over either path: requests and websockets to Dusk Bot, control ops to this
  * agent. `sink` takes the replies: push(frame), bytes(r, chunk) (false: pause), onDrain(resume), discard(r).
  */
-export function createServing({ server = SERVER, sink, stopped = () => false, context = {}, controls = true, forwardedFor = "192.0.2.10", allow = null }) {
+/** a stream's sender says how many bytes it sent so far after this many more, or this long, so a gap shows */
+export const MARK_BYTES = 256 * 1024;
+export const MARK_MS = 2000;
+
+export function createServing({ server = SERVER, sink, stopped = () => false, context = {}, controls = true, forwardedFor = "192.0.2.10", allow = null, log = () => {} }) {
   const pending = new Map();
   const emit = (frame) => { if (!stopped()) sink.push(frame); };
+  // replies count what they send (marks, and `n` on the end) so the app can tell one that lost bytes on the way; an
+  // older app ignores both
+  const sent = new Map();
+  const sendBytes = (r, chunk) => {
+    let count = sent.get(r);
+    if (!count) sent.set(r, (count = { n: 0, marked: 0, at: Date.now() }));
+    count.n += chunk.length;
+    const more = sink.bytes(r, chunk);
+    if (count.n - count.marked >= MARK_BYTES || Date.now() - count.at >= MARK_MS) { count.marked = count.n; count.at = Date.now(); emit({ t: "mark", r, n: count.n }); }
+    return more;
+  };
+  const endOf = (r) => { const n = sent.get(r)?.n ?? 0; sent.delete(r); return { t: "end", r, n }; };
+  /** the app's count of a body or websocket it sent against what arrived: short means bytes were lost, so it fails */
+  function short(r, n) {
+    const entry = pending.get(r);
+    if (!entry || !Number.isSafeInteger(n) || n === entry.got) return false;
+    log(`link: a request body lost ${n - entry.got} bytes on the way; it is ended`);
+    pending.delete(r);
+    sent.delete(r);
+    entry.destroy();
+    sink.discard(r);
+    emit({ t: "err", r, message: "Part of this request was lost on the way. Try again." });
+    return true;
+  }
 
   function overflow(r) {
     const entry = pending.get(r);
     if (!entry) return;
     pending.delete(r);
+    sent.delete(r);
     entry.destroy();
     sink.discard(r);
     emit({ t: "err", r, message: "The destination could not keep up with this transfer. Try again." });
@@ -1844,13 +1873,14 @@ export function createServing({ server = SERVER, sink, stopped = () => false, co
     for (const [name, value] of Object.entries(res.headers)) if (!HOP.has(name)) out[name] = value;
     emit({ t: "head", r: frame.r, status: 101, headers: out, up: true });
     socket.setNoDelay(true);
-    pending.set(frame.r, { write: (chunk) => writeTo(frame.r, socket, chunk), end: () => socket.end(), destroy: () => socket.destroy() });
+    const was = pending.get(frame.r);
+    pending.set(frame.r, { got: was?.got ?? 0, write: (chunk) => writeTo(frame.r, socket, chunk), end: () => socket.end(), destroy: () => socket.destroy() });
     for (const chunk of early) writeTo(frame.r, socket, chunk);
-    const read = (chunk) => { if (pending.has(frame.r) && !sink.bytes(frame.r, chunk)) { socket.pause(); sink.onDrain(() => socket.resume()); } };
+    const read = (chunk) => { if (pending.has(frame.r) && !sendBytes(frame.r, chunk)) { socket.pause(); sink.onDrain(() => socket.resume()); } };
     if (head.length) read(head);
     socket.on("data", read);
     socket.on("error", () => socket.destroy());
-    socket.on("close", () => { if (pending.delete(frame.r)) emit({ t: "end", r: frame.r }); });
+    socket.on("close", () => { if (pending.delete(frame.r)) emit(endOf(frame.r)); else sent.delete(frame.r); });
   }
 
   function startRequest(frame) {
@@ -1874,26 +1904,27 @@ export function createServing({ server = SERVER, sink, stopped = () => false, co
       emit({ t: "head", r: frame.r, status: res.statusCode ?? 502, headers: out });
       res.on("data", (chunk) => {
         if (!pending.has(frame.r) || stopped()) return;
-        if (!sink.bytes(frame.r, chunk)) {
+        if (!sendBytes(frame.r, chunk)) {
           res.pause();
           sink.onDrain(() => { if (pending.has(frame.r)) res.resume(); });
         }
       });
-      res.on("end", () => { if (pending.delete(frame.r)) emit({ t: "end", r: frame.r }); });
-      res.on("error", () => { if (pending.delete(frame.r)) emit({ t: "err", r: frame.r, message: "reply cut off" }); });
+      res.on("end", () => { if (pending.delete(frame.r)) emit(endOf(frame.r)); else sent.delete(frame.r); });
+      res.on("error", () => { sent.delete(frame.r); if (pending.delete(frame.r)) emit({ t: "err", r: frame.r, message: "reply cut off" }); });
     }); } catch { emit({ t: "err", r: frame.r, message: "That request could not be sent." }); return; }
     req.on("error", () => { if (pending.delete(frame.r)) emit({ t: "err", r: frame.r, message: "The dusk bot server did not answer" }); });
     // bytes the app sent before the handshake was answered wait for the socket
     const early = [];
     let earlyBytes = 0;
     if (frame.up === true) req.on("upgrade", (res, socket, head) => { if (pending.has(frame.r)) upgraded(frame, early, res, socket, head); else socket.destroy(); });
+    sent.delete(frame.r);
     pending.set(frame.r, frame.up === true
-      ? { write: (chunk) => {
+      ? { got: 0, write: (chunk) => {
         if (earlyBytes + chunk.length > RECEIVE_HIGH) { overflow(frame.r); return; }
         early.push(chunk);
         earlyBytes += chunk.length;
       }, end: () => {}, destroy: () => req.destroy() }
-      : { write: (chunk) => writeTo(frame.r, req, chunk), end: () => req.end(), destroy: () => { reply?.destroy(); req.destroy(); } });
+      : { got: 0, write: (chunk) => writeTo(frame.r, req, chunk), end: () => req.end(), destroy: () => { reply?.destroy(); req.destroy(); } });
     if (frame.end) req.end();
   }
 
@@ -1905,12 +1936,13 @@ export function createServing({ server = SERVER, sink, stopped = () => false, co
     if (frame.t === "body") {
       const req = pending.get(frame.r);
       if (!req) return;
-      if (frame.d) req.write(Buffer.from(frame.d, "base64"));
-      if (frame.end) req.end();
+      if (frame.d) { const bytes = Buffer.from(frame.d, "base64"); req.got += bytes.length; req.write(bytes); }
+      if (frame.end && !short(frame.r, frame.n)) req.end();
       return;
     }
-    if (frame.t === "bytes") { pending.get(frame.r)?.write(frame.b); return; }
-    if (frame.t === "cancel") { pending.get(frame.r)?.destroy(); pending.delete(frame.r); sink.discard(frame.r); return; }
+    if (frame.t === "bytes") { const req = pending.get(frame.r); if (req) { req.got += frame.b.length; req.write(frame.b); } return; }
+    if (frame.t === "mark") { short(frame.r, frame.n); return; }
+    if (frame.t === "cancel") { pending.get(frame.r)?.destroy(); pending.delete(frame.r); sent.delete(frame.r); sink.discard(frame.r); return; }
     if (frame.t === "ctl") {
       if (!controls) return emit({ t: "ctl", r: frame.r, ok: false, error: "not allowed" });
       try { emit({ t: "ctl", r: frame.r, ok: true, data: await control(frame.op, frame.data, context) }); }
@@ -1920,12 +1952,15 @@ export function createServing({ server = SERVER, sink, stopped = () => false, co
 
   return {
     handle,
-    destroyAll() { for (const req of pending.values()) req.destroy(); pending.clear(); },
+    destroyAll() { for (const req of pending.values()) req.destroy(); pending.clear(); sent.clear(); },
   };
 }
 
 /** `egress`: options for createEgressProxy, which then rides this tunnel; without it the app's hellos are ignored */
 /** `update`: options for createUpdater, which then keeps this agent current and restarts the tunnel only when idle */
+/** a retry wait between half and all of `ms`: servers that lost the same node do not all come back in the same second */
+export const spread = (ms, random = Math.random) => Math.round(ms * (0.5 + random() / 2));
+
 export function createTunnelAgent({ base, id, key: keyText, token, origin = null, server = SERVER, fetchImpl: given, log = (line) => console.error(line), stallMs = STREAM_STALL_MS, egress: egressOptions = null, update: updateOptions = null, waitS = 25, aheadMs = STREAM_AHEAD_MS }) {
   const context = { id, origin };
   // the app's last use of this link: anything but liveness, the handshake and the update op itself
@@ -1971,7 +2006,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
         if (response.status === 503 && /"relay_busy"/.test(said)) busyAt = Date.now();
       } catch { /* retried below */ }
       if (stopped) break;
-      await wait(Math.min(5000, 200 * 2 ** attempt));
+      await wait(spread(Math.min(5000, 200 * 2 ** attempt)));
     }
     return false;
   };
@@ -1992,8 +2027,10 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
   const updater = updateOptions ? createUpdater({ base, idle, apply: () => stop("update"), log, ...updateOptions }) : null;
   if (updater) context.updater = updater;
 
+  let failures = 0;
   async function run() {
-    let failures = 0, ahead = null;
+    let ahead = null;
+    failures = 0;
     const unwarm = given ? () => {} : fetchImpl.warm(base);
     void egress?.start();
     updater?.start();
@@ -2040,7 +2077,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
         if (failures === 1 || failures % 20 === 0) log(`link: tunnel retrying (${error?.message ?? error})`);
         if (postsBefore === successfulPosts) {
           pollRetry = new AbortController();
-          await delay(Math.min(30_000, 500 * 2 ** Math.min(failures, 6)), undefined, { signal: AbortSignal.any([abort.signal, pollRetry.signal]) }).catch(() => {});
+          await delay(spread(Math.min(15_000, 500 * 2 ** Math.min(failures, 5))), undefined, { signal: AbortSignal.any([abort.signal, pollRetry.signal]) }).catch(() => {});
           pollRetry = null;
         }
       } finally { clearTimeout(stallTimer); clearTimeout(aheadTimer); }
@@ -2048,7 +2085,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
     unwarm();
     return terminal;
   }
-  return { run, stop, egress, direct: hub, updater, lastOkAt: () => lastOkAt, busyAt: () => busyAt };
+  return { run, stop, egress, direct: hub, updater, lastOkAt: () => lastOkAt, busyAt: () => busyAt, failures: () => failures };
 }
 
 export function harnessSync(server = SERVER) {
@@ -2232,7 +2269,7 @@ export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = 
         if (failures === 1 || failures % 20 === 0) log("link: phone channel read retrying");
         if (postsBefore === successfulPosts) {
           pollRetry = new AbortController();
-          await delay(Math.min(30_000, 500 * 2 ** Math.min(failures, 6)), undefined, { signal: AbortSignal.any([abort.signal, pollRetry.signal]) }).catch(() => {});
+          await delay(spread(Math.min(15_000, 500 * 2 ** Math.min(failures, 5))), undefined, { signal: AbortSignal.any([abort.signal, pollRetry.signal]) }).catch(() => {});
           pollRetry = null;
         }
       } finally { clearTimeout(stallTimer); clearTimeout(aheadTimer); }
@@ -2533,9 +2570,15 @@ async function direct() {
 }
 
 // ---- link service nodes ----
-/** a tunnel that heard nothing from its node this long, or was told the node is full, asks where to go */
-export const NODE_SILENT_MS = 60_000;
-export const NODE_WATCH_MS = 15_000;
+/**
+ * a tunnel that heard nothing from its node this long, or was told the node is full, asks where to go. a healthy idle
+ * tunnel hears from its node at least every streamed read (25 s); its peers call a node down after 30 s (PEER_DOWN_MS)
+ */
+export const NODE_SILENT_MS = 35_000;
+export const NODE_WATCH_MS = 5_000;
+const NODE_ASK_MS = 15_000;
+/** reads that fail outright (refused, a 502 from the node's proxy) ask sooner: the server measures every node itself */
+const NODE_FAILING_MS = 12_000;
 const nodesFile = () => join(configDir(), "nodes.json");
 const origin = (value) => { try { const url = new URL(value); return /^https?:$/.test(url.protocol) && url.pathname === "/" ? url.origin : null; } catch { return null; } };
 
@@ -2667,13 +2710,15 @@ async function tunnel() {
   const cloud = relayUrl ? createCloudRelay({ url: relayUrl, id: saved.id, key: saved.key, hub: agent.direct }) : null;
   cloud?.start();
   for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { addressBook.stop(); cloud?.stop(); serverUpdates?.stop(); phones?.stop(); agent.stop(); directSocket?.close(); directWs?.close(); process.exit(0); });
-  // the node watch: silent for a minute, or full, and another node is known: ask where to go; a different answer
-  // restarts the agent (systemd brings it back in seconds) so everything reconnects there at once
-  let moving = false;
+  // the node watch: silent, or full, and another node is known: ask where to go (at most every NODE_ASK_MS); a
+  // different answer restarts the agent (systemd brings it back in seconds) so everything reconnects there at once
+  let moving = false, askedAt = 0;
   const watch = nodesKnown.length > 1 ? setInterval(async () => {
-    const silent = Date.now() - agent.lastOkAt() > NODE_SILENT_MS, busy = agent.busyAt() !== null && Date.now() - agent.busyAt() < NODE_WATCH_MS * 2;
-    if (moving || (!silent && !busy)) return;
+    const quiet = Date.now() - agent.lastOkAt();
+    const silent = quiet > NODE_SILENT_MS || (agent.failures() >= 3 && quiet > NODE_FAILING_MS), busy = agent.busyAt() !== null && Date.now() - agent.busyAt() < NODE_WATCH_MS * 2;
+    if (moving || (!silent && !busy) || Date.now() - askedAt < NODE_ASK_MS) return;
     moving = true;
+    askedAt = Date.now();
     try {
       const next = await placeTunnel({ base: saved.base, id: saved.id, token: saved.token, known: nodesKnown, log: (line) => console.error(line) });
       if (next?.url && next.url !== home) {
