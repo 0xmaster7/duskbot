@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { ArrowUp, Check, Inbox, LoaderCircle, Plane, Search, ShieldCheck, Tag, type GlyphIcon } from "../../icons";
 import { BotAvatar, MausAvatar } from "@/components/Avatar";
 import { engineReady } from "@/components/EngineLibrary";
 import { usePrefersReducedMotion } from "@/components/mascot-clock";
 import { cn } from "@/lib/cn";
+import { useHelpImprove } from "@/lib/help-improve";
+import { Toggle } from "@/components/ui/Toggle";
 import { DEFAULT_BOT_NAME } from "@/lib/default-bot";
 import { t } from "@/lib/i18n";
 import { aiChoices } from "@/lib/onboarding";
@@ -41,6 +43,8 @@ export function StartScreen({ bot, onStart, onSkip, extras }: {
   const box = useRef<HTMLTextAreaElement>(null);
   const pending = useRef<[number, number] | null>(null);
   const ready = canStart(line, text);
+  const improve = useHelpImprove();
+  const improveId = useId();
 
   useEffect(() => {
     const range = pending.current;
@@ -163,6 +167,12 @@ export function StartScreen({ bot, onStart, onSkip, extras }: {
             <ShieldCheck size={14} className="me-1.5 inline-block align-[-2px]" aria-hidden="true" />
             {t("onboarding.start.safe", { name })}
           </p>
+          {improve.on !== null && (
+            <div data-help-improve="" className="flex w-max max-w-[calc(100vw-2rem)] items-center gap-2.5 text-start text-ink-tertiary">
+              <Toggle checked={improve.on} aria-labelledby={improveId} onClick={() => void improve.set(!improve.on)} />
+              <span id={improveId}>{t("onboarding.start.improve")}</span>
+            </div>
+          )}
         </div>
       </div>
 

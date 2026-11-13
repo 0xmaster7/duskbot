@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowUpRight, ChartNoAxesColumn, ChartNoAxesCombined, ChevronDown, Cloud, CreditCard, Gauge, Globe as GlobeIcon, History, Inbox, LayoutDashboard, Moon, Repeat, Server, Sun, Users } from "@/icons";
+import { ArrowUpRight, ChartNoAxesColumn, ChartNoAxesCombined, ChevronDown, Cloud, CreditCard, Gauge, Globe as GlobeIcon, History, Inbox, LayoutDashboard, MessageSquare, Moon, Repeat, Server, Sun, Users } from "@/icons";
 import { setTheme, useTheme } from "../lib/theme";
 import { ButtonLink, cx } from "../ui/kit";
 import { Modal } from "../ui/controls";
@@ -21,6 +21,7 @@ import { WaitlistPage } from "./Waitlist";
 import { EventsPage } from "./Events";
 import { AuditPage, HealthPage } from "./Health";
 import { OpsPage } from "./Ops";
+import { FeedbackPage } from "./Feedback";
 import { Loading, Tabs } from "./ui";
 import { AnimatePresence, m, PageIn, ToastStack } from "../ui/motion";
 
@@ -36,6 +37,7 @@ const GROUPS: Array<{ label: string; items: NavItem[] }> = [
   ] },
   { label: "product", items: [
     { to: "/admin/product", key: "i", label: "product", icon: <ChartNoAxesCombined {...ICON} /> },
+    { to: "/admin/feedback", key: "f", label: "feedback", icon: <MessageSquare {...ICON} /> },
     { to: "/admin/retention", key: "r", label: "retention", icon: <Repeat {...ICON} /> },
     { to: "/admin/clouds", key: "c", label: "clouds", icon: <Cloud {...ICON} /> },
   ] },
@@ -66,6 +68,7 @@ function page(path: string): ReactNode {
   if (path === "/admin/revenue") return <RevenuePage />;
   if (path === "/admin/ops") return <OpsPage />;
   if (path === "/admin/retention") return <RetentionPage />;
+  if (path === "/admin/feedback") return <FeedbackPage />;
   if (path === "/admin/waitlist") return <WaitlistPage />;
   if (path === "/admin/clouds") return <CloudsPage />;
   if (path === "/admin/live") return <LivePage />;

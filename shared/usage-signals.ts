@@ -165,7 +165,23 @@ export interface UsageFrustration {
 }
 /** a weekly line about what one person uses Dusk for, written by their own engine on the workspace and scrubbed there */
 export interface UsageDigest { id: string; at: number; turns: number; days: number; summary: string }
-export interface UsageReport { turns: UsageTurn[]; runs: UsageRun[]; frustrations?: UsageFrustration[]; digests?: UsageDigest[]; signals?: UsageSignal[]; snapshot?: UsageSnapshot }
+/** a big or long session in one chat: what it touched, counted, and a note on what worked and what was friction,
+ * written by the person's own engine on the workspace and scrubbed there */
+export interface UsageSession {
+  id: string;
+  at: number;
+  engine: UsageEngine;
+  category: UsageCategory;
+  tools: UsageTool[];
+  apps: string[];
+  turns: number;
+  /** from the session's first turn to its last */
+  minutes: number;
+  /** turns that failed */
+  failed: number;
+  summary?: string;
+}
+export interface UsageReport { turns: UsageTurn[]; runs: UsageRun[]; frustrations?: UsageFrustration[]; sessions?: UsageSession[]; digests?: UsageDigest[]; signals?: UsageSignal[]; snapshot?: UsageSnapshot }
 
 export const USAGE_TURN_KEYS = ["id", "at", "engine", "outcome", "reason", "ms", "tools", "apps", "category", "from", "place", "room", "firstMs", "model", "failedTools", "failedApps", "actions", "bot", "chat"] as const;
 export const USAGE_RUN_KEYS = ["id", "at", "trigger", "outcome", "reason", "ms", "every", "routine"] as const;
@@ -208,6 +224,8 @@ export const MAX_REPORT_FRUSTRATIONS = 50;
 export const SUMMARY_MAX = 240, DIGEST_MAX = 700;
 export const USAGE_DIGEST_KEYS = ["id", "at", "turns", "days", "summary"] as const;
 export const MAX_REPORT_RUNS = 200;
+export const USAGE_SESSION_KEYS = ["id", "at", "engine", "category", "tools", "apps", "turns", "minutes", "failed", "summary"] as const;
+export const MAX_REPORT_SESSIONS = 20, SESSION_NOTE_MAX = 400;
 
 const ID = /^[A-Za-z0-9_-]{8,40}$/;
 const oneOf = <T extends string>(list: readonly T[], value: unknown): value is T => typeof value === "string" && (list as readonly string[]).includes(value);
@@ -258,19 +276,68 @@ export function cleanUsageFrustration(input: unknown, now = Date.now()): UsageFr
 }
 
 const EMAIL = /[^\s@]+@[^\s@]+/g, URL_LIKE = /\b(?:https?:\/\/|www\.)\S+|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|net|org|io|ai|dev|app|co|bot|me|so|xyz|in|uk|de)\b\S*/gi;
-const HANDLE = /(?:^|\s)[@#]\w+/g, DIGITS = /\S*\d\S*/g, QUOTED = /["“”«»`][^"“”«»`]*["“”«»`]|(?<=^|\s)'[^']{2,}'(?=$|[\s.,;:!?])/g, FILE = /\b[\w-]+\.[a-z0-9]{1,5}\b/gi;
-/** an engine's summary as one short lowercase line with no addresses, links, handles, numbers, quotes, file names or
- * capitalised names; null when cleaning took out too much for what is left to be trusted */
-export function scrubSummary(raw: unknown, max = SUMMARY_MAX): string | null {
+const HANDLE = /(?:^|\s)[@#]\w+/g, QUOTED = /["“”«»`][^"“”«»`]*["“”«»`]|(?<=^|\s)'[^']{2,}'(?=$|[\s.,;:!?])/g, FILE = /\b[\w-]+\.[a-z0-9]{1,5}\b/gi;
+const PATH = /(?:^|\s)\S*[/\\~]\S*/g, LONG = /\S{31,}/g;
+// digits joined by spaces, dashes, dots or brackets: phone numbers, dates, card and account numbers
+const NUMBER_RUN = /\+?\d[\d().\s-]*[\s().-][\d().\s-]*\d/g, DIGITS = /\S*\d\S*/g, COUNT = /^\d{1,3}[,.;:!?)]?$/;
+/** product and app words a note may name even when written capitalised, like "connecting Gmail took 3 tries" */
+export const NOTE_WORDS: ReadonlySet<string> = new Set([
+  ...USAGE_APPS, ...USAGE_ENGINES, "google", "calendar", "drive", "docs", "sheets", "outlook", "teams", "whatsapp", "telegram", "imessage", "chrome", "safari", "mac", "macos",
+  "windows", "linux", "iphone", "android", "excel", "word", "powerpoint", "pdf", "chatgpt", "openai", "anthropic", "mcp", "api", "vps", "ai", "ok", "i", "x",
+]);
+const words = (text: string) => text.toLowerCase().normalize("NFKC").split(/[^\p{L}\p{N}']+/u).filter(Boolean);
+/** a word run this long shared with the chat means the note copied the person's words */
+export const COPIED_RUN = 6;
+/** what the chat itself says must not reach a note: its proper nouns (capitalised mid-sentence), and the local parts
+ * of addresses and handles in it. read on this computer only. */
+export function chatAvoidWords(sources: readonly string[]): Set<string> {
+  const avoid = new Set<string>();
+  for (const source of sources) {
+    for (const match of source.matchAll(/([^\s@]+)@[^\s@]+|(?:^|\s)[@#](\w+)/g)) for (const word of words(match[1] ?? match[2] ?? "")) avoid.add(word);
+    for (const match of source.matchAll(/(?<=[\p{L}\p{N},;:)'"]\s+)\p{Lu}[\p{L}'-]*/gu)) { const word = match[0].toLowerCase().replace(/'s$/, ""); if (!NOTE_WORDS.has(word)) avoid.add(word); }
+  }
+  return avoid;
+}
+function copies(note: string, sources: readonly string[]): boolean {
+  const mine = words(note);
+  if (mine.length < COPIED_RUN) return false;
+  const runs = new Set<string>();
+  for (const source of sources) { const theirs = words(source); for (let i = 0; i + COPIED_RUN <= theirs.length; i++) runs.add(theirs.slice(i, i + COPIED_RUN).join(" ")); }
+  for (let i = 0; i + COPIED_RUN <= mine.length; i++) if (runs.has(mine.slice(i, i + COPIED_RUN).join(" "))) return true;
+  return false;
+}
+/** an engine's note as short lowercase prose with no message text, addresses, links, handles, paths, file names,
+ * long numbers, ids or names; only small counts ("3 tries") and app names stay. `sources`, when given, are the chat
+ * lines the engine read: a note that copies a run of their words is dropped, and their names are taken out. null when
+ * cleaning took out too much for what is left to be trusted. */
+export function scrubSummary(raw: unknown, max = SUMMARY_MAX, options: { sources?: readonly string[]; avoid?: readonly string[] } = {}): string | null {
   if (typeof raw !== "string") return null;
   const original = raw.replace(/\s+/g, " ").trim().slice(0, max * 2.5);
   if (original.length < 12) return null;
-  let text = original.replace(EMAIL, " ").replace(URL_LIKE, " ").replace(HANDLE, " ").replace(QUOTED, " ").replace(FILE, " ").replace(DIGITS, " ");
-  // a capitalised word that does not start a sentence is taken as a name
-  text = text.replace(/\b\p{Lu}[\p{L}'-]*/gu, (word: string, offset: number, whole: string) => offset === 0 || /[.!?;:]\s+$/.test(whole.slice(Math.max(0, offset - 3), offset)) || /^(?:I|AI|OK)$/.test(word) ? word : " ");
-  text = text.replace(/[^\p{L}\s,.;:!?'()-]/gu, " ").replace(/\s+([,.;:!?])/g, "$1").replace(/\s+/g, " ").trim().toLowerCase();
+  const sources = options.sources ?? [];
+  if (sources.length && copies(original, sources)) return null;
+  const avoid = new Set([...chatAvoidWords(sources), ...(options.avoid ?? []).flatMap(words)].filter(word => !NOTE_WORDS.has(word)));
+  let text = original.replace(EMAIL, " ").replace(URL_LIKE, " ").replace(HANDLE, " ").replace(QUOTED, " ").replace(PATH, " ").replace(FILE, " ").replace(LONG, " ")
+    .replace(NUMBER_RUN, " ").replace(DIGITS, (token: string) => COUNT.test(token) ? token : " ");
+  // a capitalised word that does not start a sentence is taken as a name, unless it is a known app or product
+  text = text.replace(/\b\p{Lu}[\p{L}'-]*/gu, (word: string, offset: number, whole: string) => offset === 0 || /[.!?;:]\s+$/.test(whole.slice(Math.max(0, offset - 3), offset))
+    || NOTE_WORDS.has(word.toLowerCase().replace(/'s$/, "")) ? word : " ");
+  if (avoid.size) text = text.replace(/[\p{L}\p{N}'-]+/gu, (word: string) => avoid.has(word.toLowerCase().replace(/'s$/, "")) ? " " : word);
+  text = text.replace(/[^\p{L}\p{N}\s,.;:!?'()-]/gu, " ").replace(/\s+([,.;:!?])/g, "$1").replace(/\s+/g, " ").trim().toLowerCase();
   if (text.length < 12 || text.length < original.length * 0.7) return null;
   return text.length > max ? `${text.slice(0, max).replace(/\s+\S*$/, "")}.` : text;
+}
+
+/** a big session's record as it may be sent and stored; a note the scrubber would change is dropped, the record kept */
+export function cleanUsageSession(input: unknown, now = Date.now()): UsageSession | null {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return null;
+  const v = input as Record<string, unknown>;
+  if (typeof v.id !== "string" || !ID.test(v.id) || !time(v.at, now) || !oneOf(USAGE_ENGINES, v.engine) || !oneOf(USAGE_CATEGORIES, v.category)
+    || !Array.isArray(v.tools) || !Array.isArray(v.apps) || !count(v.turns, 10_000) || !count(v.minutes, 7 * 24 * 60) || !count(v.failed, 10_000) || (v.failed as number) > (v.turns as number)) return null;
+  const tools = [...new Set(v.tools.slice(0, USAGE_TOOLS.length).filter((tool): tool is UsageTool => oneOf(USAGE_TOOLS, tool)))].sort();
+  const apps = [...new Set(v.apps.slice(0, 20).filter((app): app is string => typeof app === "string" && (APP_SET.has(app) || app === "other_app")))].sort();
+  const summary = typeof v.summary === "string" && scrubSummary(v.summary, SESSION_NOTE_MAX) === v.summary ? v.summary : undefined;
+  return { id: v.id, at: v.at as number, engine: v.engine, category: v.category, tools, apps, turns: v.turns as number, minutes: v.minutes as number, failed: v.failed as number, ...(summary ? { summary } : {}) };
 }
 
 export function cleanUsageDigest(input: unknown, now = Date.now()): UsageDigest | null {
@@ -299,6 +366,7 @@ export function cleanUsageReport(input: unknown, now = Date.now(), cleanSignal?:
   const turns = Array.isArray(v.turns) ? v.turns.slice(0, MAX_REPORT_TURNS).map(item => cleanUsageTurn(item, now)).filter((item): item is UsageTurn => !!item) : [];
   const runs = Array.isArray(v.runs) ? v.runs.slice(0, MAX_REPORT_RUNS).map(item => cleanUsageRun(item, now)).filter((item): item is UsageRun => !!item) : [];
   const frustrations = Array.isArray(v.frustrations) ? v.frustrations.slice(0, MAX_REPORT_FRUSTRATIONS).map(item => cleanUsageFrustration(item, now)).filter((item): item is UsageFrustration => !!item) : [];
+  const sessions = Array.isArray(v.sessions) ? v.sessions.slice(0, MAX_REPORT_SESSIONS).map(item => cleanUsageSession(item, now)).filter((item): item is UsageSession => !!item) : [];
   const digests = Array.isArray(v.digests) ? v.digests.slice(0, 2).map(item => cleanUsageDigest(item, now)).filter((item): item is UsageDigest => !!item) : [];
   const signals = cleanSignal && Array.isArray(v.signals) ? v.signals.slice(0, MAX_REPORT_SIGNALS).flatMap((item): UsageSignal[] => {
     if (!item || typeof item !== "object") return [];
@@ -306,8 +374,8 @@ export function cleanUsageReport(input: unknown, now = Date.now(), cleanSignal?:
     return props && typeof raw.id === "string" && ID.test(raw.id) && time(raw.at, now) ? [{ id: raw.id, at: raw.at as number, name: raw.name as string, props }] : [];
   }) : [];
   const snapshot = v.snapshot === undefined ? null : cleanUsageSnapshot(v.snapshot);
-  if (!turns.length && !runs.length && !frustrations.length && !digests.length && !signals.length && !snapshot) return null;
-  return { turns, runs, ...(frustrations.length ? { frustrations } : {}), ...(digests.length ? { digests } : {}), ...(signals.length ? { signals } : {}), ...(snapshot ? { snapshot } : {}) };
+  if (!turns.length && !runs.length && !frustrations.length && !sessions.length && !digests.length && !signals.length && !snapshot) return null;
+  return { turns, runs, ...(frustrations.length ? { frustrations } : {}), ...(sessions.length ? { sessions } : {}), ...(digests.length ? { digests } : {}), ...(signals.length ? { signals } : {}), ...(snapshot ? { snapshot } : {}) };
 }
 
 /** a routine run's start as a usage trigger */

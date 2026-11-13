@@ -109,10 +109,11 @@ users (search, plan, clouds, devices, timeline), clouds (pause, resume, delete w
 - **Storage.** `analytics_events` (TTL 400 days), `analytics_daily` (kept), `analytics_marks` (once-only marks),
   `admin_audit` (kept). Without MongoDB (tests, fixture) they live in memory.
 - **Usage signals.** Linked workspaces add a `usage` section to `POST /v1/report` (`shared/usage-signals.ts`): one record
-  per bot turn and routine run in fixed words and counts, scrubbed frustration and weekly summaries, and a count snapshot.
-  `analytics/usage.ts` keeps them in `usage_events` (TTL 90 days), rolls them into `usage_daily` (kept) and `usage_people`
-  (TTL 400 days), with `usage_snapshots` and `usage_marks`; `PUT /v1/account/analytics {summaries}` stops summaries.
-  `GET /v1/admin/usage?from&to` feeds the overview's "what people use it for". Named signals (`shared/product-signals.ts`)
+  per bot turn and routine run in fixed words and counts, scrubbed notes on how sessions went (after a bad chat, after a
+  big session, weekly), and a count snapshot. `analytics/usage.ts` keeps them in `usage_events` (TTL 90 days), rolls them
+  into `usage_daily` (kept) and `usage_people` (TTL 400 days), with `usage_snapshots` and `usage_marks`; the one
+  `PUT /v1/account/analytics {optOut}` switch covers them all. `GET /v1/admin/usage?from&to` feeds the overview's "what
+  people use it for"; `GET /v1/admin/feedback?kind=bad|big|weekly&before` lists the notes newest first for the feedback page. Named signals (`shared/product-signals.ts`)
   carry an exact key allowlist each; app ones ride `app_action`, workspace ones the report's `usage.signals`.
   `usage_routines` keeps each salted routine hash's first and last run (TTL 400 days) for routine survival.
 - **Site and app analytics.** `tracker/dusk.js` (about 3 KB gzip, no dependencies, ideas from Minilytics, MIT) is copied to the

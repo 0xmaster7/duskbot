@@ -822,7 +822,6 @@ const bridge = {
     },
     ...(isLocalPage ? { set: enabled => { analyticsChoice = enabled === true; return ipcRenderer.invoke("desktop-analytics:set", analyticsChoice); } } : {}),
   },
-  ...(isLocalPage ? { desktopErrorReports: { enabled: () => ipcRenderer.invoke("desktop-error-reports:read"), set: enabled => ipcRenderer.invoke("desktop-error-reports:set", enabled === true) } } : {}),
   desktopLanguage: {
     choice: () => {
       if (languageChoice === undefined) languageChoice = savedLanguageChoice();

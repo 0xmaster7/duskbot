@@ -2,7 +2,7 @@
 // USAGE_RETENTION_DAYS and rolled up per day into counts that are kept. Records hold words, counts and times, plus the
 // scrubbed summaries a workspace wrote; never message content.
 import type { Db } from "mongodb";
-import { USAGE_REASONS, type UsageDigest, type UsageFrustration, type UsageReport, type UsageRun, type UsageSignal, type UsageSnapshot, type UsageTurn } from "../../../../shared/usage-signals.ts";
+import { USAGE_REASONS, type UsageDigest, type UsageFrustration, type UsageReport, type UsageRun, type UsageSession, type UsageSignal, type UsageSnapshot, type UsageTurn } from "../../../../shared/usage-signals.ts";
 import { DAY_MS, dayOf } from "./events.ts";
 
 export const USAGE_RETENTION_DAYS = 90;
@@ -12,8 +12,9 @@ export const PEOPLE_RETENTION_DAYS = 400;
 export const LATENCY_EDGES = [2, 5, 10, 20, 30, 60, 120, 300, 600, Infinity] as const;
 export const latencyBucket = (ms: number) => LATENCY_EDGES.findIndex(edge => ms / 1000 <= edge);
 
-type Kind = "turn" | "run" | "frustration" | "digest" | "signal";
-export interface UsageRecord { id: string; kind: Kind; at: number; accountId: string; workspaceId: string; data: UsageTurn | UsageRun | UsageFrustration | UsageDigest | UsageSignal }
+export type UsageKind = "turn" | "run" | "frustration" | "session" | "digest" | "signal";
+type Kind = UsageKind;
+export interface UsageRecord { id: string; kind: Kind; at: number; accountId: string; workspaceId: string; data: UsageTurn | UsageRun | UsageFrustration | UsageSession | UsageDigest | UsageSignal }
 /** `appTurns`: turns that used a connected app, so the adoption view can count people who use one; `bots` and `chats`:
  * turns per salted bot and chat hash, for per-bot share and turns per chat */
 export interface PersonDay { day: string; accountId: string; turns: number; failed: number; runs: number; frustrations: number; appTurns: number; bots?: Record<string, number>; chats?: Record<string, number> }
@@ -174,6 +175,8 @@ export function rollup(records: UsageRecord[]): Map<string, Record<string, numbe
       const f = record.data as UsageFrustration;
       add(day, "frustrations"); add(day, `fr_group:${problemKey(f)}`);
       for (const signal of f.signals) add(day, `fr_signal:${signal}`);
+    } else if (record.kind === "session") {
+      add(day, "sessions");
     } else if (record.kind === "signal") {
       const g = record.data as UsageSignal;
       add(day, `sig:${g.name}`);
@@ -185,8 +188,8 @@ export function rollup(records: UsageRecord[]): Map<string, Record<string, numbe
 
 export function createUsage(options: {
   store: UsageStore; now?: () => number;
-  /** the account turned analytics off, or turned summaries off */
-  optedOut(accountId: string): boolean; summariesOff(accountId: string): boolean;
+  /** the account turned "help improve dusk bot" off */
+  optedOut(accountId: string): boolean;
   /** a frustration group seen for the first time ever */
   newProblem?(group: { key: string; example: string | null; count: number }): void;
 }) {
@@ -196,12 +199,12 @@ export function createUsage(options: {
   async function ingest(accountId: string | null, workspaceId: string, report: UsageReport) {
     if (!accountId || options.optedOut(accountId)) { stats.dropped++; return; }
     try {
-      const summaries = !options.summariesOff(accountId);
       const records: UsageRecord[] = [
         ...report.turns.map(data => ({ id: data.id, kind: "turn" as const, at: data.at, accountId, workspaceId, data })),
         ...report.runs.map(data => ({ id: data.id, kind: "run" as const, at: data.at, accountId, workspaceId, data })),
-        ...(report.frustrations ?? []).map(data => ({ id: data.id, kind: "frustration" as const, at: data.at, accountId, workspaceId, data: summaries ? data : { ...data, summary: undefined } })),
-        ...(summaries ? report.digests ?? [] : []).map(data => ({ id: data.id, kind: "digest" as const, at: data.at, accountId, workspaceId, data })),
+        ...(report.frustrations ?? []).map(data => ({ id: data.id, kind: "frustration" as const, at: data.at, accountId, workspaceId, data })),
+        ...(report.sessions ?? []).map(data => ({ id: data.id, kind: "session" as const, at: data.at, accountId, workspaceId, data })),
+        ...(report.digests ?? []).map(data => ({ id: data.id, kind: "digest" as const, at: data.at, accountId, workspaceId, data })),
         ...(report.signals ?? []).map(data => ({ id: data.id, kind: "signal" as const, at: data.at, accountId, workspaceId, data })),
       ];
       const fresh = await store.insert(records);

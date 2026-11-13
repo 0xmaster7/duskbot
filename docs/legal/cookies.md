@@ -43,7 +43,7 @@ The script does nothing at all when your browser sends Global Privacy Control or
 
 ## The apps
 
-The desktop and phone apps do not use browser cookies. They keep their settings on your device and use a random install id for the usage stats described in the privacy policy, which you can switch off under Settings, Data sharing.
+The desktop and phone apps do not use browser cookies. They keep their settings on your device and use a random install id for the anonymous usage info described in the privacy policy, which you can switch off under Settings, Privacy, "help improve dusk bot".
 
 ## Your choices
 

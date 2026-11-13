@@ -4,12 +4,12 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
-  USAGE_DIGEST_KEYS, USAGE_FRUSTRATION_KEYS, USAGE_RUN_KEYS, USAGE_TURN_KEYS, categorize, cleanUsageFrustration, cleanUsageReport, cleanUsageTurn, failureReason, scrubSummary, toolSignals,
-  type UsageFrustration,
+  USAGE_DIGEST_KEYS, USAGE_FRUSTRATION_KEYS, USAGE_SESSION_KEYS, SESSION_NOTE_MAX, cleanUsageSession, USAGE_RUN_KEYS, USAGE_TURN_KEYS, categorize, cleanUsageFrustration, cleanUsageReport, cleanUsageTurn, failureReason, scrubSummary, toolSignals,
+  type UsageFrustration, type UsageSession,
 } from "../shared/usage-signals.ts";
 import { parseWorkspaceReport } from "../shared/dashboard-protocol.ts";
 import {
-  MIN_WORKSPACE_TURNS, createFrustrationWatch, createUsageOutbox, digestPrompt, isCorrective, isShouting, isSwearing, sameRequest, turnRecord, weeklyAllowance, type FrustrationTurn,
+  BIG_PER_DAY, BIG_SESSION_TURNS, SESSION_GAP_MS, MIN_WORKSPACE_TURNS, createFrustrationWatch, sessionPrompt, createUsageOutbox, digestPrompt, isCorrective, isShouting, isSwearing, sameRequest, turnRecord, weeklyAllowance, type FrustrationTurn,
 } from "./usage-signals.ts";
 
 const NOW = Date.now();
@@ -98,7 +98,8 @@ describe("scrubSummary", () => {
   });
   it("takes out addresses, links, handles, numbers, quotes, files and names", () => {
     const out = scrubSummary("The bot could not send the weekly summary to the team lead even after retrying, and the person was annoyed; it failed with Gmail at https://x.io for @sam on 12/3 in plan.xlsx")!;
-    expect(out).not.toMatch(/gmail|https|x\.io|@sam|12|xlsx/);
+    expect(out).not.toMatch(/https|x\.io|@sam|12|xlsx/);
+    expect(out).toContain("gmail");
   });
   it("drops a summary that was mostly personal details", () => {
     expect(scrubSummary("Jane Doe jane@acme.com +1 415 555 0100 Acme Corp")).toBeNull();
@@ -110,6 +111,100 @@ describe("scrubSummary", () => {
     const record = cleanUsageFrustration({ id: "frustrate1", at: NOW, engine: "claude", category: "files", tools: [], apps: [], signals: ["stopped"], retries: 0, summary: once }, NOW)!;
     expect(record.summary).toBe(once);
     expect(cleanUsageFrustration({ ...record, summary: "Sent to Bob" }, NOW)!.summary).toBeUndefined();
+  });
+});
+
+describe("anonymous notes", () => {
+  const PRIVATE = [
+    "jane.doe@acme.com", "acme", "jane", "/users/jane", "secret plan", "plan.xlsx", "https", "acme.com", "415", "0100", "4111", "acct_9f8e7d6c5b4a", "priya", "quill",
+    "kitchen remodel", "c:", "@sam", "#launch",
+  ];
+  const leaks = (note: string | null) => PRIVATE.filter(bit => note?.toLowerCase().includes(bit));
+  it("keeps feature use, small counts, outcomes and plain friction", () => {
+    expect(scrubSummary("Connecting Gmail took 3 tries; after that the bot sorted the inbox and drafted 12 replies without trouble.", SESSION_NOTE_MAX))
+      .toBe("connecting gmail took 3 tries; after that the bot sorted the inbox and drafted 12 replies without trouble.");
+    expect(scrubSummary("A long coding session in the terminal with GitHub; tests ran fine but 2 replies timed out.", SESSION_NOTE_MAX))
+      .toBe("a long coding session in the terminal with github; tests ran fine but 2 replies timed out.");
+  });
+  it("takes out addresses, links, paths, files, phone and account numbers, ids, handles and names", () => {
+    const bits = ["jane.doe@acme.com", "the Secret Plan", "/Users/jane/Docs", "plan.xlsx", "C:\\Users\\jane", "+1 415 555 0100", "card 4111 1111 1111 1111", "acct_9f8e7d6c5b4a",
+      "@sam", "#launch", "https://acme.com/x", "acme.com"];
+    for (const bit of bits) {
+      const note = scrubSummary(`a long session with the browser and gmail went well overall, replies were quick, and one step touched ${bit} before the bot finished the job.`, SESSION_NOTE_MAX);
+      expect(note, bit).not.toBeNull();
+      expect(leaks(note), bit).toEqual([]);
+    }
+  });
+  it("drops a note that copies the person's own words", () => {
+    const sources = ["please book a table for four at the little italian place near my office on friday"];
+    expect(scrubSummary("they asked to book a table for four at the little italian place, which worked on the second try.", SESSION_NOTE_MAX, { sources })).toBeNull();
+    expect(scrubSummary("they asked the bot to book a restaurant table through the browser, which worked on the second try.", SESSION_NOTE_MAX, { sources })).not.toBeNull();
+  });
+  it("takes out names the chat used, and bot names, even written in lowercase", () => {
+    const sources = ["can you help me plan the kitchen remodel with Priya next month", "ok so ask Quill for the numbers"];
+    const note = scrubSummary("they planned a home project with priya over a long chat; the bot quill was asked for numbers and replies were quick and helpful overall.", SESSION_NOTE_MAX,
+      { sources, avoid: ["Quill"] })!;
+    expect(note).not.toBeNull();
+    expect(leaks(note)).toEqual([]);
+  });
+  it("is stable, so a scrubbed note passes the account service's check unchanged", () => {
+    const once = scrubSummary("Connecting Gmail took 3 tries, then the session went smoothly with the browser and calendar.", SESSION_NOTE_MAX)!;
+    expect(scrubSummary(once, SESSION_NOTE_MAX)).toBe(once);
+    const record = cleanUsageSession({ id: "session0001", at: NOW, engine: "claude", category: "email", tools: ["app", "browser"], apps: ["gmail"], turns: 18, minutes: 40, failed: 1, summary: once }, NOW)!;
+    expect(Object.keys(record).sort()).toEqual([...USAGE_SESSION_KEYS].sort());
+    expect(record.summary).toBe(once);
+    expect(cleanUsageSession({ ...record, summary: "Sent to Bob at bob@acme.com" }, NOW)!.summary).toBeUndefined();
+    expect(cleanUsageSession({ ...record, failed: 30 }, NOW)).toBeNull();
+    expect(cleanUsageReport({ turns: [], runs: [], sessions: [record, { ...record, id: "x" }] }, NOW)!.sessions).toEqual([record]);
+  });
+});
+
+describe("big sessions", () => {
+  const dirs: string[] = [];
+  afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }); });
+  const turn = (outcome: FrustrationTurn["outcome"] = "ok", ms = 20_000): FrustrationTurn => ({ engine: "claude", category: "coding", tools: ["terminal"], apps: ["github"], outcome, ms });
+  function setup(note: string | null = "a long coding session in the terminal with github; tests ran fine but signing in took 2 tries.") {
+    let now = NOW;
+    const sessions: UsageSession[] = [], prompts: string[] = [];
+    const dataDir = mkdtempSync(join(tmpdir(), "sessions-")); dirs.push(dataDir);
+    const watch = createFrustrationWatch({ dataDir, now: () => now, report: () => {}, reportSession: record => sessions.push(record),
+      describe: async ({ stats }) => { prompts.push(sessionPrompt([{ role: "user", text: "fix the tests" }], stats)); return note; } });
+    const chat = (threadId: string, turns: number, gapMs = 60_000) => { for (let i = 0; i < turns; i++) { watch.turn(threadId, "bot_1", turn(i === 2 ? "failed" : "ok")); now += gapMs; } };
+    return { watch, sessions, prompts, chat, tick: (ms: number) => { now += ms; } };
+  }
+  const flush = () => new Promise(resolve => setTimeout(resolve, 0));
+
+  it("writes one note once a big session goes quiet, with its counts", async () => {
+    const { watch, sessions, prompts, chat, tick } = setup();
+    chat("c1", BIG_SESSION_TURNS);
+    watch.sweep(); await flush();
+    expect(sessions).toHaveLength(0);
+    tick(SESSION_GAP_MS); watch.sweep(); await flush();
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0]).toMatchObject({ engine: "claude", category: "coding", tools: ["terminal"], apps: ["github"], turns: BIG_SESSION_TURNS, failed: 1 });
+    expect(sessions[0]!.summary).toContain("signing in took 2 tries");
+    expect(prompts[0]).toContain(`${BIG_SESSION_TURNS} turns`);
+    watch.sweep(); await flush();
+    expect(sessions).toHaveLength(1);
+  });
+  it("leaves short sessions alone, and a long gap starts a new session", async () => {
+    const { watch, sessions, chat, tick } = setup();
+    chat("c1", 8); tick(SESSION_GAP_MS); chat("c1", 8); tick(SESSION_GAP_MS);
+    watch.sweep(); await flush();
+    expect(sessions).toHaveLength(0);
+  });
+  it("counts a few very long turns as big", async () => {
+    const { watch, sessions, tick } = setup();
+    for (let i = 0; i < 5; i++) { watch.turn("c1", "bot_1", turn("ok", 5 * 60_000)); tick(5 * 60_000); }
+    tick(SESSION_GAP_MS); watch.sweep(); await flush();
+    expect(sessions).toHaveLength(1);
+  });
+  it("is rate limited per day, and sends the counts without a note the scrubber refuses", async () => {
+    const { watch, sessions, chat, tick } = setup("Emailed Jane Doe at jane@acme.com");
+    chat("c1", BIG_SESSION_TURNS); chat("c2", BIG_SESSION_TURNS, 1000);
+    tick(SESSION_GAP_MS); watch.sweep(); await flush();
+    expect(sessions).toHaveLength(BIG_PER_DAY);
+    expect(sessions[0]!.summary).toBeUndefined();
   });
 });
 

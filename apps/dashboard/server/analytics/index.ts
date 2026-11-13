@@ -27,8 +27,8 @@ interface RouteHelpers {
   /** a signed-in admin's browser */
   isOwner(req: IncomingMessage): boolean;
 }
-/** `noSummaries`: accounts that share usage counts but not the summaries their workspaces write */
-interface OptOutState { v: 1; optOut: string[]; noSummaries?: string[] }
+/** `optOut`: accounts that turned "help improve dusk bot" off: no usage counts, notes or events from them are kept */
+interface OptOutState { v: 1; optOut: string[] }
 
 export const MAX_BATCH = 20;
 export const VISIT_IDLE_MS = 30 * 60_000;
@@ -60,7 +60,7 @@ export function createAnalytics(options: AnalyticsOptions) {
   const trackOrigins = new Set((options.trackOrigins ?? []).map(origin => { try { return new URL(origin).origin; } catch { return ""; } }).filter(Boolean));
   const store = createJsonStore<OptOutState>(join(options.dataDir, "analytics.json"), () => ({ v: 1, optOut: [] }),
     (value): value is OptOutState => !!value && typeof value === "object" && Array.isArray((value as OptOutState).optOut));
-  const optOut = new Set(store.state.optOut), noSummaries = new Set(store.state.noSummaries ?? []);
+  const optOut = new Set(store.state.optOut);
   const forgetters: Array<(accountId: string) => void> = [];
   const stats = { written: 0, failed: 0, dropped: 0, lastFailureAt: null as number | null };
   // a visitor's daily id is an HMAC under a key that lives only in memory and changes every day: it counts unique
@@ -150,7 +150,7 @@ export function createAnalytics(options: AnalyticsOptions) {
   }
   async function forget(accountId: string) {
     replied.delete(accountId);
-    if (optOut.delete(accountId) || noSummaries.delete(accountId)) { store.state.optOut = [...optOut]; store.state.noSummaries = [...noSummaries]; store.commit(); }
+    if (optOut.delete(accountId)) { store.state.optOut = [...optOut]; store.commit(); }
     await sink.forget(accountId).catch(() => { stats.failed++; });
   }
 
@@ -195,21 +195,16 @@ export function createAnalytics(options: AnalyticsOptions) {
       if (!owner) { helpers.json(res, 401, { error: "Sign in to continue.", code: "signed_out" }); return true; }
       if (method === "PUT") {
         const input = helpers.bodyObject(await helpers.readBody(req));
-        const ok = (value: unknown) => value === undefined || typeof value === "boolean";
-        if (!ok(input.optOut) || !ok(input.summaries) || (input.optOut === undefined && input.summaries === undefined)) { helpers.json(res, 400, { error: "Invalid request.", code: "invalid_request" }); return true; }
-        if (typeof input.summaries === "boolean") {
-          if (input.summaries) noSummaries.delete(owner.id); else noSummaries.add(owner.id);
-          store.state.noSummaries = [...noSummaries]; store.commit();
-        }
-        if (typeof input.optOut === "boolean") await setOptOut(owner.id, input.optOut);
+        if (typeof input.optOut !== "boolean") { helpers.json(res, 400, { error: "Invalid request.", code: "invalid_request" }); return true; }
+        await setOptOut(owner.id, input.optOut);
       }
-      helpers.json(res, 200, { optOut: optOut.has(owner.id), summaries: !optOut.has(owner.id) && !noSummaries.has(owner.id) });
+      helpers.json(res, 200, { optOut: optOut.has(owner.id) });
       return true;
     }
     return false;
   }
 
   return { sink, presence, track, record, identify, crawlerVisit, onTrack: (fn: (name: EventName, input: Parameters<typeof record>[1]) => void) => { listeners.push(fn); }, appActive, botReplied, setOptOut, forget, handle, stats, optedOut: (accountId: string) => optOut.has(accountId),
-    summariesOff: (accountId: string) => optOut.has(accountId) || noSummaries.has(accountId), onForget: (fn: (accountId: string) => void) => { forgetters.push(fn); }, close: () => store.close() };
+    onForget: (fn: (accountId: string) => void) => { forgetters.push(fn); }, close: () => store.close() };
 }
 export type Analytics = ReturnType<typeof createAnalytics>;

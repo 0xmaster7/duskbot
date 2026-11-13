@@ -184,7 +184,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const ownIncidents = options.incidents ? null : createIncidents({ env: options.admin?.environment ?? "development", store: memoryIncidentStore(), to: () => [], mailers: [],
     email: emailCfg, panelUrl: `${publicUrl}${ADMIN_PATH}/health`, mail: false, timers: false, now });
   const incidents = options.incidents ?? ownIncidents!;
-  const usage = createUsage({ store: options.analytics?.usage ?? memoryUsageStore(now), now, optedOut: id => analytics.optedOut(id), summariesOff: id => analytics.summariesOff(id),
+  const usage = createUsage({ store: options.analytics?.usage ?? memoryUsageStore(now), now, optedOut: id => analytics.optedOut(id),
     newProblem: group => {
       const [engine, category, touch] = group.key.split("|");
       incidents.report({ source: "server", name: "NewProblemGroup", key: `problem-${group.key}`, route: "/admin",

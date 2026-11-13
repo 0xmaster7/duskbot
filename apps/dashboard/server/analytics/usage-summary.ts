@@ -68,11 +68,13 @@ const THEMES: Array<{ key: string; label: string; pattern: RegExp; pain?: true }
   { key: "learning", label: "learning and explaining", pattern: /\b(?:learn|study|tutor|explain|language practice)/ },
   { key: "slow", label: "slowness", pattern: /\b(?:slow|takes? too long|waiting|lag)/, pain: true },
   { key: "failures", label: "things failing", pattern: /\b(?:fail|error|broke|crash|doesn't work|didn't work|not working)/, pain: true },
+  { key: "connecting", label: "connecting apps and signing in", pattern: /\b(?:connect(?:ing|ed)? (?:an? |the )?\w+|sign(?:ing|ed)? ?in|log(?:ging|ged)? ?in|re-?auth|permission)/, pain: true },
+  { key: "retries", label: "needing several tries", pattern: /\b(?:\d+|several|many|few) (?:tries|attempts|retries)|\bretr(?:y|ied)|tried again/, pain: true },
   { key: "confusing", label: "confusing setup", pattern: /\b(?:confus|unclear|hard to (?:set|find|understand)|setup|set up)/, pain: true },
   { key: "memory", label: "forgetting context", pattern: /\b(?:forg[eo]t|lost (?:track|context)|remember)/, pain: true },
   { key: "wants", label: "asks for more", pattern: /\b(?:wants?|wish|would like|hope|next|more)\b/ },
 ];
-/** the digests grouped into themes by the words they use */
+/** notes grouped into themes by the words they use */
 export function themesOf(summaries: string[]): Theme[] {
   return THEMES.map(theme => {
     const hits = summaries.filter(text => theme.pattern.test(text));
@@ -217,7 +219,7 @@ export function focusRules(a: UsageAnswer): FocusItem[] {
   if (a.totals.p90Ms !== null && a.totals.p90Ms >= 120_000 && a.totals.turns >= 30) out.push({ id: "latency", target: "engines", weight: 50,
     text: `slow replies: 1 in 10 turns takes ${a.totals.p90Ms >= 300_000 ? "over 5 minutes" : "over 2 minutes"}.` });
   const pain = a.themes.find(theme => theme.pain && theme.count >= 2);
-  if (pain) out.push({ id: `theme:${pain.key}`, target: "themes", weight: 50 + pain.count, text: `weekly summaries keep mentioning ${pain.label} as a pain (${pain.count} people).` });
+  if (pain) out.push({ id: `theme:${pain.key}`, target: "themes", weight: 50 + pain.count, text: `weekly notes keep mentioning ${pain.label} as a pain (${pain.count} people).` });
   if (a.people.topShare !== null && a.people.topShare >= 0.6) out.push({ id: "power", target: "people", weight: 35, text: `the top 10% of people do ${pct(a.people.topShare)} of all turns: talk to them, they know what's missing.` });
   return out.sort((x, y) => y.weight - x.weight).slice(0, 5);
 }

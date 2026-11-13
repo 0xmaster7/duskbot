@@ -13,7 +13,7 @@ const event = (name: string, props: StoredEvent["props"], accountId: string | nu
 
 async function setup() {
   const store = memoryUsageStore(() => NOW);
-  const usage = createUsage({ store, now: () => NOW, optedOut: () => false, summariesOff: () => false });
+  const usage = createUsage({ store, now: () => NOW, optedOut: () => false });
   await usage.ingest("acct_a", "ws_1", { turns: Array.from({ length: 30 }, (_, i) => turn({ apps: ["gmail"], tools: ["app"], model: "claude-sonnet-4-5", firstMs: 25_000, ms: 40_000, actions: ["gmail_send_email"], bot: "botAAAAAAA", chat: i < 20 ? "chatAAAAAA" : "chatBBBBBB",
       ...(i < 6 ? { failedApps: ["gmail"], failedTools: ["app"] as UsageTurn["tools"] } : {}) })), runs: [{ id: "run0000001", at: NOW - 1000, trigger: "schedule", outcome: "ok", ms: 30_000, every: "daily", routine: "rtnAAAAAAA" }],
   signals: [{ id: "sig0000001", at: NOW - 1000, name: "attachment", props: { kind: "pdf", size: "lt1m" } }, { id: "sig0000002", at: NOW - 1000, name: "setting_changed", props: { key: "theme" } }],

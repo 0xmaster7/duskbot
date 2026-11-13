@@ -60,7 +60,6 @@ function parse(raw) {
     ...(isTalkKey(record.talkKey) ? { talkKey: record.talkKey } : {}),
     ...(typeof record.railHidden === "boolean" ? { railHidden: record.railHidden } : {}),
     ...(typeof record.windowFrame === "boolean" ? { windowFrame: record.windowFrame } : {}),
-    ...(typeof record.errorReports === "boolean" ? { errorReports: record.errorReports } : {}),
     ...(Object.keys(quickAsks).length ? { quickAsks } : {}) };
 }
 
@@ -90,9 +89,9 @@ export function createDesktopPrefs({ read, write, frameByDefault = true }) {
       if (current().language !== language) save({ ...current(), language });
       return true;
     },
-    /** crash and error reports, only ever sent by a build that names where to (electron/error-report.mjs) */
-    errorReports: () => current().errorReports ?? true,
-    setErrorReports(enabled) { save({ ...current(), errorReports: enabled === true }); },
+    /** crash and error reports, only ever sent by a build that names where to (electron/error-report.mjs); they follow
+     * the one "help improve dusk bot" switch, unset counting as on */
+    errorReports: () => current().analytics !== false,
     talkShortcut: () => current().talkShortcut ?? false,
     setTalkShortcut(enabled) { save({ ...current(), talkShortcut: enabled === true }); },
     talkKey: () => current().talkKey ?? DEFAULT_TALK_KEY,
@@ -161,8 +160,6 @@ export function registerDesktopPrefs({ prefs: given, ipcMain, read, write, page,
     } catch { event.returnValue = null; }
   });
   ipcMain.handle("desktop-analytics:set", from("desktop-analytics:set", ["local"], (_, enabled) => { store().setAnalytics(enabled === true); try { analyticsChanged(enabled === true); } catch {} }));
-  ipcMain.handle("desktop-error-reports:read", from("desktop-error-reports:read", ["local"], () => store().errorReports()));
-  ipcMain.handle("desktop-error-reports:set", from("desktop-error-reports:set", ["local"], (_, enabled) => { store().setErrorReports(enabled === true); }));
   ipcMain.on("desktop-language:read", event => {
     try { event.returnValue = page(event) ? store().language() : null; } catch { event.returnValue = null; }
   });

@@ -110,7 +110,7 @@ function desktopMain({ offered = true, page = event => event.page, config = () =
 
 test("every page of this desktop's window reads and records the same notices; nothing else is answered", async () => {
   const main = desktopMain();
-  assert.deepEqual(main.channels, ["desktop-notices:state", "desktop-notices:seen", "desktop-profile:system-name", "desktop-profile:login-name", "desktop-analytics:set", "desktop-error-reports:read", "desktop-error-reports:set", "desktop-language:set", "window-frame:state", "window-frame:set"]);
+  assert.deepEqual(main.channels, ["desktop-notices:state", "desktop-notices:seen", "desktop-profile:system-name", "desktop-profile:login-name", "desktop-analytics:set", "desktop-language:set", "window-frame:state", "window-frame:set"]);
   for (const page of ["local", "cloud", "server"]) assert.deepEqual(await main.ask("desktop-notices:state", page), { seen: [], cloud: true });
   await main.ask("desktop-notices:seen", "server", POPUP);
   assert.deepEqual(await main.ask("desktop-notices:state", "local"), { seen: [POPUP], cloud: true });
@@ -413,4 +413,14 @@ test("Settings reads and changes the window's frame on any page of the window; o
   assert.deepEqual(await handlers.get("window-frame:set")({}, false), { on: false, restart: false }, "no window yet");
   asking = null;
   assert.throws(() => handlers.get("window-frame:set")({}, true), /only available in this app's window/);
+});
+
+test("crash reports follow the one help-improve switch: on until it is turned off", () => {
+  let saved = null;
+  const prefs = createDesktopPrefs({ read: () => saved, write: value => { saved = structuredClone(value); } });
+  assert.equal(prefs.errorReports(), true);
+  prefs.setAnalytics(false);
+  assert.equal(prefs.errorReports(), false);
+  prefs.setAnalytics(true);
+  assert.equal(prefs.errorReports(), true);
 });

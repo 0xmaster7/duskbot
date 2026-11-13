@@ -10,6 +10,7 @@ import type { Analytics } from "../analytics/index.ts";
 import type { Usage } from "../analytics/usage.ts";
 import { summarize as summarizeUsage, type AdoptionInput } from "../analytics/usage-summary.ts";
 import { moreFocus, moreOf } from "../analytics/usage-more.ts";
+import { FEEDBACK_KINDS, feedbackAnswer } from "../analytics/feedback.ts";
 /** the app and account events the deeper usage questions read */
 const MORE_EVENTS = ["app_action", "app_open", "app_close", "app_error", "app_feature", "onboarding_step", "onboarding_done", "page_view", "site_view", "cloud_state"] as const;
 import { EVENTS, EVENT_NAMES, isEventName } from "../analytics/events.ts";
@@ -383,6 +384,10 @@ export function createAdmin(options: AdminOptions) {
       }
       if (route === "/events") return send(await events(url));
       if (route === "/usage") return send(await usageAnswer(url));
+      if (route === "/feedback") {
+        const kind = url.searchParams.get("kind"), before = url.searchParams.get("before");
+        return send(await feedbackAnswer(options.usage.store, { now: now(), kind: FEEDBACK_KINDS.find(one => one === kind) ?? null, before: before ? int(before, now(), 0, Number.MAX_SAFE_INTEGER) : null }));
+      }
       if (route === "/revenue/infra") return send(await infraAnswer());
       if (route === "/ops") {
         if (!options.ops) throw new AdminError(404, "not_found", "The ops page is not connected.");

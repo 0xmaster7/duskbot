@@ -10,9 +10,9 @@ const turn = (patch: Partial<UsageTurn> = {}): UsageTurn => ({ id: `turn${String
   category: "chat", from: "app", place: "desktop", room: false, ...patch });
 const report = (patch: Partial<UsageReport>): UsageReport => ({ turns: [], runs: [], ...patch });
 
-function setup(options: { optedOut?: string[]; noSummaries?: string[] } = {}) {
+function setup(options: { optedOut?: string[] } = {}) {
   const store = memoryUsageStore(() => NOW), problems: string[] = [];
-  const usage = createUsage({ store, now: () => NOW, optedOut: id => options.optedOut?.includes(id) ?? false, summariesOff: id => options.noSummaries?.includes(id) ?? false,
+  const usage = createUsage({ store, now: () => NOW, optedOut: id => options.optedOut?.includes(id) ?? false,
     newProblem: group => problems.push(group.key) });
   return { usage, store, problems };
 }
@@ -38,16 +38,22 @@ describe("usage rollups", () => {
     expect((await store.daily(dayOf(NOW), dayOf(NOW)))[0]!.c.turns).toBe(2);
   });
 
-  it("drops an opted-out or unclaimed workspace, and summaries when they are off", async () => {
-    const { usage, store, problems } = setup({ optedOut: ["acct_out"], noSummaries: ["acct_quiet"] });
+  it("drops an opted-out or unclaimed workspace, and keeps the notes of one that helps", async () => {
+    const { usage, store, problems } = setup({ optedOut: ["acct_out"] });
     await usage.ingest("acct_out", "ws_1", report({ turns: [turn()] }));
     await usage.ingest(null, "ws_2", report({ turns: [turn()] }));
     expect(await store.daily(dayOf(NOW), dayOf(NOW))).toEqual([]);
     const f = { id: "frust00001", at: NOW - 1000, engine: "claude" as const, category: "email" as const, tools: ["app" as const], apps: ["gmail"], signals: ["retried" as const], retries: 2, summary: "bot kept failing in the email app." };
-    await usage.ingest("acct_quiet", "ws_3", report({ frustrations: [f], digests: [{ id: "digest0001", at: NOW - 1000, turns: 40, days: 4, summary: "they use it for email." }] }));
+    const s = { id: "session001", at: NOW - 500, engine: "claude" as const, category: "coding" as const, tools: ["terminal" as const], apps: ["github"], turns: 18, minutes: 42, failed: 1,
+      summary: "a long coding session with github; signing in took 2 tries." };
+    await usage.ingest("acct_out", "ws_1", report({ sessions: [s] }));
+    expect(await store.records("session", 0, NOW + 1, 10)).toEqual([]);
+    await usage.ingest("acct_quiet", "ws_3", report({ frustrations: [f], sessions: [s], digests: [{ id: "digest0001", at: NOW - 1000, turns: 40, days: 4, summary: "they use it for email." }] }));
     const [stored] = await store.records("frustration", 0, NOW + 1, 10);
-    expect((stored!.data as { summary?: string }).summary).toBeUndefined();
-    expect(await store.records("digest", 0, NOW + 1, 10)).toEqual([]);
+    expect((stored!.data as { summary?: string }).summary).toBe(f.summary);
+    expect((await store.records("session", 0, NOW + 1, 10))[0]!.data).toEqual(s);
+    expect(await store.records("digest", 0, NOW + 1, 10)).toHaveLength(1);
+    expect((await store.daily(dayOf(NOW), dayOf(NOW)))[0]!.c.sessions).toBe(1);
     expect(problems).toEqual(["claude|email|gmail"]);
     await usage.ingest("acct_b", "ws_4", report({ frustrations: [{ ...f, id: "frust00002" }] }));
     expect(problems).toHaveLength(1);

@@ -102,7 +102,7 @@ const More = ({ onClick }: { onClick(): void }) => <button type="button" onClick
 
 type Detail = "categories" | "apps" | "tools" | "engines" | "failures" | "routines" | "people" | "adoption" | "frustration" | "themes" | "sources" | MoreDetail;
 const DETAIL_TITLE: Record<Detail, string> = { ...MORE_TITLE, categories: "what people use it for", apps: "connected apps", tools: "tools", engines: "engines", failures: "what fails", routines: "routines",
-  people: "power users and casual", adoption: "how far people get", frustration: "what's frustrating people", themes: "themes from weekly summaries", sources: "where people chat from" };
+  people: "power users and casual", adoption: "how far people get", frustration: "what's frustrating people", themes: "themes from weekly notes", sources: "where people chat from" };
 
 function DetailTable({ detail, data }: { detail: Detail; data: UsageAnswer }) {
   if (detail in MORE_TITLE) return data.more ? <MoreTable detail={detail as MoreDetail} more={data.more} /> : <p className="py-6 text-center text-13 text-ink-3">nothing yet.</p>;
@@ -166,7 +166,7 @@ function DetailTable({ detail, data }: { detail: Detail; data: UsageAnswer }) {
           {theme.examples.map((example) => <p key={example} className="mt-1.5 text-13 leading-5 text-ink-3">"{example}"</p>)}
         </div>
       ))}
-      {!data.themes.length && <p className="py-6 text-center text-13 text-ink-3">no weekly summaries yet. they come from people who use it a few days a week.</p>}
+      {!data.themes.length && <p className="py-6 text-center text-13 text-ink-3">no weekly notes yet. they come from people who use it a few days a week. every note is on the feedback page.</p>}
     </div>
   );
 }
@@ -345,14 +345,14 @@ export function UsageSection({ range }: { range: Range }) {
               ) : <p className="px-2 py-3 text-13 text-ink-2">no one's been frustrated in this window.</p>}
               {data.frustration.signals.length > 0 && <p className="mt-2 px-1 text-12 text-ink-3">{data.frustration.signals.slice(0, 4).map((s) => `${SIGNAL[s.key] ?? words(s.key)} ${n(s.count)}`).join(", ")}</p>}
             </Card>
-            <Card title="themes from weekly summaries" icon={<ChartColumn {...I} />} wash="bg-wash-lilac" action={<More onClick={() => open("themes")} />}>
+            <Card title="themes from weekly notes" icon={<ChartColumn {...I} />} wash="bg-wash-lilac" action={<More onClick={() => open("themes")} />}>
               {data.themes.length ? (
                 <ul className="flex flex-wrap gap-1.5">
                   {data.themes.slice(0, 10).map((theme) => (
                     <li key={theme.key}><button type="button" onClick={() => open("themes")} className={cx("inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-13", theme.pain ? "bg-wash-pink text-ink" : "bg-pop/70 text-ink")}>{theme.label}<span className="font-mono text-12 text-ink-3 num">{n(theme.count)}</span></button></li>
                   ))}
                 </ul>
-              ) : <p className="px-2 py-3 text-13 text-ink-2">no weekly summaries yet. they come from people who use it a few days a week.</p>}
+              ) : <p className="px-2 py-3 text-13 text-ink-2">no weekly notes yet. they come from people who use it a few days a week. every note is on the feedback page.</p>}
             </Card>
           </div>
           {data.more && <MoreCards more={data.more} open={open} />}

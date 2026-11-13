@@ -8,7 +8,7 @@ import { BILLING_CONFIG } from "../server/billing/plans.ts";
 import { draft, ledgerId } from "../server/billing/ledger.ts";
 import { costOf } from "../server/admin/infra.ts";
 import { stateBackend } from "../server/persistence/backend.ts";
-import type { UsageCategory, UsageDigest, UsageFrom, UsageFrustration, UsageReason, UsageRun, UsageSignal, UsageTool, UsageTurn } from "../../../shared/usage-signals.ts";
+import type { UsageCategory, UsageDigest, UsageFrom, UsageFrustration, UsageReason, UsageRun, UsageSession, UsageSignal, UsageTool, UsageTurn } from "../../../shared/usage-signals.ts";
 
 const DAY = 86_400_000;
 const PEOPLE = ["mira.okafor", "tomas.lindqvist", "priya.raman", "jules.moreau", "kenji.watanabe", "ana.ferreira", "leo.brandt", "sofia.marin", "ravi.kulkarni", "noor.haddad",
@@ -465,7 +465,14 @@ const DIGESTS = [
   "uses it as a planner: calendar, reminders and travel planning, mostly from the phone. setup of routines was confusing at first; now a morning routine runs every day.",
 ];
 
-/** a month of bot turns, routine runs, frustrations and weekly summaries through the real usage ingest */
+const SESSIONS: Array<[UsageCategory, string]> = [
+  ["coding", "a long coding session in the terminal with github; tests and small refactors went smoothly, but signing in to github took 2 tries."],
+  ["email", "worked through the inbox with gmail for most of an hour; drafts were good, but connecting gmail took 3 tries and two replies timed out."],
+  ["research", "a long research session with the browser comparing options; results were useful, though replies got slow near the end."],
+  ["data", "updated a spreadsheet through the sheets app over many turns; the bot lost track of earlier columns twice and needed reminding."],
+];
+
+/** a month of bot turns, routine runs, frustrations, big sessions and weekly notes through the real usage ingest */
 async function seedUsage(app: ReturnType<typeof createDashboardApp>, accounts: SeededAccount[], now: number) {
   let serial = 0;
   const uid = (prefix: string) => `${prefix}${String(++serial).padStart(10, "0")}`;
@@ -505,8 +512,13 @@ async function seedUsage(app: ReturnType<typeof createDashboardApp>, accounts: S
       frustrations.push({ id: uid("frust"), at: now - Math.round(rand() * 20 * DAY), engine, category, tools: task.tools, apps: task.apps, reason: task.reason, signals: pick([["retried", "stopped"], ["thumbs_down", "swearing"], ["failed", "corrective"]] as const).slice(),
         retries: Math.floor(rand() * 4), summary });
     }
+    const sessions: UsageSession[] = power >= 2 ? SESSIONS.filter((_, k) => (k + i) % 2 === 0).map(([category, summary], k) => {
+      const task = TASKS.find(item => item.category === category)!;
+      return { id: uid("session"), at: now - Math.round(rand() * 12 * DAY), engine: k % 2 ? "codex" : "claude", category, tools: task.tools, apps: task.apps, turns: 15 + Math.floor(rand() * 20),
+        minutes: 25 + Math.floor(rand() * 60), failed: Math.floor(rand() * 3), ...(i % 4 === 3 ? {} : { summary }) };
+    }) : [];
     const digests: UsageDigest[] = power >= 2 ? [{ id: uid("digest"), at: now - Math.round(rand() * 6 * DAY), turns: Math.round(power * 30), days: 5, summary: DIGESTS[i % DIGESTS.length]! }] : [];
-    for (let start = 0; start < turns.length; start += 500) await app.usage.ingest(account.id, ws, { turns: turns.slice(start, start + 500), runs: start ? [] : runs, ...(start ? {} : { frustrations, digests, signals }),
+    for (let start = 0; start < turns.length; start += 500) await app.usage.ingest(account.id, ws, { turns: turns.slice(start, start + 500), runs: start ? [] : runs, ...(start ? {} : { frustrations, sessions, digests, signals }),
       snapshot: { bots: 1 + (i % 4), rooms: i % 3 === 0 ? 1 : 0, routines: i % 3 === 0 ? 2 : i % 4 === 2 ? 1 : 0, webhooks: i % 7 === 0 ? 1 : 0, appEvents: i % 5 === 0 ? 1 : 0, skills: i % 4,
         chats: 4 + i * 2, archived: i % 5, memory: 1 + (i % 4), botEngines: i % 2 ? { claude: 1 + (i % 4) } : { claude: 1, codex: i % 4 } } });
     await seedAppSignals(app, account, i, now);

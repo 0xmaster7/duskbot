@@ -155,26 +155,21 @@ export function AccountPage() {
   </div>;
 }
 
-/** usage stats and anonymous summaries, both on unless switched off here; error reports live in the desktop app */
+/** the one "help improve dusk bot" switch, on unless turned off here */
 function DataSharing() {
-  const [state, setState] = useState<{ optOut: boolean; summaries: boolean } | null>(null);
+  const [state, setState] = useState<{ optOut: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => { void api.dataSharing().then(setState, () => setError("could not load these settings.")); }, []);
-  const save = async (next: { optOut?: boolean; summaries?: boolean }) => {
+  useEffect(() => { void api.dataSharing().then(setState, () => setError("could not load this setting.")); }, []);
+  const save = async (on: boolean) => {
     setError(null);
-    try { setState(await api.setDataSharing(next)); } catch { setError("could not save that. try again."); }
+    try { setState(await api.setDataSharing({ optOut: !on })); } catch { setError("could not save that. try again."); }
   };
-  const rows = state ? [
-    { id: "usage", label: "share anonymous usage stats", hint: "counts like which apps and tools your bots use and what fails. never your messages.", checked: !state.optOut, disabled: false, set: (on: boolean) => save({ optOut: !on }) },
-    { id: "summaries", label: "share anonymous summaries", hint: "when something goes wrong, and once a week, your own ai writes a short anonymous summary on your device. never your messages, names or files.",
-      checked: !state.optOut && state.summaries, disabled: state.optOut, set: (on: boolean) => save({ summaries: on }) },
-  ] : [];
+  const label = "help improve dusk bot";
   return (
     <section className="mt-10" aria-labelledby="data-sharing-title">
-      <SectionTitle id="data-sharing-title">data sharing</SectionTitle>
-      <p className="-mt-1 mb-2 text-13 text-ink-3">anonymous and written on your device. it helps us see what to fix first.</p>
-      {state ? <ul className="flex flex-col gap-1">{rows.map((row) => <li key={row.id} className="flex items-center gap-4 rounded-[14px] py-3"><div className="min-w-0 flex-1"><label htmlFor={`sharing-${row.id}`} className="text-14 text-ink">{row.label}</label><p className="mt-0.5 text-13 text-ink-3">{row.hint}</p></div><Switch id={`sharing-${row.id}`} label={row.label} checked={row.checked} disabled={row.disabled} onChange={(on) => void row.set(on)} /></li>)}</ul>
-        : !error && <Skeleton className="h-28 !rounded-card" />}
+      <SectionTitle id="data-sharing-title">privacy</SectionTitle>
+      {state ? <div className="flex items-center gap-4 rounded-[14px] py-3"><div className="min-w-0 flex-1"><label htmlFor="sharing-improve" className="text-14 text-ink">{label}</label><p className="mt-0.5 text-13 text-ink-3">share anonymous usage info, like which features you use and where things get stuck. we never see your messages, names or files.</p></div><Switch id="sharing-improve" label={label} checked={!state.optOut} onChange={(on) => void save(on)} /></div>
+        : !error && <Skeleton className="h-16 !rounded-card" />}
       {error && <p role="alert" className="mt-2 text-13 text-bad">{error}</p>}
     </section>
   );

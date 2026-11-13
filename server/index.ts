@@ -606,7 +606,7 @@ import { createMcpServerRoutes } from "./routes/mcp-servers.ts";
 import { teamAdminSummary } from "./cloud-team-admin.ts";
 import { createSetupImportRoutes } from "./routes/setup-import.ts";
 import { createComputerRoutes } from "./routes/computers.ts";
-import { createStatusRoutes } from "./routes/status.ts"; import { createDashboardRoutes } from "./routes/dashboard.ts"; import { createDashboardCollector } from "./dashboard-report.ts"; import { createDashboardReporter } from "./dashboard-reporter.ts"; import { createPulseSampler } from "./dashboard-pulse.ts"; import { memoryFiles } from "./cloud-send-memory.ts"; import { createFrustrationWatch, createUsageOutbox, digestPrompt, hashId, summaryPrompt, turnRecord } from "./usage-signals.ts"; import { DIGEST_MAX, cleanUsageDigest, engineFamily, failureReason, runEvery, scrubSummary } from "../shared/usage-signals.ts"; import { attachmentKind, cleanSignal, sizeBucket } from "../shared/product-signals.ts"; import { createUsageSignalsSwitch } from "./usage-signals-switch.ts"; import { createDashboardCommands } from "./dashboard-commands.ts"; import { dashboardApps } from "./dashboard-apps.ts";
+import { createStatusRoutes } from "./routes/status.ts"; import { createDashboardRoutes } from "./routes/dashboard.ts"; import { createDashboardCollector } from "./dashboard-report.ts"; import { createDashboardReporter } from "./dashboard-reporter.ts"; import { createPulseSampler } from "./dashboard-pulse.ts"; import { memoryFiles } from "./cloud-send-memory.ts"; import { createFrustrationWatch, createUsageOutbox, digestPrompt, hashId, sessionPrompt, summaryPrompt, turnRecord } from "./usage-signals.ts"; import { DIGEST_MAX, SESSION_NOTE_MAX, cleanUsageDigest, engineFamily, failureReason, runEvery, scrubSummary } from "../shared/usage-signals.ts"; import { attachmentKind, cleanSignal, sizeBucket } from "../shared/product-signals.ts"; import { createUsageSignalsSwitch } from "./usage-signals-switch.ts"; import { createDashboardCommands } from "./dashboard-commands.ts"; import { dashboardApps } from "./dashboard-apps.ts";
 import { findAntigravityLeftovers, removeAntigravityLeftovers } from "./drivers/antigravity-temp.ts";
 import { createLiveRoutes } from "./routes/live.ts";
 import { createNotificationRoutes } from "./routes/notifications.ts";
@@ -6586,18 +6586,26 @@ const usageOutbox = createUsageOutbox({ enabled: usageSignals.enabled, snapshot:
 } });
 /** a workspace signal through the shared catalogue; anything it does not allow is dropped */
 const usageSignal = (name: string, props: Record<string, unknown> = {}) => { try { usageOutbox.signal(name, props, (n, p) => cleanSignal(n, p, "workspace")); } catch {} };
-const frustration = createFrustrationWatch({ dataDir: DATA_DIR, report: usageOutbox.frustration, summarize: async ({ threadId, botId, signals }) => {
-  const writer = usageSignals.summaries() ? sideJobs.text("frustration-summary", botId) : null;
-  if (!writer || !usageSignals.enabled()) return null;
-  const lines = store.messagesTail(threadId, 12).messages.filter((message) => message.kind === "text" && typeof message.text === "string" && message.text.trim())
-    .map((message) => ({ role: message.role, text: message.text! }));
-  return writer.generateText(summaryPrompt(lines, signals), { timeoutMs: 60_000 });
-} });
+/** a chat's last text lines, read on this computer for a note's prompt and scrub */
+const noteLines = (threadId: string, count: number) => store.messagesTail(threadId, count).messages
+  .filter((message) => message.kind === "text" && typeof message.text === "string" && message.text.trim()).map((message) => ({ role: message.role, text: message.text! }));
+/** bot names are never allowed in a note, whatever case they are written in */
+const noteAvoid = () => store.bots.map((bot) => bot.name).filter((name): name is string => typeof name === "string");
+/** a note on how a chat went, written by the person's own engine here and scrubbed against the very lines it read */
+async function chatNote(botId: string, lines: ReturnType<typeof noteLines>, prompt: string, max?: number): Promise<string | null> {
+  const writer = usageSignals.enabled() ? sideJobs.text("frustration-summary", botId) : null;
+  if (!writer) return null;
+  return scrubSummary(await writer.generateText(prompt, { timeoutMs: 60_000 }), max, { sources: lines.map((line) => line.text), avoid: noteAvoid() });
+}
+const frustration = createFrustrationWatch({ dataDir: DATA_DIR, report: usageOutbox.frustration, reportSession: usageOutbox.session,
+  summarize: ({ threadId, botId, signals }) => { const lines = noteLines(threadId, 12); return chatNote(botId, lines, summaryPrompt(lines, signals)); },
+  describe: ({ threadId, botId, stats }) => { const lines = noteLines(threadId, 14); return chatNote(botId, lines, sessionPrompt(lines, stats), SESSION_NOTE_MAX); } });
+setInterval(() => { try { frustration.sweep(); } catch {} }, 5 * 60_000).unref();
 let digestRunning = false;
 /** once a week for someone who uses Dusk enough: their own engine writes what they use it for, from a short digest of
  * recent chats read on this computer; only the scrubbed result is sent */
 function maybeUsageDigest(botId: string): void {
-  if (digestRunning || !usageSignals.summaries() || !frustration.digestDue()) return;
+  if (digestRunning || !usageSignals.enabled() || !frustration.digestDue()) return;
   const writer = sideJobs.text("frustration-summary", botId);
   if (!writer) return;
   digestRunning = true;
@@ -6609,7 +6617,7 @@ function maybeUsageDigest(botId: string): void {
   const recent = frustration.recent();
   void writer.generateText(digestPrompt(threads, { ...recent, ...usageOutbox.mix() }), { timeoutMs: 90_000 })
     .then((text) => {
-      const summary = scrubSummary(text, DIGEST_MAX);
+      const summary = scrubSummary(text, DIGEST_MAX, { sources: threads.flatMap((chat) => chat.lines.map((line) => line.text)), avoid: noteAvoid() });
       if (summary) usageOutbox.digest(cleanUsageDigest({ id: randomBytes(12).toString("base64url"), at: Date.now(), turns: recent.turns, days: recent.days, summary }));
     }, () => {}).finally(() => { digestRunning = false; });
 }
