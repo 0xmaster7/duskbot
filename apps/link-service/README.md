@@ -169,7 +169,8 @@ copy between them. `src/nodes.mjs`.
   homed servers + up to 0.5 for a slower round trip (300 ms behind the best = 0.5). A node takes no new servers when
   down, paused, at 90% tunnels, 85% bandwidth, 70% of its month allowance on course (box traffic, `LINK_ALLOWANCE_TB`;
   Oracle's free 10 TB), or 90% cpu or memory. A peer that may not hold the record yet is never chosen. Answer: `{node,
-  url, reason, nodes}`. The directory records the new home at once, and again when its server polls a node.
+  url, reason, nodes}`. The tunnel's home moves when its server polls a node (a placement it may not follow never moves
+  it: with the copy between nodes cut, that split the directory and sent the app to a node nobody read).
 - **Finding it.** `GET /v1/tunnels/<id>/node` (app or vps token) and `GET /v1/channels/<id>/node` (phone channel token)
   answer `{node, url, region, up, nodes: [{id, url, region, up}]}` on any node; `GET /v1/nodes` (public) lists the
   nodes. A tunnel with no home (from before nodes, or an agent that never asks) lives on the default node.

@@ -95,3 +95,27 @@ test("the agent ends an upload that lost bytes on the way and says so, and sends
     assert.deepEqual(frames.find((frame) => frame.t === "end" && frame.r === "uploadbbbbbb"), { t: "end", r: "uploadbbbbbb", n: 2 });
   } finally { server.close(); }
 });
+
+test("a post given up starts a new epoch, so the relay never waits out its hole before later posts", { timeout: 20_000 }, async () => {
+  const epochs = [];
+  let refuse = true;
+  const fetch = async (url, init) => {
+    url = String(url);
+    if (url.endsWith("/to-vps")) {
+      const body = JSON.parse(init.body);
+      epochs.push(body.epoch);
+      return refuse ? Response.json({ error: "busy", code: "busy" }, { status: 503 }) : Response.json({ ok: true, ordered: true });
+    }
+    await new Promise((resolve) => { init.signal?.addEventListener("abort", resolve, { once: true }); setTimeout(resolve, 200); });
+    return Response.json({ frames: [] });
+  };
+  const proxy = createTunnelProxy({ base: "http://relay.test", id, key, token: "t", fetch });
+  try {
+    await proxy.start();
+    await assert.rejects(proxy.control("ping", null, 15_000), /could not be reached/);
+    refuse = false;
+    void proxy.control("ping", null, 1000).catch(() => {});
+    for (let i = 0; i < 100 && new Set(epochs).size < 2; i += 1) await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.equal(new Set(epochs).size, 2);
+  } finally { await proxy.close(); }
+});

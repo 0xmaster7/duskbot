@@ -434,10 +434,12 @@ export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, 
       socket.setNoDelay(true);
       if (socket.alpnProtocol !== "h2") { h1Origins.add(url.origin); socket.destroy(); resolve(null); return; }
       const next = http2Connect(url.origin, { createConnection: () => socket, settings: { initialWindowSize: H2_STREAM_WINDOW } });
+      // a server that never sends its settings would hold every request waiting for this connection
+      const settle = setTimeout(() => { next.destroy(); resolve(null); }, H2_DIAL_MS);
       next.on("error", () => {});
       next.on("goaway", () => { if (session === next) session = null; });
-      next.on("close", () => { if (session === next) session = null; });
-      next.once("connect", () => { next.setLocalWindowSize(H2_SESSION_WINDOW); resolve(next); });
+      next.on("close", () => { clearTimeout(settle); if (session === next) session = null; resolve(null); });
+      next.once("connect", () => { clearTimeout(settle); next.setLocalWindowSize(H2_SESSION_WINDOW); resolve(next); });
     });
   });
   async function sessionFor(url) {
@@ -2047,8 +2049,12 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
       const armStall = () => { if (streaming && !stallTimer) stallTimer = setTimeout(() => { if (!heard) stall.abort(); }, stallMs); };
       if (!next && !fetchImpl.connectAware) armStall();
       const read = (signal, onConnected) => fetchImpl(`${base}/v1/tunnels/${id}/to-vps?wait=${waitS}${streaming ? "&stream=1" : ""}`, { headers: { authorization: `Bearer ${token}` }, signal, onConnected });
+      // no read may hold the loop longer than this, whatever the connection under it does
+      let hangTimer = null;
+      const hung = new Promise((_resolve, reject) => { hangTimer = setTimeout(() => { log("link: a read hung; starting over on a fresh connection"); fetchImpl.reset?.(); reject(new Error("a read hung")); }, waitS * 1000 + READ_HANG_MS); });
+      hung.catch(() => {});
       try {
-        const response = await (next ?? read(AbortSignal.any([abort.signal, stall.signal, AbortSignal.timeout(40_000)]), armStall));
+        const response = await Promise.race([next ?? read(AbortSignal.any([abort.signal, stall.signal, AbortSignal.timeout(40_000)]), armStall), hung]);
         if (streaming) aheadTimer = setTimeout(() => { ahead = read(AbortSignal.any([abort.signal, AbortSignal.timeout(aheadMs + 40_000)])); ahead.catch(() => {}); }, aheadMs);
         if (response.status === 404) {
           log("link: this server was unlinked in the app; the tunnel stops");
@@ -2058,7 +2064,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
         }
         if (!response.ok) throw new Error(`link service answered ${response.status}`);
         lastOkAt = Date.now();
-        await readFrameBatches(response, (frames) => {
+        await Promise.race([readFrameBatches(response, (frames) => {
           heard = true;
           failures = 0;
           lastOkAt = Date.now();
@@ -2067,7 +2073,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
             try { frame = openFrame(key, id, "to-vps", sealed, guard); } catch { log("link: dropped a frame that did not open"); }
             if (frame) void handle(frame);
           }
-        });
+        }), hung]);
       } catch (error) {
         if (stopped) break;
         if (stall.signal.aborted && !heard) {
@@ -2082,7 +2088,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
           await delay(spread(Math.min(15_000, 500 * 2 ** Math.min(failures, 5))), undefined, { signal: AbortSignal.any([abort.signal, pollRetry.signal]) }).catch(() => {});
           pollRetry = null;
         }
-      } finally { clearTimeout(stallTimer); clearTimeout(aheadTimer); }
+      } finally { clearTimeout(stallTimer); clearTimeout(aheadTimer); clearTimeout(hangTimer); }
     }
     unwarm();
     return terminal;
@@ -2577,6 +2583,8 @@ async function direct() {
  * tunnel hears from its node at least every streamed read (25 s); its peers call a node down after 30 s (PEER_DOWN_MS)
  */
 export const NODE_SILENT_MS = 35_000;
+/** past a read's own wait, how long it may take before the loop gives up on it */
+export const READ_HANG_MS = 45_000;
 export const NODE_WATCH_MS = 5_000;
 const NODE_ASK_MS = 15_000;
 /** reads that fail outright (refused, a 502 from the node's proxy) ask sooner: the server measures every node itself */

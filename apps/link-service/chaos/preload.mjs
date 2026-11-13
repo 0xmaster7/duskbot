@@ -1,6 +1,7 @@
 // loaded into the agent and app processes of a chaos run: a moved clock (DUSK_CHAOS_SKEW_MS) and name lookups that fail
 // or answer one address family, switched over ipc ({ chaos: "dns", mode: "fail" | "v4" | "v6" | null })
 import dns from "node:dns";
+import { syncBuiltinESMExports } from "node:module";
 
 const skew = Number(process.env.DUSK_CHAOS_SKEW_MS || 0);
 if (skew) {
@@ -21,6 +22,8 @@ dns.lookup = function chaosLookup(host, options, callback) {
   const family = mode === "v4" ? 4 : mode === "v6" ? 6 : options?.family;
   return lookup.call(this, host, { ...options, family }, callback);
 };
+// `import { lookup } from "node:dns"` elsewhere sees the replacement only after this
+syncBuiltinESMExports();
 process.on("message", (message) => { if (message?.chaos === "dns") mode = message.mode ?? null; });
 
 // DUSK_CHAOS_PORTS="443:9443,...": this process reaches a port through its own fault proxy, so a fault can hit only the

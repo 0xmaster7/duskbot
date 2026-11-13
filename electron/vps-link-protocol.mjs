@@ -399,10 +399,12 @@ export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, 
       socket.setNoDelay(true);
       if (socket.alpnProtocol !== "h2") { h1Origins.add(url.origin); socket.destroy(); resolve(null); return; }
       const next = http2Connect(url.origin, { createConnection: () => socket, settings: { initialWindowSize: H2_STREAM_WINDOW } });
+      // a server that never sends its settings would hold every request waiting for this connection
+      const settle = setTimeout(() => { next.destroy(); resolve(null); }, H2_DIAL_MS);
       next.on("error", () => {});
       next.on("goaway", () => { if (session === next) session = null; });
-      next.on("close", () => { if (session === next) session = null; });
-      next.once("connect", () => { next.setLocalWindowSize(H2_SESSION_WINDOW); resolve(next); });
+      next.on("close", () => { clearTimeout(settle); if (session === next) session = null; resolve(null); });
+      next.once("connect", () => { clearTimeout(settle); next.setLocalWindowSize(H2_SESSION_WINDOW); resolve(next); });
     });
   });
   async function sessionFor(url) {
@@ -567,6 +569,10 @@ const MOVE_AFTER_MS = 3000;
 export const UPGRADE_HOLD_MS = 700;
 /** a request over the relay with no answer at all this long sends the app to ask which node its server reads on */
 const SILENT_ASK_MS = 8000;
+/** past a read's own wait, how long it may take before the poll gives up on it */
+const READ_HANG_MS = 45_000;
+/** how long a post waits out a relay that says the server is behind before it gives up */
+const BEHIND_PATIENCE_MS = 60_000;
 /** a request sent this recently when the relay moves may still be on its way there, so it is left to finish */
 const RESEND_AFTER_MS = 2000;
 /** a stream's sender says how many bytes it sent so far after this many more, or this long, so a gap shows */
@@ -695,11 +701,14 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
     return answer?.gone === true;
   }
 
-  const epoch = randomB32(12);
+  // a post given up leaves a hole in the numbering the relay would wait out before every later post: a new epoch
+  // starts the order afresh where the outbox is (the relay takes the first post of an unknown epoch as its start)
+  let epoch = randomB32(12);
   let ordered = false;
   // the egress lane's posts carry no sequence: they never wait in the relay behind the main queue's held posts
   async function post(frames, at, lane = false) {
     let busy = false;
+    const started = Date.now();
     for (let attempt = 0; !closed; attempt += 1) {
       try {
         const response = await fetchImpl(`${route}/to-vps`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify(lane ? { frames, lane: true } : { frames, epoch, seq: at }), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(60_000)]) });
@@ -710,8 +719,10 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
         if (movedBy(response.status, said)) continue;
         // a node it moved to may not know the tunnel yet: that waits and tries again like any failed post
         if (response.status === 404 && await reallyGone()) { closed = true; abort.abort(); fail("This server was unlinked."); return false; }
-        if (response.status === 429 && /"code":"daily_limit"/.test(said)) { if (!lane) fail(JSON.parse(said).error); return false; }
-        if (response.status === 503 && /"code":"relay_busy"/.test(said)) {
+        if (response.status === 429 && /"code":"daily_limit"/.test(said)) { if (!lane) { epoch = randomB32(12); fail(JSON.parse(said).error); } return false; }
+        // the server reads slower than this computer sends (a big upload): that is waiting, not failing, for a minute
+        if (response.status === 429 && /"code":"queue_full"/.test(said) && Date.now() - started < BEHIND_PATIENCE_MS) attempt = Math.min(attempt, 3);
+        else if (response.status === 503 && /"code":"relay_busy"/.test(said)) {
           // full: the server moves to a node with room on its own; follow it, and the direct path carries on meanwhile
           busy = true;
           const where = await locate({ force: attempt === 0 }).catch(() => null);
@@ -719,14 +730,15 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
         } else if (attempt >= 1 && response.status !== 404) void locate();
       } catch { if (closed) return false; if (attempt >= 1) void locate(); }
       if (attempt >= 6) {
-        if (!lane) fail(busy ? "The relay is full right now. Your server will connect another way, or try again in a minute." : "The link service did not answer.");
+        if (!lane) epoch = randomB32(12);
+        if (!lane) fail(busy ? "The relay is full right now. Your server will connect another way, or try again in a minute." : "Your server could not be reached just now. It reconnects by itself; try again in a moment.");
         return false;
       }
       await sleep(spread(Math.min(5000, 200 * 2 ** attempt)), undefined, { signal: abort.signal }).catch(() => {});
     }
     return false;
   }
-  const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-vps", r, bytes), post, delayMs: () => (fetchImpl.multiplexed?.() ? 0 : H1_POST_DELAY_MS), signal: abort.signal, parallel: () => (ordered ? fetchImpl.postsInFlight?.() ?? POSTS_IN_FLIGHT : 1), onError: () => fail("The link service did not answer.") });
+  const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-vps", r, bytes), post, delayMs: () => (fetchImpl.multiplexed?.() ? 0 : H1_POST_DELAY_MS), signal: abort.signal, parallel: () => (ordered ? fetchImpl.postsInFlight?.() ?? POSTS_IN_FLIGHT : 1), onError: () => fail("Your server could not be reached just now. It reconnects by itself; try again in a moment.") });
   const relayPath = {
     push: (frame) => { if (frame.t === "cancel") outbox.discard(frame.r); outbox.push(sealFrame(key, id, "to-vps", frame), frame.r); },
     bytes: outbox.bytes, onDrain: outbox.onDrain, discard: outbox.discard,
@@ -876,8 +888,12 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
       // a nudge ends the read in hand and the one asked for ahead of it
       const nudged = (pollNudge = next?.nudge ?? new AbortController());
       const read = (signal, onConnected) => fetchImpl(`${route}/to-app?wait=${waitS}${streaming ? "&stream=1" : ""}`, { headers: { authorization: `Bearer ${token}` }, signal, onConnected });
+      // no read may hold the loop longer than this, whatever the connection under it does
+      let hangTimer = null;
+      const hung = new Promise((_resolve, reject) => { hangTimer = setTimeout(() => { log("vps link: a read hung; starting over on a fresh connection"); fetchImpl.reset?.(); reject(new Error("a read hung")); }, waitS * 1000 + READ_HANG_MS); });
+      hung.catch(() => {});
       try {
-        const response = await (next?.response ?? read(AbortSignal.any([abort.signal, stall.signal, nudged.signal, AbortSignal.timeout(40_000)]), armStall));
+        const response = await Promise.race([next?.response ?? read(AbortSignal.any([abort.signal, stall.signal, nudged.signal, AbortSignal.timeout(40_000)]), armStall), hung]);
         const boot = response.headers?.get?.("x-link-boot") ?? null;
         if (boot && boot !== nodeBoot.id) {
           if (nodeBoot.id && nodeBoot.node === node) { log("vps link: the link service restarted; what it held is sent again or failed"); lostOnRestart(Math.max(nodeBoot.okAt, nodeBoot.failAt ?? 0)); }
@@ -897,7 +913,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
           if (response.status === 404 && await reallyGone()) { closed = true; abort.abort(); fail("This server was unlinked."); break; }
           throw new Error(`link service answered ${response.status}`);
         }
-        await readFrameBatches(response, (frames) => {
+        await Promise.race([readFrameBatches(response, (frames) => {
           heard = true;
           failures = 0;
           nodeBoot.okAt = Date.now();
@@ -907,7 +923,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
             // one request's broken answer must not end the read that carries every other request's
             if (frame) try { deliver(frame); } catch (error) { log(`vps link: a reply could not be handed on (${error?.message ?? error})`); }
           }
-        });
+        }), hung]);
       } catch (error) {
         if (closed) break;
         if (nudged.signal.aborted) { ahead = null; continue; }
@@ -926,7 +942,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
           await sleep(spread(Math.min(15_000, 300 * 2 ** Math.min(failures, 6))), undefined, { signal: AbortSignal.any([abort.signal, pollRetry.signal]) }).catch(() => {});
           pollRetry = null;
         }
-      } finally { clearTimeout(stallTimer); clearTimeout(aheadTimer); }
+      } finally { clearTimeout(stallTimer); clearTimeout(aheadTimer); clearTimeout(hangTimer); }
     }
     polling = false;
   }

@@ -651,8 +651,6 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     if (!cluster) return { node: nodeId, url: base, reason: "single node", nodes: [{ id: nodeId, url: base, region: null, up: true }] };
     let choice = choosePlacement({ nodes: cluster.view(tunnel), home: tunnel.home ?? null, rtt, defaultId: nodes.defaultId });
     if (choice.node !== nodeId && !(await cluster.ensureOn(choice.node, tunnel))) choice = { node: nodeId, reason: `${choice.node} is behind` };
-    // the directory says where the server goes at once, so an app asking now is not sent to the node it leaves
-    if (homeOf(tunnel) !== choice.node) { tunnel.home = choice.node; cluster.changed(tunnel); await cluster.ensureOn(choice.node, tunnel); }
     const where = whereIs(tunnel);
     return { node: choice.node, url: cluster.urlOf(choice.node), reason: choice.reason, nodes: where.nodes };
   }

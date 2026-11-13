@@ -289,6 +289,7 @@ async function main() {
     const row = { name: scenario.name, title: scenario.title, pass, recovered, ...verdict, sees: seen(verdict, outcome.sees), note: error ? `error: ${error.message}` : outcome.note ?? "", budgetMs: scenario.budgetMs ?? null, home: await world.homeOf() };
     rows.push(row);
     say(`${pass ? "ok" : "FAIL"} ${scenario.name}: recover ${(row.recoverMs / 1000).toFixed(1)} s, ${row.failed}/${row.requests} failed, live down ${(row.liveDownMs / 1000).toFixed(1)} s${row.note ? `, ${row.note}` : ""}`);
+    if (!pass && verbose) say(`errors: ${row.errors.join("; ")}`);
     if (!pass && verbose) say(`agent tail:\n${world.agent.lines.slice(-25).join("\n")}\napp tail:\n${world.app.lines.slice(-25).join("\n")}`);
   }
   probe.stop();
