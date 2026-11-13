@@ -6,6 +6,8 @@ import type { StepContext } from "../browser-steps.ts";
 import type { SecretHold } from "../browser-secret-hold.ts";
 import { fillLogin, NO_LOGIN_NEXT, type FillLoginDeps, type FillLoginOutcome } from "../login-fill.ts";
 import { redactSecretsInText } from "../redact.ts";
+import { classifyLoginFailure } from "../secret-failure.ts";
+import type { LoginRejection } from "./secret-cards.ts";
 import type { BotRecord } from "../store.ts";
 import { surfaceLabel } from "../surface.ts";
 
@@ -38,7 +40,9 @@ export interface FillLoginTurnDeps<T extends Turn = Turn> {
   target(bot: BotRecord, threadId: string): Promise<{ session: string; spec: Spec; env: NodeJS.ProcessEnv } | null>;
   claim(turn: Turn, resource: string): boolean;
   withSecretInput(session: string, spec: Spec, fill: () => Promise<FillLoginOutcome>, ctx: StepContext): Promise<FillLoginOutcome>;
-  logins: Pick<BotLogins, "candidates" | "sitesFor" | "markUsed">;
+  logins: Pick<BotLogins, "candidates" | "sitesFor" | "markUsed"> & Partial<Pick<BotLogins, "rejected">>;
+  /** A saved login the site refused was removed or marked: the person is told once, and what the bot is told is returned. */
+  loginRejected?(botId: string, threadId: string, rejection: LoginRejection | null): string | null;
   /** Why 1Password's logins may be missing just now. */
   onePasswordTrouble(): string | undefined;
   loginInput(session: string, spec: Spec, env: NodeJS.ProcessEnv): Pick<FillLoginDeps, "engine" | "insertText" | "press" | "click">;
@@ -74,6 +78,20 @@ export function createFillLoginTurn<T extends Turn = Turn>(deps: FillLoginTurnDe
     }
     const chrome = deps.myChrome(current) ? ", which is the person's own Chrome (My Chrome), signed in as them" : "";
     return { ok: false, text: `${ONLY_IN_BROWSER}${notHere}. dusk bot is moving this conversation to your own browser${chrome}. End this turn now without using the screen tools: the request continues there with your browser tools. Open the site's sign-in page in that browser, then call fill_login.` };
+  }
+
+  // a clear "wrong password" or refused code removes a saved login; an unclear refusal marks it once; a temporary one does nothing
+  function answer(bot: BotRecord, threadId: string, outcome: FillLoginOutcome): Answer {
+    if (outcome.ok && outcome.loginId) deps.logins.markUsed(outcome.loginId);
+    if (outcome.ok || !outcome.rejected || !outcome.loginId) return { ok: outcome.ok, text: outcome.text };
+    let extra: string | null = null;
+    try {
+      const change = deps.logins.rejected?.(outcome.loginId, outcome.rejected.step, classifyLoginFailure(outcome.rejected)) ?? null;
+      extra = deps.loginRejected?.(bot.id, threadId, change) ?? null;
+    } catch (error) {
+      console.warn(`fill_login: could not record a refused login: ${error instanceof Error ? error.name : "error"}`);
+    }
+    return { ok: false, text: extra ? `${outcome.text}${extra}` : outcome.text };
   }
 
   function fillInput(bot: BotRecord, rawUsername: unknown, rawSubmit: unknown) {
@@ -116,8 +134,7 @@ export function createFillLoginTurn<T extends Turn = Turn>(deps: FillLoginTurnDe
       return { ok: false, text: `Could not fill the login: ${redactSecretsInText(reason)} Call request_sign_in if it keeps failing.` };
     }
     opened.finish(outcome.held);
-    if (outcome.ok && outcome.loginId) deps.logins.markUsed(outcome.loginId);
-    return { ok: outcome.ok, text: outcome.text };
+    return answer(bot, capability.threadId, outcome);
   }
 
   async function fillLoginForTurn(bot: BotRecord, capability: T, rawUsername: unknown, rawSubmit: unknown): Promise<Answer> {
@@ -143,8 +160,7 @@ export function createFillLoginTurn<T extends Turn = Turn>(deps: FillLoginTurnDe
         ...deps.loginInput(session, spec, env),
         remember: deps.remember,
       }), deps.stepContext(current, capability));
-      if (outcome.ok && outcome.loginId) deps.logins.markUsed(outcome.loginId);
-      return { ok: outcome.ok, text: outcome.text };
+      return answer(bot, threadId, outcome);
     } catch (error) {
       if (error instanceof Error && error.message === BROWSER_CONTROL_REFUSAL) {
         return { ok: false, text: "The person is using this browser right now. Wait for them to hand it back, then call fill_login again." };

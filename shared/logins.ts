@@ -37,6 +37,8 @@ export interface LoginSummary extends LoginPlace {
   bots: LoginBots;
   createdAt: number;
   lastUsedAt?: number;
+  /** A fill failed in a way that may mean it is wrong: Settings shows it to check. */
+  needsCheck?: number;
 }
 
 /** A 1Password vault the service account reads, and the bots that may use its

@@ -8,6 +8,8 @@ export interface SavedSecretSummary {
   createdAt: number;
   updatedAt: number;
   lastUsedAt?: number;
+  /** A use failed in a way that may mean it is wrong: Settings shows it to check. */
+  needsCheck?: number;
 }
 
 /** A card secret sealed in the person's app for the server that keeps it (HPKE, P-256, AES-256-GCM): the relay between

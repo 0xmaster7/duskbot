@@ -27,6 +27,8 @@ const recordSchema = z.object({
   createdAt: z.number(),
   updatedAt: z.number(),
   lastUsedAt: z.number().optional(),
+  /** When a use failed in a way that may mean it is wrong: shown in Settings until it is replaced or removed. */
+  needsCheck: z.number().optional(),
 });
 const fileSchema = z.object({ version: z.literal(1), secrets: z.array(recordSchema).max(SAVED_LIMIT) });
 type SavedRecord = z.infer<typeof recordSchema>;
@@ -157,7 +159,8 @@ export function desktopSavedSecretsKey(fallback: () => SavedSecretsKey): SavedSe
 
 export function summarizeSavedSecret(record: SavedRecord): SavedSecretSummary {
   return { id: record.id, label: record.label, bots: [...record.bots], createdAt: record.createdAt, updatedAt: record.updatedAt,
-    ...(record.lastUsedAt === undefined ? {} : { lastUsedAt: record.lastUsedAt }) };
+    ...(record.lastUsedAt === undefined ? {} : { lastUsedAt: record.lastUsedAt }),
+    ...(record.needsCheck === undefined ? {} : { needsCheck: record.needsCheck }) };
 }
 
 const sameLabel = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
@@ -226,9 +229,9 @@ export class SavedSecretStore {
   }
 
   /** The saved secret with this label that this bot may use. Server-only: no route returns it. */
-  find(label: string, botId: string): { id: string; label: string; value: string } | null {
+  find(label: string, botId: string): { id: string; label: string; value: string; needsCheck?: number } | null {
     const found = this.read().secrets.find((record) => sameLabel(record.label, label) && record.bots.includes(botId));
-    return found ? { id: found.id, label: found.label, value: found.value } : null;
+    return found ? { id: found.id, label: found.label, value: found.value, ...(found.needsCheck === undefined ? {} : { needsCheck: found.needsCheck }) } : null;
   }
 
   /** The same label saved again replaces its value and adds the bot; nothing else is ever merged. */
@@ -237,7 +240,8 @@ export class SavedSecretStore {
     const at = this.now();
     const same = data.secrets.find((record) => sameLabel(record.label, input.label));
     if (same) {
-      const next: SavedRecord = { ...same, value: input.value, bots: [...new Set([...same.bots, input.botId])], updatedAt: at };
+      const { needsCheck: _checked, ...rest } = same;
+      const next: SavedRecord = { ...rest, value: input.value, bots: [...new Set([...same.bots, input.botId])], updatedAt: at };
       this.write({ ...data, secrets: data.secrets.map((record) => record.id === same.id ? next : record) });
       return summarizeSavedSecret(next);
     }
@@ -252,6 +256,16 @@ export class SavedSecretStore {
     const at = this.now();
     if (!data.secrets.some((record) => record.id === id)) return;
     this.write({ ...data, secrets: data.secrets.map((record) => record.id === id ? { ...record, lastUsedAt: at } : record) });
+  }
+
+  /** Marks a secret whose use failed unclearly; false when it is gone or was already marked. */
+  flag(id: string): boolean {
+    const data = this.read();
+    const found = data.secrets.find((record) => record.id === id);
+    if (!found || found.needsCheck !== undefined) return false;
+    const at = this.now();
+    this.write({ ...data, secrets: data.secrets.map((record) => record.id === id ? { ...record, needsCheck: at } : record) });
+    return true;
   }
 
   remove(id: string): boolean {

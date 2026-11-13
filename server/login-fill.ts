@@ -47,6 +47,8 @@ export interface FillLoginOutcome {
   loginId?: string;
   filled?: FilledField[];
   held?: SecretHold;
+  /** The site refused what was submitted: the login itself, or a code from its 2FA key, and the error line it showed. */
+  rejected?: { step: "login" | "code"; alert: string };
 }
 
 /** How long a filled secret may stay on a page before it is cleared, with page scripts refused there meanwhile. */
@@ -389,9 +391,9 @@ class LoginRun {
     return this.outcome(ok, text);
   }
 
-  private async failed(text: string): Promise<FillLoginOutcome> {
+  private async failed(text: string, rejected?: FillLoginOutcome["rejected"]): Promise<FillLoginOutcome> {
     await this.clear();
-    return this.outcome(false, `${text} The password was cleared from the page.`);
+    return { ...this.outcome(false, `${text} The password was cleared from the page.`), ...(rejected ? { rejected } : {}) };
   }
 
   /** The fields a page shows; for a later step, waits up to `waitMs` for a password or code box. */
@@ -428,7 +430,8 @@ class LoginRun {
       }
       if ((fields.password && this.done.has("password")) || (fields.code > 0 && this.done.has("code"))) {
         const said = fields.alert ? ` It said: “${fields.alert}”.` : "";
-        return this.failed(`The site did not accept the login for ${this.who()} on ${this.host}: it asked for it again, and nothing was submitted twice.${said} Check the saved login in Settings → Logins, or call request_sign_in.`);
+        const step = fields.password && this.done.has("password") ? "login" as const : "code" as const;
+        return this.failed(`The site did not accept the login for ${this.who()} on ${this.host}: it asked for it again, and nothing was submitted twice.${said} Check the saved login in Settings → Logins, or call request_sign_in.`, { step, alert: fields.alert });
       }
       if (step > 0 && !fields.password && fields.code === 0) {
         if (fields.human) return this.finish(true, `Submitted ${this.filledWords()} for ${this.who()}, and a human check (CAPTCHA) appeared. Call request_sign_in so the person finishes signing in.`);
@@ -465,7 +468,8 @@ class LoginRun {
       if (sent.human) return this.failed(`A human check (CAPTCHA) appeared on ${this.host} after the login for ${this.who()} was submitted. Call request_sign_in so the person finishes signing in.`);
       if (!sent.changed) {
         const said = sent.alert ? ` It said: “${sent.alert}”.` : " The page did not change.";
-        return this.failed(`The site did not accept the login for ${this.who()} on ${this.host}.${said} Check the saved login in Settings → Logins, or call request_sign_in.`);
+        const step = typed.fields.includes("code") && !typed.fields.includes("password") ? "code" as const : "login" as const;
+        return this.failed(`The site did not accept the login for ${this.who()} on ${this.host}.${said} Check the saved login in Settings → Logins, or call request_sign_in.`, { step, alert: sent.alert });
       }
       if (step + 1 >= MAX_STEPS) return this.finish(true, this.signedIn(sent.href, sent.title));
       const waitMs = !this.done.has("password") ? NEXT_STEP_WAIT_MS : this.secretsHaveTotp() && !this.done.has("code") ? 5_000 : 1_500;
@@ -501,7 +505,7 @@ class LoginRun {
     return "typed";
   }
 
-  private async fillStep(step: number, fields: Found): Promise<{ kind: "typed"; last: string } | { kind: "none" } | { kind: "moved" }> {
+  private async fillStep(step: number, fields: Found): Promise<{ kind: "typed"; last: string; fields: FilledField[] } | { kind: "none" } | { kind: "moved" }> {
     const key = `${this.nonce}:${step}:`;
     const typed: Array<[FilledField, string]> = [];
     let moved = false;
@@ -535,7 +539,7 @@ class LoginRun {
     if (!held.length) return { kind: "none" };
     for (const [field] of held) this.done.add(field);
     if (held.some(([field]) => field !== "username")) this.secretUrl = fields.href;
-    return { kind: "typed", last: held.at(-1)![1] };
+    return { kind: "typed", last: held.at(-1)![1], fields: held.map(([field]) => field) };
   }
 
   /** Enter in the step's last field; when that sends nothing within two seconds, the form's sign-in button. */

@@ -172,10 +172,10 @@ it.skipIf(process.platform === "win32")("fills a login saved for example.com on 
       { steps: [{ tool: "fill_login", arguments: {}, expectError: true }], reply: "No login here." },
       { steps: [{ tool: "fill_login", arguments: {}, expectError: true }], reply: "The site refused it." },
     ] } }));
-    const turn = async (text: string, count: number) => {
+    const turn = async (text: string, count: number, status = "settled") => {
       await runControlDusk(["send", "--bot", bot.id, "--task", bot.threadId, "--text", text, "--url", browser.base]);
       await expect.poll(() => evidence().length, { timeout: 20_000 }).toBe(count);
-      expect(await runControlDusk(["wait", "--bot", bot.id, "--task", bot.threadId, "--timeout", "20", "--url", browser.base])).toMatchObject({ status: "settled" });
+      expect(await runControlDusk(["wait", "--bot", bot.id, "--task", bot.threadId, "--timeout", "20", "--url", browser.base])).toMatchObject({ status });
     };
 
     await turn("Sign in to example.com.", 1);
@@ -192,8 +192,12 @@ it.skipIf(process.platform === "win32")("fills a login saved for example.com on 
 
     page.navigate("https://www.example.com/login", LOGIN_FORM);
     page.answer = () => ({ error: "Incorrect password." });
-    await turn("Try www.", 3);
-    expect(answered(2, "fill_login")[0].content[0].text).toBe(`The site did not accept the login for ${USERNAME} on www.example.com. It said: “Incorrect password.”. Check the saved login in Settings → Logins, or call request_sign_in. The password was cleared from the page.`);
+    // a clear wrong-password line removes the saved login, and a login card says so once and asks for it again
+    await turn("Try www.", 3, "needs-user");
+    expect(answered(2, "fill_login")[0].content[0].text).toBe(`The site did not accept the login for ${USERNAME} on www.example.com. It said: “Incorrect password.”. Check the saved login in Settings → Logins, or call request_sign_in. The password was cleared from the page. The site said this login is wrong, so dusk bot removed it from the Vault and showed the person a login card to add it again, which says so. Do not repeat it or call fill_login again now: end your turn; dusk bot resumes you when they answer.`);
+    expect((await api("GET", "/api/logins")).body.logins.map((login: { site: string }) => login.site)).toEqual(["alice.github.io"]);
+    const cards = (await api("GET", `/api/threads/${bot.threadId}/messages`)).body.messages.filter((message: { kind: string }) => message.kind === "secret");
+    expect(cards.map((card: { secret: { reason?: string } }) => card.secret.reason)).toEqual(["That example.com password didn't work, so I removed it. Add it again?"]);
     expect(page.sent).toHaveLength(1);
     expect(page.field("#password").value).toBe("");
     expect(JSON.stringify(evidence())).not.toContain(PASSWORD);

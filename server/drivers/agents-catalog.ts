@@ -464,6 +464,7 @@ const TOOL_DEFINITIONS = [
           enum: ["ref", "file"],
           description: "ref: a one-use secretRef for mcp_server. file: a private file your commands read.",
         },
+        failed: { type: "string", maxLength: 600, description: "A saved one was refused: the service's error (status and message), never the value." },
       },
     },
   },

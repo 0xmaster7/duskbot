@@ -344,6 +344,10 @@
               "file"
             ],
             "description": "ref: a one-use secretRef for mcp_server. file: a private file your commands read."
+          },
+          "failed": {
+            "type": "string",
+            "description": "A saved one was refused: the service's error (status and message), never the value."
           }
         }
       }

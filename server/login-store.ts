@@ -40,6 +40,8 @@ const diskLoginSchema = z.object({
   createdAt: z.number(),
   updatedAt: z.number(),
   lastUsedAt: z.number().optional(),
+  /** When a fill failed in a way that may mean the login is wrong: shown in Settings until it is changed or deleted. */
+  needsCheck: z.number().optional(),
 });
 
 const fileSchema = z.object({
@@ -89,6 +91,7 @@ export function summarizeLogin(login: StoredLogin): LoginSummary {
     id: login.id, site: login.site, hosts: [...login.hosts], exactHost: login.exactHost, username: login.username, hasTotp: Boolean(login.totp),
     source: login.source, bots: login.bots, createdAt: login.createdAt,
     ...(login.lastUsedAt === undefined ? {} : { lastUsedAt: login.lastUsedAt }),
+    ...(login.needsCheck === undefined ? {} : { needsCheck: login.needsCheck }),
   };
 }
 
@@ -180,7 +183,8 @@ export class LoginStore {
     const same = data.logins.find((login) => sameAccount(login, input));
     if (same) {
       const bots: LoginBots = same.bots === "all" || input.bots === "all" ? "all" : [...new Set([...same.bots, ...input.bots])];
-      const updated: StoredLogin = { ...same, username: input.username, password: input.password, bots, updatedAt: at,
+      const { needsCheck: _checked, ...rest } = same;
+      const updated: StoredLogin = { ...rest, username: input.username, password: input.password, bots, updatedAt: at,
         hosts: [...new Set([...same.hosts, ...input.hosts])].slice(0, LOGIN_HOSTS_MAX), exactHost: same.exactHost || input.exactHost,
         ...(input.totp ? { totp: input.totp } : {}) };
       this.write({ ...data, logins: data.logins.map((login) => login.id === same.id ? updated : login) });
@@ -210,8 +214,19 @@ export class LoginStore {
     };
     if (patch.totp === null) delete next.totp;
     else if (patch.totp) next.totp = patch.totp;
+    if (patch.password !== undefined || patch.totp !== undefined) delete next.needsCheck;
     this.write({ ...data, logins: data.logins.map((login) => login.id === id ? next : login) });
     return summarizeLogin(next);
+  }
+
+  /** Marks a login whose fill failed unclearly; false when it is gone or was already marked. */
+  flag(id: string): boolean {
+    const data = this.read();
+    const found = data.logins.find((login) => login.id === id);
+    if (!found || found.needsCheck !== undefined) return false;
+    const at = this.now();
+    this.write({ ...data, logins: data.logins.map((login) => login.id === id ? { ...login, needsCheck: at } : login) });
+    return true;
   }
 
   remove(id: string): boolean {

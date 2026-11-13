@@ -183,3 +183,28 @@ describe("fill_login on the bot's own VPS desktop", () => {
     expect(answer.text).not.toContain("choose Browser");
   });
 });
+
+describe("fill_login with a login the site refuses", () => {
+  const browser = async () => ({ session: "bot-b1", spec: { command: "agent-browser", env: {} }, env: {} });
+  const refused = (alert: string) => async () => ({ ok: false, text: "The site did not accept the login.", loginId: "l1", rejected: { step: "login" as const, alert } });
+
+  it("removes a login the site calls wrong, and the bot hears the person was told", async () => {
+    const rejected = vi.fn(() => ({ site: "bank.test", host: "bank.test", change: "removed" as const }));
+    const loginRejected = vi.fn(() => " Removed and the person was told.");
+    const { fill } = harness({ at: "browser", target: browser, withSecretInput: refused("Incorrect password."),
+      logins: { sitesFor: () => [BANK], candidates: async () => [], markUsed: () => {}, rejected }, loginRejected });
+    const answer = await fill(bot, turn, undefined, undefined);
+    expect(rejected).toHaveBeenCalledWith("l1", "login", "invalid");
+    expect(loginRejected).toHaveBeenCalledWith("b1", "t1", { site: "bank.test", host: "bank.test", change: "removed" });
+    expect(answer).toEqual({ ok: false, text: "The site did not accept the login. Removed and the person was told." });
+  });
+
+  it("passes on a temporary refusal as temporary, so nothing is removed", async () => {
+    const rejected = vi.fn(() => null);
+    const { fill } = harness({ at: "browser", target: browser, withSecretInput: refused("Too many attempts. Try again later."),
+      logins: { sitesFor: () => [BANK], candidates: async () => [], markUsed: () => {}, rejected }, loginRejected: () => null });
+    const answer = await fill(bot, turn, undefined, undefined);
+    expect(rejected).toHaveBeenCalledWith("l1", "login", "transient");
+    expect(answer.text).toBe("The site did not accept the login.");
+  });
+});

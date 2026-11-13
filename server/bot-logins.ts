@@ -4,6 +4,7 @@ import { loginMatchesHost, loginPageCheck, loginPlace, loginSite, type LoginPlac
 import type { FillCandidate } from "./login-fill.ts";
 import { receiveLoginHandoff, type ConnectionHandoffAnswer, type ConnectionHandoffWhat, type LoginHandoffResult } from "./login-handoff.ts";
 import type { LoginStore } from "./login-store.ts";
+import type { SecretVerdict } from "./secret-failure.ts";
 import type { OnePasswordLogins } from "./onepassword.ts";
 import type { TotpKey } from "./totp.ts";
 import type { LoginRouteDeps } from "./routes/logins.ts";
@@ -120,6 +121,28 @@ export class BotLogins {
       })),
       ...this.onePassword.candidates(pageHost, botId),
     ];
+  }
+
+  /** A fill the site refused. invalid: a saved login is deleted, or only its 2FA key when a code was refused, and a
+   * task-only one is forgotten; check: a saved one is marked for the person to look at. A 1Password login is never
+   * changed here. Null when nothing changed. */
+  rejected(id: string, step: "login" | "code", verdict: SecretVerdict): { site: string; host: string; change: "removed" | "removedTotp" | "flagged" | "forgotten" } | null {
+    if (verdict === "transient") return null;
+    const once = this.once.get(id);
+    if (once) {
+      if (verdict !== "invalid") return null;
+      this.once.delete(id);
+      return { site: once.site, host: once.hosts[0] ?? once.site, change: "forgotten" };
+    }
+    const saved = this.store.get(id);
+    if (!saved) return null;
+    const where = { site: saved.site, host: saved.hosts[0] ?? saved.site };
+    if (verdict === "check") return this.store.flag(id) ? { ...where, change: "flagged" } : null;
+    if (step === "code" && saved.totp) {
+      this.store.update(id, { totp: null });
+      return { ...where, change: "removedTotp" };
+    }
+    return this.store.remove(id) ? { ...where, change: "removed" } : null;
   }
 
   markUsed(id: string): void {

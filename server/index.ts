@@ -12074,6 +12074,7 @@ const { fillLoginForTurn } = createFillLoginTurn({
   logins: botLogins, onePasswordTrouble: () => botLogins.onePassword.status().error, loginInput, remember: (value, kind) => heldSecrets.remember(value, kind),
   stepContext: (bot, turn) => stepContext(bot, turn, () => liveTurnByThread.get(turn.threadId) ?? null),
   desktop: (bot, capability: InternalCapability) => desktopLogin.openDesktopLogin(bot, capability),
+  loginRejected: (botId, threadId, rejection) => secretCards.loginRejected(botId, threadId, rejection),
 });
 
 async function localVmPayload(target: LocalVmTarget, auth: RequestAuth) {

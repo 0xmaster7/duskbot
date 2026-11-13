@@ -900,7 +900,7 @@ async function requestLoginCard(args: Json, context: ToolCallContext): Promise<T
 async function requestCustomSecret(args: Json, context: ToolCallContext): Promise<ToolCallResult> {
   const r = await context.client.apiResponse("/api/internal/request-credential", {
     method: "POST",
-    body: JSON.stringify({ fromBotId: context.botId, fromThreadId: context.threadId, label: args.label, reason: args.reason, placeholder: args.placeholder, delivery: args.delivery }),
+    body: JSON.stringify({ fromBotId: context.botId, fromThreadId: context.threadId, label: args.label, reason: args.reason, placeholder: args.placeholder, delivery: args.delivery, failed: args.failed }),
   });
   const label = typeof r.body.label === "string" ? r.body.label : "the secret";
   if (!r.ok) return { text: String(r.body.error ?? `request_credential failed (HTTP ${r.status}).`), isError: true };
@@ -908,7 +908,9 @@ async function requestCustomSecret(args: Json, context: ToolCallContext): Promis
   const asked = r.body.savedAs === "ref"
     ? ` ${label} was saved earlier for dusk bot's tools only, not as a file for your commands (not a file request), so this card asks for it again.`
     : r.body.savedAs === "file" ? ` ${label} was saved earlier as a file for your commands, not as a secretRef, so this card asks for it again.` : "";
+  const vault = r.body.vault === "removed" ? ` The service said the saved ${label} is wrong, so dusk bot removed it from the Vault; the card tells the person and asks for a new one, so do not repeat that.`
+    : r.body.vault === "flagged" ? ` The saved ${label} may be wrong, so dusk bot marked it for the person to check; the card asks them for a new one, so do not repeat that.` : "";
   return {
-    text: `A secure card for ${label} is now in this conversation, in the app and on a QR-paired phone, and the person was notified. If they can't find it, tell them it is in this conversation, and the notification opens it.${asked} End this turn now and say in one line that you are waiting for it; dusk bot resumes you when the person saves or declines, and tells you how to use it. Never ask for it in chat.`,
+    text: `A secure card for ${label} is now in this conversation, in the app and on a QR-paired phone, and the person was notified. If they can't find it, tell them it is in this conversation, and the notification opens it.${asked}${vault} End this turn now and say in one line that you are waiting for it; dusk bot resumes you when the person saves or declines, and tells you how to use it. Never ask for it in chat.`,
   };
 }

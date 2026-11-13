@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import "../server-line-packs.ts";
 import type { BotRecord, Message } from "../store.ts";
+import { fileSavedSecretsKey, SavedSecretStore } from "../saved-secrets.ts";
 import { createSecretCards } from "./secret-cards.ts";
 
 const dirs: string[] = [];
@@ -247,5 +248,96 @@ describe("the login card", () => {
     cards.resumeSecretCard(bot.id, "t1", "m1", "dismissed");
     expect(resumed[0]).toContain("declined to give their login for example.com");
     expect(resumed[0]).toContain("request_sign_in");
+  });
+});
+
+describe("a Vault secret the service refused", () => {
+  const VALUE = "sk-fake-vault-canary";
+  function vaultCards() {
+    const dataDir = mkdtempSync(join(tmpdir(), "dusk-secret-cards-"));
+    const keyHome = mkdtempSync(join(tmpdir(), "dusk-secret-key-"));
+    dirs.push(dataDir, keyHome);
+    const savedSecrets = new SavedSecretStore({ dataDir, key: fileSavedSecretsKey(dataDir, join(keyHome, "saved.key")) });
+    const lines: Message[] = [];
+    let ids = 0;
+    const store = {
+      activePath: () => lines,
+      messagesFor: () => lines,
+      appendMessage: (_threadId: string, message: Omit<Message, "id" | "at">) => { const full = { id: `m${++ids}`, at: Date.now(), ...message } as Message; lines.push(full); return full; },
+      patchMessage: (_threadId: string, id: string, patch: Partial<Message>) => { const line = lines.find((one) => one.id === id)!; Object.assign(line, patch); return line; },
+      botByThread: () => null, groupByThread: () => undefined, onChange: () => () => {},
+    };
+    const bot = { id: "ledger", name: "Ledger" } as BotRecord;
+    const cards = createSecretCards({
+      store: store as never, cfg: {} as never, botLogins: { credentialConfig: (config) => ({ ...config, onePassword: { connected: false } }) },
+      phoneSecrets: { provide: async () => {}, open: () => {} } as never, phoneSecretSubmissions: {} as never,
+      connectorThread: () => ({ bot, group: undefined }), answerCardNode: () => true, followCard: () => {}, dataDir,
+      layerFolder: () => dataDir, turnVm: () => undefined, savedSecrets,
+      logins: { has: () => false, keep: () => {} },
+    });
+    savedSecrets.save({ label: "Stripe key", botId: bot.id, value: VALUE });
+    const ask = (extra: Record<string, unknown> = {}) => cards.requestCredential(bot, "t1", { label: "Stripe key", reason: "For Stripe.", delivery: "ref", ...extra });
+    return { cards, lines, bot, savedSecrets, ask };
+  }
+
+  it("removes it on a clear auth failure, and tells the person once on a fresh card", () => {
+    const { lines, savedSecrets, ask } = vaultCards();
+    expect(ask().body.fromVault).toBe(true);
+    const failed = ask({ failed: "HTTP 401 Unauthorized: Invalid API key provided" });
+    expect(failed.status).toBe(201);
+    expect(failed.body.vault).toBe("removed");
+    expect(savedSecrets.list()).toEqual([]);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]!.secret!.reason).toBe("That Stripe key didn't work, so I removed it. Add it again?");
+    expect(JSON.stringify([lines, failed.body])).not.toContain(VALUE);
+    // gone, so asking again is a plain card with no second note
+    const again = ask({ failed: "HTTP 401" });
+    expect(again.body.vault).toBeUndefined();
+    expect(lines[1]!.secret!.reason).toBe("For Stripe.");
+  });
+
+  it("keeps it on a rate limit or a network fault, with no card", () => {
+    const { lines, savedSecrets, ask } = vaultCards();
+    ask();
+    for (const failed of ["429 Too Many Requests", "fetch failed: ECONNRESET", "503 Service Unavailable"]) {
+      const answer = ask({ failed });
+      expect(answer.status).toBe(200);
+      expect(String(answer.body.text)).toContain("stays saved");
+    }
+    expect(lines).toHaveLength(0);
+    expect(savedSecrets.list()[0]!.needsCheck).toBeUndefined();
+  });
+
+  it("only marks it to check, and asks once, when unsure or when it was never handed out here", () => {
+    const { lines, savedSecrets, ask } = vaultCards();
+    // never used in this conversation: even a 401 cannot prove it is the saved one that failed
+    const unproven = ask({ failed: "401 Unauthorized" });
+    expect(unproven.body.vault).toBe("flagged");
+    expect(savedSecrets.list()).toHaveLength(1);
+    expect(savedSecrets.list()[0]!.needsCheck).toBeTypeOf("number");
+    expect(lines[0]!.secret!.reason).toBe("That Stripe key might not be working. Add a new one?");
+    const twice = ask({ failed: "403 Forbidden" });
+    expect(twice.status).toBe(200);
+    expect(String(twice.body.text)).toContain("already marked");
+    expect(lines).toHaveLength(1);
+  });
+
+  it("clears the mark when a new value is saved", () => {
+    const { savedSecrets, ask, bot } = vaultCards();
+    ask({ failed: "403 Forbidden" });
+    savedSecrets.save({ label: "Stripe key", botId: bot.id, value: "sk-fake-new" });
+    expect(savedSecrets.list()[0]!.needsCheck).toBeUndefined();
+  });
+
+  it("re-shows a login card with one line when a saved login was removed or marked", () => {
+    const { cards, lines, bot } = vaultCards();
+    const told = cards.loginRejected(bot.id, "t1", { site: "instagram.com", host: "www.instagram.com", change: "removed" });
+    expect(told).toContain("removed it from the Vault");
+    expect(lines[0]!.secret).toMatchObject({ delivery: "login", site: "www.instagram.com", label: "instagram.com", reason: "That instagram.com password didn't work, so I removed it. Add it again?" });
+    cards.loginRejected(bot.id, "t1", { site: "instagram.com", host: "www.instagram.com", change: "flagged" });
+    expect(lines[0]!.secret!.superseded).toBe(true);
+    expect(lines[1]!.secret!.reason).toBe("That instagram.com login might not be working. Add a new one?");
+    expect(cards.loginRejected(bot.id, "t1", null)).toBeNull();
+    expect(lines).toHaveLength(2);
   });
 });

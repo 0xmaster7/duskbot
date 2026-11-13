@@ -69,6 +69,21 @@ export function VaultNewItem() {
 
 type VaultTab = "all" | "saved" | "secrets" | "onepassword";
 
+/** Remove beside a Vault item a bot's last use may have found wrong: a second press removes it for good. */
+function CheckRemove({ label, confirming, disabled, onPress }: { label: string; confirming: boolean; disabled?: boolean; onPress: () => void }) {
+  return (
+    <button type="button" data-vault-remove="" disabled={disabled} onClick={onPress}
+      aria-label={confirming ? t("settings.secrets.removeConfirm") : t("settings.secrets.removeFor", { label })}
+      className={cn("me-1 inline-flex h-7 shrink-0 cursor-pointer items-center rounded-full px-2.5 text-[13px] leading-[18px] text-ink-secondary hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-default",
+        confirming && "bg-danger text-danger-ink hover:bg-danger hover:text-danger-ink")}>
+      {confirming ? t("settings.secrets.removeConfirm") : t("settings.secrets.remove")}
+    </button>
+  );
+}
+
+/** "needs checking", after a hint, for an item a bot's last use may have found wrong. */
+const checkTag = (marked: number | undefined) => marked === undefined ? null : <span className="text-danger" data-vault-needs-check=""> · {t("settings.vault.needsCheck")}</span>;
+
 /** One Vault item as Grok draws it: a 24px tile, the name, one grey line, a chevron; ink 6% on hover. */
 function VaultRow({ tile, title, hint, detail, onClick, disabled, label }: {
   tile: ReactNode; title: ReactNode; hint: ReactNode; detail?: string; onClick?: () => void; disabled?: boolean; label?: string;
@@ -132,6 +147,7 @@ export function LoginsSettings() {
   const [query, setQuery] = useState("");
   const saved_secrets = useSavedSecrets(ownerOrAdmin === true);
   const [openSecret, setOpenSecret] = useState<SavedSecretSummary | null>(null);
+  const [removingSecret, setRemovingSecret] = useState<string | null>(null);
   const [connectNonce, setConnectNonce] = useState(0);
   const request = useSyncExternalStore(subscribeVault, () => vaultRequest, () => vaultRequest);
   const [seen, setSeen] = useState(request?.nonce ?? 0);
@@ -168,6 +184,12 @@ export function LoginsSettings() {
     setEditBots(login.bots);
     setEditExact(login.exactHost);
     setEditing(login.id);
+  };
+  const removeSecret = async (secret: SavedSecretSummary) => {
+    if (removingSecret !== secret.id) { setRemovingSecret(secret.id); return; }
+    setBusy(true);
+    try { await saved_secrets.remove(secret); setRemovingSecret(null); }
+    finally { setBusy(false); }
   };
   const remove = async (id: string) => {
     if (deleting !== id) { setDeleting(id); return; }
@@ -232,11 +254,15 @@ export function LoginsSettings() {
                     login.lastUsedAt ? t("settings.logins.used", { when: relativeTime(login.lastUsedAt) }) : t("settings.logins.neverUsed")].join(" · ");
                   const hosts = signInHostsLine(login);
                   const title = <span dir="ltr">{login.site}{login.hasTotp && <span className="font-normal text-ink-secondary"> · {t("settings.logins.twoFactor")}</span>}</span>;
-                  const hint = <span dir="auto">{login.username || t("settings.logins.noUsername")}{hosts && <span data-login-hosts> · {hosts}</span>}</span>;
+                  const hint = <span dir="auto">{login.username || t("settings.logins.noUsername")}{hosts && <span data-login-hosts> · {hosts}</span>}{checkTag(login.needsCheck)}</span>;
                   return (
-                    <li key={login.id} className="flex flex-col" data-login-row={login.site} data-login-detail={details}>
-                      <VaultRow tile={<SiteTile site={login.site} />} title={title} hint={hint} detail={details}
-                        {...(login.source === "1password" ? {} : { onClick: () => startEdit(login), disabled: busy, label: t("settings.logins.changeFor", { site: login.site }) })} />
+                    <li key={login.id} className="flex items-center" data-login-row={login.site} data-login-detail={details}>
+                      <div className="min-w-0 flex-1">
+                        <VaultRow tile={<SiteTile site={login.site} />} title={title} hint={hint} detail={details}
+                          {...(login.source === "1password" ? {} : { onClick: () => startEdit(login), disabled: busy, label: t("settings.logins.changeFor", { site: login.site }) })} />
+                      </div>
+                      {login.needsCheck !== undefined && login.source !== "1password" &&
+                        <CheckRemove label={login.site} confirming={deleting === login.id && !editing} disabled={busy} onPress={() => { setEditing(null); void remove(login.id); }} />}
                     </li>
                   );
                 })}
@@ -245,8 +271,11 @@ export function LoginsSettings() {
             {ready && !!shownSecrets.length && (
               <ul className="flex flex-col" data-saved-secrets="">
                 {shownSecrets.map((secret) => (
-                  <li key={secret.id} data-saved-secret={secret.label}>
-                    <VaultRow tile={<KeyTile />} title={secret.label} hint={secretHint(secret)} onClick={() => setOpenSecret(secret)} label={secret.label} />
+                  <li key={secret.id} className="flex items-center" data-saved-secret={secret.label}>
+                    <div className="min-w-0 flex-1">
+                      <VaultRow tile={<KeyTile />} title={secret.label} hint={<>{secretHint(secret)}{checkTag(secret.needsCheck)}</>} onClick={() => setOpenSecret(secret)} label={secret.label} />
+                    </div>
+                    {secret.needsCheck !== undefined && <CheckRemove label={secret.label} confirming={removingSecret === secret.id} disabled={busy} onPress={() => void removeSecret(secret)} />}
                   </li>
                 ))}
               </ul>

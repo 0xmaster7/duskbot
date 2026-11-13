@@ -132,7 +132,7 @@ export function savedSecretsPrompt(labels: readonly string[]): string {
   if (!labels.length) return "";
   const shown = labels.slice(0, 40).map((label) => JSON.stringify(label));
   const more = labels.length > shown.length ? ` and ${labels.length - shown.length} more` : "";
-  return ` Secrets saved in the person's Vault for you: ${shown.join(", ")}${more}. To use one, call request_credential with that label and a delivery; it comes back at once as a secretRef or a private file, with no card, and you never see the value.`;
+  return ` Secrets saved in the person's Vault for you: ${shown.join(", ")}${more}. To use one, call request_credential with that label and a delivery; it comes back at once as a secretRef or a private file, with no card, and you never see the value. If the service refuses one, call request_credential again with failed set to its error.`;
 }
 
 export function computerPrompt(kind: ComputerPromptKind | null): string {

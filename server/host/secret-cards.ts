@@ -44,6 +44,7 @@ import { parseLoginFields, parseTotpField } from "../routes/logins.ts";
 import type { TotpKey } from "../totp.ts";
 import type { BotRecord, GroupRecord, Message, Store } from "../store.ts";
 import { serverLine } from "../server-lines.ts";
+import { classifyApiFailure } from "../secret-failure.ts";
 
 export const phoneSecretEnvelopeSchema = z.object({
   version: z.literal(PHONE_SECRET_PROTOCOL_VERSION),
@@ -105,6 +106,12 @@ export function loginCardUpdateText(site: string, outcome: "provided" | "dismiss
 export type SecretCards = ReturnType<typeof createSecretCards>;
 
 const SWEEP_MS = 10 * 60 * 1000;
+/** How long after the Vault hands a bot a secret its failure report can remove it. */
+const ISSUED_MS = 24 * 60 * 60 * 1000;
+const FAILED_MAX = 600;
+
+/** What a saved login's refused fill changed (BotLogins.rejected). */
+export type LoginRejection = { site: string; host: string; change: "removed" | "removedTotp" | "flagged" | "forgotten" };
 
 const credentialUpdateText = (label: string, outcome: "provided" | "dismissed"): string => outcome === "provided"
   ? `dusk bot credential update: the user securely provided ${label}. Continue the task that paused for it. You do not receive the secret and must not ask them to paste it into chat.`
@@ -177,6 +184,9 @@ export function createSecretCards(deps: SecretCardsDeps) {
   }
 
   const custom = (secret: SecretRequestCardData): boolean => secret.target === CUSTOM_SECRET_TARGET;
+  // which Vault secrets were handed to which bot in which conversation, and when: only a use proven there can remove one
+  const issued = new Map<string, number>();
+  const issuedKey = (threadId: string, botId: string, secretId: string) => `${threadId}\n${botId}\n${secretId}`;
   /** Saved where the card says: a named key in the settings or Logins, a custom secret behind its card. */
   const secretSaved = (secret: SecretRequestCardData): boolean =>
     secret.target === CUSTOM_SECRET_TARGET ? secret.savedAt !== undefined : credentialIsConfigured(botLogins.credentialConfig(cfg), secret.target);
@@ -530,15 +540,21 @@ export function createSecretCards(deps: SecretCardsDeps) {
       return { status: 200, body: { site: target.site, text: `A saved login for ${target.site} is already yours to use, so no card was needed. Open its login page where you work and call fill_login.` } };
     }
     const reason = typeof body.reason === "string" ? body.reason.trim().slice(0, CUSTOM_SECRET_REASON_MAX) : "";
+    const message = appendLoginCard(from, threadId, room, target.site, host, reason);
+    return { status: 201, body: { messageId: message.id, site: target.site, delivery: "login" } };
+  }
+
+  /** A login card for `site`, replacing this bot's pending one for it. */
+  function appendLoginCard(from: BotRecord, threadId: string, room: boolean, site: string, host: string, reason: string): Message {
     const language = deps.threadLanguage?.(threadId);
     const message = store.appendMessage(threadId, {
       role: "bot",
       kind: "secret",
-      text: credentialDesktopHandoff(target.site, language),
+      text: credentialDesktopHandoff(site, language),
       ...(room ? { from: { botId: from.id, name: from.name, color: from.color } } : {}),
       secret: {
         target: CUSTOM_SECRET_TARGET,
-        label: target.site,
+        label: site,
         description: reason,
         ...(reason ? { reason } : {}),
         placeholder: "",
@@ -549,11 +565,30 @@ export function createSecretCards(deps: SecretCardsDeps) {
       },
     });
     for (const prior of store.activePath(threadId)) {
-      if (prior.id === message.id || !prior.secret || !isPendingCustomSecretRequest(prior, target.site, from.id, room)) continue;
+      if (prior.id === message.id || !prior.secret || !isPendingCustomSecretRequest(prior, site, from.id, room)) continue;
       store.patchMessage(threadId, prior.id, { secret: { ...prior.secret, superseded: true } });
       deps.followCard(threadId, prior.id, message.id);
     }
-    return { status: 201, body: { messageId: message.id, site: target.site, delivery: "login" } };
+    return message;
+  }
+
+  /** A saved login the site refused, after BotLogins.rejected changed it: the person hears once, on a fresh login card
+   * whose line says what happened, and the bot is told. Null when nothing changed. */
+  function loginRejected(botId: string, threadId: string, rejection: LoginRejection | null): string | null {
+    if (!rejection) return null;
+    if (rejection.change === "forgotten") {
+      return ` The site said this login is wrong, so dusk bot dropped it. If you still need it, call request_credential login for ${rejection.site}.`;
+    }
+    const owner = connectorThread(botId, threadId);
+    const language = deps.threadLanguage?.(threadId);
+    const key = rejection.change === "removed" ? "server.vault.loginRemoved" : rejection.change === "removedTotp" ? "server.vault.totpRemoved" : "server.vault.loginCheck";
+    const what = rejection.change === "flagged"
+      ? "It may be wrong, so dusk bot marked it for the person to check in Settings"
+      : rejection.change === "removedTotp" ? "The site refused the code from its saved 2FA key, so dusk bot removed that key from the Vault"
+        : "The site said this login is wrong, so dusk bot removed it from the Vault";
+    if (!owner || !deps.logins) return ` ${what}. Tell the person in one short line; do not call fill_login with it again.`;
+    appendLoginCard(owner.bot, threadId, Boolean(owner.group), rejection.site, rejection.host, serverLine(language, key, { site: rejection.site }));
+    return ` ${what} and showed the person a login card to add it again, which says so. Do not repeat it or call fill_login again now: end your turn; dusk bot resumes you when they answer.`;
   }
 
   /** A login card's answer: `value` is the sealed JSON of its password and 2FA key, opened for this card only. Kept before
@@ -589,13 +624,20 @@ export function createSecretCards(deps: SecretCardsDeps) {
   function requestCustomSecret(from: BotRecord, threadId: string, room: boolean, body: Record<string, unknown>): { status: number; body: Record<string, unknown> } {
     const asked = customRequest(body);
     if ("error" in asked) return { status: 400, body: asked };
+    const failed = typeof body.failed === "string" ? body.failed.replace(/[\u0000-\u001f\u007f]/gu, " ").trim().slice(0, FAILED_MAX) : "";
+    let vaulted: VaultFailure = {};
+    if (failed) {
+      vaulted = savedSecretFailed(from, threadId, asked.label, failed);
+      if (vaulted.answer) return vaulted.answer;
+    }
     const path = store.activePath(threadId);
-    const earlier = [...path].reverse().find((message) => message.kind === "secret" && message.secret && custom(message.secret) &&
+    // the one that failed is never handed back
+    const earlier = failed ? undefined : [...path].reverse().find((message) => message.kind === "secret" && message.secret && custom(message.secret) &&
       message.secret.savedAt !== undefined && !message.secret.superseded && message.secret.label.toLowerCase() === asked.label.toLowerCase() &&
       (!room || message.from?.botId === from.id));
     const kept = earlier ? vault.savedFor(earlier.id) : null;
     if (earlier && kept && earlier.secret!.delivery === asked.delivery) return { status: 200, body: { label: asked.label, text: savedSecretText(asked.label, kept) } };
-    const fromVault = issueFromVault(from, threadId, asked);
+    const fromVault = failed ? null : issueFromVault(from, threadId, asked);
     if (fromVault) return fromVault;
     const mismatch = earlier && kept ? earlier.secret!.delivery : undefined;
     const vm = asked.delivery === "file" ? deps.turnVm(threadId) : undefined;
@@ -608,8 +650,8 @@ export function createSecretCards(deps: SecretCardsDeps) {
       secret: {
         target: CUSTOM_SECRET_TARGET,
         label: asked.label,
-        description: `${asked.reason} ${deliveryNote(from.name, asked.delivery, language)}`,
-        reason: asked.reason,
+        description: `${vaulted.note ?? asked.reason} ${deliveryNote(from.name, asked.delivery, language)}`,
+        reason: vaulted.note ?? asked.reason,
         placeholder: asked.placeholder,
         helpUrl: "",
         delivery: asked.delivery,
@@ -622,7 +664,39 @@ export function createSecretCards(deps: SecretCardsDeps) {
       store.patchMessage(threadId, prior.id, { secret: { ...prior.secret, superseded: true } });
       deps.followCard(threadId, prior.id, message.id);
     }
-    return { status: 201, body: { messageId: message.id, label: asked.label, delivery: asked.delivery, ...(mismatch ? { savedAs: mismatch } : {}) } };
+    return { status: 201, body: { messageId: message.id, label: asked.label, delivery: asked.delivery, ...(mismatch ? { savedAs: mismatch } : {}), ...(vaulted.vault ? { vault: vaulted.vault } : {}) } };
+  }
+
+  type VaultFailure = { answer?: { status: number; body: Record<string, unknown> }; note?: string; vault?: "removed" | "flagged" };
+
+  /** A Vault secret the bot says failed when used. A clear auth failure on one the Vault handed this bot here removes it;
+   * a temporary one changes nothing; anything else marks it to check, once. The card that follows says what happened. */
+  function savedSecretFailed(from: BotRecord, threadId: string, label: string, failed: string): VaultFailure {
+    if (!savedSecrets?.ready()) return {};
+    try {
+      const found = savedSecrets.find(label, from.id);
+      if (!found) return {};
+      let verdict = classifyApiFailure({ message: failed });
+      if (verdict === "transient") {
+        return { answer: { status: 200, body: { label: found.label, text: `That looks like a temporary problem (a rate limit, the network or the service being busy), not a wrong ${found.label}, so it stays saved. Try again in a while, and do not ask for a new one.` } } };
+      }
+      const at = issued.get(issuedKey(threadId, from.id, found.id));
+      // only a use the Vault gave this bot in this conversation proves it wrong
+      if (verdict === "invalid" && !(at !== undefined && Date.now() - at < ISSUED_MS)) verdict = "check";
+      const language = deps.threadLanguage?.(threadId);
+      if (verdict === "invalid") {
+        savedSecrets.remove(found.id);
+        issued.delete(issuedKey(threadId, from.id, found.id));
+        return { note: serverLine(language, "server.vault.removed", { label: found.label }), vault: "removed" };
+      }
+      if (!savedSecrets.flag(found.id)) {
+        return { answer: { status: 200, body: { label: found.label, text: `${found.label} is already marked for the person to check in Settings, and they were asked once. Do not ask again: continue without it, or say in one line that it is not working.` } } };
+      }
+      return { note: serverLine(language, "server.vault.check", { label: found.label }), vault: "flagged" };
+    } catch (error) {
+      console.warn(`saved secrets: could not record a failed secret: ${error instanceof Error ? error.name : "error"}`);
+      return {};
+    }
   }
 
   /** A secret the person saved to the Vault for this bot: a fresh one-use ref or private file, and no card. */
@@ -645,6 +719,7 @@ export function createSecretCards(deps: SecretCardsDeps) {
         saved = { file: vault.saveFile(owner, issue, found.value, home) };
       } else saved = { ref: vault.saveRef(owner, issue, found.label, found.value) };
       savedSecrets.markUsed(found.id);
+      issued.set(issuedKey(threadId, from.id, found.id), Date.now());
     } catch (error) {
       console.warn(`saved secrets: could not hand a saved secret to its bot: ${error instanceof Error ? error.name : "error"}`);
       return null;
@@ -665,6 +740,6 @@ export function createSecretCards(deps: SecretCardsDeps) {
   return {
     sealKey, openSealed,
     phoneSecretSubmissionKey, secretMessage, currentSecretState, resumeSecretCard, provideSecretFromPhone, requestCredential, saveCustomSecret, saveEmailSecret, saveLoginSecret,
-    secretSaved, updateText, redeemMcpServer,
+    secretSaved, updateText, redeemMcpServer, loginRejected,
   };
 }

@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { BotLogins, cardLoginPlace, cardSignInElsewhere, ONCE_LOGIN_MS, observeSignInPage } from "./bot-logins.ts";
-import type { LoginStore } from "./login-store.ts";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { LoginStore } from "./login-store.ts";
 import type { OnePasswordLogins } from "./onepassword.ts";
 import { FakeLoginPage, LOGIN_FORM } from "./testing/fake-login-page.ts";
 
@@ -72,5 +76,47 @@ describe("a login given for one task only", () => {
     all.keepOnce("b1", "example.com", { username: "me", password: "fake-pass", totp: null });
     clock.now += ONCE_LOGIN_MS;
     expect(all.sitesFor("b1")).toEqual([]);
+  });
+});
+
+describe("a saved login a site refused", () => {
+  const homes: string[] = [];
+  afterEach(() => { for (const dir of homes.splice(0)) rmSync(dir, { recursive: true, force: true }); });
+  function saved() {
+    const dataDir = mkdtempSync(join(tmpdir(), "dusk-bot-logins-"));
+    homes.push(dataDir);
+    const store = new LoginStore({ dataDir });
+    const onePassword = { candidates: () => [], sitesFor: () => [], markUsed: () => {}, fresh: async () => {} } as unknown as OnePasswordLogins;
+    const login = store.create({ site: "instagram.com", hosts: ["www.instagram.com"], exactHost: false, username: "me", password: "fake-old-pass",
+      totp: { secret: "JBSWY3DPEHPK3PXP", algorithm: "SHA1", digits: 6, period: 30 }, source: "card", bots: ["b1"] });
+    return { store, logins: new BotLogins(store, onePassword), id: login.id };
+  }
+
+  it("is removed on a clear wrong-password signal, and only its 2FA key when a code was refused", () => {
+    const one = saved();
+    expect(one.logins.rejected(one.id, "code", "invalid")).toEqual({ site: "instagram.com", host: "www.instagram.com", change: "removedTotp" });
+    expect(one.store.list()).toMatchObject([{ hasTotp: false, username: "me" }]);
+    expect(one.logins.rejected(one.id, "login", "invalid")).toMatchObject({ change: "removed" });
+    expect(one.store.list()).toEqual([]);
+  });
+
+  it("is left alone on a temporary failure, marked once when unsure, and unmarked by a new password", () => {
+    const one = saved();
+    expect(one.logins.rejected(one.id, "login", "transient")).toBeNull();
+    expect(one.store.list()[0]!.needsCheck).toBeUndefined();
+    expect(one.logins.rejected(one.id, "login", "check")).toMatchObject({ change: "flagged" });
+    expect(one.logins.rejected(one.id, "login", "check")).toBeNull();
+    expect(one.store.list()[0]!.needsCheck).toBeTypeOf("number");
+    one.store.update(one.id, { password: "fake-new-pass" });
+    expect(one.store.list()[0]!.needsCheck).toBeUndefined();
+  });
+
+  it("given for one task only, is forgotten when wrong, and an unknown id changes nothing", () => {
+    const one = saved();
+    const once = one.logins.keepOnce("b1", "example.com", { username: "x", password: "fake-pass", totp: null });
+    expect(one.logins.rejected(once, "login", "check")).toBeNull();
+    expect(one.logins.rejected(once, "login", "invalid")).toMatchObject({ change: "forgotten" });
+    expect(one.logins.has("b1", "example.com")).toBe(false);
+    expect(one.logins.rejected("1password-item", "login", "invalid")).toBeNull();
   });
 });

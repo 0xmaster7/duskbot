@@ -219,7 +219,7 @@ describe("a login the site refuses is cleared from the page", () => {
     const { page, fill } = setup("https://example.com/login", LOGIN_FORM, [{ host: "example.com", username: "alice@example.com" }]);
     page.answer = () => ({ error: "Incorrect password." });
     const outcome = await fill();
-    expect(outcome).toMatchObject({ ok: false, filled: ["username", "password"] });
+    expect(outcome).toMatchObject({ ok: false, filled: ["username", "password"], rejected: { step: "login", alert: "Incorrect password." } });
     expect(outcome.text).toBe("The site did not accept the login for alice@example.com on example.com. It said: “Incorrect password.”. Check the saved login in Settings → Logins, or call request_sign_in. The password was cleared from the page.");
     expect(page.sent).toHaveLength(1);
     expect(page.field("#password").value).toBe("");
