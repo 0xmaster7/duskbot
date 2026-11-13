@@ -1,12 +1,15 @@
 import phoneHome from "../assets/onboarding/phone-home.webp";
 
-/** The phone app's own home screen (the capture first run shows), in the same plain phone outline, at settings size. */
-export function PhoneHomeShot() {
+/** The phone app's own home screen (the capture first run shows), in the same plain phone outline. */
+export function PhoneHomeShot({ size = "small" }: { size?: "small" | "large" }) {
+  const large = size === "large";
   return (
-    <div aria-hidden="true" data-phone-home-shot="" className="w-[112px] shrink-0 rounded-[22px] bg-[#1b1b1f] p-1 shadow-[0_16px_32px_-18px_rgba(27,27,31,0.45)]">
-      <div className="relative overflow-hidden rounded-[18px] bg-white">
-        <img src={phoneHome} alt="" width={104} height={226} draggable={false} className="block h-auto w-full select-none" />
-        <span className="absolute left-1/2 top-[4px] h-[10px] w-[34px] -translate-x-1/2 rounded-full bg-[#1b1b1f]" />
+    <div aria-hidden="true" data-phone-home-shot="" className={large
+      ? "h-fit w-[208px] shrink-0 rounded-[38px] bg-[#1b1b1f] p-[6px] shadow-[0_24px_48px_-24px_rgba(27,27,31,0.45)]"
+      : "h-fit w-[112px] shrink-0 rounded-[22px] bg-[#1b1b1f] p-1 shadow-[0_16px_32px_-18px_rgba(27,27,31,0.45)]"}>
+      <div className={large ? "relative overflow-hidden rounded-[32px] bg-white" : "relative overflow-hidden rounded-[18px] bg-white"}>
+        <img src={phoneHome} alt="" width={large ? 196 : 104} height={large ? 426 : 226} draggable={false} className="block h-auto w-full select-none" />
+        <span className={large ? "absolute left-1/2 top-[7px] h-[18px] w-[64px] -translate-x-1/2 rounded-full bg-[#1b1b1f]" : "absolute left-1/2 top-[4px] h-[10px] w-[34px] -translate-x-1/2 rounded-full bg-[#1b1b1f]"} />
       </div>
     </div>
   );

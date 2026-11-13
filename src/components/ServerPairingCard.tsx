@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { requireUserPresence } from "@/lib/user-presence";
-import { cn } from "@/lib/cn";
 import { KeyRound } from "../icons";
 
 import { t } from "@/lib/i18n";
@@ -107,26 +106,14 @@ export function ServerPairingCard({ initialSession = null, cloudHome = false, fo
 
   // the phone page: what the phone app is, its two ways to pair side by side, pairing another computer under them,
   // the phones, then the rest
-  const phonePage = (computerPair: ReactNode, rest: ReactNode) => {
-    const tiles = [phone?.qrTile, phone?.codeTile].filter(Boolean);
-    return (
-      <div ref={root} tabIndex={-1} data-phone-pairing="server" className="flex scroll-mt-4 flex-col gap-5 focus:outline-none">
-        {phone?.hero}
-        {(tiles.length > 0 || computerPair) && (
-          <div className="flex flex-col gap-2">
-            {tiles.length > 0 && (
-              <div className="@container">
-                <div data-pairing-ways="" className={cn("grid gap-3", tiles.length > 1 && "@min-[480px]:grid-cols-2")}>{tiles}</div>
-              </div>
-            )}
-            {computerPair}
-          </div>
-        )}
-        {phone?.phones}
-        {rest}
-      </div>
-    );
-  };
+  const phonePage = (computerPair: ReactNode, rest: ReactNode) => (
+    <div ref={root} tabIndex={-1} data-phone-pairing="server" className="flex scroll-mt-4 flex-col gap-5 focus:outline-none">
+      {phone?.top}
+      {phone?.stepping ? null : computerPair}
+      {phone?.phones}
+      {rest}
+    </div>
+  );
 
   if (team && session?.kind === "session" && session.team) {
     if (phone !== undefined) return phonePage(null, <TeamPhoneCard team={team} blocked={teamPhoneBlocked} />);
@@ -252,7 +239,7 @@ export function ServerPairingCard({ initialSession = null, cloudHome = false, fo
             {error ? <p role="alert" className="m-0 text-[13px] leading-[18px] text-danger">{error}</p> : null}
     </>;
     const computerPair = (
-      <div data-pair-computer="" className="flex flex-col items-start gap-2">
+      <div data-pair-computer="" className="-mt-3 flex flex-col items-start gap-2">
         {phone ? (
           <button type="button" aria-expanded={open} aria-controls="server-pairing-code" onClick={() => setComputerOpen(!computerOpen)}
             className="mobile-press min-h-11 rounded-full px-3 text-[13px] font-medium text-ink-secondary hover:bg-ink/5">

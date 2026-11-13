@@ -16,7 +16,6 @@ import { useKeyFocus } from "./keys/key-focus";
 import { CompanionSection } from "./CompanionSection";
 import { ServerPairingCard } from "./ServerPairingCard";
 import { MobilePairingCard, type PhoneParts } from "./MobilePairingCard";
-import { useAccounts } from "./AccountMenu";
 import { RemoteComputerSection } from "./RemoteComputerSection";
 import { ConnectedWorkspacesSettings } from "./ConnectedWorkspacesSettings";
 import { CloudAccountSettings } from "./CloudAccountSettings";
@@ -391,10 +390,9 @@ export function SettingsModal() {
   );
 }
 
-/** Linking a phone, with "sign in on your phone" offered while an account is signed in here; the caller lays out the pieces. */
+/** Linking a phone; the caller lays out the pieces. */
 function PhoneLinking({ remote, children }: { remote: boolean; children: (phone: PhoneParts | null) => ReactNode }) {
-  const accounts = useAccounts();
-  return <MobilePairingCard remote={remote} accountEmail={remote ? null : accounts.view?.active?.email ?? null}>{children}</MobilePairingCard>;
+  return <MobilePairingCard remote={remote}>{children}</MobilePairingCard>;
 }
 
 const PHONE_SETTINGS = "(max-width: 639.98px)";
