@@ -273,7 +273,7 @@ function gathered(pc: PeerConnection, ms: number): Promise<void> {
  * the desktop's handshake itself, `opening` goes first and the app's own version, security choice and ClientInit are
  * dropped (`skip`), exactly as joinViewer does for a relay viewer.
  */
-export function bridgeScreen(channel: ScreenChannel, upstream: Duplex, start: { head: Buffer; opening?: Buffer[]; payload?: Buffer; skip?: number }, onEnd: () => void): void {
+export function bridgeScreen(channel: ScreenChannel, upstream: Duplex, start: { head: Buffer; opening?: Buffer[]; payload?: Buffer; skip?: number; input?: (bytes: Buffer) => void }, onEnd: () => void): void {
   let ended = false;
   const end = () => {
     if (ended) return;
@@ -304,7 +304,7 @@ export function bridgeScreen(channel: ScreenChannel, upstream: Duplex, start: { 
     if (ended) return;
     const dropped = Math.min(skip, bytes.length);
     skip -= dropped;
-    if (bytes.length > dropped) upstream.write(writeFrame(bytes.subarray(dropped), true));
+    if (bytes.length > dropped) { const rest = bytes.subarray(dropped); upstream.write(writeFrame(rest, true)); start.input?.(rest); }
   });
   channel.onClose(end);
   upstream.on("data", (chunk: Buffer) => { raw = raw.length ? Buffer.concat([raw, chunk]) : chunk; parse(); });

@@ -27,6 +27,7 @@ import {
 } from "../../shared/mobile-link.ts";
 import type { NotificationLogEntry } from "../../shared/notification.ts";
 import { labelFromUserAgent, ownerOrAdmin, requestSource, type RequestAuth } from "../request-auth.ts";
+import { cloudPowerNow } from "../cloud-power.ts";
 import { formatPairingCode, type Scope, type SessionRegistry } from "../sessions.ts";
 import { postLookup } from "./lookup.ts";
 import { createPhonePresence } from "./presence.ts";
@@ -418,6 +419,8 @@ export function createMobileLink(deps: MobileLinkDeps) {
         const value = await body();
         if (typeof value.away !== "boolean") { json(res, 400, { error: "away must be true or false" }); return true; }
         presence.report(device.id, value.away);
+        // the app open in the foreground on a Cloud home: the same hint as the desktop's focus, never someone using it
+        if (!value.away) cloudPowerNow()?.noteFocus?.();
         json(res, 200, { ok: true });
         return true;
       }

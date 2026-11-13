@@ -4620,6 +4620,8 @@ const screenDirect = createScreenDirect({ ports: directPortRange(process.env.DUS
 const desktopViewer = createDesktopViewer({
   upgrades,
   direct: screenDirect,
+  // a Cloud home: input on a screen (relay or direct) is someone using it, an open screen a hint like the app's focus
+  presence: { input: () => cloudPower?.noteActivity(), watching: () => cloudPower?.noteFocus() },
   target: (id, threadId) => {
     if (id.startsWith("vps/")) {
       const requestedOwner = id.slice(4);

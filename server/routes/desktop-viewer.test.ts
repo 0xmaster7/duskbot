@@ -10,7 +10,7 @@ import { SessionRegistry } from "../sessions.ts";
 import { resolveRequestAuth, type RequestAuth } from "../request-auth.ts";
 import { json, readBody } from "../harness/http.ts";
 import { SHARED_LOCAL_VM_TARGET, perBotLocalVmTarget, poolLocalVmTarget, type ContainerComputerStatus } from "../container-computer.ts";
-import { createDesktopViewer, desktopViewerUrl, type DesktopTarget } from "./desktop-viewer.ts";
+import { createDesktopViewer, desktopViewerUrl, type DesktopTarget, rfbInput } from "./desktop-viewer.ts";
 import { readFrame, writeFrame } from "./rfb-handshake.ts";
 import { viewerTargetId } from "../../shared/desktop-viewer.ts";
 import { localDesktopTarget, localVmViewerStatus } from "../desktop-viewer-targets.ts";
@@ -587,4 +587,17 @@ it("guards the direct screen's signaling exactly like the relay socket, and says
 it("shows how screens connected to an admin only", async () => {
   expect((await get("/api/desktop-viewer/transport", { cookie: `test_session=${member.token}` })).status).toBe(403);
   expect(await get("/api/desktop-viewer/transport")).toMatchObject({ status: 200, body: { available: false } });
+});
+
+it("tells a person's key and pointer input from a screen being watched", () => {
+  const update = Buffer.from([3, 1, 0, 0, 0, 0, 4, 0, 3, 0]);
+  const pointer = Buffer.from([5, 0, 0, 10, 0, 20]);
+  const key = Buffer.from([4, 1, 0, 0, 0, 0, 0, 0x61]);
+  const encodings = Buffer.from([2, 0, 0, 2, 0, 0, 0, 7, 0, 0, 0, 0]);
+  expect(rfbInput(update)).toBe(false);
+  expect(rfbInput(Buffer.concat([encodings, update]))).toBe(false);
+  expect(rfbInput(pointer)).toBe(true);
+  expect(rfbInput(Buffer.concat([update, key]))).toBe(true);
+  expect(rfbInput(Buffer.from("RFB 003.008\n"))).toBe(false);
+  expect(rfbInput(Buffer.from([5, 0]))).toBe(false);
 });

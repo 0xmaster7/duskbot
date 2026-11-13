@@ -6,7 +6,7 @@ import type { Duplex } from "node:stream";
 import { isSameOrigin, type RequestAuth } from "../request-auth.ts";
 import { isMobileOrigin, mobileBearer } from "../mobile/request.ts";
 import { PASS, type RouteHandler } from "./table.ts";
-import { joinViewer, openDesktop, writeFrame } from "./rfb-handshake.ts";
+import { joinViewer, openDesktop, readFrame, writeFrame } from "./rfb-handshake.ts";
 import { createUpgrades, type Upgrades } from "./upgrades.ts";
 import { isScreenFallbackReason, SCREEN_DIRECT_CONNECT_MS } from "../../shared/screen-direct.ts";
 import { bridgeScreen, DirectRefused, type ScreenChannel, type ScreenDirect } from "../screen-direct.ts";
@@ -19,6 +19,51 @@ const VIEWER_OPENING = 12 + 1 + 1;
 const HANDSHAKE_MS = 10_000;
 const RECHECK_MS = 5_000;
 const WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+/** a person's input on a screen counts at most this often; an open screen is a presence hint this often */
+const INPUT_NOTE_MS = 15_000, WATCH_NOTE_MS = 60_000;
+
+/** Whether the viewer's bytes (whole RFB client messages, as the app sends them) hold a key or pointer event: a person
+ * using the screen. Update requests, encodings and pixel formats alone are a screen being watched; anything that does
+ * not parse as client messages is not counted. */
+export function rfbInput(bytes: Buffer): boolean {
+  let at = 0;
+  while (at < bytes.length) {
+    const type = bytes[at]!;
+    if (type === 4 || type === 5) return at + (type === 4 ? 8 : 6) <= bytes.length;
+    const size = type === 0 ? 20 : type === 3 ? 10 : type === 2 && at + 4 <= bytes.length ? 4 + 4 * bytes.readUInt16BE(at + 2)
+      : type === 6 && at + 8 <= bytes.length ? 8 + bytes.readUInt32BE(at + 4) : 0;
+    if (!size) return false;
+    at += size;
+  }
+  return false;
+}
+
+/** A screen's presence for a Cloud home's power (server/cloud-power.ts): input is someone using it, an open screen a hint. */
+function screenPresence(presence: { input(): void; watching(): void } | undefined, now: () => number = Date.now) {
+  let inputAt = -Infinity, watchAt = -Infinity;
+  return {
+    bytes(bytes: Buffer) {
+      if (!presence || now() - inputAt < INPUT_NOTE_MS || !rfbInput(bytes)) return;
+      inputAt = now(); presence.input();
+    },
+    tick() {
+      if (!presence || now() - watchAt < WATCH_NOTE_MS) return;
+      watchAt = now(); presence.watching();
+    },
+  };
+}
+
+/** Reads a viewer's masked WebSocket frames off its socket, alongside the pipe, for `screenPresence`. */
+function watchFrames(socket: Duplex, head: Buffer, onPayload: (payload: Buffer) => void) {
+  let raw: Buffer = Buffer.from(head);
+  socket.on("data", (chunk: Buffer) => {
+    raw = raw.length ? Buffer.concat([raw, chunk]) : chunk;
+    try {
+      for (let next; (next = readFrame(raw));) { raw = raw.subarray(next.size); if (next.frame.opcode < 8 && next.frame.payload.length) onPayload(next.frame.payload); }
+    } catch { raw = Buffer.alloc(0); }
+    if (raw.length > 1024 * 1024) raw = Buffer.alloc(0);
+  });
+}
 /** A desktop that just woke answers its viewer port a moment after the container runs: dial again until it does. */
 const REDIAL_MS = 100;
 const BOT_ID = /^[\w-]+$/;
@@ -123,6 +168,9 @@ export function createDesktopViewer(deps: {
   upgrades?: Upgrades;
   /** The direct screen path (WebRTC); without it every screen rides the relay and `/direct` says so. */
   direct?: ScreenDirect;
+  /** A Cloud home's power: a person's key or pointer input on any screen path (relay or direct) is someone using the
+   * home; an open screen is a hint like the app's focus. */
+  presence?: { input(): void; watching(): void };
 }) {
   const upgrades = deps.upgrades ?? createUpgrades();
   const ownGate = deps.upgrades === undefined;
@@ -269,9 +317,12 @@ export function createDesktopViewer(deps: {
         socket.pipe(remote).pipe(socket);
       }
       connection.touch?.();
+      const seen = screenPresence(deps.presence);
+      watchFrames(socket, head, (payload) => seen.bytes(payload));
+      seen.tick();
       recheck = setInterval(() => {
         if (!live() || !holds()) upgrade.close();
-        else connection.touch?.();
+        else { connection.touch?.(); seen.tick(); }
       }, RECHECK_MS);
       recheck.unref();
     }, () => fail());
@@ -305,13 +356,16 @@ export function createDesktopViewer(deps: {
         if (ended) { dialled.remote.destroy(); return; }
         if (!valid()) { dialled.remote.destroy(); close(); return; }
         remote = dialled.remote;
+        const seen = screenPresence(deps.presence);
         bridgeScreen(open, dialled.remote, {
           head: dialled.rest?.raw ?? dialled.head, opening: dialled.opening, payload: dialled.rest?.payload, skip: dialled.opening ? VIEWER_OPENING : 0,
+          input: (bytes) => seen.bytes(bytes),
         }, close);
         connection.touch?.();
+        seen.tick();
         recheck = setInterval(() => {
           if (!valid()) close();
-          else connection.touch?.();
+          else { connection.touch?.(); seen.tick(); }
         }, RECHECK_MS);
         recheck.unref();
       }, close);

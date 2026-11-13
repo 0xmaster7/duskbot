@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { cloudRequestSignature } from "./cloud-home.ts";
 import {
   CLOUD_IDLE_ACTIVITY_MS, CLOUD_IDLE_AWAKE_MS, CLOUD_IDLE_WORK_MS, CLOUD_POWER_PATH, CLOUD_POWER_SLEEP_PATH, CLOUD_SLEEP_PENDING_MS,
-  countsAsActivity, createCloudPower, wakeCode, wokeFromSleep, WOKE_BY_MS, type CloudPowerProbes,
+  CLOUD_HOLD_CAP_MS, countsAsActivity, createCloudPower, wakeCode, wokeFromSleep, WOKE_BY_MS, type CloudPowerProbes,
 } from "./cloud-power.ts";
 import { createCloudSignedRoutes } from "./routes/cloud-signed.ts";
 import { SessionRegistry } from "./sessions.ts";
@@ -316,5 +316,48 @@ describe("a Team Cloud", () => {
     expect(power.prepareSleep()).toEqual({ ok: false, busy: ["team"] });
     expect(power.sleeping()).toBe(false);
     expect(existsSync(join(dataDir, "cloud-sleep.json"))).toBe(false);
+  });
+});
+
+describe("holds that are not a bot's work", () => {
+  const HOUR = 3_600_000;
+  it("stop counting after six hours with nothing moving, say so once, and count again while a bot works", () => {
+    const h = home();
+    h.state.computer = true; h.state.liveCall = true;
+    h.pass(CLOUD_HOLD_CAP_MS - 60_000);
+    expect(h.power.report().busy).toEqual(expect.arrayContaining(["computer", "live-call"]));
+    h.pass(120_000);
+    const report = h.power.report();
+    expect(report.busy).not.toContain("computer");
+    expect(report.stuck).toEqual(["computer", "live-call"]);
+    // a bot working holds the computer again, uncapped
+    h.state.turn = true; h.pass(5_000);
+    expect(h.power.report().busy).toEqual(expect.arrayContaining(["turn", "computer"]));
+    // the hold ending clears it
+    h.state.turn = false; h.state.computer = false; h.state.liveCall = false; h.pass(5_000);
+    expect(h.power.report().stuck).toBeUndefined();
+  });
+
+  it("keep a transfer up while its bytes move, and let a stalled one go after the cap", () => {
+    const h = home();
+    const socket = { bytesRead: 0, bytesWritten: 0 };
+    const res = Object.assign(new PassThrough(), { socket }) as unknown as ServerResponse;
+    h.power.request("/api/files/upload", {}, res);
+    for (let n = 0; n < 7; n++) { socket.bytesRead += 1024; h.pass(HOUR); }
+    expect(h.power.report().busy).toContain("maintenance");
+    h.pass(CLOUD_HOLD_CAP_MS);
+    expect(h.power.report().stuck).toEqual(["maintenance"]);
+    expect(h.power.report().busy).not.toContain("maintenance");
+  });
+});
+
+describe("hints that are not use", () => {
+  it("the phone's open beat and an open screen never count as someone using the home", () => {
+    expect(countsAsActivity("/api/mobile/presence", {})).toBe(false);
+    const h = home();
+    const res = Object.assign(new PassThrough(), { socket: null }) as unknown as ServerResponse;
+    h.power.request("/api/desktop-viewer/vps/bot-1/websockify", { "x-dusk-background": "1" }, res);
+    h.pass(10_000);
+    expect(h.power.report().busy).not.toContain("maintenance");
   });
 });

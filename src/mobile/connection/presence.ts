@@ -1,10 +1,11 @@
 import type { MobilePlatform } from "../platform";
+import { BACKGROUND_HEADERS } from "@/lib/cloud-power";
 
 /** under the host's 60 s lease, so a phone with the app open never counts as away between two of these */
 export const PRESENCE_BEAT_MS = 25_000;
 
 function say(away: boolean) {
-  void fetch("/api/mobile/presence", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ away }), keepalive: true, signal: AbortSignal.timeout(10_000) })
+  void fetch("/api/mobile/presence", { method: "PUT", headers: { "Content-Type": "application/json", ...BACKGROUND_HEADERS }, body: JSON.stringify({ away }), keepalive: true, signal: AbortSignal.timeout(10_000) })
     .then((response) => response.body?.cancel())
     .catch(() => {});
 }

@@ -26,6 +26,9 @@ export interface CloudPowerReport {
   upcoming?: Array<{ at: number; flexMs: number }>;
   /** The home said yes to a sleep request and has not been used or woken since. */
   sleeping: boolean;
+  /** Holds that ran past CLOUD_HOLD_CAP_MS with no bot working, no input and no bytes moving: no longer counted as busy,
+   * so the home can sleep; the Admin sends its operator one alert per incident. Absent when none. */
+  stuck?: CloudPowerBusy[];
   /** What the first request after its last wake (or boot) was, if one came within WOKE_BY_MS: a fixed code for its kind
    * (`wakeCode`) and whether it was a background one. The Admin logs it for a wake by Fly's proxy: what woke it. */
   wokeBy: { by: string; background: boolean } | null;
@@ -55,6 +58,10 @@ export const CLOUD_IDLE_AWAKE_MS = 2 * 60_000;
 export const CLOUD_IDLE_DUE_MS = 5 * 60_000;
 /** A sleep the Admin asked for but never carried out (the suspend failed, the Admin restarted) ends by itself. */
 export const CLOUD_SLEEP_PENDING_MS = 120_000;
+/** A hold that is not a bot's own work (a transfer or other maintenance, a cloud computer, a live call) keeps the home up at
+ * most this long with no bot working, no input and (for transfers) no bytes moving; each also ends on its own idle timer. */
+export const CLOUD_HOLD_CAP_MS = 6 * 60 * 60_000;
+const CAPPED: readonly CloudPowerBusy[] = ["maintenance", "computer", "live-call"];
 /** The clock tick that notices a resume: a jump this much larger than the tick means the machine was suspended. */
 const TICK_MS = 5_000, RESUME_JUMP_MS = 15_000;
 /** The app pings `POST /api/cloud/focus` this often while its window is focused on the home. */
@@ -77,14 +84,17 @@ const WAKE_CODES: readonly [RegExp, string][] = [
 export const wakeCode = (path: string) => WAKE_CODES.find(([pattern]) => pattern.test(path))?.[1] ?? "page";
 /** Paths that never count as someone using the home: the event stream, the public probe, Files loops, the Admin's own
  * power reads, and the polls of an older desktop that still lends its computer (lending is retired; those get a 404). */
-const BACKGROUND = [/^\/api\/events$/, /^\/api\/health$/, /^\/api\/sync(\/|$)/, /^\/api\/shared-computers(\/|$)/, /^\/api\/cloud\/power(\/|$)/, /^\/api\/cloud\/focus$/];
+const BACKGROUND = [/^\/api\/events$/, /^\/api\/health$/, /^\/api\/sync(\/|$)/, /^\/api\/shared-computers(\/|$)/, /^\/api\/cloud\/power(\/|$)/, /^\/api\/cloud\/focus$/,
+  // the phone's 25-second "the app is open" beat: a focus hint (server/mobile/link.ts), never use, or an open phone never sleeps its home
+  /^\/api\/mobile\/presence$/];
 export const CLOUD_POWER_PATH = "/api/cloud/power";
 export const CLOUD_POWER_SLEEP_PATH = "/api/cloud/power/sleep";
 export const CLOUD_BACKGROUND_HEADER = "x-dusk-background";
 export const CLOUD_POWER_HEADER = "x-dusk-cloud-power";
 const MARKER = "cloud-sleep.json";
-/** Long-polls and streams that stay open by design: never "in flight" work. */
-const HELD = [/^\/api\/events$/, /^\/api\/sync\/changes$/];
+/** Long-polls and streams that stay open by design: never "in flight" work. An open screen is not either: its input is
+ * someone using the home and the screen itself a hint (server/routes/desktop-viewer.ts `presence`). */
+const HELD = [/^\/api\/events$/, /^\/api\/sync\/changes$/, /^\/api\/desktop-viewer\/.+\/(?:websockify|direct)$/];
 
 /** The answer a held poll (Files sync) gets once the home agreed to sleep: the desktop pauses until it wakes. */
 export function answerAsleep(res: ServerResponse, json: (res: ServerResponse, status: number, body: unknown) => void) {
@@ -131,6 +141,10 @@ export function createCloudPower(options: {
   let focusAt: number | null = null, focusSince: number | null = null;
   let sleepAbort = new AbortController();
   let lastTick = now();
+  /** When each capped hold began, the last bytes any in-flight transfer moved, and the holds now past their cap. */
+  const holdSince = new Map<CloudPowerBusy, number>(), stuck = new Set<CloudPowerBusy>();
+  const transfers = new Map<object, { bytes: () => number; seen: number }>();
+  let progressAt = 0;
 
   const clearMarker = () => { try { rmSync(join(options.dataDir, MARKER), { force: true }); } catch {} };
   const endSleep = () => {
@@ -151,7 +165,15 @@ export function createCloudPower(options: {
     if (probes.liveCall()) busy.push("live-call");
     if (probes.computer()) busy.push("computer");
     if (probes.maintenance() || inFlight > 0) busy.push("maintenance");
-    return busy;
+    const at = now(), botWorking = busy.includes("turn") || busy.includes("run");
+    for (const [, transfer] of transfers) { const bytes = transfer.bytes(); if (bytes !== transfer.seen) { transfer.seen = bytes; progressAt = at; } }
+    for (const code of CAPPED) {
+      if (!busy.includes(code)) { holdSince.delete(code); stuck.delete(code); continue; }
+      if (!holdSince.has(code)) holdSince.set(code, at);
+      const from = Math.max(holdSince.get(code)!, lastActivityAt ?? 0, code === "maintenance" ? progressAt : 0);
+      if (!botWorking && at - from >= CLOUD_HOLD_CAP_MS) stuck.add(code); else stuck.delete(code);
+    }
+    return stuck.size ? busy.filter((code) => !stuck.has(code)) : busy;
   };
   /** A resume: the clock jumped past the tick (noticed once, by the tick or by a request). */
   const resumed = (at: number) => {
@@ -193,11 +215,13 @@ export function createCloudPower(options: {
   };
   /** An authenticated request in progress (an upload, a download) keeps the home awake until it ends; held polls and
    * the event stream don't. Returns the release. */
-  const begin = (path: string): (() => void) => {
+  const begin = (path: string, bytes?: () => number): (() => void) => {
     if (HELD.some((pattern) => pattern.test(path))) return () => {};
     inFlight += 1;
+    const key = {};
+    if (bytes) transfers.set(key, { bytes, seen: bytes() });
     let released = false;
-    return () => { if (!released) { released = true; inFlight -= 1; } };
+    return () => { if (!released) { released = true; inFlight -= 1; transfers.delete(key); } };
   };
 
   return {
@@ -219,13 +243,15 @@ export function createCloudPower(options: {
       wokeBy = { by: wakeCode(path), background: !countsAsActivity(path, headers) };
     },
     /** An authenticated request: someone using the home (`countsAsActivity`), and work in progress until it ends. */
-    request(path: string, headers: IncomingHttpHeaders, res: Pick<ServerResponse, "once">) {
+    request(path: string, headers: IncomingHttpHeaders, res: Pick<ServerResponse, "once"> & { socket?: { bytesRead?: number; bytesWritten?: number } | null }) {
       if (countsAsActivity(path, headers)) noteActivity();
-      res.once("close", begin(path));
+      // bytes moving on its connection are a transfer's progress (CLOUD_HOLD_CAP_MS)
+      res.once("close", begin(path, () => (res.socket?.bytesRead ?? 0) + (res.socket?.bytesWritten ?? 0)));
     },
     report(activityMs = CLOUD_IDLE_ACTIVITY_MS): CloudPowerReport {
       const busy = busyNow(activityMs);
-      return { v: 1, at: now(), bootedAt, wokeAt, idle: busy.length === 0, busy, lastActivityAt, lastWorkAt, nextDueAt: options.probes.nextDueAt(), ...upcoming(), sleeping: sleeping(), wokeBy };
+      return { v: 1, at: now(), bootedAt, wokeAt, idle: busy.length === 0, busy, lastActivityAt, lastWorkAt, nextDueAt: options.probes.nextDueAt(), ...upcoming(), sleeping: sleeping(), wokeBy,
+        ...(stuck.size ? { stuck: [...stuck] } : {}) };
     },
     /** The Admin is about to suspend or stop this machine: yes only when idle now. From here until a resume, someone's
      * use or CLOUD_SLEEP_PENDING_MS, held polls answer "asleep" and new ones are refused (`sleeping`). `force`: the owner
