@@ -160,6 +160,13 @@ function siteProxy(upstream: string, onError: (error: Error, res: ServerResponse
 
 /** unclaimed workspaces at once (each lives a day unless claimed), computers one account holds, reports one workspace sends an hour */
 export const WORKSPACE_LIMITS = { unclaimed: 5000, perAccount: 50, reportsPerHour: 2400 };
+/** a dusk cloud's own reports above this cpu share for this long open an incident */
+export const CLOUD_CPU_ALERT = { percent: 90, hours: 6 };
+/** every sample of the last CLOUD_CPU_ALERT.hours above its share, with the window covered (at least 20 samples, the first within half an hour of its start) */
+export function cpuPinned(samples: Array<{ t: number; cpu: number }>, at: number): boolean {
+  const since = at - CLOUD_CPU_ALERT.hours * 3_600_000, recent = samples.filter(sample => sample.t >= since);
+  return recent.length >= 20 && recent[0]!.t <= since + 1_800_000 && recent.every(sample => sample.cpu >= CLOUD_CPU_ALERT.percent);
+}
 
 export function createDashboardApp(options: DashboardAppOptions) {
   const now = options.now ?? Date.now;
@@ -385,6 +392,14 @@ export function createDashboardApp(options: DashboardAppOptions) {
     const current = limits.get(key) ?? { count: 0, until: now() + hourMs };
     if (++current.count > max) fail(429, "rate_limited", "Try again later.");
     limits.set(key, current);
+  }
+  /** a dusk cloud at full cpu for hours on end is mining or a runaway loop: one incident a day, before instabox flags our account */
+  function pinned(ws: StoredWorkspace, samples: Array<{ t: number; cpu: number }>) {
+    if (!cpuPinned(samples, now())) return;
+    const cloud = billing.clouds.all?.().find(item => item.workspaceId === ws.id && item.status !== "destroyed");
+    if (!cloud) return;
+    incidents.report({ source: "server", name: "CloudCpuPinned", key: `cloud-cpu-${cloud.id}-${new Date(now()).toISOString().slice(0, 10)}`,
+      message: `dusk cloud ${cloud.id} (account ${cloud.accountId}) has used over ${CLOUD_CPU_ALERT.percent}% cpu for ${CLOUD_CPU_ALERT.hours} hours. mining or a runaway loop? look at it in admin before instabox does` });
   }
   /** a limit on a key of its own (a workspace, not an address) */
   function limitKey(key: string, max: number, message = "Try again later.") {
@@ -722,6 +737,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
           samples.push({ t: report.at, cpu: machine.cpu.percent, mem: machine.memory.totalBytes > 0 ? Math.min(100, machine.memory.usedBytes / machine.memory.totalBytes * 100) : 0,
             rx: machine.network?.rxBytesPerSec ?? 0, tx: machine.network?.txBytesPerSec ?? 0 });
           history.set(ws.id, samples.slice(-240));
+          pinned(ws, samples);
         }
         notePulse(ws.id, report);
         for (const result of report.results ?? []) {

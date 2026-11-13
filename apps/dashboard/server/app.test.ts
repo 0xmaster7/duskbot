@@ -6,7 +6,7 @@ import { createHash, generateKeyPairSync, sign } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { CLAIM_TTL_MS, COMMAND_TTL_MS, FAST_REPORT_MS, MAX_REPORT_BYTES, SIGNATURE_SKEW_MS, SLOW_REPORT_MS, parseEnrollRequest, parseWorkspaceReport, signedPayload } from "../../../shared/dashboard-protocol.ts";
 import type { CommandView, EnrollAnswer, MachineReport, ReportAnswer, WorkspaceDetail, WorkspaceReport, WorkspaceSummary } from "../../../shared/dashboard-protocol.ts";
-import { createDashboardApp, pagePolicy, WORKSPACE_LIMITS } from "./app.ts";
+import { cpuPinned, createDashboardApp, pagePolicy, WORKSPACE_LIMITS } from "./app.ts";
 import { PULSE_INTERVAL_MS, PULSE_SIZE, type PulseAnswer } from "../../../shared/machine-pulse.ts";
 import { memoryMailer } from "./auth/mail.ts";
 import { AUTH_LIMITS } from "./auth/index.ts";
@@ -189,6 +189,15 @@ describe("hosted dashboard service", () => {
     time += 24 * 60 * 60_000 + 1;
     expect((await signed("/v1/report", first.workspaceId, report()).send()).status).toBe(401);
     expect((await enroll()).workspaceId).not.toBe(first.workspaceId);
+  });
+
+  it("calls a cloud pinned only when six covered hours are all past 90% cpu", () => {
+    const at = 10 * 3_600_000, every = (cpu: (i: number) => number, from = 0) => Array.from({ length: 121 }, (_, i) => ({ t: at - 6 * 3_600_000 + from + i * 180_000, cpu: cpu(i) }));
+    expect(cpuPinned(every(() => 97), at)).toBe(true);
+    expect(cpuPinned(every(i => i === 60 ? 40 : 97), at)).toBe(false);
+    // a cloud that woke an hour ago has not been watched long enough
+    expect(cpuPinned(every(() => 97, 3_600_000).filter(s => s.t <= at), at)).toBe(false);
+    expect(cpuPinned([], at)).toBe(false);
   });
 
   it("bounds unclaimed workspaces, computers per account and reports per workspace", async () => {
