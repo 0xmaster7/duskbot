@@ -6,7 +6,7 @@ import { createHash, generateKeyPairSync, sign } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { CLAIM_TTL_MS, COMMAND_TTL_MS, FAST_REPORT_MS, MAX_REPORT_BYTES, SIGNATURE_SKEW_MS, SLOW_REPORT_MS, parseEnrollRequest, parseWorkspaceReport, signedPayload } from "../../../shared/dashboard-protocol.ts";
 import type { CommandView, EnrollAnswer, MachineReport, ReportAnswer, WorkspaceDetail, WorkspaceReport, WorkspaceSummary } from "../../../shared/dashboard-protocol.ts";
-import { createDashboardApp, pagePolicy } from "./app.ts";
+import { createDashboardApp, pagePolicy, WORKSPACE_LIMITS } from "./app.ts";
 import { PULSE_INTERVAL_MS, PULSE_SIZE, type PulseAnswer } from "../../../shared/machine-pulse.ts";
 import { memoryMailer } from "./auth/mail.ts";
 import { AUTH_LIMITS } from "./auth/index.ts";
@@ -189,6 +189,34 @@ describe("hosted dashboard service", () => {
     time += 24 * 60 * 60_000 + 1;
     expect((await signed("/v1/report", first.workspaceId, report()).send()).status).toBe(401);
     expect((await enroll()).workspaceId).not.toBe(first.workspaceId);
+  });
+
+  it("bounds unclaimed workspaces, computers per account and reports per workspace", async () => {
+    const saved = { ...WORKSPACE_LIMITS };
+    try {
+      Object.assign(WORKSPACE_LIMITS, { unclaimed: 2, perAccount: 1, reportsPerHour: 3 });
+      const cookie = await login();
+      const id = await claim(cookie), own = keys;
+      // the second computer for the same account is refused, and its claim link stays usable once one is removed
+      keys = generateKeyPairSync("ed25519");
+      const second = await enroll();
+      const refused = await page("/v1/claim", { token: second.claimUrl.split("#")[1] }, cookie);
+      expect(refused.status).toBe(409);
+      expect(await refused.json()).toMatchObject({ code: "too_many_workspaces" });
+      keys = generateKeyPairSync("ed25519");
+      await enroll();
+      // two unclaimed already: a third new key waits
+      keys = generateKeyPairSync("ed25519");
+      const busy = await enrollRequest();
+      expect(busy.status).toBe(503);
+      expect(await busy.json()).toMatchObject({ code: "busy" });
+      // a workspace that reports too often hears 429 and nothing is written
+      keys = own;
+      for (let seq = 1; seq <= 3; seq++) expect((await signed("/v1/report", id, report(seq)).send()).status).toBe(200);
+      expect((await signed("/v1/report", id, report(4)).send()).status).toBe(429);
+      time += 3_600_000;
+      expect((await signed("/v1/report", id, report(5)).send()).status).toBe(200);
+    } finally { Object.assign(WORKSPACE_LIMITS, saved); }
   });
 
   it("stores sections independently, reports live freshness, and restores sections from disk", async () => {

@@ -125,7 +125,8 @@ describe("local account service", () => {
     await start();
     expect((await call("/api/cloud/app/sign-in/start", { email, ...device })).status).toBe(429);
     time += 30_000;
-    for (let i = 0; i < AUTH_LIMITS.startsPerEmail - 2; i++) { await start(email, true); time += 30_000; }
+    // the resend wait answers before any limit is counted, so a double click never uses up an hour's codes
+    for (let i = 0; i < AUTH_LIMITS.startsPerEmail - 1; i++) { await start(email, true); time += 30_000; }
     expect(await body(call("/v1/auth/start", { email }))).toMatchObject({ code: "rate_limited" });
     time += 3_600_000;
     for (let i = 0; i < AUTH_LIMITS.startsPerIp; i++) await start(`ip${i}@example.test`, i % 2 === 0);
@@ -133,6 +134,31 @@ describe("local account service", () => {
     expect(response.status).toBe(429); expect(await response.json()).toEqual({ error: "rate_limited" });
     time += 3_600_000;
     expect((await call("/v1/auth/start", { email })).status).toBe(200);
+  });
+
+  it("caps codes to one address a day and keeps part of the daily mail for people who already have an account", async () => {
+    const existing = await login(); time += 30_000;
+    // one stranger's inbox: at most emailsPerAddressPerDay codes, however slowly they are asked for
+    const victim = "victim@example.test";
+    for (let i = 0; i < AUTH_LIMITS.emailsPerAddressPerDay; i++) { await start(victim); time += 11 * 60_000; }
+    expect(mailer.outbox.filter(item => item.to === victim)).toHaveLength(AUTH_LIMITS.emailsPerAddressPerDay);
+    expect((await call("/v1/auth/start", { email: victim })).status).toBe(429);
+    time += 86_400_000;
+    const reports: Array<{ name?: string; key?: string }> = [];
+    restart({ mailPerDay: 10, incidents: { report: (input: { name?: string; key?: string }) => { reports.push(input); return "id"; } } as unknown as DashboardAppOptions["incidents"] });
+    // a spray of made-up addresses gets the signup share (8 of 10) and then 429; the account holder still gets a code
+    for (let i = 0; i < 8; i++) await start(`made-up-${i}@example.test`);
+    expect((await call("/v1/auth/start", { email: "made-up-9@example.test" })).status).toBe(429);
+    expect(reports.filter(item => item.name === "SignInMailLimit")).toHaveLength(1);
+    const again = await start(existing.account.email);
+    expect((await call("/v1/auth/verify", { attempt: again.attempt, code: code(existing.account.email) })).status).toBe(200);
+    // the whole day's budget (10) then stops everyone, and both limits make one incident between them
+    time += 30_000; await start(existing.account.email);
+    time += 30_000;
+    expect((await call("/v1/auth/start", { email: existing.account.email })).status).toBe(429);
+    const limits = reports.filter(item => item.name === "SignInMailLimit");
+    expect(limits).toHaveLength(2);
+    expect(new Set(limits.map(item => item.key)).size).toBe(1);
   });
 
   it("limits verifies per IP and trusts forwarded IPs only when configured", async () => {
@@ -544,7 +570,7 @@ describe("local account service", () => {
     expect(await body(poll(authorization))).toEqual({ error: "invalid_grant" });
     app.close();
     expect(JSON.parse(readFileSync(`${dataDir}/auth.json`, "utf8"))).toEqual({ accounts: [], identities: [], sessions: [] });
-    expect(JSON.parse(readFileSync(`${dataDir}/state.json`, "utf8"))).toEqual({ accounts: [], sessions: [], workspaces: [] });
+    expect(JSON.parse(readFileSync(`${dataDir}/state.json`, "utf8"))).toEqual({ accounts: [], sessions: [], workspaces: [], commands: [] });
   });
 
   it("removes a linked identity while retaining email and does not expose provider subjects", async () => {

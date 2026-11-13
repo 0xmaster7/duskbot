@@ -10,11 +10,15 @@ import type { Mailer } from "./mail.ts";
 import { emailConfig } from "../email/templates.ts";
 import type { EmailConfig } from "../email/templates.ts";
 import { createProviderRegistry, type ProviderConfigs, type ProviderProfile } from "./providers.ts";
-import { clientIp } from "../client-ip.ts";
+import { clientIp, rateIp } from "../client-ip.ts";
 
 /** sign-in limits an hour, set so a real person never meets them; the per-code tries (EMAIL_CODE_TRIES), the resend
  *  wait and the overall mail cap are what stop abuse */
-export const AUTH_LIMITS = { startsPerIp: 300, startsPerEmail: 30, verifiesPerIp: 600, oauthPerIp: 600, deviceAuthorizePerIp: 300, mailPerHour: 600, handoffsPerSession: 60, handoffsPerIp: 600 };
+/** sign-in limits. starts are emails: one address gets at most startsPerEmail an hour and emailsPerAddressPerDay a day, so
+ *  nobody can use us to flood a stranger's inbox. mailPerDay sits under brevo's free 300 a day, and addresses with no
+ *  account (signups) only get newAddressShare of it, so a spray of made-up addresses never locks existing people out */
+export const AUTH_LIMITS = { startsPerIp: 60, startsPerEmail: 6, emailsPerAddressPerDay: 12, verifiesPerIp: 600, oauthPerIp: 600, deviceAuthorizePerIp: 300,
+  mailPerHour: 120, mailPerDay: 250, newAddressShare: 0.8, handoffsPerSession: 60, handoffsPerIp: 600 };
 /** a web handoff link: how long it lives, and how many one account holds unredeemed at once (older ones are dropped) */
 export const HANDOFF_TTL_MS = 120_000, HANDOFF_OUTSTANDING = 5;
 
@@ -24,6 +28,10 @@ export interface AuthOptions {
   pageBase?: string;
   /** sign-in emails the service sends an hour across everyone (DUSK_AUTH_MAIL_PER_HOUR, default AUTH_LIMITS.mailPerHour) */
   mailPerHour?: number;
+  /** and a day (DUSK_AUTH_MAIL_PER_DAY, default AUTH_LIMITS.mailPerDay); raise it with the brevo plan */
+  mailPerDay?: number;
+  /** a service-wide sign-in mail limit was reached ("hour", "day" or "new" for the signup share of the day) */
+  onMailLimit?: (kind: "hour" | "day" | "new") => void;
   oauth?: ProviderConfigs;
   dev: boolean; signupOpen: boolean; trustProxy: boolean; legacyAccounts?: () => Array<{ id: string; email: string }>;
 }
@@ -118,11 +126,11 @@ export function createAuth(options: AuthOptions) {
   }
   const timer = setInterval(sweep, 60_000);
   timer.unref();
-  const ip = (req: IncomingMessage) => clientIp(req, options.trustProxy);
-  function rate(key: string, max: number) {
-    const item = limits.get(key) ?? { count: 0, until: now() + hour };
+  const ip = (req: IncomingMessage) => rateIp(clientIp(req, options.trustProxy));
+  function rate(key: string, max: number, windowMs = hour, onFull?: () => void) {
+    const item = limits.get(key) ?? { count: 0, until: now() + windowMs };
     limits.set(key, item);
-    if (++item.count > max) fail(429, "rate_limited");
+    if (++item.count > max) { if (item.count === max + 1) onFull?.(); fail(429, "rate_limited"); }
   }
   function lookup(token: string, web: boolean) {
     sweep();
@@ -198,11 +206,16 @@ export function createAuth(options: AuthOptions) {
     if (data.pending !== undefined && (app || !opaque(data.pending) || !pendingFor(req, data.pending))) fail(400, "invalid_request");
     if (data.recover !== undefined && (data.recover !== true || data.pending !== undefined)) fail(400, "invalid_request");
     const device = app ? deviceInfo(data, true) : null;
+    if (sentAt.has(email)) fail(429, "rate_limited");
     rate(`start:${ip(req)}`, AUTH_LIMITS.startsPerIp);
     rate(`email:${email}`, AUTH_LIMITS.startsPerEmail);
+    rate(`email-day:${email}`, AUTH_LIMITS.emailsPerAddressPerDay, day);
     // every address and caller together: one botnet spread over many addresses cannot burn the mail quota or our sender reputation
-    rate("mail:all", options.mailPerHour ?? AUTH_LIMITS.mailPerHour);
-    if (sentAt.has(email)) fail(429, "rate_limited");
+    const perDay = options.mailPerDay ?? AUTH_LIMITS.mailPerDay, limited = (kind: "hour" | "day" | "new") => () => options.onMailLimit?.(kind);
+    // the signup share first, so a spray it turns away does not eat the day that is kept for existing accounts
+    if (!state.accounts.some(item => item.email === email)) rate("mail:new", Math.floor(perDay * AUTH_LIMITS.newAddressShare), day, limited("new"));
+    rate("mail:all", options.mailPerHour ?? AUTH_LIMITS.mailPerHour, hour, limited("hour"));
+    rate("mail:day", perDay, day, limited("day"));
     sentAt.set(email, now());
     const attempt = random(), code = randomInt(0, 100_000_000).toString().padStart(8, "0");
     const item: Attempt = { email, ...(typeof data.pending === "string" ? { pending: data.pending } : {}), codeHash: hmac(`${attempt}:${code}`), device, expiresAt: now() + EMAIL_CODE_TTL_SECONDS * 1000, tries: 0 };

@@ -27,3 +27,17 @@ export function clientIp(req: IncomingMessage, trustProxy: boolean): string {
   if (last && fromCloudflare(last) && typeof visitor === "string" && isIP(visitor.trim())) return visitor.trim();
   return last || (req.socket.remoteAddress ?? "unknown");
 }
+
+/**
+ * The bucket a rate limit counts an address in: an IPv4 address as it is, an IPv6 address by its /64, since one home or
+ * server gets a whole /64 and could otherwise pick a fresh address for every request.
+ */
+export function rateIp(address: string): string {
+  if (isIP(address) !== 6) return address;
+  const lower = address.toLowerCase().split("%")[0]!;
+  if (lower.startsWith("::ffff:") && isIP(lower.slice(7)) === 4) return lower.slice(7);
+  const [head = "", tail = ""] = lower.split("::");
+  const left = head ? head.split(":") : [], right = tail ? tail.split(":") : [];
+  const groups = lower.includes("::") ? [...left, ...Array(8 - left.length - right.length).fill("0"), ...right] : left;
+  return `${groups.slice(0, 4).map(group => group.replace(/^0+(?=.)/, "")).join(":")}::/64`;
+}

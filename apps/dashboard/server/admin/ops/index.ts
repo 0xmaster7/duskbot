@@ -27,6 +27,8 @@ export const THRESHOLDS = {
   certWatchDays: 21, certBadDays: 10, outlierRatio: 3, outlierFloorCents: 1_000, outlierFloorEgressGb: 50,
   /** contabo upload: sustained past this share of DUSK_OPS_UPLINK_MBIT for this long is an incident */
   uploadPct: 70, uploadForMs: 15 * MINUTE,
+  /** the account database past this size (all its data, indexes not counted); brevo's day past this share of its limit */
+  mongoBytes: 5 * GB_BYTES, brevoDayPct: 80,
 } as const;
 
 type Level = OpsLevel;
@@ -429,6 +431,14 @@ export function createOps(options: OpsOptions) {
     const mongo = snap.latest.get("mongo");
     if (options.db) out.push({ id: "mongo", label: "mongodb", threshold: "unreachable or not primary for 4 min", forMs: THRESHOLDS.downForMs,
       breach: mongo ? !mongo.ok || !(mongo.data as MongoData | null)?.primary : null, value: mongo ? mongo.ok ? (mongo.data as MongoData).primary ? "primary" : "not primary" : mongo.error : null });
+    if (options.db) {
+      const d = mongo?.ok ? mongo.data as MongoData | null : null;
+      out.push({ id: "mongo-size", label: "mongodb size", threshold: `> ${THRESHOLDS.mongoBytes / GB_BYTES} gb`, forMs: 0, breach: d ? d.storageBytes > THRESHOLDS.mongoBytes : null, value: d ? gb(d.storageBytes) : null });
+    }
+    // sign-in codes, cloud notices and these alerts all go through brevo: a day near its limit means codes stop arriving soon
+    const day = spend.brevo?.daily;
+    out.push({ id: "brevo-day", label: "brevo emails today", threshold: `> ${THRESHOLDS.brevoDayPct}% of the daily limit`, forMs: 0,
+      breach: day?.limit ? day.used > day.limit * THRESHOLDS.brevoDayPct / 100 : null, value: day?.limit ? `${day.used} of ${day.limit}` : null });
     for (const b of backupsOf(snap)) out.push({ id: `backup-${b.id}`, label: `${b.name} backup`, threshold: `older than ${THRESHOLDS.backupHours} h`, forMs: 0,
       breach: b.at === null ? true : snap.time - b.at > THRESHOLDS.backupHours * HOUR, value: b.at === null ? "never seen" : ago(snap.time - b.at) });
     for (const c of spend.instabox.customers) {

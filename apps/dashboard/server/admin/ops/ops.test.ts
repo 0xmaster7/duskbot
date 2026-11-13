@@ -177,6 +177,16 @@ describe("ops alerts into incidents", () => {
     expect(answer.alerts.find(rule => rule.id === "outlier-heavy")).toMatchObject({ state: "ok", lastFiredAt: NOW });
   });
 
+  it("mails once when brevo's day passes 80% of its limit", async () => {
+    const f = fixture({ DUSK_BREVO_API_KEY: "k", DUSK_BREVO_DAILY_LIMIT: "300" });
+    const brevo = (sent: number) => f.store.setLatest({ source: "brevo", at: NOW, ok: true, error: null, data: { today: { sent, delivered: sent, bounced: 0, blocked: 0 }, month: { sent }, plan: null } });
+    await brevo(200); await f.ops.evaluate();
+    expect(f.reports).toHaveLength(0);
+    await brevo(250); await f.ops.evaluate(); await f.ops.evaluate();
+    expect(f.reports.map(r => r.name)).toEqual(["brevo emails today"]);
+    expect(f.reports[0]!.message).toMatch(/250 of 300/);
+  });
+
   it("mails once when contabo's upload stays past 70% for 15 minutes or the month is on course past the allowance", async () => {
     const f = fixture();
     const host = (outRate: number, outMonth: number) => f.store.setLatest({ source: "host", at: NOW, ok: true, error: null,

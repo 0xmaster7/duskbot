@@ -25,7 +25,7 @@ import { BillingError } from "./billing/service.ts";
 import { createSlackEdgeHost } from "./slack-edge/index.ts";
 import { createManagedRoutes } from "./clouds/managed-routes.ts";
 import { pagesRoutesFromEnv } from "./pages/routes.ts";
-import { clientIp } from "./client-ip.ts";
+import { clientIp, rateIp } from "./client-ip.ts";
 import { stateBackend } from "./persistence/backend.ts";
 import type { ErrorReporter } from "../../../electron/error-report.mjs";
 import type { EdgeSocketFactory } from "./slack-edge/service.ts";
@@ -70,6 +70,7 @@ export interface DashboardAppOptions {
    *  emailed links and the admin sign-in open; the API, webhooks, admin and site are untouched. needs a page base */
   waitlistOnly?: boolean;
   mailPerHour?: number;
+  mailPerDay?: number;
   /** the site served beside the page on a shared origin (loopback http): every path that is not the page's, an API or
    *  a well-known address is proxied there */
   siteUpstream?: string | null;
@@ -157,6 +158,9 @@ function siteProxy(upstream: string, onError: (error: Error, res: ServerResponse
   });
 }
 
+/** unclaimed workspaces at once (each lives a day unless claimed), computers one account holds, reports one workspace sends an hour */
+export const WORKSPACE_LIMITS = { unclaimed: 5000, perAccount: 50, reportsPerHour: 2400 };
+
 export function createDashboardApp(options: DashboardAppOptions) {
   const now = options.now ?? Date.now;
   const publicUrl = new URL(options.publicUrl).origin;
@@ -172,7 +176,11 @@ export function createDashboardApp(options: DashboardAppOptions) {
     trackOrigins: [new URL(options.publicUrl).origin, ...(options.analytics?.trackOrigins ?? [])] });
   const errorsSeen = createErrorCounter(now);
   const dev = options.dev ?? (new URL(publicUrl).protocol === "http:" && ["127.0.0.1", "localhost"].includes(new URL(publicUrl).hostname));
-  const auth = createAuth({ dataDir: options.dataDir, publicUrl, pageBase, mailPerHour: options.mailPerHour, mailer: options.mailer, now, fetch: options.fetch, oauth: options.oauth,
+  const mailLimitSay = { hour: "the hourly", day: "the daily", new: "the daily signup share of the" } as const;
+  const auth = createAuth({ dataDir: options.dataDir, publicUrl, pageBase, mailPerHour: options.mailPerHour, mailPerDay: options.mailPerDay, mailer: options.mailer,
+    // one incident a day, whichever limit it was: someone (or a bot) is asking for sign-in codes faster than we will send them
+    onMailLimit: kind => incidents.report({ source: "server", name: "SignInMailLimit", key: `auth-mail-${new Date(now()).toISOString().slice(0, 10)}`,
+      message: `sign-in emails reached ${mailLimitSay[kind]} limit, so more codes are refused until it resets. a spike of signups or someone spraying addresses; check admin > health for rate-limited ips` }), now, fetch: options.fetch, oauth: options.oauth,
     dev, signupOpen: options.signupOpen ?? true, trustProxy: options.trustProxy ?? false, legacyAccounts: () => state.accounts });
   state.sessions = [];
   store.changed();
@@ -373,9 +381,15 @@ export function createDashboardApp(options: DashboardAppOptions) {
     if (purged) saveCommands(); else if (expired) store.changed();
   }
   function rate(req: IncomingMessage, kind: string, max: number) {
-    const key = `${kind}:${clientIp(req, options.trustProxy ?? false)}`;
+    const key = `${kind}:${rateIp(clientIp(req, options.trustProxy ?? false))}`;
     const current = limits.get(key) ?? { count: 0, until: now() + hourMs };
     if (++current.count > max) fail(429, "rate_limited", "Try again later.");
+    limits.set(key, current);
+  }
+  /** a limit on a key of its own (a workspace, not an address) */
+  function limitKey(key: string, max: number, message = "Try again later.") {
+    const current = limits.get(key) ?? { count: 0, until: now() + hourMs };
+    if (++current.count > max) fail(429, "rate_limited", message);
     limits.set(key, current);
   }
   function isAdminRequest(req: IncomingMessage) {
@@ -659,12 +673,16 @@ export function createDashboardApp(options: DashboardAppOptions) {
       if (ws && !proven) fail(401, "bad_signature", "Signature is required.");
       const token = random(24);
       if (!ws) {
+        // made-up workspaces from many addresses: each is a row until it is claimed or a day passes, so their number is bounded
+        if (state.workspaces.filter(item => item.ownerAccountId === null).length >= WORKSPACE_LIMITS.unclaimed) fail(503, "busy", "Too many new computers are joining right now. Try again in a few minutes.");
         ws = { id: `ws_${random(16)}`, publicKey, ownerAccountId: null, claimHash: null, claimExpiresAt: 0, name: data.name, kind: data.kind,
           version: data.version, connectedAt: now(), lastReportAt: null, lastSeq: 0, lastSeqAt: 0, report: null, sectionAt: {} };
         state.workspaces.push(ws);
       }
       if (ownerAccountId) {
         // security invariant: a grant claims only an unclaimed workspace or one its own account already owns
+        if (ws.ownerAccountId !== ownerAccountId && state.workspaces.filter(item => item.ownerAccountId === ownerAccountId).length >= WORKSPACE_LIMITS.perAccount)
+          fail(409, "too_many_workspaces", `An account holds at most ${WORKSPACE_LIMITS.perAccount} computers. Remove one from the dashboard first.`);
         if (ws.ownerAccountId && ws.ownerAccountId !== ownerAccountId) fail(409, "owned_elsewhere", "This workspace belongs to another Dusk account. Remove it from that account's dashboard first.");
         ws.ownerAccountId = ownerAccountId;
         ws.claimHash = null;
@@ -682,6 +700,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
       if (method === "GET" && body.length) fail(400, "invalid_request", "GET body must be empty.");
       const ws = signed(req, body);
       if (method === "POST") {
+        // the app reports every 3 minutes, every 5 s while someone watches; each report is a database write
+        limitKey(`report:${ws.id}`, WORKSPACE_LIMITS.reportsPerHour, "Reports are too frequent.");
         const report = parseWorkspaceReport(bodyObject(body));
         if (!report) fail(400, "invalid_report", "Report is invalid.");
         if (report.seq <= ws.lastSeq && report.at - ws.lastSeqAt <= 10 * 60_000) fail(409, "old_sequence", "Report sequence is old.");
@@ -766,6 +786,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
       const digest = Buffer.from(hash(data.token), "hex");
       const ws = state.workspaces.find(item => item.ownerAccountId === null && item.claimHash !== null && item.claimExpiresAt > now() && timingSafeEqual(Buffer.from(item.claimHash, "hex"), digest));
       if (!ws) fail(404, "invalid_claim", "Claim link is invalid or expired.");
+      if (state.workspaces.filter(item => item.ownerAccountId === owner.id).length >= WORKSPACE_LIMITS.perAccount)
+        fail(409, "too_many_workspaces", `An account holds at most ${WORKSPACE_LIMITS.perAccount} computers. Remove one from the dashboard first.`);
       ws.ownerAccountId = owner.id;
       ws.claimHash = null;
       ws.claimExpiresAt = 0;
