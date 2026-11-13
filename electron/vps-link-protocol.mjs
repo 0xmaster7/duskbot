@@ -781,7 +781,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
       entry.fail("The connection to your server dropped. Try again.");
     }
   }
-  let silenceTimer = null;
+  let silenceTimer = null, silenceAskedAt = 0;
   const watchSilence = () => {
     silenceTimer = setInterval(() => {
       const cutoff = Date.now() - SILENT_ASK_MS;
@@ -789,7 +789,8 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
       for (const r of onRelay.keys()) if (!waiting.has(r)) onRelay.delete(r);
       for (const [r, at] of unanswered) {
         if (!waiting.has(r)) { unanswered.delete(r); continue; }
-        if (at < cutoff) { void locate(); break; }
+        // the regular throttle (10 s) would hold back the first ask after the one at start
+        if (at < cutoff) { const force = Date.now() - silenceAskedAt > SILENT_ASK_MS; if (force) silenceAskedAt = Date.now(); void locate({ force }); break; }
       }
     }, 2000);
     silenceTimer.unref?.();

@@ -48,7 +48,7 @@ const STREAM_LINE_BYTES = 256 * 1024;
 const LANE_FRAMES = 512;
 const LANE_BYTES = 4 * 1024 * 1024;
 const HELD_POSTS = 8;
-const GAP_MS = 5000;
+const GAP_MS = 15_000;
 const FRESH_GAP_MS = 300;
 const EPOCH = /^[a-z2-7]{12}$/;
 const CREATE_PER_HOUR = 120;
@@ -183,7 +183,7 @@ export function publicIp(ip) {
  * queues of sealed frames, one per direction per tunnel, with long-poll waiters. never persisted. a post marked `lane`
  * (egress: a bot's handshakes) is read out ahead of what waits in the main queue, in its own order.
  */
-function frameQueue(onPush = () => {}, memory = { bytes: 0 }, now = Date.now) {
+function frameQueue(onPush = () => {}, memory = { bytes: 0 }, now = Date.now, onLate = () => {}) {
   const frames = [], times = [];
   const lane = [], laneTimes = [];
   let bytes = 0, laneBytes = 0, reader = 0, gap = null, reading = null;
@@ -274,7 +274,8 @@ function frameQueue(onPush = () => {}, memory = { bytes: 0 }, now = Date.now) {
         order.fresh = true;
         dropHeld();
       }
-      if (at < order.next) return true;
+      // a numbered post that comes after its gap was skipped: what it carried is lost (the ends see it in their counts)
+      if (at < order.next) { onLate(at, order.next); return true; }
       if (at > order.next) {
         if (order.held.has(at)) return true;
         if (order.held.size >= HELD_POSTS) return false;
@@ -446,6 +447,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     };
   }
 
+  const lateLogged = new Map();
   function queue(tunnelId, dir) {
     const key = `${tunnelId}:${dir}`;
     let found = queues.get(key);
@@ -453,7 +455,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       queues.set(key, (found = frameQueue(() => {
         const channel = store.channels.get(tunnelId);
         if (dir === "to-vps" && channel) channelReaders.get(channel.tunnel)?.wakeAll();
-      }, memory, now)));
+      }, memory, now, (at, next) => { const t = now(); if (t - (lateLogged.get(key) ?? 0) > 60_000) { lateLogged.set(key, t); log(`link: ${key} post ${at} came after its gap was skipped (next ${next})`); } })));
       const take = found.take;
       found.take = (...args) => { const out = take(...args); usage.out(out.reduce((sum, frame) => sum + frame.length, 0)); return out; };
     }

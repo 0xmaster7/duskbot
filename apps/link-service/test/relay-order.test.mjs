@@ -56,7 +56,7 @@ describe("the egress lane", () => {
 });
 
 describe("numbered posts", () => {
-  it("from a writer that was writing before this node restarted start where they are, after a moment, not 5 s", async () => {
+  it("from a writer that was writing before this node restarted start where they are, after a moment, not after the gap wait", async () => {
     await post(["resumed"], { epoch: "r".repeat(12), seq: 41 });
     expect((await take()).frames).toEqual([]);
     await new Promise((resolve) => setTimeout(resolve, 400));

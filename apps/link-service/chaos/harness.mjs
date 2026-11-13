@@ -63,23 +63,33 @@ export async function createFaultProxy({ port = 0, target, impostor }) {
   const stats = { accepted: 0, perSecond: new Map() };
   const delayFor = () => latencyMs + Math.random() * jitterMs;
   function pipeSlow(from, to, pair) {
-    // latency shifts each chunk by the same delay (plus jitter, never reordering); a rate limit spaces them out
-    let lastDue = 0, held = 0;
+    // latency shifts each chunk by the same delay (plus jitter, never reordering); a rate limit spaces them out. one
+    // queue and one timer per direction keep the bytes in order
+    let lastDue = 0, held = 0, timer = null, ended = false;
+    const queue = [];
+    const pump = () => {
+      timer = null;
+      while (queue.length && queue[0].due <= Date.now()) {
+        const { chunk } = queue.shift();
+        held -= chunk.length;
+        if (!to.destroyed && !pair.stranded && mode !== "blackhole") to.write(chunk);
+      }
+      if (held <= 256 * 1024) from.resume();
+      if (queue.length) timer = setTimeout(pump, Math.max(0, queue[0].due - Date.now()));
+      else if (ended && !to.destroyed) to.end();
+    };
     from.on("data", (chunk) => {
       if (mode === "blackhole" || pair.stranded) return;
       const extra = delayFor(), rate = bytesPerSec ? (chunk.length / bytesPerSec) * 1000 : 0;
-      if (!extra && !rate && !held) { if (!to.destroyed) to.write(chunk); return; }
+      if (!extra && !rate && !queue.length) { if (!to.destroyed) to.write(chunk); return; }
       const due = Math.max(Date.now() + extra, lastDue) + rate;
       lastDue = due;
+      queue.push({ chunk, due });
       held += chunk.length;
       if (held > 1024 * 1024) from.pause();
-      setTimeout(() => {
-        held -= chunk.length;
-        if (!to.destroyed && !pair.stranded && mode !== "blackhole") to.write(chunk);
-        if (held <= 256 * 1024) from.resume();
-      }, Math.max(0, due - Date.now()));
+      if (!timer) timer = setTimeout(pump, Math.max(0, queue[0].due - Date.now()));
     });
-    from.on("end", () => { setTimeout(() => to.end(), Math.max(0, lastDue - Date.now())); });
+    from.on("end", () => { ended = true; if (!queue.length && !to.destroyed) to.end(); });
   }
   function onConnection(client) {
     stats.accepted += 1;
