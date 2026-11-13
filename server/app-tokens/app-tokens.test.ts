@@ -46,6 +46,7 @@ const WHOAMI: Record<string, { fields: TokenFields; url: string; body: unknown; 
   shopify: { fields: { shop: "store.myshopify.com", token: "shpat_1" }, url: "https://store.myshopify.com/admin/api/", body: { shop: { name: "Store" } }, label: "Store", auth: ["x-shopify-access-token", "shpat_1"] },
   stripe: { fields: { token: "rk_live_1" }, url: "https://api.stripe.com/v1/balance", body: { object: "balance" }, label: "Stripe", auth: ["authorization", "Bearer rk_live_1"] },
   cloudflare: { fields: { token: "cf1" }, url: "https://api.cloudflare.com/client/v4/", body: { success: true, result: [{ name: "Acme account" }] }, label: "Acme account", auth: ["authorization", "Bearer cf1"] },
+  dropbox: { fields: { token: "sl.x" }, url: "https://api.dropboxapi.com/2/users/get_current_account", body: { name: { display_name: "Dee" } }, label: "Dee", auth: ["authorization", "Bearer sl.x"] },
   googledrive: { fields: { token: "ya29" }, url: "https://www.googleapis.com/drive/v3/about", body: { user: { emailAddress: "g@b.test" } }, label: "g@b.test", auth: ["authorization", "Bearer ya29"] },
 };
 
@@ -286,7 +287,7 @@ describe("token apps service", () => {
         : { body: { access_token: "ya29", refresh_token: "1//r", expires_in: 3600 } },
       "https://www.googleapis.com/": () => ({ body: { user: { emailAddress: "g@b.test" } } }),
     }, { github: null, googledrive: { clientId: "c", clientSecret: "s" } } as never);
-    expect(apps.status().native).toEqual({ github: false, googledrive: true });
+    expect(apps.status().native).toMatchObject({ github: false, googledrive: true, notion: false });
     const start = await route(apps, "POST", "/api/app-tokens/googledrive/device");
     expect(start.answer).toMatchObject({ userCode: "XYZ", verificationUrl: "https://www.google.com/device" });
     expect((await route(apps, "GET", `/api/app-tokens/device/${start.answer.handle}`)).answer).toEqual({ status: "waiting" });
@@ -314,7 +315,7 @@ describe("token apps service", () => {
 describe("device clients", () => {
   it("reads the environment first, then what the release was built with, and needs Google's secret", async () => {
     const { deviceClients } = await import("./device.ts");
-    expect(deviceClients({}, {})).toEqual({ github: null, googledrive: null });
+    expect(Object.values(deviceClients({}, {})).every((client) => client === null)).toBe(true);
     expect(deviceClients({ DUSK_GITHUB_APP_CLIENT_ID: "Iv1.env" }, { DUSK_GITHUB_APP_CLIENT_ID: "Iv1.built" }).github).toEqual({ clientId: "Iv1.env" });
     expect(deviceClients({}, { DUSK_GITHUB_APP_CLIENT_ID: "Iv1.built" }).github).toEqual({ clientId: "Iv1.built" });
     expect(deviceClients({}, { DUSK_GOOGLE_DRIVE_CLIENT_ID: "g" }).googledrive).toBeNull();
@@ -362,5 +363,173 @@ describe("the GitHub and Google Drive rows", () => {
     expect(DRIVE.scopes).toEqual(["https://www.googleapis.com/auth/drive.file"]);
     expect(TOKEN_APPS.find((app) => app.id === "github")).toMatchObject({ native: true });
     expect(TOKEN_APPS.find((app) => app.id === "googledrive")).toMatchObject({ native: true, fields: [] });
+  });
+});
+
+describe("native sign-ins to dusk bot's own OAuth apps", () => {
+  const dirs: string[] = [];
+  afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }); });
+  function setup(routes: Parameters<typeof fakeFetch>[0], clients: Record<string, { clientId: string; clientSecret?: string } | null>) {
+    const dataDir = mkdtempSync(join(tmpdir(), "app-tokens-native-"));
+    dirs.push(dataDir);
+    const servers = new Map<string, StoredMcpServer>();
+    const fake = fakeFetch(routes);
+    let clock = 1_000_000;
+    const apps = createTokenApps({
+      dataDir, origin: () => "http://127.0.0.1:8799", fetch: fake.impl, clients, now: () => clock,
+      servers: {
+        names: () => [...servers.keys()],
+        add: (name, server) => { servers.set(name, server); return { ok: true }; },
+        replace: (name, server) => { servers.set(name, server); },
+        remove: (name) => { servers.delete(name); },
+      },
+    });
+    return { apps, servers, fake, tick: (ms: number) => { clock += ms; } };
+  }
+
+  async function signIn(apps: ReturnType<typeof createTokenApps>, app: string, replaces?: string) {
+    const start = await apps.beginDevice(app, replaces);
+    const state = new URL(start.verificationUrl).searchParams.get("state")!;
+    const page = await apps.callback(new URLSearchParams({ state, code: "c0de" }));
+    return { start, page };
+  }
+
+  it("sends Notion back to localhost, the only loopback name its app takes, and trades the code with Basic auth and JSON", async () => {
+    const { apps, fake } = setup({
+      "https://api.notion.com/v1/oauth/token": () => ({ body: { access_token: "ntn-oauth", workspace_name: "Acme" } }),
+      "https://api.notion.com/v1/users/me": () => ({ body: { bot: { workspace_name: "Acme" } } }),
+    }, { notion: { clientId: "nid", clientSecret: "nsecret" } });
+    const { start, page } = await signIn(apps, "notion");
+    const url = new URL(start.verificationUrl);
+    expect(url.searchParams.get("redirect_uri")).toBe("http://localhost:8799/api/app-tokens/callback");
+    expect(url.searchParams.get("owner")).toBe("user");
+    expect(page.ok).toBe(true);
+    const trade = fake.calls.find((call) => call.url === "https://api.notion.com/v1/oauth/token")!;
+    expect(header(trade, "authorization")).toBe(`Basic ${Buffer.from("nid:nsecret").toString("base64")}`);
+    expect(header(trade, "content-type")).toBe("application/json");
+    expect(JSON.parse(String(trade.init.body))).toMatchObject({ grant_type: "authorization_code", code: "c0de", redirect_uri: "http://localhost:8799/api/app-tokens/callback", client_id: "nid" });
+    expect(String(trade.init.body)).not.toContain("nsecret");
+    expect(apps.status().accounts).toMatchObject([{ app: "notion", label: "Acme", via: "device" }]);
+  });
+
+  it("signs in to Dropbox with PKCE and no secret, and names the account from its POST-only check", async () => {
+    const { apps, fake, servers } = setup({
+      "https://api.dropboxapi.com/oauth2/token": () => ({ body: { access_token: "sl.at", refresh_token: "rt", expires_in: 14_400 } }),
+      "https://api.dropboxapi.com/2/users/get_current_account": () => ({ body: { name: { display_name: "Dee" } } }),
+    }, { dropbox: { clientId: "did" } });
+    const { start } = await signIn(apps, "dropbox");
+    expect(new URL(start.verificationUrl).searchParams.get("token_access_type")).toBe("offline");
+    const trade = new URLSearchParams(String(fake.calls[0]!.init.body));
+    expect(trade.get("code_verifier")).toBeTruthy();
+    expect(trade.has("client_secret")).toBe(false);
+    const check = fake.calls.find((call) => call.url.endsWith("get_current_account"))!;
+    expect(check.init.method).toBe("POST");
+    expect(check.init.body).toBeUndefined();
+    expect(apps.status().accounts[0]).toMatchObject({ app: "dropbox", label: "Dee" });
+    expect((servers.get("dropbox") as { url?: string } | undefined)?.url).toMatch(/^http:\/\/127\.0\.0\.1:8799\/api\/app-tokens\/mcp\//u);
+  });
+
+  it("gives Linear's OAuth token as a bearer, where a personal key goes bare", async () => {
+    const fake = fakeFetch({ "https://api.linear.app/graphql": () => ({ body: { data: { viewer: { name: "Ada" } } } }) });
+    await VENDORS.linear!.check({ token: "lin_oauth_x" }, fake.impl, signal());
+    await VENDORS.linear!.check({ token: "lin_api_x" }, fake.impl, signal());
+    expect(fake.calls.map((call) => header(call, "authorization"))).toEqual(["Bearer lin_oauth_x", "lin_api_x"]);
+  });
+
+  it("signs in to Trello through its token page: the page posts the #fragment back and the account keeps our API key", async () => {
+    const { apps } = setup({ "https://api.trello.com/1/members/me": () => ({ body: { fullName: "Tre" } }) }, { trello: { clientId: "trellokey" } });
+    const start = await apps.beginDevice("trello");
+    const url = new URL(start.verificationUrl);
+    expect(Object.fromEntries(url.searchParams)).toMatchObject({ key: "trellokey", callback_method: "fragment", response_type: "token", scope: "read,write", expiration: "never" });
+    const back = new URL(url.searchParams.get("return_url")!);
+    expect(back.origin + back.pathname).toBe("http://127.0.0.1:8799/api/app-tokens/callback");
+    const page = await apps.callback(back.searchParams);
+    expect(page.page).toBe(true);
+    const done = await apps.callback(back.searchParams, { token: "ATTA0123456789abcdef0123" });
+    expect(done.ok).toBe(true);
+    expect(apps.store.list()[0]!.fields).toMatchObject({ key: "trellokey", token: "ATTA0123456789abcdef0123" });
+    expect((await apps.callback(back.searchParams, { token: "ATTA0123456789abcdef0123" })).ok).toBe(false);
+  });
+
+  it("reconnects in place: the new sign-in takes the old account's server name, so bots keep their access", async () => {
+    const { apps, servers } = setup({
+      "https://todoist.com/oauth/access_token": () => ({ body: { access_token: "td-new" } }),
+      "https://api.todoist.com/api/v1/user": () => ({ body: { full_name: "Tod" } }),
+    }, { todoist: { clientId: "tid", clientSecret: "ts" } });
+    await signIn(apps, "todoist");
+    const old = apps.store.list()[0]!;
+    servers.set("todoist-2", { type: "http", url: "https://other.test", headers: {}, enabled: true } as StoredMcpServer);
+    await signIn(apps, "todoist", old.id);
+    const accounts = apps.store.list();
+    expect(accounts).toHaveLength(1);
+    expect(accounts[0]!.server).toBe(old.server);
+    expect(accounts[0]!.id).not.toBe(old.id);
+    await expect(apps.beginDevice("todoist", "0000000000000000")).rejects.toThrow(/isn't connected/u);
+  });
+
+  async function apiCall(apps: ReturnType<typeof createTokenApps>, servers: Map<string, StoredMcpServer>, path: string) {
+    const account = apps.store.list()[0]!;
+    const bearer = (servers.get(account.server) as { headers: Record<string, string> }).headers.authorization!;
+    let body: any;
+    const req = { headers: { authorization: bearer }, socket: { remoteAddress: "127.0.0.1" } } as unknown as IncomingMessage;
+    const res = { writeHead: () => {}, end: () => {} } as unknown as ServerResponse;
+    await apps.mcp(req, res, `${APP_TOKENS_MCP_PREFIX}${account.id}`, "POST",
+      async () => ({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "api_request", arguments: { method: "GET", path } } }),
+      (_res, _code, data) => { body = data; });
+    return body.result as { content: { text: string }[]; isError?: boolean };
+  }
+
+  it("renews a token the app refuses mid-call and retries once with the new one", async () => {
+    const { apps, servers } = setup({
+      "https://airtable.com/oauth2/v1/token": (call) => new URLSearchParams(String(call.init.body)).get("grant_type") === "refresh_token"
+        ? { body: { access_token: "air-2", refresh_token: "r2", expires_in: 3600 } }
+        : { body: { access_token: "air-1", refresh_token: "r1", expires_in: 3600 } },
+      "https://api.airtable.com/v0/meta/whoami": () => ({ body: { email: "a@b.test" } }),
+      "https://api.airtable.com/v0/bases": (call) => (header(call, "authorization") === "Bearer air-2" ? { body: { bases: [] } } : { status: 401, body: { error: "AUTHENTICATION_REQUIRED" } }),
+    }, { airtable: { clientId: "aid", clientSecret: "as" } });
+    await signIn(apps, "airtable");
+    const result = await apiCall(apps, servers, "/v0/bases");
+    expect(result.content[0]!.text).toMatch(/^HTTP 200/u);
+    expect(apps.store.list()[0]!.fields.token).toBe("air-2");
+    expect(apps.status().accounts[0]!.needsReconnect).toBeUndefined();
+  });
+
+  it("asks for a reconnect when the app refuses both the token and its refresh token, and says so to the bot", async () => {
+    const { apps, servers } = setup({
+      "https://airtable.com/oauth2/v1/token": (call) => new URLSearchParams(String(call.init.body)).get("grant_type") === "refresh_token"
+        ? { status: 400, body: { error: "invalid_grant" } }
+        : { body: { access_token: "air-1", refresh_token: "r1", expires_in: 3600 } },
+      "https://api.airtable.com/v0/meta/whoami": () => ({ body: { email: "a@b.test" } }),
+      "https://api.airtable.com/v0/bases": () => ({ status: 401, body: { error: "AUTHENTICATION_REQUIRED" } }),
+    }, { airtable: { clientId: "aid", clientSecret: "as" } });
+    await signIn(apps, "airtable");
+    const result = await apiCall(apps, servers, "/v0/bases");
+    expect(result.isError).toBe(true);
+    expect(result.content[0]!.text).toContain("Ask the person to reconnect Airtable in Connect apps.");
+    expect(apps.status().accounts[0]!.needsReconnect).toBe(true);
+  });
+
+  it("marks a dead refresh token for a reconnect when the background renewal meets it", async () => {
+    const { apps, tick } = setup({
+      "https://api.dropboxapi.com/oauth2/token": (call) => new URLSearchParams(String(call.init.body)).get("grant_type") === "refresh_token"
+        ? { status: 400, body: { error: "invalid_grant", error_description: "refresh token is invalid or revoked" } }
+        : { body: { access_token: "sl.at", refresh_token: "rt", expires_in: 14_400 } },
+      "https://api.dropboxapi.com/2/users/get_current_account": () => ({ body: { name: { display_name: "Dee" } } }),
+    }, { dropbox: { clientId: "did" } });
+    await signIn(apps, "dropbox");
+    tick(4 * 3_600_000);
+    await apps.refreshDue();
+    expect(apps.status().accounts[0]).toMatchObject({ app: "dropbox", needsReconnect: true });
+  });
+
+  it("tells the bot when the app is rate limiting, with the wait it asked for", async () => {
+    const fake = fakeFetch({ "https://api.x.test/": () => ({ status: 429, body: { error: "slow down" } }) });
+    const impl = (async (url: string | URL, init?: RequestInit) => {
+      const answer = await fake.impl(url, init);
+      return new Response(await answer.text(), { status: 429, headers: { "retry-after": "30" } });
+    }) as typeof fetch;
+    const out = await callApi({ origin: "https://api.x.test", headers: {}, docs: "" }, { method: "GET", path: "/x" }, impl, undefined, { label: "Acme" });
+    expect(out.isError).toBe(true);
+    expect(out.content[0]!.text).toContain("Acme is limiting how fast it can be called. Wait 30 seconds before the next call.");
   });
 });

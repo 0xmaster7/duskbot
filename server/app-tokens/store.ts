@@ -26,6 +26,8 @@ const accountSchema = z.object({
   expiresAt: z.number().optional(),
   via: z.enum(["token", "device"]),
   connectedAt: z.number(),
+  /** The app refused this sign-in (expired, revoked or a dead refresh token); only a reconnect helps. */
+  needsReconnect: z.literal(true).optional(),
 });
 const fileSchema = z.object({ version: z.literal(1), accounts: z.array(accountSchema).max(MAX_TOKEN_ACCOUNTS) });
 
@@ -36,6 +38,7 @@ const EMPTY: StoreFile = { version: 1, accounts: [] };
 export const accountView = (account: TokenAccount): TokenAccountView => ({
   id: account.id, app: account.app, label: account.label, server: account.server, via: account.via,
   connectedAt: new Date(account.connectedAt).toISOString(),
+  ...(account.needsReconnect ? { needsReconnect: true } : {}),
 });
 
 export class TokenStore {

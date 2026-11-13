@@ -12647,7 +12647,7 @@ const tokenApps = createTokenApps({ dataDir: DATA_DIR, origin: () => `http://127
   add: (name, server) => { const result = mcpConfig.add(name, server); return "body" in result ? { ok: true } : { ok: false, status: result.status, error: result.error }; },
   replace: (name, server) => { const current = cfg.mcpServers?.[name] as { url?: unknown; headers?: unknown } | undefined; if (current && (current.url !== (server as { url?: string }).url || JSON.stringify(current.headers) !== JSON.stringify((server as { headers?: unknown }).headers))) mcpConfig.replace(name, server); },
   remove: (name) => { if (cfg.mcpServers && Object.hasOwn(cfg.mcpServers, name)) mcpConfig.remove(name); },
-} }); addHeldSecretScrubber((text) => tokenApps.scrub(text)); tokenApps.repointServers(); ROUTES.push(tokenApps.routes);
+} }); addHeldSecretScrubber((text) => tokenApps.scrub(text)); tokenApps.repointServers(); tokenApps.startAutoRefresh(); ROUTES.push(tokenApps.routes);
 const persistAnnouncedMcpServers = (next: Record<string, unknown>) => { persistMcpServers(next); broadcast({ kind: "mcp.changed" }); };
 ROUTES.push(createConfigRoutes({ settingsChanged: (keys) => { for (const key of keys.slice(0, 10)) usageSignal("setting_changed", { key }); },
   sealer, store, cfg, registry, sessions, browserCleanup, browserLive, browserRuntime, usedBrowserSessions, decider,

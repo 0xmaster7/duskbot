@@ -9,8 +9,13 @@
       "deviceUrl": "https://github.com/login/device/code",
       "tokenUrl": "https://github.com/login/oauth/access_token",
       "scopes": [],
-      "check": { "url": "https://api.github.com/user", "label": "login" },
-      "use": { "mcp": "https://api.githubcopilot.com/mcp/" }
+      "check": {
+        "url": "https://api.github.com/user",
+        "label": "login"
+      },
+      "use": {
+        "mcp": "https://api.githubcopilot.com/mcp/"
+      }
     },
     {
       "id": "googledrive",
@@ -21,9 +26,182 @@
       "clientSecretEnv": "DUSK_GOOGLE_DRIVE_CLIENT_SECRET",
       "deviceUrl": "https://oauth2.googleapis.com/device/code",
       "tokenUrl": "https://oauth2.googleapis.com/token",
-      "scopes": ["https://www.googleapis.com/auth/drive.file"],
-      "check": { "url": "https://www.googleapis.com/drive/v3/about?fields=user(displayName,emailAddress)", "label": "user.emailAddress" },
-      "use": { "api": "https://www.googleapis.com", "docs": "https://developers.google.com/workspace/drive/api/reference/rest/v3" }
+      "scopes": [
+        "https://www.googleapis.com/auth/drive.file"
+      ],
+      "check": {
+        "url": "https://www.googleapis.com/drive/v3/about?fields=user(displayName,emailAddress)",
+        "label": "user.emailAddress"
+      },
+      "use": {
+        "api": "https://www.googleapis.com",
+        "docs": "https://developers.google.com/workspace/drive/api/reference/rest/v3"
+      }
+    },
+    {
+      "id": "notion",
+      "label": "Notion",
+      "domain": "notion.so",
+      "flow": "code",
+      "clientIdEnv": "DUSK_OAUTH_NOTION_CLIENT_ID",
+      "clientSecretEnv": "DUSK_OAUTH_NOTION_CLIENT_SECRET",
+      "authorizeUrl": "https://api.notion.com/v1/oauth/authorize",
+      "tokenUrl": "https://api.notion.com/v1/oauth/token",
+      "scopes": [],
+      "authorizeParams": {
+        "owner": "user"
+      },
+      "redirectHost": "localhost",
+      "tokenAuth": "basic",
+      "tokenBody": "json",
+      "check": {
+        "url": "https://api.notion.com/v1/users/me",
+        "label": "bot.workspace_name",
+        "headers": {
+          "notion-version": "2022-06-28"
+        }
+      },
+      "use": {
+        "api": "https://api.notion.com",
+        "docs": "https://developers.notion.com/reference"
+      }
+    },
+    {
+      "id": "linear",
+      "label": "Linear",
+      "domain": "linear.app",
+      "flow": "code",
+      "clientIdEnv": "DUSK_OAUTH_LINEAR_CLIENT_ID",
+      "clientSecretEnv": "DUSK_OAUTH_LINEAR_CLIENT_SECRET",
+      "authorizeUrl": "https://linear.app/oauth/authorize",
+      "tokenUrl": "https://api.linear.app/oauth/token",
+      "scopes": [
+        "read",
+        "write"
+      ],
+      "scopeSeparator": ",",
+      "check": {
+        "url": "https://api.linear.app/graphql",
+        "label": "data.viewer.name"
+      },
+      "use": {
+        "mcp": "https://mcp.linear.app/mcp"
+      }
+    },
+    {
+      "id": "airtable",
+      "label": "Airtable",
+      "domain": "airtable.com",
+      "flow": "code",
+      "clientIdEnv": "DUSK_OAUTH_AIRTABLE_CLIENT_ID",
+      "clientSecretEnv": "DUSK_OAUTH_AIRTABLE_CLIENT_SECRET",
+      "authorizeUrl": "https://airtable.com/oauth2/v1/authorize",
+      "tokenUrl": "https://airtable.com/oauth2/v1/token",
+      "scopes": [
+        "data.records:read",
+        "data.records:write",
+        "schema.bases:read",
+        "user.email:read"
+      ],
+      "tokenAuth": "basic",
+      "check": {
+        "url": "https://api.airtable.com/v0/meta/whoami",
+        "label": "email"
+      },
+      "use": {
+        "api": "https://api.airtable.com",
+        "docs": "https://airtable.com/developers/web/api/introduction"
+      }
+    },
+    {
+      "id": "todoist",
+      "label": "Todoist",
+      "domain": "todoist.com",
+      "flow": "code",
+      "clientIdEnv": "DUSK_OAUTH_TODOIST_CLIENT_ID",
+      "clientSecretEnv": "DUSK_OAUTH_TODOIST_CLIENT_SECRET",
+      "authorizeUrl": "https://todoist.com/oauth/authorize",
+      "tokenUrl": "https://todoist.com/oauth/access_token",
+      "scopes": [
+        "data:read_write"
+      ],
+      "scopeSeparator": ",",
+      "check": {
+        "url": "https://api.todoist.com/api/v1/user",
+        "label": "full_name"
+      },
+      "use": {
+        "api": "https://api.todoist.com",
+        "docs": "https://developer.todoist.com/api/v1/"
+      }
+    },
+    {
+      "id": "clickup",
+      "label": "ClickUp",
+      "domain": "clickup.com",
+      "flow": "code",
+      "clientIdEnv": "DUSK_OAUTH_CLICKUP_CLIENT_ID",
+      "clientSecretEnv": "DUSK_OAUTH_CLICKUP_CLIENT_SECRET",
+      "authorizeUrl": "https://app.clickup.com/api",
+      "tokenUrl": "https://api.clickup.com/api/v2/oauth/token",
+      "scopes": [],
+      "check": {
+        "url": "https://api.clickup.com/api/v2/user",
+        "label": "user.username",
+        "auth": "raw"
+      },
+      "use": {
+        "api": "https://api.clickup.com",
+        "docs": "https://developer.clickup.com/reference"
+      }
+    },
+    {
+      "id": "trello",
+      "label": "Trello",
+      "domain": "trello.com",
+      "flow": "fragment",
+      "clientIdEnv": "DUSK_OAUTH_TRELLO_API_KEY",
+      "authorizeUrl": "https://trello.com/1/authorize",
+      "tokenUrl": "https://trello.com/1/authorize",
+      "scopes": [
+        "read",
+        "write"
+      ],
+      "scopeSeparator": ",",
+      "authorizeParams": {
+        "expiration": "never",
+        "name": "dusk bot"
+      },
+      "check": {
+        "url": "https://api.trello.com/1/members/me",
+        "label": "fullName"
+      },
+      "use": {
+        "api": "https://api.trello.com",
+        "docs": "https://developer.atlassian.com/cloud/trello/rest/"
+      }
+    },
+    {
+      "id": "dropbox",
+      "label": "Dropbox",
+      "domain": "dropbox.com",
+      "flow": "code",
+      "clientIdEnv": "DUSK_OAUTH_DROPBOX_CLIENT_ID",
+      "authorizeUrl": "https://www.dropbox.com/oauth2/authorize",
+      "tokenUrl": "https://api.dropboxapi.com/oauth2/token",
+      "scopes": [],
+      "authorizeParams": {
+        "token_access_type": "offline"
+      },
+      "check": {
+        "url": "https://api.dropboxapi.com/2/users/get_current_account",
+        "label": "name.display_name",
+        "method": "POST"
+      },
+      "use": {
+        "api": "https://api.dropboxapi.com",
+        "docs": "https://www.dropbox.com/developers/documentation/http/documentation"
+      }
     }
   ]
 }

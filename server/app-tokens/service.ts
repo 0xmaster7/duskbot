@@ -8,7 +8,7 @@ import { NATIVE_CONNECTORS, nativeConnector, type NativeConnector } from "../../
 import type { StoredMcpServer } from "../mcp-registry.ts";
 import { PASS, type RouteHandler } from "../routes/table.ts";
 import { handleApiRpc } from "./mcp.ts";
-import { authorizePage, deviceClients, exchangeCode, pollDevice, refreshDevice, startDevice, type DeviceClients, type DeviceTokens } from "./device.ts";
+import { authorizePage, deviceClients, exchangeCode, pollDevice, redirectUri, refreshDevice, SignInExpiredError, startDevice, type DeviceClients, type DeviceTokens } from "./device.ts";
 import { accountView, TokenStore, type TokenAccount } from "./store.ts";
 import { TokenCheckError, vendorFor, type ApiAccess, type TokenFields } from "./vendors.ts";
 
@@ -20,8 +20,10 @@ const DEVICE_START = /^\/api\/app-tokens\/([a-z]{2,20})\/device$/u;
 const DEVICE_POLL = /^\/api\/app-tokens\/device\/([a-f0-9]{32})$/u;
 const ACCOUNT = /^\/api\/app-tokens\/accounts\/([a-f0-9]{16})$/u;
 const FIELD_KEYS = ["token", "key", "email", "site", "shop"] as const;
-// a device token is refreshed this long before it expires
+// a device token is refreshed this long before it expires, checked this often
 const REFRESH_AHEAD_MS = 10 * 60_000;
+const REFRESH_EVERY_MS = 5 * 60_000;
+const ACCOUNT_ID = /^[a-f0-9]{16}$/u;
 
 /** What the service needs of the MCP server list: the same writer Settings uses, so policy and limits apply. */
 export interface TokenServers {
@@ -41,7 +43,7 @@ export interface TokenAppsDeps {
   now?(): number;
 }
 
-interface PendingDevice { connector: NativeConnector; deviceCode?: string; code?: { state: string; verifier: string; redirect: string }; expiresAt: number; interval: number; nextAt: number; result?: DevicePoll }
+interface PendingDevice { connector: NativeConnector; deviceCode?: string; code?: { state: string; verifier: string; redirect: string }; replaces?: string; expiresAt: number; interval: number; nextAt: number; result?: DevicePoll }
 
 const hex = (bytes: number) => randomBytes(bytes).toString("hex");
 
@@ -71,18 +73,36 @@ export function createTokenApps(deps: TokenAppsDeps) {
   }
 
   /** Checks the credentials live, keeps them sealed and adds the app's MCP server. */
-  async function connect(app: TokenAppId, fields: TokenFields, via: TokenAccount["via"], tokens?: DeviceTokens): Promise<TokenAccountView> {
+  /** The account a reconnect takes over: one of the same app, or none when `replaces` is unset. */
+  function replaced(app: TokenAppId, replaces: string | undefined): TokenAccount | undefined {
+    if (replaces === undefined) return undefined;
+    const old = ACCOUNT_ID.test(replaces) ? store.get(replaces) : undefined;
+    if (!old || old.app !== app) throw new TokenCheckError("input", "That account isn't connected any more. Connect the app again.");
+    return old;
+  }
+
+  async function connect(app: TokenAppId, fields: TokenFields, via: TokenAccount["via"], tokens?: DeviceTokens, replaces?: string): Promise<TokenAccountView> {
     const vendor = vendorFor(app);
     if (!vendor) throw new TokenCheckError("input", "No such app.");
+    replaced(app, replaces);
     const label = await vendor.check(fields, fetchImpl, AbortSignal.timeout(20_000));
+    // checked again: the old account may have been removed while the check ran
+    const old = replaced(app, replaces);
     const id = hex(8);
-    const server = freeName(app, deps.servers.names());
+    const server = old?.server ?? freeName(app, deps.servers.names());
     const account: TokenAccount = {
       id, app, label, server, via, connectedAt: now(),
       fields: Object.fromEntries(Object.entries({ ...fields, ...(tokens?.refresh ? { refresh: tokens.refresh } : {}) }).filter(([, value]) => typeof value === "string" && value)) as Record<string, string>,
       ...(vendor.mcp ? {} : { mcpKey: hex(32) }),
       ...(tokens?.expiresAt ? { expiresAt: tokens.expiresAt } : {}),
     };
+    if (old) {
+      // same server name, so every bot's access to it stays as it was
+      store.remove(old.id);
+      store.put(account);
+      deps.servers.replace(server, serverFor(account));
+      return accountView(account);
+    }
     store.put(account);
     const added = deps.servers.add(server, serverFor(account));
     if (!added.ok) {
@@ -92,14 +112,32 @@ export function createTokenApps(deps: TokenAppsDeps) {
     return accountView(account);
   }
 
-  /** A device token's next one, saved, and the vendor server's header with it. */
-  async function fresh(account: TokenAccount): Promise<TokenAccount> {
-    if (!account.expiresAt || account.expiresAt - now() > REFRESH_AHEAD_MS || !account.fields.refresh) return account;
+  function markReconnect(account: TokenAccount): TokenAccount {
+    const current = store.get(account.id);
+    if (!current || current.needsReconnect) return current ?? account;
+    const next: TokenAccount = { ...current, needsReconnect: true };
+    store.put(next);
+    return next;
+  }
+
+  /** A signed-in token's next one, saved, and the vendor server's header with it: when it is about to expire, or when
+   * `force` says the app just refused it. A refresh token the vendor refuses marks the account for a reconnect. */
+  async function fresh(account: TokenAccount, force = false): Promise<TokenAccount> {
+    if (account.needsReconnect || !account.fields.refresh) return account;
+    if (!force && (!account.expiresAt || account.expiresAt - now() > REFRESH_AHEAD_MS)) return account;
     const connector = nativeConnector(account.app);
     const client = clients[account.app];
     if (!connector || !client) return account;
-    const tokens = await refreshDevice(connector, client, account.fields.refresh, fetchImpl, now());
-    const next: TokenAccount = { ...account, fields: { ...account.fields, token: tokens.token, ...(tokens.refresh ? { refresh: tokens.refresh } : {}) }, ...(tokens.expiresAt ? { expiresAt: tokens.expiresAt } : {}) };
+    let tokens: DeviceTokens;
+    try {
+      tokens = await refreshDevice(connector, client, account.fields.refresh, fetchImpl, now());
+    } catch (error) {
+      if (error instanceof SignInExpiredError) return markReconnect(account);
+      throw error;
+    }
+    const latest = store.get(account.id);
+    if (!latest) return account;
+    const next: TokenAccount = { ...latest, fields: { ...latest.fields, token: tokens.token, ...(tokens.refresh ? { refresh: tokens.refresh } : {}) }, ...(tokens.expiresAt ? { expiresAt: tokens.expiresAt } : {}) };
     store.put(next);
     if (vendorFor(account.app)?.mcp) deps.servers.replace(account.server, serverFor(next));
     return next;
@@ -109,49 +147,71 @@ export function createTokenApps(deps: TokenAppsDeps) {
     for (const account of store.list()) await fresh(account).catch((error) => console.warn(`App tokens: ${account.app} could not refresh its sign-in: ${error instanceof Error ? error.message : error}`));
   }
 
+  /** Keeps signed-in tokens fresh while nobody has Connect apps open, so a bot never meets an expired one. */
+  function startAutoRefresh(everyMs = REFRESH_EVERY_MS): () => void {
+    let running = false;
+    const timer = setInterval(() => {
+      if (running) return;
+      running = true;
+      void refreshDue().finally(() => { running = false; });
+    }, everyMs);
+    timer.unref();
+    return () => clearInterval(timer);
+  }
+
   function remove(id: string): boolean {
     const gone = store.remove(id);
     if (gone) deps.servers.remove(gone.server);
     return Boolean(gone);
   }
 
-  async function beginDevice(app: string): Promise<DeviceStart> {
+  async function beginDevice(app: string, replaces?: string): Promise<DeviceStart> {
     const connector = nativeConnector(app);
     const client = clients[app];
     if (!connector || !client) throw new TokenCheckError("input", "This sign-in isn't set up in this build yet.");
+    replaced(app, replaces);
     for (const [key, entry] of pending) if (entry.expiresAt < now()) pending.delete(key);
     const handle = hex(16);
-    if (connector.flow === "code") {
-      const redirect = `${deps.origin()}${APP_TOKENS_CALLBACK_PATH}`;
+    if (connector.flow !== "device") {
+      const redirect = redirectUri(connector, deps.origin(), APP_TOKENS_CALLBACK_PATH);
       const page = authorizePage(connector, client, redirect);
-      pending.set(handle, { connector, code: { state: page.state, verifier: page.verifier, redirect }, expiresAt: now() + 15 * 60_000, interval: 2, nextAt: 0 });
+      pending.set(handle, { connector, code: { state: page.state, verifier: page.verifier, redirect }, replaces, expiresAt: now() + 15 * 60_000, interval: 2, nextAt: 0 });
       return { handle, verificationUrl: page.url, expiresIn: 900, interval: 2 };
     }
     const code = await startDevice(connector, client, fetchImpl);
-    pending.set(handle, { connector, deviceCode: code.deviceCode, expiresAt: now() + code.expiresIn * 1000, interval: code.interval, nextAt: now() + code.interval * 1000 });
+    pending.set(handle, { connector, deviceCode: code.deviceCode, replaces, expiresAt: now() + code.expiresIn * 1000, interval: code.interval, nextAt: now() + code.interval * 1000 });
     return { handle, userCode: code.userCode, verificationUrl: code.verificationUrl, expiresIn: code.expiresIn, interval: code.interval };
   }
 
-  async function finish(entry: PendingDevice, tokens: DeviceTokens): Promise<DevicePoll> {
+  async function finish(entry: PendingDevice, tokens: DeviceTokens, fields: TokenFields = { token: tokens.token }): Promise<DevicePoll> {
     try {
-      entry.result = { status: "connected", account: await connect(entry.connector.id, { token: tokens.token }, "device", tokens) };
+      entry.result = { status: "connected", account: await connect(entry.connector.id, fields, "device", tokens, entry.replaces) };
     } catch (error) {
       entry.result = { status: "failed", message: error instanceof Error ? error.message : "The sign-in didn't finish." };
     }
     return entry.result;
   }
 
-  /** The browser coming back from a code-flow sign-in: matched to its sign-in by state, once. */
-  async function callback(query: URLSearchParams): Promise<{ ok: boolean; text: string }> {
+  /** The browser coming back from a code or fragment sign-in: matched to its sign-in by state, once. A fragment
+   * sign-in's token arrives in a second request, posted by the page the first one gets (`page`). */
+  async function callback(query: URLSearchParams, posted?: { token?: unknown }): Promise<{ ok: boolean; text: string; page?: true }> {
     const state = query.get("state") ?? "";
     const entry = [...pending.values()].find((one) => one.code?.state === state && !one.result);
     if (!entry?.code || entry.expiresAt < now()) return { ok: false, text: "This sign-in is over. Go back to dusk bot and start again." };
+    const label = entry.connector.label;
+    if (entry.connector.flow === "fragment") {
+      if (!posted) return { ok: true, text: "", page: true };
+      const token = typeof posted.token === "string" && /^[A-Za-z0-9_-]{16,256}$/u.test(posted.token) ? posted.token : null;
+      if (!token) { entry.result = { status: "failed", message: "The sign-in was cancelled." }; return { ok: false, text: "The sign-in was cancelled. You can close this tab." }; }
+      const result = await finish(entry, { token }, { key: clients[entry.connector.id]!.clientId, token });
+      return result.status === "connected" ? { ok: true, text: `${label} is connected. You can close this tab.` } : { ok: false, text: "The sign-in didn't finish. Go back to dusk bot and try again." };
+    }
     const code = query.get("code");
     if (!code) { entry.result = { status: "failed", message: "The sign-in was cancelled." }; return { ok: false, text: "The sign-in was cancelled. You can close this tab." }; }
     try {
       const tokens = await exchangeCode(entry.connector, clients[entry.connector.id]!, code, entry.code.verifier, entry.code.redirect, fetchImpl, now());
       const result = await finish(entry, tokens);
-      return result.status === "connected" ? { ok: true, text: `${entry.connector.label} is connected. You can close this tab.` } : { ok: false, text: "The sign-in didn't finish. Go back to dusk bot and try again." };
+      return result.status === "connected" ? { ok: true, text: `${label} is connected. You can close this tab.` } : { ok: false, text: "The sign-in didn't finish. Go back to dusk bot and try again." };
     } catch {
       entry.result = { status: "failed", message: "The sign-in didn't finish. Start again." };
       return { ok: false, text: "The sign-in didn't finish. Go back to dusk bot and try again." };
@@ -185,7 +245,8 @@ export function createTokenApps(deps: TokenAppsDeps) {
     const device = DEVICE_START.exec(path);
     if (device && method === "POST") {
       if (!nativeConnector(device[1]!)) return json(res, 404, { error: "No such sign-in." });
-      try { return json(res, 200, await beginDevice(device[1]!)); }
+      const body = await readBody(req, 2_000).catch(() => null) as { replaces?: unknown } | null;
+      try { return json(res, 200, await beginDevice(device[1]!, typeof body?.replaces === "string" ? body.replaces : undefined)); }
       catch (error) { return json(res, error instanceof TokenCheckError ? 400 : 502, { error: error instanceof Error ? error.message : "The sign-in didn't start." }); }
     }
     const poll = DEVICE_POLL.exec(path);
@@ -197,11 +258,11 @@ export function createTokenApps(deps: TokenAppsDeps) {
     if (app && method === "POST") {
       const spec = tokenApp(app[1]!);
       if (!spec || !spec.fields.length) return json(res, 404, { error: "No such app." });
-      const body = await readBody(req, 20_000).catch(() => null) as { fields?: Record<string, unknown> } | null;
+      const body = await readBody(req, 20_000).catch(() => null) as { fields?: Record<string, unknown>; replaces?: unknown } | null;
       const fields: TokenFields = {};
       for (const key of FIELD_KEYS) if (typeof body?.fields?.[key] === "string") fields[key] = (body.fields[key] as string).trim();
       try {
-        return json(res, 201, { account: await connect(spec.id, fields, "token"), ...status() });
+        return json(res, 201, { account: await connect(spec.id, fields, "token", undefined, typeof body?.replaces === "string" ? body.replaces : undefined), ...status() });
       } catch (error) {
         if (error instanceof TokenCheckError) return json(res, error.kind === "network" ? 502 : 400, { error: error.message, code: `token_${error.kind}` });
         throw error;
@@ -220,11 +281,20 @@ export function createTokenApps(deps: TokenAppsDeps) {
     if (method === "GET" || method === "DELETE") { res.writeHead(405, { allow: "POST" }); res.end(); return; }
     if (method !== "POST") return json(res, 405, { error: "method not allowed" });
     const vendor = vendorFor(account.app)!;
-    const access = async (): Promise<ApiAccess> => vendor.api!((await fresh(store.get(account.id) ?? account)).fields);
+    const latest = () => store.get(account.id) ?? account;
+    // a renewal that fails for now (network) leaves the current token to answer for itself
+    const access = async (): Promise<ApiAccess> => vendor.api!((await fresh(latest()).catch(() => latest())).fields);
+    const refused = async (): Promise<ApiAccess | null> => {
+      const before = latest();
+      const after = await fresh(before, true).catch(() => before);
+      if (after.fields.token !== before.fields.token && !after.needsReconnect) return vendor.api!(after.fields);
+      markReconnect(before);
+      return null;
+    };
     const message = await body().catch(() => null);
     const answer = Array.isArray(message)
-      ? (await Promise.all(message.map((one) => handleApiRpc(one, account.app, access, fetchImpl, scrub)))).filter(Boolean)
-      : await handleApiRpc(message, account.app, access, fetchImpl, scrub);
+      ? (await Promise.all(message.map((one) => handleApiRpc(one, account.app, access, fetchImpl, scrub, refused)))).filter(Boolean)
+      : await handleApiRpc(message, account.app, access, fetchImpl, scrub, refused);
     if (answer === undefined || (Array.isArray(answer) && !answer.length)) { res.writeHead(202); res.end(); return; }
     return json(res, 200, answer);
   }
@@ -241,13 +311,31 @@ export function createTokenApps(deps: TokenAppsDeps) {
   async function publicRoute(req: IncomingMessage, res: ServerResponse, url: URL, method: string, body: () => Promise<unknown>, json: (res: ServerResponse, status: number, body: unknown) => void): Promise<boolean> {
     if (url.pathname.startsWith(APP_TOKENS_MCP_PREFIX)) { await mcp(req, res, url.pathname, method, body, json); return true; }
     if (url.pathname !== APP_TOKENS_CALLBACK_PATH) return false;
-    const answer = method === "GET" ? await callback(url.searchParams) : { ok: false, text: "Invalid sign-in callback." };
+    const posted = method === "POST" ? await body().catch(() => null) as { token?: unknown } | null : undefined;
+    const answer = method === "GET" ? await callback(url.searchParams)
+      : method === "POST" && posted ? await callback(url.searchParams, posted)
+      : { ok: false, text: "Invalid sign-in callback." };
+    if (answer.page) {
+      // the token is in this page's #fragment, which the browser never sends: the page posts it back here, same origin
+      const nonce = randomBytes(16).toString("base64");
+      res.writeHead(200, {
+        "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "referrer-policy": "no-referrer", "x-content-type-options": "nosniff",
+        "content-security-policy": `default-src 'none'; script-src 'nonce-${nonce}'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
+      });
+      res.end(`<!doctype html><meta charset="utf-8"><title>dusk bot</title><p id="m">Finishing sign-in…</p><script nonce="${nonce}">
+const token = new URLSearchParams(location.hash.slice(1)).get("token");
+history.replaceState(null, "", location.pathname + location.search);
+fetch(location.pathname + location.search, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token }) })
+  .then((r) => r.text()).then((t) => { document.getElementById("m").textContent = t; }, () => { document.getElementById("m").textContent = "The sign-in didn't finish. Go back to dusk bot and try again."; });
+</script>`);
+      return true;
+    }
     res.writeHead(answer.ok ? 200 : 400, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store", "referrer-policy": "no-referrer" });
     res.end(answer.text);
     return true;
   }
 
-  return { store, status, connect, remove, beginDevice, checkDevice, callback, refreshDue, routes, mcp, publicRoute, scrub, repointServers };
+  return { store, status, connect, remove, beginDevice, checkDevice, callback, refreshDue, startAutoRefresh, routes, mcp, publicRoute, scrub, repointServers };
 }
 
 export type TokenApps = ReturnType<typeof createTokenApps>;

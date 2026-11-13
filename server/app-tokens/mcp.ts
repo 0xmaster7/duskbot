@@ -57,30 +57,56 @@ function formBody(value: unknown, prefix = "", out = new URLSearchParams()): URL
 
 const result = (text: string, isError = false) => ({ content: [{ type: "text", text }], ...(isError ? { isError: true } : {}) });
 
-export async function callApi(access: ApiAccess, args: Record<string, unknown>, fetchImpl: typeof fetch = fetch, scrub: (text: string) => string = (text) => text) {
+/** What api_request does when the app refuses the sign-in: a fresh credential to retry with once, or null when only
+ * a reconnect helps (the account is then marked for one). */
+export interface ApiCallHooks {
+  label: string;
+  refused?(): Promise<ApiAccess | null>;
+}
+
+function retryAfter(response: Response): string {
+  const value = response.headers.get("retry-after");
+  const seconds = value && /^\d+$/u.test(value.trim()) ? Number(value) : NaN;
+  return Number.isFinite(seconds) && seconds > 0 && seconds < 86_400 ? `${seconds} seconds` : "a minute";
+}
+
+export async function callApi(access: ApiAccess, args: Record<string, unknown>, fetchImpl: typeof fetch = fetch, scrub: (text: string) => string = (text) => text, hooks?: ApiCallHooks) {
   const method = typeof args.method === "string" ? args.method.toUpperCase() : "";
   if (!(METHODS as readonly string[]).includes(method)) return result(`method must be one of ${METHODS.join(", ")}`, true);
   const url = apiUrl(access, args.path, args.query);
   if (typeof url === "string") return result(url, true);
-  const headers: Record<string, string> = { accept: "application/json", "user-agent": "dusk-bot", ...access.headers };
   let body: string | undefined;
+  let type: string | undefined;
   if (args.body !== undefined && method !== "GET") {
-    if (args.form === true) { body = formBody(args.body).toString(); headers["content-type"] = "application/x-www-form-urlencoded"; }
-    else { body = JSON.stringify(args.body); headers["content-type"] = "application/json"; }
+    if (args.form === true) { body = formBody(args.body).toString(); type = "application/x-www-form-urlencoded"; }
+    else { body = JSON.stringify(args.body); type = "application/json"; }
   }
+  const send = async (using: ApiAccess, target: URL) => fetchImpl(target, {
+    method, headers: { accept: "application/json", "user-agent": "dusk-bot", ...using.headers, ...(type ? { "content-type": type } : {}) },
+    body, redirect: "error", signal: AbortSignal.timeout(CALL_MS),
+  });
   let response: Response;
   try {
-    response = await fetchImpl(url, { method, headers, body, redirect: "error", signal: AbortSignal.timeout(CALL_MS) });
+    response = await send(access, url);
+    if (response.status === 401 && hooks?.refused) {
+      const next = await hooks.refused().catch(() => null);
+      const again = next ? apiUrl(next, args.path, args.query) : null;
+      if (next && again instanceof URL) { void response.body?.cancel().catch(() => {}); response = await send(next, again); }
+    }
   } catch {
     return result(`Couldn't reach ${url.origin}.`, true);
   }
   const text = scrub(await response.text().catch(() => ""));
   const trimmed = text.length > MAX_RESULT_CHARS ? `${text.slice(0, MAX_RESULT_CHARS)}\n…(cut at ${MAX_RESULT_CHARS} characters; ask for less, with fields or a page size)` : text;
-  return result(`HTTP ${response.status}\n${trimmed}`, !response.ok);
+  const label = hooks?.label ?? "The app";
+  const note = response.status === 401
+    ? `\n\n${label} refused the sign-in: it expired or was revoked. Ask the person to reconnect ${label} in Connect apps.`
+    : response.status === 429 ? `\n\n${label} is limiting how fast it can be called. Wait ${retryAfter(response)} before the next call.` : "";
+  return result(`HTTP ${response.status}\n${trimmed}${note}`, !response.ok);
 }
 
 /** One JSON-RPC message for an api app's endpoint. Undefined for a notification, which gets no answer. */
-export async function handleApiRpc(message: unknown, app: TokenAppId, access: () => Promise<ApiAccess>, fetchImpl: typeof fetch = fetch, scrub?: (text: string) => string) {
+export async function handleApiRpc(message: unknown, app: TokenAppId, access: () => Promise<ApiAccess>, fetchImpl: typeof fetch = fetch, scrub?: (text: string) => string, refused?: () => Promise<ApiAccess | null>) {
   const rpc = (isRecord(message) ? message : {}) as Rpc;
   const id = rpc.id;
   if (id === undefined) return undefined;
@@ -95,7 +121,7 @@ export async function handleApiRpc(message: unknown, app: TokenAppId, access: ()
     case "tools/call": {
       const params = isRecord(rpc.params) ? rpc.params : {};
       if (params.name !== API_TOOL) return reply({ error: { code: -32602, message: `Unknown tool. The only tool is ${API_TOOL}.` } });
-      return reply({ result: await callApi(await access(), isRecord(params.arguments) ? params.arguments : {}, fetchImpl, scrub) });
+      return reply({ result: await callApi(await access(), isRecord(params.arguments) ? params.arguments : {}, fetchImpl, scrub, { label: tokenApp(app)?.label ?? app, refused }) });
     }
     default:
       return reply({ error: { code: -32601, message: "Method not found" } });

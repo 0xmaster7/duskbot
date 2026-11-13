@@ -7,21 +7,33 @@ export interface NativeConnector {
   label: string;
   domain: string;
   /** "device": the person types a code on the vendor's page. "code": the vendor's page sends the browser back to
-   * this computer's loopback address (RFC 8252), with PKCE. */
-  flow: "device" | "code";
+   * this computer's loopback address (RFC 8252), with PKCE. "fragment": Trello's token page, which puts the token in
+   * the address's #fragment on the way back (no code to trade). */
+  flow: "device" | "code" | "fragment";
   /** Names of the environment variables that hold the client: never the values. */
   clientIdEnv: string;
   clientSecretEnv?: string;
   /** device flow */
   deviceUrl?: string;
-  /** code flow */
+  /** code and fragment flows */
   authorizeUrl?: string;
+  /** Unused by the fragment flow. */
   tokenUrl: string;
   scopes: string[];
-  /** Extra query fields the authorize page needs (Google's access_type=offline). */
+  /** How scopes are joined in the authorize address (Trello wants commas). */
+  scopeSeparator?: string;
+  /** Extra query fields the authorize page needs (Google's access_type=offline, Notion's owner=user). */
   authorizeParams?: Record<string, string>;
-  /** Who the token signs in as: a GET with the token as a bearer, and the dotted path of the name in its JSON. */
-  check: { url: string; label: string };
+  /** The loopback name the app was registered with. Default 127.0.0.1; Notion and Miro accept only "localhost". */
+  redirectHost?: "127.0.0.1" | "localhost";
+  /** How the client authenticates at the token endpoint. "post" (default): id and secret in the form body. "basic":
+   * HTTP Basic, as Notion and Airtable require of a confidential client. */
+  tokenAuth?: "post" | "basic";
+  /** The token request's body. Default a form; Notion's token endpoint takes JSON. */
+  tokenBody?: "form" | "json";
+  /** Who the token signs in as, and the dotted path of the name in its JSON. Sent with the token as a bearer unless
+   * `auth` is "raw"; a POST sends no body (Dropbox's get_current_account). */
+  check: { url: string; label: string; method?: "GET" | "POST"; auth?: "bearer" | "raw"; headers?: Record<string, string> };
   /** The vendor's own MCP server, which takes the token as a bearer, or an API origin for dusk bot's api_request tool. */
   use: { mcp: string } | { api: string; docs: string };
 }

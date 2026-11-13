@@ -54,6 +54,7 @@ async function read(fetchImpl: Fetch, url: string, init: RequestInit, signal: Ab
   } catch {
     throw new TokenCheckError("network", "Couldn't reach the app. Check your connection and try again.");
   }
+  if (response.status === 429) throw new TokenCheckError("network", "The app is limiting requests right now. Wait a minute and try again.");
   if (response.status === 400 || response.status === 401 || response.status === 403) throw new TokenCheckError("refused", "The app didn't accept this token. Check it and try again.");
   if (response.status === 404) throw new TokenCheckError("refused", "The app couldn't find that account. Check the site or store name and the token.");
   if (!response.ok) throw new TokenCheckError("refused", `The app answered with an error (${response.status}). Check the token and try again.`);
@@ -63,6 +64,7 @@ async function read(fetchImpl: Fetch, url: string, init: RequestInit, signal: Ab
 }
 
 const bearer = (value: string) => ({ authorization: `Bearer ${value}` });
+const linearAuth = (token: string) => (token.startsWith("lin_api_") ? token : `Bearer ${token}`);
 const text = (value: unknown) => (typeof value === "string" && value.trim() ? value.trim().slice(0, 120) : null);
 
 export const VENDORS: Record<string, Vendor> = {
@@ -83,8 +85,8 @@ export const VENDORS: Record<string, Vendor> = {
   },
   linear: {
     async check(fields, fetchImpl, signal) {
-      // the GraphQL API takes a personal key with no Bearer prefix
-      const body = await read(fetchImpl, "https://api.linear.app/graphql", { method: "POST", headers: { authorization: need(fields, "token", "API key"), "content-type": "application/json" }, body: JSON.stringify({ query: "{ viewer { name } }" }) }, signal);
+      // the GraphQL API takes a personal key (lin_api_) with no Bearer prefix and an OAuth token with one
+      const body = await read(fetchImpl, "https://api.linear.app/graphql", { method: "POST", headers: { authorization: linearAuth(need(fields, "token", "API key")), "content-type": "application/json" }, body: JSON.stringify({ query: "{ viewer { name } }" }) }, signal);
       if (Array.isArray(body.errors) && body.errors.length) throw new TokenCheckError("refused", "Linear didn't accept this key. Check it and try again.");
       return text(body.data?.viewer?.name) ?? "Linear";
     },
@@ -171,16 +173,18 @@ export const VENDORS: Record<string, Vendor> = {
 
 const at = (body: unknown, path: string): unknown => path.split(".").reduce<unknown>((value, key) => (value && typeof value === "object" ? (value as Record<string, unknown>)[key] : undefined), body);
 
-/** A native connector's vendor, from its row alone: the check and the way bots use it, the token always a bearer. */
+/** A native connector's vendor, from its row alone: the check and the way bots use it. */
 export function configuredVendor(connector: NativeConnector): Vendor {
+  const auth = (token: string) => (connector.check.auth === "raw" ? { authorization: token } : bearer(token));
   return {
     async check(fields, fetchImpl, signal) {
-      const body = await read(fetchImpl, connector.check.url, { headers: { ...bearer(need(fields, "token", "token")), accept: "application/json", "user-agent": "dusk-bot" } }, signal);
+      const headers = { ...auth(need(fields, "token", "token")), accept: "application/json", "user-agent": "dusk-bot", ...connector.check.headers };
+      const body = await read(fetchImpl, connector.check.url, { method: connector.check.method ?? "GET", headers }, signal);
       return text(at(body, connector.check.label)) ?? connector.label;
     },
     ...("mcp" in connector.use
       ? { mcp: (fields: TokenFields) => ({ url: (connector.use as { mcp: string }).mcp, headers: bearer(fields.token!) }) }
-      : { api: (fields: TokenFields) => ({ origin: (connector.use as { api: string }).api, headers: bearer(fields.token!), docs: (connector.use as { docs: string }).docs }) }),
+      : { api: (fields: TokenFields) => ({ origin: (connector.use as { api: string }).api, headers: auth(fields.token!), docs: (connector.use as { docs: string }).docs }) }),
   };
 }
 

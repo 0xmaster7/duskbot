@@ -62,19 +62,38 @@ const form = (values: Record<string, string | undefined>) => {
   return body.toString();
 };
 
-async function post(fetchImpl: typeof fetch, url: string, values: Record<string, string | undefined>) {
+async function post(fetchImpl: typeof fetch, url: string, values: Record<string, string | undefined>, headers: Record<string, string> = {}, json = false) {
   const response = await fetchImpl(url, {
     method: "POST",
-    headers: { accept: "application/json", "content-type": "application/x-www-form-urlencoded" },
-    body: form(values),
+    headers: { accept: "application/json", "content-type": json ? "application/json" : "application/x-www-form-urlencoded", ...headers },
+    body: json ? JSON.stringify(Object.fromEntries(Object.entries(values).filter(([, value]) => value))) : form(values),
     redirect: "error",
     signal: AbortSignal.timeout(20_000),
   });
   const body = await response.json().catch(() => null) as Record<string, unknown> | null;
-  return { ok: response.ok, body: body ?? {} };
+  return { ok: response.ok, status: response.status, body: body ?? {} };
 }
 
-const scope = (connector: NativeConnector) => connector.scopes.join(" ") || undefined;
+/** A token request as the row says the vendor wants it: the secret in the form, or as HTTP Basic (RFC 6749 2.3.1). */
+function tokenRequest(fetchImpl: typeof fetch, connector: NativeConnector, client: DeviceClient, values: Record<string, string | undefined>) {
+  const basic = connector.tokenAuth === "basic" && client.clientSecret;
+  const headers: Record<string, string> = basic
+    ? { authorization: `Basic ${Buffer.from(`${encodeURIComponent(client.clientId)}:${encodeURIComponent(client.clientSecret!)}`).toString("base64")}` }
+    : {};
+  return post(fetchImpl, connector.tokenUrl, { ...values, client_id: client.clientId, ...(basic ? {} : { client_secret: client.clientSecret }) }, headers, connector.tokenBody === "json");
+}
+
+/** The vendor said this refresh token is dead (revoked, expired or used): only a new sign-in helps. */
+export class SignInExpiredError extends Error {}
+
+const scope = (connector: NativeConnector) => connector.scopes.join(connector.scopeSeparator ?? " ") || undefined;
+
+/** Where the vendor's page sends the browser back: this computer's server under the name the app was registered with. */
+export function redirectUri(connector: NativeConnector, origin: string, path: string): string {
+  const url = new URL(path, origin);
+  if (connector.redirectHost === "localhost") url.hostname = "localhost";
+  return url.toString();
+}
 
 export async function startDevice(connector: NativeConnector, client: DeviceClient, fetchImpl: typeof fetch = fetch): Promise<DeviceCode> {
   if (!connector.deviceUrl) throw new Error(`${connector.label} has no device sign-in.`);
@@ -109,33 +128,42 @@ export async function pollDevice(connector: NativeConnector, client: DeviceClien
   return { status: "failed", message: "The sign-in didn't finish. Start again." };
 }
 
-/** A code-flow sign-in's page and what its answer is checked against. */
+/** A code or fragment sign-in's page and what its answer is checked against. Trello's page takes its API key and a
+ * return_url (which carries our state, since Trello sends none back) and returns the token in the #fragment. */
 export function authorizePage(connector: NativeConnector, client: DeviceClient, redirectUri: string): { url: string; state: string; verifier: string } {
   if (!connector.authorizeUrl) throw new Error(`${connector.label} has no browser sign-in.`);
   const state = randomBytes(16).toString("hex");
   const verifier = randomBytes(32).toString("base64url");
   const url = new URL(connector.authorizeUrl);
-  const params: Record<string, string | undefined> = {
-    response_type: "code", client_id: client.clientId, redirect_uri: redirectUri, state, scope: scope(connector),
-    code_challenge: createHash("sha256").update(verifier).digest("base64url"), code_challenge_method: "S256", ...connector.authorizeParams,
-  };
+  const params: Record<string, string | undefined> = connector.flow === "fragment"
+    ? { key: client.clientId, return_url: `${redirectUri}?state=${state}`, callback_method: "fragment", response_type: "token", scope: scope(connector), ...connector.authorizeParams }
+    : {
+      response_type: "code", client_id: client.clientId, redirect_uri: redirectUri, state, scope: scope(connector),
+      code_challenge: createHash("sha256").update(verifier).digest("base64url"), code_challenge_method: "S256", ...connector.authorizeParams,
+    };
   for (const [key, value] of Object.entries(params)) if (value) url.searchParams.set(key, value);
   return { url: url.toString(), state, verifier };
 }
 
 export async function exchangeCode(connector: NativeConnector, client: DeviceClient, code: string, verifier: string, redirectUri: string, fetchImpl: typeof fetch = fetch, now = Date.now()): Promise<DeviceTokens> {
-  const { body } = await post(fetchImpl, connector.tokenUrl, {
-    grant_type: "authorization_code", code, redirect_uri: redirectUri, client_id: client.clientId, client_secret: client.clientSecret, code_verifier: verifier,
-  });
+  const { body } = await tokenRequest(fetchImpl, connector, client, { grant_type: "authorization_code", code, redirect_uri: redirectUri, code_verifier: verifier });
   const tokens = tokensOf(body, now);
   if (!tokens) throw new Error("The sign-in didn't finish. Start again.");
   return tokens;
 }
 
-/** A new token from a refresh token; each GitHub refresh token works once, so the answer carries the next one. */
+/** A new token from a refresh token; each GitHub refresh token works once, so the answer carries the next one. A refusal
+ * of the refresh token itself is a SignInExpiredError; anything else (network, a vendor outage) may pass next time. */
 export async function refreshDevice(connector: NativeConnector, client: DeviceClient, refresh: string, fetchImpl: typeof fetch = fetch, now = Date.now()): Promise<DeviceTokens> {
-  const { body } = await post(fetchImpl, connector.tokenUrl, { client_id: client.clientId, client_secret: client.clientSecret, refresh_token: refresh, grant_type: "refresh_token" });
-  const tokens = tokensOf(body, now);
-  if (!tokens) throw new Error("The sign-in expired. Connect the app again.");
-  return { ...tokens, refresh: tokens.refresh ?? refresh };
+  const answer = connector.flow === "device"
+    ? await post(fetchImpl, connector.tokenUrl, { client_id: client.clientId, client_secret: client.clientSecret, refresh_token: refresh, grant_type: "refresh_token" })
+    : await tokenRequest(fetchImpl, connector, client, { refresh_token: refresh, grant_type: "refresh_token" });
+  const tokens = tokensOf(answer.body, now);
+  if (tokens) return { ...tokens, refresh: tokens.refresh ?? refresh };
+  const error = typeof answer.body.error === "string" ? answer.body.error : "";
+  // GitHub answers a dead refresh token with HTTP 200 and bad_refresh_token
+  if (["invalid_grant", "bad_refresh_token", "invalid_request", "unauthorized_client"].includes(error) || answer.status === 400 || answer.status === 401) {
+    throw new SignInExpiredError(`The ${connector.label} sign-in expired or was revoked. Reconnect ${connector.label}.`);
+  }
+  throw new Error(`${connector.label} didn't renew the sign-in (HTTP ${answer.status}). It will try again.`);
 }

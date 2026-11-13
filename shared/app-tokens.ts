@@ -66,6 +66,9 @@ export interface TokenAccountView {
   server: string;
   connectedAt: string;
   via: "token" | "device";
+  /** The app refused this sign-in (expired or revoked). Reconnect with `replaces` set to this id: the new sign-in takes
+   * over the same MCP server name, so every bot keeps its access. */
+  needsReconnect?: true;
 }
 
 export interface TokenAppsStatus {
@@ -83,6 +86,13 @@ export interface DeviceStart {
   expiresIn: number;
   /** Seconds to wait between checks. */
   interval: number;
+}
+
+/** Body of POST /api/app-tokens/:app (fields) and POST /api/app-tokens/:app/device: `replaces` names an account of
+ * the same app whose server the new sign-in takes over. */
+export interface TokenConnectRequest {
+  fields?: Partial<Record<TokenField["key"], string>>;
+  replaces?: string;
 }
 
 export type DevicePoll =
