@@ -464,6 +464,11 @@
 :root .settings-dialog .settings-pane [data-settings-rows] > div:not([data-setting-row]):has(> [data-setting-row]:only-child) { display: block; }
 :root .settings-dialog .settings-pane [data-settings-rows] > div > [data-setting-row]:only-child { padding: 0; }
 :root .settings-dialog .settings-pane [data-settings-rows] > div > [data-setting-row]:only-child > div:first-child { min-height: 30px; align-items: center; column-gap: 16px; flex-wrap: nowrap; }
+/* a phone's row is too narrow for a wide control beside its words: the control goes under them instead of over them */
+@media (max-width: 639.98px) {
+  :root .settings-dialog .settings-pane [data-settings-rows] > [data-setting-row] > div:first-child,
+  :root .settings-dialog .settings-pane [data-settings-rows] > div > [data-setting-row]:only-child > div:first-child { flex-wrap: wrap; row-gap: 6px; }
+}
 :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) > :is(button, [data-select-row], [data-setting-row]) { background-color: transparent; }
 /* the docs' hover: a soft grey rounded fill on rows you click as a whole, instant; rows holding their own control
    and plain information (usage cards, charts, notes) stay still */

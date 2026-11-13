@@ -27,6 +27,8 @@ export function Toggle({ checked: owned, className, tone, style, disabled: owned
         "group/switch relative inline-flex h-5 w-8 shrink-0 cursor-pointer items-center rounded-full shadow-none transition-[background-color] duration-200 ease-[ease]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:ring-offset-app",
         "disabled:cursor-not-allowed disabled:opacity-50",
+        // a thumb's target on touch: 44px tall around the 20px track, without moving anything
+        "pointer-coarse:before:absolute pointer-coarse:before:-inset-x-1.5 pointer-coarse:before:-inset-y-3 pointer-coarse:before:content-['']",
         checked
           ? tone
             ? "bg-(--toggle-on) enabled:hover:bg-(--toggle-on-hover)"

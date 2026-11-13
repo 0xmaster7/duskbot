@@ -265,7 +265,8 @@
 .ca-field input {
   flex: 1 1 auto;
   min-width: 0;
-  height: 20px;
+  /* the whole pill's height takes the tap, the line stays 20px */
+  height: 30px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -938,7 +939,9 @@ a.ca-pill { color: inherit; text-decoration: none; }
   .ca-dialog { width: 100%; max-height: none; border-radius: 14px 14px 0 0; }
   .ca-layout { height: calc(100dvh - 44px); }
   .ca-pane { padding: 16px 16px 28px; }
-  .ca-installed > :not(.ca-stack) { display: none; }
+  /* the words go, the faces and the chevron stay: with nothing connected the button is never empty */
+  .ca-installed > :not(.ca-stack, [data-chevron]) { display: none; }
+  .ca-installed { min-width: 44px; min-height: 44px; justify-content: center; }
 }
 .ca-account-tag[data-tone="quiet"] { color: var(--ca-ink-56); }
 .ca-account-select {

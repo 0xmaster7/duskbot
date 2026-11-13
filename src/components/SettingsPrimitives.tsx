@@ -34,6 +34,8 @@ export function Switch({
       aria-checked={checked}
       className={cn(
         "group/switch relative cursor-pointer h-6 w-11 shrink-0 rounded-full transition-colors enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none",
+        // a thumb's target on touch: 44px tall around the track, without moving anything
+        "pointer-coarse:before:absolute pointer-coarse:before:-inset-x-1.5 pointer-coarse:before:-inset-y-3 pointer-coarse:before:content-['']",
         "in-data-[settings-look=simple]:h-5 in-data-[settings-look=simple]:w-8 in-data-[settings-look=simple]:transition-[background-color] in-data-[settings-look=simple]:duration-[120ms] in-data-[settings-look=simple]:ease-[ease] in-data-[settings-look=simple]:enabled:hover:brightness-100",
         "in-data-[settings-look=simple]:shadow-none in-data-[settings-look=simple]:outline-none in-data-[settings-look=simple]:focus-visible:outline-2 in-data-[settings-look=simple]:focus-visible:outline-offset-1 in-data-[settings-look=simple]:focus-visible:outline-focus",
         checked
@@ -101,11 +103,11 @@ export function SettingRow({
       <div className="grid min-w-0 grid-cols-1 items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-6 in-data-[settings-look=simple]:flex in-data-[settings-look=simple]:min-h-[18px] in-data-[settings-look=simple]:flex-wrap in-data-[settings-look=simple]:justify-between in-data-[settings-look=simple]:gap-x-2 in-data-[settings-look=simple]:gap-y-1.5">
         {typeof icon === "string" ? <PixelIcon name={icon} size={24} className="hidden self-center in-data-[settings-look=simple]:block" />
           : icon && <span aria-hidden="true" className="hidden size-6 shrink-0 items-center justify-center self-center in-data-[settings-look=simple]:flex">{icon}</span>}
-        <div className="min-w-0 in-data-[settings-look=simple]:flex in-data-[settings-look=simple]:shrink in-data-[settings-look=simple]:grow in-data-[settings-look=simple]:basis-[min-content] in-data-[settings-look=simple]:flex-col in-data-[settings-look=simple]:[overflow-wrap:break-word]">
+        <div className="min-w-0 in-data-[settings-look=simple]:flex in-data-[settings-look=simple]:min-w-28 in-data-[settings-look=simple]:shrink in-data-[settings-look=simple]:grow in-data-[settings-look=simple]:basis-[min-content] in-data-[settings-look=simple]:flex-col in-data-[settings-look=simple]:[overflow-wrap:break-word]">
           <div id={titleId} data-setting-title="" className="text-[14px] font-medium text-ink in-data-[settings-look=simple]:text-[13px] in-data-[settings-look=simple]:font-normal in-data-[settings-look=simple]:leading-[18px] in-data-[settings-look=simple]:tracking-[0.015em]">{title}</div>
           {subtitle && <div data-setting-hint="" className="mt-1 text-[12px] leading-relaxed text-pretty text-ink-secondary in-data-[settings-look=simple]:mt-0 in-data-[settings-look=simple]:text-[13px] in-data-[settings-look=simple]:leading-[18px] in-data-[settings-look=simple]:tracking-[0.015em]">{subtitle}</div>}
         </div>
-        <div className="min-w-0 sm:max-w-[240px] in-data-[settings-look=simple]:ml-auto in-data-[settings-look=simple]:flex in-data-[settings-look=simple]:max-w-[60%] in-data-[settings-look=simple]:shrink-0 in-data-[settings-look=simple]:flex-col in-data-[settings-look=simple]:items-end in-data-[settings-look=simple]:sm:max-w-[60%]">{children}</div>
+        <div className="min-w-0 sm:max-w-[240px] in-data-[settings-look=simple]:ml-auto in-data-[settings-look=simple]:flex in-data-[settings-look=simple]:max-w-full in-data-[settings-look=simple]:shrink-0 in-data-[settings-look=simple]:flex-col in-data-[settings-look=simple]:items-end in-data-[settings-look=simple]:sm:max-w-[60%]">{children}</div>
       </div>
       {message && <div className="mt-2 text-[12px]">{message}</div>}
     </div>
