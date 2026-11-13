@@ -40,7 +40,7 @@ export function appFaces(connected: readonly string[], cards: ReadonlyMap<string
   return [...POPULAR_APPS, ...MORE_APPS].filter((app) => !taken.has(app.slug)).slice(0, APP_FACES).map((app) => {
     const card = cards.get(app.slug);
     const art = appLogo(app.slug, app.label);
-    return { ...app, ...(card?.logo ? { logo: card.logo } : {}), ...(art ? { image: art.src, padded: art.padded, background: art.background, scale: art.scale } : {}) };
+    return { ...app, ...(card?.logo ? { logo: card.logo } : {}), ...(art ? { image: art.src, padded: art.padded, background: art.background, scale: art.scale } : { padded: true, scale: 0.62 }) };
   });
 }
 
@@ -73,7 +73,7 @@ export function useSidebarApps(): SidebarApps {
 function AppFaceIcon({ face, className }: { face: AppFace; className?: string }) {
   return (
     <span data-app-face={face.slug} className={cn("flex size-[22px] shrink-0 items-center justify-center rounded-[7px] bg-composer p-px", className)}>
-      <ServiceTile card={{ ...face, scale: 0.9 }} size={20} />
+      <ServiceTile card={{ ...face, scale: face.scale ?? 0.9 }} size={20} />
     </span>
   );
 }
