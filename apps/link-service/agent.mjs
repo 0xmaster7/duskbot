@@ -53,7 +53,7 @@ export const SERVER = { host: "127.0.0.1", port: Number(process.env.LINK_SERVER_
 export const LINK_PROTOCOL = 2;
 export const LINK_MIN_APP = 1;
 export const LINK_MIN_SERVER = 1;
-export const AGENT_VERSION = "2.4.0";
+export const AGENT_VERSION = "2.4.1";
 export const AGENT_CAPS = Object.freeze(["direct-ssh", "direct-wss", "direct-rtc", "egress", "egress-lane", "self-update", "cloud-relay"]);
 /** what this agent says about itself, in its direct hello and its answer to the app's `hello` */
 export const agentHello = () => ({ protocol: LINK_PROTOCOL, minApp: LINK_MIN_APP, minServer: LINK_MIN_SERVER, agent: AGENT_VERSION, caps: [...AGENT_CAPS] });
@@ -1281,9 +1281,10 @@ export function channelDuplex(dc) {
 }
 // ---- end of the shared part ----
 
-/** node-datachannel the installer put beside this file (/opt/duskbot-link/node_modules); null when it is not there */
+/** node-datachannel the installer put beside this file (/opt/duskbot-link/node_modules), or the one this agent fetched
+ * into its own folder (ensureRtc); null when neither is there */
 let rtcLoaded;
-export function rtcLibrary(dirs = [process.env.DUSK_LINK_NDC_DIR, dirname(fileURLToPath(import.meta.url))].filter(Boolean)) {
+export function rtcLibrary(dirs = [process.env.DUSK_LINK_NDC_DIR, dirname(fileURLToPath(import.meta.url)), configDir()].filter(Boolean)) {
   if (rtcLoaded !== undefined) return rtcLoaded;
   rtcLoaded = null;
   for (const dir of dirs) {
@@ -1295,6 +1296,38 @@ export function rtcLibrary(dirs = [process.env.DUSK_LINK_NDC_DIR, dirname(fileUR
   return rtcLoaded;
 }
 
+/** the node-datachannel the app and server pin (package.json; install.sh AGENT_RTC_VERSION; a test checks all three) */
+export const RTC_VERSION = "0.33.6";
+const RTC_RETRY_MS = 6 * 60 * 60_000;
+let rtcFetching = null, rtcTriedAt = 0;
+/**
+ * a server installed before webrtc, or whose install could not add it, gets node-datachannel here: npm puts the pinned
+ * version (its registry integrity checked) into this agent's own folder, at most once every 6 hours, in the background.
+ * best effort: without it the link keeps ssh, https and the relays. DUSK_LINK_RTC_FETCH=off leaves it alone
+ */
+export function ensureRtc({ dir = configDir(), run = spawn, now = Date.now, log = (line) => console.error(line), has = () => Boolean(rtcLibrary()) } = {}) {
+  if (has() || rtcFetching || process.env.DUSK_LINK_RTC_FETCH === "off" || process.env.DUSK_LINK_DIRECT === "off") return rtcFetching;
+  if (rtcTriedAt && now() - rtcTriedAt < RTC_RETRY_MS) return null;
+  rtcTriedAt = now();
+  const npm = existsSync(join(dirname(process.execPath), "npm")) ? join(dirname(process.execPath), "npm") : "npm";
+  rtcFetching = new Promise((resolve) => {
+    let child;
+    try {
+      mkdirSync(dir, { recursive: true, mode: 0o700 });
+      child = run(npm, ["install", "--no-save", "--no-fund", "--no-audit", "--no-package-lock", "--omit=dev", "--ignore-scripts", "--prefix", dir, `node-datachannel@${RTC_VERSION}`], { stdio: "ignore", timeout: 10 * 60_000 });
+    } catch { resolve(false); return; }
+    child.once("error", () => resolve(false));
+    child.once("exit", (code) => resolve(code === 0));
+  }).then((done) => {
+    rtcFetching = null;
+    if (done) rtcLoaded = undefined;
+    const ok = has();
+    log(ok ? "link: webrtc for the app's link is ready" : "link: webrtc for the app's link could not be fetched; ssh, https and the relays stay");
+    return ok;
+  });
+  return rtcFetching;
+}
+
 const RTC_MAX = 8;
 let rtcPeers = 0;
 /** an offer for one link-wide data channel, as the app's webrtc stack makes it: bounded, with a fingerprint, no media */
@@ -1304,7 +1337,10 @@ export const rtcOffer = (value) => (value?.type === "offer" && typeof value.sdp 
 /** answers the app's offer; the channel, once open, is one more direct session of the tunnel's hub (sealed frames only) */
 export async function directRtc(data, context, lib = rtcLibrary()) {
   if (process.env.DUSK_LINK_DIRECT === "off") throw new Error("direct links are off on this server");
-  if (!lib) throw new Error("webrtc is not installed on this server");
+  if (!lib) {
+    void ensureRtc();
+    throw new Error("webrtc is not installed on this server");
+  }
   const sdp = rtcOffer(data?.offer);
   if (!sdp) throw new Error("that is not a link offer");
   if (!context.hub) throw new Error("no tunnel here");
@@ -2918,6 +2954,8 @@ async function tunnel() {
   const serverUpdates = process.env.DUSK_LINK_SERVER_UPDATES === "off" ? null : createServerUpdater({ base: saved.base, id: saved.id, token: saved.token, log: (line) => console.error(line) });
   serverUpdates?.start();
   const [directSocket, directWs] = await Promise.all([listenDirectSocket(agent.direct), process.env.DUSK_LINK_DIRECT === "off" ? null : listenDirectWss(agent.direct)]);
+  // a server from before webrtc fetches node-datachannel for the app's link a minute after start (best effort)
+  setTimeout(() => void ensureRtc(), 60_000).unref();
   const addressBook = createAddressBook({ base: home, id: saved.id, key: saved.key, token: saved.token });
   addressBook.start();
   const relayUrl = cloudRelayUrl();
