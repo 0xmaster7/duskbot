@@ -15,7 +15,7 @@ import { chmodSync, createWriteStream, existsSync, mkdirSync, readdirSync, readF
 import { BlockList, createConnection, createServer as createTcpServer } from "node:net";
 import { Agent as HttpAgent, createServer, request as httpRequest } from "node:http";
 import { Agent as HttpsAgent, request as httpsRequest } from "node:https";
-import { isIP, Socket } from "node:net";
+import { connect as netConnect, isIP, Socket } from "node:net";
 import { Duplex, Readable } from "node:stream";
 import { connect as tlsConnect } from "node:tls";
 import { connect as http2Connect, constants as h2Constants } from "node:http2";
@@ -52,7 +52,7 @@ export const SERVER = { host: "127.0.0.1", port: Number(process.env.LINK_SERVER_
 export const LINK_PROTOCOL = 2;
 export const LINK_MIN_APP = 1;
 export const LINK_MIN_SERVER = 1;
-export const AGENT_VERSION = "2.3.0";
+export const AGENT_VERSION = "2.3.1";
 export const AGENT_CAPS = Object.freeze(["direct-ssh", "direct-wss", "egress", "egress-lane", "self-update", "cloud-relay"]);
 /** what this agent says about itself, in its direct hello and its answer to the app's `hello` */
 export const agentHello = () => ({ protocol: LINK_PROTOCOL, minApp: LINK_MIN_APP, minServer: LINK_MIN_SERVER, agent: AGENT_VERSION, caps: [...AGENT_CAPS] });
@@ -292,12 +292,23 @@ const WARM_MS = 40_000;
  * fetch over node's own http(s) with its sockets kept open. the global fetch closes an idle socket after 4 s (undici's
  * default), so every reply after a pause paid a new tcp and tls handshake to the link service, and a cold tcp window.
  */
-export function keepAliveFetch({ maxSockets = 8, tls = {} } = {}) {
+export function keepAliveFetch({ maxSockets = 8, tls = {}, proxy = null } = {}) {
   const agents = new Map();
   let lastUsed = 0;
   const agentFor = (protocol) => {
     let found = agents.get(protocol);
-    if (!found) agents.set(protocol, (found = new (protocol === "https:" ? HttpsAgent : HttpAgent)({ keepAlive: true, keepAliveMsecs: 15_000, maxSockets, scheduling: "lifo", ...(protocol === "https:" ? tls : {}) })));
+    if (!found) {
+      agents.set(protocol, (found = new (protocol === "https:" ? HttpsAgent : HttpAgent)({ keepAlive: true, keepAliveMsecs: 15_000, maxSockets, scheduling: "lifo", ...(protocol === "https:" ? tls : {}) })));
+      // through the network's https proxy when it has one: tls inside the proxy's CONNECT tunnel
+      if (proxy && protocol === "https:") {
+        found.createConnection = (options, callback) => {
+          Promise.resolve(proxy(new URL(`https://${options.host}:${options.port}`))).catch(() => null).then((via) => {
+            if (!via) return tlsConnect(options);
+            return throughProxy(via, options.host, options.port).then((raw) => tlsConnect({ ...options, socket: raw }));
+          }).then((socket) => callback(null, socket), (error) => callback(error));
+        };
+      }
+    }
     return found;
   };
   const go = (input, init = {}) => new Promise((resolve, reject) => {
@@ -341,6 +352,43 @@ export function keepAliveFetch({ maxSockets = 8, tls = {} } = {}) {
    */
   go.reset = () => { for (const agent of agents.values()) agent.destroy(); };
   return go;
+}
+
+/**
+ * a tcp connection to host:port through an http proxy's CONNECT (`proxy`: { host, port, auth? }), for networks that
+ * allow nothing else; resolves once the proxy said 200, paused, for tls to take over
+ */
+export function throughProxy(proxy, host, port, timeoutMs = 20_000) {
+  return new Promise((resolve, reject) => {
+    const socket = netConnect(Number(proxy.port), proxy.host);
+    let got = Buffer.alloc(0);
+    const done = (error) => {
+      clearTimeout(timer);
+      socket.off("data", onData);
+      socket.off("error", done);
+      socket.off("close", closed);
+      if (error) { socket.destroy(); reject(error); return; }
+      socket.pause();
+      resolve(socket);
+    };
+    const timer = setTimeout(() => done(Object.assign(new Error("the proxy did not answer"), { code: "ETIMEDOUT" })), timeoutMs);
+    const closed = () => done(new Error("the proxy closed the connection"));
+    const onData = (chunk) => {
+      got = Buffer.concat([got, chunk]);
+      const end = got.indexOf("\r\n\r\n");
+      if (end < 0) { if (got.length > 16_384) done(new Error("the proxy's answer was too long")); return; }
+      const status = /^HTTP\/1\.[01] (\d{3})/.exec(got.toString("latin1", 0, end))?.[1];
+      if (status !== "200") { done(new Error(`the proxy answered ${status ?? "something else"}`)); return; }
+      const rest = got.subarray(end + 4);
+      if (rest.length) socket.unshift(rest);
+      done(null);
+    };
+    socket.on("data", onData);
+    socket.once("error", done);
+    socket.once("close", closed);
+    const auth = proxy.auth ? `Proxy-Authorization: Basic ${Buffer.from(proxy.auth).toString("base64")}\r\n` : "";
+    socket.once("connect", () => socket.write(`CONNECT ${host}:${port} HTTP/1.1\r\nHost: ${host}:${port}\r\n${auth}\r\n`));
+  });
 }
 
 /**
@@ -399,8 +447,8 @@ const until = (promise, signal) => (!signal ? promise : new Promise((resolve, re
  * vps) and many can be out at once (`multiplexed()`). plain http, or an origin that answers without h2, goes through
  * keepAliveFetch. `tls` is extra tls.connect options (a test's ca); `dial(host, port)` makes the tcp socket under it.
  */
-export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, checkMs = H2_CHECK_MS, pingMs = H2_PING_MS } = {}) {
-  const h1 = keepAliveFetch({ maxSockets, tls: tlsOptions });
+export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, checkMs = H2_CHECK_MS, pingMs = H2_PING_MS, proxy = null } = {}) {
+  const h1 = keepAliveFetch({ maxSockets, tls: tlsOptions, proxy });
   const h1Origins = new Set();
   let session = null, opening = null, tlsSession = null, lastUsed = 0, checking = null;
   // the one h2 connection belongs to one origin: the one warmed (a link service node). other origins (asking another
@@ -417,8 +465,10 @@ export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, 
     try { one.ping((error) => { clearTimeout(timer); if (checking === one) checking = null; if (error && live(one)) dead(); }); }
     catch { clearTimeout(timer); dead(); }
   };
-  const open = (url) => {
+  const open = async (url) => {
     const host = url.hostname, port = Number(url.port) || 443;
+    const via = proxy ? await Promise.resolve(proxy(url)).catch(() => null) : null;
+    if (via) return throughProxy(via, host, port).then((raw) => secure(url, host, port, raw), () => null);
     if (!dial) return secure(url, host, port, undefined);
     return connectedSocket(dial(host, port), { timeoutMs: H2_DIAL_MS }).then((raw) => secure(url, host, port, raw), () => null);
   };
@@ -1987,12 +2037,27 @@ export function createServing({ server = SERVER, sink, stopped = () => false, co
 /** a retry wait between half and all of `ms`: servers that lost the same node do not all come back in the same second */
 export const spread = (ms, random = Math.random) => Math.round(ms * (0.5 + random() / 2));
 
+/**
+ * HTTPS_PROXY (or https_proxy, then the http ones) as relayFetch's proxy: a server whose network lets it out only through
+ * a proxy still reaches the relay. NO_PROXY lists hosts that go direct
+ */
+export function envProxy(env = process.env) {
+  const value = env.HTTPS_PROXY || env.https_proxy || env.HTTP_PROXY || env.http_proxy;
+  if (!value) return null;
+  let url;
+  try { url = new URL(value.includes("://") ? value : `http://${value}`); } catch { return null; }
+  if (url.protocol !== "http:") return null;
+  const proxy = { host: url.hostname.replace(/^\[|\]$/g, ""), port: Number(url.port) || 80, ...(url.username ? { auth: `${decodeURIComponent(url.username)}:${decodeURIComponent(url.password)}` } : {}) };
+  const skip = String(env.NO_PROXY || env.no_proxy || "").split(",").map((item) => item.trim().toLowerCase()).filter(Boolean);
+  return (target) => (skip.some((item) => item === "*" || target.hostname === item.replace(/^\./, "") || target.hostname.endsWith(item.startsWith(".") ? item : `.${item}`)) ? null : proxy);
+}
+
 export function createTunnelAgent({ base, id, key: keyText, token, origin = null, server = SERVER, fetchImpl: given, log = (line) => console.error(line), stallMs = STREAM_STALL_MS, egress: egressOptions = null, update: updateOptions = null, waitS = 25, aheadMs = STREAM_AHEAD_MS }) {
   const context = { id, origin };
   // the app's last use of this link: anything but liveness, the handshake and the update op itself
   let lastUse = Date.now();
   const used = (frame) => { if (frame.t !== "egress" && !(frame.t === "ctl" && ["ping", "hello", "update"].includes(frame.op))) lastUse = Date.now(); };
-  const fetchImpl = given ?? relayFetch();
+  const fetchImpl = given ?? relayFetch({ proxy: envProxy() });
   const stream = streamChoice();
   const key = Buffer.from(keyText, "base64url");
   const guard = frameGuard();
@@ -2168,7 +2233,7 @@ async function readChannelBatches(response, onBatch) {
 }
 
 export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = harnessSync(server), origin = null, spki = null, fetchImpl: given, log = (line) => console.error(line), waitS = 25, aheadMs = STREAM_AHEAD_MS }) {
-  const fetchImpl = given ?? relayFetch(), stream = streamChoice();
+  const fetchImpl = given ?? relayFetch({ proxy: envProxy() }), stream = streamChoice();
   const abort = new AbortController(), channels = new Map();
   // a channel the relay dropped and the sync brought back keeps its replay guard, or the relay could replay its frames
   const guards = new Map();
@@ -2278,7 +2343,7 @@ export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = 
       const postsBefore = successfulPosts, next = ahead;
       ahead = null;
       const streaming = next !== null || stream.wanted(), stall = new AbortController();
-      let heard = false, stallTimer = null, aheadTimer = null;
+      let heard = false, stallTimer = null, aheadTimer = null, beatStop = () => {};
       const armStall = () => { if (streaming && !stallTimer) stallTimer = setTimeout(() => { if (!heard) stall.abort(); }, STREAM_STALL_MS); };
       if (!next && !fetchImpl.connectAware) armStall();
       const get = (signal, onConnected) => fetchImpl(`${route}/to-vps?wait=${waitS}${streaming ? "&stream=1" : ""}`, { headers: { authorization: headers.authorization }, signal, onConnected });
@@ -2290,7 +2355,10 @@ export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = 
           if (response.status === 404) { stop(); break; }
           throw new Error("phone channel read failed");
         }
-        await readChannelBatches(response, ({ channel: cid, frames = [] }) => {
+        const beat = beatWatch(response, () => { log("link: the phone channel read went silent; reconnecting"); fetchImpl.reset?.(); });
+        beatStop = beat.stop;
+        await Promise.race([readChannelBatches(response, ({ channel: cid, frames = [] }) => {
+          beat.heard();
           heard = true;
           failures = 0;
           const channel = channels.get(cid);
@@ -2300,7 +2368,7 @@ export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = 
             try { frame = openFrame(channel.key, cid, "to-vps", sealed, channel.guard); } catch { log("link: dropped a phone frame that did not open"); }
             if (frame) serving(channel).handle(frame).catch(() => log("link: a phone frame failed"));
           }
-        });
+        }), beat.silent]);
       } catch {
         if (stopped) break;
         if (stall.signal.aborted && !heard) { stream.stalled(); continue; }
@@ -2311,7 +2379,7 @@ export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = 
           await delay(spread(Math.min(15_000, 500 * 2 ** Math.min(failures, 5))), undefined, { signal: AbortSignal.any([abort.signal, pollRetry.signal]) }).catch(() => {});
           pollRetry = null;
         }
-      } finally { clearTimeout(stallTimer); clearTimeout(aheadTimer); }
+      } finally { clearTimeout(stallTimer); clearTimeout(aheadTimer); beatStop(); }
     }
   }
   return {

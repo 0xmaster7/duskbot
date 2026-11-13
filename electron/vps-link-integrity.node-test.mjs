@@ -191,3 +191,21 @@ test("a streamed read from a node that beats and then goes silent for three beat
   assert.equal(settled, "waiting", "a node that does not beat is never judged");
   old.stop();
 });
+
+test("the system proxy is read from chromium's answer: an http proxy that tunnels, never a kind this code does not speak", async () => {
+  const { proxyFromPac } = await import("./vps-link-protocol.mjs");
+  assert.deepEqual(proxyFromPac("PROXY proxy.corp:3128; DIRECT"), { host: "proxy.corp", port: 3128 });
+  assert.deepEqual(proxyFromPac("PROXY [2001:db8::1]:8080"), { host: "2001:db8::1", port: 8080 });
+  assert.equal(proxyFromPac("DIRECT"), null);
+  assert.equal(proxyFromPac("SOCKS5 127.0.0.1:1080; DIRECT"), null);
+  assert.equal(proxyFromPac(""), null);
+});
+
+test("the server's agent goes out through HTTPS_PROXY, except to NO_PROXY hosts", async () => {
+  const { envProxy } = await import("../apps/link-service/agent.mjs");
+  const pick = envProxy({ HTTPS_PROXY: "http://user:p%40ss@proxy.corp:3128", NO_PROXY: "localhost,.internal" });
+  assert.deepEqual(pick(new URL("https://link.dusk.bot")), { host: "proxy.corp", port: 3128, auth: "user:p@ss" });
+  assert.equal(pick(new URL("https://api.internal")), null);
+  assert.equal(pick(new URL("https://localhost:3000")), null);
+  assert.equal(envProxy({}), null);
+});

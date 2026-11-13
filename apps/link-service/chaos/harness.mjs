@@ -138,6 +138,29 @@ export async function createFaultProxy({ port = 0, target, impostor }) {
   };
 }
 
+/** a corporate network's only way out: an http proxy that tunnels with CONNECT and counts the tunnels */
+export async function createConnectProxy() {
+  let tunnels = 0;
+  const open = new Set();
+  const server = createHttpServer((req, res) => { res.writeHead(403); res.end("CONNECT only"); });
+  server.on("connect", (req, client, head) => {
+    open.add(client);
+    client.on("close", () => open.delete(client));
+    const [host, port] = String(req.url).split(/:(?=\d+$)/);
+    const upstream = tcpConnect(Number(port), host === "localhost" ? "127.0.0.1" : host, () => {
+      tunnels += 1;
+      client.write("HTTP/1.1 200 Connection Established\r\n\r\n");
+      if (head?.length) upstream.write(head);
+      upstream.pipe(client);
+      client.pipe(upstream);
+    });
+    upstream.on("error", () => client.destroy());
+    client.on("error", () => upstream.destroy());
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  return { port: server.address().port, tunnels: () => tunnels, close: () => new Promise((resolve) => { for (const socket of open) socket.destroy(); server.closeAllConnections?.(); server.close(resolve); }) };
+}
+
 /** a tls server with an untrusted certificate that answers every request with a login page */
 export async function createImpostor({ key, cert }) {
   const server = createSecureServer({ key, cert, allowHTTP1: true }, (req, res) => { res.writeHead(200, { "content-type": "text/html" }); res.end("<html><body>sign in to the wifi</body></html>"); });

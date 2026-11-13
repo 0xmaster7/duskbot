@@ -257,12 +257,23 @@ const WARM_MS = 40_000;
  * fetch over node's own http(s) with its sockets kept open. the global fetch closes an idle socket after 4 s (undici's
  * default), so every reply after a pause paid a new tcp and tls handshake to the link service, and a cold tcp window.
  */
-export function keepAliveFetch({ maxSockets = 8, tls = {} } = {}) {
+export function keepAliveFetch({ maxSockets = 8, tls = {}, proxy = null } = {}) {
   const agents = new Map();
   let lastUsed = 0;
   const agentFor = (protocol) => {
     let found = agents.get(protocol);
-    if (!found) agents.set(protocol, (found = new (protocol === "https:" ? HttpsAgent : HttpAgent)({ keepAlive: true, keepAliveMsecs: 15_000, maxSockets, scheduling: "lifo", ...(protocol === "https:" ? tls : {}) })));
+    if (!found) {
+      agents.set(protocol, (found = new (protocol === "https:" ? HttpsAgent : HttpAgent)({ keepAlive: true, keepAliveMsecs: 15_000, maxSockets, scheduling: "lifo", ...(protocol === "https:" ? tls : {}) })));
+      // through the network's https proxy when it has one: tls inside the proxy's CONNECT tunnel
+      if (proxy && protocol === "https:") {
+        found.createConnection = (options, callback) => {
+          Promise.resolve(proxy(new URL(`https://${options.host}:${options.port}`))).catch(() => null).then((via) => {
+            if (!via) return tlsConnect(options);
+            return throughProxy(via, options.host, options.port).then((raw) => tlsConnect({ ...options, socket: raw }));
+          }).then((socket) => callback(null, socket), (error) => callback(error));
+        };
+      }
+    }
     return found;
   };
   const go = (input, init = {}) => new Promise((resolve, reject) => {
@@ -306,6 +317,43 @@ export function keepAliveFetch({ maxSockets = 8, tls = {} } = {}) {
    */
   go.reset = () => { for (const agent of agents.values()) agent.destroy(); };
   return go;
+}
+
+/**
+ * a tcp connection to host:port through an http proxy's CONNECT (`proxy`: { host, port, auth? }), for networks that
+ * allow nothing else; resolves once the proxy said 200, paused, for tls to take over
+ */
+export function throughProxy(proxy, host, port, timeoutMs = 20_000) {
+  return new Promise((resolve, reject) => {
+    const socket = netConnect(Number(proxy.port), proxy.host);
+    let got = Buffer.alloc(0);
+    const done = (error) => {
+      clearTimeout(timer);
+      socket.off("data", onData);
+      socket.off("error", done);
+      socket.off("close", closed);
+      if (error) { socket.destroy(); reject(error); return; }
+      socket.pause();
+      resolve(socket);
+    };
+    const timer = setTimeout(() => done(Object.assign(new Error("the proxy did not answer"), { code: "ETIMEDOUT" })), timeoutMs);
+    const closed = () => done(new Error("the proxy closed the connection"));
+    const onData = (chunk) => {
+      got = Buffer.concat([got, chunk]);
+      const end = got.indexOf("\r\n\r\n");
+      if (end < 0) { if (got.length > 16_384) done(new Error("the proxy's answer was too long")); return; }
+      const status = /^HTTP\/1\.[01] (\d{3})/.exec(got.toString("latin1", 0, end))?.[1];
+      if (status !== "200") { done(new Error(`the proxy answered ${status ?? "something else"}`)); return; }
+      const rest = got.subarray(end + 4);
+      if (rest.length) socket.unshift(rest);
+      done(null);
+    };
+    socket.on("data", onData);
+    socket.once("error", done);
+    socket.once("close", closed);
+    const auth = proxy.auth ? `Proxy-Authorization: Basic ${Buffer.from(proxy.auth).toString("base64")}\r\n` : "";
+    socket.once("connect", () => socket.write(`CONNECT ${host}:${port} HTTP/1.1\r\nHost: ${host}:${port}\r\n${auth}\r\n`));
+  });
 }
 
 /**
@@ -364,8 +412,8 @@ const until = (promise, signal) => (!signal ? promise : new Promise((resolve, re
  * vps) and many can be out at once (`multiplexed()`). plain http, or an origin that answers without h2, goes through
  * keepAliveFetch. `tls` is extra tls.connect options (a test's ca); `dial(host, port)` makes the tcp socket under it.
  */
-export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, checkMs = H2_CHECK_MS, pingMs = H2_PING_MS } = {}) {
-  const h1 = keepAliveFetch({ maxSockets, tls: tlsOptions });
+export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, checkMs = H2_CHECK_MS, pingMs = H2_PING_MS, proxy = null } = {}) {
+  const h1 = keepAliveFetch({ maxSockets, tls: tlsOptions, proxy });
   const h1Origins = new Set();
   let session = null, opening = null, tlsSession = null, lastUsed = 0, checking = null;
   // the one h2 connection belongs to one origin: the one warmed (a link service node). other origins (asking another
@@ -382,8 +430,10 @@ export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, 
     try { one.ping((error) => { clearTimeout(timer); if (checking === one) checking = null; if (error && live(one)) dead(); }); }
     catch { clearTimeout(timer); dead(); }
   };
-  const open = (url) => {
+  const open = async (url) => {
     const host = url.hostname, port = Number(url.port) || 443;
+    const via = proxy ? await Promise.resolve(proxy(url)).catch(() => null) : null;
+    if (via) return throughProxy(via, host, port).then((raw) => secure(url, host, port, raw), () => null);
     if (!dial) return secure(url, host, port, undefined);
     return connectedSocket(dial(host, port), { timeoutMs: H2_DIAL_MS }).then((raw) => secure(url, host, port, raw), () => null);
   };
@@ -633,8 +683,21 @@ async function answerScreenIce(res, screenIce) {
   res.end(JSON.stringify({ iceServers: Array.isArray(iceServers) ? iceServers : [] }));
 }
 
-export function createTunnelProxy({ base, id, route: givenRoute = null, key: keyText, token, port = 0, fetch: given, log = () => {}, replyTimeoutMs = 90_000, stallMs = STREAM_STALL_MS, direct: directSpec = null, directFactory = createDirectLink, egress: makeEgress = null, waitS = 25, aheadMs = STREAM_AHEAD_MS, hello = {}, follow = false, screenIce = null }) {
-  const fetchImpl = given ?? relayFetch({ dial: clampedDial });
+/**
+ * the proxy chromium would use for `url` (`session.resolveProxy`'s answer: "PROXY host:port; DIRECT"), as { host, port }
+ * for an http proxy that tunnels with CONNECT; null for DIRECT and for kinds this code does not speak (HTTPS, SOCKS)
+ */
+export function proxyFromPac(answer) {
+  for (const part of String(answer ?? "").split(";").map((item) => item.trim())) {
+    if (/^DIRECT$/i.test(part)) return null;
+    const match = /^PROXY\s+\[?([^\]\s]+?)\]?:(\d{1,5})$/i.exec(part);
+    if (match) return { host: match[1], port: Number(match[2]) };
+  }
+  return null;
+}
+
+export function createTunnelProxy({ base, id, route: givenRoute = null, key: keyText, token, port = 0, fetch: given, log = () => {}, replyTimeoutMs = 90_000, stallMs = STREAM_STALL_MS, direct: directSpec = null, directFactory = createDirectLink, egress: makeEgress = null, waitS = 25, aheadMs = STREAM_AHEAD_MS, hello = {}, follow = false, screenIce = null, proxy = null }) {
+  const fetchImpl = given ?? relayFetch({ dial: clampedDial, proxy });
   const stream = streamChoice();
   let unwarm = () => {};
   const key = Buffer.from(keyText, "base64url");

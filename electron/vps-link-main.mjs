@@ -15,6 +15,7 @@ import { createMacExecutor } from "./mac-control-tools.mjs";
 import { cloudConnector, cloudRegister, cloudRelayUrl, newDirectKey, sshConnector, wssConnector } from "./vps-link-direct.mjs";
 import { createEgressDialer, createEgressEndpoint, seenAsCache } from "./vps-link-egress.mjs";
 import { createVpsLink } from "./vps-link.mjs";
+import { proxyFromPac } from "./vps-link-protocol.mjs";
 
 export const DEFAULT_LINK_BASE = "https://link.dusk.bot";
 
@@ -154,6 +155,10 @@ export function installVpsLink(deps) {
     screenIce: deps.screenIce,
     egress: (tunnel) => createEgressEndpoint({ ...tunnel, dialer: createEgressDialer({ seenAs }), ...(awake ? { onUse: awake.touch } : {}) }),
     serverFetch: (...args) => session.defaultSession.fetch(...args),
+    // setup sessions through chromium's network (the system proxy included); the relay's own connections ask chromium
+    // which proxy it would use and tunnel through it
+    fetch: (...args) => session.defaultSession.fetch(...args),
+    proxy: async (url) => proxyFromPac(await session.defaultSession.resolveProxy(String(url))),
     store: jsonFile(path.join(userData, "vps-link.json")),
     protect, unprotect,
     label: deps.label,

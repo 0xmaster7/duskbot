@@ -6,7 +6,7 @@ import { join } from "node:path";
 
 import { createTunnelAgent } from "../agent.mjs";
 import { createRelayClient, createTunnelProxy, newLinkKeys, seal, sha256hex, vpsTokenOf } from "../../../electron/vps-link-protocol.mjs";
-import { patternBytes, randomBytes, sleep } from "./harness.mjs";
+import { createConnectProxy, patternBytes, randomBytes, sleep } from "./harness.mjs";
 
 const at = () => Date.now();
 const homeNode = async (world) => (await world.homeOf()) ?? "contabo";
@@ -338,6 +338,28 @@ export const SCENARIOS = [
       for (const id of world.ids) world.appNet[id].cut();
       await sleep(15_000);
       return { clearedAt: at() };
+    },
+  },
+  {
+    name: "corporate-proxy", title: "laptop on a corporate network: nothing goes out but an https proxy (60 s)", quick: true, budgetMs: 15_000,
+    async run(world) {
+      const proxy = await createConnectProxy();
+      try {
+        await world.app.call("useProxy", { host: "127.0.0.1", port: proxy.port });
+        for (const id of world.ids) await world.appNet[id].set("down");
+        const started = at();
+        // every connection made from here on is one through the proxy: the direct ones are gone
+        await sleep(3000);
+        while (at() - started < 45_000 && !world.probe.okNow()) await sleep(500);
+        const reached = world.probe.okNow() ? at() - started : null;
+        await sleep(15_000);
+        const ok = world.probe.okNow();
+        return { clearedAt: started, pass: reached !== null && ok && proxy.tunnels() > 0, note: `${reached === null ? "never worked" : `worked through the proxy after ${(reached / 1000).toFixed(1)} s`}, ${proxy.tunnels()} tunnels through it` };
+      } finally {
+        await world.app.call("useProxy", null);
+        for (const id of world.ids) await world.appNet[id].set("pass");
+        await proxy.close();
+      }
     },
   },
   {
