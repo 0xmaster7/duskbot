@@ -19,6 +19,7 @@ import mark from "../../favicon.svg";
 import { useNow } from "../lib/now";
 import { useToasts } from "../lib/toast";
 import { CheerBot } from "./CheerBot";
+import { WakePill } from "./WakePill";
 import type { Transition } from "motion/react";
 import { AnimatePresence, EASE_OUT, GLIDE, m, PageIn, Pop, ToastStack, usePill } from "./motion";
 import { useAccountUsage } from "../data/usage";
@@ -347,6 +348,7 @@ export function Shell({ children }: { children: ReactNode }) {
       </main>
       <RoutineUpsell />
       <CheerBot />
+      <WakePill />
       <Toasts />
     </div>
   );

@@ -1,10 +1,11 @@
 import { afterEach, expect, test, vi } from "vitest";
 import type { CommandView, WorkspaceDetail, WorkspaceSummary } from "../../../../shared/dashboard-protocol";
-import { ANSWER_MS, PICKUP_MS, flowKey, followCommand, resetAppFlows, runAppFlow, type FlowDeps, type SignInTab } from "./app-connect";
+import { ANSWER_MS, PICKUP_MS, flowKey, followCommand, resetAppFlows, runAppFlow, startAppFlow, type FlowDeps, type SignInTab } from "./app-connect";
+import { resetWakes, wakeActions, wakeState } from "./cloud-wake";
 import type { CloudDesktop } from "./contracts";
 
 vi.mock("../lib/api", () => ({ api: {} }));
-afterEach(() => resetAppFlows());
+afterEach(() => { resetAppFlows(); resetWakes(); });
 
 const cloudWs: WorkspaceSummary = { id: "ws", name: "My Cloud", kind: "vps", version: "1", connectedAt: 0, lastReportAt: 1, freshness: "live" };
 const mac: WorkspaceSummary = { ...cloudWs, name: "studio", kind: "mac" };
@@ -35,7 +36,7 @@ function world(script: { take?: number; answer?: number; result?: Partial<Comman
 
 test("a link comes back in seconds and the tab goes to it", async () => {
   const w = world({ take: 700, answer: 2100 });
-  await runAppFlow("connect", cloudWs, "gmail", "Gmail", undefined, w.deps, w.tab);
+  await runAppFlow("connect", cloudWs, "gmail", "Gmail", w.deps, w.tab);
   expect(w.tab.url).toBe("https://connect.composio.dev/link/x");
   expect(w.said).toEqual(["asking My Cloud for the Gmail sign-in.", "getting the Gmail sign-in from My Cloud."]);
 });
@@ -45,7 +46,7 @@ test("a workspace that never takes the command ends in PICKUP_MS with what to do
   expect(await followCommand(cloudWs, "app.connect", "gmail", cloud.deps)).toEqual({ ok: false, message: "My Cloud is not answering right now. try again in a minute." });
   expect(cloud.time()).toBeLessThanOrEqual(PICKUP_MS + 1000);
   const quiet = world();
-  await runAppFlow("connect", mac, "gmail", "Gmail", undefined, quiet.deps, quiet.tab);
+  await runAppFlow("connect", mac, "gmail", "Gmail", quiet.deps, quiet.tab);
   expect(quiet.said.at(-1)).toBe("studio is not answering. open dusk bot on it, then try again.\n\nyou can close this tab.");
   expect(quiet.tab.url).toBeNull();
 });
@@ -58,23 +59,40 @@ test("taken but never answered ends in ANSWER_MS; a failure the workspace sends 
   expect(await followCommand(cloudWs, "app.connect", "gmail", refused.deps)).toEqual({ ok: false, message: "Apps are not set up on this workspace." });
 });
 
-test("a sleeping cloud wakes first, saying so in the tab, then the sign-in loads", async () => {
+test("a sleeping cloud wakes first with no tab; the sign-in tab opens only from the pill's button once it is awake", async () => {
   const w = world({ reportsAfterWake: 9_000, take: 700, answer: 3000 });
-  await runAppFlow("connect", cloudWs, "gmail", "Gmail", { id: "c" } as CloudDesktop, w.deps, w.tab);
-  expect(w.said[0]).toBe("waking My Cloud. this takes about half a minute.");
-  expect(w.tab.url).toBe("https://connect.composio.dev/link/x");
+  let opened = 0;
+  const open = () => { opened++; return w.tab; };
+  await startAppFlow("connect", cloudWs, "gmail", "Gmail", { id: "c", workspaceId: "ws" } as CloudDesktop, w.deps, open);
+  expect(opened).toBe(0);
+  const wake = wakeState().wakes.c!;
+  expect(wake.phase).toBe("ready");
+  expect(wake.pending.map((p) => p.label)).toEqual(["connect Gmail now"]);
+  wakeActions.run("c", flowKey("ws", "gmail"));
+  expect(opened).toBe(1);
+  await vi.waitFor(() => expect(w.tab.url).toBe("https://connect.composio.dev/link/x"));
 });
 
-test("a cloud that does not wake says so instead of waiting on", async () => {
+test("a cloud that does not wake says so and opens nothing", async () => {
   const w = world();
-  await runAppFlow("connect", cloudWs, "gmail", "Gmail", { id: "c" } as CloudDesktop, w.deps, w.tab);
-  expect(w.said.at(-1)).toBe("My Cloud did not wake up. try again in a minute.\n\nyou can close this tab.");
+  let opened = 0;
+  await startAppFlow("connect", cloudWs, "gmail", "Gmail", { id: "c", workspaceId: "ws" } as CloudDesktop, w.deps, () => { opened++; return w.tab; });
+  expect(opened).toBe(0);
+  expect(wakeState().wakes.c).toBeUndefined();
+});
+
+test("cancel while it wakes drops the action: nothing is offered once awake", async () => {
+  const w = world({ reportsAfterWake: 9_000 });
+  const run = startAppFlow("connect", cloudWs, "gmail", "Gmail", { id: "c", workspaceId: "ws" } as CloudDesktop, w.deps, () => w.tab);
+  wakeActions.cancel(flowKey("ws", "gmail"));
+  await run;
+  expect(wakeState().wakes.c?.pending ?? []).toEqual([]);
 });
 
 test("a second click while one runs opens nothing new", async () => {
   const w = world({ take: 700, answer: 2100 }), second = { ...w.tab, closed: false, close() { this.closed = true; } };
-  const first = runAppFlow("connect", cloudWs, "gmail", "Gmail", undefined, w.deps, w.tab);
-  await runAppFlow("connect", cloudWs, "gmail", "Gmail", undefined, w.deps, second);
+  const first = runAppFlow("connect", cloudWs, "gmail", "Gmail", w.deps, w.tab);
+  await runAppFlow("connect", cloudWs, "gmail", "Gmail", w.deps, second);
   expect(second.closed).toBe(true);
   await first;
   expect(flowKey("ws", "gmail")).toBe("ws:gmail");

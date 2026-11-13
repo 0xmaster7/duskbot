@@ -1,9 +1,10 @@
 import { useSyncExternalStore } from "react";
-import type { CommandKind, CommandView, ConnectorsAnswer, WorkspaceDetail, WorkspaceSummary } from "../../../../shared/dashboard-protocol";
+import type { CommandKind, CommandView, ConnectorsAnswer, WorkspaceSummary } from "../../../../shared/dashboard-protocol";
 import { api } from "../lib/api";
 import { cheer } from "../lib/cheer";
 import { toast } from "../lib/toast";
 import { useCloud } from "./cloud";
+import { dropPending, isAwake, wakeCloud, type WakeDeps } from "./cloud-wake";
 import type { CloudDesktop } from "./contracts";
 
 export type AppFlowPhase = "waking" | "waiting" | "sign-in" | "done" | "failed";
@@ -26,8 +27,6 @@ export const ANSWER_MS = 30_000;
 const COMMAND_POLL_MS = 700;
 const SIGN_IN_WAIT_MS = 5 * 60_000;
 const SIGN_IN_POLL_MS = 3_000;
-const WAKE_WAIT_MS = 90_000;
-const WAKE_POLL_MS = 1_500;
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 export const flowKey = (workspaceId: string, slug: string) => `${workspaceId}:${slug}`;
 
@@ -52,13 +51,9 @@ function openTab(label: string): SignInTab | null {
   };
 }
 
-export interface FlowDeps {
-  workspace(id: string): Promise<WorkspaceDetail>;
+export interface FlowDeps extends WakeDeps {
   command(id: string, kind: CommandKind, target: string): Promise<{ command: CommandView }>;
-  power(cloudId: string, on: boolean): Promise<unknown>;
   connections(): Promise<ConnectorsAnswer | null>;
-  now(): number;
-  sleep(ms: number): Promise<void>;
 }
 const browserDeps = (reload: () => Promise<ConnectorsAnswer | null>): FlowDeps => ({
   workspace: (id) => api.workspace(id), command: api.command, power: api.power, connections: reload, now: Date.now, sleep,
@@ -69,19 +64,6 @@ export function notAnswering(ws: Pick<WorkspaceSummary, "name" | "kind">): strin
   return ws.kind === "vps"
     ? `${ws.name} is not answering right now. try again in a minute.`
     : `${ws.name} is not answering. open dusk bot on it, then try again.`;
-}
-
-/** wakes a dusk cloud we put to sleep and resolves once it reports again, since an app sign-in needs it answering */
-export async function wokenUp(cloud: CloudDesktop, workspaceId: string, deps: Pick<FlowDeps, "workspace" | "power" | "now" | "sleep">): Promise<boolean> {
-  const before = (await deps.workspace(workspaceId).catch(() => null))?.workspace.lastReportAt ?? 0;
-  await deps.power(cloud.id, true).catch(() => {});
-  const until = deps.now() + WAKE_WAIT_MS;
-  while (deps.now() < until) {
-    await deps.sleep(WAKE_POLL_MS);
-    const detail = await deps.workspace(workspaceId).catch(() => null);
-    if (detail?.workspace.freshness === "live" && (detail.workspace.lastReportAt ?? 0) > before) return true;
-  }
-  return false;
 }
 
 /** queues the command and follows it: not taken in PICKUP_MS or not answered in ANSWER_MS ends it with what to do next */
@@ -112,20 +94,15 @@ const running = (key: string) => store.flows[key]?.phase === "waking" || store.f
 const patch = (key: string, change: Partial<AppFlow>) => { if (store.flows[key]) setFlows({ ...store.flows, [key]: { ...store.flows[key]!, ...change } }); };
 
 /** one sign-in from the click to the connected app; it outlives the page, so leaving apps never strands its tab */
-export async function runAppFlow(action: AppFlow["action"], ws: WorkspaceSummary, slug: string, label: string, wake: CloudDesktop | undefined, deps: FlowDeps, tab: SignInTab | null) {
+export async function runAppFlow(action: AppFlow["action"], ws: WorkspaceSummary, slug: string, label: string, deps: FlowDeps, tab: SignInTab | null) {
   const key = flowKey(ws.id, slug);
   if (running(key)) return tab?.close();
-  setFlows({ ...store.flows, [key]: { key, action, workspaceId: ws.id, workspaceName: ws.name, slug, label, phase: wake ? "waking" : "waiting", url: null, message: null } });
+  setFlows({ ...store.flows, [key]: { key, action, workspaceId: ws.id, workspaceName: ws.name, slug, label, phase: "waiting", url: null, message: null } });
   const failed = (message: string) => {
     tab?.say(`${message}\n\nyou can close this tab.`);
     patch(key, { phase: "failed", message });
     toast(message, "bad");
   };
-  if (wake) {
-    tab?.say(`waking ${ws.name}. this takes about half a minute.`);
-    if (!await wokenUp(wake, ws.id, deps)) return failed(`${ws.name} did not wake up. try again in a minute.`);
-    patch(key, { phase: "waiting" });
-  }
   tab?.say(`asking ${ws.name} for the ${label} sign-in.`);
   const answer = await followCommand(ws, action === "connect" ? "app.connect" : "app.disconnect", slug, deps,
     () => tab?.say(`getting the ${label} sign-in from ${ws.name}.`));
@@ -153,19 +130,45 @@ export async function runAppFlow(action: AppFlow["action"], ws: WorkspaceSummary
   patch(key, { phase: "failed", message: `${label} is not connected yet. finish signing in, then reload this page.` });
 }
 
+const dropFlow = (key: string) => { const { [key]: _, ...rest } = store.flows; setFlows(rest); };
+
+/** a cloud we put to sleep wakes first, with no tab yet: a connect waits as a button in the corner pill, so its tab
+ *  opens inside that click; a disconnect needs no tab and goes on its own */
+export async function startAppFlow(action: AppFlow["action"], ws: WorkspaceSummary, slug: string, label: string, wake: CloudDesktop | undefined, deps: FlowDeps, openSignIn: () => SignInTab | null) {
+  const key = flowKey(ws.id, slug);
+  if (running(key)) return;
+  if (!wake || isAwake(wake.id, deps.now())) {
+    dropPending(key);
+    return runAppFlow(action, ws, slug, label, deps, action === "connect" ? openSignIn() : null);
+  }
+  setFlows({ ...store.flows, [key]: { key, action, workspaceId: ws.id, workspaceName: ws.name, slug, label, phase: "waking", url: null, message: null } });
+  const pending = action === "connect"
+    ? { key, label: `connect ${label} now`, run: () => { dropFlow(key); void runAppFlow(action, ws, slug, label, deps, openSignIn()); }, cancel: () => dropFlow(key) }
+    : undefined;
+  const awake = await wakeCloud(wake, ws.name, { pending, deps });
+  if (store.flows[key]?.phase !== "waking") return;
+  if (!awake) {
+    const message = `${ws.name} did not wake up. try again in a minute.`;
+    patch(key, { phase: "failed", message });
+    toast(message, "bad");
+    return;
+  }
+  dropFlow(key);
+  if (action === "disconnect") return runAppFlow(action, ws, slug, label, deps, null);
+}
+
 export function useAppCommands() {
   const { reloadConnections } = useCloud();
   const flows = useSyncExternalStore((fn) => { store.listeners.add(fn); return () => void store.listeners.delete(fn); }, () => store.flows, () => store.flows);
   const start = (action: AppFlow["action"]) => (ws: WorkspaceSummary, slug: string, label: string, wake?: CloudDesktop) => {
-    if (running(flowKey(ws.id, slug))) return;
-    void runAppFlow(action, ws, slug, label, wake, browserDeps(reloadConnections), action === "connect" ? openTab(label) : null);
+    void startAppFlow(action, ws, slug, label, wake, browserDeps(reloadConnections), () => openTab(label));
   };
   return {
     flows,
     /** `wake`: the dusk cloud we put to sleep that runs this workspace; it wakes first */
     connect: start("connect"),
     disconnect: start("disconnect"),
-    dismiss: (key: string) => { const { [key]: _, ...rest } = store.flows; setFlows(rest); },
+    dismiss: dropFlow,
   };
 }
 

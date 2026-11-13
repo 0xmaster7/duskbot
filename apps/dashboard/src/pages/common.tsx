@@ -71,7 +71,7 @@ export function CommandButton({ kind, target, label, doing, variant = "outline",
       disabled={busy || disabled || away}
       aria-busy={busy}
       title={away && workspace ? awayLine(workspace, cloud) : undefined}
-      onClick={() => { if (!confirm || window.confirm(confirm)) { wakeFirst(cloud); void command(kind, target, label); } }}
+      onClick={() => { if (!confirm || window.confirm(confirm)) { if (workspace) wakeFirst(cloud, workspace.name); void command(kind, target, label); } }}
     >
       {busy ? doing : label}
     </Button>

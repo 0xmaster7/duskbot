@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Cloud, Monitor, Power, Server } from "@/icons";
 import type { WorkspaceSummary } from "../../../../shared/dashboard-protocol";
 import { useCloud } from "../data/cloud";
+import { wakeCloud } from "../data/cloud-wake";
 import { api } from "../lib/api";
 import type { CheckoutSource, CloudDesktop, PlanCatalog } from "../data/contracts";
 import { bundleOf, desktopOf, dollars, planSpecLine } from "../data/pricing";
@@ -51,11 +52,11 @@ export function prewarm(cloud: CloudDesktop) {
   void api.power(cloud.id, true).catch(() => {});
 }
 
-/** an action for a cloud we put to sleep wakes it now, whatever opened lately; the action itself waits for it */
-export function wakeFirst(cloud: CloudDesktop | null | undefined) {
+/** an action for a cloud we put to sleep wakes it now, whatever opened lately, with the corner pill showing how far it got; the action itself waits for it */
+export function wakeFirst(cloud: CloudDesktop | null | undefined, name: string) {
   if (!cloud?.resting) return;
   warmed.set(cloud.id, Date.now());
-  void api.power(cloud.id, true).catch(() => {});
+  void wakeCloud(cloud, name);
 }
 
 /** power: asleep or off wakes at once; turning off asks first, since bots stop answering */
