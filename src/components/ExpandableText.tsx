@@ -25,7 +25,8 @@ export function ExpandableText({ text, className }: { text: string; className?: 
           type="button"
           aria-expanded={expanded}
           onClick={() => setExpanded((open) => !open)}
-          className="mt-1 text-[13px] font-medium text-accent hover:underline"
+          // a thumb gets a full 44px target on touch
+          className="mt-1 text-[13px] font-medium text-accent hover:underline pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center"
         >
           {expanded ? t("question.showLess") : t("question.showFull")}
         </button>

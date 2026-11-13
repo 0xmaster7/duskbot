@@ -1,6 +1,7 @@
 import { createContext, useContext, type Ref } from "react";
 import { Calendar, Check, ChevronsUpDown, LoaderCircle, X } from "../../icons";
 import { cn } from "@/lib/cn";
+import { CARD_FIELD } from "../AskCard";
 import { t } from "@/lib/i18n";
 import {
   WIDGET_LIMITS, threadActionTarget, widgetNumber, widgetString, widgetTakesOther, type WidgetActionEntry, type WidgetField, type WidgetNode, type WidgetOther, type WidgetValues,
@@ -123,10 +124,14 @@ export function WidgetButton({ actionRef, label, look, iconStart, iconEnd, block
 }
 
 
+/** A widget is a card in the chat, so its fields are the cards' one field (AskCard CARD_FIELD); a refused value keeps its
+ * danger line, drawn inside the field so nothing reflows. */
 export const WIDGET_FIELD =
-  "block h-9 w-full min-w-0 rounded-lg border border-transparent bg-inset px-3 text-[14px] leading-5 text-ink placeholder:text-ink-tertiary disabled:cursor-not-allowed disabled:opacity-60 user-invalid:border-danger aria-[invalid=true]:border-danger";
+  `block w-full min-w-0 ${CARD_FIELD} disabled:cursor-not-allowed user-invalid:shadow-[inset_0_0_0_1px_var(--color-danger)] aria-[invalid=true]:shadow-[inset_0_0_0_1px_var(--color-danger)]`;
+/** A value set beside its label: no fill until the pointer or the keyboard is on it. No `border` class, which styles.css
+ * would paint as a page field's grey fill. */
 export const WIDGET_BARE =
-  "h-9 min-w-0 max-w-full cursor-pointer rounded-lg border border-transparent bg-transparent text-[14px] font-medium leading-5 text-ink enabled:hover:bg-ink/[0.07] disabled:cursor-not-allowed disabled:opacity-60 aria-[invalid=true]:border-danger";
+  "h-9 min-w-0 max-w-full cursor-pointer rounded-lg bg-transparent text-[14px] font-medium leading-5 text-ink enabled:hover:bg-ink/[0.07] focus-visible:bg-ink/[0.07] disabled:cursor-not-allowed disabled:opacity-60 aria-[invalid=true]:shadow-[inset_0_0_0_1px_var(--color-danger)]";
 export const WIDGET_FIELD_ACTION =
   "flex size-7 shrink-0 items-center justify-center rounded-full text-ink-tertiary hover:bg-ink/[0.07] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
 
@@ -297,7 +302,7 @@ export function WidgetRadioGroup({ node, labelledBy }: { node: WidgetNode; label
   const { id, "aria-invalid": invalid, "aria-describedby": describedBy, "aria-label": ariaLabel } = field.control;
   const choosingOther = field.other !== undefined;
   const choice = (key: string, checked: boolean, onChange: () => void, label: string, first: boolean) => (
-    <label key={key} className={cn("relative inline-flex min-w-0 items-center gap-2 text-[14px] leading-5 text-ink", field.disabled ? "cursor-not-allowed" : "cursor-pointer")}>
+    <label key={key} className={cn("relative inline-flex min-w-0 items-center gap-2 text-[14px] leading-5 text-ink pointer-coarse:min-h-11", field.disabled ? "cursor-not-allowed" : "cursor-pointer")}>
       <input
         type="radio"
         name={id}

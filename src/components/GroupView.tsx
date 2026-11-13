@@ -262,12 +262,12 @@ function RoomTextMessage({
                 <div className="mt-1 text-[11px] text-ink-tertiary">{t("chat.viaBotApi")}</div>
               )}
               {collapsible && (
-                <button type="button" onClick={() => setExpanded(true)} className="mt-1 text-[13px] text-ink-secondary hover:text-ink">
+                <button type="button" onClick={() => setExpanded(true)} className="mt-1 text-[13px] text-ink-secondary hover:text-ink pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">
                   {t("chat.showFull")}
                 </button>
               )}
               {expanded && (
-                <button type="button" onClick={() => setExpanded(false)} className="mt-1 text-[13px] text-ink-secondary hover:text-ink">
+                <button type="button" onClick={() => setExpanded(false)} className="mt-1 text-[13px] text-ink-secondary hover:text-ink pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">
                   {t("chat.showLess")}
                 </button>
               )}

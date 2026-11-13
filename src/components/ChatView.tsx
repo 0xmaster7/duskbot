@@ -498,12 +498,12 @@ const Bubble = memo(function Bubble({
               {message.quickModel && <QuickModelNote model={message.quickModel} />}
               <UserLineNote message={message} />
               {collapsible && (
-                <button onClick={() => setExpanded(true)} className="mt-1 text-[13px] text-ink-secondary hover:text-ink">
+                <button onClick={() => setExpanded(true)} className="mt-1 text-[13px] text-ink-secondary hover:text-ink pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">
                   {t("chat.showFull")}
                 </button>
               )}
               {expanded && (
-                <button onClick={() => setExpanded(false)} className="mt-1 text-[13px] text-ink-secondary hover:text-ink">
+                <button onClick={() => setExpanded(false)} className="mt-1 text-[13px] text-ink-secondary hover:text-ink pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">
                   {t("chat.showLess")}
                 </button>
               )}
@@ -548,8 +548,10 @@ const Bubble = memo(function Bubble({
           <button
             onClick={() => switchTo(forks[versionIndex - 1])}
             disabled={versionIndex <= 0 || busy}
-            className="rounded p-0.5 hover:bg-raised hover:text-ink disabled:opacity-30 disabled:hover:bg-transparent"
+            type="button"
+            className="rounded p-0.5 hover:bg-raised hover:text-ink disabled:opacity-30 disabled:hover:bg-transparent pointer-coarse:p-2.5"
             title={t("chat.previousVersion")}
+            aria-label={t("chat.previousVersion")}
           >
             <ChevronLeft size={14} />
           </button>
@@ -559,8 +561,10 @@ const Bubble = memo(function Bubble({
           <button
             onClick={() => switchTo(forks[versionIndex + 1])}
             disabled={versionIndex >= forks.length - 1 || busy}
-            className="rounded p-0.5 hover:bg-raised hover:text-ink disabled:opacity-30 disabled:hover:bg-transparent"
+            type="button"
+            className="rounded p-0.5 hover:bg-raised hover:text-ink disabled:opacity-30 disabled:hover:bg-transparent pointer-coarse:p-2.5"
             title={t("chat.nextVersion")}
+            aria-label={t("chat.nextVersion")}
           >
             <ChevronRight size={14} />
           </button>

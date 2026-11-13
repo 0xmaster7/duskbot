@@ -304,9 +304,11 @@ export function AskReply({ label, placeholder, color, onSend, sending = false, v
   };
   const button = askPrimary(color, row ? ASK_ROW_SEND_SHAPE : ASK_ICON_SHAPE);
   return (
+    // no `border` class: styles.css paints any bordered box holding a field as a page field, a heavy grey slab in a card.
+    // The lettered row is a choice row that tints under the pointer and the caret; the free reply is a card field.
     <form onSubmit={send} className={row
-      ? "-mx-2 flex min-h-10 items-center gap-2.5 rounded-[16px] border border-transparent p-[7px] transition-[background-color,border-color] duration-[140ms] ease-[cubic-bezier(.16,1,.3,1)] hover:bg-ink/[0.06] focus-within:bg-ink/[0.06]"
-      : "flex items-end gap-2 rounded-[16px] border border-transparent bg-transparent py-1 pe-1 ps-3 "}>
+      ? "-mx-2 flex min-h-10 items-center gap-2.5 rounded-[16px] p-2 transition-[background-color] duration-[140ms] ease-[cubic-bezier(.16,1,.3,1)] hover:bg-ink/[0.06] focus-within:bg-ink/[0.06]"
+      : "flex items-end gap-2 rounded-[12px] bg-ink/[0.04] py-1 pe-1 ps-3 transition-[background-color] duration-150 ease-[ease] hover:bg-ink/[0.06] focus-within:bg-ink/[0.07]"}>
       {row && <ChoiceLetter letter={letter ?? null} />}
       <textarea
         dir="auto"

@@ -55,7 +55,7 @@ const SMALL_TABLE_ROWS = 8;
 const READS_AS_NUMBER = /^[+\u2212-]?[$€£¥]?\d[\d,]*(?:\.\d+)?\s?(?:%|pt|pp|x|×|k|m|bn)?$/i;
 
 /** Grok's card corner key: 24px white, a hairline and a small drop, as on its code blocks. */
-const TABLE_PLATE_BUTTON = "composer-press inline-flex h-6 items-center justify-center border border-transparent bg-composer text-ink/[0.66] hover:bg-[linear-gradient(rgb(28_28_28/0.06),rgb(28_28_28/0.06))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
+const TABLE_PLATE_BUTTON = "composer-press inline-flex h-6 touch:h-10 items-center justify-center border border-transparent bg-composer text-ink/[0.66] hover:bg-[linear-gradient(rgb(28_28_28/0.06),rgb(28_28_28/0.06))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
 /** Grok's table card: white, rounded 20, a 0.5px 12% ring and a soft drop, 24px of room above the header for its plate. */
 const TABLE_CARD = "group/table relative w-full overflow-hidden rounded-[20px] bg-composer pt-6 text-ink shadow-[0_2px_8px_rgb(28_28_28/0.035)] touch:pt-11";
 
@@ -99,11 +99,11 @@ export function RichTable({ columns, rows, name = t("table.title"), expanded = f
   const card = () => (
     <div data-table-card className={TABLE_CARD} dir="ltr">
       <div className="table-plate absolute end-1.5 top-1.5 z-20 flex items-center opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover/table:opacity-100 has-[[aria-expanded=true]]:opacity-100 touch:end-1 touch:top-1 touch:opacity-100">
-        <button type="button" className={cn(TABLE_PLATE_BUTTON, "w-6 rounded-s-[6px]")} aria-label={t("table.copyPlain")} onClick={() => void copy()}>{copyState === "copied" ? <Check size={14} /> : <Icon name="copy" size={14} />}</button>
+        <button type="button" className={cn(TABLE_PLATE_BUTTON, "w-6 rounded-s-[6px] touch:w-10")} aria-label={t("table.copyPlain")} onClick={() => void copy()}>{copyState === "copied" ? <Check size={14} /> : <Icon name="copy" size={14} />}</button>
         <SidebarPopoverMenu grok items={[
           { key: "download", label: t("table.download"), icon: <Download size={14} aria-hidden="true" />, onSelect: download },
           { key: "expand", label: t("table.expand"), icon: <Maximize2 size={14} aria-hidden="true" />, onSelect: () => { trigger.current = document.activeElement as HTMLButtonElement | null; setOpen(true); } },
-        ]} ariaLabel={t("table.copyOptions")} placement="below" align="end" triggerClassName={cn(TABLE_PLATE_BUTTON, "-ms-px w-4 rounded-e-[6px]")} triggerLabel={t("table.copyOptions")}
+        ]} ariaLabel={t("table.copyOptions")} placement="below" align="end" triggerClassName={cn(TABLE_PLATE_BUTTON, "-ms-px w-4 rounded-e-[6px] touch:w-8")} triggerLabel={t("table.copyOptions")}
           renderTrigger={() => <Icon name="chevron-down" size={12} />} />
       </div>
       {rows.length > SMALL_TABLE_ROWS && (

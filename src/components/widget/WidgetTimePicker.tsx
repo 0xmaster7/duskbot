@@ -205,8 +205,8 @@ export function WidgetTimePicker({ node, bare }: { node: WidgetNode; bare: boole
         // Space is taken on keydown, so its keyup must not click the trigger again.
         onKeyUp={(event) => event.key === " " && event.preventDefault()}
         className={cn(
-          bare ? WIDGET_BARE : WIDGET_FIELD, "relative flex items-center gap-2 text-start focus-visible:border-focus focus-visible:outline-none",
-          bare ? "px-2" : "pe-8", showing && "border-focus",
+          bare ? WIDGET_BARE : WIDGET_FIELD, "relative flex items-center gap-2 text-start focus-visible:outline-none",
+          bare ? "px-2" : "pe-8", showing && "bg-ink/[0.07]",
         )}
       >
         <Clock aria-hidden="true" size={14} className="shrink-0 text-ink-secondary" />

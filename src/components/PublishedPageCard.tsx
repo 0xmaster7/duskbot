@@ -46,7 +46,7 @@ export function PublishedPageCard({ message }: { message: Message }) {
       </div>
       {card.state === "live" && card.url && <>
         <a href={card.url} dir="ltr" onClick={(event) => { event.preventDefault(); openPage(card.url!); }}
-          className="mt-1 block truncate text-[13px] text-accent-text hover:underline">{card.url}</a>
+          className="mt-1 block truncate text-[13px] text-accent-text hover:underline pointer-coarse:mt-0 pointer-coarse:py-[13px]">{card.url}</a>
         <div className="mt-2 flex flex-wrap gap-1.5">
           <button type="button" onClick={copy} className={cn(ASK_CHIP, ASK_CHIP_IDLE)}>
             {copied === "copied" ? <Check size={14} /> : <Copy size={14} />}

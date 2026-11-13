@@ -250,9 +250,9 @@ describe("a narrow card", () => {
     expect(find("[data-widget]")!.hasAttribute("data-widget-compact")).toBe(true);
     const label = all<HTMLLabelElement>("label").find((each) => each.textContent === "Report to")!;
     expect(label.parentElement!.className).toContain("flex-col");
-    expect(field("report").className).toContain("bg-inset");
+    expect(field("report").className).toContain("bg-ink/[0.04]");
     expect(field("report").className).toContain("w-full");
-    expect(field("at").className).toContain("bg-inset");
+    expect(field("at").className).toContain("bg-ink/[0.04]");
 
     act(() => root.unmount());
     root = createRoot(host);
@@ -261,7 +261,7 @@ describe("a narrow card", () => {
     expect(find("[data-widget]")!.hasAttribute("data-widget-compact")).toBe(false);
     const wide = all<HTMLLabelElement>("label").find((each) => each.textContent === "Report to")!;
     expect(wide.parentElement!.className).toContain("flex-row");
-    expect(field("report").className).not.toContain("bg-inset");
+    expect(field("report").className).not.toContain("bg-ink/[0.04]");
   });
 
   it("wraps a row of buttons rather than squeeze them past the card", () => {
