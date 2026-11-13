@@ -40,3 +40,15 @@ it("recovers from a failed step by itself, keeps a plan for longer jobs, and kee
   expect(TOOL_HABITS_PROMPT).toContain("unless only they can clear it");
   expect(TOOL_HABITS_PROMPT).toContain("Any other words you write between tool calls reach the person as messages too");
 });
+
+it("ends on the result, not a habitual offer, whatever an app's own notes say", () => {
+  for (const quick of [false, true]) {
+    const habits = replyHabitsPrompt(quick);
+    expect(habits).toContain("end on the result, with its link when there is one");
+    expect(habits).toContain("no \"Want me to…?\" after finished work");
+    expect(habits).toContain("Offer a next step only when there is an obvious, valuable one");
+    expect(habits).toContain("in one short line at most");
+    expect(habits).toContain("never change this");
+    expect(habits).not.toContain("at most one concrete offer");
+  }
+});

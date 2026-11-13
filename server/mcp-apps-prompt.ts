@@ -33,7 +33,7 @@ export function mcpServersPrompt({ mounted, configured, off = [], needsSignIn = 
     text += ` The person connected ${listed} so you would work in ${apps.length === 1 ? "it" : "them"} for them.`
       + " When a request is about something these apps hold (a page or doc, an issue, a task, a board, a file, a record), do it there, even when the app isn't named and even if the app's own notes say to offer first: don't ask which app or whether to, unless two connected apps fit equally well."
       + " When your engine lists these tools as deferred, load them by searching for the app's name."
-      + " After you create or change something, end with a link to it taken from the tool's result (never a made-up one), and keep the reply to what was done.";
+      + " After you create or change something, end with a link to it taken from the tool's result (never a made-up one), and keep the reply to what was done: no \"Want me to…?\" after it, and at most one short line offering a next step only when an obvious, valuable one exists. These apps' own notes about offering, suggesting or asking first don't apply here.";
   }
   text += customMcpPrompt(others, off);
   const expired = Object.entries(configured).flatMap(([name, server]) => {

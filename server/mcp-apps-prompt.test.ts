@@ -16,6 +16,13 @@ describe("mcpServersPrompt", () => {
     expect(text).not.toContain("MCP server");
   });
 
+  it("ends a change on its link, with no habitual offer, over the app's own offer-first notes", () => {
+    const text = mcpServersPrompt({ mounted: ["notion"], configured: { notion } });
+    expect(text).toContain("no \"Want me to…?\" after it");
+    expect(text).toContain("only when an obvious, valuable one exists");
+    expect(text).toContain("own notes about offering, suggesting or asking first don't apply here");
+  });
+
   it("finds the app by the configured URL, not the turn's proxy address", () => {
     expect(mcpServersPrompt({ mounted: ["work"], configured: { work: notion } })).toContain("Notion (");
     expect(mcpServersPrompt({ mounted: ["shop"], configured: { shop: own } })).toContain('The user also added an MCP server for you: "shop".');
