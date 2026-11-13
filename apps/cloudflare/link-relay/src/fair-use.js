@@ -52,19 +52,68 @@ export function createBucket({ rate = CAP_BYTES_PER_S, burst = burstFor(rate), n
   };
 }
 
+/** "2026-11-13" for a time, utc: the day a byte counts toward */
+export const dayOf = (t) => new Date(t).toISOString().slice(0, 10);
+
+/**
+ * the limits the owner can change from the admin ops page (PUT /ops/relay/limits), with their defaults. null turns one
+ * off. rates are bytes per second, sizes bytes.
+ */
+export const DEFAULT_LIMITS = Object.freeze({
+  /** one tunnel's top speed; its account's share applies too */
+  perTunnelBytesPerSec: CAP_BYTES_PER_S,
+  /** the burst a tunnel may send at once; null: BURST_SECONDS of its rate */
+  burstBytes: null,
+  /** past this many bytes in a utc day a tunnel drops to the floor rate (never cut off) */
+  perTunnelDailyBytes: null,
+  /** linked servers one account may have on the relay at once */
+  tunnelsPerAccount: 10,
+  /** every tunnel's bytes together; each active tunnel gets an equal share of it */
+  globalCeilingBytesPerSec: null,
+  /** linked servers on the relay at once; past it a new one is told the relay is busy */
+  maxTunnels: 5000,
+  /** the account's full speed and how many bytes a month it keeps it */
+  accountBytesPerSec: CAP_BYTES_PER_S,
+  accountFullSpeedBytes: FULL_SPEED_BYTES,
+  /** the slowest the halving goes */
+  floorBytesPerSec: FLOOR_BYTES_PER_S,
+  /** no new linked server gets on; the ones already on stay */
+  paused: false,
+});
+
+const fresh = (month) => ({ month, bytes: 0, bytesOut: 0, bytesIn: 0, awakeMs: 0, messages: 0, tunnels: {}, slowedAt: null, day: null, dayTunnels: {} });
+
+/** the rate one tunnel may use now: its account's tier shared by its active tunnels, then the owner's caps */
+export function tunnelAnswer(state, { tunnel, t }, { limits = DEFAULT_LIMITS, globalShare = null } = {}) {
+  const active = Math.max(1, Object.keys(state.tunnels).length);
+  const accountRate = tierRate(state.bytes, { cap: limits.accountBytesPerSec, full: limits.accountFullSpeedBytes, floor: limits.floorBytesPerSec });
+  let rate = Math.floor(accountRate / active);
+  if (limits.perTunnelBytesPerSec) rate = Math.min(rate, limits.perTunnelBytesPerSec);
+  if (globalShare) rate = Math.min(rate, globalShare);
+  const dayBytes = state.day === dayOf(t) ? state.dayTunnels[tunnel] ?? 0 : 0;
+  if (limits.perTunnelDailyBytes && dayBytes > limits.perTunnelDailyBytes) rate = Math.min(rate, limits.floorBytesPerSec);
+  rate = Math.max(1, rate);
+  return { rate, burst: limits.burstBytes ?? burstFor(rate), accountRate, monthBytes: state.bytes, active };
+}
+
 /**
  * one account's month: bytes so far and which tunnels moved bytes lately. `report` adds a tunnel's bytes and answers the
  * rate that tunnel may use now: the account's rate shared by its active tunnels.
  */
-export function accountReport(state, { tunnel, bytes, t }) {
-  const month = monthOf(t);
-  const next = state && state.month === month ? { ...state, tunnels: { ...state.tunnels } } : { month, bytes: 0, tunnels: {}, slowedAt: null };
+export function accountReport(state, { tunnel, bytes, bytesOut = 0, bytesIn = 0, awakeMs = 0, messages = 0, t }, policy = {}) {
+  const limits = policy.limits ?? DEFAULT_LIMITS;
+  const month = monthOf(t), day = dayOf(t);
+  const next = state && state.month === month ? { ...fresh(month), ...state, tunnels: { ...state.tunnels }, dayTunnels: { ...state.dayTunnels } } : fresh(month);
   next.bytes += Math.max(0, bytes);
+  next.bytesOut += Math.max(0, bytesOut);
+  next.bytesIn += Math.max(0, bytesIn);
+  next.awakeMs += Math.max(0, awakeMs);
+  next.messages += Math.max(0, messages);
+  if (next.day !== day) { next.day = day; next.dayTunnels = {}; }
+  next.dayTunnels[tunnel] = (next.dayTunnels[tunnel] ?? 0) + Math.max(0, bytes);
   next.tunnels[tunnel] = t;
   for (const [id, seen] of Object.entries(next.tunnels)) if (t - seen > ACTIVE_MS) delete next.tunnels[id];
-  const active = Math.max(1, Object.keys(next.tunnels).length);
-  const accountRate = tierRate(next.bytes);
-  if (accountRate < CAP_BYTES_PER_S && !next.slowedAt) next.slowedAt = t;
-  const rate = Math.max(1, Math.floor(accountRate / active));
-  return { state: next, answer: { rate, burst: burstFor(rate), accountRate, monthBytes: next.bytes, active } };
+  const answer = tunnelAnswer(next, { tunnel, t }, { limits, globalShare: policy.globalShare ?? null });
+  if (answer.accountRate < limits.accountBytesPerSec && !next.slowedAt) next.slowedAt = t;
+  return { state: next, answer };
 }

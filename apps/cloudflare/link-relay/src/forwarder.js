@@ -5,7 +5,7 @@ import { QUEUE_BYTES } from "./protocol.js";
  * moves messages to their peer within the tunnel's rate, in arrival order. a message that has to wait queues behind
  * the ones before it; the end-to-end ack window of the direct protocol then slows the sender. a sender that still
  * outruns the queue limit is refused (`refuse` closes its socket).
- * @param {{ bucket?: ReturnType<typeof createBucket>, maxQueue?: number, charge?: (size: number) => void,
+ * @param {{ bucket?: ReturnType<typeof createBucket>, maxQueue?: number, charge?: (size: number, dir?: "out" | "in") => void,
  *   setTimer?: (fn: () => void, ms: number) => any, clearTimer?: (timer: any) => void }} [options]
  */
 export function createForwarder({ bucket = createBucket(), maxQueue = QUEUE_BYTES, charge = () => {}, setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
@@ -14,7 +14,7 @@ export function createForwarder({ bucket = createBucket(), maxQueue = QUEUE_BYTE
   function deliver(item) {
     try { item.send(item.data); } catch { /* the peer closed meanwhile */ }
     sent += item.size;
-    charge(item.size);
+    charge(item.size, item.dir);
   }
   function drain() {
     timer = null;
@@ -28,10 +28,10 @@ export function createForwarder({ bucket = createBucket(), maxQueue = QUEUE_BYTE
   }
   return {
     /** @returns {boolean} false: refused, the sender should be closed */
-    forward(send, data, size) {
-      if (!queue.length && bucket.take(size) === 0) { deliver({ send, data, size }); return true; }
+    forward(send, data, size, dir) {
+      if (!queue.length && bucket.take(size) === 0) { deliver({ send, data, size, dir }); return true; }
       if (queued + size > maxQueue) return false;
-      queue.push({ send, data, size });
+      queue.push({ send, data, size, dir });
       queued += size;
       delayed += 1;
       if (!timer) drain();

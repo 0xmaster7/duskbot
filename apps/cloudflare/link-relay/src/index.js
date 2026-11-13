@@ -61,6 +61,22 @@ export default {
       return json(405, { error: "method not allowed" });
     }
 
+    // the owner's relay controls, the link service's shape (GET stats, GET/PUT limits); /v1 too, like the other ops routes
+    const relayOps = /^(?:\/v1)?\/ops\/relay\/(stats|limits)$/.exec(url.pathname);
+    if (relayOps) {
+      if (!(await opsAllowed(request, env))) return json(404, { error: "not found" });
+      const ops = env.OPS.get(env.OPS.idFromName("ops"));
+      if (relayOps[1] === "stats" && method === "GET") return json(200, await ops.stats());
+      if (relayOps[1] === "limits" && method === "GET") return json(200, { limits: await ops.limits() });
+      if (relayOps[1] === "limits" && method === "PUT") {
+        const body = await readSmallJson(request);
+        if (!body) return json(400, { error: "send the limits as json", code: "bad_request" });
+        const done = await ops.setLimits(body);
+        return done.ok ? json(200, { ok: true, limits: done.limits }) : json(400, { error: done.error, code: "bad_limits" });
+      }
+      return json(405, { error: "method not allowed" });
+    }
+
     const opsPath = /^\/v1\/ops\/(usage|tunnel)(?:\/([0-9a-f]{32}|[a-z2-7]{10}))?$/.exec(url.pathname);
     if (opsPath && method === "GET") {
       if (!(await opsAllowed(request, env))) return json(404, { error: "not found" });

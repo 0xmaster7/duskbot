@@ -44,6 +44,22 @@ With the `OPS_TOKEN` secret set, `Authorization: Bearer <OPS_TOKEN>`:
 - `GET /v1/ops/usage/<acct>` -> `{ month, bytes, tunnels, slowedAt }` (live)
 - `GET /v1/ops/tunnel/<id>` -> `{ registered, server, sessions, queued, sent, delayed, rate }` (live)
 
+- `GET /ops/relay/stats` -> the link service's shape, for the admin ops page's relay cards:
+  `{ relay: "cloudflare", now: { tunnels, accounts, bytesPerSecOut, bytesPerSecIn, cpu: null, rssMb: null }, today: { bytesOut, bytesIn },
+  month: { bytesOut, bytesIn, projectedBytesOut, allowanceBytes: null }, limits, top: [{ account, tunnels, bytesToday }], busy,
+  cost: { estimated: true, monthCents, projectedCents, awakeHours, messages }, at }`. out is toward the app, in toward the server.
+  `tunnels` are linked servers with their standing socket on the relay (each checks in every 5 min while connected).
+  Speeds and today's bytes come from the per-account roll-up, every 10 s while bytes move. `cost` is an estimate from
+  the tunnels' awake time (an app session open) and incoming messages at the prices below; the $5 plan is not in it.
+- `GET /ops/relay/limits` -> `{ limits }`; `PUT /ops/relay/limits` with any of these (null turns one off) -> `{ ok, limits }`:
+  `perTunnelBytesPerSec`, `burstBytes` (null: 8 s of the rate), `perTunnelDailyBytes` (past it a tunnel drops to the
+  floor rate for the rest of the utc day, never cut off), `tunnelsPerAccount`, `globalCeilingBytesPerSec` (each active
+  tunnel gets an equal share), `maxTunnels`, `accountBytesPerSec`, `accountFullSpeedBytes`, `floorBytesPerSec` (these
+  three are the fair use below, not null), `paused` (true: no new linked server gets on; ones already on stay). Kept in
+  the ops object's storage (`src/ops.js`). A new server past `maxTunnels` or `tunnelsPerAccount`, or while paused, gets
+  503 `relay_busy` / `account_tunnels`; the agent backs off and stays on the link service. Rate changes reach a busy
+  tunnel within about 10 s. The ops object being unreachable never blocks a tunnel.
+
 Without `OPS_TOKEN` these answer 404.
 
 ## Run, test, deploy

@@ -164,6 +164,15 @@ run("the cloud relay end to end under wrangler dev", () => {
     expect(top.accounts.find((one) => one.acct === ACCT)?.bytes).toBeGreaterThan(0);
     const tunnel = await (await fetch(`${url}/v1/ops/tunnel/${id}`, { headers: auth })).json();
     expect(tunnel).toMatchObject({ registered: true, server: true, sessions: 1 });
+    const stats = await (await fetch(`${url}/ops/relay/stats`, { headers: auth })).json();
+    expect(stats).toMatchObject({ relay: "cloudflare", now: { tunnels: 1, accounts: 1 }, busy: false });
+    // the roll-up into the ops object runs every 10 s while bytes move, so it may trail the account by that much
+    expect(stats.today.bytesOut).toBeGreaterThan(0);
+    expect(stats.top[0]).toMatchObject({ account: ACCT, tunnels: 1 });
+    const put = (body) => fetch(`${url}/ops/relay/limits`, { method: "PUT", headers: { ...auth, "content-type": "application/json" }, body: JSON.stringify(body) });
+    expect((await put({ maxTunnels: -1 })).status).toBe(400);
+    expect(await (await put({ maxTunnels: 50 })).json()).toMatchObject({ ok: true, limits: { maxTunnels: 50 } });
+    expect((await fetch(`${url}/ops/relay/stats`)).status).toBe(404);
   });
 
   it("comes back by itself on both ends after the relay restarts (as a deploy drops sockets)", async () => {
