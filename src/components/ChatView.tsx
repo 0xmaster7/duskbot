@@ -112,8 +112,6 @@ import { groupTranscript, isStatusActivity, type TranscriptItem } from "@/lib/ac
 import { StatusActivityRow } from "@/components/StatusActivityRow";
 import { ActivityRun } from "./ActivityRun";
 import { TurnNarrationRun } from "./TurnNarrationRun";
-import { PlanChecklist } from "./PlanChecklist";
-import { planAnchors } from "../../shared/turn-plan";
 import { BubbleEditor } from "./BubbleEditor";
 import { ReplyBlocks } from "./ReplyBlocks";
 import { webhookMessageView } from "@/lib/webhook-message";
@@ -738,7 +736,6 @@ const MessagesList = memo(function MessagesList({
   const { botId, threadId, botName, botColor, bots, hasMore, focus, showToolCalls, locale, bubbleStyle } = useChatRows(), busy = use(ChatBusyContext);
   // A finished turn keeps the bot's progress lines and folds only its tool steps under "Worked for", in both modes.
   const items = useMemo(() => groupTranscript(messages), [messages, locale]);
-  const plans = useMemo(() => planAnchors(messages), [messages]);
   const newestMessageId = messages.at(-1)?.id;
   let newestUserMessageId: string | undefined;
   for (let i = messages.length - 1; i >= 0 && !newestUserMessageId; i--) {
@@ -747,7 +744,7 @@ const MessagesList = memo(function MessagesList({
   const focusedId = focus && !focus.consumed ? focus.messageId : null;
   const unreadIds = useMemo(() => unreadMessageIds(messages, unreadDividerId), [messages, unreadDividerId]);
   let dividerPlaced = false;
-  const layout = useMemo(() => simpleRowLayout(items, { botId, showToolCalls, unreadIds, shownIds: plans }), [items, unreadIds, showToolCalls, botId, plans]);
+  const layout = useMemo(() => simpleRowLayout(items, { botId, showToolCalls, unreadIds }), [items, unreadIds, showToolCalls, botId]);
   const joins = useMemo(() => {
     if (!seamId) return layout.joins;
     const at = items.findIndex((item) => item.kind === "message" && item.message.id === seamId);
@@ -784,9 +781,7 @@ const MessagesList = memo(function MessagesList({
         const stamp = !lead && newDay && <DaySeparator at={first.at} today={today} prev={prev} next={first} />;
         const dividerRow = lead ? null : divider;
         if (item.kind === "turn" || item.kind === "run") {
-          const planned = item.messages.map((step) => plans.get(step.id)).find(Boolean);
-          const checklist = planned && <PlanChecklist plan={planned.plan} live={busy && planned.newest} />;
-          if (!showToolCalls) return (lead || dividerRow || checklist) && <div key={item.id} className="contents">{lead}{dividerRow}{checklist && stamp}{checklist}</div>;
+          if (!showToolCalls) return (lead || dividerRow) && <div key={item.id} className="contents">{lead}{dividerRow}</div>;
           const forceOpen = item.messages.some((step) => step.id === focusedId);
           const steps = item.messages.map((step) => <div key={step.id} className="contents" data-mid={step.id}><ActivityChip message={step} place={place} /></div>);
           return (
@@ -797,7 +792,6 @@ const MessagesList = memo(function MessagesList({
               {item.kind === "turn"
                 ? <TurnNarrationRun label={item.label} title={t("chat.run.showSteps")} forceOpen={forceOpen}>{steps}</TurnNarrationRun>
                 : <ActivityRun messages={item.messages} forceOpen={forceOpen}>{steps}</ActivityRun>}
-              {checklist}
             </div>
           );
         }
@@ -826,8 +820,6 @@ const MessagesList = memo(function MessagesList({
             case "activity": {
               if (m.dataResult) return <DataResultChip message={m} />;
               if (isStatusActivity(m)) return <StatusActivityRow message={m} />;
-              const planned = plans.get(m.id);
-              if (planned) return <PlanChecklist plan={planned.plan} live={busy && planned.newest} />;
               if (m.tool && failedTurnCause(m.tool.name) !== null) {
                 // a reply that never came is said once, in the card above the composer
                 if (!m.tool.partial) return null;
@@ -1038,8 +1030,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   // the bubble the line hangs under keeps its pinched corner until the line has finished leaving, as grok's does
   const presenceShown = useLingering(presenceVisible, 140);
   const paintedMessages = useFirstPaintRows(transcriptKey, windowedMessages, Boolean(focus && !focus.consumed) || laterCount > 0, scrollRef, following);
-  const planIds = useMemo(() => planAnchors(windowedMessages), [windowedMessages]);
-  const lastShownRow = windowedMessages.findLast((message) => planIds.has(message.id) || !quietRow(message, showToolCalls));
+  const lastShownRow = windowedMessages.findLast((message) => !quietRow(message, showToolCalls));
   const lastRowIsBubble = Boolean(lastShownRow && isBotTextRow(lastShownRow, bot.id));
   const presenceUnderBubble = lastRowIsBubble;
   // grok keeps the status line's slot at the end of the conversation whether it shows or not, so it never moves a row
