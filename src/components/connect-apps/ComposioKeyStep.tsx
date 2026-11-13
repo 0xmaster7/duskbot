@@ -10,6 +10,10 @@ import type { Connectors } from "./use-connectors";
 import type { ViaFailure, ViaFlow } from "./via-flow";
 import { KitButton } from "./detail-kit";
 import { StepGuide, type GuideStep } from "./StepGuide";
+import { PrimaryButton, type Primary } from "./PrimaryButton";
+import { CancelLink } from "./AppRow";
+import { DuskMark } from "../mascot-view";
+import { MASCOT_INK } from "@/lib/mascot";
 
 /** Composio's own sign-up / log-in, then the project page that lists its API keys
  * (https://docs.composio.dev/reference/authenticating-to-composio). */
@@ -38,18 +42,17 @@ export function viaLine(flow: ViaFlow | undefined, name: string): { text: string
   return { text: t(key[flow.why], { name, message: flow.message ?? "" }), tone: "alert" };
 }
 
-/** Connecting an app through Composio, in two steps that say what they do: Authorize Composio (once, on Composio's own
- * page, no key copied anywhere), then Connect the app on Composio's page. Each step shows done with a check; the page's
- * main button is the step you are on. Someone who wants their own quota can paste their own project key instead, behind
- * a small link: the server verifies it on save, it is kept the way Settings keeps it, and the Connect goes on the same way. */
-export function ComposioKeyStep({ slug, name, connectors }: { slug: string; name: string; connectors: Connectors }) {
+/** The one-time Composio link, as one compact card: a line on why, the one button that signs in to Composio, and a quiet
+ * way to paste your own project key instead. Connecting the app itself is the page's next screen, not a second step here.
+ * The key path is a short numbered guide: the server verifies the key on save, it is kept the way Settings keeps it, and
+ * the app's connect goes on the same way. */
+export function ComposioKeyStep({ slug, name, connectors, primary }: { slug: string; name: string; connectors: Connectors; primary: Primary | null }) {
   const { dispatch } = useStore();
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<LocaleKey | null>(null);
   const [ownKey, setOwnKey] = useState(false);
   const flow = connectors.viaFlow[slug];
-  const authorized = connectors.via?.signedIn === true;
   const connected = flow?.step === "done";
   const line = viaLine(flow, name);
 
@@ -80,16 +83,9 @@ export function ComposioKeyStep({ slug, name, connectors }: { slug: string; name
   const [openedKeys, setOpenedKeys] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const viaSteps: GuideStep[] = [
-    { key: "authorize", attrs: { "data-via-step": "authorize" }, pixel: "idcard", done: authorized, text: t("connectApps.guide.signIn"),
-      action: <KitButton onClick={() => void connectors.authorizeComposio(slug)}>{t("connectApps.via.authorize")}</KitButton> },
-    { key: "connect", attrs: { "data-via-step": "connect" }, pixel: "globe", done: connected, text: t("connectApps.guide.pick", { name }),
-      action: authorized ? <KitButton onClick={() => void connectors.connect(slug)}>{t("connectApps.connectApp", { name })}</KitButton> : undefined },
-  ];
   const keySteps: GuideStep[] = [
     { key: "open", pixel: "globe", done: openedComposio || openedKeys || Boolean(draft), text: t("connectApps.guide.openComposio"),
       action: <a className="ca-kit-button" data-variant="primary" href={COMPOSIO_SIGN_UP_URL} target="_blank" rel="noopener noreferrer" onClick={() => setOpenedComposio(true)}>{t("connectApps.key.signUp")}</a> },
-    { key: "google", pixel: "idcard", done: openedKeys || Boolean(draft), text: t("connectApps.guide.google") },
     { key: "copy", pixel: "key", done: Boolean(draft), text: t("connectApps.guide.copyKey"),
       action: <a className="ca-kit-button" data-variant="secondary" href={COMPOSIO_API_KEYS_URL} target="_blank" rel="noopener noreferrer" onClick={() => setOpenedKeys(true)}>{t("connectApps.key.openKeys")}</a> },
     { key: "paste", pixel: "note", done: saved, text: t("connectApps.guide.paste"),
@@ -101,36 +97,42 @@ export function ComposioKeyStep({ slug, name, connectors }: { slug: string; name
           <KitButton type="submit" disabled={busy || !draft.trim()} aria-busy={busy || undefined}>{busy ? t("tokenApps.checking") : t("connectApps.connectApp", { name })}</KitButton>
         </form>
       ) },
-    { key: "pick", pixel: "check", done: connected, text: t("connectApps.guide.pick", { name }) },
   ];
 
   return (
-    <section data-composio-key="" aria-labelledby="ca-key-title">
-      <h3 id="ca-key-title" className="ca-group-label">{t("connectApps.via.title", { name })}</h3>
-      <div className="ca-card">
-        <p className="ca-card-row ca-key-why">{t("connectApps.via.why", { name })}</p>
-        <div className="ca-card-row">
-          <StepGuide label={t("tokenApps.guide", { name })} steps={ownKey ? keySteps : viaSteps} finished={null} />
+    <section className="ca-card" data-composio-key="" data-mode={ownKey ? "key" : "sign-in"} aria-labelledby="ca-key-title">
+      <div className="ca-card-row ca-link-step">
+        <DuskMark body="kit" colour={MASCOT_INK.blue} state={connected ? "happy" : "idle"} size={32} animated={false} label={null} />
+        <div className="ca-link-step-body">
+          <h3 id="ca-key-title" className="ca-link-step-title">{t("connectApps.via.title", { name })}</h3>
+          {ownKey
+            ? <StepGuide label={t("tokenApps.guide", { name })} steps={keySteps} finished={null} />
+            : <p className="ca-link-step-text">{t("connectApps.via.why", { name })}</p>}
+          {!ownKey && primary && (
+            <span className="ca-link-step-actions">
+              <PrimaryButton primary={primary} />
+              {primary.onCancel && (primary.busy || primary.waiting) && <CancelLink onCancel={primary.onCancel} />}
+            </span>
+          )}
+          {!connected && (
+            <button type="button" className="ca-link ca-link-step-switch" onClick={() => { setOwnKey(!ownKey); setProblem(null); }}>
+              {t(ownKey ? "connectApps.guide.useSignIn" : "connectApps.via.useKey")}
+            </button>
+          )}
         </div>
-        {line && (
-          <p role={line.tone === "alert" ? "alert" : "status"} className="ca-card-row ca-key-line" data-tone={line.tone} data-via-line="">
-            <Icon name={line.tone === "alert" ? "exclamation-circle" : line.tone === "done" ? "check" : "clock"} size={13} />
-            <span>{line.text}</span>
-          </p>
-        )}
-        {!authorized && !connected && (
-          <p className="ca-card-row ca-key-why">
-            {!ownKey && <>{t("connectApps.via.shares", { name })}{" "}</>}
-            <button type="button" className="ca-link" onClick={() => { setOwnKey(!ownKey); setProblem(null); }}>{t(ownKey ? "connectApps.guide.useSignIn" : "connectApps.signIn.ownKey")}</button>
-          </p>
-        )}
-        {problem && (
-          <p id="ca-key-problem" role="alert" className="ca-card-row ca-key-problem">
-            <Icon name="exclamation-circle" size={13} />
-            <span>{t(problem)}</span>
-          </p>
-        )}
       </div>
+      {line && (
+        <p role={line.tone === "alert" ? "alert" : "status"} className="ca-card-row ca-key-line" data-tone={line.tone} data-via-line="">
+          <Icon name={line.tone === "alert" ? "exclamation-circle" : line.tone === "done" ? "check" : "clock"} size={13} />
+          <span>{line.text}</span>
+        </p>
+      )}
+      {problem && (
+        <p id="ca-key-problem" role="alert" className="ca-card-row ca-key-problem">
+          <Icon name="exclamation-circle" size={13} />
+          <span>{t(problem)}</span>
+        </p>
+      )}
     </section>
   );
 }

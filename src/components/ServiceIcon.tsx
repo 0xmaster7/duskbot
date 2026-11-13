@@ -58,7 +58,11 @@ const initialTint = (label: string) => INITIAL_TINTS[[...label].reduce((sum, ch)
 export function ServiceTile({ card, size = 40, className }: { card: TileArt; size?: number; className?: string }) {
   const sources = [card.image, card.logo, siteIconUrl(card.domain)]
     .filter((source): source is string => Boolean(source));
-  const [failed, setFailed] = useState(0);
+  // failures count against this list of sources only: an app whose art arrives later starts over from its best source
+  const sourcesKey = sources.join("\n");
+  const [failure, setFailure] = useState({ key: sourcesKey, count: 0 });
+  const failed = failure.key === sourcesKey ? failure.count : 0;
+  const setFailed = (next: (count: number) => number) => setFailure({ key: sourcesKey, count: next(failed) });
   const source = sources[failed];
   const frame = { width: size, height: size, borderRadius: Math.round(size * 0.28), background: card.background };
   if (!source) {

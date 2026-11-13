@@ -201,9 +201,20 @@ describe("the Connect Apps window", () => {
     await flush();
     const page = dialog().querySelector("[data-app-page]")!;
     expect(page.getAttribute("data-app-page")).toBe("attio");
-    expect([...page.querySelectorAll('[data-toolkit-group="actions"] .ca-card-row')].map((row) => row.textContent))
-      .toEqual(["Create record", "Find person", "see all 40 on Composio"]);
+    const toggle = page.querySelector<HTMLButtonElement>('[data-toolkit-group="actions"] .ca-abilities-toggle')!;
+    expect(toggle.textContent, "folded to one quiet row with its count").toBe("what Attio can do40");
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(page.querySelector("[data-ability]")).toBeNull();
+    await act(async () => { toggle.click(); });
+    const abilities = () => [...page.querySelectorAll("[data-ability]")].map((row) => row.textContent);
+    expect(abilities()).toEqual(["Create record", "Find person"]);
     expect(page.querySelector<HTMLAnchorElement>('[data-toolkit-group="actions"] a')?.href).toBe("https://docs.composio.dev/toolkits/attio");
+    const search = page.querySelector<HTMLInputElement>('[data-toolkit-group="actions"] input[type=search]')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(search, "find");
+      search.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(abilities(), "the search narrows the list").toEqual(["Find person"]);
     expect(page.textContent).toContain("your account, API key");
   });
 
@@ -266,7 +277,7 @@ describe("the Connect Apps window", () => {
       await flush();
     };
     const paste = async (value: string) => {
-      const own = [...dialog().querySelectorAll<HTMLButtonElement>("[data-composio-key] button")].find((element) => element.textContent === "use my own Composio API key");
+      const own = [...dialog().querySelectorAll<HTMLButtonElement>("[data-composio-key] button")].find((element) => element.textContent === "use an API key instead");
       if (own) await act(async () => { own.click(); });
       const input = dialog().querySelector<HTMLInputElement>("[data-composio-key] input")!;
       await act(async () => {
@@ -287,15 +298,14 @@ describe("the Connect Apps window", () => {
       expect(fixture.api).not.toHaveBeenCalledWith("/api/connectors/attio/authorize", expect.anything());
       expect(onClose, "no trip to Settings").not.toHaveBeenCalled();
       const step = dialog().querySelector("[data-app-page='attio'] [data-composio-key]")!;
-      expect(step.textContent).toContain("Attio and 1,000+ more apps connect through your own Composio account. You do this once, it's free for 10,000 actions a month, and dusk bot remembers it.");
-      expect(step.textContent, "what is shared").toContain("so dusk bot never sees your Attio password.");
-      expect(dialog().querySelector("[data-app-page] [data-composio-sign-in]")?.textContent, "the button says what you came for").toContain("connect Attio");
-      expect(step.querySelector("[data-via-step=authorize]")?.textContent, "the one-time step signs in to Composio, and says Google works").toContain("Sign in to Composio. Your Google account works.");
-      await act(async () => { [...step.querySelectorAll("button")].find((element) => element.textContent === "use my own Composio API key")!.click(); });
+      expect(step.textContent).toContain("Attio connects through your own free Composio account. You only do this once.");
+      expect(step.querySelectorAll("[data-guide-step]"), "one button, no numbered steps").toHaveLength(0);
+      expect(step.querySelector("[data-composio-sign-in]")?.textContent, "the one button signs in to Composio").toContain("sign in to Composio");
+      expect(dialog().querySelector("[data-app-page] .ca-detail-header .ca-primary"), "one main action: none in the header too").toBeNull();
+      await act(async () => { [...step.querySelectorAll("button")].find((element) => element.textContent === "use an API key instead")!.click(); });
       expect([...step.querySelectorAll(".ca-guide-text")].map((item) => item.textContent), "one short line per step").toEqual([
-        "Open Composio's website.", "Sign in with Google.", "Copy your key from the keys page.", "Paste it here. We check it right away.", "Pick your Attio account on the page that opens.",
+        "Open Composio's website.", "Copy your key from the keys page.", "Paste it here. We check it right away.",
       ]);
-      expect(step.querySelectorAll("[data-guide-step] .ca-guide-art"), "each step has its mascot and picture").toHaveLength(5);
       expect([...step.querySelectorAll("a")].map((link) => link.getAttribute("href")))
         .toEqual(["https://dashboard.composio.dev", "https://dashboard.composio.dev/~/project/settings/api-keys"]);
       await paste("ak_good");
@@ -318,9 +328,9 @@ describe("the Connect Apps window", () => {
         return base(path, init);
       });
     };
-    const primary = () => dialog().querySelector<HTMLButtonElement>("[data-app-page] .ca-detail-header .ca-primary");
+    const primary = () => dialog().querySelector<HTMLButtonElement>("[data-app-page] .ca-detail-header .ca-primary, [data-app-page] [data-composio-key] .ca-primary");
     const shownLabel = () => primary()?.querySelector("span:not([aria-hidden])")?.textContent;
-    const steps = () => [...dialog().querySelectorAll("[data-via-step]")].map((step) => `${step.getAttribute("data-via-step")}:${step.getAttribute("data-state")}`);
+    const keyCard = () => dialog().querySelector("[data-app-page] [data-composio-key]");
     const line = () => dialog().querySelector("[data-via-line] > span:last-child")?.textContent;
     const remountAt = async (nonce: number) => {
       act(() => root.unmount());
@@ -342,16 +352,14 @@ describe("the Connect Apps window", () => {
         let connected = false;
         const state = { signedIn: false, enabled: false as boolean | undefined };
         viaApi(state, (method) => method === "POST" ? { status: "started", url: "https://connect.composio.dev/link/ln_attio" } : { status: connected ? "connected" : "waiting" });
-        expect(shownLabel(), "the row's own words, never a separate sign-in button").toBe("connect Attio");
-        expect(steps()).toEqual(["authorize:current", "connect:next"]);
-        expect(dialog().querySelector("[data-composio-key] [data-guide-step] .ca-guide-art"), "the one-time step has its mascot").not.toBeNull();
+        expect(shownLabel(), "the first time, the one button signs in to Composio").toBe("sign in to Composio");
+        expect(keyCard()?.querySelector(".ca-link-step > :first-child"), "the one-time card has its mascot").not.toBeNull();
         await act(async () => { primary()!.click(); });
         await flush();
         expect(fixture.api).toHaveBeenCalledWith("/api/mcp/servers", { method: "POST", body: JSON.stringify({ name: "composio-connect", type: "http", url: "https://connect.composio.dev/mcp", enabled: false }) });
         expect(fixture.api).not.toHaveBeenCalledWith("/api/config", expect.anything());
         expect(fixture.opened, "step two waits for its own click").toEqual([]);
-        expect(steps(), "Composio is saved: its step never shows again").toEqual([]);
-        expect(dialog().querySelector("[data-composio-key]")).toBeNull();
+        expect(keyCard(), "Composio is saved: its card never shows again").toBeNull();
         expect(shownLabel()).toBe("connect Attio");
         await act(async () => { primary()!.click(); });
         await flush();
@@ -460,7 +468,7 @@ describe("the Connect Apps window", () => {
         await waitingThen(() => { throw new ApiError("Composio sign-in expired. Authorize Composio again.", 409, { code: "composio_connect_signed_out" }); }, 2_100);
         expect(line()).toBe("Your Composio sign-in expired. Authorize Composio again.");
         expect(shownLabel()).toBe("authorize again");
-        expect(steps()).toEqual(["authorize:current", "connect:next"]);
+        expect(keyCard(), "back to the one-time card").not.toBeNull();
       });
 
       it("Dusk restarting or the network down: says so and keeps trying, then connects", async () => {
@@ -583,7 +591,7 @@ describe("the Connect Apps window", () => {
       await act(async () => { dialog().querySelector<HTMLButtonElement>("[data-app-page] .ca-primary")!.click(); });
       await flush();
       expect(fixture.opened, "no Composio tab the broker could not use").toEqual([]);
-      expect(dialog().querySelector("[data-composio-key]")?.textContent).toContain("Attio and 1,000+ more apps connect through your own Composio account.");
+      expect(dialog().querySelector("[data-composio-key]")?.textContent).toContain("Attio connects through your own free Composio account.");
       await paste("ak_good");
       expect(fixture.opened).toEqual(["https://connect.example/attio"]);
     });

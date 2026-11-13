@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
+import { KEEP_WORDS } from "@/locales/brand-case";
 import { needsReconnect } from "@/lib/connector-status";
 import { connectorSetupNotice } from "./connector-helpers";
 import type { ToolkitCard } from "../ServiceIcon";
@@ -96,7 +97,7 @@ export function AppPage({ model }: { model: AppPageModel }) {
     if (!composio || !phase) return null;
     const connect: Primary = { label: t("connectApps.connectApp", { name: entry.label }), onClick: () => void connectors.connect(slug), onCancel: () => connectors.cancel(slug) };
     if (viaSteps) {
-      const authorize: Primary = { label: t("connectApps.connectApp", { name: entry.label }), signIn: true, disabled: model.remoteClient, onClick: () => void connectors.authorizeComposio(slug), onCancel: () => connectors.cancel(slug) };
+      const authorize: Primary = { label: t("connectApps.via.authorize"), signIn: true, disabled: model.remoteClient, onClick: () => void connectors.authorizeComposio(slug), onCancel: () => connectors.cancel(slug) };
       if (flow?.step === "authorizing") return { ...authorize, busy: true, busyLabel: t("connectApps.signIn.waiting") };
       if (flow?.step === "failed" && flow.why === "signedOut") return { ...authorize, label: t("connectApps.via.authorizeAgain") };
       if (!viaSignedIn) return flow?.step === "failed" ? { ...authorize, label: t("connectors.action.retry") } : authorize;
@@ -131,6 +132,7 @@ export function AppPage({ model }: { model: AppPageModel }) {
     })
     : null;
   const facts = appFacts(model);
+  const keyCard = Boolean(firstTime) && !gmail;
   const ownCard = entry.kind !== "composio";
 
   return (
@@ -138,11 +140,13 @@ export function AppPage({ model }: { model: AppPageModel }) {
       <div className="ca-detail-top">
         <header className="ca-detail-header">
           <AppTile entry={entry} size={56} />
-          <h3 className="ca-detail-name" data-detail-hero-title="">{entry.label}</h3>
-          {!gmail && primary?.onCancel && (primary.busy || primary.waiting) && <CancelLink onCancel={primary.onCancel} />}
-          {gmail ? null : primary ? <PrimaryButton primary={primary} /> : (entry.kind === "composio" || entry.kind === "remote") && model.connection === "connected" && <ConnectedMark />}
+          <span className="ca-detail-title">
+            <h3 className="ca-detail-name" data-detail-hero-title="">{entry.label}</h3>
+            <p className="ca-detail-desc" title={entry.description}>{entry.description}</p>
+          </span>
+          {!gmail && !keyCard && primary?.onCancel && (primary.busy || primary.waiting) && <CancelLink onCancel={primary.onCancel} />}
+          {gmail || keyCard ? null : primary ? <PrimaryButton primary={primary} /> : (entry.kind === "composio" || entry.kind === "remote") && model.connection === "connected" && <ConnectedMark />}
         </header>
-        <p className="ca-detail-desc">{entry.description}</p>
       </div>
       <div className="ca-groups">
         {gmail && <GmailCard model={gmail} />}
@@ -175,7 +179,7 @@ export function AppPage({ model }: { model: AppPageModel }) {
           </div>
         )}
         {model.remote && !ways && <p className="ca-notice">{t(model.remote.open ? "connectApps.remote.open" : "connectApps.remote.note", { name: entry.label })}</p>}
-        {firstTime && !gmail && <ComposioKeyStep slug={slug} name={entry.label} connectors={connectors} />}
+        {keyCard && <ComposioKeyStep slug={slug} name={entry.label} connectors={connectors} primary={primary} />}
         {viaStatus && !gmail && (
           <p role={viaStatus.tone === "alert" ? "alert" : "status"} className="ca-notice ca-key-line" data-tone={viaStatus.tone} data-via-line="">
             {viaStatus.tone === "done"
@@ -241,7 +245,7 @@ export function AppPage({ model }: { model: AppPageModel }) {
           </div>
         )}
         {choiceFailed && <p role="alert" className="ca-notice" data-tone="danger">{t("connectApps.account.choiceFailed")}</p>}
-        {model.toolkit && !gmail && <ToolkitAbilities toolkit={model.toolkit} />}
+        {model.toolkit && !gmail && <ToolkitAbilities toolkit={model.toolkit} name={entry.label} />}
         {!ownCard && <AppFacts facts={facts} />}
       </div>
     </div>
@@ -330,40 +334,73 @@ export function appFacts(model: Pick<AppPageModel, "entry" | "categoryLabel" | "
   return facts;
 }
 
-const SHOWN = 8;
+const PROPER = /^[A-Z][a-z]+$/;
 
-/** What an app can do: its first actions and triggers by name, then a link to every one on Composio's page for it. */
-function ToolkitAbilities({ toolkit }: { toolkit: SnapshotToolkit }) {
-  // undefined while its names load, so the card opens whole instead of growing
+/** A tool's name in sentence case: "New Channel Created Trigger" reads "New channel created trigger"; the app's own name
+ * and other names (Slack, Google) keep their capital, and so do mixed or all-caps words (GitHub, API). */
+export function toolName(name: string, app: string): string {
+  const keep = new Set(app.split(/\s+/));
+  return name.split(" ").map((word, index) => {
+    if (index === 0) return word.charAt(0).toUpperCase() + word.slice(1);
+    return PROPER.test(word) && !keep.has(word) && !KEEP_WORDS.has(word) ? word.toLowerCase() : word;
+  }).join(" ");
+}
+
+/** What an app can do, folded into one quiet row with its count; open, a search over its actions and triggers by name, then
+ * a link to every one on Composio's page for it. */
+function ToolkitAbilities({ toolkit, name }: { toolkit: SnapshotToolkit; name: string }) {
+  // undefined while its names load, so the row opens whole instead of growing
   const [lists, setLists] = useState<ToolkitActions | null | undefined>(undefined);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const listId = useId();
   useEffect(() => {
     let alive = true;
     setLists(undefined);
+    setOpen(false);
+    setQuery("");
     void loadToolkitActions(toolkit.slug).then((found) => { if (alive) setLists(found); });
     return () => { alive = false; };
   }, [toolkit.slug]);
-  const groups: Array<{ key: string; label: string; names: string[]; total: number }> = [
-    { key: "actions", label: t("connectApps.canDo"), names: lists?.actions ?? [], total: toolkit.tools },
-    { key: "triggers", label: t("connectApps.info.triggers"), names: lists?.triggers ?? [], total: toolkit.triggers ?? 0 },
-  ];
-  if (lists === undefined) return null;
-  return groups.filter((group) => group.total > 0).map((group) => (
-    <div key={group.key} data-toolkit-group={group.key}>
-      <h3 className="ca-group-label">{group.label}<span>{group.total}</span></h3>
-      <div className="ca-card">
-        {group.names.slice(0, SHOWN).map((name, index) => (
-          <div key={`${index}:${name}`} className="ca-card-row"><span>{name}</span></div>
-        ))}
-        {group.total > Math.min(SHOWN, group.names.length) && (
+  if (lists === undefined || toolkit.tools <= 0) return null;
+  const needle = query.trim().toLowerCase();
+  const groups = [
+    { key: "actions", label: null, names: lists?.actions ?? [] },
+    { key: "triggers", label: t("connectApps.info.triggers"), names: lists?.triggers ?? [] },
+  ].map((group) => ({ ...group, names: group.names.map((one) => toolName(one, name)).filter((one) => !needle || one.toLowerCase().includes(needle)) }));
+  const found = groups.some((group) => group.names.length > 0);
+  const listed = (lists?.actions?.length ?? 0) + (lists?.triggers?.length ?? 0);
+  return (
+    <section className="ca-card" data-toolkit-group="actions" data-open={open ? "" : undefined}>
+      <button type="button" className="ca-card-row ca-abilities-toggle" aria-expanded={open} aria-controls={listId} onClick={() => setOpen(!open)}>
+        <span>{t("connectApps.canDo", { name })}</span>
+        <span className="ca-abilities-count">{toolkit.tools}</span>
+        <Icon name="chevron-down" size={14} />
+      </button>
+      {open && (
+        <div id={listId} className="ca-abilities">
+          {listed > 0 && (
+            <div className="ca-card-row">
+              <input type="search" className="ca-abilities-search" value={query} onChange={(event) => setQuery(event.target.value)}
+                placeholder={t("connectApps.canDo.searchPlaceholder", { name })} aria-label={t("connectApps.canDo.searchPlaceholder", { name })} />
+            </div>
+          )}
+          {groups.filter((group) => group.names.length > 0).map((group) => (
+            <div key={group.key} data-ability-group={group.key}>
+              {group.label && <p className="ca-card-row ca-abilities-label">{group.label}</p>}
+              {group.names.map((one, index) => <div key={`${index}:${one}`} className="ca-card-row" data-ability=""><span>{one}</span></div>)}
+            </div>
+          ))}
+          {needle && !found && <p className="ca-card-row ca-abilities-label" role="status">{t("connectApps.noResults", { query: query.trim() })}</p>}
           <div className="ca-card-row">
             <a className="ca-link" href={composioPage(toolkit.slug)} target="_blank" rel="noopener noreferrer">
-              {t("connectApps.composioAll", { count: group.total })}
+              {t("connectApps.composioAll", { count: toolkit.tools })}
             </a>
           </div>
-        )}
-      </div>
-    </div>
-  ));
+        </div>
+      )}
+    </section>
+  );
 }
 
 /** Grok's Information card: a label, then a bordered list of facts with their values at the end. */
