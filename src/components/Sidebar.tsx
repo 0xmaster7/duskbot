@@ -33,8 +33,8 @@ import { navigateThreadMenu } from "./BotProjects";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { setSidebarDensity, useSidebarDensity, usePinnedCircles, useUniversalPins, type SidebarDensity } from "@/lib/sidebar-preferences";
 import { BOT_CHATS_SECTION_ID, BOTS_SECTION_ID, CHANNELS_SECTION_ID, PINNED_SECTION_ID, activeBotsFirst, partitionSidebarBots, partitionSidebarGroups, pinnedCircleThreadListVisible, sidebarSectionLabel, userSectionId, userSectionName } from "@/lib/sidebar-layout";
-import { stepKey, type BotDropPlace } from "@/lib/sidebar-bot-drop";
-import { BotDropLine, botRowDropClass, useSidebarBotDrag, type BotRowDrag } from "./SidebarBotDrag";
+import { stepKey } from "@/lib/sidebar-bot-drop";
+import { botRowDropClass, useSidebarBotDrag, type BotRowDrag } from "./SidebarBotDrag";
 import { useSidebarSections } from "./SidebarSections";
 import { departmentNames } from "./bot-sections";
 import { sidebarSectionAttention } from "@/lib/sidebar-attention";
@@ -65,7 +65,6 @@ import { BotContextMenu, GROK_LABEL, GROK_MENU_ITEM, GROK_ROW_FILL, GrokMenuIcon
 import { GROK_DANGER } from "./menu-recipe";
 export { BotContextMenu };
 import { AvatarActivityDot, RowDot, RowStatusText, rowSurface } from "./SidebarRowMarkers";
-import { botActivityAt, latestActivityFirst } from "./sidebar-order";
 
 
 import { useLiveMedia } from "@/lib/live-call-media";
@@ -416,7 +415,6 @@ export interface BotRowProps {
   onMenu: (menu: MenuState) => void;
   renameRequest?: number;
   botDrag?: BotRowDrag;
-  botDrop?: BotDropPlace | null;
   botDragging?: boolean;
   /** grok's Main Bot: a star on the avatar's corner */
   main?: boolean;
@@ -428,7 +426,7 @@ export function botRowProps(
   state: AppState,
   dispatch: Dispatch<Action>,
   bot: Bot,
-  layout: Pick<BotRowProps, "density" | "query" | "onMenu" | "renameRequest" | "botDrag" | "botDrop" | "botDragging" | "main" | "tabStop">,
+  layout: Pick<BotRowProps, "density" | "query" | "onMenu" | "renameRequest" | "botDrag" | "botDragging" | "main" | "tabStop">,
 ): BotRowProps {
   const selected = state.activeView === "chat" && state.selectedId === bot.id;
   const reveal = state.revealThread;
@@ -498,7 +496,7 @@ function RowGazeAvatar(props: Omit<React.ComponentProps<typeof BotAvatar>, "gaze
 export const ROW_PRESS = "[--row-ease:cubic-bezier(.22,1,.36,1)] [transition:transform_200ms_var(--row-ease),width_200ms_var(--row-ease),padding_200ms_var(--row-ease)]";
 
 export const BotListItem = memo(function BotListItem(props: BotRowProps) {
-  const { bot, selected, deleting, mascotMotion, pendingQueued, instances, liveCall, density, dispatch, onMenu, renameRequest, botDrag: drag, botDrop: drop, botDragging: dragging, main = false, tabStop } = props;
+  const { bot, selected, deleting, mascotMotion, pendingQueued, instances, liveCall, density, dispatch, onMenu, renameRequest, botDrag: drag, botDragging: dragging, main = false, tabStop } = props;
   const liveMedia = useLiveMedia();
   const remoteClient = typeof window !== "undefined" && window.duskDesktop?.remoteClient?.active === true;
   const [renaming, setRenaming] = useState(false);
@@ -671,8 +669,8 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
 
   return (
     <>
-    <div className={cn("group relative", iconOnly && "mx-auto w-[54px]", botRowDropClass(drop, dragging, simpleRow))} data-bot-drop={drop ?? undefined} {...(drag && !renaming ? drag.row(bot.id) : {})}
-      title={iconOnly ? botTooltip(bot, instances) : undefined}><BotDropLine place={drop} />
+    <div className={cn("group relative", iconOnly && "mx-auto w-[54px]", drag && !renaming && "select-none", botRowDropClass(dragging))} data-bot-reorder-row={drag ? bot.id : undefined} data-bot-lifted={dragging || undefined}
+      {...(drag && !renaming ? drag.row(bot.id) : {})} title={iconOnly ? botTooltip(bot, instances) : undefined}>
       {/* Keep this wrapper mounted: replacing it remounts RenameTitle and leaves the row stuck in rename mode. */}
       <div
         role={renaming ? undefined : "button"}
@@ -893,7 +891,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
   const q = query.trim().toLowerCase();
   const sections = useSidebarSections({ simple, rail, density, query: q, label: sectionLabel, sidebarRef });
   const botDrag = useSidebarBotDrag({ dispatch, announce: sections.announce, onNamed: sections.focusHeader, onRenamed: sections.renamed,
-    onError: (text) => setTeamFeedback({ error: true, text }), onCancelled: () => sidebarRef.current?.focus(), simple: simpleDesk });
+    onError: (text) => setTeamFeedback({ error: true, text }), onCancelled: () => sidebarRef.current?.focus() });
 
   const matchingBots = state.bots
     .filter((b) => !b.hidden)
@@ -914,14 +912,13 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
   const saved = simpleDesk
     ? { ...parts, primary: null, unsectionedChief: null, unsectionedBots: parts.unsectionedChief ? [parts.unsectionedChief, ...parts.unsectionedBots] : parts.unsectionedBots }
     : { ...parts, primary: null };
-  // Shown order only: drag and Alt+Up/Down keep working on the saved order, so a reorder never stores this one.
-  const activeFirst = activeBotsFirst(saved, (bot) => {
+  // The lists a bot is dragged in show the saved order, as Discord's channels do: a bot stays where it was put, busy or
+  // not. Pins, which are not dragged, still put working bots first.
+  const { pinnedBots } = activeBotsFirst(saved, (bot) => {
     const { waiting, working } = sidebarBotStatus(bot, state.pendingQueued);
     return waiting || working;
   });
-  const { primary, unsectionedChief, pinnedBots, sectionChiefs, sectionedBots, unsectionedBots } = simple
-    ? { ...saved, ...activeFirst, sectionedBots: latestActivityFirst(saved.sectionedBots, botActivityAt), unsectionedBots: latestActivityFirst(saved.unsectionedBots, botActivityAt) }
-    : { ...saved, ...activeFirst };
+  const { primary, unsectionedChief, sectionChiefs, sectionedBots, unsectionedBots } = saved;
   const { botChats, sectionedRooms, unsectionedRooms } = partitionSidebarGroups(visibleGroups);
 
   const sectionNames: string[] = [...(state.sections ?? []).filter((name) => !q || name.toLowerCase().includes(q.toLowerCase())), ...botDrag.pending];
@@ -939,12 +936,12 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
     ...(pinnedBots.length > 0 && !universalPins && !simpleDesk ? [PINNED_SECTION_ID] : []),
     ...(unsectionedRooms.length > 0 ? [CHANNELS_SECTION_ID] : []),
     ...(botChats.length > 0 ? [BOT_CHATS_SECTION_ID] : []),
-    ...(unsectionedBots.length > 0 || drops.slot ? [BOTS_SECTION_ID] : []),
+    ...(unsectionedBots.length > 0 ? [BOTS_SECTION_ID] : []),
     ...sectionNames.map(userSectionId),
   ];
   const layout = sections.arrange(naturalSectionIds);
   // the main bot alone outside every department leads the list with no "Unassigned" header over it
-  const loneMain = simple && !drops.slot && unsectionedBots.length === 1 && unsectionedBots[0]!.id === mainBotId;
+  const loneMain = simple && unsectionedBots.length === 1 && unsectionedBots[0]!.id === mainBotId;
   const sectionIds = loneMain ? [BOTS_SECTION_ID, ...layout.sectionIds.filter((id) => id !== BOTS_SECTION_ID)] : layout.sectionIds;
   const showPinnedCircleThreads = !simpleDesk && pinnedCircleThreadListVisible(pinnedCircles, density, pinnedBots.length);
   const tiles = simpleDesk && pinnedBots.length > 0;
@@ -1141,7 +1138,6 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
             <div className="px-3 py-6 text-center text-[13px] text-ink-secondary">{t("sidebar.noMatch", { query })}</div>
           )}
           {simpleDesk && <SidebarMoreUnreads edge="top" />}
-          {drops.pinSlot}
           {!q && <NeedsYouButton compact={rail} />}{!q && <SidebarPeople compact={rail} />}
           {primary && !primaryHeadless && <BotListItem {...botRow(primary)} />}
           {unsectionedChief && (phone ? (
@@ -1186,11 +1182,10 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
               <div
                 key={id}
                 data-sidebar-section-id={id}
-                {...drops.zone(id, layout.zone(id))}
+                {...layout.zone(id)} data-bot-drop-list={drops.list(id)}
                 className={cn(
                   "flex flex-col",
                   "gap-1",
-                  drops.over(id) && "rounded-lg bg-ink/[0.06] [&_[data-sidebar-bot-row]:not([aria-current]):not(:hover)]:[--row:transparent]",
                 )}
               >
                 {rail && index > 0 && <SidebarRailSeparator />}
@@ -1219,7 +1214,6 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
                   title={`${t("task.queued")} · ${queued.join(", ")}`} aria-label={`${t("sidebar.section.expand", { name: sectionLabel(id) })} · ${t("task.queued")} · ${queued.join(", ")}`}
                   className="mx-3 mb-1 inline-flex h-7 items-center self-start rounded-full bg-raised/50 px-3 text-[13px] font-medium leading-4 text-ink-secondary hover:text-ink">{t("task.queued")} · {queued.length}</button>}
                 <SectionRows open={!collapsed} animate={simpleDesk}>{!collapsed && <>
-                    {id === BOTS_SECTION_ID && drops.slot}
                     {headless && primaryHeadless && <BotListItem {...botRow(primary)} />}
                     {sectionChiefItems.map((bot) => <BotListItem key={bot.id} {...botRow(bot)} />)}
                     {sectionGroupItems.map((group) => (
@@ -1286,7 +1280,6 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
       <ConfirmDialog {...botConfirmProps(confirm, state.bots, { archive: (bot) => { setConfirm(null); void archiveBot(bot); }, remove: (bot) => { setConfirm(null); dispatch({ type: "deleteBot", botId: bot.id }); },
         archiveInstead: (chief) => { setConfirm(null); void archiveBotWithNotice(chief, { bots: state.bots, selectedId: state.selectedId, dispatch, notify: setTeamFeedback }); } })}
         onCancel={cancelConfirm} returnFocusRef={sidebarRef} />
-      {botDrag.overlay}
       {sectionMotion.shown && sectionMotion.value && createPortal(<div className={cn("fixed inset-0 z-40", sectionMotion.closing && "pointer-events-none")} onMouseDown={closeSectionMenu} onContextMenu={(event) => { event.preventDefault(); closeSectionMenu(); }}>
         {(() => {
           const { id, x, y } = sectionMotion.value!;

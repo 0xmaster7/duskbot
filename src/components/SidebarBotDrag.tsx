@@ -1,23 +1,23 @@
-import { useEffect, useRef, useState, type CSSProperties, type Dispatch, type DragEvent } from "react";
-import { createPortal } from "react-dom";
-import { BotAvatar } from "./Avatar";
+import { useEffect, useRef, useState, type Dispatch, type DragEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { flushSync } from "react-dom";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { nextRename } from "@/lib/rename";
 import { BOTS_SECTION_ID, userSectionName } from "@/lib/sidebar-layout";
-import { BOT_ROW_DRAG_TYPE, botDropPlace, botListOf, planBotDrop, sameBotDrop, stepBot, unusedName, type BotDrop, type BotDropPlace, type BotMove } from "@/lib/sidebar-bot-drop";
+import { botListOf, stepBot, unusedName, type BotLists, type BotMove } from "@/lib/sidebar-bot-drop";
+import {
+  autoScrollStep, clampLift, landingTop, pressStep, releaseMove, reorderShifts, reorderTarget, sameTarget, SLIDE_EASE, SLIDE_MS, TOUCH_HOLD_MS,
+  type Press, type ReorderShifts, type ReorderSnapshot, type ReorderTarget,
+} from "@/lib/sidebar-reorder";
 import type { Action, Bot } from "@/state/store";
 import { moveBotsToSection, renameDepartment, saveBotOrder, useMayMoveBots } from "./bot-sections";
 import { friendlyError } from "@/lib/plain-error";
 
 /** The department being named, before it exists. The server trims names and never keeps a control character. */
 export const NEW_DEPARTMENT = "\u0000new";
-const PIN_LIST = "\u0000pin";
-
-type DropHandlers = { onDragOver: (event: DragEvent<HTMLElement>) => void; onDrop: (event: DragEvent<HTMLElement>) => void };
 
 export type BotRowDrag = {
-  row(botId: string): DropHandlers & { draggable: true; onDragStart: (event: DragEvent<HTMLElement>) => void; onDragEnd: () => void };
+  row(botId: string): { onPointerDown: (event: ReactPointerEvent<HTMLElement>) => void; onDragStart: (event: DragEvent<HTMLElement>) => void };
   step(botId: string, direction: -1 | 1): void;
 };
 
@@ -25,81 +25,65 @@ export type SectionNaming = { value: string; label: string; onCommit: (name: str
 
 type Naming = { kind: "new"; botIds: string[]; name: string } | { kind: "rename"; section: string };
 
-type Arranged = { enabled: boolean; lists: Map<string, string[]>; bots: Bot[]; taken: string[] };
+type Arranged = { enabled: boolean; lists: BotLists; bots: Bot[]; taken: string[] };
 
-const carries = (event: DragEvent<HTMLElement>) => event.dataTransfer.types.includes(BOT_ROW_DRAG_TYPE);
 const failure = (cause: unknown) => (friendlyError(cause));
 
-export function botRowDropClass(drop: BotDropPlace | null | undefined, dragging: boolean | undefined, simple = false): string {
-  return cn(dragging && (simple ? "opacity-50" : "opacity-40"), drop === "group" && "rounded-[12px] bg-accent/10 outline outline-2 -outline-offset-2 outline-accent/70");
+/** The lifted row: the composer's surface and the popover shadow, over the rows it slides past. */
+export function botRowDropClass(dragging: boolean | undefined): string {
+  return cn(dragging && "relative z-20 rounded-[12px] bg-composer shadow-(--shadow-popover)");
 }
 
-type Lift = { botId: string; left: number; top: number; x: number; y: number };
+const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+const LIFT_SCALE = "1.02";
 
-const TILE = { width: 80, height: 90 };
-/** grok holds the lifted tile centred on the pointer */
-const tileAt = (x: number, y: number) => `translate3d(${x - TILE.width / 2}px, ${y - TILE.height / 2}px, 0)`;
-
-let blankImage: HTMLImageElement | null = null;
-/** Chrome draws a native drag image unless it is handed an empty one; the tile below is drawn instead. */
-function hideNativeDragImage(event: DragEvent<HTMLElement>) {
-  blankImage ??= Object.assign(new Image(), { src: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" });
-  event.dataTransfer.setDragImage(blankImage, 0, 0);
+/** The click a drag ends with opens nothing: swallowed until the button is up and its click has gone by. */
+function swallowClick(held: boolean) {
+  const swallow = (event: Event) => { event.preventDefault(); event.stopPropagation(); };
+  const release = () => window.setTimeout(() => window.removeEventListener("click", swallow, true), 0);
+  window.addEventListener("click", swallow, true);
+  if (!held) return release();
+  const up = () => { window.removeEventListener("pointerup", up, true); release(); };
+  window.addEventListener("pointerup", up, true);
 }
 
-const DROP_BACK = "transform 300ms cubic-bezier(.25,1.15,.4,1)";
-
-/** Grok's lifted bot: an 80px tile, its avatar and name on a 90% white card, scaled 1.04, that follows the pointer and
- * springs back to its row when the drag is called off. */
-function BotDragTile({ lift, bot, returning, onReturned }: { lift: Lift; bot: Bot; returning: boolean; onReturned: () => void }) {
-  const tile = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (returning) return;
-    let frame = 0;
-    const follow = (event: { clientX: number; clientY: number }) => {
-      if (event.clientX === 0 && event.clientY === 0) return;
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        if (tile.current) tile.current.style.transform = tileAt(event.clientX, event.clientY);
-      });
-    };
-    document.addEventListener("dragover", follow);
-    return () => { cancelAnimationFrame(frame); document.removeEventListener("dragover", follow); };
-  }, [lift, returning]);
-  useEffect(() => {
-    if (!returning) return;
-    const element = tile.current;
-    if (!element || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return onReturned();
-    element.style.transition = DROP_BACK;
-    element.style.transform = `translate3d(${lift.left}px, ${lift.top}px, 0)`;
-    const timer = window.setTimeout(onReturned, 300);
-    return () => window.clearTimeout(timer);
-  }, [returning, onReturned, lift]);
-  const style: CSSProperties = { left: 0, top: 0, transform: tileAt(lift.x, lift.y) };
-  return createPortal(
-    <div ref={tile} aria-hidden="true" data-bot-drag-tile="" className="pointer-events-none fixed z-[999] w-20" style={style}>
-      <div className="relative scale-[1.04]">
-        <div className="absolute inset-0 rounded-xl bg-composer opacity-90 shadow-(--shadow-popover)" />
-        <div className="relative flex flex-col items-center gap-1 px-2 py-1">
-          <BotAvatar bot={bot} size={60} animated={false} trackPointer={false} />
-          <span className="w-full truncate text-center text-[12px] font-medium leading-[18px] tracking-[0.01em] text-ink">{bot.name}</span>
-        </div>
-      </div>
-    </div>,
-    document.body,
-  );
+function scrollerOf(element: HTMLElement): HTMLElement | null {
+  for (let node = element.parentElement; node; node = node.parentElement) {
+    const overflow = getComputedStyle(node).overflowY;
+    if (overflow === "auto" || overflow === "scroll") return node;
+  }
+  return null;
 }
 
-export function BotDropLine({ place }: { place: BotDropPlace | null | undefined }) {
-  if (place !== "before" && place !== "after") return null;
-  return <span aria-hidden="true" className={cn("pointer-events-none absolute inset-x-2 z-10 h-0.5 rounded-full bg-accent", place === "before" ? "-top-[2px]" : "-bottom-[2px]")} />;
-}
+/** One drag, from the press to the row settling: everything moves by inline transforms, so React draws nothing per
+ * frame and the rows' layout is read once, when the row lifts. */
+type Session = {
+  botId: string;
+  wrapper: HTMLElement;
+  pointerId: number;
+  scroller: HTMLElement;
+  view: { top: number; bottom: number; left: number; width: number };
+  snapshot: ReorderSnapshot;
+  rowEls: Map<string, HTMLElement>;
+  zoneEls: Map<string, HTMLElement>;
+  originTop: number;
+  height: number;
+  /** The pointer's offset into the row, so the row keeps the spot it was grabbed by. */
+  grab: number;
+  clientY: number;
+  target: ReorderTarget | null;
+  shifts: ReorderShifts;
+  line: HTMLElement;
+  frame: number;
+  /** whether the button or finger is still down */
+  held: boolean;
+  restore: () => void;
+};
 
-/** Dragging bots between the rows outside any department and each department's, onto a bot to start a department,
- * Alt+Up/Down, and the name field a new or renamed department shows in its heading. */
-export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onError, onCancelled, simple = false }: {
-  /** grok's drag: a lifted tile, a section takes the bot as a whole, and a slot at the top pins it */
-  simple?: boolean;
+/** Dragging bots within and between the rows outside any department and each department's, Discord's way: the row lifts
+ * after a few pixels (a short hold on touch), the rest slide to make room, Escape puts everything back. Alt+Up/Down does
+ * the same from the keyboard. Also the name field a new or renamed department shows in its heading. */
+export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onError, onCancelled }: {
   dispatch: Dispatch<Action>;
   announce: (text: string) => void;
   onNamed: (name: string) => void;
@@ -108,95 +92,225 @@ export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onEr
   onCancelled: () => void;
 }) {
   const [dragging, setDragging] = useState<string | null>(null);
-  const [drop, setDrop] = useState<BotDrop | null>(null);
+  /** a folded section the row would go into, its heading marked */
+  const [into, setInto] = useState<string | null>(null);
   const [naming, setNaming] = useState<Naming | null>(null);
-  const [lift, setLift] = useState<Lift | null>(null);
-  const [returning, setReturning] = useState(false);
-  // grok fades the pin slot out where it stands before the list closes over it
-  const [slotLeaving, setSlotLeaving] = useState(false);
-  useEffect(() => {
-    if (!slotLeaving) return;
-    const timer = window.setTimeout(() => setSlotLeaving(false), 150);
-    return () => window.clearTimeout(timer);
-  }, [slotLeaving]);
-  const dropped = useRef(false);
-  const grok = useRef(simple);
-  grok.current = simple;
   const mayMove = useMayMoveBots();
   const latest = useRef<Arranged>({ enabled: false, lists: new Map(), bots: [], taken: [] });
-  const moving = useRef<{ botId: string | null; drop: BotDrop | null }>({ botId: null, drop: null });
+  const session = useRef<Session | null>(null);
+  /** a row still gliding into place: no new drag until it lands */
+  const settling = useRef(false);
+  const pending = useRef<(() => void) | null>(null);
   const controller = useRef<BotRowDrag | null>(null);
   const actions = useRef({ dispatch, announce });
   actions.current = { dispatch, announce };
 
-  const show = (next: BotDrop | null) => {
-    if (sameBotDrop(moving.current.drop, next)) return;
-    moving.current.drop = next;
-    setDrop(next);
-  };
-  const end = () => {
-    if (grok.current && moving.current.botId) setSlotLeaving(true);
-    moving.current = { botId: null, drop: null };
-    setDragging(null);
-    setDrop(null);
-    if (dropped.current) setLift(null);
-    else setReturning(true);
-    dropped.current = false;
-  };
+  useEffect(() => () => { pending.current?.(); session.current?.restore(); }, []);
+
   const startNew = (botIds: string[]) => setNaming({ kind: "new", botIds, name: unusedName(t("sidebar.grok.newSection"), latest.current.taken) });
   const apply = (botId: string, move: BotMove, keyboard: boolean) => {
     if (move.kind === "group") return startNew(move.botIds);
     const { lists, bots } = latest.current;
     if (botListOf(lists, botId) !== move.section) moveBotsToSection(actions.current.dispatch, [botId], move.section);
     saveBotOrder(actions.current.dispatch, bots, move.order);
-    if (!keyboard) return;
     const name = bots.find((bot) => bot.id === botId)?.name ?? "";
     actions.current.announce(t("sidebar.section.moved", { name, position: move.order.indexOf(botId) + 1, count: move.order.length }));
-    requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-sidebar-bot-row="${CSS.escape(botId)}"]`)?.focus());
+    if (keyboard) requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-sidebar-bot-row="${CSS.escape(botId)}"]`)?.focus());
   };
-  const finish = (target: BotDrop | null) => {
-    const botId = moving.current.botId;
-    dropped.current = true;
-    end();
-    const move = botId && target && latest.current.enabled ? planBotDrop(latest.current.lists, botId, target) : null;
-    if (botId && move) apply(botId, move, false);
+
+  const paint = (s: Session, animate: boolean) => {
+    const slide = animate && !reducedMotion() ? `transform ${SLIDE_MS}ms ${SLIDE_EASE}` : "none";
+    for (const [id, element] of s.rowEls) {
+      if (id === s.botId) continue;
+      element.style.transition = slide;
+      const shift = s.shifts.rows.get(id) ?? 0;
+      element.style.transform = shift ? `translate3d(0, ${shift}px, 0)` : "";
+    }
+    for (const [id, element] of s.zoneEls) {
+      element.style.transition = slide;
+      const shift = s.shifts.zones.get(id) ?? 0;
+      element.style.transform = shift ? `translate3d(0, ${shift}px, 0)` : "";
+    }
   };
-  const rowDrop = (event: DragEvent<HTMLElement>, botId: string): BotDrop => {
-    const box = event.currentTarget.getBoundingClientRect();
-    return { kind: "row", botId, place: botDropPlace(event.clientY - box.top, box.height, botListOf(latest.current.lists, botId) === "") };
+  /** the dragged row's own transform, less what its section is moved by */
+  const own = (s: Session, top: number) => top - s.originTop - (s.shifts.zones.get(zoneIdOf(s, s.botId)) ?? 0);
+  const zoneIdOf = (s: Session, botId: string) => {
+    const list = s.snapshot.rows.find((row) => row.id === botId)?.list;
+    return s.snapshot.zones.find((zone) => zone.list === list)?.id ?? "";
+  };
+  const placeLine = (s: Session) => {
+    const land = landingTop(s.snapshot, s.botId, s.target, s.shifts);
+    const y = land === null ? null : land - s.snapshot.gap / 2 - 1 - s.scroller.scrollTop + s.view.top;
+    const shown = y !== null && y > s.view.top && y < s.view.bottom;
+    s.line.style.opacity = shown ? "1" : "0";
+    if (shown) s.line.style.transform = `translate3d(${s.view.left + 8}px, ${y}px, 0)`;
+  };
+
+  const frame = () => {
+    const s = session.current;
+    if (!s) return;
+    const step = autoScrollStep(s.clientY, s.view.top, s.view.bottom);
+    if (step) s.scroller.scrollTop += step;
+    const contentY = s.clientY - s.view.top + s.scroller.scrollTop;
+    const top = clampLift(contentY - s.grab, s.height, s.snapshot.zones);
+    const target = reorderTarget(s.snapshot, latest.current.lists, s.botId, top + s.height / 2);
+    if (!sameTarget(target, s.target)) {
+      s.target = target;
+      s.shifts = reorderShifts(s.snapshot, s.botId, target);
+      paint(s, true);
+      setInto(target?.folded ? target.list : null);
+    }
+    s.wrapper.style.transform = `translate3d(0, ${own(s, top)}px, 0)`;
+    placeLine(s);
+    s.frame = requestAnimationFrame(frame);
+  };
+
+  /** Lets go: the row glides into its gap, or back to where it was, and only then does the order change. */
+  const settle = (cancelled: boolean) => {
+    const s = session.current;
+    if (!s) return;
+    cancelAnimationFrame(s.frame);
+    session.current = null;
+    settling.current = true;
+    swallowClick(s.held);
+    const lists = latest.current.lists;
+    const move = latest.current.enabled ? releaseMove(lists, s.botId, s.target, cancelled) : null;
+    if (!move) s.shifts = reorderShifts(s.snapshot, s.botId, null);
+    const land = move ? landingTop(s.snapshot, s.botId, s.target, s.shifts) : null;
+    const animate = !reducedMotion();
+    paint(s, true);
+    s.line.style.opacity = "0";
+    s.wrapper.style.transition = animate ? `transform ${SLIDE_MS}ms ${SLIDE_EASE}, scale ${SLIDE_MS}ms ${SLIDE_EASE}` : "none";
+    s.wrapper.style.transform = land !== null ? `translate3d(0, ${own(s, land)}px, 0)` : "";
+    s.wrapper.style.scale = "";
+    const done = () => {
+      flushSync(() => {
+        if (move) apply(s.botId, move, false);
+        setDragging(null);
+        setInto(null);
+      });
+      s.restore();
+      settling.current = false;
+    };
+    if (animate) window.setTimeout(done, SLIDE_MS); else done();
+  };
+
+  const lift = (press: { wrapper: HTMLElement; botId: string; pointerId: number; clientY: number }) => {
+    const scroller = scrollerOf(press.wrapper);
+    const { lists } = latest.current;
+    if (!scroller || !latest.current.enabled || botListOf(lists, press.botId) === undefined) return;
+    const box = scroller.getBoundingClientRect();
+    const toContent = (y: number) => y - box.top + scroller.scrollTop;
+    const zoneEls = new Map<string, HTMLElement>(), rowEls = new Map<string, HTMLElement>();
+    const zones = [...scroller.querySelectorAll<HTMLElement>("[data-sidebar-section-id]")].map((element) => {
+      const rect = element.getBoundingClientRect(), id = element.dataset.sidebarSectionId!;
+      zoneEls.set(id, element);
+      return { id, list: element.hasAttribute("data-bot-drop-list") ? element.getAttribute("data-bot-drop-list") : null, top: toContent(rect.top), bottom: toContent(rect.bottom) };
+    });
+    const rows = [...scroller.querySelectorAll<HTMLElement>("[data-bot-reorder-row]")].flatMap((element) => {
+      const id = element.dataset.botReorderRow!, list = botListOf(lists, id);
+      if (list === undefined) return [];
+      const rect = element.getBoundingClientRect();
+      rowEls.set(id, element);
+      return [{ id, list, top: toContent(rect.top), height: rect.height }];
+    });
+    const dragged = rows.find((row) => row.id === press.botId);
+    if (!dragged) return;
+    const mine = rows.filter((row) => row.list === dragged.list);
+    const gap = mine.length > 1 ? Math.max(0, mine[1]!.top - (mine[0]!.top + mine[0]!.height)) : 4;
+    const line = document.createElement("div");
+    line.setAttribute("aria-hidden", "true");
+    line.dataset.botDropLine = "";
+    line.className = "pointer-events-none fixed left-0 top-0 z-[60] h-0.5 rounded-full bg-accent";
+    Object.assign(line.style, { width: `${Math.max(0, box.width - 16)}px`, opacity: "0", transition: reducedMotion() ? "none" : "opacity 120ms ease" });
+    document.body.append(line);
+    const root = document.documentElement, body = document.body;
+    const before = { cursor: root.style.cursor, select: body.style.userSelect };
+    root.style.cursor = "grabbing";
+    body.style.userSelect = "none";
+    window.getSelection()?.removeAllRanges();
+    const onMove = (event: PointerEvent) => { if (event.pointerId === press.pointerId && session.current) session.current.clientY = event.clientY; };
+    const onUp = (event: PointerEvent) => {
+      if (event.pointerId !== press.pointerId) return;
+      if (session.current) session.current.held = false;
+      settle(event.type === "pointercancel");
+    };
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); settle(true); } };
+    const onBlur = () => { if (session.current) session.current.held = false; settle(true); };
+    // a finger that holds still for the lift must not scroll the list once it moves
+    const onTouchMove = (event: TouchEvent) => { if (event.cancelable) event.preventDefault(); };
+    const onMenu = (event: Event) => event.preventDefault();
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    window.addEventListener("keydown", onKey, true);
+    window.addEventListener("blur", onBlur);
+    window.addEventListener("contextmenu", onMenu, true);
+    document.addEventListener("touchmove", onTouchMove, { passive: false });
+    try { press.wrapper.setPointerCapture(press.pointerId); } catch {}
+    const restore = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      window.removeEventListener("keydown", onKey, true);
+      window.removeEventListener("blur", onBlur);
+      document.removeEventListener("touchmove", onTouchMove);
+      // the menu a long press asks for is gone with the drag
+      window.setTimeout(() => window.removeEventListener("contextmenu", onMenu, true), 0);
+      try { press.wrapper.releasePointerCapture(press.pointerId); } catch {}
+      for (const element of [...rowEls.values(), ...zoneEls.values()]) Object.assign(element.style, { transition: "", transform: "", scale: "" });
+      line.remove();
+      root.style.cursor = before.cursor;
+      body.style.userSelect = before.select;
+    };
+    const s: Session = {
+      botId: press.botId, wrapper: press.wrapper, pointerId: press.pointerId, scroller,
+      view: { top: box.top, bottom: box.bottom, left: box.left, width: box.width },
+      snapshot: { rows, zones, gap }, rowEls, zoneEls, originTop: dragged.top, height: dragged.height,
+      grab: toContent(press.clientY) - dragged.top, clientY: press.clientY, target: null, shifts: reorderShifts({ rows, zones, gap }, press.botId, null), line, frame: 0, held: true, restore,
+    };
+    session.current = s;
+    s.target = reorderTarget(s.snapshot, lists, s.botId, dragged.top + dragged.height / 2);
+    s.shifts = reorderShifts(s.snapshot, s.botId, s.target);
+    press.wrapper.style.transition = reducedMotion() ? "none" : `scale ${SLIDE_MS}ms ${SLIDE_EASE}`;
+    if (!reducedMotion()) press.wrapper.style.scale = LIFT_SCALE;
+    setDragging(press.botId);
+    s.frame = requestAnimationFrame(frame);
   };
 
   controller.current ??= {
     row: (botId) => ({
-      draggable: true,
-      onDragStart: (event) => {
+      // an avatar image's own drag would cancel the pointer's
+      onDragStart: (event) => event.preventDefault(),
+      onPointerDown: (event) => {
+        if (event.button !== 0 || event.ctrlKey || event.metaKey || session.current || settling.current || pending.current) return;
         if (!latest.current.enabled || botListOf(latest.current.lists, botId) === undefined) return;
-        event.stopPropagation();
-        event.dataTransfer.effectAllowed = "move";
-        event.dataTransfer.setData(BOT_ROW_DRAG_TYPE, botId);
-        moving.current = { botId, drop: null };
-        setDragging(botId);
-        if (grok.current) {
-          hideNativeDragImage(event);
-          const box = event.currentTarget.getBoundingClientRect();
-          dropped.current = false;
-          setReturning(false);
-          setLift({ botId, left: box.left, top: box.top, x: event.clientX, y: event.clientY });
-        }
-      },
-      onDragEnd: () => { if (moving.current.botId) end(); },
-      onDragOver: (event) => {
-        if (grok.current || !carries(event) || !moving.current.botId) return;
-        event.preventDefault();
-        event.stopPropagation();
-        event.dataTransfer.dropEffect = "move";
-        show(botId === moving.current.botId ? null : rowDrop(event, botId));
-      },
-      onDrop: (event) => {
-        if (grok.current || !carries(event)) return;
-        event.preventDefault();
-        event.stopPropagation();
-        finish(botId === moving.current.botId ? null : rowDrop(event, botId));
+        if ((event.target as HTMLElement).closest("button, input, textarea, [data-bot-actions]")) return;
+        const wrapper = event.currentTarget;
+        const pointerId = event.pointerId;
+        const press: Press = { kind: event.pointerType === "touch" ? "touch" : "mouse", x: event.clientX, y: event.clientY, at: performance.now() };
+        let clientY = event.clientY;
+        let timer = 0;
+        const stop = () => {
+          window.clearTimeout(timer);
+          window.removeEventListener("pointermove", onMove);
+          window.removeEventListener("pointerup", stop);
+          window.removeEventListener("pointercancel", stop);
+          pending.current = null;
+        };
+        const begin = () => { stop(); lift({ wrapper, botId, pointerId, clientY }); };
+        const onMove = (move: PointerEvent) => {
+          if (move.pointerId !== pointerId) return;
+          clientY = move.clientY;
+          const next = pressStep(press, move.clientX, move.clientY, performance.now());
+          if (next === "abandon") stop();
+          else if (next === "drag") begin();
+        };
+        window.addEventListener("pointermove", onMove);
+        window.addEventListener("pointerup", stop);
+        window.addEventListener("pointercancel", stop);
+        if (press.kind === "touch") timer = window.setTimeout(begin, TOUCH_HOLD_MS);
+        pending.current = stop;
       },
     }),
     step: (botId, direction) => {
@@ -217,9 +331,7 @@ export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onEr
     if (to) renameDepartment(dispatch, current.section, to).then(() => onRenamed(current.section, to), (cause) => onError(failure(cause)));
   };
 
-  const lifted = lift ? latest.current.bots.find((bot) => bot.id === lift.botId) : undefined;
   return {
-    overlay: lift && lifted ? <BotDragTile lift={lift} bot={lifted} returning={returning} onReturned={() => { setLift(null); setReturning(false); }} /> : null,
     pending: naming?.kind === "new" ? [NEW_DEPARTMENT] : [],
     preview: <T extends Bot>(bots: T[]): T[] => naming?.kind === "new" ? bots.map((bot) => (naming.botIds.includes(bot.id) ? { ...bot, section: NEW_DEPARTMENT } : bot)) : bots,
     startNew: (botIds: string[]) => startNew(botIds),
@@ -232,84 +344,18 @@ export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onEr
       for (const name of departments) if (name !== NEW_DEPARTMENT) lists.set(name, sectioned.filter((bot) => bot.section === name).map((bot) => bot.id));
       latest.current = { enabled: movable, lists, bots, taken };
       const active = movable && dragging !== null && botListOf(lists, dragging) !== undefined ? dragging : null;
-      const shown = active ? drop : null;
-      const mainIds = lists.get("")!.filter((id) => id !== active);
       const listFor = (sectionId: string) => (sectionId === BOTS_SECTION_ID ? "" : userSectionName(sectionId));
-      // Between rows, or under the last one, the nearest row places the bot; a department's heading takes it in.
-      const zoneDrop = (event: DragEvent<HTMLElement>, list: string): BotDrop => {
-        const ids = lists.get(list)!;
-        const rows = [...event.currentTarget.querySelectorAll<HTMLElement>("[data-sidebar-bot-row]")]
-          .filter((element) => ids.includes(element.dataset.sidebarBotRow ?? "")).map((element) => ({ botId: element.dataset.sidebarBotRow!, box: element.getBoundingClientRect() }));
-        if (!rows.length || (list !== "" && event.clientY < rows[0]!.box.top)) return { kind: "end", list };
-        const row = rows.find(({ box }) => event.clientY < box.bottom) ?? rows.at(-1)!;
-        return { kind: "row", botId: row.botId, place: event.clientY < row.box.top + row.box.height / 2 ? "before" : "after" };
-      };
-      const grokDrop = (list: string): BotDrop => ({ kind: "end", list });
-      const pinning = active !== null && simple && !bots.find((bot) => bot.id === active)?.pinned;
-      const pinOver = shown?.kind === "end" && shown.list === PIN_LIST;
       return {
-        /** the section a lifted bot would go into, washed grey as grok does */
-        over: (sectionId: string) => simple && shown?.kind === "end" && shown.list !== PIN_LIST && shown.list === listFor(sectionId),
-        pinSlot: pinning || (simple && slotLeaving) ? (
-          <div className={cn("pb-0.5 transition-opacity duration-150 ease-out motion-reduce:transition-none", !pinning && "pointer-events-none opacity-0")}>
-            <div data-bot-pin-slot="" className={cn("flex h-[104px] items-center justify-center rounded-xl border border-dashed text-[14px] leading-5 tracking-[0.01em] text-ink-secondary", pinOver ? "border-transparent bg-ink/[0.06]" : "border-transparent")}
-              onDragOver={(event) => {
-                if (!carries(event) || !moving.current.botId) return;
-                event.preventDefault();
-                event.stopPropagation();
-                event.dataTransfer.dropEffect = "move";
-                show({ kind: "end", list: PIN_LIST });
-              }}
-              onDrop={(event) => {
-                if (!carries(event)) return;
-                event.preventDefault();
-                event.stopPropagation();
-                const botId = moving.current.botId;
-                dropped.current = true;
-                end();
-                if (botId) actions.current.dispatch({ type: "updateBot", botId, patch: { pinned: true } });
-              }}>
-              {t("sidebar.grok.dragToPin")}
-            </div>
-          </div>
-        ) : null,
-        row: (botId: string): { botDrag?: BotRowDrag; botDrop?: BotDropPlace | null; botDragging?: boolean } => {
-          if (!movable || botListOf(lists, botId) === undefined) return {};
-          if (simple) return { botDrag: controller.current!, botDrop: null, botDragging: active === botId };
-          const place = shown?.kind === "row" && shown.botId === botId ? shown.place
-            : shown?.kind === "end" && shown.list === "" && botId === mainIds.at(-1) ? "after" : null;
-          return { botDrag: controller.current!, botDrop: place, botDragging: active === botId };
+        /** the list a section's rows belong to, for the drag to find; none where bots cannot be dropped */
+        list: (sectionId: string): string | undefined => {
+          const list = listFor(sectionId);
+          return movable && list !== null && lists.has(list) ? list : undefined;
         },
-        into: (name: string | null) => !simple && shown?.kind === "end" && name !== null && name !== "" && shown.list === name,
-        zone: (sectionId: string, fallback: DropHandlers): DropHandlers => ({
-          onDragOver: (event) => {
-            if (!carries(event)) return fallback.onDragOver(event);
-            const list = listFor(sectionId);
-            if (!moving.current.botId || list === null || !lists.has(list)) return show(null);
-            event.preventDefault();
-            event.dataTransfer.dropEffect = "move";
-            if (simple) return show(grokDrop(list));
-            const target = zoneDrop(event, list);
-            show(target.kind === "row" && target.botId === moving.current.botId ? null : target);
-          },
-          onDrop: (event) => {
-            if (!carries(event)) return fallback.onDrop(event);
-            event.preventDefault();
-            const list = listFor(sectionId);
-            // a bot dropped back on its own section stays where it was, as in grok
-            if (simple) {
-              const first = list !== null ? lists.get(list)?.[0] : undefined;
-              const into: BotDrop | null = list === null || !lists.has(list) || botListOf(lists, moving.current.botId ?? "") === list ? null
-                : first ? { kind: "row", botId: first, place: "before" } : { kind: "end", list };
-              return finish(into);
-            }
-            finish(list !== null && lists.has(list) ? zoneDrop(event, list) : null);
-          },
-        }),
-        slot: active !== null && mainIds.length === 0 && botListOf(lists, active) !== ""
-          ? <div data-bot-drop-slot="" className={cn("mx-2 flex h-10 items-center justify-center rounded-[10px] border border-dashed text-[13px] leading-[18px]",
-            shown?.kind === "end" && shown.list === "" ? "border-accent bg-accent/10 text-ink" : "border-transparent text-ink-secondary")}>{t("sidebar.grok.unassigned")}</div>
-          : null,
+        row: (botId: string): { botDrag?: BotRowDrag; botDragging?: boolean } => {
+          if (!movable || botListOf(lists, botId) === undefined) return {};
+          return { botDrag: controller.current!, botDragging: active === botId };
+        },
+        into: (name: string | null) => active !== null && name !== null && into === name,
         naming: (name: string | null): SectionNaming | undefined => {
           if (!naming || name === null) return undefined;
           const value = naming.kind === "new" ? (name === NEW_DEPARTMENT ? naming.name : null) : (name === naming.section ? naming.section : null);

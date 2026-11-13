@@ -67,9 +67,9 @@ describe("a department's name field in its heading", () => {
     expect(escaped.naming.onCommit).not.toHaveBeenCalled();
   });
 
-  it("marks a heading a dragged bot would go into", () => {
+  it("marks a folded heading a dragged bot would go into with a grey wash, no outline", () => {
     mount(true, { naming: undefined, dropInto: true });
-    expect(container.querySelector("[data-section-drop]")?.className).toContain("outline-accent/70");
+    expect(container.querySelector("[data-section-drop]")?.className).toContain("bg-ink/[0.06]");
     flushSync(() => root.unmount());
     root = createRoot(container);
     mount(false, { naming: undefined, dropInto: false });

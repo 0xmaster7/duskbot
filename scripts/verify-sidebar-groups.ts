@@ -1,9 +1,8 @@
-// Departments in the sidebar of the real app, against a disposable fake-engine server: dragging a bot to reorder it,
-// onto another bot to start a department named in place, into and out of a department, and a bot's menu.
+// Departments in the sidebar of the real app, against a disposable fake-engine server: how they look, a bot's menu,
+// naming and deleting one. Dragging is covered by scripts/testing/sidebar-drag-ui.e2e.test.ts.
 // Run: node --experimental-strip-types scripts/verify-sidebar-groups.ts [--shots <dir> [--only <view,view>]]
 // With --shots it photographs each view with a headless Chrome in a throwaway profile (DUSK_CDP_CHROME, else the
-// installed Google Chrome) at twice 1280x800 and exits; without, it prints the preview's address and waits. Drags are
-// the page's own DragEvents with a DataTransfer, so a view can stop mid-drag to show where the bot would land.
+// installed Google Chrome) at twice 1280x800 and exits; without, it prints the preview's address and waits.
 import { spawn } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -30,14 +29,6 @@ const VIEWS: Array<{ name: string; setup: Setup; mode: "simple" | "advanced"; ac
   { name: "menu-simple", setup: "departments", mode: "simple", act: "menu('Inbox')", ready: "[data-bot-menu]" },
   { name: "menu-move-simple", setup: "departments", mode: "simple", act: "menu('Inbox'); await pause(300); document.querySelector('[data-bot-menu-move]').click()", ready: "[data-bot-menu-flyout='move']", skins: ["daylight", "midnight"] },
   { name: "menu-move-member-simple", setup: "departments", mode: "simple", act: "menu('Writer'); await pause(300); document.querySelector('[data-bot-menu-move]').click()", ready: "[data-bot-menu-flyout='move']" },
-  { name: "drag-line-simple", setup: "plain", mode: "simple", act: "start('Inbox'); over(row('Travel'), 0.15)", ready: "[data-bot-drop='before']", skins: ["daylight", "midnight"] },
-  { name: "drag-group-simple", setup: "plain", mode: "simple", act: "start('Inbox'); over(row('Writer'), 0.5)", ready: "[data-bot-drop='group']", skins: ["daylight", "midnight"] },
-  { name: "naming-simple", setup: "plain", mode: "simple", act: "start('Inbox'); over(row('Writer'), 0.5); drop(row('Writer'), 0.5)", ready: "[data-section-name-field]", skins: ["daylight", "midnight"] },
-  { name: "named-simple", setup: "plain", mode: "simple", act: "start('Inbox'); over(row('Writer'), 0.5); drop(row('Writer'), 0.5); await pause(300); type('Writing'); enter()", ready: "[data-section='Writing']" },
-  { name: "drag-into-simple", setup: "departments", mode: "simple", act: "start('Inbox'); over(header('Work'), 0.5)", ready: "[data-section-drop]", skins: ["daylight", "midnight"] },
-  { name: "drag-out-simple", setup: "departments", mode: "simple", act: "start('Travel'); over(row('Inbox'), 0.85)", ready: "[data-bot-drop='after']" },
-  { name: "drag-slot-simple", setup: "full", mode: "simple", act: "start('Travel'); await pause(300); over(document.querySelector('[data-bot-drop-slot]'), 0.5)", ready: "[data-bot-drop-slot][class*='border-accent']" },
-  { name: "drag-line-advanced", setup: "departments", mode: "advanced", act: "start('Inbox'); over(row('Writer'), 0.85)", ready: "[data-bot-drop='after']", skins: ["midnight"] },
   { name: "rename-simple", setup: "departments", mode: "simple", act: "teamMenu('Work'); await pause(300); item('Rename department').click()", ready: "[data-section-name-field]" },
   { name: "delete-simple", setup: "departments", mode: "simple", act: "teamMenu('Work'); await pause(300); item('Delete department').click()", ready: "[role='dialog'], [role='alertdialog']", wide: true },
 ];
@@ -49,22 +40,8 @@ const helpers = (ids: Record<string, string>) => `
   const row = (name) => document.querySelector('[data-sidebar-bot-row="' + ids[name] + '"]');
   const header = (name) => document.querySelector('[data-section="' + name + '"]');
   const item = (label) => [...document.querySelectorAll('[role="menuitem"]')].find((node) => node.textContent.trim() === label);
-  let dt = null, source = null;
-  const fire = (node, type, fraction) => {
-    const box = node.getBoundingClientRect();
-    node.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt, clientX: box.left + box.width / 2, clientY: box.top + box.height * fraction }));
-  };
-  const start = (name) => { dt = new DataTransfer(); source = row(name); fire(source, "dragstart", 0.5); };
-  const over = (node, fraction) => { fire(node, "dragenter", fraction); fire(node, "dragover", fraction); };
-  const drop = (node, fraction) => { fire(node, "drop", fraction); fire(source, "dragend", 0.5); };
   const menu = (name) => { const box = row(name).getBoundingClientRect(); row(name).dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: box.left + 60, clientY: box.top + box.height / 2 })); };
   const teamMenu = (name) => { const box = header(name).getBoundingClientRect(); header(name).dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: box.left + 40, clientY: box.bottom })); };
-  const type = (text) => {
-    const field = document.activeElement;
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(field, text);
-    field.dispatchEvent(new Event("input", { bubbles: true }));
-  };
-  const enter = () => document.activeElement.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
 `;
 
 async function openChrome(profile: string) {

@@ -1744,7 +1744,6 @@
   "sidebar.grok.rename": "rename",
   "sidebar.grok.moveUp": "move up",
   "sidebar.grok.moveDown": "move down",
-  "sidebar.grok.dragToPin": "drag here to pin",
   "sidebar.grok.search": "search",
   "sidebar.grok.newBot": "new bot",
   "sidebar.grok.mainBot": "main bot",

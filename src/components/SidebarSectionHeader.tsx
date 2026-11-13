@@ -75,7 +75,8 @@ export function SidebarSectionHeader({
       ? t("sidebar.section.expand", { name })
       : t("sidebar.section.collapse", { name });
 
-  const dropMark = dropInto ? "bg-accent/10 outline outline-2 -outline-offset-2 outline-accent/70" : undefined;
+  // a folded section a dragged bot would go into: the grey wash a hovered row gets, no outline
+  const dropMark = dropInto ? "bg-ink/[0.06]" : undefined;
 
   if (line) {
     const tail = (
