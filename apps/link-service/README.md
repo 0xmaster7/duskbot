@@ -236,8 +236,10 @@ secret set. The node checks its own coturn with a STUN binding every 30 s (`turn
   from the app (or at once for the `update` op with `apply: "now"`), by ending the tunnel so systemd starts it again.
   The installed `/opt/duskbot-link/agent.mjs` then launches the staged file, and stops launching one that did not
   stay up for 2 minutes three starts in a row, so a bad release leaves the installed agent running.
-  It stays off until at least one release key is pinned, since an update runs downloaded code as the agent;
-  `DUSK_LINK_UPDATES=off` turns it off for good.
+  One release key is pinned (`RELEASE_KEYS`); its private half is the repository secret `DUSK_LINK_RELEASE_KEY` (and
+  the owner's `dusk.env`), and `.github/workflows/link-agent-sign.yml` re-signs `agent.mjs.sig` on main whenever
+  `agent.mjs` changes, so a deploy after that serves a release every pinned agent takes. Bump `AGENT_VERSION` with
+  any change servers should get. `DUSK_LINK_UPDATES=off` turns it off for good.
 - **The server's own build.** The server is root's, so the agent only stages it and root installs it:
   - The agent reads `GET /v1/tunnels/<id>/server` with the tunnel's own VPS token (`{v:1, package:{sha256,size,version,signature?}, policy?}`,
     404 `no_build` when none is published; 12 reads an hour per tunnel) 10 to 30 minutes after start, then every 60 to

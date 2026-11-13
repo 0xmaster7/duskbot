@@ -52,7 +52,7 @@ export const SERVER = { host: "127.0.0.1", port: Number(process.env.LINK_SERVER_
 export const LINK_PROTOCOL = 2;
 export const LINK_MIN_APP = 1;
 export const LINK_MIN_SERVER = 1;
-export const AGENT_VERSION = "2.2.0";
+export const AGENT_VERSION = "2.3.0";
 export const AGENT_CAPS = Object.freeze(["direct-ssh", "direct-wss", "egress", "egress-lane", "self-update", "cloud-relay"]);
 /** what this agent says about itself, in its direct hello and its answer to the app's `hello` */
 export const agentHello = () => ({ protocol: LINK_PROTOCOL, minApp: LINK_MIN_APP, minServer: LINK_MIN_SERVER, agent: AGENT_VERSION, caps: [...AGENT_CAPS] });
@@ -1262,7 +1262,7 @@ export async function control(op, data, context = {}) {
 export const installedAgent = () => process.env.DUSK_LINK_LAUNCHER || fileURLToPath(import.meta.url);
 const releasesDir = () => join(configDir(), "releases");
 /** ed25519 public keys (base64, raw 32 bytes) a release must be signed by; with none, the link service's tls and hash vouch, as for the install */
-export const RELEASE_KEYS = Object.freeze([]);
+export const RELEASE_KEYS = Object.freeze(["beeDw16fb1PcswmcgHOGG4Dic9r/6Vpnvbwc9+v5m6E="]);
 const UPDATE_EVERY_MS = 6 * 60 * 60_000;
 const UPDATE_FIRST_MS = 5 * 60_000;
 /** no request, stream byte or egress stream from the app for this long, and nothing open on egress: an update may restart the tunnel */

@@ -3,6 +3,8 @@
 //   node release.mjs keygen <private-key-file>   makes a key pair: the private half only in that file (0600), the
 //                                                public half printed for RELEASE_KEYS
 //   node release.mjs sign <private-key-file>     writes agent.mjs.sig beside agent.mjs for the agent as it is now
+//   node release.mjs sign-env                    the same with the key from DUSK_LINK_RELEASE_KEY (the pem, base64), as
+//                                                ci keeps it (.github/workflows/link-agent-sign.yml)
 import { createHash, createPrivateKey, generateKeyPairSync, sign } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -24,12 +26,13 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     const { publicKey, privateKey } = generateKeyPairSync("ed25519");
     writeFileSync(keyFile, privateKey.export({ type: "pkcs8", format: "pem" }), { mode: 0o600, flag: "wx" });
     console.log(publicKey.export({ type: "spki", format: "der" }).subarray(-32).toString("base64"));
-  } else if (command === "sign" && keyFile) {
-    const signature = signRelease(readFileSync(agentFile, "utf8"), createPrivateKey(readFileSync(keyFile)));
+  } else if ((command === "sign" && keyFile) || (command === "sign-env" && process.env.DUSK_LINK_RELEASE_KEY)) {
+    const pem = command === "sign" ? readFileSync(keyFile) : Buffer.from(process.env.DUSK_LINK_RELEASE_KEY, "base64");
+    const signature = signRelease(readFileSync(agentFile, "utf8"), createPrivateKey(pem));
     writeFileSync(`${agentFile}.sig`, `${signature}\n`);
     console.log(`signed agent ${releaseOf(readFileSync(agentFile, "utf8")).version}`);
   } else {
-    console.error("usage: node release.mjs keygen|sign <private-key-file>");
+    console.error("usage: node release.mjs keygen|sign <private-key-file>, or sign-env with DUSK_LINK_RELEASE_KEY set");
     process.exit(2);
   }
 }
