@@ -110,7 +110,7 @@ if (form) {
   fetch('/api/waitlist/count').then((r) => (r.ok ? r.json() : null)).then((d) => {
     if (!d || !(d.count >= 50)) return;
     const c = $('[data-wl-count]', form);
-    c.textContent = `${d.count.toLocaleString('en')} people waiting`; c.hidden = false;
+    c.textContent = `${d.count.toLocaleString('en')} people waiting · free forever`; c.hidden = false;
   }).catch(() => {});
 
   function cheer() {
