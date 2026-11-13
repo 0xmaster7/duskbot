@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { REPLY_HABITS_PROMPT, TOOL_HABITS_PROMPT } from "./reply-habits.ts";
+import { REPLY_HABITS_PROMPT, replyHabitsPrompt, TOOL_HABITS_PROMPT } from "./reply-habits.ts";
 
 it("prefers batches for independent searches and keeps a native batching fallback", () => {
   expect(TOOL_HABITS_PROMPT).toContain("for 2 or more independent searches, prefer web_search_many when it is listed");
@@ -17,4 +17,26 @@ it("paces a turn in separate messages and leaves the steps to the status line", 
   expect(TOOL_HABITS_PROMPT).toContain("Do not narrate steps; the status line shows what you are doing. Keep it current with set_status");
   expect(REPLY_HABITS_PROMPT).not.toContain("your tool calls show in the chat on their own");
   expect(REPLY_HABITS_PROMPT).not.toContain(String.fromCharCode(0x2014));
+});
+
+it("finishes the job without asking leave for safe work, keeps a role from becoming a fence, and checks before saying done", () => {
+  for (const quick of [false, true]) {
+    const habits = replyHabitsPrompt(quick);
+    expect(habits).toContain("Searching, reading, opening pages, calculating and drafting never need a go-ahead");
+    expect(habits).toContain("Ask first only before a step that leaves this chat or is hard to undo");
+    expect(habits).toContain("or when your standing instructions say to");
+    expect(habits).toContain("Never stop partway to ask whether to carry on.");
+    expect(habits).toContain("Your role is what you are best at, not a fence");
+    expect(habits).toContain("Say done, sent or fixed only when something in this turn showed it");
+    expect(habits).toContain("never a caveat or an apology");
+    expect(habits).not.toContain(String.fromCharCode(0x2014));
+  }
+});
+
+it("recovers from a failed step by itself, keeps a plan for longer jobs, and keeps quiet between tool calls", () => {
+  expect(TOOL_HABITS_PROMPT).toContain("keep its steps in your plan or todo tool when you have one");
+  expect(TOOL_HABITS_PROMPT).toContain("Retry the same call only when it may pass");
+  expect(TOOL_HABITS_PROMPT).toContain("never a third time");
+  expect(TOOL_HABITS_PROMPT).toContain("unless only they can clear it");
+  expect(TOOL_HABITS_PROMPT).toContain("Any other words you write between tool calls reach the person as messages too");
 });
