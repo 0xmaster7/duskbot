@@ -1,7 +1,8 @@
 // Stage the Data engine's native modules outside ASAR, one tree per platform
 // and CPU (dist-native/duckdb/<platform>-<arch>/node_modules/): DuckDB, resvg,
 // and the 1Password SDK, which reads its WebAssembly core from beside itself so
-// cannot be bundled either. Each tree holds exactly the pinned DuckDB version: a
+// cannot be bundled either. Linux trees (the server images and the cloud home)
+// also carry node-datachannel, the direct screen path (server/screen-direct.ts). Each tree holds exactly the pinned DuckDB version: a
 // binding and its libduckdb must come from the same release. Each single-arch
 // mac app keeps only its slice of the universal libduckdb.dylib and re-signs it.
 import { execFile } from "node:child_process";
@@ -50,6 +51,26 @@ export function pinnedResvgVersion(root) {
   const pin = manifest.dependencies?.[`${RESVG_SCOPE}/${RESVG_PACKAGE}`];
   if (!pin || !/^\d+\.\d+\.\d+$/.test(pin)) {
     throw new Error(`package.json must pin ${RESVG_SCOPE}/${RESVG_PACKAGE} to an exact x.y.z version; found ${pin ?? "nothing"}`);
+  }
+  return pin;
+}
+
+/** node-datachannel loads its prebuilt addon from @node-datachannel/<target>, which detect-libc picks; only the Linux
+ *  servers (the Docker images, the cloud home) answer direct screen offers, all on glibc. */
+export const DATACHANNEL_PACKAGE = "node-datachannel";
+export const DATACHANNEL_SCOPE = "@node-datachannel";
+export const DATACHANNEL_LIBC = "detect-libc";
+const DATACHANNEL_TARGETS = { "linux-x64": { name: "linux-x64-gnu", machine: 62 }, "linux-arm64": { name: "linux-arm64-gnu", machine: 183 } };
+/** null where the tree does not carry it (the desktop apps). `machine` is the ELF e_machine of the addon. */
+export function dataChannelPlatformPackage(platform, arch) {
+  return DATACHANNEL_TARGETS[`${platform}-${arch}`] ?? null;
+}
+
+export function pinnedDataChannelVersion(root) {
+  const manifest = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  const pin = manifest.dependencies?.[DATACHANNEL_PACKAGE];
+  if (!pin || !/^\d+\.\d+\.\d+$/.test(pin)) {
+    throw new Error(`package.json must pin ${DATACHANNEL_PACKAGE} to an exact x.y.z version; found ${pin ?? "nothing"}`);
   }
   return pin;
 }
@@ -132,7 +153,7 @@ function requireRegularFile(file) {
 
 /** A staged or packaged tree is complete, pinned, and holds only this
  *  platform's and arch's native code. */
-export async function verifyDuckdbTree(directory, platform, arch, version, resvgVersion = null, onePasswordVersion = null) {
+export async function verifyDuckdbTree(directory, platform, arch, version, resvgVersion = null, onePasswordVersion = null, dataChannelVersion = null) {
   const scope = join(directory, "node_modules", SCOPE);
   const native = platformPackage(platform, arch);
   for (const name of [...DUCKDB_PACKAGES, native]) {
@@ -175,6 +196,27 @@ export async function verifyDuckdbTree(directory, platform, arch, version, resvg
   if (wanted && packageVersion(join(onePassword, "sdk-core")) !== wanted) {
     throw new Error(`${ONEPASSWORD_SCOPE}/sdk-core in ${directory} is ${packageVersion(join(onePassword, "sdk-core"))}; ${ONEPASSWORD_SCOPE}/sdk needs ${wanted}`);
   }
+  // Without it every screen on this server silently stays on the relay.
+  const dataChannelNative = dataChannelPlatformPackage(platform, arch);
+  if (dataChannelNative) {
+    const modules = join(directory, "node_modules");
+    const packages = [join(modules, DATACHANNEL_PACKAGE), join(modules, DATACHANNEL_SCOPE, dataChannelNative.name)];
+    for (const found of packages) {
+      requireRegularFile(join(found, "package.json"));
+      if (dataChannelVersion && packageVersion(found) !== dataChannelVersion) {
+        throw new Error(`${found} in ${directory} is ${packageVersion(found)}; package.json pins ${DATACHANNEL_PACKAGE} ${dataChannelVersion}`);
+      }
+    }
+    requireRegularFile(join(modules, DATACHANNEL_PACKAGE, "dist", "cjs", "lib", "index.cjs"));
+    requireRegularFile(join(modules, DATACHANNEL_LIBC, "package.json"));
+    const libcMain = JSON.parse(readFileSync(join(modules, DATACHANNEL_LIBC, "package.json"), "utf8")).main ?? "index.js";
+    requireRegularFile(join(modules, DATACHANNEL_LIBC, libcMain));
+    const addon = join(packages[1], "node_datachannel.node");
+    requireRegularFile(addon);
+    const header = readFileSync(addon).subarray(0, 20);
+    if (header.length < 20 || header.readUInt32BE(0) !== 0x7f454c46) throw new Error(`${addon} is not an ELF file`);
+    if (header.readUInt16LE(18) !== dataChannelNative.machine) throw new Error(`${addon} is built for ELF machine ${header.readUInt16LE(18)}, not ${arch}`);
+  }
   if (platform === "darwin") {
     const wanted = LIPO_ARCH[arch];
     if (!wanted) throw new Error(`Unsupported macOS architecture for DuckDB: ${arch}`);
@@ -199,6 +241,7 @@ export async function stageDuckdb({
   const version = pinnedDuckdbVersion(root);
   const resvgVersion = pinnedResvgVersion(root);
   const onePasswordVersion = pinnedOnePasswordVersion(root);
+  const dataChannelVersion = targets.some(({ platform, arch }) => dataChannelPlatformPackage(platform, arch)) ? pinnedDataChannelVersion(root) : null;
   const staged = [];
   for (const { platform, arch } of targets) {
     const destination = join(stage, `${platform}-${arch}`);
@@ -235,6 +278,26 @@ export async function stageDuckdb({
       if (!source) throw new Error(`${ONEPASSWORD_SCOPE}/${name} is not installed; run pnpm install`);
       cpSync(source, join(onePasswordScope, name), { recursive: true, dereference: true });
     }
+    const dataChannelNative = dataChannelPlatformPackage(platform, arch);
+    if (dataChannelNative) {
+      // pnpm keeps detect-libc and the platform packages beside node-datachannel in its store
+      const modules = join(destination, "node_modules");
+      const wanted = [
+        { name: DATACHANNEL_PACKAGE, to: join(modules, DATACHANNEL_PACKAGE), pinned: true },
+        { name: DATACHANNEL_LIBC, to: join(modules, DATACHANNEL_LIBC), pinned: false },
+        { name: `${DATACHANNEL_SCOPE}/${dataChannelNative.name}`, to: join(modules, DATACHANNEL_SCOPE, dataChannelNative.name), pinned: true },
+      ];
+      for (const { name, to, pinned } of wanted) {
+        let source = installedPackage(nodeModules, name, "", [DATACHANNEL_PACKAGE]);
+        if (!source) {
+          if (!name.startsWith(`${DATACHANNEL_SCOPE}/`)) throw new Error(`${name} is not installed; run pnpm install`);
+          source = await pack(dataChannelNative.name, dataChannelVersion, cache, DATACHANNEL_SCOPE);
+        }
+        const found = packageVersion(source);
+        if (pinned && found !== dataChannelVersion) throw new Error(`${name} at ${source} is ${found}; package.json pins ${DATACHANNEL_PACKAGE} ${dataChannelVersion}`);
+        cpSync(source, to, { recursive: true, dereference: true });
+      }
+    }
     if (platform === "darwin") {
       const native = join(scope, platformPackage(platform, arch));
       for (const file of ["duckdb.node", LIBRARY_FILE.darwin]) {
@@ -247,9 +310,9 @@ export async function stageDuckdb({
       // resvg ships one single-arch binary per package; only the signature is ours to add.
       if (sign) await run("/usr/bin/codesign", ["--force", "--sign", "-", join(resvgScope, resvgNative.name, resvgNative.binary)]);
     }
-    await verifyDuckdbTree(destination, platform, arch, version, resvgVersion, onePasswordVersion);
+    await verifyDuckdbTree(destination, platform, arch, version, resvgVersion, onePasswordVersion, dataChannelVersion);
     staged.push(destination);
-    log?.(`Staged DuckDB ${version} for ${platform}-${arch} at ${destination}`);
+    log?.(`Staged DuckDB ${version}${dataChannelNative ? ` and ${DATACHANNEL_PACKAGE} ${dataChannelVersion}` : ""} for ${platform}-${arch} at ${destination}`);
   }
   return staged;
 }

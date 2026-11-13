@@ -6,6 +6,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { parse } from "yaml";
 import { cloudHomeConfiguration } from "../server/cloud-home.ts";
 import { cloudHomeChildEnvironments } from "../server/cloud-home-start.ts";
+import { directPortRange } from "../server/screen-direct.ts";
+import { HOME_SCREEN_DIRECT_PORTS } from "../apps/cloud-service/src/home.ts";
 
 // The published images: the self-hosted server (the default target) and the
 // Cloud home. A pull downloads every layer whose digest changed, and a layer's
@@ -157,6 +159,19 @@ describe("container images", () => {
     // The launcher sets HOME, the ports and the data folder itself; everything else must come through unchanged.
     for (const name of Object.keys(image)) expect(server, name).toHaveProperty(name);
     expect(server.DUSK_DUCKDB_DIR).toBe("/app/duckdb");
+  });
+
+  it("pins the direct screen path's UDP range once: the image's ENV, each target's EXPOSE, compose's ports, the cloud home's", () => {
+    const range = /(?:^|\s)DUSK_SCREEN_DIRECT_PORTS=(\S+)/.exec(chain("runtime").filter(step => step.op === "ENV").map(step => step.args).join(" "))?.[1];
+    expect(range).toBeDefined();
+    // the server reads it, and it stays below Linux's ephemeral ports (32768 and up), so outgoing sockets never hold one
+    const parsed = directPortRange(range)!;
+    expect(parsed).toBeDefined();
+    expect(parsed.portRangeEnd).toBeLessThan(32768);
+    for (const target of ["server", "cloud-home"]) expect(chain(target).filter(step => step.op === "EXPOSE").map(step => step.args), target).toContain(`${range}/udp`);
+    const compose = parse(readFileSync(new URL("../deploy/docker-compose.yml", import.meta.url), "utf8"));
+    expect(compose.services.dusk.ports).toContain(`${range}:${range}/udp`);
+    expect(HOME_SCREEN_DIRECT_PORTS).toBe(range);
   });
 
   it("never runs a build step with HOME on the volume, so nothing lands in what a fresh volume starts with", () => {

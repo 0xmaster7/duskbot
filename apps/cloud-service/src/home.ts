@@ -13,6 +13,11 @@ import { machineVerifyScript, type ReleaseKey } from "./release-signing.ts";
 /** pinned runtime downloads, verified before use */
 export const HOME_NODE = { version: "24.22.2", sha256: "48cc0e21e048790e54c0cf5749c2725005313d652651c40b7a21feb9697aaf75" } as const;
 export const HOME_CADDY = { version: "2.10.2", sha512: "747df7ee74de188485157a383633a1a963fd9233b71fbb4a69ddcbcc589ce4e2cc82dacf5dbbe136cb51d17e14c59daeb5d9bc92487610b0f3b93680b2646546" } as const;
+/** The direct screen path's UDP ports (server/screen-direct.ts), the same range the server image sets. The provider
+ * publishes no UDP (docs/provider.md, "The live screen"), so nothing opens them from outside: the server reaches an app
+ * from inside out, through the address STUN shows it, or through the app's TURN relay; else the screen stays on the
+ * link relay. Pinned so a provider-side UDP forward, when there is one, has one range to open. */
+export const HOME_SCREEN_DIRECT_PORTS = "30000-30063";
 export const INSTABOX_USER_HOME = "/data/home";
 export const INSTABOX_BOOT_FILE = `${INSTABOX_USER_HOME}/.omb-boot.json`;
 export const INSTABOX_PACKAGE_FILE = `${INSTABOX_USER_HOME}/omb-home.tgz`;
@@ -197,7 +202,8 @@ const boot = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
 if (boot.v !== 1 || !boot.env || !boot.link || !/^c[0-9a-f]{24}$/.test(boot.machine)) process.exit(1);
 const env = { ...boot.env, HOME: "/data", DUSK_DATA_DIR: "${CLOUD_HOME.data}", NODE_ENV: "production", DUSK_STATIC_DIR: "${APP}/dist",
   DUSK_CLOUD_EDGE_BIN: "${BIN}/caddy", DUSK_CLOUD_EDGE_CONFIG: "${APP}/cloud/Caddyfile", PATH: "${NODE_DIR}/bin:${BIN}:/usr/local/bin:/usr/bin:/bin",
-  DUSK_VPS_DOCKER: "local", DOCKER_HOST: "unix:///run/${CLOUD_HOME.gate}/docker.sock", DUSK_BOT_DESKTOP_HOST_BUILD: "${DESKTOP_IMAGE_STATUS}" };
+  DUSK_VPS_DOCKER: "local", DOCKER_HOST: "unix:///run/${CLOUD_HOME.gate}/docker.sock", DUSK_BOT_DESKTOP_HOST_BUILD: "${DESKTOP_IMAGE_STATUS}",
+  DUSK_SCREEN_DIRECT_PORTS: "${HOME_SCREEN_DIRECT_PORTS}" };
 if (Object.entries(env).some(([k, v]) => !/^[A-Z][A-Z0-9_]*$/.test(k) || typeof v !== "string" || /[\\r\\n\\0]/.test(v))) process.exit(1);
 fs.writeFileSync("${CLOUD_HOME.etc}/home.env", Object.entries(env).map(([k, v]) => k + "=" + v).join("\\n") + "\\n", { mode: 0o600 });
 fs.writeFileSync("${CLOUD_HOME.data}/dashboard-link.json", JSON.stringify(boot.link), { mode: 0o600 });

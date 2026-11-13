@@ -45,6 +45,8 @@ const SERVER_ENV_NAMES = new Set([
   "DUSK_BOT_DESKTOP_HOST_BUILD",
   // An ended Cloud started only for its owner's export: the server runs frozen (server/move-freeze.ts).
   "DUSK_CLOUD_EXPORT_ONLY",
+  // the direct screen path (server/screen-direct.ts): its UDP range, and the switch that turns it off
+  "DUSK_SCREEN_DIRECT_PORTS", "DUSK_SCREEN_DIRECT",
 ]);
 export function serverEnvironmentAllowed(name: string): boolean {
   return SERVER_ENV_NAMES.has(name) || name.startsWith("LC_");

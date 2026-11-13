@@ -32,6 +32,26 @@ and checked on live machines, 2026-11-11.
 - Egress is datacenter addresses: Google Search, Amazon, eBay and Reuters block or challenge a bot's browser; Bing,
   BBC, the Guardian, GitHub, Airbnb, OpenStreetMap, YouTube, Vimeo and Wikipedia load.
 
+## The live screen
+
+The home's server answers the app's WebRTC offer for a bot computer's screen (`server/screen-direct.ts`) with
+node-datachannel, staged in the package's `node_modules` by `scripts/prepare-duckdb.mjs`. Its UDP sockets are pinned
+to `HOME_SCREEN_DIRECT_PORTS` (30000-30063, `src/home.ts`, the server image's range).
+
+InstaBox publishes no UDP: `POST /v1/machines/{id}/ports` takes `protocol` `http` (an HTTPS proxy) or `tcp` (raw TCP
+behind TLS with SNI, admin-only preview), and the API has no firewall rule or public address for a machine (OpenAPI read
+2026-11-13). Its egress is shared datacenter addresses, so the machine sits behind the platform's NAT. Nothing can be
+opened from outside, and a screen goes:
+
+- **peer to peer** when hole punching works: the server learns its NAT address from STUN and both sides send first;
+- **through Cloudflare TURN** when the app's relay candidate wins (the server only sends out to it);
+- **over the link relay** otherwise, as before.
+
+`GET /api/desktop-viewer/transport` on the home counts which. A provider-side change is needed for inbound UDP: a UDP
+publish (or a public address with a firewall rule) for 30000-30063 on each machine, or one UDP port if the server
+moves to ICE UDP mux. Many short UDP flows may also be what InstaBox's `abuse_network_flows` check watches; ask them
+before turning screens on for every home.
+
 ## Lifecycle
 
 The code is `apps/cloud-service/src/lifecycle.ts`, the adapter `src/instabox.ts`, what runs on the machine `src/home.ts`.

@@ -27,6 +27,9 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      # the live screen's direct path (WebRTC): the image's DUSK_SCREEN_DIRECT_PORTS, same numbers both sides so the
+      # address the server learns from STUN is the one that reaches it. Closed, screens still work over the relay.
+      - "30000-30063:30000-30063/udp"
     environment:
       DUSK_PORT: "8799"
       DUSK_WEBHOOK_PORT: "8800"

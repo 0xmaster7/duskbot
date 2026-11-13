@@ -211,7 +211,10 @@ DNS, bots, conversations or existing sessions.
 
 One tenant = one container for the server plus Caddy for HTTPS.
 Requirements: Docker with Compose, a DNS name pointing at the machine, and
-ports 80/443 open.
+ports 80/443 open. Also open UDP 30000-30063 if you can: the live screen of a
+bot's computer then goes straight to the app (WebRTC) instead of through a
+relay. The image sets that range as `DUSK_SCREEN_DIRECT_PORTS` and the compose
+file publishes it; with it closed, screens still work over the relay.
 
 ```sh
 git clone https://github.com/DuskBotAI/duskbot && cd duskbot/deploy

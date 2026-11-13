@@ -110,8 +110,12 @@ RUN echo "agent-browser ${AGENT_BROWSER_VERSION}, Chrome for Testing ${CHROME_CA
 # which each image sets after its last build step, so no build step writes
 # into what a fresh volume starts with.
 #  DUSK_DUCKDB_DIR: the DuckDB binding tree the server requires (no node_modules here).
+#  DUSK_SCREEN_DIRECT_PORTS: the UDP ports the direct screen path (WebRTC) binds,
+#  one per open screen; each target EXPOSEs them and a host that publishes them
+#  (deploy/docker-compose.yml) lets an app reach the screen without a relay.
 ENV AGENT_BROWSER_EXECUTABLE_PATH=/opt/duskbot-browser/chrome \
     DUSK_DUCKDB_DIR=/app/duckdb \
+    DUSK_SCREEN_DIRECT_PORTS=30000-30063 \
     DUSK_DATA_DIR=/data/.duskbot \
     DUSK_STATIC_DIR=/app/dist \
     DUSK_PORT=8799 \
@@ -191,6 +195,7 @@ RUN export HOME=/tmp/dusk-build-home \
  && rm -rf /tmp/dusk-build-home
 ENV HOME=/data
 VOLUME ["/data"]
+EXPOSE 30000-30063/udp
 EXPOSE 8080
 # Fly uses the checks in fly.toml; this one serves a plain `docker run`.
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
@@ -213,6 +218,7 @@ COPY --from=build --chown=maus:maus /src/dist ./dist
 COPY --from=build --chown=maus:maus /src/skills ./skills
 ENV HOME=/data
 VOLUME ["/data"]
+EXPOSE 30000-30063/udp
 USER maus
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD curl -sf http://127.0.0.1:8799/api/health | grep -q duskbot || exit 1

@@ -3,11 +3,20 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { installedPackage, pinnedDuckdbVersion, pinnedOnePasswordVersion, pinnedResvgVersion, platformPackage, resvgPlatformPackage, stageDuckdb, targetsFor, verifyDuckdbTree } from "./prepare-duckdb.mjs";
+import { dataChannelPlatformPackage, installedPackage, pinnedDataChannelVersion, pinnedDuckdbVersion, pinnedOnePasswordVersion, pinnedResvgVersion, platformPackage, resvgPlatformPackage, stageDuckdb, targetsFor, verifyDuckdbTree } from "./prepare-duckdb.mjs";
 
 const PIN = "9.9.9-r.9";
 const RESVG_PIN = "8.8.8";
 const OP_PIN = "7.7.7";
+const DC_PIN = "6.6.6";
+
+/** Just enough of an ELF header for the check: the magic and e_machine (62 x86-64, 183 aarch64). */
+function elf(machine) {
+  const header = Buffer.alloc(64);
+  header.writeUInt32BE(0x7f454c46, 0);
+  header.writeUInt16LE(machine, 18);
+  return header;
+}
 const temporaryDirectories = [];
 
 function temporary(prefix) {
@@ -16,9 +25,9 @@ function temporary(prefix) {
   return directory;
 }
 
-function writePackage(directory, name, version, files, scope = "@duckdb") {
+function writePackage(directory, name, version, files, scope = "@duckdb", extra = {}) {
   fs.mkdirSync(directory, { recursive: true });
-  fs.writeFileSync(path.join(directory, "package.json"), JSON.stringify({ name: `${scope}/${name}`, version }));
+  fs.writeFileSync(path.join(directory, "package.json"), JSON.stringify({ name: scope ? `${scope}/${name}` : name, version, ...extra }));
   for (const [file, content] of Object.entries(files)) {
     fs.mkdirSync(path.dirname(path.join(directory, file)), { recursive: true });
     if (Buffer.isBuffer(content)) fs.writeFileSync(path.join(directory, file), content);
@@ -26,10 +35,10 @@ function writePackage(directory, name, version, files, scope = "@duckdb") {
   }
 }
 
-/** A flat node_modules (npm's layout) holding the DuckDB, resvg and 1Password packages for one target. */
-function flatInstall({ version = PIN, platform = "linux", arch = "x64", nativeFiles, resvgBinary = "node", onePasswordCore = OP_PIN } = {}) {
+/** A flat node_modules (npm's layout) holding the DuckDB, resvg, 1Password and (on Linux) node-datachannel packages for one target. */
+function flatInstall({ version = PIN, platform = "linux", arch = "x64", nativeFiles, resvgBinary = "node", onePasswordCore = OP_PIN, dataChannelVersion = DC_PIN, dataChannelBinary } = {}) {
   const root = temporary("dusk-duckdb-root-");
-  fs.writeFileSync(path.join(root, "package.json"), JSON.stringify({ dependencies: { "@duckdb/node-api": PIN, "@resvg/resvg-js": RESVG_PIN, "@1password/sdk": OP_PIN } }));
+  fs.writeFileSync(path.join(root, "package.json"), JSON.stringify({ dependencies: { "@duckdb/node-api": PIN, "@resvg/resvg-js": RESVG_PIN, "@1password/sdk": OP_PIN, "node-datachannel": DC_PIN } }));
   const nodeModules = path.join(root, "node_modules");
   const scope = path.join(nodeModules, "@duckdb");
   writePackage(path.join(scope, "node-api"), "node-api", version, { "lib/index.js": "module.exports = {};" });
@@ -44,6 +53,12 @@ function flatInstall({ version = PIN, platform = "linux", arch = "x64", nativeFi
   writePackage(path.join(onePassword, "sdk"), "sdk", OP_PIN, { "dist/sdk.js": "module.exports = require('@1password/sdk-core');" }, "@1password");
   fs.writeFileSync(path.join(onePassword, "sdk", "package.json"), JSON.stringify({ name: "@1password/sdk", version: OP_PIN, dependencies: { "@1password/sdk-core": OP_PIN } }));
   writePackage(path.join(onePassword, "sdk-core"), "sdk-core", onePasswordCore, { "nodejs/core.js": "module.exports = {};", "nodejs/core_bg.wasm": Buffer.from([0, 97, 115, 109]) }, "@1password");
+  const dataChannel = dataChannelPlatformPackage(platform, arch);
+  if (dataChannel) {
+    writePackage(path.join(nodeModules, "node-datachannel"), "node-datachannel", dataChannelVersion, { "dist/cjs/lib/index.cjs": "module.exports = {};" }, "");
+    writePackage(path.join(nodeModules, "detect-libc"), "detect-libc", "2.1.2", { "lib/detect-libc.js": "module.exports = {};" }, "", { main: "lib/detect-libc.js" });
+    writePackage(path.join(nodeModules, "@node-datachannel", dataChannel.name), dataChannel.name, dataChannelVersion, { "node_datachannel.node": dataChannelBinary ?? elf(dataChannel.machine) }, "@node-datachannel");
+  }
   return { root, nodeModules, scope, resvg, onePassword };
 }
 
@@ -119,7 +134,11 @@ describe("staging from an install", () => {
     const onePassword = path.join(tree, "node_modules", "@1password");
     expect(fs.readdirSync(onePassword).sort()).toEqual(["sdk", "sdk-core"]);
     expect(fs.existsSync(path.join(onePassword, "sdk-core", "nodejs", "core_bg.wasm"))).toBe(true);
-    await verifyDuckdbTree(tree, "linux", "x64", PIN, RESVG_PIN, OP_PIN);
+    // And the direct screen path, with the libc probe it requires and the addon for this CPU.
+    const modules = path.join(tree, "node_modules");
+    expect(fs.readdirSync(modules).sort()).toEqual(["@1password", "@duckdb", "@node-datachannel", "@resvg", "detect-libc", "node-datachannel"]);
+    expect(fs.readdirSync(path.join(modules, "@node-datachannel"))).toEqual(["linux-x64-gnu"]);
+    await verifyDuckdbTree(tree, "linux", "x64", PIN, RESVG_PIN, OP_PIN, DC_PIN);
     fs.rmSync(path.join(resvg, "resvg-js-linux-x64-gnu"), { recursive: true });
     await expect(verifyDuckdbTree(tree, "linux", "x64", PIN, RESVG_PIN)).rejects.toThrow(/resvg-js-linux-x64-gnu/);
   });
@@ -203,6 +222,63 @@ describe("staging from an install", () => {
     fs.rmSync(path.join(scope, "node-bindings"), { recursive: true });
     await expect(stageDuckdb({ root, targets: [{ platform: "linux", arch: "x64" }], pack: async () => { throw new Error("must not pack"); }, sign: false, log: null }))
       .rejects.toThrow(/node-bindings is not installed/);
+  });
+});
+
+describe("the direct screen path", () => {
+  it("requires an exact x.y.z version of node-datachannel, and only Linux trees carry it", () => {
+    const { root } = flatInstall();
+    expect(pinnedDataChannelVersion(root)).toBe(DC_PIN);
+    fs.writeFileSync(path.join(root, "package.json"), JSON.stringify({ dependencies: { "node-datachannel": "^6.6.6" } }));
+    expect(() => pinnedDataChannelVersion(root)).toThrow(/exact x\.y\.z version/);
+    expect(dataChannelPlatformPackage("linux", "x64")?.name).toBe("linux-x64-gnu");
+    expect(dataChannelPlatformPackage("linux", "arm64")?.name).toBe("linux-arm64-gnu");
+    expect(dataChannelPlatformPackage("darwin", "arm64")).toBeNull();
+    expect(dataChannelPlatformPackage("win32", "x64")).toBeNull();
+  });
+
+  it("stages the image's CPU from pnpm's store, fetching the platform package the install lacks at the pin", async () => {
+    const root = temporary("dusk-duckdb-pnpm-dc-");
+    const { root: flat, nodeModules: flatModules } = flatInstall({ arch: "arm64" });
+    fs.cpSync(flat, root, { recursive: true });
+    const nodeModules = path.join(root, "node_modules");
+    // pnpm's layout: node-datachannel linked from its store folder, detect-libc beside it, no arm64 addon on this host
+    fs.rmSync(path.join(nodeModules, "node-datachannel"), { recursive: true });
+    fs.rmSync(path.join(nodeModules, "detect-libc"), { recursive: true });
+    fs.rmSync(path.join(nodeModules, "@node-datachannel"), { recursive: true });
+    const store = path.join(nodeModules, ".pnpm", `node-datachannel@${DC_PIN}`, "node_modules");
+    fs.cpSync(path.join(flatModules, "node-datachannel"), path.join(store, "node-datachannel"), { recursive: true });
+    fs.cpSync(path.join(flatModules, "detect-libc"), path.join(store, "detect-libc"), { recursive: true });
+    fs.symlinkSync(path.join(store, "node-datachannel"), path.join(nodeModules, "node-datachannel"), "dir");
+    const packed = [];
+    const pack = async (name, version, cache, scope) => {
+      packed.push(`${scope}/${name}@${version}`);
+      const directory = path.join(cache, `${name}-${version}`);
+      writePackage(directory, name, version, { "node_datachannel.node": elf(183) }, scope);
+      return directory;
+    };
+    const [tree] = await stageDuckdb({ root, targets: [{ platform: "linux", arch: "arm64" }], pack, sign: false, log: null });
+    // DuckDB's and resvg's arm64 packages were in the flat install; only the addon is fetched
+    expect(packed).toEqual([`@node-datachannel/linux-arm64-gnu@${DC_PIN}`]);
+    expect(fs.lstatSync(path.join(tree, "node_modules", "node-datachannel")).isSymbolicLink()).toBe(false);
+    expect(fs.existsSync(path.join(tree, "node_modules", "detect-libc", "lib", "detect-libc.js"))).toBe(true);
+    await verifyDuckdbTree(tree, "linux", "arm64", PIN, RESVG_PIN, OP_PIN, DC_PIN);
+  });
+
+  it("refuses another version, a missing libc probe, or an addon for the wrong CPU", async () => {
+    await expect(stageDuckdb({ root: flatInstall({ dataChannelVersion: "6.6.5" }).root, targets: [{ platform: "linux", arch: "x64" }], sign: false, log: null }))
+      .rejects.toThrow(/node-datachannel at .* is 6\.6\.5; package\.json pins node-datachannel 6\.6\.6/);
+    await expect(stageDuckdb({ root: flatInstall({ dataChannelBinary: elf(183) }).root, targets: [{ platform: "linux", arch: "x64" }], sign: false, log: null }))
+      .rejects.toThrow(/ELF machine 183, not x64/);
+    await expect(stageDuckdb({ root: flatInstall({ dataChannelBinary: "node" }).root, targets: [{ platform: "linux", arch: "x64" }], sign: false, log: null }))
+      .rejects.toThrow(/not an ELF file/);
+    const { root, nodeModules } = flatInstall();
+    const [tree] = await stageDuckdb({ root, targets: [{ platform: "linux", arch: "x64" }], sign: false, log: null });
+    fs.rmSync(path.join(tree, "node_modules", "detect-libc", "lib"), { recursive: true });
+    await expect(verifyDuckdbTree(tree, "linux", "x64", PIN, RESVG_PIN, OP_PIN, DC_PIN)).rejects.toThrow(/detect-libc/);
+    fs.rmSync(path.join(nodeModules, "node-datachannel"), { recursive: true });
+    await expect(stageDuckdb({ root, targets: [{ platform: "linux", arch: "x64" }], pack: async () => { throw new Error("must not pack"); }, sign: false, log: null }))
+      .rejects.toThrow(/node-datachannel is not installed/);
   });
 });
 

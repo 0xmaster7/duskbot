@@ -6,7 +6,7 @@ import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { DESKTOP_IMAGE_STATUS, homeControlScript, homeSetupScript, HOME_CONTROL } from "./home.ts";
+import { DESKTOP_IMAGE_STATUS, homeControlScript, homeSetupScript, HOME_CONTROL, HOME_SCREEN_DIRECT_PORTS } from "./home.ts";
 import type { HomeRelease } from "./home-update.ts";
 import { signRelease, type ReleaseKey } from "./release-signing.ts";
 import { createPolicySource, signPolicy, verifyPolicy } from "./update-policy.ts";
@@ -281,6 +281,8 @@ describe("the machine's setup", () => {
     expect(unit).toContain("Type=oneshot");
     expect(unit).toMatch(/Nice=\d+/);
     expect(setup).toContain(`DUSK_BOT_DESKTOP_HOST_BUILD: "${DESKTOP_IMAGE_STATUS}"`);
+    // the direct screen path binds a fixed UDP range, the server image's
+    expect(setup).toContain(`DUSK_SCREEN_DIRECT_PORTS: "${HOME_SCREEN_DIRECT_PORTS}"`);
     // the gate never builds: only root's unit does, from the signed package's kit
     expect(homeControlScript()).toContain('sh "$kit/build.sh"');
   });
