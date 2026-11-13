@@ -109,6 +109,14 @@ it("reads TURN servers only from the app's link proxy", async () => {
   expect((fetcher as unknown as ReturnType<typeof vi.fn>).mock.calls[0]![0]).toBe("/__dusk/screen-ice");
 });
 
+it("makes no second peer when the app's whole link already goes direct", async () => {
+  const fetcher = answering();
+  expect(await open(fetcher, { linkDirect: async () => true })).toEqual({ fallback: "link-direct" });
+  expect(fetcher).not.toHaveBeenCalled();
+  expect(FakePeer.made).toHaveLength(0);
+  expect("channel" in await open(answering(), { linkDirect: async () => false })).toBe(true);
+});
+
 it("lets the caller's abort win", async () => {
   const controller = new AbortController();
   controller.abort();

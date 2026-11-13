@@ -225,10 +225,13 @@ export function createScreenDirect(options: {
   /** a relay screen counted by path and reason only: its bytes are not followed (the bot browser's stream) */
   const relayCounted = (reason: ScreenFallbackReason | null) => {
     stats.relay.sessions++;
-    stats.paths["our-relay"]++;
+    // a screen on a link that already goes direct is direct, though it came through the link agent
+    const path: ScreenPath = reason === "link-direct" ? "direct" : "our-relay";
+    stats.paths[path]++;
     stats.relay.reasons[reason ?? "none"]++;
-    options.log?.(`screen: our-relay (${reason ?? "not asked"})`);
+    options.log?.(`screen: ${path} (${reason ?? "not asked"})`);
   };
+
 
   return {
     available: () => lib() !== null,

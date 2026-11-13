@@ -1,6 +1,6 @@
 import RFB from "@novnc/novnc";
 import { DESKTOP_VIEWER_TARGET } from "../../shared/desktop-viewer";
-import { directScreenWanted, linkProxyTurn, onLinkProxy, openDirectScreen, type DirectScreen } from "./screen-direct";
+import { directScreenWanted, linkProxyState, linkProxyTurn, onLinkProxy, openDirectScreen, type DirectScreen } from "./screen-direct";
 
 export interface DesktopConnectionEvents {
   connected(): void;
@@ -54,7 +54,7 @@ export async function connectDesktop(screen: HTMLElement, target: string, option
   let direct: Extract<DirectScreen, { channel: RTCDataChannel }> | undefined;
   let fallback: string | undefined;
   if (directScreenWanted(location.hostname)) {
-    const attempt = await openDirectScreen(`${path}/direct${socketQuery}`, { signal, ...(onLinkProxy(location.hostname) ? { turn: () => linkProxyTurn() } : {}) });
+    const attempt = await openDirectScreen(`${path}/direct${socketQuery}`, { signal, ...(onLinkProxy(location.hostname) ? { turn: () => linkProxyTurn(), linkDirect: async () => (await linkProxyState()).direct } : {}) });
     cancelled.throwIfAborted();
     if ("channel" in attempt) direct = attempt;
     else fallback = attempt.fallback;

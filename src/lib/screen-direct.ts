@@ -15,10 +15,23 @@ let blocked: { until: number } | null = null;
 export function resetDirectScreen(): void { blocked = null; }
 
 /** TURN servers from the app's own link proxy (only a linked server's page is served there). */
+let linkState: { at: number; answer: Promise<{ iceServers: RTCIceServer[]; direct: boolean }> } | null = null;
+/** TURN servers and whether the whole link already goes direct, from the app's own link proxy; asked at most once a second */
+export function linkProxyState(fetcher: typeof fetch = fetch, now = Date.now()): Promise<{ iceServers: RTCIceServer[]; direct: boolean }> {
+  if (linkState && now - linkState.at < 1_000) return linkState.answer;
+  const answer = (async () => {
+    const response = await fetcher(SCREEN_ICE_PATH, { cache: "no-store", credentials: "same-origin" });
+    const body = await response.json() as { iceServers?: unknown; link?: unknown };
+    const iceServers = Array.isArray(body.iceServers) ? body.iceServers.filter((one): one is RTCIceServer => Boolean(one) && typeof one === "object" && "urls" in one).slice(0, 4) : [];
+    return { iceServers, direct: body.link === "direct" };
+  })().catch(() => ({ iceServers: [], direct: false }));
+  linkState = { at: now, answer };
+  return answer;
+}
+
+/** TURN servers from the app's own link proxy (only a linked server's page is served there). */
 export async function linkProxyTurn(fetcher: typeof fetch = fetch): Promise<RTCIceServer[]> {
-  const answer = await fetcher(SCREEN_ICE_PATH, { cache: "no-store", credentials: "same-origin" });
-  const body = await answer.json() as { iceServers?: unknown };
-  return Array.isArray(body.iceServers) ? body.iceServers.filter((one): one is RTCIceServer => Boolean(one) && typeof one === "object" && "urls" in one).slice(0, 4) : [];
+  return (await linkProxyState(fetcher)).iceServers;
 }
 
 /** The page is a linked server's, served through the app's link proxy (`vps-<id>.localhost`). */
@@ -45,10 +58,13 @@ export async function openDirectScreen(url: string, options: {
   turn?: () => Promise<RTCIceServer[]>;
   /** the data channel's label: the desktop's "screen", or "socket" for a WebSocket carried on the peer */
   label?: string;
+  /** true when the app's whole link to the server already goes direct: no second peer is made */
+  linkDirect?: () => Promise<boolean>;
 }): Promise<DirectScreen> {
   const now = options.now ?? Date.now;
   const Peer = options.RTCPeerConnection ?? (typeof RTCPeerConnection === "function" ? RTCPeerConnection : undefined);
   if (!Peer) return { fallback: "unsupported" };
+  if (options.linkDirect && await options.linkDirect().catch(() => false)) return { fallback: "link-direct" };
   if (blocked && now() < blocked.until) return { fallback: "recent-failure" };
   let pc: RTCPeerConnection;
   const stun = options.iceServers ?? SCREEN_DIRECT_ICE_SERVERS;

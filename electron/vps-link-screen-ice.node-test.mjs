@@ -28,7 +28,7 @@ test("answers the screen's TURN servers locally, without the relay", { timeout: 
     return new Promise((_resolve, reject) => init.signal.addEventListener("abort", () => reject(init.signal.reason), { once: true }));
   } });
   const origin = new URL(await proxy.start());
-  assert.deepEqual(await get(origin, SCREEN_ICE_PATH), { status: 200, text: JSON.stringify({ iceServers: turn }) });
+  assert.deepEqual(await get(origin, SCREEN_ICE_PATH), { status: 200, text: JSON.stringify({ iceServers: turn, link: "relay" }) });
   assert.equal((await get(origin, SCREEN_ICE_PATH, "evil.example")).status, 421);
   assert.deepEqual(sent, []);
   await proxy.close();
@@ -38,7 +38,7 @@ test("answers no TURN servers when the account has none or fails", { timeout: 30
   for (const screenIce of [undefined, async () => null, async () => { throw new Error("signed out"); }]) {
     const proxy = createTunnelProxy({ ...options, screenIce, fetch: (_url, init) => new Promise((_resolve, reject) => init.signal.addEventListener("abort", () => reject(init.signal.reason), { once: true })) });
     const origin = new URL(await proxy.start());
-    assert.deepEqual(await get(origin, SCREEN_ICE_PATH), { status: 200, text: JSON.stringify({ iceServers: [] }) });
+    assert.deepEqual(await get(origin, SCREEN_ICE_PATH), { status: 200, text: JSON.stringify({ iceServers: [], link: "relay" }) });
     await proxy.close();
   }
 });

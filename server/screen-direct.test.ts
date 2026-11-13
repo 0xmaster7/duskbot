@@ -130,4 +130,7 @@ it("counts relay screens by why they were not direct, with no personal data", ()
   expect(stats.relay).toMatchObject({ sessions: 2, open: 1, bytesSent: 1000, bytesReceived: 20 });
   expect(stats.relay.reasons).toMatchObject({ "ice-failed": 1, none: 1, timeout: 0 });
   expect(stats.paths["our-relay"]).toBe(2);
+  // a screen on a link that already goes direct counts as direct
+  direct.relayCounted("link-direct");
+  expect(direct.stats().paths).toMatchObject({ direct: 1, "our-relay": 2 });
 });

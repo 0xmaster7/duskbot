@@ -84,6 +84,7 @@ const plain = (error, fallback) => {
  *   dataSize?(): Promise<number | null>,
  *   proxyFactory?: typeof createTunnelProxy,
  *   direct?: { newKey(): { privateKey: string, publicKey: string }, connector(config: { host: string, port: number, user: string, privateKey: string, hostKeys: string[] }): () => Promise<any>, wssConnector?(config: { url: string, spki: string }): () => Promise<any>,
+ *     rtc?: { connector(config: { signal(offer: { type: string, sdp: string }): Promise<any> }): () => Promise<any> } | null,
  *     cloud?: { url: string | null, connector(config: { url: string, id: string, key: string }): () => Promise<any>, register(config: { url: string, id: string, key: string, grant: string | null }): Promise<void> } },
  *   egress?: Parameters<typeof createTunnelProxy>[0]["egress"],
  *   appVersion?: string,
@@ -606,7 +607,20 @@ export function createVpsLink(deps) {
     return { name: "cloud", connect: cloud.connector({ url: cloud.url, id: link.id, key }) };
   }
 
-  /** the ways to the server, ssh first, then https on 443, then the cloud relay; the link service relay stays underneath them */
+  /** webrtc (vps-link-rtc.mjs): udp straight to the server where hole punching works, cloudflare's turn where it does not;
+   * signalled over the sealed tunnel. null where this app has no node-datachannel or the agent is older */
+  function rtcFor(link, proxy) {
+    const rtc = deps.direct?.rtc;
+    if (!rtc || link.directOff || !peers.get(link.id)?.caps?.includes("direct-rtc")) return null;
+    const connect = rtc.connector({ signal: (offer) => proxy.control("direct-rtc", { offer }, 15_000) });
+    return { name: "rtc", connect: async () => {
+      const opened = await connect();
+      log(`vps link: ${link.name} direct over webrtc (${opened.path}, ${opened.pair})`);
+      return opened;
+    } };
+  }
+
+  /** the ways to the server, ssh first, then https on 443, then webrtc, then the cloud relay; the link service relay stays underneath them */
   async function directFor(link, proxy) {
     if (!deps.direct || closed || proxy.useDirect === undefined) return;
     if (link.directOff && link.directRevoke) await revokeDirect(link, proxy);
@@ -620,6 +634,8 @@ export function createVpsLink(deps) {
       ways.push({ name: "ssh", connect: deps.direct.connector({ host: ssh.host, port: ssh.port, user: ssh.user, privateKey, hostKeys: ssh.hostKeys }) });
     }
     if (wss) ways.push({ name: "wss", connect: deps.direct.wssConnector({ url: wss.url, spki: wss.spki }) });
+    const rtc = rtcFor(link, proxy);
+    if (rtc) ways.push(rtc);
     const cloud = await cloudFor(link, proxy);
     if (closed || proxies.get(link.id) !== proxy) return;
     if (cloud) ways.push(cloud);

@@ -91,7 +91,7 @@ A relay-linked server also gets a direct path, picked automatically and kept up 
 the fallback. Nothing is opened on the server and the person configures nothing: it rides the server's own sshd on port
 22, which every VPS already answers (Oracle Cloud included). Where the person's network blocks port 22 (Jio, often),
 the same byte stream rides a WebSocket to the server's own HTTPS on 443 instead. The app tries ssh, then 443, then
-stays on the relay; a transport that failed on a network is tried last there for 30 minutes.
+WebRTC, then stays on the relay; a transport that failed on a network is tried last there for 30 minutes.
 
 ```
  app (electron main)                                         vps
@@ -140,10 +140,14 @@ stays on the relay; a transport that failed on a network is tried last there for
   in its round trip plus 250 ms (384 KB to 8 MB, from the acks), so a download or a busy desktop delays an API reply by
   about that much at most. What is ready goes out as one write a turn later: sshd sets no `TCP_NODELAY` for a channel
   without a pty, so separate small writes waited for delayed acks.
-- **Why not WebRTC.** Measured on the reference setup (2026-11-07): the Mac behind its VPN maps each destination to a
-  new public port (symmetric NAT), and the VPS drops unsolicited UDP (OCI security list and host firewall), so STUN
-  hole punching delivered nothing in 25 s either way. TCP 22 is open on every VPS. A WebRTC tier could be added beside
-  this one for networks where punching works; it would not help behind such VPNs.
+- **WebRTC.** After ssh and 443, the app tries WebRTC (`electron/vps-link-rtc.mjs`, agent `direct-rtc`): the offer and
+  answer ride the sealed tunnel as one control op, so the DTLS fingerprints come from the two ends that hold the tunnel
+  key; one reliable data channel then carries exactly the same sealed byte stream into the direct hub. STUN finds the
+  way where hole punching works (a VPS that drops unsolicited UDP still answers what it punched itself), and the signed-in
+  account's Cloudflare TURN servers (UDP, TCP, TLS on 443) carry it where it does not. The agent loads node-datachannel
+  from `/opt/duskbot-link/node_modules` (the installer puts it there, best effort; `DUSK_LINK_NDC_DIR` moves it) and
+  uses `DUSK_SCREEN_DIRECT_PORTS` for its UDP ports when set. Measured on the reference setup (2026-11-07) without TURN,
+  punching failed behind a symmetric-NAT VPN against a VPS dropping unsolicited UDP; TURN covers that case.
 - **When it cannot work.** sshd set to refuse the link account (`AllowUsers`, `AllowGroups`, `DenyUsers`), sshd off
   port 22 without `DUSK_LINK_DIRECT_PORT`, or outbound port 22 blocked on the person's network, and no HTTPS address for
   443: the app logs it and stays on the relay.

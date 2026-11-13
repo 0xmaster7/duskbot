@@ -169,3 +169,11 @@ printf 'done\\n' >> "$calls"
     }
   });
 });
+
+describe("webrtc beside the agent", () => {
+  it("installs the node-datachannel the app and server pin, best effort", async () => {
+    const pinned = JSON.parse(await readFile(new URL("../../../package.json", import.meta.url), "utf8")).dependencies["node-datachannel"];
+    expect(/^AGENT_RTC_VERSION=(\S+)$/m.exec(script)?.[1]).toBe(pinned);
+    expect(script).toMatch(/agent_rtc \|\| echo "webrtc for the link could not be installed/);
+  });
+});

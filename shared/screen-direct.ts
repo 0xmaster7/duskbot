@@ -41,6 +41,8 @@ export const SCREEN_FALLBACK_REASONS = [
   "timeout",
   // an earlier attempt on this app failed recently
   "recent-failure",
+  // the app's whole link to this server already goes direct (ssh, 443 or webrtc), which carries this screen too
+  "link-direct",
 ] as const;
 export type ScreenFallbackReason = typeof SCREEN_FALLBACK_REASONS[number];
 

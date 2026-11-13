@@ -13,6 +13,14 @@ import { watchNetwork } from "./network-change.mjs";
 import { createLinkAwake } from "./vps-link-awake.mjs";
 import { createMacExecutor } from "./mac-control-tools.mjs";
 import { cloudConnector, cloudRegister, cloudRelayUrl, newDirectKey, sshConnector, wssConnector } from "./vps-link-direct.mjs";
+import { loadDataChannel, rtcConnector } from "./vps-link-rtc.mjs";
+
+/** webrtc for the whole link where this app carries node-datachannel; turn servers from the signed-in account */
+function rtcWay(screenIce) {
+  const ndc = loadDataChannel();
+  if (!ndc) return null;
+  return { connector: ({ signal }) => rtcConnector({ ndc, signal, turn: async () => (await screenIce?.()) ?? [] }) };
+}
 import { createEgressDialer, createEgressEndpoint, seenAsCache } from "./vps-link-egress.mjs";
 import { createVpsLink } from "./vps-link.mjs";
 import { proxyFromPac } from "./vps-link-protocol.mjs";
@@ -207,7 +215,7 @@ export function installVpsLink(deps) {
     relaunch: deps.relaunch,
     dataSize: async () => { const dir = deps.dataDir(); return dir ? folderSize(dir) : null; },
     // the direct path to a relay-linked server, over ssh or https on 443, then the cloud relay (vps-link-direct.mjs); DUSK_LINK_DIRECT=off keeps every link on the relay
-    ...(process.env.DUSK_LINK_DIRECT === "off" ? {} : { direct: { newKey: newDirectKey, connector: sshConnector, wssConnector, cloud: { url: cloudRelayUrl(), connector: cloudConnector, register: cloudRegister } } }),
+    ...(process.env.DUSK_LINK_DIRECT === "off" ? {} : { direct: { newKey: newDirectKey, connector: sshConnector, wssConnector, cloud: { url: cloudRelayUrl(), connector: cloudConnector, register: cloudRegister }, rtc: rtcWay(deps.screenIce) } }),
     onChange: (view) => { deps.tell(view); followMac(view); },
     log,
   });

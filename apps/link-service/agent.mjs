@@ -9,6 +9,7 @@
 // it also lends the bot computers on this server the app's own internet connection when the person turns on "route
 // traffic through this computer": a socks5 and http connect proxy on the bot computers' bridge (see createEgressProxy).
 import { spawn } from "node:child_process";
+import { createRequire } from "node:module";
 import { X509Certificate, createCipheriv, createDecipheriv, createHash, createHmac, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes, verify as verifySignature } from "node:crypto";
 import { createSocket } from "node:dgram";
 import { chmodSync, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from "node:fs";
@@ -52,8 +53,8 @@ export const SERVER = { host: "127.0.0.1", port: Number(process.env.LINK_SERVER_
 export const LINK_PROTOCOL = 2;
 export const LINK_MIN_APP = 1;
 export const LINK_MIN_SERVER = 1;
-export const AGENT_VERSION = "2.3.1";
-export const AGENT_CAPS = Object.freeze(["direct-ssh", "direct-wss", "egress", "egress-lane", "self-update", "cloud-relay"]);
+export const AGENT_VERSION = "2.4.0";
+export const AGENT_CAPS = Object.freeze(["direct-ssh", "direct-wss", "direct-rtc", "egress", "egress-lane", "self-update", "cloud-relay"]);
 /** what this agent says about itself, in its direct hello and its answer to the app's `hello` */
 export const agentHello = () => ({ protocol: LINK_PROTOCOL, minApp: LINK_MIN_APP, minServer: LINK_MIN_SERVER, agent: AGENT_VERSION, caps: [...AGENT_CAPS] });
 const FRAME_SKEW_MS = 5 * 60_000;
@@ -1244,6 +1245,108 @@ async function directWss(context, readSpki = spkiOf) {
   return { v: 1, url, spki: await readSpki(target.hostname, Number(target.port) || 443) };
 }
 
+// ---- the direct path over webrtc: electron/vps-link-rtc.mjs is the app's end ----
+// ---- shared with electron/vps-link-rtc.mjs (keep both in step; a test checks they interoperate) ----
+export const RTC_LABEL = "dusk-link";
+export const RTC_PIECE = 64 * 1024;
+const RTC_HIGH = 4 * 1024 * 1024;
+const RTC_LOW = 1024 * 1024;
+
+/** a node-datachannel data channel as a byte stream; writes wait while more than RTC_HIGH is queued */
+export function channelDuplex(dc) {
+  let waiting = null;
+  const duplex = new Duplex({
+    read() {},
+    write(chunk, _encoding, callback) {
+      try {
+        for (let at = 0; at < chunk.length; at += RTC_PIECE) dc.sendMessageBinary(chunk.subarray(at, at + RTC_PIECE));
+      } catch (error) { callback(error); return; }
+      if (dc.bufferedAmount() > RTC_HIGH) waiting = callback;
+      else callback();
+    },
+    destroy(error, callback) {
+      try { dc.close(); } catch { /* closed */ }
+      callback(error);
+    },
+  });
+  dc.setBufferedAmountLowThreshold(RTC_LOW);
+  dc.onBufferedAmountLow(() => { const go = waiting; waiting = null; go?.(); });
+  dc.onMessage((message) => {
+    if (typeof message === "string") { duplex.destroy(new Error("text on a byte channel")); return; }
+    duplex.push(Buffer.isBuffer(message) ? message : Buffer.from(message));
+  });
+  dc.onClosed(() => { duplex.push(null); duplex.destroy(); });
+  dc.onError((error) => duplex.destroy(new Error(String(error))));
+  return duplex;
+}
+// ---- end of the shared part ----
+
+/** node-datachannel the installer put beside this file (/opt/duskbot-link/node_modules); null when it is not there */
+let rtcLoaded;
+export function rtcLibrary(dirs = [process.env.DUSK_LINK_NDC_DIR, dirname(fileURLToPath(import.meta.url))].filter(Boolean)) {
+  if (rtcLoaded !== undefined) return rtcLoaded;
+  rtcLoaded = null;
+  for (const dir of dirs) {
+    try {
+      const loaded = createRequire(join(dir, "node_modules", "anchor.js"))("node-datachannel");
+      if (typeof loaded?.PeerConnection === "function") { rtcLoaded = loaded; break; }
+    } catch { /* not there */ }
+  }
+  return rtcLoaded;
+}
+
+const RTC_MAX = 8;
+let rtcPeers = 0;
+/** an offer for one link-wide data channel, as the app's webrtc stack makes it: bounded, with a fingerprint, no media */
+export const rtcOffer = (value) => (value?.type === "offer" && typeof value.sdp === "string" && value.sdp.length <= 64 * 1024 && value.sdp.startsWith("v=0")
+  && /^a=fingerprint:sha-256 [0-9A-F:]{95}\r?$/im.test(value.sdp) && /^m=application /m.test(value.sdp) && !/^m=(?:audio|video) /m.test(value.sdp) ? value.sdp : null);
+
+/** answers the app's offer; the channel, once open, is one more direct session of the tunnel's hub (sealed frames only) */
+export async function directRtc(data, context, lib = rtcLibrary()) {
+  if (process.env.DUSK_LINK_DIRECT === "off") throw new Error("direct links are off on this server");
+  if (!lib) throw new Error("webrtc is not installed on this server");
+  const sdp = rtcOffer(data?.offer);
+  if (!sdp) throw new Error("that is not a link offer");
+  if (!context.hub) throw new Error("no tunnel here");
+  if (rtcPeers >= RTC_MAX) throw new Error("too many webrtc links");
+  const range = /^(\d{4,5})-(\d{4,5})$/.exec(process.env.DUSK_SCREEN_DIRECT_PORTS ?? "");
+  const pc = new lib.PeerConnection("dusk-link", { iceServers: ["stun:stun.cloudflare.com:3478", "stun:stun.l.google.com:19302"], maxMessageSize: 256 * 1024,
+    ...(range ? { portRangeBegin: Number(range[1]), portRangeEnd: Number(range[2]) } : {}) });
+  rtcPeers += 1;
+  let ended = false, accepted = false;
+  const end = () => { if (ended) return; ended = true; rtcPeers -= 1; clearTimeout(deadline); try { pc.close(); } catch { /* closed */ } };
+  const deadline = setTimeout(() => { if (!accepted) end(); }, 30_000);
+  deadline.unref?.();
+  pc.onStateChange((state) => { if (state === "failed" || state === "closed") end(); });
+  pc.onDataChannel((dc) => {
+    if (accepted || ended || dc.getLabel() !== RTC_LABEL) { dc.close(); return; }
+    const go = () => {
+      if (accepted || ended) return;
+      accepted = true;
+      clearTimeout(deadline);
+      const duplex = channelDuplex(dc);
+      duplex.on("error", () => {});
+      duplex.once("close", end);
+      if (!context.hub.accept(duplex, duplex)) duplex.destroy();
+    };
+    if (dc.isOpen()) go(); else dc.onOpen(go);
+  });
+  try {
+    pc.setRemoteDescription(sdp, "offer");
+    await new Promise((resolve) => {
+      if (pc.gatheringState() === "complete") { resolve(); return; }
+      const timer = setTimeout(resolve, 1500);
+      pc.onGatheringStateChange((state) => { if (state === "complete") { clearTimeout(timer); resolve(); } });
+    });
+    const local = pc.localDescription();
+    if (!local || local.type !== "answer" || ended) throw new Error("no answer");
+    return { type: "answer", sdp: local.sdp };
+  } catch (error) {
+    end();
+    throw error;
+  }
+}
+
 /** the server's version and link protocol, from its public descriptor; a server from before it counts as protocol 1 */
 export async function serverLink(read = () => local("GET", "/.well-known/duskbot/environment")) {
   try {
@@ -1269,6 +1372,7 @@ export async function control(op, data, context = {}) {
   }
   if (op === "direct-key") return directKey(data, context);
   if (op === "direct-wss") return directWss(context, context.spkiOf);
+  if (op === "direct-rtc") return directRtc(data, context);
   if (op === "direct-off") { if (context.id) setDirectKey(context.id, null); return { ok: true }; }
   if (op === "pair") {
     // a fresh one-time code for the app's own sign-in here, when its session lapsed (sessions end after 180 days)
@@ -2116,6 +2220,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
   const laneSend = (frame) => { if (stopped) return; if (frame.t === "cancel") lane.discard(frame.r); lane.push(sealFrame(key, id, "to-app", frame), frame.r); };
   const egress = egressOptions ? createEgressProxy({ send: laneSend, bytes: (r, chunk) => lane.bytes(r, chunk), queued: () => lane.size, onDrain: (resume) => lane.onDrain(resume), path: () => hub.best(), log, ...egressOptions }) : null;
   const hub = createDirectHub({ id, key: keyText, server, guard, egress, log, context, onFrame: used });
+  context.hub = hub;
   const handle = (frame) => { used(frame); return egress?.handle(frame) ? undefined : serving.handle(frame); };
   const idle = () => Date.now() - lastUse >= UPDATE_IDLE_MS && (egress?.stats().active ?? 0) === 0;
   const updater = updateOptions ? createUpdater({ base, idle, apply: () => stop("update"), log, ...updateOptions }) : null;

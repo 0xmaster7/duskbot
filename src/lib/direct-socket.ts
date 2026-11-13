@@ -2,7 +2,7 @@
 // browser's stream asks the server for a peer first and falls back to the relay socket as before. It behaves like a
 // WebSocket for the code that holds it: readyState, binaryType, send, close and the four events.
 import { SOCKET_CHANNEL, SOCKET_DIRECT_PATH, SOCKET_DIRECT_TARGET, SOCKET_KIND, SOCKET_PIECE } from "../../shared/screen-direct";
-import { directScreenWanted, linkProxyTurn, onLinkProxy, openDirectScreen } from "./screen-direct";
+import { directScreenWanted, linkProxyState, linkProxyTurn, onLinkProxy, openDirectScreen } from "./screen-direct";
 
 type Opener = typeof openDirectScreen;
 
@@ -90,7 +90,7 @@ class DirectFirstSocket extends EventTarget {
     let attempt: Awaited<ReturnType<Opener>>;
     try {
       attempt = await open(`${SOCKET_DIRECT_PATH}?${new URLSearchParams({ path: `${target.pathname}${target.search}` })}`, {
-        signal: this.#abort.signal, label: SOCKET_CHANNEL, ...(onLinkProxy(this.#hostname) ? { turn: () => linkProxyTurn() } : {}),
+        signal: this.#abort.signal, label: SOCKET_CHANNEL, ...(onLinkProxy(this.#hostname) ? { turn: () => linkProxyTurn(), linkDirect: async () => (await linkProxyState()).direct } : {}),
       });
     } catch { return; }
     if (this.readyState !== 0) { if ("channel" in attempt) attempt.close(); return; }

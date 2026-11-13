@@ -1474,6 +1474,17 @@ get_agent() {
   elif [ ! -f "$AGENT" ]; then
     echo "could not download the link agent"; return 1
   fi
+  agent_rtc || echo "webrtc for the link could not be installed; the app reaches this server over ssh, https or the relay"
+}
+
+# node-datachannel beside the agent, so the app's link can go over webrtc (agent.mjs directRtc); best effort, never fatal.
+# keep the version in step with package.json's node-datachannel (a test checks)
+AGENT_RTC_VERSION=0.33.6
+agent_rtc() {
+  [ "$(cat /opt/duskbot-link/node_modules/node-datachannel/package.json 2>/dev/null | sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' | head -n 1)" = "$AGENT_RTC_VERSION" ] && return 0
+  command -v npm >/dev/null 2>&1 || return 1
+  retry npm install --no-save --no-fund --no-audit --no-package-lock --omit=dev --prefix /opt/duskbot-link "node-datachannel@$AGENT_RTC_VERSION" >/dev/null 2>&1 || return 1
+  chmod -R go-w /opt/duskbot-link/node_modules
 }
 
 # the address the app uses, kept in state (mode, host, via, pin) and in $ADDRESS for the link agent, which tells the app
