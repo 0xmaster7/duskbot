@@ -6,7 +6,7 @@
 import { randomBytes } from "node:crypto";
 import { launchVerificationServer, verificationHome } from "./control-dusk.ts";
 import { mountPreview, parkUntilSignal, type MountedPreview } from "./testing/preview-fixture.ts";
-import { plantAgentTools, plantHermes, plantOpenClawList, plantOpenMausBot } from "../server/testing/agent-app-fixtures.ts";
+import { plantAgentTools, plantHermes, plantOpenClawList, plantOpenMausBot, plantRealShape } from "../server/testing/agent-app-fixtures.ts";
 
 const owner = randomBytes(32).toString("base64url");
 const env = { ...process.env, DUSK_TEST_DESKTOP_OWNER_TOKEN: owner };
@@ -15,10 +15,14 @@ const realFetch = globalThis.fetch;
 globalThis.fetch = (input, init = {}) => realFetch(input, { ...init, headers: { ...Object.fromEntries(new Headers(init.headers)), "x-dusk-desktop-owner": owner } });
 const fixture = await launchVerificationServer(env);
 const home = verificationHome(env, fixture.info.dataDir);
-plantOpenClawList(home);
-plantHermes(home);
-plantOpenMausBot(home);
-plantAgentTools(home);
+// DUSK_FIXTURE=real-shape: a home in the shape of a real desktop's, synthetic values only
+if (process.env.DUSK_FIXTURE === "real-shape") plantRealShape(home);
+else {
+  plantOpenClawList(home);
+  plantHermes(home);
+  plantOpenMausBot(home);
+  plantAgentTools(home);
+}
 // a new install: the welcome not yet seen, and the starter bot under its own name
 const call = (path: string, method: string, body: unknown) => fetch(`${fixture.info.url}${path}`, {
   method, headers: { "content-type": "application/json", origin: fixture.info.url }, body: JSON.stringify(body),

@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { lookForBots } from "./bot-move-local.ts";
 import { thisMachine, type SetupFs, type SetupMachine } from "./setup-import.ts";
-import { linkOldName, plantAgentTools, plantHermes, plantOpenClawEntries, plantOpenClawList, plantOpenMausBot, PNG, putter, SENTINEL } from "./testing/agent-app-fixtures.ts";
+import { linkOldName, plantAgentTools, plantHermes, plantOpenClawEntries, plantOpenClawList, plantOpenClawStock, plantOpenMausBot, PNG, putter, SENTINEL } from "./testing/agent-app-fixtures.ts";
 
 const homes: string[] = [];
 afterEach(() => {
@@ -67,11 +67,13 @@ describe("OpenClaw", () => {
     const [molty, scout] = app.bots;
     expect(molty).toMatchObject({ name: "Molty", title: "space lobster", description: "warm, a little dry" });
     expect(molty!.instructions).toContain("Have opinions.");
-    expect(Object.keys(molty!.memoryFiles!).sort()).toEqual([
-      "MEMORY.md", "memory/openclaw-agents.md", "memory/openclaw-daily-notes.md", "memory/openclaw-setup.md", "memory/openclaw-tools.md",
-    ]);
-    // what it knew about the person is for About me, without the template's empty lines
-    expect(molty!.userFacts).toEqual(["Name: Sam", "Timezone: Europe/Lisbon", "Prefers short answers."]);
+    // AGENTS.md is still OpenClaw's template, and daily logs are history: neither is kept as memory
+    expect(Object.keys(molty!.memoryFiles!).sort()).toEqual(["MEMORY.md", "memory/openclaw-setup.md", "memory/openclaw-tools.md"]);
+    // what it knew about the person is for About me, only the fields filled in; the rest of USER.md and the daily
+    // logs go to the bot's engine to condense
+    expect(molty!.userFacts).toEqual(["Name: Sam", "Timezone: Europe/Lisbon"]);
+    expect(molty!.distill!.join("\n")).toContain("Prefers short answers.");
+    expect(molty!.distill!.join("\n")).toContain("Booked the dentist");
     // its picture, from its own folder; Scout's points out of its folder and is left
     expect(molty!.avatar).toEqual({ mime: "image/png", data: PNG.toString("base64") });
     expect(scout!.avatar).toBeUndefined();
@@ -85,7 +87,7 @@ describe("OpenClaw", () => {
     expect(setup).toContain("- Model: anthropic/claude-sonnet-4-5.");
     expect(setup).toContain("- Answered on: Telegram.");
     expect(setup).toContain("- Tools (MCP servers): linear, files.");
-    expect(molty!.memoryFiles!["memory/openclaw-daily-notes.md"]!.indexOf("2026-03-02")).toBeLessThan(molty!.memoryFiles!["memory/openclaw-daily-notes.md"]!.indexOf("2026-03-01"));
+    expect(molty!.distill![1]!.indexOf("2026-03-02")).toBeLessThan(molty!.distill![1]!.indexOf("2026-03-01"));
     expect(molty!.skills.map((skill) => skill.name)).toEqual(["groceries", "weather"]);
     expect(molty!.routines.map((routine) => [routine.name, routine.cron, routine.timeZone, routine.paused])).toEqual([
       ["Heartbeat", "", "", true], ["Morning brief", "0 8 * * 1-5", "Europe/Lisbon", false], ["Wake", "*/5 * * * *", "", false],
@@ -100,6 +102,22 @@ describe("OpenClaw", () => {
     expect(machine.listed.some((path) => /credentials|sessions|agents[\\/]main/.test(path))).toBe(false);
     expect(JSON.stringify(look)).not.toContain(SENTINEL);
     expect(snapshot(home)).toEqual(before);
+  });
+
+  it("is a bot only where a workspace really defines one: OpenClaw's templates, a never-set-up agent and an empty folder are not", () => {
+    const home = newHome();
+    plantOpenClawStock(home);
+    const look = lookForBots(machineAt(home), { now: NOW });
+    expect(look.apps).toHaveLength(1);
+    const bots = look.apps[0]!.bots;
+    // named by its persona's own heading, since IDENTITY.md was never filled in
+    expect(bots.map((bot) => bot.name)).toEqual(["Nova"]);
+    const [nova] = bots;
+    expect(nova!.instructions).toContain("You are Nova");
+    expect(nova!.userFacts, "an empty USER.md template is no fact").toEqual([]);
+    expect(nova!.routines, "a heartbeat of only comments is no routine").toEqual([]);
+    expect(Object.keys(nova!.memoryFiles!), "stock AGENTS.md and TOOLS.md are not memory").toEqual(["memory/openclaw-setup.md"]);
+    expect(nova!.distill).toEqual([]);
   });
 
   it("reads a 2026.11 install: agents.entries, its system agent and cron jobs kept in SQLite, never its sessions", () => {

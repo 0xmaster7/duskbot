@@ -88,15 +88,16 @@ describe("bots from other apps, through the real package path", () => {
       expect(molty.installedPackage).toMatchObject({ source: "file", name: "Molty" });
       expect(app.workspace.readMemoryFile(molty.id).text).toContain("Sam's sister is called Ana.");
       expect(app.workspace.readMemoryTopic(molty.id, "about-you.md"), "facts about the person go to About me").toBeNull();
-      expect(first.facts).toContain("Prefers short answers.");
+      expect(first.facts).toContain("Timezone: Europe/Lisbon");
       // instructions in the working shape, with the source's words whole and where its notes went
       expect(molty.soul).toContain("## Your instructions from OpenClaw\n# SOUL.md - Who You Are");
-      expect(molty.soul).toContain("memory/openclaw-daily-notes.md");
+      expect(molty.soul).toContain("memory/openclaw-tools.md");
       expect(molty.avatarCrop, "its picture came along").toBe("circle");
       const reviewer = moved[4]!;
       expect(reviewer).toMatchObject({ color: "blue", description: "Expert code review specialist. Use right after writing or changing code." });
       expect(reviewer.soul).toContain("You are a senior code reviewer.");
-      expect(app.workspace.readMemoryTopic(molty.id, "openclaw-daily-notes.md")).toContain("Booked the dentist");
+      // daily logs never land as they are: they wait for the bot's engine to condense them
+      expect(app.workspace.readMemoryTopic(molty.id, "openclaw-daily-notes.md")).toBeNull();
       expect(app.skills.listSkills(molty.id).filter((skill) => ["groceries", "weather"].includes(skill.name)).map((skill) => [skill.name, skill.enabled]))
         .toEqual([["groceries", false], ["weather", false]]);
 

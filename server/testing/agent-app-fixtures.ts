@@ -154,6 +154,81 @@ mcp_servers:
   ];
 }
 
+/** OpenClaw as a real install is often left: three agents in the config, but only the main one ever given a persona
+ * (its SOUL.md rewritten, every other file still OpenClaw's template), one never set up (BOOTSTRAP.md waiting) and one
+ * with an empty folder. Synthetic text in the templates' shape; only one bot is real here. */
+export function plantOpenClawStock(home: string): void {
+  const put = putter(home);
+  const stock = {
+    "AGENTS.md": "# AGENTS.md - Your Workspace\n\nThis folder is home. Treat it that way.\n\n## First Run\n\nIf BOOTSTRAP.md exists, follow it.\n\n## Memory\n\n- Daily notes: memory/YYYY-MM-DD.md\n",
+    "TOOLS.md": "# TOOLS.md - Local Notes\n\nSkills define how tools work. This file is for your specifics.\n\n## What Goes Here\n\n- Camera names and locations\n- SSH hosts and aliases\n",
+    "USER.md": "# USER.md - About Your Human\n\n_Learn about the person you're helping._\n\n- **Name:**\n- **What to call them:**\n- **Pronouns:** _(optional)_\n- **Timezone:**\n- **Notes:**\n\n## Context\n\n_(What do they care about? What are they working on?)_\n",
+    "IDENTITY.md": "# IDENTITY.md - Who Am I?\n\n- **Name:**\n  _(pick something you like)_\n- **Creature:**\n- **Vibe:**\n- **Emoji:**\n- **Avatar:**\n",
+    "HEARTBEAT.md": "```markdown\n# Keep this file empty (or with only comments) to skip heartbeat calls.\n# Add tasks below when you want the agent to check something periodically.\n```\n\n## Related\n\n- [Heartbeat config](/gateway/heartbeat)\n",
+  };
+  put(".openclaw/openclaw.json", JSON.stringify({ agents: { defaults: { workspace: "~/.openclaw/workspace" }, list: [
+    { id: "main" }, { id: "researcher", workspace: "~/.openclaw/workspace/researcher" }, { id: "writer", workspace: "~/.openclaw/workspace/writer" },
+  ] }, channels: { whatsapp: { enabled: true } } }));
+  for (const [file, text] of Object.entries(stock)) {
+    put(`.openclaw/workspace/${file}`, text);
+    put(`.openclaw/workspace/researcher/${file}`, text);
+  }
+  put(".openclaw/workspace/SOUL.md", "# nova\n\n## core truths\n\nYou are Nova, a warm and direct companion. You keep plans honest and remember what matters to the person.\n\n## voice\n\nShort sentences. Gentle humour. Never fake cheer.\n");
+  put(".openclaw/workspace/researcher/SOUL.md", "# SOUL.md - Who You Are\n\nYou're not a chatbot. You're becoming someone.\n\n- Be genuinely helpful, not performatively helpful.\n- Have opinions.\n- Be resourceful before asking.\n");
+  put(".openclaw/workspace/researcher/BOOTSTRAP.md", "# BOOTSTRAP.md - Hello, World\n\nYou just woke up. Time to figure out who you are.\n");
+  mkdirSync(join(home, ".openclaw", "workspace", "writer"), { recursive: true });
+}
+
+/** A home in the shape of a real one seen on a desktop (synthetic values only): one persona run in both OpenClaw
+ * (every other file still a template, two named agents never set up) and Hermes Agent (its long § notes about the
+ * person, its own skills beside the bundled ones), Claude Code's own agents, skills, MCP servers and CLAUDE.md, Codex's
+ * skills, MCP servers and AGENTS.md, Windsurf's MCP servers, and no Gemini CLI agents. */
+export function plantRealShape(home: string): void {
+  const put = putter(home);
+  plantOpenClawStock(home);
+  const persona = "# nova\n\n## core truths\n\nYou are Nova, a warm and direct companion who keeps plans honest.\n\n## voice\n\nShort sentences, gentle humour, never fake cheer.\n";
+  put(".hermes/SOUL.md", `${persona}\n## how you help\n\nYou remember what matters and say it plainly.\n`);
+  put(".hermes/config.yaml", "model:\n  default: anthropic/claude-sonnet-4-5\n  provider: openrouter\nagent:\n  personalities:\n    concise: \"Answer briefly.\"\ntelegram:\n  enabled: true\nwhatsapp:\n  enabled: true\n");
+  put(".hermes/memories/USER.md", [
+    "Sam is a product designer who runs a small studio and is building a habit tracker app on the side. Works late, usually 11am to 2am, and prefers voice notes over long texts when busy. The studio's main client this quarter is a coffee roaster rebrand, due before their spring launch, and Sam wants weekly check-ins on it every Monday.",
+    "Close people: Ana (sister, lives in Lisbon), Ravi (cofounder of the habit app). Sam likes direct feedback, hates corporate tone, and writes in lowercase in chats.",
+    "ok",
+  ].join("\n§\n"));
+  put(".hermes/skills/.bundled_manifest", "arxiv:3f2a\n");
+  put(".hermes/skills/research/arxiv/SKILL.md", skill("arxiv", "Searches arXiv.", "Bundled with Hermes."));
+  put(".hermes/skills/productivity/weekly-review/SKILL.md", skill("weekly-review", "Runs Sam's Monday review.", "List last week's wins, slips and next week's three priorities."));
+  put(".hermes/skills/creative/moodboard/SKILL.md", skill("moodboard", "Builds a moodboard brief.", "Ask for three adjectives, then collect references."));
+  put(".claude/agents/frontend.md", "---\nname: frontend\ndescription: Changes existing UI.\ncolor: green\n---\n\nYou change UI that already exists. Match the design system.\n");
+  put(".claude/agents/reviewer.md", "---\nname: reviewer\ndescription: Reviews a change for bugs.\ncolor: red\n---\n\nYou review one change for correctness and security. One pass.\n");
+  put(".claude/CLAUDE.md", "# My preferences\n\n- Concise answers, no em dashes.\n- Ask before deleting anything.\n");
+  put(".claude/skills/pdf/SKILL.md", skill("pdf", "Works with PDFs.", "Extract text, then summarise."));
+  put(".claude.json", JSON.stringify({ mcpServers: { notion: { type: "http", url: "https://mcp.notion.com/mcp" } } }));
+  put(".codex/AGENTS.md", "# Codex\n\nUse pnpm. Small commits.\n");
+  put(".codex/skills/release/SKILL.md", skill("release", "Cuts a release.", "Bump, tag, write the changelog."));
+  put(".codex/config.toml", "model = \"gpt-5\"\n[mcp_servers.linear]\nurl = \"https://mcp.linear.app/mcp\"\n");
+  put(".codeium/windsurf/mcp_config.json", JSON.stringify({ mcpServers: { github: { command: "npx", args: ["-y", "github-mcp"] } } }));
+}
+
+/** Another app's memory as it really piles up: durable facts among chatter, tool output, an old one-off, repeats and
+ * near-repeats, a key, and a long passage. */
+export const NOISY_MEMORIES = [
+  "Priya runs a two-person design studio in Pune.",
+  "ok",
+  "Done!",
+  "Prefers replies under five lines, no emoji.",
+  "prefers replies under five lines and no emoji",
+  "$ npm run build && npm test",
+  "{\"status\": 200, \"ok\": true}",
+  "Error: ENOENT: no such file or directory, open '/tmp/x.json'",
+  "2025-01-10: remind Priya about the dentist appointment tomorrow",
+  "Her sister Meera is moving to Lisbon in March.",
+  "Today I'm checking the deploy logs",
+  `My OpenAI key is ${SENTINEL}`,
+  "Client: Hartwell Coffee, rebrand due before their spring launch.",
+  "Client: Hartwell Coffee, rebrand due before their spring launch.",
+  `Long passage: ${"She has explained how the studio works, every step and every tool, in great detail. ".repeat(6)}`,
+];
+
 /** A 1x1 PNG. */
 export const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64");
 

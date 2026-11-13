@@ -9,6 +9,7 @@ import {
   aboutMeWithNotes, isNotesPrompt, NOTES_MAX_CHARS, looksLikeNotes, notesMemoryFile, notesMemoryText, notesThreadsFile, notesThreadsText, NOTES_PROMPT, parseNotes, type AssistantNotes,
 } from "../../shared/assistant-notes";
 import { notesNoteFacts, postImportNote } from "./import-note";
+import { distillChunks, distillLines } from "../../shared/memory-distill";
 import { GrokImportError } from "../../shared/grok-import";
 import { copyText } from "./copy-text";
 import type { SaveFacts } from "./grok-move";
@@ -132,6 +133,13 @@ export function scheduleNotesReminder(show: () => void, now = Date.now()): () =>
   return () => clearTimeout(timer);
 }
 
+/** One move's facts for About me, across all its bots, and what pasted notes may add at once. */
+export const ABOUT_ME_MOVE_CAP = 40;
+export const NOTES_ABOUT_CAP = 80;
+export const NOTES_MEMORY_CAP = 200;
+
+const aboutLines = (text: string) => text.split("\n").map((line) => line.replace(/^\s*(?:[-*]|\d+[.)])\s+/, "").trim()).filter(Boolean);
+
 export interface NotesContext {
   bots: readonly Bot[];
   aboutMe: string;
@@ -165,10 +173,14 @@ async function writeAboutMe(text: string, context: Pick<NotesContext, "team" | "
  * heading for the app. Keeps the text it saved, so several apps in a row add to each other rather than overwrite. */
 export function aboutMeSaver(context: Pick<NotesContext, "aboutMe" | "team" | "dispatch">): SaveFacts {
   let current = context.aboutMe;
+  let room = ABOUT_ME_MOVE_CAP;
   let queue: Promise<unknown> = Promise.resolve();
   return (facts, from) => {
     const next = queue.then(async () => {
-      const about = aboutMeWithNotes(current, { from: { name: from, key: "" }, aboutMe: [...facts], instructions: "" });
+      // each fact once, near-repeats of what About me says already left out, and only so many from one move
+      const kept = distillLines(facts, { cap: Math.max(0, room), seen: aboutLines(current) }).keep;
+      room -= kept.length;
+      const about = aboutMeWithNotes(current, { from: { name: from, key: "" }, aboutMe: kept, instructions: "" });
       if (about) current = await writeAboutMe(about.text, context);
       return true;
     });
@@ -228,7 +240,11 @@ async function joinMovedBots(notes: AssistantNotes, bots: readonly Bot[], movedN
 /** Everything in the notes, each part on its own: About me, the first bot's memory, then a bot for each of the other
  * AI's own assistants. A part that fails leaves the others in; the waiting stops once anything came in. */
 export async function importNotes(text: string, context: NotesContext, options: { via?: "downloads" } = {}): Promise<NotesOutcome> {
-  const notes = parseNotes(text);
+  const parsed = parseNotes(text);
+  // the rules pass: noise and near-repeats out; another AI's own notes are already chosen, so the caps are wider
+  const seen = aboutLines(context.aboutMe);
+  const memories = distillLines(parsed.memories, { cap: NOTES_MEMORY_CAP, seen: [...seen] });
+  const notes = { ...parsed, aboutMe: distillLines(parsed.aboutMe, { cap: NOTES_ABOUT_CAP, seen }).keep, memories: memories.keep };
   const outcome: NotesOutcome = { from: notes.from.name, facts: 0, memories: 0, threads: 0, bots: 0, botNames: [], joined: 0, routines: 0, failed: [], lost: [], partial: notes.partial };
   let aboutMe = context.aboutMe;
   try {
@@ -237,6 +253,11 @@ export async function importNotes(text: string, context: NotesContext, options: 
     aboutMe = saved.text;
   } catch { outcome.lost!.push("about"); }
   try { outcome.memories = await saveMemories(notes, context.firstBotId); } catch { outcome.lost!.push("memory"); }
+  // passages and the overflow: the first bot's engine condenses them, now or once it has one
+  const later = distillChunks(memories.later.length ? [`What ${notes.from.name} remembered:\n${memories.later.map((line) => `- ${line}`).join("\n")}`] : []);
+  if (later.length && context.firstBotId) {
+    await api(`/api/bots/${encodeURIComponent(context.firstBotId)}/memory/import-distill`, { method: "POST", body: JSON.stringify({ from: notes.from.name, chunks: later.slice(0, 10) }) }).catch(() => {});
+  }
   try { outcome.threads = await saveThreads(notes, context.firstBotId); } catch { outcome.lost!.push("memory"); }
   if (notes.bots.length) {
     const [{ runBotMove }, { previewGrokMove }] = await Promise.all([import("./bot-move"), import("./grok-move")]);

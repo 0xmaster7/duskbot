@@ -21,6 +21,7 @@ import {
 import { upkeepEnabled, type MemoryUpkeep } from "../memory-upkeep.ts";
 import { listLearnedFacts, removeLearned } from "../profile-learned.ts";
 import type { RequestAuth } from "../request-auth.ts";
+import { importDistillBody, type ImportDistill } from "../import-distill.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 export interface BotMemoryRouteDeps {
@@ -32,6 +33,8 @@ export interface BotMemoryRouteDeps {
   saveAboutMe(text: string, auth: RequestAuth): void;
   /** Team Cloud only: the signed-in person's own layer of this bot's memory (`/memory/mine`); null for anyone else. */
   ownLayer?(auth: RequestAuth, botId: string): string | null;
+  /** What a moved bot brought that its engine condenses into notes (server/import-distill.ts). */
+  importDistill?: Pick<ImportDistill, "queue" | "waiting">;
 }
 
 export function createBotMemoryRoutes(deps: BotMemoryRouteDeps): RouteHandler {
@@ -158,6 +161,14 @@ export function createBotMemoryRoutes(deps: BotMemoryRouteDeps): RouteHandler {
       const bot = deps.bot(m[1]);
       if (!bot) return json(res, 404, { error: "no such bot" });
       return json(res, 200, { enabled: upkeepEnabled(bot), ...deps.upkeep.status(bot.id) });
+    }
+    m = path.match(/^\/api\/bots\/([\w-]+)\/memory\/import-distill$/);
+    if (m && method === "POST" && deps.importDistill) {
+      const bot = deps.bot(m[1]);
+      if (!bot) return json(res, 404, { error: "no such bot" });
+      const parsed = importDistillBody.safeParse(await readBody(req, 64 * 1024));
+      if (!parsed.success) return json(res, 400, { error: "body must be { from, chunks }" });
+      return json(res, 202, { waiting: deps.importDistill.queue(bot.id, parsed.data.from, parsed.data.chunks) });
     }
     m = path.match(/^\/api\/bots\/([\w-]+)\/memory\/tidy$/);
     if (m && method === "POST") {

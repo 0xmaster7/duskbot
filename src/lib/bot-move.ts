@@ -1,7 +1,7 @@
 import { t } from "@/lib/i18n";
 import { api, type Action, type Bot } from "@/state/store";
 import { moveFrom, readBotLook, EMPTY_LOOK, type BotLook } from "../../shared/bot-move";
-import { GROK_FROM, type MoveFrom } from "../../shared/grok-import";
+import { GROK_FROM, type GrokBot, type MoveFrom } from "../../shared/grok-import";
 import { foundExports, previewGrokMove, runGrokMove, type GrokLook, type GrokPreview, type GrokReport, type SaveFacts } from "./grok-move";
 
 export const BOTS_LOOK_TIME_BOX_MS = 2_500;
@@ -43,16 +43,31 @@ export interface BotMovePlan {
   grokWaiting: string[];
 }
 
+/** The same bot kept in two apps (one persona run in both Hermes Agent and OpenClaw, say) comes over once: the copy
+ * with the most in it (its persona, skills, memory, routines). */
+function oneBotPerName(apps: BotMoveLook["bots"]["apps"]): Set<GrokBot> {
+  const weight = (bot: GrokBot) => bot.instructions.length + 400 * bot.skills.length + 200 * (bot.memories.length + bot.userFacts.length)
+    + 300 * bot.routines.length + Object.values(bot.memoryFiles ?? {}).reduce((sum, text) => sum + text.length, 0);
+  const best = new Map<string, GrokBot>();
+  for (const bot of apps.flatMap((app) => app.bots)) {
+    const key = bot.name.trim().toLowerCase();
+    const held = best.get(key);
+    if (!held || weight(bot) > weight(held)) best.set(key, bot);
+  }
+  return new Set(best.values());
+}
+
 /** Everything that would come over, nothing written. Names are numbered against bots here and each other; a bot moved
  * before is named as already here. */
 export function planBotMove(look: BotMoveLook, facts: { bots: readonly Pick<Bot, "name" | "installedPackage">[]; servers: ReadonlySet<string>; timeZone: string }): BotMovePlan {
   const names = new Set(facts.bots.map((bot) => bot.name.trim().toLowerCase()));
   const servers = new Set(facts.servers);
   const planned = new Set<string>();
+  const kept = oneBotPerName(look.bots.apps);
   const apps: AppMove[] = look.bots.apps.map((found) => {
     const from = moveFrom(found);
     return { app: found.app, where: found.where, from, channels: found.channels, unreadable: found.unreadable,
-      preview: previewGrokMove(found.bots, { ...facts, from }, names, servers, planned) };
+      preview: previewGrokMove(found.bots.filter((bot) => kept.has(bot)), { ...facts, from }, names, servers, planned) };
   });
   const exports = foundExports(look.grok.files);
   if (exports.bots.length) {

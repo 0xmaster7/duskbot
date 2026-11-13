@@ -46,7 +46,8 @@ function shortLine(find: LocalFind): string {
   const counts = find.bots ? planCounts(find.bots) : null;
   const kinds = [
     ...(counts && (counts.memories || counts.facts) ? [t("bring.kindMemory")] : []),
-    ...(find.setup?.instructions ? [t("bring.kindInstructions")] : []),
+    // standing instructions (CLAUDE.md and the like) are the person's notes and preferences
+    ...(find.setup?.instructions ? [t("bring.kindInstructions"), t("bring.kindPreferences")] : []),
     ...((counts?.skills || find.setup?.skills) ? [t("bring.kindSkills")] : []),
     ...(counts?.routines ? [t("bring.kindRoutines")] : []),
     ...(find.setup?.tools ? [t("bring.kindTools")] : []),

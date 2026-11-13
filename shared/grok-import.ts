@@ -11,6 +11,7 @@ import {
 } from "./package-format.ts";
 import { BOT_PROFILE_LIMITS } from "./bot-profile.ts";
 import { importedSoul } from "./imported-soul.ts";
+import { ABOUT_ME_CAP, distillChunks, distillLines, NOTEBOOK_CAP } from "./memory-distill.ts";
 import { redactSecretsInText } from "./redact.ts";
 import { normalizeCronSchedule } from "./routine-schedule.ts";
 import { parseSkillMd, scanSkillText, SKILL_FILE_MAX_BYTES, yamlFrontmatterValue } from "./skill-md.ts";
@@ -92,6 +93,8 @@ export interface GrokBot {
   memoryFiles?: Record<string, string>;
   /** A colour it already had, when it is one of dusk bot's. */
   color?: string;
+  /** Passages for the bot's engine to condense into notes after the move (daily logs), never kept as they are. */
+  distill?: string[];
   /** A picture it already had: PNG, JPEG or WebP, base64, at most 64 KB. */
   avatar?: { mime: "image/png" | "image/jpeg" | "image/webp"; data: string };
 }
@@ -403,23 +406,26 @@ export interface GrokMovePlan {
   /** What the bot knew about the person: for About me, not its notebook (runGrokMove keeps them in its memory when
    * About me can't take them). */
   facts: string[];
+  /** Passages and the overflow of its memory, for its own engine to condense into short dated notes after the move. */
+  distill: string[];
+  /** Noise, repeats and near-repeats left out of its memory and facts. */
+  dropped: number;
 }
 
-const sameFact = (value: string) => value.replace(/\s+/g, " ").trim().toLowerCase();
-const dedupe = (lines: string[], seen: Set<string>) => lines.filter((line) => {
-  const key = sameFact(line);
-  if (seen.has(key)) return false;
-  seen.add(key);
-  return true;
-});
 
 /** The bot's notebook from what it remembered; facts about the person are kept apart, for About me. */
-function memoryNotes(bot: GrokBot, from: MoveFrom): { count: number; text: string | null; facts: string[] } {
-  const seen = new Set<string>();
-  const notes = dedupe(bot.memories.map((line) => line.replace(/\s*\n\s*/g, " ")), seen);
-  const facts = dedupe(bot.userFacts.map((line) => line.replace(/\s*\n\s*/g, " ")), seen);
-  if (!notes.length) return { count: 0, text: null, facts };
-  return { count: notes.length, text: `# Notes from ${from.name}\n\nWhat I remembered there, brought over when I moved.\n\n${notes.map((item) => `- ${item}`).join("\n")}\n`, facts };
+function memoryNotes(bot: GrokBot, from: MoveFrom): { count: number; text: string | null; facts: string[]; later: string[]; dropped: number } {
+  // the rules pass: durable lines up to a cap, noise and near-repeats out, passages and overflow for the engine
+  const seen: string[] = [];
+  const notes = distillLines(bot.memories, { cap: NOTEBOOK_CAP, seen });
+  const facts = distillLines(bot.userFacts, { cap: ABOUT_ME_CAP, seen });
+  const later = [...facts.later, ...notes.later];
+  const dropped = facts.dropped + notes.dropped;
+  if (!notes.keep.length) return { count: 0, text: null, facts: facts.keep, later, dropped };
+  return {
+    count: notes.keep.length, facts: facts.keep, later, dropped,
+    text: `# Notes from ${from.name}\n\nWhat I remembered there, brought over when I moved.\n\n${notes.keep.map((item) => `- ${item}`).join("\n")}\n`,
+  };
 }
 
 /** Facts about the person as a memory topic of the bot, for when About me couldn't take them. */
@@ -508,7 +514,8 @@ export function grokMovePlan(bot: GrokBot, options: { timeZone?: string; takenSe
   if (unscheduled.length) plant(notesFile, eventNotes(name, from, unscheduled));
   let memoryFiles = 0;
   for (const [path, text] of Object.entries(bot.memoryFiles ?? {})) {
-    if (text.trim() && plant(path, text)) memoryFiles += 1;
+    // a note of how it was set up there is no memory of the person or the work
+    if (text.trim() && plant(path, text) && !path.endsWith("-setup.md")) memoryFiles += 1;
   }
   const notesPlanted = memory.text ? plant(seed["MEMORY.md"] === undefined ? "MEMORY.md" : `memory/notes-from-${from.key}.md`, memory.text) : false;
 
@@ -597,5 +604,7 @@ export function grokMovePlan(bot: GrokBot, options: { timeZone?: string; takenSe
     memories: (notesPlanted ? memory.count : 0) + memoryFiles,
     apps,
     facts: memory.facts,
+    distill: distillChunks([...(memory.later.length ? [`What I remembered in ${from.name}:\n${memory.later.map((line) => `- ${line}`).join("\n")}`] : []), ...(bot.distill ?? [])]),
+    dropped: memory.dropped,
   };
 }

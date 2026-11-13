@@ -114,7 +114,8 @@ describe("what an export may never bring", () => {
     const moved = grokMovePlan(parseGrokExport(FILE)[0]!, { timeZone: "UTC" });
     expect(JSON.stringify(moved)).not.toContain(TOKEN);
     expect(moved.document.package.agents[0]!.seed!.memory[GROK_NOTES_FILE]).toContain("Reproduce the ticket");
-    expect(moved.document.package.agents[0]!.seed!.memory["MEMORY.md"]).toContain("is old");
+    // a memory that held a key says nothing worth keeping once the key is out: it is left out whole
+    expect(moved.document.package.agents[0]!.seed!.memory["MEMORY.md"]).not.toContain("is old");
   });
 
   it("strips an app's values, and keeps its address only without a key", () => {
@@ -164,7 +165,7 @@ describe("what comes over", () => {
     // facts about the person go to About me, each once, not into the bot's notebook
     expect(memory).not.toContain("America/New_York");
     expect(moved.facts).toEqual(["Works in America/New_York"]);
-    expect(moved).toMatchObject({ routines: 2, notes: 2, memories: 2, apps: 2 });
+    expect(moved).toMatchObject({ routines: 2, notes: 2, memories: 1, apps: 2, dropped: 3 });
     expect(moved.skills).toEqual([{ folder: "weekly-account-health", name: "Weekly account health", on: true }]);
   });
 

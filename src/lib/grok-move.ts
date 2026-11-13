@@ -129,6 +129,10 @@ export async function runGrokMove(preview: GrokPreview, dispatch: (action: Actio
         // About me couldn't take them: the bot keeps them, so nothing it knew is lost
         await api(`/api/bots/${encodeURIComponent(bot.id)}/memory/file`, { method: "PUT", body: JSON.stringify({ path: "memory/about-you.md", text: factsTopic(plan.facts, { name: from, key: "" }) }) }).catch(() => {});
       }
+      // passages and the overflow of its memory: its own engine condenses them into notes, now or once it has one
+      if (plan.distill.length) {
+        await api(`/api/bots/${encodeURIComponent(bot.id)}/memory/import-distill`, { method: "POST", body: JSON.stringify({ from, chunks: plan.distill.slice(0, 10) }) }).catch(() => {});
+      }
       report.bots.push({ id: bot.id, name: bot.name, ...(bot.section ? { section: bot.section } : {}), skills: plan.skills.length, skillsOff, routines: plan.routines, notes: plan.notes, memories: plan.memories, apps: plan.apps, facts: plan.facts.length });
     } catch {
       report.failed.push(plan.name);

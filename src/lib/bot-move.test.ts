@@ -42,6 +42,16 @@ beforeEach(() => {
   fixture.failImport = "";
 });
 
+describe("the same bot kept in two apps", () => {
+  it("comes over once, as the copy with the most in it, never as a numbered second bot", () => {
+    const plan = planBotMove({ bots: { apps: [
+      { source: "openclaw", app: "OpenClaw", where: "~/.openclaw", bots: [bot("Nova", { skills: [], routines: [], memories: [] })], channels: [], unreadable: [] },
+      { source: "hermes", app: "Hermes Agent", where: "~/.hermes", bots: [bot("nova", { instructions: "You are Nova, ".repeat(50) })], channels: [], unreadable: [] },
+    ] }, grok: { files: [], bots: [] } }, facts);
+    expect(plan.apps.map((app) => [app.app, app.preview.plans.map((one) => one.addedAs)])).toEqual([["Hermes Agent", ["nova"]]]);
+  });
+});
+
 describe("planning a move", () => {
   it("counts what each app brings and numbers a name already taken here", () => {
     const plan = planBotMove(look(), { ...facts, bots: [{ name: "Scout" }] as never });

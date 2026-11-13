@@ -111,8 +111,46 @@ function configPath(machine: SetupMachine, value: string, base: string): string 
 
 const hasContent = (body: string) => body.split(/\r?\n/).some((line) => {
   const trimmed = line.trim();
-  return trimmed && !trimmed.startsWith("#") && !trimmed.startsWith("<!--") && !/^[-*]\s*$/.test(trimmed);
+  return trimmed && !trimmed.startsWith("#") && !trimmed.startsWith("<!--") && !trimmed.startsWith("```") && !/^[-*]\s*$/.test(trimmed);
 });
+
+// OpenClaw writes every workspace file from a template on first run ("# AGENTS.md - Your Workspace", …); one still as
+// written says nothing about the person or the bot, so it is never brought over as if it did.
+const OPENCLAW_STOCK: Record<string, RegExp> = {
+  "AGENTS.md": /^#\s*AGENTS\.md\s*[-:]\s*Your Workspace/im,
+  "TOOLS.md": /^#\s*TOOLS\.md\s*[-:]\s*Local Notes[\s\S]*^##\s*What Goes Here/im,
+  "SOUL.md": /^#\s*SOUL\.md\s*[-:]\s*Who You Are/im,
+  "BOOTSTRAP.md": /^#\s*BOOTSTRAP\.md/im,
+};
+const SOUL_STOCK_LINES = ["Be genuinely helpful, not performatively helpful", "Have opinions", "Be resourceful before asking", "You're not a chatbot"];
+
+/** A workspace file still as OpenClaw wrote it. A SOUL.md counts as written by the person once they changed it. */
+function openClawStock(file: string, body: string): boolean {
+  if (file === "SOUL.md") return OPENCLAW_STOCK["SOUL.md"]!.test(body) && SOUL_STOCK_LINES.filter((line) => body.includes(line)).length >= 3;
+  // the template's "## Related" links to OpenClaw's docs are not tasks
+  if (file === "HEARTBEAT.md") return !body.replace(/^##\s*Related\b[\s\S]*$/im, "").split(/\r?\n/).some((line) => {
+    const trimmed = line.trim();
+    return trimmed && !trimmed.startsWith("#") && !trimmed.startsWith("```") && !trimmed.startsWith("<!--") && !/^[-*]\s*\[[^\]]*\]\([^)]*\)$/.test(trimmed);
+  });
+  return OPENCLAW_STOCK[file]?.test(body) ?? false;
+}
+
+/** A persona file's own name for the bot, from its first heading ("# Ananya"), never the file's template title. */
+function headingName(body: string | null): string {
+  const heading = /^#\s+(.{1,40})$/m.exec(body ?? "")?.[1]?.trim() ?? "";
+  return !heading || /\.md\b|who (?:you are|am i)|^soul\b/i.test(heading) ? "" : heading.replace(/^\p{Ll}/u, (letter) => letter.toUpperCase());
+}
+
+/** The filled fields of a key-value file (USER.md, IDENTITY.md): "Name: Sam". A field left empty, a placeholder in
+ * brackets or italics, headings and the template's guidance prose are not facts. */
+function filledFields(body: string): string[] {
+  return body.split(/\r?\n/).flatMap((line) => {
+    const match = /^\s*[-*]\s*\*{0,2}([\p{L}][\p{L}\s/'-]{0,40}?)\*{0,2}\s*:\s*\*{0,2}\s*(.*)$/u.exec(line);
+    const value = match?.[2]?.replace(/\*\*|__|`/g, "").trim() ?? "";
+    if (!match || !value || /^_?\(.*\)_?$|^_.*_$|^\[.*\]$|^(?:tbd|todo|n\/a|-)$/i.test(value)) return [];
+    return [`${match[1]!.trim()}: ${value}`];
+  });
+}
 
 /** Each SKILL.md in a folder of skill folders, `depth` deep (Hermes groups its skills in category folders). */
 function readSkills(reader: Reader, root: string, depth = 1, skip: (path: string) => boolean = () => false): GrokSkill[] {
@@ -141,14 +179,6 @@ function readSkills(reader: Reader, root: string, depth = 1, skip: (path: string
 const blankBot = (name: string): GrokBot => ({
   name, title: "", description: "", instructions: "", memories: [], userFacts: [], skills: [], routines: [], apps: [], memoryFiles: {},
 });
-
-/** What a person told the app about themselves, one fact a line: template lines with no value and headings are left out. */
-function factLines(body: string): string[] {
-  return body.split(/\r?\n/).map((line) => line.trim())
-    .filter((line) => line && !line.startsWith("#") && !line.startsWith("<!--") && !line.startsWith(">") && !/^[-*]\s*$/.test(line))
-    .map((line) => line.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, "").replace(/\*\*|__|`/g, "").trim())
-    .filter((line) => line && !/:\s*$/.test(line) && !/^\(.*\)$/.test(line) && !/^_?\(?(?:optional|fill|add|what|who)\b.*\)?_?$/i.test(line));
-}
 
 /** A model setting as it is written: a name, or an object naming it. */
 function modelName(value: unknown): string {
@@ -316,39 +346,51 @@ function openClawBot(reader: Reader, workspace: string, entry: Record<string, un
   const at = (name: string) => (reader.machine.fs.lstat(join(workspace, name)) ? reader.read(join(workspace, name)) : null);
   const identityText = at("IDENTITY.md") ?? "";
   const identity = isRecord(entry.identity) ? entry.identity : {};
-  const name = text(identity.name) || identityField(identityText, "Name") || text(entry.name) || (id === "main" ? app : titled(id));
+  const rawSoul = at("SOUL.md");
+  const soul = rawSoul && hasContent(rawSoul) && !openClawStock("SOUL.md", rawSoul) ? rawSoul : null;
+  // a name it chose for itself (IDENTITY.md, its persona's heading) is a sign of a bot; a name in the config alone is not
+  const named = text(identity.name) || identityField(identityText, "Name") || headingName(soul);
+  const name = named || text(entry.name) || (id === "main" ? app : titled(id));
   const bot = blankBot(name.slice(0, 100));
   bot.title = identityField(identityText, "Creature") || text(identity.theme) || identityField(identityText, "Theme");
   bot.description = text(entry.description) || identityField(identityText, "Vibe");
-  const soul = at("SOUL.md");
-  bot.instructions = soul && hasContent(soul) ? soul.trim() : "";
+  bot.instructions = soul ? soul.trim() : "";
   const files: Record<string, string> = {};
   const memory = at("MEMORY.md") ?? at("memory.md");
   if (memory && hasContent(memory)) files["MEMORY.md"] = memory;
   const slug = app.toLowerCase();
   const keep = (file: string, topic: string, heading: string) => {
     const body = at(file);
-    if (body && hasContent(body)) files[`memory/${topic}.md`] = `# ${heading}\n\n${body.trim()}\n`;
+    if (body && hasContent(body) && !openClawStock(file, body)) files[`memory/${topic}.md`] = `# ${heading}\n\n${body.trim()}\n`;
   };
-  // what it knew about the person goes to About me, every bot's, rather than this bot's notebook
+  // what it knew about the person goes to About me, every bot's, rather than this bot's notebook: only fields filled in
+  // the rest of a USER.md the person filled in (its notes, its context) goes to the engine; one never filled in is
+  // still OpenClaw's template, and says nothing
   const user = at("USER.md");
-  if (user && hasContent(user)) bot.userFacts = factLines(user);
+  if (user) bot.userFacts = filledFields(user);
+  const userNotes = user && bot.userFacts.length ? user.split(/\r?\n/).filter((line) => {
+    const trimmed = line.trim();
+    return trimmed && !trimmed.startsWith("#") && !/^\s*[-*]\s*\*{0,2}[\p{L}][\p{L}\s/'-]{0,40}?\*{0,2}\s*:/u.test(line) && !/^_?\(.*\)_?$|^_.*_$/.test(trimmed);
+  }) : [];
   const picture = text(identity.avatar) || identityField(identityText, "Avatar");
   const avatar = picture ? folderPicture(reader, workspace, picture) : undefined;
   if (avatar) bot.avatar = avatar;
   keep("AGENTS.md", `${slug}-agents`, `How I worked in ${app} (AGENTS.md)`);
   keep("TOOLS.md", `${slug}-tools`, `Notes on tools from ${app} (TOOLS.md)`);
+  // daily logs are history, not memory: the bot's engine condenses them into dated notes after the move
   const daily = dailyNotes(reader, join(workspace, "memory"), app);
-  if (daily) files[`memory/${slug}-daily-notes.md`] = daily;
+  bot.distill = [...(userNotes.length ? [`About me, from ${app}'s USER.md:\n${userNotes.join("\n")}`] : []), ...(daily ? [daily] : [])];
   bot.memoryFiles = files;
   const mine = readSkills(reader, join(workspace, "skills"));
   bot.skills = [...mine, ...readSkills(reader, join(workspace, ".agents", "skills")).filter((skill) => !mine.some((one) => one.name === skill.name))];
   const heartbeat = at("HEARTBEAT.md");
-  if (heartbeat && hasContent(heartbeat)) {
+  if (heartbeat && hasContent(heartbeat) && !openClawStock("HEARTBEAT.md", heartbeat)) {
     bot.routines.push(routine({ name: "Heartbeat", instruction: heartbeat.trim(), paused: true, schedule: { type: "interval", everyMinutes: 30, anchorAt: now } }));
   }
-  const empty = !bot.instructions && !Object.keys(files).length && !bot.skills.length && !bot.routines.length && !identityText;
-  return empty && !Object.keys(entry).length ? null : bot;
+  // a bot only when the workspace really defines one: a persona, a name it was given, memory, its own skills or
+  // routines. One never set up (BOOTSTRAP.md still waiting) or holding only OpenClaw's templates is not a bot.
+  const real = Boolean(bot.instructions || named || Object.keys(files).length || bot.distill?.length || bot.skills.length || bot.routines.length);
+  return real ? bot : null;
 }
 
 /** The newest daily notes, newest first, in one topic; older ones stay in the app. */
@@ -493,7 +535,7 @@ function hermesBot(reader: Reader, dir: string, profile: string, config: Record<
   const meta = profile && reader.machine.fs.lstat(join(dir, "profile.yaml")) ? reader.readObject(join(dir, "profile.yaml"), "yaml") ?? {} : {};
   const hasAnything = Boolean((soul && hasContent(soul)) || persona || memory || user || skills.length || routines.length);
   if (!hasAnything) return null;
-  const bot = blankBot((text(meta.display_name) || (profile ? titled(profile) : "Hermes")).slice(0, 100));
+  const bot = blankBot((text(meta.display_name) || headingName(soul) || (profile ? titled(profile) : "Hermes")).slice(0, 100));
   bot.description = text(meta.description);
   bot.instructions = [soul && hasContent(soul) ? soul.trim() : "", persona].filter(Boolean).join("\n\n");
   bot.memories = memory ? hermesEntries(memory) : [];
