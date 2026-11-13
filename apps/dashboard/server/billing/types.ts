@@ -52,7 +52,8 @@ export interface ChangePlanInput { subscriptionId: string; productId: string; ad
 export interface BillingProvider {
   readonly name: "fake" | "dodo";
   createCheckout(input: CreateCheckoutInput): Promise<{ sessionId: string; url: string }>;
-  portal(customerId: string, returnUrl: string): Promise<{ url: string }>;
+  /** a card-only page for a subscription's payment method. never the provider's customer portal: that one can cancel past our cancel flow */
+  updatePaymentMethod(subscriptionId: string, returnUrl: string): Promise<{ url: string }>;
   /** throws BillingProviderError("bad_signature") unless the raw body is signed and fresh */
   verifyWebhook(headers: Record<string, string | string[] | undefined>, rawBody: Buffer): VerifiedWebhook;
   cancelAtPeriodEnd(subscriptionId: string, cancel: boolean): Promise<void>;

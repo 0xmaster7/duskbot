@@ -195,7 +195,8 @@ export const api = {
     const answer = await send<WireCheckoutAnswer>("/v1/billing/checkout", "POST", { kind: "cart", source: req.source, cart: cartFromSelection(req.selection, await catalog()) });
     return { url: answer.checkoutUrl, id: answer.checkoutId };
   },
-  portal: () => send<{ url: string }>("/v1/billing/portal", "POST"),
+  /** a card-only page for the plan's payment method; dusk bot never opens the provider's customer portal */
+  updateCard: () => send<{ url: string }>(`${subscriptionPath()}/card`, "POST"),
   /** what a plan change charges now, in dollars, before anything is applied */
   changeCharge: async (selection: Selection): Promise<number> => {
     if (FIXTURE) return 0;

@@ -74,8 +74,8 @@ const bundle = (id: string): Cart => ({ ...structuredClone(BILLING_CONFIG.bundle
 it("requires csrf on every cookie billing mutation and leaves public quotes and reads accessible", async () => {
   const f = await fixture(), owner = await f.login();
   const mutations = [
-    ["POST", "/v1/billing/checkout"], ["POST", "/v1/billing/portal"], ["POST", "/v1/billing/fake/complete"],
-    ...["preview", "change", "cancel", "keep"].map(action => ["POST", `/v1/billing/subscriptions/missing/${action}`]),
+    ["POST", "/v1/billing/checkout"], ["POST", "/v1/billing/fake/complete"],
+    ...["preview", "change", "cancel", "keep", "card"].map(action => ["POST", `/v1/billing/subscriptions/missing/${action}`]),
     ["POST", "/v1/billing/licenses/missing/members"], ["DELETE", "/v1/billing/licenses/missing/members/member%40example.test"],
     ["PATCH", "/v1/clouds/missing"], ["POST", "/v1/clouds/missing/power"],
   ];
@@ -206,12 +206,15 @@ it("completes fake checkouts only for their owner and rejects invalid or oversiz
   const res = await f.page("/v1/billing/webhooks/dodo", {}); expect(res.status).toBe(500);
 });
 
-it("serves the billing portal and keeps license membership changes owner-only", async () => {
+it("opens a card-only page for the owner's plan, never the provider portal, and keeps license membership changes owner-only", async () => {
   const f = await fixture(), owner = await f.login();
   const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: { ...bundle("team"), desktop: { kind: "none" } } }, owner.cookie);
   await f.complete(checkout.checkoutId);
-  const license = (await f.answer<BillingOverview>("/v1/billing/overview", undefined, owner.cookie)).licenses[0];
-  expect(await f.answer("/v1/billing/portal", {}, owner.cookie)).toMatchObject({ url: expect.stringMatching(/^https:\/\/test.customer.dodopayments.com\//) });
+  const overview = await f.answer<BillingOverview>("/v1/billing/overview", undefined, owner.cookie), license = overview.licenses[0];
+  const card = `/v1/billing/subscriptions/${overview.subscriptions[0].id}/card`;
+  expect(await f.answer(card, {}, owner.cookie)).toEqual({ url: expect.stringMatching(/^https:\/\/test\.checkout\.dodopayments\.com\//) });
+  expect((await f.page(card, {}, (await f.login("stranger@example.test")).cookie)).status).toBe(404);
+  expect((await f.page("/v1/billing/portal", {}, owner.cookie)).status).toBe(404);
   const members = `/v1/billing/licenses/${license.id}/members`;
   expect(await f.answer(members, { email: "member@example.test", ignored: true }, owner.cookie)).toMatchObject({ license: { members: [{ role: "owner" }, { email: "member@example.test", role: "member" }] } });
   const member = await f.login("member@example.test");

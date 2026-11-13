@@ -23,7 +23,7 @@ vi.mock("../data/session", () => ({ useSession: () => state.session }));
 vi.mock("../data/usage", () => ({ useAccountUsage: () => state.usage }));
 
 const makeSpies = () => ({ cancel: vi.fn(async (_reason: string) => {}), changePlan: vi.fn(async (_selection: Selection, _approved?: number) => {}), retentionStep: vi.fn((_input: object) => {}),
-  takeDiscount: vi.fn(async (_reason: string) => {}), openPortal: vi.fn(async () => {}), onClose: vi.fn(() => {}) });
+  takeDiscount: vi.fn(async (_reason: string) => {}), updateCard: vi.fn(async () => {}), onClose: vi.fn(() => {}) });
 let spies = makeSpies();
 beforeEach(() => { spies = makeSpies(); });
 const roots: Root[] = [];

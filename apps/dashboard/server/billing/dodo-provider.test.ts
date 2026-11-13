@@ -40,16 +40,22 @@ describe("dodo HTTP provider fixture", () => {
     await provider().createCheckout({ ...input, customerId: "cus_1" });
     expect(requests[1].body).toMatchObject({ customer: { customer_id: "cus_1" } });
   });
-  it("creates portal sessions, cancels, changes plans and streams private invoices", async () => {
-    const p = provider(); reply = { link: "https://test.customer.dodopayments.com/session/1" };
-    expect(await p.portal("cus/1", input.returnUrl)).toEqual({ url: (reply as { link: string }).link });
-    expect(requests[0].url).toBe(`/customers/cus%2F1/customer-portal/session?return_url=${encodeURIComponent(input.returnUrl)}`);
+  it("opens card-only payment method pages, cancels, changes plans and streams private invoices", async () => {
+    const p = provider(); reply = { payment_id: "pay_1", client_secret: "secret", expires_on: "2026-11-14T00:00:00Z", payment_link: "https://test.checkout.dodopayments.com/abc" };
+    expect(await p.updatePaymentMethod("sub/1", input.returnUrl)).toEqual({ url: "https://test.checkout.dodopayments.com/abc" });
+    expect(requests[0]).toEqual({ method: "POST", url: "/subscriptions/sub%2F1/update-payment-method", auth: `Bearer ${apiKey}`, body: { type: "new", return_url: input.returnUrl } });
+    expect(p).not.toHaveProperty("portal");
     reply = {}; await p.cancelAtPeriodEnd("sub/1", true); await p.changePlan({ subscriptionId: "sub/1", productId: "new", addons: [{ addonId: "cpu", quantity: 8 }] });
     expect(requests[1]).toMatchObject({ method: "PATCH", url: "/subscriptions/sub%2F1", body: { cancel_at_next_billing_date: true } });
     expect(requests[2]).toMatchObject({ method: "POST", url: "/subscriptions/sub%2F1/change-plan", body: { product_id: "new", quantity: 1, proration_billing_mode: "difference_immediately", on_payment_failure: "prevent_change", addons: [{ addon_id: "cpu", quantity: 8 }] } });
     expect(await p.invoiceUrl("pay")).toBeNull(); contentType = "application/pdf"; reply = Buffer.from("%PDF-fixture");
     expect(await p.invoicePdf("pay/1")).toEqual({ contentType, body: reply }); expect(requests[3].url).toBe("/invoices/payments/pay%2F1");
     status = 404; expect(await p.invoicePdf("missing")).toBeNull();
+  });
+  it("refuses a payment method link that is not the mode's checkout page, such as the customer portal", async () => {
+    for (const payment_link of ["https://test.customer.dodopayments.com/session/1", "https://checkout.dodopayments.com/a", "http://test.checkout.dodopayments.com/a", "https://test.checkout.dodopayments.com.evil.test/a"]) {
+      reply = { payment_link }; await expect(provider().updatePaymentMethod("sub", input.returnUrl)).rejects.toMatchObject({ code: "refused" });
+    }
   });
   it("refuses cross-mode, credential-bearing and unsafe checkout urls", async () => {
     for (const checkout_url of ["http://test.checkout.dodopayments.com/a", "https://checkout.dodopayments.com/a", "https://test.checkout.dodopayments.com.evil.test/a", "https://user@test.checkout.dodopayments.com/a", "https://test.checkout.dodopayments.com:444/a"]) {

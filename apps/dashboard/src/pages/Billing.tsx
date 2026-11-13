@@ -105,7 +105,7 @@ function Row({ k, children, action }: { k: string; children: ReactNode; action?:
 const quiet = "text-link inline-flex h-9 items-center rounded-full px-1 text-14 disabled:opacity-45 max-sm:h-11";
 
 function YourBilling({ catalog, onLicense, onManage }: { catalog: PlanCatalog; onLicense(): void; onManage(): void }) {
-  const { billing, clouds, openPortal } = useCloud();
+  const { billing, clouds, updateCard } = useCloud();
   const sub = billing?.subscription ?? null;
   const sel = sub?.selection ?? null;
   const { cart } = useCart(sel, catalog);
@@ -129,8 +129,8 @@ function YourBilling({ catalog, onLicense, onManage }: { catalog: PlanCatalog; o
           <Row k="license" action={<button type="button" className={quiet} onClick={onLicense}>{lic?.work ? "change" : "add"}</button>}>
             {lic?.work && sel ? <span className="block truncate">{lic.name} license<span className="num text-ink-3">, {members(sel.members)} · {bundleOf(catalog, "pro")?.license === sel.license && bundleOf(catalog, "pro")?.desktop === sel.desktop ? "included with pro" : priceText(licenseMonthly(lic, sel.members), sel.interval, catalog)}</span></span> : <span className="text-ink-3">personal use, free</span>}
           </Row>
-          <Row k="payment method" action={<button type="button" className={quiet} onClick={() => void openPortal()}>{pm ? "update" : "add"}</button>}>
-            {pm ? <span className="num">{pm.brand.toLowerCase()} •••• {pm.last4}<span className="text-ink-3">, expires {String(pm.expMonth).padStart(2, "0")}/{String(pm.expYear).slice(-2)}</span></span> : <span className="text-ink-3">none yet. you add one at checkout.</span>}
+          <Row k="payment method" action={sub && sub.status !== "canceled" ? <button type="button" className={quiet} onClick={() => void updateCard()}>update</button> : undefined}>
+            {pm ? <span className="num">{pm.brand.toLowerCase()} •••• {pm.last4}<span className="text-ink-3">, expires {String(pm.expMonth).padStart(2, "0")}/{String(pm.expYear).slice(-2)}</span></span> : sub ? <span className="text-ink-3">the card you paid with</span> : <span className="text-ink-3">none yet. you add one at checkout.</span>}
           </Row>
         </dl>
       </section>

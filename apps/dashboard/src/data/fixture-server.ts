@@ -262,7 +262,7 @@ function route(method: string, path: string, body: unknown, query: URLSearchPara
     s.account.devices = s.account.devices.filter((d) => d !== found); return {};
   }
   if (method === "GET" && path === "/v1/billing") return s.billing;
-  if (method === "POST" && path === "/v1/billing/portal") return { url: "" };
+  if (method === "POST" && /^\/v1\/billing\/subscriptions\/[^/]+\/card$/.test(path)) return { url: "" };
   if (method === "POST" && path === "/v1/billing/checkout") {
     const { source: _source, ...req } = b as unknown as CheckoutRequest;
     const id = `fx-checkout-${s.nextId++}`;

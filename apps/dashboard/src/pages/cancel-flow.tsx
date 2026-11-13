@@ -62,7 +62,7 @@ function Unused({ onHelped }: { onHelped(): void }) {
 /** account, billing, manage subscription: why, a tailored offer or fix, then what ends and the cancel itself.
  * consumer rules (US, EU, India) need an online cancel: the reason is optional and the cancel is at most three screens in. */
 export function CancelFlow({ open, onClose, catalog }: { open: boolean; onClose(): void; catalog: PlanCatalog }) {
-  const { billing, cancel, changePlan, openPortal, retentionStep, takeDiscount } = useCloud();
+  const { billing, cancel, changePlan, updateCard, retentionStep, takeDiscount } = useCloud();
   const { toast } = useSession();
   const [step, setStep] = useState<FlowStep>("reason");
   const [reason, setReason] = useState<CancelAnswer | null>(null);
@@ -121,7 +121,7 @@ export function CancelFlow({ open, onClose, catalog }: { open: boolean; onClose(
               {REASONS.map((r) => <Choice key={r.id} name="cancel-reason" value={r.id} checked={reason === r.id} onChange={() => setReason(r.id)} title={r.label} />)}
             </div>
           </fieldset>
-          <button type="button" className="text-link mt-3 h-9 text-13" onClick={() => void openPortal()}>update your card or billing details instead</button>
+          <button type="button" className="text-link mt-3 h-9 text-13" onClick={() => void updateCard()}>update your card instead</button>
         </>
       )}
 

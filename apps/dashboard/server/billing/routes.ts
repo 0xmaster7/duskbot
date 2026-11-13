@@ -84,7 +84,6 @@ export function createBillingRoutes(ctx: BillingContext) {
           } else return invalid();
           return send(await service.checkout(account, item, { source: data.source }));
         }
-        if (path === "/v1/billing/portal") { if (!ctx.checkoutOpen) throw new BillingError(503, "checkout_soon"); await body(req); return send(await service.portal(account)); }
         if (path === "/v1/billing/fake/complete" && ctx.fake) {
           const data = await body(req), id = text(data.checkoutId);
           const checkout = ctx.store.state.checkouts.find(c => c.id === id && c.accountId === account.id);
@@ -95,7 +94,7 @@ export function createBillingRoutes(ctx: BillingContext) {
           return send({ ok: true, deliveries: deliveries.length });
         }
       }
-      const subscription = /^\/v1\/billing\/subscriptions\/([^/]+)\/(preview|change|cancel|keep|retention|discount)$/.exec(path);
+      const subscription = /^\/v1\/billing\/subscriptions\/([^/]+)\/(preview|change|cancel|keep|retention|discount|card)$/.exec(path);
       if (subscription && method === "POST") {
         if (!service.subscriptions(account.id).some(sub => sub.id === subscription[1])) throw new BillingError(404, "not_found");
         const data = await body(req), id = subscription[1];
@@ -104,6 +103,7 @@ export function createBillingRoutes(ctx: BillingContext) {
         if (subscription[2] === "cancel") return send({ subscription: await service.cancel(account, id, data.survey === undefined ? undefined : survey(data.survey)) });
         if (subscription[2] === "retention") return send(service.retentionStep(account, id, data));
         if (subscription[2] === "discount") return send(await service.retentionDiscount(account, id, data.reason));
+        if (subscription[2] === "card") { if (!ctx.checkoutOpen) throw new BillingError(503, "checkout_soon"); return send(await service.updateCard(account, id)); }
         return send({ subscription: await service.keep(account, id) });
       }
       const member = /^\/v1\/billing\/licenses\/([^/]+)\/members(?:\/([^/]+))?$/.exec(path);

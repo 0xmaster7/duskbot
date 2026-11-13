@@ -215,9 +215,10 @@ describe("billing service isolated fixture", () => {
     expect(await service.invoiceDownload(owner.id, first.invoices[0].id)).toMatchObject({ redirect: expect.stringContaining("https://") });
     await expect(service.invoiceDownload(stranger.id, first.invoices[0].id)).rejects.toMatchObject({ code: "not_found" });
     expect(service.invoices(stranger.id).invoices).toEqual([]); expect(() => service.invoices(owner.id, "bad")).toThrow(expect.objectContaining({ code: "invalid_request" }));
-    expect(await service.portal(owner, "/billing")).toMatchObject({ url: expect.stringContaining("test.customer.dodopayments.com") });
-    await expect(service.portal(stranger)).rejects.toMatchObject({ code: "not_subscribed" });
-    await expect(service.portal(owner, "//evil.test")).rejects.toMatchObject({ code: "invalid_request" });
+    expect(await service.updateCard(owner, sub.id, "/billing")).toEqual({ url: `https://test.checkout.dodopayments.com/fake_card_${encodeURIComponent(sub.providerSubscriptionId!)}` });
+    await expect(service.updateCard(stranger, sub.id)).rejects.toMatchObject({ code: "not_found" });
+    await expect(service.updateCard(owner, sub.id, "//evil.test")).rejects.toMatchObject({ code: "invalid_request" });
+    expect(service).not.toHaveProperty("portal"); expect(provider).not.toHaveProperty("portal");
   });
   it("adds and removes a desktop and updates seats without an unnecessary resize", async () => {
     const licenseOnly: Cart = { ...licensedDesktop(), desktop: { kind: "none" } }; const { sub } = await buy(licenseOnly);

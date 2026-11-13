@@ -28,7 +28,7 @@ export interface CloudData {
   /** records a cancel flow step; never throws */
   retentionStep(input: RetentionInput): void;
   takeDiscount(reason: CancelAnswer): Promise<void>;
-  openPortal(): Promise<void>;
+  updateCard(): Promise<void>;
   setNotifications(p: NotificationPrefs): Promise<void>;
   updateProfile(name: string): Promise<void>;
   unlinkIdentity(p: IdentityProvider): Promise<void>;
@@ -189,7 +189,7 @@ export function CloudDataProvider({ children, signedIn }: { children: ReactNode;
     cancel: (reason) => mutate(() => api.cancel(reason)),
     retentionStep: (input) => { void api.retention(input).catch(() => {}); },
     takeDiscount: (reason) => mutate(() => api.discount(reason)),
-    openPortal: () => mutate(async () => { const answer = await api.portal(); if (!FIXTURE) window.location.assign(answer.url); }),
+    updateCard: () => mutate(async () => { const answer = await api.updateCard(); if (!FIXTURE) window.location.assign(answer.url); }),
     setNotifications: (p) => mutate(() => api.setNotifications(p)),
     updateProfile: (name) => mutate(() => api.updateProfile({ name })),
     unlinkIdentity: (p) => mutate(() => api.unlinkIdentity(p)),

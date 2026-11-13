@@ -273,7 +273,6 @@ export interface BillingOverview {
  *   POST /v1/billing/quote          { cart: Cart }   -> Quote
  *   GET  /v1/billing/overview                        -> BillingOverview
  *   POST /v1/billing/checkout       CheckoutItem     -> CheckoutAnswer
- *   POST /v1/billing/portal                          -> { url }
  *   GET  /v1/billing/invoices?cursor=                -> InvoicePage
  *   GET  /v1/billing/invoices/:id/download           -> 302 to the provider's invoice
  *   GET  /v1/billing/license                         -> LicenseCheck
@@ -285,6 +284,7 @@ export interface BillingOverview {
  *   POST /v1/billing/subscriptions/:id/keep                               -> { subscription: SubscriptionView }
  *   POST /v1/billing/subscriptions/:id/retention RetentionInput           -> { ok: true }
  *   POST /v1/billing/subscriptions/:id/discount  { reason: CancelAnswer } -> { subscription: SubscriptionView; retention: RetentionView }
+ *   POST /v1/billing/subscriptions/:id/card                               -> { url } a card-only provider page; there is no customer portal route
  *   GET  /v1/clouds                                  -> { clouds: CloudDesktopView[] }
  *   GET  /v1/clouds/:id                              -> { cloud: CloudDesktopView }
  *   PATCH /v1/clouds/:id            { name?, color? } -> { cloud: CloudDesktopView }

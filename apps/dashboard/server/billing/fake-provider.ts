@@ -33,7 +33,7 @@ export function createFakeBillingProvider(options: { secret?: string; now?: () =
   const provider = {
     name: "fake" as const, secret, sessions, subscriptions, payments, cancelCalls, changeCalls, cancelNowCalls, refundCalls, discountCalls, failChangePlan: false, failDiscount: false,
     async createCheckout(input: CreateCheckoutInput) { const sessionId = id("fake_"); sessions.set(sessionId, structuredClone(input)); return { sessionId, url: `https://test.checkout.dodopayments.com/session/${sessionId}` }; },
-    async portal(customerId: string, _returnUrl: string) { return { url: `https://test.customer.dodopayments.com/fake_${encodeURIComponent(customerId)}` }; },
+    async updatePaymentMethod(subscriptionId: string, _returnUrl: string) { return { url: `https://test.checkout.dodopayments.com/fake_card_${encodeURIComponent(subscriptionId)}` }; },
     verifyWebhook: (headers, body) => verifyWebhook(secret, headers, body, now()),
     async cancelAtPeriodEnd(subscriptionId: string, cancel: boolean) { cancelCalls.push({ subscriptionId, cancel }); const sub = subscriptions.get(subscriptionId); if (sub) sub.cancel = cancel; },
     async cancelNow(subscriptionId: string) { cancelNowCalls.push(subscriptionId); subscriptions.delete(subscriptionId); },

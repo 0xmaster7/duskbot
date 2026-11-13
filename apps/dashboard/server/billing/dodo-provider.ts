@@ -67,9 +67,9 @@ export function createDodoProvider(options: DodoProviderOptions): BillingProvide
       if (typeof result.session_id !== "string" || !result.session_id) throw new BillingProviderError("refused");
       return { sessionId: result.session_id, url: allowedUrl(result.checkout_url, `${prefix}checkout.dodopayments.com`) };
     },
-    async portal(customerId, returnUrl) {
-      const result = await json(`/customers/${encodeURIComponent(customerId)}/customer-portal/session?return_url=${encodeURIComponent(returnUrl)}`);
-      return { url: allowedUrl(result.link, `${prefix}customer.dodopayments.com`) };
+    async updatePaymentMethod(subscriptionId, returnUrl) {
+      const result = await json(`/subscriptions/${encodeURIComponent(subscriptionId)}/update-payment-method`, { type: "new", return_url: returnUrl });
+      return { url: allowedUrl(result.payment_link, `${prefix}checkout.dodopayments.com`) };
     },
     verifyWebhook: (headers, body) => verifyWebhook(options.webhookSecret, headers, body, now()),
     async cancelAtPeriodEnd(id, cancel) { await request(`/subscriptions/${encodeURIComponent(id)}`, "PATCH", { cancel_at_next_billing_date: cancel }); },
