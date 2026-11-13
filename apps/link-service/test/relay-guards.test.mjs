@@ -124,6 +124,21 @@ describe("a tunnel's byte budget", () => {
     expect(waits).toEqual([1000]);
   });
 
+  it("shares the ceiling between accounts first: two busy servers of one account get together what one of another gets", async () => {
+    await start({ limits: { globalCeilingBytesPerSec: 4 * MB, burstBytes: MB } });
+    addOther();
+    service.store.tunnels.get(id).acct = acct;
+    service.store.tunnels.get(other).acct = acct;
+    const third = "thirdtunnl", thirdApp = "c".repeat(43);
+    service.store.tunnels.set(third, { id: third, createdAt: time, vpsVerifier: sha256hex("x".repeat(43)), appVerifier: sha256hex(thirdApp), seenAt: null, acct: "f".repeat(32) });
+    expect((await toVps(frames(3), { epoch, seq: 0 })).status).toBe(200);
+    expect((await otherToVps(frames(3), { epoch, seq: 0 })).status).toBe(200);
+    waits = [];
+    expect((await request(`/v1/tunnels/${third}/to-vps`, { token: thirdApp, method: "POST", body: { frames: frames(3), epoch, seq: 0 } })).status).toBe(200);
+    // the other account alone gets half the 4 MiB ceiling (2 MiB past its burst in a second), not a third of it
+    expect(waits).toEqual([1000]);
+  });
+
   it("answers relay_busy to a new tunnel once maxTunnels are relaying, never to one already relaying", async () => {
     await start({ limits: { maxTunnels: 1 } });
     addOther();
@@ -304,6 +319,22 @@ describe("setup sessions need a dusk account", () => {
     expect(refused.status).toBe(409);
     expect(await refused.json()).toMatchObject({ code: "tunnel_limit" });
     expect((await newSession({ grant: grant({ who: "f".repeat(32) }) })).status).toBe(201);
+  });
+
+  it("holds at most 5 unused commands per account and 10 new ones a minute, so one account cannot fill the store", async () => {
+    await start({ grantKeys: keys });
+    const ids = [];
+    for (let i = 0; i < 7; i += 1) {
+      const made = await newSession({ grant: grant() }, `198.51.100.${i + 1}`);
+      expect(made.status).toBe(201);
+      ids.push((await made.json()).id);
+    }
+    const kept = [...service.store.sessions.values()].filter((one) => one.acct === acct).map((one) => one.id);
+    expect(kept).toEqual(ids.slice(2));
+    for (let i = 7; i < 10; i += 1) expect((await newSession({ grant: grant() }, `198.51.100.${i + 1}`)).status).toBe(201);
+    const refused = await newSession({ grant: grant() }, "198.51.100.99");
+    expect(refused.status).toBe(429);
+    expect((await newSession({ grant: grant({ who: "f".repeat(32) }) }, "198.51.100.98")).status).toBe(201);
   });
 
   it("keeps sessions open to anyone only when no keys are set (local development)", async () => {

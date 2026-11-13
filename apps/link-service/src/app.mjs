@@ -55,6 +55,10 @@ const FRESH_GAP_MS = 300;
 const BEAT_MS = 5000;
 const EPOCH = /^[a-z2-7]{12}$/;
 const CREATE_PER_HOUR = 120;
+/** new setup sessions per address or account in any minute, and the unused ones an account may hold */
+const CREATE_PER_MINUTE = 10;
+const CREATE_PER_MINUTE_IP = 30;
+const OPEN_PER_ACCOUNT = 5;
 const CHANNEL_GRANT_MS = 24 * 60 * 60_000;
 const PHONE_POSTS_PER_SECOND = 50;
 const PHONE_POST_BURST = 400;
@@ -353,7 +357,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
   const tunnelRates = new Map();
   const limits = loadLimits(dataDir, { ...DEFAULT_LIMITS, ...startLimits });
   const usage = createRelayUsage({ dir: dataDir, now });
-  const relay = { at: now(), tokens: Math.max(limits.globalCeilingBytesPerSec * 2, limits.burstBytes), shareAt: -Infinity, demanding: new Set(), cpu: { at: Date.now(), usage: process.cpuUsage() } };
+  const relay = { at: now(), tokens: Math.max(limits.globalCeilingBytesPerSec * 2, limits.burstBytes), shareAt: -Infinity, demanding: new Map(), cpu: { at: Date.now(), usage: process.cpuUsage() } };
   const ipLoad = new Map();
   const packages = createPackages(packagesDir !== undefined ? packagesDir : dataDir ? join(dataDir, "packages") : null);
   const sessionWaiters = new Map();
@@ -493,14 +497,25 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     return count;
   }
   /** each busy tunnel's fair share of the ceiling; who is busy is recounted at most four times a second */
+  // the ceiling is shared fairly between accounts, then between an account's own busy tunnels: twenty servers of one
+  // account get together what one server of another account gets
+  const shareKey = (tunnelId) => { const acct = store.tunnels.get(tunnelId)?.acct; return acct ? `a:${acct}` : `t:${tunnelId}`; };
   function shareAt(t, tunnelId, rate) {
     if (t - relay.shareAt >= 250 || t < relay.shareAt) {
-      relay.demanding = new Set();
-      for (const [id, other] of tunnelRates) if (t - other.usedAt < 2000 && Math.max(other.recent, other.prev) >= DEMANDING_BYTES_PER_SECOND * 2) relay.demanding.add(id);
+      relay.demanding = new Map();
+      for (const [id, other] of tunnelRates) {
+        if (t - other.usedAt >= 2000 || Math.max(other.recent, other.prev) < DEMANDING_BYTES_PER_SECOND * 2) continue;
+        const key = shareKey(id);
+        if (!relay.demanding.has(key)) relay.demanding.set(key, new Set());
+        relay.demanding.get(key).add(id);
+      }
       relay.shareAt = t;
     }
-    const busy = relay.demanding.size + (!relay.demanding.has(tunnelId) && Math.max(rate.recent, rate.prev) >= DEMANDING_BYTES_PER_SECOND * 2 ? 1 : 0);
-    return Math.min(limits.perTunnelBytesPerSec, Math.max(MIN_SHARE_BYTES_PER_SECOND, limits.globalCeilingBytesPerSec / Math.max(1, busy)));
+    const key = shareKey(tunnelId), mine = relay.demanding.get(key);
+    const demanding = Math.max(rate.recent, rate.prev) >= DEMANDING_BYTES_PER_SECOND * 2;
+    const accounts = relay.demanding.size + (!mine && demanding ? 1 : 0);
+    const siblings = (mine?.size ?? 0) + (demanding && !mine?.has(tunnelId) ? 1 : 0);
+    return Math.min(limits.perTunnelBytesPerSec, Math.max(MIN_SHARE_BYTES_PER_SECOND, limits.globalCeilingBytesPerSec / Math.max(1, accounts) / Math.max(1, siblings)));
   }
   /**
    * a post's turn on the relay. it is slowed, not refused: past its burst it waits for its tunnel's share (the per tunnel
@@ -986,7 +1001,8 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       const ip = clientIp(req);
       const t = now();
       const recent = (created.get(ip) ?? []).filter((at) => t - at < 3_600_000);
-      if (recent.length >= CREATE_PER_HOUR) return fail(res, 429, "Too many new links from here. Try again in a while.", "rate_limited");
+      const burst = (list, most) => list.filter((at) => t - at < 60_000).length >= most;
+      if (recent.length >= CREATE_PER_HOUR || burst(recent, CREATE_PER_MINUTE_IP)) return fail(res, 429, "Too many new links from here. Try again in a while.", "rate_limited");
       store.sweep();
       if (store.sessions.size >= MAX_SESSIONS) return fail(res, 503, "The link service is busy. Try again in a minute.", "busy");
       const body = await readJson(req);
@@ -997,7 +1013,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
         acct = verdict.acct;
         if (accountTunnels(acct) >= limits.tunnelsPerAccount) return fail(res, 409, `This account already has ${limits.tunnelsPerAccount} linked servers. Remove one in the app to link another.`, "tunnel_limit");
         byAccount = (created.get(`acct:${acct}`) ?? []).filter((at) => t - at < 3_600_000);
-        if (byAccount.length >= CREATE_PER_HOUR) return fail(res, 429, "Too many new links from this account. Try again in a while.", "rate_limited");
+        if (byAccount.length >= CREATE_PER_HOUR || burst(byAccount, CREATE_PER_MINUTE)) return fail(res, 429, "Too many new links from this account. Try again in a while.", "rate_limited");
       }
       if (!HEX64.test(body?.verifier ?? "")) return fail(res, 400, "verifier must be 64 hex characters");
       if (typeof body?.appPub !== "string" || !B64URL.test(body.appPub) || body.appPub.length > 64) return fail(res, 400, "appPub must be a base64url x25519 key");
@@ -1005,6 +1021,11 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       let id;
       do id = randomB32(10); while (store.sessions.has(id) || store.tunnels.has(id) || store.channels.has(id));
       const watch = randomBytes(32).toString("base64url");
+      // an account holds a few unused commands at most: a new one retires its oldest, so no account fills the store
+      if (acct) {
+        const waiting = [...store.sessions.values()].filter((one) => one.acct === acct && one.state === "waiting").sort((a, b) => a.createdAt - b.createdAt);
+        for (const old of waiting.slice(0, Math.max(0, waiting.length - (OPEN_PER_ACCOUNT - 1)))) { store.sessions.delete(old.id); wakeSession(old.id); }
+      }
       store.sessions.set(id, { id, createdAt: t, state: "waiting", vpsVerifier: body.verifier, watchVerifier: sha256hex(watch), appPub: body.appPub, label, events: [], seq: 0, ...(acct ? { acct } : {}) });
       recent.push(t);
       created.set(ip, recent);
