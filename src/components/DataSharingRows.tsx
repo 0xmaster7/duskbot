@@ -1,14 +1,9 @@
-import type { ReactNode } from "react";
 import { t } from "@/lib/i18n";
 import { useHelpImprove } from "@/lib/help-improve";
 import { SwitchRow } from "./ListRows";
 
-/** A hint whose promise reads at a glance: its {never} is drawn bold. */
-function promise(): ReactNode {
-  const [before, ...rest] = t("settings.dataSharing.improveHint").split("{never}");
-  if (!rest.length) return before;
-  return <>{before}<strong className="font-semibold text-ink">{t("settings.dataSharing.never")}</strong>{rest.join(t("settings.dataSharing.never"))}</>;
-}
+/** The hint, its {never} in the same weight as the rest. */
+const promise = () => t("settings.dataSharing.improveHint", { never: t("settings.dataSharing.never") });
 
 /** The single "help improve dusk bot" row: anonymous usage info, notes on how sessions went and crash reports, all
  * scrubbed on this computer first. On by default. */

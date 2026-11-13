@@ -1,23 +1,20 @@
 # Welcome flow
 
-The first run is one screen: "What should Dusk take off your plate?" with a
-real composer and four starter jobs (Summarize my inbox, Watch a price, Plan a
-trip, Research a topic). A job fills the composer with a whole first ask and
-selects the part to change; Start (or Enter) sends it to Dusk and lands in
-Dusk's chat. Under the composer one line names the AI it runs on: a sign-in
-the app found (after one test message), else the free backup model with one
-tap to sign in, else one sign-in pill when nothing can run. A plain line says
-what Dusk asks before doing; the first job saves "ask before sending" on the
-bot unless it already has a sending rule. The cloud desktop (desktop app with a
-cloud account) and the notch tour (Macs with the island) are quiet links at
-the bottom; Skip lands in the chat with nothing sent. There is no talking-style
-step; the default stays. Dusk becomes Chief only when there is no existing
-Chief.
+The first run lands in Dusk's chat. Dusk greets in three short bubbles, looks
+around, follows up, and offers chips for what is still missing (an AI, email
+and calendar, the phone, dusk cloud). Under the chips, in small muted words, is
+the "help improve dusk bot" switch, on by default; it goes with the chips once
+the person writes. Only two things can come before the chat: bots another agent
+app keeps on this computer (desktop app only), and one sign-in screen when
+nothing at all can answer the bot yet ("Connect an AI and Dusk can start.",
+one pill, other ways, set up later). Signing in, or set up later, goes on to
+the chat. There is no job screen. Dusk becomes Chief only when there is no
+existing Chief.
 
 The current offline checks are:
 
 ```sh
-pnpm exec vitest run src/lib/starter-jobs.test.ts src/components/onboarding/WelcomeFlow.test.ts src/components/onboarding/WelcomeGate.test.ts src/components/onboarding/ConnectAi.test.ts src/components/HelperIntro.test.ts src/lib/default-bot.test.ts server/routes/helper-followup.test.ts electron/system-name.test.mjs src/components/CardHint.test.ts
+pnpm exec vitest run src/components/onboarding/WelcomeFlow.test.ts src/components/onboarding/WelcomeGate.test.ts src/components/onboarding/ConnectAi.test.ts src/components/HelperIntro.test.ts src/lib/default-bot.test.ts server/routes/helper-followup.test.ts electron/system-name.test.mjs src/components/CardHint.test.ts
 ```
 
 They cover navigation, AI readiness and sign-in errors, talking-style saves,

@@ -12,7 +12,7 @@ import type { HelperFollowupFacts } from "../../shared/helper-followup";
 const f = vi.hoisted(() => ({
   state: {} as Record<string, unknown>, dispatch: vi.fn(), local: false, reduced: false,
   services: {} as Record<string, { connected: boolean }>, phones: [] as unknown[], found: null as unknown, detect: vi.fn(),
-  followups: [] as unknown[], saves: true, bots: 0, routines: 0,
+  followups: [] as unknown[], saves: true, bots: 0, routines: 0, improve: true as boolean | undefined, improveSaves: [] as unknown[],
 }));
 vi.mock("@/state/store", () => ({
   useStore: () => ({ state: f.state, dispatch: f.dispatch }),
@@ -25,6 +25,14 @@ vi.mock("@/state/store", () => ({
       return { message: { id: "f", role: "bot", kind: "text", at: 2, text: "", helperFollowup: { ai: body.ai, apps: body.apps, bots: f.bots, routines: f.routines } } };
     }
     return {};
+  },
+}));
+// the help-improve switch reads and saves through the plain api
+vi.mock("@/state/api", () => ({
+  api: async (path: string, init?: { body?: string }) => {
+    if (path !== "/api/dashboard/usage-signals") return {};
+    if (init?.body) f.improveSaves.push(JSON.parse(init.body));
+    return init?.body ? JSON.parse(init.body) : f.improve === undefined ? {} : { enabled: f.improve };
   },
 }));
 vi.mock("./bot-settings/useBotApps", () => ({ loadAppCards: async () => new Map([["gmail", { label: "Gmail" }], ["github", { label: "GitHub" }]]) }));
@@ -84,6 +92,8 @@ beforeEach(() => {
   f.saves = true;
   f.bots = 0;
   f.routines = 0;
+  f.improve = true;
+  f.improveSaves = [];
   f.state = { bots: [maus()], instances: [claude(true)], config: { profile: { name: "" } } };
   stageIntro(null);
   setWelcomingBot(null);
@@ -204,11 +214,33 @@ describe("in the chat (Simple mode)", () => {
     expect(chipAction("import")).toEqual({ type: "toggleAppSettings", open: true, section: "import" });
   });
 
+  it("tucks the help-improve switch, on, in small words under its asks, and saves a change", async () => {
+    await show(false, saved({ ai: "own", apps: [], bots: 0, routines: 0 }));
+    const line = host.querySelector<HTMLElement>("[data-help-improve]")!;
+    expect(line.className).toContain("text-[12px]");
+    expect(line.className).toContain("text-ink-tertiary");
+    expect(line.textContent).toBe("Help improve dusk bot with anonymous usage info. Never your messages or files, and names are removed.");
+    const toggle = line.querySelector<HTMLButtonElement>("[role=switch]")!;
+    expect(toggle.getAttribute("aria-checked")).toBe("true");
+    await act(async () => { toggle.click(); });
+    await settle();
+    expect(f.improveSaves).toEqual([{ enabled: false }]);
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
+  });
+
+  it("shows no switch where the choice can't be read", async () => {
+    f.improve = undefined;
+    await show(false, saved({ ai: "own", apps: [], bots: 0, routines: 0 }));
+    expect(chips()).not.toEqual([]);
+    expect(host.querySelector("[data-help-improve]")).toBeNull();
+  });
+
   it("drops the chips once the person has written, and no longer looks for skills", async () => {
     f.local = true;
     await show(true, saved({ ai: "own", apps: [], bots: 0, routines: 0 }));
     expect(lines()).toHaveLength(4);
     expect(chips()).toEqual([]);
+    expect(host.querySelector("[data-help-improve]")).toBeNull();
     expect(f.detect).not.toHaveBeenCalled();
   });
 

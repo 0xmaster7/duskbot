@@ -2,19 +2,17 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKe
 import { setEmailGateDone, track } from "@/lib/analytics";
 import { cn } from "@/lib/cn";
 import { chiefFor, chiefStepFits, createChiefPatch, myDefaultBot, stageIntro, useViewerEmail } from "@/lib/default-bot";
-import { t } from "@/lib/i18n";
 import { BEAT_ORDER, completionPatch, firstRunPatch, markWelcomeFinished, resumeBeat, showWelcome, type BeatId } from "@/lib/onboarding";
-import { randomUuid } from "@/lib/random-uuid";
-import { firstJobOutbound, type StarterJobId } from "@/lib/starter-jobs";
 import { clearWelcomeDraft, readWelcomeDraft, saveWelcomeDraft } from "@/lib/welcome-draft";
 import { movable } from "@/lib/bot-move";
 import { localSetupImport } from "@/lib/setup-import";
 import { api, useStore } from "@/state/store";
 import { BringBotsView, useBotMove } from "../BringBots";
+import { engineReady } from "../EngineLibrary";
 import { GrokMoveDialog } from "../lazy-screens";
-import { useIslandAvailable } from "./IslandIntro";
-import { openIslandIntro } from "./IslandIntroHost";
-import { StartScreen } from "./StartScreen";
+import { freeFallback } from "../../../shared/ai-ranking";
+import { SignInStep } from "./SignInStep";
+import { aiLine, useWelcomeAi } from "./welcome-ai";
 import { localDesktopPage } from "./WelcomeGate";
 import "../../styles/onboarding.css";
 
@@ -52,9 +50,12 @@ export function trapTab(event: ReactKeyboardEvent<HTMLElement>, root: HTMLElemen
   }
 }
 
-/** The first run: one screen asking what the bot should do first. Picking or writing a job starts it in the bot's chat
- * at once (`onDone` lands there, the job already sent); Skip lands there empty. Dusk does the job, made the Chief of
- * Staff where no other bot is one. The notch tour and the cloud desktop are offered on the screen, never in the way. */
+/** How long the first run waits for the bots and the AIs to be listed before it goes to the chat anyway. */
+export const AI_WAIT_MS = 4_000;
+
+/** The first run lands in the chat, where Dusk (made the Chief of Staff where no other bot is one) greets the person
+ * and asks for what is still missing. Before it, only what can't happen there: bots another app keeps on this computer,
+ * and a sign-in when nothing at all can answer the bot yet. */
 export function WelcomeFlow({
   onDone,
   replay = false,
@@ -109,33 +110,17 @@ export function WelcomeFlow({
     [beat, dispatch, onDone, replay, embedded, keepsDraft],
   );
 
-  // where it fits, Dusk becomes the Chief of Staff, as grok's default bot does, with no screen to ask
-  const land = useCallback((job: string | null): string | null => {
-    const chief = Boolean(maus && chiefStepFits(state.bots, maus));
-    const target = chief ? maus! : job ? maus ?? state.bots.find((bot) => !bot.hidden) : undefined;
-    if (!target) return null;
-    const patch = { ...(chief ? createChiefPatch(target, chiefFor(state.bots, target)) : {}), ...(job ? firstJobOutbound(target.outbound) : {}) };
-    if (Object.keys(patch).length) dispatch({ type: "updateBot", botId: target.id, patch });
-    return target.id;
-  }, [maus, state.bots, dispatch]);
-
-  const skip = useCallback(() => {
+  // where it fits, Dusk becomes the Chief of Staff and greets in its chat, as grok's default bot does, with no screen to ask
+  const toChat = useCallback(() => {
     if (finishing.current) return;
-    const botId = land(null);
+    const chief = Boolean(maus && chiefStepFits(state.bots, maus));
+    if (chief && maus) dispatch({ type: "updateBot", botId: maus.id, patch: createChiefPatch(maus, chiefFor(state.bots, maus)) });
+    const botId = chief ? maus!.id : null;
     if (botId && !replay) stageIntro(botId);
     void finish(botId ? "completed" : "skipped", botId);
-  }, [land, finish, replay]);
+  }, [maus, state.bots, dispatch, finish, replay]);
 
-  const start = useCallback((text: string, job: StarterJobId | null) => {
-    if (finishing.current) return;
-    const botId = land(text);
-    if (!botId) return void finish("skipped", null);
-    track("onboarding_first_job", { job: job ?? "own", replay });
-    void finish("completed", botId);
-    dispatch({ type: "send", botId, text, sendId: randomUuid() });
-  }, [land, finish, dispatch, replay]);
-
-  // Escape skips as Skip does, but never past a job being written
+  // Escape goes on: past the bots from another app, then to the chat
   const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Escape" && showMove) {
       event.preventDefault();
@@ -143,10 +128,9 @@ export function WelcomeFlow({
       return;
     }
     if (event.key === "Escape") {
-      const typing = event.target instanceof HTMLTextAreaElement && event.target.value.trim().length > 0;
-      if (typing || event.defaultPrevented) return;
+      if (event.defaultPrevented) return;
       event.preventDefault();
-      skip();
+      toChat();
       return;
     }
     trapTab(event, root.current);
@@ -167,26 +151,36 @@ export function WelcomeFlow({
   }, [moveFound, moveSettled, replay]);
   const showMove = offersMove && !moveSettled;
 
-  const island = useIslandAvailable() === true;
-  const cloud = !embedded && !replay && localDesktopPage() && !window.duskDesktop?.remoteClient?.active && Boolean(window.duskDesktop?.cloudAccount)
-    && !state.config?.cloudHome;
-  const extras = [
-    ...(cloud ? [{ id: "cloud", label: t("onboarding.start.cloud"), onClick: () => dispatch({ type: "openCloudAdd", source: "app_onboarding" }) }] : []),
-    ...(island ? [{ id: "tour", label: t("onboarding.start.tour"), onClick: () => void openIslandIntro() }] : []),
-  ];
+  // the AI: a sign-in screen only when nothing at all can answer, else (or once one can) straight to the chat
+  const tested = useWelcomeAi(state.instances);
+  const backup = state.instances.some((instance) => engineReady(instance) && freeFallback(instance));
+  const line = aiLine(tested, backup);
+  const [waited, setWaited] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setWaited(true), AI_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, []);
+  // the bots and the AIs are known before anything is decided; a server that never lists them still reaches the chat
+  const known = Boolean(state.hydrated) && state.instances.length > 0;
+  const askNow = known && line === "connect";
+  const ready = !showMove && (known ? !askNow : waited);
+  useEffect(() => {
+    if (ready) toChat();
+  }, [ready, toChat]);
 
   return (
     <div
       ref={root}
       role="dialog"
       aria-modal
-      aria-labelledby={showMove && moveFound ? "bot-move-title" : "welcome-title"}
+      aria-labelledby={showMove && moveFound ? "bot-move-title" : askNow ? "welcome-title" : undefined}
       tabIndex={-1}
       onKeyDown={onKeyDown}
-      data-welcome="start"
+      data-welcome={showMove ? "bring-bots" : askNow ? "sign-in" : "chat"}
       className={cn("welcome-screen flex overflow-y-auto bg-app outline-none", embedded ? "relative h-full w-full" : "fixed inset-0 z-50")}
     >
-      {!showMove ? <StartScreen bot={maus} onStart={start} onSkip={skip} extras={extras} />
+      {!showMove ? askNow ? <SignInStep bot={maus} tested={tested} onLater={toChat} />
+        : <div data-welcome-looking="" aria-busy="true" className="min-h-full w-full" />
         : moveFound && move.plan ? (
           <div key={move.step.kind} className="onboarding-step-in relative flex min-h-full w-full flex-col items-center px-4">
             <div className="my-auto flex w-full flex-col items-center pb-10 pt-16">

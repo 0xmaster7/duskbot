@@ -64,3 +64,20 @@ export function useWelcomeAi(instances: readonly InstanceInfo[], enabled = true)
     },
   };
 }
+
+export type AiLine =
+  /** an AI of the person's own answered (or can't be tested and is trusted) */
+  | "ready"
+  /** an AI of their own is being sent its test message */
+  | "checking"
+  /** none of their own works, the free backup does: the bot runs on it, and signing in is a chip in its chat */
+  | "free"
+  /** nothing can answer the bot yet: the one case the first run asks for a sign-in before the chat */
+  | "connect";
+
+/** Where the first run stands on the AI: anything but "connect" goes straight to the chat. */
+export function aiLine(own: { state: AiTestState } | null, backupReady: boolean): AiLine {
+  if (own?.state === "passed" || own?.state === "untestable") return "ready";
+  if (own?.state === "testing") return "checking";
+  return backupReady ? "free" : "connect";
+}
