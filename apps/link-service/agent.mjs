@@ -2038,6 +2038,9 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
     const unwarm = given ? () => {} : fetchImpl.warm(base);
     void egress?.start();
     updater?.start();
+    // what the app had open through a tunnel process that ended died with it: the app ends those at once (an older app
+    // ignores this)
+    emit({ t: "boot", r: "" });
     while (!stopped) {
       const postsBefore = successfulPosts;
       const next = ahead;

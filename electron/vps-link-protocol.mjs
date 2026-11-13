@@ -854,6 +854,13 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
   }
 
   function deliver(frame, via = "relay") {
+    // the server's tunnel process started (an update, a crash): whatever went through the one before is gone with it
+    if (frame.t === "boot" && via === "relay") {
+      const startedAt = Date.now() - Math.max(0, relayNow() - (Number(frame.ts) || relayNow()));
+      log("vps link: the server's link restarted; what it held is sent again or failed");
+      lostOnRestart(startedAt);
+      return;
+    }
     if (frame.r) unanswered.delete(frame.r);
     if (egress?.handle(frame, via)) return;
     const entry = waiting.get(frame.r);

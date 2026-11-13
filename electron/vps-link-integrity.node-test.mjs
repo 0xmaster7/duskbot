@@ -119,3 +119,30 @@ test("a post given up starts a new epoch, so the relay never waits out its hole 
     assert.equal(new Set(epochs).size, 2);
   } finally { await proxy.close(); }
 });
+
+test("the server's tunnel process restarting ends a reply that was streaming through the one before", { timeout: 5000 }, async () => {
+  const out = [];
+  let wake = null;
+  const fetch = async (url, init) => {
+    url = String(url);
+    if (url.endsWith("/to-vps")) {
+      for (const sealed of JSON.parse(init.body).frames) {
+        const frame = openFrame(raw, id, "to-vps", sealed);
+        if (frame?.t === "req") {
+          out.push(head(frame.r), bytes(frame.r, 10));
+          setTimeout(() => { out.push(sealFrame(raw, id, "to-app", { t: "boot", r: "" })); wake?.(); }, 300);
+        }
+      }
+      wake?.();
+      return Response.json({ ok: true });
+    }
+    if (!out.length) await new Promise((resolve) => { wake = resolve; init.signal?.addEventListener("abort", resolve, { once: true }); setTimeout(resolve, 200); });
+    return Response.json({ frames: out.splice(0) });
+  };
+  const proxy = createTunnelProxy({ base: "http://relay.test", id, key, token: "t", fetch });
+  try {
+    await proxy.start();
+    const answer = await get(proxy);
+    assert.equal(answer.complete, false);
+  } finally { await proxy.close(); }
+});
