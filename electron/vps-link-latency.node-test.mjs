@@ -128,16 +128,19 @@ test("a lost relay acknowledgment retries the sealed batch without replaying a m
 });
 
 test("a lost reply times out its mutation and recovers another request without replay", { timeout: 5000 }, async () => {
-  let dropped = false;
+  let dropped = false, armed = false;
   // the long-poll answer an older relay gives: one json document per poll
   const target = await fixture({ replyTimeoutMs: 1000, clientFetch: async (url, init) => {
     const response = await fetch(String(url).replace("&stream=1", ""), init);
     if (init.method === "POST" || !response.ok) return response;
     const body = await response.json();
-    if (!dropped && body.frames.length) { dropped = true; throw new Error("reply lost during disconnect"); }
+    if (armed && !dropped && body.frames.length) { dropped = true; throw new Error("reply lost during disconnect"); }
     return Response.json(body);
   } });
   try {
+    // the agent's own hello on start goes through first
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    armed = true;
     assert.equal((await target.call("/mutation", "once")).status, 504);
     assert.equal((await target.call("/healthy")).status, 200);
     assert.deepEqual(target.mutations, ["once"]);
