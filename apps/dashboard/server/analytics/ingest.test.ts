@@ -88,6 +88,17 @@ describe("site tracker and app ingest", () => {
     expect(JSON.stringify(sink.all)).not.toContain("203.0.113.4");
   });
 
+  it("counts dusk.bot visits from the apex and www with no DUSK_TRACK_ORIGINS set, and nothing from other hosts", async () => {
+    app.close();
+    app = createDashboardApp({ dataDir, publicUrl: SITE, mailer, staticDir: null, now: () => time, trustProxy: true, analytics: { sink }, admin: { emails: [ADMIN], env: {} } });
+    expect((await beacon(view({ p: "/" }), { origin: "https://dusk.bot" })).status).toBe(200);
+    expect((await beacon(view({ p: "/", h: "www.dusk.bot", pv: "pv000002" }), { origin: "https://www.dusk.bot" })).status).toBe(200);
+    expect((await beacon(view({ p: "/" }), { origin: "https://preview.dusk.bot" })).status).toBe(403);
+    expect((await beacon(view({ p: "/", h: "preview.dusk.bot" }), { origin: "https://dusk.bot" })).status).toBe(400);
+    await settle();
+    expect(sink.all.filter(event => event.name === "site_view").map(event => event.ctx?.host)).toEqual(["dusk.bot", "www.dusk.bot"]);
+  });
+
   it("stores goals and page ends, and refuses what it should not count", async () => {
     await beacon({ v: 1, e: "goal", vid: VID, sid: SID, pv: "pv000001", h: "dusk.bot", p: "/", g: "cta_click", m: { to: "/dashboard/signup", from: "/" } });
     await beacon({ v: 1, e: "leave", vid: VID, sid: SID, pv: "pv000001", h: "dusk.bot", p: "/", s: 140, t: 5200.4 });

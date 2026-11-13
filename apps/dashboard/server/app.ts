@@ -128,6 +128,14 @@ export function prelaunchOpen(path: string) {
   return under(path, "/assets") || /^\/[^/]+\.(?:svg|png|ico|webmanifest|json|webp|jpg|woff2)$/.test(path);
 }
 
+/** the service's origin and its www twin (hostRedirect sends www here), so a dusk.bot visit counts whichever one the page
+ *  was on, whatever DUSK_TRACK_ORIGINS says */
+export function ownOrigins(publicUrl: string) {
+  const own = new URL(publicUrl);
+  const named = own.hostname.includes(".") && !own.hostname.startsWith("www.") && !/^[\d.]+$|:/.test(own.hostname);
+  return named ? [own.origin, `${own.protocol}//www.${own.host}`] : [own.origin];
+}
+
 function pageBaseOf(value: string | undefined) {
   const base = (value ?? "").replace(/\/+$/, "");
   if (base && !/^\/[a-z0-9-]+$/.test(base)) throw new Error("The page base must look like /dashboard.");
@@ -180,7 +188,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const state = store.state;
   const startedAt = now();
   const analytics = createAnalytics({ sink: options.analytics?.sink ?? memorySink(now), dataDir: options.dataDir, now, trustProxy: options.trustProxy,
-    trackOrigins: [new URL(options.publicUrl).origin, ...(options.analytics?.trackOrigins ?? [])] });
+    trackOrigins: [...ownOrigins(options.publicUrl), ...(options.analytics?.trackOrigins ?? [])] });
   const errorsSeen = createErrorCounter(now);
   const dev = options.dev ?? (new URL(publicUrl).protocol === "http:" && ["127.0.0.1", "localhost"].includes(new URL(publicUrl).hostname));
   const mailLimitSay = { hour: "the hourly", day: "the daily", new: "the daily signup share of the" } as const;

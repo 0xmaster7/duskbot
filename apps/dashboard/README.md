@@ -128,7 +128,7 @@ users (search, plan, clouds, devices, timeline), clouds (pause, resume, delete w
   there the service ignores the browser's ids and uses a daily visitor hash (HMAC of address and user agent under a salt
   that lives in memory and changes every day) and its own 30-minute visits, so attribution is per visit. A request that
   did not come through Cloudflare keeps cookies. Origins other than
-  the service's own must be in `DUSK_TRACK_ORIGINS`. The apps send screens, features, message counts, reply times,
+  the service's own and its `www.` twin must be in `DUSK_TRACK_ORIGINS`. The apps send screens, features, message counts, reply times,
   error and pairing codes to `POST /v1/app/events` (`src/lib/product-analytics.ts`), anonymous by install id until the
   app signs in. The desktop app's own page hands its batches to Electron main over the preload bridge (`productEvents`);
   main (`electron/product-events.mjs`) drops anything outside its event and prop allowlist, adds the account token when

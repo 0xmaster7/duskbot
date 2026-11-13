@@ -44,8 +44,11 @@ const database = process.env.MONGODB_URI
     onLeaseLost: error => { console.error(error.message); process.exit(1); } })
   : null;
 if (database) { useStateBackend(database.backend); console.log("state: mongodb"); } else console.log("state: json files (development)");
+// the waitlist the admin shows: DUSK_WAITLIST_DB names the database the dusk.bot site writes, "off" shows none (preview, whose
+// own visitors would otherwise sit next to production's sign-ups)
+const waitlistDb = process.env.DUSK_WAITLIST_DB?.trim();
 const trackOrigins = (process.env.DUSK_TRACK_ORIGINS ?? "").split(",").map(item => item.trim()).filter(Boolean);
-const analytics = { ...(database ? { sink: await mongoSink(database.db), usage: await mongoUsageStore(database.db), infra: await mongoInfraStore(database.db), ops: await mongoOpsStore(database.db), db: database.db, waitlist: mongoWaitlist(process.env.DUSK_WAITLIST_DB ? database.sibling(process.env.DUSK_WAITLIST_DB) : database.db) } : {}), trackOrigins };
+const analytics = { ...(database ? { sink: await mongoSink(database.db), usage: await mongoUsageStore(database.db), infra: await mongoInfraStore(database.db), ops: await mongoOpsStore(database.db), db: database.db, waitlist: waitlistDb === "off" ? null : mongoWaitlist(waitlistDb ? database.sibling(waitlistDb) : database.db) } : {}), trackOrigins };
 const adminEmails = parseAdminEmails(process.env.DUSK_ADMIN_EMAILS);
 console.log(`admin: ${adminEmails.length} allowed account${adminEmails.length === 1 ? "" : "s"}`);
 
