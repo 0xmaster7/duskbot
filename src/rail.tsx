@@ -6,10 +6,12 @@ import { applyFont, readFont } from "./lib/fonts";
 import { watchFocusNav } from "./lib/focus-nav";
 import { loadPageLanguage } from "./lib/language-preference";
 import { applySkinChoice, readSkinChoice } from "./lib/skins";
+import { watchStaleChunks } from "./lib/stale-chunks";
 import "./font-faces.css";
 import "./styles.css";
 
 watchFocusNav();
+watchStaleChunks();
 
 // The window's own rail of places (electron/chrome-rail.mjs): see-through but for the rail and its open sheets. Only
 // the desktop's preload gives this app's page a rail; anywhere else this address is the app.

@@ -6,6 +6,7 @@ import { setColorUserBubblesDefault } from "@/lib/user-bubble-preference";
 import { applySkinChoice, readSkinChoice, THEME_SKINS, type SkinChoice } from "@/lib/skins";
 import { applyFont, readFont } from "@/lib/fonts";
 import { PageBoundary } from "@/components/PageBoundary";
+import { watchStaleChunks } from "@/lib/stale-chunks";
 import "./styles.css";
 import "@/styles/overlays.css";
 import "@/styles/motion.css";
@@ -32,6 +33,8 @@ export function mountMobile(platform: MobilePlatform): void {
   // the preview page's switches (?frame, ?scheme, ?pair) are for the browser preview: the installed app reads none of them
   const params = new URLSearchParams(platform.native ? "" : location.search);
   if (params.has("frame")) document.documentElement.dataset.phoneFrame = "";
+  // the phone page in a browser loads parts of itself later; after a deploy one quiet reload fetches the new ones
+  if (!platform.native) watchStaleChunks();
   followSystemTextSize(platform);
   setColorUserBubblesDefault(false);
   document.documentElement.dataset.mobileApp = platform.kind;
