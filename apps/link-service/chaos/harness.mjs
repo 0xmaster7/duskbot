@@ -295,7 +295,14 @@ export async function createBotServer() {
     if (url.pathname === "/api/big") {
       const length = Number(url.searchParams.get("bytes") ?? 1e6);
       if (!big.has(length)) big.set(length, patternBytes(length));
-      res.writeHead(200, { "content-type": "application/octet-stream", "content-length": String(length) });
+      // like a file the server serves: a strong validator and byte ranges
+      const etag = `"big-${length}"`, range = /^bytes=(\d+)-$/.exec(String(req.headers.range ?? ""));
+      if (range && (!req.headers["if-range"] || req.headers["if-range"] === etag) && Number(range[1]) < length) {
+        const from = Number(range[1]);
+        res.writeHead(206, { "content-type": "application/octet-stream", "content-length": String(length - from), "content-range": `bytes ${from}-${length - 1}/${length}`, "accept-ranges": "bytes", etag });
+        return res.end(big.get(length).subarray(from));
+      }
+      res.writeHead(200, { "content-type": "application/octet-stream", "content-length": String(length), "accept-ranges": "bytes", etag });
       return res.end(big.get(length));
     }
     if (url.pathname === "/api/upload" && req.method === "POST") {

@@ -2115,6 +2115,8 @@ export function createServing({ server = SERVER, sink, stopped = () => false, co
       if (!pending.has(frame.r) || stopped()) { res.destroy(); return; }
       const out = {};
       for (const [name, value] of Object.entries(res.headers)) if (!HOP.has(name)) out[name] = value;
+      // the length travels apart (content-length is per hop): the app needs it to pick a broken download up again
+      if (/^\d+$/.test(String(res.headers["content-length"] ?? ""))) out["x-dusk-length"] = res.headers["content-length"];
       emit({ t: "head", r: frame.r, status: res.statusCode ?? 502, headers: out });
       res.on("data", (chunk) => {
         if (!pending.has(frame.r) || stopped()) return;

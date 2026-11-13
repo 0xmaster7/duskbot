@@ -403,7 +403,7 @@ export const SCENARIOS = [
     },
   },
   {
-    name: "download-node-restart", title: "50 MB download while the home node restarts", budgetMs: 25_000,
+    name: "download-node-restart", title: "50 MB download while the home node restarts", budgetMs: 40_000,
     async run(world) {
       const size = 50 * 1024 * 1024;
       const home = await homeNode(world);
@@ -419,7 +419,7 @@ export const SCENARIOS = [
       if (whole && !intact) return { clearedAt, pass: false, note: "the first try finished with the wrong bytes" };
       const again = await world.probe.call(`/api/big?bytes=${size}`, { timeoutMs: 120_000 });
       const retried = again.status === 200 && again.body.length === size;
-      return { clearedAt, pass: retried, note: `first try ${whole ? "finished" : `cut (${answer.status || answer.error})`}, the retry ${retried ? "finished" : "failed"}`, sees: whole ? null : "the download fails and has to be started again" };
+      return { clearedAt, pass: intact && retried, note: `first try ${whole ? "finished whole" : `cut (${answer.status || answer.error})`}, the retry ${retried ? "finished" : "failed"}`, sees: whole ? null : "the download fails and has to be started again" };
     },
   },
 ];

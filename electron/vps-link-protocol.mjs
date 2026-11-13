@@ -645,6 +645,8 @@ const SILENT_ASK_MS = 4000;
 const READ_HANG_MS = 45_000;
 /** how long a post waits out a relay that says the server is behind before it gives up */
 const BEHIND_PATIENCE_MS = 60_000;
+/** how many times one download picks up again after the relay lost part of it */
+const MAX_RESUMES = 5;
 /** a request sent this recently when the relay moves may still be on its way there, so it is left to finish */
 const RESEND_AFTER_MS = 2000;
 /** a stream's sender says how many bytes it sent so far after this many more, or this long, so a gap shows */
@@ -1061,7 +1063,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
     if (closed) { res.writeHead(502, { "content-type": "application/json" }); res.end(JSON.stringify({ error: "This server is not connected." })); return; }
     // the app itself answers this one: TURN servers for the direct screen path, from the signed-in account (never the server)
     if (req.method === "GET" && req.url === SCREEN_ICE_PATH) { void answerScreenIce(res, screenIce, direct?.ready() && direct.via?.() !== "cloud" ? "direct" : "relay"); return; }
-    const r = randomB32(12);
+    let r = randomB32(12);
     const headers = {};
     for (const [name, value] of Object.entries(req.headers)) if (!HOP.has(name)) headers[name] = value;
     let timer = null, eventStream = false;
@@ -1074,13 +1076,37 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
     const bodyless = req.method === "GET" || req.method === "HEAD" || req.headers["content-length"] === "0";
     const request = { t: "req", r, method: req.method, path: req.url, headers, end: bodyless };
     const idempotent = bodyless && (req.method === "GET" || req.method === "HEAD");
-    waiting.set(r, {
+    // a whole download the server can serve in ranges (a file with a validator) picks up where it broke, on a new
+    // request, when the relay loses part of it: the browser sees one download that never stopped
+    let written = 0, resumable = null, resumes = 0;
+    const resume = () => {
+      if (!resumable || resumes >= MAX_RESUMES || written >= resumable.total || closed) return false;
+      resumes += 1;
+      r = randomB32(12);
+      log(`vps link: a download broke at ${written} of ${resumable.total} bytes; it goes on from there`);
+      const at = written, mine = r;
+      waiting.set(r, entry(at));
+      touch();
+      // a moment first: what broke it (a node restarting) is usually still going on
+      setTimeout(() => { if (waiting.has(mine)) emit({ t: "req", r: mine, method: "GET", path: req.url, headers: { ...headers, range: `bytes=${at}-`, "if-range": resumable.validator }, end: true }); }, Math.min(8000, 1000 * 2 ** (resumes - 1))).unref?.();
+      return true;
+    };
+    const entry = (from) => ({
       via: pick(),
       touch,
       head: (status, out) => {
+        if (from !== null) {
+          // the rest of the same file, or nothing: anything else would splice two different files together
+          const range = /^bytes (\d+)-\d+\/(\d+)$/.exec(String(out["content-range"] ?? ""));
+          if (status !== 206 || !range || Number(range[1]) !== from || Number(range[2]) !== resumable.total) { waiting.delete(r); emit({ t: "cancel", r }); res.destroy(); }
+          return;
+        }
         // a GET sent again may be answered twice; the first answer stands
         if (res.headersSent) return;
         eventStream = /^text\/event-stream\b/i.test(String(out["content-type"] ?? ""));
+        const validator = typeof out.etag === "string" && !out.etag.startsWith("W/") ? out.etag : typeof out["last-modified"] === "string" ? out["last-modified"] : null;
+        const total = Number(out["x-dusk-length"] ?? out["content-length"]);
+        if (req.method === "GET" && status === 200 && !headers.range && /\bbytes\b/i.test(String(out["accept-ranges"] ?? "")) && validator && Number.isSafeInteger(total) && total > 0) resumable = { validator, total };
         res.writeHead(status, out);
         res.flushHeaders?.();
       },
@@ -1091,10 +1117,11 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
           answer(502, "The response exceeded this connection's buffer limit.");
           return;
         }
+        written += chunk.length;
         res.write(chunk);
       },
       end: () => { clearTimeout(timer); res.end(); },
-      fail: (message) => answer(502, message),
+      fail: (message) => { if (res.headersSent && resume()) return; answer(502, message); },
       ctl: () => {},
       // nothing came back yet and asking again changes nothing: the same request goes out over the relay
       replay: () => { if (!idempotent || res.headersSent) return false; relayPath.push(request); return true; },
@@ -1102,6 +1129,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
       movable: () => eventStream,
       move: () => { clearTimeout(timer); res.end(); },
     });
+    waiting.set(r, entry(null));
     touch();
     res.on("close", () => { clearTimeout(timer); if (waiting.has(r)) { emit({ t: "cancel", r }); waiting.delete(r); } });
     emit(request);
