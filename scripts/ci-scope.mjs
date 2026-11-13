@@ -85,10 +85,11 @@ const AREAS = [
   [/^(?:apps\/)?docs\//, "docs"],
   [/^scripts\/.+\.test\.[cm]?[jt]sx?$/, "script-tests"],
   [/^src\/locales\/(?:(?!en\.json$)[^/]+\.json|[^/]+\.test\.ts)$/, "locales"],
-  [/^(?:src|public|previews)\//, "web"],
+  [/^src\/windows\/[^/]+\.html$/, "desktop"],
+  [/^(?:src|public)\//, "web"],
   [/^(?:server|shared|apps\/companion|evals|skills|deploy|apps\/cloudflare\/composio-broker)\//, "server"],
   [/^electron\/(?:cua|cua-failure|cua-connection|capabilities|paced-typing)\.[cm]js$/, "windows-computer-control"],
-  [/^(?:electron|build)\/|^(?:index\.html|rail\.html)$/, "desktop"],
+  [/^(?:electron|build)\//, "desktop"],
   [/^cloudflare\/control-plane\//, "control-plane"],
 ];
 

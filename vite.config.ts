@@ -18,16 +18,45 @@ const root = fileURLToPath(new URL(".", import.meta.url));
 const workers = Number(process.env.DUSK_VITEST_WORKERS) || 1;
 const page = (file: string) => fileURLToPath(new URL(file, import.meta.url));
 
-/** The window's rail of places loads /rail: rail.html, its own small page, in development as from the server. */
-function railPage(): Plugin {
-  const rewrite: Connect.NextHandleFunction = (req, _res, next) => {
+/** The windows' pages live in src/windows/ but are served and built at the top, where the server, the desktop window
+ * and the packaged app load them: / (index.html), /rail (rail.html, the rail of places) and /ambient.html. */
+const WINDOWS = "src/windows";
+const PAGES = ["index", "rail", "ambient"];
+function windowPages(): Plugin {
+  const named: Record<string, string> = { "/": "index", "/index.html": "index", "/rail": "rail", "/rail.html": "rail", "/ambient.html": "ambient" };
+  const dev: Connect.NextHandleFunction = (req, _res, next) => {
+    const url = req.url ?? "";
+    const at = url.indexOf("?");
+    const page = named[at < 0 ? url : url.slice(0, at)];
+    if (page) req.url = `/${WINDOWS}/${page}.html${at < 0 ? "" : url.slice(at)}`;
+    next();
+  };
+  // vite's own fallback sends every other page route to /index.html at the root
+  const fallback: Connect.NextHandleFunction = (req, _res, next) => {
+    if (req.url === "/index.html") req.url = `/${WINDOWS}/index.html`;
+    next();
+  };
+  const preview: Connect.NextHandleFunction = (req, _res, next) => {
     if (req.url === "/rail" || req.url?.startsWith("/rail?")) req.url = `/rail.html${req.url.slice("/rail".length)}`;
     next();
   };
   return {
-    name: "rail-page",
-    configureServer: (server) => void server.middlewares.use(rewrite),
-    configurePreviewServer: (server) => void server.middlewares.use(rewrite),
+    name: "window-pages",
+    configureServer(server) {
+      server.middlewares.use(dev);
+      return () => void server.middlewares.use(fallback);
+    },
+    configurePreviewServer: (server) => void server.middlewares.use(preview),
+    generateBundle: {
+      order: "post",
+      handler(_options, bundle) {
+        for (const [key, file] of Object.entries(bundle)) {
+          if (file.type !== "asset" || !key.startsWith(`${WINDOWS}/`) || !PAGES.some((name) => key === `${WINDOWS}/${name}.html`)) continue;
+          delete bundle[key];
+          this.emitFile({ type: "asset", fileName: key.slice(WINDOWS.length + 1), source: file.source });
+        }
+      },
+    },
   };
 }
 
@@ -89,9 +118,9 @@ function preloadApp(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), railPage(), preloadApp(), thirdPartyNotices()],
+  plugins: [react(), tailwindcss(), windowPages(), preloadApp(), thirdPartyNotices()],
   build: {
-    rollupOptions: { input: { index: page("./index.html"), rail: page("./rail.html"), ambient: page("./ambient.html") } },
+    rollupOptions: { input: Object.fromEntries(PAGES.map((name) => [name, page(`./${WINDOWS}/${name}.html`)])) },
   },
   define: {
     __APP_VERSION__: JSON.stringify(version),

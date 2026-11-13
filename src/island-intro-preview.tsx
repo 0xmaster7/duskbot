@@ -1,4 +1,4 @@
-// Dev-only page for the notch and dock setup step, served at /previews/island-intro-preview.html; not in the packaged app.
+// Dev-only page for the notch and dock setup step, served at /src/windows/previews/island-intro-preview.html; not in the packaged app.
 // A fake island bridge stands in for the desktop app's, so it never touches a real one.
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";

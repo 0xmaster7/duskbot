@@ -105,7 +105,7 @@ describe("CI path scope", () => {
   });
 
   it("runs the build, the Linux shards and the renderer smoke for a renderer change", () => {
-    expect(selectCiScope(["src/App.tsx", "public/icon.svg", "previews/ambient-fixture.html", "src/locales/en.json", "docs/guide.md"]))
+    expect(selectCiScope(["src/App.tsx", "public/icon.svg", "src/windows/previews/ambient-fixture.html", "src/locales/en.json", "docs/guide.md"]))
       .toEqual({ areas: ["docs", "web"], checks: ["build", "docs-tests", "linux-tests", "ui-smoke"] });
   });
 
@@ -129,7 +129,7 @@ describe("CI path scope", () => {
       expect(selectCiScope([file]).checks).toContain("windows-cua");
     });
 
-  it.each([["electron/main.mjs"], ["build/icon.icns"], ["build/electron-builder.yml"], ["index.html"], ["rail.html"]])("runs the server's checks for the desktop's %j", (file) => {
+  it.each([["electron/main.mjs"], ["build/icon.icns"], ["build/electron-builder.yml"], ["src/windows/index.html"], ["src/windows/rail.html"], ["src/windows/ambient.html"]])("runs the server's checks for the desktop's %j", (file) => {
     expect(selectCiScope([file])).toEqual({ areas: ["desktop"], checks: checks("server") });
   });
 

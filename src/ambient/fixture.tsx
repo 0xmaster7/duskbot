@@ -1,5 +1,5 @@
 // Development only: the notch island and the bot dock on a pretend desktop, each in a frame of its own as in the app,
-// fed fixture bots (previews/ambient-fixture.html). ?display=external draws a display without a notch, ?island=0 leaves
+// fed fixture bots (src/windows/previews/ambient-fixture.html). ?display=external draws a display without a notch, ?island=0 leaves
 // the island off as a new install does, ?showcase=1 draws the setup's IslandShowcase. The page takes
 // { type: "scene", scene } messages.
 import { StrictMode, useEffect, useRef } from "react";

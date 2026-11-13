@@ -185,7 +185,7 @@ Appearance → "Island and dock tour" plays it again; dev builds also expose `wi
 pnpm exec vitest run src/components/onboarding/IslandIntro.test.ts src/components/onboarding/WelcomeFlow.test.ts
 ```
 
-For a look without the app, `pnpm dev` and open `/previews/island-intro-preview.html` (fake bridge; `?reduced=1`,
+For a look without the app, `pnpm dev` and open `/src/windows/previews/island-intro-preview.html` (fake bridge; `?reduced=1`,
 `?fail=1`, `?lang=de`, `?w=760&h=600`). The real island lighting up on a display is not covered by these checks.
 
 ## Bring your bots from another app (Nov 12 2026)
