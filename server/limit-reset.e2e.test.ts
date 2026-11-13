@@ -374,10 +374,7 @@ it.each([
     const messages = [...await messagesOf(api, threadId), ...await messagesOf(api, other.threadId)];
     const refused = { name: "error: Not logged in · Please run /login", ok: false, setup: true };
     expect(messages.filter((message) => message.tool?.ok === false), "each refused turn shows it failed, with the sign-in that fixes it")
-      .toEqual(Array(3).fill(expect.objectContaining({ tool: recovering
-        // a turn refused before it starts carries setup only; the app reads setup and these words as signed out
-        ? expect.objectContaining(refused)
-        : { ...refused, reason: "signed_out" } })));
+      .toEqual(Array(3).fill(expect.objectContaining({ tool: { ...refused, reason: "signed_out" } })));
     expect(messages.filter((message) => message.tool?.name?.startsWith("notice:")).map((message) => message.tool))
       .toEqual([{ name: `notice: ${told}`, ok: true, setup: true }]);
     const notified = (await api("GET", "/api/notifications")).notifications as any[];

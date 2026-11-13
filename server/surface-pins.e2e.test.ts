@@ -422,6 +422,37 @@ describe("surface pin provenance against the real server", () => {
     await stop();
   });
 
+  it("clears a select_computer pin to the shared workspace computer that fails, in one plain sentence", async () => {
+    await start();
+    const { bot } = await apiOk("POST", "/api/bots", { name: "Shared place bot" });
+    const { task } = await apiOk("POST", `/api/bots/${bot.id}/tasks`, {});
+    await apiOk("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", mode: "shared" } });
+    expect((await apiOk("GET", `/api/bots/${bot.id}/computer`)).teamComputer?.scope).toBe("workspace");
+    const lastRow = async () => {
+      const { messages } = await apiOk("GET", `/api/threads/${task.threadId}/messages?limit=30`);
+      return messages.filter((message: any) => message.kind !== "digest").at(-1)?.tool ?? {};
+    };
+    resetTurn();
+    await apiOk("POST", `/api/bots/${bot.id}/messages`, { text: "Open Chrome on the cloud computer.", threadId: task.threadId });
+    const sent = await dump();
+    const token = sent.mcpConfig.mcpServers.agents.env.DUSK_COMMS_TOKEN;
+    const selected = await fetch(base + "/api/internal/computer/select", { method: "POST",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ surface: "cloud" }) });
+    expect(await selected.json()).toMatchObject({ status: "pending", surface: "cloud" });
+    vpsState({ unreachable: "the fixture VPS does not answer" });
+    writeFileSync(finishFile, "finish");
+    await until(async () => String((await lastRow()).name ?? ""), row => row.startsWith("error:"));
+    await idle(bot.id, task.threadId);
+    const failed = await lastRow();
+    expect(failed.name).toBe("error: The fixture VPS does not answer. This conversation is back on Auto. Send your message again.");
+    expect(failed.place).toMatchObject({ state: "place-failed", source: "auto-pin" });
+    const cleared = savedTask(bot.id, task.threadId)!;
+    expect(cleared.surface).toBeUndefined();
+    expect(cleared.surfaceSource).toBeUndefined();
+    await apiOk("DELETE", `/api/bots/${bot.id}`);
+    await stop();
+  });
+
   it("never takes a relayed line's conversation for where the person writes, when select_computer continues its turn", async () => {
     await start();
     const { bot } = await apiOk("POST", "/api/bots", { name: "Relayed place bot" });

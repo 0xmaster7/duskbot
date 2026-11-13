@@ -8563,7 +8563,10 @@ async function beginTurn(
           throw new Error("The VPS computer is unavailable; connect a VPS in Settings and retry");
         }
       } catch (error) {
-        skipComputer(!namedPlace || !placeSource ? error : await asPlaceFailure(error, namedPlace, placeSource, bot));
+        const failedPlace = namedPlace ?? (teamComputer ? "cloud" as const : undefined);
+        const failure = !failedPlace ? error : await asPlaceFailure(error, failedPlace, placeSource ?? (plan.pinned ? pinSource(plan.pinned, dispatchTask, bot.computer) : "works-on"), bot);
+        if (failure instanceof PlaceUnavailableError) clearFailedAutoPin(bot.id, threadId, failure.place);
+        skipComputer(failure);
       }
 
       // a bot whose Local VM awaits its update goes through attachLocalVm, which waits for it or bars this computer
@@ -8967,7 +8970,7 @@ async function beginTurn(
         role: "bot",
         kind: "activity",
         turnSucceeded: false,
-        tool: failedTurnTool(message, e instanceof PlaceUnavailableError ? { place: e.row } : e instanceof TurnUsageLimitRefusedError ? { limitResetsAt: e.resetsAt } : e instanceof TurnAuthenticationRefusedError ? { setup: true } : {}),
+        tool: failedTurnTool(message, e instanceof PlaceUnavailableError ? { place: e.row } : e instanceof TurnUsageLimitRefusedError ? { limitResetsAt: e.resetsAt } : e instanceof TurnAuthenticationRefusedError ? { setup: true, reason: "signed_out" } : {}),
       });
       const personTurn = opts?.automationSource === undefined && !opts?.commsDepth && !opts?.cardContinuation, told = personTurn && takeoverScope === "signed-out" ? limitTakeover.tell(bot, bot.modelSelection, { scope: "signed-out" }) : null; // a limit or a sign-out is heard once a stretch, not once a turn
       if (told) store.appendMessage(threadId, { role: "bot", kind: "activity", tool: { name: `notice: ${told}`, ok: true, setup: true } });
