@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Check, QrCode } from "../icons";
+import { Check, KeyRound, QrCode } from "../icons";
 import { QRCodeSVG } from "qrcode.react";
 
 import type { MobileDevice, MobilePairingRequest, MobilePairingResponse } from "../../shared/mobile-link";
 import { companionBridge } from "@/lib/companion-bridge";
+import { copyText, type CopyFeedback } from "@/lib/copy-text";
 import { t } from "@/lib/i18n";
 import { requireUserPresence } from "@/lib/user-presence";
 import { api, ApiError } from "@/state/store";
@@ -29,7 +30,9 @@ const tileButton = "ui-button mobile-press mt-auto min-h-11 rounded-full";
 const quietButton = "mobile-press min-h-11 rounded-full px-3 text-[13px] font-medium text-ink-secondary hover:bg-ink/5 disabled:opacity-50";
 
 /** The phone page's pieces, for a caller that lays them out around its own pairing code. */
-export interface PhoneParts { hero: ReactNode; qrTile: ReactNode; phones: ReactNode }
+export interface PhoneParts { hero: ReactNode; qrTile: ReactNode; codeTile: ReactNode; phones: ReactNode }
+
+type Way = "qr" | "code";
 
 export function MobilePairingCard({ remote, accountEmail = null, children }: {
   remote: boolean; accountEmail?: string | null;
@@ -42,6 +45,9 @@ export function MobilePairingCard({ remote, accountEmail = null, children }: {
   const [busy, setBusy] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
   const [showLink, setShowLink] = useState(false);
+  const [shown, setShown] = useState<Record<Way, boolean>>({ qr: false, code: false });
+  const [errorWay, setErrorWay] = useState<Way>("qr");
+  const [copied, setCopied] = useState<CopyFeedback>("idle");
   const [pairedName, setPairedName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -88,6 +94,7 @@ export function MobilePairingCard({ remote, accountEmail = null, children }: {
     setRemoving(null);
     setPairedName(null);
     setShowLink(false);
+    setShown({ qr: false, code: false });
     setError(null);
     void loadDevices(epoch);
     return () => { generation.current += 1; };
@@ -107,8 +114,16 @@ export function MobilePairingCard({ remote, accountEmail = null, children }: {
     return () => { cancelled = true; clearTimeout(timer); clearInterval(clock); };
   }, [loadDevices, offer]);
 
-  async function create() {
+  async function create(way: Way) {
     if (busy || !devices) return;
+    setErrorWay(way);
+    // the other tile's live offer already carries what this one shows
+    if (offer && offer.expiresAt > Date.now() && pairedName === null && !shown[way]) {
+      setShown({ ...shown, [way]: true });
+      return;
+    }
+    setShown({ qr: way === "qr", code: way === "code" });
+    setCopied("idle");
     const epoch = generation.current;
     setBusy(true);
     setError(null);
@@ -159,9 +174,20 @@ export function MobilePairingCard({ remote, accountEmail = null, children }: {
     }
   }
 
+  async function copyCode() {
+    if (!offer?.code) return;
+    const epoch = generation.current;
+    const result = await copyText(offer.code);
+    if (generation.current === epoch && result !== "empty") {
+      setCopied(result);
+      if (result === "failed") haptic("error");
+    }
+  }
+
   if (hidden) return children ? <>{children(null)}</> : null;
   const expired = offer !== null && offer.expiresAt <= now;
   const state = pairedName !== null ? "success" : offer ? (expired ? "expired" : "offer") : "idle";
+  const groupedCode = offer?.code?.replace(/[^a-z0-9]/gi, "").match(/.{1,4}/g)?.join(" ");
 
   const hero = (
     <div data-phone-hero="" className="flex items-center gap-6 px-3">
@@ -178,62 +204,84 @@ export function MobilePairingCard({ remote, accountEmail = null, children }: {
     </div>
   );
 
-  const qrTile = (
-    <PairingTile id={tileId} icon={<QrCode size={16} />} title={t("settings.mobile.scanTitle")} data-pairing-tile="qr">
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={state}
-          initial={{ opacity: 0, y: reducedMotion ? 0 : 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: reducedMotion ? 0 : 6 }}
-          transition={{ duration: reducedMotion ? 0 : dur.base, ease: ease.out }}
-          className="flex flex-1 flex-col items-start gap-3"
-        >
-          {state === "success" ? (
-            <>
-              <span aria-hidden="true" className="flex size-10 items-center justify-center rounded-full bg-success/10 text-success"><Check size={20} /></span>
-              <div role="status">
-                <p className="m-0 break-words text-[14px] font-medium leading-5 text-ink">{t("mobile.desktop.linked", { name: pairedName ?? "" })}</p>
-                <p className="m-0 mt-1 text-[13px] leading-[18px] text-ink-secondary">{t("mobile.desktop.linkedHint")}</p>
+  // both ways read the same short-lived offer: the qr carries its link, the code tile its typed code
+  const wayTile = (way: Way) => {
+    const at = !shown[way] ? "idle" : state;
+    const qr = way === "qr";
+    return (
+      <PairingTile id={`${tileId}-${way}`} icon={qr ? <QrCode size={16} /> : <KeyRound size={16} />} title={t(qr ? "settings.mobile.scanTitle" : "settings.w6.pairing.title")} data-pairing-tile={way}>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={at}
+            initial={{ opacity: 0, y: reducedMotion ? 0 : 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: reducedMotion ? 0 : 6 }}
+            transition={{ duration: reducedMotion ? 0 : dur.base, ease: ease.out }}
+            className="flex flex-1 flex-col items-start gap-3"
+          >
+            {at === "success" ? (
+              <>
+                <span aria-hidden="true" className="flex size-10 items-center justify-center rounded-full bg-success/10 text-success"><Check size={20} /></span>
+                <div role="status">
+                  <p className="m-0 break-words text-[14px] font-medium leading-5 text-ink">{t("mobile.desktop.linked", { name: pairedName ?? "" })}</p>
+                  <p className="m-0 mt-1 text-[13px] leading-[18px] text-ink-secondary">{t("mobile.desktop.linkedHint")}</p>
+                </div>
+                <button type="button" onClick={() => void create(way)} disabled={busy || devices === null} className={tileButton}>{t("mobile.desktop.linkAnother")}</button>
+              </>
+            ) : at === "expired" ? (
+              <>
+                <p role="status" className="m-0 text-[13px] leading-[18px] text-ink-secondary">{t("settings.mobile.expired")}</p>
+                <button type="button" onClick={() => void create(way)} disabled={busy} className={tileButton}>{t("settings.mobile.newCode")}</button>
+              </>
+            ) : at === "offer" && offer ? (
+              <div data-phone-offer={way} className="flex w-full flex-col items-start gap-3">
+                {qr ? (
+                  <div role="img" aria-label={t("settings.mobile.qr")} className="rounded-[12px] bg-white p-2">
+                    <QRCodeSVG value={offer.link} size={148} level="M" includeMargin={false} bgColor="#ffffff" fgColor="#1b1b1f" aria-hidden="true" />
+                  </div>
+                ) : offer.code !== null ? (
+                  <>
+                    <p className="m-0 text-[13px] leading-[18px] text-ink-secondary">{t("settings.docs.phone.codeSteps")}</p>
+                    <code aria-label={t("settings.mobile.code")} className="select-all whitespace-nowrap font-mono text-[22px] leading-8 tracking-[0.1em] text-ink">{groupedCode}</code>
+                  </>
+                ) : <p className="m-0 text-[13px] leading-[18px] text-ink-secondary">{t("settings.mobile.scanOnly")}</p>}
+                <p role="status" className="m-0 flex flex-wrap items-center gap-x-2 text-[13px] font-medium leading-[18px] text-ink">
+                  <span aria-hidden="true" className="phone-link-wait inline-block size-1.5 rounded-full bg-ink" />
+                  {t("mobile.desktop.waiting")}
+                  <span className="font-normal text-ink-tertiary">· {t("settings.mobile.expires", { minutes: minutesLeft(offer.expiresAt, now) })}</span>
+                </p>
+                <div className="-ms-3 mt-auto flex flex-wrap items-center">
+                  <button type="button" data-phone-new-code="" onClick={() => void create(way)} disabled={busy} className={quietButton}>{t("settings.mobile.newCode")}</button>
+                  {qr ? (
+                    <button type="button" aria-expanded={showLink} aria-controls={linkId} onClick={() => { setShowLink(!showLink); haptic("selection"); }} className={quietButton}>
+                      {t("mobile.desktop.copyLinkInstead")}
+                    </button>
+                  ) : offer.code !== null ? (
+                    <button type="button" onClick={() => void copyCode()} className={quietButton} aria-live="polite">
+                      {t(copied === "copied" ? "settings.mobile.copied" : copied === "failed" ? "settings.mobile.copyFailed" : "settings.mobile.copyCode")}
+                    </button>
+                  ) : null}
+                </div>
+                {qr && (
+                  <div id={linkId} hidden={!showLink} className="-mx-2 w-[calc(100%+1rem)] [&_button]:min-h-11 [&_button]:min-w-11">
+                    {showLink && <CopyRow title={t("settings.mobile.link")} text={offer.link} copyLabel={t("settings.mobile.copyLink")} />}
+                  </div>
+                )}
               </div>
-              <button type="button" onClick={() => void create()} disabled={busy || devices === null} className={tileButton}>{t("mobile.desktop.linkAnother")}</button>
-            </>
-          ) : state === "expired" ? (
-            <>
-              <p role="status" className="m-0 text-[13px] leading-[18px] text-ink-secondary">{t("settings.mobile.expired")}</p>
-              <button type="button" onClick={() => void create()} disabled={busy} className={tileButton}>{t("settings.mobile.newCode")}</button>
-            </>
-          ) : state === "offer" && offer ? (
-            <div data-phone-offer="" className="flex w-full flex-col items-start gap-3">
-              <div role="img" aria-label={t("settings.mobile.qr")} className="rounded-[12px] bg-white p-2">
-                <QRCodeSVG value={offer.link} size={148} level="M" includeMargin={false} bgColor="#ffffff" fgColor="#1b1b1f" aria-hidden="true" />
-              </div>
-              <p role="status" className="m-0 flex flex-wrap items-center gap-x-2 text-[13px] font-medium leading-[18px] text-ink">
-                <span aria-hidden="true" className="phone-link-wait inline-block size-1.5 rounded-full bg-ink" />
-                {t("mobile.desktop.waiting")}
-                <span className="font-normal text-ink-tertiary">· {t("settings.mobile.expires", { minutes: minutesLeft(offer.expiresAt, now) })}</span>
-              </p>
-              <div className="-ms-3 flex flex-wrap items-center">
-                <button type="button" data-phone-new-code="" onClick={() => void create()} disabled={busy} className={quietButton}>{t("settings.mobile.newCode")}</button>
-                <button type="button" aria-expanded={showLink} aria-controls={linkId} onClick={() => { setShowLink(!showLink); haptic("selection"); }} className={quietButton}>
-                  {t("mobile.desktop.copyLinkInstead")}
+            ) : (
+              <>
+                <p className="m-0 text-[13px] leading-[18px] text-ink-secondary">{t(qr ? "settings.mobile.scanHint" : "settings.docs.phone.enterCodeHint")}</p>
+                <button type="button" {...(qr ? { "data-phone-pair": "" } : { "data-phone-code": "" })} onClick={() => void create(way)} disabled={busy || devices === null} className={tileButton}>
+                  {t(qr ? "settings.mobile.showQr" : "settings.simple.computer.createCode")}
                 </button>
-              </div>
-              <div id={linkId} hidden={!showLink} className="-mx-2 w-[calc(100%+1rem)] [&_button]:min-h-11 [&_button]:min-w-11">
-                {showLink && <CopyRow title={t("settings.mobile.link")} text={offer.link} copyLabel={t("settings.mobile.copyLink")} />}
-              </div>
-            </div>
-          ) : (
-            <>
-              <p className="m-0 text-[13px] leading-[18px] text-ink-secondary">{t("settings.mobile.scanHint")}</p>
-              <button type="button" data-phone-pair="" onClick={() => void create()} disabled={busy || devices === null} className={tileButton}>{t("settings.mobile.showQr")}</button>
-            </>
-          )}
-        </motion.div>
-      </AnimatePresence>
-      {error && <p role="alert" className="m-0 text-[13px] leading-[18px] text-danger">{error}</p>}
-    </PairingTile>
-  );
+              </>
+            )}
+          </motion.div>
+        </AnimatePresence>
+        {error && errorWay === way && <p role="alert" className="m-0 text-[13px] leading-[18px] text-danger">{error}</p>}
+      </PairingTile>
+    );
+  };
 
   const phones = (
     <RowsCard label={t("settings.mobile.devices")}>
@@ -247,7 +295,7 @@ export function MobilePairingCard({ remote, accountEmail = null, children }: {
     </RowsCard>
   );
 
-  const parts: PhoneParts = { hero, qrTile, phones };
+  const parts: PhoneParts = { hero, qrTile: wayTile("qr"), codeTile: wayTile("code"), phones };
   return (
     <>
       <style>{`
@@ -256,7 +304,7 @@ export function MobilePairingCard({ remote, accountEmail = null, children }: {
         @media (prefers-reduced-motion: reduce) { .phone-link-wait { animation-play-state: paused; } }
         [data-reduced-motion="true"] .phone-link-wait { animation-play-state: paused; }
       `}</style>
-      {children ? children(parts) : <div className="flex flex-col gap-5">{hero}{qrTile}{phones}</div>}
+      {children ? children(parts) : <div className="flex flex-col gap-5">{hero}{parts.qrTile}{parts.codeTile}{phones}</div>}
     </>
   );
 }

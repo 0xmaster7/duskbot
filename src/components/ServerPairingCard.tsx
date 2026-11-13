@@ -66,6 +66,7 @@ export function ServerPairingCard({ initialSession = null, cloudHome = false, fo
   const [now, setNow] = useState(() => Date.now());
   const root = useRef<HTMLDivElement>(null);
   const revealed = useRef(0);
+  const [computerOpen, setComputerOpen] = useState(false);
 
   async function loadDevices() {
     try {
@@ -91,7 +92,11 @@ export function ServerPairingCard({ initialSession = null, cloudHome = false, fo
 
   useEffect(() => {
     if (!focusRequest) revealed.current = 0;
-    else if (revealed.current !== focusRequest && revealPhonePairing(root.current)) revealed.current = focusRequest;
+    else if (revealed.current !== focusRequest && revealPhonePairing(root.current)) {
+      revealed.current = focusRequest;
+      // asked for this server's own code: open it
+      setComputerOpen(true);
+    }
   }, [focusRequest, session]);
 
   useEffect(() => {
@@ -100,15 +105,21 @@ export function ServerPairingCard({ initialSession = null, cloudHome = false, fo
     return () => clearInterval(timer);
   }, [offer]);
 
-  // the phone page: what the phone app is, the two ways to pair side by side, the phones, then the rest
-  const phonePage = (codeTile: ReactNode, rest: ReactNode) => {
-    const tiles = [phone?.qrTile, codeTile].filter(Boolean);
+  // the phone page: what the phone app is, its two ways to pair side by side, pairing another computer under them,
+  // the phones, then the rest
+  const phonePage = (computerPair: ReactNode, rest: ReactNode) => {
+    const tiles = [phone?.qrTile, phone?.codeTile].filter(Boolean);
     return (
       <div ref={root} tabIndex={-1} data-phone-pairing="server" className="flex scroll-mt-4 flex-col gap-5 focus:outline-none">
         {phone?.hero}
-        {tiles.length > 0 && (
-          <div className="@container">
-            <div data-pairing-ways="" className={cn("grid gap-3", tiles.length > 1 && "@min-[480px]:grid-cols-2")}>{tiles}</div>
+        {(tiles.length > 0 || computerPair) && (
+          <div className="flex flex-col gap-2">
+            {tiles.length > 0 && (
+              <div className="@container">
+                <div data-pairing-ways="" className={cn("grid gap-3", tiles.length > 1 && "@min-[480px]:grid-cols-2")}>{tiles}</div>
+              </div>
+            )}
+            {computerPair}
           </div>
         )}
         {phone?.phones}
@@ -215,33 +226,51 @@ export function ServerPairingCard({ initialSession = null, cloudHome = false, fo
   const scopeName = (device: PairedDevice) => t(device.scopes.includes("admin") ? "remote.serverPairing.scope.admin" : "remote.serverPairing.scope.client");
 
   if (simple) {
-    const codeTile = (
-      <PairingTile id="server-pairing-code" icon={<KeyRound size={16} />} title={t("settings.w6.pairing.title")} data-pairing-tile="code">
-        {offer && !expired ? (
-          <div data-pairing-offer="" className="flex flex-col items-start gap-2">
-            <code aria-label={t("settings.w6.pairing.code")} className="select-all whitespace-nowrap font-mono text-[22px] leading-8 tracking-[0.1em] text-ink">{offer.code}</code>
-            <p className="m-0 text-[13px] leading-[18px] text-ink-secondary">{offer.url ? t("remote.serverPairing.expires", { minutes: minutesLeft(offer.expiresAt, now) }) : offer.hint ?? t("remote.serverPairing.noLink")}</p>
-          </div>
-        ) : (
-          <p className="m-0 text-[13px] leading-[18px] text-ink-secondary">
-            {expired ? t("remote.serverPairing.expired") : cloudHome ? t("settings.mobile.codeHintCloud") : t("settings.mobile.codeHint")}
-          </p>
-        )}
-        <div className="mt-auto flex flex-wrap items-center gap-2">
-          <button type="button" data-phone-pairing-action onClick={() => void create()} disabled={busy} className="ui-button mobile-press min-h-11 rounded-full">
-            {busy ? t("remote.serverPairing.creating") : offer ? t("settings.mobile.newCode") : t("settings.simple.computer.createCode")}
+    // secondary to the phone's own ways: this server's code, typed at /pair on another computer or browser
+    const open = computerOpen || !phone;
+    const computerBody = <>
+            {offer && !expired ? (
+              <div data-pairing-offer="" className="flex flex-col items-start gap-2">
+                <code aria-label={t("settings.w6.pairing.code")} className="select-all whitespace-nowrap font-mono text-[22px] leading-8 tracking-[0.1em] text-ink">{offer.code}</code>
+                <p className="m-0 text-[13px] leading-[18px] text-ink-secondary">{offer.url ? t("remote.serverPairing.expires", { minutes: minutesLeft(offer.expiresAt, now) }) : offer.hint ?? t("remote.serverPairing.noLink")}</p>
+              </div>
+            ) : (
+              <p className="m-0 text-[13px] leading-[18px] text-ink-secondary">
+                {expired ? t("remote.serverPairing.expired") : cloudHome ? t("settings.mobile.codeHintCloud") : t("settings.mobile.codeHint")}
+              </p>
+            )}
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" data-phone-pairing-action onClick={() => void create()} disabled={busy} className="ui-button mobile-press min-h-11 rounded-full">
+                {busy ? t("remote.serverPairing.creating") : offer ? t("settings.mobile.newCode") : t("settings.simple.computer.createCode")}
+              </button>
+              {offer?.url && !expired ? (
+                <button type="button" onClick={() => void copyLink()} className="mobile-press min-h-11 rounded-full px-3 text-[13px] font-medium text-ink-secondary hover:bg-ink/5">
+                  {t(copied === "copied" ? "remote.serverPairing.copied" : copied === "failed" ? "common.copyFailed" : "remote.serverPairing.copyLink")}
+                </button>
+              ) : null}
+            </div>
+            {error ? <p role="alert" className="m-0 text-[13px] leading-[18px] text-danger">{error}</p> : null}
+    </>;
+    const computerPair = (
+      <div data-pair-computer="" className="flex flex-col items-start gap-2">
+        {phone ? (
+          <button type="button" aria-expanded={open} aria-controls="server-pairing-code" onClick={() => setComputerOpen(!computerOpen)}
+            className="mobile-press min-h-11 rounded-full px-3 text-[13px] font-medium text-ink-secondary hover:bg-ink/5">
+            {t("settings.mobile.pairComputer")}
           </button>
-          {offer?.url && !expired ? (
-            <button type="button" onClick={() => void copyLink()} className="mobile-press min-h-11 rounded-full px-3 text-[13px] font-medium text-ink-secondary hover:bg-ink/5">
-              {t(copied === "copied" ? "remote.serverPairing.copied" : copied === "failed" ? "common.copyFailed" : "remote.serverPairing.copyLink")}
-            </button>
-          ) : null}
+        ) : null}
+        <div id="server-pairing-code" hidden={!open} className="w-full">
+          {phone ? (
+            // under its own toggle the panel needs no second name
+            <div data-pairing-tile="computer" className="flex flex-col gap-3 rounded-[12px] border-[0.5px] border-edge bg-composer p-4">{computerBody}</div>
+          ) : (
+            <PairingTile id="server-pairing-code-title" icon={<KeyRound size={16} />} title={t("settings.mobile.pairComputer")} data-pairing-tile="computer">{computerBody}</PairingTile>
+          )}
         </div>
-        {error ? <p role="alert" className="m-0 text-[13px] leading-[18px] text-danger">{error}</p> : null}
-      </PairingTile>
+      </div>
     );
-    // the phone's own way first, then this server's code beside it; who may use it and who is signed in below
-    return phonePage(codeTile, <>
+    // who a computer's code lets in, and who is signed in, below
+    return phonePage(computerPair, <>
       {!cloudHome && computerName !== null && (
         <RowsCard label={t("settings.mobile.thisComputer")} data-settings-block="pair-code">
           <ComputerNameRow saved={computerName} onSaved={setComputerName} />
