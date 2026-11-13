@@ -255,10 +255,10 @@ function Nav({ onNavigate }: { onNavigate?: () => void }) {
                 }}
                 onClick={onNavigate}
                 aria-current={on ? "page" : undefined}
-                className={cx("relative flex h-10 items-center gap-3 rounded-full px-3.5 text-14", on ? "font-medium text-ink" : "hover-side text-ink-2")}
+                className={cx("relative flex h-10 items-center gap-3 rounded-full px-3.5 text-14 transition-colors duration-200 ease-out", on ? "text-ink" : "hover-side text-ink-2")}
               >
                 {on && <m.span layoutId={pill} aria-hidden className="absolute inset-0 rounded-full bg-pop" transition={NAV_PILL} />}
-                <span className={cx("relative", on ? "text-ink" : "text-ink-3")}>{item.icon}</span>
+                <span className={cx("relative transition-colors duration-200 ease-out", on ? "text-ink" : "text-ink-3")}>{item.icon}</span>
                 <span className="relative">{item.label}</span>
                 {item.to === "/cloud" && <CloudBadge />}
               </Link>

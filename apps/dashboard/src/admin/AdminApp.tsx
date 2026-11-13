@@ -137,7 +137,7 @@ export function AdminApp() {
               {group.items.map((item) => {
                 const active = on(path, item);
                 return (
-                  <Link key={item.to} to={item.to} aria-current={active ? "page" : undefined} className={cx("relative flex h-9 items-center gap-3 rounded-full px-3 text-14 transition-colors duration-150", active ? "bg-card font-medium text-ink" : "hover-side text-ink-2")}>
+                  <Link key={item.to} to={item.to} aria-current={active ? "page" : undefined} className={cx("relative flex h-9 items-center gap-3 rounded-full px-3 text-14 transition-colors duration-200 ease-out", active ? "bg-card text-ink" : "hover-side text-ink-2")}>
                     <span className={cx("relative", active ? "text-ink" : "text-ink-3")} aria-hidden>{item.icon}</span>
                     <span className="relative flex-1">{item.label}</span>
                   </Link>
