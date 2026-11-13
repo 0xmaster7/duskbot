@@ -60,7 +60,7 @@ describe("LiveCallPill", () => {
     callAtlas();
     const onOpen = vi.fn();
     const { markup, tree } = renderPill({ onOpen, currentBotId: "juniper" });
-    expect(markup).toContain("on a live call with Atlas");
+    expect(markup).toContain("On a live call with Atlas");
     expect(markup).toContain('title="back to the call"');
     expect(markup).toContain('aria-label="mute"');
     expect(markup).toContain('aria-label="hang up"');
@@ -78,13 +78,13 @@ describe("LiveCallPill", () => {
     callAtlas();
     expect(renderPill({ onOpen: vi.fn(), currentBotId: "atlas" }).markup).toBe("");
     fixture.bots = [{ ...atlas, threadId: "thread-other" }];
-    expect(renderPill({ onOpen: vi.fn(), currentBotId: "atlas" }).markup).toContain("on a live call with Atlas");
+    expect(renderPill({ onOpen: vi.fn(), currentBotId: "atlas" }).markup).toContain("On a live call with Atlas");
   });
 
   it("fits the icons-only sidebar as round buttons", () => {
     callAtlas();
     const { markup } = renderPill({ onOpen: vi.fn(), currentBotId: null, iconOnly: true });
-    expect(markup).toContain('aria-label="on a live call with Atlas"');
+    expect(markup).toContain('aria-label="On a live call with Atlas"');
     expect(markup).toContain('aria-label="hang up"');
     expect(markup).not.toContain('<span class="truncate">');
   });

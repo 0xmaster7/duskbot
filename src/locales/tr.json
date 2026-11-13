@@ -5373,5 +5373,6 @@
   "computer.problem.keepsFiles": "Dosyaları ve web sitesi oturumları korunur.",
   "computer.problem.losesFiles": "Eski masaüstünün içine kaydedilen dosyalar kaldırılır.",
   "computer.problem.replaceLoses": "Kendi makinenizdeki {name} adlı botun bilgisayarı güncel sürümle değiştirilsin mi? Eski masaüstünün içine kaydedilen dosyalar kaldırılır.",
-  "botPanel.moreSettings": "Diğer ayarlar"
+  "botPanel.moreSettings": "Diğer ayarlar",
+  "composer.add": "Ekle"
 }

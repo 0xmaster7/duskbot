@@ -6277,5 +6277,6 @@
   "computer.problem.keepsFiles": "Seus arquivos e os logins em sites são mantidos.",
   "computer.problem.losesFiles": "Os arquivos salvos no desktop antigo são removidos.",
   "computer.problem.replaceLoses": "Substituir o computador de {name} na sua própria máquina pela versão atual? Os arquivos salvos no desktop antigo são removidos.",
-  "botPanel.moreSettings": "Mais configurações"
+  "botPanel.moreSettings": "Mais configurações",
+  "composer.add": "Adicionar"
 }

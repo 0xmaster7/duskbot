@@ -5845,5 +5845,6 @@
   "computer.problem.keepsFiles": "Se conservan sus archivos y las sesiones iniciadas en sitios web.",
   "computer.problem.losesFiles": "Se eliminan los archivos guardados en su antiguo escritorio.",
   "computer.problem.replaceLoses": "¿Reemplazar el equipo de {name} en tu propia máquina por la versión actual? Se eliminan los archivos guardados en su antiguo escritorio.",
-  "botPanel.moreSettings": "Más ajustes"
+  "botPanel.moreSettings": "Más ajustes",
+  "composer.add": "Añadir"
 }

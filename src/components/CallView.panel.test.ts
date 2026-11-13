@@ -58,11 +58,11 @@ describe("the bot panel's Call button", () => {
   it("is a small round phone button named for the bot, with no call-mode chevron beside it", () => {
     flushSync(() => root.render(createElement(CallButton, { bot: atlas, placement: "panel" })));
     const button = panelButton();
-    expect(button.getAttribute("aria-label")).toBe("call Atlas");
+    expect(button.getAttribute("aria-label")).toBe("Call Atlas");
     expect(button.className.split(" ")).toEqual(expect.arrayContaining(["rounded-full", "size-8"]));
     expect(button.className).not.toContain("rounded-l-3xl");
     expect(button.querySelector("svg.gi-phone")).not.toBeNull();
-    expect(host.querySelector('[aria-label="call mode"]')).toBeNull();
+    expect(host.querySelector('[aria-label="Call mode"]')).toBeNull();
   });
 
   it("starts the call and then hangs it up, as the other call buttons do", () => {
@@ -70,7 +70,7 @@ describe("the bot panel's Call button", () => {
     flushSync(() => panelButton().click());
     expect(currentCall()).toBe("atlas");
     expect(track).toHaveBeenCalledWith("call_started", expect.objectContaining({ mode: "turns" }));
-    expect(panelButton().getAttribute("aria-label")).toBe("hang up on Atlas");
+    expect(panelButton().getAttribute("aria-label")).toBe("Hang up on Atlas");
     flushSync(() => panelButton().click());
     expect(currentCall()).toBeNull();
   });

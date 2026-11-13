@@ -102,7 +102,7 @@ afterEach(() => {
 describe("the Simple composer in a bot chat", () => {
   it("is one pill: a round + with three rows, the field, and one round button in the bot's tone", () => {
     render({ bot });
-    expect(plus()?.getAttribute("aria-label")).toBe("add");
+    expect(plus()?.getAttribute("aria-label")).toBe("Add");
     const pill = container.querySelector('[data-tour="composer"]')!.className.split(" ");
     expect(pill).toEqual(expect.arrayContaining(["composer-pill", "rounded-[22px]", "bg-composer", "px-[9px]", "pt-[7px]", "pb-[9px]", "inset-ring-[0.5px]", "inset-ring-ink/[0.12]",
       "hover:inset-ring-ink/[0.24]", "focus-within:inset-ring-ink/[0.24]", "data-[drag-over]:inset-ring-accent"]));

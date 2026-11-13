@@ -4941,5 +4941,6 @@
   "computer.problem.keepsFiles": "它的檔案和網站登入狀態會保留。",
   "computer.problem.losesFiles": "儲存在舊桌面內的檔案會被刪除。",
   "computer.problem.replaceLoses": "要將你自己機器上 {name} 的電腦替換為目前版本嗎？儲存在舊桌面內的檔案會被刪除。",
-  "botPanel.moreSettings": "更多設定"
+  "botPanel.moreSettings": "更多設定",
+  "composer.add": "新增"
 }

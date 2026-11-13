@@ -6408,5 +6408,6 @@
   "computer.problem.keepsFiles": "Jego pliki i zalogowania w witrynach zostają zachowane.",
   "computer.problem.losesFiles": "Pliki zapisane na jego starym pulpicie zostają usunięte.",
   "computer.problem.replaceLoses": "Zastąpić komputer bota {name} na twojej maszynie aktualną wersją? Pliki zapisane na jego starym pulpicie zostają usunięte.",
-  "botPanel.moreSettings": "Więcej ustawień"
+  "botPanel.moreSettings": "Więcej ustawień",
+  "composer.add": "Dodaj"
 }

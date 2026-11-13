@@ -3510,5 +3510,6 @@
   "computer.problem.keepsFiles": "Ses fichiers et ses connexions aux sites web sont conservés.",
   "computer.problem.losesFiles": "Les fichiers enregistrés dans son ancien bureau sont supprimés.",
   "computer.problem.replaceLoses": "Remplacer l’ordinateur de {name} sur votre propre machine par la version actuelle ? Les fichiers enregistrés dans son ancien bureau sont supprimés.",
-  "botPanel.moreSettings": "Plus de paramètres"
+  "botPanel.moreSettings": "Plus de paramètres",
+  "composer.add": "Ajouter"
 }

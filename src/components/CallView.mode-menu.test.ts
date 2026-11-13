@@ -116,23 +116,23 @@ describe("the call button", () => {
 
   it("is not there in Live mode while another device holds the Live line, on any bot", () => {
     setCallMode("live");
-    expect(renderButton()).toContain('aria-label="live call with Atlas"');
+    expect(renderButton()).toContain('aria-label="Live call with Atlas"');
     fixture.liveCall = phoneCall;
     expect(renderButton()).toBe("");
     fixture.liveCall = { ...phoneCall, status: "ended", endReason: "hung-up" };
-    expect(renderButton()).toContain('aria-label="live call with Atlas"');
+    expect(renderButton()).toContain('aria-label="Live call with Atlas"');
   });
 
   it("keeps Take turns while another device holds the Live line", () => {
     setCallMode("turns");
     fixture.liveCall = phoneCall;
-    expect(renderButton()).toContain('aria-label="call Atlas"');
+    expect(renderButton()).toContain('aria-label="Call Atlas"');
     const onStart = vi.fn();
     pressPhone(onStart);
     expect(currentCall()).toBe("atlas");
     expect(liveMedia().phase).toBe("idle");
     expect(onStart).toHaveBeenCalledWith("turns");
-    expect(renderButton()).toContain('aria-label="hang up on Atlas"');
+    expect(renderButton()).toContain('aria-label="Hang up on Atlas"');
   });
 
   it("keeps a running Take-turns call's Hang up when a phone takes the Live line, in either mode", () => {
@@ -140,7 +140,7 @@ describe("the call button", () => {
     fixture.liveCall = phoneCall;
     for (const mode of ["turns", "live"] as const) {
       setCallMode(mode);
-      expect(renderButton()).toContain('aria-label="hang up on Atlas"');
+      expect(renderButton()).toContain('aria-label="Hang up on Atlas"');
     }
   });
 
@@ -185,7 +185,7 @@ describe("the call mode menu", () => {
   it("offers both modes as radio items, the current one checked", () => {
     const markup = renderToStaticMarkup(createElement(CallModeMenu, { id: "m", mode: "live", onChoose: vi.fn(), onClose: vi.fn() }));
     expect(markup).toContain('role="menu"');
-    expect(markup).toContain('aria-label="call mode"');
+    expect(markup).toContain('aria-label="Call mode"');
     const items = markup.split('role="menuitemradio"').slice(1);
     expect(items).toHaveLength(2);
     expect(items[0]).toContain(">take turns<");

@@ -3812,5 +3812,6 @@
   "computer.problem.keepsFiles": "Його файли та входи на сайти зберігаються.",
   "computer.problem.losesFiles": "Файли, збережені на його старому робочому столі, видаляються.",
   "computer.problem.replaceLoses": "Замінити комп'ютер {name} на вашій власній машині поточною версією? Файли, збережені на його старому робочому столі, видаляються.",
-  "botPanel.moreSettings": "Інші налаштування"
+  "botPanel.moreSettings": "Інші налаштування",
+  "composer.add": "Додати"
 }

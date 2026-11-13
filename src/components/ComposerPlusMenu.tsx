@@ -249,8 +249,8 @@ export function ComposerPlusMenu({ onAttach, attachChoices, goal, teach, approva
   return (
     <SidebarPopoverMenu
       items={items}
-      ariaLabel={t("common.add")}
-      triggerTitle={t("common.add")}
+      ariaLabel={t("composer.add")}
+      triggerTitle={t("composer.add")}
       triggerClassName="flex shrink-0 rounded-full"
       renderTrigger={({ open }) => trigger(open)}
     />
@@ -300,7 +300,8 @@ function ComposerMenu({ items, renderTrigger, triggerClass }: { items: SidebarMe
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
-        aria-label={t("common.add")}
+        aria-label={t("composer.add")}
+        title={open ? undefined : t("composer.add")}
         data-composer-plus
         onClick={(event) => {
           const opening = !open;
@@ -317,7 +318,7 @@ function ComposerMenu({ items, renderTrigger, triggerClass }: { items: SidebarMe
           ref={menuRef}
           id={menuId}
           role="menu"
-          aria-label={t("common.add")}
+          aria-label={t("composer.add")}
           data-composer-menu
           {...motion.exitProps}
           className={cn(

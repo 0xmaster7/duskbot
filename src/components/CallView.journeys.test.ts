@@ -134,13 +134,13 @@ const text = () => container.textContent ?? "";
 
 async function firstLiveCall() {
   const button = callButton();
-  expect(button?.getAttribute("aria-label")).toBe("live call with Ada");
+  expect(button?.getAttribute("aria-label")).toBe("Live call with Ada");
   expect(button?.querySelector(".bg-warning")).toBeNull();
   press(button);
   await vi.waitFor(() => expect(text()).toContain(KEY_NEEDED));
   expect(getUserMedia).toHaveBeenCalledTimes(1);
   expect(requests.map(({ path, method }) => `${method} ${path}`)).toEqual(["POST /api/live/session"]);
-  expect(text()).not.toContain("call unavailable");
+  expect(text()).not.toContain("Call unavailable");
   expect(container.querySelector("input")).toBeNull();
   const openApiKeys = Array.from(container.querySelectorAll("button")).find((item) => item.textContent?.trim() === "open API keys");
   press(openApiKeys ?? null);
@@ -159,7 +159,7 @@ async function firstLiveCall() {
 }
 
 function expectTurnsDisabled(reason: string) {
-  press(container.querySelector('[aria-label="call mode"]'));
+  press(container.querySelector('[aria-label="Call mode"]'));
   const [turns, live] = menuItems();
   expect(turns?.textContent).toContain("take turns");
   expect(turns?.getAttribute("aria-disabled")).toBe("true");
@@ -183,7 +183,7 @@ function expectTurnsDisabled(reason: string) {
   expect(callMode()).toBe(mode);
   expect(currentCall()).toBeNull();
   expect(getUserMedia).not.toHaveBeenCalled();
-  press(container.querySelector('[aria-label="call mode"]'));
+  press(container.querySelector('[aria-label="Call mode"]'));
   expect(menuItems()).toHaveLength(0);
 }
 
@@ -262,8 +262,8 @@ describe("calling a bot off the Mac", () => {
   it.each(["win32", "linux"] as const)("on This computer in the %s app with a Fish Audio key, Take turns is on and says where the voice goes", (platform) => {
     open(desktopApp(platform, "this-computer"));
     chat({ ...THIS_COMPUTER, savedKeys: { fishAudioKey: { configured: true } } } as AppState["config"]);
-    expect(callButton()?.getAttribute("aria-label")).toBe("call Ada");
-    press(container.querySelector('[aria-label="call mode"]'));
+    expect(callButton()?.getAttribute("aria-label")).toBe("Call Ada");
+    press(container.querySelector('[aria-label="Call mode"]'));
     const [turns] = menuItems();
     expect(turns?.hasAttribute("aria-disabled")).toBe(false);
     expect(turns?.textContent).toContain("Fish Audio turns what you say into text, so your voice goes to Fish Audio.");
@@ -302,10 +302,10 @@ describe("calling a bot off the Mac", () => {
   it("on This computer in the Mac app, Take turns stays the default and a picked mode is kept", () => {
     open(desktopApp("darwin", "this-computer"));
     chat(THIS_COMPUTER);
-    expect(callButton()?.getAttribute("aria-label")).toBe("call Ada");
-    press(container.querySelector('[aria-label="call mode"]'));
+    expect(callButton()?.getAttribute("aria-label")).toBe("Call Ada");
+    press(container.querySelector('[aria-label="Call mode"]'));
     expect(menuItems().map((item) => [item.getAttribute("aria-disabled"), item.getAttribute("aria-checked")])).toEqual([[null, "true"], [null, "false"]]);
-    press(container.querySelector('[aria-label="call mode"]'));
+    press(container.querySelector('[aria-label="Call mode"]'));
 
     press(callButton());
     expect(currentCall()).toBe("ada");
@@ -314,9 +314,9 @@ describe("calling a bot off the Mac", () => {
 
     setCallMode("live");
     chat(THIS_COMPUTER);
-    expect(callButton()?.getAttribute("aria-label")).toBe("live call with Ada");
+    expect(callButton()?.getAttribute("aria-label")).toBe("Live call with Ada");
     setCallMode("turns");
     chat(THIS_COMPUTER);
-    expect(callButton()?.getAttribute("aria-label")).toBe("call Ada");
+    expect(callButton()?.getAttribute("aria-label")).toBe("Call Ada");
   });
 });

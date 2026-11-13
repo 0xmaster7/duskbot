@@ -3507,5 +3507,6 @@
   "computer.problem.keepsFiles": "इसकी फ़ाइलें और वेबसाइट पर किए गए साइन-इन सुरक्षित रहते हैं।",
   "computer.problem.losesFiles": "इसके पुराने डेस्कटॉप में सहेजी गई फ़ाइलें हटा दी जाती हैं।",
   "computer.problem.replaceLoses": "आपकी अपनी मशीन पर {name} के कंप्यूटर को मौजूदा वर्शन से बदलें? इसके पुराने डेस्कटॉप में सहेजी गई फ़ाइलें हटा दी जाती हैं।",
-  "botPanel.moreSettings": "और सेटिंग्स"
+  "botPanel.moreSettings": "और सेटिंग्स",
+  "composer.add": "जोड़ें"
 }

@@ -3609,5 +3609,6 @@
   "computer.problem.keepsFiles": "Seine Dateien und Website-Anmeldungen bleiben erhalten.",
   "computer.problem.losesFiles": "Dateien, die auf seinem alten Desktop gespeichert sind, werden entfernt.",
   "computer.problem.replaceLoses": "Den Computer von {name} auf deinem eigenen Rechner durch die aktuelle Version ersetzen? Dateien, die auf seinem alten Desktop gespeichert sind, werden entfernt.",
-  "botPanel.moreSettings": "Weitere Einstellungen"
+  "botPanel.moreSettings": "Weitere Einstellungen",
+  "composer.add": "Hinzufügen"
 }

@@ -116,7 +116,15 @@ export function isPanelEntry(key: string): boolean {
   return PANEL_KEYS.test(key) && !PANEL_LOWER.test(key) && !CHAT_QUIET.test(key) && !EXEMPT_KEYS.some((pattern) => pattern.test(key)) && !PROMPT_KEYS.some((pattern) => pattern.test(key));
 }
 
+/** the call button's words: the button and its menu sit in the chat box, so they read in sentence case. call.live.badge
+ * is shared with the sidebar and stays lowercase */
+const CHAT_LABELS: ReadonlySet<string> = new Set([
+  "call.callWith", "call.live.callWith", "call.hangUpOn", "call.live.pill", "call.checking", "call.unavailable",
+  "call.setupVoice", "call.pickVoice", "call.mode.menu",
+]);
+
 export function isChatEntry(key: string): boolean {
+  if (CHAT_LABELS.has(key)) return true;
   return CHAT_KEYS.test(key) && !CHAT_FRAGMENTS.test(key) && !CHAT_QUIET.test(key) && !EXEMPT_KEYS.some((pattern) => pattern.test(key)) && !PROMPT_KEYS.some((pattern) => pattern.test(key));
 }
 

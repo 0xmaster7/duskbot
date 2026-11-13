@@ -6415,5 +6415,6 @@
   "computer.problem.keepsFiles": "Его файлы и входы на сайты сохраняются.",
   "computer.problem.losesFiles": "Файлы, сохранённые на его старом рабочем столе, удаляются.",
   "computer.problem.replaceLoses": "Заменить компьютер {name} на вашем компьютере актуальной версией? Файлы, сохранённые на его старом рабочем столе, удаляются.",
-  "botPanel.moreSettings": "Другие настройки"
+  "botPanel.moreSettings": "Другие настройки",
+  "composer.add": "Добавить"
 }

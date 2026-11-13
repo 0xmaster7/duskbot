@@ -2080,6 +2080,7 @@
   "devs.report.fixed": "버그 신고 · {version}에서 수정됨",
   "devs.report.tryAgain": "{version}에서 수정했어요. 다시 시도해 볼까요?",
   "composer.attachFiles": "파일 첨부",
+  "composer.add": "추가",
   "composer.teachTask": "작업 가르치기",
   "composer.goal.aria": "함께 끝내기",
   "composer.goal.title": "함께 끝내기 — 목표를 달성할 때까지 팀이 계속 일해요",

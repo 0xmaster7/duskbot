@@ -5373,5 +5373,6 @@
   "computer.problem.keepsFiles": "Tệp và trạng thái đăng nhập trang web của nó được giữ lại.",
   "computer.problem.losesFiles": "Các tệp lưu bên trong desktop cũ của nó sẽ bị xóa.",
   "computer.problem.replaceLoses": "Thay máy tính của {name} trên máy của riêng bạn bằng phiên bản hiện tại? Các tệp lưu bên trong desktop cũ của nó sẽ bị xóa.",
-  "botPanel.moreSettings": "Thêm cài đặt"
+  "botPanel.moreSettings": "Thêm cài đặt",
+  "composer.add": "Thêm"
 }

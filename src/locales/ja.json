@@ -6433,5 +6433,6 @@
   "computer.problem.keepsFiles": "ファイルとウェブサイトへのログイン状態は保持されます。",
   "computer.problem.losesFiles": "古いデスクトップ内に保存されたファイルは削除されます。",
   "computer.problem.replaceLoses": "自分のマシン上の {name} のコンピューターを現在のバージョンに置き換えますか？古いデスクトップ内に保存されたファイルは削除されます。",
-  "botPanel.moreSettings": "その他の設定"
+  "botPanel.moreSettings": "その他の設定",
+  "composer.add": "追加"
 }
