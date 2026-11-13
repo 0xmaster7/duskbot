@@ -1,10 +1,11 @@
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { t } from "@/lib/i18n";
+import { startingTemplate, type BotDefaultsAnswer } from "@/lib/new-bot";
 import { type BotSettingsRow, type RoomSettingsRow, type SettingsBotTarget } from "@/lib/open-settings";
 import { responderShortLabel } from "@/lib/room-responder";
 import { shortPath } from "@/lib/short-path";
-import { useStore, type Bot, type Group } from "@/state/store";
+import { api, BotEditorStore, useStore, type Bot, type Group, type ModelSelection } from "@/state/store";
 import { useManagedSkills } from "./bot-settings/SkillsSection";
 import { useBotSettingsDerived } from "./bot-settings/useBotSettingsDerived";
 import { usePlaceChoices } from "./bot-panel/ComputerTab";
@@ -18,7 +19,6 @@ import { useDesktopCapabilities } from "./DesktopCapabilities";
 import { Card, NavRow, SheetInSettings, SwitchRow, useSubPage } from "./ListRows";
 import { effortLabel } from "./ModelPicker";
 import { ModelSelectRow } from "./native/ModelSelectRow";
-import { DefaultBotSettings } from "./NewBotDialog";
 import { RoomAboutModal, RoomFolderModal, RoomInstructionsModal, RoomResponderModal } from "./room-panel/RoomModals";
 import { SettingRow, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
 import { SettingsSelect } from "./SettingsSelect";
@@ -99,16 +99,61 @@ export function BotsPane() {
   return <BotDefaultsRows />;
 }
 
-/** Defaults for new bots: on the Models pane, the only part of Bots that is not one bot's own. */
+/** Defaults for new bots: on the Models pane, the only part of Bots that is not one bot's own. Just the model and how
+ * hard it thinks; a bot's name, look and the rest are chosen while making it, and the saved template keeps its values. */
 export function BotDefaultsRows() {
   return (
     <SettingsGroup label={t("settings.advanced.bots.defaults")} block="bot-defaults">
       <SettingsRows>
-        <DefaultBotSidebarRow simple />
+        <NewBotModelRow />
         <NewBotEffortRow />
-        <DefaultBotSettings />
+        <DefaultBotSidebarRow simple />
       </SettingsRows>
     </SettingsGroup>
+  );
+}
+
+const DEFAULTS_ID = "new-bot-defaults";
+
+/** The model every new bot starts on: the bot model picker over a stand-in bot, its choice saved as the workspace default. */
+function NewBotModelRow() {
+  const parent = useStore();
+  const [selection, setSelection] = useState<ModelSelection | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let live = true;
+    void api<BotDefaultsAnswer>("/api/bot-defaults").then((answer) => {
+      const saved = startingTemplate(answer, false).profile.modelSelection;
+      if (live && saved) setSelection(saved);
+    }, () => {});
+    return () => { live = false; };
+  }, []);
+  if (!selection) return null;
+  const save = (next: ModelSelection) => {
+    const previous = selection;
+    setSelection(next);
+    setError("");
+    api("/api/config", { method: "PATCH", body: JSON.stringify({ defaultModelSelection: next }) })
+      .catch(() => { setSelection(previous); setError(t("settings.newBotModel.error")); });
+  };
+  const bot: Bot = {
+    id: DEFAULTS_ID, threadId: DEFAULTS_ID, name: "", title: "", description: "", soul: "",
+    color: "green", notifications: true, unread: false, messages: [], modelSelection: selection,
+  };
+  const scoped: ReturnType<typeof useStore> = {
+    ...parent,
+    state: { ...parent.state, bots: [bot, ...parent.state.bots] },
+    flushBotPatches: async () => bot,
+    dispatch: (action) => {
+      if (action.type === "setModel" && action.botId === DEFAULTS_ID) save(action.selection);
+      else parent.dispatch(action);
+    },
+  };
+  return (
+    <>
+      <BotEditorStore value={scoped}><ModelSelectRow bot={bot} title={t("settings.newBotModel.title")} /></BotEditorStore>
+      {error && <p role="alert" className="px-2 pb-1.5 text-[13px] leading-[18px] text-danger">{error}</p>}
+    </>
   );
 }
 

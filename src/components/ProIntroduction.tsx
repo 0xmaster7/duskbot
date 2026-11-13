@@ -78,7 +78,7 @@ export function CloudPlanRow({ place, usage = null, upgrade }: { place: "account
     const trial = offerTrialDays(offer) !== null;
     const cheapest = offer && offer.plans.length ? Math.min(...offer.plans.map((entry) => entry.amount)) : null;
     return (
-      <SettingRow title={t("pro.name")} subtitle={place === "plan" && cheapest !== null ? t("pro.fromPrice", { price: usd(cheapest / 100) }) : t("pro.settingsSummary")}>
+      <SettingRow icon="cloud" title={t("pro.name")} subtitle={place === "plan" && cheapest !== null ? t("pro.fromPrice", { price: usd(cheapest / 100) }) : t("pro.settingsSummary")}>
         <div className="flex items-center gap-1.5">
           {place === "plan" && plan.view.kind === "signed-out" && (
             <button type="button" className="ui-button"
@@ -93,7 +93,7 @@ export function CloudPlanRow({ place, usage = null, upgrade }: { place: "account
   const line = plan.view.kind === "reauth" ? t("pro.reauthShort") : cloudPlanLine(plan.view);
   if (!line) return null;
   return (
-    <SettingRow title={t("pro.name")} subtitle={line}>
+    <SettingRow icon="cloud" title={t("pro.name")} subtitle={line}>
       {place === "account" ? (
         <button type="button" data-cloud-plan={plan.view.kind} className="ui-button"
           onClick={() => dispatch({ type: "toggleAppSettings", open: true, section: "cloudAccount" })}>{t("settings.simple.account.manage")}</button>

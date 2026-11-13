@@ -101,7 +101,7 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(html).toContain('role="radiogroup" aria-label="your message color"');
     expect(html).toContain("play sound for notifications");
     expect(html).toContain('aria-label="notification sound"');
-    expect(html).toContain("open blip");
+    expect(html).toContain("chime B");
     expect(html).not.toContain("advanced mode");
   });
 

@@ -16,7 +16,9 @@ export const UI_SOUNDS = {
 export type UiSoundName = keyof typeof UI_SOUNDS;
 
 export const UI_SOUND_NAMES = Object.keys(UI_SOUNDS) as UiSoundName[];
-export const DEFAULT_UI_SOUND: UiSoundName = "open-blip";
+export const DEFAULT_UI_SOUND: UiSoundName = "chime-b";
+/** pings play at half volume: a soft nudge, not an alarm */
+export const DEFAULT_UI_VOLUME = 0.5;
 export const UI_SOUND_KEY = "dusk-notification-sound";
 
 let audio: HTMLAudioElement | null = null;
@@ -41,7 +43,7 @@ export function chooseSound(name: UiSoundName): void {
   }
 }
 
-export function play(name: UiSoundName = chosenSound(), { force = false, volume = 1 }: { force?: boolean; volume?: number } = {}): void {
+export function play(name: UiSoundName = chosenSound(), { force = false, volume = DEFAULT_UI_VOLUME }: { force?: boolean; volume?: number } = {}): void {
   if (!force && !notificationSoundsEnabled()) return;
   if (typeof Audio === "undefined") return;
   audio ??= new Audio();
