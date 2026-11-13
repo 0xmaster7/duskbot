@@ -361,7 +361,7 @@
   .hover-row:hover { background-image: linear-gradient(var(--tint), var(--tint)); }
   .hover-side:hover { background: var(--tint); color: var(--ink); }
   .hover-ghost:hover { background: var(--tint-2); }
-  .hover-btn:hover:not(:disabled) { background-image: linear-gradient(var(--tint-2), var(--tint-2)); }
+  .hover-btn:hover:not(:disabled) { background-image: linear-gradient(var(--tint), var(--tint)); }
   .hover-card:hover { background-image: linear-gradient(var(--tint), var(--tint)); }
   .hover-chip:hover { background-image: linear-gradient(var(--tint-2), var(--tint-2)); color: var(--ink); }
   .hover-primary:hover { background: var(--primary-hover); }

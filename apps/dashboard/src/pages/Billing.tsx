@@ -37,7 +37,7 @@ function points(id: Exclude<Tier, "free">, catalog: PlanCatalog): string[] {
   if (id === "team") return [`dedicated ${machine}`, "always available, priority wake", `team license, ${members(b!.members)}`];
   return id === "pro" ? [machine, seconds ? `always available, priority wake in ${seconds} s` : "always available, priority wake", "work license for one person"] : [machine, seconds ? `always available, wakes in ${seconds} s` : "always available, wakes in seconds", "set up in one click"];
 }
-const ART = { free: sky, starter: meadow, pro: peaks, team: layers } as const;
+const ART = { free: sky, starter: meadow, pro: layers, team: peaks } as const;
 const FREE_POINTS = ["your bots on this computer", "they work while it's awake", "every bot, chat and connector, for personal use"];
 
 function PlanCard({ id, catalog, interval, current, onChoose, href, action, disabled, i }: { id: Tier; catalog: PlanCatalog; interval: BillingInterval; current: boolean; onChoose: (() => void) | null; href?: string; action: string; disabled: boolean; i: number }) {
