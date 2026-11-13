@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cleanLimits, createRelays, RelayError } from "./relays.ts";
+import { cleanLimits, createRelays, RelayError, shapeRelayStats } from "./relays.ts";
 import { linkAccountRef } from "../../link-grant.ts";
 
 const STATS = {
@@ -52,5 +52,30 @@ describe("relay cards", () => {
     expect((await relays.list()).relays.every(card => card.ok && card.stats)).toBe(true);
     const card = await relays.setLimits("cloudflare", { paused: true });
     expect(card.stats).toMatchObject({ busy: true, limits: { paused: true } });
+  });
+});
+
+describe("relay stats with missing fields", () => {
+  const who = new Map([[linkAccountRef("acct_one"), { accountId: "acct_one", email: "one@x.test" }]]);
+  // preview's contabo node answered top rows with account null, which crashed the ops page
+  it("keeps a top row with no account as null, and names the ones it knows", () => {
+    const shaped = shapeRelayStats({ ...STATS, top: [{ account: null, tunnels: 1, bytesToday: 3 }, { account: linkAccountRef("acct_one"), tunnels: 1, bytesToday: 2 }, null],
+      fairUse: { month: "2026-11", accounts: [{ account: null, tunnel: "t1", monthBytes: 1, hereBytes: 1, bytesPerSec: 0 }] } }, who)!;
+    expect(shaped.top).toEqual([{ account: null, tunnels: 1, bytesToday: 3, accountId: null, email: null }, { account: linkAccountRef("acct_one"), tunnels: 1, bytesToday: 2, accountId: "acct_one", email: "one@x.test" }]);
+    expect(shaped.fairUse!.accounts[0]).toMatchObject({ account: null, tunnel: "t1", accountId: null });
+  });
+
+  it("is not reported yet without its now, today or month, and has empty limits when they are missing", () => {
+    expect(shapeRelayStats({ relay: "x", now: {}, today: {} }, who)).toBeNull();
+    expect(shapeRelayStats(null, who)).toBeNull();
+    const { limits: _l, top: _t, ...rest } = STATS as Record<string, unknown>;
+    expect(shapeRelayStats(rest, who)).toMatchObject({ limits: {}, top: [] });
+  });
+
+  it("answers a relay with incomplete numbers as a card that says so, not a crash", async () => {
+    const relays = createRelays({ env: { DUSK_LINK_STATS_TOKEN: "t", DUSK_CF_RELAY_OPS_TOKEN: "t" }, now: () => 0, accounts: () => [],
+      fetch: (async () => new Response(JSON.stringify({ relay: "x" }), { status: 200 })) as typeof fetch });
+    const cards = (await relays.list()).relays;
+    expect(cards.every(card => card.stats === null && card.error === "The relay's numbers are not reported yet.")).toBe(true);
   });
 });

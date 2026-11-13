@@ -13,6 +13,9 @@ export const FAIR_USE = { fullSpeedBytes: 20 * GB, floorAtBytes: 80 * GB } as co
 /** a month of sign-in codes past these reads as someone poking at the account, or spraying it */
 export const CODE_CHECK = 10, CODE_ABUSE = 30;
 
+/** a counter from stored or relayed data: anything missing or not a number counts as nothing */
+const count = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : 0;
+
 export function fairStage(bytes: number, curve: { fullSpeedBytes: number; floorAtBytes: number }): OpsFairStage {
   return bytes < curve.fullSpeedBytes ? "full" : bytes < curve.floorAtBytes ? "slowing" : "chat";
 }
@@ -50,8 +53,8 @@ export function topAccounts(input: TopAccountsInput): OpsAccountsAnswer {
   const links = input.relays.filter(card => card.id !== "cloudflare" && card.stats);
   const limits = links.find(card => card.stats?.limits)?.stats?.limits ?? {};
   const curve = {
-    fullSpeedBytes: typeof limits.accountFullSpeedBytes === "number" ? limits.accountFullSpeedBytes : FAIR_USE.fullSpeedBytes,
-    floorAtBytes: typeof limits.accountFloorAtBytes === "number" ? limits.accountFloorAtBytes : FAIR_USE.floorAtBytes,
+    fullSpeedBytes: count(limits.accountFullSpeedBytes) > 0 ? limits.accountFullSpeedBytes as number : FAIR_USE.fullSpeedBytes,
+    floorAtBytes: count(limits.accountFloorAtBytes) > 0 ? limits.accountFloorAtBytes as number : FAIR_USE.floorAtBytes,
   };
 
   type Row = OpsAccountRow & { key: string };
@@ -68,10 +71,10 @@ export function topAccounts(input: TopAccountsInput): OpsAccountsAnswer {
     const ref = one.account ?? (one.tunnel ? `t:${one.tunnel}` : null);
     if (!ref || !Number.isFinite(one.monthBytes)) continue;
     const seen = fair.get(ref);
-    if (!seen || one.monthBytes > seen.monthBytes) fair.set(ref, { monthBytes: one.monthBytes, bytesPerSec: one.bytesPerSec });
+    if (!seen || one.monthBytes > seen.monthBytes) fair.set(ref, { monthBytes: one.monthBytes, bytesPerSec: count(one.bytesPerSec) });
   }
   const reportedRelay = links.some(card => card.stats?.fairUse);
-  const nodeTotal = links.reduce((sum, card) => sum + (card.stats?.month.bytesOut ?? 0) + (card.stats?.month.bytesIn ?? 0), 0);
+  const nodeTotal = links.reduce((sum, card) => sum + count(card.stats?.month?.bytesOut) + count(card.stats?.month?.bytesIn), 0);
   const total = Math.max(nodeTotal, [...fair.values()].reduce((sum, one) => sum + one.monthBytes, 0));
   for (const [ref, one] of fair) {
     const known = byRef.get(ref);
@@ -82,23 +85,24 @@ export function topAccounts(input: TopAccountsInput): OpsAccountsAnswer {
   if (input.infra) {
     const sums = new Map<string, { running: number; cost: number }>();
     for (const day of input.infra) {
+      if (!day?.accountId) continue;
       const sum = sums.get(day.accountId) ?? { running: 0, cost: 0 };
-      sum.running += day.runningSeconds; sum.cost += day.costCents;
+      sum.running += count(day.runningSeconds); sum.cost += count(day.costCents);
       sums.set(day.accountId, sum);
     }
     for (const [accountId, sum] of sums) rowOf(accountId, accountId, null).cloud = { awakeHours: Math.round(sum.running / 360) / 10, costCents: Math.round(sum.cost), egressState: input.egress?.(accountId) ?? null };
   }
 
   if (input.mail) for (const day of input.mail) {
-    if (!day.accountId) continue;
+    if (!day?.accountId) continue;
     const row = rowOf(day.accountId, day.accountId, null);
-    row.emails = (row.emails ?? 0) + (day.values.sent ?? 0);
-    row.codes = (row.codes ?? 0) + (day.values.codes ?? 0);
+    row.emails = (row.emails ?? 0) + count(day.values?.sent);
+    row.codes = (row.codes ?? 0) + count(day.values?.codes);
   }
 
   const costs = [...rows.values()].flatMap(row => row.cloud && row.cloud.costCents > 0 ? [row.cloud.costCents] : []);
   const midCost = median(costs);
-  const suspects = new Map((input.suspects ?? []).flatMap(s => s.accountId ? [[s.accountId, s] as const] : []));
+  const suspects = new Map((input.suspects ?? []).flatMap(s => s?.accountId && typeof s.score === "number" ? [[s.accountId, s] as const] : []));
   for (const row of rows.values()) {
     const flags: OpsAccountFlag[] = [];
     const suspect = row.accountId ? suspects.get(row.accountId) : undefined;

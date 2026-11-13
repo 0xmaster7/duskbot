@@ -16,6 +16,9 @@ const FLAG: Record<OpsAccountFlag["kind"], { word: string; cls: string; rank: nu
   throttled: { word: "throttled", cls: "bg-wash-lemon text-ink", rank: 1 },
   check: { word: "needs checking", cls: "bg-wash-sky text-ink", rank: 2 },
 };
+/** a step or flag this page doesn't know yet (a newer service) reads as its own word, never as a crash */
+export const stageOf = (stage: string) => STAGE[stage as OpsFairStage] ?? { word: stage || "not reported yet", level: "unknown" as OpsLevel };
+export const flagOf = (kind: string) => FLAG[kind as OpsAccountFlag["kind"]] ?? { word: kind || "flagged", cls: "bg-wash-sky text-ink", rank: 3 };
 
 type SortKey = "relay" | "share" | "awake" | "cost" | "emails" | "codes" | "flags";
 const COLUMNS: Array<{ key: SortKey; label: string }> = [
@@ -30,18 +33,18 @@ const valueOf = (row: OpsAccountRow, key: SortKey) => {
     case "cost": return row.cloud?.costCents ?? -1;
     case "emails": return row.emails ?? -1;
     case "codes": return row.codes ?? -1;
-    case "flags": return row.flags.reduce((sum, flag) => sum + (3 - FLAG[flag.kind].rank) * 10, 0);
+    case "flags": return (row.flags ?? []).reduce((sum, flag) => sum + (4 - flagOf(flag.kind).rank) * 10, 0);
   }
 };
 const COLS = "grid grid-cols-[minmax(180px,1.6fr)_minmax(140px,1fr)_60px_64px_72px_60px_56px_minmax(128px,1.1fr)] items-center gap-3";
 const TOP = 20, PAGE = 50;
 
-function Flags({ flags }: { flags: OpsAccountFlag[] }) {
+function Flags({ flags = [] }: { flags?: OpsAccountFlag[] }) {
   if (!flags.length) return <span className="block text-end text-12 text-ink-4">-</span>;
-  const kinds = [...new Set(flags.map((flag) => flag.kind))].sort((a, b) => FLAG[a].rank - FLAG[b].rank);
+  const kinds = [...new Set(flags.map((flag) => flag.kind))].sort((a, b) => flagOf(a).rank - flagOf(b).rank);
   return (
     <span className="flex flex-wrap justify-end gap-1" title={flags.map((flag) => flag.why).join("\n")}>
-      {kinds.map((kind) => <span key={kind} className={cx("inline-flex h-[22px] items-center whitespace-nowrap rounded-full px-2 text-12", FLAG[kind].cls)}>{FLAG[kind].word}</span>)}
+      {kinds.map((kind) => <span key={kind} className={cx("inline-flex h-[22px] items-center whitespace-nowrap rounded-full px-2 text-12", flagOf(kind).cls)}>{flagOf(kind).word}</span>)}
       <span className="sr-only">: {flags.map((flag) => flag.why).join("; ")}</span>
     </span>
   );
@@ -49,7 +52,7 @@ function Flags({ flags }: { flags: OpsAccountFlag[] }) {
 
 function RelayCell({ relay, floorAt, fullSpeed }: { relay: OpsAccountRow["relay"]; floorAt: number; fullSpeed: number }) {
   if (!relay) return <span className="text-12 text-ink-4">-</span>;
-  const stage = STAGE[relay.stage];
+  const stage = stageOf(relay.stage);
   return (
     <span className="block">
       <span className="flex items-baseline justify-end gap-1.5"><span className={cx("text-12", stage.level === "ok" ? "text-ink-3" : "text-ink-2")}>{stage.word}</span><span className="font-mono text-ink num">{size(relay.monthBytes)}</span></span>
@@ -63,7 +66,7 @@ const num = (value: number | null, render: (v: number) => ReactNode = n) => valu
 type Sort = { key: SortKey; desc: boolean };
 type FlagKind = OpsAccountFlag["kind"];
 const sortRows = (rows: OpsAccountRow[], sort: Sort) => [...rows].sort((a, b) => (valueOf(b, sort.key) - valueOf(a, sort.key)) * (sort.desc ? 1 : -1));
-const hasFlag = (row: OpsAccountRow, kinds: ReadonlySet<FlagKind>) => !kinds.size || row.flags.some((flag) => kinds.has(flag.kind));
+const hasFlag = (row: OpsAccountRow, kinds: ReadonlySet<FlagKind>) => !kinds.size || (row.flags ?? []).some((flag) => kinds.has(flag.kind));
 const nameOf = (row: OpsAccountRow) => row.accountId ? personName(row.accountId, row.email) : `account ${(row.ref ?? "").slice(0, 8)}`;
 const nextSort = (s: Sort, key: SortKey): Sort => s.key === key ? { key, desc: !s.desc } : { key, desc: true };
 
@@ -151,7 +154,7 @@ export function TopAccounts() {
   const [sort, setSort] = useState<Sort>({ key: "relay", desc: true });
   const [flags, setFlags] = useState<Set<FlagKind>>(() => new Set());
   const rows = data ? sortRows(data.rows.filter((row) => hasFlag(row, flags)), sort) : [];
-  const flagged = data ? data.rows.filter((row) => row.flags.length).length : 0;
+  const flagged = data ? data.rows.filter((row) => row.flags?.length).length : 0;
   const notYet = data ? notReported(data) : [];
   return (
     <Panel id="ops-accounts" title={`top accounts this month${data && data.data !== "own" ? `, ${data.data}` : ""}`}
@@ -178,9 +181,9 @@ const RANGES: Array<{ value: OpsAccountsRange; label: string }> = [{ value: "mon
 const csvCell = (value: string | number | null) => { const text = value === null ? "" : String(value); return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text; };
 export function accountsCsv(rows: OpsAccountRow[]) {
   const head = ["email", "account id", "plan", "relay gb", "relay step", "relay share %", "cloud hours", "cloud cost usd", "emails", "sign-in codes", "flags"];
-  const lines = rows.map((row) => [row.email, row.accountId ?? row.ref, row.plan, row.relay ? Math.round(row.relay.monthBytes / 1e7) / 100 : null, row.relay ? STAGE[row.relay.stage].word : null,
+  const lines = rows.map((row) => [row.email, row.accountId ?? row.ref, row.plan, row.relay ? Math.round(row.relay.monthBytes / 1e7) / 100 : null, row.relay ? stageOf(row.relay.stage).word : null,
     row.relay ? Math.round(row.relay.share * 1000) / 10 : null, row.cloud?.awakeHours ?? null, row.cloud ? (row.cloud.costCents / 100).toFixed(2) : null, row.emails, row.codes,
-    row.flags.map((flag) => `${FLAG[flag.kind].word}: ${flag.why}`).join("; ") || null].map(csvCell).join(","));
+    (row.flags ?? []).map((flag) => `${flagOf(flag.kind).word}: ${flag.why}`).join("; ") || null].map(csvCell).join(","));
   return [head.join(","), ...lines].join("\n") + "\n";
 }
 function download(name: string, text: string) {

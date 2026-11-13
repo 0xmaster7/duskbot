@@ -211,9 +211,9 @@ function RelayCard({ relay, now, onSaved }: { relay: OpsRelayCard; now: number; 
       <div className="px-2.5 pb-1 pt-1 t-meta">top accounts today</div>
       {stats.top.length ? (
         <ul>
-          {stats.top.slice(0, 5).map((row) => (
-            <PersonRow key={row.account} accountId={row.accountId ?? null}>
-              <Person accountId={row.accountId ?? null} email={row.email ?? null} fallback={`account ${row.account.slice(0, 8)}`} sub={`${n(row.tunnels)} ${row.tunnels === 1 ? "tunnel" : "tunnels"}`} />
+          {stats.top.slice(0, 5).map((row, i) => (
+            <PersonRow key={row.account ?? `none-${i}`} accountId={row.accountId ?? null}>
+              <Person accountId={row.accountId ?? null} email={row.email ?? null} fallback={row.account ? `account ${row.account.slice(0, 8)}` : "no account"} sub={`${n(row.tunnels)} ${row.tunnels === 1 ? "tunnel" : "tunnels"}`} />
               <span className="font-mono text-13 text-ink num">{size(row.bytesToday)}</span>
             </PersonRow>
           ))}

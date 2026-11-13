@@ -121,8 +121,8 @@ export interface OpsRelayStats {
   today: { bytesOut: number; bytesIn: number };
   month: { bytesOut: number; bytesIn: number; projectedBytesOut: number; allowanceBytes: number | null };
   limits: OpsRelayLimits;
-  /** account: the relay's account ref; accountId and email are filled in by the account service when it knows them */
-  top: Array<{ account: string; tunnels: number; bytesToday: number; accountId?: string | null; email?: string | null }>;
+  /** account: the relay's account ref, null for a tunnel no account owns; accountId and email are filled in by the account service when it knows them */
+  top: Array<{ account: string | null; tunnels: number; bytesToday: number; accountId?: string | null; email?: string | null }>;
   busy: boolean | { reason?: string; [key: string]: unknown };
   /** a link service node: each account's relay bytes this month on every node together, and the rate that gives it now */
   fairUse?: { month: string; accounts: Array<{ account: string | null; tunnel: string | null; monthBytes: number; hereBytes: number; bytesPerSec: number; accountId?: string | null; email?: string | null }> };

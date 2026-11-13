@@ -73,6 +73,26 @@ function fixtureStats(now: number, accounts: ReadonlyArray<{ id: string }>, limi
   };
 }
 
+const isObject = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
+type Who = ReadonlyMap<string, { accountId: string; email: string }>;
+/** a relay's own answer as the page reads it: null without the now, today and month sections; rows with no account
+ *  (a tunnel nobody owns) keep account null, and names are filled in where the service knows the account */
+export function shapeRelayStats(raw: unknown, who: Who): OpsRelayStats | null {
+  if (!isObject(raw) || !isObject(raw.now) || !isObject(raw.today) || !isObject(raw.month)) return null;
+  const stats = raw as unknown as OpsRelayStats;
+  const ref = (value: unknown) => typeof value === "string" && value ? value : null;
+  const fairUse = isObject(stats.fairUse) && Array.isArray(stats.fairUse.accounts) ? { month: String(stats.fairUse.month ?? ""), accounts: stats.fairUse.accounts.filter(isObject).slice(0, 20).map(row => {
+    const account = ref(row.account), known = account ? who.get(account) : undefined;
+    return { ...row, account, tunnel: ref(row.tunnel), accountId: known?.accountId ?? null, email: known?.email ?? null };
+  }) } : undefined;
+  const top = (Array.isArray(stats.top) ? stats.top : []).filter(isObject).slice(0, 10).map(row => {
+    const account = ref(row.account), known = account ? who.get(account) : undefined;
+    return { ...row, account, accountId: known?.accountId ?? null, email: known?.email ?? null };
+  });
+  const { fairUse: _drop, ...rest } = stats;
+  return { ...rest, limits: isObject(stats.limits) ? stats.limits : {}, top, ...(fairUse ? { fairUse } : {}) };
+}
+
 export function createRelays(options: { env: NodeJS.ProcessEnv; fetch?: typeof fetch; now: () => number; accounts: () => ReadonlyArray<{ id: string; email: string }>; fixture?: boolean }) {
   const fetcher = options.fetch ?? fetch;
   const targets = relayTargets(options.env);
@@ -85,7 +105,7 @@ export function createRelays(options: { env: NodeJS.ProcessEnv; fetch?: typeof f
       accountBytesPerSec: 25 * MBIT, accountFullSpeedBytes: 50 * GB, floorBytesPerSec: 2 * MBIT, paused: false },
   };
   const fixtureCard = (target: RelayTarget, who: ReturnType<typeof people>): OpsRelayCard =>
-    ({ id: target.id, label: target.label, url: target.url, at: options.now(), configured: true, ok: true, error: null, stats: shape(fixtureStats(options.now(), options.accounts(), sample)[target.id]!, who) });
+    ({ id: target.id, label: target.label, url: target.url, at: options.now(), configured: true, ok: true, error: null, stats: shapeRelayStats(fixtureStats(options.now(), options.accounts(), sample)[target.id]!, who) });
   const fixtureOracle: RelayTarget = { id: "oracle-in", label: linkLabel("oracle-in", "mumbai"), url: "https://oracle-in.link.test", token: null, tokenEnv: "DUSK_LINK_STATS_TOKEN", link: true };
   const fixtureTargets = () => [targets[0]!, fixtureOracle, targets.at(-1)!];
 
@@ -114,23 +134,12 @@ export function createRelays(options: { env: NodeJS.ProcessEnv; fetch?: typeof f
     return map;
   }
 
-  function shape(stats: OpsRelayStats, who: ReturnType<typeof people>): OpsRelayStats {
-    const fairUse = stats.fairUse && Array.isArray(stats.fairUse.accounts) ? { month: stats.fairUse.month, accounts: stats.fairUse.accounts.slice(0, 20).map(row => {
-      const known = row.account ? who.get(row.account) : undefined;
-      return { ...row, accountId: known?.accountId ?? null, email: known?.email ?? null };
-    }) } : undefined;
-    return { ...stats, top: (Array.isArray(stats.top) ? stats.top : []).slice(0, 10).map(row => {
-      const known = who.get(row.account);
-      return { ...row, accountId: known?.accountId ?? null, email: known?.email ?? null };
-    }), ...(fairUse ? { fairUse } : {}) };
-  }
-
   async function one(target: RelayTarget, who: ReturnType<typeof people>): Promise<OpsRelayCard> {
     const base = { id: target.id, label: target.label, url: target.url, at: options.now() };
     if (!target.token) return { ...base, configured: false, ok: false, error: `set ${target.tokenEnv} to show this relay.`, stats: null };
     try {
-      const stats = await call(target, "/ops/relay/stats") as unknown as OpsRelayStats;
-      return { ...base, configured: true, ok: true, error: null, stats: shape(stats, who) };
+      const stats = shapeRelayStats(await call(target, "/ops/relay/stats"), who);
+      return stats ? { ...base, configured: true, ok: true, error: null, stats } : { ...base, configured: true, ok: false, error: "The relay's numbers are not reported yet.", stats: null };
     } catch (error) {
       return { ...base, configured: true, ok: false, error: error instanceof RelayError ? error.message : "The relay can't be read.", stats: null };
     }

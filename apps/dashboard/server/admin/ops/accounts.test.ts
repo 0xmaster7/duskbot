@@ -58,4 +58,20 @@ describe("top accounts", () => {
     expect(answer.range).toBe("7d");
     expect(answer.rows[0]!.plan).toMatch(/^(pro|none)$/);
   });
+
+  // live data (preview reading dusk.bot) can carry rows with missing counters; none of them may fail the page
+  it("counts missing or broken fields as nothing instead of failing", () => {
+    const broken = card("contabo", [["ref1", 2 * GB]]);
+    (broken.stats as { month?: unknown }).month = undefined;
+    (broken.stats!.limits as Record<string, unknown>).accountFloorAtBytes = 0;
+    const answer = topAccounts({ now: 0, month: "2026-11", data: "dusk.bot", accounts: [{ id: "acct_b", email: "b@x.test" }], relays: [broken],
+      infra: [{ day: "2026-11-02", accountId: "acct_b" } as never, null as never],
+      mail: [{ source: "mail", day: "2026-11-02", key: "acct_b", accountId: "acct_b" } as never, { source: "mail", day: "2026-11-02", key: "x", accountId: "acct_b", values: { sent: "3" } } as never],
+      suspects: [null as never, { key: "k", accountId: "acct_b", email: null, ip: null, score: undefined, signals: [], why: "" } as never] });
+    expect(answer.fairUse.floorAtBytes).toBe(80 * GB);
+    expect(answer.rows.find(row => row.ref === "ref1")?.relay).toMatchObject({ monthBytes: 2 * GB, share: 1 });
+    const b = answer.rows.find(row => row.accountId === "acct_b");
+    expect(b === undefined || (b.emails === 0 && b.cloud?.costCents === 0)).toBe(true);
+    expect(JSON.stringify(answer)).not.toContain("NaN");
+  });
 });

@@ -7,6 +7,7 @@ import { navigate, useLocation } from "./lib/router";
 import { initTheme } from "./lib/theme";
 import { planIntent, planQuery } from "./lib/site";
 import { reportPageErrors } from "./lib/page-errors";
+import { reloadForStaleChunk } from "./lib/stale-chunk";
 import { trackPage } from "./lib/analytics";
 import { Button, ButtonLink } from "./ui/kit";
 import { Shell } from "./ui/Shell";
@@ -26,7 +27,8 @@ type Page<P> = ComponentType<P> & { preload(): Promise<unknown> };
 
 /** a page from its own chunk; once the chunk is in it renders straight away instead of suspending, which spares
  * later visits react's suspense reveal delay */
-function page<M, P extends object>(load: () => Promise<M>, pick: (m: M) => ComponentType<P>): Page<P> {
+function page<M, P extends object>(rawLoad: () => Promise<M>, pick: (m: M) => ComponentType<P>): Page<P> {
+  const load = () => rawLoad().catch((error: unknown) => reloadForStaleChunk(error) ? new Promise<M>(() => {}) : Promise.reject(error));
   let loaded: ComponentType<P> | null = null;
   const take = (m: M) => (loaded = pick(m));
   const Lazy = lazy(() => load().then((m) => ({ default: take(m) })));
