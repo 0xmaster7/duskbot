@@ -87,7 +87,8 @@
   .wl-row button { width: 100%; }
   .wl-hill { right: 4%; width: 150px; height: 24px; }
   .wl-pip { width: 56px; }
-  .wl-works { gap: 10px; }
+  /* on phones the email comes first; what it works with sits under the button */
+  .wl-works { order: 1; gap: 10px; margin-top: 30px; }
   .wl-works > span { flex-basis: 100%; text-align: center; font-size: 17px; }
   .wl-works ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; max-width: 500px; gap: 10px; }
   .wl-works li { justify-content: center; }
