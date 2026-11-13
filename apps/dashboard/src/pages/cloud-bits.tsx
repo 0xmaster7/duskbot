@@ -16,7 +16,7 @@ import { Mascot } from "../ui/Mascot";
 
 export const STATUS: Record<CloudDesktop["status"], { label: string; tone: "good" | "warn" | "bad" | "quiet" | "accent" }> = {
   provisioning: { label: "setting up", tone: "accent" },
-  running: { label: "live", tone: "good" },
+  running: { label: "online", tone: "good" },
   waking: { label: "waking up", tone: "warn" },
   sleeping: { label: "asleep", tone: "quiet" },
   stopped: { label: "off", tone: "quiet" },
