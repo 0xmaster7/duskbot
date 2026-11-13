@@ -6,7 +6,7 @@ const url = new URL(process.argv[2]);
 assert.equal(url.hostname, "127.0.0.1");
 assert.equal(url.pathname, "/__rich-tables.html");
 const { chromium } = await import(process.env.DUSK_VERIFY_PLAYWRIGHT || "playwright");
-const browser = await chromium.launch({ executablePath: process.env.DUSK_VERIFY_BROWSER_CHROME || undefined, headless: true });
+const browser = await chromium.launch({ executablePath: process.env.DUSK_VERIFY_BROWSER_CHROME || undefined, headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
 const output = process.env.DUSK_TABLE_EVIDENCE || "/tmp/dusk-rich-tables-evidence";
 await mkdir(output, { recursive: true });
 try {

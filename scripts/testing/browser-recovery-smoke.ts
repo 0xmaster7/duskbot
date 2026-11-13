@@ -26,7 +26,7 @@ export async function verifyBrowserRecovery(input: {
     assert(!result.isError, JSON.stringify(result));
     return JSON.stringify(result);
   };
-  const browser = await chromium.launch({ executablePath: input.executablePath, headless: true });
+  const browser = await chromium.launch({ executablePath: input.executablePath, headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
   try {
     await call("open", { url: input.testPage });
     await call("fill", { selector: "#name", text: "Preserved after idle" });

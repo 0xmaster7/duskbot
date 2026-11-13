@@ -151,7 +151,7 @@ async function run() {
     for (const phase of ["cold", "warm"]) {
       const context = await chromium.launchPersistentContext(profile, {
         executablePath, headless: true, viewport: { width: 1400, height: 900 },
-        args: [`--ignore-certificate-errors-spki-list=${spki}`],
+        args: [`--ignore-certificate-errors-spki-list=${spki}`, "--use-mock-keychain", "--password-store=basic"],
       });
       await context.addInitScript(PROBE);
       if (phase === "cold") await context.addInitScript((id) => { try { localStorage.setItem("duskbot.lastConversation.v1", id); } catch { } }, selected);
