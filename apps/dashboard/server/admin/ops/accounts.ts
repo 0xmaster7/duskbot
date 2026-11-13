@@ -1,7 +1,7 @@
 // the top accounts table at the head of admin ops: each account's relay bytes this month (and where that puts it on the
 // fair use curve), dusk cloud awake hours and cost, and the emails sent to it. built from what is already collected:
 // the link nodes' fairUse, the infra usage rows and the "mail" daily counters. never a live third-party call.
-import type { OpsAccountFlag, OpsAccountRow, OpsAccountsAnswer, OpsFairStage, OpsRelayCard, OpsSuspect } from "../../../src/admin/ops-types.ts";
+import type { OpsAccountFlag, OpsAccountRow, OpsAccountsAnswer, OpsAccountsRange, OpsFairStage, OpsRelayCard, OpsSuspect } from "../../../src/admin/ops-types.ts";
 import type { InfraDay } from "../infra.ts";
 import type { OpsDaily } from "./store.ts";
 import { linkAccountRef } from "../../link-grant.ts";
@@ -17,8 +17,20 @@ export function fairStage(bytes: number, curve: { fullSpeedBytes: number; floorA
   return bytes < curve.fullSpeedBytes ? "full" : bytes < curve.floorAtBytes ? "slowing" : "chat";
 }
 
+/** the utc days a range covers, both ends included */
+export function rangeDays(range: OpsAccountsRange, now: number): { from: string; to: string } {
+  const day = (t: number) => new Date(t).toISOString().slice(0, 10), d = new Date(now);
+  if (range === "7d") return { from: day(now - 6 * 86_400_000), to: day(now) };
+  if (range === "last-month") return { from: day(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - 1, 1)), to: day(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1) - 1) };
+  return { from: day(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)), to: day(now) };
+}
+export const isRange = (value: string | null): value is OpsAccountsRange => value === "month" || value === "last-month" || value === "7d";
+
 export interface TopAccountsInput {
   now: number; month: string; data: string; fixture?: boolean;
+  range?: OpsAccountsRange;
+  /** account id to plan; absent when plans are not visible */
+  plans?: ReadonlyMap<string, string>;
   accounts: ReadonlyArray<{ id: string; email: string }>;
   relays: readonly OpsRelayCard[];
   /** this month's infra rows; null when the cloud usage is not readable */
@@ -46,7 +58,7 @@ export function topAccounts(input: TopAccountsInput): OpsAccountsAnswer {
   const rows = new Map<string, Row>();
   const rowOf = (key: string, accountId: string | null, ref: string | null) => {
     let row = rows.get(key);
-    if (!row) rows.set(key, row = { key, accountId, ref, email: accountId ? emailOf.get(accountId) ?? null : null, relay: null, cloud: null, emails: input.mail ? 0 : null, codes: input.mail ? 0 : null, flags: [] });
+    if (!row) rows.set(key, row = { key, accountId, ref, email: accountId ? emailOf.get(accountId) ?? null : null, plan: input.plans ? (accountId ? input.plans.get(accountId) ?? "none" : null) : null, relay: null, cloud: null, emails: input.mail ? 0 : null, codes: input.mail ? 0 : null, flags: [] });
     return row;
   };
 
@@ -102,8 +114,9 @@ export function topAccounts(input: TopAccountsInput): OpsAccountsAnswer {
   }
 
   const weight = (row: OpsAccountRow) => (row.relay?.monthBytes ?? 0) / GB + (row.cloud?.costCents ?? 0) / 10 + (row.emails ?? 0) + row.flags.length * 1000;
-  const list = [...rows.values()].filter(row => row.relay || (row.cloud && (row.cloud.awakeHours > 0 || row.cloud.costCents > 0)) || (row.emails ?? 0) > 0)
-    .sort((a, b) => weight(b) - weight(a)).slice(0, input.limit ?? 200).map(({ key: _key, ...row }) => row);
-  return { now: input.now, month: input.month, data: input.data, fixture: !!input.fixture, fairUse: curve,
+  const used = [...rows.values()].filter(row => row.relay || (row.cloud && (row.cloud.awakeHours > 0 || row.cloud.costCents > 0)) || (row.emails ?? 0) > 0);
+  const list = used.sort((a, b) => weight(b) - weight(a)).slice(0, input.limit ?? 200).map(({ key: _key, ...row }) => row);
+  const range = input.range ?? "month";
+  return { now: input.now, month: input.month, range, ...rangeDays(range, input.now), total: used.length, data: input.data, fixture: !!input.fixture, fairUse: curve,
     reported: { relay: reportedRelay, cloud: !!input.infra, mail: !!input.mail }, rows: list };
 }

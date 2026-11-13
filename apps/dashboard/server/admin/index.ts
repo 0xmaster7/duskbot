@@ -23,8 +23,8 @@ import { BillingError } from "../billing/service.ts";
 import { PlanError, createPlanEditor } from "./plans.ts";
 import { marginReport, type InfraStore } from "./infra.ts";
 import { RelayError, createRelays } from "./ops/relays.ts";
-import { topAccounts } from "./ops/accounts.ts";
-import type { OpsAccountsAnswer, OpsRelayCard } from "../../src/admin/ops-types.ts";
+import { isRange, rangeDays, topAccounts } from "./ops/accounts.ts";
+import type { OpsAccountsAnswer, OpsAccountsRange, OpsRelayCard } from "../../src/admin/ops-types.ts";
 import { DAY, choseCloud, dayKey, dayRange, funnel, isPaying, perDay, wasPaid, workspaceTurns } from "./metrics.ts";
 
 export class AdminError extends Error {
@@ -53,7 +53,7 @@ export interface AdminOptions {
   /** daily InstaBox usage per managed cloud, for the revenue page's cost and margin */
   infra?: { store: InfraStore };
   /** the ops page: spend, health, outliers and alert rules, from what the ops collectors stored */
-  ops?: { answer(): Promise<unknown>; collect(): Promise<unknown>; accounts(relays: readonly OpsRelayCard[]): Promise<OpsAccountsAnswer> };
+  ops?: { answer(): Promise<unknown>; collect(): Promise<unknown>; accounts(relays: readonly OpsRelayCard[], query?: { range?: OpsAccountsRange; limit?: number }): Promise<OpsAccountsAnswer> };
   /** the local fixture: made-up relay cards instead of asking the relays */
   relayFixture?: boolean;
   service: { version: string | null; startedAt: number; environment: string; dataDir: string; backupDir: string | null; database: () => { ok: boolean; detail: string } | null };
@@ -429,11 +429,13 @@ export function createAdmin(options: AdminOptions) {
       if (route === "/ops/relays") return send(await relays.list());
       if (route === "/ops/accounts") {
         if (!options.ops) throw new AdminError(404, "not_found", "The ops page is not connected.");
+        const asked = url.searchParams.get("range"), range = isRange(asked) ? asked : "month", limit = url.searchParams.get("all") === "1" ? 5000 : 200;
         const [view, cards] = await Promise.all([viewOf(req), relays.list()]);
-        if (!view.live) return send(await options.ops.accounts(cards.relays));
-        const time = now(), from = `${new Date(time).toISOString().slice(0, 7)}-01`, today = new Date(time).toISOString().slice(0, 10);
-        const [infra, mail] = await Promise.all([live!.infra(from, today).catch(() => null), live!.daily("mail", from, today).catch(() => null)]);
-        return send(topAccounts({ now: time, month: from.slice(0, 7), data: live!.label, accounts: view.directory().accounts, relays: cards.relays, infra, mail }));
+        if (!view.live) return send(await options.ops.accounts(cards.relays, { range, limit }));
+        const time = now(), { from, to } = rangeDays(range, time);
+        const [infra, mail] = await Promise.all([live!.infra(from, to).catch(() => null), live!.daily("mail", from, to).catch(() => null)]);
+        return send(topAccounts({ now: time, month: new Date(time).toISOString().slice(0, 7), range, limit, data: live!.label, accounts: view.directory().accounts,
+          relays: range === "month" ? cards.relays : [], infra, mail }));
       }
       try {
         if (route === "/revenue") return send(await deep.revenue(url));

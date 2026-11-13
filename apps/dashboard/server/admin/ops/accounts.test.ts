@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { OpsRelayCard, OpsRelayStats } from "../../../src/admin/ops-types.ts";
 import { linkAccountRef } from "../../link-grant.ts";
-import { fairStage, topAccounts } from "./accounts.ts";
+import { fairStage, rangeDays, topAccounts } from "./accounts.ts";
 
 const GB = 1e9;
 const card = (id: string, fair: Array<[string, number]>, monthOut = 100 * GB): OpsRelayCard => ({
@@ -39,5 +39,23 @@ describe("top accounts", () => {
     const answer = topAccounts({ now: 0, month: "2026-11", data: "dusk.bot", accounts: [], relays: [], infra: null, mail: null });
     expect(answer.reported).toEqual({ relay: false, cloud: false, mail: false });
     expect(answer.fairUse).toEqual({ fullSpeedBytes: 20 * GB, floorAtBytes: 80 * GB });
+  });
+
+  it("covers this month, last month or the last 7 days", () => {
+    const now = Date.UTC(2026, 10, 14, 12);
+    expect(rangeDays("month", now)).toEqual({ from: "2026-11-01", to: "2026-11-14" });
+    expect(rangeDays("last-month", now)).toEqual({ from: "2026-10-01", to: "2026-10-31" });
+    expect(rangeDays("7d", now)).toEqual({ from: "2026-11-08", to: "2026-11-14" });
+    expect(rangeDays("last-month", Date.UTC(2026, 0, 3))).toEqual({ from: "2025-12-01", to: "2025-12-31" });
+  });
+
+  it("names each account's plan when plans are known, and counts every account past the limit", () => {
+    const accounts = [{ id: "acct_a", email: "a@x.test" }, { id: "acct_b", email: "b@x.test" }];
+    const mail = accounts.map(a => ({ source: "mail", day: "2026-11-02", key: a.id, accountId: a.id, values: { sent: 2, codes: 1 } }));
+    const answer = topAccounts({ now: Date.UTC(2026, 10, 14), month: "2026-11", data: "own", accounts, relays: [], infra: null, mail, plans: new Map([["acct_a", "pro"]]), limit: 1, range: "7d" });
+    expect(answer.rows).toHaveLength(1);
+    expect(answer.total).toBe(2);
+    expect(answer.range).toBe("7d");
+    expect(answer.rows[0]!.plan).toMatch(/^(pro|none)$/);
   });
 });

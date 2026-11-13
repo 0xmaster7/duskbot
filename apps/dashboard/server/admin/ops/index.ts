@@ -1,6 +1,6 @@
 import { timingSafeEqual, createHash } from "node:crypto";
 import type { Db } from "mongodb";
-import type { OpsAccountsAnswer, OpsAnswer, OpsBox, OpsCheck, OpsLevel, OpsMeter, OpsRule, OpsSource, OpsSourceId, OpsSpend } from "../../../src/admin/ops-types.ts";
+import type { OpsAccountsAnswer, OpsAccountsRange, OpsAnswer, OpsBox, OpsCheck, OpsLevel, OpsMeter, OpsRule, OpsSource, OpsSourceId, OpsSpend } from "../../../src/admin/ops-types.ts";
 import type { StoredCloud } from "../../clouds/types.ts";
 import type { LedgerEntry } from "../../billing/ledger.ts";
 import type { ErrorCounter } from "../health.ts";
@@ -13,7 +13,7 @@ import { median, ratioOf, robustZ, step, suspects, type SignalInput, type Signal
 import type { OpsDaily, OpsRuleState, OpsStore } from "./store.ts";
 import { RELAY_RULE_PREFIX, relayNodeReadings } from "./relay-alerts.ts";
 import { createRelays } from "./relays.ts";
-import { topAccounts } from "./accounts.ts";
+import { rangeDays, topAccounts } from "./accounts.ts";
 import type { OpsRelayCard } from "../../../src/admin/ops-types.ts";
 import { FIXTURE_MAIL, FIXTURE_PEOPLE } from "./fixture.ts";
 
@@ -604,24 +604,25 @@ export function createOps(options: OpsOptions) {
       counters.mail.set(accountId, item);
     },
     /** the top accounts table, from this service's own numbers */
-    async accounts(relays: readonly OpsRelayCard[]): Promise<OpsAccountsAnswer> {
-      const time = now(), from = dayKey(monthStart(time)), today = dayKey(time), month = from.slice(0, 7);
-      const [infraRows, mailRows, latest] = await Promise.all([options.infra.range(from, today), store.daily("mail", from, today), store.latest()]);
+    async accounts(relays: readonly OpsRelayCard[], query: { range?: OpsAccountsRange; limit?: number } = {}): Promise<OpsAccountsAnswer> {
+      const time = now(), range = query.range ?? "month", { from, to } = rangeDays(range, time), today = dayKey(time), month = dayKey(monthStart(time)).slice(0, 7);
+      const monthly = range === "month" ? relays : [], limit = query.limit;
+      const [infraRows, mailRows, latest] = await Promise.all([options.infra.range(from, to), store.daily("mail", from, to), store.latest()]);
       const emails = options.emails();
       if (options.fixture && latest.length === 0 && infraRows.length === 0) {
         const sample = options.fixture();
         const fx = sample.spend.instabox.machines.map(m => ({ day: today, cloudId: m.cloudId, accountId: m.accountId, serverId: m.serverId, runningSeconds: m.awakeHours * 3600, vcpuSeconds: 0, memGiBSeconds: 0,
           diskGiBSeconds: 0, egressBytes: m.egressGb * GB_BYTES, computeCents: m.costCents, diskCents: 0, costCents: m.costCents, collectedAt: time }));
         const states = new Map(sample.spend.instabox.customers.map(c => [c.accountId, c.egressState]));
-        return topAccounts({ now: time, month, data: "own", fixture: true, accounts: [...[...emails].map(([id, email]) => ({ id, email })), ...FIXTURE_PEOPLE.map(([id, email]) => ({ id, email }))],
-          relays, infra: fx, mail: FIXTURE_MAIL.map(([accountId, sent, codes]) => ({ source: "mail", day: today, key: accountId, accountId, values: { sent, codes } })),
+        return topAccounts({ now: time, month, range, limit, data: "own", fixture: true, plans: new Map(sample.spend.instabox.customers.map(c => [c.accountId, c.plan])), accounts: [...[...emails].map(([id, email]) => ({ id, email })), ...FIXTURE_PEOPLE.map(([id, email]) => ({ id, email }))],
+          relays: monthly, infra: fx, mail: FIXTURE_MAIL.map(([accountId, sent, codes]) => ({ source: "mail", day: today, key: accountId, accountId, values: { sent, codes } })),
           egress: id => states.get(id) ?? null, suspects: sample.abuse });
       }
       const clouds = options.clouds();
       const egress = (accountId: string) => { const states = clouds.filter(c => c.accountId === accountId).map(c => options.egress(c)); return states.includes("paused") ? "paused" as const : states.includes("slowed") ? "slowed" as const : null; };
       const snap = await snapshot();
       const people = [...emails].map(([id, email]) => ({ id, email })), sample = options.fixture ? FIXTURE_PEOPLE.map(([id, email]) => ({ id, email })) : [];
-      return topAccounts({ now: time, month, data: "own", accounts: [...people, ...sample], relays, infra: infraRows, mail: mailRows, egress,
+      return topAccounts({ now: time, month, range, limit, data: "own", plans: new Map(options.customers().map(c => [c.accountId, c.plan])), accounts: [...people, ...sample], relays: monthly, infra: infraRows, mail: mailRows, egress,
         suspects: abuseOf(snap, spendOf(snap, emails), emails) });
     },
     noteSignup(ip: string | null, accountId: string) {

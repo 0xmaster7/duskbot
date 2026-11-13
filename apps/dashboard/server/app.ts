@@ -333,7 +333,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const infra = createInfraCollector({ store: infraStore, clouds: () => billing.clouds.all?.() ?? [], usage: managedUsage ? (c, from) => managedUsage(c, from) : null, now });
   infra.start();
   const admin = createAdmin({ emails: adminEmails, auth, billing, workspaces: () => state.workspaces, analytics, usage, infra: { store: infraStore },
-    ops: { answer: () => ops.answer(), collect: () => ops.collect(), accounts: relays => ops.accounts(relays) }, wakeStats: () => slackEdge?.edge.wakeStats() ?? {},
+    ops: { answer: () => ops.answer(), collect: () => ops.collect(), accounts: (relays, query) => ops.accounts(relays, query) }, wakeStats: () => slackEdge?.edge.wakeStats() ?? {},
     waitlist: options.analytics?.waitlist ?? null, live: options.admin?.live ?? null, now, fetch: options.fetch, env: options.admin?.env, errors: errorsSeen, readBody, bodyObject, json, relayFixture: options.admin?.opsFixture,
     service: { version: options.version ?? null, startedAt, environment: options.admin?.environment ?? (dev ? "development" : "production"), dataDir: options.dataDir,
       backupDir: options.admin?.backupDir ?? null, database: () => stateBackend()?.health() ?? null } });

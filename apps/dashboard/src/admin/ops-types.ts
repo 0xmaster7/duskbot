@@ -144,11 +144,14 @@ export interface OpsRelayStats {
 export interface OpsRelayCard { id: OpsRelayId; label: string; url: string; at: number; configured: boolean; ok: boolean; error: string | null; stats: OpsRelayStats | null }
 
 /** GET /v1/admin/ops/accounts: who uses the most this month, one row per account. null means "not reported yet" */
+export type OpsAccountsRange = "month" | "last-month" | "7d";
 export type OpsFairStage = "full" | "slowing" | "chat";
 export interface OpsAccountFlag { kind: "check" | "throttled" | "abuse"; why: string }
 export interface OpsAccountRow {
   /** null when the relay knows the account only by its link ref and the account service has no such account */
   accountId: string | null; ref: string | null; email: string | null;
+  /** the account's plan ("none" without one); null when the service can't see plans (the live site's accounts) */
+  plan: string | null;
   /** relay bytes this month on every node together, its share of all relay traffic (0 to 1), the fair use step and the rate it gives now */
   relay: { monthBytes: number; share: number; stage: OpsFairStage; bytesPerSec: number } | null;
   cloud: { awakeHours: number; costCents: number; egressState: "slowed" | "paused" | null } | null;
@@ -158,6 +161,10 @@ export interface OpsAccountRow {
 }
 export interface OpsAccountsAnswer {
   now: number; month: string;
+  /** the days the cloud and email columns cover; the relay is always this month (the link nodes keep a month) */
+  range: OpsAccountsRange; from: string; to: string;
+  /** every account that used something, past the top ones */
+  total: number;
   /** "own", or the live site's label ("dusk.bot") when preview's admin reads it */
   data: string; fixture: boolean;
   fairUse: { fullSpeedBytes: number; floorAtBytes: number };

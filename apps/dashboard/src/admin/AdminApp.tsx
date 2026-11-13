@@ -22,6 +22,7 @@ import { WaitlistPage } from "./Waitlist";
 import { EventsPage } from "./Events";
 import { AuditPage, HealthPage } from "./Health";
 import { OpsPage } from "./Ops";
+import { AccountsUsagePage } from "./OpsAccounts";
 import { FeedbackPage } from "./Feedback";
 import { Loading, Tabs } from "./ui";
 import { AnimatePresence, EASE_OUT, GLIDE, m, PageIn, ToastStack } from "../ui/motion";
@@ -68,6 +69,7 @@ function page(path: string): ReactNode {
   if (path === "/admin/product" || path.startsWith("/admin/product/")) return <ProductPage path={path} />;
   if (path === "/admin/revenue") return <RevenuePage />;
   if (path === "/admin/ops") return <OpsPage />;
+  if (path === "/admin/ops/accounts") return <AccountsUsagePage />;
   if (path === "/admin/retention") return <RetentionPage />;
   if (path === "/admin/feedback") return <FeedbackPage />;
   if (path === "/admin/waitlist") return <WaitlistPage />;
