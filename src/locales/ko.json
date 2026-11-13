@@ -5202,7 +5202,7 @@
   "apps.category.marketing": "마케팅",
   "apps.category.analytics": "분석",
   "apps.category.social": "소셜",
-  "apps.catalog.googleCalendar.blurb": "일정 읽기와 만들기",
+  "apps.catalog.googleCalendar.blurb": "일정 확인, 추가, 변경",
   "apps.catalog.googleSheets.blurb": "스프레드시트 읽기와 업데이트",
   "apps.catalog.googleDocs.blurb": "문서 읽기와 쓰기",
   "apps.catalog.notion.blurb": "페이지와 데이터베이스",

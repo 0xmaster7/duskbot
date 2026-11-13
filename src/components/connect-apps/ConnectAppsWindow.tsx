@@ -180,6 +180,8 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   const [onePassword, setOnePassword] = useState<OnePasswordStatus | null>(() => memory.onePassword);
   const [skills, setSkills] = useState<SkillsLibrarySkillWire[] | null>(() => memory.skills);
   const [view, setView] = useState(0);
+  // how the last page change went, so the new page slides in from the side it came from, as settings' panes do
+  const [nav, setNav] = useState<"push" | "pop" | "swap" | null>(null);
   const [waited, setWaited] = useState(false);
   const layout = useRef<Layout | null>(null);
   const [scrolled, setScrolled] = useState(false);
@@ -192,6 +194,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   useEffect(() => {
     setPage(requested);
     setTrail([]);
+    setNav(null);
     // a new open of a mounted window is a new view; the mount itself keeps the layout its first frame drew
     if (opened.current.requested === requested && opened.current.nonce === nonce) return;
     opened.current = { requested, nonce };
@@ -334,12 +337,14 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     setResultsOpen(false);
     setActive(-1);
     setTrail((past) => next.kind === "detail" || next.kind === "yours" ? [...past, page] : []);
+    setNav(next.kind === "detail" || next.kind === "yours" ? "push" : "swap");
     setPage(next);
     setView((count) => count + 1);
   };
   const back = () => {
     setPage(trail.at(-1) ?? { kind: "home" });
     setTrail((past) => past.slice(0, -1));
+    setNav("pop");
     setView((count) => count + 1);
   };
   const leaveFor = (action: Action) => { onClose(); dispatch(action); };
@@ -715,7 +720,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
           </div>
           <div className="ca-body">
             <div ref={scroller} className="ca-scroll" onScroll={(event) => setScrolled(event.currentTarget.scrollTop > 40)}>
-              <div className="ca-pane">
+              <div key={pageKey} className="ca-pane" data-nav={nav ?? undefined}>
                 {!sub && (
                   <div className="ca-home">
                     <div className="ca-head">

@@ -130,8 +130,9 @@ export function useConnectors(): Connectors {
   const [stale, setStale] = useState(connectorStatusMemory()?.authoritative === false);
   const [phase, setPhase] = useState<ConnectorInventoryPhase>(connectorStatusMemory() === null ? "loading" : "ready");
   const [pendingUrls, setPendingUrls] = useState<Record<string, PendingAuthorization>>({});
-  // a sign-in through a key or the broker whose link ran out unfinished: said, with Retry, until the next try
-  const [expiredLinks, setExpiredLinks] = useState<Record<string, true>>({});
+  // a sign-in through a key or the broker that ended unfinished (its link ran out, or it was cancelled on the app's
+  // page): said, with Retry, until the next try
+  const [endedLinks, setEndedLinks] = useState<Record<string, "timeout" | "cancelled">>({});
   // per app: one app's slow connect never holds another's
   const [busy, setBusy] = useState<Record<string, true>>({});
   const [aliasFor, setAliasFor] = useState<string | null>(null);
@@ -259,13 +260,13 @@ export function useConnectors(): Connectors {
     return next;
   });
 
-  const forgetExpired = (slug: string) => setExpiredLinks((current) => current[slug] ? Object.fromEntries(Object.entries(current).filter(([key]) => key !== slug)) as Record<string, true> : current);
+  const forgetEnded = (slug: string) => setEndedLinks((current) => current[slug] ? Object.fromEntries(Object.entries(current).filter(([key]) => key !== slug)) as typeof current : current);
 
   const startPolling = (slug: string, before: ConnectorStatus | undefined) => {
     polls.current.get(slug)?.();
     const stop = pollConnector(before, () => refreshStatus([slug]).then((services) => services[slug]), (result) => {
       if (polls.current.get(slug) === stop) polls.current.delete(slug);
-      if (result === "timed_out" || result === "expired") setExpiredLinks((current) => ({ ...current, [slug]: true }));
+      if (result !== "connected") setEndedLinks((current) => ({ ...current, [slug]: result === "failed" ? "cancelled" : "timeout" }));
       connectorConnect(slug, result);
     });
     polls.current.set(slug, stop);
@@ -347,6 +348,8 @@ export function useConnectors(): Connectors {
     let attempt = 0;
     let back = false;
     let trouble = false;
+    // composio lists the sign-in as waiting until it is done or dropped: once seen, "none" means it was cancelled there
+    let seen = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const reads = new AbortController();
     const tick = async () => {
@@ -359,7 +362,8 @@ export function useConnectors(): Connectors {
         if (!alive) return;
         trouble = false;
         if (answer.status === "connected") { void finishVia(slug); return; }
-        if (wasClosed) { failVia(slug, "cancelled"); return; }
+        if (wasClosed || (seen && answer.status === "none")) { failVia(slug, "cancelled"); return; }
+        if (answer.status === "waiting") seen = true;
         flowOf(slug, { step: "waiting", url, since, ...(back ? { note: "notYet" as const } : {}) });
       } catch (cause) {
         if (!alive) return;
@@ -539,7 +543,7 @@ export function useConnectors(): Connectors {
     begin(slug, launch);
     generations.current.set(slug, (generations.current.get(slug) ?? 0) + 1);
     setError(null);
-    forgetExpired(slug);
+    forgetEnded(slug);
     try {
       const createdAt = Date.now();
       if (replacing) await api(`/api/connectors/${slug}/accounts/${encodeURIComponent(replacing.id)}`, { method: "DELETE" });
@@ -647,7 +651,7 @@ export function useConnectors(): Connectors {
     stopVia(slug);
     keepPendingVia(slug, null);
     flowOf(slug, null);
-    forgetExpired(slug);
+    forgetEnded(slug);
     polls.current.get(slug)?.();
     polls.current.delete(slug);
     setPendingUrls((current) => current[slug] ? Object.fromEntries(Object.entries(current).filter(([key]) => key !== slug)) : current);
@@ -669,7 +673,8 @@ export function useConnectors(): Connectors {
     if (flow?.step === "waiting") return { kind: "continue", url: flow.url };
     if (flow?.step === "failed") return { kind: "failed", why: flow.why, ...(flow.message ? { message: flow.message } : {}) };
     if ((flow?.step === "done" || viaApps[card.slug]) && !hasActiveConnection(state)) return { kind: "connected" };
-    if (expiredLinks[card.slug] && !hasActiveConnection(state)) return { kind: "failed", why: "timeout" };
+    const ended = endedLinks[card.slug];
+    if (ended && !hasActiveConnection(state)) return { kind: "failed", why: ended };
     if (phase === "loading") return { kind: "checking" };
     if (pending && live) return { kind: "continue", url: live };
     const reconnect = accountToReconnect(state);

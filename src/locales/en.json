@@ -5943,7 +5943,7 @@
   "apps.category.marketing": "marketing",
   "apps.category.analytics": "analytics",
   "apps.category.social": "social",
-  "apps.catalog.googleCalendar.blurb": "read and create events",
+  "apps.catalog.googleCalendar.blurb": "see your schedule, and add or change events",
   "apps.catalog.googleSheets.blurb": "read and update spreadsheets",
   "apps.catalog.googleDocs.blurb": "read and write documents",
   "apps.catalog.notion.blurb": "pages and databases",

@@ -5340,7 +5340,7 @@
   "apps.category.marketing": "营销",
   "apps.category.analytics": "分析",
   "apps.category.social": "社交",
-  "apps.catalog.googleCalendar.blurb": "读取和创建日程",
+  "apps.catalog.googleCalendar.blurb": "查看日程安排，添加或修改日程",
   "apps.catalog.googleSheets.blurb": "读取和更新电子表格",
   "apps.catalog.googleDocs.blurb": "读取和写入文档",
   "apps.catalog.notion.blurb": "页面和数据库",

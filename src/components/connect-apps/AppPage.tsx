@@ -11,6 +11,7 @@ import type { AppEntry, Connection } from "./catalog";
 import type { ConnectorPhase, Connectors } from "./use-connectors";
 import { COMPOSIO_AUTH_CONFIGS_URL } from "../../../shared/connector-availability";
 import { composioPage, loadToolkitActions, type SnapshotToolkit, type ToolkitActions } from "./composio-snapshot";
+import { abilityLines } from "./ability-lines";
 import { ComposioKeyStep, viaLine } from "./ComposioKeyStep";
 import { GmailCard, gmailCard } from "./GmailCard";
 import type { Primary } from "./PrimaryButton";
@@ -160,10 +161,10 @@ export function AppPage({ model }: { model: AppPageModel }) {
   const otherWays = ways ? ways.filter((way) => way.key !== leadWay) : [];
   const remoteNote = model.remote && remoteLeads ? t(model.remote.open ? "connectApps.remote.open" : "connectApps.remote.note", { name: entry.label }) : null;
   // a sign-in out on the page that opened, through a key or the broker: say so beside Open page again, as the via path does
-  // its link ran out unfinished: said beside Retry, not a quiet Connect again
+  // ended unfinished (the link ran out, or cancelled on the app's page): said beside Retry, not a quiet Connect again
   const waitLine = viaStatus ? null
     : primary?.waiting === true && phase?.kind === "continue" ? { text: t("connectApps.gmail.waiting"), tone: "status" as const }
-    : phase?.kind === "failed" && phase.why === "timeout" ? { text: t("connectApps.via.timeout", { name: entry.label }), tone: "alert" as const }
+    : phase?.kind === "failed" ? viaLine({ step: "failed", why: phase.why, ...(phase.message ? { message: phase.message } : {}) }, entry.label)
     : null;
   const block = !gmail && !keyCard && Boolean(primary || viaStatus || remoteNote);
   const othersBusy = otherWays.some((way) => way.connected || way.action?.busy === true || way.action?.pending === true)
@@ -483,28 +484,30 @@ export function toolName(name: string, app: string): string {
   }).join(" ");
 }
 
-/** What an app can do, folded into one quiet row with its count; open, a search over its actions and triggers by name, then
- * a link to every one on Composio's page for it. */
+/** What an app can do: a quiet row with its count, open from the start, then a search, the actions as plain lines with
+ * the everyday ones first, its triggers, and a link to every one on Composio's page for it. Folding slides the list. */
 function ToolkitAbilities({ toolkit, name }: { toolkit: SnapshotToolkit; name: string }) {
   // undefined while its names load, so the row opens whole instead of growing
   const [lists, setLists] = useState<ToolkitActions | null | undefined>(undefined);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [query, setQuery] = useState("");
   const listId = useId();
   useEffect(() => {
     let alive = true;
     setLists(undefined);
-    setOpen(false);
+    setOpen(true);
     setQuery("");
     void loadToolkitActions(toolkit.slug).then((found) => { if (alive) setLists(found); });
     return () => { alive = false; };
   }, [toolkit.slug]);
   if (lists === undefined || toolkit.tools <= 0) return null;
   const needle = query.trim().toLowerCase();
+  // a multi-word app's own words ("Google Calendar") read as plain nouns inside a line ("Change calendar")
+  const keep = name.includes(" ") ? "" : name;
   const groups = [
-    { key: "actions", label: null, names: lists?.actions ?? [] },
+    { key: "actions", label: null, names: abilityLines(lists?.actions ?? []) },
     { key: "triggers", label: t("connectApps.info.triggers"), names: lists?.triggers ?? [] },
-  ].map((group) => ({ ...group, names: group.names.map((one) => toolName(one, name)).filter((one) => !needle || one.toLowerCase().includes(needle)) }));
+  ].map((group) => ({ ...group, names: group.names.map((one) => toolName(one, keep)).filter((one) => !needle || one.toLowerCase().includes(needle)) }));
   const found = groups.some((group) => group.names.length > 0);
   const listed = (lists?.actions?.length ?? 0) + (lists?.triggers?.length ?? 0);
   return (
@@ -514,7 +517,7 @@ function ToolkitAbilities({ toolkit, name }: { toolkit: SnapshotToolkit; name: s
         <span className="ca-abilities-count">{toolkit.tools}</span>
         <Icon name="chevron-down" size={14} />
       </button>
-      {open && (
+      <div className="ca-abilities-fold" data-open={open ? "" : undefined} inert={!open}>
         <div id={listId} className="ca-abilities">
           {listed > 0 && (
             <div className="ca-card-row">
@@ -535,7 +538,7 @@ function ToolkitAbilities({ toolkit, name }: { toolkit: SnapshotToolkit; name: s
             </a>
           </div>
         </div>
-      )}
+      </div>
     </section>
   );
 }

@@ -197,6 +197,19 @@ describe("the Connect Apps window", () => {
     expect(shown()).toBe("connect Asana");
   });
 
+  it("a key's sign-in cancelled on the app's page says so here, with Retry", async () => {
+    act(() => root.unmount());
+    root = createRoot(document.body.appendChild(document.createElement("div")));
+    await act(async () => { root.render(createElement(ConnectAppsWindow, { page: { kind: "detail", id: "asana" }, nonce: 5, onClose, onTemplates: vi.fn() })); });
+    await flush();
+    const primary = () => dialog().querySelector<HTMLButtonElement>(".ca-primary")!;
+    await act(async () => { primary().click(); });
+    await flush();
+    await act(async () => { fixture.pollEnd!("failed"); });
+    expect(dialog().querySelector("[data-connect-line]")?.textContent).toBe("The sign-in page closed before Asana connected.");
+    expect(primary().querySelector("span:not([aria-hidden])")?.textContent).toBe("retry");
+  });
+
   // regression: with a key, the link running out put the card back on connect with no word of what happened
   it("a key's sign-in link that runs out says so, with Retry that starts a new one", async () => {
     act(() => root.unmount());
@@ -248,12 +261,16 @@ describe("the Connect Apps window", () => {
     const page = dialog().querySelector("[data-app-page]")!;
     expect(page.getAttribute("data-app-page")).toBe("attio");
     const toggle = page.querySelector<HTMLButtonElement>('[data-toolkit-group="actions"] .ca-abilities-toggle')!;
-    expect(toggle.textContent, "folded to one quiet row with its count").toBe("what Attio can do40");
-    expect(toggle.getAttribute("aria-expanded")).toBe("false");
-    expect(page.querySelector("[data-ability]")).toBeNull();
-    await act(async () => { toggle.click(); });
+    expect(toggle.textContent, "one quiet row with its count").toBe("what Attio can do40");
+    expect(toggle.getAttribute("aria-expanded"), "open from the start").toBe("true");
     const abilities = () => [...page.querySelectorAll("[data-ability]")].map((row) => row.textContent);
     expect(abilities()).toEqual(["Create record", "Find person"]);
+    const fold = page.querySelector<HTMLElement>(".ca-abilities-fold")!;
+    await act(async () => { toggle.click(); });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(fold.inert, "folded: out of the tab order while it slides shut").toBe(true);
+    await act(async () => { toggle.click(); });
+    expect(fold.inert).toBe(false);
     expect(page.querySelector<HTMLAnchorElement>('[data-toolkit-group="actions"] a')?.href).toBe("https://docs.composio.dev/toolkits/attio");
     const search = page.querySelector<HTMLInputElement>('[data-toolkit-group="actions"] input[type=search]')!;
     await act(async () => {
@@ -450,7 +467,7 @@ describe("the Connect Apps window", () => {
       await remountAt(7);
       for (const slug of ["attio"]) {
         expect(dialog().querySelector(`[data-app-page='${slug}'] [data-composio-key]`), "no one-time step once Composio is saved").toBeNull();
-        expect(dialog().querySelector(`[data-app-page='${slug}'] input`), "no key or token to type").toBeNull();
+        expect(dialog().querySelector(`[data-app-page='${slug}'] input:not([type=search])`), "no key or token to type").toBeNull();
         expect(shownLabel()).toBe("connect Attio");
       }
     });
@@ -529,6 +546,17 @@ describe("the Connect Apps window", () => {
       it("never reachable until the link expires: offline, Retry", async () => {
         await waitingThen(() => { throw new ApiError("Couldn't reach Composio.", 502, { code: "composio_unreachable" }); }, 10 * 60_000 + 20_000);
         expect(line()).toBe("Couldn't reach Composio for a while. Check your connection and retry.");
+        expect(shownLabel()).toBe("retry");
+      });
+
+      it("cancelled on Composio's page: the wait here ends too, with Retry", async () => {
+        let answer = "waiting";
+        await waitingThen(() => ({ status: answer }), 2_100);
+        expect(shownLabel()).toBe("open page again");
+        answer = "none";
+        await act(async () => { window.dispatchEvent(new Event("focus")); });
+        await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+        expect(line()).toBe("The sign-in page closed before Attio connected.");
         expect(shownLabel()).toBe("retry");
       });
 
