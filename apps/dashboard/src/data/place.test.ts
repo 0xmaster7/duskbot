@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { botFreshness, placeState } from "./place.ts";
+import { awayLine, botFreshness, placeState, reachOf } from "./place.ts";
 import type { CloudDesktop } from "./contracts.ts";
 
 const now = 100 * 3_600_000;
@@ -22,4 +22,16 @@ test("a mac or server that went quiet says when it was last seen, never offline"
   assert.equal(quiet.tone, "quiet");
   assert.doesNotMatch(quiet.label, /offline/);
   assert.equal(placeState("live", now, now).label, "online");
+});
+
+test("an action for a dusk cloud we put to sleep wakes it first; only an owner's stop or a quiet mac waits", () => {
+  assert.equal(reachOf("offline", cloud("running", { resting: true })), "wake");
+  assert.equal(reachOf("live", cloud("waking")), "wake");
+  assert.equal(reachOf("offline", cloud("running")), "ready");
+  assert.equal(reachOf("live", cloud("sleeping")), "away");
+  assert.equal(reachOf("offline", null), "away");
+  assert.equal(reachOf("recent", null), "ready");
+  const lines = [awayLine({ name: "home", kind: "vps" }, cloud("sleeping")), awayLine({ name: "box", kind: "vps" }), awayLine({ name: "mac", kind: "mac" })];
+  assert.match(lines[0]!, /turned off/);
+  for (const line of lines) assert.doesNotMatch(line, /offline|asleep or not answering/);
 });

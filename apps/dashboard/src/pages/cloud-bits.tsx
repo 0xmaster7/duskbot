@@ -51,6 +51,13 @@ export function prewarm(cloud: CloudDesktop) {
   void api.power(cloud.id, true).catch(() => {});
 }
 
+/** an action for a cloud we put to sleep wakes it now, whatever opened lately; the action itself waits for it */
+export function wakeFirst(cloud: CloudDesktop | null | undefined) {
+  if (!cloud?.resting) return;
+  warmed.set(cloud.id, Date.now());
+  void api.power(cloud.id, true).catch(() => {});
+}
+
 /** power: asleep or off wakes at once; turning off asks first, since bots stop answering */
 export function PowerButton({ cloud, size = "sm" }: { cloud: CloudDesktop; size?: "sm" | "md" }) {
   const { power } = useCloud();

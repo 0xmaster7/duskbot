@@ -4,6 +4,7 @@ import type { WorkspaceSummary } from "../../../../shared/dashboard-protocol";
 import { flowKey, useAppCommands, type AppFlow } from "../data/app-connect";
 import { CATEGORY_NAMES, composioSlug, connectedIn, inCategory, presentCategories, searchApps, useConnectorRows, useDashApps, type Category, type ConnectorRow, type DashApp } from "../data/connectors";
 import { cloudForWorkspace, useCloud } from "../data/cloud";
+import { awayLine, reachOf } from "../data/place";
 import { useSession } from "../data/session";
 import { appLink, openApp } from "../lib/app-link";
 import { toast } from "../lib/toast";
@@ -19,8 +20,6 @@ const CATALOG_PAGE = 30;
 
 // the desktop app has no link that starts a sign-in, so the app opens and the toast says where to go
 const openConnect = (app: { label: string }) => openApp(appLink.app, `opening dusk bot. connect ${app.label} from apps there.`);
-const asleep = (ws: WorkspaceSummary | null) => ws !== null && (ws.freshness === "offline" || ws.freshness === "waiting");
-const asleepLine = (ws: WorkspaceSummary, cloud: boolean) => cloud || ws.kind === "vps" ? `${ws.name} is asleep or not answering. wake it from clouds, then try again.` : `${ws.name} is asleep. connect from the dusk bot app on it, or use dusk cloud.`;
 
 function ConnectAction({ app, flow, onConnect }: { app: DashApp; flow: AppFlow | undefined; onConnect(): void }) {
   if (flow?.phase === "waiting") return <Button size="sm" disabled aria-label={`connecting ${app.label}`}>connecting</Button>;
@@ -143,11 +142,16 @@ export function ConnectorsPage() {
 
   const here = useMemo(() => (workspace ? connections?.[workspace.id] ?? [] : []), [connections, workspace]);
   const byId = useMemo(() => new Map((workspaces ?? []).map((w) => [w.id, w])), [workspaces]);
-  const sleepy = (ws: WorkspaceSummary) => asleepLine(ws, cloudForWorkspace(clouds, ws.id) !== null);
+  // a dusk cloud we put to sleep takes the action and wakes first; only one its owner stopped, or a quiet mac, says why not
+  const reach = (ws: WorkspaceSummary) => {
+    const cloud = cloudForWorkspace(clouds, ws.id), state = reachOf(ws.freshness, cloud);
+    return { away: state === "away" ? awayLine(ws, cloud) : null, wake: state === "wake" && cloud ? cloud : undefined };
+  };
   const start = (ws: WorkspaceSummary | null | undefined, app: { label: string }, slug: string | null) => {
     if (!ws || !slug) return openConnect(app);
-    if (asleep(ws)) return toast(sleepy(ws), "bad");
-    connect(ws, slug, app.label);
+    const { away, wake } = reach(ws);
+    if (away) return toast(away, "bad");
+    connect(ws, slug, app.label, wake);
   };
   const rowSlug = (row: ConnectorRow) => (row.app ? composioSlug(row.app) : row.type === "Connector" ? row.id.toLowerCase() : null);
   const tabRows = rows.filter((r) => (tab === "skills" ? r.type === "Skill" : r.type !== "Skill"));
@@ -163,7 +167,7 @@ export function ConnectorsPage() {
     for (const w of workspaces ?? []) if (!row.workspaces.some((x) => x.id === w.id)) items.push({ label: `add to ${w.name}`, onSelect: () => start(w, row, slug) });
     if (slug) for (const listed of row.workspaces) {
       const w = byId.get(listed.id);
-      if (w) items.push({ label: `disconnect from ${w.name}`, danger: true, disabled: flows[flowKey(w.id, slug)]?.phase === "waiting", onSelect: () => asleep(w) ? toast(sleepy(w), "bad") : disconnect(w, slug, row.label) });
+      if (w) items.push({ label: `disconnect from ${w.name}`, danger: true, disabled: flows[flowKey(w.id, slug)]?.phase === "waiting", onSelect: () => { const { away, wake } = reach(w); if (away) toast(away, "bad"); else disconnect(w, slug, row.label, wake); } });
     }
     return items;
   };
@@ -173,7 +177,7 @@ export function ConnectorsPage() {
   return (
     <div className="min-w-0">
       <PageHeader title="apps" sub={workspace ? `connect an app and your bots on ${workspace.name} can use it.` : "connect an app in the dusk bot app and your bots can use it."} />
-      {asleep(workspace) && <p role="status" className="-mt-4 mb-6 text-14 text-ink-3">{sleepy(workspace!)}</p>}
+      {workspace && reach(workspace).away && <p role="status" className="-mt-4 mb-6 text-14 text-ink-3">{reach(workspace).away}</p>}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Toggle<Tab> label="show" value={tab} onChange={switchTab} options={[{ value: "connectors", label: "apps" }, { value: "skills", label: "skills" }]} />

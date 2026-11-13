@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
 import type { CommandKind, WorkspaceDetail } from "../../../../shared/dashboard-protocol";
+import { cloudForWorkspace, useClouds } from "../data/cloud";
+import { awayLine, reachOf } from "../data/place";
 import { useSession } from "../data/session";
 import { Button, ButtonLink, Card, Skeleton } from "../ui/kit";
 import { SkyEmpty } from "../ui/Sky";
+import { wakeFirst } from "./cloud-bits";
 
 export function LoadingPage() {
   return (
@@ -27,7 +30,7 @@ export function NoWorkspace() {
       title="connect your first workspace"
       action={<ButtonLink to="/connect" variant="primary">how to connect</ButtonLink>}
     >
-      your bots live on your own mac or vps. open dusk bot there, then choose account dashboard in the account menu. it shows up here a few seconds later.
+      your bots live on your mac or a server of your own. sign in to dusk bot there, or add a server from the app, and it shows up here by itself.
     </SkyEmpty>
   );
 }
@@ -53,20 +56,22 @@ export function WorkspaceGate({ children }: { children: (detail: WorkspaceDetail
   return <>{children(detail)}</>;
 }
 
-/** a workspace action: sent as a command, picked up on the workspace's next report, then confirmed */
+/** a workspace action: sent as a command, picked up on the workspace's next report, then confirmed. a dusk cloud we put
+ *  to sleep takes it too: it wakes first, and the command waits for it */
 export function CommandButton({ kind, target, label, doing, variant = "outline", confirm, disabled }: { kind: CommandKind; target: string; label: string; doing: string; variant?: "outline" | "primary" | "danger" | "ghost"; confirm?: string; disabled?: boolean }) {
   const { command, pendingFor, workspace } = useSession();
+  const cloud = cloudForWorkspace(useClouds(), workspace?.id);
   const last = pendingFor(kind, target);
   const busy = last?.status === "queued" || last?.status === "sent";
-  const offline = workspace?.freshness === "offline" || workspace?.freshness === "waiting";
+  const away = !workspace || reachOf(workspace.freshness, cloud) === "away";
   return (
     <Button
       size="sm"
       variant={variant}
-      disabled={busy || disabled || offline}
+      disabled={busy || disabled || away}
       aria-busy={busy}
-      title={offline ? `${workspace?.name ?? "this workspace"} is offline` : undefined}
-      onClick={() => { if (!confirm || window.confirm(confirm)) void command(kind, target, label); }}
+      title={away && workspace ? awayLine(workspace, cloud) : undefined}
+      onClick={() => { if (!confirm || window.confirm(confirm)) { wakeFirst(cloud); void command(kind, target, label); } }}
     >
       {busy ? doing : label}
     </Button>

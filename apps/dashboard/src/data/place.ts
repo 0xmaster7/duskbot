@@ -27,3 +27,25 @@ export const TONE_TEXT: Record<PlaceTone, string> = { good: "text-good", warn: "
 
 /** the freshness bots should wake or sleep by: a running cloud's bots are awake even before its first report lands */
 export const botFreshness = (freshness: Freshness, cloud?: CloudDesktop | null): Freshness | undefined => (cloud?.status === "running" ? undefined : freshness);
+
+/** whether an action for a workspace can go now: "ready"; "wake" for a dusk cloud we put to sleep (the action wakes it
+ *  first, as any use does); "away" only for a cloud its owner stopped, or a mac or server that went quiet */
+export type Reach = "ready" | "wake" | "away";
+export function reachOf(freshness: Freshness, cloud?: CloudDesktop | null): Reach {
+  if (cloud) {
+    if (cloud.resting || cloud.status === "waking") return "wake";
+    return cloud.status === "running" ? "ready" : "away";
+  }
+  return freshness === "offline" || freshness === "waiting" ? "away" : "ready";
+}
+
+/** what to say when an action can't go now, in the place's own terms */
+export function awayLine(ws: { name: string; kind: string }, cloud?: CloudDesktop | null): string {
+  if (cloud) {
+    if (cloud.awaitingPayment) return `${ws.name} is waiting for payment. finish it in dusk cloud, then try again.`;
+    if (cloud.status === "provisioning") return `${ws.name} is still being set up. try again in a few minutes.`;
+    if (cloud.status === "error") return `${ws.name} needs attention. open dusk cloud to see why.`;
+    return `${ws.name} is turned off. turn it on in dusk cloud, then try again.`;
+  }
+  return ws.kind === "vps" ? `${ws.name} is not answering. check that dusk bot is running there, then try again.` : `${ws.name} is asleep. open dusk bot on it, then try again.`;
+}
