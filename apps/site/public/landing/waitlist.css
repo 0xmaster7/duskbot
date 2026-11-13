@@ -33,16 +33,16 @@
 
 /* the field and the button, cut like the cards */
 .wl-form { width: 100%; max-width: 500px; margin-top: 34px; }
-.wl-row { display: flex; gap: 6px; padding: 6px 6px 11px; background: var(--paper); clip-path: var(--step); box-shadow: inset 0 -5px 0 var(--u-lilac); }
+.wl-row { display: flex; gap: 12px; }
 /* the email field looks the same focused or not (owner rule: no rings, outlines or focus changes on it) */
-.wl-row input { flex: 1; min-width: 0; height: 50px; padding: 0 14px; border: 0; background: transparent; font: 500 17px/1 var(--sans); color: #212121; appearance: none; outline: none; }
+.wl-row input { flex: 1; min-width: 0; height: 58px; padding: 0 18px 5px; border: 0; background: var(--paper); clip-path: var(--step); box-shadow: inset 0 -5px 0 var(--u-lilac); font: 500 17px/1 var(--sans); color: #212121; appearance: none; outline: none; }
 .wl-row input::placeholder { color: #85858e; }
-.wl-row button { flex: none; min-height: 50px; padding: 0 22px; border: 0; background: #212121; color: #fff; clip-path: var(--step); font: 550 16px/1 var(--sans); letter-spacing: -0.01em; cursor: pointer; transition: background-color 0.2s ease, scale 0.16s var(--ease-out); }
+.wl-row button { flex: none; min-height: 58px; padding: 0 26px 5px; box-shadow: inset 0 -5px 0 rgb(0 0 0 / 0.35); border: 0; background: #212121; color: #fff; clip-path: var(--step); font: 550 16px/1 var(--sans); letter-spacing: -0.01em; cursor: pointer; transition: background-color 0.2s ease, scale 0.16s var(--ease-out); }
 .wl-row button:hover { background: #38383f; }
 .wl-row button:active { scale: 0.97; }
 .wl-row button:focus-visible { background-image: none; background-color: #38383f; }
 .wl-row button:disabled { cursor: progress; background: #4a4a52; }
-.wl-form[data-bad] .wl-row { box-shadow: inset 0 -5px 0 var(--red); }
+.wl-form[data-bad] .wl-row input { box-shadow: inset 0 -5px 0 var(--red); }
 .wl-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 .wl-msg { display: flex; align-items: flex-start; gap: 9px; width: fit-content; max-width: 100%; margin: 14px auto 0; padding: 10px 14px 14px 12px; background: var(--paper); clip-path: var(--step); box-shadow: inset 0 -5px 0 var(--u-pink); color: #212121; font-size: 15px; line-height: 1.4; text-align: left; animation: msg-in 0.22s var(--ease-out); }
 .wl-msg[hidden] { display: none; }
@@ -82,14 +82,15 @@
   .p-waitlist { --ground: 120px; }
   .wl-col { padding-top: 64px; }
   .wl-form { margin-top: 26px; }
-  .wl-row { flex-direction: column; }
-  .wl-row input { height: 50px; text-align: center; }
+  .wl-row { flex-direction: column; gap: 10px; }
+  .wl-row input { flex: none; height: 56px; text-align: center; }
   .wl-row button { width: 100%; }
   .wl-hill { right: 4%; width: 150px; height: 24px; }
   .wl-pip { width: 56px; }
   .wl-works { gap: 10px; }
   .wl-works > span { flex-basis: 100%; text-align: center; font-size: 17px; }
-  .wl-works ul { display: grid; grid-template-columns: repeat(2, max-content); justify-content: center; gap: 8px; }
+  .wl-works ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; max-width: 500px; gap: 10px; }
+  .wl-works li { justify-content: center; }
   .wl-works li { height: 36px; padding: 0 12px 4px 10px; font-size: 15px; gap: 7px; }
   .wl-works .logo { width: 18px; height: 18px; }
 }
