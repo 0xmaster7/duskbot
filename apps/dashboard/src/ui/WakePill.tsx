@@ -28,7 +28,7 @@ function WakeCard({ wake }: { wake: Wake }) {
       <div className="flex items-center gap-2.5">
         <span className="shrink-0" aria-hidden><Mascot body="kit" color="blue" size={28} state={ready ? "happy" : "waking"} still={reduced} /></span>
         <div className="min-w-0 flex-1" role="status">
-          <div className="truncate text-14 font-medium text-ink">{ready ? `${wake.name} is ready` : `waking ${wake.name}`}</div>
+          <div className="truncate text-14 font-medium text-ink">{ready ? `${wake.name} is online` : `waking ${wake.name}`}</div>
           {!ready && <div className="truncate text-13 text-ink-3">about half a minute</div>}
         </div>
         <button type="button" onClick={() => wakeActions.hide(wake.cloudId)} aria-label={ready ? "close" : "hide"} className="press hover-ghost -me-1.5 grid size-9 shrink-0 place-items-center rounded-full text-ink-3"><X size={16} strokeWidth={1.5} /></button>
