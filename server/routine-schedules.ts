@@ -14,10 +14,13 @@ export interface RoutineIntervalSchedule {
   endsAt?: number;
 }
 
-export type RoutineIntervalScheduleInput = Omit<RoutineIntervalSchedule, "weekdays" | "window" | "endsAt"> & {
+/** The REST shape: instants as epoch milliseconds or RFC3339 with an offset (as a bot's routine tool writes them).
+ * A missing start begins one interval from now, or keeps the current start on an edit. */
+export type RoutineIntervalScheduleInput = Omit<RoutineIntervalSchedule, "anchorAt" | "weekdays" | "window" | "endsAt"> & {
+  anchorAt?: number | string;
   weekdays?: number[] | null;
   window?: RoutineIntervalWindow | null;
-  endsAt?: number | null;
+  endsAt?: number | string | null;
 };
 
 export type RoutineSchedule =
@@ -91,8 +94,22 @@ function cleanIntervalWindow(value: unknown, everyMinutes: number): RoutineInter
   return { start, end };
 }
 
-function cleanIntervalEndsAt(value: unknown, anchorAt: number): number | undefined {
-  if (value == null) return undefined;
+const RFC3339_WITH_OFFSET = /^(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/i;
+
+/** Epoch milliseconds as given, an RFC3339 date-time with an offset as its instant, anything else as NaN. */
+function instantInput(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  const parts = RFC3339_WITH_OFFSET.exec(value.trim());
+  if (!parts) return Number.NaN;
+  const [year, month, day] = [Number(parts[1]), Number(parts[2]), Number(parts[3])];
+  // Date.parse rolls 2026-02-30 over into March
+  if (month < 1 || month > 12 || day < 1 || day > new Date(Date.UTC(year, month, 0)).getUTCDate()) return Number.NaN;
+  return Date.parse(value.trim());
+}
+
+function cleanIntervalEndsAt(raw: unknown, anchorAt: number): number | undefined {
+  if (raw == null) return undefined;
+  const value = instantInput(raw);
   if (
     typeof value !== "number" ||
     !Number.isSafeInteger(value) ||
@@ -130,7 +147,8 @@ function parseSchedule(schedule: RoutineScheduleInput, after: number): RoutineSc
     return { type: "daily", time, weekdays: cleanDays(schedule.weekdays) };
   }
   if (schedule?.type === "interval") {
-    const { everyMinutes, anchorAt } = schedule;
+    const { everyMinutes } = schedule;
+    const anchorAt = schedule.anchorAt === undefined ? after : instantInput(schedule.anchorAt);
     if (typeof everyMinutes !== "number" || !Number.isInteger(everyMinutes) || everyMinutes < 5 || everyMinutes > 1_440) {
       throw new Error("Interval must be a whole number from 5 to 1440 minutes");
     }
@@ -204,6 +222,7 @@ export function mergeScheduleUpdate(
 ): RoutineScheduleInput {
   if (current.type !== "interval" || incoming.type !== "interval") return incoming;
   const merged: RoutineIntervalScheduleInput = { ...incoming };
+  if (incoming.anchorAt === undefined) merged.anchorAt = current.anchorAt;
   if (!Object.hasOwn(incoming, "weekdays") && current.weekdays) {
     merged.weekdays = [...current.weekdays];
   }
