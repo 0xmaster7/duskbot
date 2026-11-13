@@ -44,12 +44,19 @@ describe("the Connect apps faces", () => {
     expect(html).not.toContain("data-app-face");
   });
 
-  it("draws a bare mark (Slack) the same size as a whole tile's mark (Gmail, Notion)", () => {
+  it("draws a bare mark (Slack, Notion) the same size as a whole tile's mark (Gmail)", () => {
     const html = renderToStaticMarkup(createElement(SidebarConnectApps));
-    const sizes = [...html.matchAll(/data-app-face="([^"]+)"[\s\S]*?<img[^>]*width="([\d.]+)"/g)].map(([, slug, width]) => [slug, Number(width)] as const);
-    const mark = (slug: string, width: number) => slug === "slack" ? width : width * 36 / 64;
+    const sizes = [...html.matchAll(/data-app-face="([^"]+)"[\s\S]*?(?:<img[^>]*width="([\d.]+)"|data-ink-mark=""[^>]*width:([\d.]+)px)/g)].map(([, slug, img, ink]) => [slug, Number(img ?? ink)] as const);
+    const mark = (slug: string, width: number) => slug === "gmail" ? width * 36 / 64 : width;
     expect(sizes.map(([slug]) => slug)).toEqual(["gmail", "notion", "slack"]);
     for (const [slug, width] of sizes) expect(mark(slug, width)).toBeCloseTo(18 * 36 / 64, 5);
+  });
+
+  it("draws Notion as a bare ink mark, never on a white plate", () => {
+    const html = renderToStaticMarkup(createElement(SidebarConnectApps));
+    const notion = html.match(/data-app-face="notion"[\s\S]*?<\/span><\/span><\/span>/)?.[0] ?? "";
+    expect(notion).toContain('data-ink-mark="" class="bg-ink"');
+    expect(notion).not.toContain("<img");
   });
 
   it("keeps a connected app it cannot draw yet out, and the popular ones in", () => {

@@ -8,6 +8,7 @@ import { loadAppCards } from "./bot-settings/useBotApps";
 import { preloadConnectedApps } from "@/lib/connected-apps";
 import { ServiceTile, type TileArt, type ToolkitCard } from "./ServiceIcon";
 import { appLogo } from "./connect-apps/logos";
+import notionMark from "@/assets/notion-mark.svg";
 import { Icon } from "./Icon";
 import { GROK_FOCUS, GROK_HOVER_TINT, SIMPLE_TOP_BUTTON } from "./SidebarSimpleTop";
 import { ConnectAppsHost, openConnectApps, preloadConnectApps, useConnectApps } from "./connect-apps";
@@ -75,11 +76,18 @@ export function useSidebarApps(): SidebarApps {
  */
 export const BARE_MARK_SCALE = (18 / 20) * (36 / 64);
 
+/** Black marks whose tile is a white plate: drawn bare in the ink colour instead, so they read in either theme. */
+const INK_MARKS: Readonly<Record<string, string>> = { notion: notionMark };
+
 /** The footer logo: the 20px app tile on a 22px square of the page's own surface, 6px round, so overlapping tiles read apart in either theme. */
 function AppFaceIcon({ face, className }: { face: AppFace; className?: string }) {
+  const ink = INK_MARKS[face.slug];
+  const mark = 20 * BARE_MARK_SCALE;
   return (
     <span data-app-face={face.slug} className={cn("flex size-[22px] shrink-0 items-center justify-center rounded-[7px] bg-composer p-px", className)}>
-      <ServiceTile card={{ ...face, scale: face.scale ?? BARE_MARK_SCALE }} size={20} />
+      {ink
+        ? <span className="flex size-5 items-center justify-center"><span data-ink-mark="" className="bg-ink" style={{ width: mark, height: mark, maskImage: `url("${ink}")`, maskSize: "contain", maskRepeat: "no-repeat", maskPosition: "center" }} /></span>
+        : <ServiceTile card={{ ...face, scale: face.scale ?? BARE_MARK_SCALE }} size={20} />}
     </span>
   );
 }

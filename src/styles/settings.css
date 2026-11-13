@@ -465,8 +465,9 @@
 :root .settings-dialog .settings-pane [data-settings-rows] > div > [data-setting-row]:only-child { padding: 0; }
 :root .settings-dialog .settings-pane [data-settings-rows] > div > [data-setting-row]:only-child > div:first-child { min-height: 30px; align-items: center; column-gap: 16px; flex-wrap: nowrap; }
 :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) > :is(button, [data-select-row], [data-setting-row]) { background-color: transparent; }
-/* the docs' hover: a soft grey rounded fill on rows you click as a whole, instant; rows holding their own control stay still */
-:root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) > :is(button, a, div, label):not(.contents, [hidden], [data-settings-rows], :disabled, :has([role="combobox"], [role="switch"], [role="radiogroup"], select, input, button)):hover {
+/* the docs' hover: a soft grey rounded fill on rows you click as a whole, instant; rows holding their own control
+   and plain information (usage cards, charts, notes) stay still */
+:root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) > :is(button, a[href], [role="button"], [role="link"]):not(.contents, [hidden], [data-settings-rows], :disabled, :has([role="combobox"], [role="switch"], [role="radiogroup"], select, input, button)):hover {
   background-color: color-mix(in srgb, var(--color-ink) 3.5%, transparent);
 }
 :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) :is(button[data-panel-page], button[data-settings-open], button[data-settings-advanced], button[data-panel-row], li > button):enabled:active { background-color: color-mix(in srgb, var(--color-ink) 5%, transparent); }
