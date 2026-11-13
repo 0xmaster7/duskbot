@@ -7343,7 +7343,7 @@
   "secretCard.stopped": "Stopped · {label}",
   "secretCard.replaced": "Replaced by a newer request · {label}",
   "secretCard.saveToVault": "Save to vault",
-  "secretCard.login": "Private. Your bot never sees it. We type it in for you.",
+  "secretCard.login": "Private. Filled in for you, never shown to your bot.",
   "secretCard.submit": "Submit",
   "secretCard.sendFailed": "Couldn't send that securely. Try again.",
   "secretCard.resumeFailed": "Bot failed to resume after the secret was saved",
