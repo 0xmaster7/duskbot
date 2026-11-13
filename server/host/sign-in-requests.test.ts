@@ -40,7 +40,7 @@ describe("a human check card", () => {
     expect(made).toMatchObject({ site: "pastebin.com", place: "browser" });
     const card = run.messages[0]!;
     expect(card.signIn).toEqual({ url: "https://pastebin.com/", site: "pastebin.com", place: "browser", check: true });
-    expect(card.text).toBe("Pepper hit a quick human check on pastebin.com. Open this conversation in dusk bot, tap take over and tick the box.");
+    expect(card.text).toBe("Pepper hit a quick human check on pastebin.com. Open this conversation in dusk bot, tap Take over and tick the box.");
     expect(run.pleas).toEqual([{ key: "b1", reason: "human check on pastebin.com", ref: { botId: "b1", threadId: "t1", messageId: "m1", site: "pastebin.com", place: "browser", check: true } }]);
     expect(run.watched).toEqual([{ botId: "b1", threadId: "t1", messageId: "m1", site: "pastebin.com", place: "browser" }]);
   });

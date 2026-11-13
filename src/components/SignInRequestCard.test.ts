@@ -82,7 +82,7 @@ describe("SignInRequestCard while it waits", () => {
 
   it("asks for a human check in one plain line, without the bot's own words", () => {
     const html = view({ check: true, reason: undefined });
-    expect(html).toMatch(/data-testid="sign-in-site"[^>]*>Quick human check on example\.com\. Tap take over and tick the box\.</);
+    expect(html).toMatch(/data-testid="sign-in-site"[^>]*>Quick human check on example\.com\. Tap Take over and tick the box\.</);
     expect(html).not.toContain("sign in to example.com");
   });
 
@@ -236,7 +236,7 @@ describe("SignInRequestCard once settled", () => {
 
   it("says a human check cleared, never that anyone signed in", () => {
     expect(view({ check: true, done: true, resumed: true })).toContain("human check on example.com");
-    expect(detailText({ check: true, done: true, resumed: true })).toContain("human check on example.com cleared · Pepper is continuing");
+    expect(detailText({ check: true, done: true, resumed: true })).toContain("Human check on example.com cleared · Pepper is continuing");
     expect(detailText({ check: true, done: true, resumed: true })).not.toContain("signed in");
   });
 
