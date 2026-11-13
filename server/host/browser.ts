@@ -44,6 +44,7 @@ import { augmentedPath } from "../env-path.ts";
 import { harnessMcpTokenEnv } from "../harness-mcp-token.ts";
 import type { FillLoginDeps } from "../login-fill.ts";
 import { AGENTS_NODE_FLAG, SPAWNED_PROXIES } from "../proxy-paths.ts";
+import { diskUsedPercent, guardDisk, ScratchLedger, sweepScratch } from "../scratch.ts";
 import type { Store } from "../store.ts";
 import type { TurnResources } from "../turn-resources.ts";
 
@@ -53,7 +54,7 @@ export interface BrowserHostDeps {
   cfg: AppConfig;
   /** The store is built after this host, so it is read when used. */
   store(): Pick<Store, "bots" | "bot" | "botByThread">;
-  turnResources: Pick<TurnResources, "free" | "holder" | "onClaim">;
+  turnResources: Pick<TurnResources, "free" | "holder" | "onClaim" | "onRelease">;
   activeInternalGenerationByThread: ReadonlyMap<string, string>;
   mintInternalCapability(capability: {
     botId: string; threadId: string; generation: string; browserSession: string; kind: "browser";
@@ -101,6 +102,12 @@ export function createBrowserHost(deps: BrowserHostDeps) {
   } });
   const host: HostKind = DESKTOP_MANAGED ? "desktop" : CLOUD_HOME || existsSync("/.dockerenv") ? "container" : "server";
   const idleMs = () => browserIdleMs(cfg, { cloudHome: Boolean(CLOUD_HOME) });
+  const scratchRoots = [join(DATA_DIR, "browser", "screenshots")];
+  const scratch = new ScratchLedger(scratchRoots);
+  let scratchFullLogged = false;
+  turnResources.onRelease((resource) => {
+    if (resource.startsWith("browser:")) scratch.release(resource);
+  });
   const chromeEngine = new ChromeEngine({
     dataDir: DATA_DIR,
     host,
@@ -108,6 +115,13 @@ export function createBrowserHost(deps: BrowserHostDeps) {
     egressNotice: (key) => browserEgress.takeNotice(key),
     idleMs,
     log: (line) => console.warn(line),
+    onScratch: (session, path) => { scratch.mark(`browser:${session}`, path); },
+    sweepScratch: () => {
+      sweepScratch(scratchRoots);
+      const { full } = guardDisk(scratchRoots, diskUsedPercent(DATA_DIR), { keep: (path) => scratch.inUse(path) });
+      if (full && !scratchFullLogged) console.warn("This computer's disk is still over 80% full after clearing the bots' temporary screenshots.");
+      scratchFullLogged = full;
+    },
   });
   // A tool call that would open Reddit from dusk cloud is refused before it reaches the browser. My Chrome is the
   // person's own, outside the egress gate too.

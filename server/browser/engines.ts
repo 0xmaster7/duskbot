@@ -49,6 +49,9 @@ export interface ChromeEngineOptions {
   idleMs(): number;
   egressNotice(key: string): string | null;
   log?: (line: string) => void;
+  onScratch?: (session: string, path: string) => void;
+  /** Run with each sweep: the day-old and over-the-disk-limit scratch of this data folder. */
+  sweepScratch?: () => void;
 }
 
 /** The new engine: one Chrome launcher (no agent-browser wrapper), the browser service, its live views and its sweep. */
@@ -98,6 +101,7 @@ export class ChromeEngine {
       idleMs: options.idleMs,
       egressNotice: options.egressNotice,
       ...(options.log ? { log: options.log } : {}),
+      ...(options.onScratch ? { onScratch: options.onScratch } : {}),
     });
     this.live = new LiveV1({ service: this.service, target: (session) => this.target(session) });
     this.stream = new StreamV2({ service: this.service });
@@ -133,6 +137,7 @@ export class ChromeEngine {
   #tick(): void {
     void this.service.closeIdle().catch(() => undefined);
     void sweep({ root: browserRoot(this.#options.dataDir), registry: this.#registry }).catch(() => undefined);
+    this.#options.sweepScratch?.();
   }
 
   #running(): boolean {

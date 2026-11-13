@@ -61,6 +61,8 @@ export interface BrowserServiceOptions {
   /** How long a person's hold lasts without a hand-back; the standard limits when unset. */
   holdLimits?: HoldLimits;
   log?: (line: string) => void;
+  /** Told of each screenshot a bot saved, a scratch file of the session's turn. */
+  onScratch?: (session: string, path: string) => void;
 }
 
 interface Running {
@@ -510,6 +512,7 @@ export class BrowserService {
     try { host = new URL(pageUrl).hostname.replace(/[^a-z0-9]+/giu, "-").slice(0, 40) || "page"; } catch {}
     const path = join(folder, `browser-screenshot-${host}-${Date.now().toString(36)}-${randomUUID().slice(0, 8)}.png`);
     writeFileSync(path, data, { mode: 0o600 });
+    this.#options.onScratch?.(profile.session, path);
     return path;
   }
 

@@ -141,4 +141,18 @@ describe("wait estimate history", () => {
     expect(leases.waitEstimateMs("computer:host")).toBe(14_000);
     expect(leases.waitEstimateMs("computer:vm:other")).toBeUndefined();
   });
+
+  it("tells release listeners each resource a turn let go of, once it is free, and nothing it never held", () => {
+    const leases = new TurnResources();
+    const freed: string[] = [];
+    leases.onRelease((resource, owner) => { if (leases.free(resource)) freed.push(`${resource}@${owner.threadId}`); });
+    leases.claim("browser:bot-a", a);
+    leases.claim("computer:host", a);
+    leases.claim("browser:bot-b", b);
+    leases.releaseOne("browser:bot-b", a);
+    leases.releaseOne("computer:host", a);
+    leases.release(a);
+    leases.release(a);
+    expect(freed).toEqual(["computer:host@a", "browser:bot-a@a"]);
+  });
 });

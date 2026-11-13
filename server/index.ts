@@ -430,6 +430,7 @@ import { createLoopGuard, loopGuardSettings } from "./host/loop-guard.ts"; impor
 import { claudeUserSkillsEnabled, settingsTurnFields } from "./turn-settings.ts";
 import { addHeldSecretScrubber, redactSecretsInText, scrubHeldSecrets } from "./redact.ts";
 import * as vps from "./vps-computer.ts";
+import { BoxDiskNotes, clearBoxScratch } from "./box-scratch.ts";
 import { vpsConfigForBot, vpsSshAliasForBot } from "./vps-hosts.ts";
 import { ROUTINE_RESTARTED, RoutineManager, type RoutineRun, type RoutineRunOn, type RoutineRunTrigger } from "./routines.ts"; import { routineRunsFor } from "./routine-run-window.ts"; import { batchSaves } from "./save-batch.ts";
 import { BROWSER_UPLOAD_TOOL, browserRuntimeEnv } from "./browser-runtime.ts";
@@ -2021,6 +2022,7 @@ function releaseRemoteComputerTurn(owner: TurnOwner): void {
     target.screenLease?.release();
     vpsThreadEnded(target.ownerId, owner.threadId);
     turnVpsTargets.delete(owner.threadId);
+    if (![...turnVpsTargets.values()].some((other) => other.containerId === target.containerId)) void clearDesktopScratch(target.ownerId, target.config, target.containerId, "turn");
   }
   const shared = teamComputerTurns.get(owner.threadId);
   if (shared?.owner.generation === owner.generation) {
@@ -2028,6 +2030,12 @@ function releaseRemoteComputerTurn(owner: TurnOwner): void {
     stopScreenPoller(shared.botId, owner.threadId);
     teamComputerTurns.delete(owner.threadId);
   }
+}
+
+const desktopDiskNotes = new BoxDiskNotes();
+async function clearDesktopScratch(ownerId: string, config: AppConfig, container: string, mode: "turn" | "sweep"): Promise<void> {
+  const alias = vpsSshAlias(config);
+  if (alias) desktopDiskNotes.record(ownerId, await clearBoxScratch((args, options) => vps.defaultRunner(args, options), alias, container, mode));
 }
 
 function releaseTurnComputer(owner: TurnOwner): void {
@@ -5862,11 +5870,12 @@ setVpsCapacityHost(createVpsCapacityHost({ containerName: vps.vpsContainerName,
   } }));
 
 // after a server update, and every so often: each outdated bot desktop nothing uses is replaced on its home volume
+const vpsDesktopTargets = () => [
+  ...store.bots.filter(bot => !inheritedTeamComputer(bot) && vpsSshAliasForBot(cfg, bot)).map(bot => ({ ownerId: bot.id, label: bot.name, config: vpsConfigForBot(cfg, bot) })),
+  ...teamComputers.list().map(computer => ({ ...teamComputerVpsTarget(cfg, computer), label: computer.name })).filter(target => vpsSshAlias(target.config)),
+];
 const vpsDesktopUpdates = createVpsDesktopUpdater({
-  targets: () => [
-    ...store.bots.filter(bot => !inheritedTeamComputer(bot) && vpsSshAliasForBot(cfg, bot)).map(bot => ({ ownerId: bot.id, label: bot.name, config: vpsConfigForBot(cfg, bot) })),
-    ...teamComputers.list().map(computer => ({ ...teamComputerVpsTarget(cfg, computer), label: computer.name })).filter(target => vpsSshAlias(target.config)),
-  ],
+  targets: vpsDesktopTargets,
   status: (target) => vps.vpsComputerStatus(target.config, target.ownerId),
   inUse: (target) => remoteComputerLifecycleBusyOwners.has(target.ownerId) || managedVpsOwners().some(owner => owner.botId === target.ownerId && owner.inUse),
   // turns are never refused meanwhile: a wake waits for the update, then starts the new desktop
@@ -5878,6 +5887,14 @@ const vpsDesktopUpdates = createVpsDesktopUpdater({
 });
 setTimeout(() => void vpsDesktopUpdates.sweep(), 60_000).unref();
 setInterval(() => void vpsDesktopUpdates.sweep(), 15 * 60_000).unref();
+let desktopScratchSweep: Promise<void> | null = null;
+const sweepDesktopScratch = () => {
+  desktopScratchSweep ??= (async () => {
+    for (const target of vpsDesktopTargets()) await clearDesktopScratch(target.ownerId, target.config, vps.vpsContainerName(target.ownerId), "sweep");
+  })().finally(() => { desktopScratchSweep = null; });
+};
+setTimeout(sweepDesktopScratch, 2 * 60_000).unref();
+setInterval(sweepDesktopScratch, 15 * 60_000).unref();
 
 onConfigSaved((before, after) => {
   vpsLifecycle.configure();
@@ -8667,6 +8684,10 @@ async function beginTurn(
         const hint = autoVpsOutdated ? VPS_OUTDATED_HINT : vps.vpsUnavailableHint({ automationSource: opts?.automationSource, autoStartVps: bot.autoStartVps, reachable: autoVpsReachable });
         if (opts?.automationSource) skipComputer(new Error(`${autoVpsProblem}. ${hint}`));
         else vpsUnavailableNote = ` This bot's VPS computer is unavailable this turn (${autoVpsProblem}), so no computer is mounted. Work that needs no screen can go ahead. If the request needs the VPS desktop, do not claim to have used it: say it is unavailable${hint ? ` and what the person can do: ${hint}` : "."}`;
+      }
+      if (computerKind === "vps") {
+        const teamComputer = inheritedTeamComputer(bot);
+        vpsUnavailableNote += desktopDiskNotes.note(teamComputer ? teamComputerOwner(teamComputer.id) : bot.id);
       }
       // One reachability rule: a bot is never told about a peer that coordinate_bots would refuse.
       const sectionPeers = reachablePeers(store.bots, bot);

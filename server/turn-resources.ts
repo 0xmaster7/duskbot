@@ -13,11 +13,22 @@ export class TurnResources {
   private readonly waiters = new Map<string, TurnOwner[]>();
   private readonly waitStats = new Map<string, { ewmaMs: number; samples: number }>();
   private readonly claimListeners = new Set<(resource: string, owner: TurnOwner) => void>();
+  private readonly releaseListeners = new Set<(resource: string, owner: TurnOwner) => void>();
 
   /** Told each time a claim makes a turn a resource's new holder; returns the way to stop listening. */
   onClaim(listener: (resource: string, owner: TurnOwner) => void): () => void {
     this.claimListeners.add(listener);
     return () => { this.claimListeners.delete(listener); };
+  }
+
+  /** Told each time a holder lets a resource go, after it is free; returns the way to stop listening. */
+  onRelease(listener: (resource: string, owner: TurnOwner) => void): () => void {
+    this.releaseListeners.add(listener);
+    return () => { this.releaseListeners.delete(listener); };
+  }
+
+  private released(resource: string, owner: TurnOwner): void {
+    for (const listener of this.releaseListeners) listener(resource, owner);
   }
 
   startWaiting(resource: string, owner: TurnOwner): number {
@@ -96,14 +107,18 @@ export class TurnResources {
       if (next.length) this.waiters.set(key, next);
       else this.waiters.delete(key);
     }
+    const freed: string[] = [];
     for (const [key, current] of this.owners) {
-      if (sameOwner(current, owner)) this.owners.delete(key);
+      if (sameOwner(current, owner)) { this.owners.delete(key); freed.push(key); }
     }
+    for (const key of freed) this.released(key, owner);
   }
 
   releaseOne(resource: string, owner: TurnOwner): void {
-    if (this.owns(resource, owner)) this.owners.delete(resource);
+    const owned = this.owns(resource, owner);
+    if (owned) this.owners.delete(resource);
     this.stopWaiting(resource, owner);
+    if (owned) this.released(resource, owner);
   }
 
   free(resource: string): boolean {

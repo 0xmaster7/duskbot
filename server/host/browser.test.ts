@@ -57,7 +57,7 @@ function setup(engine: "chrome" | "agent-browser" | undefined, { cloudHome = fal
   const host = createBrowserHost({
     cfg,
     store: () => ({ bots, bot: (id: string) => bots.find((bot) => bot.id === id), botByThread: () => bots[0] }) as unknown as Pick<Store, "bots" | "bot" | "botByThread">,
-    turnResources: turnResources ?? { free: () => true, holder: holder ?? (() => undefined), onClaim: () => () => {} },
+    turnResources: turnResources ?? { free: () => true, holder: holder ?? (() => undefined), onClaim: () => () => {}, onRelease: () => () => {} },
     activeInternalGenerationByThread: generations ?? new Map([turn.threadId, "ada-chat", "cleo-chat", "room-chat", "main-chat"].map((threadId) => [threadId, turn.generation])),
     mintInternalCapability: (capability) => { minted.push(capability); return "capability-token"; },
     DESKTOP_MANAGED: !cloudHome && !server,
@@ -76,7 +76,7 @@ describe("the bots' browser host and the engine memory guard", () => {
     const host = createBrowserHost({
       cfg: { features: { browser: true } } as unknown as AppConfig,
       store: () => ({ bots: [], bot: () => undefined, botByThread: () => undefined }) as unknown as Pick<Store, "bots" | "bot" | "botByThread">,
-      turnResources: { free: () => true, holder: () => undefined, onClaim: () => () => {} },
+      turnResources: { free: () => true, holder: () => undefined, onClaim: () => () => {}, onRelease: () => () => {} },
       activeInternalGenerationByThread: new Map(),
       mintInternalCapability: () => "capability-token",
       DESKTOP_MANAGED: false,
