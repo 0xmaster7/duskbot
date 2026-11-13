@@ -436,12 +436,12 @@ export const ASK_SMALL_PILL = ASK_CONTROL;
 export const ASK_QUIET_BUTTON = `${ASK_SMALL_PILL} -my-1 text-ink-tertiary hover:bg-ink/[0.07] hover:text-ink-secondary`;
 
 /**
- * A card field: no line, a light tonal fill a step under the page's 8% fields (a card is already a raised surface), 32 tall,
- * 10px corners. Hover and focus deepen the fill a little, beside the caret. No `border` class, so the app-wide field fill
+ * A card field: no line, a light tonal fill a step under the page's 8% fields (a card is already a raised surface), 48 tall
+ * with 16px text (a phone never zooms into it), 12px corners. Hover and focus deepen the fill a little, beside the caret. No `border` class, so the app-wide field fill
  * (styles.css) leaves it alone.
  */
 export const CARD_FIELD =
-  "h-8 rounded-[10px] bg-ink/[0.04] px-3 text-[14px] leading-5 text-ink outline-none transition-[background-color] duration-150 ease-[ease] placeholder:text-ink-tertiary hover:bg-ink/[0.06] focus:bg-ink/[0.07] disabled:opacity-60 pointer-coarse:h-11";
+  "h-12 rounded-[12px] bg-ink/[0.04] px-4 text-[16px] leading-6 text-ink outline-none transition-[background-color] duration-150 ease-[ease] placeholder:text-ink-tertiary hover:bg-ink/[0.06] focus:bg-ink/[0.07] disabled:opacity-60";
 
 export function returnFocusToComposer(): void {
   if (typeof requestAnimationFrame !== "function") return;

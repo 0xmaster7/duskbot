@@ -224,7 +224,7 @@ export function SecretRequestCard({
   }
 
   const submit = cardPrimary();
-  const note = !custom ? `stored securely by ${productName()} and never added to chat.` : email ? t("secretCard.email") : login ? t("secretCard.login") : secret.delivery === "file" ? t("secretCard.file") : t("secretCard.ref");
+  const note = !custom ? t("secretCard.ref") : email ? t("secretCard.email") : login ? t("secretCard.login") : secret.delivery === "file" ? t("secretCard.file") : t("secretCard.ref");
   return (
     <AskCard
       ariaLabel={secret.label}
@@ -270,7 +270,7 @@ export function SecretRequestCard({
           {((custom && !email) || secret.helpUrl) && (
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] leading-4 text-ink-tertiary">
               {custom && !email && (
-                <label className="inline-flex cursor-pointer items-center gap-2 text-ink-secondary" data-secret-remember="">
+                <label className="inline-flex cursor-pointer items-center gap-2 text-ink-secondary pointer-coarse:min-h-11" data-secret-remember="">
                   <Toggle checked={remember} disabled={saving} onClick={() => setRemember((on) => !on)} />
                   {t("secretCard.saveToVault")}
                 </label>

@@ -223,7 +223,7 @@ export function ConnectorCard({ botId, threadId, message }: { botId: string; col
             onChange={(event) => setLabel(event.target.value)}
             placeholder={t("connectors.aliasPlaceholder")}
             aria-label={t("connectors.aliasAriaAnother", { service: connector.label })}
-            className={cn(CARD_FIELD, "w-full text-[13px] leading-[18px] tracking-[0.015em]")}
+            className={cn(CARD_FIELD, "w-full")}
           />
         </form>
       ) : errorLine}

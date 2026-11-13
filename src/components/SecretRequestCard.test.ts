@@ -68,7 +68,7 @@ describe("SecretRequestCard superseded requests", () => {
   it("still offers entry while the newest request is pending", () => {
     const html = view({});
     expect(html).toContain("save securely");
-    expect(html).toContain("never added to chat.");
+    expect(html).toContain("Private. Your bot never sees it.");
   });
 
   it("stops offering entry and names its replacement once superseded", () => {
@@ -128,7 +128,7 @@ describe("SecretRequestCard ask card", () => {
     const html = view({ target: "customSecret", label: "instagram.com", delivery: "login", reason: "To post your photo.", description: "To post your photo.", helpUrl: "" });
     expect(html).toMatch(/line-clamp-2 text-\[13px\][^"]*text-ink-tertiary">To post your photo\./);
     expect(html.match(/never sees it/g)).toHaveLength(1);
-    expect(html).toContain("Sealed so only your computer can open it");
+    expect(html).toContain("Private. Your bot never sees it. We type it in for you.");
   });
 
   it("folds into one line that names the key once it is saved and the bot resumed", () => {
@@ -159,7 +159,7 @@ describe("SecretRequestCard mailbox", () => {
     expect(html).toContain('value="me@shop.example"');
     expect(html).toContain('type="password"');
     expect(html).toContain("mailbox password");
-    expect(html).toContain("They never see it.");
+    expect(html).toContain("Private. Your bot never sees it.");
   });
 
   it("asks for the server only once one could not be found, and other cards have no address field", () => {
@@ -311,10 +311,11 @@ describe("SecretRequestCard custom secrets", () => {
     const file = view({ target: "customSecret", label: "Stripe secret key", reason: "To create test charges.", description: "To create test charges. Scout's commands can read it.", helpUrl: "", delivery: "file" });
     expect(file).toContain("To create test charges.");
     expect(file).not.toContain("Scout&#x27;s commands can read it.");
-    expect(file).toContain("Saved to a private file your bot&#x27;s commands can read for 24 hours, then deleted.");
+    expect(file).toContain("Private. Your bot&#x27;s commands can use it for 24 hours.");
     expect(file).not.toContain("Where to get this key");
     const ref = view({ target: "customSecret", label: "Notion key", reason: "For Notion.", helpUrl: "", delivery: "ref" });
-    expect(ref).toContain("dusk bot gives its own tools a one-use reference. Your bot never sees it");
+    expect(ref).toContain("Private. Your bot never sees it.");
+    expect(ref).not.toContain("one-use reference");
     expect(ref).toContain('data-secret-remember=""');
     expect(ref).toMatch(/role="switch" aria-checked="true"/u);
     expect(ref).not.toContain('type="checkbox"');
