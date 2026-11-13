@@ -73,9 +73,6 @@ stop, whatever the policy said.
 - **Only a person earns the minimum idle:** a routine's or a connector's wake keeps only its minimum uptime and sleeps once
   its work is done. Holds that are not a bot's own work (a transfer or other maintenance, a cloud computer, a live call)
   stop counting after 6 hours with no bot working, no input and no bytes moving; the operator gets one alert per incident.
-- **Checks while asleep (home):** a routine's app checks wake a sleeping home hourly inside the person's usual hours
-  (learned from 14 days of their input, 8:00 to 23:00 until then) and every 3 hours outside them; after 3 checks in a row
-  found nothing new, with no use since, one is skipped until something is found. Routine runs keep their exact times.
 - **Daily check:** one ops alert a day listing every cloud that was awake over 12 hours of a UTC day without a bot working.
 - **No flapping:** each stop that a start followed within the flap window doubles the minimum idle for a day. The
   defaults (10 minutes, up to 2 hours, 4 starts an hour and 16 a day, 6 minutes of uptime) protect a scarce start
