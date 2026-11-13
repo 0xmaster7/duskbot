@@ -42,6 +42,14 @@ describe("the line's way", () => {
     expect((await parsed(["--cloudflare", "--domain=bots.example.com"])).stdout.trim()).toBe("cloudflare|bots.example.com|cloudflare");
   });
 
+  it("hands the way on to root's run of the script, keys never on the command line", async () => {
+    const args = (list) => sourced('parse_ways "$@"; way_args', ["abcdefghij-abcdefghijklmnopqrstuvwxyz", ...list]);
+    expect((await args(["--tailscale", "--tailscale-key", "tskey-secret"])).stdout).toBe("--tailscale");
+    expect((await args(["--domain", "bots.example.com"])).stdout).toBe("--domain bots.example.com");
+    expect((await args(["--cloudflare", "--domain", "b.example.com"])).stdout).toBe("--cloudflare --domain b.example.com");
+    expect((await args([])).stdout).toBe("");
+  });
+
   it("refuses what it does not know, and a domain that is not one, before doing anything", async () => {
     const unknown = await parsed(["--tailscal"]);
     expect(unknown.code).toBe(1);

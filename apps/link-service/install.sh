@@ -319,12 +319,14 @@ become_root() {
   fi
   say "Asking for administrator rights..."
   if [ -r "$0" ] && [ "${0##*/}" != "sh" ] && [ "${0##*/}" != "dash" ]; then
-    exec sudo env LINK_BASE="$LINK_BASE" DUSK_PACKAGE="$DUSK_PACKAGE" BOT_DESKTOP_IMAGE="$BOT_DESKTOP_IMAGE" \
-      COLORTERM="${COLORTERM:-}" NO_COLOR="${NO_COLOR:-}" DUSK_ASCII="${DUSK_ASCII:-}" DUSK_PLAIN="${DUSK_PLAIN:-}" DUSK_NO_ANIM="${DUSK_NO_ANIM:-}" DUSK_VERBOSE="${DUSK_VERBOSE:-}" sh "$0" "$TOKEN"
+    # shellcheck disable=SC2046
+    exec sudo env LINK_BASE="$LINK_BASE" DUSK_PACKAGE="$DUSK_PACKAGE" BOT_DESKTOP_IMAGE="$BOT_DESKTOP_IMAGE" DUSK_CLOUDFLARE_TOKEN="$CF_TOKEN" DUSK_TAILSCALE_KEY="$TS_KEY" \
+      COLORTERM="${COLORTERM:-}" NO_COLOR="${NO_COLOR:-}" DUSK_ASCII="${DUSK_ASCII:-}" DUSK_PLAIN="${DUSK_PLAIN:-}" DUSK_NO_ANIM="${DUSK_NO_ANIM:-}" DUSK_VERBOSE="${DUSK_VERBOSE:-}" sh "$0" "$TOKEN" $(way_args)
   fi
   # piped: the script is gone from stdin, so fetch it again for root
-  curl -fsSL --proto "$PROTO" --proto-redir "$PROTO" --retry 3 "$LINK_BASE/i" | sudo env LINK_BASE="$LINK_BASE" DUSK_PACKAGE="$DUSK_PACKAGE" BOT_DESKTOP_IMAGE="$BOT_DESKTOP_IMAGE" \
-    COLORTERM="${COLORTERM:-}" NO_COLOR="${NO_COLOR:-}" DUSK_ASCII="${DUSK_ASCII:-}" DUSK_PLAIN="${DUSK_PLAIN:-}" DUSK_NO_ANIM="${DUSK_NO_ANIM:-}" DUSK_VERBOSE="${DUSK_VERBOSE:-}" sh -s "$TOKEN"
+  # shellcheck disable=SC2046
+  curl -fsSL --proto "$PROTO" --proto-redir "$PROTO" --retry 3 "$LINK_BASE/i" | sudo env LINK_BASE="$LINK_BASE" DUSK_PACKAGE="$DUSK_PACKAGE" BOT_DESKTOP_IMAGE="$BOT_DESKTOP_IMAGE" DUSK_CLOUDFLARE_TOKEN="$CF_TOKEN" DUSK_TAILSCALE_KEY="$TS_KEY" \
+    COLORTERM="${COLORTERM:-}" NO_COLOR="${NO_COLOR:-}" DUSK_ASCII="${DUSK_ASCII:-}" DUSK_PLAIN="${DUSK_PLAIN:-}" DUSK_NO_ANIM="${DUSK_NO_ANIM:-}" DUSK_VERBOSE="${DUSK_VERBOSE:-}" sh -s "$TOKEN" $(way_args)
   exit $?
 }
 
@@ -2398,6 +2400,15 @@ intro() {
 bad_option() { printf '%s\n' "$1" >&2; exit 1; }
 # how the app reaches this server, from `| sh -s -- --tailscale` and the like (none: straight over https when port 80
 # answers from the internet, else the relay). a run without one keeps the way chosen before.
+# the way again, for root's run of this script (its keys and tokens go in the environment, never on a command line)
+way_args() {
+  case "$ARGS_WANT" in
+    "") ;;
+    domain) printf -- '--domain %s' "$WANT_DOMAIN" ;;
+    cloudflare) printf -- '--cloudflare'; [ -z "$WANT_DOMAIN" ] || printf -- ' --domain %s' "$WANT_DOMAIN" ;;
+    *) printf -- '--%s' "$ARGS_WANT" ;;
+  esac
+}
 parse_ways() { # the line's arguments (the token first, when it is not baked in)
   [ "$BAKED_TOKEN" != "$PLACEHOLDER_TOKEN" ] || { [ $# -eq 0 ] || shift; }
   while [ $# -gt 0 ]; do
