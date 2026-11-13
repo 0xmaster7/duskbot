@@ -183,9 +183,9 @@ export function settleNote(report: SettleReport): string | null {
   if (check) {
     const waited = `${Math.round(check.waitedMs / 1_000)} s`;
     if (check.cleared) lines.push(`The site ran a ${check.vendor} bot check first; it cleared by itself after ${waited}.`);
-    else if (check.state === "checking") lines.push(`The site is still running a ${check.vendor} bot check after ${waited}. Wait a little and take a snapshot again; do not try to solve it or reload the page in a loop.`);
-    else if (check.state === "needs-user") lines.push(`The site shows a ${check.vendor} check that a person must answer. Do not try to solve it or retry the page: call request_sign_in so the person watching can answer it.`);
-    else lines.push(`The site's ${check.vendor} protection blocked this browser. Do not retry it; tell the person, or find what you need elsewhere.`);
+    else if (check.state === "checking") lines.push(`The site is still running a ${check.vendor} bot check after ${waited}. Wait a little and take a snapshot again; do not try to solve it or reload the page in a loop. If it is still there then, use another route or call request_sign_in with human_check true.`);
+    else if (check.state === "needs-user") lines.push(`The site shows a ${check.vendor} check that a person must answer. Never try to solve or get around it. Use another route if the task allows one (another site that does the same job, or the site's API); otherwise call request_sign_in with human_check true and end your turn: you carry on by yourself once it clears.`);
+    else lines.push(`The site's ${check.vendor} protection blocked this browser. Do not retry it; find what you need another way (another site that does the same job, or the site's API), and tell the person only if there is none.`);
   }
   if (report.stillBusy) lines.push(`Parts of the page were still loading after ${BUSY_WAIT_MS / 1_000} s (placeholders or spinners). If what you need is missing, wait for it and read again.`);
   return lines.length ? lines.join(" ") : null;

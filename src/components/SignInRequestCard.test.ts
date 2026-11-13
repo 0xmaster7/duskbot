@@ -80,6 +80,12 @@ describe("SignInRequestCard while it waits", () => {
     expect(html).not.toContain("<input");
   });
 
+  it("asks for a human check in one plain line, without the bot's own words", () => {
+    const html = view({ check: true, reason: undefined });
+    expect(html).toMatch(/data-testid="sign-in-site"[^>]*>Quick human check on example\.com\. Tap take over and tick the box\.</);
+    expect(html).not.toContain("sign in to example.com");
+  });
+
   it("shows the computer's screen edge to edge with grok's Take over pill on a computer, in a box reserved before the first frame", () => {
     const html = view({ place: "vm", reason: undefined });
     expect(html).toMatch(/<button[^>]*aria-label="take over the computer"[^>]*data-sign-in-screen=""[^>]*class="[^"]*aspect-\[16\/10\] w-full/);
@@ -226,6 +232,12 @@ describe("SignInRequestCard once settled", () => {
   it("says a login was saved, for the site it was saved for", () => {
     expect(view({ done: true, resumed: true, savedLogin: "example.com and login.microsoftonline.com" })).toContain("login saved · sign in to example.com");
     expect(detailText({ done: true, resumed: true, savedLogin: "example.com and login.microsoftonline.com" })).toContain("login saved for example.com and login.microsoftonline.com · Pepper is continuing");
+  });
+
+  it("says a human check cleared, never that anyone signed in", () => {
+    expect(view({ check: true, done: true, resumed: true })).toContain("human check on example.com");
+    expect(detailText({ check: true, done: true, resumed: true })).toContain("human check on example.com cleared · Pepper is continuing");
+    expect(detailText({ check: true, done: true, resumed: true })).not.toContain("signed in");
   });
 
   it("says a declined sign-in was skipped", () => {

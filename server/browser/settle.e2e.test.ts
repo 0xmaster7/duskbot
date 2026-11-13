@@ -58,7 +58,7 @@ suite("settled page reads on real Chrome", () => {
     const url = page("/hold", "Access to this page has been denied", `<p>Press and hold to confirm you are a human</p><div id="px-captcha" style="width:300px;height:50px"></div>`);
     const started = Date.now();
     const text = real.text(await real.call(bot(), "agent_browser_open", { url }));
-    expect(text).toMatch(/The site shows a PerimeterX check that a person must answer\. Do not try to solve it/);
+    expect(text).toMatch(/The site shows a PerimeterX check that a person must answer\. Never try to solve or get around it/);
     expect(Date.now() - started).toBeLessThan(3_000);
   });
 

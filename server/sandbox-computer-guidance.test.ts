@@ -31,6 +31,11 @@ describe("the VPS desktop's driver, as the bot sees it", () => {
     expect(text).toContain("do not call browser_prepare again");
     expect(text).not.toMatch(/--grant|existing-profile/);
   });
+  it("handles banners and redirects itself, and leaves a human check to the person after waiting for it to clear", () => {
+    expect(SANDBOX_DRIVER_INSTRUCTIONS).toMatch(/cookie banner[\s\S]*never need the person/);
+    expect(SANDBOX_DRIVER_INSTRUCTIONS).toMatch(/human check[^\n]*never click it[^\n]*15 seconds[^\n]*another route[^\n]*request_sign_in with human_check true/);
+    expect(SANDBOX_DRIVER_INSTRUCTIONS).not.toMatch(/solving service is fine|click the checkbox/i);
+  });
   it("passes every other frame through byte for byte", () => {
     const lines = [
       frame({ content: [{ type: "text", text: "Clicked" }] }),

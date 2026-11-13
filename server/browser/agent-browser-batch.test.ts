@@ -174,7 +174,7 @@ describe("settled reads on the agent-browser engine", () => {
   it("names a check a person must answer at once, and adds nothing to an ordinary page", async () => {
     const held = engine([page({ selectors: ["#px-captcha"] })]);
     const result = await held.call("agent_browser_snapshot");
-    expect(texts(result)[0]).toMatch(/PerimeterX check that a person must answer\. Do not try to solve it/);
+    expect(texts(result)[0]).toMatch(/PerimeterX check that a person must answer\. Never try to solve or get around it/);
     expect(held.calls().filter((entry) => entry.name === "probe")).toHaveLength(1);
     const plain = engine([page()]);
     expect(texts(await plain.call("agent_browser_read"))).toEqual(["read {}"]);

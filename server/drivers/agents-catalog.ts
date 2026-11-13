@@ -471,13 +471,14 @@ const TOOL_DEFINITIONS = [
   {
     name: "request_sign_in",
     description:
-      "Ask the person to sign in to a website themselves, in the browser or on the computer you are using now. Use it for a CAPTCHA, passkey, phone approval, OAuth consent or other step only they can do, a one-time code you cannot read, or when they prefer it. A missing password: request_credential login. A code the site sends to the person's own email or messages for a sign-in they asked for is not one: read it there and type it in yourself. They get a card and a notification, sign in where you work, and press Done. Never ask for a password or code in chat. After calling it, end your turn; dusk bot resumes you when they finish or decline, and then check you are signed in.",
+      "Ask the person for a step only they can do, where you work now: a passkey, phone approval, OAuth consent or one-time code you cannot read, or a human check (human_check true). Do everything else yourself. A missing password: request_credential login. A code sent to the person's own email or messages for a sign-in they asked for: read it there and type it yourself. A human check often clears by itself: wait about 15 s first, and use another route if there is one. They get a card and press Done; a human check also hands back once the page clears. Never ask for a password or code in chat. Then end your turn without restating the card; you are resumed when they finish or decline.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
       properties: {
         site: { type: "string", minLength: 1, maxLength: 2048, description: "The page to sign in on: its address, or the domain, such as example.com." },
         reason: { type: "string", description: "One short sentence, in your words, on what the sign-in is for." },
+        human_check: { type: "boolean", description: "true for a CAPTCHA or \"verify you are human\" page." },
       },
       required: ["site"],
     },

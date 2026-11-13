@@ -63,12 +63,13 @@ export function createPersonWaits(deps: PersonWaitsDeps) {
     const wait = message && personWait(message);
     if (!wait || NOTIFIED_ELSEWHERE.has(wait.kind)) return;
     const detail = message.secret ? message.secret.reason ?? message.secret.description
+      : message.signIn?.check ? serverLine(conversationLanguage(threadId), "server.notify.humanCheckBody")
       : message.signIn ? message.signIn.reason ?? serverLine(conversationLanguage(threadId), "server.notify.openToSignIn", { site: wait.label })
         : message.connector?.description ?? wait.label;
-    deps.notify(cardNotification(threadId, wait, detail));
+    deps.notify(cardNotification(threadId, wait, detail, message.signIn?.check === true));
   }
 
-  function cardNotification(threadId: string, wait: PersonWait, detail: string): Notification | null {
+  function cardNotification(threadId: string, wait: PersonWait, detail: string, check = false): Notification | null {
     const bot = askerOf(threadId, wait);
     if (!bot) return null;
     const group = store.groupByThread(threadId);
@@ -76,7 +77,7 @@ export function createPersonWaits(deps: PersonWaitsDeps) {
     const target = { ...bot, threadId };
     switch (wait.kind) {
       case "password": return buildNotification("secret", target, threadId, detail, { ...extra, label: wait.label });
-      case "sign-in": return buildNotification("sign-in", target, threadId, detail, { ...extra, site: wait.label });
+      case "sign-in": return buildNotification("sign-in", target, threadId, detail, { ...extra, site: wait.label, ...(check ? { check } : {}) });
       case "connect": return buildNotification("sign-in", target, threadId, detail, { ...extra, app: wait.label });
       case "question": return buildNotification("question", target, threadId, detail, extra);
       default: return buildNotification("approval", target, threadId, detail, extra);

@@ -81,7 +81,8 @@ describe("settling a page before it is read", () => {
     expect(settleNote(lingering)).toMatch(/still running a Cloudflare bot check after 15 s\. Wait a little/);
     const turnstile = await settle(fakePage([check], ["https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/if/ov2"]));
     expect(turnstile.challenge).toMatchObject({ state: "needs-user", cleared: false });
-    expect(settleNote(turnstile)).toMatch(/a person must answer\. Do not try to solve it/);
+    expect(settleNote(turnstile)).toMatch(/shows a Cloudflare check that a person must answer\. Never try to solve or get around it/);
+    expect(settleNote(turnstile)).toMatch(/request_sign_in with human_check true/);
   });
 
   it("does not wait on a check only a person or nobody can clear", async () => {

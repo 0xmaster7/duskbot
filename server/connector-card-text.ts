@@ -24,6 +24,11 @@ export function signInCardText(botName: string, site: string, language?: string)
   return serverLine(language, "server.connect.signInCard", { bot: botName, site });
 }
 
+/** A human check card's line, for a client that does not draw the card. */
+export function humanCheckCardText(botName: string, site: string, language?: string): string {
+  return serverLine(language, "server.connect.humanCheckCard", { bot: botName, site });
+}
+
 /** An MCP server's Sign in card: the line a client that does not draw the card shows, naming the server. */
 export function mcpSignInCardText(label: string, language?: string): string {
   return serverLine(language, "server.mcp.signIn.card", { label });

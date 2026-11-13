@@ -813,6 +813,8 @@ export interface SignInRequestCardData {
   /** The person answered in the conversation instead of pressing Done: it
    * offers no Done or Cancel, and the turn their line started goes on. */
   answeredInChat?: boolean;
+  /** A human check (a CAPTCHA or a "verify you are human" page), not a login: it settles by itself once the page clears. */
+  check?: true;
 }
 
 /** The open sign-in request a bot's computer plea stands for, so whichever
@@ -824,6 +826,8 @@ export interface ComputerHelpRef {
   messageId: string;
   site: string;
   place: Surface;
+  /** A human check rather than a sign-in. */
+  check?: true;
 }
 
 /** Who answers a room message nobody was @mentioned in. `member` + `leader`: it leads and hands members tasks

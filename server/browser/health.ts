@@ -59,7 +59,7 @@ export function pageHealthLine(report: HealthReport, { pageUrl, loaderId, shown 
   const parts = [healthLine(delta, [], "after", 0, pageHost)];
   const checks = report.humanChecks.filter((check) => shown.once(visit, `h\u0000${check.kind}`));
   if (checks.length) {
-    parts.push(`The page shows a human check (${checks.map((check) => check.kind).join(", ")}). Call request_sign_in so the person can solve it; do not try to solve it yourself.`);
+    parts.push(`The page shows a human check (${checks.map((check) => check.kind).join(", ")}). Never try to solve or get around it. Many clear by themselves: wait about 15 seconds and look again. If it is still there, use another route if the task allows one, or call request_sign_in with human_check true.`);
   }
   const text = parts.filter((part): part is string => Boolean(part)).join(" ");
   return text || null;

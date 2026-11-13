@@ -1131,6 +1131,7 @@ describe("agents-proxy MCP surface", () => {
     expect(res.result.isError).toBeFalsy();
     expect(res.result.content[0].text).toContain("The person was asked to sign in to example.com on your built-in browser.");
     expect(res.result.content[0].text).toContain("Your turn ends now");
+    expect(res.result.content[0].text).toContain("do not repeat it");
     expect(res.result.content[0].text).toContain("resumes you when they finish or decline");
     expect(res.result.content[0].text).toContain("Never ask for the password or a code in chat");
     expect(lastSignInBody).toEqual({
@@ -1142,6 +1143,16 @@ describe("agents-proxy MCP surface", () => {
     lastSignInBody = null;
     expect((await callTool("request_sign_in", { site: "  " })).result.isError).toBe(true);
     expect(lastSignInBody).toBeNull();
+  });
+
+  it("asks for a human check as a check, and tells the bot not to restate the card", async () => {
+    const res = await callTool("request_sign_in", { site: "pastebin.com", human_check: true });
+    const text = res.result.content[0].text as string;
+    expect(text).toContain("card for the human check on example.com");
+    expect(text).toContain("hands back to you by itself once the page clears");
+    expect(text).toContain("do not repeat it: write nothing more, or at most one short line");
+    expect(lastSignInBody).toEqual({ fromBotId: "bot-asker", fromThreadId: "thread-asker-routine", site: "pastebin.com", check: true });
+    lastSignInBody = null;
   });
 
   it("fills a saved login with at most a username and a submit choice, and hands the harness's status through, a refusal as an error", async () => {

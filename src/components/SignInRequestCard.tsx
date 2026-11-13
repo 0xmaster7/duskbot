@@ -118,10 +118,11 @@ export function SignInRequestCard({ botId, botName, threadId, message }: CardPro
   const box = useSettleMotion(Boolean(card.answeredInChat || card.superseded || stopped || outcome));
   const wrap = (node: ReactNode) => <div ref={box} data-sign-in-card="">{node}</div>;
   const source = { icon: <Icon name={card.place === "browser" ? "browser" : "laptop"} size={12} />, label: t(SOURCE[card.place === "local" && !here ? "host" : card.place]) };
-  const instruction = t("signIn.instruction", { site: card.site });
+  const instruction = t(card.check ? "signIn.humanCheck" : "signIn.instruction", { site: card.site });
+  const settledLabel = card.check ? t("signIn.checkLabel", { site: card.site }) : instruction;
   const settled = (status: string, more: { tone?: "done" | "closed" | "stopped" | "failed"; detail?: ReactNode; action?: ReactNode } = {}) => (
-    <CardSettledRow ariaLabel={t("signIn.cardLabel", { name: botName, site: card.site })} icon={source.icon} label={source.label}
-      summary={`${status} · ${instruction}`} title={status} detail={more.detail ?? instruction} tone={more.tone} action={more.action} />
+    <CardSettledRow ariaLabel={t(card.check ? "signIn.cardLabelCheck" : "signIn.cardLabel", { name: botName, site: card.site })} icon={source.icon} label={source.label}
+      summary={`${status} · ${settledLabel}`} title={status} detail={more.detail ?? settledLabel} tone={more.tone} action={more.action} />
   );
 
   if (card.answeredInChat) return wrap(settled(t("signIn.answeredInChat")));
@@ -140,7 +141,8 @@ export function SignInRequestCard({ botId, botName, threadId, message }: CardPro
     const status = card.savedLogin ? t("signIn.status.saved") : t(outcome === "done" ? "common.done" : "signIn.skipped");
     const what = card.savedLogin
       ? t("signIn.settled.saved", { site: card.savedLogin })
-      : t(outcome === "done" ? "signIn.settled.done" : "signIn.settled.cancelled", { site: card.site });
+      : card.check ? t(outcome === "done" ? "signIn.settled.checkCleared" : "signIn.settled.checkSkipped", { site: card.site })
+        : t(outcome === "done" ? "signIn.settled.done" : "signIn.settled.cancelled", { site: card.site });
     const after = card.resumed ? t("signIn.settled.resumed", { name: botName }) : stopped ? t("chat.turnStopped") : error ? t("signIn.settled.failed") : t("signIn.settled.waiting");
     return wrap(settled(status, {
       tone: error && !card.resumed && !stopped ? "failed" : outcome === "cancelled" ? "closed" : "done",
@@ -168,7 +170,7 @@ export function SignInRequestCard({ botId, botName, threadId, message }: CardPro
   const shownError = control.error ?? error;
   return wrap(
     <AskCard
-      ariaLabel={t("signIn.cardLabel", { name: botName, site: card.site })}
+      ariaLabel={t(card.check ? "signIn.cardLabelCheck" : "signIn.cardLabel", { name: botName, site: card.site })}
       source={source}
       media={saving ? null : control.media ?? (screen && <SignInScreen path={screen} name={botName} onOpen={open} onFrame={setFrame} disabled={pending !== null || control.taking} busy={control.taking} />)}
       title={t("signIn.actionNeeded")}
@@ -257,7 +259,7 @@ export function SignInBanner({
   return (
     <div className="mt-3 text-start" data-testid="sign-in-banner">
       <div className="text-[13px] leading-relaxed text-warning">
-        <b>{askerName}</b> {t("signIn.banner", { site: help.site })}
+        <b>{askerName}</b> {t(help.check ? "signIn.bannerCheck" : "signIn.banner", { site: help.site })}
       </div>
       {help.place === "local" && (
         <div className="mt-1 text-[12px] leading-relaxed text-ink-secondary">

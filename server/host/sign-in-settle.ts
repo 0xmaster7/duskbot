@@ -54,7 +54,7 @@ export function createSignInSettle(deps: SignInSettleDeps) {
     if (settled && card.resumed) return { status: 200, body: { [outcome]: true, resumed: true } };
     if (!settled) handPlaceBack(bot, threadId, message.id, card.place);
     const savedLogin = saved?.site ?? card.savedLogin;
-    const resumed = deps.answerCardNode(threadId, message.id, savedLogin ? savedLoginResumePrompt(savedLogin) : signInResumePrompt(card.site, outcome));
+    const resumed = deps.answerCardNode(threadId, message.id, savedLogin ? savedLoginResumePrompt(savedLogin) : signInResumePrompt(card.site, outcome, card.check === true));
     store.patchMessage(threadId, message.id, {
       signIn: { ...card, ...(outcome === "done" ? { done: true } : { cancelled: true }), ...(savedLogin ? { savedLogin } : {}), ...(resumed ? { resumed: true, error: undefined } : {}) },
     });

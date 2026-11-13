@@ -41,7 +41,7 @@ export function buildNotification(
   bot: Omit<NotifyBot, "threadId"> & { threadId?: string },
   threadId: string,
   detail: string,
-  extra?: { avatarUrl?: string; group?: { id: string; name: string }; site?: string; label?: string; app?: string },
+  extra?: { avatarUrl?: string; group?: { id: string; name: string }; site?: string; label?: string; app?: string; check?: boolean },
 ): Notification | null {
   if (bot.notifications === false) return null;
 
@@ -51,6 +51,7 @@ export function buildNotification(
   const title = kind === "secret" ? serverLine(language, "server.notify.secret", { who, label: extra?.label ?? "" })
     : kind === "sign-in"
       ? extra?.app ? serverLine(language, "server.notify.connect", { who, app: extra.app })
+        : extra?.check && extra.site ? serverLine(language, "server.notify.humanCheck", { who, site: extra.site })
         : extra?.site ? serverLine(language, "server.notify.signIn", { who, site: extra.site }) : serverLine(language, "server.notify.signInWebsite", { who })
       : serverLine(language, TITLE[kind] ?? "server.notify.done", { who });
 

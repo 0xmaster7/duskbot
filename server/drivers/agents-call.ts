@@ -581,12 +581,16 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     const site = typeof args.site === "string" ? args.site.trim() : "";
     if (!site) return { text: "request_sign_in needs site: the page's address or its domain, such as example.com.", isError: true };
     const reason = typeof args.reason === "string" ? args.reason.trim().slice(0, 240) : "";
+    const check = args.human_check === true;
     const r = await api("/api/internal/request-sign-in", {
       method: "POST",
-      body: JSON.stringify({ fromBotId: BOT_ID, fromThreadId: THREAD_ID, site, ...(reason ? { reason } : {}) }),
+      body: JSON.stringify({ fromBotId: BOT_ID, fromThreadId: THREAD_ID, site, ...(reason ? { reason } : {}), ...(check ? { check: true } : {}) }),
     });
+    const where = SIGN_IN_PLACES[String(r.place)] ?? "the place you work";
     return {
-      text: `The person was asked to sign in to ${r.site ?? site} on ${SIGN_IN_PLACES[String(r.place)] ?? "the place you work"}. Your turn ends now: say in one short line that you are waiting for them, then stop. dusk bot resumes you when they finish or decline. Never ask for the password or a code in chat.`,
+      text: check
+        ? `The person was shown a card for the human check on ${r.site ?? site} on ${where}; it hands back to you by itself once the page clears. Your turn ends now. The card already says what to do, so do not repeat it: write nothing more, or at most one short line, then stop.`
+        : `The person was asked to sign in to ${r.site ?? site} on ${where}. Your turn ends now. The card already says what to do, so do not repeat it: write nothing more, or at most one short line, then stop. dusk bot resumes you when they finish or decline. Never ask for the password or a code in chat.`,
     };
   }
   if (name === "fill_login") {

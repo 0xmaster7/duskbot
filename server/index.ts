@@ -40,7 +40,7 @@ import {
   type ApprovalMode,
 } from "../shared/approval-mode.ts";
 import { createApprovalModeSupport } from "./harness-capabilities.ts";
-import { signInOutcome, signInResumePrompt } from "../shared/sign-in-request.ts";
+import { signInOutcome, signInResumePrompt, signInWaits } from "../shared/sign-in-request.ts";
 
 import { createRoomTurnLevels } from "./room-turn-level.ts";
 import { createSignInSettle } from "./host/sign-in-settle.ts"; import { createPersonLanguages, THIS_COMPUTER } from "./host/person-languages.ts"; import "./server-line-packs.ts"; import { conversationLanguage, serverLine, setConversationLanguage } from "./server-lines.ts";
@@ -441,6 +441,7 @@ import { nativeRequire } from "./data/engine.ts";
 import { createFillLoginTurn } from "./host/fill-login-turn.ts";
 import { createDesktopLogin, DESKTOP_FILL_BUSY } from "./host/desktop-login.ts";
 import { createSignInRequests } from "./host/sign-in-requests.ts";
+import { createHumanCheckWatch, readHumanCheckPage } from "./host/human-check-watch.ts";
 import { boxBrowserRoute, browserCallComputerResource, ownBoxBrowser } from "./box-browser-route.ts";
 import { BotLogins, cardLoginPlace, cardSignInElsewhere, observeSignInPage, type ObservedPage } from "./bot-logins.ts";
 import { relayFrame } from "./browser-relay.ts";
@@ -1887,7 +1888,7 @@ function reconcileParkedNode(node: HandoffView): boolean {
     const signIn = message.signIn;
     const signedIn = signIn && !signIn.superseded ? signInOutcome(signIn) : null;
     if (signIn && signedIn) {
-      if (!coordinator.answerNode(node.id, signInResumePrompt(signIn.site, signedIn))) return false;
+      if (!coordinator.answerNode(node.id, signInResumePrompt(signIn.site, signedIn, signIn.check === true))) return false;
       if (!signIn.resumed) store.patchMessage(node.threadId, message.id, { signIn: { ...signIn, resumed: true, error: undefined } });
       return true;
     }
@@ -11995,7 +11996,17 @@ function signInControlKey(bot: BotRecord, threadId: string, place: Surface): str
 }
 
 const { requestSignIn } = createSignInRequests({ store, connectorThread, signInPlace, threadLanguage, followCard: (threadId, from, to) => coordinator.followCard(threadId, from, to),
-  computerControl, signInControlKey });
+  computerControl, signInControlKey, watchCheck: (ref) => void humanCheckWatch.watch(ref) });
+
+const humanCheckWatch = createHumanCheckWatch({
+  read: (ref) => readHumanCheckPage(ref, { boxChrome: (botId) => botBoxChrome(botId), browserEval: async ({ botId, threadId }, expression) => {
+    const bot = store.bot(botId);
+    const browser = bot ? await botBrowserTarget(botForThread(botId, threadId) ?? bot, threadId) : null;
+    return browser ? (await loginInput(browser.session, browser.spec, browser.env).engine(["eval", expression]))?.result : null;
+  } }),
+  waits: ({ botId, threadId, messageId }) => { const card = signInMessage(botId, threadId, messageId)?.signIn; return Boolean(card && !card.stopped && signInWaits(card)); },
+  cleared: ({ botId, threadId, messageId }) => { signInSettle.settle(botId, threadId, messageId, "done"); }, log: (line) => console.warn(line),
+});
 
 /** In a room, only the asking bot's own card. */
 function signInMessage(botId: string, threadId: string, messageId: string): Message | null {
@@ -14790,7 +14801,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       if (await dispatchRoutes([createInternalCredentialRequestRoutes({ readBody: readInternalBody, request: (body) => secretCards.requestCredential(internalSender, internalCapability.threadId, body) })], { req, res, url, path, method, auth, json, readBody })) return;
       if (await dispatchRoutes([createInternalSignInRoutes({
         readBody: readInternalBody,
-        request: (site, reason) => requestSignIn(internalSender, internalCapability.threadId, site, reason),
+        request: (site, reason, check) => requestSignIn(internalSender, internalCapability.threadId, site, reason, check),
       })], { req, res, url, path, method, auth, json, readBody })) return;
       if (method === "POST" && path === "/api/internal/fill-login") {
         const body = await readInternalBody();
