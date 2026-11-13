@@ -29,7 +29,7 @@ test("connectorRows matches every alias case-insensitively and lists workspaces 
 
 test("unknown ids get one catalog-free row across workspaces", () => {
   const rows = connectorRows([], { mac: ["Private-MCP", "Private-MCP"], vps: ["PRIVATE-mcp"], outside: ["ignored"] }, workspaces, { "private-mcp": { status: "needs-auth", tools: 4, permissions: "Ask first" } });
-  assert.deepEqual(rows, [{ id: "Private-MCP", app: null, label: "Private-MCP", type: "Connector", category: "Other", status: "needs-auth", tools: 4, permissions: "Ask first", workspaces }]);
+  assert.deepEqual(rows, [{ id: "Private-MCP", app: null, label: "Private-MCP", type: "Connector", category: "Other", status: "needs-auth", tools: 4, permissions: "Ask first", workspaces, needsAuth: workspaces }]);
   assert.deepEqual(connectorRows([], { mac: ["unknown"] }, []), []);
 });
 
@@ -43,7 +43,7 @@ test("skillRows includes the four bundled skills on every workspace", () => {
   const rows = skillRows(workspaces);
   assert.deepEqual(SKILLS.map((skill) => [skill.id, skill.label, skill.category]), [["data-dashboards", "Data dashboards", "Productivity"], ["social-posts", "Social posts", "Marketing"], ["phone-harness", "Phone harness", "Code"], ["create-verification-skill", "Verification skills", "Code"]]);
   for (const [index, row] of rows.entries()) {
-    assert.deepEqual(row, { id: SKILLS[index]!.id, app: null, label: SKILLS[index]!.label, type: "Skill", category: SKILLS[index]!.category, status: "ready", tools: null, permissions: "Allowed", workspaces });
+    assert.deepEqual(row, { id: SKILLS[index]!.id, app: null, label: SKILLS[index]!.label, type: "Skill", category: SKILLS[index]!.category, status: "ready", tools: null, permissions: "Allowed", workspaces, needsAuth: [] });
     assert.ok(SKILLS[index]!.description.length > 0 && SKILLS[index]!.description.length <= 70);
     assert.ok(!/[\r\n\u2014]/.test(SKILLS[index]!.description));
   }
@@ -53,5 +53,17 @@ test("skillRows includes the four bundled skills on every workspace", () => {
 test("a started sign-in shows as needing sign-in until the app connects there", () => {
   const shown = withPending({ mac: ["gmail"], vps: [] }, { mac: ["Gmail", "linear"], vps: ["linear"] }, { linear: { status: "ready", tools: 3 }, gmail: { status: "needs-auth" } });
   assert.deepEqual(shown.connections, { mac: ["gmail", "linear"], vps: ["linear"] });
-  assert.deepEqual(shown.extras, { linear: { tools: 3, status: "needs-auth" }, gmail: {} });
+  assert.deepEqual(shown.extras, { linear: { tools: 3 }, gmail: {} });
+  assert.deepEqual(shown.pending, { mac: ["linear"], vps: ["linear"] });
+});
+
+test("sign-in is asked only on the workspaces where it was started", () => {
+  const shown = withPending({ mac: ["figma"], vps: [] }, { vps: ["Figma"] });
+  const [row] = connectorRows([app("figma")], shown.connections, workspaces, shown.extras, shown.pending);
+  assert.equal(row!.status, "needs-auth");
+  assert.deepEqual(row!.workspaces, workspaces);
+  assert.deepEqual(row!.needsAuth, [{ id: "vps", name: "My VPS" }]);
+  const [ready] = connectorRows([app("figma")], { mac: ["figma"] }, workspaces, {}, { vps: ["figma"] });
+  assert.equal(ready!.status, "ready");
+  assert.deepEqual(ready!.needsAuth, []);
 });

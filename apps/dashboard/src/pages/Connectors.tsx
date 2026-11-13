@@ -43,8 +43,21 @@ function WorkspacesCell({ list }: { list: ConnectorRow["workspaces"] }) {
   return <span className="block max-w-[200px] truncate text-ink-2" title={names.join(", ")}>{names.length > 2 ? `${names.length} workspaces` : names.join(", ")}</span>;
 }
 
-function Row({ row, onAuth, menu }: { row: ConnectorRow; onAuth(): void; menu: MenuItem[] }) {
+/** the pill on a row that needs sign-in: it follows the reconnect (waking, connecting, finish sign-in) */
+function Reconnect({ row, where, flow, onAuth }: { row: ConnectorRow; where: string | null; flow: AppFlow | undefined; onAuth(): void }) {
+  const on = where ? ` on ${where}` : "";
+  if (flow?.phase === "waking") return <Button variant="outline" size="sm" disabled aria-label={`waking ${flow.workspaceName} to reconnect ${row.label}`}>waking</Button>;
+  if (flow?.phase === "waiting") return <Button variant="outline" size="sm" disabled aria-label={`reconnecting ${row.label}${on}`}>connecting</Button>;
+  if (flow?.phase === "sign-in" && flow.url) return <a className="text-link shrink-0 whitespace-nowrap px-2 text-13" href={flow.url} target="_blank" rel="noopener noreferrer">finish sign-in</a>;
+  return <Button variant="outline" size="sm" onClick={onAuth} aria-label={`reconnect ${row.label}${on}`} title={flow?.phase === "failed" ? flow.message ?? undefined : undefined}>{flow?.phase === "failed" ? "try again" : "reconnect"}</Button>;
+}
+
+function Row({ row, flow, onAuth, menu }: { row: ConnectorRow; flow: AppFlow | undefined; onAuth(): void; menu: MenuItem[] }) {
   const needs = row.status === "needs-auth";
+  // name the workspace only when the app is on more than one
+  // the dot's label names where, the short line under the name stays short
+  const many = row.needsAuth.length;
+  const needLine = !needs || row.workspaces.length === 1 ? "needs sign-in" : many > 1 ? `needs sign-in on ${many} workspaces` : `needs sign-in on ${row.needsAuth[0]!.name}`;
   return (
     <tr className="hover-row">
       <Td>
@@ -53,7 +66,7 @@ function Row({ row, onAuth, menu }: { row: ConnectorRow; onAuth(): void; menu: M
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="truncate font-medium">{row.label}</span>
-              <NameDot tone={needs ? "warn" : "good"} label={needs ? "needs sign-in" : "ready"} />
+              <NameDot tone={needs ? "warn" : "good"} label={needs ? needLine : "ready"} />
             </div>
             {needs
               ? <div className="truncate text-13 text-ink-3" aria-hidden>needs sign-in</div>
@@ -66,7 +79,7 @@ function Row({ row, onAuth, menu }: { row: ConnectorRow; onAuth(): void; menu: M
       <Td className="num text-ink-2 max-lg:hidden">{row.tools ?? <Nil />}</Td>
       <Td className="lowercase text-ink-2 max-xl:hidden">{row.permissions ?? <Nil />}</Td>
       <Td className="max-md:hidden"><WorkspacesCell list={row.workspaces} /></Td>
-      <Td className="w-0 !px-1 text-end">{needs && <Button variant="outline" size="sm" onClick={onAuth}>sign in</Button>}</Td>
+      <Td className="w-0 !px-1 text-end">{needs && <Reconnect row={row} where={row.workspaces.length > 1 ? row.needsAuth[0]?.name ?? null : null} flow={flow} onAuth={onAuth} />}</Td>
       <Td className="w-0 !pe-1 !ps-0"><RowMenu label={`more for ${row.label}`} items={menu} /></Td>
     </tr>
   );
@@ -162,17 +175,26 @@ export function ConnectorsPage() {
   const categories = [...new Set(tabRows.map((r) => r.category))].sort();
   const filtered = Boolean(category) || needsOnly;
 
+  const busy = (w: WorkspaceSummary, slug: string | null) => Boolean(slug) && ["waking", "waiting"].includes(flows[flowKey(w.id, slug!)]?.phase ?? "");
+  // website actions first; "manage in the app" only when there is nothing to do here
   const menuFor = (row: ConnectorRow): MenuItem[] => {
-    const items: MenuItem[] = [{ label: "manage in the app", onSelect: () => openApp(appLink.app) }];
-    if (row.type === "Skill") return items;
-    const slug = rowSlug(row);
+    const manage: MenuItem[] = [{ label: "manage in the app", onSelect: () => openApp(appLink.app) }];
+    if (row.type === "Skill") return manage;
+    const slug = rowSlug(row), one = row.workspaces.length === 1;
+    const items: MenuItem[] = [];
+    for (const listed of row.needsAuth) {
+      const w = byId.get(listed.id);
+      if (w) items.push({ label: one ? "reconnect" : `reconnect on ${w.name}`, disabled: busy(w, slug), onSelect: () => start(w, row, slug) });
+    }
     for (const w of workspaces ?? []) if (!row.workspaces.some((x) => x.id === w.id)) items.push({ label: `add to ${w.name}`, onSelect: () => start(w, row, slug) });
     if (slug) for (const listed of row.workspaces) {
       const w = byId.get(listed.id);
-      if (w) items.push({ label: `disconnect from ${w.name}`, danger: true, disabled: ["waking", "waiting"].includes(flows[flowKey(w.id, slug)]?.phase ?? ""), onSelect: () => { const { away, wake } = reach(w); if (away) toast(away, "bad"); else disconnect(w, slug, row.label, wake); } });
+      if (w) items.push({ label: `disconnect from ${w.name}`, danger: true, disabled: busy(w, slug), onSelect: () => { const { away, wake } = reach(w); if (away) toast(away, "bad"); else disconnect(w, slug, row.label, wake); } });
     }
-    return items;
+    return items.length ? items : manage;
   };
+  // the pill reconnects where sign-in is missing, never on a workspace where the app already works
+  const authTarget = (row: ConnectorRow) => byId.get(row.needsAuth[0]?.id ?? "") ?? null;
   const switchTab = (v: Tab) => { setTab(v); setLimit(PAGE); setCategory(null); setNeedsOnly(false); };
   const apps_ = tab === "connectors";
 
@@ -221,11 +243,11 @@ export function ConnectorsPage() {
                   <Th className="max-lg:hidden">tools on</Th>
                   <Th className="max-xl:hidden">permissions</Th>
                   <Th className="max-md:hidden">workspaces</Th>
-                  <Th className="w-0 max-sm:w-[88px]"><span className="sr-only">sign in</span></Th>
+                  <Th className="w-0 max-sm:w-[104px]"><span className="sr-only">reconnect</span></Th>
                   <Th className="w-0 max-sm:w-12"><span className="sr-only">more</span></Th>
                 </tr>
               </thead>
-              <tbody>{shown.slice(0, limit).map((row) => <Row key={row.id} row={row} menu={menuFor(row)} onAuth={() => start(byId.get(row.workspaces[0]?.id ?? "") ?? workspace, row, rowSlug(row))} />)}</tbody>
+              <tbody>{shown.slice(0, limit).map((row) => { const target = authTarget(row), slug = rowSlug(row); return <Row key={row.id} row={row} menu={menuFor(row)} flow={target && slug ? flows[flowKey(target.id, slug)] : undefined} onAuth={() => start(target, row, slug)} />; })}</tbody>
             </Table>
             {shown.length > limit && <button type="button" onClick={() => setLimit((n) => n + PAGE * 2)} className="hover-ghost -ms-4 mt-2 h-11 rounded-full px-4 text-14 text-ink-3">show more</button>}
           </>

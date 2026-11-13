@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode, type TdHTMLAttributes, type ThHTMLAttributes } from "react";
+import { createPortal } from "react-dom";
 import { Check, MoreHorizontal } from "@/icons";
 import { Pop } from "./motion";
 import { cx } from "./kit";
@@ -34,40 +35,80 @@ export function SectionHead({ id, children, action, className }: { id?: string; 
 
 export interface MenuItem { label: string; onSelect(): void; danger?: boolean; disabled?: boolean; checked?: boolean }
 
-/** the "..." button and its menu; it opens from the button's corner and closes on escape or outside press */
+type MenuSpot = { top?: number; bottom?: number; left?: number; right?: number; maxHeight: number; up: boolean };
+const ITEM_H = 36, PAD = 12, GAP = 4, EDGE = 8;
+
+/** where the menu goes: under the button, or above it when the bottom of the window is too close */
+function spotFor(button: HTMLElement, count: number, align: "start" | "end"): MenuSpot {
+  const r = button.getBoundingClientRect(), vw = window.innerWidth, vh = window.innerHeight;
+  const want = count * ITEM_H + PAD, below = vh - r.bottom - GAP - EDGE, above = r.top - GAP - EDGE;
+  const up = want > below && above > below;
+  const x = align === "end" ? { right: Math.max(EDGE, vw - r.right) } : { left: Math.max(EDGE, r.left) };
+  return up ? { ...x, bottom: vh - r.top + GAP, maxHeight: above, up } : { ...x, top: r.bottom + GAP, maxHeight: below, up };
+}
+
+/** the "..." button and its menu; the menu sits over the page (no table or scroller can cut it), follows its button on scroll, opens from the button's corner and closes on escape or outside press */
 export function RowMenu({ label, items, align = "end", icon, active }: { label: string; items: MenuItem[]; align?: "start" | "end"; icon?: ReactNode; active?: boolean }) {
-  const [open, setOpen] = useState(false);
+  const [spot, setSpot] = useState<MenuSpot | null>(null);
+  const open = spot !== null;
   const ref = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
+  const close = () => setSpot(null);
   useEffect(() => {
     if (!open) return;
-    ref.current?.querySelector<HTMLElement>("[role^=menuitem]:not(:disabled)")?.focus();
-    const down = (e: PointerEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    panel.current?.querySelector<HTMLElement>("[role^=menuitem]:not(:disabled)")?.focus({ preventScroll: true });
+    const inside = (target: EventTarget | null) => ref.current?.contains(target as Node) || panel.current?.contains(target as Node);
+    const down = (e: PointerEvent) => { if (!inside(e.target)) close(); };
+    // the page or a scroller moved: follow the button, and close once it leaves the window
+    const scroll = (e: Event) => {
+      if (panel.current?.contains(e.target as Node) || !button.current) return;
+      const r = button.current.getBoundingClientRect();
+      setSpot(r.bottom < 0 || r.top > window.innerHeight ? null : spotFor(button.current, items.length, align));
+    };
     const key = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { setOpen(false); button.current?.focus(); return; }
+      if (e.key === "Escape") { close(); button.current?.focus(); return; }
+      if (e.key === "Tab") { close(); return; }
       if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
       e.preventDefault();
-      const all = [...(ref.current?.querySelectorAll<HTMLElement>("[role^=menuitem]:not(:disabled)") ?? [])];
+      const all = [...(panel.current?.querySelectorAll<HTMLElement>("[role^=menuitem]:not(:disabled)") ?? [])];
       const at = all.indexOf(document.activeElement as HTMLElement);
       all[(at + (e.key === "ArrowDown" ? 1 : -1) + all.length) % all.length]?.focus();
     };
     document.addEventListener("pointerdown", down);
     document.addEventListener("keydown", key);
-    return () => { document.removeEventListener("pointerdown", down); document.removeEventListener("keydown", key); };
-  }, [open]);
+    window.addEventListener("scroll", scroll, true);
+    window.addEventListener("resize", close);
+    return () => {
+      document.removeEventListener("pointerdown", down);
+      document.removeEventListener("keydown", key);
+      window.removeEventListener("scroll", scroll, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [open, items.length, align]);
+  const toggle = () => setSpot((s) => (s || !button.current ? null : spotFor(button.current, items.length, align)));
+  // the last place stays while the menu fades out
+  const last = useRef<MenuSpot | null>(null);
+  if (spot) last.current = spot;
+  const { up, maxHeight, ...place } = last.current ?? { up: false, maxHeight: 0 };
   return (
     <div ref={ref} className="relative inline-flex">
-      <button ref={button} type="button" aria-label={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} className={cx("hover-ghost grid size-9 shrink-0 place-items-center rounded-full max-sm:size-11", open || active ? "bg-card-2 text-ink" : "text-ink-3")}>
+      <button ref={button} type="button" aria-label={label} aria-haspopup="menu" aria-expanded={open} onClick={toggle} className={cx("hover-ghost grid size-9 shrink-0 place-items-center rounded-full max-sm:size-11", open || active ? "bg-card-2 text-ink" : "text-ink-3")}>
         {icon ?? <MoreHorizontal size={18} strokeWidth={1.5} aria-hidden />}
       </button>
-      <Pop open={open} className={cx("pop absolute top-full z-30 mt-1 min-w-[200px] rounded-[16px] bg-pop p-1.5", align === "end" ? "right-0 origin-top-right" : "left-0 origin-top-left")} style={{ boxShadow: "var(--pop-shadow)" }}>
-          {items.map((item) => (
-            <button key={item.label} type="button" role={item.checked === undefined ? "menuitem" : "menuitemradio"} aria-checked={item.checked} disabled={item.disabled} onClick={() => { setOpen(false); item.onSelect(); }} className={cx("hover-ghost flex h-9 w-full items-center justify-between gap-3 rounded-[10px] px-2.5 text-start text-13 outline-none focus-visible:bg-card-2 disabled:opacity-45", item.danger ? "text-bad" : "text-ink-2")}>
-              <span className="truncate">{item.label}</span>
-              {item.checked && <Check size={15} strokeWidth={1.75} className="shrink-0 text-ink-2" aria-hidden />}
-            </button>
-          ))}
-      </Pop>
+      {createPortal(
+        <div ref={panel} className="fixed z-[60]" style={place}>
+          <Pop open={open} className={cx("pop min-w-[200px] max-w-[min(320px,calc(100vw-16px))] overflow-y-auto rounded-[16px] bg-pop p-1.5", up ? (align === "end" ? "origin-bottom-right" : "origin-bottom-left") : align === "end" ? "origin-top-right" : "origin-top-left")} style={{ boxShadow: "var(--pop-shadow)", maxHeight }}>
+            {items.map((item) => (
+              <button key={item.label} type="button" role={item.checked === undefined ? "menuitem" : "menuitemradio"} aria-checked={item.checked} disabled={item.disabled} onClick={() => { close(); button.current?.focus({ preventScroll: true }); item.onSelect(); }} className={cx("hover-ghost flex h-9 w-full items-center justify-between gap-3 rounded-[10px] px-2.5 text-start text-13 outline-none focus-visible:bg-card-2 disabled:opacity-45", item.danger ? "text-bad" : "text-ink-2")}>
+                <span className="truncate">{item.label}</span>
+                {item.checked && <Check size={15} strokeWidth={1.75} className="shrink-0 text-ink-2" aria-hidden />}
+              </button>
+            ))}
+          </Pop>
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }

@@ -83,7 +83,7 @@ export function useConnectorRows(): { rows: ConnectorRow[]; loading: boolean; er
   const rows = useMemo(() => {
     if (!workspaces) return [];
     const shown = withPending(connections ?? {}, pendingApps, FIXTURE ? FIXTURE_EXTRAS : undefined);
-    return [...connectorRows(apps ?? [], shown.connections, workspaces, shown.extras), ...skillRows(workspaces)];
+    return [...connectorRows(apps ?? [], shown.connections, workspaces, shown.extras, shown.pending), ...skillRows(workspaces)];
   }, [apps, connections, pendingApps, workspaces]);
   const error = appsError ?? (connections === null ? cloudError : null);
   return { rows, loading: workspaces === null || apps === null && !appsError || connections === null && !cloudError, error };
