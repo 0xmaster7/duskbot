@@ -3,6 +3,7 @@ import { Monitor } from "@/icons";
 import { useSession } from "../data/session";
 import { api, ApiError } from "../lib/api";
 import { navigate, useLocation } from "../lib/router";
+import { PRELAUNCH } from "../lib/prelaunch";
 import { Button, ButtonLink, Card } from "../ui/kit";
 import { Mascot } from "../ui/Mascot";
 import { SkyEmpty } from "../ui/Sky";
@@ -46,7 +47,7 @@ export function DeviceApprovalPage() {
           <>
             <h1 className="text-20 font-medium text-ink">you are signed in</h1>
             <p className="mt-1.5 text-14 leading-[1.55] text-ink-3">go back to {found.device.name}. the app finishes on its own.</p>
-            <Button className="mt-6" onClick={() => navigate("/", { replace: true })}>go to my dashboard</Button>
+            {!PRELAUNCH && <Button className="mt-6" onClick={() => navigate("/", { replace: true })}>go to my dashboard</Button>}
           </>
         ) : state === "denied" ? (
           <>

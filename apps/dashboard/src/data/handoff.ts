@@ -3,7 +3,7 @@
 import { appPath, withBase } from "../lib/router";
 
 const TOKEN = /^#t=([A-Za-z0-9_-]{43})$/;
-let kept: string | null = null;
+let kept: string | null = null, arrived = false;
 
 export const HANDOFF_PATH = "/handoff";
 
@@ -13,11 +13,14 @@ export function stashHandoff() {
   if (location.hash) {
     const match = TOKEN.exec(location.hash);
     kept = match ? match[1]! : null;
+    arrived = kept !== null;
     history.replaceState(null, "", location.pathname + location.search);
   }
 }
 
 export const handoffToken = () => kept;
+/** whether this page load came from a handoff link with a token (before launch nothing else opens it) */
+export const handoffArrived = () => arrived;
 export function forgetHandoff() { kept = null; }
 
 /** the page the service named, only ever one of ours: anything else goes home */

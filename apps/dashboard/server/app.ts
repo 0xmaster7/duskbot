@@ -119,14 +119,26 @@ export const ADMIN_PATH = "/admin";
 /** where the page lived before /dashboard; old links (and /app/admin) are sent on */
 const LEGACY_PAGE_BASES = ["/app"];
 const under = (path: string, base: string) => path === base || path.startsWith(`${base}/`);
-/** the page routes that stay open before launch: sign-in (emailed links, the admin's sign-in), the desktop app's sign-in
- *  (/cloud/desktop) and plans link (/handoff), a workspace's claim link, a managed cloud's emailed delete link */
-const PRELAUNCH_PAGES = ["/sign-in", "/signin", "/cloud/desktop", "/handoff", "/claim"];
-/** a path within the page (base removed) that stays open before launch; its built files (assets, icons) stay too */
-export function prelaunchOpen(path: string) {
-  if (PRELAUNCH_PAGES.some(page => path === page || path === `${page}/`)) return true;
-  if (/^\/clouds\/[^/]+\/delete\/?$/.test(path)) return true;
-  return under(path, "/assets") || /^\/[^/]+\.(?:svg|png|ico|webmanifest|json|webp|jpg|woff2)$/.test(path);
+/** what the server can check about a flow before launch: a desktop sign-in code it handed out, an emailed link's attempt */
+export interface PrelaunchLive { device(code: string): boolean; attempt(attempt: string): boolean }
+const NO_FLOW: PrelaunchLive = { device: () => false, attempt: () => false };
+/** a path within the page (base removed) that opens before launch, only from a real flow: the desktop app's sign-in
+ *  (/cloud/desktop?code= a live code), sign-in from an emailed link (?attempt= a live one) or carrying one of these flows
+ *  on in `next` (an oauth error, a provider without an email, the admin's sign-in). /handoff, /claim and a cloud's delete
+ *  link keep their token in the fragment, which never reaches us: the page itself sends a visit without one home. the
+ *  page's built files (assets, icons) stay too */
+export function prelaunchOpen(path: string, query: URLSearchParams = new URLSearchParams(), live: PrelaunchLive = NO_FLOW, depth = 0): boolean {
+  const is = (page: string) => path === page || path === `${page}/`;
+  if (is("/cloud/desktop")) return live.device(query.get("code") ?? "");
+  if (is("/handoff") || is("/claim") || /^\/clouds\/[^/]+\/delete\/?$/.test(path)) return true;
+  if (is("/sign-in") || is("/signin")) {
+    if (live.attempt(query.get("attempt") ?? "")) return true;
+    const next = query.get("next");
+    if (depth > 0 || !next?.startsWith("/") || next.startsWith("//") || next.includes("\\")) return false;
+    const target = new URL(next, "http://x");
+    return under(target.pathname, ADMIN_PATH) || prelaunchOpen(target.pathname, target.searchParams, live, depth + 1);
+  }
+  return depth === 0 && (under(path, "/assets") || /^\/[^/]+\.(?:svg|png|ico|webmanifest|json|webp|jpg|woff2)$/.test(path));
 }
 
 /** the service's origin and its www twin (hostRedirect sends www here), so a dusk.bot visit counts whichever one the page
@@ -553,8 +565,13 @@ export function createDashboardApp(options: DashboardAppOptions) {
       try { if (!statSync(file).isFile()) file = `${root}/index.html`; } catch { file = `${root}/index.html`; }
       file = realpathSync(file);
       if (!file.startsWith(`${root}/`) || file.slice(root.length + 1).split("/").some(part => part.startsWith("."))) fail(404, "not_found", "Page not found.");
-      const content = readFileSync(file);
       const ext = file.slice(file.lastIndexOf(".")).toLowerCase();
+      let content = readFileSync(file);
+      // before launch the page itself sends in-page moves outside a flow home (src/lib/prelaunch.ts)
+      if (options.waitlistOnly && ext === ".html") {
+        const html = content.toString("utf8"), marker = '<meta name="dusk-prelaunch" content="1">';
+        content = Buffer.from(/<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, tag => `${tag}${marker}`) : `${marker}${html}`);
+      }
       const types: Record<string, string> = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".ico": "image/x-icon", ".webmanifest": "application/manifest+json", ".woff2": "font/woff2", ".json": "application/json" };
       res.writeHead(200, { "content-type": types[ext] ?? "application/octet-stream", "cache-control": ext === ".json" ? "no-store" : ext !== ".html" && path.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-cache",
         "content-security-policy": ext === ".html" ? pagePolicy(content.toString("utf8")) : "frame-ancestors 'none'", "x-frame-options": "DENY", "referrer-policy": "no-referrer", "x-content-type-options": "nosniff",
@@ -584,7 +601,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       if (pageBase && under(path, `${pageBase}${ADMIN_PATH}`)) return moved(res, 302, `${path.slice(pageBase.length)}${url.search}`);
       if (options.waitlistOnly) {
         const page = under(path, pageBase) ? path.slice(pageBase.length) || "/" : PAGE_ROUTES.some(route => under(path, route)) ? path : null;
-        if (page !== null && !prelaunchOpen(page)) return moved(res, 302, "/");
+        if (page !== null && !prelaunchOpen(page, url.searchParams, auth.prelaunchLive)) return moved(res, 302, "/");
       }
       if (under(path, ADMIN_PATH)) {
         // only an admin's session sees the panel; signed out goes to sign-in, anyone else gets what any unknown path gets

@@ -17,6 +17,9 @@ export function stashClaim() {
   }
 }
 
+/** whether this tab holds a claim link's token */
+export function hasClaim() { try { return Boolean(sessionStorage.getItem(CLAIM_KEY)); } catch { return false; } }
+
 export function ClaimPage() {
   const { account, pick, refresh, toast } = useSession();
   const [token] = useState(() => sessionStorage.getItem(CLAIM_KEY));

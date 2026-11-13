@@ -529,9 +529,11 @@ describe("local account service", () => {
     expect(mail).toMatchObject({ to: email, subject: expect.stringMatching(/^\d{8} is your dusk bot code$/) });
     expect(mail.text).toContain("this account signs in with an emailed code.");
     const link = new URL(/^sign in: (\S+)$/m.exec(mail.text)![1]!), secret = new URLSearchParams(link.hash.slice(1));
-    // in the fragment: never sent to a server, so never in a log
-    expect(`${link.origin}${link.pathname}${link.search}`).toBe("http://127.0.0.1:7480/sign-in");
-    expect(secret.get("attempt")).toBe(recovered.attempt);
+    // the code in the fragment: never sent to a server, so never in a log. the attempt (nothing without the code) rides in
+    // the query, so the page can tell a real link before launch
+    expect(`${link.origin}${link.pathname}${link.search}`).toBe(`http://127.0.0.1:7480/sign-in?attempt=${recovered.attempt}`);
+    expect([...secret.keys()]).toEqual(["code"]);
+    secret.set("attempt", link.searchParams.get("attempt")!);
     const signedIn = await call("/v1/auth/verify", { attempt: secret.get("attempt"), code: secret.get("code") });
     expect(signedIn.status).toBe(200); expect((await body<WebSignInAnswer>(signedIn)).account.id).toBe(first.account.id);
     expect((await call("/v1/auth/verify", { attempt: secret.get("attempt"), code: secret.get("code") })).status).toBe(410);

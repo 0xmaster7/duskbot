@@ -117,7 +117,7 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
   const here = ["/sign-in", "/signin", "/signup", "/welcome"].includes(appPath(window.location.pathname)) ? "/" : `${appPath(window.location.pathname)}${window.location.search}`;
   const home = intent ? `/welcome?${planQuery(intent)}` : next && next.startsWith("/") && !next.startsWith("//") ? next : here;
   // the one-time link of a "trouble signing in?" email: its code waits behind a click, so a mail scanner opening it signs nobody in
-  const [linked] = useState(() => { const hash = new URLSearchParams(window.location.hash.slice(1)), a = hash.get("attempt"), c = hash.get("code"); return a && LINK_ATTEMPT.test(a) && c && /^\d{8}$/.test(c) ? { attempt: a, code: c } : null; });
+  const [linked] = useState(() => { const hash = new URLSearchParams(window.location.hash.slice(1)), a = hash.get("attempt") ?? query.get("attempt"), c = hash.get("code"); return a && LINK_ATTEMPT.test(a) && c && /^\d{8}$/.test(c) ? { attempt: a, code: c } : null; });
   const [step, setStep] = useState<Step>(linked ? "code" : "start");
   const [recovering, setRecovering] = useState(false);
   const [email, setEmail] = useState("");

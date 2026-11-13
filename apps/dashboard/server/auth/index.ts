@@ -228,7 +228,8 @@ export function createAuth(options: AuthOptions) {
       // can't sign in: the code, a one-time link for the website, and the ways this address signs in; for no account, only
       // that. answered before delivery, the same either way, so the answer never tells whether the address has an account
       const owner = state.accounts.find(item => item.email === email);
-      const link = owner && !app ? `${pages}/sign-in#${new URLSearchParams({ attempt, code })}` : null;
+      // the attempt (not a secret without its code) rides in the query so a page that only opens for a real flow can check it
+      const link = owner && !app ? `${pages}/sign-in?${new URLSearchParams({ attempt })}#${new URLSearchParams({ code })}` : null;
       void options.mailer.send(recoveryMessage(email, { code, link, ways: owner ? view(owner).providers : null }, emailCfg)).catch(() => console.error("Email delivery failed."));
     } else if (options.signupOpen) {
       try { await options.mailer.send(codeMessage(email, code, emailCfg)); } catch { attempts.delete(hash(attempt)); fail(502, "failed"); }
@@ -599,6 +600,11 @@ export function createAuth(options: AuthOptions) {
   }
   return {
     handle, webSession, requireWeb, appSession, account,
+    /** before launch: whether a desktop sign-in code or an emailed link's attempt is live, so its page may open */
+    prelaunchLive: {
+      device: (code: string) => [...devices.values()].some(item => item.userCode === code && item.expiresAt > now() && !item.denied),
+      attempt: (value: string) => { const item = opaque(value) ? attempts.get(hash(value)) : undefined; return Boolean(item && item.expiresAt > now()); },
+    },
     /** whether an optional email may go to this account; required mail (billing, security, deletion) never asks */
     wantsEmail: (accountId: string, kind: keyof NotificationPrefs) => { const owner = account(accountId); return owner !== null && notificationsOf(owner)[kind]; },
     accountByEmail: (email: string) => state.accounts.find(item => item.email === email) ?? null,

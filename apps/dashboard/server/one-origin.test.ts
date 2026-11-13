@@ -109,7 +109,8 @@ describe("one origin: dashboard, admin and site", () => {
     for (const path of ["/dashboard", "/dashboard/", "/dashboard/billing", "/dashboard/account"]) expect((await get(path)).status).toBe(200);
     app.close();
     await new Promise<void>(resolve => { server.close(() => resolve()); server.closeAllConnections(); });
-    app = createDashboardApp({ dataDir, publicUrl: origin, mailer, staticDir, pageBase: "/dashboard", waitlistOnly: true,
+    let skew = 0;
+    app = createDashboardApp({ dataDir, publicUrl: origin, mailer, staticDir, pageBase: "/dashboard", waitlistOnly: true, now: () => Date.now() + skew,
       siteUpstream: `http://127.0.0.1:${(site.address() as { port: number }).port}`, admin: { emails: [OWNER] } });
     server = createServer(app.handle);
     await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
@@ -121,13 +122,32 @@ describe("one origin: dashboard, admin and site", () => {
       expect([path, answer.status, answer.headers.get("location")]).toEqual([path, 302, "/"]);
     }
     expect((await fetch(`${url}/dashboard/billing`, { method: "HEAD", redirect: "manual" })).status).toBe(302);
-    // what the apps, emailed links and the admin's sign-in open stays
-    for (const path of ["/dashboard/sign-in?next=%2Fadmin", "/dashboard/signin", "/dashboard/cloud/desktop?code=ABCD-EFGH", "/dashboard/handoff", "/dashboard/claim",
-      "/dashboard/clouds/c1/delete", "/dashboard/assets/main.js"]) expect([path, (await get(path)).status]).toEqual([path, 200]);
-    for (const [from, to] of [["/sign-in", "/dashboard/sign-in"], ["/cloud/desktop?code=ABCD-EFGH", "/dashboard/cloud/desktop?code=ABCD-EFGH"], ["/claim", "/dashboard/claim"]]) {
-      const answer = await get(from);
-      expect([from, answer.status, answer.headers.get("location")]).toEqual([from, 302, to]);
+    // a plain visit to a flow's page goes home too: nothing on it came from the app or an emailed link
+    for (const path of ["/dashboard/sign-in", "/dashboard/signin", "/dashboard/sign-in?next=%2Fbilling", "/dashboard/sign-in?next=%2F%2Fevil.test",
+      "/dashboard/sign-in?attempt=" + "a".repeat(43), "/dashboard/cloud/desktop", "/dashboard/cloud/desktop?code=ABCDE-FGHJK", "/dashboard/sign-in?next=%2Fcloud%2Fdesktop%3Fcode%3DABCDE-FGHJK",
+      "/dashboard/sign-in?next=%2Fsign-in%3Fnext%3D%252Fadmin", "/sign-in", "/cloud/desktop?code=ABCDE-FGHJK"]) {
+      const answer = await get(path);
+      expect([path, answer.status, answer.headers.get("location")]).toEqual([path, 302, "/"]);
     }
+    // the desktop app's sign-in: its live code opens the page, and the oauth round trip (errors, a provider without an email) carries it in next
+    const post = (path: string, body: unknown) => fetch(`${url}${path}`, { method: "POST", headers: { "content-type": "application/json", origin }, body: JSON.stringify(body) });
+    const { userCode } = await (await post("/api/cloud/desktop/authorize", { deviceName: "Studio", platform: "darwin" })).json() as { userCode: string };
+    const desktop = `/cloud/desktop?code=${userCode}`;
+    // the emailed "trouble signing in?" link: its attempt rides in the query, the code stays in the fragment
+    const lost = "lost@dusk.test";
+    await login(lost);
+    skew = 120_000; // past the resend wait between two codes to one address
+    expect((await post("/v1/auth/start", { email: lost, recover: true })).status).toBe(200);
+    const link = new URL(mailer.outbox.findLast(item => item.to === lost)!.text.match(/https:\/\/dusk\.test\/dashboard\/sign-in\?\S+/)![0]);
+    expect(link.hash).toMatch(/^#code=\d{8}$/);
+    const opened = await (await get(`/dashboard/sign-in${link.search}`)).text();
+    expect(opened).toContain('<meta name="dusk-prelaunch" content="1">');
+    // the handoff, claim and delete links keep their token in the fragment, out of our sight: the page checks those itself
+    for (const path of [`/dashboard${desktop}`, `/dashboard/sign-in?${new URLSearchParams({ error: "oauth_denied", next: desktop })}`, `/dashboard/sign-in?${new URLSearchParams({ pending: "p", next: desktop })}`,
+      "/dashboard/sign-in?next=%2Fadmin", "/dashboard/sign-in?next=%2Fclaim", "/dashboard/handoff", "/dashboard/claim", "/dashboard/clouds/c1/delete", "/dashboard/assets/main.js"]) expect([path, (await get(path)).status]).toEqual([path, 200]);
+    expect(await get(desktop).then(answer => answer.headers.get("location"))).toBe(`/dashboard${desktop}`);
+    // a code that was denied, or a made-up one, does not
+    expect((await get("/dashboard/cloud/desktop?code=ZZZZZ-ZZZZZ")).headers.get("location")).toBe("/");
     // the admin: signed out to sign-in, the owner gets the panel
     expect((await get("/admin")).headers.get("location")).toBe("/dashboard/sign-in?next=%2Fadmin");
     const owner = await login(OWNER);

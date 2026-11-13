@@ -10,7 +10,7 @@ const cloud = { name: "night shift", plan: "plus", machine: "2 vcpu, 4 gb memory
 export function samples(cfg: EmailConfig): Array<{ id: string; trigger: string; email: Rendered }> {
   return ([
     { id: "01-code", trigger: "sign-in or sign-up code (POST /v1/auth/start, app sign-in start)", email: codeEmail(cfg, { code: "48213097" }) },
-    { id: "01b-recovery", trigger: "can't sign in (auth start with recover: true)", email: recoveryEmail(cfg, { code: "48213097", link: `${cfg.app}/sign-in#attempt=x&code=48213097`, ways: ["email", "google"] }) },
+    { id: "01b-recovery", trigger: "can't sign in (auth start with recover: true)", email: recoveryEmail(cfg, { code: "48213097", link: `${cfg.app}/sign-in?attempt=x#code=48213097`, ways: ["email", "google"] }) },
     { id: "01c-recovery-none", trigger: "can't sign in, no account uses the address", email: recoveryEmail(cfg, { code: "48213097", ways: null }) },
     { id: "02-welcome", trigger: "first sign-up (auth.onAccountCreated)", email: welcomeEmail(cfg, { cloudFromCents: 2000 }) },
     { id: "03-cloud-ready", trigger: "a cloud's first time running (clouds service save)", email: cloudReadyEmail(cfg, cloud) },

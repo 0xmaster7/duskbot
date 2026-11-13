@@ -14,11 +14,12 @@ import { MotionRoot } from "./ui/motion";
 import { SkyEmpty } from "./ui/Sky";
 import { CrashBoundary } from "./ui/Crash";
 import { LoadingPage } from "./pages/common";
-import { ClaimPage, stashClaim } from "./pages/Connect";
-import { deletePageId, deleteSignInNote, stashDeleteToken } from "./data/delete-data";
+import { ClaimPage, hasClaim, stashClaim } from "./pages/Connect";
+import { deletePageId, deleteSignInNote, deleteToken, stashDeleteToken } from "./data/delete-data";
 import { HomePage } from "./pages/Home";
 import { AuthScreen } from "./pages/Auth";
-import { HANDOFF_PATH, stashHandoff } from "./data/handoff";
+import { HANDOFF_PATH, handoffArrived, stashHandoff } from "./data/handoff";
+import { PRELAUNCH, prelaunchAllowed } from "./lib/prelaunch";
 import "./app.css";
 
 type Page<P> = ComponentType<P> & { preload(): Promise<unknown> };
@@ -135,7 +136,11 @@ function App() {
       : TITLES[path] ?? (path.startsWith("/bots/") ? "bot" : path.startsWith("/workspaces/") ? "workspace" : deletePageId(path) !== null ? "delete cloud data" : "not found");
     document.title = `${page} / dusk bot`;
   }, [path, account]);
+  // before launch only a real flow's pages show; any other move (a link, the sidebar, after signing in) goes to the waitlist
+  const away = PRELAUNCH && !prelaunchAllowed(path, query, { handoff: handoffArrived(), claim: hasClaim(), deleting: (id) => deleteToken(id) !== null });
+  useEffect(() => { if (away) location.replace("/"); }, [away]);
   const blank = <div className="min-h-[100dvh] bg-bg" aria-busy="true" />;
+  if (away) return blank;
   if (path === HANDOFF_PATH) return <Suspense fallback={blank}><HandoffPage /></Suspense>;
   if (accountError) return <main className="flex min-h-[100dvh] items-center justify-center bg-bg px-6"><SkyEmpty art="cat" title="can't reach your account right now." action={<Button variant="primary" onClick={retryAccount}>try again</Button>} className="w-full max-w-[520px]">check your connection. your bots are fine, they live on your own computers.</SkyEmpty></main>;
   if (account === undefined) return <div className="min-h-[100dvh] bg-bg" aria-busy="true" />;

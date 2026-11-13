@@ -65,6 +65,16 @@ test("the emailed link waits for a click, signs in once, and leaves the address 
   expect(verify).toHaveBeenCalledWith(attempt, "12345678");
 });
 
+test("the emailed link with its attempt in the query signs in the same way", async () => {
+  const attempt = "c".repeat(43);
+  history.replaceState(null, "", `/sign-in?attempt=${attempt}#code=12345678`);
+  const verify = vi.spyOn(state.api, "verify");
+  const host = await render();
+  expect(location.hash).toBe("");
+  await act(async () => button(host, "sign in")!.click());
+  expect(verify).toHaveBeenCalledWith(attempt, "12345678");
+});
+
 test("a malformed link is ignored and the page starts at sign-in", async () => {
   history.replaceState(null, "", "/sign-in#attempt=short&code=12");
   const host = await render();
