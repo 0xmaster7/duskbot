@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { serverAnswers, serverAnswersWithin, serverOpens, TUNNEL_GRACE_MS, tunnelOrigin } from "./saved-server.mjs";
+import { newServerReach, serverAnswers, serverAnswersWithin, serverOpens, TUNNEL_GRACE_MS, tunnelOrigin } from "./saved-server.mjs";
 
 const office = { id: "vps", name: "pro cloud", origin: "https://dusk-u-gone.fly.dev" };
 const answering = (status) => async () => new Response("{}", { status });
@@ -75,4 +75,24 @@ test("looking within a time never runs on when the clock does not move", async (
   const answered = await serverAnswersWithin(office.origin, async () => { looks++; return gone(); }, { withinMs: 5_000, now: () => 0, sleep: async () => {} });
   assert.equal(answered, false);
   assert.equal(looks, 6);
+});
+
+test("a server being added opens only once it answers; one that doesn't is kept without switching, or not saved at all", async () => {
+  const quiet = asked([]);
+  assert.equal(await newServerReach(office, { fetch: answering(200), dialog: quiet.dialog }), "open");
+  assert.deepEqual(quiet.shown, []);
+
+  const keep = asked([1]);
+  assert.equal(await newServerReach(office, { fetch: gone, dialog: keep.dialog }), "keep");
+  assert.equal(keep.shown[0].message, "dusk-u-gone.fly.dev isn't answering yet");
+  assert.deepEqual(keep.shown[0].buttons, ["try again", "keep in list", "cancel"]);
+  assert.doesNotMatch(keep.shown[0].detail, /nothing is lost/i);
+
+  assert.equal(await newServerReach(office, { fetch: gone, dialog: asked([2]).dialog }), "cancel");
+
+  let tries = 0;
+  const back = async () => (++tries < 2 ? gone() : new Response("{}", { status: 200 }));
+  const retry = asked([0]);
+  assert.equal(await newServerReach(office, { fetch: back, dialog: retry.dialog }), "open", "it answered the second time");
+  assert.equal(retry.shown.length, 1);
 });

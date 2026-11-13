@@ -11,3 +11,7 @@ export declare function serverOpens(
   entry: { id: string; name: string; origin: string },
   deps: { fetch: typeof fetch; dialog: { showMessageBox(options: object): Promise<{ response: number }> }; forget: (id: string) => unknown; timeoutMs?: number; graceMs?: number; now?: () => number; sleep?: (ms: number) => Promise<void> },
 ): Promise<boolean>;
+export declare function newServerReach(
+  link: { origin: string },
+  deps: { fetch: typeof fetch; dialog: { showMessageBox(options: object): Promise<{ response: number }> }; timeoutMs?: number },
+): Promise<"open" | "keep" | "cancel">;

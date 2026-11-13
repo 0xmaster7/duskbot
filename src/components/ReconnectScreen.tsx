@@ -12,7 +12,7 @@ export function secondsLeft(view: ReconnectView | null, now = Date.now()): numbe
 export function reconnectText(view: ReconnectView | null, now = Date.now()): { title: string; next: string | null } {
   if (!view) return { title: t("reconnect.opening"), next: null };
   const seconds = secondsLeft(view, now);
-  return { title: t("reconnect.title", { name: view.name }), next: seconds === null ? t("reconnect.checking") : t("reconnect.next", { seconds: String(seconds) }) };
+  return { title: t(view.neverConnected ? "reconnect.notYet" : "reconnect.title", { name: view.name }), next: seconds === null ? t("reconnect.checking") : t("reconnect.next", { seconds: String(seconds) }) };
 }
 
 /**
@@ -47,10 +47,14 @@ export function ReconnectScreen({ bridge }: { bridge: ReconnectBridge }) {
           {view?.checking !== false && <span aria-hidden="true" className="size-3.5 shrink-0 animate-spin rounded-full border-2 border-transparent border-t-accent" />}
           {text.title}
         </p>
-        {view && <p className="text-[14px] leading-relaxed text-ink-secondary">{t("reconnect.kept")}</p>}
+        {view && <p className="text-[14px] leading-relaxed text-ink-secondary">{view.neverConnected ? t("reconnect.notYetBody", { host: view.host }) : t("reconnect.kept")}</p>}
         {text.next && <p data-reconnect-next className="text-[13px] tabular-nums text-ink-secondary">{text.next}</p>}
-        {view && <button type="button" data-reconnect-retry className="ui-button mt-1" disabled={view.checking}
-          onClick={() => { void bridge.retry().then(setView).catch(() => {}); }}>{t("reconnect.retry")}</button>}
+        {view && <div className="mt-1 flex flex-wrap gap-2">
+          <button type="button" data-reconnect-retry className="ui-button" disabled={view.checking}
+            onClick={() => { void bridge.retry().then(setView).catch(() => {}); }}>{t("reconnect.retry")}</button>
+          {view.neverConnected && <button type="button" data-reconnect-remove className="ui-button"
+            onClick={() => { void bridge.remove().catch(() => {}); }}>{t("reconnect.remove")}</button>}
+        </div>}
         {frame && (frame.bots.length > 0 || frame.groups.length > 0) && <section data-reconnect-frame aria-label={t("reconnect.lastSeen", { time: seen ?? "" })} className="mt-6 flex w-full flex-col gap-3">
           <p className="text-[12px] text-ink-secondary">{t("reconnect.lastSeen", { time: seen ?? "" })}</p>
           <ul className="flex flex-col gap-3" aria-readonly="true">

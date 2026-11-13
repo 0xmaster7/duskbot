@@ -108,7 +108,7 @@ import { cloudPageSenderAllowed, cloudPlanDisk, createCloudPowerGate, isCloudHom
 import { installCloudFiles } from "./cloud-sync-main.mjs";
 import { createCloudEntry } from "./cloud-entry.mjs";
 import { createOpenAtLogin, installOpenAtLogin } from "./open-at-login.mjs";
-import { createCleanWorkspace } from "./clean-workspace.mjs"; import { installOneHome } from "./one-home-main.mjs"; import { handSaved, installOwnHome } from "./own-home-main.mjs"; import { installVpsCloudMoveMain } from "./vps-cloud-move-main.mjs"; import { oneHomeCloud } from "./one-home-main.mjs"; import { serverOpens } from "./saved-server.mjs"; import { installTwoPlacesMain } from "./two-places-main.mjs"; import { installVpsLink, unlimitTunnelConnections } from "./vps-link-main.mjs"; import { installSealTrust } from "./seal-trust.mjs";
+import { createCleanWorkspace } from "./clean-workspace.mjs"; import { installOneHome } from "./one-home-main.mjs"; import { handSaved, installOwnHome } from "./own-home-main.mjs"; import { installVpsCloudMoveMain } from "./vps-cloud-move-main.mjs"; import { oneHomeCloud } from "./one-home-main.mjs"; import { newServerReach, serverOpens } from "./saved-server.mjs"; import { installTwoPlacesMain } from "./two-places-main.mjs"; import { installVpsLink, unlimitTunnelConnections } from "./vps-link-main.mjs"; import { installSealTrust } from "./seal-trust.mjs";
 import { askForMicrophone, openPrivacySettings } from "./privacy-settings.mjs"; import { installUserPresence } from "./user-presence.mjs";
 import { createHomeWindow, HOME_SCREEN_PATH, installHomeWindowIpc } from "./home-window.mjs";
 import { settledActive } from "./workspace-choice.mjs"; import { createWorkspaceReconnect, installWorkspaceReconnectIpc, RECONNECT_PATH } from "./workspace-reconnect.mjs";
@@ -1637,7 +1637,7 @@ const workspaceReconnect = createWorkspaceReconnect({ fetch: (...args) => sessio
   window: () => (mainWindow && !mainWindow.isDestroyed() ? mainWindow : null), localOrigin: rendererOrigin, localReady: () => serverReady,
   active: () => activeRemote(environmentsState), keeps: entry => handSaved(entry),
   places: () => [{ id: LOCAL_ID, name: "This computer", local: true }, ...environmentsState.environments.map(entry => ({ id: entry.id, name: entry.name }))],
-  choose: id => workspaceMenuAction(() => switchEnvironment(id)), log: slog,
+  choose: id => workspaceMenuAction(() => switchEnvironment(id)), remove: id => workspaceMenuAction(() => forgetEnvironment(id)), log: slog,
   publish: view => { if (mainWindow && !mainWindow.isDestroyed() && senderIsLocal({ sender: mainWindow.webContents })) mainWindow.webContents.send("workspace-reconnect:changed", view); } });
 installWorkspaceReconnectIpc({ ipcMain, reconnect: workspaceReconnect });
 
@@ -1930,8 +1930,12 @@ async function connectHostedWorkspace(input, name) {
       : "the link has no pairing code; the server will ask for one.",
   });
   if (response !== 0) return false;
+  // a server that has never answered is not switched to: it stays where the person is, or isn't saved at all
+  const reach = await newServerReach(link, { fetch: (...args) => session.defaultSession.fetch(...args), dialog });
+  if (reach === "cancel") return false;
   let next = withEnvironment(environmentsState, { origin: link.origin, name }, () => randomUUID());
   const added = next.environments.find((e) => e.origin === link.origin);
+  if (reach === "keep") { persistEnvironments(next); return true; }
   next = withActive(next, added.id);
   persistEnvironments(next, "joined");
   navigateMainWindow(link.url);

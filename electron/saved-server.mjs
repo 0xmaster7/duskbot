@@ -58,3 +58,25 @@ export async function serverOpens(entry, { fetch: fetchImpl, dialog, forget, tim
     if (response !== 0) return false;
   }
 }
+
+/**
+ * A server being added, looked at before it is saved: "open" when it answers (save it and go there), else the person's
+ * choice in one dialog: Try again (looks once more), Keep in list ("keep": saved, the window stays where it is), or
+ * Cancel ("cancel": nothing is saved). The window never goes to a server that has never answered.
+ * @param {{ origin: string }} link
+ * @param {{ fetch: typeof fetch, dialog: { showMessageBox(options: object): Promise<{ response: number }> }, timeoutMs?: number }} deps
+ * @returns {Promise<"open" | "keep" | "cancel">}
+ */
+export async function newServerReach(link, { fetch: fetchImpl, dialog, timeoutMs = SERVER_LOOK_MS }) {
+  const host = new URL(link.origin).host;
+  for (;;) {
+    if (await serverAnswers(link.origin, fetchImpl, timeoutMs)) return "open";
+    const { response } = await dialog.showMessageBox({
+      type: "warning", buttons: ["try again", "keep in list", "cancel"], defaultId: 0, cancelId: 2,
+      message: `${host} isn't answering yet`,
+      detail: "Nothing answered at that address. Check it's typed right and the server is running. You can keep it in your list and open it once it's up.",
+    });
+    if (response === 1) return "keep";
+    if (response !== 0) return "cancel";
+  }
+}

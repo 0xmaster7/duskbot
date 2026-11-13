@@ -780,6 +780,7 @@ const bridge = {
     },
     retry: () => ipcRenderer.invoke("workspace-reconnect:retry"),
     open: id => ipcRenderer.invoke("workspace-reconnect:open", String(id)),
+    remove: () => ipcRenderer.invoke("workspace-reconnect:remove"),
   } : undefined,
   desktopProfile: {
     systemName: () => ipcRenderer.invoke("desktop-profile:system-name"),

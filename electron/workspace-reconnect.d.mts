@@ -9,6 +9,10 @@ export interface WorkspaceFrame {
  * computer's clock), null while a look is under way (`checking`). `places`: the other workspaces the person may open. */
 export interface ReconnectView {
   name: string;
+  /** The server's address, for a person checking they typed it right. */
+  host: string;
+  /** Added by hand and never opened: it can't be reached yet, and there is nothing it showed before. */
+  neverConnected?: boolean;
   attempt: number;
   nextAt: number | null;
   checking: boolean;
@@ -22,6 +26,7 @@ export interface ReconnectBridge {
   onState(callback: (view: ReconnectView | null) => void): () => void;
   retry(): Promise<ReconnectView | null>;
   open(id: string): Promise<unknown>;
+  remove(): Promise<unknown>;
 }
 
 export declare const RECONNECT_PATH: "/reconnect";
@@ -37,6 +42,7 @@ export declare function createWorkspaceReconnect(deps: Record<string, unknown>):
   view(): ReconnectView | null;
   page(event: unknown): boolean;
   choose(id: string): unknown;
+  remove(): unknown;
   forget(id: string): void;
 };
 export declare function installWorkspaceReconnectIpc(input: { ipcMain: unknown; reconnect: ReturnType<typeof createWorkspaceReconnect> }): void;

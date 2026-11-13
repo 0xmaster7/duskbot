@@ -46,20 +46,23 @@ export function frameOf(body, at) {
  *   keeps?(entry: { id: string, origin: string }): boolean,
  *   places(): Array<{ id: string, name: string, local?: boolean }>,
  *   choose(id: string): unknown,
+ *   remove?(id: string): unknown,
  *   publish?(view: unknown): void,
  *   timers?: { set(work: () => void, ms: number): unknown, clear(timer: unknown): void },
  *   now?(): number,
  *   log?(line: string): void,
  * }} deps `active()`: the chosen workspace when it is a server, else null. `keeps(entry)`: whether its frame is kept (a
  * server connected by hand; a team's Cloud may be another account's on this device, so nothing of it is kept). `choose(id)`:
- * the person picked another workspace on this page.
+ * the person picked another workspace on this page. `remove(id)`: the person removed the server it waits on.
  */
 export function createWorkspaceReconnect(deps) {
-  const { fetch: fetchImpl, store, window, localOrigin, localReady, active, keeps = () => true, places, choose, publish = () => {},
+  const { fetch: fetchImpl, store, window, localOrigin, localReady, active, keeps = () => true, places, choose, remove = () => false, publish = () => {},
     timers = { set: (work, ms) => setTimeout(work, ms), clear: (timer) => clearTimeout(timer) }, now = Date.now, log = () => {} } = deps;
   /** The server that isn't answering: `{ id, name, origin, attempt, nextAt, checking }`, else null. */
   let lost = null, timer = null;
   const fetchedAt = new Map();
+  /** Servers whose page loaded since launch; a kept frame says the same across launches. */
+  const connected = new Set();
 
   const frames = () => { try { const value = store.read(); return value && typeof value === "object" && !Array.isArray(value) ? value : {}; } catch { return {}; } };
   const fresh = (frame) => Boolean(frame && Number.isFinite(frame.at) && now() - frame.at <= FRAME_MAX_AGE_MS);
@@ -116,7 +119,12 @@ export function createWorkspaceReconnect(deps) {
   function view() {
     if (!lost) return null;
     const frame = lost.kept ? frames()[lost.id] : null;
-    return { name: lost.name, attempt: lost.attempt, nextAt: lost.nextAt ?? null, checking: lost.checking === true,
+    // a server added by hand that never opened has nothing kept and nothing to come back to: it can't be reached yet
+    const neverConnected = lost.kept && !frame && !connected.has(lost.id);
+    let host = "";
+    try { host = new URL(lost.origin).host; } catch {}
+    return { name: lost.name, host, attempt: lost.attempt, nextAt: lost.nextAt ?? null, checking: lost.checking === true,
+      ...(neverConnected ? { neverConnected: true } : {}),
       ...(fresh(frame) ? { frame: { at: frame.at, bots: frame.bots ?? [], groups: frame.groups ?? [] } } : {}),
       places: places().filter((place) => place.id !== lost.id) };
   }
@@ -158,6 +166,7 @@ export function createWorkspaceReconnect(deps) {
         return;
       }
       const back = Boolean(lost);
+      connected.add(entry.id);
       if (lost) stop();
       void remember(entry, back);
     },
@@ -180,9 +189,15 @@ export function createWorkspaceReconnect(deps) {
       if (!shown || typeof placeId !== "string" || !shown.places.some((place) => place.id === placeId)) throw new Error("Choose one of the places listed.");
       return choose(placeId);
     },
+    /** The person removed the server this page waits on. */
+    remove() {
+      if (!lost) throw new Error("There is no server to remove.");
+      return remove(lost.id);
+    },
     /** The server was forgotten: its frame goes with it. */
     forget(placeId) {
       fetchedAt.delete(placeId);
+      connected.delete(placeId);
       const all = frames();
       if (!Object.hasOwn(all, placeId)) return;
       const { [placeId]: _gone, ...rest } = all;
@@ -191,7 +206,7 @@ export function createWorkspaceReconnect(deps) {
   };
 }
 
-/** The page's IPC: what it shows, look again now, and the person's pick of another workspace. */
+/** The page's IPC: what it shows, look again now, the person's pick of another workspace, and removing the server. */
 export function installWorkspaceReconnectIpc({ ipcMain, reconnect }) {
   const from = (channel, handler) => (event, ...args) => {
     if (!reconnect.page(event)) throw new Error(`${channel} is only available in this app's window`);
@@ -200,4 +215,5 @@ export function installWorkspaceReconnectIpc({ ipcMain, reconnect }) {
   ipcMain.handle("workspace-reconnect:state", from("workspace-reconnect:state", () => reconnect.view()));
   ipcMain.handle("workspace-reconnect:retry", from("workspace-reconnect:retry", () => reconnect.retry()));
   ipcMain.handle("workspace-reconnect:open", from("workspace-reconnect:open", (placeId) => reconnect.choose(placeId)));
+  ipcMain.handle("workspace-reconnect:remove", from("workspace-reconnect:remove", () => reconnect.remove()));
 }

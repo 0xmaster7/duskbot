@@ -11,13 +11,13 @@ let host: HTMLDivElement, root: Root | null = null;
 const settle = () => act(async () => { for (let i = 0; i < 6; i++) await Promise.resolve(); });
 const NOW = 1_800_000_000_000;
 const VIEW: ReconnectView = {
-  name: "Garage server", attempt: 2, nextAt: NOW + 8_000, checking: false,
+  name: "Garage server", host: "garage.example.net", attempt: 2, nextAt: NOW + 8_000, checking: false,
   frame: { at: NOW - 60_000, bots: [{ id: "b1", name: "Research", chats: [{ id: "t1", title: "Flights to Goa" }, { id: "t2", title: "" }] }], groups: [{ id: "g1", name: "Launch room" }] },
   places: [{ id: "local", name: "This computer", local: true }, { id: "office", name: "Office" }],
 };
 function bridgeOf(view: ReconnectView | null) {
   let push: (next: ReconnectView | null) => void = () => {};
-  const bridge = { state: vi.fn(async () => view), onState: vi.fn((cb: (next: ReconnectView | null) => void) => { push = cb; return () => {}; }), retry: vi.fn(async () => view), open: vi.fn(async () => {}) } satisfies ReconnectBridge;
+  const bridge = { state: vi.fn(async () => view), onState: vi.fn((cb: (next: ReconnectView | null) => void) => { push = cb; return () => {}; }), retry: vi.fn(async () => view), open: vi.fn(async () => {}), remove: vi.fn(async () => {}) } satisfies ReconnectBridge;
   return { bridge, push: (next: ReconnectView | null) => act(async () => push(next)) };
 }
 beforeEach(() => { setLocale("en"); vi.useFakeTimers({ now: NOW, toFake: ["Date", "setInterval", "clearInterval"] }); host = document.createElement("div"); document.body.append(host); });
@@ -64,4 +64,27 @@ it("with nothing kept yet there is no list, only the wait", async () => {
   expect(host.querySelector("[data-reconnect-frame]")).toBeNull();
   expect(host.querySelector("[data-reconnect-places]")).toBeNull();
   expect(host.querySelector("[role='status']")?.textContent).toBe("reconnecting to Garage server");
+});
+
+it("a server added by hand that never answered says it can't be reached yet, never that nothing is lost, and may be removed", async () => {
+  const { bridge } = bridgeOf({ ...VIEW, frame: undefined, neverConnected: true });
+  expect(reconnectText({ ...VIEW, neverConnected: true }, NOW).title).toBe("can't reach Garage server yet");
+  root = createRoot(host);
+  await act(async () => { root!.render(createElement(ReconnectScreen, { bridge })); });
+  await settle();
+  expect(host.querySelector("[role='status']")?.textContent).toBe("can't reach Garage server yet");
+  expect(host.textContent).toContain("Nothing has answered at garage.example.net so far.");
+  expect(host.textContent).not.toContain("Nothing is lost");
+  expect(host.querySelector("[data-reconnect-retry]")).not.toBeNull();
+  host.querySelector<HTMLButtonElement>("[data-reconnect-remove]")!.click();
+  expect(bridge.remove).toHaveBeenCalledTimes(1);
+});
+
+it("a server that connected before offers no remove on its wait", async () => {
+  const { bridge } = bridgeOf(VIEW);
+  root = createRoot(host);
+  await act(async () => { root!.render(createElement(ReconnectScreen, { bridge })); });
+  await settle();
+  expect(host.querySelector("[data-reconnect-remove]")).toBeNull();
+  expect(host.textContent).toContain("Nothing is lost");
 });

@@ -46,6 +46,7 @@ function world(remote) {
     active: () => w.active, keeps: () => true,
     places: () => [{ id: "local", name: "This computer", local: true }, { id: "vps", name: "Garage server" }, { id: "office", name: "Office" }],
     choose: (id) => { w.chosen.push(id); },
+    remove: (id) => { w.removed = [...(w.removed ?? []), id]; return true; },
     publish: (view) => w.published.push(view),
     timers: { set: (work, ms) => { const timer = { work, at: w.clock + ms }; w.timers.push(timer); return timer; }, clear: (timer) => { w.timers = w.timers.filter((entry) => entry !== timer); } },
     now: () => w.clock,
@@ -142,4 +143,27 @@ test("an old frame is not shown, and the page's IPC answers only this app's reco
     assert.throws(() => handlers.get("workspace-reconnect:state")({ sender: w.window.webContents, senderFrame: { url } }), /only available/, url);
   }
   assert.throws(() => handlers.get("workspace-reconnect:open")({ sender: {}, senderFrame: w.window.webContents.mainFrame }, "office"), /only available/, "another window");
+});
+
+test("a server added by hand that never opened says so, with nothing kept to show, and may be removed from its page", async (t) => {
+  const remote = await fakeServer();
+  t.after(() => remote.down().catch(() => {}));
+  const w = world(remote);
+  await remote.down();
+  w.reconnect.lost(w.entry);
+  const view = w.reconnect.view();
+  assert.equal(view.neverConnected, true);
+  assert.equal(view.host, new URL(remote.origin).host);
+  assert.equal(view.frame, undefined);
+  assert.equal(w.reconnect.remove(), true);
+  assert.deepEqual(w.removed, ["vps"]);
+
+  // once its page has loaded it has connected: a later outage is a reconnect, not "can't reach it yet"
+  await remote.up();
+  w.reconnect.loaded(`${remote.origin}/`);
+  await remote.down();
+  w.reconnect.lost(w.entry);
+  assert.equal(w.reconnect.view().neverConnected, undefined);
+  w.reconnect.stop();
+  assert.throws(() => w.reconnect.remove(), /no server to remove/);
 });
