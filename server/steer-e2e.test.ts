@@ -438,8 +438,10 @@ posixOnly("mid-turn steering e2e", () => {
         .split("\n")
         .map((line) => JSON.parse(line));
       // A new session's first message also carries the volatile half of the bot's instructions: read it as the prompt.
+      // the follow-up turn is the last message carrying content blocks; a side call (a quick ack) can come after it as plain text
       const followUp = splitLaunchNote(nativeRows
         .filter((row) => row.dir === "out" && row.source === "claude.sdk.message")
+        .filter((row) => Array.isArray(splitLaunchNote(row.msg).prompt?.message?.content))
         .at(-1)?.msg).prompt;
       expect(followUp.message.content.map((block: any) => block.type === "text" ? { ...block, text: withoutTurnClock(block.text) } : block)).toEqual([
         {

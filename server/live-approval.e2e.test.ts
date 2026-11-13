@@ -42,9 +42,10 @@ it("applies a level picked while the bot is working to its next tool call, and l
     let text = "";
     for await (const chunk of req) text += chunk;
     const body = JSON.parse(text) as { messages: Array<{ role: string }>; tools?: Array<{ function: { name: string; description?: string } }> };
-    const first = !body.messages.some((message) => message.role === "tool");
-    if (first) await new Promise<void>((resolve) => { release = resolve; held = true; });
     const name = body.tools?.find((tool) => tool.function.description?.includes("level fixture artifact"))?.function.name;
+    // a side call without the fixture's tool (a quick ack, a title) is answered at once and never held
+    const first = Boolean(name) && !body.messages.some((message) => message.role === "tool");
+    if (first) await new Promise<void>((resolve) => { release = resolve; held = true; });
     const delta = first ? { tool_calls: [{ index: 0, id: "write-1", type: "function", function: { name, arguments: "{}" } }] } : { content: "Fixture finished." };
     res.setHeader("content-type", "text/event-stream");
     res.end(`data: ${JSON.stringify({ choices: [{ index: 0, delta, finish_reason: first ? "tool_calls" : "stop" }] })}\n\ndata: [DONE]\n\n`);

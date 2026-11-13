@@ -1,5 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
@@ -79,8 +79,12 @@ it("a bot given Gmail by its app switch reaches gmail.search_emails by name on C
     await api("PATCH", `/api/bots/${bot.id}`, { modelSelection: { instanceId: "cline", model: "cline-default" } });
     await send("Find Ada's mail again", "app-tools-e2e-send-0002");
     const mounts = `${join(fixture.info.dataDir, "cline-launch.json")}.mcp.json`;
-    await expect.poll(() => existsSync(mounts), { timeout: 20_000 }).toBe(true);
-    const composio = (JSON.parse(readFileSync(mounts, "utf8")) as any[]).find((entry) => entry.name === "composio");
+    // the launch file can be read before the turn's own mounts are in it
+    let composio: any;
+    await expect.poll(() => {
+      try { composio = (JSON.parse(readFileSync(mounts, "utf8")) as any[]).find((entry) => entry.name === "composio"); } catch { return false; }
+      return Boolean(composio);
+    }, { timeout: 20_000 }).toBe(true);
     const onAcp = await ask(acpBridge(composio), { name: "gmail_search_emails", arguments: { query: "from:ada@example.test" } });
     const plain = (names: string[]) => names.filter((name) => /^(gmail|googlecalendar)[._]/.test(name)).map((name) => name.replace(".", "_")).sort();
     expect(plain(onAcp.names), "the same tools under the same names").toEqual(plain(onClaude.names));
