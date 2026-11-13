@@ -14,6 +14,8 @@ export interface CloudData {
   connections: Record<string, string[]> | null;
   /** per workspace, apps whose sign-in was started and not finished */
   pendingApps: Record<string, string[]>;
+  /** whether each workspace can connect apps itself (a Composio key or Composio Connect there); false: only its own app can */
+  appsAvailable: Record<string, boolean>;
   /** reads the connected apps again; resolves with the new answer, or null when it failed */
   reloadConnections(): Promise<ConnectorsAnswer | null>;
   error: string | null;
@@ -49,6 +51,7 @@ export function CloudDataProvider({ children, signedIn }: { children: ReactNode;
   const [account, setAccount] = useState<AccountData | null>(null);
   const [connections, setConnections] = useState<Record<string, string[]> | null>(null);
   const [pendingApps, setPendingApps] = useState<Record<string, string[]>>({});
+  const [appsAvailable, setAppsAvailable] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   const [pending, setPending] = useState<Record<string, { on: boolean; until: number }>>({});
@@ -60,7 +63,7 @@ export function CloudDataProvider({ children, signedIn }: { children: ReactNode;
   if (previousSignedIn.current !== signedIn) { active.current = signedIn; previousSignedIn.current = signedIn; }
 
   const clearAccount = useCallback(() => {
-    setBilling(null); setClouds(null); setAccount(null); setConnections(null); setPendingApps({}); setPending({});
+    setBilling(null); setClouds(null); setAccount(null); setConnections(null); setPendingApps({}); setAppsAvailable({}); setPending({});
   }, []);
   const refresh = useCallback(() => setTick((value) => value + 1), []);
 
@@ -88,7 +91,7 @@ export function CloudDataProvider({ children, signedIn }: { children: ReactNode;
         errors.push(apiError(overview.reason).message);
       }
       if (profile.status === "fulfilled") setAccount(profile.value); else { setAccount(null); errors.push(apiError(profile.reason).message); }
-      if (apps.status === "fulfilled") { setConnections(apps.value.byWorkspace); setPendingApps(apps.value.pending ?? {}); } else { setConnections(null); errors.push(apiError(apps.reason).message); }
+      if (apps.status === "fulfilled") { setConnections(apps.value.byWorkspace); setPendingApps(apps.value.pending ?? {}); setAppsAvailable(apps.value.available ?? {}); } else { setConnections(null); errors.push(apiError(apps.reason).message); }
       setError([...new Set(errors)].join(" ") || null);
     });
     return () => { alive = false; };
@@ -176,13 +179,13 @@ export function CloudDataProvider({ children, signedIn }: { children: ReactNode;
     try {
       const answer = await api.connections();
       if (!active.current || version !== generation.current) return null;
-      setConnections(answer.byWorkspace); setPendingApps(answer.pending ?? {});
+      setConnections(answer.byWorkspace); setPendingApps(answer.pending ?? {}); setAppsAvailable(answer.available ?? {});
       return answer;
     } catch { return null; }
   }, []);
 
   const value = useMemo<CloudData>(() => ({
-    catalog, billing, clouds, account, connections, pendingApps, reloadConnections, error, refresh, checkout, power,
+    catalog, billing, clouds, account, connections, pendingApps, appsAvailable, reloadConnections, error, refresh, checkout, power,
     resize: (id, req) => mutate(() => api.resize(id, req)),
     changeCharge: (selection) => api.changeCharge(selection),
     changePlan: (selection, approvedUsd) => mutate(() => api.changePlan(selection, approvedUsd)),
@@ -199,7 +202,7 @@ export function CloudDataProvider({ children, signedIn }: { children: ReactNode;
       setAccount((a) => (a ? { ...a, profile: { ...a.profile, onboarded: true } } : a));
     }),
     signOutEverywhere, deleteAccount,
-  }), [catalog, billing, clouds, account, connections, pendingApps, reloadConnections, error, refresh, checkout, power, mutate, signOutEverywhere, deleteAccount]);
+  }), [catalog, billing, clouds, account, connections, pendingApps, appsAvailable, reloadConnections, error, refresh, checkout, power, mutate, signOutEverywhere, deleteAccount]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -5,8 +5,14 @@ import type { AppConfig } from "./config.ts";
 
 export type AppsSource = Pick<typeof composio, "connectorAvailability" | "connectedServicesInventory">;
 
-export async function dashboardApps(cfg: AppConfig, source: AppsSource = composio): Promise<AppsReport> {
-  if (source.connectorAvailability(cfg) !== "configured") return { available: false, complete: true, services: [] };
+/** `connect`: apps connected through Composio Connect on a dusk cloud with no key (cloud-composio-connect.ts), null when
+ *  it is not signed in */
+export async function dashboardApps(cfg: AppConfig, source: AppsSource = composio,
+  connect?: () => Promise<Array<{ slug: string; connected: boolean; pending: boolean }> | null>): Promise<AppsReport> {
+  if (source.connectorAvailability(cfg) !== "configured") {
+    const viaConnect = await connect?.().catch(() => null);
+    return viaConnect ? { available: true, complete: true, services: viaConnect.slice(0, 500) } : { available: false, complete: true, services: [] };
+  }
   const inventory = await source.connectedServicesInventory(cfg);
   const services = Object.entries(inventory.services).flatMap(([slug, state]) => {
     const id = appSlug(slug);

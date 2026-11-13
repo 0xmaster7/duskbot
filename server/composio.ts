@@ -838,8 +838,9 @@ export async function prepareConnectionAuthConfigs(
   return lines.length ? lines.join(" ") : undefined;
 }
 
-/** connecting an app on a host with no Composio project key and no managed connected-apps service */
-export const NO_APPS_SERVICE = "Connecting apps here needs your own Composio project. Add your Composio project key in Settings → API keys, then connect again.";
+/** connecting an app from the dashboard on a computer with no Composio project key and no managed service: its own app
+ *  connects it (Composio Connect, a sign-in in the browser on that computer); a dusk cloud uses cloud-composio-connect.ts */
+export const NO_APPS_SERVICE = "Connect this app from the dusk bot app on this computer, under apps. It signs in to your own Composio there.";
 
 export async function authorizeService(cfg: AppConfig, slug: string, requestedAlias?: string | null, as?: BrokerAccess) {
   const alias = normalizeAccountAlias(requestedAlias);

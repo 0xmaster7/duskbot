@@ -146,7 +146,7 @@ function Catalog({ apps, connected, query, flowFor, onConnect }: { apps: DashApp
 
 export function ConnectorsPage() {
   const { workspaces, workspace } = useSession();
-  const { connections, clouds } = useCloud();
+  const { connections, clouds, appsAvailable } = useCloud();
   const { flows, connect, disconnect } = useAppCommands();
   const { apps } = useDashApps();
   const { rows, loading, error } = useConnectorRows();
@@ -164,6 +164,8 @@ export function ConnectorsPage() {
   };
   const start = (ws: WorkspaceSummary | null | undefined, app: { label: string }, slug: string | null) => {
     if (!ws || !slug) return openConnect(app);
+    // a computer with no Composio of its own connects apps in its own app; a dusk cloud signs in to Composio from here
+    if (!cloudForWorkspace(clouds, ws.id) && appsAvailable[ws.id] === false) return openConnect(app);
     const { away, wake } = reach(ws);
     if (away) return toast(away, "bad");
     connect(ws, slug, app.label, wake);
