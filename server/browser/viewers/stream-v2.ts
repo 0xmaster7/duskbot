@@ -1,6 +1,8 @@
 // The v2 live view the desktop panel and the web UI speak: T3 Code's stream protocol over a WebSocket. Every JPEG frame
 // is one binary message and everything else JSON; the client acknowledges each frame as it arrives, and Chromium's own
 // acknowledgement waits for that, so a slow viewer slows its screencast instead of queueing stale frames.
+// A client that can decode H.264 asks for it (codec=h264): the server answers with an `encoding` message, and when it
+// has an encoder (h264-encoder.ts) each binary message is then an access unit instead, acknowledged the same way.
 //
 // Adapted from pingdotgg/t3code@00cdceb1 apps/server/src/preview/ServerBrowserStream.ts, MIT License, Copyright (c)
 // 2026 T3 Tools Inc. (full text in third_party/t3-code/LICENSE); modified: written on ws without Effect, the viewer is
@@ -14,6 +16,7 @@ import { WebSocketServer, type RawData, type WebSocket } from "ws";
 import { BrowserHostError, SETUP_COMMAND } from "../chrome/host-setup.ts";
 import type { BrowserService, BrowserTarget } from "../service.ts";
 import { FRAME_CAP_LIMITS, type Viewer, type ViewerOptions, type ViewerOutput } from "./core.ts";
+import { H264Stream, h264Encoder, type H264Config } from "./h264-encoder.ts";
 import { requestedSize } from "./viewport.ts";
 import { displayUrl } from "./live-v1.ts";
 
@@ -46,6 +49,8 @@ const PING_MS = 15_000;
 const ABNORMAL_CLOSE = 1006;
 /** Input that arrives while the viewer is still attaching (its control state is already on the wire) waits for it. */
 const EARLY_INPUT_LIMIT = 64;
+/** Access units a video client may have unacknowledged before the encoder waits for it. */
+const VIDEO_WINDOW = 3;
 
 export interface StreamRequest {
   target: BrowserTarget;
@@ -71,7 +76,8 @@ const intParam = (params: URLSearchParams, name: string, fallback: number, max: 
   return Number.isFinite(value) && value > 0 ? Math.min(Math.round(value), max) : fallback;
 };
 
-const isAck = (message: unknown) => typeof message === "object" && message !== null && (message as { type?: unknown }).type === "ack";
+const typeOf = (message: unknown) => (typeof message === "object" && message !== null ? (message as { type?: unknown }).type : undefined);
+const isAck = (message: unknown) => typeOf(message) === "ack";
 
 const parseMessage = (data: RawData): unknown => {
   try {
@@ -108,6 +114,9 @@ class StreamSession {
   closing = false;
   #early: unknown[] = [];
   #restarting = false;
+  #video: H264Stream | null = null;
+  /** The encoding the client was last told, once it asked for video. */
+  #encoding: "jpeg" | "h264" | null = null;
 
   constructor(request: StreamRequest, ws: WebSocket) {
     this.request = request;
@@ -124,19 +133,56 @@ class StreamSession {
     return this.ws.bufferedAmount + bytes + 14 <= MAX_SOCKET_BUFFER_BYTES;
   }
 
+  /** Video for a client that asked for it: an encoder when this server has one, else it is told its frames stay JPEG. */
+  video(encoder: Awaited<ReturnType<typeof h264Encoder>>): void {
+    if (this.closed || this.closing) return;
+    this.#video = encoder && H264Stream.open(encoder, {
+      config: (config) => this.#tell(config),
+      unit: (data, ack) => this.#frame(data, ack),
+      failed: () => { const video = this.#video; this.#video = null; video?.close(); this.#tell(null); },
+    }, { canSend: () => this.unacknowledged.length < VIDEO_WINDOW });
+    if (!this.#video) this.#tell(null);
+  }
+
+  /** Tells the client how the next binary messages are encoded: H.264 of `config`, or JPEG when null. */
+  #tell(config: H264Config | null): void {
+    if (!config && this.#encoding === "jpeg") return;
+    this.#encoding = config ? "h264" : "jpeg";
+    this.#json(config ? { type: "encoding", encoding: "h264", ...config } : { type: "encoding", encoding: "jpeg" });
+  }
+
+  #frame(data: Buffer, ack: () => void): void {
+    if (this.closed || this.closing) {
+      ack();
+      return;
+    }
+    if (this.unacknowledged.length >= MAX_UNACKNOWLEDGED_FRAMES || !this.#fits(data.byteLength)) {
+      ack();
+      this.kill();
+      return;
+    }
+    this.unacknowledged.push(ack);
+    this.ws.send(data, { binary: true });
+  }
+
+  #json(message: Record<string, unknown>): void {
+    const text = JSON.stringify(message);
+    if (!this.#fits(Buffer.byteLength(text))) {
+      this.kill();
+      return;
+    }
+    this.ws.send(text);
+  }
+
   push(output: ViewerOutput): void {
     if (this.closed || this.closing) {
       if (output.type === "frame") output.ack();
       return;
     }
     if (output.type === "frame") {
-      if (this.unacknowledged.length >= MAX_UNACKNOWLEDGED_FRAMES || !this.#fits(output.data.byteLength)) {
-        output.ack();
-        this.kill();
-        return;
-      }
-      this.unacknowledged.push(output.ack);
-      this.ws.send(output.data, { binary: true });
+      if (this.#video?.push(output.data, output.ack)) return;
+      if (this.#encoding === "h264") this.#tell(null);
+      this.#frame(output.data, output.ack);
       return;
     }
     if (output.type === "gone") {
@@ -144,13 +190,7 @@ class StreamSession {
       return;
     }
     const message = wireMessage(output);
-    if (!message) return;
-    const text = JSON.stringify(message);
-    if (!this.#fits(Buffer.byteLength(text))) {
-      this.kill();
-      return;
-    }
-    this.ws.send(text);
+    if (message) this.#json(message);
   }
 
   /** A notice the person should read, such as why a restart was refused. */
@@ -164,6 +204,12 @@ class StreamSession {
     if (isAck(message)) {
       // Chromium's acknowledgement is paced by the viewer, and never holds up input.
       this.unacknowledged.shift()?.();
+      this.#video?.pump();
+      return;
+    }
+    // the client's decoder lost its place; any view may ask, at most once a second
+    if (typeOf(message) === "keyframe") {
+      this.#video?.keyframe();
       return;
     }
     // Ownership serializes actions in the service. Keep reading so dialog replies and takeover can unblock an action
@@ -217,6 +263,7 @@ class StreamSession {
   close(code: number, reason: string, { dropped = false }: { dropped?: boolean } = {}): void {
     if (this.closed || this.closing) return;
     this.closing = true;
+    this.#video?.close();
     void this.viewer?.close({ dropped }).catch(() => undefined);
     try { this.ws.close(code, reason.slice(0, 120)); } catch { this.kill(); return; }
     setTimeout(() => this.kill(), CLOSE_GRACE_MS).unref();
@@ -228,6 +275,7 @@ class StreamSession {
     if (this.closed) return;
     this.closed = true;
     this.lost = lost;
+    this.#video?.close();
     for (const ack of this.unacknowledged.splice(0)) ack();
     void this.viewer?.close({ dropped: lost && this.theirs() }).catch(() => undefined);
   }
@@ -248,7 +296,7 @@ export class StreamV2 {
     this.#service = service;
   }
 
-  /** Answers the handshake and streams. Frames are JPEGs already, so no deflate, which also keeps every pending write in the socket buffer bounded here. */
+  /** Answers the handshake and streams. Frames are JPEGs or H.264 already, so no deflate, which also keeps every pending write in the socket buffer bounded here. */
   open(request: StreamRequest): void {
     const perProfile = [...this.#sessions].filter((session) => session.request.target.key === request.target.key).length;
     const busy = this.#sessions.size >= VIEWERS_TOTAL || perProfile >= VIEWERS_PER_PROFILE;
@@ -302,6 +350,7 @@ export class StreamV2 {
       ...(size && request.canOperate ? { size } : {}),
     };
     try {
+      if (params.get("codec") === "h264") session.video(await h264Encoder());
       const viewer = await this.#service.attachViewer(request.target, options, (output) => session.push(output));
       if (session.closed || session.closing) await viewer.close({ dropped: session.lost && session.theirs() });
       else session.attached(viewer, this.#service);

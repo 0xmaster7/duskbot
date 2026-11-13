@@ -109,7 +109,7 @@ describe("the v1 live client", () => {
     expect(handlers.onConnectedChange).toHaveBeenCalledWith(true);
     source.emit("frame", { seq: 7, data: base64(JPEG_2X1), metadata: { deviceWidth: 2, deviceHeight: 1 } });
     expect(handlers.onViewport).toHaveBeenCalledWith({ width: 2, height: 1 });
-    expect(new Uint8Array(vi.mocked(handlers.onFrame).mock.calls[0]![0])).toEqual(JPEG_2X1);
+    expect(new Uint8Array(vi.mocked(handlers.onFrame).mock.calls[0]![0] as ArrayBuffer)).toEqual(JPEG_2X1);
     expect(post).toHaveBeenCalledWith({ type: "ack", seq: 7 }, "v1");
     source.emit("tabs", { tabs: [{ tabId: "t1", title: "A", url: "https://a.test/", active: true }] });
     source.emit("url", { url: "https://a.test/next" });

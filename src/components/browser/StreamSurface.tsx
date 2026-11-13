@@ -368,7 +368,7 @@ export function StreamSurface(props: {
     const client = connect(
       { maxWidth: cap.width, maxHeight: cap.height, width: size.width, height: size.height },
       {
-        onFrame: (jpeg) => painter.paint(jpeg),
+        onFrame: (frame) => painter.paint(frame),
         onProbe: (result) => {
           if (controlRef.current?.controller !== "you") return;
           lastProbeRef.current = { ...result, at: performance.now() };

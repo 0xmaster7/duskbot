@@ -239,6 +239,17 @@ They are not bundled or required for normal browsing. Higher frame rates use
 more CPU and disk space; the actual distinct frames depend on page repaints.
 There is no recording control in dusk bot's browser panel.
 
+## Live view as video
+
+The browser panel's live view (the v2 stream) is sent as H.264 when the app
+can decode it (WebCodecs) and the server has an `ffmpeg` with `libx264` (or
+`libopenh264`), the multipart JPEG demuxer and the FLV muxer: one `ffmpeg` per
+open view re-encodes the screencast, which cuts the stream's bytes by roughly
+80 to 99 percent. Without such an `ffmpeg`, the view sends JPEG frames as
+before. `DUSK_FFMPEG` names the `ffmpeg` to use (default: the one on PATH);
+`DUSK_BROWSER_VIDEO=off` turns video off. `ffmpeg` is never bundled: `libx264`
+is GPL, so dusk bot only runs one the machine's owner installed.
+
 ## Linux sandbox
 
 Use the `.deb` on Ubuntu 24.04. Its package hooks install a narrowly scoped

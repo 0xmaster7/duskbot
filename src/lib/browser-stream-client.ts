@@ -1,9 +1,11 @@
 // Adapted from pingdotgg/t3code@00cdceb1 packages/client-runtime/src/preview/serverBrowserStream.ts, MIT License,
 // Copyright (c) 2026 T3 Tools Inc. (full text in third_party/t3-code/LICENSE); modified: dusk bot's routes and
 // access, a viewer that may operate sizes the page while it only watches, a larger frame cap is sent in place and a
-// reconnect opens with the newest size and cap, and dusk bot's own messages are passed on.
+// reconnect opens with the newest size and cap, dusk bot's own messages are passed on, and an app that decodes H.264
+// asks for video (src/lib/h264-decoder.ts).
 
 import { openStreamSocket } from "./direct-socket";
+import { createH264Decoder, h264Support, type H264Decoder } from "./h264-decoder";
 
 /** The browser's host cannot run Chrome until it is set up; the close reason names the fix. */
 export const PREVIEW_STREAM_HOST_SETUP_CLOSE_CODE = 4503;
@@ -220,8 +222,8 @@ export interface PreviewStreamTarget {
 }
 
 export interface PreviewStreamEvents {
-  /** One complete JPEG frame. */
-  readonly onFrame: (jpeg: ArrayBuffer) => void;
+  /** One complete JPEG frame, or a decoded video frame, which the receiver must close. */
+  readonly onFrame: (frame: ArrayBuffer | VideoFrame) => void;
   readonly onViewport: (viewport: PreviewStreamViewport) => void;
   readonly onProbe?: (probe: PreviewStreamProbe) => void;
   /** The agent's cursor moved to, or clicked at, a page point. */
@@ -262,6 +264,10 @@ const allowed = (input: PreviewStreamInput, control: PreviewStreamControl): bool
   || (input.type === "releaseControl" && control.owned === true) || control.controller === "you";
 
 const ACK_MESSAGE = JSON.stringify({ type: "ack" });
+const KEYFRAME_MESSAGE = JSON.stringify({ type: "keyframe" });
+/** A decoder that loses its place this often within VIDEO_LOSS_WINDOW_MS gives up video: the stream reopens as JPEG. */
+const VIDEO_LOSSES = 3;
+const VIDEO_LOSS_WINDOW_MS = 10_000;
 export function createPreviewStreamClient(
   target: PreviewStreamTarget,
   events: PreviewStreamEvents,
@@ -278,6 +284,7 @@ export function createPreviewStreamClient(
       query.set("height", String(Math.round(size.height)));
     }
     if (target.interactive === false) query.set("interactive", "false");
+    if (video) query.set("codec", "h264");
     return withAccessQuery(`${target.access.wsBase}/stream?${query.toString()}`, target.access);
   };
   let stopped = false;
@@ -286,9 +293,24 @@ export function createPreviewStreamClient(
   let failures = 0;
   let control: PreviewStreamControl | null = null;
   let fileChooser: string | null = null;
+  /** Ask for video: this app decodes it and it has not failed here. */
+  let video = false;
+  let videoFailed = false;
+  let losses: number[] = [];
+  let decoder: H264Decoder | null = null;
+  const dropDecoder = () => {
+    decoder?.close();
+    decoder = null;
+  };
 
   const connect = () => {
     if (stopped) return;
+    const supported = videoFailed ? false : h264Support();
+    if (typeof supported !== "boolean") {
+      void supported.then(connect);
+      return;
+    }
+    video = supported;
     const opening = { cap, size };
     // direct (WebRTC) first for a server on another machine, the relay socket as before otherwise (src/lib/direct-socket.ts)
     const ws = target.access.credentials ? openStreamSocket(streamUrl()) : new WebSocket(streamUrl());
@@ -305,7 +327,8 @@ export function createPreviewStreamClient(
       if (event.data instanceof ArrayBuffer) {
         failures = 0;
         ws.send(ACK_MESSAGE);
-        events.onFrame(event.data);
+        if (decoder) decoder.decode(event.data);
+        else events.onFrame(event.data);
         return;
       }
       if (typeof event.data !== "string") return;
@@ -338,7 +361,34 @@ export function createPreviewStreamClient(
         phase,
         sequence,
         tabId,
+        encoding,
+        codec,
       } = message as Record<string, unknown>;
+      if (type === "encoding") {
+        // the server's answer to codec=h264, and every new size of its video after that
+        dropDecoder();
+        if (encoding !== "h264" || typeof codec !== "string" || typeof width !== "number" || typeof height !== "number") return;
+        decoder = createH264Decoder({
+          onFrame: (frame) => {
+            if (socket === ws) events.onFrame(frame);
+            else frame.close();
+          },
+          onLost: () => {
+            if (socket !== ws) return;
+            const now = Date.now();
+            losses = [...losses.filter((at) => now - at < VIDEO_LOSS_WINDOW_MS), now];
+            if (losses.length < VIDEO_LOSSES) {
+              ws.send(KEYFRAME_MESSAGE);
+              return;
+            }
+            // this app cannot keep up with or decode this video: the view reopens as JPEG
+            videoFailed = true;
+            ws.close();
+          },
+        });
+        decoder.configure({ codec, width, height });
+        return;
+      }
       if (
         type === "fileChooser" &&
         typeof id === "string" &&
@@ -422,6 +472,7 @@ export function createPreviewStreamClient(
       if (socket !== ws) return;
       socket = null;
       control = null;
+      dropDecoder();
       if (opened) events.onConnectedChange(false);
       if (stopped) return;
       events.onClose?.(event.code, event.reason);
@@ -464,15 +515,21 @@ export function createPreviewStreamClient(
       const ws = socket;
       socket = null;
       control = null;
+      dropDecoder();
       ws?.close();
     },
   };
 }
 
 export interface PreviewFramePainter {
-  readonly paint: (jpeg: ArrayBuffer) => void;
+  /** Draws a JPEG, or a decoded video frame, which the painter closes. */
+  readonly paint: (frame: ArrayBuffer | VideoFrame) => void;
   readonly stop: () => void;
 }
+
+const release = (frame: ArrayBuffer | VideoFrame | null) => {
+  if (frame && !(frame instanceof ArrayBuffer)) frame.close();
+};
 
 /** One decode at a time, keeping only the latest waiting frame for slow viewers. */
 export function createPreviewFramePainter(
@@ -482,22 +539,36 @@ export function createPreviewFramePainter(
   const context = canvas.getContext("2d");
   let stopped = false;
   let decoding = false;
-  let waiting: ArrayBuffer | null = null;
-  const draw = (jpeg: ArrayBuffer) => {
+  let waiting: ArrayBuffer | VideoFrame | null = null;
+  const show = (image: CanvasImageSource, width: number, height: number) => {
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+    }
+    context!.drawImage(image, 0, 0);
+    onPainted?.();
+  };
+  const draw = (frame: ArrayBuffer | VideoFrame) => {
+    if (!(frame instanceof ArrayBuffer)) {
+      // a decoded frame draws at once, in order
+      try {
+        if (!stopped && context) show(frame, frame.displayWidth, frame.displayHeight);
+      } catch {
+        // a frame that fails to draw is skipped; the next one repaints
+      } finally {
+        frame.close();
+      }
+      return;
+    }
     decoding = true;
-    void createImageBitmap(new Blob([jpeg], { type: "image/jpeg" }))
+    void createImageBitmap(new Blob([frame], { type: "image/jpeg" }))
       .then((bitmap) => {
         if (stopped || !context) {
           bitmap.close();
           return;
         }
-        if (canvas.width !== bitmap.width || canvas.height !== bitmap.height) {
-          canvas.width = bitmap.width;
-          canvas.height = bitmap.height;
-        }
-        context.drawImage(bitmap, 0, 0);
+        show(bitmap, bitmap.width, bitmap.height);
         bitmap.close();
-        onPainted?.();
       })
       // A frame that fails to decode is skipped; the next one repaints.
       .catch(() => undefined)
@@ -506,16 +577,23 @@ export function createPreviewFramePainter(
         const next = waiting;
         waiting = null;
         if (next && !stopped) draw(next);
+        else release(next);
       });
   };
   return {
-    paint: (jpeg) => {
-      if (stopped) return;
-      if (decoding) waiting = jpeg;
-      else draw(jpeg);
+    paint: (frame) => {
+      if (stopped) {
+        release(frame);
+        return;
+      }
+      if (decoding) {
+        release(waiting);
+        waiting = frame;
+      } else draw(frame);
     },
     stop: () => {
       stopped = true;
+      release(waiting);
       waiting = null;
     },
   };

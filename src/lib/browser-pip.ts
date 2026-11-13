@@ -90,9 +90,9 @@ export async function openBrowserPictureInPicture(input: { readonly botId: strin
     client = createPreviewStreamClient(
       { access: browserStreamAccess(input.botId), maxWidth: 1280, maxHeight: 1280, interactive: false },
       {
-        onFrame: (jpeg) => {
+        onFrame: (frame) => {
           refusals = 0;
-          painter.paint(jpeg);
+          painter.paint(frame);
         },
         onViewport: () => undefined,
         onConnectedChange: () => undefined,

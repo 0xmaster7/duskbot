@@ -15,6 +15,7 @@ import { FixtureServer } from "../cdp/testing/fixtures.ts";
 import { CHROME } from "../cdp/testing/real-chrome.ts";
 import type { BrowserTarget } from "../service.ts";
 import { jpegSize, startService, until, type RealService } from "../testing/real-service.ts";
+import { h264Encoder } from "./h264-encoder.ts";
 import { StreamV2 } from "./stream-v2.ts";
 import { fillPage } from "./viewport.ts";
 
@@ -340,4 +341,36 @@ suite("the v2 stream on real Chrome", () => {
     });
     await client.close();
   }, hostTimeout(90_000));
+
+  it("sends H.264 to a client that asks for it when this machine has ffmpeg, a keyframe first and another on request", async (context) => {
+    if (!await h264Encoder()) context.skip();
+    await opened("/video", ANIMATED);
+    const socket = new WebSocket(`ws://${origin}/api/bots/pepper/browser/stream?width=1280&height=800&maxWidth=1280&maxHeight=800&codec=h264`);
+    socket.binaryType = "arraybuffer";
+    const messages: Array<Record<string, unknown>> = [];
+    const units: Array<{ after: number; key: boolean }> = [];
+    socket.addEventListener("message", (event) => {
+      if (typeof event.data === "string") { messages.push(JSON.parse(event.data) as Record<string, unknown>); return; }
+      socket.send("{\"type\":\"ack\"}");
+      const data = Buffer.from(event.data as ArrayBuffer);
+      units.push({ after: messages.filter((message) => message.type === "encoding").length, key: data.includes(Buffer.from([0, 0, 0, 1, 0x65])) });
+    });
+    await new Promise((resolve) => socket.addEventListener("open", resolve));
+    try {
+      await until(() => units.length, (count) => count >= 10);
+      expect(messages.find((message) => message.type === "encoding")).toEqual({ type: "encoding", encoding: "h264", codec: "avc1.42E020", width: 1280, height: 800 });
+      // every unit follows its encoder's config, the first of each a keyframe with its SPS
+      expect(units[0]).toEqual({ after: 1, key: true });
+      expect(units.slice(1, 10).every((unit) => !unit.key)).toBe(true);
+      await sleep(1_000);
+      socket.send(JSON.stringify({ type: "keyframe" }));
+      await until(() => messages.filter((message) => message.type === "encoding").length, (count) => count === 2);
+      await until(() => units.find((unit) => unit.after === 2), (unit) => unit !== undefined);
+      expect(units.find((unit) => unit.after === 2)?.key).toBe(true);
+    } finally {
+      const closed = new Promise((resolve) => socket.addEventListener("close", resolve));
+      socket.close();
+      await closed;
+    }
+  }, hostTimeout(60_000));
 });
