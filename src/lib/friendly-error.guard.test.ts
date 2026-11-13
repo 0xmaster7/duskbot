@@ -21,7 +21,6 @@ const RAW: RegExp[] = [
 
 // where the raw words are fine, and why
 const ALLOWED: Array<{ file: string; line: RegExp; why: string }> = [
-  { file: join("components", "SecretRequestCard.tsx"), line: /./, why: "owned by the seal work in flight; listed for it to route through friendlyError" },
   { file: join("components", "connect-apps", "use-connectors.ts"), line: /plainConnectError\(|const message = cause instanceof Error/, why: "raw words only tell failures apart; plainConnectError gives the line a person reads" },
   { file: join("components", "connect-apps", "ComposioKeyStep.tsx"), line: /const message = cause instanceof Error/, why: "raw words only pick a locale key" },
   { file: join("components", "PageBoundary.tsx"), line: /new Error\(String\(error\)\)/, why: "wraps a thrown non-Error; the page shows plain words, never its message" },

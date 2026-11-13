@@ -222,7 +222,6 @@ export function ErrorRow({
         className="w-fit max-w-[min(var(--chat-bubble-max),var(--chat-bubble-pct))]"
         title={headline}
         details={headline !== message ? details : null}
-        detailsLabel={macCuaReason ? t("computer.mac.permission.driverDetail") : undefined}
         actions={button}
       >
         {macCuaReason && <MacCuaRecoveryActions reason={message} />}

@@ -20,9 +20,18 @@ export function createErrorReports(bridge: ErrorReportsBridge | undefined, path 
 }
 
 const report = typeof window === "undefined" ? () => {} : createErrorReports(window.duskDesktop?.errorReports);
-if (typeof window !== "undefined") {
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
   window.addEventListener("error", event => report(event.error ?? event.message));
   window.addEventListener("unhandledrejection", event => report(event.reason));
+}
+
+/** The technical words behind a plain line on screen: they go to the error report (when the person keeps it on), never
+ * onto the page. Once per text per load, as every report is. */
+export function reportShownError(text: string) {
+  report(new ShownError(text));
+}
+class ShownError extends Error {
+  override name = "ShownError";
 }
 
 /** createRoot's options: an error a boundary caught is still logged as React logs it, and reported */

@@ -25,12 +25,12 @@ describe("ChatErrorBanner", () => {
     expect(markup).not.toMatch(/bg-danger|border-danger|text-\[12px\]/);
   });
 
-  it("reads a machine's words as one plain line and keeps them under Details", () => {
+  it("reads a machine's words as one plain line, never shows them, and offers to copy them for support", () => {
     const markup = renderToStaticMarkup(createElement(ChatErrorBanner, { message: "502 Bad Gateway", onDismiss: () => undefined }));
     expect(markup).toContain("Something went wrong on the other end. Try again.");
-    expect(markup).toContain("<details");
-    expect(markup).toContain(">Details</summary>");
-    expect(markup).toContain("502 Bad Gateway");
+    expect(markup).not.toContain("<details");
+    expect(markup).not.toContain("502 Bad Gateway");
+    expect(markup).toContain(">Copy details</span>");
   });
 
   it("shows a sentence as it is, with nothing to expand", () => {

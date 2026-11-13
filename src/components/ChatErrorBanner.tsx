@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { t } from "@/lib/i18n";
 import { friendlyError } from "@/lib/plain-error";
 import type { AppState } from "@/state/store";
+import { ErrorDetailsCopy } from "./ErrorDetailsCopy";
 import { Icon } from "./Icon";
 import { NoticeGlyph } from "./ui/Notice";
 import type { PixelIconName } from "./ui/PixelIcon";
@@ -29,16 +30,14 @@ export function ChatNotice({ notice }: { notice: AppState["notice"] }) {
 // grok's error tray: a card on a hairline with one coloured glyph, a 14/20 title, quiet words, ink pill actions
 const CARD = "flex items-start gap-2.5 rounded-[14px] border border-transparent bg-composer px-3 py-2.5 text-[13px] leading-[18px] text-ink";
 export const CARD_ACTION = "ui-button ui-button-sm ui-button-pill border-transparent bg-ink/[0.06] text-ink hover:bg-ink/[0.1]";
-const SUMMARY = "w-fit cursor-pointer list-none rounded-sm [&::-webkit-details-marker]:hidden hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus";
 
-export function ChatErrorCard({ tone = "danger", icon, title, details, detailsLabel, children, actions, onDismiss, className = "" }: {
+export function ChatErrorCard({ tone = "danger", icon, title, details, children, actions, onDismiss, className = "" }: {
   tone?: "danger" | "warning" | "info";
   /** what the notice is about, as a pixel picture; the tone's own when absent */
   icon?: PixelIconName;
   title: ReactNode;
-  /** The words behind a plain title, one click away. */
+  /** The technical words behind a plain title: reported and copyable for support, never shown. */
   details?: string | null;
-  detailsLabel?: string;
   children?: ReactNode;
   actions?: ReactNode;
   onDismiss?: () => void;
@@ -49,7 +48,7 @@ export function ChatErrorCard({ tone = "danger", icon, title, details, detailsLa
       <NoticeGlyph tone={tone} icon={icon} />
       <div className="min-w-0 flex-1 break-words">
         <span className="block font-medium">{title}</span>
-        {details && <details className="text-ink-secondary"><summary className={SUMMARY}>{detailsLabel ?? t("chat.error.details")}</summary><p dir="auto" className="mt-0.5 break-words">{details}</p></details>}
+        {details && <ErrorDetailsCopy details={details} />}
         {children}
         {actions && <div className="mt-2 flex flex-wrap items-center gap-1.5">{actions}</div>}
       </div>

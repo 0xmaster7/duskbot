@@ -31,12 +31,13 @@ beforeEach(() => setLocale("en"));
 afterEach(() => setLocale("en"));
 
 describe("a turn whose reply came back but a step failed", () => {
-  it("reads as partly done, not as a broken turn, with the cause under Details and Retry kept", () => {
+  it("reads as partly done, not as a broken turn, with the cause kept off screen for Copy details, and Retry kept", () => {
     const html = show(failedTurnTool(cause, { terminal: true, partial: true }));
     expect(html).toContain("Partly done. The reply came back, but a step didn&#x27;t work");
     expect(html).toContain("warning");
     expect(html).not.toMatch(/danger|gi-triangle-alert|gi-alert-triangle/);
-    expect(html).toMatch(/<details[\s\S]*details[\s\S]*Stopped because the tool call/);
+    expect(html).not.toContain("Stopped because the tool call");
+    expect(html).toContain(">Copy details</span>");
     expect(html).toContain("Retry");
   });
 

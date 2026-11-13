@@ -7,7 +7,7 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { keySaved, keySaveFailure, savedKeyResult } from "@/lib/product-events";
 import { api, ApiError, useStore, type Bot, type ConfigStatus, type Message } from "@/state/store";
-import { plainErrorLine } from "@/lib/plain-error";
+import { friendlyError, plainErrorLine } from "@/lib/plain-error";
 import { ASK_QUIET_BUTTON, AskCard, CARD_FIELD, CardSettledRow, cardPrimary, returnFocusToComposer } from "./AskCard";
 import { EmailServerInputs } from "./EmailCard";
 import type { EmailServerFields } from "../../shared/email";
@@ -23,7 +23,7 @@ import { Toggle } from "./ui/Toggle";
 /** What a failed send says: the server's own plain words, never a stack, a module address or a crypto error. */
 export function secretErrorLine(error: unknown): string {
   if (error instanceof SealTrustError) return t("seal.untrusted");
-  if (error instanceof ApiError) return error.message;
+  if (error instanceof ApiError) return friendlyError(error, t("secretCard.sendFailed"));
   return t("secretCard.sendFailed");
 }
 
@@ -69,7 +69,7 @@ export function SecretRequestCard({
   // Grok's default: a custom secret is saved to the Vault so the bot can use it again; off, it is used once and forgotten.
   const [remember, setRemember] = useState(true);
   const endpoint = `/api/bots/${encodeURIComponent(botId)}/secret-cards/${encodeURIComponent(message.id)}`;
-  const error = localError ?? (secret.error ? plainErrorLine(secret.error) ?? secret.error : undefined);
+  const error = localError ?? (secret.error ? plainErrorLine(secret.error) ?? friendlyError(secret.error) : undefined);
   const custom = secret.target === CUSTOM_SECRET_TARGET;
   // A page reached through a desktop paired to another computer: a key that computer keeps in its own encrypted store can
   // only be typed there. Anything its server keeps, a custom secret or a provider key, is typed here like on any page.
