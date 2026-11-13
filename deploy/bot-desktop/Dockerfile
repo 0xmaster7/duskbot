@@ -26,8 +26,8 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 RUN set -eux; \
     case "${TARGETARCH:-$(dpkg --print-architecture)}" in \
-      amd64) url='https://files.pythonhosted.org/packages/3b/b0/97f6d8828b8a6ca3649ad7150ddbc23addde56f014c9bd407876484ecb8d/cua_driver-0.37.0-py3-none-manylinux_2_31_x86_64.whl'; sha='e530ee36226d99516ef7ec696ba31d516e487ae5e5effdd5e2610c56af3eee19' ;; \
-      arm64) url='https://files.pythonhosted.org/packages/dc/33/81e2531353837f80358fbf56629a74f50d7f097af4b5f67626b0afce2d61/cua_driver-0.37.0-py3-none-manylinux_2_31_aarch64.whl'; sha='1a0103fd7fa5e9d51ee3ce26d502eb4187702282b3f4bcf1e9c09c6ce9f9d558' ;; \
+      amd64) url='https://github.com/trycua/cua/releases/download/cua-driver-rs-v0.47.24/cua_driver-0.47.24-py3-none-manylinux_2_31_x86_64.whl'; sha='6e7c068faff0e97f0db1fdafaa7bab39c3cd1f6314cb3c25369d2e34953ffd21' ;; \
+      arm64) url='https://github.com/trycua/cua/releases/download/cua-driver-rs-v0.47.24/cua_driver-0.47.24-py3-none-manylinux_2_31_aarch64.whl'; sha='e94c1857cc59e179930b4bbdf8bc0deb9ab6d38b1d48411bbbfab20085ec7f5c' ;; \
       *) echo "unsupported architecture" >&2; exit 1 ;; \
     esac; \
     curl -fsSL "$url" -o /tmp/cua.whl; \
@@ -39,7 +39,7 @@ RUN set -eux; \
 
 FROM ${DEBIAN}
 ARG TARGETARCH
-ARG CUA_DRIVER_VERSION=0.37.0
+ARG CUA_DRIVER_VERSION=0.47.24
 ENV DEBIAN_FRONTEND=noninteractive LANG=C.UTF-8 LC_ALL=C.UTF-8
 COPY trim-icons.py /tmp/omb-trim-icons.py
 
@@ -105,7 +105,7 @@ RUN chmod 0755 /usr/local/bin/omb-* && chmod 0644 /etc/chromium.d/omb \
  && rm -f /tmp/omb-blank-cursors.py /usr/share/icons/default/index.theme \
  && printf '%s\n' '[Icon Theme]' 'Inherits=omb-hidden' > /usr/share/icons/default/index.theme
 
-ARG BOT_DESKTOP_VERSION=4
+ARG BOT_DESKTOP_VERSION=5
 # label names from before the rename: servers and apps find this image by them (DOCKER_NAMES, electron/legacy-names.mjs)
 LABEL com.openmausbot.bot-desktop="${BOT_DESKTOP_VERSION}" \
       com.openmausbot.cua-driver="${CUA_DRIVER_VERSION}" \

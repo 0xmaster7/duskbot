@@ -32,6 +32,7 @@ runMcpBridge({
   // Probe the transport, not the driver: a busy desktop mid-tool-call must never look dead.
   liveness: { command: "docker", args: vpsDockerArgs(sshAlias, ["version", "--format", "{{.Server.Version}}"]) },
   rewriteRequest: session.request,
+  relay: session.relay,
   rewriteResponse: (line) => session.response(sandboxComputerResultLine(line)),
   ...(controlUrl && controlToken ? { gate: { url: controlUrl, token: controlToken }, observe: createBotPointerReporter({ url: controlUrl, token: controlToken }) } : {}),
 });

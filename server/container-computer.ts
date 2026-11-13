@@ -23,7 +23,7 @@ export type CommandRunner = (
   timeout?: number,
 ) => Promise<{ stdout: string }>;
 
-export const CUA_DRIVER_VERSION = "0.37.0";
+export const CUA_DRIVER_VERSION = "0.47.24";
 export const BASE_IMAGE_REPOSITORY = "docker.io/trycua/xfce-cua";
 // Official multi-architecture Cua XFCE 0.1.0 manifest (amd64 + arm64).
 export const BASE_IMAGE_DIGEST = "sha256:274eb636f5cf3fc58f705916ee72b7a701270b3877369d08533a385c5325be9b";
@@ -105,12 +105,12 @@ export function localVmWorkspaceExists(target: LocalVmTarget): boolean {
 
 const LINUX_WHEELS = {
   x86_64: {
-    url: "https://files.pythonhosted.org/packages/3b/b0/97f6d8828b8a6ca3649ad7150ddbc23addde56f014c9bd407876484ecb8d/cua_driver-0.37.0-py3-none-manylinux_2_31_x86_64.whl",
-    sha256: "e530ee36226d99516ef7ec696ba31d516e487ae5e5effdd5e2610c56af3eee19",
+    url: "https://github.com/trycua/cua/releases/download/cua-driver-rs-v0.47.24/cua_driver-0.47.24-py3-none-manylinux_2_31_x86_64.whl",
+    sha256: "6e7c068faff0e97f0db1fdafaa7bab39c3cd1f6314cb3c25369d2e34953ffd21",
   },
   aarch64: {
-    url: "https://files.pythonhosted.org/packages/dc/33/81e2531353837f80358fbf56629a74f50d7f097af4b5f67626b0afce2d61/cua_driver-0.37.0-py3-none-manylinux_2_31_aarch64.whl",
-    sha256: "1a0103fd7fa5e9d51ee3ce26d502eb4187702282b3f4bcf1e9c09c6ce9f9d558",
+    url: "https://github.com/trycua/cua/releases/download/cua-driver-rs-v0.47.24/cua_driver-0.47.24-py3-none-manylinux_2_31_aarch64.whl",
+    sha256: "e94c1857cc59e179930b4bbdf8bc0deb9ab6d38b1d48411bbbfab20085ec7f5c",
   },
 } as const;
 

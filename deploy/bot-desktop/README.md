@@ -4,7 +4,7 @@ The bot's own computer: a small dark Linux desktop in a hardened container, one 
 locally in Docker). Bots drive it through Cua Driver exactly as they drive the Cua XFCE image (screenshots, clicks,
 typing, AT-SPI, Chromium over CDP); people see it through noVNC when they take control.
 
-Image: `ghcr.io/sidddevz/omb-bot-desktop:v4` (`BOT_DESKTOP_IMAGE` in `shared/bot-desktop.ts`). linux/arm64 and
+Image: `ghcr.io/sidddevz/omb-bot-desktop:v5` (`BOT_DESKTOP_IMAGE` in `shared/bot-desktop.ts`). linux/arm64 and
 linux/amd64.
 
 ## What is inside
@@ -20,7 +20,7 @@ linux/amd64.
 | Browser | Chromium (both arches) | Google Chrome has no Linux arm64 build; one browser everywhere |
 | Terminal | xfce4-terminal | software-rendered VTE (kitty/alacritty need GL), no menubar, `#111111`, block cursor |
 | Files | Thunar | behind the middle dock icon; Papirus-Dark icons here and in every GTK file dialog |
-| Control | Cua Driver 0.37.0 (pinned wheel, SHA-256 checked) | the harness speaks it already, nothing changes for bots |
+| Control | Cua Driver 0.47.24 (pinned wheel from its GitHub release, SHA-256 checked) | the harness speaks it already, nothing changes for bots |
 | Pointer | none drawn on the desktop: cursor theme `omb-hidden` (`blank-cursors.py`), Cua Driver `--no-overlay` | no frozen system pointer or Cua's agent cursor in the picture, screenshots or recordings; the app draws the bot's pointer over its live view from where Cua Driver says each action landed (`server/bot-pointer.ts`) |
 
 The image keeps Papirus icons for installed applications, their symlink targets, and every file, folder and action
@@ -68,7 +68,7 @@ makes `sudo` inert. Read-only root filesystem; same network rules plus the host'
 The placeholders below use `electron/legacy-names.mjs`: `<name>` uses `DOCKER_NAMES.vpsPrefix`,
 `<desktop-network>` is `DOCKER_NAMES.desktopNetwork`, and each `<...-label>` is `DOCKER_NAMES.label("...")`.
 
-1. `docker pull ghcr.io/sidddevz/omb-bot-desktop:v4` unless present. If the pull fails (not published, private
+1. `docker pull ghcr.io/sidddevz/omb-bot-desktop:v5` unless present. If the pull fails (not published, private
    package, registry down) it builds the image on the docker host from this folder as shipped with the server
    (`deploy/bot-desktop/` beside `dist-server/`, or `DUSK_BOT_DESKTOP_KIT`), only when its Dockerfile's
    `ARG BOT_DESKTOP_VERSION` equals `BOT_DESKTOP_VERSION`; the turn's chat says the build is running. When neither
@@ -86,7 +86,7 @@ The placeholders below use `electron/legacy-names.mjs`: `<name>` uses `DOCKER_NA
 docker run -d --name <name> --hostname bot \
   --label <vps-label>=1 --label <container-label>=<name> --label <environment-label>=<id> \
   --label <vps-viewer-label>=1 --label <bot-desktop-label>=2 \
-  --label <bot-desktop-mode-label>=free --label <cua-driver-label>=0.37.0 \
+  --label <bot-desktop-mode-label>=free --label <cua-driver-label>=0.47.24 \
   [--runtime runsc] --network <desktop-network> --dns 1.1.1.1 --dns 9.9.9.9 \
   --tmpfs /tmp:rw,nosuid,nodev,size=1g --tmpfs /run:rw,nosuid,nodev,size=64m,uid=1000,gid=1000,mode=0755 \
   --mount type=volume,source=<name>-home,target=/home/cua \

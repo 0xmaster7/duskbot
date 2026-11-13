@@ -26,6 +26,7 @@ runMcpBridge({
   args: cuaExecArgs(["mcp", "--socket", socket], { container, interactive: true }),
   label: "Cua Driver",
   rewriteRequest: session.request,
+  relay: session.relay,
   rewriteResponse: session.response,
   // No liveness watchdog: the runtime CLI talks to a local daemon and fails fast on its own.
   ...(controlUrl && controlToken ? { gate: { url: controlUrl, token: controlToken }, observe: createBotPointerReporter({ url: controlUrl, token: controlToken }) } : {}),

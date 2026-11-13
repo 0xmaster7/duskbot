@@ -646,7 +646,7 @@ describe("containerComputerStatus", () => {
       desktop_error: null,
       ready: true,
       problem: null,
-      driver_version: "0.37.0",
+      driver_version: CUA_DRIVER_VERSION,
     });
     expect(status.viewer_url).toContain("#autoconnect=true&resize=scale&password=secret123");
   });
@@ -812,12 +812,12 @@ describe("Cua integration", () => {
     expect(connection.env).toEqual({ ELECTRON_RUN_AS_NODE: "1" });
   });
 
-  it("builds an exact, checksum-verified Cua Driver 0.37.0 image", () => {
+  it("builds an exact, checksum-verified Cua Driver image", () => {
     const dockerfile = managedImageDockerfile();
     expect(BASE_IMAGE).toMatch(/@sha256:[a-f0-9]{64}$/);
     expect(dockerfile).toContain(`FROM ${BASE_IMAGE}`);
-    expect(dockerfile).toContain("cua_driver-0.37.0-py3-none-manylinux_2_31_x86_64.whl");
-    expect(dockerfile).toContain("cua_driver-0.37.0-py3-none-manylinux_2_31_aarch64.whl");
+    expect(dockerfile).toContain(`cua_driver-${CUA_DRIVER_VERSION}-py3-none-manylinux_2_31_x86_64.whl`);
+    expect(dockerfile).toContain(`cua_driver-${CUA_DRIVER_VERSION}-py3-none-manylinux_2_31_aarch64.whl`);
     expect(dockerfile).not.toContain("/tmp/cua-driver.whl");
     expect(dockerfile).toContain("sha256sum -c -");
     expect(dockerfile).toContain(`install -D -m 0755 "$driver_bin" ${CUA_EXECUTABLE}`);
