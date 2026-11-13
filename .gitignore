@@ -55,3 +55,6 @@ id_ed25519
 *.mov
 *.mp4
 *.dmg
+
+# electron/cloud-seal.mjs deps for the packaged app, made by scripts/bundle-cloud-seal.mjs in package:prepare
+electron/seal/deps.bundle.mjs

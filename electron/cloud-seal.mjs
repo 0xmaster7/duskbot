@@ -1,9 +1,10 @@
 // Security: My Cloud takes a password, a 2FA key, a 1Password token or an API key from a remote client only sealed for
 // its server process, so a move seals them as the app's pages do: for the key My Cloud's identity signed, for one
 // purpose and target. No identity is pinned for My Cloud, the same trust its pages get.
-import { sealValues } from "../src/lib/card-seal.ts";
-import { configSecrets } from "../shared/saved-secrets.ts";
-import { loginSealTarget, normalizeLoginHost } from "../shared/logins.ts";
+
+// the sources when they are there (dev, tests), else the bundle package:prepare made (the packaged app has no .ts)
+let loaded = null;
+const deps = () => (loaded ??= import("./seal/deps.ts").catch(() => import("./seal/deps.bundle.mjs")));
 
 const record = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
@@ -23,6 +24,7 @@ export function cloudSealer(session) {
   async function send(method, route, purpose, target, values, build) {
     const named = Object.fromEntries(Object.entries(values).filter(([, value]) => typeof value === "string" && value !== ""));
     if (!Object.keys(named).length) return session.call(method, route, build(null));
+    const { sealValues } = await deps();
     const first = await sealKey();
     const answer = await session.call(method, route, build(await sealValues(named, first, purpose, target)));
     const fresh = answer.body?.sealKey;
@@ -31,7 +33,8 @@ export function cloudSealer(session) {
     return session.call(method, route, build(await sealValues(named, fresh, purpose, target)));
   }
   return {
-    login(login, rest) {
+    async login(login, rest) {
+      const { loginSealTarget, normalizeLoginHost } = await deps();
       const target = loginSealTarget(normalizeLoginHost(login.site) ?? String(login.site ?? "").trim(), login.username);
       const secrets = { password: login.password, ...(login.totp ? { totp: login.totp } : {}) };
       return send("POST", "/api/logins", "login.create", target, secrets, (sealed) => ({ site: login.site, username: login.username, ...rest, ...(sealed ? { sealed } : {}) }));
@@ -39,7 +42,8 @@ export function cloudSealer(session) {
     onePassword(token) {
       return send("POST", "/api/logins/1password", "onepassword.connect", [], { token }, (sealed) => (sealed ? { sealed } : {}));
     },
-    config(method, patch) {
+    async config(method, patch) {
+      const { configSecrets } = await deps();
       const secrets = configSecrets(patch);
       if (!secrets.size) return session.call(method, "/api/config", patch);
       const paths = [...secrets.keys()].sort();

@@ -28,6 +28,8 @@ afterPack: ./scripts/after-pack.mjs
 files:
   - electron/**
   - "!electron/**/*.test.*"
+  # cloud-seal's typescript entry; the app loads deps.bundle.mjs (package:prepare) instead
+  - "!electron/seal/deps.ts"
   - "!electron/resources/speech-helper"
   - "!electron/resources/speech-helper.swift"
   - "!electron/resources/speech-helper-Info.plist"
