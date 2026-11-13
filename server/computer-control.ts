@@ -31,7 +31,7 @@ const MAX_REASON_CHARS = 280;
 interface Entry {
   heldSinceMs: number | null;
   /** Open pleas, oldest first; the newest is the one shown. */
-  pleas: Array<{ reason: string; ref: ComputerHelpRef }>;
+  pleas: Array<{ reason: string; ref: ComputerHelpRef; at?: number }>;
   /** Opaque workspace lease. It is deliberately absent from every snapshot. */
   controlLeaseId: string | null;
 }
@@ -111,9 +111,16 @@ export class ComputerControl {
     const text = typeof reason === "string" ? reason.trim().slice(0, MAX_REASON_CHARS) : "";
     const entry = this.entries.get(botId) ?? { heldSinceMs: null, pleas: [], controlLeaseId: null };
     entry.pleas = [...entry.pleas.filter((plea) => plea.ref.messageId !== ref.messageId),
-      { reason: text || `sign in to ${ref.site}`, ref }];
+      { reason: text || `sign in to ${ref.site}`, ref, at: this.now() }];
     this.entries.set(botId, entry);
     return this.changed(botId);
+  }
+
+  /** Whether a card asked the person for help on this computer less than `withinMs` ago and is still open: such a
+   * computer stays awake, so the card's Take over opens at once instead of waking it. */
+  pleaHolds(botId: string, withinMs: number): boolean {
+    const now = this.now();
+    return this.entries.get(botId)?.pleas.some((plea) => plea.at !== undefined && now - plea.at < withinMs) ?? false;
   }
 
   settleHelp(messageId: string): string[] {

@@ -5783,8 +5783,13 @@ function vpsLifecycleAllowed(target: VpsLifecycleTarget): boolean {
   return !target.botId || (target.botId === target.ownerId && (!shared || !vpsDefaults().independentScreens));
 }
 
+/** How long an open sign-in, human-check or action-needed card keeps its computer from sleeping. */
+const HELP_CARD_HOLDS_COMPUTER_MS = 30 * 60_000;
+
 function vpsLifecycleBusy(stage: VpsLifecycleStage, target: VpsLifecycleTarget, ownReservation: boolean): boolean {
   if (computerProviderConfigTransitions.has("vps") || workspaceMaintenance.active || (!ownReservation && remoteComputerLifecycleBusyOwners.has(target.ownerId))) return true;
+  // a card waiting on the person keeps the computer awake (up to HELP_CARD_HOLDS_COMPUTER_MS), so Take over is instant
+  if (computerControl.pleaHolds(target.ownerId, HELP_CARD_HOLDS_COMPUTER_MS) || (target.screen && computerControl.pleaHolds(target.screen.botId, HELP_CARD_HOLDS_COMPUTER_MS))) return true;
   if (target.screen && stage !== "computer") {
     return computerControl.snapshot(target.ownerId).held || computerControl.snapshot(target.screen.botId).held ||
       [...teamComputerTurns.entries()].some(([threadId, turn]) => turn.botId === target.screen!.botId && teamComputerOwner(turn.computerId) === target.ownerId && activeInternalGenerationByThread.get(threadId) === turn.owner.generation) ||

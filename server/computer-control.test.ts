@@ -163,4 +163,19 @@ describe("computer control", () => {
     control.release("bot");
     expect(control.ownsLease("bot", "lease-aaaaaaaaaaaaaa")).toBe(false);
   });
+
+  it("keeps the computer awake while a card waits for the person, up to the hold, and not once it is answered", () => {
+    let now = 1_000;
+    const control = new ComputerControl(() => {}, () => now);
+    expect(control.pleaHolds("b1", 60_000)).toBe(false);
+    control.requestHelp("b1", "sign in to example.com", ref("card-1"));
+    now += 59_000;
+    expect(control.pleaHolds("b1", 60_000)).toBe(true);
+    now += 2_000;
+    expect(control.pleaHolds("b1", 60_000)).toBe(false);
+    control.requestHelp("b1", "sign in to example.com", ref("card-2"));
+    expect(control.pleaHolds("b1", 60_000)).toBe(true);
+    control.settleHelp("card-2");
+    expect(control.pleaHolds("b1", 60_000)).toBe(false);
+  });
 });
