@@ -17,7 +17,7 @@ import { Art, type ArtName } from "../ui/Art";
 import { PlaceArt, type PlaceArtName } from "../ui/PlaceArt";
 import { Toggle } from "../ui/Toggle";
 import { DEFAULT_BOT_NAME } from "@/lib/default-bot";
-import phoneChat from "../../assets/onboarding/phone-chat.webp";
+import phoneHome from "../../assets/onboarding/phone-home.webp";
 
 export const PRIMARY = "ui-button ui-button-pill ui-button-lg ui-button-primary w-[288px] max-w-full font-normal tracking-[0.14px]";
 /** The quiet way past a step that still reads as a button: a soft fill, no outline. */
@@ -214,12 +214,12 @@ export function PhoneStep({ onNext }: { onNext: () => void }) {
   );
 }
 
-/** The phone app's own chat screen (a real capture with demo bots), in a plain phone outline. */
+/** The phone app's own home screen (a real capture of its bots list, demo bots), in a plain phone outline. */
 function PhoneFrame() {
   return (
     <div aria-hidden="true" className="phone-frame w-[208px] shrink-0 rounded-[38px] bg-[#1b1b1f] p-[6px] shadow-[0_24px_48px_-24px_rgba(27,27,31,0.45)]">
       <div className="relative overflow-hidden rounded-[32px] bg-white">
-        <img src={phoneChat} alt="" width={196} height={426} draggable={false} className="block h-auto w-full select-none" />
+        <img src={phoneHome} alt="" width={196} height={426} draggable={false} className="block h-auto w-full select-none" />
         <span className="absolute left-1/2 top-[7px] h-[18px] w-[64px] -translate-x-1/2 rounded-full bg-[#1b1b1f]" />
       </div>
     </div>
