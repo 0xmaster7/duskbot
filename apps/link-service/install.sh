@@ -1600,7 +1600,7 @@ address_domain() {
       sleep 15; waited=$((waited + 15))
       found=$(dns_a "$host")
       printf '%s\n' "$found" | grep -qxF "$ip" && break
-      [ -z "$found" ] || echo "$host points at $(printf '%s' "$found" | tr '\n' ' ')instead of $ip"
+      [ -z "$found" ] || echo "$host points at $(printf '%s\n' "$found" | paste -sd ' ' -) instead of $ip"
       [ "$waited" -lt 2700 ] || { relay_address "no A record for $host to $ip after 45 minutes; using the private relay"; return 11; }
     done
     printf 'Found it: %s points at %s.\n' "$host" "$ip" | ask "{\"kind\":\"dns\",\"host\":\"$host\",\"type\":\"A\",\"value\":\"$ip\",\"state\":\"found\"}"
