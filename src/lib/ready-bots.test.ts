@@ -39,6 +39,16 @@ describe("ready-made bots", () => {
     }
   });
 
+  it("keep souls focused: a real working method, not a wall of text, in the brand's own words", () => {
+    for (const bot of READY_BOTS) {
+      expect(bot.soul.length, bot.id).toBeGreaterThan(1_500);
+      expect(bot.soul.length, bot.id).toBeLessThanOrEqual(4_500);
+      for (const text of [bot.soul, bot.description, ...bot.tryAsking, ...Object.values(bot.notes ?? {})]) {
+        expect(text, bot.id).not.toMatch(/\u2014|\bDusk\b/);
+      }
+    }
+  });
+
   it("only ever bring paused routines and notes under the memory folder", () => {
     for (const bot of READY_BOTS) {
       for (const routine of bot.routines ?? []) expect(routine.enabled).toBe(false);
@@ -48,40 +58,40 @@ describe("ready-made bots", () => {
 });
 
 describe("readyBotTemplate", () => {
-  const plant = readyBot("plant-care")!;
+  const books = readyBot("bookkeeper")!;
 
   it("sets who the bot is and how it looks", () => {
-    const { profile } = readyBotTemplate(defaults(), plant);
-    expect(profile).toMatchObject({ name: "Fern", title: "Plant care log", soul: plant.soul, color: "green", mascotBody: "drip" });
+    const { profile } = readyBotTemplate(defaults(), books);
+    expect(profile).toMatchObject({ name: "Ledger", title: "Bookkeeper", soul: books.soul, color: "brown", mascotBody: "tofu" });
   });
 
   it("never changes the person's model, approval level, computer, folder or apps", () => {
-    const { profile } = readyBotTemplate(defaults(), plant);
+    const { profile } = readyBotTemplate(defaults(), books);
     expect(profile).toMatchObject({
       modelSelection: { instanceId: "claude", model: "opus" }, approvalMode: "ask", computer: "local", cwd: "/work/site", composio: true,
     });
   });
 
   it("adds notes beside the person's own and appends its routines paused", () => {
-    const template = readyBotTemplate(defaults(), plant);
+    const template = readyBotTemplate(defaults(), books);
     expect(template.memory["MEMORY.md"]).toContain("The person's own default note");
-    expect(template.memory["MEMORY.md"]).toContain("memory/plants.md");
-    expect(template.memory["memory/plants.md"]).toContain("title: My plants");
-    expect(template.routines.map((routine) => [routine.name, routine.enabled])).toEqual([["Mine", true], ["Weekly plant check", false]]);
+    expect(template.memory["MEMORY.md"]).toContain("memory/books.md");
+    expect(template.memory["memory/books.md"]).toContain("title: Books");
+    expect(template.routines.map((routine) => [routine.name, routine.enabled])).toEqual([["Mine", true], ["Weekly reconcile", false]]);
   });
 
   it("leaves the defaults it was given untouched", () => {
     const given = defaults();
-    readyBotTemplate(given, plant);
+    readyBotTemplate(given, books);
     expect(given).toEqual(defaults());
   });
 });
 
 describe("matchesReadyBot", () => {
   it("finds a bot by name, title, description or category, ignoring case", () => {
-    const echo = readyBot("humanizer")!;
-    expect(["echo", "HUMANIZER", "read like you", "writing", ""].every((query) => matchesReadyBot(echo, query))).toBe(true);
-    expect(matchesReadyBot(echo, "spreadsheet")).toBe(false);
+    const quill = readyBot("writer")!;
+    expect(["quill", "EDITOR", "in your voice", "writing", ""].every((query) => matchesReadyBot(quill, query))).toBe(true);
+    expect(matchesReadyBot(quill, "spreadsheet")).toBe(false);
   });
 });
 
