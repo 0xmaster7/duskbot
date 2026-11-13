@@ -107,8 +107,6 @@
   "server.connect.descriptionAs": "Verbinde {app} als „{account}“, damit der Bot weitermachen kann",
   "server.connect.signInCard": "{bot} braucht deine Anmeldung bei {site}. Öffne diese Unterhaltung in dusk bot, melde dich an und bestätige es dann auf der Karte.",
   "server.connect.emailLabel": "Verbinde dein Postfach",
-  "server.connect.emailNote": "dusk bot findet deinen Mailserver und prüft, ob es deine Mails lesen kann. {bot} sieht das Passwort nie.",
-  "server.connect.loginNote": "{bot} gibt es für dich auf der Website ein und sieht das Passwort nie.",
   "server.connect.emailPlaceholder": "Passwort des Postfachs",
   "server.connect.secretHandoff": "Gib {label} sicher in dusk bot auf deinem Telefon oder Computer ein. Es wird nie in den Chat übernommen.",
   "server.connect.secretFile": "Die Befehle von {bot} können es 24 Stunden lang aus einer privaten Datei lesen; es wird nie in den Chat übernommen.",

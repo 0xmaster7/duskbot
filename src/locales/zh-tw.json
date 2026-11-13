@@ -4312,7 +4312,6 @@
   "signIn.takeOverComputer": "接管電腦",
   "signIn.skipped": "已略過",
   "signIn.status.saved": "登入資訊已儲存",
-  "server.connect.loginNote": "{bot} 會替你在網站上輸入，且永遠看不到密碼。",
   "routeTraffic.title": "透過這台電腦傳送流量",
   "routeTraffic.titleWeb": "透過你的電腦傳送流量",
   "routeTraffic.hint": "讓機器人電腦的網路流量經由你的桌上型電腦傳送，而不是經由雲端。適用於新的連線。",

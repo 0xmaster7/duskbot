@@ -139,7 +139,6 @@ export function SignInRequestCard({
         {explained && <span role="note" className="mt-1 block text-ink">{t(here ? "signIn.local.explain" : "signIn.local.explainHost", { name: botName })}</span>}
         {error && <span role="alert" className="mt-1 block text-[13px] leading-[18px] text-danger">{error}</span>}
       </>}
-      stays
       footer={saving ? undefined : <>
         {canSave && (
           <button type="button" onClick={startSaving} disabled={pending !== null} className={cn(cardTertiary(), "me-auto -ms-2")}>

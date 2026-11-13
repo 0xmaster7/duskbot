@@ -112,10 +112,11 @@ describe("grok's card anatomy", () => {
     expect(html).not.toContain("saved securely.");
   });
 
-  it("keeps a card field's hairline when focused, with only the keyboard's grey ring", () => {
+  it("draws a card field borderless, a light tonal fill that deepens a step on hover and focus", () => {
     const classes = CARD_FIELD.split(" ");
-    expect(classes).toEqual(expect.arrayContaining(["border", "bg-transparent", "rounded-[10px]", "h-8", "focus-visible:ring-2"]));
-    expect(classes.some((name) => name.startsWith("focus:"))).toBe(false);
+    expect(classes).toEqual(expect.arrayContaining(["bg-ink/[0.04]", "hover:bg-ink/[0.06]", "focus:bg-ink/[0.07]", "rounded-[10px]", "h-8"]));
+    // no `border` token: the app-wide 8% field fill in styles.css keys on it
+    expect(classes).not.toContain("border");
     expect(CARD_FIELD).not.toMatch(/ring-(accent|focus|blue)/);
   });
 

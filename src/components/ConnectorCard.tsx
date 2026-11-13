@@ -8,6 +8,7 @@ import { AUTHORIZATION_LINK_MS, reserveConnectionPage, reusableConnectionUrl, ty
 import { accountAliasTaken, requiresAccountAlias } from "@/lib/connector-status";
 import { mcpSignInLink } from "@/lib/mcp-sign-in";
 import { cn } from "@/lib/cn";
+import { CARD_FIELD } from "./AskCard";
 import { CardHint } from "./CardHint";
 import { ServiceTile } from "./ServiceIcon";
 import { appLogo } from "./connect-apps/logos";
@@ -222,7 +223,7 @@ export function ConnectorCard({ botId, threadId, message }: { botId: string; col
             onChange={(event) => setLabel(event.target.value)}
             placeholder={t("connectors.aliasPlaceholder")}
             aria-label={t("connectors.aliasAriaAnother", { service: connector.label })}
-            className="h-[34px] w-full rounded-lg border border-transparent bg-composer px-2.5 text-[13px] leading-[18px] tracking-[0.015em] text-ink outline-none placeholder:text-ink/[0.56] focus:border-ink"
+            className={cn(CARD_FIELD, "w-full text-[13px] leading-[18px] tracking-[0.015em]")}
           />
         </form>
       ) : errorLine}

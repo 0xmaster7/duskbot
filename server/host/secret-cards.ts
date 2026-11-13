@@ -502,8 +502,9 @@ export function createSecretCards(deps: SecretCardsDeps) {
       secret: {
         target: CUSTOM_SECRET_TARGET,
         label,
-        description: `${reason ? `${reason} ` : ""}${serverLine(language, "server.connect.emailNote", { bot: from.name })}`,
-        ...(reason ? { reason: `${reason} ${serverLine(language, "server.connect.emailNote", { bot: from.name })}` } : {}),
+        // the card's footer says once how the password is kept, so the card's own words are only the bot's purpose
+        description: reason,
+        ...(reason ? { reason } : {}),
         placeholder: serverLine(language, "server.connect.emailPlaceholder"),
         helpUrl: "",
         delivery: "email",
@@ -530,7 +531,6 @@ export function createSecretCards(deps: SecretCardsDeps) {
     }
     const reason = typeof body.reason === "string" ? body.reason.trim().slice(0, CUSTOM_SECRET_REASON_MAX) : "";
     const language = deps.threadLanguage?.(threadId);
-    const note = serverLine(language, "server.connect.loginNote", { bot: from.name });
     const message = store.appendMessage(threadId, {
       role: "bot",
       kind: "secret",
@@ -539,8 +539,8 @@ export function createSecretCards(deps: SecretCardsDeps) {
       secret: {
         target: CUSTOM_SECRET_TARGET,
         label: target.site,
-        description: `${reason ? `${reason} ` : ""}${note}`,
-        reason: `${reason ? `${reason} ` : ""}${note}`,
+        description: reason,
+        ...(reason ? { reason } : {}),
         placeholder: "",
         helpUrl: "",
         delivery: "login",

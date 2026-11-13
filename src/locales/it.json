@@ -5616,7 +5616,6 @@
   "server.botDesktop.building": "Sto preparando il computer del bot sul tuo server. Succede una volta per aggiornamento e di solito richiede qualche minuto.",
   "computer.botWaking": "{name} si sta svegliando",
   "seal.untrusted": "Questo server non ha potuto dimostrare di essere quello collegato da questa app, quindi non è stato inviato nulla. Se l'hai reinstallato, collegalo di nuovo.",
-  "server.connect.loginNote": "{bot} lo inserisce nel sito al posto tuo e non vede mai la password.",
   "routeTraffic.title": "Instrada il traffico tramite questo computer",
   "routeTraffic.titleWeb": "Instrada il traffico tramite il tuo computer",
   "routeTraffic.hint": "Fa passare il traffico di rete del computer del bot dal tuo computer desktop invece che dal cloud. Vale per le nuove connessioni.",

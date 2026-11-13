@@ -40,7 +40,7 @@ export function AskCard({
   children,
   footer,
   onKeyDown,
-  stays = false,
+  quiet = false,
 }: {
   /** An AskHeader: who asks, above the question. */
   header?: ReactNode;
@@ -59,8 +59,8 @@ export function AskCard({
   children?: ReactNode;
   footer?: ReactNode;
   onKeyDown?: (event: KeyboardEvent<HTMLDivElement>) => void;
-  /** Work rests on this card and the person's answer alone moves it: it stays in view however far the chat scrolls. */
-  stays?: boolean;
+  /** The explanation is a short aside: a size down, muted, two lines at most (the whole of it in its tooltip). */
+  quiet?: boolean;
 }) {
   const dismiss = onDismiss && dismissLabel ? (
     <button
@@ -77,15 +77,16 @@ export function AskCard({
       <X size={source ? 14 : 15} />
     </button>
   ) : null;
-  // stays: work rests on the answer, so the card holds in view however far the chat scrolls
-  const frame = cn("w-full max-w-[560px] rounded-[24px] text-start", ASK_CARD_RING, ASK_CARD_LIFT, stays && "sticky top-[60px] bottom-[72px] z-10");
+  // in the chat's flow like any message: a pinned card rode over the messages above it
+  const frame = cn("w-full max-w-[560px] rounded-[24px] text-start", ASK_CARD_RING, ASK_CARD_LIFT);
+  const aside = quiet && typeof explanation === "string" ? explanation : undefined;
   if (source) {
     return (
       <div role="group" aria-label={ariaLabel} data-tour={tour} data-ask-card="pending" onKeyDown={onKeyDown} className={cn(frame, media && "overflow-hidden")}>
         <CardTitlebar icon={source.icon} label={source.label} trailing={dismiss} />
         <div className="px-5 py-1">
           <p className="break-words text-[15px] font-semibold leading-[22px] text-ink"><bdi dir="auto">{title}</bdi></p>
-          {explanation && <div className="break-words text-[14px] leading-5 text-ink-secondary">{explanation}</div>}
+          {explanation && <div title={aside} className={cn("break-words", quiet ? "mt-0.5 line-clamp-2 text-[13px] leading-[18px] text-ink-tertiary" : "text-[14px] leading-5 text-ink-secondary")}>{explanation}</div>}
         </div>
         {media && <div className="mt-4">{media}</div>}
         {children ? <div className="p-4">{children}</div> : !footer && <div className="pb-4" />}
@@ -111,7 +112,7 @@ export function AskCard({
         {meta && <span className="mt-0.5 shrink-0 text-[12px] tabular-nums text-ink-tertiary">{meta}</span>}
         {dismiss}
       </div>
-      {explanation && <div className="mt-1 text-[14px] leading-5 text-ink-secondary">{explanation}</div>}
+      {explanation && <div title={aside} className={cn("mt-1", quiet ? "line-clamp-2 text-[13px] leading-[18px] text-ink-tertiary" : "text-[14px] leading-5 text-ink-secondary")}>{explanation}</div>}
       {children && <div className="mt-3">{children}</div>}
       {footer && <div className="mt-3 flex flex-wrap items-center justify-end gap-2">{footer}</div>}
     </div>
@@ -435,11 +436,12 @@ export const ASK_SMALL_PILL = ASK_CONTROL;
 export const ASK_QUIET_BUTTON = `${ASK_SMALL_PILL} -my-1 text-ink-tertiary hover:bg-ink/[0.07] hover:text-ink-secondary`;
 
 /**
- * Grok's card field: no fill, one quiet hairline, 32 tall, 10px corners, unchanged when focused (the caret is the cue).
- * Moving by keyboard draws the app's grey focus ring around it, never a blue one.
+ * A card field: no line, a light tonal fill a step under the page's 8% fields (a card is already a raised surface), 32 tall,
+ * 10px corners. Hover and focus deepen the fill a little, beside the caret. No `border` class, so the app-wide field fill
+ * (styles.css) leaves it alone.
  */
 export const CARD_FIELD =
-  "h-8 rounded-[10px] border border-transparent bg-transparent px-3 text-[14px] leading-5 text-ink outline-none placeholder:text-ink-tertiary focus-visible:ring-2 disabled:opacity-60 pointer-coarse:h-11";
+  "h-8 rounded-[10px] bg-ink/[0.04] px-3 text-[14px] leading-5 text-ink outline-none transition-[background-color] duration-150 ease-[ease] placeholder:text-ink-tertiary hover:bg-ink/[0.06] focus:bg-ink/[0.07] disabled:opacity-60 pointer-coarse:h-11";
 
 export function returnFocusToComposer(): void {
   if (typeof requestAnimationFrame !== "function") return;

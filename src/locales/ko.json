@@ -6192,7 +6192,6 @@
   "server.botDesktop.building": "서버에 봇의 컴퓨터를 준비하고 있어요. 업데이트마다 한 번이며 보통 몇 분 걸려요.",
   "computer.botWaking": "{name}이(가) 깨어나는 중이에요",
   "seal.untrusted": "이 서버가 이 앱이 연결한 서버임을 증명하지 못해 아무것도 보내지 않았습니다. 다시 설치했다면 다시 연결하세요.",
-  "server.connect.loginNote": "{bot}이(가) 사이트에 대신 입력하며 비밀번호는 절대 보지 않습니다.",
   "routeTraffic.title": "이 컴퓨터를 통해 트래픽 전송",
   "routeTraffic.titleWeb": "내 컴퓨터를 통해 트래픽 전송",
   "routeTraffic.hint": "봇 컴퓨터의 네트워크 트래픽을 클라우드 대신 내 데스크톱 컴퓨터를 통해 보냅니다. 새 연결부터 적용됩니다.",

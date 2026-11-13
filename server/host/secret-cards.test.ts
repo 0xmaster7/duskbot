@@ -98,7 +98,7 @@ describe("the mailbox card", () => {
     expect(ask(fixture, { address: "me@shop.example", reason: "To read today's invoices." })).toMatchObject({ status: 201, body: { delivery: "email" } });
     expect(card(fixture).secret).toMatchObject({ target: "customSecret", delivery: "email", address: "me@shop.example", label: "Connect your mailbox", placeholder: "Mailbox password", helpUrl: "" });
     expect(card(fixture).secret!.description).toContain("To read today's invoices.");
-    expect(card(fixture).secret!.description).toContain("Ledger never sees the password.");
+    expect(card(fixture).secret!.description, "the footer says how it is kept, once").not.toContain("never sees");
   });
 
   it("names the person's own address when the bot knows none, and none at all when it can't", () => {
@@ -207,7 +207,7 @@ describe("the login card", () => {
     const asked = cards.requestCredential(bot, "t1", { credentialId: "login", site: "https://the-internet.herokuapp.com/login", reason: "To read the secure area." });
     expect(asked).toEqual({ status: 201, body: { messageId: "m1", site: "the-internet.herokuapp.com", delivery: "login" } });
     expect(lines[0]!.secret).toMatchObject({ delivery: "login", site: "the-internet.herokuapp.com", label: "the-internet.herokuapp.com" });
-    expect(lines[0]!.secret!.reason).toBe("To read the secure area. Vaultie types it into the site for you and never sees the password.");
+    expect(lines[0]!.secret!.reason, "the footer says how it is kept, once").toBe("To read the secure area.");
     const saved = cards.saveLoginSecret(bot.id, "t1", "m1", { username: "tomsmith", value: JSON.stringify({ password: PASSWORD, totp: "" }) }, true);
     expect(saved.status).toBe(200);
     expect(kept).toEqual([{ botId: "vaultie", host: "the-internet.herokuapp.com", username: "tomsmith", password: PASSWORD, totp: null, remember: true }]);

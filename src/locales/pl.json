@@ -5781,7 +5781,6 @@
   "server.botDesktop.building": "Konfiguruję komputer bota na twoim serwerze. Dzieje się to raz na aktualizację i zwykle trwa kilka minut.",
   "computer.botWaking": "{name} się budzi",
   "seal.untrusted": "Ten serwer nie udowodnił, że jest tym, który ta aplikacja połączyła, więc nic nie zostało wysłane. Jeśli zainstalowałeś go ponownie, połącz go jeszcze raz.",
-  "server.connect.loginNote": "{bot} wpisuje je na stronie za Ciebie i nigdy nie widzi hasła.",
   "routeTraffic.title": "Kieruj ruch przez ten komputer",
   "routeTraffic.titleWeb": "Kieruj ruch przez Twój komputer",
   "routeTraffic.hint": "Kieruje ruch sieciowy z komputera bota przez Twój komputer stacjonarny zamiast przez chmurę. Dotyczy nowych połączeń.",

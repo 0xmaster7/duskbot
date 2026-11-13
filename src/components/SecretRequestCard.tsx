@@ -6,7 +6,8 @@ import { credentialProvider } from "@/lib/analytics-allowlist";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { keySaved, keySaveFailure, savedKeyResult } from "@/lib/product-events";
-import { api, useStore, type Bot, type ConfigStatus, type Message } from "@/state/store";
+import { api, ApiError, useStore, type Bot, type ConfigStatus, type Message } from "@/state/store";
+import { plainErrorLine } from "@/lib/plain-error";
 import { ASK_QUIET_BUTTON, AskCard, CARD_FIELD, CardSettledRow, cardPrimary, returnFocusToComposer } from "./AskCard";
 import { EmailServerInputs } from "./EmailCard";
 import type { EmailServerFields } from "../../shared/email";
@@ -14,9 +15,17 @@ import { productName } from "@/lib/brand";
 import { sealCardSecret, SealTrustError } from "@/lib/card-seal";
 import type { CardSealKey } from "../../shared/saved-secrets";
 import { Icon } from "./Icon";
+import { Toggle } from "./ui/Toggle";
 
 // Security: the value goes straight to the host's settings, never into the chat. A custom secret leaves this app only
 // sealed for the server that keeps it, so a relay between them (the VPS tunnel, a Cloud's proxy) never reads it.
+
+/** What a failed send says: the server's own plain words, never a stack, a module address or a crypto error. */
+export function secretErrorLine(error: unknown): string {
+  if (error instanceof SealTrustError) return t("seal.untrusted");
+  if (error instanceof ApiError) return error.message;
+  return t("secretCard.sendFailed");
+}
 
 /** Grok's settled secret card: one row, the key in its tile, "Secrets", then one grey line with what happened. */
 export function SecretSettledRow({ label, status, tone = "done", title, action, detail }: {
@@ -60,7 +69,7 @@ export function SecretRequestCard({
   // Grok's default: a custom secret is saved to the Vault so the bot can use it again; off, it is used once and forgotten.
   const [remember, setRemember] = useState(true);
   const endpoint = `/api/bots/${encodeURIComponent(botId)}/secret-cards/${encodeURIComponent(message.id)}`;
-  const error = localError ?? secret.error;
+  const error = localError ?? (secret.error ? plainErrorLine(secret.error) ?? secret.error : undefined);
   const custom = secret.target === CUSTOM_SECRET_TARGET;
   // A page reached through a desktop paired to another computer: a key that computer keeps in its own encrypted store can
   // only be typed there. Anything its server keeps, a custom secret or a provider key, is typed here like on any page.
@@ -100,7 +109,7 @@ export function SecretRequestCard({
         body: JSON.stringify({ threadId }),
       });
     } catch (error) {
-      setLocalError(error instanceof Error ? error.message : String(error));
+      setLocalError(secretErrorLine(error));
     } finally {
       setSaving(false);
     }
@@ -134,7 +143,8 @@ export function SecretRequestCard({
       returnFocusToComposer();
     } catch (error) {
       if ((error as { body?: { needsServer?: unknown } }).body?.needsServer === true) setNeedsServer(true);
-      setLocalError(error instanceof SealTrustError ? t("seal.untrusted") : error instanceof Error ? error.message : String(error));
+      // what was typed stays in the fields, so trying again is one press
+      setLocalError(secretErrorLine(error));
     } finally {
       setSaving(false);
     }
@@ -170,7 +180,7 @@ export function SecretRequestCard({
       returnFocusToComposer();
     } catch (error) {
       if (!saved) keySaved(provider, "chat_request", keySaveFailure(error));
-      setLocalError(error instanceof Error ? error.message : String(error));
+      setLocalError(secretErrorLine(error));
     } finally {
       setSaving(false);
     }
@@ -223,7 +233,7 @@ export function SecretRequestCard({
       explanation={description}
       onDismiss={dismiss}
       dismissLabel="Not now"
-      stays
+      quiet
     >
       {onlyOnHost ? (
         <div className="text-[13px] leading-relaxed text-ink-secondary">
@@ -260,8 +270,8 @@ export function SecretRequestCard({
           {((custom && !email) || secret.helpUrl) && (
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] leading-4 text-ink-tertiary">
               {custom && !email && (
-                <label className="inline-flex cursor-pointer items-center gap-1.5 text-ink-secondary" data-secret-remember="">
-                  <input type="checkbox" checked={remember} disabled={saving} onChange={(event) => setRemember(event.target.checked)} className="size-3.5 accent-current" />
+                <label className="inline-flex cursor-pointer items-center gap-2 text-ink-secondary" data-secret-remember="">
+                  <Toggle checked={remember} disabled={saving} onClick={() => setRemember((on) => !on)} />
                   {t("secretCard.saveToVault")}
                 </label>
               )}
@@ -273,7 +283,7 @@ export function SecretRequestCard({
             </div>
           )}
           {error && <p role="alert" className="mt-2 text-[13px] leading-[18px] text-danger">{error}</p>}
-          <div className="-mx-4 -mb-4 mt-4 flex items-center gap-3 px-4 pb-4 pt-2.5">
+          <div className="mt-4 flex items-center gap-3">
             <span className="flex min-w-0 flex-1 items-center gap-1.5 text-[12px] leading-4 text-ink-tertiary">
               <LockKeyhole size={12} aria-hidden="true" className="shrink-0" />
               <span className="min-w-0">{note}</span>

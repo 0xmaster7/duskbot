@@ -1,7 +1,7 @@
 import { Children, createElement, isValidElement, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Message } from "@/state/store";
+import { ApiError, type Message } from "@/state/store";
 
 const dispatch = vi.fn();
 const fixture = vi.hoisted(() => ({ counting: false, values: [] as unknown[], index: 0, api: vi.fn(), track: vi.fn() }));
@@ -115,10 +115,20 @@ describe("SecretRequestCard ask card", () => {
     expect(html).toContain('autoComplete="new-password"');
   });
 
-  it("stays in view while it waits, however far the chat scrolls, and lets go once it is settled", () => {
-    expect(view({})).toMatch(/data-ask-card="pending"[^>]*class="[^"]*\bsticky\b/);
-    expect(view({ provided: true, resumed: true })).not.toContain("sticky");
-    expect(view({ superseded: true })).not.toContain("sticky");
+  it("sits in the chat's flow like any message, never pinned over the messages above it", () => {
+    for (const html of [view({}), view({ target: "customSecret", label: "instagram.com", delivery: "login", reason: "To post your photo.", helpUrl: "" })]) {
+      expect(html).toContain('data-ask-card="pending"');
+      const frame = /data-ask-card="pending" class="([^"]*)"/.exec(html)![1];
+      expect(frame).not.toMatch(/\b(sticky|absolute|fixed)\b/);
+      expect(html).not.toMatch(/\s-m[xytblr]?-\d/);
+    }
+  });
+
+  it("says the bot's purpose quietly and the privacy promise once, beside the lock", () => {
+    const html = view({ target: "customSecret", label: "instagram.com", delivery: "login", reason: "To post your photo.", description: "To post your photo.", helpUrl: "" });
+    expect(html).toMatch(/line-clamp-2 text-\[13px\][^"]*text-ink-tertiary">To post your photo\./);
+    expect(html.match(/never sees it/g)).toHaveLength(1);
+    expect(html).toContain("Sealed so only your computer can open it");
   });
 
   it("folds into one line that names the key once it is saved and the bot resumed", () => {
@@ -266,6 +276,26 @@ describe("SecretRequestCard key analytics", () => {
     expect(fixture.track).not.toHaveBeenCalled();
   });
 
+  it("never shows a raw technical error, keeps what was typed, and sends again on the next press", async () => {
+    const extra = { delivery: "ref", helpUrl: "" };
+    const alert = () => card("customSecret", extra).find((node) => (node.props as { role?: string }).role === "alert")?.props.children;
+    fixture.api.mockRejectedValueOnce(new TypeError("Failed to fetch dynamically imported module: http://localhost:5173/node_modules/.vite/deps/@hpke_core.js?v=1"));
+    await submit("customSecret", "sk_live_ZZtestSECRET0123456789", extra);
+    expect(alert()).toBe("Couldn't send that securely. Try again.");
+    const field = card("customSecret", extra).find((node) => node.type === "input" && (node.props as { type?: string }).type === "password");
+    expect((field!.props as { value?: string }).value, "what was typed stays for the retry").toBe("sk_live_ZZtestSECRET0123456789");
+    // the server's own plain words still say what went wrong
+    fixture.api.mockRejectedValueOnce(new ApiError("That key was refused.", 400, { error: "That key was refused." }));
+    card("customSecret", extra).find((node) => node.type === "form")!.props.onSubmit!({ preventDefault: () => {} });
+    await flush();
+    expect(alert()).toBe("That key was refused.");
+    fixture.api.mockResolvedValueOnce({ sealKey: { version: 1, keyId: "k1", x: "x", y: "y" } }).mockResolvedValueOnce({ provided: true });
+    card("customSecret", extra).find((node) => node.type === "form")!.props.onSubmit!({ preventDefault: () => {} });
+    await flush();
+    expect(fixture.api).toHaveBeenCalledTimes(4);
+    expect(alert()).toBeUndefined();
+  });
+
   it("seals again for a server that restarted between the two steps", async () => {
     fixture.api.mockResolvedValueOnce({ sealKey: { version: 1, keyId: "k1", x: "x", y: "y" } })
       .mockRejectedValueOnce(Object.assign(new Error("restarted"), { body: { sealKey: { version: 1, keyId: "k2", x: "x", y: "y" } } }))
@@ -286,7 +316,8 @@ describe("SecretRequestCard custom secrets", () => {
     const ref = view({ target: "customSecret", label: "Notion key", reason: "For Notion.", helpUrl: "", delivery: "ref" });
     expect(ref).toContain("dusk bot gives its own tools a one-use reference. Your bot never sees it");
     expect(ref).toContain('data-secret-remember=""');
-    expect(ref).toMatch(/type="checkbox"[^>]*checked=""/u);
+    expect(ref).toMatch(/role="switch" aria-checked="true"/u);
+    expect(ref).not.toContain('type="checkbox"');
     expect(ref).toContain("Save to vault");
   });
 
