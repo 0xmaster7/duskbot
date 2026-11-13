@@ -24,7 +24,8 @@ import {
 } from "./diagnostics.mjs";
 import { migrateWorkspaceCredentials, workspaceCredentialEnv } from "./workspace-credentials.mjs";
 import { evictStartupCacheOnce } from "./startup-cache-eviction.mjs";
-import { activateExistingWindow } from "./single-instance.mjs";
+import { activateExistingWindow, bringToFront, windowToReveal } from "./single-instance.mjs";
+import { createWindowPlacement } from "./window-placement.mjs";
 import { bootFailureMessage, listeningSignal, pollServerIdentity, SERVER_BOOT_TIMEOUT_MS, SERVER_LISTENING_GRACE_MS } from "./server-boot-probe.mjs";
 import { createServerSupervisor } from "./server-supervisor.mjs";
 import { serverChildLaunch } from "./server-child-launch.mjs";
@@ -265,11 +266,15 @@ function deliverChatLink(win = mainWindow) {
 
 let openWindowForLink = null;
 
-/** macOS open-url does not fire activate, so a link that finds no window opens one. */
+// app windows stay whole on a display the person can see (window-placement.mjs)
+const windowPlacement = createWindowPlacement({ screen, windows: () => appWindows(), log: message => slog(message) });
+
+/** A Dock click, a second launch or a link: the window in front, restored, unhidden, on screen and on this Space, even
+ * while only the island or the dock is up. macOS open-url does not fire activate, so a link that finds none opens one. */
 function revealForLink() {
   if (desktopTray?.show()) return;
-  const appWindow = !startupScreen && mainWindow && !mainWindow.isDestroyed() ? [mainWindow] : appWindows();
-  if (activateExistingWindow(appWindow)) return;
+  const target = windowToReveal({ splash: startupScreen?.window ?? null, main: mainWindow, others: appWindows() });
+  if (bringToFront(target, { app, fit: win => windowPlacement.fit(win) })) return;
   openWindowForLink?.();
 }
 
@@ -3071,6 +3076,7 @@ setCuaStateListener((connection) => {
 app.whenReady().then(async () => {
   app.setAboutPanelOptions(aboutPanelOptions(app.getVersion()));
   startupTrace.mark("ready");
+  windowPlacement.install();
   if (process.platform === "win32") {
     try {
       desktopTray = createSystemTray({
@@ -3386,10 +3392,7 @@ app.whenReady().then(async () => {
     if (!mainWindow || mainWindow.isDestroyed()) createWindow({ deferNavigation: homeWindow.current().kind !== "computer" });
     void showHome();
   };
-  app.on("activate", () => {
-    if (desktopTray?.show()) return;
-    if (appWindows().length === 0) openWindowForLink();
-  });
+  app.on("activate", () => revealForLink());
 }).catch((error) => {
   slog(`startup failed: ${error?.stack ?? error}`);
   if (!startupScreen) throw error;

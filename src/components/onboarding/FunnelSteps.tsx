@@ -1,5 +1,5 @@
 // The first-run funnel's frame (back, progress, a step that slides in from where it was reached) and its simpler steps:
-// the welcome, where bots live, and the phone.
+// the welcome, where bots live, the phone, and the help-improve line on the last screen.
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { ChevronLeft, Check } from "../../icons";
@@ -73,8 +73,9 @@ export function StepArt({ art, place }: { art?: ArtName; place?: PlaceArtName })
   return art ? <Art name={art} size="xl" className="place-mark h-16" /> : null;
 }
 
-/** "help improve dusk bot": on by default, small and muted, saved the moment it is switched. */
-function ImproveSwitch() {
+/** "help improve dusk bot": on by default, small and muted, saved the moment it is switched. Shown on the run's last
+ * screen (WelcomeFlow), not as the first thing. */
+export function ImproveSwitch() {
   const improve = useHelpImprove();
   const id = useId();
   if (typeof improve.on !== "boolean") return null;
@@ -97,7 +98,6 @@ export function WelcomeStep({ onStart }: { onStart: () => void }) {
         sub={t("funnel.welcome.sub")}
         footer={<button type="button" data-primary="" data-funnel-start="" autoFocus onClick={onStart} className={PRIMARY}>{t("funnel.welcome.start")}</button>}
       />
-      <div className="flex justify-center px-6 pb-8"><ImproveSwitch /></div>
     </div>
   );
 }

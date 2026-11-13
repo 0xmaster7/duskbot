@@ -3,6 +3,7 @@ import { rootErrorOptions } from "./lib/error-reports";
 import { startDesktopAnalytics } from "./lib/product-analytics-app";
 import { screen as productScreen } from "./lib/product-analytics";
 import { AccountGate, reloadWhenSignedOut } from "./components/account-gate/AccountGate";
+import { WindowDragStrip } from "./components/DesktopCapabilities";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -55,7 +56,7 @@ async function chooseRoot(): Promise<React.ReactNode> {
     return <PairPage initialCode={takePairingCodeFromLocation()} initialEmail={takeInvitedEmailFromLocation()} />;
   }
   const accountGate = window.duskDesktop?.accountGate;
-  if (!PAGES_WITHOUT_THE_APP.has(location.pathname) && accountGate && (await accountGate.state()).blocked) { productScreen("/sign-in"); return <AccountGate bridge={accountGate} />; }
+  if (!PAGES_WITHOUT_THE_APP.has(location.pathname) && accountGate && (await accountGate.state()).blocked) { productScreen("/sign-in"); return <><WindowDragStrip /><AccountGate bridge={accountGate} /></>; }
   if (!PAGES_WITHOUT_THE_APP.has(location.pathname) && accountGate) reloadWhenSignedOut(accountGate);
   const session = await readSessionState();
   if (session.kind === "unauthenticated") {

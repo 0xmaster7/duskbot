@@ -37,51 +37,51 @@ function validWorkAreas(workAreas) {
   );
 }
 
-/** workAreas must put the primary display first. */
-function resolveWindowState(state, workAreas, defaults = DEFAULT_BOUNDS) {
+/** `bounds` kept whole on one of `workAreas` (the primary display first): on the display it overlaps most, shrunk to fit
+ * it and slid inside its edges; a window on no display at all is centred on the primary. Null without a usable display. */
+function fitBounds(bounds, workAreas, minimum = MIN_BOUNDS) {
   const areas = validWorkAreas(workAreas);
   const primary = areas[0];
-  const defaultBounds = {
-    width: primary ? Math.min(defaults.width, primary.width) : defaults.width,
-    height: primary ? Math.min(defaults.height, primary.height) : defaults.height,
-  };
-  const parsed = parseWindowState(state);
-  if (!parsed || !primary) return { bounds: defaultBounds, maximized: false };
-
+  if (!primary) return null;
   let target = primary;
   let bestArea = 0;
   for (const area of areas) {
-    const overlap = intersectionArea(parsed.bounds, area);
+    const overlap = intersectionArea(bounds, area);
     if (overlap > bestArea) {
       bestArea = overlap;
       target = area;
     }
   }
-
-  const minWidth = Math.min(MIN_BOUNDS.width, target.width);
-  const minHeight = Math.min(MIN_BOUNDS.height, target.height);
-  const width = clamp(parsed.bounds.width, minWidth, target.width);
-  const height = clamp(parsed.bounds.height, minHeight, target.height);
-  if (bestArea === 0) {
-    return {
-      bounds: {
-        x: target.x + Math.round((target.width - width) / 2),
-        y: target.y + Math.round((target.height - height) / 2),
-        width,
-        height,
-      },
-      maximized: parsed.maximized,
-    };
-  }
+  const width = clamp(bounds.width, Math.min(minimum.width, target.width), target.width);
+  const height = clamp(bounds.height, Math.min(minimum.height, target.height), target.height);
+  if (bestArea === 0) return centeredOn(target, width, height);
   return {
-    bounds: {
-      x: clamp(parsed.bounds.x, target.x, target.x + target.width - width),
-      y: clamp(parsed.bounds.y, target.y, target.y + target.height - height),
-      width,
-      height,
-    },
-    maximized: parsed.maximized,
+    x: clamp(bounds.x, target.x, target.x + target.width - width),
+    y: clamp(bounds.y, target.y, target.y + target.height - height),
+    width,
+    height,
   };
+}
+
+function centeredOn(area, width, height) {
+  return { x: area.x + Math.round((area.width - width) / 2), y: area.y + Math.round((area.height - height) / 2), width, height };
+}
+
+/** workAreas must put the primary display first. A first launch opens centred on the primary display, sized to fit it. */
+function resolveWindowState(state, workAreas, defaults = DEFAULT_BOUNDS) {
+  const areas = validWorkAreas(workAreas);
+  const primary = areas[0];
+  const parsed = parseWindowState(state);
+  if (!primary) return { bounds: { width: defaults.width, height: defaults.height }, maximized: false };
+  if (!parsed) {
+    return { bounds: centeredOn(primary, Math.min(defaults.width, primary.width), Math.min(defaults.height, primary.height)), maximized: false };
+  }
+  return { bounds: fitBounds(parsed.bounds, areas), maximized: parsed.maximized };
+}
+
+/** Whether two bounds are the same place and size. */
+function sameBounds(a, b) {
+  return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
 }
 
 function normalizeUnreadCount(value) {
@@ -92,6 +92,8 @@ function normalizeUnreadCount(value) {
 module.exports = {
   DEFAULT_BOUNDS,
   MIN_BOUNDS,
+  fitBounds,
+  sameBounds,
   normalizeUnreadCount,
   parseWindowState,
   resolveWindowState,

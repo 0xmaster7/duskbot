@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
-// The first run as a funnel: the welcome (with the help-improve switch), a dusk bot account, where the bots live, an AI,
-// bots from another app when there are some, the phone, then Dusk's chat; on dusk cloud, the Cloud being made. What each
-// step shows, where it goes, and what it saves.
+// The first run as a funnel: the welcome, a dusk bot account, where the bots live, an AI,
+// bots from another app when there are some, the phone (with the help-improve line on the last screen), then Dusk's chat;
+// on dusk cloud, the Cloud being made. What each step shows, where it goes, and what it saves.
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -115,11 +115,15 @@ afterEach(async () => {
 });
 
 describe("the welcome", () => {
-  it("opens on the welcome, with the help-improve switch on and saved when switched", async () => {
+  it("opens on the welcome with nothing else to decide; help improve is one quiet line on the last screen, on and saved when switched", async () => {
     await show();
     expect(step()).toBe("welcome");
     expect(title()).toBe("meet dusk bot");
+    expect(host.querySelector("[data-help-improve]"), "not the first thing asked").toBeNull();
+    await press("get started");
+    expect(step(), "the last screen here").toBe("ai");
     const line = host.querySelector<HTMLElement>("[data-help-improve]")!;
+    expect(line.textContent).toContain("You can turn it off anytime in settings.");
     expect(line.className).toContain("text-[12px]");
     const toggle = line.querySelector<HTMLButtonElement>("[role=switch]")!;
     expect(toggle.getAttribute("aria-checked")).toBe("true");
@@ -221,11 +225,13 @@ describe("on the desktop app", () => {
     expect(text()).toContain("from $20 a month");
     await choose("[data-funnel-place=mac]");
     expect(step()).toBe("ai");
+    expect(host.querySelector("[data-help-improve]"), "only on the last screen").toBeNull();
     await press("continue");
     expect(step()).toBe("bring");
     await press("continue");
     expect(step()).toBe("phone");
     expect(host.querySelector(".phone-frame img"), "the phone app's own screen").not.toBeNull();
+    expect(host.querySelector("[data-help-improve]"), "help improve sits on the last screen").not.toBeNull();
     expect(button("skip")?.className, "skip is a real button").toContain("ui-button-lg");
     await press("back");
     expect(step()).toBe("bring");

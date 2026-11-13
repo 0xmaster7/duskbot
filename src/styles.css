@@ -3264,9 +3264,11 @@ button:disabled.bg-danger {
    chevron or icon overlay would otherwise drag over the field. A modal's
    full-window backdrop is cut out with its dialog, so a press on it over a
    header still closes the dialog instead of moving the window. The
-   full-screen live desktop covers the headers beneath it the same way. */
+   full-screen live desktop covers the headers beneath it the same way. A
+   full-window screen's WindowDragStrip comes first in it, so every control
+   after the strip is cut back out of it the same way. */
 [data-window-drag] :has(> :is(select, input)),
-[data-window-drag] :is(button, a[href], input, select, textarea, label, summary, [role="button"], [role="link"], [role="tab"], [role="switch"], [role="checkbox"], [role="radio"], [role="combobox"], [role="slider"], [role="separator"], [contenteditable]:not([contenteditable="false"]), [tabindex]:not([tabindex="-1"])),
+:is([data-window-drag] *, [data-window-drag-strip] ~ *, [data-window-drag-strip] ~ * *):is(button, a[href], input, select, textarea, label, summary, [role="button"], [role="link"], [role="tab"], [role="switch"], [role="checkbox"], [role="radio"], [role="combobox"], [role="slider"], [role="separator"], [contenteditable]:not([contenteditable="false"]), [tabindex]:not([tabindex="-1"])),
 :is([role="menu"], [role="listbox"], [role="dialog"], [role="alertdialog"], [role="tooltip"]),
 .fixed:has(> :is([role="dialog"], [role="alertdialog"], [aria-modal="true"])),
 [data-browser-transport],

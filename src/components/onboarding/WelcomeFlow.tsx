@@ -13,13 +13,14 @@ import { api, useStore } from "@/state/store";
 import type { SetupDetection } from "../../../shared/setup-import";
 import { useBotMove } from "../BringBots";
 import { useNotesIntake } from "../NotesWaiting";
+import { WindowDragStrip } from "../DesktopCapabilities";
 import { GrokMoveDialog } from "../lazy-screens";
 import { AccountStep } from "./AccountStep";
 import { AiStep } from "./AiStep";
 import { BringStatus, BringStep } from "./BringStep";
 import { funnelSteps, nextStep, previousStep, type FunnelStep } from "./funnel";
 import { funnelAccount, type FunnelAccountState } from "./funnel-account";
-import { FunnelBar, PhoneStep, PlaceStep, WelcomeStep } from "./FunnelSteps";
+import { FunnelBar, ImproveSwitch, PhoneStep, PlaceStep, WelcomeStep } from "./FunnelSteps";
 import { MakingStep } from "./MakingStep";
 import { useWelcomeAi } from "./welcome-ai";
 import { localDesktopPage } from "./WelcomeGate";
@@ -304,9 +305,13 @@ export function WelcomeFlow({
       data-welcome={at}
       className={cn("welcome-screen flex overflow-y-auto bg-app outline-none", embedded ? "relative h-full w-full" : "fixed inset-y-0 left-[var(--rail-beside,0px)] right-0 z-50")}
     >
+      {/* first, so the back button and every control after it stay clickable (styles.css) */}
+      {!embedded && <WindowDragStrip />}
       {at !== "welcome" && steps.length > 1 && <FunnelBar at={index} count={steps.length} onBack={back ? () => go(back, "back") : null} />}
       <div key={at} data-from={from} className="place-step relative flex min-h-full w-full flex-col">
         {body}
+        {/* help improve: one quiet line on the last screen, beside the run's other final choices */}
+        {index === steps.length - 1 && <div className="flex justify-center px-6 pb-8"><ImproveSwitch /></div>}
       </div>
       <BringStatus working={bringRun.kind === "working"} line={notesLine ?? (bringRun.kind === "done" ? bringRun.line : null)} />
       {grokOpen && <GrokMoveDialog onClose={() => { setGrokOpen(false); void move.look(); }} />}
