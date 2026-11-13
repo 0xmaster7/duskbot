@@ -441,7 +441,8 @@ try {
   const desktop = readFileSync(desktopFile, "utf8");
   for (const expected of [
     "Name=Dusk Bot",
-    "Exec=/opt/Dusk Bot/duskbot %U",
+    // electron-builder quotes a path with a space, as the desktop entry spec asks
+    'Exec="/opt/Dusk Bot/duskbot" %U',
     "Icon=duskbot",
     "StartupWMClass=bot.dusk.app",
     "Categories=Utility;",

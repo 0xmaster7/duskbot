@@ -68,7 +68,7 @@ const installed = inContainer(
     prepare,
     command,
     'dpkg-query -W -f="INSTALLED=\\${Version} \\${db:Status-Abbrev}\\n" duskbot',
-    'test -x /opt/Dusk Bot/duskbot && echo "EXECUTABLE=yes"',
+    'test -x "/opt/Dusk Bot/duskbot" && echo "EXECUTABLE=yes"',
   ].join("\n"),
 );
 
