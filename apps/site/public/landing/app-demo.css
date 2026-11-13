@@ -222,6 +222,13 @@ button.ad-row:hover, .ad-row.ad-click:hover { background: #1c1c1c09; }
 }
 
 @media (hover: none) { .ad-bot:hover, .ad-chip:hover { background: inherit; } }
+/* touch: the small controls keep their look but get a thumb-sized tap area around them */
+@media (pointer: coarse) {
+  /* 16px so ios does not zoom the page when the demo's message field is tapped */
+  .ad-compose input { font-size: 16px; }
+  .ad-chip, .ad-compose .ad-plus, .ad-send, .ad-apps { position: relative; }
+  .ad-chip::before, .ad-compose .ad-plus::before, .ad-send::before, .ad-apps::before { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: 44px; translate: -50% -50%; }
+}
 @media (prefers-reduced-motion: reduce) {
   .ad-in, .ad-panel.ad-open, .ad-menu, .ad-phone .ad-app[data-view="chat"] .ad-main { animation-name: ad-fade; }
   @keyframes ad-fade { from { opacity: 0; } }

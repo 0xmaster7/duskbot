@@ -135,9 +135,10 @@
 .seo-check { list-style: none; display: grid; gap: 8px; }
 .seo-check li { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; padding: 10px 14px; border-radius: var(--r-m); background: var(--wash); }
 .seo-check .i { width: 18px; height: 18px; margin-top: 3px; color: var(--green); }
-.seo-saves { display: grid; grid-template-columns: 52px 1fr; gap: 18px; padding: 20px 22px; border-radius: var(--r-xl); background: var(--t-lemon); }
+.seo-saves { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 18px; padding: 20px 22px; border-radius: var(--r-xl); background: var(--t-lemon); }
 .seo-saves-n { margin: 0 0 8px; font-size: 22px; line-height: 1.3; font-weight: 550; color: var(--ink); letter-spacing: -0.02em; }
 .seo-formula { background: #fff; margin: 10px 0; }
+.seo-formula code { white-space: pre-wrap; }
 .seo-mistakes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gut); }
 .seo-mistakes > div { padding: 16px 18px; border-radius: var(--r-l); background: var(--t-pink); }
 .seo-mistakes > div:nth-child(even) { background: var(--t-sky); }
@@ -150,3 +151,4 @@
   .seo-spot { width: 64px; }
   .seo-mascot { display: none; }
 }
+@media (pointer: coarse) { .seo-hubs a { padding: 10px 16px; } }

@@ -192,6 +192,8 @@ kbd { display: inline-grid; place-items: center; min-width: 26px; height: 26px; 
 .callout.careful { background-color: var(--t-lemon); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Crect x='3' y='3' width='12' height='12' rx='2' fill='%23ff7d1f'/%3E%3C/svg%3E"); }
 .prose .table { margin: 20px 0; overflow-x: auto; border-radius: 16px; background: var(--wash); padding: 6px 16px; }
 .prose table { font-size: 15px; min-width: 420px; }
+/* phones: two-column tables wrap inside the screen instead of hiding half of each row; wide ones still scroll */
+@media (max-width: 520px) { .prose table { min-width: 0; } }
 .prose th, .prose td { padding: 11px 12px 11px 0; border-bottom: 1px solid #e4e4e0; color: var(--text); }
 .prose tr:last-child td { border-bottom: 0; }
 .prose th { color: var(--ink); font-weight: 550; white-space: nowrap; }
@@ -274,6 +276,8 @@ body:has(.p-doc) .bar { max-width: 1440px; padding-left: 32px; padding-right: 32
 .docs-search > kbd { position: absolute; right: 10px; background: #fff; pointer-events: none; }
 .docs-search:focus-within > kbd, html:not(.js) .docs-search > kbd { display: none; }
 @media (hover: none) { .docs-search > kbd { display: none; } }
+/* 16px on touch screens so ios does not zoom the page when the field is tapped */
+@media (pointer: coarse) { .docs-search input { font-size: 16px; } }
 .hits { position: absolute; z-index: 25; left: 0; top: calc(100% + 8px); width: max(100%, min(440px, calc(100vw - 32px))); max-height: min(60vh, 520px); overflow-y: auto; overscroll-behavior: contain; padding: 6px; border-radius: 20px; background: #fff; box-shadow: 0 0 0 1px var(--line), 0 18px 40px -16px rgba(0, 0, 0, 0.25); transform-origin: 30px 0; animation: hits-in 0.16s var(--ease-out); }
 .hits[hidden] { display: none; }
 @keyframes hits-in { from { opacity: 0; scale: 0.98; translate: 0 -4px; } }
@@ -663,3 +667,11 @@ body:has(.p-doc) .bar { max-width: 1440px; padding-left: 32px; padding-right: 32
 .chip { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px 0 10px; border-radius: 999px; background: var(--wash); font-size: 14px; color: var(--ink); white-space: nowrap; }
 .chip .logo { width: 15px; height: 15px; }
 .nw { white-space: nowrap; }
+/* touch: small links get a thumb-sized tap area. stacked lists grow to 44px rows; links set in a line keep their look
+   and get an invisible area around them instead */
+@media (pointer: coarse) {
+  .doc-toc a, .toc a { padding: 12.5px 0; }
+  .crumb a, .rows-plain a, .lost-links a { position: relative; }
+  .crumb a::before, .rows-plain a::before, .lost-links a::before { content: ""; position: absolute; inset: -13px -4px; }
+  .rows-plain a::before, .lost-links a::before { inset: -9px 0; }
+}

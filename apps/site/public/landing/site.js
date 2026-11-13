@@ -5,7 +5,8 @@ const menu = document.querySelector('.menu');
 if (menu) {
   const shut = () => { menu.open = false; };
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && menu.open) { shut(); menu.querySelector('summary').focus(); } });
-  document.addEventListener('click', (e) => { if (menu.open && !menu.contains(e.target)) shut(); });
+  // pointerdown, not click: touch browsers send no click for a tap on plain text or empty page
+  document.addEventListener('pointerdown', (e) => { if (menu.open && !menu.contains(e.target)) shut(); });
   matchMedia('(min-width: 641px)').addEventListener('change', shut);
 }
 }
