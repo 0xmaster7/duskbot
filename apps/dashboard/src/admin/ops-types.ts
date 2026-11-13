@@ -106,7 +106,8 @@ export interface OpsAnswer {
 }
 
 /** the link relays' live cards at the top of ops: GET /v1/admin/ops/relays, from each relay's GET /ops/relay/stats */
-export type OpsRelayId = "contabo" | "cloudflare";
+/** "contabo", "cloudflare", or another link node's id ("oracle-in") */
+export type OpsRelayId = string;
 /** rates in bytes per second, sizes in bytes; null turns a limit off. a relay may add keys of its own */
 export interface OpsRelayLimits {
   perTunnelBytesPerSec?: number | null; burstBytes?: number | null; perTunnelDailyBytes?: number | null; tunnelsPerAccount?: number | null;
@@ -125,5 +126,13 @@ export interface OpsRelayStats {
   /** cloudflare: an estimate from durable object awake time and messages */
   cost?: { estimated: boolean; monthCents: number; projectedCents: number; awakeHours?: number; messages?: number };
   paused?: boolean;
+  /** a link service node: which one, and how full it is for placing new servers */
+  node?: { id: string; region: string | null; url: string; default: boolean; homed: number; accepting: boolean; refuses: string | null; load: { active: number; bandwidth: number; budget: number; spent: number; box: number } };
+  /** every link node as this one sees it */
+  nodes?: Array<{ id: string; url: string; region: string | null; self: boolean; up: boolean; lastOkAt: number | null; lastError: string | null; homed: number | null; tunnels: number | null; accepting: boolean | null }>;
+  /** the whole box: cpu and memory in %, the main interface's traffic (everything the box sends counts against the allowance) */
+  box?: { iface: string | null; cpu: number | null; mem: number | null; cores: number; bytesPerSecOut: number | null; bytesPerSecIn: number | null; monthBytesOut: number | null; monthBytesIn: number | null; projectedBytesOut: number | null; countingSince: number | null } | null;
+  /** the node's own turn server (the webrtc fallback's second tier) */
+  turn?: { ok: boolean | null; at: number | null; rttMs: number | null; downSince: number | null; urls: string[] } | null;
 }
 export interface OpsRelayCard { id: OpsRelayId; label: string; url: string; at: number; configured: boolean; ok: boolean; error: string | null; stats: OpsRelayStats | null }

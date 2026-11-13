@@ -11,6 +11,8 @@ import {
 } from "./collectors.ts";
 import { median, ratioOf, robustZ, step, suspects, type SignalInput, type SignalSpec } from "./math.ts";
 import type { OpsDaily, OpsRuleState, OpsStore } from "./store.ts";
+import { RELAY_RULE_PREFIX, relayNodeReadings } from "./relay-alerts.ts";
+import { createRelays } from "./relays.ts";
 
 const MINUTE = 60_000, HOUR = 60 * MINUTE, DAY = 24 * HOUR, GB_BYTES = 1e9;
 /** Cloudflare Workers Paid, as of 2026-11: $5 a month with 10m requests and 30m CPU ms, then $0.30 per million requests and $0.02 per million CPU ms */
@@ -448,6 +450,31 @@ export function createOps(options: OpsOptions) {
     ];
   }
 
+  // the link relay nodes, every minute: a node down for 2 minutes has to be heard about in minutes, not at the next 5
+  const relayCards = options.env.DUSK_LINK_STATS_TOKEN ? createRelays({ env: options.env, fetch: fetcher, now, accounts: () => [] }) : null;
+  let relayRunning: Promise<void> | null = null;
+  function relayTick(): Promise<void> {
+    if (!relayCards) return Promise.resolve();
+    if (relayRunning) return relayRunning;
+    relayRunning = (async () => {
+      const { relays } = await relayCards.list();
+      const list = relayNodeReadings(relays), time = now();
+      const states = new Map((await store.rules()).map(s => [s.id, s]));
+      const changed: OpsRuleState[] = [];
+      for (const reading of list) {
+        const prev = states.get(reading.id) ?? { id: reading.id, state: "ok" as const, since: null, value: null, incidentId: null, lastFiredAt: null, updatedAt: 0 };
+        const { next, event } = step(prev, reading, reading.forMs, time);
+        if (event === "fire" && alertsOn && options.incidents) next.incidentId = options.incidents.report({ source: "ops", name: reading.label.slice(0, 60), message: `${reading.value ?? ""} (alert when ${reading.threshold}). what to do: ${reading.action}`, key: `ops-${reading.id}-${next.since}` });
+        if (event === "recover" && alertsOn && options.incidents && prev.incidentId) await options.incidents.recovered(prev.incidentId, `${reading.label} is back to normal: ${reading.value ?? "ok"}.`).catch(() => false);
+        if (event || next.state !== prev.state || next.value !== prev.value) changed.push(next);
+      }
+      await store.putRules(changed);
+      lastRelayReadings = list;
+    })().catch(error => console.warn(`ops: the relay node rules could not be checked (${(error as Error).message})`)).finally(() => { relayRunning = null; });
+    return relayRunning;
+  }
+  let lastRelayReadings: ReturnType<typeof relayNodeReadings> = [];
+
   let evaluating: Promise<void> | null = null;
   async function evaluate(): Promise<void> {
     if (evaluating) return evaluating;
@@ -456,7 +483,7 @@ export function createOps(options: OpsOptions) {
       const states = new Map(snap.ruleStates.map(s => [s.id, s]));
       const list = readings(snap, spend);
       const seen = new Set(list.map(r => r.id));
-      for (const stale of states.values()) if (!seen.has(stale.id) && stale.state !== "ok") list.push({ id: stale.id, label: stale.id, threshold: "", forMs: 0, breach: false, value: "gone" });
+      for (const stale of states.values()) if (!seen.has(stale.id) && stale.state !== "ok" && !stale.id.startsWith(RELAY_RULE_PREFIX)) list.push({ id: stale.id, label: stale.id, threshold: "", forMs: 0, breach: false, value: "gone" });
       const changed: OpsRuleState[] = [];
       for (const reading of list) {
         const prev = states.get(reading.id) ?? { id: reading.id, state: "ok" as const, since: null, value: null, incidentId: null, lastFiredAt: null, updatedAt: 0 };
@@ -535,6 +562,10 @@ export function createOps(options: OpsOptions) {
       const s = ruleStates.get(r.id);
       return { id: r.id, label: r.label, threshold: r.threshold, state: s?.state ?? "ok", since: s?.since ?? null, value: r.value ?? s?.value ?? null, lastFiredAt: s?.lastFiredAt ?? null };
     }).filter(rule => !rule.id.startsWith("outlier-") || rule.state !== "ok" || rule.lastFiredAt !== null);
+    for (const r of lastRelayReadings) {
+      const s = ruleStates.get(r.id);
+      alerts.push({ id: r.id, label: r.label, threshold: r.threshold, state: s?.state ?? "ok", since: s?.since ?? null, value: r.value ?? s?.value ?? null, lastFiredAt: s?.lastFiredAt ?? null });
+    }
     const configured: Record<OpsSourceId, boolean> = { host: options.host !== false && process.platform === "linux", probes: true, mongo: !!options.db, oracle: !!config.reportToken,
       certs: true, cloudflare: !!config.cloudflare, brevo: !!config.brevo, composio: !!config.composio, relay: !!config.relay };
     const sources: OpsSource[] = SOURCES.map(s => { const l = snap.latest.get(s.id); return { ...s, configured: configured[s.id], at: l?.at ?? null, ok: l?.ok ?? false, error: l?.error ?? null }; });
@@ -560,9 +591,11 @@ export function createOps(options: OpsOptions) {
       const tick = (all: boolean) => () => { void collect(all).catch(error => console.warn(`ops: collection failed (${(error as Error).message})`)); };
       const first = setTimeout(tick(true), 90_000);
       first.unref?.();
-      timers.push(setInterval(tick(false), 5 * MINUTE), setInterval(tick(true), HOUR));
+      timers.push(setInterval(tick(false), 5 * MINUTE), setInterval(tick(true), HOUR), setInterval(() => void relayTick(), MINUTE));
       for (const timer of timers) timer.unref?.();
     },
+    /** the relay node rules now (every minute on its own once started) */
+    relayTick,
     close() { closed = true; for (const timer of timers) clearInterval(timer); timers.length = 0; },
   };
 }

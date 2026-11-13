@@ -1,5 +1,7 @@
-// the two link relays at the top of the admin ops page: the link service on the contabo box and the cloudflare
-// worker. both answer GET /ops/relay/stats and PUT /ops/relay/limits behind their ops token; this proxies to them.
+// the link relays at the top of the admin ops page: every link service node (contabo, oracle mumbai, ...) and the
+// cloudflare worker. each answers GET /ops/relay/stats and PUT /ops/relay/limits behind its ops token; this proxies to
+// them. link nodes share DUSK_LINK_STATS_TOKEN; the ones past the first come from DUSK_LINK_NODES and from the first
+// node's own list of its peers, so a node added there shows up here by itself.
 import type { OpsRelayCard, OpsRelayId, OpsRelayStats } from "../../../src/admin/ops-types.ts";
 import { linkAccountRef } from "../../link-grant.ts";
 
@@ -8,13 +10,25 @@ export class RelayError extends Error {
   constructor(status: number, code: string, message: string) { super(message); this.status = status; this.code = code; }
 }
 
-interface RelayTarget { id: OpsRelayId; label: string; url: string; token: string | null; tokenEnv: string }
+interface RelayTarget { id: OpsRelayId; label: string; url: string; token: string | null; tokenEnv: string; link: boolean }
 
-/** env names: DUSK_LINK_URL + DUSK_LINK_STATS_TOKEN (contabo), DUSK_CF_RELAY_URL + DUSK_CF_RELAY_OPS_TOKEN (cloudflare) */
+const NODE_ID = /^[a-z][a-z0-9-]{1,30}$/;
+const linkLabel = (id: string, region?: string | null) => `${id.replace(/-/g, " ")} relay${region ? ` (${region})` : ""}`;
+/** DUSK_LINK_NODES: "oracle-in=https://link-in.dusk.bot,..." the link nodes past the first, also found on their own */
+export function linkNodes(value: string | undefined): Array<{ id: string; url: string }> {
+  return (value ?? "").split(",").map(part => part.trim()).flatMap(part => {
+    const match = /^([a-z][a-z0-9-]{1,30})=(https?:\/\/[^/\s]+)$/.exec(part);
+    return match && match[1] !== "contabo" && match[1] !== "cloudflare" ? [{ id: match[1], url: match[2]! }] : [];
+  });
+}
+
+/** env names: DUSK_LINK_URL + DUSK_LINK_STATS_TOKEN (contabo, and DUSK_LINK_NODES), DUSK_CF_RELAY_URL + DUSK_CF_RELAY_OPS_TOKEN (cloudflare) */
 export function relayTargets(env: NodeJS.ProcessEnv): RelayTarget[] {
+  const token = env.DUSK_LINK_STATS_TOKEN || null;
   return [
-    { id: "contabo", label: "contabo relay", url: env.DUSK_LINK_URL || "https://link.dusk.bot", token: env.DUSK_LINK_STATS_TOKEN || null, tokenEnv: "DUSK_LINK_STATS_TOKEN" },
-    { id: "cloudflare", label: "cloudflare relay", url: env.DUSK_CF_RELAY_URL || "https://relay.dusk.bot", token: env.DUSK_CF_RELAY_OPS_TOKEN || null, tokenEnv: "DUSK_CF_RELAY_OPS_TOKEN" },
+    { id: "contabo", label: "contabo relay", url: env.DUSK_LINK_URL || "https://link.dusk.bot", token, tokenEnv: "DUSK_LINK_STATS_TOKEN", link: true },
+    ...linkNodes(env.DUSK_LINK_NODES).map(node => ({ id: node.id, label: linkLabel(node.id), url: node.url, token, tokenEnv: "DUSK_LINK_STATS_TOKEN", link: true })),
+    { id: "cloudflare", label: "cloudflare relay", url: env.DUSK_CF_RELAY_URL || "https://relay.dusk.bot", token: env.DUSK_CF_RELAY_OPS_TOKEN || null, tokenEnv: "DUSK_CF_RELAY_OPS_TOKEN", link: false },
   ];
 }
 
@@ -58,7 +72,8 @@ export function createRelays(options: { env: NodeJS.ProcessEnv; fetch?: typeof f
       accountBytesPerSec: 25 * MBIT, accountFullSpeedBytes: 50 * GB, floorBytesPerSec: 2 * MBIT, paused: false },
   };
   const fixtureCard = (target: RelayTarget, who: ReturnType<typeof people>): OpsRelayCard =>
-    ({ id: target.id, label: target.label, url: target.url, at: options.now(), configured: true, ok: true, error: null, stats: shape(fixtureStats(options.now(), options.accounts(), sample)[target.id], who) });
+    ({ id: target.id, label: target.label, url: target.url, at: options.now(), configured: true, ok: true, error: null, stats: shape(fixtureStats(options.now(), options.accounts(), sample)[target.id as "contabo" | "cloudflare"], who) });
+  const fixtureTargets = () => targets.filter(target => target.id === "contabo" || target.id === "cloudflare");
 
   async function call(target: RelayTarget, path: string, init: RequestInit = {}) {
     let res: Response;
@@ -106,13 +121,30 @@ export function createRelays(options: { env: NodeJS.ProcessEnv; fetch?: typeof f
   return {
     async list(): Promise<{ relays: OpsRelayCard[]; at: number }> {
       const who = people();
-      if (options.fixture) return { relays: targets.map(target => fixtureCard(target, who)), at: options.now() };
-      return { relays: await Promise.all(targets.map(target => one(target, who))), at: options.now() };
+      if (options.fixture) return { relays: fixtureTargets().map(target => fixtureCard(target, who)), at: options.now() };
+      const cards = await Promise.all(targets.map(target => one(target, who)));
+      // nodes the link nodes know of that are not listed yet: added for good, asked now
+      const fresh: RelayTarget[] = [];
+      for (const card of cards) for (const node of card.stats?.nodes ?? []) {
+        if (typeof node?.id !== "string" || !NODE_ID.test(node.id) || typeof node.url !== "string" || !/^https?:\/\/[^/\s]+$/.test(node.url)) continue;
+        if (targets.some(target => target.id === node.id) || fresh.some(target => target.id === node.id)) continue;
+        if (node.id === "cloudflare" || targets.some(target => target.url === node.url)) continue;
+        fresh.push({ id: node.id, label: linkLabel(node.id, node.region), url: node.url, token: targets[0]!.token, tokenEnv: "DUSK_LINK_STATS_TOKEN", link: true });
+      }
+      if (fresh.length) {
+        targets.splice(targets.length - 1, 0, ...fresh);
+        const more = await Promise.all(fresh.map(target => one(target, who)));
+        cards.splice(cards.length - 1, 0, ...more);
+      }
+      // a region, once a node said it
+      for (const card of cards) { const target = targets.find(item => item.id === card.id); if (target?.link && card.id !== "contabo" && card.stats?.node?.region) card.label = target.label = linkLabel(card.id, card.stats.node.region); }
+      return { relays: cards, at: options.now() };
     },
     async setLimits(id: string, body: Record<string, unknown>): Promise<OpsRelayCard> {
+      if (!targets.some(item => item.id === id) && NODE_ID.test(id)) await this.list();
       const target = targets.find(item => item.id === id);
       if (!target) throw new RelayError(404, "not_found", "Not found.");
-      if (options.fixture) { sample[target.id] = { ...sample[target.id], ...cleanLimits(body) }; return fixtureCard(target, people()); }
+      if (options.fixture) { const key = target.id as "contabo" | "cloudflare"; sample[key] = { ...sample[key], ...cleanLimits(body) }; return fixtureCard(target, people()); }
       if (!target.token) throw new RelayError(409, "not_configured", `Set ${target.tokenEnv} first.`);
       const limits = cleanLimits(body);
       await call(target, "/ops/relay/limits", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(limits) });

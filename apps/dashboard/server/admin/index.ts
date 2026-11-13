@@ -442,7 +442,7 @@ export function createAdmin(options: AdminOptions) {
       await audit(owner.id, "note.delete", noteRoute[1]!);
       return send({ ok: true });
     }
-    const relayLimits = /^\/ops\/relays\/(contabo|cloudflare)\/limits$/.exec(route);
+    const relayLimits = /^\/ops\/relays\/([a-z][a-z0-9-]{1,30})\/limits$/.exec(route);
     if (relayLimits && method === "PUT") {
       const body = options.bodyObject(await options.readBody(req));
       const relay = await relayCall(relays.setLimits(relayLimits[1]!, body));

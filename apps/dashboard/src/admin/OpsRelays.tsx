@@ -165,6 +165,17 @@ function RelayCard({ relay, now, onSaved }: { relay: OpsRelayCard; now: number; 
   ];
   if (stats.now.cpu !== null && stats.now.cpu !== undefined) facts.push(["cpu", `${Math.round(stats.now.cpu)}%`]);
   if (stats.now.rssMb !== null && stats.now.rssMb !== undefined) facts.push(["memory", `${n(Math.round(stats.now.rssMb))} mb`]);
+  if (stats.node) {
+    facts.push(["servers living here", n(stats.node.homed)]);
+    facts.push(["new servers", stats.node.accepting ? "placed here" : `not placed here (${stats.node.refuses ?? "full"})`]);
+  }
+  if (stats.box) {
+    if (stats.box.cpu !== null) facts.push(["box cpu", `${Math.round(stats.box.cpu)}%`]);
+    if (stats.box.mem !== null) facts.push(["box memory", `${Math.round(stats.box.mem)}%`]);
+    if (stats.box.bytesPerSecOut !== null) facts.push(["box out now", mbit(stats.box.bytesPerSecOut)]);
+  }
+  if (stats.turn) facts.push(["turn", stats.turn.ok === null ? "not checked yet" : stats.turn.ok ? `up${stats.turn.rttMs !== null ? `, ${stats.turn.rttMs} ms` : ""}` : "down"]);
+  for (const peer of (stats.nodes ?? []).filter((one) => !one.self)) facts.push([`sees ${peer.id}`, peer.up ? "up" : peer.lastOkAt ? `down, last heard ${ago(peer.lastOkAt, now)}` : "never heard"]);
   if (stats.cost) {
     facts.push([stats.cost.estimated ? "cost so far, est." : "cost so far", <span className="text-money">{usd(Math.round(stats.cost.monthCents))}</span>]);
     facts.push(["cost at this pace", <span className="text-money">{usd(Math.round(stats.cost.projectedCents))}</span>]);
@@ -186,8 +197,10 @@ function RelayCard({ relay, now, onSaved }: { relay: OpsRelayCard; now: number; 
           <span className="t-meta">{limits.maxTunnels ? `of ${n(limits.maxTunnels)}` : "no tunnel cap"} · updated {ago(relay.at, now)}</span>
         </div>
         <Meter label={limits.globalCeilingBytesPerSec ? "out now, of the ceiling" : "out now, no ceiling"} meter={meterOf(stats.now.bytesPerSecOut, limits.globalCeilingBytesPerSec)} format={mbit} />
-        <Meter label={stats.month.allowanceBytes ? "out this month, of the allowance" : `out this month, ${size(stats.month.projectedBytesOut)} at this pace`}
-          meter={meterOf(stats.month.bytesOut, stats.month.allowanceBytes, stats.month.projectedBytesOut)} format={size} />
+        {stats.box?.monthBytesOut !== null && stats.box?.monthBytesOut !== undefined
+          ? <Meter label="box out this month, of the allowance" meter={meterOf(stats.box.monthBytesOut, stats.month.allowanceBytes, stats.box.projectedBytesOut)} format={size} />
+          : <Meter label={stats.month.allowanceBytes ? "out this month, of the allowance" : `out this month, ${size(stats.month.projectedBytesOut)} at this pace`}
+            meter={meterOf(stats.month.bytesOut, stats.month.allowanceBytes, stats.month.projectedBytesOut)} format={size} />}
         <Facts items={facts} />
       </div>
       <div className="px-2.5 pb-1 pt-1 t-meta">top accounts today</div>
@@ -207,7 +220,7 @@ function RelayCard({ relay, now, onSaved }: { relay: OpsRelayCard; now: number; 
   );
 }
 
-/** both link relays, live: refreshed every 10 s while the page is visible */
+/** every link relay node and the cloudflare relay, live: refreshed every 10 s while the page is visible */
 export function Relays() {
   const { data, error, setData } = useAdmin<{ relays: OpsRelayCard[]; at: number }>("/ops/relays", 10_000);
   const now = useNow(10_000);
@@ -217,6 +230,13 @@ export function Relays() {
       {error && !data && <p className="rounded-[24px] bg-card px-4 py-3 text-13 text-ink-3">relays can't be read right now: {error.message}</p>}
       {!data && !error && <div className="grid grid-cols-2 gap-4 max-lg:grid-cols-1">{[0, 1].map((i) => <div key={i} className="h-[420px] animate-pulse rounded-[24px] bg-card" />)}</div>}
       {data && <div className={cx("grid grid-cols-2 items-start gap-4 max-lg:grid-cols-1")}>{data.relays.map((relay) => <RelayCard key={relay.id} relay={relay} now={now} onSaved={saved} />)}</div>}
+      {data && (
+        <div className="mt-4">
+          <Panel id="ops-relay-paths" title="how apps connect" meta={<Level level="unknown" word="no reports yet" />}>
+            <Empty>the share of sessions that go direct, through cloudflare turn, or through our relay shows here once the app reports it.</Empty>
+          </Panel>
+        </div>
+      )}
     </section>
   );
 }
