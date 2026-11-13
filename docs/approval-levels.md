@@ -6,8 +6,8 @@ while the bot is working (see below). Each level is one of the
 provider's own permission modes, passed through. A native tool request that
 reaches you is one the provider left for you. dusk bot only answers from an
 explicit grant: Full Access, a saved exact command or MCP read-shaped tool,
-the narrow built-in web-search allowance under Approve for me, or a bot reading
-its own files. In Full Access, dusk bot also applies its own configuration tools
+the narrow built-in web-search allowance under Approve for me, an app tool that
+only reads, or a bot reading its own files. In Full Access, dusk bot also applies its own configuration tools
 without another approval.
 
 **A bot reading its own files never asks**, at any level: its standing
@@ -21,6 +21,16 @@ before, and so does every read in a guest's turn, since a bot's folder holds its
 owner's memory. On a Cloud the bot's box also shows it its own `SOUL.md`,
 read-only.
 
+**Reading never asks** in an app the person connected, at every level but
+Custom: a tool its MCP server marks read-only (`readOnlyHint`), dusk bot's own
+`api_request` with `GET`, and the known reads of Connect apps' own servers. A
+read-only mark is not believed for a tool the server also calls destructive or
+whose name says it writes (create, update, delete, send and the like), and a call to
+a server whose tool list is not known yet asks. Anything that writes, sends or deletes asks
+as before, and every app call in a guest's turn asks. The tools are learned from
+each server's own tool list when a turn mounts it (`server/mcp-tool-hints.ts`).
+The chip in the chat says "reads only" for each one.
+
 Every bot and conversation starts at **Full access**, the default T3 Code uses
 too: each engine runs in its own most permissive mode, and a real question or
 a missing credential still reaches you. That covers a bot made in New bot,
@@ -32,7 +42,7 @@ from the operator's dedicated policy.
 
 | Level | Behavior |
 | --- | --- |
-| **Ask for approval** | Requests approval for commands and file changes, the way the provider's supervised mode does. |
+| **Ask for approval** | Requests approval for commands, file changes and app actions that write, send or delete, the way the provider's supervised mode does. Reading never asks. |
 | **Auto-accept edits** | Approves file edits automatically; other actions can still require approval. Offered where the provider has such a mode (Claude, Grok, Antigravity). |
 | **Approve for me** | Uses the provider's automatic review on Codex, Claude, Cursor, and Grok to approve routine actions and ask about others. Providers without an equivalent fall back to asking. |
 | **Full access** | Enables the provider's permissive mode for commands, edits, and selected-computer actions, including potentially destructive or sensitive work. Residual native permission prompts are answered for you. dusk bot profile changes, routine actions, team setup, bot deletion, and enabled skill authoring apply without a second approval. Peer-review prompts are skipped within the bot's authorized scope. Sends through connected apps (email, messages, posts, payments) follow the bot's Sending on your behalf setting: Ask every time requires consent, and Allow a daily amount consumes the configured cap. Apps outside the bot's connected-app scope are still refused. Work handed on with `coordinate_bots` uses the receiving bot's setting, never the sender's — except from a Chief of Staff, whose level flows down (below). Actual questions and missing credentials still need your input. |

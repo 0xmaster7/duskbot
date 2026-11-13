@@ -85,7 +85,7 @@ import { keyHint, keyStatus, nestedKeyStatus, withoutKeyHints } from "./key-hint
 import { chartRenderer, compileChart, dataEngine, validateVegaLite } from "./data/deps.ts";
 import { BUILT_IN_DATA_SYSTEM_PROMPT } from "./data/instructions.ts";
 import { DATA_INTERNAL_MCP_PATH, dataRpc } from "./data/rpc.ts";
-import { createTokenApps } from "./app-tokens/service.ts"; import { createEmailRoutes } from "./routes/email.ts"; import { createEmailHost, EMAIL_INTERNAL_MCP_PATH } from "./email/host.ts"; import { createEmailService } from "./email/service.ts"; import { createSlackHost } from "./slack/host.ts";
+import { APP_TOKENS_MCP_PREFIX, createTokenApps } from "./app-tokens/service.ts"; import { appActionCard, McpToolHints, toolCallFactsFromSummary } from "./mcp-tool-hints.ts"; import { tokenApp } from "../shared/app-tokens.ts"; import { remoteMcpAppFor } from "./remote-mcp-label.ts"; import { createEmailRoutes } from "./routes/email.ts"; import { createEmailHost, EMAIL_INTERNAL_MCP_PATH } from "./email/host.ts"; import { createEmailService } from "./email/service.ts"; import { createSlackHost } from "./slack/host.ts";
 import { createPhones } from "./host/phones.ts"; import { createDevices } from "./host/devices.ts";
 import { desktopPhonesOffered, NOT_THE_OWNER } from "./phones/owner.ts";
 import { PHONE_INTERNAL_MCP_PATH } from "./phones/rpc.ts";
@@ -279,7 +279,7 @@ import { createCloudMoveRoutes } from "./cloud-move-http.ts";
 import { RESTART_EXIT_CODE } from "./restart.ts";
 import { applyIncludedXMessage, holdIncludedServices, researchCredential, xCredential, xResearchStatus } from "./included-services.ts"; import { createResearchAvailability } from "./research.ts";
 import { createRoutineHoldsHost } from "./host/routine-holds-host.ts";
-import type { ProviderInstance } from "./contracts.ts";
+import type { McpServerSpec, ProviderInstance } from "./contracts.ts";
 import { readyToRun, selectDefaultModelSelection, withInstanceConfig, withNewBotEffort, type SelectableInstance } from "./default-model-selection.ts"; import { configIdentity, createTestedAi } from "./tested-ai.ts"; import { instanceIcon } from "./provider-icon.ts";
 import { threadModelFallback, type ThreadEngine } from "./thread-model.ts";
 import { computerEngineMoveText, removedComputerInstanceIds, writeComputerEngineMoveLines } from "./computer-engine-removal.ts";
@@ -6849,11 +6849,16 @@ bus.subscribe((event: RuntimeEvent) => {
       const toolAllowKey = configuredMcp === undefined
         ? null
         : providerToolAllowKey(providerInstanceId, event.tool, configuredMcp);
+      const appTool = permission && asker ? providerMcpTool(event.tool) : null;
+      const appSpec = appTool && asker ? engineMcpServers(asker)[appTool.server] : undefined;
+      const app = appTool && appSpec ? connectedAppOf(appTool.server, appSpec) : undefined;
+      const readOnly = Boolean(providerTool && configuredMcp !== undefined && mcpToolHints.readsOnly({ server: providerTool.server, tool: providerTool.tool, spec: configuredMcp, facts: event.callFacts, apiServer: app?.apiServer }));
       const verdict = permission && asker && event.requestId
         ? heldAtSafetyFloor(event, autoVerdict(effectiveApprovalMode, event.tool, {
           requiresExplicitApproval: event.requiresExplicitApproval,
           commandAllowed: Boolean(command && commandAllowlist.matches(asker.id, command)),
           toolAllowed: Boolean(toolAllowKey && asker.alwaysAllow?.includes(toolAllowKey)), ownFilesRead: !guestDriven && readsOwnFiles(DATA_DIR, asker.id, event), // never in a guest's turn: the folder holds its owner's memory
+          readOnly,
         }))
         : null;
       // Claude accepts --permission-mode auto for any model but silently starts in Manual where auto is unavailable (Haiku 4.5, Sonnet 4.5, an org that disabled it).
@@ -6939,6 +6944,7 @@ bus.subscribe((event: RuntimeEvent) => {
           requestId: event.requestId,
           requestType: permission ? "permission" : "question",
           tool: permission ? event.tool : undefined,
+          appAction: appTool && appSpec && app ? appActionCard(appTool.tool, app, mcpToolHints.get(appTool.server, appSpec, appTool.tool), event.callFacts ?? toolCallFactsFromSummary(event.summary)) : undefined,
           questionRequest: questions
             ? { version: 1, questions, ...(event.origin === "output" ? { origin: "output" as const } : {}) }
             : undefined,
@@ -12144,7 +12150,23 @@ function configForAccess(status: ReturnType<typeof configStatus>, admin: boolean
 
 function engineMcpServers(bot: BotRecord) { return teamConnections.engineMcp(bot); }
 
+/** Learns the tools of each URL server a bot mounts, for app approval cards and reads that never ask. */
+function warmToolHints(bot: BotRecord): void {
+  for (const [name, spec] of Object.entries(engineMcpServers(bot))) if ("url" in spec) void mcpToolHints.warm(name, spec);
+}
+
+/** The Connect apps app a server is: a vendor's own MCP server, or a token app's (`apiServer`: dusk bot's api_request). */
+function connectedAppOf(server: string, spec: McpServerSpec): { id: string; label: string; domain?: string; apiServer: boolean } | undefined {
+  const url = "url" in spec ? spec.url : undefined;
+  const remote = remoteMcpAppFor(url);
+  if (remote) return { id: remote.id, label: remote.label, ...(remote.domain ? { domain: remote.domain } : {}), apiServer: false };
+  const account = tokenApps.store.list().find((one) => one.server === server);
+  const spec_ = account ? tokenApp(account.app) : undefined;
+  return spec_ ? { id: spec_.id, label: spec_.label, domain: spec_.domain, apiServer: Boolean(url?.includes(APP_TOKENS_MCP_PREFIX)) } : undefined;
+}
+
 function mcpPrompt(bot: BotRecord, mounted: Readonly<Record<string, unknown>>): string {
+  warmToolHints(bot);
   return mcpServersPrompt({
     mounted: Object.keys(mounted), configured: mcpServersHost.mounted(bot), off: mcpServersHost.off(bot),
     needsSignIn: (name, url) => mcpOAuth.authState(name, url) === "needs-sign-in",
@@ -12424,6 +12446,10 @@ ROUTES.push(createBotMessageRoutes({
 }));
 const chatApps = createChatApps({ store, dataDir: DATA_DIR });
 const chatAppsMcp = createChatAppsMcp({ store, apps: chatApps, dataDir: DATA_DIR, storedServers: () => cfg.mcpServers ?? {}, mountedServers: engineMcpServers, personMcp: teamConnections.personMcp, oauth: mcpOAuth });
+const mcpToolHints = new McpToolHints({ list: async (name, server, signal) => {
+  const signed = (await signedInMcp({ [name]: server }, mcpOAuth))[name];
+  return signed && "url" in signed ? chatAppsMcp.connections.tools(name, signed, signal) : [];
+} });
 ROUTES.push(createChatAppRoutes({ store, apps: chatApps, threadRefusal: cloudThreadRefusal, mcpRpc: chatAppsMcp.rpc }));
 const { react } = createReactions({
   store, reply: (input) => teamMessages.reactedIn(input.auth, input.threadId, input.target.id, input.answer, { sendId: input.sendId, sender: messageSender(input.auth) }) ?? personReplies.deliver({ ...input, about: "message" }),

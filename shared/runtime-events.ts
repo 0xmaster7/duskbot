@@ -139,6 +139,9 @@ export type RuntimeEvent = RuntimeEventBase &
         /** The files a read tool's ask reads (absolute): a request that reads only the bot's own files is answered
          * without the person. Like `command`, never broadcast. */
         reads?: string[];
+        /** An MCP tool call's target (the title-like value it works on) and HTTP method (api_request), read from its full
+         * input, so an approval can say what it does and a GET can be told from a write. */
+        callFacts?: { target?: string; single?: boolean; method?: string };
         choices?: string[];
         /** A provider's structured ask (Claude's AskUserQuestion): the whole
          * set of questions, each with its own options, so the card can offer

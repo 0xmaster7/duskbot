@@ -693,6 +693,10 @@ export interface OptionCardData extends WaitCardField, AccessRequestCardField, O
   requestId?: string;
   /** permission cards: the tool being requested. */
   tool?: string;
+  /** permission cards for a connected app's tool: the app, the action in a few plain words (the tool's own title, or its
+   * name without the app's prefix) and the thing it works on, so the card reads "Create a page in Notion: Launch
+   * checklist" with the raw input behind Details. */
+  appAction?: { app: string; domain?: string; action: string; target?: string };
   /** why this card is waiting: guard, mode, sandbox or delivery error. */
   held?: string;
   /** Terminal: no answer came in time, or this proposal went stale while open (revision mismatch or a superseding

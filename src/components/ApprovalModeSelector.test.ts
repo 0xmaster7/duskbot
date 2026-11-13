@@ -15,12 +15,12 @@ describe("approval mode selector", () => {
       {
         mode: "ask",
         label: "ask for approval",
-        description: "requests approval for commands and file changes",
+        description: "asks before commands, file changes and app actions that write, send or delete; reading never asks",
       },
       {
         mode: "edits",
         label: "auto-accept edits",
-        description: "approves file edits automatically; other actions can still require approval",
+        description: "approves file edits automatically and asks before other changes; reading never asks",
       },
       {
         mode: "auto",

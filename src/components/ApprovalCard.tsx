@@ -23,6 +23,9 @@ import { BotAvatar } from "./Avatar";
 import { openBotSettings } from "./bot-panel/panel-link";
 import { CardHint } from "./CardHint";
 import { lowerFirst } from "../lib/lower-first";
+import { appActionLine } from "@/lib/app-action";
+import { ServiceTile } from "./ServiceIcon";
+import { appLogo } from "./connect-apps/logos";
 
 interface ToolLabels {
   [tool: string]: LocaleKey;
@@ -401,6 +404,18 @@ export function SettledChangeEvent({ bot, message, threadId }: { bot?: Pick<Bot,
   return <AppliedChangeLine card={card} name={name} threadId={threadId} summary={card.autoApplied ? summary : { ...summary, canUndo: false }} />;
 }
 
+/** The app a card's tool belongs to, as its tile: the brand mark we keep, else its site's icon. */
+export function AppActionLogo({ card, size = 20 }: { card: Pick<OptionCardData, "appAction">; size?: number }) {
+  const action = card.appAction;
+  if (!action) return null;
+  const logo = appLogo(action.app);
+  return (
+    <ServiceTile size={size} card={logo
+      ? { label: action.app, image: logo.src, padded: logo.padded, background: logo.background, scale: logo.scale }
+      : { label: action.app, domain: action.domain ?? null, padded: true }} />
+  );
+}
+
 export const APPROVAL_CODE_CHIP =
   "inline-flex min-w-0 max-w-full items-baseline rounded-full bg-inset px-2 pb-px pt-[3px] font-mono text-[13px] leading-5 text-ink";
 
@@ -596,7 +611,8 @@ export function ApprovalCard({
     const ask = yourComputerAsk(card, bot?.name ?? t("approval.someone"));
     const allowed = settled === "allow" && !expired;
     const done = !waiting && allowed && !ask && !outbound ? doneStepLine(displayTool) : null;
-    const header = done ?? (ask ? ask.line : outbound
+    const appLine = !ask && !outbound ? appActionLine(card) : undefined;
+    const header = done ?? appLine ?? (ask ? ask.line : outbound
       ? waiting ? outbound.headline : outbound.headline.replace(/\s*[?？]$/, "")
       : bot
         ? t("approval.card.namedWantsTo", { name: bot.name, action: lowerFirst(toolLabel(displayTool)) })
@@ -606,7 +622,7 @@ export function ApprovalCard({
         header={header}
         summary={outbound?.summary || undefined}
         detail={ask?.detail ?? card.subtitle}
-        showDetailInline={waiting && !outbound}
+        showDetailInline={waiting && !outbound && !appLine}
         quietOutcome={!waiting && allowed}
         outcome={outcome}
         allowed={allowed}

@@ -1,6 +1,6 @@
 // Nothing here decides whether an action is safe: each level is the provider's own permission mode passed through, and a
 // request reaching this process is one the provider left for a person. The app's own grants are Full access, the person's
-// exact saved commands and remembered MCP read tools, Approve for me's web search, and a bot's plain reads of its own files
+// exact saved commands and remembered MCP read tools, Approve for me's web search, app tools that only read, and a bot's plain reads of its own files
 // at every level (own-file-reads.ts). A bot's question always reaches a human.
 
 import { supportsApprovalMode, type ApprovalMode } from "../shared/approval-mode.ts";
@@ -78,6 +78,7 @@ export type AutoVerdictSource =
   | "tool-allowlist"
   | "web-search"
   | "own-files"
+  | "read-only"
   | "native-approval"
   | "explicit-approval-block"
   | "outbound-guard"
@@ -102,6 +103,8 @@ export function autoVerdict(
     toolAllowed?: boolean;
     /** The request only reads the bot's own files: its SOUL.md, skills, memory and conversation folders. */
     ownFilesRead?: boolean;
+    /** An app tool that only reads (mcp-tool-hints.ts readsOnly): reading never asks below Full. */
+    readOnly?: boolean;
   },
 ): AutoVerdict {
   if (ASKS_A_PERSON.has(bareToolName(tool))) {
@@ -114,6 +117,7 @@ export function autoVerdict(
   if (context?.commandAllowed) return { approve: `approved ${tool} (saved command)`, source: "command-allowlist" };
   if (context?.toolAllowed) return { approve: `approved ${tool} (always allowed)`, source: "tool-allowlist" };
   if (context?.ownFilesRead) return { approve: `approved ${tool} (its own files)`, source: "own-files" };
+  if (context?.readOnly && mode !== "custom") return { approve: `approved ${tool} (reads only)`, source: "read-only" };
   if (mode === "auto" && WEB_SEARCH.has(bareToolName(tool))) {
     return { approve: `approved ${tool} (web search)`, source: "web-search" };
   }

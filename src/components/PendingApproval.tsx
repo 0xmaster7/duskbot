@@ -6,7 +6,8 @@ import { cn } from "@/lib/cn";
 import { t, tFromServer } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { SkillRequestPreview } from "@/components/SkillRequestPreview";
-import { titledCard, toolLabel } from "./ApprovalCard";
+import { AppActionLogo, titledCard, toolLabel } from "./ApprovalCard";
+import { appActionLine } from "@/lib/app-action";
 import { AskDetail, CARD_BUTTON_MD, CardTitlebar, cardPrimary, cardSecondary, cardTertiary, type Asker } from "./AskCard";
 import { BotAvatar } from "./Avatar";
 import { outboundSummary } from "@/lib/approval-summary";
@@ -66,6 +67,8 @@ export function spokenApprovalPrompt(pending: Pending, requester: string): strin
   if (ask) return `${requester}: ${ask.line}`;
   const card = pending.message.card;
   if (card && titledCard(card)) return `${requester}: ${card.title} review the details and choose ${card.options[0]} or ${card.options[1] ?? "cancel"}.`;
+  const appLine = card && !outboundSummary(card) ? appActionLine(card) : undefined;
+  if (appLine) return t("approval.voice.app", { requester, action: lowerFirst(appLine) });
   const isSkillRequest = isSkillApproval(pending);
   const isProfileRequest = isProfileApproval(pending);
   if (isSkillRequest) {
@@ -126,6 +129,9 @@ function approvalWords(pending: Pending, botName?: string): { line: string; summ
   const detail = (pending.commandAllowlist?.command ?? ask?.detail ?? pending.detail).trim();
   if (outbound) return { line: outbound.headline, ...(outbound.summary ? { summary: outbound.summary } : {}), detail };
   if (ask) return { line: ask.line, detail };
+  // a connected app's call reads as what it does; its raw input folds behind Details
+  const appLine = appActionLine(card);
+  if (appLine) return { line: appLine, detail };
   if (card?.mcpRequest) return { line: card.title, inline: detail, detail };
   if (isDurable(pending)) return { line: label(pending), detail };
   const action = COMMAND_TOOLS.has(pending.tool) ? t("approval.tool.runCommand") : toolLabel(pending.tool);
@@ -212,7 +218,12 @@ export const PendingApprovalPanel = memo(function PendingApprovalPanel({
         )}
       </> : undefined} />
       <div className="px-5 py-1" aria-live="polite">
-        <p dir="auto" className="break-words text-[15px] font-semibold leading-[22px] text-ink">{line}</p>
+        {pending.message.card?.appAction && !outbound ? (
+          <p dir="auto" className="flex items-start gap-2 break-words text-[15px] font-semibold leading-[22px] text-ink">
+            <span className="mt-px flex shrink-0"><AppActionLogo card={pending.message.card} /></span>
+            <span className="min-w-0">{line}</span>
+          </p>
+        ) : <p dir="auto" className="break-words text-[15px] font-semibold leading-[22px] text-ink">{line}</p>}
         {summary && <p dir="auto" className="break-words text-[14px] leading-5 text-ink-secondary">{summary}</p>}
       </div>
       {(inline || heldNote || open) && (
