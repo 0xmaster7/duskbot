@@ -519,13 +519,25 @@ The relay is not a free pipe: every setup session needs a dusk account, and ever
 
 - **Account.** `POST /v1/sessions` takes `grant`, a five-minute token the signed-in app gets from the account service
   (`POST /v1/app/link-grant`, bearer app session; `src/grant.mjs` has the format). Without a valid one the answer is
-  401 `account_required`. One account has at most 20 live tunnels (409 `tunnel_limit`) and opens at most 120 sessions an
+  401 `account_required`. One account has at most 20 live tunnels by default (409 `tunnel_limit`) and opens at most 120 sessions an
   hour, besides the 120 an hour per address. The VPS side (install.sh, the agent, the phone's channels) needs nothing:
   the session the app opened already carries the account.
-- **Bytes.** Each tunnel, both directions and its phone channels together: 12 MiB/s sustained with a 32 MiB burst, and 150 GiB
-  per UTC day (kept on the tunnel, so a restart does not reset it). Egress lane posts ("route traffic through this
-  computer" on the relay) also stay under 6 MiB/s (8 MiB burst); the app sends them at 5.5 MiB/s. Sizes are decoded bytes. Over the
-  rate: 429 `rate_limited` with `retry-after`; over the day: 429 `daily_limit`.
+- **Bytes.** Defaults, changeable at runtime (below): each tunnel, both directions and its phone channels together, 3 MiB/s
+  sustained with a 24 MiB burst, and 25 GiB per UTC day (kept on the tunnel, so a restart does not reset it). All tunnels
+  together stay under a 10 MiB/s ceiling (~88 Mbit/s on the wire, under Contabo's 100 Mbit/s average rule): while several
+  tunnels are busy each is slowed to an even share of it. Egress lane posts also stay under 6 MiB/s (8 MiB burst). Sizes
+  are the frames' base64url text, the bytes on the wire. Past its rate a post is held (slowed), not refused; only a wait
+  over 20 s gets 429 `rate_limited` with `retry-after`. Over the day: 429 `daily_limit`.
+- **Busy.** At most 150 tunnels relay at once (bytes in the last 2 minutes); a new one past that, or any new one while the
+  owner paused the relay, gets 503 `relay_busy` with `retry-after: 60` and should use a Cloudflare tunnel, SSH or Tailscale.
+  Tunnels already relaying are never cut off.
+- **Ops.** `GET /ops/relay/stats` and `PUT /ops/relay/limits` with `authorization: Bearer $LINK_STATS_TOKEN` (the account
+  service sends it as `DUSK_LINK_STATS_TOKEN`; unset hides both). Stats: `{ relay, now: { tunnels, accounts,
+  bytesPerSecOut, bytesPerSecIn, cpu, rssMb }, today: { bytesOut, bytesIn }, month: { bytesOut, bytesIn,
+  projectedBytesOut, allowanceBytes }, limits, top: [{ account, tunnels, bytesToday }], busy }`. Limits (any subset):
+  `perTunnelBytesPerSec, burstBytes, perTunnelDailyBytes, tunnelsPerAccount, globalCeilingBytesPerSec, maxTunnels`
+  (whole numbers in range) and `paused` (boolean); kept in `$LINK_DATA_DIR/relay-limits.json`, byte totals in
+  `relay-usage.json`.
 - **Memory.** A frame nobody read for 60 s is dropped. All queues together hold at most 1 GiB; past it posts get 503
   `busy` and the process keeps running.
 - **Per address.** 512 requests in flight and 200 requests a second (burst 2000); past either, 429 `rate_limited`.

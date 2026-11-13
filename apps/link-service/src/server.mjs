@@ -4,7 +4,8 @@
 //   LINK_PACKAGES_DIR the private server builds install.sh downloads, default $LINK_DATA_DIR/packages
 //   LINK_TRUST_PROXY  "0" when nothing sits in front of it (then forwarded headers are ignored), default "1"
 //   DUSK_LINK_GRANT_KEYS  kid:x,... the account service's Ed25519 public keys for link grants, default the pinned ones
-//   LINK_STATS_TOKEN  bearer token for GET /v1/stats/relay (the account service's ops page); unset hides the route
+//   LINK_STATS_TOKEN  bearer token for GET /v1/stats/relay, GET /ops/relay/stats and PUT /ops/relay/limits (the account
+//                     service's ops page and admin relays panel); unset hides them
 //   DUSK_LINK_OPEN    "1" opens setup sessions to anyone without a dusk account (local development only)
 import "./legacy.mjs";
 import { createServer } from "node:http";

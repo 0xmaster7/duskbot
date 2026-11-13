@@ -15,7 +15,9 @@ const lookupId = "a".repeat(32), epoch = "e".repeat(12);
 let service, server, base, dir, time;
 
 function makeService() {
-  return createLinkService({ base: "http://link.test", dataDir: dir, scriptPath: join(root, "install.sh"), agentPath: join(root, "agent.mjs"), trustProxy: false, now: () => time });
+  return createLinkService({ base: "http://link.test", dataDir: dir, scriptPath: join(root, "install.sh"), agentPath: join(root, "agent.mjs"), trustProxy: false, now: () => time,
+    // roomy tunnel limits: these tests are about the phone channel's own (relay-guards.test.mjs covers the tunnel's)
+    limits: { perTunnelBytesPerSec: 64 * 1024 * 1024, burstBytes: 256 * 1024 * 1024, globalCeilingBytesPerSec: 64 * 1024 * 1024 } });
 }
 function tunnel(tid = id) {
   service.store.tunnels.set(tid, { id: tid, createdAt: time, vpsVerifier: sha256hex(vps), appVerifier: sha256hex(app), seenAt: null });
@@ -325,7 +327,7 @@ describe("mobile channel rate limits", () => {
   it("limits frame text to 256 MiB per rolling minute", async () => {
     await put();
     const frames = Array(3).fill("a".repeat(1024 * 1024));
-    // 200 ms apart, so the tunnel's own byte rate (12 MiB/s decoded) is never what stops it
+    // 200 ms apart, under the roomy tunnel rate above, so only the channel's own minute total stops it
     for (let i = 0; i < 85; i += 1) { expect((await post(frames)).status).toBe(200); await take(); time += 200; }
     expect((await post([frames[0]])).status).toBe(200);
     await take();

@@ -8,10 +8,12 @@ import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { isIP } from "node:net";
 import { dirname, join } from "node:path";
 import { pipeline } from "node:stream/promises";
+import { setTimeout as delay } from "node:timers/promises";
 
 import { verifyLinkGrant } from "./grant.mjs";
 import { createPackages } from "./packages.mjs";
 import { createPushRelay } from "./push-relay.mjs";
+import { ACTIVE_MS, DEFAULT_LIMITS, MONTH_ALLOWANCE_BYTES, createRelayUsage, loadLimits, saveLimits, validateLimits } from "./relay-limits.mjs";
 import { slackCallback } from "./slack-callback.mjs";
 import { MAX_CHANNELS_PER_TUNNEL, MAX_EVENTS, MAX_SESSIONS, MAX_TUNNELS, SESSION_LIFE_MS, createStore } from "./store.mjs";
 
@@ -60,10 +62,17 @@ const PACKAGE_DOWNLOADS = 20;
 /** a linked server's own update reads (apps/link-service/agent.mjs createServerUpdater): checks per hour, downloads (resumes count) per day */
 export const SERVER_RELEASE_READS_PER_HOUR = 12;
 export const SERVER_DOWNLOADS_PER_DAY = 12;
-/** a tunnel's sustained relay rate, the burst it may post at once, and its daily total (both directions together) */
-export const TUNNEL_BYTES_PER_SECOND = 12 * 1024 * 1024;
-export const TUNNEL_BURST_BYTES = 32 * 1024 * 1024;
-export const TUNNEL_BYTES_PER_DAY = 150 * 1024 ** 3;
+/** a tunnel's sustained relay rate, the burst it may post at once, and its daily total (both directions together), by
+ * default: the live values are the service's limits (relay-limits.mjs), changeable at runtime */
+export const TUNNEL_BYTES_PER_SECOND = DEFAULT_LIMITS.perTunnelBytesPerSec;
+export const TUNNEL_BURST_BYTES = DEFAULT_LIMITS.burstBytes;
+export const TUNNEL_BYTES_PER_DAY = DEFAULT_LIMITS.perTunnelDailyBytes;
+/** a post waits at most this long for its share of the relay; past it the post is refused with a retry-after */
+export const MAX_HOLD_MS = 20_000;
+/** a tunnel is slowed to its fair share of the ceiling once this many bytes a second or more pass through it */
+const DEMANDING_BYTES_PER_SECOND = 64 * 1024;
+/** no tunnel's share drops below this, however many are busy (the ceiling still holds the total) */
+const MIN_SHARE_BYTES_PER_SECOND = 32 * 1024;
 export const RELAY_HISTORY_DAYS = 3;
 /** the egress lane (a bot's web traffic routed through the person's computer) while it rides the relay */
 export const LANE_BYTES_PER_SECOND = 6 * 1024 * 1024;
@@ -72,8 +81,8 @@ export const LANE_BURST_BYTES = 8 * 1024 * 1024;
 export const FRAME_TTL_MS = 60_000;
 /** every queued frame across every tunnel and channel; past it new frames are refused, never the process */
 export const MAX_QUEUED_BYTES = 1024 ** 3;
-/** linked servers one dusk account may have at once */
-export const TUNNELS_PER_ACCOUNT = 20;
+/** linked servers one dusk account may have at once, by default */
+export const TUNNELS_PER_ACCOUNT = DEFAULT_LIMITS.tunnelsPerAccount;
 /** per client address: requests in flight at once, and a request rate (a bucket that refills per second) */
 export const IP_CONCURRENT = 512;
 export const IP_REQUESTS_PER_SECOND = 200;
@@ -302,15 +311,23 @@ function frameQueue(onPush = () => {}, memory = { bytes: 0 }, now = Date.now) {
  *   grantKeys?: { kid: string, x: string }[] | null,
  *   maxQueuedBytes?: number,
  *   ipLimits?: { concurrent: number, perSecond: number, burst: number },
+ *   limits?: Partial<typeof DEFAULT_LIMITS>,
+ *   monthAllowanceBytes?: number,
+ *   sleep?: (ms: number) => Promise<unknown>,
  * }} options
+ * `limits`: start values under any saved relay-limits.json (tests); `sleep`: how a post waits for its share (tests).
  * `grantKeys`: the account service's public keys a new session's link grant must verify against; null opens sessions to
  * anyone (local development and tests only, server.mjs refuses it unless DUSK_LINK_OPEN=1).
  */
 export function createLinkService({ base, dataDir = null, scriptPath, uninstallPath = join(dirname(scriptPath), "uninstall.sh"), agentPath, gatePath = join(dirname(agentPath), "docker-gate.mjs"), packagesDir, trustProxy = true, now = Date.now, fetch: fetchImpl = fetch, log = () => {}, push = createPushRelay({ log }), grantKeys = null, maxQueuedBytes = MAX_QUEUED_BYTES, statsToken = null,
-  ipLimits = { concurrent: IP_CONCURRENT, perSecond: IP_REQUESTS_PER_SECOND, burst: IP_REQUEST_BURST } }) {
+  ipLimits = { concurrent: IP_CONCURRENT, perSecond: IP_REQUESTS_PER_SECOND, burst: IP_REQUEST_BURST }, limits: startLimits = {},
+  monthAllowanceBytes = MONTH_ALLOWANCE_BYTES, sleep = (ms) => delay(ms) }) {
   const store = createStore({ dir: dataDir, now, onChannelDelete: clearChannel, onTunnelDelete: (tunnel) => dropTunnelState(tunnel.id) });
   const memory = { bytes: 0 };
   const tunnelRates = new Map();
+  const limits = loadLimits(dataDir, { ...DEFAULT_LIMITS, ...startLimits });
+  const usage = createRelayUsage({ dir: dataDir, now });
+  const relay = { at: now(), tokens: Math.max(limits.globalCeilingBytesPerSec * 2, limits.burstBytes), shareAt: -Infinity, demanding: new Set(), cpu: { at: Date.now(), usage: process.cpuUsage() } };
   const ipLoad = new Map();
   const packages = createPackages(packagesDir !== undefined ? packagesDir : dataDir ? join(dataDir, "packages") : null);
   const sessionWaiters = new Map();
@@ -326,7 +343,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
   const serverReads = new Map();
   const serverDownloads = new Map();
   const sweepStore = store.sweep;
-  store.sweep = () => { sweepStore(); sweepLookups(); sweepCreated(); sweepQueues(); };
+  store.sweep = () => { sweepStore(); sweepLookups(); sweepCreated(); sweepQueues(); usage.save(); };
 
   function file(path) {
     const mtime = statSync(path).mtimeMs;
@@ -404,10 +421,14 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
   function queue(tunnelId, dir) {
     const key = `${tunnelId}:${dir}`;
     let found = queues.get(key);
-    if (!found) queues.set(key, (found = frameQueue(() => {
-      const channel = store.channels.get(tunnelId);
-      if (dir === "to-vps" && channel) channelReaders.get(channel.tunnel)?.wakeAll();
-    }, memory, now)));
+    if (!found) {
+      queues.set(key, (found = frameQueue(() => {
+        const channel = store.channels.get(tunnelId);
+        if (dir === "to-vps" && channel) channelReaders.get(channel.tunnel)?.wakeAll();
+      }, memory, now)));
+      const take = found.take;
+      found.take = (...args) => { const out = take(...args); usage.out(out.reduce((sum, frame) => sum + frame.length, 0)); return out; };
+    }
     return found;
   }
 
@@ -431,39 +452,79 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     for (const [ip, load] of ipLoad) if (!load.open && t - load.at > 60_000) ipLoad.delete(ip);
   }
   const refill = (tokens, at, t, perSecond, burst) => Math.min(burst, tokens + Math.max(0, t - at) * perSecond / 1000);
+  /** a tunnel moved bytes within ACTIVE_MS */
+  const isActive = (rate, t) => rate !== undefined && t - rate.usedAt < ACTIVE_MS;
+  function activeTunnels(t) {
+    let count = 0;
+    for (const rate of tunnelRates.values()) if (isActive(rate, t)) count += 1;
+    return count;
+  }
+  /** each busy tunnel's fair share of the ceiling; who is busy is recounted at most four times a second */
+  function shareAt(t, tunnelId, rate) {
+    if (t - relay.shareAt >= 250 || t < relay.shareAt) {
+      relay.demanding = new Set();
+      for (const [id, other] of tunnelRates) if (t - other.usedAt < 2000 && Math.max(other.recent, other.prev) >= DEMANDING_BYTES_PER_SECOND * 2) relay.demanding.add(id);
+      relay.shareAt = t;
+    }
+    const busy = relay.demanding.size + (!relay.demanding.has(tunnelId) && Math.max(rate.recent, rate.prev) >= DEMANDING_BYTES_PER_SECOND * 2 ? 1 : 0);
+    return Math.min(limits.perTunnelBytesPerSec, Math.max(MIN_SHARE_BYTES_PER_SECOND, limits.globalCeilingBytesPerSec / Math.max(1, busy)));
+  }
   /**
-   * whether a post fits its tunnel's relay budget: a sustained rate with a burst, the egress lane's own lower rate, and a
-   * daily total kept on the tunnel (so a restart does not reset it). sizes are the frames' decoded bytes. answers the
-   * charge to make once the frames were queued, or null after refusing
+   * a post's turn on the relay. it is slowed, not refused: past its burst it waits for its tunnel's share (the per tunnel
+   * rate, or less while many tunnels are busy, so the total stays under the global ceiling), and is refused only when the
+   * wait would pass MAX_HOLD_MS, the daily total is spent, or the relay already carries maxTunnels and this one is new.
+   * sizes are the frames' base64url text, the bytes on the wire. answers { charge, refund } once its turn came, or null
+   * after refusing
    */
-  function tunnelBudget(res, tunnelId, frames, lane) {
+  async function tunnelBudget(res, tunnelId, frames, lane) {
     const tunnel = store.tunnels.get(tunnelId);
-    if (!tunnel) return () => {};
-    const size = Math.floor(frames.reduce((sum, frame) => sum + frame.length, 0) * 3 / 4), t = now(), day = Math.floor(t / 86_400_000);
+    if (!tunnel) return { charge() {}, refund() {} };
+    const size = frames.reduce((sum, frame) => sum + frame.length, 0), t = now(), day = Math.floor(t / 86_400_000);
     if (tunnel.day !== day) { tunnel.day = day; tunnel.dayBytes = 0; }
-    if (tunnel.dayBytes + size > TUNNEL_BYTES_PER_DAY) {
+    if (tunnel.dayBytes + size > limits.perTunnelDailyBytes) {
       count(tunnel, t, 0, 1);
-      fail(res, 429, `This link reached its daily limit of ${Math.round(TUNNEL_BYTES_PER_DAY / 1024 ** 3)} GB through the relay. It resets at midnight UTC.`, "daily_limit");
+      fail(res, 429, `This link reached its daily limit of ${Math.round(limits.perTunnelDailyBytes / 1024 ** 3)} GB through the relay. It resets at midnight UTC.`, "daily_limit");
       return null;
     }
     let rate = tunnelRates.get(tunnelId);
-    if (!rate) tunnelRates.set(tunnelId, (rate = { at: t, tokens: TUNNEL_BURST_BYTES, lane: LANE_BURST_BYTES }));
-    rate.tokens = refill(rate.tokens, rate.at, t, TUNNEL_BYTES_PER_SECOND, TUNNEL_BURST_BYTES);
-    rate.lane = refill(rate.lane, rate.at, t, LANE_BYTES_PER_SECOND, LANE_BURST_BYTES);
-    rate.at = t;
-    const short = Math.max(size - rate.tokens, lane ? size - rate.lane : 0);
-    if (short > 0) {
+    if (!isActive(rate, t) && (limits.paused || activeTunnels(t) >= limits.maxTunnels)) {
       count(tunnel, t, 0, 1);
-      const wait = Math.ceil(Math.max(short / TUNNEL_BYTES_PER_SECOND, lane ? short / LANE_BYTES_PER_SECOND : 0));
-      send(res, 429, { error: "This link is sending faster than the relay allows. Try again in a moment.", code: "rate_limited" }, { "retry-after": String(Math.max(1, wait)) });
+      send(res, 503, { error: "The relay is full right now. Try again in a few minutes, or reach this server through a Cloudflare tunnel, SSH or Tailscale.", code: "relay_busy" }, { "retry-after": "60" });
       return null;
     }
-    return () => {
-      rate.tokens -= size;
-      if (lane) rate.lane -= size;
-      tunnel.dayBytes += size;
-      count(tunnel, t, size, 0);
-    };
+    if (!rate) tunnelRates.set(tunnelId, (rate = { at: t, tokens: limits.burstBytes, lane: LANE_BURST_BYTES, usedAt: -Infinity, recent: 0, prev: 0, recentAt: t }));
+    // bytes in this two second window and the one before (this post included), for shareAt
+    if (t - rate.recentAt >= 2000) { rate.prev = t - rate.recentAt < 4000 ? rate.recent : 0; rate.recent = 0; rate.recentAt = t; }
+    rate.recent += size;
+    const share = shareAt(t, tunnelId, rate), ceiling = limits.globalCeilingBytesPerSec;
+    rate.tokens = refill(rate.tokens, rate.at, t, share, limits.burstBytes);
+    rate.lane = refill(rate.lane, rate.at, t, LANE_BYTES_PER_SECOND, LANE_BURST_BYTES);
+    rate.at = t;
+    relay.tokens = refill(relay.tokens, relay.at, t, ceiling, Math.max(ceiling * 2, limits.burstBytes));
+    relay.at = t;
+    const waitMs = Math.ceil(1000 * Math.max(0, (size - rate.tokens) / share, lane ? (size - rate.lane) / LANE_BYTES_PER_SECOND : 0, (size - relay.tokens) / ceiling));
+    if (waitMs > MAX_HOLD_MS) {
+      count(tunnel, t, 0, 1);
+      send(res, 429, { error: "This link is sending faster than the relay allows. Try again in a moment.", code: "rate_limited" }, { "retry-after": String(Math.ceil(waitMs / 1000)) });
+      return null;
+    }
+    // taken now, so the posts behind this one wait their own turn after it
+    rate.tokens -= size; relay.tokens -= size;
+    if (lane) rate.lane -= size;
+    rate.usedAt = t;
+    let settled = false;
+    const refund = () => { if (settled) return; settled = true; rate.tokens += size; relay.tokens += size; if (lane) rate.lane += size; };
+    const charge = () => { if (settled) return; settled = true; tunnel.dayBytes += size; count(tunnel, now(), size, 0); usage.in(size); };
+    if (waitMs > 0) {
+      let gone = false;
+      const left = () => { gone = true; };
+      res.once("close", left);
+      memory.bytes += size;
+      try { await sleep(waitMs); } finally { memory.bytes -= size; res.off("close", left); }
+      if (gone) { refund(); return null; }
+      if (!store.tunnels.has(tunnelId)) { refund(); fail(res, 404, "not found", "not_found"); return null; }
+    }
+    return { charge, refund };
   }
   /** relay bytes and refusals per utc day on the tunnel, the last RELAY_HISTORY_DAYS of them, for the owner's ops page */
   function count(tunnel, t, bytes, limited) {
@@ -478,6 +539,38 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     if (memory.bytes + frames.reduce((sum, frame) => sum + frame.length, 0) <= maxQueuedBytes) return true;
     send(res, 503, { error: "The link service is busy. Try again in a moment.", code: "busy" }, { "retry-after": "2" });
     return false;
+  }
+  /**
+   * the owner's admin panel: what the relay carries now, today and this month, its limits, the busiest accounts. bytes
+   * are on the wire (frames' base64url text); out is what readers took, in is what was posted. cpu is this process's
+   * share of one core since the previous call (at least the last second), rss its resident memory
+   */
+  function relayStats() {
+    const t = now(), day = new Date(t).toISOString().slice(0, 10);
+    const totals = usage.totals(), rates = usage.rate();
+    const active = [...tunnelRates].filter(([, rate]) => isActive(rate, t)).map(([id]) => store.tunnels.get(id)).filter(Boolean);
+    const cpuNow = { at: Date.now(), usage: process.cpuUsage() };
+    const spanMs = cpuNow.at - relay.cpu.at;
+    const cpu = spanMs >= 1000 ? Math.round(((cpuNow.usage.user - relay.cpu.usage.user) + (cpuNow.usage.system - relay.cpu.usage.system)) / 10 / spanMs) : relay.lastCpu ?? 0;
+    if (spanMs >= 1000) { relay.cpu = cpuNow; relay.lastCpu = cpu; }
+    const accounts = new Map();
+    for (const tunnel of store.tunnels.values()) {
+      const bytes = tunnel.relayDays?.[day]?.bytes ?? 0;
+      if (!bytes) continue;
+      const key = tunnel.acct ?? null, entry = accounts.get(key) ?? { account: key, tunnels: 0, bytesToday: 0 };
+      entry.tunnels += 1; entry.bytesToday += bytes;
+      accounts.set(key, entry);
+    }
+    const busy = limits.paused || active.length >= limits.maxTunnels || rates.in >= limits.globalCeilingBytesPerSec * 0.9;
+    return {
+      relay: "contabo",
+      now: { tunnels: active.length, accounts: new Set(active.map((tunnel) => tunnel.acct ?? tunnel.id)).size, bytesPerSecOut: rates.out, bytesPerSecIn: rates.in, cpu, rssMb: Math.round(process.memoryUsage().rss / 1024 ** 2) },
+      today: { bytesOut: totals.day.out, bytesIn: totals.day.in },
+      month: { bytesOut: totals.month.out, bytesIn: totals.month.in, projectedBytesOut: Math.round(totals.month.out / usage.monthElapsed()), allowanceBytes: monthAllowanceBytes },
+      limits: { ...limits },
+      top: [...accounts.values()].sort((a, b) => b.bytesToday - a.bytesToday).slice(0, 10),
+      busy,
+    };
   }
   /** how many live tunnels a dusk account has */
   function accountTunnels(acct) {
@@ -581,12 +674,12 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       return fail(res, 400, "frames must be 1-256 base64url strings");
     }
     if (phone && !phoneRate(res, channel, "BYTES", frames.reduce((sum, frame) => sum + frame.length, 0))) return;
-    const charge = roomFor(res, frames) && tunnelBudget(res, channel.tunnel, frames, false);
-    if (!charge) return;
+    const turn = roomFor(res, frames) && await tunnelBudget(res, channel.tunnel, frames, false);
+    if (!turn) return;
     const ordered = typeof body.epoch === "string" && EPOCH.test(body.epoch) && Number.isSafeInteger(body.seq) && body.seq >= 0;
     const q = queue(id, dir);
-    if (!(ordered ? q.pushInOrder(frames, body.epoch, body.seq) : q.push(frames, body.lane === true))) return fail(res, 429, "the other side is behind; try again", "queue_full");
-    charge();
+    if (!(ordered ? q.pushInOrder(frames, body.epoch, body.seq) : q.push(frames, body.lane === true))) { turn.refund(); return fail(res, 429, "the other side is behind; try again", "queue_full"); }
+    turn.charge();
     return send(res, 200, { ok: true, ordered: true });
   }
 
@@ -683,13 +776,33 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     if (method === "GET" && (path === "/healthz" || path === "/health")) return send(res, 200, { ok: true });
     if (method === "GET" && path === "/v1/ip") return send(res, 200, { ip: clientIp(req) });
     // the account service's ops page; LINK_STATS_TOKEN unset hides it
-    if (method === "GET" && path === "/v1/stats/relay") {
-      if (!statsToken) return fail(res, 404, "not found");
+    const opsAllowed = () => {
+      if (!statsToken) { fail(res, 404, "not found"); return false; }
       const presented = bearer(req);
-      if (!presented || !timingSafeEqual(createHash("sha256").update(presented).digest(), createHash("sha256").update(statsToken).digest())) return fail(res, 401, "unauthorized");
+      if (!presented || !timingSafeEqual(createHash("sha256").update(presented).digest(), createHash("sha256").update(statsToken).digest())) { fail(res, 401, "unauthorized"); return false; }
+      return true;
+    };
+    if (path === "/ops/relay/stats" || path === "/ops/relay/limits") {
+      if (!opsAllowed()) return;
+      if (method === "GET" && path === "/ops/relay/stats") return send(res, 200, relayStats());
+      if (method === "PUT" && path === "/ops/relay/limits") {
+        const checked = validateLimits(await readJson(req), limits);
+        if (!checked.limits) return fail(res, 400, checked.error, "invalid_limits");
+        saveLimits(dataDir, checked.limits);
+        Object.assign(limits, checked.limits);
+        relay.shareAt = -Infinity;
+        relay.tokens = Math.min(relay.tokens, Math.max(limits.globalCeilingBytesPerSec * 2, limits.burstBytes));
+        for (const rate of tunnelRates.values()) rate.tokens = Math.min(rate.tokens, limits.burstBytes);
+        log("link: relay limits changed");
+        return send(res, 200, { limits: { ...limits } });
+      }
+      return fail(res, 405, "method not allowed");
+    }
+    if (method === "GET" && path === "/v1/stats/relay") {
+      if (!opsAllowed()) return;
       const tunnels = [...store.tunnels.values()].filter((tunnel) => tunnel.relayDays && Object.keys(tunnel.relayDays).length)
         .map((tunnel) => ({ id: tunnel.id, acct: tunnel.acct ?? null, days: tunnel.relayDays }));
-      return send(res, 200, { limitBytes: TUNNEL_BYTES_PER_DAY, tunnels });
+      return send(res, 200, { limitBytes: limits.perTunnelDailyBytes, tunnels });
     }
     if (method === "GET" && path === "/slack/callback") return slackCallback(res, url.searchParams);
     if (path === "/v1/push") return push.route(req, res, { method, readJson, send, fail, ip: clientIp(req) });
@@ -770,7 +883,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
         const verdict = verifyLinkGrant(body?.grant, { keys: grantKeys, now: now() });
         if (!verdict.ok) return fail(res, 401, "Sign in to your dusk bot account in the app to link a server.", "account_required");
         acct = verdict.acct;
-        if (accountTunnels(acct) >= TUNNELS_PER_ACCOUNT) return fail(res, 409, `This account already has ${TUNNELS_PER_ACCOUNT} linked servers. Remove one in the app to link another.`, "tunnel_limit");
+        if (accountTunnels(acct) >= limits.tunnelsPerAccount) return fail(res, 409, `This account already has ${limits.tunnelsPerAccount} linked servers. Remove one in the app to link another.`, "tunnel_limit");
         byAccount = (created.get(`acct:${acct}`) ?? []).filter((at) => t - at < 3_600_000);
         if (byAccount.length >= CREATE_PER_HOUR) return fail(res, 429, "Too many new links from this account. Try again in a while.", "rate_limited");
       }
@@ -876,8 +989,8 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
         if (tunnel !== undefined && (!HEX64.test(tunnel?.vps ?? "") || !HEX64.test(tunnel?.app ?? ""))) return fail(res, 400, "tunnel verifiers must be 64 hex characters");
         if (tunnel) {
           if (store.tunnels.size >= MAX_TUNNELS) return fail(res, 503, "The link service is full.", "busy");
-          if (session.acct && accountTunnels(session.acct) >= TUNNELS_PER_ACCOUNT) {
-            return fail(res, 409, `This account already has ${TUNNELS_PER_ACCOUNT} linked servers. Remove one in the app to link another.`, "tunnel_limit");
+          if (session.acct && accountTunnels(session.acct) >= limits.tunnelsPerAccount) {
+            return fail(res, 409, `This account already has ${limits.tunnelsPerAccount} linked servers. Remove one in the app to link another.`, "tunnel_limit");
           }
           store.tunnels.set(id, { id, createdAt: now(), vpsVerifier: tunnel.vps, appVerifier: tunnel.app, seenAt: null, ...(session.acct ? { acct: session.acct } : {}) });
           session.tunnel = id;
@@ -1083,11 +1196,11 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
           return fail(res, 400, "frames must be 1-256 base64url strings");
         }
         const ordered = typeof body.epoch === "string" && EPOCH.test(body.epoch) && Number.isSafeInteger(body.seq) && body.seq >= 0;
-        const charge = roomFor(res, frames) && tunnelBudget(res, id, frames, !ordered && body.lane === true);
-        if (!charge) return;
+        const turn = roomFor(res, frames) && await tunnelBudget(res, id, frames, !ordered && body.lane === true);
+        if (!turn) return;
         const q = queue(id, action);
-        if (!(ordered ? q.pushInOrder(frames, body.epoch, body.seq) : q.push(frames, body.lane === true))) return fail(res, 429, "the other side is behind; try again", "queue_full");
-        charge();
+        if (!(ordered ? q.pushInOrder(frames, body.epoch, body.seq) : q.push(frames, body.lane === true))) { turn.refund(); return fail(res, 429, "the other side is behind; try again", "queue_full"); }
+        turn.charge();
         return send(res, 200, { ok: true, ordered: true });
       }
       if (method === "GET") {
@@ -1206,6 +1319,6 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
         else res.end();
       }
     },
-    close() { for (const q of queues.values()) q.close(); for (const q of channelReaders.values()) q.close(); store.close(); },
+    close() { for (const q of queues.values()) q.close(); for (const q of channelReaders.values()) q.close(); store.close(); usage.save(); },
   };
 }

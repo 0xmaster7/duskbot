@@ -8,13 +8,14 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { FRAME_TTL_MS, LANE_BURST_BYTES, LANE_BYTES_PER_SECOND, TUNNELS_PER_ACCOUNT, TUNNEL_BURST_BYTES, TUNNEL_BYTES_PER_DAY, TUNNEL_BYTES_PER_SECOND, createLinkService, sha256hex } from "../src/app.mjs";
+import { FRAME_TTL_MS, LANE_BURST_BYTES, LANE_BYTES_PER_SECOND, MAX_HOLD_MS, TUNNELS_PER_ACCOUNT, TUNNEL_BURST_BYTES, TUNNEL_BYTES_PER_DAY, TUNNEL_BYTES_PER_SECOND, createLinkService, sha256hex } from "../src/app.mjs";
+import { ACTIVE_MS, DEFAULT_LIMITS, MONTH_ALLOWANCE_BYTES } from "../src/relay-limits.mjs";
 import { TUNNEL_IDLE_MS } from "../src/store.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const id = "abcdefghij", vps = "v".repeat(43), app = "a".repeat(43), epoch = "e".repeat(12);
 const MB = 1024 * 1024;
-let service, server, base, dir, time;
+let service, server, base, dir, time, waits;
 
 const { privateKey, publicKey } = generateKeyPairSync("ed25519");
 const keys = [{ kid: "test-1", x: publicKey.export({ format: "jwk" }).x }];
@@ -24,21 +25,26 @@ function grant({ who = acct, iat = time, exp = time + 5 * 60_000, kid = "test-1"
   return `${head}.${sign(null, Buffer.from(head), key).toString("base64url")}`;
 }
 
-async function start(options = {}) {
-  time = Date.now();
-  dir = mkdtempSync(join(tmpdir(), "dusk-relay-guards-"));
-  service = createLinkService({ base: "http://link.test", dataDir: dir, scriptPath: join(root, "install.sh"), agentPath: join(root, "agent.mjs"), trustProxy: true, now: () => time, ...options });
+async function start(options = {}, keep = false) {
+  if (!keep) { time = Date.now(); dir = mkdtempSync(join(tmpdir(), "dusk-relay-guards-")); }
+  waits = [];
+  // a held post's wait passes on the test clock at once
+  service = createLinkService({ base: "http://link.test", dataDir: dir, scriptPath: join(root, "install.sh"), agentPath: join(root, "agent.mjs"), trustProxy: true, now: () => time,
+    sleep: async (ms) => { waits.push(ms); time += ms; }, ...options });
   service.store.tunnels.set(id, { id, createdAt: time, vpsVerifier: sha256hex(vps), appVerifier: sha256hex(app), seenAt: null });
   server = createServer((req, res) => void service.handler(req, res));
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   base = `http://127.0.0.1:${server.address().port}`;
 }
-afterEach(async () => {
+async function stop() {
   service?.close();
   server?.closeAllConnections();
   await new Promise((resolve) => server ? server.close(resolve) : resolve());
-  rmSync(dir, { recursive: true, force: true });
   service = server = null;
+}
+afterEach(async () => {
+  await stop();
+  rmSync(dir, { recursive: true, force: true });
 });
 
 const request = (path, { token, method = "GET", body, ip = "198.51.100.1" } = {}) => fetch(`${base}${path}`, {
@@ -51,33 +57,88 @@ const toVps = (list, extra = {}) => request(`/v1/tunnels/${id}/to-vps`, { token:
 const read = () => request(`/v1/tunnels/${id}/to-vps`, { token: vps }).then((res) => res.json());
 const newSession = (body = {}, ip) => request("/v1/sessions", { method: "POST", ip, body: { verifier: "f".repeat(64), appPub: "k".repeat(43), ...body } });
 
+const other = "klmnopqrst", otherApp = "b".repeat(43), otherVps = "w".repeat(43);
+const addOther = () => service.store.tunnels.set(other, { id: other, createdAt: time, vpsVerifier: sha256hex(otherVps), appVerifier: sha256hex(otherApp), seenAt: null });
+const otherToVps = (list, extra = {}) => request(`/v1/tunnels/${other}/to-vps`, { token: otherApp, method: "POST", body: { frames: list, ...extra } });
+const otherRead = () => request(`/v1/tunnels/${other}/to-vps`, { token: otherVps }).then((res) => res.json());
+
 describe("a tunnel's byte budget", () => {
-  it("takes a burst, refuses past it with a retry-after, and refills at 12 MiB a second", async () => {
-    expect([TUNNEL_BYTES_PER_SECOND, TUNNEL_BURST_BYTES]).toEqual([12 * MB, 32 * MB]);
+  it("takes a 24 MiB burst, then slows posts to 3 MiB a second instead of refusing them", async () => {
+    expect([TUNNEL_BYTES_PER_SECOND, TUNNEL_BURST_BYTES]).toEqual([3 * MB, 24 * MB]);
     await start();
-    // 2.25 MiB a post: fourteen fit the 32 MiB burst
-    for (let i = 0; i < 14; i += 1) { expect((await toVps(frames(3), { epoch, seq: i })).status).toBe(200); await read(); }
-    const refused = await toVps(frames(3), { epoch, seq: 14 });
+    // 3 MiB of frame text a post: eight fit the burst without waiting
+    for (let i = 0; i < 8; i += 1) { expect((await toVps(frames(3), { epoch, seq: i })).status).toBe(200); await read(); }
+    expect(waits).toEqual([]);
+    for (let i = 8; i < 11; i += 1) { expect((await toVps(frames(3), { epoch, seq: i })).status).toBe(200); await read(); }
+    expect(waits).toEqual([1000, 1000, 1000]);
+  });
+
+  it(`refuses with a retry-after only when the wait would pass ${MAX_HOLD_MS / 1000} s`, async () => {
+    await start({ limits: { perTunnelBytesPerSec: 64 * 1024, burstBytes: MB } });
+    const refused = await toVps(frames(3), { epoch, seq: 0 });
     expect(refused.status).toBe(429);
     expect(await refused.json()).toMatchObject({ code: "rate_limited" });
-    expect(Number(refused.headers.get("retry-after"))).toBeGreaterThanOrEqual(1);
-    time += 1000;
-    expect((await toVps(frames(3), { epoch, seq: 14 })).status).toBe(200);
+    expect(Number(refused.headers.get("retry-after"))).toBe(32);
+    expect((await toVps(["a".repeat(4000)], { epoch, seq: 0 })).status).toBe(200);
+    expect(waits).toEqual([]);
   });
 
-  it("holds the egress lane to 6 MiB a second while the main queue keeps its own room", async () => {
+  it("holds the egress lane to 6 MiB a second", async () => {
     expect([LANE_BYTES_PER_SECOND, LANE_BURST_BYTES]).toEqual([6 * MB, 8 * MB]);
     await start();
-    // three 2.25 MiB posts fit the 8 MiB lane burst, the fourth waits
-    for (let i = 0; i < 3; i += 1) { expect((await toVps(frames(3), { lane: true })).status).toBe(200); await read(); }
-    expect((await toVps(frames(3), { lane: true })).status).toBe(429);
-    expect((await toVps(frames(3), { epoch, seq: 0 })).status).toBe(200);
-    time += 1000;
+    for (let i = 0; i < 2; i += 1) { expect((await toVps(frames(3), { lane: true })).status).toBe(200); await read(); }
+    expect(waits).toEqual([]);
     expect((await toVps(frames(3), { lane: true })).status).toBe(200);
+    expect(waits).toEqual([Math.ceil(1000 / 6)]);
   });
 
-  it("stops a tunnel at 150 GB a day and lets it go again the next UTC day", async () => {
-    expect(TUNNEL_BYTES_PER_DAY).toBe(150 * 1024 ** 3);
+  it("keeps busy tunnels together under the global ceiling, slowing them rather than refusing", async () => {
+    const ceiling = 4 * MB;
+    await start({ limits: { globalCeilingBytesPerSec: ceiling, burstBytes: 4 * MB } });
+    addOther();
+    const t0 = time;
+    let sent = 0;
+    for (let i = 0; i < 20; i += 1) {
+      expect((await toVps(frames(3), { epoch, seq: i })).status).toBe(200); await read();
+      expect((await otherToVps(frames(3), { epoch, seq: i })).status).toBe(200); await otherRead();
+      sent += 6 * MB;
+    }
+    // never more than the global burst plus the ceiling's rate, and not much less either
+    expect(sent).toBeLessThanOrEqual(2 * ceiling + ceiling * (time - t0) / 1000);
+    expect((time - t0) / 1000).toBeLessThan(sent / ceiling + 2);
+  });
+
+  it("gives a busy tunnel its full rate alone and an even share of the ceiling while another is busy", async () => {
+    const limits = { globalCeilingBytesPerSec: 4 * MB, burstBytes: MB };
+    await start({ limits });
+    expect((await toVps(frames(3), { epoch, seq: 0 })).status).toBe(200);
+    // 2 MiB past its burst at 3 MiB a second
+    expect(waits).toEqual([Math.ceil(2000 / 3)]);
+    await stop();
+    await start({ limits });
+    addOther();
+    expect((await otherToVps(frames(3), { epoch, seq: 0 })).status).toBe(200);
+    waits = [];
+    expect((await toVps(frames(3), { epoch, seq: 0 })).status).toBe(200);
+    // the same 2 MiB at half the 4 MiB ceiling
+    expect(waits).toEqual([1000]);
+  });
+
+  it("answers relay_busy to a new tunnel once maxTunnels are relaying, never to one already relaying", async () => {
+    await start({ limits: { maxTunnels: 1 } });
+    addOther();
+    expect((await toVps(["a".repeat(4000)], { epoch, seq: 0 })).status).toBe(200);
+    const busy = await otherToVps(["a".repeat(4000)], { epoch, seq: 0 });
+    expect(busy.status).toBe(503);
+    expect(await busy.json()).toMatchObject({ code: "relay_busy" });
+    expect(busy.headers.get("retry-after")).toBe("60");
+    expect((await toVps(["a".repeat(4000)], { epoch, seq: 1 })).status).toBe(200);
+    time += ACTIVE_MS + 1;
+    expect((await otherToVps(["a".repeat(4000)], { epoch, seq: 0 })).status).toBe(200);
+  });
+
+  it("stops a tunnel at 25 GB a day and lets it go again the next UTC day", async () => {
+    expect(TUNNEL_BYTES_PER_DAY).toBe(25 * 1024 ** 3);
     await start();
     const tunnel = service.store.tunnels.get(id);
     tunnel.day = Math.floor(time / 86_400_000);
@@ -88,6 +149,75 @@ describe("a tunnel's byte budget", () => {
     time += 86_400_000;
     expect((await toVps(["a".repeat(4000)], { epoch, seq: 0 })).status).toBe(200);
     expect(service.store.tunnels.get(id).dayBytes).toBeLessThan(MB);
+  });
+});
+
+describe("the owner's relay ops endpoints", () => {
+  const statsToken = "s".repeat(32);
+  const ops = (path, opts = {}) => request(path, { token: statsToken, ...opts });
+
+  it("needs the stats token and hides without one", async () => {
+    await start();
+    expect((await request("/ops/relay/stats", { token: statsToken })).status).toBe(404);
+    await stop();
+    await start({ statsToken }, true);
+    expect((await request("/ops/relay/stats")).status).toBe(401);
+    expect((await request("/ops/relay/stats", { token: app })).status).toBe(401);
+    expect((await request("/ops/relay/limits", { token: app, method: "PUT", body: { maxTunnels: 5 } })).status).toBe(401);
+  });
+
+  it("reports now, today, month, limits and the busiest accounts in the agreed shape", async () => {
+    await start({ statsToken });
+    service.store.tunnels.get(id).acct = acct;
+    expect((await toVps(frames(3), { epoch, seq: 0 })).status).toBe(200);
+    expect((await read()).frames).toHaveLength(3);
+    time += 1000;
+    const body = await (await ops("/ops/relay/stats")).json();
+    expect(Object.keys(body).sort()).toEqual(["busy", "limits", "month", "now", "relay", "today", "top"]);
+    expect(body.relay).toBe("contabo");
+    expect(Object.keys(body.now).sort()).toEqual(["accounts", "bytesPerSecIn", "bytesPerSecOut", "cpu", "rssMb", "tunnels"]);
+    expect(body.now).toMatchObject({ tunnels: 1, accounts: 1, bytesPerSecIn: Math.round(3 * MB / 10), bytesPerSecOut: Math.round(3 * MB / 10) });
+    expect(body.today).toEqual({ bytesOut: 3 * MB, bytesIn: 3 * MB });
+    expect(body.month).toMatchObject({ bytesOut: 3 * MB, bytesIn: 3 * MB, allowanceBytes: MONTH_ALLOWANCE_BYTES });
+    expect(body.month.projectedBytesOut).toBeGreaterThanOrEqual(3 * MB);
+    expect(body.limits).toEqual({ ...DEFAULT_LIMITS });
+    expect(body.top).toEqual([{ account: acct, tunnels: 1, bytesToday: 3 * MB }]);
+    expect(body.busy).toBe(false);
+  });
+
+  it("changes limits at runtime, refuses bad ones, and keeps them and the totals across a restart", async () => {
+    await start({ statsToken });
+    for (const bad of [{}, { maxTunnels: 0 }, { perTunnelBytesPerSec: 1.5 }, { nope: 1 }, { burstBytes: "big" }, { paused: "yes" }]) {
+      const refused = await ops("/ops/relay/limits", { method: "PUT", body: bad });
+      expect(refused.status).toBe(400);
+      expect(await refused.json()).toMatchObject({ code: "invalid_limits" });
+    }
+    const changed = await ops("/ops/relay/limits", { method: "PUT", body: { maxTunnels: 1, perTunnelDailyBytes: 200 * MB } });
+    expect(changed.status).toBe(200);
+    expect((await changed.json()).limits).toEqual({ ...DEFAULT_LIMITS, maxTunnels: 1, perTunnelDailyBytes: 200 * MB });
+    addOther();
+    expect((await toVps(["a".repeat(4000)], { epoch, seq: 0 })).status).toBe(200);
+    expect((await otherToVps(["a".repeat(4000)], { epoch, seq: 0 })).status).toBe(503);
+    await stop();
+    await start({ statsToken }, true);
+    addOther();
+    const body = await (await ops("/ops/relay/stats")).json();
+    expect(body.limits).toMatchObject({ maxTunnels: 1, perTunnelDailyBytes: 200 * MB });
+    expect(body.today.bytesIn).toBe(4000);
+    // paused: the tunnel already relaying keeps going, a new one gets the busy answer, until unpaused
+    expect((await toVps(["a".repeat(4000)], { epoch, seq: 1 })).status).toBe(200);
+    expect((await ops("/ops/relay/limits", { method: "PUT", body: { paused: true, maxTunnels: 150 } })).status).toBe(200);
+    expect((await toVps(["a".repeat(4000)], { epoch, seq: 2 })).status).toBe(200);
+    const paused = await otherToVps(["a".repeat(4000)], { epoch, seq: 0 });
+    expect(paused.status).toBe(503);
+    expect(await paused.json()).toMatchObject({ code: "relay_busy" });
+    expect((await (await ops("/ops/relay/stats")).json()).busy).toBe(true);
+    expect((await ops("/ops/relay/limits", { method: "PUT", body: { paused: false } })).status).toBe(200);
+    expect((await otherToVps(["a".repeat(4000)], { epoch, seq: 0 })).status).toBe(200);
+    const tunnel = service.store.tunnels.get(id);
+    tunnel.day = Math.floor(time / 86_400_000);
+    tunnel.dayBytes = 200 * MB;
+    expect((await toVps(["a".repeat(4000)], { epoch, seq: 3 })).status).toBe(429);
   });
 });
 
@@ -106,7 +236,7 @@ describe("relay stats", () => {
     const res = await request("/v1/stats/relay", { token: statsToken });
     expect(res.status).toBe(200);
     const day = new Date(time).toISOString().slice(0, 10);
-    expect(await res.json()).toEqual({ limitBytes: TUNNEL_BYTES_PER_DAY, tunnels: [{ id, acct, days: { [day]: { bytes: Math.floor(3 * MB * 3 / 4), limited: 1 } } }] });
+    expect(await res.json()).toEqual({ limitBytes: TUNNEL_BYTES_PER_DAY, tunnels: [{ id, acct, days: { [day]: { bytes: 3 * MB, limited: 1 } } }] });
     for (let i = 1; i <= 4; i += 1) { time += 86_400_000; tunnel.dayBytes = 0; expect((await toVps(["a".repeat(4000)], { epoch, seq: 1 + i })).status).toBe(200); await read(); }
     expect(Object.keys(service.store.tunnels.get(id).relayDays)).toHaveLength(3);
   });
