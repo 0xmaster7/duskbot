@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { botOwner, chiefScope } from "../shared/bot-owner.ts";
 import { z } from "zod";
+import { MAUS_COLOR_NAMES } from "../shared/wire.ts";
 import { soulDiffLines } from "../shared/line-diff.ts";
 import { newId, type ModelSelection } from "./contracts.ts";
 import { fitsOnOneLine, parseBotProfilePatch } from "./bot-profile.ts";
@@ -22,6 +23,8 @@ const fieldsSchema = z.object({
   chiefOfStaff: z.boolean().optional(),
   name: z.string().optional(), title: z.string().optional(), description: z.string().optional(), soul: z.string().optional(),
   cwd: z.string().optional(),
+  color: z.enum(MAUS_COLOR_NAMES).optional(),
+  mascotBody: z.string().nullable().optional(),
   section: z.string().trim().max(60).refine(fitsOnOneLine).refine((value) => redactSecretsInText(value) === value, "Team names cannot contain credentials").optional(),
   modelSelection: z.object({ instanceId: z.string().trim().min(1), model: z.string().trim().min(1), effort: z.string().optional(), variant: z.string().optional() }).strict().optional(),
 }).strict();
@@ -117,13 +120,16 @@ export class TeamSetupRequestService {
   }
 
   private fields(input: z.infer<typeof fieldsSchema>, current?: BotRecord): TeamSetupFields {
-    const { section: targetSection, modelSelection, chiefOfStaff, cwd: rawCwd, ...profile } = input;
+    const { section: targetSection, modelSelection, chiefOfStaff, cwd: rawCwd, color, ...profile } = input;
+    // the look is chosen once, at creation; the person changes it in the app
+    if (current && (color !== undefined || profile.mascotBody !== undefined)) throw new TeamSetupError("A bot's colour and body can only be chosen when creating it; the person changes them in the app");
     const safe = Object.fromEntries(Object.entries(profile).map(([key, value]) => [key, redactSecretsInText(value!)]));
     const parsed = parseBotProfilePatch(safe, true);
     if (!parsed.ok) throw new TeamSetupError(parsed.error);
     const result: TeamSetupFields = { ...parsed.patch };
     if (targetSection !== undefined) result.section = targetSection;
     if (chiefOfStaff !== undefined) result.chiefOfStaff = chiefOfStaff;
+    if (color !== undefined) result.color = color;
     if (rawCwd !== undefined) {
       if (current) throw new TeamSetupError("A working folder can only be chosen when creating a bot; propose_profile changes it later");
       const checked = validateBotCwd(rawCwd);

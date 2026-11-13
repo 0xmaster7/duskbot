@@ -1,4 +1,5 @@
-import type { ModelSelection } from "./wire.ts";
+import type { StoredBodyId } from "./bot-body.ts";
+import type { MausColor, ModelSelection } from "./wire.ts";
 
 export interface TeamSetupFields {
   name?: string;
@@ -7,6 +8,9 @@ export interface TeamSetupFields {
   soul?: string;
   /** Create only: the folder the new bot's tools work in. "" = private workspace. */
   cwd?: string;
+  /** Create only: the new bot's colour and pixel body. */
+  color?: MausColor;
+  mascotBody?: StoredBodyId | null;
   section?: string;
   modelSelection?: ModelSelection;
   chiefOfStaff?: boolean;

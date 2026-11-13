@@ -65,6 +65,15 @@ const specialist = (key: string, section: string, modelSelection = { instanceId:
   fields: { name: key, title: "Specialist", soul: "Finish the assigned work.", section, modelSelection } });
 
 describe("reviewed Chief team setup", () => {
+  it("gives a new bot the colour and body it was made with, and keeps a bot's look out of later changes", async () => {
+    const h = harness();
+    h.autoApply.mockReturnValue("level");
+    const made = await h.submit([{ ...specialist("Scout", "Work"), fields: { ...specialist("Scout", "Work").fields, color: "purple", mascotBody: "loaf" } }]);
+    expect(made).toMatchObject({ state: "applied" });
+    expect(h.store.bots.find((bot) => bot.name === "Scout")).toMatchObject({ color: "purple", mascotBody: "loaf" });
+    expect(() => h.propose([{ action: "create", key: "Odd", fields: { ...specialist("Odd", "Work").fields, color: "plaid" } }])).toThrow();
+    expect(() => h.propose([{ action: "update", botId: h.peer.id, fields: { color: "red" } }])).toThrow(/only be chosen when creating/);
+  });
   it("reviews promotion in an authorized team without changing anything on denial", async () => {
     const h = harness(); h.peer.section = "Engineering";
     const before = structuredClone(h.store.bots);

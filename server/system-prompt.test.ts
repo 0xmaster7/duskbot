@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { availableTools } from "./drivers/agents-catalog.ts";
 
 import { soulSystemPrompt } from "./bot-folder.ts";
 import { BUILT_IN_BROWSER_SYSTEM_PROMPT } from "./browser-engine.ts";
@@ -27,6 +28,7 @@ import {
   SANDBOX_DESKTOP_INPUT,
   SIGN_IN_PROMPT,
   savedLoginsPrompt,
+  workspacePrompt,
   type ComputerPromptKind,
 } from "./system-prompt.ts";
 import { loginPlace } from "../shared/logins.ts";
@@ -493,5 +495,23 @@ describe("how every bot replies", () => {
     expect(WIDGET_PROMPT).not.toContain("never end a turn with a question in text that a form could ask");
     expect(TRIGGER_PROMPT).toContain("weekdays at 9:00 AM India time\", never a zone id such as Asia/Kolkata");
     expect(TRIGGER_PROMPT).toContain("where its results will appear, what each run covers, and when the first run is");
+  });
+});
+
+describe("workspacePrompt", () => {
+  // every tool it names is one the bot is given, so no engine is sent looking for a tool it lacks
+  const named = (text: string) => [...text.matchAll(/\b([a-z]+(?:_[a-z]+)+)\b/g)].map((match) => match[1]!).filter((name) => name !== "for_bot_id");
+  const listed = (chief: boolean) => new Set(availableTools({ skillAuthoring: true, voiceNotes: false, cloudHome: false, chief, botId: "b", computerSelection: true }).map((tool) => tool.name));
+
+  it("names only tools a Chief-level bot has, bot creation included", () => {
+    const text = workspacePrompt(true);
+    expect(text).toContain("create_bot");
+    for (const name of named(text)) expect(listed(true).has(name), name).toBe(true);
+  });
+
+  it("names only tools any bot has, and never the Chief's", () => {
+    const text = workspacePrompt(false);
+    expect(text).not.toContain("create_bot");
+    for (const name of named(text)) expect(listed(false).has(name), name).toBe(true);
   });
 });

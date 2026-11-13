@@ -1,6 +1,6 @@
-import type { BotRoutineTemplate, NewBotDefaults } from "../../shared/new-bot-defaults";
-import type { DuskBodyId } from "../../shared/body-migration";
-import type { MausColor } from "../../shared/wire";
+import type { BotRoutineTemplate, NewBotDefaults } from "../../shared/new-bot-defaults.ts";
+import type { DuskBodyId } from "../../shared/body-migration.ts";
+import type { MausColor } from "../../shared/wire.ts";
 
 export type ReadyBotCategory = "everyday" | "work" | "writing" | "design" | "sales" | "personal";
 

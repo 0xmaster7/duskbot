@@ -55,7 +55,11 @@ describe("what a Chief of Staff reads about its team", () => {
   it("gives an active Chief the library's teams and roles, read only", async () => {
     const library = vi.fn(async () => TEAMS);
     const { get } = await serve(bot("chief", { chiefOfStaff: true }), library);
-    expect(await get("/api/internal/team-library")).toEqual({ status: 200, body: { teams: TEAMS } });
+    const answer = await get("/api/internal/team-library");
+    expect(answer).toMatchObject({ status: 200, body: { teams: TEAMS } });
+    // the app's ready-made single bots ride along, as templates for create_bot
+    expect(answer.body.bots).toEqual(expect.arrayContaining([expect.objectContaining({ template: "research", title: expect.any(String) })]));
+    expect(JSON.stringify(answer.body.bots)).not.toContain("## What you are for");
     expect(library).toHaveBeenCalledOnce();
   });
 
@@ -70,11 +74,11 @@ describe("what a Chief of Staff reads about its team", () => {
     expect((await hidden.get("/api/internal/team-library")).status).toBe(403);
   });
 
-  it("says plainly when the library can't be reached", async () => {
+  it("still offers the ready-made bots, and says plainly, when the online library can't be reached", async () => {
     const { get } = await serve(bot("chief", { chiefOfStaff: true }), async () => { throw new Error("GitHub returned HTTP 503"); });
-    expect(await get("/api/internal/team-library")).toEqual({
-      status: 502, body: { error: "The team library can't be reached right now. Build the team from what the person asked." },
-    });
+    const answer = await get("/api/internal/team-library");
+    expect(answer).toMatchObject({ status: 200, body: { teams: [], note: "The online team library can't be reached right now; the single bots above still work." } });
+    expect((answer.body.bots as unknown[]).length).toBeGreaterThan(5);
   });
 
   it("answers nothing once the turn's capability expired or the bot stopped being the Chief while the library loaded", async () => {

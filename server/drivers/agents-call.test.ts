@@ -87,6 +87,36 @@ describe("create_bot", () => {
   });
 });
 
+describe("create_bot from a template", () => {
+  const recording = (answer: Record<string, unknown>) => {
+    const calls: Array<{ path: string; body: any }> = [];
+    return { calls, client: { api: async (path: string, init?: RequestInit) => { calls.push({ path, body: JSON.parse(String(init?.body)) }); return answer; },
+      apiResponse: async () => ({ ok: true, status: 200, body: {} }) } as ToolCallContext["client"] };
+  };
+
+  it("sends only the template, colour and greet it was given, and tells the bot what the template suggests", async () => {
+    const { calls, client } = recording({ id: "b2", name: "Iris", section: "General", color: "purple", greeted: true,
+      suggestedRoutines: ["Weekly digest at 09:00: Summarise what changed."], apps: ["gmail"] });
+    const result = await callTool("create_bot", { template: " research ", color: "purple" }, context({ client }));
+    expect(calls).toEqual([{ path: "/api/internal/create-bot", body: { fromBotId: "bot-voice", fromThreadId: "thread-voice", template: "research", color: "purple" } }]);
+    expect(result.isError).toBeFalsy();
+    expect(result.text).toContain("Created @Iris in General [id: b2], colour purple.");
+    expect(result.text).toContain("saying hello in its own chat now");
+    expect(result.text).toContain("Weekly digest at 09:00");
+    expect(result.text).toContain("trigger for_bot_id b2");
+    expect(result.text).toContain("gmail");
+  });
+
+  it("passes greet false through, and refuses neither a template nor a full brief before calling anything", async () => {
+    const { calls, client } = recording({ id: "b3", name: "Scout", greeted: false });
+    await callTool("create_bot", { name: "Scout", role: "Watcher", instructions: "Watch competitors.", greet: false }, context({ client }));
+    expect(calls[0]!.body).toMatchObject({ name: "Scout", role: "Watcher", instructions: "Watch competitors.", greet: false });
+    const refused = await callTool("create_bot", { name: "Scout" }, context({ client }));
+    expect(refused).toEqual({ text: "create_bot needs a template id from list_team_library's bots, or name, role and instructions.", isError: true });
+    expect(calls).toHaveLength(1);
+  });
+});
+
 describe("mcp_server", () => {
   it("posts the action and fields and returns the route's text for the model", async () => {
     const calls: Array<{ path: string; method?: string; body: unknown }> = [];
@@ -176,6 +206,37 @@ describe("memory_update", () => {
       const result = botMemoryUpdate(botId, body, { source: 'chat "Turn"', aboutMe });
       return { ok: result.ok, status: result.ok ? 200 : "code" in result && result.code === "conflict" ? 409 : 400, body: result };
     },
+  });
+
+  it("keeps one note when the same fact is saved again, in any case or spacing", async () => {
+    const bot = "bot-memory-same";
+    writeMemoryFile(bot, "");
+    const ctx = context({ botId: bot, client: harness(bot) });
+    expect((await callTool("memory_update", { action: "append", text: "Prefers short reports." }, ctx)).text).toMatch(/^Memory updated\./);
+    const again = await callTool("memory_update", { action: "append", text: "  prefers   short reports " }, ctx);
+    expect(again.isError).toBeFalsy();
+    expect(again.text).toMatch(/^Already remembered, so nothing was added\. Entry: - \d{4}-\d{2}-\d{2} · from chat "Turn" · Prefers short reports\.$/);
+    expect(readMemoryFile(bot).text.match(/short reports/gi)).toHaveLength(1);
+    // a temporary fact with its own end date is a different note
+    expect((await callTool("memory_update", { action: "append", text: "Prefers short reports.", until: "2099-01-01" }, ctx)).text).toMatch(/^Memory updated\./);
+  });
+
+  it("sends for_bot_id with an append, refuses it with any other action, and says whose notebook it went to", async () => {
+    const calls: unknown[] = [];
+    const client: ToolCallContext["client"] = {
+      api: async () => ({}),
+      apiResponse: async (_path, init) => {
+        calls.push(JSON.parse(String(init?.body)));
+        return { ok: true, status: 200, body: { ok: true, truncated: false, moved: [], entry: "- 2026-11-13 · from @Dusk · Prefers short reports", forBot: "Scout" } };
+      },
+    };
+    const saved = await callTool("memory_update", { action: "append", text: "Prefers short reports", for_bot_id: " scout-1 " }, context({ client }));
+    expect(calls).toEqual([{ fromBotId: "bot-voice", fromThreadId: "thread-voice", action: "append", text: "Prefers short reports", forBotId: "scout-1" }]);
+    expect(saved.text).toBe("Saved to @Scout's notebook, marked as from you; it reads it from its next conversation on. Entry: - 2026-11-13 · from @Dusk · Prefers short reports");
+    const refused = await callTool("memory_update", { action: "forget", old_text: "reports", for_bot_id: "scout-1" }, context({ client }));
+    expect(refused.isError).toBe(true);
+    expect(refused.text).toContain("for_bot_id works only with action=append");
+    expect(calls).toHaveLength(1);
   });
 
   it("saves every note in a turn on a full file, saying what moved to the archive, and never closes the tool", async () => {

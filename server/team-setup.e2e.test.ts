@@ -107,7 +107,7 @@ it("Clive sets up multi-provider teams at Ask with no card, keeps existing threa
 
     // A specialist Clive picks without being asked is added at once like a requested one: no card, nothing resumes Clive, and Undo removes it.
     token = await start("Does the team need anyone else?");
-    const picked = await api("POST", "/api/internal/create-bot", { name: "Scout", role: "Research scout", instructions: "Find and check sources.", suggestion: true }, 201, token);
+    const picked = await api("POST", "/api/internal/create-bot", { name: "Scout", role: "Research scout", instructions: "Find and check sources.", suggestion: true, greet: false }, 201, token);
     expect(picked).toMatchObject({ state: "applied", applied: true, name: "Scout" });
     expect((await state()).find((bot: any) => bot.name === "Scout")).toMatchObject({ approvalMode: "full" });
     await finish();
@@ -119,7 +119,7 @@ it("Clive sets up multi-provider teams at Ask with no card, keeps existing threa
     await control("send-channel", "--channel", room.id, "--task", room.activeTaskId, "--text", "@Clive Add a helper for this room.");
     await expect.poll(() => JSON.parse(readFileSync(fixture.fixtureDumpPath, "utf8")).pid, { timeout: 15_000 }).not.toBe(previousPid);
     const groupDump = JSON.parse(readFileSync(fixture.fixtureDumpPath, "utf8")); previousPid = groupDump.pid;
-    const roomPick = await api("POST", "/api/internal/create-bot", { name: "RoomHelper", role: "Room helper", instructions: "Help the room.", suggestion: true },
+    const roomPick = await api("POST", "/api/internal/create-bot", { name: "RoomHelper", role: "Room helper", instructions: "Help the room.", suggestion: true, greet: false },
       201, groupDump.mcpConfig.mcpServers.agents.env.DUSK_COMMS_TOKEN);
     expect(roomPick).toMatchObject({ state: "applied", applied: true });
     writeFileSync(gate, "finish");

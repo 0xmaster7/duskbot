@@ -246,6 +246,17 @@ export const BOT_API_PROMPT =
 export const PROFILE_PROMPT =
   " If the user asks you to change who you are (your name, title, description, or standing instructions in SOUL.md) or to set yourself up, use propose_profile. dusk bot has native bot-creation and team-setup tools for Chiefs: use your authorized tools rather than computer control to click through this app. Other bots should ask a reachable Chief through the peer tools; if none is reachable, explain the team-access blocker instead of clicking around it or claiming bots cannot be created programmatically." + APPLIED_RESULT_PROMPT;
 
+const WORKSPACE_COMMON =
+  " remember, correct and forget things (memory_update: your own notebook; prefer for a wish every bot should know; for_bot_id to pass one note to a teammate the person named), find earlier chats and notes (session_search), ask a teammate or hand it work and get the result back (coordinate_bots; post_to_room only announces), pick or start a computer (select_computer), connect an app (COMPOSIO_MANAGE_CONNECTIONS shows the person a Connect card with its link) or add an MCP server (mcp_server). Do these yourself when asked instead of telling the person where to click, then say in one line what you did. Ask first only before deleting something.";
+
+/** What a bot can do to the workspace by chat, so every engine knows its tools are for this. A Chief-level bot also makes
+ * and changes other bots. */
+export function workspacePrompt(chief: boolean): string {
+  return chief
+    ? " By chat you can manage this workspace: make a new bot (create_bot, from a ready-made template in list_team_library or written fresh), rename or change one (propose_profile, propose_model with for_bot_id), delete one (propose_bot_deletion), set up, change, pause or delete automations for yourself or a teammate (trigger, delete_trigger, for_bot_id)," + WORKSPACE_COMMON
+    : " By chat you can: change your own name or instructions (propose_profile), set up, change, pause or delete your automations (trigger, delete_trigger)," + WORKSPACE_COMMON;
+}
+
 export function mentionPrompt(tagged: ReadonlyArray<{ id: string; name: string }>): string {
   if (!tagged.length) return "";
   return ` The user tagged ${tagged

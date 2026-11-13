@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import type { AppTrigger } from "../shared/app-triggers.ts";
 import { appWhenText } from "./app-trigger-requests.ts";
-import { canManage, type RosterMember } from "./peer-roster.ts";
+import { canManage, resolveTeammate, type RosterMember } from "./peer-roster.ts";
 import { redactSecretsInText } from "./redact.ts";
 import type { Routine, RoutineRun } from "./routines.ts";
 import type { WebhookTrigger } from "./webhooks.ts";
@@ -215,13 +215,16 @@ export function parseTriggerRequest(body: unknown, kindOf: (id: string) => "sche
 }
 
 /** An automation is part of a bot's setup: another bot named by for_bot_id needs the sender's authority, not just reach. */
-export function triggerTarget<T extends RosterMember>(from: T, forBotId: unknown, bot: (id: string) => T | null | undefined):
+export function triggerTarget<T extends RosterMember>(from: T, forBotId: unknown, bot: (id: string) => T | null | undefined, bots?: readonly T[]):
   { forBot?: { botId: string; name: string } } | { status: number; error: string } {
   if (forBotId === undefined) return {};
   const id = typeof forBotId === "string" ? forBotId.trim().slice(0, 128) : "";
   if (!id) return { status: 400, error: 'for_bot_id must be a bot id from list_bots, e.g. { "for_bot_id": "bot-abc123" }' };
   if (id === from.id) return {};
-  const target = bot(id);
+  // a model often writes the name it just saw ("Scout"); a unique reachable name means that bot, as in coordinate_bots
+  const named = bot(id) ? undefined : bots && resolveTeammate(bots, from, id);
+  const target = bot(named && "id" in named ? named.id : id);
+  if (target?.id === from.id) return {};
   if (!target) return { status: 404, error: "no bot with that id: call list_bots and copy the exact id from the result" };
   if (!canManage(from, target)) return { status: 403, error: "that bot's automations are set up by bots in its own department or by its Chief, or it is unavailable. You can still hand it the work itself with coordinate_bots, or tell the person what to set up there." };
   return { forBot: { botId: target.id, name: target.name } };

@@ -150,7 +150,8 @@ it("applies requested Full Access workflows through MCP without duplicate approv
         step("propose_team_setup", { reason: "Requested Research specialist and Chief description", newTeams: ["Research"], operations: [
           specialist("Mira", "Research"), { action: "update", botId: chief.id, fields: { description: "Coordinates monthly fixture reports" } },
         ] }),
-        step("create_bot", { name: "Theo", role: "Totals checker", instructions: "Check fixture totals before each report." }),
+        // greet false: the scripted replies are this turn's alone, not a hello from Theo
+        step("create_bot", { name: "Theo", role: "Totals checker", instructions: "Check fixture totals before each report.", greet: false }),
       ], { guarded: "full" });
     expect(created.permissionMode).toBe("bypassPermissions");
     for (const entry of created.evidence.filter((item: any) => ["propose_profile", "create_trigger", "skill_manage", "propose_team_setup"].includes(item.step?.tool))) {

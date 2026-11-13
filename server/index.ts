@@ -108,7 +108,7 @@ import { closeVpsBrowserConnections } from "./vps-connections.ts";
 import { compareVpsContainerStarts } from "./vps-container-start.ts";
 import { createSharedScreenBroker, independentScreenExecArgs, type IndependentScreenLease, type ScreenContainer } from "./shared-desktop-screens.ts";
 import { createVpsScreenRuntime } from "./vps-screen.ts";
-import { isEffortLevel, type CardAnswerer, type ResolvedSender, type SignInRequestCardData, type WireBot, type WireGroup, type WireTask } from "../shared/wire.ts";
+import { isEffortLevel, isMausColor, MAUS_COLOR_NAMES, type MausColor, type CardAnswerer, type ResolvedSender, type SignInRequestCardData, type WireBot, type WireGroup, type WireTask } from "../shared/wire.ts";
 import { talkingStyleOf } from "../shared/talking-style.ts";
 import { isPersistentQuestionCard, shouldSettleRequestCard } from "../shared/ask-question.ts";
 import { parseToolScope } from "../shared/tool-scope.ts";
@@ -350,9 +350,13 @@ import {
   beginMemoryTurn,
   endMemoryTurn,
   flushAllMemoryJournals,
+  journalMemoryWrite,
   journalTurnWrite,
   type MemoryJournalEntry,
 } from "./memory-journal.ts";
+import { introAllowed, introPrompt } from "./bot-intro.ts";
+import { memoryTarget } from "./memory-for-bot.ts";
+import { readyBotTemplate, templateRoutineHints } from "./ready-bot-templates.ts";
 import {
   readSections,
 } from "./section-context.ts";
@@ -398,6 +402,7 @@ import {
   LEARN_PROMPT,
   PROFILE_PROMPT,
   TRIGGER_PROMPT,
+  workspacePrompt,
   ROUTINE_EXECUTION_PROMPT, READ_ONLY_ROUTINE_EXECUTION_PROMPT, NOT_YET_PROMPT,
   WEBHOOK_PROMPT, BOT_API_PROMPT, AUTOMATION_REPLY_PROMPT,
   resolveComputerPromptKind,
@@ -2922,7 +2927,7 @@ function previewSystemPrompt(bot: BotRecord) {
     { id: "coordination", label: "Team", text: agentsMounted && coordination ? ` ${coordination}` : "" },
     { id: "credential", label: "Credentials", text: agentsMounted ? CREDENTIAL_PROMPT : "" },
     { id: "routine", label: "Triggers", text: agentsMounted ? TRIGGER_PROMPT : "" },
-    { id: "profile", label: "Profile changes", text: agentsMounted ? PROFILE_PROMPT : "" },
+    { id: "profile", label: "Profile changes", text: agentsMounted ? PROFILE_PROMPT + workspacePrompt(chiefLevel(bot)) : "" },
     teamAvailabilityPart(agentsMounted && coordination ? peers : []),
     { id: "memory", label: "Memory", text: memorySystemPrompt(bot.id, { managedWrites: agentsMounted, fileTools: Boolean(privateWorkspace), enabled: bot.memoryEnabled !== false }) },
     { id: "skills", label: "Skills index", text: privateWorkspace ? skillsHost.skillsIndex(bot, undefined, instance) : "" },
@@ -8662,7 +8667,7 @@ async function beginTurn(
           : "";
       const credentialPrompt = integrations.agents ? CREDENTIAL_PROMPT + THREADS_PROMPT + WIDGET_PROMPT : "";
       const routinePrompt = integrations.agents ? TRIGGER_PROMPT : "";
-      const profilePrompt = integrations.agents ? PROFILE_PROMPT : "";
+      const profilePrompt = integrations.agents ? PROFILE_PROMPT + workspacePrompt(chiefLevel(bot)) : "";
       const recallPrompt = integrations.agents && bot.memoryEnabled !== false ? SESSION_SEARCH_SYSTEM_PROMPT : "";
       const learnPrompt = skillAuthoring ? LEARN_PROMPT : "";
 
@@ -13462,7 +13467,8 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
           return json(res, 403, { error: "Memory is disabled for this bot." });
         }
         if (cloudGuestDriven(internalCapability.threadId)) {
-          const proposed = path.endsWith("/log") ? { status: 403, body: { error: OUTSIDE_STAYS_HERE } } : outsideWrites.submitMemory(internalSender, internalCapability.threadId, await readInternalBody());
+          const guestBody = path.endsWith("/log") ? null : await readInternalBody();
+          const proposed = !guestBody || guestBody.forBotId !== undefined ? { status: 403, body: { error: OUTSIDE_STAYS_HERE } } : outsideWrites.submitMemory(internalSender, internalCapability.threadId, guestBody);
           return json(res, proposed.status, proposed.body);
         }
         const room = store.groupByThread(internalCapability.threadId);
@@ -13473,6 +13479,15 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       if (method === "POST" && path === "/api/internal/memory") {
         const body = await readInternalBody();
         const ownersAsk = CLOUD_TEAM || (!store.groupByThread(internalCapability.threadId) && ownersOwnAsk(store.activePath(internalCapability.threadId)));
+        if (typeof body.forBotId === "string" && body.forBotId.trim()) {
+          const found = memoryTarget({ bots: store.bots, sender: internalSender, raw: body.forBotId, action: body.action, team: Boolean(CLOUD_TEAM),
+            ownersAsk: !store.groupByThread(internalCapability.threadId) && ownersOwnAsk(store.activePath(internalCapability.threadId)) });
+          if (!found.ok) return json(res, found.status, { ok: false, error: found.error });
+          if (found.target.id !== internalSender.id) {
+            const saved = botMemoryUpdate(found.target.id, { action: "append", text: body.text, until: body.until }, { source: `@${internalSender.name}`, aboutMe: null });
+            return json(res, saved.ok ? 200 : saved.code === "conflict" ? 409 : 400, saved.ok ? { ...saved, forBot: found.target.name } : saved);
+          }
+        }
         const result = botMemoryUpdate(teamHost.layer(internalSender.id, internalCapability.threadId), body, { source: memorySource(), aboutMe: ownersAsk ? aboutMeFacts : null,
           prefer: body?.action === "prefer" ? personPreference.target(internalCapability, internalSender) : null });
         return json(res, result.ok ? 200 : result.code === "conflict" ? 409 : 400, result);
@@ -13733,7 +13748,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         if (!owner) return json(res, 403, { error: "source conversation does not belong to sender" });
         const request = parseTriggerRequest(await readInternalBody(), (id) => routines!.listRoutines().some((routine) => routine.id === id) ? "schedule" : appTriggers.isApp(id) ? "app" : "webhook");
         if (!request.ok) return json(res, 400, { error: request.error });
-        const target = triggerTarget(from, request.forBotId, (id) => store.bot(id));
+        const target = triggerTarget(from, request.forBotId, (id) => store.bot(id), store.bots);
         if ("error" in target) return json(res, target.status, { error: target.error });
         const forBot = target.forBot;
         const persistence = proposalPersistence(from.id, fromThreadId, false);
@@ -14547,12 +14562,16 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         if (store.bots.length >= MAX_WORKSPACE_BOTS) {
           return json(res, 409, { error: `this workspace is limited to ${MAX_WORKSPACE_BOTS} bots` });
         }
-        const name = String(body.name ?? "").trim();
-        const role = String(body.role ?? "").trim();
-        const instructions = String(body.instructions ?? "").trim();
+        const template = body.template === undefined ? undefined : readyBotTemplate(body.template);
+        if (body.template !== undefined && !template) return json(res, 400, { error: "unknown template; use a template id from list_team_library's bots" });
+        const name = String(body.name ?? template?.name ?? "").trim();
+        const role = String(body.role ?? template?.title ?? "").trim();
+        const instructions = String(body.instructions ?? template?.soul ?? "").trim();
         if (!name || !role || !instructions) {
-          return json(res, 400, { error: "name, role, and instructions are required" });
+          return json(res, 400, { error: "name, role, and instructions are required (or a template)" });
         }
+        if (body.color !== undefined && !isMausColor(body.color)) return json(res, 400, { error: `color must be one of ${MAUS_COLOR_NAMES.join(", ")}` });
+        const color = (body.color as MausColor | undefined) ?? template?.look.color;
         if (name.length > 80) return json(res, 400, { error: "name must be at most 80 characters" });
         if (role.length > 120) return json(res, 400, { error: "role must be at most 120 characters" });
         // Both fields are quoted into every other room member's system prompt, one line each.
@@ -14610,6 +14629,8 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
                 soul: instructions,
                 modelSelection: selection,
                 ...(cwd !== undefined ? { cwd } : {}),
+                ...(color ? { color } : {}),
+                ...(template ? { mascotBody: template.look.mascotBody } : {}),
               },
             }],
           },
@@ -14625,8 +14646,20 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         const createdId = "result" in proposed ? proposed.result.bots.find((bot) => bot.action === "created")?.id : undefined;
         const created = createdId ? store.bot(createdId) : undefined;
         if (!created) return json(res, 201, proposed);
+        for (const [file, text] of Object.entries(template?.notes ?? {})) {
+          try { journalMemoryWrite(created.id, file, text, { actor: "bot", via: `create_bot by @${chief.name}` }); } catch (error) { console.warn(`create_bot: template note ${file} not written: ${error instanceof Error ? error.message : String(error)}`); }
+        }
+        // the new bot says hello in its own chat, as one made in the app does; never over a conversation already started
+        const greets = body.greet !== false && introAllowed(store.messagesFor(created.threadId)) && !threadBusy(created.id, created.threadId);
+        if (greets) {
+          void startTurn(created.id, introPrompt(conversationLanguage(created.threadId)), { threadId: created.threadId, cardContinuation: true, trigger: { kind: "bot", botId: chief.id } })
+            .catch((error) => console.warn(`create_bot: intro for ${created.id} did not start: ${error instanceof Error ? error.message : String(error)}`));
+        }
         return json(res, 201, {
           ...proposed,
+          greeted: greets,
+          ...(template ? { template: template.id, suggestedRoutines: templateRoutineHints(template), apps: template.apps } : {}),
+          color: created.color,
           id: created.id,
           name: created.name,
           title: created.title,

@@ -294,7 +294,7 @@ export interface MemoryUpdateOptions {
 }
 
 export type MemoryUpdateResult =
-  | { ok: true; truncated: boolean; entry?: string; moved: string[] }
+  | { ok: true; truncated: boolean; entry?: string; moved: string[]; known?: true }
   | { ok: false; error: string; code: "invalid" | "conflict" };
 
 export function memoryDate(now: Date = new Date()): string {
@@ -317,6 +317,11 @@ function normaliseEntryText(text: string): string {
   const trimmed = text.trim().replace(BULLET, "");
   if (trimmed.includes("```")) return trimmed.replace(/\n/g, "\n  ");
   return trimmed.replace(/\s*\n\s*/g, " ").replace(/[ \t]+/g, " ");
+}
+
+/** Case, spacing and closing punctuation do not make a fact new. */
+function sameFact(text: string): string {
+  return text.toLowerCase().replace(/\s+/g, " ").replace(/[.!?;,\s]+$/, "").trim();
 }
 
 export function memorySourceLabel(from: { room?: { name: string }; task?: { title: string }; threadId: string }): string {
@@ -372,6 +377,10 @@ export function updateMemory(botId: string, update: MemoryUpdate, opts: MemoryUp
   let next: string;
   let entry: string | undefined;
   if (update.action === "append") {
+    // the same fact said again stays one note: a live entry with the same words, whoever wrote it
+    const same = sameFact(normaliseEntryText(text!));
+    const known = parseMemoryEntries(current).find((existing) => !existing.struck && !isExpired(existing, today) && existing.until === (update.until ?? null) && sameFact(existing.body.replace(ENTRY_MARKS, "")) === same);
+    if (known) return { ok: true, truncated: memoryOverBudget(current), entry: known.raw, moved: [], known: true };
     entry = memoryEntry(text!, entryOpts);
     next = appendEntry(current, entry);
   } else {

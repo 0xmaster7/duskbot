@@ -1,6 +1,7 @@
 import { hasTeamAuthority, peerAllowed } from "../peer-roster.ts"; import { chiefLevel } from "../chief-level.ts";
 import type { BotRecord } from "../store.ts";
 import { libraryTeamRoles } from "../team-library.ts";
+import { readyBotSummaries } from "../ready-bot-templates.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 interface CatalogInstance {
@@ -32,14 +33,17 @@ export function createInternalChiefTeamRoutes(deps: {
     if (method !== "GET" || (path !== "/api/internal/team-setup-catalog" && path !== "/api/internal/team-library")) return PASS;
     if (!chief()) return json(res, 403, { error: NOT_CHIEF });
     if (path === "/api/internal/team-library") {
-      let teams: Awaited<ReturnType<typeof libraryTeamRoles>>;
+      // single bots ship with the app, so they answer even when the online team library does not
+      const bots = readyBotSummaries();
+      let teams: Awaited<ReturnType<typeof libraryTeamRoles>> | undefined;
       try {
         teams = await (deps.library ?? libraryTeamRoles)();
       } catch {
-        return json(res, 502, { error: "The team library can't be reached right now. Build the team from what the person asked." });
+        teams = undefined;
       }
       deps.requireActive();
-      return chief() ? json(res, 200, { teams }) : json(res, 403, { error: NOT_CHIEF });
+      if (!chief()) return json(res, 403, { error: NOT_CHIEF });
+      return json(res, 200, teams ? { bots, teams } : { bots, teams: [], note: "The online team library can't be reached right now; the single bots above still work." });
     }
     const instances = await deps.instances();
     deps.requireActive();

@@ -88,5 +88,8 @@ describe("triggerTarget", () => {
     expect(triggerTarget(bots.a, "bot-c", lookup)).toMatchObject({ status: 403 });
     expect(triggerTarget(bots.a, "bot-zzz", lookup)).toMatchObject({ status: 404 });
     expect(triggerTarget(bots.a, "  ", lookup)).toMatchObject({ status: 400 });
+    // a unique name it may reach resolves like its id
+    expect(triggerTarget(bots.a, "b", lookup, Object.values(bots))).toEqual({ forBot: { botId: "bot-b", name: "B" } });
+    expect(triggerTarget(bots.a, "Nobody", lookup, Object.values(bots))).toMatchObject({ status: 404 });
   });
 });

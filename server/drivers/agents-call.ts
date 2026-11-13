@@ -453,30 +453,44 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     return { text: `One review card is visible: ${String(result.title)}. Nothing has been applied. End this turn; the decision and structured result resume you automatically once. Do not ask again, poll, or repeat this proposal.` };
   }
   if (name === "create_bot") {
-    const botName = String(args.name ?? "").trim();
-    const role = String(args.role ?? "").trim();
-    const instructions = String(args.instructions ?? "").trim();
-    if (!botName || !role || !instructions) {
-      return { text: "create_bot needs name, role, and instructions.", isError: true };
+    const text = (key: string) => typeof args[key] === "string" ? String(args[key]).trim() : "";
+    const template = text("template");
+    const botName = text("name");
+    const role = text("role");
+    const instructions = text("instructions");
+    if (!template && (!botName || !role || !instructions)) {
+      return { text: "create_bot needs a template id from list_team_library's bots, or name, role and instructions.", isError: true };
     }
     const r = await api(`/api/internal/create-bot`, {
       method: "POST",
       body: JSON.stringify({
         fromBotId: BOT_ID,
         fromThreadId: THREAD_ID,
-        name: botName,
-        role,
-        instructions,
+        ...(template ? { template } : {}),
+        ...(botName ? { name: botName } : {}),
+        ...(role ? { role } : {}),
+        ...(instructions ? { instructions } : {}),
+        ...(text("color") ? { color: text("color") } : {}),
         ...(args.modelSelection !== undefined ? { modelSelection: args.modelSelection } : {}),
         ...(typeof args.cwd === "string" ? { cwd: args.cwd.trim() } : {}),
+        ...(args.greet === false ? { greet: false } : {}),
       }),
     });
+    const shown = botName || (typeof r.name === "string" ? r.name : "") || "the new bot";
     if (r.state === "pending") {
-      return { text: `One review card is visible: ${String(r.title)}. @${botName} has not been created yet. End this turn; the decision and structured result resume you automatically once. Do not ask again, poll, or repeat this request.` };
+      return { text: `One review card is visible: ${String(r.title)}. @${shown} has not been created yet. End this turn; the decision and structured result resume you automatically once. Do not ask again, poll, or repeat this request.` };
     }
-    if (!r.id) return completedProposalResult(r, `creating @${botName}`) ?? { text: `@${botName} was not created.`, isError: true };
+    if (!r.id) return completedProposalResult(r, `creating @${shown}`) ?? { text: `@${shown} was not created.`, isError: true };
+    const routines = Array.isArray(r.suggestedRoutines) ? r.suggestedRoutines.filter((line): line is string => typeof line === "string") : [];
+    const apps = Array.isArray(r.apps) ? r.apps.filter((app): app is string => typeof app === "string") : [];
     return {
-      text: `Created @${r.name ?? botName} in ${r.section ?? "General"} [id: ${r.id}].${r.modelSelection ? ` Model: ${JSON.stringify(r.modelSelection)}.` : ""} Assign work with coordinate_bots.`,
+      text: [
+        `Created @${r.name ?? shown} in ${r.section ?? "General"} [id: ${r.id}]${r.color ? `, colour ${String(r.color)}` : ""}.${r.modelSelection ? ` Model: ${JSON.stringify(r.modelSelection)}.` : ""}`,
+        r.greeted === true ? `It is saying hello in its own chat now; do not introduce it for it.` : "",
+        routines.length ? `Its template suggests these automations, not set up: ${routines.join("; ")}. Offer them, and create the ones the person wants with trigger for_bot_id ${String(r.id)}.` : "",
+        apps.length ? `It works best with these apps: ${apps.join(", ")}. If one is not connected, offer to connect it.` : "",
+        "Tell the person in one line what you made. Hand it work with coordinate_bots.",
+      ].filter(Boolean).join(" "),
     };
   }
   if (member === "create_room") {
@@ -657,6 +671,9 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     return confirmationResult(r, "the default model change", "model");
   }
   if (member === "memory_update") {
+    if (typeof args.for_bot_id === "string" && args.for_bot_id.trim() && args.action !== "append") {
+      return { text: "for_bot_id works only with action=append: one new note for that bot. To change or forget its notes, ask the person to tell that bot in its own chat.", isError: true };
+    }
     const passageOnly = args.action === "remove" || args.action === "forget";
     if (!["append", "replace", "remove", "supersede", "forget", "prefer"].includes(String(args.action))
       || (!passageOnly && (typeof args.text !== "string" || !args.text.trim()))
@@ -672,11 +689,14 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
         text: args.text,
         oldText: args.old_text,
         ...(typeof args.until === "string" && args.until.trim() ? { until: args.until.trim() } : {}),
+        ...(typeof args.for_bot_id === "string" && args.for_bot_id.trim() ? { forBotId: args.for_bot_id.trim() } : {}),
       }),
     });
     if (r.error || r.ok !== true) return { text: String(r.error ?? "Memory update was not confirmed."), isError: true };
     if (args.action === "forget") return { text: forgetText(String(args.old_text), r) };
     if (args.action === "prefer") return { text: preferText(r) };
+    if (r.known === true) return { text: `Already remembered${r.forBot ? ` by @${String(r.forBot)}` : ""}, so nothing was added.${typeof r.entry === "string" && r.entry ? ` Entry: ${r.entry}` : ""}` };
+    if (typeof r.forBot === "string") return { text: `Saved to @${r.forBot}'s notebook, marked as from you; it reads it from its next conversation on.${typeof r.entry === "string" && r.entry ? ` Entry: ${r.entry}` : ""}` };
     const entry = typeof r.entry === "string" && r.entry ? ` Entry: ${r.entry}` : "";
     const moved = Array.isArray(r.moved) ? r.moved.filter((line) => typeof line === "string") : [];
     const full = r.truncated
