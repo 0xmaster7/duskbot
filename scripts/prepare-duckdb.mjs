@@ -1,8 +1,9 @@
 // Stage the Data engine's native modules outside ASAR, one tree per platform
 // and CPU (dist-native/duckdb/<platform>-<arch>/node_modules/): DuckDB, resvg,
 // and the 1Password SDK, which reads its WebAssembly core from beside itself so
-// cannot be bundled either. Linux trees (the server images and the cloud home)
-// also carry node-datachannel, the direct screen path (server/screen-direct.ts). Each tree holds exactly the pinned DuckDB version: a
+// cannot be bundled either. Every tree also carries node-datachannel: the Linux
+// servers answer direct screen offers with it (server/screen-direct.ts) and the
+// desktop apps carry the linked server's link over it. Each tree holds exactly the pinned DuckDB version: a
 // binding and its libduckdb must come from the same release. Each single-arch
 // mac app keeps only its slice of the universal libduckdb.dylib and re-signs it.
 import { execFile } from "node:child_process";
@@ -55,15 +56,42 @@ export function pinnedResvgVersion(root) {
   return pin;
 }
 
-/** node-datachannel loads its prebuilt addon from @node-datachannel/<target>, which detect-libc picks; only the Linux
- *  servers (the Docker images, the cloud home) answer direct screen offers, all on glibc. */
+/** node-datachannel loads its prebuilt addon from @node-datachannel/<target>; it requires detect-libc on every
+ *  platform, though only Linux asks it anything. The Linux servers all run glibc. */
 export const DATACHANNEL_PACKAGE = "node-datachannel";
 export const DATACHANNEL_SCOPE = "@node-datachannel";
 export const DATACHANNEL_LIBC = "detect-libc";
-const DATACHANNEL_TARGETS = { "linux-x64": { name: "linux-x64-gnu", machine: 62 }, "linux-arm64": { name: "linux-arm64-gnu", machine: 183 } };
-/** null where the tree does not carry it (the desktop apps). `machine` is the ELF e_machine of the addon. */
+// machine: ELF e_machine, Mach-O cputype, or PE machine of the addon
+const DATACHANNEL_TARGETS = {
+  "linux-x64": { name: "linux-x64-gnu", format: "elf", machine: 62 },
+  "linux-arm64": { name: "linux-arm64-gnu", format: "elf", machine: 183 },
+  "darwin-arm64": { name: "darwin-arm64", format: "macho", machine: 0x0100000c },
+  "darwin-x64": { name: "darwin-x64", format: "macho", machine: 0x01000007 },
+  "win32-x64": { name: "win32-x64-msvc", format: "pe", machine: 0x8664 },
+};
+/** null where the tree does not carry it. */
 export function dataChannelPlatformPackage(platform, arch) {
   return DATACHANNEL_TARGETS[`${platform}-${arch}`] ?? null;
+}
+
+/** The addon is a single-arch binary of the target's own format and CPU (a fat Mach-O is refused). */
+export function checkNativeMachine(file, format, machine, arch) {
+  const bytes = readFileSync(file);
+  let found = null;
+  if (format === "elf") {
+    if (bytes.length < 20 || bytes.readUInt32BE(0) !== 0x7f454c46) throw new Error(`${file} is not an ELF file`);
+    found = bytes.readUInt16LE(18);
+  } else if (format === "macho") {
+    if (bytes.length < 8 || bytes.readUInt32LE(0) !== 0xfeedfacf) throw new Error(`${file} is not a thin 64-bit Mach-O file`);
+    found = bytes.readUInt32LE(4);
+  } else if (format === "pe") {
+    const offset = bytes.length >= 64 && bytes.readUInt16BE(0) === 0x4d5a ? bytes.readUInt32LE(0x3c) : -1;
+    if (offset < 0 || bytes.length < offset + 6 || bytes.readUInt32BE(offset) !== 0x50450000) throw new Error(`${file} is not a PE file`);
+    found = bytes.readUInt16LE(offset + 4);
+  } else {
+    throw new Error(`Unknown binary format ${format}`);
+  }
+  if (found !== machine) throw new Error(`${file} is built for ${format.toUpperCase()} machine ${found}, not ${arch}`);
 }
 
 export function pinnedDataChannelVersion(root) {
@@ -196,7 +224,7 @@ export async function verifyDuckdbTree(directory, platform, arch, version, resvg
   if (wanted && packageVersion(join(onePassword, "sdk-core")) !== wanted) {
     throw new Error(`${ONEPASSWORD_SCOPE}/sdk-core in ${directory} is ${packageVersion(join(onePassword, "sdk-core"))}; ${ONEPASSWORD_SCOPE}/sdk needs ${wanted}`);
   }
-  // Without it every screen on this server silently stays on the relay.
+  // Without it every screen on this server silently stays on the relay, and the desktop app's link cannot start.
   const dataChannelNative = dataChannelPlatformPackage(platform, arch);
   if (dataChannelNative) {
     const modules = join(directory, "node_modules");
@@ -213,9 +241,7 @@ export async function verifyDuckdbTree(directory, platform, arch, version, resvg
     requireRegularFile(join(modules, DATACHANNEL_LIBC, libcMain));
     const addon = join(packages[1], "node_datachannel.node");
     requireRegularFile(addon);
-    const header = readFileSync(addon).subarray(0, 20);
-    if (header.length < 20 || header.readUInt32BE(0) !== 0x7f454c46) throw new Error(`${addon} is not an ELF file`);
-    if (header.readUInt16LE(18) !== dataChannelNative.machine) throw new Error(`${addon} is built for ELF machine ${header.readUInt16LE(18)}, not ${arch}`);
+    checkNativeMachine(addon, dataChannelNative.format, dataChannelNative.machine, arch);
   }
   if (platform === "darwin") {
     const wanted = LIPO_ARCH[arch];
@@ -309,6 +335,8 @@ export async function stageDuckdb({
       }
       // resvg ships one single-arch binary per package; only the signature is ours to add.
       if (sign) await run("/usr/bin/codesign", ["--force", "--sign", "-", join(resvgScope, resvgNative.name, resvgNative.binary)]);
+      // node-datachannel's mac addons are thin too, and the x64 one ships unsigned.
+      if (sign && dataChannelNative) await run("/usr/bin/codesign", ["--force", "--sign", "-", join(destination, "node_modules", DATACHANNEL_SCOPE, dataChannelNative.name, "node_datachannel.node")]);
     }
     await verifyDuckdbTree(destination, platform, arch, version, resvgVersion, onePasswordVersion, dataChannelVersion);
     staged.push(destination);

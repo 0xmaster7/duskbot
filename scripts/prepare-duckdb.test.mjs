@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { dataChannelPlatformPackage, installedPackage, pinnedDataChannelVersion, pinnedDuckdbVersion, pinnedOnePasswordVersion, pinnedResvgVersion, platformPackage, resvgPlatformPackage, stageDuckdb, targetsFor, verifyDuckdbTree } from "./prepare-duckdb.mjs";
+import { checkNativeMachine, dataChannelPlatformPackage, installedPackage, pinnedDataChannelVersion, pinnedDuckdbVersion, pinnedOnePasswordVersion, pinnedResvgVersion, platformPackage, resvgPlatformPackage, stageDuckdb, targetsFor, verifyDuckdbTree } from "./prepare-duckdb.mjs";
 
 const PIN = "9.9.9-r.9";
 const RESVG_PIN = "8.8.8";
@@ -16,6 +16,29 @@ function elf(machine) {
   header.writeUInt32BE(0x7f454c46, 0);
   header.writeUInt16LE(machine, 18);
   return header;
+}
+
+/** A thin 64-bit Mach-O header: the magic and cputype (0x0100000c arm64, 0x01000007 x86_64). */
+function macho(cputype) {
+  const header = Buffer.alloc(64);
+  header.writeUInt32LE(0xfeedfacf, 0);
+  header.writeUInt32LE(cputype, 4);
+  return header;
+}
+
+/** "MZ", e_lfanew at 0x3c, then "PE\0\0" and the COFF machine (0x8664 x64). */
+function pe(machine) {
+  const header = Buffer.alloc(256);
+  header.write("MZ", 0, "latin1");
+  header.writeUInt32LE(0x80, 0x3c);
+  header.writeUInt32BE(0x50450000, 0x80);
+  header.writeUInt16LE(machine, 0x84);
+  return header;
+}
+
+const HEADERS = { elf, macho, pe };
+function addon({ format, machine }) {
+  return HEADERS[format](machine);
 }
 const temporaryDirectories = [];
 
@@ -35,7 +58,7 @@ function writePackage(directory, name, version, files, scope = "@duckdb", extra 
   }
 }
 
-/** A flat node_modules (npm's layout) holding the DuckDB, resvg, 1Password and (on Linux) node-datachannel packages for one target. */
+/** A flat node_modules (npm's layout) holding the DuckDB, resvg, 1Password and node-datachannel packages for one target. */
 function flatInstall({ version = PIN, platform = "linux", arch = "x64", nativeFiles, resvgBinary = "node", onePasswordCore = OP_PIN, dataChannelVersion = DC_PIN, dataChannelBinary } = {}) {
   const root = temporary("dusk-duckdb-root-");
   fs.writeFileSync(path.join(root, "package.json"), JSON.stringify({ dependencies: { "@duckdb/node-api": PIN, "@resvg/resvg-js": RESVG_PIN, "@1password/sdk": OP_PIN, "node-datachannel": DC_PIN } }));
@@ -57,7 +80,7 @@ function flatInstall({ version = PIN, platform = "linux", arch = "x64", nativeFi
   if (dataChannel) {
     writePackage(path.join(nodeModules, "node-datachannel"), "node-datachannel", dataChannelVersion, { "dist/cjs/lib/index.cjs": "module.exports = {};" }, "");
     writePackage(path.join(nodeModules, "detect-libc"), "detect-libc", "2.1.2", { "lib/detect-libc.js": "module.exports = {};" }, "", { main: "lib/detect-libc.js" });
-    writePackage(path.join(nodeModules, "@node-datachannel", dataChannel.name), dataChannel.name, dataChannelVersion, { "node_datachannel.node": dataChannelBinary ?? elf(dataChannel.machine) }, "@node-datachannel");
+    writePackage(path.join(nodeModules, "@node-datachannel", dataChannel.name), dataChannel.name, dataChannelVersion, { "node_datachannel.node": dataChannelBinary ?? addon(dataChannel) }, "@node-datachannel");
   }
   return { root, nodeModules, scope, resvg, onePassword };
 }
@@ -196,6 +219,7 @@ describe("staging from an install", () => {
       packed.push({ name, version, cache, scope });
       const directory = path.join(cache, `${name}-${version}`);
       if (scope === "@resvg") writePackage(directory, name, version, { "resvgjs.win32-x64-msvc.node": "node" }, scope);
+      else if (scope === "@node-datachannel") writePackage(directory, name, version, { "node_datachannel.node": pe(0x8664) }, scope);
       else writePackage(directory, name, version, { "duckdb.node": "node", "duckdb.dll": "lib" });
       return directory;
     };
@@ -205,6 +229,7 @@ describe("staging from an install", () => {
     expect(packed).toEqual([
       { name: "node-bindings-win32-x64", version: PIN, cache, scope: "@duckdb" },
       { name: "resvg-js-win32-x64-msvc", version: RESVG_PIN, cache, scope: "@resvg" },
+      { name: "win32-x64-msvc", version: DC_PIN, cache, scope: "@node-datachannel" },
     ]);
     await verifyDuckdbTree(staged[0], "win32", "x64", PIN, RESVG_PIN);
 
@@ -226,15 +251,56 @@ describe("staging from an install", () => {
 });
 
 describe("the direct screen path", () => {
-  it("requires an exact x.y.z version of node-datachannel, and only Linux trees carry it", () => {
+  it("requires an exact x.y.z version of node-datachannel, and every tree carries it", () => {
     const { root } = flatInstall();
     expect(pinnedDataChannelVersion(root)).toBe(DC_PIN);
     fs.writeFileSync(path.join(root, "package.json"), JSON.stringify({ dependencies: { "node-datachannel": "^6.6.6" } }));
     expect(() => pinnedDataChannelVersion(root)).toThrow(/exact x\.y\.z version/);
     expect(dataChannelPlatformPackage("linux", "x64")?.name).toBe("linux-x64-gnu");
     expect(dataChannelPlatformPackage("linux", "arm64")?.name).toBe("linux-arm64-gnu");
-    expect(dataChannelPlatformPackage("darwin", "arm64")).toBeNull();
-    expect(dataChannelPlatformPackage("win32", "x64")).toBeNull();
+    expect(dataChannelPlatformPackage("darwin", "arm64")?.name).toBe("darwin-arm64");
+    expect(dataChannelPlatformPackage("darwin", "x64")?.name).toBe("darwin-x64");
+    expect(dataChannelPlatformPackage("win32", "x64")?.name).toBe("win32-x64-msvc");
+    expect(dataChannelPlatformPackage("win32", "arm64")).toBeNull();
+  });
+
+  it.each([["darwin", "arm64"], ["darwin", "x64"], ["win32", "x64"]])("stages and verifies the %s-%s desktop addon, with the libc probe its loader requires", async (platform, arch) => {
+    const target = dataChannelPlatformPackage(platform, arch);
+    const { root } = flatInstall({ platform, arch });
+    const tree = path.join(root, "dist-native", "duckdb", `${platform}-${arch}`);
+    // the mac checks need lipo on real binaries; here only the addon path is under test
+    if (platform === "darwin") {
+      fs.cpSync(path.join(root, "node_modules"), path.join(tree, "node_modules"), { recursive: true });
+    } else {
+      await stageDuckdb({ root, targets: [{ platform, arch }], sign: false, log: null });
+    }
+    const modules = path.join(tree, "node_modules");
+    expect(fs.readdirSync(path.join(modules, "@node-datachannel"))).toEqual([target.name]);
+    expect(fs.existsSync(path.join(modules, "detect-libc", "lib", "detect-libc.js"))).toBe(true);
+    if (platform === "win32") await verifyDuckdbTree(tree, platform, arch, PIN, RESVG_PIN, OP_PIN, DC_PIN);
+    checkNativeMachine(path.join(modules, "@node-datachannel", target.name, "node_datachannel.node"), target.format, target.machine, arch);
+  });
+
+  it("checks the addon's own binary format and CPU", () => {
+    const directory = temporary("dusk-dc-format-");
+    const file = path.join(directory, "node_datachannel.node");
+    const check = (bytes, platform, arch) => {
+      fs.writeFileSync(file, bytes);
+      const { format, machine } = dataChannelPlatformPackage(platform, arch);
+      checkNativeMachine(file, format, machine, arch);
+    };
+    check(macho(0x0100000c), "darwin", "arm64");
+    check(macho(0x01000007), "darwin", "x64");
+    check(pe(0x8664), "win32", "x64");
+    expect(() => check(macho(0x01000007), "darwin", "arm64")).toThrow(/MACHO machine 16777223, not arm64/);
+    // a universal file is refused: each mac app is single-arch
+    const fat = Buffer.alloc(64);
+    fat.writeUInt32BE(0xcafebabe, 0);
+    expect(() => check(fat, "darwin", "arm64")).toThrow(/not a thin 64-bit Mach-O/);
+    expect(() => check(elf(183), "darwin", "arm64")).toThrow(/not a thin 64-bit Mach-O/);
+    expect(() => check(pe(0xaa64), "win32", "x64")).toThrow(/PE machine 43620, not x64/);
+    expect(() => check(macho(0x01000007), "win32", "x64")).toThrow(/not a PE file/);
+    expect(() => check(Buffer.from("MZ"), "win32", "x64")).toThrow(/not a PE file/);
   });
 
   it("stages the image's CPU from pnpm's store, fetching the platform package the install lacks at the pin", async () => {
@@ -334,13 +400,15 @@ describe.skipIf(!canBuildMachO)("macOS slices", () => {
 
   it.each([["arm64", "arm64"], ["x64", "x86_64"]])("keeps only the %s slice of the universal dylib and binding, signed", async (arch, lipoArch) => {
     const fat = fs.readFileSync(binaries.fat);
-    const { root } = flatInstall({ platform: "darwin", arch, nativeFiles: { "duckdb.node": fat, "libduckdb.dylib": fat }, resvgBinary: fs.readFileSync(binaries[lipoArch]) });
+    const { root } = flatInstall({ platform: "darwin", arch, nativeFiles: { "duckdb.node": fat, "libduckdb.dylib": fat }, resvgBinary: fs.readFileSync(binaries[lipoArch]), dataChannelBinary: fs.readFileSync(binaries[lipoArch]) });
     const [tree] = await stageDuckdb({ root, targets: [{ platform: "darwin", arch }], sign: true, log: null });
     const native = path.join(tree, "node_modules", "@duckdb", platformPackage("darwin", arch));
     expect(archs(path.join(native, "libduckdb.dylib"))).toBe(lipoArch);
     expect(archs(path.join(native, "duckdb.node"))).toBe(lipoArch);
     expect(spawnSync("/usr/bin/codesign", ["--verify", path.join(native, "libduckdb.dylib")]).status).toBe(0);
-    await verifyDuckdbTree(tree, "darwin", arch, PIN);
+    const dataChannel = path.join(tree, "node_modules", "@node-datachannel", dataChannelPlatformPackage("darwin", arch).name, "node_datachannel.node");
+    expect(spawnSync("/usr/bin/codesign", ["--verify", dataChannel]).status).toBe(0);
+    await verifyDuckdbTree(tree, "darwin", arch, PIN, RESVG_PIN, OP_PIN, DC_PIN);
   });
 
   it("rejects a tree whose dylib stayed universal or is not Mach-O", async () => {
