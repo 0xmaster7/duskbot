@@ -60,6 +60,23 @@ npx wrangler deploy --env production # relay.dusk.bot (the address clients dial 
 Load test (`scripts/load.mjs`): needs a grant key the relay trusts (`GRANT_KEYS` var or secret, `kid:x`) and its
 private key in a PEM file; `--register-per-minute 29` keeps under the register limit.
 
+## Cost (Workers Paid, prices of 2026-10)
+
+Bandwidth is free; what costs is Durable Object duration ($12.50 per million GB-s, billed at 128 MB) while an object
+is awake, and incoming messages (20 per billed request, $0.15 per million). A server whose app is closed costs about
+nothing: its standing socket hibernates and the heartbeats do not wake it. An open app session keeps its tunnel's
+object awake (sealed pings, the egress hello every 15 s), about $0.0056 an hour.
+
+| per 1,000 users a month, all of them on this relay | connected | relayed | cost |
+|---|---|---|---|
+| normal | 4 h a day | 5 GB | about $680 |
+| heavy | 12 h a day | 100 GB | about $2,100 |
+| servers only, app closed | 0 | 0 | about $2 |
+
+Duration is 99% of it. Only links whose ssh and 443 paths both fail ride this relay, so the real bill is that share
+of the table. Closing an idle app session (no request for a few minutes, reopened on the next one in about one round
+trip) would bring "connected" down to the time actually in use.
+
 ## Going live (the flip)
 
 Clients already prefer `https://relay.dusk.bot`. Until it exists it is answered by the `*.dusk.bot` edge route with

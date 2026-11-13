@@ -30,7 +30,9 @@ const err = (what, error) => errors.set(`${what}: ${error?.status ?? error?.code
 const connectMs = [], pairMs = [], rtts = [];
 let sent = 0, received = 0, bytes = 0;
 const sockets = new Set();
-const track = (duplex) => { sockets.add(duplex); duplex.once("close", () => sockets.delete(duplex)); duplex.on("error", () => {}); return duplex; };
+const closed = { ctl: 0, server: 0, app: 0 };
+let stopping = false;
+const track = (duplex, kind) => { sockets.add(duplex); duplex.once("close", () => { sockets.delete(duplex); if (!stopping) closed[kind] += 1; }); duplex.on("error", () => {}); return duplex; };
 
 async function tunnel(index) {
   const id = b32(10), key = randomBytes(32).toString("base64url"), acct = randomBytes(16).toString("hex");
@@ -42,13 +44,14 @@ async function tunnel(index) {
   try {
     const { socket, head } = await wsConnect(`${url}/v1/t/${id}/vps`, { headers });
     track(wsDuplex(socket, { client: true, head, heartbeatMs: 25_000, onText: (text) => {
-      const said = JSON.parse(text);
-      if (said.t !== "open") return;
+      let said = null;
+      try { said = JSON.parse(text); } catch { return; }
+      if (said?.t !== "open") return;
       void wsConnect(`${url}/v1/t/${id}/vps?s=${said.s}`, { headers }).then(({ socket: s, head: h }) => {
-        const data = track(wsDuplex(s, { client: true, head: h, heartbeatMs: 25_000 }));
+        const data = track(wsDuplex(s, { client: true, head: h, heartbeatMs: 25_000 }), "server");
         data.on("data", (chunk) => data.write(chunk));
       }, (error) => err("server session", error));
-    } })).resume();
+    } }), "ctl").resume();
   } catch (error) { err("server", error); return; }
   for (let s = 0; s < sessions; s += 1) void app(id, headers, index);
 }
@@ -59,7 +62,7 @@ async function app(id, headers) {
   try {
     const { socket, head } = await wsConnect(`${url}/v1/t/${id}/app`, { headers });
     connectMs.push(performance.now() - started);
-    duplex = track(wsDuplex(socket, { client: true, head, heartbeatMs: 25_000 }));
+    duplex = track(wsDuplex(socket, { client: true, head, heartbeatMs: 25_000 }), "app");
   } catch (error) { err("app", error); return; }
   const out = new Map();
   let first = true;
@@ -69,7 +72,6 @@ async function app(id, headers) {
     const n = chunk.readUInt32BE(0), at = out.get(n);
     if (at !== undefined) { out.delete(n); const ms = performance.now() - at; if (first) { first = false; pairMs.push(performance.now() - started); } else rtts.push(ms); }
   });
-  duplex.once("close", () => { if (!stopping) err("app", new Error("closed early")); });
   let n = 0;
   const payload = randomBytes(1024);
   const tick = () => {
@@ -85,7 +87,6 @@ async function app(id, headers) {
   duplex.once("close", () => clearInterval(timer));
 }
 
-let stopping = false;
 const pct = (list, p) => { if (!list.length) return null; const sorted = [...list].sort((a, b) => a - b); return Math.round(sorted[Math.min(sorted.length - 1, Math.floor((p / 100) * sorted.length))]); };
 const t0 = performance.now();
 for (let i = 0; i < tunnels; i += 1) {
@@ -104,6 +105,7 @@ const report = {
   firstEchoMs: { p50: pct(pairMs, 50), p95: pct(pairMs, 95), p99: pct(pairMs, 99), n: pairMs.length },
   echoRttMs: { p50: pct(rtts, 50), p95: pct(rtts, 95), p99: pct(rtts, 99), max: rtts.length ? Math.round(Math.max(...rtts)) : null, n: rtts.length },
   messages: { sent, received, lostOrLate: sent - Math.floor(received) }, megabytes: Math.round(bytes / 1e6),
+  closedEarly: closed,
   errors: Object.fromEntries(errors),
 };
 console.log(JSON.stringify(report, null, 2));
