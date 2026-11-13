@@ -1,11 +1,13 @@
 // The bot dock: a slim black column of mascots against the right edge of the screen that flares into it at both ends.
-// At rest only a sliver shows, ticked where a bot works, replied or waits. The pointer at the edge slides the column in;
+// At rest only a sliver shows, ticked where a bot works, replied or waits. The pointer resting at the edge (or a click
+// there) slides the column in; passing by, dragging or sliding along the edge does not (edge-intent.ts).
 // resting on a bot (or moving onto it) brings out one card beside the column with that bot's status, its ask answered
 // right there. The card is one element for the whole visit: it glides and resizes from bot to bot and only goes once
 // the pointer has left both. A mascot carries a bubble only for news: an ask, an unseen reply, an unseen failure.
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
 import { AnimatePresence, Reorder, motion, useDragControls, useReducedMotion, useTransform } from "motion/react";
 import { Plus } from "../icons";
+import { createEdgeIntent } from "./edge-intent";
 import { dockOrder, isBusy } from "./mood";
 import { HISTORY, MiniChat, type ChatScroll } from "./MiniChat";
 import { useRowMoments } from "./rows";
@@ -234,8 +236,15 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
     }
     if (Math.hypot(x - land.x, y - land.y) > NUDGE_PX) show(id);
   }, [overCard, letGo, show]);
-  const inside = usePointerRegion(bridge, hit, () => { clearTimeout(hideTimer.current); setOut(true); }, () => {
+  // the edge only brings the column out on purpose; once it is out (or on its way back), being on it keeps it out
+  const intent = useMemo(() => createEdgeIntent(() => { clearTimeout(hideTimer.current); setOut(true); }), []);
+  const inside = usePointerRegion(bridge, hit, () => {
+    if (!live.current.slidOut) return;
     clearTimeout(hideTimer.current);
+    setOut(true);
+  }, () => {
+    clearTimeout(hideTimer.current);
+    intent.reset();
     under.current = null;
     letGo();
     hideTimer.current = setTimeout(() => {
@@ -249,12 +258,32 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
   useEffect(() => {
     const move = (event: MouseEvent) => {
       lastPoint.current = { x: event.clientX, y: event.clientY };
-      if (inside.current) consider(event.clientX, event.clientY);
+      const edgeOnly = !live.current.slidOut;
+      intent.point({ x: event.clientX, y: event.clientY, inZone: inside.current && edgeOnly, buttons: event.buttons });
+      // a card only once the column is out: the sliver hides the mascots, so resting there is not choosing one
+      if (inside.current && !edgeOnly) consider(event.clientX, event.clientY);
     };
+    // a click on the sliver is the deliberate way in; it only brings the column out, it never lands on a hidden mascot
+    let swallow = false;
+    const press = (event: PointerEvent) => {
+      swallow = false;
+      if (!inside.current || live.current.slidOut) return;
+      intent.press();
+      swallow = true;
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    const click = (event: MouseEvent) => { if (swallow) { swallow = false; event.preventDefault(); event.stopPropagation(); } };
     document.addEventListener("mousemove", move, { passive: true });
-    return () => document.removeEventListener("mousemove", move);
-  }, [inside, consider]);
-  useEffect(() => () => { clearTimeout(hideTimer.current); clearTimeout(dwell.current); clearTimeout(cardLeave.current); }, []);
+    document.addEventListener("pointerdown", press, true);
+    document.addEventListener("click", click, true);
+    return () => {
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("pointerdown", press, true);
+      document.removeEventListener("click", click, true);
+    };
+  }, [inside, consider, intent]);
+  useEffect(() => () => { intent.dispose(); clearTimeout(hideTimer.current); clearTimeout(dwell.current); clearTimeout(cardLeave.current); }, [intent]);
   // the pointer reached a mascot (or left them all): once a card is out it follows at once; the first waits for a move
   const pointAt = (id: string | null) => {
     under.current = id;
@@ -267,16 +296,18 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
   useEffect(() => {
     const key = (event: { key: string }) => { if (event.key === "Tab" || event.key.startsWith("Arrow")) keyboard.current = true; };
     const point = () => { keyboard.current = false; };
-    const focus = () => bridge.trace?.("window-focus", `inside=${inside.current}`);
+    // focus moving to or from this panel is a window switch, not a reach for the dock
+    const focus = () => { intent.quiet(); bridge.trace?.("window-focus", `inside=${inside.current}`); };
     document.addEventListener("keydown", key, true);
     document.addEventListener("pointerdown", point, true);
     window.addEventListener("focus", focus);
     return () => { document.removeEventListener("keydown", key, true); document.removeEventListener("pointerdown", point, true); window.removeEventListener("focus", focus); };
-  }, [bridge, inside]);
+  }, [bridge, inside, intent]);
   // a click anywhere else (the window loses focus) puts the dock away, fields and all, and leaves nothing focused to
   // come back to
   useEffect(() => {
     const blur = () => {
+      intent.quiet();
       keyboard.current = false;
       setPinned(false);
       bridge.typing?.(false);
@@ -285,7 +316,7 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
     };
     window.addEventListener("blur", blur);
     return () => window.removeEventListener("blur", blur);
-  }, [inside, bridge]);
+  }, [inside, bridge, intent]);
 
   // a card that stayed on a reply or a failure for a real look counts as seeing it
   const since = useRef<{ id: string; at: number } | null>(null);

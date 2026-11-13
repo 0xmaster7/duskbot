@@ -3,6 +3,7 @@ import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
 import { CARD_LEAVE_MS, DWELL_MS, Dock, HIDE_MS } from "./Dock";
+import { REVEAL } from "./edge-intent";
 import { HISTORY } from "./MiniChat";
 import { SETTLED_MS } from "./shared";
 import type { AmbientAct, AmbientBot, AmbientBridge, AmbientSnapshot } from "./types";
@@ -15,6 +16,15 @@ const bot = (id: string, fields: Partial<AmbientBot>): AmbientBot => ({
   approval: null, waits: null, question: null, ...fields,
 });
 const wait = (ms: number) => act(async () => new Promise((resolve) => setTimeout(resolve, ms)));
+/** as a person reaching for the dock: the pointer comes across the screen to the edge and rests there until it slides out
+ * (a point inside the dock's edge zone here, where happy-dom lays nothing out) */
+const arrive = async () => {
+  await act(async () => {
+    document.dispatchEvent(new MouseEvent("mousemove", { clientX: 100, clientY: 360 }));
+    document.dispatchEvent(new MouseEvent("mousemove", { clientX: 400, clientY: 360 }));
+  });
+  await wait(REVEAL.dwellMs + 40);
+};
 const LABELS = { allow: "Allow", deny: "Deny", answer: "Type an answer", send: "Send", sent: "Sent", replyTo: "Reply to {name}", stop: "Stop {name}", dismiss: "Dismiss" };
 
 async function mount(bots: AmbientBot[]) {
@@ -32,12 +42,14 @@ async function mount(bots: AmbientBot[]) {
   await act(async () => root.render(createElement(Dock, { bridge })));
   await act(async () => feed({ lang: "en", labels: LABELS, bots }));
   const cell = (id: string) => host.querySelector<HTMLElement>(`[data-row="${id}"]`)!;
-  // as a browser does: the pointer reaches the mascot, then moves (a point inside the dock's edge zone here, where happy-dom
-  // lays nothing out)
-  const hover = (id: string) => act(async () => {
-    cell(id).dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
-    document.dispatchEvent(new MouseEvent("mousemove", { clientX: 400, clientY: 360 }));
-  });
+  // as a browser does: the pointer brings the column out, reaches the mascot, then moves
+  const hover = async (id: string) => {
+    if (host.querySelector(".amb-dock[data-hidden]")) await arrive();
+    await act(async () => {
+      cell(id).dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+      document.dispatchEvent(new MouseEvent("mousemove", { clientX: 400, clientY: 360 }));
+    });
+  };
   return { host, acts, seen, opened, settledCount: () => settled, cell, hover, unmount: () => act(async () => root.unmount()) };
 }
 
@@ -199,6 +211,7 @@ it("while main traces, says when the pointer crosses, the column and the card co
   const root = createRoot(host);
   await act(async () => root.render(createElement(Dock, { bridge })));
   await act(async () => feed({ lang: "en", labels: {}, bots: [bot("Ada", { chat: [{ id: "m1", from: "bot", text: "Hi", at: 1 }] })] }));
+  await arrive();
   await act(async () => {
     host.querySelector('[data-row="Ada"]')!.dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
     document.dispatchEvent(new MouseEvent("mousemove", { clientX: 400, clientY: 360 }));
@@ -230,6 +243,7 @@ it("chats for real: the card asks for a long stretch of the bot it shows, shows 
   await act(async () => root.render(createElement(Dock, { bridge })));
   const ada = (fields: Partial<AmbientBot> = {}) => bot("Ada", { chat: [{ id: "m1", from: "bot", text: "Paid on Saturday.", at: 1 }], ...fields });
   await act(async () => feed({ lang: "en", labels: LABELS, bots: [ada()] }));
+  await arrive();
   await act(async () => {
     host.querySelector('[data-row="Ada"]')!.dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
     document.dispatchEvent(new MouseEvent("mousemove", { clientX: 400, clientY: 360 }));
@@ -258,4 +272,36 @@ it("chats for real: the card asks for a long stretch of the bot it shows, shows 
   await wait(CARD_LEAVE_MS + 60);
   expect(viewing.at(-1)).toBeNull();
   await act(async () => root.unmount());
+});
+
+it("comes out only on purpose: not for a pointer that slides along the edge or drags, but for a rest there or a click", async () => {
+  const { host, opened, unmount } = await mount([bot("Ada", {})]);
+  const hidden = () => host.querySelector(".amb-dock")!.hasAttribute("data-hidden");
+  const move = (x: number, y: number, buttons = 0) => act(async () => { document.dispatchEvent(new MouseEvent("mousemove", { clientX: x, clientY: y, buttons })); });
+  // dragging something to the edge
+  await move(100, 360);
+  await move(400, 360, 1);
+  await wait(REVEAL.dwellMs + 60);
+  expect(hidden()).toBe(true);
+  // sliding along it (happy-dom lays nothing out, so the zone beside the empty body is only the ears' height)
+  await move(100, 360);
+  for (const y of [344, 356, 368, 356, 344, 356, 368]) { await move(400, y); await wait(120); }
+  expect(hidden()).toBe(true);
+  // then resting
+  await wait(REVEAL.dwellMs + 40);
+  expect(hidden()).toBe(false);
+  await move(5000, 5000);
+  await wait(HIDE_MS + 60);
+  expect(hidden()).toBe(true);
+  // a click on the sliver: out at once, and the hidden mascot under it is not clicked
+  await move(100, 360);
+  await move(400, 360);
+  const target = host.querySelector<HTMLElement>('[data-row="Ada"] .amb-dock-bot')!;
+  await act(async () => {
+    target.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    target.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+  expect(hidden()).toBe(false);
+  expect(opened).toEqual([]);
+  await unmount();
 });

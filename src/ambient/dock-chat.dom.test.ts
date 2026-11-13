@@ -5,6 +5,7 @@ import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CHAT_MAX_H, CHAT_SHARE, DWELL_MS, Dock, keepHistory } from "./Dock";
+import { REVEAL } from "./edge-intent";
 import { sentSince } from "./MiniChat";
 import type { AmbientAct, AmbientBot, AmbientBridge, AmbientMessage, AmbientSnapshot, DockLayout } from "./types";
 
@@ -40,10 +41,20 @@ async function mount(bots: AmbientBot[]) {
   await act(async () => place(LAYOUT));
   const show = (next: AmbientBot[]) => act(async () => feed({ lang: "en", labels: LABELS, bots: next }));
   await show(bots);
-  const hover = (id: string) => act(async () => {
-    host.querySelector(`[data-row="${id}"]`)!.dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
-    document.dispatchEvent(new MouseEvent("mousemove", { clientX: 400, clientY: 470 }));
-  });
+  // the pointer comes to the edge and rests until the column is out, then reaches the mascot and moves
+  const hover = async (id: string) => {
+    if (host.querySelector(".amb-dock[data-hidden]")) {
+      await act(async () => {
+        document.dispatchEvent(new MouseEvent("mousemove", { clientX: 100, clientY: 470 }));
+        document.dispatchEvent(new MouseEvent("mousemove", { clientX: 400, clientY: 470 }));
+      });
+      await wait(REVEAL.dwellMs + 40);
+    }
+    await act(async () => {
+      host.querySelector(`[data-row="${id}"]`)!.dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+      document.dispatchEvent(new MouseEvent("mousemove", { clientX: 400, clientY: 470 }));
+    });
+  };
   const card = () => host.querySelector(".amb-card")!;
   const bubbles = () => [...card().querySelectorAll(".amb-bubble-msg")].map((node) => `${node.getAttribute("data-from")}${node.hasAttribute("data-pending") ? "?" : ""}${node.hasAttribute("data-streaming") ? "~" : ""}:${node.textContent}`);
   const type = async (text: string) => {
