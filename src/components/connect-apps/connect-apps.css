@@ -684,6 +684,8 @@ a.ca-pill { color: inherit; text-decoration: none; }
 /* an app page reads top down: name, the one way in (ours or Composio's), the other ways folded, then the facts */
 .ca-pane:has(> .ca-detail) { display: flex; flex-direction: column; }
 .ca-pane:has(> .ca-detail) > .ca-other-ways { order: 1; }
+/* composio leads: our own card is one of the other ways, so it sits under their rows */
+.ca-pane:has(> .ca-detail) > .ca-native-host[data-after-ways] { order: 1; }
 .ca-pane:has(> .ca-detail) > .ca-facts,
 .ca-pane:has(> .ca-detail) > .ca-native-facts { order: 2; }
 .ca-native-facts { margin-top: 24px; }

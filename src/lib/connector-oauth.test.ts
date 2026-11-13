@@ -59,4 +59,13 @@ describe("OAuth tab reservation", () => {
     expect(await launch.open("https://auth.example.test/flow")).toBe(true);
     expect(openExternal).toHaveBeenCalledWith("https://auth.example.test/flow");
   });
+
+  it("opens the real link in a desktop workspace page, whose window.open is always handed to the system browser", async () => {
+    const open = vi.fn(() => null);
+    vi.stubGlobal("window", { duskDesktop: { platform: "darwin" }, open });
+    const launch = reserveConnectionPage();
+    expect(open).not.toHaveBeenCalled();
+    expect(await launch.open("https://auth.example.test/flow")).toBe(true);
+    expect(open).toHaveBeenCalledWith("https://auth.example.test/flow", "_blank", "noopener,noreferrer");
+  });
 });

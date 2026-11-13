@@ -95,6 +95,9 @@ export interface AppEntry {
   remote?: string;
   /** Composio's other listings of the same app, which count toward its connected state. */
   aliases?: string[];
+  /** Our own card connects in one click: a sign-in page, then it is on. Without it, an app Composio also has leads with
+   * Composio's sign-in, and our card waits under the other ways. */
+  oneClick?: boolean;
 }
 
 export type Connection = "connected" | "disconnected" | "unknown";

@@ -660,21 +660,22 @@ describe("the Connect Apps window", () => {
     expect(fixture.api).toHaveBeenCalledWith("/api/connectors/slack/accounts/ca_1", { method: "DELETE" });
   });
 
-  it("lists our 1Password and Composio's as one row, and its page offers both ways in", async () => {
+  it("lists our 1Password and Composio's as one row, and its page leads with Composio since ours is not one click", async () => {
     expect(dialog().querySelectorAll('[data-app-row="1password"]')).toHaveLength(1);
     expect(dialog().querySelector('[data-app-row="_1password"]'), "composio's listing folds into ours").toBeNull();
     await act(async () => { dialog().querySelector<HTMLButtonElement>('[data-app-row="1password"] .ca-row-open')!.click(); });
     await flush();
-    expect(dialog().querySelector("[data-ways]"), "our own way leads; the rest wait behind one toggle").toBeNull();
+    expect(dialog().querySelector("[data-native-host]")?.className, "our vault card waits under the other ways").toBe("hidden");
     const toggle = dialog().querySelector<HTMLButtonElement>("[data-other-ways] > button")!;
     expect(toggle.textContent).toBe("other ways to connect");
-    expect(toggle.getAttribute("aria-expanded")).toBe("false");
     await act(async () => { toggle.click(); });
     const ways = [...dialog().querySelectorAll("[data-ways] [data-way]")];
     expect(ways.map((way) => [way.getAttribute("data-way"), way.querySelector("span")?.textContent])).toEqual([
-      ["composio", "connect via Composio"],
+      ["own", "share a vault (built in)"],
     ]);
     await act(async () => { ways[0]!.querySelector<HTMLButtonElement>(".ca-pill")!.click(); });
+    expect(dialog().querySelector("[data-native-host]")?.className, "picking it opens our card").toBe("ca-native-host");
+    await act(async () => { dialog().querySelector<HTMLButtonElement>("[data-connect] .ca-primary")!.click(); });
     await flush();
     expect(fixture.api).toHaveBeenCalledWith("/api/connectors/_1password/authorize", { method: "POST" });
     expect(dialog().querySelector("[data-app-page]")?.getAttribute("data-app-page"), "it stays on our page").toBe("1password");

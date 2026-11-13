@@ -10,13 +10,19 @@ export function reusableConnectionUrl(page: PendingAuthorization | null | undefi
   return page && now >= page.createdAt && now - page.createdAt < AUTHORIZATION_LINK_MS ? page.url : null;
 }
 
+/** True inside the desktop app, where every page opens in the system browser rather than a tab. */
+export const opensPagesExternally = () => Boolean(window.duskDesktop);
+
 /** Reserve the tab during the click, before an authorization request consumes the browser's user activation. */
 export function reserveConnectionPage() {
   const openExternal = window.duskDesktop?.openExternal;
+  // a workspace page in the desktop app has no openExternal, and its window.open always comes back null because the
+  // app hands the link to the system browser (no popup blocker there), so it opens the real link, never a blank
+  const handsOff = !openExternal && opensPagesExternally();
   let page: Window | null = null;
   let navigated = false;
   let cancelled = false;
-  if (!openExternal) {
+  if (!openExternal && !handsOff) {
     try {
       page = window.open("", "_blank");
       if (page) page.opener = null;
@@ -31,6 +37,10 @@ export function reserveConnectionPage() {
       if (openExternal) {
         await openExternal(url);
         return !cancelled;
+      }
+      if (handsOff) {
+        window.open(url, "_blank", "noopener,noreferrer");
+        return true;
       }
       if (!page || page.closed) return false;
       try {

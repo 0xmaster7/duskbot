@@ -5,7 +5,7 @@ import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { readCachedInventory } from "@/lib/connected-apps-cache";
 import { connectorStatusMemory, preloadConnectedApps, rememberConnectorStatus } from "@/lib/connected-apps";
-import { reserveConnectionPage, reusableConnectionUrl, type PendingAuthorization } from "@/lib/connector-oauth";
+import { opensPagesExternally, reserveConnectionPage, reusableConnectionUrl, type PendingAuthorization } from "@/lib/connector-oauth";
 import { mcpSignInLink, runMcpSignIn } from "@/lib/mcp-sign-in";
 import { pollConnector } from "@/lib/connector-poll";
 import { connectorConnect } from "@/lib/product-events";
@@ -497,7 +497,7 @@ export function useConnectors(): Connectors {
     if (!ok) { failVia(slug, "authorize"); return; }
     flowOf(slug, null);
     // the desktop app opens pages itself, so the app's own sign-in follows straight on; a browser tab needs its own click
-    if (window.duskDesktop?.openExternal) await connectVia(slug, reserveConnectionPage());
+    if (opensPagesExternally()) await connectVia(slug, reserveConnectionPage());
   };
 
   const reopenVia = (slug: string) => {

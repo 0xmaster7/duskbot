@@ -68,6 +68,13 @@ export function AppPage({ model }: { model: AppPageModel }) {
   const composio = model.composioSlug !== undefined && card !== undefined;
   // more than one way in: each shows in the ways card, and Composio's setup waits until that one is picked
   const ways = model.ways && model.ways.length > 1 ? model.ways : null;
+  const ownFirst = model.ownFirst === true;
+  const remoteAccounts = model.remote?.accounts ?? [];
+  const remoteLeads = model.remote !== undefined && (entry.kind === "remote" || !(connectors.configured || connectors.via?.signedIn === true));
+  // one way shows at a time: the rest are rows behind the other-ways toggle
+  const leadWay: Way["key"] = ownFirst ? "own" : remoteLeads ? "remote" : "composio";
+  // Composio leading the page sets up in place, as it does when it is the only way
+  const composioOnly = !ways || leadWay === "composio";
   const status = composio ? connectors.status[slug] : undefined;
   const accounts = status?.accounts ?? [];
   const { choices, choose } = useAccountChoices();
@@ -84,24 +91,22 @@ export function AppPage({ model }: { model: AppPageModel }) {
   // a key is all that is missing: the key step shows right here, no trip to Settings
   const viaSignedIn = connectors.via?.signedIn === true;
   const askingKey = composio && !model.remoteClient && !viaSignedIn
-    && (connectors.keyFor === slug || (!ways && !connectors.configured && !connectors.stale && connectors.setup === "needs-setup"));
-  const setup = composio && !askingKey && !viaSignedIn && !ways ? connectorSetupNotice({ configured: connectors.configured, stale: connectors.stale, setup: connectors.setup, remoteClient: model.remoteClient }) : null;
+    && (connectors.keyFor === slug || (composioOnly && !connectors.configured && !connectors.stale && connectors.setup === "needs-setup"));
+  const setup = composio && !askingKey && !viaSignedIn && composioOnly ? connectorSetupNotice({ configured: connectors.configured, stale: connectors.stale, setup: connectors.setup, remoteClient: model.remoteClient }) : null;
   const flow = composio ? connectors.viaFlow[slug] : undefined;
   // through Composio Connect: two steps, Authorize Composio then Connect the app, and the main button is the one you are on
   const viaSteps = askingKey || (composio && !model.remoteClient && viaSignedIn && connectors.viaRoute(slug)
-    && (flow !== undefined || (!ways && model.connection !== "connected")));
+    && (flow !== undefined || (composioOnly && model.connection !== "connected")));
   // Composio is connected once per person: its guided step shows only until then; after that an app is just its sign-in
   const firstTime = viaSteps && !viaSignedIn;
   const viaStatus = viaSteps && viaSignedIn ? viaLine(flow, entry.label) : null;
   const askingAlias = composio && connectors.aliasFor === slug;
   const aliasError = askingAlias && connectors.error ? (typeof connectors.error === "string" ? connectors.error : t(connectors.error.key)) : null;
 
-  const remoteAccounts = model.remote?.accounts ?? [];
   const remoteStale = model.connection === "connected" ? undefined : remoteAccounts.find((account) => account.stale);
-  const remoteLeads = model.remote !== undefined && (entry.kind === "remote" || !(connectors.configured || viaSignedIn));
   const primary = ((): Primary | null => {
-    // our own card connects in its body below
-    if (entry.kind !== "composio" && entry.kind !== "remote") return null;
+    // our own card connects in its body below, when it leads
+    if (entry.kind !== "composio" && entry.kind !== "remote" && (ownFirst || !ways)) return null;
     if (model.remote && remoteLeads) {
       const remote = model.remote;
       if (remoteStale && remote.onReconnect) {
@@ -142,7 +147,7 @@ export function AppPage({ model }: { model: AppPageModel }) {
   })();
 
   // gmail connects on one card: its promise, the one button, and where the sign-in stands
-  const gmail = composio && slug === "gmail" && !ways && !model.remote && phase !== null
+  const gmail = composio && slug === "gmail" && composioOnly && !model.remote && phase !== null
     ? gmailCard({
       name: entry.label, primary, connected: model.connection === "connected", via: viaSteps, viaSignedIn, flow, phase,
       ...(model.remoteClient ? {} : { onOwnKey: model.onOpenKeys }),
@@ -151,10 +156,8 @@ export function AppPage({ model }: { model: AppPageModel }) {
   const facts = appFacts(model);
   const keyCard = Boolean(firstTime) && !gmail;
   const ownCard = entry.kind !== "composio";
-  const ownFirst = model.ownFirst === true;
-  // one way shows at a time: the rest are rows behind the other-ways toggle
-  const leadWay: Way["key"] = ownFirst ? "own" : remoteLeads ? "remote" : "composio";
-  const otherWays = ways ? ways.filter((way) => way.key !== "own" && way.key !== leadWay) : [];
+  // our own way is a row here only when it is not the lead: its card then opens under these rows
+  const otherWays = ways ? ways.filter((way) => way.key !== leadWay) : [];
   const remoteNote = model.remote && remoteLeads ? t(model.remote.open ? "connectApps.remote.open" : "connectApps.remote.note", { name: entry.label }) : null;
   const block = !gmail && !keyCard && Boolean(primary || viaStatus || remoteNote);
   const othersBusy = otherWays.some((way) => way.connected || way.action?.busy === true || way.action?.pending === true)

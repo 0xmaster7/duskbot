@@ -25,6 +25,7 @@ import { OnePasswordBody } from "./OnePasswordBody";
 import { GmailPasswordNote, TokenCard } from "./TokenCard";
 import { useTokenApps } from "./use-token-apps";
 import { TOKEN_APPS, tokenApp, type TokenAppId } from "../../../shared/app-tokens";
+import { NATIVE_CONNECTORS } from "../../../shared/native-connectors";
 import type { OnePasswordStatus } from "../../../shared/logins";
 import { CategoryMenu } from "./CategoryMenu";
 import {
@@ -107,16 +108,18 @@ function nativeEntries(): AppEntry[] {
   return [
     { id: "1password", kind: "logins", label: "1Password", description: t("connectApps.onePassword.description"), categories: ["credentials"], icon: logoIcon("1password"), website: "1password.com", keywords: "password vault logins" },
     { id: "email", kind: "native", label: t("email.title"), description: t("email.description"), categories: ["communication"], icon: { glyph: "envelope", glyphPaint: "rgb(229 47 139)" }, keywords: "email mail imap smtp mailbox" },
-    { id: "x", kind: "native", label: t("apps.x.title"), description: t("apps.x.description"), categories: ["marketing"], icon: logoIcon("x"), website: "x.com", keywords: "x twitter posts" },
+    { id: "x", kind: "native", label: t("apps.x.title"), description: t("apps.x.description"), categories: ["marketing"], icon: logoIcon("x"), website: "x.com", keywords: "x twitter posts", oneClick: true },
     { id: GMAIL, kind: "native", label: "Gmail", description: t("tokenApps.gmail.description"), categories: ["communication"], icon: logoIcon("gmail"), website: "mail.google.com", keywords: "gmail google mail app password imap" },
     ...TOKEN_APPS.map((app): AppEntry => ({
       id: app.id, kind: "token", label: app.label, description: t(`tokenApps.description.${app.id}` as LocaleKey), categories: grokCategories([TOKEN_CATEGORY[app.id]]),
       icon: logoIcon(app.id, app.label).image ? logoIcon(app.id, app.label) : { domain: app.domain }, website: app.domain, keywords: `${app.id} token api key`,
+      // a sign-in that comes back by itself is one click; a device code to type, or a token to paste, is not
+      ...(NATIVE_CONNECTORS.some((one) => one.id === app.id && one.flow !== "device") ? { oneClick: true } : {}),
     })),
     { id: CUSTOM_MCP, kind: "native", label: t("connectApps.customMcp"), description: t("connectApps.customMcp.description"), categories: ["code"], icon: { glyph: "plug" }, keywords: "custom mcp server url remote http headers oauth" },
     ...HOSTED_MCP_APPS.map((app): AppEntry => ({
       id: app.id, kind: "hosted", label: app.label, description: t(app.description), categories: ["finance"],
-      icon: "image" in app.icon ? { image: app.icon.image } : { glyph: "credit-card", glyphPaint: "rgb(48 49 54)" }, website: new URL(app.url).hostname.replace(/^mcp\./, ""), keywords: app.keywords,
+      icon: "image" in app.icon ? { image: app.icon.image } : { glyph: "credit-card", glyphPaint: "rgb(48 49 54)" }, website: new URL(app.url).hostname.replace(/^mcp\./, ""), keywords: app.keywords, oneClick: true,
     })),
   ];
 }
@@ -170,6 +173,8 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   const [replacing, setReplacing] = useState<{ app: string; id: string } | null>(null);
   // the token app whose page leads with its token over its ready sign-in
   const [tokenFirst, setTokenFirst] = useState<string | null>(null);
+  // the app whose own card was picked from under the other ways, when Composio leads its page
+  const [ownPicked, setOwnPicked] = useState<string | null>(null);
   const [natives, setNatives] = useState<Record<NativeId, boolean | null>>(() => memory.natives);
   const [hosted, setHosted] = useState<HostedConnections | null>(() => memory.hosted);
   const [onePassword, setOnePassword] = useState<OnePasswordStatus | null>(() => memory.onePassword);
@@ -528,9 +533,23 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   const nativeSetters = useMemo(() => Object.fromEntries(NATIVE_IDS.map((id) => [id, setNative(id)])) as Record<NativeId, (value: boolean | null) => void>, [setNative]);
 
   const detailEntry = detailId ? byId.get(detailId) : undefined;
-  const tokenShown = detailEntry?.kind === "token" ? detailEntry.id as TokenAppId : null;
-  // gmail's app password leads its page, unless Composio is how it is connected
-  const gmailShown = detailEntry?.id === GMAIL && !(composioConnected(detailEntry) && gmailConnected !== true);
+  // our own card leads only when it is one click; otherwise Composio's sign-in does, and ours waits under the other ways
+  // gmail's app password card stays on its page even when Composio's listing is the row
+  const hasOwnCard = (entry: AppEntry) => OWN_KINDS.has(entry.kind) || entry.id === GMAIL;
+  const ownConnected = (entry: AppEntry) => entry.id === GMAIL ? gmailConnected === true : ownConnection(entry) === "connected";
+  const composioLeads = (entry: AppEntry): boolean => {
+    if (!hasOwnCard(entry)) return false;
+    const phase = composioPhase(composioSlug(entry));
+    if (!phase || phase.kind === "unavailable") return false;
+    return !(entry.oneClick === true && (entry.kind !== "token" || tokens.status?.native[entry.id] !== false));
+  };
+  const detailComposioLeads = detailEntry ? composioLeads(detailEntry) : false;
+  // the own card under the other ways shows once picked there, or while it holds an account
+  const ownShown = !detailComposioLeads || (detailEntry !== undefined && (ownPicked === detailEntry.id || ownConnected(detailEntry)));
+  const tokenShown = detailEntry?.kind === "token" && ownShown ? detailEntry.id as TokenAppId : null;
+  // gmail's app password leads its page only when Composio cannot; Composio connected, it is not shown unless picked
+  const gmailShown = detailEntry?.id === GMAIL && ownShown
+    && (detailComposioLeads || !(composioConnected(detailEntry) && gmailConnected !== true));
   const sub = page.kind === "detail" || page.kind === "yours";
 
   const body = (() => {
@@ -558,11 +577,12 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
       const spec = detailEntry.kind === "token" ? tokenApp(detailEntry.id) : undefined;
       const bothOwn = spec !== undefined && spec.fields.length > 0 && spec.native === true && tokens.status?.native[spec.id] === true;
       const byToken = spec !== undefined && spec.fields.length > 0 && (!bothOwn || tokenFirst === spec.id);
-      if (OWN_KINDS.has(detailEntry.kind)) {
+      if (OWN_KINDS.has(detailEntry.kind) || (detailComposioLeads && hasOwnCard(detailEntry))) {
         const own: LocaleKey = detailEntry.kind === "logins" ? "connectApps.way.vault"
           : spec ? (byToken ? "connectApps.way.token" : "connectApps.way.device")
             : detailEntry.id === GMAIL ? "connectApps.way.appPassword" : "connectApps.way.builtIn";
-        ways.push({ key: "own", label: bothOwn && !byToken ? t("tokenApps.signIn", { name: spec.label }) : t(own), connected: ownConnection(detailEntry) === "connected" });
+        ways.push({ key: "own", label: bothOwn && !byToken ? t("tokenApps.signIn", { name: spec.label }) : t(own), connected: ownConnected(detailEntry),
+          ...(detailComposioLeads && !ownShown ? { action: { kind: "button" as const, label: t("connectors.action.connect"), onClick: () => setOwnPicked(detailEntry.id) } } : {}) });
       }
       if (bothOwn) {
         ways.push({ key: "token", label: byToken ? t("tokenApps.signIn", { name: spec.label }) : t("connectApps.way.token"), connected: false,
@@ -590,7 +610,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
         ...(slug ? { composioSlug: slug } : {}),
         ways,
         connectors,
-        ownFirst: gmailShown || (OWN_KINDS.has(detailEntry.kind) && ways.length > 1),
+        ownFirst: !detailComposioLeads && (gmailShown || (OWN_KINDS.has(detailEntry.kind) && ways.length > 1)),
         usedBy: card && connection(detailEntry.id) === "connected" ? botsUsingService(state.bots, state.instances, card.slug).map((bot) => bot.name) : [],
         appBots: card ? botsUsingService(state.bots, state.instances, card.slug).map((bot) => ({ id: bot.id, name: bot.name })) : [],
         ...(detailEntry.kind === "composio" ? { toolkit: snapshotToolkit(detailEntry.id) } : {}),
@@ -792,7 +812,8 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
                   </div>
                 )}
                 {body}
-                <div className={nativeCardsShown || hostedShown || onePasswordShown || tokenShown || gmailShown ? "ca-native-host" : "hidden"} data-native-host="">
+                <div className={(nativeCardsShown || hostedShown || onePasswordShown || tokenShown || gmailShown) && ownShown ? "ca-native-host" : "hidden"} data-native-host=""
+                  data-after-ways={detailComposioLeads ? "" : undefined}>
                   {tokenShown && <TokenCard key={`${tokenShown}:${replacing?.app === tokenShown ? replacing.id : ""}`} app={tokenShown} tokens={tokens}
                     {...(replacing?.app === tokenShown ? { replacing: replacing.id } : {})} preferToken={tokenFirst === tokenShown} />}
                   {gmailShown && <GmailPasswordNote connected={gmailConnected === true} />}
