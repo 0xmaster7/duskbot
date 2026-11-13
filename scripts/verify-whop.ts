@@ -62,7 +62,7 @@ try {
     } }],
   });
   const { chromium } = await import(process.env.DUSK_VERIFY_PLAYWRIGHT || "playwright");
-  browser = await chromium.launch({ headless: true, executablePath: process.env.DUSK_VERIFY_BROWSER_CHROME || undefined });
+  browser = await chromium.launch({ headless: true, executablePath: process.env.DUSK_VERIFY_BROWSER_CHROME || undefined, args: ["--use-mock-keychain", "--password-store=basic"] });
   const context = await (browser as any).newContext({ viewport: { width: 1100, height: 1000 } });
   const page = await context.newPage();
   const errors: string[] = [];

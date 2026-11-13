@@ -32,7 +32,7 @@ const stub = await serveStub();
 const output = process.env.DUSK_UI_EVIDENCE_DIR || "/tmp/dusk-x-connector-evidence";
 mkdirSync(output, { recursive: true });
 const { chromium } = await import(process.env.DUSK_VERIFY_PLAYWRIGHT || "playwright");
-const browser = await chromium.launch({ headless: true, executablePath: process.env.DUSK_VERIFY_BROWSER_CHROME || undefined });
+const browser = await chromium.launch({ headless: true, executablePath: process.env.DUSK_VERIFY_BROWSER_CHROME || undefined, args: ["--use-mock-keychain", "--password-store=basic"] });
 const opened: Array<{ fixture: VerificationServer; ui: MountedPreview }> = [];
 
 async function open(plan: boolean) {
