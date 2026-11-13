@@ -515,6 +515,22 @@ export async function readFrameBatches(response, onFrames) {
   return true;
 }
 
+/**
+ * a streamed read from a node that says it beats (x-link-beat, seconds) and then says nothing for three beats is on a
+ * dead connection: `silent` rejects and `lost()` runs (drop the connection). a node without the header is never judged
+ */
+export function beatWatch(response, lost) {
+  const beatMs = Number(response.headers?.get?.("x-link-beat")) * 1000;
+  let last = Date.now(), timer = null;
+  const silent = new Promise((_resolve, reject) => {
+    if (!(beatMs > 0)) return;
+    timer = setInterval(() => { if (Date.now() - last > beatMs * 3) { clearInterval(timer); lost(); reject(new Error("the streamed read went silent")); } }, Math.min(1000, beatMs));
+    timer.unref?.();
+  });
+  silent.catch(() => {});
+  return { silent, heard: () => { last = Date.now(); }, stop: () => clearInterval(timer) };
+}
+
 /** when to ask for a streamed read: always, except for a while after a proxy was seen holding the lines back */
 export function streamChoice(now = Date.now) {
   let offUntil = 0;
@@ -914,7 +930,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
       const nudged = (pollNudge = next?.nudge ?? new AbortController());
       const read = (signal, onConnected) => fetchImpl(`${route}/to-app?wait=${waitS}${streaming ? "&stream=1" : ""}`, { headers: { authorization: `Bearer ${token}` }, signal, onConnected });
       // no read may hold the loop longer than this, whatever the connection under it does
-      let hangTimer = null;
+      let hangTimer = null, beatStop = () => {};
       const hung = new Promise((_resolve, reject) => { hangTimer = setTimeout(() => { log("vps link: a read hung; starting over on a fresh connection"); fetchImpl.reset?.(); reject(new Error("a read hung")); }, waitS * 1000 + READ_HANG_MS); });
       hung.catch(() => {});
       try {
@@ -938,7 +954,10 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
           if (response.status === 404 && await reallyGone()) { closed = true; abort.abort(); fail("This server was unlinked."); break; }
           throw new Error(`link service answered ${response.status}`);
         }
+        const beat = beatWatch(response, () => { log("vps link: the streamed read went silent; reconnecting"); fetchImpl.reset?.(); });
+        beatStop = beat.stop;
         await Promise.race([readFrameBatches(response, (frames) => {
+          beat.heard();
           heard = true;
           failures = 0;
           nodeBoot.okAt = Date.now();
@@ -948,7 +967,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
             // one request's broken answer must not end the read that carries every other request's
             if (frame) try { deliver(frame); } catch (error) { log(`vps link: a reply could not be handed on (${error?.message ?? error})`); }
           }
-        }), hung]);
+        }), hung, beat.silent]);
       } catch (error) {
         if (closed) break;
         if (nudged.signal.aborted) { ahead = null; continue; }
@@ -967,7 +986,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
           await sleep(spread(Math.min(15_000, 300 * 2 ** Math.min(failures, 6))), undefined, { signal: AbortSignal.any([abort.signal, pollRetry.signal]) }).catch(() => {});
           pollRetry = null;
         }
-      } finally { clearTimeout(stallTimer); clearTimeout(aheadTimer); clearTimeout(hangTimer); }
+      } finally { clearTimeout(stallTimer); clearTimeout(aheadTimer); clearTimeout(hangTimer); beatStop(); }
     }
     polling = false;
   }

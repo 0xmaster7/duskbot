@@ -170,13 +170,20 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
     on.polling = true;
     try {
       while (!on.abort.signal.aborted) {
+        // a node that beats (x-link-beat) and then says nothing for three beats is on a dead connection (a network
+        // switch leaves it silent, not closed): the read ends and the next one dials afresh
+        const quiet = new AbortController();
         const response = await streamFetch(`${route}/to-app?wait=25&stream=1`, {
           headers: { Authorization: `Bearer ${token}` }, credentials: "omit", redirect: "error",
-          signal: AbortSignal.any([on.abort.signal, AbortSignal.timeout(40_000)]),
+          signal: AbortSignal.any([on.abort.signal, quiet.signal, AbortSignal.timeout(40_000)]),
         });
         if (!response.ok) { await response.body?.cancel(); throw refused(response.status); }
         noteRelayDate(response.headers.get("date"));
-        await readFrameBatches(response, async (frames) => {
+        const beatMs = Number(response.headers.get("x-link-beat")) * 1000;
+        let heardAt = Date.now();
+        const beat = beatMs > 0 ? setInterval(() => { if (Date.now() - heardAt > beatMs * 3) quiet.abort(new Error("relay read went silent")); }, Math.min(1000, beatMs)) : null;
+        try { await readFrameBatches(response, async (frames) => {
+          heardAt = Date.now();
           for (const sealed of frames) {
             let frame: RelayFrame | null;
             try { frame = await openFrame(key, channel, "to-app", sealed, guard); } catch { continue; }
@@ -189,7 +196,7 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
             else if (frame.t === "end") request.end();
             else if (frame.t === "err") request.fail(new Error("relay request failed"));
           }
-        });
+        }); } finally { if (beat) clearInterval(beat); }
       }
     } catch (error) { if (!(error instanceof RelayGoneError) && !on.abort.signal.aborted) void relocate(); drop(on, error instanceof RelayGoneError ? error : undefined); }
   };

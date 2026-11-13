@@ -550,6 +550,22 @@ export async function readFrameBatches(response, onFrames) {
   return true;
 }
 
+/**
+ * a streamed read from a node that says it beats (x-link-beat, seconds) and then says nothing for three beats is on a
+ * dead connection: `silent` rejects and `lost()` runs (drop the connection). a node without the header is never judged
+ */
+export function beatWatch(response, lost) {
+  const beatMs = Number(response.headers?.get?.("x-link-beat")) * 1000;
+  let last = Date.now(), timer = null;
+  const silent = new Promise((_resolve, reject) => {
+    if (!(beatMs > 0)) return;
+    timer = setInterval(() => { if (Date.now() - last > beatMs * 3) { clearInterval(timer); lost(); reject(new Error("the streamed read went silent")); } }, Math.min(1000, beatMs));
+    timer.unref?.();
+  });
+  silent.catch(() => {});
+  return { silent, heard: () => { last = Date.now(); }, stop: () => clearInterval(timer) };
+}
+
 /** when to ask for a streamed read: always, except for a while after a proxy was seen holding the lines back */
 export function streamChoice(now = Date.now) {
   let offUntil = 0;
@@ -2062,7 +2078,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
       if (!next && !fetchImpl.connectAware) armStall();
       const read = (signal, onConnected) => fetchImpl(`${base}/v1/tunnels/${id}/to-vps?wait=${waitS}${streaming ? "&stream=1" : ""}`, { headers: { authorization: `Bearer ${token}` }, signal, onConnected });
       // no read may hold the loop longer than this, whatever the connection under it does
-      let hangTimer = null;
+      let hangTimer = null, beatStop = () => {};
       const hung = new Promise((_resolve, reject) => { hangTimer = setTimeout(() => { log("link: a read hung; starting over on a fresh connection"); fetchImpl.reset?.(); reject(new Error("a read hung")); }, waitS * 1000 + READ_HANG_MS); });
       hung.catch(() => {});
       try {
@@ -2076,7 +2092,10 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
         }
         if (!response.ok) throw new Error(`link service answered ${response.status}`);
         lastOkAt = Date.now();
+        const beat = beatWatch(response, () => { log("link: the streamed read went silent; reconnecting"); fetchImpl.reset?.(); });
+        beatStop = beat.stop;
         await Promise.race([readFrameBatches(response, (frames) => {
+          beat.heard();
           heard = true;
           failures = 0;
           lastOkAt = Date.now();
@@ -2085,7 +2104,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
             try { frame = openFrame(key, id, "to-vps", sealed, guard); } catch { log("link: dropped a frame that did not open"); }
             if (frame) void handle(frame);
           }
-        }), hung]);
+        }), hung, beat.silent]);
       } catch (error) {
         if (stopped) break;
         if (stall.signal.aborted && !heard) {
@@ -2100,7 +2119,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
           await delay(spread(Math.min(15_000, 500 * 2 ** Math.min(failures, 5))), undefined, { signal: AbortSignal.any([abort.signal, pollRetry.signal]) }).catch(() => {});
           pollRetry = null;
         }
-      } finally { clearTimeout(stallTimer); clearTimeout(aheadTimer); clearTimeout(hangTimer); }
+      } finally { clearTimeout(stallTimer); clearTimeout(aheadTimer); clearTimeout(hangTimer); beatStop(); }
     }
     unwarm();
     return terminal;

@@ -179,3 +179,15 @@ test("posts of a given-up epoch stop at once, so none lands after the new epoch 
     assert.deepEqual(old, [], "no post of an older epoch after the new one began");
   } finally { await proxy.close(); }
 });
+
+test("a streamed read from a node that beats and then goes silent for three beats is given up", async () => {
+  const { beatWatch } = await import("./vps-link-protocol.mjs");
+  let lost = 0;
+  const quick = beatWatch(new Response("", { headers: { "x-link-beat": "0.1" } }), () => { lost += 1; });
+  await assert.rejects(quick.silent, /went silent/);
+  assert.equal(lost, 1);
+  const old = beatWatch(new Response(""), () => { lost += 1; });
+  const settled = await Promise.race([old.silent.then(() => "settled", () => "settled"), new Promise((resolve) => setTimeout(() => resolve("waiting"), 400))]);
+  assert.equal(settled, "waiting", "a node that does not beat is never judged");
+  old.stop();
+});

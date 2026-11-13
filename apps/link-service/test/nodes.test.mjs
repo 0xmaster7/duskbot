@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createAddressBook, placeTunnel } from "../agent.mjs";
-import { createTunnelProxy } from "../../../electron/vps-link-protocol.mjs";
+import { createTunnelProxy, newLinkKeys, seal, vpsTokenOf } from "../../../electron/vps-link-protocol.mjs";
 import { createLinkService, sha256hex } from "../src/app.mjs";
 import { choosePlacement, loadOf, parseNodes, refusesNew } from "../src/nodes.mjs";
 import { turnCredential } from "../src/turn.mjs";
@@ -207,6 +207,22 @@ describe("two nodes", () => {
     expect((await call(contabo.url, `/v1/tunnels/${id}/to-vps`, { token: vps })).status).toBe(200);
     expect(await call(contabo.url, `/v1/channels/${channel}/node`, { token: phone }).then((res) => res.json())).toMatchObject({ node: "contabo" });
     expect((await call(contabo.url, `/v1/channels/${channel}/to-vps`, { token: phone, method: "POST", body: { frames: ["aGk"] } })).status).toBe(200);
+  });
+
+  it("a server linked through a node that is not the default is at home there until it polls, and still placed as new", async () => {
+    const ports = await freePorts();
+    const contabo = await boot("contabo", ports), oracle = await boot("oracle-in", ports);
+    const keys = newLinkKeys();
+    const made = await call(oracle.url, "/v1/sessions", { method: "POST", body: { verifier: keys.verifier, appPub: keys.pub } }).then((res) => res.json());
+    const vpsSession = vpsTokenOf(keys.secret);
+    expect((await call(oracle.url, `/v1/sessions/${made.id}/claim`, { token: vpsSession, method: "POST", body: {} })).status).toBe(200);
+    const result = await call(oracle.url, `/v1/sessions/${made.id}/result`, { token: vpsSession, method: "POST", body: { sealed: seal(Buffer.alloc(32), made.id, Buffer.from("{}")), vpsPub: keys.pub, tunnel: { vps: sha256hex(vps), app: sha256hex(app) } } });
+    expect(result.status).toBe(200);
+    // the app's first requests land where it linked, not bounced to the default node
+    expect((await call(oracle.url, `/v1/tunnels/${made.id}/to-vps`, { token: app, method: "POST", body: { frames: ["aGk"] } })).status).toBe(200);
+    await oracle.service.cluster.syncAll();
+    const placed = await call(contabo.url, `/v1/tunnels/${made.id}/place`, { token: vps, method: "POST", body: { rtt: { contabo: 10, "oracle-in": 200 } } }).then((res) => res.json());
+    expect(placed).toMatchObject({ node: "contabo", reason: "new" });
   });
 
   it("keeps the server's sealed address in the directory: any node hands it to the app, nobody else opens it", async () => {

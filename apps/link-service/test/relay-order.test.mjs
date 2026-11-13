@@ -120,3 +120,12 @@ describe("a streamed read", () => {
     expect(newerLines.flat()).toEqual(["aaaa"]);
   });
 });
+
+describe("streamed reads beat", () => {
+  it("say so in x-link-beat and send an empty line when nothing came for a beat", async () => {
+    const response = await fetch(`${base}/v1/tunnels/${id}/to-app?wait=7&stream=1`, { headers: { authorization: `Bearer ${app}` } });
+    expect(response.headers.get("x-link-beat")).toBe("5");
+    const text = await response.text();
+    expect(text.trim().split("\n")).toEqual(['{"frames":[]}', '{"frames":[]}']);
+  }, 10_000);
+});

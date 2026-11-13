@@ -52,6 +52,7 @@ const LANE_BYTES = 4 * 1024 * 1024;
 const HELD_POSTS = 32;
 const GAP_MS = 15_000;
 const FRESH_GAP_MS = 300;
+const BEAT_MS = 5000;
 const EPOCH = /^[a-z2-7]{12}$/;
 const CREATE_PER_HOUR = 120;
 const CHANNEL_GRANT_MS = 24 * 60 * 60_000;
@@ -653,7 +654,8 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     const rtt = {};
     if (body?.rtt && typeof body.rtt === "object") for (const [id, ms] of Object.entries(body.rtt).slice(0, 16)) if (/^[a-z][a-z0-9-]{1,30}$/.test(id) && Number.isFinite(ms) && ms >= 0 && ms < 60_000) rtt[id] = ms;
     if (!cluster) return { node: nodeId, url: base, reason: "single node", nodes: [{ id: nodeId, url: base, region: null, up: true }] };
-    let choice = choosePlacement({ nodes: cluster.view(tunnel), home: tunnel.home ?? null, rtt, defaultId: nodes.defaultId });
+    // a server that never polled is new wherever it was linked: it goes to the best node, not stuck to that one
+    let choice = choosePlacement({ nodes: cluster.view(tunnel), home: tunnel.polled || tunnel.seenAt ? tunnel.home ?? null : null, rtt, defaultId: nodes.defaultId });
     if (choice.node !== nodeId && !(await cluster.ensureOn(choice.node, tunnel))) choice = { node: nodeId, reason: `${choice.node} is behind` };
     const where = whereIs(tunnel);
     return { node: choice.node, url: cluster.urlOf(choice.node), reason: choice.reason, nodes: where.nodes };
@@ -676,6 +678,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
   function touchTunnel(tunnel) {
     const t = now();
     if (!tunnel.seenAt || t - tunnel.seenAt > 60_000) { tunnel.seenAt = t; store.save(); } else tunnel.seenAt = t;
+    if (!tunnel.polled && cluster) { tunnel.polled = true; cluster.changed(tunnel); }
   }
   function clearChannel(channel) {
     clearQueues(channel.id);
@@ -1101,7 +1104,9 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
           if (session.acct && accountTunnels(session.acct) >= limits.tunnelsPerAccount) {
             return fail(res, 409, `This account already has ${limits.tunnelsPerAccount} linked servers. Remove one in the app to link another.`, "tunnel_limit");
           }
-          store.tunnels.set(id, { id, createdAt: now(), vpsVerifier: tunnel.vps, appVerifier: tunnel.app, seenAt: null, ...(session.acct ? { acct: session.acct } : {}) });
+          // home is where it was linked (both ends start there), not the default node: a node other than the default
+          // would otherwise send the app away with 409 until the server first polls
+          store.tunnels.set(id, { id, createdAt: now(), vpsVerifier: tunnel.vps, appVerifier: tunnel.app, seenAt: null, ...(cluster ? { home: nodeId } : {}), ...(session.acct ? { acct: session.acct } : {}) });
           cluster?.changed(store.tunnels.get(id));
           session.tunnel = id;
         }
@@ -1370,18 +1375,20 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     const turn = q.claim();
     signal = AbortSignal.any([signal, q.signal, AbortSignal.timeout(ms)]);
     const until = Date.now() + ms;
-    res.writeHead(200, { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "x-accel-buffering": "no", "x-link-boot": boot });
-    let first = true;
+    res.writeHead(200, streamHead);
+    let first = true, wrote = Date.now();
     try {
       while (!signal.aborted && q.holds(turn) && alive() && Date.now() < until) {
         if (!first && q.length === 0) {
           const left = until - Date.now();
           if (left <= 0) break;
-          await q.wait(left, signal);
+          if (Date.now() - wrote >= BEAT_MS) { await writeLine(res, { frames: [] }, signal); wrote = Date.now(); continue; }
+          await q.wait(Math.min(left, BEAT_MS - (Date.now() - wrote)), signal);
           continue;
         }
         first = false;
         await writeLine(res, { frames: q.take(256, STREAM_LINE_BYTES) }, signal);
+        wrote = Date.now();
       }
     } finally { res.end(); }
   }
@@ -1389,16 +1396,21 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
   async function streamChannels(res, id, reader, turn, ms, signal) {
     signal = AbortSignal.any([signal, reader.signal, AbortSignal.timeout(ms)]);
     const until = Date.now() + ms;
-    res.writeHead(200, { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "x-accel-buffering": "no", "x-link-boot": boot });
+    res.writeHead(200, streamHead);
+    let wrote = Date.now();
     try {
       await writeLine(res, { frames: [] }, signal);
       while (!signal.aborted && reader.holds(turn) && store.tunnels.has(id) && Date.now() < until) {
         const batch = channelBatch(id, reader);
-        if (batch) await writeLine(res, batch, signal);
-        else await reader.wait(Math.max(1, until - Date.now()), signal);
+        if (batch) { await writeLine(res, batch, signal); wrote = Date.now(); }
+        else if (Date.now() - wrote >= BEAT_MS) { await writeLine(res, { frames: [] }, signal); wrote = Date.now(); }
+        else await reader.wait(Math.max(1, Math.min(until - Date.now(), BEAT_MS - (Date.now() - wrote))), signal);
       }
     } finally { res.end(); }
   }
+  // a streamed read says something at least every BEAT_MS (an empty line when idle), and says so in x-link-beat: a
+  // client that hears nothing for a few beats knows its connection died (a network switch leaves it silent, not closed)
+  const streamHead = { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "x-accel-buffering": "no", "x-link-boot": boot, "x-link-beat": String(BEAT_MS / 1000) };
   async function writeLine(res, body, signal) {
     if (!res.write(`${JSON.stringify(body)}\n`)) {
       await new Promise((resolve) => {
