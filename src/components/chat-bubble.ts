@@ -141,18 +141,21 @@ export function needsStamp(prev: Message | undefined, first: Message): boolean {
 }
 
 /** How Simple mode lays out a transcript's rows: which bubbles join, and which cards tuck under their bot's bubble. */
-export function simpleRowLayout(items: readonly TranscriptItem[], { botId, showToolCalls, unreadIds }: {
+export function simpleRowLayout(items: readonly TranscriptItem[], { botId, showToolCalls, unreadIds, shownIds }: {
   botId: string; showToolCalls: boolean; unreadIds: ReadonlySet<string> | null;
+  /** Rows that draw something even when they would be quiet: a plan call shows its checklist. */
+  shownIds?: { has(id: string): boolean };
 }): { joins: BubbleJoin[]; tucks: boolean[] } {
   const rowsOf = (item: TranscriptItem) => item.kind === "message" ? [item.message] : item.messages;
   const dividerAt = unreadIds ? items.findIndex((item) => rowsOf(item).some((row) => unreadIds.has(row.id))) : -1;
   const slots = items.map((item, i): TranscriptSlot => {
     const previous = items[i - 1];
     const stamped = needsStamp(previous && rowsOf(previous).at(-1), rowsOf(item)[0]!) && i > 0 || i === dividerAt;
-    if (item.kind !== "message") return { group: null, hidden: !showToolCalls, breakBefore: stamped || i === 0, breakAfter: false, stamped };
+    const shown = Boolean(shownIds && rowsOf(item).some((row) => shownIds.has(row.id)));
+    if (item.kind !== "message") return { group: null, hidden: !showToolCalls && !shown, breakBefore: stamped || i === 0, breakAfter: false, stamped };
     const m = item.message;
     const group = isCancelledTranscriptRow(m) ? null : bubbleGroup(m, botId);
-    const hidden = !group && (quietRow(m, showToolCalls) || (m.role === "bot" && m.kind === "text" && !m.publishedPage && !peerRequest(m, botId) && isPureLeakedSystemHarnessMessage(m.text) && !m.attachments?.length));
+    const hidden = !group && !shown && (quietRow(m, showToolCalls) || (m.role === "bot" && m.kind === "text" && !m.publishedPage && !peerRequest(m, botId) && isPureLeakedSystemHarnessMessage(m.text) && !m.attachments?.length));
     const sender = m.role === "bot" && !peerLine(m) && !peerRequest(m, botId) ? botId : null;
     return { group, hidden, breakBefore: stamped || i === 0 || Boolean(m.automation), breakAfter: Boolean(m.setupOffer), stamped, sender };
   });
