@@ -27,21 +27,39 @@ export async function hkdf(ikm: Uint8Array, salt: string, info: string, length: 
   return new Uint8Array(await subtle().deriveBits({ name: "HKDF", hash: "SHA-256", salt: utf8(salt), info: utf8(info) }, key, length * 8));
 }
 
-export async function seal(key: Uint8Array, aad: string, plain: Uint8Array): Promise<string> {
-  const aes = await subtle().importKey("raw", new Uint8Array(key), "AES-GCM", false, ["encrypt"]);
+// one imported AES key per channel key, so a busy direct path does not import it again for every frame
+const aesKeys = new WeakMap<Uint8Array, Promise<CryptoKey>>();
+function aesKey(key: Uint8Array): Promise<CryptoKey> {
+  let found = aesKeys.get(key);
+  if (!found) {
+    found = subtle().importKey("raw", new Uint8Array(key), "AES-GCM", false, ["encrypt", "decrypt"]);
+    found.catch(() => aesKeys.delete(key));
+    aesKeys.set(key, found);
+  }
+  return found;
+}
+
+/** iv, ciphertext, tag as bytes (the direct path); `seal` is the same as base64url (the relay's json) */
+export async function sealRaw(key: Uint8Array, aad: string, plain: Uint8Array): Promise<Uint8Array<ArrayBuffer>> {
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const encrypted = new Uint8Array(await subtle().encrypt({ name: "AES-GCM", iv, additionalData: utf8(aad) }, aes, new Uint8Array(plain)));
+  const encrypted = new Uint8Array(await subtle().encrypt({ name: "AES-GCM", iv, additionalData: utf8(aad) }, await aesKey(key), new Uint8Array(plain)));
   const bytes = new Uint8Array(iv.length + encrypted.length);
   bytes.set(iv);
   bytes.set(encrypted, iv.length);
-  return base64url(bytes);
+  return bytes;
+}
+
+export async function seal(key: Uint8Array, aad: string, plain: Uint8Array): Promise<string> {
+  return base64url(await sealRaw(key, aad, plain));
+}
+
+export async function unsealRaw(key: Uint8Array, aad: string, raw: Uint8Array): Promise<Uint8Array<ArrayBuffer>> {
+  if (raw.length < 29) throw new Error("invalid sealed value");
+  return new Uint8Array(await subtle().decrypt({ name: "AES-GCM", iv: raw.slice(0, 12), additionalData: utf8(aad) }, await aesKey(key), raw.slice(12)));
 }
 
 export async function unseal(key: Uint8Array, aad: string, sealed: string): Promise<Uint8Array<ArrayBuffer>> {
-  const raw = unbase64(sealed);
-  if (raw.length < 29) throw new Error("invalid sealed value");
-  const aes = await subtle().importKey("raw", new Uint8Array(key), "AES-GCM", false, ["decrypt"]);
-  return new Uint8Array(await subtle().decrypt({ name: "AES-GCM", iv: raw.slice(0, 12), additionalData: utf8(aad) }, aes, raw.slice(12)));
+  return unsealRaw(key, aad, unbase64(sealed));
 }
 
 export type RelaySecrets = { priv: string; pub: string; token: string };

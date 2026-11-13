@@ -3,7 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { MobileConnectionRecord, MobileTransport } from "../../../shared/mobile-link";
 import { usePlatform, type MobilePlatform } from "../platform";
 import { deviceChannelKey, type RelaySecrets } from "../transport/link-crypto";
-import { open as openRelay, RelayGoneError } from "../transport/relay";
+import { withDirect } from "../transport/direct";
+import { frameGuard, open as openRelay, RelayGoneError } from "../transport/relay";
 import type { PhoneTransport } from "../transport/transport";
 import { forgetTranscriptShelf } from "@/state/transcript-cache";
 import { outboxKey } from "./active";
@@ -28,7 +29,9 @@ export async function connectToWorkspace(record: MobileConnectionRecord, token: 
         const keys = JSON.parse(saved) as RelaySecrets;
         const key = await deviceChannelKey(keys.priv, relay.agentPub, relay.channel);
         signal.throwIfAborted();
-        const channel = openRelay(relay.base, relay.channel, keys.token, key);
+        // direct first: a webrtc link to the server takes requests once it is up, the relay stays underneath
+        const guard = frameGuard();
+        const channel = withDirect(openRelay(relay.base, relay.channel, keys.token, key, guard), { channel: relay.channel, key, guard, lifecycle: platform });
         transport = { kind: "relay", channel, token };
         response = await channel.request("GET", "/api/auth/session", headers, null, timed);
       } else {

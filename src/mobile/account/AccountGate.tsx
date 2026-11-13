@@ -7,6 +7,7 @@ import type { CloudSignInStart } from "../../../electron/cloud-account.mjs";
 import type { OAuthProvider } from "../../../shared/account-api";
 import { usePlatform, type MobilePlatform } from "../platform";
 import { createMobileAccount, isAccountAuthUrl, type AuthResult, type CloudPairResult, type MobileAccount, type MobileCloud } from "./account-client";
+import { setTurnSource } from "../transport/direct-rtc";
 
 type AccountContextValue = { account: MobileAccount | null; origin: string;
   /** this app keeps a dusk account (the native app, or the preview's ?account=1) */
@@ -63,6 +64,8 @@ export function AccountGate({ children }: { children: ReactNode }) {
   const origin = mobileAccountOrigin(platform.native, params);
   const client = useMemo(() => createMobileAccount({ platform, origin }), [platform, origin]);
   const [account, setAccount] = useState<MobileAccount | null>(null);
+  // the phone's direct link to its server asks this account for TURN; signed out it uses STUN only
+  useEffect(() => { setTurnSource(() => client.screenIce()); return () => setTurnSource(null); }, [client]);
   const [restoring, setRestoring] = useState(wanted);
   const [problem, setProblem] = useState<string>();
   const pendingAuth = useRef<Promise<AuthResult> | null>(null);

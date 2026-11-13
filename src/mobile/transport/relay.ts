@@ -1,4 +1,4 @@
-import { base64url, seal, subtle, unbase64, unseal, utf8 } from "./link-crypto";
+import { base64url, seal, subtle, unbase64, unsealRaw, utf8 } from "./link-crypto";
 
 export type RelayFrame = {
   t: string;
@@ -14,11 +14,19 @@ export type RelayFrame = {
   message?: string;
   /** on a "head" frame: when the server's link process started, in the link service's time */
   since?: number;
+  /** a control op and its answer (ctl frames), and a reply's byte count (marks and ends) */
+  op?: string;
+  data?: unknown;
+  ok?: boolean;
+  error?: string;
+  n?: number;
 };
 
-type FrameGuard = (iv: string, ts: unknown) => boolean;
+export type FrameGuard = (iv: string, ts: unknown) => boolean;
 const randomId = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), (byte) => "abcdefghijklmnopqrstuvwxyz234567"[byte & 31]).join("");
 const SKEW_MS = 5 * 60_000;
+/** a relay run with nothing in flight this long stops reading: with the direct path up the relay only carries signaling */
+export const RELAY_IDLE_MS = 60_000;
 /** frames are stamped and checked in the link service's time (its Date header), the same way the app and the server
  * do, so a phone whose clock is minutes off still talks; under RELAY_CLOCK_SLACK_MS the phone keeps its own clock */
 const RELAY_CLOCK_SLACK_MS = 3000;
@@ -46,12 +54,14 @@ export function sealFrame(key: Uint8Array, channel: string, direction: "to-vps" 
   return seal(key, `${channel}|${direction}`, utf8(JSON.stringify({ ...frame, ts: relayNow() })));
 }
 
-export async function openFrame(key: Uint8Array, channel: string, direction: "to-vps" | "to-app", sealed: string, guard: FrameGuard): Promise<RelayFrame | null> {
-  const plain = await unseal(key, `${channel}|${direction}`, sealed);
+/** `sealed` is base64url (relay) or bytes (the direct path); the guard keys on the iv either way, so one guard covers both */
+export async function openFrame(key: Uint8Array, channel: string, direction: "to-vps" | "to-app", sealed: string | Uint8Array, guard: FrameGuard): Promise<RelayFrame | null> {
+  const raw = typeof sealed === "string" ? unbase64(sealed) : sealed;
+  const plain = await unsealRaw(key, `${channel}|${direction}`, raw);
   const frame: RelayFrame = plain[0] === 1 && plain.length >= 21
     ? { t: "bytes", r: new TextDecoder().decode(plain.slice(1, 13)), ts: new DataView(plain.buffer, plain.byteOffset, plain.byteLength).getFloat64(13), b: plain.slice(21) }
     : JSON.parse(new TextDecoder().decode(plain));
-  return guard(sealed.slice(0, 16), frame.ts) ? frame : null;
+  return guard(typeof sealed === "string" ? sealed.slice(0, 16) : base64url(sealed.subarray(0, 12)), frame.ts) ? frame : null;
 }
 
 export async function readFrameBatches(response: Response, receive: (frames: string[]) => Promise<void>): Promise<void> {
@@ -89,14 +99,17 @@ export class RelayGoneError extends Error {
 export interface RelayChannel {
   request(method: string, path: string, headers?: HeadersInit, body?: Uint8Array | null, signal?: AbortSignal, onBodyProgress?: (sent: number, total: number) => void): Promise<Response>;
   close(): void;
+  /** one sealed control op to the server's link agent and its answer (the relay's own channel only) */
+  control?(op: string, data: unknown, signal?: AbortSignal): Promise<RelayFrame>;
 }
 
 /** One run of posts and polls. A failed post or poll ends it, and the next request starts another under a new epoch,
  * which the relay reads as the writer restarting. */
 type Link = { abort: AbortController; epoch: string; seq: number; posts: Promise<void>; polling: boolean };
-type Pending = { link: Link; at: number; head(frame: RelayFrame): void; data(bytes: Uint8Array): void; end(): void; fail(error: unknown): void };
+type Pending = { link: Link; at: number; head(frame: RelayFrame): void; data(bytes: Uint8Array): void; end(): void; fail(error: unknown): void; ctl?(frame: RelayFrame): void };
 
-export function open(base: string, channel: string, token: string, key: Uint8Array): RelayChannel {
+/** `guard`: the channel's replay guard, shared with its direct path (direct.ts) */
+export function open(base: string, channel: string, token: string, key: Uint8Array, guard: FrameGuard = frameGuard()): RelayChannel {
   subtle();
   const root = new URL(base);
   if (!["http:", "https:"].includes(root.protocol) || root.username || root.password || root.pathname !== "/" || root.search || root.hash || !/^[a-z2-7]{10}$/.test(channel) || key.length !== 32) throw new Error("invalid relay route");
@@ -106,12 +119,18 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
   let known: string[] = [], locating: Promise<void> | null = null, lastLocate = 0;
   const postFetch = fetch;
   const streamFetch = typeof window === "undefined" ? fetch : (window as Window & { CapacitorWebFetch?: typeof fetch }).CapacitorWebFetch ?? window.fetch;
-  const guard = frameGuard();
   const pending = new Map<string, Pending>();
   let link: Link | null = null;
   let closed = false;
   let gone = false;
   let agentSince: number | null = null;
+  let idleTimer: ReturnType<typeof setTimeout> | undefined;
+  const settled = () => {
+    if (pending.size || !link) return;
+    const on = link;
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => { if (!pending.size && link === on) { link = null; on.abort.abort(); } }, RELAY_IDLE_MS);
+  };
 
   const drop = (broken: Link, error: unknown = new Error("relay closed")) => {
     if (link === broken) link = null;
@@ -120,6 +139,7 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
   };
   const close = () => {
     closed = true;
+    clearTimeout(idleTimer);
     if (link) drop(link);
   };
   const originOf = (value: unknown) => { try { const url = new URL(String(value)); return ["http:", "https:"].includes(url.protocol) ? url.origin : null; } catch { return null; } };
@@ -206,6 +226,7 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
             else if (frame.t === "bytes" && frame.b) request.data(frame.b);
             else if (frame.t === "end") request.end();
             else if (frame.t === "err") request.fail(new Error("relay request failed"));
+            else if (frame.t === "ctl") request.ctl?.(frame);
           }
         }); } finally { if (beat) clearInterval(beat); }
       }
@@ -213,6 +234,28 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
   };
   return {
     close,
+    control(op, data, signal) {
+      if (gone) return Promise.reject(new RelayGoneError());
+      if (closed || signal?.aborted) return Promise.reject(signal?.reason ?? new Error("relay closed"));
+      const r = randomId();
+      const on = link ??= { abort: new AbortController(), epoch: randomId(), seq: 0, posts: Promise.resolve(), polling: false };
+      return new Promise<RelayFrame>((resolve, reject) => {
+        const finish = (error: unknown, frame?: RelayFrame) => {
+          clearTimeout(timer);
+          pending.delete(r);
+          settled();
+          signal?.removeEventListener("abort", onAbort);
+          if (frame) resolve(frame); else reject(error);
+        };
+        const onAbort = () => finish(signal?.reason ?? new Error("relay control aborted"));
+        const timer = setTimeout(() => finish(new Error("relay control timed out")), 15_000);
+        const ignore = () => {};
+        pending.set(r, { link: on, at: relayNow(), head: ignore, data: ignore, end: ignore, fail: (error) => finish(error), ctl: (frame) => finish(null, frame) });
+        signal?.addEventListener("abort", onAbort, { once: true });
+        void poll(on);
+        void post(on, [{ t: "ctl", r, op, data }]).catch((error) => finish(error));
+      });
+    },
     request(method, path, headers = {}, body, signal, onBodyProgress) {
       if (gone) return Promise.reject(new RelayGoneError());
       if (closed || signal?.aborted) return Promise.reject(signal?.reason ?? new Error("relay closed"));
@@ -223,7 +266,7 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
         let controller: ReadableStreamDefaultController<Uint8Array>;
         let headed = false, finished = false, empty = false;
         let timer = setTimeout(() => { void relocate(); cancel(new Error("relay request timed out")); }, 15_000);
-        const cleanup = () => { finished = true; clearTimeout(timer); pending.delete(r); signal?.removeEventListener("abort", onAbort); };
+        const cleanup = () => { finished = true; clearTimeout(timer); pending.delete(r); settled(); signal?.removeEventListener("abort", onAbort); };
         const fail = (error: unknown) => { if (finished) return; cleanup(); controller.error(error); reject(error); };
         const cancel = (error: unknown) => { fail(error); void post(on, [{ t: "cancel", r }]).catch(() => {}); };
         const onAbort = () => cancel(signal?.reason);

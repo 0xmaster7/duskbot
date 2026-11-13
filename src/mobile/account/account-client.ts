@@ -4,6 +4,7 @@ import { ACCOUNT_ROUTES, APP_AUTH_REDIRECT, OAUTH_PROVIDERS, type OAuthErrorCode
 import type { CloudSignInStart } from "../../../electron/cloud-account.mjs";
 import type { SignInVerify } from "@/components/account-gate/bridge";
 import type { MobilePlatform } from "../platform";
+import { cleanIce, type IceServer } from "../transport/direct-rtc";
 
 export type MobileAccount = { id: string; email: string };
 export type MobileCloud = { id: string; name: string; status: string; origin: string | null; primary: boolean; asleep: boolean };
@@ -69,6 +70,7 @@ export function createMobileAccount({ platform, origin, fetch: requestFetch = gl
   let grant: StoredGrant | null = null;
   let attempt: { id: string; email: string; expiresAt: number; wrong: number } | null = null;
   let generation = 0;
+  let iceCache: { grant: StoredGrant; until: number; servers: IceServer[] } | null = null;
   const analytics = () => configureAnalytics({ origin, token: grant?.token ?? null, platform: platform.kind === "web" ? "linux" : platform.kind, version: platform.appVersion, kind: "mobile" });
   analytics();
   const device = () => ({ deviceName: platform.deviceName().trim().slice(0, 100), platform: platform.kind === "web" ? "linux" : platform.kind,
@@ -224,6 +226,19 @@ export function createMobileAccount({ platform, origin, fetch: requestFetch = gl
     async wakeCloud(): Promise<boolean> {
       if (!grant) return false;
       try { await request(CLOUD_WAKE, "POST", { intent: "click" }, grant.token); return true; } catch { return false; }
+    },
+    /** Cloudflare TURN for the phone's direct link to its server, minted for this sign-in; none when signed out. */
+    async screenIce(): Promise<IceServer[]> {
+      const signedIn = grant;
+      if (!signedIn) return [];
+      if (iceCache?.grant === signedIn && iceCache.until > Date.now()) return iceCache.servers;
+      try {
+        const value = await request(ACCOUNT_ROUTES.screenIce, "POST", {}, signedIn.token);
+        if (!object(value) || value.v !== 1 || !expiry(value.expiresAt)) return [];
+        const servers = cleanIce(value.iceServers);
+        iceCache = { grant: signedIn, until: Math.min(value.expiresAt - 10 * 60_000, Date.now() + 60 * 60_000), servers };
+        return servers;
+      } catch { return []; }
     },
     async enrollGrant(): Promise<{ enrollToken: string; dashboardUrl: string } | null> {
       if (!grant) return null;
