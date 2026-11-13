@@ -16,6 +16,7 @@ import { ARGUMENT_REFUSAL, argumentRefusalNote, fitArguments, fittedArgumentsNot
 import { annotateFailedCall } from "./connector-scope-hint.ts";
 import { CONNECTOR_ACCOUNTS_ENV, parseConnectorAccountsEnv, withChosenAccounts } from "./connector-account-pick.ts";
 import { withSignedOutHint } from "./connector-signed-out-hint.ts";
+import { withNextStepFrame } from "./tool-next-step.ts";
 import { AUTH_CONFIG_ID } from "../shared/connector-availability.ts";
 import { fitToolListResult } from "./mcp-tool-schema.ts";
 import { toolSchemaProfileFromEnv } from "./tool-schema-profile.ts";
@@ -325,7 +326,7 @@ async function handle(received: Json): Promise<void> {
     if (response && id !== undefined) {
       const name = String((message.params as Json | undefined)?.name ?? "");
       send(method === "tools/list" ? fittedList(rememberSchemas(withAppTools(withAuthConfigParameter(ALLOWED_TOOLS ? filterToolsListFrame(response, ALLOWED_TOOLS, SERVICE_SLUGS) : response))))
-        : method === "tools/call" ? withArgumentNotes(name, withSignedOutHint(message, response, SERVICE_SLUGS), changed) : response);
+        : method === "tools/call" ? withNextStepFrame(withArgumentNotes(name, withSignedOutHint(message, response, SERVICE_SLUGS), changed)) : response);
     }
   } catch (error) {
     if (id === undefined) return;

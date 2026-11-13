@@ -15,6 +15,7 @@ import { DEFAULT_RESULT_BUDGET, type HeldResult, trimResultText, trimStructured 
 import { killCliTree } from "./procs.ts";
 import { toolSchemaProfileFromEnv } from "./tool-schema-profile.ts";
 import { capToolListResult, toolLimitFromEnv } from "./tool-count-limit.ts";
+import { withNextStepResult } from "./tool-next-step.ts";
 
 type Json = Record<string, unknown>;
 
@@ -391,6 +392,7 @@ createInterface({ input: child.stdout }).on("line", (line) => {
       return;
     }
   }
+  if (request?.kind === "call") message.result = withNextStepResult(message.result);
   process.stdout.write(`${JSON.stringify(message)}\n`);
 });
 

@@ -7,6 +7,7 @@ import { redactSecretsInText } from "../shared/redact.ts";
 import { allowsTool, parseToolScope, type ToolScope } from "../shared/tool-scope.ts";
 
 import type { ValidateFunction } from "ajv";
+import { withNextStepResult } from "./tool-next-step.ts";
 import {
   CALL_TOOL,
   DESCRIBE_TOOL,
@@ -280,10 +281,10 @@ async function callTool(params: unknown, signal: AbortSignal): Promise<unknown> 
     const call = (await currentCatalog(signal)).tools.call(params.arguments);
     if ("answer" in call) return call.answer;
     if (!allowed(call.name)) return { content: [{ type: "text", text: SELECTION_EXCLUDES }], isError: true };
-    return upstream("tools/call", { ...(isRecord(params._meta) ? { _meta: params._meta } : {}), name: call.name, arguments: call.arguments }, signal);
+    return withNextStepResult(await upstream("tools/call", { ...(isRecord(params._meta) ? { _meta: params._meta } : {}), name: call.name, arguments: call.arguments }, signal));
   }
   if (!allowed(params.name)) throw new Refusal(-32602, SELECTION_EXCLUDES);
-  return upstream("tools/call", params, signal);
+  return withNextStepResult(await upstream("tools/call", params, signal));
 }
 
 async function directed(message: Json, signal: AbortSignal): Promise<unknown> {

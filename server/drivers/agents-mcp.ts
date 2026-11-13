@@ -8,6 +8,7 @@ import { callTool, capResult, toolCallContextFromEnv } from "./agents-call.ts";
 import { sendToolReceipt } from "./agents-timing.ts";
 import type { Json } from "./agents-client.ts";
 import { capToolListResult, toolLimitFromEnv } from "../tool-count-limit.ts";
+import { withNextStep } from "../tool-next-step.ts";
 
 /** What the agents server lists for `env`, before any tool limit. */
 export function agentsToolList(env: NodeJS.ProcessEnv) {
@@ -61,10 +62,11 @@ export function agentsMcp(env: NodeJS.ProcessEnv, stop?: AbortSignal): (msg: Jso
           const { text, isError, passthrough } = await callTool(name, args, context);
           await sendToolReceipt(context, name, args, startedAt, { ok: !isError, error: text });
           if (passthrough) return ok(id, passthrough);
-          return textResult(id, name === "tool_result_read" ? text : await capResult(text, context), isError);
+          const shown = name === "tool_result_read" ? text : await capResult(text, context);
+          return textResult(id, isError ? withNextStep(shown) : shown, isError);
         } catch (e) {
           await sendToolReceipt(context, name, args, startedAt, { ok: false, error: (e as Error).message });
-          return textResult(id, await capResult((e as Error).message, context), true);
+          return textResult(id, withNextStep(await capResult((e as Error).message, context)), true);
         }
       }
       default:
