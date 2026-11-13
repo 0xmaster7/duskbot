@@ -213,3 +213,24 @@ test("the tunnel runs end to end over an http/2 relay", { timeout: 10_000 }, asy
     await relay.close();
   }
 });
+
+test("app relay fetch never sends one origin's requests over another origin's http/2 connection, and warming a new origin moves it", { timeout: 10_000 }, async (t) => {
+  const tls = certificate();
+  if (!tls) { t.skip("no openssl here"); return; }
+  const named = (name) => createSecureServer({ ...tls, allowHTTP1: true }, (req, res) => { res.writeHead(200, { "x-server": name }); res.end(`${name}:${req.httpVersion}`); });
+  const a = await serve(named("a")), b = await serve(named("b"));
+  const go = relayFetch({ tls: { ca: tls.cert } });
+  try {
+    const stopA = go.warm(a.origin);
+    assert.equal(await (await go(`${a.origin}/x`)).text(), "a:2.0");
+    // another origin (asking another node) while a is home: answered by b itself, over http/1.1
+    assert.equal(await (await go(`${b.origin}/x`)).text(), "b:1.1");
+    assert.equal(await (await go(`${a.origin}/x`)).text(), "a:2.0");
+    // the tunnel moved to b: b gets the http/2 connection, a is asked over http/1.1
+    stopA();
+    const stopB = go.warm(b.origin);
+    assert.equal(await (await go(`${b.origin}/x`)).text(), "b:2.0");
+    assert.equal(await (await go(`${a.origin}/x`)).text(), "a:1.1");
+    stopB();
+  } finally { go.close(); await a.close(); await b.close(); }
+});

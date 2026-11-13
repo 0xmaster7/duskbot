@@ -368,6 +368,9 @@ export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, 
   const h1 = keepAliveFetch({ maxSockets, tls: tlsOptions });
   const h1Origins = new Set();
   let session = null, opening = null, tlsSession = null, lastUsed = 0, checking = null;
+  // the one h2 connection belongs to one origin: the one warmed (a link service node). other origins (asking another
+  // node where a tunnel lives) take http/1.1, and warming a different origin (the tunnel moved) replaces the connection
+  let sessionOrigin = null, homeOrigin = null;
   const live = (one) => Boolean(one && !one.closed && !one.destroyed);
   /** a ping answered keeps the connection; none in time drops it, failing what is on it so the callers ask again */
   const check = (one) => {
@@ -404,7 +407,7 @@ export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, 
   });
   async function sessionFor(url) {
     if (live(session)) return session;
-    opening ??= open(url).then((next) => { if (next) session = next; return next; }).finally(() => { opening = null; });
+    opening ??= open(url).then((next) => { if (next) { session = next; sessionOrigin = url.origin; } return next; }).finally(() => { opening = null; });
     return opening;
   }
   const request = (one, url, init) => new Promise((resolve, reject) => {
@@ -444,12 +447,12 @@ export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, 
   const go = async (input, init = {}) => {
     const url = new URL(input);
     if (init.signal?.aborted) throw init.signal.reason;
-    if (url.protocol !== "https:" || h1Origins.has(url.origin)) return h1(input, init);
+    if (url.protocol !== "https:" || h1Origins.has(url.origin) || (homeOrigin && url.origin !== homeOrigin) || (live(session) && sessionOrigin !== url.origin)) return h1(input, init);
     lastUsed = Date.now();
     // a connection the relay is closing (goaway) or that died refuses a request unprocessed: once more on a fresh one
     for (let attempt = 0; ; attempt += 1) {
       const one = await until(sessionFor(url), init.signal);
-      if (!one) return h1(input, init);
+      if (!one || sessionOrigin !== url.origin) return h1(input, init);
       init.onConnected?.();
       try { return await request(one, url, init); }
       catch (error) {
@@ -463,6 +466,8 @@ export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, 
   go.multiplexed = () => live(session);
   go.postsInFlight = () => (live(session) ? H2_POSTS_IN_FLIGHT : POSTS_IN_FLIGHT);
   go.warm = (base) => {
+    const origin = new URL(base).origin;
+    if (homeOrigin !== origin) { homeOrigin = origin; if (session && sessionOrigin !== origin) { session.destroy(); session = null; } }
     const stopH1 = h1.warm(base, () => h1Origins.has(new URL(base).origin) || !base.startsWith("https:"));
     // nginx closes an h2 connection idle for its keepalive timeout; the streamed read usually keeps it busy anyway
     const timer = setInterval(() => { if (live(session) && Date.now() - lastUsed >= WARM_MS - 5000) check(session); }, WARM_MS);
@@ -634,7 +639,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
           log(`vps link: this server is on node ${answer.node ?? answer.url}; the relay follows it`);
           node = answer.url;
           route = `${node}/v1/tunnels/${id}`;
-          if (!given) { unwarm(); unwarm = fetchImpl.warm(node); }
+          if (!given && polling) { unwarm(); unwarm = fetchImpl.warm(node); }
           pollNudge?.abort();
           pollRetry?.abort();
           return { moved: true, url: node };
@@ -948,9 +953,10 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
       const v6 = createServer(onRequest);
       v6.on("upgrade", onUpgrade);
       await new Promise((resolve) => { v6.once("error", () => resolve()); v6.listen(listeningPort, "::1", () => { server6 = v6; resolve(); }); });
+      // where the tunnel lives before the first request goes out (a few seconds at most; the node it was linked through otherwise)
+      if (follow && !givenRoute) await Promise.race([locate({ force: true }).catch(() => null), sleep(4000)]);
       if (!given) unwarm = fetchImpl.warm(node);
       void poll();
-      void locate({ force: true }).catch(() => {});
       if (directSpec) useDirect(directSpec);
       egress?.start();
       return `http://${host}:${listeningPort}`;

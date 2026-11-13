@@ -175,7 +175,9 @@ copy between them. `src/nodes.mjs`.
 - **Failover.** The agent watches its node: silent for 60 s or answering `relay_busy`, it asks again (the node it was
   linked through first, then every node it learned of, cached in `~/.config/duskbot-link/nodes.json`) and restarts on
   the new node. The app's relay (`createTunnelProxy` with `follow`) asks where the tunnel lives at start, after two
-  failed reads, and on `relay_busy`, and moves there; the phone does the same after a failed or unanswered request. A
+  failed reads, and on `relay_busy`, and moves there (its one http/2 connection goes to the new node; asking other nodes
+  takes http/1.1); the phone does the same after a failed or unanswered request. Measured 2026-11-13 with the Oracle
+  node stopped: the server moved after 74 s, the app followed 17 s later, about 100 s without the relay in all. A
   404 from a node it moved to is "unlinked" only once the node it was linked through says 404 too. One node listed:
   nothing moves.
 - **Ops.** `GET /ops/relay/stats` adds `node` (id, region, url, default, homed, accepting, refuses, load), `nodes` (each
