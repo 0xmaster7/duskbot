@@ -39,6 +39,8 @@ export interface StoredRemoteMcpServer extends RemoteMcpSpec {
   runsOn?: McpRunsOn;
   /** "Show its apps in chat": stored only as `false`; on by default. */
   apps?: false;
+  /** Which of the person's accounts this entry signs in as, when one app has more than one ("work"). */
+  account?: string;
 }
 export type StoredMcpServer = StoredStdioMcpServer | StoredRemoteMcpServer;
 
@@ -64,6 +66,7 @@ export interface RemoteMcpServerListing {
   apps: boolean;
   oauth?: { clientId: string; scopes: string[]; clientSecretConfigured: boolean };
   runsOn?: McpRunsOn;
+  account?: string;
 }
 export type McpServerListing = StdioMcpServerListing | RemoteMcpServerListing;
 
@@ -178,6 +181,7 @@ const remoteEntrySchema = z.object({
   resultBudget: resultBudgetSchema.optional(),
   runsOn: runsOnSchema.optional(),
   apps: z.boolean().optional(),
+  account: z.string().trim().min(1).max(64).optional(),
 }).strict();
 
 const remoteMutationSchema = remoteEntrySchema.extend({
@@ -305,8 +309,14 @@ function parseRemote(raw: unknown, mutation: boolean, existing?: StoredMcpServer
       ...(parsed.data.resultBudget !== undefined ? { resultBudget: parsed.data.resultBudget } : {}),
       ...runsOnFor(parsed.data.runsOn, mutation, existing),
       ...appsFor(parsed.data.apps, mutation, existing),
+      ...accountFor(parsed.data.account, mutation, existing),
     },
   };
+}
+
+function accountFor(value: string | undefined, mutation: boolean, existing?: StoredMcpServer): { account?: string } {
+  const account = value ?? (mutation && existing && isRemoteMcpServer(existing) ? existing.account : undefined);
+  return account ? { account } : {};
 }
 
 function runsOnFor(value: McpRunsOn | null | undefined, mutation: boolean, existing?: StoredMcpServer): { runsOn?: McpRunsOn } {
@@ -354,7 +364,7 @@ export function mcpServerBody(body: unknown): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   if (!body || typeof body !== "object") return out;
   const record = body as Record<string, unknown>;
-  for (const key of ["command", "args", "env", "type", "url", "headers", "oauth", "enabled", "resultBudget", "runsOn"]) {
+  for (const key of ["command", "args", "env", "type", "url", "headers", "oauth", "enabled", "resultBudget", "runsOn", "account"]) {
     if (record[key] !== undefined) out[key] = record[key];
   }
   return out;
@@ -404,6 +414,7 @@ export function listMcpServers(raw: Record<string, unknown> | undefined): McpSer
           oauth: { clientId: server.oauth.clientId, scopes: server.oauth.scopes ?? [], clientSecretConfigured: Boolean(server.oauth.clientSecret) },
         } : {}),
         ...(server.runsOn ? { runsOn: server.runsOn } : {}),
+        ...(server.account ? { account: server.account } : {}),
       }];
     }
     return [{

@@ -14,12 +14,16 @@ export interface McpPromptInput {
   configured: Readonly<Record<string, unknown>>;
   off?: ReadonlyArray<{ name: string; error: string }>;
   needsSignIn?: (name: string, url: string) => boolean;
+  /** The account a server signs in as, when the person named one ("work"). */
+  accountOf?: (name: string) => string | undefined;
 }
+
+const accountWords = (account: string) => /\baccount$/iu.test(account) ? account : `${account} account`;
 
 /** What the bot is told about its MCP servers. An app connected from Connect apps is named as the app it is, with what
  * it holds, so a request about a page, an issue or a task goes there without a question; any other server keeps the
  * plain MCP server line. A configured app left out for a sign-in to redo is named, so the bot never calls it down. */
-export function mcpServersPrompt({ mounted, configured, off = [], needsSignIn = () => false }: McpPromptInput): string {
+export function mcpServersPrompt({ mounted, configured, off = [], needsSignIn = () => false, accountOf = () => undefined }: McpPromptInput): string {
   const apps: Array<{ name: string; app: DirectoryApp }> = [];
   const others: string[] = [];
   for (const name of mounted) {
@@ -29,7 +33,10 @@ export function mcpServersPrompt({ mounted, configured, off = [], needsSignIn = 
   }
   let text = "";
   if (apps.length) {
-    const listed = joined(apps.map(({ name, app }) => `${app.label} (${app.description.toLowerCase()}; its tools are mcp__${name}__…)`));
+    const listed = joined(apps.map(({ name, app }) => {
+      const account = accountOf(name);
+      return `${app.label} (${account ? `their ${accountWords(account)}, ` : ""}${app.description.toLowerCase()}; its tools are mcp__${name}__…)`;
+    }));
     text += ` The person connected ${listed} so you would work in ${apps.length === 1 ? "it" : "them"} for them.`
       + " When a request is about something these apps hold (a page or doc, an issue, a task, a board, a file, a record), do it there, even when the app isn't named and even if the app's own notes say to offer first: don't ask which app or whether to, unless two connected apps fit equally well."
       + " When your engine lists these tools as deferred, load them by searching for the app's name."

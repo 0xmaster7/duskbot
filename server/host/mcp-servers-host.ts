@@ -7,8 +7,10 @@ import { writeFileAtomic } from "../atomic.ts";
 import type { AppConfig } from "../config.ts";
 import { launcherOf } from "../cloud-connections.ts";
 import { customMcpServers } from "../config.ts";
+import { readAccountChoices } from "../connector-account-choice.ts";
 import type { McpServerSpec, RemoteMcpSpec, StdioMcpSpec } from "../contracts.ts";
 import { addBotMcpServer, claimBotMcpServers, keepForBot, withoutBotMcpServers, type BotKept, type BotMcpServerAdd } from "../mcp-bot-servers.ts";
+import { withChosenAppAccounts } from "../mcp-app-accounts.ts";
 import { MCP_RESTART_ENV } from "../mcp-app-catalog.ts";
 import { createMcpHealth, nameList, toolLabel, type McpHealthDeps } from "../mcp-health.ts";
 import { MAX_REMOTE_MCP_BYTES, McpHttpError, McpRpcError, REMOTE_MCP_STARTUP_MS, RemoteMcpClient } from "../mcp-http.ts";
@@ -108,7 +110,8 @@ export async function urlServerAnswers(server: RemoteMcpSpec, timeoutMs: number 
 }
 
 export function createMcpServersHost(deps: McpServersHostDeps) {
-  const configured = (bot: Bot): Record<string, McpServerSpec> => deps.policy(customMcpServers(deps.cfg(), bot.mcpServers, bot.id));
+  const configured = (bot: Bot): Record<string, McpServerSpec> =>
+    withChosenAppAccounts(deps.policy(customMcpServers(deps.cfg(), bot.mcpServers, bot.id)), bot.id, readAccountChoices(deps.dataDir));
   /** None on an AI that starts no servers, and only those its tool selection reaches. */
   const started = (bot: Bot): string[] => (deps.startsServers(bot.id) ? Object.keys(configured(bot)).filter((name) => canUseMcpServer(bot.toolScope, name)) : []);
   const asBot = (botId: string) => {

@@ -18,6 +18,8 @@ export interface RemoteMcpListing extends McpResultBudgetListing {
   enabled: boolean;
   auth?: "signed-in" | "needs-sign-in";
   oauth?: McpOAuthClientListing;
+  /** Which of the person's accounts it signs in as, when the app has more than one. */
+  account?: string;
 }
 export interface McpOAuthClientListing {
   clientId: string;
