@@ -207,7 +207,7 @@ export function MobilePairingCard({ remote, children }: {
   // the use case first: the phone app's own home, big, with one plain line beside it
   const hero = (
     <div data-phone-hero="" className="@container">
-      <div className="grid overflow-hidden rounded-[16px] border-[0.5px] border-edge bg-composer @min-[460px]:grid-cols-[1fr_auto]">
+      <div className="grid overflow-hidden rounded-[16px] border-[0.5px] border-transparent bg-composer @min-[460px]:grid-cols-[1fr_auto]">
         <div className="flex flex-col justify-center gap-2 px-6 pb-2 pt-6 @min-[460px]:py-8">
           <h3 className="m-0 text-[22px] font-semibold leading-7 tracking-[-0.02em] text-ink">{t("mobile.desktop.title")}</h3>
           <p className="m-0 text-[14px] leading-5 text-ink-secondary">{t("mobile.desktop.oneLine")}</p>
@@ -225,7 +225,7 @@ export function MobilePairingCard({ remote, children }: {
     return (
       <button type="button" ref={(node) => { tiles.current[way] = node; }} data-pairing-tile={way} {...(qr ? { "data-phone-pair": "" } : { "data-phone-code": "" })}
         onClick={() => { haptic("selection"); void create(way); }} disabled={devices === null}
-        className={cn("mobile-press flex min-h-[72px] w-full items-center gap-3 rounded-[12px] border-[0.5px] border-edge bg-composer px-4 py-3.5 text-start transition-colors duration-150 ease-out hover:bg-ink/[0.03] disabled:opacity-60", GROK_FOCUS)}>
+        className={cn("mobile-press flex min-h-[72px] w-full items-center gap-3 rounded-[12px] border-[0.5px] border-transparent bg-composer px-4 py-3.5 text-start transition-colors duration-150 ease-out hover:bg-ink/[0.03] disabled:opacity-60", GROK_FOCUS)}>
         <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-full bg-ink/5 text-ink">{qr ? <QrCode size={18} /> : <KeyRound size={18} />}</span>
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="text-[14px] font-medium leading-5 text-ink">{t(qr ? "settings.mobile.scanTitle" : "settings.w6.pairing.title")}</span>
@@ -249,7 +249,7 @@ export function MobilePairingCard({ remote, children }: {
   // one way at a time: only its qr or its code, one instruction, back and a new code
   const qrStep = view === "qr";
   const step = view && (
-    <section aria-labelledby={stepId} data-pairing-step={view} className="flex flex-col items-center gap-5 rounded-[16px] border-[0.5px] border-edge bg-composer px-6 pb-7 pt-3 text-center">
+    <section aria-labelledby={stepId} data-pairing-step={view} className="flex flex-col items-center gap-5 rounded-[16px] border-[0.5px] border-transparent bg-composer px-6 pb-7 pt-3 text-center">
       <div className="flex w-full justify-start">
         <button type="button" data-pairing-back="" onClick={() => setView(null)} className={cn("mobile-press -ms-3 flex min-h-11 items-center gap-1 rounded-full px-3 text-[13px] font-medium text-ink-secondary hover:bg-ink/5", GROK_FOCUS)}>
           <ChevronLeft aria-hidden="true" size={16} />{t("common.back")}
@@ -354,7 +354,7 @@ export function MobilePairingCard({ remote, children }: {
 /** One way to pair: its own tile with a small glyph, a lowercase name, and what it does. */
 export function PairingTile({ id, icon, title, children, ...rest }: { id: string; icon: ReactNode; title: string; children: ReactNode; "data-pairing-tile"?: string }) {
   return (
-    <section {...rest} aria-labelledby={id} className="flex min-w-0 flex-col gap-3 rounded-[12px] border-[0.5px] border-edge bg-composer p-4">
+    <section {...rest} aria-labelledby={id} className="flex min-w-0 flex-col gap-3 rounded-[12px] border-[0.5px] border-transparent bg-composer p-4">
       <div className="flex items-center gap-2.5">
         <span aria-hidden="true" className="flex size-7 shrink-0 items-center justify-center rounded-full bg-ink/5 text-ink">{icon}</span>
         <h4 id={id} className="m-0 min-w-0 truncate text-[14px] font-medium leading-5 text-ink">{title}</h4>

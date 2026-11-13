@@ -91,14 +91,15 @@ interface PairingRoot {
   focus: (options?: FocusOptions) => void;
 }
 
-/** Deferred a frame: Settings settles its own scroll position after its sections' effects run. */
+/** Deferred a frame: Settings settles its own scroll position after its sections' effects run. Only as far as needed:
+ * the phone page opens with its pairing ways already in view under what the phone app is, which must stay on screen. */
 export function revealPhonePairing(
   root: PairingRoot | null,
   schedule: (callback: () => void) => unknown = (callback) => window.requestAnimationFrame(callback),
 ): boolean {
   if (!root) return false;
   schedule(() => {
-    root.scrollIntoView?.({ block: "start" });
+    root.scrollIntoView?.({ block: "nearest" });
     (root.querySelector(`[${PHONE_PAIRING_ACTION}]:not([disabled])`) ?? root).focus({ preventScroll: true });
   });
   return true;

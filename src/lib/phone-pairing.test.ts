@@ -131,11 +131,11 @@ describe("opening Settings on the phone pairing", () => {
   });
   const now = (callback: () => void) => callback();
 
-  it("scrolls the card into view and focuses the button that shows the code", () => {
+  it("scrolls the card into view only as far as needed and focuses the button that shows the code", () => {
     const action = focusable();
     const root = element(action);
     expect(revealPhonePairing(root, now)).toBe(true);
-    expect(root.scrollIntoView).toHaveBeenCalledWith({ block: "start" });
+    expect(root.scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
     expect(root.querySelector).toHaveBeenCalledWith("[data-phone-pairing-action]:not([disabled])");
     expect(action.focus).toHaveBeenCalledWith({ preventScroll: true });
     expect(root.focus).not.toHaveBeenCalled();
