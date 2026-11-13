@@ -69,11 +69,17 @@ export function useSidebarApps(): SidebarApps {
   return apps;
 }
 
+/**
+ * A bare mark's share of the 20px tile so it reads the same size as a whole tile's mark: a tile draws at 18px with its
+ * mark 36/64 of it (scripts/gen-app-logos.mjs), so about 10px.
+ */
+export const BARE_MARK_SCALE = (18 / 20) * (36 / 64);
+
 /** The footer logo: the 20px app tile on a 22px square of the page's own surface, 6px round, so overlapping tiles read apart in either theme. */
 function AppFaceIcon({ face, className }: { face: AppFace; className?: string }) {
   return (
     <span data-app-face={face.slug} className={cn("flex size-[22px] shrink-0 items-center justify-center rounded-[7px] bg-composer p-px", className)}>
-      <ServiceTile card={{ ...face, scale: face.scale ?? 0.9 }} size={20} />
+      <ServiceTile card={{ ...face, scale: face.scale ?? BARE_MARK_SCALE }} size={20} />
     </span>
   );
 }

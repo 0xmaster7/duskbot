@@ -44,6 +44,14 @@ describe("the Connect apps faces", () => {
     expect(html).not.toContain("data-app-face");
   });
 
+  it("draws a bare mark (Slack) the same size as a whole tile's mark (Gmail, Notion)", () => {
+    const html = renderToStaticMarkup(createElement(SidebarConnectApps));
+    const sizes = [...html.matchAll(/data-app-face="([^"]+)"[\s\S]*?<img[^>]*width="([\d.]+)"/g)].map(([, slug, width]) => [slug, Number(width)] as const);
+    const mark = (slug: string, width: number) => slug === "slack" ? width : width * 36 / 64;
+    expect(sizes.map(([slug]) => slug)).toEqual(["gmail", "notion", "slack"]);
+    for (const [slug, width] of sizes) expect(mark(slug, width)).toBeCloseTo(18 * 36 / 64, 5);
+  });
+
   it("keeps a connected app it cannot draw yet out, and the popular ones in", () => {
     expect(appFaces(["linear"], new Map()).map((face) => face.slug)).toEqual(["gmail", "notion", "slack"]);
   });
