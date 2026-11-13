@@ -123,6 +123,7 @@
   "server.mcp.signIn.failed": "La connexion n'a pas abouti. Réessayez.",
   "server.finish.plan": "Suite : il reste {open} étapes sur {total}",
   "server.finish.ack": "Suite : application de votre correction",
+  "server.finish.next": "Suite : je termine la tâche",
   "server.spend.botCap": "{bot} a atteint sa limite hebdomadaire. Ses routines attendent que les dépenses des 7 derniers jours repassent sous cette limite ou que vous l’augmentiez dans Utilisation. Il continue à vous répondre.",
   "server.spend.routineCap": "“{routine}” en pause : sa limite hebdomadaire est atteinte. Augmentez la limite dans Utilisation ou réactivez la routine pour la relancer.",
   "server.allowance.held": "Ignorée : limite hebdomadaire atteinte. Remise à zéro {reset}, {left}.",

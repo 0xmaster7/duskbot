@@ -153,6 +153,7 @@
   "server.mcp.signIn.failed": "登入沒有完成。請再試一次。",
   "server.finish.plan": "繼續中：{total} 個步驟中還剩 {open} 個",
   "server.finish.ack": "繼續中：正在套用你的修正",
+  "server.finish.next": "繼續中：正在把工作完成",
   "server.spend.botCap": "{bot} 已達到每週上限。其例行工作將等待最近 7 天的費用降至上限以下，或你在用量中提高上限。它仍會回覆你。",
   "server.spend.routineCap": "已暫停“{routine}”：達到每週上限。在用量中提高上限，或重新開啟該例行工作，即可再次執行。",
   "server.allowance.held": "已略過：達到每週上限。重設時間：{reset}，{left}。",

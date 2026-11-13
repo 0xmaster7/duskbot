@@ -160,6 +160,7 @@
   "server.mcp.signIn.failed": "サインインが完了しませんでした。もう一度お試しください。",
   "server.finish.plan": "続行中: 全 {total} ステップ中、残り {open} ステップ",
   "server.finish.ack": "続行中: 修正を反映しています",
+  "server.finish.next": "続行中: 作業を最後まで進めています",
   "server.spend.botCap": "{bot}が週の上限に達しました。過去7日間の費用が上限を下回るか、使用状況で上限を引き上げるまで、ルーティンは待機します。返信は引き続きできます。",
   "server.spend.routineCap": "“{routine}”を一時停止しました。週の上限に達しました。使用状況で上限を引き上げるか、再びオンにすると実行できます。",
   "server.allowance.held": "スキップ: 週の上限に達しました。リセット: {reset}、{left}。",

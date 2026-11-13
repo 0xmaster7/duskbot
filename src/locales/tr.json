@@ -154,6 +154,7 @@
   "server.mcp.signIn.failed": "Oturum açma tamamlanmadı. Tekrar deneyin.",
   "server.finish.plan": "Devam ediliyor: {total} adımdan {open} adım kaldı",
   "server.finish.ack": "Devam ediliyor: düzeltmeniz uygulanıyor",
+  "server.finish.next": "Devam ediliyor: iş tamamlanıyor",
   "server.spend.botCap": "{bot} haftalık sınırına ulaştı. Son 7 günün harcaması yeniden sınırın altına inene veya Kullanım bölümünde sınırı yükseltene kadar rutinleri bekler. Size yanıt vermeye devam eder.",
   "server.spend.routineCap": "“{routine}” duraklatıldı: haftalık sınırına ulaştı. Yeniden çalıştırmak için Kullanım bölümünde sınırı yükseltin veya rutini tekrar açın.",
   "server.allowance.held": "Atlandı: haftalık sınıra ulaşıldı. Sıfırlanma: {reset}, {left}.",

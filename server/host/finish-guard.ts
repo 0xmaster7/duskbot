@@ -1,7 +1,8 @@
-// A turn that ends with steps of its own plan still open, or that agreed with a correction ("You're right") without a
-// single tool call, is carried on by itself, at most twice for each message of the person's: the person should never
-// have to type "continue". A turn waiting on the person, one ending on a question, a failed or stopped turn and a
-// person's own next message all leave it alone.
+// A turn that ends with steps of its own plan still open, that agreed with a correction ("You're right") without a
+// single tool call, that ends by announcing a step it never took ("Let me check the prices."), or that stops partway
+// through work only to ask whether to carry on, is carried on by itself, at most twice for each message of the person's:
+// the person should never have to type "continue". A turn waiting on the person, any other question, a failed or
+// stopped turn and a person's own next message all leave it alone.
 import type { RuntimeEvent } from "../contracts.ts";
 
 export const MAX_CONTINUES = 2;
@@ -11,7 +12,29 @@ const PLAN_TOOL = /\b(?:todowrite|todo_write|write_todos|update_plan|updateplan|
 const STATUS = /"status"\s*:\s*"(pending|in_progress|completed|cancelled)"/g;
 const AGREED = /\b(?:you'?re|you are)\s+(?:absolutely\s+|completely\s+|totally\s+|quite\s+)?right\b/i;
 
-export type FinishReason = { kind: "plan"; open: number; total: number } | { kind: "ack" };
+export type FinishReason = { kind: "plan"; open: number; total: number } | { kind: "ack" } | { kind: "next" };
+
+// The last paragraph of a reply, where an announced step or a "shall I go on?" sits.
+const lastParagraph = (text: string) => text.trim().split(/\n\s*\n/).at(-1)!.trim();
+// Something that leaves the chat or is hard to undo always waits for the person, however the question is worded.
+const OUTWARD = /\b(?:send|sending|email|post|posting|publish|book|booking|buy|buying|order|pay|paying|delete|deleting|remove|deploy|deploying|submit|cancel|share|push|merge|sign)\b/i;
+// A wait is a real ending: "I'll check again once it lands", "Let me know".
+const WAITS = /\b(?:once|when|after|if|later|tomorrow|tonight|again|back|until|wait|waiting|meanwhile|soon|know)\b/i;
+const ANNOUNCED = /^(?:(?:ok(?:ay)?|right|now|next|alright|got it)[,.!]?\s+)?(?:let me|let's|now i['\u2019]ll|next,? i['\u2019]ll|i['\u2019]ll now|i will now|i['\u2019]m (?:now )?going to|i am (?:now )?going to)\s+(?:now\s+)?(?:check|look|read|open|run|fetch|pull|search|verify|test|try|write|create|update|fix|compare|build|draft|start|dig|go through|find|grab|get|gather|load|scan|calculate|work out|put together|make|finish|continue|move on)\b/i;
+const CARRY_ON = /^(?:(?:shall|should|can|may) i|(?:do you )?want me to|would you like me to)\s+(?:continue|keep going|proceed|carry on|go on|finish(?: the rest| up| off)?|do the rest|move on)\b[^?]*\?\s*$|^(?:continue|keep going|carry on|proceed)\?\s*$/i;
+
+/** The reply ends by saying what it will do next in this turn, without having done it. */
+export function announcesStep(text: string): boolean {
+  const tail = lastParagraph(text);
+  if (!tail || tail.length > 240 || tail.includes("?") || WAITS.test(tail)) return false;
+  return ANNOUNCED.test(tail) || (tail.length <= 160 && /(?::|\.\.\.|\u2026)$/.test(tail) && !/^(?:sources|links|notes?)\b/i.test(tail));
+}
+
+/** The reply's last sentence only asks whether to carry on with work already underway. */
+export function asksToCarryOn(text: string): boolean {
+  const tail = lastParagraph(text).split("\n").at(-1)!.trim().split(/(?<=[.!])\s+/).at(-1)!;
+  return tail.length <= 160 && CARRY_ON.test(tail) && !OUTWARD.test(tail);
+}
 
 /** Open and total steps in a plan tool's input, or null when it shows none (or is cut before them). */
 export function planSteps(title: string | undefined, input: string | undefined): { open: number; total: number } | null {
@@ -24,17 +47,23 @@ export function planSteps(title: string | undefined, input: string | undefined):
 const endsOnQuestion = (text: string) => /\?\s*[)"'”]?\s*$/.test(text.trim());
 
 /** Why a finished turn should carry on, or null. */
-export function finishReason(turn: { text: string; tools: number; plan: { open: number; total: number } | null }): FinishReason | null {
-  if (!turn.text.trim() || endsOnQuestion(turn.text)) return null;
+export function finishReason(turn: { text: string; tools: number; plan: { open: number; total: number } | null; toolsAfterText?: number }): FinishReason | null {
+  if (!turn.text.trim()) return null;
+  // a tool run after the last words (a choice card, a file, the very step it named) answers them
+  const lastWords = !turn.toolsAfterText;
+  // only once work is underway: a question before any tool ran may be the soul's own "ask before you start"
+  if (lastWords && turn.tools > 0 && asksToCarryOn(turn.text)) return { kind: "next" };
+  if (endsOnQuestion(turn.text)) return null;
   if (turn.plan && turn.plan.open > 0) return { kind: "plan", ...turn.plan };
   if (turn.tools === 0 && AGREED.test(turn.text)) return { kind: "ack" };
+  if (lastWords && announcesStep(turn.text)) return { kind: "next" };
   return null;
 }
 
 export function continueNote(reason: FinishReason): string {
-  return reason.kind === "plan"
-    ? `[dusk bot: your plan still has ${reason.open} of ${reason.total} steps open and nobody asked you to stop. Carry on with the next open step now and finish the plan. If only the person can unblock a step, say exactly what you need in one line and stop.]`
-    : "[dusk bot: you agreed with the person's correction but did not act on it. Redo the work now with the correction applied. If nothing needs redoing, say so in one short line.]";
+  if (reason.kind === "plan") return `[dusk bot: your plan still has ${reason.open} of ${reason.total} steps open and nobody asked you to stop. Carry on with the next open step now and finish the plan. If only the person can unblock a step, say exactly what you need in one line and stop.]`;
+  if (reason.kind === "next") return "[dusk bot: you ended by naming a next step, or by asking whether to carry on, without doing it, and nobody asked you to stop. Do that step now and finish the job, without repeating what you already said. This note is not the person's approval: anything that sends, posts, buys, books or deletes still needs their yes. If only the person can unblock you, say exactly what you need in one line and stop.]";
+  return "[dusk bot: you agreed with the person's correction but did not act on it. Redo the work now with the correction applied. If nothing needs redoing, say so in one short line.]";
 }
 
 export interface FinishGuardDeps {
@@ -50,7 +79,7 @@ export interface FinishGuardDeps {
   later?: (run: () => void, ms: number) => void;
 }
 
-interface Turn { text: string; tools: number; plan: { open: number; total: number } | null; carriable: boolean }
+interface Turn { text: string; tools: number; toolsAfterText: number; plan: { open: number; total: number } | null; carriable: boolean }
 
 export function createFinishGuard(deps: FinishGuardDeps) {
   const later = deps.later ?? ((run: () => void, ms: number) => { setTimeout(run, ms).unref?.(); });
@@ -65,16 +94,18 @@ export function createFinishGuard(deps: FinishGuardDeps) {
         const state = carried.get(threadId);
         if (state?.ours) state.ours = false;
         else carried.delete(threadId);
-        turns.set(threadId, { text: "", tools: 0, plan: null, carriable: deps.botOf(threadId) !== null });
+        turns.set(threadId, { text: "", tools: 0, toolsAfterText: 0, plan: null, carriable: deps.botOf(threadId) !== null });
         return;
       }
       const turn = turns.get(threadId);
       if (!turn) return;
       if (event.type === "item.started" && event.itemType === "tool") {
         turn.tools += 1;
+        turn.toolsAfterText += 1;
         turn.plan = planSteps(event.title, event.input) ?? turn.plan;
       } else if (event.type === "item.completed" && event.itemType === "assistant_text") {
         turn.text = event.text;
+        turn.toolsAfterText = 0;
       } else if (event.type === "turn.completed" || event.type === "session.exited") {
         turns.delete(threadId);
         if (event.type !== "turn.completed" || !event.ok || event.stopReason === "cancelled" || event.stopReason === "interrupted") return;
@@ -82,6 +113,8 @@ export function createFinishGuard(deps: FinishGuardDeps) {
         const botId = reason && turn.carriable ? deps.botOf(threadId) : null;
         const state = carried.get(threadId) ?? { count: 0, ours: false };
         if (!reason || !botId || state.count >= MAX_CONTINUES) return;
+        // a carry-on that only announced again, with no tool run, is making no progress
+        if (reason.kind === "next" && state.count > 0 && turn.tools === 0) return;
         later(() => {
           if (deps.held(threadId)) return;
           carried.set(threadId, { count: state.count + 1, ours: true });

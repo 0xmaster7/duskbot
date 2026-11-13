@@ -152,6 +152,7 @@
   "server.mcp.signIn.failed": "O login não foi concluído. Tente de novo.",
   "server.finish.plan": "Continuando: faltam {open} de {total} passos",
   "server.finish.ack": "Continuando: aplicando sua correção",
+  "server.finish.next": "Continuando: terminando a tarefa",
   "server.spend.botCap": "{bot} atingiu seu limite semanal. Suas rotinas esperam até o gasto dos últimos 7 dias voltar a ficar abaixo do limite ou você aumentá-lo em Uso. Ele continua respondendo.",
   "server.spend.routineCap": "“{routine}” pausada: atingiu seu limite semanal. Aumente o limite em Uso ou ative a rotina de novo para executá-la.",
   "server.allowance.held": "Ignorada: limite semanal atingido. Reinicia {reset}, {left}.",

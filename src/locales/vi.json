@@ -154,6 +154,7 @@
   "server.mcp.signIn.failed": "Việc đăng nhập chưa hoàn tất. Hãy thử lại.",
   "server.finish.plan": "Đang tiếp tục: còn {open} trên {total} bước",
   "server.finish.ack": "Đang tiếp tục: áp dụng chỉnh sửa của bạn",
+  "server.finish.next": "Đang tiếp tục: hoàn thành công việc",
   "server.spend.botCap": "{bot} đã chạm giới hạn tuần. Các tác vụ định kỳ chờ đến khi chi phí 7 ngày gần nhất xuống dưới giới hạn hoặc bạn tăng giới hạn trong Mức sử dụng. Bot vẫn trả lời bạn.",
   "server.spend.routineCap": "Đã tạm dừng “{routine}”: đã chạm giới hạn tuần. Tăng giới hạn trong Mức sử dụng hoặc bật lại tác vụ để chạy tiếp.",
   "server.allowance.held": "Đã bỏ qua: chạm giới hạn tuần. Đặt lại: {reset}, {left}.",
