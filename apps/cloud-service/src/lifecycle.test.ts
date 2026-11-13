@@ -484,8 +484,8 @@ it("alerts the operator once when a home's hold is stuck, and once a day about c
   (f.power as { stuck?: string[] }).stuck = ["computer"];
   for (let n = 0; n < 3; n++) { f.advance(60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
   expect(f.audit.entries(c.id).filter(e => e.action === "hold_stuck")).toHaveLength(1);
-  // a whole day up without a bot working: one alert after midnight
-  (f.power as { stuck?: string[] }).stuck = undefined; f.power.busy = ["focus"];
+  // a whole day up with nothing to explain it (a hold no work, routine or use accounts for): one alert after midnight
+  (f.power as { stuck?: string[] }).stuck = undefined; f.power.busy = ["team"];
   const midnight = Math.ceil((f.now() + 1) / 86_400_000) * 86_400_000;
   while (f.now() < midnight + 5 * 60_000) { f.advance(5 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
   const day = 86_400_000;
@@ -516,3 +516,14 @@ it("a routine due while asleep: the cloud wakes before it, stays up while the ru
   await f.settle(c, c => c.status === "sleeping", 60, 60_000);
   expect(f.now() - done).toBeLessThan(15 * 60_000);
 });
+
+it("never flags a day the person's own routines and checks kept the cloud up", async () => {
+  const f = await homeFixture();
+  const { c } = await f.paid();
+  // a check due every few minutes all day: the home reports it due soon, so the cloud stays up for it
+  f.power.idle = false; f.power.busy = ["due-soon"];
+  const midnight = Math.ceil((f.now() + 1) / 86_400_000) * 86_400_000, day = 86_400_000;
+  while (f.now() < midnight + day + 5 * 60_000) { f.advance(5 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
+  expect(c.status).toBe("running");
+  expect(f.audit.entries(c.id).filter(e => e.action === "awake_without_work")).toHaveLength(0);
+}, 120_000);

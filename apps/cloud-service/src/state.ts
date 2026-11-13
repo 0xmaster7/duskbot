@@ -35,6 +35,8 @@ export interface HomeLifecycleState {
    *  finished day awake over half of it without work, until the daily check alerts about it */
   awakeDay?: { day: string; at: number; awakeMs: number; workMs: number } | null;
   flaggedDay?: { day: string; awakeMs: number; workMs: number } | null;
+  /** what the current awake stretch began with: the person's routines (scheduled runs and checks), or anything else */
+  wokeFor?: "routine" | "person" | null;
   /** the power policy's memory of this home: its starts, stops, failed starts, breaker and learned activity */
   power?: PowerMemory;
   /** the runs ahead as the home last reported them */

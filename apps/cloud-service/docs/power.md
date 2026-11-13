@@ -73,7 +73,9 @@ stop, whatever the policy said.
   the last input. A routine and its checks wake the home a couple of minutes before each due time, exactly on their own
   schedule. Holds that are not a bot's own work stop counting after 6 hours with no bot working, no input and no bytes
   moving; the operator gets one alert per incident.
-- **Daily check:** one ops alert a day listing every cloud that was awake over 12 hours of a UTC day without a bot working.
+- **Daily check:** one ops alert a day listing every cloud awake over 12 hours of a UTC day with nothing to explain it:
+  work of any kind, a run or check due soon, a wake for the person's own routines and checks, or the person using it
+  all count as explained.
 - **No flapping:** each stop that a start followed within the flap window doubles the minimum idle for a day. The
   defaults (10 minutes, up to 2 hours, 4 starts an hour and 16 a day, 6 minutes of uptime) protect a scarce start
   pool; InstaBox homes run with `INSTABOX_RAILS` (1 minute, up to 10 minutes, 20 an hour and 96 a day, 3 minutes).
