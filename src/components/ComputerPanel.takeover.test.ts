@@ -439,7 +439,8 @@ describe("taking control of other computers", () => {
     expect(fixture.statusReads).toBe(reads + 1);
     expect(fixture.connections).toBe(1);
     expect(button("take control")).toBeUndefined();
-    await press("retry preview");
+    expect(button("retry preview"), "no button to press: it comes back by itself").toBeUndefined();
+    await new Promise((resolve) => setTimeout(resolve, 1600));
     await shownLive();
     expect(fixture.controls).toEqual([]);
     expect(liveDesktop()?.dataset.viewOnly).toBe("true");

@@ -118,6 +118,7 @@ interface LocalVmStatus {
 const FULLSCREEN_MARK = "rgb(255 255 255 / 0.88)";
 /** Readiness checks while a cloud computer starts: twenty quick ones, then every two seconds, about half a minute. */
 const STARTING_POLLS = 33;
+const LIVE_RETRY_MS = [1500, 4000, 10_000, 30_000];
 
 const computerControlSnapshotSchema = z.object({
   held: z.boolean().optional().default(false),
@@ -281,6 +282,16 @@ export function ComputerPanel({
   const [decodedDesktop, setDecodedDesktop] = useState<{ key: string; ready: boolean } | null>(null);
   const [screenAspect, setScreenAspect] = useState(COMPUTER_SCREEN_ASPECT);
   const desktopDecoded = decodedDesktop?.key === viewerConnectionKey && decodedDesktop.ready;
+  // a dropped live watch comes back by itself, sooner after a blip and less often while it stays down
+  const liveRetries = useRef(0);
+  useEffect(() => { if (desktopDecoded) liveRetries.current = 0; }, [desktopDecoded]);
+  useEffect(() => {
+    if (livePreviewFailed === null || livePreviewFailed !== viewerConnectionKey) return;
+    const wait = LIVE_RETRY_MS[Math.min(liveRetries.current, LIVE_RETRY_MS.length - 1)];
+    liveRetries.current += 1;
+    const timer = setTimeout(() => setLivePreviewFailed(null), wait);
+    return () => clearTimeout(timer);
+  }, [livePreviewFailed, viewerConnectionKey]);
   const lastStatusTarget = useRef<string | null>(null);
   const vpsReadinessAttempts = useRef(0);
   const computerAction = useRef<AbortController | null>(null);
@@ -1216,11 +1227,6 @@ export function ComputerPanel({
               <span className="max-w-[80%] font-medium text-ink">{needsAdmin || noComputer && !ownComputer ? frameActionLabel : checking || ownComputer || phase === "vps-stopped" ? t("botPanel.screen.resting") : frameActionLabel}</span>
             </button>
           )}
-          {!remoteFrame && liveTarget && livePreviewFailed === viewerConnectionKey && <button type="button"
-            aria-label={t("computer.preview.retry")} title={t("computer.preview.retry")}
-            onClick={() => setLivePreviewFailed(null)} className="absolute inset-0 flex cursor-pointer items-end justify-center pb-3">
-            <span className="rounded-lg bg-card/90 px-3 py-1.5 text-[12px] text-ink">{t("computer.preview.retry")}</span>
-          </button>}
           {wakingShown ? wakingView() : null}
         </div>
         {problem && <ProblemLine problem={problem} name={bot.name} lineShown={phase === "vps-incompatible" && !frame} disabled={needsAdmin} onFix={() => fix(problem.fix, problem.keepsFiles)} />}
