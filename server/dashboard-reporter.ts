@@ -29,18 +29,24 @@ export interface DashboardReporterDeps {
   log?: (line: string) => void;
   /** how often the clock is read to notice a resume; tests shorten it */
   tickMs?: number;
+  /** how long the dashboard may call this workspace unknown before it is checked and, if really gone, given up on */
+  goneGraceMs?: number;
 }
 let sequence = Date.now();
 const REMOVED = "This workspace was removed from the dashboard. Connect it again from the app.";
 /** a wall clock this far past the tick means the machine was suspended (a dusk cloud sleeps when idle): requests open
  *  across a suspend never answer, so they are dropped and sent again at once */
 const RESUME_JUMP_MS = 15_000;
+/** "unknown workspace" can be a dashboard mid-restart; only after this long is it checked by enrolling again */
+const GONE_GRACE_MS = 2 * 60_000;
+class GoneError extends Error {}
 
 export function createDashboardReporter(deps: DashboardReporterDeps) {
   const file = join(deps.dataDir, "dashboard-link.json"), fetcher = deps.fetch ?? fetch, now = deps.now ?? Date.now;
   let state: LinkState | null = null;
   let lastReportAt: number | null = null, lastError: string | null = null, watching = false;
-  let running = false, generation = 0, removed = false;
+  let running = false, generation = 0, removed = false, goneSince: number | null = null, goneCheck: Promise<void> | null = null;
+  const goneGraceMs = deps.goneGraceMs ?? GONE_GRACE_MS;
   let wakeReport: (() => void) | undefined, urgent = false;
   const tickMs = deps.tickMs ?? 5_000;
   let clock: ReturnType<typeof setInterval> | undefined, lastTick = 0, resumes = 0;
@@ -107,11 +113,11 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
         ...(method === "GET" ? {} : { body: bytes }) });
       if (!response.ok) {
         const error = await response.json().catch(() => ({})) as { code?: string };
-        if (response.status === 401 && /(?:workspace.*(?:unknown|removed|not_found|deleted)|(?:unknown|removed|deleted).*workspace)/i.test(error.code ?? "")) {
-          removed = true; watching = false; lastError = REMOVED; stop();
-        }
+        if (response.status === 401 && /(?:workspace.*(?:unknown|removed|not_found|deleted)|(?:unknown|removed|deleted).*workspace)/i.test(error.code ?? ""))
+          throw new GoneError(`Dashboard does not know this workspace (${response.status}).`);
         throw new Error(`Dashboard request failed (${response.status}).`);
       }
+      goneSince = null;
       return await response.json() as ReportAnswer;
     } finally { clearTimeout(timeout); requests.delete(controller); }
   }
@@ -141,6 +147,22 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
         requestReport();
       });
     }
+  }
+  /** the dashboard called this workspace unknown. a restarting one can, so it is retried for a while; then enrolling
+   *  again with the same key settles it: the same workspace means carry on, any other means it really was removed */
+  function gone(run: number): Promise<void> {
+    goneSince ??= now();
+    if (now() - goneSince < goneGraceMs || !state) return Promise.resolve();
+    goneCheck ??= (async () => {
+      const linked = state!;
+      try {
+        const answer = await enroll(linked.url, linked);
+        if (!running || generation !== run || state !== linked) return;
+        if (answer.workspaceId === linked.workspaceId) { goneSince = null; deps.log?.("Dashboard knows this workspace again; reporting."); return; }
+        removed = true; watching = false; lastError = REMOVED; stop();
+      } catch { deps.log?.("Dashboard check failed; retrying."); }
+    })().finally(() => { goneCheck = null; });
+    return goneCheck;
   }
   function failure(loop: string) {
     if (!removed) lastError = "Could not reach the dashboard. Retrying shortly.";
@@ -183,9 +205,10 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
         lastReportAt = now(); lastError = null; backoff = 5000;
         accept(answer, run);
         await pause(Math.max(2000, Math.min(600_000, Number(answer.nextReportMs) || 180_000)), true);
-      } catch {
+      } catch (error) {
         if (!running || generation !== run) return;
         if (seen !== resumes) { seen = resumes; continue; }
+        if (error instanceof GoneError) { await gone(run); if (!running || generation !== run) return; }
         failure("report"); await pause(backoff); backoff = Math.min(60_000, backoff * 2);
       }
     }
@@ -198,9 +221,10 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
         if (!running || generation !== run) return;
         accept(answer, run); backoff = 5000;
         await pause(100);
-      } catch {
+      } catch (error) {
         if (!running || generation !== run) return;
         if (seen !== resumes) { seen = resumes; await pause(100); continue; }
+        if (error instanceof GoneError) { await gone(run); if (!running || generation !== run) return; }
         failure("wait"); await pause(backoff); backoff = Math.min(60_000, backoff * 2);
       }
     }
@@ -214,12 +238,9 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
     clock.unref?.();
     void reports(run); void wait(run);
   }
-  async function link(url: string, { enrollToken }: { enrollToken?: string } = {}): Promise<EnrollAnswer> {
-    const normalized = url.replace(/\/+$/, "");
-    const keys = state?.url === normalized ? state : (() => {
-      const pair = generateKeyPairSync("ed25519");
-      return { publicKey: pair.publicKey.export({ type: "spki", format: "der" }).toString("base64"), privateKey: pair.privateKey.export({ type: "pkcs8", format: "der" }).toString("base64") };
-    })();
+  /** a signed enrollment: with a grant it claims the workspace for that account; without one, a key the dashboard
+   *  already knows gets its own workspace back */
+  async function enroll(normalized: string, keys: { publicKey: string; privateKey: string }, enrollToken?: string): Promise<EnrollAnswer> {
     const workspace = deps.collect.workspace();
     const body: EnrollRequest = { v: 1, publicKey: keys.publicKey, name: workspace.name, kind: workspace.kind, version: workspace.version, ...(enrollToken === undefined ? {} : { enrollToken }) };
     const bytes = JSON.stringify(body), time = now();
@@ -231,13 +252,22 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
     if (!response.ok) throw new Error(`Dashboard enrollment failed (${response.status}).`);
     const answer = await response.json() as EnrollAnswer;
     if (answer.v !== 1 || !answer.workspaceId || !answer.claimUrl || typeof answer.claimExpiresAt !== "number") throw new Error("The dashboard returned an invalid enrollment.");
+    return answer;
+  }
+  async function link(url: string, { enrollToken }: { enrollToken?: string } = {}): Promise<EnrollAnswer> {
+    const normalized = url.replace(/\/+$/, "");
+    const keys = state?.url === normalized ? state : (() => {
+      const pair = generateKeyPairSync("ed25519");
+      return { publicKey: pair.publicKey.export({ type: "spki", format: "der" }).toString("base64"), privateKey: pair.privateKey.export({ type: "pkcs8", format: "der" }).toString("base64") };
+    })();
+    const answer = await enroll(normalized, keys, enrollToken);
     const next: LinkState = { v: 1, url: normalized, workspaceId: answer.workspaceId, publicKey: keys.publicKey, privateKey: keys.privateKey, enrolledAt: now(), claimed: answer.claimExpiresAt === 0 };
-    save(next); stop(); state = next; removed = false; lastError = null; watching = false;
+    save(next); stop(); state = next; removed = false; goneSince = null; lastError = null; watching = false;
     results.clear(); executed.clear(); commands = Promise.resolve(); start();
     return answer;
   }
   async function forget() {
-    stop(); state = null; removed = false; watching = false; lastError = null; lastReportAt = null;
+    stop(); state = null; removed = false; goneSince = null; watching = false; lastError = null; lastReportAt = null;
     results.clear(); executed.clear();
     try { unlinkSync(file); } catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
   }

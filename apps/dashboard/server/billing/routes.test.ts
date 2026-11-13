@@ -250,7 +250,7 @@ it("does not give a recreated account the deleted account's license", async () =
 });
 
 function options(overrides: Partial<BillingOptions> = {}): BillingOptions {
-  return { dataDir: dataDirectory(), publicUrl: "https://dashboard.example.test", dashboard: { state: { accounts: [], sessions: [], workspaces: [] }, changed() {} },
+  return { dataDir: dataDirectory(), publicUrl: "https://dashboard.example.test", dashboard: { state: { accounts: [], sessions: [], workspaces: [], commands: [] }, changed() {} },
     accounts: { fromCookie: () => ({ id: "a", email: "a@example.test" }), fromBearer: () => null }, env: {}, ...overrides };
 }
 it("keeps billing off outside loopback, checks startup configuration, and never mounts fake completion for Dodo", async () => {

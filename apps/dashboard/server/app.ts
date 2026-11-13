@@ -12,7 +12,7 @@ import { AuthError, createAuth, isAppCorsRoute } from "./auth/index.ts";
 import type { ProviderConfigs } from "./auth/providers.ts";
 import type { Mailer } from "./auth/mail.ts";
 import { createStore } from "./store.ts";
-import type { Account, StoredWorkspace } from "./store.ts";
+import type { Account, StoredCommand, StoredWorkspace } from "./store.ts";
 import { createBilling } from "./billing/index.ts";
 import type { BillingNotice } from "./billing/service.ts";
 import { BILLING_CONFIG, MANAGED_REGION, regionLabel } from "./billing/plans.ts";
@@ -326,9 +326,15 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const watching = new Map<string, number>();
   const lastWatching = new Map<string, boolean>();
   const replays = new Map<string, number>();
-  const commands = new Map<string, CommandView[]>();
+  // pending commands and recent results live in the store (mongodb in production), so a restart loses neither; they
+  // go COMMAND_TTL_MS after they expire. a sent one with no result goes out again from a fresh process at once
+  if (!Array.isArray(state.commands)) state.commands = [];
+  const commands = new Map<string, StoredCommand[]>();
+  for (const command of state.commands) if (command.purgeAt > now() && state.workspaces.some(ws => ws.id === command.workspaceId))
+    commands.set(command.workspaceId, [...(commands.get(command.workspaceId) ?? []), command]);
   const deliveredAt = new Map<string, number>();
-  const seen = new Map<string, number>();
+  // a workspace that reported shortly before a restart still counts as awake for app sign-ins
+  const seen = new Map<string, number>(state.workspaces.filter(ws => ws.lastReportAt !== null).map(ws => [ws.id, ws.lastReportAt!]));
   const history = new Map<string, MachineSample[]>();
   const pulses = new Map<string, PulseRing>();
   const pulseSenders = new Set<string>();
@@ -341,6 +347,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
     res.end(JSON.stringify(data));
   }
   function fail(status: number, code: string, message: string): never { throw new RequestError(status, code, message); }
+  function saveCommands() { state.commands = [...commands.values()].flat(); store.changed(); }
+  const commandView = ({ workspaceId: _workspace, purgeAt: _purge, ...view }: StoredCommand): CommandView => view;
   function cleanup() {
     const time = now();
     for (const [key, limit] of limits) if (limit.until <= time) limits.delete(key);
@@ -353,10 +361,16 @@ export function createDashboardApp(options: DashboardAppOptions) {
       state.workspaces = workspaces;
       store.changed();
     }
-    for (const queue of commands.values()) for (const command of queue) {
-      if ((command.status === "queued" || command.status === "sent") && command.expiresAt <= time) { command.status = "expired"; command.doneAt = time; }
-      if (command.status !== "sent") deliveredAt.delete(command.id);
+    let expired = false, purged = false;
+    for (const [id, queue] of commands) {
+      for (const command of queue) {
+        if ((command.status === "queued" || command.status === "sent") && command.expiresAt <= time) { command.status = "expired"; command.doneAt = time; expired = true; }
+        if (command.status !== "sent") deliveredAt.delete(command.id);
+      }
+      const kept = queue.filter(command => command.purgeAt > time);
+      if (kept.length !== queue.length) { purged = true; if (kept.length) commands.set(id, kept); else commands.delete(id); }
     }
+    if (purged) saveCommands(); else if (expired) store.changed();
   }
   function rate(req: IncomingMessage, kind: string, max: number) {
     const key = `${kind}:${clientIp(req, options.trustProxy ?? false)}`;
@@ -403,6 +417,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     const queued = (commands.get(ws.id) ?? []).filter(command => due(command) && command.expiresAt > now());
     const delivery = queued.map(({ id, kind, target, issuedAt, expiresAt }) => ({ id, kind, target, issuedAt, expiresAt }));
     for (const command of queued) { command.status = "sent"; deliveredAt.set(command.id, now()); }
+    if (queued.length) store.changed();
     return { v: 1, watching: watched, nextReportMs: watched ? FAST_REPORT_MS : SLOW_REPORT_MS, commands: delivery };
   }
   function watch(owner: Account) {
@@ -413,7 +428,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   function forget(ws: StoredWorkspace) {
     waits.get(ws.id)?.cancel();
     for (const command of commands.get(ws.id) ?? []) deliveredAt.delete(command.id);
-    commands.delete(ws.id);
+    if (commands.delete(ws.id)) saveCommands();
     seen.delete(ws.id);
     history.delete(ws.id);
     pulses.delete(ws.id);
@@ -708,7 +723,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
       let timer: ReturnType<typeof setTimeout>;
       const clear = () => { clearTimeout(timer); waits.delete(ws.id); res.off("close", clear); };
       const finish = () => { clear(); json(res, 200, answer(ws)); };
-      const cancel = () => { clear(); json(res, 401, { error: "Workspace is unknown.", code: "unknown_workspace" }); };
+      // a workspace that was removed hears it is unknown; one cut off by a restart hears only that the service is closing
+      const cancel = () => { clear(); if (closed) json(res, 503, { error: "Service is closed.", code: "closed" }); else json(res, 401, { error: "Workspace is unknown.", code: "unknown_workspace" }); };
       timer = setTimeout(finish, seconds * 1000);
       waits.set(ws.id, { finish, cancel });
       res.on("close", clear);
@@ -772,7 +788,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       const ws = owned(match[1]!, owner);
       if (!match[2] && method === "GET") {
         watch(owner);
-        const detail: WorkspaceDetail = { workspace: summary(ws), report: ws.report, sectionAt: ws.sectionAt, history: history.get(ws.id) ?? [], commands: commands.get(ws.id) ?? [] };
+        const detail: WorkspaceDetail = { workspace: summary(ws), report: ws.report, sectionAt: ws.sectionAt, history: history.get(ws.id) ?? [], commands: (commands.get(ws.id) ?? []).map(commandView) };
         return json(res, 200, detail);
       }
       if (match[2] && method === "POST") {
@@ -790,10 +806,12 @@ export function createDashboardApp(options: DashboardAppOptions) {
             ? "This cloud is asleep or not answering. Wake it from clouds, then try again."
             : "Your computer is asleep. Connect from the dusk bot app on it, or use dusk cloud.");
         }
-        const command: CommandView = { id: `cmd_${random(16)}`, kind, target, issuedAt: now(), expiresAt: now() + COMMAND_TTL_MS, status: "queued", message: null, doneAt: null };
+        const command: StoredCommand = { id: `cmd_${random(16)}`, workspaceId: ws.id, kind, target, issuedAt: now(), expiresAt: now() + COMMAND_TTL_MS,
+          purgeAt: now() + 2 * COMMAND_TTL_MS, status: "queued", message: null, doneAt: null };
         queue.push(command);
         commands.set(ws.id, queue.filter(item => item.status === "queued" || item.status === "sent" || queue.indexOf(item) >= queue.length - 100));
-        const view = { ...command };
+        saveCommands();
+        const view = commandView(command);
         waits.get(ws.id)?.finish();
         return json(res, 200, { command: view });
       }

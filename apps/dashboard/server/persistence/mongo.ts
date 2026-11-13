@@ -10,6 +10,8 @@ import type { StoreLayout } from "./layouts.ts";
 type Row = Document & { _id: string };
 const LEASE_ID = "account-service";
 const LEASE_MS = 30_000, RENEW_MS = 10_000, ACQUIRE_WAIT_MS = 75_000;
+/** the date copy of a layout's `expireAt` field that its ttl index watches; never part of a store's state */
+const EXPIRE_FIELD = "_expireAt";
 
 export class LeaseLostError extends Error {
   constructor() { super("Another account service took over this database; this one stops so two writers never overwrite each other."); this.name = "LeaseLostError"; }
@@ -20,6 +22,7 @@ async function ensureIndexes(db: Db, layouts: Record<string, StoreLayout>) {
   const work: Array<Promise<unknown>> = [];
   for (const layout of Object.values(layouts)) for (const spec of Object.values(layout)) {
     const indexes = [{ key: { _n: 1 } as Document }, ...(spec.indexes ?? []).map(index => ({ key: index.keys as Document, ...(index.unique ? { unique: true } : {}), ...(index.partial ? { partialFilterExpression: index.partial } : {}) }))];
+    if (spec.expireAt) indexes.push({ key: { [EXPIRE_FIELD]: 1 }, expireAfterSeconds: 0 } as (typeof indexes)[number]);
     work.push(db.collection(spec.collection).createIndexes(indexes));
   }
   for (const [log, indexes] of Object.entries(LOGS)) work.push(db.collection(log).createIndexes(indexes.map(index => ({ key: index.keys as Document }))));
@@ -29,7 +32,8 @@ async function ensureIndexes(db: Db, layouts: Record<string, StoreLayout>) {
 async function load(db: Db, layouts: Record<string, StoreLayout>): Promise<LoadedData> {
   const collections = [...new Set(Object.values(layouts).flatMap(layout => Object.values(layout).map(spec => spec.collection)))];
   const [roots, ...rows] = await Promise.all([db.collection<Document & { _id: string }>("stores").find().toArray(), ...collections.map(name => db.collection(name).find().toArray())]);
-  return { roots: new Map(roots.map(doc => [doc._id, doc])), rows: new Map(collections.map((name, index) => [name, rows[index] as Array<Record<string, unknown>>])) };
+  const strip = (row: Document) => { const { [EXPIRE_FIELD]: _expire, ...rest } = row; return rest; };
+  return { roots: new Map(roots.map(doc => [doc._id, doc])), rows: new Map(collections.map((name, index) => [name, rows[index]!.map(strip)])) };
 }
 
 /**
@@ -75,6 +79,7 @@ export async function openMongoBackend(options: { uri: string; db: string; layou
 
   await ensureIndexes(db, layouts);
   const loaded = await load(db, layouts);
+  const expiring = new Map(Object.values(layouts).flatMap(layout => Object.values(layout)).filter(spec => spec.expireAt).map(spec => [spec.collection, spec.expireAt!]));
   const writer = {
     async write(batch: WriteBatch) {
       if (lost) throw new LeaseLostError();
@@ -86,7 +91,11 @@ export async function openMongoBackend(options: { uri: string; db: string; layou
           for (const [name, ops] of batch.collections) {
             const writes: AnyBulkWriteOperation<Row>[] = [];
             if (ops.deletes.length) writes.push({ deleteMany: { filter: { _id: { $in: ops.deletes } } } });
-            for (const { _id, doc } of ops.upserts) writes.push({ replaceOne: { filter: { _id }, replacement: doc, upsert: true } });
+            const expireAt = expiring.get(name);
+            for (const { _id, doc } of ops.upserts) {
+              const at = expireAt ? Number(doc[expireAt]) : NaN;
+              writes.push({ replaceOne: { filter: { _id }, replacement: Number.isFinite(at) ? { ...doc, [EXPIRE_FIELD]: new Date(at) } : doc, upsert: true } });
+            }
             if (writes.length) await db.collection<Row>(name).bulkWrite(writes, { session, ordered: true });
           }
           for (const { _id, doc } of batch.roots) await db.collection<Document & { _id: string }>("stores").replaceOne({ _id }, doc, { session, upsert: true });

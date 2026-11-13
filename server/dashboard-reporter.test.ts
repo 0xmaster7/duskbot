@@ -31,7 +31,7 @@ function collector(): ReturnType<typeof createDashboardCollector> {
 async function fixture(prefix = "") {
   const dir = mkdtempSync(join(tmpdir(), "dashboard-reporter-")); dirs.push(dir);
   const reports: WorkspaceReport[] = [], signatures: boolean[] = [], enrollKeys: string[] = [], enrollTokens: unknown[] = [], enrollSignatures: (boolean | null)[] = [];
-  let publicKey = "", nextCommand: DashboardCommand | null = null, removed = false, watching = false, waits = 0, hold = false;
+  let publicKey = "", nextCommand: DashboardCommand | null = null, removed = false, unknown = 0, watching = false, waits = 0, hold = false;
   const server = createServer(async (req, res) => {
     const chunks: Buffer[] = []; for await (const chunk of req) chunks.push(Buffer.from(chunk));
     const bytes = Buffer.concat(chunks);
@@ -43,13 +43,15 @@ async function fixture(prefix = "") {
         Buffer.from(signedPayload("POST", req.url!, Number(time), createHash("sha256").update(bytes).digest("hex"))),
         createPublicKey({ key: Buffer.from(publicKey, "base64"), format: "der", type: "spki" }), Buffer.from(String(signature), "base64")));
       expect(body).toMatchObject({ v: 1, name: "Fixture", kind: "linux", version: "1" });
-      reply(200, { v: 1, workspaceId: "workspace", claimUrl: `${base}/claim`, dashboardUrl: base, claimExpiresAt: 0 }); return;
+      // a workspace the dashboard really removed comes back as a new one
+      reply(200, { v: 1, workspaceId: removed ? "workspace-new" : "workspace", claimUrl: `${base}/claim`, dashboardUrl: base, claimExpiresAt: removed ? 1 : 0 }); return;
     }
     const time = Number(req.headers[SIGNATURE_HEADERS.time]);
     signatures.push(req.headers[SIGNATURE_HEADERS.workspace] === "workspace" && verify(null,
       Buffer.from(signedPayload(req.method!, req.url!, time, createHash("sha256").update(bytes).digest("hex"))),
       createPublicKey({ key: Buffer.from(publicKey, "base64"), format: "der", type: "spki" }), Buffer.from(String(req.headers[SIGNATURE_HEADERS.signature]), "base64")));
     if (removed) return reply(401, { code: "workspace_removed" });
+    if (unknown > 0) { unknown--; return reply(401, { code: "unknown_workspace" }); }
     let commands: DashboardCommand[] = [];
     if (req.url === `${prefix}/v1/report`) reports.push(JSON.parse(bytes.toString()));
     if (req.url === `${prefix}/v1/wait?wait=25`) { waits++; if (hold) return; if (nextCommand) { commands = [nextCommand]; nextCommand = null; } }
@@ -58,8 +60,8 @@ async function fixture(prefix = "") {
   servers.push(server); await new Promise<void>((ready) => server.listen(0, "127.0.0.1", ready));
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}${prefix}`;
   const execute = vi.fn(async (command: DashboardCommand) => ({ id: command.id, ok: true, message: "Paused Morning brief.", at: Date.now() }));
-  const make = (collect = collector(), pulse?: { since(after: number): Array<{ t: number; cpu: number; mem: number }> }, clock?: { now: () => number; tickMs: number }) => { const reporter = createDashboardReporter({ dataDir: dir, collect, execute, pulse, ...clock }); reporters.push(reporter); return reporter; };
-  return { dir, base, reports, signatures, enrollKeys, enrollTokens, enrollSignatures, execute, make, queue: (command: DashboardCommand) => { nextCommand = command; }, remove: () => { removed = true; }, watch: () => { watching = true; }, waits: () => waits, hold: (on: boolean) => { hold = on; } };
+  const make = (collect = collector(), pulse?: { since(after: number): Array<{ t: number; cpu: number; mem: number }> }, clock?: { now?: () => number; tickMs?: number; goneGraceMs?: number }) => { const reporter = createDashboardReporter({ dataDir: dir, collect, execute, pulse, ...clock }); reporters.push(reporter); return reporter; };
+  return { dir, base, reports, signatures, enrollKeys, enrollTokens, enrollSignatures, execute, make, queue: (command: DashboardCommand) => { nextCommand = command; }, remove: () => { removed = true; }, forgetFor: (requests: number) => { unknown = requests; }, watch: () => { watching = true; }, waits: () => waits, hold: (on: boolean) => { hold = on; } };
 }
 const command: DashboardCommand = { id: "command", kind: "routine.pause", target: "routine", issuedAt: Date.now(), expiresAt: Date.now() + 60_000 };
 
@@ -142,11 +144,29 @@ describe("dashboard reporter", () => {
     expect(reporter.status().lastError).toBeNull();
   });
   it("stops both loops on a removed workspace while keeping the link and human error", async () => {
-    const f = await fixture(), reporter = f.make(); await reporter.link(f.base);
+    const f = await fixture(), reporter = f.make(undefined, undefined, { goneGraceMs: 0 }); await reporter.link(f.base);
     await vi.waitFor(() => expect(f.reports).toHaveLength(1)); f.remove();
     await vi.waitFor(() => expect(reporter.status().lastError).toBe("This workspace was removed from the dashboard. Connect it again from the app."));
     const count = f.signatures.length; await new Promise((resolve) => setTimeout(resolve, 250));
     expect(f.signatures).toHaveLength(count); expect(reporter.status().connected).toBe(false);
     reporter.start(); expect(f.signatures).toHaveLength(count); expect(existsSync(join(f.dir, "dashboard-link.json"))).toBe(true);
+    expect(f.enrollKeys).toEqual([f.enrollKeys[0], f.enrollKeys[0]]);
   });
+  it("keeps reporting through a dashboard restart that briefly calls the workspace unknown", async () => {
+    const f = await fixture(), reporter = f.make(); await reporter.link(f.base);
+    await vi.waitFor(() => expect(f.reports).toHaveLength(1));
+    f.forgetFor(1); f.queue({ ...command, id: "after-restart" });
+    await vi.waitFor(() => expect(f.execute).toHaveBeenCalledWith(expect.objectContaining({ id: "after-restart" })), { timeout: 12_000, interval: 50 });
+    expect(reporter.status()).toMatchObject({ connected: true, workspaceId: "workspace" });
+    expect(reporter.status().lastError).not.toBe("This workspace was removed from the dashboard. Connect it again from the app.");
+    expect(f.enrollKeys).toHaveLength(1);
+  }, 15_000);
+  it("after the grace, enrolls again with its own key and carries on when the dashboard still knows it", async () => {
+    const f = await fixture(), reporter = f.make(undefined, undefined, { goneGraceMs: 0 }); await reporter.link(f.base);
+    await vi.waitFor(() => expect(f.reports).toHaveLength(1));
+    f.forgetFor(1); f.queue({ ...command, id: "rechecked" });
+    await vi.waitFor(() => expect(f.execute).toHaveBeenCalledWith(expect.objectContaining({ id: "rechecked" })), { timeout: 12_000, interval: 50 });
+    expect(f.enrollKeys).toEqual([f.enrollKeys[0], f.enrollKeys[0]]);
+    expect(reporter.status()).toMatchObject({ connected: true, workspaceId: "workspace" });
+  }, 15_000);
 });

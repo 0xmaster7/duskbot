@@ -5,6 +5,9 @@ export interface CollectionLayout {
   collection: string;
   key: (row: Row) => string;
   indexes?: Array<{ keys: Record<string, 1 | -1>; unique?: boolean; partial?: Record<string, unknown> }>;
+  /** a numeric ms field: mongodb drops the row once that time passes (a ttl index on a date copy of it). a backstop for
+   *  rows the service also drops itself, never a correctness boundary */
+  expireAt?: string;
 }
 export type StoreLayout = Record<string, CollectionLayout>;
 
@@ -15,6 +18,7 @@ export const STORE_LAYOUTS: Record<string, StoreLayout> = {
   state: {
     workspaces: { collection: "workspaces", key: byId, indexes: [{ keys: { ownerAccountId: 1 } }, { keys: { publicKey: 1 } }] },
     accounts: { collection: "workspace_accounts", key: byId },
+    commands: { collection: "workspace_commands", key: byId, indexes: [{ keys: { workspaceId: 1 } }], expireAt: "purgeAt" },
   },
   auth: {
     accounts: { collection: "accounts", key: byId, indexes: [{ keys: { email: 1 }, unique: true }] },

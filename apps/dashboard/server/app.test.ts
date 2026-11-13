@@ -303,6 +303,42 @@ describe("hosted dashboard service", () => {
     expect(detail.commands[1].status).toBe("expired");
   });
 
+  it("keeps a workspace and its pending commands through a restart, and tells a cut-off wait only that it is closing", async () => {
+    const cookie = await login();
+    const id = await claim(cookie);
+    expect((await signed("/v1/report", id, report()).send()).status).toBe(200);
+    const sent = await readJson<{ command: CommandView }>(page(`/v1/workspaces/${id}/commands`, { kind: "app.connect", target: "gmail" }, cookie));
+    expect((await readJson<ReportAnswer>(signed("/v1/report", id, report(2)).send())).commands.map(command => command.id)).toEqual([sent.command.id]);
+    const queued = await readJson<{ command: CommandView }>(page(`/v1/workspaces/${id}/commands`, { kind: "computer.wake", target: "bot1" }, cookie));
+    expect(queued.command).not.toHaveProperty("workspaceId");
+    const waiting = signed("/v1/wait?wait=25", id);
+    // the wait is answered at once (a command is queued); open a second one to be cut off by the restart
+    expect((await waiting.send()).status).toBe(200);
+    const cut = signed("/v1/wait?wait=25", id).send();
+    await pause(25);
+    app.close();
+    const answer = await cut;
+    expect(answer.status).toBe(503);
+    expect(await answer.json()).toMatchObject({ code: "closed" });
+    app = createDashboardApp({ dataDir, publicUrl: origin, mailer, staticDir, now: () => time });
+    server.removeAllListeners("request");
+    server.on("request", app.handle);
+    // the fresh process knows the workspace, and sends again both what was queued and what was sent but never answered
+    const resent = await readJson<ReportAnswer>(signed("/v1/wait?wait=25", id).send());
+    expect(resent.commands.map(command => command.id).sort()).toEqual([sent.command.id, queued.command.id].sort());
+    expect((await signed("/v1/report", id, { ...report(3), results: [{ id: sent.command.id, ok: true, message: "Sign-in is ready.", at: time, url: "https://connect.composio.dev/link/fixture" }] }).send()).status).toBe(200);
+    const detail = await readJson<WorkspaceDetail>(page(`/v1/workspaces/${id}`, undefined, cookie));
+    expect(detail.commands.find(command => command.id === sent.command.id)).toEqual(expect.objectContaining({ status: "done", url: "https://connect.composio.dev/link/fixture" }));
+    expect(detail.commands.every(command => !("workspaceId" in command) && !("purgeAt" in command))).toBe(true);
+    // it reported moments ago, so it still counts as awake for a sign-in
+    expect((await page(`/v1/workspaces/${id}/commands`, { kind: "app.connect", target: "slack" }, cookie)).status).toBe(200);
+    // finished results go once they are stale, from memory and from the store
+    time += 2 * COMMAND_TTL_MS + 1;
+    expect((await readJson<WorkspaceDetail>(page(`/v1/workspaces/${id}`, undefined, cookie))).commands).toEqual([]);
+    app.close();
+    expect(JSON.parse(readFileSync(`${dataDir}/state.json`, "utf8")).commands).toEqual([]);
+  });
+
   it("starts app sign-ins only for the owner of a workspace that is awake, and shows its apps", async () => {
     const cookie = await login();
     const id = await claim(cookie);
