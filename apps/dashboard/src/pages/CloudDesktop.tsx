@@ -200,7 +200,7 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
           <PowerButton cloud={cloud} size="md" />
         </Card>
       )}
-      {detail ? <MachineView detail={detail} now={now} region={regionName(catalog, cloud.region)} /> : cloud.status === "running" ? <Skeleton className="h-[170px] !rounded-card" /> : null}
+      {asleep ? null : detail ? <MachineView detail={detail} now={now} region={regionName(catalog, cloud.region)} /> : cloud.status === "running" ? <Skeleton className="h-[170px] !rounded-card" /> : null}
       <div className="grid gap-4 md:grid-cols-2">
         <Card aria-labelledby="about-title">
           <SectionTitle id="about-title">about</SectionTitle>

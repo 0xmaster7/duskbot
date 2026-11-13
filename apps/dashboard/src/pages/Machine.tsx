@@ -71,6 +71,7 @@ function ServiceRow({ id, name, tone, state }: { id: string; name: string; tone:
 }
 
 /** one workspace's machine: live meters, the server, its services and its bot computers */
+const STALE_MS = 15 * 60_000;
 const LINK = { direct: "direct", relay: "through the relay", off: "off" } as const;
 
 export function MachineView({ detail, now, region }: { detail: WorkspaceDetail; now: number; region?: string }) {
@@ -82,8 +83,11 @@ export function MachineView({ detail, now, region }: { detail: WorkspaceDetail; 
   const diskPct = m.disk ? (m.disk.usedBytes / Math.max(1, m.disk.totalBytes)) * 100 : 0;
   const running = computers?.computers.filter((c) => c.state === "running").length ?? 0;
   const link = detail.report?.devices?.link ?? null;
+  const at = detail.report?.at ?? null;
+  const stale = !!at && now - at > STALE_MS;
   return (
     <div className="flex flex-col gap-4">
+      {stale && <Card className="!py-4"><p className="text-14 text-ink">not heard from in {ago(at, now).replace(/ ago$/, "")}</p><p className="mt-1 text-13 text-ink-3">these numbers are from its last report. it may be off or offline.</p></Card>}
       <div className="grid grid-cols-4 gap-4 max-lg:grid-cols-2">
         <Metric label="cpu" value={percent(m.cpu.percent)} sub={`load ${m.cpu.load.map((l) => l.toFixed(2)).join(" ")}`}><Spark values={h.map((s) => s.cpu)} max={100} /></Metric>
         <Metric label="memory" value={percent(memPct)} sub={`${bytes(m.memory.usedBytes)} of ${bytes(m.memory.totalBytes)}`}><Spark values={h.map((s) => s.mem)} max={100} /></Metric>
