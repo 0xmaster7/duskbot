@@ -52,6 +52,9 @@
 :is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"]:not([aria-modal="true"], .ui-modal, .ui-dialog)).animate-pop-out {
   animation: overlay-menu-out 80ms var(--ease-out-bencho) forwards;
 }
+/* the select menus (SettingsSelect, SelectPill) open as the dashboard's do: a soft 180ms fade and grow, out in 120ms */
+[role="listbox"]:is([data-settings-listbox], [data-panel-listbox]).animate-pop-in { animation-duration: 180ms; }
+[role="listbox"]:is([data-settings-listbox], [data-panel-listbox]).animate-pop-out { animation-duration: 120ms; }
 /* less movement, not less feedback: the same surfaces fade without scaling or travel */
 @media (prefers-reduced-motion: reduce) {
   :is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"]:not([aria-modal="true"], .ui-modal, .ui-dialog)).animate-pop-in {

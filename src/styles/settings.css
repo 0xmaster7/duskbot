@@ -470,8 +470,8 @@
   background-color: color-mix(in srgb, var(--color-ink) 3.5%, transparent);
 }
 :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) :is(button[data-panel-page], button[data-settings-open], button[data-settings-advanced], button[data-panel-row], li > button):enabled:active { background-color: color-mix(in srgb, var(--color-ink) 5%, transparent); }
-:root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) :is(button, a) { transition-property: scale; }
-:root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) :is(button, a):not(.ui-button, [role="radio"], [role="combobox"]) { transition: none; }
+:root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) :is(button, a):not([role="switch"]) { transition-property: scale; }
+:root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) :is(button, a):not(.ui-button, [role="radio"], [role="combobox"], [role="switch"]) { transition: none; }
 :root .settings-dialog .settings-pane :is([data-row-title], [data-setting-row] [data-setting-title]) {
   font-size: 13px;
   font-weight: var(--font-weight-normal, 425);

@@ -92,6 +92,8 @@
 }
 .dusk-press-soft:enabled:active { scale: 0.985; transition-duration: 140ms, 140ms, 140ms, 160ms; }
 :root[data-reduced-motion="true"] :is(.dusk-press, .dusk-press-soft):active { scale: none; }
+/* the app's own reduced-motion switch: segmented pills and switch knobs jump, colours still fade */
+:root[data-reduced-motion="true"] :is([data-segmented-pill], [data-ui-toggle] > span) { transition: none; }
 
 @media (prefers-reduced-motion: reduce) {
   :is(.dusk-press, .dusk-press-soft):active { scale: none; }
