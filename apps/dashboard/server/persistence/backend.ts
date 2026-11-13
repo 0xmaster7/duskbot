@@ -7,6 +7,9 @@ export interface StateHandle<T extends object> {
   commit(): void;
   /** write soon; several changes share one write */
   changed(): void;
+  /** write soon, and only this row of the store's `field` collection changed (nothing else since): a backend may then
+   *  diff that row instead of every row. anything else changed too, call changed() */
+  changedRow(field: string, row: object): void;
   /** write what is pending now */
   close(): void;
 }

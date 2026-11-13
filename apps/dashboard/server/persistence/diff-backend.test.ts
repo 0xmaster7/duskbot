@@ -51,6 +51,49 @@ describe("diff backend", () => {
     expect(again.state).toEqual({ v: 1, queue: [7], items: [{ id: "b", n: 5 }, { id: "c", n: 3 }] });
   });
 
+  it("diffs only a row named with changedRow, and whole again after any other change or a failed write", async () => {
+    const m = memory();
+    const backend = createDiffBackend({ loaded: m.loaded(), writer: m.writer, layouts, log: () => {} });
+    const store = backend.open("shop", initial, valid);
+    store.state.items.push({ id: "a", n: 1 }, { id: "b", n: 1 });
+    store.commit();
+    await backend.settled();
+    const a = store.state.items[0]!, b = store.state.items[1]!;
+    const strings = JSON.stringify;
+    let stringified = 0;
+    JSON.stringify = ((...args: Parameters<typeof strings>) => { stringified++; return strings(...args); }) as typeof JSON.stringify;
+    try {
+      a.n = 2;
+      store.changedRow("items", a);
+      await backend.settled();
+      expect(stringified).toBe(1);
+    } finally { JSON.stringify = strings; }
+    expect(m.db.items.get("a")).toMatchObject({ n: 2 });
+
+    // a change nobody named waits for the next whole diff, which changed() asks for
+    b.n = 2;
+    a.n = 3;
+    store.changedRow("items", a);
+    await backend.settled();
+    expect(m.db.items.get("b")).toMatchObject({ n: 1 });
+    store.changed();
+    await backend.settled();
+    expect(m.db.items.get("b")).toMatchObject({ n: 2 });
+
+    // a named row removed before the write is not brought back; a failed write is retried whole
+    store.state.items = store.state.items.filter(row => row.id !== "a");
+    store.changedRow("items", a);
+    store.changed();
+    m.failNext(1);
+    await backend.settled();
+    expect(m.db.items.has("a")).toBe(false);
+    b.n = 4;
+    m.failNext(1);
+    store.changedRow("items", b);
+    await backend.settled();
+    expect(m.db.items.get("b")).toMatchObject({ n: 4 });
+  });
+
   it("retries a failed write with everything changed since, and settles only once it lands", async () => {
     const m = memory();
     const backend = createDiffBackend({ loaded: m.loaded(), writer: m.writer, layouts, log: () => {} });

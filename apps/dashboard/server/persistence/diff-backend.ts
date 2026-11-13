@@ -17,10 +17,14 @@ interface OpenStore {
   name: string; state: Doc; layout: StoreLayout;
   rootJson: string;
   rowJson: Map<string, Map<string, string>>;
+  /** the next write diffs every row (anything may have changed), or only the rows named with changedRow */
+  full: boolean; hinted: Map<string, Set<Doc>>; fullAt: number;
 }
 
 const RETRY_MS = [500, 1000, 2000, 5000, 10_000, 30_000];
 const CHANGED_DELAY_MS = 100;
+/** a store written only row by row is still diffed whole this often, so a change nobody named is never kept back long */
+const FULL_EVERY_MS = 60_000;
 
 /**
  * Keeps each store's rows as documents and writes only what changed since the last successful write. The diff runs
@@ -37,22 +41,46 @@ export function createDiffBackend(options: { loaded: LoadedData; writer: BatchWr
   for (const [collection, rows] of options.loaded.rows) for (const row of rows) orderOf.set(`${collection}\u0000${row._id}`, Number(row._n) || 0);
   let timer: ReturnType<typeof setTimeout> | null = null, timerAt = Infinity;
   let running: Promise<void> | null = null;
+  // a snapshot stringifies every row of the stores it writes (about 190 ms for 2000 busy workspaces on the contabo box):
+  // the next one waits twice as long as the last took, so writing never holds more than a third of the event loop
+  let snapshotMs = 0, snapshotAt = 0;
   let failures = 0, lastError: string | null = null;
   let waiters: Array<() => void> = [];
 
   const idle = () => !dirty.size && !appends.length && !running;
   function wake() { if (idle()) { const done = waiters; waiters = []; for (const resolve of done) resolve(); } }
   function schedule(delay: number) {
-    const at = Date.now() + delay;
+    const at = Math.max(Date.now() + delay, snapshotAt + 3 * snapshotMs);
     if (timer && timerAt <= at) return;
     if (timer) clearTimeout(timer);
     timerAt = at;
-    timer = setTimeout(() => { timer = null; timerAt = Infinity; void run(); }, delay);
+    timer = setTimeout(() => { timer = null; timerAt = Infinity; void run(); }, Math.max(0, at - Date.now()));
     timer.unref?.();
   }
 
-  function snapshot(store: OpenStore) {
+  /** what to write for a store: every row diffed, or with `hinted` only the rows named (a busy store of large rows,
+   *  2000 workspaces' reports, cost a whole stringify of every row per report otherwise) */
+  function snapshot(store: OpenStore, hinted: Map<string, Set<Doc>> | null) {
     const ops: Array<{ collection: string; upserts: Array<{ _id: string; doc: Doc; json: string }>; deletes: string[]; seen: Map<string, string> }> = [];
+    if (hinted) {
+      for (const [field, touched] of hinted) {
+        const spec = store.layout[field]!, previous = store.rowJson.get(spec.collection)!, seen = new Map(previous);
+        const present = new Set((store.state[field] ?? []) as Doc[]), upserts: Array<{ _id: string; doc: Doc; json: string }> = [];
+        for (const row of touched) {
+          const id = spec.key(row);
+          // a row removed since it was named goes with the next whole diff, which sees it gone
+          if (!present.has(row) || typeof id !== "string" || !id) continue;
+          const json = JSON.stringify(row);
+          seen.set(id, json);
+          if (previous.get(id) === json) continue;
+          const slot = `${spec.collection}\u0000${id}`;
+          if (!orderOf.has(slot)) orderOf.set(slot, order++);
+          upserts.push({ _id: id, doc: { ...JSON.parse(json) as Doc, _n: orderOf.get(slot) }, json });
+        }
+        ops.push({ collection: spec.collection, upserts, deletes: [], seen });
+      }
+      return { ops, rootJson: store.rootJson, rootChanged: false };
+    }
     for (const [field, spec] of Object.entries(store.layout)) {
       const rows = (store.state[field] ?? []) as Doc[];
       const seen = new Map<string, string>(), previous = store.rowJson.get(spec.collection)!;
@@ -83,7 +111,15 @@ export function createDiffBackend(options: { loaded: LoadedData; writer: BatchWr
     if (!dirty.size && !appends.length) { wake(); return; }
     const batchStores = [...dirty]; dirty.clear();
     const batchAppends = appends; appends = [];
-    const taken = batchStores.map(store => ({ store, ...snapshot(store) }));
+    snapshotAt = Date.now();
+    const started = performance.now();
+    const taken = batchStores.map(store => {
+      const hinted = !store.full && Date.now() - store.fullAt < FULL_EVERY_MS ? store.hinted : null;
+      store.full = false; store.hinted = new Map();
+      if (!hinted) store.fullAt = Date.now();
+      return { store, ...snapshot(store, hinted) };
+    });
+    snapshotMs = performance.now() - started;
     const batch: WriteBatch = { collections: new Map(), roots: [], appends: batchAppends };
     for (const { store, ops, rootJson, rootChanged } of taken) {
       for (const op of ops) if (op.upserts.length || op.deletes.length) batch.collections.set(op.collection, { upserts: op.upserts.map(({ _id, doc }) => ({ _id, doc })), deletes: op.deletes });
@@ -99,7 +135,7 @@ export function createDiffBackend(options: { loaded: LoadedData; writer: BatchWr
       }
       failures = 0; lastError = null;
     } catch (error) {
-      for (const { store } of taken) dirty.add(store);
+      for (const { store } of taken) { dirty.add(store); store.full = true; }
       appends = [...batchAppends, ...appends];
       lastError = error instanceof Error ? error.name : "error";
       log(`write failed (${lastError}: ${error instanceof Error ? error.message.slice(0, 200) : ""}), retrying`);
@@ -133,13 +169,18 @@ export function createDiffBackend(options: { loaded: LoadedData; writer: BatchWr
       }
       const rootDoc: Doc = {};
       if (root) for (const [field, value] of Object.entries(state)) if (!(field in layout)) rootDoc[field] = value;
-      const store: OpenStore = { name, state, layout, rowJson, rootJson: root ? JSON.stringify(rootDoc) : "" };
+      const store: OpenStore = { name, state, layout, rowJson, rootJson: root ? JSON.stringify(rootDoc) : "", full: true, hinted: new Map(), fullAt: 0 };
       stores.set(name, store);
       return {
         state: state as T,
-        commit() { dirty.add(store); schedule(0); },
-        changed() { dirty.add(store); schedule(CHANGED_DELAY_MS); },
-        close() { dirty.add(store); schedule(0); },
+        commit() { dirty.add(store); store.full = true; schedule(0); },
+        changed() { dirty.add(store); store.full = true; schedule(CHANGED_DELAY_MS); },
+        changedRow(field, row) {
+          if (!(field in store.layout)) store.full = true;
+          else if (!store.full) { const set = store.hinted.get(field) ?? new Set<Doc>(); set.add(row as Doc); store.hinted.set(field, set); }
+          dirty.add(store); schedule(CHANGED_DELAY_MS);
+        },
+        close() { dirty.add(store); store.full = true; schedule(0); },
       };
     },
     append(log, entry) { appends.push({ log, entry: JSON.parse(JSON.stringify(entry)) as Doc }); schedule(0); },

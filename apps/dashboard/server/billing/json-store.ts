@@ -27,14 +27,16 @@ export function createJsonStore<T extends object>(file: string, initial: () => T
     writeFileSync(`${file}.tmp`, JSON.stringify(state), { mode: 0o600 });
     renameSync(`${file}.tmp`, file);
   }
+  function changed() {
+    if (timer) return;
+    timer = setTimeout(commit, 1000);
+    timer.unref();
+  }
   return {
     state,
     commit,
-    changed() {
-      if (timer) return;
-      timer = setTimeout(commit, 1000);
-      timer.unref();
-    },
+    changed,
+    changedRow: changed,
     close() { if (timer) commit(); },
   };
 }

@@ -772,16 +772,20 @@ export function createDashboardApp(options: DashboardAppOptions) {
           pinned(ws, samples);
         }
         notePulse(ws.id, report);
+        let commandsChanged = false;
         for (const result of report.results ?? []) {
           const command = commands.get(ws.id)?.find(item => item.id === result.id && (item.status === "queued" || item.status === "sent"));
           if (command) {
+            commandsChanged = true;
             command.status = result.ok ? "done" : "failed"; command.message = result.message; command.doneAt = result.at;
             if (command.kind === "app.connect" && result.ok && result.url) command.url = result.url;
           }
         }
         if (ws.ownerAccountId && workspaceTurns(ws) > 0) analytics.botReplied(ws.ownerAccountId);
         if (report.usage) void usage.ingest(ws.ownerAccountId, ws.id, report.usage);
-        store.changed();
+        // a plain report changes only its own workspace row: with 2000 computers reporting, diffing every row per
+        // report held the whole service (measured 2026-11-14 on the contabo box)
+        if (commandsChanged) store.changed(); else store.changedRow("workspaces", ws);
         return json(res, 200, answer(ws));
       }
       const seconds = Number(url.searchParams.get("wait") ?? "25");
