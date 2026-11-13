@@ -17,7 +17,7 @@ let service, server, base, dir, time;
 function makeService() {
   return createLinkService({ base: "http://link.test", dataDir: dir, scriptPath: join(root, "install.sh"), agentPath: join(root, "agent.mjs"), trustProxy: false, now: () => time,
     // roomy tunnel limits: these tests are about the phone channel's own (relay-guards.test.mjs covers the tunnel's)
-    limits: { perTunnelBytesPerSec: 64 * 1024 * 1024, burstBytes: 256 * 1024 * 1024, globalCeilingBytesPerSec: 64 * 1024 * 1024 } });
+    limits: { perTunnelBytesPerSec: 64 * 1024 * 1024, burstBytes: 256 * 1024 * 1024, globalCeilingBytesPerSec: 64 * 1024 * 1024, accountBytesPerSec: 64 * 1024 * 1024 } });
 }
 function tunnel(tid = id) {
   service.store.tunnels.set(tid, { id: tid, createdAt: time, vpsVerifier: sha256hex(vps), appVerifier: sha256hex(app), seenAt: null });

@@ -124,6 +124,8 @@ export interface OpsRelayStats {
   /** account: the relay's account ref; accountId and email are filled in by the account service when it knows them */
   top: Array<{ account: string; tunnels: number; bytesToday: number; accountId?: string | null; email?: string | null }>;
   busy: boolean | { reason?: string; [key: string]: unknown };
+  /** a link service node: each account's relay bytes this month on every node together, and the rate that gives it now */
+  fairUse?: { month: string; accounts: Array<{ account: string | null; tunnel: string | null; monthBytes: number; hereBytes: number; bytesPerSec: number; accountId?: string | null; email?: string | null }> };
   /** cloudflare: an estimate from durable object awake time and messages */
   cost?: { estimated: boolean; monthCents: number; projectedCents: number; awakeHours?: number; messages?: number };
   paused?: boolean;

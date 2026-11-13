@@ -29,8 +29,11 @@ const LIMITS: Record<string, { label: string; unit: Unit; hint?: string }> = {
   maxConnected: { label: "tunnels in use", unit: UNITS.count, hint: "an open desktop on a linked server; past it, a new tunnel hears the relay is busy" },
   maxServers: { label: "servers on this node", unit: UNITS.count, hint: "new servers go to another node from 90%" },
   accountBytesPerSec: { label: "speed per account", unit: UNITS.rate },
-  accountFullSpeedBytes: { label: "full speed each month", unit: UNITS.gb, hint: "then the speed halves every 50 gb" },
+  accountFullSpeedBytes: { label: "full speed each month", unit: UNITS.gb, hint: "then it slows down step by step" },
+  accountFloorAtBytes: { label: "slowest by", unit: UNITS.gb, hint: "past it, only the chat speed" },
   floorBytesPerSec: { label: "slowest speed", unit: UNITS.rate },
+  chatBytesPerSec: { label: "chat speed", unit: UNITS.rate, hint: "past the slowest, enough for chat and approvals" },
+  accountBurstSeconds: { label: "burst while slowed", unit: { label: "s", factor: 1 } },
 };
 const describe = (key: string) => LIMITS[key] ?? { label: key.replace(/([A-Z])/g, " $1").toLowerCase(), unit: /PerSec$/.test(key) ? UNITS.rate : /Bytes$/.test(key) ? UNITS.gb : UNITS.count };
 const shown = (key: string, value: number | null | undefined) => {
@@ -216,6 +219,19 @@ function RelayCard({ relay, now, onSaved }: { relay: OpsRelayCard; now: number; 
           ))}
         </ul>
       ) : <Empty>nobody has used it today.</Empty>}
+      {stats.fairUse ? <>
+        <div className="px-2.5 pb-1 pt-3 t-meta">fair use this month, every node together</div>
+        {stats.fairUse.accounts.length ? (
+          <ul>
+            {stats.fairUse.accounts.slice(0, 5).map((row) => (
+              <PersonRow key={row.account ?? row.tunnel ?? ""} accountId={row.accountId ?? null}>
+                <Person accountId={row.accountId ?? null} email={row.email ?? null} fallback={row.account ? `account ${row.account.slice(0, 8)}` : `server ${(row.tunnel ?? "").slice(0, 8)}`} sub={`now ${mbit(row.bytesPerSec)}`} />
+                <span className="font-mono text-13 text-ink num">{size(row.monthBytes)}</span>
+              </PersonRow>
+            ))}
+          </ul>
+        ) : <Empty>nobody has used it this month.</Empty>}
+      </> : null}
       <LimitsEditor key={editing ? "open" : "shut"} relay={relay} open={editing} onClose={() => setEditing(false)} onSaved={onSaved} />
       <PauseConfirm relay={relay} pause={pausing ?? false} open={pausing !== null} onClose={() => setPausing(null)} onSaved={onSaved} />
     </Panel>

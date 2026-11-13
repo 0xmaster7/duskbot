@@ -8,7 +8,8 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { FRAME_TTL_MS, LANE_BURST_BYTES, LANE_BYTES_PER_SECOND, MAX_HOLD_MS, TUNNELS_PER_ACCOUNT, TUNNEL_BURST_BYTES, TUNNEL_BYTES_PER_DAY, TUNNEL_BYTES_PER_SECOND, createLinkService, sha256hex } from "../src/app.mjs";
+import { FAIR_USE_DEFAULTS, fairRate } from "../src/fair-use.mjs";
+import { FRAME_TTL_MS, LANE_BURST_BYTES, LANE_BYTES_PER_SECOND, MAX_HOLD_MS, TUNNELS_PER_ACCOUNT, TUNNEL_BURST_BYTES, TUNNEL_BYTES_PER_SECOND, createLinkService, sha256hex } from "../src/app.mjs";
 import { ACTIVE_MS, DEFAULT_LIMITS, MONTH_ALLOWANCE_BYTES } from "../src/relay-limits.mjs";
 import { TUNNEL_IDLE_MS } from "../src/store.mjs";
 
@@ -172,18 +173,59 @@ describe("a tunnel's byte budget", () => {
     expect(stats.busy).toBe(true);
   });
 
-  it("stops a tunnel at 25 GB a day and lets it go again the next UTC day", async () => {
-    expect(TUNNEL_BYTES_PER_DAY).toBe(25 * 1024 ** 3);
+  it("never cuts a tunnel off for its day: an account past its month's full speed is slowed instead", async () => {
     await start();
     const tunnel = service.store.tunnels.get(id);
     tunnel.day = Math.floor(time / 86_400_000);
-    tunnel.dayBytes = TUNNEL_BYTES_PER_DAY - 1000;
-    const refused = await toVps(["a".repeat(4000)], { epoch, seq: 0 });
-    expect(refused.status).toBe(429);
-    expect(await refused.json()).toMatchObject({ code: "daily_limit" });
-    time += 86_400_000;
+    tunnel.dayBytes = 100 * 1024 ** 3;
     expect((await toVps(["a".repeat(4000)], { epoch, seq: 0 })).status).toBe(200);
-    expect(service.store.tunnels.get(id).dayBytes).toBeLessThan(MB);
+  });
+});
+
+describe("fair use, per account over the month", () => {
+  const GB = 1000 ** 3;
+  it("is full speed to 20 GB, then slower along a smooth curve to the floor at 80 GB, then the chat rate", () => {
+    const top = FAIR_USE_DEFAULTS.accountBytesPerSec;
+    expect(fairRate(0)).toBe(top);
+    expect(fairRate(20 * GB)).toBe(top);
+    const points = [25, 35, 50, 65, 79].map((gb) => fairRate(gb * GB));
+    for (let i = 1; i < points.length; i += 1) expect(points[i]).toBeLessThan(points[i - 1]);
+    // halfway along the curve in bytes is halfway in the log of the rate
+    expect(Math.abs(Math.log(fairRate(50 * GB)) - (Math.log(top) + Math.log(FAIR_USE_DEFAULTS.floorBytesPerSec)) / 2)).toBeLessThan(0.01);
+    expect(fairRate(80 * GB)).toBe(FAIR_USE_DEFAULTS.chatBytesPerSec);
+    expect(fairRate(500 * GB)).toBe(32_000);
+  });
+
+  it("slows a heavy account's bulk but lets its chat through at once, and sums its month across nodes", async () => {
+    await start({ limits: { accountBurstSeconds: 0 } });
+    service.store.tunnels.get(id).acct = acct;
+    const monthNow = new Date(time).toISOString().slice(0, 7);
+    waits = [];
+    // a chat sized post goes through the small allowance at once
+    expect((await toVps(["a".repeat(2000)], { epoch, seq: 0 })).status).toBe(200);
+    expect(waits).toEqual([]);
+    await stop();
+    await start({ limits: { accountBurstSeconds: 0 } }, true);
+    service.store.tunnels.get(id).acct = acct;
+    service.fairUse.merge("oracle-in", { month: monthNow, accounts: { [`a:${acct}`]: 90 * GB } });
+    expect(service.fairUse.total(`a:${acct}`)).toBe(90 * GB + 2000);
+    waits = [];
+    expect((await toVps(["a".repeat(64_000)], { epoch, seq: 0 })).status).toBe(200);
+    // 64 KB at the 32 KB/s chat rate
+    expect(waits.length).toBe(1);
+    expect(waits[0]).toBeGreaterThanOrEqual(1900);
+    waits = [];
+    expect((await toVps(["a".repeat(1000)], { epoch, seq: 1 })).status).toBe(200);
+    expect(waits).toEqual([]);
+  });
+
+  it("shows each account's month and its rate on the ops stats", async () => {
+    const statsToken = "s".repeat(32);
+    await start({ statsToken });
+    service.store.tunnels.get(id).acct = acct;
+    expect((await toVps(frames(1), { epoch, seq: 0 })).status).toBe(200);
+    const body = await (await request("/ops/relay/stats", { token: statsToken })).json();
+    expect(body.fairUse.accounts[0]).toMatchObject({ account: acct, monthBytes: MB, bytesPerSec: FAIR_USE_DEFAULTS.accountBytesPerSec });
   });
 });
 
@@ -208,7 +250,7 @@ describe("the owner's relay ops endpoints", () => {
     expect((await read()).frames).toHaveLength(3);
     time += 1000;
     const body = await (await ops("/ops/relay/stats")).json();
-    expect(Object.keys(body).sort()).toEqual(["box", "busy", "limits", "month", "node", "nodes", "now", "relay", "today", "top", "turn"]);
+    expect(Object.keys(body).sort()).toEqual(["box", "busy", "fairUse", "limits", "month", "node", "nodes", "now", "relay", "today", "top", "turn"]);
     expect(body.node).toMatchObject({ id: "contabo", default: true, accepting: true });
     expect(body.relay).toBe("contabo");
     expect(Object.keys(body.now).sort()).toEqual(["accounts", "bytesPerSecIn", "bytesPerSecOut", "connected", "cpu", "rssMb", "servers", "tunnels"]);
@@ -228,9 +270,9 @@ describe("the owner's relay ops endpoints", () => {
       expect(refused.status).toBe(400);
       expect(await refused.json()).toMatchObject({ code: "invalid_limits" });
     }
-    const changed = await ops("/ops/relay/limits", { method: "PUT", body: { maxConnected: 1, perTunnelDailyBytes: 200 * MB } });
+    const changed = await ops("/ops/relay/limits", { method: "PUT", body: { maxConnected: 1, accountFullSpeedBytes: 200 * MB } });
     expect(changed.status).toBe(200);
-    expect((await changed.json()).limits).toEqual({ ...DEFAULT_LIMITS, maxConnected: 1, perTunnelDailyBytes: 200 * MB });
+    expect((await changed.json()).limits).toEqual({ ...DEFAULT_LIMITS, maxConnected: 1, accountFullSpeedBytes: 200 * MB });
     addOther();
     expect((await toVps(["a".repeat(4000)], { epoch, seq: 0 })).status).toBe(200);
     expect((await otherToVps(["a".repeat(4000)], { epoch, seq: 0 })).status).toBe(503);
@@ -238,7 +280,7 @@ describe("the owner's relay ops endpoints", () => {
     await start({ statsToken }, true);
     addOther();
     const body = await (await ops("/ops/relay/stats")).json();
-    expect(body.limits).toMatchObject({ maxConnected: 1, perTunnelDailyBytes: 200 * MB });
+    expect(body.limits).toMatchObject({ maxConnected: 1, accountFullSpeedBytes: 200 * MB });
     expect(body.today.bytesIn).toBe(4000);
     // paused: the tunnel already relaying keeps going, a new one gets the busy answer, until unpaused
     expect((await toVps(["a".repeat(4000)], { epoch, seq: 1 })).status).toBe(200);
@@ -250,10 +292,6 @@ describe("the owner's relay ops endpoints", () => {
     expect((await (await ops("/ops/relay/stats")).json()).busy).toBe(true);
     expect((await ops("/ops/relay/limits", { method: "PUT", body: { paused: false } })).status).toBe(200);
     expect((await otherToVps(["a".repeat(4000)], { epoch, seq: 0 })).status).toBe(200);
-    const tunnel = service.store.tunnels.get(id);
-    tunnel.day = Math.floor(time / 86_400_000);
-    tunnel.dayBytes = 200 * MB;
-    expect((await toVps(["a".repeat(4000)], { epoch, seq: 3 })).status).toBe(429);
   });
 });
 
@@ -264,15 +302,17 @@ describe("relay stats", () => {
     service.store.tunnels.get(id).acct = acct;
     expect((await toVps(frames(3), { epoch, seq: 0 })).status).toBe(200);
     const tunnel = service.store.tunnels.get(id);
-    tunnel.day = Math.floor(time / 86_400_000);
-    tunnel.dayBytes = TUNNEL_BYTES_PER_DAY;
-    expect((await toVps(["a".repeat(4000)], { epoch, seq: 1 })).status).toBe(429);
+    // a refusal: the relay is paused and this tunnel has gone quiet long enough to count as new
+    await request("/ops/relay/limits", { token: statsToken, method: "PUT", body: { paused: true } });
+    time += 3 * 60_000;
+    expect((await toVps(["a".repeat(4000)], { epoch, seq: 1 })).status).toBe(503);
+    await request("/ops/relay/limits", { token: statsToken, method: "PUT", body: { paused: false } });
     expect((await request("/v1/stats/relay")).status).toBe(401);
     expect((await request("/v1/stats/relay", { token: app })).status).toBe(401);
     const res = await request("/v1/stats/relay", { token: statsToken });
     expect(res.status).toBe(200);
     const day = new Date(time).toISOString().slice(0, 10);
-    expect(await res.json()).toEqual({ limitBytes: TUNNEL_BYTES_PER_DAY, tunnels: [{ id, acct, days: { [day]: { bytes: 3 * MB, limited: 1 } } }] });
+    expect(await res.json()).toEqual({ limitBytes: 0, tunnels: [{ id, acct, days: { [day]: { bytes: 3 * MB, limited: 1 } } }] });
     for (let i = 1; i <= 4; i += 1) { time += 86_400_000; tunnel.dayBytes = 0; expect((await toVps(["a".repeat(4000)], { epoch, seq: 1 + i })).status).toBe(200); await read(); }
     expect(Object.keys(service.store.tunnels.get(id).relayDays)).toHaveLength(3);
   });

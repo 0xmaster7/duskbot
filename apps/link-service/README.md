@@ -639,11 +639,18 @@ The relay is not a free pipe: every setup session needs a dusk account, and ever
   its oldest), so no account can fill a node's 5,000 session store. The VPS side (install.sh, the agent, the phone's channels) needs nothing:
   the session the app opened already carries the account.
 - **Bytes.** Defaults, changeable at runtime (below): each tunnel, both directions and its phone channels together, 3 MiB/s
-  sustained with a 24 MiB burst, and 25 GiB per UTC day (kept on the tunnel, so a restart does not reset it). All tunnels
-  together stay under a 10 MiB/s ceiling (~88 Mbit/s on the wire, under Contabo's 100 Mbit/s average rule): while several
-  are busy the ceiling is split evenly between busy accounts, then between an account's busy tunnels. Egress lane posts also stay under 6 MiB/s (8 MiB burst). Sizes
-  are the frames' base64url text, the bytes on the wire. Past its rate a post is held (slowed), not refused; only a wait
-  over 20 s gets 429 `rate_limited` with `retry-after`. Over the day: 429 `daily_limit`.
+  sustained with a 24 MiB burst. All tunnels together stay under a 10 MiB/s ceiling (~88 Mbit/s on the wire, under
+  Contabo's 100 Mbit/s average rule): while several are busy the ceiling is split evenly between busy accounts, then
+  between an account's busy tunnels. Egress lane posts also stay under 6 MiB/s (8 MiB burst). Sizes are the frames'
+  base64url text, the bytes on the wire. Past its rate a post is held (slowed), not refused; only a wait over 20 s gets
+  429 `rate_limited` with `retry-after`.
+- **Fair use per account, per month** (`src/fair-use.mjs`, every node together through the directory's sync): full speed
+  (`accountBytesPerSec`, 3 MiB/s) up to `accountFullSpeedBytes` (20 GB), then slower along a curve linear in the log of
+  the rate down to `floorBytesPerSec` (2 Mbit/s) at `accountFloorAtBytes` (80 GB), and past that `chatBytesPerSec`
+  (256 kbit/s). A burst of `accountBurstSeconds` (45) at the account's rate stays even when slowed, and a post of 16 KB
+  or less (a message, an approval) goes at once from a small allowance of its own (64 KB/s, 1 MiB) when the account's is
+  spent. Nothing is ever cut off. The ops stats carry `fairUse` (each account's month and rate now); the admin ops page
+  shows the heaviest.
 - **Busy.** At most 150 tunnels relay at once (oracle-in is set to 110 in its limits, Contabo keeps 150; both on the ops page) (bytes in the last 2 minutes); a new one past that, or any new one while the
   owner paused the relay, gets 503 `relay_busy` with `retry-after: 60` and should use a Cloudflare tunnel, SSH or Tailscale.
   Tunnels already relaying are never cut off.

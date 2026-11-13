@@ -134,7 +134,10 @@ const pick = (record, fields) => { const out = {}; for (const key of fields) if 
  * placement. the app calls `changed(record)` after it creates or changes a tunnel or channel, and `removed(kind, id)`
  * after it deletes one; `onRemoved(kind, record)` drops a tunnel's or channel's live state when a peer deleted it
  */
-export function createCluster({ config, store, token, dir = null, now = Date.now, fetch: fetchImpl = fetch, log = () => {}, health = () => ({}), onRemoved = () => {}, everyMs = SYNC_EVERY_MS }) {
+/** how often a node sends a peer its accounts' relay bytes this month (fair use across nodes) */
+export const USAGE_EVERY_MS = 60_000;
+
+export function createCluster({ config, store, token, dir = null, now = Date.now, fetch: fetchImpl = fetch, log = () => {}, health = () => ({}), onRemoved = () => {}, everyMs = SYNC_EVERY_MS, usage = null, onUsage = () => {} }) {
   const self = config.self;
   const file = dir ? join(dir, "cluster.json") : null;
   let saved = null;
@@ -228,16 +231,18 @@ export function createCluster({ config, store, token, dir = null, now = Date.now
     if (peer.sending) return peer.sending;
     peer.sending = (async () => {
       const records = changesSince(peer.acked);
+      const withUsage = usage && now() - (peer.usageAt ?? 0) >= USAGE_EVERY_MS;
       const top = records.length ? records.at(-1).r.rev ?? records.at(-1).r.at : peer.acked;
       try {
         const response = await fetchImpl(`${peer.url}/internal/v1/sync`, {
           method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-          body: JSON.stringify({ from: self.id, health: health(), records }), signal: AbortSignal.timeout(10_000),
+          body: JSON.stringify({ from: self.id, health: health(), records, ...(withUsage ? { usage: usage() } : {}) }), signal: AbortSignal.timeout(10_000),
         });
         const answer = await response.json().catch(() => null);
         if (!response.ok || !answer?.ok) throw new Error(`answered ${response.status}`);
         if (peer.lastOkAt === null || now() - peer.lastOkAt > PEER_DOWN_MS) log(`link: node ${peer.id} is reachable`);
         peer.lastOkAt = now(); peer.lastError = null; peer.health = answer.health ?? null;
+        if (withUsage) peer.usageAt = now();
         if (top > peer.acked) { peer.acked = top; dirty = true; persist(); }
         return true;
       } catch (error) {
@@ -265,6 +270,7 @@ export function createCluster({ config, store, token, dir = null, now = Date.now
     // a peer's own sync proves it runs, not that anyone can reach it (its nginx may be down): up is only what this
     // node's syncs to it see
     if (body.health && typeof body.health === "object") peer.health = body.health;
+    if (body.usage && typeof body.usage === "object") onUsage(peer.id, body.usage);
     return { ok: true, applied, health: health() };
   }
 

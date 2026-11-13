@@ -101,10 +101,14 @@ export function createRelays(options: { env: NodeJS.ProcessEnv; fetch?: typeof f
   }
 
   function shape(stats: OpsRelayStats, who: ReturnType<typeof people>): OpsRelayStats {
+    const fairUse = stats.fairUse && Array.isArray(stats.fairUse.accounts) ? { month: stats.fairUse.month, accounts: stats.fairUse.accounts.slice(0, 20).map(row => {
+      const known = row.account ? who.get(row.account) : undefined;
+      return { ...row, accountId: known?.accountId ?? null, email: known?.email ?? null };
+    }) } : undefined;
     return { ...stats, top: (Array.isArray(stats.top) ? stats.top : []).slice(0, 10).map(row => {
       const known = who.get(row.account);
       return { ...row, accountId: known?.accountId ?? null, email: known?.email ?? null };
-    }) };
+    }), ...(fairUse ? { fairUse } : {}) };
   }
 
   async function one(target: RelayTarget, who: ReturnType<typeof people>): Promise<OpsRelayCard> {

@@ -14,6 +14,7 @@ import { verifyLinkGrant } from "./grant.mjs";
 import { createPackages } from "./packages.mjs";
 import { createPushRelay } from "./push-relay.mjs";
 import { SEALED_ADDRESS_MAX, choosePlacement, createCluster, loadOf, refusesNew, sameSecret } from "./nodes.mjs";
+import { SMALL_BURST_BYTES, SMALL_BYTES_PER_SEC, SMALL_POST_BYTES, createAccountUsage, fairRate } from "./fair-use.mjs";
 import { ACTIVE_MS, BUSY_BYTES, DEFAULT_LIMITS, MONTH_ALLOWANCE_BYTES, createRelayUsage, loadLimits, saveLimits, validateLimits } from "./relay-limits.mjs";
 import { APP_TOKENS_CALLBACK_ROUTE, appTokenCallback } from "./app-token-callback.mjs";
 import { slackCallback } from "./slack-callback.mjs";
@@ -81,7 +82,6 @@ export const SERVER_DOWNLOADS_PER_DAY = 12;
  * default: the live values are the service's limits (relay-limits.mjs), changeable at runtime */
 export const TUNNEL_BYTES_PER_SECOND = DEFAULT_LIMITS.perTunnelBytesPerSec;
 export const TUNNEL_BURST_BYTES = DEFAULT_LIMITS.burstBytes;
-export const TUNNEL_BYTES_PER_DAY = DEFAULT_LIMITS.perTunnelDailyBytes;
 /** a post waits at most this long for its share of the relay; past it the post is refused with a retry-after */
 export const MAX_HOLD_MS = 20_000;
 /** a tunnel is slowed to its fair share of the ceiling once this many bytes a second or more pass through it */
@@ -359,6 +359,9 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     mayExpire: (tunnel) => !nodes || homeOf(tunnel) === nodeId });
   const memory = { bytes: 0 };
   const tunnelRates = new Map();
+  /** per account (or tunnel without one): the fair use bucket; the month's bytes, every node together, in `accountMonths` */
+  const accountRates = new Map();
+  const accountMonths = createAccountUsage({ dir: dataDir, now, log });
   const limits = loadLimits(dataDir, { ...DEFAULT_LIMITS, ...startLimits });
   const usage = createRelayUsage({ dir: dataDir, now });
   const relay = { at: now(), tokens: Math.max(limits.globalCeilingBytesPerSec * 2, limits.burstBytes), shareAt: -Infinity, demanding: new Map(), cpu: { at: Date.now(), usage: process.cpuUsage() } };
@@ -377,6 +380,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
   const serverReads = new Map();
   const serverDownloads = new Map();
   const cluster = nodes && peerToken ? createCluster({ config: nodes, store, token: peerToken, dir: dataDir, now, fetch: fetchImpl, log, health: nodeHealth,
+    usage: () => accountMonths.own(), onUsage: (peer, value) => accountMonths.merge(peer, value),
     onRemoved: (kind, record) => {
       if (kind === "channel") { clearChannel(record); return; }
       for (const channel of [...store.channels.values()]) if (channel.tunnel === record.id) { store.channels.delete(channel.id); clearChannel(channel); }
@@ -549,11 +553,6 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     if (!tunnel) return { charge() {}, refund() {} };
     const size = frames.reduce((sum, frame) => sum + frame.length, 0), t = now(), day = Math.floor(t / 86_400_000);
     if (tunnel.day !== day) { tunnel.day = day; tunnel.dayBytes = 0; }
-    if (tunnel.dayBytes + size > limits.perTunnelDailyBytes) {
-      count(tunnel, t, 0, 1);
-      fail(res, 429, `This link reached its daily limit of ${Math.round(limits.perTunnelDailyBytes / 1024 ** 3)} GB through the relay. It resets at midnight UTC.`, "daily_limit");
-      return null;
-    }
     let rate = tunnelRates.get(tunnelId);
     if (!isActive(rate, t) && full(t)) {
       count(tunnel, t, 0, 1);
@@ -570,7 +569,17 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     rate.at = t;
     relay.tokens = refill(relay.tokens, relay.at, t, ceiling, Math.max(ceiling * 2, limits.burstBytes));
     relay.at = t;
-    const waitMs = Math.ceil(1000 * Math.max(0, (size - rate.tokens) / share, lane ? (size - rate.lane) / LANE_BYTES_PER_SECOND : 0, (size - relay.tokens) / ceiling));
+    // the account's month (every node together) sets its rate; a small post the account's bucket cannot take now
+    // takes the small allowance instead, so a slowed account's chat still goes at once
+    const key = shareKey(tunnelId), month = fairRate(accountMonths.total(key), limits);
+    let fair = accountRates.get(key);
+    if (!fair) accountRates.set(key, (fair = { tokens: month * limits.accountBurstSeconds, at: t, small: SMALL_BURST_BYTES }));
+    fair.tokens = refill(fair.tokens, fair.at, t, month, Math.max(month * limits.accountBurstSeconds, SMALL_POST_BYTES));
+    fair.small = refill(fair.small, fair.at, t, SMALL_BYTES_PER_SEC, SMALL_BURST_BYTES);
+    fair.at = t;
+    const viaSmall = size <= SMALL_POST_BYTES && fair.tokens < size && fair.small >= size;
+    const fairWait = viaSmall ? 0 : (size - fair.tokens) / month;
+    const waitMs = Math.ceil(1000 * Math.max(0, (size - rate.tokens) / share, lane ? (size - rate.lane) / LANE_BYTES_PER_SECOND : 0, (size - relay.tokens) / ceiling, fairWait));
     if (waitMs > MAX_HOLD_MS) {
       count(tunnel, t, 0, 1);
       send(res, 429, { error: "This link is sending faster than the relay allows. Try again in a moment.", code: "rate_limited" }, { "retry-after": String(Math.ceil(waitMs / 1000)) });
@@ -578,11 +587,12 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     }
     // taken now, so the posts behind this one wait their own turn after it
     rate.tokens -= size; relay.tokens -= size;
+    if (viaSmall) fair.small -= size; else fair.tokens -= size;
     if (lane) rate.lane -= size;
     rate.usedAt = t;
     let settled = false;
-    const refund = () => { if (settled) return; settled = true; rate.tokens += size; relay.tokens += size; if (lane) rate.lane += size; };
-    const charge = () => { if (settled) return; settled = true; tunnel.dayBytes += size; count(tunnel, now(), size, 0); usage.in(size); };
+    const refund = () => { if (settled) return; settled = true; rate.tokens += size; relay.tokens += size; if (viaSmall) fair.small += size; else fair.tokens += size; if (lane) rate.lane += size; };
+    const charge = () => { if (settled) return; settled = true; tunnel.dayBytes += size; count(tunnel, now(), size, 0); usage.in(size); accountMonths.add(key, size); };
     if (waitMs > 0) {
       let gone = false;
       const left = () => { gone = true; };
@@ -647,6 +657,8 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       month: { bytesOut: totals.month.out, bytesIn: totals.month.in, projectedBytesOut: Math.round(totals.month.out / usage.monthElapsed()), allowanceBytes: monthAllowanceBytes },
       limits: { ...limits },
       top: [...accounts.values()].sort((a, b) => b.bytesToday - a.bytesToday).slice(0, 10),
+      // each account's relay bytes this month, every node together, and the rate the fair use curve gives it now
+      fairUse: { month: accountMonths.month(), accounts: accountMonths.top(20).map(({ key, bytes, here }) => ({ account: key.startsWith("a:") ? key.slice(2) : null, tunnel: key.startsWith("t:") ? key.slice(2) : null, monthBytes: bytes, hereBytes: here, bytesPerSec: fairRate(bytes, limits) })) },
       busy,
     };
   }
@@ -951,7 +963,8 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       if (!opsAllowed()) return;
       const tunnels = [...store.tunnels.values()].filter((tunnel) => tunnel.relayDays && Object.keys(tunnel.relayDays).length)
         .map((tunnel) => ({ id: tunnel.id, acct: tunnel.acct ?? null, days: tunnel.relayDays }));
-      return send(res, 200, { limitBytes: limits.perTunnelDailyBytes, tunnels });
+      // nothing is cut off by the day: an account is slowed over its month (fair-use.mjs)
+      return send(res, 200, { limitBytes: 0, tunnels });
     }
     if (method === "GET" && path === "/slack/callback") return slackCallback(res, url.searchParams);
     if (method === "GET" && path === APP_TOKENS_CALLBACK_ROUTE) return appTokenCallback(res, url.searchParams);
@@ -1510,6 +1523,8 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
 
   return {
     store,
+    /** each account's relay bytes this month, this node's and its peers' (fair-use.mjs) */
+    fairUse: accountMonths,
     async handler(req, res) {
       if (!admit(req, res)) return;
       try {
@@ -1523,6 +1538,6 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     },
     cluster,
     start() { cluster?.start(); box?.start(); turnWatch?.start(); },
-    close() { cluster?.stop(); box?.stop(); turnWatch?.stop(); for (const q of queues.values()) q.close(); for (const q of channelReaders.values()) q.close(); store.close(); usage.save(); },
+    close() { accountMonths.save(); cluster?.stop(); box?.stop(); turnWatch?.stop(); for (const q of queues.values()) q.close(); for (const q of channelReaders.values()) q.close(); store.close(); usage.save(); },
   };
 }

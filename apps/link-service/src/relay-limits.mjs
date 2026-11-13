@@ -3,6 +3,8 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { FAIR_USE_DEFAULTS, FAIR_USE_RANGES } from "./fair-use.mjs";
+
 const KiB = 1024, MiB = 1024 ** 2, GiB = 1024 ** 3, TiB = 1024 ** 4;
 
 /**
@@ -23,12 +25,12 @@ const KiB = 1024, MiB = 1024 ** 2, GiB = 1024 ** 3, TiB = 1024 ** 4;
 export const DEFAULT_LIMITS = Object.freeze({
   perTunnelBytesPerSec: 3 * MiB,
   burstBytes: 24 * MiB,
-  perTunnelDailyBytes: 25 * GiB,
   tunnelsPerAccount: 20,
   globalCeilingBytesPerSec: 10 * MiB,
   maxTunnels: 150,
   maxConnected: 1000,
   maxServers: 1500,
+  ...FAIR_USE_DEFAULTS,
   paused: false,
 });
 export const LIMIT_RANGES = Object.freeze({
@@ -40,6 +42,9 @@ export const LIMIT_RANGES = Object.freeze({
   maxTunnels: [1, 20000],
   maxConnected: [1, 50000],
   maxServers: [1, 100000],
+  ...FAIR_USE_RANGES,
+  // a relay-limits.json from before the monthly account curve may still carry it; it is read and ignored
+  perTunnelDailyBytes: [0, 10 * TiB],
 });
 /** contabo's monthly outgoing allowance */
 export const MONTH_ALLOWANCE_BYTES = 32 * 1000 ** 4;
