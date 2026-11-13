@@ -3434,6 +3434,7 @@
   "keys.testing": "testing…",
   "keys.testRejected": "The provider rejected this key.",
   "keys.testUnreachable": "Couldn't reach the provider. Check the address and your internet connection, then test again.",
+  "keys.testAddress": "Use an https address, like https://api.example.com/v1. Plain http only works for a server on this computer.",
   "keys.testUnexpected": "The provider answered unexpectedly (status {status}).",
   "decider.workersAi.title": "Cloudflare Workers AI (free tier)",
   "decider.key.label": "Jev API key",

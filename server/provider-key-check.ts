@@ -4,7 +4,8 @@ export type ProviderKeyKind = "anthropic" | "openai" | "openrouter" | "openaiCom
 export type ProviderKeyVerdict =
   /** `freeTier`: OpenRouter's /key says the account never bought credit, so paid models refuse it. */
   | { ok: true; check: "authentication" | "models"; models: string[]; freeTier?: boolean }
-  | { ok: false; reason: "rejected" | "unreachable" | "unexpected"; status?: number };
+  /** `address`: not a URL, or plain http off this machine, so the key was never sent. */
+  | { ok: false; reason: "rejected" | "unreachable" | "unexpected" | "address"; status?: number };
 
 export const PROVIDER_KEY_KINDS: readonly ProviderKeyKind[] = ["anthropic", "openai", "openrouter", "openaiCompat", "xai", "mistral", "cerebras", "groq", "greenference", "meta"];
 
@@ -62,10 +63,10 @@ export async function checkProviderKey(
   try {
     url = new URL(providerModelsUrl(input.provider, input.url));
   } catch {
-    return { ok: false, reason: "unexpected" };
+    return { ok: false, reason: "address" };
   }
   if (url.protocol !== "https:" && !(url.protocol === "http:" && isLoopback(url.hostname))) {
-    return { ok: false, reason: "unexpected" };
+    return { ok: false, reason: "address" };
   }
   const authenticate = (input.provider === "openaiCompat" || input.provider === "openrouter")
     && url.origin === "https://openrouter.ai" && url.pathname === "/api/v1/models";

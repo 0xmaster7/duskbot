@@ -191,8 +191,8 @@ describe("provider key check", () => {
   it("refuses to send a key in clear to anything but a loopback test double", async () => {
     let called = false;
     const spy: typeof fetch = async () => { called = true; return new Response("{}"); };
-    expect(await checkProviderKey({ provider: "openaiCompat", key: "good-key", url: "http://models.example.test/v1" }, spy)).toEqual({ ok: false, reason: "unexpected" });
-    expect(await checkProviderKey({ provider: "openaiCompat", key: "good-key", url: "not a url" }, spy)).toEqual({ ok: false, reason: "unexpected" });
+    expect(await checkProviderKey({ provider: "openaiCompat", key: "good-key", url: "http://models.example.test/v1" }, spy)).toEqual({ ok: false, reason: "address" });
+    expect(await checkProviderKey({ provider: "openaiCompat", key: "good-key", url: "not a url" }, spy)).toEqual({ ok: false, reason: "address" });
     expect(called).toBe(false);
   });
 });
