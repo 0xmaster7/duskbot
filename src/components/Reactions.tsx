@@ -122,6 +122,7 @@ export function ReactAction({ threadId, message }: { threadId: string; message: 
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-label={t("chat.react")}
+        title={open ? undefined : t("chat.react")}
         aria-expanded={open}
         aria-controls={open ? id : undefined}
         className={cn(messageActionClass, open && "bg-ink/[0.06]")}

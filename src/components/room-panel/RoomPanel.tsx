@@ -214,7 +214,7 @@ export function RoomPanel({ group, overlay = false }: { group: Group; overlay?: 
               <span className="ms-auto" />
             </>
           )}
-          <button type="button" onClick={close} aria-label={t("botPanel.close")} className={roundButtonCls}>
+          <button type="button" onClick={close} aria-label={t("botPanel.close")} title={t("botPanel.close")} className={roundButtonCls}>
             <Icon name="close" size={16} />
           </button>
         </div>

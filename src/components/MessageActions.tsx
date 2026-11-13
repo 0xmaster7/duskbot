@@ -191,6 +191,7 @@ export function MessageActions({
           type="button"
           onClick={() => setMenuOpen((value) => !value)}
           aria-label={t("chat.messageActions")}
+          title={menuOpen ? undefined : t("chat.messageActions")}
           aria-haspopup="menu"
           aria-expanded={menuOpen}
           aria-controls={menuOpen ? menuId : undefined}
@@ -238,7 +239,7 @@ export function MessageActions({
 
 export function ReplyAction({ onReply, own = false }: { onReply: () => void; own?: boolean }) {
   return (
-    <button type="button" onClick={onReply} aria-label={t("chat.replyToMessage")} className={messageActionClass}>
+    <button type="button" onClick={onReply} aria-label={t("chat.replyToMessage")} title={t("chat.replyToMessage")} className={messageActionClass}>
       <Icon name={own ? "arrow-u-up-right" : "arrow-u-up-left"} size={14} />
     </button>
   );
