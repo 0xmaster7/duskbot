@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { SECTION } from "./content.mjs";
-import { call, seedBots } from "./seed-live.mjs";
+import { call, readOwnerToken, seedBots, useOwnerToken } from "./seed-live.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
@@ -17,6 +17,8 @@ const remove = args.includes("--remove");
 // --first-run: what `pnpm dev:server` runs on start; seeds a brand-new workspace once, and never again after
 const firstRun = args.includes("--first-run");
 const MANIFESTS = join(homedir(), ".duskbot-test-bots");
+// --owner-stdin: the dev app's server child writes the desktop owner capability on stdin, which its API asks for
+const ownerOnStdin = args.includes("--owner-stdin");
 
 if (!/^http:\/\/(127\.0\.0\.1|localhost):\d{1,5}$/.test(base)) {
   console.error("pnpm test-bots: --url must be http://127.0.0.1:PORT, a server on this computer");
@@ -121,6 +123,7 @@ async function seedIfNew(manifestFile) {
 }
 
 try {
+  if (ownerOnStdin) useOwnerToken(await readOwnerToken(process.stdin));
   const manifestFile = await target();
   if (remove) await removeAll(manifestFile);
   else if (firstRun) await seedIfNew(manifestFile);

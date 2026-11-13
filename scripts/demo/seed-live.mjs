@@ -5,10 +5,35 @@
 import { BOTS, D, MEMORY, ROOMS, ROUTINES, SECTION, SKILLS, WEBHOOKS, threads } from "./content.mjs";
 import { backupProjection, buildThread } from "./transcripts.mjs";
 
+// the dev app's server takes changes only from the desktop window; its seeding child is handed the same capability
+const OWNER_HEADER = "X-Dusk-Desktop-Owner";
+let ownerToken = null;
+/** Sends the desktop owner capability with every request from here on; refuses anything but a well-formed one. */
+export function useOwnerToken(token) {
+  if (!/^[A-Za-z0-9_-]{43}$/.test(token ?? "")) throw new Error("the desktop app handed over no valid owner capability");
+  ownerToken = token;
+}
+
+/** The first line of `stream`, where the dev server writes the owner capability (never argv or env, which others read). */
+export function readOwnerToken(stream, timeoutMs = 10_000) {
+  return new Promise((resolve) => {
+    let received = "";
+    const done = (value) => { clearTimeout(timer); stream.removeAllListeners("data"); stream.pause?.(); resolve(value); };
+    const timer = setTimeout(() => done(null), timeoutMs);
+    stream.setEncoding?.("utf8");
+    stream.on("data", (chunk) => {
+      received += chunk;
+      if (received.includes("\n") || received.length > 256) done(received.split("\n", 1)[0].trim() || null);
+    });
+    stream.once("end", () => done(received.trim() || null));
+  });
+}
+
 export async function call(base, method, path, body) {
+  const owner = ownerToken ? { [OWNER_HEADER]: ownerToken } : {};
   const response = await fetch(`${base}${path}`, body === undefined
-    ? { method }
-    : { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    ? { method, headers: owner }
+    : { method, headers: { ...owner, "content-type": "application/json" }, body: JSON.stringify(body) });
   const text = await response.text();
   let parsed = null;
   try { parsed = text ? JSON.parse(text) : null; } catch {}

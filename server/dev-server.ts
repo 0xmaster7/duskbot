@@ -15,9 +15,13 @@ await import("./index.ts");
 
 const announceGrant = () => console.log(`[dev] this computer granted by the desktop app (${desktopComputer.connection() ? "driver ready" : desktopComputer.unavailableReason() ?? "no driver"})`);
 if (desktopComputer.granted()) announceGrant();
-const parentPort = (process as NodeJS.Process & { parentPort?: { on(event: "message", listener: (event: { data?: { type?: unknown } }) => void): void } }).parentPort;
+const parentPort = (process as NodeJS.Process & { parentPort?: { on(event: "message", listener: (event: { data?: { type?: unknown; token?: unknown } }) => void): void } }).parentPort;
+// under `pnpm dev:app` only the desktop window may change things; the seeding child below is handed its capability
+const desktopManaged = process.env.DUSK_DESKTOP_PARENT === "1";
+let ownerToken: string | null = null;
 parentPort?.on("message", ({ data }) => {
   if (data?.type === DESKTOP_COMPUTER_GRANT) announceGrant();
+  if (data?.type === "duskbot:desktop-mutation-token" && typeof data.token === "string" && /^[A-Za-z0-9_-]{43}$/.test(data.token)) ownerToken = data.token;
 });
 // in a utility child execPath is Electron, which runs a script only as node
 const nodeEnv = process.versions.electron ? { ...process.env, ELECTRON_RUN_AS_NODE: "1" } : process.env;
@@ -29,8 +33,12 @@ if (process.env.DUSK_NO_TEST_BOTS !== "1") {
   const seedOnce = async () => {
     for (let attempt = 0; attempt < 60; attempt += 1) {
       const up = await fetch(`${url}/api/health`).then((response) => response.ok, () => false);
-      if (up) {
-        spawn(process.execPath, [script, "--first-run", "--url", url], { stdio: "inherit", env: nodeEnv }).on("error", () => {});
+      if (up && (!desktopManaged || ownerToken)) {
+        // the capability rides a pipe, never argv or env, which other processes on this computer can read
+        const child = spawn(process.execPath, [script, "--first-run", "--url", url, ...(ownerToken ? ["--owner-stdin"] : [])],
+          { stdio: [ownerToken ? "pipe" : "ignore", "inherit", "inherit"], env: nodeEnv });
+        child.on("error", () => {});
+        if (ownerToken) { child.stdin?.on("error", () => {}); child.stdin?.end(`${ownerToken}\n`); }
         return;
       }
       await new Promise((resolve) => setTimeout(resolve, 500));
