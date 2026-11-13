@@ -99,7 +99,7 @@ describe("the review prompt", () => {
     expect(prompt).toContain('<skill name="weekly-report">');
     expect(prompt).not.toContain('<skill name="huge-skill">');
     expect(prompt).toContain("## When to Use");
-    expect(prompt).toContain("Be ACTIVE");
+    expect(prompt).toContain("one per kind of work");
     expect(prompt).toContain("Never delete or rename a skill");
   });
 });
