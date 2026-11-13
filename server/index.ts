@@ -611,6 +611,7 @@ import { createLiveRoutes } from "./routes/live.ts";
 import { createNotificationRoutes } from "./routes/notifications.ts";
 import { createTodayRoutes } from "./routes/today.ts"; import { createInboxRoutes } from "./routes/inbox.ts"; import { createSidebarSectionRoutes } from "./routes/sidebar-sections.ts";
 import { createToolTimingRoute, createUsageRoutes } from "./routes/usage.ts"; import { createSpendRoutes } from "./routes/spend.ts"; import { createSpend } from "./spend.ts"; import { createRoutineGuard, DRY_RUN_REFUSAL } from "./host/routine-guard.ts"; import { createRoutineHost } from "./host/routine-quiet-host.ts";
+import { createReconnectResume } from "./host/reconnect-resume.ts"; import { mcpServerLabel } from "./remote-mcp-label.ts"; import { tokenApp as tokenAppSpec } from "../shared/app-tokens.ts";
 import { createFinishGuard } from "./host/finish-guard.ts"; import { createActionReceipts } from "./host/action-receipts.ts";
 import { createBrowserLoops } from "./host/browser-loops.ts";
 import { createBotMessageRoutes } from "./routes/bot-messages.ts";
@@ -1308,7 +1309,7 @@ const providerAuthSessions = new ProviderAuthSessions({ signedIn: (instanceId) =
 const mcpOAuth = new McpOAuthManager({
   file: join(DATA_DIR, "mcp-oauth.json"),
   isOwnerLive: (owner) => owner === "loopback" || sessions.isLive(owner) || isCardOwnerLive(store, owner),
-  onSettled: (name, phase, owner) => mcpSignInCards.settled(name, phase, owner),
+  onSettled: (name, phase, owner) => { mcpSignInCards.settled(name, phase, owner); if (phase === "succeeded") reconnectResume.reconnected(name); },
   // Read the registered app when needed; never copy its secret into the token store.
   clients: (name, url) => {
     const raw = cfg.mcpServers?.[name];
@@ -7463,6 +7464,20 @@ const finishGuard = createFinishGuard({ botOf: oneOnOne, held: (threadId) => { c
 const actionReceipts = createActionReceipts({ dataDir: DATA_DIR, botOf: (threadId) => (store.groupByThread(threadId) ? null : store.botByThread(threadId)?.id ?? null), mark: (threadId, turnId, kinds) => { const said = turnId ? store.activePath(threadId).findLast((line) => line.role === "bot" && line.kind === "text" && line.turnId === turnId) : undefined; return Boolean(said && store.patchMessage(threadId, said.id, { unconfirmed: kinds })); } });
 const browserLoops = createBrowserLoops({ stop: ({ threadId, blocker, cause }) => { const bot = store.botByThread(threadId); if (!bot) return; turnStops.stopping(threadId, liveTurnByThread.get(threadId), cause); routines?.failThread(threadId, `Stopped: ${cause}`, { cause: "cap" }); store.appendMessage(threadId, { role: "bot", kind: "activity", tool: failedTurnTool(`stopped: ${cause}`, { blocker }) }); void interruptDirectThread(bot.id, threadId, cause).catch(() => undefined); } });
 bus.subscribe((event: RuntimeEvent) => { if (!shouldIgnoreProviderEvent(event)) { finishGuard.onEvent(event); actionReceipts.onEvent(event); } });
+const reconnectResume = createReconnectResume({ botOf: oneOnOne, needing: (botId) => appsToReconnect(botId),
+  held: (threadId) => { const botId = oneOnOne(threadId); return !botId || watchdog.waiting(threadId) || threadBusy(botId, threadId) || hasQueuedSteeredMessages(botId, threadId); },
+  carryOn: (botId, threadId, note) => startTurn(botId, note, { threadId, unattended: true, cardContinuation: true }),
+  line: (threadId) => void store.appendMessage(threadId, { role: "bot", kind: "activity", tool: { name: `recovery: ${serverLine(threadLanguage(threadId), "server.reconnect.carryOn")}`, ok: true } }) });
+bus.subscribe((event: RuntimeEvent) => { if (!shouldIgnoreProviderEvent(event)) reconnectResume.onEvent(event); });
+/** The bot's apps whose sign-in has to be redone: a vendor server's, or a token app's refused account. */
+function appsToReconnect(botId: string): Array<{ server: string; label: string }> {
+  const bot = store.bot(botId);
+  if (!bot) return [];
+  const servers = mcpServersHost.mounted(bot);
+  const vendor = Object.entries(servers).flatMap(([name, server]) => ("url" in server && mcpOAuth.authState(name, server.url) === "needs-sign-in" ? [{ server: name, label: mcpServerLabel(name, server.url) }] : []));
+  const tokens = tokenApps.store.list().flatMap((account) => (account.needsReconnect && Object.hasOwn(servers, account.server) ? [{ server: account.server, label: tokenAppSpec(account.app)?.label ?? account.app }] : []));
+  return [...vendor, ...tokens];
+}
 bus.subscribe((event: RuntimeEvent) => { if (event.type === "turn.started" || event.type === "turn.completed") browserLoops.settle(event.threadId); });
 const personFirst = createPersonFirst({ firstMs: Number(process.env.DUSK_PERSON_FIRST_MS) || undefined, waiting: (threadId) => watchdog.waiting(threadId) || activeRoutineRunForThread(threadId) !== null,
   stop: async (threadId, line) => { const bot = store.botByThread(threadId); if (!bot) return; store.appendMessage(threadId, { role: "bot", kind: "activity", tool: { name: line, ok: true } }); turnStops.stopping(threadId, liveTurnByThread.get(threadId), line); await interruptDirectThread(bot.id, threadId, line); } });
@@ -12133,6 +12148,7 @@ function mcpPrompt(bot: BotRecord, mounted: Readonly<Record<string, unknown>>): 
   return mcpServersPrompt({
     mounted: Object.keys(mounted), configured: mcpServersHost.mounted(bot), off: mcpServersHost.off(bot),
     needsSignIn: (name, url) => mcpOAuth.authState(name, url) === "needs-sign-in",
+    accountOf: (name) => { const parsed = parseStoredMcpServer(name, cfg.mcpServers?.[name]); return parsed.ok && isRemoteMcpServer(parsed.server) ? parsed.server.account : undefined; },
   });
 }
 
@@ -12642,7 +12658,7 @@ const mcpConfig = createMcpConfig({
   mcpServerResponse, mcpPolicyRefusal, persistMcpServers, savedCustomDomain, appCatalog: chatAppsMcp, forgetPeople: (name) => teamConnections.forgetServer(name), health: mcpServersHost.health, botsPath: () => brokerPath(botBox),
   connectionsChanged: (change) => void routineHolds?.connections(change), probeAs: mcpServersHost.probeAs,
   changed: () => broadcast({ kind: "mcp.changed" }) });
-const tokenApps = createTokenApps({ dataDir: DATA_DIR, origin: () => `http://127.0.0.1:${PORT}`, servers: {
+const tokenApps = createTokenApps({ dataDir: DATA_DIR, origin: () => `http://127.0.0.1:${PORT}`, reconnected: (server) => reconnectResume.reconnected(server), servers: {
   names: () => Object.keys(cfg.mcpServers ?? {}),
   add: (name, server) => { const result = mcpConfig.add(name, server); return "body" in result ? { ok: true } : { ok: false, status: result.status, error: result.error }; },
   replace: (name, server) => { const current = cfg.mcpServers?.[name] as { url?: unknown; headers?: unknown } | undefined; if (current && (current.url !== (server as { url?: string }).url || JSON.stringify(current.headers) !== JSON.stringify((server as { headers?: unknown }).headers))) mcpConfig.replace(name, server); },

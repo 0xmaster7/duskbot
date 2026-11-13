@@ -375,8 +375,9 @@ describe("native sign-ins to dusk bot's own OAuth apps", () => {
     const servers = new Map<string, StoredMcpServer>();
     const fake = fakeFetch(routes);
     let clock = 1_000_000;
+    const reconnected: string[] = [];
     const apps = createTokenApps({
-      dataDir, origin: () => "http://127.0.0.1:8799", fetch: fake.impl, clients, now: () => clock,
+      dataDir, origin: () => "http://127.0.0.1:8799", fetch: fake.impl, clients, now: () => clock, reconnected: (server) => reconnected.push(server),
       servers: {
         names: () => [...servers.keys()],
         add: (name, server) => { servers.set(name, server); return { ok: true }; },
@@ -384,7 +385,7 @@ describe("native sign-ins to dusk bot's own OAuth apps", () => {
         remove: (name) => { servers.delete(name); },
       },
     });
-    return { apps, servers, fake, tick: (ms: number) => { clock += ms; } };
+    return { apps, servers, fake, reconnected, tick: (ms: number) => { clock += ms; } };
   }
 
   async function signIn(apps: ReturnType<typeof createTokenApps>, app: string, replaces?: string) {
@@ -520,6 +521,29 @@ describe("native sign-ins to dusk bot's own OAuth apps", () => {
     tick(4 * 3_600_000);
     await apps.refreshDue();
     expect(apps.status().accounts[0]).toMatchObject({ app: "dropbox", needsReconnect: true });
+  });
+
+  it("reconnects a refused account in place: same server, and the chats waiting on it hear so", async () => {
+    let grants = 0;
+    const { apps, tick, servers, reconnected } = setup({
+      "https://api.dropboxapi.com/oauth2/token": (call) => new URLSearchParams(String(call.init.body)).get("grant_type") === "refresh_token"
+        ? { status: 400, body: { error: "invalid_grant" } }
+        : { body: { access_token: `sl.at${grants++}`, refresh_token: "rt", expires_in: 14_400 } },
+      "https://api.dropboxapi.com/2/users/get_current_account": () => ({ body: { name: { display_name: "Dee" } } }),
+    }, { dropbox: { clientId: "did" } });
+    await signIn(apps, "dropbox");
+    tick(4 * 3_600_000);
+    await apps.refreshDue();
+    const stale = apps.status().accounts[0]!;
+    expect(stale.needsReconnect).toBe(true);
+    expect(reconnected).toEqual([]);
+    await signIn(apps, "dropbox", stale.id);
+    const accounts = apps.status().accounts;
+    expect(accounts).toHaveLength(1);
+    expect(accounts[0]).toMatchObject({ server: stale.server });
+    expect(accounts[0]!.needsReconnect).toBeUndefined();
+    expect([...servers.keys()]).toEqual([stale.server]);
+    expect(reconnected).toEqual([stale.server]);
   });
 
   it("tells the bot when the app is rate limiting, with the wait it asked for", async () => {

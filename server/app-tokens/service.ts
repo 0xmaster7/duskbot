@@ -41,6 +41,8 @@ export interface TokenAppsDeps {
   clients?: DeviceClients;
   fetch?: typeof fetch;
   now?(): number;
+  /** A reconnect took over this MCP server's account: a chat waiting on it may carry on. */
+  reconnected?(server: string): void;
 }
 
 interface PendingDevice { connector: NativeConnector; deviceCode?: string; code?: { state: string; verifier: string; redirect: string }; replaces?: string; expiresAt: number; interval: number; nextAt: number; result?: DevicePoll }
@@ -101,6 +103,7 @@ export function createTokenApps(deps: TokenAppsDeps) {
       store.remove(old.id);
       store.put(account);
       deps.servers.replace(server, serverFor(account));
+      deps.reconnected?.(server);
       return accountView(account);
     }
     store.put(account);
