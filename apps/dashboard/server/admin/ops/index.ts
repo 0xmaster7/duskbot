@@ -1,6 +1,6 @@
 import { timingSafeEqual, createHash } from "node:crypto";
 import type { Db } from "mongodb";
-import type { OpsAccountsAnswer, OpsAccountsRange, OpsAnswer, OpsBox, OpsCheck, OpsLevel, OpsMeter, OpsRule, OpsSource, OpsSourceId, OpsSpend } from "../../../src/admin/ops-types.ts";
+import type { OpsAccountsAnswer, OpsAccountsRange, OpsAnswer, OpsSuspect, OpsBox, OpsCheck, OpsLevel, OpsMeter, OpsRule, OpsSource, OpsSourceId, OpsSpend } from "../../../src/admin/ops-types.ts";
 import type { StoredCloud } from "../../clouds/types.ts";
 import type { LedgerEntry } from "../../billing/ledger.ts";
 import type { ErrorCounter } from "../health.ts";
@@ -24,6 +24,9 @@ export const WORKERS_PLAN = { label: "workers paid", baseCents: 500, includedReq
 export const R2_PLAN = { freeBytes: 10 * GB_BYTES, centsPerGbMonth: 1.5 } as const;
 /** the composio broker's limits (apps/cloudflare/composio-broker/src/budgets.ts) */
 export const BREVO_MONTHLY_BUDGET = 10_000;
+/** the ops_latest entry with each account's plan and the people to look at */
+export const ACCOUNT_NOTES = "account-notes";
+export interface AccountNotes { plans: Record<string, string>; suspects: OpsSuspect[] }
 export const COMPOSIO_LIMITS = { installation: 10_000, account: 50_000 } as const;
 
 export const THRESHOLDS = {
@@ -182,12 +185,20 @@ export function createOps(options: OpsOptions) {
     return (machine: string | null) => machine ? clouds.find(c => c.id === machine || c.serverId === machine)?.accountId ?? null : null;
   }
 
+  /** each account's plan and the people to look at, kept in ops_latest so another service's admin can read them (preview reading dusk.bot) */
+  async function saveAccountNotes() {
+    const snap = await snapshot(), emails = options.emails();
+    const data: AccountNotes = { plans: Object.fromEntries(options.customers().map(c => [c.accountId, c.plan])), suspects: abuseOf(snap, spendOf(snap, emails), emails) };
+    await store.setLatest({ source: ACCOUNT_NOTES, at: now(), ok: true, error: null, data });
+  }
+
   /** collects (both cadences when `all`), then checks the alert rules; a second call while one runs joins it */
   function collect(all = true): Promise<string[]> {
     if (running) return running;
     running = (async () => {
       const ran = [...await health(), ...(all ? await usage() : [])];
       await evaluate().catch(error => console.warn(`ops: the alert rules could not be checked (${(error as Error).message})`));
+      await saveAccountNotes().catch(error => console.warn(`ops: the account notes could not be saved (${(error as Error).message})`));
       return ran;
     })().finally(() => { running = null; });
     return running;

@@ -241,6 +241,15 @@ describe("ops alerts into incidents", () => {
     expect(answer.reported).toEqual({ relay: false, cloud: true, mail: true });
   });
 
+  it("keeps the people to look at in ops_latest after each collection, for another service's admin", async () => {
+    const f = fixture();
+    await f.infra.put([...Array.from({ length: 6 }, (_, i) => infraRow(`a${i}`, `c${i}`, "2026-11-12", 5, 8)), infraRow("heavy", "cheavy", "2026-11-12", 900, 24)]);
+    await f.ops.collectHealth();
+    const notes = (await f.store.latest()).find(entry => entry.source === "account-notes")?.data as { plans: Record<string, string>; suspects: Array<{ accountId: string | null }> };
+    expect(notes.plans).toEqual({});
+    expect(notes.suspects.map(s => s.accountId)).toContain("heavy");
+  });
+
   it("collects on demand and builds the page from what was stored", async () => {
     const f = fixture({ DUSK_CF_ANALYTICS_TOKEN: "t", DUSK_CF_ACCOUNT_ID: "a" });
     const answer0 = await f.ops.answer();

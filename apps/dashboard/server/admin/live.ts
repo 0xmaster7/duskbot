@@ -14,6 +14,8 @@ export interface LiveData {
   /** that service's dusk cloud usage days and its ops daily counters ("mail"), for the ops page's top accounts */
   infra(fromDay: string, toDay: string): Promise<InfraDay[]>;
   daily(source: string, fromDay: string, toDay: string): Promise<OpsDaily[]>;
+  /** one ops_latest entry's data, null when there is none */
+  latest(source: string): Promise<unknown>;
 }
 
 export function liveData(db: Db, label: string, now: () => number = Date.now, ttlMs = 30_000): LiveData {
@@ -33,6 +35,10 @@ export function liveData(db: Db, label: string, now: () => number = Date.now, tt
     async infra(fromDay, toDay) {
       const docs = await db.collection("infra_usage_daily").find({ day: { $gte: fromDay, $lte: toDay } }, { projection: { _id: 0 } }).limit(50_000).toArray();
       return docs.map(doc => ({ ...doc, collectedAt: doc.collectedAt instanceof Date ? doc.collectedAt.getTime() : Number(doc.collectedAt) || 0 }) as unknown as InfraDay);
+    },
+    async latest(source) {
+      const doc = await db.collection<{ _id: string; data: unknown }>("ops_latest").findOne({ _id: source });
+      return doc?.data ?? null;
     },
     async daily(source, fromDay, toDay) {
       const docs = await db.collection("ops_daily").find({ source, day: { $gte: fromDay, $lte: toDay } }).limit(50_000).toArray();

@@ -24,6 +24,7 @@ import { PlanError, createPlanEditor } from "./plans.ts";
 import { marginReport, type InfraStore } from "./infra.ts";
 import { RelayError, createRelays } from "./ops/relays.ts";
 import { isRange, rangeDays, topAccounts } from "./ops/accounts.ts";
+import { ACCOUNT_NOTES, type AccountNotes } from "./ops/index.ts";
 import type { OpsAccountsAnswer, OpsAccountsRange, OpsRelayCard } from "../../src/admin/ops-types.ts";
 import { DAY, choseCloud, dayKey, dayRange, funnel, isPaying, perDay, wasPaid, workspaceTurns } from "./metrics.ts";
 
@@ -433,9 +434,10 @@ export function createAdmin(options: AdminOptions) {
         const [view, cards] = await Promise.all([viewOf(req), relays.list()]);
         if (!view.live) return send(await options.ops.accounts(cards.relays, { range, limit }));
         const time = now(), { from, to } = rangeDays(range, time);
-        const [infra, mail] = await Promise.all([live!.infra(from, to).catch(() => null), live!.daily("mail", from, to).catch(() => null)]);
+        const [infra, mail, notes] = await Promise.all([live!.infra(from, to).catch(() => null), live!.daily("mail", from, to).catch(() => null),
+          live!.latest(ACCOUNT_NOTES).catch(() => null) as Promise<AccountNotes | null>]);
         return send(topAccounts({ now: time, month: new Date(time).toISOString().slice(0, 7), range, limit, data: live!.label, accounts: view.directory().accounts,
-          relays: range === "month" ? cards.relays : [], infra, mail }));
+          relays: range === "month" ? cards.relays : [], infra, mail, plans: notes?.plans ? new Map(Object.entries(notes.plans)) : undefined, suspects: Array.isArray(notes?.suspects) ? notes.suspects : [] }));
       }
       try {
         if (route === "/revenue") return send(await deep.revenue(url));

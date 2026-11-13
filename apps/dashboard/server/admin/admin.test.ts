@@ -343,7 +343,7 @@ describe("admin panel api", () => {
       await live.insert({ id: "ev_live1", name: "signup", at: time - 1000, accountId: "acct_live", props: { method: "email" } });
       const accounts = [{ id: "acct_live", email: "real@example.test", name: null, createdAt: time - 1000 }];
       app = createDashboardApp({ dataDir, publicUrl: origin, mailer, staticDir: null, now: () => time, analytics: { sink, waitlist, infra },
-        admin: { emails: [ADMIN], env: {}, live: { label: "dusk.bot", sink: live, accounts: async () => accounts, infra: async () => [], daily: async () => [] } } });
+        admin: { emails: [ADMIN], env: {}, live: { label: "dusk.bot", sink: live, accounts: async () => accounts, infra: async () => [], daily: async () => [], latest: async () => null } } });
       server = createServer(app.handle);
       await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
       const address = server.address();
