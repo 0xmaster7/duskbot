@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { cn } from "@/lib/cn";
 import { HermesMark } from "./HermesMark";
 import { CursorMark } from "./CursorMark";
@@ -150,6 +150,35 @@ export function GreenferenceMark({ size = 16, className }: IconProps) {
   </svg>;
 }
 
+// gemini's colour sparkle, from Lobe Icons (@lobehub/icons-static-svg, gemini-color, MIT); ids are per use so copies don't share gradients
+const GEMINI_PATH = "M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z";
+
+export function GeminiMark({ size = 16, className }: IconProps) {
+  const id = useId().replace(/:/g, "");
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path d={GEMINI_PATH} fill="#3186FF" />
+      <path d={GEMINI_PATH} fill={`url(#${id}g0)`} />
+      <path d={GEMINI_PATH} fill={`url(#${id}g1)`} />
+      <path d={GEMINI_PATH} fill={`url(#${id}g2)`} />
+      <defs>
+        <linearGradient id={`${id}g0`} gradientUnits="userSpaceOnUse" x1="7" x2="11" y1="15.5" y2="12"><stop stopColor="#08B962" /><stop offset="1" stopColor="#08B962" stopOpacity="0" /></linearGradient>
+        <linearGradient id={`${id}g1`} gradientUnits="userSpaceOnUse" x1="8" x2="11.5" y1="5.5" y2="11"><stop stopColor="#F94543" /><stop offset="1" stopColor="#F94543" stopOpacity="0" /></linearGradient>
+        <linearGradient id={`${id}g2`} gradientUnits="userSpaceOnUse" x1="3.5" x2="17.5" y1="13.5" y2="12"><stop stopColor="#FABC12" /><stop offset=".46" stopColor="#FABC12" stopOpacity="0" /></linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
+// openrouter's official mark, from Lobe Icons (@lobehub/icons-static-svg, openrouter, MIT); the brand mark is single colour
+export function OpenRouterMark({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={cn("fill-[var(--color-ink)]", className)} aria-hidden="true">
+      <path fillRule="evenodd" d="M18.654 3.87a5.087 5.087 0 110 10.174L23.7 19.09c.64.641.187 1.737-.72 1.737H8.48a8.479 8.479 0 010-16.958h10.175zM8.479 7.26a5.087 5.087 0 100 10.176 5.087 5.087 0 000-10.175z" />
+    </svg>
+  );
+}
+
 export function ProviderMark({ driverKind, size, className }: IconProps & { driverKind: string }) {
   switch (driverKind) {
     case "grok":
@@ -205,8 +234,8 @@ export function ProviderMark({ driverKind, size, className }: IconProps & { driv
 
 /** Built-in provider identities for an instance override. Existing driver
  * marks remain the source of truth whenever no override is configured.
- * Paths for Gemini, Azure, AWS, DeepSeek, Meta, Mistral, and OpenRouter are
- * from Simple Icons (CC0 1.0). The Cohere path is from Lobe Icons (MIT). */
+ * Paths for Azure, AWS, DeepSeek, Meta and Mistral are from Simple Icons
+ * (CC0 1.0). Gemini, OpenRouter and Cohere are from Lobe Icons (MIT). */
 export function PresetProviderMark({ preset, size = 16, className }: IconProps & { preset: ProviderIconPreset }) {
   switch (preset) {
     case "openai": return <CodexMark size={size} className={className} />;
@@ -214,10 +243,7 @@ export function PresetProviderMark({ preset, size = 16, className }: IconProps &
     case "xai": return <GrokMark size={size} className={className} />;
     case "qwen": return <QwenMark size={size} className={className} />;
     case "moonshot": return <KimiMark size={size} className={className} />;
-    case "google":
-      return <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden="true">
-        <path fill="#8E75B2" d="M11.04 19.32Q12 21.51 12 24q0-2.49.93-4.68.96-2.19 2.58-3.81t3.81-2.55Q21.51 12 24 12q-2.49 0-4.68-.93a12.3 12.3 0 0 1-3.81-2.58 12.3 12.3 0 0 1-2.58-3.81Q12 2.49 12 0q0 2.49-.96 4.68-.93 2.19-2.55 3.81a12.3 12.3 0 0 1-3.81 2.58Q2.49 12 0 12q2.49 0 4.68.96 2.19.93 3.81 2.55t2.55 3.81" />
-      </svg>;
+    case "google": return <GeminiMark size={size} className={className} />;
     case "azure":
       return <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden="true"><path fill="#0089D6" d="M22.379 23.343a1.62 1.62 0 0 0 1.536-2.14v.002L17.35 1.76A1.62 1.62 0 0 0 15.816.657H8.184A1.62 1.62 0 0 0 6.65 1.76L.086 21.204a1.62 1.62 0 0 0 1.536 2.139h4.741a1.62 1.62 0 0 0 1.535-1.103l.977-2.892 4.947 3.675c.28.208.618.32.966.32m-3.084-12.531 3.624 10.739a.54.54 0 0 1-.51.713v-.001h-.03a.54.54 0 0 1-.322-.106l-9.287-6.9h4.853m6.313 7.006c.116-.326.13-.694.007-1.058L9.79 1.76a1.722 1.722 0 0 0-.007-.02h6.034a.54.54 0 0 1 .512.366l6.562 19.445a.54.54 0 0 1-.338.684" /></svg>;
     case "aws":
@@ -231,8 +257,7 @@ export function PresetProviderMark({ preset, size = 16, className }: IconProps &
       return <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden="true"><path fill="#FA520F" d="M17.143 3.429v3.428h-3.429v3.429h-3.428V6.857H6.857V3.43H3.43v13.714H0v3.428h10.286v-3.428H6.857v-3.429h3.429v3.429h3.429v-3.429h3.428v3.429h-3.428v3.428H24v-3.428h-3.43V3.429z" /></svg>;
     case "cohere":
       return <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden="true"><path fill="#39594D" fillRule="evenodd" d="M8.128 14.099c.592 0 1.77-.033 3.398-.703 1.897-.781 5.672-2.2 8.395-3.656 1.905-1.018 2.74-2.366 2.74-4.18A4.56 4.56 0 0018.1 1H7.549A6.55 6.55 0 001 7.55c0 3.617 2.745 6.549 7.128 6.549z" /><path fill="#D18EE2" fillRule="evenodd" d="M9.912 18.61a4.387 4.387 0 012.705-4.052l3.323-1.38c3.361-1.394 7.06 1.076 7.06 4.715a5.104 5.104 0 01-5.105 5.104l-3.597-.001a4.386 4.386 0 01-4.386-4.387z" /><path fill="#FF7759" d="M4.776 14.962A3.775 3.775 0 001 18.738v.489a3.776 3.776 0 007.551 0v-.49a3.775 3.775 0 00-3.775-3.775z" /></svg>;
-    case "openrouter":
-      return <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden="true"><path fill="#94A3B8" d="M16.778 1.844v1.919q-.569-.026-1.138-.032-.708-.008-1.415.037c-1.93.126-4.023.728-6.149 2.237-2.911 2.066-2.731 1.95-4.14 2.75-.792.447-2.497.904-3.936 1.131v4.229c1.31.184 2.908.627 3.795 1.132 1.41.798 1.228.683 4.14 2.75 2.126 1.509 4.22 2.11 6.148 2.236.88.058 1.716.041 2.555.005v1.918L24 15.038l-7.222-4.17v2.176c-.86.038-1.611.065-2.278.021-1.364-.09-2.417-.357-3.979-1.465-2.244-1.593-2.866-2.027-3.68-2.508.889-.518 1.449-.906 3.822-2.59 1.56-1.109 2.614-1.377 3.978-1.466.667-.044 1.418-.017 2.278.02v2.176L24 6.014Z" /></svg>;
+    case "openrouter": return <OpenRouterMark size={size} className={className} />;
     case "deepseek":
       return <DeepSeekMark size={size} className={className} />;
   }
