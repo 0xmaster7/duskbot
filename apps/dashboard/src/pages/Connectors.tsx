@@ -1,5 +1,5 @@
 import { useDeferredValue, useMemo, useState } from "react";
-import { Check, ListFilter, Search, Sparkles } from "@/icons";
+import { Check, ListFilter, Search } from "@/icons";
 import type { WorkspaceSummary } from "../../../../shared/dashboard-protocol";
 import { flowKey, useAppCommands, type AppFlow } from "../data/app-connect";
 import { CATEGORY_NAMES, composioSlug, connectedIn, inCategory, presentCategories, searchApps, useConnectorRows, useDashApps, type Category, type ConnectorRow, type DashApp } from "../data/connectors";
@@ -9,12 +9,10 @@ import { useSession } from "../data/session";
 import { appLink, openApp } from "../lib/app-link";
 import { toast } from "../lib/toast";
 import { AppLogo } from "../ui/AppLogo";
-import { Toggle } from "../ui/controls";
 import { Button, cx, PageHeader, Skeleton } from "../ui/kit";
 import { Pill, usePill } from "../ui/motion";
 import { NameDot, Nil, RowMenu, SectionHead, Table, Td, Th, type MenuItem } from "../ui/table";
 
-type Tab = "connectors" | "skills";
 const PAGE = 8;
 const CATALOG_PAGE = 30;
 
@@ -33,14 +31,14 @@ function Tile({ row }: { row: ConnectorRow }) {
   if (row.app) return <AppLogo app={row.app} size={32} />;
   return (
     <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-card-2 text-13 text-ink-2" aria-hidden>
-      {row.type === "Skill" ? <Sparkles size={15} strokeWidth={1.5} /> : row.label.slice(0, 1).toUpperCase()}
+      {row.label.slice(0, 1).toUpperCase()}
     </span>
   );
 }
 
 function WorkspacesCell({ list }: { list: ConnectorRow["workspaces"] }) {
   const names = list.map((w) => w.name);
-  return <span className="block max-w-[200px] truncate text-ink-2" title={names.join(", ")}>{names.length > 2 ? `${names.length} workspaces` : names.join(", ")}</span>;
+  return <span className="block max-w-[160px] truncate text-ink-2" title={names.join(", ")}>{names.length > 2 ? `${names.length} workspaces` : names.join(", ")}</span>;
 }
 
 /** the pill on a row that needs sign-in: it follows the reconnect (waking, connecting, finish sign-in) */
@@ -76,8 +74,11 @@ function Row({ row, flow, onAuth, menu }: { row: ConnectorRow; flow: AppFlow | u
       </Td>
       <Td className="lowercase text-ink-2 max-md:hidden">{row.type}</Td>
       <Td className="lowercase text-ink-2 max-lg:hidden">{row.category}</Td>
-      <Td className="num text-ink-2 max-lg:hidden">{row.tools ?? <Nil />}</Td>
-      <Td className="lowercase text-ink-2 max-xl:hidden">{row.permissions ?? <Nil />}</Td>
+      {/* below 2xl the permissions column is hidden, so the tools cell carries it as a tooltip */}
+      <Td className="num text-ink-2 max-lg:hidden" title={row.permissions ? `permissions: ${row.permissions.toLowerCase()}` : undefined}>
+        {row.tools ?? <Nil />}{row.permissions && <span className="sr-only 2xl:hidden">, permissions {row.permissions.toLowerCase()}</span>}
+      </Td>
+      <Td className="lowercase text-ink-2 max-2xl:hidden">{row.permissions ?? <Nil />}</Td>
       <Td className="max-md:hidden"><WorkspacesCell list={row.workspaces} /></Td>
       <Td className="w-0 !px-1 text-end">{needs && <Reconnect row={row} where={row.workspaces.length > 1 ? row.needsAuth[0]?.name ?? null : null} flow={flow} onAuth={onAuth} />}</Td>
       <Td className="w-0 !pe-1 !ps-0"><RowMenu label={`more for ${row.label}`} items={menu} /></Td>
@@ -149,7 +150,6 @@ export function ConnectorsPage() {
   const { flows, connect, disconnect } = useAppCommands();
   const { apps } = useDashApps();
   const { rows, loading, error } = useConnectorRows();
-  const [tab, setTab] = useState<Tab>("connectors");
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [needsOnly, setNeedsOnly] = useState(false);
@@ -169,17 +169,15 @@ export function ConnectorsPage() {
     connect(ws, slug, app.label, wake);
   };
   const rowSlug = (row: ConnectorRow) => (row.app ? composioSlug(row.app) : row.type === "Connector" ? row.id.toLowerCase() : null);
-  const tabRows = rows.filter((r) => (tab === "skills" ? r.type === "Skill" : r.type !== "Skill"));
   const q = query.trim().toLowerCase();
-  const shown = tabRows.filter((r) => (!q || r.label.toLowerCase().includes(q) || r.category.toLowerCase().includes(q)) && (!category || r.category === category) && (!needsOnly || r.status === "needs-auth"));
-  const categories = [...new Set(tabRows.map((r) => r.category))].sort();
+  const shown = rows.filter((r) => (!q || r.label.toLowerCase().includes(q) || r.category.toLowerCase().includes(q)) && (!category || r.category === category) && (!needsOnly || r.status === "needs-auth"));
+  const categories = [...new Set(rows.map((r) => r.category))].sort();
   const filtered = Boolean(category) || needsOnly;
 
   const busy = (w: WorkspaceSummary, slug: string | null) => Boolean(slug) && ["waking", "waiting"].includes(flows[flowKey(w.id, slug!)]?.phase ?? "");
   // website actions first; "manage in the app" only when there is nothing to do here
   const menuFor = (row: ConnectorRow): MenuItem[] => {
     const manage: MenuItem[] = [{ label: "manage in the app", onSelect: () => openApp(appLink.app) }];
-    if (row.type === "Skill") return manage;
     const slug = rowSlug(row), one = row.workspaces.length === 1;
     const items: MenuItem[] = [];
     for (const listed of row.needsAuth) {
@@ -195,23 +193,20 @@ export function ConnectorsPage() {
   };
   // the pill reconnects where sign-in is missing, never on a workspace where the app already works
   const authTarget = (row: ConnectorRow) => byId.get(row.needsAuth[0]?.id ?? "") ?? null;
-  const switchTab = (v: Tab) => { setTab(v); setLimit(PAGE); setCategory(null); setNeedsOnly(false); };
-  const apps_ = tab === "connectors";
 
   return (
     <div className="min-w-0">
       <PageHeader title="apps" sub={workspace ? `connect an app and your bots on ${workspace.name} can use it.` : "connect an app in the dusk bot app and your bots can use it."} />
       {workspace && reach(workspace).away && <p role="status" className="-mt-4 mb-6 text-14 text-ink-3">{reach(workspace).away}</p>}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Toggle<Tab> label="show" value={tab} onChange={switchTab} options={[{ value: "connectors", label: "apps" }, { value: "skills", label: "skills" }]} />
+      <div className="flex flex-wrap items-center justify-end gap-3">
         <div className="flex min-w-0 items-center gap-2 max-sm:w-full">
           <div className="relative min-w-0 flex-1 sm:w-[300px]">
-            <label className="sr-only" htmlFor="connector-search">search {apps_ ? "apps" : "skills"}</label>
+            <label className="sr-only" htmlFor="connector-search">search apps</label>
             <Search size={16} strokeWidth={1.5} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-3" aria-hidden />
-            <input id="connector-search" type="search" className="field !h-10 !rounded-full !pl-10" placeholder={apps_ ? (apps ? `search ${apps.length.toLocaleString("en-US")} apps` : "search apps") : "search skills"} value={query} onChange={(e) => { setQuery(e.target.value); setLimit(PAGE); }} />
+            <input id="connector-search" type="search" className="field !h-10 !rounded-full !pl-10" placeholder={apps ? `search ${apps.length.toLocaleString("en-US")} apps` : "search apps"} value={query} onChange={(e) => { setQuery(e.target.value); setLimit(PAGE); }} />
           </div>
-          {tabRows.length > 0 && (
+          {rows.length > 0 && (
             <RowMenu
               label={filtered ? "filter, on" : "filter"}
               active={filtered}
@@ -219,7 +214,7 @@ export function ConnectorsPage() {
               items={[
                 { label: "every category", checked: !category, onSelect: () => { setCategory(null); setLimit(PAGE); } },
                 ...categories.map((c) => ({ label: c.toLowerCase(), checked: category === c, onSelect: () => { setCategory(c); setLimit(PAGE); } })),
-                ...(apps_ ? [{ label: needsOnly ? "show every status" : "needs sign-in only", onSelect: () => { setNeedsOnly((v) => !v); setLimit(PAGE); } }] : []),
+                { label: needsOnly ? "show every status" : "needs sign-in only", onSelect: () => { setNeedsOnly((v) => !v); setLimit(PAGE); } },
               ]}
             />
           )}
@@ -227,21 +222,21 @@ export function ConnectorsPage() {
       </div>
 
       <section className="mt-10" aria-labelledby="installed-title">
-        <SectionHead id="installed-title">{apps_ ? "connected" : "skills"}</SectionHead>
+        <SectionHead id="installed-title">connected</SectionHead>
         {error ? (
           <div className="flex flex-wrap items-center gap-3 py-5"><p role="alert" className="text-14 text-bad">{error}</p><Button size="sm" onClick={() => location.reload()}>retry</Button></div>
         ) : loading ? (
           <div className="flex flex-col gap-2" aria-busy="true">{[0, 1].map((i) => <Skeleton key={i} className="h-14" />)}</div>
         ) : shown.length ? (
           <>
-            <Table label={apps_ ? "connected apps" : "skills"} className="max-sm:[&_table]:table-fixed max-sm:[&_td]:px-2 max-sm:[&_th]:px-2">
+            <Table label="connected apps" className="max-sm:[&_table]:table-fixed max-sm:[&_td]:px-2 max-sm:[&_th]:px-2">
               <thead>
                 <tr>
                   <Th>name</Th>
                   <Th className="max-md:hidden">type</Th>
                   <Th className="max-lg:hidden">category</Th>
                   <Th className="max-lg:hidden">tools on</Th>
-                  <Th className="max-xl:hidden">permissions</Th>
+                  <Th className="max-2xl:hidden">permissions</Th>
                   <Th className="max-md:hidden">workspaces</Th>
                   <Th className="w-0 max-sm:w-[104px]"><span className="sr-only">reconnect</span></Th>
                   <Th className="w-0 max-sm:w-12"><span className="sr-only">more</span></Th>
@@ -252,13 +247,12 @@ export function ConnectorsPage() {
             {shown.length > limit && <button type="button" onClick={() => setLimit((n) => n + PAGE * 2)} className="hover-ghost -ms-4 mt-2 h-11 rounded-full px-4 text-14 text-ink-3">show more</button>}
           </>
         ) : (
-          <p className="py-6 text-15 text-ink-2">{q || filtered ? `nothing connected matches${q ? ` "${query.trim()}"` : " that filter"}.` : apps_ ? "nothing connected yet. pick an app below to connect it." : "no skills yet. ask a bot in a chat to learn one."}</p>
+          <p className="py-6 text-15 text-ink-2">{q || filtered ? `nothing connected matches${q ? ` "${query.trim()}"` : " that filter"}.` : "nothing connected yet. pick an app below to connect it."}</p>
         )}
-        {!apps_ && !loading && <p className="mt-4 text-14 text-ink-4">skills ship with the app and work on every workspace.</p>}
       </section>
 
-      {apps_ && <Catalog apps={apps} connected={here} query={query} onConnect={(app) => start(workspace, app, composioSlug(app))}
-        flowFor={(app) => { const slug = composioSlug(app); return workspace && slug ? flows[flowKey(workspace.id, slug)] : undefined; }} />}
+      <Catalog apps={apps} connected={here} query={query} onConnect={(app) => start(workspace, app, composioSlug(app))}
+        flowFor={(app) => { const slug = composioSlug(app); return workspace && slug ? flows[flowKey(workspace.id, slug)] : undefined; }} />
     </div>
   );
 }

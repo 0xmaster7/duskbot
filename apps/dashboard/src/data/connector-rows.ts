@@ -1,6 +1,6 @@
 import type { DashApp } from "./connectors.ts";
 
-export type ConnectorType = "Connector" | "MCP" | "Skill";
+export type ConnectorType = "Connector" | "MCP";
 export type ConnectorStatus = "ready" | "needs-auth";
 export interface ConnectorRow {
   id: string;
@@ -74,15 +74,4 @@ export function connectorRows(apps: DashApp[], connections: Record<string, strin
   }
   for (const [lower, id] of unknown) add(id, null, [lower]);
   return rows.sort((a, b) => Number(b.status === "needs-auth") - Number(a.status === "needs-auth") || popularity(a) - popularity(b) || a.label.localeCompare(b.label));
-}
-
-export const SKILLS: Array<{ id: string; label: string; description: string; category: string }> = [
-  { id: "data-dashboards", label: "Data dashboards", description: "Build dashboards and pages to explore, share and track data.", category: "Productivity" },
-  { id: "social-posts", label: "Social posts", description: "Preview social posts and carousels for each platform.", category: "Marketing" },
-  { id: "phone-harness", label: "Phone harness", description: "Control and test an Android phone over authorized USB debugging.", category: "Code" },
-  { id: "create-verification-skill", label: "Verification skills", description: "Create a skill to launch, drive and verify an app or project.", category: "Code" },
-];
-
-export function skillRows(workspaces: Array<{ id: string; name: string }>): ConnectorRow[] {
-  return SKILLS.map((skill) => ({ id: skill.id, app: null, label: skill.label, type: "Skill", category: skill.category, status: "ready", tools: null, permissions: "Allowed", workspaces: workspaces.map(({ id, name }) => ({ id, name })), needsAuth: [] }));
 }

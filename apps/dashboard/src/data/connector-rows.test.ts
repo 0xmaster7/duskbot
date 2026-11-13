@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { DashApp } from "./connectors.ts";
-import { connectorRows, FIXTURE_EXTRAS, SKILLS, skillRows, withPending } from "./connector-rows.ts";
+import { connectorRows, FIXTURE_EXTRAS, withPending } from "./connector-rows.ts";
 
 const workspaces = [{ id: "mac", name: "My Mac" }, { id: "vps", name: "My VPS" }];
 const app = (id: string, fields: Partial<DashApp> = {}): DashApp => ({ id, label: id, kind: "composio", description: "An app", categories: ["productivity"], icon: {}, ...fields });
@@ -37,17 +37,6 @@ test("connectorRows derives MCP types, categories and defaults", () => {
   const apps = [app("remote", { kind: "remote", categories: ["code", "design"] }), app("custom", { kind: "custom", categories: [] }), app("gmail", { categories: ["communication"] })];
   const rows = connectorRows(apps, { mac: ["remote", "custom", "gmail"] }, workspaces);
   assert.deepEqual(rows.map((row) => [row.id, row.type, row.category, row.status, row.tools, row.permissions]), [["gmail", "Connector", "Communication", "ready", null, null], ["custom", "MCP", "Other", "ready", null, null], ["remote", "MCP", "Code", "ready", null, null]]);
-});
-
-test("skillRows includes the four bundled skills on every workspace", () => {
-  const rows = skillRows(workspaces);
-  assert.deepEqual(SKILLS.map((skill) => [skill.id, skill.label, skill.category]), [["data-dashboards", "Data dashboards", "Productivity"], ["social-posts", "Social posts", "Marketing"], ["phone-harness", "Phone harness", "Code"], ["create-verification-skill", "Verification skills", "Code"]]);
-  for (const [index, row] of rows.entries()) {
-    assert.deepEqual(row, { id: SKILLS[index]!.id, app: null, label: SKILLS[index]!.label, type: "Skill", category: SKILLS[index]!.category, status: "ready", tools: null, permissions: "Allowed", workspaces, needsAuth: [] });
-    assert.ok(SKILLS[index]!.description.length > 0 && SKILLS[index]!.description.length <= 70);
-    assert.ok(!/[\r\n\u2014]/.test(SKILLS[index]!.description));
-  }
-  assert.ok(skillRows([]).every((row) => row.workspaces.length === 0));
 });
 
 test("a started sign-in shows as needing sign-in until the app connects there", () => {

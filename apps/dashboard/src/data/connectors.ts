@@ -9,13 +9,13 @@ import { appLogo } from "@/components/connect-apps/logos";
 import { idsOf, mergeEntries } from "@/components/connect-apps/merge";
 import { FIXTURE } from "../lib/api";
 import { useCloud } from "./cloud";
-import { connectorRows, FIXTURE_EXTRAS, skillRows, withPending, type ConnectorRow } from "./connector-rows";
+import { connectorRows, FIXTURE_EXTRAS, withPending, type ConnectorRow } from "./connector-rows";
 import { useSession } from "./session";
 
 export { CATEGORIES, presentCategories, inCategory, searchApps, recommended } from "@/components/connect-apps/catalog";
 export { idsOf } from "@/components/connect-apps/merge";
 export type { Category } from "@/components/connect-apps/catalog";
-export { CATEGORY_NAMES, connectorRows, FIXTURE_EXTRAS, SKILLS, skillRows } from "./connector-rows";
+export { CATEGORY_NAMES, connectorRows, FIXTURE_EXTRAS } from "./connector-rows";
 export type { ConnectorExtras, ConnectorRow, ConnectorStatus, ConnectorType } from "./connector-rows";
 
 export interface DashApp extends AppEntry {}
@@ -83,7 +83,7 @@ export function useConnectorRows(): { rows: ConnectorRow[]; loading: boolean; er
   const rows = useMemo(() => {
     if (!workspaces) return [];
     const shown = withPending(connections ?? {}, pendingApps, FIXTURE ? FIXTURE_EXTRAS : undefined);
-    return [...connectorRows(apps ?? [], shown.connections, workspaces, shown.extras, shown.pending), ...skillRows(workspaces)];
+    return connectorRows(apps ?? [], shown.connections, workspaces, shown.extras, shown.pending);
   }, [apps, connections, pendingApps, workspaces]);
   const error = appsError ?? (connections === null ? cloudError : null);
   return { rows, loading: workspaces === null || apps === null && !appsError || connections === null && !cloudError, error };
