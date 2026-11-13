@@ -103,4 +103,48 @@ describe("one origin: dashboard, admin and site", () => {
     expect(await hosted("dev.dusk.test", "/anything")).toEqual({ status: 301, location: "https://dusk.test/" });
     expect((await hosted("dusk.test", "/dashboard")).status).toBe(200);
   });
+
+  it("before launch (waitlistOnly) sends the page home but keeps sign-in, the apps' links, admin, the API, webhooks and the site", async () => {
+    // without the flag nothing changes
+    for (const path of ["/dashboard", "/dashboard/", "/dashboard/billing", "/dashboard/account"]) expect((await get(path)).status).toBe(200);
+    app.close();
+    await new Promise<void>(resolve => { server.close(() => resolve()); server.closeAllConnections(); });
+    app = createDashboardApp({ dataDir, publicUrl: origin, mailer, staticDir, pageBase: "/dashboard", waitlistOnly: true,
+      siteUpstream: `http://127.0.0.1:${(site.address() as { port: number }).port}`, admin: { emails: [OWNER] } });
+    server = createServer(app.handle);
+    await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
+    url = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
+
+    for (const path of ["/dashboard", "/dashboard/", "/dashboard/billing?plan=plus", "/dashboard/account", "/dashboard/bots/b1", "/dashboard/usage",
+      "/dashboard/signup", "/dashboard/welcome", "/dashboard/devices", "/dashboard/nope", "/dashboard/index.html", "/billing", "/account", "/signup", "/connectors", "/cloud"]) {
+      const answer = await get(path);
+      expect([path, answer.status, answer.headers.get("location")]).toEqual([path, 302, "/"]);
+    }
+    expect((await fetch(`${url}/dashboard/billing`, { method: "HEAD", redirect: "manual" })).status).toBe(302);
+    // what the apps, emailed links and the admin's sign-in open stays
+    for (const path of ["/dashboard/sign-in?next=%2Fadmin", "/dashboard/signin", "/dashboard/cloud/desktop?code=ABCD-EFGH", "/dashboard/handoff", "/dashboard/claim",
+      "/dashboard/clouds/c1/delete", "/dashboard/assets/main.js"]) expect([path, (await get(path)).status]).toEqual([path, 200]);
+    for (const [from, to] of [["/sign-in", "/dashboard/sign-in"], ["/cloud/desktop?code=ABCD-EFGH", "/dashboard/cloud/desktop?code=ABCD-EFGH"], ["/claim", "/dashboard/claim"]]) {
+      const answer = await get(from);
+      expect([from, answer.status, answer.headers.get("location")]).toEqual([from, 302, to]);
+    }
+    // the admin: signed out to sign-in, the owner gets the panel
+    expect((await get("/admin")).headers.get("location")).toBe("/dashboard/sign-in?next=%2Fadmin");
+    const owner = await login(OWNER);
+    expect(await (await get("/admin/people", { cookie: owner.cookie })).text()).toContain("page shell");
+    // the API, webhooks and well-known addresses answer as before; the site keeps every other path
+    expect((await get("/v1/health")).status).toBe(200);
+    const webhook = await fetch(`${url}/v1/billing/webhooks/dodo`, { method: "POST", redirect: "manual", headers: { "content-type": "application/json" }, body: "{}" });
+    expect(webhook.status).not.toBe(302);
+    expect((await get("/api/cloud/desktop/authorize")).status).not.toBe(302);
+    expect((await get("/.well-known/duskbot/dashboard")).status).toBe(200);
+    expect((await get("/privacy")).status).toBe(404);
+    expect(siteHits).toContain("/privacy");
+    expect((await get("/")).status).toBe(404);
+    expect(siteHits).toContain("/");
+  });
+
+  it("refuses waitlist-only without a page base", () => {
+    expect(() => createDashboardApp({ dataDir, publicUrl: origin, mailer, staticDir, waitlistOnly: true })).toThrow(/page base/);
+  });
 });

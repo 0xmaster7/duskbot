@@ -66,6 +66,9 @@ export interface DashboardAppOptions {
   staticDir: string | null;
   /** the page's path on publicUrl: "/dashboard" when the site shares the origin, "" (the default) at the root */
   pageBase?: string;
+  /** before launch (DUSK_PRELAUNCH_WAITLIST_ONLY=1): the page's routes go home (the waitlist) except the few the apps,
+   *  emailed links and the admin sign-in open; the API, webhooks, admin and site are untouched. needs a page base */
+  waitlistOnly?: boolean;
   mailPerHour?: number;
   /** the site served beside the page on a shared origin (loopback http): every path that is not the page's, an API or
    *  a well-known address is proxied there */
@@ -113,6 +116,15 @@ export const ADMIN_PATH = "/admin";
 /** where the page lived before /dashboard; old links (and /app/admin) are sent on */
 const LEGACY_PAGE_BASES = ["/app"];
 const under = (path: string, base: string) => path === base || path.startsWith(`${base}/`);
+/** the page routes that stay open before launch: sign-in (emailed links, the admin's sign-in), the desktop app's sign-in
+ *  (/cloud/desktop) and plans link (/handoff), a workspace's claim link, a managed cloud's emailed delete link */
+const PRELAUNCH_PAGES = ["/sign-in", "/signin", "/cloud/desktop", "/handoff", "/claim"];
+/** a path within the page (base removed) that stays open before launch; its built files (assets, icons) stay too */
+export function prelaunchOpen(path: string) {
+  if (PRELAUNCH_PAGES.some(page => path === page || path === `${page}/`)) return true;
+  if (/^\/clouds\/[^/]+\/delete\/?$/.test(path)) return true;
+  return under(path, "/assets") || /^\/[^/]+\.(?:svg|png|ico|webmanifest|json|webp|jpg|woff2)$/.test(path);
+}
 
 function pageBaseOf(value: string | undefined) {
   const base = (value ?? "").replace(/\/+$/, "");
@@ -148,6 +160,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const now = options.now ?? Date.now;
   const publicUrl = new URL(options.publicUrl).origin;
   const pageBase = pageBaseOf(options.pageBase), pagesUrl = `${publicUrl}${pageBase}`;
+  if (options.waitlistOnly && !pageBase) throw new Error("Waitlist-only needs the page base (DUSK_DASHBOARD_PAGE_BASE).");
   const reported = new WeakSet<ServerResponse>();
   const site = options.siteUpstream ? siteProxy(options.siteUpstream, (error, res) => reported.add(res) && incidents.report({ source: "upstream", name: "SiteUpstreamDown", key: "site-upstream",
     message: `the site behind ${publicUrl} did not answer (${error.message.slice(0, 60)})`, status: 502 })) : null;
@@ -501,6 +514,10 @@ export function createDashboardApp(options: DashboardAppOptions) {
         return moved(res, 301, `${under(rest, ADMIN_PATH) ? rest : `${pageBase}${rest}`}${url.search}`);
       }
       if (pageBase && under(path, `${pageBase}${ADMIN_PATH}`)) return moved(res, 302, `${path.slice(pageBase.length)}${url.search}`);
+      if (options.waitlistOnly) {
+        const page = under(path, pageBase) ? path.slice(pageBase.length) || "/" : PAGE_ROUTES.some(route => under(path, route)) ? path : null;
+        if (page !== null && !prelaunchOpen(page)) return moved(res, 302, "/");
+      }
       if (under(path, ADMIN_PATH)) {
         // only an admin's session sees the panel; signed out goes to sign-in, anyone else gets what any unknown path gets
         if (isAdminRequest(req)) return staticPage(req, res, true);
