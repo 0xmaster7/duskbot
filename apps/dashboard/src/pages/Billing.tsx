@@ -17,7 +17,7 @@ import { SectionHead } from "../ui/table";
 import { regionName } from "./cloud-bits";
 import { AnimatePresence } from "../ui/motion";
 import { CancelFlow, CONTACT } from "./cancel-flow";
-import { cartText, IntervalToggle, LicenseSheet, PlanSheet, priceText, TeamSheet, useInterval, type PaidPlan } from "./plan-sheet";
+import { cartText, CHECKOUT_PLAN_KEY, IntervalToggle, LicenseSheet, PlanSheet, priceText, TeamSheet, useInterval, type PaidPlan } from "./plan-sheet";
 
 export { IntervalToggle, useInterval };
 
@@ -68,6 +68,31 @@ function PlanCard({ id, catalog, interval, current, onChoose, href, action, disa
         </ul>
       </div>
     </article>
+  );
+}
+
+/** back from the payment page (dodo adds subscription_id or payment_id and a status) without a plan to show yet */
+type Back = "pending" | "failed";
+export function backFromCheckout(query: URLSearchParams): Back | null {
+  if (!query.has("subscription_id") && !query.has("payment_id")) return null;
+  const status = query.get("status");
+  return status === "pending" || status === "processing" ? "pending" : status === "failed" || status === "cancelled" || status === "expired" ? "failed" : null;
+}
+const BACK_POLL_MS = 10_000, BACK_POLLS = 18;
+
+function CheckoutBack({ back, onCheck, onRetry }: { back: Back; onCheck(): void; onRetry(): void }) {
+  const pending = back === "pending";
+  return (
+    <div role="status" className="surface mb-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-card bg-card px-6 py-4">
+      <div className="min-w-0">
+        <p className="text-14 text-ink">{pending ? "your payment is still going through" : "the payment didn't go through"}</p>
+        <p className="mt-0.5 text-13 text-ink-3">{pending ? "your bank is still confirming it. your plan shows up here the moment it does, usually within a few minutes." : "nothing was charged. try again, or use another card."}</p>
+      </div>
+      <div className="flex shrink-0 items-center gap-3">
+        {pending && <button type="button" className="press hover-btn h-10 rounded-full bg-btn px-4.5 text-14 font-medium text-ink" onClick={onCheck}>check again</button>}
+        <button type="button" className={pending ? quiet : "press hover-btn h-10 rounded-full bg-btn px-4.5 text-14 font-medium text-ink"} onClick={onRetry}>try again</button>
+      </div>
+    </div>
   );
 }
 
@@ -167,6 +192,22 @@ export function BillingPage() {
   const [managing, setManaging] = useState(0);
   const [flowOpen, setFlowOpen] = useState(false);
   const manage = () => { setManaging((n) => n + 1); setFlowOpen(true); };
+  // back from the payment page unpaid or still confirming: say so, keep looking for a while, and offer the plan again
+  const [back, setBack] = useState<Back | null>(() => backFromCheckout(query));
+  useEffect(() => { if (query.has("subscription_id") || query.has("payment_id")) navigate("/billing", { replace: true }); }, []);
+  const paid = Boolean(billing?.subscription);
+  useEffect(() => {
+    if (back !== "pending" || paid) return;
+    let n = 0;
+    const timer = window.setInterval(() => { if (++n > BACK_POLLS) window.clearInterval(timer); else refresh(); }, BACK_POLL_MS);
+    return () => window.clearInterval(timer);
+  }, [back, paid, refresh]);
+  const retry = () => {
+    let last: string | null = null;
+    try { last = sessionStorage.getItem(CHECKOUT_PLAN_KEY); } catch {}
+    setBack(null);
+    setPlanSheet(last === "starter" || last === "pro" ? last : "starter");
+  };
   // a running plan shows its own billing period and use
   useEffect(() => { if (owned) setIv(owned.interval); }, [owned?.interval]);
 
@@ -213,6 +254,7 @@ export function BillingPage() {
   return (
     <div>
       <PageHeader title="plans and billing" sub="keep your bots working, laptop open or shut." action={<IntervalToggle value={interval} onChange={setIv} catalog={catalog} />} />
+      {back && !paid && <CheckoutBack back={back} onCheck={refresh} onRetry={retry} />}
       <div className="grid gap-3 lg:grid-cols-3">
         {tiersFor(onCloud).map(card)}
       </div>

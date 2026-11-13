@@ -186,9 +186,10 @@ describe("billing service isolated fixture", () => {
     expect(clouds.end).toHaveBeenLastCalledWith(sub.cloudId, time + 30 * day); expect(service.appState(owner).primary).toBeNull();
   });
   it("enforces open checkout, license exclusivity, desktop cap, and account rate limits", async () => {
+    await service.checkout(owner, { kind: "cart", cart: preset(2) });
     await service.checkout(owner, { kind: "cart", cart: licensedDesktop() });
-    await expect(service.checkout(owner, { kind: "cart", cart: preset(2) })).rejects.toMatchObject({ code: "checkout_open", url: store.state.checkouts[0].url });
-    deliver(provider.complete(store.state.checkouts[0].providerSessionId!));
+    expect(store.state.checkouts.map(checkout => checkout.status)).toEqual(["expired", "open"]);
+    deliver(provider.complete(store.state.checkouts[1].providerSessionId!));
     await expect(service.checkout(owner, { kind: "cart", cart: preset(2) })).rejects.toMatchObject({ code: "already_subscribed" });
     await buy(desktopOnly()); config.maxCloudsPerAccount = 2;
     await expect(service.checkout(owner, { kind: "cart", cart: desktopOnly() })).rejects.toMatchObject({ code: "already_subscribed" });
@@ -500,11 +501,22 @@ describe("paying again after a plan ended", () => {
 });
 
 describe("one subscription per plan", () => {
-  it("answers the same open checkout again for the same plan", async () => {
+  it("opens a fresh page instead of the unpaid one, frees what it held, and still takes a late payment on the old one", async () => {
     const first = await service.checkout(owner, { kind: "cart", cart: desktopOnly() });
-    expect(await service.checkout(owner, { kind: "cart", cart: desktopOnly() })).toEqual(first);
-    expect(store.state.checkouts).toHaveLength(1); expect(clouds.order).toHaveBeenCalledTimes(1);
+    const again = await service.checkout(owner, { kind: "cart", cart: desktopOnly() });
+    expect(again.checkoutId).not.toBe(first.checkoutId); expect(again.checkoutUrl).not.toBe(first.checkoutUrl);
+    expect(store.state.checkouts.map(checkout => checkout.status)).toEqual(["expired", "open"]);
+    expect(clouds.abandon).toHaveBeenCalledExactlyOnceWith(first.cloudId); expect(clouds.order).toHaveBeenCalledTimes(2);
+    // the old page was paid after all (a slow bank): the plan lands on it with a cloud of its own
     deliver(provider.complete(store.state.checkouts[0].providerSessionId!));
+    expect(store.state.subscriptions).toHaveLength(1); expect(store.state.subscriptions[0]).toMatchObject({ checkoutId: first.checkoutId, status: "active" });
+    expect(store.state.subscriptions[0].cloudId).not.toBe(first.cloudId);
+    await expect(service.checkout(owner, { kind: "cart", cart: desktopOnly() })).rejects.toMatchObject({ code: "already_subscribed" });
+  });
+  it("closes the unpaid page when the plan is paid on the new one", async () => {
+    await service.checkout(owner, { kind: "cart", cart: desktopOnly() });
+    await service.checkout(owner, { kind: "cart", cart: desktopOnly() });
+    deliver(provider.complete(store.state.checkouts[1].providerSessionId!));
     await expect(service.checkout(owner, { kind: "cart", cart: desktopOnly() })).rejects.toMatchObject({ code: "already_subscribed" });
   });
   it("cancels at once and refunds a second subscription paid on a stale checkout page", async () => {

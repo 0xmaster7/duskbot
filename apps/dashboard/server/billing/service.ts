@@ -583,16 +583,20 @@ export function createBillingService(options: BillingServiceOptions) {
     const cart = parsed(item.cart);
     const amount = (priced: number) => input.operator?.amountCents ?? priced;
     const open = state.checkouts.find(checkout => checkout.accountId === account.id && checkout.kind === "cart" && checkout.status === "open" && checkout.openUntil > now());
-    if (open?.cart && open.url && sameCart(open.cart, cart) && open.amountCents === amount(quote(cart, config).totalCents)) return { v: 1, checkoutId: open.id, checkoutUrl: open.url, cloudId: open.cloudId, revives: open.revive === true };
     if (state.checkouts.filter(checkout => checkout.accountId === account.id && checkout.createdAt > now() - 3_600_000).length >= config.checkoutsPerHour) fail(429, "rate_limited");
     if (queues.has(account.id) || state.subscriptions.some(sub => sub.accountId === account.id && sub.pendingChange)) fail(409, "plan_change_unavailable");
     purchasable(cart); licenseAvailable(account.id, cart);
-    if (open) throw new BillingError(409, "checkout_open", open.url);
+    // a request still waiting on the provider holds its place; one that already has a page is replaced below
+    if (state.checkouts.some(checkout => checkout.accountId === account.id && checkout.status === "open" && checkout.openUntil > now() && !checkout.url)) throw new BillingError(409, "checkout_open", null);
     if (duplicateOf(account.id, cart)) fail(409, "already_subscribed");
-    const revive = revivableCloud(account.id, cart);
-    if (cart.desktop.kind !== "none" && !revive) cap(account.id);
     if (((item.name !== undefined && (typeof item.name !== "string" || !item.name.trim() || item.name.trim().length > 100)) || (item.color !== undefined && !CLOUD_SWATCHES.includes(item.color)))) fail(400, "invalid_request");
     const lines = providerCart(cart);
+    // an unpaid checkout is never handed out again: a dodo page someone already tried to pay on sends them straight back
+    // (status=pending) until it lapses. each try gets a fresh page; a late payment on the old one still lands, and a
+    // second plan of the same cart is cancelled and refunded (settleDuplicate)
+    if (open) expireCheckouts(account.id, true);
+    const revive = revivableCloud(account.id, cart);
+    if (cart.desktop.kind !== "none" && !revive) cap(account.id);
     const cloud = revive ?? (cart.desktop.kind !== "none" ? clouds.order({ ...desktopPlan(cart), accountId: account.id, name: item.name?.trim() ?? "My Cloud", color: item.color ?? null, region: cart.desktop.region! }) : null);
     const entry: StoredCheckout = { id: id("chk"), accountId: account.id, email: emailOf(account.email), kind: "cart", cart,
       cloudId: cloud?.id ?? null, ...(revive ? { revive: true } : {}), providerSessionId: null, url: null, status: "open", source, createdAt: now(), openUntil: now() + config.checkoutOpenMinutes * 60_000,

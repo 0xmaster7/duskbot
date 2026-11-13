@@ -118,7 +118,7 @@ it("runs the real desktop client through checkout, setup, pairing, upgrade, anot
   expect((await f.client.checkout("starter", "app_card")).outcome).toBe("opened");
   expect(f.browsers[0]).toMatch(/^https:\/\/test.checkout.dodopayments.com\//);
   let fields = await f.session();
-  expect(fields).toMatchObject({ canAdd: false, addBlocked: "checkout_open", offer: { checkout: { plan: "starter" } } });
+  expect(fields).toMatchObject({ canAdd: true, offer: { checkout: { plan: "starter" } } }); expect(fields.addBlocked).toBeUndefined();
   const checkout = await f.complete();
   await f.client.refresh();
   expect(f.client.state()).toMatchObject({ status: "connected", entitlement: { plan: "pro", tier: "starter", status: "active" }, machine: { status: "provisioning" } });
@@ -185,10 +185,8 @@ it("enforces Admin ownership, one-time confirmations, typed bodies, and the desk
   for (const plan of ["personal", "max"]) await refused("upgrade/preview", { plan }, 409, "plan_change_unavailable");
   for (const data of [{ plan: "free" }, { plan: 1 }, { plan: "starter", source: 2 }]) await refused("checkout", data, 400, "invalid_request");
   const checkout = await f.request("checkout", { plan: "starter", source: "app_card", ignored: true, color: 12 }); expect(checkout.status).toBe(200);
-  expect(await f.request("checkout", { plan: "starter", source: "app_card" })).toMatchObject({ status: 200, data: { url: checkout.data.url } });
-  const open = await refused("checkout", { plan: "pro", source: "app_card" }, 409, "checkout_open"); expect(open.data.checkoutUrl).toBe(checkout.data.url);
-  expect(await refused("clouds", { tier: "pro", interval: "month", name: "Other" }, 409, "checkout_open")).toMatchObject({ data: { addBlocked: "checkout_open" } });
-  const purchase = await f.complete(), id = purchase.cloudId!;
+  const again = await f.request("checkout", { plan: "starter", source: "app_card" }); expect(again.status).toBe(200); expect(again.data.url).not.toBe(checkout.data.url);
+  const purchase = await f.complete(1), id = purchase.cloudId!;
   await refused("checkout", { plan: "pro", source: "app_card" }, 409, "already_subscribed");
   await refused("pairing", { cloudId: id }, 409, "not_running");
   await f.reconcile();

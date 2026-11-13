@@ -22,6 +22,8 @@ export const priceText = (monthly: number, interval: BillingInterval, c: Pick<Pl
 export const cartText = (cart: { perMonth: number; dueNow: number }, interval: BillingInterval) => (interval === "year" ? `${money(cart.dueNow)}/yr` : `${money(cart.perMonth)}/mo`);
 
 const INTERVAL_KEY = "dusk-dash-interval";
+/** the plan someone left for the payment page with, so coming back unpaid can offer it again */
+export const CHECKOUT_PLAN_KEY = "dusk-dash-checkout-plan";
 /** Plus and Pro are shared desktops: only the pool regions can take them. */
 function sharedRegions(catalog: PlanCatalog) {
   return catalog.poolRegions ? catalog.regions.filter((r) => catalog.poolRegions!.includes(r.id)) : catalog.regions;
@@ -106,6 +108,7 @@ export function PlanSheet({ start, source, work = false, onClose }: { source: Ch
       else {
         track({ name: "plan_chosen", props: { plan, period: interval } });
         if (catalog.checkoutOpen === false) { setError(CHECKOUT_SOON); return; }
+        try { sessionStorage.setItem(CHECKOUT_PLAN_KEY, plan); } catch {}
         if (await checkout({ source, kind: "plan", selection: sel, bundle: null })) { toast("paid. your dusk cloud is being set up."); onClose(); navigate("/cloud"); }
         else setError("checkout didn't open. try again.");
       }

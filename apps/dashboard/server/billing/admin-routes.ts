@@ -34,8 +34,10 @@ export function createAdminRoutes(ctx: BillingContext) {
     }) };
   }
   function openCheckout(account: AccountRef) { return ctx.store.state.checkouts.find(c => c.accountId === account.id && c.kind === "cart" && c.status === "open" && c.openUntil > now()); }
+  /** the account's clouds, less the ones a checkout reserved and nobody paid for */
+  const listed = (account: AccountRef) => clouds.list(account.id).filter(c => !(c.status === "destroyed" && c.subscriptionId === null));
   function primary(account: AccountRef) {
-    const list = clouds.list(account.id), id = service.appState(account).primary?.cloudId;
+    const list = listed(account), id = service.appState(account).primary?.cloudId;
     return list.find(c => c.id === id) ?? list.find(c => c.primary) ?? null;
   }
   function requireCloud(account: AccountRef, id?: string): StoredCloud {
@@ -75,9 +77,10 @@ export function createAdminRoutes(ctx: BillingContext) {
   }
   function sessionFields(account: AccountRef): Record<string, unknown> {
     available();
-    const state = service.appState(account), c = primary(account), list = clouds.list(account.id);
+    const state = service.appState(account), c = primary(account), list = listed(account);
     const active = state.entitlement.status === "active";
-    const open = openCheckout(account), blocked = open ? "checkout_open" : clouds.list(account.id, true).filter(c => c.status !== "destroyed").length >= config.maxCloudsPerAccount ? "cap" : null;
+    // an unpaid checkout never blocks: a new one replaces it (and frees the cloud it held)
+    const open = openCheckout(account), blocked = open && !open.url ? "checkout_open" : clouds.list(account.id, true).filter(c => c.status !== "destroyed" && c.id !== open?.cloudId).length >= config.maxCloudsPerAccount ? "cap" : null;
     let summary: Record<string, unknown> | undefined;
     if (c && c.status !== "checkout") {
       const view = clouds.view(c), power = managedPower(c);
