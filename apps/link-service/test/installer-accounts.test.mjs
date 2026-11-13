@@ -68,12 +68,14 @@ describe("the installer's units", () => {
     for (const line of ["User=dusk", "SupplementaryGroups=omb-dockergate", "Environment=DUSK_BOT_BOX=required", `Environment=DUSK_BOX_CODE_ROOTS=${dir}/home/dusk/.local/bin:${dir}/home/dusk/.local/lib`,
       "Environment=DUSK_VPS_DOCKER=local", "Environment=DOCKER_HOST=unix:///run/duskbot-docker/docker.sock", `EnvironmentFile=-${dir}/etc/duskbot/engines.env`,
       "NoNewPrivileges=yes", "CapabilityBoundingSet=", "ProtectSystem=strict", "ProtectHome=tmpfs", `BindPaths=${dir}/home/dusk`, `ReadWritePaths=${dir}/home/dusk`,
-      "PrivateTmp=yes", "RestrictSUIDSGID=yes", "ProtectProc=invisible", "UMask=0077"]) {
+      "PrivateTmp=yes", "ProtectProc=invisible", "UMask=0077"]) {
       expect(server.split("\n"), line).toContain(line);
     }
     expect(server).not.toMatch(/SupplementaryGroups=.*\bdocker\b/);
     // bubblewrap makes user, mount, pid and network namespaces and their loopback over netlink
     expect(server).not.toContain("RestrictNamespaces");
+    // nor RestrictSUIDSGID: its seccomp filter refuses the mount api bubblewrap 0.12 uses (debian 13)
+    expect(server).not.toContain("RestrictSUIDSGID");
     // and mounts a fresh /proc, which the kernel refuses under a partly covered one
     for (const masking of ["ProtectKernelTunables", "ProtectKernelLogs", "ProcSubset", "PrivateDevices"]) expect(server).not.toContain(masking);
     expect(server).toContain("RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK");

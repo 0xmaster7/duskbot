@@ -1162,11 +1162,11 @@ put_file() { # path mode
 # what every unit here gets: no new privileges, no capabilities, the system read-only, a private /tmp. the server's unit
 # leaves /proc and /dev as they are (ProtectKernelTunables, ProtectKernelLogs, ProcSubset, PrivateDevices): bubblewrap
 # mounts a new proc and dev for each bot box, which a partly covered /proc or a private /dev refuses (systemd 255,
-# linux 6.8, and lxc hosts)
+# linux 6.8, and lxc hosts). RestrictSUIDSGID goes only on the helper units: its seccomp filter also turns the new mount
+# api bubblewrap 0.12 uses (debian 13) into ENOSYS, so every bot box failed there with userns-refused
 HARDENING="NoNewPrivileges=yes
 CapabilityBoundingSet=
 AmbientCapabilities=
-RestrictSUIDSGID=yes
 ProtectSystem=strict
 PrivateTmp=yes
 ProtectKernelModules=yes
@@ -1296,6 +1296,7 @@ RestartSec=5
 OOMScoreAdjust=-700
 UMask=0077
 $HARDENING
+RestrictSUIDSGID=yes
 PrivateDevices=yes
 ProtectKernelTunables=yes
 ProtectKernelLogs=yes
@@ -1327,6 +1328,7 @@ Restart=always
 RestartSec=2
 UMask=0007
 $HARDENING
+RestrictSUIDSGID=yes
 PrivateDevices=yes
 ProtectKernelTunables=yes
 ProtectKernelLogs=yes
@@ -1608,6 +1610,7 @@ ${2:+LoadCredential=tunnel.json:$2
 Restart=always
 RestartSec=5
 $HARDENING
+RestrictSUIDSGID=yes
 ProtectHome=yes
 
 [Install]
