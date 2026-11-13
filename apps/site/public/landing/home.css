@@ -135,7 +135,7 @@
   .ev-tag { height: 32px; padding: 0 11px 0 10px; font-size: 13px; }
   .ev-tag::before { inset: -6px 0; }
 }
-.hero .lede { font-size: 16px; line-height: 1.8; color: var(--ink-2); max-width: min(100%, 44em); margin: 18px auto 0; text-wrap: pretty; font-weight: 450; }
+.hero .lede { font-size: 17.5px; line-height: 1.8; color: var(--ink-2); max-width: min(100%, 44em); margin: 18px auto 0; text-wrap: pretty; font-weight: 450; }
 .hero .actions { margin-top: 22px; }
 .cloud-cta { gap: 8px; background: var(--wash); }
 .home .cloud-cta:hover { background: #e9e9e6; }
@@ -552,7 +552,7 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
   .home { --gap: 84px; }
   .hero { padding-top: 26px; }
   .hero-stage { margin-top: 44px; padding: 0 12px; }
-  .hero .lede { font-size: 15.5px; }
+  .hero .lede { font-size: 17px; }
   .hero .m { height: 23px; padding: 0 6px 0 4px; gap: 4px; font-size: 14px; }
   .hero .m .logo { width: 14px; height: 14px; }
   .stage { border-radius: 22px; }

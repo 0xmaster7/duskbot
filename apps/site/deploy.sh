@@ -2,13 +2,17 @@
 # deploy the dusk.bot site server with the deploy CLI. safe to rerun; a rerun is also how
 # install.sh gets refreshed. dusk.bot itself is the account service (deploy/account/deploy.sh production in the
 # Dusk Bot repo), which proxies every non-account path to this app on 127.0.0.1:3103; app., dev. and www. are its
-# aliases and redirect. before launch dusk.bot's home is the waitlist page on its own and every other page is the full
-# site: the landing build runs with DUSK_WAITLIST_HOME=1 (set DUSK_WAITLIST_HOME=0 for the full home page at launch).
-#   apps/site/deploy.sh            # landing (the app dusk-landing, reached through dusk.bot)
+# aliases and redirect. preview.dusk.bot (deploy/account/deploy.sh preview) proxies to dusk-preview the same way.
+#   apps/site/deploy.sh landing    # dusk-landing, reached through dusk.bot
+#   apps/site/deploy.sh preview    # dusk-preview, reached through preview.dusk.bot: the full site, never indexed
+#   apps/site/deploy.sh [all]      # both
+# before launch dusk.bot is the waitlist and nothing else: the landing build runs with DUSK_WAITLIST_HOME=1, its stage
+# keeps only the waitlist at /, its files and the privacy, terms and cookies pages (sign-in links to them), and the
+# server sends every other page to / (DUSK_HOME_ONLY). at launch deploy it with DUSK_WAITLIST_HOME=0 for the full site.
 # DUSK_REPO is the Dusk Bot checkout (pages read docs/legal there); INSTALLER overrides where install.sh comes from.
 # the landing app's env (mongodb + brevo for the waitlist, names in .env.example) is built from the [landing] part of
 # ~/.config/duskbot/dusk.env by deploy/env.mjs in the Dusk Bot repo; LANDING_ENV sends a ready env file instead. with
-# neither, the env already on the server stays.
+# neither, the env already on the server stays. the preview app keeps the env already on the server.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -19,47 +23,63 @@ DUSK_ENV="${DUSK_ENV:-$HOME/.config/duskbot/dusk.env}"
 DEPLOY="${DEPLOY:-deploy}"
 WHICH="${1:-all}"
 
-# app name, domain, site folder
+WAITLIST="${DUSK_WAITLIST_HOME:-1}"
+
+# which, app name, domain, waitlist home (1 = dusk.bot before launch), env from dusk.env
 SITES=(
-  "dusk-landing dusk-landing.apps.siddz.com landing"
+  "landing dusk-landing dusk-landing.apps.siddz.com $WAITLIST 1"
+  "preview dusk-preview dusk-preview.apps.siddz.com 0 0"
 )
 
-# the pages and the legal drafts (docs/legal in the Dusk Bot repo) become the landing site's html
-if [ "$WHICH" = all ] || [ "$WHICH" = landing ]; then
-  DUSK_WAITLIST_HOME="${DUSK_WAITLIST_HOME:-1}" node "$HERE/build-pages.mjs" "$DUSK_REPO"
-  # no deploy with a link, picture or anchor that leads nowhere
-  node "$HERE/check-links.mjs"
-  if [ "${DUSK_WAITLIST_HOME:-1}" = 1 ]; then
-    # the committed build stays the full site (preview.dusk.bot serves it); it is put back once the stage has its copy
-    RESTORE=1
-  fi
-fi
-
 stage=$(mktemp -d "${TMPDIR:-/tmp}/dusk-sites.XXXXXX")
+# the committed build stays the full site; it is put back once a waitlist build has been staged
 trap 'rm -rf "$stage"; if [ "${RESTORE:-0}" = 1 ]; then node "$HERE/build-pages.mjs" "$DUSK_REPO" > /dev/null; fi' EXIT
-if [ -z "$LANDING_ENV" ] && [ -f "$DUSK_ENV" ]; then
-  LANDING_ENV="$stage/landing.env"
-  DUSK_ENV="$DUSK_ENV" node "$DUSK_REPO/deploy/env.mjs" landing "$LANDING_ENV"
-fi
+[ -f "$INSTALLER" ] || { echo "error: installer not found at $INSTALLER" >&2; exit 1; }
 
 ran=0
 for row in "${SITES[@]}"; do
-  read -r name domain site <<<"$row"
-  [ "$WHICH" = all ] || [ "$WHICH" = "$site" ] || continue
+  read -r which name domain waitlist useenv <<<"$row"
+  [ "$WHICH" = all ] || [ "$WHICH" = "$which" ] || continue
+  # the pages and the legal drafts (docs/legal in the Dusk Bot repo) become the site's html
+  [ "$waitlist" = 1 ] && RESTORE=1
+  DUSK_WAITLIST_HOME="$waitlist" node "$HERE/build-pages.mjs" "$DUSK_REPO"
+  # no deploy with a link, picture or anchor that leads nowhere
+  node "$HERE/check-links.mjs"
   dir="$stage/$name"
   mkdir -p "$dir/public"
   cp "$HERE/server.js" "$HERE/waitlist-store.js" "$HERE/waitlist-mongo.js" "$HERE/package.json" "$HERE/package-lock.json" "$dir/"
-  cp -R "$HERE/public/$site" "$dir/public/$site"
-  if [ "$site" = landing ]; then
-    [ -f "$INSTALLER" ] || { echo "error: installer not found at $INSTALLER" >&2; exit 1; }
-    cp "$INSTALLER" "$dir/public/landing/install.sh"
-    (cd "$dir/public/landing" && shasum -a 256 install.sh > install.sh.sha256)
-    echo "install.sh from $INSTALLER ($(shasum -a 256 "$INSTALLER" | cut -c1-12))"
+  cp -R "$HERE/public/landing" "$dir/public/landing"
+  cp "$INSTALLER" "$dir/public/landing/install.sh"
+  (cd "$dir/public/landing" && shasum -a 256 install.sh > install.sh.sha256)
+  echo "$name: install.sh from $INSTALLER ($(shasum -a 256 "$INSTALLER" | cut -c1-12))"
+  vars=""
+  if [ "$waitlist" = 1 ]; then
+    # dusk.bot is the waitlist only: every other page, the search index files and the redirect list go; the server
+    # sends any page that is not here to /
+    pub="$dir/public/landing"
+    find "$pub" -name '*.html' ! -path "$pub/index.html" ! -path "$pub/privacy/index.html" ! -path "$pub/terms/index.html" ! -path "$pub/cookies/index.html" -delete
+    rm -rf "$pub/sitemaps" "$pub/docs/search.json" "$pub/_redirects.json" "$pub/_gone.json"
+    find "$pub" -maxdepth 1 -regex '.*/[0-9a-f]\{32\}\.txt' -delete
+    find "$pub" -type d -empty -delete
+    printf 'User-agent: *\nAllow: /\n\nSitemap: https://dusk.bot/sitemap.xml\n' > "$pub/robots.txt"
+    { printf '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+      for p in / /privacy /terms /cookies; do printf '  <url><loc>https://dusk.bot%s</loc></url>\n' "$p"; done
+      printf '</urlset>\n'; } > "$pub/sitemap.xml"
+    vars="DUSK_HOME_ONLY=1"
   fi
+  # the preview is a staging copy: search engines only see dusk.bot
+  [ "$which" = preview ] && vars="DUSK_NO_INDEX=1"
   envargs=()
-  [ "$site" = landing ] && [ -n "$LANDING_ENV" ] && [ -f "$LANDING_ENV" ] && envargs=(--env-file "$LANDING_ENV")
+  if [ "$useenv" = 1 ]; then
+    env="$LANDING_ENV"
+    if [ -z "$env" ] && [ -f "$DUSK_ENV" ]; then
+      env="$stage/landing.env"
+      DUSK_ENV="$DUSK_ENV" node "$DUSK_REPO/deploy/env.mjs" landing "$env"
+    fi
+    [ -n "$env" ] && [ -f "$env" ] && envargs=(--env-file "$env")
+  fi
   "$DEPLOY" "$dir" --name "$name" --domain "$domain" --install "npm install --omit=dev --no-audit --no-fund" ${envargs[@]+"${envargs[@]}"} \
-    --cmd "set -a; [ -f ./.env ] && . ./.env; set +a; exec node server.js $site"
+    --cmd "set -a; [ -f ./.env ] && . ./.env; set +a; exec env $vars node server.js landing"
   ran=1
 done
-[ "$ran" = 1 ] || { echo "usage: $0 [all|landing]" >&2; exit 2; }
+[ "$ran" = 1 ] || { echo "usage: $0 [all|landing|preview]" >&2; exit 2; }

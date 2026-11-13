@@ -205,13 +205,14 @@ const server = http.createServer((req, res) => {
     return res.end('User-agent: *\nDisallow: /\n');
   }
   let file = resolveFile(urlPath), status = 200;
-  // a page has one address, without the slash at its end (the demo keeps its own: its files sit beside it)
-  if (file && urlPath.length > 1 && urlPath.endsWith('/') && !demo && file.endsWith('index.html')) {
+  // a page has one address, without the slash at its end
+  if (file && urlPath.length > 1 && urlPath.endsWith('/') && file.endsWith('index.html')) {
     res.writeHead(308, { Location: urlPath.replace(/\/+$/, '') + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''), 'Cache-Control': 'public, max-age=300' });
     return res.end();
   }
   if (!file && HOME_ONLY && !/\.[a-z0-9]{1,5}$/i.test(urlPath)) {
-    res.writeHead(302, { Location: '/', 'Cache-Control': 'no-store' });
+    // the query rides along, so /join?ref=x still says who sent you
+    res.writeHead(302, { Location: '/' + ((req.url || '').includes('?') ? req.url.slice(req.url.indexOf('?')) : ''), 'Cache-Control': 'no-store' });
     return res.end();
   }
   if (!file) {
