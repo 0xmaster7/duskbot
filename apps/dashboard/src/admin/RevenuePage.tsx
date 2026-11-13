@@ -17,6 +17,7 @@ import { CohortHeat, LineChart, MoneyDelta, MovementChart, Sparkline, monthName 
 import { AdminHeader, Failed, Loading, n, SearchBox } from "./ui";
 import { STATUS } from "./PersonBilling";
 import { InfraMargin } from "./InfraMargin";
+import { Fold } from "./Fold";
 import type { BreakdownRow, CustomerRow, FeedItem, FeedKind, Health, RevenueFunnelStep, RiskRow, SubscriptionReport } from "./revenue-types";
 
 const DAY = 86_400_000;
@@ -48,16 +49,15 @@ function Empty({ children }: { children: ReactNode }) {
   return <p className="px-3 py-7 text-center text-13 text-ink-3">{children}</p>;
 }
 
-/** one headline number: its value easing in, twelve months as a sparkline, and the change on last month */
-function Metric({ label, value, spark, color, delta, money, hint }: { label: string; value: string; spark: Array<number | null>; color: string; delta: ReactNode; money?: boolean; hint?: string }) {
+/** one headline number and its change on last month */
+function Metric({ label, value, delta, money, hint }: { label: string; value: string; delta: ReactNode; money?: boolean; hint?: string }) {
   return (
     <div className={cx("flex min-w-0 flex-col rounded-[16px] px-4 pb-3 pt-3.5", money ? "bg-wash-lime" : "bg-pop")} title={hint}>
       <div className="truncate text-13 font-medium text-ink-3">{label}</div>
       <div className={cx("mt-1 truncate font-mono text-[26px] font-medium leading-9 tracking-[-0.045em] num", money ? "text-money" : "text-ink")}>
         <Figure value={value} className="!font-mono !text-[26px] !leading-9 !tracking-[-0.045em] ![color:inherit]" />
       </div>
-      <div className="mt-2"><Sparkline values={spark} color={color} label={`${label} over the last 12 months`} /></div>
-      <div className="mt-1.5 h-5 truncate leading-5">{delta}</div>
+      <div className="mt-1 h-5 truncate leading-5">{delta}</div>
     </div>
   );
 }
@@ -72,27 +72,44 @@ function Small({ label, value, note, money }: { label: string; value: string; no
 }
 
 function Headline({ report }: { report: SubscriptionReport }) {
-  const h = report.headline, months = report.months, p = h.previous;
-  const col = <K extends keyof SubscriptionReport["months"][number]>(key: K) => months.map((row) => row[key] as number | null);
+  const h = report.headline, p = h.previous;
   return (
-    <section className="rounded-[28px] bg-card p-2" aria-label="headline numbers">
-      <div className="grid grid-cols-6 gap-1.5 max-xl:grid-cols-3 max-sm:grid-cols-2">
-        <Metric label="mrr" value={usd(h.mrr, true)} spark={col("mrr")} color="var(--viz-new)" money delta={<MoneyDelta now={h.mrr} before={p.mrr} />} />
-        <Metric label="net new mrr" value={signed(h.netNewMrr)} spark={col("netNew")} color="var(--viz-new)" delta={<MoneyDelta now={h.netNewMrr} before={p.netNewMrr} mode="usd" />} hint="new, expansion and comebacks, less contraction and churn, this month" />
-        <Metric label="active customers" value={n(h.customers)} spark={col("customers")} color="var(--viz-visitors)" delta={<MoneyDelta now={h.customers} before={p.customers} />} />
-        <Metric label="customer churn" value={rate(h.customerChurn)} spark={col("customerChurn")} color="var(--viz-renewal)" delta={<MoneyDelta now={h.customerChurn} before={p.customerChurn} mode="points" invert />} hint="customers lost per month, over the last three full months" />
-        <Metric label="ltv" value={h.ltv === null ? "-" : usd(h.ltv, true)} spark={col("ltv")} color="var(--viz-new)" delta={<MoneyDelta now={h.ltv} before={p.ltv} />} hint="arpu divided by monthly customer churn" />
-        <Metric label="arpu" value={h.arpu === null ? "-" : usd(h.arpu)} spark={col("arpu")} color="var(--viz-new)" delta={<MoneyDelta now={h.arpu} before={p.arpu} />} hint="mrr per paying customer" />
-      </div>
-      <div className="grid grid-cols-6 px-1 pb-1 pt-2 max-xl:grid-cols-3 max-sm:grid-cols-2">
+    <section className="grid grid-cols-4 gap-1.5 rounded-[24px] bg-card p-2 max-lg:grid-cols-2" aria-label="headline numbers">
+      <Metric label="mrr" value={usd(h.mrr, true)} money delta={<MoneyDelta now={h.mrr} before={p.mrr} />} />
+      <Metric label="net new this month" value={signed(h.netNewMrr)} delta={<MoneyDelta now={h.netNewMrr} before={p.netNewMrr} mode="usd" />} hint="new, expansion and comebacks, less contraction and churn, this month" />
+      <Metric label="active customers" value={n(h.customers)} delta={<MoneyDelta now={h.customers} before={p.customers} />} />
+      <Metric label="churn" value={rate(h.customerChurn)} delta={<MoneyDelta now={h.customerChurn} before={p.customerChurn} mode="points" invert />} hint="customers lost per month, over the last three full months" />
+    </section>
+  );
+}
+
+/** mrr over the year, or what moved it each month */
+function Growth({ report }: { report: SubscriptionReport }) {
+  const [view, setView] = useState<"mrr" | "movement">("mrr");
+  return (
+    <ChartCard title="mrr over time" action={<Segmented<"mrr" | "movement"> label="show" value={view} onChange={setView} options={[{ value: "mrr", label: "mrr" }, { value: "movement", label: "movement" }]} />}>
+      {view === "mrr"
+        ? <LineChart starts={report.months.map((row) => row.start)} height={260} format={(v) => usd(v, true)} series={[{ key: "mrr", label: "mrr", color: "var(--viz-new)", values: report.months.map((row) => row.mrr) }]} />
+        : <MovementChart months={report.months} />}
+    </ChartCard>
+  );
+}
+
+function OtherNumbers({ report }: { report: SubscriptionReport }) {
+  const h = report.headline;
+  return (
+    <ChartCard title="other numbers">
+      <div className="-m-1.5 grid grid-cols-4 max-lg:grid-cols-2">
         <Small label="arr" value={usd(h.arr, true)} money />
+        <Small label="ltv" value={h.ltv === null ? "-" : usd(h.ltv, true)} money note="arpu divided by monthly customer churn" />
+        <Small label="arpu" value={h.arpu === null ? "-" : usd(h.arpu)} money note="mrr per paying customer" />
+        <Small label="paid so far, per customer" value={h.ltvRealised === null ? "-" : usd(h.ltvRealised, true)} money note="what the average customer has actually paid, after refunds" />
         <Small label="net revenue retention" value={rate(h.nrr)} note="mrr kept from last quarter's customers, counting upgrades" />
         <Small label="gross revenue retention" value={rate(h.grr)} note="mrr kept from last quarter's customers, upgrades left out" />
         <Small label="revenue churn" value={rate(h.revenueChurn)} note="mrr lost to churn and downgrades per month" />
         <Small label="net revenue churn" value={rate(h.netRevenueChurn)} note="revenue churn less expansion; below zero means growth from existing customers" />
-        <Small label="paid so far, per customer" value={h.ltvRealised === null ? "-" : usd(h.ltvRealised, true)} money note="what the average customer has actually paid, after refunds" />
       </div>
-    </section>
+    </ChartCard>
   );
 }
 
@@ -283,21 +300,35 @@ function Checkout({ checkout }: { checkout: SubscriptionReport["checkout"] }) {
 const REASONS: Record<string, string> = { price: "too expensive", unused: "not using it", broken: "something broke", feature: "missing a feature", switching: "switching to something else",
   setup: "too hard to set up", later: "coming back later", other: "something else" };
 
-function CancelReasons({ flow }: { flow: NonNullable<SubscriptionReport["cancelFlow"]> }) {
-  const top = Math.max(1, ...flow.reasons.map((row) => row.started || row.saved + row.cancelled));
+/** who is leaving or might, and who was kept: the cancel flow, failed cards that came back, and the people worth a look */
+function Saves({ report }: { report: SubscriptionReport }) {
+  const flow = report.cancelFlow, d = report.dunning, risk = report.risk;
+  const top = flow ? Math.max(1, ...flow.reasons.map((row) => row.started || row.saved + row.cancelled)) : 1;
+  const atStake = risk.reduce((s, row) => s + row.mrr, 0);
   return (
-    <Card title="cancel reasons" meta="last 90 days">
-      <div className="grid grid-cols-4 gap-1 rounded-[14px] bg-card max-sm:grid-cols-2">
-        <Small label="opened the flow" value={n(flow.started)} />
-        <Small label="saved" value={n(flow.saved)} />
-        <Small label="took the discount" value={n(flow.discounts)} />
-        <Small label="cancelled" value={n(flow.cancelled)} />
+    <Card title="cancellations and saves" meta="last 90 days">
+      <div className="grid grid-cols-2 gap-6 max-lg:grid-cols-1">
+        <div className="min-w-0">
+          <div className="grid grid-cols-4 gap-1 rounded-[14px] bg-card max-sm:grid-cols-2">
+            <Small label="opened cancel" value={flow ? n(flow.started) : "-"} />
+            <Small label="saved" value={flow ? n(flow.saved) : "-"} note={flow ? `${n(flow.discounts)} took the discount` : undefined} />
+            <Small label="cancelled" value={flow ? n(flow.cancelled) : "-"} />
+            <Small label="cards recovered" value={rate(d.rate)} note={`${n(d.recovered)} of ${n(d.failed)} failed payments came back, ${n(d.open)} still retrying`} />
+          </div>
+          {flow && flow.reasons.length ? (
+            <ul className="mt-3 flex flex-col gap-px">
+              {flow.reasons.map((row) => <BarRow key={row.reason} label={REASONS[row.reason] ?? words(row.reason)} value={n(row.started)} share={(row.started || row.saved + row.cancelled) / top} color="bg-wash-lilac" note={`${n(row.saved)} saved, ${n(row.cancelled)} cancelled`} />)}
+            </ul>
+          ) : <Empty>no one has opened the cancel flow yet.</Empty>}
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-baseline justify-between gap-3 px-1 pb-1">
+            <h3 className="text-13 font-medium text-ink">needs a look</h3>
+            {risk.length > 0 && <span className="t-meta">{usd(atStake, true)} mrr at stake</span>}
+          </div>
+          <RiskList risk={risk} />
+        </div>
       </div>
-      {flow.reasons.length ? (
-        <ul className="mt-3 flex flex-col gap-px">
-          {flow.reasons.map((row) => <BarRow key={row.reason} label={REASONS[row.reason] ?? words(row.reason)} value={n(row.started)} share={(row.started || row.saved + row.cancelled) / top} color="bg-wash-lilac" note={`${n(row.saved)} saved, ${n(row.cancelled)} cancelled`} />)}
-        </ul>
-      ) : <Empty>no one has opened the cancel flow yet.</Empty>}
     </Card>
   );
 }
@@ -359,27 +390,25 @@ const REASON: Record<RiskRow["reason"], { label: string; wash: string }> = {
   cancel_scheduled: { label: "set to cancel", wash: "bg-wash-lilac" },
   low_usage: { label: "barely using it", wash: "bg-wash-lemon" },
 };
-function Risk({ risk }: { risk: RiskRow[] }) {
-  const total = risk.reduce((s, row) => s + row.mrr, 0);
+function RiskList({ risk }: { risk: RiskRow[] }) {
+  if (!risk.length) return <Empty>everyone looks fine. no failed cards, no cancellations, no one going quiet.</Empty>;
   return (
-    <Card title="needs a look" meta={risk.length ? `${usd(total, true)} mrr at stake` : undefined} flush>
-      {risk.length ? (
-        <ul>
-          {risk.slice(0, 8).map((row) => (
-            <li key={`${row.accountId}:${row.reason}`}>
-              <Link to={personLink(row.accountId)} className="hover-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] px-2.5 py-2">
-                <PersonCell accountId={row.accountId} email={row.email} sub={<><Chip wash={REASON[row.reason].wash}>{REASON[row.reason].label}</Chip>{row.plan}{row.renewsAt && <span className="text-ink-4">· renews {shortDay(row.renewsAt)}</span>}</>} />
-                <span className="text-end">
-                  <span className="block font-mono text-14 text-ink-2 num">{usd(row.mrr)}<span className="text-12 text-ink-4">/mo</span></span>
-                  <span className="block text-12 text-ink-4">{row.activeDays === null ? "no app use seen" : `active ${n(row.activeDays)} of 14 days`}</span>
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      ) : <Empty>everyone looks fine. no failed cards, no cancellations, no one going quiet.</Empty>}
-      {risk.length > 8 && <p className="px-3 pb-1 pt-1 text-12 text-ink-4">{n(risk.length - 8)} more in the customer list below.</p>}
-    </Card>
+    <>
+      <ul className="-mx-1.5">
+        {risk.slice(0, 6).map((row) => (
+          <li key={`${row.accountId}:${row.reason}`}>
+            <Link to={personLink(row.accountId)} className="hover-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] px-2.5 py-2">
+              <PersonCell accountId={row.accountId} email={row.email} sub={<><Chip wash={REASON[row.reason].wash}>{REASON[row.reason].label}</Chip>{row.plan}{row.renewsAt && <span className="text-ink-4">· renews {shortDay(row.renewsAt)}</span>}</>} />
+              <span className="text-end">
+                <span className="block font-mono text-14 text-ink-2 num">{usd(row.mrr)}<span className="text-12 text-ink-4">/mo</span></span>
+                <span className="block text-12 text-ink-4">{row.activeDays === null ? "no app use seen" : `active ${n(row.activeDays)} of 14 days`}</span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      {risk.length > 6 && <p className="px-1 pt-1 text-12 text-ink-4">{n(risk.length - 6)} more in the customer list below.</p>}
+    </>
   );
 }
 
@@ -478,7 +507,7 @@ function Customers({ customers }: { customers: CustomerRow[] }) {
       .sort((a, b) => sort === "mrr" ? b.mrr - a.mrr || b.ltv - a.ltv : sort === "ltv" ? b.ltv - a.ltv : (b.firstPaidAt ?? 0) - (a.firstPaidAt ?? 0));
   }, [customers, q, status, plan, channel, health, sort]);
   useEffect(() => setAll(false), [q, status, plan, channel, health]);
-  const list = all ? rows : rows.slice(0, 15);
+  const list = all ? rows : rows.slice(0, 10);
   const slots = useSlots(list.map((c) => c.accountId));
   const filtered = q || status !== "all" || plan !== "all" || channel !== "all" || health !== "all";
   return (
@@ -522,7 +551,7 @@ function Customers({ customers }: { customers: CustomerRow[] }) {
           </>
         ) : <Empty>{filtered ? "no customers match these filters." : "no customers yet. the first one lands here the moment they pay."}</Empty>}
       </div>
-      {rows.length > 15 && <button type="button" onClick={() => setAll((v) => !v)} className="text-link mx-auto mt-1.5 block h-8 px-3 text-12">{all ? "show fewer" : `show all ${n(rows.length)}`}</button>}
+      {rows.length > 10 && <button type="button" onClick={() => setAll((v) => !v)} className="text-link mx-auto mt-1.5 block h-8 px-3 text-12">{all ? "show fewer" : `show all ${n(rows.length)}`}</button>}
       <p className="px-3 pt-1 text-12 text-ink-4">lifetime is what they paid, after refunds. gone quiet means they used dusk bot on one day or fewer in the last two weeks.</p>
     </section>
   );
@@ -541,35 +570,36 @@ export function RevenuePage() {
       {data && (
         <div className={cx("flex flex-col gap-4 transition-opacity duration-150", loading && "opacity-80")}>
           {empty ? (
-            <section className="rounded-[28px] bg-card"><SkyEmpty art="notebook" title="no subscriptions yet.">the first paid plan lands here with mrr, churn, cohorts and a line in the feed.</SkyEmpty></section>
+            <section className="rounded-[24px] bg-card"><SkyEmpty art="notebook" title="no subscriptions yet.">the first paid plan lands here with mrr, churn, cohorts and every customer.</SkyEmpty></section>
           ) : (
             <>
               <Headline report={data} />
-              <ChartCard title="mrr movement" action={<span className="t-meta">this month {signed(data.headline.netNewMrr)} net</span>}><MovementChart months={data.months} /></ChartCard>
-              <ChartCard title="cohorts"><CohortHeat cohorts={data.cohorts} /></ChartCard>
-              <div className="grid grid-cols-2 gap-4 max-lg:grid-cols-1">
-                <Churn report={data} />
-                <Dunning report={data} />
-                <Breakdown breakdown={data.breakdown} />
-                <Cash report={data} />
-              </div>
+              <Growth report={data} />
+              <Saves report={data} />
+              <Customers customers={data.customers} />
+              <Fold title="cohorts" meta="who keeps paying, month by month"><div className="rounded-[18px] bg-pop p-3"><CohortHeat cohorts={data.cohorts} /></div></Fold>
             </>
           )}
-          <InfraMargin />
-          <div className="grid grid-cols-2 gap-4 max-lg:grid-cols-1">
-            <Card title="revenue funnel" action={<Segmented label="people first seen in" value={days} onChange={setDays} options={DAYS.map(([value, label]) => ({ value, label }))} />}>
-              <RevenueFunnel steps={data.funnel.steps} />
-              <p className="mt-3 text-12 text-ink-4">people first seen in the last {days === "365" ? "year" : `${days} days`}; month 2 counts those who paid at least a month ago.</p>
-            </Card>
-            <Checkout checkout={data.checkout} />
-          </div>
-          {!empty && (
-            <div className="grid grid-cols-2 items-start gap-4 max-lg:grid-cols-1">
-              <div className="flex min-w-0 flex-col gap-4"><Risk risk={data.risk} />{data.cancelFlow && <CancelReasons flow={data.cancelFlow} />}<Renewals report={data} /><TimeToPay data={data.timeToPay} /></div>
-              <Feed feed={data.feed} />
+          <Fold plain title="more" meta="churn, cash, funnel, margin, renewals and the feed">
+            <div className="flex flex-col gap-4">
+              {!empty && <OtherNumbers report={data} />}
+              {!empty && <div className="grid grid-cols-2 gap-4 max-lg:grid-cols-1"><Churn report={data} /><Dunning report={data} /><Breakdown breakdown={data.breakdown} /><Cash report={data} /></div>}
+              <div className="grid grid-cols-2 gap-4 max-lg:grid-cols-1">
+                <Card title="revenue funnel" action={<Segmented label="people first seen in" value={days} onChange={setDays} options={DAYS.map(([value, label]) => ({ value, label }))} />}>
+                  <RevenueFunnel steps={data.funnel.steps} />
+                  <p className="mt-3 text-12 text-ink-4">people first seen in the last {days === "365" ? "year" : `${days} days`}; month 2 counts those who paid at least a month ago.</p>
+                </Card>
+                <Checkout checkout={data.checkout} />
+              </div>
+              <InfraMargin />
+              {!empty && (
+                <div className="grid grid-cols-2 items-start gap-4 max-lg:grid-cols-1">
+                  <div className="flex min-w-0 flex-col gap-4"><Renewals report={data} /><TimeToPay data={data.timeToPay} /></div>
+                  <Feed feed={data.feed} />
+                </div>
+              )}
             </div>
-          )}
-          {!empty && <Customers customers={data.customers} />}
+          </Fold>
         </div>
       )}
     </>
