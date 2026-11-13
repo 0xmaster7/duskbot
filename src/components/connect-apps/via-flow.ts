@@ -14,6 +14,8 @@ export type ViaFlow =
 export const VIA_DEADLINE_MS = 10 * 60_000;
 /** back in dusk this long without the sign-in done: the attempt was left, so it fails with retry instead of spinning */
 export const VIA_GRACE_MS = 75_000;
+/** back in dusk this long without the sign-in done: the row offers Retry beside the sign-in still out */
+export const VIA_STALL_MS = 15_000;
 /** one status read never holds the wait up longer than this */
 export const VIA_READ_MS = 40_000;
 const DELAYS = [2_000, 3_000, 5_000, 8_000, 13_000, 15_000];

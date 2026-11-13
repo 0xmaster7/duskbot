@@ -118,6 +118,7 @@ describe("Gmail connects on one card", () => {
       const connectors = via(false);
       const page = model(connectors, { kind: "connect" });
       await render(page);
+      expect(card().querySelector(".ca-connect-note")?.textContent).toBe("Sign in to Composio, then pick your Google account. Nothing is sent without your OK.");
       expect(primaries()).toHaveLength(1);
       expect(shown(primaries()[0]!)).toBe("connect Gmail");
       await act(async () => { primaries()[0]!.click(); });

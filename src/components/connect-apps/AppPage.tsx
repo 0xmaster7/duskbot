@@ -49,7 +49,7 @@ export interface AppPageModel {
   onOpenKeys: () => void;
   /** A vendor's own MCP server: connect signs in there, managing it is the MCP servers page. */
   remote?: {
-    open: boolean; busy: boolean; onConnect: () => void; onCancel: () => void; onManage: () => void;
+    open: boolean; busy: boolean; stalled?: boolean; onConnect: () => void; onCancel: () => void; onManage: () => void;
     /** Its directory id, the slug its account picks are kept under (`mcp-<id>`). */
     appId?: string;
     /** Each entry signed in to the app, one per account of the person's. */
@@ -115,7 +115,7 @@ export function AppPage({ model }: { model: AppPageModel }) {
       }
       return model.connection === "connected"
         ? { label: t("connectApps.remote.manage"), quiet: true, onClick: remote.onManage }
-        : { label: t("connectors.action.connect"), busy: remote.busy, disabled: model.connection === "unknown", onClick: remote.onConnect, onCancel: remote.onCancel };
+        : { label: t(remote.stalled ? "connectors.action.retry" : "connectors.action.connect"), busy: remote.busy, disabled: model.connection === "unknown", onClick: remote.onConnect, onCancel: remote.onCancel };
     }
     if (!composio || !phase) return null;
     const connect: Primary = { label: t("connectApps.connectApp", { name: entry.label }), onClick: () => void connectors.connect(slug), onCancel: () => connectors.cancel(slug) };

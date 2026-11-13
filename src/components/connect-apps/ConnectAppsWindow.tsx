@@ -411,7 +411,8 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     const authorizeFirst = entry.kind === "composio" && !composioReady;
     const connect: RowAction = { kind: "button", label: t(authorizeFirst ? "connectApps.authorize" : "connectors.action.connect"), onClick: () => startConnect(entry) };
     const vendor = vendorOf(entry);
-    if (vendor) return { ...connect, busy: remote.busy[vendor.id] === true, onCancel: () => remote.cancel(vendor.id) };
+    if (vendor) return { ...connect, busy: remote.busy[vendor.id] === true, onCancel: () => remote.cancel(vendor.id),
+      ...(remote.stalled[vendor.id] ? { label: t("connectors.action.retry") } : {}) };
     if (!phase) return connect;
     // anything that says Connecting… can be left: Cancel stops it and the row says Connect again
     const cancel = () => connectors.cancel(entry.id);
@@ -612,7 +613,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
       }
       if (vendor) {
         ways.push({ key: "remote", label: t("connectApps.way.server", { name: detailEntry.label }), connected: remote.connection(vendor.id) === "connected",
-          action: ((stale) => ({ kind: "button" as const, label: t(stale ? "connectors.action.reconnect" : "connectors.action.connect"), busy: remote.busy[vendor.id] === true, disabled: remote.connection(vendor.id) === "unknown",
+          action: ((stale) => ({ kind: "button" as const, label: t(remote.stalled[vendor.id] ? "connectors.action.retry" : stale ? "connectors.action.reconnect" : "connectors.action.connect"), busy: remote.busy[vendor.id] === true, disabled: remote.connection(vendor.id) === "unknown",
             onClick: () => void remote.connect(vendor, stale ? { server: stale.name } : {}), onCancel: () => remote.cancel(vendor.id) }))(remote.toReconnect(vendor.id)) });
       }
       if (slug && card) {
@@ -641,6 +642,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
         ...(vendor ? { remote: {
           open: vendor.auth === "none",
           busy: remote.busy[vendor.id] === true,
+          stalled: remote.stalled[vendor.id] === true,
           appId: vendor.id,
           accounts: remote.accounts(vendor.id),
           bots: state.bots.map((bot) => ({ id: bot.id, name: bot.name })),

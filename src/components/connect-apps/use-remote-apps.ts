@@ -9,7 +9,7 @@ import { whenServerHas } from "@/lib/server-compat";
 import type { DirectoryAnswer, DirectoryApp } from "../../../shared/connector-directory";
 import { isRemoteMcpListing, type McpServerListing, type RemoteMcpListing } from "../mcp-draft";
 import type { Connection } from "./catalog";
-import { VIA_DEADLINE_MS, watchReturn } from "./via-flow";
+import { VIA_DEADLINE_MS, VIA_STALL_MS, watchReturn } from "./via-flow";
 
 let directory: Promise<DirectoryApp[]> | null = null;
 // kept across opens, so the window's first frame already has them
@@ -77,6 +77,9 @@ export interface RemoteApps {
   settled: boolean;
   /** Apps signing in right now, each on its own: one slow sign-in never holds another row. */
   busy: Record<string, true>;
+  /** Sign-ins the person came back from without finishing, or that were given up: their row says Retry, and Connect
+   * starts a fresh sign-in in place of the one still out. */
+  stalled: Record<string, true>;
   error: string | null;
   clearError: () => void;
   connection: (id: string) => Connection;
@@ -100,6 +103,8 @@ export function useRemoteApps(options: { needsPanel: () => boolean; openPanel: (
   const [servers, setServersNow] = useState<McpServerListing[] | null>(() => serverList);
   const setServers = useCallback((next: McpServerListing[]) => { serverList = next; setServersNow(next); }, []);
   const [busy, setBusy] = useState<Record<string, true>>({});
+  const [stalled, setStalled] = useState<Record<string, true>>({});
+  const stalledIds = useRef(new Set<string>());
   const [error, setError] = useState<string | null>(null);
   const signIns = useRef(new Map<string, AbortController>());
   const latest = useRef(options);
@@ -134,16 +139,32 @@ export function useRemoteApps(options: { needsPanel: () => boolean; openPanel: (
     return next;
   });
 
+  const stall = (id: string, on: boolean) => {
+    if (stalledIds.current.has(id) === on) return;
+    if (on) stalledIds.current.add(id); else stalledIds.current.delete(id);
+    setStalled((current) => {
+      const next: Record<string, true> = { ...current };
+      if (on) next[id] = true; else delete next[id];
+      return next;
+    });
+  };
+
   const connect = async (app: DirectoryApp, target: { server?: string; account?: string } = {}) => {
-    if (signIns.current.has(app.id)) return;
+    if (signIns.current.has(app.id)) {
+      if (!stalledIds.current.has(app.id)) return;
+      cancel(app.id);
+    }
     const controller = new AbortController();
     signIns.current.set(app.id, controller);
     mark(app.id, true);
+    stall(app.id, false);
     setError(null);
-    // left unfinished (back here a while, or past the link's life): it ends with a line to retry, never a spinner
+    // left unfinished: back here a little while, the row offers Retry; a while longer, or past the link's life, it ends
+    // with a line to retry, never a spinner
     let gaveUp = false;
-    const giveUp = () => { gaveUp = true; controller.abort(); };
+    const giveUp = () => { gaveUp = true; stall(app.id, true); controller.abort(); };
     const unwatch = watchReturn(() => {}, giveUp);
+    const unstall = watchReturn(() => {}, () => { if (signIns.current.get(app.id) === controller) stall(app.id, true); }, VIA_STALL_MS);
     const deadline = setTimeout(giveUp, VIA_DEADLINE_MS);
     try {
       let server = target.account ? undefined : target.server ? serversOf(app).find((one) => one.name === target.server) : serverOf(app);
@@ -167,7 +188,9 @@ export function useRemoteApps(options: { needsPanel: () => boolean; openPanel: (
       void reload().catch(() => {});
     } finally {
       unwatch();
+      unstall();
       clearTimeout(deadline);
+      if (!gaveUp && signIns.current.get(app.id) === controller) stall(app.id, false);
       if (signIns.current.get(app.id) === controller) {
         signIns.current.delete(app.id);
         mark(app.id, false);
@@ -179,11 +202,13 @@ export function useRemoteApps(options: { needsPanel: () => boolean; openPanel: (
     signIns.current.get(id)?.abort();
     signIns.current.delete(id);
     mark(id, false);
+    stall(id, false);
   };
 
   const byId = new Map(apps.map((app) => [app.id, app]));
   return {
-    apps, busy, error,
+    apps, error, stalled,
+    busy: Object.keys(stalled).length ? Object.fromEntries(Object.entries(busy).filter(([id]) => !stalled[id])) as Record<string, true> : busy,
     settled: (appsSettled || directoryFailed) && servers !== null,
     clearError: () => setError(null),
     connection: (id) => { const app = byId.get(id); return app && servers ? remoteConnection(app, serverOf(app)) : "unknown"; },

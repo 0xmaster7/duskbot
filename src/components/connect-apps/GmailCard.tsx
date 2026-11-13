@@ -13,6 +13,8 @@ export interface GmailCardModel {
   /** the one button on the card, null once there is nothing left to click */
   action: Primary | null;
   line: { text: string; tone: "status" | "alert" | "done" } | null;
+  /** what signing in looks like: Composio's page first where the sign-in goes through Composio Connect */
+  note: string | null;
   onOwnKey?: () => void;
 }
 
@@ -51,6 +53,7 @@ export function gmailCard(input: GmailInput): GmailCardModel {
     state,
     action,
     line,
+    note: connected ? null : t(input.via && !input.viaSignedIn ? "connectApps.gmail.whatVia" : "connectApps.gmail.what"),
     ...(input.onOwnKey && input.via && !input.viaSignedIn && !connected ? { onOwnKey: input.onOwnKey } : {}),
   };
 }
@@ -59,7 +62,7 @@ export function GmailCard({ model }: { model: GmailCardModel }) {
   const own = model.onOwnKey;
   return (
     <ConnectBlock data-gmail-card="" data-state={model.state} aria-label={t("connectApps.connectApp", { name: model.name })}
-      note={model.state === "connected" ? null : t("connectApps.gmail.what")}
+      note={model.note}
       primary={model.action} connected={model.state === "connected"} line={model.line} lineMarker="data-gmail-line">
       {own && <button type="button" className="ca-link ca-connect-alt" onClick={own}>{t("connectApps.signIn.ownKey")}</button>}
     </ConnectBlock>
