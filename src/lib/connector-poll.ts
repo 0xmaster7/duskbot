@@ -1,8 +1,10 @@
 import type { ConnectorResult } from "@/lib/analytics-allowlist";
 import type { ConnectorStatus } from "@/lib/connector-status";
+import { AUTHORIZATION_LINK_MS } from "@/lib/connector-oauth";
 
 export const CONNECTOR_POLL_MS = 5_000;
-export const CONNECTOR_POLL_TRIES = 24;
+/** As long as the sign-in link works: a sign-in finished late still turns the app connected by itself. */
+export const CONNECTOR_POLL_TRIES = AUTHORIZATION_LINK_MS / CONNECTOR_POLL_MS;
 
 const ACTIVE = /^active$/i;
 const ENDED = /^(expired|failed)$/i;

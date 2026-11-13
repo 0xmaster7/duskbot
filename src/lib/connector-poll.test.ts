@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ConnectorStatus } from "./connector-status";
 import { CONNECTOR_POLL_MS, CONNECTOR_POLL_TRIES, connectorPollEnd, pollConnector } from "./connector-poll";
+import { AUTHORIZATION_LINK_MS } from "./connector-oauth";
 
 type Pending = { resolve: (state: ConnectorStatus | undefined) => void };
 
@@ -16,7 +17,8 @@ describe("how a Connect ends", () => {
     expect(connectorPollEnd(undefined, { connected: true, pending: false, status: "ACTIVE", accounts: [account("ca_new", "ACTIVE")] }, 1)).toBe("connected");
     expect(connectorPollEnd(undefined, { connected: false, status: "FAILED", accounts: [account("ca_new", "FAILED")] }, 2)).toBe("failed");
     expect(connectorPollEnd(undefined, { connected: false, status: "expired", accounts: [account("ca_new", "expired")] }, 2)).toBe("expired");
-    expect(connectorPollEnd(undefined, undefined, 24)).toBe("timed_out");
+    expect(connectorPollEnd(undefined, undefined, 24), "two minutes is not the end of a ten-minute link").toBeNull();
+    expect(connectorPollEnd(undefined, undefined, CONNECTOR_POLL_TRIES)).toBe("timed_out");
   });
 
   it("calls a retry beside an abandoned attempt connected once the new account works", () => {
@@ -78,7 +80,7 @@ describe("polling one app after Connect", () => {
     }
   });
 
-  it("gives up after two minutes of pending reads, and says so once", async () => {
+  it("gives up only once the sign-in link has expired, and says so once", async () => {
     const read = vi.fn(async (): Promise<ConnectorStatus> => ({ connected: false, pending: true, status: "INITIATED" }));
     const onEnd = vi.fn();
     pollConnector(undefined, read, onEnd);
@@ -88,7 +90,23 @@ describe("polling one app after Connect", () => {
     expect(onEnd.mock.calls).toEqual([["timed_out"]]);
     await vi.advanceTimersByTimeAsync(10 * CONNECTOR_POLL_MS);
     expect(read).toHaveBeenCalledTimes(CONNECTOR_POLL_TRIES);
-    expect(CONNECTOR_POLL_TRIES * CONNECTOR_POLL_MS).toBe(120_000);
+    expect(CONNECTOR_POLL_TRIES * CONNECTOR_POLL_MS).toBe(AUTHORIZATION_LINK_MS);
+  });
+
+  // regression: the poll stopped at two minutes while the link works for ten, so a Google sign-in finished at minute three
+  // left the page on Open page again, then Connect, though the app was connected
+  it("still sees a sign-in finished after a few minutes", async () => {
+    let done = false;
+    const read = vi.fn(async (): Promise<ConnectorStatus> => done
+      ? { connected: true, pending: false, status: "ACTIVE", accounts: [account("ca_new", "ACTIVE")] }
+      : { connected: false, pending: true, status: "INITIATED", accounts: [account("ca_new", "INITIATED")] });
+    const onEnd = vi.fn();
+    pollConnector(undefined, read, onEnd);
+    await vi.advanceTimersByTimeAsync(3 * 60_000);
+    expect(onEnd).not.toHaveBeenCalled();
+    done = true;
+    await vi.advanceTimersByTimeAsync(CONNECTOR_POLL_MS);
+    expect(onEnd.mock.calls).toEqual([["connected"]]);
   });
 
   it.each([["FAILED", "failed"], ["EXPIRED", "expired"]])("reports a new %s account as %s", async (status, result) => {

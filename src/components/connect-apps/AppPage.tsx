@@ -159,6 +159,8 @@ export function AppPage({ model }: { model: AppPageModel }) {
   // our own way is a row here only when it is not the lead: its card then opens under these rows
   const otherWays = ways ? ways.filter((way) => way.key !== leadWay) : [];
   const remoteNote = model.remote && remoteLeads ? t(model.remote.open ? "connectApps.remote.open" : "connectApps.remote.note", { name: entry.label }) : null;
+  // a sign-in out on the page that opened, through a key or the broker: say so beside Open page again, as the via path does
+  const waitLine = !viaStatus && primary?.waiting === true && phase?.kind === "continue" ? { text: t("connectApps.gmail.waiting"), tone: "status" as const } : null;
   const block = !gmail && !keyCard && Boolean(primary || viaStatus || remoteNote);
   const othersBusy = otherWays.some((way) => way.connected || way.action?.busy === true || way.action?.pending === true)
     || (ownFirst && (flow !== undefined || askingKey || askingAlias || accounts.length > 0 || model.remote?.busy === true
@@ -171,7 +173,7 @@ export function AppPage({ model }: { model: AppPageModel }) {
   const groups = (
     <div className="ca-groups">
       {gmail && <GmailCard model={gmail} />}
-      {block && <ConnectBlock note={remoteNote} primary={primary} line={viaStatus} lineMarker="data-via-line" />}
+      {block && <ConnectBlock note={remoteNote} primary={primary} line={viaStatus ?? waitLine} lineMarker={waitLine ? "data-connect-line" : "data-via-line"} />}
       {keyCard && <ComposioKeyStep slug={slug} name={entry.label} connectors={connectors} primary={primary} />}
       {setup && (
         <p className="ca-notice" data-tone={setup.tone === "warning" ? "danger" : undefined}>

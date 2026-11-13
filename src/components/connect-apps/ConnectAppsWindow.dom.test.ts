@@ -174,6 +174,27 @@ describe("the Connect Apps window", () => {
     expect(fixture.opened).toEqual(["https://connect.example/asana"]);
   });
 
+  // regression: with a key the page showed only Open page again, no word that it was waiting or that it updates by itself
+  it("says a key's sign-in is waiting on the page that opened, and Cancel ends the wait", async () => {
+    act(() => root.unmount());
+    root = createRoot(document.body.appendChild(document.createElement("div")));
+    await act(async () => { root.render(createElement(ConnectAppsWindow, { page: { kind: "detail", id: "asana" }, nonce: 3, onClose, onTemplates: vi.fn() })); });
+    await flush();
+    const primary = () => dialog().querySelector<HTMLButtonElement>(".ca-primary")!;
+    const shown = () => primary().querySelector("span:not([aria-hidden])")?.textContent;
+    expect(shown()).toBe("connect Asana");
+    await act(async () => { primary().click(); });
+    await flush();
+    expect(fixture.opened).toEqual(["https://connect.example/asana"]);
+    const line = dialog().querySelector("[data-connect-line]");
+    expect(line?.getAttribute("role")).toBe("status");
+    expect(line?.textContent).toBe("Finish signing in on the page that opened. This updates by itself.");
+    expect(shown(), "the line sits beside the button that reopens the page").toBe("open page again");
+    await act(async () => { dialog().querySelector<HTMLButtonElement>("[data-cancel]")!.click(); });
+    expect(dialog().querySelector("[data-connect-line]")).toBeNull();
+    expect(shown()).toBe("connect Asana");
+  });
+
   it("one app stuck connecting never holds the others, and Cancel puts it back", async () => {
     fixture.api.mockImplementation(async (path: string) => {
       if (path === "/api/connectors/asana/authorize") return new Promise(() => {});
