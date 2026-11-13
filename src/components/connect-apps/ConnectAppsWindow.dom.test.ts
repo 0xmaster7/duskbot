@@ -606,6 +606,25 @@ describe("the Connect Apps window", () => {
     });
   });
 
+  it("says Reconnect, not Connect, for a token app whose sign-in was refused, and opens its page ready to sign in in its place", async () => {
+    const stale = { id: "a1a1a1a1a1a1a1a1", app: "trello", label: "Acme board", server: "trello", via: "token", connectedAt: "2026-11-13T00:00:00Z", needsReconnect: true };
+    const base = fixture.api.getMockImplementation()!;
+    fixture.api.mockImplementation(async (path: string, init?: unknown) => (path === "/api/app-tokens" ? { accounts: [stale], native: {} } : base(path, init)));
+    act(() => root.unmount());
+    root = createRoot(document.body.appendChild(document.createElement("div")));
+    await act(async () => { root.render(createElement(ConnectAppsWindow, { page: { kind: "home" }, nonce: 3, onClose, onTemplates: vi.fn() })); });
+    await flush();
+    const row = dialog().querySelector<HTMLElement>('[data-app-row="trello"]')!;
+    expect(row.querySelector(".ca-row-subtitle")?.textContent).toBe("needs reconnecting");
+    const pill = row.querySelector<HTMLButtonElement>(".ca-pill")!;
+    expect(pill.textContent).toContain("reconnect");
+    await act(async () => { pill.click(); });
+    await flush();
+    const page = dialog().querySelector("[data-token-app='trello']")!;
+    expect(page.querySelector("[data-needs-reconnect]")?.textContent).toBe("needs reconnecting");
+    expect(page.querySelector("[data-guide-step='paste'] input"), "a new token goes in its place").not.toBeNull();
+  });
+
   it("lists accounts as grok does: disconnect asks again in place, then removes it", async () => {
     await act(async () => { dialog().querySelector<HTMLButtonElement>('[data-app-row="slack"] .ca-row-open')!.click(); });
     await flush();
