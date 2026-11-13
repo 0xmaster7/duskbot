@@ -29,6 +29,14 @@ export interface HomeLifecycleState {
   focusSince?: number | null;
   /** the owner's dashboard last showed this home (lifecycle `noteView`) */
   viewedAt?: number | null;
+  /** this start was a person's own wake (not a routine's or a connector's), asked at this time */
+  personWakeAt?: number | null;
+  /** the stuck holds the operator was last alerted about (one alert per incident), "" for none */
+  stuckAlert?: string | null;
+  /** this UTC day's awake time and the part of it a bot worked (a turn or a run), from the power reads; `flagged`: a
+   *  finished day awake over half of it without work, until the daily check alerts about it */
+  awakeDay?: { day: string; at: number; awakeMs: number; workMs: number } | null;
+  flaggedDay?: { day: string; awakeMs: number; workMs: number } | null;
   /** the power policy's memory of this home: its starts, stops, failed starts, breaker and learned activity */
   power?: PowerMemory;
   /** the runs ahead as the home last reported them */

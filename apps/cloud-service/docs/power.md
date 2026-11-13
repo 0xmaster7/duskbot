@@ -70,6 +70,10 @@ stop, whatever the policy said.
   home in 3 separate minutes of the last hour. An open app or the dashboard on screen holds it up to 30 minutes past the later
   of it opening and the last input. Past the rails, no hint and no cost guess keeps a home up 2 hours after the last input;
   only work does (a turn, a run, a call, a computer, a sign-in, a transfer).
+- **Only a person earns the minimum idle:** a routine's or a connector's wake keeps only its minimum uptime and sleeps once
+  its work is done. Holds that are not a bot's own work (a transfer or other maintenance, a cloud computer, a live call)
+  stop counting after 6 hours with no bot working, no input and no bytes moving; the operator gets one alert per incident.
+- **Daily check:** one ops alert a day listing every cloud that was awake over 12 hours of a UTC day without a bot working.
 - **No flapping:** each stop that a start followed within the flap window doubles the minimum idle for a day. The
   defaults (10 minutes, up to 2 hours, 4 starts an hour and 16 a day, 6 minutes of uptime) protect a scarce start
   pool; InstaBox homes run with `INSTABOX_RAILS` (1 minute, up to 10 minutes, 20 an hour and 96 a day, 3 minutes).

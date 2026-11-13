@@ -89,6 +89,8 @@ export interface HomePower {
   idle: boolean; busy: string[]; lastActivityAt: number | null; nextDueAt: number | null; wokeAt: number | null;
   /** the runs due in the next day, when the home reports them; `flexMs` is how far a run may move (0: its exact time) */
   upcoming?: Array<{ at: number; flexMs: number }>;
+  /** holds the home stopped counting after they ran past their cap with nothing moving (server/cloud-power.ts) */
+  stuck?: string[];
 }
 
 export interface StoredCloud {

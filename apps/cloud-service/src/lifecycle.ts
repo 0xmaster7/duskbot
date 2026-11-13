@@ -15,7 +15,7 @@ import { ProviderBusyError, ProviderError, ProviderLimitError, type MachineProvi
 import type { ReleaseKey } from "./release-signing.ts";
 import { homeBackupKey, homeVolumeScan, type BackupStore } from "./backups.ts";
 import { DAY_MS, DEFAULT_DELETE_DELAY_DAYS, DEFAULT_RETENTION_DAYS, deletionVerdict, dueNotice, type Entitlement, type NoticeKind, type Verdict } from "./retention.ts";
-import type { Audit, AuditActor } from "./audit.ts";
+import type { Audit, AuditActor, AuditEntry } from "./audit.ts";
 import { RetryableCloudError } from "../../dashboard/server/clouds/http.ts";
 import { ManagedCloudError } from "../../dashboard/server/clouds/managed.ts";
 import type { HomeClient, StoredCloud } from "../../dashboard/server/clouds/types.ts";
@@ -105,6 +105,8 @@ export function freshManagedState(): HomeLifecycleState {
 }
 
 export interface LifecycleDeps {
+  /** the operator's alert (an email, or an incident): one per incident */
+  alert?(entry: AuditEntry): void;
   provider: MachineProvider;
   image: MachineImage;
   backups: BackupStore;
@@ -160,6 +162,23 @@ export function createLifecycle(deps: LifecycleDeps) {
   const log = (c: StoredCloud, action: string, actor: AuditActor, reason: string, detail?: Record<string, string | number | boolean | null>) =>
     audit.record({ cloudId: c.id, action, actor, reason, serverId: c.serverId, ...(detail ? { detail } : {}) });
   const state = (c: StoredCloud): HomeLifecycleState => (c.managed ??= freshManagedState());
+  /** the operator hears of it once: an audit line, the console's ALERT line (an incident) and the alert hook (an email) */
+  const opsAlert = (c: StoredCloud | null, action: string, reason: string, text: string) => {
+    console.warn(`managed: ALERT ${text}`);
+    if (c) log(c, action, "reconciler", reason);
+    deps.alert?.({ at: now(), cloudId: c?.id ?? "fleet", action, actor: "reconciler", reason: text.slice(0, 900) });
+  };
+  const dayOf = (at: number) => new Date(at).toISOString().slice(0, 10);
+  /** adds the time since the last power read to the day's awake tally (a gap over 5 minutes counts as 5: a read that did
+   *  not happen is not proof it was up), and the part a bot worked; a finished day awake over half of it without work is
+   *  flagged for the daily check */
+  const tallyDay = (c: StoredCloud, busy: readonly string[]) => {
+    const b = state(c), at = now(), day = dayOf(at);
+    const t = b.awakeDay && b.awakeDay.day === day ? b.awakeDay : null;
+    if (b.awakeDay && b.awakeDay.day !== day && b.awakeDay.awakeMs - b.awakeDay.workMs > 12 * HOUR) b.flaggedDay = { day: b.awakeDay.day, awakeMs: b.awakeDay.awakeMs, workMs: b.awakeDay.workMs };
+    const dt = t ? Math.max(0, Math.min(at - t.at, 5 * MINUTE)) : 0, work = busy.includes("turn") || busy.includes("run");
+    b.awakeDay = { day, at, awakeMs: (t?.awakeMs ?? 0) + dt, workMs: (t?.workMs ?? 0) + (work ? dt : 0) };
+  };
   const rails = deps.rails ?? DEFAULT_RAILS;
   const pool = () => deps.starts?.view() ?? { used: { minute: 0, hour: 0, day: 0 }, blockedUntil: null };
   const egress = createEgressGuard({ provider, now, save: c => deps.save(c), log: (c, action, reason, detail) => log(c, action, "reconciler", reason, detail),
@@ -805,7 +824,10 @@ export function createLifecycle(deps: LifecycleDeps) {
       if (plan && !plan.start && b.stayReason !== plan.reason && !["not_yet", "nothing_due"].includes(plan.reason)) { b.stayReason = plan.reason; deps.save(c); }
       if (wanted || due) {
         const intent = wanted && c.wakeRequestedAt !== undefined && now() - c.wakeRequestedAt < 5 * MINUTE;
-        if (intent) { deps.sleepPolicy.observe(m, c.wakeRequestedAt!, b.wakeBy === "webhook" ? "connector" : "user"); b.wakeBy = null; }
+        if (intent) deps.sleepPolicy.observe(m, c.wakeRequestedAt!, b.wakeBy === "webhook" ? "connector" : "user");
+        // only a person's wake earns the minimum idle; a routine's or a connector's is done once its work is
+        b.personWakeAt = intent && b.wakeBy !== "webhook" ? c.wakeRequestedAt! : null;
+        if (intent) b.wakeBy = null;
         await start(c, intent ? "wake" : due ? "routine" : "wake", () => provider.power(c.serverId!, "on"), due ? plan!.latest : null); b.wakeStartedAt = now(); b.wakeFailureNoted = false; c.wantPower = "on";
         log(c, "wake", intent ? "owner" : "reconciler", due ? "routine_due" : "asked");
         deps.save(c); return;
@@ -864,6 +886,13 @@ export function createLifecycle(deps: LifecycleDeps) {
     if (await deps.updates?.step(c, { origin: c.origin!, upstream: homeOrigin(c), secret: secret(c), busy: power?.busy ?? null })) { deps.save(c); return; }
     if (!power) { deps.save(c); return; }
     const m = memory(c);
+    tallyDay(c, power.busy);
+    // holds the home stopped counting as stuck (a hung transfer, a computer or call past its cap): one alert per incident
+    const stuckKey = [...(power.stuck ?? [])].sort().join(",");
+    if (stuckKey !== (b.stuckAlert ?? "")) {
+      b.stuckAlert = stuckKey;
+      if (stuckKey) opsAlert(c, "hold_stuck", stuckKey, `cloud ${c.id}: a ${stuckKey} hold ran 6 hours with nothing moving; it no longer keeps the cloud awake`);
+    }
     // the dashboard on screen is a hint like the app's focus: the rails cap both from the later of it starting and the last input
     const viewing = b.viewedAt != null && now() - b.viewedAt < VIEW_FRESH_MS;
     const busy = viewing && !power.busy.includes("focus") ? [...power.busy, "focus"] : power.busy;
@@ -871,12 +900,12 @@ export function createLifecycle(deps: LifecycleDeps) {
     b.focusSince = busy.includes("focus") ? b.focusSince ?? now() : null;
     if (power.lastActivityAt !== null) { deps.sleepPolicy.observe(m, power.lastActivityAt, "user"); noteUse(m, power.lastActivityAt, now()); }
     const snapshot = { now: now(), cloudId: c.id, spec: c.spec, homeIdle: power.idle, awakeSince: c.powerSince, lastActivityAt: power.lastActivityAt, busy, focusSince: b.focusSince ?? null,
-      nextDueAt: power.nextDueAt, upcoming: b.upcoming, wakeRequestedAt: c.wakeRequestedAt ?? null, memory: m, spend: spendView(c) };
+      nextDueAt: power.nextDueAt, upcoming: b.upcoming, wakeRequestedAt: c.wakeRequestedAt ?? null, personWakeAt: b.personWakeAt ?? null, memory: m, spend: spendView(c) };
     const decision = deps.sleepPolicy.decide(snapshot);
     // the rails again, whatever the policy said: no policy stops a home they hold up
     const next = nextRun(plannedRuns(power.nextDueAt, b.upcoming, now()), now());
     const held = decision.action === "stop" ? stopRefusal({ now: now(), awakeSince: c.powerSince, busy, focusSince: b.focusSince ?? null, lastActivityAt: power.lastActivityAt,
-      wakeRequestedAt: c.wakeRequestedAt ?? null, nextRunAt: next ? runnableFrom(next) : null, memory: m, pool: pool(), profile: deps.costProfile, spend: spendView(c) }, rails) : null;
+      wakeRequestedAt: c.wakeRequestedAt ?? null, personWakeAt: b.personWakeAt ?? null, nextRunAt: next ? runnableFrom(next) : null, memory: m, pool: pool(), profile: deps.costProfile, spend: spendView(c) }, rails) : null;
     const reason = decision.action === "stay" ? decision.reason : held?.reason ?? null;
     if (b.stayReason !== reason) b.stayReason = reason;
     if (power.idle && decision.action === "stop" && !held && deps.home.sleep) {
@@ -948,6 +977,22 @@ export function createLifecycle(deps: LifecycleDeps) {
       return { ok: true, status: 202 };
     },
     reconcile,
+    /** after each pass: any cloud flagged for a day awake over half of it without bot work gets one ops alert for all of them */
+    dailyCheck(clouds: readonly StoredCloud[]) {
+      const at = now(), flagged = clouds.filter(c => c.managed && (state(c).flaggedDay ?? null) !== null);
+      // a cloud that slept through midnight finishes its day at its next power read; one with no read today finishes here
+      for (const c of clouds) {
+        const b = c.managed ? state(c) : null;
+        if (b?.awakeDay && b.awakeDay.day !== dayOf(at) && at - b.awakeDay.at > 10 * MINUTE) {
+          if (b.awakeDay.awakeMs - b.awakeDay.workMs > 12 * HOUR) { b.flaggedDay = { day: b.awakeDay.day, awakeMs: b.awakeDay.awakeMs, workMs: b.awakeDay.workMs }; if (!flagged.includes(c)) flagged.push(c); }
+          b.awakeDay = null; deps.save(c);
+        }
+      }
+      if (!flagged.length) return;
+      const lines = flagged.map(c => { const f = state(c).flaggedDay!; return `${c.id} ${f.day}: awake ${(f.awakeMs / HOUR).toFixed(1)} h, bot work ${(f.workMs / HOUR).toFixed(1)} h`; });
+      opsAlert(null, "awake_without_work", `${flagged.length}_clouds`, `clouds awake over half a day without bot work: ${lines.join("; ")}`.slice(0, 900));
+      for (const c of flagged) { log(c, "awake_without_work", "reconciler", state(c).flaggedDay!.day); state(c).flaggedDay = null; deps.save(c); }
+    },
     /** its owner has the dashboard open on it (VIEW_FRESH_MS): a hint for the power policy, never use, never a wake */
     noteView(c: StoredCloud) {
       if (!c.managed || c.status !== "running") return;

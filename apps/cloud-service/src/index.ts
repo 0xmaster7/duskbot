@@ -181,7 +181,7 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
             egress: egress && { bytes: egress.bytes, state: egress.state === "alerted" ? "ok" : egress.state, until: egress.until },
             ...(c.status !== "destroyed" ? { destroyAt: retained.earliestAt } : {}) };
         },
-        afterPass: clouds => sweep.sweep(clouds),
+        afterPass: async clouds => { lifecycle.dailyCheck(clouds); await sweep.sweep(clouds); },
         revivable: c => lifecycle.revivable(c),
         requestDelete: (c, link) => lifecycle.requestDelete(c, link),
         confirmDelete: (c, token) => lifecycle.confirmDelete(c, token),

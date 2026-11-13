@@ -111,6 +111,9 @@ export interface StopContext {
   focusSince: number | null;
   lastActivityAt: number | null;
   wakeRequestedAt: number | null;
+  /** a person's own wake of this start (the app, the dashboard), not a routine's or a connector's: the minimum idle counts
+   *  from it as from their last action; a home nobody woke or used only keeps its minimum uptime */
+  personWakeAt?: number | null;
   /** when the next run has to begin, at the earliest */
   nextRunAt: number | null;
   memory: PowerMemory;
@@ -166,8 +169,8 @@ export function stopRefusal(c: StopContext, rails: RailSettings = DEFAULT_RAILS)
     if (now < until) return no("focused", Math.min(until, now + 5 * MINUTE));
   }
   const { ms: minIdle, base } = minIdleFor(memory, now, rails);
-  const idleFrom = Math.max(c.lastActivityAt ?? 0, c.awakeSince);
-  if (now - idleFrom < minIdle) return no(minIdle > base ? "flap_backoff" : base > rails.minIdleMs ? "in_use" : "min_idle", idleFrom + minIdle);
+  const idleFrom = Math.max(c.lastActivityAt ?? 0, c.personWakeAt ?? 0);
+  if (idleFrom > 0 && now - idleFrom < minIdle) return no(minIdle > base ? "flap_backoff" : base > rails.minIdleMs ? "in_use" : "min_idle", idleFrom + minIdle);
   if (c.nextRunAt !== null && c.nextRunAt - now <= rails.routineGuardMs) return no("routine_due", c.nextRunAt + MINUTE);
   if (memory.breaker && memory.breaker.openUntil > now) return no("starts_failing", memory.breaker.openUntil);
   const hourStarts = countSince(memory.starts, now - HOUR), dayStarts = countSince(memory.starts, now - DAY);

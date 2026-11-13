@@ -35,7 +35,8 @@ export function createHomeClient(options: { fetch?: typeof fetch; now?: () => nu
         return at === null ? [] : [{ at, flexMs: Number.isSafeInteger(flex) && (flex as number) >= 0 && (flex as number) <= 3_600_000 ? flex as number : 0 }];
       }) : undefined;
       return { idle: value.idle, busy: value.busy.filter((b): b is string => typeof b === "string" && /^[a-z-]{1,32}$/.test(b)), lastActivityAt: moment(value.lastActivityAt), nextDueAt: moment(value.nextDueAt), wokeAt: moment(value.wokeAt),
-        ...(upcoming ? { upcoming } : {}) };
+        ...(upcoming ? { upcoming } : {}),
+        ...(Array.isArray(value.stuck) && value.stuck.length ? { stuck: value.stuck.slice(0, 8).filter((b): b is string => typeof b === "string" && /^[a-z-]{1,32}$/.test(b)) } : {}) };
     },
     async sleep(origin, secret, idleMinutes, options) {
       try {

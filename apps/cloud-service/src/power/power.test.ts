@@ -158,6 +158,14 @@ describe("the rails", () => {
     expect(stopRefusal(stopContext({ busy: ["turn"], lastActivityAt: T0 - 5 * HOUR }), rails)?.reason).toBe("busy:turn");
   });
 
+  it("gives a routine's or a connector's wake only its minimum uptime, and a person's wake the minimum idle", () => {
+    const rails = { ...DEFAULT_RAILS, minIdleMs: 12 * MINUTE, minUptimeMs: 3 * MINUTE };
+    const woke = { awakeSince: T0 - 4 * MINUTE, lastActivityAt: T0 - 5 * HOUR };
+    expect(stopRefusal(stopContext(woke), rails)).toBeNull();
+    expect(stopRefusal(stopContext({ ...woke, personWakeAt: T0 - 4 * MINUTE }), rails)?.reason).toBe("min_idle");
+    expect(stopRefusal(stopContext({ ...woke, lastActivityAt: null }), rails)).toBeNull();
+  });
+
   it("doubles the minimum idle for each stop that a start followed within ten minutes", () => {
     const memory = freshMemory(T0 - DAY);
     for (let i = 0; i < 3; i++) { noteStop(memory, T0 - 5 * HOUR + i * HOUR); noteStart(memory, T0 - 5 * HOUR + i * HOUR + 2 * MINUTE); }

@@ -39,13 +39,13 @@ describe("the rails, on random event streams", () => {
         } else if (up) {
           // a policy that always wants to stop: only the rails stand between it and flapping
           const busy = t < busyUntil ? ["turn"] : [];
-          const refused = stopRefusal({ now: t, awakeSince, busy, focusSince: null, lastActivityAt: lastActivity, wakeRequestedAt: wakeAt, nextRunAt: null, memory,
+          const refused = stopRefusal({ now: t, awakeSince, busy, focusSince: null, lastActivityAt: lastActivity, wakeRequestedAt: wakeAt, personWakeAt: wakeAt, nextRunAt: null, memory,
             pool: { used: { minute: 0, hour: 0, day: 0 }, blockedUntil: null }, profile }, RAILS);
           if (!refused) {
             expect(t >= busyUntil).toBe(true);
             expect(t - awakeSince).toBeGreaterThanOrEqual(RAILS.minUptimeMs);
             const minIdle = minIdleFor(memory, t, RAILS).ms;
-            expect(t - Math.max(lastActivity ?? 0, awakeSince)).toBeGreaterThanOrEqual(minIdle);
+            if (lastActivity !== null || wakeAt !== null) expect(t - Math.max(lastActivity ?? 0, wakeAt ?? 0)).toBeGreaterThanOrEqual(minIdle);
             noteStop(memory, t); up = false;
           }
         }

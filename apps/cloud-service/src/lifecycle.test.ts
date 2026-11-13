@@ -476,3 +476,32 @@ it("waits half an hour after the last input once the owner has used the home in 
   const slept = f.audit.entries(c.id).filter(e => e.action === "sleep").at(-1)!;
   expect(slept.at - last).toBeGreaterThanOrEqual(30 * 60_000);
 });
+
+it("a routine's wake sleeps again once its work is done, not after the person's idle window", async () => {
+  const f = await homeFixture();
+  const { c } = await f.paid();
+  f.power.idle = true; f.power.busy = [];
+  const due = f.now() + 3 * 60 * 60_000; f.power.nextDueAt = due;
+  await f.settle(c, c => c.status === "sleeping", 60, 5 * 60_000);
+  f.advance(due - 10 * 60_000 - f.now());
+  await f.settle(c, c => c.status === "running", 30, 30_000);
+  const woke = f.now(); f.power.nextDueAt = null;
+  await f.settle(c, c => c.status === "sleeping", 30, 60_000);
+  expect(f.now() - woke).toBeLessThan(12 * 60_000);
+});
+
+it("alerts the operator once when a home's hold is stuck, and once a day about clouds awake over half a day without work", async () => {
+  const f = await homeFixture();
+  const { c } = await f.paid();
+  f.power.idle = false; f.power.busy = ["computer"];
+  (f.power as { stuck?: string[] }).stuck = ["computer"];
+  for (let n = 0; n < 3; n++) { f.advance(60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
+  expect(f.audit.entries(c.id).filter(e => e.action === "hold_stuck")).toHaveLength(1);
+  // a whole day up without a bot working: one alert after midnight
+  (f.power as { stuck?: string[] }).stuck = undefined; f.power.busy = ["focus"];
+  const midnight = Math.ceil((f.now() + 1) / 86_400_000) * 86_400_000;
+  while (f.now() < midnight + 5 * 60_000) { f.advance(5 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
+  const day = 86_400_000;
+  while (f.now() < midnight + day + 5 * 60_000) { f.advance(5 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
+  expect(f.audit.entries(c.id).filter(e => e.action === "awake_without_work")).toHaveLength(1);
+}, 120_000);
