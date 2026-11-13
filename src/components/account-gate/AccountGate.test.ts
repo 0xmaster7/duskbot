@@ -3,8 +3,8 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { setLocale } from "@/lib/i18n";
-import { AccountGate } from "./AccountGate";
+import { deviceWord, setLocale } from "@/lib/i18n";
+import { AccountGate, reloadWhenSignedOut } from "./AccountGate";
 import type { AccountGateBridge, GateState } from "./bridge";
 
 vi.mock("@/components/Avatar", () => ({ MausAvatar: () => createElement("span") }));
@@ -46,7 +46,7 @@ afterEach(async () => { await act(async () => root?.unmount()); host.remove(); v
 it("renders the title, providers and email step, and focuses the email field", async () => {
   const html = renderToStaticMarkup(createElement(AccountGate, { bridge }));
   expect(html).toContain("sign in to dusk bot");
-  expect(html).toContain("One account for your bots, your Mac and your cloud desktop.");
+  expect(html).toContain(`One account for your bots, your ${deviceWord()} and your cloud desktop.`);
   for (const name of ["Google", "Apple", "X"]) expect(html).toContain(`continue with ${name}`);
   expect(html).toContain('type="email"'); expect(html).toContain("send code");
   await mount();
@@ -66,8 +66,35 @@ it("submits email, accepts an eight-digit paste and verifies the code", async ()
   expect(document.activeElement).toBe(digit(1));
   await paste(digit(1), "1234-5678");
   expect(digit(8).value).toBe("8");
-  await submit();
-  expect(bridge.signInVerify).toHaveBeenCalledExactlyOnceWith("12345678");
+  expect(bridge.signInVerify, "the eighth digit signs in by itself").toHaveBeenCalledExactlyOnceWith("12345678");
+});
+
+it("says so when there is no keyring, and keeps the code when the sign-in can't be saved", async () => {
+  state = { ...state, plainStorage: true };
+  bridge.signInVerify = vi.fn(async () => ({ outcome: "storage" as const }));
+  await mount();
+  expect(host.textContent).toContain("No keyring on this computer");
+  await type(email(), "person@example.com"); await submit();
+  await paste(digit(1), "12345678");
+  expect(host.querySelector("[role=alert]")?.textContent).toBe("This computer can't save your sign-in right now. Restart the app and try again.");
+  expect(host.textContent).not.toContain("Couldn't reach dusk cloud");
+});
+
+it("goes back to the sign-in when the person signs out in the app, but not for a moment's switch of accounts", async () => {
+  vi.useFakeTimers();
+  try {
+    const reload = vi.fn();
+    const stop = reloadWhenSignedOut(bridge, reload, 1000);
+    state = { required: true, blocked: false, status: "connected" };
+    change({ required: true, blocked: true, status: "signed-out" });
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(reload, "signed in again meanwhile").not.toHaveBeenCalled();
+    state = { required: true, blocked: true, status: "signed-out" };
+    change(state);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(reload).toHaveBeenCalledOnce();
+    stop();
+  } finally { vi.useRealTimers(); }
 });
 
 it("keeps the code boxes' arrow and backspace behavior", async () => {
@@ -126,7 +153,7 @@ it("Can't sign in? sends a recovery code, says what comes, and gives plain help 
   await type(email(), "person@example.com"); await submit();
   expect(bridge.signInStart).toHaveBeenCalledExactlyOnceWith("person@example.com", { recover: true });
   expect(host.textContent).toContain("If an account uses this email, the code is on its way");
-  await paste(digit(1), "12345678"); await submit();
+  await paste(digit(1), "12345678");
   expect(bridge.signInVerify).toHaveBeenCalledExactlyOnceWith("12345678");
 });
 

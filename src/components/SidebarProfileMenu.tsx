@@ -441,8 +441,8 @@ export function grokProfileMenuItems({ onGetApp, onHelp, onShortcuts, onFeedback
       { key: "log-out", label: t("sidebar.grok.logOut"), icon: icon("arrow-bracket-from-left"), onSelect: () => accounts.signOut(active.id) },
     ]
     : accounts.openSheet ? [{ key: "accounts-sheet", label: t("accounts.manage"), icon: icon("person"), onSelect: accounts.openSheet }]
-      // nobody signed in here: Sign in, at the account button where a person looks for it; it opens Settings > General > Account
-      : [{ key: "sign-in", label: t("accounts.signIn"), icon: icon("person"), onSelect: onAddAccount }];
+      // nobody signed in here: Sign in, at the account button where a person looks for it; this app's own page signs in right there
+      : [{ key: "sign-in", label: t("accounts.signIn"), icon: icon("person"), onSelect: accounts.view ? () => accounts.add() : onAddAccount }];
   return [
     ...(onNeedsYou ? [{ key: "needs-you", label: t("sidebar.account.automationsNeedYou"), icon: icon("alarm-clock"), attention: true, attentionTone: "danger", onSelect: onNeedsYou } satisfies SidebarMenuItem] : []),
     { key: "mobile", label: t("sidebar.menu.connectPhone"), icon: icon("device-mobile"), onSelect: onGetApp, ...(onNeedsYou ? { separatorBefore: true } : {}) },

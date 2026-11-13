@@ -475,6 +475,8 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
     if (!attempt || now() >= attempt.expiresAt) { emailed = null; return { outcome: "expired" }; }
     if (!digits) return { outcome: "wrong-code", triesLeft: SIGN_IN_TRIES - attempt.wrong };
     if (signInBlocked()) throw new Error("Sign out before starting another Cloud connection.");
+    // a code is single-use: one that can't be kept afterwards must not be spent
+    if (store.ready && !(await store.ready())) return { outcome: "storage" };
     const stamp = generation;
     try {
       const result = await request(null, { method: "POST", path: SIGN_IN_VERIFY, body: { attempt: attempt.attempt, code: digits } });
@@ -482,7 +484,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       return { outcome: "signed-in", state: await refresh() };
     } catch (error) {
       if (!current(stamp)) return { outcome: "failed" };
-      if (issued) { await signOut(); return { outcome: "failed" }; }
+      if (issued) { await signOut(); return { outcome: "storage" }; }
       const outcome = verifyFailure(error);
       if (outcome === "wrong-code" && emailed === attempt) {
         attempt.wrong++;

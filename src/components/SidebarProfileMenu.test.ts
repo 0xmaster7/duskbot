@@ -533,6 +533,14 @@ describe("grok's profile menu", () => {
     expect(items.at(-1)).toMatchObject({ label: "sign in", separatorBefore: true });
   });
 
+  it("signs in right there on this app's own page, not in Settings and not about dusk cloud", () => {
+    const add = vi.fn(), onAddAccount = vi.fn();
+    const items = grokProfileMenuItems({ ...base, onAddAccount, accounts: { view: { active: null, others: [] }, openSheet: null, signOut: vi.fn(), add } as never });
+    items.at(-1)!.onSelect();
+    expect(add).toHaveBeenCalledOnce();
+    expect(onAddAccount).not.toHaveBeenCalled();
+  });
+
   it("puts the account dashboard right under the phone row when the menu can open it", () => {
     const onDashboard = vi.fn();
     const items = grokProfileMenuItems({ ...base, onDashboard });

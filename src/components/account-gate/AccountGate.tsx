@@ -18,6 +18,18 @@ export function gateNotice(state: GateState | null): string | undefined {
   }
 }
 
+/** Signed out while the app is open: the page goes back to the sign-in, as after a restart. Switching accounts passes through
+ * signed-out for a moment, so the state is read again before the page leaves. */
+export function reloadWhenSignedOut(gate: AccountGateBridge, reload = () => location.reload(), settle = 1500): () => void {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const out = (state: GateState) => state.blocked && state.status === "signed-out";
+  const stop = gate.onChange((next) => {
+    clearTimeout(timer);
+    if (out(next)) timer = setTimeout(() => void gate.state().then((now) => { if (out(now)) reload(); }, () => {}), settle);
+  });
+  return () => { clearTimeout(timer); stop(); };
+}
+
 export function AccountGate({ bridge }: { bridge: AccountGateBridge }) {
   const [state, setState] = useState<GateState | null>(null);
   useEffect(() => {
@@ -50,5 +62,5 @@ export function AccountGate({ bridge }: { bridge: AccountGateBridge }) {
       </div>
     </div>
   </main>;
-  return <SignIn options={bridge.options ? () => bridge.options!() : undefined} emailStart={(email, options) => options ? bridge.signInStart(email, options) : bridge.signInStart(email)} emailVerify={code => bridge.signInVerify(code)} cancelEmail={() => bridge.signInCancel()} browser={async provider => { setState(await bridge.browser(provider)); }} onSignedIn={() => { void bridge.state().then(setState); }} notice={gateNotice(state)} />;
+  return <SignIn options={bridge.options ? () => bridge.options!() : undefined} emailStart={(email, options) => options ? bridge.signInStart(email, options) : bridge.signInStart(email)} emailVerify={code => bridge.signInVerify(code)} cancelEmail={() => bridge.signInCancel()} browser={async provider => { setState(await bridge.browser(provider)); }} onSignedIn={() => { void bridge.state().then(setState); }} notice={gateNotice(state)} note={state?.plainStorage ? t("accountGate.plainStorage") : undefined} />;
 }

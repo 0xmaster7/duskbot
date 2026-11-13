@@ -6,7 +6,7 @@ export declare function cleanCode(value: unknown): string | null;
 export declare function signInIdentity(input: { deviceName: unknown; platform: unknown; appVersion: unknown }): { deviceName: string; platform: string; appVersion: string } | null;
 export declare function parseSignInStart(result: unknown): { attempt: string; expiresIn: number; resendAfter: number; signupOpen: boolean } | null;
 export type CloudSignInStartFailure = "sso" | "rate-limited" | "browser" | "invalid-email" | "failed";
-export type CloudSignInVerifyFailure = "wrong-code" | "expired" | "sso" | "two-factor" | "signup-closed" | "device-limit" | "rate-limited" | "browser" | "failed";
+export type CloudSignInVerifyFailure = "wrong-code" | "expired" | "sso" | "two-factor" | "signup-closed" | "device-limit" | "rate-limited" | "browser" | "storage" | "failed";
 export declare function startFailure(error: unknown): CloudSignInStartFailure;
 export declare function verifyFailure(error: unknown): CloudSignInVerifyFailure;
 export declare const APP_START: string;

@@ -2,12 +2,13 @@ export const accountGateRequired = ({ env, packaged, remote, custom }) => !remot
 export const gateBlocks = state => !(state?.account && ["connected", "unavailable"].includes(state.status));
 const plain = value => typeof value === "string" ? value : "";
 
-export function installAccountGate({ ipcMain, guard, client, required, window, restored = async () => {} }) {
+/** `plainStorage()`: no system keyring, so a sign-in is kept in a file guarded only by this computer's user account. */
+export function installAccountGate({ ipcMain, guard, client, required, window, restored = async () => {}, plainStorage = () => false }) {
   const view = state => {
     const needed = required();
     return { required: needed, blocked: needed && gateBlocks(state), status: state?.status ?? "signed-out",
       ...(state?.message === undefined ? {} : { message: state.message }), ...(state?.enrollment ? { enrollment: { userCode: state.enrollment.userCode, expiresAt: state.enrollment.expiresAt } } : {}),
-      ...(state?.status === "connecting" && state.browser ? { browser: state.browser } : {}) };
+      ...(state?.status === "connecting" && state.browser ? { browser: state.browser } : {}), ...(plainStorage() ? { plainStorage: true } : {}) };
   };
   const state = () => view(client().state());
   const handle = (method, handler) => ipcMain.handle(`account-gate:${method}`, guard(`account-gate:${method}`, handler));

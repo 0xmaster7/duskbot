@@ -150,6 +150,7 @@ function AddAccount({ start, onDone, onBack }: { start: string; onDone: (note: s
     <button type="button" className={QUIET} onClick={() => { void bridge?.addReopen().catch(() => {}); }}>{t("accounts.browserOpen")}</button>
   </div>;
   return <SignInScreen phase={phase} email={email} code={code} profileEmail={null} busy={busy} now={now} onBack={onBack} onEmail={setEmail} onSend={send}
+    heading={t("accountGate.title")} backLabel={t("common.back")}
     onChangeEmail={() => { setPhase(EMAIL_STEP); void bridge?.addCancel().catch(() => {}); }}
     onCode={(value) => { const digits = codeDigits(value); setCode(digits); if (digits.length === 8 && !busy) verify(digits); }}
     onResend={send} onBrowser={() => { setBusy(true); void bridge?.addBrowser().then((result) => { if (result.outcome === "browser") setBrowser(true); else setPhase({ step: "email", intent: false, problem: "failed" }); }, () => setPhase({ step: "email", intent: false, problem: "failed" })).finally(() => setBusy(false)); }} />;

@@ -254,7 +254,7 @@ export function cloudIntroView(offer: CloudOffer | null | undefined): { badge: s
 export const CHECKOUT_WAIT_MS = 30 * 60_000;
 
 /** The in-app sign-in's step, kept by the sheet: where it is and what the Admin last said, never a code or token. */
-export type CloudSignInProblem = "invalid-email" | "rate-limited" | "failed" | "wrong-code" | "expired" | "signup-closed" | "device-limit" | "sso" | "two-factor" | "browser";
+export type CloudSignInProblem = "invalid-email" | "rate-limited" | "failed" | "wrong-code" | "expired" | "signup-closed" | "device-limit" | "sso" | "two-factor" | "browser" | "storage";
 export type CloudSignInPhase =
   | { step: "email"; intent: boolean; problem: CloudSignInProblem | null }
   | { step: "code"; intent: boolean; email: string; resendAt: number; problem: CloudSignInProblem | null; triesLeft: number | null; signupOpen?: boolean }

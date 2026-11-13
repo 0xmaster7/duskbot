@@ -11,6 +11,8 @@ export type GateState = {
   enrollment?: { userCode: string; expiresAt: number };
   /** Signing in at this provider in the browser, which comes back to the app signed in. */
   browser?: OAuthProvider;
+  /** No system keyring: the sign-in is kept in a file only this computer's user account can read. */
+  plainStorage?: true;
 };
 export interface AccountGateBridge {
   state(): Promise<GateState>;

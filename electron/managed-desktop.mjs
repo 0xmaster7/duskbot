@@ -96,6 +96,7 @@ export function createManagedDesktopStore({ file, encryption }) {
     if (!(await encryption.available())) throw new Error("Unlock your system keychain before connecting an organization.");
   };
   return {
+    ready: () => Promise.resolve().then(() => encryption.available()).then(Boolean, () => false),
     async read() {
       let handle;
       try {

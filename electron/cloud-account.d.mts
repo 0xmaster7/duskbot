@@ -269,6 +269,8 @@ export declare function cloudOrigin(value?: string, fixture?: boolean, custom?: 
 export interface CloudAccountStore {
   read(): Promise<unknown>;
   write(value: unknown): Promise<void>;
+  /** Whether a sign-in can be saved now; asked before an emailed code is spent. */
+  ready?(): Promise<boolean>;
 }
 export declare function createCloudAccountStore(options: {
   file: string;

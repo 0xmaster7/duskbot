@@ -14,13 +14,15 @@ const LINK = "min-h-11 self-center rounded-full px-3 text-[13px] text-ink-second
 export const SUPPORT_ADDRESS = "hello@dusk.bot";
 export type SignInOptions = { providers: OAuthProvider[]; recovery: boolean };
 
-export function SignIn({ emailStart, emailVerify, browser, cancelEmail, onSignedIn, notice, mobile = false, options, children, marks }: {
+export function SignIn({ emailStart, emailVerify, browser, cancelEmail, onSignedIn, notice, note, mobile = false, options, children, marks }: {
   emailStart(email: string, options?: { recover: true }): Promise<CloudSignInStart>;
   emailVerify(code: string): Promise<SignInVerify>;
   browser(provider: OAuthProvider): Promise<unknown>;
   cancelEmail?(): Promise<unknown>;
   onSignedIn(): void;
   notice?: string;
+  /** A quiet fact about this computer, under the form while no code is out. */
+  note?: string;
   mobile?: boolean;
   /** The providers the account service says sign in, and "Can't sign in?". Without it (the phone's sheet) every provider shows. */
   options?(): Promise<SignInOptions>;
@@ -67,15 +69,18 @@ export function SignIn({ emailStart, emailVerify, browser, cancelEmail, onSigned
     if (result.outcome === "sent") { setSent(result); setEmail(result.email); setCode(""); setNow(Date.now()); }
     else setProblem(result.outcome);
   });
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    if (!sent) { if (email.trim()) void send(); return; }
-    if (code.length !== 8) return;
+  const verify = (digits: string) => {
+    if (digits.length !== 8) return;
     void run(async () => {
-      const result = await emailVerify(code);
+      const result = await emailVerify(digits);
       if (result.outcome === "signed-in") onSignedIn();
       else { setProblem(result.outcome); setTriesLeft(result.outcome === "wrong-code" ? result.triesLeft : null); }
     });
+  };
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (!sent) { if (email.trim()) void send(); return; }
+    verify(code);
   };
   return <main className={`${mobile ? "dusk-mobile " : ""}flex size-full min-h-0 flex-col items-center overflow-y-auto bg-app px-6 py-8 text-ink`}>
     <div ref={host} className="my-auto flex w-full max-w-[360px] flex-col gap-4">
@@ -88,7 +93,7 @@ export function SignIn({ emailStart, emailVerify, browser, cancelEmail, onSigned
         {!sent ? <><label htmlFor={`${id}-email`} className="text-[14px] text-ink-secondary">{t("cloudBuy.signIn.email")}</label>
           <input id={`${id}-email`} data-autofocus type="email" inputMode="email" autoComplete="email" spellCheck={false} disabled={busy} value={email} onChange={event => setEmail(event.target.value)} className={FIELD} aria-invalid={problem === "invalid-email" || undefined} />
         </> : <><p id={`${id}-code`} className="text-[14px] text-ink-secondary">{t("cloudBuy.signIn.codeLabel", { email: sent.email })}{" "}<button type="button" className="underline underline-offset-2" disabled={busy} onClick={() => void run(async () => { await cancelEmail?.(); setSent(null); setCode(""); })}>{t("cloudBuy.signIn.change")}</button></p>
-          <div className="[&_input:focus]:border-ink"><CodeBoxes code={code} onCode={value => setCode(codeDigits(value))} busy={busy} wrong={problem === "wrong-code"} labelId={`${id}-code`} problemId={problem ? `${id}-problem` : undefined} /></div>
+          <div className="[&_input:focus]:border-ink"><CodeBoxes code={code} onCode={value => { const digits = codeDigits(value); setCode(digits); if (digits.length === 8 && digits !== code && !busy) verify(digits); }} busy={busy} wrong={problem === "wrong-code"} labelId={`${id}-code`} problemId={problem ? `${id}-problem` : undefined} /></div>
           {recover ? <p className="text-[13px] text-ink-secondary">{t("accountGate.recoverSent")}</p>
             : sent.signupOpen === false && <p className="text-[13px] text-ink-secondary">{t("cloudBuy.signIn.signupClosedNote")}</p>}
         </>}
@@ -102,6 +107,7 @@ export function SignIn({ emailStart, emailVerify, browser, cancelEmail, onSigned
         <p className="text-[13px] leading-5 text-ink-secondary">{t("accountGate.lostBody", { address: SUPPORT_ADDRESS })}</p>
         <button type="button" className={`${LINK} mt-2`} disabled={busy} onClick={() => { setRecover(false); setProblem(null); }}>{t("accountGate.back")}</button>
       </section>}
+      {note && !sent && !recover && <p className="text-center text-[13px] leading-5 text-ink-tertiary">{note}</p>}
       {!sent && !recover && children}
     </div>
   </main>;

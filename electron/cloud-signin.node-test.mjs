@@ -48,7 +48,7 @@ async function fixture(t, options = {}) {
   await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
   f.origin = `http://127.0.0.1:${server.address().port}`;
   f.client = createCloudAccountClient({ origin: f.origin, fixture: true, deviceName: "Fixture computer", platform: "darwin", appVersion: "0.1.113", now: () => f.now,
-    store: { read: async () => f.saved, write: async value => { if (f.failWrite) throw new Error("fixture storage failure"); f.saved = structuredClone(value); } },
+    store: { read: async () => f.saved, write: async value => { if (f.failWrite) throw new Error("fixture storage failure"); f.saved = structuredClone(value); }, ready: async () => !f.noStorage },
     openBrowser: async url => { f.browsers.push(url); }, onState: state => f.states.push(state), setTimer: () => 1, clearTimer: () => {}, ...options });
   await f.client.start();
   t.after(async () => { f.client.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); });
@@ -198,7 +198,7 @@ test("a token that cannot be stored is revoked and nothing is signed in; cancell
   const f = await fixture(t);
   await f.client.emailStart("person@example.test");
   f.failWrite = true;
-  assert.deepEqual(await f.client.emailVerify(CODE), { outcome: "failed" });
+  assert.deepEqual(await f.client.emailVerify(CODE), { outcome: "storage" }, "said as a storage problem, never as the network");
   await until(() => f.requests.some(row => row.route === "/api/cloud/desktop/session" && row.method === "DELETE"));
   assert.notEqual(f.client.state().status, "connected");
   const g = await fixture(t);
@@ -206,6 +206,16 @@ test("a token that cannot be stored is revoked and nothing is signed in; cancell
   g.client.emailCancel();
   assert.deepEqual(await g.client.emailVerify(CODE), { outcome: "expired" });
   assert.equal(g.requests.filter(row => row.route.endsWith("/verify")).length, 0);
+});
+
+test("with nowhere to keep a sign-in, the code is never sent, so it still works once there is", async t => {
+  const f = await fixture(t);
+  await f.client.emailStart("person@example.test");
+  f.noStorage = true;
+  assert.deepEqual(await f.client.emailVerify(CODE), { outcome: "storage" });
+  assert.equal(f.requests.filter(row => row.route.endsWith("/verify")).length, 0, "the code was not spent");
+  f.noStorage = false;
+  assert.equal((await f.client.emailVerify(CODE)).outcome, "signed-in");
 });
 
 test("the app's sign-in link: PKCE start address, strict link reading, the service's providers", () => {

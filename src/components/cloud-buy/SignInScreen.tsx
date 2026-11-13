@@ -21,24 +21,27 @@ export function problemLine(problem: CloudSignInProblem, triesLeft: number | nul
     case "sso": return t("cloudBuy.signIn.sso");
     case "two-factor": return t("cloudBuy.signIn.twoFactor");
     case "browser": return t("cloudBuy.signIn.browser");
+    case "storage": return t("cloudBuy.signIn.storage");
     case "failed": return t("cloudBuy.signIn.failed");
   }
 }
 
 const clock = (ms: number) => { const seconds = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`; };
 
-export function SignInScreen({ phase, email, code, profileEmail, busy, now, onBack, onEmail, onSend, onChangeEmail, onCode, onResend, onBrowser }: {
+export function SignInScreen({ phase, email, code, profileEmail, busy, now, onBack, onEmail, onSend, onChangeEmail, onCode, onResend, onBrowser, heading, backLabel }: {
   phase: CloudSignInPhase; email: string; code: string; profileEmail: string | null; busy: boolean; now: number;
+  /** A sign-in that isn't about dusk cloud or a plan: its own title and way back. */
+  heading?: string; backLabel?: string;
   onBack: () => void; onEmail: (email: string) => void; onSend: () => void; onChangeEmail: () => void;
   onCode: (code: string) => void; onResend: () => void; onBrowser: () => void;
 }) {
   const problem = phase.step === "done" ? null : phase.problem;
   const browser = problem !== null && BROWSER_PROBLEMS.has(problem);
-  const title = phase.intent ? t("cloudBuy.signIn.title") : t("cloudBuy.signIn.titlePlain");
+  const title = heading ?? (phase.intent ? t("cloudBuy.signIn.title") : t("cloudBuy.signIn.titlePlain"));
   const submit = (event: FormEvent) => { event.preventDefault(); if (!busy) onSend(); };
   return <div data-cloud-add={`sign-in-${phase.step}`} className={SCREEN}>
     <div className="flex flex-col gap-3">
-      <BackLink label={t("cloudBuy.back")} onClick={onBack} />
+      <BackLink label={backLabel ?? t("cloudBuy.back")} onClick={onBack} />
       <Heading title={title} sub={t("cloudBuy.signIn.sub")} />
     </div>
     {phase.step === "email" && <form className="flex flex-col gap-1.5" onSubmit={submit} noValidate>
