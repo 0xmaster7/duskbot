@@ -168,7 +168,7 @@ export function createBilling(options: BillingOptions) {
     return { checkoutId: stored.id, subscriptionId: sub?.id ?? null };
   }
   const context = { service, clouds, store, config, accounts: options.accounts, now, enabled: billingProvider !== "off", fake: loopback ? fake : null, wakeStats: options.wakeStats ?? (() => ({})), opsToken,
-    checkoutOpen: billingProvider !== "preview", grants: billingProvider === "preview" ? fake : null, grant, findAccount: options.findAccount ?? (() => null) };
+    checkoutOpen: billingProvider !== "preview", endTrials: billingProvider === "preview" || env.DUSK_OPS_END_TRIAL === "1", grants: billingProvider === "preview" ? fake : null, grant, findAccount: options.findAccount ?? (() => null) };
   const routes = createBillingRoutes(context), admin = createAdminRoutes(context);
   return {
     async handle(req: IncomingMessage, res: ServerResponse, target: URL) { return await routes(req, res, target) || await admin.handle(req, res, target); },
@@ -202,6 +202,8 @@ export type BillingContext = {
   opsToken: string | null;
   /** false in preview: people cannot pay yet */
   checkoutOpen: boolean;
+  /** the operator may end a home package's trial early: preview, or DUSK_OPS_END_TRIAL=1 */
+  endTrials?: boolean;
   /** preview only: the provider that completes an operator's grant */
   grants: ReturnType<typeof createFakeBillingProvider> | null;
   /** a plan given through the same checkout, webhook and provisioning code, completed by the fake provider */

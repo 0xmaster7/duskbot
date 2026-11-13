@@ -67,6 +67,27 @@ describe("staged home updates", () => {
     expect(t.actions()).toEqual(["update_applied:idle", "update_settled:trial_passed"]);
   });
 
+  it("the operator can end a trial early once its self-test passed, so the next release installs at the next idle moment", async () => {
+    const t = await updating();
+    t.offer(release("1.1.0"));
+    t.f.power.busy = ["recent-activity"];
+    await t.pass();
+    const managed = t.f.service.managed!;
+    expect(managed.endTrial!(t.c, "test_cloud")).toEqual({ refused: "self_test_pending" });
+    Object.assign(t.f.update, { version: "1.1.0", selfTest: "passed", runs: [] });
+    await t.pass();
+    expect(t.c.managed!.update!.guard.trial).toMatchObject({ selfTest: "passed" });
+    t.offer(release("1.2.0"));
+    await t.pass();
+    expect(t.c.managed!.installed).toBe(sha("1.1.0"));
+    expect(managed.endTrial!(t.c, "test_cloud")).toEqual({ ended: "1.1.0" });
+    expect(t.f.audit.entries(t.c.id).find(e => e.action === "update_settled")).toMatchObject({ actor: "operator", reason: "operator", detail: { version: "1.1.0", why: "test_cloud" } });
+    await t.pass();
+    expect(t.c.managed!.installed).toBe(sha("1.2.0"));
+    expect(managed.endTrial!(t.c, "test_cloud")).toEqual({ refused: "self_test_pending" });
+    expect(t.c.managed!.update!.guard.trial).toMatchObject({ to: { version: "1.2.0" } });
+  });
+
   it("rolls back automatically when the self-test fails, and never installs that version again", async () => {
     const t = await updating();
     t.offer(release("1.1.0"));

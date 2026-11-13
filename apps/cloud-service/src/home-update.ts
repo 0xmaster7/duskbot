@@ -61,8 +61,8 @@ export interface HomeUpdateDeps {
 export interface HomeUpdateContext { origin: string; upstream: string; secret: string; busy: readonly string[] | null }
 
 export function createHomeUpdates(deps: HomeUpdateDeps) {
-  const log = (c: StoredCloud, action: string, reason: string, detail?: Record<string, string | number | boolean | null>) =>
-    deps.audit.record({ cloudId: c.id, action, actor: "reconciler", reason, serverId: c.serverId, ...(detail ? { detail } : {}) });
+  const log = (c: StoredCloud, action: string, reason: string, detail?: Record<string, string | number | boolean | null>, actor: "reconciler" | "operator" = "reconciler") =>
+    deps.audit.record({ cloudId: c.id, action, actor, reason, serverId: c.serverId, ...(detail ? { detail } : {}) });
 
   function versionOf(pkg: HomeRelease): string | null {
     if (pkg.signature) {
@@ -170,6 +170,18 @@ export function createHomeUpdates(deps: HomeUpdateDeps) {
     return true;
   }
 
-  return { step, state: (c: StoredCloud) => c.managed?.update ?? null };
+  /** the operator ends a version's trial early (a test cloud whose routines don't run): only once its self-test passed,
+   *  so a newer release may install at the next idle moment; audited with the operator's reason */
+  function endTrial(c: StoredCloud, reason: string): { ended: string } | { refused: "no_trial" | "self_test_pending" } {
+    const u = c.managed?.update;
+    if (!u?.guard.trial) return { refused: "no_trial" };
+    if (u.guard.trial.selfTest !== "passed") return { refused: "self_test_pending" };
+    const version = u.guard.trial.to.version;
+    settle(u.guard, deps.now());
+    log(c, "update_settled", "operator", { version, why: reason }, "operator");
+    deps.save(c);
+    return { ended: version };
+  }
+  return { step, endTrial, state: (c: StoredCloud) => c.managed?.update ?? null };
 }
 export type HomeUpdates = ReturnType<typeof createHomeUpdates>;

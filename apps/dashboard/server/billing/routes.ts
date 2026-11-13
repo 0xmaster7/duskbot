@@ -51,6 +51,17 @@ export function createBillingRoutes(ctx: BillingContext) {
         void clouds.reconcile().catch(() => {});
         json(res, 200, { ok: true }); return true;
       }
+      const endTrial = /^\/v1\/billing\/ops\/clouds\/(c[0-9a-f]{24})\/end-trial$/.exec(path);
+      if (endTrial && method === "POST") {
+        const managed = clouds.managed, cloud = clouds.get(endTrial[1]!);
+        if (!ctx.opsToken || !ctx.endTrials || !opsAllowed(req.headers.authorization, ctx.opsToken) || !managed?.endTrial || !cloud?.managed) throw new BillingError(404, "not_found");
+        const reason = text((await body(req)).reason);
+        if (!/^[a-z_]{3,40}$/.test(reason)) invalid();
+        const answer = managed.endTrial(cloud, reason);
+        if ("refused" in answer) { json(res, 409, { error: answer.refused === "no_trial" ? "No package is on trial on this cloud." : "Its self-test has not passed yet.", code: answer.refused }); return true; }
+        void clouds.reconcile().catch(() => {});
+        json(res, 200, { ok: true, settled: answer.ended }); return true;
+      }
       if (!ctx.enabled) throw new BillingError(503, "unavailable");
       if (webhook) {
         service.handleWebhook(req.headers, await rawBody(req, 64 * 1024));

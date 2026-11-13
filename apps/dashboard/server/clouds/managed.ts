@@ -66,6 +66,8 @@ export interface ManagedCloud {
   noteView?(cloud: StoredCloud): void;
   /** an operator hold: nothing is deleted while it is set */
   setHold(cloud: StoredCloud, hold: boolean): void;
+  /** the operator ends a home package's trial early, once its self-test passed (preview's test clouds) */
+  endTrial?(cloud: StoredCloud, reason: string): { ended: string } | { refused: "no_trial" | "self_test_pending" };
   /** what the provider measured for the cloud's current machine, this month or from `from` until now */
   usage?(cloud: StoredCloud, from?: number): Promise<{ runningSeconds: number; vcpuSeconds: number; memGiBSeconds: number; diskGiBSeconds: number; egressBytes: number } | null>;
   /** the backend's own routes (machine claims, the edge's route lookup); true when answered */

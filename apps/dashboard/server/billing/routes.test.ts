@@ -437,6 +437,9 @@ it("shows the operator's checkout funnel only with DUSK_OPS_TOKEN, and refuses a
     expect(answer.status).toBe(200);
     expect(await answer.json()).toMatchObject({ v: 1, rows: [], totals: { started: 0, paid: 0, active: 0 } });
     expect((await read(`Bearer ${token}`, "?days=0")).status).toBe(400);
+    // ending a package trial early is preview's (or DUSK_OPS_END_TRIAL's): elsewhere the route does not exist
+    const end = await fetch(`${origin}/v1/billing/ops/clouds/c${"0".repeat(24)}/end-trial`, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify({ reason: "test_cloud" }) });
+    expect(end.status).toBe(404);
   }
 });
 
