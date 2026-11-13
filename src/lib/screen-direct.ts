@@ -43,6 +43,8 @@ export async function openDirectScreen(url: string, options: {
   iceServers?: readonly string[];
   /** TURN servers from the signed-in account, when the app has them; a slow or failed answer just means none. */
   turn?: () => Promise<RTCIceServer[]>;
+  /** the data channel's label: the desktop's "screen", or "socket" for a WebSocket carried on the peer */
+  label?: string;
 }): Promise<DirectScreen> {
   const now = options.now ?? Date.now;
   const Peer = options.RTCPeerConnection ?? (typeof RTCPeerConnection === "function" ? RTCPeerConnection : undefined);
@@ -62,7 +64,7 @@ export async function openDirectScreen(url: string, options: {
   const abort = () => pc.close();
   options.signal.addEventListener("abort", abort, { once: true });
   try {
-    const channel = pc.createDataChannel(SCREEN_CHANNEL, { ordered: true });
+    const channel = pc.createDataChannel(options.label ?? SCREEN_CHANNEL, { ordered: true });
     channel.binaryType = "arraybuffer";
     await pc.setLocalDescription(await pc.createOffer());
     await gathered(pc, SCREEN_DIRECT_GATHER_MS);

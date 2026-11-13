@@ -3,6 +3,8 @@
 // access, a viewer that may operate sizes the page while it only watches, a larger frame cap is sent in place and a
 // reconnect opens with the newest size and cap, and dusk bot's own messages are passed on.
 
+import { openStreamSocket } from "./direct-socket";
+
 /** The browser's host cannot run Chrome until it is set up; the close reason names the fix. */
 export const PREVIEW_STREAM_HOST_SETUP_CLOSE_CODE = 4503;
 export const PREVIEW_STREAM_TAB_GONE_CODE = 4404;
@@ -288,7 +290,8 @@ export function createPreviewStreamClient(
   const connect = () => {
     if (stopped) return;
     const opening = { cap, size };
-    const ws = new WebSocket(streamUrl());
+    // direct (WebRTC) first for a server on another machine, the relay socket as before otherwise (src/lib/direct-socket.ts)
+    const ws = target.access.credentials ? openStreamSocket(streamUrl()) : new WebSocket(streamUrl());
     ws.binaryType = "arraybuffer";
     socket = ws;
     let opened = false;

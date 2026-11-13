@@ -80,6 +80,7 @@ function fakeChannel() {
   let closed = false;
   const channel: ScreenChannel = {
     send: (bytes) => { if (closed) return false; sent.push(Buffer.from(bytes)); return true; },
+    sendMessage: (bytes) => { if (closed) return false; sent.push(Buffer.from(bytes)); return true; },
     buffered: () => 0,
     onDrain: (callback) => { handlers.drain = callback; },
     onMessage: (callback) => { handlers.message = callback; },

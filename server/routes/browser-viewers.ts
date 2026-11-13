@@ -18,6 +18,7 @@ import { messageFileDisposition } from "../message-file.ts";
 import { isSameOrigin, type RequestAuth } from "../request-auth.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 import type { Upgrades } from "./upgrades.ts";
+import { isScreenFallbackReason, type ScreenFallbackReason } from "../../shared/screen-direct.ts";
 
 const LIVE = /^\/api\/bots\/([\w-]+)\/browser\/(live|action)$/;
 const STREAM = /^\/api\/bots\/([\w-]+)\/browser\/stream$/;
@@ -47,6 +48,8 @@ export interface BrowserViewerRouteDeps {
   /** Why a person may not restart this browser now, or null. */
   restartRefusal(session: string): string | null;
   dataDir: string;
+  /** counts a stream that rides the relay, with why it is not direct */
+  relayed?(reason: ScreenFallbackReason | null): void;
 }
 
 const ownerOf = (auth: RequestAuth) => (auth.kind === "session" ? auth.session.id : "local-owner");
@@ -156,6 +159,9 @@ export function createBrowserViewerRoutes(deps: BrowserViewerRouteDeps): RouteHa
         isCurrent, restartRefusal: () => deps.restartRefusal(browser.session),
       });
       if (!opened) return json(res, 409, { error: "This browser shows in the live view only." });
+      // a stream the app could not take direct says why (server/screen-direct.ts counters); nothing personal
+      const direct = url.searchParams.get("direct");
+      if (direct !== null) deps.relayed?.(isScreenFallbackReason(direct) ? direct : null);
       res.detachSocket(pending.socket);
       return;
     }

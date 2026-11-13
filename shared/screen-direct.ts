@@ -53,3 +53,13 @@ export type ScreenCandidateType = typeof SCREEN_CANDIDATE_TYPES[number];
 
 /** A description as it crosses the signaling request; bounded so a request cannot make the server parse megabytes. */
 export const SCREEN_SDP_MAX = 64 * 1024;
+
+// ---- a WebSocket carried on a direct peer (the bot browser's stream): POST SOCKET_DIRECT_PATH?path=<socket path> ----
+
+export const SOCKET_DIRECT_PATH = "/api/direct/socket";
+export const SOCKET_CHANNEL = "socket";
+/** the sockets a peer may carry, path and query as the app would open them */
+export const SOCKET_DIRECT_TARGET = /^\/api\/bots\/[\w-]+\/browser\/stream(?:\?[^#\s]{0,2048})?$/;
+/** each data-channel message is [kind][payload]; a WebSocket message longer than one piece is sent in parts */
+export const SOCKET_PIECE = SCREEN_DIRECT_MESSAGE * 4 - 1;
+export const SOCKET_KIND = { textPart: 1, text: 2, binaryPart: 3, binary: 4, close: 5 } as const;

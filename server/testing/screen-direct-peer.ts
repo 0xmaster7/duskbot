@@ -11,7 +11,11 @@ import { join } from "node:path";
 import { json, readBody } from "../harness/http.ts";
 import { resolveRequestAuth } from "../request-auth.ts";
 import { createDesktopViewer } from "../routes/desktop-viewer.ts";
+import { createUpgrades } from "../routes/upgrades.ts";
 import { readFrame, writeFrame } from "../routes/rfb-handshake.ts";
+import { WebSocketServer } from "ws";
+import { createDirectSockets } from "../routes/direct-sockets.ts";
+import { isProxied } from "../request-auth.ts";
 import { createScreenDirect } from "../screen-direct.ts";
 import { SessionRegistry } from "../sessions.ts";
 
@@ -49,20 +53,50 @@ const desktopPort = (desktop.address() as { port: number }).port;
 
 const sessions = new SessionRegistry({ file: join(mkdtempSync(join(tmpdir(), "dusk-direct-peer-")), "sessions.json") });
 const admin = sessions.issue({ label: "Mac", scopes: ["admin", "client"] });
+const direct = createScreenDirect({ iceServers: [] });
+let appPort = 0;
+const sockets = createDirectSockets({ direct, self: () => ({ port: appPort }) });
+// a stand-in for the bot browser's stream (/api/bots/<id>/browser/stream): signed-in and forwarded only, then picture
+// frames the size of a browsing JPEG at a steady rate, a JSON hello, text echoed back, and "bye" closes with 4404
+const STREAM = "/api/bots/test-bot/browser/stream";
+const streams = new WebSocketServer({ noServer: true, perMessageDeflate: false });
+const FRAME = Buffer.alloc(Number(process.env.STREAM_FRAME ?? 96 * 1024), 2);
+const upgrades = createUpgrades();
+upgrades.route((path) => path === STREAM);
 const viewer = createDesktopViewer({
+  upgrades,
   target: (id) => id === "vps/test-bot" ? { key: "vps/test-bot", resolve: async () => ({ port: desktopPort, password: null }) } : undefined,
   live: (auth) => auth.kind === "loopback" || sessions.isLive(auth.session.id),
-  direct: createScreenDirect({ iceServers: [] }),
+  direct,
 });
 const handle = async (req: IncomingMessage, res: ServerResponse) => {
   const url = new URL(req.url!, "http://localhost");
   const gate = resolveRequestAuth(req, { sessions, cookieName: "test_session", url, streamPath: "/api/events", loopbackTrust: "service" });
   if (!gate.auth) return json(res, gate.status, { error: gate.error });
+  if (url.pathname === STREAM) {
+    const pending = upgrades.pending(req);
+    if (!pending || gate.auth.kind !== "session" || !isProxied(req)) return json(res, 403, { error: "forbidden" });
+    pending.release();
+    res.detachSocket(pending.socket);
+    streams.handleUpgrade(req, pending.socket, pending.head, (ws) => {
+      ws.send(JSON.stringify({ type: "hello", via: url.searchParams.get("direct") ?? "direct" }));
+      const timer = setInterval(() => ws.send(FRAME), 1000 / Number(process.env.STREAM_FPS ?? 10));
+      ws.on("message", (data, binary) => {
+        const text = binary ? "" : data.toString();
+        if (text === "bye") ws.close(4404, "tab gone");
+        else if (text) ws.send(JSON.stringify({ type: "echo", text }));
+      });
+      ws.on("close", () => clearInterval(timer));
+    });
+    return;
+  }
+  if (url.pathname === "/api/direct/socket") { await sockets({ req, res, url, path: url.pathname, method: req.method!, auth: gate.auth, json, readBody }); return; }
   await viewer.route({ req, res, url, path: url.pathname, method: req.method!, auth: gate.auth, json, readBody });
   if (!res.headersSent && !res.writableEnded && !req.headers.upgrade) json(res, 404, { error: "not found" });
 };
 const app = createServer((req, res) => void handle(req, res));
 viewer.attach(app, handle);
 await new Promise<void>((resolve) => app.listen(0, "127.0.0.1", resolve));
+appPort = (app.address() as { port: number }).port;
 process.stdout.write(`${JSON.stringify({ port: (app.address() as { port: number }).port, token: admin.token })}\n`);
 process.on("SIGTERM", () => { viewer.closeAll(); process.exit(0); });

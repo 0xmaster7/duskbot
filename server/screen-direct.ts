@@ -28,7 +28,10 @@ const CHANNEL_LOW = 256 * 1024;
 
 /** The data channel as the bridge sees it: bytes in, bytes out, nothing WebRTC-specific. */
 export interface ScreenChannel {
+  /** a byte stream: split into pieces, boundaries not kept */
   send(bytes: Buffer): boolean;
+  /** one data-channel message, boundaries kept (at most SCREEN_DIRECT_MESSAGE * 4 bytes) */
+  sendMessage(bytes: Buffer): boolean;
   buffered(): number;
   onDrain(callback: () => void): void;
   onMessage(callback: (bytes: Buffer) => void): void;
@@ -121,7 +124,7 @@ export function createScreenDirect(options: {
    * Answers one offer. `onChannel` runs once, when the app's "screen" channel opens; any other channel is closed.
    * Throws DirectRefused when this server has no direct path, is full, or the offer is not one.
    */
-  async function answer(offer: unknown, onChannel: (channel: ScreenChannel) => void): Promise<DirectPeer> {
+  async function answer(offer: unknown, onChannel: (channel: ScreenChannel) => void, label: string = SCREEN_CHANNEL): Promise<DirectPeer> {
     const ndc = lib();
     if (!ndc) throw new DirectRefused(503, "direct path is off");
     if (peers.size >= (options.maxPeers ?? DEFAULT_MAX_PEERS)) throw new DirectRefused(503, "direct path is busy");
@@ -146,7 +149,7 @@ export function createScreenDirect(options: {
     deadline.unref();
     pc.onStateChange((state) => { if (state === "failed" || state === "closed") end(); });
     pc.onDataChannel((dc) => {
-      if (ended || channel || dc.getLabel() !== SCREEN_CHANNEL) { dc.close(); return; }
+      if (ended || channel || dc.getLabel() !== label) { dc.close(); return; }
       channel = dc;
       const open = () => {
         if (ended || opened) return;
@@ -174,7 +177,7 @@ export function createScreenDirect(options: {
           const bytes = Buffer.isBuffer(message) ? message : Buffer.from(message);
           stats.direct.bytesReceived += bytes.length;
           if (deliver) deliver(bytes);
-          else if (early && early.reduce((sum, one) => sum + one.length, bytes.length) <= 64 * 1024) early.push(bytes);
+          else if (early && early.reduce((sum, one) => sum + one.length, bytes.length) <= 256 * 1024) early.push(bytes);
           else end();
         });
         onChannel({
@@ -182,6 +185,12 @@ export function createScreenDirect(options: {
             if (ended || !dc.isOpen()) return false;
             // false from sendMessageBinary means queued behind earlier bytes, not lost; bufferedAmount paces the desktop
             for (let at = 0; at < bytes.length; at += SCREEN_DIRECT_MESSAGE) dc.sendMessageBinary(bytes.subarray(at, at + SCREEN_DIRECT_MESSAGE));
+            stats.direct.bytesSent += bytes.length;
+            return true;
+          },
+          sendMessage: (bytes) => {
+            if (ended || !dc.isOpen() || bytes.length > SCREEN_DIRECT_MESSAGE * 4) return false;
+            dc.sendMessageBinary(bytes);
             stats.direct.bytesSent += bytes.length;
             return true;
           },
@@ -213,17 +222,23 @@ export function createScreenDirect(options: {
     }
   }
 
+  /** a relay screen counted by path and reason only: its bytes are not followed (the bot browser's stream) */
+  const relayCounted = (reason: ScreenFallbackReason | null) => {
+    stats.relay.sessions++;
+    stats.paths["our-relay"]++;
+    stats.relay.reasons[reason ?? "none"]++;
+    options.log?.(`screen: our-relay (${reason ?? "not asked"})`);
+  };
+
   return {
     available: () => lib() !== null,
     answer,
     /** A relay screen opened; `reason` is why the app did not go direct, as it said. */
     relayOpened(reason: ScreenFallbackReason | null) {
-      stats.relay.sessions++;
       stats.relay.open++;
-      stats.paths["our-relay"]++;
-      options.log?.(`screen: our-relay (${reason ?? "not asked"})`);
-      stats.relay.reasons[reason ?? "none"]++;
+      relayCounted(reason);
     },
+    relayCounted,
     relayClosed(bytesSent: number, bytesReceived: number) {
       stats.relay.open--;
       stats.relay.bytesSent += bytesSent;
