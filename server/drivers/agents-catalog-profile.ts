@@ -29,6 +29,11 @@ export interface CatalogProfile {
   /** A room's thread: the widget and page tools, which rooms refuse, and the wait tools, since a room holds no wait,
    * are not mounted. */
   room?: boolean;
+  /** The engine searches the web on its own at no cost to the person (Claude Code, Codex): the paid web_search_many is
+   * not mounted. Absent means off. */
+  nativeWeb?: boolean;
+  /** The engine has no fetch of its own: read_pages is mounted. Absent means off. */
+  pageReader?: boolean;
 }
 
 /** Everything is off unless the harness says "1". */
@@ -47,5 +52,7 @@ export function catalogProfileFromEnv(env: NodeJS.ProcessEnv): CatalogProfile {
     dusk: env.DUSK_DEFAULT_BOT === "1",
     computerSelection: env.DUSK_COMPUTER_SELECTION === "1",
     room: env.DUSK_ROOM === "1",
+    nativeWeb: env.DUSK_NATIVE_WEB === "1",
+    pageReader: env.DUSK_PAGE_READER === "1",
   };
 }

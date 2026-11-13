@@ -11,6 +11,7 @@ import { WAIT_TOOL_DEFINITIONS, WAIT_TOOL_NAMES } from "./agents-wait-tools.ts";
 import { DUSK_TOOL_DEFINITIONS } from "./agents-dusk-tools.ts";
 import { PERSON_TOOL_DEFINITIONS } from "./agents-person-tools.ts";
 import { RESEARCH_TOOL_DEFINITIONS, RESEARCH_TOOL_NAMES, X_TOOL_NAMES } from "./agents-research-tools.ts";
+import { READ_PAGES_DEFINITION, READ_PAGES_TOOL } from "./agents-read-pages.ts";
 import { SLACK_TOOL_DEFINITIONS, SLACK_TOOL_NAMES } from "./agents-slack-tools.ts";
 import { STATUS_TOOL_DEFINITION } from "./agents-status-tool.ts";
 import { SEND_MESSAGE_TOOL_DEFINITION } from "./agents-send-message-tool.ts";
@@ -507,7 +508,7 @@ const TOOL_DEFINITIONS = [
       required: ["text"],
     },
   },
-  ...SLACK_TOOL_DEFINITIONS, ...RESEARCH_TOOL_DEFINITIONS, ...HELPER_TOOL_DEFINITIONS, ...PERSON_TOOL_DEFINITIONS, ...DEVS_TOOL_DEFINITIONS,
+  ...SLACK_TOOL_DEFINITIONS, ...RESEARCH_TOOL_DEFINITIONS, READ_PAGES_DEFINITION, ...HELPER_TOOL_DEFINITIONS, ...PERSON_TOOL_DEFINITIONS, ...DEVS_TOOL_DEFINITIONS,
   {
     name: "memory_update",
     description:
@@ -877,7 +878,9 @@ function catalogTools(profile: CatalogProfile) {
     (profile.memoryEnabled !== false || (tool.name !== "memory_update" && tool.name !== "memory_log")) &&
     (profile.computerSelection === true || tool.name !== "select_computer") &&
     (profile.slack === true || !SLACK_TOOL_NAMES.has(tool.name)) &&
-    (profile.room !== true || !ROOM_REFUSED_TOOL_NAMES.has(tool.name)));
+    (profile.room !== true || !ROOM_REFUSED_TOOL_NAMES.has(tool.name)) &&
+    (profile.pageReader === true || tool.name !== READ_PAGES_TOOL) &&
+    (profile.nativeWeb !== true || tool.name !== "web_search_many"));
   const AUTHORING_TOOLS = profile.skillAuthoring
     ? BOT_SCOPED_TOOLS
     : BOT_SCOPED_TOOLS.filter((tool) => !SKILL_TOOL_NAMES.has(tool.name));

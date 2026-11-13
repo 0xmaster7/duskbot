@@ -15,7 +15,14 @@ export interface AgentsConversation {
   teamComputer: boolean;
   /** `x`: a research credential is held (a treg key or a plan's); `research`: research works for it too. */
   host: { skillAuthoring: boolean; cloudHome: boolean; team: boolean; voiceNotes: boolean; x: boolean; research: boolean; slack?: boolean };
+  /** The engine's driver kind: it decides whether the engine searches and reads the web on its own. */
+  engine?: string;
 }
+
+/** Engines with their own free web search and fetch (Claude Code, Codex): the person never pays treg for a search there. */
+const NATIVE_WEB_ENGINES: ReadonlySet<string> = new Set(["claudeAgent", "codex"]);
+
+export const engineHasNativeWeb = (driverKind: string | undefined): boolean => driverKind !== undefined && NATIVE_WEB_ENGINES.has(driverKind);
 
 /** What one turn may do. Its bearer carries this to the harness, which checks it on every call. */
 export interface AgentsTurn {
@@ -45,6 +52,8 @@ export function agentsServerEnv(conversation: AgentsConversation, turn: AgentsTu
     DUSK_SLACK: flag(host.slack === true),
     DUSK_X_RESEARCH: flag(host.x && bot.xResearch !== false),
     DUSK_RESEARCH: flag(host.x && host.research && bot.xResearch !== false),
+    DUSK_NATIVE_WEB: flag(engineHasNativeWeb(conversation.engine)),
+    DUSK_PAGE_READER: flag(conversation.engine !== undefined && !engineHasNativeWeb(conversation.engine)),
     ...roleToolEnv(bot),
     DUSK_COMPUTER_SELECTION: flag(!conversation.room && bot.computer !== "off" && !conversation.teamComputer),
   };

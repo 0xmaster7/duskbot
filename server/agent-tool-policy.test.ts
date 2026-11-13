@@ -33,7 +33,7 @@ describe("built-in agent tool read policy", () => {
   });
 
   it("marks the reviewed outside reads as open-world reads", () => {
-    expect([...OPEN_WORLD_AGENT_READ_NAMES]).toEqual(["web_search_many", "x_search", "research_search", "research_endpoint", "extract", "decide"]);
+    expect([...OPEN_WORLD_AGENT_READ_NAMES]).toEqual(["web_search_many", "read_pages", "x_search", "research_search", "research_endpoint", "extract", "decide"]);
     for (const name of OPEN_WORLD_AGENT_READ_NAMES) {
       expect(isReadOnlyAgentTool(name)).toBe(true);
       expect(agentToolAnnotations(name)).toEqual({ readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true });
