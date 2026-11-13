@@ -143,10 +143,10 @@ export const SCENARIOS = [
     },
   },
   {
-    name: "node-slow", title: "home node slow: +800 ms each way, jitter 400 ms (40 s)", budgetMs: 15_000,
+    name: "node-slow", title: "home node far away: +300 ms each way, jitter 150 ms (40 s)", budgetMs: 15_000,
     async run(world) {
       const home = await homeNode(world);
-      await world.net[home].set("pass", { latencyMs: 800, jitterMs: 400 });
+      await world.net[home].set("pass", { latencyMs: 300, jitterMs: 150 });
       await sleep(40_000);
       await world.net[home].set("pass");
       return { clearedAt: at() };

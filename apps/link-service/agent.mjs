@@ -2588,7 +2588,7 @@ export const READ_HANG_MS = 45_000;
 export const NODE_WATCH_MS = 5_000;
 const NODE_ASK_MS = 15_000;
 /** reads that fail outright (refused, a 502 from the node's proxy) ask sooner: the server measures every node itself */
-const NODE_FAILING_MS = 12_000;
+const NODE_FAILING_MS = 20_000;
 const nodesFile = () => join(configDir(), "nodes.json");
 const origin = (value) => { try { const url = new URL(value); return /^https?:$/.test(url.protocol) && url.pathname === "/" ? url.origin : null; } catch { return null; } };
 

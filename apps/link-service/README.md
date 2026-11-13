@@ -183,7 +183,7 @@ copy between them. `src/nodes.mjs`.
   `<id>|address`) in the directory with `PUT /v1/tunnels/<id>/address` on start and whenever it changes (checked every
   30 s, so a quick tunnel's new name lands within a minute). `GET .../node` with the app token carries it as `address`;
   the app opens it when its server stops answering at its address and the relay cannot carry the handshake.
-- **Failover.** The agent watches its node: reads failing for 12 s, silent for 35 s, or answering `relay_busy`, it
+- **Failover.** The agent watches its node: reads failing for 20 s (longer than a redeploy), silent for 35 s, or answering `relay_busy`, it
   asks again (at most every 15 s; the node it was linked through first, then every node it learned of, cached in
   `~/.config/duskbot-link/nodes.json`) and restarts on the new node. The app's relay (`createTunnelProxy` with
   `follow`) asks where the tunnel lives at start, after two failed reads, on `relay_busy`, on a 409 and after 4 s of
