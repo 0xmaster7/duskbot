@@ -66,7 +66,7 @@ export function BotsPage() {
           const bots = [...(detail.report?.bots ?? [])].sort((a, b) => Number(b.busy) - Number(a.busy) || (b.lastActiveAt ?? 0) - (a.lastActiveAt ?? 0));
           if (!bots.length) return <SkyEmpty title="no bots here yet" action={<Button variant="primary" onClick={() => openApp(appLink.app)}>open the app</Button>}>make your first bot in the app; it shows up here on the next report.</SkyEmpty>;
           return (
-            <Table label="bots" className="enter">
+            <Table label="bots" className="enter table-cards">
               <thead><tr><Th>bot</Th><Th className="max-md:hidden">model</Th><Th className="max-lg:hidden">computer</Th><Th className="!text-end max-md:hidden">turns this year</Th><Th className="max-md:hidden">last active</Th><Th className="w-0"><span className="sr-only">open</span></Th></tr></thead>
               <tbody>{bots.map((b) => <BotRow key={b.id} bot={b} detail={detail} now={now} />)}</tbody>
             </Table>

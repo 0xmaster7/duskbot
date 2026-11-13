@@ -99,6 +99,18 @@
 .pop { --btn: #efefed; --btn-hover: #e4e4e1; }
 [data-theme="dark"] .pop { --btn: #2e2e35; --btn-hover: #3a3a42; }
 
+/* on a phone a list table reads as a stack of cards, like the app catalogue; the header row folds to nothing but keeps
+   its column widths and stays for screen readers */
+@media (max-width: 639px) {
+  .table-cards table { border-collapse: separate; border-spacing: 0 8px; margin-block: -8px; }
+  .table-cards thead th { height: 0; padding-block: 0; font-size: 0; line-height: 0; }
+  .table-cards tbody tr { --btn: #ffffff; --btn-hover: #ebebe8; }
+  [data-theme="dark"] .table-cards tbody tr { --btn: #2c2c33; --btn-hover: #383840; }
+  .table-cards tbody td { background: var(--card); }
+  .table-cards tbody td:first-child { border-start-start-radius: var(--radius-row); border-end-start-radius: var(--radius-row); padding-inline-start: 14px; }
+  .table-cards tbody td:last-child { border-start-end-radius: var(--radius-row); border-end-end-radius: var(--radius-row); padding-inline-end: 8px; }
+}
+
 @theme inline {
   --font-sans: "General Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
@@ -266,10 +278,12 @@
   /* on touch, every control answers a 44px square around its centre, whatever its drawn size; positioned
      utilities win over this layer, so absolute and fixed controls keep their place; a stretched row link keeps its own */
   @media (pointer: coarse) {
-    :where(button, a[href], summary, [role="button"], [role="radio"], [role="tab"]):not([class*="after:"]) { position: relative; }
-    :where(button, a[href], summary, [role="button"], [role="radio"], [role="tab"]):not([class*="after:"])::after {
+    :where(button, a[href], summary, [role="button"], [role="radio"], [role="tab"], label:has(> input[type="checkbox"])):not([class*="after:"]) { position: relative; }
+    :where(button, a[href], summary, [role="button"], [role="radio"], [role="tab"], label:has(> input[type="checkbox"])):not([class*="after:"])::after {
       content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%);
     }
+    /* a phone zooms the page into any field under 16px; important in this layer outranks a compact field's !text-13 */
+    :where(input:not([type="checkbox"], [type="radio"], [type="range"]), select, textarea) { font-size: max(16px, 1em) !important; }
   }
 }
 

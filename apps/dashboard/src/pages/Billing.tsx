@@ -148,11 +148,11 @@ function YourBilling({ catalog, onLicense, onManage }: { catalog: PlanCatalog; o
         <SectionHead id="billing-title">your billing</SectionHead>
         <dl className="">
           <Row k="plan" action={sub && !sub.cancelAt ? <button type="button" className={quiet} onClick={onManage}>manage subscription</button> : undefined}>
-            <span className="block truncate">{plan}{desk && sel ? <span className="text-ink-3">, {clouds?.[0]?.name ?? desk.name} in {regionName(catalog, sel.region)}</span> : <span className="text-ink-3">, your bots run on your mac</span>}</span>
-            {sub && <span className="num block truncate text-13 text-ink-3">{cart ? `${cartText(cart, sub.selection.interval)} · ` : ""}{renews}{applied && !sub.cancelAt ? ` · ${applied.percent}% off for ${applied.cycles} months` : ""}</span>}
+            <span className="block truncate max-sm:whitespace-normal">{plan}{desk && sel ? <span className="text-ink-3">, {clouds?.[0]?.name ?? desk.name} in {regionName(catalog, sel.region)}</span> : <span className="text-ink-3">, your bots run on your mac</span>}</span>
+            {sub && <span className="num block truncate text-13 text-ink-3 max-sm:whitespace-normal">{cart ? `${cartText(cart, sub.selection.interval)} · ` : ""}{renews}{applied && !sub.cancelAt ? ` · ${applied.percent}% off for ${applied.cycles} months` : ""}</span>}
           </Row>
           <Row k="license" action={<button type="button" className={quiet} onClick={onLicense}>{lic?.work ? "change" : "add"}</button>}>
-            {lic?.work && sel ? <span className="block truncate">{lic.name} license<span className="num text-ink-3">, {members(sel.members)} · {bundleOf(catalog, "pro")?.license === sel.license && bundleOf(catalog, "pro")?.desktop === sel.desktop ? "included with pro" : priceText(licenseMonthly(lic, sel.members), sel.interval, catalog)}</span></span> : <span className="text-ink-3">personal use, free</span>}
+            {lic?.work && sel ? <span className="block truncate max-sm:whitespace-normal">{lic.name} license<span className="num text-ink-3">, {members(sel.members)} · {bundleOf(catalog, "pro")?.license === sel.license && bundleOf(catalog, "pro")?.desktop === sel.desktop ? "included with pro" : priceText(licenseMonthly(lic, sel.members), sel.interval, catalog)}</span></span> : <span className="text-ink-3">personal use, free</span>}
           </Row>
           <Row k="payment method" action={sub && sub.status !== "canceled" ? <button type="button" className={quiet} onClick={() => void updateCard()}>update</button> : undefined}>
             {pm ? <span className="num">{pm.brand.toLowerCase()} •••• {pm.last4}<span className="text-ink-3">, expires {String(pm.expMonth).padStart(2, "0")}/{String(pm.expYear).slice(-2)}</span></span> : sub ? <span className="text-ink-3">the card you paid with</span> : <span className="text-ink-3">none yet. you add one at checkout.</span>}

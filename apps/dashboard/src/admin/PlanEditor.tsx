@@ -115,7 +115,7 @@ export function PlanEditor({ detail, onChange }: { detail: UserDetail; onChange(
     <section aria-labelledby="plan-title" className="rounded-[24px] bg-card p-2">
       <div className="flex flex-wrap items-center justify-between gap-2 px-2 pb-1.5 pt-1">
         <h2 id="plan-title" className="inline-flex h-8 items-center text-14 font-medium text-ink">plan</h2>
-        {comps && <span className="tag" title="no money changes hands for plans set here">payments aren't live: every plan here is a free comp</span>}
+        {comps && <span className="tag max-sm:!h-auto max-sm:min-h-6 max-sm:!whitespace-normal max-sm:py-1 max-sm:!leading-[1.4]" title="no money changes hands for plans set here">payments aren't live: every plan here is a free comp</span>}
       </div>
       <div className="rounded-[18px] bg-pop px-4 py-1">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3">

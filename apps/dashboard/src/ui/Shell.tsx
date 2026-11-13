@@ -257,7 +257,7 @@ function Nav({ onNavigate }: { onNavigate?: () => void }) {
                 }}
                 onClick={onNavigate}
                 aria-current={on ? "page" : undefined}
-                className={cx("relative flex h-10 items-center gap-3 rounded-full px-3.5 text-14 transition-colors duration-200 ease-out", on ? "text-ink" : "hover-side text-ink-2")}
+                className={cx("relative flex h-10 items-center gap-3 rounded-full px-3.5 text-14 transition-colors max-lg:h-11 duration-200 ease-out", on ? "text-ink" : "hover-side text-ink-2")}
               >
                 {on && <m.span layoutId={pill} aria-hidden className="absolute inset-0 rounded-full bg-pop" transition={NAV_PILL} />}
                 <span className={cx("relative transition-colors duration-200 ease-out", on ? "text-ink" : "text-ink-3")}>{item.icon}</span>
@@ -330,7 +330,7 @@ export function Shell({ children }: { children: ReactNode }) {
     <div className="min-h-[100dvh] bg-bg">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-ink">skip to content</a>
       <aside className="surface fixed inset-y-0 left-0 z-20 w-[276px] p-3 max-lg:hidden"><div className="h-full rounded-[28px] bg-side">{side()}</div></aside>
-      <header className="sticky top-0 z-20 flex h-14 items-center justify-between bg-bg/90 px-3 backdrop-blur lg:hidden">
+      <header className="sticky top-0 z-20 box-content flex h-14 items-center pt-[env(safe-area-inset-top)] justify-between bg-bg/90 px-3 backdrop-blur lg:hidden">
         <button onClick={() => setDrawer(true)} aria-label="open menu" aria-expanded={drawer} className="press hover-ghost grid size-11 place-items-center rounded-full text-ink-2"><Menu size={20} strokeWidth={1.75} /></button>
         <Brand />
         <span className="size-11" aria-hidden />
@@ -339,7 +339,7 @@ export function Shell({ children }: { children: ReactNode }) {
         {drawer && (
           <div key="drawer" className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="menu">
             <m.div className="absolute inset-0" style={{ background: "var(--scrim)" }} onClick={() => setDrawer(false)} aria-hidden initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2, ease: EASE_OUT }} />
-            <m.div className="surface absolute inset-y-0 left-0 w-[min(304px,86vw)] rounded-e-[28px] bg-side" initial={{ x: "-100%", opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: "-100%", opacity: 0, transition: { type: "spring", visualDuration: 0.22, bounce: 0 } }} transition={GLIDE}>{side(() => setDrawer(false))}</m.div>
+            <m.div className="surface absolute inset-y-0 left-0 w-[min(304px,86vw)] rounded-e-[28px] bg-side pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)]" initial={{ x: "-100%", opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: "-100%", opacity: 0, transition: { type: "spring", visualDuration: 0.22, bounce: 0 } }} transition={GLIDE}>{side(() => setDrawer(false))}</m.div>
           </div>
         )}
       </AnimatePresence>

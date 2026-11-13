@@ -51,7 +51,7 @@ export function WakePill() {
   const ask = asking ? wakes[asking.cloudId] : undefined;
   return (
     <>
-      <div className="pointer-events-none fixed right-4 top-4 z-30 flex flex-col items-end gap-2 max-lg:right-3 max-lg:top-[60px]">
+      <div className="pointer-events-none fixed right-4 top-4 z-30 flex flex-col items-end gap-2 max-lg:right-3 max-lg:top-[calc(60px+env(safe-area-inset-top))]">
         <AnimatePresence initial={false}>{shown.map((w) => <WakeCard key={w.cloudId} wake={w} />)}</AnimatePresence>
       </div>
       <Modal open={Boolean(ask && asking)} onClose={wakeActions.closeAsk} title={ask ? `${ask.name} is waking up` : ""}

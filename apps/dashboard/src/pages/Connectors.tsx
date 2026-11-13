@@ -231,7 +231,7 @@ export function ConnectorsPage() {
           <div className="flex flex-col gap-2" aria-busy="true">{[0, 1].map((i) => <Skeleton key={i} className="h-14" />)}</div>
         ) : shown.length ? (
           <>
-            <Table label="connected apps" className="max-sm:[&_table]:table-fixed max-sm:[&_td]:px-2 max-sm:[&_th]:px-2">
+            <Table label="connected apps" className="table-cards max-sm:[&_table]:table-fixed max-sm:[&_td]:px-2 max-sm:[&_th]:px-2">
               <thead>
                 <tr>
                   <Th>name</Th>

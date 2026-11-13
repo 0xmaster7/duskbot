@@ -49,7 +49,7 @@ export function Pop({ open, children, className, style, role = "menu" }: { open:
 /** the stack of short lines at the bottom: each rises in, the rest make room, and it fades out where it stands */
 export function ToastStack({ items }: { items: Array<{ id: number; content: ReactNode; className?: string }> }) {
   return (
-    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-5 z-50 flex flex-col items-center gap-2 px-4">
+    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-[max(20px,calc(env(safe-area-inset-bottom)+8px))] z-50 flex flex-col items-center gap-2 px-4">
       <AnimatePresence initial={false} mode="popLayout">
         {items.map((t) => (
           <m.div key={t.id} layout className={t.className} style={{ boxShadow: "var(--pop-shadow)" }}

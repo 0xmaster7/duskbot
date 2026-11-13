@@ -164,11 +164,11 @@ function SheetFrame({ onClose, title, children, footer }: { onClose(): void; tit
       <m.div {...scrim} className="absolute inset-0" style={{ background: "var(--scrim)" }} onClick={onClose} aria-hidden />
       <m.div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className="pop absolute inset-y-0 right-0 flex w-[min(460px,100vw)] flex-col bg-pop outline-none sm:inset-y-3 sm:right-3 sm:rounded-[28px]" style={{ boxShadow: "var(--pop-shadow)" }}
         initial={{ x: "104%", opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: "104%", opacity: 0, transition: { type: "spring", visualDuration: 0.24, bounce: 0 } }} transition={GLIDE}>
-        <div className="flex items-center justify-between gap-4 px-6 pb-2 pt-5 max-sm:px-5">
+        <div className="flex items-center justify-between gap-4 px-6 pb-2 pt-5 max-sm:px-5 max-sm:pt-[max(20px,env(safe-area-inset-top))]">
           <h2 id={titleId} className="text-20 font-medium tracking-[-0.03em] text-ink">{title}</h2>
           <button data-close type="button" onClick={onClose} aria-label="close" className="hover-ghost -me-2 grid size-10 shrink-0 place-items-center rounded-full text-ink-3 max-sm:size-11"><X size={18} strokeWidth={1.5} /></button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 max-sm:px-5">{children}</div>
+        <div className={cx("min-h-0 flex-1 overflow-y-auto px-6 pb-6 max-sm:px-5", !footer && "max-sm:pb-[max(24px,env(safe-area-inset-bottom))]")}>{children}</div>
         {footer && <div className="px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 max-sm:px-5">{footer}</div>}
       </m.div>
     </div>

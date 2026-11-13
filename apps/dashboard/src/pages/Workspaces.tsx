@@ -100,7 +100,7 @@ export function WorkspacesPage() {
       <div className="flex flex-col gap-4">
         <section className="enter min-w-0" aria-label="your workspaces">
           {workspacesError && workspaces === null ? <LoadError error={workspacesError} retry={refresh} /> : workspaces === null ? <div className="flex flex-col gap-2" aria-busy="true">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-14" />)}</div> : workspaces.length ? (
-            <Table label="workspaces" className="max-sm:[&_table]:table-fixed max-sm:[&_td]:px-2 max-sm:[&_th]:px-2">
+            <Table label="workspaces" className="table-cards max-sm:[&_table]:table-fixed max-sm:[&_td]:px-2 max-sm:[&_th]:px-2">
               <thead><tr><Th>name</Th><Th className="max-md:hidden">type</Th><Th className="max-sm:w-[120px]">status</Th><Th className="max-lg:hidden">version</Th><Th className="max-lg:hidden">connected</Th><Th className="w-0 max-sm:w-11"><span className="sr-only">more</span></Th></tr></thead>
               <tbody>{sorted.map((w) => <WorkspaceRow key={w.id} w={w} cloud={cloudForWorkspace(clouds, w.id)} />)}</tbody>
             </Table>
