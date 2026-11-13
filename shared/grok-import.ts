@@ -10,6 +10,7 @@ import {
   isSeedPath, packageRoutineScheduleSchema, parsePackageDocument, utf8Bytes, type PackageDocument, type PackageRoutineSchedule,
 } from "./package-format.ts";
 import { BOT_PROFILE_LIMITS } from "./bot-profile.ts";
+import { importedSoul } from "./imported-soul.ts";
 import { redactSecretsInText } from "./redact.ts";
 import { normalizeCronSchedule } from "./routine-schedule.ts";
 import { parseSkillMd, scanSkillText, SKILL_FILE_MAX_BYTES, yamlFrontmatterValue } from "./skill-md.ts";
@@ -91,6 +92,8 @@ export interface GrokBot {
   memoryFiles?: Record<string, string>;
   /** A colour it already had, when it is one of dusk bot's. */
   color?: string;
+  /** A picture it already had: PNG, JPEG or WebP, base64, at most 64 KB. */
+  avatar?: { mime: "image/png" | "image/jpeg" | "image/webp"; data: string };
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -397,6 +400,9 @@ export interface GrokMovePlan {
   memories: number;
   /** Apps to connect again here: all but those whose server name is already here. */
   apps: number;
+  /** What the bot knew about the person: for About me, not its notebook (runGrokMove keeps them in its memory when
+   * About me can't take them). */
+  facts: string[];
 }
 
 const sameFact = (value: string) => value.replace(/\s+/g, " ").trim().toLowerCase();
@@ -407,14 +413,18 @@ const dedupe = (lines: string[], seen: Set<string>) => lines.filter((line) => {
   return true;
 });
 
-function memoryNotes(bot: GrokBot, from: MoveFrom): { count: number; text: string | null } {
+/** The bot's notebook from what it remembered; facts about the person are kept apart, for About me. */
+function memoryNotes(bot: GrokBot, from: MoveFrom): { count: number; text: string | null; facts: string[] } {
   const seen = new Set<string>();
-  const facts = dedupe(bot.memories.map((line) => line.replace(/\s*\n\s*/g, " ")), seen);
-  const about = dedupe(bot.userFacts.map((line) => line.replace(/\s*\n\s*/g, " ")), seen);
-  const count = facts.length + about.length;
-  if (!count) return { count, text: null };
-  const part = (heading: string, items: string[]) => (items.length ? `## ${heading}\n\n${items.map((item) => `- ${item}`).join("\n")}\n\n` : "");
-  return { count, text: `# Notes from ${from.name}\n\n${part("What I remember", facts)}${part("About the person", about)}`.trimEnd() + "\n" };
+  const notes = dedupe(bot.memories.map((line) => line.replace(/\s*\n\s*/g, " ")), seen);
+  const facts = dedupe(bot.userFacts.map((line) => line.replace(/\s*\n\s*/g, " ")), seen);
+  if (!notes.length) return { count: 0, text: null, facts };
+  return { count: notes.length, text: `# Notes from ${from.name}\n\nWhat I remembered there, brought over when I moved.\n\n${notes.map((item) => `- ${item}`).join("\n")}\n`, facts };
+}
+
+/** Facts about the person as a memory topic of the bot, for when About me couldn't take them. */
+export function factsTopic(facts: readonly string[], from: MoveFrom): string {
+  return `# About the person, from ${from.name}\n\n${facts.map((fact) => `- ${fact}`).join("\n")}\n`;
 }
 
 function eventNotes(name: string, from: MoveFrom, routines: readonly GrokRoutine[]): string {
@@ -439,6 +449,7 @@ export function grokMovePlan(bot: GrokBot, options: { timeZone?: string; takenSe
   const name = clip(bot.name || from.name, 100);
   const agentKey = slug(name, 60) || "grok-bot";
   const soul = fitBytes(bot.instructions.trim(), BOT_PROFILE_LIMITS.soul);
+  const routineLabels: string[] = [];
 
   const skillNames = new Set<string>();
   const skillSlugs = new Map<string, string>();
@@ -470,6 +481,7 @@ export function grokMovePlan(bot: GrokBot, options: { timeZone?: string; takenSe
     let jobName = base;
     for (let n = 2; routineNames.has(jobName); n += 1) jobName = `${base} (${n})`;
     routineNames.add(jobName);
+    routineLabels.push(label);
     const usesSkills = routine.skills.flatMap((skill) => skillSlugs.get(skill.toLowerCase()) ?? []);
     routines.push({
       key: uniqueSlug(label, `routine-${index + 1}`, routineKeys),
@@ -520,8 +532,15 @@ export function grokMovePlan(bot: GrokBot, options: { timeZone?: string; takenSe
 
   const description = bot.description.trim();
   const summary = clip(description || bot.title || `${name}, brought over from ${from.name}.`, 2_000);
-  // Grok Bot's ids predate other apps and stay as they were, so a bot moved before is still known as moved.
-  const hash = shortHash(grok ? `${name}\n${soul}` : `${from.key}\n${name}\n${soul}`);
+  // Grok Bot's ids predate other apps and stay as they were, so a bot moved before is still known as moved. Any other
+  // app's bot is known by its app and name: moved again after an edit there, it is still the bot already here.
+  const hash = shortHash(grok ? `${name}\n${soul}` : `${from.key}\n${name.toLowerCase()}`);
+  const fullSoul = importedSoul({
+    name, title: bot.title, description, instructions: soul, from: from.name,
+    topics: Object.keys(seed).filter((path) => path !== "MEMORY.md"),
+    skills: planned.map((skill) => skill.name), routines: routineLabels, apps: bot.apps.map((app) => app.name),
+    aboutMe: memory.facts.length > 0,
+  }, BOT_PROFILE_LIMITS.soul);
   const packageId = `${agentKey}-${hash.toString(16).padStart(8, "0").slice(0, 6)}`;
   const draft: PackageDocument = {
     format: PACKAGE_FORMAT,
@@ -544,8 +563,11 @@ export function grokMovePlan(bot: GrokBot, options: { timeZone?: string; takenSe
         name,
         ...(bot.title ? { title: clip(bot.title, 200) } : {}),
         ...(description ? { description: clip(description, 4_000) } : {}),
-        ...(soul ? { soul } : {}),
-        appearance: { color: (BOT_COLORS as readonly string[]).includes(bot.color ?? "") ? bot.color as typeof BOT_COLORS[number] : BOT_COLORS[hash % BOT_COLORS.length]! },
+        soul: fullSoul,
+        appearance: {
+          color: (BOT_COLORS as readonly string[]).includes(bot.color ?? "") ? bot.color as typeof BOT_COLORS[number] : BOT_COLORS[hash % BOT_COLORS.length]!,
+          ...(bot.avatar ? { avatar: { ...bot.avatar, crop: "circle" as const } } : {}),
+        },
         ...(skills.length ? { skills: skills.map((skill) => skill.name) } : {}),
         ...(connections.length ? { connections: connections.map((connection) => connection.key) } : {}),
         ...(Object.keys(seed).length ? { seed: { memory: seed } } : {}),
@@ -559,12 +581,21 @@ export function grokMovePlan(bot: GrokBot, options: { timeZone?: string; takenSe
   try {
     document = parsePackageDocument(draft, { trust: "file" });
   } catch {
-    throw new GrokImportError("unusable");
+    // a picture the package refuses costs the bot nothing but its picture
+    const agent = draft.package.agents[0]!;
+    if (!agent.appearance.avatar) throw new GrokImportError("unusable");
+    const { avatar: _avatar, ...look } = agent.appearance;
+    try {
+      document = parsePackageDocument({ ...draft, package: { ...draft.package, agents: [{ ...agent, appearance: look }] } }, { trust: "file" });
+    } catch {
+      throw new GrokImportError("unusable");
+    }
   }
   return {
     name, packageId, document, skills: planned, routines: routines.length,
     notes: seed[notesFile] ? unscheduled.length : 0,
     memories: (notesPlanted ? memory.count : 0) + memoryFiles,
     apps,
+    facts: memory.facts,
   };
 }

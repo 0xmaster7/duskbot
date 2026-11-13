@@ -8,6 +8,7 @@ import { foundExports, grokErrorText, lookForGrokBot, NOTHING_FOUND, previewGrok
 import { t } from "@/lib/i18n";
 import { localSetupImport } from "@/lib/setup-import";
 import { api, useStore } from "@/state/store";
+import { aboutMeSaver } from "@/lib/assistant-notes";
 import { GROK_EXPORT_MAX_CHARS, GROK_EXPORT_PROMPT, parseGrokExport, type GrokBot } from "../../shared/grok-import";
 import { dialogPrimaryCls, formBodyCls, formCloseCls, formFooterCls, formHeaderCls, formSheetCls, formTitleCls, mdPrimaryCls, mdSecondaryCls, rowButtonCls, rowHintCls, textAreaCls } from "./ui/GrokDialog";
 
@@ -161,7 +162,7 @@ export function GrokMoveDialog({ onClose }: { onClose: () => void }) {
   const start = async () => {
     if (!preview) return;
     setImporting(true);
-    const done = await runGrokMove(preview, dispatch);
+    const done = await runGrokMove(preview, dispatch, undefined, aboutMeSaver({ aboutMe: state.config?.profile?.aboutMe ?? "", team: Boolean(state.config?.team), dispatch }));
     track("team_imported", { members: preview.plans.length, source: "grok", mode: "add", format: "package" });
     setReport(done);
     setPreview(null);

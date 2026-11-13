@@ -15,7 +15,7 @@ import { ClaudeMark, CodexMark, CursorMark, PresetProviderMark } from "./Provide
 import { Card as RowsCard, CheckRow, ItemRow, NoteRow } from "./ListRows";
 
 function SourceMarks({ sources }: { sources: readonly SetupSource[] }) {
-  const marks = [...new Set(sources.flatMap((source) => (source === "claudeDesktop" ? ["claudeCode"] : source === "windsurf" || source === "vscode" ? [] : [source])))];
+  const marks = [...new Set(sources.flatMap((source) => (source === "claudeDesktop" ? ["claudeCode"] : source === "windsurf" || source === "vscode" || source === "openhands" ? [] : [source])))];
   return (
     <span className="mr-1.5 inline-flex items-center gap-1 align-[-1px]" aria-hidden="true">
       {marks.map((source) => {

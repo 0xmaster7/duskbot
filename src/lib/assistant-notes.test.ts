@@ -102,6 +102,37 @@ describe("bringing notes in", () => {
     expect(notesWaiting(), "the waiting ends once they came in").toBeNull();
   });
 
+  it("keeps open threads in the first bot's notes, adds a later part's memories to the bot an earlier part made, and says so in its chat", async () => {
+    const recipe = { name: "Recipe helper", instructions: "", memories: ["Sam bakes sourdough."] };
+    const { grokMovePlan } = await import("../../shared/grok-import");
+    const { readBot } = await import("../../shared/grok-import");
+    const packageId = grokMovePlan(readBot({ name: "Recipe helper", instructions: "Scale recipes." }), { from: { name: "Claude", key: "claude" } }).packageId;
+    const topics = new Map<string, string>();
+    f.api.mockImplementation(async (path: string, init?: { method?: string; body?: string }) => {
+      if (path === "/api/config") return { profile: JSON.parse(init!.body!).profile };
+      const read = /^\/api\/bots\/(\w+)\/memory\/file\?path=(.+)$/.exec(path);
+      if (read) return { text: topics.get(`${read[1]}:${decodeURIComponent(read[2]!)}`) ?? "" };
+      if (/\/memory\/file$/.test(path) && init?.method === "PUT") {
+        const body = JSON.parse(init.body!);
+        topics.set(`${path.split("/")[3]}:${body.path}`, body.text);
+      }
+      if (path === "/api/mcp/servers") return { servers: [] };
+      return { ok: true };
+    });
+    f.runBotMove.mockResolvedValue([{ report: { bots: [], failed: [] } }]);
+    const part2 = notes({ version: 2, about_me: { basics: ["Name is Sam."] }, memories: [], open_threads: ["Pick a payment provider."], bots: [recipe] });
+    const outcome = await importNotes(part2, {
+      bots: [{ id: "recipe", name: "Recipe helper", installedPackage: { id: packageId } } as never], aboutMe: "", team: false, firstBotId: "dusk", dispatch: vi.fn(),
+    });
+    expect(topics.get("dusk:memory/open-threads-from-claude.md")).toContain("- Pick a payment provider.");
+    expect(topics.get("recipe:memory/notes-from-claude.md"), "the bot from part 1 gets part 2's memories").toContain("- Sam bakes sourdough.");
+    expect(outcome).toMatchObject({ threads: 1, joined: 1, bots: 0 });
+    expect(notesOutcomeLine(outcome)).toBe("Brought in from Claude: 2 things about you, 1 open thread, and 1 bot already here, with more.");
+    await vi.waitFor(() => expect(f.api).toHaveBeenCalledWith("/api/bots/dusk/import-note", expect.objectContaining({ method: "POST" })));
+    const note = JSON.parse(f.api.mock.calls.find(([path]) => path === "/api/bots/dusk/import-note")![1].body);
+    expect(note).toMatchObject({ from: ["Claude"], facts: 2, threads: 1 });
+  });
+
   it("says what went wrong in plain words, and what a cut-off paste still brought", async () => {
     expect(notesErrorLine(new GrokImportError("cutOff"))).toBe("That answer looks cut off. Ask for the rest in the same shape, then paste it too.");
     expect(notesErrorLine(new Error("boom"))).toBe("Couldn't bring in your notes. Try pasting them again.");
@@ -112,7 +143,7 @@ describe("bringing notes in", () => {
   it("finds notes among dropped files, skipping other kinds and other text", async () => {
     const file = (name: string, text: string) => ({ name, size: text.length, text: async () => text });
     expect(await notesInFiles([file("photo.png", notes()), file("readme.md", "# hi {"), file("claude-notes.json", notes())]))
-      .toEqual({ name: "claude-notes.json", text: notes() });
+      .toEqual({ names: ["claude-notes.json"], text: notes() });
     expect(await notesInFiles([file("readme.md", "plain")])).toBeNull();
   });
 });

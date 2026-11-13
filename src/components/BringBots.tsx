@@ -5,6 +5,7 @@ import { cn } from "@/lib/cn";
 import { activeLocale, t } from "@/lib/i18n";
 import { BOTS_LOOK_TIME_BOX_MS, lookForOtherBots, movable, outcome, planBotMove, planCounts, countsLine, runBotMove, type BotMovePlan } from "@/lib/bot-move";
 import { api, useStore, type Bot } from "@/state/store";
+import { aboutMeSaver } from "@/lib/assistant-notes";
 import { isMausColor, type MausColor } from "../../shared/wire";
 import { BotAvatar, MausAvatar } from "./Avatar";
 import { usePrefersReducedMotion } from "./mascot-clock";
@@ -156,8 +157,8 @@ export function useBotMove(options: { look?: boolean } = {}) {
   const { state, dispatch } = useStore();
   const [plan, setPlan] = useState<BotMovePlan | null>(null);
   const [step, setStep] = useState<BringStep>({ kind: "offer" });
-  const facts = useRef({ bots: state.bots });
-  facts.current = { bots: state.bots };
+  const facts = useRef({ bots: state.bots, aboutMe: "", team: false });
+  facts.current = { bots: state.bots, aboutMe: state.config?.profile?.aboutMe ?? "", team: Boolean(state.config?.team) };
   const running = useRef(false);
 
   const look = useCallback(async () => {
@@ -186,7 +187,8 @@ export function useBotMove(options: { look?: boolean } = {}) {
       const total = movable(fresh);
       if (!total) return;
       setStep({ kind: "moving", done: 0, total, name: fresh.apps.find((app) => app.preview.plans.length)?.preview.plans[0]?.addedAs ?? "" });
-      const reports = await runBotMove(fresh, dispatch, (done, name) => setStep({ kind: "moving", done, total, name }));
+      const saveFacts = aboutMeSaver({ aboutMe: facts.current.aboutMe, team: facts.current.team, dispatch });
+      const reports = await runBotMove(fresh, dispatch, (done, name) => setStep({ kind: "moving", done, total, name }), saveFacts);
       const result = outcome(reports);
       track("team_imported", { members: result.moved, source: "other_app", mode: "add", format: "package" });
       if (!result.moved && result.failed.length) setStep({ kind: "error" });

@@ -4,6 +4,7 @@ import { claudeUserMcpEnabled, DATA_DIR, type AppConfig } from "../config.ts";
 import { lookForBots } from "../bot-move-local.ts";
 import { lookForGrokBot, removeOldCursorSignIn } from "../grok-local.ts";
 import { applySetupImport, detectSetup, thisMachine, type SetupHost, type SetupMachine } from "../setup-import.ts";
+import { SETUP_SOURCES } from "../../shared/setup-import.ts";
 import type { BusyFlag } from "./config.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
@@ -25,7 +26,7 @@ export const SETUP_IMPORT_PATH = "/api/setup-import";
 export const GROK_LOOK_PATH = "/api/setup-import/grok";
 export const BOTS_LOOK_PATH = "/api/setup-import/bots";
 const LOCAL_ONLY = "Only the desktop app on the computer running dusk bot can bring in that computer's skills and tools.";
-const SOURCES = ["claudeCode", "claudeDesktop", "cursor", "codex", "gemini", "windsurf", "vscode"] as const;
+const SOURCES = SETUP_SOURCES;
 const requestSchema = z.object({
   skills: z.boolean().optional(), tools: z.boolean().optional(), instructions: z.boolean().optional(),
   sources: z.array(z.enum(SOURCES)).max(SOURCES.length).optional(),

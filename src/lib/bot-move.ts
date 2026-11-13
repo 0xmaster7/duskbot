@@ -2,7 +2,7 @@ import { t } from "@/lib/i18n";
 import { api, type Action, type Bot } from "@/state/store";
 import { moveFrom, readBotLook, EMPTY_LOOK, type BotLook } from "../../shared/bot-move";
 import { GROK_FROM, type MoveFrom } from "../../shared/grok-import";
-import { foundExports, previewGrokMove, runGrokMove, type GrokLook, type GrokPreview, type GrokReport } from "./grok-move";
+import { foundExports, previewGrokMove, runGrokMove, type GrokLook, type GrokPreview, type GrokReport, type SaveFacts } from "./grok-move";
 
 export const BOTS_LOOK_TIME_BOX_MS = 2_500;
 
@@ -66,12 +66,14 @@ export function planBotMove(look: BotMoveLook, facts: { bots: readonly Pick<Bot,
 
 export const movable = (plan: BotMovePlan) => plan.apps.reduce((total, app) => total + app.preview.plans.length, 0);
 
-export interface MoveCounts { bots: number; skills: number; routines: number; memories: number }
+export interface MoveCounts { bots: number; skills: number; routines: number; memories: number; facts?: number; apps?: number }
 
 export function planCounts(app: AppMove): MoveCounts {
+  const facts = new Set(app.preview.plans.flatMap((plan) => plan.facts.map((fact) => fact.replace(/\s+/g, " ").toLowerCase())));
   return app.preview.plans.reduce((sum, plan) => ({
-    bots: sum.bots + 1, skills: sum.skills + plan.skills.length, routines: sum.routines + plan.routines, memories: sum.memories + plan.memories + plan.notes,
-  }), { bots: 0, skills: 0, routines: 0, memories: 0 });
+    ...sum, bots: sum.bots + 1, skills: sum.skills + plan.skills.length, routines: sum.routines + plan.routines, memories: sum.memories + plan.memories + plan.notes,
+    apps: (sum.apps ?? 0) + plan.apps,
+  }), { bots: 0, skills: 0, routines: 0, memories: 0, facts: facts.size, apps: 0 });
 }
 
 /** One section named after the app for its bots, in place of the one each import made; a failure leaves them where
@@ -94,7 +96,8 @@ export interface AppReport { app: AppMove; report: GrokReport }
 
 /** Moves app by app, bot by bot; one that fails is named and the rest carry on. `onBot` hears each as it starts. Each
  * app's bots end up together in one sidebar section named after it. */
-export async function runBotMove(plan: BotMovePlan, dispatch: (action: Action) => void, onBot?: (done: number, name: string) => void): Promise<AppReport[]> {
+export async function runBotMove(plan: BotMovePlan, dispatch: (action: Action) => void, onBot?: (done: number, name: string) => void,
+  saveFacts?: SaveFacts): Promise<AppReport[]> {
   const out: AppReport[] = [];
   let done = 0;
   for (const app of plan.apps) {
@@ -102,7 +105,7 @@ export async function runBotMove(plan: BotMovePlan, dispatch: (action: Action) =
       out.push({ app, report: { bots: [], moved: app.preview.moved, unreadable: app.preview.unreadable, failed: [] } });
       continue;
     }
-    const report = await runGrokMove(app.preview, dispatch, (bot) => onBot?.(done++, bot.addedAs));
+    const report = await runGrokMove(app.preview, dispatch, (bot) => onBot?.(done++, bot.addedAs), saveFacts);
     await groupUnder(app.app, report.bots, dispatch);
     out.push({ app, report });
   }
@@ -125,6 +128,7 @@ export function countsLine(counts: MoveCounts): string {
     ...(counts.skills ? [count(counts.skills, "botMove.skillsOne", "botMove.skills")] : []),
     ...(counts.routines ? [count(counts.routines, "botMove.routinesOne", "botMove.routines")] : []),
     ...(counts.memories ? [t("botMove.memory")] : []),
+    ...(counts.facts ? [count(counts.facts, "botMove.factsOne", "botMove.facts")] : []),
   ]);
 }
 
@@ -132,7 +136,7 @@ export function countsLine(counts: MoveCounts): string {
 export function outcome(reports: readonly AppReport[]): { line: string; leftOut: string | null; moved: number; failed: string[] } {
   const bots = reports.flatMap((one) => one.report.bots);
   const failed = reports.flatMap((one) => one.report.failed);
-  const counts = { bots: bots.length, skills: bots.reduce((n, bot) => n + bot.skills, 0), routines: bots.reduce((n, bot) => n + bot.routines, 0), memories: bots.reduce((n, bot) => n + bot.memories + bot.notes, 0) };
+  const counts = { bots: bots.length, skills: bots.reduce((n, bot) => n + bot.skills, 0), routines: bots.reduce((n, bot) => n + bot.routines, 0), memories: bots.reduce((n, bot) => n + bot.memories + bot.notes, 0), facts: bots.reduce((n, bot) => n + bot.facts, 0) };
   const already = reports.flatMap((one) => one.report.moved);
   const line = bots.length ? t("botMove.moved", { list: countsLine(counts) })
     : already.length && !failed.length ? t("botMove.allHere") : t("botMove.nothingMoved");

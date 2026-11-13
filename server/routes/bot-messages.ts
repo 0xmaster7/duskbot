@@ -31,6 +31,8 @@ import { cancelSteeredMessage, holdSteeredQueue, queuedSteeredMessage, restoreHe
 import type { BotRecord, GroupRecord, Message, Store } from "../store.ts";
 import { extractSteerImages } from "../turn-images.ts";
 import { followupFacts, helperFollowup, helperFollowupBody, mayFollowUp } from "../helper-followup.ts";
+import { importNoteSchema } from "../../shared/import-note.ts";
+import { importNoteText } from "../import-note.ts";
 import { introAllowed, introPrompt } from "../bot-intro.ts";
 import { conversationLanguage } from "../server-lines.ts";
 import type { UsageTrigger } from "../usage-ledger.ts";
@@ -449,6 +451,17 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
       if ("existing" in next) return json(res, 200, { message: next.existing });
       if ("skip" in next) return json(res, 200, { skipped: true });
       return json(res, 201, { message: store.appendMessage(threadId, next.append) });
+    }
+    // after a bring-in from other apps, the person's own first bot says briefly what came in; written here from counts
+    m = path.match(/^\/api\/bots\/([\w-]+)\/import-note$/);
+    if (m && method === "POST") {
+      const bot = store.bot(m[1]!);
+      if (!bot?.defaultBot || bot.hidden) return json(res, 404, { error: "no such bot" });
+      if (!mayFollowUp(bot, auth)) return json(res, 403, { error: "only the bot's own person can do this" });
+      const parsed = importNoteSchema.safeParse(await readBody(req));
+      const text = parsed.success ? importNoteText(parsed.data, conversationLanguage(bot.threadId)) : null;
+      if (!text) return json(res, 400, { error: "nothing came in" });
+      return json(res, 201, { message: store.appendMessage(bot.threadId, { role: "bot", kind: "text", text }) });
     }
     // a bot just made greets the person in its own voice; its chat holds nothing yet, or this is a no-op
     m = path.match(/^\/api\/bots\/([\w-]+)\/intro$/);

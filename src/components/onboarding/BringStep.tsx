@@ -18,7 +18,7 @@ function FindRow({ find, on, onToggle }: { find: LocalFind; on: boolean; onToggl
           on ? "bg-ink/[0.06] hover:bg-ink/[0.08]" : "bg-ink/[0.025] hover:bg-ink/[0.045]")}>
         <span className="flex min-w-0 flex-1 flex-col">
           <span className={cn("truncate text-[14px] font-semibold leading-5", on ? "text-ink" : "text-ink-secondary")}>{find.app}</span>
-          <span className="truncate text-[13px] leading-[18px] text-ink-secondary">{find.summary}</span>
+          <span className="line-clamp-2 text-pretty text-[13px] leading-[18px] text-ink-secondary">{find.summary}</span>
         </span>
         <span aria-hidden="true" className={cn("grid size-5 shrink-0 place-items-center rounded-full transition-colors duration-150 motion-reduce:transition-none", on ? "bg-ink text-app" : "bg-ink/10 text-transparent")}>
           <Check size={12} strokeWidth={2.5} />
@@ -54,22 +54,30 @@ export function BringStep({ finds, grokWaiting, onGrok, onBring, onNext }: {
     </p>
   );
 
+  const promptBox = (
+    <div data-bring-prompt="" className={cn("w-full max-w-[420px] rounded-[14px] bg-ink/[0.035] text-start", found && "mt-3")}>
+      <div className="flex items-center justify-between gap-3 ps-4 pe-1.5 pt-1.5">
+        <span id="bring-prompt-label" className="text-[12px] leading-4 text-ink-tertiary">{found ? t("bring.cloudAsk") : t("bring.promptLabel")}</span>
+        <button type="button" data-bring-copy="" aria-label={copy === "copied" ? t("bring.copiedShort") : t("bring.copyPrimary")} onClick={() => void copyPrompt()}
+          className="flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[12px] leading-4 text-ink-secondary transition-[background-color,color] duration-150 ease-[ease] hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none">
+          {copy === "copied" ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+          <span>{copy === "copied" ? t("bring.copiedShort") : t("bring.copyShort")}</span>
+        </button>
+      </div>
+      <pre tabIndex={0} aria-labelledby="bring-prompt-label"
+        className={cn("m-0 overflow-y-auto overscroll-contain whitespace-pre-wrap break-words rounded-b-[14px] px-4 pb-3 pt-1 font-mono text-[12px] leading-[18px] text-ink-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus", found ? "max-h-[96px]" : "max-h-[168px]")}>
+        {NOTES_PROMPT}
+      </pre>
+    </div>
+  );
+
   return (
     <StepFrame title={t("bring.title")} sub={found ? t("bring.sub") : t("bring.subNone")}
       footer={found ? (
         <>
           <button type="button" data-primary="" data-bring-go="" autoFocus disabled={!chosen.length} onClick={() => onBring(chosen)} className={PRIMARY}>{t("bring.bring")}</button>
           <button type="button" data-bring-skip="" onClick={onNext} className={QUIET}>{t("funnel.skip")}</button>
-          <div className="mt-4 flex flex-col items-center gap-1.5">
-            <p className="text-[13px] leading-[18px] text-ink-secondary">
-              {t("bring.cloudAsk")}{" "}
-              <button type="button" data-bring-copy="" onClick={() => void copyPrompt()}
-                className="rounded text-ink underline decoration-ink/25 underline-offset-2 hover:decoration-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-                {t("bring.copy")}
-              </button>
-            </p>
-            {copiedLine}
-          </div>
+          {copiedLine && <div className="mt-3 flex justify-center">{copiedLine}</div>}
         </>
       ) : (
         <>
@@ -78,27 +86,13 @@ export function BringStep({ finds, grokWaiting, onGrok, onBring, onNext }: {
         </>
       )}>
       {finds === null && <p role="status" data-bring-looking="" className="text-[13px] leading-[18px] text-ink-tertiary">{t("bring.looking")}</p>}
-      {finds !== null && !found && (
-        <div data-bring-prompt="" className="w-full max-w-[420px] rounded-[14px] bg-ink/[0.035] text-start">
-          <div className="flex items-center justify-between gap-3 ps-4 pe-1.5 pt-1.5">
-            <span id="bring-prompt-label" className="text-[12px] leading-4 text-ink-tertiary">{t("bring.promptLabel")}</span>
-            <button type="button" data-bring-copy="" aria-label={copy === "copied" ? t("bring.copiedShort") : t("bring.copyPrimary")} onClick={() => void copyPrompt()}
-              className="flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[12px] leading-4 text-ink-secondary transition-[background-color,color] duration-150 ease-[ease] hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none">
-              {copy === "copied" ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
-              <span>{copy === "copied" ? t("bring.copiedShort") : t("bring.copyShort")}</span>
-            </button>
-          </div>
-          <pre tabIndex={0} aria-labelledby="bring-prompt-label"
-            className="m-0 max-h-[120px] overflow-y-auto whitespace-pre-wrap break-words rounded-b-[14px] px-4 pb-3 pt-1 font-mono text-[12px] leading-[18px] text-ink-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-            {NOTES_PROMPT}
-          </pre>
-        </div>
-      )}
+      {finds !== null && !found && promptBox}
       {found && (
         <ul aria-label={t("bring.foundLabel")} className="m-0 flex w-full max-w-[420px] list-none flex-col gap-1.5 p-0">
           {finds!.map((find) => <FindRow key={find.id} find={find} on={!off.has(find.id)} onToggle={() => toggle(find.id)} />)}
         </ul>
       )}
+      {found && promptBox}
       {grokWaiting.length > 0 && (
         <p data-bring-grok="" className="mt-3 max-w-[420px] text-[13px] leading-[18px] text-ink-secondary">
           {t("botMove.grokWaiting", { names: new Intl.ListFormat(activeLocale(), { style: "long", type: "conjunction" }).format(grokWaiting) })}{" "}

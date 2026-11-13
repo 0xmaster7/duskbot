@@ -13,6 +13,7 @@ import {
   type SetupFs, type SetupHost, type SetupMachine,
 } from "./setup-import.ts";
 import { installSkill, listSkills } from "./skills.ts";
+import { plantAgentTools, SENTINEL as SECRET } from "./testing/agent-app-fixtures.ts";
 import { workspaceDir } from "./workspace.ts";
 
 // Every home here is a fresh temporary folder; nothing reads the real ~/.claude, ~/.codex or other dotfiles.
@@ -357,13 +358,14 @@ describe("finding what another AI tool already set up on this computer", () => {
     const result = applySetupImport(machine, host, { skills: true, tools: true });
 
     const allowed = setupPaths(machine);
-    const roots = allowed.skills.map((skill) => skill.root);
+    const roots = [...allowed.skills.map((skill) => skill.root), ...allowed.commands.map((command) => command.root)];
     const files = new Set([...allowed.tools.map((tool) => tool.path), ...allowed.instructions.map((file) => file.path)]);
     const inRoot = (path: string) => roots.some((root) => path === root || path.startsWith(root + sep));
-    // Opened or listed: the tools' config files and what is inside their skills folders, nothing else.
+    // Opened or listed: the tools' config files and what is inside their skills and commands folders, nothing else.
     expect(ops.filter(({ op, path }) => (op === "read" || op === "readdir") && !files.has(path) && !inRoot(path))).toEqual([]);
     // Only looked at, never opened: also the home folder and the tools' own folders on the way.
-    const passed = new Set([home, ...[".claude", ".codex", ".gemini", ".cursor", ".codeium", ".codeium/windsurf", ".codeium/windsurf/memories"].map((folder) => join(home, folder))]);
+    const passed = new Set([home, ...[".claude", ".codex", ".gemini", ".cursor", ".codeium", ".codeium/windsurf", ".codeium/windsurf/memories", ".agents", ".openhands", ".devin", ".config", ".config/devin"]
+      .map((folder) => join(home, folder))]);
     expect(ops.filter(({ path }) => !files.has(path) && !inRoot(path) && !passed.has(path))).toEqual([]);
     for (const path of planted) expect(touched()).not.toContain(path);
     const inSkills = touched().filter((path) => roots.some((root) => path.startsWith(root + sep))).map((path) => relative(home, path));
@@ -413,7 +415,7 @@ describe("finding what another AI tool already set up on this computer", () => {
     rmSync(join(home, ".codex", "skills"), { recursive: true, force: true });
     link(join(home, ".codex"), ".codex/skills");
     expect(detectSetup(machine, host).skills).toEqual([]);
-    const configs = new Set([...setupPaths(machine).tools.map((tool) => tool.path), ...setupPaths(machine).instructions.map((file) => file.path)]);
+    const configs = new Set([...setupPaths(machine).tools.map((tool) => tool.path), ...setupPaths(machine).instructions.map((file) => file.path), ...setupPaths(machine).commands.map((command) => command.root)]);
     expect(touched().filter((path) => path.startsWith(join(home, ".codex") + sep) && !path.startsWith(join(home, ".codex", "skills")) && !configs.has(path))).toEqual([]);
   });
 
@@ -559,6 +561,37 @@ describe("bringing skills in", () => {
     const stored = readImportedSkills().pdf;
     expect(applySetupImport(machine, host, { skills: true })).toEqual({ skills: { added: [], present: ["pdf"], skipped: [], filesLeftOut: 0, review: [] } });
     expect(readImportedSkills().pdf).toEqual(stored);
+    expect(detectSetup(machine, host).skills).toEqual([]);
+  });
+
+  it("brings each tool's saved commands, prompts and workflows in as skills, once, never one holding a credential", () => {
+    const home = fixtureHome();
+    const secrets = plantAgentTools(home);
+    put(home, ".claude/skills/review-pr/SKILL.md", skillMd("review-pr"));
+    const { machine, touched } = machineFor(home);
+    const { host } = hostFor();
+    expect(detectSetup(machine, host).skills).toEqual([
+      { name: "review-pr", source: "claudeCode" },
+      { name: "git-commit", source: "claudeCode" },
+      { name: "explain", source: "codex" },
+      { name: "plan", source: "gemini" },
+      { name: "release", source: "windsurf" },
+      { name: "repo-rules", source: "openhands" },
+    ]);
+    expect(applySetupImport(machine, host, { skills: true }).skills?.added).toEqual(["review-pr", "git-commit", "explain", "plan", "release", "repo-rules"]);
+    const commit = readFileSync(join(IMPORTED_SKILLS_DIR, "git-commit", "SKILL.md"), "utf8");
+    expect(commit).toBe("---\nname: git-commit\ndescription: Write a conventional commit message for the staged changes.\n---\n\nThis was the /git:commit command in Claude Code.\n\nWrite a conventional commit message for the staged changes.\n");
+    const plan = readFileSync(join(IMPORTED_SKILLS_DIR, "plan", "SKILL.md"), "utf8");
+    expect(plan).toContain("description: Plan a change");
+    expect(plan).toContain("Where it says $ARGUMENTS, $1 to $9 or {{args}}, use what the person asked for.\n\nWrite a step-by-step plan for: {{args}}");
+    expect(readFileSync(join(IMPORTED_SKILLS_DIR, "explain", "SKILL.md"), "utf8")).toContain("This was the /prompts:explain command in Codex.");
+    expect(readImportedSkills().release).toMatchObject({ source: "windsurf", label: "~/.codeium/windsurf/global_workflows/release.md" });
+    // the folder skill of the same name wins, and a command holding a key never comes in
+    expect(readFileSync(join(IMPORTED_SKILLS_DIR, "review-pr", "SKILL.md"), "utf8")).toContain("Works with review-pr files.");
+    expect(readImportedSkills().deploy).toBeUndefined();
+    expect(contentsUnder(IMPORTED_SKILLS_DIR)).not.toContain(SECRET);
+    for (const secret of secrets.slice(1)) expect(touched()).not.toContain(secret);
+    expect(applySetupImport(machine, host, { skills: true }).skills?.added, "a second run adds nothing").toEqual([]);
     expect(detectSetup(machine, host).skills).toEqual([]);
   });
 

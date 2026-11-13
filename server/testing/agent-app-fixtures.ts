@@ -1,5 +1,7 @@
-// Homes holding other agent apps as they lay out their folders (OpenClaw 2026.3 and 2026.11, Hermes Agent, dusk bot's
-// older builds), for the bot move's tests and screenshots. Every login, key, session and history file holds SENTINEL.
+// Homes holding other agent apps as they lay out their folders (OpenClaw 2026.3 and 2026.11, Hermes Agent, Claude
+// Code's and Gemini CLI's agents and saved commands, Codex prompts, Windsurf workflows, OpenHands microagents, dusk
+// bot's older builds), for the import's tests and screenshots, built from each app's public docs. Every login, key,
+// session and history file holds SENTINEL.
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -28,15 +30,17 @@ export function plantOpenClawList(home: string, dir = ".openclaw", config = "ope
     defaults: { workspace: "~/${dir}/workspace", model: "anthropic/claude-sonnet-4-5" },
     list: [
       { id: "main", default: true, identity: { name: "Molty", emoji: "🦞" } },
-      { id: "scout", name: "Scout", },
+      { id: "scout", name: "Scout", identity: { avatar: "../workspace/avatar.png" } },
     ],
   },
+  mcp: { servers: { linear: { url: "https://mcp.linear.app/mcp", headers: { Authorization: "Bearer ${SENTINEL}" } }, files: { command: "npx", args: ["-y", "files-mcp"], env: { FILES_TOKEN: "${SENTINEL}" } } } },
   channels: { telegram: { botToken: "${SENTINEL}", dmPolicy: "pairing" }, discord: { enabled: false, token: "x" }, defaults: {} },
 }
 `);
   put(`${dir}/workspace/SOUL.md`, "# SOUL.md - Who You Are\n\nBe genuinely helpful, not performatively helpful. Have opinions.\n");
-  put(`${dir}/workspace/IDENTITY.md`, "# IDENTITY.md\n\n- **Name:** Molty\n- **Creature:** space lobster\n- **Vibe:** warm, a little dry\n- **Emoji:** 🦞\n");
-  put(`${dir}/workspace/USER.md`, "# USER.md\n\n- **Name:** Sam\n- **Timezone:** Europe/Lisbon\n- Prefers short answers.\n");
+  put(`${dir}/workspace/IDENTITY.md`, "# IDENTITY.md\n\n- **Name:** Molty\n- **Creature:** space lobster\n- **Vibe:** warm, a little dry\n- **Emoji:** 🦞\n- **Avatar:** avatar.png\n");
+  writeFileSync(join(home, dir, "workspace", "avatar.png"), PNG);
+  put(`${dir}/workspace/USER.md`, "# USER.md\n\n- **Name:** Sam\n- **Timezone:** Europe/Lisbon\n- **Pronouns:**\n- Prefers short answers.\n");
   put(`${dir}/workspace/AGENTS.md`, "# AGENTS.md - Your Workspace\n\nRead SOUL.md and USER.md first. Write daily notes to memory/YYYY-MM-DD.md.\n");
   put(`${dir}/workspace/TOOLS.md`, "# TOOLS.md\n\n- The living room camera is `cam-1`.\n");
   put(`${dir}/workspace/HEARTBEAT.md`, "# HEARTBEAT.md\n\n- Check the inbox for anything urgent and tell me.\n");
@@ -98,6 +102,8 @@ export function plantHermes(home: string): string[] {
 agent:
   personalities:
     concise: "You answer in two sentences or fewer."
+    pirate:
+      system_prompt: "Talk like a pirate."
 display:
   personality: concise
 platforms:
@@ -105,6 +111,21 @@ platforms:
     enabled: true
 whatsapp:
   enabled: true
+gateway:
+  platforms:
+    discord:
+      enabled: true
+      token: ${SENTINEL}
+mcp_servers:
+  github:
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-github"]
+    env:
+      GITHUB_PERSONAL_ACCESS_TOKEN: ${SENTINEL}
+  notion:
+    url: https://mcp.notion.com/mcp
+    headers:
+      Authorization: Bearer ${SENTINEL}
 `);
   put(".hermes/SOUL.md", "You are Hermes. Curious, patient, and honest about what you don't know.\n");
   put(".hermes/memories/MEMORY.md", "The user's server is a Contabo VPS.\n§\nDeploys go through a script called deploy.\n§\n");
@@ -130,6 +151,49 @@ whatsapp:
     put(".hermes/state.db", SENTINEL),
     put(".hermes/sessions/sessions.json", SENTINEL),
     put(".hermes/profiles/coder/.env", SENTINEL),
+  ];
+}
+
+/** A 1x1 PNG. */
+export const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64");
+
+/** Claude Code's and Gemini CLI's own agents, and the saved commands, prompts and workflows of Claude Code, Codex,
+ * Gemini CLI, Windsurf and OpenHands, as their docs lay them out. */
+export function plantAgentTools(home: string): string[] {
+  const put = putter(home);
+  put(".claude/agents/code-reviewer.md", `---
+name: code-reviewer
+description: Expert code review specialist. Use right after writing or changing code.\\n\\n<example>user: review this</example>
+tools: Read, Grep, Glob, Bash
+model: sonnet
+color: blue
+---
+
+You are a senior code reviewer. Run git diff, focus on the changed files, and report issues by priority: critical, warnings, suggestions.
+`);
+  put(".claude/agents/notes.txt", "not an agent");
+  put(".gemini/agents/researcher.md", `---
+name: researcher
+description: Finds and cites sources.
+kind: local
+model: gemini-2.5-pro
+mcpServers:
+  search:
+    httpUrl: https://search.example.com/mcp
+---
+
+Search first, then answer with a link for every claim.
+`);
+  put(".claude/commands/review-pr.md", "---\ndescription: Review a pull request\nargument-hint: [pr-number]\nallowed-tools: Bash(gh pr view:*)\n---\n\nReview pull request #$ARGUMENTS. Check tests and naming.\n");
+  put(".claude/commands/git/commit.md", "Write a conventional commit message for the staged changes.\n");
+  put(".codex/prompts/explain.md", "---\ndescription: Explain code simply\n---\nExplain $1 to a new teammate in five sentences.\n");
+  put(".gemini/commands/plan.toml", 'description = "Plan a change"\nprompt = """\nWrite a step-by-step plan for: {{args}}\n"""\n');
+  put(".codeium/windsurf/global_workflows/release.md", "# Release\n\n1. Bump the version.\n2. Write the changelog.\n");
+  put(".openhands/microagents/repo-rules.md", "---\nname: repo-rules\ntriggers:\n- repo\n---\n\nAlways run the linter before committing.\n");
+  return [
+    put(".claude/commands/deploy.md", `Deploy with the key ${SENTINEL}.\n`),
+    put(".claude/.credentials.json", SENTINEL),
+    put(".gemini/oauth_creds.json", SENTINEL),
   ];
 }
 

@@ -1,8 +1,10 @@
 // "Bring what you already use": the skills and MCP servers of a person's other AI tools that the welcome flow finds
 // on this computer and brings in.
 
-export type SetupSource = "claudeCode" | "claudeDesktop" | "cursor" | "codex" | "gemini" | "windsurf" | "vscode";
-export type SkillSource = Extract<SetupSource, "claudeCode" | "codex">;
+export type SetupSource = "claudeCode" | "claudeDesktop" | "cursor" | "codex" | "gemini" | "windsurf" | "vscode" | "openhands";
+/** Skills come as skill folders, and as the tools' own saved commands, prompts and workflows made into skills. */
+export type SkillSource = Extract<SetupSource, "claudeCode" | "codex" | "gemini" | "windsurf" | "openhands">;
+export const SETUP_SOURCES = ["claudeCode", "claudeDesktop", "cursor", "codex", "gemini", "windsurf", "vscode", "openhands"] as const satisfies readonly SetupSource[];
 /** A tool whose standing instructions (CLAUDE.md, AGENTS.md, GEMINI.md, global rules) live in one file. */
 export type InstructionsSource = Extract<SetupSource, "claudeCode" | "codex" | "gemini" | "windsurf">;
 

@@ -238,7 +238,7 @@ export function WelcomeFlow({
 
   const bring = (chosen: Parameters<typeof bringChosen>[0]) => {
     track("onboarding_bring", { apps: chosen.length });
-    void bringChosen(chosen, { dispatch, firstBotId: maus?.id ?? null });
+    void bringChosen(chosen, { dispatch, firstBotId: maus?.id ?? null, aboutMe: state.config?.profile?.aboutMe ?? "", team: Boolean(state.config?.team) });
     next();
   };
   // notes from another AI pasted on any step come in from here too

@@ -13,7 +13,7 @@ import type { InstructionsSource, SetupDetection, SetupImportRequest, SetupImpor
 import { holdsCredential, redactSecretsInText } from "../shared/redact.ts";
 import { writeFileAtomic } from "./atomic.ts";
 import { DATA_DIR } from "./config.ts";
-import { parseSkillMd, scanSkillText, SKILL_FILE_MAX_BYTES, type ParsedSkill } from "../shared/skill-md.ts";
+import { isSkillName, parseSkillMd, scanSkillText, SKILL_FILE_MAX_BYTES, SKILL_NAME_MAX, yamlFrontmatterValue, type ParsedSkill } from "../shared/skill-md.ts";
 import { importedSkillIntact, readImportedSkills, storeImportedSkills, type ImportedSkillEntry, type ImportedSkillInput } from "./imported-skills.ts";
 import { importedMcpServerName, isRemoteMcpServer, MAX_MCP_SERVERS, parseMcpServersImport, parseStoredMcpServer, type StoredMcpServer } from "./mcp-registry.ts";
 import { parseToml } from "./toml-lite.ts";
@@ -117,7 +117,19 @@ export function setupPaths(machine: Pick<SetupMachine, "home" | "platform" | "en
     skills: [
       { source: "claudeCode", root: join(home, ".claude", "skills"), label: "~/.claude/skills" },
       { source: "codex", root: join(codexHome, "skills"), label: codexLabel },
+      // Codex's newer user skills folder, which OpenHands reads too
+      { source: "codex", root: join(home, ".agents", "skills"), label: "~/.agents/skills" },
+      { source: "openhands", root: join(home, ".openhands", "skills"), label: "~/.openhands/skills" },
     ] satisfies Array<{ source: SkillSource; root: string; label: string }>,
+    /** The tools' saved commands, prompts and workflows: one file each, brought in as a skill. */
+    commands: [
+      { source: "claudeCode", root: join(home, ".claude", "commands"), label: "~/.claude/commands", app: "Claude Code", format: "md", call: "/" },
+      { source: "codex", root: join(codexHome, "prompts"), label: codexHome === join(home, ".codex") ? "~/.codex/prompts" : "$CODEX_HOME/prompts", app: "Codex", format: "md", call: "/prompts:" },
+      { source: "gemini", root: join(home, ".gemini", "commands"), label: "~/.gemini/commands", app: "Gemini CLI", format: "toml", call: "/" },
+      { source: "windsurf", root: join(home, ".codeium", "windsurf", "global_workflows"), label: "~/.codeium/windsurf/global_workflows", app: "Windsurf", format: "md", call: "/" },
+      { source: "openhands", root: join(home, ".openhands", "microagents"), label: "~/.openhands/microagents", app: "OpenHands", format: "md", call: "" },
+      { source: "openhands", root: join(home, ".openhands", "skills"), label: "~/.openhands/skills", app: "OpenHands", format: "md", call: "" },
+    ] satisfies Array<{ source: SkillSource; root: string; label: string; app: string; format: "md" | "toml"; call: string }>,
     tools: [
       { source: "claudeCode", path: join(home, ".claude.json"), format: "claudeJson", max: CLAUDE_JSON_MAX_BYTES },
       { source: "claudeDesktop", path: join(desktop, "claude_desktop_config.json"), format: "json", max: CONFIG_MAX_BYTES },
@@ -125,6 +137,8 @@ export function setupPaths(machine: Pick<SetupMachine, "home" | "platform" | "en
       { source: "codex", path: join(codexHome, "config.toml"), format: "toml", max: CONFIG_MAX_BYTES },
       { source: "gemini", path: join(home, ".gemini", "settings.json"), format: "json", max: CONFIG_MAX_BYTES },
       { source: "windsurf", path: join(home, ".codeium", "windsurf", "mcp_config.json"), format: "json", max: CONFIG_MAX_BYTES },
+      // Windsurf as Devin Desktop
+      { source: "windsurf", path: join(home, ".config", "devin", "mcp_config.json"), format: "json", max: CONFIG_MAX_BYTES },
       { source: "vscode", path: join(vscode, "mcp.json"), format: "vscode", max: CONFIG_MAX_BYTES },
     ] satisfies Array<{ source: SetupSource; path: string; format: ToolFormat; max: number }>,
     instructions: [
@@ -132,6 +146,7 @@ export function setupPaths(machine: Pick<SetupMachine, "home" | "platform" | "en
       { source: "codex", path: join(codexHome, "AGENTS.md"), name: "AGENTS.md" },
       { source: "gemini", path: join(home, ".gemini", "GEMINI.md"), name: "GEMINI.md" },
       { source: "windsurf", path: join(home, ".codeium", "windsurf", "memories", "global_rules.md"), name: "global_rules.md" },
+      { source: "windsurf", path: join(home, ".devin", "global_rules.md"), name: "global_rules.md" },
     ] satisfies Array<{ source: InstructionsSource; path: string; name: string }>,
   };
 }
@@ -140,8 +155,8 @@ interface FoundSkill {
   name: string;
   source: SkillSource;
   parsed: ParsedSkill;
-  /** The folder it is read from. */
-  folder: string;
+  /** The folder it is read from; null for a command made into a skill, which is one file. */
+  folder: string | null;
   /** The tool's skills folder, and the skill's own folder in it. */
   root: string;
   origin: string;
@@ -272,6 +287,79 @@ function findSkills(machine: SetupMachine): FoundSkill[] {
       });
     }
   }
+  for (const command of findCommands(machine, places)) {
+    if (names.has(command.name)) continue;
+    names.add(command.name);
+    found.push(command);
+  }
+  return found;
+}
+
+const MAX_COMMANDS = 300;
+const COMMAND_MAX_BYTES = 128 * 1024;
+
+/** A command's file name as a skill name: lowercase words joined by hyphens, a subfolder as its prefix. */
+export function commandSkillName(path: string): string {
+  const slug = path.replace(/\.(?:md|toml)$/i, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return slug.slice(0, SKILL_NAME_MAX).replace(/-+$/, "");
+}
+
+/** A saved command as a SKILL.md: its own description, or its first line, and its text whole. Its placeholders are
+ * explained rather than rewritten, so the text stays the person's own. */
+export function commandSkillMd(input: { name: string; app: string; call: string; command: string; description: string; body: string }): string | null {
+  const body = input.body.trim();
+  if (!body || !isSkillName(input.name)) return null;
+  const first = body.split("\n").map((line) => line.replace(/^#+\s*/, "").trim()).find(Boolean) ?? input.name;
+  const description = (input.description.trim() || first).replace(/\s+/g, " ").slice(0, 1_000);
+  const placeholder = /\$ARGUMENTS|\$[1-9]\b|\{\{args\}\}/.test(body);
+  const lead = input.call
+    ? `This was the ${input.call}${input.command} command in ${input.app}.${placeholder ? " Where it says $ARGUMENTS, $1 to $9 or {{args}}, use what the person asked for." : ""}`
+    : `This came from ${input.app}.`;
+  return `---\nname: ${input.name}\ndescription: ${yamlFrontmatterValue(description)}\n---\n\n${lead}\n\n${body}\n`;
+}
+
+/** The tools' saved commands, prompts and workflows, each a file (a subfolder a level deep), made into skills. */
+function findCommands(machine: SetupMachine, places: Places): FoundSkill[] {
+  const found: FoundSkill[] = [];
+  for (const { source, root, label, app, format, call } of setupPaths(machine).commands) {
+    const dir = locate(machine, places, root);
+    if (!dir?.info.isDirectory()) continue;
+    const files: string[] = [];
+    for (const name of (machine.fs.readdir(dir.path) ?? []).filter((one) => !one.startsWith(".")).sort()) {
+      const info = machine.fs.lstat(join(dir.path, name));
+      if (info?.isFile()) files.push(name);
+      else if (info?.isDirectory() && !SKIPPED_FOLDERS.has(name.toLowerCase())) {
+        for (const inner of (machine.fs.readdir(join(dir.path, name)) ?? []).filter((one) => !one.startsWith(".")).sort()) files.push(`${name}/${inner}`);
+      }
+    }
+    for (const file of files.filter((one) => (format === "toml" ? /\.toml$/i : /\.md$/i).test(one) && !secretName(one.split("/").pop()!)).slice(0, MAX_COMMANDS)) {
+      const bytes = machine.fs.read(join(dir.path, file), COMMAND_MAX_BYTES, false, true);
+      const raw = bytes ? utf8(bytes) : null;
+      if (raw === null || holdsCredential(raw)) continue;
+      const command = file.replace(/\.(?:md|toml)$/i, "").replace("/", ":");
+      let description = "", body = raw;
+      if (format === "toml") {
+        try {
+          const parsed = parseToml(raw);
+          body = typeof parsed.prompt === "string" ? parsed.prompt : "";
+          description = typeof parsed.description === "string" ? parsed.description : "";
+        } catch {
+          continue;
+        }
+      } else {
+        const front = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(raw);
+        if (front) {
+          body = front[2]!;
+          description = /^description:\s*(.+)$/im.exec(front[1]!)?.[1]?.trim().replace(/^(["'])(.*)\1$/, "$2") ?? "";
+        }
+      }
+      const name = commandSkillName(file);
+      const text = commandSkillMd({ name, app, call, command, description, body });
+      const parsed = text === null ? null : parseSkillMd(text);
+      if (!parsed || "error" in parsed) continue;
+      found.push({ name, source, parsed, folder: null, root, origin: join(root, file), label: `${label}/${file}`, text: text!, sha256: sha256(text!) });
+    }
+  }
   return found;
 }
 
@@ -383,7 +471,7 @@ function skillWarnings(skillMd: string, files: readonly SkillFile[]): string[] {
 
 /** A found skill as an import stores it: SKILL.md and the text files beside it, with the scan's warnings. */
 function skillInput(machine: SetupMachine, skill: FoundSkill, budget: { bytes: number }): { input: ImportedSkillInput; leftOut: number } {
-  const copy = skillFiles(machine.fs, skill.folder, budget);
+  const copy = skill.folder ? skillFiles(machine.fs, skill.folder, budget) : { files: [], leftOut: 0 };
   return {
     leftOut: copy.leftOut,
     input: {
@@ -409,7 +497,7 @@ function skillInput(machine: SetupMachine, skill: FoundSkill, budget: { bytes: n
  * ~/.claude/skills: it keeps them as imported skills. */
 export function claudeCodeSkillInputs(machine: SetupMachine = thisMachine()): ImportedSkillInput[] {
   const budget = { bytes: 0 };
-  return findSkills(machine).filter((skill) => skill.source === "claudeCode").map((skill) => skillInput(machine, skill, budget).input);
+  return findSkills(machine).filter((skill) => skill.source === "claudeCode" && skill.folder).map((skill) => skillInput(machine, skill, budget).input);
 }
 
 /** One copy for every bot, made once however many bots there are or will be. One the scan flags comes in switched off:

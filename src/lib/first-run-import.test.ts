@@ -5,6 +5,7 @@ vi.mock("@/state/store", () => ({ api: f.api }));
 vi.mock("./bot-move", () => ({
   movable: (plan: { apps: Array<{ preview: { plans: unknown[] } }> }) => plan.apps.reduce((n, app) => n + app.preview.plans.length, 0),
   runBotMove: f.runBotMove,
+  planCounts: (app: { preview: { plans: Array<{ counts?: object }> } }) => ({ bots: app.preview.plans.length, skills: 0, routines: 0, memories: 0, facts: 0, ...app.preview.plans[0]?.counts }),
 }));
 import { setLocale } from "@/lib/i18n";
 import type { SetupDetection } from "../../shared/setup-import";
@@ -41,6 +42,19 @@ describe("the first run's list of what this Mac holds", () => {
     ]);
   });
 
+  it("counts what each app's bots bring, and keeps a tool whose agents became bots to one row", () => {
+    const hermes = app("Hermes Agent", ["Hermes", "Coder"]);
+    (hermes.preview.plans[0] as unknown as { counts: object }).counts = { skills: 3, routines: 2, memories: 4, facts: 2 };
+    const claude = app("Claude Code", ["Code Reviewer"]);
+    const finds = localFinds(plan(hermes, claude), DETECTION);
+    expect(finds.map((find) => [find.id, find.summary, find.source ?? null])).toEqual([
+      ["bots:hermes agent", "2 bots: Hermes and Coder. 3 skills, 2 paused routines, 4 memories, and 2 things about you", null],
+      ["bots:claude code", "1 bot: Code Reviewer. 2 skills, 1 tool, and your instructions", "claudeCode"],
+      ["setup:codex", "1 skill", "codex"],
+      ["setup:cursor", "1 tool", "cursor"],
+    ]);
+  });
+
   it("is empty when nothing is here, and leaves out an app whose bots are all here already", () => {
     expect(localFinds(plan(app("Hermes Agent", [])), { skills: [], tools: [] })).toEqual([]);
     expect(localFinds(null, null)).toEqual([]);
@@ -66,6 +80,9 @@ describe("bringing the chosen in", () => {
     expect(JSON.parse(memory[1].body).text).toContain("Use pnpm.");
     expect(f.runBotMove).toHaveBeenCalledOnce();
     expect(bringRunNow()).toEqual({ kind: "done", failed: false, line: "Brought in 2 bots, 2 skills, 1 tool, and your instructions." });
+    await vi.waitFor(() => expect(f.api).toHaveBeenCalledWith("/api/bots/dusk/import-note", expect.anything()));
+    const note = JSON.parse(f.api.mock.calls.find(([path]) => path === "/api/bots/dusk/import-note")![1].body);
+    expect(note).toMatchObject({ from: ["OpenClaw", "Claude Code"], skills: 2, tools: 1, instructions: ["Claude Code"], failed: false });
   });
 
   it("names a failure and keeps what did come in", async () => {

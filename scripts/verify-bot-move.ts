@@ -1,11 +1,12 @@
-// "Bring your bots" on an isolated fake-engine server whose home holds OpenClaw (2026.3), Hermes Agent and a
-// left-behind ~/.openmausbot, planted from server/testing/agent-app-fixtures.ts. The server runs as the desktop app's
-// own (owner token), so the bots look answers; the preview's bridge marks the window as that computer's.
+// "Bring your bots" on an isolated fake-engine server whose home holds OpenClaw (2026.3), Hermes Agent, Claude Code's
+// and Gemini CLI's agents and commands, and a left-behind ~/.openmausbot, planted from server/testing/agent-app-fixtures.ts.
+// The server runs as the desktop app's own (owner token), so the bots look answers; the preview's bridge marks the window
+// as that computer's.
 // Run: node --experimental-strip-types scripts/verify-bot-move.ts
 import { randomBytes } from "node:crypto";
 import { launchVerificationServer, verificationHome } from "./control-dusk.ts";
 import { mountPreview, parkUntilSignal, type MountedPreview } from "./testing/preview-fixture.ts";
-import { plantHermes, plantOpenClawList, plantOpenMausBot } from "../server/testing/agent-app-fixtures.ts";
+import { plantAgentTools, plantHermes, plantOpenClawList, plantOpenMausBot } from "../server/testing/agent-app-fixtures.ts";
 
 const owner = randomBytes(32).toString("base64url");
 const env = { ...process.env, DUSK_TEST_DESKTOP_OWNER_TOKEN: owner };
@@ -17,6 +18,7 @@ const home = verificationHome(env, fixture.info.dataDir);
 plantOpenClawList(home);
 plantHermes(home);
 plantOpenMausBot(home);
+plantAgentTools(home);
 // a new install: the welcome not yet seen, and the starter bot under its own name
 const call = (path: string, method: string, body: unknown) => fetch(`${fixture.info.url}${path}`, {
   method, headers: { "content-type": "application/json", origin: fixture.info.url }, body: JSON.stringify(body),

@@ -91,7 +91,7 @@ export function ComposerAttachments({
       const notes = callbacks.current.onNotes ? await notesInFiles(files) : null;
       if (notes) {
         callbacks.current.onNotes?.(notes.text);
-        files = files.filter((file) => file.name !== notes.name);
+        files = files.filter((file) => !notes.names.includes(file.name));
         if (!files.length) return;
       }
       const operation = Symbol("attachment-drop");

@@ -7,7 +7,7 @@ import { moveFrom } from "../shared/bot-move.ts";
 import { grokMovePlan } from "../shared/grok-import.ts";
 import { lookForBots } from "./bot-move-local.ts";
 import { thisMachine } from "./setup-import.ts";
-import { plantHermes, plantOpenClawList, plantOpenMausBot, SENTINEL } from "./testing/agent-app-fixtures.ts";
+import { plantAgentTools, plantHermes, plantOpenClawList, plantOpenMausBot, SENTINEL } from "./testing/agent-app-fixtures.ts";
 
 let home: string;
 
@@ -44,16 +44,18 @@ async function installation() {
   const moveAll = (fixtureHome: string) => {
     const look = lookForBots({ ...thisMachine(), home: fixtureHome, platform: "darwin", env: {} }, { dataDir: join(home, ".duskbot") });
     const added: string[] = [];
+    const facts: string[] = [];
     for (const app of look.apps) {
       for (const bot of app.bots) {
         const plan = grokMovePlan(bot, { timeZone: "UTC", from: moveFrom(app) });
+        facts.push(...plan.facts);
         if (store.bots.some((here) => here.installedPackage?.id === plan.packageId)) continue;
         const result = importer.importPackageDocument(plan.document, { trust: "file", mode: "add" }, deps);
         if (result.alreadyAdded) throw new Error("unexpected");
         added.push(...result.bots.map((one) => one.id));
       }
     }
-    return { look, added };
+    return { look, added, facts };
   };
   return { store, routines, skills, workspace, moveAll };
 }
@@ -74,24 +76,35 @@ describe("bots from other apps, through the real package path", () => {
       plantOpenClawList(source);
       plantHermes(source);
       plantOpenMausBot(source);
+      plantAgentTools(source);
 
       const first = app.moveAll(source);
       const moved = first.added.map((id) => app.store.bot(id)!);
-      expect(moved.map((bot) => bot.name)).toEqual(["Molty 2", "Scout", "Hermes", "Coder", "Ledger"]);
+      expect(moved.map((bot) => bot.name)).toEqual(["Molty 2", "Scout", "Hermes", "Coder", "Code Reviewer", "Researcher", "Ledger"]);
       expect(app.store.bot(mine.id)).toMatchObject({ name: "Molty", soul: "my own Molty" });
 
       const molty = moved[0]!;
       expect(molty.soul).toContain("Have opinions.");
       expect(molty.installedPackage).toMatchObject({ source: "file", name: "Molty" });
       expect(app.workspace.readMemoryFile(molty.id).text).toContain("Sam's sister is called Ana.");
-      expect(app.workspace.readMemoryTopic(molty.id, "about-you.md")).toContain("Prefers short answers.");
+      expect(app.workspace.readMemoryTopic(molty.id, "about-you.md"), "facts about the person go to About me").toBeNull();
+      expect(first.facts).toContain("Prefers short answers.");
+      // instructions in the working shape, with the source's words whole and where its notes went
+      expect(molty.soul).toContain("## Your instructions from OpenClaw\n# SOUL.md - Who You Are");
+      expect(molty.soul).toContain("memory/openclaw-daily-notes.md");
+      expect(molty.avatarCrop, "its picture came along").toBe("circle");
+      const reviewer = moved[4]!;
+      expect(reviewer).toMatchObject({ color: "blue", description: "Expert code review specialist. Use right after writing or changing code." });
+      expect(reviewer.soul).toContain("You are a senior code reviewer.");
       expect(app.workspace.readMemoryTopic(molty.id, "openclaw-daily-notes.md")).toContain("Booked the dentist");
       expect(app.skills.listSkills(molty.id).filter((skill) => ["groceries", "weather"].includes(skill.name)).map((skill) => [skill.name, skill.enabled]))
         .toEqual([["groceries", false], ["weather", false]]);
 
       const hermes = moved[2]!;
       expect(app.workspace.readMemoryFile(hermes.id).text).toContain("- Deploys go through a script called deploy.");
-      expect(app.workspace.readMemoryFile(hermes.id).text).toContain("- Works nights; never message before noon.");
+      expect(app.workspace.readMemoryFile(hermes.id).text).not.toContain("Works nights");
+      expect(first.facts).toContain("Works nights; never message before noon.");
+      expect(app.workspace.readMemoryTopic(hermes.id, "hermes-agent-setup.md")).toContain("Answered on: Telegram, Discord, WhatsApp.");
 
       const routines = app.routines.listRoutines();
       expect(routines.every((routine) => !routine.enabled)).toBe(true);

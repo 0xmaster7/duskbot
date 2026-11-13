@@ -5,9 +5,13 @@ import { useSyncExternalStore } from "react";
 import { activeLocale, t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { api, type Action, type Bot, type ConfigStatus } from "@/state/store";
-import { aboutMeWithNotes, isNotesPrompt, looksLikeNotes, notesMemoryFile, notesMemoryText, NOTES_PROMPT, parseNotes, type AssistantNotes } from "../../shared/assistant-notes";
+import {
+  aboutMeWithNotes, isNotesPrompt, NOTES_MAX_CHARS, looksLikeNotes, notesMemoryFile, notesMemoryText, notesThreadsFile, notesThreadsText, NOTES_PROMPT, parseNotes, type AssistantNotes,
+} from "../../shared/assistant-notes";
+import { notesNoteFacts, postImportNote } from "./import-note";
 import { GrokImportError } from "../../shared/grok-import";
 import { copyText } from "./copy-text";
+import type { SaveFacts } from "./grok-move";
 import { saveTeamProfile } from "./own-profile";
 
 export { isNotesPrompt, looksLikeNotes };
@@ -86,47 +90,120 @@ export interface NotesContext {
 }
 
 /** `failed`: bots that couldn't be made; `lost`: parts that couldn't be saved. */
-export interface NotesOutcome { from: string; facts: number; memories: number; bots: number; failed: string[]; lost?: Array<"about" | "memory">; partial: boolean }
+export interface NotesOutcome {
+  from: string; facts: number; memories: number; bots: number; failed: string[]; lost?: Array<"about" | "memory">; partial: boolean;
+  /** Open threads and recurring tasks kept in the first bot's memory. */
+  threads?: number;
+  botNames?: string[];
+  /** Bots an earlier part made that this part added to. */
+  joined?: number;
+  routines?: number;
+}
 
-async function saveAboutMe(notes: AssistantNotes, context: NotesContext): Promise<number> {
-  const about = aboutMeWithNotes(context.aboutMe, notes);
-  if (!about) return 0;
+async function writeAboutMe(text: string, context: Pick<NotesContext, "team" | "dispatch">): Promise<string> {
   const profile = context.team
-    ? await saveTeamProfile({ aboutMe: about.text })
-    : (await api<ConfigStatus>("/api/config", { method: "PUT", body: JSON.stringify({ profile: { aboutMe: about.text } }), timeoutMs: 10_000 })).profile;
-  context.dispatch({ type: "profileSaved", profile: { aboutMe: profile?.aboutMe ?? about.text } });
-  return about.added;
+    ? await saveTeamProfile({ aboutMe: text })
+    : (await api<ConfigStatus>("/api/config", { method: "PUT", body: JSON.stringify({ profile: { aboutMe: text } }), timeoutMs: 10_000 })).profile;
+  const saved = profile?.aboutMe ?? text;
+  context.dispatch({ type: "profileSaved", profile: { aboutMe: saved } });
+  return saved;
+}
+
+/** About me as one place for facts about the person, whichever app or bot they came from: each fact once, under a
+ * heading for the app. Keeps the text it saved, so several apps in a row add to each other rather than overwrite. */
+export function aboutMeSaver(context: Pick<NotesContext, "aboutMe" | "team" | "dispatch">): SaveFacts {
+  let current = context.aboutMe;
+  let queue: Promise<unknown> = Promise.resolve();
+  return (facts, from) => {
+    const next = queue.then(async () => {
+      const about = aboutMeWithNotes(current, { from: { name: from, key: "" }, aboutMe: [...facts], instructions: "" });
+      if (about) current = await writeAboutMe(about.text, context);
+      return true;
+    });
+    queue = next.catch(() => {});
+    return next;
+  };
+}
+
+async function saveAboutMe(notes: AssistantNotes, context: NotesContext): Promise<{ added: number; text: string }> {
+  const about = aboutMeWithNotes(context.aboutMe, notes);
+  if (!about) return { added: 0, text: context.aboutMe };
+  return { added: about.added, text: await writeAboutMe(about.text, context) };
+}
+
+/** One memory topic of a bot, merged with what is there: `build` gets the text before and answers the text after, or
+ * null when nothing is new. */
+async function mergeTopic(botId: string, path: string, build: (before: string) => string | null): Promise<boolean> {
+  const file = `/api/bots/${encodeURIComponent(botId)}/memory/file`;
+  const before = await api<{ text?: string }>(`${file}?path=${encodeURIComponent(path)}`).then((doc) => doc.text ?? "", () => "");
+  const text = build(before);
+  if (!text || text === before) return false;
+  await api(file, { method: "PUT", body: JSON.stringify({ path, text }) });
+  return true;
 }
 
 async function saveMemories(notes: AssistantNotes, botId: string | null): Promise<number> {
   if (!botId || !notes.memories.length) return 0;
-  const path = notesMemoryFile(notes);
-  const file = `/api/bots/${encodeURIComponent(botId)}/memory/file`;
-  const before = await api<{ text?: string }>(`${file}?path=${encodeURIComponent(path)}`).then((doc) => doc.text ?? "", () => "");
-  const text = notesMemoryText(notes, before);
-  if (!text) return 0;
-  await api(file, { method: "PUT", body: JSON.stringify({ path, text }) });
-  return notes.memories.length;
+  return await mergeTopic(botId, notesMemoryFile(notes), (before) => notesMemoryText(notes, before)) ? notes.memories.length : 0;
+}
+
+async function saveThreads(notes: AssistantNotes, botId: string | null): Promise<number> {
+  const count = notes.openThreads.length + notes.recurring.length;
+  if (!botId || !(count || notes.apps.length)) return 0;
+  return await mergeTopic(botId, notesThreadsFile(notes), (before) => notesThreadsText(notes, before)) ? count : 0;
+}
+
+/** A later part naming a bot an earlier part already made: what it remembers joins that bot rather than making another. */
+async function joinMovedBots(notes: AssistantNotes, bots: readonly Bot[], movedNames: readonly string[]): Promise<number> {
+  if (!movedNames.length) return 0;
+  const { grokMovePlan } = await import("../../shared/grok-import");
+  let joined = 0;
+  for (const bot of notes.bots.filter((one) => movedNames.includes(one.name))) {
+    try {
+      const plan = grokMovePlan(bot, { from: notes.from });
+      const here = bots.find((one) => one.installedPackage?.id === plan.packageId);
+      if (!here) continue;
+      const memories = { from: notes.from, memories: [...bot.memories] };
+      const files = Object.entries(bot.memoryFiles ?? {});
+      let changed = await mergeTopic(here.id, notesMemoryFile(notes), (before) => notesMemoryText(memories, before));
+      for (const [path, text] of files) changed = await mergeTopic(here.id, path, (before) => (before.trim() ? null : text)) || changed;
+      if (changed) joined += 1;
+    } catch {}
+  }
+  return joined;
 }
 
 /** Everything in the notes, each part on its own: About me, the first bot's memory, then a bot for each of the other
  * AI's own assistants. A part that fails leaves the others in; the waiting stops once anything came in. */
 export async function importNotes(text: string, context: NotesContext): Promise<NotesOutcome> {
   const notes = parseNotes(text);
-  const outcome: NotesOutcome = { from: notes.from.name, facts: 0, memories: 0, bots: 0, failed: [], lost: [], partial: notes.partial };
-  try { outcome.facts = await saveAboutMe(notes, context); } catch { outcome.lost!.push("about"); }
+  const outcome: NotesOutcome = { from: notes.from.name, facts: 0, memories: 0, threads: 0, bots: 0, botNames: [], joined: 0, routines: 0, failed: [], lost: [], partial: notes.partial };
+  let aboutMe = context.aboutMe;
+  try {
+    const saved = await saveAboutMe(notes, context);
+    outcome.facts = saved.added;
+    aboutMe = saved.text;
+  } catch { outcome.lost!.push("about"); }
   try { outcome.memories = await saveMemories(notes, context.firstBotId); } catch { outcome.lost!.push("memory"); }
+  try { outcome.threads = await saveThreads(notes, context.firstBotId); } catch { outcome.lost!.push("memory"); }
   if (notes.bots.length) {
     const [{ runBotMove }, { previewGrokMove }] = await Promise.all([import("./bot-move"), import("./grok-move")]);
     const servers = await api<{ servers?: Array<{ name: string }> }>("/api/mcp/servers").then((answer) => answer.servers ?? [], () => []);
     const preview = previewGrokMove(notes.bots, {
       bots: context.bots, servers: new Set(servers.map((server) => server.name)), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, from: notes.from,
     });
-    const reports = await runBotMove({ apps: [{ app: notes.from.name, where: "", from: notes.from, preview, channels: [], unreadable: [] }], grokWaiting: [] }, context.dispatch);
-    outcome.bots = reports.reduce((sum, one) => sum + one.report.bots.length, 0);
+    const saveFacts = aboutMeSaver({ ...context, aboutMe });
+    const reports = await runBotMove({ apps: [{ app: notes.from.name, where: "", from: notes.from, preview, channels: [], unreadable: [] }], grokWaiting: [] }, context.dispatch, undefined, saveFacts);
+    const moved = reports.flatMap((one) => one.report.bots);
+    outcome.bots = moved.length;
+    outcome.botNames = moved.map((bot) => bot.name);
+    outcome.routines = moved.reduce((sum, bot) => sum + bot.routines, 0);
     outcome.failed.push(...reports.flatMap((one) => one.report.failed));
+    outcome.joined = await joinMovedBots(notes, context.bots, preview.moved);
   }
-  if (outcome.facts || outcome.memories || outcome.bots || !(outcome.failed.length || outcome.lost!.length)) stopWaiting();
+  const came = outcome.facts || outcome.memories || outcome.threads || outcome.bots || outcome.joined;
+  if (came || !(outcome.failed.length || outcome.lost!.length)) stopWaiting();
+  if (came && context.firstBotId) void postImportNote(context.firstBotId, notesNoteFacts(outcome));
   return outcome;
 }
 
@@ -138,7 +215,9 @@ export function notesOutcomeLine(outcome: NotesOutcome): string {
   const parts = [
     ...(outcome.facts ? [count(outcome.facts, "composer.notes.factsOne", "composer.notes.facts")] : []),
     ...(outcome.memories ? [count(outcome.memories, "composer.notes.memoriesOne", "composer.notes.memories")] : []),
+    ...(outcome.threads ? [count(outcome.threads, "composer.notes.threadsOne", "composer.notes.threads")] : []),
     ...(outcome.bots ? [count(outcome.bots, "composer.notes.botsOne", "composer.notes.bots")] : []),
+    ...(outcome.joined ? [count(outcome.joined, "composer.notes.joinedOne", "composer.notes.joined")] : []),
   ];
   const lines = [parts.length ? t("composer.notes.added", { from: outcome.from, list: list(parts) }) : t("composer.notes.nothingNew", { from: outcome.from })];
   if (outcome.lost?.includes("about")) lines.push(t("composer.notes.lostAbout"));
@@ -153,14 +232,20 @@ export function notesErrorLine(cause: unknown): string {
   return t("composer.notes.error.failed");
 }
 
-/** The first `.json`, `.md` or `.txt` file among dropped files that holds notes, read whole; null for none. */
-export async function notesInFiles(files: readonly Pick<File, "name" | "size" | "text">[]): Promise<{ text: string; name: string } | null> {
+/** Every `.json`, `.md` or `.txt` file among dropped or picked files that holds notes, read whole and joined, so the
+ * parts of a split answer come in together; null for none. */
+export async function notesInFiles(files: readonly Pick<File, "name" | "size" | "text">[]): Promise<{ text: string; names: string[] } | null> {
+  const found: Array<{ name: string; text: string }> = [];
+  let size = 0;
   for (const file of files) {
-    if (!/\.(?:json|md|txt)$/i.test(file.name) || file.size > 4 * 1024 * 1024) continue;
+    if (!/\.(?:json|md|txt)$/i.test(file.name) || file.size > NOTES_MAX_CHARS || size + file.size > NOTES_MAX_CHARS) continue;
     try {
       const text = await file.text();
-      if (looksLikeNotes(text)) return { text, name: file.name };
+      if (looksLikeNotes(text) && !isNotesPrompt(text)) {
+        found.push({ name: file.name, text });
+        size += file.size;
+      }
     } catch {}
   }
-  return null;
+  return found.length ? { text: found.map((one) => one.text).join("\n\n"), names: found.map((one) => one.name) } : null;
 }

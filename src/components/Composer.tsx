@@ -73,7 +73,7 @@ import { useThreadApproval } from "./thread-approval";
 import { usePillHeight, useSlideOnChange, useStackedField } from "./composer-wrap";
 import "@/styles/composer.css";
 import { ComposerReplyStrip } from "./ReplyQuote";
-import { NotesWaitingLine, useNotesIntake } from "./NotesWaiting"; import { looksLikeNotes } from "@/lib/assistant-notes";
+import { NotesWaitingLine, useNotesIntake } from "./NotesWaiting"; import { looksLikeNotes, notesInFiles } from "@/lib/assistant-notes";
 import { escapeCancelsReply } from "@/lib/replies";
 import { useThreadRefs } from "./ThreadRefs";
 import {
@@ -513,11 +513,19 @@ export function Composer({
       .catch((error: unknown) => setAttachmentNotice(`${failed.name}: ${error instanceof Error ? error.message : "upload failed"}`))
       .finally(() => changeDraftAttachmentPending(draftId, false));
   }, [attachments, draftId]);
-  const pickFiles = async (picked: FileList | null) => {
+  const pickFiles = async (picked: ArrayLike<File> | null) => {
     if (!picked?.length) return;
+    let files = Array.from(picked);
+    // a notes file from another AI comes in as notes, never as an attachment
+    const notes = await notesInFiles(files);
+    if (notes) {
+      takeNotes(notes.text, setAttachmentNotice);
+      files = files.filter((file) => !notes.names.includes(file.name));
+      if (!files.length) return;
+    }
     changeDraftAttachmentPending(draftId, true);
     try {
-      const { attachments: added, notice } = await intakeFiles(Array.from(picked), {
+      const { attachments: added, notice } = await intakeFiles(files, {
         allowImages: engineSupportsImages,
         getPath: pathForFile,
         uploadImage,
@@ -650,6 +658,13 @@ export function Composer({
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const copiedFiles = Array.from(e.clipboardData.files ?? []);
+    if (copiedFiles.some((file) => /\.(?:json|md|txt)$/i.test(file.name))) {
+      // a file copied in Finder, such as the dusk-bot-notes.json another AI made
+      e.preventDefault();
+      void pickFiles(copiedFiles);
+      return;
+    }
     const imageFiles = clipboardImageFiles(e.clipboardData);
     if (imageFiles.length > 0 || clipboardHasImages(e.clipboardData)) {
       e.preventDefault();

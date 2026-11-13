@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { aboutMeWithNotes, closeCutOff, isNotesPrompt, looksLikeNotes, notesMemoryText, NOTES_FORMAT, NOTES_PROMPT, parseNotes } from "./assistant-notes.ts";
+import {
+  aboutMeWithNotes, closeCutOff, isNotesPrompt, looksLikeNotes, notesMemoryText, notesThreadsText, NOTES_FORMAT, NOTES_PROMPT, parseNotes,
+} from "./assistant-notes.ts";
 import { GrokImportError } from "./grok-import.ts";
 
 const block = (extra: Record<string, unknown> = {}) => JSON.stringify({
@@ -17,7 +19,15 @@ const code = (error: unknown) => (error instanceof GrokImportError ? error.code 
 
 describe("the copy prompt", () => {
   it("asks for one marked block with every part the importer splits", () => {
-    for (const key of [NOTES_FORMAT, "about_me", "instructions", "memories", "bots", "skills", "routines", "apps"]) expect(NOTES_PROMPT).toContain(key);
+    for (const key of [
+      NOTES_FORMAT, "about_me", "instructions", "memories", "bots", "skills", "routines", "apps", "basics", "work", "projects", "goals", "people",
+      "preferences", "writing_style", "tools", "schedule", "open_threads", "recurring_tasks", "connected_apps", "knowledge_files", "word for word",
+    ]) expect(NOTES_PROMPT).toContain(key);
+    // a file to download, or a code block where the assistant can't make files; parts that each stand alone
+    expect(NOTES_PROMPT).toContain("Create a file named dusk-bot-notes.json");
+    expect(NOTES_PROMPT).toContain("one ```json code block");
+    expect(NOTES_PROMPT).toMatch(/custom GPT, Project, Gem/);
+    expect(NOTES_PROMPT).toContain("Each part is valid JSON on its own");
     expect(NOTES_PROMPT).not.toContain("—");
     expect(looksLikeNotes(NOTES_PROMPT), "the prompt itself has the marker, so a pasted prompt is caught, never sent").toBe(true);
     expect(isNotesPrompt(NOTES_PROMPT)).toBe(true);
@@ -75,6 +85,53 @@ describe("parsing pasted notes", () => {
 
   it("names notes with no app 'another AI'", () => {
     expect(parseNotes(block({ from: "" })).from).toEqual({ name: "another AI", key: "another-ai" });
+  });
+});
+
+describe("version 2 notes", () => {
+  const v2 = (extra: Record<string, unknown> = {}) => JSON.stringify({
+    format: NOTES_FORMAT, version: 2, from: "ChatGPT",
+    about_me: {
+      basics: ["Name is Sam, in Lisbon (Europe/Lisbon)."], work: ["Runs a bakery with 4 staff."], projects: ["Project: bakery website, launch in March."],
+      people: ["Ana, my sister."], writing_style: ["Short sentences, no emoji."], schedule: ["Bakes from 5am; free after 2pm."],
+    },
+    instructions: "Be brief.",
+    memories: ["Prefers Notion for notes."],
+    open_threads: ["Pick a payment provider for the website."],
+    recurring_tasks: [{ name: "Order flour", instruction: "Remind me to order flour.", schedule_text: "Mondays at 9", schedule_cron: "0 9 * * 1", timezone: "Europe/Lisbon" }],
+    connected_apps: ["Gmail", { name: "Google Drive" }],
+    bots: [{ name: "Recipe helper", description: "Scales recipes", instructions: "Help Sam scale recipes.", knowledge_files: ["recipes.pdf", "costs.xlsx"] }],
+    ...extra,
+  });
+
+  it("reads About me's sections into lines that read right on their own, and every new part", () => {
+    const notes = parseNotes(v2());
+    expect(notes.aboutMe).toEqual([
+      "Name is Sam, in Lisbon (Europe/Lisbon).", "Work: Runs a bakery with 4 staff.", "Project: bakery website, launch in March.", "Person: Ana, my sister.",
+      "Writing style: Short sentences, no emoji.", "Schedule: Bakes from 5am; free after 2pm.",
+    ]);
+    expect(notes.openThreads).toEqual(["Pick a payment provider for the website."]);
+    expect(notes.recurring).toEqual([{ name: "Order flour", instruction: "Remind me to order flour.", when: "Mondays at 9 (0 9 * * 1, Europe/Lisbon)" }]);
+    expect(notes.apps).toEqual(["Gmail", "Google Drive"]);
+    expect(notes.bots[0]!.memoryFiles!["memory/knowledge-files.md"]).toContain("- recipes.pdf\n- costs.xlsx");
+  });
+
+  it("joins parts sent one after another, each thing once, and refuses a version from the future", () => {
+    const second = JSON.stringify({ format: NOTES_FORMAT, version: 2, from: "ChatGPT", open_threads: ["Pick a payment provider for the website.", "Call the landlord."] });
+    expect(parseNotes(`${v2()}\n\n${second}`).openThreads).toEqual(["Pick a payment provider for the website.", "Call the landlord."]);
+    expect(code(captured(() => parseNotes(v2({ version: 3 }))))).toBe("newerVersion");
+  });
+
+  it("keeps open threads, recurring tasks and apps in one topic, merged with an earlier paste", () => {
+    const notes = parseNotes(v2());
+    const first = notesThreadsText(notes)!;
+    expect(first).toContain("# Open threads from ChatGPT");
+    expect(first).toContain("## Still open\nTo-dos, open questions and things to come back to.\n\n- Pick a payment provider for the website.");
+    expect(first).toContain("- Order flour: Remind me to order flour. (Mondays at 9 (0 9 * * 1, Europe/Lisbon))");
+    expect(first).toContain("## Connected there");
+    const again = notesThreadsText({ ...notes, openThreads: ["Call the landlord."], recurring: [], apps: [] }, first)!;
+    expect(again.match(/^- /gm)).toHaveLength(5);
+    expect(again).toContain("- Call the landlord.");
   });
 });
 

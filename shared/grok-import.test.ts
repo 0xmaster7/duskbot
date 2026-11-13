@@ -153,11 +153,18 @@ describe("what comes over", () => {
   it("maps a Bot to one bot: role, skills by reference, deduplicated memory, and counts it", () => {
     const moved = plan();
     const agent = moved.document.package.agents[0]!;
-    expect(agent).toMatchObject({ name: "Account Health", title: "Customer success", soul: BOT.instructions, skills: ["weekly-account-health"] });
+    expect(agent).toMatchObject({ name: "Account Health", title: "Customer success", skills: ["weekly-account-health"] });
+    // its own words whole, inside the working shape every bot here has
+    expect(agent.soul).toContain(`## Your instructions from Grok Bot\n${BOT.instructions}`);
+    expect(agent.soul).toMatch(/## What you are for\nYou are Account Health, Customer success\./);
+    expect(agent.soul).toContain("These came over paused: Morning watch list, Monday check.");
+    expect(agent.soul).not.toMatch(/\u2014|\bDusk\b/);
     const memory = agent.seed!.memory["MEMORY.md"]!;
     expect(memory.match(/three weeks without a login/gi)).toHaveLength(1);
-    expect(memory).toContain("## About the person\n\n- Works in America/New_York");
-    expect(moved).toMatchObject({ routines: 2, notes: 2, memories: 3, apps: 2 });
+    // facts about the person go to About me, each once, not into the bot's notebook
+    expect(memory).not.toContain("America/New_York");
+    expect(moved.facts).toEqual(["Works in America/New_York"]);
+    expect(moved).toMatchObject({ routines: 2, notes: 2, memories: 2, apps: 2 });
     expect(moved.skills).toEqual([{ folder: "weekly-account-health", name: "Weekly account health", on: true }]);
   });
 

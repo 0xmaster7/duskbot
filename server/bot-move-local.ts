@@ -7,7 +7,7 @@ import { DatabaseSync } from "node:sqlite";
 import { parse as parseYaml } from "yaml";
 
 import type { BotLook, BotMoveSource, FoundApp } from "../shared/bot-move.ts";
-import type { GrokBot, GrokRoutine, GrokSkill } from "../shared/grok-import.ts";
+import type { GrokApp, GrokBot, GrokRoutine, GrokSkill } from "../shared/grok-import.ts";
 import type { PackageRoutineSchedule } from "../shared/package-format.ts";
 import { redactSecretsInText } from "../shared/redact.ts";
 import { parseSkillMd, SKILL_FILE_MAX_BYTES } from "../shared/skill-md.ts";
@@ -142,6 +142,62 @@ const blankBot = (name: string): GrokBot => ({
   name, title: "", description: "", instructions: "", memories: [], userFacts: [], skills: [], routines: [], apps: [], memoryFiles: {},
 });
 
+/** What a person told the app about themselves, one fact a line: template lines with no value and headings are left out. */
+function factLines(body: string): string[] {
+  return body.split(/\r?\n/).map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#") && !line.startsWith("<!--") && !line.startsWith(">") && !/^[-*]\s*$/.test(line))
+    .map((line) => line.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, "").replace(/\*\*|__|`/g, "").trim())
+    .filter((line) => line && !/:\s*$/.test(line) && !/^\(.*\)$/.test(line) && !/^_?\(?(?:optional|fill|add|what|who)\b.*\)?_?$/i.test(line));
+}
+
+/** A model setting as it is written: a name, or an object naming it. */
+function modelName(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (!isRecord(value)) return "";
+  return text(value.primary) || text(value.default) || text(value.model) || text(value.name);
+}
+
+/** How the bot was set up there, as a topic of its memory: the model, where it answered and its tools, by name. */
+function setupTopic(app: string, parts: { model?: string; provider?: string; channels?: string[]; tools?: string[]; extra?: string[] }): string | null {
+  const lines = [
+    ...(parts.model ? [`- Model: ${parts.model}${parts.provider ? ` (through ${parts.provider})` : ""}. Here you pick the AI in the bot's settings.`] : []),
+    ...(parts.channels?.length ? [`- Answered on: ${parts.channels.join(", ")}. Those connections and their logins stay in ${app}; connect chat apps again here to answer there.`] : []),
+    ...(parts.tools?.length ? [`- Tools (MCP servers): ${parts.tools.join(", ")}. Connect them again in apps.`] : []),
+    ...(parts.extra ?? []),
+  ];
+  return lines.length ? `# How I was set up in ${app}\n\n${lines.join("\n")}\n` : null;
+}
+
+const CHANNEL_LABELS: Record<string, string> = {
+  telegram: "Telegram", discord: "Discord", whatsapp: "WhatsApp", slack: "Slack", signal: "Signal", imessage: "iMessage", msteams: "Microsoft Teams",
+  email: "email", matrix: "Matrix", mattermost: "Mattermost", sms: "SMS", homeassistant: "Home Assistant", googlechat: "Google Chat",
+};
+const channelLabel = (key: string) => CHANNEL_LABELS[key] ?? key;
+
+/** An app's MCP servers as apps to connect again: a remote one keeps its address, a local one only its name. Values of
+ * headers and env are never read, only header names. */
+function mcpApps(servers: unknown): GrokApp[] {
+  if (!isRecord(servers)) return [];
+  return Object.entries(servers).slice(0, 50).flatMap(([name, raw]) => {
+    if (!isRecord(raw) || raw.enabled === false || raw.disabled === true) return [];
+    const url = text(raw.url) || text(raw.httpUrl) || text(raw.serverUrl);
+    return [{ name: name.slice(0, 100), mcpUrl: url, transport: url ? (text(raw.transport) || text(raw.type)).toLowerCase() : "stdio", headerNames: isRecord(raw.headers) ? Object.keys(raw.headers) : [] }];
+  });
+}
+
+const PICTURE_TYPES: Record<string, NonNullable<GrokBot["avatar"]>["mime"]> = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp" };
+
+/** A picture kept in the bot's own folder, at most 64 KB; never one outside it, a link, or a web address. */
+function folderPicture(reader: Reader, folder: string, value: string): GrokBot["avatar"] | undefined {
+  const mime = PICTURE_TYPES[value.toLowerCase().split(".").pop() ?? ""];
+  if (!mime || /^[a-z]+:/i.test(value) || isAbsolute(value)) return undefined;
+  const path = resolve(folder, value);
+  const rel = relative(folder, path);
+  if (!rel || rel.startsWith("..") || isAbsolute(rel)) return undefined;
+  const bytes = reader.machine.fs.lstat(path)?.isFile() ? reader.machine.fs.read(path, 64 * 1024, false) : null;
+  return bytes?.length ? { mime, data: bytes.toString("base64") } : undefined;
+}
+
 const routine = (fields: Partial<GrokRoutine> & Pick<GrokRoutine, "name" | "instruction">): GrokRoutine => ({
   trigger: "schedule", cron: "", when: "", timeZone: "", paused: false, skills: [], details: "", ...fields,
 });
@@ -233,16 +289,27 @@ function readOpenClaw(machine: SetupMachine, now: number): FoundApp[] {
       const workspace = candidates.find((path) => path && reader.isDir(path)) ?? "";
       const bot = workspace ? openClawBot(reader, workspace, entry, id, place.app, now) : null;
       if (!bot) continue;
+      const main = id === defaultId;
+      if (main) bot.apps.push(...mcpApps(isRecord(config.mcp) ? config.mcp.servers : undefined));
+      const setup = setupTopic(place.app, {
+        model: modelName(entry.model) || modelName(defaults.model),
+        ...(main ? { channels: openClawChannels(config).map(channelLabel), tools: bot.apps.map((app) => app.name) } : {}),
+      });
+      if (setup) bot.memoryFiles = { ...bot.memoryFiles, [`memory/${place.app.toLowerCase()}-setup.md`]: setup };
       bot.skills = [...bot.skills, ...shared.filter((skill) => !bot.skills.some((mine) => mine.name === skill.name))];
       bot.routines.push(...(jobs.get(id) ?? []));
       bots.push(bot);
     }
-    const channels = isRecord(config.channels)
-      ? Object.entries(config.channels).filter(([name, value]) => !NOT_CHANNELS.has(name) && isRecord(value) && value.enabled !== false).map(([name]) => name)
-      : OLD_CHANNELS.filter((name) => isRecord(config[name]) && config[name].enabled !== false);
+    const channels = openClawChannels(config);
     if (bots.length) found.push({ source: "openclaw", app: place.app, where: tilde(machine, place.root), bots, channels, unreadable: reader.unreadable });
   }
   return found;
+}
+
+function openClawChannels(config: Record<string, unknown>): string[] {
+  return isRecord(config.channels)
+    ? Object.entries(config.channels).filter(([name, value]) => !NOT_CHANNELS.has(name) && isRecord(value) && value.enabled !== false).map(([name]) => name)
+    : OLD_CHANNELS.filter((name) => isRecord(config[name]) && config[name].enabled !== false);
 }
 
 function openClawBot(reader: Reader, workspace: string, entry: Record<string, unknown>, id: string, app: string, now: number): GrokBot | null {
@@ -263,7 +330,12 @@ function openClawBot(reader: Reader, workspace: string, entry: Record<string, un
     const body = at(file);
     if (body && hasContent(body)) files[`memory/${topic}.md`] = `# ${heading}\n\n${body.trim()}\n`;
   };
-  keep("USER.md", "about-you", `About you, from ${app}`);
+  // what it knew about the person goes to About me, every bot's, rather than this bot's notebook
+  const user = at("USER.md");
+  if (user && hasContent(user)) bot.userFacts = factLines(user);
+  const picture = text(identity.avatar) || identityField(identityText, "Avatar");
+  const avatar = picture ? folderPicture(reader, workspace, picture) : undefined;
+  if (avatar) bot.avatar = avatar;
   keep("AGENTS.md", `${slug}-agents`, `How I worked in ${app} (AGENTS.md)`);
   keep("TOOLS.md", `${slug}-tools`, `Notes on tools from ${app} (TOOLS.md)`);
   const daily = dailyNotes(reader, join(workspace, "memory"), app);
@@ -386,9 +458,20 @@ function readHermes(machine: SetupMachine, now: number): FoundApp[] {
   const channels = new Set<string>();
   for (const home of homes.slice(0, MAX_BOTS)) {
     const config = machine.fs.lstat(join(home.dir, "config.yaml")) ? reader.readObject(join(home.dir, "config.yaml"), "yaml") ?? {} : {};
-    for (const name of hermesChannels(config)) channels.add(name);
+    const own = hermesChannels(config);
+    for (const name of own) channels.add(name);
     const bot = hermesBot(reader, home.dir, home.profile, config, now);
-    if (bot) bots.push(bot);
+    if (!bot) continue;
+    bot.apps = mcpApps(config.mcp_servers);
+    const model = isRecord(config.model) ? config.model : {};
+    const others = hermesOtherPersonalities(config);
+    const setup = setupTopic("Hermes Agent", {
+      model: modelName(config.model), provider: text(model.provider) === "auto" ? "" : text(model.provider),
+      channels: own.map(channelLabel), tools: bot.apps.map((app) => app.name),
+      extra: others.length ? ["", "## Other personalities you kept", "", ...others.map(([name, body]) => `- ${name}: ${body}`)] : [],
+    });
+    if (setup) bot.memoryFiles = { ...bot.memoryFiles, "memory/hermes-agent-setup.md": setup };
+    bots.push(bot);
   }
   return bots.length ? [{ source: "hermes", app: "Hermes Agent", where: tilde(machine, root), bots, channels: [...channels], unreadable: reader.unreadable }] : [];
 }
@@ -420,6 +503,17 @@ function hermesBot(reader: Reader, dir: string, profile: string, config: Record<
   return bot;
 }
 
+/** The personalities it kept but wasn't using, by name, each on one line. */
+function hermesOtherPersonalities(config: Record<string, unknown>): Array<[string, string]> {
+  const agent = isRecord(config.agent) ? config.agent : {};
+  const chosen = isRecord(config.display) ? text(config.display.personality) : "";
+  const all = { ...(isRecord(config.personalities) ? config.personalities : {}), ...(isRecord(agent.personalities) ? agent.personalities : {}) };
+  return Object.entries(all).filter(([name]) => name !== chosen).slice(0, 20).flatMap(([name, value]) => {
+    const body = typeof value === "string" ? value : isRecord(value) ? [text(value.system_prompt), text(value.tone), text(value.style)].filter(Boolean).join(" ") : "";
+    return body.trim() ? [[name, body.replace(/\s+/g, " ").trim().slice(0, 600)] as [string, string]] : [];
+  });
+}
+
 /** The chosen personality (display.personality, from agent.personalities or personalities), else agent.system_prompt. */
 function hermesPersona(config: Record<string, unknown>): string {
   const agent = isRecord(config.agent) ? config.agent : {};
@@ -442,6 +536,8 @@ function hermesJobs(reader: Reader, dir: string, now: number): GrokRoutine[] {
     const own = kind === "interval" ? everySchedule(Number(schedule.minutes) * MINUTE, now)
       : kind === "once" ? onceSchedule(schedule.run_at, now) : null;
     const display = text(job.schedule_display) || text(schedule.display);
+    // where it sent its results, by app only: chat ids stay there
+    const deliver = text(job.deliver).split(",").map((one) => one.split(":")[0]!.trim()).filter((one) => one && one !== "origin" && one !== "local").map(channelLabel);
     return [routine({
       name: text(job.name) || text(job.id) || "Routine",
       instruction,
@@ -451,7 +547,7 @@ function hermesJobs(reader: Reader, dir: string, now: number): GrokRoutine[] {
       timeZone: text(job.timezone),
       paused: job.enabled === false || text(job.state) === "paused",
       skills: Array.isArray(job.skills) ? job.skills.filter((skill): skill is string => typeof skill === "string") : text(job.skill) ? [text(job.skill)] : [],
-      details: own || kind === "cron" ? "" : display,
+      details: [own || kind === "cron" ? "" : display, deliver.length ? `sent to ${deliver.join(", ")}` : ""].filter(Boolean).join(", "),
       ...(own ? { schedule: own } : {}),
     })];
   });
@@ -508,9 +604,62 @@ function ownOldBot(reader: Reader, root: string, record: Record<string, unknown>
   return bot;
 }
 
+// Claude Code's subagents (~/.claude/agents/*.md) and Gemini CLI's (~/.gemini/agents/*.md): Markdown with YAML
+// frontmatter (name, description, and for Claude Code a colour; tools, model and MCP servers), the body its system
+// prompt. Each becomes a bot of its own.
+const AGENT_FOLDERS = [
+  { source: "claudeCode", app: "Claude Code", dir: [".claude", "agents"] },
+  { source: "gemini", app: "Gemini CLI", dir: [".gemini", "agents"] },
+] as const;
+const AGENT_COLORS = new Set(["red", "blue", "green", "yellow", "purple", "orange", "pink", "cyan"]);
+
+function readAgentFolders(machine: SetupMachine): FoundApp[] {
+  return AGENT_FOLDERS.flatMap(({ source, app, dir }) => {
+    const root = join(machine.home, ...dir);
+    if (!machine.fs.lstat(root)?.isDirectory()) return [];
+    const reader = new Reader(machine, root);
+    const bots = reader.files(root).filter((name) => /\.md$/i.test(name)).slice(0, MAX_BOTS).flatMap((file) => {
+      const raw = reader.read(join(root, file));
+      return raw === null ? [] : agentFileBot(raw, file, app);
+    });
+    return bots.length ? [{ source, app, where: tilde(machine, root), bots, channels: [], unreadable: reader.unreadable }] : [];
+  });
+}
+
+function agentFileBot(raw: string, file: string, app: string): GrokBot[] {
+  const front = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(raw);
+  const meta = front ? loose(() => parseYaml(front[1]!, { maxAliasCount: 50 })) : {};
+  // Claude Code reads its frontmatter leniently: a description with "user: …" examples in it is not valid YAML
+  const fields: Record<string, unknown> = isRecord(meta) ? meta : Object.fromEntries((front?.[1] ?? "").split(/\r?\n/).flatMap((line) => {
+    const match = /^([A-Za-z][\w-]*):\s*(.*)$/.exec(line);
+    return match ? [[match[1]!, match[2]!.trim()]] : [];
+  }));
+  const body = (front ? front[2]! : raw).trim();
+  const id = text(fields.name) || file.replace(/\.md$/i, "");
+  if (!body && !text(fields.description)) return [];
+  const bot = blankBot(titled(id).slice(0, 100));
+  // Claude Code's descriptions say when to hand work to it, sometimes with long examples: the first lines are enough
+  bot.description = text(fields.description).replace(/\\n/g, "\n").split(/\n\s*\n|<example>/i)[0]!.trim().slice(0, 1_000);
+  bot.instructions = body;
+  const color = text(fields.color).toLowerCase();
+  if (AGENT_COLORS.has(color)) bot.color = color;
+  bot.apps = mcpApps(Array.isArray(fields.mcpServers) ? Object.fromEntries(fields.mcpServers.filter((one): one is string => typeof one === "string").map((name) => [name, {}])) : fields.mcpServers);
+  const tools = typeof fields.tools === "string" ? fields.tools : Array.isArray(fields.tools) ? fields.tools.filter((one) => typeof one === "string").join(", ") : "";
+  const model = text(fields.model);
+  const setup = setupTopic(app, {
+    ...(model && model !== "inherit" ? { model } : {}),
+    tools: bot.apps.map((one) => one.name),
+    extra: tools ? [`- Tools it could use there: ${tools}.`] : [],
+  });
+  if (setup) bot.memoryFiles = { [`memory/${app.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-setup.md`]: setup };
+  return [bot];
+}
+
 /** Every other agent app's bots on this computer. One app that can't be read costs the others nothing. */
 export function lookForBots(machine: SetupMachine, options: { dataDir?: string; now?: number } = {}): BotLook {
   const now = options.now ?? Date.now();
-  const tries: Array<() => FoundApp[]> = [() => readOpenClaw(machine, now), () => readHermes(machine, now), () => readOwnOld(machine, options.dataDir)];
+  const tries: Array<() => FoundApp[]> = [
+    () => readOpenClaw(machine, now), () => readHermes(machine, now), () => readAgentFolders(machine), () => readOwnOld(machine, options.dataDir),
+  ];
   return { apps: tries.flatMap((look) => loose(look) as FoundApp[] | undefined ?? []) };
 }

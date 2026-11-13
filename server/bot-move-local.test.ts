@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { lookForBots } from "./bot-move-local.ts";
 import { thisMachine, type SetupFs, type SetupMachine } from "./setup-import.ts";
-import { linkOldName, plantHermes, plantOpenClawEntries, plantOpenClawList, plantOpenMausBot, putter, SENTINEL } from "./testing/agent-app-fixtures.ts";
+import { linkOldName, plantAgentTools, plantHermes, plantOpenClawEntries, plantOpenClawList, plantOpenMausBot, PNG, putter, SENTINEL } from "./testing/agent-app-fixtures.ts";
 
 const homes: string[] = [];
 afterEach(() => {
@@ -68,8 +68,23 @@ describe("OpenClaw", () => {
     expect(molty).toMatchObject({ name: "Molty", title: "space lobster", description: "warm, a little dry" });
     expect(molty!.instructions).toContain("Have opinions.");
     expect(Object.keys(molty!.memoryFiles!).sort()).toEqual([
-      "MEMORY.md", "memory/about-you.md", "memory/openclaw-agents.md", "memory/openclaw-daily-notes.md", "memory/openclaw-tools.md",
+      "MEMORY.md", "memory/openclaw-agents.md", "memory/openclaw-daily-notes.md", "memory/openclaw-setup.md", "memory/openclaw-tools.md",
     ]);
+    // what it knew about the person is for About me, without the template's empty lines
+    expect(molty!.userFacts).toEqual(["Name: Sam", "Timezone: Europe/Lisbon", "Prefers short answers."]);
+    // its picture, from its own folder; Scout's points out of its folder and is left
+    expect(molty!.avatar).toEqual({ mime: "image/png", data: PNG.toString("base64") });
+    expect(scout!.avatar).toBeUndefined();
+    // the gateway's tools go with the main agent, a remote one with its address, a local one by name; no header or env value
+    expect(molty!.apps).toEqual([
+      { name: "linear", mcpUrl: "https://mcp.linear.app/mcp", transport: "", headerNames: ["Authorization"] },
+      { name: "files", mcpUrl: "", transport: "stdio", headerNames: [] },
+    ]);
+    expect(scout!.apps).toEqual([]);
+    const setup = molty!.memoryFiles!["memory/openclaw-setup.md"]!;
+    expect(setup).toContain("- Model: anthropic/claude-sonnet-4-5.");
+    expect(setup).toContain("- Answered on: Telegram.");
+    expect(setup).toContain("- Tools (MCP servers): linear, files.");
     expect(molty!.memoryFiles!["memory/openclaw-daily-notes.md"]!.indexOf("2026-03-02")).toBeLessThan(molty!.memoryFiles!["memory/openclaw-daily-notes.md"]!.indexOf("2026-03-01"));
     expect(molty!.skills.map((skill) => skill.name)).toEqual(["groceries", "weather"]);
     expect(molty!.routines.map((routine) => [routine.name, routine.cron, routine.timeZone, routine.paused])).toEqual([
@@ -145,7 +160,7 @@ describe("Hermes Agent", () => {
     const machine = machineAt(home);
     const look = lookForBots(machine, { now: NOW });
     const app = look.apps[0]!;
-    expect(app).toMatchObject({ source: "hermes", app: "Hermes Agent", where: "~/.hermes", channels: ["telegram", "whatsapp"] });
+    expect(app).toMatchObject({ source: "hermes", app: "Hermes Agent", where: "~/.hermes", channels: ["telegram", "discord", "whatsapp"] });
     const [hermes, coder] = app.bots;
     expect(hermes!.name).toBe("Hermes");
     expect(hermes!.instructions).toBe("You are Hermes. Curious, patient, and honest about what you don't know.\n\nYou answer in two sentences or fewer.");
@@ -156,6 +171,17 @@ describe("Hermes Agent", () => {
       ["Standup", "30 13 * * 1-5", "Asia/Kolkata", false, ["standup"]], ["Ping", "", "", true, []],
     ]);
     expect(hermes!.routines[1]!.schedule).toEqual({ type: "interval", everyMinutes: 30, anchorAt: NOW });
+    // where a job sent its results, by app: the chat id stays there
+    expect(hermes!.routines[0]!.details).toBe("sent to Telegram");
+    expect(hermes!.apps).toEqual([
+      { name: "github", mcpUrl: "", transport: "stdio", headerNames: [] },
+      { name: "notion", mcpUrl: "https://mcp.notion.com/mcp", transport: "", headerNames: ["Authorization"] },
+    ]);
+    const setup = hermes!.memoryFiles!["memory/hermes-agent-setup.md"]!;
+    expect(setup).toContain("- Model: anthropic/claude-sonnet-4-5 (through openrouter).");
+    expect(setup).toContain("- Answered on: Telegram, Discord, WhatsApp.");
+    expect(setup).toContain("- pirate: Talk like a pirate.");
+    expect(setup).not.toContain("concise:");
     expect(coder).toMatchObject({ name: "Coder", description: "Reviews my pull requests", instructions: "You are a careful senior engineer.", memories: ["Prefers small diffs."] });
     expect(app.bots).toHaveLength(2);
     for (const secret of secrets) expect(machine.opened).not.toContain(secret);
@@ -166,6 +192,28 @@ describe("Hermes Agent", () => {
     const home = newHome();
     putter(home)("custom/SOUL.md", "Elsewhere.");
     expect(lookForBots(machineAt(home, { HERMES_HOME: join(home, "custom") })).apps[0]).toMatchObject({ where: "~/custom", bots: [{ instructions: "Elsewhere." }] });
+  });
+});
+
+describe("Claude Code's and Gemini CLI's own agents", () => {
+  it("each become a bot: name, description, colour, its prompt, its MCP servers and how it was set up", () => {
+    const home = newHome();
+    const secrets = plantAgentTools(home);
+    const machine = machineAt(home);
+    const look = lookForBots(machine, { now: NOW });
+    expect(look.apps.map((app) => [app.source, app.app, app.where, app.bots.map((bot) => bot.name)])).toEqual([
+      ["claudeCode", "Claude Code", "~/.claude/agents", ["Code Reviewer"]],
+      ["gemini", "Gemini CLI", "~/.gemini/agents", ["Researcher"]],
+    ]);
+    const [reviewer] = look.apps[0]!.bots;
+    expect(reviewer).toMatchObject({ description: "Expert code review specialist. Use right after writing or changing code.", color: "blue" });
+    expect(reviewer!.instructions).toMatch(/^You are a senior code reviewer\./);
+    expect(reviewer!.memoryFiles!["memory/claude-code-setup.md"]).toContain("- Model: sonnet.");
+    expect(reviewer!.memoryFiles!["memory/claude-code-setup.md"]).toContain("Tools it could use there: Read, Grep, Glob, Bash.");
+    const [researcher] = look.apps[1]!.bots;
+    expect(researcher!.apps).toEqual([{ name: "search", mcpUrl: "https://search.example.com/mcp", transport: "", headerNames: [] }]);
+    for (const secret of secrets) expect(machine.opened).not.toContain(secret);
+    expect(JSON.stringify(look)).not.toContain(SENTINEL);
   });
 });
 

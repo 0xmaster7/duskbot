@@ -3,7 +3,7 @@ import { addTemplate } from "@/lib/template-add";
 import { api, type Action, type Bot } from "@/state/store";
 import type { LocaleKey } from "@/locales";
 import { takeImportName } from "../../shared/import-name";
-import { GrokImportError, grokMovePlan, mergeGrokBots, parseGrokExport, type GrokBot, type GrokMovePlan, type MoveFrom } from "../../shared/grok-import";
+import { factsTopic, GrokImportError, grokMovePlan, mergeGrokBots, parseGrokExport, type GrokBot, type GrokMovePlan, type MoveFrom } from "../../shared/grok-import";
 
 /** What the desktop app found on this computer. */
 export interface GrokLook {
@@ -96,7 +96,12 @@ export interface GrokMovedBot {
   notes: number;
   memories: number;
   apps: number;
+  /** Facts about the person it knew: in About me, or its own memory when About me couldn't take them. */
+  facts: number;
 }
+
+/** Adds facts about the person to About me, each once; resolves false when it couldn't. */
+export type SaveFacts = (facts: readonly string[], from: string) => Promise<boolean>;
 
 export interface GrokReport {
   bots: GrokMovedBot[];
@@ -106,7 +111,8 @@ export interface GrokReport {
 }
 
 /** Imports each plan through the package path, then switches on its skills. One Bot failing is named and the rest carry on. */
-export async function runGrokMove(preview: GrokPreview, dispatch: (action: Action) => void, onBot?: (plan: GrokPreview["plans"][number]) => void): Promise<GrokReport> {
+export async function runGrokMove(preview: GrokPreview, dispatch: (action: Action) => void, onBot?: (plan: GrokPreview["plans"][number]) => void,
+  saveFacts?: SaveFacts): Promise<GrokReport> {
   const report: GrokReport = { bots: [], moved: preview.moved, unreadable: preview.unreadable, failed: [] };
   for (const plan of preview.plans) {
     onBot?.(plan);
@@ -118,7 +124,12 @@ export async function runGrokMove(preview: GrokPreview, dispatch: (action: Actio
         const on = skill.on && await api(`/api/bots/${bot.id}/skills/${encodeURIComponent(skill.folder)}`, { method: "PATCH", body: JSON.stringify({ enabled: true }) }).then(() => true, () => false);
         if (!on) skillsOff.push(skill.name);
       }
-      report.bots.push({ id: bot.id, name: bot.name, ...(bot.section ? { section: bot.section } : {}), skills: plan.skills.length, skillsOff, routines: plan.routines, notes: plan.notes, memories: plan.memories, apps: plan.apps });
+      const from = plan.document.package.author.name;
+      if (plan.facts.length && !(saveFacts && await saveFacts(plan.facts, from).catch(() => false))) {
+        // About me couldn't take them: the bot keeps them, so nothing it knew is lost
+        await api(`/api/bots/${encodeURIComponent(bot.id)}/memory/file`, { method: "PUT", body: JSON.stringify({ path: "memory/about-you.md", text: factsTopic(plan.facts, { name: from, key: "" }) }) }).catch(() => {});
+      }
+      report.bots.push({ id: bot.id, name: bot.name, ...(bot.section ? { section: bot.section } : {}), skills: plan.skills.length, skillsOff, routines: plan.routines, notes: plan.notes, memories: plan.memories, apps: plan.apps, facts: plan.facts.length });
     } catch {
       report.failed.push(plan.name);
     }
