@@ -10,6 +10,7 @@ import { Link, navigate, useLocation } from "../lib/router";
 import { RoutineUpsell } from "../pages/routine-upsell";
 import { PlanSheet } from "../pages/plan-sheet";
 import { Button, cx, FreshnessTag } from "./kit";
+import { placeState, TONE_TEXT } from "../data/place";
 import { Mascot } from "./Mascot";
 import { Avatar } from "./Avatar";
 import { adminCall } from "../admin/api";
@@ -76,19 +77,19 @@ function WorkspaceSwitcher({ onNavigate }: { onNavigate?: () => void }) {
       >
         <span className="min-w-0 flex-1">
           <span className="block truncate text-14 font-medium text-ink">{workspace?.name ?? "no workspace yet"}</span>
-          {workspace ? <FreshnessTag freshness={workspace.freshness} at={workspace.lastReportAt} now={now} className="!text-12" /> : <span className="text-12 text-ink-3">connect one from the app</span>}
+          {workspace ? <FreshnessTag freshness={workspace.freshness} at={workspace.lastReportAt} now={now} cloud={cloudForWorkspace(clouds, workspace.id)} className="!text-12" /> : <span className="text-12 text-ink-3">connect one from the app</span>}
         </span>
         <ChevronsUpDown size={16} strokeWidth={1.5} className="shrink-0 text-ink-3" aria-hidden />
       </button>
       <Pop open={open} className="pop absolute inset-x-0 top-full z-30 mt-1.5 origin-top rounded-[18px] bg-pop p-1.5" style={{ boxShadow: "var(--pop-shadow)" }}>
-          {workspaces?.map((w) => (
+          {workspaces?.map((w) => { const cloud = cloudForWorkspace(clouds, w.id); return (
             <button key={w.id} role="menuitemradio" aria-checked={w.id === workspace?.id} onClick={() => choose(w)} className="hover-ghost flex w-full items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-start">
-              <span className={cx("live-dot", w.freshness === "live" ? "text-good" : w.freshness === "recent" ? "text-warn" : "text-ink-4")} aria-hidden />
+              <span className={cx("live-dot", TONE_TEXT[placeState(w.freshness, w.lastReportAt, now, cloud).tone])} aria-hidden />
               <span className="min-w-0 flex-1 truncate text-14 text-ink">{w.name}</span>
-              <span className="text-12 text-ink-3">{KIND_LABEL(w.kind, cloudForWorkspace(clouds, w.id))}</span>
+              <span className="text-12 text-ink-3">{KIND_LABEL(w.kind, cloud)}</span>
               {w.id === workspace?.id && <Check size={15} strokeWidth={1.75} className="text-ink-2" aria-hidden />}
             </button>
-          ))}
+          ); })}
           <div className="h-2" aria-hidden />
           <button role="menuitem" onClick={() => { setOpen(false); navigate("/workspaces#add"); onNavigate?.(); }} className="hover-ghost flex w-full items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-start text-14 text-ink-2">
             <Plus size={16} strokeWidth={1.75} aria-hidden /> add a workspace
@@ -156,8 +157,8 @@ function CloudBadge() {
   const c = clouds?.[0];
   if (!clouds) return null;
   if (!c) return null;
-  const tone = c.status === "running" ? "text-good" : c.status === "provisioning" ? "text-accent" : c.status === "error" ? "text-bad" : "text-ink-4";
-  return <span className={cx("live-dot ms-auto", tone)} data-live={c.status === "running"} aria-label={c.status === "running" ? "running" : c.status} role="img" />;
+  const s = placeState("waiting", null, 0, c);
+  return <span className={cx("live-dot ms-auto", TONE_TEXT[s.tone])} data-live={c.status === "running"} aria-label={s.label} role="img" />;
 }
 
 const HIDE_KEY = "dusk-dash-upsell-hidden-until";

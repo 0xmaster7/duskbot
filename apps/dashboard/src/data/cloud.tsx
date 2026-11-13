@@ -204,6 +204,9 @@ export function CloudDataProvider({ children, signedIn }: { children: ReactNode;
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
+/** the clouds, or null outside the provider (data hooks that also run on their own) */
+export const useClouds = (): CloudDesktop[] | null => useContext(Ctx)?.clouds ?? null;
+
 export function useCloud(): CloudData {
   const data = useContext(Ctx);
   if (!data) throw new Error("useCloud outside CloudDataProvider");

@@ -295,7 +295,7 @@
     content: ""; position: absolute; inset: 0; border-radius: inherit; background: currentColor;
     animation: pulse-dot 1.8s var(--ease-out) infinite;
   }
-  /* hovers change colour at once; a press only gives a little, and lets go without a bounce */
+  /* a press only gives a little, and lets go without a bounce; hovers ease their colour in (see the hover block) */
   .press { transition: transform 160ms var(--ease-out); }
   .press:active:not(:disabled) { transform: scale(0.98); transition-duration: 80ms; }
   .press-soft { transition: transform 260ms var(--ease-pop); }
@@ -340,12 +340,31 @@
   .scroll-x::-webkit-scrollbar { display: none; }
 }
 
-/* hovers stay light: cards and rows take a faint ink tint, chips a little more, and a quiet button steps one tone
-   darker. never a border, ring or raised shadow */
+/* hovers stay light: one faint ink tint laid over whatever the control already is, so a chip keeps its fill, a
+   picked row keeps its pick, and the hover never equals the surface behind it or the selected fill. light ink
+   darkens, dark-theme ink lightens. never a border, ring, raised shadow or a change of weight */
 :root {
-  --tint: color-mix(in oklab, var(--ink) 3.5%, transparent);
-  --tint-2: color-mix(in oklab, var(--ink) 7%, transparent);
+  --tint: color-mix(in oklab, var(--ink) 5%, transparent);
+  --tint-2: color-mix(in oklab, var(--ink) 8%, transparent);
   --focus-tint: color-mix(in oklab, var(--ink) 10%, transparent);
+  --dur-hover: 160ms;
+}
+[data-theme="dark"] {
+  --tint: color-mix(in oklab, var(--ink) 8%, transparent);
+  --tint-2: color-mix(in oklab, var(--ink) 11%, transparent);
+}
+/* the tint is an inset shadow so it can ease in and out; rows and sidebar items sit on nothing of their own,
+   so they take it as a background (a shadow on a table row is unreliable) */
+@layer components {
+  :is(.hover-row, .hover-side, .hover-ghost, .hover-btn, .hover-card, .hover-chip, .hover-primary, .hover-accent, .hover-lift, .hover-tile, .hover-pick, .hover-link) {
+    transition: background-color var(--dur-hover) ease, box-shadow var(--dur-hover) ease, color var(--dur-hover) ease;
+  }
+  .press:is(.hover-row, .hover-side, .hover-ghost, .hover-btn, .hover-card, .hover-chip, .hover-primary, .hover-accent, .hover-tile) {
+    transition: transform 160ms var(--ease-out), background-color var(--dur-hover) ease, box-shadow var(--dur-hover) ease, color var(--dur-hover) ease;
+  }
+  .press-soft:is(.hover-row, .hover-side, .hover-ghost, .hover-btn, .hover-card, .hover-chip, .hover-tile) {
+    transition: transform 260ms var(--ease-pop), background-color var(--dur-hover) ease, box-shadow var(--dur-hover) ease, color var(--dur-hover) ease;
+  }
 }
 /* filled buttons take their hover fill on focus; a dark fill would hide the ink tint */
 .hover-primary:focus-visible { background: var(--primary-hover); }
@@ -358,20 +377,20 @@
 /* a label wrapping a hidden radio or checkbox shows the tint when its input has keyboard focus */
 .focus-tint:has(:focus-visible) { background-image: linear-gradient(var(--focus-tint), var(--focus-tint)); }
 @media (hover: hover) and (pointer: fine) {
-  .hover-row:hover { background-image: linear-gradient(var(--tint), var(--tint)); }
-  .hover-side:hover { background: var(--tint); color: var(--ink); }
-  .hover-ghost:hover { background: var(--tint-2); }
-  .hover-btn:hover:not(:disabled) { background-image: linear-gradient(var(--tint), var(--tint)); }
-  .hover-card:hover { background-image: linear-gradient(var(--tint), var(--tint)); }
-  .hover-chip:hover { background-image: linear-gradient(var(--tint-2), var(--tint-2)); color: var(--ink); }
-  .hover-primary:hover { background: var(--primary-hover); }
-  .hover-accent:hover { background-color: var(--accent-fill-hover); }
-  .hover-lift:hover { background-image: linear-gradient(var(--tint), var(--tint)); }
-  .hover-tile:hover { background-image: linear-gradient(color-mix(in oklab, var(--ink) 2.5%, transparent), color-mix(in oklab, var(--ink) 2.5%, transparent)); }
+  .hover-row:hover { background-color: var(--tint); }
+  .hover-side:hover { background-color: var(--tint); color: var(--ink); }
+  .hover-ghost:hover:not(:disabled) { box-shadow: inset 0 0 0 100vmax var(--tint-2); }
+  .hover-btn:hover:not(:disabled) { box-shadow: inset 0 0 0 100vmax var(--tint); }
+  .hover-card:hover { box-shadow: inset 0 0 0 100vmax var(--tint); }
+  .hover-chip:hover { box-shadow: inset 0 0 0 100vmax var(--tint-2); color: var(--ink); }
+  .hover-primary:hover:not(:disabled) { background: var(--primary-hover); }
+  .hover-accent:hover:not(:disabled) { background-color: var(--accent-fill-hover); }
+  .hover-lift:hover { box-shadow: inset 0 0 0 100vmax var(--tint); }
+  .hover-tile:hover { box-shadow: inset 0 0 0 100vmax var(--tint); }
   .hover-tile:hover .tile-arrow { color: var(--ink); }
   .hover-cell:hover { filter: brightness(0.88); }
   [data-theme="dark"] .hover-cell:hover { filter: brightness(1.35); }
-  .hover-pick:hover { background-image: linear-gradient(var(--tint), var(--tint)); }
+  .hover-pick:hover { box-shadow: inset 0 0 0 100vmax var(--tint); }
   .hover-link:hover { color: var(--ink); }
 }
 

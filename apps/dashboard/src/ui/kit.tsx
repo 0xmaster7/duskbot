@@ -1,6 +1,8 @@
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
 import type { Freshness } from "../../../../shared/dashboard-protocol";
 import { ago } from "../lib/format";
+import type { CloudDesktop } from "../data/contracts";
+import { placeState, TONE_TEXT } from "../data/place";
 import { Link } from "../lib/router";
 import { GLIDE, m, Pill, usePill } from "./motion";
 
@@ -62,19 +64,13 @@ export function Badge({ children, tone = "plain", className }: { children: React
   return <span className={cx("tag shrink-0", color, className)}>{children}</span>;
 }
 
-const FRESH: Record<Freshness, { tone: string; label: (t: number | null, now: number) => string }> = {
-  live: { tone: "text-good", label: () => "live" },
-  recent: { tone: "text-warn", label: (t, now) => `updated ${ago(t, now)}` },
-  offline: { tone: "text-ink-4", label: (t, now) => `offline since ${ago(t, now)}` },
-  waiting: { tone: "text-ink-4", label: () => "waiting for its first report" },
-};
-
-export function FreshnessTag({ freshness, at, now, className }: { freshness: Freshness; at: number | null; now: number; className?: string }) {
-  const f = FRESH[freshness];
+/** a workspace's state: a dusk cloud reads by the cloud itself (pass it), any other place by its last report */
+export function FreshnessTag({ freshness, at, now, cloud, className }: { freshness: Freshness; at: number | null; now: number; cloud?: CloudDesktop | null; className?: string }) {
+  const s = placeState(freshness, at, now, cloud);
   return (
     <span className={cx("inline-flex items-center gap-2 text-13 text-ink-3", className)}>
-      <span className={cx("live-dot", f.tone)} data-live={freshness === "live"} aria-hidden />
-      <span className="num" title={at ? `last report ${ago(at, now)}` : undefined}>{f.label(at, now)}</span>
+      <span className={cx("live-dot", TONE_TEXT[s.tone])} data-live={s.live && s.tone === "good"} aria-hidden />
+      <span className="num" title={at ? `last report ${ago(at, now)}` : undefined}>{s.label}</span>
     </span>
   );
 }

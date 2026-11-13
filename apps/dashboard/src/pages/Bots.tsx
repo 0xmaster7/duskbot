@@ -4,6 +4,8 @@ import { ago, compact, until, usd } from "../lib/format";
 import { Link } from "../lib/router";
 import { Button, Card, cx, KV, PageHeader, SectionTitle, Stat } from "../ui/kit";
 import { botMood } from "../data/mood";
+import { cloudForWorkspace, useCloud } from "../data/cloud";
+import { botFreshness } from "../data/place";
 import { BotMascot } from "../ui/Mascot";
 import { SkyEmpty } from "../ui/Sky";
 import { Nil, Table, Td, Th } from "../ui/table";
@@ -31,13 +33,14 @@ export function ComputerActions({ bot, computer }: { bot: Pick<BotReport, "id" |
 }
 
 function BotRow({ bot, detail, now }: { bot: BotReport; detail: WorkspaceDetail; now: number }) {
+  const { clouds } = useCloud();
   const usage = detail.report?.activity?.byBot.find((b) => b.botId === bot.id);
   const computer = computerFor(detail, bot);
   return (
     <tr className="hover-row relative">
       <Td>
         <div className="flex min-w-0 items-center gap-3">
-          <BotMascot bot={bot} mood={botMood(bot, { computer: computer?.state, freshness: detail.workspace.freshness })} size={36} />
+          <BotMascot bot={bot} mood={botMood(bot, { computer: computer?.state, freshness: botFreshness(detail.workspace.freshness, cloudForWorkspace(clouds, detail.workspace.id)) })} size={36} />
           <div className="min-w-0">
             <Link to={`/bots/${encodeURIComponent(bot.id)}`} className="block truncate font-medium text-ink after:absolute after:inset-0 after:content-['']">{bot.name}</Link>
             <div className="truncate text-13 text-ink-3 md:hidden">{bot.busy ? <span className="text-good">working now</span> : bot.model ?? "no model set"}</div>
@@ -75,6 +78,7 @@ export function BotsPage() {
 }
 
 export function BotPage({ id }: { id: string }) {
+  const { clouds } = useCloud();
   const now = useNow();
   return (
     <div>
@@ -88,7 +92,7 @@ export function BotPage({ id }: { id: string }) {
           return (
             <div className="flex flex-col gap-4">
               <header className="mb-4 flex flex-wrap items-center gap-5">
-                <BotMascot bot={bot} mood={botMood(bot, { computer: computer?.state, freshness: detail.workspace.freshness })} size={88} track={900} tappable />
+                <BotMascot bot={bot} mood={botMood(bot, { computer: computer?.state, freshness: botFreshness(detail.workspace.freshness, cloudForWorkspace(clouds, detail.workspace.id)) })} size={88} track={900} tappable />
                 <div className="min-w-0 flex-1">
                   <h1 className="t-title truncate">{bot.name}</h1>
                   <p className="mt-1 text-14 text-ink-3">{bot.busy ? <span className="text-good">working now</span> : `last active ${ago(bot.lastActiveAt, now)}`}</p>

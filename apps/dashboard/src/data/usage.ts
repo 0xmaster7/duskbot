@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { BotReport, WorkspaceDetail, WorkspaceKind } from "../../../../shared/dashboard-protocol";
 import { api, FIXTURE } from "../lib/api";
 import { botMood, type BotMood } from "./mood";
+import { cloudForWorkspace, useClouds } from "./cloud";
+import { botFreshness } from "./place";
 import { useSession } from "./session";
 import { usageMonth, type UsageMonth, type UsageSource } from "./usage-math";
 
@@ -59,6 +61,8 @@ export function useAccountUsage(): { month: UsageMonth | null; sources: UsageSou
     return { workspace: item, detail: latest };
   });
   const reportKey = JSON.stringify(reports.map((item) => [item.workspace.id, item.workspace.name, item.detail !== null, item.detail?.report?.at, item.detail?.sectionAt.activity, item.detail?.sectionAt.bots, item.detail?.sectionAt.computers, item.workspace.freshness, item.detail?.sectionAt.plans]));
+  const clouds = useClouds();
+  const awakeKey = clouds?.map((c) => `${c.workspaceId}:${c.status}`).join() ?? "";
   const { sources, plans, bots } = useMemo(() => {
     const sources: UsageSource[] = [];
     const bots: BotRow[] = [];
@@ -67,7 +71,7 @@ export function useAccountUsage(): { month: UsageMonth | null; sources: UsageSou
       if (!item.detail) continue;
       const { report, sectionAt } = item.detail;
       sources.push({ workspaceId: item.workspace.id, workspaceName: item.workspace.name, activity: report?.activity ?? null, bots: report?.bots ?? [] });
-      for (const bot of report?.bots ?? []) bots.push({ bot, where: item.workspace.name, workspaceId: item.workspace.id, kind: item.workspace.kind, mood: botMood(bot, { freshness: item.workspace.freshness, computer: report?.computers?.computers.find((c) => c.botId === bot.id)?.state }) });
+      for (const bot of report?.bots ?? []) bots.push({ bot, where: item.workspace.name, workspaceId: item.workspace.id, kind: item.workspace.kind, mood: botMood(bot, { freshness: botFreshness(item.workspace.freshness, cloudForWorkspace(clouds, item.workspace.id)), computer: report?.computers?.computers.find((c) => c.botId === bot.id)?.state }) });
       for (const provider of report?.plans?.providers ?? []) for (const window of provider.windows) {
         const key = JSON.stringify([provider.id, window.label]);
         const at = sectionAt.plans ?? report?.at ?? 0;
@@ -75,7 +79,7 @@ export function useAccountUsage(): { month: UsageMonth | null; sources: UsageSou
       }
     }
     return { bots, sources, plans: [...windows.values()].map((item) => item.window).sort((a, b) => b.usedPercent - a.usedPercent) };
-  }, [reportKey]);
+  }, [reportKey, awakeKey]);
   const month = useMemo(() => usageMonth(sources, Date.now(), { split: FIXTURE ? "exact" : "estimate" }), [sources]);
   const loading = workspaces === null || reports.some((item) => !item.detail && !answers[item.workspace.id]);
   const error = !loading && reports.length > 0 && reports.every((item) => !item.detail) ? reports.map((item) => answers[item.workspace.id]?.error).find((message) => message !== null && message !== undefined) ?? null : null;

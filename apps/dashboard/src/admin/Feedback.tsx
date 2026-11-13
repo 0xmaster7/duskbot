@@ -70,7 +70,7 @@ export function FeedbackPage() {
           const count = !data ? null : option.id ? data.counts[option.id] : total;
           return (
             <button key={option.label} type="button" aria-pressed={kind === option.id} onClick={() => setKind(option.id)}
-              className={cx("inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-14 transition-colors duration-150 ease-out", kind === option.id ? "bg-ink text-bg" : "bg-card text-ink-2 hover-side")}>
+              className={cx("inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-14 hover-chip", kind === option.id ? "bg-ink text-bg" : "bg-card text-ink-2")}>
               {option.label}
               {count !== null && <span className={cx("font-mono text-12 num", kind === option.id ? "text-bg/70" : "text-ink-3")}>{n(count)}</span>}
             </button>

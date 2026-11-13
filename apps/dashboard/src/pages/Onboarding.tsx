@@ -53,7 +53,7 @@ function PlanStep({ catalog, home, setHome, plan, setPlan }: { catalog: PlanCata
   return (
     <fieldset className="min-w-0">
       <legend className="sr-only">where your bots live</legend>
-      <div className={cx("rounded-[22px] p-2 transition-[background-color] duration-150", cloud ? "bg-card-2" : "hover-card bg-card")}>
+      <div className={cx("rounded-[22px] p-2", cloud ? "bg-card-2" : "hover-card bg-card")}>
         <label htmlFor="home-cloud" className="focus-tint block cursor-pointer rounded-[16px]">
           <input id="home-cloud" type="radio" name="home" value="cloud" checked={cloud} onChange={() => setHome("cloud")} className="sr-only" />
           <span className="relative block overflow-hidden rounded-[16px]">

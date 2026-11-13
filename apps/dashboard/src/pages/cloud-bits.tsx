@@ -18,7 +18,7 @@ export const STATUS: Record<CloudDesktop["status"], { label: string; tone: "good
   provisioning: { label: "setting up", tone: "accent" },
   running: { label: "online", tone: "good" },
   waking: { label: "waking up", tone: "warn" },
-  sleeping: { label: "asleep", tone: "quiet" },
+  sleeping: { label: "stopped", tone: "quiet" },
   stopped: { label: "off", tone: "quiet" },
   error: { label: "needs attention", tone: "bad" },
 };
