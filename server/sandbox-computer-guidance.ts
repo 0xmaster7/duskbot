@@ -9,18 +9,20 @@ type JsonObject = Record<string, unknown>;
 
 /** What the driver's MCP instructions say on a bot's own sandboxed desktop. */
 export const SANDBOX_DRIVER_INSTRUCTIONS = [
-  "cua-driver on your own sandboxed Linux desktop (X11; get_screen_size gives its size). It is not the person's own screen, so foreground input is fine here.",
-  "1. Find windows with list_windows({app:\"Chromium\"}) for pid and window_id. To open a page: launch_app({name:\"chromium\", urls:[\"https://...\"]}). Chromium can take 10 to 20 seconds to show its first window: call list_windows again instead of launching it twice.",
-  "2. Read a window with get_window_state. Chromium's web content is mostly missing from the accessibility tree here: read the page from the screenshot (zoom for small text) and act with x,y from that window's own screenshot, delivery_mode \"foreground\". Dialogs such as Save File are in the tree; act on them by element_token.",
-  "3. Act through run_steps({steps:[{tool,args}],observe:{include_screenshot:true}}): it stops at the first failure and shows the result. In Chromium go to an address with hotkey ctrl+l, type_text, press_key enter.",
-  "4. There are no typed browser tools on this desktop; do not look for get_browser_state or browser_prepare.",
-  "5. Command-line work (curl downloads, checking a file's size, parsing a page, writing a CSV, installing software) goes through vm_exec, never typed into a terminal window.",
-  "6. Verify at checkpoints with a screenshot. If the same step fails twice, change approach or report what blocks you; do not repeat it a third time.",
+  "cua-driver on your own sandboxed Linux desktop (X11; get_screen_size gives its size). It is not the person's own screen: the pointer and keyboard are yours, and input here defaults to delivery_mode \"foreground\".",
+  "1. Find windows with list_windows({app:\"Chromium\"}) and pick one by title for its pid and window_id. To open a page: launch_app({name:\"chromium\", urls:[\"https://...\"]}). Its window can take a few seconds to appear: call list_windows again instead of launching it twice.",
+  "2. Read a window with get_window_state. Its accessibility tree names fields, buttons, links, checkboxes and dialogs, web pages in Chromium included, so pass include_screenshot:false when you only need the tree. Look at the screenshot for what the tree does not name (images, charts, canvas, layout) and zoom for small text. On a later read pass since:<snapshot_id> to get only what changed.",
+  "3. Act through run_steps and name each target by role and name, such as {\"click\":{\"role\":\"button\",\"name\":\"Save\"}} or {\"set_value\":{\"role\":\"entry\",\"name\":\"Email\",\"value\":\"...\"}}: no read is needed first and one call can cross screens. Put the effect you expect on the step that should cause it, such as expect:[{\"text\":\"Saved\"}] or expect:[{\"name\":\"Cookie consent\",\"gone\":true}]; a check that does not hold stops the batch and says what it found, so a wrong click is caught at once. Add observe:{} to see what changed. Use x,y from the window's latest screenshot only for what the tree does not name.",
+  "4. Fill fields with set_value, which reads the value back, rather than click plus type_text. For a menu command its keyboard shortcut is the most reliable route (ctrl+l, then the address and enter, in Chromium; ctrl+shift+n for a new folder in Thunar). A dialog that opens holds the focus, so keys sent with only the pid reach it.",
+  "5. Close a cookie banner or popup by its button name, with a check that it is gone, before the step it was covering.",
+  "6. There are no typed browser tools on this desktop; do not look for get_browser_state or browser_prepare.",
+  "7. Command-line work (curl downloads, renaming or moving files, a file's size, parsing a page, writing a CSV, installing software) goes through vm_exec, never typed into a terminal window.",
+  "8. If the same step fails twice, change approach (another target, a keyboard route, vm_exec) or report what blocks you; do not repeat it a third time. A read that says the screenshot is unchanged means nothing on screen changed since your last look.",
 ].join("\n");
 
 const SANDBOX_BROWSER_REFUSED =
   "This desktop's Chromium cannot take the typed browser tools, and nothing the person can turn on changes that: do not call browser_prepare again or ask anyone to authorize it. " +
-  "Drive this window with get_window_state screenshots and click, type_text, press_key and scroll at x,y with delivery_mode \"foreground\"; this pointer is your own. " +
+  "Drive this window with get_window_state and run_steps: its accessibility tree names the page's fields, buttons and links, so click, set_value and type_text by role and name, and use x,y from its screenshot only for what the tree does not name; this pointer is your own. " +
   "For a page's text or data, vm_exec with curl or python3 is faster. " + PLAIN_WORDS;
 
 function isObject(value: unknown): value is JsonObject {

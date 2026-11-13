@@ -5,6 +5,7 @@ import { DATA_DIR } from "./config.ts";
 import { augmentedPath } from "./env-path.ts";
 import { prepareVpsSsh } from "./vps-ssh.ts";
 import { sandboxComputerResultLine } from "./sandbox-computer-guidance.ts";
+import { createSandboxComputerSession } from "./sandbox-computer-session.ts";
 import { createBotPointerReporter } from "./bot-pointer.ts";
 
 const [alias, containerName, screenJson] = process.argv.slice(2);
@@ -21,6 +22,7 @@ try {
 const controlUrl = process.env.DUSK_CONTROL_URL ?? "";
 const controlToken = process.env.DUSK_CONTROL_TOKEN ?? "";
 const ssh = prepareVpsSsh(DATA_DIR, augmentedPath());
+const session = createSandboxComputerSession();
 
 runMcpBridge({
   command: "docker",
@@ -29,6 +31,7 @@ runMcpBridge({
   label: "VPS Cua Driver",
   // Probe the transport, not the driver: a busy desktop mid-tool-call must never look dead.
   liveness: { command: "docker", args: vpsDockerArgs(sshAlias, ["version", "--format", "{{.Server.Version}}"]) },
-  rewriteResponse: sandboxComputerResultLine,
+  rewriteRequest: session.request,
+  rewriteResponse: (line) => session.response(sandboxComputerResultLine(line)),
   ...(controlUrl && controlToken ? { gate: { url: controlUrl, token: controlToken }, observe: createBotPointerReporter({ url: controlUrl, token: controlToken }) } : {}),
 });

@@ -107,7 +107,7 @@ export const SIGN_IN_PROMPT =
 /** The Local VM and VPS image's Cua Driver refuses background X11 keys there (they need /dev/uinput, which the hardened
  * container lacks) and pixel clicks on a window this session has not read; the bot is told up front rather than per refusal. */
 export const SANDBOX_DESKTOP_INPUT =
-  " On this desktop, read a window with get_window_state before acting on it and take x,y from that window's own screenshot. Pass delivery_mode \"foreground\" for keys, typing, scrolling and pixel clicks: background input is not available here, and foreground moves focus only inside this desktop, never on the user's own screen.";
+  " On this desktop, read a window with get_window_state before acting on it: its accessibility tree names fields, buttons and links, often web pages too, so target them by role and name or element_token, and take x,y from that window's own screenshot only for what the tree does not name. Pass delivery_mode \"foreground\" for keys, typing, scrolling and pixel clicks: background input is not available here, and foreground moves focus only inside this desktop, never on the user's own screen.";
 
 const COMPUTER_PARAGRAPH: Record<ComputerPromptKind, string> = {
   "vm-private":

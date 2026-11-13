@@ -1,8 +1,9 @@
-// A stdio bridge into Cua Driver's MCP server in the Local VM. It defines no tools; the shared bridge only answers ping,
-// makes tool schemas provider-safe and keeps error results text-only.
+// A stdio bridge into Cua Driver's MCP server in the Local VM. It defines no tools; the shared bridge answers ping,
+// makes tool schemas provider-safe and keeps error results text-only, and the sandbox session sets input defaults.
 import { cuaExecArgs } from "./container-computer.ts";
 import { runMcpBridge } from "./mcp-bridge.ts";
 import { createBotPointerReporter } from "./bot-pointer.ts";
+import { createSandboxComputerSession } from "./sandbox-computer-session.ts";
 
 const [runtime, container, socket] = process.argv.slice(2);
 if (!runtime || !["docker", "podman", "container"].includes(runtime)) {
@@ -18,10 +19,14 @@ if (!container || !/^[a-zA-Z0-9_.-]+$/.test(container) || !socket?.startsWith("/
 const controlUrl = process.env.DUSK_CONTROL_URL ?? "";
 const controlToken = process.env.DUSK_CONTROL_TOKEN ?? "";
 
+const session = createSandboxComputerSession();
+
 runMcpBridge({
   command: runtime,
   args: cuaExecArgs(["mcp", "--socket", socket], { container, interactive: true }),
   label: "Cua Driver",
+  rewriteRequest: session.request,
+  rewriteResponse: session.response,
   // No liveness watchdog: the runtime CLI talks to a local daemon and fails fast on its own.
   ...(controlUrl && controlToken ? { gate: { url: controlUrl, token: controlToken }, observe: createBotPointerReporter({ url: controlUrl, token: controlToken }) } : {}),
 });
