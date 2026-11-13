@@ -49,8 +49,8 @@ describe("mobile workspace pairing", () => {
     expect(source).toContain('method: "POST", body: JSON.stringify(request)');
   });
 
-  it("places mobile pairing immediately before server pairing with the active workspace flag", () => {
+  it("hands the phone page's pieces to server pairing, with the active workspace flag", () => {
     const source = readFileSync(new URL("./SettingsModal.tsx", import.meta.url), "utf8");
-    expect(source).toMatch(/pairing: <>\s*<PhoneLinking remote=\{remoteActive\} \/>\s*<ServerPairingCard/);
+    expect(source).toMatch(/pairing: <PhoneLinking remote=\{remoteActive\}>\{\(phone\) => <ServerPairingCard phone=\{phone\}/);
   });
 });

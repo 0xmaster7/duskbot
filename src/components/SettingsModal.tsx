@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { AnimatePresence, useIsPresent } from "motion/react";
 import { useStore, type AppSettingsSection } from "@/state/store";
 import { t } from "@/lib/i18n";
@@ -15,7 +15,7 @@ import { KeysPage } from "./keys/KeysPage";
 import { useKeyFocus } from "./keys/key-focus";
 import { CompanionSection } from "./CompanionSection";
 import { ServerPairingCard } from "./ServerPairingCard";
-import { MobilePairingCard } from "./MobilePairingCard";
+import { MobilePairingCard, type PhoneParts } from "./MobilePairingCard";
 import { useAccounts } from "./AccountMenu";
 import { RemoteComputerSection } from "./RemoteComputerSection";
 import { ConnectedWorkspacesSettings } from "./ConnectedWorkspacesSettings";
@@ -235,7 +235,7 @@ export function SettingsModal() {
   const remoteAccess: RemoteAccessCards = {
     client: <RemoteComputerSection hideWhenUnavailable />,
     // Security: the server decides who may pair (an owner or admin session), not this gate.
-    pairing: <><PhoneLinking remote={remoteActive} /><ServerPairingCard cloudHome={cloudHome} focusRequest={computerPairs ? 0 : phoneFocus} team={state.config?.team?.name} teamPhoneBlocked={state.config?.managedPolicy?.remoteAccess === false ? t("policy.teamRemoteBlocked", { organization: state.config.managedPolicy.organizationName }) : null} simple /></>,
+    pairing: <PhoneLinking remote={remoteActive}>{(phone) => <ServerPairingCard phone={phone} cloudHome={cloudHome} focusRequest={computerPairs ? 0 : phoneFocus} team={state.config?.team?.name} teamPhoneBlocked={state.config?.managedPolicy?.remoteAccess === false ? t("policy.teamRemoteBlocked", { organization: state.config.managedPolicy.organizationName }) : null} simple />}</PhoneLinking>,
     companion: remoteActive ? null : <CompanionSection profileEmail={state.config?.profile?.email} focusRequest={computerPairs ? phoneFocus : 0} />,
   };
   const cloudAccount = has("cloudAccount") && !remoteActive
@@ -391,10 +391,10 @@ export function SettingsModal() {
   );
 }
 
-/** Linking a phone, with "sign in on your phone" offered while an account is signed in here. */
-function PhoneLinking({ remote }: { remote: boolean }) {
+/** Linking a phone, with "sign in on your phone" offered while an account is signed in here; the caller lays out the pieces. */
+function PhoneLinking({ remote, children }: { remote: boolean; children: (phone: PhoneParts | null) => ReactNode }) {
   const accounts = useAccounts();
-  return <MobilePairingCard remote={remote} accountEmail={remote ? null : accounts.view?.active?.email ?? null} />;
+  return <MobilePairingCard remote={remote} accountEmail={remote ? null : accounts.view?.active?.email ?? null}>{children}</MobilePairingCard>;
 }
 
 const PHONE_SETTINGS = "(max-width: 639.98px)";

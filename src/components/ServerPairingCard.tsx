@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { requireUserPresence } from "@/lib/user-presence";
+import { cn } from "@/lib/cn";
+import { KeyRound } from "../icons";
 
 import { t } from "@/lib/i18n";
 import { copyText, type CopyFeedback } from "@/lib/copy-text";
@@ -10,9 +12,10 @@ import { lastSeen, minutesLeft } from "../lib/pairing-time";
 import { revealPhonePairing } from "../lib/phone-pairing";
 import { Card } from "./SettingsPrimitives";
 import { SettingsSelect } from "./SettingsSelect";
-import { Card as RowsCard, CopyRow, ItemRow, NoteRow } from "./ListRows";
+import { Card as RowsCard, ItemRow, NoteRow } from "./ListRows";
 import { TeamPhoneCard } from "./TeamPhoneCard";
 import { ComputerNameRow } from "./ComputerNameRow";
+import { PairingTile, type PhoneParts } from "./MobilePairingCard";
 
 export interface PairingOffer {
   id: string;
@@ -50,7 +53,7 @@ export function shownDevices(devices: PairedDevice[], cloudHome: boolean): Paire
 const button = "ui-button ui-button-primary";
 const quiet = "ui-button";
 
-export function ServerPairingCard({ initialSession = null, cloudHome = false, focusRequest = 0, team, teamPhoneBlocked = null, simple = false }: { initialSession?: SessionState | null; cloudHome?: boolean; focusRequest?: number; team?: string; teamPhoneBlocked?: string | null; simple?: boolean }) {
+export function ServerPairingCard({ initialSession = null, cloudHome = false, focusRequest = 0, team, teamPhoneBlocked = null, simple = false, phone }: { initialSession?: SessionState | null; cloudHome?: boolean; focusRequest?: number; team?: string; teamPhoneBlocked?: string | null; simple?: boolean; /** the phone page's pieces, laid out around this code; null when phones may not link here */ phone?: PhoneParts | null }) {
   const [session, setSession] = useState<SessionState | null>(initialSession);
   const [computerName, setComputerName] = useState<string | null>(null);
   const [scope, setScope] = useState<"admin" | "client">("admin");
@@ -97,7 +100,25 @@ export function ServerPairingCard({ initialSession = null, cloudHome = false, fo
     return () => clearInterval(timer);
   }, [offer]);
 
+  // the phone page: what the phone app is, the two ways to pair side by side, the phones, then the rest
+  const phonePage = (codeTile: ReactNode, rest: ReactNode) => {
+    const tiles = [phone?.qrTile, codeTile].filter(Boolean);
+    return (
+      <div ref={root} tabIndex={-1} data-phone-pairing="server" className="flex scroll-mt-4 flex-col gap-5 focus:outline-none">
+        {phone?.hero}
+        {tiles.length > 0 && (
+          <div className="@container">
+            <div data-pairing-ways="" className={cn("grid gap-3", tiles.length > 1 && "@min-[480px]:grid-cols-2")}>{tiles}</div>
+          </div>
+        )}
+        {phone?.phones}
+        {rest}
+      </div>
+    );
+  };
+
   if (team && session?.kind === "session" && session.team) {
+    if (phone !== undefined) return phonePage(null, <TeamPhoneCard team={team} blocked={teamPhoneBlocked} />);
     return (
       <div ref={root} tabIndex={-1} data-phone-pairing="server" className="scroll-mt-4 rounded-xl focus:outline-none">
         <TeamPhoneCard team={team} blocked={teamPhoneBlocked} />
@@ -105,7 +126,10 @@ export function ServerPairingCard({ initialSession = null, cloudHome = false, fo
     );
   }
   if (!canPairDevices(session)) {
-    if (pairingBlockedReason(session) !== "chat-only") return null;
+    if (pairingBlockedReason(session) !== "chat-only") return phone !== undefined ? phonePage(null, null) : null;
+    if (simple && phone !== undefined) {
+      return phonePage(null, <RowsCard><div data-server-pairing-chat-only="" className="contents"><NoteRow>{t("remote.serverPairing.chatOnly")}</NoteRow></div></RowsCard>);
+    }
     if (simple) {
       return (
         <div ref={root} tabIndex={-1} data-phone-pairing="server" className="scroll-mt-4 focus:outline-none">
@@ -191,59 +215,57 @@ export function ServerPairingCard({ initialSession = null, cloudHome = false, fo
   const scopeName = (device: PairedDevice) => t(device.scopes.includes("admin") ? "remote.serverPairing.scope.admin" : "remote.serverPairing.scope.client");
 
   if (simple) {
-    // Grok's rows: the name, the access a code gives, Create code, then the code, its QR and its link; who is signed in below
-    return (
-      <div ref={root} tabIndex={-1} data-phone-pairing="server" className="flex scroll-mt-4 flex-col gap-5 focus:outline-none">
-        <RowsCard label={t("remote.serverPairing.title")} data-settings-block="pair-code">
-          {!cloudHome && computerName !== null && <ComputerNameRow saved={computerName} onSaved={setComputerName} />}
-          {!cloudHome && (
-            <ItemRow pixel="shield" title={t("settings.s2.pairing.access")}>
-              <SettingsSelect data-settings-select="pairing-scope" value={scope} aria-label={t("remote.serverPairing.title")}
-                options={[{ value: "admin", label: t("remote.serverPairing.scope.admin") }, { value: "client", label: t("remote.serverPairing.scope.client") }]}
-                onChange={(event) => setScope(event.target.value === "client" ? "client" : "admin")} />
-            </ItemRow>
-          )}
-          <ItemRow pixel="plus" title={t("settings.w6.pairing.title")} hint={cloudHome ? t("settings.w6a.phone.cloudPersonal") : undefined}>
-            <button type="button" data-phone-pairing-action onClick={() => void create()} disabled={busy} className="ui-button ui-button-sm">
-                {busy ? t("remote.serverPairing.creating") : t("settings.simple.computer.createCode")}
+    const codeTile = (
+      <PairingTile id="server-pairing-code" icon={<KeyRound size={16} />} title={t("settings.w6.pairing.title")} data-pairing-tile="code">
+        {offer && !expired ? (
+          <div data-pairing-offer="" className="flex flex-col items-start gap-2">
+            <code aria-label={t("settings.w6.pairing.code")} className="select-all whitespace-nowrap font-mono text-[22px] leading-8 tracking-[0.1em] text-ink">{offer.code}</code>
+            <p className="m-0 text-[13px] leading-[18px] text-ink-secondary">{offer.url ? t("remote.serverPairing.expires", { minutes: minutesLeft(offer.expiresAt, now) }) : offer.hint ?? t("remote.serverPairing.noLink")}</p>
+          </div>
+        ) : (
+          <p className="m-0 text-[13px] leading-[18px] text-ink-secondary">
+            {expired ? t("remote.serverPairing.expired") : cloudHome ? t("settings.mobile.codeHintCloud") : t("settings.mobile.codeHint")}
+          </p>
+        )}
+        <div className="mt-auto flex flex-wrap items-center gap-2">
+          <button type="button" data-phone-pairing-action onClick={() => void create()} disabled={busy} className="ui-button mobile-press min-h-11 rounded-full">
+            {busy ? t("remote.serverPairing.creating") : offer ? t("settings.mobile.newCode") : t("settings.simple.computer.createCode")}
+          </button>
+          {offer?.url && !expired ? (
+            <button type="button" onClick={() => void copyLink()} className="mobile-press min-h-11 rounded-full px-3 text-[13px] font-medium text-ink-secondary hover:bg-ink/5">
+              {t(copied === "copied" ? "remote.serverPairing.copied" : copied === "failed" ? "common.copyFailed" : "remote.serverPairing.copyLink")}
             </button>
-          </ItemRow>
-          {offer ? (expired ? (
-            <NoteRow>{t("remote.serverPairing.expired")}</NoteRow>
-          ) : (
-            <>
-              <ItemRow pixel="key" title={t("settings.w6.pairing.code")} hint={offer.url ? t("remote.serverPairing.expires", { minutes: minutesLeft(offer.expiresAt, now) }) : offer.hint ?? t("remote.serverPairing.noLink")}>
-                <span className="font-mono text-[15px] tracking-[0.14em] text-ink">{offer.code}</span>
-              </ItemRow>
-              {offer.url ? (
-                <>
-                  <div data-pairing-qr="" className="flex justify-center py-2">
-                    <div className="rounded-[10px] bg-white p-3 outline outline-[0.5px] -outline-offset-[0.5px] outline-transparent">
-                      <QRCodeSVG value={offer.url} size={148} level="M" bgColor="#ffffff" fgColor="#111111" />
-                    </div>
-                  </div>
-                  <CopyRow title={t("settings.w6.pairing.link")} text={offer.url} copyLabel={t("remote.serverPairing.copyLink")} />
-                </>
-              ) : null}
-            </>
-          )) : null}
-          {error ? <NoteRow tone="danger">{error}</NoteRow> : null}
-        </RowsCard>
-        {/* "Signed-in" either way: the desktop's own paired phones are listed under "Paired devices" on the same page */}
-        <RowsCard label={t("remote.serverPairing.signedInDevices")} data-settings-block="paired-sessions">
-          {listed.length === 0 ? (
-            <NoteRow>{t("remote.serverPairing.noDevices")}</NoteRow>
-          ) : listed.map((device) => (
-            <ItemRow key={device.id} pixel="globe" title={device.label}
-              hint={`${scopeName(device)} · ${t("remote.serverPairing.seen", { when: lastSeen(device.lastSeenAt, now) })}${device.id === current ? ` · ${t("remote.serverPairing.thisBrowser")}` : ""}`}>
-              {device.id === current ? null : (
-                <button type="button" onClick={() => void signOut(device.id)} className="ui-button">{t("remote.serverPairing.signOut")}</button>
-              )}
-            </ItemRow>
-          ))}
-        </RowsCard>
-      </div>
+          ) : null}
+        </div>
+        {error ? <p role="alert" className="m-0 text-[13px] leading-[18px] text-danger">{error}</p> : null}
+      </PairingTile>
     );
+    // the phone's own way first, then this server's code beside it; who may use it and who is signed in below
+    return phonePage(codeTile, <>
+      {!cloudHome && computerName !== null && (
+        <RowsCard label={t("settings.mobile.thisComputer")} data-settings-block="pair-code">
+          <ComputerNameRow saved={computerName} onSaved={setComputerName} />
+          <ItemRow pixel="shield" title={t("settings.s2.pairing.access")} hint={t("settings.mobile.accessHint")}>
+            <SettingsSelect data-settings-select="pairing-scope" value={scope} aria-label={t("settings.s2.pairing.access")}
+              options={[{ value: "admin", label: t("remote.serverPairing.scope.admin") }, { value: "client", label: t("remote.serverPairing.scope.client") }]}
+              onChange={(event) => setScope(event.target.value === "client" ? "client" : "admin")} />
+          </ItemRow>
+        </RowsCard>
+      )}
+      {/* "Signed-in" either way: the desktop's own paired phones are listed under "phones" on the same page */}
+      <RowsCard label={t("remote.serverPairing.signedInDevices")} data-settings-block="paired-sessions">
+        {listed.length === 0 ? (
+          <NoteRow>{t("remote.serverPairing.noDevices")}</NoteRow>
+        ) : listed.map((device) => (
+          <ItemRow key={device.id} pixel="globe" title={device.label}
+            hint={`${scopeName(device)} · ${t("remote.serverPairing.seen", { when: lastSeen(device.lastSeenAt, now) })}${device.id === current ? ` · ${t("remote.serverPairing.thisBrowser")}` : ""}`}>
+            {device.id === current ? null : (
+              <button type="button" onClick={() => void signOut(device.id)} className="ui-button">{t("remote.serverPairing.signOut")}</button>
+            )}
+          </ItemRow>
+        ))}
+      </RowsCard>
+    </>);
   }
 
   return (
