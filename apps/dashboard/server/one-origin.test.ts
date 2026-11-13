@@ -104,7 +104,7 @@ describe("one origin: dashboard, admin and site", () => {
     expect((await hosted("dusk.test", "/dashboard")).status).toBe(200);
   });
 
-  it("before launch (waitlistOnly) sends the page home but keeps sign-in, the apps' links, admin, the API, webhooks and the site", async () => {
+  it("before launch (waitlistOnly) sends the page home but keeps the apps' and emailed links' flows, the API, webhooks and the site", async () => {
     // without the flag nothing changes
     for (const path of ["/dashboard", "/dashboard/", "/dashboard/billing", "/dashboard/account"]) expect((await get(path)).status).toBe(200);
     app.close();
@@ -144,14 +144,17 @@ describe("one origin: dashboard, admin and site", () => {
     expect(opened).toContain('<meta name="dusk-prelaunch" content="1">');
     // the handoff, claim and delete links keep their token in the fragment, out of our sight: the page checks those itself
     for (const path of [`/dashboard${desktop}`, `/dashboard/sign-in?${new URLSearchParams({ error: "oauth_denied", next: desktop })}`, `/dashboard/sign-in?${new URLSearchParams({ pending: "p", next: desktop })}`,
-      "/dashboard/sign-in?next=%2Fadmin", "/dashboard/sign-in?next=%2Fclaim", "/dashboard/handoff", "/dashboard/claim", "/dashboard/clouds/c1/delete", "/dashboard/assets/main.js"]) expect([path, (await get(path)).status]).toEqual([path, 200]);
+      "/dashboard/sign-in?next=%2Fclaim", "/dashboard/handoff", "/dashboard/claim", "/dashboard/clouds/c1/delete", "/dashboard/assets/main.js"]) expect([path, (await get(path)).status]).toEqual([path, 200]);
     expect(await get(desktop).then(answer => answer.headers.get("location"))).toBe(`/dashboard${desktop}`);
     // a code that was denied, or a made-up one, does not
     expect((await get("/dashboard/cloud/desktop?code=ZZZZZ-ZZZZZ")).headers.get("location")).toBe("/");
-    // the admin: signed out to sign-in, the owner gets the panel
-    expect((await get("/admin")).headers.get("location")).toBe("/dashboard/sign-in?next=%2Fadmin");
+    // the admin panel and its sign-in go home too (used from preview before launch), even for the owner; its API stays
     const owner = await login(OWNER);
-    expect(await (await get("/admin/people", { cookie: owner.cookie })).text()).toContain("page shell");
+    for (const [path, cookie] of [["/admin", ""], ["/admin/people", owner.cookie], ["/dashboard/admin/people", owner.cookie], ["/dashboard/sign-in?next=%2Fadmin", ""]] as const) {
+      const answer = await get(path, cookie ? { cookie } : {});
+      expect([path, answer.status, answer.headers.get("location")]).toEqual([path, 302, path.startsWith("/dashboard/admin") ? "/admin/people" : "/"]);
+    }
+    expect((await get("/v1/admin/me", { cookie: owner.cookie })).status).toBe(200);
     // the API, webhooks and well-known addresses answer as before; the site keeps every other path
     expect((await get("/v1/health")).status).toBe(200);
     const webhook = await fetch(`${url}/v1/billing/webhooks/dodo`, { method: "POST", redirect: "manual", headers: { "content-type": "application/json" }, body: "{}" });

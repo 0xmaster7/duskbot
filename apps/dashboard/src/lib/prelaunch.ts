@@ -1,5 +1,5 @@
 // before launch (DUSK_PRELAUNCH_WAITLIST_ONLY on the account service) the page only exists for a real flow: the desktop
-// app's sign-in, an emailed link, a handoff, claim or delete link. the server checks what it can see on load and marks
+// app's sign-in, an emailed link, a handoff, claim or delete link (the admin panel is used from preview then). the server checks what it can see on load and marks
 // the page; this sends every in-page move outside such a flow to the waitlist at /.
 
 /** set by the server in the page's <head> while waitlist-only is on */
@@ -12,7 +12,6 @@ const DELETE = /^\/clouds\/([^/]+)\/delete$/;
 
 /** whether `path` (app path, no base) may show before launch; anything else goes to the waitlist */
 export function prelaunchAllowed(path: string, query: URLSearchParams, flows: PrelaunchFlows, depth = 0): boolean {
-  if (path === "/admin" || path.startsWith("/admin/")) return true;
   if (path === "/cloud/desktop") return Boolean(query.get("code"));
   if (path === "/handoff") return flows.handoff;
   if (path === "/claim") return flows.claim;

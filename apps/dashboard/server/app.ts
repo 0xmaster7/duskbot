@@ -124,7 +124,7 @@ export interface PrelaunchLive { device(code: string): boolean; attempt(attempt:
 const NO_FLOW: PrelaunchLive = { device: () => false, attempt: () => false };
 /** a path within the page (base removed) that opens before launch, only from a real flow: the desktop app's sign-in
  *  (/cloud/desktop?code= a live code), sign-in from an emailed link (?attempt= a live one) or carrying one of these flows
- *  on in `next` (an oauth error, a provider without an email, the admin's sign-in). /handoff, /claim and a cloud's delete
+ *  on in `next` (an oauth error, a provider without an email). the admin panel lives on preview then. /handoff, /claim and a cloud's delete
  *  link keep their token in the fragment, which never reaches us: the page itself sends a visit without one home. the
  *  page's built files (assets, icons) stay too */
 export function prelaunchOpen(path: string, query: URLSearchParams = new URLSearchParams(), live: PrelaunchLive = NO_FLOW, depth = 0): boolean {
@@ -136,7 +136,7 @@ export function prelaunchOpen(path: string, query: URLSearchParams = new URLSear
     const next = query.get("next");
     if (depth > 0 || !next?.startsWith("/") || next.startsWith("//") || next.includes("\\")) return false;
     const target = new URL(next, "http://x");
-    return under(target.pathname, ADMIN_PATH) || prelaunchOpen(target.pathname, target.searchParams, live, depth + 1);
+    return prelaunchOpen(target.pathname, target.searchParams, live, depth + 1);
   }
   return depth === 0 && (under(path, "/assets") || /^\/[^/]+\.(?:svg|png|ico|webmanifest|json|webp|jpg|woff2)$/.test(path));
 }
@@ -600,6 +600,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
       }
       if (pageBase && under(path, `${pageBase}${ADMIN_PATH}`)) return moved(res, 302, `${path.slice(pageBase.length)}${url.search}`);
       if (options.waitlistOnly) {
+        // the admin panel and its sign-in are used from preview before launch; /v1/admin (the API) stays
+        if (under(path, ADMIN_PATH)) return moved(res, 302, "/");
         const page = under(path, pageBase) ? path.slice(pageBase.length) || "/" : PAGE_ROUTES.some(route => under(path, route)) ? path : null;
         if (page !== null && !prelaunchOpen(page, url.searchParams, auth.prelaunchLive)) return moved(res, 302, "/");
       }
