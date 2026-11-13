@@ -32,7 +32,7 @@ export function liveData(db: Db, label: string, now: () => number = Date.now, tt
     },
     async infra(fromDay, toDay) {
       const docs = await db.collection("infra_usage_daily").find({ day: { $gte: fromDay, $lte: toDay } }, { projection: { _id: 0 } }).limit(50_000).toArray();
-      return docs.map(doc => ({ ...doc, collectedAt: doc.collectedAt instanceof Date ? doc.collectedAt.getTime() : Number(doc.collectedAt) || 0 }) as InfraDay);
+      return docs.map(doc => ({ ...doc, collectedAt: doc.collectedAt instanceof Date ? doc.collectedAt.getTime() : Number(doc.collectedAt) || 0 }) as unknown as InfraDay);
     },
     async daily(source, fromDay, toDay) {
       const docs = await db.collection("ops_daily").find({ source, day: { $gte: fromDay, $lte: toDay } }).limit(50_000).toArray();
