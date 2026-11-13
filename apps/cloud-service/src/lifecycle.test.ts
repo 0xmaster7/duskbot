@@ -477,19 +477,6 @@ it("waits half an hour after the last input once the owner has used the home in 
   expect(slept.at - last).toBeGreaterThanOrEqual(30 * 60_000);
 });
 
-it("a routine's wake sleeps again once its work is done, not after the person's idle window", async () => {
-  const f = await homeFixture();
-  const { c } = await f.paid();
-  f.power.idle = true; f.power.busy = [];
-  const due = f.now() + 3 * 60 * 60_000; f.power.nextDueAt = due;
-  await f.settle(c, c => c.status === "sleeping", 60, 5 * 60_000);
-  f.advance(due - 10 * 60_000 - f.now());
-  await f.settle(c, c => c.status === "running", 30, 30_000);
-  const woke = f.now(); f.power.nextDueAt = null;
-  await f.settle(c, c => c.status === "sleeping", 30, 60_000);
-  expect(f.now() - woke).toBeLessThan(12 * 60_000);
-});
-
 it("alerts the operator once when a home's hold is stuck, and once a day about clouds awake over half a day without work", async () => {
   const f = await homeFixture();
   const { c } = await f.paid();
@@ -505,3 +492,27 @@ it("alerts the operator once when a home's hold is stuck, and once a day about c
   while (f.now() < midnight + day + 5 * 60_000) { f.advance(5 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
   expect(f.audit.entries(c.id).filter(e => e.action === "awake_without_work")).toHaveLength(1);
 }, 120_000);
+
+it("a routine due while asleep: the cloud wakes before it, stays up while the run works, then sleeps again", async () => {
+  const f = await homeFixture();
+  const { c } = await f.paid();
+  f.power.idle = true; f.power.busy = [];
+  const due = f.now() + 2 * 60 * 60_000; f.power.nextDueAt = due;
+  await f.settle(c, c => c.status === "sleeping", 60, 5 * 60_000);
+  expect(c.managed!.nextDueAt).toBe(due);
+  // the wake comes before the run is due, never after
+  for (let n = 0; n < 400 && c.status === "sleeping"; n++) { f.advance(30_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
+  expect(c.status).not.toBe("sleeping");
+  expect(f.now()).toBeLessThanOrEqual(due);
+  await f.settle(c, c => c.status === "running", 20, 5_000);
+  expect(f.audit.entries(c.id).filter(e => e.action === "wake").at(-1)!.reason).toBe("routine_due");
+  // the run works for 20 minutes: never put to sleep under it
+  f.power.idle = false; f.power.busy = ["run"]; f.power.nextDueAt = due + 15 * 60_000;
+  for (let n = 0; n < 40; n++) { f.advance(30_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
+  expect(c.status).toBe("running");
+  // done, and the next run a few hours out: asleep again soon after
+  f.power.idle = true; f.power.busy = []; f.power.nextDueAt = f.now() + 3 * 60 * 60_000;
+  const done = f.now();
+  await f.settle(c, c => c.status === "sleeping", 60, 60_000);
+  expect(f.now() - done).toBeLessThan(15 * 60_000);
+});

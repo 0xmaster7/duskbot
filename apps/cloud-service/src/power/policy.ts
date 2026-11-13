@@ -29,8 +29,8 @@ export interface PowerSnapshot {
   homeIdle: boolean;
   /** the last wake somebody asked for (the app, a connector), not yet long past */
   wakeRequestedAt?: number | null;
-  /** the same, when a person asked for it (rails.ts StopContext.personWakeAt) */
-  personWakeAt?: number | null;
+  /** the last time work ran on the home (rails.ts StopContext.lastWorkAt) */
+  lastWorkAt?: number | null;
   memory: PowerMemory;
   /** the home's monthly cost book (ceiling.ts), for the rails */
   spend?: SpendView | null;
@@ -155,7 +155,7 @@ export function createPowerPolicy(options: { profile: ProviderCostProfile; pool(
       const idleMinutes = Math.max(1, Math.min(24 * 60, Math.floor((now - Math.max(s.lastActivityAt ?? 0, s.awakeSince)) / MINUTE)));
       const stay = (reason: string, at: number, extra: Partial<PowerDecision> = {}): PowerDecision => ({ action: "stay", reason, recheckAt: Math.max(now + 15_000, Math.min(at, now + HOUR)), idleMinutes, ...extra });
       const pool = options.pool();
-      const refusal = stopRefusal({ now, awakeSince: s.awakeSince, busy: s.busy, focusSince: s.focusSince, lastActivityAt: s.lastActivityAt, wakeRequestedAt: s.wakeRequestedAt ?? null, personWakeAt: s.personWakeAt ?? null,
+      const refusal = stopRefusal({ now, awakeSince: s.awakeSince, busy: s.busy, focusSince: s.focusSince, lastActivityAt: s.lastActivityAt, wakeRequestedAt: s.wakeRequestedAt ?? null, lastWorkAt: s.lastWorkAt ?? null,
         nextRunAt: next ? runnableFrom(next) : null, memory: s.memory, pool, profile, spend: s.spend ?? null }, rails);
       if (refusal) return stay(refusal.reason, refusal.recheckAt);
       // past the rails with no work under way: a cost guess never keeps a home up this long after the last input

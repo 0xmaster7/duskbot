@@ -158,12 +158,12 @@ describe("the rails", () => {
     expect(stopRefusal(stopContext({ busy: ["turn"], lastActivityAt: T0 - 5 * HOUR }), rails)?.reason).toBe("busy:turn");
   });
 
-  it("gives a routine's or a connector's wake only its minimum uptime, and a person's wake the minimum idle", () => {
-    const rails = { ...DEFAULT_RAILS, minIdleMs: 12 * MINUTE, minUptimeMs: 3 * MINUTE };
-    const woke = { awakeSince: T0 - 4 * MINUTE, lastActivityAt: T0 - 5 * HOUR };
-    expect(stopRefusal(stopContext(woke), rails)).toBeNull();
-    expect(stopRefusal(stopContext({ ...woke, personWakeAt: T0 - 4 * MINUTE }), rails)?.reason).toBe("min_idle");
-    expect(stopRefusal(stopContext({ ...woke, lastActivityAt: null }), rails)).toBeNull();
+  it("keeps every wake up its minimum idle, and holds a short buffer after work finishes", () => {
+    const rails = { ...DEFAULT_RAILS, minIdleMs: 15 * MINUTE, minUptimeMs: 3 * MINUTE };
+    expect(stopRefusal(stopContext({ awakeSince: T0 - 4 * MINUTE, lastActivityAt: T0 - 5 * HOUR }), rails)?.reason).toBe("min_idle");
+    expect(stopRefusal(stopContext({ awakeSince: T0 - 16 * MINUTE, lastActivityAt: null }), rails)).toBeNull();
+    expect(stopRefusal(stopContext({ awakeSince: T0 - HOUR, lastWorkAt: T0 - 2 * MINUTE }), rails)).toMatchObject({ reason: "work_buffer", recheckAt: T0 + 3 * MINUTE });
+    expect(stopRefusal(stopContext({ awakeSince: T0 - HOUR, lastWorkAt: T0 - 6 * MINUTE }), rails)).toBeNull();
   });
 
   it("doubles the minimum idle for each stop that a start followed within ten minutes", () => {

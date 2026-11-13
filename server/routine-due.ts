@@ -16,17 +16,13 @@ const dueTimes = (routines: readonly Due[], runs: readonly Run[], now: number, c
   [...routines.filter((routine) => routine.enabled).map((routine) => routine.checks ? checksDue(routine) : at(routine)),
     ...runs.filter((run) => startsLater(run, now)).map((run) => run.retryAt)].filter((at): at is number => typeof at === "number");
 
-/** The longest a sleeping Cloud home leaves its routines' checks unread. */
-export const CHECK_WAKE_MS = 60 * 60_000;
 /** On the desktop, plain checks run whenever the computer is awake and never keep it awake. */
 const meetingsDue = (routine: Due) => routine.wakeAt;
-/** A Cloud home also wakes an hour after the last check, never before the routine's next check. A check that ran without
- * a checked time (trouble, or a run it queued) counts from now, so it can never hold the home awake. */
-const cloudChecksDue = (now: number) => (routine: Due) => {
+/** A Cloud home wakes for its routines' checks exactly on their schedule (the routine's next check), or sooner when a
+ * check has something to do on time. One already past stays due until the scheduler runs it. */
+const cloudChecksDue = (_now: number) => (routine: Due) => {
   if (routine.nextRunAt == null || !routine.checks?.length) return routine.wakeAt;
-  const hourly = (routine.checkedAt ?? now) + CHECK_WAKE_MS;
-  const retried = hourly <= now && routine.nextRunAt > now;
-  return Math.min(routine.wakeAt ?? Infinity, Math.max(retried ? now + CHECK_WAKE_MS : hourly, routine.nextRunAt));
+  return Math.min(routine.wakeAt ?? Infinity, routine.nextRunAt);
 };
 
 /** Hold the desktop awake: a run that started (or waits on a person), or one due within the horizon. */

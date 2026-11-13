@@ -90,7 +90,7 @@ contacts, not sends.
 - **Compute:** InstaBox bills by the running hour (0.4 c per vCPU-hour, 0.225 c per GiB-hour, disk 8 c per GiB a month).
   Each machine has a monthly cost ceiling of always-on cost x 1.065; past it, starts and backups are refused
   (`power/ceiling.ts`, `spend.ts`). So a machine that runs flat out all month costs about what its plan assumed.
-- **Sleep and wake:** asleep 12 min after the last input (`DUSK_MANAGED_IDLE_MINUTES`), 30 min once someone has been using it this hour, never more than 2 h with no input unless a bot works; at most 20 starts an hour and 96 a day
+- **Sleep and wake:** asleep 15 min after the start or the last input (`DUSK_MANAGED_IDLE_MINUTES`), 30 min once someone has been using it this hour, 5 min after work ends, never more than 2 h with no input unless a bot works; routines and their checks wake it on their own schedule; at most 20 starts an hour and 96 a day
   per machine on InstaBox; 20 wakes an hour from the web edge (`DUSK_MANAGED_EDGE_WAKES_PER_HOUR`); 60 power changes an
   hour per cloud from the dashboard. Our whole InstaBox workspace can start 30 machines a minute; alerts at 70% and up
   of the daily included starts.

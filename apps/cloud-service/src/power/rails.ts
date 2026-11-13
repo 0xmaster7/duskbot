@@ -29,8 +29,10 @@ export function freshMemory(now: number): PowerMemory { return { stats: freshSta
 export interface RailSettings {
   /** a start is never undone sooner than this */
   minUptimeMs: number;
-  /** never stop within this long of a person's last action */
+  /** never stop within this long of a person's last action, or of the start */
   minIdleMs: number;
+  /** never stop within this long of work finishing */
+  workBufferMs: number;
   /** someone using the home in earnest (engagedUses separate minutes of use in the last hour): never stop within this long of their last action */
   engagedIdleMs: number;
   engagedUses: number;
@@ -62,7 +64,7 @@ export interface RailSettings {
   costReserveStarts: number;
 }
 export const DEFAULT_RAILS: RailSettings = {
-  minUptimeMs: 6 * MINUTE, minIdleMs: 3 * MINUTE, engagedIdleMs: 30 * MINUTE, engagedUses: 3, maxNoInputMs: 2 * HOUR, wakeGraceMs: 3 * MINUTE, focusCapMs: 30 * MINUTE, routineGuardMs: 5 * MINUTE,
+  minUptimeMs: 6 * MINUTE, minIdleMs: 3 * MINUTE, workBufferMs: 5 * MINUTE, engagedIdleMs: 30 * MINUTE, engagedUses: 3, maxNoInputMs: 2 * HOUR, wakeGraceMs: 3 * MINUTE, focusCapMs: 30 * MINUTE, routineGuardMs: 5 * MINUTE,
   maxStartsPerHour: 4, maxStartsPerDay: 16, flapMs: 10 * MINUTE, maxMinIdleMs: 2 * HOUR,
   breakerFailures: 3, breakerWindowMs: 30 * MINUTE, breakerBaseMs: 5 * MINUTE, breakerMaxMs: 2 * HOUR, poolSoftShare: 0.5, hardCapShare: 0.9,
   costReserveStarts: 5,
@@ -111,9 +113,8 @@ export interface StopContext {
   focusSince: number | null;
   lastActivityAt: number | null;
   wakeRequestedAt: number | null;
-  /** a person's own wake of this start (the app, the dashboard), not a routine's or a connector's: the minimum idle counts
-   *  from it as from their last action; a home nobody woke or used only keeps its minimum uptime */
-  personWakeAt?: number | null;
+  /** the last time any work ran on the home (a turn, a run, a call, a computer, maintenance), from its power read */
+  lastWorkAt?: number | null;
   /** when the next run has to begin, at the earliest */
   nextRunAt: number | null;
   memory: PowerMemory;
@@ -162,6 +163,8 @@ export function stopRefusal(c: StopContext, rails: RailSettings = DEFAULT_RAILS)
   const { now, memory } = c, no = (reason: string, at: number): Refusal => ({ reason, recheckAt: Math.max(now + 15_000, at) });
   const busy = realBusy(c.busy);
   if (busy.length) return no(`busy:${busy[0]}`, now + MINUTE);
+  // work just finished: a short buffer for its follow-ups before any stop
+  if (c.lastWorkAt != null && now - c.lastWorkAt < rails.workBufferMs) return no("work_buffer", c.lastWorkAt + rails.workBufferMs);
   if (now - c.awakeSince < rails.minUptimeMs) return no("min_uptime", c.awakeSince + rails.minUptimeMs);
   if (c.wakeRequestedAt !== null && now - c.wakeRequestedAt < rails.wakeGraceMs) return no("wake_grace", c.wakeRequestedAt + rails.wakeGraceMs);
   if (c.focusSince !== null && c.busy.includes("focus")) {
@@ -169,8 +172,8 @@ export function stopRefusal(c: StopContext, rails: RailSettings = DEFAULT_RAILS)
     if (now < until) return no("focused", Math.min(until, now + 5 * MINUTE));
   }
   const { ms: minIdle, base } = minIdleFor(memory, now, rails);
-  const idleFrom = Math.max(c.lastActivityAt ?? 0, c.personWakeAt ?? 0);
-  if (idleFrom > 0 && now - idleFrom < minIdle) return no(minIdle > base ? "flap_backoff" : base > rails.minIdleMs ? "in_use" : "min_idle", idleFrom + minIdle);
+  const idleFrom = Math.max(c.lastActivityAt ?? 0, c.awakeSince);
+  if (now - idleFrom < minIdle) return no(minIdle > base ? "flap_backoff" : base > rails.minIdleMs ? "in_use" : "min_idle", idleFrom + minIdle);
   if (c.nextRunAt !== null && c.nextRunAt - now <= rails.routineGuardMs) return no("routine_due", c.nextRunAt + MINUTE);
   if (memory.breaker && memory.breaker.openUntil > now) return no("starts_failing", memory.breaker.openUntil);
   const hourStarts = countSince(memory.starts, now - HOUR), dayStarts = countSince(memory.starts, now - DAY);

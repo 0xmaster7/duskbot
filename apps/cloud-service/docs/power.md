@@ -66,13 +66,13 @@ stop, whatever the policy said.
 - **Never stop work:** a turn, a run, a call, a computer, maintenance (uploads, backups, installs), work that just
   ended, a wake just asked for (its delivery), a run about to start, an unknown busy code. A stop happens only after the
   home agreed in the sleep handshake.
-- **Minimum uptime** after a start, and a **minimum idle** after a person's last action: 12 minutes, or 30 once they used the
-  home in 3 separate minutes of the last hour. An open app or the dashboard on screen holds it up to 30 minutes past the later
-  of it opening and the last input. Past the rails, no hint and no cost guess keeps a home up 2 hours after the last input;
-  only work does (a turn, a run, a call, a computer, a sign-in, a transfer).
-- **Only a person earns the minimum idle:** a routine's or a connector's wake keeps only its minimum uptime and sleeps once
-  its work is done. Holds that are not a bot's own work (a transfer or other maintenance, a cloud computer, a live call)
-  stop counting after 6 hours with no bot working, no input and no bytes moving; the operator gets one alert per incident.
+- **Minimum uptime** after a start, and a **minimum idle** after the start or a person's last action: 15 minutes, or 30
+  once they used the home in 3 separate minutes of the last hour. An open app or the dashboard on screen holds it up to 30
+  minutes past the later of it opening and the last input. Work holds it (a turn, a run, a call, a computer, a sign-in, a
+  transfer), and 5 more minutes once work ends. Past the rails, no hint and no cost guess keeps a home up 2 hours after
+  the last input. A routine and its checks wake the home a couple of minutes before each due time, exactly on their own
+  schedule. Holds that are not a bot's own work stop counting after 6 hours with no bot working, no input and no bytes
+  moving; the operator gets one alert per incident.
 - **Daily check:** one ops alert a day listing every cloud that was awake over 12 hours of a UTC day without a bot working.
 - **No flapping:** each stop that a start followed within the flap window doubles the minimum idle for a day. The
   defaults (10 minutes, up to 2 hours, 4 starts an hour and 16 a day, 6 minutes of uptime) protect a scarce start
@@ -198,7 +198,7 @@ operator's alerts as the rolling day passes 70%, 100%, 150%, 200% and 500% of th
 
 - `DUSK_MANAGED_PROVIDER_PLAN` (`pro`, `builder`, `team`; default `pro`): the starts a minute the policy plans for
   (30, 50, 100).
-- `DUSK_MANAGED_IDLE_MINUTES` (default 12): the rails' minimum idle.
+- `DUSK_MANAGED_IDLE_MINUTES` (default 15): the rails' minimum idle.
 - `DUSK_MANAGED_WAKE_LEAD_MINUTES` (default 2): how long before a run its home wakes.
 
 ## The cost study

@@ -87,6 +87,8 @@ export interface HomeClient {
 export interface HomeUpdateReport { version: string | null; selfTest: "running" | "passed" | "failed" | null; runs: Array<{ id: string; ok: boolean; at: number }> }
 export interface HomePower {
   idle: boolean; busy: string[]; lastActivityAt: number | null; nextDueAt: number | null; wokeAt: number | null;
+  /** the last time work ran on the home (absent from an older home) */
+  lastWorkAt?: number | null;
   /** the runs due in the next day, when the home reports them; `flexMs` is how far a run may move (0: its exact time) */
   upcoming?: Array<{ at: number; flexMs: number }>;
   /** holds the home stopped counting after they ran past their cap with nothing moving (server/cloud-power.ts) */

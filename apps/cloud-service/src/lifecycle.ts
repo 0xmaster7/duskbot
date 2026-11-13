@@ -60,7 +60,7 @@ export interface ManagedSettings {
   lostAfterMs: number;
 }
 export const DEFAULT_MANAGED_SETTINGS: ManagedSettings = {
-  idleMinutes: 12, leaseSeconds: 2 * 3600, backupEveryMs: 24 * HOUR, backupKeep: 3, retentionDays: DEFAULT_RETENTION_DAYS,
+  idleMinutes: 15, leaseSeconds: 2 * 3600, backupEveryMs: 24 * HOUR, backupKeep: 3, retentionDays: DEFAULT_RETENTION_DAYS,
   deleteDelayDays: DEFAULT_DELETE_DELAY_DAYS, backupTailMs: 30 * DAY_MS, wakeLeadMs: 2 * MINUTE, edgeWakesPerHour: 20, powerReadMs: MINUTE, package: null, requireSigned: false, publicDomain: null, claims: false, maxBackupBytes: 4 * 1024 ** 3, lostAfterMs: 30 * MINUTE,
 };
 
@@ -85,7 +85,7 @@ export function managedSettingsFromEnv(env: NodeJS.ProcessEnv, options: { loopba
   if (!pkg) throw new Error("A managed cloud needs DUSK_MANAGED_HOME_PACKAGE_URL (or _FILE) with DUSK_MANAGED_HOME_PACKAGE_SHA256.");
   return { ...DEFAULT_MANAGED_SETTINGS, package: pkg, publicDomain,
     requireSigned: !options.loopback, claims: !options.loopback,
-    idleMinutes: number("DUSK_MANAGED_IDLE_MINUTES", 1, 24 * 60, 12),
+    idleMinutes: number("DUSK_MANAGED_IDLE_MINUTES", 1, 24 * 60, 15),
     leaseSeconds: number("DUSK_MANAGED_LEASE_HOURS", 1, 720, 2) * 3600,
     backupEveryMs: number("DUSK_MANAGED_BACKUP_HOURS", 1, 24 * 7, 24) * HOUR,
     backupKeep: number("DUSK_MANAGED_BACKUP_KEEP", 2, 30, 3),
@@ -825,8 +825,6 @@ export function createLifecycle(deps: LifecycleDeps) {
       if (wanted || due) {
         const intent = wanted && c.wakeRequestedAt !== undefined && now() - c.wakeRequestedAt < 5 * MINUTE;
         if (intent) deps.sleepPolicy.observe(m, c.wakeRequestedAt!, b.wakeBy === "webhook" ? "connector" : "user");
-        // only a person's wake earns the minimum idle; a routine's or a connector's is done once its work is
-        b.personWakeAt = intent && b.wakeBy !== "webhook" ? c.wakeRequestedAt! : null;
         if (intent) b.wakeBy = null;
         await start(c, intent ? "wake" : due ? "routine" : "wake", () => provider.power(c.serverId!, "on"), due ? plan!.latest : null); b.wakeStartedAt = now(); b.wakeFailureNoted = false; c.wantPower = "on";
         log(c, "wake", intent ? "owner" : "reconciler", due ? "routine_due" : "asked");
@@ -900,12 +898,12 @@ export function createLifecycle(deps: LifecycleDeps) {
     b.focusSince = busy.includes("focus") ? b.focusSince ?? now() : null;
     if (power.lastActivityAt !== null) { deps.sleepPolicy.observe(m, power.lastActivityAt, "user"); noteUse(m, power.lastActivityAt, now()); }
     const snapshot = { now: now(), cloudId: c.id, spec: c.spec, homeIdle: power.idle, awakeSince: c.powerSince, lastActivityAt: power.lastActivityAt, busy, focusSince: b.focusSince ?? null,
-      nextDueAt: power.nextDueAt, upcoming: b.upcoming, wakeRequestedAt: c.wakeRequestedAt ?? null, personWakeAt: b.personWakeAt ?? null, memory: m, spend: spendView(c) };
+      nextDueAt: power.nextDueAt, upcoming: b.upcoming, wakeRequestedAt: c.wakeRequestedAt ?? null, lastWorkAt: power.lastWorkAt ?? null, memory: m, spend: spendView(c) };
     const decision = deps.sleepPolicy.decide(snapshot);
     // the rails again, whatever the policy said: no policy stops a home they hold up
     const next = nextRun(plannedRuns(power.nextDueAt, b.upcoming, now()), now());
     const held = decision.action === "stop" ? stopRefusal({ now: now(), awakeSince: c.powerSince, busy, focusSince: b.focusSince ?? null, lastActivityAt: power.lastActivityAt,
-      wakeRequestedAt: c.wakeRequestedAt ?? null, personWakeAt: b.personWakeAt ?? null, nextRunAt: next ? runnableFrom(next) : null, memory: m, pool: pool(), profile: deps.costProfile, spend: spendView(c) }, rails) : null;
+      wakeRequestedAt: c.wakeRequestedAt ?? null, lastWorkAt: power.lastWorkAt ?? null, nextRunAt: next ? runnableFrom(next) : null, memory: m, pool: pool(), profile: deps.costProfile, spend: spendView(c) }, rails) : null;
     const reason = decision.action === "stay" ? decision.reason : held?.reason ?? null;
     if (b.stayReason !== reason) b.stayReason = reason;
     if (power.idle && decision.action === "stop" && !held && deps.home.sleep) {
