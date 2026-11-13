@@ -32,24 +32,26 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("the first run's list of what this Mac holds", () => {
-  it("lists bots first, then each AI tool once with everything new in it, in counts", () => {
+  it("lists only what has real content, Claude first, and keeps a few skills or tools as extras that come in with the rest", () => {
     const finds = localFinds(plan(app("OpenClaw", ["Atlas", "Juno"])), DETECTION);
-    expect(finds.map((find) => [find.id, find.app, find.summary])).toEqual([
-      ["bots:openclaw", "OpenClaw", "2 bots: Atlas and Juno"],
-      ["setup:claudeCode", "Claude Code", "2 skills, 1 tool, and your instructions"],
-      ["setup:codex", "Codex", "1 skill"],
-      ["setup:cursor", "Cursor", "1 tool"],
+    expect(finds.map((find) => [find.id, find.app, find.summary, Boolean(find.extra), Boolean(find.lead)])).toEqual([
+      ["setup:claudeCode", "Claude Code", "2 skills, 1 tool, and your instructions", false, true],
+      ["bots:openclaw", "OpenClaw", "2 bots: Atlas and Juno", false, false],
+      ["setup:codex", "Codex", "1 skill", true, false],
+      ["setup:cursor", "Cursor", "1 tool", true, false],
     ]);
   });
 
-  it("counts what each app's bots bring, and keeps a tool whose agents became bots to one row", () => {
+  it("leads with Claude, then Hermes Agent and OpenClaw, keeps a tool whose agents became bots to one row, and leaves Grok Bot to its prompt", () => {
     const hermes = app("Hermes Agent", ["Hermes", "Coder"]);
     (hermes.preview.plans[0] as unknown as { counts: object }).counts = { skills: 3, routines: 2, memories: 4, facts: 2 };
     const claude = app("Claude Code", ["Code Reviewer"]);
-    const finds = localFinds(plan(hermes, claude), DETECTION);
+    const grok = { ...app("Grok Bot", ["Desk"]), from: { name: "Grok Bot", key: "grok-bot" } };
+    const finds = localFinds(plan(app("OpenClaw", ["Atlas"]), hermes, claude, grok), DETECTION);
     expect(finds.map((find) => [find.id, find.summary, find.source ?? null])).toEqual([
-      ["bots:hermes agent", "2 bots: Hermes and Coder. 3 skills, 2 paused routines, 4 memories, and 2 things about you", null],
       ["bots:claude code", "1 bot: Code Reviewer. 2 skills, 1 tool, and your instructions", "claudeCode"],
+      ["bots:hermes agent", "2 bots: Hermes and Coder. 3 skills, 2 paused routines, 4 memories, and 2 things about you", null],
+      ["bots:openclaw", "1 bot: Atlas", null],
       ["setup:codex", "1 skill", "codex"],
       ["setup:cursor", "1 tool", "cursor"],
     ]);
@@ -82,7 +84,7 @@ describe("bringing the chosen in", () => {
     expect(bringRunNow()).toEqual({ kind: "done", failed: false, line: "Brought in 2 bots, 2 skills, 1 tool, and your instructions." });
     await vi.waitFor(() => expect(f.api).toHaveBeenCalledWith("/api/bots/dusk/import-note", expect.anything()));
     const note = JSON.parse(f.api.mock.calls.find(([path]) => path === "/api/bots/dusk/import-note")![1].body);
-    expect(note).toMatchObject({ from: ["OpenClaw", "Claude Code"], skills: 2, tools: 1, instructions: ["Claude Code"], failed: false });
+    expect(note).toMatchObject({ from: ["Claude Code", "OpenClaw"], skills: 2, tools: 1, instructions: ["Claude Code"], failed: false });
   });
 
   it("names a failure and keeps what did come in", async () => {

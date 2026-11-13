@@ -110,8 +110,28 @@ function readExportFiles(machine: SetupMachine): GrokFoundFile[] {
   });
 }
 
-export function lookForGrokBot(machine: SetupMachine): GrokLook {
-  return { files: readExportFiles(machine), bots: rosterBots(machine) };
+/** `downloads: false` leaves Downloads unopened, so macOS asks nothing (the first run looks for Grok Bot's roster only). */
+export function lookForGrokBot(machine: SetupMachine, options: { downloads?: boolean } = {}): GrokLook {
+  return { files: options.downloads === false ? [] : readExportFiles(machine), bots: rosterBots(machine) };
+}
+
+/** The notes another AI saved for dusk bot (NOTES_PROMPT asks for dusk-bot-notes.json in Downloads; a browser numbers a
+ * second copy "dusk-bot-notes (1).json"). Only real files of that name, changed after `since`, at most NOTES_FILE_MAX
+ * bytes each; nothing else in Downloads is opened. */
+export const NOTES_FILE = /^dusk-bot-notes[^/\\]{0,40}\.json$/i;
+export const NOTES_FILE_MAX = 2 * 1024 * 1024;
+const MAX_NOTES_FILES = 10;
+
+export function lookForNotes(machine: SetupMachine, since: number): GrokFoundFile[] {
+  const folder = join(machine.home, "Downloads");
+  const found = (machine.fs.readdir(folder) ?? []).filter((name) => NOTES_FILE.test(name)).flatMap((name) => {
+    const stats = machine.fs.lstat(join(folder, name));
+    return stats?.isFile() && stats.size <= NOTES_FILE_MAX && stats.mtimeMs > since ? [{ name, modifiedAt: stats.mtimeMs }] : [];
+  }).sort((a, b) => a.modifiedAt - b.modifiedAt).slice(0, MAX_NOTES_FILES);
+  return found.flatMap(({ name, modifiedAt }) => {
+    const raw = machine.fs.read(join(folder, name), NOTES_FILE_MAX, false);
+    return raw ? [{ name, modifiedAt, text: raw.toString("utf8") }] : [];
+  });
 }
 
 /** Security: a Cursor sign-in saved by an older version may still be here. Nothing reads it, so no live token stays behind. */

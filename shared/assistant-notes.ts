@@ -17,7 +17,7 @@ export const NOTES_PROMPT = `I'm moving to a new assistant, dusk bot, and want i
 
 Go through everything you have: your saved memories, my custom instructions and personalization, every custom GPT, Project, Gem, agent or bot I made with its own instructions and the files attached to it, my scheduled tasks, my connected apps, and what you've learned about me from our chats.
 
-Create a file named dusk-bot-notes.json holding the JSON below and give it to me to download. If you can't create files, put the whole JSON in one \`\`\`json code block instead.
+Save it as a file named dusk-bot-notes.json in my Downloads folder: if you can write files on my computer, write it straight to ~/Downloads/dusk-bot-notes.json; otherwise give me a download link for it. If you can't make files at all, put the whole JSON in one \`\`\`json code block instead.
 
 {
   "format": "${NOTES_FORMAT}",
@@ -59,7 +59,7 @@ Rules:
 - Write only what you actually know. Never guess; leave a list empty instead.
 - Leave out passwords, API keys, tokens, account numbers and card numbers.
 - Valid JSON only, no comments.
-- If it doesn't fit in one reply, split it: send part 1 now, ending at a complete item, and tell me to say "continue" for the next part. Each part is valid JSON on its own, in this same shape, with the same "format".
+- If it doesn't fit in one file or reply, split it: part 1 now, ending at a complete item, and tell me to say "continue" for the next. Name the files dusk-bot-notes-2.json, dusk-bot-notes-3.json and so on. Each part is valid JSON on its own, in this same shape, with the same "format".
 `;
 
 export interface AssistantNotes {

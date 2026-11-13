@@ -1,8 +1,9 @@
 // Notes from another AI, as the chat takes them: pasted or dropped into any chat, and one quiet line in the first bot's
 // chat while they are on their way.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { X } from "../icons";
-import { copyNotesPrompt, importNotes, isNotesPrompt, notesErrorLine, notesOutcomeLine, scheduleNotesReminder, stopWaiting, useNotesWaiting } from "@/lib/assistant-notes";
+import { localSetupImport } from "@/lib/setup-import";
+import { copyNotesPrompt, importNotes, notesWatch, takeNotesFromDownloads, WATCH_EVERY_MS, isNotesPrompt, notesErrorLine, notesOutcomeLine, scheduleNotesReminder, stopWaiting, useNotesWaiting } from "@/lib/assistant-notes";
 import { myDefaultBot, useViewerEmail } from "@/lib/default-bot";
 import { t } from "@/lib/i18n";
 import { useStore } from "@/state/store";
@@ -17,6 +18,28 @@ export function useNotesIntake() {
     void importNotes(text, { bots: state.bots, aboutMe: state.config?.profile?.aboutMe ?? "", team: Boolean(state.config?.team), firstBotId, dispatch })
       .then(notesOutcomeLine, notesErrorLine).then(say);
   }, [state.bots, state.config?.profile?.aboutMe, state.config?.team, firstBotId, dispatch]);
+}
+
+/** While the prompt's answer may still come, Downloads is checked every few seconds for the dusk-bot-notes.json it
+ * asks for, and a new one comes in by itself, with the first bot's note saying so. Only on the desktop app's own
+ * computer; never before the prompt was copied. Paste and drop still work the whole time. */
+export function useNotesFromDownloads() {
+  const { state, dispatch } = useStore();
+  const firstBotId = myDefaultBot(state.bots, useViewerEmail())?.id ?? null;
+  const context = useRef({ bots: state.bots, aboutMe: "", team: false, firstBotId, dispatch });
+  context.current = { bots: state.bots, aboutMe: state.config?.profile?.aboutMe ?? "", team: Boolean(state.config?.team), firstBotId, dispatch };
+  const local = Boolean(state.config) && localSetupImport(state.config?.cloudHome === true);
+  useEffect(() => {
+    if (!local) return;
+    let busy = false;
+    const timer = setInterval(() => {
+      const watch = notesWatch();
+      if (busy || !watch || Date.now() > watch.until) return;
+      busy = true;
+      void takeNotesFromDownloads(context.current).finally(() => { busy = false; });
+    }, WATCH_EVERY_MS);
+    return () => clearInterval(timer);
+  }, [local]);
 }
 
 /** One reminder 15 minutes after the prompt was copied, while its answer hasn't come: a system notification that opens

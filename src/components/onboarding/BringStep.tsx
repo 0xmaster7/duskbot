@@ -28,18 +28,27 @@ function FindRow({ find, on, onToggle }: { find: LocalFind; on: boolean; onToggl
   );
 }
 
-export function BringStep({ finds, grokWaiting, onGrok, onBring, onNext }: {
-  /** null while still looking */
+export function BringStep({ finds, grokWaiting, onBring, onNext }: {
+  /** null while still looking. Extras are never rows: they come in with whatever is chosen. */
   finds: readonly LocalFind[] | null;
+  /** Grok Bot's bots on this computer, by name: they move through the prompt, like an AI online. */
   grokWaiting: readonly string[];
-  onGrok: () => void;
   onBring: (chosen: LocalFind[]) => void;
   onNext: () => void;
 }) {
   const [off, setOff] = useState<ReadonlySet<string>>(() => new Set());
   const [copy, setCopy] = useState<"idle" | "copied" | "failed">("idle");
-  const chosen = (finds ?? []).filter((find) => !off.has(find.id));
-  const found = Boolean(finds?.length);
+  const rows = (finds ?? []).filter((find) => !find.extra);
+  const extras = (finds ?? []).filter((find) => find.extra);
+  const chosen = rows.filter((find) => !off.has(find.id));
+  const found = rows.length > 0;
+  const lead = rows.filter((find) => find.lead);
+  const rest = rows.filter((find) => !find.lead);
+  const list = (items: LocalFind[], label?: string) => items.length > 0 && (
+    <ul aria-label={label} className={cn("m-0 flex w-full max-w-[420px] list-none flex-col gap-1.5 p-0", items === rest && lead.length > 0 && "mt-3")}>
+      {items.map((find) => <FindRow key={find.id} find={find} on={!off.has(find.id)} onToggle={() => toggle(find.id)} />)}
+    </ul>
+  );
   const toggle = (id: string) => setOff((was) => {
     const next = new Set(was);
     if (next.has(id)) next.delete(id);
@@ -55,7 +64,7 @@ export function BringStep({ finds, grokWaiting, onGrok, onBring, onNext }: {
   );
 
   const promptBox = (
-    <div data-bring-prompt="" className={cn("w-full max-w-[420px] rounded-[14px] bg-ink/[0.035] text-start", found && "mt-3")}>
+    <div data-bring-prompt="" className={cn("w-full max-w-[420px] rounded-[14px] bg-ink/[0.035] text-start", lead.length > 0 && "mt-3")}>
       <div className="flex items-center justify-between gap-3 ps-4 pe-1.5 pt-1.5">
         <span id="bring-prompt-label" className="text-[12px] leading-4 text-ink-tertiary">{found ? t("bring.cloudAsk") : t("bring.promptLabel")}</span>
         <button type="button" data-bring-copy="" aria-label={copy === "copied" ? t("bring.copiedShort") : t("bring.copyPrimary")} onClick={() => void copyPrompt()}
@@ -75,7 +84,7 @@ export function BringStep({ finds, grokWaiting, onGrok, onBring, onNext }: {
     <StepFrame title={t("bring.title")} sub={found ? t("bring.sub") : t("bring.subNone")}
       footer={found ? (
         <>
-          <button type="button" data-primary="" data-bring-go="" autoFocus disabled={!chosen.length} onClick={() => onBring(chosen)} className={PRIMARY}>{t("bring.bring")}</button>
+          <button type="button" data-primary="" data-bring-go="" autoFocus disabled={!chosen.length} onClick={() => onBring([...chosen, ...extras])} className={PRIMARY}>{t("bring.bring")}</button>
           <button type="button" data-bring-skip="" onClick={onNext} className={QUIET}>{t("funnel.skip")}</button>
           {copiedLine && <div className="mt-3 flex justify-center">{copiedLine}</div>}
         </>
@@ -87,16 +96,14 @@ export function BringStep({ finds, grokWaiting, onGrok, onBring, onNext }: {
       )}>
       {finds === null && <p role="status" data-bring-looking="" className="text-[13px] leading-[18px] text-ink-tertiary">{t("bring.looking")}</p>}
       {finds !== null && !found && promptBox}
-      {found && (
-        <ul aria-label={t("bring.foundLabel")} className="m-0 flex w-full max-w-[420px] list-none flex-col gap-1.5 p-0">
-          {finds!.map((find) => <FindRow key={find.id} find={find} on={!off.has(find.id)} onToggle={() => toggle(find.id)} />)}
-        </ul>
-      )}
+      {/* Claude first, then the prompt for AIs online, then the agent apps on this computer */}
+      {found && list(lead, t("bring.foundLabel"))}
       {found && promptBox}
+      {found && list(rest, t("bring.foundLabel"))}
       {grokWaiting.length > 0 && (
-        <p data-bring-grok="" className="mt-3 max-w-[420px] text-[13px] leading-[18px] text-ink-secondary">
-          {t("botMove.grokWaiting", { names: new Intl.ListFormat(activeLocale(), { style: "long", type: "conjunction" }).format(grokWaiting) })}{" "}
-          <button type="button" onClick={onGrok} className="rounded text-ink underline decoration-ink/25 underline-offset-2 hover:decoration-ink">{t("botMove.grokOpen")}</button>
+        <p data-bring-grok="" className="mt-3 max-w-[420px] text-pretty text-[13px] leading-[18px] text-ink-secondary">
+          {t("bring.grokLine", { names: new Intl.ListFormat(activeLocale(), { style: "long", type: "conjunction" }).format(grokWaiting) })}{" "}
+          <button type="button" data-bring-grok-copy="" onClick={() => void copyPrompt()} className="rounded text-ink underline decoration-ink/25 underline-offset-2 hover:decoration-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">{t("bring.grokCopy")}</button>
         </p>
       )}
     </StepFrame>

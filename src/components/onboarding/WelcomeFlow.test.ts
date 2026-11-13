@@ -386,13 +386,14 @@ describe("bots from another app on this computer", () => {
     expect(title()).toBe("bring what you already use");
     expect(text()).toContain("Molty");
     expect([...host.querySelectorAll("[data-bring-find]")].map((row) => [row.getAttribute("data-bring-find"), row.getAttribute("aria-checked")]))
-      .toEqual([["bots:openclaw", "true"], ["setup:claudeCode", "true"], ["setup:cursor", "true"]]);
-    await choose('[data-bring-find="setup:cursor"]');
+      .toEqual([["bots:openclaw", "true"]]);
+    // a skill or an MCP server alone is no row: it comes in with the rest
+    expect(text()).not.toContain("Cursor");
     await press("bring it in");
     expect(step(), "the run goes on at once").toBe("phone");
     await settle();
     const applied = f.api.mock.calls.filter(([path, init]) => path === "/api/setup-import" && init?.method === "POST").map(([, init]) => JSON.parse(init.body));
-    expect(applied).toEqual([{ skills: true, tools: true, instructions: true, sources: ["claudeCode"] }]);
+    expect(applied).toEqual([{ skills: true, tools: true, instructions: true, sources: ["claudeCode", "cursor"] }]);
     expect(f.api.mock.calls.filter(([path]) => String(path).startsWith("/api/teams/import"))).toHaveLength(1);
     expect(host.querySelector("[data-bring-status]")?.textContent).toBe("Brought in 1 bot and 1 skill.");
   });

@@ -133,7 +133,7 @@ mac:
     NSSpeechRecognitionUsageDescription: Your voice is transcribed on this Mac to type messages for you.
     NSAccessibilityUsageDescription: Accessibility is used when you let a bot control this Mac.
     NSScreenCaptureUsageDescription: Screen Recording lets bots see this Mac before acting.
-    NSDownloadsFolderUsageDescription: Downloads is checked for the file your Grok Bot saved when you move it here.
+    NSDownloadsFolderUsageDescription: Downloads is checked for the notes file another AI saved for you (dusk-bot-notes.json), so it comes in by itself.
   # Notarization runs manually after the build (notarytool + staple),
   # mirroring the BlueyLite ship_release.sh flow.
   notarize: false

@@ -6,6 +6,7 @@ import type { LocaleKey } from "@/locales";
 import { api, type Action } from "@/state/store";
 import type { InstructionsSource, SetupDetection, SetupImportResult, SetupSource } from "../../shared/setup-import";
 import { movable, planCounts, runBotMove, type AppMove, type BotMovePlan } from "./bot-move";
+import { GROK_FROM } from "../../shared/grok-import";
 import { aboutMeSaver } from "./assistant-notes";
 import { postImportNote } from "./import-note";
 import { setupImportApi, type SetupImportClient } from "./setup-import";
@@ -17,6 +18,10 @@ export interface LocalFind {
   summary: string;
   bots?: AppMove;
   source?: SetupSource;
+  /** Little to see on its own (a few skills, MCP servers, saved commands): not a row, brought in with the rest. */
+  extra?: boolean;
+  /** One of the sources people use most (Claude): listed first, above the prompt for AIs online. */
+  lead?: boolean;
 }
 
 const list = (parts: string[]) => new Intl.ListFormat(activeLocale(), { style: "long", type: "conjunction" }).format(parts);
@@ -37,12 +42,23 @@ function botsSummary(app: AppMove): string {
   return rest.length ? `${bots}. ${list(rest)}` : bots;
 }
 
-/** Bots first (they are the most to lose), then each AI tool once with everything new in it. A tool whose agents came
- * in as bots (Claude Code's, Gemini CLI's) is one row with both. */
+/** Where a find sits: Claude first, then the agent apps people move from (Hermes Agent, OpenClaw), then the rest. */
+function rank(find: LocalFind): number {
+  const key = (find.bots?.from.key ?? "").replace(/[^a-z0-9]+/g, "-");
+  if (find.source === "claudeCode" || find.source === "claudeDesktop" || key === "claude-code") return 0;
+  if (key === "hermes-agent") return 1;
+  if (/^(?:openclaw|clawdbot|moltbot)$/.test(key)) return 2;
+  return find.bots ? 3 : 4;
+}
+
+/** What this computer holds, one row per app with real content in it: bots, standing instructions, or Claude's own
+ * setup. A tool that would only add a few skills, MCP servers or saved commands is an `extra`: brought in with the rest,
+ * never a row. Grok Bot's exports are left to its prompt. A tool whose agents came in as bots (Claude Code's, Gemini
+ * CLI's) is one row with both. */
 export function localFinds(plan: BotMovePlan | null, detection: SetupDetection | null): LocalFind[] {
   const finds: LocalFind[] = [];
   for (const app of plan?.apps ?? []) {
-    if (!app.preview.plans.length) continue;
+    if (!app.preview.plans.length || app.from.key === GROK_FROM.key) continue;
     finds.push({ id: `bots:${app.from.key}`, app: app.app, bots: app, summary: botsSummary(app) });
   }
   for (const source of SOURCE_ORDER) {
@@ -58,9 +74,9 @@ export function localFinds(plan: BotMovePlan | null, detection: SetupDetection |
     const name = t(`onboarding.import.source.${source}` as LocaleKey);
     const same = finds.find((find) => find.bots && !find.source && find.app === name);
     if (same) Object.assign(same, { source, summary: `${same.summary}. ${list(parts)}` });
-    else finds.push({ id: `setup:${source}`, app: name, source, summary: list(parts) });
+    else finds.push({ id: `setup:${source}`, app: name, source, summary: list(parts), ...(instructions || source === "claudeDesktop" ? {} : { extra: true }) });
   }
-  return finds;
+  return finds.map((find) => (rank(find) === 0 ? { ...find, lead: true } : find)).sort((a, b) => rank(a) - rank(b));
 }
 
 export type BringRun =

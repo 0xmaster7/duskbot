@@ -24,7 +24,8 @@ describe("the copy prompt", () => {
       "preferences", "writing_style", "tools", "schedule", "open_threads", "recurring_tasks", "connected_apps", "knowledge_files", "word for word",
     ]) expect(NOTES_PROMPT).toContain(key);
     // a file to download, or a code block where the assistant can't make files; parts that each stand alone
-    expect(NOTES_PROMPT).toContain("Create a file named dusk-bot-notes.json");
+    expect(NOTES_PROMPT).toContain("Save it as a file named dusk-bot-notes.json in my Downloads folder");
+    expect(NOTES_PROMPT).toContain("write it straight to ~/Downloads/dusk-bot-notes.json; otherwise give me a download link");
     expect(NOTES_PROMPT).toContain("one ```json code block");
     expect(NOTES_PROMPT).toMatch(/custom GPT, Project, Gem/);
     expect(NOTES_PROMPT).toContain("Each part is valid JSON on its own");

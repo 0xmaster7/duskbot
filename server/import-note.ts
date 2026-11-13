@@ -36,5 +36,5 @@ export function importNoteText(input: ImportNoteFacts, language?: string): strin
     ...(facts.failed ? [say("server.importNote.failed")] : []),
     say("server.importNote.ask"),
   ];
-  return [say("server.importNote.lead", { apps: and(facts.from) }), ...lines.map((line) => `- ${line}`), "", after.join(" ")].join("\n");
+  return [say(facts.via === "downloads" ? "server.importNote.leadDownloads" : "server.importNote.lead", { apps: and(facts.from) }), ...lines.map((line) => `- ${line}`), "", after.join(" ")].join("\n");
 }

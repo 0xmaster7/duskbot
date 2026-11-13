@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { lookForGrokBot, removeOldCursorSignIn } from "./grok-local.ts";
+import { lookForGrokBot, lookForNotes, NOTES_FILE_MAX, removeOldCursorSignIn } from "./grok-local.ts";
 import { thisMachine, type SetupFs, type SetupMachine } from "./setup-import.ts";
 
 const homes: string[] = [];
@@ -117,5 +117,35 @@ describe("what the desktop app finds about Grok Bot", () => {
     expect(existsSync(token)).toBe(false);
     expect(existsSync(kept)).toBe(true);
     expect(() => removeOldCursorSignIn(join(home, "data"))).not.toThrow();
+  });
+});
+
+describe("notes another AI saved to Downloads", () => {
+  it("reads only dusk-bot-notes*.json saved after the prompt was copied, small, real files, oldest first", () => {
+    const { home, put } = fixtureHome();
+    const copiedAt = Date.now() - 60_000;
+    const at = (path: string, ms: number) => utimesSync(join(home, path), ms / 1000, ms / 1000);
+    put("Downloads/dusk-bot-notes.json", '{"format":"dusk-bot-notes","from":"ChatGPT"}');
+    at("Downloads/dusk-bot-notes.json", copiedAt + 20_000);
+    put("Downloads/dusk-bot-notes (1).json", '{"format":"dusk-bot-notes","from":"Claude"}');
+    at("Downloads/dusk-bot-notes (1).json", copiedAt + 10_000);
+    put("Downloads/dusk-bot-notes-old.json", "{}");
+    at("Downloads/dusk-bot-notes-old.json", copiedAt - 10_000);
+    const big = put("Downloads/dusk-bot-notes-big.json", "x".repeat(NOTES_FILE_MAX + 1));
+    const other = put("Downloads/bank-statement.json", "{}");
+    const secret = put("secret.json", "{}");
+    symlinkSync(secret, join(home, "Downloads", "dusk-bot-notes-link.json"));
+    const machine = machineAt(home);
+    expect(lookForNotes(machine, copiedAt).map((file) => file.name)).toEqual(["dusk-bot-notes (1).json", "dusk-bot-notes.json"]);
+    for (const path of [big, other, secret]) expect(machine.opened).not.toContain(path);
+  });
+
+  it("is nothing without a Downloads folder, and the first run's Grok look can leave Downloads unopened", () => {
+    const { home, put } = fixtureHome();
+    expect(lookForNotes(machineAt(home), 1)).toEqual([]);
+    const exported = put("Downloads/grok-bot-export-desk.json", "{}");
+    const machine = machineAt(home);
+    expect(lookForGrokBot(machine, { downloads: false }).files).toEqual([]);
+    expect(machine.opened).not.toContain(exported);
   });
 });

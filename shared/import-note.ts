@@ -24,6 +24,8 @@ export const importNoteSchema = z.object({
   reconnect: count,
   /** Some of it couldn't come in. */
   failed: z.boolean().default(false),
+  /** It came by itself, from the notes file saved in Downloads. */
+  via: z.enum(["downloads"]).optional(),
 }).strict();
 
 export type ImportNoteFacts = z.input<typeof importNoteSchema>;

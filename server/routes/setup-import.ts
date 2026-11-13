@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { claudeUserMcpEnabled, DATA_DIR, type AppConfig } from "../config.ts";
 import { lookForBots } from "../bot-move-local.ts";
-import { lookForGrokBot, removeOldCursorSignIn } from "../grok-local.ts";
+import { lookForGrokBot, lookForNotes, removeOldCursorSignIn } from "../grok-local.ts";
 import { applySetupImport, detectSetup, thisMachine, type SetupHost, type SetupMachine } from "../setup-import.ts";
 import { SETUP_SOURCES } from "../../shared/setup-import.ts";
 import type { BusyFlag } from "./config.ts";
@@ -25,6 +25,8 @@ export interface SetupImportRouteDeps {
 export const SETUP_IMPORT_PATH = "/api/setup-import";
 export const GROK_LOOK_PATH = "/api/setup-import/grok";
 export const BOTS_LOOK_PATH = "/api/setup-import/bots";
+/** The notes file another AI saved to Downloads after the prompt was copied (`?since=` its time, in ms). */
+export const NOTES_LOOK_PATH = "/api/setup-import/notes";
 const LOCAL_ONLY = "Only the desktop app on the computer running dusk bot can bring in that computer's skills and tools.";
 const SOURCES = SETUP_SOURCES;
 const requestSchema = z.object({
@@ -45,11 +47,20 @@ export function createSetupImportRoutes(deps: SetupImportRouteDeps): RouteHandle
     claudeUserMcp: () => claudeUserMcpEnabled(deps.cfg),
   };
   return async ({ req, res, path, method, auth, json, readBody }) => {
+    if (path === NOTES_LOOK_PATH) {
+      if (method !== "GET") return json(res, 405, { error: "method not allowed" });
+      if (!deps.local || auth.kind !== "loopback" || auth.trust === "service") return json(res, 403, { error: LOCAL_ONLY });
+      res.setHeader("Cache-Control", "no-store");
+      const since = Number(new URL(req.url ?? "", "http://local").searchParams.get("since"));
+      if (!Number.isFinite(since) || since <= 0) return json(res, 400, { error: "since must be a time in ms" });
+      return json(res, 200, { files: lookForNotes(machine(), since) });
+    }
     if (path === GROK_LOOK_PATH || path === BOTS_LOOK_PATH) {
       if (method !== "GET") return json(res, 405, { error: "method not allowed" });
       if (!deps.local || auth.kind !== "loopback" || auth.trust === "service") return json(res, 403, { error: LOCAL_ONLY });
       res.setHeader("Cache-Control", "no-store");
-      return json(res, 200, path === GROK_LOOK_PATH ? lookForGrokBot(machine()) : lookForBots(machine(), { dataDir: deps.dataDir ?? DATA_DIR }));
+      const downloads = new URL(req.url ?? "", "http://local").searchParams.get("downloads") !== "0";
+      return json(res, 200, path === GROK_LOOK_PATH ? lookForGrokBot(machine(), { downloads }) : lookForBots(machine(), { dataDir: deps.dataDir ?? DATA_DIR }));
     }
     if (path !== SETUP_IMPORT_PATH) return PASS;
     if (method !== "GET" && method !== "POST") return json(res, 405, { error: "method not allowed" });

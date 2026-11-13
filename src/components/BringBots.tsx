@@ -154,7 +154,8 @@ export function BringBotsView({ plan, step, bot, variant, onBring, onSkip, onCon
 }
 
 /** Looks, plans and moves; the plan is null while looking, and stays empty when nothing is here. */
-export function useBotMove(options: { look?: boolean } = {}) {
+/** `downloads: false`: Grok Bot exports in Downloads are not looked for (the first run, where macOS must not ask yet). */
+export function useBotMove(options: { look?: boolean; downloads?: boolean } = {}) {
   const { state, dispatch } = useStore();
   const [plan, setPlan] = useState<BotMovePlan | null>(null);
   const [step, setStep] = useState<BringStep>({ kind: "offer" });
@@ -164,7 +165,7 @@ export function useBotMove(options: { look?: boolean } = {}) {
 
   const look = useCallback(async () => {
     const [found, servers] = await Promise.all([
-      lookForOtherBots(),
+      lookForOtherBots(undefined, { downloads: options.downloads !== false }),
       api<{ servers?: Array<{ name: string }> }>("/api/mcp/servers", { timeoutMs: BOTS_LOOK_TIME_BOX_MS }).then((answer) => answer.servers ?? [], () => []),
     ]);
     const next = planBotMove(found, { bots: facts.current.bots, servers: new Set(servers.map((server) => server.name)), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone });

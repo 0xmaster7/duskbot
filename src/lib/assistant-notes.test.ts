@@ -9,7 +9,8 @@ import { setLocale } from "@/lib/i18n";
 import { NOTES_FORMAT } from "../../shared/assistant-notes";
 import { GrokImportError } from "../../shared/grok-import";
 import {
-  copyNotesPrompt, importNotes, notesErrorLine, notesInFiles, notesOutcomeLine, notesWaiting, REMIND_AFTER_MS, scheduleNotesReminder, stopWaiting,
+  copyNotesPrompt, importNotes, notesErrorLine, notesInFiles, notesOutcomeLine, notesWaiting, notesWatch, REMIND_AFTER_MS, scheduleNotesReminder, stopWaiting,
+  takeNotesFromDownloads, WATCH_FOR_MS,
 } from "./assistant-notes";
 
 const memoryStorage = () => {
@@ -147,3 +148,43 @@ describe("bringing notes in", () => {
     expect(await notesInFiles([file("readme.md", "plain")])).toBeNull();
   });
 });
+
+describe("the notes file in Downloads", () => {
+  const context = () => ({ bots: [], aboutMe: "", team: false, firstBotId: "dusk", dispatch: vi.fn() });
+  const serve = (files: Array<{ name: string; modifiedAt: number; text: string }>) => f.api.mockImplementation(async (path: string, init?: { method?: string; body?: string }) => {
+    if (path.startsWith("/api/setup-import/notes?")) return { files };
+    if (path === "/api/config") return { profile: JSON.parse(init!.body!).profile };
+    if (path.includes("/memory/file?")) return { text: "" };
+    if (path === "/api/mcp/servers") return { servers: [] };
+    return { ok: true };
+  });
+
+  it("is never looked for before the prompt was copied, then only from that moment", async () => {
+    serve([]);
+    expect(await takeNotesFromDownloads(context())).toBeNull();
+    expect(f.api, "no copy, no look at Downloads").not.toHaveBeenCalled();
+    f.copy.mockResolvedValue("copied");
+    await copyNotesPrompt(5_000);
+    await takeNotesFromDownloads(context(), 6_000);
+    expect(f.api).toHaveBeenCalledWith("/api/setup-import/notes?since=5000", expect.anything());
+    f.api.mockClear();
+    expect(await takeNotesFromDownloads(context(), 5_000 + WATCH_FOR_MS + 1), "the watch ends").toBeNull();
+    expect(f.api).not.toHaveBeenCalled();
+  });
+
+  it("brings a new file in by itself, once, and the first bot says it found it in Downloads", async () => {
+    f.copy.mockResolvedValue("copied");
+    await copyNotesPrompt(1_000);
+    f.runBotMove.mockResolvedValue([{ report: { bots: [], failed: [] } }]);
+    serve([{ name: "dusk-bot-notes.json", modifiedAt: 2_000, text: notes({ bots: [] }) }]);
+    const outcome = await takeNotesFromDownloads(context(), 3_000);
+    expect(outcome).toMatchObject({ from: "Claude", memories: 1 });
+    await vi.waitFor(() => expect(f.api).toHaveBeenCalledWith("/api/bots/dusk/import-note", expect.anything()));
+    expect(JSON.parse(f.api.mock.calls.find(([path]) => path === "/api/bots/dusk/import-note")![1].body)).toMatchObject({ via: "downloads", from: ["Claude"] });
+    expect(notesWatch()!.taken).toEqual(["dusk-bot-notes.json:2000"]);
+    f.api.mockClear();
+    expect(await takeNotesFromDownloads(context(), 4_000), "the same file never twice").toBeNull();
+    expect(f.api.mock.calls.filter(([path]) => String(path).includes("/memory/file"))).toEqual([]);
+  });
+});
+

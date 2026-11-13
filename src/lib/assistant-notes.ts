@@ -54,11 +54,63 @@ export function useNotesWaiting(): NotesWaiting | null {
   return useSyncExternalStore((listener) => { listeners.add(listener); return () => listeners.delete(listener); }, notesWaiting, () => null);
 }
 
-/** Copies the prompt and starts waiting for its answer; a copy again keeps the first start, so the reminder stays put. */
+/** Copies the prompt and starts waiting for its answer; a copy again keeps the first start, so the reminder stays put.
+ * It also starts watching Downloads for the file the prompt asks for: only from now, so macOS asks about Downloads
+ * when the person has just asked for that file, never before. */
 export async function copyNotesPrompt(now = Date.now()): Promise<boolean> {
   const copied = (await copyText(NOTES_PROMPT)) === "copied";
   if (copied && !notesWaiting()) setWaiting({ since: now });
+  if (copied) {
+    const watch = notesWatch();
+    const live = watch && now <= watch.until;
+    setWatch({ since: live ? watch.since : now, until: now + WATCH_FOR_MS, taken: watch?.taken ?? [] });
+  }
   return copied;
+}
+
+const WATCH_KEY = "dusk.notesWatch";
+/** How long after a copy Downloads is checked for the notes file, and how much longer after each one that came. */
+export const WATCH_FOR_MS = 3 * 60 * 60_000;
+export const WATCH_AFTER_FILE_MS = 30 * 60_000;
+export const WATCH_EVERY_MS = 4_000;
+
+/** `since`: the first copy; only files saved after it are read. `taken`: files already brought in, by name and time. */
+export interface NotesWatch { since: number; until: number; taken: string[] }
+
+export function notesWatch(): NotesWatch | null {
+  try {
+    const parsed = JSON.parse(storage()?.getItem(WATCH_KEY) ?? "null") as Partial<NotesWatch> | null;
+    return parsed && typeof parsed.since === "number" && typeof parsed.until === "number"
+      ? { since: parsed.since, until: parsed.until, taken: Array.isArray(parsed.taken) ? parsed.taken.filter((one): one is string => typeof one === "string") : [] }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function setWatch(next: NotesWatch) {
+  try { storage()?.setItem(WATCH_KEY, JSON.stringify(next)); } catch {}
+}
+
+/** The notes file another AI saved to Downloads since the prompt was copied, brought in once: each file (or the parts
+ * of a split one, together) by its name and time. Null when nothing new is there, or the watch is over. */
+export async function takeNotesFromDownloads(context: NotesContext, now = Date.now()): Promise<NotesOutcome | null> {
+  const watch = notesWatch();
+  if (!watch || now > watch.until) return null;
+  const answer = await api<{ files?: Array<{ name: string; modifiedAt: number; text: string }> }>(
+    `/api/setup-import/notes?since=${Math.floor(watch.since)}`, { timeoutMs: 10_000 },
+  ).catch(() => null);
+  const fresh = (answer?.files ?? []).filter((file) => !watch.taken.includes(`${file.name}:${file.modifiedAt}`));
+  if (!fresh.length) return null;
+  const latest = notesWatch() ?? watch;
+  setWatch({ ...latest, until: Math.max(latest.until, now + WATCH_AFTER_FILE_MS), taken: [...latest.taken, ...fresh.map((file) => `${file.name}:${file.modifiedAt}`)].slice(-50) });
+  const notes = fresh.filter((file) => looksLikeNotes(file.text) && !isNotesPrompt(file.text));
+  if (!notes.length) return null;
+  try {
+    return await importNotes(notes.map((file) => file.text).join("\n\n"), context, { via: "downloads" });
+  } catch {
+    return null;
+  }
 }
 
 /** One reminder, REMIND_AFTER_MS after the prompt was copied, only while still waiting and only once. Missed while the
@@ -175,7 +227,7 @@ async function joinMovedBots(notes: AssistantNotes, bots: readonly Bot[], movedN
 
 /** Everything in the notes, each part on its own: About me, the first bot's memory, then a bot for each of the other
  * AI's own assistants. A part that fails leaves the others in; the waiting stops once anything came in. */
-export async function importNotes(text: string, context: NotesContext): Promise<NotesOutcome> {
+export async function importNotes(text: string, context: NotesContext, options: { via?: "downloads" } = {}): Promise<NotesOutcome> {
   const notes = parseNotes(text);
   const outcome: NotesOutcome = { from: notes.from.name, facts: 0, memories: 0, threads: 0, bots: 0, botNames: [], joined: 0, routines: 0, failed: [], lost: [], partial: notes.partial };
   let aboutMe = context.aboutMe;
@@ -203,7 +255,7 @@ export async function importNotes(text: string, context: NotesContext): Promise<
   }
   const came = outcome.facts || outcome.memories || outcome.threads || outcome.bots || outcome.joined;
   if (came || !(outcome.failed.length || outcome.lost!.length)) stopWaiting();
-  if (came && context.firstBotId) void postImportNote(context.firstBotId, notesNoteFacts(outcome));
+  if (came && context.firstBotId) void postImportNote(context.firstBotId, { ...notesNoteFacts(outcome), ...(options.via ? { via: options.via } : {}) });
   return outcome;
 }
 

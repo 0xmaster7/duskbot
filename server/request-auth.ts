@@ -574,6 +574,8 @@ function mutatingPublicRoute(method: string, path: string): boolean {
   if (upper === "GET" && path === "/api/setup-import/grok") return true;
   // Hands out other agent apps' bots: their personas, memory and routines.
   if (upper === "GET" && path === "/api/setup-import/bots") return true;
+  // Hands out the notes another AI saved about the person to their Downloads folder.
+  if (upper === "GET" && path === "/api/setup-import/notes") return true;
   // Drives a bot's browser: a WebSocket upgrade is a GET, but what it carries is input.
   if (/^\/api\/bots\/[\w-]+\/browser\/stream$/.test(path)) return true;
   if (["GET", "HEAD", "OPTIONS"].includes(upper)) return false;

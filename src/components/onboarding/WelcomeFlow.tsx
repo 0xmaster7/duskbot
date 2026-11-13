@@ -114,7 +114,7 @@ export function WelcomeFlow({
   // what other AI apps left on this computer: looked for from the start, in the background, so the step is ready by the
   // time it shows; the step itself is there either way, for the AIs that live online
   const offersMove = !replay && desktop && localSetupImport(state.config?.cloudHome === true);
-  const move = useBotMove({ look: offersMove });
+  const move = useBotMove({ look: offersMove, downloads: false });
   const [detection, setDetection] = useState<SetupDetection | null | undefined>(offersMove ? undefined : null);
   useEffect(() => {
     if (!offersMove) return;
@@ -280,7 +280,7 @@ export function WelcomeFlow({
       body = <AiStep tested={tested} onNext={next} />;
       break;
     case "bring":
-      body = <BringStep finds={finds} grokWaiting={move.plan?.grokWaiting ?? []} onGrok={() => setGrokOpen(true)} onBring={bring} onNext={next} />;
+      body = <BringStep finds={finds} grokWaiting={move.plan?.grokWaiting ?? []} onBring={bring} onNext={next} />;
       break;
     case "phone":
       body = <PhoneStep onNext={next} />;

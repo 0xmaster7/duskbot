@@ -15,11 +15,11 @@ export interface BotMoveLook {
 export const NOTHING: BotMoveLook = { bots: EMPTY_LOOK, grok: { files: [], bots: [] } };
 
 /** Settles within `ms`: a slow or failed look reads as nothing found, never as an error in the way. */
-export async function lookForOtherBots(ms = BOTS_LOOK_TIME_BOX_MS): Promise<BotMoveLook> {
+export async function lookForOtherBots(ms = BOTS_LOOK_TIME_BOX_MS, options: { downloads?: boolean } = {}): Promise<BotMoveLook> {
   const signal = AbortSignal.timeout(ms);
   const [bots, grok] = await Promise.all([
     api<unknown>("/api/setup-import/bots", { signal, timeoutMs: ms }).then(readBotLook, () => EMPTY_LOOK),
-    api<Partial<GrokLook> | null>("/api/setup-import/grok", { signal, timeoutMs: ms }).then(
+    api<Partial<GrokLook> | null>(`/api/setup-import/grok${options.downloads === false ? "?downloads=0" : ""}`, { signal, timeoutMs: ms }).then(
       (look) => ({ files: Array.isArray(look?.files) ? look.files : [], bots: Array.isArray(look?.bots) ? look.bots : [] }),
       () => ({ files: [], bots: [] }),
     ),
