@@ -1,6 +1,6 @@
 import { ArrowLeft } from "@/icons";
 import type { BotReport, ComputerReport, WorkspaceDetail } from "../../../../shared/dashboard-protocol";
-import { ago, bytes, compact, until, usd } from "../lib/format";
+import { ago, compact, until, usd } from "../lib/format";
 import { Link } from "../lib/router";
 import { Button, Card, cx, KV, PageHeader, SectionTitle, Stat } from "../ui/kit";
 import { botMood } from "../data/mood";
@@ -114,7 +114,6 @@ export function BotPage({ id }: { id: string }) {
                     <dl className="">
                       <KV k="state" v={<StatePill state={computer.state} />} />
                       <KV k="where" v={bot.computer ? PLACE[bot.computer] : computer.kind} />
-                      <KV k="memory" v={computer.memoryBytes !== null ? `${bytes(computer.memoryBytes)}${computer.memoryLimitBytes ? ` of ${bytes(computer.memoryLimitBytes)}` : ""}` : "n/a"} />
                       <KV k="last used" v={ago(computer.lastUsedAt, now)} />
                     </dl>
                   ) : <p className="text-14 text-ink-3">{bot.name} has no computer of its own. give it one in the app's bot settings.</p>}
