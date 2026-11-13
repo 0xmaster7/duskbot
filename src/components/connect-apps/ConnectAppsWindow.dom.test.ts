@@ -7,6 +7,8 @@ const fixture = vi.hoisted(() => ({
   api: vi.fn(),
   opened: [] as string[],
   closed: false,
+  /** how the last key or broker sign-in's poll ends, when a test says so */
+  pollEnd: null as ((result: "connected" | "timed_out" | "expired" | "failed") => void) | null,
   connected: { slack: { connected: true, accounts: [{ id: "ca_1", status: "ACTIVE" }] } } as Record<string, unknown>,
   dispatch: vi.fn(),
   memory: null as { services: Record<string, unknown>; authoritative: boolean } | null,
@@ -42,7 +44,7 @@ vi.mock("@/lib/connector-oauth", async (original) => ({
   ...await original<typeof import("@/lib/connector-oauth")>(),
   reserveConnectionPage: () => ({ open: async (url: string) => { fixture.opened.push(url); return true; }, cancel: () => {}, closed: () => fixture.closed }),
 }));
-vi.mock("@/lib/connector-poll", () => ({ pollConnector: () => () => {} }));
+vi.mock("@/lib/connector-poll", () => ({ pollConnector: (_before: unknown, _read: unknown, onEnd: NonNullable<typeof fixture.pollEnd>) => { fixture.pollEnd = onEnd; return () => {}; } }));
 // sealing has its own tests (src/lib/sealed-send.test.ts): here the patch the key step asked to save is what the server gets
 vi.mock("@/lib/sealed-send", () => ({ putConfig: (patch: unknown) => fixture.api("/api/config", { method: "PUT", body: JSON.stringify(patch) }) }));
 vi.mock("@/lib/logins", () => ({ listLogins: async () => ({ logins: [], onePassword: { connected: false } }) }));
@@ -193,6 +195,29 @@ describe("the Connect Apps window", () => {
     await act(async () => { dialog().querySelector<HTMLButtonElement>("[data-cancel]")!.click(); });
     expect(dialog().querySelector("[data-connect-line]")).toBeNull();
     expect(shown()).toBe("connect Asana");
+  });
+
+  // regression: with a key, the link running out put the card back on connect with no word of what happened
+  it("a key's sign-in link that runs out says so, with Retry that starts a new one", async () => {
+    act(() => root.unmount());
+    root = createRoot(document.body.appendChild(document.createElement("div")));
+    await act(async () => { root.render(createElement(ConnectAppsWindow, { page: { kind: "detail", id: "asana" }, nonce: 4, onClose, onTemplates: vi.fn() })); });
+    await flush();
+    const primary = () => dialog().querySelector<HTMLButtonElement>(".ca-primary")!;
+    const shown = () => primary().querySelector("span:not([aria-hidden])")?.textContent;
+    await act(async () => { primary().click(); });
+    await flush();
+    expect(shown()).toBe("open page again");
+    await act(async () => { fixture.pollEnd!("timed_out"); });
+    const line = dialog().querySelector("[data-connect-line]");
+    expect(line?.textContent).toBe("Asana didn't connect in time, so the sign-in link expired.");
+    expect(line?.getAttribute("role")).toBe("alert");
+    expect(shown()).toBe("retry");
+    await act(async () => { primary().click(); });
+    await flush();
+    expect(fixture.opened).toEqual(["https://connect.example/asana", "https://connect.example/asana"]);
+    expect(shown(), "a new try waits again").toBe("open page again");
+    expect(dialog().querySelector("[data-connect-line]")?.textContent).toBe("Finish signing in on the page that opened. This updates by itself.");
   });
 
   it("one app stuck connecting never holds the others, and Cancel puts it back", async () => {
@@ -505,6 +530,15 @@ describe("the Connect Apps window", () => {
         await waitingThen(() => { throw new ApiError("Couldn't reach Composio.", 502, { code: "composio_unreachable" }); }, 10 * 60_000 + 20_000);
         expect(line()).toBe("Couldn't reach Composio for a while. Check your connection and retry.");
         expect(shownLabel()).toBe("retry");
+      });
+
+      // regression: back here 75 s ended the wait as "page closed" though the page was still open in the browser
+      it("staying back here a while without finishing keeps waiting for the link's life", async () => {
+        await waitingThen(() => ({ status: "waiting" }), 0);
+        await act(async () => { window.dispatchEvent(new Event("focus")); });
+        await act(async () => { await vi.advanceTimersByTimeAsync(5 * 60_000); });
+        expect(line()).toBe("Not connected yet. If you closed Composio's page, open it again.");
+        expect(shownLabel()).toBe("open page again");
       });
 
       it("Composio refuses: its own words, Retry", async () => {

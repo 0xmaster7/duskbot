@@ -130,6 +130,8 @@ export function useConnectors(): Connectors {
   const [stale, setStale] = useState(connectorStatusMemory()?.authoritative === false);
   const [phase, setPhase] = useState<ConnectorInventoryPhase>(connectorStatusMemory() === null ? "loading" : "ready");
   const [pendingUrls, setPendingUrls] = useState<Record<string, PendingAuthorization>>({});
+  // a sign-in through a key or the broker whose link ran out unfinished: said, with Retry, until the next try
+  const [expiredLinks, setExpiredLinks] = useState<Record<string, true>>({});
   // per app: one app's slow connect never holds another's
   const [busy, setBusy] = useState<Record<string, true>>({});
   const [aliasFor, setAliasFor] = useState<string | null>(null);
@@ -257,10 +259,13 @@ export function useConnectors(): Connectors {
     return next;
   });
 
+  const forgetExpired = (slug: string) => setExpiredLinks((current) => current[slug] ? Object.fromEntries(Object.entries(current).filter(([key]) => key !== slug)) as Record<string, true> : current);
+
   const startPolling = (slug: string, before: ConnectorStatus | undefined) => {
     polls.current.get(slug)?.();
     const stop = pollConnector(before, () => refreshStatus([slug]).then((services) => services[slug]), (result) => {
       if (polls.current.get(slug) === stop) polls.current.delete(slug);
+      if (result === "timed_out" || result === "expired") setExpiredLinks((current) => ({ ...current, [slug]: true }));
       connectorConnect(slug, result);
     });
     polls.current.set(slug, stop);
@@ -330,9 +335,10 @@ export function useConnectors(): Connectors {
   };
 
   /** Waits for the sign-in on Composio's page: reads the app's accounts with backoff, at once when the window is back in
-   * front, until one is active, the page is closed, the link expires, the person stays back here a while without
-   * finishing, or Composio says the sign-in is gone. Trouble reaching Dusk or Composio (a restart, the network) is
-   * retried and said, never silent; the link's own deadline holds even while a read hangs. */
+   * front, until one is active, the page we opened is closed, the link expires, or Composio says the sign-in is gone.
+   * Time spent back here is no signal (the page may still be open in the browser), so the wait lasts the link's life.
+   * Trouble reaching dusk or Composio (a restart, the network) is retried and said, never silent; the link's own
+   * deadline holds even while a read hangs. */
   const pollVia = (slug: string, url: string, since: number, closed?: () => boolean) => {
     stopVia(slug);
     if (!mounted.current) return;
@@ -341,7 +347,6 @@ export function useConnectors(): Connectors {
     let attempt = 0;
     let back = false;
     let trouble = false;
-    let gaveUp = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const reads = new AbortController();
     const tick = async () => {
@@ -354,14 +359,13 @@ export function useConnectors(): Connectors {
         if (!alive) return;
         trouble = false;
         if (answer.status === "connected") { void finishVia(slug); return; }
-        if (wasClosed || gaveUp) { failVia(slug, "cancelled"); return; }
+        if (wasClosed) { failVia(slug, "cancelled"); return; }
         flowOf(slug, { step: "waiting", url, since, ...(back ? { note: "notYet" as const } : {}) });
       } catch (cause) {
         if (!alive) return;
         const failure = classifyViaError(cause);
         if (failure.kind === "signedOut") { failVia(slug, "signedOut"); return; }
         if (failure.kind === "refused") { failVia(slug, "refused", failure.message); return; }
-        if (gaveUp) { failVia(slug, "offline"); return; }
         trouble = true;
         flowOf(slug, { step: "waiting", url, since, note: "trouble" });
       } finally {
@@ -372,7 +376,7 @@ export function useConnectors(): Connectors {
       attempt += 1;
       timer = setTimeout(() => void tick(), viaDelay(attempt));
     };
-    const unwatch = watchReturn(() => { back = true; attempt = 0; void tick(); }, () => { gaveUp = true; void tick(); });
+    const unwatch = watchReturn(() => { back = true; attempt = 0; void tick(); }, () => {});
     const deadline = setTimeout(() => { if (alive) failVia(slug, trouble ? "offline" : "timeout"); }, Math.max(0, since + VIA_DEADLINE_MS - Date.now()));
     timer = setTimeout(() => void tick(), viaDelay(0));
     viaPolls.current.set(slug, () => {
@@ -535,6 +539,7 @@ export function useConnectors(): Connectors {
     begin(slug, launch);
     generations.current.set(slug, (generations.current.get(slug) ?? 0) + 1);
     setError(null);
+    forgetExpired(slug);
     try {
       const createdAt = Date.now();
       if (replacing) await api(`/api/connectors/${slug}/accounts/${encodeURIComponent(replacing.id)}`, { method: "DELETE" });
@@ -642,6 +647,7 @@ export function useConnectors(): Connectors {
     stopVia(slug);
     keepPendingVia(slug, null);
     flowOf(slug, null);
+    forgetExpired(slug);
     polls.current.get(slug)?.();
     polls.current.delete(slug);
     setPendingUrls((current) => current[slug] ? Object.fromEntries(Object.entries(current).filter(([key]) => key !== slug)) : current);
@@ -663,6 +669,7 @@ export function useConnectors(): Connectors {
     if (flow?.step === "waiting") return { kind: "continue", url: flow.url };
     if (flow?.step === "failed") return { kind: "failed", why: flow.why, ...(flow.message ? { message: flow.message } : {}) };
     if ((flow?.step === "done" || viaApps[card.slug]) && !hasActiveConnection(state)) return { kind: "connected" };
+    if (expiredLinks[card.slug] && !hasActiveConnection(state)) return { kind: "failed", why: "timeout" };
     if (phase === "loading") return { kind: "checking" };
     if (pending && live) return { kind: "continue", url: live };
     const reconnect = accountToReconnect(state);

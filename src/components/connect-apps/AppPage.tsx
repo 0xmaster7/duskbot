@@ -160,7 +160,11 @@ export function AppPage({ model }: { model: AppPageModel }) {
   const otherWays = ways ? ways.filter((way) => way.key !== leadWay) : [];
   const remoteNote = model.remote && remoteLeads ? t(model.remote.open ? "connectApps.remote.open" : "connectApps.remote.note", { name: entry.label }) : null;
   // a sign-in out on the page that opened, through a key or the broker: say so beside Open page again, as the via path does
-  const waitLine = !viaStatus && primary?.waiting === true && phase?.kind === "continue" ? { text: t("connectApps.gmail.waiting"), tone: "status" as const } : null;
+  // its link ran out unfinished: said beside Retry, not a quiet Connect again
+  const waitLine = viaStatus ? null
+    : primary?.waiting === true && phase?.kind === "continue" ? { text: t("connectApps.gmail.waiting"), tone: "status" as const }
+    : phase?.kind === "failed" && phase.why === "timeout" ? { text: t("connectApps.via.timeout", { name: entry.label }), tone: "alert" as const }
+    : null;
   const block = !gmail && !keyCard && Boolean(primary || viaStatus || remoteNote);
   const othersBusy = otherWays.some((way) => way.connected || way.action?.busy === true || way.action?.pending === true)
     || (ownFirst && (flow !== undefined || askingKey || askingAlias || accounts.length > 0 || model.remote?.busy === true

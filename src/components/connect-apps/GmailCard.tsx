@@ -42,6 +42,7 @@ export function gmailCard(input: GmailInput): GmailCardModel {
   else if (!line && input.via && input.viaSignedIn && !flow) line = { text: t("connectApps.gmail.next"), tone: "status" };
   else if (!line && phase?.kind === "continue") line = { text: t("connectApps.gmail.waiting"), tone: "status" };
   else if (!line && phase?.kind === "reconnect") line = { text: t("connectApps.gmail.reconnect"), tone: "alert" };
+  else if (!line && phase?.kind === "failed" && phase.why === "timeout") line = { text: t("connectApps.via.timeout", { name }), tone: "alert" };
   const connecting = action?.busy === true || action?.waiting === true || flow?.step === "authorizing" || flow?.step === "waiting"
     || phase?.kind === "connecting" || phase?.kind === "continue";
   const state: GmailState = connected ? "connected" : line?.tone === "alert" ? "error" : connecting ? "connecting" : "idle";
