@@ -7,7 +7,7 @@ import { SkyEmpty } from "../ui/Sky";
 import { Link, navigate, useLocation } from "../lib/router";
 import { useToasts } from "../lib/toast";
 import mark from "../../favicon.svg";
-import { useAdmin } from "./api";
+import { adminData, setAdminData, useAdmin } from "./api";
 import { OverviewPage } from "./Overview";
 import { DetailsPage } from "./Details";
 import { RetentionPage } from "./Retention";
@@ -99,6 +99,20 @@ function useShortcuts(openHelp: () => void) {
   }, [openHelp]);
 }
 
+/** whose analytics the pages show: the live site's (read only) or this service's own; people, clouds and revenue stay this service's */
+function DataSwitch({ live }: { live: string }) {
+  const current = adminData();
+  const pick = (value: "live" | "own") => { if (value === current) return; setAdminData(value); location.reload(); };
+  return (
+    <div role="radiogroup" aria-label="analytics from" className="mb-1 flex w-fit gap-0.5 rounded-full bg-card p-0.5 text-12" title="the analytics pages read this site; people, clouds and revenue are always this service's">
+      {([["live", live], ["own", "preview"]] as const).map(([value, label]) => (
+        <button key={value} type="button" role="radio" aria-checked={current === value} onClick={() => pick(value)}
+          className={cx("h-7 rounded-full px-2.5 transition-colors duration-150 ease-out", current === value ? "bg-bg text-ink" : "text-ink-3 hover:text-ink-2")}>{label}</button>
+      ))}
+    </div>
+  );
+}
+
 function Toasts() {
   const toasts = useToasts();
   return <ToastStack items={toasts.map((t) => ({ id: t.id, className: "max-w-[440px] rounded-[22px] bg-primary px-4.5 py-3 text-14 text-primary-ink", content: t.text }))} />;
@@ -106,7 +120,7 @@ function Toasts() {
 
 export function AdminApp() {
   const { path } = useLocation();
-  const me = useAdmin<{ admin: true; email: string; environment: string; version: string | null }>("/me");
+  const me = useAdmin<{ admin: true; email: string; environment: string; version: string | null; live?: string | null }>("/me");
   const [help, setHelp] = useState(false);
   useShortcuts(() => setHelp(true));
   const inMore = MORE.some((item) => on(path, item));
@@ -172,6 +186,7 @@ export function AdminApp() {
           </div>
         </nav>
         <div className="mt-auto flex flex-col gap-1 px-1">
+          {me.data?.live && <DataSwitch live={me.data.live} />}
           {me.data && <span className="truncate px-2 text-12 text-ink-3" title={me.data.email}>{me.data.email}</span>}
           {me.data && <span className="t-meta px-2 !text-[11.5px]">{me.data.environment} · {me.data.version ?? "dev"}</span>}
           <button type="button" onClick={() => setTheme(dark ? "light" : "dark")} className="hover-ghost mt-2 flex h-9 items-center gap-2 rounded-full px-2 text-13 text-ink-3">{dark ? <Sun size={15} strokeWidth={1.75} aria-hidden /> : <Moon size={15} strokeWidth={1.75} aria-hidden />}{dark ? "light mode" : "dark mode"}</button>
@@ -181,7 +196,7 @@ export function AdminApp() {
       <header className="sticky top-0 z-20 bg-bg/95 backdrop-blur lg:hidden">
         <div className="flex h-12 items-center justify-between px-4">
           <Link to="/admin" className="flex items-center gap-2" aria-label="dusk bot admin, overview"><img src={mark} alt="" width={22} height={22} className="size-[22px]" /><span className="text-[15px] font-[550] tracking-[-0.02em]">dusk bot</span><span className="tag !h-[22px] !px-2">admin</span></Link>
-          <Link to="/" className="text-link text-13">app</Link>
+          <span className="flex items-center gap-2">{me.data?.live && <DataSwitch live={me.data.live} />}<Link to="/" className="text-link text-13">app</Link></span>
         </div>
         <nav aria-label="admin" className="scroll-x flex gap-1 px-3 pb-2">
           {ALL.map((item, i) => (

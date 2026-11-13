@@ -18,12 +18,21 @@ async function csrf() {
   return fetchedCsrf ?? "";
 }
 
+/** which analytics the panel reads when the service has a live site's too (preview reading dusk.bot): "live" or "own" */
+const DATA_KEY = "dusk-admin-data";
+export function adminData(): "live" | "own" {
+  try { return localStorage.getItem(DATA_KEY) === "own" ? "own" : "live"; } catch { return "live"; }
+}
+export function setAdminData(value: "live" | "own") {
+  try { if (value === "own") localStorage.setItem(DATA_KEY, "own"); else localStorage.removeItem(DATA_KEY); } catch { /* private mode keeps the default */ }
+}
+
 export async function adminCall<T>(path: string, init: { method?: string; body?: unknown; signal?: AbortSignal } = {}): Promise<T> {
   const method = init.method ?? (init.body === undefined ? "GET" : "POST");
   let res: Response;
   try {
     res = await fetch(`/v1/admin${path}`, { method, credentials: "same-origin", signal: init.signal,
-      headers: { accept: "application/json", ...(init.body === undefined ? {} : { "content-type": "application/json" }), ...(method === "GET" ? {} : { [CSRF_HEADER]: await csrf() }) },
+      headers: { accept: "application/json", ...(adminData() === "own" ? { "x-dusk-admin-data": "own" } : {}), ...(init.body === undefined ? {} : { "content-type": "application/json" }), ...(method === "GET" ? {} : { [CSRF_HEADER]: await csrf() }) },
       ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }) });
   } catch (error) {
     if ((error as Error).name === "AbortError") throw error;

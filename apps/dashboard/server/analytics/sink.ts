@@ -92,13 +92,10 @@ type AuditDoc = Omit<AuditEntry, "id" | "at"> & { _id: string; at: Date };
 
 /** analytics_events (TTL on `at`), analytics_daily (kept), analytics_marks (TTL on `expiresAt`), admin_audit (kept) */
 export async function mongoSink(db: Db): Promise<AnalyticsSink> {
-  const events = db.collection<EventDoc>("analytics_events"), daily = db.collection<{ _id: string; day: string; name: string; count: number }>("analytics_daily");
-  const marks = db.collection<{ _id: string; expiresAt: Date | null }>("analytics_marks"), audits = db.collection<AuditDoc>("admin_audit");
-  const notes = db.collection<{ _id: string; at: Date; text: string; by: string; createdAt: Date }>("analytics_notes");
+  const { events, daily, marks, audits, notes } = collectionsOf(db);
   if (!(await db.listCollections({ name: "analytics_crawls" }, { nameOnly: true }).toArray()).length) {
     await db.createCollection("analytics_crawls", { capped: true, size: 64 * 1024 * 1024, max: CRAWL_CAP }).catch((error: { code?: number }) => { if (error.code !== 48) throw error; });
   }
-  const crawlCollection = db.collection<{ at: Date; bot: string; kind: Crawl["kind"]; path: string; host: string | null }>("analytics_crawls");
   await Promise.all([
     events.createIndexes([{ key: { at: 1 }, expireAfterSeconds: RAW_RETENTION_DAYS * 86_400 }, { key: { accountId: 1, at: -1 } }, { key: { name: 1, at: -1 } }, { key: { "ctx.session": 1, at: 1 }, sparse: true }]),
     daily.createIndexes([{ key: { day: 1, name: 1 } }]),
@@ -106,6 +103,24 @@ export async function mongoSink(db: Db): Promise<AnalyticsSink> {
     audits.createIndexes([{ key: { at: -1 } }, { key: { target: 1, at: -1 } }]),
     notes.createIndexes([{ key: { at: 1 } }]),
   ]);
+  return sinkOf(db);
+}
+
+/** another service's analytics, read only (preview's admin reading dusk.bot's): no setup, and every write refuses */
+export function readonlySink(db: Db): AnalyticsSink {
+  const refuse = () => Promise.reject(new Error("These analytics are read only."));
+  return { ...sinkOf(db), insert: refuse, bump: refuse, once: refuse, forget: refuse, audit: refuse, saveNote: refuse, deleteNote: refuse, crawl: refuse };
+}
+
+function collectionsOf(db: Db) {
+  return { events: db.collection<EventDoc>("analytics_events"), daily: db.collection<{ _id: string; day: string; name: string; count: number }>("analytics_daily"),
+    marks: db.collection<{ _id: string; expiresAt: Date | null }>("analytics_marks"), audits: db.collection<AuditDoc>("admin_audit"),
+    notes: db.collection<{ _id: string; at: Date; text: string; by: string; createdAt: Date }>("analytics_notes"),
+    crawlCollection: db.collection<{ at: Date; bot: string; kind: Crawl["kind"]; path: string; host: string | null }>("analytics_crawls") };
+}
+
+function sinkOf(db: Db): AnalyticsSink {
+  const { events, daily, marks, audits, notes, crawlCollection } = collectionsOf(db);
   const toEvent = (doc: EventDoc): StoredEvent => ({ id: doc._id, name: doc.name, at: doc.at.getTime(), accountId: doc.accountId, props: doc.props ?? {}, ...(doc.ctx ? { ctx: doc.ctx } : {}) });
   return {
     async insert(event) { await events.insertOne({ _id: event.id, name: event.name, at: new Date(event.at), accountId: event.accountId, props: event.props, ...(event.ctx ? { ctx: event.ctx } : {}) }); },

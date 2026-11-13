@@ -43,6 +43,9 @@ claim a success). Tests and local fixtures keep JSON files in the data folder.
   `dusk_prod` (`readWrite` on `dusk_prod`, `read` on `dusk` for the waitlist through `DUSK_WAITLIST_DB=dusk`); the
   staging copy (`preview.dusk.bot`, `dusk-account`) keeps `dusk`. Each holds its own database's lease, so they never
   block each other, and preview's test accounts and clouds never reach production. The daily dump covers both.
+- Preview's admin reads dusk.bot's analytics (events, daily counts, accounts) from `dusk_prod` as the user `dusk_admin_ro`
+  (`read` on `dusk_prod` only), through `DUSK_ADMIN_ANALYTICS_URI` and `DUSK_ADMIN_ANALYTICS_DB`. It never writes there;
+  a switch in the admin sidebar shows preview's own instead.
 
 | Collection | What | Key | Indexes |
 | --- | --- | --- | --- |

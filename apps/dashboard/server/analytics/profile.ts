@@ -2,6 +2,7 @@
 // (30 minutes of quiet starts a new one), with where they first came from, what they paid and how long that took.
 // Pure functions; the admin route hands them the person's events and billing records.
 import { UPSELL_EVENTS } from "../../../../shared/cloud-upsell.ts";
+import { BILLING_CONFIG } from "../billing/plans.ts";
 import type { StoredEvent } from "./sink.ts";
 import type { Payment } from "./revenue.ts";
 import type { Visit } from "./web.ts";
@@ -111,7 +112,9 @@ export function stepOf(event: StoredEvent): Step | null {
     case "cloud_state": {
       const to = str(p.to) ?? "changed";
       const name = p.from === "new" ? "cloud created" : to === "running" ? "cloud running" : to === "deleted" || to === "destroyed" ? "cloud deleted" : `cloud ${words(to)}`;
-      return step(event, "cloud", "server", name, { detail: str(p.kind) ? words(p.kind) : null });
+      // the cloud's plan by name (shared_s is plus), not its internal kind
+      const plan = str(p.kind) ? (BILLING_CONFIG.desktops as Record<string, { label: string } | undefined>)[String(p.kind)]?.label.toLowerCase() ?? words(p.kind) : null;
+      return step(event, "cloud", "server", name, { detail: plan ? `${plan} plan` : null });
     }
     case "checkout_paid": return step(event, "paid", "server", "paid", { amountCents: Number(p.amountCents) || 0 });
     default: return null;

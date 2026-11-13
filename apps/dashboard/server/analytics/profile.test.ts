@@ -32,6 +32,8 @@ describe("person profile", () => {
       [ev("app_open", T, { kind: "mobile", platform: "ios" }), { kind: "app", name: "opened the phone app", detail: "ios" }],
       [ev("first_bot_reply", T), { kind: "reply", name: "first bot reply" }],
       [ev("cloud_state", T, { from: "new", to: "provisioning", kind: "starter" }), { kind: "cloud", name: "cloud created" }],
+      [ev("cloud_state", T, { from: "running", to: "sleeping", kind: "shared_s" }), { kind: "cloud", name: "cloud sleeping", detail: "plus plan" }],
+      [ev("cloud_state", T, { from: "sleeping", to: "running", kind: "dedicated" }), { kind: "cloud", name: "cloud running", detail: "dedicated plan" }],
       [ev("app_error", T, { kind: "window", code: "error" }), { kind: "error", detail: "window error" }],
       [ev("app_action", T, { name: "upsell_click", source: "app_routines" }), { kind: "upsell", name: "upsell_click", detail: "app_routines" }],
       [ev("checkout_paid", T, { amountCents: 1500 }), { kind: "paid", amountCents: 1500 }],

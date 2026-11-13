@@ -14,7 +14,8 @@ import { FEEDBACK_KINDS, feedbackAnswer } from "../analytics/feedback.ts";
 /** the app and account events the deeper usage questions read */
 const MORE_EVENTS = ["app_action", "app_open", "app_close", "app_error", "app_feature", "onboarding_step", "onboarding_done", "page_view", "site_view", "cloud_state"] as const;
 import { EVENTS, EVENT_NAMES, isEventName } from "../analytics/events.ts";
-import type { StoredEvent } from "../analytics/sink.ts";
+import type { AnalyticsSink, StoredEvent } from "../analytics/sink.ts";
+import type { LiveData } from "./live.ts";
 import { brevoChecker, waitlistCsv, type WaitlistSource } from "./waitlist.ts";
 import { healthTargets, newestBackup, probe, spoolCount, type ErrorCounter } from "./health.ts";
 import { AnalyticsRouteError, createAnalyticsRoutes } from "./analytics-routes.ts";
@@ -41,6 +42,8 @@ export interface AdminOptions {
   /** the slack edge's measured cloud wake times by desktop kind */
   wakeStats?: () => Partial<Record<string, { medianMs: number; p90Ms: number; samples: number }>>;
   waitlist: WaitlistSource | null;
+  /** another service's analytics, read only, shown by default (preview's admin reads dusk.bot's); x-dusk-admin-data: own shows this service's */
+  live?: LiveData | null;
   now: () => number;
   fetch?: typeof fetch;
   env?: NodeJS.ProcessEnv;
@@ -79,6 +82,29 @@ export function createAdmin(options: AdminOptions) {
   const brevo = brevoChecker({ apiKey: env.DUSK_BREVO_API_KEY, listId: env.DUSK_BREVO_WAITLIST_LIST_ID, fetch: options.fetch, now });
   const targets = healthTargets(env.DUSK_ADMIN_HEALTH_URLS);
   const deep = createAnalyticsRoutes({ auth, billing, analytics, workspaces: options.workspaces, now, actor: id => auth.directory().accounts.find(account => account.id === id)?.email ?? null });
+
+  /** which data the analytics pages read: this service's, or the live service's (its events, daily counts and accounts;
+   *  no money, clouds, devices or workspaces, which stay on its own admin). the waitlist pairs with the live site only. */
+  const live = options.live ?? null;
+  type Directory = ReturnType<Auth["directory"]>;
+  type View = { live: boolean; sink: AnalyticsSink; directory: () => Directory; store: () => Billing["store"]["state"]; clouds: () => StoredCloud[]; workspaces: () => StoredWorkspace[];
+    waitlist: WaitlistSource | null; deep: typeof deep };
+  const ownView: View = { live: false, sink: analytics.sink, directory: () => auth.directory(), store: () => billing.store.state, clouds: () => billing.clouds.all?.() ?? [],
+    workspaces: options.workspaces, waitlist: live ? null : options.waitlist, deep };
+  const NO_MONEY = { customers: [], checkouts: [], subscriptions: [], licenses: [], invoices: [], credits: [], webhookEvents: [], feedback: [], closures: [], refunds: [], ledger: [] } as unknown as Billing["store"]["state"];
+  let liveDirectory: Directory = { accounts: [], identities: [], sessions: [] };
+  const liveView: View | null = live && {
+    live: true, sink: live.sink, directory: () => liveDirectory, store: () => NO_MONEY, clouds: () => [], workspaces: () => [], waitlist: options.waitlist,
+    deep: createAnalyticsRoutes({ auth: { directory: () => liveDirectory } as unknown as Auth,
+      billing: { store: { state: NO_MONEY }, operator: { provider: "none" }, service: { setAttribution() { /* never writes the live service's billing */ } } } as unknown as Billing,
+      analytics: { ...analytics, sink: live.sink, presence: { ...analytics.presence, list: () => [] } }, workspaces: () => [], now,
+      actor: id => liveDirectory.accounts.find(account => account.id === id)?.email ?? null }),
+  };
+  async function viewOf(req: IncomingMessage): Promise<View> {
+    if (!liveView || req.headers["x-dusk-admin-data"] === "own") return ownView;
+    liveDirectory = { accounts: await live!.accounts(), identities: [], sessions: [] };
+    return liveView;
+  }
 
   /** every admin route: a signed-in web session (401), an allowed email (403), and the CSRF header on changes */
   function gate(req: IncomingMessage, mutation: boolean) {
@@ -173,30 +199,30 @@ export function createAdmin(options: AdminOptions) {
     return { accounts: accounts.length, bot: count(bot), routine: count(routine), connector: count(connector), phone: count(phone), cloud: count(cloud) };
   }
 
-  async function overview(days: number) {
+  async function overview(days: number, v: View) {
     const time = now(), range = dayRange(time, days), since = Date.parse(`${range[0]}T00:00:00Z`);
-    const { accounts, sessions } = directory();
+    const { accounts, sessions } = v.directory();
     const [daily, waitlistDays, waitlistCount, wau, mau, marked] = await Promise.all([
-      analytics.sink.daily(["active_accounts", "site_visitors", "site_view", "app_active"], range[0]!, range.at(-1)!),
-      options.waitlist?.byDay(since).catch(() => []) ?? Promise.resolve([]),
-      options.waitlist?.count().catch(() => null) ?? Promise.resolve(null),
-      analytics.sink.accounts(ACTIVE_NAMES, time - 7 * DAY), analytics.sink.accounts(ACTIVE_NAMES, time - 30 * DAY),
-      Promise.all(["onboarding_done", "app_paired", "first_bot_reply", "plan_chosen"].map(name => analytics.sink.accounts([name], since))),
+      v.sink.daily(["active_accounts", "site_visitors", "site_view", "app_active"], range[0]!, range.at(-1)!),
+      v.waitlist?.byDay(since).catch(() => []) ?? Promise.resolve([]),
+      v.waitlist?.count().catch(() => null) ?? Promise.resolve(null),
+      v.sink.accounts(ACTIVE_NAMES, time - 7 * DAY), v.sink.accounts(ACTIVE_NAMES, time - 30 * DAY),
+      Promise.all(["onboarding_done", "app_paired", "first_bot_reply", "plan_chosen"].map(name => v.sink.accounts([name], since))),
     ]);
     const series = (name: string) => perDay(range, daily.filter(row => row.name === name));
     const seenToday = new Set(sessions.filter(session => session.lastSeenAt >= Date.parse(`${range.at(-1)}T00:00:00Z`)).map(session => session.accountId));
     const activeSeries = series("active_accounts");
-    const clouds = allClouds();
+    const clouds = v.clouds();
     const byState = new Map<string, number>();
     for (const c of clouds) { const status = billing.clouds.view(c).status; byState.set(status, (byState.get(status) ?? 0) + 1); }
-    const owned = options.workspaces().filter(ws => ws.ownerAccountId !== null);
+    const owned = v.workspaces().filter(ws => ws.ownerAccountId !== null);
     const sinceDay = dayKey(time - 29 * DAY);
     return {
-      now: time, days, range,
+      now: time, days, range, data: v.live ? live!.label : "own",
       totals: {
         accounts: accounts.length, newAccounts: accounts.filter(account => account.createdAt >= since).length,
         activeToday: Math.max(activeSeries.at(-1) ?? 0, seenToday.size), wau: wau.size, mau: mau.size,
-        paying: new Set(store().subscriptions.filter(isPaying).map(sub => sub.accountId)).size,
+        paying: new Set(v.store().subscriptions.filter(isPaying).map(sub => sub.accountId)).size,
         waitlist: waitlistCount, clouds: clouds.filter(c => c.status !== "destroyed").length,
         devices: sessions.filter(session => session.kind !== "web").length,
       },
@@ -204,7 +230,7 @@ export function createAdmin(options: AdminOptions) {
         signups: perDay(range, accounts.map(account => ({ day: dayKey(account.createdAt), count: 1 }))),
         waitlist: perDay(range, waitlistDays), active: activeSeries, visitors: series("site_visitors"), views: series("site_view"), apps: series("app_active"),
       },
-      funnel: funnel({ since, siteVisitors: series("site_visitors").reduce((a, b) => a + b, 0), accounts, checkouts: store().checkouts, subscriptions: store().subscriptions, sessions,
+      funnel: funnel({ since, siteVisitors: series("site_visitors").reduce((a, b) => a + b, 0), accounts, checkouts: v.store().checkouts, subscriptions: v.store().subscriptions, sessions,
         workspaces: owned, marked: { onboarded: marked[0]!, paired: marked[1]!, replied: marked[2]!, chosen: marked[3]! } }),
       clouds: [...byState].map(([state, count]) => ({ state, count })).sort((a, b) => b.count - a.count),
       bots: { workspaces: owned.length, bots: owned.reduce((sum, ws) => sum + (ws.report?.bots?.length ?? 0), 0), turns30d: owned.reduce((sum, ws) => sum + workspaceTurns(ws, sinceDay), 0) },
@@ -303,15 +329,15 @@ export function createAdmin(options: AdminOptions) {
     return { cloud: cloudRow(cloud, emailMap()) };
   }
 
-  async function events(url: URL) {
+  async function events(url: URL, v: View) {
     const name = url.searchParams.get("name") || undefined, accountId = url.searchParams.get("account") || undefined;
     if (name !== undefined && !isEventName(name)) throw new AdminError(400, "invalid_request", "Unknown event.");
     if (accountId !== undefined && !/^[A-Za-z0-9_-]{1,80}$/.test(accountId)) throw new AdminError(400, "invalid_request", "Invalid request.");
     const days = int(url.searchParams.get("days"), 7, 1, 400), limit = int(url.searchParams.get("limit"), 100, 1, 500);
     const before = url.searchParams.has("before") ? int(url.searchParams.get("before"), 0, 0, Number.MAX_SAFE_INTEGER) : undefined;
     const time = now(), since = time - days * DAY;
-    const [list, counts] = await Promise.all([analytics.sink.events({ name, accountId, since, before, limit: limit + 1 }), analytics.sink.counts(since, time + 1)]);
-    const emails = emailMap();
+    const [list, counts] = await Promise.all([v.sink.events({ name, accountId, since, before, limit: limit + 1 }), v.sink.counts(since, time + 1)]);
+    const emails = new Map(v.directory().accounts.map(account => [account.id, account.email]));
     return { names: EVENT_NAMES, counts, events: list.slice(0, limit).map(event => ({ ...event, email: event.accountId ? emails.get(event.accountId) ?? null : null })),
       next: list.length > limit ? list[limit - 1]!.at : null };
   }
@@ -352,8 +378,8 @@ export function createAdmin(options: AdminOptions) {
     const route = path.slice("/v1/admin".length) || "/";
     const send = (data: unknown) => { options.json(res, 200, data); return true; };
     if (method === "GET") {
-      if (route === "/me") return send({ admin: true, email: owner.email, environment: options.service.environment, version: options.service.version });
-      if (route === "/overview") return send(await overview(int(url.searchParams.get("days"), 30, 7, 90)));
+      if (route === "/me") return send({ admin: true, email: owner.email, environment: options.service.environment, version: options.service.version, live: live?.label ?? null });
+      if (route === "/overview") return send(await overview(int(url.searchParams.get("days"), 30, 7, 90), await viewOf(req)));
       if (route === "/users") return send(users(url));
       const userMatch = /^\/users\/([A-Za-z0-9_-]{1,80})$/.exec(route);
       if (userMatch) {
@@ -387,7 +413,7 @@ export function createAdmin(options: AdminOptions) {
         res.end(waitlistCsv(entries));
         return true;
       }
-      if (route === "/events") return send(await events(url));
+      if (route === "/events") return send(await events(url, await viewOf(req)));
       if (route === "/usage") return send(await usageAnswer(url));
       if (route === "/feedback") {
         const kind = url.searchParams.get("kind"), before = url.searchParams.get("before");
@@ -401,20 +427,21 @@ export function createAdmin(options: AdminOptions) {
       if (route === "/ops/relays") return send(await relays.list());
       try {
         if (route === "/revenue") return send(await deep.revenue(url));
-        if (route === "/web") return send(await deep.web(url));
-        if (route.startsWith("/web/")) { const dim = route.slice(5); if (!deep.isDimension(dim)) throw new AnalyticsRouteError(400, "invalid_request", "Invalid dimension."); return send(await deep.webDetails(dim, url)); }
-        if (route === "/funnel") return send(await deep.funnel(url));
-        if (route === "/journeys") return send(await deep.journeys(url));
+        const view = /^\/(?:web|funnel|journeys|realtime|retention|app|product)(?:\/|$)/.test(route) ? await viewOf(req) : ownView, reads = view.deep;
+        if (route === "/web") return send(await reads.web(url));
+        if (route.startsWith("/web/")) { const dim = route.slice(5); if (!reads.isDimension(dim)) throw new AnalyticsRouteError(400, "invalid_request", "Invalid dimension."); return send(await reads.webDetails(dim, url)); }
+        if (route === "/funnel") return send(await reads.funnel(url));
+        if (route === "/journeys") return send(await reads.journeys(url));
         const person = /^\/journeys\/((?:acct_)?[A-Za-z0-9_-]{8,80})$/.exec(route);
         if (person) {
-          const answer = await deep.profile(person[1]!);
+          const answer = await reads.profile(person[1]!);
           await audit(owner.id, "person.view", person[1]!);
           return send(answer);
         }
-        if (route === "/realtime") return send(await deep.realtime(url));
-        if (route === "/retention") return send(await deep.retention());
-        if (route === "/app") return send(await deep.app(url));
-        if (route === "/product") return send(await deep.product(url));
+        if (route === "/realtime") return send(await reads.realtime(url));
+        if (route === "/retention") return send(await reads.retention());
+        if (route === "/app") return send(await reads.app(url));
+        if (route === "/product") return send(await reads.product(url));
       } catch (error) {
         if (error instanceof AnalyticsRouteError) throw new AdminError(error.status, error.code, error.message);
         throw error;

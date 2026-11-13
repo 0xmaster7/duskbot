@@ -14,6 +14,7 @@ import { mongoUsageStore } from "./analytics/usage.ts";
 import { mongoInfraStore } from "./admin/infra.ts";
 import { mongoOpsStore } from "./admin/ops/store.ts";
 import { mongoWaitlist } from "./admin/waitlist.ts";
+import { openLiveData } from "./admin/live.ts";
 import { parseAdminEmails } from "./admin/index.ts";
 import { emailConfig } from "./email/templates.ts";
 import { createIncidents } from "./incidents/index.ts";
@@ -44,11 +45,15 @@ const database = process.env.MONGODB_URI
     onLeaseLost: error => { console.error(error.message); process.exit(1); } })
   : null;
 if (database) { useStateBackend(database.backend); console.log("state: mongodb"); } else console.log("state: json files (development)");
-// the waitlist the admin shows: DUSK_WAITLIST_DB names the database the dusk.bot site writes, "off" shows none (preview, whose
-// own visitors would otherwise sit next to production's sign-ups)
+// the waitlist the admin shows: DUSK_WAITLIST_DB names the database the dusk.bot site writes, "off" shows none
 const waitlistDb = process.env.DUSK_WAITLIST_DB?.trim();
 const trackOrigins = (process.env.DUSK_TRACK_ORIGINS ?? "").split(",").map(item => item.trim()).filter(Boolean);
 const analytics = { ...(database ? { sink: await mongoSink(database.db), usage: await mongoUsageStore(database.db), infra: await mongoInfraStore(database.db), ops: await mongoOpsStore(database.db), db: database.db, waitlist: waitlistDb === "off" ? null : mongoWaitlist(waitlistDb ? database.sibling(waitlistDb) : database.db) } : {}), trackOrigins };
+// preview's admin shows dusk.bot's analytics: DUSK_ADMIN_ANALYTICS_URI is a user with only read on DUSK_ADMIN_ANALYTICS_DB (dusk_prod)
+const liveUri = process.env.DUSK_ADMIN_ANALYTICS_URI?.trim(), liveDb = process.env.DUSK_ADMIN_ANALYTICS_DB?.trim();
+const live = liveUri && liveDb ? await openLiveData(liveUri, liveDb, "dusk.bot")
+  .catch((error: Error) => { console.warn(`admin: the live analytics could not be opened (${error.name}); showing this service's own`); return null; }) : null;
+if (live) console.log(`admin: analytics read from ${liveDb} (${live.label}), read only`);
 const adminEmails = parseAdminEmails(process.env.DUSK_ADMIN_EMAILS);
 console.log(`admin: ${adminEmails.length} allowed account${adminEmails.length === 1 ? "" : "s"}`);
 
@@ -70,7 +75,7 @@ console.log(`alerts: ${alertsOn ? `emailing ${alertEmails.length} address${alert
 const app = createDashboardApp({ errors: { service, page }, incidents, version, dataDir, publicUrl, mailer, oauth: providersFromEnv(process.env), dev,
   signupOpen: process.env.DUSK_AUTH_SIGNUP_OPEN !== "0", trustProxy: process.env.DUSK_TRUST_PROXY === "1", staticDir: staticDir || null,
   pageBase: process.env.DUSK_DASHBOARD_PAGE_BASE || "", waitlistOnly: process.env.DUSK_PRELAUNCH_WAITLIST_ONLY === "1", mailPerHour: process.env.DUSK_AUTH_MAIL_PER_HOUR ? Number(process.env.DUSK_AUTH_MAIL_PER_HOUR) : undefined, mailPerDay: process.env.DUSK_AUTH_MAIL_PER_DAY ? Number(process.env.DUSK_AUTH_MAIL_PER_DAY) : undefined, siteUpstream: process.env.DUSK_SITE_UPSTREAM || null,
-  analytics, admin: { emails: adminEmails, environment, backupDir: process.env.DUSK_BACKUP_DIR || (database ? "/root/backups/mongo-dusk" : null) } });
+  analytics, admin: { emails: adminEmails, environment, live, backupDir: process.env.DUSK_BACKUP_DIR || (database ? "/root/backups/mongo-dusk" : null) } });
 
 /** a client hears an answer only once what the request changed is written; when that fails it gets a dropped
  *  connection, never a success that was not kept */

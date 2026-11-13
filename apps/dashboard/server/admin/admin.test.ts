@@ -330,4 +330,48 @@ describe("admin panel api", () => {
       expect((await call("/v1/admin/events?name=bogus", { cookie: admin })).status).toBe(400);
     });
   });
+
+  describe("live analytics (preview reading dusk.bot)", () => {
+    let live: ReturnType<typeof memorySink>;
+    beforeEach(async () => {
+      app.close();
+      await new Promise<void>(resolve => { server.close(() => resolve()); server.closeAllConnections(); });
+      live = memorySink(() => time);
+      const day = new Date(time).toISOString().slice(0, 10);
+      await live.bump(day, "site_visitors", 41);
+      await live.bump(day, "site_view", 97);
+      await live.insert({ id: "ev_live1", name: "signup", at: time - 1000, accountId: "acct_live", props: { method: "email" } });
+      const accounts = [{ id: "acct_live", email: "real@example.test", name: null, createdAt: time - 1000 }];
+      app = createDashboardApp({ dataDir, publicUrl: origin, mailer, staticDir: null, now: () => time, analytics: { sink, waitlist, infra },
+        admin: { emails: [ADMIN], env: {}, live: { label: "dusk.bot", sink: live, accounts: async () => accounts } } });
+      server = createServer(app.handle);
+      await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
+      const address = server.address();
+      if (!address || typeof address === "string") throw new Error("Fixture failed to start.");
+      url = `http://127.0.0.1:${address.port}`;
+    });
+
+    it("shows the live site's counts, sign-ups and waitlist by default, and this service's own on request", async () => {
+      const admin = await login(ADMIN);
+      expect(await (await call("/v1/admin/me", { cookie: admin })).json()).toMatchObject({ live: "dusk.bot" });
+      type Answer = { data: string; totals: { accounts: number; waitlist: number | null; clouds: number }; series: { visitors: number[]; views: number[] } };
+      const real = await (await call("/v1/admin/overview?days=7", { cookie: admin })).json() as Answer;
+      expect(real.data).toBe("dusk.bot");
+      expect(real.series.visitors.at(-1)).toBe(41);
+      expect(real.series.views.at(-1)).toBe(97);
+      expect(real.totals).toMatchObject({ accounts: 1, waitlist: 2, clouds: 0 });
+      const own = await (await call("/v1/admin/overview?days=7", { cookie: admin, headers: { "x-dusk-admin-data": "own" } })).json() as Answer;
+      expect(own.data).toBe("own");
+      expect(own.series.visitors.at(-1)).toBe(0);
+      expect(own.totals).toMatchObject({ accounts: 1, waitlist: null });
+      const events = await (await call("/v1/admin/events?name=signup", { cookie: admin })).json() as { events: Array<{ id: string; email: string | null }> };
+      expect(events.events).toEqual([expect.objectContaining({ id: "ev_live1", email: "real@example.test" })]);
+      const ownEvents = await (await call("/v1/admin/events?name=signup", { cookie: admin, headers: { "x-dusk-admin-data": "own" } })).json() as { events: Array<{ id: string }> };
+      expect(ownEvents.events.map(event => event.id)).not.toContain("ev_live1");
+      expect((await call("/v1/admin/web", { cookie: admin })).status).toBe(200);
+      expect((await call("/v1/admin/journeys/acct_live", { cookie: admin })).status).toBe(200);
+      // reading the live site never writes to it: the view's audit lands in this service's own log
+      expect(live.all.map(event => event.id)).toEqual(["ev_live1"]);
+    });
+  });
 });
