@@ -9,8 +9,16 @@ const KiB = 1024, MiB = 1024 ** 2, GiB = 1024 ** 3, TiB = 1024 ** 4;
  * sized for the contabo box (upload measured 120 to 850 mbit/s; 32 tb a month, throttled to 100 mbit/s past a 10 day
  * average above it). the ceiling is ~88 mbit/s on the wire with http and tls, so even flat out all month the relay
  * stays under both rules. a tunnel's rate keeps a live screen near 20 fps; the daily total is 2.5x a heavy user's day.
- * maxTunnels: tunnels relaying at once (bytes in the last ACTIVE_MS), not linked servers. paused: new tunnels get the busy
- * answer, ones already relaying keep going (the admin panel's "pause new tunnels" switch)
+ * the node is one process on one core, so its caps are what that core carries (measured 2026-11-14 on the contabo box,
+ * docs/capacity.md: a server's agent reading here ~0.02% of the core, an open desktop on it ~0.01% more, 1 MB/s relayed
+ * ~4%; oracle's cores do the same for about half). defaults are contabo's; each node keeps its own in relay-limits.json.
+ * maxConnected and maxTunnels turn away only a tunnel new to the relay (one already in use is never cut off):
+ * maxConnected: tunnels in use (any post in the last ACTIVE_MS). an open desktop app says hello every 15 s, so this is
+ *   about "desktops open on a linked server".
+ * maxTunnels: busy tunnels (BUSY_BYTES or more in the last ACTIVE_MS: a screen, a download), what the bandwidth carries.
+ * maxServers: linked servers whose agent reads here (desktop open or not). never refused, only placement: past 90% new
+ *   servers go to another node, at 100% servers move off when they reconnect.
+ * paused: new tunnels get the busy answer, ones already in use keep going (the admin panel's "pause new tunnels" switch)
  */
 export const DEFAULT_LIMITS = Object.freeze({
   perTunnelBytesPerSec: 3 * MiB,
@@ -19,6 +27,8 @@ export const DEFAULT_LIMITS = Object.freeze({
   tunnelsPerAccount: 20,
   globalCeilingBytesPerSec: 10 * MiB,
   maxTunnels: 150,
+  maxConnected: 1000,
+  maxServers: 1500,
   paused: false,
 });
 export const LIMIT_RANGES = Object.freeze({
@@ -28,11 +38,15 @@ export const LIMIT_RANGES = Object.freeze({
   tunnelsPerAccount: [1, 1000],
   globalCeilingBytesPerSec: [256 * KiB, 10 * GiB],
   maxTunnels: [1, 20000],
+  maxConnected: [1, 50000],
+  maxServers: [1, 100000],
 });
 /** contabo's monthly outgoing allowance */
 export const MONTH_ALLOWANCE_BYTES = 32 * 1000 ** 4;
-/** a tunnel that relayed a byte this recently counts against maxTunnels */
+/** a tunnel that relayed a byte this recently is in use (maxConnected) */
 export const ACTIVE_MS = 2 * 60_000;
+/** one that relayed this much in the last ACTIVE_MS is busy (maxTunnels): more than a desktop's hellos or a typing screen */
+export const BUSY_BYTES = 1024 * 1024;
 
 /** a partial limits object, checked key by key; answers { limits } or { error } */
 export function validateLimits(input, current = DEFAULT_LIMITS) {

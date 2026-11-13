@@ -79,8 +79,20 @@ describe("choosePlacement", () => {
     expect(choosePlacement({ nodes: [node("contabo", full), node("oracle-in", full)], defaultId: "contabo" })).toEqual({ node: "contabo", reason: "no node takes new servers" });
   });
 
-  it("reads load as fractions of each limit", () => {
+  it("spreads the overflow to the least loaded node when every node is full, never to a paused one", () => {
+    const crowded = healthy({ tunnels: 149 }), packed = healthy({ tunnels: 150, connected: 2000, maxConnected: 2000 });
+    expect(choosePlacement({ nodes: [node("contabo", packed), node("oracle-in", crowded)], defaultId: "contabo" })).toEqual({ node: "oracle-in", reason: "no node takes new servers" });
+    expect(choosePlacement({ nodes: [node("contabo", packed), node("oracle-in", healthy({ tunnels: 140, paused: true }))], defaultId: "contabo" }).node).toBe("contabo");
+  });
+
+  it("reads load as fractions of each limit, the fuller of busy tunnels and tunnels in use", () => {
     expect(loadOf(healthy())).toMatchObject({ active: 10 / 150, bandwidth: 0.1, budget: 0.03 });
+    expect(loadOf(healthy({ connected: 1800, maxConnected: 2000 })).active).toBe(0.9);
+    // a node in use by many open desktops takes no new servers, even with few busy tunnels
+    expect(refusesNew(node("contabo", healthy({ connected: 1800, maxConnected: 2000 })))).toBe("tunnels");
+    // and one most servers already read from, whether or not anyone has a desktop open
+    expect(refusesNew(node("contabo", healthy({ servers: 1400, maxServers: 1500 })))).toBe("tunnels");
+    expect(choosePlacement({ nodes: [node("contabo", healthy({ servers: 1500, maxServers: 1500 })), node("oracle-in")], home: "contabo", defaultId: "contabo" }).node).toBe("oracle-in");
   });
 });
 

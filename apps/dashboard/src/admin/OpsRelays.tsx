@@ -25,7 +25,9 @@ const LIMITS: Record<string, { label: string; unit: Unit; hint?: string }> = {
   perTunnelDailyBytes: { label: "daily traffic per tunnel", unit: UNITS.gb },
   tunnelsPerAccount: { label: "tunnels per account", unit: UNITS.count },
   globalCeilingBytesPerSec: { label: "speed for everyone together", unit: UNITS.rate, hint: "shared evenly between active tunnels" },
-  maxTunnels: { label: "tunnels on the relay", unit: UNITS.count, hint: "past it, a new server hears the relay is busy" },
+  maxTunnels: { label: "busy tunnels", unit: UNITS.count, hint: "a screen or a download; past it, a new tunnel hears the relay is busy" },
+  maxConnected: { label: "tunnels in use", unit: UNITS.count, hint: "an open desktop on a linked server; past it, a new tunnel hears the relay is busy" },
+  maxServers: { label: "servers on this node", unit: UNITS.count, hint: "new servers go to another node from 90%" },
   accountBytesPerSec: { label: "speed per account", unit: UNITS.rate },
   accountFullSpeedBytes: { label: "full speed each month", unit: UNITS.gb, hint: "then the speed halves every 50 gb" },
   floorBytesPerSec: { label: "slowest speed", unit: UNITS.rate },
@@ -193,8 +195,8 @@ function RelayCard({ relay, now, onSaved }: { relay: OpsRelayCard; now: number; 
       }>
       <div className="flex flex-col gap-3 px-2.5 py-2.5">
         <div className="flex items-baseline justify-between gap-3">
-          <span className="text-13 text-ink"><span className="font-mono num">{n(stats.now.tunnels)}</span> live {stats.now.tunnels === 1 ? "tunnel" : "tunnels"}</span>
-          <span className="t-meta">{limits.maxTunnels ? `of ${n(limits.maxTunnels)}` : "no tunnel cap"} · updated {ago(relay.at, now)}</span>
+          <span className="text-13 text-ink"><span className="font-mono num">{n(stats.now.tunnels)}</span> {stats.now.connected !== undefined ? "busy" : "live"} {stats.now.tunnels === 1 ? "tunnel" : "tunnels"}</span>
+          <span className="t-meta">{limits.maxTunnels ? `of ${n(limits.maxTunnels)}` : "no tunnel cap"}{stats.now.connected !== undefined ? ` · ${n(stats.now.connected)} in use` : ""}{stats.now.servers !== undefined ? ` · ${n(stats.now.servers)} servers` : ""} · updated {ago(relay.at, now)}</span>
         </div>
         <Meter label={limits.globalCeilingBytesPerSec ? "out now, of the ceiling" : "out now, no ceiling"} meter={meterOf(stats.now.bytesPerSecOut, limits.globalCeilingBytesPerSec)} format={mbit} />
         {stats.box?.monthBytesOut !== null && stats.box?.monthBytesOut !== undefined

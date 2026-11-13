@@ -32,6 +32,16 @@ describe("relay node readings", () => {
     expect(breached([card({ ok: false, error: "The relay can't be reached.", stats: null })])).toEqual(["oracle-in-down"]);
   });
 
+  it("counts tunnels in use and servers against their own caps under the one tunnels rule", () => {
+    const limits = { globalCeilingBytesPerSec: 25e6, maxTunnels: 150, maxConnected: 1000, maxServers: 1500, paused: false };
+    const desks = stats({ limits, now: { tunnels: 10, connected: 800, servers: 900, accounts: 8, bytesPerSecOut: 1e6, bytesPerSecIn: 2e5, cpu: 3, rssMb: 120 } });
+    const reading = relayNodeReadings([card({ stats: desks })]).find(r => r.id.endsWith("-tunnels"))!;
+    expect(reading).toMatchObject({ breach: true, value: "800 of 1000 in use" });
+    const servers = stats({ limits, now: { tunnels: 10, connected: 100, servers: 1200, accounts: 8, bytesPerSecOut: 1e6, bytesPerSecIn: 2e5, cpu: 3, rssMb: 120 } });
+    expect(relayNodeReadings([card({ stats: servers })]).find(r => r.id.endsWith("-tunnels"))).toMatchObject({ breach: true, value: "1200 of 1500 servers" });
+    expect(breached([card({ stats: stats({ limits }) })])).toEqual([]);
+  });
+
   it("names the node and says what to do, in a name the incident emails accept", () => {
     for (const reading of relayNodeReadings([card()])) {
       expect(reading.label).toMatch(/^[A-Za-z_$][\w$ .:-]{0,60}$/);

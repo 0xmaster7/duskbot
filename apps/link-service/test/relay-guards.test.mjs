@@ -139,17 +139,37 @@ describe("a tunnel's byte budget", () => {
     expect(waits).toEqual([1000]);
   });
 
-  it("answers relay_busy to a new tunnel once maxTunnels are relaying, never to one already relaying", async () => {
-    await start({ limits: { maxTunnels: 1 } });
+  it("answers relay_busy to a new tunnel once maxTunnels are busy, never to one already relaying", async () => {
+    await start({ limits: { maxTunnels: 1 }, statsToken: "s".repeat(32) });
     addOther();
+    // a trickle (a desktop's hello) is in use, not busy: the other still gets on
     expect((await toVps(["a".repeat(4000)], { epoch, seq: 0 })).status).toBe(200);
-    const busy = await otherToVps(["a".repeat(4000)], { epoch, seq: 0 });
+    expect((await otherToVps(["a".repeat(4000)], { epoch, seq: 0 })).status).toBe(200);
+    time += ACTIVE_MS + 1;
+    expect((await toVps(frames(2), { epoch, seq: 1 })).status).toBe(200);
+    const busy = await otherToVps(["a".repeat(4000)], { epoch: "f".repeat(12), seq: 0 });
     expect(busy.status).toBe(503);
     expect(await busy.json()).toMatchObject({ code: "relay_busy" });
     expect(busy.headers.get("retry-after")).toBe("60");
-    expect((await toVps(["a".repeat(4000)], { epoch, seq: 1 })).status).toBe(200);
+    expect((await toVps(["a".repeat(4000)], { epoch, seq: 2 })).status).toBe(200);
+    expect((await (await request("/ops/relay/stats", { token: "s".repeat(32) })).json()).now).toMatchObject({ tunnels: 1, connected: 1 });
     time += ACTIVE_MS + 1;
-    expect((await otherToVps(["a".repeat(4000)], { epoch, seq: 0 })).status).toBe(200);
+    expect((await otherToVps(["a".repeat(4000)], { epoch: "f".repeat(12), seq: 0 })).status).toBe(200);
+  });
+
+  it("answers relay_busy to a new tunnel once maxConnected are in use; one in use may still turn busy", async () => {
+    await start({ limits: { maxConnected: 1, maxTunnels: 1 }, statsToken: "s".repeat(32) });
+    addOther();
+    expect((await toVps(["a".repeat(4000)], { epoch, seq: 0 })).status).toBe(200);
+    const full = await otherToVps(["a".repeat(4000)], { epoch, seq: 0 });
+    expect(full.status).toBe(503);
+    expect(await full.json()).toMatchObject({ code: "relay_busy" });
+    // the one in use goes on to stream a screen past the busy cap's threshold
+    expect((await toVps(frames(2), { epoch, seq: 1 })).status).toBe(200);
+    const stats = await (await request("/ops/relay/stats", { token: "s".repeat(32) })).json();
+    expect(stats.now).toMatchObject({ tunnels: 1, connected: 1 });
+    expect(stats.limits).toMatchObject({ maxConnected: 1, maxTunnels: 1 });
+    expect(stats.busy).toBe(true);
   });
 
   it("stops a tunnel at 25 GB a day and lets it go again the next UTC day", async () => {
@@ -191,8 +211,8 @@ describe("the owner's relay ops endpoints", () => {
     expect(Object.keys(body).sort()).toEqual(["box", "busy", "limits", "month", "node", "nodes", "now", "relay", "today", "top", "turn"]);
     expect(body.node).toMatchObject({ id: "contabo", default: true, accepting: true });
     expect(body.relay).toBe("contabo");
-    expect(Object.keys(body.now).sort()).toEqual(["accounts", "bytesPerSecIn", "bytesPerSecOut", "cpu", "rssMb", "tunnels"]);
-    expect(body.now).toMatchObject({ tunnels: 1, accounts: 1, bytesPerSecIn: Math.round(3 * MB / 10), bytesPerSecOut: Math.round(3 * MB / 10) });
+    expect(Object.keys(body.now).sort()).toEqual(["accounts", "bytesPerSecIn", "bytesPerSecOut", "connected", "cpu", "rssMb", "servers", "tunnels"]);
+    expect(body.now).toMatchObject({ tunnels: 1, connected: 1, servers: 1, accounts: 1, bytesPerSecIn: Math.round(3 * MB / 10), bytesPerSecOut: Math.round(3 * MB / 10) });
     expect(body.today).toEqual({ bytesOut: 3 * MB, bytesIn: 3 * MB });
     expect(body.month).toMatchObject({ bytesOut: 3 * MB, bytesIn: 3 * MB, allowanceBytes: MONTH_ALLOWANCE_BYTES });
     expect(body.month.projectedBytesOut).toBeGreaterThanOrEqual(3 * MB);
@@ -203,14 +223,14 @@ describe("the owner's relay ops endpoints", () => {
 
   it("changes limits at runtime, refuses bad ones, and keeps them and the totals across a restart", async () => {
     await start({ statsToken });
-    for (const bad of [{}, { maxTunnels: 0 }, { perTunnelBytesPerSec: 1.5 }, { nope: 1 }, { burstBytes: "big" }, { paused: "yes" }]) {
+    for (const bad of [{}, { maxTunnels: 0 }, { maxConnected: 0 }, { perTunnelBytesPerSec: 1.5 }, { nope: 1 }, { burstBytes: "big" }, { paused: "yes" }]) {
       const refused = await ops("/ops/relay/limits", { method: "PUT", body: bad });
       expect(refused.status).toBe(400);
       expect(await refused.json()).toMatchObject({ code: "invalid_limits" });
     }
-    const changed = await ops("/ops/relay/limits", { method: "PUT", body: { maxTunnels: 1, perTunnelDailyBytes: 200 * MB } });
+    const changed = await ops("/ops/relay/limits", { method: "PUT", body: { maxConnected: 1, perTunnelDailyBytes: 200 * MB } });
     expect(changed.status).toBe(200);
-    expect((await changed.json()).limits).toEqual({ ...DEFAULT_LIMITS, maxTunnels: 1, perTunnelDailyBytes: 200 * MB });
+    expect((await changed.json()).limits).toEqual({ ...DEFAULT_LIMITS, maxConnected: 1, perTunnelDailyBytes: 200 * MB });
     addOther();
     expect((await toVps(["a".repeat(4000)], { epoch, seq: 0 })).status).toBe(200);
     expect((await otherToVps(["a".repeat(4000)], { epoch, seq: 0 })).status).toBe(503);
@@ -218,11 +238,11 @@ describe("the owner's relay ops endpoints", () => {
     await start({ statsToken }, true);
     addOther();
     const body = await (await ops("/ops/relay/stats")).json();
-    expect(body.limits).toMatchObject({ maxTunnels: 1, perTunnelDailyBytes: 200 * MB });
+    expect(body.limits).toMatchObject({ maxConnected: 1, perTunnelDailyBytes: 200 * MB });
     expect(body.today.bytesIn).toBe(4000);
     // paused: the tunnel already relaying keeps going, a new one gets the busy answer, until unpaused
     expect((await toVps(["a".repeat(4000)], { epoch, seq: 1 })).status).toBe(200);
-    expect((await ops("/ops/relay/limits", { method: "PUT", body: { paused: true, maxTunnels: 150 } })).status).toBe(200);
+    expect((await ops("/ops/relay/limits", { method: "PUT", body: { paused: true, maxConnected: 1000 } })).status).toBe(200);
     expect((await toVps(["a".repeat(4000)], { epoch, seq: 2 })).status).toBe(200);
     const paused = await otherToVps(["a".repeat(4000)], { epoch, seq: 0 });
     expect(paused.status).toBe(503);

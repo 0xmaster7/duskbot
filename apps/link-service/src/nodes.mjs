@@ -54,7 +54,8 @@ const fraction = (value, of) => (Number.isFinite(value) && Number.isFinite(of) &
  * budget is the month's traffic so far or on course, against the allowance; the rest are live
  */
 export function loadOf(health) {
-  const active = fraction(health?.tunnels, health?.maxTunnels);
+  // busy tunnels, tunnels in use (open desktops) and servers reading here, each against its cap: the fullest counts
+  const active = Math.max(fraction(health?.tunnels, health?.maxTunnels), fraction(health?.connected, health?.maxConnected), fraction(health?.servers, health?.maxServers));
   const bandwidth = fraction(health?.bytesPerSecOut, health?.ceilingBytesPerSec);
   const budget = Math.max(fraction(health?.monthBytesOut, health?.allowanceBytes), fraction(health?.projectedBytesOut, health?.allowanceBytes));
   const spent = fraction(health?.monthBytesOut, health?.allowanceBytes);
@@ -89,7 +90,8 @@ export function mustLeave(node, move = MOVE_OFF_FRACTION) {
  * `rtt`: the server's own round trips to each node in ms. a server stays home unless home is down or past its hard
  * limits, or home is nearly full while another node is mostly empty. a new one goes to the least loaded node that takes
  * new servers, nearer nodes first (up to half a node's worth of load for a slow round trip); with none taking new
- * servers, to the default node while it is up, so nobody is ever left without a node.
+ * servers, to the least loaded node that is up and not paused (the default on a tie), so nobody is ever left without
+ * a node and the overflow does not all land on one.
  * @returns {{ node: string, reason: string }}
  */
 export function choosePlacement({ nodes, home = null, rtt = {}, defaultId, stop = PLACE_STOP_FRACTION }) {
@@ -119,7 +121,9 @@ export function choosePlacement({ nodes, home = null, rtt = {}, defaultId, stop 
   }
   const away = open.filter((node) => !unreached || node.id !== home);
   if (away.length) return { node: away[0].id, reason: home ? `home ${unreached ? "is out of the server's reach" : current ? mustLeave(current) : "is down"}` : "new" };
-  const fallback = usable.find((node) => node.id === defaultId) ?? usable[0];
+  // every node is full: the least loaded one that can hold the record, not the default, so the overflow spreads
+  const reachable = usable.filter((node) => (!unreached || node.id !== home) && !node.health?.paused);
+  const fallback = [...(reachable.length ? reachable : usable)].sort((a, b) => score(a) - score(b) || (a.id === defaultId ? -1 : b.id === defaultId ? 1 : 0))[0];
   return { node: fallback?.id ?? defaultId, reason: "no node takes new servers" };
 }
 

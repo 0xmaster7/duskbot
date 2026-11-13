@@ -14,7 +14,7 @@ import { verifyLinkGrant } from "./grant.mjs";
 import { createPackages } from "./packages.mjs";
 import { createPushRelay } from "./push-relay.mjs";
 import { SEALED_ADDRESS_MAX, choosePlacement, createCluster, loadOf, refusesNew, sameSecret } from "./nodes.mjs";
-import { ACTIVE_MS, DEFAULT_LIMITS, MONTH_ALLOWANCE_BYTES, createRelayUsage, loadLimits, saveLimits, validateLimits } from "./relay-limits.mjs";
+import { ACTIVE_MS, BUSY_BYTES, DEFAULT_LIMITS, MONTH_ALLOWANCE_BYTES, createRelayUsage, loadLimits, saveLimits, validateLimits } from "./relay-limits.mjs";
 import { APP_TOKENS_CALLBACK_ROUTE, appTokenCallback } from "./app-token-callback.mjs";
 import { slackCallback } from "./slack-callback.mjs";
 import { MAX_CHANNELS_PER_TUNNEL, MAX_EVENTS, MAX_SESSIONS, MAX_TUNNELS, SESSION_LIFE_MS, createStore } from "./store.mjs";
@@ -489,13 +489,28 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     for (const [ip, load] of ipLoad) if (!load.open && t - load.at > 60_000) ipLoad.delete(ip);
   }
   const refill = (tokens, at, t, perSecond, burst) => Math.min(burst, tokens + Math.max(0, t - at) * perSecond / 1000);
-  /** a tunnel moved bytes within ACTIVE_MS */
+  /** a tunnel moved bytes within ACTIVE_MS: it is in use */
   const isActive = (rate, t) => rate !== undefined && t - rate.usedAt < ACTIVE_MS;
   function activeTunnels(t) {
     let count = 0;
     for (const rate of tunnelRates.values()) if (isActive(rate, t)) count += 1;
     return count;
   }
+  /** bytes relayed in the last ACTIVE_MS, in two half windows; BUSY_BYTES or more is busy */
+  function relayed(rate, t, bytes) {
+    const half = Math.floor(t / (ACTIVE_MS / 2));
+    if (rate.half !== half) { rate.before = rate.half === half - 1 ? rate.now ?? 0 : 0; rate.now = 0; rate.half = half; }
+    rate.now += bytes;
+  }
+  const isBusy = (rate, t) => isActive(rate, t) && rate.half >= Math.floor(t / (ACTIVE_MS / 2)) - 1
+    && (rate.half === Math.floor(t / (ACTIVE_MS / 2)) ? rate.now + rate.before : rate.now) >= BUSY_BYTES;
+  function busyTunnels(t) {
+    let count = 0;
+    for (const rate of tunnelRates.values()) if (isBusy(rate, t)) count += 1;
+    return count;
+  }
+  /** why a tunnel new to the relay is turned away, or null */
+  const full = (t) => limits.paused || activeTunnels(t) >= limits.maxConnected || busyTunnels(t) >= limits.maxTunnels;
   /** each busy tunnel's fair share of the ceiling; who is busy is recounted at most four times a second */
   // the ceiling is shared fairly between accounts, then between an account's own busy tunnels: twenty servers of one
   // account get together what one server of another account gets
@@ -520,7 +535,8 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
   /**
    * a post's turn on the relay. it is slowed, not refused: past its burst it waits for its tunnel's share (the per tunnel
    * rate, or less while many tunnels are busy, so the total stays under the global ceiling), and is refused only when the
-   * wait would pass MAX_HOLD_MS, the daily total is spent, or the relay already carries maxTunnels and this one is new.
+   * wait would pass MAX_HOLD_MS, the daily total is spent, or this one is new and the relay is full (maxConnected in use or
+   * maxTunnels busy).
    * sizes are the frames' base64url text, the bytes on the wire. answers { charge, refund } once its turn came, or null
    * after refusing
    */
@@ -535,7 +551,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       return null;
     }
     let rate = tunnelRates.get(tunnelId);
-    if (!isActive(rate, t) && (limits.paused || activeTunnels(t) >= limits.maxTunnels)) {
+    if (!isActive(rate, t) && full(t)) {
       count(tunnel, t, 0, 1);
       send(res, 503, { error: "The relay is full right now. Try again in a few minutes, or reach this server through a Cloudflare tunnel, SSH or Tailscale.", code: "relay_busy" }, { "retry-after": "60" });
       return null;
@@ -579,6 +595,8 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     const day = new Date(t).toISOString().slice(0, 10), days = tunnel.relayDays ??= {};
     const entry = days[day] ??= { bytes: 0, limited: 0 };
     entry.bytes += bytes; entry.limited += limited;
+    const rate = bytes ? tunnelRates.get(tunnel.id) : undefined;
+    if (rate) relayed(rate, t, bytes);
     const keys = Object.keys(days).sort();
     for (const old of keys.slice(0, Math.max(0, keys.length - RELAY_HISTORY_DAYS))) delete days[old];
   }
@@ -609,17 +627,18 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       entry.tunnels += 1; entry.bytesToday += bytes;
       accounts.set(key, entry);
     }
-    const busy = limits.paused || active.length >= limits.maxTunnels || rates.in >= limits.globalCeilingBytesPerSec * 0.9;
+    const busyNow = busyTunnels(t);
+    const busy = full(t) || rates.in >= limits.globalCeilingBytesPerSec * 0.9;
     const self = cluster ? cluster.view().find((node) => node.self) : { health: nodeHealth() };
     return {
       relay: nodeId,
       node: { id: nodeId, region: nodes?.self.region ?? null, url: nodes?.self.url ?? base, default: (nodes?.defaultId ?? nodeId) === nodeId, homed: self.health.homed,
         accepting: !refusesNew({ up: true, health: self.health }), refuses: refusesNew({ up: true, health: self.health }), load: loadOf(self.health) },
       nodes: cluster ? cluster.view().map((node) => ({ id: node.id, url: node.url, region: node.region, self: node.self, up: node.up, lastOkAt: node.lastOkAt, lastError: node.lastError ?? null,
-        homed: node.health?.homed ?? null, tunnels: node.health?.tunnels ?? null, accepting: node.health ? !refusesNew(node) : null })) : [{ id: nodeId, url: base, region: null, self: true, up: true, lastOkAt: t, lastError: null, homed: self.health.homed, tunnels: active.length, accepting: !refusesNew({ up: true, health: self.health }) }],
+        homed: node.health?.homed ?? null, tunnels: node.health?.tunnels ?? null, connected: node.health?.connected ?? null, accepting: node.health ? !refusesNew(node) : null })) : [{ id: nodeId, url: base, region: null, self: true, up: true, lastOkAt: t, lastError: null, homed: self.health.homed, tunnels: busyNow, connected: active.length, accepting: !refusesNew({ up: true, health: self.health }) }],
       box: box?.reading() ?? null,
       turn: turnConfig ? { ...(turnWatch?.state() ?? { ok: null, at: null, rttMs: null, downSince: null }), urls: turnUrls(new URL(nodes?.self.url ?? base).hostname, { tls: !!turnConfig.tls }) } : null,
-      now: { tunnels: active.length, accounts: new Set(active.map((tunnel) => tunnel.acct ?? tunnel.id)).size, bytesPerSecOut: rates.out, bytesPerSecIn: rates.in, cpu, rssMb: Math.round(process.memoryUsage().rss / 1024 ** 2) },
+      now: { tunnels: busyNow, connected: active.length, servers: self.health.servers, accounts: new Set(active.map((tunnel) => tunnel.acct ?? tunnel.id)).size, bytesPerSecOut: rates.out, bytesPerSecIn: rates.in, cpu, rssMb: Math.round(process.memoryUsage().rss / 1024 ** 2) },
       today: { bytesOut: totals.day.out, bytesIn: totals.day.in },
       month: { bytesOut: totals.month.out, bytesIn: totals.month.in, projectedBytesOut: Math.round(totals.month.out / usage.monthElapsed()), allowanceBytes: monthAllowanceBytes },
       limits: { ...limits },
@@ -630,10 +649,10 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
   /** this node's summary for its peers' placement and the ops page */
   function nodeHealth() {
     const t = now(), month = usage.totals().month, reading = box?.reading() ?? null;
-    let homed = 0;
-    for (const tunnel of store.tunnels.values()) if (homeOf(tunnel) === nodeId) homed += 1;
+    let homed = 0, servers = 0;
+    for (const tunnel of store.tunnels.values()) if (homeOf(tunnel) === nodeId) { homed += 1; if (t - (tunnel.seenAt ?? -Infinity) < ACTIVE_MS) servers += 1; }
     return {
-      at: t, id: nodeId, paused: !!limits.paused, tunnels: activeTunnels(t), homed, maxTunnels: limits.maxTunnels,
+      at: t, id: nodeId, paused: !!limits.paused, tunnels: busyTunnels(t), homed, maxTunnels: limits.maxTunnels, connected: activeTunnels(t), maxConnected: limits.maxConnected, servers, maxServers: limits.maxServers,
       bytesPerSecOut: usage.rate().out, ceilingBytesPerSec: limits.globalCeilingBytesPerSec,
       // the box's own count when it has one: the allowance is for everything the box sends
       monthBytesOut: reading?.monthBytesOut ?? month.out, projectedBytesOut: reading?.projectedBytesOut ?? Math.round(month.out / usage.monthElapsed()),

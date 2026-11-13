@@ -111,12 +111,13 @@ export type OpsRelayId = string;
 /** rates in bytes per second, sizes in bytes; null turns a limit off. a relay may add keys of its own */
 export interface OpsRelayLimits {
   perTunnelBytesPerSec?: number | null; burstBytes?: number | null; perTunnelDailyBytes?: number | null; tunnelsPerAccount?: number | null;
-  globalCeilingBytesPerSec?: number | null; maxTunnels?: number | null; paused?: boolean;
+  globalCeilingBytesPerSec?: number | null; maxTunnels?: number | null; maxConnected?: number | null; maxServers?: number | null; paused?: boolean;
   [key: string]: number | boolean | null | undefined;
 }
 export interface OpsRelayStats {
   relay: string;
-  now: { tunnels: number; accounts: number; bytesPerSecOut: number; bytesPerSecIn: number; cpu: number | null; rssMb: number | null };
+  /** tunnels: busy ones; connected: in use (an open desktop); servers: linked servers whose agent reads here */
+  now: { tunnels: number; connected?: number; servers?: number; accounts: number; bytesPerSecOut: number; bytesPerSecIn: number; cpu: number | null; rssMb: number | null };
   today: { bytesOut: number; bytesIn: number };
   month: { bytesOut: number; bytesIn: number; projectedBytesOut: number; allowanceBytes: number | null };
   limits: OpsRelayLimits;

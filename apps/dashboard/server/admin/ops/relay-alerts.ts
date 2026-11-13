@@ -49,10 +49,13 @@ export function relayNodeReadings(cards: readonly OpsRelayCard[]): RelayReading[
     out.push({ id: id("mem"), label: `link node ${name} memory high`, threshold: `over ${RELAY_RULES.memPct}% for 10 min`, forMs: RELAY_RULES.boxForMs,
       breach: box?.mem != null ? box.mem > RELAY_RULES.memPct : null, value: box?.mem != null ? pct(box.mem) : null,
       action: `the link service itself used ${s.now.rssMb ?? "?"} mb. look for what grew (top, docker stats); restarting the link service moves its servers to the other node for a moment.` });
-    const max = typeof limits.maxTunnels === "number" ? limits.maxTunnels : null;
-    out.push({ id: id("tunnels"), label: `link node ${name} tunnels near the cap`, threshold: `over ${pct(RELAY_RULES.tunnelShare * 100)} of max tunnels for 5 min`, forMs: RELAY_RULES.tunnelsForMs,
-      breach: max ? s.now.tunnels > max * RELAY_RULES.tunnelShare : null, value: max ? `${s.now.tunnels} of ${max}` : null,
-      action: "new servers go to the other node from 90%. raise max tunnels in admin ops if bandwidth allows, or add a node." });
+    // busy tunnels, tunnels in use (open desktops) and servers reading here, each against its own cap
+    const caps = ([["busy", s.now.tunnels, limits.maxTunnels], ["in use", s.now.connected, limits.maxConnected], ["servers", s.now.servers, limits.maxServers]] as const)
+      .flatMap(([what, count, max]) => typeof count === "number" && typeof max === "number" && max > 0 ? [{ what, count, max }] : []);
+    const fullest = caps.length ? caps.reduce((a, b) => (b.count / b.max > a.count / a.max ? b : a)) : null;
+    out.push({ id: id("tunnels"), label: `link node ${name} tunnels near the cap`, threshold: `over ${pct(RELAY_RULES.tunnelShare * 100)} of max tunnels, tunnels in use or servers for 5 min`, forMs: RELAY_RULES.tunnelsForMs,
+      breach: fullest ? fullest.count > fullest.max * RELAY_RULES.tunnelShare : null, value: fullest ? `${fullest.count} of ${fullest.max} ${fullest.what}` : null,
+      action: "new servers go to the other node from 90%. raise the cap in admin ops if the node's cpu allows (docs/capacity.md), or add a node (apps/link-service/deploy/add-node.sh)." });
     if (s.turn) out.push({ id: id("turn"), label: `turn on link node ${name} down`, threshold: "no stun answer for 2 min", forMs: RELAY_RULES.turnForMs,
       breach: s.turn.ok === null ? null : !s.turn.ok, value: s.turn.ok === null ? null : s.turn.ok ? "up" : "no answer",
       action: "webrtc falls back to cloudflare turn and then the relay meanwhile. on the box: systemctl status coturn, journalctl -u coturn." });
