@@ -87,6 +87,8 @@ export function auditLayout(options: AuditOptions = {}): LayoutIssue[] {
         if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0 || folded(child)) continue;
         // a drawing surface (the bot's mark) keeps transparent room around what it draws: its box is not its paint
         if (child.tagName === "CANVAS") continue;
+        // a resize grip straddles its pane's edge on purpose, a transparent strip to drag
+        if (style.cursor.endsWith("resize") && (parse(style.backgroundColor)?.a ?? 0) === 0) continue;
         const box = child.getBoundingClientRect();
         if (box.width > 0 && box.height > 0) {
           const t = Math.max(box.top, clip.top), b = Math.min(box.bottom, clip.bottom);
@@ -138,19 +140,36 @@ export function auditLayout(options: AuditOptions = {}): LayoutIssue[] {
       // inline runs wrap: their boxes span lines and say nothing about overlap
       const kids = flowChildren(element).filter((kid) => inFlow(kid) && visible(kid) && !kid.matches("svg, svg *") && getComputedStyle(kid).display !== "inline");
       for (let i = 0; i < kids.length; i++) for (let j = i + 1; j < kids.length; j++) {
-        const a = kids[i]!.getBoundingClientRect(), b = kids[j]!.getBoundingClientRect();
+        // what each sibling paints, so a control spilling out of its own capped box is caught where it lands
+        const a = inkRect(kids[i]!), b = inkRect(kids[j]!);
         const w = Math.min(a.right, b.right) - Math.max(a.left, b.left), h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+        // a stack of small faces (app logos, avatars) overlaps on purpose
+        const small = (box: { left: number; right: number; top: number; bottom: number }) => box.right - box.left <= 32 && box.bottom - box.top <= 32;
+        if (small(a) && small(b)) continue;
         if (w > 4 && h > 4) push({ kind: "overlap", hard: true, where: describe(kids[j]!), detail: `sits ${Math.round(w)}x${Math.round(h)}px on its sibling ${describe(kids[i]!)}` });
       }
     }
     // 3. content cut off by a box that neither scrolls nor ellipsizes on purpose
     const clipsX = style.overflowX === "hidden" || style.overflowX === "clip";
     const clipsY = style.overflowY === "hidden" || style.overflowY === "clip";
-    const ellipsis = style.textOverflow === "ellipsis" || style.webkitLineClamp !== "none" && style.webkitLineClamp !== "";
-    if (!ellipsis && element.tagName !== "IMG" && element.tagName !== "VIDEO" && element.tagName !== "CANVAS") {
+    // an ellipsis, a line clamp or a fade mask is a deliberate end to text that does not fit
+    const faded = (node: Element | null) => { for (let depth = 0; node && depth < 3; depth++, node = node.parentElement) { const look = getComputedStyle(node); if (look.maskImage !== "none" && look.maskImage !== "" || (look as CSSStyleDeclaration & { webkitMaskImage?: string }).webkitMaskImage?.startsWith("linear")) return true; } return false; };
+    const ellipsis = style.textOverflow === "ellipsis" || style.webkitLineClamp !== "none" && style.webkitLineClamp !== "" || faded(element);
+    // what is cut must be something a person would see: a parked, transparent peek (the row's time) is not
+    const spills = (axis: "x" | "y") => {
+      const edge = element.getBoundingClientRect();
+      return Array.from(element.querySelectorAll("*")).some((child) => {
+        const box = child.getBoundingClientRect();
+        if (box.width === 0 || box.height === 0 || !visible(child) || hiddenByAncestor(child)) return false;
+        return axis === "x" ? box.right > edge.right + 2 || box.left < edge.left - 2 : box.bottom > edge.bottom + 2 || box.top < edge.top - 2;
+      }) || Array.from(element.childNodes).some((node) => node.nodeType === 3 && (node.textContent ?? "").trim());
+    };
+    // screen-reader-only text and decorative (aria-hidden) copies are cut on purpose or never seen
+    const unseen = readerOnly(element) || Boolean(element.closest("[aria-hidden=true]"));
+    if (!ellipsis && !unseen && element.tagName !== "IMG" && element.tagName !== "VIDEO" && element.tagName !== "CANVAS") {
       const textual = (element.textContent ?? "").trim().length > 0;
-      if (textual && clipsX && element.scrollWidth > element.clientWidth + 2) push({ kind: "clipped", hard: true, where: describe(element), detail: `cuts off ${element.scrollWidth - element.clientWidth}px of its content sideways` });
-      if (textual && clipsY && element.scrollHeight > element.clientHeight + 2 && !element.closest("[data-gallery-allow-clip]")) push({ kind: "clipped", hard: true, where: describe(element), detail: `cuts off ${element.scrollHeight - element.clientHeight}px of its content below` });
+      if (textual && clipsX && element.scrollWidth > element.clientWidth + 2 && spills("x")) push({ kind: "clipped", hard: true, where: describe(element), detail: `cuts off ${element.scrollWidth - element.clientWidth}px of its content sideways` });
+      if (textual && clipsY && element.scrollHeight > element.clientHeight + 2 && !element.closest("[data-gallery-allow-clip]") && spills("y")) push({ kind: "clipped", hard: true, where: describe(element), detail: `cuts off ${element.scrollHeight - element.clientHeight}px of its content below` });
     }
     // 4. nothing runs out of the window sideways
     if (rect.right > vw + 1 || rect.left < -1) {
@@ -180,14 +199,17 @@ export function auditLayout(options: AuditOptions = {}): LayoutIssue[] {
     const style = getComputedStyle(box);
     return `fill ${style.backgroundColor}, radius ${style.borderTopLeftRadius}, border ${style.borderTopWidth} ${style.borderTopStyle}`;
   };
-  const looks = new Map<string, Element[]>();
-  for (const field of fields) {
-    const box = painted(field);
-    if (box) looks.set(signature(box), [...(looks.get(signature(box)) ?? []), field]);
-  }
-  if (looks.size > 1) {
+  // one look per surface: a settings page's fields match each other, a chat's cards match each other
+  for (const scope of scopes) {
+    const looks = new Map<string, Element[]>();
+    for (const field of fields) {
+      if (scopes.find((one) => one.contains(field)) !== scope) continue;
+      const box = painted(field);
+      if (box) looks.set(signature(box), [...(looks.get(signature(box)) ?? []), field]);
+    }
+    if (looks.size < 2) continue;
     const common = [...looks.entries()].sort((a, b) => b[1].length - a[1].length)[0]![0];
-    for (const [look, members] of looks) if (look !== common) for (const member of members) push({ kind: "field-style", hard: true, where: describe(member), detail: `${look} (most fields: ${common})` });
+    for (const [look, members] of looks) if (look !== common) for (const member of members) push({ kind: "field-style", hard: true, where: describe(member), detail: `${look} (most fields here: ${common})` });
   }
   for (const box of inScope.filter((element) => element.matches("input[type=checkbox], input[type=radio]") && visible(element) && !readerOnly(element))) {
     if (getComputedStyle(box).appearance !== "none") push({ kind: "native-control", hard: true, where: describe(box), detail: "draws the browser's own checkbox instead of the app's" });
@@ -242,7 +264,15 @@ export function auditLayout(options: AuditOptions = {}): LayoutIssue[] {
         const box = node.getBoundingClientRect();
         if (getComputedStyle(node).cursor === "pointer" && Math.min(box.width, box.height) >= 24) { hit = node; break; }
       }
-      const rect = hit.getBoundingClientRect();
+      // a pseudo-element hit area (absolute, reaching past the box) counts as the target
+      const box = hit.getBoundingClientRect();
+      let rect = { width: box.width, height: box.height };
+      for (const pseudo of ["::before", "::after"]) {
+        const look = getComputedStyle(hit, pseudo);
+        if (look.content === "none" || look.position !== "absolute") continue;
+        const px = (value: string) => (value.endsWith("px") ? parseFloat(value) : 0);
+        rect = { width: Math.max(rect.width, box.width - px(look.left) - px(look.right)), height: Math.max(rect.height, box.height - px(look.top) - px(look.bottom)) };
+      }
       const size = Math.min(rect.width, rect.height);
       if (size < 24) push({ kind: "tap-target", hard: true, where: describe(control), detail: `${Math.round(rect.width)}x${Math.round(rect.height)}px, under 24px` });
       else if (size < 44) push({ kind: "tap-target", hard: false, where: describe(control), detail: `${Math.round(rect.width)}x${Math.round(rect.height)}px, under 44px` });

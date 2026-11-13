@@ -1,5 +1,5 @@
 import { useProductScreen } from "@/lib/product-analytics-app";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronLeft, Menu } from "./icons";
 import { AnimatePresence } from "motion/react";
 import { CLOUD_LINK_SETTINGS, openBot, StoreProvider, useStore } from "@/state/store";
@@ -388,7 +388,8 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   );
 }
 
-function Application() {
+/** `children` sit inside the store beside the shell: a verification page's own probes (scripts/testing). */
+function Application({ children }: { children?: ReactNode }) {
   const viewer = useWelcomeViewer();
   return (
     <DesktopCapabilitiesProvider>
@@ -403,13 +404,14 @@ function Application() {
         <CloudTimeZoneSync viewer={viewer} />
         <LiveCallHost />
         <AmbientPublisher />
+        {children}
       </StoreProvider>
     </DesktopCapabilitiesProvider>
   );
 }
 
-export default function App() {
+export default function App({ children }: { children?: ReactNode } = {}) {
   const ended = useSessionEnded();
   if (ended) return <PairPage initialCode={null} reason={SESSION_ENDED_REASON} />;
-  return <WorkspaceBackupRecovery><Application /></WorkspaceBackupRecovery>;
+  return <WorkspaceBackupRecovery><Application>{children}</Application></WorkspaceBackupRecovery>;
 }

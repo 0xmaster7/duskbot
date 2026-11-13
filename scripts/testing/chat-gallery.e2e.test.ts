@@ -17,6 +17,7 @@ import { encodePng } from "./png.ts";
 import { fixtureApi, mountPreview, REPO_ROOT, type MountedPreview } from "./preview-fixture.ts";
 import { GALLERY_IMAGE, GALLERY_WIDE_IMAGE, SCENARIOS } from "./chat-gallery/fixtures.ts";
 import type { LayoutIssue } from "./chat-gallery/layout-audit.ts";
+import { connect } from "./chat-gallery/cdp.ts";
 import { NOTICES } from "../../src/lib/notices.ts";
 
 const enabled = process.env.DUSK_UI_E2E === "1";
@@ -34,37 +35,6 @@ const MODES = (process.env.DUSK_GALLERY_MODES ?? "still,arrive,churn").split(","
 
 const photo = encodePng(240, 160, (x, y) => [80 + (x % 120), 120 + (y % 80), 200]);
 const wide = encodePng(480, 120, (x, y) => [200, 100 + (x % 100), 80 + (y % 40)]);
-
-async function connect(url: string) {
-  const socket = new WebSocket(url);
-  const pending = new Map<number, { resolve(value: any): void; reject(error: Error): void }>();
-  const listeners: Array<(method: string, params: any) => void> = [];
-  let next = 0;
-  socket.addEventListener("message", (event) => {
-    const value = JSON.parse(String(event.data));
-    if (value.method) for (const listener of listeners) listener(value.method, value.params);
-    const waiting = pending.get(value.id);
-    if (!waiting) return;
-    pending.delete(value.id);
-    if (value.error) waiting.reject(new Error(value.error.message)); else waiting.resolve(value.result);
-  });
-  await new Promise<void>((resolve, reject) => {
-    socket.addEventListener("open", () => resolve(), { once: true });
-    socket.addEventListener("error", () => reject(new Error("gallery Chrome connection failed")), { once: true });
-  });
-  return {
-    on(listener: (method: string, params: any) => void) { listeners.push(listener); },
-    close() { socket.close(); },
-    request(method: string, params: unknown = {}, sessionId?: string): Promise<any> {
-      const id = ++next;
-      return new Promise((resolve, reject) => {
-        const timer = setTimeout(() => { pending.delete(id); reject(new Error(`gallery Chrome ${method} timed out`)); }, 60_000);
-        pending.set(id, { resolve(value) { clearTimeout(timer); resolve(value); }, reject(error) { clearTimeout(timer); reject(error); } });
-        socket.send(JSON.stringify({ id, method, params, ...(sessionId ? { sessionId } : {}) }));
-      });
-    },
-  };
-}
 
 (enabled ? it : it.skip)("draws every chat card without overlap, clipping or a stray field look", async () => {
   let fixture: VerificationServer | undefined;
