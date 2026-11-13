@@ -124,7 +124,8 @@ export function watchComposerFocus(win: Window = window): () => void {
   };
 
   const onKeyDown = (event: KeyboardEvent) => {
-    if (event.key === "Escape") { watchClose(openOverlays(doc), onPage() ? null : doc.activeElement); return; }
+    // Escape closes things; Enter picks a search result or saves a rename, and the field it was typed in folds away
+    if (event.key === "Escape" || event.key === "Enter") { watchClose(openOverlays(doc), onPage() ? null : doc.activeElement); return; }
     cancel();
     if (shouldOpenKeyboardShortcuts(event)) return;
     const active = doc.activeElement;
@@ -134,9 +135,10 @@ export function watchComposerFocus(win: Window = window): () => void {
     // focus moves before the key lands, so the browser types the letter into the chat box itself
     focusField(field);
   };
-  // Escape is read in the capture phase: the dialog it closes may stop it from bubbling
-  const onEscapeCapture = (event: KeyboardEvent) => { if (event.key === "Escape") onKeyDown(event); };
-  const onBubble = (event: KeyboardEvent) => { if (event.key !== "Escape") onKeyDown(event); };
+  // Escape and Enter are read in the capture phase: what they close may stop them from bubbling
+  const closing = (event: KeyboardEvent) => event.key === "Escape" || event.key === "Enter";
+  const onEscapeCapture = (event: KeyboardEvent) => { if (closing(event)) onKeyDown(event); };
+  const onBubble = (event: KeyboardEvent) => { if (!closing(event)) onKeyDown(event); };
   // a click, not the pointer going down: a menu item closes its menu and opens the next thing on click
   const onClick = (event: MouseEvent) => {
     const target = event.target instanceof Element ? event.target.closest("button, [role=button], [role=menuitem], a") : null;

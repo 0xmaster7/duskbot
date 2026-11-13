@@ -111,6 +111,17 @@ describe("watchComposerFocus", () => {
     expect(document.activeElement).toBe(field);
   });
 
+  it("hands focus back when Enter picks a search result and the search folds away", () => {
+    const search = document.createElement("input");
+    document.body.append(search);
+    search.focus();
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+    search.remove();
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    vi.advanceTimersByTime(800);
+    expect(document.activeElement).toBe(field);
+  });
+
   it("leaves focus where it is when Escape closed nothing", () => {
     const pill = document.getElementById("pill")!;
     pill.focus();
