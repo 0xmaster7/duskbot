@@ -53,6 +53,14 @@ describe("profiles", () => {
     expect(after).toMatchObject({ extra: 1, profile: { exit_type: "Normal", exited_cleanly: true, password_manager_enabled: false } });
   });
 
+  it("turns password saving back off at every start, even after someone turned it on in the window", () => {
+    const made = ensureProfile(scratch(), "bot:alice");
+    const file = join(made.dir, "Default", "Preferences");
+    writeFileSync(file, JSON.stringify({ credentials_enable_service: true, profile: { password_manager_enabled: true, name: "Bot" } }));
+    markCleanExit(made.dir);
+    expect(JSON.parse(readFileSync(file, "utf8"))).toMatchObject({ credentials_enable_service: false, profile: { password_manager_enabled: false, name: "Bot" } });
+  });
+
   it("refuses to let an older Chrome open a profile a newer one wrote", () => {
     const data = scratch();
     const { dir, record } = ensureProfile(data, "bot:alice");

@@ -8,5 +8,8 @@
   "HomepageLocation": "https://www.google.com",
   "HomepageIsNewTabPage": false,
   "PrivacySandboxPromptEnabled": false,
-  "TranslateEnabled": false
+  "TranslateEnabled": false,
+  "PasswordManagerEnabled": false,
+  "PasswordLeakDetectionEnabled": false,
+  "DiskCacheSize": 268435456
 }

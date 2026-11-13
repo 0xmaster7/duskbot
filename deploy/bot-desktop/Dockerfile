@@ -86,7 +86,7 @@ RUN set -eux; \
     test "$(/usr/local/libexec/duskbot/cua-driver --version)" = "cua-driver ${CUA_DRIVER_VERSION}"; \
     install -d /opt/venv/bin; ln -s /usr/bin/python3 /opt/venv/bin/python; \
     useradd --uid 1000 --user-group --create-home --shell /bin/bash cua; \
-    install -d -o cua -g cua -m 0700 /home/cua/Downloads /home/cua/workspace; \
+    install -d -o cua -g cua -m 0700 /home/cua/Downloads /home/cua/workspace /home/cua/scratch; \
     printf '%s\n' "PS1='\\[\\e[38;5;208m\\]\\h-cloud\\[\\e[0m\\]:\\w\\$ '" >> /home/cua/.bashrc; \
     rm -rf /var/log/supervisor; ln -s /tmp/omb-log /var/log/supervisor; \
     rm -f /etc/machine-id /var/lib/dbus/machine-id; ln -s /run/omb/machine-id /etc/machine-id; \
@@ -105,7 +105,7 @@ RUN chmod 0755 /usr/local/bin/omb-* && chmod 0644 /etc/chromium.d/omb \
  && rm -f /tmp/omb-blank-cursors.py /usr/share/icons/default/index.theme \
  && printf '%s\n' '[Icon Theme]' 'Inherits=omb-hidden' > /usr/share/icons/default/index.theme
 
-ARG BOT_DESKTOP_VERSION=5
+ARG BOT_DESKTOP_VERSION=6
 # label names from before the rename: servers and apps find this image by them (DOCKER_NAMES, electron/legacy-names.mjs)
 LABEL com.openmausbot.bot-desktop="${BOT_DESKTOP_VERSION}" \
       com.openmausbot.cua-driver="${CUA_DRIVER_VERSION}" \

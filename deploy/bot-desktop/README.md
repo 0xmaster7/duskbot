@@ -4,7 +4,7 @@ The bot's own computer: a small dark Linux desktop in a hardened container, one 
 locally in Docker). Bots drive it through Cua Driver exactly as they drive the Cua XFCE image (screenshots, clicks,
 typing, AT-SPI, Chromium over CDP); people see it through noVNC when they take control.
 
-Image: `ghcr.io/duskbotai/dusk-desktop:v5` (`BOT_DESKTOP_IMAGE` in `shared/bot-desktop.ts`). linux/arm64 and
+Image: `ghcr.io/duskbotai/dusk-desktop:v6` (`BOT_DESKTOP_IMAGE` in `shared/bot-desktop.ts`). linux/arm64 and
 linux/amd64, published from main by `.github/workflows/bot-desktop-image.yml` and pulled anonymously, so the package is
 public. Earlier builds were tagged `ghcr.io/sidddevz/omb-bot-desktop` (up to v5) and `ghcr.io/duskbotai/bot-desktop` (v5); desktops made from those keep running.
 
@@ -40,6 +40,19 @@ file (any `wallpaper.*` ImageMagick reads) and rebuild. A person can also drop `
 running box. The current file (two reaching hands as a white-dot halftone) came from the user; its source and license
 are not recorded here, so confirm the right to ship it before publishing the image.
 
+## Temporary files and passwords
+
+- `/home/cua/scratch` is the bot's throwaway folder (its screenshots, screen recordings, temporary downloads and tool
+  output; the bot's prompt says so). The server empties it when a turn on this desktop ends and no other turn is using
+  the desktop, deletes anything there a day old every 15 minutes, and does the same for Chromium's `Crash Reports`
+  (`server/box-scratch.ts`). When `/home/cua` is over 80% full it clears that scratch oldest first, and if the disk is
+  still over 80% the bot's next turn gets a calm note to pass on. Nothing else is ever deleted: not `workspace`,
+  `Downloads`, the browser profile, or anything the person put on the desktop. A file shown in chat was copied into the
+  app's own attachment store by `attach_file`, so clearing scratch never breaks a chat image.
+- Chromium never saves or offers to save passwords (`PasswordManagerEnabled` and `PasswordLeakDetectionEnabled` off
+  in `rootfs/etc/chromium/policies/managed/omb.json`); sign-ins come from the Vault through `fill_login`. Its disk
+  cache is capped at 256 MB (`DiskCacheSize`).
+
 ## Two modes
 
 The harness picks one at creation and labels the container with the mode label (`DOCKER_NAMES.label("bot-desktop-mode")` in `electron/legacy-names.mjs`).
@@ -69,7 +82,7 @@ makes `sudo` inert. Read-only root filesystem; same network rules plus the host'
 The placeholders below use `electron/legacy-names.mjs`: `<name>` uses `DOCKER_NAMES.vpsPrefix`,
 `<desktop-network>` is `DOCKER_NAMES.desktopNetwork`, and each `<...-label>` is `DOCKER_NAMES.label("...")`.
 
-1. `docker pull ghcr.io/duskbotai/dusk-desktop:v5` unless present. If the pull fails (not published, private
+1. `docker pull ghcr.io/duskbotai/dusk-desktop:v6` unless present. If the pull fails (not published, private
    package, registry down) it builds the image on the docker host from this folder as shipped with the server
    (`deploy/bot-desktop/` beside `dist-server/`, or `DUSK_BOT_DESKTOP_KIT`), only when its Dockerfile's
    `ARG BOT_DESKTOP_VERSION` equals `BOT_DESKTOP_VERSION`; the turn's chat says the build is running. When neither

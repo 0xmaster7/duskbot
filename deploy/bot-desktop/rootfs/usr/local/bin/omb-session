@@ -43,7 +43,7 @@ shutdown_primary() {
 }
 if [ "$screen" = 1 ]; then trap shutdown_primary TERM INT; fi
 
-mkdir -p /run/omb "$XDG_RUNTIME_DIR" "$logs" "$HOME/.config" "$HOME/.cache" "$HOME/Downloads"
+mkdir -p /run/omb "$XDG_RUNTIME_DIR" "$logs" "$HOME/.config" "$HOME/.cache" "$HOME/Downloads" "$HOME/scratch"
 chmod 0700 "$XDG_RUNTIME_DIR"
 # first boot of a home volume: defaults the person or bot may change later
 [ -e "$HOME/.config/gtk-3.0/gtk.css" ] || { mkdir -p "$HOME/.config/gtk-3.0"; cp /usr/share/omb-desktop/skel/.config/gtk-3.0/gtk.css "$HOME/.config/gtk-3.0/gtk.css"; }

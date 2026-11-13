@@ -108,10 +108,11 @@ export function mergePreferences(dir: string, preferences: Record<string, unknow
   writeAtomic(file, JSON.stringify(merge(base, preferences)));
 }
 
-/** A crash left behind is not offered back to anyone as a "restore pages?" bubble. */
+/** A crash left behind is not offered back to anyone as a "restore pages?" bubble, and password saving stays off even
+ * if someone turned it on in the window: passwords belong in the Vault. */
 export function markCleanExit(dir: string): void {
   if (!existsSync(join(dir, "Default", "Preferences"))) return;
-  mergePreferences(dir, { profile: { exit_type: "Normal", exited_cleanly: true } });
+  mergePreferences(dir, { credentials_enable_service: false, profile: { exit_type: "Normal", exited_cleanly: true, password_manager_enabled: false } });
 }
 
 /** The tabs Chrome would reopen, so a restart comes back on one blank tab; sign-ins stay. Chrome 153 keeps them in
