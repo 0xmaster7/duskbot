@@ -56,7 +56,7 @@ export interface Rendered { subject: string; html: string; text: string }
 
 const C = {
   page: "#fdfdfd", off: "#f6f6f4", ink: "#1b1b1f", body: "#4a4a54", muted: "#73737c", kit: "#894ef0", log: "#232328",
-  lemon: "#fff3a0", lime: "#c9f63f", pink: "#ffc4dd", lav: "#d0cefb", sky: "#c2ecfc", green: "#14864f", amber: "#a86a00", red: "#c8325f",
+  skyWash: "#e9f7fd", lemon: "#fff3a0", lime: "#c9f63f", pink: "#ffc4dd", lav: "#d0cefb", sky: "#c2ecfc", green: "#14864f", amber: "#a86a00", red: "#c8325f",
 };
 const SANS = "'General Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
 const MONO = "'Geist Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace";
@@ -148,14 +148,14 @@ function blockHtml(cfg: EmailConfig, block: Block, accent: Accent): string {
       return stepped(`<span class="ink" style="font-family:${SANS};font-size:14.5px;line-height:22px;color:${C.ink}">${prose(block.text)}</span>`,
         { fill: tone.bg, cls: tone.cls, under: tone.edge, pad: "13px 16px", margin: "0 0 22px" });
     }
-    case "cloud": return stepped(`<img src="${esc(img(cfg, block.image))}" width="472" alt="${esc(block.alt)}" style="display:block;width:100%;max-width:472px;height:auto;border:0">
+    case "cloud": return stepped(stepped(`<img src="${esc(img(cfg, block.image))}" width="472" alt="${esc(block.alt)}" style="display:block;width:100%;max-width:472px;height:auto;border:0">
 <div class="muted" style="padding-top:18px;font-family:${MONO};font-size:12.5px;line-height:18px;letter-spacing:0.02em;color:${C.muted}">${esc(block.eyebrow)}</div>
 <div class="ink" style="padding-top:6px;font-family:${SANS};font-size:22px;line-height:28px;font-weight:600;letter-spacing:-0.02em;color:${C.ink}">${esc(block.title)}</div>
 <div class="soft" style="padding-top:8px;font-family:${SANS};font-size:15.5px;line-height:24px;color:${C.body}">${prose(block.text)}</div>
 ${T(block.points.map(point => `<tr><td valign="top" width="20" style="padding:9px 0 0"><div class="dot" style="width:6px;height:6px;background:${C.ink}"></div></td><td class="ink" style="font-family:${SANS};font-size:15px;line-height:24px;color:${C.ink};padding:0 0 4px">${esc(point)}</td></tr>`).join("\n"), "margin:14px 0 0")}
 ${T(`<tr><td>${button(block.cta.label, block.cta.href, C.lime)}</td>
 <td class="ink" style="padding-left:16px;font-family:${SANS};font-size:15px;line-height:20px;color:${C.ink}"><b style="font-weight:600">${esc(block.price)}</b><br><span class="muted" style="font-size:13px;color:${C.muted}">${esc(block.fine)}</span></td></tr>`, "margin:18px 0 4px", "")}`,
-      { fill: C.off, cls: "box", under: C.sky, pad: "20px 20px 22px", margin: "8px 0 28px" });
+      { fill: "#ffffff", cls: "box", pad: "18px 18px 20px" }), { fill: C.skyWash, cls: "cloud-frame", under: C.sky, pad: "6px", margin: "8px 0 28px" });
     case "feature": return T(`${block.image ? `<tr><td style="padding:0 0 14px"><img src="${esc(img(cfg, block.image))}" width="504" alt="${esc(block.alt)}" style="display:block;width:100%;max-width:504px;height:auto;border:0"></td></tr>` : ""}
 <tr><td><div class="ink" style="font-family:${SANS};font-size:18px;line-height:25px;font-weight:600;letter-spacing:-0.015em;color:${C.ink}">${esc(block.title)}</div>
 <div class="soft" style="font-family:${SANS};font-size:15.5px;line-height:24px;color:${C.body};padding-top:5px">${prose(block.text)}</div></td></tr>`, "margin:0 0 22px");
@@ -191,6 +191,7 @@ const darkCss = `
 @media (prefers-color-scheme: dark) {
   .bg, .pg { background: #131316 !important; }
   .box { background: #232328 !important; }
+  .cloud-frame { background: #1a2a31 !important; }
   .ink, a.ink { color: #f1f1f3 !important; }
   .soft { color: #c4c4cc !important; }
   .muted, a.muted { color: #9a9aa4 !important; }
