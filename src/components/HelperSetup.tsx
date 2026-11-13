@@ -33,15 +33,13 @@ function IntroConnectAi({ onClose }: { onClose: () => void }) {
   return <ConnectAiDialog tested={useWelcomeAi(state.instances, true)} onClose={onClose} />;
 }
 
-/** What is still missing, as chips under Dusk's follow-up (Simple mode): at most INTRO_CHIPS, and one that was tapped
- * leaves for the next. */
+/** What is still missing, as chips under Dusk's follow-up (Simple mode): at most INTRO_CHIPS. A tapped chip stays, so it
+ * can be tapped again if its flow was closed. */
 export function IntroChips({ chips }: { chips: readonly IntroChip[] }) {
   const { dispatch } = useStore();
-  const [tapped, setTapped] = useState<ReadonlySet<IntroChip>>(new Set());
   const [connecting, setConnecting] = useState(false);
-  const shown = chips.filter((chip) => !tapped.has(chip)).slice(0, INTRO_CHIPS);
+  const shown = chips.slice(0, INTRO_CHIPS);
   const tap = (chip: IntroChip) => {
-    setTapped((now) => new Set([...now, chip]));
     if (chip === "ai") return setConnecting(true);
     if (chip === "cloud") track("onboarding_cloud", { action: "start_trial" });
     dispatch(chipAction(chip));

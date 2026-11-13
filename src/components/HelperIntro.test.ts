@@ -162,14 +162,22 @@ describe("in the chat (Simple mode)", () => {
     setTeamPeople(null);
   });
 
-  it("shows three chips at most, AI first, and one tapped makes room for the next", async () => {
+  it("shows three chips at most, AI first, and a tapped one stays to be tapped again", async () => {
     f.state = { ...f.state, instances: [claude(false)] };
     await show();
     expect(lines()[3]).toBe(t("helperIntro.followup.noAi"));
     expect(chips()).toEqual(["ai", "apps", "phone"]);
     await act(async () => { host.querySelector<HTMLElement>('[data-helper-step="phone"]')!.click(); });
-    expect(f.dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "toggleAppSettings", section: "companion" }));
-    expect(chips()).toEqual(["ai", "apps", "cloud"]);
+    expect(f.dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "toggleAppSettings", section: "companion", phonePairing: true }));
+    expect(chips()).toEqual(["ai", "apps", "phone"]);
+  });
+
+  it("opens the dusk cloud sheet from its chip and keeps the chip", async () => {
+    f.state = { ...f.state, instances: [claude(true)] };
+    await show();
+    await act(async () => { host.querySelector<HTMLElement>('[data-helper-step="cloud"]')!.click(); });
+    expect(f.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_onboarding" });
+    expect(chips()).toContain("cloud");
   });
 
   it("opens the Connect an AI dialog in place from its chip, not Settings", async () => {

@@ -324,7 +324,7 @@ describe("each screen of the sheet says one thing and offers one next step", () 
     expect(sheet("offer")).toContain("max-w-[920px]"); expect(sheet("starting")).toContain("max-w-[720px]"); expect(sheet("waiting")).toContain("max-w-[540px]");
     expect(sheet("offer")).toContain('aria-label="close"');
     expect(sheet("offer"), "over a night card the close button takes the card's light ink").toContain("group-has-[[data-night-card]]/sheet:text-(--cloud-night-ink-quiet)");
-    expect(sheet("offer"), "above Settings and the welcome flow (z-50), which it opens over").toContain("fixed inset-0 z-[60]");
+    expect(sheet("offer"), "above Settings, the welcome flow (z-50) and the full-screen places picker (z-60), which it opens over").toContain("fixed inset-0 z-[61]");
     expect(sheet("offer")).not.toContain("data-cloud-staging");
     expect(text(sheet("offer", true))).toMatch(/staging ?: This app uses the staging dusk cloud: test payments and test clouds, not real ones\./);
   });

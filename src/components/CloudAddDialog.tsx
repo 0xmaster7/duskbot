@@ -92,9 +92,9 @@ const WIDTH: Partial<Record<CloudAddView["kind"], string>> = { offer: "max-w-[92
 const HELD: ReadonlySet<CloudAddView["kind"]> = new Set(["sign-in", "signing-in", "waiting", "starting", "team-starting"]);
 
 /** The sheet over the app: one width per screen, the close button, and the staging mark when the app is on staging.
- * Above the z-50 layers (Settings, the welcome flow), which it may be opened over. */
+ * Above the z-50 layers (Settings, the welcome flow) and the full-screen places picker (z-60), which it may be opened over. */
 export function CloudAddSheet({ kind, staging, onClose, children }: { kind: CloudAddView["kind"]; staging: boolean; onClose: () => void; children: ReactNode }) {
-  return <div className="ui-scrim fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6" onMouseDown={event => event.target === event.currentTarget && !HELD.has(kind) && onClose()}>
+  return <div className="ui-scrim fixed inset-0 z-[61] flex items-center justify-center p-4 sm:p-6" onMouseDown={event => event.target === event.currentTarget && !HELD.has(kind) && onClose()}>
     <div role="dialog" aria-modal="true" aria-labelledby="cloud-add-title" data-cloud-add-dialog tabIndex={-1}
       className={cn(SHEET, "group/sheet relative max-h-full w-full overflow-y-auto overscroll-contain rounded-[14px] border border-transparent outline-none", WIDTH[kind] ?? "max-w-[540px]")}>
       <button type="button" onClick={onClose} aria-label={t("cloudAdd.close")} className={cn(formCloseCls, ON_NIGHT, "absolute end-3 top-3 z-10")}><X size={16} /></button>
