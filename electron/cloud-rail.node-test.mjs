@@ -131,8 +131,12 @@ test("the rail's channels: the list only for the rail's own page, a circle only 
   r.w.beside = false;
   assert.deepEqual(await r.call("workspaces:places"), { places: [], add: { cloud: false, link: false, address: false, organization: false } });
   assert.throws(() => r.call("workspaces:open", "a"), /only available/);
-  assert.throws(() => r.call("workspaces:add", "link"), /only available/);
+  r.call("workspaces:add", "link", "https://own.example.test/#code=abc");
+  assert.deepEqual(r.ran.splice(0), [["link", "https://own.example.test/#code=abc"]], "this computer's own add-a-server sheet adds through main's Connect dialog");
   assert.equal(typeof await r.call("cloud-add:state"), "object", "＋'s buying sheet still runs on a page main vouches for (this computer's own)");
+  r.w.trusted = false;
+  assert.throws(() => r.call("workspaces:add", "link"), /only available/, "no other page adds a place");
+  r.w.trusted = true;
   r.w.lists = true;
   r.call("workspaces:open", "a");
   assert.throws(() => r.call("workspaces:open", "https://evil.example.test"), /isn't here/);

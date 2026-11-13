@@ -139,8 +139,8 @@ const CHOICES = Object.freeze(["cloud", "link", "address"]);
 
 /**
  * The rail's and ＋'s channels, each behind main's guard (`guard`: the window's page, or the rail's own). Only the rail's
- * page (`lists`) reads the list and opens or adds a place; ＋'s buying sheet also runs on a page `trusted` vouches for
- * (the rail's, or this computer's own). Any other page learns only whether the rail stands beside it (`beside`).
+ * page (`lists`) reads the list and opens a place; adding one and ＋'s buying sheet also run on a page `trusted` vouches
+ * for (the rail's, or this computer's own). Any other page learns only whether the rail stands beside it (`beside`).
  * `places()` is railPlaces' list now; `open(id)` main's own switch; `add` the ＋ sheet's fixed actions; `account()` the
  * dusk cloud sign-in; `targets()` the pages told when something changed; `makeHome(id)` starts the move to a server
  * of the person's own (own-home-main.mjs `start`). `switchAccount(id)`: that account becomes the one in use (cloud-accounts.mjs).
@@ -194,7 +194,8 @@ export function installCloudRail({ ipcMain, guard, trusted, lists = trusted, bes
     return makeHome(place.id);
   });
   // A link pasted on ＋'s sheet goes to main's own Connect dialog, which checks it and names its host before connecting.
-  listed("workspaces:add", (_event, choice, link) => {
+  // This computer's own page adds too: its add-a-server sheet (the Server menu's Connect to a server…) has no rail to ask.
+  handle("workspaces:add", (_event, choice, link) => {
     if (!CHOICES.includes(choice) || !add.choices()[choice]) throw new Error("That isn't something to add here.");
     const pasted = choice === "link" ? plain(link).trim().slice(0, 4096) : "";
     return pasted ? add.run(choice, pasted) : add.run(choice);
