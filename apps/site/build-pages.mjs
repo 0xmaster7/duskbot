@@ -126,7 +126,13 @@ const logo = (name, eager) => `<img class="logo" src="/art/logos/${name}.${fs.ex
 // {{chips a b c}} is a run of connector chips, each a logo and a name
 const withChips = (html) => html.replace(/\{\{logo (\w+)( eager)?\}\}/g, (_, name, eager) => logo(name, eager)).replace(/\{\{chips ([\w ]+)\}\}/g, (_, names) => names.split(' ').map((n) => `<span class="chip">${logo(n)}${CHIP_NAMES[n] ?? n}</span>`).join(''));
 // {{include name}} drops in pages/partials/name.html, so a big piece of a page can live in its own file
-const withParts = (html) => html.replace(/\{\{include ([\w-]+)\}\}/g, (_, name) => { const file = path.join(here, 'pages', 'partials', `${name}.html`); return fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : ''; });
+const withParts = (html) => html.replace(/\{\{include ([\w-]+)\}\}/g, (_, name) => {
+  const file = path.join(here, 'pages', 'partials', `${name}.html`);
+  if (!fs.existsSync(file)) return '';
+  // the live demo's script runs right after its markup, so the demo answers clicks the moment it shows, not after the page's
+  // other scripts (safari holds async scripts until deferred ones finish, so this one is a plain script)
+  return fs.readFileSync(file, 'utf8') + (name === 'app-demo' && has('app-demo.js') ? `<script src="${stamped('app-demo.js')}"></script>` : '');
+});
 const has = (file) => fs.existsSync(path.join(site, file));
 // the first-party analytics tracker (apps/dashboard/tracker/dusk.js in the Dusk Bot repo), served as /a.js; its beacons go to
 // DUSK_TRACK_API (default /v1/t, the account service on this origin). Visits of signed-in admins are never counted.
@@ -174,13 +180,15 @@ function sea() {
 // ids get a per-use suffix so two copies of tux on one page do not share gradients
 const monoOs = new Set(['apple']);
 let osUses = 0;
-const os = (name) => {
+// {{os name mono}} is the single colour version (art/os/<name>-mono.svg, apple is already one), in the text colour
+const os = (name, mono) => {
   const n = ++osUses;
-  const svg = fs.readFileSync(path.join(site, 'art', 'os', `${name}.svg`), 'utf8').replace(/<title>.*?<\/title>/, '')
+  const file = mono && !monoOs.has(name) ? `${name}-mono` : name;
+  const svg = fs.readFileSync(path.join(site, 'art', 'os', `${file}.svg`), 'utf8').replace(/<title>.*?<\/title>/, '')
     .replace(/ role="img"| xmlns(:xlink)?="[^"]*"/g, '').replace(/(id="|url\(#|href="#)([\w-]+)/g, `$1$2-o${n}`).trim();
-  return svg.replace(/<svg ?/, `<svg class="os" aria-hidden="true" focusable="false"${monoOs.has(name) ? ' fill="currentColor"' : ''} `);
+  return svg.replace(/<svg ?/, `<svg class="os" aria-hidden="true" focusable="false"${monoOs.has(name) || mono ? ' fill="currentColor"' : ''} `);
 };
-const withOs = (html) => html.replace(/\{\{os (\w+)\}\}/g, (_, name) => os(name));
+const withOs = (html) => html.replace(/\{\{os (\w+)( mono)?\}\}/g, (_, name, mono) => os(name, !!mono));
 const withBots = (html) => (withOs(withChips(withParts(html))).replace(/\{\{bot (\w+) (\w+)((?: [\w-]+)*)\}\}/g, (_, shape, colour, extra) => bot(shape, colour, extra.trim()))
   .replace(/\{\{i ([\w-]+)(?: ([\w-]+))?\}\}/g, (_, name, cls) => icon(name, cls)).replace(/\{\{sea\}\}/g, sea));
 
@@ -258,7 +266,7 @@ export function layout({ title, description, body, page, at, section = page, og 
   const brand = '<a class="brand" href="/"><img src="/art/logo-96.webp" alt="" width="28" height="28">dusk bot</a>';
   const css = home ? ['site.css', 'motion-kit-v2.css', 'home.css', ...(has('app-demo.css') ? ['app-demo.css'] : [])] : ['site.css', 'pages.css', ...styles.filter(has)];
   const tail = home
-    ? `<script src="${stamped('motion.min.js')}"></script>\n${has('mascot.js') ? `<script src="${stamped('mascot.js')}" defer></script>\n` : ''}<script src="${stamped('motion-kit-v2.js')}"></script>\n<script src="${stamped('home.js')}"></script>${has('app-demo.js') ? `\n<script src="${stamped('app-demo.js')}" defer></script>` : ''}\n<script src="${stamped('site.js')}" defer></script>`
+    ? `<script src="${stamped('motion.min.js')}" defer></script>\n<script src="${stamped('motion-kit-v2.js')}" defer></script>\n<script src="${stamped('home.js')}" defer></script>${has('mascot.js') ? `\n<script src="${stamped('mascot.js')}" defer></script>` : ''}\n<script src="${stamped('site.js')}" defer></script>`
     : ['mascot.js', 'site.js', 'pages.js', ...scripts].filter(has).map((file) => `<script src="${stamped(file)}" defer></script>`).join('\n');
   return `<!doctype html>
 <html lang="en">

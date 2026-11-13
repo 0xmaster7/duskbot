@@ -184,9 +184,11 @@ const server = http.createServer((req, res) => {
   if (NO_INDEX) res.setHeader('X-Robots-Tag', 'noindex, nofollow');
   // /explore/ holds design boards that set positions and colours through style attributes
   const explore = (req.url || '').startsWith('/explore/');
+  // cloudflare's edge injects its web analytics beacon into every page; allow just that script and where it reports
+  const beacon = "script-src 'self' https://static.cloudflareinsights.com; connect-src 'self' https://cloudflareinsights.com";
   res.setHeader('Content-Security-Policy', explore
-    ? "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'"
-    : "default-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'");
+    ? `default-src 'self'; ${beacon}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'`
+    : `default-src 'self'; ${beacon}; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'`);
   res.setHeader('X-Frame-Options', 'DENY');
   if (store && /^\/api\/waitlist(\/count)?$/.test((req.url || '/').split('?')[0])) return waitlist(req, res, (req.url || '/').split('?')[0]);
   if (req.method !== 'GET' && req.method !== 'HEAD') {

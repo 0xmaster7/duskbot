@@ -1,7 +1,9 @@
 // the app window in the hero: a small remake of dusk bot's main window. every bot opens its own chat, the composer takes
 // typing and answers from canned replies matched on keywords, the bot panel opens with its tabs, routines and model
 // picker. nothing leaves the page: no requests, no real ai.
-(() => {
+// runs from a script tag right after the demo markup, so it answers clicks as soon as the demo shows
+(function start() {
+  if (!document.querySelector('[data-ad] [data-ad-main]') && document.readyState === 'loading') return document.addEventListener('DOMContentLoaded', start, { once: true });
   const root = document.querySelector('[data-ad]');
   const app = root && root.querySelector('[data-ad-app]');
   if (!app || !('ResizeObserver' in window)) return;
@@ -241,9 +243,9 @@
     const b = BOTS[id];
     b.id = id;
     b.name = app.querySelector(`[data-bot="${id}"] b`).textContent;
-    state[id] = { msgs: b.history.slice(), chips: b.chips.slice(), model: b.model, on: b.routines.map((r) => r.on), used: new Set(), busy: null, unread: !!b.unread, wait: !!b.wait };
+    state[id] = { msgs: b.history.slice(), chips: b.chips.slice(), model: b.model, on: b.routines.map((r) => r.on), used: new Set(), typed: 0, busy: null, unread: !!b.unread, wait: !!b.wait };
   }
-  let draft = '', current = 'dusk', tab = 'details', page = null, typed = 0, installs = 0, panelOpen = !phone.matches, menu = null;
+  let draft = '', current = 'dusk', tab = 'details', page = null, installs = 0, panelOpen = !phone.matches, menu = null;
 
   // building blocks
   function h(tag, props, ...kids) {
@@ -370,20 +372,21 @@
   }
   function paintChips() {
     const s = state[current];
-    chipsEl.replaceChildren(...(s.busy ? [] : s.chips.map((c) => h('button', { class: 'ad-chip', type: 'button', text: c, onclick: () => ask(c) }))));
+    chipsEl.replaceChildren(...(s.busy ? [] : s.chips.map((c) => h('button', { class: 'ad-chip', type: 'button', text: c, onclick: () => ask(c, true) }))));
     chipsEl.hidden = !chipsEl.childElementCount;
   }
   const toBottom = () => { if (thread) thread.scrollTop = thread.scrollHeight; };
   const work = (text) => h('div', { class: 'ad-work ad-in', 'data-work': '' }, h('i', { 'aria-hidden': 'true' }, h('b'), h('b'), h('b')), text + '…');
 
-  function reply(id, text) {
+  // a suggested prompt always gets its answer; free typing gets a few matched answers per bot, then the install nudge
+  function reply(id, text, chip) {
     const b = BOTS[id], s = state[id];
     const words = text.trim();
     let hit = null;
-    if (typed <= 3) {
-      for (const it of b.intents) if (it[0].test(words) && !s.used.has(it)) { hit = it; break; }
+    if (chip || s.typed <= 3) {
+      for (const it of b.intents) if (it[0].test(words) && (chip || !s.used.has(it))) { hit = it; break; }
       if (!hit) for (const it of SHARED) if (it[0].test(words) && !s.used.has(it)) { hit = it; break; }
-      if (hit && words.length > 160) hit = null;
+      if (hit && !chip && words.length > 160) hit = null;
     }
     if (!hit) {
       const line = INSTALL[installs++ % INSTALL.length](b);
@@ -405,16 +408,16 @@
     paintRow(id);
   }
 
-  function ask(raw) {
+  function ask(raw, chip) {
     const text = raw.trim().slice(0, 400);
     const id = current, s = state[id];
     if (!text || s.busy) return;
-    typed++;
+    if (!chip) s.typed++;
     s.chips = s.chips.filter((c) => c !== text);
     draft = '';
     if (input) { input.value = ''; send.disabled = true; }
     push(id, ['u', text]);
-    const r = reply(id, text);
+    const r = reply(id, text, chip);
     s.busy = r.step;
     paintRow(id);
     if (id === current) { col.append(work(r.step)); paintChips(); toBottom(); }
@@ -624,4 +627,9 @@
   for (const k of ORDER) paintRow(k);
   renderChat();
   renderPanel();
+  // a bot pressed before this ran still opens (browsers that focus buttons on click)
+  const early = document.activeElement && document.activeElement.closest && document.activeElement.closest('.ad-bot');
+  if (early && app.contains(early)) open(early.dataset.bot);
+  // mascot.js (deferred) may land after this; give the panel its moving bot once it has
+  if (!window.DuskPixel) addEventListener('load', () => { if (panelOpen && !heroBot && !menu && window.DuskPixel) renderPanel(); }, { once: true });
 })();
