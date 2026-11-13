@@ -114,7 +114,10 @@ Changeable live from the admin relay page (`relay-limits.json`).
 | Speed per tunnel | 3 MiB/s, bursts to 24 MiB |
 | Per tunnel per day | 25 GiB |
 | Tunnels per account | 20 |
-| Whole relay | 10 MiB/s (about 88 Mbit/s on the wire), 150 tunnels relaying at once |
+| Whole relay (Contabo) | 10 MiB/s (about 88 Mbit/s on the wire) |
+| Busy tunnels (a screen or download, 1 MiB or more in 2 min) | 150 new ones a node lets on (`maxTunnels`); ones already in use go on |
+| Tunnels in use (an open desktop says hello every 15 s) | 1000 (`maxConnected`); past it a new one hears "relay busy" and moves |
+| Servers reading from a node | 1500 (`maxServers`), placement only: from 90% new servers go elsewhere |
 | Contabo month | 32 TB allowance (Contabo slows the port to 100 Mbit/s past a 10 day average above it) |
 | New pairing sessions | 120 an hour per ip; queued bytes 16 MiB per direction, frames dropped after 60 s, 1 GiB queued in all |
 | Per ip | 512 connections, 200 requests a second |
@@ -127,7 +130,9 @@ the 150-tunnel cap is reached while the process is near one full core; on Oracle
 cpu at 140 to 150 tunnels, so Oracle's real ceiling is about 100 to 120.
 
 Alerts (every minute): a node down 2 min, bandwidth past 60% of the ceiling for 10 min, the month on course past 70% of
-the allowance, cpu or memory past 80% for 10 min, tunnels past 70% of the max for 5 min.
+the allowance, cpu or memory past 80% for 10 min, busy tunnels, tunnels in use or servers past 70% of their cap for 5 min.
+
+What one node carries and when to add one: `docs/capacity.md` (measured 2026-11-14).
 
 The Cloudflare relay (`apps/cloudflare/link-relay`, Durable Objects) has its own fair use: 25 Mbit/s per tunnel, an
 account at full speed for 50 GB a month then halved every 50 GB down to 2 Mbit/s, 10 tunnels per account, 8 sessions per
@@ -158,7 +163,7 @@ Alert when Brevo's day passes 80% of `DUSK_BREVO_DAILY_LIMIT` (300 unless set).
 | What | Value | Alert |
 |---|---|---|
 | Contabo (account service, preview, relay, Mongo, others) | 12 vCPU, 48 GB, 800 Mbit/s port, "unlimited" traffic under fair use | memory > 90% for 10 min, disk > 85%, upload > 70% of 120 Mbit/s for 15 min, month on course past 32 TB (cpu shows on the health page, no email) |
-| nginx on Contabo | 12 workers x 768 connections, 1024 open files each (every proxied request uses two) | none |
+| nginx on Contabo | 12 workers x 8192 connections, 65535 open files each (every proxied request uses two) | none |
 | Oracle (backups copy, uptime checks) | 2 OCPU, 12 GB, 200 GB (free tier) | disk > 85%, no report in 30 min |
 | MongoDB (`mongod-dusk`, one-node replica set on Contabo) | about 2 MB today | over 5 GB, unreachable or not primary for 4 min |
 | Mongo backups | daily dump kept 7 days on Contabo; encrypted copy to Oracle and R2 (7 daily, 4 weekly) | backup older than 26 h |
@@ -173,7 +178,6 @@ records, `workspaces`. At today's sizes this is years away from mattering; the 5
 - **Waitlist volume** (section 3): capped per network only, no cap across everyone.
 - **Restoring a cloud backup** still opens it whole in memory (up to 4 GiB) before it is uploaded to the new machine;
   rare (a lost machine only), unlike the daily backups, which now stream.
-- **nginx worker connections** (section 9): fine for hundreds of computers, raise before thousands.
 - **Rate limit counters live in memory** and reset when the account service restarts (sign-in codes in flight are
   saved, so a deploy no longer kills them).
 - **Bot tools reaching private addresses** on a dusk cloud: the bot has a shell on its own machine by design, so this is

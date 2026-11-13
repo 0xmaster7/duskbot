@@ -169,10 +169,12 @@ copy between them. `src/nodes.mjs`.
   round trips) on every start. It stays on its home unless home is down, paused, past 85% of its month allowance or at
   its tunnel cap, crowded (85%) while another node is under 50%, or out of the server's own reach (it measured another
   node but not its home: a node whose nginx died still syncs out, so its peers see it up). A new one goes to the lowest score among nodes that take
-  new servers: 0.5 x max(active tunnels / cap, out rate / ceiling) + 0.3 x month on course / 70% + 0.2 x its share of
+  new servers: 0.5 x max(tunnels / cap, out rate / ceiling), where tunnels is the fullest of busy tunnels, tunnels in use
+  and servers reading here, each against its own cap (docs/capacity.md), + 0.3 x month on course / 70% + 0.2 x its share of
   homed servers + up to 0.5 for a slower round trip (300 ms behind the best = 0.5). A node takes no new servers when
   down, paused, at 90% tunnels, 85% bandwidth, 70% of its month allowance on course (box traffic, `LINK_ALLOWANCE_TB`;
-  Oracle's free 10 TB), or 90% cpu or memory. A peer that may not hold the record yet is never chosen. Answer: `{node,
+  Oracle's free 10 TB), or 90% cpu or memory. With every node full a new server goes to the least loaded one that is not
+  paused. A peer that may not hold the record yet is never chosen. A new node: `deploy/add-node.sh`. Answer: `{node,
   url, reason, nodes}`. The tunnel's home moves when its server polls a node (a placement it may not follow never moves
   it: with the copy between nodes cut, that split the directory and sent the app to a node nobody read).
 - **Finding it.** `GET /v1/tunnels/<id>/node` (app or vps token) and `GET /v1/channels/<id>/node` (phone channel token)
