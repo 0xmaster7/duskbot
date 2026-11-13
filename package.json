@@ -63,7 +63,7 @@
     "check:electron": "node scripts/check-electron.mjs",
     "preview": "vite preview",
     "build:server": "node scripts/clean-server-build.mjs && tsc -p server/tsconfig.build.json && node scripts/bundle-server.mjs",
-    "build:companion": "tsc -p apps/companion/tsconfig.build.json && node scripts/mark-module-scope.mjs dist-companion",
+    "build:companion": "tsc -p apps/companion/tsconfig.build.json --noEmit && node scripts/bundle-companion.mjs && node scripts/mark-module-scope.mjs dist-companion",
     "build:speech": "node electron/build-speech-helper.mjs",
     "build:cua": "node scripts/prepare-cua.mjs",
     "build:cua:win": "node scripts/prepare-cua-win.mjs",
