@@ -15,6 +15,7 @@ import { createPackages } from "./packages.mjs";
 import { createPushRelay } from "./push-relay.mjs";
 import { choosePlacement, createCluster, loadOf, refusesNew, sameSecret } from "./nodes.mjs";
 import { ACTIVE_MS, DEFAULT_LIMITS, MONTH_ALLOWANCE_BYTES, createRelayUsage, loadLimits, saveLimits, validateLimits } from "./relay-limits.mjs";
+import { APP_TOKENS_CALLBACK_ROUTE, appTokenCallback } from "./app-token-callback.mjs";
 import { slackCallback } from "./slack-callback.mjs";
 import { MAX_CHANNELS_PER_TUNNEL, MAX_EVENTS, MAX_SESSIONS, MAX_TUNNELS, SESSION_LIFE_MS, createStore } from "./store.mjs";
 import { STUN_PUBLIC, turnCredential, turnUrls } from "./turn.mjs";
@@ -890,6 +891,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       return send(res, 200, { limitBytes: limits.perTunnelDailyBytes, tunnels });
     }
     if (method === "GET" && path === "/slack/callback") return slackCallback(res, url.searchParams);
+    if (method === "GET" && path === APP_TOKENS_CALLBACK_ROUTE) return appTokenCallback(res, url.searchParams);
     if (path === "/v1/push") return push.route(req, res, { method, readJson, send, fail, ip: clientIp(req) });
     if (method === "GET" && (path === "/i" || path === "/install.sh" || (parts = /^\/i\/([a-z2-7-]{37})$/.exec(path)))) {
       const token = parts?.[1] ?? null;

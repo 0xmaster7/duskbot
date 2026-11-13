@@ -395,20 +395,21 @@ describe("native sign-ins to dusk bot's own OAuth apps", () => {
     return { start, page };
   }
 
-  it("sends Notion back to localhost, the only loopback name its app takes, and trades the code with Basic auth and JSON", async () => {
+  it("sends Notion back through the one fixed redirect, naming this server's port in the state, and trades the code with Basic auth and JSON", async () => {
     const { apps, fake } = setup({
       "https://api.notion.com/v1/oauth/token": () => ({ body: { access_token: "ntn-oauth", workspace_name: "Acme" } }),
       "https://api.notion.com/v1/users/me": () => ({ body: { bot: { workspace_name: "Acme" } } }),
     }, { notion: { clientId: "nid", clientSecret: "nsecret" } });
     const { start, page } = await signIn(apps, "notion");
     const url = new URL(start.verificationUrl);
-    expect(url.searchParams.get("redirect_uri")).toBe("http://localhost:8799/api/app-tokens/callback");
+    expect(url.searchParams.get("redirect_uri")).toBe("https://link.dusk.bot/oauth/app-tokens");
+    expect(url.searchParams.get("state")).toMatch(/^8799\.[0-9a-f]{32}$/u);
     expect(url.searchParams.get("owner")).toBe("user");
     expect(page.ok).toBe(true);
     const trade = fake.calls.find((call) => call.url === "https://api.notion.com/v1/oauth/token")!;
     expect(header(trade, "authorization")).toBe(`Basic ${Buffer.from("nid:nsecret").toString("base64")}`);
     expect(header(trade, "content-type")).toBe("application/json");
-    expect(JSON.parse(String(trade.init.body))).toMatchObject({ grant_type: "authorization_code", code: "c0de", redirect_uri: "http://localhost:8799/api/app-tokens/callback", client_id: "nid" });
+    expect(JSON.parse(String(trade.init.body))).toMatchObject({ grant_type: "authorization_code", code: "c0de", redirect_uri: "https://link.dusk.bot/oauth/app-tokens", client_id: "nid" });
     expect(String(trade.init.body)).not.toContain("nsecret");
     expect(apps.status().accounts).toMatchObject([{ app: "notion", label: "Acme", via: "device" }]);
   });
@@ -443,7 +444,7 @@ describe("native sign-ins to dusk bot's own OAuth apps", () => {
     const url = new URL(start.verificationUrl);
     expect(Object.fromEntries(url.searchParams)).toMatchObject({ key: "trellokey", callback_method: "fragment", response_type: "token", scope: "read,write", expiration: "never" });
     const back = new URL(url.searchParams.get("return_url")!);
-    expect(back.origin + back.pathname).toBe("http://127.0.0.1:8799/api/app-tokens/callback");
+    expect(back.origin + back.pathname).toBe("https://link.dusk.bot/oauth/app-tokens");
     const page = await apps.callback(back.searchParams);
     expect(page.page).toBe(true);
     const done = await apps.callback(back.searchParams, { token: "ATTA0123456789abcdef0123" });

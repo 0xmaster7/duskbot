@@ -88,12 +88,10 @@ export class SignInExpiredError extends Error {}
 
 const scope = (connector: NativeConnector) => connector.scopes.join(connector.scopeSeparator ?? " ") || undefined;
 
-/** Where the vendor's page sends the browser back: this computer's server under the name the app was registered with. */
-export function redirectUri(connector: NativeConnector, origin: string, path: string): string {
-  const url = new URL(path, origin);
-  if (connector.redirectHost === "localhost") url.hostname = "localhost";
-  return url.toString();
-}
+/** Where every vendor's page sends the browser back: one fixed address registered with each OAuth app, whatever port
+ * this computer's server is on. It reads the port from the state and sends the browser on to this server's callback
+ * (apps/link-service/src/app-token-callback.mjs). */
+export const APP_TOKENS_REDIRECT = "https://link.dusk.bot/oauth/app-tokens";
 
 export async function startDevice(connector: NativeConnector, client: DeviceClient, fetchImpl: typeof fetch = fetch): Promise<DeviceCode> {
   if (!connector.deviceUrl) throw new Error(`${connector.label} has no device sign-in.`);
@@ -130,9 +128,10 @@ export async function pollDevice(connector: NativeConnector, client: DeviceClien
 
 /** A code or fragment sign-in's page and what its answer is checked against. Trello's page takes its API key and a
  * return_url (which carries our state, since Trello sends none back) and returns the token in the #fragment. */
-export function authorizePage(connector: NativeConnector, client: DeviceClient, redirectUri: string): { url: string; state: string; verifier: string } {
+/** `port`: this computer's server, named in the state so the fixed redirect can send the browser back to it. */
+export function authorizePage(connector: NativeConnector, client: DeviceClient, redirectUri: string, port?: number): { url: string; state: string; verifier: string } {
   if (!connector.authorizeUrl) throw new Error(`${connector.label} has no browser sign-in.`);
-  const state = randomBytes(16).toString("hex");
+  const state = `${port ? `${port}.` : ""}${randomBytes(16).toString("hex")}`;
   const verifier = randomBytes(32).toString("base64url");
   const url = new URL(connector.authorizeUrl);
   const params: Record<string, string | undefined> = connector.flow === "fragment"

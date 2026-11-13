@@ -40,6 +40,14 @@ nothing. Set `DUSK_APNS_KEY_FILE`, `DUSK_APNS_KEY_ID`, `DUSK_APNS_TEAM_ID`, `DUS
 `duskbot://slack/oauth` with a copyable fallback. The route is stateless: it never calls Slack, stores nothing,
 and never logs the query. The app completes the exchange with its own harness, so the harness needs no public URL.
 
+## Native OAuth return
+
+`GET /oauth/app-tokens` is the one redirect URI registered with dusk bot's own OAuth apps (Notion, Linear, Airtable,
+Todoist, ClickUp, Trello, Dropbox). The state starts with the desktop app's port (8799, 18799 or 28799, nothing else);
+the route answers with a 302 to `http://127.0.0.1:<port>/api/app-tokens/callback` carrying only `state`, `code`,
+`error` and `error_description`. A token in the #fragment (Trello) rides along in the browser and never reaches here.
+Stateless like the Slack route: no outbound calls, nothing stored, the query never logged.
+
 ## How it fits together
 
 ```

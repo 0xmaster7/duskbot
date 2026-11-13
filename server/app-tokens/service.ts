@@ -8,12 +8,12 @@ import { NATIVE_CONNECTORS, nativeConnector, type NativeConnector } from "../../
 import type { StoredMcpServer } from "../mcp-registry.ts";
 import { PASS, type RouteHandler } from "../routes/table.ts";
 import { handleApiRpc } from "./mcp.ts";
-import { authorizePage, deviceClients, exchangeCode, pollDevice, redirectUri, refreshDevice, SignInExpiredError, startDevice, type DeviceClients, type DeviceTokens } from "./device.ts";
+import { APP_TOKENS_REDIRECT, authorizePage, deviceClients, exchangeCode, pollDevice, refreshDevice, SignInExpiredError, startDevice, type DeviceClients, type DeviceTokens } from "./device.ts";
 import { accountView, TokenStore, type TokenAccount } from "./store.ts";
 import { TokenCheckError, vendorFor, type ApiAccess, type TokenFields } from "./vendors.ts";
 
 export const APP_TOKENS_MCP_PREFIX = "/api/app-tokens/mcp/";
-/** Where a code-flow sign-in comes back to (RFC 8252 loopback); public, checked by its state. */
+/** Where a code-flow sign-in comes back to, sent on by APP_TOKENS_REDIRECT; public, checked by its state. */
 export const APP_TOKENS_CALLBACK_PATH = "/api/app-tokens/callback";
 const APP = /^\/api\/app-tokens\/([a-z]{2,20})$/u;
 const DEVICE_START = /^\/api\/app-tokens\/([a-z]{2,20})\/device$/u;
@@ -176,8 +176,8 @@ export function createTokenApps(deps: TokenAppsDeps) {
     for (const [key, entry] of pending) if (entry.expiresAt < now()) pending.delete(key);
     const handle = hex(16);
     if (connector.flow !== "device") {
-      const redirect = redirectUri(connector, deps.origin(), APP_TOKENS_CALLBACK_PATH);
-      const page = authorizePage(connector, client, redirect);
+      const redirect = APP_TOKENS_REDIRECT;
+      const page = authorizePage(connector, client, redirect, Number(new URL(deps.origin()).port) || undefined);
       pending.set(handle, { connector, code: { state: page.state, verifier: page.verifier, redirect }, replaces, expiresAt: now() + 15 * 60_000, interval: 2, nextAt: 0 });
       return { handle, verificationUrl: page.url, expiresIn: 900, interval: 2 };
     }

@@ -23,10 +23,12 @@ folder (key in `app-tokens-key`, both 0600) and added as an MCP server:
   the app's own API origin.
 
 Native sign-ins are rows in `shared/native-connectors.json`: a device-code flow (the person types a code on the
-vendor's page), a loopback code flow with PKCE, or Trello's token page (the token comes back in the address's
-fragment, which a small same-origin page posts to the server). Each row names the env vars that hold the client id
-and secret, scopes, endpoints, the loopback name the app was registered with (`127.0.0.1` unless `redirectHost` says
-`localhost`), how the client authenticates at the token endpoint (`tokenAuth`: form or HTTP Basic; `tokenBody`: form
+vendor's page), a code flow with PKCE, or Trello's token page (the token comes back in the address's fragment, which a
+small same-origin page posts to the server). Every code and token page sign-in comes back to one fixed address,
+`https://link.dusk.bot/oauth/app-tokens` (`apps/link-service/src/app-token-callback.mjs`): the state starts with the
+app's port (`8799.`, `18799.` or `28799.`), and the link service redirects the browser straight on to
+`http://127.0.0.1:<port>/api/app-tokens/callback`, storing nothing, so a sign-in works whichever port the app fell back
+to. Each row names the env vars that hold the client id and secret, scopes, endpoints, how the client authenticates at the token endpoint (`tokenAuth`: form or HTTP Basic; `tokenBody`: form
 or JSON), a check URL (GET or POST) and how bots use the token. `scripts/bundle-server.mjs` bakes exactly the env
 names the rows list. Today:
 
@@ -34,8 +36,8 @@ names the rows list. Today:
 |---|---|---|---|---|
 | GitHub | device | none | `DUSK_GITHUB_APP_CLIENT_ID` | GitHub App, not registered yet |
 | Google Drive | device | none | `DUSK_GOOGLE_DRIVE_CLIENT_ID`, `_SECRET` | `drive.file` only |
-| Notion | code | `http://localhost:8799/api/app-tokens/callback` | `DUSK_OAUTH_NOTION_*` | Basic auth, JSON body |
-| Linear | code | `http://127.0.0.1:8799/api/app-tokens/callback` | `DUSK_OAUTH_LINEAR_*` | token goes to Linear's MCP |
+| Notion | code | `https://link.dusk.bot/oauth/app-tokens` | `DUSK_OAUTH_NOTION_*` | Basic auth, JSON body |
+| Linear | code | same | `DUSK_OAUTH_LINEAR_*` | token goes to Linear's MCP |
 | Airtable | code | same | `DUSK_OAUTH_AIRTABLE_*` | Basic auth |
 | Todoist | code | same | `DUSK_OAUTH_TODOIST_*` | |
 | ClickUp | code | same | `DUSK_OAUTH_CLICKUP_*` | |

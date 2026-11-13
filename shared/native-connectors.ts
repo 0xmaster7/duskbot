@@ -24,8 +24,6 @@ export interface NativeConnector {
   scopeSeparator?: string;
   /** Extra query fields the authorize page needs (Google's access_type=offline, Notion's owner=user). */
   authorizeParams?: Record<string, string>;
-  /** The loopback name the app was registered with. Default 127.0.0.1; Notion and Miro accept only "localhost". */
-  redirectHost?: "127.0.0.1" | "localhost";
   /** How the client authenticates at the token endpoint. "post" (default): id and secret in the form body. "basic":
    * HTTP Basic, as Notion and Airtable require of a confidential client. */
   tokenAuth?: "post" | "basic";
