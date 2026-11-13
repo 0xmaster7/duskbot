@@ -151,7 +151,7 @@ function blockHtml(cfg: EmailConfig, block: Block, accent: Accent): string {
     case "cloud": return stepped(stepped(`<img src="${esc(img(cfg, block.image))}" width="472" alt="${esc(block.alt)}" style="display:block;width:100%;max-width:472px;height:auto;border:0">
 <div class="muted" style="padding-top:18px;font-family:${MONO};font-size:12.5px;line-height:18px;letter-spacing:0.02em;color:${C.muted}">${esc(block.eyebrow)}</div>
 <div class="ink" style="padding-top:6px;font-family:${SANS};font-size:22px;line-height:28px;font-weight:600;letter-spacing:-0.02em;color:${C.ink}">${esc(block.title)}</div>
-<div class="soft" style="padding-top:8px;font-family:${SANS};font-size:15.5px;line-height:24px;color:${C.body}">${prose(block.text)}</div>
+<div class="soft" style="padding-top:8px;font-family:${SANS};font-size:14.5px;line-height:22px;color:${C.body}">${prose(block.text)}</div>
 ${T(block.points.map(point => `<tr><td valign="top" width="20" style="padding:9px 0 0"><div class="dot" style="width:6px;height:6px;background:${C.ink}"></div></td><td class="ink" style="font-family:${SANS};font-size:15px;line-height:24px;color:${C.ink};padding:0 0 4px">${esc(point)}</td></tr>`).join("\n"), "margin:14px 0 0")}
 ${T(`<tr><td>${button(block.cta.label, block.cta.href, C.lime)}</td>
 <td class="ink" style="padding-left:16px;font-family:${SANS};font-size:15px;line-height:20px;color:${C.ink}"><b style="font-weight:600">${esc(block.price)}</b><br><span class="muted" style="font-size:13px;color:${C.muted}">${esc(block.fine)}</span></td></tr>`, "margin:18px 0 4px", "")}`,
