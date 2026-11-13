@@ -2,12 +2,13 @@
 // press while the run goes on; and for AIs that live online (ChatGPT, Claude, Gemini), a prompt to copy now and an answer
 // to paste into any chat later. Nothing here waits on anything.
 import { useState } from "react";
-import { Check } from "../../icons";
+import { Check, Copy } from "../../icons";
 import { cn } from "@/lib/cn";
 import { activeLocale, t } from "@/lib/i18n";
 import { copyNotesPrompt } from "@/lib/assistant-notes";
+import { NOTES_PROMPT } from "../../../shared/assistant-notes";
 import type { LocalFind } from "@/lib/first-run-import";
-import { PRIMARY, QUIET, SECONDARY, StepFrame } from "./FunnelSteps";
+import { PRIMARY, QUIET, StepFrame } from "./FunnelSteps";
 
 function FindRow({ find, on, onToggle }: { find: LocalFind; on: boolean; onToggle: () => void }) {
   return (
@@ -48,7 +49,7 @@ export function BringStep({ finds, grokWaiting, onGrok, onBring, onNext }: {
   const copyPrompt = async () => setCopy((await copyNotesPrompt()) ? "copied" : "failed");
 
   const copiedLine = copy !== "idle" && (
-    <p role="status" data-bring-copied={copy} className={cn("place-reveal max-w-[400px] text-pretty text-[13px] leading-[18px]", copy === "failed" ? "text-danger" : "text-ink-secondary")}>
+    <p role="status" data-bring-copied={copy} className={cn("place-reveal max-w-[360px] text-pretty text-[12px] leading-4", copy === "failed" ? "text-danger" : "text-ink-tertiary")}>
       {copy === "failed" ? t("bring.copyFailed") : t("bring.copied")}
     </p>
   );
@@ -72,14 +73,27 @@ export function BringStep({ finds, grokWaiting, onGrok, onBring, onNext }: {
         </>
       ) : (
         <>
-          {copy === "copied"
-            ? <button type="button" data-primary="" data-bring-next="" onClick={onNext} className={PRIMARY}>{t("funnel.next")}</button>
-            : <button type="button" data-primary="" data-bring-copy="" onClick={() => void copyPrompt()} className={PRIMARY}>{t("bring.copyPrimary")}</button>}
+          <button type="button" data-primary="" data-bring-next="" onClick={onNext} className={PRIMARY}>{t("funnel.next")}</button>
           {copiedLine}
-          {copy !== "copied" && <button type="button" data-bring-skip="" onClick={onNext} className={SECONDARY}>{t("funnel.skip")}</button>}
         </>
       )}>
       {finds === null && <p role="status" data-bring-looking="" className="text-[13px] leading-[18px] text-ink-tertiary">{t("bring.looking")}</p>}
+      {finds !== null && !found && (
+        <div data-bring-prompt="" className="w-full max-w-[420px] rounded-[14px] bg-ink/[0.035] text-start">
+          <div className="flex items-center justify-between gap-3 ps-4 pe-1.5 pt-1.5">
+            <span id="bring-prompt-label" className="text-[12px] leading-4 text-ink-tertiary">{t("bring.promptLabel")}</span>
+            <button type="button" data-bring-copy="" aria-label={copy === "copied" ? t("bring.copiedShort") : t("bring.copyPrimary")} onClick={() => void copyPrompt()}
+              className="flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[12px] leading-4 text-ink-secondary transition-[background-color,color] duration-150 ease-[ease] hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none">
+              {copy === "copied" ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+              <span>{copy === "copied" ? t("bring.copiedShort") : t("bring.copyShort")}</span>
+            </button>
+          </div>
+          <pre tabIndex={0} aria-labelledby="bring-prompt-label"
+            className="m-0 max-h-[120px] overflow-y-auto whitespace-pre-wrap break-words rounded-b-[14px] px-4 pb-3 pt-1 font-mono text-[12px] leading-[18px] text-ink-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+            {NOTES_PROMPT}
+          </pre>
+        </div>
+      )}
       {found && (
         <ul aria-label={t("bring.foundLabel")} className="m-0 flex w-full max-w-[420px] list-none flex-col gap-1.5 p-0">
           {finds!.map((find) => <FindRow key={find.id} find={find} on={!off.has(find.id)} onToggle={() => toggle(find.id)} />)}

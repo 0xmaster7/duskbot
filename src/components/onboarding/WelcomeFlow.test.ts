@@ -215,13 +215,13 @@ describe("on the desktop app", () => {
     expect(step()).toBe("ai");
     await press("continue");
     expect(step()).toBe("bring");
-    await press("skip");
+    await press("continue");
     expect(step()).toBe("phone");
     expect(host.querySelector(".phone-frame img"), "the phone app's own screen").not.toBeNull();
     expect(button("skip")?.className, "skip is a real button").toContain("ui-button-lg");
     await press("back");
     expect(step()).toBe("bring");
-    await press("skip");
+    await press("continue");
     await press("show the code");
     expect(host.querySelector("[data-phone-offer]")).not.toBeNull();
     await press("continue");
@@ -396,6 +396,8 @@ describe("bots from another app on this computer", () => {
     await show({ initialBeat: "bring" });
     expect(step()).toBe("bring");
     expect(host.querySelector("[data-bring-find]")).toBeNull();
+    expect(host.querySelector("[data-bring-prompt] pre")?.textContent, "the prompt itself, read-only, to look over first").toContain("dusk-bot-notes");
+    expect(button("continue"), "continue is the main action before and after the copy").toBeTruthy();
     await press("copy the prompt");
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining("dusk-bot-notes"));
     expect(host.querySelector("[data-bring-copied]")?.textContent).toContain("Copied.");
