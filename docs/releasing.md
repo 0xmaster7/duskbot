@@ -87,6 +87,16 @@ What is needed once the Apple certificate exists:
   Squirrel.Mac cannot replace an app run from the dmg itself or one macOS translocated; those report an error in the
   log and keep the notification.
 
+### Until the Mac build is notarized
+
+Without `MAC_CERT_P12_BASE64` the release job builds the Mac app ad-hoc signed (`-c.mac.identity=-`) and skips
+notarizing and stapling. macOS stops a downloaded dmg the first time, so `apps/site/releases.json` has
+`"macNotarized": false`: dusk.bot/download leads with `curl -fsSL https://dusk.bot/install-mac | sh`
+(`apps/site/install-mac.sh`, served by the site), which downloads this Mac's zip with curl (no quarantine flag),
+checks it against the release's `SHA256SUMS` (whose hash the signed `latest.json` carries), installs it into
+`/Applications` and opens it, and shows the three Open Anyway steps for the dmg. These builds cannot update themselves
+(see above). Once the certificate is in, set `"macNotarized": true` and the page goes back to the dmg alone.
+
 ## Why the gates exist
 
 Each verification step in `release.yml` maps to a real incident from the

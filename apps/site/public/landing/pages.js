@@ -46,6 +46,8 @@ if (dl) {
   const mine = /android/i.test(ua) ? 'android' : /iphone|ipad/i.test(ua) || (/mac/i.test(ua) && navigator.maxTouchPoints > 1) ? 'ios' : /windows/i.test(ua) ? 'windows' : /linux|cros/i.test(ua) ? 'linux' : 'mac';
   const row = $(`#all [data-os="${mine}"]`);
   if (row) { $('.yours', row).hidden = false; }
+  // the mac install line is only for a mac
+  if (mine !== 'mac') for (const el of $$('[data-os-mac]', dl)) el.hidden = true;
   const go = $('[data-os-link]', dl), label = $('[data-os-label]', dl), note = $('[data-os-note]', dl), mark = $('.dl-os', dl);
   if (go && mine !== 'mac') {
     const pick = $(`template[data-for="${mine}"]`, dl) || $('template[data-for="phone"]', dl);

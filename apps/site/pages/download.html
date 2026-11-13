@@ -4,8 +4,12 @@
     <p class="lede">open it, sign in to the ai you already use, and your first bot is working a couple of minutes later. free for personal use, no account needed.</p>
     <div class="dl-main" data-dl-page>
 {{#released}}
+{{^macNotarized}}
+      <p class="code-label" data-os-mac>on a mac, paste this in terminal</p>
+      <div class="code" data-os-mac><pre><code>curl -fsSL https://dusk.bot/install-mac | sh</code></pre><button class="copy" type="button" data-copy>copy</button></div>
+{{/macNotarized}}
       <a class="btn dark" href="{{dl mac-arm64}}" data-os-link data-windows="{{dl windows}}" data-linux="{{dl linux-deb}}"><span class="dl-os">{{os apple}}</span><span data-os-label>download for mac</span></a>
-      <p class="dl-note" data-os-note>for apple silicon. on an intel mac, <a href="{{dl mac-x64}}">get the intel build</a>.</p>
+      <p class="dl-note" data-os-note>{{#macNotarized}}for apple silicon. on an intel mac, <a href="{{dl mac-x64}}">get the intel build</a>.{{/macNotarized}}{{^macNotarized}}the line picks the right build for your mac and opens it, no prompts. the dmg is for apple silicon (<a href="{{dl mac-x64}}">intel build</a>) and <a href="#mac">needs one extra step</a> the first time.{{/macNotarized}}</p>
       <template data-for="windows">for windows 10 and 11. the installer needs no admin rights.</template>
       <template data-for="linux">a .deb for ubuntu 24.04. rather have an appimage? <a href="{{dl linux-appimage}}">it's here</a>.</template>
       <template data-for="phone">the desktop app is where your bots run. on your phone, you text them with <a href="#phone">the phone app</a>.</template>
@@ -27,12 +31,13 @@
   <ul class="dl-rows">
     <li id="mac" data-os="mac">
       <span class="dl-ico">{{os apple}}</span>
-      <div><h3>mac<span class="yours" hidden>your system</span></h3><p>macos 12 or later. signed and notarized.</p></div>
+      <div><h3>mac<span class="yours" hidden>your system</span></h3><p>macos 12 or later.{{#macNotarized}} signed and notarized.{{/macNotarized}}{{^macNotarized}} not notarized by apple yet, so the line at the top is the easy way in. with the dmg, the first time:{{/macNotarized}}</p>{{^macNotarized}}
+        <ol class="dl-steps"><li>open dusk bot, and click done when macos says it can't check it.</li><li>open system settings, then privacy &amp; security.</li><li>scroll down, click open anyway, and confirm.</li></ol>{{/macNotarized}}</div>
       <div class="dl-acts">{{#released}}<a class="btn" href="{{dl mac-arm64}}">apple silicon</a><a class="btn" href="{{dl mac-x64}}">intel</a>{{/released}}{{^released}}<span class="soon">soon</span>{{/released}}</div>
     </li>
     <li id="windows" data-os="windows">
       <span class="dl-ico">{{os windows}}</span>
-      <div><h3>windows<span class="yours" hidden>your system</span></h3><p>windows 10 or 11, 64-bit. no admin rights needed.</p></div>
+      <div><h3>windows<span class="yours" hidden>your system</span></h3><p>windows 10 or 11, 64-bit. no admin rights needed. if windows says it protected your pc, click more info, then run anyway.</p></div>
       <div class="dl-acts">{{#released}}<a class="btn" href="{{dl windows}}">installer (.exe)</a>{{/released}}{{^released}}<span class="soon">soon</span>{{/released}}</div>
     </li>
     <li id="linux" data-os="linux">

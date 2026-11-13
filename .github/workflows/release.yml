@@ -120,6 +120,10 @@ jobs:
     if: needs.prepare.outputs.should_release == 'true'
     runs-on: macos-15
     timeout-minutes: 90
+    env:
+      # until the Developer ID certificate is in the repo's secrets the Mac build is ad-hoc signed and not notarized:
+      # macOS asks people to allow it once (dusk.bot/download says how), and it can't update itself (docs/releasing.md)
+      MAC_SIGNED: ${{ secrets.MAC_CERT_P12_BASE64 != '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -135,6 +139,7 @@ jobs:
         run: rm -rf dist dist-server dist-native release
 
       - name: Import the Developer ID certificate into a throwaway keychain
+        if: env.MAC_SIGNED == 'true'
         env:
           MAC_CERT_P12_BASE64: ${{ secrets.MAC_CERT_P12_BASE64 }}
           MAC_CERT_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
@@ -150,6 +155,13 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
           security list-keychains -d user -s "$KEYCHAIN" login.keychain
           rm "$RUNNER_TEMP/cert.p12"
+
+      - name: Ad-hoc sign the Mac build (no Developer ID certificate yet)
+        if: env.MAC_SIGNED != 'true'
+        run: |
+          echo "::warning title=Mac build not notarized::no Developer ID certificate in the secrets, so the Mac build is ad-hoc signed"
+          perl -0pi -e 's/^mac:\n/mac:\n  identity: "-"\n/m' build/electron-builder.yml
+          grep -q '^  identity: "-"$' build/electron-builder.yml
 
       - name: Package both architectures
         # macos-15 runners have 7 GB, so Node's default heap stops near 2 GB; the server typecheck now needs a little more.
@@ -249,6 +261,7 @@ jobs:
           done
 
       - name: Notarize all four artifacts
+        if: env.MAC_SIGNED == 'true'
         env:
           APPLE_API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
@@ -267,6 +280,7 @@ jobs:
           rm "$RUNNER_TEMP/notary.p8"
 
       - name: Staple and re-zip
+        if: env.MAC_SIGNED == 'true'
         run: |
           # stapler fetches the ticket from Apple's CloudKit: the connection drops now and then (error 68), and a
           # ticket can lag notarytool's Accepted verdict by a minute (error 65).
@@ -324,6 +338,8 @@ jobs:
         run: rm -rf dist dist-server release
       - name: Package
         env:
+          # the server typecheck in package:prepare outgrows Node's default ~2 GB heap (both runners have 16 GB)
+          NODE_OPTIONS: --max-old-space-size=4096
           # dusk bot's own OAuth clients (shared/native-connectors.json), baked in by scripts/bundle-server.mjs; a missing one
           # leaves that one-click sign-in off
           DUSK_GITHUB_APP_CLIENT_ID: ${{ secrets.DUSK_GITHUB_APP_CLIENT_ID }}
@@ -417,6 +433,8 @@ jobs:
         run: dbus-run-session -- xvfb-run -a pnpm smoke:cua-x11-input
       - name: Package
         env:
+          # the server typecheck in package:prepare outgrows Node's default ~2 GB heap (both runners have 16 GB)
+          NODE_OPTIONS: --max-old-space-size=4096
           # dusk bot's own OAuth clients (shared/native-connectors.json), baked in by scripts/bundle-server.mjs; a missing one
           # leaves that one-click sign-in off
           DUSK_GITHUB_APP_CLIENT_ID: ${{ secrets.DUSK_GITHUB_APP_CLIENT_ID }}

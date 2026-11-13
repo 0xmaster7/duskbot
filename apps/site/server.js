@@ -224,7 +224,8 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=300' });
     return res.end('User-agent: *\nDisallow: /\n');
   }
-  let file = resolveFile(urlPath), status = 200;
+  // curl -fsSL https://dusk.bot/install-mac | sh: the mac installer has a short address
+  let file = resolveFile(urlPath === '/install-mac' ? '/install-mac.sh' : urlPath), status = 200;
   // a page has one address, without the slash at its end
   if (file && urlPath.length > 1 && urlPath.endsWith('/') && file.endsWith('index.html')) {
     res.writeHead(308, { Location: urlPath.replace(/\/+$/, '') + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''), 'Cache-Control': 'public, max-age=300' });

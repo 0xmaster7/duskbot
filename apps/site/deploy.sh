@@ -50,6 +50,7 @@ for row in "${SITES[@]}"; do
   cp "$HERE/server.js" "$HERE/waitlist-store.js" "$HERE/waitlist-mongo.js" "$HERE/package.json" "$HERE/package-lock.json" "$dir/"
   cp -R "$HERE/public/landing" "$dir/public/landing"
   cp "$INSTALLER" "$dir/public/landing/install.sh"
+  cp "$HERE/install-mac.sh" "$dir/public/landing/install-mac.sh"
   (cd "$dir/public/landing" && shasum -a 256 install.sh > install.sh.sha256)
   echo "$name: install.sh from $INSTALLER ($(shasum -a 256 "$INSTALLER" | cut -c1-12))"
   vars=""

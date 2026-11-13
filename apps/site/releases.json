@@ -2,7 +2,7 @@
   "released": false,
   "version": "",
   "date": "",
-  "base": "https://github.com/goatedgrokbotalternative/duskbot-releases/releases/latest/download/",
+  "base": "https://github.com/DuskBotAI/duskbot-releases/releases/latest/download/",
   "files": {
     "mac-arm64": "DuskBot.dmg",
     "mac-x64": "DuskBot-intel.dmg",
@@ -11,6 +11,7 @@
     "linux-appimage": "DuskBot.AppImage"
   },
   "checksums": "SHA256SUMS",
+  "macNotarized": false,
   "ios": "",
   "android": ""
 }
