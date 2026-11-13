@@ -104,12 +104,14 @@ export function loadRoutine(routine: Routine, now: number): Routine | null {
     lastSkippedAt: Number.isSafeInteger(routine.lastSkippedAt) && routine.lastSkippedAt! >= 0 && routine.lastSkippedAt! <= MAX_DATE_MS ? routine.lastSkippedAt : undefined,
     installedPackage: loadInstalledPackage(routine.installedPackage),
     checkedAt: instant(routine.checkedAt),
+    quietChecks: Number.isSafeInteger(routine.quietChecks) && routine.quietChecks! > 0 ? Math.min(routine.quietChecks!, 1000) : undefined,
+    quietSince: instant(routine.quietSince),
     checkTrouble: typeof routine.checkTrouble === "string" && routine.checkTrouble ? routine.checkTrouble.slice(0, 300) : undefined,
     wakeAt: instant(routine.wakeAt),
     heldFor: isRoutineHoldCause(routine.heldFor) ? routine.heldFor : undefined,
   };
   delete loaded.failureStreak;
-  return withCheckFields(withoutUndefined(loaded, ["timeoutMinutes", "runOnStartup", "installedPackage", "checkedAt", "checkTrouble", "wakeAt", "heldFor"]));
+  return withCheckFields(withoutUndefined(loaded, ["timeoutMinutes", "runOnStartup", "installedPackage", "checkedAt", "quietChecks", "quietSince", "checkTrouble", "wakeAt", "heldFor"]));
 }
 
 export function loadRun(run: RoutineRun): RoutineRun {

@@ -5,7 +5,7 @@ import { flexOf } from "./routine-quiet.ts";
 import { nextOccurrence } from "./routine-schedules.ts";
 import { activeMs } from "./routine-waits.ts";
 
-type Due = Pick<Routine, "enabled" | "nextRunAt" | "checks" | "wakeAt" | "checkedAt"> & Partial<Pick<Routine, "timing" | "schedule">>;
+type Due = Pick<Routine, "enabled" | "nextRunAt" | "checks" | "wakeAt" | "checkedAt"> & Partial<Pick<Routine, "timing" | "schedule" | "quietChecks" | "quietSince">>;
 /** The latest a run may start: its time, or the end of its window when it may move. */
 const latestOf = (routine: Due): number | null => routine.nextRunAt == null ? null : routine.nextRunAt + (routine.schedule ? flexOf(routine as Pick<Routine, "timing" | "schedule" | "checks">) : 0);
 type Run = Pick<RoutineRun, "status" | "retryAt">;
@@ -16,17 +16,34 @@ const dueTimes = (routines: readonly Due[], runs: readonly Run[], now: number, c
   [...routines.filter((routine) => routine.enabled).map((routine) => routine.checks ? checksDue(routine) : at(routine)),
     ...runs.filter((run) => startsLater(run, now)).map((run) => run.retryAt)].filter((at): at is number => typeof at === "number");
 
-/** The longest a sleeping Cloud home leaves its routines' checks unread. */
+/** The longest a sleeping Cloud home leaves its routines' checks unread, in the person's usual hours. */
 export const CHECK_WAKE_MS = 60 * 60_000;
+/** outside them */
+export const CHECK_WAKE_OFF_HOURS_MS = 3 * 60 * 60_000;
+/** this many checks in a row that found nothing new, with no use of the home since: the next one is skipped */
+export const QUIET_CHECKS = 3;
+/** how a sleeping Cloud spaces its checks: the person's usual hours (server/active-hours.ts) and their last use */
+export interface CheckCadence { active(at: number): boolean; lastActivityAt(): number | null }
+/** the next check after `from`: an hour on inside the person's usual hours, else at the latest 3 hours on (sooner when
+ *  their hours start before that); one step is skipped while the checks keep finding nothing */
+export function nextCheckAt(from: number, routine: Pick<Due, "quietChecks" | "quietSince">, cadence?: CheckCadence): number {
+  if (!cadence) return from + CHECK_WAKE_MS;
+  const step = (at: number) => {
+    for (let hours = 1; hours < CHECK_WAKE_OFF_HOURS_MS / CHECK_WAKE_MS; hours++) if (cadence.active(at + hours * CHECK_WAKE_MS)) return at + hours * CHECK_WAKE_MS;
+    return at + CHECK_WAKE_OFF_HOURS_MS;
+  };
+  const quiet = (routine.quietChecks ?? 0) >= QUIET_CHECKS && (cadence.lastActivityAt() ?? 0) < (routine.quietSince ?? Infinity);
+  return quiet ? step(step(from)) : step(from);
+}
 /** On the desktop, plain checks run whenever the computer is awake and never keep it awake. */
 const meetingsDue = (routine: Due) => routine.wakeAt;
 /** A Cloud home also wakes an hour after the last check, never before the routine's next check. A check that ran without
  * a checked time (trouble, or a run it queued) counts from now, so it can never hold the home awake. */
-const cloudChecksDue = (now: number) => (routine: Due) => {
+const cloudChecksDue = (now: number, cadence?: CheckCadence) => (routine: Due) => {
   if (routine.nextRunAt == null || !routine.checks?.length) return routine.wakeAt;
-  const hourly = (routine.checkedAt ?? now) + CHECK_WAKE_MS;
-  const retried = hourly <= now && routine.nextRunAt > now;
-  return Math.min(routine.wakeAt ?? Infinity, Math.max(retried ? now + CHECK_WAKE_MS : hourly, routine.nextRunAt));
+  const next = nextCheckAt(routine.checkedAt ?? now, routine, cadence);
+  const retried = next <= now && routine.nextRunAt > now;
+  return Math.min(routine.wakeAt ?? Infinity, Math.max(retried ? nextCheckAt(now, routine, cadence) : next, routine.nextRunAt));
 };
 
 /** Hold the desktop awake: a run that started (or waits on a person), or one due within the horizon. */
@@ -42,8 +59,8 @@ export const activeRunsOf = (runs: readonly Run[], now: number) => runs.some((ru
 
 /** The earliest time a run is due; null when none. A run that may move counts at the end of its window: an Admin that
  * reads only this still wakes the home in time, and one that reads `upcomingOf` can fold it into an earlier wake. */
-export function nextDueOf(routines: readonly Due[], runs: readonly Run[], now: number): number | null {
-  const due = dueTimes(routines, runs, now, cloudChecksDue(now), latestOf);
+export function nextDueOf(routines: readonly Due[], runs: readonly Run[], now: number, cadence?: CheckCadence): number | null {
+  const due = dueTimes(routines, runs, now, cloudChecksDue(now, cadence), latestOf);
   return due.length ? Math.min(...due) : null;
 }
 
@@ -52,8 +69,8 @@ export const UPCOMING_MAX = 96;
 
 /** The runs due in the next day for a Cloud home's power report (apps/cloud-service/docs/power.md): each with how far
  * it may move (`flexMs`, 0 for its exact time), at most 96, in order. Checks and retries keep their exact times. */
-export function upcomingOf(routines: readonly Due[], runs: readonly Run[], now: number): Array<{ at: number; flexMs: number }> {
-  const out = dueTimes(routines.filter((routine) => routine.checks), runs, now, cloudChecksDue(now)).map((at) => ({ at, flexMs: 0 }));
+export function upcomingOf(routines: readonly Due[], runs: readonly Run[], now: number, cadence?: CheckCadence): Array<{ at: number; flexMs: number }> {
+  const out = dueTimes(routines.filter((routine) => routine.checks), runs, now, cloudChecksDue(now, cadence)).map((at) => ({ at, flexMs: 0 }));
   for (const routine of routines) {
     if (!routine.enabled || routine.checks || routine.nextRunAt == null || !routine.schedule) continue;
     const flexMs = flexOf(routine as Pick<Routine, "timing" | "schedule" | "checks">);

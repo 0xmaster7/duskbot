@@ -126,6 +126,8 @@ export function createCloudPower(options: {
   dataDir: string; probes: CloudPowerProbes;
   /** A Team Cloud: the Admin never sleeps a team plan, and a sleep request is refused as busy with `team`. */
   team?: boolean;
+  /** Someone used the home (`noteActivity`): the person's usual hours learn from it (server/active-hours.ts). */
+  onActivity?(at: number): void;
   /** Tells connected clients the home is going to sleep (`{ kind: "power", state: "sleeping" }`, `by: "owner"` when paused). */
   broadcast(payload: Record<string, unknown>): void;
   now?: () => number;
@@ -212,6 +214,7 @@ export function createCloudPower(options: {
   const noteActivity = () => {
     lastActivityAt = now();
     endSleep();
+    options.onActivity?.(lastActivityAt);
   };
   /** An authenticated request in progress (an upload, a download) keeps the home awake until it ends; held polls and
    * the event stream don't. Returns the release. */
@@ -227,6 +230,8 @@ export function createCloudPower(options: {
   return {
     noteActivity,
     begin,
+    /** the last use, without a report's side effects (the routines' check spacing reads it) */
+    lastActivity: () => lastActivityAt,
     /** The app's window is focused on the home (a ping): never someone using it, and it never ends a pending sleep. */
     noteFocus() {
       const at = now();

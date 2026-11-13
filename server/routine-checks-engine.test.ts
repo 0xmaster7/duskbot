@@ -211,6 +211,9 @@ describe("routines with checks", () => {
     expect(h.started).toEqual([]);
     expect(h.manager.listRoutines()[0]).toMatchObject({ id: routine.id, checkedAt: h.now() });
     expect(h.manager.listRoutines()[0].nextRunAt).toBeGreaterThan(h.now());
+    // counted for a sleeping Cloud's check spacing
+    expect(h.manager.listRoutines()[0]!.quietChecks).toBeGreaterThanOrEqual(1);
+    expect(h.manager.listRoutines()[0]!.quietSince).toBeLessThanOrEqual(h.now());
   });
 
   it("items that need the AI become one run with the checks' prompt, kept or released once it ends", async () => {
@@ -223,6 +226,7 @@ describe("routines with checks", () => {
     expect(h.started).toHaveLength(1);
     expect(h.started[0]!.prompt).toContain("[Records from Gmail]\ntwo new emails");
     expect(h.manager.listRoutines()[0].checkedAt).toBeUndefined();
+    expect(h.manager.listRoutines()[0]!.quietChecks).toBeUndefined();
     h.complete(h.manager.listRuns()[0]!);
     expect(h.settled.map((one) => [one.checkKey, one.status])).toContainEqual(["batch-1", "completed"]);
   });

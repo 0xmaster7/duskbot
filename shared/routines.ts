@@ -178,6 +178,9 @@ export interface Routine extends RoutineQuietFields {
   deliver?: RoutineDelivery;
   /** When its checks last read everything and found nothing for the AI. */
   checkedAt?: number;
+  /** Checks in a row that found nothing new, and when that run of them began (a sleeping Cloud skips a check after 3). */
+  quietChecks?: number;
+  quietSince?: number;
   /** A plain sentence while its checks cannot read an app, so a failed read never looks like nothing new. */
   checkTrouble?: string;
   /** The next time its checks have something to do on time (a reminder, meeting prep): only this may keep the
