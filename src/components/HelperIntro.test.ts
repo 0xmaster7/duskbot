@@ -151,7 +151,7 @@ describe("in the chat (Simple mode)", () => {
     expect(first.dataset.chatBubble, "the chat's own Simple bubble").toBe("simple");
     expect(first.className).toContain(SIMPLE_BOT_BUBBLE);
     expect(chips()).toEqual(["apps", "phone", "cloud"]);
-    expect([...host.querySelectorAll("[data-helper-step]")].map((node) => node.textContent)).toEqual(["connect email & calendar", "connect your phone", "try cloud"]);
+    expect([...host.querySelectorAll("[data-helper-step]")].map((node) => node.textContent)).toEqual(["Connect email & calendar", "Connect your phone", "Try cloud"]);
     expect(f.followups, "only a first run asks for a follow-up").toEqual([]);
   });
 
@@ -280,7 +280,7 @@ describe("as a first run lands in the chat", () => {
     expect(lines()).toHaveLength(3);
     expect(host.querySelector("[data-helper-typing]")).toBeNull();
     await tick(INTRO_TIMING.typing);
-    expect(host.querySelector("[data-helper-typing]")?.textContent).toContain("typing…");
+    expect(host.querySelector("[data-helper-typing]")?.textContent).toContain("Typing…");
     await tick(INTRO_TIMING.followup - 1);
     expect(lines()).toHaveLength(3);
     await tick(1);

@@ -88,14 +88,14 @@ const PROMPT_KEYS: readonly RegExp[] = [/^onboarding\.start\.job\./];
 
 const wordCount = (value: string) => value.replace(/\{[^}]*\}/g, "x").trim().split(/\s+/).length;
 
-/** the chat window: banners and notices (the corner cards over it, cloudIntro, twoPlaces, cloudNotice and routines.late, included), composer, message actions, turn status lines, approval cards, thread errors. Everything here, buttons and fragments included, reads in sentence case. Sidebar and settings labels are not listed, so they stay lowercase; the bot panel has its own list below. */
-const CHAT_KEYS = /^(chat|composer|approval|question|failedReply|toolStep|toolDetail|nativeUsage|notices?|contextWarning|secretCard|thread|conversation|ask|limits|error|needsYou|goalRun|trace|server\.status|cloudIntro|twoPlaces|cloudNotice|routines\.late)\./;
+/** the chat window: banners and notices (the corner cards over it, cloudIntro, twoPlaces, cloudNotice and routines.late, included), the helper's first-run greeting and its chips, composer, message actions, turn status lines, approval cards, thread errors. Everything here, buttons and fragments included, reads in sentence case. Sidebar and settings labels are not listed, so they stay lowercase; the bot panel has its own list below. */
+const CHAT_KEYS = /^(chat|composer|approval|question|failedReply|toolStep|toolDetail|nativeUsage|notices?|contextWarning|secretCard|thread|conversation|ask|limits|error|needsYou|goalRun|trace|server\.status|cloudIntro|twoPlaces|cloudNotice|routines\.late|helperIntro)\./;
 
 /** spoken-only or machine-read text keeps its case in the chat window too */
 const CHAT_QUIET = /(^|\.)(aria\w*)(\.|$)/i;
 
 /** words that sit between other chat pieces, never at the start of one */
-const CHAT_FRAGMENTS = /^(chat\.event\.and|approval\.voice\.action\w+)$/;
+const CHAT_FRAGMENTS = /^(chat\.event\.and|approval\.voice\.action\w+|helperIntro\.followup\.(botsNone|botOne|bots|routinesNone|routineOne|routines|more))$/;
 
 /** the bot side panel (and a group chat's panel) owns these keys: every label, heading, button and row starts with a capital, as
  * messages do, and so do the cloud move sheets it opens (cloudMove, vpsMove) and its cloud desktop row (place.cloudDesktop). Words it shares
