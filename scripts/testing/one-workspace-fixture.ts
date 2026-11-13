@@ -263,6 +263,8 @@ export async function welcomed(fx: CloudSendFixture): Promise<void> {
 async function vite(port: number, host: string, plugin: (server: ViteDevServer) => void, proxy: Record<string, unknown>): Promise<ViteDevServer> {
   const server = await createViteServer({
     root: REPO_ROOT, logLevel: "warn", clearScreen: false,
+    // its own deps cache: the developer's running dev server keeps node_modules/.vite
+    cacheDir: join(REPO_ROOT, ".dusk-scratch", "vite-one-workspace"),
     server: { host, port, strictPort: true, proxy: proxy as never, hmr: { port: port + 1 } },
     plugins: [{ name: "one-workspace-edge", configureServer: plugin }],
   });

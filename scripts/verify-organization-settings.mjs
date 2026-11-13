@@ -279,7 +279,7 @@ if (process.versions.electron && process.argv.includes(flag)) {
   const fixture = await launchVerificationServer();
   const output = mkdtempSync(join(tmpdir(), "dusk-organization-ui-"));
   for (const name of ["home", "user-data"]) mkdirSync(join(output, name));
-  const ui = await createServer({ configFile: false, root, resolve: { alias: { "@": join(root, "src") } },
+  const ui = await createServer({ configFile: false, root, cacheDir: `${root}/.dusk-scratch/vite-organization-settings`, resolve: { alias: { "@": join(root, "src") } },
     define: { __APP_VERSION__: JSON.stringify("fixture") },
     server: { host: "127.0.0.1", port: 0, proxy: { "/api": { target: fixture.info.url } } },
     plugins: [react(), tailwindcss(), {

@@ -240,6 +240,8 @@ if (process.versions.electron && process.argv.includes(fixtureFlag)) {
   const output = mkdtempSync(join(tmpdir(), "dusk-server-connection-"));
   for (const dir of ["home", "user-data"]) mkdirSync(join(output, dir));
   const ui = await createServer({
+    // its own deps cache: the developer's running dev server keeps node_modules/.vite
+    cacheDir: `${root}/.dusk-scratch/vite-server-connection`,
     configFile: false, root, resolve: { alias: { "@": join(root, "src") } },
     server: { host: "127.0.0.1", port: 0, proxy: { "/api": { target: fixture.info.url } } },
     plugins: [react(), tailwindcss(), {

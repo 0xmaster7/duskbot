@@ -8,7 +8,7 @@ import { createServer } from "vite";
 
 const root = fileURLToPath(new URL("../..", import.meta.url));
 const { chromium } = await import(process.env.DUSK_VERIFY_PLAYWRIGHT || "playwright");
-const server = await createServer({ root, configFile: `${root}/vite.config.ts`, logLevel: "error", server: { host: "127.0.0.1", port: 0, strictPort: false } });
+const server = await createServer({ root, cacheDir: `${root}/.dusk-scratch/vite-notch-layout`, configFile: `${root}/vite.config.ts`, logLevel: "error", server: { host: "127.0.0.1", port: 0, strictPort: false } });
 await server.listen();
 const { port } = server.httpServer.address();
 const browser = await chromium.launch({ executablePath: process.env.DUSK_VERIFY_BROWSER_CHROME || undefined, headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });

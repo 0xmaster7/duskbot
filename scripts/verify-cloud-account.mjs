@@ -94,7 +94,7 @@ if (process.versions.electron && process.argv.includes(flag)) {
   const { createServer } = await import("vite"), { default: react } = await import("@vitejs/plugin-react"), { default: tailwindcss } = await import("@tailwindcss/vite");
   const output = mkdtempSync(join(tmpdir(), "dusk-cloud-account-ui-"));
   for (const name of ["home", "user-data"]) mkdirSync(join(output, name));
-  const ui = await createServer({ configFile: false, root, resolve: { alias: { "@": join(root, "src") } }, define: { __APP_VERSION__: JSON.stringify("fixture") },
+  const ui = await createServer({ configFile: false, root, cacheDir: `${root}/.dusk-scratch/vite-cloud-account`, resolve: { alias: { "@": join(root, "src") } }, define: { __APP_VERSION__: JSON.stringify("fixture") },
     server: { host: "127.0.0.1", port: 0 }, plugins: [react(), tailwindcss(), {
       name: "cloud-account-fixture", resolveId(id) { if (id === "virtual:cloud-account-fixture") return `\0${id}`; },
       load(id) { if (id === "\0virtual:cloud-account-fixture") return `import React from 'react'; import { createRoot } from 'react-dom/client'; import { CloudAccountSettings } from '/src/components/CloudAccountSettings.tsx'; import { setLocale } from '/src/lib/i18n.ts'; import '/src/styles.css'; setLocale('en'); createRoot(document.getElementById('root')).render(React.createElement('main',{className:'mx-auto flex max-w-xl flex-col gap-4'},React.createElement(CloudAccountSettings)));`; },
