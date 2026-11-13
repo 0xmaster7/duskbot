@@ -1,7 +1,7 @@
 // a reply or body that lost bytes between the app and the server (a node restarted, a read cut off mid-line) fails
 // instead of arriving short or with a hole in it: each end counts what it sent and the other checks
 import assert from "node:assert/strict";
-import { request as httpRequest } from "node:http";
+import { request as httpRequest, request } from "node:http";
 import test from "node:test";
 
 import { createServing } from "../apps/link-service/agent.mjs";
@@ -208,4 +208,27 @@ test("the server's agent goes out through HTTPS_PROXY, except to NO_PROXY hosts"
   assert.equal(pick(new URL("https://api.internal")), null);
   assert.equal(pick(new URL("https://localhost:3000")), null);
   assert.equal(envProxy({}), null);
+});
+
+test("the app tells its link service which way it reaches its server and when its person last sent a message", { timeout: 8000 }, async () => {
+  const reports = [];
+  const base = fakeRelay((r) => [head(r), bytes(r, 2), end(r, 2)]);
+  const fetch = async (url, init) => {
+    if (String(url).endsWith("/report")) { reports.push(JSON.parse(init.body)); return Response.json({ ok: true }); }
+    return base(url, init);
+  };
+  const proxy = createTunnelProxy({ base: "http://relay.test", id, key, token: "t", fetch, report: true, reportMs: { first: 50, every: 100 } });
+  try {
+    await proxy.start();
+    for (let i = 0; i < 50 && !reports.length; i += 1) await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.deepEqual(reports[0], { path: "relay" });
+    const origin = new URL(proxy.origin());
+    await new Promise((resolve) => { const req = request({ host: "127.0.0.1", port: origin.port, path: "/api/bots/bot-1/messages", method: "POST", headers: { host: origin.host, "content-length": "2" } }, (res) => { res.resume(); res.on("end", resolve); }); req.end("hi"); });
+    for (let i = 0; i < 50 && reports.length < 2; i += 1) await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.equal(reports[1].path, "relay");
+    assert.ok(reports[1].chatAgoMs >= 0 && reports[1].chatAgoMs < 2000);
+    const count = reports.length;
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    assert.equal(reports.length, count, "nothing new: nothing sent");
+  } finally { await proxy.close(); }
 });

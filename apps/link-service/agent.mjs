@@ -467,7 +467,8 @@ export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, 
     catch { clearTimeout(timer); dead(); }
   };
   const open = async (url) => {
-    const host = url.hostname, port = Number(url.port) || 443;
+    // an ipv6 literal comes in brackets from URL; tls wants the bare address (and no server name for it)
+    const host = url.hostname.replace(/^\[|\]$/g, ""), port = Number(url.port) || 443;
     const via = proxy ? await Promise.resolve(proxy(url)).catch(() => null) : null;
     if (via) return throughProxy(via, host, port).then((raw) => secure(url, host, port, raw), () => null);
     if (!dial) return secure(url, host, port, undefined);

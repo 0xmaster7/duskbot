@@ -219,6 +219,28 @@ describe("fair use, per account over the month", () => {
     expect(waits).toEqual([]);
   });
 
+  it("counts how apps reach their servers (a session once, again when its way changes) and who chats now", async () => {
+    const statsToken = "s".repeat(32);
+    await start({ statsToken });
+    service.store.tunnels.get(id).acct = acct;
+    const report = (body) => request(`/v1/tunnels/${id}/report`, { token: app, method: "POST", body });
+    expect((await report({ path: "sideways" })).status).toBe(400);
+    expect((await request(`/v1/tunnels/${id}/report`, { token: vps, method: "POST", body: { path: "direct" } })).status).toBe(404);
+    expect((await report({ path: "relay" })).status).toBe(200);
+    expect((await report({ path: "relay", chatAgoMs: 1000 })).status).toBe(200);
+    expect((await report({ path: "direct", chatAgoMs: 2000 })).status).toBe(200);
+    const stats = async () => (await request("/ops/relay/stats", { token: statsToken })).json();
+    let body = await stats();
+    expect(body.paths).toMatchObject({ direct: 1, cloudflare: 0, relay: 1 });
+    expect(body.now.chatting).toBe(1);
+    time += 15 * 60_000;
+    body = await stats();
+    expect(body.now.chatting).toBe(0);
+    time += 20 * 60_000;
+    expect((await report({ path: "direct" })).status).toBe(200);
+    expect((await stats()).paths).toMatchObject({ direct: 2, relay: 1 });
+  });
+
   it("shows each account's month and its rate on the ops stats", async () => {
     const statsToken = "s".repeat(32);
     await start({ statsToken });
@@ -250,10 +272,10 @@ describe("the owner's relay ops endpoints", () => {
     expect((await read()).frames).toHaveLength(3);
     time += 1000;
     const body = await (await ops("/ops/relay/stats")).json();
-    expect(Object.keys(body).sort()).toEqual(["box", "busy", "fairUse", "limits", "month", "node", "nodes", "now", "relay", "today", "top", "turn"]);
+    expect(Object.keys(body).sort()).toEqual(["box", "busy", "fairUse", "limits", "month", "node", "nodes", "now", "paths", "relay", "today", "top", "turn"]);
     expect(body.node).toMatchObject({ id: "contabo", default: true, accepting: true });
     expect(body.relay).toBe("contabo");
-    expect(Object.keys(body.now).sort()).toEqual(["accounts", "bytesPerSecIn", "bytesPerSecOut", "connected", "cpu", "rssMb", "servers", "tunnels"]);
+    expect(Object.keys(body.now).sort()).toEqual(["accounts", "bytesPerSecIn", "bytesPerSecOut", "chatting", "connected", "cpu", "rssMb", "servers", "tunnels"]);
     expect(body.now).toMatchObject({ tunnels: 1, connected: 1, servers: 1, accounts: 1, bytesPerSecIn: Math.round(3 * MB / 10), bytesPerSecOut: Math.round(3 * MB / 10) });
     expect(body.today).toEqual({ bytesOut: 3 * MB, bytesIn: 3 * MB });
     expect(body.month).toMatchObject({ bytesOut: 3 * MB, bytesIn: 3 * MB, allowanceBytes: MONTH_ALLOWANCE_BYTES });

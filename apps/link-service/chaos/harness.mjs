@@ -173,7 +173,7 @@ export async function createImpostor({ key, cert }) {
  * nginx's part: tls with h2 and http/1.1 in front of a node's plain http port, streaming both ways.
  * `fault`: null, "5xx" (every request answers 502, as nginx does with the node gone), "sync" (the copy between nodes fails)
  */
-export async function createFront({ key, cert, target }) {
+export async function createFront({ key, cert, target, listen = [["127.0.0.1", 0]] }) {
   let fault = null;
   const agent = new Agent({ keepAlive: true, maxSockets: 4096 });
   const HOP = new Set(["connection", "keep-alive", "transfer-encoding", "upgrade", "proxy-connection", "http2-settings", "te", "host"]);
@@ -211,7 +211,15 @@ export async function createFront({ key, cert, target }) {
   });
   server.on("error", () => {});
   server.on("sessionError", () => {});
-  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const extra = [];
+  await new Promise((resolve) => server.listen(listen[0][1], listen[0][0], resolve));
+  // further addresses (the nat lab's v6) get servers of their own on the same handler
+  for (const [host, at] of listen.slice(1)) {
+    const more = createSecureServer({ key, cert, allowHTTP1: true, settings: { initialWindowSize: 4 * 1024 * 1024 } }, (req, res) => server.emit("request", req, res));
+    more.on("error", () => {});
+    await new Promise((resolve) => more.listen({ port: at, host, ipv6Only: true }, resolve));
+    extra.push(more);
+  }
   return { port: server.address().port, perSecond, setFault: (next) => { fault = next; }, close: () => new Promise((resolve) => { server.close(resolve); agent.destroy(); }) };
 }
 
@@ -273,8 +281,8 @@ export function patternBytes(length) {
  * stands in for dusk bot on the server: what the agent needs to link, a json ping, a live event stream, a big download,
  * an upload that answers its hash, a websocket echo. `restart()` drops it for a moment like a server upgrade does.
  */
-export async function createBotServer() {
-  let server = null, port = 0, down = false, phone = null, phoneAgentPub = null;
+export async function createBotServer({ port: wanted = 0 } = {}) {
+  let server = null, port = wanted, down = false, phone = null, phoneAgentPub = null;
   const big = new Map();
   const streams = new Set();
   const handler = (req, res) => {

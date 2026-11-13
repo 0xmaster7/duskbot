@@ -114,3 +114,42 @@ export function refillBucket(b, t, rate, burst) {
   b.at = t; b.rate = rate; b.burst = burst;
   return b;
 }
+
+/** a report this old means the app is no longer open */
+const OPEN_MS = 3 * 60_000;
+/** an app session: reports this far apart from one tunnel are one session, unless its way changed */
+const SESSION_GAP_MS = 30 * 60_000;
+const CHAT_RECENT_MS = 10 * 60_000;
+
+/**
+ * how app sessions reached their servers this month (direct, through the server's cloudflare tunnel, or our relay),
+ * counted from the apps' reports, and who chats right now: an app open (it reported lately) whose person sent a message
+ * in the last few minutes. kept in paths.json
+ */
+export function createPathCounts({ dir = null, now = Date.now, key = (tunnel) => tunnel.id } = {}) {
+  const file = dir ? join(dir, "paths.json") : null;
+  let saved = null;
+  try { saved = file ? JSON.parse(readFileSync(file, "utf8")) : null; } catch {}
+  let counts = saved?.month === monthOf(now()) ? saved : { month: monthOf(now()), direct: 0, cloudflare: 0, relay: 0, since: now() };
+  const last = new Map();
+  function save() {
+    if (!file) return;
+    try { mkdirSync(dir, { recursive: true, mode: 0o700 }); const tmp = `${file}.${process.pid}.tmp`; writeFileSync(tmp, JSON.stringify(counts), { mode: 0o600 }); renameSync(tmp, file); } catch {}
+  }
+  return {
+    report(tunnel, path, chatAt) {
+      const t = now();
+      if (counts.month !== monthOf(t)) counts = { month: monthOf(t), direct: 0, cloudflare: 0, relay: 0, since: t };
+      const before = last.get(tunnel.id);
+      if (!before || before.path !== path || t - before.at > SESSION_GAP_MS) { counts[path] += 1; save(); }
+      last.set(tunnel.id, { path, at: t, chatAt: chatAt ?? before?.chatAt ?? null, key: key(tunnel) });
+      for (const [id, one] of last) if (t - one.at > SESSION_GAP_MS) last.delete(id);
+    },
+    month() { const { direct, cloudflare, relay, since } = counts; return { direct, cloudflare, relay, since }; },
+    chatting() {
+      const t = now(), who = new Set();
+      for (const one of last.values()) if (t - one.at <= OPEN_MS && one.chatAt !== null && t - one.chatAt <= CHAT_RECENT_MS) who.add(one.key);
+      return who.size;
+    },
+  };
+}

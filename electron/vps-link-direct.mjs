@@ -13,7 +13,7 @@ import { networkInterfaces } from "node:os";
 import { Duplex } from "node:stream";
 import { checkServerIdentity, connect as tlsConnect } from "node:tls";
 
-import { connectedSocket, openFrame, sealBytes, sealFrame } from "./vps-link-protocol.mjs";
+import { connectedSocket, openFrame, sealBytes, sealFrame, throughProxy } from "./vps-link-protocol.mjs";
 import { clampMss } from "./tcp-clamp.mjs";
 
 // ---- direct transport shared with apps/link-service/agent.mjs (keep both in step; a test checks they interoperate) ----
@@ -653,14 +653,20 @@ const PIN_ERROR = "the server's https key is not the one it said";
  * `spki`, which the agent sent inside the sealed tunnel, on top of the usual certificate checks: neither the network
  * nor the relay can stand in for the server, and the frames inside stay sealed end to end as on every path.
  */
-export function wssConnector({ url, spki, timeoutMs = 15_000, connect: dial = netConnect, tls: tlsOptions = {}, headers = {}, heartbeatMs = 0, via = "wss" }) {
+export function wssConnector({ url, spki, timeoutMs = 15_000, connect: dial = netConnect, tls: tlsOptions = {}, headers = {}, heartbeatMs = 0, via = "wss", proxy = null }) {
   const target = new URL(url);
   // plain ws:// only for a local relay under test; spki null: the usual certificate checks alone (the cloud relay)
   const plain = target.protocol === "ws:";
   const host = target.hostname.replace(/^\[|\]$/g, ""), port = Number(target.port) || (plain ? 80 : 443);
-  return () => new Promise((resolve, reject) => {
+  // `proxy`: the network's https proxy for this url ({ host, port } or null), tunnelled with CONNECT
+  return async () => {
+    const through = proxy ? await Promise.resolve(proxy(target)).catch(() => null) : null;
+    const tunnelled = through ? await throughProxy(through, host, port, timeoutMs) : null;
+    return opened(tunnelled);
+  };
+  function opened(tunnelled) { return new Promise((resolve, reject) => {
     let settled = false, pinned = false;
-    const raw = dial({ host, port });
+    const raw = tunnelled ?? dial({ host, port });
     raw.setNoDelay?.(true);
     raw.setKeepAlive?.(true, 15_000);
     raw.once("connect", () => void clampMss(raw));
@@ -726,7 +732,7 @@ export function wssConnector({ url, spki, timeoutMs = 15_000, connect: dial = ne
       };
       socket.on("data", onData);
     };
-  });
+  }); }
 }
 
 /** a transport that failed on a network is tried last there for this long, so a blocked port costs nothing per dial */

@@ -431,7 +431,8 @@ export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, 
     catch { clearTimeout(timer); dead(); }
   };
   const open = async (url) => {
-    const host = url.hostname, port = Number(url.port) || 443;
+    // an ipv6 literal comes in brackets from URL; tls wants the bare address (and no server name for it)
+    const host = url.hostname.replace(/^\[|\]$/g, ""), port = Number(url.port) || 443;
     const via = proxy ? await Promise.resolve(proxy(url)).catch(() => null) : null;
     if (via) return throughProxy(via, host, port).then((raw) => secure(url, host, port, raw), () => null);
     if (!dial) return secure(url, host, port, undefined);
@@ -642,6 +643,11 @@ const MOVE_AFTER_MS = 3000;
 export const UPGRADE_HOLD_MS = 700;
 /** a request over the relay with no answer at all this long sends the app to ask which node its server reads on */
 const SILENT_ASK_MS = 4000;
+/** an app tells its link service its way every minute when it changed, and every 10 minutes anyway */
+const REPORT_EVERY_MS = 60_000;
+const REPORT_AGAIN_MS = 10 * 60_000;
+/** a chat message sent (a bot's or a room's) */
+const CHAT_SEND = /^\/api\/(?:bots|groups)\/[^/?]+\/messages(?:\?|$)/;
 /** past a read's own wait, how long it may take before the poll gives up on it */
 const READ_HANG_MS = 45_000;
 /** how long a post waits out a relay that says the server is behind before it gives up */
@@ -700,7 +706,7 @@ export function proxyFromPac(answer) {
   return null;
 }
 
-export function createTunnelProxy({ base, id, route: givenRoute = null, key: keyText, token, port = 0, fetch: given, log = () => {}, replyTimeoutMs = 90_000, stallMs = STREAM_STALL_MS, direct: directSpec = null, directFactory = createDirectLink, egress: makeEgress = null, waitS = 25, aheadMs = STREAM_AHEAD_MS, hello = {}, follow = false, screenIce = null, proxy = null }) {
+export function createTunnelProxy({ base, id, route: givenRoute = null, key: keyText, token, port = 0, fetch: given, log = () => {}, replyTimeoutMs = 90_000, stallMs = STREAM_STALL_MS, direct: directSpec = null, directFactory = createDirectLink, egress: makeEgress = null, waitS = 25, aheadMs = STREAM_AHEAD_MS, hello = {}, follow = false, screenIce = null, proxy = null, report = false, reportMs = { first: 20_000, every: REPORT_EVERY_MS } }) {
   const fetchImpl = given ?? relayFetch({ dial: clampedDial, proxy });
   const stream = streamChoice();
   let unwarm = () => {};
@@ -875,6 +881,23 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
     }
   }
   let silenceTimer = null, silenceAskedAt = 0;
+  // the way this app reaches its server now, and when its person last sent a message, told to the link service now and
+  // then (`report`): the ops page's split of direct, cloudflare and relay, and how many people chat right now
+  let chatAt = null, reportTimer = null;
+  const reported = { path: null, at: 0, chatAt: null };
+  const pathNow = () => { if (!direct?.ready()) return "relay"; const via = direct.via?.(); return via === "cf" ? "cloudflare" : via === "cloud" ? "relay" : "direct"; };
+  async function sendReport() {
+    if (closed) return;
+    const path = pathNow(), t = Date.now();
+    if (path === reported.path && chatAt === reported.chatAt && t - reported.at < REPORT_AGAIN_MS) return;
+    try {
+      const response = await fetchImpl(`${route}/report`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ path, ...(chatAt ? { chatAgoMs: t - chatAt } : {}) }), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(15_000)]) });
+      await response.text().catch(() => "");
+      // a link service from before these reports: nobody to tell
+      if (response.status === 404 || response.status === 405) { clearInterval(reportTimer); return; }
+      if (response.ok) Object.assign(reported, { path, at: t, chatAt });
+    } catch { /* told next time */ }
+  }
   const watchSilence = () => {
     silenceTimer = setInterval(() => {
       const cutoff = Date.now() - SILENT_ASK_MS;
@@ -1077,6 +1100,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
       else res.destroy();
     };
     const bodyless = req.method === "GET" || req.method === "HEAD" || req.headers["content-length"] === "0";
+    if (req.method === "POST" && CHAT_SEND.test(req.url ?? "")) chatAt = Date.now();
     const request = { t: "req", r, method: req.method, path: req.url, headers, end: bodyless };
     const idempotent = bodyless && (req.method === "GET" || req.method === "HEAD");
     // a whole download the server can serve in ranges (a file with a validator) picks up where it broke, on a new
@@ -1222,6 +1246,11 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
       if (!given) unwarm = fetchImpl.warm(node);
       void poll();
       watchSilence();
+      if (report) {
+        setTimeout(() => void sendReport(), reportMs.first).unref?.();
+        reportTimer = setInterval(() => void sendReport(), reportMs.every);
+        reportTimer.unref?.();
+      }
       if (directSpec) useDirect(directSpec);
       egress?.start();
       return `http://${host}:${listeningPort}`;
@@ -1282,6 +1311,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
       closed = true;
       clearTimeout(moveTimer);
       clearInterval(silenceTimer);
+      clearInterval(reportTimer);
       direct?.close();
       direct = null;
       abort.abort();

@@ -415,7 +415,7 @@ export function createVpsLink(deps) {
       const [key, token] = await Promise.all([unprotect(link.keyP), unprotect(link.tokenP)]);
       if (closed) throw new Error("The app is closing.");
       const hello = { protocol: APP_LINK_PROTOCOL, app: deps.appVersion ?? null };
-      let proxy = makeProxy({ base: link.base ?? base, id: link.id, key, token, port: link.port ?? 0, log, egress: deps.egress, hello, follow: true, screenIce: deps.screenIce, proxy: deps.proxy });
+      let proxy = makeProxy({ base: link.base ?? base, id: link.id, key, token, port: link.port ?? 0, log, egress: deps.egress, hello, follow: true, screenIce: deps.screenIce, proxy: deps.proxy, report: true });
       proxies.set(link.id, proxy);
       let origin;
       try {
@@ -423,7 +423,7 @@ export function createVpsLink(deps) {
         catch (error) {
           if (error?.code !== "EADDRINUSE" || closed) throw error;
           await proxy.close();
-          proxy = makeProxy({ base: link.base ?? base, id: link.id, key, token, port: 0, log, egress: deps.egress, hello, follow: true, screenIce: deps.screenIce, proxy: deps.proxy });
+          proxy = makeProxy({ base: link.base ?? base, id: link.id, key, token, port: 0, log, egress: deps.egress, hello, follow: true, screenIce: deps.screenIce, proxy: deps.proxy, report: true });
           proxies.set(link.id, proxy);
           origin = await proxy.start();
         }

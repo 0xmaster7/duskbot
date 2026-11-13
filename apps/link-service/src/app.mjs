@@ -14,7 +14,7 @@ import { verifyLinkGrant } from "./grant.mjs";
 import { createPackages } from "./packages.mjs";
 import { createPushRelay } from "./push-relay.mjs";
 import { SEALED_ADDRESS_MAX, choosePlacement, createCluster, loadOf, refusesNew, sameSecret } from "./nodes.mjs";
-import { SMALL_BURST_BYTES, SMALL_BYTES_PER_SEC, SMALL_POST_BYTES, createAccountUsage, fairRate } from "./fair-use.mjs";
+import { SMALL_BURST_BYTES, SMALL_BYTES_PER_SEC, SMALL_POST_BYTES, createAccountUsage, createPathCounts, fairRate } from "./fair-use.mjs";
 import { ACTIVE_MS, BUSY_BYTES, DEFAULT_LIMITS, MONTH_ALLOWANCE_BYTES, createRelayUsage, loadLimits, saveLimits, validateLimits } from "./relay-limits.mjs";
 import { APP_TOKENS_CALLBACK_ROUTE, appTokenCallback } from "./app-token-callback.mjs";
 import { slackCallback } from "./slack-callback.mjs";
@@ -361,6 +361,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
   const tunnelRates = new Map();
   /** per account (or tunnel without one): the fair use bucket; the month's bytes, every node together, in `accountMonths` */
   const accountRates = new Map();
+  const paths = createPathCounts({ dir: dataDir, now, key: (tunnel) => (tunnel.acct ? `a:${tunnel.acct}` : `t:${tunnel.id}`) });
   const accountMonths = createAccountUsage({ dir: dataDir, now, log });
   const limits = loadLimits(dataDir, { ...DEFAULT_LIMITS, ...startLimits });
   const usage = createRelayUsage({ dir: dataDir, now });
@@ -652,11 +653,12 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
         homed: node.health?.homed ?? null, tunnels: node.health?.tunnels ?? null, connected: node.health?.connected ?? null, accepting: node.health ? !refusesNew(node) : null })) : [{ id: nodeId, url: base, region: null, self: true, up: true, lastOkAt: t, lastError: null, homed: self.health.homed, tunnels: busyNow, connected: active.length, accepting: !refusesNew({ up: true, health: self.health }) }],
       box: box?.reading() ?? null,
       turn: turnConfig ? { ...(turnWatch?.state() ?? { ok: null, at: null, rttMs: null, downSince: null }), urls: turnUrls(new URL(nodes?.self.url ?? base).hostname, { tls: !!turnConfig.tls }) } : null,
-      now: { tunnels: busyNow, connected: active.length, servers: self.health.servers, accounts: new Set(active.map((tunnel) => tunnel.acct ?? tunnel.id)).size, bytesPerSecOut: rates.out, bytesPerSecIn: rates.in, cpu, rssMb: Math.round(process.memoryUsage().rss / 1024 ** 2) },
+      now: { tunnels: busyNow, connected: active.length, servers: self.health.servers, accounts: new Set(active.map((tunnel) => tunnel.acct ?? tunnel.id)).size, chatting: paths.chatting(), bytesPerSecOut: rates.out, bytesPerSecIn: rates.in, cpu, rssMb: Math.round(process.memoryUsage().rss / 1024 ** 2) },
       today: { bytesOut: totals.day.out, bytesIn: totals.day.in },
       month: { bytesOut: totals.month.out, bytesIn: totals.month.in, projectedBytesOut: Math.round(totals.month.out / usage.monthElapsed()), allowanceBytes: monthAllowanceBytes },
       limits: { ...limits },
       top: [...accounts.values()].sort((a, b) => b.bytesToday - a.bytesToday).slice(0, 10),
+      paths: paths.month(),
       // each account's relay bytes this month, every node together, and the rate the fair use curve gives it now
       fairUse: { month: accountMonths.month(), accounts: accountMonths.top(20).map(({ key, bytes, here }) => ({ account: key.startsWith("a:") ? key.slice(2) : null, tunnel: key.startsWith("t:") ? key.slice(2) : null, monthBytes: bytes, hereBytes: here, bytesPerSec: fairRate(bytes, limits) })) },
       busy,
@@ -1368,6 +1370,18 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       if (action === "place") return send(res, 200, await place(tunnel, await readJson(req)));
       if (!turnConfig) return fail(res, 404, "turn is not set up on this link service", "no_turn");
       return send(res, 200, turnAnswer(id, tunnel));
+    }
+
+    // the app says which way it reaches its server now (and when its person last sent a chat message): the split the
+    // ops page shows, and how many people chat right now. any node takes it; counts stay on the node that heard them
+    if ((parts = /^\/v1\/tunnels\/([a-z2-7]{10})\/report$/.exec(path))) {
+      if (method !== "POST") return fail(res, 405, "method not allowed");
+      const tunnel = tunnelFor(req, res, parts[1], "app");
+      if (!tunnel) return;
+      const body = await readJson(req);
+      if (!["direct", "cloudflare", "relay"].includes(body?.path)) return fail(res, 400, "path must be direct, cloudflare or relay");
+      paths.report(tunnel, body.path, Number.isFinite(body.chatAgoMs) && body.chatAgoMs >= 0 ? now() - body.chatAgoMs : null);
+      return send(res, 200, { ok: true });
     }
 
     if ((parts = /^\/v1\/tunnels\/([a-z2-7]{10})(?:\/(to-vps|to-app|status))?$/.exec(path))) {
