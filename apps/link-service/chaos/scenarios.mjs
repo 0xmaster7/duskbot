@@ -270,14 +270,15 @@ export const SCENARIOS = [
     },
   },
   {
-    name: "network-switch", title: "wifi to hotspot: open connections go silent", quick: true, budgetMs: 20_000,
+    // the desktop app notices its own addresses change (network-switch-watched); this is the path without that help
+    name: "network-switch", title: "wifi to hotspot, nothing tells the relay code: open connections go silent", budgetMs: 25_000,
     async run(world) {
       for (const id of world.ids) world.appNet[id].strand();
       return { clearedAt: at() };
     },
   },
   {
-    name: "network-switch-watched", title: "wifi to hotspot, the app notices its addresses changed", budgetMs: 10_000,
+    name: "network-switch-watched", title: "wifi to hotspot, the app notices its addresses changed", quick: true, budgetMs: 10_000,
     async run(world) {
       for (const id of world.ids) world.appNet[id].strand();
       // electron/network-change.mjs looks every 3 s and waits for one more look
