@@ -63,6 +63,7 @@ test("the surfaces may only ask to reply, allow, deny, answer, stop or make a bo
 test("both surfaces start on only on macOS, and a change keeps to the known choices", () => {
   assert.deepEqual(parsePrefs(null, "darwin"), { island: true, dock: true, size: "medium", display: "active", order: [], seen: [] });
   assert.deepEqual([parsePrefs(null, "win32").island, parsePrefs(null, "win32").dock], [false, false]);
+  assert.deepEqual([parsePrefs({ island: true, dock: true }, "linux").island, parsePrefs({ island: true, dock: true }, "linux").dock], [false, true]);
   assert.equal(parsePrefs({ island: false }, "darwin").island, false);
   const prefs = parsePrefs(null, "darwin");
   const changed = applyPrefsChange(prefs, { size: "large", display: "built-in", island: false, order: ["b", "a", "b", "../x"], evil: 1, seen: ["x:done:1"] });

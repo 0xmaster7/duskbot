@@ -34,12 +34,13 @@ export function AmbientRows() {
     void bridge.set(next).then(setState, () => { setFailed(true); void bridge.prefs().then(setState, () => {}); });
   };
   const problem = failed ? <div role="alert" className="text-danger">{t("settings.ambient.failed")}</div> : null;
+  const island = state.platform === "darwin";
   return (
     <>
-      <SettingRow icon="laptop" title={t("settings.ambient.island.title")} subtitle={t("settings.ambient.island.subtitle")} message={problem}>
+      {island && <SettingRow icon="laptop" title={t("settings.ambient.island.title")} subtitle={t("settings.ambient.island.subtitle")} message={problem}>
         <Switch checked={state.island} aria-label={t("settings.ambient.island.title")} onClick={() => change({ island: !state.island })} />
-      </SettingRow>
-      {state.island && (
+      </SettingRow>}
+      {island && state.island && (
         <>
           <SettingRow title={t("settings.ambient.size.title")} subtitle={t("settings.ambient.size.subtitle")}>
             <SettingsSelect
@@ -54,7 +55,7 @@ export function AmbientRows() {
           <IslandPreviews size={state.size} />
         </>
       )}
-      <SettingRow icon="sparkle" title={t("settings.ambient.dock.title")} subtitle={t("settings.ambient.dock.subtitle")}>
+      <SettingRow icon="sparkle" title={t("settings.ambient.dock.title")} subtitle={t("settings.ambient.dock.subtitle")} message={island ? null : problem}>
         <Switch checked={state.dock} aria-label={t("settings.ambient.dock.title")} onClick={() => change({ dock: !state.dock })} />
       </SettingRow>
       {(state.island || state.dock) && state.displays.length > 1 && (

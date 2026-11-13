@@ -133,12 +133,13 @@ export function seenKeys(value) {
   return keys.slice(-MAX_SEEN);
 }
 
-/** The person's choices; both surfaces start on only on macOS, where the island hugs the notch. */
+/** The person's choices; both surfaces start on only on macOS, where the island hugs the notch. The island is a macOS
+ * surface only: elsewhere it stays off and Settings does not offer it. */
 export function parsePrefs(raw, platform = process.platform) {
   const record = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
   const on = platform === "darwin";
   return {
-    island: typeof record.island === "boolean" ? record.island : on && AMBIENT_DEFAULTS.island,
+    island: on && (typeof record.island === "boolean" ? record.island : AMBIENT_DEFAULTS.island),
     dock: typeof record.dock === "boolean" ? record.dock : on && AMBIENT_DEFAULTS.dock,
     size: ISLAND_SIZE_IDS.includes(record.size) ? record.size : AMBIENT_DEFAULTS.size,
     display: DISPLAY_CHOICES.includes(record.display) ? record.display : AMBIENT_DEFAULTS.display,
