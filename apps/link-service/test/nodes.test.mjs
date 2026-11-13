@@ -151,7 +151,7 @@ describe("two nodes", () => {
     expect((await call(contabo.url, `/v1/tunnels/${id}/place`, { token: app, method: "POST", body: {} })).status).toBe(404);
 
     // the home moves when the server reads there, never on a placement it may not follow: the app is sent to the
-    // default node until then (and to oracle after 8 s without an answer, or at once by a 409)
+    // default node until then (and to oracle after 4 s without an answer, or at once by a 409)
     expect((await call(contabo.url, `/v1/tunnels/${id}/node`, { token: app }).then((res) => res.json())).node).toBe("contabo");
     expect((await call(oracle.url, `/v1/tunnels/${id}/to-vps`, { token: vps })).status).toBe(200);
     await oracle.service.cluster.syncAll();

@@ -176,7 +176,7 @@ copy between them. `src/nodes.mjs`.
   nodes. A tunnel with no home (from before nodes, or an agent that never asks) lives on the default node.
 - **Only the home relays.** The app's and phones' reads and writes for a tunnel whose server reads on another node are
   refused with `409 {code: "moved", node, url, nodes}` instead of queued where nobody reads them; the app moves there at
-  once. A request over the relay with no answer at all for 8 s makes the app ask where the tunnel lives as well (a node
+  once. A request over the relay with no answer at all for 4 s makes the app ask where the tunnel lives as well (a node
   whose copy of the directory lags), and on a move an unanswered GET goes again to the new node while anything else
   that waited fails with a short message.
 - **The sealed address.** The agent puts its address (what `hello` answers, sealed with the tunnel key, AAD
@@ -186,7 +186,7 @@ copy between them. `src/nodes.mjs`.
 - **Failover.** The agent watches its node: reads failing for 12 s, silent for 35 s, or answering `relay_busy`, it
   asks again (at most every 15 s; the node it was linked through first, then every node it learned of, cached in
   `~/.config/duskbot-link/nodes.json`) and restarts on the new node. The app's relay (`createTunnelProxy` with
-  `follow`) asks where the tunnel lives at start, after two failed reads, on `relay_busy`, on a 409 and after 8 s of
+  `follow`) asks where the tunnel lives at start, after two failed reads, on `relay_busy`, on a 409 and after 4 s of
   silence, and moves there (its one http/2 connection goes to the new node; asking other nodes takes http/1.1); the
   phone does the same after a failed or unanswered request. A 404 from a node it moved to is "unlinked" only once the
   node it was linked through says 404 too. One node listed: nothing moves. Retries on both ends wait a random half to

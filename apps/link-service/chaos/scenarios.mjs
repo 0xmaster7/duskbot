@@ -85,7 +85,9 @@ export const SCENARIOS = [
           await sleep(250);
         }
       } finally { await other.app.close(); await other.agent.stop(); }
-      return { pass: firstOk !== null && failed === 0, note: firstOk === null ? "the app never reached it" : `first answer after ${firstOk} ms, ${failed} of 20 failed` };
+      // the app may ask the node it linked through before the server's first read lands on the other one; it asks
+      // again after 4 s of silence
+      return { pass: firstOk !== null && firstOk < 10_000 && failed <= 1, note: firstOk === null ? "the app never reached it" : `first answer after ${firstOk} ms, ${failed} of 20 failed` };
     },
   },
   {

@@ -568,7 +568,7 @@ const MOVE_AFTER_MS = 3000;
  */
 export const UPGRADE_HOLD_MS = 700;
 /** a request over the relay with no answer at all this long sends the app to ask which node its server reads on */
-const SILENT_ASK_MS = 8000;
+const SILENT_ASK_MS = 4000;
 /** past a read's own wait, how long it may take before the poll gives up on it */
 const READ_HANG_MS = 45_000;
 /** how long a post waits out a relay that says the server is behind before it gives up */
@@ -669,12 +669,19 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
       entry.fail("The connection to your server changed. Try again.");
     }
   }
-  /** a node that is not the tunnel's home refuses with 409 "moved" and where it lives: the relay goes there at once */
+  /**
+   * a node that is not the tunnel's home refuses with 409 "moved" and where it lives: the relay goes there at once. two
+   * nodes whose copies of the directory disagree can send it back and forth; then it waits like any failed request
+   */
+  let movedAt = 0;
   function movedBy(status, text) {
     if (status !== 409 || !follow || givenRoute || closed) return false;
     let body = null;
     try { body = JSON.parse(text); } catch { return false; }
-    return body?.code === "moved" && moveTo(readWhere(body));
+    if (body?.code !== "moved" || Date.now() - movedAt < 1000) return false;
+    const moved = moveTo(readWhere(body));
+    if (moved) movedAt = Date.now();
+    return moved;
   }
   /** where the tunnel lives now: moves the relay there when it changed; { gone: true } when the origin no longer knows it */
   function locate({ force = false } = {}) {

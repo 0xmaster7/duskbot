@@ -117,9 +117,28 @@ test("a request with no answer at all makes the app ask again where the tunnel l
     await proxy.start();
     home = B;
     const answered = proxy.control("ping", null, 14_000);
-    // the ping went to a and is lost; the app asks where after 8 s of silence and sends it again to b
+    // the ping went to a and is lost; the app asks where after 4 s of silence and sends it again to b
     await until(() => proxy.node() === B, 13_000);
     assert.deepEqual(await answered, { ok: true });
     assert.deepEqual(await proxy.control("ping", null, 2000), { ok: true });
+  } finally { await proxy.close(); }
+});
+
+test("two nodes that each say the tunnel is on the other do not spin the app", { timeout: 8000 }, async () => {
+  let calls = 0;
+  const moved = (url) => Response.json({ error: "elsewhere", code: "moved", node: url === A ? "a" : "b", url, up: true, nodes }, { status: 409 });
+  const proxy = createTunnelProxy({ ...options, fetch: async (url, init) => {
+    url = String(url);
+    calls += 1;
+    if (url.endsWith("/node")) return Response.json({ node: "a", url: A, up: true, nodes });
+    if (url.startsWith(A)) return moved(B);
+    if (url.startsWith(B)) return moved(A);
+    return hold(init);
+  } });
+  try {
+    await proxy.start();
+    void proxy.control("ping", null, 3000).catch(() => {});
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    assert.ok(calls < 80, `${calls} requests in 2 s`);
   } finally { await proxy.close(); }
 });
