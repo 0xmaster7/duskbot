@@ -3,8 +3,9 @@ person connects.
 
 - `*.tile.svg` are written by `scripts/gen-app-logos.mjs`: the brand's mark from
   [simple-icons](https://simpleicons.org) (CC0-1.0, see its DISCLAIMER about trademarks) in its brand colour on a
-  light tile, or the app's initial on a neutral tile where simple-icons has no mark.
-- The other `*.svg` are bare marks from Composio's logo service (logos.composio.dev).
+  light tile.
+- The other `*.svg` are bare marks from Composio's logo service (logos.composio.dev), for apps simple-icons has no
+  mark for.
 
 - `1password.tile.svg`: simple-icons 16.37.0 `1password` (1Password), #145FE4
 - `atlassian.tile.svg`: simple-icons 16.37.0 `atlassian` (Atlassian), #0052CC
@@ -31,30 +32,3 @@ person connects.
 - `supabase.tile.svg`: simple-icons 16.37.0 `supabase` (Supabase), #3FCF8E
 - `vercel.tile.svg`: simple-icons 16.37.0 `vercel` (Vercel), #000000
 - `x.tile.svg`: simple-icons 16.37.0 `x` (X), #000000
-- `adspirer.tile.svg`: lettered tile drawn by this script
-- `ahrefs.tile.svg`: lettered tile drawn by this script
-- `apify.tile.svg`: lettered tile drawn by this script
-- `apollo-io.tile.svg`: lettered tile drawn by this script
-- `bulkpublish.tile.svg`: lettered tile drawn by this script
-- `canva.tile.svg`: lettered tile drawn by this script
-- `clay.tile.svg`: lettered tile drawn by this script
-- `context-dev.tile.svg`: lettered tile drawn by this script
-- `context7.tile.svg`: lettered tile drawn by this script
-- `crustdata.tile.svg`: lettered tile drawn by this script
-- `docs-canvas.tile.svg`: lettered tile drawn by this script
-- `firecrawl.tile.svg`: lettered tile drawn by this script
-- `granola.tile.svg`: lettered tile drawn by this script
-- `klaviyo.tile.svg`: lettered tile drawn by this script
-- `kraken.tile.svg`: lettered tile drawn by this script
-- `link.tile.svg`: lettered tile drawn by this script
-- `mailerlite.tile.svg`: lettered tile drawn by this script
-- `mobbin.tile.svg`: lettered tile drawn by this script
-- `onedrive.tile.svg`: lettered tile drawn by this script
-- `outlook.tile.svg`: lettered tile drawn by this script
-- `parallel.tile.svg`: lettered tile drawn by this script
-- `phantom.tile.svg`: lettered tile drawn by this script
-- `plain.tile.svg`: lettered tile drawn by this script
-- `shop.tile.svg`: lettered tile drawn by this script
-- `slack.tile.svg`: lettered tile drawn by this script
-- `superpowers.tile.svg`: lettered tile drawn by this script
-- `treg.tile.svg`: lettered tile drawn by this script
