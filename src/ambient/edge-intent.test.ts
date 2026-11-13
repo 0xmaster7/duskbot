@@ -66,25 +66,10 @@ it("never opens while a button is held, and waits for a fresh rest once it is le
   expect(opened).toBe(1);
 });
 
-it("a pointer that just appears at the edge (a window or space switch) has not headed there", () => {
-  edge();
-  tick(REVEAL.dwellMs * 3);
-  edge(330);
-  tick(REVEAL.dwellMs * 3);
-  expect(opened).toBe(0);
-  // stepping out and back in is a real arrival
-  away();
+it("an arrival the window never saw coming still counts: the dock's strip only sees the pointer once it is there", () => {
   edge();
   tick(REVEAL.dwellMs + 10);
   expect(opened).toBe(1);
-});
-
-it("an arrival from long ago does not count either", () => {
-  away();
-  tick(REVEAL.arriveMs + 50);
-  edge();
-  tick(REVEAL.dwellMs * 2);
-  expect(opened).toBe(0);
 });
 
 it("holds off right after a focus change, then a deliberate rest still works", () => {

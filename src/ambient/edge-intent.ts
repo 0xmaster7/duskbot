@@ -8,9 +8,6 @@ export const REVEAL = Object.freeze({
   dwellMs: 400,
   /** moving less than this still counts as resting; more starts the rest over, so sliding along the edge never opens */
   settlePx: 10,
-  /** the pointer must have come from the screen this recently: one that just appears at the edge (a window or space
-   * switch, waking up) has not headed there */
-  arriveMs: 1200,
   /** after the dock's window gains or loses focus, the edge is ignored this long */
   quietMs: 700,
 });
@@ -30,7 +27,6 @@ export interface EdgeIntent {
 }
 
 export function createEdgeIntent(open: () => void, now: () => number = Date.now): EdgeIntent {
-  let lastOutside = -Infinity;
   let arrived = false;
   let inZone = false;
   let quietUntil = -Infinity;
@@ -43,13 +39,14 @@ export function createEdgeIntent(open: () => void, now: () => number = Date.now)
       if (!zone) {
         inZone = false;
         arrived = false;
-        lastOutside = at;
         stop();
         return;
       }
       if (!inZone) {
         inZone = true;
-        arrived = at - lastOutside <= REVEAL.arriveMs;
+        // the dock's window is a thin strip that sees the pointer only once it is there, so every arrival counts;
+        // window switches are held back by quiet() instead
+        arrived = true;
       }
       // held buttons are a drag or a selection on its way somewhere; a rest only counts once they are up
       if (!arrived || buttons !== 0 || at < quietUntil) { stop(); return; }
