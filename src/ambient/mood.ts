@@ -20,6 +20,15 @@ export const CELEBRATE_MS = 2600;
 const RANK: Record<AmbientStatus, number> = { "needs-you": 0, error: 3, talking: 4, working: 5, thinking: 6, done: 7, idle: 8 };
 const WAITS: Record<AmbientWait, number> = { question: 0, approval: 1, "sign-in": 2, password: 2, connect: 2, review: 2, other: 2 };
 
+/** Waits the person settles in the app, not in a word from the notch: a sign-in or human check, a password or key, an app
+ * to connect, or an ask with no card. They stay in the chat, the dock's badge and the notification. */
+const HANDOFF_WAITS = new Set<AmbientWait>(["sign-in", "password", "connect", "other"]);
+
+/** The bots as the island shows them: one stopped on a handoff wait rests there, like an idle bot. */
+export function islandBots(bots: readonly AmbientBot[]): AmbientBot[] {
+  return bots.map((bot) => (bot.status === "needs-you" && HANDOFF_WAITS.has(bot.waits ?? "other") ? { ...bot, status: "idle", detail: "", waits: null, asks: 0 } : bot));
+}
+
 /** Lower is sooner: a question, an approval, anything else waiting on the person, a failure, then the rest. */
 export const urgency = (bot: AmbientBot): number => (bot.status === "needs-you" ? WAITS[bot.waits ?? "other"] : RANK[bot.status]);
 const BUSY = new Set<AmbientStatus>(["thinking", "working", "talking"]);

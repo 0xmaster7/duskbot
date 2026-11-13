@@ -158,3 +158,30 @@ it("shows nothing with no bots: no notch face, no panel, no placeholder", async 
   expect(host.querySelector(".amb-strip-bot")).toBeNull();
   await act(async () => root.unmount());
 });
+
+it("keeps sign-ins, human checks, passwords and other handoffs out of the island: no ask, no bubble, no compact mark", async () => {
+  let feed: (snapshot: AmbientSnapshot) => void = () => {};
+  const bridge: AmbientBridge = {
+    surface: "island", onState: (cb) => { feed = cb; return () => {}; }, onLayout: () => () => {}, pointer() {}, open() {}, act() {}, order() {}, ready() {},
+  };
+  const host = document.body.appendChild(document.createElement("div"));
+  const root = createRoot(host);
+  await act(async () => root.render(createElement(Island, { bridge, forceOpen: true })));
+  await act(async () => feed({ lang: "en", labels: { waiting: "Waiting", "needs-you": "Needs you", openShort: "Open" }, bots: [
+    bot("Cinder", { status: "needs-you", waits: "sign-in", asks: 1, detail: "sign in to pastebin.com" }),
+    bot("Lark", { status: "needs-you", waits: "password", asks: 1, detail: "needs OpenAI key" }),
+    bot("Moss", { status: "needs-you", waits: "other", asks: 1, detail: "Action needed" }),
+    bot("Nova", { status: "needs-you", waits: "question", asks: 1, question: { requestId: "q1", threadId: "t-Nova", title: "Which branch?", choices: ["main", "dev"] } }),
+  ] }));
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 650)));
+  expect([...host.querySelectorAll(".amb-ask")].map((ask) => ask.getAttribute("data-ask"))).toEqual(["Nova"]);
+  expect(host.textContent).not.toContain("pastebin");
+  const bubbles = [...host.querySelectorAll(".amb-strip [data-row]")].filter((cell) => cell.querySelector(".amb-bubble")).map((cell) => cell.getAttribute("data-row"));
+  expect(bubbles).toEqual(["Nova"]);
+  expect(host.querySelector(".amb-more")).toBeNull();
+  // a handoff never counts as waiting: the resting cell says when it was last active, not "Waiting"
+  const cinder = host.querySelector('.amb-strip [data-row="Cinder"]');
+  expect(cinder?.getAttribute("data-status")).toBe("idle");
+  expect(cinder?.querySelector(".amb-strip-state")?.textContent).not.toBe("Waiting");
+  await act(async () => root.unmount());
+});

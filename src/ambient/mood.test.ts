@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MOOD_EMOJI, dockOrder, finishedSince, focusBot, moodOf, rankBots, shortAgo, waitingCount } from "./mood";
+import { MOOD_EMOJI, dockOrder, finishedSince, focusBot, islandBots, moodOf, rankBots, shortAgo, waitingCount } from "./mood";
 import type { AmbientBot, AmbientStatus } from "./types";
 
 const bot = (id: string, status: AmbientStatus, at = 0, fields: Partial<AmbientBot> = {}): AmbientBot => ({
@@ -57,5 +57,22 @@ describe("the island's mood", () => {
     expect(shortAgo(now - 4 * 60_000, now, "en", "now")).toBe("4m");
     expect(shortAgo(now - 3 * 3_600_000, now, "en", "now")).toBe("3h");
     expect(shortAgo(now - 2 * 86_400_000, now, "en", "now")).toBe("2d");
+  });
+});
+
+describe("the island's bots", () => {
+  it("rests a bot stopped on a sign-in, a password, an app to connect or an ask with no card, and keeps the rest", () => {
+    const waiting = (id: string, waits: AmbientBot["waits"]) => bot(id, "needs-you", 1, { waits, asks: 1, detail: "sign in to pastebin.com" });
+    const shown = islandBots([
+      waiting("signin", "sign-in"), waiting("key", "password"), waiting("app", "connect"), waiting("other", "other"), waiting("bare", null),
+      waiting("question", "question"), waiting("approval", "approval"), waiting("review", "review"), bot("busy", "working"),
+    ]);
+    expect(shown.map((one) => [one.id, one.status])).toEqual([
+      ["signin", "idle"], ["key", "idle"], ["app", "idle"], ["other", "idle"], ["bare", "idle"],
+      ["question", "needs-you"], ["approval", "needs-you"], ["review", "needs-you"], ["busy", "working"],
+    ]);
+    expect(shown.slice(0, 5).every((one) => one.asks === 0 && one.waits === null && one.detail === "")).toBe(true);
+    expect(moodOf(islandBots([waiting("signin", "sign-in"), bot("busy", "working")]))).toBe("working");
+    expect(waitingCount(islandBots([waiting("signin", "sign-in"), waiting("question", "question")]))).toBe(1);
   });
 });

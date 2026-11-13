@@ -3,10 +3,10 @@
 // in the app never shows here, and a change has to hold a moment before it does. Under the pointer it grows into a panel,
 // on one spring (its width, height, corners and the two flares where it meets the top of the screen all ride it): every
 // bot's mascot in a wrapping grid with its state, and below it any ask waiting on the person, answered in place.
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { AnimatePresence, motion, useReducedMotion, useTransform } from "motion/react";
 import { Check, Plus } from "../icons";
-import { CELEBRATE_MS, MOOD_EMOJI, finishedSince, isBusy, moodOf, rankBots, shortAgo, waitingCount, type Mood } from "./mood";
+import { CELEBRATE_MS, MOOD_EMOJI, finishedSince, isBusy, islandBots, moodOf, rankBots, shortAgo, waitingCount, type Mood } from "./mood";
 import { Reveal, rowLine, trayFor, useRowMoments } from "./rows";
 import { attention, dotOf, eventKey, isFresh, isSeenEvent, newsOf, useSeen } from "./seen";
 import { say, type AmbientLabels } from "./say";
@@ -40,6 +40,8 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
   const island = layout?.surface === "island" ? layout : null;
   const reduced = useReducedMotion() === true;
   const bots = snapshot?.bots ?? [];
+  // sign-ins, human checks, passwords and other handoffs are settled in the app: here those bots rest
+  const shown = useMemo(() => islandBots(snapshot?.bots ?? []), [snapshot]);
   const labels = snapshot?.labels ?? {};
 
   const [hovered, setHovered] = useState(false);
@@ -48,7 +50,7 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
   // a reply or failure the person has seen anywhere stops asking for their attention here
   const { seen, mark } = useSeen(bridge, bots, open);
   useSettledSignal(bridge, open);
-  const live = attention(bots, seen);
+  const live = attention(shown, seen);
   const [celebrating, setCelebrating] = useState(false);
   const [nudged, setNudged] = useState(false);
   const before = useRef<readonly AmbientBot[] | null>(null);
@@ -212,7 +214,7 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
           transition={open ? { opacity: { ...FADE, delay: 0.05 }, y: SETTLE } : { opacity: { duration: 0.2, ease: EASE_OUT }, y: ISLAND_EXIT }}
         >
           <div ref={panel}>
-            <PanelBody bots={bots} seen={seen} mark={mark} cheer={allClear} labels={labels} lang={snapshot?.lang ?? ""} open={open} bridge={bridge} onPin={setPinned} />
+            <PanelBody bots={shown} seen={seen} mark={mark} cheer={allClear} labels={labels} lang={snapshot?.lang ?? ""} open={open} bridge={bridge} onPin={setPinned} />
           </div>
         </motion.div>
       </motion.section>
