@@ -538,6 +538,10 @@ function Glance({ data, relays }: { data: OpsAnswer | null; relays: OpsRelayCard
 }
 
 /** everything that costs money or can go down, from what the collectors last stored */
+/** where each part of this long page is, so relays, emails and the abuse list are one tap from the top */
+const JUMPS: Array<[string, string]> = [["ops-relays-summary", "relays"], ["ops-accounts", "top accounts"], ["ops-tile-emails", "emails"], ["ops-spend", "spend"],
+  ["ops-people", "people to look at"], ["ops-machines", "machines"], ["ops-services", "services"]];
+
 export function OpsPage() {
   const { data, error, loading, reload } = useAdmin<OpsAnswer>("/ops", 60_000);
   const now = useNow(30_000);
@@ -547,6 +551,9 @@ export function OpsPage() {
       <AdminHeader title="ops"
         sub={data ? <span className="inline-flex flex-wrap items-center gap-2">{data.month}, {percent(data.elapsed)} of the month gone · updated {ago(data.now, now)}{data.fixture && <span className="tag !h-[22px] !px-2">sample data</span>}</span> : "spend, machines, services and people to look at"}
         action={<Collect onDone={reload} />} />
+      <nav aria-label="on this page" className="mb-4 flex flex-wrap gap-1.5">
+        {JUMPS.map(([id, label]) => <Link key={id} to={`/admin/ops#${id}`} className="hover-chip inline-flex h-8 items-center rounded-full bg-card px-3 text-13 text-ink-2">{label}</Link>)}
+      </nav>
       <div className="mb-4 flex flex-col gap-4">
         <RelaySummary data={relays.data} error={relays.error} />
         <TopAccounts />

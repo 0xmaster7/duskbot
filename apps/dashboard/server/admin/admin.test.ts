@@ -108,7 +108,7 @@ describe("admin panel api", () => {
         expect((await refused.json() as { code: string }).code).toBe("not_admin");
         expect((await call(path, { cookie: admin })).status, path).toBe(200);
       }
-      for (const action of ["pause", "resume", "delete"]) {
+      for (const action of ["pause", "resume", "delete", "end-trial"]) {
         const path = `/v1/admin/clouds/${cloudId}/${action}`;
         expect((await call(path, { body: { confirm: cloudId } })).status, path).toBe(401);
         expect((await call(path, { body: { confirm: cloudId }, cookie: other })).status, path).toBe(403);
@@ -119,6 +119,10 @@ describe("admin panel api", () => {
       const refusedDelete = await call(`/v1/admin/clouds/${cloudId}/delete`, { body: { confirm: cloudId }, cookie: admin });
       expect(refusedDelete.status).toBe(409);
       expect((await refusedDelete.json() as { code: string }).code).toBe("not_available");
+      // ending an update trial early needs a managed cloud on a service that allows it (preview); this one is neither
+      const refusedTrial = await call(`/v1/admin/clouds/${cloudId}/end-trial`, { body: { confirm: cloudId }, cookie: admin });
+      expect(refusedTrial.status).toBe(409);
+      expect((await refusedTrial.json() as { code: string }).code).toBe("not_available");
     });
 
     it("needs the CSRF header and the app's own origin on changes", async () => {

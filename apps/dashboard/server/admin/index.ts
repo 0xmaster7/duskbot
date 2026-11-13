@@ -145,6 +145,7 @@ export function createAdmin(options: AdminOptions) {
         pause: c.suspended === null && usable && ["running", "sleeping"].includes(c.status),
         resume: c.suspended !== null ? c.status === "suspended" && usable : usable && ["stopped", "sleeping"].includes(c.status),
         delete: managed && !!c.ended && c.status !== "destroyed" && c.status !== "destroying",
+        endTrial: managed && !!billing.endTrials && !!billing.clouds.managed?.endTrial && usable,
       },
     };
   }
@@ -312,9 +313,17 @@ export function createAdmin(options: AdminOptions) {
   async function cloudAction(owner: { id: string }, id: string, action: string, input: Record<string, unknown>) {
     const cloud = billing.clouds.get(id);
     if (!cloud) throw new AdminError(404, "not_found", "Not found.");
-    const row = cloudRow(cloud, emailMap());
-    if (!(action in row.actions) || !row.actions[action as keyof typeof row.actions]) throw new AdminError(409, "not_available", `This cloud can't ${action} in its current state.`);
+    const row = cloudRow(cloud, emailMap()), key = action === "end-trial" ? "endTrial" : action;
+    if (!(key in row.actions) || !row.actions[key as keyof typeof row.actions]) throw new AdminError(409, "not_available", `This cloud can't ${action.replace("-", " ")} in its current state.`);
     if (input.confirm !== cloud.id && input.confirm !== cloud.name) throw new AdminError(400, "confirm_required", "Type the cloud's name to confirm.");
+    if (key === "endTrial") {
+      // the same early settle as POST /v1/billing/ops/clouds/<id>/end-trial, from the panel instead of the ops token
+      const answer = billing.clouds.managed!.endTrial!(cloud, "admin_panel");
+      await audit(owner.id, "cloud.end_trial", cloud.id, "refused" in answer ? { ok: false, code: answer.refused } : { ok: true });
+      if ("refused" in answer) throw new AdminError(409, answer.refused, answer.refused === "no_trial" ? "No update is on trial on this cloud." : "Its self-test has not passed yet.");
+      void billing.clouds.reconcile().catch(() => {});
+      return { cloud: cloudRow(cloud, emailMap()) };
+    }
     try {
       if (action === "pause") await billing.clouds.power(cloud.accountId, cloud.id, "off");
       else if (action === "resume") { if (cloud.suspended !== null) await billing.clouds.resume(cloud.id); else await billing.clouds.power(cloud.accountId, cloud.id, "on"); }
@@ -511,7 +520,7 @@ export function createAdmin(options: AdminOptions) {
         await audit(owner.id, "revenue.sync", null, result);
         return send(result);
       }
-      const action = /^\/clouds\/(c[0-9a-f]{24})\/(pause|resume|delete)$/.exec(route);
+      const action = /^\/clouds\/(c[0-9a-f]{24})\/(pause|resume|delete|end-trial)$/.exec(route);
       if (action) return send(await cloudAction(owner, action[1]!, action[2]!, options.bodyObject(await options.readBody(req))));
     }
     throw new AdminError(404, "not_found", "Route not found.");

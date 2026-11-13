@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowUpRight, ChartNoAxesColumn, ChartNoAxesCombined, ChevronDown, Cloud, CreditCard, Gauge, Globe as GlobeIcon, History, Inbox, LayoutDashboard, Menu, MessageSquare, Moon, Repeat, Server, Sun, Users, X } from "@/icons";
+import { ArrowUpRight, ChartNoAxesColumn, ChartNoAxesCombined, ChevronDown, Cloud, CreditCard, Gauge, Globe as GlobeIcon, History, Inbox, LayoutDashboard, Menu, MessageSquare, Moon, Repeat, Server, Sun, Table2, Users, X } from "@/icons";
 import { setTheme, useTheme } from "../lib/theme";
 import { ButtonLink, cx } from "../ui/kit";
 import { Modal } from "../ui/controls";
@@ -34,13 +34,17 @@ const GROUPS: Array<{ label: string; items: NavItem[] }> = [
     { to: "/admin", key: "o", label: "overview", icon: <LayoutDashboard {...ICON} />, also: ["/admin/analytics"] },
     { to: "/admin/live", key: "l", label: "live", icon: <GlobeIcon {...ICON} /> },
     { to: "/admin/people", key: "p", label: "people", icon: <Users {...ICON} />, also: ["/admin/users"] },
+    { to: "/admin/waitlist", key: "w", label: "waitlist", icon: <Inbox {...ICON} /> },
     { to: "/admin/revenue", key: "m", label: "revenue", icon: <CreditCard {...ICON} /> },
-    { to: "/admin/ops", key: "x", label: "ops", icon: <Server {...ICON} /> },
   ] },
   { label: "product", items: [
     { to: "/admin/product", key: "i", label: "product", icon: <ChartNoAxesCombined {...ICON} /> },
     { to: "/admin/feedback", key: "f", label: "feedback", icon: <MessageSquare {...ICON} /> },
     { to: "/admin/retention", key: "r", label: "retention", icon: <Repeat {...ICON} /> },
+  ] },
+  { label: "operations", items: [
+    { to: "/admin/ops", key: "x", label: "ops", icon: <Server {...ICON} /> },
+    { to: "/admin/ops/accounts", key: "u", label: "accounts usage", icon: <Table2 {...ICON} /> },
     { to: "/admin/clouds", key: "c", label: "clouds", icon: <Cloud {...ICON} /> },
   ] },
 ];
@@ -48,7 +52,6 @@ const NAV = GROUPS.flatMap((group) => group.items);
 const SMALL = { size: 15, strokeWidth: 1.75 } as const;
 /** on the overview as a tile each; their full pages stay one click away */
 const MORE: NavItem[] = [
-  { to: "/admin/waitlist", key: "w", label: "waitlist", icon: <Inbox {...SMALL} /> },
   { to: "/admin/events", key: "e", label: "events", icon: <ChartNoAxesColumn {...SMALL} /> },
   { to: "/admin/health", key: "h", label: "health", icon: <Gauge {...SMALL} /> },
   { to: "/admin/audit", key: "a", label: "audit log", icon: <History {...SMALL} /> },
@@ -56,7 +59,14 @@ const MORE: NavItem[] = [
 const ALL = [...NAV, ...MORE];
 const PEOPLE_TABS = [{ to: "/admin/people", label: "accounts" }, { to: "/admin/people/visitors", label: "visitors and journeys" }];
 const MOVED: Record<string, string> = { "/admin/funnel": "/admin#funnel", "/admin/users": "/admin/people", "/admin/people/waitlist": "/admin/waitlist", "/admin/app": "/admin/product/apps", "/admin/product/retention": "/admin/retention" };
-const on = (path: string, item: { to: string; also?: string[] }) => [item.to, ...(item.also ?? [])].some((to) => to === "/admin" ? path === "/admin" : path === to || path.startsWith(`${to}/`));
+const prefixes = (item: NavItem) => [item.to, ...(item.also ?? [])];
+const covers = (path: string, to: string) => to === "/admin" ? path === "/admin" : path === to || path.startsWith(`${to}/`);
+/** the one nav item a path belongs to: the longest match, so /admin/ops/accounts is accounts usage, not ops */
+export function currentItem(path: string): NavItem | null {
+  let best: NavItem | null = null, length = -1;
+  for (const item of ALL) for (const to of prefixes(item)) if (covers(path, to) && to.length > length) { best = item; length = to.length; }
+  return best;
+}
 
 function page(path: string): ReactNode {
   if (path === "/admin") return <OverviewPage />;
@@ -113,20 +123,31 @@ export function AdminApp() {
   const me = useAdmin<{ admin: true; email: string; environment: string; version: string | null; live?: string | null }>("/me");
   const [help, setHelp] = useState(false);
   useShortcuts(() => setHelp(true));
-  const inMore = MORE.some((item) => on(path, item));
+  const current = currentItem(path);
+  const inMore = !!current && MORE.includes(current);
   const theme = useTheme();
   const dark = theme === "dark" || (theme === "system" && typeof matchMedia !== "undefined" && matchMedia("(prefers-color-scheme: dark)").matches);
   const [moreOpen, setMoreOpen] = useState(inMore);
+  // landing on a "more" page opens the list once; after that the toggle is the person's
+  useEffect(() => { if (inMore) setMoreOpen(true); }, [inMore]);
   // below lg the sidebar is a drawer from the left edge, like the account dashboard's
   const [drawer, setDrawer] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
   useEffect(() => setDrawer(false), [path]);
+  // focus goes back to the menu button when the drawer shuts
+  useEffect(() => { if (wasOpen.current && !drawer) menuButton.current?.focus({ preventScroll: true }); wasOpen.current = drawer; }, [drawer]);
+  // a short window scrolls the sidebar, never past the page you're on
+  useEffect(() => {
+    for (const el of document.querySelectorAll<HTMLElement>("nav[aria-label=admin] [aria-current=page]")) if (el.offsetParent) el.scrollIntoView({ block: "nearest" });
+  }, [path, drawer, moreOpen]);
   useEffect(() => {
     if (!drawer) return;
     const key = (e: KeyboardEvent) => e.key === "Escape" && setDrawer(false);
     document.addEventListener("keydown", key);
     return () => document.removeEventListener("keydown", key);
   }, [drawer]);
-  useEffect(() => { document.title = `${ALL.find((item) => on(path, item))?.label ?? "admin"} / dusk bot admin`; }, [path]);
+  useEffect(() => { document.title = `${current?.label ?? "admin"} / dusk bot admin`; }, [current]);
   useEffect(() => { const to = MOVED[path]; if (to) navigate(to, { replace: true }); }, [path]);
   const side = (close?: () => void) => (
     <>
@@ -136,16 +157,16 @@ export function AdminApp() {
             <span className="text-[16px] font-[550] tracking-[-0.02em] text-ink">dusk bot</span>
             <span className="tag !h-[22px] !px-2">admin</span>
           </Link>
-          {close && <button type="button" onClick={close} aria-label="close menu" className="press hover-ghost -me-1 grid size-11 place-items-center rounded-full text-ink-2"><X size={18} strokeWidth={1.75} /></button>}
+          {close && <button type="button" autoFocus onClick={close} aria-label="close menu" className="press hover-ghost -me-1 grid size-11 place-items-center rounded-full text-ink-2"><X size={18} strokeWidth={1.75} /></button>}
         </div>
-        <nav aria-label="admin" className="flex flex-col gap-4 overflow-y-auto">
+        <nav aria-label="admin" className="flex flex-col gap-4">
           {GROUPS.map((group) => (
             <div key={group.label} className="flex flex-col gap-0.5">
               <span className="t-meta px-3 pb-1 !text-[11.5px]">{group.label}</span>
               {group.items.map((item) => {
-                const active = on(path, item);
+                const active = current === item;
                 return (
-                  <Link key={item.to} to={item.to} aria-current={active ? "page" : undefined} className={cx("relative flex h-9 items-center gap-3 rounded-full px-3 text-14 transition-colors duration-200 ease-out max-lg:h-11", active ? "bg-card text-ink" : "hover-side text-ink-2")}>
+                  <Link key={item.to} to={item.to} aria-current={active ? "page" : undefined} className={cx("relative flex h-9 items-center gap-3 rounded-full px-3 text-14 transition-colors duration-200 ease-out max-lg:h-11", active ? "bg-pop text-ink" : "hover-side text-ink-2")}>
                     <span className={cx("relative", active ? "text-ink" : "text-ink-3")} aria-hidden>{item.icon}</span>
                     <span className="relative flex-1">{item.label}</span>
                   </Link>
@@ -154,18 +175,18 @@ export function AdminApp() {
             </div>
           ))}
           <div className="flex flex-col gap-0.5">
-            <button type="button" aria-expanded={moreOpen || inMore} aria-controls={close ? "admin-more-drawer" : "admin-more"} onClick={() => setMoreOpen((v) => !v)}
+            <button type="button" aria-expanded={moreOpen} aria-controls={close ? "admin-more-drawer" : "admin-more"} onClick={() => setMoreOpen((v) => !v)}
               className="hover-side flex h-8 items-center gap-2 rounded-full px-3 text-13 text-ink-3 max-lg:h-11">
-              more <m.span aria-hidden className="inline-flex" initial={false} animate={{ rotate: moreOpen || inMore ? 180 : 0 }}><ChevronDown size={14} strokeWidth={1.75} /></m.span>
+              more <m.span aria-hidden className="inline-flex" initial={false} animate={{ rotate: moreOpen ? 180 : 0 }}><ChevronDown size={14} strokeWidth={1.75} /></m.span>
             </button>
             <AnimatePresence initial={false}>
-            {(moreOpen || inMore) && (
+            {moreOpen && (
               <m.ul key="more" id={close ? "admin-more-drawer" : "admin-more"} className="flex flex-col gap-0.5 overflow-hidden" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ type: "spring", visualDuration: 0.24, bounce: 0 }}>
                 {MORE.map((item) => {
-                  const active = on(path, item);
+                  const active = current === item;
                   return (
                     <li key={item.to}>
-                      <Link to={item.to} aria-current={active ? "page" : undefined} className={cx("relative flex h-8 items-center gap-3 rounded-full px-3 text-13 transition-colors duration-150 max-lg:h-11", active ? "bg-card font-medium text-ink" : "hover-side text-ink-3")}>
+                      <Link to={item.to} aria-current={active ? "page" : undefined} className={cx("relative flex h-8 items-center gap-3 rounded-full px-3 text-13 transition-colors duration-150 max-lg:h-11", active ? "bg-pop font-medium text-ink" : "hover-side text-ink-3")}>
                             <span aria-hidden className="relative text-ink-4">{item.icon}</span><span className="relative flex-1">{item.label}</span>
                       </Link>
                     </li>
@@ -197,18 +218,18 @@ export function AdminApp() {
   return (
     <div className="min-h-[100dvh] bg-bg">
       <a href="#admin-main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-ink">skip to content</a>
-      <aside className="fixed inset-y-0 left-0 z-20 flex w-[232px] flex-col gap-6 bg-side px-3 pb-4 pt-5 max-lg:hidden">{side()}</aside>
+      <aside className="fixed inset-y-0 left-0 z-20 flex w-[232px] flex-col gap-6 overflow-y-auto overscroll-contain bg-side px-3 pb-4 pt-5 max-lg:hidden">{side()}</aside>
       <header className="sticky top-0 z-20 box-content flex h-14 items-center gap-1 bg-bg/95 px-3 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden">
-        <button type="button" onClick={() => setDrawer(true)} aria-label="open menu" aria-expanded={drawer} className="press hover-ghost grid size-11 place-items-center rounded-full text-ink-2"><Menu size={20} strokeWidth={1.75} /></button>
+        <button ref={menuButton} type="button" onClick={() => setDrawer(true)} aria-label="open menu" aria-expanded={drawer} className="press hover-ghost grid size-11 place-items-center rounded-full text-ink-2"><Menu size={20} strokeWidth={1.75} /></button>
         <Link to="/admin" className="flex min-w-0 items-center gap-2" aria-label="dusk bot admin, overview"><img src={mark} alt="" width={22} height={22} className="size-[22px]" /><span className="text-[15px] font-[550] tracking-[-0.02em]">dusk bot</span><span className="tag !h-[22px] !px-2">admin</span></Link>
-        <span className="min-w-0 flex-1 truncate text-end text-14 text-ink-3">{ALL.find((item) => on(path, item))?.label}</span>
+        <span className="min-w-0 flex-1 truncate text-end text-14 text-ink-3">{current?.label}</span>
         <span className="w-2 shrink-0" aria-hidden />
       </header>
       <AnimatePresence>
         {drawer && (
           <div key="drawer" className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="admin menu">
             <m.div className="absolute inset-0" style={{ background: "var(--scrim)" }} onClick={() => setDrawer(false)} aria-hidden initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2, ease: EASE_OUT }} />
-            <m.div className="absolute inset-y-0 left-0 flex w-[min(280px,86vw)] flex-col gap-6 overflow-y-auto rounded-e-[28px] bg-side px-3 pb-[max(16px,env(safe-area-inset-bottom))] pt-[max(16px,env(safe-area-inset-top))]" initial={{ x: "-100%", opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: "-100%", opacity: 0, transition: { type: "spring", visualDuration: 0.22, bounce: 0 } }} transition={GLIDE}>{side(() => setDrawer(false))}</m.div>
+            <m.div className="absolute inset-y-0 left-0 flex w-[min(280px,86vw)] flex-col gap-6 overflow-y-auto overscroll-contain rounded-e-[28px] bg-side px-3 pb-[max(16px,env(safe-area-inset-bottom))] pt-[max(16px,env(safe-area-inset-top))]" initial={{ x: "-100%", opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: "-100%", opacity: 0, transition: { type: "spring", visualDuration: 0.22, bounce: 0 } }} transition={GLIDE}>{side(() => setDrawer(false))}</m.div>
           </div>
         )}
       </AnimatePresence>

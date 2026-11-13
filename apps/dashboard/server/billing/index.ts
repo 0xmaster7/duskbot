@@ -172,6 +172,8 @@ export function createBilling(options: BillingOptions) {
   const routes = createBillingRoutes(context), admin = createAdminRoutes(context);
   return {
     async handle(req: IncomingMessage, res: ServerResponse, target: URL) { return await routes(req, res, target) || await admin.handle(req, res, target); },
+    /** the operator may end a home package's trial early (preview, or DUSK_OPS_END_TRIAL=1) */
+    endTrials: context.endTrials,
     async beforeAccountDelete(owner: AccountRef, body: Record<string, unknown>) {
       const blockers = service.deletionBlockers(owner.id);
       if (body.cancelBilling !== true && blockers.length) { const error = new BillingError(409, "billing_active"); error.blockers = blockers; throw error; }
