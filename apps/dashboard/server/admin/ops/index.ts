@@ -23,6 +23,8 @@ export const COMPOSIO_LIMITS = { installation: 10_000, account: 50_000 } as cons
 export const THRESHOLDS = {
   r2Bytes: 8 * GB_BYTES, diskPct: 85, memPct: 90, memForMs: 10 * MINUTE, downForMs: 4 * MINUTE, backupHours: 26, reportStaleMs: 30 * MINUTE,
   certWatchDays: 21, certBadDays: 10, outlierRatio: 3, outlierFloorCents: 1_000, outlierFloorEgressGb: 50,
+  /** contabo upload: sustained past this share of DUSK_OPS_UPLINK_MBIT for this long is an incident */
+  uploadPct: 70, uploadForMs: 15 * MINUTE,
 } as const;
 
 type Level = OpsLevel;
@@ -86,6 +88,9 @@ export function opsConfig(env: NodeJS.ProcessEnv) {
     brevoDaily: Number(env.DUSK_BREVO_DAILY_LIMIT) > 0 ? Number(env.DUSK_BREVO_DAILY_LIMIT) : 300,
     brevoMonthly: Number(env.DUSK_BREVO_MONTHLY_LIMIT) > 0 ? Number(env.DUSK_BREVO_MONTHLY_LIMIT) : null,
     /** DUSK_OPS_FIXED_CENTS: "contabo vps=1500,oracle=0": flat monthly bills shown as spend lines */
+    /** DUSK_OPS_UPLINK_MBIT: contabo's dependable upload (the lowest measured, 120); DUSK_OPS_EGRESS_ALLOWANCE_TB: its monthly outgoing allowance */
+    uplinkMbit: Number(env.DUSK_OPS_UPLINK_MBIT) > 0 ? Number(env.DUSK_OPS_UPLINK_MBIT) : 120,
+    egressAllowanceBytes: (Number(env.DUSK_OPS_EGRESS_ALLOWANCE_TB) > 0 ? Number(env.DUSK_OPS_EGRESS_ALLOWANCE_TB) : 32) * 1e12,
     fixed: (env.DUSK_OPS_FIXED_CENTS ?? "").split(",").flatMap(part => { const [label, cents] = part.split("="); const n = Number(cents); return label?.trim() && Number.isSafeInteger(n) && n >= 0 ? [{ label: label.trim().toLowerCase().slice(0, 40), cents: n }] : []; }),
   };
 }
@@ -403,6 +408,13 @@ export function createOps(options: OpsOptions) {
     const host = snap.latest.get("host"), hostData = host?.data as HostData | null | undefined;
     out.push({ id: "contabo-disk", label: "contabo disk", threshold: `> ${THRESHOLDS.diskPct}%`, forMs: 0, breach: hostData?.disk != null ? hostData.disk > THRESHOLDS.diskPct : null, value: hostData ? pct(hostData.disk) : null });
     out.push({ id: "contabo-mem", label: "contabo memory", threshold: `> ${THRESHOLDS.memPct}% for 10 min`, forMs: THRESHOLDS.memForMs, breach: hostData ? hostData.mem > THRESHOLDS.memPct : null, value: hostData ? pct(hostData.mem) : null });
+    // the relay and every other service share this upload; contabo throttles to 100 mbit/s past a 10 day average above it
+    const net = hostData?.net ?? null;
+    out.push({ id: "contabo-upload", label: "contabo upload", threshold: `> ${THRESHOLDS.uploadPct}% of ${config.uplinkMbit} mbit/s for 15 min`, forMs: THRESHOLDS.uploadForMs,
+      breach: net ? net.outRate * 8 / 1e6 > config.uplinkMbit * THRESHOLDS.uploadPct / 100 : null, value: net ? `${Math.round(net.outRate * 8 / 1e5) / 10} mbit/s` : null });
+    const sentMonth = net?.outMonth ?? null, projected = sentMonth === null ? null : Math.round(sentMonth / elapsedOf(snap.time));
+    out.push({ id: "contabo-egress-month", label: "contabo monthly upload", threshold: `on course past ${config.egressAllowanceBytes / 1e12} tb this month`, forMs: 0,
+      breach: projected === null ? null : projected > config.egressAllowanceBytes, value: sentMonth === null ? null : `${gb(sentMonth)} so far, ${gb(projected!)} at this pace` });
     const oracle = snap.latest.get("oracle"), oracleData = oracle?.data as ReportData | null | undefined;
     out.push({ id: "oracle-disk", label: "oracle disk", threshold: `> ${THRESHOLDS.diskPct}%`, forMs: 0, breach: oracleData?.disk != null ? oracleData.disk > THRESHOLDS.diskPct : null, value: oracleData ? pct(oracleData.disk) : null });
     out.push({ id: "oracle-report", label: "oracle box reporting", threshold: "a report in the last 30 min", forMs: 0, breach: oracle ? snap.time - oracle.at > THRESHOLDS.reportStaleMs : null, value: oracle ? ago(snap.time - oracle.at) : null });

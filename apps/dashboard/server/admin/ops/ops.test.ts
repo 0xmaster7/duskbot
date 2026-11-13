@@ -9,7 +9,7 @@ import { memorySink } from "../../analytics/sink.ts";
 import { CSRF_HEADER } from "../../../../../shared/account-api.ts";
 import { costOf, memoryInfraStore, type InfraDay } from "../infra.ts";
 import { createErrorCounter } from "../health.ts";
-import { backupRun, collectBrevo, collectCloudflare, collectComposio, collectRelay, CollectorError, netCounters, parseReport, vnstatToday } from "./collectors.ts";
+import { backupRun, collectBrevo, collectCloudflare, collectComposio, collectRelay, CollectorError, netCounters, parseReport, vnstatMonth, vnstatToday } from "./collectors.ts";
 import { median, ratioOf, robustZ, step, suspects } from "./math.ts";
 import { createOps, r2Overage, SIGNALS, workersOverage } from "./index.ts";
 import { memoryOpsStore, type OpsRuleState } from "./store.ts";
@@ -125,6 +125,14 @@ describe("collectors", () => {
   it("parses the host's own counters", () => {
     expect(netCounters("Inter-|\n face |\n    lo: 100 0 0 0 0 0 0 0 200 0\n  eth0: 1000 5 0 0 0 0 0 0 2000 4\n")).toEqual({ rx: 1000, tx: 2000 });
     expect(vnstatToday(JSON.stringify({ interfaces: [{ traffic: { day: [{ date: { year: 2026, month: 11, day: 12 }, rx: 5, tx: 6 }, { date: { year: 2026, month: 11, day: 11 }, rx: 1, tx: 1 }] } }] }), "2026-11-12")).toEqual({ rx: 5, tx: 6 });
+    // container bridges repeat the box's own bytes, so only its own interfaces count
+    const vn = JSON.stringify({ interfaces: [
+      { name: "eth0", traffic: { day: [{ date: { year: 2026, month: 11, day: 12 }, rx: 5, tx: 6 }], month: [{ date: { year: 2026, month: 11 }, rx: 50, tx: 60 }, { date: { year: 2026, month: 10 }, rx: 1, tx: 1 }] } },
+      { name: "br-277ab3b2dd91", traffic: { day: [{ date: { year: 2026, month: 11, day: 12 }, rx: 9, tx: 9 }], month: [{ date: { year: 2026, month: 11 }, rx: 90, tx: 90 }] } },
+    ] });
+    expect(vnstatToday(vn, "2026-11-12")).toEqual({ rx: 5, tx: 6 });
+    expect(vnstatMonth(vn, "2026-11")).toEqual({ rx: 50, tx: 60 });
+    expect(vnstatMonth(vn, "2026-09")).toBeNull();
     expect(backupRun("Result=success\nExecMainExitTimestamp=Fri 2026-11-13 02:31:54 IST\n").result).toBe("success");
     expect(backupRun("Result=exit-code\nExecMainExitTimestamp=\n")).toEqual({ result: "exit-code", exitedAt: null });
   });
@@ -167,6 +175,28 @@ describe("ops alerts into incidents", () => {
     expect(f.recoveries).toEqual(["inc-1"]);
     const answer = await f.ops.answer();
     expect(answer.alerts.find(rule => rule.id === "outlier-heavy")).toMatchObject({ state: "ok", lastFiredAt: NOW });
+  });
+
+  it("mails once when contabo's upload stays past 70% for 15 minutes or the month is on course past the allowance", async () => {
+    const f = fixture();
+    const host = (outRate: number, outMonth: number) => f.store.setLatest({ source: "host", at: NOW, ok: true, error: null,
+      data: { cpu: 5, mem: 20, disk: 40, load: [0, 0, 0], cores: 12, memTotalBytes: 1, diskTotalBytes: 1, backups: [], net: { inToday: 0, outToday: 0, inRate: 0, outRate, rx: 0, tx: 0, outMonth } } });
+    // 90 mbit/s is past 70% of the default 120; 1 tb by the 13th is nowhere near 32 tb
+    await host(90e6 / 8, 1e12);
+    await f.ops.evaluate();
+    f.at(NOW + 10 * MINUTE); await f.ops.evaluate();
+    expect(f.reports).toHaveLength(0);
+    f.at(NOW + 15 * MINUTE); await f.ops.evaluate();
+    f.at(NOW + 20 * MINUTE); await f.ops.evaluate();
+    expect(f.reports.map(r => r.name)).toEqual(["contabo upload"]);
+    expect(f.reports[0]!.message).toMatch(/90 mbit\/s/);
+    // back under: one recovery; then 16 tb by the 13th is on course for ~37 tb: one more incident, not repeated
+    await host(20e6 / 8, 16e12);
+    f.at(NOW + 25 * MINUTE); await f.ops.evaluate();
+    f.at(NOW + 30 * MINUTE); await f.ops.evaluate();
+    expect(f.recoveries).toEqual(["inc-1"]);
+    expect(f.reports.map(r => r.name)).toEqual(["contabo upload", "contabo monthly upload"]);
+    expect(f.reports[1]!.message).toMatch(/on course past 32 tb/);
   });
 
   it("keeps a firing rule quiet across a restart, because the state is stored", async () => {

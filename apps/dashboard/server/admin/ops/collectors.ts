@@ -101,7 +101,8 @@ export async function collectRelay(input: { url: string; token: string; fetch: t
 
 export interface HostData {
   cpu: number | null; mem: number; disk: number | null; load: [number, number, number]; cores: number; memTotalBytes: number; diskTotalBytes: number | null;
-  net: { inToday: number; outToday: number; inRate: number; outRate: number; rx: number; tx: number } | null;
+  /** outMonth: this utc month's bytes sent (vnstat), null without vnstat */
+  net: { inToday: number; outToday: number; inRate: number; outRate: number; rx: number; tx: number; outMonth?: number | null } | null;
   backups: Array<{ set: string; result: string; lastRunAt: number | null; lastOkAt: number | null }>;
 }
 
@@ -111,12 +112,14 @@ async function memUsed(): Promise<number> {
   const available = info ? Number(/MemAvailable:\s+(\d+)/.exec(info)?.[1]) * 1024 : NaN;
   return Number.isFinite(available) ? totalmem() - available : totalmem() - freemem();
 }
+/** the interfaces that are the box's own traffic: not loopback, and not container or vpn interfaces that repeat it */
+const ownInterface = (name: string) => name !== "lo" && !/^(docker|veth|br-|tailscale)/.test(name);
 /** bytes received and sent by every interface but loopback, from /proc/net/dev */
 export function netCounters(text: string): { rx: number; tx: number } {
   let rx = 0, tx = 0;
   for (const line of text.split("\n").slice(2)) {
     const [name, rest] = line.split(":");
-    if (!rest || name!.trim() === "lo" || /^(docker|veth|br-|tailscale)/.test(name!.trim())) continue;
+    if (!rest || !ownInterface(name!.trim())) continue;
     const fields = rest.trim().split(/\s+/).map(Number);
     rx += fields[0] || 0; tx += fields[8] || 0;
   }
@@ -127,9 +130,20 @@ export function vnstatToday(json: string, day: string): { rx: number; tx: number
   try {
     const data = JSON.parse(json);
     let rx = 0, tx = 0, found = false;
-    for (const iface of data.interfaces ?? []) for (const d of iface.traffic?.day ?? []) {
+    for (const iface of data.interfaces ?? []) for (const d of typeof iface.name === "string" && !ownInterface(iface.name) ? [] : iface.traffic?.day ?? []) {
       const key = `${d.date?.year}-${String(d.date?.month).padStart(2, "0")}-${String(d.date?.day).padStart(2, "0")}`;
       if (key === day) { rx += Number(d.rx) || 0; tx += Number(d.tx) || 0; found = true; }
+    }
+    return found ? { rx, tx } : null;
+  } catch { return null; }
+}
+/** vnstat 2's json: this month's bytes per own interface, summed (the 32 tb allowance counts what leaves the box) */
+export function vnstatMonth(json: string, month: string): { rx: number; tx: number } | null {
+  try {
+    const data = JSON.parse(json);
+    let rx = 0, tx = 0, found = false;
+    for (const iface of data.interfaces ?? []) for (const m of typeof iface.name === "string" && !ownInterface(iface.name) ? [] : iface.traffic?.month ?? []) {
+      if (`${m.date?.year}-${String(m.date?.month).padStart(2, "0")}` === month) { rx += Number(m.rx) || 0; tx += Number(m.tx) || 0; found = true; }
     }
     return found ? { rx, tx } : null;
   } catch { return null; }
@@ -147,11 +161,13 @@ export async function collectHost(input: { now: number; previous: HostData | nul
   await new Promise(resolve => setTimeout(resolve, 1000));
   const b = cpuTimes();
   const cpu = b.total > a.total ? Math.round((1 - (b.idle - a.idle) / (b.total - a.total)) * 1000) / 10 : null;
-  const [used, fs, dev, vn] = await Promise.all([
+  const [used, fs, dev, vn, vnm] = await Promise.all([
     memUsed(), statfs("/").catch(() => null), readFile("/proc/net/dev", "utf8").catch(() => null),
     run("vnstat", ["--json", "d", "2"], { timeout: 5000 }).then(out => out.stdout, () => null),
+    run("vnstat", ["--json", "m", "1"], { timeout: 5000 }).then(out => out.stdout, () => null),
   ]);
   const counters = dev ? netCounters(dev) : null, today = vn ? vnstatToday(vn, dayKey(input.now)) : null;
+  const month = vnm ? vnstatMonth(vnm, dayKey(input.now).slice(0, 7)) : null;
   const prevNet = input.previous?.net, span = input.previousAt ? (input.now - input.previousAt) / 1000 : 0;
   const rate = (now: number, before: number | undefined) => before !== undefined && span > 0 && now >= before ? Math.round((now - before) / span) : 0;
   const backups: HostData["backups"] = [];
@@ -165,7 +181,7 @@ export async function collectHost(input: { now: number; previous: HostData | nul
   return {
     cpu, mem: Math.round(used / totalmem() * 1000) / 10, disk: fs && total ? Math.round((1 - fs.bavail / fs.blocks) * 1000) / 10 : null,
     load: loadavg().map(n => Math.round(n * 100) / 100) as [number, number, number], cores: cpus().length, memTotalBytes: totalmem(), diskTotalBytes: total,
-    net: counters ? { inToday: today?.rx ?? 0, outToday: today?.tx ?? 0, inRate: rate(counters.rx, prevNet?.rx), outRate: rate(counters.tx, prevNet?.tx), rx: counters.rx, tx: counters.tx } : null,
+    net: counters ? { inToday: today?.rx ?? 0, outToday: today?.tx ?? 0, inRate: rate(counters.rx, prevNet?.rx), outRate: rate(counters.tx, prevNet?.tx), rx: counters.rx, tx: counters.tx, outMonth: month?.tx ?? null } : null,
     backups,
   };
 }
