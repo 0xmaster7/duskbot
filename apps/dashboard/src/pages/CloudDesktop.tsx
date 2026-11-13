@@ -14,7 +14,7 @@ import { Switch } from "../ui/controls";
 import { Button, Card, cx, KV, PageHeader, SectionTitle, Skeleton } from "../ui/kit";
 import { Mascot } from "../ui/Mascot";
 import { useWorkspaceDetail } from "../data/detail";
-import { CloudPitch, CloudStatus, PowerButton, Provisioning, regionName, tierName } from "./cloud-bits";
+import { CloudPitch, CloudStatus, PowerButton, prewarm, Provisioning, regionName, tierName } from "./cloud-bits";
 import { DeleteDataAction, DeletionBanner } from "./DeleteData";
 import { canDeleteData, deletion } from "../data/delete-data";
 import { MachineView } from "./Machine";
@@ -165,6 +165,8 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
   const detail = useWorkspaceDetail(cloud.workspaceId);
   useEffect(() => { if (cloud.workspaceId && workspace?.id !== cloud.workspaceId) pick(cloud.workspaceId); }, [cloud.workspaceId, workspace?.id, pick]);
   const asleep = cloud.status === "sleeping" || cloud.status === "stopped";
+  // opening its page is using it: a cloud we put to sleep wakes now, its numbers follow in seconds
+  useEffect(() => { prewarm(cloud); }, [cloud]);
   const sub = billing?.subscription;
   const deleting = cloud.provider === "managed" && (canDeleteData(cloud, billing) || deletion(cloud) !== null);
   const { bots } = useAccountUsage();
@@ -200,7 +202,7 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
           <PowerButton cloud={cloud} size="md" />
         </Card>
       )}
-      {asleep ? null : detail ? <MachineView detail={detail} now={now} region={regionName(catalog, cloud.region)} /> : cloud.status === "running" ? <Skeleton className="h-[170px] !rounded-card" /> : null}
+      {asleep ? null : cloud.resting ? <Skeleton className="h-[170px] !rounded-card" /> : detail ? <MachineView detail={detail} now={now} region={regionName(catalog, cloud.region)} /> : cloud.status === "running" ? <Skeleton className="h-[170px] !rounded-card" /> : null}
       <div className="grid gap-4 md:grid-cols-2">
         <Card aria-labelledby="about-title">
           <SectionTitle id="about-title">about</SectionTitle>
@@ -236,7 +238,7 @@ export function CloudDesktopPage() {
       <PageHeader
         title={cloud.name}
         sub={<span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1"><CloudStatus cloud={cloud} /><span className="text-13 font-medium text-ink-3">{regionName(catalog, cloud.region)}</span></span>}
-        action={cloud.status === "provisioning" ? undefined : <div className="flex gap-2"><PowerButton cloud={cloud} size="md" /><Button variant={running ? "primary" : "outline"} onClick={() => openApp(appLink.cloud)}><AppWindow size={16} strokeWidth={1.5} aria-hidden />open in the app</Button></div>}
+        action={cloud.status === "provisioning" ? undefined : <div className="flex gap-2"><PowerButton cloud={cloud} size="md" /><Button variant={running ? "primary" : "outline"} onPointerEnter={() => prewarm(cloud)} onFocus={() => prewarm(cloud)} onClick={() => { prewarm(cloud); openApp(appLink.cloud); }}><AppWindow size={16} strokeWidth={1.5} aria-hidden />open in the app</Button></div>}
       />
       {cloud.status === "provisioning" ? <SettingUp cloud={cloud} /> : <Live cloud={cloud} />}
     </div>

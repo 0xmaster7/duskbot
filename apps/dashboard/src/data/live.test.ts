@@ -140,6 +140,20 @@ test("a sleeping managed cloud whose wake is under way reads as waking, never wh
   assert.equal(cloudFromWire({ ...cloud, status: "running", provider: "managed", waking: true })!.status, "running");
 });
 
+test("a managed cloud we put to sleep reads as live; the owner's pause, billing and an egress pause stay honest", () => {
+  const slept = { ...cloud, status: "sleeping" as const, provider: "managed" as const };
+  assert.equal(cloudFromWire({ ...slept, stoppedBy: "idle" })!.status, "running");
+  assert.equal(cloudFromWire({ ...slept, stoppedBy: "idle" })!.resting, true);
+  assert.equal(cloudFromWire({ ...slept, stoppedBy: "idle", waking: true })!.status, "running");
+  assert.equal(cloudFromWire({ ...slept, stoppedBy: "user" })!.status, "sleeping");
+  assert.equal(cloudFromWire({ ...slept, stoppedBy: "user" })!.resting, undefined);
+  assert.equal(cloudFromWire({ ...slept, stoppedBy: "user", waking: true })!.status, "waking");
+  assert.equal(cloudFromWire({ ...slept, stoppedBy: "operator" })!.status, "sleeping");
+  assert.equal(cloudFromWire({ ...slept, stoppedBy: "idle", egress: { bytes: 1, state: "paused", until: 2 } })!.status, "sleeping");
+  assert.equal(cloudFromWire({ ...slept })!.status, "sleeping");
+  assert.equal(cloudFromWire({ ...cloud, status: "suspended", stoppedBy: "idle" })!.status, "error");
+});
+
 const account: AccountAnswer = {
   account: { id: "account", email: "me@example.test", name: null, providers: ["google", "email", "x", "apple"], createdAt: 1000 },
   identities: [

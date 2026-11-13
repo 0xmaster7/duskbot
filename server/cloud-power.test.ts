@@ -120,7 +120,7 @@ describe("the sleep handshake", () => {
     const held = h.power.sleepSignal();
     expect(h.power.prepareSleep(undefined, { force: true })).toEqual({ ok: true, nextDueAt: null });
     expect(held.aborted).toBe(true);
-    expect(h.sent).toEqual([{ kind: "power", state: "sleeping" }]);
+    expect(h.sent).toEqual([{ kind: "power", state: "sleeping", by: "owner" }]);
     expect(h.power.sleeping()).toBe(true);
   });
 
@@ -288,7 +288,7 @@ describe("the Admin's signed power routes", () => {
     expect((await send("POST", CLOUD_POWER_SLEEP_PATH, json(sign(CLOUD_POWER_SLEEP_PATH, "POST", bad)), bad)).body).toEqual({ error: "invalid_force" });
     const body = JSON.stringify({ v: 1, idleMinutes: 10, force: true });
     expect(await send("POST", CLOUD_POWER_SLEEP_PATH, json(sign(CLOUD_POWER_SLEEP_PATH, "POST", body)), body)).toEqual({ status: 200, body: { ok: true, nextDueAt: null } });
-    expect(h.sent).toEqual([{ kind: "power", state: "sleeping" }]);
+    expect(h.sent).toEqual([{ kind: "power", state: "sleeping", by: "owner" }]);
     expect(h.power.sleeping()).toBe(true);
   });
 

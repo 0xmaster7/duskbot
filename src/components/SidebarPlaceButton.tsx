@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { cloudAsleep, onCloudPower } from "@/lib/cloud-power";
+import { cloudAsleep, cloudPaused, onCloudPower } from "@/lib/cloud-power";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { railShown, usePlaces } from "@/lib/places";
@@ -34,10 +34,10 @@ function markPlaceDotSeen(): void {
 
 export function usePlaceStatus(waking: boolean): PlaceStatus {
   const { state } = useStore();
-  const [asleep, setAsleep] = useState(cloudAsleep);
+  const [paused, setPaused] = useState(cloudPaused);
   const [late, setLate] = useState(false);
   const [network, setNetwork] = useState(() => typeof navigator === "undefined" || navigator.onLine !== false);
-  useEffect(() => onCloudPower(setAsleep), []);
+  useEffect(() => onCloudPower(() => setPaused(cloudPaused())), []);
   useEffect(() => {
     const on = () => setNetwork(true), off = () => setNetwork(false);
     window.addEventListener("online", on);
@@ -51,8 +51,10 @@ export function usePlaceStatus(waking: boolean): PlaceStatus {
     const timer = setTimeout(() => setLate(true), RECONNECTING_AFTER_MS);
     return () => clearTimeout(timer);
   }, [down]);
-  if (asleep || waking) return "asleep";
-  return !network || (down && late) ? "offline" : "online";
+  // only the owner's own pause reads as asleep; a sleep we chose to save cost reads live, and its wake is quiet
+  if (paused) return "asleep";
+  if (waking) return "online";
+  return !network || (down && late && !cloudAsleep()) ? "offline" : "online";
 }
 
 export function switchPlaceCommand(): (() => void) | null {

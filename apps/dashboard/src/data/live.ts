@@ -104,7 +104,9 @@ export const SETUP_LABELS = { reserving: "reserving your machine", storage: "pre
 export function cloudFromWire(cloud: CloudDesktopView): CloudDesktop | null {
   if (cloud.status === "destroying" || cloud.status === "destroyed") return null;
   const statuses = { checkout: "provisioning", provisioning: "provisioning", running: "running", sleeping: "sleeping", stopped: "stopped", payment_problem: "error", suspended: "error", error: "error" } as const;
-  const status = cloud.waking && cloud.status === "sleeping" ? "waking" : statuses[cloud.status];
+  // asleep only because nobody used it (our cost saving, never the owner's pause): live to its owner, any use wakes it
+  const resting = cloud.provider === "managed" && cloud.status === "sleeping" && (cloud.stoppedBy === "idle" || cloud.stoppedBy === null) && cloud.egress?.state !== "paused";
+  const status = resting ? "running" : cloud.waking && cloud.status === "sleeping" ? "waking" : statuses[cloud.status];
   return {
     id: cloud.id, name: cloud.name, status, tier: desktopIds[cloud.kind], placement: cloud.placement === "pool" ? "shared" : "dedicated", region: cloud.region,
     ...cloud.machine, workspaceId: cloud.workspaceId, createdAt: cloud.createdAt,
@@ -112,6 +114,7 @@ export function cloudFromWire(cloud: CloudDesktopView): CloudDesktop | null {
     error: cloud.status === "payment_problem" ? "the last payment did not go through. update your card to wake it." : cloud.status === "suspended" ? "it is paused. write to us at hello@dusk.bot to sort it out." : cloud.error,
     botComputers: { used: 0, limit: cloud.botComputers }, uptimeSec: null,
     ...(cloud.status === "checkout" ? { awaitingPayment: true } : {}),
+    ...(resting ? { resting: true } : {}),
     ...(cloud.revivedAt ? { revivedAt: cloud.revivedAt } : {}),
     ...(cloud.egress && cloud.egress.state !== "ok" && cloud.egress.until !== null ? { egressLimit: { state: cloud.egress.state, until: cloud.egress.until } } : {}),
     ...(cloud.provider === "managed" ? { provider: "managed" as const, lastBackupAt: cloud.lastBackupAt ?? null, deleteScheduledAt: cloud.deleteScheduledAt ?? null, deleteAskedAt: cloud.deleteAskedAt ?? null } : {}),

@@ -80,6 +80,22 @@ it("sleeps an idle home after the handshake, wakes it for its owner, and wakes i
   expect(f.audit.entries(c.id).filter(e => e.action === "wake").at(-1)!.reason).toBe("routine_due");
 });
 
+it("says who stopped it: our idle sleep, then the owner's pause of a home already asleep, which their wake clears", async () => {
+  const f = await homeFixture();
+  const { c } = await f.paid();
+  f.advance(5 * 60_000); f.power.idle = true; f.power.busy = [];
+  await f.settle(c, c => c.status === "sleeping", 60, 5 * 60_000);
+  expect(f.service.view(c).stoppedBy).toBe("idle");
+  await f.service.power(c.accountId, c.id, "off");
+  c.nextAttemptAt = 0; await f.service.reconcile();
+  expect(c.status).toBe("sleeping");
+  expect(f.service.view(c).stoppedBy).toBe("user");
+  expect(c.pauseRequestedAt).toBeUndefined();
+  await f.service.power(c.accountId, c.id, "on");
+  await f.settle(c, c => c.status === "running");
+  expect(f.service.view(c).stoppedBy).toBeNull();
+});
+
 it("backs up an idle home's volume from the running machine before it sleeps, encrypted off the provider, and keeps the newest generations", async () => {
   const f = await homeFixture();
   const { c } = await f.paid();

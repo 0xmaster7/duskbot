@@ -354,7 +354,7 @@ export function openLiveEvents(
         // cursor is past this frame by now, so waking never resumes before it: a Cloud that replays it would close us again.
         clearRetry();
         closeSource();
-        markCloudAsleep();
+        markCloudAsleep(undefined, undefined, { byOwner: (frame as { by?: unknown }).by === "owner" });
         return;
       }
 

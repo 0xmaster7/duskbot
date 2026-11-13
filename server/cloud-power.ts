@@ -116,7 +116,7 @@ export function createCloudPower(options: {
   dataDir: string; probes: CloudPowerProbes;
   /** A Team Cloud: the Admin never sleeps a team plan, and a sleep request is refused as busy with `team`. */
   team?: boolean;
-  /** Tells connected clients the home is going to sleep (`{ kind: "power", state: "sleeping" }`). */
+  /** Tells connected clients the home is going to sleep (`{ kind: "power", state: "sleeping" }`, `by: "owner"` when paused). */
   broadcast(payload: Record<string, unknown>): void;
   now?: () => number;
   log?: (line: string) => void;
@@ -237,7 +237,8 @@ export function createCloudPower(options: {
       try { writeFileAtomic(join(options.dataDir, MARKER), JSON.stringify({ at: sleepingSince })); }
       catch (error) { options.log?.(`cloud power: could not write the sleep marker: ${error instanceof Error ? error.message : String(error)}`); }
       sleepAbort.abort();
-      options.broadcast({ kind: "power", state: "sleeping" });
+      // `by: "owner"`: the owner's own pause, which the app shows; our idle sleep it never shows
+      options.broadcast({ kind: "power", state: "sleeping", ...(force ? { by: "owner" } : {}) });
       return { ok: true, nextDueAt: options.probes.nextDueAt() };
     },
     sleeping,

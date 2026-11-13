@@ -509,6 +509,7 @@ export function createLifecycle(deps: LifecycleDeps) {
     b.lastStopAt = quietSince;
     // a stop the rails' cost rule allowed: the start that ends this sleep is already paid for
     if (reason === "idle" || reason === "owner") spendNote(c, { e: "stop" });
+    if (reason === "owner") delete c.pauseRequestedAt;
     b.sleptAt = now(); b.sleepReason = reason; b.sleepNoticeAt = null; c.status = reason === "plan" ? "stopped" : "sleeping"; c.powerSince = now(); c.wantPower = "off";
     log(c, "sleep", actor, reason ?? "idle", { nextDueAt: b.nextDueAt });
     deps.save(c);
@@ -796,6 +797,11 @@ export function createLifecycle(deps: LifecycleDeps) {
         deps.save(c); return;
       }
       if (c.status !== "sleeping" && c.status !== "stopped") { c.status = "sleeping"; deps.save(c); }
+      // the owner paused it while it was already asleep on its own: from now on it is their pause, not ours
+      if (c.pauseRequestedAt !== undefined && c.wantPower === "off" && b.sleepReason !== "owner" && b.sleepReason !== "plan") {
+        log(c, "sleep", "owner", "owner", { from: b.sleepReason });
+        b.sleepReason = "owner"; delete c.pauseRequestedAt; deps.save(c);
+      }
       await retiredStep(c);
       return;
     }

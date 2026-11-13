@@ -145,6 +145,8 @@ export interface StoredCloud {
   suspensionApplied?: boolean;
   /** the owner or the slack edge asked a stopped or sleeping desktop to wake; the edge times it to the desktop's next sync */
   wakeRequestedAt?: number;
+  /** the owner asked it to stop (cleared by their wake): an idle sleep it is already in becomes the owner's pause */
+  pauseRequestedAt?: number;
   /** set at activation when a managed backend runs this cloud: its lifecycle is the backend's, never the generic one */
   backend?: "managed";
   /** when the owner was emailed that the cloud is ready, and that it was deleted */

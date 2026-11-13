@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Cloud, Monitor, Power, Server } from "@/icons";
 import type { WorkspaceSummary } from "../../../../shared/dashboard-protocol";
 import { useCloud } from "../data/cloud";
+import { api } from "../lib/api";
 import type { CheckoutSource, CloudDesktop, PlanCatalog } from "../data/contracts";
 import { bundleOf, desktopOf, dollars, planSpecLine } from "../data/pricing";
 import { PlanSheet, planSelection, type PaidPlan } from "./plan-sheet";
@@ -15,7 +16,7 @@ import { Mascot } from "../ui/Mascot";
 
 export const STATUS: Record<CloudDesktop["status"], { label: string; tone: "good" | "warn" | "bad" | "quiet" | "accent" }> = {
   provisioning: { label: "setting up", tone: "accent" },
-  running: { label: "running", tone: "good" },
+  running: { label: "live", tone: "good" },
   waking: { label: "waking up", tone: "warn" },
   sleeping: { label: "asleep", tone: "quiet" },
   stopped: { label: "off", tone: "quiet" },
@@ -40,6 +41,14 @@ export function tierName(catalog: PlanCatalog | null, cloud: CloudDesktop) {
 export function workspaceIcon(w: Pick<WorkspaceSummary, "kind">, cloud: CloudDesktop | null, size = 18) {
   const p = { size, strokeWidth: 1.5, "aria-hidden": true } as const;
   return cloud ? <Cloud {...p} /> : w.kind === "mac" ? <Monitor {...p} /> : <Server {...p} />;
+}
+
+const warmed = new Map<string, number>();
+/** a cloud we put to sleep to save cost wakes, quietly, the moment its owner heads for it: once per few minutes at most */
+export function prewarm(cloud: CloudDesktop) {
+  if (!cloud.resting || Date.now() - (warmed.get(cloud.id) ?? 0) < 5 * 60_000) return;
+  warmed.set(cloud.id, Date.now());
+  void api.power(cloud.id, true).catch(() => {});
 }
 
 /** power: asleep or off wakes at once; turning off asks first, since bots stop answering */

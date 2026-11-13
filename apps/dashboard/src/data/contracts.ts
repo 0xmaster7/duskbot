@@ -198,6 +198,8 @@ export interface CloudDesktop extends MachineSpec {
   deleteScheduledAt?: number | null;
   /** the owner asked to delete its data; the emailed link stays valid for an hour after */
   deleteAskedAt?: number | null;
+  /** a managed cloud we stopped on our own to save cost (not its owner): shown as live, and any use wakes it */
+  resting?: boolean;
   /** it uploaded so much this month that its connection is slowed, or it is paused, until `until` */
   egressLimit?: { state: "slowed" | "paused"; until: number } | null;
 }

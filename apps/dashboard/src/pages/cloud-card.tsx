@@ -13,7 +13,7 @@ import { Link } from "../lib/router";
 import { Button, Card } from "../ui/kit";
 import { BotMascot, Mascot, type BotState } from "../ui/Mascot";
 import { PulseChart } from "../ui/PulseChart";
-import { CloudStatus, PowerButton, Provisioning, regionName } from "./cloud-bits";
+import { CloudStatus, PowerButton, prewarm, Provisioning, regionName } from "./cloud-bits";
 
 const ORDER: Record<BotMood, number> = { working: 0, waking: 1, idle: 2, drowsy: 3, sleeping: 4 };
 const STATE: Record<BotMood, { label: string }> = {
@@ -64,14 +64,15 @@ function BotCell({ bot, mood, now }: { bot: BotReport; mood: BotMood; now: numbe
 export function CloudCard({ cloud, detail }: { cloud: CloudDesktop; detail: WorkspaceDetail | null }) {
   const { catalog } = useCloud();
   const now = useNow(30_000);
-  const freshness = detail?.workspace.freshness;
+  // a cloud we put to sleep ourselves has no fresh reports, yet its bots are there and answer the moment anyone writes
+  const freshness = cloud.resting ? undefined : detail?.workspace.freshness;
   const rows = useMemo(() => (detail?.report?.bots ?? [])
     .map((bot) => ({ bot, mood: botMood(bot, { freshness, computer: detail?.report?.computers?.computers.find((c) => c.botId === bot.id)?.state }) }))
     .sort((a, b) => ORDER[a.mood] - ORDER[b.mood] || (b.bot.lastActiveAt ?? 0) - (a.bot.lastActiveAt ?? 0)), [detail, freshness]);
   const on = cloud.status === "running";
   const asleep = cloud.status === "sleeping" || cloud.status === "stopped";
   const working = on ? rows.filter((r) => r.mood === "working").length : 0;
-  const pulse = usePulse(cloud.workspaceId, on);
+  const pulse = usePulse(cloud.workspaceId, on && !cloud.resting);
   const mood: BotState = asleep ? "sleeping" : cloud.status === "provisioning" ? "loading" : cloud.status === "waking" ? "waking" : working ? "working" : "happy";
   return (
     <Card className="enter" aria-labelledby="cloud-card-title">
@@ -92,7 +93,7 @@ export function CloudCard({ cloud, detail }: { cloud: CloudDesktop; detail: Work
         </div>
         <div className="flex items-center gap-2">
           <PowerButton cloud={cloud} />
-          <Link to="/cloud" className="press hover-primary inline-flex h-9 items-center gap-1 rounded-full bg-primary ps-4 pe-3 text-13 font-medium text-primary-ink max-sm:h-11">open <ChevronRight size={15} strokeWidth={1.75} aria-hidden /></Link>
+          <Link to="/cloud" onPointerEnter={() => prewarm(cloud)} onFocus={() => prewarm(cloud)} className="press hover-primary inline-flex h-9 items-center gap-1 rounded-full bg-primary ps-4 pe-3 text-13 font-medium text-primary-ink max-sm:h-11">open <ChevronRight size={15} strokeWidth={1.75} aria-hidden /></Link>
         </div>
       </div>
       {cloud.status === "provisioning" ? (
@@ -117,7 +118,7 @@ export function CloudCard({ cloud, detail }: { cloud: CloudDesktop; detail: Work
           <section className="min-w-0 rounded-[20px] bg-pop px-4 pb-2 pt-4" aria-labelledby="cloud-pulse-title">
             <h3 id="cloud-pulse-title" className="sr-only">cpu and memory, last two minutes</h3>
             <PulseChart compact samples={pulse?.samples ?? []} lag={pulse?.lag ?? 0} sleeping={asleep}
-              empty={cloud.status === "waking" ? "waking up" : cloud.status === "error" ? "it stopped answering. waking it usually fixes this." : null} />
+              empty={cloud.resting ? "all quiet right now" : cloud.status === "waking" ? "waking up" : cloud.status === "error" ? "it stopped answering. waking it usually fixes this." : null} />
           </section>
         </div>
       )}

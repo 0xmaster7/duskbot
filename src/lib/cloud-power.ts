@@ -18,7 +18,7 @@ export const IDLE_PAGE_MS = 10 * 60_000;
 
 type Listener = (asleep: boolean) => void;
 const listeners = new Set<Listener>();
-let asleep = false, waking = false, sendsHeld = 0;
+let asleep = false, waking = false, sendsHeld = 0, paused = false;
 let detach: (() => void) | null = null;
 let lastActive = Date.now();
 const now = () => Date.now();
@@ -36,6 +36,12 @@ const wakingListeners = new Set<Listener>();
 
 export function cloudAsleep(): boolean {
   return asleep;
+}
+
+/** Asleep because its owner paused it. A sleep we chose to save cost is never shown: the Cloud reads as live and the
+ * person's next action wakes it. */
+export function cloudPaused(): boolean {
+  return asleep && paused;
 }
 
 export function onCloudPower(listener: Listener): () => void {
@@ -84,6 +90,7 @@ function setWaking(next: boolean) {
 function set(next: boolean) {
   if (asleep === next) return;
   asleep = next;
+  if (!next) paused = false;
   for (const listener of listeners) listener(next);
 }
 
@@ -112,8 +119,10 @@ export function noteCloudAwake(): void {
 export function markCloudAsleep(
   target: Pick<Window, "addEventListener" | "removeEventListener"> | undefined = globalThis.window,
   visibility: Pick<Document, "addEventListener" | "removeEventListener" | "visibilityState"> | undefined = globalThis.document,
+  { byOwner = false }: { byOwner?: boolean } = {},
 ): void {
   if (asleep) return;
+  paused = byOwner;
   set(true);
   if (visibility?.visibilityState !== "hidden" && now() - lastActive < IDLE_PAGE_MS) {
     markCloudAwake("click");
@@ -168,6 +177,7 @@ export function resetCloudPowerForTests(): void {
   detach?.();
   detach = null;
   asleep = false;
+  paused = false;
   waking = false;
   lastActive = 0;
   sendsHeld = 0;

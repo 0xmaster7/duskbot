@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { asleepAnswer, cloudAsleep, markCloudAsleep, markCloudAwake, onCloudPower, noteCloudPageActivity, resetCloudPowerForTests, sleepingFrame, IDLE_PAGE_MS } from "./cloud-power";
+import { asleepAnswer, cloudAsleep, cloudPaused, markCloudAsleep, markCloudAwake, onCloudPower, noteCloudPageActivity, resetCloudPowerForTests, sleepingFrame, IDLE_PAGE_MS } from "./cloud-power";
 
 beforeEach(() => noteCloudPageActivity(0));
 afterEach(() => { vi.unstubAllGlobals(); resetCloudPowerForTests(); });
@@ -13,6 +13,18 @@ class Target {
 }
 
 describe("a page of a Cloud home that sleeps", () => {
+  it("shows only the owner's own pause: a sleep to save cost reads as live", () => {
+    const target = new Target();
+    markCloudAsleep(target as unknown as Window);
+    expect(cloudAsleep()).toBe(true);
+    expect(cloudPaused()).toBe(false);
+    target.emit("keydown");
+    markCloudAsleep(target as unknown as Window, undefined, { byOwner: true });
+    expect(cloudPaused()).toBe(true);
+    target.emit("pointerdown");
+    expect(cloudPaused()).toBe(false);
+  });
+
   it("goes quiet when told, tells listeners once, and wakes on the person's next action", () => {
     const target = new Target(), heard = vi.fn();
     onCloudPower(heard);

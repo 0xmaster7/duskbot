@@ -250,6 +250,9 @@ export interface CloudDesktopView {
   deleteAskedAt?: number | null;
   /** managed only: asleep, and a wake (the owner's, the app's, a routine's) is under way */
   waking?: boolean;
+  /** managed only, while asleep or stopped: who stopped it. "user" is the owner's own pause; "idle" is ours, to save cost,
+   *  and wakes the moment anyone uses it; null when no stop was recorded */
+  stoppedBy?: "user" | "idle" | "plan" | "operator" | "egress" | null;
   /** managed only: what it uploaded to the internet this calendar month (UTC), and whether that slowed its connection or
    *  paused it until `until` (the 1st) */
   egress?: { bytes: number; state: "ok" | "slowed" | "paused"; until: number | null } | null;

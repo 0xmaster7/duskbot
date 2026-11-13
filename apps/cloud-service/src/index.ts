@@ -177,6 +177,7 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
             deleteScheduledAt: m?.deleteRequest?.confirmedAt && m.deleteRequest.cancelledAt === null ? m.deleteRequest.executeAfter : null,
             deleteAskedAt: m?.deleteRequest && !m.deleteRequest.confirmedAt && m.deleteRequest.cancelledAt === null && (m.deleteRequest.tokenExpiresAt ?? 0) > ctx.now() ? m.deleteRequest.requestedAt : null,
             waking: c.status === "sleeping" && (c.wantPower === "on" || m?.wakeStartedAt != null) && egress?.state !== "paused",
+            stoppedBy: c.status === "sleeping" || c.status === "stopped" ? (m?.sleepReason === "owner" ? "user" : m?.sleepReason ?? null) : null,
             egress: egress && { bytes: egress.bytes, state: egress.state === "alerted" ? "ok" : egress.state, until: egress.until },
             ...(c.status !== "destroyed" ? { destroyAt: retained.earliestAt } : {}) };
         },
