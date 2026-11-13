@@ -168,6 +168,8 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   const [toast, setToast] = useState<Toast | null>(null);
   // a token app's refused account the app page opens on, ready to sign in again in its place
   const [replacing, setReplacing] = useState<{ app: string; id: string } | null>(null);
+  // the token app whose page leads with its token over its ready sign-in
+  const [tokenFirst, setTokenFirst] = useState<string | null>(null);
   const [natives, setNatives] = useState<Record<NativeId, boolean | null>>(() => memory.natives);
   const [hosted, setHosted] = useState<HostedConnections | null>(() => memory.hosted);
   const [onePassword, setOnePassword] = useState<OnePasswordStatus | null>(() => memory.onePassword);
@@ -552,11 +554,20 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
       const phase = composioPhase(slug);
       const vendor = detailEntry.kind === "remote" ? remoteApps.get(detailEntry.id) : detailEntry.remote ? remoteApps.get(detailEntry.remote) : undefined;
       const ways: Way[] = [];
+      // a token app with a ready sign-in has two ways of its own: the one its card shows, the other a row beside the rest
+      const spec = detailEntry.kind === "token" ? tokenApp(detailEntry.id) : undefined;
+      const bothOwn = spec !== undefined && spec.fields.length > 0 && spec.native === true && tokens.status?.native[spec.id] === true;
+      const byToken = spec !== undefined && spec.fields.length > 0 && (!bothOwn || tokenFirst === spec.id);
       if (OWN_KINDS.has(detailEntry.kind)) {
         const own: LocaleKey = detailEntry.kind === "logins" ? "connectApps.way.vault"
-          : detailEntry.kind === "token" ? (tokenApp(detailEntry.id)?.fields.length ? "connectApps.way.token" : "connectApps.way.device")
+          : spec ? (byToken ? "connectApps.way.token" : "connectApps.way.device")
             : detailEntry.id === GMAIL ? "connectApps.way.appPassword" : "connectApps.way.builtIn";
-        ways.push({ key: "own", label: t(own), connected: ownConnection(detailEntry) === "connected" });
+        ways.push({ key: "own", label: bothOwn && !byToken ? t("tokenApps.signIn", { name: spec.label }) : t(own), connected: ownConnection(detailEntry) === "connected" });
+      }
+      if (bothOwn) {
+        ways.push({ key: "token", label: byToken ? t("tokenApps.signIn", { name: spec.label }) : t("connectApps.way.token"), connected: false,
+          action: { kind: "button", label: t("connectors.action.connect"), disabled: tokens.device?.app === spec.id,
+            onClick: () => setTokenFirst(byToken ? null : spec.id) } });
       }
       if (vendor) {
         ways.push({ key: "remote", label: t("connectApps.way.server", { name: detailEntry.label }), connected: remote.connection(vendor.id) === "connected",
@@ -783,7 +794,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
                 {body}
                 <div className={nativeCardsShown || hostedShown || onePasswordShown || tokenShown || gmailShown ? "ca-native-host" : "hidden"} data-native-host="">
                   {tokenShown && <TokenCard key={`${tokenShown}:${replacing?.app === tokenShown ? replacing.id : ""}`} app={tokenShown} tokens={tokens}
-                    {...(replacing?.app === tokenShown ? { replacing: replacing.id } : {})} />}
+                    {...(replacing?.app === tokenShown ? { replacing: replacing.id } : {})} preferToken={tokenFirst === tokenShown} />}
                   {gmailShown && <GmailPasswordNote connected={gmailConnected === true} />}
                   <div className={hostedShown ? "contents" : "hidden"}>
                     <McpServersPanel hostedCards={{ shown: (id) => id === hostedShown, onConnections: setHosted }} />

@@ -625,6 +625,26 @@ describe("the Connect Apps window", () => {
     expect(page.querySelector("[data-guide-step='paste'] input"), "a new token goes in its place").not.toBeNull();
   });
 
+  it("folds a token app's token into its one other-ways toggle when it can also sign in", async () => {
+    const base = fixture.api.getMockImplementation()!;
+    fixture.api.mockImplementation(async (path: string, init?: unknown) => (path === "/api/app-tokens" ? { accounts: [], native: { trello: true } } : base(path, init)));
+    act(() => root.unmount());
+    root = createRoot(document.body.appendChild(document.createElement("div")));
+    await act(async () => { root.render(createElement(ConnectAppsWindow, { page: { kind: "detail", id: "trello" }, nonce: 4, onClose, onTemplates: vi.fn() })); });
+    await flush();
+    const page = () => dialog().querySelector("[data-token-app='trello']")!;
+    expect(page().querySelector("[data-guide-step='sign-in']"), "the sign-in leads").not.toBeNull();
+    expect([...dialog().querySelectorAll("button")].filter((one) => /instead/.test(one.textContent ?? "")), "no second switch").toHaveLength(0);
+    const toggles = dialog().querySelectorAll<HTMLButtonElement>("[data-other-ways] > button");
+    expect(toggles).toHaveLength(1);
+    await act(async () => { toggles[0]!.click(); });
+    const row = dialog().querySelector<HTMLElement>("[data-ways] [data-way='token']")!;
+    expect(row.querySelector("span")?.textContent).toBe("your own token");
+    await act(async () => { row.querySelector<HTMLButtonElement>(".ca-pill")!.click(); });
+    expect(page().querySelector("[data-guide-step='paste'] input"), "the token steps take over").not.toBeNull();
+    expect(dialog().querySelector("[data-ways] [data-way='token'] span")?.textContent, "and the sign-in waits behind the toggle").toBe("sign in with Trello");
+  });
+
   it("lists accounts as grok does: disconnect asks again in place, then removes it", async () => {
     await act(async () => { dialog().querySelector<HTMLButtonElement>('[data-app-row="slack"] .ca-row-open')!.click(); });
     await flush();

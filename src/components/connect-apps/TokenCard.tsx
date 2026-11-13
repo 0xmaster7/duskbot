@@ -4,7 +4,7 @@ import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { openExternalLink } from "@/lib/app-links";
 import { tokenApp, type TokenAppId, type TokenField } from "../../../shared/app-tokens";
-import { KitActions, KitBody, KitButton, KitCard, KitLink, KitRow, KitStatus, KitText } from "./detail-kit";
+import { KitActions, KitBody, KitButton, KitCard, KitRow, KitStatus, KitText } from "./detail-kit";
 import { StepGuide, type GuideStep } from "./StepGuide";
 import type { TokenApps } from "./use-token-apps";
 
@@ -12,8 +12,9 @@ const FIELD_LABEL: Record<TokenField["key"], LocaleKey> = {
   token: "tokenApps.field.token", key: "tokenApps.field.key", email: "tokenApps.field.email", site: "tokenApps.field.site", shop: "tokenApps.field.shop",
 };
 
-/** One app connected with the person's own token or a sign-in to dusk bot's own app: its accounts, then a guide. */
-export function TokenCard({ app, tokens, replacing: startReplacing }: { app: TokenAppId; tokens: TokenApps; replacing?: string }) {
+/** One app connected with the person's own token or a sign-in to dusk bot's own app: its accounts, then a guide.
+ * `preferToken` picks the token steps over a ready sign-in; the page's other ways switch it. */
+export function TokenCard({ app, tokens, replacing: startReplacing, preferToken = false }: { app: TokenAppId; tokens: TokenApps; replacing?: string; preferToken?: boolean }) {
   const spec = tokenApp(app)!;
   const [values, setValues] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -21,7 +22,6 @@ export function TokenCard({ app, tokens, replacing: startReplacing }: { app: Tok
   const [adding, setAdding] = useState(false);
   const [opened, setOpened] = useState(false);
   const [justConnected, setJustConnected] = useState(false);
-  const [preferToken, setPreferToken] = useState(false);
   // the refused account a new token takes over, so bots keep their access to it
   const [replacing, setReplacing] = useState<string | undefined>(startReplacing);
   const accounts = tokens.accounts(app);
@@ -33,6 +33,13 @@ export function TokenCard({ app, tokens, replacing: startReplacing }: { app: Tok
     setReplacing(undefined);
     setJustConnected(true);
   }, [replaced]);
+  // switching ways means connecting that way now: its steps show, even beside accounts already there
+  const [shownWay, setShownWay] = useState(preferToken);
+  if (shownWay !== preferToken) {
+    setShownWay(preferToken);
+    setError(null);
+    if (accounts.length > 0) setAdding(true);
+  }
   const guiding = accounts.length === 0 || adding || flow !== null || replacing !== undefined;
   const byToken = spec.fields.length > 0 && (!nativeReady || preferToken);
 
@@ -124,9 +131,6 @@ export function TokenCard({ app, tokens, replacing: startReplacing }: { app: Tok
       {flow && flow.state === "failed" && <KitStatus tone="danger">{flow.message ?? t("tokenApps.device.expired")}</KitStatus>}
       {(flow || replacing) && <KitActions><KitButton variant="secondary" onClick={() => { tokens.stopDevice(); setReplacing(undefined); }}>{t("common.cancel")}</KitButton></KitActions>}
       {spec.native && !nativeReady && !byToken && <KitStatus>{t("tokenApps.device.notReady")}</KitStatus>}
-      {guiding && !flow && nativeReady && spec.fields.length > 0 && (
-        <KitLink onClick={() => { setPreferToken(!preferToken); setError(null); }}>{t(preferToken ? "tokenApps.useSignIn" : "tokenApps.useToken", { name: spec.label })}</KitLink>
-      )}
       {justConnected && accounts.length > 0 && !guiding && (
         <StepGuide label={t("tokenApps.guide", { name: spec.label })} steps={[]} finished={t("tokenApps.done", { name: spec.label })} />
       )}

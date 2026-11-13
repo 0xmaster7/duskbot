@@ -19,9 +19,9 @@ import type { ConnectorAccount } from "@/lib/connector-status";
 import { activeAccounts, defaultAccount, nextAccountName, useAccountChoices } from "./account-choices";
 import type { RemoteAccount } from "./use-remote-apps";
 
-/** One way an app connects, when it has more than one: our own card, the vendor's server, Composio. */
+/** One way an app connects, when it has more than one: our own card, its token or sign-in in place of the card's, the vendor's server, Composio. */
 export interface Way {
-  key: "own" | "remote" | "composio";
+  key: "own" | "token" | "remote" | "composio";
   label: string;
   connected: boolean;
   action?: Extract<RowAction, { kind: "button" }>;

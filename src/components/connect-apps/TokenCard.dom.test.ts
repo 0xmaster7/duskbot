@@ -21,13 +21,13 @@ const type = (input: HTMLInputElement, value: string) => {
 };
 const status = (native: Record<string, boolean> = {}, accounts: unknown[] = []) => ({ accounts, native });
 
-function Harness({ app }: { app: string }) {
-  return createElement(TokenCard, { app, tokens: useTokenApps() });
+function Harness({ app, preferToken }: { app: string; preferToken?: boolean }) {
+  return createElement(TokenCard, { app, tokens: useTokenApps(), ...(preferToken ? { preferToken } : {}) });
 }
 
-async function mount(app: string) {
-  root = createRoot(document.body.appendChild(document.createElement("div")));
-  await act(async () => { root.render(createElement(Harness, { app })); });
+async function mount(app: string, preferToken?: boolean) {
+  root ??= createRoot(document.body.appendChild(document.createElement("div")));
+  await act(async () => { root.render(createElement(Harness, { app, ...(preferToken ? { preferToken } : {}) })); });
   await flush();
 }
 
@@ -35,7 +35,7 @@ beforeEach(() => {
   fixture.opened = [];
   fixture.api.mockReset();
 });
-afterEach(() => { act(() => root.unmount()); document.body.innerHTML = ""; });
+afterEach(() => { act(() => root.unmount()); root = undefined!; document.body.innerHTML = ""; });
 
 describe("a token app's guide", () => {
   it("walks through open, make, paste: each step ticks, and a checked token ends on a happy mascot", async () => {
@@ -90,11 +90,12 @@ describe("a token app's guide", () => {
     expect(fixture.opened).toEqual(["https://www.google.com/device"]);
   });
 
-  it("offers GitHub's sign-in first when this build has it, and a token instead on request", async () => {
+  it("offers GitHub's sign-in first when this build has it, the token steps when the page picks them, and no switch of its own", async () => {
     fixture.api.mockImplementation(async () => status({ github: true }));
     await mount("github");
     expect(steps()).toEqual(["sign-in:current", "finish:next"]);
-    await act(async () => { button("use a token instead").click(); });
+    expect(card().querySelector(".ca-link"), "the page's other ways hold the switch").toBeNull();
+    await mount("github", true);
     expect(steps()).toEqual(["open:current", "make:next", "paste:next"]);
   });
 
