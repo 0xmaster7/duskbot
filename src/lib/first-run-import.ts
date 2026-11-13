@@ -22,6 +22,8 @@ export interface LocalFind {
   extra?: boolean;
   /** One of the sources people use most (Claude): listed first, above the prompt for AIs online. */
   lead?: boolean;
+  /** What an AI tool's own setup holds, for the row's short line. */
+  setup?: { skills: boolean; tools: boolean; instructions: boolean };
 }
 
 const list = (parts: string[]) => new Intl.ListFormat(activeLocale(), { style: "long", type: "conjunction" }).format(parts);
@@ -73,8 +75,9 @@ export function localFinds(plan: BotMovePlan | null, detection: SetupDetection |
     ];
     const name = t(`onboarding.import.source.${source}` as LocaleKey);
     const same = finds.find((find) => find.bots && !find.source && find.app === name);
-    if (same) Object.assign(same, { source, summary: `${same.summary}. ${list(parts)}` });
-    else finds.push({ id: `setup:${source}`, app: name, source, summary: list(parts), ...(instructions || source === "claudeDesktop" ? {} : { extra: true }) });
+    const setup = { skills: skills > 0, tools: tools > 0, instructions };
+    if (same) Object.assign(same, { source, setup, summary: `${same.summary}. ${list(parts)}` });
+    else finds.push({ id: `setup:${source}`, app: name, source, setup, summary: list(parts), ...(instructions || source === "claudeDesktop" ? {} : { extra: true }) });
   }
   return finds.map((find) => (rank(find) === 0 ? { ...find, lead: true } : find)).sort((a, b) => rank(a) - rank(b));
 }
