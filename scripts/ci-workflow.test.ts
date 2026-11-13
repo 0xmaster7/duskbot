@@ -148,6 +148,18 @@ describe("CI concurrency", () => {
     expect(workflow.on).toHaveProperty("workflow_dispatch");
   });
 
+  // regression: no packaging step had the clients, so every release shipped with each one-click sign-in off
+  it("bakes dusk bot's own OAuth clients into every release package", async () => {
+    const release = parse(readFileSync(new URL("../.github/workflows/release.yml", import.meta.url), "utf8"));
+    const { NATIVE_CLIENT_ENVS } = await import("../shared/native-connectors.ts");
+    const packaging = Object.values(release.jobs as Record<string, { steps?: Array<{ run?: string; env?: Record<string, string> }> }>)
+      .flatMap((job) => job.steps ?? []).filter((step) => /^pnpm package:(mac|win|linux)$/.test(step.run ?? ""));
+    expect(packaging.map((step) => step.run).sort()).toEqual(["pnpm package:linux", "pnpm package:mac", "pnpm package:win"]);
+    for (const step of packaging) {
+      for (const name of NATIVE_CLIENT_ENVS) expect(step.env?.[name], `${step.run} ${name}`).toBe(`\${{ secrets.${name} }}`);
+    }
+  });
+
   it("checks out every module the release gate imports", () => {
     const release = parse(readFileSync(new URL("../.github/workflows/release.yml", import.meta.url), "utf8"));
     const checkout = release.jobs.ci.steps.find((step: { uses?: string }) => step.uses?.startsWith("actions/checkout@"));
