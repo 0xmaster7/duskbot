@@ -137,7 +137,7 @@ export function MoveGuide({ cloud, rows, cloudBots }: { cloud: CloudDesktop; row
   const hide = () => { try { localStorage.setItem(HIDE, cloud.id); } catch {} setHidden(true); };
   const steps = [
     { title: "open dusk bot on your mac", body: "the one signed in to this account. it asks if you want to move your bots." },
-    { title: "pick move my bots", body: "chats, memory, skills and routines go over. your mac keeps its copy until dusk cloud has checked it all arrived." },
+    { title: "pick move my bots", body: "chats, memory and routines go over. your mac keeps its copy until dusk cloud has checked it all arrived." },
     { title: "that's it", body: `they keep working on ${cloud.name}, even with your mac shut.` },
   ];
   return (

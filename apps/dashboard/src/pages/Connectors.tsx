@@ -68,7 +68,7 @@ function Row({ row, flow, onAuth, menu }: { row: ConnectorRow; flow: AppFlow | u
             </div>
             {needs
               ? <div className="truncate text-13 text-ink-3" aria-hidden>needs sign-in</div>
-              : <div className="truncate text-13 text-ink-3 md:hidden"><span className="lowercase">{row.type}</span> · {row.workspaces.length === 1 ? row.workspaces[0]!.name : `${row.workspaces.length} workspaces`}</div>}
+              : <div className="truncate text-13 text-ink-3 xl:hidden" title={row.workspaces.map((w) => w.name).join(", ")}><span className="lowercase md:hidden">{row.type} · </span>{row.workspaces.length === 1 ? row.workspaces[0]!.name : `${row.workspaces.length} workspaces`}</div>}
           </div>
         </div>
       </Td>
@@ -79,7 +79,7 @@ function Row({ row, flow, onAuth, menu }: { row: ConnectorRow; flow: AppFlow | u
         {row.tools ?? <Nil />}{row.permissions && <span className="sr-only 2xl:hidden">, permissions {row.permissions.toLowerCase()}</span>}
       </Td>
       <Td className="lowercase text-ink-2 max-2xl:hidden">{row.permissions ?? <Nil />}</Td>
-      <Td className="max-md:hidden"><WorkspacesCell list={row.workspaces} /></Td>
+      <Td className="max-xl:hidden"><WorkspacesCell list={row.workspaces} /></Td>
       <Td className="w-0 !px-1 text-end">{needs && <Reconnect row={row} where={row.workspaces.length > 1 ? row.needsAuth[0]?.name ?? null : null} flow={flow} onAuth={onAuth} />}</Td>
       <Td className="w-0 !pe-1 !ps-0"><RowMenu label={`more for ${row.label}`} items={menu} /></Td>
     </tr>
@@ -237,7 +237,7 @@ export function ConnectorsPage() {
                   <Th className="max-lg:hidden">category</Th>
                   <Th className="max-lg:hidden">tools on</Th>
                   <Th className="max-2xl:hidden">permissions</Th>
-                  <Th className="max-md:hidden">workspaces</Th>
+                  <Th className="max-xl:hidden">workspaces</Th>
                   <Th className="w-0 max-sm:w-[104px]"><span className="sr-only">reconnect</span></Th>
                   <Th className="w-0 max-sm:w-12"><span className="sr-only">more</span></Th>
                 </tr>
