@@ -1,0 +1,42 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>hero lab b: left column, crew row</title>
+<link rel="stylesheet" href="/lab/base.css"><script src="/lab/bots.js"></script>
+<style>
+/* b: left-aligned, 960 wide. a plain headline, one line under it, and a row of four cards, each held by one bot */
+:root { --w: 960px; }
+.hero { max-width: 960px; margin: 0 auto; padding: 80px 24px 96px; }
+.hero h1 { font-size: clamp(40px, 6vw, 64px); line-height: 1.04; letter-spacing: -0.05em; font-weight: 450; margin: 0; max-width: 12em; text-wrap: balance; }
+.lede { font-size: 19px; line-height: 1.5; letter-spacing: -0.012em; color: var(--ink-2); font-weight: 450; margin: 20px 0 0; max-width: 31em; text-wrap: pretty; }
+.lede b { color: var(--ink); font-weight: 500; white-space: nowrap; }
+.lede .logo { margin-right: 0.22em; }
+.actions { margin-top: 28px; align-items: center; }
+.hint { font: 400 13px/1.5 var(--pixel); color: var(--ink-3); margin: 0 0 0 8px; }
+.cards { list-style: none; margin: 64px 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.card { background: var(--wash); border-radius: 20px; padding: 20px 20px 22px; }
+.card .b { width: 48px; height: 48px; margin: -4px 0 24px -4px; }
+.card h2 { font-size: 16px; line-height: 1.3; letter-spacing: -0.015em; font-weight: 550; margin: 0; }
+.card p { font-size: 14.5px; line-height: 1.45; color: var(--ink-2); font-weight: 450; margin: 6px 0 0; }
+@media (max-width: 860px) { .cards { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 640px) {
+  .hero { padding-top: 40px; }
+  .lede { font-size: 17px; }
+  .hint { margin: 4px 0 0; flex-basis: 100%; }
+  .cards { grid-template-columns: 1fr; margin-top: 44px; }
+  .card { display: grid; grid-template-columns: 40px 1fr; column-gap: 14px; padding: 16px; }
+  .card .b { width: 40px; height: 40px; margin: -2px 0 0; grid-row: span 2; }
+  .card p { margin-top: 2px; }
+}
+</style></head><body><div data-bar></div>
+<main>
+  <section class="hero">
+    <h1>personal ai bots that take the busywork off your hands.</h1>
+    <p class="lede">they work on your computer or in dusk cloud, on the <b><img class="logo" src="/art/logos/chatgpt.svg" alt="">chatgpt</b>, <b><img class="logo" src="/art/logos/claude.svg" alt="">claude</b>, <b><img class="logo" src="/art/logos/gemini.svg" alt="">gemini</b> or <b><img class="logo" src="/art/logos/grok.svg" alt="">grok</b> you already use.</p>
+    <div class="actions"><a class="btn dark" href="#"><img class="os" src="/art/os/apple.svg" alt="">download for free</a><a class="btn soft" href="#"><img src="/art/logos/github.svg" alt="">star on github</a><p class="hint">free forever on your computer</p></div>
+    <ul class="cards">
+      <li class="card"><span class="b" data-b="pip blue"></span><h2>works on its own computer</h2><p>a browser and desktop it clicks through. watch live, take the mouse back.</p></li>
+      <li class="card"><span class="b" data-b="boxo tangerine"></span><h2>connects your apps</h2><p>gmail, calendar, slack, notion, github and 60+ more.</p></li>
+      <li class="card"><span class="b" data-b="mochi emerald"></span><h2>runs routines</h2><p>on a schedule or when something happens, even while you sleep.</p></li>
+      <li class="card"><span class="b" data-b="hearty pink"></span><h2>asks before it acts</h2><p>sending an email or posting waits for your yes.</p></li>
+    </ul>
+  </section>
+</main>
+<script src="/lab/base.js"></script></body></html>
