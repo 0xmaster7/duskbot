@@ -34,6 +34,6 @@ it("marks web addresses as pills, a link in a sent message and paint only in the
   const open = renderToStaticMarkup(createElement(MentionText, { ...props, links: "open" }));
   expect(open).toBe('try <a href="https://example.com/@Atlas" target="_blank" rel="noreferrer" dir="ltr" class="link-pill">example.com/@Atlas</a> or <span class="mention-highlight">@Atlas</span>');
   const painted = renderToStaticMarkup(createElement(MentionText, { ...props, links: "highlight" }));
-  expect(painted).toContain('<span class="link-pill">example.com/@Atlas</span>');
+  expect(painted).toContain('<span class="link-pill" data-link-start="4" data-link-end="22" data-href="https://example.com/@Atlas">example.com/@Atlas</span>');
   expect(renderToStaticMarkup(createElement(MentionText, props))).not.toContain("link-pill");
 });

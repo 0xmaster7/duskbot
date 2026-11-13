@@ -28,43 +28,36 @@
   color: var(--color-ink);
   background-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
 }
-/* a web address, in the composer, a sent message or a reply: a soft pill in the skin's link colour. The pill's ends
-   are side shadows, not padding, so the composer's mirror keeps every glyph exactly under the field's caret. */
+/* a web address, in the composer, a sent message or a reply: the text's own colour until the pointer is over it, then
+   a soft pill in the skin's link colour. The pill's ends are side shadows, not padding, so the composer's mirror keeps
+   every glyph exactly under the field's caret. */
 :root {
-  --link-pill-wash: 12%;
-  --link-pill-wash-hover: 20%;
+  --link-pill-wash: 14%;
 }
 :root:is([data-skin="grok-dark"], [data-skin="midnight"], [data-skin="dusk"], [data-skin="foundry"], [data-skin="graphite"], [data-skin="halloween"]) {
-  --link-pill-wash: 18%;
-  --link-pill-wash-hover: 28%;
+  --link-pill-wash: 22%;
 }
 .link-pill {
-  --link-pill-bg: color-mix(in srgb, var(--color-accent) var(--link-pill-wash), transparent);
-  color: var(--color-accent-text);
+  --link-pill-bg: transparent;
+  color: inherit;
   background-color: var(--link-pill-bg);
   box-shadow: -0.2em 0 0 var(--link-pill-bg), 0.2em 0 0 var(--link-pill-bg);
   border-radius: 0.375em;
   text-decoration: none;
+  transition: background-color 120ms ease, box-shadow 120ms ease;
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
 }
-a.link-pill {
-  transition: background-color 150ms ease, box-shadow 150ms ease;
-}
-a.link-pill:is(:hover, :focus-visible) {
-  --link-pill-bg: color-mix(in srgb, var(--color-accent) var(--link-pill-wash-hover), transparent);
+:is(a.link-pill:is(:hover, :focus-visible), .link-pill[data-hover]) {
+  --link-pill-bg: color-mix(in srgb, var(--color-accent) var(--link-pill-wash), transparent);
 }
 a.link-pill:focus-visible {
   outline: none;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.user-bubble-colored .link-pill {
-  --link-pill-bg: color-mix(in srgb, currentColor 16%, transparent);
-  color: inherit;
-}
 .user-bubble-colored a.link-pill:is(:hover, :focus-visible) {
-  --link-pill-bg: color-mix(in srgb, currentColor 26%, transparent);
+  --link-pill-bg: color-mix(in srgb, currentColor 20%, transparent);
 }
 @media (forced-colors: active) {
   .link-pill { box-shadow: none; }

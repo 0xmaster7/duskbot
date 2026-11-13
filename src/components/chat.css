@@ -3,7 +3,7 @@
   from { opacity: 0; }
 }
 
-/* a link is a soft pill in the skin's link colour (.link-pill in styles.css), in medium weight */
+/* a link reads in medium weight and shows its pill on hover (.link-pill in styles.css) */
 .chat-link {
   font-weight: 500;
   overflow-wrap: anywhere;

@@ -5,9 +5,11 @@ import { linkRanges } from "@/lib/link-ranges";
 /**
  * `links` marks web addresses as link pills: "highlight" paints them only (the composer's mirror, which sits under the
  * real field and must never change the text's layout), "open" makes each one a link that opens outside the app.
+ * `hoverStart` is where the address under the pointer starts, so the composer can show its box.
  */
-export function MentionText({ text, peers, everyone = false, person, links }: {
+export function MentionText({ text, peers, everyone = false, person, links, hoverStart }: {
   text: string; peers: readonly MentionPeer[]; everyone?: boolean; person?: MentionPerson; links?: "highlight" | "open";
+  hoverStart?: number | null;
 }) {
   const addresses = links ? linkRanges(text) : [];
   // a name inside an address is part of the address, not a mention
@@ -23,7 +25,8 @@ export function MentionText({ text, peers, everyone = false, person, links }: {
     if ("link" in range) {
       node = links === "open"
         ? <a href={range.href} target="_blank" rel="noreferrer" dir="ltr" className="link-pill">{value}</a>
-        : <span className="link-pill">{value}</span>;
+        : <span className="link-pill" data-link-start={range.start} data-link-end={range.end} data-href={range.href}
+          data-hover={hoverStart === range.start ? "" : undefined}>{value}</span>;
     } else {
       const style = range.color ? { "--mention-color": range.color } as CSSProperties : undefined;
       node = <span className={mentionClassName(range)} style={style}>{value}</span>;
