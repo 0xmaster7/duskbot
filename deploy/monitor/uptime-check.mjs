@@ -34,7 +34,7 @@ export function settings(env = process.env) {
     tlsDays: number(env.DUSK_UPTIME_TLS_DAYS, 14),
     state: env.DUSK_UPTIME_STATE || "/var/lib/dusk-uptime",
     to: (env.DUSK_ALERT_TO || "").split(",").map(item => item.trim()).filter(item => /^[^\s@]+@[^\s@]+$/.test(item)),
-    from: env.DUSK_ALERT_FROM || "dusk bot uptime <alerts@dusk.bot>",
+    from: env.DUSK_ALERT_FROM || "alerts@dusk.bot",
     brevo: env.DUSK_BREVO_API_KEY || null,
     resend: env.DUSK_RESEND_API_KEY || null,
   };
@@ -92,7 +92,7 @@ const EMAIL_CFG = { assets: "https://dusk.bot/email", site: "https://dusk.bot", 
 const REASON = "you got this because your address is in DUSK_ALERT_TO on the oracle uptime checker.";
 const PANEL = "https://dusk.bot/admin/health";
 
-async function layout() {
+export async function layout() {
   for (const candidate of [new URL("./layout.ts", import.meta.url), new URL("../../apps/dashboard/server/email/layout.ts", import.meta.url)]) {
     try { return (await import(candidate.href)).render; } catch {}
   }
@@ -102,14 +102,14 @@ async function layout() {
 export async function emailFor(kind, items) {
   const names = items.map(item => item.name).join(", ");
   const email = kind === "down" ? {
-    subject: `something's wrong: ${names} ${items.length === 1 ? "is" : "are"} down`, heading: "something's wrong",
+    subject: `something's wrong: ${names} ${items.length === 1 ? "is" : "are"} down`, heading: "something's wrong", say: "uh oh, a site is down", accent: "pink", status: ["down", "bad"],
     intro: `checks from the oracle box failed in a row. this is the only email until it's back up; then you get one more.`,
     rows: items.map(item => [item.name, `${item.detail} · down since ${when(item.since)}`, "off"]),
   } : kind === "recovered" ? {
-    subject: `back up: ${names}`, heading: "back up", intro: "these answer again.",
+    subject: `back up: ${names}`, heading: "back up", intro: "these answer again.", say: "phew, it's back up", accent: "lime", status: ["up", "ok"],
     rows: items.map(item => [item.name, `${item.detail} · was down for ${duration(item.downFor)}`, "ok"]),
   } : {
-    subject: `certificate expiring: ${names}`, heading: "a certificate is about to expire", intro: "renew it before it runs out, or browsers will refuse the site.",
+    subject: `certificate expiring: ${names}`, heading: "a certificate is about to expire", say: "heads up, a cert", accent: "lemon", status: ["expiring", "warn"], intro: "renew it before it runs out, or browsers will refuse the site.",
     rows: items.map(item => [item.name, `expires ${new Date(item.expiresAt).toISOString().slice(0, 10)} (${duration(item.expiresAt - Date.now())} left)`, "warn"]),
   };
   const urls = items.map(item => item.url).filter(Boolean);
@@ -117,20 +117,20 @@ export async function emailFor(kind, items) {
   if (render) {
     const blocks = [{ t: "h1", text: email.heading }, { t: "p", text: email.intro }, { t: "facts", rows: email.rows }, ...(urls.length ? [{ t: "list", items: urls }] : []),
       { t: "button", label: "open admin health", href: PANEL }];
-    return render(EMAIL_CFG, { subject: email.subject, preheader: email.rows.map(row => `${row[0]}: ${row[1]}`).join("; ").slice(0, 120), tag: "uptime", hero: null, blocks, reason: REASON });
+    return render(EMAIL_CFG, { subject: email.subject, preheader: email.rows.map(row => `${row[0]}: ${row[1]}`).join("; ").slice(0, 120), tag: "uptime", say: email.say, accent: email.accent, status: email.status, blocks, reason: REASON });
   }
   const text = [email.heading, email.intro, ...email.rows.map(row => `${row[0]}: ${row[1]}`), ...urls, PANEL, "--", REASON].join("\n\n");
   return { subject: email.subject, text, html: `<pre style="font-family:ui-monospace,monospace">${text.replace(/[&<>]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[ch])}</pre>` };
 }
 
 export async function deliver(cfg, message, fetcher = fetch) {
-  const named = cfg.from.match(/^\s*(.*?)\s*<([^>]+)>\s*$/);
+  const address = (cfg.from.match(/<([^>]+)>\s*$/)?.[1] ?? cfg.from).trim();
   const senders = [];
   if (cfg.brevo) senders.push(() => fetcher("https://api.brevo.com/v3/smtp/email", { method: "POST", signal: AbortSignal.timeout(20_000),
     headers: { "api-key": cfg.brevo, "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify({ sender: named ? { name: named[1] || undefined, email: named[2] } : { email: cfg.from }, to: cfg.to.map(email => ({ email })), subject: message.subject, textContent: message.text, htmlContent: message.html }) }));
+    body: JSON.stringify({ sender: { name: "dusk bot", email: address }, to: cfg.to.map(email => ({ email })), subject: message.subject, textContent: message.text, htmlContent: message.html }) }));
   if (cfg.resend) senders.push(() => fetcher("https://api.resend.com/emails", { method: "POST", signal: AbortSignal.timeout(20_000),
-    headers: { authorization: `Bearer ${cfg.resend}`, "content-type": "application/json" }, body: JSON.stringify({ from: cfg.from, to: cfg.to, subject: message.subject, text: message.text, html: message.html }) }));
+    headers: { authorization: `Bearer ${cfg.resend}`, "content-type": "application/json" }, body: JSON.stringify({ from: `dusk bot <${address}>`, to: cfg.to, subject: message.subject, text: message.text, html: message.html }) }));
   for (const [index, send] of senders.entries()) {
     try {
       const response = await send();

@@ -11,22 +11,23 @@ export function consoleMailer(): Mailer {
   return { async send(message) { console.log(`code for ${message.to}: ${message.text.match(/\b\d{8}\b/)?.[0] ?? ""}`); } };
 }
 export const REPLY_TO = "hello@dusk.bot";
+export const SENDER_NAME = "dusk bot";
+/** the address out of "Name <address>" or a bare address; every email goes out under the name "dusk bot" */
+export const senderAddress = (from: string) => (from.match(/<([^>]+)>\s*$/)?.[1] ?? from).trim();
 export function resendMailer(options: { apiKey: string; from: string; fetch?: typeof fetch }): Mailer {
   const request = options.fetch ?? fetch;
   return { async send(message) {
     try {
       const response = await request("https://api.resend.com/emails", { method: "POST", redirect: "error", signal: AbortSignal.timeout(15_000),
-        headers: { authorization: `Bearer ${options.apiKey}`, "content-type": "application/json" }, body: JSON.stringify({ from: options.from, reply_to: REPLY_TO, ...message }) });
+        headers: { authorization: `Bearer ${options.apiKey}`, "content-type": "application/json" }, body: JSON.stringify({ from: `${SENDER_NAME} <${senderAddress(options.from)}>`, reply_to: REPLY_TO, ...message }) });
       await response.body?.cancel();
       if (!response.ok) throw new Error();
     } catch { throw new Error("Email delivery failed."); }
   } };
 }
-/** `from` is "Name <address>" or a bare address */
 export function brevoMailer(options: { apiKey: string; from: string; fetch?: typeof fetch }): Mailer {
   const request = options.fetch ?? fetch;
-  const named = options.from.match(/^\s*(.*?)\s*<([^>]+)>\s*$/);
-  const sender = named ? { name: named[1] || undefined, email: named[2] } : { email: options.from.trim() };
+  const sender = { name: SENDER_NAME, email: senderAddress(options.from) };
   return { async send(message) {
     try {
       const response = await request("https://api.brevo.com/v3/smtp/email", { method: "POST", redirect: "error", signal: AbortSignal.timeout(15_000),

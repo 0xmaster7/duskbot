@@ -27,6 +27,7 @@ export function samples(cfg: EmailConfig): Array<{ id: string; trigger: string; 
         { title: "jump in any time", text: "type in the room like any group chat. every bot reads along." }],
       cta: { label: "open the app", href: `${cfg.site}/download` }, unsubscribe: "https://dusk.bot/unsubscribe?t=sample" }) },
     { id: "07-deletion-warning", trigger: "managed notice left_7: 7 days before a paused cloud is deleted", email: cloudDeletionEmail(cfg, { kind: "warning", name: cloud.name, at: at + 7 * DAY, daysLeft: 7 }) },
+    { id: "07a-deletion-last-day", trigger: "managed notice left_1: the day before a paused cloud is deleted", email: cloudDeletionEmail(cfg, { kind: "warning", name: cloud.name, at: at + DAY, daysLeft: 1 }) },
     { id: "07b-deletion-confirm", trigger: "managed notice delete_requested: the owner asked to delete a cloud", email: cloudDeletionEmail(cfg, { kind: "confirm", name: cloud.name, at: null, link: `${cfg.app}/clouds/c1/delete#token` }) },
     { id: "07c-deletion-scheduled", trigger: "managed notice delete_scheduled: the owner confirmed", email: cloudDeletionEmail(cfg, { kind: "scheduled", name: cloud.name, at: at + 7 * DAY }) },
     { id: "03b-cloud-back", trigger: "managed notice recovered: its machine was set up again from a backup", email: cloudBackEmail(cfg, { name: cloud.name, at: at - DAY }) },

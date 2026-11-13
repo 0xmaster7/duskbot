@@ -33,7 +33,7 @@ describe("admin alerts", () => {
     alerts.waitlistJoin(); alerts.waitlistJoin();
     await settle();
     await alerts.tick();
-    expect(mailer.outbox.map(mail => mail.subject)).toEqual(["New signup: new@example.test", "First payment ever: new@example.test", "2 new on the waitlist"]);
+    expect(mailer.outbox.map(mail => mail.subject)).toEqual(["new signup: new@example.test", "first payment ever: new@example.test", "2 new on the waitlist"]);
     expect(mailer.outbox[1]!.text).toContain("$20.00");
     alerts.close();
     const off = setup("", time);
@@ -46,7 +46,7 @@ describe("admin alerts", () => {
     const { mailer, sink, alerts } = setup("digest,spike", time);
     for (let v = 0; v < 25; v++) await sink.insert({ id: `e${v}`, name: "site_view", at: time.now - 10 * 60_000, accountId: null, props: { path: "/" }, ctx: { visitor: `visitor-${v}`, session: `session-${v}`, pv: `pv-${v}` } });
     await alerts.tick(); await alerts.tick();
-    expect(mailer.outbox.map(mail => mail.subject)).toEqual(["Traffic spike: 25 visitors in the last hour", "dusk bot yesterday: 0 visitors, 3 signups"]);
+    expect(mailer.outbox.map(mail => mail.subject)).toEqual(["traffic spike: 25 visitors in the last hour", "dusk bot yesterday: 0 visitors, 3 signups"]);
     time.now += DAY + HOUR;
     await alerts.tick();
     expect(mailer.outbox.filter(mail => mail.subject.startsWith("dusk bot yesterday"))).toHaveLength(2);
@@ -66,9 +66,9 @@ describe("admin alerts", () => {
     alerts.money(row("subscription.cancelled", { mrrCents: 9000, subscriptionId: "big" }), facts); alerts.money(row("subscription.expired", { mrrCents: 9000, subscriptionId: "big" }), facts);
     alerts.money(row("payment.succeeded"), { ...facts, mrr: 60_000 }); alerts.money(row("payment.succeeded"), { ...facts, mrr: 60_000 });
     await settle(); await settle();
-    expect(mailer.outbox.map(mail => mail.subject).sort()).toEqual(["Customer lost: pay@example.test ($90.00/mo)", "Dispute opened: pay@example.test", "MRR passed $500 a month",
-      "Payment failed: pay@example.test", "Refund: $5.00 to pay@example.test"]);
-    expect(mailer.outbox.find(mail => mail.subject.startsWith("Payment failed"))!.text).toContain("insufficient funds");
+    expect(mailer.outbox.map(mail => mail.subject).sort()).toEqual(["customer lost: pay@example.test ($90.00/mo)", "dispute opened: pay@example.test", "mrr passed $500 a month",
+      "payment failed: pay@example.test", "refund: $5.00 to pay@example.test"]);
+    expect(mailer.outbox.find(mail => mail.subject.startsWith("payment failed"))!.text).toContain("insufficient funds");
     expect(churnThreshold(undefined)).toBe(5000); expect(churnThreshold("20000")).toBe(20000); expect(churnThreshold("x")).toBe(5000);
     alerts.close();
   });
@@ -78,9 +78,10 @@ describe("admin alerts", () => {
     const alerts = createAlerts({ kinds: parseAlerts("digest"), emails: () => ["owner@example.test"], mailer, sink, now: () => time.now, panelUrl: "https://preview.dusk.bot/app/admin",
       totals: () => ({ signups: 3, paid: 2, waitlist: null, accounts: 40, money: { newCustomers: [{ email: "a@example.test", cents: 2000 }, { email: null, cents: 900 }], mrr: 12_000, netNew: 2900, failed: 1, recovered: 0, churned: 0, refunds: 0 } }) });
     await alerts.tick();
-    expect(mailer.outbox[0]!.text).toContain("New paying customers: 2 (a@example.test $20.00, an account $9.00).");
-    expect(mailer.outbox[0]!.text).toContain("MRR: $120.00 (+$29.00 yesterday).");
-    expect(mailer.outbox[0]!.text).toContain("Failed payments: 1");
+    expect(mailer.outbox[0]!.text).toContain("new paying customers: 2:\n\na@example.test: $20.00\nan account: $9.00");
+    expect(mailer.outbox[0]!.text).toContain("mrr: $120.00 (+$29.00 yesterday)");
+    expect(mailer.outbox[0]!.text).toContain("failed: 1");
+    expect(mailer.outbox[0]!.html).toContain("here&#39;s yesterday");
     alerts.close();
   });
 });

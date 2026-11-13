@@ -7,7 +7,7 @@ host="${1:-contabo}"; [ $# -gt 0 ] && shift
 if [ $# -gt 0 ]; then sets=("$@"); else sets=(dusk make); fi
 cd "$(dirname "$0")/../.."
 ssh "$host" 'install -d -m 755 /opt/dusk-backup && install -d -m 700 /etc/dusk-backup'
-scp -q deploy/account/backup.sh deploy/account/backup-alert.mjs deploy/monitor/uptime-check.mjs "$host:/opt/dusk-backup/"
+scp -q deploy/account/backup.sh deploy/account/backup-alert.mjs deploy/monitor/uptime-check.mjs apps/dashboard/server/email/layout.ts "$host:/opt/dusk-backup/"
 scp -q deploy/account/dusk-backup@.service deploy/account/dusk-backup@.timer "$host:/etc/systemd/system/"
 for d in deploy/account/dusk-backup@*.timer.d; do
   [ -d "$d" ] || continue

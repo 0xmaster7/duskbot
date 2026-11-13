@@ -26,7 +26,7 @@ function incidentBlocks(incident: Incident): Block[] {
   return [
     { t: "h2", text: `${incident.name}: ${incident.message || "(no message)"}`.slice(0, 200) },
     { t: "facts", rows },
-    ...(incident.stack.length ? [{ t: "list" as const, items: incident.stack.slice(0, 6) }] : []),
+    ...(incident.stack.length ? [{ t: "label" as const, text: "stack" }, { t: "log" as const, text: incident.stack.slice(0, 6).join("\n") }] : []),
   ];
 }
 
@@ -37,7 +37,7 @@ export function incidentEmail(cfg: EmailConfig, input: { kind: IncidentMailKind;
   if (kind === "recovered") {
     const first = incidents[0]!;
     return render(cfg, {
-      subject: `${prefix}back to normal: ${first.name}`, preheader: (input.note ?? first.name).slice(0, 120), tag: input.env === "production" ? "alert" : `alert · ${input.env}`, hero: null,
+      subject: `${prefix}back to normal: ${first.name}`, preheader: (input.note ?? first.name).slice(0, 120), tag: input.env === "production" ? "alert" : `alert · ${input.env}`, say: "phew, all good again", accent: "lime", status: ["recovered", "ok"],
       blocks: [
         { t: "h1", text: "back to normal" },
         { t: "p", text: input.note ?? `${first.name} is back to normal.` },
@@ -58,7 +58,10 @@ export function incidentEmail(cfg: EmailConfig, input: { kind: IncidentMailKind;
     : `these showed up on ${input.env} but were held back by the daily email limit.`;
   const shown = incidents.slice(0, SHOWN);
   return render(cfg, {
-    subject, preheader: `${first.name}: ${first.message}`.slice(0, 120), tag: input.env === "production" ? "alert" : `alert · ${input.env}`, hero: null,
+    subject, preheader: `${first.name}: ${first.message}`.slice(0, 120), tag: input.env === "production" ? "alert" : `alert · ${input.env}`,
+    ...(input.test ? { say: "just a test", accent: "lav" as const, status: ["test", "off"] as [string, "off"] }
+      : kind === "new" ? { say: "uh oh, something broke", accent: "pink" as const, status: ["open", "bad"] as [string, "bad"] }
+      : { say: "a few you missed", accent: "lemon" as const, status: [`${incidents.length} held back`, "warn"] as [string, "warn"] }),
     blocks: [
       { t: "h1", text: heading },
       { t: "p", text: intro },

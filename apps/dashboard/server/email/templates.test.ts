@@ -16,8 +16,11 @@ describe("account emails", () => {
     expect(email.text).not.toMatch(/<[a-z/]/i);
     expect(email.html).toMatch(/^<!doctype html>/);
     expect(email.html).toContain('<meta name="color-scheme" content="light dark">');
-    expect(email.html).toContain(`${cfg.assets}/kit-64.png`);
+    expect(email.html).toContain('class="kit"');
     expect(email.html).toContain(">dusk bot<");
+    expect(email.html).toContain("prefers-color-scheme: dark");
+    expect(email.html).toContain("max-width:560px");
+    expect(email.text).toMatch(/\n--\n\ndusk bot\n/);
     for (const href of hrefs(email.html)) expect(href).toMatch(/^https:\/\/[a-z0-9.-]+\//);
     for (const tag of email.html.match(/<img [^>]*>/g) ?? []) {
       expect(tag).toMatch(/ alt="[^"]*"/);
@@ -29,14 +32,15 @@ describe("account emails", () => {
     for (const href of hrefs(email.html)) expect(email.text).toContain(href);
   });
 
-  it("keeps billing links low-key: one plain footer link, never a button, and the cancel email has none", () => {
+  it("never puts a plan action in an email: one plain billing page link where billing matters, and nothing into the payment provider", () => {
     for (const { id, email } of all) {
       const buttons = [...email.html.matchAll(/class="btn-a" href="([^"]*)"/g)].map(match => match[1]!);
       for (const href of buttons) expect(href).not.toMatch(/\/billing/);
       const plan = hrefs(email.html).filter(href => href.endsWith("/dashboard/billing"));
       expect(plan).toHaveLength(BILLING.has(id) ? 1 : 0);
-      if (BILLING.has(id)) expect(email.html).toMatch(/>your plan<\/a>/);
-      expect(email.html).not.toMatch(/>(manage billing|cancel[^<]*)<\/a>/i);
+      if (BILLING.has(id)) expect(email.html).toMatch(/>billing page<\/a>/);
+      expect(email.html + email.text).not.toMatch(/manage (your )?(plan|billing)|update (your )?card|change (your )?plan|cancel (your )?plan|dodo/i);
+      expect(email.html).not.toMatch(/>(cancel[^<]*)<\/a>/i);
     }
   });
 

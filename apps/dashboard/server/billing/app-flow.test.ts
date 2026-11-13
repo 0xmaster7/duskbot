@@ -166,7 +166,7 @@ it("runs the real desktop client through checkout, setup, pairing, upgrade, anot
   expect(subjects.slice(0, 3)).toEqual(["welcome to dusk bot", expect.stringMatching(/^receipt for \$\d+\.\d\d: /), "your dusk cloud is ready"]);
   expect(subjects.filter(subject => subject === "your dusk cloud is ready")).toHaveLength(1);
   expect(subjects.filter(subject => subject.endsWith("plan is cancelled"))).toHaveLength(1);
-  for (const mail of f.mailer.outbox) expect(mail.html).toContain("https://dusk.bot/email/kit-64.png");
+  for (const mail of f.mailer.outbox) expect(mail.html).toContain("class=\"kit\"");
   const token = f.token();
   expect(await f.request("session", {}, token, "DELETE")).toEqual({ status: 200, data: { ok: true } });
   for (const [path, data] of [["license", undefined], ["checkout", { plan: "starter", source: "app_card" }]] as const) {

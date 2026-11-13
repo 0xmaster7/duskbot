@@ -21,13 +21,21 @@ export function decide(state, ok, time) {
 
 const days = ms => { const h = Math.round(ms / 3_600_000); return h < 48 ? `${h}h` : `${Math.round(h / 24)} days`; };
 
-export function message(kind, set, { log = "", downFor = 0, host = "the contabo vps" } = {}) {
-  const subject = kind === "failed" ? `backup failed: ${set}` : `backups work again: ${set}`;
-  const lines = kind === "failed"
-    ? [`the daily ${set} backup on ${host} failed. this is the only email until it works again; then you get one more.`,
-      `see: journalctl -u dusk-backup@${set} -n 50`, ...(log ? ["last lines:", log] : [])]
-    : [`the ${set} backup on ${host} works again after ${days(downFor)}.`];
-  const text = lines.join("\n\n");
+const EMAIL_CFG = { assets: "https://dusk.bot/email", site: "https://dusk.bot", app: "https://dusk.bot/dashboard", x: "https://x.com/duskbot_hq", address: null };
+
+/** `render` is the shared email layout when it loads; without it the email is the plain text in a pre */
+export function message(kind, set, { log = "", downFor = 0, host = "the contabo vps", render = null } = {}) {
+  const failed = kind === "failed";
+  const subject = failed ? `backup failed: ${set}` : `backups work again: ${set}`;
+  const intro = failed ? `the daily ${set} backup on ${host} failed. this is the only email until it works again; then you get one more.`
+    : `the ${set} backup on ${host} works again after ${days(downFor)}.`;
+  const command = `journalctl -u dusk-backup@${set} -n 50`;
+  if (render) return render(EMAIL_CFG, { subject, preheader: intro.slice(0, 120), tag: "backup", say: failed ? "uh oh, a backup failed" : "phew, backups work again",
+    accent: failed ? "pink" : "lime", status: failed ? ["failed", "bad"] : ["working", "ok"],
+    blocks: [{ t: "h1", text: subject }, { t: "p", text: intro }, { t: "facts", rows: [["set", set], ["host", host]] },
+      ...(failed ? [{ t: "label", text: "see what happened" }, { t: "cmd", text: command }, ...(log ? [{ t: "label", text: "last lines" }, { t: "log", text: log }] : [])] : [])],
+    reason: "owner alert for dusk bot backups. one email per incident." });
+  const text = (failed ? [intro, `see: ${command}`, ...(log ? ["last lines:", log] : [])] : [intro]).join("\n\n");
   return { subject, text, html: `<pre style="font-family:ui-monospace,monospace;white-space:pre-wrap">${text.replace(/[&<>]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[ch])}</pre>` };
 }
 
@@ -43,8 +51,9 @@ async function main() {
   if (!/^[a-z0-9-]+$/.test(set ?? "")) throw new Error("usage: backup-alert.mjs <set>");
   const envFile = process.env.DUSK_BACKUP_ALERT_ENV || "/etc/dusk-backup/alert.env";
   if (existsSync(envFile)) process.loadEnvFile(envFile);
-  const { settings, deliver } = await import(new URL("./uptime-check.mjs", import.meta.url).href);
-  const cfg = { ...settings(), from: process.env.DUSK_ALERT_FROM || "dusk bot backups <alerts@dusk.bot>" };
+  const { settings, deliver, layout } = await import(new URL("./uptime-check.mjs", import.meta.url).href);
+  const cfg = settings();
+  const render = await layout();
 
   const dir = process.env.DUSK_BACKUP_STATE || "/var/lib/dusk-backup";
   mkdirSync(dir, { recursive: true, mode: 0o700 });
@@ -55,7 +64,7 @@ async function main() {
   const ok = process.env.SERVICE_RESULT === "success";
   const { state, mail, downFor } = decide(saved.state ?? {}, ok, time);
   const outbox = (saved.outbox ?? []).filter(job => job.until > time);
-  if (mail) outbox.push({ message: message(mail, set, { log: mail === "failed" ? lastLog() : "", downFor }), until: time + 3 * DAY });
+  if (mail) outbox.push({ message: message(mail, set, { log: mail === "failed" ? lastLog() : "", downFor, render }), until: time + 3 * DAY });
 
   const left = [];
   for (const job of outbox) {

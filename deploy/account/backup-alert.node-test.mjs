@@ -30,3 +30,12 @@ test("the emails name the set and the way to the logs", () => {
   assert.match(failed.text, /upload to r2 failed/);
   assert.match(message("recovered", "dusk", { downFor: 72 * HOUR }).text, /after 3 days/);
 });
+
+test("with the shared layout, the failed email keeps the command and log in the html and the text", async () => {
+  const { render } = await import(new URL("../../apps/dashboard/server/email/layout.ts", import.meta.url).href);
+  const failed = message("failed", "dusk", { log: "restic: Fatal: 403 Forbidden", render });
+  assert.match(failed.html, /uh oh, a backup failed/);
+  assert.match(failed.html, /journalctl -u dusk-backup@dusk -n 50/);
+  assert.match(failed.text, /restic: Fatal: 403 Forbidden/);
+  assert.doesNotMatch(failed.html + failed.text, /—/);
+});

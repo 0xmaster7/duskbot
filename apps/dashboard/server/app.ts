@@ -20,6 +20,7 @@ import type { StoredCloud } from "./clouds/types.ts";
 import { DEFAULT_RETENTION_DAYS } from "../../cloud-service/src/retention.ts";
 import { accountDeletedEmail, cancelledEmail, cloudDeletedEmail, cloudNoticeEmail, cloudReadyEmail, emailConfig, paymentFailedEmail, receiptEmail, welcomeEmail } from "./email/templates.ts";
 import type { Rendered } from "./email/templates.ts";
+import { render } from "./email/layout.ts";
 import { BillingError } from "./billing/service.ts";
 import { createSlackEdgeHost } from "./slack-edge/index.ts";
 import { createManagedRoutes } from "./clouds/managed-routes.ts";
@@ -172,12 +173,14 @@ export function createDashboardApp(options: DashboardAppOptions) {
     store.changed(); store.close();
   });
   let slackEdge: ReturnType<typeof createSlackEdgeHost> | null = null;
-  const mail = (to: string | null | undefined, subject: string, text: string) => {
-    if (!to) return;
-    const html = `<p>${text.replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" })[ch]!)}</p>`;
-    void options.mailer.send({ to, subject, text, html }).catch(() => console.warn("clouds: a notice email failed"));
-  };
   const emailCfg = emailConfig(process.env, { publicUrl, pageBase });
+  const mail = (to: string | null | undefined, subject: string, text: string, owner = false) => {
+    if (!to) return;
+    const message = render(emailCfg, { subject, preheader: text.slice(0, 120), tag: owner ? "alert" : "dusk cloud", say: owner ? "a cloud needs a look" : "a note about your cloud",
+      accent: owner ? "pink" : "sky", blocks: [{ t: "h1", text: subject.toLowerCase() }, { t: "p", text }],
+      reason: owner ? "you got this because your address is in DUSK_OPS_ALERT_EMAIL for this dusk bot service." : "you got this because you have a dusk bot account. it's about your account, so it can't be turned off." });
+    void options.mailer.send({ to, ...message }).catch(() => console.warn("clouds: a notice email failed"));
+  };
   const ownIncidents = options.incidents ? null : createIncidents({ env: options.admin?.environment ?? "development", store: memoryIncidentStore(), to: () => [], mailers: [],
     email: emailCfg, panelUrl: `${publicUrl}${ADMIN_PATH}/health`, mail: false, timers: false, now });
   const incidents = options.incidents ?? ownIncidents!;
@@ -244,7 +247,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     // every other cloud alert also prints a "managed: ALERT" line, which the console tap already makes an incident
     alert: entry => options.incidents
       ? entry.action === "starts_alert" && incidents.report({ source: "log", name: "managed alert", message: `${entry.action} ${entry.cloudId}: ${entry.reason}` })
-      : mail(process.env.DUSK_OPS_ALERT_EMAIL, `Cloud ${entry.action}: cloud ${entry.cloudId}`, `${entry.action} by ${entry.actor} (${entry.reason}) at ${new Date(entry.at).toISOString()}`), dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, wakeStats: () => slackEdge?.edge.wakeStats() ?? {}, accounts: {
+      : mail(process.env.DUSK_OPS_ALERT_EMAIL, `cloud ${entry.action}: cloud ${entry.cloudId}`, `${entry.action} by ${entry.actor} (${entry.reason}) at ${new Date(entry.at).toISOString()}`, true), dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, wakeStats: () => slackEdge?.edge.wakeStats() ?? {}, accounts: {
     fromCookie: req => { try { return account(req); } catch (error) { if (error instanceof AuthError && error.code === "signed_out") return null; throw error; } },
     fromBearer: req => auth.appSession(req)?.account ?? null } });
   const pagesRoutes = pagesRoutesFromEnv({ dataDir: options.dataDir, publicUrl, clouds: billing.clouds, now, fetch: options.fetch });
@@ -277,7 +280,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     waitlist: options.analytics?.waitlist ?? null, now, fetch: options.fetch, env: options.admin?.env, errors: errorsSeen, readBody, bodyObject, json,
     service: { version: options.version ?? null, startedAt, environment: options.admin?.environment ?? (dev ? "development" : "production"), dataDir: options.dataDir,
       backupDir: options.admin?.backupDir ?? null, database: () => stateBackend()?.health() ?? null } });
-  const alerts = createAlerts({ kinds: parseAlerts((options.admin?.env ?? process.env).DUSK_ADMIN_ALERTS), emails: () => adminEmails, mailer: options.mailer, sink: analytics.sink, now,
+  const alerts = createAlerts({ kinds: parseAlerts((options.admin?.env ?? process.env).DUSK_ADMIN_ALERTS), emails: () => adminEmails, mailer: options.mailer, sink: analytics.sink, now, email: emailCfg,
     panelUrl: `${publicUrl}${ADMIN_PATH}`, totals: (from, to) => ({ accounts: auth.directory().accounts.length, signups: auth.directory().accounts.filter(account => account.createdAt >= from && account.createdAt < to).length,
       paid: billing.store.state.invoices.filter(invoice => invoice.status === "paid" && invoice.createdAt >= from && invoice.createdAt < to).length, waitlist: null,
       money: moneyDigestOf({ ...ledgerState(), accounts: new Map(auth.directory().accounts.map(account => [account.id, { email: account.email, createdAt: account.createdAt }])) }, from, to) }),

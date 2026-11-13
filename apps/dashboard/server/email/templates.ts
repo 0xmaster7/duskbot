@@ -27,27 +27,33 @@ export function formatMoney(cents: number, currency = "USD") {
 const joinOr = (items: string[]) => items.length > 1 ? `${items.slice(0, -1).join(", ")} or ${items.at(-1)}` : items[0] ?? "";
 
 /** every image the emails use, relative to the asset base; the site build must ship each one */
-export const EMAIL_ASSETS = ["kit-64.png", "cloud-day.png", "tip-jobs.png", "tip-routines.png", "tip-rooms.png",
-  ...["code", "welcome", "cloud-ready", "receipt", "payment", "napping", "heads-up", "cloud-gone", "bye", "promo"].map(scene => `scene-${scene}.png`)];
+export const EMAIL_ASSETS = ["cloud-day.png", "tip-jobs.png", "tip-routines.png", "tip-rooms.png"];
 
-const scene = (name: string, alt: string) => ({ image: `scene-${name}.png`, alt, height: 200 });
-const HERO = {
-  code: scene("code", "a day sky. kit holds up a little golden key and says: psst, it's a secret code."),
-  welcome: scene("welcome", "a sunny meadow. kit waves from its hill and says: hi! welcome!"),
-  ready: scene("cloud-ready", "pip carries a little cloud over its head and says: special delivery!"),
-  receipt: scene("receipt", "a golden afternoon. loaf holds up a paper receipt and says: paid. thank you!"),
-  payment: scene("payment", "a rainy sky. pip looks at a pink bank card and says: uh oh, card trouble."),
-  napping: scene("napping", "a sunset meadow. mochi curls up for a nap. z z z."),
-  headsUp: scene("heads-up", "a sunset sky. cheep holds up a little hourglass and says: heads up!"),
-  cloudGone: scene("cloud-gone", "a starry night. wisp waves to a little cloud drifting away: bye, little cloud!"),
-  bye: scene("bye", "the last light of the day. kit heads off over the hill with a suitcase: bye for now!"),
-  promo: scene("promo", "kit with a sparkle overhead says: something new!"),
-};
+const SAY = {
+  code: { say: "psst, your code", accent: "lemon" },
+  recover: { say: "let's get you back in", accent: "lemon" },
+  nobody: { say: "hmm, no account here", accent: "lav" },
+  welcome: { say: "hi! welcome!", accent: "sky" },
+  ready: { say: "special delivery!", accent: "lime" },
+  back: { say: "it's back!", accent: "sky" },
+  receipt: { say: "paid. thank you!", accent: "lime" },
+  revived: { say: "welcome back!", accent: "lime" },
+  payment: { say: "uh oh, card trouble", accent: "pink" },
+  napping: { say: "no hard feelings", accent: "lav" },
+  headsUp: { say: "heads up!", accent: "lemon" },
+  lastDay: { say: "last call!", accent: "pink" },
+  confirm: { say: "is this you?", accent: "pink" },
+  cloudGone: { say: "bye, little cloud!", accent: "lav" },
+  bye: { say: "bye for now!", accent: "lav" },
+  promo: { say: "something new!", accent: "lime" },
+} as const;
+/** the plain way to the billing page: no plan buttons in email, and nothing that opens the payment provider */
+const billingLink = (cfg: EmailConfig, before: string): Block => ({ t: "link", before, label: "billing page", href: `${cfg.app}/billing` });
 
 /** the sign-in or sign-up code */
 export function codeEmail(cfg: EmailConfig, { code }: { code: string }): Rendered {
   return render(cfg, {
-    subject: `${code} is your dusk bot code`, preheader: `your dusk bot code is ${code}. it works for 10 minutes.`, tag: "sign in", hero: HERO.code,
+    subject: `${code} is your dusk bot code`, preheader: `your dusk bot code is ${code}. it works for 10 minutes.`, tag: "sign in", ...SAY.code,
     blocks: [
       { t: "h1", text: "here's your code" },
       { t: "p", text: "pop it in where you signed in. it works for 10 minutes." },
@@ -64,7 +70,7 @@ const WAYS: Record<string, string> = { email: "an emailed code", google: "google
 export function recoveryEmail(cfg: EmailConfig, { code, link = null, ways }: { code: string; link?: string | null; ways: string[] | null }): Rendered {
   const reason = "you got this because someone asked to sign in to dusk bot with this address.";
   if (!ways) return render(cfg, {
-    subject: "signing in to dusk bot", preheader: "no dusk bot account uses this address.", tag: "sign in", hero: HERO.code,
+    subject: "signing in to dusk bot", preheader: "no dusk bot account uses this address.", tag: "sign in", ...SAY.nobody,
     blocks: [
       { t: "h1", text: "no account uses this address" },
       { t: "p", text: "someone asked to sign in to dusk bot with this address, but no account uses it. try another address you use." },
@@ -73,7 +79,7 @@ export function recoveryEmail(cfg: EmailConfig, { code, link = null, ways }: { c
   });
   const list = joinOr(ways.map(way => WAYS[way] ?? way)) || WAYS.email;
   return render(cfg, {
-    subject: `${code} is your dusk bot code`, preheader: `your dusk bot code is ${code}. here's how you get back in.`, tag: "sign in", hero: HERO.code,
+    subject: `${code} is your dusk bot code`, preheader: `your dusk bot code is ${code}. here's how you get back in.`, tag: "sign in", ...SAY.recover,
     blocks: [
       { t: "h1", text: "here's how you get back in" },
       { t: "p", text: "use this code where you asked. it works for 10 minutes." },
@@ -88,7 +94,7 @@ export function recoveryEmail(cfg: EmailConfig, { code, link = null, ways }: { c
 /** after the first sign-up */
 export function welcomeEmail(cfg: EmailConfig, { cloudFromCents }: { cloudFromCents: number }): Rendered {
   return render(cfg, {
-    subject: "welcome to dusk bot", preheader: "a team of ai bots you text like teammates. here's how to get going.", tag: "welcome", hero: HERO.welcome,
+    subject: "welcome to dusk bot", preheader: "a team of ai bots you text like teammates. here's how to get going.", tag: "welcome", ...SAY.welcome,
     blocks: [
       { t: "h1", text: "welcome to dusk bot" },
       { t: "p", text: "dusk bot is a chat app for a team of ai bots. you text them like teammates, and they get real work done on your computer." },
@@ -119,7 +125,7 @@ const cloudRows = (cloud: CloudFacts, status: [string, "ok" | "warn" | "off"]): 
 /** a cloud's first time up */
 export function cloudReadyEmail(cfg: EmailConfig, cloud: CloudFacts): Rendered {
   return render(cfg, {
-    subject: `your dusk cloud is ready`, preheader: `${cloud.name} is up and running. pair the app and give it something to do.`, tag: "dusk cloud", hero: HERO.ready,
+    subject: `your dusk cloud is ready`, preheader: `${cloud.name} is up and running. pair the app and give it something to do.`, tag: "dusk cloud", ...SAY.ready,
     blocks: [
       { t: "h1", text: "your dusk cloud is ready" },
       { t: "p", text: `**${cloud.name}** is up and running. from now on your bots can work around the clock, even with your computer off.` },
@@ -147,21 +153,22 @@ export interface ReceiptInput {
 /** a payment that went through: a new plan, a renewal or credits */
 export function receiptEmail(cfg: EmailConfig, input: ReceiptInput): Rendered {
   const amount = formatMoney(input.amountCents, input.currency);
-  const rows: Array<[string, string]> = [["amount", amount], ["for", input.description], ["paid on", formatDate(input.paidAt)]];
+  const rows: Array<[string, string]> = [["for", input.description], ["paid on", formatDate(input.paidAt)]];
   if (input.periodStart !== null && input.periodEnd !== null) rows.push(["period", `${formatDate(input.periodStart)} to ${formatDate(input.periodEnd)}`]);
   if (input.periodEnd !== null) rows.push(["next charge", input.renews ? formatDate(input.periodEnd) : "none, the plan ends then"]);
   rows.push(["receipt", input.receiptId]);
   return render(cfg, {
-    subject: `receipt for ${amount}: ${input.description}`, preheader: `thanks! ${amount} for ${input.description}.`, tag: "receipt", hero: HERO.receipt,
+    subject: `receipt for ${amount}: ${input.description}`, preheader: `thanks! ${amount} for ${input.description}.`, tag: "receipt", ...(input.revived ? SAY.revived : SAY.receipt),
     blocks: [
       { t: "h1", text: input.revived ? "welcome back" : input.first ? "thanks, you're all set" : "thanks, payment received" },
       { t: "p", text: input.revived ? `your plan is active again, and your cloud and bots are restored where they stopped. here's your receipt for **${input.description}**.`
         : input.first ? `your plan is active. here's your receipt for **${input.description}**.` : `here's your receipt for **${input.description}**. nothing else to do.` },
+      { t: "total", label: "paid", value: amount },
       { t: "facts", rows },
       input.cloud ? { t: "button", label: "open dusk cloud", href: `${cfg.app}/cloud` } : { t: "button", label: "open the app", href: `${cfg.site}/download` },
-      { t: "p", small: true, text: "invoices and plan details live on your plan page, linked below." },
+      billingLink(cfg, "invoices and plan details live on your"),
     ],
-    reason: ACCOUNT_REASON, plan: `${cfg.app}/billing`,
+    reason: ACCOUNT_REASON,
   });
 }
 
@@ -169,18 +176,18 @@ export interface PaymentFailedInput { amountCents: number | null; currency: stri
 export function paymentFailedEmail(cfg: EmailConfig, input: PaymentFailedInput): Rendered {
   const amount = input.amountCents === null ? null : formatMoney(input.amountCents, input.currency);
   return render(cfg, {
-    subject: "your payment didn't go through", preheader: `update your card to keep ${input.cloudName ?? "your plan"} running.`, tag: "billing", hero: HERO.payment,
+    subject: "your payment didn't go through", preheader: `a new card keeps ${input.cloudName ?? "your plan"} running.`, tag: "billing", ...SAY.payment,
     blocks: [
       { t: "h1", text: "your card needs a look" },
       { t: "p", text: `we couldn't charge ${amount ? `**${amount}** ` : ""}for **${input.description}**. usually it's an expired card, a new card number or the bank saying no.` },
       ...(input.fixBy !== null ? [{ t: "note", tone: "alert", text: input.cloudName
         ? `**${input.cloudName}** keeps running for now. fix the card by **${formatDate(input.fixBy)}** so it doesn't stop.`
         : `fix the card by **${formatDate(input.fixBy)}** to keep your plan.` } as Block] : []),
-      { t: "p", text: "you can update the card from **your plan**, linked at the bottom of this email." },
+      billingLink(cfg, "the card on file lives on your"),
       input.cloudName ? { t: "button", label: "open dusk cloud", href: `${cfg.app}/cloud` } : { t: "button", label: "open the app", href: `${cfg.site}/download` },
       { t: "p", small: true, text: "already fixed it? then you're good, there's nothing else to do." },
     ],
-    reason: ACCOUNT_REASON, plan: `${cfg.app}/billing`,
+    reason: ACCOUNT_REASON,
   });
 }
 
@@ -192,7 +199,7 @@ export function cancelledEmail(cfg: EmailConfig, input: CancelledInput): Rendere
   const keepUntil = input.endsAt === null ? null : formatDate(input.endsAt + input.keepDays * DAY);
   const what = input.cloudName ? `**${input.cloudName}**` : "your plan";
   return render(cfg, {
-    subject: `your ${input.description} plan is cancelled`, preheader: ends ? `everything keeps working until ${ends}.` : "no more charges.", tag: "billing", hero: HERO.napping,
+    subject: `your ${input.description} plan is cancelled`, preheader: ends ? `everything keeps working until ${ends}.` : "no more charges.", tag: "billing", ...SAY.napping,
     blocks: [
       { t: "h1", text: ends ? `you keep everything until ${ends}` : "your plan is cancelled" },
       { t: "p", text: ends ? `your plan is cancelled, but nothing changes today. ${what} keeps working until **${ends}**, the end of what you paid for, and there are no more charges after that.` : "no more charges. thanks for giving it a go." },
@@ -213,7 +220,7 @@ export function cancelledEmail(cfg: EmailConfig, input: CancelledInput): Rendere
 /** a cloud that was taken down and its data removed */
 export function cloudDeletedEmail(cfg: EmailConfig, { name, at }: { name: string; at: number }): Rendered {
   return render(cfg, {
-    subject: `${name} was deleted`, preheader: `${name} and its data are gone. your account and the app on your computer are untouched.`, tag: "dusk cloud", hero: HERO.cloudGone,
+    subject: `${name} was deleted`, preheader: `${name} and its data are gone. your account and the app on your computer are untouched.`, tag: "dusk cloud", ...SAY.cloudGone,
     blocks: [
       { t: "h1", text: `${name} is deleted` },
       { t: "p", text: `we deleted **${name}** on ${formatDate(at)}. this can't be undone.` },
@@ -228,7 +235,7 @@ export function cloudDeletedEmail(cfg: EmailConfig, { name, at }: { name: string
 
 export function accountDeletedEmail(cfg: EmailConfig, { email }: { email: string }): Rendered {
   return render(cfg, {
-    subject: "your dusk bot account is deleted", preheader: `everything tied to ${email} is gone.`, tag: "account", hero: HERO.bye,
+    subject: "your dusk bot account is deleted", preheader: `everything tied to ${email} is gone.`, tag: "account", ...SAY.bye,
     blocks: [
       { t: "h1", text: "your account is deleted" },
       { t: "p", text: `thanks for trying dusk bot. the account for **${email}** is gone, and here's what went with it:` },
@@ -243,7 +250,6 @@ export function accountDeletedEmail(cfg: EmailConfig, { email }: { email: string
 
 export interface PromoInput {
   subject: string; preheader: string; eyebrow: string; title: string; intro: string;
-  hero?: { image: string; alt: string; height: number };
   features: Array<{ image?: string; alt?: string; title: string; text: string }>;
   cta: { label: string; href: string }; unsubscribe: string;
 }
@@ -251,7 +257,7 @@ export interface PromoInput {
 export function promoEmail(cfg: EmailConfig, input: PromoInput): Rendered {
   if (!input.unsubscribe.startsWith("https://")) throw new Error("A promo email needs an https unsubscribe link.");
   return render(cfg, {
-    subject: input.subject, preheader: input.preheader, tag: input.eyebrow, hero: input.hero ?? HERO.promo,
+    subject: input.subject, preheader: input.preheader, tag: input.eyebrow, ...SAY.promo,
     blocks: [
       { t: "h1", text: input.title },
       { t: "p", text: input.intro },
@@ -278,7 +284,7 @@ export function cloudNoticeEmail(cfg: EmailConfig, { kind, name, at, link }: { k
 
 /** a cloud's machine stopped and was set up again, from its latest backup (`at`) or empty (null) */
 export function cloudBackEmail(cfg: EmailConfig, { name, at }: { name: string; at: number | null }): Rendered {
-  return render(cfg, { tag: "dusk cloud", reason: ACCOUNT_REASON, subject: `${name} is back`, preheader: "its computer stopped, so we set it up again. your app reconnects by itself.", hero: HERO.ready,
+  return render(cfg, { tag: "dusk cloud", reason: ACCOUNT_REASON, subject: `${name} is back`, preheader: "its computer stopped, so we set it up again. your app reconnects by itself.", ...SAY.back,
     blocks: [{ t: "h1", text: `${name} is back` },
       { t: "p", text: at === null ? `${name}'s computer stopped before its first backup, so we set it up again, empty. bots you moved there can be moved again from your computer.`
         : `${name}'s computer stopped, so we set it up again from its latest backup, taken **${formatDate(at)}**. anything after that backup may be missing.` },
@@ -288,8 +294,8 @@ export function cloudBackEmail(cfg: EmailConfig, { name, at }: { name: string; a
 /** a heads-up before a cloud's data goes: the retention warning, and the owner's own deletion (confirm, then scheduled) */
 export function cloudDeletionEmail(cfg: EmailConfig, { kind, name, at, link, daysLeft = 7 }: { kind: "warning" | "confirm" | "scheduled"; name: string; at: number | null; link?: string; daysLeft?: number }): Rendered {
   const date = at === null ? null : formatDate(at), cloud = `${cfg.app}/cloud`, days = `${daysLeft} day${daysLeft === 1 ? "" : "s"}`;
-  const base = { tag: "dusk cloud", reason: ACCOUNT_REASON, hero: HERO.headsUp };
-  if (kind === "confirm") return render(cfg, { ...base, tag: "security", subject: `confirm deleting ${name}`, preheader: "nothing happens unless you confirm within an hour.",
+  const base = { tag: "dusk cloud", reason: ACCOUNT_REASON, ...SAY.headsUp };
+  if (kind === "confirm") return render(cfg, { ...base, ...SAY.confirm, tag: "security", subject: `confirm deleting ${name}`, preheader: "nothing happens unless you confirm within an hour.",
     blocks: [{ t: "h1", text: `delete ${name}?` }, { t: "p", text: `someone signed in to your account asked to delete **${name}** and all of its data. nothing happens unless you confirm within an hour. you may be asked to sign in again.` },
       { t: "button", label: "confirm deletion", href: link ?? cloud },
       { t: "note", tone: "info", text: "after you confirm, it's deleted 7 days later, and its page can stop it any time before then." },
@@ -297,7 +303,7 @@ export function cloudDeletionEmail(cfg: EmailConfig, { kind, name, at, link, day
   if (kind === "scheduled") return render(cfg, { ...base, subject: `${name} will be deleted on ${date ?? "schedule"}`, preheader: "changed your mind? its page can stop it until then.",
     blocks: [{ t: "h1", text: `${name} is set to be deleted` }, { t: "p", text: `you confirmed deleting **${name}**. it and its data, backups included, will be deleted${date ? ` on **${date}**` : ""}.` },
       { t: "note", tone: "warn", text: "changed your mind? until then, your cloud's page can stop the deletion and keep everything." }, { t: "button", label: "open your cloud", href: cloud }] });
-  return render(cfg, { ...base, subject: `${name} will be deleted in ${days}`, preheader: date ? `on ${date}, unless its plan starts again.` : "unless its plan starts again.",
+  return render(cfg, { ...base, ...(daysLeft === 1 ? SAY.lastDay : {}), subject: `${name} will be deleted in ${days}`, preheader: date ? `on ${date}, unless its plan starts again.` : "unless its plan starts again.",
     blocks: [{ t: "h1", text: `${days} left for ${name}` }, { t: "p", text: `**${name}** has been napping since its plan ended.` },
       { t: "note", tone: daysLeft === 1 ? "alert" : "warn", text: `${date ? `on **${date}**` : "soon"}, ${name} and everything on it will be deleted for good.` },
       { t: "p", text: "start a plan for it again and it wakes up right where it stopped." },
