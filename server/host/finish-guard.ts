@@ -14,11 +14,10 @@ const AGREED = /\b(?:you'?re|you are)\s+(?:absolutely\s+|completely\s+|totally\s
 
 export type FinishReason = { kind: "plan"; open: number; total: number } | { kind: "ack" } | { kind: "next" };
 
-// The last paragraph of a reply, where an announced step or a "shall I go on?" sits.
 const lastParagraph = (text: string) => text.trim().split(/\n\s*\n/).at(-1)!.trim();
+const lastSentence = (paragraph: string) => paragraph.split("\n").at(-1)!.trim().split(/(?<=[.!])\s+/).at(-1)!;
 // Something that leaves the chat or is hard to undo always waits for the person, however the question is worded.
 const OUTWARD = /\b(?:send|sending|email|post|posting|publish|book|booking|buy|buying|order|pay|paying|delete|deleting|remove|deploy|deploying|submit|cancel|share|push|merge|sign)\b/i;
-// A wait is a real ending: "I'll check again once it lands", "Let me know".
 const WAITS = /\b(?:once|when|after|if|later|tomorrow|tonight|again|back|until|wait|waiting|meanwhile|soon|know)\b/i;
 const ANNOUNCED = /^(?:(?:ok(?:ay)?|right|now|next|alright|got it)[,.!]?\s+)?(?:let me|let's|now i['\u2019]ll|next,? i['\u2019]ll|i['\u2019]ll now|i will now|i['\u2019]m (?:now )?going to|i am (?:now )?going to)\s+(?:now\s+)?(?:check|look|read|open|run|fetch|pull|search|verify|test|try|write|create|update|fix|compare|build|draft|start|dig|go through|find|grab|get|gather|load|scan|calculate|work out|put together|make|finish|continue|move on)\b/i;
 const CARRY_ON = /^(?:(?:shall|should|can|may) i|(?:do you )?want me to|would you like me to)\s+(?:continue|keep going|proceed|carry on|go on|finish(?: the rest| up| off)?|do the rest|move on)\b[^?]*\?\s*$|^(?:continue|keep going|carry on|proceed)\?\s*$/i;
@@ -26,13 +25,14 @@ const CARRY_ON = /^(?:(?:shall|should|can|may) i|(?:do you )?want me to|would yo
 /** The reply ends by saying what it will do next in this turn, without having done it. */
 export function announcesStep(text: string): boolean {
   const tail = lastParagraph(text);
-  if (!tail || tail.length > 240 || tail.includes("?") || WAITS.test(tail)) return false;
-  return ANNOUNCED.test(tail) || (tail.length <= 160 && /(?::|\.\.\.|\u2026)$/.test(tail) && !/^(?:sources|links|notes?)\b/i.test(tail));
+  const last = lastSentence(tail);
+  if (!tail || tail.length > 240 || tail.includes("?") || WAITS.test(last)) return false;
+  return ANNOUNCED.test(last) || (tail.length <= 160 && /(?::|\.\.\.|\u2026)$/.test(tail) && !/^(?:sources|links|notes?)\b/i.test(last));
 }
 
 /** The reply's last sentence only asks whether to carry on with work already underway. */
 export function asksToCarryOn(text: string): boolean {
-  const tail = lastParagraph(text).split("\n").at(-1)!.trim().split(/(?<=[.!])\s+/).at(-1)!;
+  const tail = lastSentence(lastParagraph(text));
   return tail.length <= 160 && CARRY_ON.test(tail) && !OUTWARD.test(tail);
 }
 

@@ -86,8 +86,8 @@ describe("finish guard", () => {
   });
 
   it("reads a step announced but not taken, and leaves waits, results and other questions alone", () => {
-    for (const text of ["Let me check Amazon India's bestseller list for current prices.", "Found the three desks.\n\nNow I'll compare their warranties.", "Okay, let me pull the review counts.", "Here are the prices:"]) expect(announcesStep(text), text).toBe(true);
-    for (const text of ["I'll check again once the deploy finishes.", "Let me know if you want the long version.", "The Redragon K552 is the best pick at ₹2,289.", "Let me check: want the wired one or the wireless one?", "I'll send the link at 9.", "Sources:"]) expect(announcesStep(text), text).toBe(false);
+    for (const text of ["Let me check Amazon India's bestseller list for current prices.", "Found the three desks.\n\nNow I'll compare their warranties.", "Found three listings. Let me check their current prices.", "Okay, let me pull the review counts.", "Here are the prices:"]) expect(announcesStep(text), text).toBe(true);
+    for (const text of ["I'll check again once the deploy finishes.", "Let me know if you want the long version.", "The Redragon K552 is the best pick at ₹2,289.", "Let me check: want the wired one or the wireless one?", "I'll send the link at 9.", "Let me check the prices. Done: the cheapest is 1,599.", "Sources:"]) expect(announcesStep(text), text).toBe(false);
   });
 
   it("reads a last line that only asks whether to carry on, but never one about sending, buying or deleting", () => {
