@@ -26,7 +26,16 @@ export function frameAddress(reply: { image?: unknown; png?: unknown; format?: u
  * moves, with the Take over pill over it. The picture refreshes slowly and only while the card is on screen and the
  * page is shown; pressing it takes over, like the card's own button.
  */
-export function SignInScreen({ path, name, onOpen, disabled }: { path: string; name: string; onOpen: () => void; disabled?: boolean }) {
+export function SignInScreen({ path, name, onOpen, onFrame, disabled, busy }: {
+  path: string; name: string; onOpen: () => void;
+  /** Each new picture, so the live view that replaces this one can show it until its own first frame. */
+  onFrame?: (frame: string) => void;
+  disabled?: boolean;
+  /** Take over is on its way: the pill holds a spinner. */
+  busy?: boolean;
+}) {
+  const framed = useRef(onFrame);
+  framed.current = onFrame;
   const box = useRef<HTMLButtonElement>(null);
   const [frame, setFrame] = useState<string | null>(null);
   const [tried, setTried] = useState(false);
@@ -55,7 +64,7 @@ export function SignInScreen({ path, name, onOpen, disabled }: { path: string; n
       let wait = SIGN_IN_SCREEN_MS;
       try {
         const next = frameAddress(await api(path, { method: "POST", background: true, signal: controller.signal, timeoutMs: 60_000 }));
-        if (!controller.signal.aborted && next) setFrame(next);
+        if (!controller.signal.aborted && next) { setFrame(next); framed.current?.(next); }
       } catch {
         // the last picture stays; a computer that is busy or asleep is asked again later
         wait = RETRY_MS;
@@ -80,6 +89,7 @@ export function SignInScreen({ path, name, onOpen, disabled }: { path: string; n
       onClick={onOpen}
       disabled={disabled}
       aria-label={t("signIn.takeOverComputer")}
+      aria-busy={busy || undefined}
       data-sign-in-screen=""
       className="group relative flex aspect-[16/10] w-full items-center justify-center overflow-hidden bg-[#000] text-[13px] leading-[18px] text-[rgb(245_245_245/0.66)] focus-visible:outline-none focus-visible:inset-ring-2 disabled:cursor-default"
     >
@@ -90,7 +100,10 @@ export function SignInScreen({ path, name, onOpen, disabled }: { path: string; n
           : <span className="flex items-center gap-1.5"><Loader2 size={16} aria-hidden="true" className="motion-safe:animate-spin" />{t("computer.preview.connecting")}</span>}
       {frame && <span aria-hidden="true" className="absolute inset-0 bg-[rgb(0_0_0/0.2)]" />}
       <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center">
-        <span className="rounded-full bg-[rgb(0_0_0/0.9)] px-3 py-1.5 text-[12px] font-medium leading-4 text-[#fff]">{t("signIn.takeOver")}</span>
+        <span className="flex items-center gap-1.5 rounded-full bg-[rgb(0_0_0/0.9)] px-3 py-1.5 text-[12px] font-medium leading-4 text-[#fff]">
+          {busy && <Loader2 size={12} aria-hidden="true" className="motion-safe:animate-spin" />}
+          {t("signIn.takeOver")}
+        </span>
       </span>
     </button>
   );

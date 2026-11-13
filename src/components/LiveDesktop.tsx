@@ -14,7 +14,7 @@ import { useCaptionChrome, useDesktopCapabilities } from "./DesktopCapabilities"
 type Connection = "connecting" | "connected" | "disconnected";
 
 /** The computer the person took control of, live and drivable where they were watching it. */
-export function LiveDesktop({ target, threadId, botId, name, poster, expanded, onExpandedChange, onHandBack, handingBack, onUnreachable, onReadyChange, onTakeControl, onOpenPreview, onScreenSize, waking, originalViewer = false, viewOnly = false, wake = false, taking = false }: {
+export function LiveDesktop({ target, threadId, botId, name, poster, expanded, onExpandedChange, onHandBack, handingBack, onUnreachable, onReadyChange, onTakeControl, onOpenPreview, onScreenSize, waking, originalViewer = false, viewOnly = false, wake = false, taking = false, asked = false }: {
   target: string;
   /** Whose pointer to draw over the screen while it is watched. */
   botId?: string;
@@ -23,6 +23,8 @@ export function LiveDesktop({ target, threadId, botId, name, poster, expanded, o
   wake?: boolean;
   /** Take control was asked for and the answer is on its way. */
   taking?: boolean;
+  /** The bot asked for the person's hands (a sign-in): handing back reads I'm done rather than Stop. */
+  asked?: boolean;
   /** What shows until the first frame: the bot waking up, never a connecting line. */
   waking?: (expanded: boolean) => ReactNode;
   /** The desktop's own size in pixels, once its first frame arrives, so the frame around it can match its shape. */
@@ -232,7 +234,7 @@ export function LiveDesktop({ target, threadId, botId, name, poster, expanded, o
       <ComputerFullscreen embedded expanded={expanded} label={label} aspect={aspect} onExit={() => onExpandedChange(false)}
         frame={desktopFrame} note={null} control={viewOnly
           ? { held: false, onTake: onTakeControl, busy: connection !== "connected" || handingBack || taking, pending: taking }
-          : { held: true, onDone: onHandBack, busy: handingBack }} />
+          : { held: true, onDone: onHandBack, asked, busy: handingBack }} />
     </div>
   );
 

@@ -15,7 +15,7 @@ vi.mock("react", async (importOriginal) => {
 const dispatch = vi.fn();
 vi.mock("@/state/store", async (original) => ({
   ...await original<typeof import("@/state/store")>(),
-  useStore: () => ({ dispatch }),
+  useStore: () => ({ dispatch, state: { computerControl: {} } }),
 }));
 const answerSignIn = vi.fn();
 const here = { value: true };
@@ -122,6 +122,16 @@ describe("SignInRequestCard while it waits", () => {
     });
   });
 
+  it.each([["cloud", "vps/pepper"]])("Take over on a %s computer takes control right in the card, not by opening the panel", async (place, target) => {
+    const nodes = tree({ place });
+    const takeOver = nodes.find((node) => node.type === "button" && (node.props as Record<string, unknown>)["data-sign-in-take-over"] === "")!;
+    takeOver.props.onClick!();
+    await settle();
+    expect(dispatch).not.toHaveBeenCalled();
+    // the card's own live desktop is pointed at the bot's computer
+    expect(fixture.setters.some((setter) => setter.mock.calls.some(([value]) => value === target))).toBe(true);
+  });
+
   it("open on this computer explains where to sign in instead", () => {
     button(tree({ place: "local" }), "open").props.onClick!();
     expect(dispatch).not.toHaveBeenCalled();
@@ -200,7 +210,8 @@ describe("the sign-in card's screen", () => {
 });
 
 describe("SignInRequestCard once settled", () => {
-  const row = (signIn: Record<string, unknown>) => tree(signIn)[0]!.props as unknown as { summary: string; title: string; detail: ReactNode; tone: string };
+  // the first node is the box the card settles in; the row sits inside it
+  const row = (signIn: Record<string, unknown>) => tree(signIn)[1]!.props as unknown as { summary: string; title: string; detail: ReactNode; tone: string };
   const detailText = (signIn: Record<string, unknown>) => renderToStaticMarkup(createElement("div", null, row(signIn).detail));
 
   it("folds into grok's one row, Done and the step, and opens to what happened", () => {

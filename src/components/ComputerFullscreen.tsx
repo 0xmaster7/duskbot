@@ -5,6 +5,7 @@ import { Loader2 } from "../icons";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
+import { reducedMotion } from "@/lib/onboarding";
 import { useCaptionChrome, useDesktopCapabilities } from "./DesktopCapabilities";
 import { Icon } from "./Icon";
 import { useDialogKeys } from "./ui/GrokDialog";
@@ -48,7 +49,14 @@ export function ComputerFullscreen({ label, onExit, frame, note, control, alert,
   embedded?: boolean;
   expanded?: boolean;
 }) {
-  const inline = embedded && !expanded;
+  // an embedded screen grows out of its place in the window and shrinks back into it, rather than jumping
+  const [lastExpanded, setLastExpanded] = useState(expanded);
+  const [closing, setClosing] = useState(false);
+  if (embedded && lastExpanded !== expanded) {
+    setLastExpanded(expanded);
+    setClosing(!expanded);
+  }
+  const inline = embedded && !expanded && !closing;
   const box = useRef<HTMLDivElement>(null);
   const close = useRef(onExit);
   close.current = onExit;
@@ -60,6 +68,19 @@ export function ComputerFullscreen({ label, onExit, frame, note, control, alert,
     (inline ? mount.current : document.body)?.append(host);
   }, [host, inline]);
   useLayoutEffect(() => () => { host?.remove(); }, [host]);
+  const opened = useRef(!embedded || expanded);
+  useLayoutEffect(() => {
+    if (!embedded) return;
+    const node = box.current;
+    const wasOpen = opened.current;
+    opened.current = !inline;
+    if (!node || inline || (wasOpen && !closing)) return;
+    const motion = growFromPlace(node, mount.current, closing);
+    if (!closing) return () => motion.cancel();
+    let live = true;
+    motion.finished.then(() => { if (live) setClosing(false); }, () => {});
+    return () => { live = false; motion.cancel(); };
+  }, [embedded, inline, closing]);
   const { dragProps, noDragStyle } = useCaptionChrome();
   const macInset = useDesktopCapabilities().capabilities.windowChrome === "mac-inset";
   const exit = t("desktopViewer.exitFullscreen");
@@ -115,6 +136,20 @@ export function ComputerFullscreen({ label, onExit, frame, note, control, alert,
     </div>
   );
   return embedded ? host ? <><div ref={mount} className="size-full" />{createPortal(content, host)}</> : content : createPortal(content, document.body);
+}
+
+export const SCREEN_GROW_MS = 240;
+
+/** The full view opening out of (or closing back into) the screen's place in the window: its edges travel between that
+ * box and the window's, as a clip, so nothing inside rescales or reflows. Reduced motion fades instead. */
+function growFromPlace(node: HTMLElement, place: HTMLElement | null, closing: boolean): Animation {
+  const timing: KeyframeAnimationOptions = { duration: SCREEN_GROW_MS, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "both" };
+  const rect = place?.getBoundingClientRect();
+  const fade = [{ opacity: 0 }, { opacity: 1 }];
+  if (reducedMotion() || !rect || rect.width === 0 || rect.height === 0) return node.animate(closing ? fade.reverse() : fade, timing);
+  const from = `inset(${rect.top}px ${Math.max(0, innerWidth - rect.right)}px ${Math.max(0, innerHeight - rect.bottom)}px ${rect.left}px round 12px)`;
+  const frames = [{ clipPath: from, opacity: 0.6 }, { clipPath: "inset(0px 0px 0px 0px round 0px)", opacity: 1 }];
+  return node.animate(closing ? frames.reverse() : frames, timing);
 }
 
 function ComputerViewerKeys({ box, onExit }: { box: RefObject<HTMLDivElement | null>; onExit: () => void }) {
