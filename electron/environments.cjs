@@ -129,15 +129,15 @@ function placeRow(entry, { myCloud, checked, onSwitch, sublabels, iconFor, kindI
   const label = myCloud ? DUSK_CLOUD : entry.name;
   const what = entry.kind === "local" ? entry.dataDir : kind === "server" ? `your server · ${new URL(entry.origin).host}` : myCloud ? new URL(entry.origin).host : DUSK_CLOUD;
   return {
-    id: `workspace-${entry.id}`, label: foldSublabels && status ? `${label} · ${status}` : label, sublabel: status ?? what,
+    id: `workspace-${entry.id}`, label: foldSublabels && status ? `${label} · ${status}` : label, ...(foldSublabels ? {} : { sublabel: status ?? what }),
     ...(icon ? { icon } : {}), type: "radio", checked, click: () => onSwitch(entry.id),
   };
 }
 
 /** Native menu choices, never renderer-supplied destinations or callbacks. `iconFor`: a saved colour's small dot, when main can draw one;
  * `kindIcon`: a template icon per kind of place (computer, cloud, server), used instead where main has them (macOS).
- * `places`: the one line saying which side has which bots, shown first; `copyToCloud`: the send line under the list. `foldSublabels`: where menus show no sublabels (Windows, Linux), My Cloud's status line
- * joins its name instead of vanishing. `myCloudId`: My Cloud's saved place, named dusk cloud; `platform`: this mac or this computer. */
+ * `places`: the one line saying which side has which bots, shown first; `copyToCloud`: the send line under the list. `foldSublabels`: Windows and Linux, whose menus size a row by its label alone and clip
+ * a sublabel: no sublabels there, and My Cloud's status line joins its name instead. `myCloudId`: My Cloud's saved place, named dusk cloud; `platform`: this mac or this computer. */
 function workspaceMenuTemplate(state, { onSwitch, onConnect, onForget, onAddCloud, sublabels = {}, iconFor = null, kindIcon = null, places = null, copyToCloud = null, foldSublabels = false, homeOrigin = null, myCloudId = null, platform = null }) {
   const active = activeEnvironment(state);
   if (homeOrigin) return homeMenuTemplate(state, { onSwitch, onForget, sublabels, iconFor, kindIcon, foldSublabels, homeOrigin });
@@ -149,7 +149,7 @@ function workspaceMenuTemplate(state, { onSwitch, onConnect, onForget, onAddClou
     ...[...state.environments].sort((a, b) => isMine(b) - isMine(a) || listedPlace(b) - listedPlace(a))
       .map((entry) => placeRow(entry, { myCloud: isMine(entry), checked: entry.id === state.activeId, onSwitch, sublabels, iconFor, kindIcon, foldSublabels })),
     ...(copyToCloud ? [{ id: "workspace-copy-to-cloud", label: copyToCloud.label, click: copyToCloud.click }] : []),
-    ...(onAddCloud ? [{ id: "workspace-add-cloud", label: "add dusk cloud…", sublabel: "keeps your bots running 24/7", click: onAddCloud }] : []),
+    ...(onAddCloud ? [{ id: "workspace-add-cloud", label: "add dusk cloud…", ...(foldSublabels ? {} : { sublabel: "keeps your bots running 24/7" }), click: onAddCloud }] : []),
     { type: "separator" },
     { id: "workspace-connect", label: "connect a server…", click: onConnect },
     ...(active && !listedPlace(active) ? [{ id: "workspace-forget", label: `forget “${active.name}”…`, click: () => onForget(active.id) }] : []),

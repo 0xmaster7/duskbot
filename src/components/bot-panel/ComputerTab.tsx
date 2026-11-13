@@ -209,7 +209,8 @@ function cloudCta({ bots, anchor, step, there, asleep, title, body, action, labe
   );
 }
 
-/** Moving a bot from a server to cloud desktop; in a group chat, one card for all of its bots. */
+/** Moving a bot from a server to dusk cloud; in a group chat, one card for all of its bots. A server is always on, so the
+ * offer is no upkeep, never "it never sleeps". */
 function CloudDesktopCta({ bots, stage, label }: { bots: readonly Bot[]; stage: CloudMoveStage | null; label: string }) {
   const there = stage === "moved" || stage === "open";
   const moving = stage === "preparing" || stage === "moving" || stage === "coming-back";
@@ -284,7 +285,7 @@ export function ComputerTab({ bot, derived, cloudFor }: {
   const toHome = editable && host.kind === "cloud" && stage === "moved";
   const cloudLabel = stage === "preparing" || stage === "moving" ? t("runsOn.movingCloud")
     : stage === "moved" || stage === "open" ? t("runsOn.openCloud")
-    : stage === "coming-back" ? t("runsOn.movingBack") : t("runsOn.moveCloud");
+    : stage === "coming-back" ? t("runsOn.movingBack") : t("runsOn.moveDuskCloud");
   const detail = report?.detail ?? null;
 
   return (

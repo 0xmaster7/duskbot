@@ -163,6 +163,14 @@ test("Add a Cloud… sits just under the saved servers only where main offers it
   assert.deepEqual(calls, [["add-cloud"]]);
 });
 
+test("Windows and Linux menus clip a sublabel, so the popup there has none: status joins the name", () => {
+  const state = { environments: [{ id: "cloud", name: "My Cloud", origin: "https://dusk-u-1.fly.dev" }, { id: "office", name: "Office", origin: "https://office.example" }], activeId: "local" };
+  const items = env.workspaceMenuTemplate(state, { onSwitch() {}, onConnect() {}, onForget() {}, onAddCloud() {}, foldSublabels: true, sublabels: { cloud: "Free trial until 15 Oct" } });
+  assert.deepEqual(items.filter(item => "sublabel" in item).map(item => item.id), []);
+  assert.equal(items.find(item => item.id === "workspace-cloud").label, "My Cloud · free trial until 15 Oct");
+  assert.equal(items.find(item => item.id === "workspace-add-cloud").label, "add dusk cloud…");
+});
+
 test("with My Cloud, the switcher says first which side has which bots, and under My Cloud what is not on it yet, with Send", async () => {
   const state = { environments: [{ id: "cloud", name: "My Cloud", origin: "https://dusk-u-1.fly.dev" }], activeId: "cloud" };
   const clicked = [];

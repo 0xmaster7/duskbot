@@ -729,14 +729,16 @@ describe("the Computer tab", () => {
     expect(fixture.dispatch).not.toHaveBeenCalledWith({ type: "toggleSettings", open: false });
   });
 
-  it("on a server leads with the screen, then the move to cloud desktop, with no screen picker, Advanced fold or move back", () => {
+  it("on a server leads with the screen, then the move to dusk cloud, with no screen picker, Advanced fold or move back", () => {
     const rendered = computer(cloudBot());
     const screen = rendered.html.indexOf('data-asleep-mascot=""'), card = rendered.html.indexOf('data-panel-card="cloud-desktop"');
     expect(screen).toBeGreaterThan(-1);
     expect(card).toBeGreaterThan(screen);
     expect(rendered.html).toContain(">Scout&#x27;s screen<");
     expect(rendered.html, "no server name under the screen").not.toContain("Studio VPS");
-    expect(rendered.html).toContain(">Move to cloud desktop<");
+    expect(rendered.html).toContain(">Move to dusk cloud<");
+    expect(rendered.html).toContain(">Let us run Scout<");
+    expect(rendered.html, "a server is always on: no sleep pitch").not.toMatch(/never sleeps|asleep or off/);
     for (const gone of ['data-panel-card="runs-on"', 'data-panel-select="place"', 'data-panel-advanced="computer"', 'data-panel-action="move-home"', 'data-panel-action="move-vps"']) {
       expect(rendered.html, gone).not.toContain(gone);
     }
