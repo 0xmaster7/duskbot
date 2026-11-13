@@ -153,7 +153,7 @@ export interface ReceiptInput {
 /** a payment that went through: a new plan, a renewal or credits */
 export function receiptEmail(cfg: EmailConfig, input: ReceiptInput): Rendered {
   const amount = formatMoney(input.amountCents, input.currency);
-  const rows: Array<[string, string]> = [["for", input.description], ["paid on", formatDate(input.paidAt)]];
+  const rows: Array<[string, string]> = [["paid", amount], ["for", input.description], ["paid on", formatDate(input.paidAt)]];
   if (input.periodStart !== null && input.periodEnd !== null) rows.push(["period", `${formatDate(input.periodStart)} to ${formatDate(input.periodEnd)}`]);
   if (input.periodEnd !== null) rows.push(["next charge", input.renews ? formatDate(input.periodEnd) : "none, the plan ends then"]);
   rows.push(["receipt", input.receiptId]);
@@ -163,10 +163,8 @@ export function receiptEmail(cfg: EmailConfig, input: ReceiptInput): Rendered {
       { t: "h1", text: input.revived ? "welcome back" : input.first ? "thanks, you're all set" : "thanks, payment received" },
       { t: "p", text: input.revived ? `your plan is active again, and your cloud and bots are restored where they stopped. here's your receipt for **${input.description}**.`
         : input.first ? `your plan is active. here's your receipt for **${input.description}**.` : `here's your receipt for **${input.description}**. nothing else to do.` },
-      { t: "total", label: "paid", value: amount },
       { t: "facts", rows },
       input.cloud ? { t: "button", label: "open dusk cloud", href: `${cfg.app}/cloud` } : { t: "button", label: "open the app", href: `${cfg.site}/download` },
-      billingLink(cfg, "invoices and plan details live on your"),
     ],
     reason: ACCOUNT_REASON,
   });
