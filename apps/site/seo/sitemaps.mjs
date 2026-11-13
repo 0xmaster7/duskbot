@@ -44,6 +44,6 @@ export function writeSitemaps({ site, SITE_URL, built, cohorts, today = localDay
 // search engines and the ai search and answer crawlers are all welcome; the app demo and the design boards are not pages
 export const SEARCH_BOTS = ['Googlebot', 'Bingbot', 'OAI-SearchBot', 'ChatGPT-User', 'PerplexityBot', 'Perplexity-User', 'Claude-SearchBot', 'Claude-User'];
 export function robotsTxt(SITE_URL) {
-  const keepOut = 'Disallow: /demo/\nDisallow: /explore/\nDisallow: /api/\n';
+  const keepOut = 'Disallow: /explore/\nDisallow: /api/\n';
   return `${SEARCH_BOTS.map((b) => `User-agent: ${b}\nAllow: /\n${keepOut}`).join('\n')}\nUser-agent: *\nAllow: /\n${keepOut}\nSitemap: ${SITE_URL}/sitemap.xml\n`;
 }

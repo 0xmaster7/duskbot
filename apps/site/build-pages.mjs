@@ -258,7 +258,7 @@ export function layout({ title, description, body, page, at, section = page, og 
   const brand = '<a class="brand" href="/"><img src="/art/logo-96.webp" alt="" width="28" height="28">dusk bot</a>';
   const css = home ? ['site.css', 'motion-kit-v2.css', 'home.css', ...(has('app-demo.css') ? ['app-demo.css'] : [])] : ['site.css', 'pages.css', ...styles.filter(has)];
   const tail = home
-    ? `<script src="${stamped('motion.min.js')}"></script>\n${has('mascot.js') ? `<script src="${stamped('mascot.js')}" defer></script>\n` : ''}<script src="${stamped('motion-kit-v2.js')}"></script>\n<script src="${stamped('home.js')}"></script>${has('app-demo.js') ? `\n<script src="${stamped('app-demo.js')}"></script>` : ''}\n<script src="${stamped('site.js')}" defer></script>`
+    ? `<script src="${stamped('motion.min.js')}"></script>\n${has('mascot.js') ? `<script src="${stamped('mascot.js')}" defer></script>\n` : ''}<script src="${stamped('motion-kit-v2.js')}"></script>\n<script src="${stamped('home.js')}"></script>${has('app-demo.js') ? `\n<script src="${stamped('app-demo.js')}" defer></script>` : ''}\n<script src="${stamped('site.js')}" defer></script>`
     : ['mascot.js', 'site.js', 'pages.js', ...scripts].filter(has).map((file) => `<script src="${stamped(file)}" defer></script>`).join('\n');
   return `<!doctype html>
 <html lang="en">
@@ -426,6 +426,4 @@ for (const [from, to] of Object.entries(redirects)) {
   if (target.startsWith('/') && !built.some((p) => p.address === target) && !fs.existsSync(path.join(site, target))) throw new Error(`redirects.json: ${from} goes to ${to}, which is not a page`);
 }
 fs.writeFileSync(path.join(site, '_redirects.json'), JSON.stringify(redirects));
-// the app demo (built from the dusk bot repo) gets the analytics tag too
-await import('./inject-tracker.mjs');
 console.log(`built ${built.length} pages into ${site} (${docs} of them docs; downloads ${release.released ? `open, version ${release.version || 'unknown'}` : 'not open yet'})`);

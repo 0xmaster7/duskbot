@@ -182,17 +182,12 @@ const server = http.createServer((req, res) => {
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()');
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   if (NO_INDEX) res.setHeader('X-Robots-Tag', 'noindex, nofollow');
-  // /demo/ is the app's own interface running on canned data; the home page shows it in a frame, and its
-  // code highlighter writes style attributes
-  const demo = (req.url || '').startsWith('/demo/');
   // /explore/ holds design boards that set positions and colours through style attributes
   const explore = (req.url || '').startsWith('/explore/');
-  res.setHeader('Content-Security-Policy', demo
-    ? "default-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'self'; base-uri 'none'; form-action 'none'; object-src 'none'"
-    : explore
-      ? "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'"
-      : "default-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'");
-  res.setHeader('X-Frame-Options', demo ? 'SAMEORIGIN' : 'DENY');
+  res.setHeader('Content-Security-Policy', explore
+    ? "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'"
+    : "default-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'");
+  res.setHeader('X-Frame-Options', 'DENY');
   if (store && /^\/api\/waitlist(\/count)?$/.test((req.url || '/').split('?')[0])) return waitlist(req, res, (req.url || '/').split('?')[0]);
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.writeHead(405, { Allow: 'GET, HEAD', 'Content-Type': 'text/plain; charset=utf-8' });

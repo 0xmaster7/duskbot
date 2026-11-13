@@ -32,11 +32,6 @@ if [ "$WHICH" = all ] || [ "$WHICH" = landing ]; then
   if [ "${DUSK_WAITLIST_HOME:-1}" = 1 ]; then
     # the committed build stays the full site (preview.dusk.bot serves it); it is put back once the stage has its copy
     RESTORE=1
-  else
-    # the live app in the home page's hero is built from the app itself (kept out of this repo: it is 24 MB of build output)
-    if [ -f "$DUSK_REPO/apps/site-demo/build.mjs" ]; then (cd "$DUSK_REPO" && node apps/site-demo/build.mjs "$HERE/public/landing/demo"); fi
-    node "$HERE/inject-tracker.mjs"
-    [ -f "$HERE/public/landing/demo/index.html" ] || echo "warning: public/landing/demo is missing; the home page falls back to a still picture of the app" >&2
   fi
 fi
 
