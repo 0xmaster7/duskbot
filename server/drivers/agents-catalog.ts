@@ -343,7 +343,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "create_bot",
     description:
-      "Chief of Staff only: make a new bot when the person asks for one or a job needs a specialist you lack (never a duplicate). Use a template from list_team_library's bots when one fits; else write name, role and instructions as complete as a template: purpose, method, rules. Applies at once with an Undo; it gets your connected apps and says hello in its own chat. Hand it work with coordinate_bots. At most four per turn.",
+      "Make a new bot when the person asks you for one in your chat with them; a Chief of Staff also adds a specialist a job needs (never a duplicate). Use a template from list_team_library's bots when one fits; else write name, role and instructions as complete as a template: purpose, method, rules. Applies at once with an Undo; it gets your connected apps and says hello in its own chat. Hand it work with coordinate_bots. At most four per turn.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -356,7 +356,7 @@ const TOOL_DEFINITIONS = [
         modelSelection: { type: "object", additionalProperties: false, properties: {
           instanceId: { type: "string" }, model: { type: "string" },
           effort: { type: "string" }, variant: { type: "string" },
-        }, required: ["instanceId", "model"], description: "Exact ids from list_team_setup; omit for the default." },
+        }, required: ["instanceId", "model"], description: "Exact engine and model ids; omit for the default." },
         cwd: {
           type: "string",
           maxLength: 1024,
@@ -373,7 +373,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "list_team_library",
-    description: "Chief of Staff only: ready-made bots (templates for create_bot) and teams with their roles (lead = the team's Chief).",
+    description: "Ready-made bots (templates for create_bot); a Chief of Staff also gets ready-made teams with their roles (lead = the team's Chief).",
     inputSchema: { type: "object", additionalProperties: false, properties: {} },
   },
   {
@@ -846,8 +846,9 @@ const TOOL_DEFINITIONS = [
 const SKILL_TOOL_NAMES = new Set(["skills_list", "skill_manage"]);
 // Never advertised when sharing is off: a model shown a tool it cannot use spends turns finding out.
 const VOICE_TOOL_NAMES = new Set(["send_voice_note"]);
+// create_bot and list_team_library are every bot's: the harness lets one that is not a Chief make a bot only on its person's own ask
 const CHIEF_ONLY_TOOL_NAMES = new Set([
-  "create_bot", "list_team_setup", "list_team_library", "propose_team_setup", "propose_bot_deletion", "manage_room", "retry_thread",
+  "list_team_setup", "propose_team_setup", "propose_bot_deletion", "manage_room", "retry_thread",
 ]);
 const CHIEF_TARGET_TOOL_NAMES = new Set(["propose_profile", "propose_model"]);
 const WATCHER_TOOL_NAMES = new Set(["create_options_card"]);

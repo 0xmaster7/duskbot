@@ -31,6 +31,11 @@ export function createInternalChiefTeamRoutes(deps: {
   };
   return async ({ res, path, method, json }) => {
     if (method !== "GET" || (path !== "/api/internal/team-setup-catalog" && path !== "/api/internal/team-library")) return PASS;
+    if (path === "/api/internal/team-library" && !chief()) {
+      // any bot may read the ready-made bots it can make for its person; the teams are a Chief's
+      const bot = deps.bot();
+      return bot && !bot.hidden ? json(res, 200, { bots: readyBotSummaries() }) : json(res, 403, { error: NOT_CHIEF });
+    }
     if (!chief()) return json(res, 403, { error: NOT_CHIEF });
     if (path === "/api/internal/team-library") {
       // single bots ship with the app, so they answer even when the online team library does not

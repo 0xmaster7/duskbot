@@ -65,6 +65,32 @@ const specialist = (key: string, section: string, modelSelection = { instanceId:
   fields: { name: key, title: "Specialist", soul: "Finish the assigned work.", section, modelSelection } });
 
 describe("reviewed Chief team setup", () => {
+  it("deletes at once only at Full access; at any other level the person confirms on a card", async () => {
+    const h = harness();
+    h.autoApply.mockReturnValue("level");
+    const asked = await h.service.submitDeletion({ botId: h.chief.id, threadId: h.chief.threadId, targetBotId: h.peer.id, reason: "User asked to remove Ada" });
+    expect(asked).toMatchObject({ state: "pending", applied: false });
+    expect(h.deleteBot).not.toHaveBeenCalled();
+    expect(h.store.bots.some((bot) => bot.id === h.peer.id)).toBe(true);
+    h.autoApply.mockReturnValue("full-access");
+    expect(await h.service.submitDeletion({ botId: h.chief.id, threadId: h.chief.threadId, targetBotId: h.peer.id, reason: "User asked to remove Ada" }))
+      .toMatchObject({ state: "applied", applied: true });
+  });
+
+  it("lets a bot that is not a Chief make one bot in its own department when its person asks, and nothing more", async () => {
+    const h = harness();
+    h.autoApply.mockReturnValue("level");
+    const ask = (operations: unknown[], newTeams: string[] = []) => h.service.submit({ botId: h.peer.id, threadId: h.peer.threadId, byPerson: true,
+      plan: { reason: "The person asked for a bot", operations, newTeams } });
+    expect(await ask([specialist("Scout", "Work")])).toMatchObject({ state: "applied" });
+    expect(h.store.bots.find((bot) => bot.name === "Scout")?.section).toBe("Work");
+    await expect(ask([specialist("Elsewhere", "Engineering")])).rejects.toThrow(/Only an active Chief/);
+    await expect(ask([specialist("One", "Work"), specialist("Two", "Work")])).rejects.toThrow(/Only an active Chief/);
+    await expect(ask([{ ...specialist("Boss", "Work"), fields: { ...specialist("Boss", "Work").fields, chiefOfStaff: true } }])).rejects.toThrow(/Only an active Chief/);
+    await expect(ask([{ action: "update", botId: h.chief.id, fields: { title: "Renamed" } }])).rejects.toThrow(/Only an active Chief/);
+    // without the person's ask it stays a Chief's
+    await expect(h.service.submit({ botId: h.peer.id, threadId: h.peer.threadId, plan: { reason: "x", operations: [specialist("Three", "Work")] } })).rejects.toThrow(/Only an active Chief/);
+  });
   it("gives a new bot the colour and body it was made with, and keeps a bot's look out of later changes", async () => {
     const h = harness();
     h.autoApply.mockReturnValue("level");
@@ -574,8 +600,8 @@ describe("team setup below Full access", () => {
     expect(h.deleteBot).not.toHaveBeenCalled();
   });
 
-  it("deletes a teammate at Ask with no card and no Undo", async () => {
-    const h = harness(); h.autoApply.mockReturnValue("level");
+  it("deletes a teammate at Full access with no card and no Undo", async () => {
+    const h = harness(); h.autoApply.mockReturnValue("full-access");
     const response = await h.service.submitDeletion({ botId: h.chief.id, threadId: h.chief.threadId, targetBotId: h.peer.id, reason: "User requested deletion" });
     expect(response).toMatchObject({ state: "applied", applied: true });
     expect(h.store.bot(h.peer.id)).toBeUndefined();

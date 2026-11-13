@@ -2341,7 +2341,7 @@ describe("harness HTTP API", () => {
       const nonChief = await createOperator(outsiderChannel.threadId, "Non-Chief Operator", outsider.id);
       expect(nonChief).toEqual({
         status: 403,
-        body: { error: "only a section's Chief of Staff can create operator bots" },
+        body: { error: "Only a Chief of Staff makes bots on its own. You can make one when the person asks you for it directly in their own chat with you; otherwise ask a Chief with coordinate_bots, or tell the person." },
       });
       const denied = await createOperator(outsiderChannel.threadId, "Forbidden Operator");
       expect(denied).toEqual({
@@ -2669,13 +2669,13 @@ describe("harness HTTP API", () => {
     }
   });
 
-  it("lets only a Chief read the team library from its turn", async () => {
+  it("gives a bot that is not a Chief only the ready-made bots from the team library, never the teams", async () => {
     const helper = (await api("POST", "/api/bots")).body.bot;
     try {
       const token = await mintTestCapability(BASE, helper.id, helper.threadId);
       const response = await fetch(`${BASE}/api/internal/team-library`, { headers: { authorization: `Bearer ${token}` } });
-      expect(response.status).toBe(403);
-      expect(await response.json()).toEqual({ error: "Only an active Chief may plan team setup" });
+      expect(response.status).toBe(200);
+      expect(Object.keys(await response.json() as object)).toEqual(["bots"]);
     } finally {
       await api("DELETE", `/api/bots/${helper.id}`);
     }

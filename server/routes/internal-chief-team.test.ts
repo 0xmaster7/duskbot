@@ -63,12 +63,14 @@ describe("what a Chief of Staff reads about its team", () => {
     expect(library).toHaveBeenCalledOnce();
   });
 
-  it("refuses any other bot before it reads anything", async () => {
+  it("refuses any other bot the teams and the setup catalog", async () => {
     const library = vi.fn(async () => TEAMS);
     const { get } = await serve(bot("helper"), library);
-    for (const path of ["/api/internal/team-library", "/api/internal/team-setup-catalog"]) {
-      expect(await get(path)).toEqual({ status: 403, body: { error: "Only an active Chief may plan team setup" } });
-    }
+    expect(await get("/api/internal/team-setup-catalog")).toEqual({ status: 403, body: { error: "Only an active Chief may plan team setup" } });
+    // any bot reads the ready-made bots it may make for its person, never the teams
+    const single = await get("/api/internal/team-library");
+    expect(single.status).toBe(200);
+    expect(Object.keys(single.body)).toEqual(["bots"]);
     expect(library).not.toHaveBeenCalled();
     const hidden = await serve(bot("archived", { chiefOfStaff: true, hidden: true }), library);
     expect((await hidden.get("/api/internal/team-library")).status).toBe(403);

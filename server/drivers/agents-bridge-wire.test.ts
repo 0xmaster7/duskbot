@@ -68,7 +68,7 @@ function profiles(): Record<string, Record<string, string>> {
 
 const PROFILES = profiles();
 /** Refused by the server to every bot that is not a Chief of Staff. */
-const CHIEF_ONLY_TOOLS = ["create_bot", "list_team_setup", "propose_team_setup", "propose_bot_deletion", "manage_room", "retry_thread"];
+const CHIEF_ONLY_TOOLS = ["list_team_setup", "propose_team_setup", "propose_bot_deletion", "manage_room", "retry_thread"];
 /** The profile that mounts the most: its bridged list is checked in whole. */
 const FULL = "skills+voice+x+team";
 
@@ -81,12 +81,12 @@ const BUDGET_BASELINE: Record<string, number> = {
   "voice": 19822,
   "skills": 19071,
   "skills+voice": 19849,
-  "non-chief": 18927,
-  "voice+non-chief": 19705,
-  "skills+non-chief": 18954,
-  "skills+voice+non-chief": 19732,
+  "non-chief": 18958,
+  "voice+non-chief": 19736,
+  "skills+non-chief": 18985,
+  "skills+voice+non-chief": 19763,
   "skills+voice+cloud-home": 19866,
-  "skills+voice+non-chief+cloud-home": 19749,
+  "skills+voice+non-chief+cloud-home": 19780,
   "skills+voice+x": 19927,
   "skills+voice+x+team": 19927,
   "default+legacy-switches": 19044,
@@ -94,7 +94,7 @@ const BUDGET_BASELINE: Record<string, number> = {
   "skills+voice+dusk": 19901,
   "default+no-computer-pick": 17837,
   "default+room": 17776,
-  "non-chief+room": 17659,
+  "non-chief+room": 17690,
 };
 
 type RpcAnswer = { id: number; result?: { tools?: unknown[]; content?: Array<{ text: string }>; isError?: boolean }; error?: { code: number; message: string } };
@@ -189,7 +189,7 @@ const namedHidden = (wire: string) => {
 const BRIDGE_REQUESTS = [
   { method: "tools/call", params: { name: FIND_TOOL, arguments: { query: "schedule a recurring task every morning" } } },
   { method: "tools/call", params: { name: USE_TOOL, arguments: { arguments: { thread_id: 7 } } } },
-  { method: "tools/call", params: { name: USE_TOOL, arguments: { name: "create_bot", arguments: {} } } },
+  { method: "tools/call", params: { name: USE_TOOL, arguments: { name: "propose_team_setup", arguments: {} } } },
 ];
 
 let wires: Record<string, string> = {};
@@ -337,8 +337,8 @@ describe("agents proxy with the tool bridge on, from the packaged bundle", () =>
     expect((JSON.parse(found!.result!.content![0]!.text) as { matches: Tool[] }).matches[0]!.name).toBe("trigger");
     expect(shapeless!.result!.isError).toBe(true);
     expect(shapeless!.result!.content![0]!.text).toContain('use_tool needs { "name": ');
-    // a bot that is not a Chief: create_bot is not one of its tools
-    expect(outside!.result).toEqual({ content: [{ type: "text", text: "Unknown tool: create_bot" }], isError: true });
+    // a bot that is not a Chief: propose_team_setup is not one of its tools
+    expect(outside!.result).toEqual({ content: [{ type: "text", text: "Unknown tool: propose_team_setup" }], isError: true });
     expect([found, shapeless, outside]).toEqual(fromSource);
     // the argument checker a first draft bundled is gone: no schema compiler rides in the proxy
     expect(source).not.toMatch(/ajv/i);

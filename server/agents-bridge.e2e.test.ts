@@ -138,7 +138,7 @@ it("keeps a turn on the whole catalog until the switch is on, then mounts the br
     for (const prompt of [before.systemPrompt, after.systemPrompt]) expect(prompt).toContain("set it up with trigger action=create in this turn");
     // said once
     expect(after.systemPrompt.split(AGENTS_TOOL_BRIDGE_PROMPT)).toHaveLength(2);
-    // a fixture bot is not a Chief of Staff, so create_bot is not one of its tools
+    // a fixture bot is not a Chief of Staff, so propose_team_setup is not one of its tools
     expect(bridged.env.DUSK_CHIEF_OF_STAFF).toBe("0");
 
     // While that turn is open its capability is good: the proxy the engine
@@ -165,8 +165,9 @@ it("keeps a turn on the whole catalog until the switch is on, then mounts the br
 
       // a name outside this turn's profile; arguments the tool's schema refuses;
       // an outward action, which keeps its own name
-      expect(refusalOf(await use(ask, "create_bot", { name: "Scout", role: "Ops", instructions: "Work." }))).toBe("Unknown tool: create_bot");
-      expect((await call(ask, "create_bot", { name: "Scout", role: "Ops", instructions: "Work." })).error).toEqual({ code: -32602, message: "Unknown tool: create_bot" });
+      const plan = { reason: "Requested", operations: [] };
+      expect(refusalOf(await use(ask, "propose_team_setup", plan))).toBe("Unknown tool: propose_team_setup");
+      expect((await call(ask, "propose_team_setup", plan)).error).toEqual({ code: -32602, message: "Unknown tool: propose_team_setup" });
       // arguments the tool will not take are refused by the tool, in the words a direct call gets
       const misfit = await use(ask, "session_read", { thread_id: 7 });
       expect(refusalOf(misfit)).toBe(textOf(await call(ask, "session_read", { thread_id: 7 })));
@@ -254,10 +255,10 @@ it("leaves every gate and limit where it was: a tool selection, a Chief-only too
     // lists. Started as if it were a Chief's, the proxy lets the call
     // through, and the harness's own refusal comes back the same both ways.
     await withServer({ ...bridged, env: { ...bridged.env, DUSK_CHIEF_OF_STAFF: "1" } }, async (ask) => {
-      const scout = { name: "Scout", role: "Ops", instructions: "Work." };
-      const direct = await call(ask, "create_bot", scout);
-      const throughBridge = await use(ask, "create_bot", scout);
-      expect(refusalOf(throughBridge)).toContain("only a section's Chief of Staff can create operator bots");
+      const retry = { bot_id: "someone", thread_id: "somewhere" };
+      const direct = await call(ask, "retry_thread", retry);
+      const throughBridge = await use(ask, "retry_thread", retry);
+      expect(refusalOf(throughBridge)).toContain("only a Chief of Staff can retry a teammate's thread");
       expect(throughBridge.result).toEqual(direct.result);
     });
 

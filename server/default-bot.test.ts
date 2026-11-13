@@ -292,8 +292,8 @@ describe("Dusk, every person's helper", () => {
     expect([chiefLevel(member), chiefLevel(admin)]).toEqual([false, false]);
     readTeamRolesWith((email) => email === "admin@example.com" ? "admin" : email === "user@example.com" ? "member" : null);
     expect([chiefLevel(member), chiefLevel(admin)]).toEqual([false, true]);
-    expect(tools(member)).not.toContain("create_bot");
-    expect(tools(admin)).toContain("create_bot");
+    expect(tools(member)).not.toContain("propose_team_setup");
+    expect(tools(admin)).toContain("propose_team_setup");
   });
 
   describe("moves", () => {

@@ -2116,7 +2116,7 @@ describe("standing external runtime", () => {
   it("sees the same one tool surface as every turn: the switches it sets change nothing", async () => {
     const list = await externalRpc("tools/list");
     // the main child is a Chief's turn that may pick its computer; this one is neither, so only those differ
-    const chiefOnly = ["create_bot", "list_team_setup", "list_team_library", "propose_team_setup", "propose_bot_deletion", "manage_room", "retry_thread"];
+    const chiefOnly = ["list_team_setup", "propose_team_setup", "propose_bot_deletion", "manage_room", "retry_thread"];
     const everyTurn = (await rpc("tools/list")).result.tools.filter((tool: any) => !chiefOnly.includes(tool.name) && tool.name !== "select_computer");
     const names = list.result.tools.map((tool: any) => tool.name);
     expect(names).toEqual(everyTurn.map((tool: any) => tool.name));
@@ -2234,9 +2234,11 @@ describe("with computer sharing off and no Chief of Staff (the defaults)", () =>
   it("shows a bot that is not a Chief none of the Chief-only tools or parameters", async () => {
     type ListedTool = { name: string; description: string; inputSchema: { properties: Record<string, unknown> } };
     const tools = new Map(((await gatedRpc("tools/list")).result.tools as ListedTool[]).map((tool) => [tool.name, tool]));
-    for (const name of ["create_bot", "list_team_setup", "propose_team_setup", "propose_bot_deletion", "manage_room", "retry_thread"]) {
+    for (const name of ["list_team_setup", "propose_team_setup", "propose_bot_deletion", "manage_room", "retry_thread"]) {
       expect(tools.has(name), name).toBe(false);
     }
+    // any bot makes a bot its person asks it for directly
+    expect(tools.get("create_bot")!.description).toMatch(/^Make a new bot when the person asks you for one in your chat with them/);
     for (const name of ["propose_profile", "propose_model"]) {
       expect(tools.get(name)!.inputSchema.properties).not.toHaveProperty("for_bot_id");
       expect(tools.get(name)!.description).not.toContain("for_bot_id");
@@ -2247,8 +2249,8 @@ describe("with computer sharing off and no Chief of Staff (the defaults)", () =>
   it("refuses a Chief-only tool called by name without reaching the harness", async () => {
     lastCreateBody = null;
     lastCreateRoomBody = null;
-    const created = await gatedRpc("tools/call", { name: "create_bot", arguments: { name: "Scout", role: "Ops", instructions: "Work." } });
-    expect(created.error).toMatchObject({ code: -32602, message: "Unknown tool: create_bot" });
+    const created = await gatedRpc("tools/call", { name: "propose_team_setup", arguments: { reason: "x", operations: [] } });
+    expect(created.error).toMatchObject({ code: -32602, message: "Unknown tool: propose_team_setup" });
     const room = await gatedRpc("tools/call", { name: "create_room", arguments: { name: "Ops", member_bot_ids: ["bot-helper"] } });
     expect(room.error).toMatchObject({ code: -32602, message: "Unknown tool: create_room" });
     expect(lastCreateBody).toBeNull();
@@ -2371,7 +2373,7 @@ describe("tool bridge", () => {
 
   /** The main child's switches: a Chief with skills. */
   const CHIEF = { DUSK_SKILL_AUTHORING_ENABLED: "1", DUSK_CHIEF_OF_STAFF: "1", DUSK_COMPUTER_SELECTION: "1" };
-  const CHIEF_ONLY = ["create_bot", "list_team_setup", "propose_team_setup", "propose_bot_deletion", "manage_room", "retry_thread"];
+  const CHIEF_ONLY = ["list_team_setup", "propose_team_setup", "propose_bot_deletion", "manage_room", "retry_thread"];
   const HOT = ["set_status", "send_message", "tool_result_read", "list_room_targets", "coordinate_bots", "list_bots", "list_rooms", "select_computer", "attach_file", "publish_page", "post_to_room", "request_credential", "request_sign_in", "fill_login", "message_person", "memory_update"];
   let chief: Rpc;
   let plain: Rpc;
@@ -2510,7 +2512,7 @@ describe("tool bridge", () => {
   it("refuses a Chief-only tool to a bot that is not a Chief without reaching the harness, and hands a Chief-only parameter to the harness to refuse", async () => {
     lastCreateBody = null;
     lastCreateRoomBody = null;
-    expect(refusalOf(await use(plain, "create_bot", { name: "Scout", role: "Ops", instructions: "Work." }))).toBe("Unknown tool: create_bot");
+    expect(refusalOf(await use(plain, "propose_team_setup", { reason: "x", operations: [] }))).toBe("Unknown tool: propose_team_setup");
     expect(refusalOf(await use(plain, "create_room", { name: "Ops", member_bot_ids: ["bot-helper"] }))).toBe("Unknown tool: create_room");
     expect(lastCreateBody).toBeNull();
     expect(lastCreateRoomBody).toBeNull();
@@ -2632,6 +2634,6 @@ describe("tool bridge", () => {
     expect(direct.result.isError).toBeFalsy();
     expect(lastRoutineQuery).toContain("fromBotId=bot-asker");
     // and a name outside the profile called directly is the protocol error it always was
-    expect((await plain("tools/call", { name: "create_bot", arguments: {} })).error).toEqual({ code: -32602, message: "Unknown tool: create_bot" });
+    expect((await plain("tools/call", { name: "list_team_setup", arguments: {} })).error).toEqual({ code: -32602, message: "Unknown tool: list_team_setup" });
   });
 });

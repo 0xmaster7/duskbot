@@ -511,7 +511,8 @@ describe("workspacePrompt", () => {
 
   it("names only tools any bot has, and never the Chief's", () => {
     const text = workspacePrompt(false);
-    expect(text).not.toContain("create_bot");
+    expect(text).toContain("create_bot");
+    expect(text).not.toContain("propose_bot_deletion");
     for (const name of named(text)) expect(listed(false).has(name), name).toBe(true);
   });
 });

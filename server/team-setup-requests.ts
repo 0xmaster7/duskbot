@@ -95,8 +95,16 @@ interface Options {
   deleteBot(botId: string, revalidate: () => void, request?: TeamSetupRequest): Promise<void>;
 }
 
+/** What a bot that is not a Chief may do when its person asks it for a new bot: make exactly that one, in its own
+ * department, never a Chief, a department or a deletion. */
+function personsOneBot(bot: BotRecord, request: Pick<TeamSetupRequest, "operations" | "newTeams" | "deletion">): boolean {
+  const [only, ...rest] = request.operations;
+  return !request.deletion && !request.newTeams.length && !rest.length && only?.action === "create" &&
+    only.fields.chiefOfStaff === undefined && section(only.fields.section) === section(bot.section);
+}
+
 type RequestFrom = { botId: string; name: string; color: string };
-type SetupArgs = { botId: string; threadId: string; plan: unknown; from?: RequestFrom };
+type SetupArgs = { botId: string; threadId: string; plan: unknown; from?: RequestFrom; byPerson?: boolean };
 type DeletionArgs = { botId: string; threadId: string; targetBotId: string; reason: string; from?: RequestFrom };
 /** Server-only invocation lease. Never saved on a request or approval card. */
 type SubmitAuthority = { canCommit?: () => boolean };
@@ -106,9 +114,10 @@ export class TeamSetupRequestService {
   private readonly options: Options;
   constructor(options: Options) { this.options = options; }
 
-  private chief(botId: string): BotRecord {
+  private chief(botId: string, request?: Pick<TeamSetupRequest, "byPerson" | "operations" | "newTeams" | "deletion">): BotRecord {
     const chief = this.options.store.bot(botId);
-    if (!chief || chief.hidden || !chiefLevel(chief)) throw new TeamSetupError("Only an active Chief of Staff can propose team setup", 403);
+    if (!chief || chief.hidden) throw new TeamSetupError("Only an active Chief of Staff can propose team setup", 403);
+    if (!chiefLevel(chief) && !(request?.byPerson && personsOneBot(chief, request))) throw new TeamSetupError("Only an active Chief of Staff can propose team setup", 403);
     return chief;
   }
 
@@ -146,9 +155,10 @@ export class TeamSetupRequestService {
   }
 
   private validate(request: TeamSetupRequest, confirming: boolean, immediate = false): void {
-    const chief = this.chief(request.botId);
+    const chief = this.chief(request.botId, request);
     if (!this.options.ownsThread(request.botId, request.threadId)) throw new TeamSetupError("The requesting conversation no longer exists", 409);
-    if (immediate && !this.options.autoApply?.(request.botId, request.threadId)) throw new TeamSetupError("This conversation can no longer apply team setup on its own; ask the owner", 409);
+    const grant = immediate ? this.options.autoApply?.(request.botId, request.threadId) ?? null : null;
+    if (immediate && (!grant || (request.deletion && grant !== "full-access"))) throw new TeamSetupError("This conversation can no longer apply team setup on its own; ask the owner", 409);
     if (confirming && !immediate && !this.options.store.messagesFor(request.threadId).some((message) => message.card?.requestId === request.requestId && !message.card.answered && !message.card.dismissed)) throw new TeamSetupError("This setup card is no longer pending", 409);
     if (confirming && teamSetupRevision(chief, this.requesterScope(request)) !== request.requesterRevision) throw new TeamSetupError("The Chief's settings changed. This setup was cancelled; review a new proposal.", 409);
     const existingTeams = new Set(this.options.teams().map(section));
@@ -202,7 +212,9 @@ export class TeamSetupRequestService {
   private prepare(args: SetupArgs) {
     const parsed = planSchema.safeParse(args.plan);
     if (!parsed.success) throw new TeamSetupError(parsed.error.issues[0]?.message ?? "Invalid team setup");
-    const chief = this.chief(args.botId);
+    // a person's own ask is checked against the whole prepared request in validate
+    const chief = args.byPerson ? this.options.store.bot(args.botId) : this.chief(args.botId);
+    if (!chief || chief.hidden) throw new TeamSetupError("Only an active Chief of Staff can propose team setup", 403);
     const combined = new Map<string, typeof parsed.data.operations[number]>();
     for (const operation of parsed.data.operations) {
       const key = operation.action === "create" ? `create:${operation.key}` : `update:${operation.botId}`;
@@ -223,7 +235,7 @@ export class TeamSetupRequestService {
     for (const operation of operations) if (operation.botId === chief.id) Object.assign(requesterScope, operation.fields);
     const request: TeamSetupRequest = { version: 1, requestId: newId(), botId: args.botId, threadId: args.threadId,
       reason: redactSecretsInText(parsed.data.reason), createdAt: Date.now(), requesterRevision: teamSetupRevision(chief, requesterScope),
-      newTeams: [...new Set(parsed.data.newTeams)], operations };
+      newTeams: [...new Set(parsed.data.newTeams)], operations, ...(args.byPerson ? { byPerson: true as const } : {}) };
     this.validate(request, false);
     return request;
   }
@@ -250,15 +262,16 @@ export class TeamSetupRequestService {
   }
 
   async submitDeletion(args: DeletionArgs & SubmitAuthority) {
+    // deleting can't be undone: the person confirms on a card at every level but Full access
     const grant = this.options.autoApply?.(args.botId, args.threadId) ?? null;
-    if (grant) return { ...await this.applyImmediately(this.prepareDeletion(args), args.from, args.canCommit), appliedBy: grant };
+    if (grant === "full-access") return { ...await this.applyImmediately(this.prepareDeletion(args), args.from, args.canCommit), appliedBy: grant };
     return { ...this.proposeDeletion(args), applied: false, state: "pending" as const };
   }
 
   private cardData(request: TeamSetupRequest, immediate = false): OptionCardData {
     const permission = this.options.canPersist(request.botId, request.threadId);
     if (!permission.ok) throw new TeamSetupError(permission.error, permission.status);
-    const chief = this.chief(request.botId);
+    const chief = this.chief(request.botId, request);
     const lines = [`Why: ${request.reason}`];
     if (request.deletion) lines.push(`Delete @${request.deletion.name} (${request.deletion.botId}).`, "Permanently removes this bot, all its conversations, memory, instructions, skills, and any computer owned only by it. Generated project files and shared department computers remain. Active work or an unavailable provider can block deletion safely.");
     if (request.newTeams.length) {

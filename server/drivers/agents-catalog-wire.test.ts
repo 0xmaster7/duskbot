@@ -62,7 +62,7 @@ function profiles(): Record<string, Profile> {
 }
 
 const PROFILES = profiles();
-const CHIEF_ONLY_TOOLS = ["create_bot", "list_team_setup", "list_team_library", "propose_team_setup", "propose_bot_deletion", "manage_room", "retry_thread"];
+const CHIEF_ONLY_TOOLS = ["list_team_setup", "propose_team_setup", "propose_bot_deletion", "manage_room", "retry_thread"];
 const CHIEF_TARGET_TOOLS = ["propose_profile", "propose_model"];
 const CHIEF_PROFILE_TARGET = " A Chief of Staff may pass for_bot_id (from list_bots) for a requested change to another bot in its section.";
 const TEAMWORK_TOOLS = ["list_room_targets", "coordinate_bots", "assignment_status", "list_bots", "list_rooms", "list_threads", "close_thread", "start_thread", "post_to_room"];
@@ -75,24 +75,24 @@ const FULL = "skills+voice+x+team";
 
 /** Bytes when the budget was last set; a profile may move at most 2% either way (lower it to lock in a win). */
 const BUDGET_BASELINE: Record<string, number> = {
-  "default": 60666,
-  "voice": 61444,
-  "skills": 63485,
-  "skills+voice": 64263,
-  "non-chief": 50960,
-  "voice+non-chief": 51738,
-  "skills+non-chief": 53779,
-  "skills+voice+non-chief": 54557,
-  "skills+voice+cloud-home": 63284,
-  "skills+voice+non-chief+cloud-home": 53578,
-  "default+legacy-switches": 60666,
-  "default+dusk": 61317,
-  "skills+voice+dusk": 64914,
-  "skills+voice+x": 69274,
-  "skills+voice+x+team": 69274,
-  "default+no-computer-pick": 59459,
-  "default+room": 52381,
-  "non-chief+room": 42675,
+  "default": 60698,
+  "voice": 61476,
+  "skills": 63517,
+  "skills+voice": 64295,
+  "non-chief": 52878,
+  "voice+non-chief": 53656,
+  "skills+non-chief": 55697,
+  "skills+voice+non-chief": 56475,
+  "skills+voice+cloud-home": 63316,
+  "skills+voice+non-chief+cloud-home": 55496,
+  "default+legacy-switches": 60698,
+  "default+dusk": 61349,
+  "skills+voice+dusk": 64946,
+  "skills+voice+x": 69306,
+  "skills+voice+x+team": 69306,
+  "default+no-computer-pick": 59491,
+  "default+room": 52413,
+  "non-chief+room": 44593,
 };
 
 const RPC_PREFIX = '{"jsonrpc":"2.0","id":1,"result":';

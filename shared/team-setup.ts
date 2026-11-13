@@ -43,6 +43,8 @@ export interface TeamSetupRequest {
   operations: TeamSetupOperation[];
   newTeams: string[];
   deletion?: { botId: string; name: string; expectedRevision: string };
+  /** A bot that is not a Chief making one bot in its own department because its person asked it directly. */
+  byPerson?: true;
   result?: TeamSetupResult;
   resumed?: boolean;
   /** Set when the setup applied on its own (direct-apply.ts) and Undo can reverse it. */

@@ -52,7 +52,7 @@ function everyProfile(): Array<{ name: string; profile: CatalogProfile }> {
 const bridgeFor = (options: Parameters<typeof profile>[0] = {}) => createToolBridge(availableTools(profile(options)) as BridgeTool[]);
 const names = (tools: readonly { name: string }[]) => tools.map((tool) => tool.name);
 const FULL_CHIEF = { chief: true, skills: true, voice: true } as const;
-const CHIEF_ONLY = ["create_bot", "list_team_setup", "propose_team_setup", "propose_bot_deletion", "manage_room", "retry_thread"];
+const CHIEF_ONLY = ["list_team_setup", "propose_team_setup", "propose_bot_deletion", "manage_room", "retry_thread"];
 
 type Match = { name: string; description: string; inputSchema: Record<string, unknown> };
 type FindPayload = { matches: Match[]; next: string };
@@ -402,7 +402,7 @@ describe("use_tool", () => {
   it("names a tool outside this turn's profile for the front end to refuse as it refuses a direct call", () => {
     // No answer of its own: the proxy's one unknown-tool check rejects it,
     // in the same words as a direct call.
-    for (const name of ["made_up", "create_bot", "skill_manage", "shared_computer", "send_voice_note", "create_options_card", FIND_TOOL, USE_TOOL]) {
+    for (const name of ["made_up", "propose_team_setup", "skill_manage", "shared_computer", "send_voice_note", "create_options_card", FIND_TOOL, USE_TOOL]) {
       expect(bridgeFor().use({ name, arguments: { anything: true } }), name).toEqual({ name, arguments: { anything: true } });
     }
   });

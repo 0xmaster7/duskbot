@@ -9,13 +9,14 @@ import { expect, it } from "vitest";
 import { launchVerificationServer, runControlDusk } from "../scripts/control-dusk.ts";
 
 const HELLO = "Hi, I'm Scout. I keep watch on your competitors. Which ones should I start with?";
+const QUILL = "Hi, I'm Quill. I draft your weekly report. Want this week's now?";
 const agents = (name: string, input: Record<string, unknown>) => ({ server: "agents", name, input });
 
-it("a bot makes a bot from a template, passes a note to it once, gives it an automation, and the new bot says hello", async () => {
+it("a bot makes a bot from a template, passes a note to it once, gives it an automation, the new bot says hello and makes a bot its person asks it for", async () => {
   const scratch = mkdtempSync(join(tmpdir(), "dusk-workspace-by-chat-"));
   const fixture = await launchVerificationServer({
     ...process.env,
-    FAKE_CLAUDE_REPLIES: JSON.stringify(["Made Scout and told it you like short reports.", HELLO]),
+    FAKE_CLAUDE_REPLIES: JSON.stringify(["Made Scout and told it you like short reports.", HELLO, "Made Quill for your weekly report.", QUILL]),
     FAKE_CLAUDE_REPLY_STATE: join(scratch, "replies.state"),
     FAKE_CLAUDE_TOOL_CALLS_BY_TURN: JSON.stringify([
       [
@@ -28,6 +29,9 @@ it("a bot makes a bot from a template, passes a note to it once, gives it an aut
           schedule: { type: "daily", time: "09:00" }, for_bot_id: "Scout" }),
         agents("session_search", { since: "1d" }),
       ],
+      [],
+      // Scout is no Chief: it makes a bot only because the person asks it directly
+      [agents("create_bot", { name: "Quill", role: "Report writer", instructions: "Draft the person's weekly report from the week's notes, short and plain." })],
       [],
     ]),
   });
@@ -66,6 +70,14 @@ it("a bot makes a bot from a template, passes a note to it once, gives it an aut
     const results = (await rows(dusk.threadId)).filter((row) => row.tool).map((row) => [row.tool!.name, row.tool!.ok]);
     expect(results).toEqual([["list_team_library", true], ["create_bot", true], ["memory_update", true], ["memory_update", true],
       ["memory_update", false], ["trigger", true], ["session_search", true]]);
+
+    // an ordinary bot asked directly by its person makes a bot too, and that one says hello
+    expect(scout.chiefOfStaff).toBeFalsy();
+    await cli("send", "--bot", scout.id, "--text", "Make me a bot that drafts my weekly report.");
+    await expect.poll(async () => ((await get("/api/bots")).bots as any[]).find((bot) => bot.name === "Quill")?.title, { timeout: 60_000 }).toBe("Report writer");
+    const quill = ((await get("/api/bots")).bots as any[]).find((bot) => bot.name === "Quill");
+    expect(quill.section ?? "").toBe(scout.section ?? "");
+    await expect.poll(async () => (await rows(quill.threadId)).some((row) => row.role === "bot" && row.text === QUILL), { timeout: 60_000 }).toBe(true);
   } finally {
     await fixture.close();
     rmSync(scratch, { recursive: true, force: true });

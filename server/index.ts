@@ -14553,8 +14553,12 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         if (!owner) {
           return json(res, 403, { error: "source conversation does not belong to sender" });
         }
-        if (!chiefLevel(chief)) {
-          return json(res, 403, { error: "only a section's Chief of Staff can create operator bots" });
+        // any bot makes one when its person asks it directly in their own chat; a Chief also makes specialists it needs
+        const personAsked = (): boolean => !CLOUD_TEAM && !owner.group && internalCapability.depth === 0 && !cloudGuestDriven(fromThreadId) &&
+          ownersOwnAsk(store.activePath(fromThreadId));
+        const byPerson = !chiefLevel(chief);
+        if (byPerson && !personAsked()) {
+          return json(res, 403, { error: "Only a Chief of Staff makes bots on its own. You can make one when the person asks you for it directly in their own chat with you; otherwise ask a Chief with coordinate_bots, or tell the person." });
         }
         if (internalCapability.createdBots >= MAX_CREATED_BOTS_PER_TURN) {
           return json(res, 429, { error: `You can create at most ${MAX_CREATED_BOTS_PER_TURN} bots in one turn. Use the team you have before adding more.` });
@@ -14595,7 +14599,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
           cwd = checkedCwd.cwd ?? undefined;
         }
         // Discovery can yield; check current authority and capacity again before writing.
-        if (store.bot(chief.id) !== chief || chief.hidden || !chiefLevel(chief) || !connectorThread(chief.id, fromThreadId)) {
+        if (store.bot(chief.id) !== chief || chief.hidden || (!chiefLevel(chief) && !personAsked()) || !connectorThread(chief.id, fromThreadId)) {
           return json(res, 403, { error: "only an active Chief of Staff can create operator bots" });
         }
         if (internalCapability.createdBots >= MAX_CREATED_BOTS_PER_TURN) {
@@ -14615,6 +14619,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         const setup = {
           botId: chief.id,
           threadId: fromThreadId,
+          ...(byPerson ? { byPerson: true } : {}),
           canCommit: () => internalCapabilityIsActive(internalCapability),
           ...(owner.group ? { from: { botId: chief.id, name: chief.name, color: chief.color } } : {}),
           plan: {
@@ -14650,7 +14655,8 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
           try { journalMemoryWrite(created.id, file, text, { actor: "bot", via: `create_bot by @${chief.name}` }); } catch (error) { console.warn(`create_bot: template note ${file} not written: ${error instanceof Error ? error.message : String(error)}`); }
         }
         // the new bot says hello in its own chat, as one made in the app does; never over a conversation already started
-        const greets = body.greet !== false && introAllowed(store.messagesFor(created.threadId)) && !threadBusy(created.id, created.threadId);
+        // a specialist a Chief adds for work in hand starts on that work, not with a hello
+        const greets = body.greet !== false && personAsked() && introAllowed(store.messagesFor(created.threadId)) && !threadBusy(created.id, created.threadId);
         if (greets) {
           void startTurn(created.id, introPrompt(conversationLanguage(created.threadId)), { threadId: created.threadId, cardContinuation: true, trigger: { kind: "bot", botId: chief.id } })
             .catch((error) => console.warn(`create_bot: intro for ${created.id} did not start: ${error instanceof Error ? error.message : String(error)}`));

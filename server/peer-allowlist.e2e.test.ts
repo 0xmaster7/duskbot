@@ -272,7 +272,8 @@ describe("peer allow-list", () => {
       expect(systemPrompt).toContain("you cannot grant them your access");
       expect(systemPrompt).not.toContain("Use delegate_bot");
       expect(systemPrompt).not.toContain("use ask_bot");
-      expect(systemPrompt).not.toContain("create_bot");
+      // an ordinary bot makes a bot only on its person's ask; changing teams stays a Chief's
+      expect(systemPrompt).not.toContain("propose_team_setup");
       expect(systemPrompt).toContain("[/TEAM ROSTER] If a supported API key is missing");
 
       const providerToken = String(dump.mcpConfig?.mcpServers?.agents?.env?.DUSK_COMMS_TOKEN ?? "");

@@ -5,7 +5,7 @@ import { expect, it } from "vitest";
 import { launchVerificationServer, runControlDusk } from "../scripts/control-dusk.ts";
 import { removeTempDir } from "./testing/cleanup.ts";
 
-it("Clive sets up multi-provider teams at Ask with no card, keeps existing threads through setup and deletion, and adds a specialist it picked itself at once, with an Undo", async () => {
+it("Clive sets up multi-provider teams at Ask with no card, keeps existing threads through setup and a deletion the person confirms on its card, and adds a specialist it picked itself at once, with an Undo", async () => {
   const gates = mkdtempSync(join(tmpdir(), "dusk-team-setup-gates-"));
   const gate = join(gates, "finish");
   const fixture = await launchVerificationServer({ FAKE_CLAUDE_MODE: "slow", FAKE_CLAUDE_SLOW_FINISH_GATE: gate }, undefined, undefined, undefined, undefined, ["codex"]);
@@ -98,12 +98,18 @@ it("Clive sets up multi-provider teams at Ask with no card, keeps existing threa
 
     token = await start("Delete Patch as requested.");
     const deletion = await api("POST", "/api/internal/bot-deletion-requests", { targetBotId: engineer.id, reason: "User explicitly requested deletion" }, 201, token);
-    expect(deletion).toMatchObject({ state: "applied", applied: true, result: { bots: [{ id: engineer.id, name: "Patch", action: "deleted" }] } });
+    // deleting can't be undone, so below Full access it waits for the person's yes on its card
+    expect(deletion).toMatchObject({ state: "pending", applied: false });
     expect(deletion.detail).toContain("Permanently removes");
-    expect((await state()).some((bot: any) => bot.id === engineer.id)).toBe(false);
+    expect((await state()).some((bot: any) => bot.id === engineer.id)).toBe(true);
+    await finish();
+    await api("POST", `/api/bots/${chief.id}/respond`, { threadId: chief.threadId, requestId: deletion.requestId, behavior: "allow" });
+    await expect.poll(async () => (await state()).some((bot: any) => bot.id === engineer.id), { timeout: 20_000 }).toBe(false);
+    // the decision resumes Clive once; let that turn settle before the next one starts
+    await expect.poll(async () => !(await state()).find((bot: any) => bot.id === chief.id).busy, { timeout: 20_000 }).toBe(true);
+    if (existsSync(fixture.fixtureDumpPath)) previousPid = JSON.parse(readFileSync(fixture.fixtureDumpPath, "utf8")).pid;
     expect((await state()).filter((bot: any) => initialBotIds.has(bot.id)).map((bot: any) => bot.id).sort())
       .toEqual([...initialBotIds].sort());
-    await finish();
 
     // A specialist Clive picks without being asked is added at once like a requested one: no card, nothing resumes Clive, and Undo removes it.
     token = await start("Does the team need anyone else?");
