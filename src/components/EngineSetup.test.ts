@@ -157,14 +157,22 @@ describe("install from Settings on the server", () => {
 
   it("keeps a quiet setup's probe reason behind Details, in plain grey, never as an alert", () => {
     vi.stubGlobal("window", { duskDesktop: { platform: "linux" } });
-    const reason = "`kimi` isn't installed, or isn't on this app's PATH.";
+    const reason = "`kimi` isn't installed yet: the probe timed out.";
     const engine = npmEngine({ state: "unavailable", reason });
     const quiet = renderToStaticMarkup(createElement(StoreProvider, null, createElement(EngineSetup, { instance: engine, quiet: true })));
-    expect(quiet).toMatch(/<details data-engine-setup-reason="true" class="[^"]*text-ink-tertiary"><summary[^>]*>details<\/summary><p[^>]*>`kimi` isn&#x27;t installed/);
+    expect(quiet).toMatch(/<details data-engine-setup-reason="true" class="[^"]*text-ink-tertiary"><summary[^>]*>details<\/summary><p[^>]*>`kimi` isn&#x27;t installed yet/);
     expect(quiet).not.toContain('role="alert"');
     expect(quiet).not.toContain("text-danger");
     expect(quiet).toContain("install Kimi here");
-    expect(render(engine)).toMatch(/role="alert" class="[^"]*text-danger">`kimi` isn&#x27;t installed/);
+    expect(render(engine)).toMatch(/role="alert" class="[^"]*text-danger">`kimi` isn&#x27;t installed yet/);
+  });
+
+  it("shows an AI that isn't installed yet as a plain setup card, with no error before anyone has tried", () => {
+    const markup = render(npmEngine({ state: "unavailable", reason: "`kimi` CLI not found" }, false));
+    expect(markup).toContain("npm install -g kimi-fixture");
+    expect(markup).not.toContain("CLI not found");
+    expect(render(npmEngine({ state: "unavailable", reason: "`kimi` isn't installed, or isn't on this app's PATH." }, false))).not.toContain("text-danger");
+    expect(markup).not.toContain("text-danger");
   });
 
   it("falls back to the terminal command when the server cannot install", () => {

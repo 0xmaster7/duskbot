@@ -97,7 +97,7 @@ export function EngineSections({ instances, renderEngine, isReady = engineReady 
   </div>;
 }
 
-export function RefreshEngines() {
+export function RefreshEngines({ onChecked }: { onChecked?: () => void } = {}) {
   const { refreshInstances } = useStore();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -107,7 +107,7 @@ export function RefreshEngines() {
       setBusy(true);
       setError(null);
       setChecked(false);
-      try { await refreshInstances({ reportErrors: true }); setChecked(true); }
+      try { await refreshInstances({ reportErrors: true }); setChecked(true); onChecked?.(); }
       catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
       finally { setBusy(false); }
     }} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-[12px] font-medium text-ink-secondary hover:bg-control hover:text-ink focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-50">

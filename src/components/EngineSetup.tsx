@@ -30,6 +30,11 @@ export function needsCli(instance: InstanceInfo | undefined): boolean {
   return instance?.snapshot.state !== "available";
 }
 
+/** An AI app that simply isn't installed yet: the setup card says so, so the probe's own line is only news after a check. */
+export function notInstalledYet(reason: string | undefined): boolean {
+  return Boolean(reason && /CLI not found$|isn't installed, or isn't on this app's PATH/.test(reason));
+}
+
 export function serverTerminal(cloudHome: boolean): boolean {
   return Boolean(window.duskDesktop?.openInstallTerminal) && window.duskDesktop?.remoteClient?.active !== true && !cloudHome;
 }
@@ -50,7 +55,8 @@ export function CommandRow({
   allowTerminal?: boolean;
 }) {
   const [status, setStatus] = useState<"copied" | "failed" | "opened" | null>(null);
-  const canOpen = typeof window !== "undefined" && allowTerminal && serverTerminal(false);
+  const [noTerminal, setNoTerminal] = useState(false);
+  const canOpen = typeof window !== "undefined" && allowTerminal && serverTerminal(false) && !noTerminal;
 
   const settle = (next: "copied" | "failed" | "opened") => {
     setStatus(next);
@@ -66,11 +72,14 @@ export function CommandRow({
 
   const openTerminal = async () => {
     const opened = await window.duskDesktop!.openInstallTerminal!(command);
+    if (!opened) setNoTerminal(true);
     settle(opened ? "opened" : "copied");
   };
+  const noTerminalNote = noTerminal && <p role="status" className="mt-1.5 text-[11px] leading-relaxed text-ink-secondary">{t("engineSetup.noTerminal")}</p>;
 
   if (compact) {
     return (
+      <>
       <div className="mt-2 flex min-w-0 items-center gap-1.5 rounded-lg border border-transparent bg-app px-2 py-1.5">
         <code className="min-w-0 flex-1 truncate font-mono text-[11px] text-ink-secondary" title={command}>
           {command}
@@ -101,6 +110,8 @@ export function CommandRow({
           {status === "opened" ? t("engineSetup.openedHint") : ""}
         </span>
       </div>
+      {noTerminalNote}
+      </>
     );
   }
 
@@ -148,6 +159,7 @@ export function CommandRow({
           {t(status === "copied" ? "engineSetup.commandCopied" : status === "failed" ? "common.copyFailed" : "engineSetup.copyCommand")}
         </button>
       )}
+      {noTerminalNote}
     </div>
   );
 }
@@ -560,8 +572,11 @@ export function EngineSetup({
   rows?: boolean;
 }) {
   const { state } = useStore();
+  const [checked, setChecked] = useState(false);
   const cloudHome = state.config?.cloudHome === true;
   const install = instance.install;
+  const unavailable = instance.snapshot.state === "unavailable" ? instance.snapshot.reason : undefined;
+  const reason = unavailable && (checked || !notInstalledYet(unavailable)) ? unavailable : undefined;
   const installCommand = installCommandFor(install);
   const signInCommand = install?.signInCommand;
   const signInOnly = intent === "cloud" && needsSignIn(instance);
@@ -644,14 +659,14 @@ export function EngineSetup({
         </div>
       </div>
 
-      {instance.snapshot.state === "unavailable" && instance.snapshot.reason && (quiet ? (
+      {reason && (quiet ? (
         <details data-engine-setup-reason className="mt-2 text-[12px] leading-4 text-ink-tertiary">
           <summary className="cursor-pointer select-none hover:text-ink-secondary">{t("engineSetup.details")}</summary>
-          <p className="mt-1 whitespace-pre-wrap">{instance.snapshot.reason}</p>
+          <p className="mt-1 whitespace-pre-wrap">{reason}</p>
         </details>
       ) : (
         <p role="alert" className="mt-2 text-[12px] leading-relaxed text-danger">
-          {instance.snapshot.reason}
+          {reason}
         </p>
       ))}
 
@@ -697,7 +712,7 @@ export function EngineSetup({
         <div className="mt-3 border-t border-transparent pt-2">
           <p className="mb-1 text-[12px] leading-relaxed text-ink-secondary">{t("engineSetup.sameMachine")}</p>
           {needsCli(instance) && <p className="mb-1 text-[12px] leading-relaxed text-ink-secondary">{t("engineSetup.pathHint")}</p>}
-          <RefreshEngines key={instance.instanceId} />
+          <RefreshEngines key={instance.instanceId} onChecked={() => setChecked(true)} />
         </div>
       )}
 
@@ -729,14 +744,16 @@ function EngineSetupRows({ instance, title, description, command, installCommand
   const { refreshInstances } = useStore();
   const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState<string | null>(null);
-  const [opened, setOpened] = useState(false);
+  const [opened, setOpened] = useState<boolean | null>(null);
+  const [checked, setChecked] = useState(false);
   const install = instance.install!;
-  const canOpen = Boolean(command) && !cloudHome && serverTerminal(false);
-  const reason = instance.snapshot.state === "unavailable" ? instance.snapshot.reason : undefined;
+  const canOpen = Boolean(command) && !cloudHome && serverTerminal(false) && opened !== false;
+  const unavailable = instance.snapshot.state === "unavailable" ? instance.snapshot.reason : undefined;
+  const reason = unavailable && (checked || !notInstalledYet(unavailable)) ? unavailable : undefined;
   const check = async () => {
     setChecking(true);
     setCheckError(null);
-    try { await refreshInstances({ reportErrors: true }); }
+    try { await refreshInstances({ reportErrors: true }); setChecked(true); }
     catch (cause) { setCheckError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setChecking(false); }
   };
@@ -755,6 +772,7 @@ function EngineSetupRows({ instance, title, description, command, installCommand
           </ItemRow>
           {command ? <CopyRow title={t("settings.s2.engine.command")} text={command} copyLabel={t("engineSetup.copyCommand")} />
             : <NoteRow>{t("engineSetup.noInstaller")}</NoteRow>}
+          {opened === false && <NoteRow>{t("engineSetup.noTerminal")}</NoteRow>}
         </>
       )}
       {reason && <NoteRow tone="danger">{reason}</NoteRow>}
