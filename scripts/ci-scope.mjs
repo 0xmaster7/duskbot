@@ -51,7 +51,8 @@ export const VITEST_SUBSETS = {
       "server/routine-run-card.test.ts", "server/connector-card-text.test.ts", "server/host/secret-cards.test.ts",
       "server/notify.test.ts", "server/room-lines.test.ts", "server/post-to-room.test.ts",
       "server/teammate-lines.test.ts", "server/cloud-send-arrived.test.ts", "scripts/ci-workflow.test.ts", "scripts/pre-push-check.test.ts",
-      "server/host/wait-words.test.ts"],
+      "server/host/wait-words.test.ts", "electron/accounts-e2e.test.mjs", "scripts/testing/send-confirmation.e2e.test.ts",
+      "scripts/testing/team-own-chat.e2e.test.ts"],
     shards: 2,
     nodeTests: true,
   },
@@ -70,9 +71,12 @@ export const VITEST_SUBSETS = {
  * and one to another language runs every test that reads it (the locale tests). */
 export const SRC_OUTSIDE_RENDERER = [
   "src/components/app/app-frame-host.ts",
+  "src/lib/card-seal.ts",
   "src/lib/composer-attachments.ts",
   "src/lib/media-sizes.ts",
+  "src/lib/plain-preview.ts",
   "src/lib/random-uuid.ts",
+  "src/lib/ready-bots.ts",
   "src/lib/upload-request.ts",
 ];
 
