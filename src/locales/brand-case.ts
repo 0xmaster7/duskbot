@@ -29,8 +29,8 @@ export const KEEP_PHRASES: readonly string[] = [
   "1Password", "AirPods Pro", "Google Calendar", "Google Sheets", "Google Docs", "Google Meet", "Microsoft Teams", "X Developer",
 ];
 
-/** whole strings left alone: the remote desktop's key caps, drawn as keys */
-export const EXEMPT_KEYS: readonly RegExp[] = [/^desktopViewer\.key/];
+/** whole strings left alone: the remote desktop's key caps, drawn as keys, and the viewer's line that starts with noVNC's own name */
+export const EXEMPT_KEYS: readonly RegExp[] = [/^desktopViewer\.key/, /^desktopViewer\.notice$/];
 
 const PROTECT = new RegExp([
   "\\{[^}]*\\}",                                   // placeholders
@@ -88,8 +88,8 @@ const PROMPT_KEYS: readonly RegExp[] = [/^onboarding\.start\.job\./];
 
 const wordCount = (value: string) => value.replace(/\{[^}]*\}/g, "x").trim().split(/\s+/).length;
 
-/** the chat window: banners and notices (the corner cards over it, cloudIntro, twoPlaces, cloudNotice and routines.late, included), the helper's first-run greeting and its chips, composer, message actions, turn status lines, approval cards, thread errors. Everything here, buttons and fragments included, reads in sentence case. Sidebar and settings labels are not listed, so they stay lowercase; the bot panel has its own list below. */
-const CHAT_KEYS = /^(chat|composer|approval|question|failedReply|toolStep|toolDetail|nativeUsage|notices?|contextWarning|secretCard|thread|conversation|ask|limits|error|needsYou|goalRun|trace|server\.status|cloudIntro|twoPlaces|cloudNotice|routines\.late|helperIntro)\./;
+/** the chat window: its cards (sign-in, widgets, tables, attachments, connector cards) and the computer viewer they open, banners and notices (the corner cards over it, cloudIntro, twoPlaces, cloudNotice and routines.late, included), the helper's first-run greeting and its chips, composer, message actions, turn status lines, approval cards, thread errors. Everything here, buttons and fragments included, reads in sentence case. Sidebar and settings labels are not listed, so they stay lowercase; the bot panel has its own list below. */
+const CHAT_KEYS = /^(chat|composer|approval|question|failedReply|toolStep|toolDetail|nativeUsage|notices?|contextWarning|secretCard|thread|conversation|ask|limits|error|needsYou|goalRun|trace|server\.status|cloudIntro|twoPlaces|cloudNotice|routines\.late|helperIntro|signIn|widget|table|desktopViewer|attach|connectors\.card)\./;
 
 /** spoken-only or machine-read text keeps its case in the chat window too */
 const CHAT_QUIET = /(^|\.)(aria\w*)(\.|$)/i;
@@ -123,8 +123,22 @@ const CHAT_LABELS: ReadonlySet<string> = new Set([
   "call.setupVoice", "call.pickVoice", "call.mode.menu",
 ]);
 
+/** words of the computer view, the cards and the place chip that sit in the chat window or the bot panel, kept under
+ * namespaces they share with settings; their settings-only siblings stay lowercase */
+const CHAT_CARD_LABELS: ReadonlySet<string> = new Set([
+  "computer.browserOff.title", "computer.browserSwitch.title", "computer.capturingLocal", "computer.capturingVm", "computer.close",
+  "computer.createVm", "computer.done", "computer.err.vmNotReady", "computer.fullScreen", "computer.handBack", "computer.inControl",
+  "computer.open", "computer.openBrowserTab", "computer.openLiveDesktop", "computer.openSettings", "computer.openVmSetup",
+  "computer.phase.checking", "computer.phase.starting", "computer.phase.vmUnavailable", "computer.phase.vpsIncompatible",
+  "computer.phase.vpsStopped", "computer.preview.connecting", "computer.preview.connectingScreen", "computer.preview.retry",
+  "computer.replaceVm", "computer.simple.addCloud", "computer.sleepTitle", "computer.stopControl", "computer.takeControl",
+  "computer.takeControlHint", "computer.takeControlTitle", "computer.waitingFrame", "computer.wakingUp", "computer.watchOnly",
+  "computer.watching", "computer.unavailableLocal", "place.busy", "place.unpinSimple", "vm.cloud.sleep",
+  "connectApps.manageApp", "connectors.openAuthorizationPage", "onboarding.card.custom", "onboarding.card.dismiss",
+]);
+
 export function isChatEntry(key: string): boolean {
-  if (CHAT_LABELS.has(key)) return true;
+  if (CHAT_LABELS.has(key) || CHAT_CARD_LABELS.has(key)) return true;
   return CHAT_KEYS.test(key) && !CHAT_FRAGMENTS.test(key) && !CHAT_QUIET.test(key) && !EXEMPT_KEYS.some((pattern) => pattern.test(key)) && !PROMPT_KEYS.some((pattern) => pattern.test(key));
 }
 
@@ -179,7 +193,14 @@ export function sentenceCase(text: string): string {
 }
 
 /** the policy for one English entry: lowercase labels, sentence-case messages */
+/** a chat button named inside a sentence ("tap Take over and tick the box") keeps the capital it has on the button */
+export const QUOTED_BUTTONS: readonly string[] = ["Take over", "Take control", "Hand control back", "I'm done", "Skip", "Open", "Try again"];
+const QUOTED_BUTTON = new RegExp(`(?<![\\w'’])(?:${[...QUOTED_BUTTONS].sort((a, b) => b.length - a.length).map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})(?![\\w'’])`, "g");
+
 export function entryCase(key: string, value: string): string {
-  const lowered = brandCaseEntry(key, value);
-  return isSentenceEntry(key, value) ? sentenceCase(lowered) : lowered;
+  if (!isSentenceEntry(key, value)) return brandCaseEntry(key, value);
+  // the names are held as placeholders while the rest is cased, so they come back exactly as written
+  const names: string[] = [];
+  const held = value.replace(QUOTED_BUTTON, (name) => `{\u0000${names.push(name) - 1}}`);
+  return sentenceCase(brandCaseEntry(key, held)).replace(/\{\u0000(\d+)\}/g, (_, index: string) => names[Number(index)]!);
 }

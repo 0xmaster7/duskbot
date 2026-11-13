@@ -1607,7 +1607,7 @@ function InlineReporter({ stage, detail, onReport }: InlineReport & { onReport: 
   return null;
 }
 
-const FIX_LABEL: Record<ComputerFix, LocaleKey> = { replace: "computer.problem.update", retry: "common.tryAgain", settings: "computer.problem.openSettings" };
+const FIX_LABEL: Record<ComputerFix, LocaleKey> = { replace: "computer.problem.update", retry: "botPanel.ui.commonTryAgain", settings: "computer.problem.openSettings" };
 
 /** Under the screen: what is wrong in plain words (unless the screen already says it), and the one button that fixes it. */
 function ProblemLine({ problem, name, lineShown, disabled, onFix }: {

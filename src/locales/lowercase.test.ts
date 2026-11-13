@@ -67,6 +67,15 @@ it("known messages and labels land on the right side of the split", () => {
   expect(isSentenceEntry("settings.keys.hint", "paste a key here.")).toBe(true);
 });
 
+it("a chat button named inside a sentence keeps its capital, the rest of the sentence is cased as usual", () => {
+  expect(entryCase("signIn.humanCheck", "Quick human check on {site}. Tap Take over and tick the box.")).toBe("Quick human check on {site}. Tap Take over and tick the box.");
+  expect(entryCase("chat.x", "Press I'm done when you Finish.")).toBe("Press I'm done when you finish.");
+  expect(entryCase("chat.x", "tap take over and wait.")).toBe("Tap take over and wait.");
+  expect(english["signIn.humanCheck"]).toBe("Quick human check on {site}. Tap Take over and tick the box.");
+  expect(english["server.notify.humanCheckBody"]).toBe("Open dusk bot, tap Take over and tick the box.");
+  expect(entryCase("sidebar.nav.x", "Take over"), "a label is not a sentence: it stays lowercase").toBe("take over");
+});
+
 it("sentenceCase capitalises each sentence and keeps dusk, placeholders, code and abbreviations", () => {
   expect(sentenceCase("signed out. try again, e.g. later. i'll wait")).toBe("Signed out. Try again, e.g. later. I'll wait");
   expect(sentenceCase("dusk bot is ready. dusk cloud keeps it")).toBe("dusk bot is ready. dusk cloud keeps it");

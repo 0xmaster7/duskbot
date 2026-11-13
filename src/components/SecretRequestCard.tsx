@@ -205,7 +205,7 @@ export function SecretRequestCard({
     const retry = !secret.resumed && !stopped && error ? (
       <button type="button" onClick={() => void retryResume()} disabled={saving} className={cn(ASK_QUIET_BUTTON, "text-accent-text")}>
         {saving ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-        {t("common.tryAgain")}
+        {t("secretCard.tryAgain")}
       </button>
     ) : undefined;
     const status = declined
@@ -243,13 +243,13 @@ export function SecretRequestCard({
         <form onSubmit={(event) => void save(event)}>
           {email && (
             <div className="mb-2 flex flex-col gap-2">
-              <input type="email" autoComplete="off" spellCheck={false} dir="ltr" value={address} onChange={(event) => setAddress(event.target.value)} placeholder={t("email.address")} disabled={saving} aria-label={t("email.address")} className={cn(CARD_FIELD, "w-full")} />
+              <input type="email" autoComplete="off" spellCheck={false} dir="ltr" value={address} onChange={(event) => setAddress(event.target.value)} placeholder={t("secretCard.emailAddress")} disabled={saving} aria-label={t("secretCard.emailAddress")} className={cn(CARD_FIELD, "w-full")} />
               {needsServer && <EmailServerInputs value={server} onChange={setServer} className={cn(CARD_FIELD, "w-full")} />}
             </div>
           )}
           {login && (
             <input type="text" name="username" autoComplete="off" spellCheck={false} dir="ltr" value={username} onChange={(event) => setUsername(event.target.value)}
-              placeholder={t("logins.username")} disabled={saving} aria-label={t("logins.username")} maxLength={512} className={cn(CARD_FIELD, "mb-2 w-full")} />
+              placeholder={t("secretCard.username")} disabled={saving} aria-label={t("secretCard.username")} maxLength={512} className={cn(CARD_FIELD, "mb-2 w-full")} />
           )}
           <input
             type="password"
@@ -258,9 +258,9 @@ export function SecretRequestCard({
             dir="ltr"
             value={value}
             onChange={(event) => setValue(event.target.value)}
-            placeholder={login ? t("logins.password") : secret.placeholder}
+            placeholder={login ? t("secretCard.password") : secret.placeholder}
             disabled={saving || savedLocally}
-            aria-label={login ? t("logins.password") : secret.label}
+            aria-label={login ? t("secretCard.password") : secret.label}
             className={cn(CARD_FIELD, "w-full")}
           />
           {login && (

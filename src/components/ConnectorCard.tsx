@@ -201,7 +201,7 @@ export function ConnectorCard({ botId, threadId, message }: { botId: string; col
             ? t("connectors.card.openAgain")
             : connector.status === "failed"
               ? t("connectors.card.tryAgain")
-              : t(isMcp ? "connectors.card.signIn" : "connectors.action.connect")}
+              : t(isMcp ? "connectors.card.signIn" : "connectors.card.connect")}
         </button>
         <button type="button" onClick={dismiss} aria-label={t("connectors.card.notNow")} title={t("connectors.card.notNow")} className={CONNECTOR_DISMISS}>
           <Icon name="close" size={14} />
@@ -222,7 +222,7 @@ export function ConnectorCard({ botId, threadId, message }: { botId: string; col
             value={label}
             maxLength={64}
             onChange={(event) => setLabel(event.target.value)}
-            placeholder={t("connectors.aliasPlaceholder")}
+            placeholder={t("connectors.card.aliasPlaceholder")}
             aria-label={t("connectors.aliasAriaAnother", { service: connector.label })}
             className={cn(CARD_FIELD, "w-full")}
           />

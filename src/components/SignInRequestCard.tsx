@@ -22,10 +22,10 @@ import { useSignInTakeover } from "./SignInTakeover";
 
 /** Grok's titlebar names where the step happens. */
 const SOURCE = {
-  browser: "computer.tab.browser",
+  browser: "signIn.source.browser",
   vm: "botPanel.tab.computer",
   cloud: "botPanel.tab.computer",
-  local: "place.local",
+  local: "signIn.source.local",
   host: "botPanel.tab.computer",
 } as const;
 
@@ -138,7 +138,7 @@ export function SignInRequestCard({ botId, botName, threadId, message }: CardPro
         {t("signIn.retry")}
       </button>
     ) : undefined;
-    const status = card.savedLogin ? t("signIn.status.saved") : t(outcome === "done" ? "common.done" : "signIn.skipped");
+    const status = card.savedLogin ? t("signIn.status.saved") : t(outcome === "done" ? "signIn.status.done" : "signIn.skipped");
     const what = card.savedLogin
       ? t("signIn.settled.saved", { site: card.savedLogin })
       : card.check ? t(outcome === "done" ? "signIn.settled.checkCleared" : "signIn.settled.checkSkipped", { site: card.site })

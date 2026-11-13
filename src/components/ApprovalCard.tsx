@@ -371,7 +371,7 @@ function AppliedChangeLine({
         {undone && !cancels && <EventLabel tone="tertiary">· {t("approval.applied.undone")}</EventLabel>}
         {!undone && canUndo && threadId && (
           <EventChip onClick={undo} disabled={undoing} className="disabled:opacity-60">
-            {cancels ? t(undoing ? "approval.applied.cancelling" : "common.cancel") : t(undoing ? "approval.applied.undoing" : "approval.applied.undo")}
+            {cancels ? t(undoing ? "approval.applied.cancelling" : "approval.cancel") : t(undoing ? "approval.applied.undoing" : "approval.applied.undo")}
           </EventChip>
         )}
         {canShare && (
