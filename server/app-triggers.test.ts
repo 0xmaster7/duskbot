@@ -10,6 +10,9 @@ import { AppTriggerManager, type AppTriggerManagerOptions } from "./app-triggers
 import { RoutineManager } from "./routines.ts";
 import { startBrokerFake, type BrokerFake } from "./testing/broker-fake.ts";
 
+// the broker's DESKTOP_DAILY_EVENTS
+const DESKTOP_DAILY_EVENTS = 2_000;
+
 let dir = "";
 let broker: BrokerFake;
 let owner: { id: string; token: string; userId: string };
@@ -196,12 +199,12 @@ describe("AppTriggerManager", () => {
     const triggers = manager();
     const trigger = await gmailTrigger(triggers);
     await triggers.reconcile();
-    broker.setQueuedToday(owner.id, 500);
+    broker.setQueuedToday(owner.id, DESKTOP_DAILY_EVENTS);
     await broker.deliver(trigger.remote.triggerId!, { subject: "Over the limit" });
     await broker.deliver(trigger.remote.triggerId!, { subject: "Also over" });
     await triggers.reconcile();
     expect(triggers.get(trigger.id)?.skipped).toMatchObject({ dailyLimit: 2 });
-    expect(triggers.service()).toMatchObject({ plan: "desktop", eventsPerDay: 500, eventsToday: 500 });
+    expect(triggers.service()).toMatchObject({ plan: "desktop", eventsPerDay: DESKTOP_DAILY_EVENTS, eventsToday: DESKTOP_DAILY_EVENTS });
   });
 
   it("deletes the service copy with the last automation that uses it, and Undo brings it back", async () => {

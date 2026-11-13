@@ -43,7 +43,7 @@ export interface BrokerFake {
   mcpCalls: Array<{ user: string; method: string; tool?: string; slugs?: string[] }>;
   /** Google Calendar event resources of a Composio user's primary calendar, as its multi-execute tool answers them. */
   calendarEvents: Record<string, unknown[]>;
-  /** Today's queued count for an installation, set directly, to reach the daily limit without 500 deliveries. */
+  /** Today's queued count for an installation, set directly, to reach the daily limit without a day of deliveries. */
   setQueuedToday(installationId: string, queued: number): void;
   cloudMachine(installationId: string): string | null;
   cloudGrant(machineId: string): string;
