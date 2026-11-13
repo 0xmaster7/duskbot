@@ -1,5 +1,6 @@
 import "../electron/legacy-names.mjs";
 import { rootErrorOptions } from "./lib/error-reports";
+import { watchStaleChunks } from "./lib/stale-chunks";
 import { startDesktopAnalytics } from "./lib/product-analytics-app";
 import { screen as productScreen } from "./lib/product-analytics";
 import { AccountGate, reloadWhenSignedOut } from "./components/account-gate/AccountGate";
@@ -27,6 +28,8 @@ import "./font-faces.css";
 import "./styles.css";
 import "./styles/overlays.css";
 import "./styles/motion.css";
+
+watchStaleChunks();
 
 // Before first paint.
 startDesktopAnalytics();
