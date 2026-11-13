@@ -6,7 +6,7 @@
 // symmetric nat (most vpns), while tcp 22 is open on every vps; see apps/link-service/README.md "Direct path".
 // where a network blocks port 22 (Jio, often), the same byte stream rides a websocket to the server's own https on 443,
 // with its tls key pinned the same way (wssConnector). ssh is tried first, then 443, and the relay stays underneath.
-import { X509Certificate, createHash, randomBytes } from "node:crypto";
+import { X509Certificate, createHash, createHmac, randomBytes } from "node:crypto";
 import { createRequire } from "node:module";
 import { connect as netConnect, isIP } from "node:net";
 import { networkInterfaces } from "node:os";
@@ -251,8 +251,8 @@ export function wsFrame(opcode, payload, masked) {
   return Buffer.concat([head, body]);
 }
 
-/** frames out of a byte stream: data to `onData`, pings answered by the caller, a close ends it. throws on anything else */
-export function wsReader({ masked, onData, onPing = () => {}, onClose = () => {} }) {
+/** frames out of a byte stream: data to `onData`, pings answered by the caller, a close ends it. text only with `onText`; throws on anything else */
+export function wsReader({ masked, onData, onPing = () => {}, onClose = () => {}, onText = null }) {
   let buf = Buffer.alloc(0);
   return (chunk) => {
     buf = buf.length ? Buffer.concat([buf, chunk]) : chunk;
@@ -281,14 +281,18 @@ export function wsReader({ masked, onData, onPing = () => {}, onClose = () => {}
       if (opcode === 0 || opcode === 2) { if (payload.length) onData(payload); }
       else if (opcode === 8) { onClose(); return; }
       else if (opcode === 9) onPing(payload);
+      else if (opcode === 1 && onText) onText(payload.toString("utf8"));
       else if (opcode !== 10) throw new Error("not a binary websocket");
     }
   };
 }
 
-/** a websocket over `socket` as a plain duplex byte stream; `head` is what arrived after the handshake */
-export function wsDuplex(socket, { client, head = null }) {
-  let ended = false;
+/**
+ * a websocket over `socket` as a plain duplex byte stream; `head` is what arrived after the handshake. `heartbeatMs`
+ * sends the text "ping" that often (the cloud relay answers "pong" without waking) and ends a socket silent for 3 beats
+ */
+export function wsDuplex(socket, { client, head = null, onText = null, heartbeatMs = 0 }) {
+  let ended = false, heardAt = Date.now();
   const duplex = new Duplex({
     writableHighWaterMark: 1024 * 1024,
     write(chunk, _encoding, callback) { if (socket.destroyed) callback(new Error("closed")); else socket.write(wsFrame(2, chunk, client), callback); },
@@ -302,11 +306,17 @@ export function wsDuplex(socket, { client, head = null }) {
     onData: (data) => { if (!ended && !duplex.push(data)) socket.pause(); },
     onPing: (data) => { if (!socket.destroyed) socket.write(wsFrame(10, data, client)); },
     onClose: () => { finish(); socket.end(); },
+    onText: onText ?? (heartbeatMs ? () => {} : null),
   });
-  const take = (chunk) => { try { read(chunk); } catch (error) { duplex.destroy(error); } };
+  const take = (chunk) => { heardAt = Date.now(); try { read(chunk); } catch (error) { duplex.destroy(error); } };
+  const beat = heartbeatMs ? setInterval(() => {
+    if (Date.now() - heardAt > heartbeatMs * 3) { socket.destroy(); return; }
+    if (!socket.destroyed) socket.write(wsFrame(1, Buffer.from("ping"), client));
+  }, heartbeatMs) : null;
+  beat?.unref?.();
   socket.on("data", take);
   socket.once("end", finish);
-  socket.once("close", () => { finish(); duplex.destroy(); });
+  socket.once("close", () => { clearInterval(beat); finish(); duplex.destroy(); });
   socket.on("error", (error) => duplex.destroy(error));
   if (head?.length) take(head);
   return duplex;
@@ -448,7 +458,9 @@ export function createDirectLink({ id, key: keyText, guard, connect, onFrame, on
         failedOn = null;
         upAt = performance.now();
         set("up");
-        pingTimer = setInterval(() => ping(), pingMs);
+        // the cloud relay bills while a message wakes it, so a transport may ping less often there
+        const every = typeof pingMs === "function" ? pingMs(via) : pingMs;
+        pingTimer = setInterval(() => ping(), every);
         pingTimer.unref?.();
         ping();
         return;
@@ -602,9 +614,11 @@ const PIN_ERROR = "the server's https key is not the one it said";
  * `spki`, which the agent sent inside the sealed tunnel, on top of the usual certificate checks: neither the network
  * nor the relay can stand in for the server, and the frames inside stay sealed end to end as on every path.
  */
-export function wssConnector({ url, spki, timeoutMs = 15_000, connect: dial = netConnect, tls: tlsOptions = {} }) {
+export function wssConnector({ url, spki, timeoutMs = 15_000, connect: dial = netConnect, tls: tlsOptions = {}, headers = {}, heartbeatMs = 0, via = "wss" }) {
   const target = new URL(url);
-  const host = target.hostname.replace(/^\[|\]$/g, ""), port = Number(target.port) || 443;
+  // plain ws:// only for a local relay under test; spki null: the usual certificate checks alone (the cloud relay)
+  const plain = target.protocol === "ws:";
+  const host = target.hostname.replace(/^\[|\]$/g, ""), port = Number(target.port) || (plain ? 80 : 443);
   return () => new Promise((resolve, reject) => {
     let settled = false, pinned = false;
     const raw = dial({ host, port });
@@ -624,24 +638,32 @@ export function wssConnector({ url, spki, timeoutMs = 15_000, connect: dial = ne
     timer.unref?.();
     connectedSocket(raw, { timeoutMs }).then(() => { if (!settled) secure(); }, fail);
     const secure = () => {
+      if (plain) { socket = raw; pinned = true; watch(); handshake(); return; }
       socket = tlsConnect({
         socket: raw, host, ...(isIP(host) ? {} : { servername: host }), ALPNProtocols: ["http/1.1"], ...tlsOptions,
         checkServerIdentity: (name, cert) => {
           const usual = checkServerIdentity(name, cert);
           if (usual) return usual;
+          if (spki === null) { pinned = true; return undefined; }
           // the spki der, as the agent's spkiOf hashes it (node's cert.pubkey is the bare point for an ec key)
           pinned = Boolean(cert.raw) && createHash("sha256").update(new X509Certificate(cert.raw).publicKey.export({ type: "spki", format: "der" })).digest("base64") === spki;
           return pinned ? undefined : Object.assign(new Error(PIN_ERROR), { code: "PIN" });
         },
       });
-      socket.on("error", fail);
-      socket.once("close", () => fail(new Error("the connection closed before the handshake")));
-      const nonce = randomBytes(16).toString("base64");
+      watch();
       socket.once("secureConnect", () => {
         if (!pinned) { fail(Object.assign(new Error(PIN_ERROR), { code: "PIN" })); return; }
-        socket.write([`GET ${target.pathname}${target.search} HTTP/1.1`, `Host: ${target.host}`, "Upgrade: websocket", "Connection: Upgrade",
-          `Sec-WebSocket-Key: ${nonce}`, "Sec-WebSocket-Version: 13", "", ""].join("\r\n"));
+        handshake();
       });
+    };
+    const nonce = randomBytes(16).toString("base64");
+    const watch = () => {
+      socket.on("error", fail);
+      socket.once("close", () => fail(new Error("the connection closed before the handshake")));
+    };
+    const handshake = () => {
+      socket.write([`GET ${target.pathname}${target.search} HTTP/1.1`, `Host: ${target.host}`, "Upgrade: websocket", "Connection: Upgrade",
+        `Sec-WebSocket-Key: ${nonce}`, "Sec-WebSocket-Version: 13", ...Object.entries(headers).map(([name, value]) => `${name}: ${value}`), "", ""].join("\r\n"));
       let buffered = Buffer.alloc(0);
       const onData = (chunk) => {
         buffered = Buffer.concat([buffered, chunk]);
@@ -650,9 +672,9 @@ export function wssConnector({ url, spki, timeoutMs = 15_000, connect: dial = ne
         socket.off("data", onData);
         const lines = buffered.subarray(0, end).toString("latin1").split("\r\n");
         const status = /^HTTP\/1\.1 (\d{3})/.exec(lines[0])?.[1];
-        const headers = new Map(lines.slice(1).map((line) => [line.slice(0, line.indexOf(":")).trim().toLowerCase(), line.slice(line.indexOf(":") + 1).trim()]));
-        if (status !== "101" || headers.get("sec-websocket-accept") !== wsAccept(nonce)) {
-          fail(Object.assign(new Error(`the server's https answered ${status ?? "something else"} for the direct path`), { code: status === "404" ? "NOWSS" : "EPROTO" }));
+        const answered = new Map(lines.slice(1).map((line) => [line.slice(0, line.indexOf(":")).trim().toLowerCase(), line.slice(line.indexOf(":") + 1).trim()]));
+        if (status !== "101" || answered.get("sec-websocket-accept") !== wsAccept(nonce)) {
+          fail(Object.assign(new Error(`the server's https answered ${status ?? "something else"} for the direct path`), { code: status === "404" ? "NOWSS" : "EPROTO", status: Number(status) || 0 }));
           return;
         }
         settled = true;
@@ -660,8 +682,8 @@ export function wssConnector({ url, spki, timeoutMs = 15_000, connect: dial = ne
         socket.off("error", fail);
         socket.removeAllListeners("close");
         socket.setKeepAlive?.(true, 15_000);
-        const duplex = wsDuplex(socket, { client: true, head: buffered.subarray(end + 4) });
-        resolve({ readable: duplex, writable: duplex, close: () => duplex.destroy(), via: "wss" });
+        const duplex = wsDuplex(socket, { client: true, head: buffered.subarray(end + 4), heartbeatMs });
+        resolve({ readable: duplex, writable: duplex, close: () => duplex.destroy(), via });
       };
       socket.on("data", onData);
     };
@@ -697,4 +719,34 @@ export function orderedConnect(list, { network = networkFingerprint, now = Date.
     }
     throw Object.assign(errors.at(-1) ?? new Error("no direct transport"), { errors });
   };
+}
+
+/** the cloud relay (apps/cloudflare/link-relay): DUSK_RELAY_URL moves it, `off` turns it off */
+export const CLOUD_RELAY_URL = "https://relay.dusk.bot";
+export function cloudRelayUrl(env = process.env) {
+  const value = (env.DUSK_RELAY_URL ?? "").trim();
+  if (value === "off") return null;
+  try {
+    const url = new URL(value || CLOUD_RELAY_URL);
+    return ["https:", "http:"].includes(url.protocol) ? url.origin : null;
+  } catch { return null; }
+}
+/** the relay's bearer for a tunnel, from the tunnel key both ends hold (agent.mjs relayTokenOf): the relay keeps only its sha256 */
+export const relayTokenOf = (key, id) => createHmac("sha256", Buffer.from(key, "base64url")).update(`dusk-relay-v1|${id}`).digest("base64url");
+export const RELAY_HEARTBEAT_MS = 25_000;
+
+/** binds the tunnel at the relay to the dusk account of a fresh link grant; throws with `status` when refused */
+export async function cloudRegister({ url, id, key, grant, fetch: fetchImpl = fetch, timeoutMs = 15_000 }) {
+  if (typeof grant !== "string" || !grant) throw Object.assign(new Error("the cloud relay needs a signed-in dusk account"), { code: "NO_GRANT" });
+  const verifier = createHash("sha256").update(relayTokenOf(key, id)).digest("hex");
+  const response = await fetchImpl(`${url}/v1/t/${id}/register`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ grant, verifier }), signal: AbortSignal.timeout(timeoutMs) });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw Object.assign(new Error(typeof body?.error === "string" ? body.error : `the cloud relay answered ${response.status}`), { status: response.status, code: body?.code });
+}
+
+/** the app's end of the cloud relay: one websocket per session, carrying the direct path's byte stream through the relay */
+export function cloudConnector({ url, id, key, ...rest }) {
+  const target = new URL(`${url}/v1/t/${id}/app`);
+  target.protocol = target.protocol === "http:" ? "ws:" : "wss:";
+  return wssConnector({ url: target.href, spki: null, headers: { authorization: `Bearer ${relayTokenOf(key, id)}` }, heartbeatMs: RELAY_HEARTBEAT_MS, via: "cloud", ...rest });
 }

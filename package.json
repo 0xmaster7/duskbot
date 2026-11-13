@@ -90,7 +90,9 @@
     "broker:types": "wrangler types --config apps/cloudflare/composio-broker/wrangler.jsonc apps/cloudflare/composio-broker/worker-configuration.d.ts",
     "broker:check": "pnpm broker:types && tsc -p apps/cloudflare/composio-broker/tsconfig.json",
     "broker:test": "vitest run --config apps/cloudflare/composio-broker/vitest.config.ts",
-    "broker:deploy": "wrangler deploy --config apps/cloudflare/composio-broker/wrangler.jsonc"
+    "broker:deploy": "wrangler deploy --config apps/cloudflare/composio-broker/wrangler.jsonc",
+    "relay:test": "vitest run --config apps/cloudflare/link-relay/vitest.config.ts",
+    "relay:e2e": "RELAY_E2E=1 vitest run --config apps/cloudflare/link-relay/vitest.config.ts test/e2e.test.js"
   },
   "dependencies": {
     "@1password/sdk": "0.5.0",

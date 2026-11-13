@@ -66,6 +66,15 @@ and never logs the query. The app completes the exchange with its own harness, s
   `<ip-with-dashes>.sslip.io`. The app talks HTTPS straight to it and pins the certificate's public key, which Caddy keeps
   across renewals (`reuse_private_keys`). The tunnel still runs as a private control channel.
 
+## Cloud relay
+
+Where neither direct transport connects, the same direct-path byte stream rides the Cloudflare relay
+(`apps/cloudflare/link-relay`, relay.dusk.bot) before this service's relay: the tunnel agent keeps a standing
+websocket there (`createCloudRelay`) and serves each app session through the direct hub, and the app dials it as the
+third direct transport (`cloudConnector`). The frames stay sealed end to end; this service stays underneath as the
+fallback and keeps pairing, setup and updates. `DUSK_RELAY_URL` moves it, `off` turns it off. See that folder's
+README for auth, fair use, ops counters and going live.
+
 ## Direct path
 
 A relay-linked server also gets a direct path, picked automatically and kept up in the background, with the relay as

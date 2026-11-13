@@ -1,0 +1,51 @@
+// The link relay (README.md). The top level is the preview (relay-preview.dusk.bot plus workers.dev); `--env production`
+// serves relay.dusk.bot, the address agents and apps dial by default. The route beside each custom domain keeps the
+// zone's *.dusk.bot edge route from taking the host.
+// Secrets (optional): OPS_TOKEN for /v1/ops/*, GRANT_KEYS to trust other grant keys than the pinned one.
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  "name": "dusk-link-relay-preview",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-18",
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "relay-preview.dusk.bot", "custom_domain": true },
+    { "pattern": "relay-preview.dusk.bot/*", "zone_name": "dusk.bot" }
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "TUNNELS", "class_name": "TunnelRelay" },
+      { "name": "ACCOUNTS", "class_name": "AccountUsage" },
+      { "name": "OPS", "class_name": "OpsUsage" }
+    ]
+  },
+  "migrations": [{ "tag": "relay-v1", "new_sqlite_classes": ["TunnelRelay", "AccountUsage", "OpsUsage"] }],
+  "ratelimits": [
+    { "name": "REGISTER_LIMITER", "namespace_id": "8261711", "simple": { "limit": 30, "period": 60 } },
+    { "name": "CONNECT_LIMITER", "namespace_id": "8261712", "simple": { "limit": 600, "period": 60 } }
+  ],
+  "observability": { "enabled": true, "logs": { "enabled": true, "head_sampling_rate": 0.1 } },
+  "env": {
+    "production": {
+      "name": "dusk-link-relay",
+      "workers_dev": false,
+      "routes": [
+        { "pattern": "relay.dusk.bot", "custom_domain": true },
+        { "pattern": "relay.dusk.bot/*", "zone_name": "dusk.bot" }
+      ],
+      "durable_objects": {
+        "bindings": [
+          { "name": "TUNNELS", "class_name": "TunnelRelay" },
+          { "name": "ACCOUNTS", "class_name": "AccountUsage" },
+          { "name": "OPS", "class_name": "OpsUsage" }
+        ]
+      },
+      "migrations": [{ "tag": "relay-v1", "new_sqlite_classes": ["TunnelRelay", "AccountUsage", "OpsUsage"] }],
+      "ratelimits": [
+        { "name": "REGISTER_LIMITER", "namespace_id": "8261721", "simple": { "limit": 30, "period": 60 } },
+        { "name": "CONNECT_LIMITER", "namespace_id": "8261722", "simple": { "limit": 600, "period": 60 } }
+      ],
+      "observability": { "enabled": true, "logs": { "enabled": true, "head_sampling_rate": 0.1 } }
+    }
+  }
+}

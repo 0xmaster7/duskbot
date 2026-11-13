@@ -9,7 +9,7 @@
 // it also lends the bot computers on this server the app's own internet connection when the person turns on "route
 // traffic through this computer": a socks5 and http connect proxy on the bot computers' bridge (see createEgressProxy).
 import { spawn } from "node:child_process";
-import { X509Certificate, createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes, verify as verifySignature } from "node:crypto";
+import { X509Certificate, createCipheriv, createDecipheriv, createHash, createHmac, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes, verify as verifySignature } from "node:crypto";
 import { createSocket } from "node:dgram";
 import { chmodSync, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { BlockList, createConnection, createServer as createTcpServer } from "node:net";
@@ -52,8 +52,8 @@ export const SERVER = { host: "127.0.0.1", port: Number(process.env.LINK_SERVER_
 export const LINK_PROTOCOL = 2;
 export const LINK_MIN_APP = 1;
 export const LINK_MIN_SERVER = 1;
-export const AGENT_VERSION = "2.0.0";
-export const AGENT_CAPS = Object.freeze(["direct-ssh", "direct-wss", "egress", "egress-lane", "self-update"]);
+export const AGENT_VERSION = "2.1.0";
+export const AGENT_CAPS = Object.freeze(["direct-ssh", "direct-wss", "egress", "egress-lane", "self-update", "cloud-relay"]);
 /** what this agent says about itself, in its direct hello and its answer to the app's `hello` */
 export const agentHello = () => ({ protocol: LINK_PROTOCOL, minApp: LINK_MIN_APP, minServer: LINK_MIN_SERVER, agent: AGENT_VERSION, caps: [...AGENT_CAPS] });
 const FRAME_SKEW_MS = 5 * 60_000;
@@ -779,8 +779,8 @@ export function wsFrame(opcode, payload, masked) {
   return Buffer.concat([head, body]);
 }
 
-/** frames out of a byte stream: data to `onData`, pings answered by the caller, a close ends it. throws on anything else */
-export function wsReader({ masked, onData, onPing = () => {}, onClose = () => {} }) {
+/** frames out of a byte stream: data to `onData`, pings answered by the caller, a close ends it. text only with `onText`; throws on anything else */
+export function wsReader({ masked, onData, onPing = () => {}, onClose = () => {}, onText = null }) {
   let buf = Buffer.alloc(0);
   return (chunk) => {
     buf = buf.length ? Buffer.concat([buf, chunk]) : chunk;
@@ -809,14 +809,18 @@ export function wsReader({ masked, onData, onPing = () => {}, onClose = () => {}
       if (opcode === 0 || opcode === 2) { if (payload.length) onData(payload); }
       else if (opcode === 8) { onClose(); return; }
       else if (opcode === 9) onPing(payload);
+      else if (opcode === 1 && onText) onText(payload.toString("utf8"));
       else if (opcode !== 10) throw new Error("not a binary websocket");
     }
   };
 }
 
-/** a websocket over `socket` as a plain duplex byte stream; `head` is what arrived after the handshake */
-export function wsDuplex(socket, { client, head = null }) {
-  let ended = false;
+/**
+ * a websocket over `socket` as a plain duplex byte stream; `head` is what arrived after the handshake. `heartbeatMs`
+ * sends the text "ping" that often (the cloud relay answers "pong" without waking) and ends a socket silent for 3 beats
+ */
+export function wsDuplex(socket, { client, head = null, onText = null, heartbeatMs = 0 }) {
+  let ended = false, heardAt = Date.now();
   const duplex = new Duplex({
     writableHighWaterMark: 1024 * 1024,
     write(chunk, _encoding, callback) { if (socket.destroyed) callback(new Error("closed")); else socket.write(wsFrame(2, chunk, client), callback); },
@@ -830,11 +834,17 @@ export function wsDuplex(socket, { client, head = null }) {
     onData: (data) => { if (!ended && !duplex.push(data)) socket.pause(); },
     onPing: (data) => { if (!socket.destroyed) socket.write(wsFrame(10, data, client)); },
     onClose: () => { finish(); socket.end(); },
+    onText: onText ?? (heartbeatMs ? () => {} : null),
   });
-  const take = (chunk) => { try { read(chunk); } catch (error) { duplex.destroy(error); } };
+  const take = (chunk) => { heardAt = Date.now(); try { read(chunk); } catch (error) { duplex.destroy(error); } };
+  const beat = heartbeatMs ? setInterval(() => {
+    if (Date.now() - heardAt > heartbeatMs * 3) { socket.destroy(); return; }
+    if (!socket.destroyed) socket.write(wsFrame(1, Buffer.from("ping"), client));
+  }, heartbeatMs) : null;
+  beat?.unref?.();
   socket.on("data", take);
   socket.once("end", finish);
-  socket.once("close", () => { finish(); duplex.destroy(); });
+  socket.once("close", () => { clearInterval(beat); finish(); duplex.destroy(); });
   socket.on("error", (error) => duplex.destroy(error));
   if (head?.length) take(head);
   return duplex;
@@ -2318,6 +2328,124 @@ export function createDirectHub({ id, key, server = SERVER, guard, egress = null
   };
 }
 
+/** the cloud relay (apps/cloudflare/link-relay): DUSK_RELAY_URL moves it, `off` turns it off */
+export const CLOUD_RELAY_URL = "https://relay.dusk.bot";
+export function cloudRelayUrl(env = process.env) {
+  const value = (env.DUSK_RELAY_URL ?? "").trim();
+  if (value === "off") return null;
+  try {
+    const url = new URL(value || CLOUD_RELAY_URL);
+    return ["https:", "http:"].includes(url.protocol) ? url.origin : null;
+  } catch { return null; }
+}
+/** the relay's bearer for a tunnel, from the tunnel key both ends hold: the relay keeps only its sha256 */
+export const relayTokenOf = (key, id) => createHmac("sha256", Buffer.from(key, "base64url")).update(`dusk-relay-v1|${id}`).digest("base64url");
+export const RELAY_HEARTBEAT_MS = 25_000;
+const RELAY_BACKOFF_MS = [1000, 2000, 5000, 15_000, 30_000, 60_000, 120_000];
+/** the relay does not know this tunnel yet (the app registers it): asked again this often */
+const RELAY_UNKNOWN_MS = 5 * 60_000;
+
+/** a websocket handshake to `url` (http(s) origin + path); resolves the raw socket and what came after the 101 */
+export function wsConnect(url, { headers = {}, timeoutMs = 15_000, tls: tlsOptions = {} } = {}) {
+  const target = new URL(url);
+  const secure = target.protocol === "https:" || target.protocol === "wss:";
+  const port = Number(target.port) || (secure ? 443 : 80);
+  return new Promise((resolve, reject) => {
+    const socket = secure ? tlsConnect({ host: target.hostname, port, servername: target.hostname, ALPNProtocols: ["http/1.1"], ...tlsOptions }) : createConnection({ host: target.hostname, port });
+    let settled = false, buffered = Buffer.alloc(0);
+    const fail = (error) => { if (settled) return; settled = true; clearTimeout(timer); socket.destroy(); reject(error); };
+    const timer = setTimeout(() => fail(Object.assign(new Error("the relay did not answer"), { code: "ETIMEDOUT" })), timeoutMs);
+    socket.on("error", fail);
+    socket.once("close", () => fail(new Error("the relay closed the connection")));
+    const nonce = randomBytes(16).toString("base64");
+    socket.once(secure ? "secureConnect" : "connect", () => {
+      socket.setNoDelay(true);
+      socket.setKeepAlive(true, 15_000);
+      socket.write([`GET ${target.pathname}${target.search} HTTP/1.1`, `Host: ${target.host}`, "Upgrade: websocket", "Connection: Upgrade",
+        `Sec-WebSocket-Key: ${nonce}`, "Sec-WebSocket-Version: 13", ...Object.entries(headers).map(([name, value]) => `${name}: ${value}`), "", ""].join("\r\n"));
+    });
+    const onData = (chunk) => {
+      buffered = Buffer.concat([buffered, chunk]);
+      const end = buffered.indexOf("\r\n\r\n");
+      if (end < 0) { if (buffered.length > 16 * 1024) fail(new Error("the relay's answer was not a websocket")); return; }
+      socket.off("data", onData);
+      const lines = buffered.subarray(0, end).toString("latin1").split("\r\n");
+      const status = Number(/^HTTP\/1\.1 (\d{3})/.exec(lines[0])?.[1] ?? 0);
+      const accept = lines.slice(1).find((line) => /^sec-websocket-accept:/i.test(line))?.split(":")[1]?.trim();
+      if (status !== 101 || accept !== wsAccept(nonce)) { fail(Object.assign(new Error(`the relay answered ${status || "something else"}`), { status })); return; }
+      settled = true;
+      clearTimeout(timer);
+      socket.off("error", fail);
+      socket.removeAllListeners("close");
+      resolve({ socket, head: buffered.subarray(end + 4) });
+    };
+    socket.on("data", onData);
+  });
+}
+
+/**
+ * the server's end of the cloud relay: a standing socket the relay tells about each app that arrives, and per app a
+ * socket of its own that carries the direct path's byte stream into `hub` (createDirectHub), so the frames, sealing,
+ * replay guard and flow control are exactly the direct path's. it reconnects with backoff (a relay deploy drops sockets).
+ */
+export function createCloudRelay({ url, id, key, hub, log = (line) => console.error(line), connect = wsConnect, heartbeatMs = RELAY_HEARTBEAT_MS, backoff = RELAY_BACKOFF_MS, unknownMs = RELAY_UNKNOWN_MS }) {
+  const headers = { authorization: `Bearer ${relayTokenOf(key, id)}` };
+  const abort = new AbortController();
+  let ctl = null, up = false, sessions = 0;
+  async function openSession(sid) {
+    try {
+      const { socket, head } = await connect(`${url}/v1/t/${id}/vps?s=${sid}`, { headers });
+      if (abort.signal.aborted) { socket.destroy(); return; }
+      const duplex = wsDuplex(socket, { client: true, head, heartbeatMs });
+      duplex.on("error", () => {});
+      const session = hub.accept(duplex, duplex);
+      if (!session) { duplex.destroy(); return; }
+      sessions += 1;
+      void session.done.then(() => { sessions -= 1; duplex.destroy(); });
+    } catch (error) { log(`link: an app's cloud relay session did not open (${error?.message ?? error})`); }
+  }
+  async function run() {
+    let attempt = 0, quietUnknown = false;
+    while (!abort.signal.aborted) {
+      const started = Date.now();
+      let wait;
+      try {
+        const { socket, head } = await connect(`${url}/v1/t/${id}/vps`, { headers });
+        if (abort.signal.aborted) { socket.destroy(); break; }
+        ctl = wsDuplex(socket, { client: true, head, heartbeatMs, onText: (text) => {
+          let said = null;
+          try { said = JSON.parse(text); } catch { return; }
+          if (said?.t === "open" && /^[a-z2-7]{12}$/.test(said.s ?? "")) void openSession(said.s);
+        } });
+        ctl.on("error", () => {});
+        ctl.resume();
+        up = true;
+        quietUnknown = false;
+        log("link: the cloud relay is connected");
+        await new Promise((resolve) => { ctl.once("close", resolve); abort.signal.addEventListener("abort", resolve, { once: true }); });
+        up = false;
+        ctl = null;
+        if (!abort.signal.aborted) log("link: the cloud relay connection closed; connecting again");
+      } catch (error) {
+        if (error?.status === 404) {
+          if (!quietUnknown) log("link: the cloud relay does not know this link yet; the app sets it up");
+          quietUnknown = true;
+          wait = unknownMs;
+        } else if (attempt === 0 || attempt % 10 === 0) log(`link: the cloud relay is not reachable (${error?.message ?? error})`);
+      }
+      if (Date.now() - started > 60_000) attempt = 0;
+      wait ??= backoff[Math.min(attempt, backoff.length - 1)] * (0.75 + Math.random() / 2);
+      attempt += 1;
+      await delay(wait, undefined, { signal: abort.signal }).catch(() => {});
+    }
+  }
+  return {
+    start() { void run(); },
+    stop() { abort.abort(); ctl?.destroy(); },
+    stats: () => ({ up, sessions }),
+  };
+}
+
 /** where `agent.mjs direct` finds the tunnel's process: in this account's own private folder */
 export const directSocketPath = () => join(configDir(), "direct.sock");
 
@@ -2425,9 +2553,13 @@ async function tunnel() {
   const serverUpdates = process.env.DUSK_LINK_SERVER_UPDATES === "off" ? null : createServerUpdater({ base: saved.base, id: saved.id, token: saved.token, log: (line) => console.error(line) });
   serverUpdates?.start();
   const [directSocket, directWs] = await Promise.all([listenDirectSocket(agent.direct), process.env.DUSK_LINK_DIRECT === "off" ? null : listenDirectWss(agent.direct)]);
-  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { serverUpdates?.stop(); phones?.stop(); agent.stop(); directSocket?.close(); directWs?.close(); process.exit(0); });
+  const relayUrl = cloudRelayUrl();
+  const cloud = relayUrl ? createCloudRelay({ url: relayUrl, id: saved.id, key: saved.key, hub: agent.direct }) : null;
+  cloud?.start();
+  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { cloud?.stop(); serverUpdates?.stop(); phones?.stop(); agent.stop(); directSocket?.close(); directWs?.close(); process.exit(0); });
   const phoneRun = phones?.run();
   const how = await agent.run();
+  cloud?.stop();
   phones?.stop();
   await phoneRun;
   // unlinked: stay quiet instead of letting systemd restart a tunnel that no longer exists
