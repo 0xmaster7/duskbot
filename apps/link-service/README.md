@@ -9,18 +9,20 @@ curl -fsSL https://link.dusk.bot/i/<code> | sh
 
 ## Ways in
 
-`| sh -s -- --tailscale` (or `--cloudflare`, `--domain NAME`, `--direct`, `--ssh`, `--relay`) after the line picks
+`| sh -s -- --cloudflare` (recommended; or `--tailscale`, `--ssh`, `--relay`) after the line picks
 how the app reaches the server ([docs/self-hosting.md](../../docs/self-hosting.md#from-the-app-one-line-any-way-in)). The
 installer's `address` step sets it up and writes `/etc/duskbot-address.json` (`{v, mode, via, host, pin, quick?}`, no
 secret in it). `agent.mjs link` seals `via` with the result; the agent's `hello` answer carries `address` (`{mode, via,
 origin, spki}`): a quick tunnel's current name from cloudflared's metrics, and the key of a pinned address read from the
-server itself, or nothing when that key cannot be read. The app takes an `https` address from there, pins its key (none
+server itself, or nothing when that key cannot be read. `--domain` and `--direct` are gone; an old line with one of
+them (or `--cloudflare-token`) prints a note and sets up a Cloudflare tunnel instead. The app takes an `https` address from there, pins its key (none
 for tailscale and cloudflare, which hold their own certificates), moves the saved server to it and signs in again.
 
 What only the person can do goes to the app as a step event with `ask` (`installerAsk` in `src/app.mjs`):
-`{kind: "tailscale-login" | "tailscale-https" | "cloudflare-login", url}` (only on login.tailscale.com or
-dash.cloudflare.com), `{kind: "dns", host, type: "A", value}`, `{kind: "ports", ip?}`, `{kind: "ssh", user, host}`, each
-with `state` waiting, found or done; `{kind: "none"}` clears it. Anything else is refused with 400.
+`{kind: "tailscale-login" | "tailscale-https", url}` (only on login.tailscale.com) or `{kind: "ssh", user, host}`, each
+with `state` waiting, found or done; `{kind: "none"}` clears it. Anything else is refused with 400. (The service still
+accepts the older `cloudflare-login`, `dns` and `ports` kinds; the installer no longer sends them and the app ignores
+them.)
 
 A claim reply may carry `"cloudflare": {"token", "hostname"}`, a tunnel made for this server on the service's own
 Cloudflare account: `--cloudflare` then runs that tunnel (`tunnel run` with `TUNNEL_TOKEN`) instead of a quick one.
@@ -62,9 +64,9 @@ and never logs the query. The app completes the exchange with its own harness, s
   server is still reached directly): every request and reply goes
   through the link service as AES-256-GCM frames, sealed with a key only the app and the VPS hold. The service just
   queues opaque blobs. Every frame carries a timestamp and is refused if it's stale or seen twice.
-- **Direct mode**, used only when the service can reach the VPS on port 80: Caddy gets a certificate for
-  `<ip-with-dashes>.sslip.io`. The app talks HTTPS straight to it and pins the certificate's public key, which Caddy keeps
-  across renewals (`reuse_private_keys`). The tunnel still runs as a private control channel.
+- **Direct mode**, with `--cloudflare` or `--tailscale`: the app talks HTTPS straight to the tunnel's or tailnet's
+  address, which holds its own certificate. The tunnel still runs as a private control channel, and the relay takes over
+  while that address does not answer.
 
 ## Cloud relay
 
@@ -92,8 +94,8 @@ stays on the relay; a transport that failed on a network is tried last there for
 ```
 
 - **443.** The tunnel process listens on `127.0.0.1:8797` (`DUSK_LINK_WSS_PORT`) for a WebSocket at `/omb-direct`; its
-  binary messages carry exactly the ssh channel's byte stream. A direct-mode install's Caddy passes `/omb-direct` to it.
-  On a relay-mode server whose operator runs their own HTTPS (nginx with a real certificate), add a location for
+  binary messages carry exactly the ssh channel's byte stream.
+  On a server whose operator runs their own HTTPS (nginx with a real certificate), add a location for
   `/omb-direct` that proxies WebSocket upgrades to `127.0.0.1:8797` and set `DUSK_LINK_WSS_URL=wss://<host>/omb-direct` in
   the link unit's environment. The app asks for the address with the sealed control op `direct-wss`; the agent answers
   the URL and the SHA-256 of its certificate's public key (read from the server itself), which the app pins on top of

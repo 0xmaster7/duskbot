@@ -27,7 +27,7 @@ case "$LINK_BASE" in
 esac
 if [ "$BAKED_TOKEN" = "$PLACEHOLDER_TOKEN" ]; then TOKEN="${1:-}"; else TOKEN="$BAKED_TOKEN"; fi
 
-WANT="" WANT_DOMAIN="" ARGS_WANT="" CF_TOKEN="${DUSK_CLOUDFLARE_TOKEN:-}" TS_KEY="${DUSK_TAILSCALE_KEY:-}"
+WANT="" ARGS_WANT="" CF_TOKEN="" CF_HOST="" TS_KEY="${DUSK_TAILSCALE_KEY:-}"
 
 DUSK_PACKAGE="${DUSK_PACKAGE:-}"
 # the bot computer: the link service names the image (BOT_DESKTOP_IMAGE in shared/bot-desktop.ts) and hands out
@@ -320,12 +320,12 @@ become_root() {
   say "Asking for administrator rights..."
   if [ -r "$0" ] && [ "${0##*/}" != "sh" ] && [ "${0##*/}" != "dash" ]; then
     # shellcheck disable=SC2046
-    exec sudo env LINK_BASE="$LINK_BASE" DUSK_PACKAGE="$DUSK_PACKAGE" BOT_DESKTOP_IMAGE="$BOT_DESKTOP_IMAGE" DUSK_CLOUDFLARE_TOKEN="$CF_TOKEN" DUSK_TAILSCALE_KEY="$TS_KEY" \
+    exec sudo env LINK_BASE="$LINK_BASE" DUSK_PACKAGE="$DUSK_PACKAGE" BOT_DESKTOP_IMAGE="$BOT_DESKTOP_IMAGE" DUSK_TAILSCALE_KEY="$TS_KEY" \
       COLORTERM="${COLORTERM:-}" NO_COLOR="${NO_COLOR:-}" DUSK_ASCII="${DUSK_ASCII:-}" DUSK_PLAIN="${DUSK_PLAIN:-}" DUSK_NO_ANIM="${DUSK_NO_ANIM:-}" DUSK_VERBOSE="${DUSK_VERBOSE:-}" sh "$0" "$TOKEN" $(way_args)
   fi
   # piped: the script is gone from stdin, so fetch it again for root
   # shellcheck disable=SC2046
-  curl -fsSL --proto "$PROTO" --proto-redir "$PROTO" --retry 3 "$LINK_BASE/i" | sudo env LINK_BASE="$LINK_BASE" DUSK_PACKAGE="$DUSK_PACKAGE" BOT_DESKTOP_IMAGE="$BOT_DESKTOP_IMAGE" DUSK_CLOUDFLARE_TOKEN="$CF_TOKEN" DUSK_TAILSCALE_KEY="$TS_KEY" \
+  curl -fsSL --proto "$PROTO" --proto-redir "$PROTO" --retry 3 "$LINK_BASE/i" | sudo env LINK_BASE="$LINK_BASE" DUSK_PACKAGE="$DUSK_PACKAGE" BOT_DESKTOP_IMAGE="$BOT_DESKTOP_IMAGE" DUSK_TAILSCALE_KEY="$TS_KEY" \
     COLORTERM="${COLORTERM:-}" NO_COLOR="${NO_COLOR:-}" DUSK_ASCII="${DUSK_ASCII:-}" DUSK_PLAIN="${DUSK_PLAIN:-}" DUSK_NO_ANIM="${DUSK_NO_ANIM:-}" DUSK_VERBOSE="${DUSK_VERBOSE:-}" sh -s "$TOKEN" $(way_args)
   exit $?
 }
@@ -1471,60 +1471,6 @@ get_agent() {
   fi
 }
 
-caddy_setup() { # host
-  if ! command -v caddy >/dev/null 2>&1; then
-    apt_install debian-keyring debian-archive-keyring apt-transport-https
-    fetch https://dl.cloudsmith.io/public/caddy/stable/gpg.key "$TMP/caddy.key"
-    new_file /usr/share/keyrings/caddy-stable-archive-keyring.gpg; new_file /etc/apt/sources.list.d/caddy-stable.list
-    x gpg --dearmor --yes -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg "$TMP/caddy.key"
-    chmod 0644 /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-    fetch https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt /etc/apt/sources.list.d/caddy-stable.list
-    rm -f "$TMP/apt-updated"
-    apt_install caddy
-  fi
-  cat > "$TMP/new" <<EOF
-# managed by duskbot-link
-$1 {
-	tls {
-		# the app pins this server's key, so renewals keep it
-		reuse_private_keys
-	}
-	encode zstd gzip
-	handle /hooks/* {
-		reverse_proxy 127.0.0.1:8800
-	}
-	# the app's direct path when its network blocks ssh: the link agent's websocket (sealed frames only)
-	handle /omb-direct {
-		reverse_proxy 127.0.0.1:8797
-	}
-	handle {
-		reverse_proxy 127.0.0.1:$PORT {
-			flush_interval -1
-		}
-	}
-}
-EOF
-  install -d -m 0755 /etc/caddy
-  put_file /etc/caddy/duskbot.caddy 0644 || true
-  main=/etc/caddy/Caddyfile
-  if [ ! -f "$main" ] || grep -q "managed by duskbot-link" "$main" || grep -q "/usr/share/caddy" "$main"; then
-    if [ ! -f "$main" ]; then manifest_add "caddyfile new"
-    elif ! grep -q "managed by duskbot-link" "$main"; then [ -f "$main.omb-before" ] || cp -p "$main" "$main.omb-before"; manifest_add "caddyfile replaced"; fi
-    printf '# managed by duskbot-link\nimport /etc/caddy/duskbot.caddy\n' > "$main"
-  elif ! grep -q "import /etc/caddy/duskbot.caddy" "$main"; then
-    # someone else's caddy: add our site, never replace theirs
-    printf '\nimport /etc/caddy/duskbot.caddy\n' >> "$main"
-    manifest_add "caddyfile appended"
-  fi
-  x caddy validate --adapter caddyfile --config "$main"
-  if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q "Status: active"; then
-    for _port in 80/tcp 443/tcp; do ufw status 2>/dev/null | grep -q "^$_port " || manifest_add "ufw $_port"; done
-    ufw allow 80/tcp && ufw allow 443/tcp
-  fi
-  systemctl enable caddy >/dev/null 2>&1
-  systemctl reload caddy 2>/dev/null || systemctl restart caddy
-}
-
 # the address the app uses, kept in state (mode, host, via, pin) and in $ADDRESS for the link agent, which tells the app
 # over the sealed tunnel when it changes (a quick tunnel's name after a restart, another way chosen on a repair)
 use_address() { # mode via [host] [pin]
@@ -1544,98 +1490,7 @@ restart_for_address() {
   wait_health "http://127.0.0.1:$PORT/api/health" 120 || true
 }
 public_ip() { curl -fsS --proto "$PROTO" --proto-redir "$PROTO" -m 10 "$LINK_BASE/v1/ip" 2>/dev/null | sed -n 's/.*"ip":"\([0-9.]*\)".*/\1/p' | head -n 1; }
-# can the internet reach port 80 here: the link service connects back (at most 10 probes a line). prints ip=<address>
-probe_80() {
-  set +e
-  show node "$AGENT" probe
-  _out=$(LINK_BASE="$LINK_BASE" LINK_ID="$LINK_ID" LINK_TOKEN="$VPS_TOKEN" /usr/bin/node "$AGENT" probe 2>&1)
-  _code=$?
-  set -e
-  echo "$_out"
-  PROBED_IP=$(printf '%s\n' "$_out" | sed -n 's/^ip=\([0-9.]*\)$/\1/p' | head -n 1)
-  [ "$_code" -eq 0 ] && [ -n "$PROBED_IP" ]
-}
-# waits for port 80 to answer from the internet, asking the person to open 80 and 443 while it does not
-wait_ports() { # what the address is for
-  n=0
-  while ! probe_80; do
-    n=$((n + 1))
-    [ "$n" -lt 8 ] || return 1
-    [ -n "$PROBED_IP" ] || PROBED_IP=$(public_ip)
-    if [ "$n" = 1 ]; then
-      printf 'Open ports 80 and 443 to this server for %s.\nIn your provider'"'"'s firewall or security list, allow TCP 80 and 443 from anywhere.\nWaiting for them to open...\n' "$1" \
-        | ask "{\"kind\":\"ports\",\"ip\":\"${PROBED_IP:-}\",\"state\":\"waiting\"}"
-    fi
-    sleep 60
-  done
-  [ "$n" = 0 ] || printf 'Ports 80 and 443 are open.\n' | ask "{\"kind\":\"ports\",\"ip\":\"$PROBED_IP\",\"state\":\"found\"}"
-}
-https_up() { # host -> its https address answers, served by caddy here with the key the app pins
-  caddy_setup "$1" || return 1
-  state_set host "$1"
-  wait_health "https://$1/api/health" 120
-}
 
-# the A records a name has: asked of a public resolver first, so this server's own cache never answers for it, then of
-# this server's own resolver (some networks only let that one through)
-dns_a() {
-  _found=$(curl -fsS --proto =https --proto-redir =https -m 10 -H 'accept: application/dns-json' "https://cloudflare-dns.com/dns-query?name=$1&type=A" 2>/dev/null \
-    | /usr/bin/node -e 'let t="";process.stdin.on("data",(c)=>t+=c).on("end",()=>{try{for(const a of JSON.parse(t).Answer??[])if(a.type===1)console.log(a.data)}catch{}})' 2>/dev/null || true)
-  [ -n "$_found" ] || _found=$(getent ahostsv4 "$1" 2>/dev/null | awk '{ print $1 }' | sort -u || true)
-  printf '%s\n' "$_found" | grep -E '^[0-9.]+$' || true
-}
-address_domain() {
-  host=$WANT_DOMAIN
-  if [ "$(state_get via)" = domain ] && [ "$(state_get host)" = "$host" ] && curl -fsS -m 5 "https://$host/api/health" >/dev/null 2>&1; then
-    echo "https://$host still works"; use_address direct domain "$host" 1; return 0
-  fi
-  ip=$(public_ip)
-  [ -n "$ip" ] || { relay_address "could not tell this server's public address; using the private relay"; return 11; }
-  found=$(dns_a "$host")
-  if ! printf '%s\n' "$found" | grep -qxF "$ip"; then
-    printf 'Add this DNS record where you manage %s:\n\n  type A   name %s   value %s\n\nIf it is on Cloudflare, set the proxy to DNS only (grey cloud).\nWaiting for it to show up, usually a few minutes...\n' "$host" "$host" "$ip" \
-      | ask "{\"kind\":\"dns\",\"host\":\"$host\",\"type\":\"A\",\"value\":\"$ip\",\"state\":\"waiting\"}"
-    waited=0
-    while :; do
-      sleep 15; waited=$((waited + 15))
-      found=$(dns_a "$host")
-      printf '%s\n' "$found" | grep -qxF "$ip" && break
-      [ -z "$found" ] || echo "$host points at $(printf '%s\n' "$found" | paste -sd ' ' -) instead of $ip"
-      [ "$waited" -lt 2700 ] || { relay_address "no A record for $host to $ip after 45 minutes; using the private relay"; return 11; }
-    done
-    printf 'Found it: %s points at %s.\n' "$host" "$ip" | ask "{\"kind\":\"dns\",\"host\":\"$host\",\"type\":\"A\",\"value\":\"$ip\",\"state\":\"found\"}"
-  fi
-  echo "$host points at $ip"
-  if ! wait_ports "https://$host"; then relay_address "ports 80 and 443 did not open; using the private relay"; return 11; fi
-  ask_clear
-  echo "getting a certificate for $host"
-  if ! https_up "$host"; then relay_address "https://$host did not answer; using the private relay"; return 11; fi
-  use_address direct domain "$host" 1
-  restart_for_address
-  echo "https://$host answers"
-}
-address_direct() {
-  host=$(state_get host)
-  if [ "$(state_get mode)" = direct ] && [ "$(state_get via)" != tailscale ] && [ "$(state_get via)" != cloudflare ] && [ -n "$host" ] \
-    && curl -fsS -m 5 "https://$host/api/health" >/dev/null 2>&1; then
-    echo "direct: https://$host still works"; use_address direct "$(state_get via | sed 's/^$/direct/')" "$host" 1; return 0
-  fi
-  if [ "$WANT" = direct ]; then
-    if ! wait_ports "a direct https address"; then relay_address "ports 80 and 443 did not open; using the private relay"; return 11; fi
-    ask_clear
-  elif ! probe_80; then
-    relay_address "not reachable from the internet directly; using the private relay (nothing inbound is opened)"; return 0
-  fi
-  host="$(printf '%s' "$PROBED_IP" | tr . -).sslip.io"
-  echo "reachable directly; setting up https://$host"
-  if ! https_up "$host"; then
-    relay_address "https://$host did not answer; using the private relay instead"; restart_for_address
-    [ "$WANT" = direct ] && return 11 || return 0
-  fi
-  use_address direct direct "$host" 1
-  restart_for_address
-  echo "https://$host answers"
-}
 
 ts() { tailscale "$@"; }
 ts_field() { # BackendState | DNSName
@@ -1765,17 +1620,13 @@ EOF
 }
 address_cloudflare() {
   cloudflared_install || { relay_address "cloudflared did not install; using the private relay"; return 11; }
-  if [ -n "$CF_TOKEN" ]; then
-    # a tunnel made in the Cloudflare dashboard: its public hostname points at http://127.0.0.1:8799
-    [ -n "$WANT_DOMAIN" ] || { relay_address "--cloudflare-token needs --domain, the hostname the tunnel serves; using the private relay"; return 11; }
+  if [ -n "$CF_TOKEN" ] && [ -n "$CF_HOST" ]; then
+    # a tunnel the link service made for this server: its public hostname points at http://127.0.0.1:8799
     install -d -o root -g root -m 0700 "$ETC"
     ( umask 077; printf 'TUNNEL_TOKEN=%s\n' "$CF_TOKEN" > "$ETC/cloudflared.env" )
     state_set cf-named 1
     cloudflared_unit "tunnel run"
-    host=$WANT_DOMAIN
-  elif [ -n "$WANT_DOMAIN" ]; then
-    address_cloudflare_named || return $?
-    host=$WANT_DOMAIN
+    host=$CF_HOST
   else
     state_set cf-named ""
     rm -f "$ETC/cloudflared.env"
@@ -1797,37 +1648,11 @@ address_cloudflare() {
   restart_for_address
   echo "https://$host serves dusk bot through Cloudflare"
 }
-# a named tunnel on the person's own domain in their Cloudflare account: one sign-in link, then the tunnel, its DNS
-# record and its route are made here
-address_cloudflare_named() {
-  CFH=/etc/duskbot-cloudflared
-  install -d -o root -g root -m 0755 "$CFH"
-  if [ ! -f "$CFH/cert.pem" ]; then
-    ts_with_link cloudflare-login 1800 'https://dash\.cloudflare\.com/argotunnel?[A-Za-z0-9/._?=&%-]*' \
-      "Sign in to Cloudflare and pick the zone for $WANT_DOMAIN. Open this link:" -- env HOME="$CFH" TUNNEL_ORIGIN_CERT="$CFH/cert.pem" cloudflared tunnel login || true
-    [ -f "$CFH/cert.pem" ] || [ ! -f "$CFH/.cloudflared/cert.pem" ] || mv "$CFH/.cloudflared/cert.pem" "$CFH/cert.pem"
-    [ -f "$CFH/cert.pem" ] || { relay_address "Cloudflare sign-in did not finish; using the private relay"; return 11; }
-  fi
-  ask_clear
-  cf() { env HOME="$CFH" TUNNEL_ORIGIN_CERT="$CFH/cert.pem" cloudflared "$@"; }
-  name="duskbot-$NAME"
-  id=$(cf tunnel list -o json 2>/dev/null | /usr/bin/node -e 'let t="";process.stdin.on("data",(c)=>t+=c).on("end",()=>{try{const f=JSON.parse(t).find((x)=>x.name===process.argv[1]&&!x.deleted_at);if(f)console.log(f.id)}catch{}})' "$name" 2>/dev/null)
-  [ -n "$id" ] || { x cf tunnel create --credentials-file "$CFH/tunnel.json" "$name"; id=$(sed -n 's/.*"TunnelID":"\([0-9a-f-]*\)".*/\1/p' "$CFH/tunnel.json"); }
-  [ -n "$id" ] && [ -f "$CFH/tunnel.json" ] || { relay_address "could not make the Cloudflare tunnel; using the private relay"; return 11; }
-  cf tunnel route dns "$id" "$WANT_DOMAIN" 2>&1 | redact || echo "the DNS route for $WANT_DOMAIN was not added (a record there already?)"
-  printf 'tunnel: %s\ningress:\n  - hostname: %s\n    service: http://127.0.0.1:%s\n  - service: http_status:404\n' "$id" "$WANT_DOMAIN" "$PORT" > "$CFH/config.yml"
-  # the tunnel's secret stays root's (0600); the unit's own user gets it through systemd's credentials
-  chmod 0644 "$CFH/config.yml"; chmod 0600 "$CFH/tunnel.json" "$CFH/cert.pem"
-  state_set cf-named 1
-  cloudflared_unit "tunnel --config $CFH/config.yml run --credentials-file \${CREDENTIALS_DIRECTORY}/tunnel.json" "$CFH/tunnel.json"
-}
 
 do_address() {
   get_agent
   want=${WANT:-$(state_get want)}
   [ -z "$WANT" ] || state_set want "$WANT"
-  [ -z "$WANT_DOMAIN" ] || state_set want-domain "$WANT_DOMAIN"
-  [ -n "$WANT_DOMAIN" ] || WANT_DOMAIN=$(state_get want-domain)
   WANT=$want
   # an already linked server keeps its address, unless this run asked for another way
   if [ "$OFFLINE" = 1 ] && [ -z "$ARGS_WANT" ]; then
@@ -1835,6 +1660,7 @@ do_address() {
     echo "already linked; keeping the ${mode:-relay} connection"; return 0
   fi
   case "$WANT" in
+    "") relay_address "linked through the private relay (nothing inbound is opened)" ;;
     relay) relay_address "the private relay, as asked" ;;
     ssh) relay_address "linked through the relay; the app reaches it over ssh on port 22"
       _user=${SUDO_USER:-root}; _ip=$(public_ip)
@@ -1842,8 +1668,8 @@ do_address() {
         | ask "{\"kind\":\"ssh\",\"user\":\"$_user\",\"host\":\"$_ip\",\"state\":\"done\"}" ;;
     tailscale) address_tailscale ;;
     cloudflare) address_cloudflare ;;
-    domain) address_domain ;;
-    *) address_direct ;;
+    # a way an older line chose that is no longer offered
+    *) relay_address "the $WANT way is no longer offered; using the private relay" ;;
   esac
 }
 
@@ -2095,8 +1921,7 @@ demo_work() {
       demo_lines 0.4 "added 4 packages in 6s" ;;
     service) demo_lines 0.5 "Created symlink /etc/systemd/system/multi-user.target.wants/duskbot.service" \
       "waiting for 127.0.0.1:8799/api/health" "server answers on 127.0.0.1:8799" ;;
-    address) demo_lines 0.4 "probe: http://203.0.113.10/.well-known/omb-link/... refused" \
-      "not reachable from the internet directly; using the private relay (nothing inbound is opened)" ;;
+    address) demo_lines 0.4 "linked through the private relay (nothing inbound is opened)" ;;
     sandbox) demo_lines 0.35 "Get:1 https://storage.googleapis.com/gvisor/releases release/main arm64 runsc 20251103.0 [24.1 MB]" \
       "Setting up runsc (20251103.0) ..." "daemon.json: added gvisor; restarting docker" "runsc version release-20251103.0" \
       "gVisor registered with docker (--overlay2=none)" ;;
@@ -2324,7 +2149,7 @@ claim() {
       # a tunnel the service made for this server on its own Cloudflare account: what --cloudflare uses, when there is one
       _cft=$(sed -n 's/.*"cloudflare":{[^}]*"token":"\([A-Za-z0-9_=.-]\{20,2000\}\)".*/\1/p' "$TMP/claim" | head -n 1)
       _cfh=$(sed -n 's/.*"cloudflare":{[^}]*"hostname":"\([a-z0-9.-]\{4,253\}\)".*/\1/p' "$TMP/claim" | head -n 1)
-      if [ "$WANT" = cloudflare ] && [ -z "$CF_TOKEN" ] && [ -n "$_cft" ] && [ -n "$_cfh" ]; then CF_TOKEN=$_cft WANT_DOMAIN=$_cfh; fi ;;
+      if [ "$WANT" = cloudflare ] && [ -z "$CF_TOKEN" ] && [ -n "$_cft" ] && [ -n "$_cfh" ]; then CF_TOKEN=$_cft CF_HOST=$_cfh; fi ;;
     410|404)
       # linked at the service, but this run stopped before it noted that (or the result's answer was lost)
       if [ -z "$(state_get linked)" ] && [ "$status" = 410 ] && grep -q '"code":"used"' "$TMP/claim" && [ "$(state_get id)" = "$LINK_ID" ] && [ "$(tunnel_id)" = "$LINK_ID" ]; then
@@ -2403,41 +2228,35 @@ intro() {
 }
 
 bad_option() { printf '%s\n' "$1" >&2; exit 1; }
-# how the app reaches this server, from `| sh -s -- --tailscale` and the like (none: straight over https when port 80
-# answers from the internet, else the relay). a run without one keeps the way chosen before.
+# how the app reaches this server, from `| sh -s -- --cloudflare` and the like (none: the relay). a run without one keeps
+# the way chosen before.
 # the way again, for root's run of this script (its keys and tokens go in the environment, never on a command line)
 way_args() {
   case "$ARGS_WANT" in
     "") ;;
-    domain) printf -- '--domain %s' "$WANT_DOMAIN" ;;
-    cloudflare) printf -- '--cloudflare'; [ -z "$WANT_DOMAIN" ] || printf -- ' --domain %s' "$WANT_DOMAIN" ;;
     *) printf -- '--%s' "$ARGS_WANT" ;;
   esac
 }
+# an old line's way that is no longer offered: said once, then a Cloudflare tunnel instead (unless the line names a way)
+gone_way() { printf '%s is no longer offered; using a Cloudflare tunnel instead.\n' "$1" >&2; GONE=1; }
 parse_ways() { # the line's arguments (the token first, when it is not baked in)
   [ "$BAKED_TOKEN" != "$PLACEHOLDER_TOKEN" ] || { [ $# -eq 0 ] || shift; }
+  GONE=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --relay) WANT=relay ;;
       --ssh) WANT=ssh ;;
-      --direct) WANT=direct ;;
       --tailscale) WANT=tailscale ;;
       --cloudflare) WANT=cloudflare ;;
-      --domain) [ $# -ge 2 ] || bad_option "--domain needs a name, like --domain bots.example.com"; WANT_DOMAIN=$2; shift ;;
-      --domain=*) WANT_DOMAIN=${1#--domain=} ;;
-      --cloudflare-token) [ $# -ge 2 ] || bad_option "--cloudflare-token needs the tunnel's token"; CF_TOKEN=$2; WANT=cloudflare; shift ;;
+      --direct) gone_way "--direct" ;;
+      --domain|--cloudflare-token) gone_way "$1"; case "${2:-}" in ""|-*) ;; *) shift ;; esac ;;
+      --domain=*) gone_way "--domain" ;;
       --tailscale-key) [ $# -ge 2 ] || bad_option "--tailscale-key needs an auth key"; TS_KEY=$2; WANT=tailscale; shift ;;
       *) bad_option "Unknown option $1. Copy the whole line from the app again." ;;
     esac
     shift
   done
-  if [ -n "$WANT_DOMAIN" ]; then
-    WANT_DOMAIN=$(printf '%s' "$WANT_DOMAIN" | tr 'A-Z' 'a-z' | sed -e 's#^https\{0,1\}://##' -e 's#/.*$##' -e 's/\.$//')
-    printf '%s' "$WANT_DOMAIN" | grep -Eq '^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{0,61}[a-z0-9]$' \
-      || bad_option "$WANT_DOMAIN is not a domain name. Use one like bots.example.com."
-    [ ${#WANT_DOMAIN} -le 253 ] || bad_option "That domain name is too long."
-    case "$WANT" in ""|direct) WANT=domain ;; cloudflare) ;; *) bad_option "--domain goes alone, or with --cloudflare." ;; esac
-  fi
+  [ -z "$GONE" ] || [ -n "$WANT" ] || WANT=cloudflare
   ARGS_WANT=$WANT
 }
 

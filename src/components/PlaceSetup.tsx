@@ -21,15 +21,14 @@ import { message, useNow } from "./vps-link/parts";
 import { PlaceArt, type PlaceArtName } from "./ui/PlaceArt";
 import "../styles/place-setup.css";
 
-/** The ways a server of one's own connects besides the plain relay line, in the order they are offered. Each but the
- * last is the same one line with a way on the end (apps/link-service/install.sh): it installs dusk bot, sets up the way,
- * shows here what only the person can do (a sign-in, a DNS record) and links by itself. The last connects to a dusk bot
- * that is already running somewhere, by its address and pairing code. */
+/** The ways a server of one's own connects besides the plain relay line, in the order they are offered (Cloudflare first,
+ * then the relay's plain line between it and the rest). Each but the last is the same one line with a way on the end
+ * (apps/link-service/install.sh): it installs dusk bot, sets up the way, shows here what only the person can do (a
+ * sign-in) and links by itself. The last connects to a dusk bot that is already running somewhere, by its address and
+ * pairing code. */
 export const WAYS = [
-  { key: "tailscale", title: "placeSetup.way.tailscale", sub: "placeSetup.way.tailscaleSub", flag: "--tailscale", last: "placeSetup.steps.tailscale" },
   { key: "cloudflare", title: "placeSetup.way.cloudflare", sub: "placeSetup.way.cloudflareSub", flag: "--cloudflare", last: "placeSetup.steps.cloudflare" },
-  { key: "domain", title: "placeSetup.way.domain", sub: "placeSetup.way.domainSub", flag: "--domain", last: "placeSetup.steps.domain" },
-  { key: "direct", title: "placeSetup.way.direct", sub: "placeSetup.way.directSub", flag: "--direct", last: "placeSetup.steps.direct" },
+  { key: "tailscale", title: "placeSetup.way.tailscale", sub: "placeSetup.way.tailscaleSub", flag: "--tailscale", last: "placeSetup.steps.tailscale" },
   { key: "ssh", title: "placeSetup.way.ssh", sub: "placeSetup.way.sshSub", flag: "--ssh", last: "placeSetup.steps.ssh" },
   { key: "address", title: "placeSetup.way.address", sub: "placeSetup.way.addressSub", placeholder: "https://bots.example.com" },
 ] as const satisfies ReadonlyArray<{ key: string; title: string; sub: string; flag?: string; last?: string; placeholder?: string }>;
@@ -37,12 +36,10 @@ export type WayKey = (typeof WAYS)[number]["key"];
 type Way = (typeof WAYS)[number];
 type LineWay = Extract<Way, { flag: string }>;
 const lineWay = (way: Way): way is LineWay => "flag" in way;
-const DOMAIN = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{0,61}[a-z0-9]$/;
 /** the relay's line with a way on the end: `… | sh` becomes `… | sh -s -- --tailscale` */
-export function wayLine(line: string, way: LineWay | undefined, domain = ""): string {
+export function wayLine(line: string, way: LineWay | undefined): string {
   if (!way) return line;
-  const flag = way.flag === "--domain" ? `--domain ${domain || "bots.example.com"}` : way.flag;
-  return /\| sh$/.test(line) ? `${line} -s -- ${flag}` : line;
+  return /\| sh$/.test(line) ? `${line} -s -- ${way.flag}` : line;
 }
 export const wayOf = (key: string): Way | undefined => WAYS.find((entry) => entry.key === key);
 
@@ -117,13 +114,16 @@ export function PlaceSetup({ onClose, start, choices, onAccount, onBuy, onServer
   </RailSheet>;
 }
 
-/** Every way a server of one's own connects, as one list: the relay first, then the ways that need an address. */
+/** Every way a server of one's own connects, as one list: Cloudflare first (recommended), the plain relay line, then the
+ * rest of the ways on the line and an address. */
 export function ServerWays({ onPick }: { onPick: (key: "relay" | WayKey) => void }) {
   const relay = vpsLinkAvailable();
   const address = Boolean(window.duskDesktop?.workspaces?.add);
+  const ways = WAYS.filter((entry) => (lineWay(entry) ? relay : address)).map((entry) => ({ key: entry.key, title: t(entry.title), sub: t(entry.sub), tag: entry.key === "cloudflare" }));
   const rows = [
-    ...(relay ? [{ key: "relay" as const, title: t("placeSetup.relay"), sub: t("placeSetup.relaySub"), tag: true }] : []),
-    ...WAYS.filter((entry) => (lineWay(entry) ? relay : address)).map((entry) => ({ key: entry.key, title: t(entry.title), sub: t(entry.sub), tag: false })),
+    ...ways.filter((row) => row.key === "cloudflare"),
+    ...(relay ? [{ key: "relay" as const, title: t("placeSetup.relay"), sub: t("placeSetup.relaySub"), tag: false }] : []),
+    ...ways.filter((row) => row.key !== "cloudflare"),
   ];
   return <div className="flex flex-col gap-1.5">
     {rows.map((row, index) => <button key={row.key} type="button" data-autofocus={index === 0 ? "" : undefined} data-setup-method={row.key} className={ROW} onClick={() => onPick(row.key)}>
@@ -165,8 +165,7 @@ export function InstallSetup({ way, title: named, onBack, onClose }: { way?: Lin
   const asked = useRef(false);
   // until the first line is asked for, a server linked before reads as "starting", never as this setup's "connected"
   const [making, setMaking] = useState(true);
-  const [domain, setDomain] = useState("");
-  // what the server asked for stays shown once it has linked (the ssh command, the record that was added)
+  // what the server asked for stays shown once it has linked (the ssh command)
   const lastAsk = useRef<VpsLinkAsk | null>(null);
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
@@ -192,10 +191,8 @@ export function InstallSetup({ way, title: named, onBack, onClose }: { way?: Lin
   const progress = vpsProgress(shown);
   const stopped = phase === "failed" || phase === "expired";
   // a failed step's line still works: pasting it again picks up where it stopped
-  const typed = domain.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
-  const domainOk = DOMAIN.test(typed);
   const raw = shown.command && phase !== "expired" && phase !== "done" ? shown.command : null;
-  const line = raw ? wayLine(raw, way, domainOk ? typed : "") : null;
+  const line = raw ? wayLine(raw, way) : null;
   if (shown.ask !== undefined && shown.ask !== null) lastAsk.current = shown.ask;
   else if (shown.ask === null && phase !== "done") lastAsk.current = null;
   const ask = shown.ask ?? (phase === "done" && lastAsk.current?.kind === "ssh" ? lastAsk.current : null);
@@ -237,11 +234,6 @@ export function InstallSetup({ way, title: named, onBack, onClose }: { way?: Lin
     {line && phase === "waiting" && <ol data-setup-steps="" className="flex list-none flex-col gap-1 text-[13px] leading-[18px] text-ink-secondary">
       {steps3.map((text, index) => <li key={index} className="flex gap-2"><span aria-hidden="true" className="w-3 shrink-0 tabular-nums text-ink-tertiary">{index + 1}</span><span className="[text-wrap:pretty]">{text}</span></li>)}
     </ol>}
-    {way?.flag === "--domain" && line && phase === "waiting" && <label className="flex flex-col gap-1.5 text-[13px] text-ink">{t("placeSetup.domainLabel")}
-      <input data-autofocus="" data-setup-domain="" value={domain} onChange={(event) => setDomain(event.target.value)} placeholder="bots.example.com"
-        autoCapitalize="none" autoCorrect="off" autoComplete="off" spellCheck={false} aria-describedby="setup-domain-hint" className={FIELD} />
-      <span id="setup-domain-hint" className="text-[12px] leading-4 text-ink-secondary">{t("placeSetup.domainHint")}</span>
-    </label>}
     {line && <CopyLine text={line} label={t("vpsLink.copyAria")} />}
     {phase === "starting" && <p role="status" className="flex min-h-11 items-center rounded-[12px] bg-inset px-3.5 text-[13px] text-ink-secondary motion-safe:animate-pulse">{t("vpsLink.command.making")}</p>}
     {phase === "done" && via && <p data-setup-via={via} className="place-reveal -mt-1 flex items-center gap-2 text-[13px] leading-[18px] text-ink-secondary">
@@ -327,8 +319,8 @@ function AddressSetup({ way, title, onBack, onClose }: { way: Extract<Way, { key
   </form>;
 }
 
-/** What only the person can do for the line to finish, as the server asks for it: a sign-in link to open, a DNS record to
- * add, ports to open; or, for an SSH way, the tunnel that opens it in a browser here. Live: "waiting" turns to "found". */
+/** What only the person can do for the line to finish, as the server asks for it: a sign-in link to open; or, for an SSH
+ * way, the tunnel that opens it in a browser here. Live: "waiting" turns to "found". */
 function AskPanel({ ask }: { ask: VpsLinkAsk }) {
   const status = ask.state === "waiting" ? t("placeSetup.ask.waiting") : ask.state === "found" ? t("placeSetup.ask.found") : null;
   const head = (title: string, body: string) => <div className="flex flex-col gap-0.5">
@@ -336,19 +328,10 @@ function AskPanel({ ask }: { ask: VpsLinkAsk }) {
     <p className="text-[13px] leading-[18px] text-ink-secondary [text-wrap:pretty]">{body}</p>
   </div>;
   return <div data-setup-ask={ask.kind} data-ask-state={ask.state} role="status" className="place-reveal flex flex-col gap-3 rounded-[12px] bg-ink/[0.04] px-4 py-3.5">
-    {(ask.kind === "tailscale-login" || ask.kind === "tailscale-https" || ask.kind === "cloudflare-login") && <>
+    {(ask.kind === "tailscale-login" || ask.kind === "tailscale-https") && <>
       {head(t(`placeSetup.ask.${ask.kind}`), t(`placeSetup.ask.${ask.kind}Body`))}
-      <div><button type="button" data-ask-open="" className="ui-button ui-button-primary" onClick={() => void openExternalLink(ask.url)}>{t(ask.kind === "cloudflare-login" ? "placeSetup.ask.openCloudflare" : "placeSetup.ask.openTailscale")}</button></div>
+      <div><button type="button" data-ask-open="" className="ui-button ui-button-primary" onClick={() => void openExternalLink(ask.url)}>{t("placeSetup.ask.openTailscale")}</button></div>
     </>}
-    {ask.kind === "dns" && <>
-      {head(t("placeSetup.ask.dns"), t("placeSetup.ask.dnsBody", { host: ask.host }))}
-      <dl data-dns-record="" className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-[13px] leading-[18px]">
-        <dt className="text-ink-secondary">{t("placeSetup.ask.dnsType")}</dt><dd className="font-mono text-ink">A</dd>
-        <dt className="text-ink-secondary">{t("placeSetup.ask.dnsName")}</dt><dd className="font-mono text-ink [overflow-wrap:anywhere]">{ask.host}</dd>
-      </dl>
-      <CopyLine text={ask.value} label={t("vpsLink.copyAria")} />
-    </>}
-    {ask.kind === "ports" && head(t("placeSetup.ask.ports"), t("placeSetup.ask.portsBody"))}
     {ask.kind === "ssh" && <>
       {head(t("placeSetup.ask.ssh"), t("placeSetup.ask.sshBody"))}
       <CopyLine text={`ssh -N -L 8790:127.0.0.1:8799 ${ask.user}@${ask.host}`} label={t("vpsLink.copyAria")} />

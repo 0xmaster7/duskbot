@@ -34,8 +34,8 @@ function installProgress(value) {
 }
 
 /** the ways a linked server is reached (install.sh `use_address`) */
-export const ADDRESS_VIAS = new Set(["relay", "ssh", "direct", "domain", "tailscale", "cloudflare"]);
-const ASK_LINK_HOSTS = { "tailscale-login": "login.tailscale.com", "tailscale-https": "login.tailscale.com", "cloudflare-login": "dash.cloudflare.com" };
+export const ADDRESS_VIAS = new Set(["relay", "ssh", "direct", "tailscale", "cloudflare"]);
+const ASK_LINK_HOSTS = { "tailscale-login": "login.tailscale.com", "tailscale-https": "login.tailscale.com" };
 const ASK_NAME = /^[a-z0-9.-]{1,253}$/;
 const ASK_IP = /^\d{1,3}(?:\.\d{1,3}){3}$/;
 
@@ -51,8 +51,6 @@ export function installAsk(value) {
       return url.protocol === "https:" && url.hostname === ASK_LINK_HOSTS[value.kind] ? { kind: value.kind, url: url.href, state } : undefined;
     } catch { return undefined; }
   }
-  if (value.kind === "dns") return ASK_NAME.test(value.host ?? "") && ASK_IP.test(value.value ?? "") ? { kind: "dns", host: value.host, type: "A", value: value.value, state } : undefined;
-  if (value.kind === "ports") return { kind: "ports", ...(ASK_IP.test(value.ip ?? "") ? { ip: value.ip } : {}), state };
   if (value.kind === "ssh") return /^[a-z_][a-z0-9_-]{0,31}$/.test(value.user ?? "") && (ASK_IP.test(value.host ?? "") || ASK_NAME.test(value.host ?? "")) ? { kind: "ssh", user: value.user, host: value.host, state } : undefined;
   return undefined;
 }

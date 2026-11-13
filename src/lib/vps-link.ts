@@ -43,14 +43,12 @@ export interface VpsLinkView {
   via?: VpsLinkVia | null;
   /** Why the way asked for on the line fell back to the relay (the installer's own words), once linked. */
   fallback?: string | null;
-  /** What the installer needs the person to do now (sign in, add a DNS record, open ports), while a line runs. */
+  /** What the installer needs the person to do now (sign in to Tailscale), while a line runs. */
   ask?: VpsLinkAsk | null;
 }
-export type VpsLinkVia = "relay" | "ssh" | "direct" | "domain" | "tailscale" | "cloudflare";
+export type VpsLinkVia = "relay" | "ssh" | "direct" | "tailscale" | "cloudflare";
 export type VpsLinkAsk =
-  | { kind: "tailscale-login" | "tailscale-https" | "cloudflare-login"; url: string; state: "waiting" | "found" | "done" }
-  | { kind: "dns"; host: string; type: "A"; value: string; state: "waiting" | "found" | "done" }
-  | { kind: "ports"; ip?: string; state: "waiting" | "found" | "done" }
+  | { kind: "tailscale-login" | "tailscale-https"; url: string; state: "waiting" | "found" | "done" }
   | { kind: "ssh"; user: string; host: string; state: "waiting" | "found" | "done" };
 export interface VpsEngine { instanceId: string; kind: "claude" | "codex"; name: string; signedIn: boolean }
 export interface VpsSignIn {

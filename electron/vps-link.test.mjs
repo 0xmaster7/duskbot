@@ -338,9 +338,9 @@ describe("Add your VPS", () => {
     const vpsToken = vpsTokenOf(secret);
     await post(`/v1/sessions/${id}/claim`, vpsToken, {});
     await post(`/v1/sessions/${id}/events`, vpsToken, { step: "address", status: "running" });
-    const ask = { kind: "dns", host: "bots.example.com", type: "A", value: "203.0.113.7", state: "waiting" };
+    const ask = { kind: "tailscale-login", url: "https://login.tailscale.com/a/abc123", state: "waiting" };
     expect((await post(`/v1/sessions/${id}/events`, vpsToken, { step: "address", status: "running", ask })).status).toBe(200);
-    expect((await until(() => link.view().ask)).value).toBe("203.0.113.7");
+    expect((await until(() => link.view().ask)).url).toBe("https://login.tailscale.com/a/abc123");
     // a link to anywhere but the provider's own sign-in host never reaches the app
     expect((await post(`/v1/sessions/${id}/events`, vpsToken, { step: "address", status: "running", ask: { kind: "tailscale-login", url: "https://evil.example/a/1" } })).status).toBe(400);
     await post(`/v1/sessions/${id}/events`, vpsToken, { step: "address", status: "running", ask: { ...ask, state: "found" } });

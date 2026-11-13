@@ -26,31 +26,30 @@ fresh Ubuntu 20.04+ or Debian 11+ server (as root, or a user with sudo). It
 installs dusk bot as a systemd service, links it to the app through
 link.dusk.bot (which also carries its live progress), and sets up the way you
 picked. Nothing is typed back into the app: no address, no code, no password.
+Cloudflare is the recommended way and the first one the sheet offers.
 
 ```sh
-curl -fsSL https://link.dusk.bot/i/<code> | sh                                  # the relay
-curl -fsSL https://link.dusk.bot/i/<code> | sh -s -- --tailscale                # your tailnet
-curl -fsSL https://link.dusk.bot/i/<code> | sh -s -- --cloudflare               # a quick Cloudflare tunnel
-curl -fsSL https://link.dusk.bot/i/<code> | sh -s -- --domain bots.example.com  # your own domain
-curl -fsSL https://link.dusk.bot/i/<code> | sh -s -- --direct                   # https from the server's IP
-curl -fsSL https://link.dusk.bot/i/<code> | sh -s -- --ssh                      # over your SSH port
+curl -fsSL https://link.dusk.bot/i/<code> | sh -s -- --cloudflare   # a quick Cloudflare tunnel (recommended)
+curl -fsSL https://link.dusk.bot/i/<code> | sh                      # the relay
+curl -fsSL https://link.dusk.bot/i/<code> | sh -s -- --tailscale    # your tailnet
+curl -fsSL https://link.dusk.bot/i/<code> | sh -s -- --ssh          # over your SSH port
 ```
 
 | Way | What it needs | What the line does |
 |---|---|---|
-| relay (no option) | nothing | Uses `https://<ip>.sslip.io` when port 80 answers from the internet, else the private relay. |
+| `--cloudflare` | nothing | Installs `cloudflared` from Cloudflare's apt repository and runs a quick tunnel (`*.trycloudflare.com`, no account or sign-in) as `duskbot-cloudflared.service`. Its name changes when the tunnel restarts; the link agent tells the app the new one inside the sealed tunnel and the app follows it. When the link service hands the server a tunnel of its own, that one runs instead. |
+| relay (no option) | nothing | Links through the private relay. Nothing inbound is opened. |
 | `--tailscale` | Tailscale on the computer you use | Installs Tailscale if missing, prints the sign-in link (also shown in the app), then runs `tailscale serve` for HTTPS; if HTTPS is off for the tailnet it prints the one admin link that turns it on, and carries on by itself once it is on. Without `/dev/net/tun` it uses Tailscale's userspace networking. `--tailscale-key KEY` (or `DUSK_TAILSCALE_KEY`) signs in with an auth key instead. |
-| `--cloudflare` | nothing | Installs `cloudflared` from Cloudflare's apt repository and runs a quick tunnel (`*.trycloudflare.com`, no account) as `duskbot-cloudflared.service`. Its name changes when the tunnel restarts; the link agent tells the app the new one inside the sealed tunnel and the app follows it. |
-| `--cloudflare --domain NAME` | a Cloudflare account with the domain | Prints the Cloudflare sign-in link, then makes a named tunnel, its DNS record and its route. `--cloudflare-token TOKEN --domain NAME` (or `DUSK_CLOUDFLARE_TOKEN`) runs a tunnel made elsewhere, whose public hostname points at `http://127.0.0.1:8799`. |
-| `--domain NAME` | a domain you can add a DNS record to; ports 80 and 443 open | Prints the A record to add (`NAME` to the server's IP; on Cloudflare, DNS only), checks DNS itself every 15 s for up to 45 minutes, asks for ports 80 and 443 if the internet cannot reach them, then gets the certificate with Caddy. The app pins the key. |
-| `--direct` | ports 80 and 443 open | Like the relay's automatic path, but waits for the ports (asking for them) instead of falling back at once. |
 | `--ssh` | SSH on port 22 | Links through the relay; the app then talks over the server's own sshd with a restricted key, the relay only as a backup. It also prints `ssh -N -L 8790:127.0.0.1:8799 <user>@<ip>` for opening dusk bot in a browser on your computer. |
 
-Whatever needs you (a sign-in, a DNS record, open ports) shows in the terminal
-and in the app's sheet at the same time, with a live "waiting" that turns into
-"found". A way that cannot finish (no sign-in within 30 minutes, no DNS record
-within 45, ports that stay closed) links through the relay instead and says
-why, in amber. Later, when an address the app uses stops answering (a quick
+The line no longer takes `--domain`, `--direct` or `--cloudflare-token`: an old
+line with one of them prints a short note and sets up a Cloudflare tunnel
+instead (or the way the line also names).
+
+Whatever needs you (a Tailscale sign-in) shows in the terminal and in the app's
+sheet at the same time, with a live "waiting" that turns into "found". A way
+that cannot finish (no sign-in within 30 minutes, a tunnel that does not start)
+links through the relay instead and says why, in amber. Later, when an address the app uses stops answering (a quick
 tunnel that restarted under a new name, a tailnet this computer left), the app
 asks the server where it is now and, until the address answers again, goes
 through the relay. Running the install again with `--repair` and another way moves

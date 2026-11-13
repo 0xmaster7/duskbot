@@ -60,7 +60,8 @@ it("adding a server by one line shows the line, then each step live, then opens 
   await settle();
   expect(q("[data-place-setup=choose]")).toBeTruthy();
   await click(q("[data-place-add-choice=server]"));
-  expect(q("[data-setup-method=relay]")?.textContent).toContain("recommended");
+  expect(q("[data-setup-method=relay]")?.textContent).not.toContain("recommended");
+  expect(q("[data-setup-method=cloudflare]")?.textContent).toContain("recommended");
   await click(q("[data-setup-method=relay]"));
   expect(link.bridge.start).toHaveBeenCalledTimes(1);
   expect(q("[data-setup-command]")?.className, "the whole line shows, wrapped").toContain("[overflow-wrap:anywhere]");
@@ -151,11 +152,15 @@ it("a line out of time offers a new one", async () => {
   expect(link.bridge.reset).toHaveBeenCalledTimes(1);
 });
 
-it("every way to connect is one row in order, relay first, with no art", async () => {
+it("every way to connect is one row in order, Cloudflare first and recommended, with no art", async () => {
   vi.stubGlobal("duskDesktop", { vpsLink: fakeLink().bridge, workspaces: { add: vi.fn() } });
   await act(async () => { root.render(createElement(PlaceSetup, { onClose: vi.fn() })); });
   expect([...document.querySelectorAll("[data-setup-method]")].map((row) => row.getAttribute("data-setup-method")))
-    .toEqual(["relay", "tailscale", "cloudflare", "domain", "direct", "ssh", "address"]);
+    .toEqual(["cloudflare", "relay", "tailscale", "ssh", "address"]);
+  const first = q("[data-setup-method]")!;
+  expect(first.hasAttribute("data-autofocus")).toBe(true);
+  expect(first.textContent).toContain("recommended");
+  expect([...document.querySelectorAll("[data-setup-method]")].filter((row) => row.textContent?.includes("recommended"))).toHaveLength(1);
   expect(q("[data-setup-method] [data-place-art]")).toBeNull();
   for (const row of document.querySelectorAll("[data-setup-method]")) expect(row.querySelectorAll("span.block").length).toBe(1);
 });
@@ -199,22 +204,17 @@ it("a way that could not finish says so in amber, with the installer's reason, o
   expect(q("[data-setup-fell-back]")).toBeNull();
 });
 
-it("your own domain goes into the line, and the DNS record it needs shows live until it is found", async () => {
+it("the Cloudflare way is the same line with --cloudflare on the end, and nothing to sign in to", async () => {
   const link = fakeLink();
   vi.stubGlobal("duskDesktop", { vpsLink: link.bridge, workspaces: { add: vi.fn() } });
   await act(async () => { root.render(createElement(PlaceSetup, { onClose: vi.fn() })); });
-  await click(q("[data-setup-method=domain]"));
-  expect(q("[data-setup-command]")?.textContent).toBe("curl -fsSL https://link.example/i/abc | sh -s -- --domain bots.example.com");
-  await type(q<HTMLInputElement>("[data-setup-domain]")!, "https://Bots.Mine.dev/");
+  await click(q("[data-setup-method=cloudflare]"));
   await settle();
-  expect(q("[data-setup-command]")?.textContent).toBe("curl -fsSL https://link.example/i/abc | sh -s -- --domain bots.mine.dev");
-  const ask = { kind: "dns" as const, host: "bots.mine.dev", type: "A" as const, value: "203.0.113.7", state: "waiting" as const };
-  const steps = VPS_STEP_IDS.map((id, index) => ({ id, status: index < 8 ? "done" as const : index === 8 ? "running" as const : "waiting" as const }));
-  await link.emit({ ...EMPTY_VIEW, stage: "installing", command: "curl -fsSL https://link.example/i/abc | sh", expiresAt: Date.now() + 60_000, steps, ask });
-  expect(q("[data-dns-record]")?.textContent).toContain("bots.mine.dev");
-  expect([...document.querySelectorAll("[data-setup-command]")].map((node) => node.textContent)).toContain("203.0.113.7");
-  await link.emit({ ...EMPTY_VIEW, stage: "installing", command: "curl -fsSL https://link.example/i/abc | sh", expiresAt: Date.now() + 60_000, steps, ask: { ...ask, state: "found" } });
-  expect(q("[data-ask-status]")?.textContent).toBe("Found it. Carrying on.");
+  expect(q("[data-setup-command]")?.textContent).toBe("curl -fsSL https://link.example/i/abc | sh -s -- --cloudflare");
+  expect(document.querySelectorAll("[data-setup-steps] li")).toHaveLength(3);
+  expect(q("input")).toBeNull();
+  await link.emit({ ...EMPTY_VIEW, stage: "linked", server: SERVER, mode: "direct", via: "cloudflare", steps: VPS_STEP_IDS.map((id) => ({ id, status: "done" })) });
+  expect(q("[data-setup-via]")?.getAttribute("data-setup-via")).toBe("cloudflare");
 });
 
 it("the SSH way shows the tunnel command with the server's own login and address once it says them", async () => {

@@ -32,39 +32,44 @@ ${body}
     await rm(dir, { recursive: true, force: true });
   }
 }
-const parsed = (args) => sourced('parse_ways "$@"; printf "%s|%s|%s\\n" "$WANT" "$WANT_DOMAIN" "$ARGS_WANT"', ["abcdefghij-abcdefghijklmnopqrstuvwxyz", ...args]);
+const parsed = (args) => sourced('parse_ways "$@"; printf "%s|%s\\n" "$WANT" "$ARGS_WANT"', ["abcdefghij-abcdefghijklmnopqrstuvwxyz", ...args]);
 
 describe("the line's way", () => {
-  it("takes each way after the token, and a domain alone as the own-domain way", async () => {
-    expect((await parsed([])).stdout.trim()).toBe("||");
-    expect((await parsed(["--tailscale"])).stdout.trim()).toBe("tailscale||tailscale");
-    expect((await parsed(["--cloudflare"])).stdout.trim()).toBe("cloudflare||cloudflare");
-    expect((await parsed(["--ssh"])).stdout.trim()).toBe("ssh||ssh");
-    expect((await parsed(["--domain", "https://Bots.Example.com/"])).stdout.trim()).toBe("domain|bots.example.com|domain");
-    expect((await parsed(["--cloudflare", "--domain=bots.example.com"])).stdout.trim()).toBe("cloudflare|bots.example.com|cloudflare");
+  it("takes each way after the token", async () => {
+    expect((await parsed([])).stdout.trim()).toBe("|");
+    expect((await parsed(["--tailscale"])).stdout.trim()).toBe("tailscale|tailscale");
+    expect((await parsed(["--cloudflare"])).stdout.trim()).toBe("cloudflare|cloudflare");
+    expect((await parsed(["--ssh"])).stdout.trim()).toBe("ssh|ssh");
+    expect((await parsed(["--relay"])).stdout.trim()).toBe("relay|relay");
+  });
+
+  it("turns an old line's own-domain, direct or token way into a Cloudflare tunnel, with a note, not an error", async () => {
+    for (const args of [["--domain", "bots.example.com"], ["--domain=bots.example.com"], ["--direct"], ["--cloudflare-token", "tok", "--domain", "b.example.com"]]) {
+      const out = await parsed(args);
+      expect(out.code).toBe(0);
+      expect(out.stdout.trim()).toBe("cloudflare|cloudflare");
+      expect(out.stderr).toContain("is no longer offered; using a Cloudflare tunnel instead.");
+    }
+    // a way named on the same line wins
+    expect((await parsed(["--tailscale", "--domain", "a.example.com"])).stdout.trim()).toBe("tailscale|tailscale");
+    expect((await parsed(["--direct", "--relay"])).stdout.trim()).toBe("relay|relay");
   });
 
   it("hands the way on to root's run of the script, keys never on the command line", async () => {
     const args = (list) => sourced('parse_ways "$@"; way_args', ["abcdefghij-abcdefghijklmnopqrstuvwxyz", ...list]);
     expect((await args(["--tailscale", "--tailscale-key", "tskey-secret"])).stdout).toBe("--tailscale");
-    expect((await args(["--domain", "bots.example.com"])).stdout).toBe("--domain bots.example.com");
-    expect((await args(["--cloudflare", "--domain", "b.example.com"])).stdout).toBe("--cloudflare --domain b.example.com");
+    expect((await args(["--cloudflare"])).stdout).toBe("--cloudflare");
+    expect((await args(["--domain", "bots.example.com"])).stdout).toBe("--cloudflare");
     expect((await args([])).stdout).toBe("");
   });
 
-  it("refuses what it does not know, and a domain that is not one, before doing anything", async () => {
+  it("refuses what it does not know, before doing anything", async () => {
     const unknown = await parsed(["--tailscal"]);
     expect(unknown.code).toBe(1);
     expect(unknown.stderr).toContain("Unknown option --tailscal");
-    const bad = await parsed(["--domain", "localhost"]);
-    expect(bad.code).toBe(1);
-    expect(bad.stderr).toContain("is not a domain name");
-    expect((await parsed(["--tailscale", "--domain", "a.example.com"])).stderr).toContain("--domain goes alone");
   });
 
-  it("writes the address the agent reads: pinned for its own caddy, not for a quick tunnel, whose name it looks up", async () => {
-    const domain = await sourced("use_address direct domain bots.example.com 1");
-    expect(domain.address).toEqual({ v: 1, mode: "direct", via: "domain", host: "bots.example.com", pin: true });
+  it("writes the address the agent reads: not pinned for a quick tunnel, whose name it looks up", async () => {
     const quick = await sourced("use_address direct cloudflare abc-def.trycloudflare.com 0");
     expect(quick.address).toEqual({ v: 1, mode: "direct", via: "cloudflare", host: "abc-def.trycloudflare.com", pin: false, quick: "http://127.0.0.1:20241/quicktunnel" });
     const relay = await sourced("WANT=ssh; relay_address");
