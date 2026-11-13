@@ -161,6 +161,7 @@
   "server.finish.plan": "Kontynuacja: pozostało {open} z {total} kroków",
   "server.finish.ack": "Kontynuacja: wprowadzam twoją poprawkę",
   "server.finish.next": "Kontynuacja: kończę zadanie",
+  "server.reconnect.carryOn": "Połączono ponownie, kontynuuję",
   "server.spend.botCap": "{bot} osiągnął swój limit tygodniowy. Jego rutyny czekają, aż koszt ostatnich 7 dni znów spadnie poniżej limitu lub zwiększysz go w sekcji Wykorzystanie. Nadal ci odpowiada.",
   "server.spend.routineCap": "Wstrzymano “{routine}”: osiągnięto limit tygodniowy. Zwiększ limit w sekcji Wykorzystanie lub włącz rutynę ponownie, aby ją uruchomić.",
   "server.allowance.held": "Pominięto: osiągnięto limit tygodniowy. Reset: {reset}, {left}.",

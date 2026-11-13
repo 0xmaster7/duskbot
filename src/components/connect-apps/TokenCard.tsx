@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
@@ -13,7 +13,7 @@ const FIELD_LABEL: Record<TokenField["key"], LocaleKey> = {
 };
 
 /** One app connected with the person's own token or a sign-in to dusk bot's own app: its accounts, then a guide. */
-export function TokenCard({ app, tokens }: { app: TokenAppId; tokens: TokenApps }) {
+export function TokenCard({ app, tokens, replacing: startReplacing }: { app: TokenAppId; tokens: TokenApps; replacing?: string }) {
   const spec = tokenApp(app)!;
   const [values, setValues] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -22,10 +22,18 @@ export function TokenCard({ app, tokens }: { app: TokenAppId; tokens: TokenApps 
   const [opened, setOpened] = useState(false);
   const [justConnected, setJustConnected] = useState(false);
   const [preferToken, setPreferToken] = useState(false);
+  // the refused account a new token takes over, so bots keep their access to it
+  const [replacing, setReplacing] = useState<string | undefined>(startReplacing);
   const accounts = tokens.accounts(app);
   const nativeReady = spec.native === true && tokens.status?.native[app] === true;
   const flow = tokens.device?.app === app ? tokens.device : null;
-  const guiding = accounts.length === 0 || adding || flow !== null;
+  const replaced = replacing !== undefined && tokens.status !== null && !accounts.some((account) => account.id === replacing);
+  useEffect(() => {
+    if (!replaced) return;
+    setReplacing(undefined);
+    setJustConnected(true);
+  }, [replaced]);
+  const guiding = accounts.length === 0 || adding || flow !== null || replacing !== undefined;
   const byToken = spec.fields.length > 0 && (!nativeReady || preferToken);
 
   const submit = async (event?: FormEvent<HTMLFormElement>) => {
@@ -33,19 +41,25 @@ export function TokenCard({ app, tokens }: { app: TokenAppId; tokens: TokenApps 
     if (busy) return;
     setBusy(true);
     setError(null);
-    const problem = await tokens.connect(app, values);
+    const problem = await tokens.connect(app, values, replacing);
     setBusy(false);
     if (problem) { setError(problem); return; }
     setValues({});
     setAdding(false);
+    setReplacing(undefined);
     setOpened(false);
     setJustConnected(true);
   };
-  const signIn = async () => {
+  const signIn = async (replaces = replacing) => {
     setError(null);
     setJustConnected(false);
-    const problem = await tokens.startDevice(app);
+    const problem = await tokens.startDevice(app, replaces);
     if (problem) setError(problem);
+  };
+  const reconnect = (id: string) => {
+    setReplacing(id);
+    setAdding(false);
+    if (nativeReady && !preferToken) void signIn(id);
   };
   const filled = spec.fields.every((field) => values[field.key]?.trim());
 
@@ -87,7 +101,13 @@ export function TokenCard({ app, tokens }: { app: TokenAppId; tokens: TokenApps 
         <div className="ca-kit-card">
           <KitCard label={t("connectApps.accounts")} count={accounts.length}>
             {accounts.map((account) => (
-              <KitRow key={account.id} title={account.label} detail={t(account.via === "device" ? "tokenApps.viaDevice" : "tokenApps.viaToken")}>
+              <KitRow key={account.id} title={<>{account.label}{account.needsReconnect && <span className="ca-account-tag" data-needs-reconnect="">{t("connectApps.account.needsReconnect")}</span>}</>}
+                detail={t(account.via === "device" ? "tokenApps.viaDevice" : "tokenApps.viaToken")}>
+                {account.needsReconnect && replacing !== account.id && (
+                  <button type="button" className="ca-pill" data-size="sm" aria-label={t("connectors.reconnectAria", { account: account.label, service: spec.label })} onClick={() => reconnect(account.id)}>
+                    <span>{t("connectors.action.reconnect")}</span>
+                  </button>
+                )}
                 <button type="button" className="ca-link" data-tone="danger" aria-label={t("tokenApps.disconnect", { name: account.label })} onClick={() => void tokens.remove(account.id)}>
                   {t("connectors.disconnect")}
                 </button>
@@ -101,7 +121,7 @@ export function TokenCard({ app, tokens }: { app: TokenAppId; tokens: TokenApps 
       )}
       {flow && flow.state === "waiting" && <KitStatus>{t("tokenApps.device.waiting")}</KitStatus>}
       {flow && flow.state === "failed" && <KitStatus tone="danger">{flow.message ?? t("tokenApps.device.expired")}</KitStatus>}
-      {flow && <KitActions><KitButton variant="secondary" onClick={tokens.stopDevice}>{t("common.cancel")}</KitButton></KitActions>}
+      {(flow || replacing) && <KitActions><KitButton variant="secondary" onClick={() => { tokens.stopDevice(); setReplacing(undefined); }}>{t("common.cancel")}</KitButton></KitActions>}
       {spec.native && !nativeReady && !byToken && <KitStatus>{t("tokenApps.device.notReady")}</KitStatus>}
       {guiding && !flow && nativeReady && spec.fields.length > 0 && (
         <KitLink onClick={() => { setPreferToken(!preferToken); setError(null); }}>{t(preferToken ? "tokenApps.useSignIn" : "tokenApps.useToken", { name: spec.label })}</KitLink>

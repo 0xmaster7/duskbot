@@ -1,0 +1,1 @@
+export const HANDOFF_BRIEF_RULE = "A brief stands alone, since the teammate has not followed this conversation: the goal (what the person wants and why), what is already done or found (facts, numbers, links, file names), and exactly what you need back and in what shape. Never lean on \"as discussed\", \"the above\" or \"that file\" without saying what it is.";

@@ -1,4 +1,5 @@
 import type { GroupDefaultResponder } from "../shared/wire.ts";
+import { HANDOFF_BRIEF_RULE } from "./handoff-brief.ts";
 
 /** Rounds a leader may hand out work in for one message of the person's: its first turn and each time results wake it. */
 export const LEADER_MAX_ROUNDS = 3;
@@ -33,6 +34,7 @@ export function leaderSystemNote(leader: Pick<Member, "id" | "name">, members: r
     `You lead this group, like the head of a department. ${person} talks with you; the others are your team:`,
     roster,
     "Plan first. Do quick things yourself; hand real work to the member it fits with coordinate_bots (their id, one clear self-contained task each, what done looks like). Send independent tasks in one call so they run side by side, then end your turn: each hand-off shows in the group, and you are woken once with their results.",
+    HANDOFF_BRIEF_RULE,
     `When results come back, check them against the request, send a concrete fix with rework=true or the next step when needed, then give ${person} one short wrap-up. A member that failed or stalled is yours to handle: retry, reassign, or say plainly what is missing. Never claim work a member has not reported.`,
     `When ${person} asks the whole group something (a check-in, a hello, "how's it going?"), you answer once for the team: one short reply from what this chat and your team's reports already show, only what's new or what needs ${person}. Don't hand out work just to collect status, and don't make each member answer too.`,
     `Keep it tight: at most ${LEADER_MAX_ROUNDS} rounds of hand-offs and ${LEADER_MAX_TASKS} tasks per message, never the same task twice, and never hand work to yourself.`,

@@ -188,6 +188,7 @@
   "server.finish.plan": "계속 진행: 전체 {total}단계 중 {open}단계 남음",
   "server.finish.ack": "계속 진행: 수정 사항을 반영하고 있어요",
   "server.finish.next": "계속 진행: 작업을 마무리하고 있어요",
+  "server.reconnect.carryOn": "다시 연결됐어요, 계속할게요",
   "server.spend.botCap": "{bot}의 주간 한도에 도달했어요. 최근 7일간 비용이 다시 한도 아래로 내려가거나 사용량에서 한도를 높일 때까지 루틴은 기다려요. 답변은 계속해요.",
   "server.spend.routineCap": "“{routine}”을 일시 중지했어요. 주간 한도에 도달했어요. 사용량에서 한도를 높이거나 다시 켜면 실행할 수 있어요.",
   "server.allowance.held": "건너뜀: 주간 한도에 도달했어요. 초기화: {reset}, {left}.",

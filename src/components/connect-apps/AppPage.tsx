@@ -19,6 +19,7 @@ import { GmailCard, gmailCard } from "./GmailCard";
 import { PrimaryButton, type Primary } from "./PrimaryButton";
 import type { ConnectorAccount } from "@/lib/connector-status";
 import { activeAccounts, defaultAccount, nextAccountName, useAccountChoices } from "./account-choices";
+import type { RemoteAccount } from "./use-remote-apps";
 
 /** One way an app connects, when it has more than one: our own card, the vendor's server, Composio. */
 export interface Way {
@@ -47,7 +48,16 @@ export interface AppPageModel {
   onOpenLogins: () => void;
   onOpenKeys: () => void;
   /** A vendor's own MCP server: connect signs in there, managing it is the MCP servers page. */
-  remote?: { open: boolean; busy: boolean; onConnect: () => void; onCancel: () => void; onManage: () => void };
+  remote?: {
+    open: boolean; busy: boolean; onConnect: () => void; onCancel: () => void; onManage: () => void;
+    /** Its directory id, the slug its account picks are kept under (`mcp-<id>`). */
+    appId?: string;
+    /** Each entry signed in to the app, one per account of the person's. */
+    accounts?: RemoteAccount[];
+    bots?: Array<{ id: string; name: string }>;
+    onReconnect?: (server: string) => void;
+    onAddAccount?: (account: string) => void;
+  };
 }
 
 /** One app's page: its tile, name and main action, what it does, its accounts, and the facts about it. */
@@ -86,13 +96,19 @@ export function AppPage({ model }: { model: AppPageModel }) {
   const askingAlias = composio && connectors.aliasFor === slug;
   const aliasError = askingAlias && connectors.error ? (typeof connectors.error === "string" ? connectors.error : t(connectors.error.key)) : null;
 
+  const remoteAccounts = model.remote?.accounts ?? [];
+  const remoteStale = model.connection === "connected" ? undefined : remoteAccounts.find((account) => account.stale);
   const primary = ((): Primary | null => {
     // our own card connects in its body below
     if (entry.kind !== "composio" && entry.kind !== "remote") return null;
     if (model.remote && (entry.kind === "remote" || !(connectors.configured || viaSignedIn))) {
+      const remote = model.remote;
+      if (remoteStale && remote.onReconnect) {
+        return { label: t("connectors.action.reconnect"), busy: remote.busy, onClick: () => remote.onReconnect!(remoteStale.name), onCancel: remote.onCancel };
+      }
       return model.connection === "connected"
-        ? { label: t("connectApps.remote.manage"), quiet: true, onClick: model.remote.onManage }
-        : { label: t("connectors.action.connect"), busy: model.remote.busy, disabled: model.connection === "unknown", onClick: model.remote.onConnect, onCancel: model.remote.onCancel };
+        ? { label: t("connectApps.remote.manage"), quiet: true, onClick: remote.onManage }
+        : { label: t("connectors.action.connect"), busy: remote.busy, disabled: model.connection === "unknown", onClick: remote.onConnect, onCancel: remote.onCancel };
     }
     if (!composio || !phase) return null;
     const connect: Primary = { label: t("connectApps.connectApp", { name: entry.label }), onClick: () => void connectors.connect(slug), onCancel: () => connectors.cancel(slug) };
@@ -179,6 +195,9 @@ export function AppPage({ model }: { model: AppPageModel }) {
           </div>
         )}
         {model.remote && !ways && <p className="ca-notice">{t(model.remote.open ? "connectApps.remote.open" : "connectApps.remote.note", { name: entry.label })}</p>}
+        {model.remote && !model.remote.open && remoteAccounts.some((account) => account.signedIn || account.stale) && (
+          <RemoteAccounts remote={model.remote} name={entry.label} accounts={remoteAccounts} />
+        )}
         {keyCard && <ComposioKeyStep slug={slug} name={entry.label} connectors={connectors} primary={primary} />}
         {viaStatus && !gmail && (
           <p role={viaStatus.tone === "alert" ? "alert" : "status"} className="ca-notice ca-key-line" data-tone={viaStatus.tone} data-via-line="">
@@ -249,6 +268,100 @@ export function AppPage({ model }: { model: AppPageModel }) {
         {!ownCard && <AppFacts facts={facts} />}
       </div>
     </div>
+  );
+}
+
+/** A vendor server's accounts: each entry by the account it signs in as, a quiet mark on one to sign in to again, Add
+ * another account, and with more than one working, which one each bot uses. */
+export function RemoteAccounts({ remote, name, accounts }: { remote: NonNullable<AppPageModel["remote"]>; name: string; accounts: RemoteAccount[] }) {
+  const { choices, choose } = useAccountChoices();
+  const [adding, setAdding] = useState(false);
+  const [label, setLabel] = useState("");
+  const [failed, setFailed] = useState(false);
+  const slug = `mcp-${remote.appId ?? ""}`;
+  const shown = accounts.filter((account) => account.signedIn || account.stale);
+  const working = shown.filter((account) => account.signedIn);
+  const titleOf = (account: RemoteAccount, index: number) => account.account || (index === 0 ? name : `${t("connectApps.account.word")} ${index + 1}`);
+  const titles = new Map(shown.map((account, index) => [account.name, titleOf(account, index)]));
+  const usual = working.find((account) => account.name === choices.defaults[slug]) ?? working[0];
+  const pick = (server: string | null, botId?: string) => { setFailed(false); void choose(slug, server, botId).then((ok) => { if (!ok) setFailed(true); }); };
+  const add = () => {
+    const account = label.trim();
+    if (!account || !remote.onAddAccount) return;
+    // the one already there stays every bot's account until a bot is given the new one
+    if (!choices.defaults[slug] && usual) pick(usual.name);
+    remote.onAddAccount(account);
+    setAdding(false);
+    setLabel("");
+  };
+  return (
+    <>
+      <div data-remote-accounts="">
+        <h3 className="ca-group-label">{t("connectApps.accounts")}</h3>
+        <div className="ca-card">
+          {shown.map((account) => {
+            const title = titles.get(account.name)!;
+            return (
+              <div key={account.name} className="ca-card-row" data-remote-account={account.name}>
+                <span data-glyph="" aria-hidden="true"><Icon name="person" size={16} /></span>
+                <span>
+                  {title}
+                  {account.stale && <span className="ca-account-tag" data-needs-reconnect="">{t("connectApps.account.needsReconnect")}</span>}
+                  {working.length > 1 && usual?.name === account.name && <span className="ca-account-tag" data-tone="quiet">{t("connectApps.account.default")}</span>}
+                </span>
+                {working.length > 1 && account.signedIn && usual?.name !== account.name && (
+                  <button type="button" className="ca-pill" disabled={remote.busy} onClick={() => pick(account.name)}
+                    aria-label={t("connectApps.account.makeDefaultAria", { title })}>
+                    <span>{t("connectApps.account.makeDefault")}</span>
+                  </button>
+                )}
+                {account.stale && remote.onReconnect && (
+                  <button type="button" className="ca-pill" disabled={remote.busy} onClick={() => remote.onReconnect!(account.name)}
+                    aria-label={t("connectors.reconnectAria", { account: title, service: name })}>
+                    <span>{t("connectors.action.reconnect")}</span>
+                  </button>
+                )}
+              </div>
+            );
+          })}
+          {adding ? (
+            <form className="ca-alias" onSubmit={(event) => { event.preventDefault(); add(); }}>
+              <input autoFocus value={label} maxLength={64} onChange={(event) => setLabel(event.target.value)}
+                placeholder={t("connectors.aliasPlaceholder")} aria-label={t("connectors.aliasAriaAnother", { service: name })} />
+              <button type="submit" className="ca-primary" disabled={remote.busy || !label.trim()}><span>{t("connectors.action.continue")}</span></button>
+            </form>
+          ) : remote.onAddAccount && (
+            <div className="ca-card-row">
+              <button type="button" className="ca-pill" disabled={remote.busy} onClick={() => setAdding(true)} data-add-account="">
+                <span>{t("tokenApps.addAnother")}</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+      {working.length > 1 && (remote.bots?.length ?? 0) > 0 && usual && (
+        <div data-account-bots="">
+          <h3 className="ca-group-label">{t("connectApps.botsUse")}</h3>
+          <div className="ca-card">
+            {(remote.bots ?? []).map((bot) => {
+              const own = choices.bots[bot.id]?.[slug];
+              return (
+                <label key={bot.id} className="ca-card-row" data-account-bot={bot.id}>
+                  <span>{bot.name}</span>
+                  <select className="ca-account-select" value={own && working.some((account) => account.name === own) ? own : ""}
+                    aria-label={t("connectApps.botsUse.aria", { bot: bot.name, service: name })}
+                    onChange={(event) => pick(event.target.value || null, bot.id)}>
+                    <option value="">{t("connectApps.botsUse.default", { name: titles.get(usual.name)! })}</option>
+                    {working.map((account) => <option key={account.name} value={account.name}>{titles.get(account.name)}</option>)}
+                  </select>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {failed && <p role="alert" className="ca-notice" data-tone="danger">{t("connectApps.account.choiceFailed")}</p>}
+    </>
   );
 }
 

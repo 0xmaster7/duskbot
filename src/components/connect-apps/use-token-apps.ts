@@ -17,10 +17,11 @@ export interface DeviceFlow {
 export interface TokenApps {
   status: TokenAppsStatus | null;
   accounts: (app: string) => TokenAccountView[];
-  connect: (app: TokenAppId, fields: Record<string, string>) => Promise<string | null>;
+  /** `replaces`: the refused account this one takes over, keeping its server so every bot keeps its access. */
+  connect: (app: TokenAppId, fields: Record<string, string>, replaces?: string) => Promise<string | null>;
   remove: (id: string) => Promise<void>;
   device: DeviceFlow | null;
-  startDevice: (app: TokenAppId) => Promise<string | null>;
+  startDevice: (app: TokenAppId, replaces?: string) => Promise<string | null>;
   stopDevice: () => void;
 }
 
@@ -49,9 +50,9 @@ export function useTokenApps(): TokenApps {
 
   const accounts = useCallback((app: string) => (status?.accounts ?? []).filter((account) => account.app === app), [status]);
 
-  const connect = useCallback(async (app: TokenAppId, fields: Record<string, string>) => {
+  const connect = useCallback(async (app: TokenAppId, fields: Record<string, string>, replaces?: string) => {
     try {
-      save(await api(`/api/app-tokens/${app}`, { method: "POST", body: JSON.stringify({ fields }) }) as TokenAppsStatus);
+      save(await api(`/api/app-tokens/${app}`, { method: "POST", body: JSON.stringify({ fields, ...(replaces ? { replaces } : {}) }) }) as TokenAppsStatus);
       return null;
     } catch (cause) {
       return message(cause);
@@ -64,11 +65,11 @@ export function useTokenApps(): TokenApps {
 
   const stopDevice = useCallback(() => { clearTimeout(timer.current); setDevice(null); }, []);
 
-  const startDevice = useCallback(async (app: TokenAppId) => {
+  const startDevice = useCallback(async (app: TokenAppId, replaces?: string) => {
     clearTimeout(timer.current);
     let start: DeviceStart;
     try {
-      start = await api(`/api/app-tokens/${app}/device`, { method: "POST" }) as DeviceStart;
+      start = await api(`/api/app-tokens/${app}/device`, { method: "POST", ...(replaces ? { body: JSON.stringify({ replaces }) } : {}) }) as DeviceStart;
     } catch (cause) {
       return message(cause);
     }

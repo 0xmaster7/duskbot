@@ -108,4 +108,30 @@ describe("a token app's guide", () => {
     expect(fixture.opened).toEqual(["https://github.com/login/oauth/authorize?x=1"]);
     expect(steps()).toEqual(["sign-in:done", "finish:current"]);
   });
+
+  it("marks a refused account, and Reconnect signs in again in its place with replaces", async () => {
+    let accounts: unknown[] = [{ id: "a1a1a1a1a1a1a1a1", app: "notion", label: "Acme", server: "notion", via: "device", connectedAt: "2026-11-13T00:00:00Z", needsReconnect: true }];
+    const posted: unknown[] = [];
+    fixture.api.mockImplementation(async (path: string, init?: { method?: string; body?: string }) => {
+      if (path === "/api/app-tokens/notion/device" && init?.method === "POST") {
+        posted.push(JSON.parse(init.body!));
+        return { handle: "h".repeat(32), verificationUrl: "https://api.notion.com/v1/oauth/authorize?x=1", expiresIn: 900, interval: 1 };
+      }
+      if (path.startsWith("/api/app-tokens/device/")) {
+        accounts = [{ id: "b2b2b2b2b2b2b2b2", app: "notion", label: "Acme", server: "notion", via: "device", connectedAt: "2026-11-13T01:00:00Z" }];
+        return { status: "connected", account: accounts[0] };
+      }
+      return status({ notion: true }, accounts);
+    });
+    await mount("notion");
+    expect(card().querySelector("[data-needs-reconnect]")?.textContent).toBe("needs reconnecting");
+    await act(async () => { button("reconnect").click(); });
+    await flush();
+    expect(posted).toEqual([{ replaces: "a1a1a1a1a1a1a1a1" }]);
+    expect(fixture.opened).toEqual(["https://api.notion.com/v1/oauth/authorize?x=1"]);
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 1_100)); });
+    await flush();
+    expect(card().querySelector("[data-needs-reconnect]")).toBeNull();
+    expect([...card().querySelectorAll("button")].some((one) => one.textContent === "reconnect")).toBe(false);
+  });
 });

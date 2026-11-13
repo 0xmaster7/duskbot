@@ -160,6 +160,7 @@
   "server.finish.plan": "Proseguo: restano {open} passi su {total}",
   "server.finish.ack": "Proseguo: applico la tua correzione",
   "server.finish.next": "Proseguo: finisco il lavoro",
+  "server.reconnect.carryOn": "Ricollegato, proseguo",
   "server.spend.botCap": "{bot} ha raggiunto il suo limite settimanale. Le sue routine aspettano finché la spesa degli ultimi 7 giorni torna sotto il limite o lo aumenti in Utilizzo. Continua a risponderti.",
   "server.spend.routineCap": "“{routine}” in pausa: ha raggiunto il suo limite settimanale. Aumenta il limite in Utilizzo o riattivala per eseguirla di nuovo.",
   "server.allowance.held": "Saltata: limite settimanale raggiunto. Si azzera {reset}, {left}.",

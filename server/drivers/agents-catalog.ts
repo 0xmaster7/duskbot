@@ -213,7 +213,7 @@ const TOOL_DEFINITIONS = [
     inputSchema: { type: "object", additionalProperties: false, properties: {
       group_id: { type: "string", description: "Optional destination room; omit for this room or, outside a room, your thread with each teammate." },
       bot_ids: { type: "array", items: { type: "string", description: "A teammate's id exactly as list_bots or your roster prints it ([id: …]). A teammate's unique display name also resolves; a name shared by two reachable teammates is refused." }, minItems: 1, maxItems: 4, uniqueItems: true },
-      message: { type: "string", minLength: 1, maxLength: 4000, description: "Question or task for these teammates; later requests in the same conversation can build on earlier ones. Send separate requests when responsibilities differ." },
+      message: { type: "string", minLength: 1, maxLength: 4000, description: "Question or task for these teammates, standing alone: the goal, what is already done or found, and what you need back. Later requests in the same conversation can build on earlier ones. Send separate requests when responsibilities differ." },
       reason: { type: "string", maxLength: 200, description: "Optional one line for the person about why this goes to them (shown as a chip)." },
       rework: { type: "boolean", description: "True only to send concrete work again to someone whose request already finished or failed: a correction, a re-check or a retry." },
       thread: { type: "string", description: "standing (default): this conversation's one work thread with each teammate. new: a new thread on the teammate, its own history and run. Or a threadId from your receipts or list_threads. Results return here." },

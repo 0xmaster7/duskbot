@@ -166,6 +166,8 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   const [active, setActive] = useState(-1);
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
+  // a token app's refused account the app page opens on, ready to sign in again in its place
+  const [replacing, setReplacing] = useState<{ app: string; id: string } | null>(null);
   const [natives, setNatives] = useState<Record<NativeId, boolean | null>>(() => memory.natives);
   const [hosted, setHosted] = useState<HostedConnections | null>(() => memory.hosted);
   const [onePassword, setOnePassword] = useState<OnePasswordStatus | null>(() => memory.onePassword);
@@ -366,8 +368,30 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     if (entry.kind !== "composio" || !ready) return go({ kind: "detail", id: entry.id });
     void connectors.connect(entry.id);
   };
+  /** An app whose sign-in was refused (expired or revoked) and has no other way in that works: one click signs in again in
+   * its place, so every bot keeps its access. */
+  const reconnectOf = (entry: AppEntry): Extract<RowAction, { kind: "button" }> | null => {
+    if (entry.kind === "token") {
+      const accounts = tokens.accounts(entry.id);
+      const stale = accounts.find((account) => account.needsReconnect);
+      if (!stale || accounts.some((account) => !account.needsReconnect) || composioConnected(entry)) return null;
+      const signIn = tokenApp(entry.id)?.native === true && tokens.status?.native[entry.id] === true;
+      return { kind: "button", label: t("connectors.action.reconnect"), title: t("connectors.reconnectAria", { account: stale.label, service: entry.label }), onClick: () => {
+        setReplacing({ app: entry.id, id: stale.id });
+        if (signIn) void tokens.startDevice(entry.id as TokenAppId, stale.id);
+        go({ kind: "detail", id: entry.id });
+      } };
+    }
+    const vendor = entry.kind === "remote" ? remoteApps.get(entry.id) : entry.remote ? remoteApps.get(entry.remote) : undefined;
+    const stale = vendor && !composioConnected(entry) ? remote.toReconnect(vendor.id) : undefined;
+    if (!vendor || !stale) return null;
+    return { kind: "button", label: t("connectors.action.reconnect"), busy: remote.busy[vendor.id] === true, onCancel: () => remote.cancel(vendor.id),
+      onClick: () => void remote.connect(vendor, { server: stale.name }) };
+  };
   const rowAction = (entry: AppEntry): RowAction => {
     if (entry.id === CUSTOM_MCP) return { kind: "button", label: t("common.add"), onClick: () => go({ kind: "detail", id: CUSTOM_MCP }) };
+    const reconnect = reconnectOf(entry);
+    if (reconnect) return reconnect;
     if (entry.kind === "custom") return connection(entry.id) === "connected" ? { kind: "connected" } : { kind: "status", label: t("connectApps.off"), tone: "quiet" };
     if (connection(entry.id) === "connected" && (entry.kind !== "composio" || !connectors.isConnected(entry.id))) return { kind: "connected" };
     const phase = phaseOf(entry);
@@ -395,6 +419,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   // grok's rows always say what the app does, under its name
   /** Who a connected row is signed in as: its accounts' names, else what the app does. */
   const subtitleOf = (entry: AppEntry): string => {
+    if (reconnectOf(entry)) return t("connectApps.account.needsReconnect");
     if (connection(entry.id) !== "connected") return entry.description;
     const slug = composioSlug(entry);
     const names = [
@@ -534,7 +559,8 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
       }
       if (vendor) {
         ways.push({ key: "remote", label: t("connectApps.way.server", { name: detailEntry.label }), connected: remote.connection(vendor.id) === "connected",
-          action: { kind: "button", label: t("connectors.action.connect"), busy: remote.busy[vendor.id] === true, disabled: remote.connection(vendor.id) === "unknown", onClick: () => void remote.connect(vendor), onCancel: () => remote.cancel(vendor.id) } });
+          action: ((stale) => ({ kind: "button" as const, label: t(stale ? "connectors.action.reconnect" : "connectors.action.connect"), busy: remote.busy[vendor.id] === true, disabled: remote.connection(vendor.id) === "unknown",
+            onClick: () => void remote.connect(vendor, stale ? { server: stale.name } : {}), onCancel: () => remote.cancel(vendor.id) }))(remote.toReconnect(vendor.id)) });
       }
       if (slug && card) {
         const connect = { kind: "button" as const, label: t(composioReady ? "connectors.action.connect" : "connectApps.authorize"), onClick: () => composioReady ? void connectors.connect(slug) : connectors.askKey(slug) };
@@ -562,6 +588,11 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
         ...(vendor ? { remote: {
           open: vendor.auth === "none",
           busy: remote.busy[vendor.id] === true,
+          appId: vendor.id,
+          accounts: remote.accounts(vendor.id),
+          bots: state.bots.map((bot) => ({ id: bot.id, name: bot.name })),
+          onReconnect: (server: string) => void remote.connect(vendor, { server }),
+          onAddAccount: (account: string) => void remote.connect(vendor, { account }),
           onConnect: () => void remote.connect(vendor),
           onCancel: () => remote.cancel(vendor.id),
           onManage: () => go({ kind: "detail", id: MCP_PAGE }),
@@ -750,7 +781,8 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
                 )}
                 {body}
                 <div className={nativeCardsShown || hostedShown || onePasswordShown || tokenShown || gmailShown ? "ca-native-host" : "hidden"} data-native-host="">
-                  {tokenShown && <TokenCard app={tokenShown} tokens={tokens} />}
+                  {tokenShown && <TokenCard key={`${tokenShown}:${replacing?.app === tokenShown ? replacing.id : ""}`} app={tokenShown} tokens={tokens}
+                    {...(replacing?.app === tokenShown ? { replacing: replacing.id } : {})} />}
                   {gmailShown && <GmailPasswordNote />}
                   <div className={hostedShown ? "contents" : "hidden"}>
                     <McpServersPanel hostedCards={{ shown: (id) => id === hostedShown, onConnections: setHosted }} />

@@ -57,6 +57,20 @@ export function remoteConnection(app: DirectoryApp, server: RemoteMcpListing | u
   return app.auth === "none" || server.auth === "signed-in" ? "connected" : "disconnected";
 }
 
+/** A turned-on entry whose sign-in is one to redo: it was signed in (an entry is turned on only once it is) and the
+ * app refused it since, expired or revoked. Signing in again keeps its name, so every bot keeps its access. */
+export function needsReconnect(app: DirectoryApp, server: RemoteMcpListing): boolean {
+  return app.auth === "oauth" && server.enabled && server.auth === "needs-sign-in";
+}
+
+/** One of the app's entries, as its page lists it. */
+export interface RemoteAccount {
+  name: string;
+  account?: string;
+  signedIn: boolean;
+  stale: boolean;
+}
+
 export interface RemoteApps {
   apps: DirectoryApp[];
   /** The directory and the servers have answered (or failed): the list will not grow on its own any more. */
@@ -66,9 +80,14 @@ export interface RemoteApps {
   error: string | null;
   clearError: () => void;
   connection: (id: string) => Connection;
+  /** Each entry the app has, the first one added first. */
+  accounts: (id: string) => RemoteAccount[];
+  /** The app's entry to sign in to again, when none of its entries works any more. */
+  toReconnect: (id: string) => RemoteAccount | undefined;
   /** True when this MCP server is one of these apps, so Your apps lists it once. */
   ownsServer: (name: string) => boolean;
-  connect: (app: DirectoryApp) => Promise<void>;
+  /** Signs in: `server` again to that entry, `account` to a new entry of its own named so, else to the app's entry. */
+  connect: (app: DirectoryApp, target?: { server?: string; account?: string }) => Promise<void>;
   /** Stops the app's sign-in where it is and puts its row back to Connect. */
   cancel: (id: string) => void;
 }
@@ -101,8 +120,13 @@ export function useRemoteApps(options: { needsPanel: () => boolean; openPanel: (
     return () => { alive = false; for (const controller of running.values()) controller.abort(); running.clear(); };
   }, [setServers]);
 
-  const serverOf = (app: DirectoryApp) => servers?.find((server): server is RemoteMcpListing =>
+  const serversOf = (app: DirectoryApp) => (servers ?? []).filter((server): server is RemoteMcpListing =>
     isRemoteMcpListing(server) && server.type === "http" && sameEndpoint(server.url, app.url!));
+  // the entry that answers for the app: one that works, else the first
+  const serverOf = (app: DirectoryApp) => {
+    const all = serversOf(app);
+    return all.find((server) => remoteConnection(app, server) === "connected") ?? all[0];
+  };
 
   const mark = (id: string, on: boolean) => setBusy((current) => {
     const next: Record<string, true> = { ...current };
@@ -110,7 +134,7 @@ export function useRemoteApps(options: { needsPanel: () => boolean; openPanel: (
     return next;
   });
 
-  const connect = async (app: DirectoryApp) => {
+  const connect = async (app: DirectoryApp, target: { server?: string; account?: string } = {}) => {
     if (signIns.current.has(app.id)) return;
     const controller = new AbortController();
     signIns.current.set(app.id, controller);
@@ -122,10 +146,11 @@ export function useRemoteApps(options: { needsPanel: () => boolean; openPanel: (
     const unwatch = watchReturn(() => {}, giveUp);
     const deadline = setTimeout(giveUp, VIA_DEADLINE_MS);
     try {
-      let server = serverOf(app);
+      let server = target.account ? undefined : target.server ? serversOf(app).find((one) => one.name === target.server) : serverOf(app);
       const name = server?.name ?? freeServerName(app.id, servers ?? []);
       if (!server) {
-        const added = listed((await api("/api/mcp/servers", { method: "POST", body: JSON.stringify({ name, type: "http", url: app.url, enabled: app.auth === "none" }) })).servers);
+        const account = target.account?.trim().slice(0, 64);
+        const added = listed((await api("/api/mcp/servers", { method: "POST", body: JSON.stringify({ name, type: "http", url: app.url, enabled: app.auth === "none", ...(account ? { account } : {}) }) })).servers);
         server = added.find((entry): entry is RemoteMcpListing => entry.name === name && isRemoteMcpListing(entry));
         if (!server) throw new Error(t("hostedMcp.setupFailed", { service: app.label }));
       }
@@ -162,7 +187,20 @@ export function useRemoteApps(options: { needsPanel: () => boolean; openPanel: (
     settled: (appsSettled || directoryFailed) && servers !== null,
     clearError: () => setError(null),
     connection: (id) => { const app = byId.get(id); return app && servers ? remoteConnection(app, serverOf(app)) : "unknown"; },
-    ownsServer: (name) => apps.some((app) => serverOf(app)?.name === name),
+    accounts: (id) => {
+      const app = byId.get(id);
+      return app ? serversOf(app).map((server) => ({
+        name: server.name, ...(server.account ? { account: server.account } : {}),
+        signedIn: remoteConnection(app, server) === "connected", stale: needsReconnect(app, server),
+      })) : [];
+    },
+    toReconnect: (id) => {
+      const app = byId.get(id);
+      if (!app || !servers || remoteConnection(app, serverOf(app)) === "connected") return undefined;
+      const stale = serversOf(app).find((server) => needsReconnect(app, server));
+      return stale ? { name: stale.name, ...(stale.account ? { account: stale.account } : {}), signedIn: false, stale: true } : undefined;
+    },
+    ownsServer: (name) => apps.some((app) => serversOf(app).some((server) => server.name === name)),
     connect,
     cancel,
   };

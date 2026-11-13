@@ -6956,7 +6956,7 @@
   "connectApps.via.refused": "Composio couldn't connect {name}: {message}",
   "connectApps.via.authorizeFailed": "Composio wasn't authorized. Try again.",
   "connectApps.account.fallback": "linked account",
-  "connectApps.account.needsReconnect": "needs reconnect",
+  "connectApps.account.needsReconnect": "needs reconnecting",
   "connectApps.account.confirm": "confirm disconnect",
   "connectApps.account.confirmAria": "confirm disconnecting {title}",
   "connectApps.account.removeFailed": "Couldn't disconnect this account",

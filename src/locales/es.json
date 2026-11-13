@@ -154,6 +154,7 @@
   "server.finish.plan": "Continuando: quedan {open} de {total} pasos",
   "server.finish.ack": "Continuando: aplicando tu corrección",
   "server.finish.next": "Continuando: terminando la tarea",
+  "server.reconnect.carryOn": "Reconectado, sigo",
   "server.spend.botCap": "{bot} alcanzó su límite semanal. Sus rutinas esperan hasta que el gasto de los últimos 7 días vuelva a estar por debajo del límite o lo subas en Uso. Sigue respondiéndote.",
   "server.spend.routineCap": "Se pausó “{routine}”: alcanzó su límite semanal. Sube el límite en Uso o vuelve a activarla para ejecutarla de nuevo.",
   "server.allowance.held": "Omitida: límite semanal alcanzado. Se restablece {reset}, {left}.",
