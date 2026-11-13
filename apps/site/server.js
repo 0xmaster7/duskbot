@@ -87,6 +87,7 @@ const WAIT_MSG = {
   bad_email: "that doesn't look like an email address. check it for a typo and try again.",
   junk_email: "throwaway inboxes can't join. use one you'll still check when we write.",
   too_many: 'too many tries from here. wait a minute and try again.',
+  too_many_today: 'a lot of people joined from this network today. try again tomorrow.',
   too_large: 'that request was too big. reload the page and try again.',
   bad_request: 'something was off with that request. reload the page and try again.',
   not_json: 'this address only takes json.',
@@ -99,6 +100,22 @@ function tooMany(ip) {
   recent.push(now); tries.set(ip, recent);
   if (tries.size > 5000) for (const [k, v] of tries) if (now - v[v.length - 1] > 60_000) tries.delete(k);
   return recent.length > 20;
+}
+// and a generous day's cap on new joins per network (DUSK_WAITLIST_PER_IP_DAY, default 200), so a script cannot fill the list
+// with made-up addresses; an ipv6 caller counts by its /64. the count starts over each utc day
+const PER_DAY = Math.max(1, Number(process.env.DUSK_WAITLIST_PER_IP_DAY) || 200);
+let joins = { day: '', map: new Map() };
+function netOf(ip) {
+  const v4 = /^(?:::ffff:)?(\d+\.\d+\.\d+\.\d+)$/i.exec(ip);
+  if (v4 || !ip.includes(':')) return v4 ? v4[1] : ip;
+  const [head, tail] = ip.split('::'), h = head ? head.split(':') : [], t = tail ? tail.split(':') : [];
+  const groups = tail === undefined ? h : [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill('0'), ...t];
+  return `${groups.slice(0, 4).map((g) => parseInt(g || '0', 16).toString(16)).join(':')}::/64`;
+}
+function joinsToday(ip) {
+  const day = new Date().toISOString().slice(0, 10);
+  if (joins.day !== day || joins.map.size > 100_000) joins = { day, map: new Map() };
+  return { key: netOf(ip), get count() { return joins.map.get(this.key) || 0; }, add() { joins.map.set(this.key, this.count + 1); } };
 }
 // a new signup also goes on the brevo list when BREVO_API_KEY and BREVO_WAITLIST_LIST_ID are set. fire and forget:
 // network errors, 429 and 5xx are retried twice, other answers are final; failures only log, never the email
@@ -153,10 +170,13 @@ function waitlist(req, res, urlPath) {
     if (JUNK.has(email.split('@')[1])) return fail(res, 400, 'junk_email');
     // a filled honeypot is a form-filling robot: it hears yes and nothing is kept
     if (typeof body.website === 'string' && body.website.trim()) return sendJson(res, 200, { ok: true, position: (await store.count()) + 1 });
+    const today = joinsToday(ip);
+    if (today.count >= PER_DAY) return fail(res, 429, 'too_many_today');
     const ua = req.headers['user-agent'] ? createHash('sha256').update(String(req.headers['user-agent'])).digest('hex').slice(0, 12) : null;
     const meta = { source: clean(body.source), ref: clean(body.ref), ua };
     try {
       const { position, existing } = await store.add(email, meta);
+      if (!existing) today.add();
       if (!existing) { console.log(`waitlist: #${position} joined${meta.source ? ` from ${meta.source}` : ''}`); addToBrevo(email, { ...meta, position }); }
       sendJson(res, existing ? 200 : 201, { ok: true, position, already: existing });
     } catch (err) {

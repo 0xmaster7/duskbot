@@ -95,6 +95,30 @@ async function fileRun() {
   } finally { s.server.kill(); fs.rmSync(dir, { recursive: true, force: true }); }
 }
 
+// the day's cap per network, on a server of its own with a small cap
+async function capRun() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dusk-waitlist-cap-'));
+  const s = await startServer({ DUSK_WAITLIST_FILE: path.join(dir, 'waitlist.jsonl'), DUSK_WAITLIST_PER_IP_DAY: '3' });
+  const post = (email, ip) => fetch(`http://127.0.0.1:${s.port}/api/waitlist`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-real-ip': ip }, body: JSON.stringify({ email }) })
+    .then(async (r) => ({ status: r.status, data: await r.json() }));
+  try {
+    await check('[cap] new joins per network are capped for the day', async () => {
+      const statuses = [];
+      for (let i = 0; i < 4; i++) statuses.push((await post(`d${i}@day.dev`, '10.9.0.1')).status);
+      assert.deepEqual(statuses, [201, 201, 201, 429]);
+      const capped = await post('d9@day.dev', '10.9.0.1');
+      assert.equal(capped.data.error, 'too_many_today'); assert.ok(capped.data.message);
+      assert.equal((await post('d4@day.dev', '10.9.0.2')).status, 201, 'another network still joins');
+    });
+    await check('[cap] an ipv6 network counts by its /64', async () => {
+      const statuses = [];
+      for (const [i, ip] of ['2001:db8:1:2::1', '2001:db8:1:2:aaaa::9', '2001:0db8:0001:0002:ffff:ffff:ffff:1', '2001:db8:1:2::77'].entries()) statuses.push((await post(`v${i}@six.dev`, ip)).status);
+      assert.deepEqual(statuses, [201, 201, 201, 429]);
+      assert.equal((await post('v9@six.dev', '2001:db8:1:3::1')).status, 201);
+    });
+  } finally { s.server.kill(); fs.rmSync(dir, { recursive: true, force: true }); }
+}
+
 function findMongod() {
   const bin = process.env.WAITLIST_TEST_MONGOD || 'mongod';
   return spawnSync(bin, ['--version'], { stdio: 'ignore' }).status === 0 ? bin : null;
@@ -139,6 +163,7 @@ async function mongoRun(bin) {
 }
 
 await fileRun();
+await capRun();
 const bin = findMongod();
 if (bin) await mongoRun(bin);
 else results.push('skip [mongo] no mongod binary (set WAITLIST_TEST_MONGOD or put mongod on PATH)');

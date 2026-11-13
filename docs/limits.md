@@ -53,7 +53,7 @@ connections through Cloudflare and nginx (see section 9).
 
 | What | Limit | Where |
 |---|---|---|
-| Waitlist joins (dusk.bot) | 20 a minute per ip, 2 KiB body, 22 throwaway domains refused, a honeypot field | site repo `server.js` |
+| Waitlist joins (dusk.bot) | 20 a minute per ip, 200 new joins a day per ip or ipv6 /64 (`DUSK_WAITLIST_PER_IP_DAY`), 2 KiB body, 22 throwaway domains refused, a honeypot field | `apps/site/server.js` |
 | Waitlist to Brevo | each new address becomes a contact on the waitlist list; no email is sent | same |
 | Page beacon `/v1/t` | 3000 an hour per ip, 4 KiB | `analytics/ingest.ts` |
 | App events | 1500 an hour per ip and per install, 50 events / 32 KiB a batch | same |
@@ -62,15 +62,15 @@ connections through Cloudflare and nginx (see section 9).
 | Raw analytics events kept | 400 days (Mongo TTL); bot visits in a 64 MiB capped collection | `analytics/sink.ts` |
 | Published pages | 50 per account, 5 MiB and 200 files each, 120 uploads an hour | `pages/service.ts` |
 
-The waitlist has no daily cap. A bot that rotates addresses can fill the list with made-up emails; nothing is mailed,
-so it costs Brevo contacts, not sends.
+A bot that rotates many networks can still fill the list with made-up emails; nothing is mailed, so it costs Brevo
+contacts, not sends.
 
 ## 4. Billing (Dodo)
 
 | What | Limit | Where |
 |---|---|---|
 | Clouds per account | 5 | `billing/plans.ts` `maxCloudsPerAccount` |
-| Checkouts per account | 30 an hour, each open 30 min | same |
+| Checkouts per account | 30 an hour, each open 30 min; asking again replaces an unpaid one with a fresh payment page | same |
 | Webhooks | signed (Standard Webhooks), 5 min clock window, 64 KiB body, each id handled once (kept 30 days) | `billing/webhook-signature.ts`, `billing/service.ts` |
 | Free trial | none (`trial: null`) | `billing/plans.ts` |
 | Work license free until | 2026-12-01 (`DUSK_FREE_WORK_UNTIL`) | same |
@@ -101,7 +101,9 @@ so it costs Brevo contacts, not sends.
   (mining or a runaway loop), so we look before InstaBox does.
 - **Memory:** the home service is held at 80% (soft) and 90% (hard) of the machine, bots at 65% / 75%.
 - **Backups:** daily (`DUSK_MANAGED_BACKUP_HOURS`), 3 kept plus one at least a week older, at most 4 GiB each
-  (`DUSK_MANAGED_BACKUP_MAX_MB`), on the account service's disk. Kept 30 days after a plan ends.
+  (`DUSK_MANAGED_BACKUP_MAX_MB`), on the account service's disk. Kept 30 days after a plan ends. Streamed to disk,
+  sealed, hashed and checked a piece at a time (a few MiB of memory whatever the size); upkeep looks after 4 machines
+  at once.
 
 ## 6. Relay (link service, `apps/link-service`, link.dusk.bot)
 
@@ -168,9 +170,9 @@ records, `workspaces`. At today's sizes this is years away from mattering; the 5
 
 ## 10. What is not limited (on purpose or not yet)
 
-- **Waitlist volume** (section 3): no daily cap.
-- **Cloud backups are read into memory** whole (up to 4 GiB, twice while it is checked) in the account service on the
-  shared Contabo box, one cloud at a time.
+- **Waitlist volume** (section 3): capped per network only, no cap across everyone.
+- **Restoring a cloud backup** still opens it whole in memory (up to 4 GiB) before it is uploaded to the new machine;
+  rare (a lost machine only), unlike the daily backups, which now stream.
 - **nginx worker connections** (section 9): fine for hundreds of computers, raise before thousands.
 - **Rate limit counters live in memory** and reset when the account service restarts (sign-in codes in flight are
   saved, so a deploy no longer kills them).
