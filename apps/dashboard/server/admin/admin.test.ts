@@ -81,7 +81,20 @@ describe("admin panel api", () => {
 
   describe("authorization on every route", () => {
     const reads = ["/v1/admin/me", "/v1/admin/overview", "/v1/admin/overview?days=7", "/v1/admin/users", "/v1/admin/users?q=owner&filter=all", "/v1/admin/clouds", "/v1/admin/clouds?status=all",
-      "/v1/admin/waitlist", "/v1/admin/waitlist.csv", "/v1/admin/events", "/v1/admin/events?name=sign_in&days=30", "/v1/admin/health", "/v1/admin/audit", "/v1/admin/revenue/infra", "/v1/admin/ops"];
+      "/v1/admin/waitlist", "/v1/admin/waitlist.csv", "/v1/admin/events", "/v1/admin/events?name=sign_in&days=30", "/v1/admin/health", "/v1/admin/audit", "/v1/admin/revenue/infra", "/v1/admin/ops", "/v1/admin/ops/relays"];
+
+    it("keeps relay limit changes to the admin, with the csrf header", async () => {
+      const admin = await login(ADMIN), other = await login(OTHER);
+      const path = "/v1/admin/ops/relays/cloudflare/limits", body = { maxTunnels: 10 };
+      expect((await call(path, { method: "PUT", body })).status).toBe(401);
+      expect((await call(path, { method: "PUT", body, cookie: other })).status).toBe(403);
+      expect((await call(path, { method: "PUT", body, cookie: admin, csrf: false })).status).toBe(403);
+      // no relay token in this service's env: it says which one to set
+      const answer = await call(path, { method: "PUT", body, cookie: admin });
+      expect(answer.status).toBe(409);
+      expect((await answer.json() as { error: string }).error).toContain("DUSK_CF_RELAY_OPS_TOKEN");
+      expect((await call("/v1/admin/ops/relays/nope/limits", { method: "PUT", body, cookie: admin })).status).toBe(404);
+    });
 
     it("answers 401 signed out, 403 for an account not on the list, and 200 for the admin", async () => {
       const admin = await login(ADMIN), other = await login(OTHER);

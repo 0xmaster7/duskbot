@@ -21,6 +21,7 @@ import { AnalyticsRouteError, createAnalyticsRoutes } from "./analytics-routes.t
 import { BillingError } from "../billing/service.ts";
 import { PlanError, createPlanEditor } from "./plans.ts";
 import { marginReport, type InfraStore } from "./infra.ts";
+import { RelayError, createRelays } from "./ops/relays.ts";
 import { DAY, choseCloud, dayKey, dayRange, funnel, isPaying, perDay, wasPaid, workspaceTurns } from "./metrics.ts";
 
 export class AdminError extends Error {
@@ -48,6 +49,8 @@ export interface AdminOptions {
   infra?: { store: InfraStore };
   /** the ops page: spend, health, outliers and alert rules, from what the ops collectors stored */
   ops?: { answer(): Promise<unknown>; collect(): Promise<unknown> };
+  /** the local fixture: made-up relay cards instead of asking the relays */
+  relayFixture?: boolean;
   service: { version: string | null; startedAt: number; environment: string; dataDir: string; backupDir: string | null; database: () => { ok: boolean; detail: string } | null };
   readBody(req: IncomingMessage): Promise<Buffer>;
   bodyObject(body: Buffer): Record<string, unknown>;
@@ -117,6 +120,8 @@ export function createAdmin(options: AdminOptions) {
     };
   }
   const emailMap = () => new Map(directory().accounts.map(account => [account.id, account.email]));
+  const relays = createRelays({ env, fetch: options.fetch, now, accounts: () => directory().accounts, fixture: options.relayFixture });
+  const relayCall = <T>(work: Promise<T>) => work.catch((error: unknown): never => { if (error instanceof RelayError) throw new AdminError(error.status, error.code, error.message); throw error; });
 
   /** what people use it for, over whole UTC days from `from` to `to` (at most 90), against the window before */
   async function usageAnswer(url: URL) {
@@ -393,6 +398,7 @@ export function createAdmin(options: AdminOptions) {
         if (!options.ops) throw new AdminError(404, "not_found", "The ops page is not connected.");
         return send(await options.ops.answer());
       }
+      if (route === "/ops/relays") return send(await relays.list());
       try {
         if (route === "/revenue") return send(await deep.revenue(url));
         if (route === "/web") return send(await deep.web(url));
@@ -435,6 +441,15 @@ export function createAdmin(options: AdminOptions) {
       if (!await deep.deleteNote(noteRoute[1]!)) throw new AdminError(404, "not_found", "Not found.");
       await audit(owner.id, "note.delete", noteRoute[1]!);
       return send({ ok: true });
+    }
+    const relayLimits = /^\/ops\/relays\/(contabo|cloudflare)\/limits$/.exec(route);
+    if (relayLimits && method === "PUT") {
+      const body = options.bodyObject(await options.readBody(req));
+      const relay = await relayCall(relays.setLimits(relayLimits[1]!, body));
+      const detail: Record<string, string | number | boolean | null> = {};
+      for (const [key, value] of Object.entries(body).slice(0, 16)) if (value === null || typeof value === "number" || typeof value === "boolean") detail[key] = value;
+      await audit(owner.id, "ops.relay.limits", relayLimits[1]!, detail);
+      return send({ relay });
     }
     if (method === "POST") {
       const planRoute = /^\/users\/([A-Za-z0-9_-]{1,80})\/plan$/.exec(route);

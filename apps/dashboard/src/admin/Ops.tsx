@@ -10,11 +10,12 @@ import { adminCall, useAdmin } from "./api";
 import { Avatar, percent, personName, usd } from "./kit";
 import { AdminHeader, Failed, Loading, n } from "./ui";
 import { Chevron, Fold, Reveal } from "./Fold";
+import { Relays } from "./OpsRelays";
 import type { OpsAnswer, OpsBox, OpsCheck, OpsLevel, OpsMeter, OpsRule, OpsSource, OpsSourceId, OpsSpend } from "./ops-types";
 
 const personLink = (accountId: string) => `/admin/people/visitors?person=${encodeURIComponent(accountId)}`;
 const here = (id: string) => `/admin/ops#${id}`;
-function size(value: number | null | undefined) {
+export function size(value: number | null | undefined) {
   if (value === null || value === undefined || !Number.isFinite(value)) return "-";
   const units = ["b", "kb", "mb", "gb", "tb"];
   let v = value, i = 0;
@@ -35,7 +36,7 @@ function Dot({ level }: { level: OpsLevel }) {
 }
 
 /** a level as a small square plus its word, so colour is never the only signal */
-function Level({ level, word }: { level: OpsLevel; word?: string }) {
+export function Level({ level, word }: { level: OpsLevel; word?: string }) {
   return (
     <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
       <Dot level={level} />
@@ -45,7 +46,7 @@ function Level({ level, word }: { level: OpsLevel; word?: string }) {
 }
 
 /** a titled card with a light inner panel; every section on the page uses this one shape */
-function Panel({ id, title, meta, children, foot }: { id: string; title: string; meta?: ReactNode; children: ReactNode; foot?: ReactNode }) {
+export function Panel({ id, title, meta, children, foot }: { id: string; title: string; meta?: ReactNode; children: ReactNode; foot?: ReactNode }) {
   return (
     <section id={id} aria-labelledby={`${id}-title`} className="flex min-w-0 scroll-mt-6 flex-col rounded-[24px] bg-card p-2">
       <div className="flex min-h-9 flex-wrap items-center justify-between gap-2 px-2 pb-1.5 pt-1">
@@ -58,12 +59,12 @@ function Panel({ id, title, meta, children, foot }: { id: string; title: string;
   );
 }
 
-function Empty({ children }: { children: ReactNode }) {
+export function Empty({ children }: { children: ReactNode }) {
   return <p className="px-2.5 py-5 text-13 text-ink-3">{children}</p>;
 }
 
 /** label and value pairs for an opened row */
-function Facts({ items }: { items: Array<[string, ReactNode]> }) {
+export function Facts({ items }: { items: Array<[string, ReactNode]> }) {
   return (
     <dl className="grid grid-cols-2 gap-x-6 gap-y-1 max-sm:grid-cols-1">
       {items.map(([label, value]) => (
@@ -88,7 +89,7 @@ function Bar({ share, level, tick }: { share: number; level: OpsLevel; tick?: nu
 }
 
 /** one quota: used against what the plan includes, with a tick where the month ends at this pace */
-function Meter({ label, meter, format }: { label: string; meter: OpsMeter; format(v: number): string }) {
+export function Meter({ label, meter, format }: { label: string; meter: OpsMeter; format(v: number): string }) {
   const limit = meter.limit && meter.limit > 0 ? meter.limit : null;
   return (
     <div className="min-w-0" role="img" aria-label={`${label}: ${format(meter.used)}${limit ? ` of ${format(limit)}` : ""}${meter.projected !== null ? `, ${format(meter.projected)} at this pace` : ""}`}>
@@ -101,7 +102,7 @@ function Meter({ label, meter, format }: { label: string; meter: OpsMeter; forma
   );
 }
 
-function Person({ accountId, email, fallback, sub }: { accountId: string | null; email: string | null; fallback?: string; sub?: ReactNode }) {
+export function Person({ accountId, email, fallback, sub }: { accountId: string | null; email: string | null; fallback?: string; sub?: ReactNode }) {
   return (
     <span className="flex min-w-0 items-center gap-2.5">
       {accountId && <Avatar seed={accountId} size={20} customer />}
@@ -113,7 +114,7 @@ function Person({ accountId, email, fallback, sub }: { accountId: string | null;
   );
 }
 
-function PersonRow({ accountId, children }: { accountId: string | null; children: ReactNode }) {
+export function PersonRow({ accountId, children }: { accountId: string | null; children: ReactNode }) {
   const cls = "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] px-2.5 py-2";
   return <li>{accountId ? <Link to={personLink(accountId)} className={cx("hover-row", cls)}>{children}</Link> : <div className={cls}>{children}</div>}</li>;
 }
@@ -502,6 +503,7 @@ export function OpsPage() {
       <AdminHeader title="ops"
         sub={data ? <span className="inline-flex flex-wrap items-center gap-2">{data.month}, {percent(data.elapsed)} of the month gone · updated {ago(data.now, now)}{data.fixture && <span className="tag !h-[22px] !px-2">sample data</span>}</span> : "spend, machines, services and people to look at"}
         action={<Collect onDone={reload} />} />
+      <Relays />
       {error && <Failed error={error} retry={reload} />}
       {!data && loading && <Loading rows={8} />}
       {data && (

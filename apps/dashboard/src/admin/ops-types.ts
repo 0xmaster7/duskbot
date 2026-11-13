@@ -104,3 +104,26 @@ export interface OpsAnswer {
   abuse: OpsSuspect[];
   alerts: OpsRule[];
 }
+
+/** the link relays' live cards at the top of ops: GET /v1/admin/ops/relays, from each relay's GET /ops/relay/stats */
+export type OpsRelayId = "contabo" | "cloudflare";
+/** rates in bytes per second, sizes in bytes; null turns a limit off. a relay may add keys of its own */
+export interface OpsRelayLimits {
+  perTunnelBytesPerSec?: number | null; burstBytes?: number | null; perTunnelDailyBytes?: number | null; tunnelsPerAccount?: number | null;
+  globalCeilingBytesPerSec?: number | null; maxTunnels?: number | null; paused?: boolean;
+  [key: string]: number | boolean | null | undefined;
+}
+export interface OpsRelayStats {
+  relay: string;
+  now: { tunnels: number; accounts: number; bytesPerSecOut: number; bytesPerSecIn: number; cpu: number | null; rssMb: number | null };
+  today: { bytesOut: number; bytesIn: number };
+  month: { bytesOut: number; bytesIn: number; projectedBytesOut: number; allowanceBytes: number | null };
+  limits: OpsRelayLimits;
+  /** account: the relay's account ref; accountId and email are filled in by the account service when it knows them */
+  top: Array<{ account: string; tunnels: number; bytesToday: number; accountId?: string | null; email?: string | null }>;
+  busy: boolean | { reason?: string; [key: string]: unknown };
+  /** cloudflare: an estimate from durable object awake time and messages */
+  cost?: { estimated: boolean; monthCents: number; projectedCents: number; awakeHours?: number; messages?: number };
+  paused?: boolean;
+}
+export interface OpsRelayCard { id: OpsRelayId; label: string; url: string; at: number; configured: boolean; ok: boolean; error: string | null; stats: OpsRelayStats | null }
