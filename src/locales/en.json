@@ -2051,6 +2051,7 @@
   "error.plain.tooLarge": "That's too large to send. Try a smaller file or a shorter message.",
   "error.plain.server": "Something went wrong on the other end. Try again.",
   "error.plain.generic": "Something went wrong. Try again.",
+  "error.plain.updated": "The app updated. Reload to continue.",
   "chat.cloudGuest.notYours": "You can only write in conversations you started on this cloud.",
   "chat.cloudGuest.newConversation": "New conversation",
   "chat.claudeUpdate.aria": "update Claude Code",

@@ -1,13 +1,20 @@
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { requestTooLargeModel } from "../../shared/request-too-large";
+import { isStaleChunkError, STALE_CHUNK } from "./stale-chunks";
 
 const UNREACHABLE = /^(?:TypeError:\s*)?(?:Failed to fetch|NetworkError when attempting to fetch resource\.?|Load failed|fetch failed)$/i;
 const TIMED_OUT = /^(?:TimeoutError:\s*)?(?:The operation was aborted due to timeout|signal timed out|The operation timed out\.?)$/i;
+const ABORTED = /^(?:AbortError:\s*)?(?:The operation was aborted\.?|This operation was aborted\.?|The user aborted a request\.?|signal is aborted without reason|Aborted\.?)$/i;
+// what a slip in the app's own code throws: never words for a person
+const PROGRAMMER = /\bCannot read properties of (?:undefined|null)\b|\b(?:undefined|null) is not an object\b|\bMaximum call stack size exceeded\b|^[\w$]+(?:\.[\w$]+)*(?:\(\.\.\.\))? is (?:not a function|not iterable|not a constructor|not defined|undefined|null)\.?$/;
 
 const TECHNICAL: RegExp[] = [
   UNREACHABLE,
   TIMED_OUT,
+  ABORTED,
+  STALE_CHUNK,
+  PROGRAMMER,
   /^\d{3}(?: [A-Za-z][\w '-]*)?$/,
   /[{[]\s*"[\w$-]+"\s*:/,
   /\n\s+at \S/,
@@ -20,7 +27,9 @@ const TECHNICAL: RegExp[] = [
 ];
 
 const KINDS: Array<[RegExp, LocaleKey]> = [
+  [STALE_CHUNK, "error.plain.updated"],
   [UNREACHABLE, "error.plain.unreachable"],
+  [ABORTED, "error.plain.timeout"],
   [/\b429\b|rate.?limit|too many requests/i, "error.plain.rateLimited"],
   [/overloaded|\b529\b|\b503\b|capacity|service unavailable/i, "error.plain.busy"],
   [/ECONNRESET|ECONNREFUSED|ECONNABORTED|EPIPE|ENOTFOUND|EAI_AGAIN|EHOSTUNREACH|ENETUNREACH|socket hang up|connection (?:reset|refused)/i, "error.plain.connection"],
@@ -55,4 +64,45 @@ export function plainErrorLine(raw: string): string | undefined {
   if (rest !== text && /[A-Za-z]+\s+[A-Za-z]+/.test(rest) && !REASON_PHRASE.test(rest) && !isTechnicalError(rest)) return rest;
   const key = KINDS.find(([pattern]) => pattern.test(text))?.[1] ?? "error.plain.generic";
   return t(key);
+}
+
+// things only a developer reads: an address, a file of the app's own code, an Electron call's wrapper
+const RAW_FOR_PEOPLE: RegExp[] = [
+  /\b(?:https?|file|wss?|blob|chrome-extension|app):\/\/\S/i,
+  /(?:^|[\s(/@])[\w.@~-]*\/[\w./@~-]*\.(?:m?jsx?|cjs|tsx?|css|map|json|node|wasm)\b/i,
+  /\bnode_modules\b|\/@(?:fs|id|vite)\//,
+  /^[\w.]*Error$/,
+];
+const STACKED = /\n\s+at \S/;
+const IPC_PREFIX = /^Error invoking remote method '[^']*': (?:\w*Error: )?/;
+
+function rawTextOf(reason: unknown): string {
+  if (typeof reason === "string") return reason;
+  if (reason instanceof Error) return reason.message;
+  if (reason && typeof reason === "object") {
+    const { message, error } = reason as { message?: unknown; error?: unknown };
+    if (typeof message === "string") return message;
+    if (typeof error === "string") return error;
+    if (error && typeof error === "object" && typeof (error as { message?: unknown }).message === "string") return (error as { message: string }).message;
+  }
+  return "";
+}
+
+/** The words a person reads for any caught failure, wherever it is shown. A plain sentence (often the server's own)
+ * passes as it is; anything technical becomes one short plain line; `fallback` stands in when nothing better fits. */
+export function friendlyError(reason: unknown, fallback?: string): string {
+  // only the first line of a message that carries its stack, without a bare "Error: " in front
+  const whole = rawTextOf(reason).replace(IPC_PREFIX, "").trim();
+  const text = STACKED.test(whole) ? whole.split("\n")[0]!.replace(/^Error: /, "").trim() : whole;
+  const generic = () => fallback ?? t("error.plain.generic");
+  if (!text) return generic();
+  if (isStaleChunkError(text)) return t("error.plain.updated");
+  if (reason instanceof Error && (reason.name === "AbortError" || reason.name === "TimeoutError") && !isPlainSentence(text)) return t("error.plain.timeout");
+  const plain = plainErrorLine(text);
+  if (plain !== undefined) return plain === t("error.plain.generic") || !isPlainSentence(plain) ? generic() : plain;
+  return isPlainSentence(text) ? text : generic();
+}
+
+function isPlainSentence(text: string): boolean {
+  return !RAW_FOR_PEOPLE.some((pattern) => pattern.test(text)) && !isTechnicalError(text);
 }

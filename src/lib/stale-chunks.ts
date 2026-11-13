@@ -4,9 +4,11 @@
 const KEY = "dusk.staleChunkReloadAt";
 const WINDOW_MS = 60_000;
 
+export const STALE_CHUNK = /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|ChunkLoadError|Loading (?:CSS )?chunk \S+ failed/i;
+
 export function isStaleChunkError(reason: unknown): boolean {
   const text = reason instanceof Error ? reason.message : String(reason ?? "");
-  return /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|ChunkLoadError/i.test(text);
+  return STALE_CHUNK.test(text);
 }
 
 export function reloadForStaleChunks(storage: Pick<Storage, "getItem" | "setItem"> = sessionStorage, now = Date.now(), reload = () => location.reload()): boolean {
@@ -18,6 +20,7 @@ export function reloadForStaleChunks(storage: Pick<Storage, "getItem" | "setItem
 }
 
 export function watchStaleChunks(target: Window = window) {
-  target.addEventListener("vite:preloadError", (event) => { event.preventDefault(); reloadForStaleChunks(); });
+  // swallowed only while a reload is on its way: a second failure reaches the screen that asked, which offers a reload
+  target.addEventListener("vite:preloadError", (event) => { if (reloadForStaleChunks()) event.preventDefault(); });
   target.addEventListener("unhandledrejection", (event) => { if (isStaleChunkError(event.reason)) reloadForStaleChunks(); });
 }
