@@ -609,6 +609,7 @@
   const fit = () => {
     const small = phone.matches;
     root.classList.toggle('ad-phone', small);
+    root.classList.add('ad-ready');
     app.style.transform = small ? '' : `scale(${root.clientWidth / 1180})`;
   };
   phone.addEventListener('change', () => {

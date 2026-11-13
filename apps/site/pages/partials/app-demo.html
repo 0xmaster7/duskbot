@@ -3,18 +3,29 @@
 <aside class="ad-side" aria-label="bots">
 <div class="ad-side-top"><button class="ad-round" type="button" aria-label="search" data-ic="search"></button><button class="ad-round" type="button" aria-label="new bot" data-ic="plus"></button></div>
 <ul class="ad-bots">
-<li><button class="ad-bot" type="button" data-bot="dusk">{{bot kit blue ad-ink}}<span class="ad-bot-text"><b>Dusk</b><span data-preview></span></span><i class="ad-dot" aria-hidden="true"></i></button></li>
-<li><button class="ad-bot" type="button" data-bot="researcher">{{bot hoot violet}}<span class="ad-bot-text"><b>Researcher</b><span data-preview></span></span><i class="ad-dot" aria-hidden="true"></i></button></li>
-<li><button class="ad-bot" type="button" data-bot="writer">{{bot mochi pink}}<span class="ad-bot-text"><b>Content Writer</b><span data-preview></span></span><i class="ad-dot" aria-hidden="true"></i></button></li>
-<li><button class="ad-bot" type="button" data-bot="inbox">{{bot pip blue}}<span class="ad-bot-text"><b>Inbox</b><span data-preview></span></span><i class="ad-dot" aria-hidden="true"></i></button></li>
-<li><button class="ad-bot" type="button" data-bot="maya">{{bot sprout emerald}}<span class="ad-bot-text"><b>Maya</b><span data-preview></span></span><i class="ad-dot" aria-hidden="true"></i></button></li>
-<li><button class="ad-bot" type="button" data-bot="books">{{bot loaf tangerine}}<span class="ad-bot-text"><b>Bookkeeper</b><span data-preview></span></span><i class="ad-dot" aria-hidden="true"></i></button></li>
-<li><button class="ad-bot" type="button" data-bot="coder">{{bot boxo cyan}}<span class="ad-bot-text"><b>Coder</b><span data-preview></span></span><i class="ad-dot" aria-hidden="true"></i></button></li>
-<li><button class="ad-bot" type="button" data-bot="leo">{{bot cheep sun}}<span class="ad-bot-text"><b>Leo</b><span data-preview></span></span><i class="ad-dot" aria-hidden="true"></i></button></li>
+<li><button class="ad-bot" type="button" data-bot="dusk">{{bot kit blue ad-ink}}<span class="ad-bot-text"><b>Dusk</b><span data-preview>Approve the two replies in Inbox, the landlord one is due Friday. Then the subscriptions with Bookkeeper. Everything else can wait until after lunch.</span></span><i class="ad-dot" aria-hidden="true"></i></button></li>
+<li><button class="ad-bot" type="button" data-bot="researcher">{{bot hoot violet}}<span class="ad-bot-text"><b>Researcher</b><span data-preview>crm-shortlist.csv</span></span><i class="ad-dot" aria-hidden="true"></i></button></li>
+<li><button class="ad-bot" type="button" data-bot="writer">{{bot mochi pink}}<span class="ad-bot-text"><b>Content Writer</b><span data-preview>Order by 2 PM, get it tonight. Same-day delivery is live across the city, free over $40.</span></span><i class="ad-dot" aria-hidden="true"></i></button></li>
+<li><button class="ad-bot unread" type="button" data-bot="inbox">{{bot pip blue}}<span class="ad-bot-text"><b>Inbox</b><span data-preview>Sent. I'll tell you when he answers.</span></span><i class="ad-dot" aria-hidden="true"></i></button></li>
+<li><button class="ad-bot" type="button" data-bot="maya">{{bot sprout emerald}}<span class="ad-bot-text"><b>Maya</b><span data-preview>meal-plan.pdf</span></span><i class="ad-dot" aria-hidden="true"></i></button></li>
+<li><button class="ad-bot unread" type="button" data-bot="books">{{bot loaf tangerine}}<span class="ad-bot-text"><b>Bookkeeper</b><span data-preview class="wait">Waiting for you: Profit is up 43%, mostly from the new wholesale orders. Three subscriptions you haven't opened in 60 days cost $89 a month together. Cancel them?</span></span><i class="ad-dot wait" aria-hidden="true"></i></button></li>
+<li><button class="ad-bot" type="button" data-bot="coder">{{bot boxo cyan}}<span class="ad-bot-text"><b>Coder</b><span data-preview>Merged and live. I clicked through checkout on Safari, Chrome and Firefox, it works on all three.</span></span><i class="ad-dot" aria-hidden="true"></i></button></li>
+<li><button class="ad-bot" type="button" data-bot="leo">{{bot cheep sun}}<span class="ad-bot-text"><b>Leo</b><span data-preview>The direct one is worth the extra $124 if you hate layovers. I'm checking prices every 6 hours and will tell you if it drops.</span></span><i class="ad-dot" aria-hidden="true"></i></button></li>
 </ul>
 <div class="ad-side-foot"><button class="ad-round" type="button" aria-label="account" data-ic="person"></button><button class="ad-apps" type="button">Connect apps<span class="ad-faces" aria-hidden="true"><img src="/art/logos/gmail.png" alt="" width="16" height="16" loading="lazy"><img src="/art/logos/calendar.png" alt="" width="16" height="16" loading="lazy"><img src="/art/logos/slack.png" alt="" width="16" height="16" loading="lazy"></span></button></div>
 </aside>
-<div class="ad-main" data-ad-main></div>
-<div class="ad-panel" data-ad-panel hidden></div>
+<!-- the first frame, drawn before app-demo.js runs (or if it never does), so the window is never empty; the script replaces it -->
+<div class="ad-main" data-ad-main><div class="ad-pre" aria-hidden="true" inert>
+<div class="ad-head"><span class="ad-pill">{{bot kit blue ad-ink}}Dusk</span></div>
+<div class="ad-thread"><div class="ad-col">
+<div class="ad-msg ad-bubble">Good morning. Here's what the team did overnight:</div>
+<div class="ad-card"><table class="ad-table"><thead><tr><th>Bot</th><th>Did</th><th>Needs you</th></tr></thead><tbody><tr><td>Inbox</td><td>Sorted 63 emails, drafted 4 replies</td><td>2 to approve</td></tr><tr><td>Researcher</td><td>Compared 3 CRMs</td><td>No</td></tr><tr><td>Bookkeeper</td><td>Closed October</td><td>3 subscriptions</td></tr><tr><td>Coder</td><td>Fixed checkout on Safari</td><td>No</td></tr></tbody></table></div>
+<div class="ad-msg ad-bubble">Priya moved your 11:30 to 2:00. I updated your calendar and told her that works.</div>
+<div class="ad-msg ad-me">Nice. What should I do first?</div>
+<div class="ad-msg ad-bubble">Approve the two replies in Inbox, the landlord one is due Friday. Then the subscriptions with Bookkeeper. Everything else can wait until after lunch.</div>
+</div></div>
+<div class="ad-foot"><div class="ad-foot-in"><div class="ad-chips"><span class="ad-chip">What can you do?</span><span class="ad-chip">Plan my day</span><span class="ad-chip">Remind me to call mom at 6</span></div><div class="ad-compose"><span class="ad-plus"></span><span class="ad-pre-ph">Message Dusk</span><span class="ad-send"></span></div></div></div>
+</div></div>
+<div class="ad-panel" data-ad-panel><div class="ad-pre" aria-hidden="true" inert><div class="ad-p-top"></div><div class="ad-p-body"><div class="ad-hero">{{bot kit blue ad-ink}}<h3>Dusk</h3><p>Your main bot</p></div><div class="ad-tabs"><span class="ad-tab">Details</span><span class="ad-tab">Computer</span><span class="ad-tab">Advanced</span></div></div></div></div>
 </div>
 </div>

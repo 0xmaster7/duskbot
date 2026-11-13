@@ -201,6 +201,26 @@ button.ad-row:hover, .ad-row.ad-click:hover { background: #1c1c1c09; }
 @keyframes ad-sheet { from { opacity: 0; transform: translateY(16px); } }
 .ad-phone .ad-menu { width: 220px; }
 
+/* before app-demo.js runs: the static first frame in the partial, laid out at the window's own width (no scale yet) and as
+   the phone list on phones, so a late or blocked script never leaves the window blank. the script adds .ad-ready */
+.ad-pre { display: contents; }
+.ad-pre .ad-thread { display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; }
+.ad-pre .ad-col { width: 100%; }
+.ad-pre .ad-compose { color: #1c1c1c80; font-size: 15px; }
+.ad-pre .ad-pre-ph { flex: 1; }
+.ad-pre .ad-send { background: var(--raised) !important; }
+.ad-pre .ad-tab:first-child { background: #1c1c1c0f !important; color: var(--ink) !important; }
+.ad:not(.ad-ready) .ad-app { width: 100%; height: 100%; }
+@media (max-width: 700px) {
+  .ad:not(.ad-ready) { height: min(640px, calc(100cqw * 1.6)); }
+  .ad:not(.ad-ready) .ad-app { grid-template-columns: 100%; grid-template-rows: 100%; }
+  .ad:not(.ad-ready) .ad-side { grid-area: 1 / 1; background: var(--app); }
+  .ad:not(.ad-ready) :is(.ad-main, .ad-panel) { display: none; }
+  .ad:not(.ad-ready) .ad-bots { padding: 4px 8px; }
+  .ad:not(.ad-ready) .ad-bot { min-height: 64px; }
+  .ad:not(.ad-ready) .ad-round { width: 44px; height: 44px; }
+}
+
 @media (hover: none) { .ad-bot:hover, .ad-chip:hover { background: inherit; } }
 @media (prefers-reduced-motion: reduce) {
   .ad-in, .ad-panel.ad-open, .ad-menu, .ad-phone .ad-app[data-view="chat"] .ad-main { animation-name: ad-fade; }
