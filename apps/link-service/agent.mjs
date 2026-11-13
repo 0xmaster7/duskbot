@@ -2402,6 +2402,7 @@ export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = 
     if (kept) kept.at = Date.now();
     channel.abort.abort();
     channel.serving?.destroyAll();
+    for (const session of channel.direct ?? []) session.stop();
   }
   function stop() {
     if (stopped) return;
@@ -2430,13 +2431,44 @@ export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = 
       return false;
     };
     const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, cid, "to-app", r, bytes), post, delayMs: () => (fetchImpl.multiplexed?.() ? 0 : H1_POST_DELAY_MS), signal: closed.signal, parallel: () => (ordered ? fetchImpl.postsInFlight?.() ?? POSTS_IN_FLIGHT : 1), onError: () => { if (channels.get(cid) === channel) drop(cid); } });
-    channel.serving = createServing({ server, controls: false, since: startedAt, stopped: () => closed.signal.aborted,
+    channel.limits = { controls: false, since: startedAt,
       forwardedFor: `198.51.100.${1 + (createHash("sha256").update(cid).digest()[0] % 254)}`,
-      allow: channel.kind === "grant" ? (method, path) => (method === "POST" && path === "/api/mobile/redeem") || (method === "GET" && ["/.well-known/duskbot/environment", "/api/health"].includes(fromLegacyPath(path))) : null,
-      sink: { push: (frame) => outbox.push(sealFrame(key, cid, "to-app", frame), frame.r), bytes: outbox.bytes, onDrain: outbox.onDrain, discard: outbox.discard },
+      allow: channel.kind === "grant" ? (method, path) => (method === "POST" && path === "/api/mobile/redeem") || (method === "GET" && ["/.well-known/duskbot/environment", "/api/health"].includes(fromLegacyPath(path))) : null };
+    channel.emit = (frame) => { if (!closed.signal.aborted) outbox.push(sealFrame(key, cid, "to-app", frame), frame.r); };
+    channel.serving = createServing({ server, stopped: () => closed.signal.aborted, ...channel.limits,
+      sink: { push: channel.emit, bytes: outbox.bytes, onDrain: outbox.onDrain, discard: outbox.discard },
     });
     return channel.serving;
   }
+  // ---- the phone's direct path over webrtc (src/mobile/transport/direct.ts is the phone's end) ----
+  // a device channel may ask for one control op, "direct-rtc": its offer is answered as the app's is (directRtc), and the
+  // data channel is served like any direct connection, but with this channel's key, its replay guard (shared with its
+  // relay frames) and its phone limits. every other control op stays refused; a grant channel gets none.
+  const PHONE_DIRECT_MAX = 2;
+  function phoneDirect(channel) {
+    channel.direct ??= new Set();
+    return {
+      accept(input, output) {
+        if (channels.get(channel.id) !== channel || channel.abort.signal.aborted) return null;
+        // a phone keeps one peer; a newer one (a network change) replaces the oldest
+        for (const old of channel.direct) { if (channel.direct.size < PHONE_DIRECT_MAX) break; channel.direct.delete(old); old.stop(); }
+        const session = serveDirect({ input, output, id: channel.id, key: channel.key.toString("base64url"), server, log, guard: channel.guard, context: { id: channel.id }, serving: channel.limits });
+        channel.direct.add(session);
+        void session.done.then(() => channel.direct.delete(session));
+        return session;
+      },
+    };
+  }
+  function handle(channel, frame) {
+    const served = serving(channel);
+    if (frame.t === "ctl" && frame.op === "direct-rtc" && channel.kind === "device") {
+      void directRtc(frame.data, { hub: phoneDirect(channel) })
+        .then((data) => channel.emit({ t: "ctl", r: frame.r, ok: true, data }), (error) => channel.emit({ t: "ctl", r: frame.r, ok: false, error: error?.message ?? String(error) }));
+      return Promise.resolve();
+    }
+    return served.handle(frame);
+  }
+  // ---- end of the phone's direct path ----
   async function synchronize() {
     let applied = 0, failed = [], first = true, failures = 0;
     while (!stopped) {
@@ -2510,7 +2542,7 @@ export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = 
           for (const sealed of frames) {
             let frame = null;
             try { frame = openFrame(channel.key, cid, "to-vps", sealed, channel.guard); } catch { log("link: dropped a phone frame that did not open"); }
-            if (frame) serving(channel).handle(frame).catch(() => log("link: a phone frame failed"));
+            if (frame) handle(channel, frame).catch(() => log("link: a phone frame failed"));
           }
         }), beat.silent]);
       } catch {
@@ -2541,7 +2573,7 @@ export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = 
  * first (sealed, so the app knows it holds the key), answers pings, and ends with the connection. `egress` takes the
  * app's egress frames; `path` is this connection as a way for egress streams to the app, usable once `onHello` said so.
  */
-export function serveDirect({ input, output, id, key: keyText, server = SERVER, log = (line) => console.error(line), idleMs = 20_000, guard = frameGuard(), egress = null, onHello = () => {}, onFrame = () => {}, context = { id } }) {
+export function serveDirect({ input, output, id, key: keyText, server = SERVER, log = (line) => console.error(line), idleMs = 20_000, guard = frameGuard(), egress = null, onHello = () => {}, onFrame = () => {}, context = { id }, serving: servingOptions = {} }) {
   const key = Buffer.from(keyText, "base64url");
   let ended = false, heard = false, greeted = false, finish;
   const done = new Promise((resolve) => { finish = (why) => {
@@ -2558,7 +2590,8 @@ export function serveDirect({ input, output, id, key: keyText, server = SERVER, 
     sealBytes: (r, bytes) => sealBytes(key, id, "to-app", r, bytes, true),
     write: (record) => !ended && output.write(record),
   });
-  const serving = createServing({ server, sink: writer, stopped: () => ended, context });
+  // `servingOptions`: a phone's channel serves with its own limits (no controls, its own remote address)
+  const serving = createServing({ server, sink: writer, stopped: () => ended, context, ...servingOptions });
   // nothing that opens within a while: not the app, so this process does not linger
   const idle = setTimeout(() => { if (!heard) finish("idle"); }, idleMs);
   const read = directReader((type, payload) => {
