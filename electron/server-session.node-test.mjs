@@ -46,6 +46,18 @@ test("the app window's own requests to the server carry the owner header on http
   assert.equal((await sendHeaders(defaultSession, `http://127.0.0.1:${SERVER_PORT}/api/bots`))["X-Dusk-Desktop-Owner"], undefined);
 });
 
+test("in development the owner header also rides requests to the dev UI, which proxies /api to the server", async () => {
+  const listeners = [];
+  const defaultSession = fakeSession();
+  installServerSessions({ app: { on: (_e, h) => listeners.push(h) }, defaultSession, serverPort: () => SERVER_PORT, ownerToken: () => "a".repeat(43), uiPort: () => 5199 });
+  assert.equal((await sendHeaders(defaultSession, "http://127.0.0.1:5199/api/config"))["X-Dusk-Desktop-Owner"], "a".repeat(43));
+  assert.equal((await sendHeaders(defaultSession, "ws://127.0.0.1:5199/api/stream"))["X-Dusk-Desktop-Owner"], "a".repeat(43));
+  assert.equal((await sendHeaders(defaultSession, "http://127.0.0.1:5200/api/config"))["X-Dusk-Desktop-Owner"], undefined);
+  const packaged = fakeSession();
+  installServerSessions({ app: { on: () => {} }, defaultSession: packaged, serverPort: () => SERVER_PORT, ownerToken: () => "a".repeat(43) });
+  assert.equal((await sendHeaders(packaged, "http://127.0.0.1:5199/api/config"))["X-Dusk-Desktop-Owner"], undefined);
+});
+
 test("no session but the app window's may reach the server, in any spelling of this machine", async () => {
   const { defaultSession, created } = install();
   const viewer = created(fakeSession());

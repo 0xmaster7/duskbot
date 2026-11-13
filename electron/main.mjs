@@ -3108,7 +3108,9 @@ app.whenReady().then(async () => {
     }
   }
   installServerSessions({ app, defaultSession: session.defaultSession, serverPort: () => SERVER_PORT,
-    ownerToken: () => (app.isPackaged && serverReady ? desktopMutationToken : null) });
+    ownerToken: () => (!app.isPackaged || serverReady ? desktopMutationToken : null),
+    // in development the page is Vite's, which proxies /api to the server child that holds this same token
+    uiPort: () => (app.isPackaged || desktopRemoteAccess ? null : Number(new URL(DEV_URL).port) || null) });
   if (app.isPackaged) for (const scheme of ["duskbot", LEGACY.protocol]) app.setAsDefaultProtocolClient(scheme);
   if (process.platform === "darwin") app.dock.setIcon(APP_ICON);
   // An orphaned third-party key with no clear handler left: drop it rather than keep it at rest.

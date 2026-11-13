@@ -30,15 +30,16 @@ export function targetsServer(url, serverPort) {
 /**
  * `ownerToken()` is the desktop capability, or null while there is none to send. Chromium adds the header below
  * JavaScript, on http: and ws: alike, so a shell using curl cannot impersonate the person at the desktop.
+ * `uiPort()` is the dev UI's port in development (Vite proxies /api to the server), else null.
  */
-export function installServerSessions({ app, defaultSession, serverPort, ownerToken }) {
+export function installServerSessions({ app, defaultSession, serverPort, ownerToken, uiPort = () => null }) {
   defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
     const token = ownerToken();
     let owns = false;
     try {
       const target = new URL(details.url);
       owns = token !== null && (target.protocol === "http:" || target.protocol === "ws:") &&
-        target.hostname === "127.0.0.1" && Number(target.port || 80) === serverPort();
+        target.hostname === "127.0.0.1" && [serverPort(), uiPort()].includes(Number(target.port || 80));
     } catch {}
     callback({ requestHeaders: owns ? { ...details.requestHeaders, [DESKTOP_MUTATION_HEADER]: token } : details.requestHeaders });
   });
