@@ -5,6 +5,13 @@ import type { CommandResult, DashboardCommand } from "../shared/dashboard-protoc
 import type { createDashboardCollector } from "./dashboard-report.ts";
 import type { RequestAuth } from "./request-auth.ts";
 
+/** an app's own failure (Composio's answer, a refused sign-in) is worth showing as it is: one short line with no link,
+ *  address or stack in it. anything else stays "could not complete" */
+export function plainError(message: string): boolean {
+  const text = message.trim();
+  return text.length > 0 && text.length <= 240 && !/[\r\n]|https?:\/\/|\bat [\w.<>]+ \(|[A-Za-z]:\\|\/(?:home|root|usr|data|var|tmp)\//.test(text);
+}
+
 export function createDashboardCommands(deps: { port: number; collect: ReturnType<typeof createDashboardCollector>; fetch?: typeof fetch }) {
   const pending = new Map<string, { path: string; method: string }>();
   const owners = new WeakSet<RequestAuth>();
@@ -58,8 +65,8 @@ export function createDashboardCommands(deps: { port: number; collect: ReturnTyp
         headers: { "content-type": "application/json", "x-dusk-dashboard-command": nonce }, ...(method === "DELETE" ? {} : { body: JSON.stringify(body) }) });
       if (!response.ok) {
         const answer = await response.json().catch(() => ({})) as { error?: unknown };
-        const shown = typeof answer.error === "string" && !(command.kind.startsWith("app.") && response.status >= 500);
-        return result(false, shown ? answer.error as string : "The workspace could not complete this action.");
+        const shown = typeof answer.error === "string" && (response.status < 500 || (command.kind.startsWith("app.") && plainError(answer.error)));
+        return result(false, shown ? (answer.error as string).trim() : "The workspace could not complete this action.");
       }
       if (command.kind !== "app.connect") return result(true, message);
       const url = commandUrl((await response.json().catch(() => ({})) as { url?: unknown }).url);

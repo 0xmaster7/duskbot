@@ -838,12 +838,17 @@ export async function prepareConnectionAuthConfigs(
   return lines.length ? lines.join(" ") : undefined;
 }
 
+/** connecting an app on a host with no Composio project key and no managed connected-apps service */
+export const NO_APPS_SERVICE = "Connecting apps here needs your own Composio project. Add your Composio project key in Settings → API keys, then connect again.";
+
 export async function authorizeService(cfg: AppConfig, slug: string, requestedAlias?: string | null, as?: BrokerAccess) {
   const alias = normalizeAccountAlias(requestedAlias);
   const toolkit = canonicalToolkitSlug(slug);
   const unavailable = managedConnectorUnavailableReason(as ? "managed" : connectionMode(cfg), toolkit);
   if (unavailable) throw inputError(unavailable, 409);
   const apiKey = as ? null : projectApiKey(cfg);
+  // no project key and no managed service: say what to do, not "could not complete" (a 500 the dashboard hides)
+  if (!apiKey && !as && !brokerAccess()) throw inputError(NO_APPS_SERVICE, 409);
   if (!apiKey) {
     const request: RequestInit = { method: "POST" };
     if (alias) request.body = JSON.stringify({ alias });
