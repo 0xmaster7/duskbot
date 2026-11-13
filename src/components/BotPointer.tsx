@@ -45,6 +45,9 @@ export function BotPointer({ host, botId }: { host: RefObject<HTMLElement | null
   if (!pointer || !fit) return null;
   const x = fit.left + pointer.x * fit.scale;
   const y = fit.top + pointer.y * fit.scale;
+  // the arrow shrinks with a small preview so it keeps the size a real pointer has on that screen, but never below
+  // half size, where it would be hard to see
+  const size = Math.min(1, Math.max(0.5, fit.scale * 1.15));
   return (
     <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden" aria-hidden="true">
       {/* the press ring waits at the spot for the arrow to arrive, then fades */}
@@ -56,7 +59,7 @@ export function BotPointer({ host, botId }: { host: RefObject<HTMLElement | null
       <div data-bot-pointer={pointer.phase} className="bot-pointer absolute left-0 top-0"
         style={{ transform: `translate3d(${x}px, ${y}px, 0)`, opacity: idleSequence === pointer.sequence ? 0 : 1 }}>
         {/* the tip is the hotspot: the arrow is drawn 1:1 in css pixels from the point (1, 1) */}
-        <svg width="14" height="21" viewBox="0 0 14 21" className="absolute -left-px -top-px drop-shadow-[0_1px_1.5px_rgb(0_0_0/0.35)]">
+        <svg width={14 * size} height={21 * size} viewBox="0 0 14 21" className="absolute -left-px -top-px drop-shadow-[0_1px_1.5px_rgb(0_0_0/0.35)]">
           <path d="M1 1v15.5l3.7-3.5 2.6 6 2.3-1-2.6-5.8H12z" fill="#141414" stroke="#fafafa" strokeWidth="1.6" strokeLinejoin="round" style={{ paintOrder: "stroke" }} />
         </svg>
       </div>
