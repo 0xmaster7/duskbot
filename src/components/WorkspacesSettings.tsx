@@ -3,7 +3,7 @@ import { useStore } from "@/state/store";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { removePlace, usePlaces, type RailPlace } from "@/lib/places";
-import { openAddVps, vpsLinkAvailable } from "@/lib/vps-link";
+import { vpsLinkAvailable } from "@/lib/vps-link";
 import { Trash2 } from "../icons";
 import { CloudMoveRow } from "./CloudMoveSettings";
 import { askConfirm } from "./ConfirmDialog";
@@ -145,7 +145,7 @@ export function WorkspacesGroup({ onAdd }: { onAdd: () => void }) {
 
 /** Installing dusk on a server of one's own, in three short steps; the line itself comes from the add-a-VPS flow, which
  * makes a fresh one each time and watches for the server to answer. */
-export function InstallOnVpsGroup() {
+export function InstallOnVpsGroup({ onStart }: { onStart: () => void }) {
   if (!vpsLinkAvailable()) return null;
   const steps = ["settings.docs.vps.step1", "settings.docs.vps.step2", "settings.docs.vps.step3"] as const;
   return (
@@ -160,7 +160,7 @@ export function InstallOnVpsGroup() {
           ))}
         </ol>
         <div>
-          <button type="button" data-settings-open="install-vps" className="ui-button ui-button-primary" onClick={openAddVps}>{t("settings.docs.vps.cta")}</button>
+          <button type="button" data-settings-open="install-vps" className="ui-button ui-button-primary" onClick={onStart}>{t("settings.docs.vps.cta")}</button>
         </div>
       </div>
     </SettingsGroup>

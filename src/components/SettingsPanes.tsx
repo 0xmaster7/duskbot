@@ -29,10 +29,10 @@ import { EnginesSettings } from "./EnginesSettings";
 import { ImportSettings } from "./ImportSettings";
 import { KeyboardShortcutsModal } from "./KeyboardShortcutsModal";
 import { LocalComputerSection } from "./LocalComputerSection";
-import { CLOUD_SETUP_PAGE, PHONE_ADVANCED_PAGE, PRIVATE_SETUP_PAGE, PROFILE_PAGE } from "./settings-page-ids";
+import { ADD_PLACE_PAGE, CLOUD_SETUP_PAGE, PHONE_ADVANCED_PAGE, PLACE_INSTALL_PAGE, PRIVATE_SETUP_PAGE, PROFILE_PAGE } from "./settings-page-ids";
+import { AddPlacePage, isAddPlacePage } from "./AddPlaceSettings";
 import { CloudDesktopKeys } from "./keys/KeysPage";
 import { InstallOnVpsGroup, WorkspacesGroup } from "./WorkspacesSettings";
-import { openAddVps } from "@/lib/vps-link";
 import { LoginsSettings } from "./LoginsSettings";
 import { McpServersPanel } from "./McpServersPanel";
 import { NotificationRows } from "./NotificationSettingsRows";
@@ -62,13 +62,12 @@ import {
 } from "./AppSettingsRows";
 
 export type Has = (id: AppSettingsSection) => boolean;
-export type RemoteAccessCards = Record<"client" | "domain" | "pairing" | "companion", ReactNode>;
+export type RemoteAccessCards = Record<"client" | "pairing" | "companion", ReactNode>;
 export type Disclose = (id: string) => { id: string; open: boolean; onToggle: () => void };
 
 /** The pages a pane's rows open, by the section a deep link names: a link to one lands on that page. */
 export const SECTION_PAGES: Partial<Record<AppSettingsSection, { id: string; title: LocaleKey }>> = {
   import: { id: "import", title: "settings.import.rowTitle" },
-  companion: { id: "pairing", title: "settings.w6.pairing.title" },
   remote: { id: "elsewhere", title: "settings.simple.computer.elsewhere" },
   desktopWorkspaces: { id: "elsewhere", title: "settings.simple.computer.elsewhere" },
   botAccess: { id: "botAccess", title: "settings.section.botAccess" },
@@ -254,23 +253,12 @@ function ImportRow() {
   );
 }
 
-/** Phone pairing and the paired devices' access. */
+/** Phone pairing and the paired devices' access, all on the pane: the code to scan or type first, then the phones. */
 export function TextingPane({ has, remoteAccess }: { has: Has; remoteAccess: RemoteAccessCards }) {
   const { at } = useSubPage();
-  if (at === "pairing") return <div data-settings-block="companion" className="flex flex-col gap-5">{remoteAccess.pairing}{remoteAccess.companion}</div>;
   if (at === PHONE_ADVANCED_PAGE) return <div data-settings-block="companion-advanced" className="flex flex-col gap-5">{remoteAccess.companion}</div>;
-  return (
-    <>
-      {has("companion") && (
-        <SettingsGroup label={t("settings.texting.phoneApp.title")} block="phone-app">
-          <SettingsRows>
-            <PageRow page="pairing" title={t("settings.w6.pairing.title")} hint={t("settings.phone.pair.hint")} />
-          </SettingsRows>
-        </SettingsGroup>
-      )}
-      {has("companion") && remoteAccess.companion && <div data-settings-block="companion" className="contents">{remoteAccess.companion}</div>}
-    </>
-  );
+  if (!has("companion")) return null;
+  return <div data-settings-block="companion" className="flex flex-col gap-5">{remoteAccess.pairing}{remoteAccess.companion}</div>;
 }
 
 export function ComputerPane({ has, remoteAccess, servers, transfer, remoteActive = false }: { has: Has; remoteAccess: RemoteAccessCards; servers: ReactNode; transfer?: ReactNode; remoteActive?: boolean }) {
@@ -281,11 +269,12 @@ export function ComputerPane({ has, remoteAccess, servers, transfer, remoteActiv
   if (at === "computers" || at === PRIVATE_SETUP_PAGE) return <div data-settings-block="computer" className="flex flex-col gap-5"><AdminOnly><LocalComputerSection /></AdminOnly></div>;
   if (at === CLOUD_SETUP_PAGE) return <AdminOnly><CloudDesktopKeys /></AdminOnly>;
   if (at === "profiles" || at?.startsWith(PROFILE_PAGE)) return <BrowserProfilesManager />;
+  if (isAddPlacePage(at)) return <AddPlacePage />;
   if (at === "elsewhere") {
     return (
       <div data-settings-block="remote" className="flex flex-col gap-5">
         {has("desktopWorkspaces") && <div data-settings-block="desktopWorkspaces" className="flex flex-col gap-5">{servers}</div>}
-        {has("companion") && <div className="flex flex-col gap-5 empty:hidden">{remoteAccess.client}{remoteAccess.domain}</div>}
+        {has("companion") && <div className="flex flex-col gap-5 empty:hidden">{remoteAccess.client}</div>}
       </div>
     );
   }
@@ -294,8 +283,8 @@ export function ComputerPane({ has, remoteAccess, servers, transfer, remoteActiv
   const elsewhere = has("companion") || has("desktopWorkspaces");
   return (
     <>
-      <WorkspacesGroup onAdd={() => (elsewhere ? sub.open("elsewhere", t("settings.simple.computer.elsewhere")) : openAddVps())} />
-      {!remoteActive && <InstallOnVpsGroup />}
+      <WorkspacesGroup onAdd={() => sub.open(ADD_PLACE_PAGE, t("placeSetup.title"))} />
+      {!remoteActive && <InstallOnVpsGroup onStart={() => sub.open(PLACE_INSTALL_PAGE, t("placeSetup.relay"))} />}
       <AdvancedFold open={more} onToggle={() => setMore(!more)}>
         {has("computer") && (
           <SettingsRows>

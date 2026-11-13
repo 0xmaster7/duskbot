@@ -19,6 +19,7 @@ import { SettingRow, SettingsGroup, SettingsRows, Switch } from "./SettingsPrimi
 import { NavRow, NoteRow, useSubPage } from "./ListRows";
 import { useStore } from "@/state/store";
 import { PHONE_ADVANCED_PAGE } from "./settings-page-ids";
+import { PlaceArt } from "./ui/PlaceArt";
 
 export {
   companionAccountActionError,
@@ -273,7 +274,7 @@ export function CompanionSection({ profileEmail = "", focusRequest = 0 }: { prof
         <SettingsGroup label={t("remote.devices.title")} block="paired-devices">
           {state.devices.map((device) => (
             <SettingsRows key={device.id}>
-              <SettingRow title={device.name} subtitle={t("remote.devices.lastSeen", { when: relative(device.lastSeenAt) })}>
+              <SettingRow icon={<PlaceArt name="phone" size={24} />} title={device.name} subtitle={t("remote.devices.lastSeen", { when: relative(device.lastSeenAt) })}>
                 <button
                   type="button"
                   disabled={c.busy}
@@ -284,7 +285,7 @@ export function CompanionSection({ profileEmail = "", focusRequest = 0 }: { prof
                   {t("settings.w6.phone.remove")}
                 </button>
               </SettingRow>
-              <SettingRow title={t("settings.w6.phone.computerView")}>
+              <SettingRow icon="laptop" title={t("settings.w6.phone.computerView")}>
                 <Switch
                   checked={device.cloudDesktopAccess}
                   aria-label={t("remote.devices.viewAria", { name: device.name })}
@@ -292,7 +293,7 @@ export function CompanionSection({ profileEmail = "", focusRequest = 0 }: { prof
                   onClick={() => void c.act((companion) => companion.cloudDesktop(device.id, !device.cloudDesktopAccess))}
                 />
               </SettingRow>
-              <SettingRow title={t("settings.w6.phone.browserControl")}>
+              <SettingRow icon="globe" title={t("settings.w6.phone.browserControl")}>
                 <Switch
                   checked={device.browserControlAccess === true}
                   aria-label={t("remote.devices.browserAria", { name: device.name })}
@@ -308,7 +309,7 @@ export function CompanionSection({ profileEmail = "", focusRequest = 0 }: { prof
       <PhonesList />
 
       <SettingsRows>
-        <NavRow data-panel-page={PHONE_ADVANCED_PAGE} title={t("settings.w6.phone.advanced")} onClick={() => sub.open(PHONE_ADVANCED_PAGE, t("settings.w6.phone.advanced"))} />
+        <NavRow data-panel-page={PHONE_ADVANCED_PAGE} pixel="gauge" title={t("settings.w6.phone.advanced")} onClick={() => sub.open(PHONE_ADVANCED_PAGE, t("settings.w6.phone.advanced"))} />
       </SettingsRows>
     </div>
   );

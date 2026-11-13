@@ -31,7 +31,7 @@ export function ComputerNameRow({ saved, onSaved }: { saved: string; onSaved: (n
 
   return (
     <>
-      <NavRow data-computer-name="" data-settings-open="computer-name" title={t("remote.computerName.title")} value={saved || t("settings.s2.pairing.defaultName")}
+      <NavRow data-computer-name="" data-settings-open="computer-name" pixel="laptop" title={t("remote.computerName.title")} value={saved || t("settings.s2.pairing.defaultName")}
         onClick={() => { setDraft(saved); setError(null); setOpen(true); }} />
       {open && (
         <FormDialog data-panel-modal="computer-name" title={t("remote.computerName.title")} description={t("remote.computerName.help")} busy={saving}

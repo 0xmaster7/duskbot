@@ -213,6 +213,20 @@ const ART = {
     "..7RRRRR7..",
     "...77777...",
   ],
+  // a phone: lilac case, sky screen catching the light, a pink home dot
+  phone: [
+    "..2222222..",
+    "..2VVVVV2..",
+    "..2BBBBB2..",
+    "..2BbBBB2..",
+    "..2BBbBB2..",
+    "..2BBBbB2..",
+    "..2BBBBB2..",
+    "..2BBBBB2..",
+    "..2VVpVV2..",
+    "..2222222..",
+    "...........",
+  ],
 } as const;
 
 export type PlaceArtName = keyof typeof ART;

@@ -6,7 +6,7 @@ domain, or configuration to verify these controls.
 ## Automated checks
 
 ```sh
-pnpm exec vitest run server/custom-domain.test.ts server/provider-auth-sessions.test.ts server/drivers/codex-device-auth.test.ts server/drivers/acp/grok-device-auth.test.ts server/grok-sign-in-api.test.ts server/request-auth.test.ts server/config.test.ts src/components/DeviceSignIn.test.ts src/components/CustomDomainSettings.test.ts src/components/EngineSetup.test.ts src/components/EnginesSettings.test.ts
+pnpm exec vitest run server/custom-domain.test.ts server/provider-auth-sessions.test.ts server/drivers/codex-device-auth.test.ts server/drivers/acp/grok-device-auth.test.ts server/grok-sign-in-api.test.ts server/request-auth.test.ts server/config.test.ts src/components/DeviceSignIn.test.ts src/components/EngineSetup.test.ts src/components/EnginesSettings.test.ts
 pnpm typecheck
 pnpm build
 pnpm build:server
@@ -25,25 +25,10 @@ not prove a customer's real DNS, certificate, or reverse proxy is configured.
    explicit URL.
 2. Start Vite on a separate free port with `DUSK_PORT` set to the printed harness
    port. Do not let it proxy to the default port or the user's live app.
-3. For domain UI, open Settings → Remote access → Connect your domain. Enter
-   `bots.example.com`: confirm the Type/Name/Value rows and that copy buttons do
-   not submit the form. Technical guidance must remain collapsed under
-   **Advanced server setup**. The launcher deliberately strips operator
-   environment variables. To test the copyable IP in browser automation,
-   intercept only the fixture's GET `/api/settings/custom-domain` response and
-   supply `serverIpv4: "8.8.8.8"`, preserving its other fields. Never point DNS
-   at this synthetic address or intercept verification POSTs. Public-interface
-   detection and the `DUSK_PUBLIC_IPV4` override are covered by the helper tests.
-   Without a public interface or override, confirm the UI asks the administrator
-   for the IP and does not offer a fake value to copy. Expand the advanced guide
-   and confirm its app and webhook ports match the fixture. Submit
-   `http://bots.example.com` and confirm HTTPS validation appears without
-   changing the current address. The real API must likewise reject localhost,
-   IP addresses, and URLs containing pairing codes.
-   At a 390px viewport, Settings uses a section dropdown instead of the sidebar.
-   Switch sections, copy a DNS value, and confirm the form remains readable.
-   Tab and Shift-Tab must stay inside the dialog, skipping the hidden sidebar
-   and links inside the collapsed advanced guide.
+3. A custom domain has no Settings rows: a self-hosted server gets one with
+   `duskbot serve --domain HOST` (a managed Caddy) or `--public-url` behind a
+   proxy of its own, as the add-a-place flow's "your own domain" way shows.
+   Check the API alone with the domain helper tests above.
 4. To exercise Codex, add an instance to **only the fixture's config.json**:
    driver `codex`, CLI set to the absolute path of
    `server/testing/fake-codex-login-cli.ts`, environment

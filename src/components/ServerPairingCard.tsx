@@ -8,7 +8,7 @@ import { api } from "@/state/store";
 import { isOwnerOrAdmin, readSessionState, type SessionState } from "../lib/session";
 import { lastSeen, minutesLeft } from "../lib/pairing-time";
 import { revealPhonePairing } from "../lib/phone-pairing";
-import { Card, SettingRow } from "./SettingsPrimitives";
+import { Card } from "./SettingsPrimitives";
 import { SettingsSelect } from "./SettingsSelect";
 import { Card as RowsCard, CopyRow, ItemRow, NoteRow } from "./ListRows";
 import { TeamPhoneCard } from "./TeamPhoneCard";
@@ -194,16 +194,16 @@ export function ServerPairingCard({ initialSession = null, cloudHome = false, fo
     // Grok's rows: the name, the access a code gives, Create code, then the code, its QR and its link; who is signed in below
     return (
       <div ref={root} tabIndex={-1} data-phone-pairing="server" className="flex scroll-mt-4 flex-col gap-5 focus:outline-none">
-        <RowsCard data-settings-block="pair-code">
+        <RowsCard label={t("remote.serverPairing.title")} data-settings-block="pair-code">
           {!cloudHome && computerName !== null && <ComputerNameRow saved={computerName} onSaved={setComputerName} />}
           {!cloudHome && (
-            <SettingRow title={t("settings.s2.pairing.access")}>
+            <ItemRow pixel="shield" title={t("settings.s2.pairing.access")}>
               <SettingsSelect data-settings-select="pairing-scope" value={scope} aria-label={t("remote.serverPairing.title")}
                 options={[{ value: "admin", label: t("remote.serverPairing.scope.admin") }, { value: "client", label: t("remote.serverPairing.scope.client") }]}
                 onChange={(event) => setScope(event.target.value === "client" ? "client" : "admin")} />
-            </SettingRow>
+            </ItemRow>
           )}
-          <ItemRow title={t("settings.w6.pairing.title")} hint={cloudHome ? t("settings.w6a.phone.cloudPersonal") : undefined}>
+          <ItemRow pixel="plus" title={t("settings.w6.pairing.title")} hint={cloudHome ? t("settings.w6a.phone.cloudPersonal") : undefined}>
             <button type="button" data-phone-pairing-action onClick={() => void create()} disabled={busy} className="ui-button ui-button-sm">
                 {busy ? t("remote.serverPairing.creating") : t("settings.simple.computer.createCode")}
             </button>
@@ -212,7 +212,7 @@ export function ServerPairingCard({ initialSession = null, cloudHome = false, fo
             <NoteRow>{t("remote.serverPairing.expired")}</NoteRow>
           ) : (
             <>
-              <ItemRow title={t("settings.w6.pairing.code")} hint={offer.url ? t("remote.serverPairing.expires", { minutes: minutesLeft(offer.expiresAt, now) }) : offer.hint ?? t("remote.serverPairing.noLink")}>
+              <ItemRow pixel="key" title={t("settings.w6.pairing.code")} hint={offer.url ? t("remote.serverPairing.expires", { minutes: minutesLeft(offer.expiresAt, now) }) : offer.hint ?? t("remote.serverPairing.noLink")}>
                 <span className="font-mono text-[15px] tracking-[0.14em] text-ink">{offer.code}</span>
               </ItemRow>
               {offer.url ? (
@@ -234,7 +234,7 @@ export function ServerPairingCard({ initialSession = null, cloudHome = false, fo
           {listed.length === 0 ? (
             <NoteRow>{t("remote.serverPairing.noDevices")}</NoteRow>
           ) : listed.map((device) => (
-            <ItemRow key={device.id} title={device.label}
+            <ItemRow key={device.id} pixel="globe" title={device.label}
               hint={`${scopeName(device)} · ${t("remote.serverPairing.seen", { when: lastSeen(device.lastSeenAt, now) })}${device.id === current ? ` · ${t("remote.serverPairing.thisBrowser")}` : ""}`}>
               {device.id === current ? null : (
                 <button type="button" onClick={() => void signOut(device.id)} className="ui-button">{t("remote.serverPairing.signOut")}</button>

@@ -14,7 +14,6 @@ vi.mock("@/state/store", async (importOriginal) => ({
   useStore: () => ({ state: { appSettingsSection: fixture.section, config: fixture.config, appSettingsPhonePairing: fixture.phonePairing }, dispatch: vi.fn() }),
 }));
 vi.mock("./RemoteComputerSection", () => ({ RemoteComputerSection: () => null }));
-vi.mock("./CustomDomainSettings", () => ({ CustomDomainSettings: () => null }));
 vi.mock("./CompanionSection", () => ({ CompanionSection: ({ focusRequest }: { focusRequest?: number }) => `COMPANION_SECTION focus=${focusRequest ?? 0}` }));
 vi.mock("./PeopleSection", () => ({ PeopleSection: () => "PEOPLE" }));
 vi.mock("./ServerPairingCard", () => ({ ServerPairingCard: ({ cloudHome, focusRequest }: { cloudHome?: boolean; focusRequest?: number }) => `SERVER_PAIRING_CARD_MARKER${cloudHome ? " cloud" : ""} focus=${focusRequest ?? 0}` }));
@@ -46,7 +45,7 @@ describe("Settings → Remote access: server pairing card visibility", () => {
 
   it("is offered when this desktop is a remote client of a hosted workspace, whose phones pair only here", () => {
     vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), duskDesktop: { remoteClient: { active: true } } });
-    expect(render()).toContain('data-panel-page="pairing"');
+    expect(render()).toContain("SERVER_PAIRING_CARD_MARKER");
   });
 
   it("on a dusk bot Cloud home, which is personal, tells the card so and offers no People section to invite anyone", () => {

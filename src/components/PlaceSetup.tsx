@@ -19,6 +19,7 @@ type View = "choose" | "server" | "install" | "address";
 
 const ROW = "flex w-full min-w-0 items-start gap-3.5 rounded-[12px] bg-ink/[0.035] px-4 py-3 text-start transition-colors hover:bg-ink/[0.06] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none";
 const BODY = "flex flex-col gap-5 px-[30px] pb-[26px] pt-7";
+const INLINE = "flex flex-col gap-5";
 const ORDER: View[] = ["choose", "server", "install", "address"];
 
 export function PlaceSetupHost() {
@@ -47,35 +48,40 @@ export function PlaceSetup({ onClose, start }: { onClose: () => void; start?: Vi
       {view === "server" && <div className={BODY}>
         {canBuy && <BackLink label={t("rail.back")} onClick={() => setView("choose")} />}
         <Heading title={t("placeSetup.how")} />
-        <div className="flex flex-col gap-2">
-          <button type="button" data-autofocus="" data-setup-method="relay" className={ROW} onClick={() => setView("install")}>
-            <PlaceArt name="relay" size={33} className="-my-0.5" />
-            <span className="min-w-0 flex-1">
-              <span className="flex items-center gap-2 text-[14px] leading-5 text-ink">{t("placeSetup.relay")}<Tag>{t("rail.recommended")}</Tag></span>
-              <span className="block text-[13px] leading-[18px] text-ink-secondary">{t("placeSetup.relaySub")}</span>
-              <span data-setup-direct="" className="mt-1 flex items-center gap-1.5 text-[12px] leading-4 text-ink-secondary">
-                <PlaceArt name="direct" size={22} />{t("placeSetup.relayDirect")}
-              </span>
-            </span>
-            <ChevronRight size={14} aria-hidden="true" className="mt-[3px] shrink-0 text-ink-tertiary rtl:-scale-x-100" />
-          </button>
-          <button type="button" data-setup-method="address" className={ROW} onClick={() => setView("address")}>
-            <PlaceArt name="address" size={33} className="-my-0.5" />
-            <span className="min-w-0 flex-1">
-              <span className="block text-[14px] leading-5 text-ink">{t("placeSetup.address")}</span>
-              <span className="block text-[13px] leading-[18px] text-ink-secondary">{t("placeSetup.addressSub")}</span>
-              <span aria-hidden="true" className="mt-1 flex items-center gap-2">
-                {WAYS.map((entry) => <PlaceArt key={entry.key} name={entry.art} size={22} />)}
-              </span>
-            </span>
-            <ChevronRight size={14} aria-hidden="true" className="mt-[3px] shrink-0 text-ink-tertiary rtl:-scale-x-100" />
-          </button>
-        </div>
+        <ServerWays onRelay={() => setView("install")} onAddress={() => setView("address")} />
       </div>}
       {view === "install" && <InstallSetup onBack={() => setView("server")} onClose={onClose} />}
       {view === "address" && <AddressSetup onBack={() => setView("server")} onClose={onClose} />}
     </div>
   </RailSheet>;
+}
+
+/** The two ways a server of one's own connects: one line through the relay, or an address it already has. */
+export function ServerWays({ onRelay, onAddress }: { onRelay?: () => void; onAddress?: () => void }) {
+  return <div className="flex flex-col gap-2">
+    {onRelay && <button type="button" data-autofocus="" data-setup-method="relay" className={ROW} onClick={onRelay}>
+      <PlaceArt name="relay" size={33} className="-my-0.5" />
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-2 text-[14px] leading-5 text-ink">{t("placeSetup.relay")}<Tag>{t("rail.recommended")}</Tag></span>
+        <span className="block text-[13px] leading-[18px] text-ink-secondary">{t("placeSetup.relaySub")}</span>
+        <span data-setup-direct="" className="mt-1 flex items-center gap-1.5 text-[12px] leading-4 text-ink-secondary">
+          <PlaceArt name="direct" size={22} />{t("placeSetup.relayDirect")}
+        </span>
+      </span>
+      <ChevronRight size={14} aria-hidden="true" className="mt-[3px] shrink-0 text-ink-tertiary rtl:-scale-x-100" />
+    </button>}
+    {onAddress && <button type="button" data-setup-method="address" className={ROW} onClick={onAddress}>
+      <PlaceArt name="address" size={33} className="-my-0.5" />
+      <span className="min-w-0 flex-1">
+        <span className="block text-[14px] leading-5 text-ink">{t("placeSetup.address")}</span>
+        <span className="block text-[13px] leading-[18px] text-ink-secondary">{t("placeSetup.addressSub")}</span>
+        <span aria-hidden="true" className="mt-1 flex items-center gap-2">
+          {WAYS.map((entry) => <PlaceArt key={entry.key} name={entry.art} size={22} />)}
+        </span>
+      </span>
+      <ChevronRight size={14} aria-hidden="true" className="mt-[3px] shrink-0 text-ink-tertiary rtl:-scale-x-100" />
+    </button>}
+  </div>;
 }
 
 /** The one line on an inset strip, with its copy button. */
@@ -96,8 +102,9 @@ const PHASE_ART: Record<ReturnType<typeof installPhase>, PlaceArtName> = {
 
 const STEP_WORD = { waiting: "placeSetup.step.waiting", found: "placeSetup.step.found", connecting: "placeSetup.step.connecting", done: "placeSetup.step.done" } as const;
 
-/** One line through the relay: the line, then the server checking in, setting up and linking, then open it. */
-export function InstallSetup({ onBack, onClose }: { onBack: () => void; onClose: () => void }) {
+/** One line through the relay: the line, then the server checking in, setting up and linking, then open it. `onBack`
+ * absent: drawn inline on a page that has its own way back (Settings). */
+export function InstallSetup({ onBack, onClose }: { onBack?: () => void; onClose: () => void }) {
   const { view, bridge, ready, update } = useVpsLink();
   const now = useNow(5_000);
   const [busy, setBusy] = useState(false);
@@ -137,8 +144,8 @@ export function InstallSetup({ onBack, onClose }: { onBack: () => void; onClose:
     void bridge.open().then(onClose, () => { if (alive.current) setError(t("placeSetup.openFailed", { name })); }).finally(() => { if (alive.current) setBusy(false); });
   };
 
-  return <div className={BODY} data-install-phase={phase}>
-    <BackLink label={t("rail.back")} onClick={onBack} />
+  return <div className={onBack ? BODY : INLINE} data-install-phase={phase}>
+    {onBack && <BackLink label={t("rail.back")} onClick={onBack} />}
     <div className="flex items-start gap-4">
       <span key={PHASE_ART[phase]} data-phase-art={PHASE_ART[phase]} className="place-mark grid size-12 shrink-0 place-items-center rounded-[12px] bg-ink/[0.04]">
         <PlaceArt name={PHASE_ART[phase]} size={33} />
@@ -176,8 +183,9 @@ const WAYS = [
 
 const FIELD = "w-full rounded-lg border border-transparent bg-inset px-3 py-2 text-[14px] font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus/60";
 
-/** A server already reachable at an address: its pairing link, or the address and a code; main asks before it connects. */
-export function AddressSetup({ onBack, onClose }: { onBack: () => void; onClose: () => void }) {
+/** A server already reachable at an address: its pairing link, or the address and a code; main asks before it connects.
+ * `onBack` absent: drawn inline on a page that has its own title and way back (Settings). */
+export function AddressSetup({ onBack, onClose }: { onBack?: () => void; onClose: () => void }) {
   const [address, setAddress] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -198,9 +206,11 @@ export function AddressSetup({ onBack, onClose }: { onBack: () => void; onClose:
       setBusy(false);
     }
   };
-  return <form data-place-setup-address="" noValidate onSubmit={(event) => void submit(event)} className={BODY}>
-    <BackLink label={t("rail.back")} onClick={onBack} />
-    <Heading title={t("placeSetup.addressTitle")} sub={t("placeSetup.addressLede")} />
+  return <form data-place-setup-address="" noValidate onSubmit={(event) => void submit(event)} className={onBack ? BODY : INLINE}>
+    {onBack ? <>
+      <BackLink label={t("rail.back")} onClick={onBack} />
+      <Heading title={t("placeSetup.addressTitle")} sub={t("placeSetup.addressLede")} />
+    </> : <p className="text-[14px] leading-5 text-ink-secondary [text-wrap:pretty]">{t("placeSetup.addressLede")}</p>}
     <label className="flex flex-col gap-1.5 text-[13px] text-ink">{t("placeSetup.addressLabel")}
       <input data-autofocus="" data-setup-address="" value={address} disabled={busy} onChange={(event) => { setAddress(event.target.value); setError(null); }}
         placeholder="https://" autoCapitalize="none" autoCorrect="off" autoComplete="off" spellCheck={false}

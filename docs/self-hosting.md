@@ -151,47 +151,21 @@ not cancel work already in progress. API-key logins are not removed by this
 ChatGPT-specific action. A sign-in another browser is still completing is never
 pulled away; finish or cancel it first.
 
-## Connect a custom domain in Settings
+## Connect a custom domain
 
-For a self-hosted server, open **Settings → Remote access → Connect your
-domain** from a browser paired with Full access. This is an address-setting and verification
-flow, not a DNS or hosting service. Enter the domain to see a compact DNS record
-with copy buttons for **Type**, **Name / Host**, and **Value / IP**. The full
-hostname is shown; providers that already append the DNS zone need only the
-relative name (or `@` at the zone root). Server/proxy instructions are under
-**Advanced server setup**.
+Give a self-hosted server its own domain when you start it:
 
-The IP comes from this server's network interfaces, never the browser, tunnel
-hostname or an IP-echo service. Only a single unambiguous public IPv4 is shown.
-For containers/NAT or hosts with multiple public addresses, an administrator can
-set `DUSK_PUBLIC_IPV4` to the public IPv4 of the HTTPS proxy and restart dusk bot.
-This is a display hint, not proof of reachability; verification still checks
-HTTPS and the workspace identity. If the IP is missing or invalid, the UI asks
-for administrator help instead of inventing a DNS value.
+- `duskbot serve --domain bots.yourcompany.com` runs a pinned Caddy beside the
+  server, which gets the certificate itself. Point the domain's DNS **A** record
+  at the server's public IPv4 and open ports 80 and 443.
+- Behind a reverse proxy of your own, start it with
+  `duskbot serve --public-url https://bots.yourcompany.com`. Keep dusk bot on
+  loopback, forward the original Host and proxy headers, and keep event streams
+  unbuffered; the [supplied Caddyfile](../deploy/Caddyfile) is the reference.
 
-To configure the connection:
-
-1. Point your chosen name's DNS **A** record at the server's public IPv4 address.
-   Add **AAAA** only when IPv6 routes to the same server.
-2. Configure HTTPS with a reverse proxy such as Caddy. The Settings example uses
-   your actual app and webhook ports; the [supplied Caddyfile](../deploy/Caddyfile)
-   is the reference. Keep dusk bot listening on loopback, forward the original Host
-   and proxy headers, and keep event streams unbuffered. Caddy needs incoming
-   ports 80/443 for its usual certificate setup. For containers, follow the
-   Docker recipe below so Caddy can reach the loopback listener.
-3. Enter `bots.yourcompany.com` (or its bare `https://` origin) and choose
-   **Connect domain**. dusk bot checks HTTPS and the workspace identity at that
-   domain before saving it. An incorrect domain leaves the existing address
-   unchanged.
-
-The saved custom address takes precedence over the server's configured public
-address for **new server pairing links**. Removing it restores that fallback
-address, if any; neither action changes DNS, the proxy, bots, conversations, or
-existing sessions. A different browser origin needs its own pairing, so keep
-your original tab open until the new one works. The setting does not change
-`DUSK_WEBHOOK_PUBLIC_URL`, existing webhook URLs, or the desktop companion's
-managed connection. This feature is for self-hosted servers, not the desktop
-app's managed phone endpoint.
+The desktop app's add-a-place flow shows the same command under **your own
+domain**. The public address is what new pairing links use; it does not change
+DNS, bots, conversations or existing sessions.
 
 ## Docker (with HTTPS on your own domain)
 

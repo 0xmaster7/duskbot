@@ -17,7 +17,6 @@ import { CompanionSection } from "./CompanionSection";
 import { ServerPairingCard } from "./ServerPairingCard";
 import { MobilePairingCard } from "./MobilePairingCard";
 import { useAccounts } from "./AccountMenu";
-import { CustomDomainSettings } from "./CustomDomainSettings";
 import { RemoteComputerSection } from "./RemoteComputerSection";
 import { ConnectedWorkspacesSettings } from "./ConnectedWorkspacesSettings";
 import { CloudAccountSettings } from "./CloudAccountSettings";
@@ -149,8 +148,7 @@ export function SettingsModal() {
     const place = settingsLocation(section);
     const home = place.page ? ADVANCED_PAGES.find((entry) => entry.id === place.page)?.sections : SETTINGS_PANES.find((entry) => entry.id === place.pane)?.sections;
     // the rail and Advanced's rows open a pane or page by its first section: that is its list, not one of its pages
-    const phoneLink = section === "companion" && state.appSettingsPhonePairing > 0;
-    if (!target || !has(section) || (home?.find(has) === section && !phoneLink)) return [];
+    if (!target || !has(section) || home?.find(has) === section) return [];
     return [{ id: target.id, title: t(target.title) }];
   };
   const [sub, setSub] = useState<{ key: string; stack: SubPage[] }>(() => ({ key: paneKey, stack: linkedPage(requested) }));
@@ -236,7 +234,6 @@ export function SettingsModal() {
   const computerPairs = currentPhonePairingTarget(cloudHome) === "computer";
   const remoteAccess: RemoteAccessCards = {
     client: <RemoteComputerSection hideWhenUnavailable />,
-    domain: remoteActive ? null : <CustomDomainSettings />,
     // Security: the server decides who may pair (an owner or admin session), not this gate.
     pairing: <><PhoneLinking remote={remoteActive} /><ServerPairingCard cloudHome={cloudHome} focusRequest={computerPairs ? 0 : phoneFocus} team={state.config?.team?.name} teamPhoneBlocked={state.config?.managedPolicy?.remoteAccess === false ? t("policy.teamRemoteBlocked", { organization: state.config.managedPolicy.organizationName }) : null} simple /></>,
     companion: remoteActive ? null : <CompanionSection profileEmail={state.config?.profile?.email} focusRequest={computerPairs ? phoneFocus : 0} />,

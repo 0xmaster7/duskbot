@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode, type Ref } from "react";
+import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactElement, type ReactNode, type Ref } from "react";
 import { Check, ChevronRight, Copy, type GlyphIcon } from "../icons";
 
 import { cn } from "@/lib/cn";
@@ -173,11 +173,13 @@ export function NavRow({ title, hint, value, icon, pixel, onClick, drill = true,
 }
 
 /** A row that only shows something: the name and its value, or a control of its own on the right. */
-export function ItemRow({ title, hint, value, icon, tone, children, ...rest }: {
+export function ItemRow({ title, hint, value, icon, pixel, tone, children, ...rest }: {
   title: ReactNode;
   hint?: ReactNode;
   value?: ReactNode;
   icon?: GlyphIcon;
+  /** a small pixel icon (or a drawn mark of the same size) in the row's leading slot */
+  pixel?: PixelIconName | ReactElement;
   tone?: "danger" | "warn";
   children?: ReactNode;
   "data-panel-row"?: string;
@@ -186,6 +188,7 @@ export function ItemRow({ title, hint, value, icon, tone, children, ...rest }: {
   return (
     <div {...rest} className={rowCls}>
       {icon && <RowIcon icon={icon} />}
+      {pixel && <span aria-hidden="true" className="flex size-6 shrink-0 items-center justify-center">{typeof pixel === "string" ? <PixelIcon name={pixel} size={24} /> : pixel}</span>}
       <RowText title={title} hint={hint} tone={tone} />
       <RowValue value={value} />
       {children}

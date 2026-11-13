@@ -5,6 +5,7 @@ import { api, useStore } from "@/state/store";
 import { phoneAppChips, phonePlatformLabel, phoneRemovePath, usePhones } from "../lib/phones";
 import { relative } from "./CompanionSection";
 import { SettingRow, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
+import { PlaceArt } from "./ui/PlaceArt";
 
 export function PhonesList() {
   const { phase, phones, refresh } = usePhones();
@@ -33,6 +34,7 @@ export function PhonesList() {
           return (
             <SettingRow
               key={phone.key}
+              icon={<PlaceArt name="phone" size={24} />}
               title={`${name} · ${phonePlatformLabel(platform)}`}
               subtitle={[phone.online ? t("remote.phones.online") : t("remote.phones.offline", { when: relative(phone.seen) }), ...caps].join(" · ")}
             >

@@ -58,6 +58,7 @@ import {
   phonePairingManualCodeMode,
 } from "../lib/companion-state";
 import { ConnectionDetail } from "./ConnectionDetail";
+import { PixelIcon, type PixelIconName } from "./ui/PixelIcon";
 import { requireUserPresence } from "@/lib/user-presence";
 
 export interface PhoneDevice {
@@ -903,9 +904,10 @@ const SECONDARY = "text-[13px] leading-[18px] tracking-[-0.08px] text-ink-second
 const FIELD = "h-8 w-56 max-w-full rounded-[10px] border border-transparent bg-menu px-3 text-[13px] text-ink outline-none placeholder:text-ink-tertiary focus:border-transparent disabled:opacity-50";
 
 /** One Grok row: a label, an optional short line under it, and what sits on the right. */
-function FlowRow({ title, detail, alert, children }: { title: ReactNode; detail?: ReactNode; alert?: boolean; children?: ReactNode }) {
+function FlowRow({ title, detail, alert, icon, children }: { title: ReactNode; detail?: ReactNode; alert?: boolean; icon?: PixelIconName; children?: ReactNode }) {
   return (
     <div className={ROW}>
+      {icon && <PixelIcon name={icon} size={24} className="-me-1 shrink-0" />}
       <div className={LABEL}>
         <div className={TITLE}>{title}</div>
         {detail && <div role={alert ? "alert" : undefined} className={SECONDARY}>{detail}</div>}
@@ -933,7 +935,7 @@ export function PhoneSetupFlowView({ controller }: { controller: PhoneSetupContr
   if (c.phase === "intro") {
     return (
       <>
-        <FlowRow title={t("settings.w6.phone.title")} detail={phoneAccessStatus(c.state)}>
+        <FlowRow icon="bolt" title={t("settings.w6.phone.title")} detail={phoneAccessStatus(c.state)}>
           <button type="button" data-phone-pairing-action onClick={c.start} disabled={!c.state || c.busy || c.accountBusy} className="ui-button">
             {c.state?.devices.length ? t("settings.w6.phone.pairAnother") : t("settings.w6.phone.pair")}
           </button>

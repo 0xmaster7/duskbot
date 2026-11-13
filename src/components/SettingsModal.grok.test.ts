@@ -34,7 +34,6 @@ const { marker } = vi.hoisted(() => ({ marker: (name: string) => () => `MARKER:$
 vi.mock("./EnginesSettings", () => ({ EnginesSettings: marker("engines") }));
 vi.mock("./keys/KeysPage", () => ({ KeysPage: marker("apiKeys") }));
 vi.mock("./RemoteComputerSection", () => ({ RemoteComputerSection: marker("remoteClient") }));
-vi.mock("./CustomDomainSettings", () => ({ CustomDomainSettings: () => null }));
 vi.mock("./CompanionSection", () => ({ CompanionSection: marker("companion") }));
 vi.mock("./ServerPairingCard", () => ({ ServerPairingCard: marker("pairing") }));
 vi.mock("./ConnectedWorkspacesSettings", () => ({ ConnectedWorkspacesSettings: marker("desktopWorkspaces") }));
@@ -176,13 +175,13 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(current(open("logins"))).toBe("vault");
   });
 
-  it("leaves out the Phone app group when there is no phone to pair", () => {
-    const remoteAccess = { pairing: null, companion: null, client: null, domain: null };
+  it("draws the pairing block and the phones on the pane itself, and nothing when there is no phone to pair", () => {
+    const remoteAccess = { pairing: "PAIRING_BLOCK", companion: "PHONES", client: null };
     const without = renderToStaticMarkup(createElement(TextingPane, { has: (id) => id !== "companion", remoteAccess }));
-    expect(without).not.toContain('data-settings-block="phone-app"');
-    expect(groups(without)).toEqual([]);
+    expect(without).toBe("");
     const paired = renderToStaticMarkup(createElement(TextingPane, { has: () => true, remoteAccess }));
-    expect(paired).toContain('data-panel-page="pairing"');
+    expect(paired.indexOf("PAIRING_BLOCK")).toBeLessThan(paired.indexOf("PHONES"));
+    expect(paired).not.toContain("data-panel-page");
   });
 
   it("gives a team's admins Bot access on Permissions, and hides the pane when it would be empty", () => {
