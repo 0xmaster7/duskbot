@@ -9,6 +9,9 @@ import "../../src/styles/motion.css";
 setEmailGateDone("skipped");
 localStorage.setItem(GROK_MOVE_NOTICE, "1");
 localStorage.setItem("duskbot.botPanelOpen.v1", "1");
+// the desktop app showing the person's own server: since e0cf9eed2 a bot on this computer has no screen to show, and
+// this preview checks the screen's first paint (as vps-cloud-move-preview.tsx does)
+window.duskDesktop = { app: { version: "preview", ownPage: false } } as unknown as typeof window.duskDesktop;
 const probe = { firstChatAt: null as number | null, mascotAtFirstChat: false, panelAtFirstChat: false };
 Object.assign(window, { __panelStartupProbe: probe });
 const observer = new MutationObserver(() => {
