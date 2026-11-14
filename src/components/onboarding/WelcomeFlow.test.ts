@@ -310,7 +310,7 @@ describe("on the desktop app", () => {
     expect(sheet.textContent, "no dash anywhere").not.toMatch(/\u2014/);
     expect(document.querySelector("[data-mac-pick=cloud]")?.textContent).toBe("Use dusk cloud");
     expect(document.querySelector("[data-mac-pick=mac]")?.textContent).toBe("Continue with this Mac");
-    expect(document.activeElement, "the strong way is where focus starts").toBe(document.querySelector("[data-mac-pick=cloud]"));
+    expect(document.activeElement, "the way they picked is where focus starts").toBe(document.querySelector("[data-mac-pick=mac]"));
 
     await act(async () => { document.activeElement!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })); });
     await settle();
