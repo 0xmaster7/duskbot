@@ -5,7 +5,7 @@ import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renam
 import { dirname, join, relative } from "node:path";
 
 import { writeFileAtomic } from "./atomic.ts";
-import { flushMemoryJournal, journalFile, JOURNAL_DIR } from "./memory-journal.ts";
+import { flushMemoryJournal, journalFile, rotatedJournalFile, JOURNAL_DIR } from "./memory-journal.ts";
 import { ensureWorkspace, isMemorySeed, readMemoryText, syncMemoryIndex, workspaceDir } from "./workspace.ts";
 
 const MOVED = "This note moved here from where the bot kept it before, so it can't be reverted here.";
@@ -61,6 +61,10 @@ export async function moveMemoryLayer(from: string, to: string, language?: strin
     if (rows.length) appendFileSync(journalFile(to), `${rows.join("\n")}\n`, { mode: 0o600 });
     rmSync(journal, { force: true });
     moved ||= rows.length > 0;
+  }
+  if (existsSync(rotatedJournalFile(from))) {
+    appendFileSync(rotatedJournalFile(to), readFileSync(rotatedJournalFile(from)), { mode: 0o600 });
+    rmSync(rotatedJournalFile(from), { force: true });
   }
   syncMemoryIndex(from);
   syncMemoryIndex(to);

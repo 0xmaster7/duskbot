@@ -951,6 +951,8 @@ export function removeMemoryFile(botId: string, path: string): void {
 
 export function deleteBotMemoryFiles(botId: string): void {
   db().prepare("DELETE FROM memory_files WHERE bot_id = ?").run(botId);
+  db().prepare("DELETE FROM memory_facts WHERE owner = ?").run(botId);
+  db().prepare("DELETE FROM memory_fact_files WHERE owner = ?").run(botId);
 }
 
 export function indexedMemoryFiles(botId: string): MemoryFileStat[] {
@@ -976,7 +978,7 @@ export function recallMemory(query: string, botId: string, limit = 12, mode: Sea
         `snippet(memory_fts, 0, '[', ']', '…', ${SNIPPET_TOKENS}) AS snippet ` +
         "FROM memory_fts JOIN memory_files f ON f.rowid = memory_fts.rowid " +
         "WHERE memory_fts MATCH ? AND f.bot_id = ? " +
-        (mode === "any" ? "AND f.path NOT IN ('MEMORY.md', 'memory/archive.md') AND f.path NOT LIKE 'memory/log/%' " : "") +
+        (mode === "any" ? "AND f.path NOT IN ('MEMORY.md', 'memory/archive.md') AND f.path NOT LIKE 'memory/archive-%' AND f.path NOT LIKE 'memory/log/%' " : "") +
         "ORDER BY bm25(memory_fts), f.mtime_ms DESC LIMIT ?",
     )
     // SAFETY: the SELECT names exactly these three columns; snippet() is never null

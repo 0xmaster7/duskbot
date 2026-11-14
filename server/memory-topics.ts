@@ -79,7 +79,8 @@ export function readTopicHead(path: string): string {
 
 export function renderTopicIndex(topics: ReadonlyArray<{ name: string; header: TopicHeader }>): string {
   if (!topics.length) return "";
-  const ordered = [...topics].sort((a, b) => Number(a.name === "archive.md") - Number(b.name === "archive.md") || a.name.localeCompare(b.name));
+  const archive = (name: string) => /^archive(?:-\d{4})?\.md$/.test(name);
+  const ordered = [...topics].sort((a, b) => Number(archive(a.name)) - Number(archive(b.name)) || a.name.localeCompare(b.name));
   const lines: string[] = [];
   let length = 0;
   let omitted = 0;
@@ -88,7 +89,7 @@ export function renderTopicIndex(topics: ReadonlyArray<{ name: string; header: T
       omitted += 1;
       continue;
     }
-    const about = name === "archive.md"
+    const about = archive(name)
       ? "older notes moved out of MEMORY.md, kept for the record"
       : [header.title, header.description].filter(Boolean).join(": ");
     const also = header.aliases.length ? ` (also: ${header.aliases.join(", ")})` : "";

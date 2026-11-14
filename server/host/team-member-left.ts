@@ -14,7 +14,7 @@ import { defaultBotPerson, type DefaultBotFields } from "../../shared/default-bo
 import { memberAudience, type Audience } from "../audience.ts";
 import { forgetDefaultBot } from "../default-bot.ts";
 import { audienceHome } from "../engine-homes/layout.ts";
-import { forgetBotMemoryJournal, journalFile } from "../memory-journal.ts";
+import { forgetBotMemoryJournal, journalFile, rotatedJournalFile } from "../memory-journal.ts";
 import { deleteBotMemoryFiles } from "../message-db.ts";
 import { personKey } from "../person-key.ts";
 import { memberUploads } from "./member-uploads.ts";
@@ -105,6 +105,7 @@ export function createTeamMemberLeft(deps: TeamMemberLeftDeps): (email: string) 
     for (const layer of entries.filter((entry) => entry.endsWith(`--member-${person}`))) {
       rmSync(join(workspaces, layer), { recursive: true, force: true });
       rmSync(journalFile(layer), { force: true });
+      rmSync(rotatedJournalFile(layer), { force: true });
       deleteBotMemoryFiles(layer);
       forgetBotMemoryJournal(layer);
       layers++;

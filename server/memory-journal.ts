@@ -1,7 +1,8 @@
 // Kept outside the workspace on purpose: an audit trail the audited bot can rewrite is not an audit trail.
 // A journal write must never fail the change it records.
 import { randomUUID } from "node:crypto";
-import { closeSync, fstatSync, mkdirSync, openSync, readFileSync, readSync } from "node:fs";
+import { appendFileSync, closeSync, fstatSync, mkdirSync, openSync, readFileSync, readSync, statSync } from "node:fs";
+import { gzipSync } from "node:zlib";
 import { appendFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -53,6 +54,15 @@ const MAX_JOURNAL_READ_BYTES = 8 * 1024 * 1024;
 const MAX_ROWS = 500;
 const LCS_CELL_CAP = 4_000_000;
 const CONTEXT = 2;
+
+/** Past this a bot's journal rotates: the newest half stays (and stays undoable within the newest rows), the rest is
+ * appended, without the earlier file copies, to a gzip file beside it. */
+export const JOURNAL_MAX_BYTES = 4 * 1024 * 1024;
+
+/** Rotated journal rows: concatenated gzip members of ndjson, readable with any gunzip. */
+export function rotatedJournalFile(botId: string): string {
+  return join(JOURNAL_DIR, `${botId}.rotated.ndjson.gz`);
+}
 
 export function journalFile(botId: string): string {
   return join(JOURNAL_DIR, `${botId}.ndjson`);
@@ -197,6 +207,32 @@ function enqueue(botId: string, entry: MemoryJournalEntry): void {
 
 export async function flushMemoryJournal(botId: string): Promise<void> {
   await writeQueues.get(botId);
+}
+
+/** How many rows moved out of the live journal. */
+export async function rotateMemoryJournal(botId: string, maxBytes = JOURNAL_MAX_BYTES): Promise<number> {
+  await flushMemoryJournal(botId);
+  let size = 0;
+  try {
+    size = statSync(journalFile(botId)).size;
+  } catch {
+    return 0;
+  }
+  if (size <= maxBytes) return 0;
+  const rows = readFileSync(journalFile(botId), "utf8").split("\n").filter(Boolean);
+  let kept = 0;
+  let cut = rows.length;
+  while (cut > 0 && kept + Buffer.byteLength(rows[cut - 1]!, "utf8") + 1 <= maxBytes / 2) kept += Buffer.byteLength(rows[--cut]!, "utf8") + 1;
+  const old = rows.slice(0, cut).flatMap((line) => {
+    try {
+      return [JSON.stringify({ ...JSON.parse(line), before: null, canRevert: false, revertUnavailableReason: "This change is too old to revert." })];
+    } catch {
+      return [];
+    }
+  });
+  if (old.length) appendFileSync(rotatedJournalFile(botId), gzipSync(`${old.join("\n")}\n`), { mode: 0o600 });
+  writeFileAtomic(journalFile(botId), rows.slice(cut).length ? `${rows.slice(cut).join("\n")}\n` : "", { mode: 0o600 });
+  return cut;
 }
 
 export async function flushAllMemoryJournals(): Promise<void> {

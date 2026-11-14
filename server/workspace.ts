@@ -1,5 +1,5 @@
 // Per-bot workspaces (~/.duskbot/workspaces/<botId>/) that double as file-based memory.
-import { closeSync, constants, existsSync, fstatSync, lstatSync, mkdirSync, openSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { closeSync, constants, existsSync, fstatSync, lstatSync, mkdirSync, openSync, readdirSync, readFileSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 
 import { writeFileAtomic } from "./atomic.ts";
@@ -33,6 +33,14 @@ export const MEMORY_MAX_BYTES = 24_000;
 export const MEMORY_ENTRY_MAX_CHARS = 1_000;
 export const MEMORY_ENTRY_MAX_LINES = 20;
 export const ARCHIVE_TOPIC = "archive.md";
+/** Past this, the archive's oldest part rolls into memory/archive-<year>.md, which is history like the archive. */
+export const ARCHIVE_MAX_BYTES = 128 * 1024;
+const ARCHIVE_YEAR = /^archive-\d{4}\.md$/;
+
+/** The archive and its yearly rolls: history, never current notes. */
+export function isArchiveTopic(name: string): boolean {
+  return name === ARCHIVE_TOPIC || ARCHIVE_YEAR.test(name);
+}
 
 const MEMORY_SEEDS: Record<string, string> = {
   en: `# Memory
@@ -301,7 +309,7 @@ const memoryIndexDates = new Map<string, string>();
 
 function searchableMemoryText(path: string, text: string): string {
   if (path === "MEMORY.md" && isMemorySeed(text)) return "";
-  if (path === "memory/archive.md" || path.startsWith(`memory/${MEMORY_LOG_DIR}/`)) return text;
+  if ((path.startsWith("memory/") && isArchiveTopic(path.slice("memory/".length))) || path.startsWith(`memory/${MEMORY_LOG_DIR}/`)) return text;
   return withoutSuperseded(withoutExpired(text, memoryDate()).text);
 }
 
@@ -379,7 +387,7 @@ export function memoryDate(now: Date = new Date()): string {
 const SEP = " · ";
 const DATED_ENTRY = /^(- \d{4}-\d{2}-\d{2} · (?:from [^·\n]* · )?)(.*)$/;
 const UPDATED_MARK = / · updated \d{4}-\d{2}-\d{2}$/;
-const ENTRY_MARKS = / · (?:updated|confirmed|until|expired|superseded|moved) \d{4}-\d{2}-\d{2}/g;
+const ENTRY_MARKS = / · (?:updated|confirmed|until|expired|superseded|merged|moved) \d{4}-\d{2}-\d{2}/g;
 const TYPED_PREFIX = /^\s*- \d{4}-\d{2}-\d{2} · (?:from [^·\n]* · )?/;
 const BULLET = /^(?:[-*•]|\d+[.)])\s+/;
 
@@ -528,19 +536,68 @@ function makeRoom(text: string, today: string, keep: string | undefined): { text
   return { text: all.filter((_, index) => !gone.has(index)).join("\n"), moved: out.sort((a, b) => a.line - b.line).map((e) => e.text) };
 }
 
-/** An unreadable archive fails the write instead of being replaced. */
-export function appendMemoryArchive(botId: string, lines: readonly string[]): void {
-  let head = "";
+function readTopicOrEmpty(botId: string, name: string): string {
   try {
-    head = readMemoryText(join(workspaceDir(botId), "memory", ARCHIVE_TOPIC));
+    return readMemoryText(join(workspaceDir(botId), "memory", name));
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    return "";
   }
-  writeMemoryTopic(botId, ARCHIVE_TOPIC, `${head}${head && !head.endsWith("\n") ? "\n" : ""}${lines.join("\n")}\n`);
+}
+
+const joinLines = (head: string, lines: readonly string[]) => `${head}${head && !head.endsWith("\n") ? "\n" : ""}${lines.join("\n")}\n`;
+
+/** An unreadable archive fails the write instead of being replaced. Past ARCHIVE_MAX_BYTES the oldest half rolls into
+ * the yearly archive of its first dated line, written before the archive shrinks. */
+export function appendMemoryArchive(botId: string, lines: readonly string[], maxBytes = ARCHIVE_MAX_BYTES): void {
+  const next = joinLines(readTopicOrEmpty(botId, ARCHIVE_TOPIC), lines);
+  if (Buffer.byteLength(next, "utf8") <= maxBytes) {
+    writeMemoryTopic(botId, ARCHIVE_TOPIC, next);
+    return;
+  }
+  const all = next.replace(/\n$/, "").split("\n");
+  let kept = 0;
+  let cut = all.length;
+  while (cut > 1 && kept + Buffer.byteLength(all[cut - 1]!, "utf8") + 1 <= maxBytes / 2) kept += Buffer.byteLength(all[--cut]!, "utf8") + 1;
+  // never split an entry from the lines indented under it
+  while (cut > 0 && cut < all.length && /^[ \t]|^```/.test(all[cut]!)) cut -= 1;
+  const old = all.slice(0, cut);
+  const year = /\b(\d{4})-\d{2}-\d{2}\b/.exec(old.find((line) => /^- \d{4}-/.test(line)) ?? "")?.[1] ?? memoryDate().slice(0, 4);
+  const rolled = `archive-${year}.md`;
+  if (old.length) writeMemoryTopic(botId, rolled, joinLines(readTopicOrEmpty(botId, rolled), old));
+  writeMemoryTopic(botId, ARCHIVE_TOPIC, `${all.slice(cut).join("\n")}\n`);
+}
+
+/** Keeps a topic under `maxBytes`: struck and expired entries move to the archive first, then the oldest live ones,
+ * until it is down to three quarters. The archive is written before the topic. How many entries moved. */
+export function compactMemoryTopic(botId: string, name: string, maxBytes: number, today = memoryDate()): number {
+  const text = readTopicOrEmpty(botId, name);
+  if (Buffer.byteLength(text, "utf8") <= maxBytes || isArchiveTopic(name)) return 0;
+  const all = text.split("\n");
+  const entries = parseMemoryEntries(text);
+  const rank = (e: MemoryEntryLine) => (e.struck ? 0 : isExpired(e, today) ? 1 : 2);
+  const order = [...entries].sort((a, b) => rank(a) - rank(b) || a.date.localeCompare(b.date) || a.line - b.line);
+  let bytes = Buffer.byteLength(text, "utf8");
+  const gone = new Set<number>();
+  const moved: string[] = [];
+  for (const e of order) {
+    if (bytes <= maxBytes * 0.75) break;
+    const block = all.slice(e.line, e.end).join("\n");
+    moved.push(`${block} · moved ${today}`);
+    for (let index = e.line; index < e.end; index++) gone.add(index);
+    bytes -= Buffer.byteLength(block, "utf8") + 1;
+  }
+  if (!moved.length) return 0;
+  appendMemoryArchive(botId, moved);
+  writeMemoryTopic(botId, name, all.filter((_, index) => !gone.has(index)).join("\n"));
+  return moved.length;
 }
 
 export const MEMORY_LOG_DIR = "log";
-const LOG_FILE_NAME = /^\d{4}-\d{2}-\d{2}\.md$/;
+const LOG_FILE_NAME = /^\d{4}-\d{2}(?:-\d{2})?\.md$/;
+const DAY_LOG = /^(\d{4}-\d{2})-\d{2}\.md$/;
+/** Daily logs older than this fold into one file per month. */
+export const LOG_KEEP_DAYS = 90;
 
 export type MemoryLogResult =
   | { ok: true; file: string; line: string }
@@ -711,4 +768,37 @@ function topicIndexText(botId: string, fileTools: boolean, held?: string): strin
     ? `paths are relative to ${JSON.stringify(workspaceDir(botId))}, not your working folder; when a request touches one of these topics, read that file with your file tools before you answer`
     : "when a request touches one of these topics, look it up with session_search before you answer";
   return `\n\nYour topic notes (not loaded; ${how}):\n${index}`;
+}
+
+/** Folds daily logs older than `keepDays` into memory/log/YYYY-MM.md, each day under its own heading, oldest first.
+ * The month file is written before a day's file is removed. How many daily files were folded. */
+export function foldOldLogs(botId: string, today = memoryDate(), keepDays = LOG_KEEP_DAYS): number {
+  const cutoff = new Date(`${today}T12:00:00Z`);
+  cutoff.setUTCDate(cutoff.getUTCDate() - keepDays);
+  const before = cutoff.toISOString().slice(0, 10);
+  const dir = join(workspaceDir(botId), "memory", MEMORY_LOG_DIR);
+  const byMonth = new Map<string, string[]>();
+  for (const name of listMemoryLogs(botId)) {
+    const month = DAY_LOG.exec(name)?.[1];
+    if (month && name.slice(0, 10) < before) byMonth.set(month, [...(byMonth.get(month) ?? []), name]);
+  }
+  let folded = 0;
+  for (const [month, days] of byMonth) {
+    const monthName = `${month}.md`;
+    let text = readMemoryLog(botId, monthName) ?? "";
+    for (const day of days.sort()) {
+      const body = readMemoryLog(botId, day);
+      if (body === null) continue;
+      text = `${text}${text && !text.endsWith("\n") ? "\n" : ""}${text ? "\n" : ""}## ${day.slice(0, 10)}\n${body.replace(/\s+$/, "")}\n`;
+    }
+    writeMemoryLog(botId, monthName, text);
+    for (const day of days) {
+      try {
+        unlinkSync(join(dir, day));
+        folded += 1;
+      } catch {
+      }
+    }
+  }
+  return folded;
 }

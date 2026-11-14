@@ -14,7 +14,7 @@ import type { BotProfilePatch } from "./bot-profile.ts";
 import { peerAllowKey, type PeerAction } from "./peer-approval-key.ts";
 import { DATA_DIR, EVENTS_DIR, NATIVE_DIR, loadBrowserProfileIdAliases } from "./config.ts";
 import * as mdb from "./message-db.ts";
-import { forgetBotMemoryJournal, journalFile } from "./memory-journal.ts";
+import { forgetBotMemoryJournal, journalFile, rotatedJournalFile } from "./memory-journal.ts";
 import { runCommand, type Command } from "./commands.ts";
 import { workspaceDir } from "./workspace.ts";
 import type { Destination } from "./surface.ts";
@@ -1506,6 +1506,7 @@ export class Store {
     } catch {}
     try {
       rmSync(journalFile(id), { force: true });
+      rmSync(rotatedJournalFile(id), { force: true });
     } catch {}
     mdb.deleteBotMemoryFiles(id);
     forgetBotMemoryJournal(id);
