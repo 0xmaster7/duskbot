@@ -36,6 +36,8 @@ const timesSchema = z.object({
   removed: z.record(z.string(), z.number()).default({}),
   signedIn: z.record(z.string(), z.number()).default({}),
   signedOut: z.record(z.string(), z.number()).default({}),
+  /** When the person last changed an app's own settings (on or off, its apps in chat, its address or account). */
+  edited: z.record(z.string(), z.number()).default({}),
 });
 type Times = z.infer<typeof timesSchema>;
 
@@ -50,7 +52,11 @@ export interface SyncSignIn {
   from?: string;
 }
 
-export interface SyncServer { name: string; url: string; enabled: boolean; addedAt: number; signIn: SyncSignIn }
+export interface SyncServer {
+  name: string; url: string; enabled: boolean; addedAt: number; signIn: SyncSignIn;
+  /** Its own settings: when the person last changed them (0: never here), and them in a digest, secrets with them. */
+  editedAt: number; settings: string;
+}
 
 export interface SyncListing {
   place: { id: string; label: string };
@@ -60,6 +66,14 @@ export interface SyncListing {
 }
 
 export const tokenDigest = (access: string) => createHash("sha256").update(`omb-connector:${access}`).digest("hex");
+
+/** An app's own settings in a digest: the same at two places when they are set the same. */
+export function settingsDigest(server: StoredRemoteMcpServer): string {
+  const { runsOn: _runsOn, ...own } = server;
+  const sorted = (value: unknown): unknown => Array.isArray(value) ? value.map(sorted)
+    : value && typeof value === "object" ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, sorted((value as Record<string, unknown>)[key])])) : value;
+  return createHash("sha256").update(`omb-connector-settings:${JSON.stringify(sorted({ ...own, apps: own.apps !== false }))}`).digest("hex");
+}
 
 /** A server reached by URL that any place of the person's can reach: not one only this computer's network reaches, and
  * not one marked as running on another computer. */
@@ -71,7 +85,7 @@ export function syncable(server: unknown): server is StoredRemoteMcpServer {
 export interface ConnectorSyncDeps {
   dataDir: string;
   config(): AppConfig;
-  mcpConfig: Pick<McpConfig, "add" | "replace" | "remove" | "setEnabled">;
+  mcpConfig: Pick<McpConfig, "add" | "replace" | "remove" | "setEnabled" | "setApps">;
   mcpOAuth: Pick<McpOAuthManager, "syncRole" | "lend" | "borrow" | "keepAsLent" | "signOut" | "signInRecord" | "adopt">;
   place: { id: string; label: string };
   now?(): number;
@@ -119,7 +133,7 @@ export function createConnectorSync(deps: ConnectorSyncDeps) {
         delete times.signedIn[url];
         if (role.role === "lent") signIn = { role: "lent", digest: tokenDigest(role.access!), ...(role.expiresAt ? { expiresAt: role.expiresAt } : {}), signedInAt: role.grantAt!, from: role.from! };
       }
-      servers.push({ name, url, enabled, addedAt: times.added[url]!, signIn });
+      servers.push({ name, url, enabled, addedAt: times.added[url]!, signIn, editedAt: times.edited[url] ?? 0, settings: settingsDigest(parsed.server) });
     }
     if (JSON.stringify(times) !== before) write(times);
     return { place: deps.place, servers, removed: { ...times.removed }, signedOut: { ...times.signedOut } };
@@ -137,14 +151,16 @@ export function createConnectorSync(deps: ConnectorSyncDeps) {
     /** Someone added or edited a server here by hand. */
     added(url: string): void { change((times) => { times.added[url] = now(); }); },
     /** Someone removed a server here by hand. */
-    removed(url: string): void { change((times) => { times.removed[url] = now(); delete times.added[url]; delete times.signedIn[url]; }); },
+    removed(url: string): void { change((times) => { times.removed[url] = now(); delete times.added[url]; delete times.signedIn[url]; delete times.edited[url]; }); },
+    /** Someone changed a server's own settings here by hand. */
+    edited(url: string): void { change((times) => { times.edited[url] = now(); }); },
     /** Someone signed out of a server here by hand. */
     signedOut(url: string): void { change((times) => { times.signedOut[url] = now(); delete times.signedIn[url]; }); },
     /** A sign-in was made here just now. */
     signedIn(url: string): void { change((times) => { times.signedIn[url] = now(); }); },
 
-    /** Adds (or updates) a server another place has, as it is there. */
-    put(name: string, body: unknown, addedAt: number): Done {
+    /** Adds (or updates) a server another place has, as it is there; `editedAt`: when its settings changed there. */
+    put(name: string, body: unknown, addedAt: number, editedAt = 0): Done {
       if (!NAME.test(name)) return refuse(400, "bad name");
       const parsed = parseMcpServerMutation(name, mcpServerBody(body), remote(name) ?? undefined);
       if (!parsed.ok) return refuse(400, parsed.error);
@@ -155,7 +171,17 @@ export function createConnectorSync(deps: ConnectorSyncDeps) {
       const result = here ? deps.mcpConfig.replace(name, server) : deps.mcpConfig.add(name, server);
       const bad = failed(result);
       if (bad) return bad;
-      change((times) => { times.added[server.url] = Math.max(addedAt, times.added[server.url] ?? 0); delete times.removed[server.url]; });
+      // "Show its apps in chat" is kept apart from the rest of a server's fields
+      const apps = (body as { apps?: unknown } | null)?.apps !== false;
+      if ((remote(name)?.apps !== false) !== apps) {
+        const switched = failed(deps.mcpConfig.setApps(name, apps));
+        if (switched) return switched;
+      }
+      change((times) => {
+        times.added[server.url] = Math.max(addedAt, times.added[server.url] ?? 0);
+        if (editedAt > 0) times.edited[server.url] = Math.max(editedAt, times.edited[server.url] ?? 0);
+        delete times.removed[server.url];
+      });
       return okay();
     },
 
@@ -165,7 +191,7 @@ export function createConnectorSync(deps: ConnectorSyncDeps) {
       if (!here) return okay({ gone: true });
       const bad = failed(deps.mcpConfig.remove(name));
       if (bad) return bad;
-      change((times) => { times.removed[here.url] = Math.max(at, times.removed[here.url] ?? 0); delete times.added[here.url]; delete times.signedIn[here.url]; });
+      change((times) => { times.removed[here.url] = Math.max(at, times.removed[here.url] ?? 0); delete times.added[here.url]; delete times.signedIn[here.url]; delete times.edited[here.url]; });
       return okay();
     },
 
@@ -220,7 +246,8 @@ export function createConnectorSync(deps: ConnectorSyncDeps) {
       const here = remote(name);
       if (!here || !syncable(here)) return refuse(404, "This server is not here.");
       const { runsOn: _runsOn, ...server } = here;
-      return okay({ server, addedAt: read().added[here.url] ?? now() });
+      const times = read();
+      return okay({ server, addedAt: times.added[here.url] ?? now(), editedAt: times.edited[here.url] ?? 0 });
     },
 
     /** The sign-in this place holds, for the place that will hold it next. */
@@ -280,7 +307,7 @@ const SERVER = /^\/api\/connector-sync\/servers\/([a-z][a-z0-9_-]{0,31})(?:\/(le
 
 /**
  * GET /api/connector-sync: this place's connectors, by name and digest. The desktop then brings them level:
- *   PUT    …/servers/<name>            {server, addedAt}        add or update a server as another place has it
+ *   PUT    …/servers/<name>            {server, addedAt, editedAt}   add or update a server as another place has it
  *   DELETE …/servers/<name>?at=<ms>                             remove it, as removed elsewhere then
  *   POST   …/servers/<name>/sign-out   {at}                     sign out, as signed out elsewhere then
  *   PUT    …/servers/<name>/lent       {access, expiresAt, from, grantAt}   use a token another place lent
@@ -315,10 +342,10 @@ export function createConnectorSyncRoutes(deps: {
 
     if (!action) {
       if (method === "PUT") {
-        const sent = await body() as { server?: unknown; addedAt?: unknown } | undefined;
+        const sent = await body() as { server?: unknown; addedAt?: unknown; editedAt?: unknown } | undefined;
         const added = at(sent?.addedAt);
         if (!sent || added === null) return json(res, 400, { error: "send {server, addedAt}" });
-        return answer(deps.sync.put(name, sent.server, added));
+        return answer(deps.sync.put(name, sent.server, added, at(sent.editedAt) ?? 0));
       }
       if (method === "DELETE") {
         const when = at(Number(url.searchParams.get("at")));

@@ -4,14 +4,14 @@ export type Call = (method: string, route: string, body?: unknown) => Promise<An
 export interface SyncSignIn { role: "holder" | "lent" | "needs-sign-in" | "none"; digest?: string; expiresAt?: number; signedInAt?: number }
 export interface Listing {
   place: { id: string; label: string };
-  servers: Array<{ name: string; url: string; enabled: boolean; addedAt: number; signIn: SyncSignIn }>;
+  servers: Array<{ name: string; url: string; enabled: boolean; addedAt: number; editedAt: number; settings: string; signIn: SyncSignIn }>;
   removed: Record<string, number>;
   signedOut: Record<string, number>;
 }
 
 export interface PlaceWrites {
   list(): Promise<Listing | null>;
-  put(name: string, server: unknown, addedAt: number): Promise<any>;
+  put(name: string, server: unknown, addedAt: number, editedAt?: number): Promise<any>;
   remove(name: string, at: number): Promise<any>;
   signOut(name: string, at: number): Promise<any>;
   borrow(name: string, lent: { access: string; expiresAt?: number; from: string; grantAt: number }): Promise<any>;
@@ -27,6 +27,7 @@ export interface Place { key: string; kind: "local" | "cloud" | "sleeping-cloud"
 export interface SyncResult {
   added: Array<{ name: string; place: string }>;
   removed: Array<{ name: string; place: string }>;
+  edited: Array<{ name: string; place: string }>;
   signedOut: Array<{ name: string; place: string }>;
   moved: Array<{ name: string; from: string; to: string }>;
   lent: Array<{ name: string; place: string }>;

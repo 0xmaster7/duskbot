@@ -27,7 +27,7 @@ export interface McpServerRouteDeps extends Pick<McpConfigDeps, "cfg" | "session
   /** Secrets as booleans, sign-in state attached. */
   mcpServerResponse(): { servers: readonly ListedMcpServer[] };
   /** Connector sync hears what the person changed here, so the person's other places follow (connector-sync.ts). */
-  synced?: { added(url: string): void; removed(url: string): void; signedOut(url: string): void };
+  synced?: { added(url: string): void; removed(url: string): void; signedOut(url: string): void; edited(url: string): void };
 }
 
 export function createMcpServerRoutes(deps: McpServerRouteDeps): RouteHandler {
@@ -200,7 +200,9 @@ export function createMcpServerRoutes(deps: McpServerRouteDeps): RouteHandler {
         if ((key !== "enabled" && key !== "apps") || typeof body[key] !== "boolean") {
           return json(res, 400, { error: "Only an enabled or apps boolean can be changed here." });
         }
-        return answer(res, json, key === "enabled" ? config.setEnabled(name, body.enabled) : config.setApps(name, body.apps));
+        const switched = key === "enabled" ? config.setEnabled(name, body.enabled) : config.setApps(name, body.apps);
+        if ("body" in switched && isRemoteMcpServer(existing.server)) deps.synced?.edited(existing.server.url);
+        return answer(res, json, switched);
       }
       const parsed = parseMcpServerMutation(name, body, existing.server);
       if (!parsed.ok) return json(res, 400, { error: parsed.error });
@@ -208,6 +210,7 @@ export function createMcpServerRoutes(deps: McpServerRouteDeps): RouteHandler {
       if ("body" in replaced && isRemoteMcpServer(parsed.server)) {
         if (isRemoteMcpServer(existing.server) && existing.server.url !== parsed.server.url) deps.synced?.removed(existing.server.url);
         deps.synced?.added(parsed.server.url);
+        deps.synced?.edited(parsed.server.url);
       }
       return answer(res, json, replaced);
     }

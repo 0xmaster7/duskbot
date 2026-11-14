@@ -47,7 +47,7 @@ export function installConnectorSyncMain({ localRequest, handoff, fetch: fetchIm
     running = (async () => {
       try {
         const done = await syncConnectors(places(), { log });
-        const changed = ["added", "removed", "signedOut", "moved"].filter((key) => done[key].length).map((key) => `${key} ${done[key].length}`);
+        const changed = ["added", "removed", "edited", "signedOut", "moved"].filter((key) => done[key].length).map((key) => `${key} ${done[key].length}`);
         if (changed.length) log(`connector sync: ${changed.join(", ")}`);
         return done;
       } catch { return null; }

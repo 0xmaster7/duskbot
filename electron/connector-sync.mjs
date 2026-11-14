@@ -3,6 +3,7 @@
 // connectors (server/connector-sync.ts, names and digests only) and brings them level:
 //
 //   servers    one added in a place is added in the others; one removed is removed everywhere (the later wins)
+//   settings   an app's own settings (on or off, its apps in chat, its address, its account) as last changed anywhere
 //   sign-outs  a sign-out in one place ends that sign-in in every place
 //   holder     one place keeps a sign-in's refresh token, which may rotate: My Cloud before a server before this
 //              computer, so a sign-in made here moves to a place that is always on (as a move does). A Cloud on a plan
@@ -29,6 +30,7 @@ export function parseListing(value) {
   const times = (map) => Object.fromEntries(Object.entries(record(map) ? map : {}).filter(([url, at]) => typeof url === "string" && Number.isFinite(at)));
   const servers = value.servers.filter((s) => record(s) && typeof s.name === "string" && NAME.test(s.name) && typeof s.url === "string" && record(s.signIn)).map((s) => ({
     name: s.name, url: s.url, enabled: s.enabled === true, addedAt: Number.isFinite(s.addedAt) ? s.addedAt : 0,
+    editedAt: Number.isFinite(s.editedAt) ? s.editedAt : 0, settings: typeof s.settings === "string" && DIGEST.test(s.settings) ? s.settings : "",
     signIn: {
       role: ["holder", "lent", "needs-sign-in", "none"].includes(s.signIn.role) ? s.signIn.role : "none",
       ...(typeof s.signIn.digest === "string" && DIGEST.test(s.signIn.digest) ? { digest: s.signIn.digest } : {}),
@@ -57,7 +59,7 @@ export function writes(call) {
   const route = (name, rest = "") => `/api/connector-sync/servers/${enc(name)}${rest}`;
   return {
     list: async () => parseListing(must(await call("GET", "/api/connector-sync"), "list")),
-    put: async (name, server, addedAt) => must(await call("PUT", route(name), { server, addedAt }), "put"),
+    put: async (name, server, addedAt, editedAt = 0) => must(await call("PUT", route(name), { server, addedAt, ...(editedAt > 0 ? { editedAt } : {}) }), "put"),
     remove: async (name, at) => must(await call("DELETE", route(name, `?at=${at}`)), "remove"),
     signOut: async (name, at) => must(await call("POST", route(name, "/sign-out"), { at }), "sign-out"),
     borrow: async (name, lent) => must(await call("PUT", route(name, "/lent"), lent), "lent"),
@@ -101,10 +103,10 @@ const latest = (values) => values.reduce((max, value) => (Number.isFinite(value)
 
 /**
  * One pass over the person's places. Each step that fails is skipped and tried again next pass; the others go on.
- * Returns what changed: { added, removed, signedOut, moved, lent, failed }.
+ * Returns what changed: { added, removed, edited, signedOut, moved, lent, failed }.
  */
 export async function syncConnectors(places, { now = Date.now, log = () => {} } = {}) {
-  const result = { added: [], removed: [], signedOut: [], moved: [], lent: [], failed: [] };
+  const result = { added: [], removed: [], edited: [], signedOut: [], moved: [], lent: [], failed: [] };
   const views = [];
   for (const place of places) {
     const listing = await place.client.list().catch(() => null);
@@ -142,12 +144,28 @@ export async function syncConnectors(places, { now = Date.now, log = () => {} } 
       if (view.listing.servers.some((server) => server.name === name)) { result.failed.push(`${name} at ${view.label}: another server has this name`); continue; }
       definition ??= await step(`read ${name} at ${source.label}`, () => source.client.definition(name));
       if (!record(definition?.server)) break;
-      const put = await step(`add ${name} at ${view.label}`, () => view.client.put(name, definition.server, Number(definition.addedAt) || addAt));
+      const editedAt = Number(definition.editedAt) || 0;
+      const put = await step(`add ${name} at ${view.label}`, () => view.client.put(name, definition.server, Number(definition.addedAt) || addAt, editedAt));
       if (!put) continue;
-      view.listing.servers.push({ name, url, enabled: definition.server.enabled === true, addedAt: Number(definition.addedAt) || addAt, signIn: { role: "none" } });
+      view.listing.servers.push({ name, url, enabled: definition.server.enabled === true, addedAt: Number(definition.addedAt) || addAt, editedAt, settings: serverAt(source, url).settings, signIn: { role: "none" } });
       result.added.push({ name, place: view.label });
     }
     have = views.filter((view) => serverAt(view, url));
+
+    // the app's own settings, everywhere: as the place where the person changed them last has them
+    const edited = have.reduce((best, view) => (serverAt(view, url).editedAt > serverAt(best, url).editedAt ? view : best), have[0]);
+    const editedAt = serverAt(edited, url).editedAt;
+    let settings = null;
+    for (const view of have) {
+      const server = serverAt(view, url);
+      if (view === edited || editedAt <= 0 || server.editedAt >= editedAt || server.settings === serverAt(edited, url).settings) continue;
+      settings ??= await step(`read ${serverAt(edited, url).name} at ${edited.label}`, () => edited.client.definition(serverAt(edited, url).name));
+      if (!record(settings?.server)) break;
+      const put = await step(`update ${server.name} at ${view.label}`, () => view.client.put(server.name, settings.server, server.addedAt || addAt, editedAt));
+      if (!put) continue;
+      Object.assign(server, { editedAt, settings: serverAt(edited, url).settings, enabled: settings.server.enabled === true });
+      result.edited.push({ name: server.name, place: view.label });
+    }
 
     // a sign-out anywhere ends every sign-in made before it
     const outAt = latest(views.map((view) => view.listing.signedOut[url]));

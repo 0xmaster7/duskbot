@@ -7,6 +7,7 @@ import { bringSignInsHome, parseListing, syncConnectors, TOPUP_MS } from "./conn
 const NOW = 1_800_000_000_000;
 const URL_A = "https://mcp.notion.example/mcp", URL_B = "https://connect.composio.example/mcp";
 const digest = (access) => createHash("sha256").update(`omb-connector:${access}`).digest("hex");
+const settingsOf = (server) => createHash("sha256").update(`settings:${server.enabled !== false}`).digest("hex");
 
 /** One place as server/connector-sync.ts answers it, in memory: its servers, sign-ins and times, every call recorded. */
 function place(kind, label, { servers = {}, removed = {}, signedOut = {}, refreshEvery = false } = {}) {
@@ -19,9 +20,9 @@ function place(kind, label, { servers = {}, removed = {}, signedOut = {}, refres
     return { role: s.role, digest: digest(s.access), ...(s.expiresAt ? { expiresAt: s.expiresAt } : {}), signedInAt: s.signedInAt };
   };
   const client = {
-    list: async () => parseListing({ place: { id: label, label }, servers: Object.entries(state.servers).map(([name, server]) => ({ name, url: server.url, enabled: true, addedAt: server.addedAt, signIn: signIn(server) })), removed: state.removed, signedOut: state.signedOut }),
-    definition: async (name) => { calls.push(["definition", name]); return { server: { type: "http", url: state.servers[name].url, headers: { Authorization: "Bearer k" }, enabled: true }, addedAt: state.servers[name].addedAt }; },
-    put: async (name, server, addedAt) => { calls.push(["put", name]); state.servers[name] = { url: server.url, addedAt, signIn: { role: "none" } }; return {}; },
+    list: async () => parseListing({ place: { id: label, label }, servers: Object.entries(state.servers).map(([name, server]) => ({ name, url: server.url, enabled: server.enabled !== false, addedAt: server.addedAt, editedAt: server.editedAt ?? 0, settings: settingsOf(server), signIn: signIn(server) })), removed: state.removed, signedOut: state.signedOut }),
+    definition: async (name) => { calls.push(["definition", name]); return { server: { type: "http", url: state.servers[name].url, headers: { Authorization: "Bearer k" }, enabled: state.servers[name].enabled !== false }, addedAt: state.servers[name].addedAt, editedAt: state.servers[name].editedAt ?? 0 }; },
+    put: async (name, server, addedAt, editedAt = 0) => { calls.push(["put", name]); state.servers[name] = { signIn: { role: "none" }, ...state.servers[name], url: server.url, addedAt, enabled: server.enabled !== false, editedAt: Math.max(editedAt, state.servers[name]?.editedAt ?? 0) }; return {}; },
     remove: async (name, at) => { calls.push(["remove", name]); state.removed[state.servers[name].url] = at; delete state.servers[name]; return {}; },
     signOut: async (name, at) => { calls.push(["signOut", name]); state.signedOut[state.servers[name].url] = at; state.servers[name].signIn = { role: "none" }; return {}; },
     lend: async (name) => {
@@ -114,7 +115,7 @@ test("a name another server holds is never overwritten, and places with their ow
 
 test("one place alone has nothing to bring level, and one that does not answer is left out", async () => {
   const mac = place("local", "This computer", { servers: { notion: { url: URL_A, addedAt: 10, signIn: holder("a1", 20) } } });
-  assert.deepEqual(await run([mac]), { added: [], removed: [], signedOut: [], moved: [], lent: [], failed: [] });
+  assert.deepEqual(await run([mac]), { added: [], removed: [], edited: [], signedOut: [], moved: [], lent: [], failed: [] });
   const gone = { key: "cloud", kind: "cloud", label: "My Cloud", client: { list: async () => { throw new Error("asleep"); } } };
   assert.deepEqual((await run([mac, gone])).failed, []);
   assert.deepEqual(mac.calls, []);
@@ -127,4 +128,25 @@ test("coming home from a Cloud that ended brings its sign-ins, with servers this
   assert.equal(mac.state.servers.notion.signIn.role, "holder");
   assert.equal(mac.state.servers.notion.signIn.refresh, "r-c1");
   assert.equal(cloud.state.servers.notion.signIn.role, "lent");
+});
+
+test("an app switched off in one place is switched off in the others, and an older change never wins", async () => {
+  const mac = place("local", "This computer", { servers: { notion: { url: URL_A, addedAt: 10, enabled: false, editedAt: 500 } } });
+  const cloud = place("cloud", "My Cloud", { servers: { notion: { url: URL_A, addedAt: 10, editedAt: 300 } } });
+  const server = place("server", "vps", { servers: { notion: { url: URL_A, addedAt: 10 } } });
+  const done = await run([mac, cloud, server]);
+  assert.deepEqual(done.failed, []);
+  assert.deepEqual(done.edited, [{ name: "notion", place: "My Cloud" }, { name: "notion", place: "vps" }]);
+  assert.equal(cloud.state.servers.notion.enabled, false);
+  assert.equal(server.state.servers.notion.enabled, false);
+  assert.deepEqual(mac.calls.filter(([op]) => op === "put"), []);
+  const again = await run([mac, cloud, server]);
+  assert.deepEqual(again.edited, []);
+  // switched on again on My Cloud, later: that wins everywhere
+  cloud.state.servers.notion.enabled = true;
+  cloud.state.servers.notion.editedAt = 900;
+  const later = await run([mac, cloud, server]);
+  assert.deepEqual(later.edited.map((entry) => entry.place).sort(), ["This computer", "vps"]);
+  assert.equal(mac.state.servers.notion.enabled, true);
+  assert.equal(server.state.servers.notion.enabled, true);
 });
