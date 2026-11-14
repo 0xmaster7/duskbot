@@ -5,7 +5,7 @@ import { factIdentity, parseMemoryEntries } from "./memory-entries.ts";
 import { cosine, embedderReady, embedPassages, embedQuery, warmEmbedder } from "./memory-embed.ts";
 import { embedPendingFacts, factsOf, factVectors, searchFactText, syncAboutFacts, syncWorkspaceFacts, type FactRow, type FactStatus } from "./memory-facts.ts";
 import { daysOutside, overlaps, queryTime, type DayRange } from "./memory-time.ts";
-import { parseGeneral } from "./general-memory.ts";
+import { parseGeneral, type HistoryEntry } from "./general-memory.ts";
 import { looksLikeInstruction } from "./memory-trust.ts";
 import { recallTerms } from "./message-db.ts";
 
@@ -27,7 +27,7 @@ export interface RecalledFact {
 export interface FactRecallInput {
   /** Workspace ids whose notes this turn reads. */
   memoryIds: readonly string[];
-  about?: { owner: string; text: string };
+  about?: { owner: string; text: string; history?: readonly HistoryEntry[] };
   query: string;
   today: string;
   /** Text already in the prompt: facts in it are not recalled again. */
@@ -99,6 +99,21 @@ export function queryTerms(query: string): string[] {
   return out;
 }
 
+/** A question about one of these facets rarely shares a word with the fact that answers it ("my job title" against
+ * "is now design lead at Fernhill"), and a small model does not bridge them reliably, so the words are added. */
+const FACETS: ReadonlyArray<[RegExp, readonly string[]]> = [
+  [/^(?:job|jobs|title|role|position|career|work|occupation|profession)$/, ["works", "job", "role", "title", "designer", "engineer", "manager", "lead", "head", "developer", "director", "founder", "joined", "employed"]],
+  [/^(?:live|living|home|city|address|reside|moved|located)$/, ["lives", "live", "moved", "home", "city", "address", "apartment"]],
+  [/^(?:eat|food|diet|allergy|allergies|allergic)$/, ["allergic", "vegetarian", "vegan", "eats", "diet", "allergy"]],
+  [/^(?:phone|number|call|mobile)$/, ["phone", "mobile", "number"]],
+];
+
+function expandTerms(terms: readonly string[]): string[] {
+  const out = [...terms];
+  for (const term of terms) for (const [pattern, more] of FACETS) if (pattern.test(term)) for (const word of more) if (!out.includes(word)) out.push(word);
+  return out.slice(0, 32);
+}
+
 function ftsMatch(terms: readonly string[]): string | null {
   const usable = terms.filter((term) => /^[\p{L}\p{N}]+$/u.test(term));
   return usable.length ? usable.map((term) => `"${term}"`).join(" OR ") : null;
@@ -109,7 +124,7 @@ export async function recallFacts(input: FactRecallInput): Promise<{ facts: Reca
   const owners = [...input.memoryIds];
   for (const id of input.memoryIds) syncWorkspaceFacts(id);
   if (input.about) {
-    syncAboutFacts(input.about.owner, input.about.text);
+    syncAboutFacts(input.about.owner, input.about.text, new Date(), input.about.history ?? []);
     owners.push(input.about.owner);
   }
   void embedPendingFacts(owners);
@@ -118,9 +133,11 @@ export async function recallFacts(input: FactRecallInput): Promise<{ facts: Reca
   const all = factsOf(owners, statuses);
   if (!all.length) return { facts: [], searched: true };
   const byId = new Map(all.map((fact) => [fact.id, fact]));
-  const terms = queryTerms(input.query);
+  const asked = queryTerms(input.query);
+  const said = asked.filter((term) => !TIME_WORDS.has(term));
+  const terms = expandTerms(asked);
   const content = terms.filter((term) => !TIME_WORDS.has(term));
-  const need = content.length >= 5 ? 2 : 1;
+  const need = said.length >= 5 ? 2 : 1;
   const lists: string[][] = [];
 
   const match = ftsMatch(terms);
@@ -136,10 +153,10 @@ export async function recallFacts(input: FactRecallInput): Promise<{ facts: Reca
     }
   }
 
-  const asked = new Set([...names(input.query).map((name) => name.toLowerCase()), ...content]);
+  const named = new Set([...names(input.query).map((name) => name.toLowerCase()), ...said]);
   const known = new Map<string, string[]>();
   for (const fact of all) for (const name of names(fact.text)) known.set(name.toLowerCase(), [...(known.get(name.toLowerCase()) ?? []), fact.id]);
-  const entity = [...asked].flatMap((name) => known.get(name) ?? []);
+  const entity = [...named].flatMap((name) => known.get(name) ?? []);
   lists.push([...new Set(entity)].sort((a, b) => byId.get(b)!.learnedAt - byId.get(a)!.learnedAt).slice(0, CANDIDATES));
 
   const inWindow = new Set<string>();
@@ -156,7 +173,10 @@ export async function recallFacts(input: FactRecallInput): Promise<{ facts: Reca
 
   const lexicalSet = new Set(lexical);
   const entitySet = new Set(entity);
-  const timeOnly = Boolean(time.range) && content.length <= 2;
+  const timeOnly = Boolean(time.range) && said.length <= 2;
+  // "which restaurants have I liked", "how many trips": a list wants every fact that fits, not only the closest
+  const listing = /\b(?:which|how many|all|every|list|so far|ever)\b/i.test(input.query);
+  const similar = listing ? SIMILAR_WITH_WORDS + 0.05 : SIMILAR;
   const loaded = loadedIdents(input.loaded ?? []);
   const today = Date.parse(`${input.today}T12:00:00Z`);
   const scored: RecalledFact[] = [];
@@ -164,8 +184,8 @@ export async function recallFacts(input: FactRecallInput): Promise<{ facts: Reca
     const fact = byId.get(id)!;
     if ((fact.status === "active" && loaded.has(fact.ident)) || looksLikeInstruction(fact.text)) continue;
     const sim = similarity.get(id) ?? 0;
-    const relevant = (input.wide && (sim >= SIMILAR_WITH_WORDS || lexicalSet.has(id) || entitySet.has(id))) || sim >= SIMILAR
-      || (lexicalSet.has(id) && (sim >= SIMILAR_WITH_WORDS || (!similarity.size && (wordHits(content, fact) >= need || keyHit(content, fact))) || wordHits(content, fact) >= Math.min(2, content.length)))
+    const relevant = (input.wide && (sim >= SIMILAR_WITH_WORDS || lexicalSet.has(id) || entitySet.has(id))) || sim >= similar
+      || (lexicalSet.has(id) && (sim >= SIMILAR_WITH_WORDS || (!similarity.size && (wordHits(content, fact) >= need || keyHit(content, fact))) || wordHits(content, fact) >= Math.min(2, said.length)))
       || (entitySet.has(id) && (sim >= SIMILAR_WITH_WORDS || !similarity.size || lexicalSet.has(id)))
       || (inWindow.has(id) && (timeOnly || lexicalSet.has(id) || sim >= SIMILAR_WITH_WORDS));
     if (!relevant) continue;

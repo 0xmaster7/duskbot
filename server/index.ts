@@ -123,11 +123,11 @@ import { connectorCardDescription, connectorCardText } from "./connector-card-te
 import { BOT_LIMIT_CODE } from "../shared/bot-limit.ts"; import { createBotLimit } from "./host/starter-bot-limit.ts"; import { chiefOfStaffSystemPrompt } from "./chief-of-staff.ts"; import { chiefLevel, readTeamRolesWith } from "./chief-level.ts"; import { defaultBotRefusal, ensureDefaultBot, renameLegacyDefaultBots } from "./default-bot.ts";
 import { buildRecall, recallRooms, recallThreadIds, withRecalled } from "./recall.ts";
 import { heldMemory, takeMemoryDelta } from "./memory-snapshot.ts";
-import { aboutOwner } from "./memory-facts.ts";
+import { aboutOwner, embedPendingFacts } from "./memory-facts.ts";
 import { migrateMemory } from "./memory-migrate.ts";
 import { readOutsideContent } from "./memory-trust.ts";
-import { warmEmbedder } from "./memory-embed.ts";
-import { generalForPrompt } from "./general-memory.ts";
+import { embedderSettled, warmEmbedder } from "./memory-embed.ts";
+import { generalForPrompt, listGeneralHistory } from "./general-memory.ts";
 import { computerFailuresToResolve, RESOLVE_SCAN } from "./computer-failure-resolution.ts";
 import { chatMessageCount, habitReminder } from "./habit-reminder.ts"; import { HANDOFF_BRIEF_RULE } from "./handoff-brief.ts"; import { hostTimeZone, personTimeZone, takesTurnClock, turnClockLine, withTurnClock } from "./turn-clock.ts";
 import { createMemoryUpkeep, dreamConversations, upkeepEnabled } from "./memory-upkeep.ts";
@@ -1172,9 +1172,13 @@ function heldMemoryParts(bot: BotRecord, threadId: string, shape: Parameters<typ
 
 /** Whether this turn's words are the person's own, or came from outside (another bot, a webhook, an app, or a page or
  * tool result the turn read): outside words never become always-loaded memory. */
+const turnWordsFrom = new Map<string, "person" | "other-bot" | "tool">();
+
 function memoryWriteTrust(botId: string, threadId: string): WriteTrust {
   const path = store.activePath(threadId);
   const asked = path.findLast((message) => message.role === "user" && message.kind === "text");
+  const from = turnWordsFrom.get(threadId);
+  if (from && from !== "person") return { from: "outside", source: from };
   if (asked?.peerAsk) return { from: "outside", source: "other-bot" };
   if (isUnattended(botId, threadId) || botApiThread(threadId)) return { from: "outside", source: "tool" };
   if (readOutsideContent(path)) return { from: "outside", source: "web" };
@@ -1197,7 +1201,7 @@ async function autoRecallPrompt(bot: BotRecord, threadId: string, message: strin
       botId: bot.id, memoryIds,
       message,
       threadIds,
-      about: { owner: aboutOwnerFor(bot.id, threadId), text: aboutText },
+      about: { owner: aboutOwnerFor(bot.id, threadId), text: aboutText, history: CLOUD_TEAM ? [] : listGeneralHistory() },
       loaded: [generalForPrompt(aboutText).text, ...memoryIds.map((id) => loadMemory(id)?.text ?? "")],
       label: (id) => {
         const room = roomByThread.get(id);
@@ -8443,6 +8447,8 @@ async function beginTurn(
   revokeEarlierTurnCapabilities(threadId);
   if (opts?.automationSource === "webhook" || opts?.unattended) markUnattended(bot.id, threadId);
   else if (opts?.automationSource === undefined && !opts?.commsDepth && !opts?.cardContinuation) clearUnattended(threadId);
+  if (opts?.peerAsk || opts?.coordination || opts?.commsDepth) turnWordsFrom.set(threadId, "other-bot");
+  else if (!opts?.cardContinuation) turnWordsFrom.set(threadId, opts?.automationSource !== undefined || opts?.unattended ? "tool" : "person");
   const task = store.taskByThread(bot.id, threadId);
   if (!task) throw Object.assign(new Error("no such task"), { status: 404 });
   const plan = turnSurfacePlan(bot, opts?.runOn, threadId);
@@ -16460,7 +16466,12 @@ server.listen(PORT, "127.0.0.1", async () => {
   } catch (error) {
     console.warn(`memory: could not build the fact store now; recall builds it as it goes: ${(error as Error).message}`);
   }
-  if (store.bots.some((bot) => bot.memoryEnabled !== false)) warmEmbedder();
+  if (store.bots.some((bot) => bot.memoryEnabled !== false)) {
+    warmEmbedder();
+    void embedderSettled().then(async (ready) => {
+      while (ready && (await embedPendingFacts(undefined, 400)) > 0);
+    }).catch((error: unknown) => console.warn(`memory: embedding stored facts stopped: ${(error as Error).message}`));
+  }
 });
 
 // Tunnel requests have no peer address, which request-auth treats as proxied: a session is required, never loopback trust.

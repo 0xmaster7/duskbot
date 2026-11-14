@@ -133,7 +133,7 @@ export function embedderReady(): boolean {
   return loaded !== null;
 }
 
-/** For tests: wait for a warm-up already started. */
+/** Waits for a warm-up already started; true when the model is ready. */
 export async function embedderSettled(): Promise<boolean> {
   if (loading) await loading;
   return loaded !== null;

@@ -8,7 +8,7 @@ import { statSync } from "node:fs";
 import { join } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 
-import { parseGeneral } from "./general-memory.ts";
+import { parseGeneral, type HistoryEntry } from "./general-memory.ts";
 import { factIdentity, isExpired, parseMemoryEntries } from "./memory-entries.ts";
 import { blobVector, EMBED_MODEL, embedderReady, embedPassages, vectorBlob } from "./memory-embed.ts";
 import { factDates } from "./memory-time.ts";
@@ -21,6 +21,8 @@ export type FactStatus = "active" | "superseded" | "merged" | "expired" | "suppr
 export type FactSource = "typed" | "person-said" | "bot-verified" | "other-person" | "tool" | "web" | "other-bot" | "import" | "legacy";
 export type FactTrust = "high" | "medium" | "low";
 export const ABOUT_FILE = "about-me";
+/** Lines that left About me: replaced or merged ones are history, ones trimmed for size still hold. */
+export const ABOUT_HISTORY_FILE = "about-me-history";
 
 export interface FactRow {
   id: string;
@@ -278,13 +280,24 @@ export function aboutOwner(person?: string): string {
   return person ? `about:${createHash("sha256").update(person).digest("hex").slice(0, 16)}` : "about";
 }
 
-export function syncAboutFacts(owner: string, aboutMe: string, now = new Date()): void {
+export function parseAboutHistory(history: readonly HistoryEntry[]): ParsedFact[] {
+  return history.flatMap((entry) => {
+    const ident = factIdentity(entry.fact);
+    if (!ident) return [];
+    const date = /^\s*-\s*(\d{4}-\d{2}-\d{2}) · /.exec(entry.line)?.[1] ?? null;
+    const left = new Date(entry.at).toISOString().slice(0, 10);
+    const status: FactStatus = entry.reason === "trimmed" ? "active" : entry.reason === "duplicate" ? "merged" : "superseded";
+    return [{ ident, text: entry.fact, keys: "", date, until: null, supersededOn: status === "active" ? null : left, status, typed: date === null, learnedBy: null }];
+  });
+}
+
+export function syncAboutFacts(owner: string, aboutMe: string, now = new Date(), history: readonly HistoryEntry[] = []): void {
   const database = db();
-  const stamp = createHash("sha256").update(aboutMe).digest("hex");
+  const stamp = createHash("sha256").update(aboutMe).update("\n\0").update(JSON.stringify(history.map((entry) => entry.id))).digest("hex");
   const known = database.prepare("SELECT stamp FROM memory_fact_files WHERE owner = ? AND file = ?").get(owner, ABOUT_FILE) as { stamp: string } | undefined;
   if (known?.stamp === stamp) return;
   inTransaction((tx) => {
-    reconcile(tx, owner, new Map([[ABOUT_FILE, parseAboutFacts(aboutMe)]]), now.getTime());
+    reconcile(tx, owner, new Map([[ABOUT_FILE, parseAboutFacts(aboutMe)], [ABOUT_HISTORY_FILE, parseAboutHistory(history)]]), now.getTime());
     tx.prepare("INSERT INTO memory_fact_files (owner, file, stamp) VALUES (?, ?, ?) ON CONFLICT(owner, file) DO UPDATE SET stamp = excluded.stamp").run(owner, ABOUT_FILE, stamp);
   });
 }

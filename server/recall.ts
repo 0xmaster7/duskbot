@@ -1,6 +1,7 @@
 // Recall rides in front of the turn's message, never the system prompt; fence markers are neutralised so a note cannot close the block.
 import { readMessageText, recallMessages, recallTerms, type RecallHit } from "./message-db.ts";
-import { ABOUT_FILE, type FactRow } from "./memory-facts.ts";
+import { ABOUT_FILE, ABOUT_HISTORY_FILE, type FactRow } from "./memory-facts.ts";
+import type { HistoryEntry } from "./general-memory.ts";
 import { asksMemory, recallFacts, type RecalledFact } from "./memory-recall.ts";
 import { isArchiveTopic, memoryDate } from "./workspace.ts";
 
@@ -120,14 +121,14 @@ export interface RecallInput {
   label: (threadId: string) => string;
   author: (hit: RecallHit) => string;
   /** About me, the general memory every bot reads: its owner in the fact store and its current text. */
-  about?: { owner: string; text: string };
+  about?: { owner: string; text: string; history?: readonly HistoryEntry[] };
   /** What this turn's prompt already holds (About me and MEMORY.md as loaded): not recalled twice. */
   loaded?: readonly string[];
   today?: string;
 }
 
 function factLabel(fact: FactRow): string {
-  if (fact.file === ABOUT_FILE) return "about the person";
+  if (fact.file === ABOUT_FILE || fact.file === ABOUT_HISTORY_FILE) return "about the person";
   if (fact.file === "MEMORY.md") return "your notes";
   if (fact.file.startsWith("memory/") && isArchiveTopic(fact.file.slice("memory/".length))) return "older notes";
   return fact.file;
