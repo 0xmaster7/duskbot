@@ -79,7 +79,9 @@ function harness({ packaged = true, appleSpeech = true, remote = false, register
 test("every list of the app's windows leaves the talk box out", () => {
   assert.equal(main.match(/BrowserWindow\.getAllWindows\(\)/g).length, 1);
   assert.match(main, /function appWindows\(\) \{\s*return BrowserWindow\.getAllWindows\(\)\.filter\(\(win\) => !isTalkPanel\(win\) && !isAmbientWindow\(win\)\);/);
-  assert.match(main, /if \(appWindows\(\)\.length === 0\) openWindowForLink\(\);/);
+  // a Dock click reveals a window chosen from the app's own windows, or opens one (revealForLink, ae44ce520)
+  assert.match(main, /app\.on\("activate", \(\) => revealForLink\(\)\);/);
+  assert.match(main, /windowToReveal\(\{ splash: startupScreen\?\.window \?\? null, main: mainWindow, others: appWindows\(\) \}\)/);
   assert.match(main, /allWindows: \(\) => appWindows\(\)/);
 });
 
