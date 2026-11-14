@@ -377,14 +377,13 @@ describe("marketing tracker", () => {
     expect(JSON.stringify(payloads)).not.toMatch(/private|secret|stack/);
   });
 
-  it.each(["hidden", "pagehide", "spa"])("tracks form starts and abandons each form only once on %s", async end => {
+  it.each(["pagehide", "spa"])("tracks form starts and abandons each form only once on %s", async end => {
     await load();
     win.document.body.innerHTML = '<section id="signup"><form id="Join Waitlist"><input type="text" value="private words"><input type="email" value="person@example.com"></form><form data-dusk-goal="Contact Us"><input type="email"></form><form><input type="email"></form><form id="no-email"><input></form></section>';
     const fields = win.document.querySelectorAll("input");
     for (const field of fields) field.dispatchEvent(new win.FocusEvent("focusin", { bubbles: true }));
     fields[0]!.dispatchEvent(new win.FocusEvent("focusin", { bubbles: true }));
-    if (end === "hidden") visibility("hidden");
-    else if (end === "pagehide") win.dispatchEvent(new win.Event("pagehide"));
+    if (end === "pagehide") win.dispatchEvent(new win.Event("pagehide"));
     else win.history.pushState(null, "", "/next");
     win.dispatchEvent(new win.Event("pagehide"));
     await events();
@@ -392,6 +391,20 @@ describe("marketing tracker", () => {
     expect(payloads.filter(p => p.g === "form_start").map(p => p.m)).toEqual(labels.map(label => ({ section: "signup", label })));
     expect(payloads.filter(p => p.g === "form_abandon").map(p => p.m)).toEqual(labels.map(label => ({ section: "signup", label })));
     expect(JSON.stringify(payloads)).not.toMatch(/private words|person@example/);
+  });
+
+  it("does not count a tab switch as abandoning a form, only a real leave", async () => {
+    await load();
+    win.document.body.innerHTML = '<form id="signup"><input type="email"></form>';
+    win.document.querySelector("input")!.dispatchEvent(new win.FocusEvent("focusin", { bubbles: true }));
+    visibility("hidden");
+    visibility("visible");
+    await events();
+    expect(payloads.filter(p => p.g === "form_abandon")).toHaveLength(0);
+    visibility("hidden");
+    win.dispatchEvent(new win.Event("pagehide"));
+    await events();
+    expect(payloads.filter(p => p.g === "form_abandon")).toHaveLength(1);
   });
 
   it("does not abandon submitted forms and restarts form tracking for a new view", async () => {

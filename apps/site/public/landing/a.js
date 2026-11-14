@@ -148,7 +148,7 @@
       }
       since = d.visibilityState === "visible" ? now : null;
     }
-    function leave(force) {
+    function leave(force, real) {
       if (!pv) return;
       measure();
       time();
@@ -158,14 +158,14 @@
         section.ms = 0;
       });
       if (batch.length) send("sections", { l: batch });
-      forms.forEach(function (form) {
+      if (real) forms.forEach(function (form) {
         if (!form.submitted && !form.abandoned) { goal("form_abandon", form.meta); form.abandoned = true; }
       });
       if (force === true || engaged > 0 || depth > 0) send("leave", { s: depth, t: Math.round(engaged), f: folds });
     }
     function pageview() {
       if (d.prerendering || d.visibilityState === "prerender" || (pv && pagePath === loc.pathname)) return;
-      leave(true);
+      leave(true, true);
       pagePath = loc.pathname;
       path = cleanPath(pagePath);
       pv = random(6);
@@ -227,7 +227,7 @@
     }));
     // a page prerendered on hover counts only once it is actually opened
     d.addEventListener("prerenderingchange", safe(function () { if (!pv) start(); }));
-    w.addEventListener("pagehide", safe(leave));
+    w.addEventListener("pagehide", safe(function () { leave(false, true); }));
     w.addEventListener("scroll", safe(measure), { passive: true });
     ["pushState", "replaceState"].forEach(function (method) {
       var original = w.history[method];
