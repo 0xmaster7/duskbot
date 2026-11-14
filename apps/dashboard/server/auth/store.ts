@@ -2,7 +2,7 @@ import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createJsonStore } from "../billing/json-store.ts";
 import { randomBytes } from "node:crypto";
-import type { NotificationPrefs, OAuthProvider, SessionView } from "../../../../shared/account-api.ts";
+import type { AccountIntent, NotificationPrefs, OAuthProvider, SessionView } from "../../../../shared/account-api.ts";
 
 /** `notifications`: only what the owner changed (NOTIFICATION_DEFAULTS fill the rest); `onboardedAt`: first-run steps done;
  *  `avatarUrl`: the photo of the newest google or x sign-in that had one; `avatar`: the person's choice of avatar
@@ -15,7 +15,10 @@ export interface Identity { accountId: string; provider: OAuthProvider; subject:
 export interface Session extends Omit<SessionView, "current"> { accountId: string; tokenHash: string; parentId?: string }
 /** a sign-in code in flight: only its hmac, kept so a restart between sending a code and typing it does not kill it */
 export interface StoredCode { id: string; email: string; codeHash: string; pending?: string; device: { name: string; platform: string; appVersion: string | null } | null; expiresAt: number; tries: number }
-interface AuthState { accounts: Account[]; identities: Identity[]; sessions: Session[]; codes?: StoredCode[] }
+/** a desktop sign-in waiting for its approval, keyed by the device code's hash, kept so a restart between the app opening the
+ *  approve page and the person approving it does not end it */
+export interface StoredDevice { id: string; userCode: string; device: { name: string; platform: string; appVersion: string | null }; expiresAt: number; interval: number; lastPollAt: number | null; accountId: string | null; denied: boolean; intent?: AccountIntent }
+interface AuthState { accounts: Account[]; identities: Identity[]; sessions: Session[]; codes?: StoredCode[]; devices?: StoredDevice[] }
 
 export function createAuthStore(dataDir: string) {
   mkdirSync(dataDir, { recursive: true, mode: 0o700 });

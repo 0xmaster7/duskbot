@@ -144,6 +144,29 @@ describe("local account service", () => {
     expect(await body(call("/v1/auth/start", { email }))).toMatchObject({ code: "rate_limited" });
   });
 
+  it("ends the resend wait after its 30 seconds, not when the once-a-minute sweep next runs", async () => {
+    await start();
+    time += 29_000;
+    expect(await body(call("/v1/auth/start", { email }))).toMatchObject({ code: "rate_limited" });
+    time += 1_000;
+    expect((await call("/v1/auth/start", { email })).status).toBe(200);
+  });
+
+  it("keeps a desktop sign-in through a restart, before and after it is approved, and never saves the device code", async () => {
+    const browser = await login(), authorization = await authorize(), later = await authorize();
+    restart();
+    expect(readFileSync(`${dataDir}/auth.json`, "utf8")).not.toContain(authorization.deviceCode);
+    expect(await body(poll(authorization))).toEqual({ error: "authorization_pending" });
+    expect((await call(`/v1/auth/device?code=${authorization.userCode}`, undefined, browserHeaders(browser))).status).toBe(200);
+    expect((await call("/v1/auth/device/approve", { userCode: authorization.userCode }, browserHeaders(browser))).status).toBe(200);
+    expect((await call("/v1/auth/device/approve", { userCode: later.userCode }, browserHeaders(browser))).status).toBe(200);
+    restart(); time += 10_000;
+    expect((await body<AppGrant>(poll(authorization))).account.id).toBe(browser.account.id);
+    expect((await body<AppGrant>(poll(later))).account.id).toBe(browser.account.id);
+    restart();
+    expect(await body(poll(authorization))).toEqual({ error: "invalid_grant" });
+  });
+
   it("shares resend, email and IP limits across web and app sign-in", async () => {
     await start();
     expect((await call("/api/cloud/app/sign-in/start", { email, ...device })).status).toBe(429);
@@ -616,7 +639,7 @@ describe("local account service", () => {
     expect((await call("/v1/auth/verify", { attempt: attempt.attempt, code: code() })).status).toBe(410);
     expect(await body(poll(authorization))).toEqual({ error: "invalid_grant" });
     app.close();
-    expect(JSON.parse(readFileSync(`${dataDir}/auth.json`, "utf8"))).toEqual({ accounts: [], identities: [], sessions: [], codes: [] });
+    expect(JSON.parse(readFileSync(`${dataDir}/auth.json`, "utf8"))).toEqual({ accounts: [], identities: [], sessions: [], codes: [], devices: [] });
     expect(JSON.parse(readFileSync(`${dataDir}/state.json`, "utf8"))).toEqual({ accounts: [], sessions: [], workspaces: [], commands: [] });
   });
 

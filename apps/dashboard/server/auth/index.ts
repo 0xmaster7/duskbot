@@ -101,7 +101,11 @@ export function createAuth(options: AuthOptions) {
   const saveAttempts = () => { state.codes = [...attempts].map(([id, item]) => ({ id, ...item })); store.changed(); };
   attempts.set = function (key, value) { Map.prototype.set.call(this, key, value); saveAttempts(); return this; };
   attempts.delete = function (key) { const had = Map.prototype.delete.call(this, key); if (had) saveAttempts(); return had; };
-  const devices = new Map<string, DeviceAuthorization>();
+  // desktop sign-ins waiting for approval are saved too: a deploy while the approve page is open must not end them
+  const devices = new Map<string, DeviceAuthorization>((state.devices ?? []).map(({ id, ...item }) => [id, item]));
+  const saveDevices = () => { state.devices = [...devices].map(([id, item]) => ({ id, ...item })); store.changed(); };
+  devices.set = function (key, value) { Map.prototype.set.call(this, key, value); saveDevices(); return this; };
+  devices.delete = function (key) { const had = Map.prototype.delete.call(this, key); if (had) saveDevices(); return had; };
   const expiredDevices = new Map<string, number>();
   const grants = new Map<string, { accountId: string; sessionId: string; expiresAt: number }>();
   // kept apart from `grants`: an enroll token never signs a browser in, and a handoff token never enrolls a workspace
@@ -260,7 +264,8 @@ export function createAuth(options: AuthOptions) {
     if (data.pending !== undefined && (app || !opaque(data.pending) || !pendingFor(req, data.pending))) fail(400, "invalid_request");
     if (data.recover !== undefined && (data.recover !== true || data.pending !== undefined)) fail(400, "invalid_request");
     const device = app ? deviceInfo(data, true) : null;
-    if (sentAt.has(email)) fail(429, "rate_limited");
+    // the resend wait, by its own clock: the sweep that drops it runs only once a minute
+    if ((sentAt.get(email) ?? -Infinity) + EMAIL_RESEND_SECONDS * 1000 > now()) fail(429, "rate_limited");
     rate(`start:${ip(req)}`, AUTH_LIMITS.startsPerIp);
     rate(`email:${email}`, AUTH_LIMITS.startsPerEmail);
     rate(`email-day:${email}`, AUTH_LIMITS.emailsPerAddressPerDay, day);
@@ -660,6 +665,7 @@ export function createAuth(options: AuthOptions) {
         if (!device) return fail(404, "not_found");
         device.accountId = owner.id;
         device.denied = path === R.deviceDeny;
+        saveDevices();
         json({ ok: true });
       } else if (method === "POST" && path === R.desktopAuthorize) {
         const device = deviceInfo(data, false);

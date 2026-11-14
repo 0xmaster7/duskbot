@@ -25,6 +25,7 @@ export const STORE_LAYOUTS: Record<string, StoreLayout> = {
     identities: { collection: "identities", key: row => `${row.provider}:${row.subject}`, indexes: [{ keys: { accountId: 1 } }] },
     sessions: { collection: "sessions", key: byId, indexes: [{ keys: { tokenHash: 1 }, unique: true }, { keys: { accountId: 1 } }, { keys: { expiresAt: 1 } }] },
     codes: { collection: "auth_codes", key: byId, expireAt: "expiresAt" },
+    devices: { collection: "auth_devices", key: byId, expireAt: "expiresAt" },
   },
   billing: {
     customers: { collection: "billing_customers", key: row => row.accountId as string },
