@@ -1993,8 +1993,10 @@ async function openCloudEntry() {
   if (active && !showingCloud) persistEnvironments(withActive(environmentsState, LOCAL_ID), "chosen");
   const win = mainWindow && !mainWindow.isDestroyed() ? mainWindow : createWindow({ deferNavigation: !showingCloud });
   if (showingCloud) return true;
+  // a plan bought on the website a moment ago: the account is read first, so its sheet opens (over the first run too)
+  if (cloudAccount && !cloudLinkOpensSheet(cloudAccount.state())) await Promise.race([cloudAccount.refresh().catch(() => {}), new Promise(done => setTimeout(done, 5_000))]);
+  else void cloudAccount?.refresh().catch(() => {});
   const action = cloudLinkOpensSheet(cloudAccount?.state()) ? "cloud-add" : "cloud";
-  void cloudAccount?.refresh().catch(() => {});
   if (!win.webContents.isLoadingMainFrame() && senderIsLocal({ sender: win.webContents })) {
     win.webContents.send("app:open-settings", action);
   } else {
