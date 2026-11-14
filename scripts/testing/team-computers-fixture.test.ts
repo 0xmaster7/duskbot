@@ -27,7 +27,9 @@ it.skipIf(process.platform === "win32")("uses the owned Docker fixture for one s
   try {
     fixture = await launchVerificationServer({}, undefined, vps.localVm);
     const api = fixtureApi(fixture.info.url);
-    await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", mode: "per-bot" } });
+    // per-bot screens (on by default) report ready only once a turn has a screen; this checks the shared desktop itself,
+    // as group-local-vm's shared-computer test does (4bcb21d7f)
+    await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", mode: "per-bot", independentScreens: false } });
     const first = (await api("POST", "/api/bots", { name: "First researcher" })).bot;
     const second = (await api("POST", "/api/bots", { name: "Second researcher" })).bot;
     const outsider = (await api("POST", "/api/bots", { name: "Other work" })).bot;
