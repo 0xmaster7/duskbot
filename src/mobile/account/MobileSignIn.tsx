@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { storeApp } from "@/lib/store-app";
 import { WorkingDots } from "@/components/WorkingIndicator";
 import { problemLine } from "@/components/cloud-buy/SignInScreen";
 import type { CloudSignInProblem } from "@/lib/cloud-plan";
@@ -82,7 +83,7 @@ export function MobileSignIn({ onSignedIn }: { onSignedIn: () => void }) {
     <form onSubmit={submit} noValidate className="flex w-full flex-col items-center">
       <PixelArt name={sent ? "mailbox" : "key"} size={60} className="mb-4" />
       <h1 className={HEADLINE}>{t(sent ? "mobile.entry.codeSentTitle" : "mobile.entry.signInTitle")}</h1>
-      <p className={LINE}>{sent ? t("mobile.entry.codeSentBody", { email: sent.email }) : t("mobile.entry.signInBody")}</p>
+      <p className={LINE}>{sent ? t("mobile.entry.codeSentBody", { email: sent.email }) : t(storeApp() ? "mobile.entry.signInBodyStore" : "mobile.entry.signInBody")}</p>
 
       {!sent && providers && providers.length > 0 && (
         <div className="mt-7 flex w-full flex-col gap-2.5">

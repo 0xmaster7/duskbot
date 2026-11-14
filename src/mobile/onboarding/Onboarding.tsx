@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { storeApp } from "@/lib/store-app";
 import { AnimatePresence } from "motion/react";
 import { ClipboardPaste, Keyboard, QrCode, UserRound } from "../../icons";
 import { WorkingDots } from "@/components/WorkingIndicator";
@@ -137,7 +138,7 @@ export function Onboarding({ initial = null, reason = null, startAtLink = false,
             </>}>
               {reason === "revoked" && <ErrorLine>{t("mobile.pair.revoked")}</ErrorLine>}
               <h1 className={`${HEADLINE} ${reason === "revoked" ? "mt-5" : ""}`}>{t(startAtLink ? "mobile.entry.addTitle" : "mobile.entry.title")}</h1>
-              <p className={LINE}>{t("mobile.entry.body")}</p>
+              <p className={LINE}>{t(storeApp() ? "mobile.entry.bodyStore" : "mobile.entry.body")}</p>
               {download}
             </Screen>
           </StepPane>
@@ -158,8 +159,8 @@ export function Onboarding({ initial = null, reason = null, startAtLink = false,
               {noClouds && <button type="button" className={TONAL} onClick={() => go("code")}><Keyboard size={20} />{t("mobile.entry.code")}</button>}
               {!noClouds && <button type="button" disabled={busy} className={QUIET} onClick={() => go("welcome")}>{t("mobile.entry.otherWays")}</button>}
             </>}>
-              <h1 className={HEADLINE}>{t(noClouds ? "mobile.clouds.noneTitle" : "mobile.clouds.pickTitle")}</h1>
-              <p className={LINE}>{t(noClouds ? "mobile.clouds.none" : "mobile.clouds.pickBody", { email: account?.account?.email ?? "" })}</p>
+              <h1 className={HEADLINE}>{t(noClouds ? storeApp() ? "mobile.clouds.noneTitleStore" : "mobile.clouds.noneTitle" : "mobile.clouds.pickTitle")}</h1>
+              <p className={LINE}>{t(noClouds ? storeApp() ? "mobile.clouds.noneStore" : "mobile.clouds.none" : "mobile.clouds.pickBody", { email: account?.account?.email ?? "" })}</p>
               <CloudPicker busy={busy} autoPick onNone={() => setNoClouds(true)} onPairing={(payload) => redeem(payload, "clouds")} />
               {failure && <Failed failure={failure} />}
             </Screen>

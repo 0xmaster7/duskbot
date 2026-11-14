@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { storeApp } from "@/lib/store-app";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { t } from "@/lib/i18n";
 import { PixelArt } from "../Illustration";
@@ -53,7 +54,7 @@ export function SignInOffer({ paused = false }: { paused?: boolean }) {
             <PixelArt name="key" size={44} className="shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="text-[16px] font-semibold leading-5">{t("mobile.entry.offerTitle")}</p>
-              <p className="mt-0.5 text-[14px] leading-5 text-ink-secondary">{t("mobile.entry.offerBody")}</p>
+              <p className="mt-0.5 text-[14px] leading-5 text-ink-secondary">{t(storeApp() ? "mobile.entry.offerBodyStore" : "mobile.entry.offerBody")}</p>
               <div className="mt-2 flex gap-1">
                 <button type="button" onClick={() => setSigningIn(true)} className="mobile-press flex min-h-11 items-center rounded-full bg-ink px-4 text-[15px] font-semibold text-app">{t("mobile.entry.signIn")}</button>
                 <button type="button" onClick={dismiss} className="mobile-press flex min-h-11 items-center rounded-full px-4 text-[15px] font-semibold text-ink-secondary">{t("mobile.entry.notNow")}</button>
