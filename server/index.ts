@@ -8133,7 +8133,11 @@ const browserChat = createBrowserChat({
     const session = currentBrowserSession(botId, botForThread(botId, threadId)?.browserProfile, teamHost.browserAudience(threadId));
     return session && browserRunning(session, usedBrowserSessions.get(session)) ? session : null;
   },
-  closeThreadTabs: (session, threadId) => browserRuntime.closeThreadTabs(session, threadId),
+  closeThreadTabs: async (session, threadId) => {
+    const { outcome, tabs } = await browserRuntime.closeThreadTabs(session, threadId);
+    recentTabs.add(session, tabs);
+    return outcome;
+  },
 });
 
 /** The screen this turn works on, as it is now: its browser tab or its computer. */
@@ -13251,7 +13255,7 @@ ROUTES.push(createBrowserViewerRoutes({ authorize: async () => null, relayed: (r
     const current = await currentBrowserSpec(bot.id, bot.browserProfile, audience);
     if (!current) return { open: false, closed: null };
     const open = browserRunning(current.session, current.spec);
-    return { open, closed: open ? null : recentTabs.get(current.session) };
+    return { open, closed: recentTabs.get(current.session) };
   },
   restartRefusal: (session) => browserRestartRefusal(browserRuntime.interrupted(session), store.bots.filter((candidate) => candidate.busy
     && browserSessionsOf(candidate.id, candidate.browserProfile).includes(session)).map((candidate) => ({ waitingOnBrowser: computerControl.snapshot(candidate.id).help?.place === "browser" }))),

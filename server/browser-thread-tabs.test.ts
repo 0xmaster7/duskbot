@@ -36,6 +36,10 @@ function engine(initial: Tab[] = []) {
       tabs.splice(tabs.indexOf(tab), 1);
       return ok({ closed: true });
     }
+    if (name === "agent_browser_screenshot") {
+      const active = tabs.find((tab) => tab.active);
+      return { content: [{ type: "image", data: Buffer.from(`shot-${active?.targetId}`).toString("base64"), mimeType: "image/jpeg" }] };
+    }
     return ok({});
   };
   return { tabs, calls, rpc };
@@ -65,11 +69,12 @@ describe("a conversation's own tabs", () => {
     expect(browser.tabs).toHaveLength(1);
   });
 
-  it("closes only that conversation's tabs, opening a blank one before closing the last", async () => {
+  it("closes only that conversation's tabs, each pictured first, opening a blank one before closing the last", async () => {
     const browser = engine([{ ...blank(), label: "chat-a", active: true }, { tabId: "t2", targetId: "T2", label: "chat-a~x1", url: "https://example.com/", active: false }]);
     const tabs = new ThreadTabs();
-    expect(await tabs.close("s", "b", browser.rpc)).toEqual({ closed: 0 });
-    expect(await tabs.close("s", "a", browser.rpc)).toEqual({ closed: 2 });
+    expect(await tabs.close("s", "b", browser.rpc)).toEqual({ closed: [] });
+    const { closed } = await tabs.close("s", "a", browser.rpc);
+    expect(closed.map((tab) => [tab.url, tab.image?.toString()])).toEqual([["about:blank", "shot-T1"], ["https://example.com/", "shot-T2"]]);
     expect(browser.tabs.map((tab) => tab.label)).toEqual([null]);
   });
 

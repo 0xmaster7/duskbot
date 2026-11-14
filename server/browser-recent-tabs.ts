@@ -40,6 +40,16 @@ export function shownUrl(value: string): string | null {
   }
 }
 
+function shown(tabs: readonly ClosingTab[]): ClosedTab[] {
+  return [...tabs].sort((a, b) => Number(b.active === true) - Number(a.active === true)).flatMap((tab): ClosedTab[] => {
+    const url = shownUrl(tab.url);
+    if (!url) return [];
+    const title = typeof tab.title === "string" ? tab.title.slice(0, 512) : "";
+    const image = tab.image && tab.image.length > 0 && tab.image.length <= IMAGE_LIMIT ? tab.image : null;
+    return [{ title, url, image }];
+  }).slice(0, RECENT_TABS_LIMIT);
+}
+
 export class RecentTabs {
   readonly #closed = new Map<string, ClosedBrowser>();
   readonly #now: () => number;
@@ -50,32 +60,45 @@ export class RecentTabs {
     this.#keepMs = keepMs;
   }
 
+  /** Tabs closed one conversation at a time while the browser stays open, newest first. */
+  readonly #byChat = new Map<string, ClosedBrowser>();
+
   /** A session's browser closed with these tabs; the active one first. Nothing worth showing forgets the session. */
   record(session: string, tabs: readonly ClosingTab[]): void {
     this.#prune();
-    const kept = [...tabs].sort((a, b) => Number(b.active === true) - Number(a.active === true)).flatMap((tab): ClosedTab[] => {
-      const url = shownUrl(tab.url);
-      if (!url) return [];
-      const title = typeof tab.title === "string" ? tab.title.slice(0, 512) : "";
-      const image = tab.image && tab.image.length > 0 && tab.image.length <= IMAGE_LIMIT ? tab.image : null;
-      return [{ title, url, image }];
-    }).slice(0, RECENT_TABS_LIMIT);
+    const kept = shown(tabs);
     if (kept.length === 0) this.#closed.delete(session);
     else this.#closed.set(session, { at: this.#now(), tabs: kept });
   }
 
+  /** A finished conversation's tabs closed in a browser that stays open; kept beside the earlier ones for the same time. */
+  add(session: string, tabs: readonly ClosingTab[]): void {
+    this.#prune();
+    const kept = shown(tabs);
+    if (kept.length === 0) return;
+    const earlier = this.#byChat.get(session)?.tabs ?? [];
+    this.#byChat.set(session, { at: this.#now(), tabs: [...kept, ...earlier].slice(0, RECENT_TABS_LIMIT) });
+  }
+
+  /** What the browser closed with, then the conversations' tabs it closed before. */
   get(session: string): ClosedBrowser | null {
     this.#prune();
-    return this.#closed.get(session) ?? null;
+    const whole = this.#closed.get(session);
+    const chats = this.#byChat.get(session);
+    if (!whole || !chats) return whole ?? chats ?? null;
+    return { at: Math.max(whole.at, chats.at), tabs: [...whole.tabs, ...chats.tabs].slice(0, RECENT_TABS_LIMIT) };
   }
 
   forget(session: string): void {
     this.#closed.delete(session);
+    this.#byChat.delete(session);
   }
 
   #prune(): void {
     const now = this.#now();
-    for (const [session, closed] of this.#closed) if (now - closed.at >= this.#keepMs) this.#closed.delete(session);
+    for (const kept of [this.#closed, this.#byChat]) {
+      for (const [session, closed] of kept) if (now - closed.at >= this.#keepMs) kept.delete(session);
+    }
   }
 }
 

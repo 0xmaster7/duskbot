@@ -252,7 +252,7 @@ export class RuntimeRouter {
   }
 
   /** A finished conversation's tabs; the new browser keeps its own tabs and is not asked. */
-  closeThreadTabs(session: string, threadId: string): Promise<"closed" | "kept" | "none"> {
+  closeThreadTabs(session: string, threadId: string): ReturnType<BrowserRuntime["closeThreadTabs"]> {
     return this.#old.closeThreadTabs(session, threadId);
   }
   heldBy(session: string): string | null {

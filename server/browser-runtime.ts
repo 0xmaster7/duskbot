@@ -10,7 +10,7 @@ import { launchSettingsKey } from "./browser-launch-key.ts";
 import { AGENT_BROWSER_BATCH_SPEC, agentBrowserStep, planAgentBrowserBatch, PROBE_SCRIPT, probeOfEval, SETTLED_READS, type AgentBrowserCall } from "./browser/agent-browser-batch.ts";
 import { runSteps } from "./browser/batch.ts";
 import { settleNote, settlePage, type PageReader } from "./browser/cdp/settle.ts";
-import { ThreadTabs } from "./browser-thread-tabs.ts";
+import { ThreadTabs, type ClosedThreadTab } from "./browser-thread-tabs.ts";
 import type { Content, ToolResult } from "./browser/shape.ts";
 import { BATCH_TOOL } from "./browser/tools.ts";
 
@@ -914,18 +914,19 @@ export class BrowserRuntime {
 
   /** The same barrier as a restart. Saved sign-ins stay, and a browser attached to the person's own Chrome is never closed. */
   /** Closes a finished conversation's tabs; the caller checks the browser still runs. Kept while a person watches or holds it. */
-  async closeThreadTabs(session: string, threadId: string): Promise<"closed" | "kept" | "none"> {
+  async closeThreadTabs(session: string, threadId: string): Promise<{ outcome: "closed" | "kept" | "none"; tabs: ClosedThreadTab[] }> {
     const gate = this.gates.get(session);
     const spec = gate?.spec;
-    if (!gate || !spec || gate.closing || gate.uncertain || gate.idleClose) return "none";
-    if (gate.owner !== null || gate.watchers > 0) return "kept";
+    if (!gate || !spec || gate.closing || gate.uncertain || gate.idleClose) return { outcome: "none", tabs: [] };
+    if (gate.owner !== null || gate.watchers > 0) return { outcome: "kept", tabs: [] };
     // The bot's tool client stops soon after its last call; the browser it drove runs on, so a new client reaches it.
     const outcome = await this.lanes.run(session, async () => {
       const entry = this.connect(session, spec);
       await entry.client.ready;
       return this.threadTabs.close(session, threadId, (name, args) => entry.client.rpc("tools/call", { name, arguments: args }, 10_000));
     }, this.options.laneWaitMs).catch(() => null);
-    return outcome === null ? "kept" : outcome.closed > 0 ? "closed" : "none";
+    if (outcome === null) return { outcome: "kept", tabs: [] };
+    return { outcome: outcome.closed.length > 0 ? "closed" : "none", tabs: outcome.closed };
   }
 
   async closeIfIdle(session: string, idleMs: number, spec?: { command: string; args?: readonly string[]; env: Record<string, string | undefined> }): Promise<boolean> {

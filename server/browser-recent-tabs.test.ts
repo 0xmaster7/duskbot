@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { RECENT_TABS_LIMIT, RecentTabs, within } from "./browser-recent-tabs.ts";
+import { RECENT_TABS_LIMIT, RECENT_TABS_MS, RecentTabs, within } from "./browser-recent-tabs.ts";
 
 describe("RecentTabs", () => {
   it("keeps the closed tabs for 30 minutes, the active one first, and only pages a person would know", () => {
@@ -34,5 +34,18 @@ describe("RecentTabs", () => {
     expect(await within(new Promise(() => undefined), 5)).toBeNull();
     expect(await within(Promise.reject(new Error("no")), 5)).toBeNull();
     expect(await within(Promise.resolve(3), 5)).toBe(3);
+  });
+
+  it("keeps a finished conversation's tabs beside what the browser later closed with, for the same 30 minutes", () => {
+    let now = 0;
+    const recent = new RecentTabs({ now: () => now });
+    recent.add("bot-a", [{ title: "Form", url: "https://httpbin.org/forms/post", image: Buffer.from("jpg") }, { title: "", url: "about:blank", image: null }]);
+    now = 60_000;
+    recent.add("bot-a", [{ title: "Wiki", url: "https://en.wikipedia.org/", image: null }]);
+    expect(recent.get("bot-a")?.tabs.map((tab) => tab.title)).toEqual(["Wiki", "Form"]);
+    recent.record("bot-a", [{ title: "Last", url: "https://example.com/", image: null, active: true }]);
+    expect(recent.get("bot-a")).toMatchObject({ at: 60_000, tabs: [{ title: "Last" }, { title: "Wiki" }, { title: "Form" }] });
+    now = 60_000 + RECENT_TABS_MS;
+    expect(recent.get("bot-a")).toBeNull();
   });
 });

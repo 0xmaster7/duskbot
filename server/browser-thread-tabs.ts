@@ -9,7 +9,10 @@ const THREAD_ID = /^[\w-]{1,128}$/u;
 
 export type TabRpc = (name: string, args: Record<string, unknown>) => Promise<unknown>;
 
-export interface ListedTab { tabId: string; targetId: string; label: string | null; url: string; active: boolean }
+export interface ListedTab { tabId: string; targetId: string; label: string | null; url: string; title: string; active: boolean }
+
+/** A closed tab as the Computer tab's "What it worked on" keeps it: its last screen as JPEG, or null. */
+export interface ClosedThreadTab { title: string; url: string; image: Buffer | null }
 
 /** The label of a conversation's first tab; later ones it opens itself add a suffix. */
 export function threadTabLabel(threadId: string, extra?: string): string {
@@ -34,11 +37,20 @@ export function listedTabs(result: unknown): ListedTab[] | null {
   return tabs.flatMap((value) => {
     const tab = value as Record<string, unknown> | null;
     if (!tab || typeof tab.tabId !== "string" || typeof tab.targetId !== "string" || (tab.type !== undefined && tab.type !== "page")) return [];
-    return [{ tabId: tab.tabId, targetId: tab.targetId, label: typeof tab.label === "string" ? tab.label : null, url: typeof tab.url === "string" ? tab.url : "", active: tab.active === true }];
+    return [{ tabId: tab.tabId, targetId: tab.targetId, label: typeof tab.label === "string" ? tab.label : null, url: typeof tab.url === "string" ? tab.url : "",
+      title: typeof tab.title === "string" ? tab.title : "", active: tab.active === true }];
   });
 }
 
 const succeeded = (result: unknown): boolean => engineData(result) !== null;
+
+async function lastScreen(tab: ListedTab, rpc: TabRpc): Promise<Buffer | null> {
+  if (!succeeded(await rpc("agent_browser_tab_switch", { tab: tab.targetId }).catch(() => null))) return null;
+  const result = await rpc("agent_browser_screenshot", { format: "jpeg", quality: 70 }).catch(() => null);
+  const content = (result as { isError?: boolean; content?: unknown } | null)?.isError ? null : (result as { content?: unknown } | null)?.content;
+  const image = Array.isArray(content) ? content.find((part) => part?.type === "image" && typeof part.data === "string" && part.data.length > 0) as { data: string } | undefined : undefined;
+  return image ? Buffer.from(image.data, "base64") : null;
+}
 
 /** Calls that manage tabs or the browser itself run on whatever tab is in front. */
 const TAB_TOOLS = new Set(["agent_browser_tab_new", "agent_browser_tab_list", "agent_browser_tab_switch", "agent_browser_tab_close", "agent_browser_close"]);
@@ -66,15 +78,19 @@ export class ThreadTabs {
     if (succeeded(await rpc("agent_browser_tab_new", { label }).catch(() => null))) this.#front.set(session, key);
   }
 
-  /** Closes a conversation's tabs, first opening a blank one when they are all the browser has. */
-  async close(session: string, threadId: string, rpc: TabRpc): Promise<{ closed: number }> {
+  /** Closes a conversation's tabs, each pictured first, opening a blank one when they are all the browser has. */
+  async close(session: string, threadId: string, rpc: TabRpc): Promise<{ closed: ClosedThreadTab[] }> {
     const tabs = listedTabs(await rpc("agent_browser_tab_list", {}));
-    if (!tabs) return { closed: 0 };
+    if (!tabs) return { closed: [] };
     const owned = tabs.filter((tab) => threadOfTabLabel(tab.label) === threadId);
-    if (!owned.length) return { closed: 0 };
+    if (!owned.length) return { closed: [] };
+    const pictured: Array<ListedTab & { image: Buffer | null }> = [];
+    for (const tab of owned) pictured.push({ ...tab, image: await lastScreen(tab, rpc) });
     if (owned.length === tabs.length) await rpc("agent_browser_tab_new", {});
-    let closed = 0;
-    for (const tab of owned) if (succeeded(await rpc("agent_browser_tab_close", { tab: tab.targetId }).catch(() => null))) closed++;
+    const closed: ClosedThreadTab[] = [];
+    for (const tab of pictured) {
+      if (succeeded(await rpc("agent_browser_tab_close", { tab: tab.targetId }).catch(() => null))) closed.push({ title: tab.title, url: tab.url, image: tab.image });
+    }
     if (this.#front.get(session)?.startsWith(`${threadId}:`)) this.#front.delete(session);
     return { closed };
   }
