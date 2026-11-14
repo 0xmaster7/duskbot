@@ -2050,6 +2050,7 @@
   "links.card.issue": "Issue {id}",
   "links.card.reference": "Issue or pull request {id}",
   "links.card.commit": "Commit {id}",
+  "links.card.via": "Via {host}",
   "chat.announce.replied": "{name} replied: {text}",
   "chat.announce.repliedEmpty": "{name} replied",
   "chat.announce.failed": "{name} failed: {text}",

@@ -657,7 +657,7 @@ function MarkdownLink({ href, children, ...rest }: { href?: string; children?: R
   return (
     <LinkHoverCard href={href} github={github}>
       {(hoverAnchor) => { const anchor = withPageOpen(href, openPage, linkMenu.onContextMenu ? { ...hoverAnchor, onContextMenu: linkMenu.onContextMenu } : hoverAnchor); return <>{linkMenu.menu}{Icon ? (
-        <a {...anchor} href={href} target="_blank" rel="noreferrer" dir="ltr" title={href} data-github-ref={github!.kind} className={GITHUB_REF_CLASS}>
+        <a {...anchor} href={href} target="_blank" rel="noreferrer" dir="ltr" data-github-ref={github!.kind} className={GITHUB_REF_CLASS}>
           <Icon size={13} aria-hidden="true" className="shrink-0 self-center text-ink-tertiary" />
           <span>{children}</span>
         </a>

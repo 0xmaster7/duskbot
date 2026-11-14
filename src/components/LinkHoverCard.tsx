@@ -77,15 +77,30 @@ export function imageRatio(image: { width: number | null; height: number | null 
 
 const CARD = "w-[min(20rem,calc(100vw-1rem))] overflow-hidden rounded-2xl bg-composer text-ink shadow-lg ring-1 ring-transparent";
 
-export function LinkPreviewCard({ href, github, preview }: { href: string; github?: GithubRef | null; preview?: LoadedPreview }) {
-  let url: URL | null = null;
+function parsed(address: string | undefined): URL | null {
+  if (!address) return null;
   try {
-    url = new URL(preview?.url ?? href);
+    return new URL(address);
   } catch {
-    url = null;
+    return null;
   }
+}
+
+/** Where a redirect ended, when that is another site than the link names; null when it stays on the link's own host. */
+export function landedHost(href: string, final: string | undefined): string | null {
+  const own = parsed(href), landed = parsed(final);
+  if (!own || !landed || !/^https?:$/.test(landed.protocol)) return null;
+  const host = hostOf(landed);
+  return host && host !== hostOf(own) ? host : null;
+}
+
+export function LinkPreviewCard({ href, github, preview }: { href: string; github?: GithubRef | null; preview?: LoadedPreview }) {
+  // the address is the link's own: the page a redirect lands on (preview.url) is only ever shown as "via", never as
+  // where the link goes, or a link could pass itself off as another site
+  const url = parsed(href);
   const host = url ? hostOf(url) : href;
   const path = url ? pathOf(url) : "";
+  const via = preview ? landedHost(href, preview.url) : null;
   if (preview) {
     const { image, video } = preview;
     return (
@@ -109,6 +124,11 @@ export function LinkPreviewCard({ href, github, preview }: { href: string; githu
           )}
           <div className="mt-3">
             <AddressLine host={host} path={path} github={Boolean(github)} />
+            {via && (
+              <div data-link-preview-via="" dir="ltr" className="mt-0.5 truncate ps-[22px] text-[12px] leading-4 text-ink-tertiary [unicode-bidi:isolate]">
+                {t("links.card.via", { host: via })}
+              </div>
+            )}
           </div>
         </div>
       </div>

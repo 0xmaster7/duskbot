@@ -228,6 +228,26 @@ describe("LinkPreviewCard", () => {
     expect(html).toContain("rounded-2xl bg-composer");
   });
 
+  it("names the link's own host and path, never the page a redirect landed on, which shows only as via", () => {
+    setLocale("en");
+    const href = "https://docs.example.com/guide/start";
+    const landed: LinkPreview = {
+      url: "https://login.evil.example.net/phish?next=1",
+      title: "Sign in", description: null, siteName: null, image: null, video: false,
+    };
+    const html = renderToStaticMarkup(createElement(LinkPreviewCard, { href, preview: landed }));
+    const address = html.slice(html.indexOf('dir="ltr"'));
+    expect(address).toContain(">docs.example.com</span>");
+    expect(address).toContain(">/guide/start</span>");
+    expect(html).toContain("/api/site-icon?domain=docs.example.com");
+    expect(html).not.toContain("/api/site-icon?domain=login.evil.example.net");
+    expect(html).not.toContain("/phish");
+    expect(html).toContain("Via login.evil.example.net");
+    // a redirect that stays on the link's own site adds nothing
+    const same = renderToStaticMarkup(createElement(LinkPreviewCard, { href, preview: { ...landed, url: "https://www.docs.example.com/guide/start/" } }));
+    expect(same).not.toContain("data-link-preview-via");
+  });
+
   it("keeps a picture's shape within reason and gives video 16:9", () => {
     expect(imageRatio({ width: 1200, height: 630 }, false)).toBeCloseTo(1.905, 2);
     expect(imageRatio({ width: 500, height: 500 }, false)).toBeCloseTo(4 / 3);
