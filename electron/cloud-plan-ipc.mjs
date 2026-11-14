@@ -1,5 +1,8 @@
 import { cloudPlanSnapshot, UPGRADE_SOURCES } from "./cloud-account.mjs";
 
+/** the account website pages a page of the app may open signed in (cloud-account.mjs HANDOFF_PAGES, less checkout) */
+export const ACCOUNT_PAGES = Object.freeze(["home", "workspace", "cloud", "billing", "account", "usage"]);
+
 /** Another Cloud of the person's own, as its page may see its plan: its tier and whether it runs, from the session's list. */
 export function otherCloudSnapshot(cloud) {
   const runs = ["ready", "setting_up", "offline"].includes(cloud.status);
@@ -20,6 +23,11 @@ export function installCloudPlanIpc({ ipcMain, pageSender, account, client, noti
   });
   ipcMain.handle("cloud-plan:notice-seen", pageSender("cloud-plan:notice-seen", () => { notices().seen(account()?.state()); }));
   ipcMain.handle("cloud-plan:manage", event => (otherCloud(event) ? client().openDashboard().then(() => {}) : pageSender("cloud-plan:manage", async () => { await client().openDashboard(); })(event)));
+  ipcMain.handle("cloud-plan:open-page", (event, page, workspaceId) => {
+    if (!ACCOUNT_PAGES.includes(page)) throw new Error("Unknown account page.");
+    const open = () => client().webHandoff({ page, ...(page === "workspace" ? { workspaceId: String(workspaceId) } : {}) });
+    return otherCloud(event) ? open() : pageSender("cloud-plan:open-page", open)(event);
+  });
   const upgradeArgs = (plan, source) => {
     const offered = client().state().usage?.upgrades ?? [];
     if (typeof plan !== "string" || !UPGRADE_SOURCES.includes(source) || !offered.some(entry => entry.tier === plan)) throw new Error("Choose a plan to move to.");

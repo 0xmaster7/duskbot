@@ -236,6 +236,8 @@ export interface CloudPlanSnapshot {
 export interface CloudPlanBridge {
   state(): Promise<CloudPlanSnapshot>;
   manage(): Promise<void>;
+  /** A page of the account website, opened signed in (only from the person's click). Absent on an older app. */
+  openPage?(page: Exclude<CloudHandoffPage, "plans">, workspaceId?: string): Promise<CloudWebHandoffResult>;
   /** This device's dusk cloud sign-in, again, once it has ended: only from the person's click. */
   signIn?(): Promise<void>;
   /** The trial's popup due now was shown: main shows it no more today. Absent on an older app. */

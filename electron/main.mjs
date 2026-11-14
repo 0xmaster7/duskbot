@@ -97,7 +97,7 @@ import { createManagedDesktopClient, createManagedDesktopRelay, createManagedDes
 import { createProductEvents } from "./product-events.mjs";
 import { createAccountErrors } from "./account-errors.mjs";
 import { CHECKOUT_SOURCES, cloudMenuSublabel, cloudTarget, createCloudAccountClient, createCloudAccountStore } from "./cloud-account.mjs"; import { isAppLink } from "./cloud-signin.mjs";
-import { installCloudPlanIpc } from "./cloud-plan-ipc.mjs";
+import { ACCOUNT_PAGES, installCloudPlanIpc } from "./cloud-plan-ipc.mjs";
 import { cloudLinkOpensSheet, colorDotIcons, createCloudLook, createCloudReadyNotice, installCloudBuy, lookFile } from "./cloud-buy.mjs";
 import { createAccountEnroll } from "./account-enroll.mjs"; import { cloudMoveLinkWorkspace, createServerEnroll } from "./server-enroll.mjs"; import { accountGateRequired, installAccountGate } from "./account-gate.mjs";
 import { createTrialNotices } from "./cloud-trial-notice.mjs";
@@ -2742,7 +2742,7 @@ for (const method of ["state", "begin", "signInAgain", "reopen", "cancel", "refr
 }
 // a page of the account website, opened signed in; the page is one of a fixed few and the address is built in main
 ipcMain.handle("cloud-account:openPage", localWorkspaceOnly("cloud-account:openPage", async (_event, page, workspaceId) => {
-  if (!["home", "workspace", "cloud", "billing", "account", "usage"].includes(page)) throw new Error("Unknown account page.");
+  if (!ACCOUNT_PAGES.includes(page)) throw new Error("Unknown account page.");
   return ensureCloudAccount().webHandoff({ page, ...(page === "workspace" ? { workspaceId: String(workspaceId) } : {}) });
 }));
 ipcMain.handle("cloud-account:checkout", localWorkspaceOnly("cloud-account:checkout", async (_event, plan, source) => {

@@ -60,6 +60,7 @@
   "cloudPlan.keep",
   "cloudPlan.manage",
   "cloudPlan.noticeSeen",
+  "cloudPlan.openPage",
   "cloudPlan.restartNow",
   "cloudPlan.roomNotNow",
   "cloudPlan.signIn",
