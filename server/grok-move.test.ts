@@ -38,9 +38,10 @@ async function installation() {
   };
   const move = (bot: Record<string, unknown>) => {
     const parsed = parseGrokExport(`Here you go:\n\`\`\`json\n${JSON.stringify({ format: GROK_EXPORT_FORMAT, version: 1, bots: [bot] })}\n\`\`\``);
-    const result = importer.importPackageDocument(grokMovePlan(parsed[0]!, { timeZone: "UTC" }).document, { trust: "file", mode: "add" }, deps);
+    const plan = grokMovePlan(parsed[0]!, { timeZone: "UTC" });
+    const result = importer.importPackageDocument(plan.document, { trust: "file", mode: "add" }, deps);
     if (result.alreadyAdded) throw new Error("unexpected");
-    return result;
+    return { ...result, facts: plan.facts };
   };
   return { store, routines, skills, workspace, mcp, move };
 }
@@ -80,7 +81,9 @@ describe("a moved Bot, through the real package path", () => {
 
     const memory = app.workspace.readMemoryFile(bot.id).text;
     expect(memory).toContain("- The door sticks");
-    expect(memory).toContain("- Lives in Tokyo");
+    // facts about the person go to About me (plan.facts, 633ca1c57), not into the bot's notebook
+    expect(memory).not.toContain("Lives in Tokyo");
+    expect(result.facts).toEqual(["Lives in Tokyo"]);
     expect(app.workspace.readMemoryTopic(bot.id, "grok-bot-event-routines.md")).toContain("Answer it.");
     expect(app.routines.listRoutines().map((routine) => routine.name)).toEqual(["Desk: Open up"]);
 
