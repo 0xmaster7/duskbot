@@ -3,6 +3,7 @@ import { useAmbientAway } from "@/ambient/away";
 import { emailGateDone } from "@/lib/analytics";
 import { clearWelcomeDraft } from "@/lib/welcome-draft";
 import { LOCAL_VIEWER, welcomeDue, welcomeViewer, type WelcomeViewer } from "@/lib/onboarding";
+import { PHONE_LAYOUT } from "@/lib/use-media-query";
 import { api, useStore } from "@/state/store";
 import { WelcomeFlow } from "./WelcomeFlow";
 
@@ -71,6 +72,7 @@ export function WelcomeGate({ viewer }: { viewer: WelcomeViewer | null }) {
         // A first run ends in the chat with the bot it chose, else its Chief; the app tour starts only from Settings.
         const target = botId ?? (replay ? null : fallback?.id);
         if (target) dispatch({ type: "select", id: target });
+        if (target && !replay && !window.matchMedia?.(PHONE_LAYOUT).matches) dispatch({ type: "toggleSettings", open: true });
       }}
     />
   );

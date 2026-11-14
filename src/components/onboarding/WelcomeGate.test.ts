@@ -124,6 +124,31 @@ describe("who gets the welcome flow", () => {
     expect(store.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "select" }));
   });
 
+  it("opens the bot panel once beside the intro chat, but not on a replay or over a phone's chat", () => {
+    const openPanel = { type: "toggleSettings", open: true };
+    const panelOpens = () => store.dispatch.mock.calls.filter(([action]) => action.type === "toggleSettings");
+    const wide = (phone: boolean) => ({ ...LOCAL_PAGE, matchMedia: (query: string) => ({ matches: phone && query.includes("max-width") }) });
+    vi.stubGlobal("window", wide(false));
+    store.state = { ...store.state, bots: [{ id: "maus", chiefOfStaff: true }] };
+    gate(LOCAL_VIEWER).tree!.props.onDone!("maus");
+    expect(panelOpens()).toEqual([[openPanel]]);
+    expect(store.dispatch.mock.calls.map(([action]) => action.type)).toEqual(["toggleWelcome", "select", "toggleSettings"]);
+
+    fixture.values = [];
+    store.dispatch.mockReset();
+    vi.stubGlobal("window", wide(true));
+    gate(LOCAL_VIEWER).tree!.props.onDone!("maus");
+    expect(store.dispatch).toHaveBeenCalledWith({ type: "select", id: "maus" });
+    expect(panelOpens()).toEqual([]);
+
+    fixture.values = [];
+    store.dispatch.mockReset();
+    vi.stubGlobal("window", wide(false));
+    store.state = { ...store.state, welcomeOpen: true, config: { onboarding: { ...EMPTY_ONBOARDING, completedAt: "2026-10-23T00:00:00.000Z", version: WELCOME_VERSION } } };
+    gate(LOCAL_VIEWER).tree!.props.onDone!("maus");
+    expect(panelOpens()).toEqual([]);
+  });
+
   it("leaves a dusk bot Cloud home's first run to its engine sign-in", () => {
     vi.stubGlobal("window", REMOTE_PAGE);
     expect(gate({ canSave: true, cloudHome: true }).tree).toBeNull();
