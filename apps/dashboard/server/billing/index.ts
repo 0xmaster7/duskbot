@@ -142,6 +142,8 @@ export function createBilling(options: BillingOptions) {
   billingStore = store;
   const service = createBillingService({ store, provider, clouds, config, publicUrl: url.origin, now, notify: options.notify, onLedger: options.onLedger, onRetention: options.onRetention });
   if (options.accountExists) service.scrubDeleted(options.accountExists);
+  // a deleted account's clouds left over from before (or by a failed step) are destroyed at start, then every 10 minutes
+  service.destroyDeleted();
   const opsToken = env.DUSK_OPS_TOKEN || null;
   if (opsToken !== null && opsToken.length < 32) throw new Error("DUSK_OPS_TOKEN must be at least 32 characters.");
   if (billingProvider === "preview" && !opsToken) throw new Error("DUSK_BILLING_PROVIDER=preview needs DUSK_OPS_TOKEN for plan grants.");

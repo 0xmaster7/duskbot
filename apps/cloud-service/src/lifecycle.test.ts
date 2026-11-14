@@ -428,6 +428,17 @@ it("the operator deletes an ended plan's cloud at once, through the same final b
   expect(() => f.service.managed!.operatorDelete(c, "test_account")).toThrow("unavailable");
 });
 
+it("a deleted account's home is deleted at once, paid period or not, and only once", async () => {
+  const f = await homeFixture();
+  const { c } = await f.paid();
+  expect(f.service.destroyForDeletedAccount(c.id)).toBe(true);
+  expect(c.ended).toBe(true);
+  await f.settle(c, c => c.status === "destroyed");
+  expect(f.api.deletes()).toHaveLength(1);
+  expect(f.audit.entries(c.id).some(e => e.action === "delete_confirmed" && e.reason === "account_deleted")).toBe(true);
+  expect(f.service.destroyForDeletedAccount(c.id)).toBe(false);
+});
+
 it("tells a busy home's open apps it is going to sleep on the owner's pause, then stops it after the grace", async () => {
   const f = await homeFixture();
   const { c } = await f.paid();

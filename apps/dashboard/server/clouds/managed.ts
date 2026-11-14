@@ -59,6 +59,8 @@ export interface ManagedCloud {
   /** the operator's deletion of a cloud whose plan ended (test accounts, abuse): skips the retention wait and the owner's
    *  undo window, nothing else; the deletion itself still takes its final backup first */
   operatorDelete(cloud: StoredCloud, reason: string): void;
+  /** its account was deleted: deleted at once (no 7-day undo, nobody is left to undo it), past any paid period, unless held */
+  accountDeleted?(cloud: StoredCloud): void;
   /** apply a pending plan change now instead of at the next idle sleep */
   resizeNow(cloud: StoredCloud): void;
   resizing(cloud: StoredCloud): boolean;

@@ -1052,6 +1052,16 @@ export function createLifecycle(deps: LifecycleDeps) {
       log(c, "delete_confirmed", "operator", reason);
       c.nextAttemptAt = 0; deps.save(c);
     },
+    /** its account was deleted (the website, the app or the phone): confirmed at once, whatever the plan said; a hold
+     *  still stops it. the reconciler deletes the machine and its archive and asks again until the provider confirms */
+    accountDeleted(c: StoredCloud) {
+      const b = state(c);
+      if (c.status === "destroyed" || c.status === "destroying" || b.deletion) return;
+      if (b.deleteRequest?.confirmedAt && b.deleteRequest.cancelledAt === null && b.deleteRequest.executeAfter !== null && b.deleteRequest.executeAfter <= now()) return;
+      b.deleteRequest = { requestedAt: now(), tokenHash: null, tokenExpiresAt: null, confirmedAt: now(), executeAfter: now(), cancelledAt: null };
+      log(c, "delete_confirmed", "owner", "account_deleted");
+      c.nextAttemptAt = 0; deps.save(c);
+    },
     cancelDelete(c: StoredCloud) {
       const b = state(c);
       if (!b.deleteRequest || b.deleteRequest.cancelledAt !== null || b.deletion || c.status === "destroying" || c.status === "destroyed") throw new ManagedCloudError(409, "unavailable");

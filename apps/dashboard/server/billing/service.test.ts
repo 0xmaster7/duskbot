@@ -33,6 +33,7 @@ function fakeClouds() {
       const cloud = get(id); if (!cloud?.ended || cloud.status === "destroyed") return false;
       Object.assign(cloud, plan, { subscriptionId, ended: undefined, endedAt: undefined, destroyAt: null, status: "running", revivedAt: time }); return true;
     }),
+    destroyForDeletedAccount: vi.fn((id: string) => { const cloud = get(id)!; if (cloud.status === "destroyed") return false; Object.assign(cloud, { ended: true, endedAt: time, destroyAt: time }); return true; }),
     scrubAccount: (accountId, anonId) => { for (const cloud of rows) if (cloud.accountId === accountId) { cloud.accountId = anonId; cloud.name = "Deleted"; } },
     get, owned: (accountId, id) => rows.find(cloud => cloud.id === id && cloud.accountId === accountId) ?? null, byWorkspace: workspaceId => rows.find(cloud => cloud.workspaceId === workspaceId) ?? null,
     list: (accountId, includeHidden = false) => rows.filter(cloud => cloud.accountId === accountId && (includeHidden || !cloud.hidden)),
@@ -695,6 +696,23 @@ describe("App Review's demo plan", () => {
     const rows = store.state.ledger!.slice(before).filter(row => row.subscriptionId === sub.id && typeof row.mrrCents === "number");
     expect(rows.length).toBeGreaterThan(0);
     expect(rows.map(row => row.mrrCents)).toEqual(rows.map(() => 0));
+  });
+  it("a deleted account's clouds are destroyed at once, whatever was asked, and the sweep finds any left behind", async () => {
+    const { answer } = await buy();
+    await service.closeAccount(owner, { destroyDesktopsNow: false });
+    expect(clouds.get(answer.cloudId!)!.destroyAt).toBeGreaterThan(time);
+    service.accountDeleted(owner.id);
+    const cloud = clouds.get(answer.cloudId!)!;
+    expect(cloud.accountId).not.toBe(owner.id);
+    expect(clouds.destroyForDeletedAccount).toHaveBeenCalledWith(answer.cloudId);
+    expect(cloud.destroyAt).toBe(time);
+    // one a restart or a failed step left: the sweep ends it again
+    Object.assign(cloud, { destroyAt: null, ended: false });
+    vi.mocked(clouds.destroyForDeletedAccount).mockClear();
+    expect(service.destroyDeleted()).toBe(1);
+    expect(clouds.destroyForDeletedAccount).toHaveBeenCalledWith(answer.cloudId);
+    cloud.status = "destroyed";
+    expect(service.destroyDeleted()).toBe(0);
   });
   it("its owner's account deletion still ends the cloud: the flag is cleared before the desktops step", async () => {
     const { answer } = await buy();

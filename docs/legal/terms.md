@@ -72,7 +72,7 @@ You may send feedback to hello@dusk.bot. Do not include confidential material or
 
 We may suspend or end access to our services if you materially breach these terms, create a security risk or use them unlawfully. Where practical and lawful, we will tell you the reason and give you a chance to address it. Urgent risks may require action first.
 
-You may stop using the services. Account deletion is self-serve on the Account page. You must first cancel active plans and cloud desktops. The page offers to cancel them. Deletion removes your account, sessions, identities and linked workspaces, and ends any work license on it at once. A cloud desktop of a deleted account stops (at once, or when its paid time ends), is kept for 30 days, and is then deleted. Separate provider records follow their own applicable rules.
+You may stop using the services. Account deletion is self-serve on the Account page. You must first cancel active plans and cloud desktops. The page offers to cancel them. Deletion removes your account, sessions, identities and linked workspaces, and ends any work license on it at once. A cloud desktop of a deleted account is deleted right away. Separate provider records follow their own applicable rules.
 
 ## Disclaimers and your review
 

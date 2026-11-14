@@ -42,4 +42,4 @@ questions about a charge? write to hello@dusk.bot from the email on your account
 
 ## your data and deleting the account
 
-the account page has **Download your data** and **delete account**. deleting it doesn't touch anything on your own computer or server, and an active plan has to be cancelled first (the page offers to). a cloud computer on the account stops (at once, or when its paid time ends), is kept for 30 days, then deleted.
+the account page has **Download your data** and **delete account**. deleting it doesn't touch anything on your own computer or server, and an active plan has to be cancelled first (the page offers to). a cloud computer on the account is deleted right away, so download anything you want to keep first.

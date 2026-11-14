@@ -234,7 +234,8 @@ it("does not give a recreated account the deleted account's license", async () =
   expect(f.dashboard.state.accounts).toHaveLength(0);
   expect(f.dashboard.state.workspaces).toHaveLength(0);
   expect(f.saved().subscriptions[0].cancelAtPeriodEnd).toBe(true);
-  expect(cloud).toMatchObject({ status: "running", destroyAt: before.subscriptions[0].currentPeriodEnd! + 30 * 86_400_000 });
+  // a deleted account's cloud is destroyed at once, paid period or not: nobody is left to use or undo it
+  expect(cloud).toMatchObject({ ended: true, destroyAt: f.now() });
   f.setTime(f.now() + 30_000);
   const replacement = await f.login();
   expect(replacement.account.id).not.toBe(owner.account.id);
@@ -322,7 +323,7 @@ it("closes billing, revokes licenses and scrubs personal records while retaining
   expect(closure.anonId).toMatch(/^anon_[A-Za-z0-9_-]{22}$/);
   expect(closure.accountId).toBe(closure.anonId); expect(closure.completedAt).toBe(f.now());
   expect(f.billing.fake!.cancelCalls).toEqual([{ subscriptionId: sub.providerSubscriptionId, cancel: true }]);
-  expect(f.billing.clouds.get(checkout.cloudId!)).toMatchObject({ accountId: closure.anonId, name: "Deleted", destroyAt: sub.currentPeriodEnd! + 30 * 86_400_000 });
+  expect(f.billing.clouds.get(checkout.cloudId!)).toMatchObject({ accountId: closure.anonId, name: "Deleted", ended: true, destroyAt: f.now() });
   expect(saved.licenses[0]).toMatchObject({ ownerAccountId: closure.anonId, status: "expired", validUntil: f.now() });
   expect(saved.licenses[1].members).toHaveLength(1);
   expect(saved.invoices[0]).toMatchObject({ accountId: closure.anonId, amountCents: quote(bundle("pro")).totalCents, currency: "USD", status: "paid" });
@@ -332,20 +333,16 @@ it("closes billing, revokes licenses and scrubs personal records while retaining
   f.billing.accountDeleted(owner.account.id); expect(f.saved()).toEqual(saved);
 });
 
-it("stops desktops at once when immediate destruction was requested, keeps their data 30 days, then destroys them", async () => {
-  const f = await fixture(), owner = await f.login();
-  const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: bundle("starter") }, owner.cookie);
-  await f.complete(checkout.checkoutId); await f.reconcile();
-  const closedAt = f.now();
-  await f.answer("/v1/account/delete", { email: owner.account.email, cancelBilling: true, destroyDesktopsNow: true }, owner.cookie);
-  await f.billing.clouds.reconcile();
-  const cloud = f.billing.clouds.get(checkout.cloudId!)!;
-  expect(cloud).toMatchObject({ ended: true, destroyAt: closedAt + 30 * 86_400_000 });
-  expect(cloud.status).not.toBe("destroyed");
-  f.setTime(closedAt + 30 * 86_400_000 + 60_000);
-  await f.billing.clouds.reconcile();
-  expect(f.billing.clouds.get(checkout.cloudId!)?.status).toBe("destroyed");
-});
+for (const destroyDesktopsNow of [true, false]) {
+  it(`destroys a deleted account's desktops at once (destroyDesktopsNow ${destroyDesktopsNow}), the app's and the phone's delete included`, async () => {
+    const f = await fixture(), owner = await f.login();
+    const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: bundle("starter") }, owner.cookie);
+    await f.complete(checkout.checkoutId); await f.reconcile();
+    await f.answer("/v1/account/delete", { email: owner.account.email, cancelBilling: true, destroyDesktopsNow }, owner.cookie);
+    await f.billing.clouds.reconcile();
+    expect(f.billing.clouds.get(checkout.cloudId!)?.status).toBe("destroyed");
+  });
+}
 
 it("keeps the account on provider failure and resumes without cancelling completed subscriptions twice", async () => {
   const f = await fixture(), owner = await f.login();

@@ -357,6 +357,17 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
       return true;
     },
     get,
+    destroyForDeletedAccount(id) {
+      const c = requireCloud(id);
+      if (c.status === "destroyed") return false;
+      if (c.status === "checkout") { c.status = "destroyed"; c.updatedAt = now(); save(c); return true; }
+      if (c.review) delete c.review;
+      const at = now();
+      delete c.endsAt; if (!c.ended) c.endedAt = at; c.ended = true; c.wantPower = "off"; c.destroyAt = at; c.nextAttemptAt = 0; save(c);
+      if (c.backend && c.status !== "destroying") managed?.accountDeleted?.(c);
+      kick();
+      return true;
+    },
     scrubAccount(accountId, anonId) {
       for (const cloud of store.state.clouds) if (cloud.accountId === accountId) { cloud.accountId = anonId; cloud.name = "Deleted"; cloud.suspended = cloud.suspended === null ? null : "Account deleted"; }
       store.commit();

@@ -185,7 +185,7 @@ describe("one origin: the short install line", () => {
     const link = createServer((req, res) => { hits.push({ url: req.url ?? "", ip: String(req.headers["x-real-ip"] ?? "") }); res.writeHead(200, { "content-type": "text/plain" }); res.end("#!/bin/sh\n"); });
     await new Promise<void>(resolve => link.listen(0, "127.0.0.1", resolve));
     const dataDir = mkdtempSync("/private/tmp/dusk-short-line-");
-    const app = createDashboardApp({ dataDir, publicUrl: "https://dusk.test", mailer: memoryMailer(), linkUpstream: `http://127.0.0.1:${(link.address() as { port: number }).port}` });
+    const app = createDashboardApp({ dataDir, staticDir: dataDir, publicUrl: "https://dusk.test", mailer: memoryMailer(), linkUpstream: `http://127.0.0.1:${(link.address() as { port: number }).port}` });
     const server = createServer(app.handle);
     await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
     const base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;

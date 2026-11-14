@@ -201,6 +201,9 @@ export interface CloudsService {
   /** a new subscription brings an ended cloud back with its data; false when it no longer can (deleted meanwhile) */
   revive(cloudId: string, subscriptionId: string, plan: DesktopPlan): boolean;
   scrubAccount(accountId: string, anonId: string): void;
+  /** its account was deleted: ended now and destroyed (a managed home through its own gated delete, machine and archive
+   *  included, tried again until the provider confirms); true when it was not already destroyed */
+  destroyForDeletedAccount(cloudId: string): boolean;
   get(cloudId: string): StoredCloud | null;
   owned(accountId: string, cloudId: string): StoredCloud | null;
   /** the desktop a signed workspace belongs to */
