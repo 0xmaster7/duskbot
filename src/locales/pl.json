@@ -5788,8 +5788,6 @@
   "routeTraffic.offline": "Używa sieci serwera, Twój komputer jest offline",
   "routeTraffic.error": "Nie zapisano. Spróbuj ponownie.",
   "linkDirect.title": "Szybkie połączenie bezpośrednie",
-  "linkDirect.direct": "Prosto do twojego serwera przez jego port SSH. Gdy ten port jest zablokowany, wraca do przekaźnika.",
-  "linkDirect.relay": "Teraz przez przekaźnik. Samo przejdzie na bezpośrednie, gdy port SSH twojego serwera odpowie.",
   "linkDirect.off": "Wszystko idzie przez przekaźnik. Włącz, aby łączyć się z serwerem bezpośrednio przez jego port SSH, z przekaźnikiem w zapasie.",
   "routeTraffic.notice": "Twój komputer jest offline, więc komputery botów na razie korzystają z sieci serwera. Wrócą, gdy będzie online.",
   "macControl.title": "pozwól botom korzystać z twojego urządzenia {device}",

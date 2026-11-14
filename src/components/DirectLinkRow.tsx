@@ -38,7 +38,8 @@ export function DirectLinkRow() {
     }
   };
 
-  const hint = !status.on ? t("linkDirect.off") : status.path === "direct" ? t("linkDirect.direct") : t("linkDirect.relay");
+  // which way the app reaches the server now; the cloudflare backup and the cloud relay stay on when the switch is off
+  const hint = status.path === "direct" ? t("linkDirect.direct") : status.path === "cloudflare" ? t("linkDirect.cloudflare") : !status.on ? t("linkDirect.off") : t("linkDirect.relay");
   return (
     <>
       <SwitchRow

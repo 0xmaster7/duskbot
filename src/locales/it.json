@@ -5625,8 +5625,6 @@
   "about.copyVersion": "Copia info versione",
   "about.copied": "Copiato",
   "linkDirect.title": "Connessione diretta veloce",
-  "linkDirect.direct": "Dritto al tuo server tramite la sua porta SSH. Torna al relay se quella porta è bloccata.",
-  "linkDirect.relay": "Al momento sul relay. Passa al diretto da solo appena la porta SSH del tuo server risponde.",
   "linkDirect.off": "Tutto passa dal relay. Attivala per raggiungere il tuo server direttamente tramite la sua porta SSH, con il relay come riserva.",
   "routeTraffic.notice": "Il tuo computer è offline, quindi per ora i computer dei bot usano la rete del server. Torneranno indietro appena sarà online.",
   "macControl.title": "consenti ai bot di usare il tuo {device}",

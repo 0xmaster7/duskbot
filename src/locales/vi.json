@@ -4751,8 +4751,6 @@
   "routeTraffic.offline": "Đang dùng mạng của máy chủ, máy tính của bạn đang ngoại tuyến",
   "routeTraffic.error": "Chưa lưu được. Hãy thử lại.",
   "linkDirect.title": "Kết nối trực tiếp nhanh",
-  "linkDirect.direct": "Thẳng tới máy chủ qua cổng SSH của nó. Chuyển sang relay khi cổng đó bị chặn.",
-  "linkDirect.relay": "Đang dùng relay. Tự chuyển sang trực tiếp khi cổng SSH của máy chủ phản hồi.",
   "linkDirect.off": "Mọi thứ đi qua relay. Bật để kết nối thẳng tới máy chủ qua cổng SSH, relay làm dự phòng.",
   "routeTraffic.notice": "Máy tính của bạn đang ngoại tuyến nên máy tính của bot tạm dùng mạng của máy chủ. Chúng sẽ quay lại khi máy trực tuyến.",
   "macControl.title": "cho phép bot sử dụng {device} của bạn",

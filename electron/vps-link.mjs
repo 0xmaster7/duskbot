@@ -757,7 +757,9 @@ export function createVpsLink(deps) {
     const link = linkAt(origin);
     if (!link || link.mode !== "relay" || !deps.direct) return null;
     const proxy = proxies.get(link.id);
-    const path = proxy?.transport?.() === "direct" && proxy.directVia?.() !== "cloud" ? "direct" : "relay";
+    // the cloud relay is a relay; the server's cloudflare tunnel is its own
+    const via = proxy?.transport?.() === "direct" ? proxy.directVia?.() : null;
+    const path = !via || via === "cloud" ? "relay" : via === "cf" ? "cloudflare" : "direct";
     return { on: !link.directOff, path, ...(path === "direct" && proxy?.directVia?.() ? { via: proxy.directVia() } : {}) };
   }
 

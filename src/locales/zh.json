@@ -6367,8 +6367,6 @@
   "routeTraffic.offline": "正在使用服务器的网络，你的电脑已离线",
   "routeTraffic.error": "没有保存成功，请再试一次。",
   "linkDirect.title": "快速直连",
-  "linkDirect.direct": "通过服务器的 SSH 端口直接连接。该端口被封锁时改用中继。",
-  "linkDirect.relay": "目前走中继。服务器的 SSH 端口一响应就会自动改为直连。",
   "linkDirect.off": "所有流量都走中继。开启后通过 SSH 端口直接连接服务器，中继作为备用。",
   "routeTraffic.notice": "你的电脑已离线，机器人电脑暂时使用服务器的网络。电脑上线后会自动切回。",
   "macControl.title": "允许机器人使用你的 {device}",

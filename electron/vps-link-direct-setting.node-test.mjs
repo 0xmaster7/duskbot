@@ -44,7 +44,7 @@ function setup({ direct = true, controlFails = new Set(), extra = {}, deps = {},
     ...deps,
     ...(direct ? { direct: { newKey: () => ({ privateKey: "private", publicKey: `ssh-ed25519 ${"B".repeat(68)}` }), connector: () => async () => ({}) } } : {}),
   });
-  return { link, controls, uses, hellos, specs, stored: () => value.links[0] };
+  return { link, proxy, controls, uses, hellos, specs, stored: () => value.links[0] };
 }
 
 test("the direct path comes up by itself once the tunnel is open", async () => {
@@ -151,5 +151,21 @@ test("a cloudflare address that is not there yet joins the running direct path l
   assert.deepEqual(uses, ["on"], "the direct path is set up once");
   await specs[0].connect().catch(() => {});
   assert.deepEqual(dialled.sort(), ["cf", "ssh"]);
+  await link.close();
+});
+
+test("the row says which way the app reaches the server: directly, through its cloudflare tunnel, or through the relay", async () => {
+  const { link, proxy } = setup();
+  await link.resume();
+  let via = "ssh";
+  proxy.transport = () => "direct";
+  proxy.directVia = () => via;
+  assert.deepEqual(link.directSetting(ORIGIN), { on: true, path: "direct", via: "ssh" });
+  via = "cf";
+  assert.deepEqual(link.directSetting(ORIGIN), { on: true, path: "cloudflare" });
+  via = "cloud";
+  assert.deepEqual(link.directSetting(ORIGIN), { on: true, path: "relay" });
+  proxy.transport = () => "relay";
+  assert.deepEqual(link.directSetting(ORIGIN), { on: true, path: "relay" });
   await link.close();
 });

@@ -2830,8 +2830,6 @@
   "routeTraffic.offline": "Réseau du serveur utilisé, ton ordinateur est hors ligne",
   "routeTraffic.error": "Ce n'est pas enregistré. Réessaie.",
   "linkDirect.title": "Connexion directe rapide",
-  "linkDirect.direct": "Directement vers ton serveur par son port SSH. Repasse par le relais si ce port est bloqué.",
-  "linkDirect.relay": "Sur le relais pour le moment. Passe en direct tout seul dès que le port SSH de ton serveur répond.",
   "linkDirect.off": "Tout passe par le relais. Active-la pour joindre ton serveur directement par son port SSH, avec le relais en secours.",
   "routeTraffic.notice": "Ton ordinateur est hors ligne, donc tes ordinateurs de bots utilisent le réseau du serveur pour l'instant. Ils reviendront dès qu'il sera en ligne.",
   "routines.inline.when": "Quand",

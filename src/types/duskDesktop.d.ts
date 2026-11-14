@@ -23,7 +23,7 @@ declare global {
 const __APP_VERSION__: string;
 
   /** the direct ssh path of a relay-linked server: whether it is allowed, and the path a request takes now */
-  interface LinkDirectState { on: boolean; path: "direct" | "relay" }
+  interface LinkDirectState { on: boolean; path: "direct" | "cloudflare" | "relay"; via?: string }
   type DesktopCapabilities = {
     host: {
       platform: "darwin" | "linux" | "win32" | "other";
