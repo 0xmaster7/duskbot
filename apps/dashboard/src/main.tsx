@@ -146,7 +146,7 @@ function App() {
   if (path === HANDOFF_PATH) return <Suspense fallback={blank}><HandoffPage /></Suspense>;
   if (accountError) return <main className="flex min-h-[100dvh] items-center justify-center bg-bg px-6"><SkyEmpty art="cat" title="can't reach your account right now." action={<Button variant="primary" onClick={retryAccount}>try again</Button>} className="w-full max-w-[520px]">check your connection. your bots are fine, they live on your own computers.</SkyEmpty></main>;
   if (account === undefined) return <div className="min-h-[100dvh] bg-bg" aria-busy="true" />;
-  if (account === null) return <AuthScreen mode={path === "/signup" ? "signup" : "signin"} note={path === "/claim" ? "sign in to connect the workspace you opened this from." : path === "/cloud/desktop" ? "sign in to finish signing in the desktop app." : deleteSignInNote(path)} />;
+  if (account === null) return <AuthScreen mode={path === "/signup" ? "signup" : "signin"} forApp={path === "/cloud/desktop"} note={path === "/claim" ? "sign in to connect the workspace you opened this from." : path === "/cloud/desktop" ? "sign in to finish signing in the desktop app." : deleteSignInNote(path)} />;
   return <SignedIn />;
 }
 

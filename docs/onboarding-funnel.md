@@ -59,9 +59,10 @@ AI while the cloud is made → making your cloud → the cloud's chat, with no s
   this Mac instead. A browser that didn't open says so and offers the page again.
 - **Kind upsell.** dusk cloud is offered on the first screen and once on this Mac's sheet, never again in the run.
 
-## Analytics (opt-in only)
+## Analytics
 
-Sent through `track()` as `app_action` events, only when "Help improve dusk bot" is on:
+Sent through `track()` as `app_action` events while "Help improve dusk bot" is on. It is on by default in the desktop
+app (an opt-out); its one line sits at the foot of the place step, and Settings has it too (see `docs/analytics.md`):
 
 - `onboarding_step` `{ step, path?, ms? }`: each screen shown, the path (`mac` / `cloud`) once picked, and the time
   spent on the screen before.

@@ -161,7 +161,8 @@ await runFlow(flow, async () => {
           await browser.evaluate(`document.querySelector("input[type=email]").focus(); true`);
           await browser.send("Input.insertText", { text: email });
           const asked = Date.now();
-          await browser.click("continue");
+          // the email form's own submit ("continue"; the provider buttons also start with "continue with")
+          await browser.evaluate(`document.querySelector("input[type=email]").form.requestSubmit(); true`);
           const code = await until(() => testMailCode(email, asked), { timeout: 60_000, every: 1_000, what: "the website's sign-in code" });
           await until(() => browser.evaluate(`Boolean(document.querySelector("input[inputmode=numeric]"))`), { what: "the code field" });
           await browser.evaluate(`document.querySelector("input[inputmode=numeric]").focus(); true`);
