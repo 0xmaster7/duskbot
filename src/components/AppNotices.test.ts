@@ -162,11 +162,13 @@ describe("the card after the update", () => {
     returning();
     const html = await launch();
     const words = [INTRO, "Free for 7 days", "dusk cloud runs your bots for you in the cloud, always available.", "Routines run on time, day and night",
-      "Reach your bots from your phone, even with this computer off", "Then from $15/month + tax. Cancel any time.",
+      "Then from $15/month + tax. Cancel any time.",
       "14-day money-back on every plan.", "Start free trial", "Show me how", "Sign in to your cloud plan", "Not now"];
     for (const text of words) expect(html).toContain(text);
     for (let i = 1; i < words.length; i++) expect(html.indexOf(words[i - 1]!), words[i]).toBeLessThan(html.indexOf(words[i]!));
     for (const gone of ["launch price", "first 100", "$89", "New features first", "Get Pro", STAR]) expect(html).not.toContain(gone);
+    // the phone app is off until it ships (phoneAppEnabled), so its line stays off the card
+    expect(html).not.toContain("Reach your bots from your phone");
     expect(html).not.toContain('aria-modal="true"');
     expect(bridges.cloud.offer).toHaveBeenCalled();
     expect(track).toHaveBeenCalledWith("cloud_card_shown", { variant: "signed_out" });
