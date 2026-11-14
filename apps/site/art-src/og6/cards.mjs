@@ -149,7 +149,7 @@ const META = {
   docs: { core: ['docs'], alt: 'everything your bots can do: a blue pixel bot reading over a big open notebook, a yellow bot sitting on a stack of books, a magnifying glass' },
   about: { core: ['about'], alt: "who's behind the bots: four pixel bots sitting on a cloud, chatting \"who made this?\" \"we did most of it.\"" },
   changelog: { core: ['changelog'], alt: 'the bots learned new tricks: three pixel bots balanced on each other\'s heads while the others cheer' },
-  contact: { core: ['contact'], alt: 'a human reads every message: a blue pixel bot beside a pink desk phone, chatting "hello? anyone there?" "yes. a real person."' },
+  contact: { core: ['contact', 'support'], alt: 'a human reads every message: a blue pixel bot beside a pink desk phone, chatting "hello? anyone there?" "yes. a real person."' },
   404: { core: ['404'], alt: "you found the bots' secret room: pixel bots asleep on a hill at night under the moon, one ghost bot wide awake" },
   integrations: { seo: '/integrations', alt: 'your bots already know your apps: the gmail, slack, notion, github, calendar and linear marks floating around a pink pixel bot with heart eyes' },
   alternatives: { seo: '/alternatives', alt: 'before you pick an ai agent: two pixel bots back to back at a signpost, looking different ways' },
@@ -299,7 +299,7 @@ for (const f of fs.readdirSync(path.join(D, 'pages', 'docs')).filter((x) => x.en
     body: `<div style="position:absolute;inset:0;transform:scale(${K});transform-origin:600px ${f0(600)}px">${tile(`<img src="${A}/mark-320.webp" alt="">`, 96, 352, f0(400) - 102) + bot('kit', 'violet', 'wink', 130, 530, f0(530)) + sw}</div>` });
   META.brand = { core: ['brand'], alt: 'the bots, the mark, the colours: the dusk bot mark, a purple cat bot winking and five colour swatches, on a hill under a blue pixel sky' }; }
 { const c = familyCard('topic', { seed: '/legal', title: 'the fine print, in plain words', line: 'terms, privacy, license and security.', props: ['p-shield'], pose: 'focus' });
-  S.legal = c.html; META.legal = { core: ['legal', 'terms', 'privacy', 'license', 'security'], alt: c.alt }; }
+  S.legal = c.html; META.legal = { core: ['legal', 'terms', 'privacy', 'license', 'security', 'delete-account'], alt: c.alt }; }
 
 fs.mkdirSync(OUT, { recursive: true });
 for (const [k, v] of Object.entries(S)) fs.writeFileSync(`${OUT}/${k}.html`, v);

@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["S85QBF7KWC.bot.dusk.mobile"],
+        "components": [
+          { "/": "/m/open", "comment": "opens a chat or bot in the phone app" },
+          { "/": "/m/pair", "comment": "pairs the phone app with a computer" }
+        ]
+      }
+    ]
+  }
+}

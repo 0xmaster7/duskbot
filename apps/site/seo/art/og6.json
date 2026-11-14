@@ -59,7 +59,8 @@
  {
   "id": "contact",
   "core": [
-   "contact"
+   "contact",
+   "support"
   ],
   "alt": "a human reads every message: a blue pixel bot beside a pink desk phone, chatting \"hello? anyone there?\" \"yes. a real person.\"",
   "hash": "98a891e78c5270de"
@@ -1423,7 +1424,8 @@
    "terms",
    "privacy",
    "license",
-   "security"
+   "security",
+   "delete-account"
   ],
   "alt": "the fine print, in plain words: a green pixel bot beside a shield, a friend next to it, on a hill under a blue pixel sky",
   "hash": "464b3a8660eb0b74"

@@ -116,11 +116,17 @@ describe("one origin: dashboard, admin and site", () => {
     await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
     url = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
 
-    for (const path of ["/dashboard", "/dashboard/", "/dashboard/billing?plan=plus", "/dashboard/account", "/dashboard/bots/b1", "/dashboard/usage",
-      "/dashboard/signup", "/dashboard/welcome", "/dashboard/devices", "/dashboard/nope", "/dashboard/index.html", "/billing", "/account", "/signup", "/connectors", "/cloud"]) {
+    for (const path of ["/dashboard", "/dashboard/", "/dashboard/billing?plan=plus", "/dashboard/bots/b1", "/dashboard/usage",
+      "/dashboard/signup", "/dashboard/welcome", "/dashboard/devices", "/dashboard/nope", "/dashboard/index.html", "/billing", "/signup", "/connectors", "/cloud"]) {
       const answer = await get(path);
       expect([path, answer.status, answer.headers.get("location")]).toEqual([path, 302, "/"]);
     }
+    // the account page (where the app stores send people to delete an account) goes to the site's page about it
+    for (const path of ["/account", "/account/", "/dashboard/account"]) {
+      const answer = await get(path);
+      expect([path, answer.status, answer.headers.get("location")]).toEqual([path, 302, "/delete-account"]);
+    }
+    expect((await get("/account/devices")).headers.get("location")).toBe("/");
     expect((await fetch(`${url}/dashboard/billing`, { method: "HEAD", redirect: "manual" })).status).toBe(302);
     // a plain visit to a flow's page goes home too: nothing on it came from the app or an emailed link
     for (const path of ["/dashboard/sign-in", "/dashboard/signin", "/dashboard/sign-in?next=%2Fbilling", "/dashboard/sign-in?next=%2F%2Fevil.test",

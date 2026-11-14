@@ -634,6 +634,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
         // the admin panel and its sign-in are used from preview before launch; /v1/admin (the API) stays
         if (under(path, ADMIN_PATH)) return moved(res, 302, "/");
         const page = under(path, pageBase) ? path.slice(pageBase.length) || "/" : PAGE_ROUTES.some(route => under(path, route)) ? path : null;
+        // the app stores link to the account page for deleting an account; before launch the site's page says how
+        if (page === "/account" || page === "/account/") return moved(res, 302, "/delete-account");
         if (page !== null && !prelaunchOpen(page, url.searchParams, auth.prelaunchLive)) return moved(res, 302, "/");
       }
       if (under(path, ADMIN_PATH)) {

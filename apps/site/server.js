@@ -250,7 +250,8 @@ const server = http.createServer((req, res) => {
     }
   }
   let body = fs.readFileSync(file);
-  const type = TYPES[path.extname(file)] || 'application/octet-stream';
+  // apple reads the universal link file as json, and it has no extension
+  const type = urlPath === '/.well-known/apple-app-site-association' ? 'application/json' : TYPES[path.extname(file)] || 'application/octet-stream';
   const headers = {
     'Content-Type': type,
     // the installer, its checksum and the update manifest must never be served stale after a refresh; a url
