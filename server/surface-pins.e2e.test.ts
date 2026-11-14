@@ -399,7 +399,7 @@ describe("surface pin provenance against the real server", () => {
     writeFileSync(finishFile, "finish");
     await until(() => lastRow(), row => row.startsWith("error:"));
     await idle(bot.id, task.threadId);
-    expect(await lastRow()).toBe("error: The fixture VPS does not answer. This conversation is back on Auto. Send your message again.");
+    expect(await lastRow()).toBe("error: The fixture VPS does not answer. This conversation is back on auto. Send your message again.");
     const cleared = savedTask(bot.id, task.threadId)!;
     expect(cleared.surface).toBeUndefined();
     expect(cleared.surfaceSource).toBeUndefined();
@@ -444,7 +444,7 @@ describe("surface pin provenance against the real server", () => {
     await until(async () => String((await lastRow()).name ?? ""), row => row.startsWith("error:"));
     await idle(bot.id, task.threadId);
     const failed = await lastRow();
-    expect(failed.name).toBe("error: The fixture VPS does not answer. This conversation is back on Auto. Send your message again.");
+    expect(failed.name).toBe("error: The fixture VPS does not answer. This conversation is back on auto. Send your message again.");
     expect(failed.place).toMatchObject({ state: "place-failed", source: "auto-pin" });
     const cleared = savedTask(bot.id, task.threadId)!;
     expect(cleared.surface).toBeUndefined();

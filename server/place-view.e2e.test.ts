@@ -134,7 +134,7 @@ describe("a cloud computer that can't start, against the real server", () => {
     await start();
     await send(bot.id, bot.threadId, "Carry on on the desktop.");
     const row = await failedRow(bot.threadId);
-    expect(row.tool.name).toBe(`error: ${NO_VPS} This conversation is back on Auto. Send your message again.`);
+    expect(row.tool.name).toBe(`error: ${NO_VPS} This conversation is back on auto. Send your message again.`);
     expect(row.tool.place).toEqual({ state: "place-failed", params: { bot: "Pinned Bot", cause: NO_VPS }, source: "auto-pin" });
     await idle(bot.id);
     expect(savedTask(bot.id, bot.threadId)?.surface).toBeUndefined();

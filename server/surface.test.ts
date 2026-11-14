@@ -365,7 +365,7 @@ describe("computerToolsRefusal", () => {
       expect(computerToolsRefusal({ allow: ["native:*"] }, source, "Scout")?.message).toBe(line);
     }
     expect(computerToolsRefusal({ allow: ["native:*"] }, "auto-pin", "Scout")?.message)
-      .toBe("What Scout can use doesn't include a desktop. This conversation is back on Auto. Change what Scout can use in its settings.");
+      .toBe("What Scout can use doesn't include a desktop. This conversation is back on auto. Change what Scout can use in its settings.");
   });
 
   it("lets every selection that keeps a computer tool through", () => {
@@ -381,7 +381,7 @@ describe("placeUnavailable", () => {
       placeUnavailable("cloud", { state: "cc-no-start", params: { bot: "Scout" }, source }).message;
     expect(cause("works-on")).toBe("Scout's cloud desktop didn't start. Try again.");
     expect(cause("pin")).toBe("Scout's cloud desktop didn't start. Clear this conversation's place in the composer to continue.");
-    expect(cause("auto-pin")).toBe("Scout's cloud desktop didn't start. This conversation is back on Auto. Send your message again.");
+    expect(cause("auto-pin")).toBe("Scout's cloud desktop didn't start. This conversation is back on auto. Send your message again.");
     expect(cause("routine")).toBe("Scout's cloud desktop didn't start. Change where this routine runs.");
     expect(cause("room")).toBe("Scout's cloud desktop didn't start.");
     expect(placeUnavailable("vm", { state: "place-failed", params: { bot: "Scout", cause: "The private desktop isn't ready." }, source: "works-on" }))

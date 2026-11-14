@@ -34,7 +34,7 @@ describe("execution timeline", () => {
       { id: "reply", role: "bot", kind: "text", text: "What should I compare?", at: 2 },
       { id: "answer", role: "user", kind: "text", text: "Price and privacy.", at: 3 },
     ]);
-    expect(events.map((event) => event.label)).toEqual(["task started", "response recorded", "user input"]);
+    expect(events.map((event) => event.label)).toEqual(["Task started", "Response recorded", "User input"]);
   });
 
   it("shows recorded commands and redacts older unsanitized activity", () => {
