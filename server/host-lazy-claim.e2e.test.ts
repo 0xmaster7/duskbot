@@ -292,6 +292,42 @@ describe("lazy host claim and pin on use (issue #1650)", () => {
     await idle(bot.id, task.threadId);
   }, 60_000);
 
+  itAutoHost("a hold whose app went silent (force-quit, crash) is handed back and the waiting call resumes", async () => {
+    // This fixture's event loop can stall for about two seconds, so the scaled-down silence leaves room for it.
+    const silenceMs = 4_000;
+    const callWaitMs = 20_000;
+    await start({ DUSK_CONTROL_SILENCE_MS: String(silenceMs), DUSK_COMPUTER_CALL_WAIT_MS: String(callWaitMs) });
+    const { bot } = await apiOk("POST", "/api/bots", { name: "Host Silent Hold Bot", settings: { approvalMode: ASKS } });
+    const { task } = await apiOk("POST", `/api/bots/${bot.id}/tasks`, {});
+    await apiOk("POST", `/api/bots/${bot.id}/messages`, { text: "Work slowly on the screen.", threadId: task.threadId });
+    await busy(bot.id, task.threadId);
+    const computer = mountedComputer(await dumpFor(bot.id));
+    expect(await withAnswer(base, task.threadId, gate(computer))).toEqual({ held: false, helpOpen: false });
+    const lease = "silent-hold-lease-0123456789";
+    const control = (action: "take" | "check") => apiOk("POST", `/api/bots/${bot.id}/computer/control`, { action, controlLeaseId: lease });
+    expect(await control("take")).toMatchObject({ held: true, owned: true });
+    const beat = async () => {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const sentAt = Date.now();
+      expect(await control("check"), "a heartbeating hold is kept").toMatchObject({ held: true, owned: true });
+      return sentAt;
+    };
+
+    for (const end = Date.now() + silenceMs * 2; Date.now() < end;) await beat();
+    const waiting = timed(gate(computer));
+    const lastBeat = await beat();
+    const resumed = await waiting;
+    const releasedAfterMs = Date.now() - lastBeat;
+    expect(resumed.value).toEqual({ held: true, helpOpen: false, blockedReason: CONTROL_HANDED_BACK });
+    expect(resumed.ms).toBeLessThan(callWaitMs);
+    expect(releasedAfterMs).toBeGreaterThanOrEqual(silenceMs);
+    expect(releasedAfterMs).toBeLessThan(silenceMs + 3_500);
+    expect(await control("check")).toMatchObject({ held: false, owned: false });
+    expect(await gate(computer)).toEqual({ held: false, helpOpen: false });
+    writeFileSync(finishFile, "finish");
+    await idle(bot.id, task.threadId);
+  }, 60_000);
+
   itAutoHost("a call waiting behind another turn never goes through once its own turn is stopped", async () => {
     await start();
     const turn = async (name: string) => {

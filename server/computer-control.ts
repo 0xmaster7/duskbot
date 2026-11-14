@@ -25,6 +25,11 @@ export interface ControlLeaseReleaseResult {
   released: boolean;
 }
 
+/** A lease hold not heard from for this long is handed back. The app's heartbeat is every 20 s, and a hidden
+ * Chromium page may fire it only once a minute (intensive timer throttling), so this leaves a margin past a minute. */
+export const CONTROL_SILENCE_MS = 65_000;
+export const CONTROL_SILENCE_SWEEP_MS = 5_000;
+
 const NO_CONTROL: ControlSnapshot = { held: false, helpReason: null, heldSinceMs: null };
 const MAX_REASON_CHARS = 280;
 
@@ -34,6 +39,8 @@ interface Entry {
   pleas: Array<{ reason: string; ref: ComputerHelpRef; at?: number }>;
   /** Opaque workspace lease. It is deliberately absent from every snapshot. */
   controlLeaseId: string | null;
+  /** When the lease holder last showed it is still there; a plain `take` has none and never goes silent. */
+  heardAtMs: number | null;
 }
 
 export class ComputerControl {
@@ -65,7 +72,7 @@ export class ComputerControl {
   take(botId: string): ControlSnapshot {
     const entry = this.entries.get(botId);
     if (entry?.heldSinceMs != null) return this.snapshot(botId);
-    this.entries.set(botId, { heldSinceMs: this.now(), pleas: entry?.pleas ?? [], controlLeaseId: null });
+    this.entries.set(botId, { heldSinceMs: this.now(), pleas: entry?.pleas ?? [], controlLeaseId: null, heardAtMs: null });
     return this.changed(botId);
   }
 
@@ -79,8 +86,28 @@ export class ComputerControl {
         acquired: false,
       };
     }
-    this.entries.set(botId, { heldSinceMs: this.now(), pleas: entry?.pleas ?? [], controlLeaseId });
+    const now = this.now();
+    this.entries.set(botId, { heldSinceMs: now, pleas: entry?.pleas ?? [], controlLeaseId, heardAtMs: now });
     return { snapshot: this.changed(botId), owned: true, acquired: true };
+  }
+
+  /** The lease holder's heartbeat; false when this lease does not hold the computer. */
+  heard(botId: string, controlLeaseId: string): boolean {
+    if (!this.ownsLease(botId, controlLeaseId)) return false;
+    this.entries.get(botId)!.heardAtMs = this.now();
+    return true;
+  }
+
+  /** Releases every lease hold not heard from for `silenceMs`, as a hand-back would: a force-quit app never hands back. */
+  releaseSilent(silenceMs: number): string[] {
+    const now = this.now();
+    const silent = [...this.entries].filter(([, entry]) =>
+      entry.heldSinceMs !== null && entry.heardAtMs !== null && now - entry.heardAtMs >= silenceMs);
+    for (const [botId, entry] of silent) {
+      this.drop(botId, entry);
+      this.changed(botId);
+    }
+    return silent.map(([botId]) => botId);
   }
 
   ownsLease(botId: string, controlLeaseId: string): boolean {
@@ -109,7 +136,7 @@ export class ComputerControl {
   /** Never grants anything by itself; the same card asking again replaces its own plea. */
   requestHelp(botId: string, reason: unknown, ref: ComputerHelpRef): ControlSnapshot {
     const text = typeof reason === "string" ? reason.trim().slice(0, MAX_REASON_CHARS) : "";
-    const entry = this.entries.get(botId) ?? { heldSinceMs: null, pleas: [], controlLeaseId: null };
+    const entry = this.entries.get(botId) ?? { heldSinceMs: null, pleas: [], controlLeaseId: null, heardAtMs: null };
     entry.pleas = [...entry.pleas.filter((plea) => plea.ref.messageId !== ref.messageId),
       { reason: text || `sign in to ${ref.site}`, ref, at: this.now() }];
     this.entries.set(botId, entry);
@@ -140,7 +167,7 @@ export class ComputerControl {
   }
 
   private drop(botId: string, entry: Entry): void {
-    if (entry.pleas.length) this.entries.set(botId, { heldSinceMs: null, pleas: entry.pleas, controlLeaseId: null });
+    if (entry.pleas.length) this.entries.set(botId, { heldSinceMs: null, pleas: entry.pleas, controlLeaseId: null, heardAtMs: null });
     else this.entries.delete(botId);
   }
 

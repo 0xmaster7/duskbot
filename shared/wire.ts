@@ -830,6 +830,10 @@ export interface ComputerHelpRef {
   check?: true;
 }
 
+/** How often a view holding a bot's computer posts `{ action: "check", controlLeaseId }` to
+ * `/api/bots/:id/computer/control`; the server hands back a lease hold it has not heard from in about a minute. */
+export const COMPUTER_CONTROL_HEARTBEAT_MS = 20_000;
+
 /** Who answers a room message nobody was @mentioned in. `member` + `leader`: it leads and hands members tasks
  * (room-leader.ts). `auto` asks the decision model (`by: "dusk"`: the person's own engine's quick model) and falls
  * back to `fallbackBotId` (else the first member). Readers must treat any kind they do not know as the default lead. */

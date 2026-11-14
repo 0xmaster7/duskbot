@@ -186,7 +186,7 @@ import {
 } from "./config.ts";
 import { serveStatic } from "./static-files.ts";
 import { startUpkeep } from "./host/start-upkeep.ts";
-import { ComputerControl } from "./computer-control.ts"; import { answerBotPointer } from "./bot-pointer.ts";
+import { CONTROL_SILENCE_MS, CONTROL_SILENCE_SWEEP_MS, ComputerControl } from "./computer-control.ts"; import { answerBotPointer } from "./bot-pointer.ts";
 import { resetPathCache } from "./env-path.ts";
 import { registerEnginesBinDir } from "./engine-install.ts";
 import { appendUsage, flushUsageLedger, queuedTurnTrigger, usageTriggerFor, type UsageRow, type UsageTrigger } from "./usage-ledger.ts"; import { createUsageAttribution } from "./usage-attribution.ts";
@@ -2440,6 +2440,10 @@ const computerControl = new ComputerControl((key, snapshot) => {
   }
 });
 const controlLeaseIdSchema = z.string().min(16).max(120).regex(/^[A-Za-z0-9_-]+$/);
+const controlSilenceMs = Math.max(500, Number(process.env.DUSK_CONTROL_SILENCE_MS) || CONTROL_SILENCE_MS);
+setInterval(() => {
+  for (const key of computerControl.releaseSilent(controlSilenceMs)) trail("takeover.silent", { key, silenceMs: controlSilenceMs });
+}, Math.min(CONTROL_SILENCE_SWEEP_MS, Math.ceil(controlSilenceMs / 5))).unref();
 function controlIntegration(
   botId: string,
   threadId: string,
@@ -15749,7 +15753,8 @@ const handleRequestInner = async (req: IncomingMessage, res: ServerResponse) => 
           return json(res, 200, { ...result.snapshot, released: result.released });
         }
         if (action === "check" && controlLeaseId) {
-          return json(res, 200, { ...computerControl.snapshot(controlKey), owned: computerControl.ownsLease(controlKey, controlLeaseId) });
+          const owned = computerControl.heard(controlKey, controlLeaseId);
+          return json(res, 200, { ...computerControl.snapshot(controlKey), owned });
         }
         if (action === "take") return json(res, 200, computerControl.take(controlKey));
         if (action === "release") return json(res, 200, computerControl.release(controlKey));

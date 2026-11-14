@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { productName } from "@/lib/brand";
 import { lastScreen, newTrailId, trail, trailError } from "@/lib/trail";
+import { COMPUTER_CONTROL_HEARTBEAT_MS } from "../../shared/wire";
 
 export interface TakeoverSnapshot {
   held: boolean;
@@ -102,6 +103,14 @@ export function useComputerTakeover({ botId, session, held, request, viewerClose
     window.addEventListener("pagehide", leave);
     return () => window.removeEventListener("pagehide", leave);
   }, [leave]);
+  useEffect(() => {
+    if (!here) return;
+    const timer = setInterval(() => {
+      const mine = lease.current;
+      if (mine) post(`/api/bots/${botId}/computer/control`, { action: "check", controlLeaseId: mine.id }, mine.cid);
+    }, COMPUTER_CONTROL_HEARTBEAT_MS);
+    return () => clearInterval(timer);
+  }, [here, botId]);
   useEffect(() => {
     if (!here || held) return;
     const timer = setTimeout(() => {

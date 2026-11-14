@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { ComputerControl, type ControlSnapshot } from "./computer-control.ts";
+import { COMPUTER_CONTROL_HEARTBEAT_MS } from "../shared/wire.ts";
+import { CONTROL_SILENCE_MS, CONTROL_SILENCE_SWEEP_MS, ComputerControl, type ControlSnapshot } from "./computer-control.ts";
 
 function tracked() {
   const changes: Array<{ botId: string; snapshot: ControlSnapshot }> = [];
@@ -177,5 +178,66 @@ describe("computer control", () => {
     expect(control.pleaHolds("b1", 60_000)).toBe(true);
     control.settleHelp("card-2");
     expect(control.pleaHolds("b1", 60_000)).toBe(false);
+  });
+
+  describe("a lease hold that goes silent", () => {
+    const lease = "5b6bbbd2-b88b-4c50-a748-ec87f332662f";
+    const clocked = () => {
+      let clock = 0;
+      const changes: ControlSnapshot[] = [];
+      const control = new ComputerControl((_, snapshot) => changes.push(snapshot), () => clock);
+      return { control, changes, at: (ms: number) => { clock = ms; }, now: () => clock };
+    };
+
+    it("stays held while its holder keeps heartbeating, even at a throttled once-a-minute pace", () => {
+      const { control, at } = clocked();
+      control.acquireLease("b1", lease);
+      const beats = [
+        ...Array.from({ length: 15 }, (_, i) => (i + 1) * COMPUTER_CONTROL_HEARTBEAT_MS),
+        ...Array.from({ length: 10 }, (_, i) => 300_000 + (i + 1) * 60_000 + 3_000),
+      ];
+      let beat = 0;
+      for (let t = 0; t <= beats.at(-1)!; t += 1_000) {
+        at(t);
+        if (t === beats[beat]) { expect(control.heard("b1", lease)).toBe(true); beat += 1; }
+        if (t % CONTROL_SILENCE_SWEEP_MS === 0) expect(control.releaseSilent(CONTROL_SILENCE_MS)).toEqual([]);
+      }
+      expect(control.ownsLease("b1", lease)).toBe(true);
+    });
+
+    it("is handed back within 60 to 75 s of the last heartbeat, as a hand-back would be", () => {
+      const { control, changes, at, now } = clocked();
+      control.acquireLease("b1", lease);
+      at(40_000);
+      control.heard("b1", lease);
+      let released: string[] = [];
+      while (!released.length) {
+        at(now() + CONTROL_SILENCE_SWEEP_MS);
+        released = control.releaseSilent(CONTROL_SILENCE_MS);
+      }
+      expect(released).toEqual(["b1"]);
+      expect(now() - 40_000).toBeGreaterThanOrEqual(60_000);
+      expect(now() - 40_000).toBeLessThanOrEqual(75_000);
+      expect(control.snapshot("b1")).toEqual({ held: false, helpReason: null, heldSinceMs: null });
+      expect(changes.map((snapshot) => snapshot.held)).toEqual([true, false]);
+      expect(control.heard("b1", lease)).toBe(false);
+    });
+
+    it("keeps an open sign-in plea, and never touches a plain take or another lease's heartbeat", () => {
+      const { control, at } = clocked();
+      control.requestHelp("b1", "sign in", { botId: "b1", threadId: "t1", messageId: "card-1", site: "example.com", place: "vm" });
+      control.acquireLease("b1", lease);
+      control.take("b2");
+      control.acquireLease("b3", "another-lease-0000000");
+      at(CONTROL_SILENCE_MS - 1);
+      expect(control.heard("b3", lease)).toBe(false);
+      expect(control.heard("b3", "another-lease-0000000")).toBe(true);
+      at(CONTROL_SILENCE_MS);
+      expect(control.releaseSilent(CONTROL_SILENCE_MS)).toEqual(["b1"]);
+      expect(control.snapshot("b1")).toMatchObject({ held: false, helpReason: "sign in" });
+      at(10 * CONTROL_SILENCE_MS);
+      expect(control.releaseSilent(CONTROL_SILENCE_MS)).toEqual(["b3"]);
+      expect(control.snapshot("b2").held).toBe(true);
+    });
   });
 });

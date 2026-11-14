@@ -5,6 +5,7 @@ Run the focused checks in disposable homes:
 ```sh
 pnpm exec vitest run src/components/ComputerPanel.takeover.test.ts src/components/computer-takeover.dom.test.ts src/components/ComputerPanel.simple.test.ts src/components/LiveDesktop.test.ts src/lib/desktop-connection.test.ts src/components/ComputerPanel.lazy.test.ts src/hooks/use-computer-panel-activity.test.ts
 pnpm exec vitest run server/computer-take-control.e2e.test.ts server/container-computer.test.ts server/vps-computer.test.ts server/routes/desktop-viewer.test.ts
+pnpm exec vitest run server/computer-control.test.ts server/host-lazy-claim.e2e.test.ts -t "silent"
 ```
 
 The panel checks mount the real `ComputerPanel` with its real control requests;
@@ -25,6 +26,10 @@ only the live desktop itself is a stand-in. They prove:
 - Closing the panel, leaving its Computer view, opening another conversation or
   closing the page gives back the hold this view took, with a keepalive request,
   and never a hold another device has.
+- While this view holds the computer it sends a heartbeat (`check` with its
+  lease) every 20 seconds. A hold not heard from for 65 seconds (a force-quit or
+  crashed app, a lost phone) is handed back within the next 5 seconds, and the
+  bot's waiting computer call returns as it does after Hand back.
 - A hand-back from elsewhere returns the viewer to view-only mode once it has
   lasted a second and a half; an out-of-order event does not end control.
 - A desktop that never comes up gives the computer back and says so. Watching
