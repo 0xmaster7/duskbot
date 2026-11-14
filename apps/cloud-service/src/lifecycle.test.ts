@@ -540,3 +540,22 @@ it("treats App Review's demo cloud as always paid for, so no plan end, retention
     ownerRequest: { requestedAt: now - 20 * DAY_MS, confirmedAt: now - 20 * DAY_MS, executeAfter: now - DAY_MS, cancelledAt: null }, hold: false });
   expect(verdict).toMatchObject({ delete: false, reason: "subscribed" });
 });
+
+it("asks the provider once per wake while the machine still reads as stopped right after the start was accepted", async () => {
+  const f = await homeFixture();
+  const { c } = await f.paid();
+  f.advance(5 * 60_000); f.power.idle = true; f.power.busy = [];
+  await f.settle(c, c => c.status === "sleeping", 60, 5 * 60_000);
+  const starts = () => f.api.requests.filter(r => r.method === "POST" && /\/(start|resume)$/.test(r.path)).length;
+  const before = starts(), wakes = () => f.audit.entries(c.id).filter(e => e.action === "wake").length, wakesBefore = wakes();
+  f.api.queueStarts();
+  await f.service.power(c.accountId, c.id, "on");
+  for (let pass = 0; pass < 5; pass++) { f.advance(1_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
+  expect(starts() - before).toBe(1);
+  expect(wakes() - wakesBefore).toBe(1);
+  // a start the provider never carried out is asked again, once, after the settle time
+  f.advance(2 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile();
+  expect(starts() - before).toBe(2);
+  f.api.queueStarts(false); f.api.finishStarts();
+  await f.settle(c, c => c.status === "running");
+});

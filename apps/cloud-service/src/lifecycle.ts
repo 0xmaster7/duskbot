@@ -157,6 +157,9 @@ export class StartHeldError extends RetryableCloudError {
   constructor(reason: string, retryAt: number) { super("The start waits for the start limits."); this.name = "StartHeldError"; this.reason = reason; this.retryAt = retryAt; }
 }
 
+/** how long a start the provider accepted may still read as stopped before it is asked again */
+export const WAKE_SETTLE_MS = 60_000;
+
 export function createLifecycle(deps: LifecycleDeps) {
   const { provider, image, settings, audit, now } = deps;
   const log = (c: StoredCloud, action: string, actor: AuditActor, reason: string, detail?: Record<string, string | number | boolean | null>) =>
@@ -824,6 +827,9 @@ export function createLifecycle(deps: LifecycleDeps) {
       c.spec = { ...c.desiredSpec }; b.wakeStartedAt = now(); c.wantPower = "on"; b.resizeAskedAt = null; deps.save(c); return;
     }
     if (s.state === "stopped") {
+      // the provider accepts a start before its machine stops reading as stopped: asking again would be a second start,
+      // charged and counted against the month's reserve. one that never happened is asked again after the settle time
+      if (b.wakeStartedAt !== null && now() - b.wakeStartedAt < WAKE_SETTLE_MS) return;
       const m = memory(c), wanted = c.wantPower === "on";
       // a routine's pre-wake comes from the policy (its spread, the rails); a person's wake is never held for one
       const plan = wanted ? null : deps.sleepPolicy.wake({ now: now(), cloudId: c.id, nextDueAt: b.nextDueAt, upcoming: b.upcoming ?? null, memory: m, spend: spendView(c) });

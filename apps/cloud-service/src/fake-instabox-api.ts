@@ -22,6 +22,8 @@ export async function startFakeInstaboxApi(options: { now?: () => number; key?: 
   const egress = new Map<string, number>(), saved = new Set<string>();
   const requests: Array<{ method: string; path: string; body: unknown; headers: Record<string, string | string[] | undefined> }> = [];
   const idem = new Map<string, unknown>();
+  const queued = new Map<string, () => void>();
+  let queueStarts = false;
   let failNext = 0, limitNext = 0, busyNext = 0, startsBlockedUntil = 0, coldResume = false, refuseResume: string | null = null, growNeedsStop = false, usedGiB = 0;
   const alphabet = "abcdefghijklmnopqrstuvwxyz234567";
   const ident = (prefix: string) => `${prefix}_${Array.from(randomBytes(26), b => alphabet[b % alphabet.length]).join("")}`;
@@ -155,6 +157,8 @@ export async function startFakeInstaboxApi(options: { now?: () => number; key?: 
     }
     const lifecycle = (type: string, allowed: string[], next: () => void) => {
       if (!allowed.includes(m.state)) return error(res, 409, "operation_conflict");
+      // accepted, but the machine still reads as it was until the operation runs (finishStarts)
+      if (queueStarts && (type === "start" || type === "resume")) { if (!queued.has(m.id)) queued.set(m.id, () => { next(); m.updatedAt = now(); }); return send(res, 202, operation(m, type)); }
       next(); m.updatedAt = now();
       return send(res, 202, operation(m, type));
     };
@@ -216,6 +220,9 @@ export async function startFakeInstaboxApi(options: { now?: () => number; key?: 
     limitStartsUntil(at: number) { startsBlockedUntil = at; },
     /** the next power changes find another operation running on the machine */
     busyNext(count: number) { busyNext = count; },
+    /** starts and resumes are accepted (202) but the machine keeps reading as stopped until finishStarts() */
+    queueStarts(on = true) { queueStarts = on; },
+    finishStarts() { for (const run of queued.values()) run(); queued.clear(); },
     /** resumes cannot restore memory: the machine boots fresh (`processesPreserved: false`) */
     coldResume(on = true) { coldResume = on; },
     /** this machine's resumes are refused with a cooldown */
