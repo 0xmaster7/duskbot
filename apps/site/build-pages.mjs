@@ -131,7 +131,9 @@ const withParts = (html) => html.replace(/\{\{include ([\w-]+)\}\}/g, (_, name) 
   if (!fs.existsSync(file)) return '';
   // the live demo's script runs right after its markup, so the demo answers clicks the moment it shows, not after the page's
   // other scripts (safari holds async scripts until deferred ones finish, so this one is a plain script)
-  return fs.readFileSync(file, 'utf8') + (name === 'app-demo' && has('app-demo.js') ? `<script src="${stamped('app-demo.js')}"></script>` : '');
+  // {{stamp file}} in a partial is that file's stamped address
+  const part = fs.readFileSync(file, 'utf8').replace(/\{\{stamp ([\w./-]+)\}\}/g, (_, f) => stamped(f));
+  return part + (name === 'app-demo' && has('app-demo.js') ? `<script src="${stamped('app-demo.js')}"></script>` : '');
 });
 const has = (file) => fs.existsSync(path.join(site, file));
 // the first-party analytics tracker (apps/dashboard/tracker/dusk.js in the Dusk Bot repo), served as /a.js; its beacons go to

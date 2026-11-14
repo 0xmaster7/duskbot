@@ -1,0 +1,37 @@
+/* the demo's own few rules, beside the app's: the first frame's still bots, the suggestions, a bot's screen */
+.ad-root { position: relative; }
+.ad-still { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+:host { -webkit-tap-highlight-color: transparent; }
+
+/* on a phone the panel is a sheet of its own, shown only once it is opened */
+@container dusk-demo (width < 48rem) {
+  :host(:not([data-phone-panel])) [data-panel-slot] { display: none; }
+  aside[data-sidebar-root] { transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1); }
+}
+
+/* the suggestions above the message box */
+.ad-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 20px 10px; }
+.ad-chips .ui-pill { cursor: pointer; transition: background-color 120ms ease, color 120ms ease, opacity 160ms ease; }
+.ad-chips .ui-pill:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 1px; }
+.ad-chips .ui-pill:active { scale: 0.97; }
+.ad-chips[data-leaving] { opacity: 0; pointer-events: none; }
+@container dusk-demo (width < 48rem) {
+  .ad-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-inline: 12px; }
+  .ad-chips::-webkit-scrollbar { display: none; }
+  .ad-chips .ui-pill { flex: none; min-height: 32px; }
+}
+
+/* a bot's screen in its panel: the page it has open, its pointer on it */
+.ad-screen { position: absolute; inset: 0; display: flex; flex-direction: column; background: #fdfdfd; text-align: left; font-size: 9px; line-height: 13px; letter-spacing: 0; color: #1c1c1c; }
+.ad-screen-bar { display: flex; align-items: center; gap: 6px; height: 20px; padding: 0 8px; background: #efefef; flex: none; }
+.ad-screen-bar i { width: 5px; height: 5px; border-radius: 50%; background: #c9c9c9; }
+.ad-screen-url { flex: 1; margin-left: 6px; height: 12px; border-radius: 6px; background: #fdfdfd; padding: 0 6px; font-size: 8px; line-height: 12px; color: #1c1c1cad; overflow: hidden; white-space: nowrap; }
+.ad-screen-page { flex: 1; padding: 10px 12px; overflow: hidden; }
+.ad-screen-page h4 { margin: 0 0 7px; font-size: 11px; line-height: 14px; font-weight: 600; }
+.ad-screen-row { display: flex; justify-content: space-between; gap: 8px; padding: 3px 6px; border-radius: 4px; }
+.ad-screen-row + .ad-screen-row { margin-top: 1px; }
+.ad-screen-row b { font-weight: 500; }
+.ad-screen-row[data-hot] { background: color-mix(in srgb, var(--ad-hue, #126fd4) 14%, transparent); }
+.ad-screen-page[data-mono] { font-family: var(--font-mono); font-size: 8.5px; line-height: 13px; white-space: pre; }
+.ad-screen-pointer { position: absolute; left: 0; top: 0; width: 22px; height: 22px; transition: transform 900ms cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .ad-screen-pointer { transition: none; } }
