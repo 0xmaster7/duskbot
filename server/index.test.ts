@@ -4611,6 +4611,50 @@ describe("harness HTTP API", () => {
     }
   });
 
+  it("takes a model pick mid-reply for the next message, leaving the running turn on its own model", async () => {
+    const instances = (await api("GET", "/api/instances")).body.instances;
+    const claude = instances.find((instance: { instanceId: string }) => instance.instanceId === "claude");
+    const from = claude.models.default as string;
+    const to = (claude.models.options as Array<{ id: string; custom?: boolean }>).find((option) => option.id !== from && !option.custom)!.id;
+    const bot = (await api("POST", "/api/bots", { modelSelection: { instanceId: "claude", model: from }, requireAvailableModel: true })).body.bot;
+    const stored = async () => (await api("GET", "/api/bots?messages=50")).body.bots.find((candidate: { id: string }) => candidate.id === bot.id);
+    try {
+      rmSync(fakeClaudeDump, { force: true });
+      expect((await api("POST", `/api/bots/${bot.id}/messages`, { text: "write me a long answer" })).status).toBe(202);
+      await expect.poll(async () => (await stored())?.busy).toBe(true);
+      const running = await readJsonFileWhenReady<{ argv: string[] }>(fakeClaudeDump);
+      expect(running.argv[running.argv.indexOf("--model") + 1]).toBe(from);
+
+      // an ordinary pick still waits for the turn; the picker's next-turn pick lands now
+      const path = `/api/bots/${bot.id}/tasks/${bot.threadId}`;
+      expect((await api("PATCH", path, { modelSelection: { instanceId: "claude", model: to } })).status).toBe(409);
+      const picked = await api("PATCH", path, { modelSelection: { instanceId: "claude", model: to }, updateBotDefault: true, nextTurn: true });
+      expect(picked.status).toBe(200);
+      expect(picked.body.bot.modelSelection.model).toBe(to);
+      expect((await api("PATCH", path, { title: "x", nextTurn: true })).status).toBe(400);
+
+      // the running turn is untouched: still working, nothing stopped or restarted, and it ends with its own reply
+      const during = await stored();
+      expect(during.busy).toBe(true);
+      expect(during.messages.some((message: { kind: string; tool?: { name: string } }) => message.kind === "activity" && message.tool?.name.startsWith("stopped:"))).toBe(false);
+      await releaseTurn(bot.id);
+      const after = await stored();
+      expect(after.messages.filter((message: { role: string; kind: string }) => message.role === "bot" && message.kind === "text").at(-1).text).toBe("released");
+      expect(after.messages.some((message: { kind: string; tool?: { name: string } }) => message.kind === "activity" && message.tool?.name.startsWith("stopped:"))).toBe(false);
+
+      // the next message is the first on the new model
+      rmSync(fakeClaudeDump, { force: true });
+      expect((await api("POST", `/api/bots/${bot.id}/messages`, { text: "and now?" })).status).toBe(202);
+      await expect.poll(async () => (await stored())?.busy).toBe(true);
+      const next = await readJsonFileWhenReady<{ argv: string[] }>(fakeClaudeDump);
+      expect(next.argv[next.argv.indexOf("--model") + 1]).toBe(to);
+      await releaseTurn(bot.id);
+    } finally {
+      await api("POST", `/api/bots/${bot.id}/interrupt`, {});
+      await api("DELETE", `/api/bots/${bot.id}`);
+    }
+  });
+
   it("refuses paired model changes while the bot is working", async () => {
     const instances = (await api("GET", "/api/instances")).body.instances;
     const claude = instances.find((instance: { instanceId: string }) => instance.instanceId === "claude");

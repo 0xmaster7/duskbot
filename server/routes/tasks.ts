@@ -50,7 +50,8 @@ export interface TaskRouteDeps {
   checkedModelSelection(raw: unknown, current?: { selection: ModelSelection; busy: boolean }, requireAvailableModel?: boolean):
     | { ok: true; selection: ModelSelection }
     | { ok: false; status: number; error: string };
-  checkedTaskModelSwitch(current: BotRecord, raw: unknown, updateBotDefault: boolean, resetApprovalToAsk: boolean, requireAvailableModel?: boolean):
+  checkedTaskModelSwitch(current: BotRecord, raw: unknown, updateBotDefault: boolean, resetApprovalToAsk: boolean, requireAvailableModel?: boolean,
+    trusted?: boolean, nextTurn?: boolean):
     | { ok: true }
     | { ok: false; status: number; error: string };
   threadTitleGate(bot: Pick<BotRecord, "modelSelection">): { ok: true; instance: ProviderInstance } | { ok: false; refusal: string };
@@ -232,7 +233,7 @@ export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTa
       if (!body || typeof body !== "object" || Array.isArray(body)) return json(res, 400, { error: "body must be a JSON object" });
       const current = store.projectBotForTask(m[1], m[2]);
       if (!current) return json(res, 404, { error: "no such task" });
-      const allowed = new Set(["title", "projectId", "modelSelection", "updateBotDefault", "resetApprovalToAsk", "approvalMode", "autoApprove", "requireAvailableModel", "pinnedMessageId", "acknowledgeLocalAuto", "archivedAt", "pinned", "snoozedUntil", "surface", "refreshPermissions", "link"]);
+      const allowed = new Set(["title", "projectId", "modelSelection", "updateBotDefault", "resetApprovalToAsk", "approvalMode", "autoApprove", "requireAvailableModel", "pinnedMessageId", "acknowledgeLocalAuto", "archivedAt", "pinned", "snoozedUntil", "surface", "refreshPermissions", "link", "nextTurn"]);
       if (Object.keys(body).some((key) => !allowed.has(key))) return json(res, 400, { error: "unsupported thread setting" });
       const notYours = cloudThreadRefusal(auth, m[2]);
       if (notYours) return json(res, 403, { error: notYours });
@@ -244,10 +245,15 @@ export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTa
       if (body.updateBotDefault === true && !ownerOrAdmin(auth)) {
         return json(res, 403, { error: "forbidden: this session may change this thread's model, not the bot's default (needs the admin scope)" });
       }
-      for (const key of ["requireAvailableModel", "acknowledgeLocalAuto", "updateBotDefault", "resetApprovalToAsk"] as const) {
+      for (const key of ["requireAvailableModel", "acknowledgeLocalAuto", "updateBotDefault", "resetApprovalToAsk", "nextTurn"] as const) {
         if (body[key] !== undefined && typeof body[key] !== "boolean") return json(res, 400, { error: `${key} must be a boolean` });
       }
       if (body.requireAvailableModel === true && body.modelSelection === undefined) return json(res, 400, { error: "requireAvailableModel requires modelSelection" });
+      // a pick made while the thread works: it applies from the next message, and the running turn keeps its model
+      const nextTurn = body.nextTurn === true;
+      if (nextTurn && (body.modelSelection === undefined || Object.keys(body).some((key) => !["modelSelection", "updateBotDefault", "resetApprovalToAsk", "requireAvailableModel", "nextTurn"].includes(key)))) {
+        return json(res, 400, { error: "nextTurn is only for a model pick" });
+      }
       if (body.updateBotDefault === true && body.modelSelection === undefined) return json(res, 400, { error: "updateBotDefault requires modelSelection" });
       if (body.resetApprovalToAsk === true && (body.modelSelection === undefined ||
         (body.approvalMode !== undefined && body.approvalMode !== "ask") || body.autoApprove === true)) {
@@ -335,7 +341,7 @@ export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTa
       }
       if (body.modelSelection !== undefined) {
         if (current.approvalGrant) return json(res, 409, { error: "the bot's approval mode is still being confirmed" });
-        const checked = checkedModelSelection(body.modelSelection, { selection: current.modelSelection, busy: threadBusy(current.id, current.threadId) }, body.requireAvailableModel === true);
+        const checked = checkedModelSelection(body.modelSelection, { selection: current.modelSelection, busy: !nextTurn && threadBusy(current.id, current.threadId) }, body.requireAvailableModel === true);
         if (!checked.ok) return json(res, checked.status, { error: checked.error });
         patch.modelSelection = checked.selection;
       }
@@ -362,7 +368,7 @@ export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTa
       if (patch.modelSelection) {
         const checked = checkedTaskModelSwitch({ ...current,
           ...(patch.approvalMode ? { approvalMode: patch.approvalMode, autoApprove: patch.autoApprove } : {}),
-        }, patch.modelSelection, body.updateBotDefault === true, body.resetApprovalToAsk === true, body.requireAvailableModel === true);
+        }, patch.modelSelection, body.updateBotDefault === true, body.resetApprovalToAsk === true, body.requireAvailableModel === true, false, nextTurn);
         if (!checked.ok) return json(res, checked.status, { error: checked.error });
       }
       const task = patch.modelSelection

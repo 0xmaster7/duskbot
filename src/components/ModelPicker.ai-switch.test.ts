@@ -66,10 +66,10 @@ afterEach(() => {
 });
 
 describe("the header model chip and Switch AI", () => {
-  it("stays shut while the bot works, until Switch AI asks for it", () => {
-    expect(trigger().disabled).toBe(true);
-    act(() => requestAiSwitch({ botId: "maus", threadId: "thread-1", turnId: "turn-1", place: "header" }));
+  it("opens while the bot works (a pick is for the next message), and Switch AI opens it by itself", () => {
     expect(trigger().disabled).toBe(false);
+    expect(document.querySelector("[data-model-picker-content]")).toBeNull();
+    act(() => requestAiSwitch({ botId: "maus", threadId: "thread-1", turnId: "turn-1", place: "header" }));
     expect(document.querySelector("[data-model-picker-content]")).not.toBeNull();
   });
 
@@ -82,7 +82,7 @@ describe("the header model chip and Switch AI", () => {
     expect(document.querySelector("[data-simple-effort]")).toBeNull();
   });
 
-  it("shows no thinking-level buttons in the chat's menu while the turn runs: the server refuses them until it ends", () => {
+  it("shows no thinking-level buttons under Switch AI while the turn runs: that turn is about to stop", () => {
     fixture.advanced = false;
     fixture.instances = [{ ...opencode, capabilities: { effortLevels: ["low", "high"] } }, codex];
     const show = (bot: Bot) => act(() => root.render(createElement(ModelPicker, { bot, threadId: "thread-1" })));
@@ -96,7 +96,7 @@ describe("the header model chip and Switch AI", () => {
 
   it("ignores an intent for another place", () => {
     act(() => requestAiSwitch({ botId: "maus", threadId: "thread-1", turnId: "turn-1", place: "panel" }));
-    expect(trigger().disabled).toBe(true);
+    expect(document.querySelector("[data-model-picker-content]")).toBeNull();
   });
 });
 

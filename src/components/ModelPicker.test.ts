@@ -270,15 +270,11 @@ describe("ModelPicker trigger", () => {
       .split(newline);
   };
 
-  it("names the thread in busy header help and the bot in profile settings", () => {
+  it("stays open to picks while the bot works, saying a pick is for the next message", () => {
     fixture.instances = [engine()];
-    for (const threadId of ["independent-thread", undefined]) {
-      const markup = renderToStaticMarkup(createElement(ModelPicker, { bot: { ...bot(), busy: true }, threadId }));
-      expect(tooltipLines(markup)).toEqual([
-        "Codex · GPT-5.6",
-        `Stop this ${threadId ? "thread" : "bot"}'s turn before changing its model`,
-      ]);
-    }
+    const markup = renderToStaticMarkup(createElement(ModelPicker, { bot: { ...bot(), busy: true }, threadId: "independent-thread" }));
+    expect(tooltipLines(markup)).toEqual(["Codex · GPT-5.6", "A model you pick now is used from the next message"]);
+    expect(markup).not.toMatch(/data-tour="model"[^>]* disabled=""/);
   });
 
 });

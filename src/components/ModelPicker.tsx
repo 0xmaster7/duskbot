@@ -220,7 +220,9 @@ export function ModelPicker({
   const { state, dispatch: storeDispatch, refreshInstances, refreshModels: refreshInstanceModels } = useStore();
   const [open, setOpen] = useState(false);
   const { bot, dispatch } = useAiSwitch({ bot: shown, threadId, contained, dispatch: storeDispatch, setOpen: (next) => (next ? openMenu() : setOpen(false)) });
-  const motion = useMenuMotion(open && !bot.busy);
+  const motion = useMenuMotion(open);
+  // a pick while the reply streams lands for the next message; the running turn keeps the model it started on
+  const working = Boolean(bot.busy);
   const [query, setQuery] = useState("");
   const [loadingInstances, setLoadingInstances] = useState(false);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
@@ -330,10 +332,6 @@ export function ModelPicker({
     else refreshModels(active?.instanceId);
   }, [open, refreshLocalInstances]);
 
-  useEffect(() => {
-    if (bot.busy) setOpen(false);
-  }, [bot.busy]);
-
   usePopoverDismiss(open, inside, () => close(false));
 
   function close(refocus: boolean) {
@@ -372,7 +370,6 @@ export function ModelPicker({
   };
 
   function openMenu() {
-    if (bot.busy) return;
     setChangedBotModel(false);
     setExpanded(new Set());
     setPlacement(null);
@@ -391,7 +388,6 @@ export function ModelPicker({
   const ownModelThreads = threadsOnOwnModel(profile.modelSelection, profile.tasks ?? []).length;
 
   const pickBotModel = () => {
-    if (bot.busy) return;
     if (follows !== false) {
       close(true);
       return;
@@ -401,11 +397,13 @@ export function ModelPicker({
       state.instances.find((candidate) => candidate.instanceId === target.modelSelection.instanceId)?.driverKind,
       botModelInstance?.driverKind)) {
       close(false);
+      if (working) return setToast({ text: t("model.picker.stopFirst", { model: botModelName }), tone: "error" });
       setPendingSwitch({ botId: bot.id, threadId: threadId ?? bot.threadId, selection: profile.modelSelection, updateBotDefault: false, name: botModelName });
       return;
     }
     close(true);
-    dispatch({ type: "setModel", botId: bot.id, threadId: threadId ?? bot.threadId, updateBotDefault: false, selection: profile.modelSelection });
+    dispatch({ type: "setModel", botId: bot.id, threadId: threadId ?? bot.threadId, updateBotDefault: false, selection: profile.modelSelection, ...(working ? { nextTurn: true } : {}) });
+    if (working) setToast({ text: t("model.picker.nextMessage", { model: botModelName }), tone: "done" });
   };
 
   const driverOf = (instanceId: string) => state.instances.find((candidate) => candidate.instanceId === instanceId)?.driverKind;
@@ -424,13 +422,17 @@ export function ModelPicker({
     const name = modelName(instance, model, variant);
     const text = bots.length === 1 ? t("model.picker.allNowUseOne", { model: name }) : t("model.picker.allNowUse", { count: bots.length, model: name });
     if (!confirmed && plan.some((step) => step.ask)) {
+      if (plan.some((step) => step.ask && step.one.busy)) {
+        setToast({ text: t("model.picker.stopFirst", { model: name }), tone: "error" });
+        return "asked";
+      }
       setPendingSwitch({ botId: bot.id, threadId: threadId ?? bot.threadId, selection: plan[0]!.next, updateBotDefault: true, name, toast: text,
         all: { instance, model, ...(variant !== undefined ? { variant } : {}) } });
       return "asked";
     }
     for (const { one, thread, next, ask } of plan) {
       (one.id === bot.id ? dispatch : storeDispatch)({ type: "setModel", botId: one.id, threadId: thread, updateBotDefault: true, selection: next,
-        ...(ask ? { resetApprovalToAsk: true } : {}) });
+        ...(ask ? { resetApprovalToAsk: true } : {}), ...(one.busy ? { nextTurn: true } : {}) });
     }
     const fresh: ModelSelection = { instanceId: instance.instanceId, model, ...(variant !== undefined ? { variant } : {}) };
     void api("/api/config", { method: "PATCH", body: JSON.stringify({ defaultModelSelection: fresh }) })
@@ -446,18 +448,24 @@ export function ModelPicker({
     const updateBotDefault = updatesBotDefault;
     const targets = [currentTaskBot(profile, threadId ?? bot.threadId), ...(updateBotDefault ? [profile] : [])];
     if (targets.some((target) => asksFor(target, instance))) {
+      // a switch that resets approvals waits for the reply to end
+      if (working) {
+        setToast({ text: t("model.picker.stopFirst", { model: modelName(instance, model) }), tone: "error" });
+        return "asked";
+      }
       setPendingSwitch({ botId: bot.id, threadId: threadId ?? bot.threadId,
         selection: nextSelection, updateBotDefault, name: modelName(instance, model), ...(toastText ? { toast: toastText } : {}) });
       return "asked";
     }
-    dispatch({ type: "setModel", botId: bot.id, threadId: threadId ?? bot.threadId, updateBotDefault, selection: nextSelection });
+    dispatch({ type: "setModel", botId: bot.id, threadId: threadId ?? bot.threadId, updateBotDefault, selection: nextSelection, ...(working ? { nextTurn: true } : {}) });
     if (updateBotDefault && threadId) setChangedBotModel(true);
     if (toastText) setToast({ text: toastText, tone: "done" });
+    else if (working) setToast({ text: t("model.picker.nextMessage", { model: modelName(instance, model, variant) }), tone: "done" });
     return "applied";
   };
 
   const pick = (instance: InstanceInfo, model: string, variant?: string) => {
-    if (bot.busy || instance.policy) return;
+    if (instance.policy) return;
     const to = mayChangeBot ? scope : "bot";
     if (commit(instance, model, variant, to) === "asked") return close(false);
     const nextSelection = modelSelectionForPick(selection, instance, model);
@@ -497,7 +505,7 @@ export function ModelPicker({
   const writeEffort = (effort: EffortLevel | undefined) => {
     const { effort: _effort, ...model } = selection;
     dispatch({ type: "setModel", botId: bot.id, threadId, ...(threadId && updatesBotDefault ? { updateBotDefault: true } : {}),
-      selection: effort ? { ...model, effort } : model });
+      selection: effort ? { ...model, effort } : model, ...(working && threadId ? { nextTurn: true } : {}) });
   };
   const thinking: SimpleThinking | null = contained ? null
     : variantChoices(state, selection, threadId ?? bot.threadId) ? {
@@ -506,7 +514,8 @@ export function ModelPicker({
           label={<span className="shrink-0 text-[12px] font-medium leading-4 text-ink-tertiary">{t("botSettings.simple.thinking")}</span>} />
       ),
     }
-    : levels.length > 0 && !shown.busy ? { levels, current: selection.effort, onPick: writeEffort, onReset: () => writeEffort(undefined) }
+    // mid-reply a level lands for the next message; under Switch AI the turn is about to stop, so none is offered
+    : levels.length > 0 && (!shown.busy || (working && threadId)) ? { levels, current: selection.effort, onPick: writeEffort, onReset: () => writeEffort(undefined) }
     : null;
 
   const onMenuKey = (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -533,13 +542,12 @@ export function ModelPicker({
     : selection.model;
   const followLine = follows === true ? `\n${t("model.followsBot", { name: profile.name })}` : follows === false ? `\n${t("model.ownModel")}` : "";
   const attentionLine = attention ? `\n${attention}` : "";
-  const busyLine = bot.busy ? `\n${t(threadId ? "model.threadBusy" : "model.busy")}` : "";
+  const busyLine = working ? `\n${t("model.picker.nextMessageHint")}` : "";
 
   const triggerProps = {
     ref: triggerRef,
     "data-tour": "model",
     type: "button" as const,
-    disabled: Boolean(bot.busy),
     onClick: () => (open ? close(false) : openMenu()),
     onKeyDown: (event: ReactKeyboardEvent<HTMLButtonElement>) => {
       if (event.key === "Escape" && open) {
@@ -551,7 +559,7 @@ export function ModelPicker({
         openMenu();
       }
     },
-    "aria-expanded": open && !bot.busy,
+    "aria-expanded": open,
     "aria-haspopup": "dialog" as const,
     "aria-controls": open ? menuId : undefined,
     title: `${summary}${followLine}${attentionLine}${busyLine}`,
