@@ -17,6 +17,22 @@ function setup(options: { optedOut?: string[] } = {}) {
   return { usage, store, problems };
 }
 
+describe("where a note ran", () => {
+  const frustration = { id: "frust00001", at: NOW - 1000, engine: "claude" as const, category: "email" as const, tools: [], apps: [], signals: ["retried" as const], retries: 1 };
+  it("stamps notes with the place the report's turns ran and the workspace's version, and leaves turns bare", async () => {
+    const { usage, store } = setup();
+    await usage.ingest("acct_a", "ws_1", report({ turns: [turn({ place: "cloud" }), turn({ place: "cloud" }), turn()], frustrations: [frustration] }), { kind: "mac", version: "0.2.15" });
+    const notes = await store.records("frustration", 0, NOW + 1, 10), turns = await store.records("turn", 0, NOW + 1, 10);
+    expect(notes[0]!.ran).toEqual({ place: "cloud", os: "mac", version: "0.2.15" });
+    expect(turns.every(record => !record.ran)).toBe(true);
+  });
+  it("falls back to the workspace kind, and drops a version that is not a version", async () => {
+    const { usage, store } = setup();
+    await usage.ingest("acct_a", "ws_1", report({ frustrations: [frustration] }), { kind: "vps", version: "<script>" });
+    expect((await store.records("frustration", 0, NOW + 1, 10))[0]!.ran).toEqual({ place: "server", os: "vps" });
+  });
+});
+
 describe("usage rollups", () => {
   it("counts each record once, even when a report arrives twice", async () => {
     const { usage, store } = setup();

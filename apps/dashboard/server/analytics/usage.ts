@@ -2,7 +2,7 @@
 // USAGE_RETENTION_DAYS and rolled up per day into counts that are kept. Records hold words, counts and times, plus the
 // scrubbed summaries a workspace wrote; never message content.
 import type { Db } from "mongodb";
-import { USAGE_REASONS, type UsageDigest, type UsageFrustration, type UsageReport, type UsageRun, type UsageSession, type UsageSignal, type UsageSnapshot, type UsageTurn } from "../../../../shared/usage-signals.ts";
+import { USAGE_REASONS, type UsagePlace, type UsageDigest, type UsageFrustration, type UsageReport, type UsageRun, type UsageSession, type UsageSignal, type UsageSnapshot, type UsageTurn } from "../../../../shared/usage-signals.ts";
 import { DAY_MS, dayOf } from "./events.ts";
 
 export const USAGE_RETENTION_DAYS = 90;
@@ -14,7 +14,9 @@ export const latencyBucket = (ms: number) => LATENCY_EDGES.findIndex(edge => ms 
 
 export type UsageKind = "turn" | "run" | "frustration" | "session" | "digest" | "signal";
 type Kind = UsageKind;
-export interface UsageRecord { id: string; kind: Kind; at: number; accountId: string; workspaceId: string; data: UsageTurn | UsageRun | UsageFrustration | UsageSession | UsageDigest | UsageSignal }
+/** where the workspace ran and which app version, taken from the workspace as its notes arrived; only notes carry it */
+export interface UsageRan { place: UsagePlace; os?: string; version?: string }
+export interface UsageRecord { id: string; kind: Kind; at: number; accountId: string; workspaceId: string; ran?: UsageRan; data: UsageTurn | UsageRun | UsageFrustration | UsageSession | UsageDigest | UsageSignal }
 /** `appTurns`: turns that used a connected app, so the adoption view can count people who use one; `bots` and `chats`:
  * turns per salted bot and chat hash, for per-bot share and turns per chat */
 export interface PersonDay { day: string; accountId: string; turns: number; failed: number; runs: number; frustrations: number; appTurns: number; bots?: Record<string, number>; chats?: Record<string, number> }
@@ -86,7 +88,7 @@ export function memoryUsageStore(now: () => number = Date.now): UsageStore {
   };
 }
 
-type RecordDoc = { _id: string; kind: Kind; at: Date; accountId: string; workspaceId: string; data: UsageRecord["data"] };
+type RecordDoc = { _id: string; kind: Kind; at: Date; accountId: string; workspaceId: string; ran?: UsageRan; data: UsageRecord["data"] };
 /** usage_events (TTL on `at`), usage_daily (kept), usage_people (TTL on `at`), usage_snapshots (one per workspace) */
 export async function mongoUsageStore(db: Db): Promise<UsageStore> {
   const events = db.collection<RecordDoc>("usage_events"), daily = db.collection<{ _id: string; day: string; c: Record<string, number> }>("usage_daily");
@@ -99,11 +101,11 @@ export async function mongoUsageStore(db: Db): Promise<UsageStore> {
     snaps.createIndexes([{ key: { accountId: 1 } }]),
     spans.createIndexes([{ key: { last: 1 }, expireAfterSeconds: PEOPLE_RETENTION_DAYS * 86_400 }, { key: { accountId: 1 } }]),
   ]);
-  const toRecord = (doc: RecordDoc): UsageRecord => ({ id: doc._id.slice(doc.workspaceId.length + 1), kind: doc.kind, at: doc.at.getTime(), accountId: doc.accountId, workspaceId: doc.workspaceId, data: doc.data });
+  const toRecord = (doc: RecordDoc): UsageRecord => ({ id: doc._id.slice(doc.workspaceId.length + 1), kind: doc.kind, at: doc.at.getTime(), accountId: doc.accountId, workspaceId: doc.workspaceId, ...(doc.ran ? { ran: doc.ran } : {}), data: doc.data });
   return {
     async insert(list) {
       if (!list.length) return [];
-      const docs = list.map(record => ({ _id: `${record.workspaceId}:${record.id}`, kind: record.kind, at: new Date(record.at), accountId: record.accountId, workspaceId: record.workspaceId, data: record.data }));
+      const docs = list.map(record => ({ _id: `${record.workspaceId}:${record.id}`, kind: record.kind, at: new Date(record.at), accountId: record.accountId, workspaceId: record.workspaceId, ...(record.ran ? { ran: record.ran } : {}), data: record.data }));
       const failed = new Set<number>();
       try { await events.insertMany(docs, { ordered: false }); } catch (error) {
         const errors = (error as { writeErrors?: Array<{ index: number; code: number }> | { index: number; code: number } }).writeErrors;
@@ -186,6 +188,18 @@ export function rollup(records: UsageRecord[]): Map<string, Record<string, numbe
   return days;
 }
 
+/** the place the report's turns ran most, else what the workspace's kind says; the version as the workspace reported it */
+export function ranOf(report: UsageReport, from?: { kind?: string; version?: string }): UsageRan | undefined {
+  const count = new Map<UsagePlace, number>();
+  for (const turn of report.turns) count.set(turn.place, (count.get(turn.place) ?? 0) + 1);
+  const seen = [...count].sort((a, b) => b[1] - a[1])[0]?.[0];
+  const place = seen ?? (from?.kind ? from.kind === "vps" ? "server" : "desktop" : undefined);
+  if (!place) return undefined;
+  const version = from?.version && /^[\w.+-]{1,20}$/.test(from.version) ? from.version : undefined;
+  const os = from?.kind && /^[a-z]{2,10}$/.test(from.kind) ? from.kind : undefined;
+  return { place, ...(os ? { os } : {}), ...(version ? { version } : {}) };
+}
+
 export function createUsage(options: {
   store: UsageStore; now?: () => number;
   /** the account turned "help improve dusk bot" off */
@@ -196,15 +210,16 @@ export function createUsage(options: {
   const { store } = options, now = options.now ?? Date.now;
   const stats = { written: 0, failed: 0, dropped: 0 };
   /** a workspace's report section; never throws and never delays the report */
-  async function ingest(accountId: string | null, workspaceId: string, report: UsageReport) {
+  async function ingest(accountId: string | null, workspaceId: string, report: UsageReport, from?: { kind?: string; version?: string }) {
     if (!accountId || options.optedOut(accountId)) { stats.dropped++; return; }
     try {
+      const ran = ranOf(report, from);
       const records: UsageRecord[] = [
         ...report.turns.map(data => ({ id: data.id, kind: "turn" as const, at: data.at, accountId, workspaceId, data })),
         ...report.runs.map(data => ({ id: data.id, kind: "run" as const, at: data.at, accountId, workspaceId, data })),
-        ...(report.frustrations ?? []).map(data => ({ id: data.id, kind: "frustration" as const, at: data.at, accountId, workspaceId, data })),
-        ...(report.sessions ?? []).map(data => ({ id: data.id, kind: "session" as const, at: data.at, accountId, workspaceId, data })),
-        ...(report.digests ?? []).map(data => ({ id: data.id, kind: "digest" as const, at: data.at, accountId, workspaceId, data })),
+        ...(report.frustrations ?? []).map(data => ({ id: data.id, kind: "frustration" as const, at: data.at, accountId, workspaceId, ...(ran ? { ran } : {}), data })),
+        ...(report.sessions ?? []).map(data => ({ id: data.id, kind: "session" as const, at: data.at, accountId, workspaceId, ...(ran ? { ran } : {}), data })),
+        ...(report.digests ?? []).map(data => ({ id: data.id, kind: "digest" as const, at: data.at, accountId, workspaceId, ...(ran ? { ran } : {}), data })),
         ...(report.signals ?? []).map(data => ({ id: data.id, kind: "signal" as const, at: data.at, accountId, workspaceId, data })),
       ];
       const fresh = await store.insert(records);

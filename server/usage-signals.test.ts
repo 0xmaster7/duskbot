@@ -9,12 +9,22 @@ import {
 } from "../shared/usage-signals.ts";
 import { parseWorkspaceReport } from "../shared/dashboard-protocol.ts";
 import {
-  BIG_PER_DAY, BIG_SESSION_TURNS, SESSION_GAP_MS, MIN_WORKSPACE_TURNS, createFrustrationWatch, sessionPrompt, createUsageOutbox, digestPrompt, isCorrective, isShouting, isSwearing, sameRequest, turnRecord, weeklyAllowance, type FrustrationTurn,
+  BIG_PER_DAY, BIG_SESSION_TURNS, SESSION_GAP_MS, MIN_WORKSPACE_TURNS, createFrustrationWatch, sessionPrompt, summaryPrompt, createUsageOutbox, digestPrompt, isCorrective, isShouting, isSwearing, sameRequest, turnRecord, weeklyAllowance, type FrustrationTurn,
 } from "./usage-signals.ts";
 
 const NOW = Date.now();
 const SECRET = "Email jane.doe@acme.com the Q3 numbers from /Users/jane/Secret Plan.xlsx at https://acme.com/x";
 const allStrings = (value: unknown): string[] => typeof value === "string" ? [value] : Array.isArray(value) ? value.flatMap(allStrings) : value && typeof value === "object" ? Object.values(value).flatMap(allStrings) : [];
+
+describe("note prompts", () => {
+  it("ask for complete sentences that name the bot", () => {
+    const lines = [{ role: "user" as const, text: "open the sheet" }];
+    for (const prompt of [summaryPrompt(lines, ["failed"]), sessionPrompt(lines, { turns: 3, minutes: 2, failed: 0, category: "chat", tools: [], apps: [] } as never)]) {
+      expect(prompt).toContain("complete sentences");
+      expect(prompt).toContain("the bot could not open the sheet");
+    }
+  });
+});
 
 describe("categorize", () => {
   it("lets a connected app decide, then the tools, then plain chat", () => {

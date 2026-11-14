@@ -360,7 +360,8 @@ export function createFrustrationWatch(deps: {
   };
 }
 
-const NOTE_RULES = "Never include names of people, companies, places or files, emails, links, account or order numbers, dates, or any quote or paraphrase of what they wrote. "
+const NOTE_RULES = "Write complete sentences with a subject and a verb, and say \"the bot\" whenever it did or could not do something (like \"the bot could not open the sheet\"); never leave a word out. "
+  + "Never include names of people, companies, places or files, emails, links, account or order numbers, dates, or any quote or paraphrase of what they wrote. "
   + "You may name the apps and tools they used (like gmail or the browser) and small counts (like 3 tries).";
 
 /** the instruction the person's own engine gets, on its quick model; it sees the last few lines of the chat on this computer */

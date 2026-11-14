@@ -830,7 +830,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
         if (ws.ownerAccountId && workspaceTurns(ws) > 0) analytics.botReplied(ws.ownerAccountId);
         // the app's switch is the account's switch: off here deletes what was stored, on again lets it flow
         if (ws.ownerAccountId && report.usageOptOut !== undefined && report.usageOptOut !== analytics.optedOut(ws.ownerAccountId)) await analytics.setOptOut(ws.ownerAccountId, report.usageOptOut);
-        if (report.usage) void usage.ingest(ws.ownerAccountId, ws.id, report.usage);
+        if (report.usage) void usage.ingest(ws.ownerAccountId, ws.id, report.usage, { kind: ws.kind, version: ws.version });
         // a plain report changes only its own workspace row: with 2000 computers reporting, diffing every row per
         // report held the whole service (measured 2026-11-14 on the contabo box)
         if (commandsChanged) store.changed(); else store.changedRow("workspaces", ws);

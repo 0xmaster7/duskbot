@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { feedbackAnswer } from "./feedback.ts";
+import { feedbackAnswer, whereWord } from "./feedback.ts";
 import { memoryUsageStore, type UsageRecord } from "./usage.ts";
 
 const NOW = Date.UTC(2026, 10, 13, 12);
@@ -15,16 +15,27 @@ const records: UsageRecord[] = [
 ];
 
 describe("feedback view", () => {
-  it("lists every kind of note newest first, never naming the account, with friction themes first", async () => {
+  it("lists every kind of note newest first, each linked to its account, with friction themes first", async () => {
     const store = memoryUsageStore(() => NOW);
     await store.insert(records);
     const answer = await feedbackAnswer(store, { now: NOW, kind: null, before: null });
     expect(answer.notes.map(note => `${note.kind}:${note.id}`)).toEqual(["big:session002", "big:session001", "bad:frust00001", "weekly:digest0001"]);
     expect(answer.notes[0]!.text).toBeNull();
-    expect(JSON.stringify(answer)).not.toContain("acct_a");
+    expect(answer.notes.every(note => note.person === "acct_a")).toBe(true);
     expect(answer.counts).toEqual({ bad: 1, big: 2, weekly: 1 });
     expect(answer.themes[0]!.pain).toBe(true);
     expect(answer.themes.map(theme => theme.key)).toContain("connecting");
+  });
+  it("says where a note ran and the app version when the record has them", async () => {
+    const store = memoryUsageStore(() => NOW);
+    await store.insert([{ ...records[0]!, ran: { place: "desktop", os: "mac", version: "0.2.15" } }, { ...records[1]!, ran: { place: "server", os: "vps" } }, { ...records[2]!, ran: { place: "cloud" } }]);
+    const answer = await feedbackAnswer(store, { now: NOW, kind: null, before: null });
+    const byId = Object.fromEntries(answer.notes.map(note => [note.id, note]));
+    expect(byId.frust00001).toMatchObject({ where: "mac", version: "0.2.15", retries: 2 });
+    expect(byId.session001).toMatchObject({ where: "own server" });
+    expect(byId.session001!.version).toBeUndefined();
+    expect(byId.session002).toMatchObject({ where: "cloud" });
+    expect(whereWord({ place: "desktop" })).toBe("desktop");
   });
   it("filters by kind and pages with a cursor", async () => {
     const store = memoryUsageStore(() => NOW);

@@ -520,7 +520,7 @@ async function seedUsage(app: ReturnType<typeof createDashboardApp>, accounts: S
     const digests: UsageDigest[] = power >= 2 ? [{ id: uid("digest"), at: now - Math.round(rand() * 6 * DAY), turns: Math.round(power * 30), days: 5, summary: DIGESTS[i % DIGESTS.length]! }] : [];
     for (let start = 0; start < turns.length; start += 500) await app.usage.ingest(account.id, ws, { turns: turns.slice(start, start + 500), runs: start ? [] : runs, ...(start ? {} : { frustrations, sessions, digests, signals }),
       snapshot: { bots: 1 + (i % 4), rooms: i % 3 === 0 ? 1 : 0, routines: i % 3 === 0 ? 2 : i % 4 === 2 ? 1 : 0, webhooks: i % 7 === 0 ? 1 : 0, appEvents: i % 5 === 0 ? 1 : 0, skills: i % 4,
-        chats: 4 + i * 2, archived: i % 5, memory: 1 + (i % 4), botEngines: i % 2 ? { claude: 1 + (i % 4) } : { claude: 1, codex: i % 4 } } });
+        chats: 4 + i * 2, archived: i % 5, memory: 1 + (i % 4), botEngines: i % 2 ? { claude: 1 + (i % 4) } : { claude: 1, codex: i % 4 } } }, { kind: i % 3 === 2 ? "vps" : i % 3 === 1 ? "windows" : "mac", version: i % 2 ? "0.2.15" : "0.2.14" });
     await seedAppSignals(app, account, i, now);
   }
 }
