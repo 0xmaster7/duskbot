@@ -7,7 +7,7 @@ describe("product name", () => {
     expect(productName()).toBe("dusk bot");
   });
 
-  it.each(["index.html", "rail.html"])("%s starts with the product name", (page) => {
+  it.each(["index.html", "src/windows/rail.html"])("%s starts with the product name", (page) => {
     const html = readFileSync(new URL(`../../${page}`, import.meta.url), "utf8");
     expect(html).toContain(`<title>${PRODUCT_NAME}</title>`);
   });
