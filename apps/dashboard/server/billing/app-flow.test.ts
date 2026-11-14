@@ -128,7 +128,7 @@ it("runs the real desktop client through checkout, setup, pairing, upgrade, anot
   await f.reconcile(); await f.client.refresh();
   expect(f.client.state()).toMatchObject({ machine: { status: "ready", origin: expect.stringMatching(/^https:\/\//) }, clouds: [{ id: checkout.cloudId, primary: true }] });
   // once ready, the app's move (this computer's, or a server's bought from its page) starts by itself
-  expect(oneHomeCloud(f.client.state())).toMatchObject({ ready: true, moves: true, origin: f.client.state().machine.origin });
+  expect(oneHomeCloud(f.client.state())).toMatchObject({ ready: true, moves: true, origin: f.client.state().machine?.origin });
   fields = await f.session();
   expect(parseCloudSummary(fields.cloud)).toMatchObject({ status: "ready", disk: { gb: 20, maxGb: 20 } });
   expect(parseCloudList(fields.clouds)).toHaveLength(1); expect(parseCloudRenewal(fields.clouds)).toMatchObject({ cancelled: false, trial: false, keptDays: 30 });
