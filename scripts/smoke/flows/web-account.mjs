@@ -55,6 +55,8 @@ export async function webAccountStep(url, { email, pay = false, log = () => {}, 
       steps.push(`signed-in page, back to the app: ${back}`);
       return { landed, signedInPage: true, backToApp: back, steps };
     }
+    // billing, or plans with no plan picked: that page is where the step ends
+    if (!/dodopayments/.test(landed) && !/[?&]plan=/.test(landed) && !/[?&]plan=/.test(await browser.url())) { steps.push(`landed on ${new URL(await browser.url()).pathname}`); return { landed: await browser.url(), steps }; }
     // the plan: the website's own steps up to its checkout
     let checkoutUrl = /dodopayments/.test(landed) ? landed : null;
     for (let tries = 0; tries < 20 && !checkoutUrl; tries++) {

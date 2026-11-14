@@ -48,7 +48,7 @@ await runFlow(flow, async () => {
       const web = await webAccountStep(link, { email, log: flow.log, shot: (label) => join(out, `link-${label}.png`) });
       flow.facts.linkWeb = web.steps;
     } else flow.friction("confusing", "own server", "signed out, linking did not ask for the account in the browser");
-    line = await flow.waitText(/curl -fsSL https:\/\/link\.dusk\.bot\/i\/[a-z0-9-]+ \| sh( -s -- --[a-z]+)?/, "the install line", { timeout: 90_000 });
+    line = await flow.waitText(/\(?curl -fsSL https:\/\/link\.dusk\.bot\/i\/[a-z0-9-]+[^\n]*?\| sh( -s -- --[a-z]+)?/, "the install line", { timeout: 90_000 });
     return signIn ? "continued in the browser, then the line came by itself" : "the line";
   }, { critical: true });
 

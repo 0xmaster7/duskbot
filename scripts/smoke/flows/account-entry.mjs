@@ -24,14 +24,10 @@ await runFlow(flow, async () => {
   await flow.step("launch", "a fresh app, not signed in, gets into the app", async () => {
     await flow.launch();
     await flow.waitText(/meet dusk bot|where should your bots live/i, "the welcome", { timeout: 120_000 });
-    // straight through the welcome on this Mac, without an account
-    await flow.click("get started", { timeout: 10_000 }).catch(() => {});
-    await sleep(800);
-    await flow.clickSelector("[data-funnel-account-skip]", 8_000).catch(() => {});
-    await flow.click("this Mac", { contains: true });
-    await flow.click("continue with this mac", { timeout: 8_000 }).catch(() => {});
-    await flow.click("start with the free model");
-    for (const word of ["continue", "skip", "not now"]) await flow.click(word, { timeout: 4_000 }).catch(() => {});
+    // past the welcome without an account: the welcome is not what this flow checks (and it is being redesigned)
+    await flow.evaluate(`fetch("/api/config", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ onboarding: { completedAt: new Date().toISOString(), version: 1 } }) }).then((r) => r.status)`);
+    await flow.evaluate(`location.reload(); true`).catch(() => {});
+    await sleep(4000);
     await flow.waitFor(`Boolean(document.querySelector('textarea[aria-label^="Message"]'))`, "the chat", 60_000);
     if (await signedIn()) throw new Error("the app is already signed in");
   }, { critical: true });
