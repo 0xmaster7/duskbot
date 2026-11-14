@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { MAUS_COLORS } from "./mascot";
 import { CLASSIC_ROLE_IDS, READY_BOT_CATEGORIES, READY_BOTS, matchesReadyBot, readyBot, readyBotTemplate } from "./ready-bots";
-import { DUSK_BODY_IDS } from "../../shared/body-migration";
+import { DUSK_BODY_IDS, DUSK_BODY_NAMES } from "../../shared/body-migration";
 import type { NewBotDefaults } from "../../shared/new-bot-defaults";
 
 const defaults = (): NewBotDefaults => ({
@@ -49,6 +49,19 @@ describe("ready-made bots", () => {
     }
   });
 
+  it("have their own names, never a mascot body's, the helper's or another template's", () => {
+    const names = READY_BOTS.map((bot) => bot.name.toLowerCase());
+    expect(new Set(names).size).toBe(names.length);
+    const taken = [...Object.values(DUSK_BODY_NAMES), "dusk", "dusk bot", "mausbot"].map((name) => name.toLowerCase());
+    for (const name of names) expect(taken, name).not.toContain(name);
+  });
+
+  it("tell the bot what to do unasked, when to ask, what never to do, and how to open", () => {
+    for (const bot of READY_BOTS) {
+      for (const heading of ["## Your job", "## On your own", "## Tools", "## Ask or act", "## How you reply", "## Never", "## First message"]) expect(bot.soul, bot.id).toContain(heading);
+    }
+  });
+
   it("only ever bring paused routines and notes under the memory folder", () => {
     for (const bot of READY_BOTS) {
       for (const routine of bot.routines ?? []) expect(routine.enabled).toBe(false);
@@ -62,7 +75,7 @@ describe("readyBotTemplate", () => {
 
   it("sets who the bot is and how it looks", () => {
     const { profile } = readyBotTemplate(defaults(), books);
-    expect(profile).toMatchObject({ name: "Ledger", title: "Bookkeeper", soul: books.soul, color: "brown", mascotBody: "tofu" });
+    expect(profile).toMatchObject({ name: "Penny", title: "Bookkeeper", soul: books.soul, color: "brown", mascotBody: "tofu" });
   });
 
   it("never changes the person's model, approval level, computer, folder or apps", () => {
@@ -89,9 +102,9 @@ describe("readyBotTemplate", () => {
 
 describe("matchesReadyBot", () => {
   it("finds a bot by name, title, description or category, ignoring case", () => {
-    const quill = readyBot("writer")!;
-    expect(["quill", "EDITOR", "in your voice", "writing", ""].every((query) => matchesReadyBot(quill, query))).toBe(true);
-    expect(matchesReadyBot(quill, "spreadsheet")).toBe(false);
+    const edie = readyBot("writer")!;
+    expect(["edie", "EDITOR", "in your voice", "writing", ""].every((query) => matchesReadyBot(edie, query))).toBe(true);
+    expect(matchesReadyBot(edie, "spreadsheet")).toBe(false);
   });
 });
 

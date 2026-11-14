@@ -77,6 +77,9 @@ export const SRC_OUTSIDE_RENDERER = [
   "src/lib/media-sizes.ts",
   "src/lib/plain-preview.ts",
   "src/lib/random-uuid.ts",
+  "src/lib/ready-bot-kit.ts",
+  "src/lib/ready-bots-catalog.ts",
+  "src/lib/ready-bots-work.ts",
   "src/lib/ready-bots.ts",
   "src/lib/upload-request.ts",
 ];

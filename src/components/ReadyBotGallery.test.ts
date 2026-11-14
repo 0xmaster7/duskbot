@@ -73,8 +73,8 @@ describe("ready-made bots gallery", () => {
 
   it("makes the chosen bot in one click, filled in from it", async () => {
     render();
-    flushSync(() => button("Add Ledger, Bookkeeper").click());
-    await vi.waitFor(() => expect(onAdded).toHaveBeenCalledWith({ id: "new-bot", name: "Ledger" }));
+    flushSync(() => button("Add Penny, Bookkeeper").click());
+    await vi.waitFor(() => expect(onAdded).toHaveBeenCalledWith({ id: "new-bot", name: "Penny" }));
     expect(opened.props).toBeNull();
     expect(onDialog).not.toHaveBeenCalled();
     expect(opened.dispatch).toHaveBeenCalledWith({ type: "botCreationPending", on: true });
@@ -84,20 +84,20 @@ describe("ready-made bots gallery", () => {
   it("asks in place before a bot that would approve its own work on this computer, then makes it with that yes", async () => {
     made.defaults = { profile: { approvalMode: "auto", computer: "local" }, memory: {}, skills: [], routines: [] };
     render();
-    flushSync(() => button("Add Ledger, Bookkeeper").click());
+    flushSync(() => button("Add Penny, Bookkeeper").click());
     await vi.waitFor(() => expect(opened.props?.open).toBe(true));
     expect(made.create).not.toHaveBeenCalled();
     expect(onDialog).toHaveBeenLastCalledWith(true);
     flushSync(() => opened.props!.onConfirm());
     expect(onDialog).toHaveBeenLastCalledWith(false);
-    await vi.waitFor(() => expect(onAdded).toHaveBeenCalledWith({ id: "new-bot", name: "Ledger" }));
+    await vi.waitFor(() => expect(onAdded).toHaveBeenCalledWith({ id: "new-bot", name: "Penny" }));
     expect(made.create.mock.calls[0][0].consent).toEqual({ acknowledgeLocalAuto: true });
   });
 
   it("on a paired device, which cannot read the host's defaults, makes the bot at once", () => {
     vi.stubGlobal("duskDesktop", { remoteClient: { active: true } });
     render();
-    flushSync(() => button("Add Ledger, Bookkeeper").click());
+    flushSync(() => button("Add Penny, Bookkeeper").click());
     expect(opened.props).toBeNull();
     expect(opened.dispatch).toHaveBeenCalledWith({ type: "newBot", onCreated: onAdded });
   });
@@ -105,7 +105,7 @@ describe("ready-made bots gallery", () => {
   it("gives Templates its keys back when the question is declined, and makes nothing", async () => {
     made.defaults = { profile: { approvalMode: "auto", computer: "local" }, memory: {}, skills: [], routines: [] };
     render();
-    flushSync(() => button("Add Quill, Writer and editor").click());
+    flushSync(() => button("Add Edie, Writer and editor").click());
     await vi.waitFor(() => expect(opened.props).not.toBeNull());
     flushSync(() => opened.props!.onCancel());
     expect(onDialog).toHaveBeenLastCalledWith(false);
@@ -118,7 +118,7 @@ describe("ready-made bots gallery", () => {
     const { botLimitShown, closeBotLimit } = await import("@/lib/bot-limit");
     opened.state = { config: { botLimit: 5 }, bots: Array.from({ length: 5 }, () => ({})) };
     render();
-    flushSync(() => button("Add Ledger, Bookkeeper").click());
+    flushSync(() => button("Add Penny, Bookkeeper").click());
     expect(opened.props).toBeNull();
     expect(made.create).not.toHaveBeenCalled();
     expect(botLimitShown()).toBe(true);
