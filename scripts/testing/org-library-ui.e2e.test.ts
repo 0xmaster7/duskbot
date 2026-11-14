@@ -137,8 +137,14 @@ describe("the organization library in the real renderer", () => {
     await clickByName(ui, /^Installed/, "button");
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Skills your organization shares");
     await evidence("org-library-bot-skills.png");
+    // the Installed page wipes in; a press mid-wipe lands beside the button, so wait until it stops moving
+    await expect.poll(async () => (await ui("eval", "--js", `new Promise(done => { const at = () => { const r = document.querySelector('button[aria-label="Add follow-up to this bot"]')?.getBoundingClientRect(); return r ? [r.left, r.top].join() : null; };
+      const first = at(); setTimeout(() => done(first !== null && first === at()), 250); })`)).result, { timeout: 10_000 }).toBe(true);
     await click("Add follow-up to this bot");
-    const selected = bots.find((bot: { name: string }) => profile![1].name.includes(bot.name));
+    // the bot whose profile is open, by its exact name: one Sales desk name can sit inside another
+    const openName = /^Open (.+)'s profile$/.exec(profile![1].name)?.[1];
+    const selected = bots.find((bot: { name: string }) => bot.name === openName);
+    expect(selected, `a Sales desk bot named ${openName}`).toBeDefined();
     await expect.poll(async () => ((await api(`/api/bots/${selected.id}/skills`)).skills as Array<{ name: string; enabled: boolean }>)
       .find((skill) => skill.name === "follow-up")?.enabled, { timeout: 10_000 }).toBe(true);
     process.stdout.write(`${JSON.stringify({ fixture: info!, addedSection: "Sales desk", offeredSkill: "follow-up" })}\n`);
