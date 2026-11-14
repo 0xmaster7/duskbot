@@ -14,6 +14,7 @@ import { median, ratioOf, robustZ, step, suspects } from "./math.ts";
 import { createOps, r2Overage, SIGNALS, workersOverage } from "./index.ts";
 import { memoryOpsStore, type OpsRuleState } from "./store.ts";
 import type { OpsAnswer } from "../../../src/admin/ops-types.ts";
+import { createMailRouter, memoryMailUsage, type MailUsage } from "../../auth/mail-router.ts";
 
 const DAY = 86_400_000, MINUTE = 60_000;
 const NOW = Date.parse("2026-11-12T12:00:00Z");
@@ -149,13 +150,13 @@ describe("ops alerts into incidents", () => {
     const usage = { runningSeconds: hours * 3600, vcpuSeconds: hours * 7200, memGiBSeconds: hours * 14_400, diskGiBSeconds: 40 * 86_400, egressBytes: egressGb * 1e9 };
     return { day, cloudId, accountId, serverId: `s-${cloudId}`, ...usage, ...costOf(usage), collectedAt: NOW };
   }
-  function fixture(env: NodeJS.ProcessEnv = {}) {
+  function fixture(env: NodeJS.ProcessEnv = {}, mailUsage: (() => Promise<MailUsage>) | null = null) {
     let time = NOW;
     const store = memoryOpsStore(), infra = memoryInfraStore();
     const reports: Array<{ key: string; name: string; message: string }> = [], recoveries: string[] = [];
     const ops = createOps({ store, env: { DUSK_OPS_CERT_HOSTS: " ", DUSK_OPS_PROBES: "x=x=https://x.test/", ...env }, now: () => time, fetch: (async () => json({ ok: true })) as unknown as typeof fetch,
       db: null, infra, clouds: () => [], egress: () => null, emails: () => new Map([["heavy", "heavy@example.test"]]), customers: () => [], ledger: () => [], invoices: () => [],
-      errors: createErrorCounter(() => time), selfUrl: null, environment: "production", host: false,
+      errors: createErrorCounter(() => time), selfUrl: null, environment: "production", host: false, mailUsage,
       incidents: { report: input => { reports.push(input); return `inc-${reports.length}`; }, recovered: async id => { recoveries.push(id); return true; } } });
     return { ops, store, infra, reports, recoveries, at: (t: number) => { time = t; } };
   }
@@ -185,6 +186,33 @@ describe("ops alerts into incidents", () => {
     await brevo(250); await f.ops.evaluate(); await f.ops.evaluate();
     expect(f.reports.map(r => r.name)).toEqual(["brevo emails today"]);
     expect(f.reports[0]!.message).toMatch(/250 of 300/);
+  });
+
+  it("shows each mail provider against its caps, and mails once when resend nears its cap or mail passes to the other provider", async () => {
+    let time = NOW;
+    const usage = memoryMailUsage(), log: string[] = [];
+    const router = createMailRouter({ providers: { resend: { async send() {} }, brevo: { async send() {} } }, caps: { resend: { daily: 5, monthly: 3_000 }, brevo: { daily: 300, monthly: 10_000 } },
+      usage, now: () => time, log: line => log.push(line) });
+    const f = fixture({}, () => router.usage());
+    const code = { to: "person@example.test", subject: "01234567 is your dusk bot code", text: "t", html: "<p>t</p>", transactional: true };
+    for (let i = 0; i < 4; i++) await router.send(code);
+    await router.send({ ...code, transactional: false });
+    await f.ops.evaluate();
+    expect(f.reports).toHaveLength(0);
+    let mail = (await f.ops.answer()).spend.mail!;
+    expect(mail.providers.map(p => [p.provider, p.daily.used, p.daily.limit, p.monthly.limit, p.fallbacks.today])).toEqual([["resend", 4, 5, 3_000, 0], ["brevo", 1, 300, 10_000, 0]]);
+    await router.send(code); await router.send(code);
+    await f.ops.evaluate(); await f.ops.evaluate();
+    expect(f.reports.map(r => r.name)).toEqual(["resend emails today", "emails sent through the other provider"]);
+    expect(f.reports[1]!.message).toMatch(/1 passed over by resend/);
+    mail = (await f.ops.answer()).spend.mail!;
+    expect(mail.providers[0]).toMatchObject({ provider: "resend", daily: { used: 5, level: "bad" }, fallbacks: { today: 1, month: 1 } });
+    expect(mail.providers[1]!.daily.used).toBe(2);
+    // a new day: the counts reset and both rules recover, no new mail
+    time = NOW + DAY; f.at(NOW + DAY);
+    await f.ops.evaluate();
+    expect(f.reports).toHaveLength(2);
+    expect(f.recoveries).toEqual(["inc-1", "inc-2"]);
   });
 
   it("mails once when contabo's upload stays past 70% for 15 minutes or the month is on course past the allowance", async () => {

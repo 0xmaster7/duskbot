@@ -7,7 +7,8 @@ import { fileSpool } from "../../../electron/error-report-spool.mjs";
 import { TRAIL_HEADER, configureTrail, createStdoutWriter, createTrailWriter, trail, validTrailId } from "../../../electron/trail.mjs";
 import { createDashboardApp } from "./app.ts";
 import { providersFromEnv } from "./auth/providers.ts";
-import { createTestMailbox, mailerFromEnv, resendMailer } from "./auth/mail.ts";
+import { createTestMailbox, mailerFromEnv } from "./auth/mail.ts";
+import { mongoMailUsage } from "./auth/mail-router.ts";
 import { persisted, useStateBackend } from "./persistence/backend.ts";
 import { openMongoBackend } from "./persistence/mongo.ts";
 import { mongoSink } from "./analytics/sink.ts";
@@ -58,14 +59,15 @@ if (live) console.log(`admin: analytics read from ${liveDb} (${live.label}), rea
 const adminEmails = parseAdminEmails(process.env.DUSK_ADMIN_EMAILS);
 console.log(`admin: ${adminEmails.length} allowed account${adminEmails.length === 1 ? "" : "s"}`);
 
-const mailer = mailerFromEnv(process.env, { dev });
+// each provider's sends today and this month, for its caps (auth/mail-router.ts); this service counts its own
+const mailer = mailerFromEnv(process.env, { dev, usage: database ? await mongoMailUsage(database.db) : undefined });
 const alertEmails = process.env.DUSK_ALERT_EMAILS ? parseAdminEmails(process.env.DUSK_ALERT_EMAILS) : adminEmails;
 // "something's wrong" mail comes from production only: preview's incidents are test runs and stay on its health page.
 // DUSK_ALERTS=on mails from any environment (a one-off check), off from none
 const alertsOn = process.env.DUSK_ALERTS !== "off" && alertEmails.length > 0 && (!dev || !!process.env.DUSK_ALERT_EMAILS)
   && (environment === "production" || process.env.DUSK_ALERTS === "on");
-const fallbackMailer = process.env.DUSK_MAIL_PROVIDER !== "resend" && process.env.DUSK_RESEND_API_KEY && process.env.DUSK_MAIL_FROM
-  ? resendMailer({ apiKey: process.env.DUSK_RESEND_API_KEY, from: process.env.DUSK_MAIL_FROM }) : null;
+// an alert brevo refuses gets a second try through resend, within resend's caps
+const fallbackMailer = "only" in mailer ? mailer.only("resend") : null;
 const incidentStore = database ? await mongoIncidentStore(database.db).catch(() => { console.warn("incidents: the incidents collection is unavailable; kept in memory"); return memoryIncidentStore(); }) : memoryIncidentStore();
 const pagePublic = new URL(publicUrl).origin;
 const incidents = createIncidents({ env: environment, store: incidentStore, to: () => alertEmails, mailers: fallbackMailer ? [mailer, fallbackMailer] : [mailer],

@@ -16,6 +16,7 @@ import { createRelays } from "./relays.ts";
 import { rangeDays, topAccounts } from "./accounts.ts";
 import type { OpsRelayCard } from "../../../src/admin/ops-types.ts";
 import { FIXTURE_MAIL, FIXTURE_PEOPLE } from "./fixture.ts";
+import type { MailUsage } from "../../auth/mail-router.ts";
 
 const MINUTE = 60_000, HOUR = 60 * MINUTE, DAY = 24 * HOUR, GB_BYTES = 1e9;
 /** Cloudflare Workers Paid, as of 2026-11: $5 a month with 10m requests and 30m CPU ms, then $0.30 per million requests and $0.02 per million CPU ms */
@@ -36,6 +37,8 @@ export const THRESHOLDS = {
   uploadPct: 70, uploadForMs: 15 * MINUTE,
   /** the account database past this size (all its data, indexes not counted); brevo's day past this share of its limit */
   mongoBytes: 5 * GB_BYTES, brevoDayPct: 80,
+  /** resend's day past this share of its cap: codes start going through brevo (and its promotions tab) soon */
+  resendDayPct: 80,
 } as const;
 
 type Level = OpsLevel;
@@ -71,6 +74,8 @@ export interface OpsOptions {
   fixture?: () => OpsAnswer;
   /** the host sampler reads this box; off in tests */
   host?: boolean;
+  /** this service's sends per mail provider against its caps (auth/mail-router.ts); null with console mail */
+  mailUsage?: (() => Promise<MailUsage>) | null;
 }
 
 const sameToken = (presented: string, expected: string) => {
@@ -220,12 +225,13 @@ export function createOps(options: OpsOptions) {
 
   async function snapshot() {
     const time = now(), start = monthStart(time), today = dayKey(time), from = dayKey(start);
-    const [latestList, infraRows, relayRows, toolRows, registrationRows, limitedRows, signupRows, ruleStates] = await Promise.all([
+    const [latestList, infraRows, relayRows, toolRows, registrationRows, limitedRows, signupRows, ruleStates, mail] = await Promise.all([
       store.latest(), options.infra.range(from, today), store.daily("relay", from, today), store.daily("tool_calls", dayKey(time - 6 * DAY), today),
       store.daily("registrations", today, today), store.daily("limited", today, today), store.daily("signups", today, today), store.rules(),
+      options.mailUsage ? options.mailUsage().catch(() => null) : null,
     ]);
     const latest = new Map(latestList.map(entry => [entry.source, entry]));
-    return { time, start, today, latest, infraRows, relayRows, toolRows, registrationRows, limitedRows, signupRows, ruleStates };
+    return { time, start, today, latest, infraRows, relayRows, toolRows, registrationRows, limitedRows, signupRows, ruleStates, mail };
   }
   type Snapshot = Awaited<ReturnType<typeof snapshot>>;
   const dataOf = <T>(snap: Snapshot, source: string): T | null => (snap.latest.get(source)?.data as T | undefined) ?? null;
@@ -348,6 +354,15 @@ export function createOps(options: OpsOptions) {
       daily: meter(data.today.sent, daily, null), monthly: meter(data.month.sent, monthly, Math.round(data.month.sent / elapsedOf(snap.time))) };
   }
 
+  function mailOf(snap: Snapshot): OpsSpend["mail"] {
+    if (!snap.mail) return null;
+    const elapsed = elapsedOf(snap.time);
+    return { providers: snap.mail.providers.map(p => ({ provider: p.provider, configured: p.configured,
+      sends: p.provider === "resend" ? "codes, receipts and cloud ready" : "everything else",
+      daily: meter(p.today.sent, p.caps.daily, null), monthly: meter(p.month.sent, p.caps.monthly, Math.round(p.month.sent / elapsed)),
+      fallbacks: { today: p.today.fallbacks, month: p.month.fallbacks }, lastError: p.lastError })) };
+  }
+
   function dodoOf(snap: Snapshot): OpsSpend["dodo"] {
     let monthCents = 0, todayCents = 0, payments = 0, grossCents = 0, lastWebhookAt: number | null = null;
     const todayStart = Date.parse(`${snap.today}T00:00:00Z`);
@@ -399,7 +414,7 @@ export function createOps(options: OpsOptions) {
     const all = [...lines, ...fixed];
     return {
       totals: { monthCents: all.reduce((s, l) => s + l.monthCents, 0), projectedCents: all.reduce((s, l) => s + l.projectedCents, 0), todayCents: box.totals.todayCents + dodo.todayCents },
-      lines: all, instabox: box, workers, r2, composio: composioOf(snap, emails), brevo: brevoOf(snap), dodo, relay: relayOf(snap, emails),
+      lines: all, instabox: box, workers, r2, composio: composioOf(snap, emails), brevo: brevoOf(snap), mail: mailOf(snap), dodo, relay: relayOf(snap, emails),
     };
   }
 
@@ -452,10 +467,20 @@ export function createOps(options: OpsOptions) {
       const d = mongo?.ok ? mongo.data as MongoData | null : null;
       out.push({ id: "mongo-size", label: "mongodb size", threshold: `> ${THRESHOLDS.mongoBytes / GB_BYTES} gb`, forMs: 0, breach: d ? d.storageBytes > THRESHOLDS.mongoBytes : null, value: d ? gb(d.storageBytes) : null });
     }
-    // sign-in codes, cloud notices and these alerts all go through brevo: a day near its limit means codes stop arriving soon
+    // cloud notices, these alerts and (when resend is full or failing) sign-in codes go through brevo: a day near its limit means mail stops soon
     const day = spend.brevo?.daily;
     out.push({ id: "brevo-day", label: "brevo emails today", threshold: `> ${THRESHOLDS.brevoDayPct}% of the daily limit`, forMs: 0,
       breach: day?.limit ? day.used > day.limit * THRESHOLDS.brevoDayPct / 100 : null, value: day?.limit ? `${day.used} of ${day.limit}` : null });
+    // codes, receipts and cloud ready go through resend; past its cap they go through brevo instead (and land in promotions)
+    const resend = spend.mail?.providers.find(p => p.provider === "resend" && p.configured);
+    if (resend) out.push({ id: "resend-day", label: "resend emails today", threshold: `> ${THRESHOLDS.resendDayPct}% of the daily cap`, forMs: 0,
+      breach: resend.daily.limit ? resend.daily.used > resend.daily.limit * THRESHOLDS.resendDayPct / 100 : null, value: resend.daily.limit ? `${resend.daily.used} of ${resend.daily.limit}` : null });
+    // one incident a day at most: the rule stays firing until the day's count resets
+    if (spend.mail) {
+      const passed = spend.mail.providers.filter(p => p.fallbacks.today > 0);
+      out.push({ id: "mail-fallback", label: "emails sent through the other provider", threshold: "any today (a cap reached or a provider failing)", forMs: 0,
+        breach: passed.length > 0, value: passed.length ? passed.map(p => `${p.fallbacks.today} passed over by ${p.provider}${p.lastError ? ` (last error ${p.lastError.reason})` : ""}`).join(", ") : "none" });
+    }
     for (const b of backupsOf(snap)) out.push({ id: `backup-${b.id}`, label: `${b.name} backup`, threshold: `older than ${THRESHOLDS.backupHours} h`, forMs: 0,
       breach: b.at === null ? true : snap.time - b.at > THRESHOLDS.backupHours * HOUR, value: b.at === null ? "never seen" : ago(snap.time - b.at) });
     for (const c of spend.instabox.customers) {

@@ -51,11 +51,11 @@ export interface Email {
   /** why this arrived; promo mail also carries an unsubscribe link */
   reason: string;
   unsubscribe?: string;
-  /** a code, a receipt or "cloud ready": it goes out as plain text (no tracking pixel or wrapped links) with a footer
-   *  of no links, the way a person's email looks, so gmail files it in primary */
+  /** a code, a receipt or "cloud ready": sent through resend (no tracking pixel, no wrapped links, no list-unsubscribe)
+   *  with a footer of no links, so gmail files it in primary (auth/mail-router.ts) */
   transactional?: boolean;
 }
-export interface Rendered { subject: string; html: string; text: string; textOnly?: boolean }
+export interface Rendered { subject: string; html: string; text: string; transactional?: boolean }
 
 const C = {
   page: "#fdfdfd", off: "#f6f6f4", ink: "#1b1b1f", body: "#4a4a54", muted: "#73737c", kit: "#894ef0", log: "#232328",
@@ -257,5 +257,5 @@ ${cfg.address ? `<p style="margin:8px 0 0">${esc(cfg.address)}</p>` : ""}
 </body></html>`;
   const footer = [email.reason, ...links.map(([label, href]) => `${label}: ${href}`), ...(cfg.address ? [cfg.address] : [])].join("\n");
   const text = [...(email.status ? [`[ ${email.status[0]} ]`] : []), ...email.blocks.map(blockText), "--", `dusk bot\n${footer}`].join("\n\n");
-  return { subject: email.subject, html, text, ...(email.transactional ? { textOnly: true } : {}) };
+  return { subject: email.subject, html, text, ...(email.transactional ? { transactional: true } : {}) };
 }

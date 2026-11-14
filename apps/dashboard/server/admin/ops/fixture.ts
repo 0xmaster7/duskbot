@@ -89,6 +89,12 @@ export function opsFixture(now: number): OpsAnswer {
         nearLimit: 1, queue: { events: 14, bytes: 42_000 }, registrationsTopIp: [{ ip: "203.0.113.9", today: 22 }, { ip: "198.51.100.4", today: 3 }],
       },
       brevo: { today: { sent: 41, delivered: 40, bounced: 1, blocked: 0 }, month: { sent: 612 }, daily: { used: 41, limit: 300, projected: null, level: "ok" }, monthly: { used: 612, limit: 10_000, projected: Math.round(612 / elapsed), level: "ok" }, plan: "free" },
+      mail: { providers: [
+        { provider: "resend", configured: true, sends: "codes, receipts and cloud ready", daily: { used: 23, limit: 100, projected: null, level: "ok" },
+          monthly: { used: 318, limit: 3_000, projected: Math.round(318 / elapsed), level: "ok" }, fallbacks: { today: 0, month: 2 }, lastError: { at: now - 3 * 86_400_000, reason: "http 429 rate_limit_exceeded" } },
+        { provider: "brevo", configured: true, sends: "everything else", daily: { used: 18, limit: 300, projected: null, level: "ok" },
+          monthly: { used: 294, limit: 10_000, projected: Math.round(294 / elapsed), level: "ok" }, fallbacks: { today: 0, month: 0 }, lastError: null },
+      ] },
       dodo: { monthCents: 410, todayCents: 46, payments: 9, grossCents: 4_100, rate: { rate: 0.06, fixedCents: 40 }, estimated: true, lastWebhookAt: now - 3 * 3_600_000 },
       relay: {
         dailyLimitBytes: 20 * 1024 ** 3, today: { bytes: 6.1 * GB_BYTES, tunnels: 23, limited: 2 }, month: { bytes: 74 * GB_BYTES },

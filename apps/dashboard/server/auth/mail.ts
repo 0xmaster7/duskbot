@@ -1,8 +1,23 @@
 import { codeEmail, emailConfig, recoveryEmail } from "../email/templates.ts";
 import type { EmailConfig } from "../email/templates.ts";
-/** textOnly: a transactional email (templates.ts marks codes, receipts and "cloud ready"); providers that track html send only the text */
-export interface MailMessage { to: string; subject: string; text: string; html: string; textOnly?: boolean }
+import { createMailRouter, mailCapsFromEnv, memoryMailUsage, type MailUsageStore, type RoutedMailer } from "./mail-router.ts";
+/** transactional: a code, a receipt or "cloud ready" (templates.ts); it goes through resend first (auth/mail-router.ts) */
+export interface MailMessage { to: string; subject: string; text: string; html: string; transactional?: boolean }
 export interface Mailer { send(message: MailMessage): Promise<void> }
+/** a provider refused or never answered. `status` is its http status (null: no answer); `reason` is a short, secret-free
+ *  label for admin ops ("http 429 rate_limit_exceeded"); the message stays the same for every caller */
+export class MailDeliveryError extends Error {
+  readonly status: number | null;
+  readonly reason: string;
+  constructor(status: number | null, reason: string) { super("Email delivery failed."); this.status = status; this.reason = reason; }
+}
+// the provider's error name or code, never its message (which can echo the address or the key's name)
+async function failure(response: Response): Promise<MailDeliveryError> {
+  let code = "";
+  try { const body = await response.json() as { name?: unknown; code?: unknown }; code = String(body?.name ?? body?.code ?? "").replace(/[^a-z0-9_.-]/gi, "").slice(0, 40); } catch { /* not json */ }
+  return new MailDeliveryError(response.status, `http ${response.status}${code ? ` ${code}` : ""}`);
+}
+const noAnswer = (error: unknown) => error instanceof MailDeliveryError ? error : new MailDeliveryError(null, `no answer (${error instanceof Error ? error.name : "error"})`);
 
 export function memoryMailer() {
   const outbox: MailMessage[] = [];
@@ -57,10 +72,12 @@ export function resendMailer(options: { apiKey: string; from: string; fetch?: ty
   return { async send(message) {
     try {
       const response = await request("https://api.resend.com/emails", { method: "POST", redirect: "error", signal: AbortSignal.timeout(15_000),
-        headers: { authorization: `Bearer ${options.apiKey}`, "content-type": "application/json" }, body: JSON.stringify({ from: `${SENDER_NAME} <${senderAddress(options.from)}>`, reply_to: REPLY_TO, to: message.to, subject: message.subject, text: message.text, ...(message.textOnly ? {} : { html: message.html }) }) });
+        headers: { authorization: `Bearer ${options.apiKey}`, "content-type": "application/json" },
+        // the dusk.bot domain has open and click tracking off in resend, and no list-unsubscribe header is added
+        body: JSON.stringify({ from: `${SENDER_NAME} <${senderAddress(options.from)}>`, reply_to: REPLY_TO, to: message.to, subject: message.subject, html: message.html, text: message.text }) });
+      if (!response.ok) throw await failure(response);
       await response.body?.cancel();
-      if (!response.ok) throw new Error();
-    } catch { throw new Error("Email delivery failed."); }
+    } catch (error) { throw noAnswer(error); }
   } };
 }
 export function brevoMailer(options: { apiKey: string; from: string; fetch?: typeof fetch }): Mailer {
@@ -68,29 +85,33 @@ export function brevoMailer(options: { apiKey: string; from: string; fetch?: typ
   const sender = { name: SENDER_NAME, email: senderAddress(options.from) };
   return { async send(message) {
     try {
+      // brevo adds an open pixel and wrapped links to every html part (no way off below enterprise): transactional mail
+      // comes here only when resend is capped or failing (auth/mail-router.ts)
       const response = await request("https://api.brevo.com/v3/smtp/email", { method: "POST", redirect: "error", signal: AbortSignal.timeout(15_000),
         headers: { "api-key": options.apiKey, "content-type": "application/json", accept: "application/json" },
-        // a transactional email goes as text only: brevo puts an open pixel and rewritten click links into every html part it
-        // relays and can't turn them off below its enterprise plan; both push mail to gmail's promotions tab
-        body: JSON.stringify({ sender, replyTo: { email: REPLY_TO }, to: [{ email: message.to }], subject: message.subject, textContent: message.text,
-          ...(message.textOnly ? {} : { htmlContent: message.html }) }) });
+        body: JSON.stringify({ sender, replyTo: { email: REPLY_TO }, to: [{ email: message.to }], subject: message.subject, htmlContent: message.html, textContent: message.text }) });
+      if (!response.ok) throw await failure(response);
       await response.body?.cancel();
-      if (!response.ok) throw new Error();
-    } catch { throw new Error("Email delivery failed."); }
+    } catch (error) { throw noAnswer(error); }
   } };
 }
-export function mailerFromEnv(env: NodeJS.ProcessEnv, { dev }: { dev: boolean }): Mailer {
+/** the providers the env configures, behind the router (auth/mail-router.ts): transactional mail goes through resend and
+ *  everything else through brevo, each within its caps, falling back to the other. DUSK_MAIL_PROVIDER names the one that
+ *  must be there (brevo or resend); console prints codes, development only */
+export function mailerFromEnv(env: NodeJS.ProcessEnv, { dev, usage, now }: { dev: boolean; usage?: MailUsageStore; now?: () => number }): RoutedMailer | Mailer {
   const provider = env.DUSK_MAIL_PROVIDER ?? (dev ? "console" : "");
-  if (provider === "resend") {
-    if (!env.DUSK_RESEND_API_KEY || !env.DUSK_MAIL_FROM) throw new Error("DUSK_MAIL_PROVIDER=resend requires DUSK_RESEND_API_KEY and DUSK_MAIL_FROM.");
-    return resendMailer({ apiKey: env.DUSK_RESEND_API_KEY, from: env.DUSK_MAIL_FROM });
-  }
-  if (provider === "brevo") {
-    if (!env.DUSK_BREVO_API_KEY || !env.DUSK_MAIL_FROM) throw new Error("DUSK_MAIL_PROVIDER=brevo requires DUSK_BREVO_API_KEY and DUSK_MAIL_FROM.");
-    return brevoMailer({ apiKey: env.DUSK_BREVO_API_KEY, from: env.DUSK_MAIL_FROM });
-  }
   if (provider === "console" && dev) return consoleMailer();
-  throw new Error("Configure DUSK_MAIL_PROVIDER=brevo or resend for email delivery; console mail is allowed only in development.");
+  if (provider !== "resend" && provider !== "brevo") throw new Error("Configure DUSK_MAIL_PROVIDER=brevo or resend for email delivery; console mail is allowed only in development.");
+  const key = provider === "resend" ? env.DUSK_RESEND_API_KEY : env.DUSK_BREVO_API_KEY;
+  if (!key || !env.DUSK_MAIL_FROM) throw new Error(`DUSK_MAIL_PROVIDER=${provider} requires DUSK_${provider.toUpperCase()}_API_KEY and DUSK_MAIL_FROM.`);
+  const from = env.DUSK_MAIL_FROM;
+  return createMailRouter({
+    providers: {
+      resend: env.DUSK_RESEND_API_KEY ? resendMailer({ apiKey: env.DUSK_RESEND_API_KEY, from }) : null,
+      brevo: env.DUSK_BREVO_API_KEY ? brevoMailer({ apiKey: env.DUSK_BREVO_API_KEY, from }) : null,
+    },
+    caps: mailCapsFromEnv(env), usage: usage ?? memoryMailUsage(), now,
+  });
 }
 export function codeMessage(to: string, code: string, cfg: EmailConfig = emailConfig(process.env, { publicUrl: "https://dusk.bot" })): MailMessage {
   return { to, ...codeEmail(cfg, { code }) };

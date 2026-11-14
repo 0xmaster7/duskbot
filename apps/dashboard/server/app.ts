@@ -12,6 +12,7 @@ import { AuthError, createAuth, isAppCorsRoute, reviewAccountFromEnv, type Revie
 import type { ProviderConfigs } from "./auth/providers.ts";
 import { createTestMailbox, isTestAccount, isTestAddress, sinkTestMail } from "./auth/mail.ts";
 import type { Mailer, MailMessage, TestMailbox } from "./auth/mail.ts";
+import type { RoutedMailer } from "./auth/mail-router.ts";
 import { createStore } from "./store.ts";
 import type { Account, StoredCommand, StoredWorkspace } from "./store.ts";
 import { createBilling } from "./billing/index.ts";
@@ -374,7 +375,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
     ledger: () => billing.store.state.ledger ?? [], invoices: () => billing.store.state.invoices, errors: errorsSeen,
     incidents: options.incidents ? { report: input => incidents.report(input), recovered: (id, note) => incidents.recovered(id, note) } : null,
     selfUrl: dev ? null : new URL(publicUrl).origin, environment: options.admin?.environment ?? (dev ? "development" : "production"),
-    fixture: options.admin?.opsFixture ? () => opsFixture(now()) : undefined, host: !options.admin?.opsFixture && !!options.analytics?.ops });
+    fixture: options.admin?.opsFixture ? () => opsFixture(now()) : undefined, host: !options.admin?.opsFixture && !!options.analytics?.ops,
+    mailUsage: "usage" in options.mailer && typeof options.mailer.usage === "function" ? () => (options.mailer as RoutedMailer).usage() : null });
   if (options.analytics?.ops) ops.start();
   noteMail = message => {
     const to = message.to.trim().toLowerCase(), account = auth.directory().accounts.find(item => item.email.toLowerCase() === to);

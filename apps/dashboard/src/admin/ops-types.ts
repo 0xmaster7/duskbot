@@ -53,6 +53,17 @@ export interface OpsComposio {
   registrationsTopIp: Array<{ ip: string; today: number }>;
 }
 export interface OpsBrevo { today: { sent: number; delivered: number; bounced: number; blocked: number }; month: { sent: number }; daily: OpsMeter; monthly: OpsMeter; plan: string | null }
+/** one mail provider as this service counted it (auth/mail-router.ts): sends against its caps, the emails it passed to the
+ *  other provider (at a cap or failing) and its last refusal */
+export interface OpsMailProvider {
+  provider: "resend" | "brevo"; configured: boolean;
+  /** what it sends first: resend the codes, receipts and cloud ready; brevo everything else */
+  sends: string;
+  daily: OpsMeter; monthly: OpsMeter;
+  fallbacks: { today: number; month: number };
+  lastError: { at: number; reason: string } | null;
+}
+export interface OpsMail { providers: OpsMailProvider[] }
 export interface OpsDodo { monthCents: number; todayCents: number; payments: number; grossCents: number; rate: { rate: number; fixedCents: number }; estimated: boolean; lastWebhookAt: number | null }
 export interface OpsRelay {
   dailyLimitBytes: number;
@@ -70,6 +81,8 @@ export interface OpsSpend {
   r2: OpsR2 | null;
   composio: OpsComposio | null;
   brevo: OpsBrevo | null;
+  /** null when this service has no counting mail router (console mail in development) */
+  mail: OpsMail | null;
   dodo: OpsDodo;
   relay: OpsRelay | null;
 }

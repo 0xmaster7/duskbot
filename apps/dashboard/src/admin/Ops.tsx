@@ -127,7 +127,8 @@ type Item = { key: string; level: OpsLevel; label: string; why: string; to: stri
 /** everything that is not ok right now, worst first */
 function attention(data: OpsAnswer): Item[] {
   const items: Item[] = [];
-  const { workers, r2, brevo, composio, instabox } = data.spend;
+  const { workers, r2, brevo, composio, instabox, mail } = data.spend;
+  const resend = mail?.providers.find((p) => p.provider === "resend" && p.configured);
   for (const rule of data.alerts) if (rule.state !== "ok") items.push({ key: `rule:${rule.id}`, level: RULE_LEVEL[rule.state], label: rule.label, why: `alert ${rule.state}${rule.value ? `, now ${rule.value}` : ""}, over ${rule.threshold}`, to: here("ops-services") });
   for (const check of data.health.checks) if (check.level === "bad" || check.level === "watch") items.push({ key: `check:${check.id}`, level: check.level, label: check.name, why: check.detail ?? check.value, to: here("ops-services") });
   const ruled = new Set(items.map((item) => item.label));
@@ -140,6 +141,7 @@ function attention(data: OpsAnswer): Item[] {
   const meters: Array<[string, OpsMeter | undefined, (v: number) => string]> = [
     ["cloudflare workers requests", workers?.requests, short], ["cloudflare workers cpu time", workers?.cpuMs, (v) => `${short(v)} ms`],
     ["r2 storage", r2?.total, size], ["brevo emails today", brevo?.daily, n], ["brevo emails this month", brevo?.monthly, n],
+    ["resend emails today", resend?.daily, n], ["resend emails this month", resend?.monthly, n],
   ];
   for (const [label, meter, format] of meters) {
     if (meter && (meter.level === "bad" || meter.level === "watch") && !ruled.has(label)) items.push({ key: `meter:${label}`, level: meter.level, label,
@@ -508,6 +510,31 @@ function Tile({ id, title, big, money, sub, bar }: { id: string; title: string; 
     </Panel>
   );
 }
+/** each mail provider as this service counted it: today and the month against its caps, the emails it passed to the other
+ *  provider and its last refusal (auth/mail-router.ts) */
+function MailTile({ mail, brevo, now }: { mail: OpsSpend["mail"]; brevo: OpsSpend["brevo"]; now: number }) {
+  const providers = mail?.providers.filter((p) => p.configured) ?? [];
+  return (
+    <Panel id="ops-tile-emails" title="emails">
+      <div className="flex min-h-[84px] flex-col justify-center gap-4 px-2 py-1.5">
+        {providers.length ? providers.map((p) => (
+          <div key={p.provider} className="flex min-w-0 flex-col gap-1.5">
+            <div className="flex min-w-0 items-baseline justify-between gap-3">
+              <span className="text-13 text-ink">{p.provider}</span>
+              <span className="truncate text-12 text-ink-3">{p.sends}</span>
+            </div>
+            <Meter label="today" meter={p.daily} format={n} />
+            <Meter label="this month" meter={p.monthly} format={n} />
+            <span className="text-12 leading-[1.45] text-ink-3">
+              <span className={p.fallbacks.today ? "text-warn" : undefined}>{n(p.fallbacks.month)} passed to the other provider this month{p.fallbacks.today ? `, ${n(p.fallbacks.today)} today` : ""}</span>
+              {" · "}{p.lastError ? <>last error {p.lastError.reason}, {ago(p.lastError.at, now)}</> : "no errors"}
+            </span>
+          </div>
+        )) : <span className="text-12 leading-[1.45] text-ink-3">{brevo ? <>brevo: {n(brevo.monthly.used)} this month · {n(brevo.today.sent)} today</> : "not counted yet"}</span>}
+      </div>
+    </Panel>
+  );
+}
 const levelOf = (used: number, limit: number | null, projected: number | null): OpsLevel => !limit ? "unknown" : used >= limit ? "bad" : used >= limit * 0.8 || (projected ?? 0) >= limit ? "watch" : "ok";
 
 /** the month's usage and what it costs, one tile each: dusk cloud, emails, each node's traffic, cloudflare */
@@ -521,8 +548,7 @@ function Glance({ data, relays }: { data: OpsAnswer | null; relays: OpsRelayCard
     <div className="grid grid-cols-5 gap-4 max-xl:grid-cols-3 max-md:grid-cols-2 max-sm:grid-cols-1">
       <Tile id="ops-tile-cloud" title="dusk cloud" big={box ? `${n(Math.round(box.awakeHours))} h` : dash}
         sub={box ? <>machine-hours this month · instabox <span className="text-money">{usd(box.costCents)}</span>, <span className="text-money">{usd(box.projectedCents)}</span> at this pace</> : "not reported yet"} />
-      <Tile id="ops-tile-emails" title="emails" big={brevo ? n(brevo.monthly.used) : dash} bar={brevo ? { meter: brevo.monthly } : null}
-        sub={brevo ? <>of {n(brevo.monthly.limit)} this month · {n(brevo.today.sent)} today{brevo.monthly.projected !== null ? ` · ${n(brevo.monthly.projected)} at this pace` : ""}</> : "brevo not reported yet"} />
+      <MailTile mail={spend?.mail ?? null} brevo={brevo} now={data?.now ?? 0} />
       {links.map((card) => {
         const stats = card.stats, month = stats ? monthOut(stats) : null;
         return (

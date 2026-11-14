@@ -32,14 +32,21 @@ describe("account emails", () => {
     for (const href of hrefs(email.html)) expect(email.text).toContain(href);
   });
 
-  it("sends codes, receipts and cloud ready as plain text with no footer links, and leaves the rest as designed", () => {
+  it("marks codes, receipts and cloud ready transactional: styled, untracked, small, a text part, and no footer links", () => {
     const transactional = new Set(["01-code", "01b-recovery", "01c-recovery-none", "03-cloud-ready", "04-receipt"]);
     for (const { id, email } of all) {
-      expect(!!email.textOnly, id).toBe(transactional.has(id));
-      if (transactional.has(id)) {
-        expect(email.text, id).not.toMatch(/\/docs|x\.com|\/privacy|unsubscribe/);
-        expect(email.text.match(/https:\/\//g)?.length ?? 0, id).toBeLessThanOrEqual(2);
-      } else expect(email.text, id).toContain("/privacy");
+      expect(!!email.transactional, id).toBe(transactional.has(id));
+      if (!transactional.has(id)) { expect(email.text, id).toContain("/privacy"); continue; }
+      // the full design goes out (resend adds nothing to it), with a plain text part beside it
+      expect(email.html, id).toContain('class="kit"');
+      expect(email.text.length, id).toBeGreaterThan(40);
+      // no pixel, no tracking or redirect links, no unsubscribe: gmail reads it as a person's email, not a campaign
+      for (const tag of email.html.match(/<img [^>]*>/g) ?? []) expect(tag, id).not.toMatch(/width="1"|height="1"|display:\s*none/);
+      expect(`${email.html}${email.text}`, id).not.toMatch(/utm_|[?&](?:mc_|_hs|trk)|\/track|\/click|\/open|sendibt|unsubscribe/i);
+      expect(email.text, id).not.toMatch(/\/docs|x\.com|\/privacy/);
+      expect(email.text.match(/https:\/\//g)?.length ?? 0, id).toBeLessThanOrEqual(2);
+      // well under gmail's 102 kb clipping
+      expect(Buffer.byteLength(email.html), id).toBeLessThan(40_000);
     }
   });
 
