@@ -2019,6 +2019,19 @@ get_updater() {
   fi
   [ -f "$UPDATER" ]
 }
+# the docker gate a verified build carries, when it differs from the one installed: a server whose build moved its bot
+# computers to a newly named image, with the gate from its install day, had every computer update refused (2026-11-14).
+# a gate restart cuts what goes through it at that moment, so callers run this only while no bot is working
+refresh_gate() { # verified tgz
+  [ "$(state_get signed)" = 1 ] && [ -f "$1" ] || return 0
+  tar -xzOf "$1" package/link/docker-gate.mjs > "$TMP/docker-gate.mjs" 2>/dev/null && [ -s "$TMP/docker-gate.mjs" ] && "$NODE_BIN" --check "$TMP/docker-gate.mjs" 2>/dev/null || return 0
+  if [ -f "$GATE" ] && cmp -s "$TMP/docker-gate.mjs" "$GATE"; then return 0; fi
+  install -d -o root -g root -m 0755 "$LIB"
+  install -o root -g root -m 0644 "$TMP/docker-gate.mjs" "$GATE" || return 0
+  echo "the docker gate now matches the build"
+  if systemctl is-active --quiet omb-docker-gate.service; then x systemctl restart omb-docker-gate.service; fi
+}
+
 refresh_updater() { # verified tgz
   [ "$(state_get signed)" = 1 ] || return 0
   tar -xzOf "$1" package/link/install.sh > "$TMP/updater.sh" 2>/dev/null && [ -s "$TMP/updater.sh" ] && sh -n "$TMP/updater.sh" || return 0
@@ -2085,6 +2098,11 @@ update_server() {
     restart_wait || return 0
     restart_settle; return
   fi
+  # the gate the running build carries, once per build and while idle: an updater from before refresh_gate installed it
+  _running=$(state_get running-package | sed 's/^sha256://')
+  if [ -n "$_running" ] && [ "$(state_get gate-from)" != "$_running" ] && [ -f "$PKGS/duskbot-$_running.tgz" ] && [ "$(restart_allowed)" = go ]; then
+    refresh_gate "$PKGS/duskbot-$_running.tgz"; state_set gate-from "$_running"
+  fi
   offer=$(staged_offer) || return 0
   set -f; set -- $offer; set +f
   [ "$#" = 6 ] || return 0
@@ -2108,7 +2126,7 @@ update_server() {
     [ "$_rc" != 0 ] || state_set server-update-refused "$PKG_SHA"
     return 0
   fi
-  if [ "$_rc" = 0 ]; then refresh_updater "$_f"; fi
+  if [ "$_rc" = 0 ]; then refresh_updater "$_f"; refresh_gate "$_f"; fi
   restart_wait || return 0
   restart_settle
 }

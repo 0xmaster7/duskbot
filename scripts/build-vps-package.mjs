@@ -72,6 +72,8 @@ for (const file of kitFiles.filter((path) => path.startsWith("deploy/bot-desktop
 // root's updater on the server (install.sh --update-server) takes its next copy from a signed build that carries it
 mkdirSync(join(npmDir, "link"), { recursive: true });
 copyFileSync(join(root, "apps", "link-service", "install.sh"), join(npmDir, "link", "install.sh"));
+// and its docker gate: a build whose bot computer image the old gate refuses never updates a computer (2026-11-14)
+copyFileSync(join(root, "apps", "link-service", "docker-gate.mjs"), join(npmDir, "link", "docker-gate.mjs"));
 pkg.files = [...new Set([...(pkg.files ?? []), "deploy", "link"])];
 writeFileSync(manifestPath, JSON.stringify(pkg, null, 2) + "\n");
 
