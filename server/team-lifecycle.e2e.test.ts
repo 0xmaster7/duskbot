@@ -133,9 +133,10 @@ it("retains empty teams, moves existing bots, and keeps legacy imports additive 
     writeFileSync(registryFile, malformed);
     await restartFixture();
     const recovered = await api("/api/bots?messages=0");
-    // a legacy room with no default responder migrates to everyone answering (store.ts migratedDefaultResponder)
+    // the saved room keeps respondersAtOnce, so a missing default responder is normalized, not migrated: since
+    // 4532b34b0 a room nobody chose for is led by its first member (group-responder.ts)
     expect(recovered.bots.find((bot: any) => bot.id === a.id)).toMatchObject({ section: "Recovered bot team", tasks: [{ threadId: a.activeTaskId }] });
-    expect(recovered.groups.find((group: any) => group.id === room.id)).toMatchObject({ section: "Recovered group team", defaultResponder: { kind: "everyone" } });
+    expect(recovered.groups.find((group: any) => group.id === room.id)).toMatchObject({ section: "Recovered group team", defaultResponder: { kind: "member", botId: a.id } });
     expect(await messages()).toEqual(transcript);
     expect((await control("messages", "--channel", room.id, "--limit", "10") as any).messages).toEqual(roomMessages);
     expect(JSON.parse(readFileSync(join(dataDir, "bots.json"), "utf8")).find((bot: any) => bot.id === a.id).tasks).toHaveLength(1);
