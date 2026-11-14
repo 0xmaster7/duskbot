@@ -444,7 +444,7 @@ export function TeamLibraryPanel({
   return createPortal(
     // Dim only: a full-window backdrop blur is redrawn every frame without a GPU and keeps the page laggy while it is open.
     <div
-      className="ui-dialog-scrim templates-scrim fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+      className="ui-dialog-scrim templates-scrim fixed inset-0 z-50 flex items-center justify-center"
       // the top clears the macOS traffic lights and the Windows caption buttons, as every pop-up's does
       style={{ paddingTop: glassPopupTopInset() }}
       data-leaving={leaving ? "" : undefined}
@@ -456,7 +456,7 @@ export function TeamLibraryPanel({
         aria-modal="true"
         aria-labelledby="team-library-title"
         tabIndex={-1}
-        className="templates-sheet flex h-[min(780px,100%)] w-full max-w-[1040px] flex-col overflow-hidden rounded-[14px] border border-transparent bg-menu outline-none"
+        className="templates-sheet flex h-[min(700px,calc(100vh-32px))] w-[min(900px,calc(100vw-32px))] flex-col overflow-hidden rounded-[14px] border border-transparent bg-menu outline-none"
       >
         <header className="flex items-start justify-between gap-4 px-6 pb-3 pt-6 sm:px-8 sm:pt-7">
           <div className="min-w-0">
