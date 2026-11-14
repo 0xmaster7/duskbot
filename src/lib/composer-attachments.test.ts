@@ -15,6 +15,9 @@ import {
   imageAttachmentFromFile,
   isImageFile,
   optimisticImageAttachment,
+  PASTE_INLINE_MAX_BYTES,
+  pastedTextFile,
+  pendingFileAttachment,
   releaseAttachmentImagePreview,
   splitTranscriptAttachments,
   type ImageAttachment,
@@ -486,6 +489,36 @@ describe("clipboardHasImages", () => {
       items: [{ kind: "string", type: "text/plain" }],
       files: [{ type: "text/plain", size: 10 }],
     })).toBe(false);
+  });
+});
+
+describe("pastedTextFile", () => {
+  it("keeps a paste that fits the message body inline", () => {
+    expect(pastedTextFile("a".repeat(PASTE_INLINE_MAX_BYTES - 2))).toBeNull();
+  });
+
+  it("turns a paste over the inline limit into a text file uploaded through /api/files", async () => {
+    const text = "a\n".repeat(400_000);
+    const file = pastedTextFile(text);
+    expect(file).toMatchObject({ name: "pasted-text.txt", type: "text/plain", size: text.length });
+    const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
+      path: "/private/attachments/paste.txt", name: "pasted-text.txt", bytes: text.length,
+    }), { status: 201, headers: { "content-type": "application/json" } }));
+    try {
+      await expect(fileAttachmentFromFile(file!)).resolves.toMatchObject({
+        kind: "file", name: "pasted-text.txt", path: "/private/attachments/paste.txt", size: text.length,
+      });
+      expect(fetch).toHaveBeenCalledWith(expect.stringMatching(/^\/api\/files\?name=pasted-text\.txt&/),
+        expect.objectContaining({ method: "POST", body: file, headers: { "content-type": "text/plain" } }));
+      expect(await (file as File).text()).toBe(text);
+    } finally {
+      fetch.mockRestore();
+    }
+  });
+
+  it("refuses a paste over the file limit before uploading", () => {
+    const file = pastedTextFile("a".repeat(25 * 1024 * 1024 + 1));
+    expect(() => pendingFileAttachment(file!)).toThrow(expect.objectContaining({ status: 413 }));
   });
 });
 

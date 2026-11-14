@@ -55,6 +55,7 @@ import {
   isLongPaste,
   optimisticImageAttachment,
   pasteAttachment,
+  pastedTextFile,
   pendingFileAttachment,
   releaseAttachmentImagePreview,
   type Attachment,
@@ -730,7 +731,15 @@ export function Composer({
       editText(`${text.slice(0, start)}${text.slice(end)}`);
       setCaret(start);
     }
-    editAttachments((prev) => [...prev, pasteAttachment(pasted)]);
+    const file = pastedTextFile(pasted);
+    if (!file) {
+      editAttachments((prev) => [...prev, pasteAttachment(pasted)]);
+      return;
+    }
+    changeDraftAttachmentPending(draftId, true);
+    void uploadFile(file)
+      .catch((error: unknown) => setAttachmentNotice(friendlyError(error, "upload failed")))
+      .finally(() => changeDraftAttachmentPending(draftId, false));
   };
 
   const toggleGoal = () => {

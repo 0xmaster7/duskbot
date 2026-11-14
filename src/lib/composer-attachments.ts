@@ -391,6 +391,15 @@ export function pasteAttachment(text: string): PasteAttachment {
   return { kind: "paste", id, text, size: byteLength(text), lines: countLines(text) };
 }
 
+/** Under the server's 1,000,000-byte JSON body limit for a sent message, counted as the paste is encoded in it. */
+export const PASTE_INLINE_MAX_BYTES = 900_000;
+
+/** The text file a paste too large to send inline is uploaded as; null for a paste that stays inline. */
+export function pastedTextFile(text: string): File | null {
+  const inline = byteLength(text) <= PASTE_INLINE_MAX_BYTES && byteLength(JSON.stringify(text)) <= PASTE_INLINE_MAX_BYTES;
+  return inline ? null : new File([text], "pasted-text.txt", { type: "text/plain" });
+}
+
 export function appendPastedText(text: string, pasted: string): string {
   if (!text) return pasted;
   return `${text}${text.endsWith("\n") ? "" : "\n\n"}${pasted}`;
