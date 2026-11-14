@@ -55,7 +55,8 @@ describe("admin panel api", () => {
   function call(path: string, init: { method?: string; body?: unknown; cookie?: string; csrf?: boolean; headers?: Record<string, string> } = {}) {
     const method = init.method ?? (init.body === undefined ? "GET" : "POST");
     return fetch(`${url}${path}`, { method, headers: { origin, ...(init.body === undefined ? {} : { "content-type": "application/json" }),
-      ...(init.cookie ? { cookie: init.cookie, ...(init.csrf === false ? {} : { [CSRF_HEADER]: csrf.get(init.cookie) ?? "" }) } : {}), ...init.headers },
+      // the fixture's accounts are on example.test, which the panel hides unless asked
+      "x-dusk-admin-tests": "show", ...(init.cookie ? { cookie: init.cookie, ...(init.csrf === false ? {} : { [CSRF_HEADER]: csrf.get(init.cookie) ?? "" }) } : {}), ...init.headers },
       ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }) });
   }
   async function login(email: string) {
@@ -194,6 +195,25 @@ describe("admin panel api", () => {
     expect(audit.entries[0]!.action).toBe("user.view");
   });
 
+  it("leaves test accounts out of people, signups and paying by default, and shows them on request", async () => {
+    const admin = await login(ADMIN);
+    await login("smoke@example.com");
+    await login("pat.real@gmail.com");
+    await grantCloud("smoke@example.com");
+    const hide = { "x-dusk-admin-tests": "" };
+    type Users = { total: number; users: Array<{ email: string }> };
+    const hidden = await (await call("/v1/admin/users", { cookie: admin, headers: hide })).json() as Users;
+    expect(hidden.users.map(user => user.email)).toEqual(["pat.real@gmail.com"]);
+    expect((await (await call("/v1/admin/users", { cookie: admin })).json() as Users).total).toBe(3);
+    const overview = await (await call("/v1/admin/overview?days=7", { cookie: admin, headers: hide })).json() as { totals: { accounts: number; newAccounts: number; paying: number; clouds: number } };
+    expect(overview.totals).toMatchObject({ accounts: 1, newAccounts: 1, paying: 0, clouds: 0 });
+    const clouds = await (await call("/v1/admin/clouds?status=all", { cookie: admin, headers: hide })).json() as { clouds: unknown[] };
+    expect(clouds.clouds).toEqual([]);
+    const revenue = await (await call("/v1/admin/revenue?mode=all", { cookie: admin, headers: hide })).json() as { customers: unknown[] };
+    expect(revenue.customers).toEqual([]);
+    expect((await (await call("/v1/admin/revenue?mode=all", { cookie: admin })).json() as { customers: unknown[] }).customers).toHaveLength(1);
+    expect(app.auth.accountByEmail("smoke@example.com")).toBeTruthy();
+  });
   it("exports the waitlist as CSV with formula cells neutralised, and audits the export", async () => {
     const admin = await login(ADMIN);
     const res = await call("/v1/admin/waitlist.csv", { cookie: admin });

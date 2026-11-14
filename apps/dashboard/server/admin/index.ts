@@ -27,6 +27,7 @@ import { SHARING_LOOKBACK_DAYS, sharingOf } from "./sharing.ts";
 import { isRange, rangeDays, topAccounts } from "./ops/accounts.ts";
 import { ACCOUNT_NOTES, type AccountNotes } from "./ops/index.ts";
 import type { OpsAccountsAnswer, OpsAccountsRange, OpsRelayCard } from "../../src/admin/ops-types.ts";
+import { testAccountIds, withoutAccounts, withoutBilling } from "./test-accounts.ts";
 import { DAY, choseCloud, dayKey, dayRange, funnel, isPaying, perDay, wasPaid, workspaceTurns } from "./metrics.ts";
 
 export class AdminError extends Error {
@@ -85,29 +86,50 @@ export function createAdmin(options: AdminOptions) {
   const env = options.env ?? process.env;
   const brevo = brevoChecker({ apiKey: env.DUSK_BREVO_API_KEY, listId: env.DUSK_BREVO_WAITLIST_LIST_ID, fetch: options.fetch, now });
   const targets = healthTargets(env.DUSK_ADMIN_HEALTH_URLS);
-  const deep = createAnalyticsRoutes({ auth, billing, analytics, workspaces: options.workspaces, now, actor: id => auth.directory().accounts.find(account => account.id === id)?.email ?? null });
+  const actor = (id: string) => auth.directory().accounts.find(account => account.id === id)?.email ?? null;
+  const deep = createAnalyticsRoutes({ auth, billing, analytics, workspaces: options.workspaces, now, actor });
+  const reviewEmail = env.DUSK_REVIEW_EMAIL?.trim().toLowerCase() || null;
 
   /** which data the analytics pages read: this service's, or the live service's (its events, daily counts and accounts;
    *  no money, clouds, devices or workspaces, which stay on its own admin). the waitlist pairs with the live site only. */
   const live = options.live ?? null;
   type Directory = ReturnType<Auth["directory"]>;
   type View = { live: boolean; sink: AnalyticsSink; directory: () => Directory; store: () => Billing["store"]["state"]; clouds: () => StoredCloud[]; workspaces: () => StoredWorkspace[];
-    waitlist: WaitlistSource | null; deep: typeof deep };
+    waitlist: WaitlistSource | null; deep: typeof deep; hidden: () => ReadonlySet<string> };
+  const NONE: ReadonlySet<string> = new Set();
   const ownView: View = { live: false, sink: analytics.sink, directory: () => auth.directory(), store: () => billing.store.state, clouds: () => billing.clouds.all?.() ?? [],
-    workspaces: options.workspaces, waitlist: live ? null : options.waitlist, deep };
+    workspaces: options.workspaces, waitlist: live ? null : options.waitlist, deep, hidden: () => NONE };
+  /** the same view without the test accounts (test-accounts.ts) in its people, money, clouds and workspaces; nothing is removed from the data */
+  function withoutTests(view: View, build: (directory: () => Directory, store: () => Billing["store"]["state"]) => typeof deep): View {
+    const hidden = () => testAccountIds(view.directory().accounts, reviewEmail);
+    const directory = () => withoutAccounts(view.directory(), hidden());
+    const store = () => withoutBilling(view.store(), hidden());
+    return { ...view, hidden, directory, store, clouds: () => { const ids = hidden(); return view.clouds().filter(c => !ids.has(c.accountId)); },
+      workspaces: () => { const ids = hidden(); return view.workspaces().filter(ws => !ws.ownerAccountId || !ids.has(ws.ownerAccountId)); }, deep: build(directory, store) };
+  }
+  const billingWith = (store: () => Billing["store"]["state"]) => ({ ...billing, store: Object.defineProperty({ ...billing.store }, "state", { get: store }) }) as Billing;
+  const ownClean = withoutTests(ownView, (directory, store) => createAnalyticsRoutes({ auth: { directory } as unknown as Auth, billing: billingWith(store), analytics,
+    workspaces: () => ownClean.workspaces(), now, actor }));
   const NO_MONEY = { customers: [], checkouts: [], subscriptions: [], licenses: [], invoices: [], credits: [], webhookEvents: [], feedback: [], closures: [], refunds: [], ledger: [] } as unknown as Billing["store"]["state"];
   let liveDirectory: Directory = { accounts: [], identities: [], sessions: [] };
   const liveView: View | null = live && {
-    live: true, sink: live.sink, directory: () => liveDirectory, store: () => NO_MONEY, clouds: () => [], workspaces: () => [], waitlist: options.waitlist,
+    live: true, sink: live.sink, directory: () => liveDirectory, store: () => NO_MONEY, clouds: () => [], workspaces: () => [], waitlist: options.waitlist, hidden: () => NONE,
     deep: createAnalyticsRoutes({ auth: { directory: () => liveDirectory } as unknown as Auth,
       billing: { store: { state: NO_MONEY }, operator: { provider: "none" }, service: { setAttribution() { /* never writes the live service's billing */ } } } as unknown as Billing,
       analytics: { ...analytics, sink: live.sink, presence: { ...analytics.presence, list: () => [] } }, workspaces: () => [], now,
       actor: id => liveDirectory.accounts.find(account => account.id === id)?.email ?? null }),
   };
+  const liveClean = liveView && withoutTests(liveView, directory => createAnalyticsRoutes({ auth: { directory } as unknown as Auth,
+    billing: { store: { state: NO_MONEY }, operator: { provider: "none" }, service: { setAttribution() { /* never writes the live service's billing */ } } } as unknown as Billing,
+    analytics: { ...analytics, sink: live!.sink, presence: { ...analytics.presence, list: () => [] } }, workspaces: () => [], now,
+    actor: id => liveDirectory.accounts.find(account => account.id === id)?.email ?? null }));
+  /** test accounts stay out unless the panel asks for them (x-dusk-admin-tests: show) */
+  const showTests = (req: IncomingMessage) => req.headers["x-dusk-admin-tests"] === "show";
+  const ownViewOf = (req: IncomingMessage) => showTests(req) ? ownView : ownClean;
   async function viewOf(req: IncomingMessage): Promise<View> {
-    if (!liveView || req.headers["x-dusk-admin-data"] === "own") return ownView;
+    if (!liveView || req.headers["x-dusk-admin-data"] === "own") return ownViewOf(req);
     liveDirectory = { accounts: await live!.accounts(), identities: [], sessions: [] };
-    return liveView;
+    return showTests(req) ? liveView : liveClean!;
   }
 
   /** every admin route: a signed-in web session (401), an allowed email (403), and the CSRF header on changes */
@@ -214,6 +236,8 @@ export function createAdmin(options: AdminOptions) {
       v.sink.accounts(ACTIVE_NAMES, time - 7 * DAY), v.sink.accounts(ACTIVE_NAMES, time - 30 * DAY),
       Promise.all(["onboarding_done", "app_paired", "first_bot_reply", "plan_chosen"].map(name => v.sink.accounts([name], since))),
     ]);
+    const hidden = v.hidden(), kept = (ids: Set<string>) => hidden.size ? new Set([...ids].filter(id => !hidden.has(id))) : ids;
+    const [wauKept, mauKept, markedKept] = [kept(wau), kept(mau), marked.map(kept)];
     const series = (name: string) => perDay(range, daily.filter(row => row.name === name));
     const seenToday = new Set(sessions.filter(session => session.lastSeenAt >= Date.parse(`${range.at(-1)}T00:00:00Z`)).map(session => session.accountId));
     const activeSeries = series("active_accounts");
@@ -226,7 +250,7 @@ export function createAdmin(options: AdminOptions) {
       now: time, days, range, data: v.live ? live!.label : "own",
       totals: {
         accounts: accounts.length, newAccounts: accounts.filter(account => account.createdAt >= since).length,
-        activeToday: Math.max(activeSeries.at(-1) ?? 0, seenToday.size), wau: wau.size, mau: mau.size,
+        activeToday: Math.max(activeSeries.at(-1) ?? 0, seenToday.size), wau: wauKept.size, mau: mauKept.size,
         paying: new Set(v.store().subscriptions.filter(isPaying).map(sub => sub.accountId)).size,
         waitlist: waitlistCount, clouds: clouds.filter(c => c.status !== "destroyed").length,
         devices: sessions.filter(session => session.kind !== "web").length,
@@ -236,7 +260,7 @@ export function createAdmin(options: AdminOptions) {
         waitlist: perDay(range, waitlistDays), active: activeSeries, visitors: series("site_visitors"), views: series("site_view"), apps: series("app_active"),
       },
       funnel: funnel({ since, siteVisitors: series("site_visitors").reduce((a, b) => a + b, 0), accounts, checkouts: v.store().checkouts, subscriptions: v.store().subscriptions, sessions,
-        workspaces: owned, marked: { onboarded: marked[0]!, paired: marked[1]!, replied: marked[2]!, chosen: marked[3]! } }),
+        workspaces: owned, marked: { onboarded: markedKept[0]!, paired: markedKept[1]!, replied: markedKept[2]!, chosen: markedKept[3]! } }),
       clouds: [...byState].map(([state, count]) => ({ state, count })).sort((a, b) => b.count - a.count),
       bots: { workspaces: owned.length, bots: owned.reduce((sum, ws) => sum + (ws.report?.bots?.length ?? 0), 0), turns30d: owned.reduce((sum, ws) => sum + workspaceTurns(ws, sinceDay), 0) },
       platforms: [...sessions.filter(session => session.kind !== "web").reduce((map, session) => map.set(session.platform ?? "unknown", (map.get(session.platform ?? "unknown") ?? 0) + 1), new Map<string, number>())]
@@ -245,12 +269,12 @@ export function createAdmin(options: AdminOptions) {
     };
   }
 
-  function users(url: URL) {
+  function users(url: URL, v: View) {
     const q = (url.searchParams.get("q") ?? "").trim().toLowerCase().slice(0, 100);
     const offset = int(url.searchParams.get("offset"), 0, 0, 1_000_000), limit = int(url.searchParams.get("limit"), 50, 1, 200);
     const filter = url.searchParams.get("filter") ?? "all";
-    const { accounts, identities, sessions } = directory();
-    const clouds = allClouds();
+    const { accounts, identities, sessions } = v.directory();
+    const clouds = v.clouds();
     let rows = accounts.map(account => {
       const devices = sessions.filter(session => session.accountId === account.id && session.kind !== "web");
       return { id: account.id, email: account.email, name: account.name, createdAt: account.createdAt, methods: ["email", ...identities.filter(item => item.accountId === account.id).map(item => item.provider)],
@@ -302,10 +326,10 @@ export function createAdmin(options: AdminOptions) {
     };
   }
 
-  function clouds(url: URL) {
+  function clouds(url: URL, v: View) {
     const status = url.searchParams.get("status") ?? "live";
     const emails = emailMap();
-    let rows = allClouds().map(c => cloudRow(c, emails));
+    let rows = v.clouds().map(c => cloudRow(c, emails));
     if (status === "live") rows = rows.filter(row => row.status !== "destroyed" && row.status !== "checkout");
     else if (status !== "all") rows = rows.filter(row => row.status === status);
     rows.sort((a, b) => b.createdAt - a.createdAt);
@@ -394,14 +418,14 @@ export function createAdmin(options: AdminOptions) {
     if (method === "GET") {
       if (route === "/me") return send({ admin: true, email: owner.email, environment: options.service.environment, version: options.service.version, live: live?.label ?? null });
       if (route === "/overview") return send(await overview(int(url.searchParams.get("days"), 30, 7, 90), await viewOf(req)));
-      if (route === "/users") return send(users(url));
+      if (route === "/users") return send(users(url, ownViewOf(req)));
       const userMatch = /^\/users\/([A-Za-z0-9_-]{1,80})$/.exec(route);
       if (userMatch) {
         const answer = await user(userMatch[1]!);
         await audit(owner.id, "user.view", userMatch[1]!);
         return send(answer);
       }
-      if (route === "/clouds") return send(clouds(url));
+      if (route === "/clouds") return send(clouds(url, ownViewOf(req)));
       const usage = /^\/clouds\/(c[0-9a-f]{24})\/usage$/.exec(route);
       if (usage) {
         const cloud = billing.clouds.get(usage[1]!);
@@ -431,7 +455,9 @@ export function createAdmin(options: AdminOptions) {
       if (route === "/usage") return send(await usageAnswer(url));
       if (route === "/feedback") {
         const kind = url.searchParams.get("kind"), before = url.searchParams.get("before");
-        return send(await feedbackAnswer(options.usage.store, { now: now(), kind: FEEDBACK_KINDS.find(one => one === kind) ?? null, before: before ? int(before, now(), 0, Number.MAX_SAFE_INTEGER) : null }));
+        const hidden = ownViewOf(req).hidden();
+        return send(await feedbackAnswer(options.usage.store, { now: now(), kind: FEEDBACK_KINDS.find(one => one === kind) ?? null, before: before ? int(before, now(), 0, Number.MAX_SAFE_INTEGER) : null,
+          hidden: id => hidden.has(id) }));
       }
       if (route === "/revenue/infra") return send(await infraAnswer());
       if (route === "/ops") {
@@ -455,8 +481,8 @@ export function createAdmin(options: AdminOptions) {
           relays: range === "month" ? cards.relays : [], infra, mail, plans: notes?.plans ? new Map(Object.entries(notes.plans)) : undefined, suspects: Array.isArray(notes?.suspects) ? notes.suspects : [] }));
       }
       try {
-        if (route === "/revenue") return send(await deep.revenue(url));
-        const view = /^\/(?:web|funnel|journeys|realtime|retention|app|product)(?:\/|$)/.test(route) ? await viewOf(req) : ownView, reads = view.deep;
+        if (route === "/revenue") return send(await ownViewOf(req).deep.revenue(url));
+        const view = /^\/(?:web|funnel|journeys|realtime|retention|app|product)(?:\/|$)/.test(route) ? await viewOf(req) : ownViewOf(req), reads = view.deep;
         if (route === "/web") return send(await reads.web(url));
         if (route.startsWith("/web/")) { const dim = route.slice(5); if (!reads.isDimension(dim)) throw new AnalyticsRouteError(400, "invalid_request", "Invalid dimension."); return send(await reads.webDetails(dim, url)); }
         if (route === "/funnel") return send(await reads.funnel(url));

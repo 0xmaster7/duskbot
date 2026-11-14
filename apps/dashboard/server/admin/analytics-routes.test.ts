@@ -67,7 +67,7 @@ describe("admin analytics routes", () => {
   }
   function call(path: string, init: { method?: string; body?: unknown; cookie?: string; csrf?: boolean } = {}) {
     return send(path, { method: init.method ?? (init.body === undefined ? "GET" : "POST"),
-      headers: { origin: ORIGIN, ...(init.body === undefined ? {} : { "content-type": "application/json" }),
+      headers: { origin: ORIGIN, "x-dusk-admin-tests": "show", ...(init.body === undefined ? {} : { "content-type": "application/json" }),
         ...(init.cookie ? { cookie: init.cookie, ...(init.csrf === false ? {} : { [CSRF_HEADER]: csrf.get(init.cookie) ?? "" }) } : {}) },
       ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }) });
   }

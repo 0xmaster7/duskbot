@@ -1,0 +1,24 @@
+import { describe, expect, it } from "vitest";
+import { isAdminTestAccount, testAccountIds, withoutAccounts, withoutBilling } from "./test-accounts.ts";
+
+describe("admin test accounts", () => {
+  it("flags harness, reserved-domain and review addresses, never real ones", () => {
+    for (const email of ["qa-smoke@qa.dusk.test", "billing-1@qa.dusk.test", "qa@dusk.bot", "qa-user@dusk.bot", "QA-JP2@dusk.bot", "dusk-appconn-mwf7ync4@fldubai.com",
+      "dusk-e2e-abc@mail.tm", "someone@example.com", "a@mail.example.org", "x@foo.test", "y@thing.invalid"]) expect(isAdminTestAccount(email), email).toBe(true);
+    expect(isAdminTestAccount("app-review@dusk.bot", "app-review@dusk.bot")).toBe(true);
+    for (const email of ["meenasiddarth72@gmail.com", "siddz.dev@gmail.com", "app-review@dusk.bot", "hello@dusk.bot", "qaisar@gmail.com", "qa@dusk.bot.com",
+      "me@example.co", "me@testing.com", "me@notexample.com"]) expect(isAdminTestAccount(email), email).toBe(false);
+  });
+  it("drops the accounts' sign-ins, sessions and billing rows and the refunds of their payments, without touching the input", () => {
+    const directory = { accounts: [{ id: "a", email: "real@gmail.com" }, { id: "t", email: "qa-1@qa.dusk.test" }],
+      identities: [{ accountId: "t", provider: "google" }], sessions: [{ accountId: "a" }, { accountId: "t" }] };
+    const hidden = testAccountIds(directory.accounts);
+    expect([...hidden]).toEqual(["t"]);
+    expect(withoutAccounts(directory, hidden)).toEqual({ accounts: [directory.accounts[0]], identities: [], sessions: [{ accountId: "a" }] });
+    const state = { invoices: [{ accountId: "a", providerPaymentId: "p1" }, { accountId: "t", providerPaymentId: "p2" }], refunds: [{ paymentId: "p1" }, { paymentId: "p2" }],
+      licenses: [{ ownerAccountId: "t" }], webhookEvents: [{ id: "w" }], lastSync: 5 };
+    const kept = withoutBilling(state, hidden);
+    expect(kept).toEqual({ invoices: [state.invoices[0]], refunds: [{ paymentId: "p1" }], licenses: [], webhookEvents: [{ id: "w" }], lastSync: 5 });
+    expect(state.invoices).toHaveLength(2);
+  });
+});

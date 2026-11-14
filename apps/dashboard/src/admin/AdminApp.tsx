@@ -8,7 +8,7 @@ import { Link, navigate, useLocation } from "../lib/router";
 import { useToasts } from "../lib/toast";
 import mark from "../../favicon.svg";
 import { useAdmin } from "./api";
-import { DataSwitch } from "./DataSwitch";
+import { DataSwitch, TestSwitch } from "./DataSwitch";
 import { OverviewPage } from "./Overview";
 import { DetailsPage } from "./Details";
 import { RetentionPage } from "./Retention";
@@ -202,7 +202,8 @@ export function AdminApp() {
           {me.data?.live && <DataSwitch live={me.data.live} />}
           {me.data && <span className="truncate px-2 text-12 text-ink-3" title={me.data.email}>{me.data.email}</span>}
           {me.data && <span className="t-meta px-2 !text-[11.5px]">{me.data.environment} · {me.data.version ?? "dev"}</span>}
-          <button type="button" onClick={() => setTheme(dark ? "light" : "dark")} className="hover-ghost mt-2 flex h-9 items-center gap-2 rounded-full px-2 text-13 text-ink-3 max-lg:h-11">{dark ? <Sun size={15} strokeWidth={1.75} aria-hidden /> : <Moon size={15} strokeWidth={1.75} aria-hidden />}{dark ? "light mode" : "dark mode"}</button>
+          {me.data && <TestSwitch />}
+          <button type="button" onClick={() => setTheme(dark ? "light" : "dark")} className="hover-ghost flex h-9 items-center gap-2 rounded-full px-2 text-13 text-ink-3 max-lg:h-11">{dark ? <Sun size={15} strokeWidth={1.75} aria-hidden /> : <Moon size={15} strokeWidth={1.75} aria-hidden />}{dark ? "light mode" : "dark mode"}</button>
           <Link to="/" className="hover-ghost flex h-9 items-center gap-2 rounded-full px-2 text-13 text-ink-3 max-lg:h-11"><ArrowUpRight size={15} strokeWidth={1.75} aria-hidden /> app</Link>
         </div>
     </>
