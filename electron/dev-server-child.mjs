@@ -36,10 +36,13 @@ export function devServerConflictMessage(port) {
 /** `fork(entry, args, options)` is Electron's utilityProcess.fork; `grant(proc, isCurrent)` hands a spawned child this
  * computer. A child that dies is started again; one that keeps dying right away stops after a few tries (`gaveUp`). */
 export function createDevServerChild({
-  fork, entry, env, grant, taken = portTaken, port, conflict = () => {}, gaveUp = () => {}, log = () => {},
+  fork, entry, env: startEnv, grant, taken = portTaken, port, conflict = () => {}, gaveUp = () => {}, log = () => {},
   restartDelayMs = 1_000, stopTimeoutMs = 6_500, now = Date.now,
 }) {
+  let env = startEnv;
   let current = null;
+  /** Waiting on the next child to spawn (retarget). */
+  let spawned = [];
   let exited = Promise.resolve();
   let stopping = false;
   let restartWanted = false;
@@ -57,6 +60,8 @@ export function createDevServerChild({
     proc.once("spawn", () => {
       log(`dev server pid=${proc.pid} port=${port}`);
       if (proc === current) grant(proc, (child) => child === current);
+      const waiting = spawned; spawned = [];
+      for (const done of waiting) done(proc === current);
     });
     proc.once("exit", (code) => {
       markExited();
@@ -79,7 +84,7 @@ export function createDevServerChild({
     });
   };
 
-  return Object.freeze({
+  const child = Object.freeze({
     /** False when the port is already someone else's; nothing is started then. */
     async start() {
       if (await taken(port)) {
@@ -101,9 +106,21 @@ export function createDevServerChild({
       restartWanted = true;
       current.kill();
     },
+    /** The same restart with another environment (another data folder): true once the new child has spawned. */
+    retarget(nextEnv) {
+      if (stopping) return Promise.resolve(false);
+      env = nextEnv;
+      const next = new Promise((resolve) => { spawned.push(resolve); });
+      child.restart();
+      return next;
+    },
+    /** The environment the next child starts with. */
+    env: () => env,
     current: () => current,
     async stop() {
       stopping = true;
+      const waiting = spawned; spawned = [];
+      for (const done of waiting) done(false);
       clearTimeout(timer);
       if (!current) return true;
       current.kill();
@@ -116,6 +133,7 @@ export function createDevServerChild({
       return stopped;
     },
   });
+  return child;
 }
 
 /** Restarts on a change to server or shared source, tests aside, a moment after the last save. */

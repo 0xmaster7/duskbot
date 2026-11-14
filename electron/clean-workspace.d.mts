@@ -6,6 +6,7 @@ export interface CleanWorkspace {
   marker(): { frozen: boolean; cloud?: string; place?: string };
   enter(): Promise<boolean>;
   leave(): Promise<boolean>;
+  startFolder(): string;
   holding<T>(work: () => Promise<T>): Promise<T>;
   realCopy(request: (route: string, init?: RequestInit) => Promise<Response>): (route: string, init?: RequestInit) => Promise<Response>;
 }

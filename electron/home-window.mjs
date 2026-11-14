@@ -221,8 +221,10 @@ export function routeOf(url, origin) {
  *   hosts?(): { clearHostResolverCache(): Promise<void>, resolveHost(host: string, options?: { cacheUsage?: "allowed" | "staleAllowed" | "disallowed" }): Promise<{ endpoints: unknown[] }> } | null,
  *   readyStore?: { read(): unknown, write(value: unknown): void },
  *   ownMove?(): { phase: string, name: string } | null,
+ *   ownAway?(): boolean,
  *   log?(line: string): void,
  * }} deps `ownMove()`: the move to a server of the person's own (own-home-main.mjs), whose freeze is never My Cloud's.
+ * `ownAway()`: that move is done, so this computer's own view is the clean workspace.
  * `hosts`: the window's Electron session, for its own resolver and host cache. `readyStore`: when My Cloud
  * became ready (createReadyClock). `go(url, origin, place)`: main's one way to move the window, to My Cloud or a team's Cloud (`origin`, with the
  * `place` it is) or this computer's screen (null). `showLocal(leaving)`: the window as it was before the move (this computer's page, or a saved server it
@@ -237,7 +239,7 @@ export function createHomeWindow(deps) {
   const { journal, frozen, account, restored = async () => {}, window, ensureWindow, localOrigin, cookieFetch, power, go, showLocal, clean = null,
     remembered = () => null, remember = () => {}, left = () => {}, drop = (place) => { if (place.kind === "team") left(place.name); remember(null); },
     splash = () => null, lastInput = () => 0, publish = () => {}, rehomed = () => {}, versionEveryMs = VERSION_EVERY_MS, quietMs = QUIET_MS,
-    now = Date.now, timers = DEFAULT_TIMERS, hosts = () => null, readyStore = null, ownMove = () => null, lastSeen = null, log = () => {},
+    now = Date.now, timers = DEFAULT_TIMERS, hosts = () => null, readyStore = null, ownMove = () => null, ownAway = () => false, lastSeen = null, log = () => {},
     /** where My Cloud opens (a path of its own, e.g. WELCOMED_ROUTE), or null for its home page */
     cloudRoute = null } = deps;
   let home = { kind: "computer" }, screen = null, status = null, opens = 0, retry = null, tries = 0, loaded = null, newer = false, repairing = null;
@@ -269,17 +271,20 @@ export function createHomeWindow(deps) {
   async function refresh() {
     clock.seen(state());
     const kept = parseJournal(journal());
-    let frozenCloud = null;
+    let frozenCloud = null, ownPlace = null;
     if (!kept) {
       const marker = await frozen().catch(() => null);
-      // A freeze for a server of the person's own names it (`place`): home is that server, shown as any saved server is.
+      // A freeze for a server of the person's own names it (`place`): home is that server, shown as any saved server is,
+      // and once that move is done this computer's own view is the clean workspace, never the frozen copy.
       if (marker?.frozen && !marker.place) frozenCloud = typeof marker.cloud === "string" ? marker.cloud : true;
+      else if (marker?.frozen && typeof marker.place === "string" && ownAway()) ownPlace = marker.place;
     }
     if (frozenCloud || awayIn(kept)) await restored();
     const before = home;
     const worked = homeOf({ journal: kept, frozenCloud, state: state() });
     // Home is this computer then, in its clean workspace, so a Cloud of this account's own opens from it as for anyone.
-    home = clean && noWayHome(worked, state()) ? { kind: "computer", clean: true, ...(worked.other ? { other: true } : {}) } : worked;
+    home = clean && ownPlace && worked.kind === "computer" ? { kind: "computer", clean: true, place: ownPlace }
+      : clean && noWayHome(worked, state()) ? { kind: "computer", clean: true, ...(worked.other ? { other: true } : {}) } : worked;
     if (home.kind !== before.kind || home.origin !== before.origin || home.clean !== before.clean) {
       try { rehomed(home); } catch {}
     }
@@ -553,7 +558,8 @@ export function createHomeWindow(deps) {
       asked = null; naming = null;
     }
     if (current.kind === "computer") {
-      if (current.clean && !(await clean.enter())) { if (wanted(token)) { ensureWindow(); clearRetry(); toScreen({ screen: "signin", ...(current.other ? { other: true } : {}) }); } return; }
+      // a server's frozen copy that can't give way to the clean workspace shows as it did before, never a sign-in screen
+      if (current.clean && !(await clean.enter()) && !current.place) { if (wanted(token)) { ensureWindow(); clearRetry(); toScreen({ screen: "signin", ...(current.other ? { other: true } : {}) }); } return; }
       if (!wanted(token)) return;
       clearRetry(); screen = null; status = null; shown = null;
       const win = window();

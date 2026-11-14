@@ -7,10 +7,11 @@ import { t } from "@/lib/i18n";
 import { setNotificationPlace } from "@/lib/notify";
 import { useStore } from "@/state/store";
 
-type Line = { kind: "left"; name: string } | { kind: "clean"; saved?: boolean };
+type Line = { kind: "left"; name: string } | { kind: "clean"; saved?: boolean; place?: string };
 
-/** The words for main's one line: a team this person is no longer in, or that the clean workspace isn't where their bots went (`saved`: the account they moved with is signed in here too, one click away on the rail). */
+/** The words for main's one line: a team this person is no longer in, or that the clean workspace isn't where their bots went (`saved`: the account they moved with is signed in here too, one click away on the rail; `place`: the server of their own they moved to). */
 export function homeLineText(line: Line): string {
+  if (line.kind === "clean" && line.place) return t("homeLine.cleanPlace", { name: line.place });
   if (line.kind === "clean") return t(line.saved ? "homeLine.cleanSaved" : "homeLine.clean");
   return t("homeLine.left", { name: line.name });
 }

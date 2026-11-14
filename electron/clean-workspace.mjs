@@ -97,6 +97,13 @@ export function createCleanWorkspace({ dataDir, running, swap, allowed = () => t
       return swapTo(folder());
     }),
     leave,
+    /** The folder this computer's server starts on once a finished move to a server of the person's own froze its copy
+     * (the marker names that server): the clean workspace, so the frozen copy never runs, and so never changes, until it is
+     * moved back. Any other freeze starts on the copy as before, as does a clean workspace that can't be set up. */
+    startFolder() {
+      if (typeof marker().place !== "string") return dataDir();
+      try { seed(folder()); return folder(); } catch (error) { log(`clean workspace: could not set it up (${error?.message ?? error})`); return dataDir(); }
+    },
     /** Runs `work` on this computer's own copy, its server back first, and nothing opens the clean workspace meanwhile. */
     async holding(work) {
       held++;

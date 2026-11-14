@@ -105,12 +105,15 @@ function jsonStore(store) {
  *   onChange?(): void,
  *   now?(): number,
  *   log?(line: string): void,
- * }} deps `localRequest`: this computer's server, as its owner. `fetch`: this window's own requests, with its sign-ins.
+ *   clean?: import("./clean-workspace.mjs").CleanWorkspace | null,
+ * }} deps `localRequest`: this computer's server, as its owner, and only its own copy while `clean` (the clean workspace) runs. `fetch`: this window's own requests, with its sign-ins.
  * `handoff`: this computer's server's private port, which hands a moving secret to main alone. `cloudJournal()`: the move
  * to My Cloud's journal: while it is under way or done, no server of the person's own is chosen.
  */
-export function installOwnHome({ localRequest, fetch: fetchImpl, environments, handoff, journal: journalStore, choice: choiceStore, sendState, cloudJournal, lend, phone, openHome, lastInput,
+export function installOwnHome({ localRequest: anyServer, clean = null, fetch: fetchImpl, environments, handoff, journal: journalStore, choice: choiceStore, sendState, cloudJournal, lend, phone, openHome, lastInput,
   version, onChange = () => {}, now = Date.now, log = () => {}, reachMs = REACH_MS, sleep }) {
+  const localRequest = clean ? clean.realCopy(anyServer) : anyServer;
+  const onOwnCopy = (work) => (clean ? clean.holding(work) : work());
   const journal = jsonStore(journalStore), choice = jsonStore(choiceStore);
   const chosen = () => parseChoice(choice.read());
   const placeOf = (picked = chosen()) => (picked ? environments().find((entry) => handSaved(entry) && entry.origin === picked.origin) ?? null : null);
@@ -153,7 +156,7 @@ export function installOwnHome({ localRequest, fetch: fetchImpl, environments, h
       ...local,
       freeze: async (origin) => freezeAnswer(await local.call("POST", "/api/move/freeze", { cloud: origin, place: chosen()?.name })),
       async unfreeze(options) {
-        const got = await local.call("DELETE", "/api/move/freeze", options?.automations === "off" ? { automations: "off" } : undefined);
+        const got = await onOwnCopy(() => local.call("DELETE", "/api/move/freeze", options?.automations === "off" ? { automations: "off" } : undefined));
         if (!got.ok) throw Object.assign(new Error("dusk bot on this computer could not go on again."), { status: got.status });
       },
       frozen: async () => (await local.json("/api/move/freeze"))?.frozen === true,
@@ -173,6 +176,7 @@ export function installOwnHome({ localRequest, fetch: fetchImpl, environments, h
     openHome: () => { const place = placeOf(); if (place) openHome?.(place); },
     ...(lastInput ? { lastInput } : {}),
     ...(version ? { version } : {}),
+    ownCopy: () => clean?.ownCopy() ?? true,
     onChange: () => onChange(),
     log,
   });

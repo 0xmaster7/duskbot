@@ -39,6 +39,8 @@ export function installOwnHome(deps: {
   sendState: { read(): unknown; write(value: unknown): void };
   /** The move to My Cloud's journal. */
   cloudJournal(): unknown;
+  /** The clean workspace: while it runs, `localRequest` answers only what this computer's own frozen copy says. */
+  clean?: import("./clean-workspace.mjs").CleanWorkspace | null;
   lend?(projects: string[], place: SavedPlace | null): Promise<unknown>;
   phone?: { paired(): boolean; stop(): Promise<void>; start(): Promise<void> };
   openHome?(place: SavedPlace): void;
