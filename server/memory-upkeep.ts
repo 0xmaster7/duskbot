@@ -586,7 +586,8 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
     const ended: FactRow[] = [];
     const parsed = parseCandidates(answer, today, captureItemLimit(conversations.length));
     const duplicate = await nearDuplicateOf(parsed.filter((candidate) => !candidate.verdict || candidate.verdict === "new").map((candidate) => candidate.text), known.map((entry) => entry.fact));
-    const filed = attribute(parsed, conversations, still).flatMap((item) => {
+    type Filed = { candidate: Candidate; at: number; aboutMe: boolean; onlyAboutMe: boolean; moves?: FactRow };
+    const filed = attribute(parsed, conversations, still).flatMap((item): Filed[] => {
       const turns = conversations[item.at]!.turns;
       if (isForgotten(item.candidate.text) || looksLikeInstruction(item.candidate.text) || !statedInConversation(item.candidate, turns, false)) return [];
       const aboutMe = item.aboutMe && statedInConversation(item.candidate, turns, true);
@@ -595,7 +596,7 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
       const same = target && verdict === "repeat" ? target : duplicate.get(item.candidate.text);
       if (same) {
         // already known: only a fact about the person kept in one bot's notes still belongs in About me
-        return aboutMe && same.file !== ABOUT_FILE && deps.general ? [{ ...item, aboutMe, onlyAboutMe: true }] : [];
+        return aboutMe && same.file !== ABOUT_FILE && deps.general ? [{ ...item, aboutMe, onlyAboutMe: true, moves: same }] : [];
       }
       if (target && verdict === "end") {
         ended.push(target);
@@ -633,6 +634,12 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
       ...ended.filter((fact) => fact.file === ABOUT_FILE).map((fact) => fact.text),
     ];
     const aboutMe = learned.length || replacedAbout.length ? deps.addToAboutMe({ botId: id, botName: bot.name }, learned, replacedAbout) : 0;
+    // a fact about the person lives once, in About me: the copy in this bot's notes is struck as merged into it
+    if (deps.general && filed.some((item) => item.onlyAboutMe && item.moves)) {
+      const held = new Set(parseGeneral(deps.general.read()).map((line) => factIdentity(line.fact)));
+      const copies = filed.filter((item) => item.onlyAboutMe && item.moves && held.has(factIdentity(item.candidate.text))).map((item) => item.moves!.text);
+      if (copies.length) writing(id, () => supersedeInNotes(id, copies, { via: "capture" }));
+    }
     if (aboutMe && deps.general) {
       for (const item of filed.filter((entry) => entry.aboutMe)) noteProvenance(aboutOwner(), ABOUT_FILE, item.candidate, conversations[item.at]!);
     }

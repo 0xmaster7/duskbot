@@ -117,3 +117,32 @@ describe("capture verdicts", () => {
     expect(kyoto).toMatchObject({ source: "person-said", quote: "flying to Kyoto on December 2", happenedStart: "2026-12-02", kind: "event", refs: { threadId: "t1", messageIds: ["m1"] } });
   });
 });
+
+describe("one fact, one place", () => {
+  it("moves a fact about the person that a bot noted during the chat into About me, striking its own copy", async () => {
+    ensureWorkspace(BOT);
+    writeMemoryTopic(BOT, "people.md", "- 2026-11-15 · from chat \"Family\" · Dana's sister Ana's email is ana@studio.example\n");
+    const bot = { id: BOT, name: "Scout" };
+    let about = "My name is Dana.";
+    let answered = false;
+    const upkeep = createMemoryUpkeep({
+      bots: () => [bot], bot: () => bot, busy: () => false, sourceLabel: () => 'chat "Family"', quietMs: () => 10, tidyHour: () => 3,
+      addToAboutMe: (_from, texts) => { about = `${about}\n${texts.map((text) => `- 2026-11-15 · learned by Scout · ${text}`).join("\n")}`; return texts.length; },
+      general: { read: () => about, write: (text) => { about = text; }, changed: () => {}, promote: () => true },
+      engine: () => ({ generateText: async (text) => {
+        if (!text.includes(CAPTURE_MARKER)) return '{"moves":[]}';
+        answered = true;
+        const key = [...text.matchAll(/(F\d+) \([^)]*\) ([^\n]*)/g)].find((m) => m[2]!.includes("ana@"))![1];
+        return JSON.stringify([{ text: "Dana's sister Ana's email is ana@studio.example", kind: "fact", verdict: "repeat", target: key, aboutUser: true, evidence: "my sister Ana's email is ana@studio.example", confidence: 0.9 }]);
+      } }),
+    });
+    upkeep.noteTurn(BOT, "t1", { person: "Save this: my sister Ana's email is ana@studio.example", bot: "Saved.", owner: true });
+    upkeep.flushThread("t1");
+    for (let i = 0; i < 50 && !answered; i++) await new Promise((r) => setTimeout(r, 20));
+    await new Promise((r) => setTimeout(r, 150));
+    upkeep.stop();
+    expect(about).toContain("learned by Scout · Dana's sister Ana's email is ana@studio.example");
+    expect(readMemoryTopic(BOT, "people.md")).toContain("~~Dana's sister Ana's email is ana@studio.example~~");
+  });
+});
+
