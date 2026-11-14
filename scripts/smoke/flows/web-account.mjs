@@ -68,7 +68,10 @@ export async function webAccountStep(url, { email, pay = false, log = () => {}, 
       const at = await browser.url();
       if (/test\.checkout\.dodopayments\.com/.test(at)) { checkoutUrl = at; break; }
       if (at.startsWith("https://checkout.dodopayments.com")) throw new Error("a live checkout opened; refusing to pay");
-      await browser.evaluate(`(() => { const b = [...document.querySelectorAll("button")].filter((e) => e.getClientRects().length && !e.disabled).find((e) => /continue to checkout|continue to payment|^continue$|start (free )?trial|^get /i.test(e.innerText.trim())); if (b) b.click(); return true; })()`).catch(() => {});
+      // the most final step first: a sheet's checkout before the card's "get plus" that opened it
+      await browser.evaluate(`(() => { const shown = [...document.querySelectorAll("button")].filter((e) => e.getClientRects().length && !e.disabled);
+        for (const want of [/^checkout$/i, /continue to checkout|continue to payment/i, /start (free )?trial/i, /^continue$/i, /^get /i]) { const b = shown.find((e) => want.test(e.innerText.trim())); if (b) { b.click(); return true; } }
+        return false; })()`).catch(() => {});
       await sleep(3000);
     }
     if (!checkoutUrl) throw new Error(`no checkout after the plan step (at ${await browser.url()})`);
