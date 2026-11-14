@@ -459,6 +459,7 @@ import { createHomeEgressLinkRoutes } from "./routes/home-egress-link.ts";
 import { boxBrowserRoute, browserCallComputerResource, ownBoxBrowser } from "./box-browser-route.ts";
 import { BotLogins, cardLoginPlace, cardSignInElsewhere, observeSignInPage, type ObservedPage } from "./bot-logins.ts";
 import { relayFrame } from "./browser-relay.ts";
+import { recentTabs } from "./browser-recent-tabs.ts";
 import { browserEvidence, stepContext } from "./browser-steps.ts"; import { WakeGate } from "./wake-gate.ts"; import { startRunHealth } from "./run-health.ts";
 import { parseLoginFields, parseTotpField, createLoginRoutes } from "./routes/logins.ts";
 import { loginSite } from "../shared/logins.ts";
@@ -2362,7 +2363,7 @@ async function botBoxChrome(botId: string, turn?: { threadId: string; generation
 const {
   browserRuntime, browserLive, usedBrowserSessions, browserSweep, temporaryBrowserSessions,
   currentBrowserSession, forgetTemporaryBrowser, myChromeAvailable, usesMyChrome, browserSessionSpec, browserIntegration,
-  browserReady, hostBrowserUsable, currentBrowserSpec, loginInput, browserSystemPrompt, closeBrowser, browserEngineSwitched, eraseDeletedBrowser, engineSummary, browserSessionsOf, signedInSitesTarget, uploadPaths, eraseAudienceBrowsers,
+  browserReady, hostBrowserUsable, currentBrowserSpec, browserRunning, loginInput, browserSystemPrompt, closeBrowser, browserEngineSwitched, eraseDeletedBrowser, engineSummary, browserSessionsOf, signedInSitesTarget, uploadPaths, eraseAudienceBrowsers,
 } = createBrowserHost({ cfg, store: () => store, boxChrome: botBoxChrome, turnResources, activeInternalGenerationByThread, mintInternalCapability: capability => mintInternalCapability({ ...capability,
   ...(teamComputerTurns.get(capability.threadId) ? { teamComputerId: teamComputerTurns.get(capability.threadId)!.computerId } : {}),
   ...(turnVpsTargets.get(capability.threadId)?.screenLease ? { screenGeneration: turnVpsTargets.get(capability.threadId)!.screenLease!.target.generation } : {}),
@@ -13205,6 +13206,15 @@ ROUTES.push(createBrowserViewerRoutes({ authorize: async () => null, relayed: (r
     const current = store.bot(botId);
     return !!current && current.browser !== false && builtInBrowserEnabled(cfg) && currentBrowserSession(current.id, current.browserProfile, audience) === session
       && (auth.kind !== "session" || (sessions.isLive(auth.session.id) && visibleTo(viewerFor(auth)).bot(botId)));
+  },
+  recent: async (botId, audience) => {
+    const bot = store.bot(botId);
+    if (!bot) return { status: 404, error: "no such bot" };
+    if (!builtInBrowserEnabled(cfg) || bot.browser === false) return { open: false, closed: null };
+    const current = await currentBrowserSpec(bot.id, bot.browserProfile, audience);
+    if (!current) return { open: false, closed: null };
+    const open = browserRunning(current.session, current.spec);
+    return { open, closed: open ? null : recentTabs.get(current.session) };
   },
   restartRefusal: (session) => browserRestartRefusal(browserRuntime.interrupted(session), store.bots.filter((candidate) => candidate.busy
     && browserSessionsOf(candidate.id, candidate.browserProfile).includes(session)).map((candidate) => ({ waitingOnBrowser: computerControl.snapshot(candidate.id).help?.place === "browser" }))),

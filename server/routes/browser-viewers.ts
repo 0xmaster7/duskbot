@@ -13,6 +13,7 @@ import type { Audience } from "../audience.ts";
 import { storeUploads } from "../browser-upload.ts";
 import type { BrowserLive } from "../browser-live.ts";
 import type { LiveRouter } from "../browser/engines.ts";
+import type { ClosedBrowser } from "../browser-recent-tabs.ts";
 import { requestedSize } from "../browser/viewers/viewport.ts";
 import { messageFileDisposition } from "../message-file.ts";
 import { isSameOrigin, type RequestAuth } from "../request-auth.ts";
@@ -24,6 +25,7 @@ const LIVE = /^\/api\/bots\/([\w-]+)\/browser\/(live|action)$/;
 const STREAM = /^\/api\/bots\/([\w-]+)\/browser\/stream$/;
 const UPLOAD = /^\/api\/bots\/([\w-]+)\/browser\/upload$/;
 const DOWNLOAD = /^\/api\/bots\/([\w-]+)\/browser\/download\/([\w-]{1,64})$/;
+const RECENT = /^\/api\/bots\/([\w-]+)\/browser\/recent(?:\/(\d{1,2}))?$/;
 const CHOOSER = /^[\w-]{1,64}$/;
 const UPLOAD_MAX_FILES = 20;
 const PICKER_CLOSED = "The page's file picker is no longer open.";
@@ -50,6 +52,8 @@ export interface BrowserViewerRouteDeps {
   dataDir: string;
   /** counts a stream that rides the relay, with why it is not direct */
   relayed?(reason: ScreenFallbackReason | null): void;
+  /** Whether the bot's browser for this audience runs now, and the tabs it closed with in the last 30 minutes; never starts it. */
+  recent?(botId: string, audience: Audience): Promise<{ open: boolean; closed: ClosedBrowser | null } | Failure>;
 }
 
 const ownerOf = (auth: RequestAuth) => (auth.kind === "session" ? auth.session.id : "local-owner");
@@ -102,10 +106,35 @@ async function answerUpload(req: IncomingMessage, deps: BrowserViewerRouteDeps, 
   return { status: 409, error: PICKER_CLOSED };
 }
 
+type RouteArgs = Parameters<RouteHandler>[0];
+
+/** The Computer tab's view of a bot's browser on this computer: open or not, and what it closed with. */
+async function recentRoute(deps: BrowserViewerRouteDeps, botId: string, index: string | undefined,
+  { req, res, url, method, auth, json }: Pick<RouteArgs, "req" | "res" | "url" | "method" | "auth" | "json">) {
+  res.setHeader("cache-control", "no-store");
+  if (method !== "GET") return json(res, 405, { error: "method not allowed" });
+  const audience = deps.audience(auth, url.searchParams.get("threadId"));
+  if (!audience) return json(res, 404, { error: "no such conversation" });
+  const failure = await deps.authorize(req, auth);
+  if (failure) return json(res, failure.status, { error: failure.error });
+  const state = await deps.recent!(botId, audience);
+  if ("error" in state) return json(res, state.status, { error: state.error });
+  if (index === undefined) {
+    return json(res, 200, { open: state.open, closed: state.closed && { at: state.closed.at,
+      tabs: state.closed.tabs.map((tab) => ({ title: tab.title, url: tab.url, image: tab.image !== null })) } });
+  }
+  const image = state.closed?.tabs[Number(index)]?.image;
+  if (!image) return json(res, 404, { error: "That screen is no longer kept." });
+  res.writeHead(200, { "content-type": "image/jpeg", "content-length": String(image.length), "x-content-type-options": "nosniff" });
+  res.end(image);
+}
+
 export function createBrowserViewerRoutes(deps: BrowserViewerRouteDeps): RouteHandler {
   deps.upgrades.route((path) => STREAM.test(path));
   const uploading = new Set<string>();
   return async ({ req, res, url, path, method, auth, json, readBody }) => {
+    const recent = RECENT.exec(path);
+    if (recent && deps.recent) return recentRoute(deps, recent[1]!, recent[2], { req, res, url, method, auth, json });
     const live = LIVE.exec(path);
     const stream = live ? null : STREAM.exec(path);
     const upload = live || stream ? null : UPLOAD.exec(path);

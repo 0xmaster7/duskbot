@@ -27,6 +27,7 @@ import { HealthShown, pageHealthLine } from "./health.ts";
 import type { HoldLimits } from "./hold.ts";
 import { errorResult, shapeResult, textResult, withParts, type ToolResult } from "./shape.ts";
 import { TabRegistry, type Tab } from "./tabs.ts";
+import { RECENT_TABS_LIMIT, within, type ClosingTab } from "../browser-recent-tabs.ts";
 import { parseToolCall, RESTART_TOOL, TOOL_LIST } from "./tools.ts";
 import { ViewerHub, type Viewer, type ViewerOptions, type ViewerOutput } from "./viewers/core.ts";
 
@@ -63,6 +64,8 @@ export interface BrowserServiceOptions {
   log?: (line: string) => void;
   /** Told of each screenshot a bot saved, a scratch file of the session's turn. */
   onScratch?: (session: string, path: string) => void;
+  /** Told of the tabs a browser had open, each with its last screen, just before it closes; never for a restart or crash. */
+  onClosing?: (session: string, tabs: ClosingTab[]) => void;
 }
 
 interface Running {
@@ -292,6 +295,7 @@ export class BrowserService {
       profile.control.changed();
       try {
         if (run) {
+          if (this.#options.onClosing && reopened?.kind !== "restart" && !erase) this.#options.onClosing(profile.session, await this.#closingTabs(profile));
           run.closing = true;
           for (const off of run.offs) off();
           profile.hub.stopped(reopened?.kind === "idle" ? "asleep" : "closed");
@@ -309,6 +313,15 @@ export class BrowserService {
     })().finally(() => { if (profile.stopping === stopping) profile.stopping = null; });
     profile.stopping = stopping;
     return stopping;
+  }
+
+  async #closingTabs(profile: ProfileState): Promise<ClosingTab[]> {
+    const active = profile.active();
+    const tabs = profile.tabs.list().filter((tab) => !tab.page.closed && tab.page.url() !== "about:blank").slice(0, RECENT_TABS_LIMIT);
+    return Promise.all(tabs.map(async (tab) => ({
+      title: tab.page.title(), url: tab.page.url(), active: tab === active,
+      image: (await within(tab.page.screenshot({ format: "jpeg", quality: 70 }), 3_000))?.data ?? null,
+    })));
   }
 
   #erase(profile: ProfileState): void {

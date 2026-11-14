@@ -1,7 +1,8 @@
 // The bots' browser as the server hosts it: the engine's runtime and live view, which session a bot's browser is, and
 // the integration a turn mounts. browserEngine.engine picks agent-browser (the default) or the new Chrome engine; a
 // person's own Chrome (My Chrome) stays on agent-browser either way.
-import { existsSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
@@ -10,6 +11,7 @@ import type { AppConfig } from "../config.ts";
 import { browserEngineAttachCdpUrl, browserProfilePartitionId, browserProfilePartitionTarget, builtInBrowserEnabled, DATA_DIR } from "../config.ts";
 import { BrowserRuntime, TransportError, attachesToChrome, browserRuntimeEnv, formatBrowserTiming } from "../browser-runtime.ts";
 import { RelayTimeout, relay, relayCommand, relayInput } from "../browser-relay.ts";
+import { RECENT_TABS_LIMIT, recentTabs, within, type ClosingTab } from "../browser-recent-tabs.ts";
 import { browserSteps } from "../browser-steps.ts";
 import { BrowserLive } from "../browser-live.ts";
 import { browserEgress } from "../browser/egress/registry.ts";
@@ -79,13 +81,48 @@ export interface BrowserHostDeps {
 type Spec = { command: string; args?: readonly string[]; env: Record<string, string> };
 const BOT_SESSION = /^bot-[A-Za-z0-9_.-]+$/;
 
+/** agent-browser 0.37 pictures only its active tab, so each tab is brought to the front in turn; the browser is closing. */
+async function agentBrowserTabs(session: string, spec: { command: string; env: Record<string, string | undefined> }): Promise<ClosingTab[]> {
+  const env = browserRuntimeEnv({ ...spec.env, AGENT_BROWSER_SESSION: session });
+  const listed = await within(inRunningBrowser(spec.command, env, ["tab"], 5_000), 6_000);
+  const tabs = (Array.isArray(listed?.tabs) ? listed.tabs : []).flatMap((value: unknown) => {
+    const tab = value as { tabId?: unknown; title?: unknown; url?: unknown; active?: unknown } | null;
+    return tab && typeof tab.tabId === "string" && typeof tab.url === "string" && tab.url !== "about:blank"
+      ? [{ tabId: tab.tabId, title: typeof tab.title === "string" ? tab.title : "", url: tab.url, active: tab.active === true }] : [];
+  }).slice(0, RECENT_TABS_LIMIT);
+  const shot = async () => {
+    const folder = mkdtempSync(join(tmpdir(), "duskbot-closing-"));
+    const file = join(folder, "tab.jpg");
+    try {
+      await within(inRunningBrowser(spec.command, env, ["screenshot", file, "--screenshot-format", "jpeg", "--screenshot-quality", "70"], 6_000), 7_000);
+      return existsSync(file) ? readFileSync(file) : null;
+    } finally {
+      rmSync(folder, { recursive: true, force: true });
+    }
+  };
+  const closing: ClosingTab[] = [];
+  for (const tab of [...tabs].sort((a, b) => Number(b.active) - Number(a.active))) {
+    if (!tab.active && !await within(inRunningBrowser(spec.command, env, ["tab", tab.tabId], 5_000), 6_000)) {
+      closing.push({ ...tab, image: null });
+      continue;
+    }
+    closing.push({ ...tab, image: await shot() });
+  }
+  return closing;
+}
+
 export function createBrowserHost(deps: BrowserHostDeps) {
   const { cfg, turnResources, activeInternalGenerationByThread, mintInternalCapability, DESKTOP_MANAGED, CLOUD_HOME, PORT } = deps;
   const store: Pick<Store, "bots" | "bot" | "botByThread"> = { get bots() { return deps.store().bots; }, bot: (id: string) => deps.store().bot(id),
     botByThread: (threadId: string) => deps.store().botByThread(threadId) };
 
+  // an idle close (or its bot stopped) says so just before it closes the browser; a restart never does
+  const idleClosing = new Set<string>();
   const agentBrowserRuntime = new BrowserRuntime({
-    closeBrowser: (session, spec) => closeBrowserSession(spec.command, browserRuntimeEnv({ ...spec.env, AGENT_BROWSER_SESSION: session })),
+    closeBrowser: async (session, spec) => {
+      if (idleClosing.delete(session)) recentTabs.record(session, await agentBrowserTabs(session, spec));
+      return closeBrowserSession(spec.command, browserRuntimeEnv({ ...spec.env, AGENT_BROWSER_SESSION: session }));
+    },
     applyViewport: (spec, size) => setBrowserViewport(spec.command, spec.env, size),
     launch: chromeLauncher,
     relayCommand: (spec, session, command, timeoutMs) => relayCommand(spec, session, command, timeoutMs).catch((error: unknown) => {
@@ -97,6 +134,7 @@ export function createBrowserHost(deps: BrowserHostDeps) {
   const browserBox = deps.browserBox;
   const boxed = Boolean(browserBox?.(LAUNCHER_SECCOMP_FD, []));
   if (browserBox) chromeLauncher.boxWith(() => browserBox(LAUNCHER_SECCOMP_FD, []));
+  agentBrowserRuntime.onIdleClose((session) => idleClosing.add(session));
   const agentBrowserLive = new BrowserLive({ runtime: agentBrowserRuntime, devTools: {
     url: (port) => relay(port, { action: "cdp_url" }, { timeoutMs: 5_000, maxBytes: 65_536 }).then((answer) => answer.data?.cdpUrl),
   } });
@@ -116,6 +154,7 @@ export function createBrowserHost(deps: BrowserHostDeps) {
     idleMs,
     log: (line) => console.warn(line),
     onScratch: (session, path) => { scratch.mark(`browser:${session}`, path); },
+    onClosing: (session, tabs) => recentTabs.record(session, tabs),
     sweepScratch: () => {
       sweepScratch(scratchRoots);
       const { full } = guardDisk(scratchRoots, diskUsedPercent(DATA_DIR), { keep: (path) => scratch.inUse(path) });
@@ -485,7 +524,7 @@ export function createBrowserHost(deps: BrowserHostDeps) {
   return {
     browserRuntime, browserLive, usedBrowserSessions, browserSweep, temporaryBrowserSessions, browserIdleMs: idleMs,
     currentBrowserSession, forgetTemporaryBrowser, myChromeAvailable, usesMyChrome, browserSessionSpec, browserIntegration,
-    browserReady, hostBrowserUsable, currentBrowserSpec, loginInput, browserSystemPrompt, signedInSitesRefusal, closeBrowser, browserEngineSwitched,
+    browserReady, hostBrowserUsable, currentBrowserSpec, browserRunning, loginInput, browserSystemPrompt, signedInSitesRefusal, closeBrowser, browserEngineSwitched,
     eraseDeletedBrowser, engineSummary, engineBrowsers, browserAudience, browserSessionsOf, signedInSitesTarget, uploadPaths,
     eraseAudienceBrowsers,
   };

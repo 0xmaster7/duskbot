@@ -1,0 +1,38 @@
+import { describe, expect, it } from "vitest";
+
+import { RECENT_TABS_LIMIT, RecentTabs, within } from "./browser-recent-tabs.ts";
+
+describe("RecentTabs", () => {
+  it("keeps the closed tabs for 30 minutes, the active one first, and only pages a person would know", () => {
+    let now = 1_000;
+    const recent = new RecentTabs({ now: () => now });
+    recent.record("bot-a", [
+      { title: "Docs", url: "https://example.com/docs", image: null },
+      { title: "", url: "about:blank", image: Buffer.from("x") },
+      { title: "Invoice", url: "https://user:secret@pay.example.com/new", active: true, image: Buffer.from("jpeg") },
+      { title: "Settings", url: "chrome://settings", image: null },
+    ]);
+    expect(recent.get("bot-a")).toEqual({ at: 1_000, tabs: [
+      { title: "Invoice", url: "https://pay.example.com/new", image: Buffer.from("jpeg") },
+      { title: "Docs", url: "https://example.com/docs", image: null },
+    ] });
+    now += 30 * 60_000 - 1;
+    expect(recent.get("bot-a")?.tabs).toHaveLength(2);
+    now += 1;
+    expect(recent.get("bot-a")).toBeNull();
+  });
+
+  it("forgets a session that closed with nothing to show, and keeps at most the limit", () => {
+    const recent = new RecentTabs();
+    recent.record("bot-a", Array.from({ length: 12 }, (_, at) => ({ title: `Tab ${at}`, url: `https://example.com/${at}`, image: null })));
+    expect(recent.get("bot-a")?.tabs).toHaveLength(RECENT_TABS_LIMIT);
+    recent.record("bot-a", [{ title: "", url: "about:blank", image: null }]);
+    expect(recent.get("bot-a")).toBeNull();
+  });
+
+  it("gives up on a picture that does not come in time", async () => {
+    expect(await within(new Promise(() => undefined), 5)).toBeNull();
+    expect(await within(Promise.reject(new Error("no")), 5)).toBeNull();
+    expect(await within(Promise.resolve(3), 5)).toBe(3);
+  });
+});

@@ -17,7 +17,7 @@ import { browserRoot } from "./chrome/profile.ts";
 import { browserLanguage, browserTimeZone, languageList } from "./chrome/wrapper.ts";
 import { displayScreen } from "./display.ts";
 import type { Download } from "./cdp/downloads.ts";
-import { BrowserService, type BrowserTarget } from "./service.ts";
+import { BrowserService, type BrowserServiceOptions, type BrowserTarget } from "./service.ts";
 import { LiveV1 } from "./viewers/live-v1.ts";
 import { StreamV2, type StreamRequest } from "./viewers/stream-v2.ts";
 
@@ -50,6 +50,7 @@ export interface ChromeEngineOptions {
   egressNotice(key: string): string | null;
   log?: (line: string) => void;
   onScratch?: (session: string, path: string) => void;
+  onClosing?: BrowserServiceOptions["onClosing"];
   /** Run with each sweep: the day-old and over-the-disk-limit scratch of this data folder. */
   sweepScratch?: () => void;
 }
@@ -102,6 +103,7 @@ export class ChromeEngine {
       egressNotice: options.egressNotice,
       ...(options.log ? { log: options.log } : {}),
       ...(options.onScratch ? { onScratch: options.onScratch } : {}),
+      ...(options.onClosing ? { onClosing: options.onClosing } : {}),
     });
     this.live = new LiveV1({ service: this.service, target: (session) => this.target(session) });
     this.stream = new StreamV2({ service: this.service });
