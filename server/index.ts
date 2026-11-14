@@ -12,6 +12,7 @@ import { rm as removeDirectory } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { ToolResults, TOOL_RESULT_MAX_CHARS } from "./tool-results.ts";
 import { join } from "node:path";
+import { aboutYouPrompt } from "./about-you.ts";
 import { authorizeExternalRuntime, externalRuntimeIsActive, type ExternalRuntimeGrant } from "./external-runtime.ts";
 import { z } from "zod";
 import { selectReplay, replayToolCalls, DEFAULT_REBUILD_BYTES, MAX_SUMMARY_BYTES } from "./context-rebuild.ts";
@@ -414,6 +415,8 @@ import {
   ROUTINE_EXECUTION_PROMPT, READ_ONLY_ROUTINE_EXECUTION_PROMPT, NOT_YET_PROMPT,
   WEBHOOK_PROMPT, BOT_API_PROMPT, AUTOMATION_REPLY_PROMPT,
   resolveComputerPromptKind,
+  type ComputerPromptKind,
+  type PromptPart,
   savedLoginsPrompt,
   savedSecretsPrompt,
   teamAvailabilityPart,
@@ -3010,6 +3013,17 @@ const wireTrustedApprovalBot = (bot: NonNullable<ReturnType<typeof store.bot>>) 
   return { ...rest, approvalMode: approvalModeFor(rest), mainThreadId: botMainThread(bot.id), avatarUrl: rest.avatarUrl ?? null, ...(tasks ? { tasks: tasks.map((task) => wireTask(task, bot.modelSelection, awaiting)) } : {}) };
 };
 
+const aboutYou = (bot: { id: string; name: string; memoryEnabled?: boolean }, f: { computer: ComputerPromptKind | null; browser: boolean; routines: boolean; apps: boolean; managedWrites: boolean }): PromptPart => ({
+  id: "about-you",
+  label: "About you",
+  text: aboutYouPrompt({
+    name: bot.name,
+    home: CLOUD_TEAM ? "team-cloud" : CLOUD_HOME ? "cloud" : DESKTOP_MANAGED ? (process.platform === "darwin" ? "mac" : process.platform === "win32" ? "windows" : "computer") : "server",
+    memory: { enabled: bot.memoryEnabled !== false, managedWrites: f.managedWrites, ...(CLOUD_TEAM ? {} : { file: join(workspaceDir(bot.id), "MEMORY.md"), topicDir: join(workspaceDir(bot.id), "memory") }) },
+    computer: f.computer, browser: f.browser, routines: f.routines, apps: f.apps,
+  }),
+});
+
 function previewSystemPrompt(bot: BotRecord) {
   const persona = botPersona(bot);
   const instance = registry.get(bot.modelSelection.instanceId);
@@ -3034,6 +3048,7 @@ function previewSystemPrompt(bot: BotRecord) {
   });
   const privateWorkspace = instance && supportsWorkspaceFiles(instance.driverKind);
   const built = buildSystemPrompt(persona, bot.soul ?? "", [
+    aboutYou(bot, { computer: computerPromptKind, browser: Boolean(previewPlan.browser), routines: agentsMounted, apps: Boolean(caps?.composioMcp && bot.composio !== false && composio.configured(cfg)), managedWrites: agentsMounted }),
     { id: "user-profile", label: "About the user", text: userProfileSystemPrompt(teamHost.profileFor(CLOUD_TEAM ? botMainThread(bot.id) ?? "" : bot.threadId, cfg.profile)) },
     {
       id: "setup",
@@ -8998,6 +9013,7 @@ async function beginTurn(
       applyAgentsBridge(threadId, integrations, cfg, bot, turnEngine(instance, instanceConfigs(cfg), registry.lastSnapshot(instance.instanceId), cwd));
       const confined = proactive.fence.confines(threadId), apiFenced = botApiThread(threadId); if (confined || apiFenced) for (const key of Object.keys(integrations) as Array<keyof typeof integrations>) if (!(apiFenced ? BOT_API_TOOLS : READ_AND_DRAFT_TOOLS).has(key)) delete integrations[key];
       const prompt = buildSystemPrompt(persona, liveBot?.soul ?? bot.soul ?? "", [
+        aboutYou(liveBot ?? bot, { computer: computerPromptKind, browser: Boolean(integrations.browser), routines: Boolean(integrations.agents), apps: Boolean(integrations.composio), managedWrites: Boolean(integrations.agents) }),
         { id: "user-profile", label: "About the user", text: userProfileSystemPrompt(teamHost.profileFor(threadId, cfg.profile)) }, { id: "people", label: "People", text: teamMessages.prompt(bot.id, threadId, Boolean(integrations.agents)) }, { id: "long-waits", label: "Waiting on the person", text: teammatePrompts.personBehind(bot.id, threadId) ? teamMessages.longWaits(threadId) : "" },
         { id: "setup", label: "Setup", text: setupSystemPrompt(setupMode, {
           skills: skillAuthoring, chief: Boolean((liveBot ?? bot).chiefOfStaff),
@@ -10837,6 +10853,7 @@ async function runClaimedGroupMemberTurn(
   const engineRead = registry.engineRead(instance.instanceId); if (engineRead) await engineRead;
   applyAgentsBridge(threadId, integrations, cfg, bot, turnEngine(instance, instanceConfigs(cfg), registry.lastSnapshot(instance.instanceId), cwd));
   const roomSystem = buildSystemPrompt(system, store.bot(bot.id)?.soul ?? bot.soul ?? "", [
+    aboutYou(readyBot, { computer: roomComputerPromptKind, browser: Boolean(integrations.browser), routines: false, apps: Boolean(integrations.composio), managedWrites: Boolean(integrations.agents) }),
     { id: "user-profile", label: "About the user", text: userProfileSystemPrompt(teamHost.profileFor(threadId, cfg.profile)) }, { id: "people", label: "People", text: teamMessages.prompt(bot.id, threadId, Boolean(integrations.agents)) },
     { id: "files", label: "File locations", text: workspace ? workspaceLocationsPrompt(bot.id, cwd, readyBot.cwd, { attachFile: Boolean(integrations.agents) && !CLOUD_HOME }) : "" },
     { id: "shell", label: "Long-running commands", text: workspace ? longCommandsPrompt(roomComputerPromptKind) : "" },
