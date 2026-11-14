@@ -147,15 +147,17 @@ dmg:
   # the arm64 one when both arches build (this section overrides both the
   # top-level and mac-level artifactName, so it must carry the arch itself)
   artifactName: DuskBot-${version}-${arch}.dmg
-  # x/y are icon centres in points. electron-builder 26.15.3 sizes the window
-  # from build/background.png and ignores dmg.window whenever a background is set.
+  # x/y are icon centres in points, drawn around by build/dmg/render.mjs.
+  # electron-builder 26.15.3 sets the window frame (title bar included) to
+  # build/background.png's size and ignores dmg.window whenever a background is
+  # set, so the art carries a plain bottom strip the title bar's height.
   iconSize: 112
   iconTextSize: 13
   contents:
     - x: 170
-      y: 168
+      y: 140
     - x: 490
-      y: 168
+      y: 140
       type: link
       path: /Applications
 

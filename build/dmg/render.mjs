@@ -1,132 +1,106 @@
 import { writeFileSync } from "node:fs";
 import { C, opaquePng72, renderPixels, scene } from "../art/pixel-scene.mjs";
 
-// icon centres and size must match dmg.contents and dmg.iconSize in build/electron-builder.yml
+// dmg-builder (electron-builder 26.15.3) sets the Finder window frame to the background's size, title bar included,
+// and Finder draws the background from the top of the content area. so the image is the frame: the top VISIBLE points
+// are what people see, and the last BLEED points (the title bar's height, 28 to 32 pt by macOS version) sit under
+// the window edge and only ever carry plain meadow.
 const W = 660;
-const H = 400;
-const APP = { x: 170, y: 168 };
-const APPLICATIONS = { x: 490, y: 168 };
+const VISIBLE = 400;
+const BLEED = 32;
+const H = VISIBLE + BLEED;
+// icon centres and size must match dmg.contents and dmg.iconSize in build/electron-builder.yml
+const APP = { x: 170, y: 140 };
+const APPLICATIONS = { x: 490, y: 140 };
 const ICON = 112;
 
-const DUSK = { sky0: "#2e2c86", sky1: "#4744e2", sky2: "#7a5ae8", sky3: "#b896f2", glow: "#ffc4dd", haze: "#ffe3ee" };
-
-/** a soft rounded pixel blob: rows step in at the top and bottom corners */
-function cloudPad(s, cx, cy, w, h, fill, step = 8) {
-  puff(s, cx, cy, w, h, fill, step);
-  puff(s, cx - w * 0.22, cy - h / 2 + step, w * 0.42, step * 6, fill, step);
-  puff(s, cx + w * 0.16, cy - h / 2 - step, w * 0.5, step * 8, fill, step);
-}
-
-function puff(s, cx, cy, w, h, fill, step = 8) {
-  const x = Math.round((cx - w / 2) / step) * step;
-  const y = Math.round((cy - h / 2) / step) * step;
-  const inset = [3, 1, 0];
-  inset.forEach((n, i) => {
-    s.rect(x + n * step, y + i * step, w - 2 * n * step, step, fill);
-    s.rect(x + n * step, y + h - (i + 1) * step, w - 2 * n * step, step, fill);
-  });
-  s.rect(x, y + 3 * step, w, h - 6 * step, fill);
-}
-
-/** a dotted trail of squares from one icon to the other, ending in a stepped head */
-function trail(s, fill, shadow) {
-  const u = 6;
-  const from = APP.x + ICON / 2 + 30;
-  const tip = APPLICATIONS.x - ICON / 2 - 30;
-  const head = tip - 4 * u;
-  for (let x = from; x + 2 * u <= head - u; x += 3 * u) {
-    if (shadow) s.rect(x + 2, APP.y - u / 2 + 2, 2 * u, u, shadow);
-    s.rect(x, APP.y - u / 2, 2 * u, u, fill);
-  }
-  [7, 5, 3, 1].forEach((n, i) => {
-    if (shadow) s.rect(head + i * u + 2, APP.y - (n * u) / 2 + 2, u, n * u, shadow);
-    s.rect(head + i * u, APP.y - (n * u) / 2, u, n * u, fill);
-  });
-}
-
-const DENSE = { fray: [0, 1, 1, 1, 2, 2, 3, 4], stray: 0.16 };
-
-export const DMG_SCENES = {
-  // the dusk.bot banner: bright sky over a pale horizon, the icons on the calm band, friends floating up top
-  meadow() {
-    const s = scene(W, H, { cell: 8, seed: 41 });
-    s.sky([[C.sky0, 0], [C.sky1, 4], [C.sky2, 11], [C.sky3, 15], [C.canvas, 19]], DENSE);
-    s.cloud(110, 3, 12, C.pink);
-    s.ground(37, { flowers: 6, speckle: 0.05 });
-    s.hill(W / 2, 37, 14, 2);
-    s.bot("pip", C.blue, W / 2, 37 * 8 - 16, 3);
-    s.bot("hoot", C.violet, 470, 54, 2.5).bot("mochi", C.pinkBot, 520, 46, 2.5).bot("loaf", C.tangerine, 570, 54, 2.5);
-    trail(s, C.sky1);
-    return s.svg();
-  },
-  // every icon on its own white cloud, a bridge of cloud puffs between them, one bot halfway across
-  bridge() {
-    const s = scene(W, H, { cell: 8, seed: 7 });
-    s.sky([[C.sky0, 0], [C.sky1, 6], [C.sky2, 20], [C.sky3, 34], [C.canvas, 40]], DENSE);
-    s.ground(46, { flowers: 4, speckle: 0.05 });
-    for (const icon of [APP, APPLICATIONS]) {
-      cloudPad(s, icon.x + 4, icon.y + 34, 216, 152, C.pink);
-      cloudPad(s, icon.x, icon.y + 30, 216, 152, C.cloud);
-    }
-    trail(s, C.cloud, C.pink);
-    s.bot("pip", C.blue, W / 2 - 20, APP.y - 3, 2.5);
-    s.bot("mochi", C.pinkBot, 64, 46 * 8 - 8, 2.5).bot("hoot", C.violet, 600, 46 * 8 - 8, 2.5, { flip: true });
-    s.cloud(W / 2, 3, 10, C.lemon);
-    return s.svg();
-  },
-  // the hour the app is named for: an indigo sky warming to a pink glow, the icons on the glow, stars overhead
-  dusk() {
-    const s = scene(W, H, { cell: 8, seed: 23 });
-    s.sky([[DUSK.sky0, 0], [DUSK.sky1, 4], [DUSK.sky2, 7], [DUSK.sky3, 10], [DUSK.glow, 12], [DUSK.haze, 14]], DENSE);
-    for (let i = 0; i < 26; i++) {
-      const x = Math.floor(s.rand() * (W / 4)) * 4;
-      const y = Math.floor(s.rand() * 10) * 4;
-      s.rect(x, y, 4, 4, s.rand() < 0.3 ? C.lemon : C.cloud);
-    }
-    s.cloud(120, 3, 10, C.lilac);
-    s.ground(34, { flowers: 6, speckle: 0.05 });
-    s.raw(`<rect x="0" y="${34 * 8}" width="${W}" height="${H - 34 * 8}" fill="#7fb51c" opacity="0.25"/>`);
-    s.hill(W / 2, 34, 14, 2);
-    s.bot("kit", C.cloud, W / 2, 34 * 8 - 16, 3, { eyes: "#212121" });
-    s.bot("hoot", C.violet, 560, 44, 2.5).bot("mochi", C.pinkBot, 606, 36, 2.5);
-    trail(s, DUSK.sky2);
-    return s.svg();
-  },
+// dusk: violet up top, a mid lilac band behind the icons, warming to peach at the horizon.
+// the band holds relative luminance near 0.18, so Finder's label text, black in light mode and white in dark mode,
+// reads at about 4.5:1 either way.
+const SKY = {
+  top: "#3f3790", high: "#5a4cab", band: "#7d68c4", mauve: "#a782c8", rose: "#e39cb4", peach: "#ffc39c",
+  hillFar: "#c3b2ee", hillNear: "#a28fe0", sun: "#ffe7a8", sunRim: "#ffd18c", trail: "#ffd9b8", trailShade: "#5a4cab",
 };
-/** a plain canvas: the two icons, a slim ink arrow, and a few bots peeking up from the bottom edge */
-function mascots(line) {
-  const s = scene(W, H, { cell: 8, seed: 3 });
-  s.rect(0, 0, W, H, "#ffffff");
-  const u = 3;
-  const from = APP.x + ICON / 2 + 34;
-  const tip = APPLICATIONS.x - ICON / 2 - 34;
-  const head = tip - 6 * u;
-  s.rect(from, APP.y - u, head - from, 2 * u, C.ink);
-  [12, 10, 8, 6, 4, 2].forEach((n, i) => s.rect(head + i * u, APP.y - (n * u) / 2, u, n * u, C.ink));
-  // floors below the window edge, so each bot shows only from the eyes up
-  s.bot("mochi", C.pinkBot, 222, H + 2 * 4, 4);
-  s.bot("kit", C.violet, W / 2, H + 3 * 6, 6);
-  s.bot("pip", C.blue, 438, H + 4 * 4, 4);
-  s.bot("loaf", C.tangerine, 110, H + 3 * 3, 3).bot("goo", C.mint, 552, H + 3 * 3, 3);
-  if (line) s.text(W / 2, 282, line, { size: 17, anchor: "middle" });
+const ROW = { high: 8, band: 18, mauve: 32, rose: 35, peach: 37, ground: 41 };
+
+/** a stepped pixel disc, cut flat at `clip` (the horizon) */
+function sun(s, cx, cy, radius, clip) {
+  const u = 4;
+  for (let y = cy - radius; y < Math.min(cy + radius, clip); y += u) {
+    const dy = y + u / 2 - cy;
+    const half = Math.floor(Math.sqrt(radius * radius - dy * dy) / u) * u;
+    if (half <= 0) continue;
+    s.rect(cx - half, y, 2 * half, u, SKY.sunRim);
+    if (half > u) s.rect(cx - half + u, y, 2 * half - 2 * u, u, SKY.sun);
+  }
+}
+
+/** a soft run of stepped hills along the horizon: [centre x, width in cells, height in cells] */
+function hills(s, list, fill, baseRow) {
+  const cell = s.cell;
+  for (const [cx, w, h] of list) {
+    for (let i = 0; i < h; i++) {
+      const ww = w - i * 3;
+      if (ww <= 0) break;
+      const x = Math.round(cx / cell - ww / 2) * cell;
+      s.rect(x, (baseRow - i - 1) * cell, ww * cell, cell, fill);
+    }
+  }
+}
+
+/** a dashed trail from one icon to the other at icon height, ending in a stepped arrowhead, with a one-unit shadow */
+function trail(s) {
+  const u = 4;
+  const y = APP.y;
+  const from = APP.x + ICON / 2 + 30;
+  const tip = APPLICATIONS.x - ICON / 2 - 26;
+  const head = tip - 5 * u;
+  const dash = (x, yy, w, h) => {
+    s.rect(x + u, yy + u, w, h, SKY.trailShade);
+    s.rect(x, yy, w, h, SKY.trail);
+  };
+  for (let x = from; x + 4 * u <= head - 2 * u; x += 6 * u) dash(x, y - u, 4 * u, 2 * u);
+  [9, 7, 5, 3, 1].forEach((n, i) => dash(head + i * u, y - (n * u) / 2, u, n * u));
+}
+
+export function dusk() {
+  const s = scene(W, H, { cell: 8, seed: 19 });
+  s.sky(
+    [[SKY.top, 0], [SKY.high, ROW.high], [SKY.band, ROW.band], [SKY.mauve, ROW.mauve], [SKY.rose, ROW.rose], [SKY.peach, ROW.peach]],
+    // no stray cells: anything loose would land under the icon labels
+    { fray: [0, 1, 1, 1, 2, 2], stray: 0 },
+  );
+  // a few stars in the dark part of the sky, clear of the icons and the trail
+  const keep = (x, y) => Math.abs(y - APP.y) > 70 || (x > APP.x + 76 && x < APPLICATIONS.x - 76 && Math.abs(y - APP.y) > 20);
+  for (let n = 0; n < 40; n++) {
+    const x = Math.floor(s.rand() * (W / 4)) * 4;
+    const y = Math.floor(s.rand() * 16) * 4 + 8;
+    if (!keep(x, y)) continue;
+    s.rect(x, y, 4, 4, s.rand() < 0.3 ? C.lemon : "#e9e2ff");
+  }
+  s.cloud(96, 3, 9, SKY.mauve);
+  s.cloud(586, 9, 6, SKY.mauve);
+  sun(s, W / 2, ROW.ground * 8 - 4, 60, ROW.ground * 8);
+  hills(s, [[56, 30, 6], [226, 14, 3], [434, 14, 3], [620, 26, 5]], SKY.hillFar, ROW.ground);
+  hills(s, [[150, 22, 3], [520, 20, 3]], SKY.hillNear, ROW.ground);
+  s.ground(ROW.ground + 1, { flowers: 9, speckle: 0.05, avoid: [[0, VISIBLE - 8, W, H]] });
+  trail(s);
+  // friends on the meadow, every one standing well inside the visible area
+  const floor = VISIBLE - 16;
+  s.bot("mochi", C.pinkBot, 74, floor - 2, 2.5);
+  s.bot("loaf", C.tangerine, 196, floor + 2, 2.5);
+  s.bot("kit", C.cloud, W / 2, floor, 3.5, { eyes: C.ink });
+  s.bot("pip", C.blue, 462, floor + 2, 2.5);
+  s.bot("hoot", C.violet, 590, floor - 2, 2.5, { flip: true });
   return s.svg();
 }
-DMG_SCENES.mascots = () => mascots(null);
-DMG_SCENES.mascotsText = () => mascots("drag dusk bot to Applications");
 
-export const DEFAULT_DMG_SCENE = "mascotsText";
-
-const svg = DMG_SCENES[DEFAULT_DMG_SCENE]();
+const svg = dusk();
 for (const [scale, name] of [
   [1, "background.png"],
   [2, "background@2x.png"],
 ]) {
   const png = opaquePng72(renderPixels(svg, scale));
   writeFileSync(new URL(`../${name}`, import.meta.url), png);
-  console.log(`build/${name}: ${W * scale}x${H * scale}, ${png.length} bytes`);
-}
-// --options <dir> writes every scene's @2x background there, for choosing between them
-if (process.argv.includes("--options")) {
-  const dir = process.argv[process.argv.indexOf("--options") + 1];
-  for (const name of Object.keys(DMG_SCENES)) writeFileSync(`${dir}/${name}@2x.png`, opaquePng72(renderPixels(DMG_SCENES[name](), 2)));
+  console.log(`build/${name}: ${W * scale}x${H * scale} (top ${VISIBLE * scale} visible), ${png.length} bytes`);
 }
