@@ -5,7 +5,8 @@ type Phase = "loading" | "closing" | "fading" | "gone";
 const FADE_MS = 300;
 
 /** Covers the window while it first connects: the ring creeps on its own, never past 90%, then closes the circle once
- * the app has something to show and fades away over it. A window that opens with its bots already there never shows it. */
+ * the app has something to show and fades away over it; from the closing on, clicks reach the app under it. A window that
+ * opens with its bots already there never shows it. */
 export function BootCover({ busy, text }: { busy: boolean; text: string }) {
   const [phase, setPhase] = useState<Phase>(busy ? "loading" : "gone");
   const arc = useRef<SVGCircleElement>(null);
@@ -44,7 +45,7 @@ export function BootCover({ busy, text }: { busy: boolean; text: string }) {
   if (phase === "gone") return null;
   return (
     <div data-boot-cover={phase} aria-hidden={phase !== "loading" || undefined}
-      className="fixed inset-0 z-[80] flex flex-col items-center justify-center gap-3 bg-app transition-opacity ease-out data-[boot-cover=fading]:pointer-events-none data-[boot-cover=fading]:opacity-0 motion-reduce:transition-none"
+      className="fixed inset-0 z-[80] flex flex-col items-center justify-center gap-3 bg-app transition-opacity ease-out data-[boot-cover=closing]:pointer-events-none data-[boot-cover=fading]:pointer-events-none data-[boot-cover=fading]:opacity-0 motion-reduce:transition-none"
       style={{ transitionDuration: `${FADE_MS}ms` }}>
       <WindowDragStrip />
       <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true" className="-rotate-90">
