@@ -3,6 +3,15 @@
 Notable changes to dusk bot, newest first. Installers and checksums for each version are on the
 [releases page](https://github.com/DuskBotAI/duskbot/releases) and at [dusk.bot/download](https://dusk.bot/download).
 
+## 0.2.9
+
+- Sign up in the browser and come straight back to the app, signed in.
+- Signing in to an AI no longer asks you to paste a code.
+- Connected apps stay in sync.
+- Moving to dusk cloud or your own server works again where it stalled.
+- The dashboard opens faster.
+- First run offers a dusk bot account, with a quiet Skip for now.
+
 ## 0.2.8
 
 - The app updates itself on the Mac: the sidebar says Update to, then Downloading with progress, then Restart to update.
