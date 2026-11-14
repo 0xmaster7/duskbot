@@ -96,7 +96,7 @@ import {
   goalTextFromComposer,
   replaceComposerSlashTrigger,
   skillSlashCommands,
-  slashCommandMatches,
+  slashMenuRows,
   type ComposerSlashCommand,
 } from "@/lib/composer-commands";
 import { useSlashSkills } from "@/lib/use-slash-skills";
@@ -323,6 +323,9 @@ export function Composer({
   const slashSkills = useSlashSkills(group ? undefined : bot?.id, threadId, Boolean(slash) && slash?.start !== dismissedSlashAt);
   const canLearn = skillAuthoringEnabled(state.config) &&
     (group ? (members ?? []).some((member) => supportsAgents(state.instances, member)) : supportsAgents(state.instances, bot));
+  // the other AI tools' skills wait behind one More row for each / typed
+  const [slashMoreAt, setSlashMoreAt] = useState<number | null>(null);
+  const slashMoreOpen = slash !== null && slashMoreAt === slash.start;
   const commandCandidates = useMemo(() => {
     if (!slash || slash.start === dismissedSlashAt) return [];
     const available: ComposerSlashCommand[] = [];
@@ -347,9 +350,10 @@ export function Composer({
       label: "/setup",
       description: t("composer.command.setupDesc"),
     });
-    available.push(...skillSlashCommands(slashSkills));
-    return available.filter((command) => slashCommandMatches(command, slash.query));
-  }, [slash, dismissedSlashAt, group, bot, canLearn, state.instances, locale, slashSkills]);
+    return slashMenuRows(available, skillSlashCommands(slashSkills), slash.query, slashMoreOpen, () => ({
+      label: t("composer.commands.more"), description: t("composer.commands.moreHint"),
+    }));
+  }, [slash, dismissedSlashAt, group, bot, canLearn, state.instances, locale, slashSkills, slashMoreOpen]);
   const commandPickerOpen = commandCandidates.length > 0;
 
   const mention = mentionQueryAt(text, caret); const teammates = useTeammates(); const viewer = useViewerEmail();
@@ -410,6 +414,8 @@ export function Composer({
 
   const pickCommand = (command: ComposerSlashCommand | undefined) => {
     if (!slash || !command) return;
+    // More opens in place: the highlight stays on its row, now the first of the other tools' skills
+    if (command.kind === "more") { setSlashMoreAt(slash.start); return; }
     const spaceAfter = /^\s/.test(text.slice(slash.end)) ? "" : " ";
     const replacement = command.kind === "skill" ? `${command.label}${spaceAfter}`
       : command.id === "learn" ? "/learn " : command.id === "setup" ? "/setup " : "";

@@ -5,6 +5,7 @@ import {
   replaceComposerSlashTrigger,
   skillSlashCommands,
   slashCommandMatches,
+  slashMenuRows,
   type ComposerSlashCommandId,
 } from "./composer-commands";
 import { enabledSlashSkills } from "./use-slash-skills";
@@ -92,5 +93,31 @@ describe("composer slash commands", () => {
       { name: "bare", description: "" },
     ]);
     expect(enabledSlashSkills(null)).toEqual([]);
+  });
+
+  it("marks the other tools' skills and drops a block scalar's bare marker", () => {
+    expect(enabledSlashSkills({ skills: [
+      { name: "standup", description: "Mine.", enabled: true, origin: "private" },
+      { name: "canvas", description: ">-", enabled: true, origin: "imported" },
+      { name: "automate", description: "Codex.", enabled: true, origin: "native" },
+    ] })).toEqual([
+      { name: "standup", description: "Mine." },
+      { name: "canvas", description: "", fromTools: true },
+      { name: "automate", description: "Codex.", fromTools: true },
+    ]);
+  });
+
+  it("lists dusk bot's commands, then its own skills, and keeps the other tools' skills behind More until searched", () => {
+    const commands = [{ kind: "command" as const, id: "goal" as const, label: "/goal" as const, description: "Keep working" }];
+    const skills = skillSlashCommands([
+      { name: "standup", description: "Mine." },
+      { name: "canvas", description: "Draw", fromTools: true },
+      { name: "automate", description: "Codex.", fromTools: true },
+    ]);
+    const more = () => ({ label: "More", description: "Other tools" });
+    expect(slashMenuRows(commands, skills, "", false, more).map((row) => row.label)).toEqual(["/goal", "/standup", "More"]);
+    expect(slashMenuRows(commands, skills, "", true, more).map((row) => row.label)).toEqual(["/goal", "/standup", "/automate", "/canvas"]);
+    expect(slashMenuRows(commands, skills, "can", false, more).map((row) => row.label)).toEqual(["/canvas"]);
+    expect(slashMenuRows(commands, skills.filter((row) => row.label === "/standup"), "", false, more).map((row) => row.label)).toEqual(["/goal", "/standup"]);
   });
 });

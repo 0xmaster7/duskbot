@@ -1,11 +1,12 @@
-import type { RefObject } from "react";
-import { BookOpen, Sparkles, Target, Wand2 } from "../icons";
+import { useRef, type RefObject } from "react";
+import { BookOpen, ChevronDown, Sparkles, Target, Wand2 } from "../icons";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import type { ComposerSlashCommand } from "@/lib/composer-commands";
 import type { MenuMotion } from "./MenuMotion";
 
-/** The composer's / list: room commands like /goal, then the bot's skills. */
+/** The composer's / list: dusk bot's commands like /goal, the skills made in dusk bot, then a More row for the other
+ * AI tools' skills. */
 export function SlashCommandMenu({ listRef, motion, commands, highlight, onPick, onHighlight }: {
   listRef: RefObject<HTMLDivElement | null>;
   motion: MenuMotion;
@@ -14,6 +15,8 @@ export function SlashCommandMenu({ listRef, motion, commands, highlight, onPick,
   onPick: (command: ComposerSlashCommand) => void;
   onHighlight: (index: number) => void;
 }) {
+  // the list scrolling under a resting pointer must not steal the keyboard's highlight: only a real move hovers
+  const pointer = useRef<{ x: number; y: number } | null>(null);
   if (!motion.shown) return null;
   return (
     <div
@@ -34,14 +37,21 @@ export function SlashCommandMenu({ listRef, motion, commands, highlight, onPick,
           aria-selected={index === highlight}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => onPick(command)}
-          onMouseEnter={() => onHighlight(index)}
+          onPointerMove={(event) => {
+            const last = pointer.current;
+            pointer.current = { x: event.clientX, y: event.clientY };
+            if (!last || (last.x === event.clientX && last.y === event.clientY)) return;
+            if (index !== highlight) onHighlight(index);
+          }}
           className={cn(
             "flex w-full items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-start",
             index === highlight && "bg-menu-hover",
           )}
         >
           <span className="flex size-4 shrink-0 items-center justify-center text-ink-secondary">
-            {command.kind === "skill" ? (
+            {command.kind === "more" ? (
+              <ChevronDown size={15} aria-hidden="true" />
+            ) : command.kind === "skill" ? (
               <Sparkles size={15} aria-hidden="true" />
             ) : command.id === "goal" ? (
               <Target size={15} aria-hidden="true" />

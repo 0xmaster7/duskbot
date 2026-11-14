@@ -2496,6 +2496,8 @@
   "composer.failed.edit": "Edit",
   "composer.commands.aria": "Composer commands",
   "composer.commands.title": "Commands",
+  "composer.commands.more": "More from your other AI tools",
+  "composer.commands.moreHint": "Skills that came with Claude Code, Codex and your other tools",
   "composer.mention.aria": "Tag a bot",
   "composer.mention.agent": "Agent",
   "composer.mention.person": "Person",
