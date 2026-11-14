@@ -12,7 +12,7 @@ import { useSyncExternalStore } from "react";
 import type { AccountIntent } from "../../shared/account-api";
 
 export type { AccountIntent } from "../../shared/account-api";
-export type ContinueOutcome = "opened" | "browser" | "unavailable";
+export type ContinueOutcome = "opened" | "browser" | "failed" | "unavailable";
 
 let waiting: AccountIntent | null = null;
 const watchers = new Set<() => void>();

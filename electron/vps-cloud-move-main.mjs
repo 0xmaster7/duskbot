@@ -50,6 +50,7 @@ export function installVpsCloudMoveMain(deps) {
       const chosen = PLANS.has(plan) ? plan : "pro";
       if (client?.continueInBrowser) {
         const answer = await client.continueInBrowser({ kind: "upgrade", plan: chosen, source: "app_computer_move" });
+        if (answer?.outcome === "failed") throw Object.assign(new Error("The sign-in page didn't open. Try again."), { code: "signin_failed" });
         browsing = answer?.outcome === "browser";
         deps.tell(viewNow());
         return;

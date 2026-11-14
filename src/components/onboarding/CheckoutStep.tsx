@@ -79,7 +79,7 @@ export function CheckoutStep({ start, onPaid, onMac }: {
       stopWaitingInBrowser();
       track("onboarding_checkout", { action: again ? "again" : "open", outcome });
       if (!live.current) return;
-      setPhase(outcome === "unavailable" ? "failed" : "waiting");
+      setPhase(outcome === "unavailable" || outcome === "failed" ? "failed" : "waiting");
     } catch {
       track("onboarding_checkout", { action: again ? "again" : "open", outcome: "failed" });
       if (live.current) setPhase("failed");

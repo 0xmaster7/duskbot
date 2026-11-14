@@ -729,7 +729,8 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
      * handoff opens the right page (the plan checkout, billing or home) with no second sign-in; signed out, the browser
      * sign-in opens with the intent bound to it, the website lands on that page after signing in or up, and this app
      * signs itself in when the person approves (polling, or duskbot://auth). Returning to the app is optional.
-     * Answers `opened` (already signed in) or `browser` (a sign-in under way: state().status is "connecting").
+     * Answers `opened` (already signed in), `browser` (a sign-in under way: state().status is "connecting") or `failed` (the
+     * sign-in did not start).
      */
     async continueInBrowser(input) {
       const intent = cleanAccountIntent(input);
@@ -747,7 +748,8 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       if (value.status === "connecting") { if (pending && pending.expiresAt > now()) await openBrowser(pending.verificationUri); return { outcome: "browser", state: state() }; }
       const checkout = intent.kind === "upgrade" && intent.plan && intent.source ? { plan: intent.plan, source: intent.source } : null;
       await begin(checkout, { account: intent });
-      return { outcome: "browser", state: state() };
+      // the sign-in could not start (the service refused, the browser didn't open): never "continue in your browser" over nothing
+      return { outcome: value.status === "connecting" ? "browser" : "failed", state: state() };
     },
     webHandoff,
     async upgradePreview(plan, source) {

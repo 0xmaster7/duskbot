@@ -142,7 +142,7 @@ export interface CloudAccountBridge {
   openDashboard(): Promise<CloudAccountState>;
   /** An account step in the browser for its context (shared/account-api.ts AccountIntent): `opened` already signed in,
    *  `browser` while the browser sign-in is under way (state().status "connecting"). Absent on an older app. */
-  continueInBrowser?(intent: { kind: "signin" | "upgrade" | "billing"; plan?: "plus" | "pro"; source?: string; move?: string }): Promise<{ outcome: "opened" | "browser"; state: CloudAccountState }>;
+  continueInBrowser?(intent: { kind: "signin" | "upgrade" | "billing"; plan?: "plus" | "pro"; source?: string; move?: string }): Promise<{ outcome: "opened" | "browser" | "failed"; state: CloudAccountState }>;
   /** A page of the account website in the browser, signed in as this account through a one-time link. */
   openPage?(page: Exclude<CloudHandoffPage, "plans">, workspaceId?: string): Promise<CloudWebHandoffResult>;
   /** What this person may buy now (cloud-account.mjs offer), or null. */

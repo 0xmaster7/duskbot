@@ -101,3 +101,8 @@ test("signed out, the buy continues in the browser for the plan (sign in, then i
   await move.signedInNow();
   assert.equal(call("vps-cloud-move:view", { origin: VPS.origin }).signingIn, undefined, "signed in there: the usual checkout wait");
 });
+
+test("signed out, a browser sign-in that didn't start is said plainly, never a checkout wait over nothing", async () => {
+  const { call } = setup({ account: () => ({ status: "signed-out" }), continueInBrowser: async () => ({ outcome: "failed" }) });
+  await assert.rejects(call("vps-cloud-move:buy", { origin: VPS.origin }, "plus"), /sign-in page didn't open/);
+});

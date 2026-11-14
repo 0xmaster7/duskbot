@@ -156,13 +156,15 @@ it("a move stuck on its way is the same friendly line, and Try again runs the mo
   expect(calls.at(-1)).toBe("retry");
 });
 
-it("on My Cloud's page, when the window got there first, says All moved and Open dusk cloud closes it", async () => {
+it("on My Cloud's page, All moved is a slim line, never a sheet over the cloud's chat, and Close ends it for good", async () => {
   current = DONE;
   await render(createElement(CloudMoveOffer, { cloudHome: true }));
-  expect(sheet()?.textContent).toBe("All movedYour bots are working on dusk cloud.Open dusk cloud");
-  await press("Open dusk cloud");
-  expect(calls).toEqual(["dismiss:one-home"]);
   expect(sheet()).toBeNull();
+  const line = document.querySelector("[data-cloud-move-done]");
+  expect(line?.textContent).toBe("All moved · Your bots are working on dusk cloud.");
+  (document.querySelector('[data-cloud-move-done] button[aria-label="Close"]') as HTMLButtonElement).click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(calls).toEqual(["dismiss:one-home"]);
 });
 
 it("never says how the move works: no pauses, passes, checks or automations", async () => {
