@@ -8,25 +8,24 @@ and FCM keys), `docs/store/ios-listing.md` (the first listing draft; this file s
 
 ## Owner-only steps (need your login)
 
-Apple (developer.apple.com and appstoreconnect.apple.com):
+Apple (developer.apple.com and appstoreconnect.apple.com). Done on 2026-11-14:
 
-1. Done: App ID `bot.dusk.mobile` with Push Notifications, Sign in with Apple, Associated Domains.
-2. Accept the latest agreements in App Store Connect (Business), or the API key and uploads are refused.
-3. Done: Users and Access, Integrations, App Store Connect API, Team Keys: a key with the **App Manager** role (Admin if the
-   export is refused creating the cloud distribution certificate), `.p8` in `~/.config/duskbot/apple/`,
-   `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, `APPLE_API_KEY_PATH` in `~/.config/duskbot/dusk.env`.
-4. **Register one device** (the API key authenticates; checked): developer account,
-   Certificates, Identifiers & Profiles, Devices, +, your iPhone's name and UDID (Finder, select the iPhone, click the
-   line under its name until the UDID shows, or Apple Configurator). Automatic signing archives with a development
-   profile first and Apple refuses to make one for a team with no devices ("Your team has no devices from which to
-   generate a provisioning profile"). This is a one-time step.
-5. Keys (developer account): make an APNs key (.p8) for push and give it to the link service (`docs/phone-push.md`).
-6. App Store Connect, Apps, +, New App: iOS, name **dusk bot**, language English (U.S.), bundle ID `bot.dusk.mobile`,
-   SKU `dusk-mobile-ios`, full access. The public API cannot create app records, so this one is by hand.
-7. In the record: paste the listing below, answer App Privacy and Age Rating from this file, upload `docs/store/ios/6.9`,
-   set the privacy, support and marketing URLs, fill Review Notes and the demo account.
-8. After the first upload has processed: TestFlight, check the internal group "dusk team" has the build, install it
-   with the TestFlight app on your iPhone, test, then attach the build to version 1.0 and Submit for Review.
+- App ID `bot.dusk.mobile` with Push Notifications, Sign in with Apple, Associated Domains.
+- App Store Connect API key (App Manager), in dusk.env as `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, `APPLE_API_KEY_PATH`.
+- Apple Distribution certificate `XF67DLXJYQ` (expires 2027-11-14; key and certificate in `~/.config/duskbot/apple/`,
+  `apple-distribution.key`, `.cer`) and the App Store profile "dusk bot App Store" `VAM3U2NSG6`
+  (`dusk-bot-app-store.mobileprovision`), both made through the API. No registered device is needed.
+- App record "dusk bot", Apple ID `6834725640`, SKU `dusk-mobile-ios`, English (U.S.).
+- Build 1.0 (2611140813) uploaded, processed, in internal TestFlight (group "dusk team"); the owner's Apple ID is
+  invited as an internal tester.
+
+Left for you:
+
+1. Accept the TestFlight invite email, install the TestFlight app, install dusk bot, and test it on your iPhone.
+2. Keys (developer account): make an APNs key (.p8) for push and give it to the link service (`docs/phone-push.md`).
+3. App Privacy in App Store Connect (the API cannot set it): answers in "App Privacy" below.
+4. Fill the review contact (name, email, phone) and the demo account in App Review Information.
+5. Attach the build to version 1.0 and Submit for Review, when the checklist under "Review risks" is green.
 
 Google (play.google.com/console):
 
@@ -45,10 +44,10 @@ Google (play.google.com/console):
 | Item | State |
 |---|---|
 | iOS archive, Release config, unsigned | **verified** here: `build-ios-release.sh --unsigned` archives, the release gate passes, `PrivacyInfo.xcprivacy` and the icon catalog are inside |
-| iOS signed archive, export, TestFlight upload | **blocked on two owner steps**: register one device (owner step 4) and create the app record (step 6), then `build-ios-release.sh --upload`. Tried here with the API key: the key authenticates, the archive stops at "Your team has no devices" |
+| iOS signed archive, export, TestFlight upload | **done**: build 2611140813 signed with Apple Distribution (push production, Sign in with Apple, associated domains), uploaded, VALID, internal TestFlight |
 | Android signed `.aab` | **verified** here: built and signed with the upload key, target SDK 36 |
 | Upload keystore | made, outside the repo (below) |
-| Screenshots | made for both stores (`docs/store/ios`, `docs/store/play`); iOS set needs one retake after screen view is hidden on iOS (below) |
+| Screenshots | made for both stores (`docs/store/ios`, `docs/store/play`), photographed as the iPhone store app (no screen view, no plan lines) |
 | Privacy manifest | present, matches the nutrition label below |
 | In-app review fixes (consent, deletion, demo login, report, purchase UI) | **another branch** (src/mobile, cloud service); listed under "Review risks" |
 
@@ -84,15 +83,23 @@ elsewhere. That is what the iPhone app already is, so it is not worth a second M
 | Minimum iOS | 17.0 (the relay needs X25519 in WebCrypto) |
 | Orientation | portrait |
 | Entitlements | `aps-environment`, `com.apple.developer.applesignin` (Default), `com.apple.developer.associated-domains` (`applinks:dusk.bot`) |
-| Push environment | the source file says `development`; Xcode writes `production` when it exports for App Store Connect. `build-ios-release.sh` checks the exported app and fails if it is not production. Do not hardcode `production`: Debug and archive builds are signed with development profiles first and would fail |
+| Push environment | the source file says `development` for Debug; the store build is signed with the App Store profile, which sets `production`. `build-ios-release.sh` checks the signed app and stops if it is not production |
 | Background modes | none |
 
 ### Signing
 
-Automatic signing through an App Store Connect API key: `xcodebuild -allowProvisioningUpdates` with
-`-authenticationKeyPath/-authenticationKeyID/-authenticationKeyIssuerID` creates the Apple Distribution certificate and
-the App Store profile in the cloud, so nothing is clicked in Xcode. The fallback is an Apple Distribution certificate
-installed in the login keychain plus Xcode signed in to the account.
+Manual App Store distribution signing, no registered device needed. Automatic signing was tried first: it archives
+with a development profile, which Apple only makes for a team with a registered device ("Your team has no devices").
+
+- The Apple Distribution certificate and the App Store profile are made through the App Store Connect API:
+  `openssl genrsa` and a CSR, then `node apps/mobile/scripts/asc.mjs dist-cert <csr> <out.cer>` and
+  `node apps/mobile/scripts/asc.mjs store-profile <certId> <out.mobileprovision>`. Remake the profile after adding a
+  capability to the App ID (it replaces the old one by name).
+- `build-ios-release.sh` imports the key and certificate into a throwaway keychain (deleted on exit, the login keychain
+  is never touched), installs the profile, and archives with `CODE_SIGN_STYLE=Manual`,
+  `CODE_SIGN_IDENTITY="Apple Distribution"` and `PROVISIONING_PROFILE_SPECIFIER="dusk bot App Store"` passed to
+  `xcodebuild` only, so the project and Debug stay on automatic signing. It checks the signed app carries push in
+  production and Sign in with Apple before anything leaves the machine.
 
 ```sh
 apps/mobile/scripts/build-ios-release.sh --check      # which pieces are present (prints present/missing, never values)
@@ -103,12 +110,9 @@ node apps/mobile/scripts/asc.mjs status               # the app record and its b
 node apps/mobile/scripts/asc.mjs testflight you@x.com # internal TestFlight group "dusk team" (all builds) + testers
 ```
 
-The script builds the web bundle, runs the release gate, `cap sync ios`, `xcodebuild archive` (scheme `App`,
-`generic/platform=iOS`), writes `ExportOptions.plist` (method `app-store-connect`, `signingStyle` automatic, your team id,
-`destination` export or upload) and runs `xcodebuild -exportArchive`. Internal testers must already be users of the App
-Store Connect team; `ITSAppUsesNonExemptEncryption = false` means TestFlight asks no export question per build. If the
-key's role cannot make a distribution certificate, the archive step says so; use an Admin key or install the
-certificate. Transporter (Mac app) can upload the exported `.ipa` instead.
+Each upload takes a new build number (default a UTC timestamp). `ITSAppUsesNonExemptEncryption = false` means
+TestFlight asks no export question per build. The group "dusk team" has every build, so a processed upload reaches
+internal testers by itself (5 to 30 minutes). Internal testers must be users of the App Store Connect team.
 
 ### Icons and launch screen
 
@@ -213,7 +217,7 @@ name exactly as typed, so lowercase is fine.
 | Subtitle (30) | Text your team of AI bots (25) |
 | Primary / secondary category | Productivity / Utilities |
 | Keywords (100) | `ai,agents,assistant,automation,remote,tasks,routines,approvals,chat,team,productivity,companion` (95) |
-| Support URL | https://dusk.bot/docs (live). `/support` and `/contact` currently fall through to the waitlist page; add a real support page with an email before submitting |
+| Support URL | https://dusk.bot/support |
 | Marketing URL | https://dusk.bot |
 | Privacy Policy URL | https://dusk.bot/privacy (live; covers the phone app, push, AI providers) |
 | Copyright | 2026 [your legal name, as on the developer account] |
@@ -254,46 +258,50 @@ final. The copy names no other platform, no price or plan, and no third-party AI
 
 What's New: "The first release of dusk bot for iPhone."
 
-### Review Notes (draft)
+### Review Notes
 
 ```text
 dusk bot for iPhone is the remote control for a person's own AI bots. The bots run on the person's own computer or
-server, where they do the work; the phone sends messages, shows replies, and lets the person approve actions. Nothing
-runs on the phone except the interface, which is bundled in the app.
+server, or on a dusk cloud computer we host, and do the work there; the phone sends messages, shows replies and lets
+the person approve actions. Nothing runs on the phone except the interface, which is bundled in the app.
+
+Pairing your own computer needs no account: the first screen offers "scan QR code" and "enter a link or code". Only a
+dusk cloud needs sign-in, through the quieter "Have a dusk cloud? Log in" link. The review account below has a dusk
+cloud with one demo bot, so you can use the app without a computer of your own.
 
 DEMO ACCOUNT
-Tap "log in", enter app-review@dusk.bot, tap send, and type the code [DUSK_REVIEW_CODE from dusk.env]. No email is
-needed. The account is on the free plan; paid plans are not sold in the app.
-[HOW THE REVIEWER REACHES THE ALWAYS-ON REVIEW BOT: still to decide, see "Reviewer bot" in the owner steps. Keep it
-running for the whole review.]
+Email: [REVIEW EMAIL]
+Sign-in code: [REVIEW CODE, 8 digits, fixed for this account; no email is sent]
+The bot may take about 15 seconds to wake the first time.
 
 STEPS
-1. Launch the app. Tap "log in" and use the demo account above.
-2. On first arrival at the home screen, the app shows "before you chat": who receives what you send (your computer,
-   the AI your bots use, by name, apps you connected, and our relay). Tap "allow". "not now" keeps chats readable and
-   asks again when you send.
-3. The home screen lists the bots. Tap a bot to open its chat and send a message; the reply arrives within seconds.
-4. Open a room (group chat) from the home screen to see several bots working together.
-5. When a bot asks before acting, an approval card appears in the chat: tap "Allow once" or "Deny".
-6. Tap the profile button (top left) for Settings: routines, appearance, notifications, privacy policy, terms.
-7. Report a reply: open a bot message's menu (long-press) and tap "Report this reply".
-8. Delete the account: Settings, Account, Delete account, "delete my account". This deletes it right away in the app,
-   cancels any plan and revokes Sign in with Apple.
+1. Launch the app. Tap "Have a dusk cloud? Log in", then "email", enter the review email, then the code above.
+2. The home screen lists the demo bot. Tap it to open its chat and send a message.
+3. Before the first message goes out, the app shows "before you chat": who receives what you write (the computer
+   running the bots, the AI they use, apps connected to the bots, our relay). Tap "allow". "not now" keeps the app
+   usable for reading and settings.
+4. When the bot asks before acting, an approval card appears in the chat: tap "Allow once" or "Deny".
+5. Long-press a bot's reply and tap "Report this reply" to report it.
+6. Tap the profile button (top left) for Settings: routines, appearance, notifications, privacy policy, terms,
+   "contact us".
+7. Delete the account: Settings, "delete account", then "delete my account". It deletes the account right away and
+   revokes Sign in with Apple.
 
 NATIVE FEATURES
-Camera QR pairing (custom AVFoundation scanner), Keychain storage of the pairing, push notifications for replies and
-approvals, haptics, the system share sheet, offline outbox that sends when the connection returns, local network
-connection to the person's own computer on the same Wi-Fi.
+Camera QR pairing (custom AVFoundation scanner), Keychain storage of the pairing, Sign in with Apple in the system
+sheet, push notifications for replies and approvals, haptics, the system share sheet, an offline outbox that sends when
+the connection returns, a local network connection to the person's own computer on the same Wi-Fi.
 
 NOTES
-- Purchases: the app sells nothing and shows no prices or links to buy.
+- Purchases: the app sells nothing and shows no prices, plans or links to buy. dusk cloud is set up on the website.
 - Camera: only for the pairing code and photos the person attaches. Microphone: only for dictation and voice notes.
   Local network: only to reach the person's own computer.
-- AI: replies come from the AI provider the person connected on their own computer. The app asks before sending.
+- AI: replies come from the AI provider connected on the computer running the bots. The app asks before sending.
 - Chats are private to the person; there is no public or person-to-person content.
 ```
 
-Steps 2, 7 and 8 describe the in-app branch's work; check each against the build before pasting.
+The demo email and code are filled in App Store Connect (App Review Information) by whoever sets up the review account;
+keep the account and its bot running for the whole review.
 
 ## Android
 
@@ -350,7 +358,7 @@ resets if the count drops below 12.
 ### Data safety form
 
 Data is encrypted in transit: **Yes**. People can request deletion: **Yes** (in the app, and at a web address Play
-requires: the account deletion page on dusk.bot; it must work without the app installed).
+requires: https://dusk.bot/delete-account, which works without the app installed).
 
 | Data type | Collected | Shared | Purpose | Optional |
 |---|---|---|---|---|
@@ -420,10 +428,9 @@ From the rejection research (`~/.claude/research/app-store-rejections-2026.md`),
 Before pressing Submit: install the TestFlight build on a real iPhone, fresh install, cellular, sign in with the demo
 account exactly as written, walk every Review Notes step, and screen-record it in case review asks.
 
-## Site work needed
+## Site URLs
 
-- A support page with a contact email (`/support` falls through to the waitlist page today).
-- The account deletion page reachable without the app (Play requires a URL).
-- Universal links (optional for 1.0): serve `docs/store/apple-app-site-association.json` at
-  `https://dusk.bot/.well-known/apple-app-site-association` with `TEAMID` replaced by your team id, as
-  `application/json` with no redirect. Today that path returns the waitlist page; the entitlement is harmless without it.
+Live on 2026-11-14: https://dusk.bot/support, https://dusk.bot/privacy, https://dusk.bot/terms,
+https://dusk.bot/delete-account (Play's account deletion URL), and
+https://dusk.bot/.well-known/apple-app-site-association (applinks for `S85QBF7KWC.bot.dusk.mobile`, `/m/open`,
+`/m/pair`). Marketing URL: https://dusk.bot.
