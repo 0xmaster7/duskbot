@@ -19,7 +19,6 @@ import { SettingRow, SettingsGroup, SettingsRows, Switch } from "./SettingsPrimi
 import { NavRow, NoteRow, useSubPage } from "./ListRows";
 import { useStore } from "@/state/store";
 import { PHONE_ADVANCED_PAGE } from "./settings-page-ids";
-import { PlaceArt } from "./ui/PlaceArt";
 
 export {
   companionAccountActionError,
@@ -274,7 +273,7 @@ export function CompanionSection({ profileEmail = "", focusRequest = 0 }: { prof
         <SettingsGroup label={t("remote.devices.title")} block="paired-devices">
           {state.devices.map((device) => (
             <SettingsRows key={device.id}>
-              <SettingRow icon={<PlaceArt name="phone" size={24} />} title={device.name} subtitle={t("remote.devices.lastSeen", { when: relative(device.lastSeenAt) })}>
+              <SettingRow icon="phone" title={device.name} subtitle={t("remote.devices.lastSeen", { when: relative(device.lastSeenAt) })}>
                 <button
                   type="button"
                   disabled={c.busy}
@@ -309,7 +308,7 @@ export function CompanionSection({ profileEmail = "", focusRequest = 0 }: { prof
       <PhonesList />
 
       <SettingsRows>
-        <NavRow data-panel-page={PHONE_ADVANCED_PAGE} pixel="gauge" title={t("settings.w6.phone.advanced")} onClick={() => sub.open(PHONE_ADVANCED_PAGE, t("settings.w6.phone.advanced"))} />
+        <NavRow data-panel-page={PHONE_ADVANCED_PAGE} pixel="sliders" title={t("settings.w6.phone.advanced")} onClick={() => sub.open(PHONE_ADVANCED_PAGE, t("settings.w6.phone.advanced"))} />
       </SettingsRows>
     </div>
   );

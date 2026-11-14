@@ -22,7 +22,7 @@ import { ChevronRight } from "../icons";
 import { CloudMoveRow } from "./CloudMoveSettings";
 import { NavRow } from "./ListRows";
 import { SIMPLE_CARD } from "./SettingsPrimitives";
-import { PixelIcon } from "./ui/PixelIcon";
+import { SettingGlyph } from "./ui/SettingGlyph";
 import { DOT, HEALTH_WORD, KIND_ICON, kindWord, placeHealth } from "./WorkspacesSettings";
 
 /** Settings' rows on this screen: 48px tall, 12px corners and the soft hover the settings sheet gives them, on the card's
@@ -187,7 +187,7 @@ function PlaceRow({ place, count, lit, opening, busy, onOpen }: {
   const body = (
     <>
       <span aria-hidden="true" className="relative flex size-6 shrink-0 items-center justify-center">
-        <PixelIcon name={KIND_ICON[place.kind]} size={24} />
+        <SettingGlyph name={KIND_ICON[place.kind]} />
         <span data-workspace-dot={health} className={cn("absolute -bottom-0.5 -right-0.5 size-2 rounded-full ring-2 ring-composer", DOT[health])} />
       </span>
       <span className="min-w-0 flex-1">

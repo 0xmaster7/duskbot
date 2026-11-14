@@ -16,7 +16,6 @@ import { dur, ease } from "../mobile/motion";
 import { Card as RowsCard, CopyRow, ItemRow, NoteRow } from "./ListRows";
 import { PhoneHomeShot, StoreMarks } from "./PhoneHomeShot";
 import { GROK_FOCUS } from "./SidebarSimpleTop";
-import { PlaceArt } from "./ui/PlaceArt";
 import { friendlyError } from "@/lib/plain-error";
 
 export function platformLabelKey(platform: string) {
@@ -329,7 +328,7 @@ export function MobilePairingCard({ remote, children }: {
   const phones = (
     <RowsCard label={t("settings.mobile.devices")}>
       {devices?.length ? devices.map((device) => (
-        <ItemRow key={device.id} pixel={<PlaceArt name="phone" size={24} />} title={device.name} hint={t("settings.mobile.seen", { when: lastSeen(device.lastSeenAt, now) })}>
+        <ItemRow key={device.id} pixel="phone" title={device.name} hint={t("settings.mobile.seen", { when: lastSeen(device.lastSeenAt, now) })}>
           <span className={pill}>{t(platformLabelKey(device.platform))}</span>
           {device.relay && <span className={pill}>{t("settings.mobile.relay")}</span>}
           <button type="button" onClick={() => void remove(device.id)} disabled={removing !== null} aria-label={t("mobile.desktop.removePhone", { name: device.name })} className="ui-button mobile-press min-h-11 min-w-11 rounded-full">{t("settings.mobile.remove")}</button>

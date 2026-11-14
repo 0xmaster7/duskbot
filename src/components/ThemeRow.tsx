@@ -49,7 +49,7 @@ export const themeOptions = () => [
 export function ThemeRow() {
   const choice = useSkinChoice();
   return (
-    <SettingRow icon="palette" title={t("settings.theme.title")} subtitle={tOptional("settings.docs.theme.hint")}>
+    <SettingRow icon="theme" title={t("settings.theme.title")} subtitle={tOptional("settings.docs.theme.hint")}>
       <SettingsSelect
         data-settings-select="theme"
         value={choice}

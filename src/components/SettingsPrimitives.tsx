@@ -2,7 +2,7 @@ import { useId, type ComponentProps, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { useOptimisticSwitch } from "./ui/optimistic-switch";
 import { HeadArt, type ArtName } from "./ui/Art";
-import { PixelIcon, type PixelIconName } from "./ui/PixelIcon";
+import { SettingGlyph, type SettingGlyphName } from "./ui/SettingGlyph";
 
 /** The panel's card: white, 12px corners on a half-pixel edge, 4px in, its rows drawing their own hover pill. */
 export const SIMPLE_CARD = "flex flex-col rounded-[12px] border-[0.5px] border-transparent bg-composer p-1";
@@ -90,8 +90,8 @@ export function SettingRow({
 }: {
   title: string;
   subtitle?: React.ReactNode;
-  /** a small pixel icon (or a drawn mark of the same size) before the name, centred on it and its line */
-  icon?: PixelIconName | React.ReactElement;
+  /** a one-colour pixel glyph (or a drawn mark of the same size) before the name, centred on it and its line */
+  icon?: SettingGlyphName | React.ReactElement;
   children: React.ReactNode;
   message?: React.ReactNode;
   className?: string;
@@ -101,7 +101,7 @@ export function SettingRow({
   return (
     <div role="group" aria-labelledby={titleId} data-setting-row="" className={cn("px-4 in-data-[settings-look=simple]:rounded-lg in-data-[settings-look=simple]:px-2 in-data-[settings-look=simple]:py-1.5", className)}>
       <div className="grid min-w-0 grid-cols-1 items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-6 in-data-[settings-look=simple]:flex in-data-[settings-look=simple]:min-h-[18px] in-data-[settings-look=simple]:flex-wrap in-data-[settings-look=simple]:justify-between in-data-[settings-look=simple]:gap-x-2 in-data-[settings-look=simple]:gap-y-1.5">
-        {typeof icon === "string" ? <PixelIcon name={icon} size={24} className="hidden self-center in-data-[settings-look=simple]:block" />
+        {typeof icon === "string" ? <SettingGlyph name={icon} className="hidden self-center in-data-[settings-look=simple]:block" />
           : icon && <span aria-hidden="true" className="hidden size-6 shrink-0 items-center justify-center self-center in-data-[settings-look=simple]:flex">{icon}</span>}
         <div className="min-w-0 in-data-[settings-look=simple]:flex in-data-[settings-look=simple]:min-w-28 in-data-[settings-look=simple]:shrink in-data-[settings-look=simple]:grow in-data-[settings-look=simple]:basis-[min-content] in-data-[settings-look=simple]:flex-col in-data-[settings-look=simple]:[overflow-wrap:break-word]">
           <div id={titleId} data-setting-title="" className="text-[14px] font-medium text-ink in-data-[settings-look=simple]:text-[13px] in-data-[settings-look=simple]:font-normal in-data-[settings-look=simple]:leading-[18px] in-data-[settings-look=simple]:tracking-[0.015em]">{title}</div>

@@ -96,7 +96,7 @@ export function NotificationSoundPickerRow() {
   const [sound, setSound] = useState<UiSoundName>(chosenSound);
   if (!enabled) return null;
   return (
-    <SettingRow icon="speaker" title={t("settings.notificationSound.title")}>
+    <SettingRow icon="note" title={t("settings.notificationSound.title")}>
       <SettingsSelect
         value={sound}
         aria-label={t("settings.notificationSound.title")}

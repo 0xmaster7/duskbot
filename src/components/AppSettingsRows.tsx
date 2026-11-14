@@ -166,7 +166,7 @@ export function LanguageRow({ simple = false }: { simple?: boolean }) {
 export function SendKeyRow({ simple = false }: { simple?: boolean }) {
   const sendKey = useSendKey();
   return (
-    <SettingRow icon="keyboard" title={t("settings.sendKey.title")} subtitle={simple ? tOptional("settings.docs.sendKey.hint") : t("settings.sendKey.subtitle", { key: sendKeyLabel("mod-enter") })}>
+    <SettingRow icon="enter" title={t("settings.sendKey.title")} subtitle={simple ? tOptional("settings.docs.sendKey.hint") : t("settings.sendKey.subtitle", { key: sendKeyLabel("mod-enter") })}>
       <SettingsSelect
         variant="segmented"
         value={sendKey}
@@ -186,7 +186,7 @@ export function FollowUpRow({ simple = false }: { simple?: boolean }) {
   const followUp = useFollowUpDefault();
   const key = alternateSendLabel(useSendKey());
   return (
-    <SettingRow icon="note" title={t("settings.followUp.title")} subtitle={simple ? tOptional("settings.docs.followUp.hint") : t("settings.followUp.subtitle", { key })}>
+    <SettingRow icon="stack" title={t("settings.followUp.title")} subtitle={simple ? tOptional("settings.docs.followUp.hint") : t("settings.followUp.subtitle", { key })}>
       <SettingsSelect
         value={followUp}
         aria-label={t("settings.followUp.title")}

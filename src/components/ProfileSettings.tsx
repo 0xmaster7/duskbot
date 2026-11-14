@@ -10,6 +10,7 @@ import { botAvatarUrlFromStoredPath } from "../../shared/bot-avatar";
 import { AboutMeSettings } from "./AboutMeSettings";
 import { profileInitials } from "./SidebarProfileMenu";
 import { User } from "../icons";
+import { SettingGlyph } from "./ui/SettingGlyph";
 
 const PHOTO_MIN_SIDE = 64;
 const PHOTO_MAX_SIDE = 8192;
@@ -212,6 +213,7 @@ export function ProfileAvatar({ profile, small = false }: { profile?: { name?: s
   const [failed, setFailed] = useState<string | null>(null);
   const initials = profileInitials(profile);
   const photo = profile?.avatarUrl && failed !== profile.avatarUrl ? profile.avatarUrl : null;
+  if (small && !photo && initials === "?") return <span aria-hidden="true" className="me-2 flex size-6 shrink-0 items-center justify-center"><SettingGlyph name="person" /></span>;
   return (
     <span className={cn("flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-ink/[0.06] font-medium text-ink-secondary", small ? "size-7 text-[11px]" : "size-11 text-[15px]")}>
       {photo ? <img src={photo} alt="" onError={() => setFailed(photo)} className="size-full object-cover" />

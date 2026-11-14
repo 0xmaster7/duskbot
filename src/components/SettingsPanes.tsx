@@ -253,7 +253,7 @@ export function AdvancedFold({ open, onToggle, children }: { open: boolean; onTo
 function ImportRow() {
   const sub = useSubPage();
   return (
-    <SettingRow icon="parcel" title={t("settings.import.rowTitle")} subtitle={t("settings.import.rowHint")}>
+    <SettingRow icon="import" title={t("settings.import.rowTitle")} subtitle={t("settings.import.rowHint")}>
       <button type="button" data-panel-page="import" className="ui-button" onClick={() => sub.open("import", t("settings.import.rowTitle"))}>{t("settings.w6c.import.start")}</button>
     </SettingRow>
   );

@@ -9,7 +9,7 @@ import { DialogPane, GrokDialog, mdPrimaryCls, mdSecondaryCls, rowButtonCls } fr
 import { SelectPill, type SelectPillOption } from "./ui/SelectPill";
 import { Toggle } from "./ui/Toggle";
 import { HeadArt, type ArtName } from "./ui/Art";
-import { PixelIcon, type PixelIconName } from "./ui/PixelIcon";
+import { SettingGlyph, type SettingGlyphName } from "./ui/SettingGlyph";
 
 /* The one row list the side panel, Settings and the settings sheets all draw: a small grey label over a white 12px card,
    30px rows inside it with the name on the left in ink, the value on the right in secondary ink, a small chevron, and a
@@ -129,8 +129,8 @@ export function NavRow({ title, hint, value, icon, pixel, onClick, drill = true,
   hint?: ReactNode;
   value?: ReactNode;
   icon?: GlyphIcon;
-  /** a small pixel icon in the row's leading slot */
-  pixel?: PixelIconName;
+  /** a one-colour pixel glyph in the row's leading slot */
+  pixel?: SettingGlyphName;
   onClick: () => void;
   drill?: boolean;
   external?: boolean;
@@ -162,7 +162,7 @@ export function NavRow({ title, hint, value, icon, pixel, onClick, drill = true,
       className={cn(rowCls, focusCls, "w-full cursor-pointer text-left enabled:hover:bg-ink/[0.035] enabled:active:bg-ink/[0.05] disabled:cursor-default disabled:opacity-45")}
     >
       {icon && <RowIcon icon={icon} />}
-      {pixel && <span aria-hidden="true" className="flex size-6 shrink-0 items-center justify-center"><PixelIcon name={pixel} size={24} /></span>}
+      {pixel && <span aria-hidden="true" className="flex size-6 shrink-0 items-center justify-center"><SettingGlyph name={pixel} /></span>}
       <RowText title={title} hint={hint} tone={danger ? "danger" : undefined} titleId={`${id}-title`} hintId={`${id}-hint`} />
       <RowValue value={value} id={`${id}-value`} />
       {external
@@ -178,8 +178,8 @@ export function ItemRow({ title, hint, value, icon, pixel, tone, children, ...re
   hint?: ReactNode;
   value?: ReactNode;
   icon?: GlyphIcon;
-  /** a small pixel icon (or a drawn mark of the same size) in the row's leading slot */
-  pixel?: PixelIconName | ReactElement;
+  /** a one-colour pixel glyph (or a drawn mark of the same size) in the row's leading slot */
+  pixel?: SettingGlyphName | ReactElement;
   tone?: "danger" | "warn";
   children?: ReactNode;
   "data-panel-row"?: string;
@@ -188,7 +188,7 @@ export function ItemRow({ title, hint, value, icon, pixel, tone, children, ...re
   return (
     <div {...rest} className={rowCls}>
       {icon && <RowIcon icon={icon} />}
-      {pixel && <span aria-hidden="true" className="flex size-6 shrink-0 items-center justify-center">{typeof pixel === "string" ? <PixelIcon name={pixel} size={24} /> : pixel}</span>}
+      {pixel && <span aria-hidden="true" className="flex size-6 shrink-0 items-center justify-center">{typeof pixel === "string" ? <SettingGlyph name={pixel} /> : pixel}</span>}
       <RowText title={title} hint={hint} tone={tone} />
       <RowValue value={value} />
       {children}

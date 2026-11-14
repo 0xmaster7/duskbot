@@ -14,6 +14,7 @@ import { useWorkspacePlace } from "./DesktopWorkspaceSwitcher";
 import { NavRow, NoteRow } from "./ListRows";
 import { Icon } from "./Icon";
 import { PixelIcon, type PixelIconName } from "./ui/PixelIcon";
+import { SettingGlyph, type SettingGlyphName } from "./ui/SettingGlyph";
 import { SettingsGroup, SettingsRows } from "./SettingsPrimitives";
 
 type Health = "online" | "offline" | "problem" | "setting-up";
@@ -46,7 +47,7 @@ export function kindWord(kind: RailPlace["kind"]): string {
   return t("settings.docs.ws.server");
 }
 
-export const KIND_ICON: Record<RailPlace["kind"], PixelIconName> = { computer: "laptop", server: "server", cloud: "cloud", team: "team", account: "cloud" };
+export const KIND_ICON: Record<RailPlace["kind"], PixelIconName & SettingGlyphName> = { computer: "laptop", server: "server", cloud: "cloud", team: "team", account: "cloud" };
 
 /** What a place is, from the window's own word for it when there is no list of places to read: a Cloud that is home,
  * this computer's own data, a team's Cloud (it carries a role), or else a server connected by hand. */
@@ -66,7 +67,7 @@ function WorkspaceRow({ place, onOpen, onRemove, busy }: { place: RailPlace; onO
   const body = (
     <>
       <span aria-hidden="true" className="relative flex size-6 shrink-0 items-center justify-center">
-        <PixelIcon name={KIND_ICON[place.kind]} size={24} />
+        <SettingGlyph name={KIND_ICON[place.kind]} />
         <span data-workspace-dot={health} className={cn("absolute -bottom-0.5 -right-0.5 size-2 rounded-full ring-2 ring-app", DOT[health])} />
       </span>
       <span className="min-w-0 flex-1">
