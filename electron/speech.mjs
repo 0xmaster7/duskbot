@@ -31,6 +31,15 @@ const BUNDLE = app.isPackaged
 const BIN = app.isPackaged
   ? path.join(BUNDLE, "Contents", "MacOS", "speech-helper")
   : speechHelperBinary;
+// Windows listens through System.Speech in the Windows PowerShell that ships with Windows; powershell cannot read inside app.asar.
+const WINDOWS_SCRIPT = "windows-speech.ps1";
+const windowsSpeechScript = () => app.isPackaged
+  ? path.join(process.resourcesPath, WINDOWS_SCRIPT)
+  : path.join(__dirname, "resources", WINDOWS_SCRIPT);
+const windowsPowerShell = () =>
+  path.win32.join(process.env.SystemRoot || "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+// the script exits on its stop file within 50ms; a powershell that hangs while starting up still lets the microphone go
+const WINDOWS_STOP_GRACE_MS = 1_500;
 
 let child = null;
 
@@ -86,7 +95,8 @@ export function startSpeech(target, options = {}) {
   stopSpeech();
   running?.target.replaced();
   const sink = speechTarget(target);
-  if (process.platform !== "darwin") {
+  const windows = process.platform === "win32";
+  if (process.platform !== "darwin" && !windows) {
     sink.end({ code: 2, reason: "unsupported-platform" });
     return;
   }
@@ -100,6 +110,11 @@ export function startSpeech(target, options = {}) {
   if (release.length) args.push("--finish-on-release", release.join(","));
   const locale = typeof options?.locale === "string" ? options.locale.trim() : "";
   if (SPEECH_LOCALE.test(locale)) args.push("--locale", locale);
+
+  if (windows) {
+    startWindowsSpeech(sink, { endpointMs, locale: SPEECH_LOCALE.test(locale) ? locale : "" });
+    return;
+  }
 
   try {
     ensureBuilt();
@@ -145,18 +160,8 @@ export function startSpeech(target, options = {}) {
     return;
   }
 
-  const speechSession = {
-    proc, outputPath, errorPath, stopPath, finishPath, sessionDir,
-    owner: sink.owner, target: sink,
-  };
-  child = speechSession;
-  const forgetWindow = sink.whenGone(() => stopSpeech(sink.owner));
-  let buf = "";
-  let offset = 0;
-  let reportedError = null;
-  let completed = false;
-  const transcript = createSpeechTranscript();
-
+  let outputRead = 0;
+  let feed = () => {};
   const drain = () => {
     let content;
     try {
@@ -164,9 +169,65 @@ export function startSpeech(target, options = {}) {
     } catch {
       return;
     }
-    if (content.length <= offset) return;
-    buf += content.slice(offset);
-    offset = content.length;
+    if (content.length <= outputRead) return;
+    const fresh = content.slice(outputRead);
+    outputRead = content.length;
+    feed(fresh);
+  };
+  feed = trackSession(sink, proc, {
+    stopPath, finishPath, sessionDir,
+    flush: drain,
+    release: () => unwatchFile(outputPath, drain),
+  });
+  watchFile(outputPath, { interval: 50, persistent: false }, drain);
+}
+
+function startWindowsSpeech(sink, { endpointMs, locale }) {
+  const sessionDir = mkdtempSync(path.join(app.getPath("temp"), "duskbot-speech-"));
+  const stopPath = path.join(sessionDir, "stop");
+  const finishPath = path.join(sessionDir, "finish");
+  const args = [
+    "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+    "-File", windowsSpeechScript(),
+    ...(endpointMs ? ["-EndpointMs", String(endpointMs)] : []),
+    ...(locale ? ["-Locale", locale] : []),
+    "-StopFile", stopPath,
+    "-FinishFile", finishPath,
+  ];
+  let proc;
+  try {
+    proc = spawn(windowsPowerShell(), args, { stdio: ["ignore", "pipe", "ignore"], windowsHide: true });
+  } catch {
+    rmSync(sessionDir, { recursive: true, force: true });
+    sink.end({ code: 1, reason: "helper-start-failed" });
+    return;
+  }
+  const halt = () => {
+    const timer = setTimeout(() => {
+      if (proc.exitCode === null && proc.signalCode === null) proc.kill();
+    }, WINDOWS_STOP_GRACE_MS);
+    timer.unref?.();
+  };
+  const feed = trackSession(sink, proc, { stopPath, finishPath, sessionDir, halt });
+  proc.stdout?.setEncoding("utf8");
+  proc.stdout?.on("data", feed);
+}
+
+// One helper run, on either transport: its NDJSON lines reach the sink as transcripts and levels, and its exit as speech:end.
+function trackSession(sink, proc, { stopPath, finishPath, sessionDir, halt, flush = () => {}, release = () => {} }) {
+  const speechSession = {
+    proc, stopPath, finishPath, sessionDir, halt,
+    owner: sink.owner, target: sink,
+  };
+  child = speechSession;
+  const forgetWindow = sink.whenGone(() => stopSpeech(sink.owner));
+  let buf = "";
+  let reportedError = null;
+  let completed = false;
+  const transcript = createSpeechTranscript();
+
+  const feed = (chunk) => {
+    buf += chunk;
     let nl;
     let level = null;
     while ((nl = buf.indexOf("\n")) !== -1) {
@@ -175,7 +236,7 @@ export function startSpeech(target, options = {}) {
       if (!line) continue;
       try {
         const parsed = JSON.parse(line);
-        // loudness for the waveform: one message per poll, the loudest of its lines
+        // loudness for the waveform: one message per read, the loudest of its lines
         if (typeof parsed.level === "number" && Number.isFinite(parsed.level)) {
           level = Math.max(level ?? 0, Math.min(1, Math.max(0, parsed.level)));
           continue;
@@ -189,18 +250,17 @@ export function startSpeech(target, options = {}) {
     }
     if (level !== null && child === speechSession) sink.level(level);
   };
-  watchFile(outputPath, { interval: 50, persistent: false }, drain);
 
   let cleaned = false;
   const cleanup = () => {
     if (cleaned) return;
     cleaned = true;
     forgetWindow();
-    unwatchFile(outputPath, drain);
+    release();
     rmSync(sessionDir, { recursive: true, force: true });
   };
   proc.on("close", (code) => {
-    drain();
+    flush();
     cleanup();
     // stopSpeech() clears child before the stop marker, so intentional TTS muting never looks like the end of a spoken turn.
     if (child !== speechSession) return;
@@ -219,6 +279,7 @@ export function startSpeech(target, options = {}) {
     child = null;
     sink.end({ code: 1, reason: "helper-start-failed" });
   });
+  return feed;
 }
 
 const ownedBy = (owner) => child !== null && (owner === undefined || child.owner === owner);
@@ -230,6 +291,7 @@ export function stopSpeech(owner) {
   try {
     writeFileSync(speechSession.stopPath, "stop");
   } catch {}
+  speechSession.halt?.();
 }
 
 export function finishSpeech(owner) {

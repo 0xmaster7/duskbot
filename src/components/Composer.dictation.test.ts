@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Bot } from "@/state/store";
 import { restoreComposerDraft } from "@/lib/drafts";
 import { t } from "@/lib/i18n";
+import { DEFAULT_VOICE_PREFS, setVoicePrefs, voicePrefs } from "@/lib/voice-input/prefs";
 
 const fixture = vi.hoisted(() => ({ dispatch: vi.fn() }));
 vi.mock("@/state/store", async (importOriginal) => {
@@ -39,64 +40,115 @@ const bot: Bot = {
 const draftId = `bot:${bot.id}:${bot.threadId}`;
 type Transcript = { partial?: boolean; text?: string; error?: string };
 
-describe("native dictation in the real composer", () => {
+describe("voice input in the real composer", () => {
   let root: Root;
   let container: HTMLDivElement;
   let transcript: (line: Transcript) => void;
   let end: (info: { code: number; reason?: string }) => void;
+  let level: ((value: number) => void) | undefined;
   let speechStop: ReturnType<typeof vi.fn>;
   let speechStart: ReturnType<typeof vi.fn>;
+  let speechFinish: ReturnType<typeof vi.fn>;
 
   const input = () => container.querySelector("textarea")!;
   const button = (label: string) => container.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
   const click = (label: string) => flushSync(() => button(label)!.click());
   const hear = (text: string) => flushSync(() => transcript({ text, partial: true }));
+  const preview = () => container.querySelector("[data-voice-preview]")?.textContent ?? null;
+  const key = (init: KeyboardEventInit) => flushSync(() => window.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, ...init })));
+  const mount = () => flushSync(() => root.render(createElement(Composer, { bot })));
 
   beforeEach(() => {
     vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
     vi.spyOn(HTMLElement.prototype, "scrollIntoView").mockImplementation(() => {});
     speechStop = vi.fn().mockResolvedValue(undefined);
     speechStart = vi.fn().mockResolvedValue(undefined);
+    speechFinish = vi.fn().mockResolvedValue(undefined);
+    level = undefined;
+    setVoicePrefs({ ...DEFAULT_VOICE_PREFS, firstRunSeen: true });
     window.duskDesktop = {
-      speechStart, speechStop,
+      platform: "darwin",
+      speechStart, speechStop, speechFinish,
       onSpeechTranscript: (cb: typeof transcript) => { transcript = cb; return vi.fn(); },
       onSpeechEnd: (cb: typeof end) => { end = cb; return vi.fn(); },
+      onSpeechLevel: (cb: (value: number) => void) => { level = cb; return vi.fn(); },
     } as unknown as typeof window.duskDesktop;
     restoreComposerDraft(draftId, { text: "", attachments: [] });
     container = document.createElement("div");
     document.body.append(container);
     root = createRoot(container);
-    flushSync(() => root.render(createElement(Composer, { bot })));
+    mount();
+  });
+
+  const start = () => {
     click(t("composer.dictation.start"));
     expect(speechStart).toHaveBeenCalledOnce();
-  });
+  };
 
   afterEach(() => {
     flushSync(() => root.unmount());
     container.remove();
     restoreComposerDraft(draftId, { text: "", attachments: [] });
     restoreComposerDraft(`bot:${bot.id}:other-thread`, { text: "", attachments: [] });
+    setVoicePrefs(DEFAULT_VOICE_PREFS);
     delete window.duskDesktop;
     vi.clearAllMocks();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
-  it("does not erase dictated text on empty partial/final callbacks", () => {
+  it("shows a waveform and one line of the latest words while talking, and leaves the draft alone", () => {
+    start();
+    expect(container.querySelector("[data-voice-waveform]")).not.toBeNull();
+    expect(preview()).toBe(t("composer.placeholder.listening"));
+    expect(level).toBeTypeOf("function");
+    hear("first words");
+    expect(preview()).toBe("first words");
+    const long = "so this is a much longer thought that keeps going well past what one line of the chat bar can hold at once";
+    hear(long);
+    expect(preview()!.startsWith("…")).toBe(true);
+    expect(long.endsWith(preview()!.slice(1))).toBe(true);
+    expect(input().value).toBe("");
+  });
+
+  it("lands the heard words at once on Done, then takes the recognizer's final words", () => {
+    start();
+    hear("hello there");
+    click(t("composer.dictation.stop"));
+    expect(input().value).toBe("hello there");
+    expect(speechFinish).toHaveBeenCalledOnce();
+    expect(container.querySelector("[data-composer-voice]")).toBeNull();
+    flushSync(() => transcript({ text: "Hello there.", partial: false }));
+    flushSync(() => end({ code: 0, reason: "completed" }));
+    expect(input().value).toBe("Hello there.");
+  });
+
+  it("does not let a late final overwrite an edit made after the words landed", () => {
+    start();
+    hear("draft words");
+    click(t("composer.dictation.stop"));
+    flushSync(() => restoreComposerDraft(draftId, { text: "edited by hand", attachments: [] }));
+    flushSync(() => transcript({ text: "Draft words.", partial: false }));
+    expect(input().value).toBe("edited by hand");
+  });
+
+  it("ignores empty partial and final callbacks", () => {
+    start();
     hear("ここまで入力した文章。");
     hear("");
-    expect(input().value).toBe("ここまで入力した文章。");
     flushSync(() => transcript({ text: "", partial: false }));
+    expect(preview()).toBe("ここまで入力した文章。");
+    click(t("composer.dictation.stop"));
     expect(input().value).toBe("ここまで入力した文章。");
   });
 
-  it("stops synchronously on Send and rejects both late speech and end events", () => {
+  it("sends what was heard on the send key and rejects late speech and end events", () => {
+    start();
     hear("送信する文章。");
-    click(t("composer.send.message"));
+    key({ key: "Enter" });
     expect(speechStop).toHaveBeenCalled();
     expect(fixture.dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "send", text: "送信する文章。" }));
     expect(input().value).toBe("");
-    hear("送信する文章。");
     hear("送った後の独り言。");
     flushSync(() => end({ code: 1, reason: "recognition-error" }));
     expect(input().value).toBe("");
@@ -104,65 +156,120 @@ describe("native dictation in the real composer", () => {
     expect(container.textContent).not.toContain(t("composer.dictation.failed"));
   });
 
-  it("also stops on keyboard Send", () => {
-    hear("Enterで送信。");
-    flushSync(() => input().dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+  it("cancels on Esc: listening stops and nothing lands", () => {
+    start();
+    hear("never mind");
+    key({ key: "Escape" });
     expect(speechStop).toHaveBeenCalled();
-    hear("遅れた結果。");
+    expect(input().value).toBe("");
+    expect(container.querySelector("[data-composer-voice]")).toBeNull();
+    hear("late words");
     expect(input().value).toBe("");
   });
 
-  it("accepts multiple recognition results before React paints", () => {
-    flushSync(() => {
-      transcript({ text: "一", partial: true });
-      transcript({ text: "一度に届いた文章。", partial: true });
-    });
-    expect(input().value).toBe("一度に届いた文章。");
-    expect(speechStop).not.toHaveBeenCalled();
+  it("starts and finishes with the keyboard shortcut", () => {
+    key({ key: "d", code: "KeyD", metaKey: true, shiftKey: true });
+    expect(speechStart).toHaveBeenCalledOnce();
+    hear("by shortcut");
+    key({ key: "d", code: "KeyD", metaKey: true, shiftKey: true });
+    expect(input().value).toBe("by shortcut");
   });
 
-  it("keeps the Stop button available after the first transcript and can resume", () => {
+  it("can start again after Done, and an old session's callbacks are ignored", () => {
+    start();
     hear("最初の文章。");
-    expect(button(t("composer.dictation.stop"))).not.toBeNull();
     click(t("composer.dictation.stop"));
     const late = transcript;
     click(t("composer.dictation.start"));
     flushSync(() => late({ text: "古いセッション", partial: true }));
-    expect(input().value).toBe("最初の文章。");
     hear("追加の文章。");
+    click(t("composer.dictation.stop"));
     expect(input().value).toBe("最初の文章。 追加の文章。");
   });
 
-  it("does not overwrite a manual draft edit", () => {
-    hear("音声の文章。");
-    flushSync(() => restoreComposerDraft(draftId, { text: "手で訂正した文章。", attachments: [] }));
-    hear("音声の文章。古い追記。");
-    expect(input().value).toBe("手で訂正した文章。");
-    expect(speechStop).toHaveBeenCalled();
-  });
-
-  it("does not start recognition or copy old transcripts into another thread", async () => {
+  it("puts a live session's words in the chat they were said in when the chat changes", async () => {
+    start();
     hear("元スレッドの文章。");
     const previous = transcript;
     flushSync(() => root.render(createElement(Composer, { bot: { ...bot, threadId: "other-thread" } })));
     await expect.poll(() => input().value).toBe("");
+    expect(speechStop).toHaveBeenCalled();
     flushSync(() => previous({ text: "元スレッドの遅い結果。", partial: true }));
     expect(input().value).toBe("");
-    expect(speechStart).toHaveBeenCalledOnce();
     flushSync(() => root.render(createElement(Composer, { bot })));
     await expect.poll(() => input().value).toBe("元スレッドの文章。");
   });
 
   it("says which permission to turn on when the microphone could not be used", () => {
+    start();
     flushSync(() => end({ code: 1, reason: "mic-failed" }));
     expect(container.textContent).toContain("Privacy & Security → Microphone");
     expect(container.textContent).not.toContain(t("composer.dictation.failed"));
   });
 
-  it("retains text when recognition ends in an error", () => {
+  it("keeps the heard words when recognition ends in an error", () => {
+    start();
     hear("失敗しても残す文章。");
     flushSync(() => end({ code: 1, reason: "recognition-error" }));
-    hear("");
     expect(input().value).toBe("失敗しても残す文章。");
+    expect(container.textContent).toContain(t("composer.dictation.failed"));
+  });
+});
+
+describe("the first tap on the mic", () => {
+  let root: Root;
+  let container: HTMLDivElement;
+  let speechStart: ReturnType<typeof vi.fn>;
+  const dialog = () => document.querySelector<HTMLElement>('[data-panel-modal="voice-first-run"]');
+
+  beforeEach(() => {
+    vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
+    vi.spyOn(HTMLElement.prototype, "scrollIntoView").mockImplementation(() => {});
+    setVoicePrefs(DEFAULT_VOICE_PREFS);
+    speechStart = vi.fn().mockResolvedValue(undefined);
+    window.duskDesktop = {
+      platform: "darwin", speechStart, speechStop: vi.fn().mockResolvedValue(undefined), speechFinish: vi.fn().mockResolvedValue(undefined),
+      onSpeechTranscript: () => vi.fn(), onSpeechEnd: () => vi.fn(),
+    } as unknown as typeof window.duskDesktop;
+    restoreComposerDraft(draftId, { text: "", attachments: [] });
+    container = document.createElement("div");
+    document.body.append(container);
+    root = createRoot(container);
+    flushSync(() => root.render(createElement(Composer, { bot })));
+  });
+
+  afterEach(() => {
+    flushSync(() => root.unmount());
+    container.remove();
+    setVoicePrefs(DEFAULT_VOICE_PREFS);
+    delete window.duskDesktop;
+    vi.clearAllMocks();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  const tapMic = () => flushSync(() => container.querySelector<HTMLButtonElement>(`button[aria-label="${t("composer.dictation.start")}"]`)!.click());
+
+  it("says the Mac's own transcription listens, then starts on Continue and never shows again", () => {
+    tapMic();
+    expect(dialog()?.textContent).toContain(t("composer.voice.firstRun.mac"));
+    expect(speechStart).not.toHaveBeenCalled();
+    flushSync(() => [...dialog()!.querySelectorAll("button")].find((b) => b.textContent === t("composer.voice.firstRun.continue"))!.click());
+    expect(dialog()).toBeNull();
+    expect(speechStart).toHaveBeenCalledOnce();
+    expect(voicePrefs().firstRunSeen).toBe(true);
+    flushSync(() => container.querySelector<HTMLButtonElement>(`button[aria-label="${t("composer.dictation.stop")}"]`)!.click());
+    tapMic();
+    expect(dialog()).toBeNull();
+    expect(speechStart).toHaveBeenCalledTimes(2);
+  });
+
+  it("opens Settings > Voice from its quiet link without listening", () => {
+    tapMic();
+    flushSync(() => dialog()!.querySelector<HTMLButtonElement>("[data-voice-setup]")!.click());
+    expect(dialog()).toBeNull();
+    expect(speechStart).not.toHaveBeenCalled();
+    expect(fixture.dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "toggleAppSettings", open: true, section: "voice" }));
+    expect(voicePrefs().firstRunSeen).toBe(true);
   });
 });

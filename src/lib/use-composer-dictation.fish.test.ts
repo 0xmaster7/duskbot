@@ -28,6 +28,7 @@ vi.mock("@/components/DesktopCapabilities", async () => {
 });
 
 import { cacheDesktopCapabilities, initialDesktopCapabilities } from "./desktop";
+import { DEFAULT_VOICE_PREFS, setVoicePrefs } from "./voice-input/prefs";
 import { useComposerDictation } from "./use-composer-dictation";
 
 type Dictation = ReturnType<typeof useComposerDictation>;
@@ -41,6 +42,9 @@ describe("composer dictation through Fish Audio", () => {
   beforeEach(() => {
     cacheDesktopCapabilities({ ...initialDesktopCapabilities(), dictation: { available: true, engine: "fish-audio", onDevice: false } });
     fixture.config = { savedKeys: { fishAudioKey: { configured: true } } };
+    // Linux's desktop app: Fish Audio stands in for a built-in recognizer
+    window.duskDesktop = { platform: "linux" } as unknown as typeof window.duskDesktop;
+    setVoicePrefs({ ...DEFAULT_VOICE_PREFS, firstRunSeen: true });
     typed = [];
     vi.clearAllMocks();
     const onText = (text: string) => typed.push(text);
@@ -53,6 +57,8 @@ describe("composer dictation through Fish Audio", () => {
   afterEach(() => {
     flushSync(() => root.unmount());
     cacheDesktopCapabilities(initialDesktopCapabilities());
+    delete window.duskDesktop;
+    setVoicePrefs(DEFAULT_VOICE_PREFS);
   });
 
   const toggle = () => flushSync(() => dictation.toggle());

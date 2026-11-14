@@ -76,6 +76,12 @@ export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = [
         winKeys: ["Ctrl", "Enter"],
       },
       {
+        id: "voice-input",
+        description: "start voice input, or finish it and put the words in the chat bar",
+        macKeys: ["⌘", "⇧", "D"],
+        winKeys: ["Ctrl", "Shift", "D"],
+      },
+      {
         id: "stop-bot",
         description: "Stop the open bot",
         macKeys: ["⌘", "."],

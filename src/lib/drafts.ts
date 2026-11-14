@@ -325,6 +325,20 @@ export function prependComposerDraft(id: string, text: string): void {
   });
 }
 
+/** Voice input that ended after its chat was left: its words still land in that chat's draft, after a space. */
+export function appendDictatedText(id: string, words: string): void {
+  const said = words.trim();
+  if (!said) return;
+  const store = getStore();
+  const current = getDraft(store, id);
+  markDraftEdited(id);
+  restoreComposerDraft(id, {
+    text: !current ? said : /\s$/.test(current) ? `${current}${said}` : `${current} ${said}`,
+    attachments: getDraftAttachments(store, id),
+    channelMode: getDraftChannelMode(store, id),
+  });
+}
+
 /** Leads the draft with `text` once: asking again does not stack it. */
 export function leadComposerDraft(id: string, text: string): void {
   if (!getDraft(getStore(), id).startsWith(text)) prependComposerDraft(id, text);

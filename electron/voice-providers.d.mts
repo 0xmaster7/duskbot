@@ -46,6 +46,12 @@ export declare function createPieceSession(options: {
   sampleRate?: number;
   /** Quiet this long after speech ends a piece. */
   pauseMs?: number;
+  /** A piece of unbroken speech is sent once it is this long. Default 25 s. */
+  maxPieceMs?: number;
+  /** Pieces heard at the same time. Default 3; whisper.cpp uses 1. */
+  concurrency?: number;
+  /** One piece's request is given up after this long. Default 60 s. */
+  timeoutMs?: number;
 }): PieceSession;
 
 export declare function encodeWav16(pcm: Int16Array, sampleRate?: number): Uint8Array;

@@ -36,7 +36,7 @@ const listeners = new Set<(state: KeyState) => void>();
 export async function refreshVoiceKeys(): Promise<KeyState> {
   const store = voiceKeyStore();
   known = store ? await store.status().catch(() => known) : {};
-  for (const listener of [...listeners]) listener(known);
+  for (const listener of listeners) listener(known);
   return known;
 }
 

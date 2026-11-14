@@ -110,3 +110,11 @@
 @keyframes composer-glyph-fade-out {
   to { opacity: 0; }
 }
+
+/* voice input's waveform and line fade in where the field was; the field comes back at once */
+.composer-voice {
+  transition: opacity 120ms ease-out;
+}
+@starting-style {
+  .composer-voice { opacity: 0; }
+}

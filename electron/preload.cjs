@@ -371,6 +371,39 @@ const bridge = {
     ipcRenderer.on("speech:level", handler);
     return () => ipcRenderer.removeListener("speech:level", handler);
   },
+  // This computer's page only (never in REMOTE_SAFE, and main refuses any other): a speech service set up in Settings >
+  // Voice. Main holds the keys; only whether one is saved comes back.
+  voiceInput: {
+    keys: {
+      status: () => ipcRenderer.invoke("voice-input:keys:status"),
+      set: (provider, key) => ipcRenderer.invoke("voice-input:keys:set", String(provider), String(key)),
+      clear: provider => ipcRenderer.invoke("voice-input:keys:clear", String(provider)),
+    },
+    start: options => ipcRenderer.invoke("voice-input:start", {
+      provider: String(options?.provider ?? ""),
+      ...(typeof options?.language === "string" ? { language: options.language } : {}),
+      ...(typeof options?.model === "string" ? { model: options.model } : {}),
+      realtime: options?.realtime === true,
+      ...(typeof options?.baseUrl === "string" ? { baseUrl: options.baseUrl } : {}),
+      ...(options?.whisperCpp ? { whisperCpp: { binary: String(options.whisperCpp.binary ?? ""), model: String(options.whisperCpp.model ?? "") } } : {}),
+    }),
+    audio: (id, pcm) => {
+      if (Object.prototype.toString.call(pcm) === "[object ArrayBuffer]") ipcRenderer.send("voice-input:audio", String(id), pcm);
+    },
+    finish: id => ipcRenderer.invoke("voice-input:finish", String(id)),
+    stop: id => ipcRenderer.invoke("voice-input:stop", String(id)),
+    onTranscript: cb => {
+      const handler = (_event, line) => cb(line);
+      ipcRenderer.on("voice-input:transcript", handler);
+      return () => ipcRenderer.removeListener("voice-input:transcript", handler);
+    },
+    onEnd: cb => {
+      const handler = (_event, info) => cb(info);
+      ipcRenderer.on("voice-input:end", handler);
+      return () => ipcRenderer.removeListener("voice-input:end", handler);
+    },
+    findWhisperCpp: () => ipcRenderer.invoke("voice-input:find-whisper"),
+  },
   talkShortcut: {
     state: () => ipcRenderer.invoke("talk-shortcut:state"),
     set: (change) => ipcRenderer.invoke("talk-shortcut:set", {

@@ -70,10 +70,16 @@ function storage(): Storage | null {
 }
 
 let cached: { raw: string | null; prefs: VoicePrefs } | null = null;
+// where storage is missing or refuses writes, the choices still hold for this session
+let memory: string | null = null;
 const listeners = new Set<() => void>();
 
 export function voicePrefs(): VoicePrefs {
-  const raw = storage()?.getItem(VOICE_PREFS_KEY) ?? null;
+  let raw = memory;
+  try {
+    raw = storage()?.getItem(VOICE_PREFS_KEY) ?? memory;
+  } catch {
+  }
   if (cached && cached.raw === raw) return cached.prefs;
   let parsed: unknown = null;
   try {
@@ -87,12 +93,13 @@ export function voicePrefs(): VoicePrefs {
 export function setVoicePrefs(change: Partial<VoicePrefs> | ((current: VoicePrefs) => Partial<VoicePrefs>)): VoicePrefs {
   const current = voicePrefs();
   const next = parseVoicePrefs({ ...current, ...(typeof change === "function" ? change(current) : change) });
+  memory = JSON.stringify(next);
   try {
-    storage()?.setItem(VOICE_PREFS_KEY, JSON.stringify(next));
+    storage()?.setItem(VOICE_PREFS_KEY, memory);
   } catch {
   }
   cached = null;
-  for (const listener of [...listeners]) listener();
+  for (const listener of listeners) listener();
   return next;
 }
 

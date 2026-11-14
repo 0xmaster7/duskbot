@@ -94,11 +94,16 @@ hand real work to specialists with `coordinate_bots` — no new machinery requir
 
 ## Known gaps
 
-- **Take-turns calls listen differently off the Mac.** On macOS the dictation
-  helper listens on-device. On Windows and Linux the page records the mic
-  (`src/lib/fish-speech.ts`) and `POST /api/tts/transcribe` sends each turn's
-  clip, silence trimmed, to Fish Audio speech-to-text with the saved Fish key.
-  Without that key Take turns is off. The voice half works everywhere. Live
+- **Take-turns calls listen differently on Linux.** On macOS the dictation
+  helper listens on-device. On Windows `electron/resources/windows-speech.ps1`
+  does the same with the built-in System.Speech recognizer, run by the Windows
+  PowerShell 5.1 that ships with Windows (nothing to install, same NDJSON as
+  the Mac helper). Its dictation is older and less accurate than Apple's, it
+  only knows the languages whose Windows speech recognizer is installed, and it
+  has not been run on a real Windows machine yet. On Linux the page records the
+  mic (`src/lib/fish-speech.ts`) and `POST /api/tts/transcribe` sends each
+  turn's clip, silence trimmed, to Fish Audio speech-to-text with the saved
+  Fish key. Without that key Take turns is off there. The voice half works everywhere. Live
   calls (GPT-Live, `server/live-call.ts`) need no dictation, so they work in
   the desktop app on any computer and on the phones, with the person's own
   OpenAI key. Fish Audio has no talking model, so Live stays OpenAI or Azure. A Cloud's page, in a web browser

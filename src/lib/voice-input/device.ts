@@ -25,7 +25,7 @@ const phoneListeners = new Set<() => void>();
 
 export function registerPhoneVoice(next: PhoneVoice | null): void {
   phone = next;
-  for (const listener of [...phoneListeners]) listener();
+  for (const listener of phoneListeners) listener();
 }
 
 export function phoneVoice(): PhoneVoice | null {

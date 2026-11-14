@@ -89,8 +89,10 @@ function Shell() {
   useEffect(() => {
     if (!state.appSettingsOpen) return;
     dispatch({ type: "toggleAppSettings", open: false });
-    setDesktopOnly(true);
-  }, [state.appSettingsOpen, dispatch]);
+    // voice input is set up on the phone itself: its own settings sheet has the page
+    if (state.appSettingsSection === "voice") openSheet({ kind: "settings", page: "voice" });
+    else setDesktopOnly(true);
+  }, [state.appSettingsOpen, state.appSettingsSection, dispatch, openSheet]);
 
   const openTarget = useCallback((target: MobileOpenTarget) => {
     const id = target.botId ?? target.groupId;

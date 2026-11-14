@@ -15,7 +15,7 @@ const settle = async () => { for (let i = 0; i < 10; i += 1) await new Promise(r
 const json = body => Promise.resolve(new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } }));
 const names = windows => windows.map(win => win?.name ?? null);
 
-function harness({ packaged = true, appleSpeech = true, remote = false, register, serve = () => undefined } = {}) {
+function harness({ packaged = true, appleSpeech = true, platform = "darwin", remote = false, register, serve = () => undefined } = {}) {
   const h = { handlers: new Map(), guards: new Map(), started: [], stopped: [], finished: [], requests: [], links: [], reveals: 0, log: [],
     registered: new Map(), windows: [], busy: false, fail: {}, away: false, starting: false };
   const owners = new Map();
@@ -47,7 +47,7 @@ function harness({ packaged = true, appleSpeech = true, remote = false, register
   const guard = kind => (channel, handler) => { h.guards.set(channel, kind); return handler; };
   h.talk = installTalk({
     ipcMain: { handle: (channel, handler) => h.handlers.set(channel, handler) },
-    localOnly: guard("localOnly"), localOrHome: guard("localOrHome"), BrowserWindow: FakeBrowserWindow, appleSpeech,
+    localOnly: guard("localOnly"), localOrHome: guard("localOrHome"), BrowserWindow: FakeBrowserWindow, appleSpeech, platform,
     speech: {
       start: (target, options) => { h.started.push([target, options]); },
       stop: failing("stop", owner => { h.stopped.push(owner); }),
@@ -127,13 +127,27 @@ test("a page's speech stop and finish name that page's own window, so they touch
   assert.deepEqual(names(h.stopped), ["other", "page", null]);
   assert.deepEqual(names(h.finished), ["page"]);
 
-  const elsewhere = harness({ appleSpeech: false });
+  const elsewhere = harness({ appleSpeech: false, platform: "linux" });
   const win = elsewhere.page("page");
   elsewhere.handle("speech:start", { sender: win.webContents });
   elsewhere.handle("speech:stop", { sender: win.webContents });
   elsewhere.handle("speech:finish", { sender: win.webContents });
   assert.deepEqual(win.webContents.sent, [["speech:end", { code: 2, reason: "unsupported-platform" }]]);
   assert.deepEqual([elsewhere.started, elsewhere.stopped, elsewhere.finished], [[], [], []]);
+});
+
+test("Windows listens through its built-in recognizer, but gets no talk shortcut", () => {
+  const h = harness({ appleSpeech: false, platform: "win32" });
+  const page = h.page("page");
+  h.handle("speech:start", { sender: page.webContents }, { endpointMs: 900, locale: "en-US" });
+  h.handle("speech:finish", { sender: page.webContents });
+  h.handle("speech:stop", { sender: page.webContents });
+  assert.deepEqual(page.webContents.sent, []);
+  assert.deepEqual(h.started.map(([win, options]) => [win.name, options]), [["page", { endpointMs: 900, locale: "en-US" }]]);
+  assert.deepEqual([names(h.finished), names(h.stopped)], [["page"], ["page"]]);
+  h.start();
+  assert.equal(h.handle("talk-shortcut:state", {}).available, false);
+  assert.deepEqual([...h.registered.keys()], []);
 });
 
 test("the shortcut is offered only with Apple speech, on a desktop that is not a remote client of another computer", () => {

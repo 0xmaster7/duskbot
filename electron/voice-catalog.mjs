@@ -7,7 +7,7 @@ export const VOICE_PROVIDERS = ["elevenlabs", "openai", "groq", "deepgram", "ass
 export const VOICE_PROVIDER_INFO = {
   elevenlabs: {
     name: "ElevenLabs",
-    models: ["scribe_v1"],
+    models: ["scribe_v3", "scribe_v2"],
     realtimeModel: "scribe_v2_realtime",
     realtime: true,
     key: "required",
@@ -16,7 +16,7 @@ export const VOICE_PROVIDER_INFO = {
   },
   openai: {
     name: "OpenAI",
-    models: ["gpt-4o-transcribe", "gpt-4o-mini-transcribe", "whisper-1"],
+    models: ["gpt-transcribe", "gpt-4o-mini-transcribe"],
     realtime: false,
     key: "required",
     keyUrl: "https://platform.openai.com/api-keys",
@@ -40,7 +40,7 @@ export const VOICE_PROVIDER_INFO = {
   },
   assemblyai: {
     name: "AssemblyAI",
-    models: ["universal", "slam-1"],
+    models: ["universal-3-5-pro", "universal-2"],
     realtime: false,
     key: "required",
     keyUrl: "https://www.assemblyai.com/app/api-keys",

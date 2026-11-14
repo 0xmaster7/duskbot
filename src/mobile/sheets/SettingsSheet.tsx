@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type ComponentType } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Bell, CalendarClock, Check, FileText, Globe, KeyRound, LayoutDashboard, LifeBuoy, LogOut, Mail, MoreHorizontal, Palette, Plug, Plus, ShieldCheck, Trash2, UserRound } from "../../icons";
+import { Bell, CalendarClock, Check, FileText, Globe, KeyRound, LayoutDashboard, LifeBuoy, LogOut, Mail, Mic, MoreHorizontal, Palette, Plug, Plus, ShieldCheck, Trash2, UserRound } from "../../icons";
 import { accountDashboardUrl } from "@/lib/account-dashboard";
 import { useGroupYou } from "@/components/GroupAvatar";
 import { trackUpsell, watchUpsell } from "@/lib/cloud-upsell";
@@ -18,6 +18,8 @@ import { useMobileAccount } from "../account/AccountGate";
 import { LEGAL_LINKS, SUPPORT_EMAIL, supportMail } from "../legal";
 import { useAiConsent } from "../consent/AiConsent";
 import { WorkingDots } from "@/components/WorkingIndicator";
+import { SIMPLE_BUTTONS } from "@/components/SettingsPrimitives";
+import { VoiceInputSettings } from "@/components/VoiceInputSettings";
 import { usePlatform } from "../platform";
 import { Sheet } from "../Sheet";
 import { SettingsRow, SettingsSection, SettingsSwitch } from "./SettingsRow";
@@ -73,7 +75,7 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
   const skin = useSyncExternalStore(subscribeSkin, readSkinChoice, () => "system");
   const language = effectiveLanguage(useLanguageChoice(), state.config?.language);
   usePageLanguage(language);
-  const [page, setPage] = useState<"main" | "language" | "delete">(sheet.page === "language" ? "language" : "main");
+  const [page, setPage] = useState<"main" | "language" | "voice" | "delete">(sheet.page === "language" || sheet.page === "voice" ? sheet.page : "main");
   const [unlinkId, setUnlinkId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
@@ -116,7 +118,7 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
   };
 
   return (
-    <Sheet open={open} onClose={onClose} title={t(page === "language" ? "mobile.settings.language" : page === "delete" ? "mobile.settings.deleteAccount" : "mobile.settings.title")} full back={page !== "main" ? () => setPage("main") : undefined}>
+    <Sheet open={open} onClose={onClose} title={t(page === "language" ? "mobile.settings.language" : page === "voice" ? "settings.voice.title" : page === "delete" ? "mobile.settings.deleteAccount" : "mobile.settings.title")} full back={page !== "main" ? () => setPage("main") : undefined}>
       <AnimatePresence mode="wait" initial={false}>
         <motion.div ref={pageRef} key={page} initial={{ y: 6, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -4, opacity: 0 }} transition={{ duration: dur.base, ease: ease.out }} className="px-2 pb-6">
           {page === "language" ? (
@@ -128,6 +130,11 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
                 </button>
               ))}
             </SettingsSection>
+          ) : page === "voice" ? (
+            // the same Settings > Voice the computer app shows, in Settings' own look
+            <div data-settings-look="simple" className={`flex flex-col gap-6 px-2 pt-2 ${SIMPLE_BUTTONS}`}>
+              <VoiceInputSettings />
+            </div>
           ) : page === "delete" ? (
             <div className="px-4 pt-2" aria-busy={deleting}>
               <h2 className="text-[20px] font-semibold text-ink">{t("mobile.settings.deleteTitle")}</h2>
@@ -171,6 +178,7 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
                 ))}
               </div>
               <SettingsSwitch label={t("mobile.settings.haptics")} checked={hapticsEnabled} onChange={(enabled) => { if (!enabled) haptic("selection"); setHapticsEnabled(enabled); if (enabled) haptic("selection"); }} />
+              <SettingsRow icon={<Mic />} label={t("settings.voice.title")} detail={t("settings.voice.rowHint")} onClick={() => setPage("voice")} />
               <SettingsRow icon={<Globe />} label={t("mobile.settings.language")} value={localeChoices.find((choice) => choice.code === language)?.label ?? t("mobile.settings.system")} onClick={() => setPage("language")} />
             </SettingsSection>
             {rows.dashboard && !state.config?.cloudHome && <CloudCard onOpen={() => void accountDashboardUrl().then((url) => platform.openExternal(url))} />}

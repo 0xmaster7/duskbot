@@ -80,7 +80,7 @@ const title = (html: string) => html.match(/<h2 id="[^"]*" class="settings-pane-
 describe("Settings, drawn as Grok Bot's", () => {
   it("rails Grok's panes with Models, then Advanced features last, and no Bots pane beside the bot panel", () => {
     const html = open("general");
-    expect(panes(html)).toEqual(["general", "computer", "vault", "models", "usage", "updates", "advanced"]);
+    expect(panes(html)).toEqual(["general", "voice", "computer", "vault", "models", "usage", "updates", "advanced"]);
     expect(html).toContain('data-icon-name="vault"');
     expect(html).toContain('data-icon-name="chart-bars"');
     expect(html).toContain('data-icon-name="settings-gear"');
@@ -174,7 +174,7 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(current(open("texting"))).toBe("general");
     expect(markers(open("companion"))).not.toContain("pairing");
     vi.stubEnv("VITE_DUSK_PHONE_APP", "1");
-    expect(panes(open("general"))).toEqual(["general", "texting", "computer", "vault", "models", "usage", "updates", "advanced"]);
+    expect(panes(open("general"))).toEqual(["general", "voice", "texting", "computer", "vault", "models", "usage", "updates", "advanced"]);
   });
 
   it("keeps the code for pairing another computer under Computer's connect from elsewhere while Phone is hidden", () => {
@@ -217,7 +217,7 @@ describe("Settings, drawn as Grok Bot's", () => {
 
   it("shows a paired remote client General and Computer (Texting while the phone app is offered), with its look in General", () => {
     vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), duskDesktop: { remoteClient: { active: true }, environments: {} } });
-    expect(panes(open("general"))).toEqual(["general", "computer"]);
+    expect(panes(open("general"))).toEqual(["general", "voice", "computer"]);
     expect(groups(open("general"))).toEqual(["How it looks", "Notifications"]);
     expect(current(open("looks"))).toBe("general");
     expect(current(open("engines"))).toBe("general");
@@ -230,7 +230,7 @@ describe("where every section lives now", () => {
   const every: AppSettingsSection[] = [
     "general", "desktopWorkspaces", "organization", "cloudAccount", "appearance", "experimental", "connections", "engines",
     "companion", "remote", "computer", "logins", "usage", "people", "botAccess", "activity", "backups", "skills", "import", "updates",
-    "texting", "permissions", "advanced", "apps", "looks", "bots", "data", "builder", "about",
+    "texting", "permissions", "advanced", "apps", "looks", "bots", "data", "builder", "about", "voice",
   ];
 
   it("lands every old and new deep link on a pane, and Advanced's on a page", () => {
@@ -254,6 +254,8 @@ describe("where every section lives now", () => {
     expect(openSettings("models")).toEqual({ type: "toggleAppSettings", open: true, section: "engines" });
     expect(openSettings("advanced")).toEqual({ type: "toggleAppSettings", open: true, section: "advanced" });
     expect(openSettings("logins")).toEqual({ type: "toggleAppSettings", open: true, section: "logins" });
+    expect(openSettings("voice")).toEqual({ type: "toggleAppSettings", open: true, section: "voice" });
+    expect(settingsLocation("voice")).toEqual({ pane: "voice" });
     expect(openSettings()).toEqual({ type: "toggleAppSettings", open: true, section: "general" });
   });
 });

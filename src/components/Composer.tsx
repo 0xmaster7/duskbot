@@ -1,7 +1,7 @@
 import { directMessageSent, roomMessageSent } from "@/lib/product-events";
 import { cueMascot } from "./mascot-events";
 import { useComposerDictation } from "@/lib/use-composer-dictation";
-import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import { Mic, Square } from "../icons";
 import { useStore, visibleMessages, currentTaskBot, type Bot, type Group, type InstanceInfo, type Message } from "@/state/store";
 import { cn } from "@/lib/cn";
@@ -74,6 +74,10 @@ import { useThreadApproval } from "./thread-approval";
 import { usePillHeight, useSlideOnChange, useStackedField } from "./composer-wrap";
 import "@/styles/composer.css";
 import { ComposerReplyStrip } from "./ReplyQuote";
+import { ComposerVoiceStrip } from "./ComposerVoiceStrip";
+import { VoiceFirstRunSheet } from "./VoiceFirstRunSheet";
+import { voiceShortcut, voiceShortcutLabel } from "@/lib/voice-input/shortcut";
+import { openSettings } from "@/lib/open-settings";
 import { NotesWaitingLine, useNotesIntake } from "./NotesWaiting"; import { looksLikeNotes, notesInFiles } from "@/lib/assistant-notes";
 import { escapeCancelsReply } from "@/lib/replies";
 import { useThreadRefs } from "./ThreadRefs";
@@ -232,7 +236,11 @@ export function Composer({
     },
     [text, editText, editAttachments],
   );
-  const { recording, ready: micReady, speechError, toggle: toggleMic, stop: stopDictation, discard: discardDictation } = useComposerDictation({ draftId, text, onText: editText });
+  const dictation = useComposerDictation({ draftId, text, onText: editText });
+  const { recording, ready: micReady, speechError, toggle: toggleMic, stop: stopDictation, discard: discardDictation } = dictation;
+  // Send while talking: the heard words land first, then this render's successor sends them
+  const [sendAfterVoice, setSendAfterVoice] = useState<{ followUp: FollowUp | undefined } | null>(null);
+  const micButtonRef = useRef<HTMLButtonElement>(null);
   const [caret, setCaret] = useState(0);
   const shellRef = useRef<HTMLDivElement>(null);
   const [highlight, setHighlight] = useState(0);
@@ -614,6 +622,10 @@ export function Composer({
       dispatch({ type: "error", message: t("composer.error.noImages") });
       return;
     }
+    if (recording && dictation.takeForSend()) {
+      setSendAfterVoice({ followUp });
+      return;
+    }
     const composed = composeMessage(serializeThreadRefs(effectiveText, threads, currentBotId), attachments);
     if (!composed) return;
     stopDictation();
@@ -658,6 +670,59 @@ export function Composer({
     // a click on the round button takes focus, and the button unmounts once the field is empty; grok hands it back
     if (!window.matchMedia?.("(hover: none) and (pointer: coarse)").matches) refocusInput();
   };
+  useLayoutEffect(() => {
+    if (!sendAfterVoice || recording) return;
+    setSendAfterVoice(null);
+    send(sendAfterVoice.followUp);
+  });
+  // voice input from anywhere in the chat: the shortcut starts and ends it, Esc cancels, the send key sends what was heard
+  const voiceKeys = useRef({ toggle: toggleMic, discard: discardDictation, send: () => send(followUpFor(false)), recording, sendKey });
+  voiceKeys.current = { toggle: toggleMic, discard: discardDictation, send: () => send(followUpFor(false)), recording, sendKey };
+  const voiceKeysOn = micReady && !locked;
+  useEffect(() => {
+    if (!voiceKeysOn) return;
+    const onKey = (event: KeyboardEvent) => {
+      const shell = shellRef.current;
+      if (event.defaultPrevented || !shell || shell.getClientRects().length === 0) return;
+      const keys = voiceKeys.current;
+      if (voiceShortcut(event)) {
+        // another field (a search, a dialog) keeps its own keys
+        const active = document.activeElement;
+        const typingElsewhere = active instanceof HTMLElement && !shell.contains(active) && (active.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName));
+        if (typingElsewhere || document.querySelector('[aria-modal="true"]')) return;
+        event.preventDefault();
+        keys.toggle();
+        return;
+      }
+      if (!keys.recording || imeComposing(event)) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        keys.discard();
+      } else if (sendsMessage(event, keys.sendKey)) {
+        event.preventDefault();
+        keys.send();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [voiceKeysOn]);
+  // the field hides while voice listens: focus waits on the mic's Done button, then returns to the words
+  const voiceWasOn = useRef(false);
+  useEffect(() => {
+    const was = voiceWasOn.current;
+    voiceWasOn.current = recording;
+    if (recording && !was) {
+      const active = document.activeElement;
+      if (!active || active === document.body || active === inputRef.current) micButtonRef.current?.focus({ preventScroll: true });
+    } else if (!recording && was && document.activeElement === micButtonRef.current && !window.matchMedia?.("(hover: none) and (pointer: coarse)").matches) {
+      requestAnimationFrame(() => {
+        const input = inputRef.current;
+        if (!input || input.disabled) return;
+        input.focus({ preventScroll: true });
+        input.setSelectionRange(input.value.length, input.value.length);
+      });
+    }
+  }, [recording]);
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const copiedFiles = Array.from(e.clipboardData.files ?? []);
@@ -766,6 +831,24 @@ export function Composer({
           {speechError}
         </div>
       )}
+      {dictation.tidying && !speechError && (
+        <div role="status" data-voice-tidying="" className="pointer-events-auto mb-2 w-full px-0.5 text-[12px] leading-4 text-ink/56">
+          {t("composer.voice.tidying")}
+        </div>
+      )}
+      {dictation.firstRun.open && (
+        <div className="pointer-events-auto">
+          <VoiceFirstRunSheet
+            where={dictation.firstRun.where}
+            onContinue={dictation.firstRun.accept}
+            onClose={dictation.firstRun.dismiss}
+            onSetUp={() => {
+              dictation.firstRun.dismiss();
+              dispatch(openSettings("voice"));
+            }}
+          />
+        </div>
+      )}
       <div className="pointer-events-auto relative w-full">
         <ComposerFailedSends sends={failedSends} onRetry={retryFailedSend} onEdit={editFailedSend} onDismiss={(failed) => forgetFailedComposerSend(draftId, failed.id)} />
         <SlashCommandMenu listRef={commandListRef} motion={commandMotion} commands={commandCandidates} highlight={highlight}
@@ -848,7 +931,7 @@ export function Composer({
           )}
           <MentionTextarea
           // grok keeps 80px clear at the field's end for its mic and voice buttons, whether or not the mic shows
-          wrapperClassName={singleRow ? undefined : simpleDock ? cn(stacked ? "order-first basis-full" : !(micReady && !locked) && "me-9") : cn("@max-[30rem]/composer:order-first @max-[30rem]/composer:basis-full", stacked && "order-first basis-full")}
+          wrapperClassName={cn(singleRow ? undefined : simpleDock ? cn(stacked ? "order-first basis-full" : !(micReady && !locked) && "me-9") : cn("@max-[30rem]/composer:order-first @max-[30rem]/composer:basis-full", stacked && "order-first basis-full"), recording && "hidden")}
           inputRef={inputRef}
           peers={[...(group ? members ?? [] : state.bots.filter((member) => member.id !== bot?.id)), ...teammates.peers]}
           everyone={Boolean(group && !group.dm)}
@@ -856,7 +939,6 @@ export function Composer({
           rows={1}
           value={text}
           onChange={(e) => {
-            if (recording) stopDictation();
             if (bot && !group) cueMascot(bot.id, "watch");
             // a typed "/goal " becomes the goal chip, so the field never says it a second time
             const goalToken = !group?.dm ? /^\/goal\s+/i.exec(e.target.value) : null;
@@ -943,7 +1025,6 @@ export function Composer({
               }
               send(followUpFor(alternateSend(e.nativeEvent, sendKey)));
             }
-            if (e.key === "Escape" && recording) stopDictation();
           }}
           // Not disabled during an upload: a disabled element drops keyboard focus for good. send() refuses while one
           // is pending.
@@ -964,6 +1045,16 @@ export function Composer({
                 : "min-h-6 py-1 leading-6",
             )}
           />
+          {recording && (
+            <ComposerVoiceStrip
+              phase={dictation.phase}
+              preview={dictation.preview}
+              levels={dictation.levels}
+              hasLevels={dictation.hasLevels}
+              compact={singleRow}
+              className={singleRow ? "flex-1 py-1.5" : "mb-px mt-[3px] flex-1"}
+            />
+          )}
           <div data-composer-actions className={cn("flex items-center", simpleDock ? "relative gap-2" : "gap-1", !singleRow && !simpleDock && "@max-[30rem]/composer:ml-auto", stacked && "ml-auto")}>
           {(simpleDock ? stoppable : busy) && !locked && (
           <button
@@ -985,9 +1076,10 @@ export function Composer({
         )}
         {!locked && micReady && recording && (
           <button
+            type="button"
             onClick={discardDictation}
             aria-label={t("composer.dictation.discard")}
-            title={t("composer.dictation.discard")}
+            title={t("composer.voice.cancelHint")}
             className={cn(
               "flex shrink-0 items-center justify-center rounded-full",
               simpleDock ? "size-7" : "size-8 max-md:size-10",
@@ -999,18 +1091,23 @@ export function Composer({
         )}
         {!locked && micReady && (
           <button
+            ref={micButtonRef}
+            type="button"
             onClick={toggleMic}
+            data-voice-mic={recording ? "done" : "start"}
+            disabled={dictation.phase === "finishing"}
             aria-label={recording ? t("composer.dictation.stop") : t("composer.dictation.start")}
             className={cn(
               "flex shrink-0 items-center justify-center rounded-full",
               simpleDock ? "size-7" : "size-8 max-md:size-10",
               recording
-                ? "animate-pulse bg-danger/20 text-danger"
+                ? "composer-press bg-ink text-app hover:bg-[color-mix(in_srgb,var(--color-ink)_88.5%,var(--color-menu))] disabled:opacity-40"
                 : singleRow ? "text-ink-secondary hover:bg-raised hover:text-ink" : SIMPLE_CONTROL,
             )}
-            title={recording ? t("composer.dictation.stopHint") : t("composer.dictation.hint")}
+            title={recording ? t("composer.voice.stopHint", { key: voiceShortcutLabel() }) : t("composer.voice.hint", { key: voiceShortcutLabel() })}
           >
-            {simpleDock ? <Icon name="mic" variant="filled" size={16} /> : <Mic size={16} strokeWidth={1.75} absoluteStrokeWidth className="[&_rect]:fill-current" />}
+            {recording ? <Icon name="check" size={14} />
+              : simpleDock ? <Icon name="mic" variant="filled" size={16} /> : <Mic size={16} strokeWidth={1.75} absoluteStrokeWidth className="[&_rect]:fill-current" />}
           </button>
         )}
         {callShown && bot && !group && <CallButton bot={bot} placement="composer" fill={singleRow ? undefined : slot.fill} ink={slot.ink} inverse={singleRow} />}

@@ -76,8 +76,11 @@ function desktopProvider(bridge: VoiceInputBridge, provider: VoiceProvider, pref
       if (micResult.status === "rejected" || sessionResult.status === "rejected") {
         const id = sessionId;
         if (id) void bridge.stop(id).catch(() => {});
-        const error = micResult.status === "rejected" ? micResult.reason : (sessionResult as PromiseRejectedResult).reason;
-        return ended({ code: 1, reason: failureReason(error), message: error instanceof MicError ? undefined : (error as Error)?.message });
+        if (micResult.status === "rejected") return ended({ code: 1, reason: failureReason(micResult.reason) });
+        // Electron hands back only the text of a refused start: it is always a setup step still to do, worded by main
+        const said = String(((sessionResult as PromiseRejectedResult).reason as Error)?.message ?? "")
+          .replace(/^Error invoking remote method '[^']+': (?:Error: )?/, "");
+        return ended({ code: 1, reason: "service-not-set-up", message: said || undefined });
       }
       for (const pcm of early.splice(0)) bridge.audio(sessionId!, pcm);
     },

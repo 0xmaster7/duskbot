@@ -17,6 +17,8 @@
 	<string>dusk bot uses the camera to scan the pairing code shown on your computer, and to take a photo you attach to a message.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>dusk bot uses the microphone when you dictate a message, record a voice note or start a voice call with a bot.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>dusk bot turns what you say into text when you dictate a message.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>dusk bot connects to the computer you paired on your Wi-Fi network, so your chats go straight to it.</string>
 	<key>NSAppTransportSecurity</key>

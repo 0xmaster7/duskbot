@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Bot } from "@/state/store";
 import { restoreComposerDraft } from "@/lib/drafts";
 import { t } from "@/lib/i18n";
+import { DEFAULT_VOICE_PREFS, setVoicePrefs } from "@/lib/voice-input/prefs";
 
 const fixture = vi.hoisted(() => {
   vi.stubGlobal("fetch", () => new Promise(() => {}));
@@ -58,7 +59,9 @@ describe("dictation while the bot works", () => {
     globalThis.ResizeObserver ??= class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver;
     vi.spyOn(HTMLElement.prototype, "scrollIntoView").mockImplementation(() => {});
     speechStop = vi.fn().mockResolvedValue(undefined);
+    setVoicePrefs({ firstRunSeen: true });
     window.duskDesktop = {
+      platform: "darwin",
       speechStart: vi.fn().mockResolvedValue(undefined), speechStop,
       onSpeechTranscript: (cb: typeof transcript) => { transcript = cb; return vi.fn(); },
       onSpeechEnd: () => vi.fn(),
@@ -73,6 +76,7 @@ describe("dictation while the bot works", () => {
     container.remove();
     restoreComposerDraft(draftId, { text: "", attachments: [] });
     delete window.duskDesktop;
+    setVoicePrefs(DEFAULT_VOICE_PREFS);
     vi.clearAllMocks();
     vi.restoreAllMocks();
   });
@@ -92,7 +96,9 @@ describe("dictation while the bot works", () => {
     expect(button(t("composer.dictation.discard"))).toBeNull();
     click(t("composer.dictation.start"));
     hear("then said this");
-    expect(input().value).toBe("typed first then said this");
+    // the words wait on the voice line until they are done; the draft stays as typed
+    expect(input().value).toBe("typed first");
+    expect(container.querySelector("[data-voice-preview]")?.textContent).toBe("then said this");
     click(t("composer.dictation.discard"));
     expect(speechStop).toHaveBeenCalled();
     expect(input().value).toBe("typed first");
@@ -101,12 +107,13 @@ describe("dictation while the bot works", () => {
     expect(input().value).toBe("typed first");
   });
 
-  it("Esc keeps what was said", () => {
+  it("Esc cancels: nothing that was said lands", () => {
     mount("");
     click(t("composer.dictation.start"));
-    hear("keep this");
-    flushSync(() => input().dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
-    expect(input().value).toBe("keep this");
+    hear("drop this");
+    flushSync(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+    expect(input().value).toBe("");
+    expect(speechStop).toHaveBeenCalled();
     expect(button(t("composer.dictation.start"))).not.toBeNull();
   });
 });

@@ -535,7 +535,7 @@ export type AppSettingsSection =
   | "activity"
   | "backups"
   | "skills" | "import" | "updates"
-  | "texting" | "permissions" | "advanced" | "apps" | "looks" | "bots" | "data" | "builder" | "about" | "transfer";
+  | "texting" | "permissions" | "advanced" | "apps" | "looks" | "bots" | "data" | "builder" | "about" | "transfer" | "voice";
 
 export type BotSettingsSection =
   | "overview"

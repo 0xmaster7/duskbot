@@ -19,6 +19,8 @@ const keystore = SecureStorage as unknown as {
 const SECRET_PREFIX = "dusk.";
 import { BarcodeScanner, BarcodeFormat, GoogleBarcodeScannerModuleInstallState } from "@capacitor-mlkit/barcode-scanning";
 import type { AppleCredential, CameraPermission, CameraScanner, MobilePlatform } from "@/mobile/platform";
+import { createVoiceEvents, type VoiceBridge, type VoiceEnd } from "@/lib/voice-input/bridge";
+import { registerPhoneVoice } from "@/lib/voice-input/device";
 import { appLinkFromUniversal, type MobileOpenTarget } from "../../../shared/mobile-link";
 
 /** The app's own scanner on ios (ios/App/App/QrScannerPlugin.swift): the ML Kit plugin ships for CocoaPods only, and this
@@ -36,6 +38,96 @@ interface QrScannerPlugin {
 const QrScanner = registerPlugin<QrScannerPlugin>("QrScanner");
 /** The app's own Sign in with Apple (ios/App/App/AppleSignInPlugin.swift): AuthenticationServices, no SDK. */
 const AppleSignIn = registerPlugin<{ signIn(options: { nonce: string }): Promise<AppleCredential> }>("AppleSignIn");
+
+/** The app's own dictation (ios/App/App/SpeechRecognizerPlugin.swift, android .../SpeechRecognizerPlugin.java): the
+ * phone's recognizer, offline where it can be. Events carry the session number `start` was given. */
+export interface SpeechPermissions { microphone: string; speech?: string }
+export interface SpeechPlugin {
+  checkPermissions(): Promise<SpeechPermissions>;
+  requestPermissions(): Promise<SpeechPermissions>;
+  openSettings(): Promise<void>;
+  start(options: { locale?: string; session: number }): Promise<void>;
+  finish(): Promise<void>;
+  stop(): Promise<void>;
+  addListener(event: "transcript", listener: (event: { text?: string; partial?: boolean; session?: number }) => void): Promise<PluginListenerHandle>;
+  addListener(event: "level", listener: (event: { level?: number; session?: number }) => void): Promise<PluginListenerHandle>;
+  addListener(event: "end", listener: (event: { code?: number; reason?: string; session?: number }) => void): Promise<PluginListenerHandle>;
+}
+const DuskSpeech = registerPlugin<SpeechPlugin>("DuskSpeech");
+
+const UNSUPPORTED = new Set(["recognizer-unavailable", "unsupported-locale"]);
+// android has no separate speech permission, so `speech` is absent there
+const speechAllowed = (state: SpeechPermissions) => state.microphone === "granted" && (state.speech === undefined || state.speech === "granted");
+
+/** The VoiceBridge over the native recognizer. Permissions are asked on the first start; a refusal ends the session. */
+export function phoneSpeech(plugin: SpeechPlugin): VoiceBridge {
+  const events = createVoiceEvents();
+  let session = 0;
+  let live = false;
+  let listening: Promise<unknown> | undefined;
+  const ours = (event: { session?: number }) => live && event.session === session;
+  const ended = (info: VoiceEnd) => {
+    live = false;
+    events.end(info);
+  };
+  const listen = () => listening ??= Promise.all([
+    plugin.addListener("transcript", (event) => {
+      if (ours(event) && typeof event.text === "string") events.transcript({ partial: event.partial !== false, text: event.text });
+    }),
+    plugin.addListener("level", (event) => {
+      if (ours(event) && typeof event.level === "number") events.level(Math.min(1, Math.max(0, event.level)));
+    }),
+    plugin.addListener("end", (event) => {
+      if (ours(event)) ended({ code: typeof event.code === "number" ? event.code : 1, reason: event.reason });
+    }),
+  ]).catch((error) => {
+    listening = undefined;
+    throw error;
+  });
+
+  return {
+    async speechStart(options) {
+      session += 1;
+      live = false;
+      const mine = session;
+      try {
+        await listen();
+        let state = await plugin.checkPermissions();
+        if (!speechAllowed(state)) state = await plugin.requestPermissions();
+        if (mine !== session) return;
+        if (!speechAllowed(state)) return ended({ code: 1, reason: "microphone-blocked" });
+      } catch {
+        if (mine === session) ended({ code: 1, reason: "recognition-error" });
+        return;
+      }
+      live = true;
+      try {
+        await plugin.start({ locale: options?.locale, session: mine });
+      } catch (error) {
+        if (mine !== session || !live) return;
+        const code = (error as { code?: unknown } | null)?.code;
+        const reason = typeof code === "string" && code ? code : "recognition-error";
+        ended({ code: UNSUPPORTED.has(reason) ? 2 : 1, reason });
+      }
+    },
+    async speechStop() {
+      session += 1;
+      live = false;
+      await plugin.stop().catch(() => {});
+    },
+    async speechFinish() {
+      if (!live) return;
+      try {
+        await plugin.finish();
+      } catch {
+        if (live) ended({ code: 0, reason: "completed" });
+      }
+    },
+    onSpeechTranscript: events.onSpeechTranscript,
+    onSpeechEnd: events.onSpeechEnd,
+    onSpeechLevel: events.onSpeechLevel,
+  };
+}
 
 /** What a live scan needs of whichever scanner the platform has. */
 export interface ScanDriver {
@@ -212,6 +304,21 @@ export async function nativePlatform(): Promise<MobilePlatform> {
     bounded(overlayReady ?? Promise.resolve(), "status bar"),
   ]);
   let pendingLaunchUrl = launch?.url;
+  const secrets: MobilePlatform["secrets"] = {
+    get: async (key) => {
+      const { data } = await keystore.internalGetItem({ prefixedKey: SECRET_PREFIX + key, sync: false });
+      return typeof data === "string" ? data : null;
+    },
+    set: (key, value) => keystore.internalSetItem({ prefixedKey: SECRET_PREFIX + key, data: value, sync: false }),
+    remove: async (key) => { await keystore.internalRemoveItem({ prefixedKey: SECRET_PREFIX + key, sync: false }); },
+  };
+  const speech = Capacitor.isPluginAvailable("DuskSpeech");
+  registerPhoneVoice({
+    os: kind,
+    speech: speech ? phoneSpeech(DuskSpeech) : undefined,
+    secrets,
+    openSettings: speech ? () => DuskSpeech.openSettings() : undefined,
+  });
 
   return {
     kind,
@@ -276,14 +383,7 @@ export async function nativePlatform(): Promise<MobilePlatform> {
       set: (key, value) => Preferences.set({ key, value }),
       remove: (key) => Preferences.remove({ key }),
     },
-    secrets: {
-      get: async (key) => {
-        const { data } = await keystore.internalGetItem({ prefixedKey: SECRET_PREFIX + key, sync: false });
-        return typeof data === "string" ? data : null;
-      },
-      set: (key, value) => keystore.internalSetItem({ prefixedKey: SECRET_PREFIX + key, data: value, sync: false }),
-      remove: async (key) => { await keystore.internalRemoveItem({ prefixedKey: SECRET_PREFIX + key, sync: false }); },
-    },
+    secrets,
     scanQr: kind === "android" ? async () => {
       try {
         let permission = await BarcodeScanner.checkPermissions();

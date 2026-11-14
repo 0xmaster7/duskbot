@@ -95,3 +95,17 @@ test("sessions are independent and errors carry no transcript", () => {
   assert.deepEqual(first({ error: "recognition-error" }), { error: "recognition-error" });
   assert.equal(createSpeechTranscript()({ text: "新しい入力", partial: true }).text, "新しい入力");
 });
+
+test("Windows speech's whole-session lines pass through unchanged, phrase ends included", () => {
+  // electron/resources/windows-speech.ps1 sends the session so far on every line and no speechStart
+  const transcript = createSpeechTranscript();
+  const said = [
+    { partial: true, text: "hello" },
+    { partial: true, text: "hello world", utteranceFinal: true },
+    { partial: true, text: "hello world hello" },
+    { partial: true, text: "hello world hello world again", utteranceFinal: true },
+    { partial: true, text: "hello world hello world again and" },
+    { partial: false, text: "hello world hello world again and done" },
+  ];
+  for (const line of said) assert.equal(transcript(line).text, line.text);
+});

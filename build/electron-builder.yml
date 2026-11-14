@@ -34,6 +34,8 @@ files:
   - "!electron/resources/speech-helper.swift"
   - "!electron/resources/speech-helper-Info.plist"
   - "!electron/resources/Dusk Bot Speech.app/**"
+  # windows ships it in Resources (win.extraResources): powershell cannot read inside app.asar
+  - "!electron/resources/windows-speech.ps1"
   # The Teach a skill recorder is gone, but a machine that once ran
   # `pnpm build:recorder` may still hold its helper build; never ship it.
   - "!electron/resources/recorder-helper"
@@ -169,6 +171,9 @@ win:
       arch: x64
   icon: build/icon.ico
   extraResources:
+    # built-in dictation: Windows PowerShell 5.1 + System.Speech, run by electron/speech.mjs
+    - from: electron/resources/windows-speech.ps1
+      to: windows-speech.ps1
     - from: dist-native/cloudflared/win32-x64/cloudflared.exe
       to: cloudflared/cloudflared.exe
     - from: dist-native/browser/win32-x64

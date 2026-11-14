@@ -10,6 +10,7 @@ import { buildErrorPage, desktopViewerErrorPage, RENDERER_CRASHES, windowCrashed
 import { startCua, stopCua, registerCuaIpc, setCuaStateListener, grantLocalComputer } from "./cua.mjs";
 import { finishSpeech, speechBusy, startSpeech, stopSpeech } from "./speech.mjs";
 import { installTalk, isTalkPanel } from "./talk-main.mjs";
+import { installVoiceInput } from "./voice-input-main.mjs";
 import { installAmbient, isAmbientWindow } from "./ambient-main.mjs";
 import { openBlankTerminal } from "./terminal-launch.mjs";
 import { linuxDisablesGpu } from "./linux-gpu.mjs";
@@ -2647,6 +2648,9 @@ ipcMain.handle("desktop:relaunch", localOnly("desktop:relaunch", (event) => {
 
 const talk = installTalk({ ipcMain, localOnly, localOrHome, BrowserWindow, appleSpeech: nativeActions.appleSpeech,
   speech: { start: startSpeech, stop: stopSpeech, finish: finishSpeech, busy: speechBusy }, packaged: app.isPackaged, devUrl: DEV_URL, nativeImage, iconPath: APP_ICON, openLink: queueChatLink, reveal: revealForLink, log: slog });
+// voice input through a speech service set up in Settings > Voice; the keys stay in credentials.bin
+installVoiceInput({ ipcMain, localOnly, readCredentials: () => secureCredentialState?.read() ?? secureCredentials,
+  updateCredentials: derive => updateSecureCredentialDocument(derive), log: slog });
 // the notch island and the bot dock (ambient-main.mjs), fed by the app page's own summary of its bots
 const ambientSurfaces = installAmbient({ ipcMain, BrowserWindow, page: () => mainWindow?.webContents ?? null, origin: confirmedRendererOrigin, file: jsonFile(path.join(app.getPath("userData"), "ambient-prefs.json")),
   openChat: (botId, threadId, origin) => origin && desktopNotifications.openAt(origin, { botId, threadId }), reveal: revealForLink, log: slog,
@@ -3507,7 +3511,7 @@ app.on("before-quit", (e) => {
   try {
     desktopCompanionRelay?.close?.();
   } catch {}
-  if (nativeActions.appleSpeech) stopSpeech();
+  stopSpeech();
   const ownedHelperCleanup = Promise.race([
     Promise.all([
       stopCua().catch(() => {}),

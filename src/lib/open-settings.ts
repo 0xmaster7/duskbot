@@ -13,12 +13,14 @@ export const ADVANCED_PAGES: ReadonlyArray<{ id: AdvancedPage; icon: IconName; s
   { id: "data", icon: "database", sections: ["data", "backups"] },
 ];
 
-export type SettingsPane = "general" | "texting" | "computer" | "permissions" | "vault" | "models" | "bots" | "usage" | "updates" | "advanced";
+export type SettingsPane = "general" | "voice" | "texting" | "computer" | "permissions" | "vault" | "models" | "bots" | "usage" | "updates" | "advanced";
 
 /** Grok's panes, with Phone, Models and Advanced features for what Grok has no pane for. Bots is not on the rail: a bot
  * is set up in its own panel, and Bots only hosts the page one of the panel's rows opens. */
 export const SETTINGS_PANES: ReadonlyArray<{ id: SettingsPane; labelKey: LocaleKey; icon: IconName; sections: readonly AppSettingsSection[]; rail?: false }> = [
   { id: "general", labelKey: "settings.section.general", icon: "settings-gear", sections: ["general", "appearance", "looks", "import"] },
+  // voice input runs on this device, so it shows here even while this app shows another computer
+  { id: "voice", labelKey: "settings.voice.title", icon: "mic", sections: ["voice"] },
   { id: "texting", labelKey: "settings.grok.group.phone", icon: "chat-bubbles", sections: ["texting", "companion"] },
   { id: "computer", labelKey: "settings.simple.page.computer", icon: "display", sections: ["computer", "desktopWorkspaces", "remote", "transfer"] },
   { id: "permissions", labelKey: "settings.pane.permissions", icon: "shield", sections: ["permissions", "botAccess", "activity"] },

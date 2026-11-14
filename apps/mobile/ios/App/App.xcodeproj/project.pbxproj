@@ -19,6 +19,7 @@
 		D05C00012F00000100B07D05 /* AppViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D05C00022F00000100B07D05 /* AppViewController.swift */; };
 		D05C00032F00000100B07D05 /* QrScannerPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = D05C00042F00000100B07D05 /* QrScannerPlugin.swift */; };
 		D05C00092F00000100B07D05 /* AppleSignInPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = D05C000A2F00000100B07D05 /* AppleSignInPlugin.swift */; };
+		D05C000B2F00000100B07D05 /* SpeechRecognizerPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = D05C000C2F00000100B07D05 /* SpeechRecognizerPlugin.swift */; };
 		D05C00052F00000100B07D05 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D05C00062F00000100B07D05 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
@@ -37,6 +38,7 @@
 		D05C00022F00000100B07D05 /* AppViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppViewController.swift; sourceTree = "<group>"; };
 		D05C00042F00000100B07D05 /* QrScannerPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QrScannerPlugin.swift; sourceTree = "<group>"; };
 		D05C000A2F00000100B07D05 /* AppleSignInPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInPlugin.swift; sourceTree = "<group>"; };
+		D05C000C2F00000100B07D05 /* SpeechRecognizerPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognizerPlugin.swift; sourceTree = "<group>"; };
 		D05C00062F00000100B07D05 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		D05C00072F00000100B07D05 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -77,6 +79,7 @@
 				D05C00022F00000100B07D05 /* AppViewController.swift */,
 				D05C00042F00000100B07D05 /* QrScannerPlugin.swift */,
 				D05C000A2F00000100B07D05 /* AppleSignInPlugin.swift */,
+				D05C000C2F00000100B07D05 /* SpeechRecognizerPlugin.swift */,
 				D05C00062F00000100B07D05 /* PrivacyInfo.xcprivacy */,
 				D05C00072F00000100B07D05 /* App.entitlements */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
@@ -201,6 +204,7 @@
 				D05C00012F00000100B07D05 /* AppViewController.swift in Sources */,
 				D05C00032F00000100B07D05 /* QrScannerPlugin.swift in Sources */,
 				D05C00092F00000100B07D05 /* AppleSignInPlugin.swift in Sources */,
+				D05C000B2F00000100B07D05 /* SpeechRecognizerPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

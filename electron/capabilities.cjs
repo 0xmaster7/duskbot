@@ -119,12 +119,14 @@ function desktopCapabilities({
     screenPreview.reasonCode =
       hostPlatform === "linux" ? "headless-session" : "unsupported-platform";
   }
-  // Off the Mac the page listens itself and Fish Audio turns each clip into text (src/lib/fish-speech.ts).
-  const fishListening = hostPlatform === "win32" || hostPlatform === "linux";
+  // Windows listens with its built-in recognizer (electron/resources/windows-speech.ps1). On Linux the page listens
+  // itself and Fish Audio turns each clip into text (src/lib/fish-speech.ts).
+  const isWindows = hostPlatform === "win32";
+  const fishListening = hostPlatform === "linux";
   const dictation = {
-    available: isMac || fishListening,
-    engine: isMac ? "apple-speech" : fishListening ? "fish-audio" : "none",
-    onDevice: isMac,
+    available: isMac || isWindows || fishListening,
+    engine: isMac ? "apple-speech" : isWindows ? "windows-speech" : fishListening ? "fish-audio" : "none",
+    onDevice: isMac || isWindows,
   };
   if (!dictation.available) dictation.reasonCode = "unsupported-platform";
   const localComputer = {

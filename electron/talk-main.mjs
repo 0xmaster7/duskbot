@@ -11,24 +11,26 @@ export { isTalkPanel } from "./talk-panel.mjs";
  * is ready. `speech`: speech.mjs's start/stop/finish/busy. `packaged`: asks go to `localRequest`, this computer's own
  * server; in development to `devUrl`, whose Vite /api proxy reaches `pnpm dev:server`.
  */
-export function installTalk({ ipcMain, localOnly, localOrHome, BrowserWindow, appleSpeech, speech, packaged, devUrl, nativeImage, iconPath, openLink, reveal, log, fetch = globalThis.fetch }) {
+export function installTalk({ ipcMain, localOnly, localOrHome, BrowserWindow, appleSpeech, speech, packaged, devUrl, nativeImage, iconPath, openLink, reveal, log, fetch = globalThis.fetch, platform = process.platform }) {
+  // dictation and calls listen natively on the Mac and on Windows (speech.mjs); the talk shortcut stays Mac-only
+  const nativeSpeech = appleSpeech || platform === "win32";
   const callPresence = createCallPresence();
   let shortcut = null, session = null, panel = null, theme = null;
 
   ipcMain.handle("speech:start", localOnly("speech:start", (event, options) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (!win) return;
-    if (!appleSpeech) {
+    if (!nativeSpeech) {
       win.webContents.send("speech:end", { code: 2, reason: "unsupported-platform" });
       return;
     }
     speech.start(win, options);
   }));
   ipcMain.handle("speech:stop", localOnly("speech:stop", (event) => {
-    if (appleSpeech) speech.stop(BrowserWindow.fromWebContents(event.sender));
+    if (nativeSpeech) speech.stop(BrowserWindow.fromWebContents(event.sender));
   }));
   ipcMain.handle("speech:finish", localOnly("speech:finish", (event) => {
-    if (appleSpeech) speech.finish(BrowserWindow.fromWebContents(event.sender));
+    if (nativeSpeech) speech.finish(BrowserWindow.fromWebContents(event.sender));
   }));
   ipcMain.handle("talk-shortcut:state", localOnly("talk-shortcut:state", () => shortcut?.state() ?? TALK_SHORTCUT_UNAVAILABLE));
   ipcMain.handle("talk-shortcut:set", localOnly("talk-shortcut:set", (_event, change) => shortcut?.set({

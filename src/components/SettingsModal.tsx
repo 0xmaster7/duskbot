@@ -32,13 +32,14 @@ import {
 } from "./SettingsPanes";
 import { ADVANCED_PAGES, SETTINGS_PANES, consumeBotTarget, settingsLocation, useBotTarget, type SettingsPane } from "@/lib/open-settings";
 import { VaultNewItem } from "./LoginsSettings";
+import { VoiceInputSettings } from "./VoiceInputSettings";
 import { BotsPane, chooseBotsScope, scopeOf, targetPage } from "./SettingsBots";
 import "../styles/settings.css";
 
 
 export { openBotSettings, openSettings, settingsLocation, SETTINGS_PANES, type SettingsLocation, type SettingsPane } from "@/lib/open-settings";
 
-const REMOTE_SECTIONS: readonly AppSettingsSection[] = ["appearance", "companion", "desktopWorkspaces", "looks"];
+const REMOTE_SECTIONS: readonly AppSettingsSection[] = ["appearance", "companion", "desktopWorkspaces", "looks", "voice"];
 
 export function revealSettingsBlock(
   scroller: Parameters<typeof scrollWithin>[0] & { querySelector: (selector: string) => Parameters<typeof scrollWithin>[1] | null },
@@ -103,7 +104,7 @@ export function SettingsModal() {
   const offered: Record<AppSettingsSection, boolean> = {
     general: true, appearance: true, texting: true, companion: true, remote: true, computer: true, logins: true, updates: true,
     advanced: true, apps: true, looks: true, bots: true, data: true, builder: true, about: true, engines: true, connections: true,
-    skills: true, usage: true, backups: true, import: true, experimental: true, transfer: vpsLinkAvailable(),
+    skills: true, usage: true, backups: true, import: true, experimental: true, voice: true, transfer: vpsLinkAvailable(),
     desktopWorkspaces: Boolean(window.duskDesktop?.environments),
     organization: Boolean(window.duskDesktop?.organization),
     cloudAccount: Boolean(window.duskDesktop?.cloudAccount || (window.duskDesktop?.cloudPlan && cloudHome)),
@@ -115,7 +116,7 @@ export function SettingsModal() {
   offered.permissions = offered.botAccess || offered.activity;
   const has = (id: AppSettingsSection) => offered[id] && (!remoteActive || REMOTE_SECTIONS.includes(id));
 
-  const paneShown = (pane: SettingsPane) => (pane !== "texting" || phoneAppEnabled()) && (!remoteActive || pane === "general" || pane === "texting" || pane === "computer");
+  const paneShown = (pane: SettingsPane) => (pane !== "texting" || phoneAppEnabled()) && (!remoteActive || pane === "general" || pane === "voice" || pane === "texting" || pane === "computer");
   const panes = SETTINGS_PANES.filter((pane) => paneShown(pane.id) && pane.sections.some(has));
   const railPanes = panes.filter((pane) => pane.rail !== false);
   const advancedPages = ADVANCED_PAGES.filter((page) => page.sections.some(has)).map((page) => page.id);
@@ -250,6 +251,7 @@ export function SettingsModal() {
   const renderBody = (at: AdvancedPage | undefined) => {
     switch (pane) {
       case "general": return <GeneralPane has={has} remoteActive={remoteActive} />;
+      case "voice": return <VoiceInputSettings />;
       case "texting": return <TextingPane has={has} remoteAccess={remoteAccess} />;
       case "computer": return <ComputerPane has={has} remoteActive={remoteActive} remoteAccess={remoteAccess} servers={<ConnectedWorkspacesSettings />} transfer={has("transfer") ? <TransferSettings /> : null} />;
       case "permissions": return <PermissionsPane has={has} />;
