@@ -171,5 +171,6 @@ it("says every Sign in with Apple problem in its own words", async () => {
   const { appleProblemLine } = await import("./AccountGate");
   const lines = (["failed", "unavailable", "signup-closed", "taken", "rate-limited", "offline"] as const).map(appleProblemLine);
   expect(new Set(lines).size).toBe(lines.length);
-  for (const line of lines) expect(line).toMatch(/^[a-z]/);
+  // full sentences on the phone read in sentence case (src/locales/lowercase.test.ts)
+  for (const line of lines) expect(line).toMatch(/^[A-Z]/);
 });

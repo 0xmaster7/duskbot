@@ -156,6 +156,8 @@ export function isSentenceEntry(key: string, value: string): boolean {
   const words = wordCount(value);
   if (MESSAGE_KEY.test(key) && words >= 3) return true;
   if (/^[^.!?]+\?$/.test(value.trim()) && words <= 6) return false; // a short question is a heading ("send on your behalf?")
+  // one long clause that leads into a list is a sentence ("What you send your bots ... goes to:")
+  if (words >= 10 && /^[^.!?]+:$/.test(value.trim())) return true;
   return words >= 3 && /[.!?]["”’)]*$/.test(value.trim());
 }
 
@@ -169,6 +171,8 @@ export function sentenceCase(text: string): string {
   const starts = [0];
   // the sentence after a filled-in reason: "could not load: {reason} please try again"
   for (const m of text.matchAll(/\{(?:reason|detail|error|message|why)\}\s+/g)) starts.push((m.index as number) + m[0].length);
+  // a new paragraph starts a sentence too ("...wrong:\n\n{text}\n\nWhat was wrong with it:")
+  for (const m of text.matchAll(/\n\s*\n\s*/g)) starts.push((m.index as number) + m[0].length);
   for (const m of text.matchAll(/[.!?]["”’)]*\s+/g)) {
     const at = (m.index as number) + m[0].length;
     if (!ABBREVIATION_BEFORE.test(text.slice(0, at))) starts.push(at);
