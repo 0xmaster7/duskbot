@@ -647,7 +647,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
         grok={simple}
         ariaLabel={name}
         onOpenChange={simple ? setMenuOpen : undefined}
-        triggerClassName={simple && named ? cn("group/account flex max-w-full items-center rounded-full pe-1 text-[13px] leading-[18px] tracking-[0.015em] text-ink transition-[background-color,color,width,padding] duration-300 ease-[cubic-bezier(.2,0,0,1)] hover:text-ink-secondary aria-expanded:text-ink-secondary", nameHidden && "pe-0", GROK_FOCUS) : iconOnly || simple ? cn("group/acct shrink-0", circle || simple ? "rounded-full" : "rounded-xl") : "w-full"}
+        triggerClassName={simple && named ? cn("group/account flex max-w-full items-center rounded-full pe-1 text-[13px] leading-[18px] tracking-[0.015em] text-ink transition-[background-color,color,width,padding] duration-300 ease-[cubic-bezier(.2,0,0,1)] hover:text-ink-secondary aria-expanded:text-ink-secondary", nameHidden && "pe-0", GROK_FOCUS) : iconOnly || simple ? cn("group/acct flex shrink-0", circle || simple ? "rounded-full" : "rounded-xl") : "w-full"}
         triggerTitle={iconOnly || (simple && !named) ? label : undefined}
         triggerLabel={label}
         triggerTour={account?.place.switchable ? "server-switcher" : undefined}
