@@ -122,6 +122,10 @@ import { connectorCallFromFrame, connectorRefusalText, connectorScopeRefusalText
 import { connectorCardDescription, connectorCardText } from "./connector-card-text.ts";
 import { BOT_LIMIT_CODE } from "../shared/bot-limit.ts"; import { createBotLimit } from "./host/starter-bot-limit.ts"; import { chiefOfStaffSystemPrompt } from "./chief-of-staff.ts"; import { chiefLevel, readTeamRolesWith } from "./chief-level.ts"; import { defaultBotRefusal, ensureDefaultBot, renameLegacyDefaultBots } from "./default-bot.ts";
 import { buildRecall, recallRooms, recallThreadIds, withRecalled } from "./recall.ts";
+import { heldMemory, takeMemoryDelta } from "./memory-snapshot.ts";
+import { aboutOwner } from "./memory-facts.ts";
+import { migrateMemory } from "./memory-migrate.ts";
+import { warmEmbedder } from "./memory-embed.ts";
 import { generalForPrompt } from "./general-memory.ts";
 import { computerFailuresToResolve, RESOLVE_SCAN } from "./computer-failure-resolution.ts";
 import { chatMessageCount, habitReminder } from "./habit-reminder.ts"; import { HANDOFF_BRIEF_RULE } from "./handoff-brief.ts"; import { hostTimeZone, personTimeZone, takesTurnClock, turnClockLine, withTurnClock } from "./turn-clock.ts";
@@ -344,7 +348,10 @@ import {
   supportsWorkspaceFiles,
   appendMemoryLog,
   memoryLogPath,
+  loadMemory,
   memorySystemPrompt,
+  memoryTopicIndex,
+  readMemoryRaw,
   memorySourceLabel,
   searchMemoryFiles,
   SESSION_SEARCH_SYSTEM_PROMPT,
@@ -1140,19 +1147,46 @@ function recallThreads(from: BotRecord, capability: Parameters<typeof cloudOwner
   return { roomByThread, ownThreads: recallThreadIds(from, roomByThread).filter((id) => !proactive.fence.confines(id) && !botApiThread(id)).filter(CLOUD_TEAM ? teamHost.readableFrom(capability.threadId) : cloudOwnerView(capability) ? cloudOwnerOnlyThread : () => true) };
 }
 
+/** The fact-store owner of the About me a turn in `threadId` reads: the server's, or on a Team Cloud the member's own. */
+function aboutOwnerFor(botId: string, threadId: string): string {
+  return CLOUD_TEAM ? aboutOwner(teamHost.layer(botId, threadId)) : aboutOwner();
+}
+
+const heldKey = (botId: string, threadId: string) => `${botId}\n${threadId}`;
+
+/** About me and the core notes this turn's system prompt carries, held for the conversation so its cached prefix holds. */
+function heldMemoryParts(bot: BotRecord, threadId: string, shape: Parameters<typeof memorySystemPrompt>[1] & object): { about: string; core: string } {
+  const profile = teamHost.profileFor(threadId, cfg.profile);
+  const layer = teamHost.layer(bot.id, threadId);
+  const held = heldMemory(heldKey(bot.id, threadId), JSON.stringify(shape), () => ({
+    about: profile?.aboutMe ?? "",
+    notes: shape.enabled === false ? "" : readMemoryRaw(layer),
+    topics: shape.enabled === false ? "" : memoryTopicIndex(layer),
+  }));
+  return {
+    about: userProfileSystemPrompt(profile ? { ...profile, aboutMe: held.about } : profile),
+    core: memorySystemPrompt(layer, { ...shape, held: { notes: held.notes, topics: held.topics } }) + teamHost.sharedNotesPrompt(bot.id, threadId),
+  };
+}
+
 /** Other conversations only for a 1:1 turn the person started: another bot, a webhook or a room must not pull a private chat into its reply. */
-function autoRecallPrompt(bot: BotRecord, threadId: string, message: string, opts: { conversations: boolean; userName: PersonName }): string {
-  if (bot.memoryEnabled === false || !autoRecallEnabled(cfg)) return "";
+async function autoRecallPrompt(bot: BotRecord, threadId: string, message: string, opts: { conversations: boolean; userName: PersonName }): Promise<string> {
+  if (bot.memoryEnabled === false) return "";
+  const delta = takeMemoryDelta(heldKey(bot.id, threadId));
+  if (!autoRecallEnabled(cfg)) return delta;
   const roomByThread = opts.conversations ? recallRooms(store.groups, bot, roomFeedsBot) : new Map<string, GroupRecord>();
   const threadIds = opts.conversations
     ? recallThreadIds(bot, roomByThread).filter((id) => id !== threadId && threadReadableFrom(threadId)(id) && outsideLineage.mayReach(id, threadId))
     : [];
   try {
-    const recalled = buildRecall({
-      botId: bot.id, memoryIds: teamHost.memoryIds(bot.id, threadId),
+    const memoryIds = teamHost.memoryIds(bot.id, threadId);
+    const aboutText = teamHost.profileFor(threadId, cfg.profile)?.aboutMe?.trim() ?? "";
+    const recalled = await buildRecall({
+      botId: bot.id, memoryIds,
       message,
       threadIds,
-      general: generalForPrompt(teamHost.profileFor(threadId, cfg.profile)?.aboutMe?.trim() ?? "").omitted,
+      about: { owner: aboutOwnerFor(bot.id, threadId), text: aboutText },
+      loaded: [generalForPrompt(aboutText).text, ...memoryIds.map((id) => loadMemory(id)?.text ?? "")],
       label: (id) => {
         const room = roomByThread.get(id);
         if (room) return `room ${JSON.stringify(room.name)}`;
@@ -1163,10 +1197,10 @@ function autoRecallPrompt(bot: BotRecord, threadId: string, message: string, opt
       author: (hit) => (hit.role === "user" ? hit.peer ?? personOf(opts.userName, typeof opts.userName === "string" ? {} : store.messagesFor(hit.threadId).find((line) => line.id === hit.messageId) ?? {}) : hit.from ?? bot.name),
     });
     if (recalled) console.log(`auto-recall: ${bot.name} (${bot.id}) got ${recalled.notes} note and ${recalled.conversations} conversation passage(s) in ${threadId}`);
-    return recalled?.text ?? "";
+    return [delta, recalled?.text ?? ""].filter(Boolean).join("\n\n");
   } catch (err) {
     console.warn(`auto-recall failed for ${bot.id}: ${(err as Error).message}`);
-    return "";
+    return delta;
   }
 }
 
@@ -9137,9 +9171,11 @@ async function beginTurn(
       // The tool bridge is decided here: the folder the turn is launched in is known, and the prompt is not built yet.
       applyAgentsBridge(threadId, integrations, cfg, bot, turnEngine(instance, instanceConfigs(cfg), registry.lastSnapshot(instance.instanceId), cwd));
       const confined = proactive.fence.confines(threadId), apiFenced = botApiThread(threadId); if (confined || apiFenced) for (const key of Object.keys(integrations) as Array<keyof typeof integrations>) if (!(apiFenced ? BOT_API_TOOLS : READ_AND_DRAFT_TOOLS).has(key)) delete integrations[key];
+      const memoryShape = { managedWrites: Boolean(integrations.agents), fileTools: worksInWorkspace && !apiFenced, enabled: bot.memoryEnabled !== false, writesRefused: notesRefused };
+      const heldTurnMemory = heldMemoryParts(bot, threadId, memoryShape);
       const prompt = buildSystemPrompt(persona, liveBot?.soul ?? bot.soul ?? "", [
         aboutYou(liveBot ?? bot, { computer: computerPromptKind, browser: Boolean(integrations.browser), routines: Boolean(integrations.agents), apps: Boolean(integrations.composio), managedWrites: Boolean(integrations.agents) }),
-        { id: "user-profile", label: "About the user", text: userProfileSystemPrompt(teamHost.profileFor(threadId, cfg.profile)) }, { id: "people", label: "People", text: teamMessages.prompt(bot.id, threadId, Boolean(integrations.agents)) }, { id: "long-waits", label: "Waiting on the person", text: teammatePrompts.personBehind(bot.id, threadId) ? teamMessages.longWaits(threadId) : "" },
+        { id: "user-profile", label: "About the user", text: heldTurnMemory.about }, { id: "people", label: "People", text: teamMessages.prompt(bot.id, threadId, Boolean(integrations.agents)) }, { id: "long-waits", label: "Waiting on the person", text: teammatePrompts.personBehind(bot.id, threadId) ? teamMessages.longWaits(threadId) : "" },
         { id: "setup", label: "Setup", text: setupSystemPrompt(setupMode, {
           skills: skillAuthoring, chief: Boolean((liveBot ?? bot).chiefOfStaff),
           cwd: liveBot?.cwd ?? bot.cwd,
@@ -9179,7 +9215,7 @@ async function beginTurn(
         // Volatile, so a teammate starting or finishing never changes the stable half.
         teamAvailabilityPart(coordinationPrompt ? sectionPeers : []),
         { id: "recent", label: "Recent work", text: recentWorkPrompt(recentWork(recentWorkSources(bot), bot, { userName: CLOUD_TEAM ? teamHost.personName(teamConversationPerson(threadId)) ?? "the team" : cfg.profile?.name?.trim() || "User", currentThreadId: threadId, ...recentWorkFilter(threadId) }), Date.now(), personTimeZone(proactive.brief.timeZone())) },
-        { id: "memory", label: "Memory", text: memorySystemPrompt(teamHost.layer(bot.id, threadId), { managedWrites: Boolean(integrations.agents), fileTools: worksInWorkspace && !apiFenced, enabled: bot.memoryEnabled !== false, writesRefused: notesRefused }) + teamHost.sharedNotesPrompt(bot.id, threadId) },
+        { id: "memory", label: "Memory", text: heldTurnMemory.core },
         // liveBot predates awaited setup work; an assignment PUT in that window must still reach this prompt.
         { id: "skills", label: "Skills index", text: privateWorkspace ? skillsHost.skillsIndex(store.bot(bot.id) ?? bot, threadId, instance) : "" },
         { id: "skill-instructions", label: "Skill instructions", text: skillInstructions },
@@ -9190,7 +9226,7 @@ async function beginTurn(
       ].filter((part) => (apiFenced ? BOT_API_PARTS.has(part.id) : !confined || READ_AND_DRAFT_PARTS.has(part.id))), integrations.agents, { replyStyle: liveBot?.replyStyle ?? bot.replyStyle, talkingStyle: cfg.talkingStyle, quickUpdates: quickUpdatesEnabled(cfg) && sideJobs.text("turn-beat", bot.id, { instance }) !== null });
       turnPromptBytes.set(threadId, { stable: Buffer.byteLength(prompt.stable), volatile: Buffer.byteLength(prompt.volatile) });
       // Recall rides in front of this turn's message, never the system prompt, whose volatile half is re-sent whole on any change.
-      const recalled = autoRecallPrompt(bot, threadId, resolvedImages.text, {
+      const recalled = await autoRecallPrompt(bot, threadId, resolvedImages.text, {
         // A routine run starts fresh, and a webhook is untrusted: neither pulls earlier conversations in.
         conversations: commsDepth === 0 && !coordinationNode && !opts?.automationSource && !opts?.unattended && !apiFenced,
         userName: userNameFor(threadId),
@@ -10951,7 +10987,9 @@ async function runClaimedGroupMemberTurn(
     const drift = checkSoulDrift(bot.id, bot.soul ?? "", bot.soulHash ?? "");
     if (drift.drift !== Boolean(bot.soulDrift)) store.patchBot(bot.id, { soulDrift: drift.drift });
   }
-  const roomMemory = memorySystemPrompt(teamHost.layer(bot.id, threadId), { managedWrites: Boolean(integrations.agents), fileTools: worksInWorkspace, enabled: bot.memoryEnabled !== false }) + teamHost.sharedNotesPrompt(bot.id, threadId);
+  const roomMemoryShape = { managedWrites: Boolean(integrations.agents), fileTools: worksInWorkspace, enabled: bot.memoryEnabled !== false };
+  const heldRoomMemory = heldMemoryParts(bot, threadId, roomMemoryShape);
+  const roomMemory = heldRoomMemory.core;
   const recentLines = recentWork(recentWorkSources(bot), bot, { userName: typeof userName === "string" ? userName : "the team", currentThreadId: threadId, ...recentWorkFilter(threadId) });
   const earlierInRoom = await roomEarlier.prompt(conversationOfRun(threadId), bot.id, roomWindow.earlier);
   if (roomPlan.browser && !(roomPlan.computer === undefined && roomTeamComputer)) {
@@ -10981,7 +11019,7 @@ async function runClaimedGroupMemberTurn(
   applyAgentsBridge(threadId, integrations, cfg, bot, turnEngine(instance, instanceConfigs(cfg), registry.lastSnapshot(instance.instanceId), cwd));
   const roomSystem = buildSystemPrompt(system, store.bot(bot.id)?.soul ?? bot.soul ?? "", [
     aboutYou(readyBot, { computer: roomComputerPromptKind, browser: Boolean(integrations.browser), routines: false, apps: Boolean(integrations.composio), managedWrites: Boolean(integrations.agents) }),
-    { id: "user-profile", label: "About the user", text: userProfileSystemPrompt(teamHost.profileFor(threadId, cfg.profile)) }, { id: "people", label: "People", text: teamMessages.prompt(bot.id, threadId, Boolean(integrations.agents)) },
+    { id: "user-profile", label: "About the user", text: heldRoomMemory.about }, { id: "people", label: "People", text: teamMessages.prompt(bot.id, threadId, Boolean(integrations.agents)) },
     { id: "files", label: "File locations", text: workspace ? workspaceLocationsPrompt(bot.id, cwd, readyBot.cwd, { attachFile: Boolean(integrations.agents) && !CLOUD_HOME }) : "" },
     { id: "shell", label: "Long-running commands", text: workspace ? longCommandsPrompt(roomComputerPromptKind) : "" },
     { id: "mcp", label: "MCP servers", text: mcpPrompt(bot, integrations.custom ?? {}) + teamConnections.prompt(threadId, internalGeneration, integrations) },
@@ -11054,6 +11092,8 @@ async function runClaimedGroupMemberTurn(
       ? liveGroup.turnTimeoutMinutes
       : store.groupTaskByThread(liveGroup.id, threadId)?.turnTimeoutMinutes,
   );
+  // A private chat reaches a room only through the explicit, disclosed session_search, never automatically.
+  const roomRecalled = cardContinuation ? "" : await autoRecallPrompt(bot, threadId, resolvedLatestImages.text, { conversations: false, userName });
   const outcome = await new Promise<GroupMemberTurnOutcome>((resolve) => {
     let done = false;
     let unsub = () => {};
@@ -11113,8 +11153,6 @@ async function runClaimedGroupMemberTurn(
     clearHeldReplay(group.id, bot.id, heldReplay.messageIds);
     turnPromptBytes.set(threadId, { stable: Buffer.byteLength(roomSystem.stable), volatile: Buffer.byteLength(roomSystem.volatile) });
     runningTurnEngines.set(threadId, instance);
-    // A private chat reaches a room only through the explicit, disclosed session_search, never automatically.
-    const roomRecalled = cardContinuation ? "" : autoRecallPrompt(bot, threadId, resolvedLatestImages.text, { conversations: false, userName });
     const turnApprovalMode = roomTurnApprovalMode(readyBot, threadId, orchestration);
     if (!done) releaseTurnLevel = roomTurnLevels.dispatched(threadId, readyBot.id, turnApprovalMode);
     const { reset: roomReset, displaced } = roomMemberContexts.dispatch(threadId, readyBot.id, instance.instanceId, cfg.context);
@@ -16373,6 +16411,13 @@ server.listen(PORT, "127.0.0.1", async () => {
   moveFreeze.hold(() => { routines!.start(); botWaits.start(); proactive.start(); }, () => { routines!.stop(); botWaits.stop(); proactive.stop(); });
   limitClock.start(); slackHost.start();
   moveFreeze.hold(() => { memoryUpkeep.start(); importDistill.start(); }, () => { memoryUpkeep.stop(); importDistill.stop(); });
+  try {
+    const migrated = migrateMemory(DATA_DIR, { botIds: store.bots.map((bot) => bot.id), aboutMe: CLOUD_TEAM ? null : cfg.profile?.aboutMe ?? "" });
+    if (migrated) console.log(`memory: fact store built from ${migrated.lines} lines in ${migrated.files} files (${migrated.facts} facts); the files as they were are kept in ${migrated.backup}`);
+  } catch (error) {
+    console.warn(`memory: could not build the fact store now; recall builds it as it goes: ${(error as Error).message}`);
+  }
+  if (store.bots.some((bot) => bot.memoryEnabled !== false)) warmEmbedder();
 });
 
 // Tunnel requests have no peer address, which request-auth treats as proxied: a session is required, never loopback trust.

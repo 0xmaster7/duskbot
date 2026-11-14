@@ -12,7 +12,7 @@ import { capturePrompt, parseCandidates, CAPTURE_MARKER } from "./memory-capture
 import { parseMemoryEntries } from "./memory-entries.ts";
 import { createMemoryUpkeep, type UpkeepBot, type UpkeepEngine } from "./memory-upkeep.ts";
 import { closeMessageDb } from "./message-db.ts";
-import { generalPassages } from "./recall.ts";
+import { buildRecall } from "./recall.ts";
 import { listLearnedFacts } from "./profile-learned.ts";
 import { ensureWorkspace, readMemoryTopic, workspaceDir, writeMemoryFile, writeMemoryTopic, WORKSPACES_DIR } from "./workspace.ts";
 
@@ -48,10 +48,16 @@ describe("what loads each turn", () => {
     expect(omitted.map((line) => line.fact)).toEqual(["Likes long walks on Sundays", "Plays the cello"]);
   });
 
-  it("recalls a left-out fact when the message shares its words", () => {
-    const lines = [{ fact: "Plays the cello every Sunday", date: "2026-03-01" }, { fact: "Likes long walks", date: "2026-02-01" }];
-    expect(generalPassages(lines, "any good cello teachers near me?").map((passage) => passage.snippet)).toEqual(["Plays the cello every Sunday"]);
-    expect(generalPassages(lines, "what's the weather")).toEqual([]);
+  it("recalls a left-out fact when the message shares its words, and nothing loaded twice", async () => {
+    const text = [learned("2026-03-01", "Scout", "Plays the cello every Sunday"), learned("2026-02-01", "Scout", "Likes long walks"), learned("2026-04-01", "Scout", "Prefers dark mode")].join("\n");
+    const recall = (message: string, loaded: string[] = []) =>
+      buildRecall({ botId: "gm-recall", message, threadIds: [], label: () => "", author: () => "", about: { owner: "about", text }, loaded, today: TODAY });
+    const cello = (await recall("any good cello teachers near me?"))?.text ?? "";
+    expect(cello).toContain("about the person");
+    expect(cello).toContain("Plays the cello every Sunday");
+    expect(cello).not.toContain("long walks");
+    expect(await recall("what's the weather in town today")).toBeNull();
+    expect((await recall("is dark mode on everywhere?", [text]))?.text ?? "").not.toContain("Prefers dark mode");
   });
 });
 

@@ -3,22 +3,25 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DATA_DIR } from "./config.ts";
 import { closeMessageDb, recallMatchTerm, recallTerms } from "./message-db.ts";
-import { buildRecall, enoughMatches, memoryPassages, RECALL_CLOSE, RECALL_OPEN, recallQuery, renderRecall, topicPassages } from "./recall.ts";
-import { appendMemoryLog, searchMemoryFiles, writeMemoryFile, writeMemoryTopic, WORKSPACES_DIR } from "./workspace.ts";
+import { buildRecall, enoughMatches, RECALL_CLOSE, RECALL_NONE, RECALL_OPEN, recallQuery, renderRecall } from "./recall.ts";
+import { appendMemoryLog, loadMemory, searchMemoryFiles, writeMemoryFile, writeMemoryTopic, WORKSPACES_DIR } from "./workspace.ts";
+
+const recallText = async (message: string, extra: { memoryIds?: string[]; loaded?: string[] } = {}) =>
+  (await buildRecall({ botId: BOT, message, threadIds: [], label: () => "", author: () => "", ...extra }))?.text ?? "";
+/** The notes a message recalls, by label, in order. */
+const labels = (text: string) => [...text.matchAll(/^\[\d+\] #f[0-9a-f]+ ([^ ]+(?: [^ (]+)*) \(/gm)].map((m) => m[1]);
 
 const BOT = "bot-recall-test";
 
-it("keeps a matching answer late in a named topic instead of replacing it with the introduction", () => {
+it("keeps a matching answer late in a named topic instead of replacing it with the introduction", async () => {
   writeMemoryTopic(BOT, "tapa.md", `---\ntitle: Tapa\n---\n${"Earlier draft background. ".repeat(40)}\nThe approved amber test is version SEVEN.\n`);
-  const result = buildRecall({ botId: BOT, message: "Tapa approved amber test", threadIds: [], label: () => "", author: () => "" });
-  expect(result?.text).toContain("SEVEN");
+  expect(await recallText("Tapa approved amber test")).toContain("SEVEN");
 });
 
-it("keeps a named topic's matching answer when better-ranked matches fill the recall budget", () => {
+it("keeps a named topic's matching answer when better-ranked matches fill the recall budget", async () => {
   writeMemoryTopic(BOT, "tapa.md", `---\ntitle: Tapa\n---\n${"Earlier draft background. ".repeat(40)}\nThe approved amber test is version SEVEN.\n`);
   for (let n = 0; n < 5; n++) writeMemoryTopic(BOT, `decoy-${n}.md`, `- Tapa approved amber test, Tapa amber test ${n}\n`);
-  const result = buildRecall({ botId: BOT, message: "Tapa approved amber test", threadIds: [], label: () => "", author: () => "" });
-  expect(result?.text).toContain("SEVEN");
+  expect(await recallText("Tapa approved amber test")).toContain("SEVEN");
 });
 
 describe("recall terms and query", () => {
@@ -33,6 +36,8 @@ describe("recall terms and query", () => {
 
   it("does not search a nod or a message with only filler", () => {
     expect(recallQuery("ok")).toBeNull();
+    expect(recallQuery("thanks a lot!")).toBeNull();
+    expect(recallQuery("sounds good")).toBeNull();
     expect(recallQuery("can you tell me about it?")).toBeNull();
     expect(recallQuery("where is the invoice folder")).not.toBeNull();
   });
@@ -76,18 +81,20 @@ describe("recall from memory files", () => {
     rmSync(WORKSPACES_DIR, { recursive: true, force: true });
   });
 
-  it("finds a topic by one word or an alias, never MEMORY.md or the archive", () => {
+  it("finds a fact by one word or its topic's alias, never what already loads or what expired", async () => {
     writeMemoryFile(BOT, "- 2026-09-10 · The dentist is Dr Rao\n");
     writeMemoryTopic(BOT, "dining.md", "---\naliases: [food, restaurants]\n---\n- Loves pasta, hates olives\n");
     writeMemoryTopic(BOT, "archive.md", "- 2026-09-01 · Dentist was Dr Old · expired 2026-09-05\n");
-    expect(memoryPassages(BOT, "any good restaurants nearby tonight").map((p) => p.label)).toEqual(["memory/dining.md"]);
-    expect(memoryPassages(BOT, "who is my dentist")).toEqual([]);
-    const block = buildRecall({ botId: BOT, message: "book a table, any restaurants?", threadIds: [], label: () => "", author: () => "" });
-    expect(block?.text).toContain("memory/dining.md");
-    expect(block?.text).toContain("Loves pasta");
+    const block = await recallText("book a table, any restaurants?");
+    expect(block).toContain("memory/dining.md");
+    expect(block).toContain("Loves pasta");
+    const dentist = await recallText("who is my dentist", { loaded: [loadMemory(BOT)!.text] });
+    expect(dentist).not.toContain("Dr Rao");
+    expect(dentist).not.toContain("Dr Old");
+    expect(await recallText("who is my dentist")).toContain("Dr Rao");
   });
 
-  it("matches singular and plural, but never turns a symbol into a prefix", () => {
+  it("matches singular and plural, but never turns a symbol into a prefix", async () => {
     expect(recallMatchTerm("restaurants")).toBe('"restaurant"*');
     expect(recallMatchTerm("restaurant")).toBe('"restaurant"*');
     expect(recallMatchTerm("class")).toBe('"class"*');
@@ -95,71 +102,82 @@ describe("recall from memory files", () => {
     expect(recallMatchTerm("-10")).toBeNull();
     expect(recallMatchTerm("tea")).toBe('"tea"');
     writeMemoryTopic(BOT, "dining.md", "---\naliases: [food, restaurants]\n---\n- Loves pasta\n");
-    expect(memoryPassages(BOT, "suggest a restaurant for tonight").map((p) => p.label)).toEqual(["memory/dining.md"]);
+    expect(labels(await recallText("suggest a restaurant for tonight"))).toEqual(["memory/dining.md"]);
   });
 
-  it("recalls a topic by its name, title or alias even when its text never says the word", () => {
+  it("recalls a topic's facts by its name, title or alias even when the fact never says the word", async () => {
     writeMemoryTopic(BOT, "Dining.md", "# Dining\n\n---\naliases: [Bhel, Irani Cafe]\n---\n- Loves pasta\n");
     writeMemoryTopic(BOT, "family.md", "---\ntitle: Family\n---\n- Sister Asha lives in Delhi\n");
-    expect(topicPassages(BOT, "any good dining spots tonight?").map((p) => p.snippet)).toEqual(["- Loves pasta"]);
-    expect(topicPassages(BOT, "where can I get bhel?").map((p) => p.label)).toEqual(["memory/Dining.md"]);
-    expect(topicPassages(BOT, "an Irani cafe nearby").map((p) => p.label)).toEqual(["memory/Dining.md"]);
-    expect(topicPassages(BOT, "is my family visiting?").map((p) => p.label)).toEqual(["memory/family.md"]);
-    expect(topicPassages(BOT, "suggest a restaurant")).toEqual([]);
+    expect(await recallText("any good dining spots tonight?")).toContain("Loves pasta");
+    expect(labels(await recallText("where can I get bhel?"))).toEqual(["memory/Dining.md"]);
+    expect(labels(await recallText("an Irani cafe nearby"))).toEqual(["memory/Dining.md"]);
+    expect(labels(await recallText("is my family visiting?"))).toEqual(["memory/family.md"]);
   });
 
-  it("never recalls a daily log, which repeats what was just said", () => {
+  it("never recalls a daily log, which repeats what was just said", async () => {
     appendMemoryLog(BOT, "shipped the quarterly invoice report");
-    expect(memoryPassages(BOT, "the quarterly invoice report")).toEqual([]);
+    expect(await recallText("the quarterly invoice report")).toBe("");
   });
 
-  it("does not confuse signed numbers or language symbols with punctuation-free FTS tokens", () => {
+  it("does not confuse signed numbers or language symbols with punctuation-free FTS tokens", async () => {
     writeMemoryTopic(BOT, "numbers.md", "The balance is 10. The language is C.\n");
-    expect(memoryPassages(BOT, "-10")).toEqual([]);
-    expect(memoryPassages(BOT, "C++")).toEqual([]);
-    expect(memoryPassages(BOT, "10")).toHaveLength(1);
+    expect(await recallText("is it -10 or C++?")).toBe("");
+    expect(await recallText("balance 10 now")).toContain("balance is 10");
   });
 
-  it("recalls words separated by ordinary punctuation without splitting semantic symbols", () => {
+  it("recalls words separated by ordinary punctuation without splitting semantic symbols", async () => {
     writeMemoryTopic(BOT, "billing.md", "Invoice goes to finance.\n");
     writeMemoryTopic(BOT, "payment.md", "Send funds on Friday.\n");
     for (const query of ["invoice/payment", "invoice-payment", "invoice,payment", "invoice:payment", "invoice—payment"]) {
       expect(recallTerms(query)).toEqual(["invoice", "payment"]);
-      expect(memoryPassages(BOT, query).map((hit) => hit.label)).toContain("memory/billing.md");
-      expect(topicPassages(BOT, query).map((hit) => hit.label)).toContain("memory/payment.md");
+      const found = labels(await recallText(query));
+      expect(found).toContain("memory/billing.md");
+      expect(found).toContain("memory/payment.md");
     }
     expect(recallTerms("-10 C++ v2.1")).toEqual(["-10", "c++", "v2.1"]);
   });
 
-  it("filters historical files before the recall limit without hiding them from explicit search", () => {
+  it("leaves logs to explicit search", async () => {
     for (let day = 1; day <= 15; day++) appendMemoryLog(BOT, "invoice", { now: new Date(2026, 8, day) });
-    writeMemoryTopic(BOT, "archive.md", "invoice");
-    writeMemoryFile(BOT, "invoice");
     writeMemoryTopic(BOT, "billing.md", "Invoice goes to the finance team. " + "Other details. ".repeat(100));
-    expect(memoryPassages(BOT, "invoice").map((hit) => hit.label)).toEqual(["memory/billing.md"]);
+    expect(labels(await recallText("invoice details"))).toEqual(["memory/billing.md"]);
     expect(searchMemoryFiles(BOT, "invoice", 30).some((hit) => hit.file.startsWith("memory/log/"))).toBe(true);
   });
 
-  it("excludes expired topic facts from aliases and search even when the file has not changed", () => {
+  it("drops an expired fact the day after even when the file has not changed, and answers the past with it", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     try {
       vi.setSystemTime(new Date(2026, 8, 25, 12));
       writeMemoryTopic(BOT, "trip.md", "---\naliases: [holiday]\n---\n- 2026-09-25 · Staying in Goa · until 2026-09-25\n- 2026-09-25 · Prefers window seats\n");
-      expect(memoryPassages(BOT, "staying Goa")[0]?.snippet).toContain("Goa");
+      expect(await recallText("staying in Goa")).toContain("Goa");
       vi.setSystemTime(new Date(2026, 8, 26, 12));
-      expect(topicPassages(BOT, "holiday")[0]?.snippet).not.toContain("Goa");
-      expect(topicPassages(BOT, "holiday")[0]?.snippet).toContain("window seats");
-      expect(memoryPassages(BOT, "staying Goa")).toEqual([]);
-      expect(memoryPassages(BOT, "window seats")[0]?.snippet).toContain("window");
+      const holiday = await recallText("holiday plans, which seats");
+      expect(holiday).not.toContain("Goa");
+      expect(holiday).toContain("window seats");
+      expect(await recallText("where was I staying before")).toContain("Goa");
     } finally {
       vi.useRealTimers();
     }
   });
 
-  it("is null for a short message or nothing matching", () => {
+  it("answers a time question with what held then, and the current question with what holds now", async () => {
+    writeMemoryFile(BOT, [
+      "- 2026-01-05 · ~~The person lives in Lisbon~~ · superseded 2026-06-10",
+      "- 2026-06-10 · The person lives in Porto",
+    ].join("\n") + "\n");
+    const now = await recallText("which city do I live in?", { loaded: [] });
+    expect(now).toContain("Porto");
+    expect(now).not.toContain("Lisbon");
+    const then = await recallText("where did I live last spring?");
+    expect(then).toContain("Lisbon");
+    expect(then).toMatch(/no longer true; held 2026-01-05 to 2026-06-10\): The person lives in Lisbon/);
+  });
+
+  it("says plainly when a question about the person finds nothing, and stays silent otherwise", async () => {
     writeMemoryTopic(BOT, "dining.md", "- Loves pasta\n");
-    expect(buildRecall({ botId: BOT, message: "ok", threadIds: [], label: () => "", author: () => "" })).toBeNull();
-    expect(buildRecall({ botId: BOT, message: "schedule the quarterly review", threadIds: [], label: () => "", author: () => "" })).toBeNull();
+    expect(await buildRecall({ botId: BOT, message: "ok", threadIds: [], label: () => "", author: () => "" })).toBeNull();
+    expect(await buildRecall({ botId: BOT, message: "schedule the quarterly review", threadIds: [], label: () => "", author: () => "" })).toBeNull();
+    expect(await recallText("what is my passport number?")).toContain(RECALL_NONE);
   });
 });
 
@@ -170,21 +188,19 @@ describe("recall across memory layers (a Team Cloud)", () => {
     rmSync(WORKSPACES_DIR, { recursive: true, force: true });
   });
 
-  it("reads the layers it is given and no other: the turn's own and the team's, never another member's", () => {
+  it("reads the layers it is given and no other: the turn's own and the team's, never another member's", async () => {
     const TEAM = BOT, MINE = `${BOT}--member-p_mine`, THEIRS = `${BOT}--member-p_theirs`;
     writeMemoryTopic(TEAM, "office.md", "---\naliases: [plant]\n---\n- The office plant is Fernando\n");
     writeMemoryTopic(MINE, "tea.md", "---\naliases: [drinks]\n---\n- Ada prefers oolong tea\n");
     writeMemoryTopic(THEIRS, "badge.md", "---\naliases: [door]\n---\n- Ben's badge code is 4471\n");
-    const recall = (memoryIds: string[], message: string) => buildRecall({ botId: BOT, memoryIds, message, threadIds: [], label: () => "", author: () => "" })?.text ?? "";
-    const mine = recall([MINE, TEAM], "any plant or drinks or door codes for the badge?");
+    const mine = await recallText("any plant or drinks or door codes for the badge?", { memoryIds: [MINE, TEAM] });
     expect(mine).toContain("Fernando");
     expect(mine).toContain("oolong");
     expect(mine).not.toContain("4471");
-    const team = recall([TEAM], "any plant or drinks or door codes for the badge?");
+    const team = await recallText("any plant or drinks or door codes for the badge?", { memoryIds: [TEAM] });
     expect(team).toContain("Fernando");
     expect(team).not.toContain("oolong");
-    // Without memoryIds a bot reads its own folder only, as before.
-    expect(recall([], "any plant or drinks?")).toContain("Fernando");
-    expect(recall([], "any plant or drinks?")).not.toContain("oolong");
+    expect(await recallText("any plant or drinks?")).toContain("Fernando");
+    expect(await recallText("any plant or drinks?")).not.toContain("oolong");
   });
 });

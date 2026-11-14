@@ -34,6 +34,8 @@ import {
   MEMORY_ENTRY_MAX_LINES,
   MEMORY_MAX_BYTES,
   MEMORY_MAX_LINES,
+  CORE_LOAD_CHARS,
+  CORE_PINNED_CHARS,
   WORKSPACES_DIR,
   TASK_WORKSPACES_DIR,
 } from "./workspace.ts";
@@ -134,15 +136,30 @@ describe("workspace", () => {
     expect(memory?.truncated).toBe(false);
   });
 
-  it("cuts at the line budget and flags the truncation", () => {
+  it("loads the person's own lines up to the budget, cut at a line end, and flags the truncation", () => {
     const dir = ensureWorkspace(BOT);
-    const lines = Array.from({ length: MEMORY_MAX_LINES + 50 }, (_, i) => `- fact ${i}`);
+    const lines = Array.from({ length: MEMORY_MAX_LINES + 50 }, (_, i) => `- fact ${i} ${"w".repeat(30)}`);
     writeFileSync(join(dir, "MEMORY.md"), lines.join("\n"));
     const memory = loadMemory(BOT);
     expect(memory?.truncated).toBe(true);
-    expect(memory?.text.split("\n")).toHaveLength(MEMORY_MAX_LINES);
-    expect(memory?.text).toContain(`- fact ${MEMORY_MAX_LINES - 1}`);
-    expect(memory?.text).not.toContain(`- fact ${MEMORY_MAX_LINES}\n`);
+    expect(memory?.text).toContain("- fact 0 ");
+    expect(memory?.text).not.toContain(`- fact ${MEMORY_MAX_LINES + 49}`);
+    expect(memory!.text.length).toBeLessThanOrEqual(CORE_LOAD_CHARS + CORE_PINNED_CHARS);
+    expect(memory!.text.endsWith("\n")).toBe(false);
+  });
+
+  it("loads the newest dated notes within the budget, never struck or expired ones", () => {
+    const dir = ensureWorkspace(BOT);
+    const entries = Array.from({ length: 120 }, (_, i) => `- 2026-${String(1 + Math.floor(i / 28)).padStart(2, "0")}-${String(1 + (i % 28)).padStart(2, "0")} · Note number ${i} ${"x".repeat(40)}`);
+    writeFileSync(join(dir, "MEMORY.md"), ["# Memory", "The person's own line", "- 2026-01-01 · ~~Old city~~ · superseded 2026-02-01", "- 2026-01-02 · Is allergic to peanuts", ...entries].join("\n"));
+    const memory = loadMemory(BOT, { now: new Date(2026, 10, 15) })!;
+    expect(memory.text).toContain("The person's own line");
+    expect(memory.text).toContain("allergic to peanuts");
+    expect(memory.text).toContain("Note number 119");
+    expect(memory.text).not.toContain("Note number 0 ");
+    expect(memory.text).not.toContain("Old city");
+    expect(memory.omitted).toBeGreaterThan(0);
+    expect(memory.text.length).toBeLessThanOrEqual(CORE_LOAD_CHARS + 100);
   });
 
   it("cuts at the byte budget without leaving a torn multi-byte character", () => {
@@ -433,20 +450,19 @@ describe("workspace", () => {
     }
   });
 
-  it("states the load cut plainly for a hand-grown file, and tells a managed bot the file never fills up", () => {
+  it("states the load cut plainly, and tells a managed bot older notes come back when they matter", () => {
     const dir = ensureWorkspace(BOT);
-    const lines = Array.from({ length: MEMORY_MAX_LINES + 50 }, (_, i) => `- fact ${i}`);
+    const lines = Array.from({ length: 150 }, (_, i) => `- 2026-0${1 + (i % 9)}-1${i % 10} · fact ${i} ${"y".repeat(40)}`);
     writeFileSync(join(dir, "MEMORY.md"), `${lines.join("\n")}\n`);
     const memory = loadMemory(BOT);
-    expect(memory).toMatchObject({ truncated: true, lines: MEMORY_MAX_LINES + 50 });
+    expect(memory).toMatchObject({ truncated: true, lines: 150 });
     const managed = memorySystemPrompt(BOT, { managedWrites: true });
-    expect(managed).toContain(`[MEMORY.md is ${MEMORY_MAX_LINES + 50} lines and ${memory!.bytes} bytes; only the first ${MEMORY_MAX_LINES} lines / ${MEMORY_MAX_BYTES} bytes are shown above.]`);
-    expect(managed).toContain(`It is shown to you at the start of every session, up to ${MEMORY_MAX_LINES} lines / 24 KB.`);
+    expect(managed).toContain(`[${memory!.omitted} older notes are not shown here; they are recalled when a message touches them.]`);
+    expect(managed).toContain("Its newest notes, up to about 5k characters, are shown to you at the start of every session");
     expect(managed).not.toContain("archive");
-    expect(managed).not.toContain("Consolidate");
     expect(managed).not.toContain("short and curated");
     expect(memorySystemPrompt(BOT)).toContain("Keep MEMORY.md short and curated.");
-    writeFileSync(join(dir, "MEMORY.md"), `${lines.slice(0, MEMORY_MAX_LINES).join("\n")}\n`);
+    writeFileSync(join(dir, "MEMORY.md"), `${lines.slice(0, 10).join("\n")}\n`);
     expect(loadMemory(BOT)?.truncated).toBe(false);
   });
 

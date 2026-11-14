@@ -9,8 +9,11 @@ import {
   MEMORY_FILE_MAX_BYTES,
   MEMORY_MAX_BYTES,
   MEMORY_MAX_LINES,
+  coreForPrompt,
   ensureWorkspace,
+  isMemorySeed,
   isMemoryTopicName,
+  memoryDate,
   workspaceDir,
 } from "./workspace.ts";
 
@@ -131,19 +134,10 @@ export interface MemoryOverview {
   logs: MemoryFileInfo[];
 }
 
-/** Must cut exactly as loadMemory() does: MEMORY_MAX_LINES lines, then MEMORY_MAX_BYTES bytes. */
-export function memoryCapacity(raw: string): MemoryCapacity {
+/** The same selection loadMemory() makes: what loads each turn, against the file's own size cap. */
+export function memoryCapacity(raw: string, today = memoryDate()): MemoryCapacity {
   const lines = raw === "" ? 0 : raw.split("\n").length;
-  let loaded = raw;
-  let truncated = false;
-  if (lines > MEMORY_MAX_LINES) {
-    loaded = raw.split("\n").slice(0, MEMORY_MAX_LINES).join("\n");
-    truncated = true;
-  }
-  if (Buffer.byteLength(loaded, "utf8") > MEMORY_MAX_BYTES) {
-    loaded = Buffer.from(loaded, "utf8").subarray(0, MEMORY_MAX_BYTES).toString("utf8").replace(/�+$/, "");
-    truncated = true;
-  }
+  const loaded = raw.trim() && !isMemorySeed(raw) ? coreForPrompt(raw, today).text : raw;
   return {
     lines,
     bytes: Buffer.byteLength(raw, "utf8"),
@@ -151,7 +145,7 @@ export function memoryCapacity(raw: string): MemoryCapacity {
     maxBytes: MEMORY_MAX_BYTES,
     loadedLines: loaded === "" ? 0 : loaded.split("\n").length,
     loadedBytes: Buffer.byteLength(loaded, "utf8"),
-    truncated,
+    truncated: loaded !== raw,
     hash: hashMemoryText(raw),
   };
 }

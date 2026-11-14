@@ -4,7 +4,7 @@ import { DATA_DIR } from "./config.ts";
 import { closeMessageDb } from "./message-db.ts";
 import { createMemoryUpkeep } from "./memory-upkeep.ts";
 import { writeMemoryTopic, readMemoryTopic, ensureWorkspace } from "./workspace.ts";
-import { memoryPassages, selectMemoryPassages, type RecallPassage } from "./recall.ts";
+import { buildRecall } from "./recall.ts";
 import { TIDY_MARKER } from "./memory-tidy.ts";
 beforeEach(() => { closeMessageDb(); rmSync(DATA_DIR, { recursive: true, force: true }); });
 const bot = { id: "learning", name: "Editor" };
@@ -19,21 +19,13 @@ it("reconciles a correction in a two-entry project topic, retaining the old vers
   expect(report.superseded).toBe(1);
   expect(report.note).toBeUndefined();
   expect(readMemoryTopic(bot.id, "tapa.md")).toContain("~~Use blue treatment~~");
-  expect(memoryPassages(bot.id, "blue treatment").some(hit => hit.snippet.includes("blue"))).toBe(false);
-  expect(memoryPassages(bot.id, "orange treatment")[0]?.snippet).toContain("orange");
+  const recall = async (message: string) => (await buildRecall({ botId: bot.id, message, threadIds: [], label: () => "", author: () => "" }))?.text ?? "";
+  expect(await recall("which treatment do we use now")).not.toContain("blue");
+  expect(await recall("which treatment do we use now")).toContain("orange");
+  expect(await recall("what treatment did we use before")).toContain("no longer true");
   upkeep.stop();
 });
 
-
-it("reserves named topics while preferring their actual matching passage", () => {
-  const passage = (label: string, snippet: string): RecallPassage => ({ source: "memory", label, snippet });
-  const unrelated = [1, 2, 3, 4].map(n => passage(`memory/${n}.md`, "matching words"));
-  const named = passage("memory/tapa.md", "topic opening");
-  expect(selectMemoryPassages(unrelated, [named])).toContainEqual(named);
-  const answer = passage(named.label, "the answer deep in the topic");
-  expect(selectMemoryPassages([...unrelated, answer], [named])[0]).toEqual(answer);
-  expect(selectMemoryPassages(unrelated, [named])).toHaveLength(4);
-});
 
 it("bounds topic model calls and rotates deferred topics into the next tidy", async () => {
   ensureWorkspace(bot.id);

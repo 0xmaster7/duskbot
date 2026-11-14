@@ -29,9 +29,10 @@ export function userProfileSystemPrompt(profile?: { aboutMe?: string; person?: s
  * otherwise every change relaunches it and the provider re-uploads the conversation at the cache-write rate. */
 // The last six describe one turn, not the conversation: where it came from, where the person is (on their phone,
 // at the computer, or not there) and what its words switched on.
+// Memory is held for the whole conversation, so it sits in the stable half too.
 // Two per-turn sections stay stable on purpose: "setup" sits right after the standing instructions it overrides,
 // and "webhook" keeps its untrusted-data rule in the system prompt, out of reach of the payload it guards.
-const VOLATILE_SECTIONS = new Set(["memory", "room-earlier", "mentions", "outstanding", "teammate-questions", "long-waits", "recent", "availability", "active-routines",
+const VOLATILE_SECTIONS = new Set(["room-earlier", "mentions", "outstanding", "teammate-questions", "long-waits", "recent", "availability", "active-routines",
   "plan", "assignment", "routine-execution", "skill-instructions", "playbooks", "device-place", "files"]);
 
 /** Its id is what puts it in the volatile half. */

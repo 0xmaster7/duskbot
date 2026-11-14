@@ -53,7 +53,7 @@ describe("capacityStatus", () => {
   it("always says the plain sentence about what loads", () => {
     const status = capacityStatus(index());
     expect(status.level).toBe("ok");
-    expect(status.sentence).toBe("40 of 200 lines · 2 KB of 23.4 KB. Only the first 200 lines load each turn.");
+    expect(status.sentence).toBe("40 of 200 lines · 2 KB of 23.4 KB. All of it loads each turn.");
     expect(status.warning).toBeNull();
     expect(status.lineShare).toBeCloseTo(0.2);
   });
@@ -64,23 +64,17 @@ describe("capacityStatus", () => {
     expect(capacityStatus(index({ lines: 159, bytes: 19_000 })).level).toBe("ok");
   });
 
-  it("goes red when truncated and says exactly how much is not loading", () => {
-    const status = capacityStatus(index({ lines: 260, loadedLines: 200, truncated: true }));
-    expect(status.level).toBe("over");
-    expect(status.warning).toBe(
-      "260 lines saved, 200 load into every conversation. 60 lines are not being loaded. Trim this file or move notes into a topic file.",
-    );
-    expect(capacityStatus(index({ lines: 201, loadedLines: 200, truncated: true })).warning).toContain("1 line is not being loaded");
+  it("says how much loads when older notes are left to recall, without warning", () => {
+    const status = capacityStatus(index({ lines: 120, bytes: 12_000, loadedLines: 50, loadedBytes: 5_000, truncated: true }));
+    expect(status.level).toBe("ok");
+    expect(status.sentence).toBe("120 of 200 lines · 11.7 KB of 23.4 KB. 4.9 KB of it loads each turn; older notes come back when a message needs them.");
+    expect(status.warning).toBeNull();
   });
 
-  it("explains a byte cut when the line count fits", () => {
-    const status = capacityStatus(index({ lines: 10, bytes: 30_000, loadedBytes: 24_000, truncated: true }));
+  it("goes red only past the file's own size limit", () => {
+    const status = capacityStatus(index({ lines: 10, bytes: 30_000, loadedBytes: 5_000, truncated: true }));
     expect(status.level).toBe("over");
-    expect(status.warning).toContain("29.3 KB saved, 23.4 KB load into every conversation. The rest is not being loaded");
-  });
-
-  it("does not divide by a zero budget", () => {
-    expect(capacityStatus(index({ maxLines: 0, maxBytes: 0 })).lineShare).toBe(0);
+    expect(status.warning).toContain("past its size limit");
   });
 });
 

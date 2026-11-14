@@ -12,7 +12,9 @@ import { DATA_DIR } from "./config.ts";
 import { alwaysCore, factIdentity, foldForMatch, type MemoryEntryLine } from "./memory-entries.ts";
 
 /** Learned lines loaded into every turn beyond the person's own lines; the rest reach a turn through recall. */
-export const GENERAL_LOAD_CHARS = 3_000;
+export const GENERAL_LOAD_CHARS = 2_000;
+/** Health and safety lines always load, up to this much, newest first. */
+export const GENERAL_PINNED_CHARS = 1_000;
 /** Consolidation keeps the learned lines under this; the oldest past it move to the history. */
 export const GENERAL_MAX_CHARS = 12_000;
 export const CONSOLIDATE_MARKER = "You are the CONSOLIDATE step of a memory system";
@@ -54,11 +56,14 @@ export function generalForPrompt(text: string, budget = GENERAL_LOAD_CHARS): { t
   if (learned.reduce((sum, entry) => sum + entry.raw.length + 1, 0) <= budget) return { text, omitted: [] };
   const keep = new Set<number>();
   let used = 0;
+  let pinned = 0;
   for (const entry of [...learned].sort((a, b) => Number(alwaysCore(b.fact)) - Number(alwaysCore(a.fact)) || newestFirst(a, b))) {
     const size = entry.raw.length + 1;
-    if (!alwaysCore(entry.fact) && used + size > budget) continue;
+    const pin = alwaysCore(entry.fact) && pinned + size <= GENERAL_PINNED_CHARS;
+    if (!pin && used + size > budget) continue;
     keep.add(entry.line);
     used += size;
+    if (pin) pinned += size;
   }
   const omitted = learned.filter((entry) => !keep.has(entry.line));
   const drop = new Set(omitted.map((entry) => entry.line));
