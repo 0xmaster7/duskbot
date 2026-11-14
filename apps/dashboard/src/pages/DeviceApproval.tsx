@@ -14,7 +14,7 @@ import { setFlowNote } from "../lib/flow-note";
 /** the app's sign-in from linking its own server (electron/vps-link-main) */
 export const SERVER_LINK_SOURCE = "server_link";
 
-type Device = { fresh?: boolean; device: { name: string; platform: string }; userCode: string; expiresAt: number; intent?: { kind: string; source?: string }; next?: string };
+type Device = { fresh?: boolean; created?: true; device: { name: string; platform: string }; userCode: string; expiresAt: number; intent?: { kind: string; source?: string }; next?: string };
 
 /** the app's own link: it brings dusk bot forward (the app already signed itself in, so coming back is optional) */
 export const APP_LINK = "duskbot://open";
@@ -72,7 +72,7 @@ export function DeviceApprovalPage() {
         }
         // a new account: the app is signed in already; the website goes on with its usual first steps (name, plan), minus
         // getting the app, which they are in
-        if (cloud.account && !cloud.account.profile.onboarded) { try { sessionStorage.setItem(FROM_APP_KEY, "1"); } catch {} navigate("/", { replace: true }); return; }
+        if (found.created && cloud.account && !cloud.account.profile.onboarded) { try { sessionStorage.setItem(FROM_APP_KEY, "1"); } catch {} navigate("/", { replace: true }); return; }
         setState("approved"); tryAppLink(APP_LINK);
       }
       else { await api.deviceDeny(found.userCode); setState("denied"); }

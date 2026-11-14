@@ -157,7 +157,7 @@ export interface NotificationPrefs {
 export const NOTIFICATION_DEFAULTS: NotificationPrefs = { cloudStatus: true, product: true };
 /** `onboarded`: the page's first-run steps were finished, in any browser */
 export interface AccountAnswer { account: AccountView; identities: IdentityView[]; sessions: SessionView[]; notifications: NotificationPrefs; onboarded: boolean }
-export interface DeviceLookupAnswer { /** this browser signed in after the app asked: approved without a click */ fresh?: boolean; device: { name: string; platform: string }; userCode: string; expiresAt: number; /** the app's account step, bound to this sign-in */ intent?: AccountIntent; /** where the website goes once approved */ next?: string }
+export interface DeviceLookupAnswer { /** this browser signed in after the app asked: approved without a click */ fresh?: boolean; /** and the account was made by this sign-in */ created?: true; device: { name: string; platform: string }; userCode: string; expiresAt: number; /** the app's account step, bound to this sign-in */ intent?: AccountIntent; /** where the website goes once approved */ next?: string }
 /** what an app sign-in ends in (Admin contract v1's verify answer). */
 export interface AppGrant {
   cloudContractVersion: 1;

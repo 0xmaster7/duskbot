@@ -666,14 +666,16 @@ export function createAuth(options: AuthOptions) {
         await deleteAccount(found.account, { email: data.email, cancelBilling: true, destroyDesktopsNow: data.destroyDesktopsNow === true });
         json({ ok: true });
       } else if (path === R.deviceLookup && method === "GET") {
-        requireWeb(req, { mutation: false });
+        const viewer = requireWeb(req, { mutation: false });
         const device = [...devices.values()].find(item => item.userCode === url.searchParams.get("code") && !item.accountId && !item.denied);
         if (!device) return fail(404, "not_found");
         // this browser signed in (or up) after the app asked, through the page the app opened: that was the approval, the
         // page goes on without asking. one signed in before is still asked, so a code sent to someone is never one click
         const session = webSession(req)?.session;
         const fresh = Boolean(session && !session.parentId && device.createdAt !== undefined && session.createdAt > device.createdAt);
-        json({ fresh, device: { name: device.device.name, platform: device.device.platform }, userCode: device.userCode, expiresAt: device.expiresAt, ...(device.intent ? { intent: device.intent, next: accountIntentPath(device.intent) } : {}) });
+        // and this account was made by it: the website takes it through its first steps (the app's sign-in leaves them open)
+        const created = fresh && viewer.createdAt > device.createdAt!;
+        json({ fresh, ...(created ? { created } : {}), device: { name: device.device.name, platform: device.device.platform }, userCode: device.userCode, expiresAt: device.expiresAt, ...(device.intent ? { intent: device.intent, next: accountIntentPath(device.intent) } : {}) });
       } else if (method === "POST" && (path === R.deviceApprove || path === R.deviceDeny)) {
         const owner = requireWeb(req, { mutation: true });
         const device = [...devices.values()].find(item => item.userCode === data.userCode && !item.accountId && !item.denied);

@@ -422,8 +422,8 @@ describe("OAuth over isolated HTTP", () => {
       // the website: the link signs up, then the app's page finds this browser signed in after the app asked
       time += 1000;
       expect((await call("/v1/auth/verify", { attempt: link.searchParams.get("attempt"), code })).status).toBe(200);
-      const looked = await (await call(`/v1/auth/device?code=${userCode}`)).json() as { fresh: boolean };
-      expect(looked.fresh).toBe(true);
+      const looked = await (await call(`/v1/auth/device?code=${userCode}`)).json() as { fresh: boolean; created?: true };
+      expect(looked).toMatchObject({ fresh: true, created: true });
       expect((await call("/v1/auth/device/approve", { userCode }, { [CSRF_HEADER]: jar.values.get("dusk_csrf")! })).status).toBe(200);
       time += 6000; wait!();
       for (let i = 0; i < 50 && client.state().status !== "connected"; i++) await new Promise(resolve => setTimeout(resolve, 20));
@@ -438,8 +438,8 @@ describe("OAuth over isolated HTTP", () => {
     await emailLogin("before@example.test");
     time += 1000;
     const answer = await (await call("/api/cloud/desktop/authorize", { deviceName: "Fixture Mac", platform: "darwin" })).json() as { userCode: string };
-    const looked = await (await call(`/v1/auth/device?code=${answer.userCode}`)).json() as { fresh: boolean };
-    expect(looked.fresh).toBe(false);
+    const looked = await (await call(`/v1/auth/device?code=${answer.userCode}`)).json() as { fresh: boolean; created?: true };
+    expect(looked.fresh).toBe(false); expect(looked.created).toBeUndefined();
   });
   it("ends the desktop's provider sign-in on a denied link and keeps the code flow where the app has no link", async () => {
     let saved: unknown = null;
