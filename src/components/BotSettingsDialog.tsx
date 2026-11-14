@@ -66,6 +66,10 @@ export function BotSettingsDialog({ bot, overlay = false }: {
   }, [dispatch]);
 
   return (
+    <>
+    {/* too narrow to dock, the panel lies over the chat: the chat dims behind it, as under any sheet, and a click there
+        closes it, so its cut-off rows read as covered rather than clipped */}
+    {overlay && <div aria-hidden="true" data-panel-scrim="" className="ui-scrim-light ui-dialog-scrim-panel absolute inset-0 z-40 hidden md:block" onMouseDown={() => dispatch({ type: "toggleSettings", open: false })} />}
     <aside
       ref={dialogRef}
       id={BOT_PANEL_ID}
@@ -82,5 +86,6 @@ export function BotSettingsDialog({ bot, overlay = false }: {
         onClose={() => dispatch({ type: "toggleSettings", open: false })}
       />
     </aside>
+    </>
   );
 }
