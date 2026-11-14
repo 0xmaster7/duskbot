@@ -351,7 +351,7 @@ function start() {
     if (S.tab === 'computer') {
       const inline = $('[data-inline-computer]', p);
       if (inline) {
-        inline.dataset.stage = 'open';
+        inline.dataset.stage = 'screen';
         $('[data-panel-problem]', inline)?.remove();
         // the capture's own machine had no screen to reach: its problem note goes with it
         for (const n of $$('[data-sheet-row="problem-detail"]', p)) (n.closest('[data-panel-card], .rounded-xl, section') ?? n).remove();
@@ -534,38 +534,38 @@ function start() {
     leo: { url: 'flights.example/lisbon', title: 'Dec 12 to 16, 1 adult', rows: [['Direct, 9:40 AM', '$612'], ['Via Madrid, 7:15 AM', '$488', 1], ['Via London, 8:20 AM', '$534'], ['Window seat', 'Available'], ['Price trend', 'Steady']] },
   };
   let pointerTimer = 0;
+  // the bot's desktop as the app streams it: the dotted-hands wallpaper, one browser window and the three-icon dock
   function screenFor(key) {
     const sc = SCREENS[key];
-    const box = document.createElement('div');
-    box.className = 'dw-screen';
+    const mk = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text) n.textContent = text; return n; };
+    const box = mk('div', 'dw-screen');
     box.setAttribute('role', 'img');
     box.setAttribute('aria-label', `${ids[key].name}'s screen: ${sc.title || sc.url}`);
     const colour = /data-colour="([^"]+)"/.exec(unpack(data.bots[key].head))[1];
     box.style.setProperty('--dw-hue', colour);
-    const bar = document.createElement('div');
-    bar.className = 'dw-screen-bar';
-    bar.append(document.createElement('i'), document.createElement('i'), document.createElement('i'));
-    const url = document.createElement('span');
-    url.className = 'dw-screen-url';
-    url.textContent = sc.url;
-    bar.append(url);
-    const page = document.createElement('div');
-    page.className = 'dw-screen-page';
+    const desk = mk('div', 'dw-desk');
+    const win = mk('div', 'dw-browser');
+    const tabs = mk('div', 'dw-browser-tabs');
+    const tab = mk('span', 'dw-browser-tab');
+    tab.append(mk('i'), mk('span', '', sc.title || sc.url));
+    tabs.append(tab);
+    const bar = mk('div', 'dw-screen-bar');
+    bar.append(mk('span', 'dw-screen-nav', '\u2039 \u203a \u21bb'), mk('span', 'dw-screen-url', sc.url));
+    const page = mk('div', 'dw-screen-page');
     if (sc.mono) { page.dataset.mono = ''; page.textContent = sc.rows.join('\n'); }
     else {
-      const h = document.createElement('h4');
-      h.textContent = sc.title;
-      page.append(h);
+      page.append(mk('h4', '', sc.title));
       for (const [a, b, hot] of sc.rows) {
-        const r = document.createElement('div');
-        r.className = 'dw-screen-row';
+        const r = mk('div', 'dw-screen-row');
         if (hot) r.dataset.hot = '';
-        const x = document.createElement('b'); x.textContent = a;
-        const y = document.createElement('span'); y.textContent = b;
-        r.append(x, y);
+        r.append(mk('b', '', a), mk('span', '', b));
         page.append(r);
       }
     }
+    win.append(tabs, bar, page);
+    const dock = mk('div', 'dw-dock');
+    dock.append(mk('i'), mk('i'), mk('i'));
+    desk.append(win, dock);
     const pointer = document.createElement('span');
     pointer.className = 'dw-screen-pointer';
     const body = /data-body="([^"]+)"/.exec(unpack(data.bots[key].head))[1];
@@ -573,11 +573,11 @@ function start() {
     const mark = document.createElement('span');
     holder.append(mark);
     pointer.append(holder);
-    markBox(holder, body, 22);
-    box.append(bar, page, pointer);
+    markBox(holder, body, 18);
+    box.append(desk, pointer);
     requestAnimationFrame(() => {
       if (!pointer.isConnected) return;
-      live.set(pointer, createPixel(mark, { body, size: 22, colour, eyes: '#fff', state: 'working' }));
+      live.set(pointer, createPixel(mark, { body, size: 18, colour, eyes: '#fff', state: 'working' }));
       const move = () => {
         if (!pointer.isConnected) return;
         const rows = $$('.dw-screen-row, h4', page);
