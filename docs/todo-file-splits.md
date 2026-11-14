@@ -6,6 +6,13 @@ then would have caused conflicts, so their numbers were raised to their size plu
 "DELIBERATE EXCEPTION" note in that test. This is the plan to pay that back. The numbers still only go down:
 `scripts/tighten-ratchets.mjs` lowers them at each release, and nothing may grow past them meanwhile.
 
+Later on 2026-11-14 three more files grew past their numbers under active work and were raised the same way:
+`electron/cloud-account.mjs` to 1,190 (1,173 then; the account context redirect contract, 45946fefb, by the account
+intents work), `electron/vps-link.mjs` to 1,350 (1,335 then; own-server first run, eb67d076d) and
+`server/drivers/acp/core.ts` to 1,800 (1,779 then; free model fallback, 957120276). Their existing plans below still
+apply; acp/core.ts has a new row. `server/store.ts` went back under its number with a pure move instead
+(`isProjectEmoji` to `server/project-emoji.ts`).
+
 The same change stopped counting `*.node-test.mjs` files. They are tests (Node's own runner), and the ratchet already
 says tests are not counted; only the filename pattern was missing.
 
@@ -39,3 +46,4 @@ Follow `server/host/README.md`, which already governs `server/index.ts` and work
 | `server/browser-runtime.ts` | 1,063 | Move `BrowserClient` (the transport, lines ~134-336) to `server/browser-client.ts`; keep `BrowserRuntime` and the small result helpers. |
 | `src/lib/ready-bots.ts` | 1,024 | Almost all of it is the ready-bot catalogue data: move the data to `src/lib/ready-bots-catalog.ts` (or one file per category) and keep `readyBot`, `readyBotTemplate` and `matchesReadyBot` here. |
 | `shared/wire.ts` | 1,012 | Move the card data interfaces (`OptionCardData`, `SecretRequestCardData`, `SignInRequestCardData`, `QuotaSwitchCardData` and friends) to `shared/wire-cards.ts` and re-export them from `shared/wire.ts`. |
+| `server/drivers/acp/core.ts` | 1,779 | Joined the exception on 2026-11-14 when 957120276 (free model fallback) took it past 1,740 during active work. The free-model handoff lives inside `sendTurn`: lift the first-reply stall timer and the try-the-next-free-model branch of its catch into `server/drivers/acp/free-fallback.ts` as functions taking the turn's state, session and emit explicitly. |
