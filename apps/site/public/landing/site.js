@@ -31,3 +31,21 @@ if (!prerender) {
 // a double or triple click on a bot would select the paragraph around it; a single press still starts a drag selection
 document.addEventListener('mousedown', (e) => { if (e.detail > 1 && e.target.closest?.('svg.bot, .sb[data-px], .cat img')) e.preventDefault(); });
 }
+// which desktop build fits this computer: mac-arm64, mac-x64, windows or linux-deb, or phone. chromium names the mac's
+// chip; other browsers only through the gpu's name, and with neither it guesses apple silicon, what most macs are now.
+// pages call it once on load, so the download links are already right when you click
+window.duskBuild = async () => {
+  const ua = navigator.userAgent;
+  if (/android|iphone|ipad/i.test(ua) || (/mac/i.test(ua) && navigator.maxTouchPoints > 1)) return 'phone';
+  if (/windows/i.test(ua)) return 'windows';
+  if (/linux|cros/i.test(ua)) return 'linux-deb';
+  try {
+    const arch = (await navigator.userAgentData?.getHighEntropyValues?.(['architecture']))?.architecture;
+    if (arch) return arch === 'arm' ? 'mac-arm64' : 'mac-x64';
+  } catch {}
+  try {
+    const gl = document.createElement('canvas').getContext('webgl'), info = gl?.getExtension('WEBGL_debug_renderer_info');
+    if (/intel|amd|radeon|nvidia/i.test(info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : '')) return 'mac-x64';
+  } catch {}
+  return 'mac-arm64';
+};

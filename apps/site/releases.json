@@ -6,14 +6,23 @@
   "files": {
     "mac-arm64": "DuskBot.dmg",
     "mac-x64": "DuskBot-intel.dmg",
-    "windows": "DuskBot-setup.exe",
-    "linux-deb": "DuskBot-amd64.deb",
-    "linux-appimage": "DuskBot.AppImage"
+    "windows": "https://github.com/DuskBotAI/duskbot-releases/releases/download/v0.2.7/DuskBot-setup.exe",
+    "windows-zip": "https://github.com/DuskBotAI/duskbot-releases/releases/download/v0.2.7/DuskBot-windows.zip",
+    "linux-deb": "https://github.com/DuskBotAI/duskbot-releases/releases/download/v0.2.7/DuskBot-amd64.deb",
+    "linux-appimage": "https://github.com/DuskBotAI/duskbot-releases/releases/download/v0.2.7/DuskBot.AppImage"
   },
   "checksums": "SHA256SUMS",
   "macNotarized": true,
-  "windowsReady": false,
-  "linuxReady": false,
+  "windowsReady": true,
+  "linuxReady": true,
   "ios": "",
-  "android": ""
+  "android": "",
+  "sizes": {
+    "mac-arm64": 345401740,
+    "mac-x64": 369717565,
+    "windows": 215847365,
+    "windows-zip": 369218525,
+    "linux-deb": 272937108,
+    "linux-appimage": 322747099
+  }
 }

@@ -116,16 +116,20 @@ if (bill) {
   });
 }
 
-// the hero download follows your system; the arrow lists every other platform
+// the hero download is the file for this computer, a plain link that starts at once; the arrow lists every other build.
+// on a phone it opens the download page, since the app runs on a computer
 const dl = $('[data-dl]');
 if (dl) {
-  const more = $('.split-more', dl), menu = $('.dl-menu', dl), ua = navigator.userAgent;
-  const mine = /android/i.test(ua) ? 'android' : /iphone|ipad/i.test(ua) ? 'ios' : /windows/i.test(ua) ? 'windows' : /linux|cros/i.test(ua) ? 'linux' : 'mac';
-  if (mine !== 'mac') {
-    const item = $(`[data-os="${mine}"]`, menu);
+  const more = $('.split-more', dl), menu = $('.dl-menu', dl), main = $('.split-main', dl);
+  // site.js (loaded after this file) finds the build
+  addEventListener('DOMContentLoaded', async () => {
+    const key = await window.duskBuild?.();
+    if (key === 'phone') { main.href = '/download'; main.removeAttribute('download'); return; }
+    const item = key && $(`[data-key="${key}"]`, menu);
+    if (!item) return;
+    main.href = item.href;
     $('.dl-os', dl).replaceChildren($('.os', item).cloneNode(true));
-    $('.dl-label', dl).textContent = mine === 'ios' || mine === 'android' ? `get it for ${$('b', item).textContent}` : 'download for free';
-  }
+  });
   const open = (on) => { menu.hidden = !on; more.setAttribute('aria-expanded', on); };
   more.addEventListener('click', () => open(menu.hidden));
   document.addEventListener('click', (e) => { if (!dl.contains(e.target)) open(false); });

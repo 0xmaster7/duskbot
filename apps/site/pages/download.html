@@ -4,17 +4,11 @@
     <p class="lede">open it, sign in to the ai you already use, and your first bot is working a couple of minutes later. free for personal use, no account needed.</p>
     <div class="dl-main" data-dl-page>
 {{#released}}
-{{^macNotarized}}
-      <p class="code-label" data-os-mac>on a mac, paste this in terminal</p>
-      <div class="code" data-os-mac><pre><code>curl -fsSL https://dusk.bot/install-mac | sh</code></pre><button class="copy" type="button" data-copy>copy</button></div>
-{{/macNotarized}}
-      <a class="btn dark" href="{{dl mac-arm64}}" data-os-link{{#windowsReady}} data-windows="{{dl windows}}"{{/windowsReady}}{{#linuxReady}} data-linux="{{dl linux-deb}}"{{/linuxReady}}><span class="dl-os">{{os apple}}</span><span data-os-label>download for mac</span></a>
-      <p class="dl-note" data-os-note>{{#macNotarized}}for apple silicon. on an intel mac, <a href="{{dl mac-x64}}">get the intel build</a>.{{/macNotarized}}{{^macNotarized}}the line picks the right build for your mac and opens it, no prompts. the dmg is for apple silicon (<a href="{{dl mac-x64}}">intel build</a>) and <a href="#mac">needs one extra step</a> the first time.{{/macNotarized}}</p>
-      <template data-for="windows">{{#windowsReady}}for windows 10 and 11. the installer needs no admin rights.{{/windowsReady}}{{^windowsReady}}mac only for now. windows is coming soon.{{/windowsReady}}</template>
-      <template data-for="linux">{{#linuxReady}}a .deb for ubuntu 24.04. rather have an appimage? <a href="{{dl linux-appimage}}">it's here</a>.{{/linuxReady}}{{^linuxReady}}mac only for now. linux is coming soon.{{/linuxReady}}</template>
-      <template data-for="phone">the desktop app is where your bots run. on your phone, you text them with <a href="#phone">the phone app</a>.</template>
-      <p class="dl-also">also for <a href="#mac">mac</a><a href="#windows">windows</a><a href="#linux">linux</a><a href="#phone">iphone and android</a></p>
-      <p class="dl-ver">{{#version}}version {{version}} · {{/version}}<a href="/changelog">what's new</a></p>
+      <div class="dl-cta">
+        <a class="btn dark" href="{{dl mac-arm64}}" data-dl-go download><span class="dl-os">{{os apple}}</span><span data-dl-label>download for mac</span></a>
+        <a class="btn light" href="#all">all downloads</a>
+      </div>
+      <p class="dl-note" data-dl-note>apple silicon · version {{version}}</p>
 {{/released}}
 {{^released}}
       <a class="btn dark" href="/waitlist?source=download">join the waitlist</a>
@@ -26,39 +20,23 @@
 
 {{strip falls | hex orange, heart pink, star green}}
 
+{{#released}}
 <section class="wrap sec" id="all">
-  <div class="head"><h2>every platform.</h2></div>
-  <ul class="dl-rows">
-    <li id="mac" data-os="mac">
-      <span class="dl-ico">{{os apple}}</span>
-      <div><h3>mac<span class="yours" hidden>your system</span></h3><p>macos 12 or later.{{#macNotarized}} signed and notarized.{{/macNotarized}}{{^macNotarized}} not notarized by apple yet, so the line at the top is the easy way in. with the dmg, the first time:{{/macNotarized}}</p>{{^macNotarized}}
-        <ol class="dl-steps"><li>open dusk bot, and click done when macos says it can't check it.</li><li>open system settings, then privacy &amp; security.</li><li>scroll down, click open anyway, and confirm.</li></ol>{{/macNotarized}}</div>
-      <div class="dl-acts">{{#released}}<a class="btn" href="{{dl mac-arm64}}">apple silicon</a><a class="btn" href="{{dl mac-x64}}">intel</a>{{/released}}{{^released}}<span class="soon">soon</span>{{/released}}</div>
-    </li>
-    <li id="windows" data-os="windows">
-      <span class="dl-ico">{{os windows}}</span>
-      <div><h3>windows<span class="yours" hidden>your system</span></h3><p>windows 10 or 11, 64-bit. no admin rights needed. if windows says it protected your pc, click more info, then run anyway.</p></div>
-      <div class="dl-acts">{{#released}}{{#windowsReady}}<a class="btn" href="{{dl windows}}">installer (.exe)</a>{{/windowsReady}}{{^windowsReady}}<span class="soon">soon</span>{{/windowsReady}}{{/released}}{{^released}}<span class="soon">soon</span>{{/released}}</div>
-    </li>
-    <li id="linux" data-os="linux">
-      <span class="dl-ico">{{os linux}}</span>
-      <div><h3>linux<span class="yours" hidden>your system</span></h3><p>ubuntu 24.04, 64-bit. in beta.</p></div>
-      <div class="dl-acts">{{#released}}{{#linuxReady}}<a class="btn" href="{{dl linux-deb}}">.deb</a><a class="btn" href="{{dl linux-appimage}}">appimage</a>{{/linuxReady}}{{^linuxReady}}<span class="soon">soon</span>{{/linuxReady}}{{/released}}{{^released}}<span class="soon">soon</span>{{/released}}</div>
-    </li>
-  </ul>
-
-  <div class="dl-phones" id="phone">
-    <div class="dl-phones-text">
-      <h3>text your bots from your phone</h3>
-      <p>the phone app pairs with your computer or your cloud by scanning a code. answer questions, approve things and get told when a bot is done.</p>
-      <a class="go" href="/docs/phone">how pairing works{{i arrow-right}}</a>
-    </div>
-    <ul class="dl-phone-list">
-      <li id="iphone" data-os="ios"><span class="dl-ico">{{os apple}}</span><b>iphone<span class="yours" hidden>your phone</span></b>{{#ios}}<a class="btn" href="{{ios-link}}">app store</a>{{/ios}}{{^ios}}{{#released}}<a class="btn" href="/docs/phone">use it in the browser</a>{{/released}}{{^released}}<span class="soon">soon</span>{{/released}}{{/ios}}</li>
-      <li id="android" data-os="android"><span class="dl-ico">{{os android}}</span><b>android<span class="yours" hidden>your phone</span></b>{{#android}}<a class="btn" href="{{android-link}}">google play</a>{{/android}}{{^android}}{{#released}}<a class="btn" href="/docs/phone">use it in the browser</a>{{/released}}{{^released}}<span class="soon">soon</span>{{/released}}{{/android}}</li>
-    </ul>
+  <div class="dl-head">
+    <h2>all downloads.</h2>
+    <p class="dl-ver">version {{version}} · <a href="/changelog">what's new</a></p>
   </div>
+  <ul class="dl-list">
+    <li id="mac" data-key="mac-arm64" data-note="apple silicon"><span class="dl-ico">{{os apple}}</span><span class="dl-name"><b>mac</b><span>apple silicon</span></span><span class="dl-type">.dmg</span><span class="dl-size">{{size mac-arm64}}</span><a class="btn" href="{{dl mac-arm64}}" download>download</a></li>
+    <li data-key="mac-x64" data-note="intel"><span class="dl-ico">{{os apple}}</span><span class="dl-name"><b>mac</b><span>intel</span></span><span class="dl-type">.dmg</span><span class="dl-size">{{size mac-x64}}</span><a class="btn" href="{{dl mac-x64}}" download>download</a></li>
+    <li id="windows" data-key="windows" data-note="windows 10 and 11"><span class="dl-ico">{{os windows}}</span><span class="dl-name"><b>windows</b><span>x64</span></span><span class="dl-type">installer .exe</span><span class="dl-size">{{size windows}}</span><a class="btn" href="{{dl windows}}" download>download</a></li>
+    <li data-key="windows-zip"><span class="dl-ico">{{os windows}}</span><span class="dl-name"><b>windows</b><span>x64</span></span><span class="dl-type">portable .zip</span><span class="dl-size">{{size windows-zip}}</span><a class="btn" href="{{dl windows-zip}}" download>download</a></li>
+    <li id="linux" data-key="linux-deb" data-note="ubuntu 24.04"><span class="dl-ico">{{os linux}}</span><span class="dl-name"><b>linux</b><span>x64</span></span><span class="dl-type">.deb</span><span class="dl-size">{{size linux-deb}}</span><a class="btn" href="{{dl linux-deb}}" download>download</a></li>
+    <li data-key="linux-appimage"><span class="dl-ico">{{os linux}}</span><span class="dl-name"><b>linux</b><span>x64</span></span><span class="dl-type">.appimage</span><span class="dl-size">{{size linux-appimage}}</span><a class="btn" href="{{dl linux-appimage}}" download>download</a></li>
+  </ul>
+  <p class="dl-fine">mac builds are signed and notarized by apple. windows builds aren't code-signed yet, so if windows says it protected your pc, click more info, then run anyway.</p>
 </section>
+{{/released}}
 
 <section class="wrap sec dl-small" id="requirements">
   <div>
@@ -66,7 +44,6 @@
     <dl class="specs one">
       <div><dt>a computer</dt><dd>mac (macos 12+), windows 10 or 11, or ubuntu 24.04.</dd></div>
       <div><dt>an ai</dt><dd>claude, chatgpt, gemini, grok or another ai you use. an api key or a local model works too.</dd></div>
-      <div><dt>a phone</dt><dd>optional. iphone or android.</dd></div>
     </dl>
     <p class="dl-fine">first time? <a href="/docs/getting-started">the two minute guide</a>. comfortable with servers? <a href="/docs/your-own-server">run it on your own</a>.</p>
   </div>

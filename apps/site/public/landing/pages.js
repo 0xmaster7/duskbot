@@ -25,35 +25,34 @@ for (const b of $$('[data-copy]')) b.addEventListener('click', async () => {
   later(1600, () => { b.textContent = label; b.classList.remove('done'); });
 });
 
-// download: the big button and the list follow the system you are on. on a phone the desktop app cannot be installed,
-// so the button sends this page to your computer instead
+// download: the big button is a plain link to the file for this computer, so a click starts it at once, and its row in
+// the list is marked yours. on a phone the app cannot be installed, so the button sends this page to your computer
 const dl = $('[data-dl-page]');
 if (dl) {
-  const ua = navigator.userAgent;
-  const mine = /android/i.test(ua) ? 'android' : /iphone|ipad/i.test(ua) || (/mac/i.test(ua) && navigator.maxTouchPoints > 1) ? 'ios' : /windows/i.test(ua) ? 'windows' : /linux|cros/i.test(ua) ? 'linux' : 'mac';
-  const row = $(`#all [data-os="${mine}"]`);
-  if (row) { $('.yours', row).hidden = false; }
-  // the mac install line is only for a mac
-  if (mine !== 'mac') for (const el of $$('[data-os-mac]', dl)) el.hidden = true;
-  const go = $('[data-os-link]', dl), label = $('[data-os-label]', dl), note = $('[data-os-note]', dl), mark = $('.dl-os', dl);
-  if (go && mine !== 'mac') {
-    const pick = $(`template[data-for="${mine}"]`, dl) || $('template[data-for="phone"]', dl);
-    const desktop = mine === 'windows' || mine === 'linux';
-    // a system with no build yet keeps the mac button, and the note says it is coming
-    if (row && (!desktop || go.dataset[mine])) mark.replaceChildren($('.os', row).cloneNode(true));
-    if (desktop) {
-      if (go.dataset[mine]) { go.href = go.dataset[mine]; label.textContent = `download for ${mine}`; }
-    } else {
+  const go = $('[data-dl-go]', dl), label = $('[data-dl-label]', dl), note = $('[data-dl-note]', dl), mark = $('.dl-os', dl);
+  const version = note?.textContent.split(' · ').pop();
+  window.duskBuild?.().then((key) => {
+    if (!go) return;
+    if (key === 'phone') {
       label.textContent = 'send this page to my computer';
+      note.textContent = `dusk bot runs on your computer · ${version}`;
+      go.removeAttribute('download');
       go.addEventListener('click', async (e) => {
         e.preventDefault();
         const link = `${location.origin}/download`;
         if (navigator.share) { try { await navigator.share({ title: 'dusk bot', url: link }); } catch {} return; }
         label.textContent = (await copy(link)) ? 'link copied' : link;
       });
+      return;
     }
-    if (pick) note.replaceChildren(pick.content.cloneNode(true));
-  }
+    const row = $(`#all [data-key="${key}"]`);
+    if (!row) return;
+    row.classList.add('is-yours');
+    go.href = $('a', row).href;
+    label.textContent = `download for ${$('.dl-name b', row).textContent}`;
+    mark.replaceChildren($('.os', row).cloneNode(true));
+    note.textContent = `${row.dataset.note} · ${version}`;
+  });
 }
 
 // monthly or yearly: the white pill is a full-size layer cut down with clip-path, and the prices count to their new value

@@ -343,6 +343,24 @@ body:has(.p-doc) .bar { max-width: 1440px; padding-left: 32px; padding-right: 32
 #verify .code { margin: 14px 0; }
 #verify .code-label { margin-top: 16px; }
 .dl-main { margin-top: 30px; }
+.dl-cta { display: flex; flex-wrap: wrap; gap: 10px; }
+.inner .dl-cta .btn.light { background: var(--wash); color: var(--ink); }
+.inner .dl-cta .btn.light:hover { background: #ebebe8; }
+.dl-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 24px; margin-bottom: 18px; }
+.inner .dl-head h2 { margin: 0; }
+.dl-head .dl-ver { margin: 0; font-size: 13.5px; }
+.dl-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.dl-list li { scroll-margin-top: 24px; display: grid; grid-template-columns: 44px minmax(0, 1fr) 140px 72px auto; align-items: center; gap: 16px; padding: 12px 12px 12px 14px; border-radius: var(--r-l); background: var(--wash); }
+.dl-list .dl-ico { width: 44px; height: 44px; border-radius: 13px; }
+.dl-list .dl-ico .os { width: 20px; height: 20px; }
+.dl-name { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.dl-name b { font-weight: 550; color: var(--ink); }
+.dl-name span, .dl-type, .dl-size { font-size: 15px; color: var(--ink-2); }
+.dl-size { font: 500 13px/1 var(--mono); color: var(--ink-3); text-align: right; }
+.dl-list li.is-yours .dl-name::after { content: "yours"; display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px; background: var(--t-lime); color: #3d6b00; font-size: 12px; font-weight: 500; }
+.inner .dl-list .btn { min-height: 40px; padding: 0 18px; font-size: 15px; background: #fff; }
+.inner .dl-list .btn:hover { background: #ebebe8; }
+.dl-list + .dl-fine { margin: 14px 0 0; font-size: 14.5px; color: var(--ink-2); max-width: 46em; }
 .dl-main .btn { min-height: 56px; padding: 0 30px; font-size: 17.5px; gap: 10px; }
 .dl-main .btn .os { width: 18px; height: 18px; }
 .dl-note { margin: 16px 0 0; font-size: 15.5px; color: var(--ink-2); font-weight: 500; }
@@ -622,6 +640,12 @@ body:has(.p-doc) .bar { max-width: 1440px; padding-left: 32px; padding-right: 32
   .pb { width: 24px; }
   .shot { padding: 12px; border-radius: var(--r-l); margin-left: -4px; margin-right: -4px; }
   .dl-rows li { grid-template-columns: 44px minmax(0, 1fr); gap: 12px 14px; padding: 16px; }
+  .dl-list li { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 4px 12px; padding: 10px 10px 10px 12px; }
+  .dl-list .dl-ico { grid-row: span 2; width: 40px; height: 40px; }
+  .dl-list .btn { grid-column: 3; grid-row: 1 / span 2; }
+  .dl-type { grid-column: 2; grid-row: 2; font-size: 14px; }
+  .dl-size { grid-column: 2; grid-row: 2; justify-self: end; }
+  .dl-cta { display: grid; }
   .dl-ico { width: 44px; height: 44px; border-radius: 14px; }
   .dl-acts { grid-column: 1 / -1; justify-content: flex-start; }
   .specs div { grid-template-columns: 1fr; gap: 2px; }

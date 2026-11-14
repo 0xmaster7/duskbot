@@ -208,7 +208,7 @@ const withLinks = (html) => html.replace(/\{\{app( \/[\w/?=&-]*)?\}\}/g, (_, res
 // what can be downloaded today. releases.json names the files; a release is out once publish-downloads.sh has put
 // releases/latest.json on the site (or releases.json says "released": true). DUSK_RELEASED=1 or 0 forces either state,
 // to look at the page both ways. {{#released}}…{{/released}} and {{^released}}…{{/released}} keep one of two pieces,
-// {{dl key}} is a file's address, {{version}} and {{released-on}} describe the release
+// {{dl key}} is a file's address (a full https address in files is used as is, for a build that is a release ahead), {{size key}} is its size from releases.json's sizes, {{version}} and {{released-on}} describe the release
 const rel = JSON.parse(fs.readFileSync(path.join(here, 'releases.json'), 'utf8'));
 const latestFile = path.join(site, 'releases', 'latest.json');
 let latest = {};
@@ -224,9 +224,9 @@ release.sums = release.version && fs.existsSync(path.join(site, 'releases', rele
 const withRelease = (html) => {
   // pieces can sit inside each other, so this runs until nothing is left to decide
   for (let before; before !== html;) { before = html; html = html.replace(/\{\{([#^])([\w]+)\}\}((?:(?!\{\{[#^])[\s\S])*?)\{\{\/\2\}\}/g, (_, mark, key, inner) => (Boolean(release[key]) === (mark === '#') ? inner : '')); }
-  return html.replace(/\{\{dl ([\w-]+)\}\}/g, (_, key) => { if (!rel.files[key]) throw new Error(`releases.json has no file ${key}`); return rel.base + rel.files[key]; })
-    .replace(/\{\{file ([\w-]+)\}\}/g, (_, key) => rel.files[key]).replace(/\{\{(ios|android)-link\}\}/g, (_, key) => rel[key])
-    .replace(/\{\{version\}\}/g, release.version).replace(/\{\{released-on\}\}/g, release.date).replace(/\{\{sums\}\}/g, release.sums);
+  return html.replace(/\{\{dl ([\w-]+)\}\}/g, (_, key) => { if (!rel.files[key]) throw new Error(`releases.json has no file ${key}`); return /^https:\/\//.test(rel.files[key]) ? rel.files[key] : rel.base + rel.files[key]; })
+    .replace(/\{\{file ([\w-]+)\}\}/g, (_, key) => rel.files[key].split('/').pop()).replace(/\{\{(ios|android)-link\}\}/g, (_, key) => rel[key])
+    .replace(/\{\{size ([\w-]+)\}\}/g, (_, key) => (rel.sizes?.[key] ? `${Math.round(rel.sizes[key] / 1e6)} mb` : '')).replace(/\{\{version\}\}/g, release.version).replace(/\{\{released-on\}\}/g, release.date).replace(/\{\{sums\}\}/g, release.sums);
 };
 // {{crew}} on the brand page is the twenty pixel bots, kit first, each in its own colour with its name and a link to its svg
 const CREW = [...CROWD.filter(([name]) => name === 'kit'), ...CROWD.filter(([name]) => name !== 'kit')].map(([name, colour]) => [name, colour]);
