@@ -53,7 +53,7 @@ function Connect({ tile, flow }: { tile: AiTile<InstanceInfo>; flow: ConnectFlow
   if (!trouble && tile.candidates.some(inApp)) {
     return <ConnectPanel flow={flow} name={aiName(instance)} driverKind={instance.driverKind} onTrouble={() => setTrouble(true)} />;
   }
-  return <EngineSetup instance={instance} {...setupFor(instance)} className="w-full max-w-[440px] rounded-2xl border-0 bg-ink/[0.035] p-4 text-start" />;
+  return <EngineSetup instance={instance} {...setupFor(instance)} className="w-full rounded-2xl border-0 bg-ink/[0.035] p-4 text-start" />;
 }
 
 function AiCard({ tile, connected, picked, onPick }: { tile: AiTile<InstanceInfo>; connected: boolean; picked: boolean; onPick: () => void }) {
