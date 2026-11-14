@@ -3040,7 +3040,7 @@ ipcMain.handle("workspaces:menu", workspaceOnly(async (_event, from) => {
   workspaceMenuOpen = true;
   try {
     await cloudOffersReady();
-    const menu = Menu.buildFromTemplate(workspaceMenuTemplate(environmentsState, {
+    const template = workspaceMenuTemplate(environmentsState, {
       onSwitch: (id) => void workspaceMenuAction(() => switchEnvironment(id)),
       onConnect: () => void workspaceMenuAction(openWorkspaceSettings),
       onForget: (id) => void workspaceMenuAction(() => forgetEnvironment(id)),
@@ -3048,7 +3048,11 @@ ipcMain.handle("workspaces:menu", workspaceOnly(async (_event, from) => {
       ...cloudMenuOptions(from === "howto" ? "app_howto" : "app_menu"),
       kindIcon: placeKindIcon,
       ...(await placesMenuOptions({ homeOrigin: homeWindow.cloudOrigin(), cloud: cloudHomeEntry(), home: oneHome.away() || ownHome?.away() === true, platform: process.platform, port: SERVER_PORT })),
-    }));
+    });
+    // dev runs only (the smoke walkthrough): a native popup can't be clicked headless, so the named row is chosen instead
+    const pick = !app.isPackaged ? process.env.DUSK_SMOKE_MENU_PICK : "";
+    if (pick) { const row = template.find((item) => item.id === pick); if (row?.click) { row.click(); return; } }
+    const menu = Menu.buildFromTemplate(template);
     await new Promise((resolve) => menu.popup({ window: mainWindow, callback: resolve }));
   } finally {
     workspaceMenuOpen = false;

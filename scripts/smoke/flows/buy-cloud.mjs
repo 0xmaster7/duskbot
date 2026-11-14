@@ -129,14 +129,18 @@ await runFlow(flow, async () => {
       const at = rows.lastIndexOf(${JSON.stringify(marker)});
       if (at < 0) return false;
       const after = rows.slice(at + ${JSON.stringify(marker).length - 1}).replace(/\\b\\d{1,2}:\\d{2}\\b/g, "").trim();
+      // no AI connected: the Connect your AI card is the answer, within ~30 s
+      if (/connect your ai to keep chatting/i.test(document.body.innerText)) return "card:connect your AI";
       if (/failed|went wrong|couldn.t/i.test(after)) return "error:" + after.slice(0, 160);
       return /\\bok\\b/i.test(after) ? "reply:" + after.slice(0, 80) : false;
     })()`, "the bot's reply", 180_000);
     flow.facts.replySeconds = Math.round((Date.now() - started) / 1000);
     if (outcome.startsWith("error:")) throw new Error(`the bot answered with an error: ${outcome.slice(6)}`);
+    if (outcome.startsWith("card:") && flow.facts.replySeconds > 30) throw new Error(`the Connect your AI card took ${flow.facts.replySeconds}s (expected within ~30 s)`);
     // the cloud's own page has no account bridge: the cloud is the one bought above
     const cloud = bought;
     flow.facts.cloud = { id: cloud?.id, status: cloud?.status, name: cloud?.name, origin: cloud?.origin };
-    return `replied "${outcome.slice(6).replace(/\s+/g, " ")}" in ${flow.facts.replySeconds}s, from ${cloud?.name} (${cloud?.status})`;
+    const said = outcome.startsWith("card:") ? "no AI connected: the Connect your AI card" : `replied "${outcome.slice(6).replace(/\s+/g, " ")}"`;
+    return `${said} in ${flow.facts.replySeconds}s, from ${cloud?.name} (${cloud?.status})`;
   });
 });

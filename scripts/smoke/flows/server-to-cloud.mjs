@@ -14,7 +14,7 @@ import { createVm, leftoverVms, removeVm } from "./instabox-vm.mjs";
 
 const { root, out, profile, email, stamp, flag } = flowArgs("s2c");
 const moveFirst = flag("--move-first");
-const flow = createFlow({ name: "server-to-cloud", title: "server to dusk cloud, signed out", root, out, profile, email, env: { DUSK_ALLOW_SIGNED_OUT: "1" } });
+const flow = createFlow({ name: "server-to-cloud", title: "server to dusk cloud, signed out", root, out, profile, email, env: { DUSK_ALLOW_SIGNED_OUT: "1", DUSK_SMOKE_MENU_PICK: "workspace-cloud-move" } });
 
 /** in the main window, as a person's click (user activation), awaiting the answer */
 const act = async (expression) => {
@@ -36,6 +36,21 @@ async function getCloudFromPanel() {
   await flow.waitFor(`Boolean(document.querySelector('[data-panel-action="move-cloud"]'))`, "the panel's dusk cloud card", 15_000);
   await sleep(1500);
   await flow.clickSelector('[data-panel-action="move-cloud"]', 10_000);
+  return buyFromSheet();
+}
+
+/** The Server menu (the sidebar's place button) with the rail gone: its Move "<server>" to dusk cloud row opens the move
+ * sheet. The native popup can't be clicked headless, so the dev app picks that row by itself (DUSK_SMOKE_MENU_PICK). */
+async function getCloudFromServerMenu() {
+  await flow.app.reattach(serverOrigin).catch(() => {});
+  await flow.waitFor(`Boolean(document.querySelector('textarea[aria-label^="Message"]'))`, "the server's chat", 60_000);
+  await sleep(1500);
+  await flow.clickSelector('[data-tour="server-switcher"]', 15_000);
+  walkthrough.did('opens the Server menu and picks Move to dusk cloud');
+  return buyFromSheet();
+}
+
+async function buyFromSheet() {
   await flow.waitFor(`Boolean(document.querySelector('[data-cloud-move-action="buy"]'))`, "the move sheet's Get dusk cloud", 30_000);
   await sleep(2000);
   const label = await act(`(() => { const b = document.querySelector('[data-cloud-move-action="buy"]'); b.click(); return b.innerText.trim(); })()`);
@@ -124,13 +139,17 @@ await runFlow(flow, async () => {
   await flow.step("get-cloud", "Get dusk cloud while signed out continues in the browser (no 'sign in on this Mac's page first')", async () => {
     since = Date.now();
     let answer;
-    // the bot panel's card and the sheet, as a person does it; the move's own call when that way isn't there
-    try { answer = await getCloudFromPanel(); flow.facts.getCloudVia = "bot panel, Computer tab, move sheet"; }
-    catch (error) {
+    // the Server menu and the sheet, as a person does it with no rail; the bot panel's card next; the move's own call last
+    try { answer = await getCloudFromServerMenu(); flow.facts.getCloudVia = "Server menu, move sheet"; }
+    catch (menuError) {
+      flow.friction("confusing", "get dusk cloud", `the walkthrough could not reach "Get dusk cloud" through the Server menu: ${menuError.message.slice(0, 160)}`);
+      try { answer = await getCloudFromPanel(); flow.facts.getCloudVia = "bot panel, Computer tab, move sheet"; }
+      catch (error) {
       flow.facts.getCloudVia = `the bridge (${error.message.slice(0, 120)})`;
       flow.friction("confusing", "get dusk cloud", `the walkthrough could not reach "Get dusk cloud" through the bot panel and the sheet: ${error.message.slice(0, 160)}`);
       try { answer = await act(`window.duskDesktop.vpsCloudMove.buy("plus")`); }
       catch (failed) { throw new Error(`the buy refused: ${failed.message}`); }
+      }
     }
     flow.facts.afterBuy = answer;
     if (answer?.signingIn !== true) throw new Error(`the move did not wait in the browser: ${JSON.stringify(answer).slice(0, 160)}`);

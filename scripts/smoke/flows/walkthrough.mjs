@@ -36,15 +36,15 @@ const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 /** the flows, in the order a person meets them; `account`: it makes a dusk bot account (deleted after) */
 const SECTIONS = [
   { id: "1", slug: "first-run", title: "Fresh install, first launch", script: "onboarding.mjs", args: ["--path", "mac", "--tour"], account: false,
-    blurb: "A new person opens the app: where the bots live, this Mac's sheet, connecting an AI (the cards and the full list), bringing notes from another AI, then the first chat with dusk bot, its working row and first reply." },
+    blurb: "A new person opens the app: where the bots live, this Mac's sheet, connecting an AI (the cards and the full list), bringing notes from another AI, then the first chat with dusk bot, its working row and first reply (with no AI connected, the Connect your AI card)." },
   { id: "2", slug: "account", title: "Sign in and your account", script: "account-entry.mjs", args: [], account: true,
     blurb: "The account menu signed out, sign-in continuing in the browser (the website's sign-up, the approve page, the app signing itself in), billing, the signed-in account card and menu, and signing in again from the menu." },
   { id: "3", slug: "own-server", title: "Your own server (VPS)", script: "add-server.mjs", args: ["--signed-out"], account: true, vm: true,
     blurb: "Use your own server: the account in the browser, the short install line, the install's steps in the app while it runs on a throwaway Linux server, linked, the bots moved there, and a chat on the server." },
   { id: "4", slug: "server-to-cloud", title: "Getting dusk cloud from a server-linked app", script: "server-to-cloud.mjs", args: ["--move-first"], account: true, vm: true,
-    blurb: "A server linked and the bots moved onto it, the app signed out: Get dusk cloud from the server's chat (the bot panel's Computer tab), continue in the browser, the website's plans, Dodo's TEST-mode checkout with the test card, you're all set, the app picking it up, the move (buying, copying, finishing, done), then the bots in the cloud's chat." },
+    blurb: "A server linked and the bots moved onto it, the app signed out: Get dusk cloud from the server's chat (the Server menu, the bot panel's Computer tab if that fails), continue in the browser, the website's plans, Dodo's TEST-mode checkout with the test card, you're all set, the app picking it up, the move (buying, copying, finishing, done), then the bots in the cloud's chat." },
   { id: "5", slug: "cloud-onboarding", title: "Getting dusk cloud from the first run", script: "onboarding.mjs", args: ["--path", "cloud", "--tour"], account: true,
-    blurb: "The welcome's dusk cloud: straight to the browser (sign-up, approve, plans, TEST-mode checkout), the app noticing the payment, connecting an AI while the cloud is made, the cloud's chat and a reply." },
+    blurb: "The welcome's dusk cloud: straight to the browser (sign-up, approve, plans, TEST-mode checkout), the app noticing the payment, connecting an AI while the cloud is made, the cloud's chat and a reply (with no AI connected, the Connect your AI card)." },
   { id: "6", slug: "connect-later", title: "Connect apps and an AI later", script: "connect-later.mjs", args: [], account: false,
     blurb: "After the first run: the sidebar's connect apps sheet and Gmail on it (stopping before Google's own sign-in), then Settings > Models with one AI opened." },
 ];
