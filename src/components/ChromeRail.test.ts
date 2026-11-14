@@ -8,7 +8,7 @@ vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
 let root: Root | null = null;
 afterEach(async () => { await act(async () => root?.unmount()); root = null; document.body.innerHTML = ""; });
 
-it("the window's own rail wears the skin of the page beside it, never keeping it as its own choice", async () => {
+it("the rail's page draws no places, only what a sheet needs, in the skin of the page beside it, never keeping it as its own choice", async () => {
   let skinOf: (skin: string) => void = () => {};
   const places = { places: [{ id: "local", name: "This computer", color: null, kind: "computer", opens: true, active: true }, { id: "vps", name: "Office", color: null, kind: "server", opens: true }],
     add: { cloud: false, link: true, address: false } };
@@ -21,7 +21,7 @@ it("the window's own rail wears the skin of the page beside it, never keeping it
   root = createRoot(host);
   await act(async () => { await refreshPlaces(); root!.render(createElement(ChromeRail)); });
   await act(async () => { await Promise.resolve(); });
-  expect(host.querySelectorAll("[data-rail-place]")).toHaveLength(2);
+  expect(host.querySelectorAll("[data-rail-place], [data-places-rail]"), "no strip of places, though main listed two").toHaveLength(0);
   act(() => skinOf("midnight"));
   expect(document.documentElement.dataset.skin).toBe("midnight");
   act(() => skinOf("<b>"));

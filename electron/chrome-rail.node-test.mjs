@@ -240,7 +240,7 @@ test("a page that stops responding, crashes or gives way to an error page gets t
   t.mock.timers.tick(RAIL_OFFER_GRACE_MS);
 });
 
-test("main's own wiring: the choice is this desktop's, and the pages hear the rail come and go", () => {
+test("main's own wiring: the window shows no rail, whatever places it has, and its page has the whole window", () => {
   const main = readFileSync(new URL("./main.mjs", import.meta.url), "utf8").replace(/\r\n/g, "\n");
   const start = main.indexOf("const chromeRail = createChromeRail("), end = main.indexOf("chromeRail.install(ipcMain);", start);
   assert.ok(start >= 0 && end > start, "main makes the window's rail");
@@ -254,9 +254,13 @@ test("main's own wiring: the choice is this desktop's, and the pages hear the ra
   const chromeRail = vm.runInContext(`${main.slice(start, end)}chromeRail.install(ipcMain); chromeRail`, context);
   const { win, page } = appWindow();
   chromeRail.attach(win);
-  assert.deepEqual(made.map((view) => view.webContents.loaded), [["http://127.0.0.1:8799/rail"]]);
-  handlers.get("rail:hide")({ sender: page, senderFrame: page.mainFrame }, true);
-  assert.deepEqual([kept.hidden, chromeRail.shown(), signals], [true, false, ["changed", "changed"]]);
+  assert.deepEqual([made.length, chromeRail.shown(), page.told.at(-1) ?? 0], [0, false, 0], "two places, and still no rail");
+  chromeRail.holdOpen(true);
+  assert.deepEqual([made.map((view) => view.webContents.loaded), chromeRail.shown()], [[["http://127.0.0.1:8799/rail"]], true], "the accounts sheet still opens in the rail's page");
+  assert.ok(!page.told.includes(CHROME_RAIL_WIDTH), "opening the sheet moves nothing beside it");
+  assert.equal(made[0].bounds.width, win.getContentSize()[0], "it covers the window, no strip");
+  chromeRail.holdOpen(false);
+  assert.equal(chromeRail.shown(), false);
 });
 
 /** The app's preload in a page of the window, with what the room needs of the page: its document, size and zoom. */

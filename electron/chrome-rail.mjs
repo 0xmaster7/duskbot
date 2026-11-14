@@ -52,15 +52,18 @@ export function createChromeRail({ createView, preload, args, url, wanted, prefs
   const layout = () => {
     if (!view || !shown || !alive()) return;
     const [width, height] = win.getContentSize();
-    view.setBounds({ x: 0, y: 0, width: expanded ? width : Math.min(CHROME_RAIL_WIDTH, width), height });
+    view.setBounds({ x: 0, y: 0, width: expanded || !strip() ? width : Math.min(CHROME_RAIL_WIDTH, width), height });
   };
   const page = () => (alive() && !win.webContents.isDestroyed() ? win.webContents : null);
-  /** The page beside the rail moves over by its width (0: it has the whole window again). */
-  const tellPage = () => page()?.send("rail:beside", shown ? CHROME_RAIL_WIDTH : 0);
+  /** The page beside the rail moves over by its width (0: it has the whole window again). A view up only for a sheet
+   * (holdOpen) covers the window and moves nothing. */
+  const tellPage = () => page()?.send("rail:beside", shown && strip() ? CHROME_RAIL_WIDTH : 0);
   const choseHidden = () => prefs()?.railHidden() === true;
   /** Hidden by the person's choice, beside a document that can bring it back. */
   const hidden = () => choseHidden() && !hung && (offered || grace !== null);
   const pageState = () => ({ available: alive() && wanted(), hidden: choseHidden() });
+  /** The strip of places itself is up: wanted, and not hidden by the person. */
+  const strip = () => wanted() && !hidden();
   /** The document that offered the button hears when it would change. */
   const tellState = () => {
     const state = pageState(), key = JSON.stringify(state);
@@ -142,7 +145,7 @@ export function createChromeRail({ createView, preload, args, url, wanted, prefs
     /** Shown while there are two places or more (railPlaces) and the person hasn't hidden it; the page beside it has the
      * whole window otherwise. */
     refresh() {
-      const on = alive() && ((wanted() && !hidden()) || held);
+      const on = alive() && (strip() || held);
       if (view && unloaded && on) { unloaded = false; load(view.webContents); }
       if (on === shown) layout();
       else {
