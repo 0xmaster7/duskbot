@@ -621,6 +621,9 @@ import { createAntigravityLeftoverRoutes } from "./routes/antigravity-leftovers.
 import { createAntigravityAccountRoutes } from "./routes/antigravity-accounts.ts";
 import { createConfigRoutes } from "./routes/config.ts";
 import { createInstanceRoutes } from "./routes/instances.ts";
+import { createModelProviderRoutes } from "./routes/model-providers.ts";
+import { ModelCatalogStore } from "./model-catalog/catalog.ts";
+import { placeFromEnv } from "../shared/model-providers.ts";
 import { createMcpConfig } from "./host/mcp-config.ts";
 import { createMcpServerRoutes } from "./routes/mcp-servers.ts";
 import { teamAdminSummary } from "./cloud-team-admin.ts";
@@ -12899,6 +12902,11 @@ ROUTES.push(createInstanceRoutes({
   providerConfigBusy: { get: () => providerConfigBusy, set: (busy) => { providerConfigBusy = busy; } },
   providerInstancesChanging, describeInstances, persistProviderInstance, configStatus, broadcast, testCliBinary,
   cliProbeEnvironment, threadBusy, botForThread, activeGroupTurnForBot, checkInstance: testedAi.check,
+}));
+const modelCatalog = new ModelCatalogStore({ dataDir: DATA_DIR });
+ROUTES.push(createModelProviderRoutes({
+  catalog: modelCatalog, place: placeFromEnv(process.env), describeInstances, instances: () => persistableInstanceConfigs(cfg),
+  persistProviderInstance, busy: { get: () => providerConfigBusy, set: (busy) => { providerConfigBusy = busy; } }, sealer,
 }));
 // a dusk cloud with no Composio key connects apps through the person's own Composio, signed in from their browser
 const cloudComposio = createCloudComposioConnect({ dataDir: DATA_DIR, servers: () => cfg.mcpServers,
