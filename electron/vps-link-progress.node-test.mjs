@@ -12,6 +12,8 @@ async function observed(events) {
     store: { read: () => null, write: (value) => { saved = value; } },
     onChange: (view) => { if (view.stage === "installing") report(view); },
     fetch: async (url, init) => {
+      // an older link service with no short codes (ed3ec2acf); the setup keeps its long line
+      if (String(url).endsWith("/short")) return Response.json({ error: "not found" }, { status: 404 });
       if (String(url).endsWith("/v1/sessions")) return Response.json({ id: "abcdefghij", watch: "fixture-watch", base: "http://fixture.invalid", expiresAt: Date.now() + 60_000 }, { status: 201 });
       if (!watched) { watched = true; return Response.json({ state: "installing", events: events.map((event, index) => ({ ...event, step: "app", seq: index + 1, at: Date.now() })) }); }
       return new Promise((_resolve, reject) => {

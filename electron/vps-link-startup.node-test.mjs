@@ -180,6 +180,8 @@ function creatingController(extra = {}) {
   const creates = [], deleted = [];
   const { link } = controller([], {
     fetch: async (url, init) => {
+      // an older link service with no short codes (ed3ec2acf); the setup keeps its long line
+      if (String(url).endsWith("/short")) return Response.json({ error: "not found" }, { status: 404 });
       if (init.method === "POST") {
         const made = deferred();
         creates.push(made);
