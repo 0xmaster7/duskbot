@@ -139,11 +139,16 @@ export function createComposioConnectRoutes(deps: {
   withToken: (name: string, server: StoredRemoteMcpServer) => Promise<RemoteMcpSpec | null>;
   refusal: (slug: string) => string | null;
   manage?: typeof manageAppConnection;
+  /** reads where Composio Connect signs in ahead of the press, so its page opens sooner */
+  warm?: (url: string) => void;
 }): RouteHandler {
   return async ({ res, path, method, json }) => {
     if (path === "/api/connectors/composio-connect" && method === "GET") {
       const found = composioConnectServer(deps.servers());
-      return json(res, 200, { added: Boolean(found), name: found?.name ?? null, signedIn: found ? deps.signedIn(found.name, found.server) : false, enabled: found?.server.enabled ?? false });
+      const signedIn = found ? deps.signedIn(found.name, found.server) : false;
+      // the apps page asks this when it opens: a person not signed in yet is likely to press Connect next
+      if (!signedIn) deps.warm?.(found?.server.url ?? COMPOSIO_CONNECT_URL);
+      return json(res, 200, { added: Boolean(found), name: found?.name ?? null, signedIn, enabled: found?.server.enabled ?? false });
     }
     const m = APP.exec(path);
     if (!m || (method !== "POST" && method !== "GET")) return PASS;

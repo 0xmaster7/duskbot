@@ -12737,7 +12737,7 @@ const workspaceBackupRoutes = createWorkspaceBackupRoutes(workspaceCopyAccess);
 let restartRequested = false;
 const cloudMoveRoutes = createCloudMoveRoutes();
 
-ROUTES.push(createStopLineRoutes()); ROUTES.push(createUpdateRoutes(() => updateState, () => updateHolds())); ROUTES.push(createConnectorDirectoryRoutes({ providers: () => [composioProvider(cfg), remoteMcpProvider] })); ROUTES.push(createComposioConnectRoutes({ servers: () => cfg.mcpServers, signedIn: (name, server) => mcpOAuth.authState(name, server.url) === "signed-in", withToken: async (name, server) => { const spec = (await signedInMcp({ [name]: server }, mcpOAuth))[name]; return spec && "url" in spec ? spec : null; }, refusal: (slug) => managedPolicy.appRefusal(slug) ?? null }));
+ROUTES.push(createStopLineRoutes()); ROUTES.push(createUpdateRoutes(() => updateState, () => updateHolds())); ROUTES.push(createConnectorDirectoryRoutes({ providers: () => [composioProvider(cfg), remoteMcpProvider] })); ROUTES.push(createComposioConnectRoutes({ servers: () => cfg.mcpServers, signedIn: (name, server) => mcpOAuth.authState(name, server.url) === "signed-in", withToken: async (name, server) => { const spec = (await signedInMcp({ [name]: server }, mcpOAuth))[name]; return spec && "url" in spec ? spec : null; }, refusal: (slug) => managedPolicy.appRefusal(slug) ?? null, warm: (url) => mcpOAuth.warm(url) }));
 const orgInstallStatuses = () => orgLibrary?.installStatuses() ?? new Map();
 ROUTES.push(createBotPresetRoutes({ presets: presetStore, orgStatuses: orgInstallStatuses })); ROUTES.push(createWorkspaceBannerRoutes({ changed: () => broadcast({ kind: "config", ...configStatus() }) }));
 // `routines` is assigned at boot, so it is read per request.

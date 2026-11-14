@@ -82,4 +82,17 @@ describe("the Composio Connect routes", () => {
     expect(await call(handler, "POST", "/api/connectors/composio-connect/apps/blocked")).toMatchObject({ status: 403 });
     expect(await call(handler, "GET", "/api/connectors/other")).toBe(PASS);
   });
+
+  it("reads where Composio signs in ahead of the press while nobody is signed in yet", async () => {
+    const warm = vi.fn();
+    let servers: Record<string, unknown> = {};
+    let signedIn = false;
+    const handler = createComposioConnectRoutes({ servers: () => servers, signedIn: () => signedIn, withToken: async () => null, refusal: () => null, warm });
+    await call(handler, "GET", "/api/connectors/composio-connect");
+    expect(warm, "not added yet: its usual address").toHaveBeenLastCalledWith("https://connect.composio.dev/mcp");
+    servers = { mine: server };
+    signedIn = true;
+    await call(handler, "GET", "/api/connectors/composio-connect");
+    expect(warm, "signed in: nothing to warm").toHaveBeenCalledTimes(1);
+  });
 });

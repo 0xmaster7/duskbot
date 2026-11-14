@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { cardOwner, McpOAuthError, McpOAuthManager, mcpCallbackOrigin, mcpOAuthRedirectUri, type McpSignInPhase, type McpSignInStatus, withMcpSignIn, withoutPendingSignIn } from "./mcp-oauth.ts";
 import type { McpOAuthClientConfig } from "./mcp-registry.ts";
@@ -60,6 +60,32 @@ afterEach(async () => {
 });
 
 describe("McpOAuthManager sign-in", () => {
+  it("reads where a server signs in once, ahead of the press when warmed, so a start only registers", async () => {
+    await setup();
+    const reads: string[] = [];
+    const real = globalThis.fetch;
+    const spy = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url.includes("/.well-known/") || url === mcp.url) reads.push(url);
+      return real(input, init);
+    });
+    try {
+      manager.warm(mcp.url);
+      await expect.poll(() => reads.filter((url) => url.includes("oauth-authorization-server")).length).toBe(1);
+      const before = reads.length;
+      const first = await manager.start("docs", mcp.url);
+      expect(first.phase).toBe("waiting");
+      expect(reads.length, "the warmed addresses are used, nothing read again").toBe(before);
+      expect(oauth.counts.register).toBe(1);
+      manager.cancel("docs");
+      await manager.start("docs", mcp.url);
+      expect(reads.length).toBe(before);
+      expect(oauth.counts.register, "a fresh client per sign-in still").toBe(2);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it("signs in through the browser and returns a working token", async () => {
     await setup();
     expect(manager.authState("docs", mcp.url)).toBe("none");

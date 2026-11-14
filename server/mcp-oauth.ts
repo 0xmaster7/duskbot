@@ -46,6 +46,8 @@ export const cardOwner = (threadId: string, messageId: string) => `card:${thread
 const DEFAULT_LIFETIME_MS = 5 * 60_000;
 const REFRESH_MARGIN_MS = 2 * 60_000;
 const REQUEST_TIMEOUT_MS = 10_000;
+/** how long a server's sign-in addresses are kept once read: long enough that a warmed apps page opens its sign-in at once */
+const DISCOVERY_TTL_MS = 10 * 60_000;
 export const MCP_OAUTH_CALLBACK_PATH = "/mcp-oauth/callback";
 const CALLBACK_PATH = MCP_OAUTH_CALLBACK_PATH;
 const DISCARDED = "discarded";
@@ -196,6 +198,7 @@ export class McpOAuthManager {
   private readonly flows = new Map<string, Flow>();
   private readonly starting = new Map<string, StartingFlow>();
   private readonly refreshing = new Map<string, Promise<string | null>>();
+  private readonly discovered = new Map<string, { meta: Promise<McpAuthMetadata | null>; at: number }>();
   private readonly clients: (name: string, url: string) => McpOAuthClientConfig | undefined;
   private readonly onSettled: (name: string, phase: McpSignInPhase, owner: string) => void;
   private disposed = false;
@@ -275,7 +278,10 @@ export class McpOAuthManager {
       return pending.promise;
     }
     const starting: StartingFlow = { owner, url, browser, cancelled: false, promise: undefined! };
-    starting.promise = this.begin(name, url, starting, wwwAuthenticate).finally(() => this.starting.delete(name));
+    starting.promise = this.begin(name, url, starting, wwwAuthenticate)
+      // a start that failed reads the server's addresses again next time, in case they moved
+      .catch((error: unknown) => { this.discovered.delete(url); throw error; })
+      .finally(() => this.starting.delete(name));
     this.starting.set(name, starting);
     return starting.promise;
   }
@@ -466,10 +472,28 @@ export class McpOAuthManager {
     return body.client_id;
   }
 
+  /** Where a server signs in (three reads in a row), kept a while so a sign-in only waits on its own registration.
+   * A miss is never kept. */
+  private discover(url: string, wwwAuthenticate?: string | null): Promise<McpAuthMetadata | null> {
+    const kept = this.discovered.get(url);
+    if (kept && Date.now() - kept.at < DISCOVERY_TTL_MS) return kept.meta;
+    const entry = { meta: (async () => discoverMcpAuth(url, wwwAuthenticate ?? await this.challenge(url)))(), at: Date.now() };
+    this.discovered.set(url, entry);
+    const drop = () => { if (this.discovered.get(url) === entry) this.discovered.delete(url); };
+    entry.meta.then((meta) => { if (!meta) drop(); }, drop);
+    return entry.meta;
+  }
+
+  /** Reads where `url` signs in ahead of the press, so the sign-in page opens sooner. Never throws. */
+  warm(url: string): void {
+    if (this.disposed) return;
+    this.discover(url).catch(() => {});
+  }
+
   private async begin(name: string, url: string, starting: StartingFlow, wwwAuthenticate?: string | null): Promise<McpSignInStatus> {
     const previous = this.flows.get(name);
     if (previous) this.finish(previous, "cancelled", "Sign-in cancelled.");
-    const meta = await discoverMcpAuth(url, wwwAuthenticate ?? await this.challenge(url));
+    const meta = await this.discover(url, wwwAuthenticate);
     if (!meta) throw new McpOAuthError("not-oauth", "This server does not offer an OAuth sign-in. Add its token as a header instead.");
     const registered = this.clients(name, url);
 
