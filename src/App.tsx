@@ -16,7 +16,7 @@ import { LiveCallHost } from "@/components/LiveCallHost";
 import { liveCallEnabled } from "@/lib/feature-flags";
 import { AmbientPublisher } from "@/ambient/AmbientPublisher";
 import { useAmbientAway } from "@/ambient/away";
-import { BotsElsewhere, DevFreshInstallButton } from "@/components/BotsElsewhere";
+import { BotsElsewhere } from "@/components/BotsElsewhere";
 import { MacEmptyMain, useMacEmptyPrompt } from "@/components/MacEmptyMain";
 import { PlaceSetupHost } from "@/components/PlaceSetupHost";
 import { useMacEmpty } from "@/lib/bots-elsewhere";
@@ -415,7 +415,6 @@ function Application({ children }: { children?: ReactNode }) {
         </ThreadRefsProvider>
         <WelcomeGate viewer={viewer} />
         <BotsElsewhere />
-        <DevFreshInstallButton />
         <IslandIntroHost />
         <CloudTimeZoneSync viewer={viewer} />
         {liveCallEnabled() && <LiveCallHost />}

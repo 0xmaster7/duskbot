@@ -1,7 +1,7 @@
 // This computer's page with no bots of its own while the person's live somewhere else: a short list of every place they
 // have, how many bots each holds and whether it is up, the one with their bots marked, and a click on a row opens it
 // (src/lib/bots-elsewhere.ts). Kept apart from the first run (onboarding/*), which it covers while it shows.
-import { Fragment, useCallback, useEffect, useState, type CSSProperties } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import type { RailPlace } from "../../electron/cloud-rail.mjs";
 import { WindowDragStrip } from "@/components/DesktopCapabilities";
 import { productName } from "@/lib/brand";
@@ -12,7 +12,7 @@ import { usePlaces } from "@/lib/places";
 import { openPlaceSetup } from "@/lib/place-setup";
 import { openAddVps, useAddVpsOpen } from "@/lib/vps-link";
 import {
-  choosePlacesHere, devToolsShown, dismissKey, dismissedPlaces, dismissPlace, elsewhereCovered, elsewhereScreen, emptyHere, macEmptyFrom, parseBotCounts,
+  choosePlacesHere, dismissKey, dismissedPlaces, dismissPlace, elsewhereCovered, elsewhereScreen, emptyHere, macEmptyFrom, parseBotCounts,
   parseElsewhereView, setMacEmpty, setSimulatedFreshInstall, SIMULATED_FRESH_INSTALL, useSimulatedFreshInstall, type ElsewherePlace, type ElsewhereScreen,
   type ElsewhereView,
 } from "@/lib/bots-elsewhere";
@@ -151,9 +151,7 @@ export function PlacesHub({ places, counts, lit, opening = null, failed = null, 
       className="fixed inset-0 z-[60] flex overflow-y-auto bg-app">
       <WindowDragStrip />
       <div className="m-auto w-full max-w-[480px] px-6 py-12">
-        {simulated && (
-          <p className="mb-3 inline-block rounded-full bg-raised px-2.5 py-1 text-[12px] text-ink-secondary">{t("elsewhere.dev.simulated")}</p>
-        )}
+        {simulated && <SimulatedNote />}
         <h1 id="elsewhere-title" className="px-3 text-[22px] font-semibold leading-snug text-ink">{t("elsewhere.pick.title")}</h1>
         <div className={cn("mt-6", ROWS)}>
           <div data-settings-rows="" className={cn(SIMPLE_CARD, "p-1.5")}>
@@ -223,9 +221,7 @@ export function SetUpOnCard({ screen, simulated = false, opening = null, onConne
       className="fixed inset-0 z-[60] flex overflow-y-auto bg-app">
       <WindowDragStrip />
       <div className="m-auto w-full max-w-[480px] px-6 py-12">
-        {simulated && (
-          <p className="mb-3 inline-block rounded-full bg-raised px-2.5 py-1 text-[12px] text-ink-secondary">{t("elsewhere.dev.simulated")}</p>
-        )}
+        {simulated && <SimulatedNote />}
         <h1 id="elsewhere-title" className="text-[22px] font-semibold leading-snug text-ink">{t("elsewhere.setUpOn.title", { app, name })}</h1>
         <p className="mt-2 text-[15px] leading-relaxed text-ink-secondary">{t("elsewhere.setUpOn.why", { app, name })}</p>
         <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -253,18 +249,15 @@ export function SetUpOnCard({ screen, simulated = false, opening = null, onConne
   );
 }
 
-/** Dev builds only (or localStorage "dusk-dev-tools" = "1"): shows the fresh-install screen for an account with a VPS. */
-export function DevFreshInstallButton() {
-  const simulated = useSimulatedFreshInstall();
-  if (!devToolsShown()) return null;
+/** The simulated fresh-install screen says so, with the way back (it starts from Support in the profile menu). */
+function SimulatedNote() {
   return (
-    <button
-      type="button"
-      onClick={() => setSimulatedFreshInstall(!simulated)}
-      className="fixed right-3 top-1.5 z-[70] rounded-full border border-transparent bg-card px-3 py-1 text-[12px] text-ink-secondary hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink"
-      style={{ WebkitAppRegion: "no-drag" } as CSSProperties}
-    >
-      {simulated ? t("elsewhere.dev.stop") : t("elsewhere.dev.simulate")}
-    </button>
+    <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-raised py-1 pe-1 ps-2.5 text-[12px] text-ink-secondary">
+      {t("elsewhere.dev.simulated")}
+      <button type="button" onClick={() => setSimulatedFreshInstall(false)}
+        className="rounded-full px-2 py-0.5 text-ink hover:bg-ink/[0.07] focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink">
+        {t("elsewhere.dev.stop")}
+      </button>
+    </p>
   );
 }

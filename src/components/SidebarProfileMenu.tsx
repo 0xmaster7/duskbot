@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Archive,
   Check,
@@ -23,6 +23,7 @@ import { accountMenuItems, AccountsSheet, cloudRowLabel, useAccounts, type Accou
 import { openSignIn } from "@/lib/sign-in-sheet";
 import { Icon, type IconName } from "./Icon";
 import { exportUsageLog, trailAvailable } from "@/lib/trail";
+import { devToolsShown, setSimulatedFreshInstall } from "@/lib/bots-elsewhere";
 import { GROK_FOCUS } from "./SidebarSimpleTop";
 import { AccountMoveStatus, useAccountMove, type AccountMoveKind } from "./AccountMove";
 import { InitialsAvatar } from "./Avatar";
@@ -386,6 +387,7 @@ export function profileMenuItems({
       onSelect: onShortcuts,
     },
     { key: "about", label: t("sidebar.menu.about"), icon: <Info size={18} />, separatorBefore: true, onSelect: onAbout },
+    ...devItems(<Icon name="code" size={18} />),
   ];
   const usageItem: SidebarMenuItem | null = usage ? {
     key: "usage",
@@ -421,6 +423,11 @@ export function profileMenuItems({
     accounts,
   ].filter((group) => group.length > 0);
   return groups.flatMap((group, at) => group.map((item, index) => (at > 0 && index === 0 ? { ...item, separatorBefore: true } : item)));
+}
+
+/** Dev builds only (devToolsShown): Support's last row shows the fresh-install screen for an account with a VPS. */
+function devItems(icon: ReactNode): SidebarMenuItem[] {
+  return devToolsShown() ? [{ key: "dev-fresh-install", label: t("elsewhere.dev.simulate"), icon, separatorBefore: true, onSelect: () => setSimulatedFreshInstall(true) }] : [];
 }
 
 /** Grok's profile menu, word for word: the phone app, Support (help, shortcuts, feedback, about) and Settings, then the
@@ -460,6 +467,7 @@ export function grokProfileMenuItems({ onGetApp, onHelp, onShortcuts, onFeedback
       { key: "feedback", label: t("sidebar.menu.feedback"), icon: icon("mail"), onSelect: onFeedback },
       ...(trailAvailable() ? [{ key: "usage-log", label: t("sidebar.menu.exportUsageLog"), icon: icon("file-list"), onSelect: () => void exportUsageLog("support").catch(() => {}) } satisfies SidebarMenuItem] : []),
       { key: "about", label: t("sidebar.menu.about"), icon: icon("info"), onSelect: onAbout },
+      ...devItems(icon("code")),
     ] },
     { key: "settings", label: t("sidebar.menu.settings"), icon: icon("gear"), onSelect: onSettings },
   ];

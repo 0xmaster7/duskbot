@@ -2,6 +2,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
+// the menus as the app ships; the developer row is checked on its own below
+vi.stubEnv("VITE_DUSK_DEV_TOOLS", "0");
 vi.mock("react-dom", async (importOriginal) => ({ ...await importOriginal<typeof import("react-dom")>(), createPortal: (children: unknown) => children }));
 
 import {
@@ -274,6 +276,17 @@ describe("profileMenuItems", () => {
     expect(items.filter((item) => item.separatorBefore).map((item) => item.key)).toEqual(["account"]);
     expect(items.find((item) => item.key === "support")!.submenu!.map((item) => item.key)).toEqual(["help", "feedback", "shortcuts", "about"]);
     expect(items.find((item) => item.key === "account")!.label).toBe("dusk bot Cloud");
+  });
+
+  it("ends Support with the fresh-install simulation in a developer build, never over the chat", async () => {
+    vi.stubEnv("VITE_DUSK_DEV_TOOLS", "");
+    try {
+      const support = build().find((item) => item.key === "support")!.submenu!;
+      expect(support.map((item) => item.key)).toEqual(["help", "feedback", "shortcuts", "about", "dev-fresh-install"]);
+      expect(support.at(-1)!.label).toBe("Dev: fresh install with a VPS");
+    } finally {
+      vi.stubEnv("VITE_DUSK_DEV_TOOLS", "0");
+    }
   });
 
   it("only offers what this window has: no usage on a remote server, no account without one", () => {
