@@ -18,7 +18,7 @@ import { botSettingsFor, withBotSettings } from "./claude-bot-settings.ts";
 import { claudeBilling, claudeCallUsage } from "./claude-billing.ts";
 import { claudeAuthFailure, claudeAuthRecovery } from "./claude-auth-recovery.ts";
 import { claudeModelExtras } from "./claude-model-extras.ts";
-import { claudeToolSearchSetting } from "./claude-tool-search.ts"; import { unusableBuiltIns } from "./claude-unusable-tools.ts"; import { EMAIL_READ_TOOL_NAMES } from "../../shared/email.ts";
+import { AGENTS_DEFERRED_NOTE, claudeToolSearchSetting } from "./claude-tool-search.ts"; import { AGENTS_DEFER_ENV } from "./agents-mcp-env.ts"; import { unusableBuiltIns } from "./claude-unusable-tools.ts"; import { EMAIL_READ_TOOL_NAMES } from "../../shared/email.ts";
 import { claudeElicitations } from "./claude-elicitation.ts";
 import { readCostHistory, recordCostState } from "./claude-cost-history.ts";
 import { classifyResumeFailure, mayReplay, rebuiltSessionNotice, recoveryPromptFor } from "../resume-recovery.ts";
@@ -1064,8 +1064,10 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
       }
       // Pre-allowed, or the CLI's own ListAgents look-alike shadows it.
       if (turn.integrations?.agents) {
-        // Claude waits for always-loaded tools before building the prompt.
-        mcpServers.agents = { ...turn.integrations.agents, alwaysLoad: true };
+        // Claude waits for always-loaded tools before building the prompt. Only the hot tools load up front
+        // (agents-mcp.ts marks the rest), so the first turn does not carry every schema.
+        const agents = turn.integrations.agents;
+        mcpServers.agents = { ...agents, env: { ...agents.env, [AGENTS_DEFER_ENV]: "1" }, alwaysLoad: true };
         allowed.push("mcp__agents");
       }
       if (turn.integrations?.phone) {
@@ -1225,7 +1227,8 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
       if (live) closeSession(threadId, turn.sessionReset ? "context reset" : "spawn contract changed");
       // A new process gets the stable half only; the volatile half rides its first message, so a relaunch reuses the cached prefix.
       const halves = promptHalves(turn);
-      const launchSystem = halves.stable ?? turn.system;
+      const stableSystem = halves.stable ?? turn.system;
+      const launchSystem = stableSystem && mcpServers.agents && toolSearch === "true" ? `${stableSystem}\n\n${AGENTS_DEFERRED_NOTE}` : stableSystem;
 
       // Until sessions.set() below, this turn owns every launch resource and must release it on failure.
       const cleanupUnownedLaunch = () => {

@@ -1965,9 +1965,10 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     const mounted = async (threadId: string, preloadBrowserTools: boolean) => {
       const { turnId } = await instance.adapter.sendTurn({ threadId, text: "hi", cwd: scratch, preloadBrowserTools, integrations });
       await recorder.until((e) => e.type === "turn.completed" && e.turnId === turnId);
-      const seen = JSON.parse(readFileSync(dump, "utf8")) as { settings: { env: Record<string, string> }; mcpConfig: { mcpServers: Record<string, { alwaysLoad?: boolean }> } };
+      const seen = JSON.parse(readFileSync(dump, "utf8")) as { settings: { env: Record<string, string> }; mcpConfig: { mcpServers: Record<string, { alwaysLoad?: boolean; env?: Record<string, string> }> } };
       const servers = Object.entries(seen.mcpConfig.mcpServers);
       return {
+        agentsDefer: seen.mcpConfig.mcpServers.agents?.env?.DUSK_AGENTS_DEFER,
         toolSearch: seen.settings.env.ENABLE_TOOL_SEARCH,
         alwaysLoaded: servers.filter(([, server]) => server.alwaysLoad === true).map(([name]) => name).sort(),
         onDemand: servers.filter(([, server]) => server.alwaysLoad === undefined).map(([name]) => name).sort(),
@@ -1982,6 +1983,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     const browsing = await mounted("t-tool-search", true);
     expect(browsing.toolSearch).toBe("true");
     expect(browsing.alwaysLoaded).toEqual(["agents", "browser", "dusk"]);
+    expect(browsing.agentsDefer, "agents keeps only its hot tools up front").toBe("1");
     expect(browsing.onDemand).toEqual(["composio", "computer", "data", "device", "docs", "dweb", "email", "own_apps", "phone", "postiz", "shop"]);
     const other = await mounted("t-tool-search-no-browse", false);
     expect(other.alwaysLoaded).toEqual(["agents", "dusk"]);

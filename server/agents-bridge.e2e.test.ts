@@ -116,7 +116,12 @@ it("keeps a turn on the whole catalog until the switch is on, then mounts the br
     expect(before.systemPrompt).not.toContain("find_tool");
     let whole: BridgeTool[] = [];
     await withServer(unbridged, async (ask) => {
-      whole = (await ask("tools/list")).result!.tools!;
+      const listed = (await ask("tools/list")).result!.tools! as Array<BridgeTool & { _meta?: Record<string, unknown> }>;
+      // a Claude turn loads only the hot tools up front; the rest are found through tool search
+      const upFront = listed.filter((tool) => tool._meta?.["anthropic/alwaysLoad"] !== false).map((tool) => tool.name);
+      expect(upFront).toEqual(expect.arrayContaining(["coordinate_bots", "memory_update"]));
+      expect(upFront).not.toContain("trigger");
+      whole = listed.map(({ _meta, ...tool }) => tool);
       expect(whole.map((tool) => tool.name)).toEqual(expect.arrayContaining(["coordinate_bots", "trigger", "trigger_info", "session_search"]));
       expect(whole.map((tool) => tool.name)).not.toEqual(expect.arrayContaining(["find_tool"]));
       expect(whole.length).toBeGreaterThan(25);

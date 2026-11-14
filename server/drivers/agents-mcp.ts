@@ -2,7 +2,8 @@
 // harness sets for it (see agents-proxy.ts): the stdio proxy an engine starts and the HTTP endpoint an engine reaches
 // both answer through it.
 import { resolveAgentsCall } from "../../shared/agents-tool-names.ts";
-import { TOOL_BRIDGE_ENV, createToolBridge } from "./agents-bridge.ts";
+import { BRIDGE_HOT_TOOL_NAMES, TOOL_BRIDGE_ENV, createToolBridge } from "./agents-bridge.ts";
+import { AGENTS_DEFER_ENV } from "./agents-mcp-env.ts";
 import { availableTools, catalogProfileFromEnv } from "./agents-catalog.ts";
 import { callTool, capResult, toolCallContextFromEnv } from "./agents-call.ts";
 import { sendToolReceipt } from "./agents-timing.ts";
@@ -10,11 +11,17 @@ import type { Json } from "./agents-client.ts";
 import { capToolListResult, toolLimitFromEnv } from "../tool-count-limit.ts";
 import { withNextStep } from "../tool-next-step.ts";
 
+/** Claude Code reads this per tool; false keeps one tool of an always-loaded server behind tool search. */
+const ALWAYS_LOAD_META = "anthropic/alwaysLoad";
+
 /** What the agents server lists for `env`, before any tool limit. */
 export function agentsToolList(env: NodeJS.ProcessEnv) {
   const available = availableTools(catalogProfileFromEnv(env));
   const bridge = env[TOOL_BRIDGE_ENV] === "1" ? createToolBridge(available) : undefined;
-  return { available, bridge, listed: bridge ? bridge.listed : available };
+  const listed = bridge ? bridge.listed : env[AGENTS_DEFER_ENV] === "1"
+    ? available.map((tool) => BRIDGE_HOT_TOOL_NAMES.has(tool.name) ? tool : { ...tool, _meta: { [ALWAYS_LOAD_META]: false } })
+    : available;
+  return { available, bridge, listed };
 }
 
 /** `stop` ends the harness requests of calls still running, for a server answered inside the harness's own process. */

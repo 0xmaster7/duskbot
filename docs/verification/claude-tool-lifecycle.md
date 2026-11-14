@@ -20,7 +20,13 @@ and only finishes the parent after the test releases a file gate.
 
 The small `agents` and `dusk` MCP servers use `alwaysLoad: true` so the first
 prompt includes coordination and approval tools; the browser does too when the
-turn plans to browse. Every other MCP server (connected apps, a bot's own
+turn plans to browse. Of `agents`, only the hot tools (`BRIDGE_HOT_TOOL_NAMES`:
+memory_update, attach_file, coordinate_bots, send_message, set_status,
+credentials and the like) load up front: a Claude turn sets
+`DUSK_AGENTS_DEFER=1` and the server lists every other tool (trigger,
+show_widget, start_thread, skills and the rest) with
+`_meta["anthropic/alwaysLoad"]: false`, so it is found through tool search
+under its usual `mcp__agents__` name. Other engines get the list unmarked. Every other MCP server (connected apps, a bot's own
 servers, data, phone, computer and the rest) loads on demand: each turn's
 private `--settings` file sets `ENABLE_TOOL_SEARCH=true`, unless the person set
 an opt-out such as `false` or `auto:100` in the bot project's or their own
