@@ -77,12 +77,13 @@ describe("bots.json saves", () => {
     const bot = store.createBot({ name: "Pepper" });
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.mocked(fs.renameSync).mockImplementationOnce(() => { throw Object.assign(new Error("disk full"), { code: "ENOSPC" }); });
-    batchSaves(() => store.setTaskAskedAt(bot.id, bot.threadId, 2_000));
+    // a title saves at the end of the running pass (saveSoon); askedAt, used here before, now saves within a second
+    batchSaves(() => store.patchTask(bot.id, bot.threadId, { title: "Batched" }));
     expect(error).toHaveBeenCalled();
     error.mockRestore();
-    expect(new Store(selection).taskByThread(bot.id, bot.threadId)?.askedAt).toBeUndefined();
-    store.setTaskAskedAt(bot.id, bot.threadId, 3_000);
-    expect(new Store(selection).taskByThread(bot.id, bot.threadId)?.askedAt).toBe(3_000);
+    expect(new Store(selection).taskByThread(bot.id, bot.threadId)?.title).not.toBe("Batched");
+    store.patchTask(bot.id, bot.threadId, { title: "Next" });
+    expect(new Store(selection).taskByThread(bot.id, bot.threadId)?.title).toBe("Next");
   });
 });
 

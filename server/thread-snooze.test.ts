@@ -5,6 +5,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { launchVerificationServer, type VerificationServer } from "../scripts/control-dusk.ts";
 import { DATA_DIR } from "./config.ts";
 import type { ModelSelection } from "./contracts.ts";
+import { flushDeferredSaves } from "./save-batch.ts";
 import { Store } from "./store.ts";
 
 describe("thread snooze through an isolated HTTP fixture", () => {
@@ -85,6 +86,8 @@ describe("thread snooze wake events in the store", () => {
     const { store, bot, task } = snoozedUntilActivity();
     store.patchTask(bot.id, task.threadId, { unread: true });
     expect(store.taskByThread(bot.id, task.threadId)?.snoozedUntil).toBeUndefined();
+    // an unread mark saves within a second (store.saveBotsLater), so the file is read after that save
+    flushDeferredSaves();
     expect(new Store(selection).taskByThread(bot.id, task.threadId)?.snoozedUntil).toBeUndefined();
   });
 

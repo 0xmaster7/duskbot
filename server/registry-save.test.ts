@@ -2,6 +2,7 @@ import { rmSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { RegistrySaveError } from "./registry-save.ts";
+import { flushDeferredSaves } from "./save-batch.ts";
 import { DATA_DIR } from "./config.ts";
 import type { ModelSelection } from "./contracts.ts";
 import { Store, type BotRecord } from "./store.ts";
@@ -133,11 +134,13 @@ describe("bots.json save failures", () => {
     expect(() => store.setHandedMessages(bot.id, second.threadId, "claude", { session: "session-three", ids: [] }))
       .toThrow("Couldn't save what this conversation handed its engine");
     expect(second.handedMessages?.claude).toEqual({ session: "session-three", ids: [] });
-    failNextSave(store);
-    expect(() => store.setTaskAskedAt(bot.id, second.threadId, 1_234)).toThrow("Couldn't save when you last wrote in this thread");
+    // when a person last wrote is a per-turn mark that saves within a second (store.saveBotsLater): nothing throws, and
+    // it stays in memory for the next write
+    store.setTaskAskedAt(bot.id, second.threadId, 1_234);
     expect(second.askedAt).toBe(1_234);
 
     store.patchTask(bot.id, first.threadId, { title: "Next write" });
+    flushDeferredSaves();
     const reloaded = new Store(selection).taskByThread(bot.id, second.threadId);
     expect(reloaded?.resumeCursors.claude).toBe("session-three");
     expect(reloaded?.handedMessages?.claude).toEqual({ session: "session-three", ids: [] });
