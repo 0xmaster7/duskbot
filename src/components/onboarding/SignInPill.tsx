@@ -101,6 +101,22 @@ function Busy({ label, hint, seconds }: { label: string; hint?: string | null; s
   );
 }
 
+/** a sign-in that waits on the person's browser: what to do there, then a calm elapsed line once it has been a while */
+const STILL_WAITING_AFTER = 20;
+const OTHER_WAY_AFTER = 45;
+function WaitHelp({ guide, seconds }: { guide: string; seconds: number }) {
+  return (
+    <div className="flex max-w-[380px] flex-col items-center gap-1 text-center">
+      <p data-connect-guide="" className="m-0 text-[12px] leading-4 text-ink-secondary">{guide}</p>
+      {seconds >= STILL_WAITING_AFTER && <p data-connect-still="" className="m-0 text-[12px] leading-4 text-ink-tertiary tabular-nums">{t("connect.stillWaiting", { seconds })}</p>}
+    </div>
+  );
+}
+function OtherWay({ seconds, onTrouble }: { seconds: number; onTrouble?: () => void }) {
+  if (!onTrouble || seconds < OTHER_WAY_AFTER) return null;
+  return <button type="button" onClick={onTrouble} className={QUIET} data-connect-other="">{t("connect.trouble")}</button>;
+}
+
 /** A link by its site and, for a code page, its path ("github.com/login/device"); a sign-in link by its site alone. */
 const linkText = (link: string, withPath: boolean) => {
   try {
@@ -112,20 +128,23 @@ const linkText = (link: string, withPath: boolean) => {
 /** The one sign-in step every machine shows: where to finish (a blue link), the device code when there is one, one
  * button that copies the code (or the link) and opens the site, and a quiet waiting line. A browser that opened by
  * itself and needs no code shows the same step, so a cloud and this computer only differ by the code. */
-function CodeStep({ code, site, link, onOpen, cancel }: { code: string | null; site: string; link: string | null; onOpen: (() => void) | null; cancel: React.ReactNode }) {
+function CodeStep({ code, site, link, onOpen, cancel, guide, seconds, onTrouble }: { code: string | null; site: string; link: string | null; onOpen: (() => void) | null; cancel: React.ReactNode;
+  guide: string; seconds: number; onTrouble?: () => void }) {
   const { state, copy } = useCopyFeedback(code ?? "");
   const copied = state === "copied";
   const waiting = <div role="status" aria-live="polite" className="flex items-center gap-2 text-[13px] leading-[18px] text-ink-secondary">
     <LoaderCircle size={13} aria-hidden="true" className="shrink-0 animate-spin motion-reduce:animate-none" />
     {code ? t("connect.stage.waiting") : t("connect.stage.finishInBrowser", { site })}
   </div>;
-  // no code: the browser already opened, so only a way back to it and out
+  // no code: the browser already opened, so one line on what to do there, a way back to it and out
   if (!code) return <>
     {waiting}
+    <WaitHelp guide={guide} seconds={seconds} />
     <div className="flex items-center gap-1.5">
       {link && onOpen && <button type="button" onClick={onOpen} className={SECONDARY}><ExternalLink size={13} aria-hidden="true" />{t("connect.openAgain")}</button>}
       {cancel}
     </div>
+    <OtherWay seconds={seconds} onTrouble={onTrouble} />
   </>;
   const [before, after = ""] = t("connect.stage.enterCode", { site: "\u0000" }).split("\u0000");
   return <>
@@ -144,6 +163,8 @@ function CodeStep({ code, site, link, onOpen, cancel }: { code: string | null; s
       {cancel}
     </div>
     {waiting}
+    <WaitHelp guide={guide} seconds={seconds} />
+    <OtherWay seconds={seconds} onTrouble={onTrouble} />
   </>;
 }
 
@@ -195,13 +216,16 @@ export function ConnectPanel({ flow, name, driverKind, onTrouble }: {
       if (state.kind === "paste") {
         body = <>
           <PasteSlot name={name} onSubmit={flow.submit} />
+          <WaitHelp guide={t("connect.guide.paste", { site })} seconds={seconds} />
           <div className="flex items-center gap-1">
             {state.link && <button type="button" onClick={() => void flow.openAgain()} className={QUIET}>{t("connect.openAgain")}</button>}
             {cancel}
           </div>
+          <OtherWay seconds={seconds} onTrouble={onTrouble} />
         </>;
       } else {
-        body = <CodeStep code={state.code} site={site} link={state.link} onOpen={state.link ? () => void flow.openAgain() : null} cancel={cancel} />;
+        body = <CodeStep code={state.code} site={site} link={state.link} onOpen={state.link ? () => void flow.openAgain() : null} cancel={cancel}
+          guide={t(state.code ? "connect.guide.code" : "connect.guide.browser", { site })} seconds={seconds} onTrouble={onTrouble} />;
       }
       break;
     case "failed": {
@@ -212,7 +236,10 @@ export function ConnectPanel({ flow, name, driverKind, onTrouble }: {
             : state.message ?? (state.reason === "unavailable" ? t("connect.unavailable", { name }) : t("connect.failed", { name }));
       body = <>
         <p role="alert" className="m-0 max-w-[400px] text-center text-[13px] leading-[18px] text-danger">{plain}</p>
-        <button type="button" onClick={flow.retry} className={SECONDARY}>{t("common.tryAgain")}</button>
+        <div className="flex items-center gap-1.5">
+          <button type="button" onClick={flow.retry} className={SECONDARY}>{t("common.tryAgain")}</button>
+          {state.at === "waiting" && state.link && <button type="button" onClick={() => void flow.openAgain()} className={QUIET} data-connect-reopen="">{t("connect.openAgain")}</button>}
+        </div>
         {onTrouble && !installing && <button type="button" onClick={onTrouble} className={QUIET} data-connect-trouble="">{t("connect.trouble")}</button>}
       </>;
       break;

@@ -46,7 +46,7 @@ export function setupFor(instance: InstanceInfo) {
 
 const inApp = (instance: InstanceInfo) => connectsInApp(instance as unknown as ConnectInstance);
 
-/** The pressed AI's way in: its connect, stage by stage, or the setup for an AI without a sign-in. "Having trouble?"
+/** The pressed AI's way in: its connect, stage by stage, or the setup for an AI without a sign-in. "Try another way"
  * after a failure shows that setup too. */
 function Connect({ tile, flow }: { tile: AiTile<InstanceInfo>; flow: ConnectFlowHandle }) {
   const [trouble, setTrouble] = useState(false);

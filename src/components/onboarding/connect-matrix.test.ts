@@ -164,6 +164,30 @@ describe("the connect panel after an install", () => {
     expect(linked.textContent).toContain("Open again");
   });
 
+  it("a browser sign-in says what to do there, then adds the elapsed line at 20 s and Try another way at 45 s", () => {
+    const wait = (seconds: number) => panel({ stage: "waiting", since: Date.now() - seconds * 1000, kind: "browser", flowId: "f", link: "https://cursor.com/login", code: null, opened: true });
+    const area = () => host.querySelector<HTMLElement>('[data-connect-stage="waiting"]')!;
+    wait(2);
+    expect(area().querySelector("[data-connect-guide]")?.textContent).toContain("Sign in on the Cursor page that opened in your browser");
+    expect(area().querySelector("[data-connect-still]")).toBeNull();
+    expect(area().querySelector("[data-connect-other]")).toBeNull();
+    wait(25);
+    expect(area().querySelector("[data-connect-still]")?.textContent).toMatch(/Still waiting for your browser, 2\d s/);
+    expect(area().querySelector("[data-connect-other]")).toBeNull();
+    const { onTrouble } = wait(50);
+    const other = area().querySelector<HTMLButtonElement>("[data-connect-other]")!;
+    expect(other.textContent).toBe("Try another way");
+    expect(area().textContent).toContain("Open again");
+    act(() => other.click());
+    expect(onTrouble).toHaveBeenCalledOnce();
+    expect(host.textContent).not.toMatch(/\u2014/);
+  });
+
+  it("a failed browser sign-in offers Try again, Open again and Try another way", () => {
+    panel({ stage: "failed", at: "waiting", reason: "timeout", message: null, link: "https://cursor.com/login" });
+    expect([...host.querySelectorAll("button")].map((button) => button.textContent)).toEqual(["Try again", "Open again", "Try another way"]);
+  });
+
   it("shows honest progress while installing", () => {
     panel({ stage: "installing", since: Date.now(), downloadBytes: null });
     expect(host.textContent).toContain("Getting Cursor ready");
