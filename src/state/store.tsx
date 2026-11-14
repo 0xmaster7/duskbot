@@ -1297,7 +1297,8 @@ export function reducer(state: AppState, action: Action): AppState {
           messages: current.messages.map((message, index) =>
             index === optimisticIndex ? action.message : message
           ),
-          activeLeafId: current.activeLeafId === optimisticId
+          // a leaf moved back to the send's parent (a snapshot older than the send) still follows the send
+          activeLeafId: current.activeLeafId === optimisticId || (current.activeLeafId ?? null) === (action.message.parentId ?? null)
             ? action.message.id
             : current.activeLeafId,
         }));

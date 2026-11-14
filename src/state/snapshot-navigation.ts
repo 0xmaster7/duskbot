@@ -83,13 +83,24 @@ export function heldTranscript<T extends Bot | Group>(previous: T | undefined, i
   if (loaded) {
     if (!held) return { ...incoming, transcriptLoaded: true, transcriptStale: undefined };
     const kept = reconcileTranscript(held.messages, new Set(held.messages), incoming.messages, Boolean(incoming.hasMore), held.hasMore);
-    return { ...incoming, ...kept, transcriptLoaded: true, transcriptStale: undefined };
+    const leaf = "modelSelection" in incoming && "modelSelection" in held ? leafAfterSnapshot(kept.messages, held.activeLeafId, incoming.activeLeafId) : undefined;
+    return { ...incoming, ...kept, ...(leaf !== undefined ? { activeLeafId: leaf } : {}), transcriptLoaded: true, transcriptStale: undefined };
   }
   if (!held) return { ...incoming, transcriptLoaded: false, transcriptStale: undefined };
   const kept = { ...incoming, messages: held.messages, hasMore: held.hasMore, transcriptLoaded: true, transcriptStale: true };
   if (!("modelSelection" in kept) || !("modelSelection" in held)) return kept;
   const leaf = kept.activeLeafId && held.messages.some((message) => message.id === kept.activeLeafId) ? kept.activeLeafId : held.activeLeafId;
   return { ...kept, activeLeafId: leaf };
+}
+
+/** A snapshot asked for before a send can land after it: its leaf is then an ancestor of the one held (the send, or
+ * what streamed in after it), and taking it would hide the send and every reply under it. Another branch still wins. */
+function leafAfterSnapshot(messages: readonly Message[], held: string | null | undefined, incoming: string | null | undefined): string | null | undefined {
+  if (!held || !incoming || held === incoming) return incoming;
+  const byId = new Map(messages.map((message) => [message.id, message]));
+  if (!byId.has(held)) return incoming;
+  for (let at = byId.get(held)?.parentId; at; at = byId.get(at)?.parentId) if (at === incoming) return held;
+  return incoming;
 }
 
 const NO_MESSAGES: Message[] = [];
