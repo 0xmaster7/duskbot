@@ -49,8 +49,21 @@ first, then their tunnel, then our relay. Per-site routing reuses it unchanged:
 - Offline: the policy is removed and the site is back on the server's network by itself; it returns when the app says
   hello again. Streams that go over the relay count toward the account's relay fair use, as the relay already meters
   them.
-- Where it does not apply: the built-in browser (its egress gate does not reach the link agent) and dusk cloud homes
-  (no link agent there). The ladder skips the step and moves on.
+- dusk cloud homes have no link agent and no direct, tunnel or relay path: the app reaches them over their own https.
+  So the app keeps one websocket to My Cloud (`/api/computer/egress/link`, `electron/home-egress-link.mjs`, using its
+  existing session cookie) only while the home is awake, never dialling a sleeping one awake, and hands it to the same
+  egress endpoint. The home (`server/home-egress-link.ts`) carries those streams for the built-in browser's gate
+  (blocked sites only; the gate's open connections to the site are dropped so the reload takes the new route) and as
+  SOCKS on the bot computers' bridge for their PAC. That traffic does not cross our relay, so relay fair use does not
+  apply. The all-traffic route stays off on cloud homes; the setting there shows only "when a site blocks the cloud".
+- Where it does not apply: the built-in browser on a linked VPS (the link agent's proxy refuses host processes). The
+  ladder skips the step and moves on.
+
+## One ask on screen
+
+The card is the only ask, enforced on the server (`server/host/check-ask-filter.ts`): while a check card waits in the
+current task, reply lines that only restate it are dropped, keeping anything new. A line the bot wrote earlier in the
+turn that only asked is turned into the card itself (the store has no delete), and a mixed line loses only its ask.
 
 ## Signed agents (Web Bot Auth): not now
 
