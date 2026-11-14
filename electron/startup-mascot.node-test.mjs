@@ -10,8 +10,8 @@ test("the splash is the crew on their line, one empty spot per step, in the them
   assert.equal(CREW.length, STEPS.length, "one mascot per startup step");
   assert.match(light, /<canvas class="scene" width="480" height="300" aria-hidden="true">/);
   assert.match(light, /<p class="brand">dusk bot<\/p>/);
-  assert.match(light, /role="status">opening dusk bot</);
-  assert.match(light, /role="progressbar" aria-valuenow="0"[^>]*aria-valuetext="0 of 5 here" aria-label="opening dusk bot"><b class="here">0 of 5<\/b> here/);
+  assert.match(light, /role="status">Opening dusk bot</);
+  assert.match(light, /role="progressbar" aria-valuenow="0"[^>]*aria-valuetext="0 of 5 here" aria-label="Opening dusk bot"><b class="here">0 of 5<\/b> here/);
   assert.match(light, /"name":"kit","color":"#1b1b1f","eyeColor":"#ffffff"/, "kit in ink on light");
   assert.match(dark, /"name":"kit","color":"#f2f3f5","eyeColor":"#1b1b1f"/);
   assert.match(light, /"name":"goo","color":"#f75e51"/);
@@ -21,10 +21,10 @@ test("the splash is the crew on their line, one empty spot per step, in the them
   assert.match(light, /matchMedia\('\(prefers-reduced-motion: reduce\)'\)/);
   assert.match(light, /@media\(prefers-reduced-motion:reduce\)\{\.scene,\.txt\{transition:none\}\}/);
   assert.match(light, /font-src data:;/); assert.match(light, /url\("data:font\/woff2;base64,[^"]+"\)/);
-  assert.match(light, /data-act="retry">try again</);
-  assert.match(light, /data-act="quit">quit</);
+  assert.match(light, /data-act="retry">Try again</);
+  assert.match(light, /data-act="quit">Quit</);
   assert.match(light, /aria-label="Close" data-act="close"/);
-  assert.match(light, /everyone's here/);
+  assert.match(light, /Everyone's here/);
   assert.doesNotMatch(light, /\u2014|border:\s*1px|transition:all/);
 });
 
@@ -95,6 +95,6 @@ test("the card script parses and carries the plan it was given", () => {
   const script = html.match(/<script>([\s\S]*)<\/script>/)[1];
   assert.doesNotThrow(() => new Function(script));
   assert.match(script, /EXPECTED = 9000/);
-  assert.match(script, /waking your bots/);
+  assert.match(script, /Waking your bots/);
   assert.doesNotMatch(script, /\u2014/);
 });

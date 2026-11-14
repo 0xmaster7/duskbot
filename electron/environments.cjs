@@ -114,10 +114,11 @@ function workspaceSenderAllowed(event, contents, state, localOrigin, screens = [
   }
 }
 
-/** The places popup speaks the app's lowercase: this computer by the name people call it, My Cloud as dusk cloud. */
-const hereName = (platform) => (platform === "darwin" ? "this mac" : "this computer");
+/** The places popup names this computer the way people call it, and My Cloud as dusk cloud. */
+const hereName = (platform) => (platform === "darwin" ? "This Mac" : "This computer");
 const DUSK_CLOUD = "dusk cloud";
-const lowerFirst = (text) => (typeof text === "string" && text ? text[0].toLowerCase() + text.slice(1) : text);
+/** Mid-sentence "This computer" reads "this computer"; "This Mac" keeps Mac. */
+const lowerHere = (here) => (typeof here === "string" && here.startsWith("This ") ? `this ${here.slice(5)}` : here);
 const placeKind = (entry, myCloud) => (entry.kind === "local" ? "computer" : myCloud || listedPlace(entry) ? "cloud" : "server");
 
 /** One saved place as a popup row: its name (dusk cloud for My Cloud), its status or what it is, and its kind's icon
@@ -125,9 +126,9 @@ const placeKind = (entry, myCloud) => (entry.kind === "local" ? "computer" : myC
 function placeRow(entry, { myCloud, checked, onSwitch, sublabels, iconFor, kindIcon, foldSublabels }) {
   const kind = placeKind(entry, myCloud);
   const icon = kindIcon ? kindIcon(kind) : iconFor && cleanColor(entry.color) ? iconFor(entry.color) : null;
-  const status = lowerFirst(Object.hasOwn(sublabels, entry.id) ? sublabels[entry.id] : entry.team ? teamRoleLabel(entry.team.role) : null);
+  const status = Object.hasOwn(sublabels, entry.id) ? sublabels[entry.id] : entry.team ? teamRoleLabel(entry.team.role) : null;
   const label = myCloud ? DUSK_CLOUD : entry.name;
-  const what = entry.kind === "local" ? entry.dataDir : kind === "server" ? `your server · ${new URL(entry.origin).host}` : myCloud ? new URL(entry.origin).host : DUSK_CLOUD;
+  const what = entry.kind === "local" ? entry.dataDir : kind === "server" ? `Your server · ${new URL(entry.origin).host}` : myCloud ? new URL(entry.origin).host : DUSK_CLOUD;
   return {
     id: `workspace-${entry.id}`, label: foldSublabels && status ? `${label} · ${status}` : label, ...(foldSublabels ? {} : { sublabel: status ?? what }),
     ...(icon ? { icon } : {}), type: "radio", checked, click: () => onSwitch(entry.id),
@@ -137,7 +138,7 @@ function placeRow(entry, { myCloud, checked, onSwitch, sublabels, iconFor, kindI
 /** Native menu choices, never renderer-supplied destinations or callbacks. `iconFor`: a saved colour's small dot, when main can draw one;
  * `kindIcon`: a template icon per kind of place (computer, cloud, server), used instead where main has them (macOS).
  * `places`: the one line saying which side has which bots, shown first; `copyToCloud`: the send line under the list. `foldSublabels`: Windows and Linux, whose menus size a row by its label alone and clip
- * a sublabel: no sublabels there, and My Cloud's status line joins its name instead. `myCloudId`: My Cloud's saved place, named dusk cloud; `platform`: this mac or this computer. */
+ * a sublabel: no sublabels there, and My Cloud's status line joins its name instead. `myCloudId`: My Cloud's saved place, named dusk cloud; `platform`: This Mac or This computer. */
 function workspaceMenuTemplate(state, { onSwitch, onConnect, onForget, onAddCloud, sublabels = {}, iconFor = null, kindIcon = null, places = null, copyToCloud = null, foldSublabels = false, homeOrigin = null, myCloudId = null, platform = null }) {
   const active = activeEnvironment(state);
   if (homeOrigin) return homeMenuTemplate(state, { onSwitch, onForget, sublabels, iconFor, kindIcon, foldSublabels, homeOrigin });
@@ -149,10 +150,10 @@ function workspaceMenuTemplate(state, { onSwitch, onConnect, onForget, onAddClou
     ...[...state.environments].sort((a, b) => isMine(b) - isMine(a) || listedPlace(b) - listedPlace(a))
       .map((entry) => placeRow(entry, { myCloud: isMine(entry), checked: entry.id === state.activeId, onSwitch, sublabels, iconFor, kindIcon, foldSublabels })),
     ...(copyToCloud ? [{ id: "workspace-copy-to-cloud", label: copyToCloud.label, click: copyToCloud.click }] : []),
-    ...(onAddCloud ? [{ id: "workspace-add-cloud", label: "add dusk cloud…", ...(foldSublabels ? {} : { sublabel: "keeps your bots running 24/7" }), click: onAddCloud }] : []),
+    ...(onAddCloud ? [{ id: "workspace-add-cloud", label: "Add dusk cloud…", ...(foldSublabels ? {} : { sublabel: "Keeps your bots running 24/7" }), click: onAddCloud }] : []),
     { type: "separator" },
-    { id: "workspace-connect", label: "connect a server…", click: onConnect },
-    ...(active && !listedPlace(active) ? [{ id: "workspace-forget", label: `forget “${active.name}”…`, click: () => onForget(active.id) }] : []),
+    { id: "workspace-connect", label: "Connect a server…", click: onConnect },
+    ...(active && !listedPlace(active) ? [{ id: "workspace-forget", label: `Forget “${active.name}”…`, click: () => onForget(active.id) }] : []),
   ];
 }
 
@@ -164,7 +165,7 @@ function homeMenuTemplate(state, { onSwitch, onForget, sublabels, iconFor, kindI
   const places = state.environments.filter((entry) => entry.kind !== "local").sort((a, b) => placeRank(a, homeOrigin) - placeRank(b, homeOrigin));
   return [
     ...places.map((entry) => placeRow(entry, { myCloud: entry.origin === homeOrigin, checked: entry.id === state.activeId, onSwitch, sublabels, iconFor, kindIcon, foldSublabels })),
-    ...(active && active.origin !== homeOrigin && !listedPlace(active) ? [{ type: "separator" }, { id: "workspace-forget", label: `forget “${active.name}”…`, click: () => onForget(active.id) }] : []),
+    ...(active && active.origin !== homeOrigin && !listedPlace(active) ? [{ type: "separator" }, { id: "workspace-forget", label: `Forget “${active.name}”…`, click: () => onForget(active.id) }] : []),
   ];
 }
 
@@ -258,10 +259,11 @@ function botList(names, shown = 2) {
 }
 
 /** Bots, chats and skills live on each side by design; this says which side has which, from where the person is now. */
-function placesLine({ cloudName = DUSK_CLOUD, here = "this computer", onCloud, localBots }) {
+function placesLine({ cloudName = DUSK_CLOUD, here = "This computer", onCloud, localBots }) {
   const names = botList(localBots);
-  if (onCloud) return names ? `your bots live on ${cloudName}. ${here} has its own: ${names}.` : `your bots live on ${cloudName}. ${here} has none of its own.`;
-  return names ? `these bots live on ${here}: ${names}. ${cloudName} has its own.` : `${here} has no bots of its own yet. ${cloudName} has its own.`;
+  const there = lowerHere(here);
+  if (onCloud) return names ? `Your bots live on ${cloudName}. ${here} has its own: ${names}.` : `Your bots live on ${cloudName}. ${here} has none of its own.`;
+  return names ? `These bots live on ${there}: ${names}. ${cloudName} has its own.` : `${here} has no bots of its own yet. ${cloudName} has its own.`;
 }
 
 /** One line under My Cloud: what of this computer's is not on it yet, with Send (Send to My Cloud, cloud-send.mjs), or
@@ -270,7 +272,7 @@ function sendLine({ cloudName = DUSK_CLOUD, waiting }) {
   const total = waiting?.total ?? 0, bots = waiting?.bots ?? 0;
   if (!total) return null;
   const what = bots ? `${bots === 1 ? "1 bot" : `${bots} bots`}${total > bots ? ` and ${total - bots} more` : ""}` : total === 1 ? "1 change" : `${total} changes`;
-  return `${what} not on ${cloudName} · send`;
+  return `${what} not on ${cloudName} · Send`;
 }
 
 /** The switcher's extra options once the person has My Cloud: the places line, the send line, and the Cloud's status

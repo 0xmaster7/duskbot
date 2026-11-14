@@ -41,15 +41,15 @@ export function moveTeams(state) {
 /** What a native confirm says when a team's own page asks to bring a bot in: main's words, so no page can soften them. */
 export function teamMoveConfirmWords({ bot, team }) {
   return {
-    message: `move ${bot} to ${team}?`,
+    message: `Move ${bot} to ${team}?`,
     detail: [
       `Everyone in ${team} can use ${bot}. Only ${team}'s admins can change it.`,
-      `goes with ${bot}: instructions, skills, files, routines, and your chats with ${bot}`,
+      `Goes with ${bot}: instructions, skills, files, routines, and your chats with ${bot}`,
       "Your chats stay private there: only you can see them.",
-      `stays on my cloud: what ${bot} remembers, your connections, and dusk bot`,
+      `Stays on my cloud: what ${bot} remembers, your connections, and dusk bot`,
       "There's no way back: you can't move it back to my cloud.",
     ].join("\n\n"),
-    buttons: [`move to ${team}`, "cancel"],
+    buttons: [`Move to ${team}`, "Cancel"],
   };
 }
 
@@ -128,7 +128,7 @@ export function installTeamMove({ ipcMain, cloudPage, pageOrigin = () => null, c
     const facts = { threadId: null, label: null };
     const target = lazy(async () => {
       const team = teamOf(move.team.id);
-      if (!team) throw new Error(`you're no longer in ${move.team.name}.`);
+      if (!team) throw new Error(`You're no longer in ${move.team.name}.`);
       const client = account();
       if (!client) throw new Error("Sign in to dusk cloud first.");
       const member = await openOwnerSession({ origin: team.origin, grant: () => client.pairTeam(team.id) }, fetchImpl, { label, background: false });

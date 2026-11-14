@@ -50,7 +50,7 @@ describe("buildApplicationMenu", () => {
     const template = build(platform, { openAtLogin: { checked: false, onToggle } });
     const item = template[0].submenu.find((entry) => entry.id === "open-at-login");
     expect(template[0].label).toBe(platform === "darwin" ? "dusk bot" : "File");
-    expect(item).toMatchObject({ label: "Open at Login", type: "checkbox", checked: false });
+    expect(item).toMatchObject({ label: "Open at login", type: "checkbox", checked: false });
     item.click();
     expect(onToggle).toHaveBeenCalledWith(true);
     expect(build(platform).flatMap((menu) => menu.submenu ?? []).some((entry) => entry.id === "open-at-login")).toBe(false);
@@ -84,7 +84,7 @@ describe("buildApplicationMenu", () => {
     const onStop = vi.fn();
     const template = build(platform, { onStop });
     const file = template.find((entry) => entry.label === "File");
-    expect(file.submenu.slice(0, 2).map((entry) => [entry.label, entry.accelerator])).toEqual([["Stop Bot", "CmdOrCtrl+."], ["Stop All Bots", "Alt+CmdOrCtrl+."]]);
+    expect(file.submenu.slice(0, 2).map((entry) => [entry.label, entry.accelerator])).toEqual([["Stop bot", "CmdOrCtrl+."], ["Stop all bots", "Alt+CmdOrCtrl+."]]);
     expect(file.submenu.at(-1).role).toBe(platform === "darwin" ? "close" : "quit");
     file.submenu[0].click();
     file.submenu[1].click();
@@ -130,7 +130,7 @@ describe("buildApplicationMenu", () => {
     const onSwitch = vi.fn();
     const both = build("darwin", { environments: [cloud, office], activeId: "o", home, onSwitch });
     const items = both.find((entry) => entry.label === "Server").submenu.filter((entry) => entry.label);
-    expect(items.map((entry) => entry.label)).toEqual(["Back to My Cloud", "Office · office.example.test", "Add Server from Copied Pairing Link…", "Forget “Office”"]);
+    expect(items.map((entry) => entry.label)).toEqual(["Back to My Cloud", "Office · office.example.test", "Add server from copied pairing link…", "Forget “Office”"]);
     items[0].click();
     expect(home.onBack).toHaveBeenCalledOnce();
     expect(items.some((entry) => /This computer|organization|Add a Cloud|Connect to a server/.test(entry.label))).toBe(false);
@@ -141,7 +141,7 @@ describe("buildApplicationMenu", () => {
   it.each(["darwin", "linux", "win32"])("has a Help menu with the docs, what's new and support on %s", async platform => {
     const { shell } = await import("electron");
     const help = build(platform).find((entry) => entry.role === "help");
-    expect(help.submenu.filter((entry) => entry.label).map((entry) => entry.label)).toEqual(["dusk bot Help", "What's New", "Contact Support"]);
+    expect(help.submenu.filter((entry) => entry.label).map((entry) => entry.label)).toEqual(["dusk bot help", "What's new", "Contact support"]);
     for (const entry of help.submenu) entry.click?.();
     expect(shell.openExternal.mock.calls.slice(-3).map(([url]) => url)).toEqual(["https://dusk.bot/docs", "https://dusk.bot/changelog", "mailto:hello@dusk.bot"]);
   });

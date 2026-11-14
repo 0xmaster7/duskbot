@@ -17,7 +17,7 @@ export function buildErrorPage({ allPortsOccupied, logDir }) {
   return dataUrl(handoffPage({
     title: "dusk bot couldn't start",
     mood: "oops",
-    content: `<h1>the bot server didn't wake up</h1><p>${escapeHtml(reason)} If it keeps happening, check <code>${escapeHtml(serverLogPath)}</code>.</p>`,
+    content: `<h1>The bot server didn't wake up</h1><p>${escapeHtml(reason)} If it keeps happening, check <code>${escapeHtml(serverLogPath)}</code>.</p>`,
   }));
 }
 
@@ -30,9 +30,9 @@ export function desktopViewerErrorPage(message, retryUrl) {
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;");
   return dataUrl(handoffPage({
-    title: "desktop unavailable",
+    title: "Desktop unavailable",
     mood: "oops",
-    content: `<h1>couldn't open the live desktop</h1><p>${escape(message)}</p><p class="go"><a href="${escape(retryUrl)}" target="_blank" rel="noreferrer">open in browser</a></p>`,
+    content: `<h1>Couldn't open the live desktop</h1><p>${escape(message)}</p><p class="go"><a href="${escape(retryUrl)}" target="_blank" rel="noreferrer">Open in browser</a></p>`,
   }));
 }
 
@@ -45,6 +45,6 @@ export function windowCrashedPage(reopenUrl) {
   return dataUrl(handoffPage({
     title: "dusk bot",
     mood: "oops",
-    content: `<h1>this window tripped</h1><p>the window stopped drawing, but your bots kept running. reopen it to pick up right where you were.</p><p class="go"><a href="${escape(reopenUrl)}">reopen window</a></p>`,
+    content: `<h1>This window tripped</h1><p>The window stopped drawing, but your bots kept running. Reopen it to pick up right where you were.</p><p class="go"><a href="${escape(reopenUrl)}">Reopen window</a></p>`,
   }));
 }

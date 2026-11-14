@@ -14,7 +14,7 @@ const MB = 1024 * 1024;
 /** the whole trail on disk, across main's and the server's files */
 export const TRAIL_CAP_BYTES = { packaged: 20 * MB, dev: 50 * MB };
 export const TRAIL_HEADER = "x-dusk-trail";
-export const TRAIL_EXPORT_PREVIEW = "app actions, connection routes, errors from the last 7 days. no messages, passwords or personal files";
+export const TRAIL_EXPORT_PREVIEW = "App actions, connection routes, errors from the last 7 days. No messages, passwords or personal files";
 
 const EVENT_NAME = /^[a-z][a-z0-9_.-]{0,63}$/;
 const TRAIL_ID = /^[a-z0-9][a-z0-9_-]{5,63}$/;

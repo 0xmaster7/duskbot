@@ -50,9 +50,9 @@ export async function serverOpens(entry, { fetch: fetchImpl, dialog, forget, tim
     first = false;
     if (answers) return true;
     const { response } = await dialog.showMessageBox({
-      type: "warning", buttons: ["try again", "remove from list", "cancel"], defaultId: 0, cancelId: 2,
+      type: "warning", buttons: ["Try again", "Remove from list", "Cancel"], defaultId: 0, cancelId: 2,
       message: `${entry.name} isn't answering`,
-      detail: `nothing answers at ${new URL(entry.origin).host}. if that server is gone for good, remove it from your list. your bots elsewhere aren't affected.`,
+      detail: `Nothing answers at ${new URL(entry.origin).host}. If that server is gone for good, remove it from your list. Your bots elsewhere aren't affected.`,
     });
     if (response === 1) { await forget(entry.id); return false; }
     if (response !== 0) return false;
@@ -72,7 +72,7 @@ export async function newServerReach(link, { fetch: fetchImpl, dialog, timeoutMs
   for (;;) {
     if (await serverAnswers(link.origin, fetchImpl, timeoutMs)) return "open";
     const { response } = await dialog.showMessageBox({
-      type: "warning", buttons: ["try again", "keep in list", "cancel"], defaultId: 0, cancelId: 2,
+      type: "warning", buttons: ["Try again", "Keep in list", "Cancel"], defaultId: 0, cancelId: 2,
       message: `${host} isn't answering yet`,
       detail: "Nothing answered at that address. Check it's typed right and the server is running. You can keep it in your list and open it once it's up.",
     });

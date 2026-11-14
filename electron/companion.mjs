@@ -138,8 +138,8 @@ async function start({ resourcesPath, harnessPort, mutationToken, hostedUrl = nu
   const resolved = entryPoint(resourcesPath);
   if (!resolved) {
     lastError = app.isPackaged
-      ? "the companion is missing from this build"
-      : "the companion sources are missing from this checkout";
+      ? "The companion is missing from this build"
+      : "The companion sources are missing from this checkout";
     return companionState();
   }
   log?.(`companion fork ${resolved.entry}`);
@@ -148,7 +148,7 @@ async function start({ resourcesPath, harnessPort, mutationToken, hostedUrl = nu
   try {
     allocatedOrigin = createCompanionOriginEndpoint();
   } catch {
-    lastError = "the private companion origin could not be created";
+    lastError = "The private companion origin could not be created";
     return companionState();
   }
   let cleanedOrigin = false;
@@ -184,7 +184,7 @@ async function start({ resourcesPath, harnessPort, mutationToken, hostedUrl = nu
     });
   } catch {
     cleanupOrigin();
-    lastError = "the companion process could not be started";
+    lastError = "The companion process could not be started";
     return companionState();
   }
   child.once("spawn", () => {
@@ -218,7 +218,7 @@ async function start({ resourcesPath, harnessPort, mutationToken, hostedUrl = nu
 
   for (let i = 0; i < 40; i++) {
     if (exited) {
-      lastError = "the companion could not start: check the log";
+      lastError = "The companion could not start: check the log";
       return companionState();
     }
     try {
@@ -229,7 +229,7 @@ async function start({ resourcesPath, harnessPort, mutationToken, hostedUrl = nu
           child.kill();
         } catch {
         }
-        lastError = `port ${CONTROL_PORT} is already serving another companion: stop it and try again`;
+        lastError = `Port ${CONTROL_PORT} is already serving another companion: stop it and try again`;
         return companionState();
       }
       if (!Number.isSafeInteger(child.pid) || child.pid <= 0) {
@@ -249,7 +249,7 @@ async function start({ resourcesPath, harnessPort, mutationToken, hostedUrl = nu
     child.kill();
   } catch {
   }
-  lastError = "the companion did not come up in time";
+  lastError = "The companion did not come up in time";
   return companionState();
 }
 
@@ -315,7 +315,7 @@ export async function companionState() {
       devices: [],
       connectedDeviceIds: [],
       pairing: null,
-      error: "the companion is not responding",
+      error: "The companion is not responding",
     };
   }
 }

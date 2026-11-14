@@ -44,7 +44,7 @@ test("the export is scrubbed a second time and starts with what it holds", async
   const lines = text.trim().split("\n").map((line) => JSON.parse(line));
   assert.equal(count, 1);
   assert.equal(lines[0].ev, "export.header");
-  assert.match(lines[0].about, /no messages, passwords or personal files/);
+  assert.match(lines[0].about, /No messages, passwords or personal files/);
   assert.equal(lines[1].to, "relay");
   assert.ok(!/my-vps|10\.1\.2\.3|sidd@|\/Users\/sidd/.test(text));
   fs.rmSync(dir, { recursive: true, force: true });

@@ -105,8 +105,8 @@ export function installUserPresence({ ipcMain, guard, dialog, systemPreferences,
       const win = parent();
       if (!win) return false;
       const { response } = await dialog.showMessageBox(win, {
-        type: "question", message: "confirm it's you", detail: `dusk bot wants to ${reason}.`,
-        buttons: ["continue", "cancel"], defaultId: 1, cancelId: 1,
+        type: "question", message: "Confirm it's you", detail: `dusk bot wants to ${reason}.`,
+        buttons: ["Continue", "Cancel"], defaultId: 1, cancelId: 1,
       });
       return response === 0;
     },

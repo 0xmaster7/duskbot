@@ -197,7 +197,7 @@ function applyUnreadBadge(win = mainWindow) {
     unreadOverlayIcon ??= nativeImage.createFromPath(APP_ICON).resize({ width: 16, height: 16 });
     win.setOverlayIcon(
       count > 0 && !unreadOverlayIcon.isEmpty() ? unreadOverlayIcon : null,
-      count > 0 ? `${count} unread conversation${count === 1 ? "" : "s"}` : "no unread conversations",
+      count > 0 ? `${count} unread conversation${count === 1 ? "" : "s"}` : "No unread conversations",
     );
     return;
   }
@@ -246,8 +246,8 @@ function askToOpenLinkHome(win, home, drop) {
   if (home ? active?.origin === home : !activeRemote(environmentsState)) { if (home) void showHome({ place: "cloud" }); return; }
   if (linkHomeAsk) return;
   const name = home ? "my cloud" : "this computer";
-  linkHomeAsk = dialog.showMessageBox(win, { type: "question", buttons: [`open ${name}`, "not now"], defaultId: 0, cancelId: 1, noLink: true,
-    message: `open this link on ${name}?`, detail: `the window shows ${active?.name ?? "another server"} now; it stays there unless you choose ${name}.` })
+  linkHomeAsk = dialog.showMessageBox(win, { type: "question", buttons: [`Open ${name}`, "Not now"], defaultId: 0, cancelId: 1, noLink: true,
+    message: `Open this link on ${name}?`, detail: `The window shows ${active?.name ?? "another server"} now; it stays there unless you choose Open ${name}.` })
     .then(({ response }) => {
       if (response === 0) return workspaceMenuAction(() => (home ? showHome({ place: "cloud" }) : switchEnvironment(LOCAL_ID)));
       drop();
@@ -419,8 +419,8 @@ const serverSupervisor = createServerSupervisor({
     if (earlyVpsOpened && activeRemote(environmentsState)?.id === earlyVpsOpened && mainWindow && !mainWindow.isDestroyed()) return;
     dialog.showErrorBox(
       "The bot server stopped",
-      "automatic recovery could not restart the background server. quit and reopen dusk bot to try again. interrupted chat turns were not resent.\n\n" +
-        `server log: ${path.join(LOG_DIR, "server.log")}`,
+      "Automatic recovery could not restart the background server. Quit and reopen dusk bot to try again. Interrupted chat turns were not resent.\n\n" +
+        `Server log: ${path.join(LOG_DIR, "server.log")}`,
     );
   },
   log: slog,
@@ -1227,8 +1227,8 @@ async function runCompanyBackup(kind, input, scheduled = null) {
     publishCompanyBackupState({ busy: false, ...(kind === "backup" ? { lastBackupAt: Date.now() } : {}) });
     return result;
   } catch (error) {
-    const message = controller.signal.aborted ? "cloud backup cancelled. this installation has not been replaced."
-      : error?.name === "CompanyBackupError" ? error.message : "cloud backup could not complete. check your organization connection and available disk space, then try again.";
+    const message = controller.signal.aborted ? "Cloud backup cancelled. This installation has not been replaced."
+      : error?.name === "CompanyBackupError" ? error.message : "Cloud backup could not complete. Check your organization connection and available disk space, then try again.";
     publishCompanyBackupState({ busy: false, pendingRestore: companyBackupState.pendingRestore, message });
     throw Object.assign(new Error(message), error?.code === "workspace_busy" ? { code: "workspace_busy" } : {});
   } finally {
@@ -1389,7 +1389,7 @@ async function startDevServer() {
     },
     gaveUp: (times) => {
       console.error(`[dev-server] stopped after ${times} quick exits; save a server file to try again`);
-      dialog.showErrorBox("The dev server keeps stopping", `it exited ${times} times right after starting. see the terminal running \`pnpm dev:app\`, then save a server file or restart.`);
+      dialog.showErrorBox("The dev server keeps stopping", `It exited ${times} times right after starting. See the terminal running \`pnpm dev:app\`, then save a server file or restart.`);
     },
     log: (line) => console.log(`[dev-server] ${line}`),
   });
@@ -1450,7 +1450,7 @@ function openDesktopViewer(owner, rawUrl, rawTitle, contextId) {
   if (!owner || owner.isDestroyed()) throw new Error("The dusk bot window is unavailable");
   const url = desktopViewerUrl(rawUrl);
   const titleCandidate = Object.prototype.toString.call(rawTitle) === "[object String]" ? rawTitle.trim() : "";
-  const title = titleCandidate ? titleCandidate.slice(0, 80) : "live desktop";
+  const title = titleCandidate ? titleCandidate.slice(0, 80) : "Live desktop";
 
   const nextContextId =
     Object.prototype.toString.call(contextId) === "[object String]" ? contextId.slice(0, 120) : null;
@@ -1535,13 +1535,13 @@ function openDesktopViewer(owner, rawUrl, rawTitle, contextId) {
   });
   viewer.webContents.on("did-fail-load", (_event, code, description, failedUrl, isMainFrame) => {
     if (!isMainFrame || code === -3 || viewer.isDestroyed() || failedUrl.startsWith("data:")) return;
-    void viewer.loadURL(desktopViewerErrorPage(description || "the viewer did not respond.", url.toString()));
+    void viewer.loadURL(desktopViewerErrorPage(description || "The viewer did not respond.", url.toString()));
   });
 
   notifyDesktopViewer(true);
   void viewer.loadURL(url.toString()).catch((error) => {
     if (viewer.isDestroyed()) return;
-    void viewer.loadURL(desktopViewerErrorPage(error?.message ?? "the viewer did not respond.", url.toString()));
+    void viewer.loadURL(desktopViewerErrorPage(error?.message ?? "The viewer did not respond.", url.toString()));
   });
   return true;
 }
@@ -1693,7 +1693,7 @@ installWorkspaceReconnectIpc({ ipcMain, reconnect: workspaceReconnect });
 // the action's own answer, or false once it threw and the error was shown
 async function workspaceMenuAction(action) {
   try { return await action(); } catch (error) {
-    await dialog.showMessageBox({ type: "error", message: "could not update servers", detail: error.message });
+    await dialog.showMessageBox({ type: "error", message: "Could not update servers", detail: error.message });
     return false;
   }
 }
@@ -1870,10 +1870,10 @@ const organizationEntry = createOrganizationEntry({
   confirm: async ({ kind, name, origin }) => {
     const { response } = await dialog.showMessageBox({
       type: "question",
-      buttons: [kind === "companion" ? "disconnect and restart locally" : "use this computer", "cancel"],
+      buttons: [kind === "companion" ? "Disconnect and restart locally" : "Use this computer", "Cancel"],
       defaultId: 1, cancelId: 1,
-      message: kind === "companion" ? `disconnect from ${name} to sign in locally?` : `leave ${name} and sign in on this computer?`,
-      detail: `${origin}\n\nOrganization sign-in connects company models to this computer. ${kind === "companion" ? "this disconnects desktop companion access and restarts the app. you can pair again later." : "the hosted connection stays saved and can be selected again from the server menu."} no remote bots, conversations or provider accounts are moved or deleted.`,
+      message: kind === "companion" ? `Disconnect from ${name} to sign in locally?` : `Leave ${name} and sign in on this computer?`,
+      detail: `${origin}\n\nOrganization sign-in connects company models to this computer. ${kind === "companion" ? "This disconnects desktop companion access and restarts the app. You can pair again later." : "The hosted connection stays saved and can be selected again from the Server menu."} No remote bots, conversations or provider accounts are moved or deleted.`,
     });
     return response === 0;
   },
@@ -1957,7 +1957,7 @@ async function addServerFromClipboard() {
   try {
     return await connectHostedWorkspace(clipboard.readText());
   } catch (error) {
-    await dialog.showMessageBox({ type: "info", message: "could not connect to the server", detail: `${error.message}\nYou can also choose connect to a server to enter an address in settings.` });
+    await dialog.showMessageBox({ type: "info", message: "Could not connect to the server", detail: `${error.message}\nYou can also choose Connect to a server… to enter an address in Settings.` });
     return false;
   }
 }
@@ -1970,13 +1970,13 @@ async function connectHostedWorkspace(input, name) {
   const host = new URL(link.origin).host;
   const { response } = await dialog.showMessageBox({
     type: "question",
-    buttons: ["connect", "cancel"],
+    buttons: ["Connect", "Cancel"],
     defaultId: 0,
     cancelId: 1,
-    message: `connect to ${host}?`,
+    message: `Connect to ${host}?`,
     detail: link.code
-      ? "the pairing code in the link is used once, then this app stays signed in to that server."
-      : "the link has no pairing code; the server will ask for one.",
+      ? "The pairing code in the link is used once, then this app stays signed in to that server."
+      : "The link has no pairing code; the server will ask for one.",
   });
   if (response !== 0) return false;
   // a server that has never answered is not switched to: it stays where the person is, or isn't saved at all
@@ -2063,10 +2063,10 @@ function askRemoteMicrophone(origin) {
     const ask = (async () => {
       const options = {
         type: "question",
-        buttons: ["allow", "don’t allow"],
+        buttons: ["Allow", "Don’t allow"],
         defaultId: 1,
         cancelId: 1,
-        message: `allow “${env.name}” to use the microphone?`,
+        message: `Allow “${env.name}” to use the microphone?`,
         detail: `${new URL(origin).host} wants to hear you for a Live call. Allow only a server you trust; this app remembers your answer for this server until you forget it.`,
       };
       const parent = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
@@ -2086,11 +2086,11 @@ async function forgetEnvironment(id, purge = false, confirmed = false, { unlink 
   if (env.kind !== "local" && !confirmed) {
     const { response } = await dialog.showMessageBox({
       type: "warning",
-      buttons: ["forget", "cancel"],
+      buttons: ["Forget", "Cancel"],
       defaultId: 1,
       cancelId: 1,
-      message: `forget “${env.name}”?`,
-      detail: "this app signs out of that server. the server keeps its own session list; revoke it there too if the device is gone.",
+      message: `Forget “${env.name}”?`,
+      detail: "This app signs out of that server. The server keeps its own session list; revoke it there too if the device is gone.",
     });
     if (response !== 0) return;
   }
@@ -2130,7 +2130,7 @@ async function forgetEnvironment(id, purge = false, confirmed = false, { unlink 
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
   } catch (error) {
     slog(`forget server: logout skipped (${error?.message ?? error})`);
-    await dialog.showMessageBox({ type: "warning", message: "connection forgotten; server sign-out could not be confirmed", detail: "revoke this desktop’s session on that server when it is reachable again." });
+    await dialog.showMessageBox({ type: "warning", message: "Connection forgotten; server sign-out could not be confirmed", detail: "Revoke this desktop’s session on that server when it is reachable again." });
   }
   try {
     // Not cookies: Chromium's cookie storage is host-wide, not port-scoped, so other saved servers would sign out.
@@ -2166,9 +2166,9 @@ function showContextMenu(win, params) {
     { label: "Cut", role: "cut", enabled: params.editFlags.canCut },
     { label: "Copy", role: "copy", enabled: params.editFlags.canCopy },
     pasteMenuItem(params, clipboard, win.webContents),
-    { label: "Paste and Match Style", role: "pasteAndMatchStyle", enabled: params.editFlags.canPaste },
+    { label: "Paste and match style", role: "pasteAndMatchStyle", enabled: params.editFlags.canPaste },
     { type: "separator" },
-    { label: "Select All", role: "selectAll", enabled: params.editFlags.canSelectAll },
+    { label: "Select all", role: "selectAll", enabled: params.editFlags.canSelectAll },
   );
   Menu.buildFromTemplate(menuItems).popup({ window: win, frame: params.frame });
 }
@@ -2455,7 +2455,7 @@ ipcMain.handle("clipboard:write-text", localOnly("clipboard:write-text", (_event
 ipcMain.handle("desktop:pick-folder", localOnly("desktop:pick-folder", async (event, current) => {
   const win = BrowserWindow.fromWebContents(event.sender) ?? undefined;
   const result = await dialog.showOpenDialog(win, {
-    title: "choose a working folder",
+    title: "Choose a working folder",
     properties: ["openDirectory", "createDirectory"],
     ...(typeof current === "string" && current ? { defaultPath: current } : {}),
   });
@@ -2467,7 +2467,7 @@ ipcMain.handle("desktop:export-diagnostics", localOrHome("desktop:export-diagnos
   const owner = BrowserWindow.fromWebContents(event.sender) ?? undefined;
   const report = await gatherDiagnostics();
   const result = await dialog.showSaveDialog(owner, {
-    title: "export diagnostics",
+    title: "Export diagnostics",
     defaultPath: diagnosticsFileName(),
     filters: [{ name: "Text", extensions: ["txt"] }],
   });
@@ -2493,8 +2493,8 @@ ipcMain.handle("desktop:save-file", localOnly("desktop:save-file", async (event,
     const parent = BrowserWindow.fromWebContents(event.sender);
     const defaultPath = await defaultSaveName(app.getPath("downloads"), defaultName);
     const choice = await dialog.showSaveDialog(parent ?? undefined, {
-      title: "where do you want to save it?",
-      message: "where do you want to save it?",
+      title: "Where do you want to save it?",
+      message: "Where do you want to save it?",
       defaultPath,
       buttonLabel: "Save",
       properties: ["createDirectory", "showOverwriteConfirmation"],
@@ -2984,7 +2984,7 @@ ipcMain.handle("dialog:confirm", localWorkspaceOnly("dialog:confirm", async (_ev
   const { response } = await dialog.showMessageBox(mainWindow, {
     type: "warning",
     message,
-    buttons: ["OK", "cancel"],
+    buttons: ["OK", "Cancel"],
     defaultId: 1,
     cancelId: 1,
   });
@@ -3193,7 +3193,7 @@ app.whenReady().then(async () => {
     } catch (error) {
       dialog.showErrorBox(
         "dusk bot could not start safely",
-        error?.message ?? "another process is using this dusk bot data folder.",
+        error?.message ?? "Another process is using this dusk bot data folder.",
       );
       app.quit();
       return;
@@ -3360,7 +3360,7 @@ app.whenReady().then(async () => {
           } catch (error) {
             dialog.showErrorBox(
               "dusk bot could not start safely",
-              error?.message ?? "another process is using this dusk bot data folder.",
+              error?.message ?? "Another process is using this dusk bot data folder.",
             );
             app.quit();
             return;

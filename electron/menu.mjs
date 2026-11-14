@@ -27,7 +27,7 @@ export function aboutPanelOptions(version) {
   return {
     applicationName: "dusk bot",
     applicationVersion: version,
-    credits: "your own team of AI bots, in a chat app",
+    credits: "Your own team of AI bots, in a chat app",
     copyright: `© ${new Date().getFullYear()} dusk bot`,
     website: "https://dusk.bot",
   };
@@ -39,8 +39,8 @@ export function buildApplicationMenu({ environments, activeId, onSwitch, onAddFr
     ? { id: "quit", label: isMac ? `Quit ${app.name}` : process.platform === "win32" ? "Exit" : "Quit", ...(process.platform === "win32" ? {} : { accelerator: "CmdOrCtrl+Q" }), click: (_item, _window, event) => onQuit(event?.triggeredByAccelerator === true) }
     : { role: "quit" };
   const stops = onStop ? [
-    { id: "stop-bot", label: "Stop Bot", accelerator: "CmdOrCtrl+.", click: () => onStop(false) },
-    { id: "stop-all-bots", label: "Stop All Bots", accelerator: "Alt+CmdOrCtrl+.", click: () => onStop(true) },
+    { id: "stop-bot", label: "Stop bot", accelerator: "CmdOrCtrl+.", click: () => onStop(false) },
+    { id: "stop-all-bots", label: "Stop all bots", accelerator: "Alt+CmdOrCtrl+.", click: () => onStop(true) },
     { type: "separator" },
   ] : [];
   const active = environments.find((e) => e.id === activeId) ?? null;
@@ -53,8 +53,8 @@ export function buildApplicationMenu({ environments, activeId, onSwitch, onAddFr
       { type: "separator" },
       ...others.map((e) => ({ label: `${e.name} · ${new URL(e.origin).host}`, type: "radio", checked: e.id === activeId, click: () => onSwitch(e.id) })),
       { type: "separator" },
-      { label: "Add Server from Copied Pairing Link…", click: () => onAddFromClipboard() },
-      { label: away ? `Forget “${active.name}”` : "Forget Server", enabled: away, click: () => away && onForget(active.id) },
+      { label: "Add server from copied pairing link…", click: () => onAddFromClipboard() },
+      { label: away ? `Forget “${active.name}”` : "Forget server", enabled: away, click: () => away && onForget(active.id) },
     ],
   };
   const server = home ? homeServer : {
@@ -71,15 +71,15 @@ export function buildApplicationMenu({ environments, activeId, onSwitch, onAddFr
       { type: "separator" },
       { id: "organization-sign-in", label: "Sign in with your organization…", click: onOrganizationSignIn },
       { label: "Connect to a server…", click: onConnect },
-      { label: "Add Server from Copied Pairing Link…", click: () => onAddFromClipboard() },
+      { label: "Add server from copied pairing link…", click: () => onAddFromClipboard() },
       {
-        label: active ? `Forget “${active.name}”` : "Forget Server",
+        label: active ? `Forget “${active.name}”` : "Forget server",
         enabled: Boolean(active),
         click: () => active && onForget(active.id),
       },
     ],
   };
-  const atLogin = openAtLogin ? [{ id: "open-at-login", label: "Open at Login", type: "checkbox", checked: openAtLogin.checked, click: () => openAtLogin.onToggle(!openAtLogin.checked) }] : [];
+  const atLogin = openAtLogin ? [{ id: "open-at-login", label: "Open at login", type: "checkbox", checked: openAtLogin.checked, click: () => openAtLogin.onToggle(!openAtLogin.checked) }] : [];
   const template = [
     ...(isMac ? [{ label: app.name, submenu: [{ role: "about" }, { label: "Settings…", accelerator: "CmdOrCtrl+,", click: () => onOpenSettings() }, ...atLogin, { type: "separator" }, { role: "hide" }, { role: "hideOthers" }, { role: "unhide" }, { type: "separator" }, quit] }] : []),
     isMac ? (stops.length ? { label: "File", submenu: [...stops, { role: "close" }] } : { role: "fileMenu" })
@@ -89,11 +89,11 @@ export function buildApplicationMenu({ environments, activeId, onSwitch, onAddFr
     { role: "viewMenu" },
     { role: "windowMenu" },
     { role: "help", submenu: [
-      { label: "dusk bot Help", click: () => void shell.openExternal("https://dusk.bot/docs") },
-      { label: "What's New", click: () => void shell.openExternal("https://dusk.bot/changelog") },
+      { label: "dusk bot help", click: () => void shell.openExternal("https://dusk.bot/docs") },
+      { label: "What's new", click: () => void shell.openExternal("https://dusk.bot/changelog") },
       { type: "separator" },
-      { label: "Contact Support", click: () => void shell.openExternal("mailto:hello@dusk.bot") },
-      ...(onExportUsageLog ? [{ label: "Export Usage Log…", click: () => onExportUsageLog() }] : []),
+      { label: "Contact support", click: () => void shell.openExternal("mailto:hello@dusk.bot") },
+      ...(onExportUsageLog ? [{ label: "Export usage log…", click: () => onExportUsageLog() }] : []),
     ] },
   ];
   return Menu.buildFromTemplate(template);

@@ -523,7 +523,7 @@ function createLinuxCuaRuntime({
     enabled: false,
     status: "disabled",
     reasonCode: "opt-in-required",
-    message: "local control is off until you enable the beta.",
+    message: "Local control is off until you enable the beta.",
     ownerPid: processId,
   };
 
@@ -836,7 +836,7 @@ function createLinuxCuaRuntime({
     unavailable(
       disable ? "disabled" : "stopped",
       disable ? "opt-in-required" : quit ? "app-stopped" : "runtime-stopped",
-      disable ? "local control is disabled." : "local control is not running.",
+      disable ? "Local control is disabled." : "Local control is not running.",
       active ? { generation: active.generation } : {},
     );
     const owned = active;

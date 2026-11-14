@@ -34,11 +34,11 @@ export const THEMES = Object.freeze({
 
 /** What each launch milestone (a startup trace mark) tells the person, in order. The first shows as the card opens. */
 export const STEPS = Object.freeze([
-  ["opening", "opening dusk bot"],
-  ["credentials", "unlocking your sign-ins"],
-  ["server", "starting your bots"],
-  ["window", "opening your workspace"],
-  ["loaded", "almost there"],
+  ["opening", "Opening dusk bot"],
+  ["credentials", "Unlocking your sign-ins"],
+  ["server", "Starting your bots"],
+  ["window", "Opening your workspace"],
+  ["loaded", "Almost there"],
 ]);
 
 /** One mascot turns up per step, in this order; kit is drawn in ink so it follows the theme. */
@@ -58,7 +58,7 @@ export const PACE = Object.freeze({ firstRunMs: 7_000, minMs: 4_500, maxMs: 20_0
 /** When the first four mascots turn up, as a share of the expected load; the fifth waits for the page to load. */
 export const ARRIVE_AT = Object.freeze([0, 0.22, 0.45, 0.7]);
 /** What the line says once the expected time has passed and the app still has not loaded, one after another. */
-export const WAIT_LINES = Object.freeze(["waking your bots", "loading your chats", "almost there", "taking a little longer\u2026"]);
+export const WAIT_LINES = Object.freeze(["Waking your bots", "Loading your chats", "Almost there", "Taking a little longer\u2026"]);
 
 /** The load time to plan for: the median of the last few launches (splash shown to page loaded), else the first-run guess. */
 export function expectedLoadMs(history, pace = PACE) {
@@ -146,9 +146,9 @@ export function startupScreenHtml({ dark = false, expectedMs = PACE.firstRunMs }
   <button class="close" aria-label="Close" data-act="close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
   <main class="txt">
   <p class="line" role="status">${STEPS[0][1]}</p>
-  <div class="meta" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-valuetext="0 of ${CREW.length} here" aria-label="opening dusk bot"><b class="here">0 of ${CREW.length}</b> here<span class="pct">0%</span></div>
+  <div class="meta" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-valuetext="0 of ${CREW.length} here" aria-label="Opening dusk bot"><b class="here">0 of ${CREW.length}</b> here<span class="pct">0%</span></div>
   <p class="detail"></p>
-  <div class="actions"><button class="go" data-act="retry">try again</button><button class="stop" data-act="quit">quit</button></div>
+  <div class="actions"><button class="go" data-act="retry">Try again</button><button class="stop" data-act="quit">Quit</button></div>
   </main><script>${pageScript({ crew, ghost: t.ghost, shadow: t.shadow, track: t.track, expectedMs })}</script></body></html>`;
 }
 
@@ -276,11 +276,11 @@ const pageScript = ({ crew, ghost, shadow, track, expectedMs }) => `(() => {
     body.classList.remove('stuck'); body.classList.add(kind);
     mood = kind; write(text); wake();
   };
-  const stuck = setTimeout(() => trouble('stuck', 'this is taking longer than usual'), ${STUCK_AFTER_MS});
+  const stuck = setTimeout(() => trouble('stuck', 'This is taking longer than usual'), ${STUCK_AFTER_MS});
   document.addEventListener('click', event => {
     const button = event.target.closest?.('[data-act]');
     if (!button) return;
-    if (button.dataset.act === 'retry') { button.disabled = true; button.textContent = 'starting again\\u2026'; }
+    if (button.dataset.act === 'retry') { button.disabled = true; button.textContent = 'Starting again\\u2026'; }
     window.startupScreen?.[button.dataset.act]?.();
   });
   still.addEventListener?.('change', wake);
@@ -289,7 +289,7 @@ const pageScript = ({ crew, ghost, shadow, track, expectedMs }) => `(() => {
     say: text => { pinned = true; if (!over) write(text); },
     // only the last mark (the page loaded) changes the plan; the earlier ones land together and would rush the crew
     step: n => { if (!over && n >= total) loaded(); },
-    fail: why => { clearTimeout(stuck); trouble('failed', "couldn't start", why || ''); },
+    fail: why => { clearTimeout(stuck); trouble('failed', "Couldn't start", why || ''); },
     // returns how long until everyone has landed and the cheer starts, so the app waits for it
     ready: () => {
       if (over || ready) return 0;
@@ -303,7 +303,7 @@ const pageScript = ({ crew, ghost, shadow, track, expectedMs }) => `(() => {
         // anyone the cap cut short is simply there
         for (let k = 0; k < total; k++) if (arrivals[k] === null || arrivals[k] > performance.now() - HOP_MS) arrivals[k] = -Infinity;
         value = 100; show(); mood = 'cheer'; cheerAt = performance.now();
-        if (!pinned) write("everyone's here");
+        if (!pinned) write("Everyone's here");
         wake();
       }, lead);
       return lead;

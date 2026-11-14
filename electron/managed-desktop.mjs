@@ -285,9 +285,9 @@ export function createManagedDesktopClient({ store, applyConnection, applyPolicy
       if (runtime.status === "rejected") warnings.push("The local runtime did not confirm stopping Company tasks. Quit and reopen dusk bot before using Company models again.");
       if (revoked.status === "rejected") warnings.push("The portal was unreachable; ask your administrator to revoke this device there too.");
       if (persisted.status === "rejected") return publish({ status: "unavailable", message: [
-        "the saved company sign-in could not be cleared. unlock your system keychain and disconnect again before reconnecting.", ...warnings,
+        "The saved company sign-in could not be cleared. Unlock your system keychain and disconnect again before reconnecting.", ...warnings,
       ].join(" ") });
-      return publish({ status: "signed-out", ...(warnings.length ? { message: ["disconnected on this computer.", ...warnings].join(" ") } : {}) });
+      return publish({ status: "signed-out", ...(warnings.length ? { message: ["Disconnected on this computer.", ...warnings].join(" ") } : {}) });
     })().finally(() => { if (clearing === operation) clearing = null; });
     clearing = operation;
     return operation;
@@ -398,7 +398,7 @@ export function createManagedDesktopClient({ store, applyConnection, applyPolicy
     if (!attempt || !current(stamp)) return;
     if (attempt.expiresAt <= now()) {
       pending = null;
-      return publish({ status: "signed-out", message: "the sign-in code expired. start again." });
+      return publish({ status: "signed-out", message: "The sign-in code expired. Start again." });
     }
     try {
       const result = await request(attempt.portalOrigin, "/api/desktop/enrollment/token", { method: "POST", body: { deviceCode: attempt.deviceCode } });
@@ -419,21 +419,21 @@ export function createManagedDesktopClient({ store, applyConnection, applyPolicy
       else if (error?.code === "authorization_pending") {}
       else if (["access_denied", "expired_token", "invalid_grant"].includes(error?.code)) {
         pending = null;
-        return publish({ status: "signed-out", message: "sign-in was denied, expired or already used. start again on this computer." });
+        return publish({ status: "signed-out", message: "Sign-in was denied, expired or already used. Start again on this computer." });
       } else if (error?.status && error.status !== 429) {
         pending = null;
-        return publish({ status: "signed-out", message: "could not complete sign-in. check your admin address and start again." });
+        return publish({ status: "signed-out", message: "Could not complete sign-in. Check your admin address and start again." });
       }
       schedule(poll, attempt.interval);
     }
   }
-  const RESTORE_FAILED = "the saved company sign-in can't be read right now. dusk bot tries again every minute.";
+  const RESTORE_FAILED = "The saved company sign-in can't be read right now. dusk bot tries again every minute.";
   /** A record that may only be locked in the keychain is kept, never removed, and read again shortly. */
   async function restoreFailed(stamp, unreadable) {
     if (unreadable) {
       const removed = await store.write(null).then(() => true, () => false);
       if (!current(stamp)) return snapshot();
-      if (removed) { restoreFailures = 0; return publish({ status: "signed-out", message: "this computer's company sign-in couldn't be read, so it was removed. sign in again." }); }
+      if (removed) { restoreFailures = 0; return publish({ status: "signed-out", message: "This computer's company sign-in couldn't be read, so it was removed. Sign in again." }); }
     }
     restoreFailures++;
     if (state.message !== RESTORE_FAILED) publish({ status: "unavailable", message: RESTORE_FAILED });
@@ -480,7 +480,7 @@ export function createManagedDesktopClient({ store, applyConnection, applyPolicy
         await openBrowser(result.verificationUriComplete);
         if (current(stamp)) schedule(poll, pending.interval);
       } catch (error) {
-        if (current(stamp)) { pending = null; publish(licenseExpired(error) ? { status: "signed-out", notice: "license-expired" } : { status: "signed-out", message: "could not start company sign-in. check the admin portal address and your connection." }); }
+        if (current(stamp)) { pending = null; publish(licenseExpired(error) ? { status: "signed-out", notice: "license-expired" } : { status: "signed-out", message: "Could not start company sign-in. Check the admin portal address and your connection." }); }
       }
       return snapshot();
     },

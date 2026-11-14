@@ -138,7 +138,7 @@ test("native workspace choices use saved IDs and connect opens settings without 
   const calls = [];
   const items = env.workspaceMenuTemplate(state, { onSwitch: (id) => calls.push(["switch", id]), onConnect: () => calls.push(["settings"]), onForget: (id) => calls.push(["forget", id]) });
   assert.equal(items.find((item) => item.id === "workspace-cloud").checked, true);
-  assert.equal(items.find((item) => item.id === "workspace-connect").label, "connect a server…");
+  assert.equal(items.find((item) => item.id === "workspace-connect").label, "Connect a server…");
   items.find((item) => item.id === "workspace-local").click();
   items.find((item) => item.id === "workspace-connect").click();
   items.find((item) => item.id === "workspace-forget").click();
@@ -152,14 +152,14 @@ test("Add a Cloud… sits just under the saved servers only where main offers it
   const base = { onSwitch: (id) => calls.push(["switch", id]), onConnect: () => calls.push(["settings"]), onForget: () => {} };
   const plain = env.workspaceMenuTemplate(state, base);
   assert.equal(plain.some(item => item.id === "workspace-add-cloud"), false);
-  assert.deepEqual(plain.filter(item => item.sublabel).map(item => item.sublabel), ["your server · dusk-u-1.fly.dev", "your server · office.example"]);
+  assert.deepEqual(plain.filter(item => item.sublabel).map(item => item.sublabel), ["Your server · dusk-u-1.fly.dev", "Your server · office.example"]);
   const items = env.workspaceMenuTemplate(state, { ...base, onAddCloud: () => calls.push(["add-cloud"]), sublabels: { cloud: "Free trial until 15 Oct" } });
   assert.deepEqual(items.map(item => item.id ?? item.type), ["workspace-local", "workspace-cloud", "workspace-office", "workspace-add-cloud", "separator", "workspace-connect"]);
   const add = items.find(item => item.id === "workspace-add-cloud");
-  assert.deepEqual([add.label, add.sublabel, add.type], ["add dusk cloud…", "keeps your bots running 24/7", undefined]);
+  assert.deepEqual([add.label, add.sublabel, add.type], ["Add dusk cloud…", "Keeps your bots running 24/7", undefined]);
   add.click();
-  assert.deepEqual(items.find(item => item.id === "workspace-cloud").sublabel, "free trial until 15 Oct");
-  assert.deepEqual(items.find(item => item.id === "workspace-office").sublabel, "your server · office.example");
+  assert.deepEqual(items.find(item => item.id === "workspace-cloud").sublabel, "Free trial until 15 Oct");
+  assert.deepEqual(items.find(item => item.id === "workspace-office").sublabel, "Your server · office.example");
   assert.deepEqual(calls, [["add-cloud"]]);
 });
 
@@ -167,8 +167,8 @@ test("Windows and Linux menus clip a sublabel, so the popup there has none: stat
   const state = { environments: [{ id: "cloud", name: "My Cloud", origin: "https://dusk-u-1.fly.dev" }, { id: "office", name: "Office", origin: "https://office.example" }], activeId: "local" };
   const items = env.workspaceMenuTemplate(state, { onSwitch() {}, onConnect() {}, onForget() {}, onAddCloud() {}, foldSublabels: true, sublabels: { cloud: "Free trial until 15 Oct" } });
   assert.deepEqual(items.filter(item => "sublabel" in item).map(item => item.id), []);
-  assert.equal(items.find(item => item.id === "workspace-cloud").label, "My Cloud · free trial until 15 Oct");
-  assert.equal(items.find(item => item.id === "workspace-add-cloud").label, "add dusk cloud…");
+  assert.equal(items.find(item => item.id === "workspace-cloud").label, "My Cloud · Free trial until 15 Oct");
+  assert.equal(items.find(item => item.id === "workspace-add-cloud").label, "Add dusk cloud…");
 });
 
 test("with My Cloud, the switcher says first which side has which bots, and under My Cloud what is not on it yet, with Send", async () => {
@@ -180,22 +180,22 @@ test("with My Cloud, the switcher says first which side has which bots, and unde
   const items = env.workspaceMenuTemplate(state, { onSwitch() {}, onConnect() {}, onForget() {}, sublabels: { cloud: "Always on" }, ...options });
   assert.deepEqual(items.map((item) => item.id ?? item.type), ["workspace-places", "separator", "workspace-local", "workspace-cloud", "workspace-copy-to-cloud", "separator", "workspace-connect", "workspace-forget"]);
   const places = items.find((item) => item.id === "workspace-places");
-  assert.deepEqual([places.label, places.enabled], ["your bots live on dusk cloud. this computer has its own: Ember.", false]);
+  assert.deepEqual([places.label, places.enabled], ["Your bots live on dusk cloud. This computer has its own: Ember.", false]);
   // Windows and Linux menus show no sublabels: My Cloud's status joins its name rather than vanishing.
-  assert.equal(items.find((item) => item.id === "workspace-cloud").label, "dusk cloud · always on");
+  assert.equal(items.find((item) => item.id === "workspace-cloud").label, "dusk cloud · Always on");
   const line = items.find((item) => item.id === "workspace-copy-to-cloud");
-  assert.equal(line.label, "2 bots not on dusk cloud · send");
+  assert.equal(line.label, "2 bots not on dusk cloud · Send");
   line.click();
   assert.deepEqual(clicked, ["send"]);
   const mac = env.workspaceMenuTemplate(state, { onSwitch() {}, onConnect() {}, onForget() {}, sublabels: { cloud: "Always on" },
     ...await env.placesMenuOptions({ cloud: state.environments[0], platform: "darwin", send: { ...send, waiting: { bots: 0, total: 0 } }, localBots: async () => ({ bots: [] }) }) });
   assert.equal(mac.find((item) => item.id === "workspace-cloud").label, "dusk cloud");
-  assert.equal(mac.find((item) => item.id === "workspace-local").label, "this mac");
-  assert.equal(items.find((item) => item.id === "workspace-local").label, "this computer");
-  assert.equal(mac.find((item) => item.id === "workspace-cloud").sublabel, "always on");
-  assert.equal(mac.find((item) => item.id === "workspace-places").label, "this mac has no bots of its own yet. dusk cloud has its own.");
+  assert.equal(mac.find((item) => item.id === "workspace-local").label, "This Mac");
+  assert.equal(items.find((item) => item.id === "workspace-local").label, "This computer");
+  assert.equal(mac.find((item) => item.id === "workspace-cloud").sublabel, "Always on");
+  assert.equal(mac.find((item) => item.id === "workspace-places").label, "This Mac has no bots of its own yet. dusk cloud has its own.");
   const open = mac.find((item) => item.id === "workspace-copy-to-cloud");
-  assert.equal(open.label, "this mac and dusk cloud…");
+  assert.equal(open.label, "This Mac and dusk cloud…");
   open.click();
   assert.deepEqual(clicked, ["send", "open"]);
 });
@@ -203,24 +203,24 @@ test("with My Cloud, the switcher says first which side has which bots, and unde
 test("someone who has not moved hears their bots live on this computer, even with My Cloud open in the window", async () => {
   // Seen in the real app on Oct 22: moves not on yet, My Cloud opened from the switcher, and it said "Your bots live on My Cloud".
   const options = await env.placesMenuOptions({ cloud: { id: "cloud", name: "My Cloud" }, platform: "linux", localBots: async () => ({ bots: [{ name: "Scout" }, { name: "Quill" }] }) });
-  assert.equal(options.places, "these bots live on this computer: Scout and Quill. dusk cloud has its own.");
+  assert.equal(options.places, "These bots live on this computer: Scout and Quill. dusk cloud has its own.");
   const moved = await env.placesMenuOptions({ cloud: { id: "cloud", name: "My Cloud" }, home: true, platform: "linux", localBots: async () => ({ bots: [{ name: "Scout" }] }) });
-  assert.equal(moved.places, "your bots live on dusk cloud. this computer has its own: Scout.");
+  assert.equal(moved.places, "Your bots live on dusk cloud. This computer has its own: Scout.");
 });
 
 test("the send line counts bots first, then everything else, and is absent when nothing waits", () => {
-  assert.equal(env.sendLine({ waiting: { bots: 1, total: 1 } }), "1 bot not on dusk cloud · send");
-  assert.equal(env.sendLine({ cloudName: "Studio Cloud", waiting: { bots: 1, total: 4 } }), "1 bot and 3 more not on Studio Cloud · send");
-  assert.equal(env.sendLine({ waiting: { bots: 0, total: 1 } }), "1 change not on dusk cloud · send");
-  assert.equal(env.sendLine({ waiting: { bots: 0, total: 3 } }), "3 changes not on dusk cloud · send");
+  assert.equal(env.sendLine({ waiting: { bots: 1, total: 1 } }), "1 bot not on dusk cloud · Send");
+  assert.equal(env.sendLine({ cloudName: "Studio Cloud", waiting: { bots: 1, total: 4 } }), "1 bot and 3 more not on Studio Cloud · Send");
+  assert.equal(env.sendLine({ waiting: { bots: 0, total: 1 } }), "1 change not on dusk cloud · Send");
+  assert.equal(env.sendLine({ waiting: { bots: 0, total: 3 } }), "3 changes not on dusk cloud · Send");
   assert.equal(env.sendLine({ waiting: null }), null);
 });
 
 test("the places line names this computer's bots briefly, says nothing when its server does not answer, and is absent without a Cloud", async () => {
-  assert.equal(env.placesLine({ onCloud: true, localBots: ["Ember", "Juno"] }), "your bots live on dusk cloud. this computer has its own: Ember and Juno.");
-  assert.equal(env.placesLine({ onCloud: true, localBots: ["Ember", "Juno", "Kit", "Lark"] }), "your bots live on dusk cloud. this computer has its own: Ember, Juno and 2 more.");
-  assert.equal(env.placesLine({ onCloud: false, cloudName: "Studio Cloud", localBots: ["Ember"] }), "these bots live on this computer: Ember. Studio Cloud has its own.");
-  assert.equal(env.placesLine({ onCloud: true, localBots: [] }), "your bots live on dusk cloud. this computer has none of its own.");
+  assert.equal(env.placesLine({ onCloud: true, localBots: ["Ember", "Juno"] }), "Your bots live on dusk cloud. This computer has its own: Ember and Juno.");
+  assert.equal(env.placesLine({ onCloud: true, localBots: ["Ember", "Juno", "Kit", "Lark"] }), "Your bots live on dusk cloud. This computer has its own: Ember, Juno and 2 more.");
+  assert.equal(env.placesLine({ onCloud: false, cloudName: "Studio Cloud", localBots: ["Ember"] }), "These bots live on this computer: Ember. Studio Cloud has its own.");
+  assert.equal(env.placesLine({ onCloud: true, localBots: [] }), "Your bots live on dusk cloud. This computer has none of its own.");
   const quiet = await env.placesMenuOptions({ cloud: { id: "cloud", name: "My Cloud" }, home: true, platform: "win32", send: { waiting: null, onSend() {}, onOpen() {} }, localBots: async () => { throw new Error("timeout"); } });
   assert.equal("places" in quiet, false);
   assert.ok(quiet.copyToCloud);
@@ -418,7 +418,7 @@ test("once My Cloud is home the switcher lists whole places only: My Cloud first
   items[1].click();
   assert.deepEqual(switched, ["o"]);
   const away = env.workspaceMenuTemplate({ ...state, activeId: "o" }, { onSwitch() {}, onConnect() {}, onForget: (id) => forgot.push(id), homeOrigin: home });
-  assert.deepEqual(away.map((item) => item.label ?? item.type), ["dusk cloud", "Office", "separator", "forget “Office”…"]);
+  assert.deepEqual(away.map((item) => item.label ?? item.type), ["dusk cloud", "Office", "separator", "Forget “Office”…"]);
   away.at(-1).click();
   assert.deepEqual(forgot, ["o"]);
   assert.equal(env.otherPlaces(state, home), 1);
@@ -436,14 +436,14 @@ test("the switcher lists My Cloud first, then each team from the session with th
   const state = { environments: [{ id: "o", kind: "remote", name: "Office", origin: "https://office.example.test" }, { id: "t", kind: "remote", name: "Acme", origin: TEAM, team: { id: "team-acme", role: "owner" } },
     { id: "c", kind: "remote", name: "My Cloud", origin: home, home: true }], activeId: "t" };
   const items = env.workspaceMenuTemplate(state, { onSwitch() {}, onConnect() {}, onForget() {}, homeOrigin: home });
-  assert.deepEqual(items.map((item) => [item.label, item.sublabel, item.checked]), [["dusk cloud", "dusk-t-1.fly.dev", false], ["Acme", "super admin", true], ["Office", "your server · office.example.test", false]]);
-  assert.deepEqual(env.workspaceMenuTemplate(state, { onSwitch() {}, onConnect() {}, onForget() {}, homeOrigin: home, foldSublabels: true }).map((item) => item.label), ["dusk cloud", "Acme · super admin", "Office"]);
+  assert.deepEqual(items.map((item) => [item.label, item.sublabel, item.checked]), [["dusk cloud", "dusk-t-1.fly.dev", false], ["Acme", "Super admin", true], ["Office", "Your server · office.example.test", false]]);
+  assert.deepEqual(env.workspaceMenuTemplate(state, { onSwitch() {}, onConnect() {}, onForget() {}, homeOrigin: home, foldSublabels: true }).map((item) => item.label), ["dusk cloud", "Acme · Super admin", "Office"]);
   for (const [role, label] of [["owner", "Super admin"], ["admin", "Admin"], ["member", "User"], ["other", "User"]]) assert.equal(env.teamRoleLabel(role), label, role);
   assert.equal(env.workspaceWindowTitle(state, null, home), "dusk bot · Acme");
   assert.deepEqual(env.workspaceSummary(state), { local: false, name: "Acme", origin: TEAM, role: "Super admin" });
   // Before the move (or a Team Owner, whose home is this computer): This computer, then each team with its role (no Forget), then servers as saved.
   const before = env.workspaceMenuTemplate(state, { onSwitch() {}, onConnect() {}, onForget() {} });
-  assert.deepEqual(before.filter((item) => item.type === "radio").map((item) => [item.label, item.sublabel]), [["this computer", undefined], ["dusk cloud", "dusk-t-1.fly.dev"], ["Acme", "super admin"], ["Office", "your server · office.example.test"]]);
+  assert.deepEqual(before.filter((item) => item.type === "radio").map((item) => [item.label, item.sublabel]), [["This computer", undefined], ["dusk cloud", "dusk-t-1.fly.dev"], ["Acme", "Super admin"], ["Office", "Your server · office.example.test"]]);
   assert.equal(before.some((item) => item.id === "workspace-forget"), false, "a team is the Admin's to remove");
   assert.equal(env.otherPlaces(state, home), 2);
   const serialized = env.parseEnvironments(env.serializeEnvironments(state));
@@ -480,7 +480,7 @@ test("with My Cloud as home, the menu still folds its status line into the name 
   for (const [platform, folded] of [["linux", true], ["win32", true], ["darwin", false]]) {
     const options = await env.placesMenuOptions({ homeOrigin: "https://me.example", cloud: state.environments[0], platform, localBots: async () => { throw new Error("home lists no local bots"); } });
     const [item] = env.workspaceMenuTemplate(state, { onSwitch() {}, sublabels: { c: "Always on" }, ...options });
-    assert.equal(item.label, folded ? "dusk cloud · always on" : "dusk cloud", platform);
+    assert.equal(item.label, folded ? "dusk cloud · Always on" : "dusk cloud", platform);
   }
 });
 
@@ -503,7 +503,7 @@ test("the places popup wears each place's kind as its icon where main has them (
     { id: "o", kind: "remote", name: "Office", origin: "https://office.example", color: "red" }], activeId: "o", localColor: "blue" };
   const base = { onSwitch() {}, onConnect() {}, onForget() {}, myCloudId: "c" };
   const kinds = env.workspaceMenuTemplate(state, { ...base, iconFor: (color) => `dot:${color}`, kindIcon: (kind) => `kind:${kind}` }).filter((item) => item.type === "radio");
-  assert.deepEqual(kinds.map((item) => [item.label, item.icon, item.checked]), [["this computer", "kind:computer", false], ["dusk cloud", "kind:cloud", false], ["Acme", "kind:cloud", false], ["Office", "kind:server", true]]);
+  assert.deepEqual(kinds.map((item) => [item.label, item.icon, item.checked]), [["This computer", "kind:computer", false], ["dusk cloud", "kind:cloud", false], ["Acme", "kind:cloud", false], ["Office", "kind:server", true]]);
   const dots = env.workspaceMenuTemplate(state, { ...base, iconFor: (color) => `dot:${color}` }).filter((item) => item.type === "radio");
   assert.deepEqual(dots.map((item) => item.icon), ["dot:blue", "dot:teal", undefined, "dot:red"]);
 });
