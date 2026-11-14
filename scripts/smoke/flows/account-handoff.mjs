@@ -235,5 +235,31 @@ await runFlow(flow, async () => {
     return `account ${found.account}, app profile ${found.config}`;
   });
 
+  await flow.step("app-finish", "the app's own first run ends in the chat, the sidebar calling the person by that name", async (entry) => {
+    const pressed = [];
+    for (let tries = 0; tries < 40; tries++) {
+      if (await flow.evaluate(`Boolean(document.querySelector('textarea[aria-label^="Message"]')) && !document.querySelector("[data-welcome]") && ![...document.querySelectorAll("[role=dialog]")].some((d) => d.getClientRects().length && !d.querySelector("[data-welcome]") && !d.matches("[data-welcome]"))`)) break;
+      if (await flow.evaluate(`[...document.querySelectorAll("[role=dialog]")].some((d) => d.getClientRects().length && !d.querySelector("[data-welcome]") && !d.matches("[data-welcome]") && !d.closest("[data-welcome]"))`)) { await flow.escape(); pressed.push("escape"); await sleep(1000); continue; }
+      const did = await flow.evaluate(`(() => {
+        const shown = (sel) => [...document.querySelectorAll(sel)].filter((e) => e.getClientRects().length && !e.disabled);
+        const mac = shown("[data-funnel-place=mac]")[0]; if (mac) { mac.click(); return "this mac"; }
+        for (const word of ["start with the free model", "set up later", "skip", "continue", "not now", "done"]) { const b = shown("button").find((e) => e.innerText.trim().toLowerCase() === word); if (b) { b.click(); return word; } }
+        return null; })()`).catch(() => null);
+      if (did) pressed.push(did);
+      await sleep(1500);
+    }
+    mark("app first run done", "app");
+    await sleep(2500);
+    // the account button beside "connect apps": its menu names the person
+    await flow.evaluate(`(() => { const shown = [...document.querySelectorAll("button")].filter((b) => b.getClientRects().length);
+      const apps = shown.find((b) => /^connect apps/i.test(b.innerText.trim())); const box = apps?.getBoundingClientRect(); const account = box ? document.elementFromPoint(Math.max(4, box.left - 16), box.top + box.height / 2)?.closest("button,[role=button]") : null;
+      account?.click(); return Boolean(account); })()`);
+    await sleep(1500);
+    const label = await flow.evaluate(`document.body.innerText.includes(${JSON.stringify(NAME)})`);
+    entry.shot = await flow.shot("app-chat-with-name");
+    if (!label) throw new Error(`"${NAME}" is not on screen after the first run (pressed ${pressed.join(", ")})`);
+    return `pressed ${pressed.join(", ")}; "${NAME}" on screen`;
+  });
+
   flow.facts.timeline = timeline.map((row, i) => ({ ...row, sinceStart: Math.round((row.at - timeline[0].at) / 1000), sincePrev: i ? Math.round((row.at - timeline[i - 1].at) / 1000) : 0 }));
 }, { keepProfile: flag("--keep-profile") });
