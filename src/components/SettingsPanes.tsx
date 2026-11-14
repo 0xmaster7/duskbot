@@ -25,6 +25,7 @@ import { CloudPlanFootnote, CloudPlanRow, useCloudPlan } from "./ProIntroduction
 import { CloudUsageDetails, CloudUsageSummaryView, useCloudUsageSettings } from "./CloudUsageMeter";
 import { CompanyBackupSettings } from "./CompanyBackupSettings";
 import { DiagnosticsRow } from "./DiagnosticsRow";
+import { UsageLogRow } from "./UsageLogRow";
 import { EnginesSettings } from "./EnginesSettings";
 import { ImportSettings } from "./ImportSettings";
 import { KeyboardShortcutsModal } from "./KeyboardShortcutsModal";
@@ -339,7 +340,7 @@ function ServerUpdatesRow() {
 
 export function UpdatesPane() {
   const { at } = useSubPage();
-  if (at === "diagnostics") return <SettingsRows><DiagnosticsRow simple /></SettingsRows>;
+  if (at === "diagnostics") return <SettingsRows><DiagnosticsRow simple /><UsageLogRow /></SettingsRows>;
   return (
     <>
       <SettingsGroup label={t("settings.grok.group.version")} block="updates">

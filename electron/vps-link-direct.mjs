@@ -15,6 +15,7 @@ import { checkServerIdentity, connect as tlsConnect } from "node:tls";
 
 import { connectedSocket, openFrame, sealBytes, sealFrame, throughProxy } from "./vps-link-protocol.mjs";
 import { clampMss } from "./tcp-clamp.mjs";
+import { shortHash, trail } from "./trail.mjs";
 
 // ---- direct transport shared with apps/link-service/agent.mjs (keep both in step; a test checks they interoperate) ----
 /** each end writes this first; a login shell's greeting before it is skipped */
@@ -397,6 +398,7 @@ export function createDirectLink({ id, key: keyText, guard, connect, onFrame, on
     suspect = false;
     try { gone.close(); } catch { /* already closed */ }
     log(`vps link: direct path ${was === "up" ? "lost" : "failed"} (${reason})`);
+    trail(was === "up" ? "link.direct.lost" : "link.direct.failed", { link: shortHash(id), via, reason, ...(was === "up" ? { upMs: Math.round(performance.now() - upAt) } : {}) });
     set("down", { lost: was === "up" });
     if (was !== "up") { failed(); return; }
     if (performance.now() - upAt >= STABLE_MS) attempt = 0;
@@ -495,6 +497,7 @@ export function createDirectLink({ id, key: keyText, guard, connect, onFrame, on
         failedOn = null;
         upAt = performance.now();
         set("up");
+        trail("link.direct.up", { link: shortHash(id), via });
         // the cloud relay bills while a message wakes it, so a transport may ping less often there
         const every = typeof pingMs === "function" ? pingMs(via) : pingMs;
         pingTimer = setInterval(() => ping(), every);
@@ -784,6 +787,7 @@ export function orderedConnect(list, { network = networkFingerprint, now = Date.
         clearTimeout(timers[i]);
         void Promise.resolve().then(() => one.connect()).then((link) => {
           failed.delete(one.name);
+          trail("link.attempt", { way: one.name, ok: true });
           if (settled) { link?.close?.(); return; }
           results.set(one.name, { link });
           finish();
@@ -792,6 +796,7 @@ export function orderedConnect(list, { network = networkFingerprint, now = Date.
           const tagged = Object.assign(error ?? new Error("failed"), { via: one.name });
           errors.push(tagged);
           if (list.length > 1) log(`vps link: direct path over ${one.name} did not connect (${error?.message ?? error})`);
+          trail("link.attempt", { way: one.name, ok: false, errCode: error?.code ?? error?.level, msg: error?.message });
           results.set(one.name, { error: tagged });
           // the next way starts now instead of waiting for its turn
           launch(group.findIndex((other) => !started.has(other.name)));

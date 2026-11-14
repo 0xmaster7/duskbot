@@ -1,6 +1,7 @@
 import RFB from "@novnc/novnc";
 import { DESKTOP_VIEWER_TARGET } from "../../shared/desktop-viewer";
 import { directScreenWanted, linkProxyState, linkProxyTurn, onLinkProxy, openDirectScreen, type DirectScreen } from "./screen-direct";
+import { noteScreen, trail } from "./trail";
 
 export interface DesktopConnectionEvents {
   connected(): void;
@@ -62,6 +63,12 @@ export async function connectDesktop(screen: HTMLElement, target: string, option
   const websocket = new URL(`${path}/websockify${socketQuery}`, location.href);
   websocket.protocol = location.protocol === "https:" ? "wss:" : "ws:";
   if (fallback) websocket.searchParams.set("direct", fallback);
+  // the trail: which way this screen goes (webrtc direct, cloudflare's turn, or the websocket over the link)
+  const screenPath = direct ? direct.path ?? "direct" : "websocket";
+  const kind = target.startsWith("vps/") ? "vps" : "vm";
+  const openedAt = performance.now();
+  noteScreen(target, screenPath, fallback);
+  trail("desktop.stream.start", { kind, bot: target.startsWith("vps/") ? target.slice(4) : undefined, path: screenPath, ...(fallback ? { fallback } : {}), viewOnly: options.viewOnly === true });
   const client = new RFB(screen, direct?.channel ?? websocket.href, {
     credentials: { password: config?.password ?? "", username: "", target: "" },
   });
@@ -74,9 +81,17 @@ export async function connectDesktop(screen: HTMLElement, target: string, option
   let decoded = false;
   let frameCheck: ReturnType<typeof setTimeout> | undefined;
   const deadline = setTimeout(() => { client.disconnect(); end(); }, 15_000);
+  let endTrailed = false;
+  const trailEnd = (reason: string) => {
+    if (endTrailed) return;
+    endTrailed = true;
+    trail("desktop.stream.end", { kind, path: screenPath, reason, ms: Math.round(performance.now() - openedAt), sawPicture: decoded });
+  };
+  cancelled.addEventListener("abort", () => trailEnd("closed"), { once: true });
   function end() {
     clearTimeout(deadline);
     clearTimeout(frameCheck);
+    trailEnd(decoded ? "dropped" : "no-picture");
     if (ended || cancelled.aborted) return;
     ended = true;
     cancelled.removeEventListener("abort", abort);
@@ -94,6 +109,7 @@ export async function connectDesktop(screen: HTMLElement, target: string, option
         clearTimeout(deadline);
         client.viewOnly = options.viewOnly === true;
         client.focusOnClick = !client.viewOnly;
+        trail("desktop.stream.picture", { kind, path: screenPath, ms: Math.round(performance.now() - openedAt) });
         events.connected();
       } else frameCheck = setTimeout(showFirstFrame, 32);
     } catch {

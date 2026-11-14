@@ -12,6 +12,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 
 import { createDirectLink } from "./vps-link-direct.mjs";
 import { clampMss } from "./tcp-clamp.mjs";
+import { TRAIL_HEADER, shortHash, trail, validTrailId } from "./trail.mjs";
 
 const B32 = "abcdefghijklmnopqrstuvwxyz234567";
 const FRAME_SKEW_MS = 5 * 60_000;
@@ -942,13 +943,22 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
     bytes: (r, chunk) => lane.bytes(r, chunk), queued: () => lane.size, onDrain: (resume) => lane.onDrain(resume), direct: egressDirect, log,
   }) ?? null;
 
+  /** "direct" as the path a request took, named by how the direct path is connected (ssh, wss, rtc, cf, cloud) */
+  function viaName(via) { return via === "direct" ? direct?.via?.() ?? "direct" : via; }
+
+  let trailPath = "relay";
   function directChanged({ state, lost }) {
+    const nowPath = state === "up" && direct?.ready() ? direct.via?.() ?? "direct" : "relay";
+    if (nowPath !== trailPath && (lost || state === "up")) {
+      trail("link.path", { link: shortHash(id), from: trailPath, to: nowPath, reason: lost ? "direct-lost" : "direct-up" });
+      trailPath = nowPath;
+    }
     if (lost) egress?.pathLost?.("direct");
     if (lost) {
       // what was on the direct path: sent again over the relay when that is safe, failed otherwise
       for (const [r, entry] of Array.from(waiting)) {
         if (entry.via !== "direct") continue;
-        if (entry.replay?.()) { entry.via = "relay"; log("vps link: a request moved to the relay"); continue; }
+        if (entry.replay?.()) { entry.via = "relay"; log("vps link: a request moved to the relay"); trail("link.moved", { link: shortHash(id), to: "relay" }); continue; }
         waiting.delete(r);
         entry.fail("The connection to your server changed. Try again.");
       }
@@ -1023,7 +1033,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
       const read = (signal, onConnected) => fetchImpl(`${route}/to-app?wait=${waitS}${streaming ? "&stream=1" : ""}`, { headers: { authorization: `Bearer ${token}` }, signal, onConnected });
       // no read may hold the loop longer than this, whatever the connection under it does
       let hangTimer = null, beatStop = () => {};
-      const hung = new Promise((_resolve, reject) => { hangTimer = setTimeout(() => { log("vps link: a read hung; starting over on a fresh connection"); fetchImpl.reset?.(); reject(new Error("a read hung")); }, waitS * 1000 + READ_HANG_MS); });
+      const hung = new Promise((_resolve, reject) => { hangTimer = setTimeout(() => { log("vps link: a read hung; starting over on a fresh connection"); trail("link.keepalive.drop", { link: shortHash(id), path: "relay", reason: "read-hung" }); fetchImpl.reset?.(); reject(new Error("a read hung")); }, waitS * 1000 + READ_HANG_MS); });
       hung.catch(() => {});
       try {
         const response = await Promise.race([next?.response ?? read(AbortSignal.any([abort.signal, stall.signal, nudged.signal, AbortSignal.timeout(40_000)]), armStall), hung]);
@@ -1046,7 +1056,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
           if (response.status === 404 && await reallyGone()) { closed = true; abort.abort(); fail("This server was unlinked."); break; }
           throw new Error(`link service answered ${response.status}`);
         }
-        const beat = beatWatch(response, () => { log("vps link: the streamed read went silent; reconnecting"); fetchImpl.reset?.(); });
+        const beat = beatWatch(response, () => { log("vps link: the streamed read went silent; reconnecting"); trail("link.keepalive.drop", { link: shortHash(id), path: "relay", reason: "silent" }); fetchImpl.reset?.(); });
         beatStop = beat.stop;
         await Promise.race([readFrameBatches(response, (frames) => {
           beat.heard();
@@ -1070,7 +1080,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
         }
         failures += 1;
         nodeBoot.failAt ??= Date.now();
-        if (failures === 1 || failures % 20 === 0) log(`vps link: tunnel retrying (${error?.message ?? error})`);
+        if (failures === 1 || failures % 20 === 0) { log(`vps link: tunnel retrying (${error?.message ?? error})`); trail("link.relay.retry", { link: shortHash(id), failures, msg: error?.message }); }
         // the node may be gone: its servers move to another within about a minute, so keep asking where
         if (failures >= 2) void locate();
         if (postsBefore === successfulPosts) {
@@ -1158,7 +1168,17 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
     });
     waiting.set(r, entry(null));
     touch();
-    res.on("close", () => { clearTimeout(timer); if (waiting.has(r)) { emit({ t: "cancel", r }); waiting.delete(r); } });
+    // the trail: which way a request that names itself (x-dusk-trail), a chat stream, a download or an upload went
+    const first = waiting.get(r), startedAt = Date.now(), firstVia = viaName(first.via), cid = validTrailId(req.headers[TRAIL_HEADER]) ? req.headers[TRAIL_HEADER] : undefined;
+    const upload = Number(req.headers["content-length"]) > 1_000_000;
+    res.on("close", () => {
+      clearTimeout(timer);
+      if (waiting.has(r)) { emit({ t: "cancel", r }); waiting.delete(r); }
+      if (cid || eventStream || resumable || upload) {
+        trail("link.req", { link: shortHash(id), cid, kind: eventStream ? "chat-stream" : resumable ? "download" : upload ? "upload" : "request", method: req.method, path: req.url,
+          via: firstVia, ...(viaName(first.via) !== firstVia ? { endVia: viaName(first.via) } : {}), status: res.statusCode, ms: Date.now() - startedAt, bytes: written, ...(resumes ? { resumes } : {}) });
+      }
+    });
     emit(request);
     if (bodyless) return;
     req.on("data", (chunk) => { if (waiting.has(r) && !sendBytes(r, chunk)) { req.pause(); onDrain(r, () => req.resume()); } });
@@ -1192,7 +1212,9 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
     };
     // only the handshake has a deadline: an idle desktop may say nothing for a long while
     const touch = () => { if (open) return; clearTimeout(timer); timer = setTimeout(() => { if (waiting.has(r)) { emit({ t: "cancel", r }); waiting.delete(r); } refuse(504, "The server took too long to answer."); }, replyTimeoutMs); };
-    const read = (chunk) => { if (waiting.has(r) && !sendBytes(r, chunk)) { socket.pause(); onDrain(r, () => socket.resume()); } };
+    let bytesIn = 0, bytesOut = 0, openedAt = 0, endedBy = "app";
+    const read = (chunk) => { bytesOut += chunk.length; if (waiting.has(r) && !sendBytes(r, chunk)) { socket.pause(); onDrain(r, () => socket.resume()); } };
+    const streamFields = () => ({ link: shortHash(id), kind: /\/desktop-viewer\//.test(req.url ?? "") ? "desktop" : /\/browser\/stream/.test(req.url ?? "") ? "browser" : "socket", path: req.url, via: viaName(via) });
     waiting.set(r, {
       via,
       touch,
@@ -1200,6 +1222,7 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
         answered = true;
         open = status === 101;
         if (open) clearTimeout(timer);
+        if (open) { openedAt = Date.now(); trail("link.stream.open", streamFields()); } else trail("link.stream.refused", { ...streamFields(), status });
         const lines = [`HTTP/1.1 ${status} ${STATUS_CODES[status] ?? ""}`, ...(open ? ["Upgrade: websocket", "Connection: Upgrade"] : ["Connection: close"])];
         for (const [name, value] of Object.entries(out)) {
           for (const one of Array.isArray(value) ? value : [value]) if (/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(name) && !/[\r\n]/.test(String(one))) lines.push(`${name}: ${one}`);
@@ -1212,17 +1235,23 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
         if (socket.writableLength + chunk.length > RECEIVE_HIGH) {
           emit({ t: "cancel", r });
           waiting.delete(r);
+          endedBy = "buffer-limit";
           refuse(502, "The desktop exceeded this connection's buffer limit.");
           return;
         }
+        bytesIn += chunk.length;
         socket.write(chunk);
       },
-      end: () => { clearTimeout(timer); socket.end(); },
-      fail: (message) => refuse(502, message),
+      end: () => { clearTimeout(timer); endedBy = "server"; socket.end(); },
+      fail: (message) => { endedBy = `failed: ${message}`; refuse(502, message); },
       ctl: () => {},
     });
     touch();
-    socket.on("close", () => { clearTimeout(timer); if (waiting.has(r)) { emit({ t: "cancel", r }); waiting.delete(r); } });
+    socket.on("close", () => {
+      clearTimeout(timer);
+      if (waiting.has(r)) { emit({ t: "cancel", r }); waiting.delete(r); }
+      if (openedAt) trail("link.stream.close", { ...streamFields(), ms: Date.now() - openedAt, bytesIn, bytesOut, reason: endedBy });
+    });
     emit({ t: "req", r, method: req.method, path: req.url, headers, end: true, up: true });
     if (head?.length) sendBytes(r, head);
   }

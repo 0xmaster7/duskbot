@@ -1,4 +1,5 @@
 import { useComputerAnalytics } from "@/lib/product-analytics-app";
+import { trailHeaders } from "@/lib/trail";
 import { computerCapableEngine, cloudEngineOf } from "@/lib/remote-desktop";
 import { canWorkOnCloud } from "../../shared/cloud-computer";
 import { viewerTargetId } from "../../shared/desktop-viewer";
@@ -612,9 +613,10 @@ export function ComputerPanel({
   }), [profileBot.id, vpsStatus?.resourceKey]);
 
   const control = state.computerControl[bot.id] ?? { held: false, helpReason: null };
-  const requestControl = useCallback(async (action: ComputerControlAction, controlLeaseId?: string) => {
+  const requestControl = useCallback(async (action: ComputerControlAction, controlLeaseId?: string, cid?: string) => {
     const snap = computerControlSnapshotSchema.parse(await api(`/api/bots/${bot.id}/computer/control`, {
       method: "POST",
+      headers: { "content-type": "application/json", ...trailHeaders(cid) },
       body: JSON.stringify({ action, ...(controlLeaseId ? { controlLeaseId } : {}) }),
     }));
     dispatch({

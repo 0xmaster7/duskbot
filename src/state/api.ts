@@ -7,6 +7,7 @@ import { noteRefusedRequest } from "../lib/session-ended";
 import { feature } from "../lib/product-analytics";
 import { plainErrorLine } from "../lib/plain-error";
 import { t } from "../lib/i18n";
+import { TRAIL_HEADER, newTrailId, trailApiCall, trailAvailable } from "../lib/trail";
 
 export class ApiError extends Error {
   readonly status: number;
@@ -47,6 +48,9 @@ export async function api<T = any>(path: string, init?: ApiInit): Promise<T> {
   }
   const sent = new Headers(headers ?? { "content-type": "application/json" });
   if (background) for (const [name, value] of Object.entries(BACKGROUND_HEADERS)) sent.set(name, value);
+  const method = (rest.method ?? "GET").toUpperCase(), startedAt = performance.now();
+  // every change the desktop app asks for carries a trail id, so the server's trail names the same action
+  if (method !== "GET" && method !== "HEAD" && trailAvailable() && !sent.has(TRAIL_HEADER)) sent.set(TRAIL_HEADER, newTrailId());
   const res = await fetch(path, {
     ...rest,
     headers: sent,
@@ -56,6 +60,7 @@ export async function api<T = any>(path: string, init?: ApiInit): Promise<T> {
         ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)])
         : AbortSignal.timeout(timeoutMs),
   }).catch((error: unknown) => {
+    trailApiCall(path, method, 0, startedAt, rest.body, sent.get(TRAIL_HEADER), error);
     // the name stays, so callers that tell a timeout or a cancel apart still can
     if (error instanceof DOMException && error.name === "TimeoutError") throw new DOMException(t("error.plain.timeout"), "TimeoutError");
     // still a TypeError: callers read "not an ApiError" as "no answer came" and send again
@@ -65,6 +70,7 @@ export async function api<T = any>(path: string, init?: ApiInit): Promise<T> {
     }
     throw error;
   });
+  trailApiCall(path, method, res.status, startedAt, rest.body, sent.get(TRAIL_HEADER));
   const answer = await answerOf<T>(res);
   if (path === "/api/config" && ["PUT", "PATCH"].includes((init?.method ?? "GET").toUpperCase())) feature("settings_changed");
   return answer;

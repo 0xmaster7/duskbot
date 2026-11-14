@@ -1,5 +1,6 @@
 import "../electron/legacy-names.mjs";
 import { rootErrorOptions } from "./lib/error-reports";
+import { installTrailCapture } from "./lib/trail";
 import { watchStaleChunks } from "./lib/stale-chunks";
 import { startDesktopAnalytics } from "./lib/product-analytics-app";
 import { screen as productScreen } from "./lib/product-analytics";
@@ -80,5 +81,6 @@ async function chooseRoot(): Promise<React.ReactNode> {
 
 document.title = productName();
 void Promise.all([chooseRoot(), loadPageLanguage()]).then(([root]) => {
+  installTrailCapture();
   createRoot(document.getElementById("root")!, rootErrorOptions).render(<StrictMode><PageBoundary>{root}</PageBoundary></StrictMode>);
 });

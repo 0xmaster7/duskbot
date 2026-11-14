@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { viewerTargetId } from "../../shared/desktop-viewer";
 import { parseComputerHelp } from "@/lib/computer-control";
+import { trailHeaders } from "@/lib/trail";
 import { friendlyError } from "@/lib/plain-error";
 import { t } from "@/lib/i18n";
 import { api, useStore } from "@/state/store";
@@ -57,9 +58,10 @@ export function useSignInTakeover({ botId, threadId, name, place, poster, onDone
   useEffect(() => () => resolving.current?.abort(), []);
   useEffect(() => { void loadLiveDesktop(); }, []);
 
-  const request = useCallback(async (action: "take" | "release", controlLeaseId?: string) => {
+  const request = useCallback(async (action: "take" | "release", controlLeaseId?: string, cid?: string) => {
     const snap = await api(`/api/bots/${encodeURIComponent(botId)}/computer/control`, {
       method: "POST",
+      headers: { "content-type": "application/json", ...trailHeaders(cid) },
       body: JSON.stringify({ action, ...(controlLeaseId ? { controlLeaseId } : {}) }),
     });
     dispatch({ type: "computerControl", botId, held: snap?.held === true, helpReason: snap?.helpReason ?? null, help: parseComputerHelp(snap?.help) });

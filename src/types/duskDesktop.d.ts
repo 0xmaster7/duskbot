@@ -422,6 +422,12 @@ const __APP_VERSION__: string;
       /** Writes the redacted diagnostics report to a user-chosen file;
        * resolves the path, or null when cancelled. */
       exportDiagnostics?(): Promise<string | null>;
+      /** The debug trail (electron/trail.mjs): events go to main's trail file, redacted again there; the export saves a
+       * scrubbed usage log where the person picks and offers to email it to support. */
+      trail?: {
+        write(events: Array<{ ev: string; ts?: string } & Record<string, unknown>>): void;
+        exportUsageLog(): Promise<{ saved: boolean; sent: boolean }>;
+      };
       /** Asks where to save a bot-created file (inside ~/.duskbot), copies
        * it there and reveals it. Resolves the chosen path, or null if the
        * user cancelled the dialog. */

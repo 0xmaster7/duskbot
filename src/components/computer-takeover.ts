@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { productName } from "@/lib/brand";
+import { lastScreen, newTrailId, trail, trailError } from "@/lib/trail";
 
 export interface TakeoverSnapshot {
   held: boolean;
@@ -13,10 +14,11 @@ const RELEASE_SETTLE_MS = 1_500;
 /** `crypto.randomUUID` exists only in secure contexts, and a phone may reach the app over plain LAN http. */
 const newLeaseId = () => Array.from(crypto.getRandomValues(new Uint8Array(18)), (byte) => byte.toString(16).padStart(2, "0")).join("");
 
-type Request = (action: "take" | "release", controlLeaseId?: string) => Promise<TakeoverSnapshot>;
+/** `cid` names this take-over in the trail on both ends (sent as x-dusk-trail) */
+type Request = (action: "take" | "release", controlLeaseId?: string, cid?: string) => Promise<TakeoverSnapshot>;
 
-function post(path: string, body: unknown): void {
-  void fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), keepalive: true })
+function post(path: string, body: unknown, cid?: string): void {
+  void fetch(path, { method: "POST", headers: { "content-type": "application/json", ...(cid ? { "x-dusk-trail": cid } : {}) }, body: JSON.stringify(body), keepalive: true })
     .catch(() => {});
 }
 
@@ -37,7 +39,7 @@ export function useComputerTakeover({ botId, session, held, request, viewerClose
   const [here, setHere] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [handingBack, setHandingBack] = useState(false);
-  const lease = useRef<{ id: string; viewerClose: string | null } | null>(null);
+  const lease = useRef<{ id: string; viewerClose: string | null; cid?: string; at?: number } | null>(null);
   const target = useRef(session);
   target.current = session;
   const generation = useRef(0);
@@ -55,20 +57,26 @@ export function useComputerTakeover({ botId, session, held, request, viewerClose
     lease.current = null;
     end();
     if (!mine) return;
-    post(`/api/bots/${botId}/computer/control`, { action: "release", controlLeaseId: mine.id });
+    trail("takeover.end", { bot: botId, cid: mine.cid, how: "left", heldMs: mine.at ? Math.round(performance.now() - mine.at) : undefined });
+    post(`/api/bots/${botId}/computer/control`, { action: "release", controlLeaseId: mine.id }, mine.cid);
     if (mine.viewerClose) post(mine.viewerClose, {});
   }, [botId, end]);
 
   const take = useCallback(async (expand = false) => {
     const id = newLeaseId();
     const attempt = ++generation.current;
-    const snap = await request("take", id);
+    const cid = newTrailId(), startedAt = performance.now();
+    let snap: TakeoverSnapshot;
+    try { snap = await request("take", id, cid); }
+    catch (error) { trailError("takeover.failed", error, { bot: botId, cid, screen: lastScreen() }); throw error; }
     if (generation.current !== attempt || target.current !== session) {
-      if (snap.owned) post(`/api/bots/${botId}/computer/control`, { action: "release", controlLeaseId: id });
+      trail("takeover.start", { bot: botId, cid, ok: false, reason: "superseded", ms: Math.round(performance.now() - startedAt) });
+      if (snap.owned) post(`/api/bots/${botId}/computer/control`, { action: "release", controlLeaseId: id }, cid);
       return;
     }
+    trail("takeover.start", { bot: botId, cid, ok: snap.held, owned: snap.owned === true, ms: Math.round(performance.now() - startedAt), screen: lastScreen() });
     if (!snap.held) throw new Error(`${productName()} could not confirm computer control`);
-    lease.current = snap.owned ? { id, viewerClose: closeRef.current } : null;
+    lease.current = snap.owned ? { id, viewerClose: closeRef.current, cid, at: performance.now() } : null;
     setHere(true);
     setExpanded(expand);
   }, [request, botId, session]);
@@ -76,16 +84,18 @@ export function useComputerTakeover({ botId, session, held, request, viewerClose
   const handBack = useCallback(async (keepExpanded = false) => {
     generation.current += 1;
     const close = lease.current?.viewerClose ?? closeRef.current;
+    const mine = lease.current;
     lease.current = null;
     if (keepExpanded) setHere(false); else end();
     setHandingBack(true);
+    trail("takeover.end", { bot: botId, cid: mine?.cid, how: "hand-back", heldMs: mine?.at ? Math.round(performance.now() - mine.at) : undefined });
     try {
-      await request("release");
+      await request("release", undefined, mine?.cid);
     } finally {
       setHandingBack(false);
       if (close) post(close, {});
     }
-  }, [end, request]);
+  }, [end, request, botId]);
 
   useEffect(() => leave, [session, leave]);
   useEffect(() => {
@@ -95,11 +105,13 @@ export function useComputerTakeover({ botId, session, held, request, viewerClose
   useEffect(() => {
     if (!here || held) return;
     const timer = setTimeout(() => {
+      const mine = lease.current;
       lease.current = null;
+      if (mine) trail("takeover.end", { bot: botId, cid: mine.cid, how: "released-elsewhere", heldMs: mine.at ? Math.round(performance.now() - mine.at) : undefined });
       end();
     }, RELEASE_SETTLE_MS);
     return () => clearTimeout(timer);
-  }, [here, held, end]);
+  }, [here, held, end, botId]);
 
   return { here, expanded, setExpanded, handingBack, take, handBack, leave };
 }

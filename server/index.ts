@@ -489,6 +489,7 @@ import { WebhookManager } from "./webhooks.ts";
 import { tieAutomationsToBots } from "./bot-automations.ts"; import { WaitManager } from "./waits.ts"; import { cancelWaitFromCard, createWaitHost, waitRunChat } from "./wait-host.ts"; import { createWaitRoutes, findWaitPeer, hostWaitRefusal, waitSourceRefusal, type WaitRouteContext } from "./routes/waits.ts";
 import type { WebhookTrigger } from "../shared/webhooks.ts";
 import { AGENTS_NODE_FLAG, SPAWNED_PROXIES } from "./proxy-paths.ts";
+import { currentTrailId, startServerTrail, trail, withRequestTrail } from "./trail.ts"; import { traceRuntimeEvents } from "./trail-events.ts";
 import { agentsProxyLaunch, agentsToolBridgeEnv, applyAgentsBridge, bridgedToolTitle, turnEngine } from "./agents-bridge-switch.ts"; import { agentsServerEnv, COMPUTER_OFF_REFUSAL, computerPickRefusal, directTurnKind, roomSkillsRefusal, type TurnKind } from "./agents-turn.ts";
 import { harnessMcpTokenEnv } from "./harness-mcp-token.ts";
 import {
@@ -697,6 +698,7 @@ const sessions = new SessionRegistry({
 const CLOUD_SECRETS = BOOT_CLOUD_SECRETS;
 const CLOUD_ENV: NodeJS.ProcessEnv = { ...process.env, ...CLOUD_SECRETS };
 const CLOUD_HOME = cloudHomeConfiguration(CLOUD_ENV);
+startServerTrail({ dataDir: DATA_DIR, src: CLOUD_HOME ? "cloud" : "server" });
 const CLOUD_TEAM = CLOUD_HOME?.team ?? null, CLOUD_PERSONAL = CLOUD_HOME !== null && CLOUD_TEAM === null, TEAM_LABEL = CLOUD_TEAM ? { label: CLOUD_TEAM.name } : {};
 /** The language set on this server, else (on a Team Cloud) the team's default from the Admin. threadLanguage: the one a line in a conversation is written in, its person's, else the place's (server/server-lines.ts). */
 const appLanguage = (): string | undefined => cfg.language ?? CLOUD_TEAM?.language; const personLanguages = createPersonLanguages({ dataDir: DATA_DIR, configured: appLanguage }); const threadLanguage = (threadId: string): string | undefined => personLanguages.forLine(teamConversationPerson(threadId) ?? threadPersonKey(threadId)); setConversationLanguage(threadLanguage);
@@ -1459,6 +1461,8 @@ utilityParentPort?.on("message", (event) => {
 
 const quickFallback = new QuickModelFallback({ file: join(DATA_DIR, "refused-quick-models.json"), publish: (event) => bus.publish(event), stopped: (threadId) => directRequestOwners.get(threadId)?.stopped === true });
 const bus = new EventBus(undefined, (event) => quickFallback.take(event), { statusLanguage: (threadId) => threadLanguage(threadId) });
+// the store is made further down; the bus only delivers once turns run
+const runtimeTrail = traceRuntimeEvents(bus, (threadId) => store.botByThread(threadId)?.id ?? store.groupByThread(threadId)?.id);
 bus.attach(registry.instances());
 let companyRuntimeReady!: () => void;
 const companyRuntimeStarted = new Promise<void>(resolve => { companyRuntimeReady = resolve; });
@@ -5771,6 +5775,8 @@ function vpsGuiBusy(target: VpsLifecycleResource): boolean {
 }
 
 function computerStateChanged(ownerId: string, alias: string, state: "starting" | "ready" | "stopped" | "failed", problem?: string, initiator?: string): void {
+  // the trail: the computer's own id is hashed in the export; its words never are kept, only that it said something
+  trail(state === "stopped" ? "computer.sleep" : state === "starting" ? "computer.starting" : state === "ready" ? "computer.ready" : "computer.failed", { owner: ownerId, initiator, problem: problem ? true : undefined });
   for (const bot of store.bots) {
     const shared = inheritedTeamComputer(bot);
     const target = shared ? teamComputerVpsTarget(cfg, shared) : { ownerId: bot.id, config: vpsConfigForBot(cfg, bot) };
@@ -9300,7 +9306,7 @@ const runHealth = startRunHealth({ dataDir: DATA_DIR, turns: () => liveTurnByThr
     }
   },
   interruptGoal: interruptRoutineGroupGoal,
-  onRunChanged: (run) => { const routine = routines?.listRoutines().find((one) => one.id === run.routineId); usageOutbox.run(run, { every: runEvery(routine?.schedule as Parameters<typeof runEvery>[0], run.triggerSource === "webhook"), routine: hashId(usageSignals.salt(), run.routineId) }); cloudHealth?.noteRoutineRun(run); if (!routineHost.limitSkipped(run.id)) syncRoutineRunToSource(run); routineGuard.changed(run); },
+  onRunChanged: (run) => { trail("routine.run", { routine: run.routineId, run: run.id, bot: run.botId, thread: run.threadId, status: run.status, trigger: run.triggerSource }); const routine = routines?.listRoutines().find((one) => one.id === run.routineId); usageOutbox.run(run, { every: runEvery(routine?.schedule as Parameters<typeof runEvery>[0], run.triggerSource === "webhook"), routine: hashId(usageSignals.salt(), run.routineId) }); cloudHealth?.noteRoutineRun(run); if (!routineHost.limitSkipped(run.id)) syncRoutineRunToSource(run); routineGuard.changed(run); },
   onRunCut: (run) => run.groupId ? coordinator.cancelRoom(run.groupId, run.threadId!, ROUTINE_RESTARTED) : coordinator.cancelDirect(run.threadId!, ROUTINE_RESTARTED),
   onRunFailed: (run, alert) => {
     cloudHealth?.noteRoutineRun(run); routineGuard.failed(run); if (routineHost.limitSkipped(run.id)) { routines?.markSeen(run.id); routines?.adopt(({ routines: all }) => all.filter((one) => one.id === run.routineId)); return; }
@@ -13041,7 +13047,14 @@ ROUTES.push(createLiveRoutes({
 }));
 
 const toolResults = new ToolResults();
-const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
+// the trail (server/trail.ts): a request that names itself with x-dusk-trail is recorded, with every event it causes
+const handleRequest = (req: IncomingMessage, res: ServerResponse) => withRequestTrail(req, res, () => {
+  const send = req.method === "POST" ? /^\/api\/(?:bots|groups)\/([\w-]+)\/messages(?:\?|$)/.exec(req.url ?? "") : null;
+  const cid = send ? currentTrailId() : undefined;
+  if (send && cid) runtimeTrail.sendNamed(send[1]!, cid);
+  return handleRequestInner(req, res);
+});
+const handleRequestInner = async (req: IncomingMessage, res: ServerResponse) => {
   aliasLegacyHeaders(req.headers); aliasLegacyCookies(req.headers); if (CLOUD_TEAM) holdBodyDeadline(req, res);
   let url: URL;
   try {
@@ -15720,6 +15733,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         }
         if (action === "take" && controlLeaseId) {
           const result = computerControl.acquireLease(controlKey, controlLeaseId);
+          trail("takeover.take", { bot: bot.id, computer: currentBot.computer, owned: result.owned, held: result.snapshot.held, acquired: result.acquired });
           if (!result.owned && !result.snapshot.held) { humanScreenLeases.get(bot.id)?.release(); humanScreenLeases.delete(bot.id); }
           return json(res, 200, {
             ...result.snapshot,
@@ -15729,6 +15743,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         }
         if (action === "release" && controlLeaseId) {
           const result = computerControl.releaseLease(controlKey, controlLeaseId);
+          trail("takeover.release", { bot: bot.id, released: result.released });
           return json(res, 200, { ...result.snapshot, released: result.released });
         }
         if (action === "check" && controlLeaseId) {

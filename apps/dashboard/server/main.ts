@@ -4,6 +4,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { existsSync, readFileSync } from "node:fs";
 import { createErrorReporter, reportProcessErrors } from "../../../electron/error-report.mjs";
 import { fileSpool } from "../../../electron/error-report-spool.mjs";
+import { TRAIL_HEADER, configureTrail, createStdoutWriter, createTrailWriter, trail, validTrailId } from "../../../electron/trail.mjs";
 import { createDashboardApp } from "./app.ts";
 import { providersFromEnv } from "./auth/providers.ts";
 import { mailerFromEnv, resendMailer } from "./auth/mail.ts";
@@ -79,6 +80,17 @@ const app = createDashboardApp({ errors: { service, page }, incidents, version, 
 
 /** a client hears an answer only once what the request changed is written; when that fails it gets a dropped
  *  connection, never a success that was not kept */
+// the debug trail (electron/trail.mjs): a request the app named with x-dusk-trail is one line here, in the same format as
+// the app's own, so one action can be followed across machines. DUSK_TRAIL_DIR writes a file; otherwise the service's output.
+configureTrail({ src: "cloud", writer: process.env.DUSK_TRAIL_DIR ? createTrailWriter({ dir: process.env.DUSK_TRAIL_DIR, prefix: "trail-cloud", capBytes: 50 * 1024 * 1024 }) : createStdoutWriter() });
+function traced(req: IncomingMessage, res: ServerResponse) {
+  const cid = req.headers[TRAIL_HEADER];
+  if (validTrailId(cid)) {
+    const startedAt = Date.now();
+    res.once("close", () => trail("cloud.req", { cid, method: req.method, path: req.url, status: res.statusCode, ms: Date.now() - startedAt }));
+  }
+  return durable(req, res);
+}
 function durable(req: IncomingMessage, res: ServerResponse) {
   if (database && req.url?.split("?")[0] !== "/v1/health") {
     const end = res.end.bind(res) as (...args: unknown[]) => ServerResponse;
@@ -89,7 +101,7 @@ function durable(req: IncomingMessage, res: ServerResponse) {
   }
   return app.handle(req, res);
 }
-const server = createServer(durable);
+const server = createServer(traced);
 server.listen(port, host, () => console.log(`dashboard service listening on http://${host}:${port}`));
 let stopping = false;
 for (const signal of ["SIGINT", "SIGTERM"] as const) process.once(signal, () => {

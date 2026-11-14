@@ -1,4 +1,5 @@
 import { feature as productFeature, noteMessageSent, noteAcceptedMessage, noteReplyTurn, noteRoutineRun } from "@/lib/product-analytics";
+import { trailAction } from "@/lib/trail-actions";
 import { cloudAsleep, onCloudPower } from "../lib/cloud-power";
 import { chatInFront } from "@/lib/chat-in-front";
 import { answerOf, api, ApiError, snapshotArrays } from "./api";
@@ -2316,6 +2317,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         action.type !== "cancelGroupQueued" &&
         action.type !== "deleteBot"
       ) rawDispatch(action);
+      trailAction(action);
       switch (action.type) {
         case "toggleAppSettings":
           if (!stateRef.current.appSettingsOpen && (action.open ?? true)) productFeature("settings_opened");

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Archive,
   Check,
+  FileText,
   CircleUserRound,
   Cloud,
   Gauge,
@@ -20,6 +21,7 @@ import {
 
 import { accountMenuItems, AccountsSheet, cloudRowLabel, useAccounts, type AccountsAccess } from "./AccountMenu";
 import { Icon, type IconName } from "./Icon";
+import { exportUsageLog, trailAvailable } from "@/lib/trail";
 import { GROK_FOCUS } from "./SidebarSimpleTop";
 import { AccountMoveStatus, useAccountMove, type AccountMoveKind } from "./AccountMove";
 import { InitialsAvatar } from "./Avatar";
@@ -372,6 +374,7 @@ export function profileMenuItems({
   const help: SidebarMenuItem[] = [
     { key: "help", label: t("sidebar.menu.help"), icon: <HelpCircle size={18} />, onSelect: onHelp },
     { key: "feedback", label: t("sidebar.menu.feedback"), icon: <DiscordIcon size={17} />, onSelect: onFeedback },
+    ...(trailAvailable() ? [{ key: "usage-log", label: t("sidebar.menu.exportUsageLog"), icon: <FileText size={18} />, onSelect: () => void exportUsageLog("support").catch(() => {}) } satisfies SidebarMenuItem] : []),
     {
       key: "shortcuts",
       label: t("sidebar.menu.shortcuts"),
@@ -451,6 +454,7 @@ export function grokProfileMenuItems({ onGetApp, onHelp, onShortcuts, onFeedback
       { key: "help", label: t("sidebar.menu.help"), icon: icon("question-circle"), onSelect: onHelp },
       { key: "shortcuts", label: t("sidebar.menu.shortcuts"), icon: icon("keyboard"), onSelect: onShortcuts },
       { key: "feedback", label: t("sidebar.menu.feedback"), icon: icon("mail"), onSelect: onFeedback },
+      ...(trailAvailable() ? [{ key: "usage-log", label: t("sidebar.menu.exportUsageLog"), icon: icon("file-list"), onSelect: () => void exportUsageLog("support").catch(() => {}) } satisfies SidebarMenuItem] : []),
       { key: "about", label: t("sidebar.menu.about"), icon: icon("info"), onSelect: onAbout },
     ] },
     { key: "settings", label: t("sidebar.menu.settings"), icon: icon("gear"), onSelect: onSettings },

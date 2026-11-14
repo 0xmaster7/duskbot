@@ -7,6 +7,7 @@ import { writeFileAtomic } from "./atomic.ts";
 import { HARNESS_CALL_BUDGET_MS } from "./harness-budget.ts";
 import { harnessMcpTokenEnv } from "./harness-mcp-token.ts";
 import { AGENTS_NODE_FLAG, SPAWNED_PROXIES } from "./proxy-paths.ts";
+import { trail, trailError } from "./trail.ts";
 
 export interface RelayBridge { command: string; args: string[]; env: Record<string, string> }
 
@@ -191,7 +192,13 @@ export function createComputerRelay(options: { lists: ComputerToolLists; open?: 
     if (bridge) { entry.wakeDeadline = undefined; return Promise.resolve(bridge); }
     if (!entry.waking) {
       entry.wakeDeadline = Date.now() + budgetMs;
-      entry.waking = entry.turn.wake().catch((error: unknown) => { entry.waking = undefined; entry.wakeDeadline = undefined; throw error; });
+      const wakeAt = Date.now();
+      trail("computer.wake", { thread: entry.owner.threadId, why: "turn" });
+      entry.waking = entry.turn.wake().then((bridge) => { trail("computer.awake", { thread: entry.owner.threadId, ms: Date.now() - wakeAt }); return bridge; }, (error: unknown) => {
+        entry.waking = undefined; entry.wakeDeadline = undefined;
+        trailError("computer.wake-failed", error, { thread: entry.owner.threadId, ms: Date.now() - wakeAt });
+        throw error;
+      });
     }
     return entry.waking;
   };

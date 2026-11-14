@@ -4,6 +4,7 @@ import { CLOUD_ID, CLOUD_SWATCHES, cleanCloudListName, ORGANIZATION_BLOCKS, othe
 import { planTeam, teamPlan } from "./cloud-team-plan.mjs";
 import { linkSignIn } from "./cloud-signin-link.mjs";
 import { APP_PROVIDERS, APP_TOKEN, cleanCode, cleanEmail, LINK_MS, LINK_PROVIDERS, linkFailure, parseAppLink, parseProviders, parseSignInStart, SIGN_IN_START, SIGN_IN_TRIES, SIGN_IN_VERIFY, signInIdentity, startFailure, verifyFailure } from "./cloud-signin.mjs";
+import { TRAIL_HEADER, newTrailId, trail, trailError } from "./trail.mjs";
 
 export const CLOUD_ORIGIN = "https://dusk.bot";
 /** The staging Admin (Dodo test mode, real test Clouds): a fixed address, on only with DUSK_CLOUD_STAGING=1. */
@@ -182,11 +183,20 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
   const current = stamp => !closed && !quiet && generation === stamp;
   const versionHeader = text(appVersion, 40) && /^[0-9A-Za-z][0-9A-Za-z.+-]{0,39}$/.test(appVersion) ? { "x-dusk-version": appVersion } : {};
   async function request(route, { method = "GET", body, token, signal = controller.signal, path = `/api/cloud/desktop/${route}`, timeoutMs = 20_000 } = {}) {
-    const response = await fetcher(`${origin}${path}`, {
-      method, redirect: "error", credentials: "omit", cache: "no-store",
-      headers: { accept: "application/json", ...(body === undefined ? {} : { "content-type": "application/json" }), ...(token ? { authorization: `Bearer ${token}`, ...versionHeader } : {}) },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }), signal: AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]),
-    });
+    // the trail: the account service records the same id (apps/dashboard/server/main.ts)
+    const cid = newTrailId(), startedAt = Date.now();
+    let response;
+    try {
+      response = await fetcher(`${origin}${path}`, {
+        method, redirect: "error", credentials: "omit", cache: "no-store",
+        headers: { accept: "application/json", [TRAIL_HEADER]: cid, ...(body === undefined ? {} : { "content-type": "application/json" }), ...(token ? { authorization: `Bearer ${token}`, ...versionHeader } : {}) },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }), signal: AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]),
+      });
+    } catch (error) {
+      trailError("cloud.unreachable", error, { cid, method, path, ms: Date.now() - startedAt });
+      throw error;
+    }
+    trail("cloud.req", { cid, method, path, status: response.status, ms: Date.now() - startedAt });
     noteServerDate(response);
     const reader = response.body?.getReader(), chunks = []; let size = 0;
     try {

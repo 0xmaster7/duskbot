@@ -12,6 +12,7 @@ import {
 } from "../shared/screen-direct.ts";
 import { nativeRequire } from "./data/engine.ts";
 import { readFrame, writeFrame } from "./routes/rfb-handshake.ts";
+import { trail } from "./trail.ts";
 
 interface DataChannelModule {
   PeerConnection: new (name: string, config: {
@@ -166,6 +167,7 @@ export function createScreenDirect(options: {
         const key = `${type ?? "unknown"}/${remote ?? "unknown"}`;
         if (Object.keys(stats.pairs).length < 32 || key in stats.pairs) stats.pairs[key] = (stats.pairs[key] ?? 0) + 1;
         options.log?.(`screen: ${path} (${key})`);
+        trail("screen.path", { path, pair: key });
         dc.setBufferedAmountLowThreshold(CHANNEL_LOW);
         const drains: Array<() => void> = [];
         dc.onBufferedAmountLow(() => { for (const drain of drains) drain(); });
@@ -230,6 +232,7 @@ export function createScreenDirect(options: {
     stats.paths[path]++;
     stats.relay.reasons[reason ?? "none"]++;
     options.log?.(`screen: ${path} (${reason ?? "not asked"})`);
+    trail("screen.path", { path, reason: reason ?? "not-asked" });
   };
 
 
@@ -246,6 +249,7 @@ export function createScreenDirect(options: {
       stats.relay.open--;
       stats.relay.bytesSent += bytesSent;
       stats.relay.bytesReceived += bytesReceived;
+      trail("screen.close", { path: "our-relay", bytesSent, bytesReceived });
     },
     /** Counters only: how screens connected and how many bytes each path carried. No ids, names or addresses. */
     stats(): ScreenTransportStats {

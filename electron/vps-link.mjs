@@ -8,6 +8,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { APP_LINK_PROTOCOL, agentInfo, linkCompat, missingCap } from "./vps-link-compat.mjs";
 import { orderedConnect } from "./vps-link-direct.mjs";
 import { createRelayClient, createTunnelProxy, newLinkKeys, openResult } from "./vps-link-protocol.mjs";
+import { shortHash, trail } from "./trail.mjs";
 
 export const STEP_IDS = Object.freeze(["check", "basics", "docker", "user", "node", "app", "engines", "service", "address", "desktop", "link"]);
 const STATUSES = new Set(["running", "done", "failed", "skipped"]);
@@ -483,6 +484,7 @@ export function createVpsLink(deps) {
     const from = link.origin;
     link.away = { via: link.via ?? "direct", origin: link.origin, spki: link.spki ?? null };
     Object.assign(link, { mode: "relay", via: "relay", origin: relayOrigin, port: Number(new URL(relayOrigin).port), spki: null });
+    trail("link.path", { link: shortHash(link.id), from: link.away.via, to: "relay", reason: "address-not-answering" });
     if (from !== relayOrigin) deps.retarget?.(from, relayOrigin);
     return link;
   }
@@ -493,6 +495,7 @@ export function createVpsLink(deps) {
     log(`vps link: ${link.name} answers at ${away.origin} again`);
     const from = link.origin;
     Object.assign(link, { mode: "direct", via: away.via, origin: away.origin, spki: away.spki });
+    trail("link.path", { link: shortHash(link.id), from: "relay", to: away.via, reason: "address-answers" });
     if (away.spki) deps.pin?.(new URL(away.origin).host, away.spki);
     if (from && from !== away.origin) deps.retarget?.(from, away.origin);
     write();
@@ -751,6 +754,17 @@ export function createVpsLink(deps) {
     try { wanted = new URL(origin).origin; } catch { return null; }
     return state.links.find((entry) => { try { return Boolean(entry.origin) && new URL(entry.origin).origin === wanted; } catch { return false; } }) ?? null;
   };
+
+  /** which way this app reaches the linked server at `origin` right now, for the trail; null where none is linked there */
+  function pathAt(origin) {
+    const link = linkAt(origin);
+    if (!link) return null;
+    const proxy = proxies.get(link.id);
+    const directVia = proxy?.directVia?.() ?? null;
+    // a link whose address is https (tailscale, cloudflare, a domain) goes there itself; a relay link may ride a direct path
+    const via = link.mode === "direct" ? link.via ?? "direct" : proxy?.transport?.() === "direct" && directVia ? directVia : "relay";
+    return { place: "linked", link: shortHash(link.id), path: via === "relay" || via === "cloud" ? "relay" : "direct", via, ...(link.away ? { away: link.away.via } : {}), ...(link.directOff ? { directOff: true } : {}) };
+  }
 
   /** Settings > Computer "Fast direct connection" for the linked server at `origin`: null where it does not apply */
   function directSetting(origin) {
@@ -1249,7 +1263,7 @@ export function createVpsLink(deps) {
   }
 
   return {
-    view, start, cancel, resume, sealTrust, nudge, directSetting, setDirect, updateLink,
+    view, start, cancel, resume, sealTrust, nudge, directSetting, setDirect, updateLink, pathAt,
     reset() { lastError = null; if (!state.pending && state.move?.step === "done") state.move = null; write(); return view(); },
     engines, signIn, signInStatus, signInCode, signInCancel,
     preview, move, retryMove, moveBack, backups, backupNow: async () => ({ id: (await backupNow("manual")).id }), restore, forget, where,

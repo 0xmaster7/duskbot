@@ -85,6 +85,8 @@ function redactValue(key, value, depth) {
   if (typeof value === "string") {
     if (secretKey(key)) return MASK;
     if (contentKey(key)) return undefined;
+    // an address-like field keeps its path, never its query or fragment, even when it has no scheme
+    if (/^(?:path|route|url|href|src|target|page|location)$/i.test(key)) return scrubString(value.replace(/[?#].*$/s, ""));
     return scrubString(value);
   }
   if (value instanceof Error) return { code: typeof value.code === "string" ? scrubString(value.code) : undefined, msg: scrubString(value.message) };
@@ -146,7 +148,7 @@ function exportString(key, value, { home, salt }) {
   out = out.replace(HOME_PATH, "~");
   out = out.replace(EMAIL, "«email»").replace(IPV4, "«ip»").replace(IPV6_LIKE, ipv6);
   out = out.replace(HOSTNAME, (found) => (KNOWN_HOSTS.test(found) || FILE_EXT.test(found) ? found : hashName(found, salt)));
-  if (HOST_KEY.test(key) && !ROUTE_WORDS.has(out) && !/^\//.test(out) && !/^h-[0-9a-f]{10}$/.test(out) && !KNOWN_HOSTS.test(out)) {
+  if (HOST_KEY.test(key) && !ROUTE_WORDS.has(out) && !out.startsWith("/") && !/^h-[0-9a-f]{10}$/.test(out) && !KNOWN_HOSTS.test(out)) {
     // a bare server name with no dot (a tailnet name, "my-mac"): hashed too
     if (/^[A-Za-z0-9._-]+$/.test(out) && !/^(?:vps|local|cloud)\/?/.test(out)) out = hashName(out, salt);
   }
@@ -352,7 +354,7 @@ export function trail(ev, fields = {}) {
   try {
     if (typeof ev !== "string" || !EVENT_NAME.test(ev)) return;
     const ctx = context?.() ?? null;
-    const event = redactEvent({ ts: new Date().toISOString(), ev, src: fields?.src ?? source, run: RUN_ID, ...(ctx ?? {}), ...fields });
+    const event = redactEvent({ ts: new Date().toISOString(), ev, src: fields?.src ?? source, run: RUN_ID, ...ctx, ...fields });
     if (!event) return;
     if (sink) sink.write(event);
     else if (early.length < 200) early.push(event);

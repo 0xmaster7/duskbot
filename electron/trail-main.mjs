@@ -53,7 +53,7 @@ export function installTrailMain({ ipcMain, app, dialog, shell, powerMonitor, Br
   });
 
   async function exportUsageLog(owner) {
-    trail("ui.export", { what: "usage-log" });
+    trail("export.start", { what: "usage-log" });
     try {
       await writer.flush();
       const { text, count } = await exportTrailText(logDir);
@@ -63,7 +63,7 @@ export function installTrailMain({ ipcMain, app, dialog, shell, powerMonitor, Br
         defaultPath: path.join(app.getPath("downloads"), usageLogFileName()),
         filters: [{ name: "Usage log", extensions: ["jsonl"] }],
       });
-      if (chosen.canceled || !chosen.filePath) return { saved: null, sent: false };
+      if (chosen.canceled || !chosen.filePath) return { saved: false, sent: false };
       await writePrivate(chosen.filePath, text);
       trail("export.saved", { events: count });
       const ask = await dialog.showMessageBox(owner, {
@@ -75,13 +75,13 @@ export function installTrailMain({ ipcMain, app, dialog, shell, powerMonitor, Br
         cancelId: 1,
         noLink: true,
       });
-      if (ask.response !== 0) return { saved: chosen.filePath, sent: false };
+      if (ask.response !== 0) return { saved: true, sent: false };
       shell.showItemInFolder(chosen.filePath);
       const subject = encodeURIComponent("dusk bot usage log");
       const body = encodeURIComponent(`What happened, and roughly when:\n\n\n(The usage log ${path.basename(chosen.filePath)} is attached.)`);
       await shell.openExternal(`mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`);
       trail("export.sent", { how: "email" });
-      return { saved: chosen.filePath, sent: true };
+      return { saved: true, sent: true };
     } catch (error) {
       trailError("export.failed", error);
       throw new Error("The usage log could not be saved. Try another folder.");

@@ -3,10 +3,10 @@
 // throwing, and the caller opens the relay as before; nothing is shown to the person.
 import {
   SCREEN_CHANNEL, SCREEN_DIRECT_CONNECT_MS, SCREEN_DIRECT_GATHER_MS, SCREEN_DIRECT_ICE_SERVERS, SCREEN_DIRECT_RETRY_MS, SCREEN_ICE_PATH,
-  type ScreenFallbackReason,
+  type ScreenFallbackReason, type ScreenPath,
 } from "../../shared/screen-direct";
 
-export type DirectScreen = { channel: RTCDataChannel; close(): void } | { fallback: ScreenFallbackReason };
+export type DirectScreen = { channel: RTCDataChannel; close(): void; path?: ScreenPath } | { fallback: ScreenFallbackReason };
 
 /** After a failure the next screens go straight to the relay for a while, so a network that cannot punch pays once. */
 let blocked: { until: number } | null = null;
@@ -113,7 +113,7 @@ export async function openDirectScreen(url: string, options: {
     };
     pc.addEventListener("connectionstatechange", dropped);
     channel.addEventListener("close", () => pc.close(), { once: true });
-    return { channel, close: () => pc.close() };
+    return { channel, close: () => pc.close(), path: await settledPath(pc) };
   } catch {
     pc.close();
     options.signal.throwIfAborted();
@@ -155,4 +155,20 @@ function opened(pc: RTCPeerConnection, channel: RTCDataChannel, ms: number, sign
     pc.addEventListener("connectionstatechange", state);
     signal.addEventListener("abort", aborted, { once: true });
   });
+}
+
+/** which pair the peer settled on: a TURN candidate on either end is Cloudflare's relay, anything else is direct */
+async function settledPath(pc: RTCPeerConnection): Promise<ScreenPath> {
+  try {
+    const stats = await pc.getStats();
+    let pairId: string | undefined;
+    stats.forEach((entry) => { if (entry.type === "transport" && entry.selectedCandidatePairId) pairId = entry.selectedCandidatePairId; });
+    let pair: { localCandidateId?: string; remoteCandidateId?: string } | undefined;
+    stats.forEach((entry) => { if (entry.type === "candidate-pair" && (entry.id === pairId || (!pairId && entry.nominated && entry.state === "succeeded"))) pair = entry; });
+    const local = pair?.localCandidateId ? stats.get(pair.localCandidateId) : undefined;
+    const remote = pair?.remoteCandidateId ? stats.get(pair.remoteCandidateId) : undefined;
+    return local?.candidateType === "relay" || remote?.candidateType === "relay" ? "cloudflare-turn" : "direct";
+  } catch {
+    return "direct";
+  }
 }

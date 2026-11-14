@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode, type RefObject } from "rea
 import { AnimatePresence, useIsPresent } from "motion/react";
 import { useStore, type AppSettingsSection } from "@/state/store";
 import { t } from "@/lib/i18n";
+import { trailNavigation } from "@/lib/trail";
 import { cn } from "@/lib/cn";
 import { scrollWithin } from "@/lib/scroll-within";
 import { useMediaQuery } from "@/lib/use-media-query";
@@ -126,6 +127,7 @@ export function SettingsModal() {
   const pane = panes.some((entry) => entry.id === at.pane) ? at.pane : "general";
   const page = pane === "advanced" && at.page && advancedPages.includes(at.page) ? at.page : undefined;
   const paneEntry = SETTINGS_PANES.find((entry) => entry.id === pane)!;
+  useEffect(() => { trailNavigation("settings", { pane, page, section: requested }); }, [pane, page, requested]);
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
