@@ -6282,5 +6282,11 @@
   "computer.problem.losesFiles": "Os arquivos salvos nele são removidos.",
   "computer.problem.replaceLoses": "Atualizar o computador de {name}? Os arquivos salvos nele são removidos.",
   "botPanel.moreSettings": "Mais configurações",
-  "composer.add": "Adicionar"
+  "composer.add": "Adicionar",
+  "failedReply.noAi.title": "Conecte sua AI para continuar a conversa",
+  "failedReply.noAi": "O modelo reserva gratuito está ocupado no momento. Conecte uma AI que você já usa, como Claude ou ChatGPT, e seu bot passa a responder com ela.",
+  "server.freeModel.tryingNext": "O modelo reserva gratuito não enviou nada por {seconds} s, então outro modelo gratuito está respondendo no lugar.",
+  "server.freeModel.emptyNext": "O modelo reserva gratuito respondeu sem conteúdo, então outro modelo gratuito está respondendo no lugar.",
+  "server.freeModel.limit": "O modelo reserva gratuito esgotou as respostas gratuitas por enquanto, e por isso esta mensagem ficou sem resposta. Conecte sua própria AI, como Claude ou ChatGPT, para continuar, ou envie a mensagem novamente mais tarde.",
+  "server.freeModel.noReply": "Nenhum modelo reserva gratuito respondeu agora, e por isso esta mensagem ficou sem resposta. Envie-a novamente em um minuto ou conecte sua própria AI, como Claude ou ChatGPT, para ter respostas confiáveis."
 }

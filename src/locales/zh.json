@@ -6986,5 +6986,11 @@
   "computer.problem.keepsFiles": "它的文件和网站登录状态会保留。",
   "computer.problem.losesFiles": "保存在其中的文件会被删除。",
   "computer.problem.replaceLoses": "要更新 {name} 的电脑吗？保存在其中的文件会被删除。",
-  "botPanel.moreSettings": "更多设置"
+  "botPanel.moreSettings": "更多设置",
+  "failedReply.noAi.title": "连接你的 AI,继续对话",
+  "failedReply.noAi": "免费备用模型当前繁忙。请连接你已在使用的 AI,例如 Claude 或 ChatGPT,你的机器人将通过它来回复。",
+  "server.freeModel.tryingNext": "免费备用模型已 {seconds} 秒未返回任何内容,现由另一个免费模型接替回复。",
+  "server.freeModel.emptyNext": "免费备用模型返回了空内容,现由另一个免费模型接替回复。",
+  "server.freeModel.limit": "免费备用模型的免费回复次数暂时已用完,因此这条消息没有得到回复。请连接你自己的 AI(例如 Claude 或 ChatGPT)以继续使用,或稍后重新发送。",
+  "server.freeModel.noReply": "刚才没有任何免费备用模型作出回复,因此这条消息没有得到回复。请一分钟后重新发送,或连接你自己的 AI(例如 Claude 或 ChatGPT),以获得稳定可靠的回复。"
 }

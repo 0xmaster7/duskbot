@@ -6409,5 +6409,11 @@
   "computer.problem.losesFiles": "Pliki zapisane na tym komputerze zostaną usunięte.",
   "computer.problem.replaceLoses": "Zaktualizować komputer bota {name}? Pliki zapisane na tym komputerze zostaną usunięte.",
   "botPanel.moreSettings": "Więcej ustawień",
-  "composer.add": "Dodaj"
+  "composer.add": "Dodaj",
+  "failedReply.noAi.title": "Połącz swoje AI, aby kontynuować rozmowę",
+  "failedReply.noAi": "Bezpłatny model zapasowy jest teraz zajęty. Połącz AI, z którego już korzystasz, np. Claude lub ChatGPT, a Twój bot będzie odpowiadać za jego pomocą.",
+  "server.freeModel.tryingNext": "Bezpłatny model zapasowy nie przesłał żadnej odpowiedzi przez {seconds} s, więc odpowiada inny bezpłatny model.",
+  "server.freeModel.emptyNext": "Bezpłatny model zapasowy zwrócił pustą odpowiedź, więc odpowiada inny bezpłatny model.",
+  "server.freeModel.limit": "Bezpłatny model zapasowy wykorzystał na razie limit bezpłatnych odpowiedzi, dlatego ta wiadomość nie otrzymała odpowiedzi. Połącz własne AI, np. Claude lub ChatGPT, aby kontynuować, lub wyślij wiadomość ponownie później.",
+  "server.freeModel.noReply": "Żaden bezpłatny model zapasowy nie odpowiedział, dlatego ta wiadomość nie otrzymała odpowiedzi. Wyślij ją ponownie za minutę lub połącz własne AI, np. Claude lub ChatGPT, aby mieć pewność odpowiedzi."
 }

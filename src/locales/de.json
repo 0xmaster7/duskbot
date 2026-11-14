@@ -3629,5 +3629,7 @@
   "computer.problem.losesFiles": "Darauf gespeicherte Dateien werden entfernt.",
   "computer.problem.replaceLoses": "Den Computer von {name} aktualisieren? Darauf gespeicherte Dateien werden entfernt.",
   "botPanel.moreSettings": "Weitere Einstellungen",
-  "composer.add": "Hinzufügen"
+  "composer.add": "Hinzufügen",
+  "failedReply.noAi.title": "Verbinde deine AI, um weiterzuchatten",
+  "failedReply.noAi": "Die kostenlose Ersatzlösung ist gerade ausgelastet. Verbinde eine AI, die du bereits nutzt, etwa Claude oder ChatGPT, und dein Bot antwortet damit."
 }

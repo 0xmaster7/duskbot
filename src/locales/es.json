@@ -5850,5 +5850,11 @@
   "computer.problem.losesFiles": "Se eliminan los archivos guardados en él.",
   "computer.problem.replaceLoses": "¿Actualizar el equipo de {name}? Se eliminan los archivos guardados en él.",
   "botPanel.moreSettings": "Más ajustes",
-  "composer.add": "Añadir"
+  "composer.add": "Añadir",
+  "failedReply.noAi.title": "Conecta tu AI para seguir chateando",
+  "failedReply.noAi": "El modelo gratuito de respaldo está ocupado en este momento. Conecta una AI que ya uses, como Claude o ChatGPT, y tu bot responderá con ella.",
+  "server.freeModel.tryingNext": "El modelo gratuito de respaldo no envió nada durante {seconds} s, así que otro modelo gratuito está respondiendo en su lugar.",
+  "server.freeModel.emptyNext": "El modelo gratuito de respaldo respondió sin contenido, así que otro modelo gratuito está respondiendo en su lugar.",
+  "server.freeModel.limit": "El modelo gratuito de respaldo ha agotado por ahora sus respuestas gratuitas, así que este mensaje se quedó sin respuesta. Conecta tu propia AI, como Claude o ChatGPT, para continuar, o vuelve a enviarlo más tarde.",
+  "server.freeModel.noReply": "Ningún modelo gratuito de respaldo respondió en este momento, así que este mensaje se quedó sin respuesta. Vuelve a enviarlo dentro de un minuto o conecta tu propia AI, como Claude o ChatGPT, para obtener respuestas fiables."
 }

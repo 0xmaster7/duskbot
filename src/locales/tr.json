@@ -5382,5 +5382,11 @@
   "computer.problem.losesFiles": "İçine kaydedilen dosyalar kaldırılır.",
   "computer.problem.replaceLoses": "{name} adlı botun bilgisayarı güncellensin mi? İçine kaydedilen dosyalar kaldırılır.",
   "botPanel.moreSettings": "Diğer ayarlar",
-  "composer.add": "Ekle"
+  "composer.add": "Ekle",
+  "failedReply.noAi.title": "Sohbete devam etmek için AI'nızı bağlayın",
+  "failedReply.noAi": "Ücretsiz yedek şu anda meşgul. Claude veya ChatGPT gibi zaten kullandığınız bir AI'yı bağlayın, botunuz yanıtları onunla versin.",
+  "server.freeModel.tryingNext": "Ücretsiz yedek model {seconds} sn boyunca hiçbir şey göndermedi, bu yüzden yanıtı başka bir ücretsiz model veriyor.",
+  "server.freeModel.emptyNext": "Ücretsiz yedek model boş bir yanıt verdi, bu yüzden yanıtı başka bir ücretsiz model veriyor.",
+  "server.freeModel.limit": "Ücretsiz yedek model şimdilik ücretsiz yanıt hakkını doldurdu, bu yüzden bu mesaja yanıt verilmedi. Devam etmek için Claude veya ChatGPT gibi kendi AI'nızı bağlayın ya da mesajı daha sonra yeniden gönderin.",
+  "server.freeModel.noReply": "Şu anda hiçbir ücretsiz yedek model yanıt vermedi, bu yüzden bu mesaja yanıt verilmedi. Bir dakika sonra yeniden gönderin ya da güvenilir yanıtlar için Claude veya ChatGPT gibi kendi AI'nızı bağlayın."
 }
