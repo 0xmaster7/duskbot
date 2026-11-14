@@ -55,7 +55,7 @@ describe("Grok voice", () => {
     expect(() => speak(missing, "hi")).toThrow("Add an xAI key");
     expect(await listVoices(missing)).toEqual([]);
     expect(seen).toHaveLength(0);
-    expect(describeVoice(config)).toEqual({ configured: true, ready: true, provider: "xai", voice: "ara", baseUrl: "", model: "" });
+    expect(describeVoice(config)).toEqual({ configured: true, ready: true, provider: "xai", voice: "ara", baseUrl: "", model: "", listen: { ready: false } });
     const noVoice: AppConfig = { xai: config.xai, tts: { provider: "xai" } };
     expect(voiceReady(noVoice)).toBe(false);
     expect(voiceReady(noVoice, "eve")).toBe(true);

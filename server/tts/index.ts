@@ -1,13 +1,35 @@
 import type { AppConfig } from "../config.ts";
 import { voiceCredential } from "../included-services.ts";
+import * as cartesia from "./cartesia.ts";
+import * as assemblyai from "./assemblyai.ts";
 import * as chatterbox from "./chatterbox.ts";
+import * as deepgram from "./deepgram.ts";
 import * as elevenlabs from "./elevenlabs.ts";
 import * as grok from "./grok.ts";
 import * as fish from "./fish.ts";
 import * as gemini from "./gemini.ts";
+import { describeListen } from "./listen.ts";
+import * as openai from "./openai.ts";
 import * as systemVoices from "./system-voices.ts";
 
-export type VoiceProvider = "elevenlabs" | "fish" | "system" | "chatterbox" | "xai" | "gemini";
+export type VoiceProvider = "elevenlabs" | "fish" | "system" | "chatterbox" | "xai" | "gemini" | "openai" | "deepgram" | "cartesia";
+
+const OTHER_PROVIDERS: readonly VoiceProvider[] = ["gemini", "xai", "fish", "system", "chatterbox", "openai", "deepgram", "cartesia"];
+
+function keyFor(cfg: AppConfig, provider: VoiceProvider): string | undefined {
+  if (provider === "openai") return cfg.openai?.key?.trim() || undefined;
+  if (provider === "deepgram") return cfg.tts?.deepgramKey?.trim() || undefined;
+  if (provider === "cartesia") return cfg.tts?.cartesiaKey?.trim() || undefined;
+  return undefined;
+}
+
+const KEYED_VOICES = {
+  openai: { module: openai, name: "OpenAI", hint: "Add an OpenAI key in Settings to use OpenAI voice." },
+  deepgram: { module: deepgram, name: "Deepgram", hint: "Add a Deepgram key in Settings to use Deepgram voice." },
+  cartesia: { module: cartesia, name: "Cartesia", hint: "Add a Cartesia key in Settings to use Cartesia voice." },
+} as const;
+
+const isKeyedVoice = (provider: VoiceProvider): provider is keyof typeof KEYED_VOICES => Object.hasOwn(KEYED_VOICES, provider);
 
 export class NoVoiceConfigured extends Error {
   // Not a parameter property: the harness runs under strip-only `node --experimental-strip-types`, which rejects one at load.
@@ -28,11 +50,12 @@ const elevenLabs = (cfg: AppConfig) => voiceCredential(cfg.tts?.key);
 
 export function voiceProvider(cfg: AppConfig): VoiceProvider {
   const provider = cfg.tts?.provider;
-  return provider === "gemini" || provider === "xai" || provider === "fish" || provider === "system" || provider === "chatterbox" ? provider : "elevenlabs";
+  return provider && OTHER_PROVIDERS.includes(provider) ? provider : "elevenlabs";
 }
 
 export function providerConfigured(cfg: AppConfig): boolean {
   const provider = voiceProvider(cfg);
+  if (isKeyedVoice(provider)) return Boolean(keyFor(cfg, provider));
   if (provider === "gemini") return Boolean(cfg.tts?.geminiKey);
   if (provider === "xai") return Boolean(cfg.xai?.key);
   if (provider === "system") return systemVoices.systemVoicesAvailable();
@@ -43,6 +66,7 @@ export function providerConfigured(cfg: AppConfig): boolean {
 
 export function voiceConfigured(cfg: AppConfig): boolean {
   const provider = voiceProvider(cfg);
+  if (isKeyedVoice(provider)) return Boolean(keyFor(cfg, provider) && KEYED_VOICES[provider].module.isSupportedVoice(cfg.tts?.voice));
   if (provider === "gemini") return Boolean(cfg.tts?.geminiKey && gemini.isSupportedVoice(cfg.tts?.voice));
   if (provider === "xai") return Boolean(cfg.xai?.key && cfg.tts?.voice);
   if (provider === "system") {
@@ -55,6 +79,7 @@ export function voiceConfigured(cfg: AppConfig): boolean {
 
 export function voiceReady(cfg: AppConfig, voiceId?: string): boolean {
   const provider = voiceProvider(cfg);
+  if (isKeyedVoice(provider)) return Boolean(keyFor(cfg, provider) && KEYED_VOICES[provider].module.isSupportedVoice(voiceId || cfg.tts?.voice));
   if (provider === "gemini") return Boolean(cfg.tts?.geminiKey && gemini.isSupportedVoice(voiceId || cfg.tts?.voice));
   if (provider === "xai") return Boolean(cfg.xai?.key && (voiceId || cfg.tts?.voice));
   if (provider === "system") {
@@ -78,11 +103,18 @@ export function describeVoice(cfg: AppConfig) {
     model: provider === "gemini" ? (cfg.tts?.model || gemini.DEFAULT_GEMINI_MODEL) : provider === "chatterbox" ? (cfg.tts?.model ?? "") : "",
     ...(provider === "fish" ? { fishModel: cfg.tts?.fishModel ?? fish.DEFAULT_FISH_MODEL } : {}),
     ...(included ? { included: true as const } : {}),
+    listen: describeListen(cfg),
   };
 }
 
-export function verifyKey(provider: "elevenlabs" | "fish", key: string) {
-  return provider === "fish" ? fish.verifyKey(key) : elevenlabs.verifyKey(key);
+export type VerifiedVoiceKey = "elevenlabs" | "fish" | "deepgram" | "cartesia" | "assemblyai";
+
+export function verifyKey(provider: VerifiedVoiceKey, key: string) {
+  if (provider === "fish") return fish.verifyKey(key);
+  if (provider === "deepgram") return deepgram.verifyKey(key);
+  if (provider === "cartesia") return cartesia.verifyKey(key);
+  if (provider === "assemblyai") return assemblyai.verifyKey(key);
+  return elevenlabs.verifyKey(key);
 }
 
 export async function listVoices(
@@ -91,6 +123,12 @@ export async function listVoices(
   search?: fish.VoiceSearch,
 ): Promise<elevenlabs.Voice[]> {
   const provider = voiceProvider(cfg);
+  if (provider === "openai") return keyFor(cfg, provider) ? openai.listVoices() : [];
+  if (provider === "deepgram") return keyFor(cfg, provider) ? deepgram.listVoices() : [];
+  if (provider === "cartesia") {
+    const key = keyFor(cfg, provider);
+    return key ? cartesia.listVoices(key, search) : [];
+  }
   if (provider === "gemini") return cfg.tts?.geminiKey ? gemini.listVoices() : [];
   if (provider === "xai") return cfg.xai?.key ? grok.listVoices(cfg.xai.key) : [];
   if (provider === "system") return systemVoices.listSystemVoices(run);
@@ -115,6 +153,13 @@ export async function addSharedVoice(cfg: AppConfig, publicOwnerId: string, voic
 
 export function speak(cfg: AppConfig, text: string, voiceId?: string, run?: systemVoices.Runner) {
   const provider = voiceProvider(cfg);
+  if (isKeyedVoice(provider)) {
+    const key = keyFor(cfg, provider);
+    if (!key) throw new NoVoiceConfigured("key", KEYED_VOICES[provider].hint);
+    const voice = voiceId || cfg.tts?.voice;
+    if (!voice) throw new NoVoiceConfigured("voice");
+    return KEYED_VOICES[provider].module.synthesize(text, voice, key);
+  }
   if (provider === "gemini") {
     const key = cfg.tts?.geminiKey;
     if (!key) throw new NoVoiceConfigured("key", "Add a Gemini API key in Settings to use Gemini voice.");

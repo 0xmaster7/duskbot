@@ -295,6 +295,10 @@ export function createConfigRoutes(deps: ConfigRouteDeps): RouteHandler {
         const check = await tts.verifyKey("fish", newTts.fishKey.trim());
         if (!check.ok) return json(res, 400, { error: check.message });
       }
+      const speechChecks = await Promise.all(([["deepgram", newTts?.deepgramKey], ["cartesia", newTts?.cartesiaKey], ["assemblyai", newTts?.assemblyAiKey]] as const)
+        .flatMap(([provider, value]) => value?.trim() ? [tts.verifyKey(provider, value.trim())] : []));
+      const refusedSpeechKey = speechChecks.find((check) => !check.ok);
+      if (refusedSpeechKey && !refusedSpeechKey.ok) return json(res, 400, { error: refusedSpeechKey.message });
       const deciderKey = patch.decider ? deciderPatchKey(patch.decider, cfg.decider) : null;
       if (deciderKey) {
         const check = await decider.testKey(deciderKey.check);
@@ -372,6 +376,9 @@ export function createConfigRoutes(deps: ConfigRouteDeps): RouteHandler {
           if (persisted.tts?.key !== undefined) persisted.tts.key = "";
           if (persisted.tts?.fishKey !== undefined) persisted.tts.fishKey = "";
           if (persisted.tts?.geminiKey !== undefined) persisted.tts.geminiKey = "";
+          if (persisted.tts?.deepgramKey !== undefined) persisted.tts.deepgramKey = "";
+          if (persisted.tts?.cartesiaKey !== undefined) persisted.tts.cartesiaKey = "";
+          if (persisted.tts?.assemblyAiKey !== undefined) persisted.tts.assemblyAiKey = "";
           if (persisted.decider?.key !== undefined) persisted.decider.key = "";
           if (persisted.decider?.openrouterKey !== undefined) persisted.decider.openrouterKey = "";
           if (persisted.decider?.workersAiToken !== undefined) persisted.decider.workersAiToken = "";

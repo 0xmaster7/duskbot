@@ -91,6 +91,23 @@ describe("every credential has one home on the keys page", () => {
     expect(t(live.labelKey)).toBe("OpenAI key");
     expect(t(keyEntry("openai").labelKey)).toBe("OpenAI API key");
   });
+
+  it("lists the speech services under voice, saying which listen and which speak, and reuses the OpenAI and Groq keys", () => {
+    for (const id of ["deepgram", "cartesia", "assemblyAi"] as const) {
+      const entry = keyEntry(id);
+      expect(entry.section, id).toBe("voice");
+      expect(entry.target?.verifiedOnSave, id).toBe(true);
+      expect(entry.target?.slot, id).toBe(`${id}Key`);
+    }
+    expect(t(keyEntry("deepgram").purposeKey)).toMatch(/^Listens and speaks/);
+    expect(t(keyEntry("cartesia").purposeKey)).toMatch(/^Listens and speaks/);
+    expect(t(keyEntry("assemblyAi").purposeKey)).toMatch(/^Listens/);
+    expect(keyEntry("deepgram").target?.patch("k", true)).toEqual({ tts: { deepgramKey: "k" } });
+    expect(savedState(keyEntry("deepgram"), { savedKeys: { deepgramKey: { configured: true } } } as ConfigStatus)).toEqual({ configured: true });
+    expect(keyEntry("openaiVoice")).toMatchObject({ section: "voice", kind: "uses", uses: "openai", env: [] });
+    expect(keyEntry("groqWhisper")).toMatchObject({ section: "voice", kind: "uses", uses: "groq", env: [] });
+    expect(savedState(keyEntry("groqWhisper"), { groq: { configured: true } } as ConfigStatus)).toEqual({ configured: true });
+  });
 });
 
 describe("searching the keys", () => {
@@ -114,6 +131,8 @@ describe("a key pasted into the wrong row", () => {
     expect(looksLikeOtherKey(keyEntry("composio"), "sk-proj-abcdefghijkl")?.id).toBe("openai");
     expect(looksLikeOtherKey(keyEntry("liveCalls"), "gsk_abcdefghijkl")?.id).toBe("groq");
     expect(KEY_CATALOG.some(entry => String(entry.id) === "box")).toBe(false);
+    expect(looksLikeOtherKey(keyEntry("elevenlabs"), "sk_car_abcdefghijkl")?.id).toBe("cartesia");
+    expect(looksLikeOtherKey(keyEntry("cartesia"), "sk_abcdefghijkl")?.id).toBe("elevenlabs");
   });
 
   it("stays quiet for the row's own key and for keys with no telling shape", () => {

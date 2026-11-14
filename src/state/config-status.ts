@@ -6,7 +6,7 @@ import type { ModelSelection } from "./store";
 /** A saved credential: whether it is set and, for admins, its last four characters. The key itself never comes back. */
 export interface SavedKey { configured: boolean; last4?: string }
 
-export type NestedKeyName = "ttsKey" | "fishAudioKey" | "geminiTtsKey" | "jevApiKey" | "openrouterDeciderKey" | "gatewayDeciderKey" | "workersAiToken" | "openaiImageApiKey" | "customImageApiKey" | "openaiLiveKey";
+export type NestedKeyName = "ttsKey" | "fishAudioKey" | "geminiTtsKey" | "deepgramKey" | "cartesiaKey" | "assemblyAiKey" | "jevApiKey" | "openrouterDeciderKey" | "gatewayDeciderKey" | "workersAiToken" | "openaiImageApiKey" | "customImageApiKey" | "openaiLiveKey";
 
 /** GET /api/config, configured flags only; secrets are never echoed. */
 export interface ConfigStatus {
@@ -74,13 +74,15 @@ export interface ConfigStatus {
     configured: boolean;
     ready: boolean;
     voice: string;
-    provider?: "elevenlabs" | "fish" | "system" | "chatterbox" | "xai" | "gemini";
+    provider?: "elevenlabs" | "fish" | "system" | "chatterbox" | "xai" | "gemini" | "openai" | "deepgram" | "cartesia";
     baseUrl?: string;
     model?: string;
     /** Fish Audio speech model; present only while Fish is the provider. */
     fishModel?: "s2.1-pro" | "s2.1-pro-free";
     /** ElevenLabs voice comes with Cloud Pro; no key is saved. */
     included?: boolean;
+    /** Whether POST /api/tts/transcribe can hear speech, and the service name it would use. */
+    listen?: { ready: boolean; provider?: string };
   };
   /** The decision model: switches and whether a key is on file. The key
    * itself never comes back. `enabled` is the switch as it takes effect

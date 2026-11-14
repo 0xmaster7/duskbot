@@ -190,7 +190,7 @@ describe("configuration", () => {
   it("never reports the key itself", async () => {
     const { describeVoice } = await voice();
     const described = describeVoice(cfg({ key: "sk-secret", voice: "v-1" }));
-    expect(described).toEqual({ configured: true, ready: true, voice: "v-1", provider: "elevenlabs", baseUrl: "", model: "" });
+    expect(described).toEqual({ configured: true, ready: true, voice: "v-1", provider: "elevenlabs", baseUrl: "", model: "", listen: { ready: true, provider: "ElevenLabs" } });
     expect(JSON.stringify(described)).not.toContain("sk-secret");
   });
 
@@ -357,6 +357,7 @@ describe("Fish Audio", () => {
       baseUrl: "",
       model: "",
       fishModel: "s2.1-pro",
+      listen: { ready: true, provider: "Fish Audio" },
     });
     expect(JSON.stringify(described)).not.toContain("fish-key");
   });
@@ -523,6 +524,7 @@ describe("built-in macOS voices", () => {
       provider: "system",
       baseUrl: "",
       model: "",
+      listen: { ready: false },
     });
   });
 
@@ -582,6 +584,7 @@ describe("Chatterbox (local server)", () => {
       provider: "chatterbox",
       baseUrl: stubBase,
       model: "turbo-en",
+      listen: { ready: false },
     });
   });
 
@@ -748,7 +751,7 @@ describe("included voice", () => {
     include();
     const { describeVoice } = await voice();
     const described = describeVoice(cfg({ voice: "v-1" }));
-    expect(described).toEqual({ configured: true, ready: true, voice: "v-1", provider: "elevenlabs", baseUrl: "", model: "", included: true });
+    expect(described).toEqual({ configured: true, ready: true, voice: "v-1", provider: "elevenlabs", baseUrl: "", model: "", included: true, listen: { ready: false } });
     expect(JSON.stringify(described)).not.toContain(INCLUDED);
     expect(describeVoice(cfg({ key: "sk-own", voice: "v-1" }))).not.toHaveProperty("included");
     expect(describeVoice(cfg({ provider: "fish", voice: "v-1" }))).toMatchObject({ configured: false });

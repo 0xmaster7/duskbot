@@ -339,13 +339,18 @@ const appConfigSchema = z.object({
   vps: vpsConfigSchema.optional(),
   /** OpenCode key, plus `providerKeys` for its other providers by the env name OpenCode reads; both write-only and only for its child. */
   opencodeGo: z.object({ apiKey: optionalText, providerKeys: z.record(z.string(), z.string()).optional() }).optional(),
-  /** `provider`: "elevenlabs" (default, `key`), "fish" (`fishKey`, `fishModel`), "system", "xai" (`xai.key`), "gemini" (`geminiKey`, `model`) or "chatterbox" (local; `baseUrl`, `model`). */
+  /** `provider`: "elevenlabs" (default, `key`), "fish" (`fishKey`, `fishModel`), "system", "xai" (`xai.key`), "gemini" (`geminiKey`, `model`),
+   * "openai" (`openai.key`), "deepgram" (`deepgramKey`), "cartesia" (`cartesiaKey`) or "chatterbox" (local; `baseUrl`, `model`).
+   * `assemblyAiKey` only hears speech; the other speech keys hear it too. */
   tts: z.object({
     key: optionalText,
     fishKey: optionalText,
     geminiKey: optionalText,
+    deepgramKey: optionalText,
+    cartesiaKey: optionalText,
+    assemblyAiKey: optionalText,
     voice: optionalText,
-    provider: z.enum(["elevenlabs", "fish", "system", "chatterbox", "xai", "gemini"]).optional(),
+    provider: z.enum(["elevenlabs", "fish", "system", "chatterbox", "xai", "gemini", "openai", "deepgram", "cartesia"]).optional(),
     baseUrl: z
       .string()
       .trim()
@@ -458,7 +463,8 @@ export interface AppConfig extends HelperConfig {
   /** A named host from the user's SSH config. Authentication stays with SSH. */
   vps?: VpsConfig;
   opencodeGo?: { apiKey?: string; providerKeys?: Record<string, string> };
-  tts?: { key?: string; fishKey?: string; geminiKey?: string; voice?: string; provider?: "elevenlabs" | "fish" | "system" | "chatterbox" | "xai" | "gemini"; baseUrl?: string; model?: string; fishModel?: FishTtsModel };
+  tts?: { key?: string; fishKey?: string; geminiKey?: string; deepgramKey?: string; cartesiaKey?: string; assemblyAiKey?: string; voice?: string;
+    provider?: "elevenlabs" | "fish" | "system" | "chatterbox" | "xai" | "gemini" | "openai" | "deepgram" | "cartesia"; baseUrl?: string; model?: string; fishModel?: FishTtsModel };
   decider?: DeciderConfig;
   imageGen?: ImageGenerationConfig;
   live?: LiveConfig;
@@ -764,6 +770,9 @@ export function loadConfig(): AppConfig {
   if (presetVoice && !cfg.tts.voice?.trim() && (cfg.tts.provider ?? "elevenlabs") === "elevenlabs") cfg.tts.voice = presetVoice;
   if (process.env.DUSK_FISH_AUDIO_API_KEY !== undefined) cfg.tts.fishKey = process.env.DUSK_FISH_AUDIO_API_KEY;
   if (process.env.DUSK_GEMINI_API_KEY !== undefined) cfg.tts.geminiKey = process.env.DUSK_GEMINI_API_KEY;
+  if (process.env.DUSK_DEEPGRAM_API_KEY !== undefined) cfg.tts.deepgramKey = process.env.DUSK_DEEPGRAM_API_KEY;
+  if (process.env.DUSK_CARTESIA_API_KEY !== undefined) cfg.tts.cartesiaKey = process.env.DUSK_CARTESIA_API_KEY;
+  if (process.env.DUSK_ASSEMBLYAI_API_KEY !== undefined) cfg.tts.assemblyAiKey = process.env.DUSK_ASSEMBLYAI_API_KEY;
   cfg.decider = { ...cfg.decider };
   if (process.env.DUSK_JEV_API_KEY !== undefined) cfg.decider.key = process.env.DUSK_JEV_API_KEY;
   if (process.env.DUSK_OPENROUTER_DECIDER_KEY !== undefined) cfg.decider.openrouterKey = process.env.DUSK_OPENROUTER_DECIDER_KEY; if (process.env.DUSK_WORKERS_AI_TOKEN !== undefined) cfg.decider.workersAiToken = process.env.DUSK_WORKERS_AI_TOKEN; if (process.env.DUSK_GATEWAY_DECIDER_KEY !== undefined) cfg.decider.gatewayKey = process.env.DUSK_GATEWAY_DECIDER_KEY;
@@ -811,6 +820,9 @@ export function syncCredentialEnv(patch: Partial<Omit<AppConfig, "threads" | "ne
     [patch.tts?.key, "DUSK_TTS_KEY"],
     [patch.tts?.fishKey, "DUSK_FISH_AUDIO_API_KEY"],
     [patch.tts?.geminiKey, "DUSK_GEMINI_API_KEY"],
+    [patch.tts?.deepgramKey, "DUSK_DEEPGRAM_API_KEY"],
+    [patch.tts?.cartesiaKey, "DUSK_CARTESIA_API_KEY"],
+    [patch.tts?.assemblyAiKey, "DUSK_ASSEMBLYAI_API_KEY"],
     [patch.decider?.key, "DUSK_JEV_API_KEY"],
     [patch.decider?.openrouterKey, "DUSK_OPENROUTER_DECIDER_KEY"], [patch.decider?.workersAiToken, "DUSK_WORKERS_AI_TOKEN"], [patch.decider?.gatewayKey, "DUSK_GATEWAY_DECIDER_KEY"],
     [patch.imageGen?.key, "DUSK_OPENAI_IMAGE_KEY"],

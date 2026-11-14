@@ -11,7 +11,7 @@ export function allow<const T extends string>(value: unknown, list: readonly T[]
 
 export const KEY_PROVIDER = [
   "anthropic", "openai", "openrouter", "openai_compat", "xai", "mistral", "cerebras", "groq", "greenference", "meta", "composio",
-  "opencode_go", "custom_endpoint", "elevenlabs", "fish_audio", "gemini_tts", "jev", "openrouter_decider", "gateway_decider", "openai_image", "custom_image",
+  "opencode_go", "custom_endpoint", "elevenlabs", "fish_audio", "gemini_tts", "deepgram", "cartesia", "assemblyai", "jev", "openrouter_decider", "gateway_decider", "openai_image", "custom_image",
   "openai_live", "onepassword", "treg", "deepseek",
 ] as const;
 export type KeyProvider = (typeof KEY_PROVIDER)[number];

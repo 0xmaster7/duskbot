@@ -40,7 +40,7 @@ export interface KeyTarget {
 
 export type KeyId =
   | "openai" | "anthropic" | "xai" | "openrouter" | "mistral" | "cerebras" | "groq" | "greenference" | "meta" | "deepseek" | "opencodeGo" | "opencodeProviders"
-  | "lmStudio" | "openaiCompat" | "liveCalls" | "liveKey" | "elevenlabs" | "fishAudio" | "geminiTts" | "vps" | "onePassword" | "composio" | "treg"
+  | "lmStudio" | "openaiCompat" | "liveCalls" | "liveKey" | "elevenlabs" | "fishAudio" | "geminiTts" | "deepgram" | "cartesia" | "assemblyAi" | "openaiVoice" | "groqWhisper" | "vps" | "onePassword" | "composio" | "treg"
   | "jev" | "openrouterHelper" | "gatewayHelper" | "workersAi" | "imageOpenai" | "imageCustom";
 
 export type KeyMark = { driverKind: string; preset?: ProviderIconPreset } | { icon: GlyphIcon };
@@ -132,7 +132,7 @@ export const KEY_CATALOG: readonly KeyEntry[] = [
     target: { patch: (value) => ({ tts: { key: value } }), slot: "ttsKey", verifiedOnSave: true,
       saved: (config) => ({ ...flag(config.savedKeys?.ttsKey ?? { configured: config.tts?.provider === "elevenlabs" && config.tts.configured && !config.tts.included }),
         ...(config.tts?.included ? { included: true } : {}) }),
-      placeholder: "sk_…", href: "https://elevenlabs.io/app/settings/api-keys", analytics: "elevenlabs", shape: /^sk_/ } },
+      placeholder: "sk_…", href: "https://elevenlabs.io/app/settings/api-keys", analytics: "elevenlabs", shape: /^sk_(?!car_)/ } },
   { id: "geminiTts", section: "voice", labelKey: "keys.label.geminiTts", purposeKey: "keys.purpose.geminiTts", name: "Gemini", env: ["DUSK_GEMINI_API_KEY"],
     words: ["google", "gemini", "speech", "voice", "tts"], mark: { icon: AudioLines }, kind: "key",
     target: { patch: (value) => ({ tts: { geminiKey: value } }), slot: "geminiTtsKey",
@@ -143,6 +143,25 @@ export const KEY_CATALOG: readonly KeyEntry[] = [
     target: { patch: (value) => ({ tts: { fishKey: value } }), slot: "fishAudioKey", verifiedOnSave: true,
       saved: (config) => flag(config.savedKeys?.fishAudioKey ?? { configured: config.tts?.provider === "fish" && config.tts.configured }),
       placeholder: "…", placeholderKey: "voice.fish.keyPlaceholder", href: "https://fish.audio/app/api-keys/", analytics: "fish_audio" } },
+  { id: "deepgram", section: "voice", labelKey: "keys.label.deepgram", purposeKey: "keys.purpose.deepgram", name: "Deepgram", env: ["DUSK_DEEPGRAM_API_KEY"],
+    words: ["deepgram", "aura", "nova", "voice", "voices", "speech", "tts", "transcription", "dictation"], mark: { icon: AudioLines }, kind: "key",
+    target: { patch: (value) => ({ tts: { deepgramKey: value } }), slot: "deepgramKey", verifiedOnSave: true,
+      saved: (config) => flag(config.savedKeys?.deepgramKey), placeholder: "…", placeholderKey: "keys.deepgram.placeholder",
+      href: "https://console.deepgram.com/", analytics: "deepgram" } },
+  { id: "cartesia", section: "voice", labelKey: "keys.label.cartesia", purposeKey: "keys.purpose.cartesia", name: "Cartesia", env: ["DUSK_CARTESIA_API_KEY"],
+    words: ["cartesia", "sonic", "ink", "voice", "voices", "speech", "tts", "transcription", "dictation"], mark: { icon: AudioLines }, kind: "key",
+    target: { patch: (value) => ({ tts: { cartesiaKey: value } }), slot: "cartesiaKey", verifiedOnSave: true,
+      saved: (config) => flag(config.savedKeys?.cartesiaKey), placeholder: "sk_car_…",
+      href: "https://play.cartesia.ai/keys", analytics: "cartesia", shape: /^sk_car_/ } },
+  { id: "assemblyAi", section: "voice", labelKey: "keys.label.assemblyAi", purposeKey: "keys.purpose.assemblyAi", name: "AssemblyAI", env: ["DUSK_ASSEMBLYAI_API_KEY"],
+    words: ["assemblyai", "assembly ai", "universal", "speech", "transcription", "dictation", "listen"], mark: { icon: AudioLines }, kind: "key",
+    target: { patch: (value) => ({ tts: { assemblyAiKey: value } }), slot: "assemblyAiKey", verifiedOnSave: true,
+      saved: (config) => flag(config.savedKeys?.assemblyAiKey), placeholder: "…", placeholderKey: "keys.assemblyAi.placeholder",
+      href: "https://www.assemblyai.com/app/api-keys", analytics: "assemblyai" } },
+  { id: "openaiVoice", section: "voice", labelKey: "keys.label.openaiVoice", purposeKey: "keys.purpose.openaiVoice", name: "OpenAI", env: [],
+    words: ["openai", "voice", "voices", "speech", "tts", "transcription", "dictation", "whisper"], mark: { icon: AudioLines }, kind: "uses", uses: "openai" },
+  { id: "groqWhisper", section: "voice", labelKey: "keys.label.groqWhisper", purposeKey: "keys.purpose.groqWhisper", name: "Groq", env: [],
+    words: ["groq", "whisper", "speech", "transcription", "dictation", "listen"], mark: { icon: AudioLines }, kind: "uses", uses: "groq" },
   { id: "vps", section: "computers", labelKey: "keys.vps.label", purposeKey: "keys.purpose.vps", name: "VPS", env: [],
     words: ["vps", "ssh", "server", "self-hosted", "computer", "docker"], mark: { icon: Server }, kind: "panel",
     status: (config) => ({ configured: config.vps?.configured === true }) },

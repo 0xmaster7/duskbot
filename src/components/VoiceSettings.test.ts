@@ -82,13 +82,13 @@ describe("VoiceSettings", () => {
     expect(onPatch).not.toHaveBeenCalled();
   });
 
-  it("lays the six voice services out in two rows", async () => {
+  it("lays the nine voice services out in three rows", async () => {
     fixture.api.mockResolvedValue({ voices: [] });
     await render(bot("pepper"), vi.fn());
     const radios = [...host.querySelectorAll<HTMLElement>('[role="radiogroup"] [role="radio"]')];
-    expect(radios.map((radio) => radio.textContent)).toEqual(["ElevenLabs", "Fish Audio", "Grok (xAI)", "Gemini", "Built-in Mac voices", "Chatterbox (local)"]);
+    expect(radios.map((radio) => radio.textContent)).toEqual(["ElevenLabs", "Fish Audio", "Grok (xAI)", "Gemini", "OpenAI", "Deepgram", "Cartesia", "Built-in Mac voices", "Chatterbox (local)"]);
     expect(radios.map((radio) => radio.className.match(/col-span-\d/)?.[0])).toEqual([
-      "col-span-2", "col-span-2", "col-span-2", "col-span-2", "col-span-2", "col-span-2",
+      "col-span-2", "col-span-2", "col-span-2", "col-span-2", "col-span-2", "col-span-2", "col-span-2", "col-span-2", "col-span-2",
     ]);
   });
 });

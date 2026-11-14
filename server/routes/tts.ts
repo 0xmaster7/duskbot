@@ -1,8 +1,8 @@
 // The voice routes: whether a voice is ready, the provider's voices (searched, or one pasted by ID or link), adding an
-// ElevenLabs Voice Library voice to My Voices, speaking a line, and hearing speech. Scopes are keyed by path in server/request-auth.ts.
+// ElevenLabs Voice Library voice to My Voices, speaking a line, and hearing speech with the first key that can listen. Scopes are keyed by path in server/request-auth.ts.
 import type { AppConfig } from "../config.ts";
 import { redactSecretsInText } from "../redact.ts";
-import * as fish from "../tts/fish.ts";
+import * as listen from "../tts/listen.ts";
 import * as tts from "../tts/index.ts";
 import { toUtterances, VOICE_FIRST_BLOCK_MAX_CHARS } from "../tts/speech-text.ts";
 import { PASS, type RouteHandler } from "./table.ts";
@@ -79,10 +79,12 @@ export function createTtsRoutes(deps: TtsRouteDeps): RouteHandler {
         req.resume();
         return json(res, 400, { error: "content-type must be audio/wav" });
       }
-      const key = cfg.tts?.fishKey;
-      if (!key) {
+      const hearer = listen.listener(cfg);
+      if (!hearer) {
         req.resume();
-        return json(res, 409, { error: "Add a Fish Audio key in Settings → API keys to talk to your bots here." });
+        return json(res, 409, {
+          error: "Add a key that can hear you to talk to your bots here: a Fish Audio key, or one from Deepgram, ElevenLabs, OpenAI, Groq, Cartesia or AssemblyAI.",
+        });
       }
       const declared = Number(req.headers["content-length"] ?? 0);
       if (declared > TRANSCRIBE_MAX_BYTES) {
@@ -102,7 +104,7 @@ export function createTtsRoutes(deps: TtsRouteDeps): RouteHandler {
       });
       if (!audio) return json(res, 413, { error: `audio exceeds ${TRANSCRIBE_MAX_BYTES} bytes` });
       try {
-        return json(res, 200, { text: await fish.transcribe(audio, mime, key) });
+        return json(res, 200, { text: await listen.transcribe(hearer, audio, mime) });
       } catch (e) {
         return json(res, 502, { error: e instanceof Error ? e.message : String(e) });
       }

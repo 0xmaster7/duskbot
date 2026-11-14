@@ -67,10 +67,17 @@ export function VoiceSettings({
   const [deviceVoice, setDeviceVoice] = useState(() => remoteSystemVoice(bot.id));
   const usesLocalSystem = localMacClient && deviceProvider === "system";
   const provider = tts?.provider ?? "elevenlabs";
-  const searchable = (provider === "fish" || provider === "elevenlabs" || provider === "gemini") && !usesLocalSystem;
-  const voiceSearch = searchable && provider !== "gemini" ? searchedQuery : "";
-  const pickedVoice = searchable && provider !== "gemini" ? (bot.voice ?? "") : "";
-  const cloudProvider = provider === "gemini"
+  const fixedVoices = provider === "gemini" || provider === "openai" || provider === "deepgram";
+  const searchable = (provider === "fish" || provider === "elevenlabs" || provider === "cartesia" || fixedVoices) && !usesLocalSystem;
+  const voiceSearch = searchable && !fixedVoices ? searchedQuery : "";
+  const pickedVoice = searchable && !fixedVoices ? (bot.voice ?? "") : "";
+  const cloudProvider = provider === "deepgram"
+    ? { id: "deepgram" as const, name: "Deepgram", credential: "deepgramKey" as const, configField: "deepgramKey" as const,
+        placeholder: t("voice.deepgram.keyPlaceholder"), keyUrl: "https://console.deepgram.com/" }
+    : provider === "cartesia"
+    ? { id: "cartesia" as const, name: "Cartesia", credential: "cartesiaKey" as const, configField: "cartesiaKey" as const,
+        placeholder: t("voice.cartesia.keyPlaceholder"), keyUrl: "https://play.cartesia.ai/keys" }
+    : provider === "gemini"
     ? { id: "gemini" as const, name: "Gemini", credential: "geminiTtsKey" as const, configField: "geminiKey" as const,
         placeholder: t("voice.gemini.keyPlaceholder"), keyUrl: "https://aistudio.google.com/api-keys" }
     : provider === "fish"
@@ -93,7 +100,8 @@ export function VoiceSettings({
         }
       : null;
   const key = cloudProvider ? voiceKeyDraftValue(keyDraft, cloudProvider.id) : "";
-  const hostProviderLabel = provider === "gemini" ? t("voice.hostLabel", { provider: "Gemini" }) : provider === "fish"
+  const hostProviderLabel = provider === "gemini" || provider === "openai" || provider === "deepgram" || provider === "cartesia"
+    ? t("voice.hostLabel", { provider: provider === "gemini" ? "Gemini" : provider === "openai" ? "OpenAI" : cloudProvider?.name ?? "" }) : provider === "fish"
     ? t("voice.hostLabel", { provider: t("voice.fish.label") })
     : provider === "elevenlabs"
       ? t("voice.hostLabel", { provider: t("voice.elevenlabs.label") })
@@ -202,7 +210,7 @@ export function VoiceSettings({
       .finally(() => current() && setAddingVoice(null));
   };
 
-  const setProvider = (next: "elevenlabs" | "fish" | "system" | "chatterbox" | "xai" | "gemini") => {
+  const setProvider = (next: NonNullable<NonNullable<ConfigStatus["tts"]>["provider"]>) => {
     if (next === provider || switching || (next === "system" && !systemVoicesAvailable)) return;
     setSwitching(true);
     setKeyDraft({ provider: null, value: "" });
@@ -279,6 +287,8 @@ export function VoiceSettings({
                   : ` ${t("voice.macUnavailable")}`
                 : provider === "xai"
                   ? ` ${t("voice.grok.sharedKey")}`
+                : provider === "openai"
+                  ? ` ${t("voice.openai.sharedKey")}`
                 : provider === "chatterbox"
                   ? ` ${t("voice.chatterboxShared")}`
                   : ` ${t("voice.providerShared", { provider: cloudProvider?.name ?? t("voice.provider") })}`}</>}
@@ -321,6 +331,9 @@ export function VoiceSettings({
               { value: "fish", label: t("voice.fish.label"), available: true, span: "col-span-2" },
               { value: "xai", label: t("voice.grok.label"), available: true, span: "col-span-2" },
               { value: "gemini", label: "Gemini", available: true, span: "col-span-2" },
+              { value: "openai", label: "OpenAI", available: true, span: "col-span-2" },
+              { value: "deepgram", label: "Deepgram", available: true, span: "col-span-2" },
+              { value: "cartesia", label: "Cartesia", available: true, span: "col-span-2" },
               { value: "system", label: t("voice.macBuiltIn"), available: systemVoicesAvailable, span: "col-span-2" },
               { value: "chatterbox", label: t("voice.chatterboxLocal"), available: true, span: "col-span-2" },
             ] as const).map((option) => (
@@ -410,6 +423,12 @@ export function VoiceSettings({
         </p>
       )}
 
+      {provider === "openai" && (
+        <p className="mt-4 text-[13px] text-ink-secondary">
+          {hostConfigured ? t("voice.openai.ready") : <>{t("voice.openai.missingKey")} <KeysLink id="openai" /></>}
+        </p>
+      )}
+
       {!workspaceConfigurationLocked && provider === "chatterbox" && (
         <div className="mt-4">
         <div className="mb-1.5 flex items-center gap-2 text-[13px] text-ink-secondary">
@@ -484,8 +503,8 @@ export function VoiceSettings({
               <VoicePicker
                 key={provider}
                 value={selectedVoice}
-                voices={provider === "gemini" ? voices.filter((voice) => voice.label.toLowerCase().includes(voiceQuery.trim().toLowerCase())) : voices}
-                loading={loadingVoices || (provider !== "gemini" && voiceQuery.trim() !== searchedQuery)}
+                voices={fixedVoices ? voices.filter((voice) => voice.label.toLowerCase().includes(voiceQuery.trim().toLowerCase())) : voices}
+                loading={loadingVoices || (!fixedVoices && voiceQuery.trim() !== searchedQuery)}
                 query={voiceQuery}
                 onQuery={setVoiceQuery}
                 onPick={pickVoice}

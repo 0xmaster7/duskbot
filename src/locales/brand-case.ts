@@ -1,7 +1,7 @@
 /** single words that keep their capital wherever they appear: other companies, their products, people, places, days */
 export const KEEP_WORDS: ReadonlySet<string> = new Set([
   // companies and products
-  "Agentcard", "Android", "Anthropic", "Antigravity", "Apple", "Azure", "Bionic", "Caddy", "Cerebras", "Chatterbox", "Chrome",
+  "Agentcard", "Android", "AssemblyAI", "Cartesia", "Deepgram", "Whisper", "Anthropic", "Antigravity", "Apple", "Azure", "Bionic", "Caddy", "Cerebras", "Chatterbox", "Chrome",
   "Claude", "Clef", "Cloudflare", "Codex", "Copilot", "Composio", "Cua", "Cursor", "Debian", "Discord", "Docker", "Dropbox", "Electron", "Entra", "Firefox",
   "Foundry", "Gemini", "Gmail", "Google", "Greenference", "Grok", "Groq", "Jev", "Kimi", "Linux", "Mac", "Markdown",
   "Mermaid", "Meta", "Microsoft", "Mistral", "Moonshot", "Muse", "Node", "Notion", "Ollama", "OpenClaw", "Outlook", "Pi", "Podman",

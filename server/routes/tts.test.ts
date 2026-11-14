@@ -62,7 +62,7 @@ describe("transcribe route", () => {
     expect(answers).toEqual([[400, { error: "content-type must be audio/wav" }]]);
   });
 
-  it("asks for a Fish key when none is saved", async () => {
+  it("asks for a key that can listen when none is saved", async () => {
     const { answers } = await call("POST", "/api/tts/transcribe", {}, {} as AppConfig, upload(Buffer.from("x")));
     expect(answers[0]![0]).toBe(409);
     expect((answers[0]![1] as { error: string }).error).toContain("Fish Audio key");
@@ -77,6 +77,15 @@ describe("transcribe route", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ text: "hi bot" }), { status: 200 })));
     const { answers } = await call("POST", "/api/tts/transcribe", {}, withKey, upload(Buffer.from("RIFF")));
     expect(answers).toEqual([[200, { text: "hi bot" }]]);
+  });
+
+  it("hears with another connected key when there is no Fish key", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ results: { channels: [{ alternatives: [{ transcript: "hello from deepgram" }] }] } }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const cfg = { openai: { key: "sk-proj-x" }, tts: { deepgramKey: "dg-key" } } as AppConfig;
+    const { answers } = await call("POST", "/api/tts/transcribe", {}, cfg, upload(Buffer.from("RIFF")));
+    expect(answers).toEqual([[200, { text: "hello from deepgram" }]]);
+    expect(String((fetchMock.mock.calls[0] as unknown as [string])[0])).toMatch(/^https:\/\/api\.deepgram\.com\/v1\/listen\?/);
   });
 
   it("answers 502 with Fish's message when Fish fails", async () => {
