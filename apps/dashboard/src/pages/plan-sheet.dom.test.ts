@@ -44,7 +44,7 @@ test("the license sheet's button enables the moment the selection changes, befor
 });
 
 test("switch to pro on the plans page goes straight to checkout, with no sheet", async () => {
-  const checkout = vi.fn(() => new Promise<boolean>(() => {}));
+  const checkout = vi.fn((_req: object) => new Promise<boolean>(() => {}));
   state.cloud = { catalog: fixtureCatalog, billing: billingFor(null), clouds: [], refresh: () => {}, error: null, checkout, changeCharge: vi.fn(), changePlan: vi.fn() };
   const { BillingPage } = await import("./Billing");
   await mount(createElement(BillingPage));
