@@ -70,6 +70,13 @@ const PHONE_POST_BURST = 400;
 const PHONE_BYTES_PER_MINUTE = 256 * 1024 * 1024;
 const PHONE_READS_PER_MINUTE = 600;
 const LOOKUP_ID = /^[0-9a-f]{32}$/;
+/** a short line's code (`curl -fsSL https://dusk.bot/s/<code> | sh`): 7 characters with no l, o, 0 or 1, about 3.4e10
+ * of them, good for one setup session only while it is waiting or installing, with every miss counted */
+export const SHORT_ALPHABET = "abcdefghijkmnpqrstuvwxyz23456789";
+export const SHORT_CODE = /^[a-km-np-z2-9]{7}$/;
+const SHORT_WAYS = new Set(["cloudflare", "tailscale", "ssh", "relay"]);
+const SHORT_MISSES_PER_HOUR = 30;
+const SHORT_MISSES_PER_HOUR_ALL = 2000;
 const LOOKUP_CREATE_PER_HOUR = 120;
 const LOOKUP_MISSES_PER_HOUR = 240;
 const MAX_LOOKUPS = 5000;
@@ -155,6 +162,32 @@ function installerActivity(value) {
 }
 
 export const sha256hex = (value) => createHash("sha256").update(value).digest("hex");
+export function randomShort() {
+  const bytes = randomBytes(7);
+  let out = "";
+  for (const byte of bytes) out += SHORT_ALPHABET[byte & 31];
+  return out;
+}
+
+/** what `curl -fsSL <short url> | sh` runs: the long line's loop as a script. every try fetches the whole installer and
+ * hands it to sh only once it arrived, five tries 2 s apart, every other one over IPv4; all of it inside a function
+ * called on the last line, so a script cut off on its way runs nothing */
+export function bootstrapScript(base, token, way) {
+  const args = way ? ` -s -- --${way}` : "";
+  return `#!/bin/sh
+# dusk bot: gets the installer for this setup, then runs it
+dusk_install() {
+  for f in "" -4 "" -4 ""; do
+    if s=$(curl -fsSL $f ${base}/i/${token}); then printf '%s\\n' "$s" | sh${args}; exit $?; fi
+    sleep 2
+  done
+  echo "dusk bot could not be downloaded. check the internet and paste the line again." >&2
+  exit 1
+}
+dusk_install
+`;
+}
+
 export function randomB32(length) {
   const bytes = randomBytes(length);
   let out = "";
@@ -349,7 +382,7 @@ function frameQueue(onPush = () => {}, memory = { bytes: 0 }, now = Date.now, on
  */
 export function createLinkService({ base, dataDir = null, scriptPath, uninstallPath = join(dirname(scriptPath), "uninstall.sh"), agentPath, gatePath = join(dirname(agentPath), "docker-gate.mjs"), packagesDir, trustProxy = true, now = Date.now, fetch: fetchImpl = fetch, log = () => {}, push = createPushRelay({ log }), grantKeys = null, maxQueuedBytes = MAX_QUEUED_BYTES, statsToken = null,
   ipLimits = { concurrent: IP_CONCURRENT, perSecond: IP_REQUESTS_PER_SECOND, burst: IP_REQUEST_BURST }, limits: startLimits = {},
-  monthAllowanceBytes = MONTH_ALLOWANCE_BYTES, sleep = (ms) => delay(ms), nodes = null, peerToken = null, turn: turnConfig = null, box = null, turnWatch = null }) {
+  monthAllowanceBytes = MONTH_ALLOWANCE_BYTES, sleep = (ms) => delay(ms), nodes = null, peerToken = null, turn: turnConfig = null, box = null, turnWatch = null, shortBase = base }) {
   const nodeId = nodes?.self.id ?? "contabo";
   // a tunnel's home node (the default one for tunnels from before nodes) is the one that drops it when idle
   // queues live in memory: a client that sees this change knows what it sent before may never arrive
@@ -378,6 +411,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
   const lookups = new Map();
   const lookupCreated = new Map();
   const lookupMisses = new Map();
+  const shortMisses = new Map();
   const serverReads = new Map();
   const serverDownloads = new Map();
   const cluster = nodes && peerToken ? createCluster({ config: nodes, store, token: peerToken, dir: dataDir, now, fetch: fetchImpl, log, health: nodeHealth,
@@ -859,6 +893,15 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     else fail(res, 410, "This command was already used. Make a new one in the app.", "used");
     return true;
   }
+  /** the session a short code names, only while it is waiting or installing (any: also one that ended, for uniqueness) */
+  function shortSession(code, any = false) {
+    for (const session of store.sessions.values()) {
+      if (session.short !== code) continue;
+      if (any) return session;
+      return session.shortSecret && ["waiting", "installing"].includes(store.stateOf(session)) ? session : null;
+    }
+    return null;
+  }
   function appSession(req, res, id) {
     const session = store.sessions.get(id);
     if (!session || !sameHash(bearer(req), session.watchVerifier)) { fail(res, 404, "not found", "not_found"); return null; }
@@ -979,6 +1022,21 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       res.writeHead(200, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
       return res.end(script);
     }
+    // the short line's tiny script: it fetches the session's whole installer (the long line's loop, inside) and runs it
+    if (method === "GET" && (parts = /^\/s\/([^/]{1,16})(?:\/([a-z]{1,16}))?$/.exec(path))) {
+      const [, code, way] = parts;
+      // the limit comes first: a guesser past it gets nothing, a right guess included
+      const ip = clientIp(req), mine = recent(shortMisses, ip, 3_600_000), all = recent(shortMisses, "*", 3_600_000);
+      if (mine.length >= SHORT_MISSES_PER_HOUR || all.length >= SHORT_MISSES_PER_HOUR_ALL) return fail(res, 429, "too many tries", "rate_limited");
+      const session = SHORT_CODE.test(code) && (!way || SHORT_WAYS.has(way)) ? shortSession(code) : null;
+      if (!session) {
+        mine.push(now()); all.push(now());
+        res.writeHead(404, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" });
+        return res.end("echo 'This line expired or was already used. Make a new one in the app.' >&2; exit 1\n");
+      }
+      res.writeHead(200, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
+      return res.end(bootstrapScript(base, `${session.id}-${session.shortSecret}`, way));
+    }
     // the undo: public like /i (nothing secret in it), no session needed
     if (method === "GET" && (path === "/uninstall" || path === "/uninstall.sh")) {
       res.writeHead(200, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
@@ -1072,8 +1130,25 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       return send(res, 201, { id, watch, expiresAt: t + 30 * 60_000, base, install: `curl -fsSL ${base}/i/` });
     }
 
-    if ((parts = /^\/v1\/sessions\/([a-z2-7]{10})(?:\/(claim|events|result|probe))?$/.exec(path))) {
+    if ((parts = /^\/v1\/sessions\/([a-z2-7]{10})(?:\/(claim|events|result|probe|short))?$/.exec(path))) {
       const [, id, action] = parts;
+      // the app asks for the short line of a session it made: it hands over the vps secret, checked against the verifier
+      if (action === "short" && method === "POST") {
+        const session = appSession(req, res, id);
+        if (!session) return;
+        const body = await readJson(req);
+        const secret = typeof body?.secret === "string" && /^[a-z2-7]{26}$/.test(body.secret) ? body.secret : null;
+        if (!secret || !sameHash(sha256hex(`omb-link-v1|vps|${secret}`), session.vpsVerifier)) return fail(res, 400, "secret does not match this session");
+        if (!["waiting", "installing"].includes(store.stateOf(session))) return fail(res, 410, "This command was already used. Make a new one in the app.", "used");
+        if (!session.short) {
+          let code;
+          do code = randomShort(); while (shortSession(code, true));
+          session.short = code;
+          session.shortSecret = secret;
+          store.save();
+        }
+        return send(res, 200, { code: session.short, url: `${shortBase}/s/${session.short}` });
+      }
       if (action === "claim" && method === "POST") {
         const session = vpsSession(req, res, id);
         if (!session) return;
@@ -1171,6 +1246,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
         }
         session.state = "linked";
         session.endedAt = now();
+        delete session.shortSecret;
         session.sealed = body.sealed;
         session.vpsPub = body.vpsPub;
         session.events.push({ seq: ++session.seq, at: now(), step: "link", status: "done" });
@@ -1181,7 +1257,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       if (!action && method === "DELETE") {
         const session = appSession(req, res, id);
         if (!session) return;
-        if (session.state !== "linked") { session.state = "cancelled"; session.endedAt = now(); store.save(); wakeSession(id); }
+        if (session.state !== "linked") { session.state = "cancelled"; session.endedAt = now(); delete session.shortSecret; store.save(); wakeSession(id); }
         return send(res, 200, { ok: true });
       }
       if (action === "events" && method === "GET") {

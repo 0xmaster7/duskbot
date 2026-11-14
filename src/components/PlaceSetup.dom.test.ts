@@ -12,7 +12,7 @@ vi.mock("@/state/store", async (original) => ({
 }));
 vi.mock("./CreateBotDialog", () => ({ openCreateBot: vi.fn() }));
 import { EMPTY_VIEW, closeAddVps, VPS_STEP_IDS, type VpsLinkBridge, type VpsLinkView } from "@/lib/vps-link";
-import { PlaceSetup } from "./PlaceSetup";
+import { PlaceSetup, wayLine, wayOf } from "./PlaceSetup";
 import { MacEmptyMain, useMacEmptyPrompt } from "./MacEmptyMain";
 
 const SERVER = { id: "vps-1", name: "my-vps", origin: "https://vps.example.com" };
@@ -64,7 +64,7 @@ it("adding a server by one line shows the line, then each step live, then opens 
   expect(q("[data-setup-method=cloudflare]")?.textContent).toContain("Recommended");
   await click(q("[data-setup-method=relay]"));
   expect(link.bridge.start).toHaveBeenCalledTimes(1);
-  expect(q("[data-setup-command]")?.className, "the whole line shows, wrapped").toContain("[overflow-wrap:anywhere]");
+  expect(q("[data-setup-command]")?.className, "a short line shows on one line").toContain("whitespace-nowrap");
   expect(q("[data-install-phase]")?.getAttribute("data-install-phase")).toBe("waiting");
   expect(q("[data-setup-command]")?.textContent).toContain("curl -fsSL");
   expect(q("li[aria-current=step]")?.textContent).toBe("Waiting for your server");
@@ -163,6 +163,23 @@ it("every way to connect is one row in order, Cloudflare first and recommended, 
   expect([...document.querySelectorAll("[data-setup-method]")].filter((row) => row.textContent?.includes("Recommended"))).toHaveLength(1);
   expect(q("[data-setup-method] [data-place-art]")).toBeNull();
   for (const row of document.querySelectorAll("[data-setup-method]")) expect(row.querySelectorAll("span.block").length).toBe(1);
+});
+
+it("the short line takes its way on the address, and shows on one line", async () => {
+  const short = "curl -fsSL https://dusk.bot/s/k3x9m2p | sh";
+  const way = (key: string) => wayOf(key) as Parameters<typeof wayLine>[1];
+  expect(wayLine(short, way("cloudflare"))).toBe("curl -fsSL https://dusk.bot/s/k3x9m2p/cloudflare | sh");
+  expect(wayLine(short, way("ssh"))).toBe("curl -fsSL https://dusk.bot/s/k3x9m2p/ssh | sh");
+  expect(wayLine(short, undefined)).toBe(short);
+  const link = fakeLink();
+  vi.stubGlobal("duskDesktop", { vpsLink: link.bridge, workspaces: { add: vi.fn() } });
+  await act(async () => { root.render(createElement(PlaceSetup, { onClose: vi.fn() })); });
+  await click(q("[data-setup-method=tailscale]"));
+  await settle();
+  await link.emit({ ...EMPTY_VIEW, stage: "command", command: short, expiresAt: Date.now() + 60_000 });
+  const shown = q("[data-setup-command]")!;
+  expect(shown.textContent).toBe("curl -fsSL https://dusk.bot/s/k3x9m2p/tailscale | sh");
+  expect(shown.className).toContain("whitespace-nowrap");
 });
 
 it("each way is the same one line with the way on the end, three plain steps, and nothing to type back", async () => {

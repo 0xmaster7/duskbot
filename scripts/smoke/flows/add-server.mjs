@@ -3,7 +3,7 @@
 // the app noticing the server by itself, sign-in skipped, "move everything here", and the app working from the server.
 //
 //   node scripts/smoke/flows/add-server.mjs [--out DIR] [--profile DIR] [--email ADDRESS] [--keep-vm]
-import { createFlow, flowArgs, runFlow, sleep } from "./lib.mjs";
+import { createFlow, flowArgs, runFlow, sleep, INSTALL_LINE, shellQuote } from "./lib.mjs";
 import { createVm, leftoverVms, removeVm } from "./instabox-vm.mjs";
 
 const { root, out, profile, email, stamp, flag } = flowArgs("srv");
@@ -37,7 +37,7 @@ await runFlow(flow, async () => {
         await flow.shot("connect-chooser");
         await flow.click("cloudflare tunnel", { contains: true });
       }
-      line = await flow.waitText(/\(for f in [^\n]*?curl -fsSL \$f https:\/\/link\.dusk\.bot\/i\/[a-z0-9-]+[^\n]*?\| sh( -s -- --[a-z]+)?/, "the install line", { timeout: 45_000 });
+      line = await flow.waitText(INSTALL_LINE, "the install line", { timeout: 45_000 });
       flow.facts.lineSeconds = Math.round((Date.now() - started) / 1000);
       return `ready in ${flow.facts.lineSeconds}s`;
     }, { critical: true });
@@ -54,7 +54,7 @@ await runFlow(flow, async () => {
     await flow.step("install", "the line runs on the server and the app sees the server by itself", async () => {
       const started = Date.now();
       // pasted as is, as the person would in their server's terminal
-      await vm.exec(`cd ~ && setsid nohup bash -c ${JSON.stringify(`${line}; echo "exit $?" >> ~/dusk-install.log`)} > ~/dusk-install.log 2>&1 < /dev/null & echo started`, 30);
+      await vm.exec(`cd ~ && setsid nohup bash -c ${shellQuote(`${line}; echo "exit $?" >> ~/dusk-install.log`)} > ~/dusk-install.log 2>&1 < /dev/null & echo started`, 30);
       let lastLog = "";
       for (;;) {
         const v = await view().catch(() => null);

@@ -4,13 +4,26 @@ Links a person's VPS to their dusk bot app with one pasted line. It's a small No
 nothing tied to dusk.bot or Cloudflare.
 
 ```
-(for f in "" -4 "" -4 ""; do s=$(curl -fsSL $f https://link.dusk.bot/i/<code>) && { printf '%s\n' "$s"; exit; }; sleep 2; done; echo 'echo "dusk bot could not be downloaded. check the internet and paste the line again." >&2; exit 1') | sh
+curl -fsSL https://dusk.bot/s/<code> | sh
 ```
 
-The app builds it (`installLine` in electron/vps-link.mjs). It tries the download five times, 2 s apart, every other try
-over IPv4 (a shell loop: curl's `--retry-all-errors` is newer than Ubuntu 20.04's curl), and hands the script to sh only
-once it arrived whole. When every try fails it exits 1 with a plain message; a bare `curl … | sh` would run nothing and
-exit 0. Inside, every download (and the report of how a step ended) is tried five times, 2, 5, 10 and 20 seconds apart,
+The app asks for the code (`POST /v1/sessions/<id>/short` with the watch token and the setup's vps secret, checked
+against its verifier) and shows `shortInstallLine` (electron/vps-link.mjs). The code is 7 characters with no l, o, 0 or
+1; it names one setup and works only while that setup waits or installs (a failed step's line again included), and the
+secret is dropped once the setup is linked or cancelled. `GET /s/<code>[/<way>]` counts wrong codes: 30 an hour from one
+address (Cloudflare's `cf-connecting-ip` through dusk.bot), 2000 an hour in all, and past that every try from there is
+refused, a right one too. dusk.bot proxies `/s/` here (`DUSK_LINK_UPSTREAM` on the account service, `LINK_SHORT_BASE`
+here), so the line itself goes through Cloudflare.
+
+What it serves (`bootstrapScript`) is the long line's loop as a tiny script: it tries the installer download five times,
+2 s apart, every other try over IPv4 (a shell loop: curl's `--retry-all-errors` is newer than Ubuntu 20.04's curl), and
+hands it to sh only once it arrived whole, with the way (`/cloudflare`, `/tailscale`, `/ssh`, `/relay`) as its option.
+When every try fails it exits 1 with a plain message. An older app, or a link service without short codes, shows the
+long line, which still works:
+
+```
+(for f in "" -4 "" -4 ""; do s=$(curl -fsSL $f https://link.dusk.bot/i/<code>) && { printf '%s\n' "$s"; exit; }; sleep 2; done; echo 'echo "dusk bot could not be downloaded. check the internet and paste the line again." >&2; exit 1') | sh
+``` Inside, every download (and the report of how a step ended) is tried five times, 2, 5, 10 and 20 seconds apart,
 and a connect or TLS error (curl 7, 28, 35, 52, 55, 56) switches the next try to the other address family, IPv4 when
 IPv6 was in use; the family that works stays for the run.
 

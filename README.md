@@ -106,10 +106,10 @@ found a problem? see [SECURITY.md](SECURITY.md).
 run your bots on a server you look after, so they keep working with the laptop shut. it's free. in the app, choose **add a cloud or your own server** and paste the line it gives you on ubuntu 20.04+ or debian 11+:
 
 ```sh
-curl -fsSL https://link.dusk.bot/i/<code> | sh -s -- --cloudflare   # a cloudflare tunnel (recommended)
-curl -fsSL https://link.dusk.bot/i/<code> | sh                      # the dusk bot relay
-curl -fsSL https://link.dusk.bot/i/<code> | sh -s -- --tailscale    # your tailnet
-curl -fsSL https://link.dusk.bot/i/<code> | sh -s -- --ssh          # over your ssh port
+curl -fsSL https://dusk.bot/s/<code>/cloudflare | sh   # a cloudflare tunnel (recommended)
+curl -fsSL https://dusk.bot/s/<code> | sh              # the dusk bot relay
+curl -fsSL https://dusk.bot/s/<code>/tailscale | sh    # your tailnet
+curl -fsSL https://dusk.bot/s/<code>/ssh | sh          # over your ssh port
 ```
 
 it installs dusk bot as `duskbot.service`, links it to your app and sets up the way you picked. the line works once and expires after 30 minutes. by hand: `npx duskbot serve` on any machine with node 24+, then `npx duskbot pair`. docker compose lives in [deploy/](deploy/). never expose port 8799 directly; read [self-hosting](docs/self-hosting.md) first.

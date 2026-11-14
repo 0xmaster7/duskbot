@@ -1,3 +1,4 @@
+import { isIP } from "node:net";
 import { request } from "node:http";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createHash, createPublicKey, randomBytes, timingSafeEqual, verify } from "node:crypto";
@@ -81,6 +82,8 @@ export interface DashboardAppOptions {
   /** the site served beside the page on a shared origin (loopback http): every path that is not the page's, an API or
    *  a well-known address is proxied there */
   siteUpstream?: string | null;
+  /** the link service beside this one (loopback): dusk.bot/s/<code>, the own-server short line, is its, behind Cloudflare */
+  linkUpstream?: string | null;
   now?: () => number;
   fetch?: typeof fetch;
   /** errors worth an operator's look: the service's own failures, and the page's (sent to POST /v1/client-error) */
@@ -209,6 +212,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const reported = new WeakSet<ServerResponse>();
   const site = options.siteUpstream ? siteProxy(options.siteUpstream, (error, res) => reported.add(res) && incidents.report({ source: "upstream", name: "SiteUpstreamDown", key: "site-upstream",
     message: `the site behind ${publicUrl} did not answer (${error.message.slice(0, 60)})`, status: 502 })) : null;
+  const link = options.linkUpstream ? siteProxy(options.linkUpstream) : null;
   const store = createStore(options.dataDir);
   const state = store.state;
   const startedAt = now();
@@ -623,6 +627,12 @@ export function createDashboardApp(options: DashboardAppOptions) {
     const path = url.pathname;
     const elsewhere = hostRedirect(req, url);
     if (elsewhere) return moved(res, 301, elsewhere);
+    if (link && method === "GET" && /^\/s\/[a-z0-9]{1,16}(?:\/[a-z]{1,16})?$/.test(path)) {
+      // behind Cloudflare the hop before nginx is Cloudflare's: the link service counts misses by the visitor's address
+      const visitor = String(req.headers["cf-connecting-ip"] ?? "").trim();
+      if (isIP(visitor)) req.headers["x-real-ip"] = visitor;
+      return link(req, res);
+    }
     if (method === "GET" || method === "HEAD") {
       const legacy = pageBase ? LEGACY_PAGE_BASES.find(base => base !== pageBase && under(path, base)) : undefined;
       if (legacy) {

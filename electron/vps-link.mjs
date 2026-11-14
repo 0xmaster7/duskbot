@@ -21,6 +21,15 @@ export function installLine(base, token) {
   return `(for f in "" -4 "" -4 ""; do s=$(curl -fsSL $f ${base}/i/${token}) && { printf '%s\\n' "$s"; exit; }; sleep 2; done; echo 'echo "dusk bot could not be downloaded. check the internet and paste the line again." >&2; exit 1') | sh`;
 }
 
+/** a short line's address as the link service gave it (`https://dusk.bot/s/<code>`), or null for anything else */
+export const SHORT_URL = /^https:\/\/[a-z0-9.-]+(?::\d+)?\/s\/[a-km-np-z2-9]{7}$/;
+/** the short line: the link service serves a tiny script there that runs installLine's loop itself (bootstrapScript in
+ * apps/link-service/src/app.mjs), so the retries and the IPv4 fallback stay; PlaceSetup's wayLine adds the way to the
+ * address (`…/s/<code>/tailscale`). an older link service without short codes gets installLine */
+export function shortInstallLine(url) {
+  return `curl -fsSL ${url} | sh`;
+}
+
 export const STEP_IDS = Object.freeze(["check", "basics", "docker", "user", "node", "app", "engines", "service", "address", "desktop", "link"]);
 const STATUSES = new Set(["running", "done", "failed", "skipped"]);
 const record = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
@@ -292,9 +301,11 @@ export function createVpsLink(deps) {
       const [watchP, privP] = await Promise.all([protect(made.watch), protect(keys.priv)]);
       if (!active()) { revokeUnused(made); return view(); }
       const token = `${made.id}-${keys.secret}`;
+      const short = relay.short ? await relay.short(made.id, made.watch, keys.secret, abort.signal).catch(() => null) : null;
+      if (!active()) { revokeUnused(made); return view(); }
       state.pending = {
         id: made.id, state: "waiting", after: 0, steps: {}, createdAt: now(), expiresAt: made.expiresAt,
-        command: installLine(made.base, token), watchP, privP, pub: keys.pub,
+        command: SHORT_URL.test(short?.url ?? "") ? shortInstallLine(short.url) : installLine(made.base, token), watchP, privP, pub: keys.pub,
       };
       state.current = null;
       write();

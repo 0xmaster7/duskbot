@@ -16,7 +16,7 @@ import { until } from "../app.mjs";
 import { smokeAccount, testMailCode } from "../account.mjs";
 import { payDodoTestCheckout } from "../dodo-test-pay.mjs";
 import { launchBrowser } from "./browser.mjs";
-import { createFlow, flowArgs, runFlow, sleep } from "./lib.mjs";
+import { createFlow, flowArgs, runFlow, sleep, INSTALL_LINE } from "./lib.mjs";
 
 const { option, flag, root, out, profile, email } = flowArgs("onb");
 const path = option("--path", "mac");
@@ -120,7 +120,7 @@ await runFlow(flow, async () => {
   if (path === "server") {
     await flow.step("pick-server", "your own server shows the install line", async () => {
       await flow.click("use your own server", { contains: true });
-      const line = await flow.waitText(/\(for f in [^\n]*?curl -fsSL \$f https:\/\/link\.dusk\.bot\/i\/[a-z0-9-]+[^\n]*?\| sh( -s -- --[a-z]+)?/, "the install line", { timeout: 45_000 });
+      const line = await flow.waitText(INSTALL_LINE, "the install line", { timeout: 45_000 });
       flow.facts.installLine = line.replace(/\/i\/[a-z0-9-]+/, "/i/<code>");
       await shots("server-line");
       return "the one line is ready";

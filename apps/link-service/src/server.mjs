@@ -28,6 +28,9 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const base = (process.env.LINK_BASE || DEFAULT_BASE).replace(/\/+$/, "");
 if (!/^https?:\/\/[^/\s]+$/.test(base)) throw new Error("LINK_BASE must be an origin like https://link.example.com");
 const port = Number(process.env.PORT || 8790);
+// where short lines point (dusk.bot proxies /s/ here, behind Cloudflare); this service's own base when unset
+const shortBase = (process.env.LINK_SHORT_BASE || base).replace(/\/+$/, "");
+if (!/^https?:\/\/[^/\s]+$/.test(shortBase)) throw new Error("LINK_SHORT_BASE must be an origin like https://dusk.bot");
 
 const dataDir = process.env.LINK_DATA_DIR || `${root}data`;
 const nodes = parseNodes(process.env.LINK_NODES, process.env.LINK_NODE_ID);
@@ -37,6 +40,7 @@ const turnSecret = process.env.LINK_TURN_SECRET && process.env.LINK_TURN_SECRET.
 const allowanceTb = Number(process.env.LINK_ALLOWANCE_TB || 32);
 const service = createLinkService({
   base,
+  shortBase,
   dataDir,
   packagesDir: process.env.LINK_PACKAGES_DIR || `${dataDir}/packages`,
   scriptPath: `${root}install.sh`,

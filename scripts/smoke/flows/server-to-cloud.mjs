@@ -8,12 +8,11 @@
 import { join } from "node:path";
 import { until } from "../app.mjs";
 import { accountLinkFrom, webAccountStep } from "./web-account.mjs";
-import { createFlow, flowArgs, runFlow, sleep } from "./lib.mjs";
+import { createFlow, flowArgs, runFlow, sleep, INSTALL_LINE, shellQuote } from "./lib.mjs";
 import { createVm, leftoverVms, removeVm } from "./instabox-vm.mjs";
 
 const { root, out, profile, email, stamp, flag } = flowArgs("s2c");
 const flow = createFlow({ name: "server-to-cloud", title: "server to dusk cloud, signed out", root, out, profile, email, env: { DUSK_ALLOW_SIGNED_OUT: "1" } });
-const js = (value) => JSON.stringify(value);
 
 /** in the main window, as a person's click (user activation), awaiting the answer */
 const act = async (expression) => {
@@ -48,7 +47,7 @@ await runFlow(flow, async () => {
       const web = await webAccountStep(link, { email, log: flow.log, shot: (label) => join(out, `link-${label}.png`) });
       flow.facts.linkWeb = web.steps;
     } else flow.friction("confusing", "own server", "signed out, linking did not ask for the account in the browser");
-    line = await flow.waitText(/\(for f in [^\n]*?curl -fsSL \$f https:\/\/link\.dusk\.bot\/i\/[a-z0-9-]+[^\n]*?\| sh( -s -- --[a-z]+)?/, "the install line", { timeout: 90_000 });
+    line = await flow.waitText(INSTALL_LINE, "the install line", { timeout: 90_000 });
     return signIn ? "continued in the browser, then the line came by itself" : "the line";
   }, { critical: true });
 
@@ -56,7 +55,7 @@ await runFlow(flow, async () => {
     for (const old of await leftoverVms()) if (Date.parse(old.createdAt ?? 0) < Date.now() - 60 * 60_000) await removeVm(old.id).catch(() => {});
     vm = await createVm(`dusk-smoke-s2c-${stamp.slice(5).replace(/[^0-9]/g, "")}`);
     const made = vm; flow.atClose(async () => { await made.remove(); flow.log(`deleted ${made.id}`); });
-    await vm.exec(`cd ~ && setsid nohup bash -c ${js(`${line}; echo "exit \\$?" >> ~/dusk-install.log`)} > ~/dusk-install.log 2>&1 < /dev/null & echo started`, 30);
+    await vm.exec(`cd ~ && setsid nohup bash -c ${shellQuote(`${line}; echo "exit $?" >> ~/dusk-install.log`)} > ~/dusk-install.log 2>&1 < /dev/null & echo started`, 30);
     const started = Date.now();
     for (;;) {
       const v = await flow.evaluate(`window.duskDesktop?.vpsLink?.state()`).catch(() => null);

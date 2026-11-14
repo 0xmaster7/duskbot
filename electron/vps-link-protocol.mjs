@@ -630,6 +630,7 @@ export function createRelayClient({ base, fetch: fetchImpl = fetch }) {
     create: (body, signal) => call("POST", "/v1/sessions", null, body, signal),
     watch: (id, watch, after, signal) => call("GET", `/v1/sessions/${id}/events?after=${after}&wait=25`, watch, undefined, signal ?? AbortSignal.timeout(40_000)),
     cancel: (id, watch) => call("DELETE", `/v1/sessions/${id}`, watch),
+    short: (id, watch, secret, signal) => call("POST", `/v1/sessions/${id}/short`, watch, { secret }, signal),
     forget: (id, token) => call("DELETE", `/v1/tunnels/${id}`, token),
     status: (id, token) => call("GET", `/v1/tunnels/${id}/status`, token),
   };

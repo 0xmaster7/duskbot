@@ -29,15 +29,21 @@ picked. Nothing is typed back into the app: no address, no code, no password.
 Cloudflare is the recommended way and the first one the sheet offers.
 
 ```sh
-curl -fsSL https://link.dusk.bot/i/<code> | sh -s -- --cloudflare   # a quick Cloudflare tunnel (recommended)
-curl -fsSL https://link.dusk.bot/i/<code> | sh                      # the relay
-curl -fsSL https://link.dusk.bot/i/<code> | sh -s -- --tailscale    # your tailnet
-curl -fsSL https://link.dusk.bot/i/<code> | sh -s -- --ssh          # over your SSH port
+curl -fsSL https://dusk.bot/s/k3x9m2p/cloudflare | sh   # a quick Cloudflare tunnel (recommended)
+curl -fsSL https://dusk.bot/s/k3x9m2p | sh              # the relay
+curl -fsSL https://dusk.bot/s/k3x9m2p/tailscale | sh    # your tailnet
+curl -fsSL https://dusk.bot/s/k3x9m2p/ssh | sh          # over your SSH port
 ```
 
-(The app's line wraps the curl in a short retry loop, `(for f in "" -4 "" -4 ""; do s=$(curl -fsSL $f …) && … done; echo '…; exit 1') | sh`:
-five tries, every other one over IPv4, the script run only once it arrived whole, and a plain message with exit 1 when
-every try fails. The way goes after its closing `| sh` all the same.)
+`k3x9m2p` is the setup's own code: 7 characters, good only for that setup while it waits for the server or installs,
+and gone once the server is linked, the setup is cancelled or two hours pass. Wrong codes are counted, and an address
+that keeps guessing is refused for the hour. dusk.bot (behind Cloudflare) answers with a tiny script that fetches the
+whole installer from link.dusk.bot and runs it: five tries 2 s apart, every other one over IPv4, the installer run only
+once it arrived whole, and a plain message with exit 1 when every try fails.
+
+The longer form an older app shows still works the same way:
+`curl -fsSL https://link.dusk.bot/i/<token> | sh -s -- --cloudflare`, or its retry loop,
+`(for f in "" -4 "" -4 ""; do s=$(curl -fsSL $f …) && … done; echo '…; exit 1') | sh -s -- --cloudflare`.
 
 | Way | What it needs | What the line does |
 |---|---|---|

@@ -165,3 +165,9 @@ export async function runFlow(flow, body, { keepProfile = false } = {}) {
     process.exitCode = ok ? 0 : 1;
   }
 }
+
+/** the own-server line as the app shows it: the short one (`curl -fsSL https://dusk.bot/s/<code>[/<way>] | sh`) or the
+ *  long one an older link service gets (`(for f in … curl -fsSL $f https://link.dusk.bot/i/<token> … | sh -s -- --way`) */
+export const INSTALL_LINE = /curl -fsSL https:\/\/[a-z0-9.-]+\/s\/[a-z0-9]{7}(?:\/[a-z]+)? \| sh|\(for f in [^\n]*?curl -fsSL \$f https:\/\/link\.dusk\.bot\/i\/[a-z0-9-]+[^\n]*?\| sh(?: -s -- --[a-z]+)?/;
+/** one argument for a remote shell, exactly as written: nothing in it ($, quotes, backticks) is read by that shell */
+export const shellQuote = (text) => `'${String(text).replaceAll("'", "'\\''")}'`;

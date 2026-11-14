@@ -36,9 +36,12 @@ export type WayKey = (typeof WAYS)[number]["key"];
 type Way = (typeof WAYS)[number];
 type LineWay = Extract<Way, { flag: string }>;
 const lineWay = (way: Way): way is LineWay => "flag" in way;
-/** the relay's line (electron/vps-link.mjs installLine) with a way on the end: `… | sh` becomes `… | sh -s -- --tailscale` */
+/** the relay's line with a way: the short line (electron/vps-link.mjs shortInstallLine) takes it on its address,
+ * `…/s/k3x9m2p | sh` becomes `…/s/k3x9m2p/tailscale | sh`; the long one (installLine) after the pipe, `… | sh -s -- --tailscale` */
 export function wayLine(line: string, way: LineWay | undefined): string {
   if (!way) return line;
+  const short = /^curl -fsSL (https:\/\/\S+\/s\/[a-z0-9]+) \| sh$/.exec(line);
+  if (short) return `curl -fsSL ${short[1]}/${way.flag.slice(2)} | sh`;
   return line.endsWith("| sh") ? `${line} -s -- ${way.flag}` : line;
 }
 export const wayOf = (key: string): Way | undefined => WAYS.find((entry) => entry.key === key);
@@ -136,11 +139,12 @@ export function ServerWays({ onPick }: { onPick: (key: "relay" | WayKey) => void
   </div>;
 }
 
-/** A command on an inset strip, all of it shown (wrapped), with its copy button. */
+/** A command on an inset strip, all of it shown, with its copy button: a short one on one line, a long one wrapped. */
 function CopyLine({ text, label }: { text: string; label: string }) {
   const { state, copy } = useCopyFeedback(text);
+  const oneLine = text.length <= 64;
   return <div className="flex min-h-11 w-full min-w-0 items-center gap-2 rounded-[12px] bg-inset py-1.5 pe-1.5 ps-3.5">
-    <code data-setup-command="" className="min-w-0 flex-1 select-all py-1 font-mono text-[13px] leading-[18px] text-ink [overflow-wrap:anywhere]">{text}</code>
+    <code data-setup-command="" className={`min-w-0 flex-1 select-all py-1 font-mono leading-[18px] text-ink ${oneLine ? "overflow-x-auto whitespace-nowrap text-[12px]" : "text-[13px] [overflow-wrap:anywhere]"}`}>{text}</code>
     <button type="button" onClick={copy} aria-label={state === "copied" ? t("vpsLink.copied") : label}
       className="ui-button ui-button-pill inline-flex h-8 shrink-0 items-center px-3.5 text-[13px]">
       {state === "copied" ? t("vpsLink.copied") : state === "failed" ? t("common.copyFailed") : t("vpsLink.copy")}

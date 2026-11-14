@@ -177,3 +177,30 @@ describe("one origin: dashboard, admin and site", () => {
     expect(() => createDashboardApp({ dataDir, publicUrl: origin, mailer, staticDir, waitlistOnly: true })).toThrow(/page base/);
   });
 });
+
+// the own-server short line: dusk.bot/s/<code> is the link service's, through Cloudflare, with the visitor's address
+describe("one origin: the short install line", () => {
+  it("sends /s/<code> and /s/<code>/<way> to the link service, and nothing else there", async () => {
+    const hits: Array<{ url: string; ip: string }> = [];
+    const link = createServer((req, res) => { hits.push({ url: req.url ?? "", ip: String(req.headers["x-real-ip"] ?? "") }); res.writeHead(200, { "content-type": "text/plain" }); res.end("#!/bin/sh\n"); });
+    await new Promise<void>(resolve => link.listen(0, "127.0.0.1", resolve));
+    const dataDir = mkdtempSync("/private/tmp/dusk-short-line-");
+    const app = createDashboardApp({ dataDir, publicUrl: "https://dusk.test", mailer: memoryMailer(), linkUpstream: `http://127.0.0.1:${(link.address() as { port: number }).port}` });
+    const server = createServer(app.handle);
+    await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
+    const base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
+    try {
+      const answer = await fetch(`${base}/s/k3x9m2p/cloudflare`, { headers: { "cf-connecting-ip": "203.0.113.9" } });
+      expect(answer.status).toBe(200);
+      expect(await answer.text()).toBe("#!/bin/sh\n");
+      expect(await (await fetch(`${base}/s/k3x9m2p`)).text()).toBe("#!/bin/sh\n");
+      expect((await fetch(`${base}/s/k3x9m2p/a/b`)).status).not.toBe(200);
+      expect(hits.map(hit => hit.url)).toEqual(["/s/k3x9m2p/cloudflare", "/s/k3x9m2p"]);
+      expect(hits[0]!.ip).toBe("203.0.113.9");
+    } finally {
+      app.close();
+      for (const s of [server, link]) await new Promise<void>(resolve => { s.close(() => resolve()); s.closeAllConnections(); });
+      rmSync(dataDir, { recursive: true, force: true });
+    }
+  });
+});
