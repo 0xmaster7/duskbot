@@ -20,6 +20,7 @@ export interface ProductAnswer {
     sessionMedianMs: number | null;
   };
   onboarding: Array<{ step: string; reached: number; medianMsBefore: number | null; leftHere: number }>;
+  appFirstRun?: Array<{ path: "all" | "mac" | "cloud"; step: string; reached: number; medianMsBefore: number | null }>;
   site: {
     sections: Array<{ path: string; section: string; seen: number; share: number | null; medianMs: number | null }>;
     clicks: Count[]; rage: Count[]; downloads: Count[]; errors: Count[];
@@ -151,6 +152,28 @@ function ImproveView({ data }: { data: ProductAnswer }) {
           </Table>
         ) : <p className="text-14 text-ink-3">no feature use yet.</p>}
         <p className="mt-3 text-12 text-ink-4">stay rate: how much more likely a feature's users were active in the window's last week than people who never used it. tried once: used on one day only, and not in the last week.</p>
+      </Section>
+
+      <Section title="desktop first run" action={<span className="t-meta">people who reached each screen, by where they put their bots</span>}>
+        {data.appFirstRun?.some((row) => row.reached > 0) ? (
+          <Table label="desktop first run">
+            <thead><tr><Th>path</Th><Th>screen</Th><Th className="!text-end">reached</Th><Th className="!text-end">of the first screen</Th><Th className="!text-end">time on the screen before</Th></tr></thead>
+            <tbody>
+              {data.appFirstRun.map((row) => {
+                const first = Math.max(1, ...data.appFirstRun!.filter((one) => one.path === "all").map((one) => one.reached));
+                return (
+                  <tr key={`${row.path}:${row.step}`} className="hover-row">
+                    <Td className="text-ink-3">{row.path === "all" ? "everyone" : row.path === "mac" ? "this computer" : "dusk cloud"}</Td>
+                    <Td className="text-ink">{words(row.step)}</Td>
+                    <Td className="text-end font-mono num">{n(row.reached)}</Td>
+                    <Td className="text-end font-mono num">{Math.round((row.reached / first) * 100)}%</Td>
+                    <Td className="text-end font-mono num">{duration(row.medianMsBefore)}</Td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </Table>
+        ) : <p className="text-14 text-ink-3">no first runs from people who share usage yet.</p>}
       </Section>
 
       <Section title="cards, prompts and steps in the apps">

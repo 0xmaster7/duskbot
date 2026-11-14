@@ -104,6 +104,34 @@ function onboarding(events: StoredEvent[], to: number) {
   return steps.map(step => ({ step, reached: reached.get(step)?.size ?? 0, medianMsBefore: median(times.get(step) ?? []), leftHere: stuck.filter(row => row.last === step).length }));
 }
 
+/** the desktop app's first run (opt-in app_action onboarding_step / onboarding_completed): people who reached each screen,
+ * per path (where the bots live), with the median time on the screen before, so drop-off shows per step */
+const APP_FIRST_RUN: Record<"all" | "mac" | "cloud", readonly string[]> = {
+  all: ["welcome", "place"], mac: ["account", "ai", "bring", "phone", "done"], cloud: ["checkout", "ai", "making", "done"],
+};
+export function appFirstRun(events: StoredEvent[]) {
+  const pathOf = new Map<string, string>();
+  for (const event of events) {
+    const who = whoOf(event);
+    if (who && event.name === "app_action" && event.props.name === "onboarding_step" && (event.props.path === "mac" || event.props.path === "cloud")) pathOf.set(who, event.props.path);
+  }
+  const reached = new Map<string, Set<string>>(), times = new Map<string, number[]>();
+  for (const event of events) {
+    const who = whoOf(event);
+    if (!who || event.name !== "app_action" || event.props.replay === true) continue;
+    const name = event.props.name;
+    if (name !== "onboarding_step" && name !== "onboarding_completed") continue;
+    const step = name === "onboarding_completed" ? "done" : String(event.props.step);
+    const path = APP_FIRST_RUN.all.includes(step) ? "all" : typeof event.props.path === "string" ? event.props.path : pathOf.get(who) ?? "mac";
+    const key = `${path}:${step}`;
+    (reached.get(key) ?? reached.set(key, new Set()).get(key)!).add(who);
+    if (typeof event.props.ms === "number") (times.get(key) ?? times.set(key, []).get(key)!).push(event.props.ms);
+  }
+  return (Object.entries(APP_FIRST_RUN) as Array<[keyof typeof APP_FIRST_RUN, readonly string[]]>).flatMap(([path, steps]) => steps
+    .map(step => ({ path, step, reached: reached.get(`${path}:${step}`)?.size ?? 0, medianMsBefore: median(times.get(`${path}:${step}`) ?? []) }))
+    .filter(row => row.reached > 0 || row.step !== "phone"));
+}
+
 function site(events: StoredEvent[]) {
   const views = new Map<string, number>();
   for (const event of events) if (event.name === "site_view" && typeof event.props.path === "string") views.set(event.props.path, (views.get(event.props.path) ?? 0) + 1);
@@ -207,7 +235,7 @@ export function productReport(input: ProductInput) {
   const choices = tally(events.filter(event => event.name === "page_action" && event.props.action === "choose"), event => `${words(String(event.props.label ?? ""))}: ${words(String(event.props.value ?? ""))}`);
   const downloads = tally(events.filter(event => event.name === "page_action" && event.props.action === "download"), event => String(event.props.value ?? "unknown"));
   return {
-    from: input.from, to: input.to, appPeople, features, moments: moments(events), likes: liked, onboarding: board, site: web, errors: errs,
+    from: input.from, to: input.to, appPeople, features, moments: moments(events), likes: liked, onboarding: board, appFirstRun: appFirstRun(events), site: web, errors: errs,
     account: { actions: pageActions, choices, downloads },
     improve: improvements({ funnel: input.funnel, features, feedback: liked.feedback, bots: liked.bots, onboarding: board, site: web, errors: errs, appPeople }),
   };
