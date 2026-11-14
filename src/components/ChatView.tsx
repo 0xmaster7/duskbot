@@ -1203,8 +1203,6 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
       </div>}
       {findOpen && <ChatFindBar threadId={bot.threadId} onClose={() => setFindOpen(false)} />}
 
-      <ChatNotice notice={state.notice} />
-
       <PinnedBanner
         bot={bot}
         pinnedId={bot.pinnedMessageId}
@@ -1345,7 +1343,9 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           <UsageBanner engine={bot.modelSelection?.instanceId} onSeeUsage={() => dispatch(openSettings("usage"))} />
         </div>
       )}
-      {/* grok says what went wrong in one quiet line just above the message box */}
+      {/* grok says what went wrong, or a passing note, in one quiet line just above the message box; at the top it ran
+          into the transcript's first time stamp */}
+      <div className="pointer-events-auto"><ChatNotice notice={state.notice} /></div>
       <div className="pointer-events-auto"><ChatErrorBanner message={state.error} onDismiss={() => dispatch({ type: "error", message: null })} /></div>
       <div className="pointer-events-auto"><FailedReplyCard rows={trailing} botId={bot.id} threadId={bot.threadId} onRetry={lastUserMessage ? regenerate : undefined} /></div>
       {canWrite !== false && !trailing?.failures.length && !trailing?.notices.length && <div className="pointer-events-auto"><ComposerSignInNotice bot={bot} /></div>}
