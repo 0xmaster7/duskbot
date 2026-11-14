@@ -6,7 +6,7 @@ import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlDusk } from "../control-dusk.ts";
 import { UI_TOOLS_DIR } from "./control-dusk-ui.ts";
-import { clickByName, openBotSheet, openTeamMap, sheetPage } from "./grok-nav.ts";
+import { clickByName, openBotSheet, sheetPage } from "./grok-nav.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const enabled = process.env.DUSK_UI_E2E === "1" || Boolean(resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env }));
@@ -20,7 +20,7 @@ describe("trust controls in the real renderer", () => {
     await waitForExit(child, { graceMs: 30_000 });
   });
 
-  (enabled ? it : it.skip)("refreshes receipts, saves intersecting limits and serializes memory edits", async () => {
+  (enabled ? it : it.skip)("saves outbound limits, app limits and backup AIs from the bot's settings pages", async () => {
     let output = "", errors = "";
     let info!: FixtureInfo;
     const launcher = new URL("./control-dusk-ui.ts", import.meta.url).href;
@@ -58,7 +58,6 @@ describe("trust controls in the real renderer", () => {
     const bot = (await bots()).find(candidate => candidate.name === "Pepper")!;
     expect(bot).toBeDefined();
     const saved = async () => (await bots()).find(candidate => candidate.id === bot.id)!;
-    const memory = async () => (await fetch(`${info.url}/api/team-memory?section=`).then(response => response.json())).entries as Array<{ id: string; name: string; detail: string }>;
 
     // the bot runs a harmless fixture tool first. Its Activity panel, which showed that run, left the Share menu on
     // purpose in 65902595e, so the run is not read back on screen here.
@@ -121,49 +120,7 @@ describe("trust controls in the real renderer", () => {
     expect((await saved()).modelSelection).toEqual(bot.modelSelection);
     await ui("press", "--keys", "Escape");
 
-    await openTeamMap(ui);
-    const openMemory = async () => {
-      await evaluate(`(() => { const menu = document.querySelector('[data-team-key=""] details'); if (!menu) throw new Error('No General team menu'); if (!menu.open) menu.querySelector('summary').click(); return true; })()`);
-      await click("General department memory");
-    };
-    await openMemory();
-    await expect.poll(snapshot, { timeout: 10_000 }).toContain("Nothing shared yet.");
-    await click("Add an entry");
-    await type("Name", "MCHQ");
-    await type("Detail", "Mission Control HQ");
-    await click("Add");
-    await expect.poll(memory, { timeout: 10_000 }).toMatchObject([{ name: "MCHQ", detail: "Mission Control HQ" }]);
-    await expect.poll(snapshot, { timeout: 10_000 }).toContain("MCHQ detail");
-    await evaluate(`(() => {
-      const original = window.fetch.bind(window);
-      window.memoryEditRequests = 0;
-      window.fetch = (input, init) => {
-        if (String(input).startsWith('/api/team-memory/') && init?.method === 'PATCH') {
-          window.memoryEditRequests++;
-          return new Promise(resolve => { window.releaseMemoryEdit = () => { window.fetch = original; resolve(original(input, init)); }; });
-        }
-        return original(input, init);
-      };
-      return true;
-    })()`);
-    await type("MCHQ detail", "Reviewed HQ");
-    await ui("press", "--keys", "Tab");
-    await expect.poll(() => evaluate("window.memoryEditRequests"), { timeout: 10_000 }).toBe(1);
-    expect(await evaluate("document.querySelector('[aria-label=\"Remove MCHQ\"]')?.disabled")).toBe(true);
-    await evaluate("document.querySelector('[aria-label=\"Remove MCHQ\"]').click(); true");
-    expect(await memory()).toHaveLength(1);
-    await click("Close department memory");
-    await openMemory();
-    await expect.poll(snapshot, { timeout: 10_000 }).toContain("MCHQ detail");
-    await evaluate("window.releaseMemoryEdit(); true");
-    await expect.poll(memory, { timeout: 10_000 }).toMatchObject([{ name: "MCHQ", detail: "Reviewed HQ" }]);
-    // An old dialog's completion must not write its response into the new
-    // dialog; reopen reads the current persisted value.
-    await click("Close department memory");
-    await openMemory();
-    await expect.poll(() => evaluate("document.querySelector('[aria-label=\"MCHQ detail\"]')?.value"), { timeout: 10_000 }).toBe("Reviewed HQ");
-    await ui("screenshot", "--out", `${info.logPath}.team-memory.png`);
-    await click("Remove MCHQ");
-    await expect.poll(memory, { timeout: 10_000 }).toEqual([]);
+    // Department memory was edited from the team map, which 4c3c20c48 removed on purpose with departments; nothing in
+    // the app edits it now, so this run ends with the bot's own controls.
   }, 420_000);
 });

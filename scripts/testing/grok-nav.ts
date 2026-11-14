@@ -155,7 +155,7 @@ export async function openPanelMenu(ui: Ui, botName: string): Promise<void> {
   await settled(ui);
 }
 
-/** Another of the bot's settings pages: back to its rows on the Bots pane, then that row. */
+/** Another of the bot's settings pages: back out of the one open, then that row. */
 export async function sheetPage(ui: Ui, page: string): Promise<void> {
   // the page shown is the wipe's live layer; an outgoing copy may still sit under it for 200ms
   const live = "document.querySelector('[data-settings-sheet] .settings-wipe-layer:not([data-wipe-out])')";
@@ -164,7 +164,9 @@ export async function sheetPage(ui: Ui, page: string): Promise<void> {
     await ui("eval", "--js", `${live}.querySelector('[data-settings-back]').click(); true`);
     await settled(ui);
   }
-  const row = `${live}?.querySelector('[data-panel-page=${JSON.stringify(page)}]')`;
+  // a bot's pages open from the rows of its panel's Advanced tab; backing out of the first page closes the sheet, so the
+  // row is the sheet's own while it is open and the panel's once it has closed
+  const row = `(${live}?.querySelector('[data-panel-page=${JSON.stringify(page)}]') ?? document.querySelector('[data-panel-page=${JSON.stringify(page)}]'))`;
   await expect.poll(async () => (await ui("eval", "--js", `Boolean(${row})`)).result, { timeout: 10_000 }).toBe(true);
   await ui("eval", "--js", `${row}.click(); true`);
   await expect.poll(async () => (await ui("eval", "--js", BOT_PAGE)).result, { timeout: 10_000 }).toBe(page);
