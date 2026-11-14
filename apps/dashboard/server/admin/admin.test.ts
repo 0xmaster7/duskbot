@@ -156,6 +156,39 @@ describe("admin panel api", () => {
     });
   });
 
+  it("never counts what the operator gave as money, a customer, a conversion or a billing event, in any mode", async () => {
+    const admin = await login(ADMIN);
+    await login(OTHER);
+    await login("given@example.test");
+    await login("comped@example.test");
+    await grantCloud(OTHER);
+    const given = app.auth.accountByEmail("given@example.test")!, comped = app.auth.accountByEmail("comped@example.test")!;
+    const bundle = BILLING_CONFIG.bundles.find(item => item.id === "starter")!;
+    for (const [source, account] of [["ops_grant", given], ["admin_comp", comped]] as const) {
+      const answer = await app.billing.service.checkout({ id: account.id, email: account.email }, { kind: "cart", cart: app.billing.service.quote({ ...bundle.cart, interval: "month" }).cart },
+        { operator: { source, amountCents: 1500 } });
+      const stored = app.billing.store.state.checkouts.find(item => item.id === answer.checkoutId)!;
+      for (const delivery of app.billing.fake!.complete(stored.providerSessionId!)) app.billing.service.handleWebhook(delivery.headers, delivery.body);
+    }
+    expect(app.billing.store.state.subscriptions.filter(sub => sub.accountId === given.id || sub.accountId === comped.id).length).toBe(2);
+    // the grants were charged, so without the rule they would read as two more paying customers
+    expect(app.billing.store.state.invoices.filter(row => (row.accountId === given.id || row.accountId === comped.id) && row.status === "paid").map(row => row.amountCents)).toEqual([1500, 1500]);
+    const all = { "x-dusk-admin-money": "all" };
+    const overview = await (await call("/v1/admin/overview?days=7", { cookie: admin, headers: all })).json() as { totals: { paying: number } };
+    expect(overview.totals.paying).toBe(1);
+    const revenue = await (await call("/v1/admin/revenue?mode=all", { cookie: admin })).json() as { customers: Array<{ accountId: string }>; headline: { customers: number } };
+    expect(revenue.customers.map(row => row.accountId)).toEqual([app.auth.accountByEmail(OTHER)!.id]);
+    expect(revenue.headline.customers).toBe(1);
+    const paying = await (await call("/v1/admin/users?filter=paying", { cookie: admin })).json() as { users: Array<{ email: string }> };
+    expect(paying.users.map(user => user.email)).toEqual([OTHER]);
+    const profile = await (await call(`/v1/admin/journeys/${given.id}`, { cookie: admin, headers: all })).json() as { customer: boolean; stats: { spentCents: number }; sessions: Array<{ steps: Array<{ kind: string }> }> };
+    expect(profile.customer).toBe(false);
+    expect(profile.stats.spentCents).toBe(0);
+    expect(profile.sessions.flatMap(session => session.steps).filter(step => step.kind === "paid" || step.kind === "billing")).toEqual([]);
+    const events = await app.analytics.sink.scan(0, Date.now() + 60_000, ["checkout_paid", "billing"]);
+    expect(events.filter(event => event.accountId === given.id || event.accountId === comped.id).map(event => `${event.name}:${String(event.props.type ?? event.props.amountCents)}`)).toEqual([]);
+  });
+
   it("pauses and resumes a cloud only with the typed confirmation, and audits each action", async () => {
     const admin = await login(ADMIN);
     await login(OTHER);

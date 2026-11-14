@@ -28,7 +28,7 @@ import { isRange, rangeDays, topAccounts } from "./ops/accounts.ts";
 import { ACCOUNT_NOTES, type AccountNotes } from "./ops/index.ts";
 import type { OpsAccountsAnswer, OpsAccountsRange, OpsRelayCard } from "../../src/admin/ops-types.ts";
 import { isTestEvent, isTestInstall, testAccountIds, testBuyerIds, withoutAccounts, withoutBilling } from "./test-accounts.ts";
-import { moneyIn, moneyViewOf, type MoneyView } from "./money-mode.ts";
+import { moneyIn, moneyViewOf, withoutOps, type MoneyView } from "./money-mode.ts";
 import { DAY, choseCloud, dayKey, dayRange, funnel, isPaying, perDay, wasPaid, workspaceTurns } from "./metrics.ts";
 
 export class AdminError extends Error {
@@ -132,10 +132,10 @@ export function createAdmin(options: AdminOptions) {
   /** the view with only one mode's money in it (x-dusk-admin-money, live by default), so test checkouts never read as revenue */
   const moneyViews = new Map<string, View>();
   function inMoney(base: View, key: string, money: MoneyView): View {
-    if (money === "all") return base;
     const cached = moneyViews.get(`${key}:${money}`);
     if (cached) return cached;
-    const store = () => moneyIn(base.store(), money, serverMode());
+    // what the operator gave (grants, comps, App Review's cloud) is never money, in any mode
+    const store = () => moneyIn(withoutOps(base.store()), money, serverMode());
     const view: View = { ...base, store, deep: createAnalyticsRoutes({ auth: { directory: base.directory } as unknown as Auth, billing: billingWith(store), analytics: { ...analytics, sink: base.sink }, workspaces: base.workspaces, now, actor }) };
     moneyViews.set(`${key}:${money}`, view);
     return view;
@@ -304,7 +304,7 @@ export function createAdmin(options: AdminOptions) {
         platforms: [...new Set(devices.map(device => device.platform ?? "unknown"))], lastSeenAt: lastSeen(account.id, sessions), optOut: analytics.optedOut(account.id) };
     });
     if (q) rows = rows.filter(row => row.email.includes(q) || (row.name ?? "").toLowerCase().includes(q) || row.id.toLowerCase() === q);
-    if (filter === "paying") rows = rows.filter(row => row.plan !== null);
+    if (filter === "paying") { const paying = new Set(v.store().subscriptions.filter(isPaying).map(sub => sub.accountId)); rows = rows.filter(row => paying.has(row.id)); }
     else if (filter === "cloud") rows = rows.filter(row => row.clouds > 0);
     else if (filter === "app") rows = rows.filter(row => row.devices > 0);
     else if (filter !== "all") throw new AdminError(400, "invalid_request", "Invalid request.");

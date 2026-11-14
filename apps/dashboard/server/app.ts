@@ -12,6 +12,7 @@ import { MCP_CLIENT_METADATA, MCP_CLIENT_METADATA_PATH } from "../../../shared/m
 import { AuthError, createAuth, isAppCorsRoute, reviewAccountFromEnv, type ReviewAccount } from "./auth/index.ts";
 import type { ProviderConfigs } from "./auth/providers.ts";
 import { createTestMailbox, isTestAccount, isTestAddress, sinkTestMail } from "./auth/mail.ts";
+import { isOpsMade } from "./admin/money-mode.ts";
 import type { Mailer, MailMessage, TestMailbox } from "./auth/mail.ts";
 import type { RoutedMailer } from "./auth/mail-router.ts";
 import { createStore } from "./store.ts";
@@ -293,19 +294,28 @@ export function createDashboardApp(options: DashboardAppOptions) {
   auth.onAccountDeleted((_id, email) => { if (courtesy(email)) send(email, accountDeletedEmail(emailCfg, { email: email ?? "" })); });
   function billingNotice(notice: BillingNotice) {
     const cloud = notice.kind !== "receipt" && notice.cloudId ? billing.clouds.get(notice.cloudId) : null;
-    if (notice.kind === "receipt") analytics.track("checkout_paid", { accountId: notice.accountId, props: { amountCents: notice.amountCents } });
+    if (notice.kind === "receipt" && !opsPayment(notice.invoiceId)) analytics.track("checkout_paid", { accountId: notice.accountId, props: { amountCents: notice.amountCents } });
     if (notice.kind === "receipt") { if (courtesy(emailOf(notice.accountId))) sendTo(notice.accountId, "required", receiptEmail(emailCfg, { ...notice, receiptId: notice.invoiceId, cloud: notice.cloudId !== null })); }
     else if (!courtesy(emailOf(notice.accountId))) return;
     else if (notice.kind === "payment_failed") sendTo(notice.accountId, "required", paymentFailedEmail(emailCfg, { ...notice, cloudName: cloud?.name ?? null }));
     else sendTo(notice.accountId, "required", cancelledEmail(emailCfg, { description: notice.description, cloudName: cloud?.name ?? null, endsAt: notice.endsAt,
       keptPaused: cloud?.backend === "managed", keepDays: cloud?.backend === "managed" ? retentionDays : notice.graceDays }));
   }
+  // what the operator gave (a grant, a comp, App Review's cloud) is never a payment or a subscription in the analytics log
+  const opsSubscription = (id: string | null) => !!id && billing.store.state.subscriptions.some(sub => sub.id === id && isOpsMade(sub));
+  function opsInvoice(invoice: { subscriptionId: string | null; checkoutId: string | null } | undefined) {
+    return !!invoice && (opsSubscription(invoice.subscriptionId) || billing.store.state.checkouts.some(row => row.id === invoice.checkoutId && isOpsMade(row)));
+  }
+  const opsPayment = (invoiceId: string) => opsInvoice(billing.store.state.invoices.find(row => row.id === invoiceId));
+  const opsLedger = (entry: LedgerEntry) => opsSubscription(entry.subscriptionId) || (!!entry.providerPaymentId && opsInvoice(billing.store.state.invoices.find(row => row.providerPaymentId === entry.providerPaymentId)));
   const ledgerState = () => ({ subscriptions: billing.store.state.subscriptions, invoices: billing.store.state.invoices, ledger: billing.store.state.ledger ?? [] });
   function ledgerRow(entry: LedgerEntry) {
-    if (entry.accountId) {
+    const accountId = entry.accountId;
+    if (accountId) {
       const props = { type: entry.type, ...(entry.amountCents !== null ? { amountCents: Math.abs(entry.amountCents) } : {}), ...(entry.mrrCents !== null ? { mrrCents: entry.mrrCents } : {}),
         ...(entry.previousMrrCents !== null ? { previousMrrCents: entry.previousMrrCents } : {}), ...(entry.plan ? { plan: entry.plan } : {}), ...(entry.interval ? { interval: entry.interval } : {}) };
-      analytics.track("billing", { accountId: entry.accountId, at: entry.at, props });
+      // a payment's row is written before its invoice and subscription link it to a grant: judge it once the webhook settles
+      queueMicrotask(() => { if (!opsLedger(entry)) analytics.track("billing", { accountId, at: entry.at, props }); });
     }
     if (entry.via === "sync") return;
     const paidBefore = !!entry.accountId && billing.store.state.invoices.some(invoice => invoice.accountId === entry.accountId && invoice.status !== "failed" && invoice.amountCents > 0);

@@ -18,7 +18,7 @@ import { LEDGER_LABELS } from "../billing/ledger.ts";
 import { BILLING_CONFIG } from "../billing/plans.ts";
 import { quote } from "../billing/pricing.ts";
 import type { Step } from "../analytics/profile.ts";
-import { moneyIn, type MoneyMode } from "./money-mode.ts";
+import { moneyIn, opsEventOf, withoutOps, type MoneyMode } from "./money-mode.ts";
 /** an account's face for the people views: its photo and avatar choice, when it has them */
 const face = (account: { avatarUrl?: string; avatar?: string }) => ({ ...(account.avatarUrl ? { avatarUrl: account.avatarUrl } : {}), ...(account.avatar ? { avatar: account.avatar } : {}) });
 
@@ -83,11 +83,17 @@ export interface AnalyticsRoutesOptions { auth: Auth; billing: Billing; analytic
 
 export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
   const { auth, billing, analytics, now } = options;
-  const sink = analytics.sink;
+  /** the event log without the billing events of what the operator gave: a grant is never a payment or a subscription here */
+  const sink: typeof analytics.sink = { ...analytics.sink, scan: async (since, until, names) => {
+    const events = await analytics.sink.scan(since, until, names);
+    if (names && !names.includes("billing") && !names.includes("checkout_paid")) return events;
+    const ops = opsEventOf(billing.store.state);
+    return events.filter(event => !ops(event));
+  } };
   /** the money records the owner sees: with a real provider, the fake provider's checkouts (fake_ sessions) and fixture
    * ledger rows are never real money, whatever put them in the store */
   function moneyState() {
-    const state = billing.store.state;
+    const state = withoutOps(billing.store.state);
     if (billing.operator.provider !== "dodo") return state;
     const fakeCheckouts = new Set(state.checkouts.filter(row => row.providerSessionId?.startsWith("fake_")).map(row => row.id));
     if (!fakeCheckouts.size && !(state.ledger ?? []).some(row => row.via === "fixture")) return state;
@@ -100,7 +106,7 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
 
   function people(): People & { cloudChosen: Map<string, number>; paired: Map<string, number>; replied: Map<string, number> } {
     const { accounts, sessions } = auth.directory();
-    const state = billing.store.state;
+    const state = moneyState();
     const first = (map: Map<string, number>, id: string, at: number) => { if (!map.has(id) || map.get(id)! > at) map.set(id, at); };
     const signups = new Map(accounts.map(account => [account.id, account.createdAt]));
     const paid = new Map<string, number>(), cloudChosen = new Map<string, number>(), paired = new Map<string, number>(), replied = new Map<string, number>();
@@ -170,7 +176,7 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
     const mode = url.searchParams.get("mode") === "signups" ? "signups" : "visitors";
     const { events, identity, people: p, visits } = await load(from);
     return { from, to, ...funnel({ from, to, now: now(), mode, visits, identity, events, people: p, cloudChosen: p.cloudChosen, paired: p.paired, replied: p.replied }),
-      upsells: upsellsOf(events, billing.store.state.subscriptions, from, to) };
+      upsells: upsellsOf(events, moneyState().subscriptions, from, to) };
   }
 
   function personOf(visits: Visit[]) {
@@ -431,7 +437,7 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
   }
   function ledgerSteps(accountId: string): Step[] {
     const skip = new Set(["payment.succeeded", "refund.succeeded", "subscription.renewed", "subscription.active", "checkout.started"]);
-    return (billing.store.state.ledger ?? []).filter(row => row.accountId === accountId && !skip.has(row.type) && LEDGER_LABELS[row.type]).map(row => {
+    return (moneyState().ledger ?? []).filter(row => row.accountId === accountId && !skip.has(row.type) && LEDGER_LABELS[row.type]).map(row => {
       const delta = row.mrrCents !== null && row.previousMrrCents !== null ? row.mrrCents - row.previousMrrCents : null;
       return { at: row.at, kind: "billing", surface: "server", name: LEDGER_LABELS[row.type]!.label, emoji: LEDGER_LABELS[row.type]!.emoji, path: null,
         detail: row.reason ?? (row.plan ? planLabel(row.plan) : null), amountCents: delta ?? (row.type.startsWith("payment.") || row.type.startsWith("dispute.") ? row.amountCents : null) };
