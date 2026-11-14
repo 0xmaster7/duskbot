@@ -1,4 +1,3 @@
-import { ModalLayer } from "../ui/ModalLayer";
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { IslandIntro } from "./IslandIntro";
 import { trapTab } from "./WelcomeFlow";
@@ -47,9 +46,9 @@ export function IslandIntroHost() {
     trapTab(event, root.current);
   };
   return (
-    <ModalLayer><div ref={root} role="dialog" aria-modal aria-labelledby="island-intro-title" tabIndex={-1} onKeyDown={onKeyDown}
+    <div ref={root} role="dialog" aria-modal aria-labelledby="island-intro-title" tabIndex={-1} onKeyDown={onKeyDown}
       className="fixed inset-0 z-[85] flex overflow-y-auto outline-none">
       <IslandIntro key={run} titleId="island-intro-title" onDone={close} />
-    </div></ModalLayer>
+    </div>
   );
 }

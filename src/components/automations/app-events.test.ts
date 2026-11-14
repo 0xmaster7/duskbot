@@ -42,7 +42,8 @@ function mount(element: ReturnType<typeof createElement>) {
   document.body.append(container);
   root = createRoot(container);
   flushSync(() => root!.render(element));
-  return container;
+  // the editor's sheet draws in <body> (ModalLayer), so the page is what holds it
+  return document.body;
 }
 const button = (container: HTMLElement, label: string) => {
   const found = [...container.querySelectorAll("button")].find((candidate) => candidate.textContent?.replace(/[\uE000-\uF8FF\u{F0000}-\u{FFFFD}]/gu, "").trim() === label || candidate.getAttribute("aria-label") === label);
