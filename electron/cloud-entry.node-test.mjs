@@ -165,5 +165,7 @@ test("Add a Cloud… is always the sheet on this computer's page, never a native
   assert.match(add, /const action = source === "app_howto" \? "cloud-add-howto" : "cloud-add";/);
   assert.deepEqual([...add.matchAll(/webContents\.send\(([^)]*)\)/g)].map(match => match[1]), ['"app:open-settings", action']);
   assert.deepEqual([...add.matchAll(/loadURL\((.*)\);/g)].map(match => match[1]), ["`${rendererOrigin()}/?desktop-settings=${action}`"]);
-  assert.match(between("function cloudOffersAllowed()", "\n}\n"), /return app\.isPackaged && !desktopRemoteAccess;/);
+  // since 34fadb411 the packaged app (or a custom cloud target) and no remote access is accountApp()
+  assert.match(between("function cloudOffersAllowed()", "\n}\n"), /return accountApp\(\);/);
+  assert.match(main, /const accountApp = \(\) => \(app\.isPackaged \|\| cloudTarget\(process\.env\)\.custom\) && !desktopRemoteAccess;/);
 });
