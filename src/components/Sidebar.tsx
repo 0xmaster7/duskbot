@@ -45,7 +45,7 @@ import { PhoneHero } from "./SidebarPhoneHero";
 import { SidebarProfileMenu } from "./SidebarProfileMenu";
 import { PHONE_LAYOUT, useMediaQuery } from "@/lib/use-media-query";
 import { GlassBar, GlassScrollFrame, GlassScroller } from "./GlassScrollFrame";
-import { SidebarPlaceButton } from "./SidebarPlaceButton"; import { ChromeRailToggle } from "./ChromeRailToggle";
+import { SidebarPlaceButton } from "./SidebarPlaceButton";
 import { useCloudOwner } from "./CloudOwner";
 import { SidebarSectionHeader } from "./SidebarSectionHeader";
 import { SectionRows } from "./SidebarSectionRows";
@@ -872,7 +872,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
     }
   };
 
-  // A framed window (WindowFrameBar) holds the traffic lights and the rail's button in its top bar, so the top row keeps
+  // A framed window (WindowFrameBar) holds the traffic lights in its top bar, so the top row keeps
   // no room for them; in Simple it is only the corner holding Search and New, with the bot tiles beside it. With the
   // frame off on macOS, the traffic lights sit in the top row's corner.
   const framed = windowFramed(capabilities), corner = framed && simpleDesk;
@@ -1080,7 +1080,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
           // The traffic lights span 16-76px of the window; nothing clickable starts before 88px, with the window's rail
           // beside the page or not.
           <div aria-hidden="true" data-traffic-light-space className={density === "icons" ? "h-5 w-full" : "w-[72px] shrink-0 md:w-[calc(72px_-_var(--rail-beside,0px))]"} />
-        ) : null}{!phone && !framed && <ChromeRailToggle style={windowNoDragStyle} />}
+        ) : null}
         {rail && <div data-sidebar-rail-top className="flex flex-col items-center gap-2 pt-1" style={windowNoDragStyle}>
           <button type="button" onClick={railSearch} aria-label={t("sidebar.searchAria")} title={t("sidebar.searchAria")} className={SIMPLE_TOP_BUTTON}>
             <Icon name="search" size={16} />

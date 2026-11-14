@@ -2960,7 +2960,7 @@ const railList = () => { ownHome?.refresh(); return railPlaces({ saved: environm
 // The rail as the window's own chrome (chrome-rail.mjs): this app's page beside every place's page, the one that lists.
 const chromeRail = createChromeRail({ createView: options => new WebContentsView(options), preload: path.join(__dirname, "preload.cjs"), log: slog, prefs: () => desktopPrefs, changed: () => rail.changed(),
   args: () => [...desktopCompanionRendererArguments(rendererOrigin(), desktopRemoteAccess), "--dusk-current-local-origin=1", ...(accountApp() ? ["--dusk-company-desktop=1"] : []), ...(accountApp() || accountGateNeeded() ? ["--dusk-account-gate=1"] : []), `--dusk-app-version=${app.getVersion()}`],
-  url: () => `${rendererOrigin()}${CHROME_RAIL_PATH}`, wanted: () => !desktopRemoteAccess && serverReady && railList().length > 0 });
+  url: () => `${rendererOrigin()}${CHROME_RAIL_PATH}`, wanted: () => false });
 chromeRail.install(ipcMain);
 function railChanged() { chromeRail.refresh(); rail.changed(); void localUi?.refresh(); }
 const accountPages = [() => (mainWindow && !mainWindow.isDestroyed() && senderIsLocal({ sender: mainWindow.webContents }) ? mainWindow.webContents : null), () => ({ send: channel => chromeRail.send(channel) })];

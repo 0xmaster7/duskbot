@@ -13,14 +13,12 @@ const fixture = vi.hoisted(() => ({
   windowChrome: undefined as "mac-inset" | "win-caption" | "native" | undefined,
   windowFrame: undefined as boolean | undefined,
   hostLabel: undefined as string | undefined,
-  rail: null as { available: boolean; hidden: boolean } | null,
 }));
 
 vi.mock("@/lib/sidebar-preferences", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/sidebar-preferences")>(),
   useSidebarDensity: () => fixture.density,
 }));
-vi.mock("@/lib/chrome-rail", () => ({ useChromeRail: () => fixture.rail, setChromeRailHidden: () => {} }));
 vi.mock("./DesktopCapabilities", async (importOriginal) => ({
   ...await importOriginal<typeof import("./DesktopCapabilities")>(),
   useDesktopCapabilities: () => {
@@ -42,7 +40,6 @@ beforeEach(() => {
   fixture.windowChrome = undefined;
   fixture.windowFrame = undefined;
   fixture.hostLabel = undefined;
-  fixture.rail = null;
   vi.stubGlobal("window", { innerWidth: 1280, location: { protocol: "http:", search: "" } });
   setLocale("en");
 });
@@ -160,28 +157,21 @@ describe("sidebar top row", () => {
 
 });
 
-describe("the button that hides and shows the window's rail of places", () => {
+describe("the window's rail of places", () => {
   beforeEach(() => {
     vi.stubGlobal("window", { innerWidth: 1280, location: { protocol: "http:", search: "" }, duskDesktop: { workspaces: { state: () => new Promise(() => {}), menu: () => Promise.resolve() } } });
-    fixture.windowChrome = "mac-inset";
-    fixture.rail = { available: true, hidden: false };
   });
 
-  it("moves to the window frame's top bar on macOS and Windows: no row of the sidebar holds it", () => {
+  it("has no button to hide or show it in any row of the sidebar, on any window or density", () => {
     for (const windowChrome of ["mac-inset", "win-caption"] as const) {
       fixture.windowChrome = windowChrome;
       for (const [advanced, density] of [[true, "comfortable"], [false, "comfortable"], [true, "icons"], [false, "icons"]] as const) {
         fixture.advanced = advanced;
         fixture.density = density;
-        expect(render(), `${windowChrome}, ${advanced ? "advanced" : "Simple"}, ${density}`).not.toContain("data-rail-toggle");
+        const html = render();
+        expect(html, `${windowChrome}, ${advanced ? "advanced" : "Simple"}, ${density}`).not.toContain("data-rail-toggle");
+        expect(html).not.toContain("Hide your computers");
       }
-    }
-  });
-
-  it("is nowhere without a rail to hide: one place, a browser, an older app, or a page that isn't beside it", () => {
-    for (const rail of [null, { available: false, hidden: false }, { available: false, hidden: true }]) {
-      fixture.rail = rail;
-      expect(render()).not.toContain("data-rail-toggle");
     }
   });
 });

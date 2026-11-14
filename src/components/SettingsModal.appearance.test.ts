@@ -25,8 +25,6 @@ const fixture = vi.hoisted(() => ({
   api: vi.fn(),
   dispatch: vi.fn(),
   switches: [] as ComponentProps<typeof Switch>[],
-  rail: null as { available: boolean; hidden: boolean } | null,
-  railHidden: [] as boolean[],
 }));
 // The Cloud account card reads the host platform (what a saved sign-in still locked asks for).
 vi.mock("./DesktopCapabilities", () => ({ useDesktopCapabilities: () => ({ capabilities: { host: { platform: "darwin" } } }) }));
@@ -63,7 +61,6 @@ vi.mock("@/lib/user-bubble-preference", () => ({
 vi.mock("@/lib/analytics", () => ({ analyticsEnabled: () => false, setAnalyticsEnabled: vi.fn() }));
 vi.mock("./PeopleSection", () => ({ PeopleSection: () => null }));
 vi.mock("./LocalComputerSection", () => ({ LocalComputerSection: () => null }));
-vi.mock("@/lib/chrome-rail", () => ({ useChromeRail: () => fixture.rail, setChromeRailHidden: (hidden: boolean) => fixture.railHidden.push(hidden) }));
 vi.mock("./SettingsPrimitives", async (importOriginal) => {
   const original = await importOriginal<typeof import("./SettingsPrimitives")>();
   return {
@@ -85,8 +82,6 @@ beforeEach(() => {
   fixture.colorUserBubbles = false;
   fixture.advancedMode = false;
   fixture.switches = [];
-  fixture.rail = null;
-  fixture.railHidden = [];
   vi.stubGlobal("window", {});
   vi.stubGlobal("document", { documentElement: { dataset: {} } });
   setLocale("en");
@@ -145,9 +140,8 @@ describe("Settings → General → Appearance", () => {
     }
   });
 
-  it("has no Settings switch for the window's rail of places: its own button hides and shows it", () => {
+  it("has no Settings switch for a rail of places", () => {
     fixture.section = "general";
-    fixture.rail = { available: true, hidden: true };
     expect(render()).not.toContain("Show your computers");
   });
 

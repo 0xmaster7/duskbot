@@ -1,10 +1,13 @@
 # The rail of Clouds and its ＋
 
-Once a person has two places or more in all (This computer counts while it is
-a place; their Clouds, their teams' Clouds, servers they connected by hand), a
-narrow rail of circles at the window's left edge switches between them, and ＋
-buys another Cloud or adds a server of their own. With one place there is no
-rail, and the window looks as before.
+The window shows no rail of places: `wanted` is off in `electron/main.mjs`, so
+the page always has the whole window and there is no button to hide or show
+it. Switching between places is the place button in the sidebar's top row (the
+native Server menu) and the profile menu's Switch to…, which list every saved
+place and add a Cloud or a server of the person's own. The rail's page still
+opens, held over the window, for the accounts sheet. The rest of this page
+describes the rail as it worked when shown, kept for that sheet and for
+turning it back on.
 
 The rail is the window's own chrome, not a page's: this app's page `/rail` in a
 view of its own at the left edge (electron/chrome-rail.mjs), beside whichever

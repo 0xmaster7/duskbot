@@ -8,13 +8,12 @@ type Place = { local: boolean; name: string; origin?: string; color?: string; ho
 const fixture = vi.hoisted(() => ({
   windowChrome: "mac-inset" as "mac-inset" | "win-caption" | "native",
   windowFrame: undefined as boolean | undefined,
-  rail: { available: true, hidden: false } as { available: boolean; hidden: boolean } | null,
   dispatch: vi.fn(),
   config: {} as { team?: { name: string } },
   look: null as { color: string | null } | null,
   frameDrawn: vi.fn(),
 }));
-vi.mock("@/lib/chrome-rail", () => ({ useChromeRail: () => fixture.rail, setChromeRailHidden: () => {}, sayFrameDrawn: fixture.frameDrawn }));
+vi.mock("@/lib/chrome-rail", () => ({ sayFrameDrawn: fixture.frameDrawn }));
 vi.mock("@/lib/place-look", () => ({ usePlaceLook: () => fixture.look }));
 vi.mock("@/state/store", () => ({ useStore: () => ({ state: { config: fixture.config }, dispatch: fixture.dispatch }) }));
 vi.mock("./DesktopCapabilities", async (importOriginal) => ({
@@ -35,7 +34,6 @@ beforeEach(() => {
   document.body.append(host);
   fixture.windowChrome = "mac-inset";
   fixture.windowFrame = undefined;
-  fixture.rail = { available: true, hidden: false };
   fixture.config = {};
   fixture.look = null;
   fixture.dispatch.mockClear();
@@ -54,15 +52,14 @@ const bar = () => host.querySelector<HTMLElement>("[data-window-frame-bar]");
 const middle = () => host.querySelector<HTMLElement>("[data-window-place]");
 
 describe("the window frame's top bar", () => {
-  it("is drawn on macOS, as thin as the traffic lights allow, and drags the window; its first button starts after the lights", async () => {
+  it("is drawn on macOS, as thin as the traffic lights allow, and drags the window; nothing clickable sits under the lights", async () => {
     await mount(createElement(WindowFrameBar));
     const classes = bar()!.className.split(" ");
     expect(classes).toEqual(expect.arrayContaining(["h-7", "bg-frame", "grid"]));
     expect(bar()!.hasAttribute("data-window-drag"), "the drag region every header marks (window-drag-regions.test.ts)").toBe(true);
     expect(host.querySelector("[data-frame-bar-start]")!.className).toContain("pl-20");
     const buttons = [...bar()!.querySelectorAll("button")].map((button) => button.getAttribute("aria-label"));
-    expect(buttons, "the rail's button, then the app's settings; no update while there is none").toEqual(["Hide your computers", "App settings"]);
-    expect(bar()!.querySelector("[data-rail-toggle]")!.className).toContain("size-[22px]");
+    expect(buttons, "the app's settings alone: no rail button, and no update while there is none").toEqual(["App settings"]);
   });
 
   it("spans the window under its rail, so the place it names sits in the window's middle with equal sides", async () => {
