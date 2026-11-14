@@ -59,7 +59,7 @@ describe("a reply's table card", () => {
   it("draws a short table as a card with a hover plate, plain header names as grok has, and no footer", () => {
     const html = card(3);
     const surface = html.match(/<div data-table-card="[^"]*" class="([^"]*)"/)?.[1] ?? "";
-    expect(surface.split(" ")).toEqual(expect.arrayContaining(["rounded-[20px]", "bg-composer", "pt-6", "touch:pt-11"]));
+    expect(surface.split(" ")).toEqual(expect.arrayContaining(["rounded-[20px]", "bg-(--chat-card)", "pt-6", "touch:pt-11"]));
     // grok keeps 24px above the header row, where the plate floats on hover.
     const plate = html.match(/<div class="(table-plate [^"]*)"/)?.[1] ?? "";
     expect(plate.split(" ")).toEqual(expect.arrayContaining(["absolute", "top-1.5", "end-1.5", "opacity-0", "group-hover/table:opacity-100", "focus-within:opacity-100", "touch:opacity-100"]));

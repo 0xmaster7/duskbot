@@ -218,10 +218,10 @@ export function AskDetail({ text, mono = false, label }: { text: string; mono?: 
 
 export type AskChoice = { label: string; description?: string };
 
-/** A question card rests a hair above the page in a light skin, as grok's does; a dark one draws no lift (--card-lift). */
+/** No lift in the app's skins (--card-lift is transparent); only pop's sticker card keeps one. */
 export const ASK_CARD_LIFT = "shadow-[0_2px_8px_var(--card-lift)]";
-/** Grok's card edge: a 0.5px ring, 12% ink in a light skin and 10% in a dark one (--card-ring). */
-export const ASK_CARD_RING = "bg-composer ring-[0.5px] ring-transparent";
+/** Every chat card's surface: the --chat-card tone, set apart by tone alone, its 0.5px ring kept transparent. */
+export const ASK_CARD_RING = "bg-(--chat-card) ring-[0.5px] ring-transparent";
 
 /** The letter that names a choice, A to Z, then none: a long list reads by its labels. */
 export const choiceLetter = (index: number): string | null => index < 26 ? String.fromCharCode(65 + index) : null;

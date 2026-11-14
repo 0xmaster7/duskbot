@@ -57,7 +57,7 @@ const READS_AS_NUMBER = /^[+\u2212-]?[$€£¥]?\d[\d,]*(?:\.\d+)?\s?(?:%|pt|pp|
 /** Grok's card corner key: 24px white, a hairline and a small drop, as on its code blocks. */
 const TABLE_PLATE_BUTTON = "composer-press inline-flex h-6 touch:h-10 items-center justify-center border border-transparent bg-composer text-ink/[0.66] hover:bg-[linear-gradient(rgb(28_28_28/0.06),rgb(28_28_28/0.06))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
 /** Grok's table card: white, rounded 20, a 0.5px 12% ring and a soft drop, 24px of room above the header for its plate. */
-const TABLE_CARD = "group/table relative w-full overflow-hidden rounded-[20px] bg-composer pt-6 text-ink shadow-[0_2px_8px_rgb(28_28_28/0.035)] touch:pt-11";
+const TABLE_CARD = "group/table relative w-full overflow-hidden rounded-[20px] bg-(--chat-card) pt-6 text-ink shadow-[0_2px_8px_var(--card-lift)] touch:pt-11";
 
 export function RichTable({ columns, rows, name = t("table.title"), expanded = false, direction = "ltr", headless = false, card: asCard = true }: RichTableProps) {
   const [query, setQuery] = useState("");

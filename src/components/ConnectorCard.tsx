@@ -8,7 +8,7 @@ import { AUTHORIZATION_LINK_MS, reserveConnectionPage, reusableConnectionUrl, ty
 import { accountAliasTaken, requiresAccountAlias } from "@/lib/connector-status";
 import { mcpSignInLink } from "@/lib/mcp-sign-in";
 import { cn } from "@/lib/cn";
-import { CARD_FIELD } from "./AskCard";
+import { ASK_CARD_LIFT, ASK_CARD_RING, CARD_FIELD } from "./AskCard";
 import { CardHint } from "./CardHint";
 import { ServiceTile } from "./ServiceIcon";
 import { appLogo } from "./connect-apps/logos";
@@ -262,7 +262,7 @@ function ConnectorFrame({ state, label, tile, name, title, description, actions,
 }) {
   return (
     <div role="group" aria-label={label} data-tour={state === "pending" ? "connector" : undefined} data-ask-card={state} className="w-full max-w-[560px] rounded-[24px] text-start">
-      <section className="flex flex-col rounded-[24px] bg-composer shadow-[0_2px_8px_0_color-mix(in_srgb,var(--color-ink)_3.5%,transparent)]">
+      <section className={cn("flex flex-col rounded-[24px]", ASK_CARD_RING, ASK_CARD_LIFT)}>
         <div className="flex items-center gap-2.5 p-4">
           {tile}
           <div className="min-w-0 flex-1 py-0.5" title={title}>

@@ -7,8 +7,8 @@ import { Icon } from "./Icon";
 import { NoticeGlyph } from "./ui/Notice";
 import type { PixelIconName } from "./ui/PixelIcon";
 
-// grok's prompt notices: one 12/16 line above the message box, no box, 2px in from its edge
-export const NOTICE_LINE = "flex items-start gap-1.5 px-0.5 text-[12px] leading-4";
+// a prompt notice: one 12/16 line above the message box on the notice tone (--color-notice), as every banner there is
+export const NOTICE_LINE = "flex items-start gap-1.5 rounded-[12px] bg-(--color-notice) px-3 py-2 text-[12px] leading-4";
 
 export function ChatNotice({ notice }: { notice: AppState["notice"] }) {
   if (!notice) return null;
@@ -27,8 +27,8 @@ export function ChatNotice({ notice }: { notice: AppState["notice"] }) {
   );
 }
 
-// grok's error tray: a card on a hairline with one coloured glyph, a 14/20 title, quiet words, ink pill actions
-const CARD = "flex items-start gap-2.5 rounded-[14px] border border-transparent bg-card px-3 py-2.5 text-[13px] leading-[18px] text-ink";
+// the error tray: one coloured glyph, a 14/20 title, quiet words and ink pill actions on the notice tone, no line
+const CARD = "flex items-start gap-2.5 rounded-[14px] border border-transparent bg-(--color-notice) px-3 py-2.5 text-[13px] leading-[18px] text-ink";
 export const CARD_ACTION = "ui-button ui-button-sm ui-button-pill border-transparent bg-ink/[0.06] text-ink hover:bg-ink/[0.1]";
 
 export function ChatErrorCard({ tone = "danger", icon, title, details, children, actions, onDismiss, className = "" }: {

@@ -1899,9 +1899,15 @@ body {
   }
 }
 
-/* Grok's chat cards (AskCard and the permission card). Dark skins draw them as grok-dark does: a 10% ring, 4% fills,
-   a 2% code block on a 4% edge and no lift. Light skins as grok light: 12%, 6%, 4% on 6% and a faint 3.5% lift. */
+/* Chat cards (questions, approvals, secrets, sign-ins, connectors, tables, the inbox card) are one surface, --chat-card,
+   set apart from the page by tone alone: no line, no lift. A dark skin's card is its raised composer tone; a light
+   skin's is the bot bubble's tone, since a white card on a near-white page only reads with a shadow under it. Pop keeps
+   its sticker card. Inside a card, dark skins use a 10% ring and 4% fills, light ones 12% and 6%. */
 :root {
+  /* every notice and error above the message box sits on this: a gentle tone a step off the page, so it reads as a
+     banner, not as words floating over the chat; light and dark alike */
+  --color-notice: color-mix(in srgb, var(--color-ink) 6%, var(--color-app));
+  --chat-card: var(--color-composer);
   --card-ring: color-mix(in srgb, var(--color-ink) 10%, transparent);
   --card-fill: color-mix(in srgb, var(--color-ink) 4%, transparent);
   --card-code-fill: color-mix(in srgb, var(--color-ink) 2%, transparent);
@@ -1909,10 +1915,14 @@ body {
   --card-lift: transparent;
 }
 :root:is([data-skin="atelier"], [data-skin="lagoon"], [data-skin="linen"], [data-skin="daylight"], [data-skin="grok"], [data-skin="meadow"], [data-skin="pop"]) {
+  --chat-card: var(--color-card);
   --card-ring: color-mix(in srgb, var(--color-ink) 12%, transparent);
   --card-fill: color-mix(in srgb, var(--color-ink) 6%, transparent);
   --card-code-fill: color-mix(in srgb, var(--color-ink) 4%, transparent);
   --card-code-edge: color-mix(in srgb, var(--color-ink) 6%, transparent);
+}
+:root[data-skin="pop"] {
+  --chat-card: var(--color-composer);
   --card-lift: color-mix(in srgb, var(--color-ink) 3.5%, transparent);
 }
 

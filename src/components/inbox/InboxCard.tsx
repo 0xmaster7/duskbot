@@ -9,8 +9,7 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { openInbox, readInboxRow, useInboxView } from "@/state/inbox";
 import { pendingApprovals, PendingApprovalActions } from "../PendingApproval";
-import { ASK_QUIET_ANSWER, ASK_QUIET_BUTTON, AskChoices, AskError } from "../AskCard";
-import { ELEVATED_CARD } from "../elevated";
+import { ASK_CARD_RING, ASK_QUIET_ANSWER, ASK_QUIET_BUTTON, AskChoices, AskError } from "../AskCard";
 import { InboxRowItem } from "./InboxRow";
 import { asMessage } from "./inbox-answer";
 import { askOf, CARD_ROWS, choiceResponse, choicesOf, rowsIn, tabCounts } from "./inbox-view";
@@ -71,7 +70,7 @@ export function InboxCard({ view }: { view: InboxView }) {
   const rows = rowsIn(view, "needs-you").slice(0, CARD_ROWS);
   const openRow = (row: InboxRow) => { readInboxRow(row); openInbox({ reading: row.id }); };
   const openAll = () => openInbox();
-  const shell = cn("my-1 w-full max-w-[560px] rounded-[24px]", ELEVATED_CARD);
+  const shell = cn("my-1 w-full max-w-[560px] rounded-[24px]", ASK_CARD_RING);
   if (!rows.length) {
     return (
       <section data-inbox-card="caught-up" aria-label={t("inbox.card.caughtUp")} className={cn(shell, "flex items-center gap-2 px-4 py-2 text-[13px] text-ink-secondary")}>

@@ -5,8 +5,7 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import type { Bot } from "@/state/store";
 import { replyToInboxRow, settleInboxRow } from "@/state/inbox";
-import { ASK_QUIET_ANSWER, AskReply } from "../AskCard";
-import { ELEVATED_CARD } from "../elevated";
+import { ASK_CARD_RING, ASK_QUIET_ANSWER, AskReply } from "../AskCard";
 import { pendingApprovals, PendingApprovalActions, PendingApprovalPanel } from "../PendingApproval";
 import { ConnectorCard } from "../ConnectorCard";
 import { QuestionCard } from "../QuestionCard";
@@ -32,7 +31,7 @@ function ApprovalAnswer({ row, threadId, asker }: AnswerProps) {
   const approval = threadId ? pendingApprovals([asMessage(row)])[0] : undefined;
   if (!approval || !threadId) return null;
   return (
-    <div className={cn("rounded-[24px]", ELEVATED_CARD)}>
+    <div className={cn("rounded-[24px]", ASK_CARD_RING)}>
       <PendingApprovalPanel pending={approval} count={1} index={0} botName={asker?.name ?? row.from.name} asker={asker}
         actions={<PendingApprovalActions part="primary" tag="inbox" pending={approval} threadId={threadId} bot={asker} onCancelTurn={() => {}} />} />
     </div>

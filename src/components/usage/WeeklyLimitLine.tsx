@@ -21,7 +21,7 @@ export function WeeklyLimitLine({ onSeeUsage, error, clearError }: { onSeeUsage:
   if (!limit) return null;
   const { report } = limit;
   return (
-    <div role="status" data-weekly-limit={report.saver ? "saver" : "waiting"} className="flex items-center gap-1.5 px-1 pb-1.5 text-[12px] leading-4 text-ink-secondary">
+    <div role="status" data-weekly-limit={report.saver ? "saver" : "waiting"} className="mb-1.5 flex items-center gap-1.5 rounded-[12px] bg-(--color-notice) px-3 py-2 text-[12px] leading-4 text-ink-secondary">
       <span>{t("composer.limit.reached")}</span>
       <span aria-hidden="true">·</span>
       {report.saver
