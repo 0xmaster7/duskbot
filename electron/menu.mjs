@@ -33,7 +33,7 @@ export function aboutPanelOptions(version) {
   };
 }
 
-export function buildApplicationMenu({ environments, activeId, onSwitch, onAddFromClipboard, onConnect, onForget, onOpenSettings, onOrganizationSignIn, onAddCloud, sublabels = {}, home = null, openAtLogin = null, onQuit = null, onStop = null }) {
+export function buildApplicationMenu({ environments, activeId, onSwitch, onAddFromClipboard, onConnect, onForget, onOpenSettings, onOrganizationSignIn, onAddCloud, sublabels = {}, home = null, openAtLogin = null, onQuit = null, onStop = null, onExportUsageLog = null }) {
   const isMac = process.platform === "darwin";
   const quit = onQuit
     ? { id: "quit", label: isMac ? `Quit ${app.name}` : process.platform === "win32" ? "Exit" : "Quit", ...(process.platform === "win32" ? {} : { accelerator: "CmdOrCtrl+Q" }), click: (_item, _window, event) => onQuit(event?.triggeredByAccelerator === true) }
@@ -93,6 +93,7 @@ export function buildApplicationMenu({ environments, activeId, onSwitch, onAddFr
       { label: "What's New", click: () => void shell.openExternal("https://dusk.bot/changelog") },
       { type: "separator" },
       { label: "Contact Support", click: () => void shell.openExternal("mailto:hello@dusk.bot") },
+      ...(onExportUsageLog ? [{ label: "Export Usage Log…", click: () => onExportUsageLog() }] : []),
     ] },
   ];
   return Menu.buildFromTemplate(template);

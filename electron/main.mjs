@@ -561,6 +561,12 @@ function composioBrokerUrl() {
 
 // Finder/Explorer launches have no usable stdio, so the server child's output goes to server.log here.
 const LOG_DIR = !app.isPackaged && process.env.DUSK_LOG_DIR ? process.env.DUSK_LOG_DIR : app.getPath("logs");
+// the debug trail (trail.mjs): main and the renderer write trail.jsonl, the server child its own file beside it
+const TRAIL_CAP = app.isPackaged ? TRAIL_CAP_BYTES.packaged : TRAIL_CAP_BYTES.dev;
+process.env.DUSK_TRAIL_DIR = LOG_DIR;
+process.env.DUSK_TRAIL_CAP = String(Math.floor(TRAIL_CAP / 2));
+const trailWriter = configureTrail({ src: "main", writer: createTrailWriter({ dir: LOG_DIR, prefix: "trail", capBytes: Math.floor(TRAIL_CAP / 2) }) });
+trail("app.start", { version: app.getVersion(), packaged: app.isPackaged, platform: process.platform });
 const DESKTOP_CRASH_LOG = path.join(LOG_DIR, "desktop-crashes.log");
 const DESKTOP_CRASH_LOG_MAX_BYTES = 512 * 1024;
 let logStream = null;
@@ -587,6 +593,8 @@ import { autoStartCompanion } from "./companion-autostart.mjs";
 import { createRoutineWakeHold, rememberRoutineWake, routineWakeSettings } from "./routine-wake.mjs";
 import { CREDENTIAL_PATCH, credentialSaveError } from "./credential-patch.mjs";
 import { createCappedLog } from "./capped-log.mjs";
+import { TRAIL_CAP_BYTES, configureTrail, createTrailWriter, trail, trailError } from "./trail.mjs";
+import { installTrailMain } from "./trail-main.mjs";
 
 /** Second wall after preload's reduced bridge: computer-controlling IPC answers only the local server's UI.
  * Declared before any handler registration (temporal dead zone). */
@@ -1630,6 +1638,11 @@ function activeOrigin() {
   return activeEnvironment(environmentsState)?.origin ?? rendererOrigin();
 }
 
+let trailMain = null;
+function exportUsageLogFromMenu() {
+  void trailMain?.exportUsageLog(mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined).catch((error) => { dialog.showErrorBox("Export usage log", error?.message ?? String(error)); });
+}
+
 function refreshApplicationMenu() {
   Menu.setApplicationMenu(
     buildApplicationMenu({
@@ -1645,6 +1658,7 @@ function refreshApplicationMenu() {
       ...cloudMenuOptions(),
       home: homeWindow.cloudOrigin() ? { origin: homeWindow.cloudOrigin(), onBack: () => void showHome({ place: "cloud" }) } : null,
       onQuit: fromKeys => desktopBots.quit(fromKeys), onStop: all => desktopBots.stop(all),
+      onExportUsageLog: exportUsageLogFromMenu,
     }),
   );
 }
@@ -2869,6 +2883,9 @@ const vpsCloudMove = desktopRemoteAccess ? null : installVpsCloudMoveMain({ ipcM
   tell: view => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("vps-cloud-move:changed", view); railChanged(); } });
 // Every page may ask, and main answers for the server of the page that asks: a linked VPS is checked against its pinned identity.
 installSealTrust({ ipcMain, isLocal: event => senderIsLocal(event), pageOrigin: activePageOrigin, links: () => vpsLink });
+trailMain = installTrailMain({ ipcMain, app, dialog, shell, powerMonitor, BrowserWindow, logDir: LOG_DIR, writer: trailWriter,
+  accept: event => senderIsLocal(event) || Boolean(homeWindow.homePage(event)) || Boolean(activePageOrigin(event)),
+  linkPath: event => { const origin = activePageOrigin(event); return origin ? vpsLink.pathAt(origin) : null; } });
 // Teams from the verified session as places this window shows (home-places.mjs): the one to open next time, and its lines.
 const homePlaces = createHomePlaces({ store: jsonFile(path.join(app.getPath("userData"), "home-place.json")), environments: () => environmentsState, persist: persistEnvironments, makeId: randomUUID, homeOrigin: myCloud, log: slog });
 const homeWindow = createHomeWindow({ clean: cleanWorkspace, journal: () => oneHome.journal() ?? vpsCloudMove?.homeJournal() ?? null, frozen: oneHome.marker, account: () => (app.isPackaged && !desktopRemoteAccess ? cloudAccount : null), restored: cloudAccountRestored,
