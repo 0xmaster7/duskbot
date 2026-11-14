@@ -96,6 +96,8 @@ const SURFACES: Surface[] = [
     const { bots } = await api("GET", "/api/bots");
     for (const bot of bots.filter((bot: { defaultBot?: unknown }) => bot.defaultBot)) await api("PATCH", `/api/bots/${bot.id}`, { welcomed: true });
     await runControlDusk(["new-bot", "--name", "Pepper", "--url", fixture.info.url]);
+    // one colour every run, so screenshots compare (scripts/testing/visual-baseline.ts); a new bot's colour is picked at random
+    for (const one of (await api("GET", "/api/bots")).bots) await api("PATCH", `/api/bots/${one.id}`, { color: one.name === "Pepper" ? "orange" : "silver" });
     preview = await mountPreview(fixture, { entry: "/scripts/testing/surface-gallery-preview.tsx", route: "/__surface-gallery.html", title: "Surfaces gallery", logLevel: "warn", hmr: false });
     if (SURFACES.some((surface) => surface.onboarding)) {
       fresh = await launchVerificationServer(process.env);

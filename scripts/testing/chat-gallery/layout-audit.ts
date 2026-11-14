@@ -304,6 +304,8 @@ export function auditLayout(options: AuditOptions = {}): LayoutIssue[] {
     const style = getComputedStyle(element);
     const ink = parse(style.color), paper = behind(element);
     if (!ink || !paper) continue;
+    // a field drawn through a mirror (the composer's link pills) paints its own text clear on purpose; the mirror is checked
+    if (ink.a === 0 && element.matches("textarea, input")) continue;
     const opacity = Number(style.opacity);
     const shown = { r: ink.r * ink.a * opacity + paper.r * (1 - ink.a * opacity), g: ink.g * ink.a * opacity + paper.g * (1 - ink.a * opacity), b: ink.b * ink.a * opacity + paper.b * (1 - ink.a * opacity) };
     const [hi, lo] = [luminance(shown), luminance(paper)].sort((a, b) => b - a);

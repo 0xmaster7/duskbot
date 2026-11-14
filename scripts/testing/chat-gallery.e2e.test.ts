@@ -57,6 +57,8 @@ const wide = encodePng(480, 120, (x, y) => [200, 100 + (x % 100), 80 + (y % 40)]
     const { bots } = await api("GET", "/api/bots");
     for (const bot of bots.filter((bot: { defaultBot?: unknown }) => bot.defaultBot)) await api("PATCH", `/api/bots/${bot.id}`, { welcomed: true });
     await runControlDusk(["new-bot", "--name", "Pepper", "--url", fixture.info.url]);
+    // one colour every run, so screenshots compare (scripts/testing/visual-baseline.ts); a new bot's colour is picked at random
+    for (const one of (await api("GET", "/api/bots")).bots) await api("PATCH", `/api/bots/${one.id}`, { color: one.name === "Pepper" ? "orange" : "silver" });
     preview = await mountPreview(fixture, {
       entry: "/scripts/testing/chat-gallery-preview.tsx", route: "/__chat-gallery.html", title: "Chat gallery", logLevel: "warn", hmr: false,
       extraRoutes: [{ path: /^\/api\/attachments\/([^/?]+)/, method: "GET", handler: (_req, res, match) => {

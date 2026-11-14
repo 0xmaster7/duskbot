@@ -40,6 +40,7 @@
     "test-bots": "node scripts/demo/test-bots.mjs",
     "mcp": "node --experimental-strip-types scripts/mcp-server.ts",
     "control:dusk": "node --experimental-strip-types scripts/control-dusk.ts",
+    "ui:baseline": "node --experimental-strip-types scripts/testing/visual-baseline.ts",
     "dev:desktop": "node scripts/prepare-cloudflared.mjs --current && electron .",
     "dev:app": "node scripts/dev-app.mjs",
     "dev:dashboard": "vite --config apps/dashboard/vite.config.ts",
