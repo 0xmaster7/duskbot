@@ -3,7 +3,7 @@
 // bots from another app when there are some, the phone while its app is offered (with the help-improve line on the last
 // screen), then Dusk's chat;
 // on dusk cloud, the Cloud being made. What each step shows, where it goes, and what it saves.
-import { act, createElement } from "react";
+import { act, createElement, StrictMode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { introStaged, stageIntro } from "@/lib/default-bot";
@@ -367,6 +367,17 @@ describe("on the desktop app", () => {
     await choose("[data-funnel-place=cloud]");
     await press("Use this computer instead");
     expect(step(), "this Mac's own steps, with no dead end").toBe("ai");
+  });
+
+  it("in strict mode (mounted twice) still hears the browser and the payment", async () => {
+    const bridge = cloudBridge({ status: "connected", clouds: [] });
+    desktop({ cloudAccount: bridge });
+    await act(async () => { root.render(createElement(StrictMode, null, createElement(WelcomeFlow, { onDone: f.onDone }))); });
+    await settle();
+    await choose("[data-funnel-place=cloud]");
+    expect(text()).toContain("Waiting for your checkout");
+    await bridge.tell({ status: "connected", clouds: [{ id: "c1", primary: true, runsOn: "cloud", status: "setting_up" }] });
+    expect(step()).toBe("ai");
   });
 
   it("a sign-in still waiting in the browser is let go when the person picks this Mac instead", async () => {

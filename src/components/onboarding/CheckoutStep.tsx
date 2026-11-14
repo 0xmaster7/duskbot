@@ -17,9 +17,10 @@ const LOOK_MS = 6_000;
 
 type Phase = "idle" | "opening" | "waiting" | "failed";
 
-/** What the waiting line says: the sign-in first, then the checkout. */
-export function checkoutLine(account: CloudAccountState | null): "signIn" | "checkout" {
-  return account?.status === "connected" ? "checkout" : "signIn";
+/** What the waiting line says: the sign-in while one is under way in the browser, else the plan and checkout. */
+export function checkoutLine(account: CloudAccountState | null, signingIn: boolean): "signIn" | "checkout" {
+  if (account?.status === "connected") return "checkout";
+  return signingIn || account?.status === "connecting" ? "signIn" : "checkout";
 }
 
 /** The trial and price, as the offer says them, or null while the app doesn't know them. */
@@ -28,7 +29,7 @@ export function useCloudPriceLine(): string | null {
   if (!offer?.plans.length) return null;
   const price = usd(Math.min(...offer.plans.map((plan) => plan.amount)) / 100);
   const days = offerTrialDays(offer);
-  return days ? t("funnel.checkout.trial", { days, price }) : t("cloudIntro.price", { price });
+  return days ? t("funnel.checkout.trial", { days, price }) : t("funnel.checkout.price", { price });
 }
 
 /** dusk cloud's tile on the place step: the trial as its tag and the price after it, or nothing while unknown. */
@@ -55,7 +56,8 @@ export function CheckoutStep({ start, onPaid, onMac }: {
   const paid = useRef(false);
   const signingIn = useRef(false);
   const live = useRef(true);
-  useEffect(() => () => { live.current = false; }, []);
+  // set again on every mount: React's strict mode mounts twice in development
+  useEffect(() => { live.current = true; return () => { live.current = false; }; }, []);
 
   const seen = useCallback((next: CloudAccountState | null) => {
     if (!live.current) return;
@@ -107,7 +109,7 @@ export function CheckoutStep({ start, onPaid, onMac }: {
     onMac();
   };
 
-  const line = signingIn.current && account?.status !== "connected" ? "signIn" : checkoutLine(account);
+  const line = checkoutLine(account, signingIn.current);
   const email = account?.status === "connected" ? account.account?.email : undefined;
   return (
     <StepFrame
