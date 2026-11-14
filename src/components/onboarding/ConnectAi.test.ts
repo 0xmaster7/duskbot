@@ -115,13 +115,14 @@ describe("connecting an AI on the first screen", () => {
     expect(setup("openaiCompat")?.getAttribute("data-intent")).toBe("inject");
   });
 
-  it("shows a connected AI's card green with a check and Connected, not to be pressed again", async () => {
+  it("shows a connected AI's card on the plain tile tone, with a green check and Connected, not to be pressed again", async () => {
     f.instances = [engine("claude", "claudeAgent", "Claude", true), engine("codex", "codex", "Codex", false)];
     await show();
     const claude = host.querySelector<HTMLElement>("[data-funnel-ai=claude]")!;
     expect(claude.tagName).toBe("DIV");
     expect(claude.hasAttribute("data-connected")).toBe(true);
-    expect(claude.className).toContain("bg-success");
+    expect(claude.className, "green is the status word, not the surface").not.toContain("bg-success");
+    expect(claude.querySelector(".text-success")?.textContent).toContain("Connected");
     expect(claude.textContent).toContain("Connected");
     expect(claude.querySelector("svg"), "a check, not colour alone").not.toBeNull();
     expect(host.querySelector("button[data-funnel-ai=chatgpt]")).not.toBeNull();

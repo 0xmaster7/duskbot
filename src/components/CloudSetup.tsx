@@ -35,9 +35,11 @@ function storeCollapsed(collapsed: boolean) {
 }
 
 // in the sidebar's footer, above Connect apps, as its other cards are: tonal, no border, no shadow, the footer's width
-const IN_FOOTER = "relative mb-2 max-h-[50dvh] w-full overflow-y-auto overflow-x-hidden rounded-xl bg-composer text-ink";
+// in the footer it wears the footer's own look (Connect apps' white pill on its faint ink edge) and moves as the app's
+// popovers do, growing out of the footer
+const IN_FOOTER = "popover-surface [--menu-shift:4px] relative mb-2 max-h-[50dvh] w-full overflow-y-auto overflow-x-hidden rounded-[18px] border border-ink/[0.08] bg-composer text-ink";
 // with no sidebar footer on screen (the icon rail, a phone): over the page's corner
-const FLOATING = "fixed bottom-4 left-[calc(var(--rail-beside,0px)_+_1rem)] z-40 max-h-[calc(100dvh-32px)] w-[300px] max-w-[calc(100vw_-_var(--rail-beside,0px)_-_32px)] overflow-y-auto overflow-x-hidden rounded-2xl bg-menu text-ink shadow-[0_8px_24px_-12px_rgba(0,0,0,0.35)]";
+const FLOATING = "fixed bottom-4 left-[calc(var(--rail-beside,0px)_+_1rem)] z-40 max-h-[calc(100dvh-32px)] w-[300px] max-w-[calc(100vw_-_var(--rail-beside,0px)_-_32px)] overflow-y-auto overflow-x-hidden rounded-2xl bg-menu text-ink shadow-(--shadow-popover) popover-surface [--menu-shift:4px]";
 
 /** The card in the sidebar footer's slot while there is one, else floating. */
 function placed(slot: HTMLElement | null, render: (card: string) => ReactNode): ReactNode {
@@ -83,7 +85,7 @@ function CloudReady({ routine, onDone, slot }: { routine?: Routine; onDone: () =
     });
   };
   const next = routine ? nextRunLabel(routine.nextRunAt) : null;
-  return placed(slot, (card) => <aside aria-labelledby="cloud-ready-title" data-cloud-setup-ready className={cn(card, "flex flex-col items-center p-4 pt-5 text-center", leaving ? "animate-pop-out" : "animate-spot-in")}>
+  return placed(slot, (card) => <aside aria-labelledby="cloud-ready-title" data-cloud-setup-ready className={cn(card, "flex flex-col items-center p-4 pt-5 text-center", leaving ? "animate-pop-out" : "animate-pop-in")}>
     <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(60%_100%_at_50%_0%,color-mix(in_oklab,var(--color-success)_16%,transparent),transparent)]" />
     <MausAvatar color="green" state="celebrate" motion={motion.kind} motionKey={motion.key} size={56} label={productName()} />
     <div role="status" className="relative">
@@ -219,7 +221,7 @@ export function CloudSetup({ viewer, welcomeShown = false }: { viewer: WelcomeVi
   const toggle = () => { setCollapsed(!collapsed); storeCollapsed(!collapsed); };
   const others = items.filter((item) => item.id !== current);
 
-  return placed(slot, (card) => <aside aria-labelledby="cloud-setup-title" data-cloud-setup className={cn(card, "animate-spot-in p-3")}>
+  return placed(slot, (card) => <aside aria-labelledby="cloud-setup-title" data-cloud-setup className={cn(card, "animate-pop-in p-3")}>
     <div className="flex items-center gap-2">
       <span aria-hidden="true" className="-my-1 -ms-0.5 shrink-0"><MausAvatar color="blue" state={done === items.length ? "celebrate" : "idle"} size={22} trackPointer={false} label="" /></span>
       <h2 id="cloud-setup-title" className="min-w-0 flex-1 text-[13px] font-semibold leading-[18px] [text-wrap:balance]">{t("cloudSetup.title")}</h2>

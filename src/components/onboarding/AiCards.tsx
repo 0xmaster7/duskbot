@@ -70,7 +70,7 @@ function AiCard({ tile, connected, picked, onPick }: { tile: AiTile<InstanceInfo
   if (connected) {
     return (
       <div data-funnel-ai={tile.id} data-connected="" role="listitem" aria-label={t("funnel.ai.connectedName", { name: label(tile) })}
-        className="ai-connected place-reveal relative flex h-[96px] flex-col items-center justify-center gap-1.5 rounded-2xl bg-success/[0.09] px-2">
+        className="ai-connected place-reveal relative flex h-[96px] flex-col items-center justify-center gap-1.5 rounded-2xl bg-ink/[0.035] px-2">
         <span className="grid size-7 place-items-center"><TileMark tile={tile} size={26} /></span>
         <span className="flex max-w-full flex-col items-center">
           <span className="max-w-full truncate text-[13px] leading-[18px] text-ink">{label(tile)}</span>
