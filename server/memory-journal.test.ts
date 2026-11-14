@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  APPEND_COPY_CAP,
   BEFORE_CAP,
   DIFF_CAP,
   JOURNAL_DIR,
@@ -402,6 +403,40 @@ describe("turn boundary", () => {
       ["bot", "turn", "room-1", "edited"],
     ]);
     expect(readMemoryJournal(bot, 10).some((row) => row.actor === "person")).toBe(false);
+  });
+
+  it("keeps a growing daily log's journal linear: an append stores what it added, not the whole file again", async () => {
+    const bot = freshBot();
+    ensureWorkspace(bot);
+    const now = new Date(2026, 10, 14, 9, 30);
+    const path = memoryLogPath(now);
+    for (let turn = 0; turn < 300; turn++) {
+      journalTurnWrite(bot, path, `chat-${turn}`, () => appendMemoryLog(bot, `turn ${turn}: ${"did a thing ".repeat(20)}`, { now, source: 'chat "Plan"' }));
+    }
+    await flushMemoryJournal(bot);
+    expect(statSync(join(workspaceDir(bot), path)).size).toBeGreaterThan(80_000);
+    // a full copy per append would be about 12 MB here
+    expect(statSync(journalFile(bot)).size).toBeLessThan(1_500_000);
+    const latest = readMemoryJournal(bot, 100);
+    expect(latest.every((row) => row.before === null && row.canRevert && JSON.stringify(row).length < 4_000)).toBe(true);
+  });
+
+  it("reverts an append to the text before it, and refuses once the text above it changed", async () => {
+    const bot = freshBot();
+    ensureWorkspace(bot);
+    const one = `${"one ".repeat(APPEND_COPY_CAP / 4)}\n`;
+    journalMemoryWrite(bot, "memory/notes.md", one, { actor: "bot", via: "tool" });
+    const added = journalMemoryWrite(bot, "memory/notes.md", `${one}two\n`, { actor: "bot", via: "tool" }).entry!;
+    journalMemoryWrite(bot, "memory/notes.md", `${one}two\nthree\n`, { actor: "bot", via: "tool" });
+    expect(added).toMatchObject({ before: null, beforeLength: one.length, canRevert: true });
+    await flushMemoryJournal(bot);
+    expect(revertMemoryChange(bot, added.id)).toMatchObject({ ok: true });
+    expect(readMemoryDoc(bot, "memory/notes.md").text).toBe(one);
+    const again = journalMemoryWrite(bot, "memory/notes.md", `${one}four\n`, { actor: "bot", via: "tool" }).entry!;
+    journalMemoryWrite(bot, "memory/notes.md", `ONE${one}four\n`, { actor: "person", via: "edit" });
+    await flushMemoryJournal(bot);
+    expect(revertMemoryChange(bot, again.id)).toMatchObject({ ok: false, status: 409 });
+    expect(readMemoryDoc(bot, "memory/notes.md").text).toBe(`ONE${one}four\n`);
   });
 
   it("hands back the write's own result when the journal cannot read the file", () => {

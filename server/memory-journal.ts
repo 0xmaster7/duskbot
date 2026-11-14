@@ -34,6 +34,9 @@ export interface MemoryJournalEntry {
   beforeHash: string | null;
   afterHash: string | null;
   before: string | null;
+  /** An append: the earlier text is the file's first this-many characters, kept as `beforeHash` only (a copy per
+   * append of a growing daily log would make the journal grow with the square of the file). */
+  beforeLength?: number;
   diff: string;
   added: number;
   removed: number;
@@ -44,6 +47,8 @@ export interface MemoryJournalEntry {
 export const JOURNAL_DIR = join(DATA_DIR, "memory-journal");
 export const DIFF_CAP = 8_000;
 export const BEFORE_CAP = 512 * 1024;
+/** Above this many characters an append keeps no copy of the earlier text (`beforeLength`). */
+export const APPEND_COPY_CAP = 16 * 1024;
 const MAX_JOURNAL_READ_BYTES = 8 * 1024 * 1024;
 const MAX_ROWS = 500;
 const LCS_CELL_CAP = 4_000_000;
@@ -285,7 +290,13 @@ export function recordMemoryChange(botId: string, change: MemoryChangeInput): Me
   let keptBefore: string | null = null;
   let canRevert = true;
   let revertUnavailableReason: string | undefined;
-  if (before !== null) {
+  const appended = before !== null && before.length > APPEND_COPY_CAP && after !== null && after.startsWith(before);
+  if (appended) {
+    if (redactSecretsInText(before) !== before) {
+      canRevert = false;
+      revertUnavailableReason = "The earlier version contained sensitive text that was hidden, so it cannot be restored exactly.";
+    }
+  } else if (before !== null) {
     if (Buffer.byteLength(before, "utf8") > BEFORE_CAP) {
       canRevert = false;
       revertUnavailableReason = "The earlier version was too large to keep, so this change cannot be reverted.";
@@ -313,6 +324,7 @@ export function recordMemoryChange(botId: string, change: MemoryChangeInput): Me
     removed: diff.removed,
     canRevert,
   };
+  if (appended) entry.beforeLength = before.length;
   if (change.threadId) entry.threadId = change.threadId;
   if (revertUnavailableReason) entry.revertUnavailableReason = revertUnavailableReason;
   enqueue(botId, entry);
@@ -366,7 +378,13 @@ export function revertMemoryChange(botId: string, entryId: string, opts: { threa
       const removed = journalMemoryDelete(botId, entry.path, { actor: "person", via: "revert", threadId: opts.threadId });
       return { ok: true, entry: removed, doc: { path: entry.path, text: "", hash: hashMemoryText(""), exists: false } };
     }
-    const written = journalMemoryWrite(botId, entry.path, entry.before ?? "", { actor: "person", via: "revert", threadId: opts.threadId });
+    let before = entry.before ?? "";
+    if (entry.beforeLength !== undefined) {
+      const prefix = readMemoryDoc(botId, entry.path).text.slice(0, entry.beforeLength);
+      if (hashMemoryText(prefix) !== entry.beforeHash) return { ok: false, status: 409, error: "This note changed above what was added since, so the addition cannot be reverted." };
+      before = prefix;
+    }
+    const written = journalMemoryWrite(botId, entry.path, before, { actor: "person", via: "revert", threadId: opts.threadId });
     return { ok: true, entry: written.entry, doc: written.doc };
   } catch (error) {
     if (error instanceof MemoryStoreError) return { ok: false, status: error.status, error: error.message };
