@@ -366,7 +366,7 @@ On this computer, they work while it's awake. Put them on dusk cloud or your own
 <details>
 <summary><b>Can I read and change the code?</b></summary>
 <br>
-Yes. dusk bot is source available under the <a href="LICENSE">PolyForm Strict License</a>: read it, run it and build it for personal use. Commercial use needs a <a href="https://dusk.bot/license">separate license</a>. Details in <a href="docs/LICENSING.md">LICENSING</a>.
+Yes. dusk bot is source available under the <a href="LICENSE">PolyForm Noncommercial License</a>: read it, run it, change it and share it (with the license and its required notice) for personal and other noncommercial use. Commercial use needs a <a href="https://dusk.bot/license">separate license</a>. Details in <a href="docs/LICENSING.md">LICENSING</a>.
 </details>
 
 <details>
@@ -381,7 +381,7 @@ Bug reports, ideas and pull requests are welcome. Start with [CONTRIBUTING.md](C
 
 ## License
 
-Source available under [PolyForm Strict 1.0.0](LICENSE). Free for personal use; commercial use needs a [separate license](https://dusk.bot/license).
+Source available under [PolyForm Noncommercial 1.0.0](LICENSE). Free for personal use; commercial use needs a [separate license](https://dusk.bot/license).
 
 <br>
 

@@ -6,7 +6,7 @@ Thanks for helping with dusk bot. Bug reports, fixes and translations are all we
 
 - **Bugs and ideas:** open an issue first for anything bigger than a small fix, so we can agree on the approach.
 - **Security problems:** never in public. See [SECURITY.md](SECURITY.md).
-- **Licensing:** dusk bot is under the [PolyForm Strict License 1.0.0](LICENSE) ([details](docs/LICENSING.md)). By
+- **Licensing:** dusk bot is under the [PolyForm Noncommercial License 1.0.0](LICENSE) ([details](docs/LICENSING.md)). By
   contributing you agree your contribution is licensed under it. No DCO sign-off is needed.
 
 ## Set up

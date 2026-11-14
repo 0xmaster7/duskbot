@@ -9,7 +9,7 @@ make that claim. Never invent features, numbers, integrations, users, ratings or
 - Desktop app for macOS 12 or later, Windows 10 or 11 (64-bit, installer needs no admin rights) and Ubuntu 24.04 (beta, .deb or AppImage). (/docs/getting-started)
 - Phone: you text your bots from an iPhone or Android phone. The store apps are on their way; until then pairing opens Dusk Bot in the phone's browser and you add it to the home screen (that version sends no notifications). (/docs/phone)
 - Free for personal use on your own computer, with every feature. No account, no card. An account is only needed to buy a plan. (/docs/account-and-billing)
-- Source-available under the PolyForm Strict license: free for personal use, no changing or passing it on; work use needs a work license. Not open source. (/docs/faq, /license)
+- Source-available under the PolyForm Noncommercial license: free for personal and other noncommercial use, and you may change it and pass it on for noncommercial purposes if the license and its required notice go with it; work use needs a work license. Not open source. (/docs/faq, /license)
 - Independent; not owned by, paid for by or affiliated with any AI company whose models it runs. (/about)
 - Began from OpenMausBot, an open project by Milind Soni and contributors; that original code stays under Apache 2.0. Dusk Bot itself is source-available, never call it open source or Apache licensed. (/about, /license)
 

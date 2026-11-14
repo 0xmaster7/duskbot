@@ -60,7 +60,7 @@ yes, between your computer, a cloud and a server, with their chats, memory and r
 
 ### is dusk bot open source?
 
-no. it's source-available under the polyform strict license: free for personal use, no changing or passing it on. work use needs a separate license. see the [license](/license).
+no. it's source-available under the polyform noncommercial license: free for personal and other noncommercial use, and you can change it and pass it on for noncommercial purposes as long as the license and its required notice go with it. work use needs a separate license. see the [license](/license).
 
 ### how do i report a security problem?
 

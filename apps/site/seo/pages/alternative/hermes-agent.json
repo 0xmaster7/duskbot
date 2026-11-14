@@ -67,7 +67,7 @@
         "label": "code and license",
         "cells": [
           "mit-licensed open source",
-          "source-available under polyform strict; free personal use, work license required"
+          "source-available under polyform noncommercial; free personal use, work license required"
         ],
         "src": [
           4,
@@ -159,7 +159,7 @@
   "sections": [
     {
       "h": "keep hermes if the code matters",
-      "md": "**choose hermes when changing the code is part of the job.** its mit license lets you do that.[^4] dusk is source-available under polyform strict: personal use allows no changing or passing it on. work needs a license.[^5]\n\nhermes also has persistent memory, self-created skills and configurable subagents.[^1] if those are why you use it, an easier screenshot is a weak reason to move. compare [openclaw and hermes](/vs/openclaw-vs-hermes-agent) for another open project."
+      "md": "**choose hermes when changing the code for work is part of the job.** its mit license lets you do that.[^4] dusk is source-available under polyform noncommercial: you can change it and pass it on for noncommercial use only. work needs a license.[^5]\n\nhermes also has persistent memory, self-created skills and configurable subagents.[^1] if those are why you use it, an easier screenshot is a weak reason to move. compare [openclaw and hermes](/vs/openclaw-vs-hermes-agent) for another open project."
     },
     {
       "h": "find the bill behind the sign-in",

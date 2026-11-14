@@ -64,7 +64,7 @@ Your chosen AI providers and connected apps apply their own terms and privacy po
 
 ## Software license and feedback
 
-The source code is available under PolyForm Strict License 1.0.0, with separate upstream and third-party licenses as described on the [license page](license.md). Commercial use requires a separate commercial license. A payment for a service grants only the software rights expressly included in your applicable license agreement.
+The source code is available under PolyForm Noncommercial License 1.0.0, with separate upstream and third-party licenses as described on the [license page](license.md). Commercial use requires a separate commercial license. A payment for a service grants only the software rights expressly included in your applicable license agreement.
 
 You may send feedback to hello@dusk.bot. Do not include confidential material or information you lack permission to share. If you submit suggestions, you permit us to use them to improve dusk bot without paying you or owing attribution. You retain ownership of your feedback. You do not have to provide it.
 
