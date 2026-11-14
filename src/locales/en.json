@@ -2695,7 +2695,7 @@
   "model.simple.model": "Model",
   "model.simple.manage": "Manage AI accounts",
   "model.free.name": "Free model",
-  "model.free.hint": "A free model from dusk bot, so you can start right away. Connect your own AI any time.",
+  "model.free.hint": "A free model from OpenCode, so you can start right away. Connect your own AI any time.",
   "model.picker.notConnected": "Not connected",
   "model.picker.connect": "Connect",
   "model.picker.connectName": "Connect {name}",
