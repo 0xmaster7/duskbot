@@ -119,7 +119,7 @@ export function RoomToolChip({ message, roomId, threadId, live = false }: { mess
   }
   const comm = message.comm;
   if (comm && message.handoff && (tool.ok !== false || message.handoff.phase === "result")) {
-    return <HandoffRow message={message} bots={state.bots} onOpen={comm.groupId !== roomId ? () => openRoomThread(dispatch, comm, state.groups) : undefined} />;
+    return <HandoffRow message={message} />;
   }
   if (comm && comm.groupId !== roomId) {
     return <HandoffChip message={message} bots={state.bots} title={t("room.openBot", { name: comm.withName })} onClick={() => openRoomThread(dispatch, comm, state.groups)} />;

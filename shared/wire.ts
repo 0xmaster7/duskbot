@@ -461,6 +461,8 @@ export interface MediaSize { w: number; h: number }
 export type ActionKind = "send" | "book" | "buy" | "file" | "download";
 export interface WireMessage extends HelperIntroField, SetupCardFields, WaitLineField, BugReportField {
   roomRequest?: { id: string; phase: "request" | "result" }; handoff?: import("./handoff-line.ts").HandoffLine;
+  /** The coordinator's "resumed with X's results" row: the chat folds it into the reply line it follows. */
+  peerResume?: true;
   id: string;
   role: "bot" | "user";
   kind: "text" | "options" | "activity" | "screen" | "connector" | "secret" | "signin" | "routine.run" | "goal.run" | "digest" | "compaction" | "call" | "widget" | "app";

@@ -1,6 +1,6 @@
 import { useContext, useState, type ReactNode } from "react";
 import { Check, Clock3, ShieldCheck, X } from "../icons";
-import { api, ApiError, StoreContext, type Bot, type Message, type OptionCardData } from "@/state/store";
+import { api, StoreContext, type Bot, type Message, type OptionCardData } from "@/state/store";
 import { shareLearnedSkillsMode } from "@/lib/feature-flags";
 import { cn } from "@/lib/cn";
 import { t, tFromServer } from "@/lib/i18n";
@@ -13,7 +13,6 @@ import { PROFILE_REQUEST_FIELDS, type ProfileRequestField } from "../../shared/p
 import type { RoutineRequestSchedule } from "../../shared/routine-request";
 import type { SkillShareRecord } from "../../shared/skill-request";
 import { cardAutomation } from "@/lib/automations";
-import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { yourComputerAsk } from "@/lib/your-computer";
 import { TriggerCard } from "./TriggerCard";
 import { ASK_CARD_LIFT, ASK_CARD_RING } from "./AskCard";
@@ -227,6 +226,8 @@ const WAIT_EVENT = {
 interface AppliedEvent {
   label: string;
   chip?: { icon: IconName; name: string; title?: string; routinesOf?: string | null };
+  /** Bots the change made or changed, each drawn as its mascot. */
+  bots?: Array<{ name: string; botId?: string }>;
   forBot?: { name: string; botId?: string };
 }
 
@@ -270,10 +271,7 @@ export function appliedEvent(card: OptionCardData): AppliedEvent | undefined {
   }
   const setup = card.teamSetupRequest;
   if (setup?.deletion) return { label: t("chat.event.botDeleted"), chip: { icon: "robot", name: setup.deletion.name } };
-  if (setup?.result) {
-    const names = setup.result.bots.filter((bot) => bot.action === "created" || bot.action === "updated").map((bot) => bot.name).join(", ");
-    return { label: t("chat.event.teamSetUp"), ...(names ? { chip: { icon: "people" as const, name: names } } : {}) };
-  }
+  if (setup?.result) return setupEvents(setup.result)[0] ?? { label: t("chat.event.botsUpdated") };
   if (card.teamMemoryRequest) {
     const title = card.subtitle.split(" — ")[0] ?? "";
     return { label: t("chat.event.teamMemorySaved"), ...(title ? { chip: { icon: "brain" as const, name: title } } : {}) };
@@ -281,28 +279,79 @@ export function appliedEvent(card: OptionCardData): AppliedEvent | undefined {
   return undefined;
 }
 
+/** A setup as plain events: the bots it made, the ones it changed, and any group it made, one line each. */
+function setupEvents(result: NonNullable<NonNullable<OptionCardData["teamSetupRequest"]>["result"]>): AppliedEvent[] {
+  const bots = (action: "created" | "updated") => result.bots.filter((bot) => bot.action === action).map((bot) => ({ name: bot.name, botId: bot.id }));
+  const created = bots("created"), updated = bots("updated");
+  return [
+    ...(created.length ? [{ label: t("chat.event.botCreated"), bots: created }] : []),
+    ...(updated.length ? [{ label: t("chat.event.botsUpdated"), bots: updated }] : []),
+    ...result.newTeams.map((name) => ({ label: t("chat.event.groupMade"), chip: { icon: "people" as const, name } })),
+  ];
+}
+
+function botChip(bot: { name: string; botId?: string }, known: readonly Bot[] | undefined) {
+  const found = known?.find((one) => one.id === bot.botId || one.name === bot.name);
+  return (
+    <EventChip key={bot.botId ?? bot.name} wideGap title={bot.name}
+      leading={<BotAvatar bot={found ?? { name: bot.name, color: "blue" }} state="happy" size={16} motion="none" motionKey={0} animated={false} />}>
+      {bot.name}
+    </EventChip>
+  );
+}
+
+function AppliedEventLine({ event, bots }: { event: AppliedEvent; bots: readonly Bot[] | undefined }) {
+  return <EventLine><AppliedEventParts event={event} bots={bots} /></EventLine>;
+}
+
+function AppliedEventParts({ event, bots }: { event: AppliedEvent; bots: readonly Bot[] | undefined }) {
+  const chip = event.chip;
+  const store = useContext(StoreContext);
+  const many = event.bots && event.bots.length > 2;
+  return (
+    <>
+      <EventLabel>{event.label}</EventLabel>
+      {chip && (
+        <EventChip
+          leading={<Icon name={chip.icon} size={12} />}
+          title={chip.title ?? chip.name}
+          {...(chip.routinesOf !== undefined && chip.routinesOf !== null && store
+            ? {
+                onClick: () => openBotSettings(store.dispatch, "routines", chip.routinesOf ? { botId: chip.routinesOf } : {}),
+                "aria-label": t("chat.event.openRoutine", { name: chip.name }),
+              }
+            : {})}
+        >
+          {chip.name}
+        </EventChip>
+      )}
+      {event.bots && (many
+        ? <>{botChip(event.bots[0]!, bots)}<EventLabel tone="tertiary">{t("chat.event.andMore", { count: event.bots.length - 1 })}</EventLabel></>
+        : event.bots.map((bot, index) => index ? [<EventLabel key={`and-${index}`} tone="tertiary">{t("chat.event.and")}</EventLabel>, botChip(bot, bots)] : botChip(bot, bots)))}
+      {event.forBot && (
+        <>
+          <EventLabel tone="tertiary">{t("chat.event.for")}</EventLabel>
+          {botChip(event.forBot, bots)}
+        </>
+      )}
+    </>
+  );
+}
+
 function AppliedChangeLine({
   card,
-  name,
   threadId,
-  summary,
 }: {
   card: OptionCardData;
-  name: string;
   threadId?: string;
-  summary: { line: string; canUndo: boolean; cancels?: boolean; detail?: string };
 }) {
-  const [undoing, setUndoing] = useState(false);
   const [error, setError] = useState<string>();
   const [sharing, setSharing] = useState(false);
   // Kept until the card's own patch arrives, so the Share button cannot come back in between.
   const [sharedNow, setSharedNow] = useState<{ requestId: string; shared: SkillShareRecord }>();
   const store = useContext(StoreContext);
   const config = store?.state.config ?? null;
-  const reviewsTeamMemory = useOwnerOrAdmin() !== false;
-  const canUndo = summary.canUndo && (!card.teamMemoryRequest || reviewsTeamMemory);
   const undone = card.undone === true;
-  const cancels = summary.cancels === true;
   const skill = card.skillRequest;
   const shared = skill?.shared ?? (sharedNow && sharedNow.requestId === card.requestId ? sharedNow.shared : undefined);
   const canShare = Boolean(skill && !shared && !undone && threadId && card.requestId)
@@ -321,65 +370,26 @@ function AppliedChangeLine({
   };
   const sharedNames = shared?.assigned.filter((bot) => bot.botId !== skill?.botId).map((bot) => bot.name) ?? [];
   const skippedNames = shared?.skipped.map((bot) => bot.name) ?? [];
-  const undo = () => {
-    if (!threadId || !card.requestId || undoing) return;
-    setUndoing(true);
-    setError(undefined);
-    api(`/api/threads/${threadId}/undo`, { method: "POST", body: JSON.stringify({ requestId: card.requestId }) })
-      .catch((failure: unknown) => {
-        // A wait that had already ended answers 409, and its card then says how it ended.
-        if (cancels && failure instanceof ApiError && failure.status === 409) return;
-        setError(failure instanceof ApiError && failure.body?.code === "changed-since"
-          ? t("approval.applied.changedSince")
-          : cancels ? t("approval.applied.cancelFailed", { name })
-            : t("approval.applied.undoFailed", { error: friendlyError(failure) }));
-      })
-      .finally(() => setUndoing(false));
-  };
-  const event = appliedEvent(card);
-  const forBot = event?.forBot && store?.state.bots.find((bot) => bot.id === event.forBot!.botId || bot.name === event.forBot!.name);
-  const chip = event?.chip;
+  const setup = card.teamSetupRequest?.result && !card.teamSetupRequest.deletion ? setupEvents(card.teamSetupRequest.result) : null;
+  const events = setup?.length ? setup : [appliedEvent(card)].filter((event) => event !== undefined);
+  const bots = store?.state.bots;
+  const last = events.length - 1;
   return (
-    <div className="flex w-full flex-col items-center gap-1" data-applied-change={name}>
-      <EventLine>
-        <EventLabel>{event?.label ?? summary.line}</EventLabel>
-        {chip && (
-          <EventChip
-            leading={<Icon name={chip.icon} size={12} />}
-            title={chip.title ?? chip.name}
-            {...(chip.routinesOf !== undefined && chip.routinesOf !== null && store
-              ? {
-                  onClick: () => openBotSettings(store.dispatch, "routines", chip.routinesOf ? { botId: chip.routinesOf } : {}),
-                  "aria-label": t("chat.event.openRoutine", { name: chip.name }),
-                }
-              : {})}
-          >
-            {chip.name}
-          </EventChip>
-        )}
-        {event?.forBot && (
-          <>
-            <EventLabel tone="tertiary">{t("chat.event.for")}</EventLabel>
-            <EventChip wideGap title={event.forBot.name} leading={<BotAvatar bot={forBot ?? { name: event.forBot.name, color: "blue" }} state="happy" size={16} motion="none" motionKey={0} animated={false} />}>
-              {event.forBot.name}
+    <div className="flex w-full flex-col items-center gap-1" data-applied-change="">
+      {events.map((event, index) => index < last ? <AppliedEventLine key={index} event={event} bots={bots} /> : (
+        <EventLine key={index}>
+          <AppliedEventParts event={event} bots={bots} />
+          {shared && !undone && (
+            <EventLabel tone="tertiary">· {sharedNames.length ? t("approval.applied.sharedSkill", { names: sharedNames.join(", ") }) : t("approval.applied.sharedSkillNobody")}</EventLabel>
+          )}
+          {undone && !card.waitRequest && <EventLabel tone="tertiary">· {t("approval.applied.undone")}</EventLabel>}
+          {canShare && (
+            <EventChip onClick={share} disabled={sharing} className="disabled:opacity-60">
+              {sharing ? t("approval.applied.sharingSkill") : t("approval.applied.shareSkill")}
             </EventChip>
-          </>
-        )}
-        {shared && !undone && (
-          <EventLabel tone="tertiary">· {sharedNames.length ? t("approval.applied.sharedSkill", { names: sharedNames.join(", ") }) : t("approval.applied.sharedSkillNobody")}</EventLabel>
-        )}
-        {undone && !cancels && <EventLabel tone="tertiary">· {t("approval.applied.undone")}</EventLabel>}
-        {!undone && canUndo && threadId && (
-          <EventChip onClick={undo} disabled={undoing} className="disabled:opacity-60">
-            {cancels ? t(undoing ? "approval.applied.cancelling" : "approval.cancel") : t(undoing ? "approval.applied.undoing" : "approval.applied.undo")}
-          </EventChip>
-        )}
-        {canShare && (
-          <EventChip onClick={share} disabled={sharing} className="disabled:opacity-60">
-            {sharing ? t("approval.applied.sharingSkill") : t("approval.applied.shareSkill")}
-          </EventChip>
-        )}
-      </EventLine>
+          )}
+        </EventLine>
+      ))}
       {shared && !undone && skippedNames.length > 0 && (
         <div className="text-center text-[12px] leading-4 text-ink-tertiary">{t("approval.applied.shareSkipped", { names: skippedNames.join(", ") })}</div>
       )}
@@ -397,12 +407,10 @@ export function showsSettledChange(card: OptionCardData | undefined): card is Op
 }
 
 /** A settled change, in a chat that talks in bubbles: one event line. Only a change that applied on its own can be undone here. */
-export function SettledChangeEvent({ bot, message, threadId }: { bot?: Pick<Bot, "name">; message: Message; threadId?: string }) {
+export function SettledChangeEvent({ message, threadId }: { bot?: Pick<Bot, "name">; message: Message; threadId?: string }) {
   const card = message.card;
   if (!showsSettledChange(card)) return null;
-  const name = bot?.name ?? t("approval.someone");
-  const summary = appliedChange(card, name)!;
-  return <AppliedChangeLine card={card} name={name} threadId={threadId} summary={card.autoApplied ? summary : { ...summary, canUndo: false }} />;
+  return <AppliedChangeLine card={card} threadId={threadId} />;
 }
 
 /** The app a card's tool belongs to, as its tile: the brand mark we keep, else its site's icon. */
@@ -577,7 +585,7 @@ export function ApprovalCard({
   const applied = card.autoApplied === true && card.answered === "allow" && !card.held
     ? appliedChange(card, bot?.name ?? t("approval.someone"))
     : undefined;
-  if (applied) return <AppliedChangeLine card={card} name={bot?.name ?? t("approval.someone")} threadId={threadId} summary={applied} />;
+  if (applied) return <AppliedChangeLine card={card} threadId={threadId} />;
   const settled = card.answered;
   const expired = card.expired === true || staleRoutineCard(card);
   const via = card.answeredBy?.via;

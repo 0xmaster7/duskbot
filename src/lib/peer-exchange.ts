@@ -25,8 +25,6 @@ const peerKey = (peer: PeerRef) => peer.id ?? `name:${peer.name}`;
 function activityEntry(m: Message): PeerEntry | null {
   const tool = m.tool;
   if (m.kind !== "activity" || !tool || m.relay || (!m.threadRef && !m.comm)) return null;
-  // a hand-off line is read as its own row in the chat, never folded into "Messaged X"
-  if (m.handoff && tool.ok !== false) return null;
   const target = m.threadRef?.botId ?? m.comm?.withBotId;
   if (m.roomRequest?.phase === "result") {
     const id = m.from?.botId ?? target;
@@ -38,7 +36,8 @@ function activityEntry(m: Message): PeerEntry | null {
   if (m.comm && m.comm.withBotId === m.from?.botId) return null;
   if (m.comm && !m.from && !m.comm.threadId) return null;
   if (tool.ok === false) return null;
-  return { direction: "outbound", peer: { id: target, name: m.sentDirectly?.name ?? m.comm?.withName ?? "", color: m.comm?.withColor } };
+  return { direction: "outbound", peer: { id: target, name: m.handoff?.to.name ?? m.sentDirectly?.name ?? m.comm?.withName ?? "",
+    color: m.handoff?.to.color ?? m.comm?.withColor } };
 }
 
 const REPLY_KINDS = new Set<Message["kind"]>(["text", "activity", "digest"]);
@@ -51,7 +50,13 @@ export function exchangeEntries(messages: readonly Message[], threadBotId?: stri
   const peerLines = new Map<string, PeerRef>();
   // without a recorded request, only a row right after the exchange, minutes later, reads as the bot answering it
   let lastRequest: { peer: PeerRef; at: number } | null = null;
+  // the coordinator's "resumed with X's results" row belongs to the reply it follows
+  let lastResult: PeerRef | null = null;
   for (const m of messages) {
+    if (m.peerResume) {
+      if (lastResult) entries.set(m.id, { direction: "inbound", peer: lastResult, step: true });
+      continue;
+    }
     if (m.role === "user") {
       const peer = peerLine(m);
       if (!peer) {
@@ -70,13 +75,17 @@ export function exchangeEntries(messages: readonly Message[], threadBotId?: stri
     if (threadBotId) {
       const asked = peerRequest(m, threadBotId);
       if (asked) {
-        entries.set(m.id, { direction: "inbound", peer: { id: asked.botId, name: asked.name, color: m.from?.color } });
+        const ref = { id: asked.botId, name: asked.name, color: m.from?.color };
+        entries.set(m.id, { direction: "inbound", peer: ref });
+        // what this bot says next, minutes later, is its answer to the ask
+        lastRequest = { peer: ref, at: m.at };
         continue;
       }
     }
     const activity = activityEntry(m);
     if (activity) {
       entries.set(m.id, activity);
+      lastResult = activity.direction === "inbound" ? activity.peer : null;
       continue;
     }
     const replies = REPLY_KINDS.has(m.kind) && !m.automation && !(m.kind === "activity" && (m.threadRef || m.comm || m.relay || m.dataResult
@@ -132,10 +141,17 @@ export function exchangeRuns<T>(
     }
     open = null;
   };
+  // one line per side of an exchange: what went out ("Messaged X") and what came back ("Message from X") never share one
+  const side = (all: readonly PeerEntry[]) => {
+    const lead = all.find((entry) => !entry.step) ?? all[0];
+    return lead ? `${lead.direction}:${lead.direction === "inbound" ? peerKey(lead.peer) : ""}` : "";
+  };
   items.forEach((item, index) => {
     const rows = rowsOf(item);
     const inExchange = rows.length > 0 && rows.every((row) => entries.has(row.id));
     if (inExchange) {
+      const mine = rows.map((row) => entries.get(row.id)!);
+      if (open && open.entries.some((entry) => !entry.step) && side(open.entries) !== side(mine)) close();
       if (!open) open = { start: index, end: index, items: [], entries: [] };
       open.items.push(item);
       open.end = index;

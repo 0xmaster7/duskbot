@@ -4,6 +4,6 @@ export interface HandoffLine {
   phase: "sent" | "result";
   from: { botId: string; name: string; color: string };
   to: { botId: string; name: string; color: string };
-  /** The brief, one line, for a sent row; a result row's words are its tool output. */
+  /** The brief for a sent row, as the chat shows it when the exchange opens; a result row's words are its tool output. */
   text?: string;
 }

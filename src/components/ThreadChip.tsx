@@ -14,7 +14,7 @@ export function ThreadChip({ message }: { message: Message }) {
   const bot = state.bots.find((candidate) => candidate.id === ref.botId);
   const direct = message.sentDirectly;
   if (message.handoff && tool.ok !== false && !direct) {
-    return <HandoffRow message={message} bots={state.bots} onOpen={() => openThread(dispatch, ref, state)} />;
+    return <HandoffRow message={message} />;
   }
   const label = !direct ? tool.name
     : direct.room ? t("chat.sentDirectlyNotInRoom", { name: direct.name, room: direct.room }) : t("chat.sentDirectly", { name: direct.name });

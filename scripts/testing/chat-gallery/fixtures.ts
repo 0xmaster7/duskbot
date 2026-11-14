@@ -18,6 +18,8 @@ export interface GalleryScenario {
   title: string;
   messages: (botId: string, threadId: string) => Message[];
   busy?: boolean;
+  /** Open every folded bot-to-bot line before the screenshot. */
+  openExchanges?: boolean;
 }
 
 let clock = 0;
@@ -44,7 +46,48 @@ const secret = (overrides: Partial<NonNullable<Message["secret"]>> = {}): NonNul
 /** A real transcript is a chain: each line answers the one before it. Without it every root line reads as an edit of the others. */
 const chained = (list: Message[]): Message[] => list.map((message, index) => ({ ...message, parentId: index ? list[index - 1]!.id : null }));
 
+const dusk = { botId: "gallery-dusk", name: "dusk bot", color: "blue" as const };
+const writer = { botId: "gallery-writer", name: "Writer", color: "green" as const };
+const writerRef = { botId: writer.botId, threadId: "gallery-writer-work", title: "@dusk bot · work" };
+const askerExchange = (): Message[] => [
+  user("Ask Writer what they do and tell me."),
+  bot("Asking Writer now."),
+  row("activity", { tool: { name: "Sent to Writer", ok: true }, from: dusk, threadRef: writerRef,
+    handoff: { phase: "sent", from: dusk, to: writer, text: "What do you do? Give me a short answer, then three kinds of work you are best at." } }),
+  row("activity", { tool: { name: "Writer replied", ok: true, output: "I write. Short answer: I turn rough notes into clear posts.\n\n- Launch posts\n- Release notes\n- Help articles" },
+    roomRequest: { id: "gallery-req", phase: "result" }, from: writer, threadRef: writerRef, handoff: { phase: "result", from: writer, to: dusk } }),
+  row("activity", { tool: { name: "Resumed with Writer's results, reviewing", ok: true }, peerResume: true }),
+  bot("Writer turns rough notes into clear posts: launch posts, release notes and help articles."),
+];
+const askedExchange = (): Message[] => [
+  bot("@Writer What do you do? Give me a short answer, then three kinds of work you are best at.", { roomRequest: { id: "gallery-req", phase: "request" }, from: dusk, turnTerminal: undefined }),
+  bot("I write. Short answer: I turn rough notes into clear posts.\n\n- Launch posts\n- Release notes\n- Help articles"),
+];
+const appliedCard = (card: Partial<NonNullable<Message["card"]>>): Message => row("options", { card: {
+  title: "", subtitle: "", options: [], answered: "allow", dismissed: true, autoApplied: true, requestId: id("req"), tool: "x", ...card } });
+const eventLines = (): Message[] => [
+  user("Set things up for the launch."),
+  bot("Done. Here is what changed."),
+  appliedCard({ tool: "set_up_team", teamSetupRequest: { version: 1, requestId: "t", botId: "b", threadId: "t", reason: "", createdAt: 1, requesterRevision: "r", newTeams: ["hello"], operations: [],
+    result: { state: "applied", newTeams: ["hello"], bots: [{ id: writer.botId, name: "Writer", action: "created" }] } } }),
+  appliedCard({ routineRequest: { requestId: "r", botId: "b", threadId: "t", createdAt: 1, version: 1, reason: "",
+    operation: { action: "update", routineId: "r1", expectedUpdatedAt: 1, changes: { name: "Morning brief" } }, undo: { name: "Morning brief", appliedUpdatedAt: 2 } } as never }),
+  appliedCard({ skillRequest: { version: 1, requestId: "s", botId: "b", threadId: "t", stagedId: "st", action: "create", name: "launch-checklist", gist: "", warnings: [], createdAt: 1 } }),
+  appliedCard({ modelRequest: { version: 1, requestId: "m", botId: "b", threadId: "t", targetBotId: "b", targetName: "Pepper", createdAt: 1, reason: "", selection: { instanceId: "claude", model: "sonnet" }, before: { instanceId: "claude", model: "opus" } } }),
+  appliedCard({ profileRequest: { version: 1, requestId: "p", botId: "b", threadId: "t", targetBotId: "b", targetName: "Pepper", createdAt: 1, reason: "", changes: { title: "Launch lead" }, before: { title: "" }, expectedRevision: "r" } }),
+  appliedCard({ waitRequest: { waitId: "w", label: "the build", followUp: "Ship it." } }),
+  appliedCard({ subtitle: "Launch date — 14 November", teamMemoryRequest: { section: "", entryId: "e", kind: "fact", revision: "v1" } as never }),
+  appliedCard({ teamSetupRequest: { version: 1, requestId: "d", botId: "b", threadId: "t", reason: "", createdAt: 1, requesterRevision: "r", newTeams: [], operations: [], deletion: { botId: "old", name: "Draft helper", expectedRevision: "r" },
+    result: { state: "applied", newTeams: [], bots: [{ id: "old", name: "Draft helper", action: "deleted" }] } } }),
+  bot("That's everything."),
+];
+
 const RAW_SCENARIOS: GalleryScenario[] = [
+  { id: "exchange-asker", title: "A bot asking another bot, from the asker's chat", messages: askerExchange },
+  { id: "exchange-asker-open", title: "The same exchange, opened", messages: askerExchange, openExchanges: true },
+  { id: "exchange-asked", title: "The same exchange, from the asked bot's chat", messages: askedExchange },
+  { id: "exchange-asked-open", title: "The asked bot's side, opened", messages: askedExchange, openExchanges: true },
+  { id: "event-lines", title: "Changes a bot made, as plain event lines", messages: eventLines },
   {
     id: "cards-pending",
     title: "Every card that waits on the person, each under a bot reply",

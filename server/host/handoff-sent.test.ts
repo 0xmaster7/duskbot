@@ -30,6 +30,12 @@ describe("sentRow", () => {
     const direct = sentRow({ sender, recipient, threadId: "buyer-work", via: "direct" });
     expect([direct.tool?.name, direct.threadRef?.title, direct.sentDirectly]).toEqual(["Sent to Buyer Research", "Teammate work", undefined]);
   });
+
+  it("keeps the whole brief, lines and all, for the exchange the chat opens", () => {
+    const brief = "What do you do?\nGive me a short answer, then three examples of work you have done.";
+    expect(sentRow({ sender, recipient, threadId: "t", via: "direct", brief }).handoff?.text).toBe(brief);
+    expect(sentRow({ sender, recipient, threadId: "t", via: "direct", brief: "x".repeat(3_000) }).handoff?.text).toHaveLength(2_000);
+  });
 });
 
 describe("outsideRoomNote", () => {

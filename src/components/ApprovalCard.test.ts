@@ -606,14 +606,14 @@ describe("ApprovalCard for a change that applied on its own", () => {
   const update = { action: "update" as const, routineId: "routine-1", expectedUpdatedAt: 1, changes: { name: "Renamed" } };
   const before = { ...createRoutineOperation.routine, enabled: true };
 
-  it("reads as one event line with Undo instead of the approval box", () => {
+  it("reads as one event line with no Undo, instead of the approval box", () => {
     const at = new Date();
     at.setHours(14, 30, 0, 0);
     const markup = render(routineCard(update, { name: "Check before dentist", schedule: { type: "once", at: at.getTime() }, appliedUpdatedAt: 2, before }));
     expect(markup).toContain(">Updated routine<");
     expect(markup).toContain(">Check before dentist<");
     expect(markup).toMatch(/title="Check before dentist, Today 2:30/);
-    expect(markup).toContain(">Undo<");
+    expect(markup).not.toContain(">Undo<");
     expect(markup).not.toContain(">details<");
     expect(markup).not.toContain("30 14 * * 3");
     expect(markup).not.toContain("Waiting for your confirmation");
@@ -654,7 +654,7 @@ describe("ApprovalCard for a change that applied on its own", () => {
     }));
     expect(profile).toContain(">Updated settings<");
     expect(profile).not.toContain("title, standing instructions");
-    expect(profile).toContain(">Undo<");
+    expect(profile).not.toContain(">Undo<");
     const model = render(applied({
       tool: "update_model",
       modelRequest: {
@@ -675,14 +675,13 @@ describe("ApprovalCard for a change that applied on its own", () => {
     expect(skill).toContain(">file-expense<");
   });
 
-  it("reads team setup and team memory as one line, with Undo except for a deletion", () => {
+  it("reads team setup as plain bot and group lines, and team memory as one line, with no Undo", () => {
     const setup = { version: 1 as const, requestId: "t", botId: "bot-1", threadId: "thread-1", reason: "asked", createdAt: 1, requesterRevision: "r", newTeams: [] };
     const team = render(applied({ tool: "set_up_team", teamSetupRequest: { ...setup, operations: [], resumed: true,
-      result: { state: "applied", newTeams: [], bots: [{ id: "b2", name: "Mira", action: "created" }, { id: "b3", name: "Ada", action: "updated" }] },
+      result: { state: "applied", newTeams: ["hello"], bots: [{ id: "b2", name: "Mira", action: "created" }, { id: "b3", name: "Ada", action: "updated" }] },
       undo: { created: ["b2"], before: [], revisions: {} } } }));
-    expect(team).toContain(">Set up the team<");
-    expect(team).toContain(">Mira, Ada<");
-    expect(team).toContain(">Undo<");
+    expect(team).toMatch(/>Created<.*>Mira<.*>Updated<.*>Ada<.*>Made a group<.*>hello</s);
+    expect(team).not.toMatch(/team|>Undo</i);
     const deleted = render(applied({ tool: "delete_bot", teamSetupRequest: { ...setup, operations: [], deletion: { botId: "b3", name: "Ada", expectedRevision: "r" },
       result: { state: "applied", newTeams: [], bots: [{ id: "b3", name: "Ada", action: "deleted" }] } } }));
     expect(deleted).toContain(">Deleted<");
@@ -690,9 +689,9 @@ describe("ApprovalCard for a change that applied on its own", () => {
     expect(deleted).not.toContain(">Undo<");
     const memory = render(applied({ tool: "propose_team_memory", subtitle: "person: Ada Lovelace — Runs the payroll review.",
       teamMemoryRequest: { section: "", entryId: "e", kind: "person", revision: "v1" } }));
-    expect(memory).toContain(">Saved to section memory<");
+    expect(memory).toContain(">Saved to shared memory<");
     expect(memory).toContain(">person: Ada Lovelace<");
-    expect(memory).toContain(">Undo<");
+    expect(memory).not.toContain(">Undo<");
     expect(memory).not.toContain("Remember");
   });
 
@@ -801,7 +800,7 @@ describe("one approval, one card", () => {
     expect(panel).toContain("{&quot;text&quot;:&quot;hi&quot;}");
   });
 
-  it("shows a wait with a follow-up as one line with Cancel, and says how it ended with no Cancel and no Undone after", () => {
+  it("shows a wait with a follow-up as one plain line, and says how it ended with no Undone after", () => {
     const message = (settled?: "fired" | "expired" | "cancelled"): Message => ({
       id: "m1", at: 1, role: "bot", kind: "options",
       card: {
@@ -816,7 +815,7 @@ describe("one approval, one card", () => {
     const open = render();
     expect(open).toContain(">Waiting for<");
     expect(open).toContain(">the build<");
-    expect(open).toContain(">Cancel<");
+    expect(open).not.toContain(">Cancel<");
     for (const [settled, line] of [["fired", ">Finished waiting for<"], ["expired", ">Stopped waiting for<"], ["cancelled", ">Cancelled waiting for<"]] as const) {
       const ended = render(settled);
       expect(ended, settled).toContain(line);

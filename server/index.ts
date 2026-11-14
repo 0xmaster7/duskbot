@@ -4203,7 +4203,7 @@ const handoffTicks = createHandoffTicks(), coordinator: Coordinator = createCoor
         const settledFrom = [...new Set((asking.length ? asking : coordinator.children(node.id)).map(child => store.bot(child.botId)?.name ?? "Teammate"))];
         const language = threadLanguage(node.threadId), who = settledFrom.length ? settledFrom.join(", ") : serverLine(language, "server.teammates.handedWork");
         store.appendMessage(node.threadId, {
-          role: "bot", kind: "activity",
+          role: "bot", kind: "activity", peerResume: true,
           tool: { name: serverLine(language, asking.length ? node.restart ? "server.teammates.resumedQuestionRestart" : "server.teammates.resumedQuestion" : !settledFrom.length ? node.restart ? "server.teammates.backWithResultsRestart" : "server.teammates.backWithResults" : node.restart ? "server.teammates.resumedResultsRestart" : "server.teammates.resumedResults", { who }), ok: true },
         });
         const quiet = turnAnswers(node.threadId, { cardContinuation: true, coordination: node }).quiet;

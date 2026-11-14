@@ -43,8 +43,17 @@ function Gallery() {
   }, [live, all.length, count]);
   const messages = useMemo(() => all.slice(0, count), [all, count]);
   const bot = useMemo(() => base && { ...base, messages, hasMore: false, transcriptLoaded: true, busy: scenario.busy ?? false }, [base, messages]);
+  const [opened, setOpened] = useState(!scenario.openExchanges);
+  useEffect(() => {
+    if (opened || !all.length) return;
+    const timer = setTimeout(() => {
+      for (const chip of document.querySelectorAll<HTMLButtonElement>('[data-peer-exchange] button[aria-expanded="false"]')) chip.click();
+      setOpened(true);
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [opened, all.length]);
   if (!bot) return <p data-gallery-waiting="">Waiting for the fixture's bot</p>;
-  const done = count >= all.length && (!churn || round >= 3);
+  const done = count >= all.length && (!churn || round >= 3) && opened;
   return <div data-gallery-ready={done ? scenario.id : undefined} className="flex h-dvh flex-col bg-app text-ink"><div className="min-h-0 flex-1"><ChatView bot={bot} /></div></div>;
 }
 

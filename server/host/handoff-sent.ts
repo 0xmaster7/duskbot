@@ -16,11 +16,10 @@ export function outsideRoomNote(room: AddressedRoom | undefined, via: SentVia): 
   return room && via === "direct" ? `it isn't in ${roomWords(room)}, so it got this directly: ` : "";
 }
 
-/** `language`: the sender's conversation's, where the row is shown. */
-/** A brief as its hand-off row shows it: one line, clipped. */
-export function briefLine(brief: string, max = 160): string {
-  const flat = brief.replace(/\s+/g, " ").trim();
-  return flat.length > max ? `${flat.slice(0, max - 1).trimEnd()}…` : flat;
+/** A brief as the opened exchange shows it: its own lines, capped like a teammate's reply. */
+export function briefText(brief: string, max = 2_000): string {
+  const text = brief.trim();
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
 }
 
 /** `brief`: already redacted; the row shows "Sender → Recipient: brief". */
@@ -41,7 +40,7 @@ export function sentRow(input: { sender: Who; recipient: Who; threadId: string; 
     },
     ...(input.doneWhen ? { doneWhen: input.doneWhen } : {}),
     ...(input.brief?.trim() ? { handoff: { phase: "sent" as const, from: { botId: sender.id, name: sender.name, color: sender.color },
-      to: { botId: recipient.id, name: recipient.name, color: recipient.color }, text: briefLine(input.brief) } } : {}),
+      to: { botId: recipient.id, name: recipient.name, color: recipient.color }, text: briefText(input.brief) } } : {}),
     ...(outside ? { sentDirectly: { name: recipient.name, ...(outside.here ? {} : { room: outside.name }) } } : {}),
     ...(room && via === "room"
       ? { comm: { groupId: room.id, threadId, withBotId: recipient.id, withName: recipient.name, withColor: recipient.color } }

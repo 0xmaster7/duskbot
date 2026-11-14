@@ -312,8 +312,11 @@ const Bubble = memo(function Bubble({
   onRegenerate,
   replyTarget,
   onReply,
+  underExchangeLine = false,
 }: {
   message: Message;
+  /** An exchange line above already names the bot that sent it. */
+  underExchangeLine?: boolean;
   emerging?: boolean;
   eagerAttachments?: boolean;
   /** This bubble meets the one above (or below) in its sender's group. */
@@ -426,7 +429,7 @@ const Bubble = memo(function Bubble({
 
   return (
     <div {...{ [MESSAGE_ROW]: "" }} data-arrival={fresh ? (user ? "end" : "start") : undefined} className={cn("group relative flex w-full flex-col", (reactionsOnBubble || (mediaReactions && !group)) && "pt-[26px]", user ? "items-end" : "items-start", join?.above && SIMPLE_STACKED)}>
-      {message.relay ? <RelayLabel message={message} /> : peer && <PeerLabel peer={peer} />}
+      {message.relay ? <RelayLabel message={message} /> : peer && !underExchangeLine && <PeerLabel peer={peer} />}
       {speaker && <div className="mb-0.5 px-1 text-[12px] font-medium text-ink-secondary">{speaker}</div>}
       {imagesAbove && <AttachmentGallery media={message.media} images={imagesAbove.images} files={imagesAbove.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} align="end" className="mb-1" />}
       <div data-own-row={user ? "" : undefined} className={cn("flex w-full items-center gap-1.5", user ? "justify-end" : "justify-start")}>
@@ -869,6 +872,7 @@ const MessagesList = memo(function MessagesList({
             case "call":
               return m.call ? <CallRecordRow message={m} transcript={transcript} botName={botName} threadId={threadId} busy={busy} hasMore={hasMore} /> : null;
             case "activity": {
+              if (m.peerResume) return null;
               if (m.dataResult) return <DataResultChip message={m} />;
               if (isStatusActivity(m)) return <StatusActivityRow message={m} />;
               if (m.tool && failedTurnCause(m.tool.name) !== null) {
@@ -916,6 +920,7 @@ const MessagesList = memo(function MessagesList({
                   onRegenerate={m.id === lastBotTextId && !m.automation ? onRegenerate : undefined}
                   replyTarget={lookups.replyTarget(m)}
                   onReply={onReply}
+                  underExchangeLine={run !== undefined}
                 />
               );
             }

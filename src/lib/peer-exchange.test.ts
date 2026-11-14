@@ -58,7 +58,45 @@ describe("exchangeRuns", () => {
     ];
     const all = items.flatMap((item) => item.rows);
     const runs = exchangeRuns(items, (item) => item.rows, exchangeEntries(all, "me"), (item) => item.hidden === true);
-    expect(runs).toHaveLength(1);
-    expect(runs[0]).toMatchObject({ start: 0, end: 2, summary: { kind: "thread", count: 2 } });
+    expect(runs).toHaveLength(2);
+    expect(runs[0]).toMatchObject({ start: 0, end: 0, summary: { kind: "single", direction: "inbound", peer: ghosty } });
+    expect(runs[1]).toMatchObject({ start: 1, end: 2, summary: { kind: "single", direction: "outbound", peer: ghosty } });
+  });
+
+  type Item = { rows: Message[] };
+  const runsOf = (rows: Message[], threadBotId: string) =>
+    exchangeRuns(rows.map((row) => ({ rows: [row] })), (item: Item) => item.rows, exchangeEntries(rows, threadBotId)).map((run) => run.summary);
+
+  it("reads a hand-off in the asker's chat as Messaged then Message from, the resume row folded in", () => {
+    const from = { botId: "dusk", name: "dusk bot", color: "blue" as const };
+    const to = { botId: "writer", name: "writer", color: "green" as const };
+    const ref = { botId: "writer", threadId: "w", title: "@dusk bot · work" };
+    const rows = [
+      msg("you", { role: "user", text: "ask writer" }),
+      msg("sent", { kind: "activity", tool: { name: "Sent to writer", ok: true }, from, threadRef: ref, handoff: { phase: "sent", from, to, text: "What do you do?" } }),
+      msg("back", { kind: "activity", tool: { name: "writer replied", ok: true, output: "I write." }, roomRequest: { id: "r", phase: "result" }, from: to, threadRef: ref,
+        handoff: { phase: "result", from: to, to: from } }),
+      msg("resumed", { kind: "activity", tool: { name: "Resumed with writer's results, reviewing", ok: true }, peerResume: true }),
+      msg("final", { text: "writer writes." }),
+    ];
+    expect(runsOf(rows, "dusk")).toEqual([
+      { kind: "single", direction: "outbound", peer: { id: "writer", name: "writer", color: "green" } },
+      { kind: "single", direction: "inbound", peer: { id: "writer", name: "writer", color: "green" } },
+    ]);
+    const entries = exchangeEntries(rows, "dusk");
+    expect(entries.get("resumed")).toMatchObject({ step: true });
+    expect(entries.has("final")).toBe(false);
+  });
+
+  it("reads the same exchange in the asked bot's chat as Message from then Messaged", () => {
+    const rows = [
+      msg("ask", { text: "@writer What do you do?", roomRequest: { id: "r", phase: "request" }, from: { botId: "dusk", name: "dusk bot", color: "blue" }, at: 10 }),
+      msg("step", { kind: "activity", tool: { name: "Read", ok: true }, at: 11 }),
+      msg("reply", { text: "I write.", at: 12 }),
+    ];
+    expect(runsOf(rows, "writer")).toEqual([
+      { kind: "single", direction: "inbound", peer: { id: "dusk", name: "dusk bot", color: "blue" } },
+      { kind: "single", direction: "outbound", peer: { id: "dusk", name: "dusk bot", color: "blue" } },
+    ]);
   });
 });
