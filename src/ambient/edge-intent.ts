@@ -5,7 +5,7 @@
 
 export const REVEAL = Object.freeze({
   /** resting at the edge this long brings the dock out */
-  dwellMs: 400,
+  dwellMs: 200,
   /** moving less than this still counts as resting; more starts the rest over, so sliding along the edge never opens */
   settlePx: 10,
   /** after the dock's window gains or loses focus, the edge is ignored this long */
