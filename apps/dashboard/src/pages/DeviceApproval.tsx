@@ -15,7 +15,10 @@ type Device = { device: { name: string; platform: string }; userCode: string; ex
 /** the app's own link: it brings dusk bot forward (the app already signed itself in, so coming back is optional) */
 export const APP_LINK = "duskbot://open";
 /** tries the app's link once; a browser without the app installed simply stays here */
-export function tryAppLink(link: string) { try { const frame = document.createElement("iframe"); frame.style.display = "none"; frame.src = link; document.body.append(frame); setTimeout(() => frame.remove(), 2000); } catch {} }
+/** opens the app straight away, with no click: a top-level navigation to its link, which browsers hand to the app and
+ *  leave this page as it was (a hidden frame, the old way, is blocked for app links in Chrome and ignored by Safari).
+ *  the page's own button stays as the way back when the browser asks first or the app is not there */
+export function tryAppLink(link: string) { try { window.location.assign(link); } catch {} }
 
 /** the desktop app's browser sign-in lands here: show which device asks, then approve or deny */
 export function DeviceApprovalPage() {

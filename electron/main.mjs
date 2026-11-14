@@ -324,15 +324,23 @@ function takeCloudMoveLink(rawLink) {
   return true;
 }
 
+/** duskbot://open (the website after the person approved this app, or signed in): only the app in front, where it was */
+function takeOpenLink(rawLink) {
+  if (typeof rawLink !== "string" || !/^duskbot:\/\/open\/?$/i.test(rawLink)) return false;
+  revealForLink();
+  return true;
+}
+
 app.on("open-url", (event, rawUrl) => {
   const url = fromLegacyLink(rawUrl);
-  if (!takeSignInLink(url) && !takeCloudMoveLink(url) && !queueOrganizationEntry(url) && !cloudEntry.fromUrl(url) && !queuePackageInstall(url) && !queueChatLink(url) && !slackOAuthLinks.queue(url)) return;
+  if (!takeSignInLink(url) && !takeOpenLink(url) && !takeCloudMoveLink(url) && !queueOrganizationEntry(url) && !cloudEntry.fromUrl(url) && !queuePackageInstall(url) && !queueChatLink(url) && !slackOAuthLinks.queue(url)) return;
   event.preventDefault();
 });
 
 app.on("second-instance", (_event, rawCommandLine) => {
   const commandLine = rawCommandLine.map(fromLegacyLink);
   if (takeSignInLink(commandLine.find(isAppLink))) return;
+  if (takeOpenLink(commandLine.find(arg => /^duskbot:\/\/open\/?$/i.test(arg)))) return;
   if (takeCloudMoveLink(commandLine.find(arg => cloudMoveLinkWorkspace(arg)))) return;
   if (takeOrganizationDeepLink(commandLine)) {
     queueOrganizationEntry("duskbot://organization");
