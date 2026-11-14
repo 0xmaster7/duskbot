@@ -22,6 +22,8 @@ else
   trap 'rm -f "$env_file"' EXIT
   node deploy/env.mjs "$target" "$env_file"
 fi
+# a home package whose file, signature and sha256 disagree keeps the service from starting: refuse before shipping
+node deploy/account/check-home-package.mjs "$env_file"
 # the account service runs TypeScript directly on Node 24 (/opt/node24 on the VPS; the system node is older)
 "${DEPLOY:-deploy}" . --name "$name" --domain "$domain" --env-file "$env_file" \
   --install "export PATH=/opt/node24/bin:\$PATH COREPACK_ENABLE_DOWNLOAD_PROMPT=0 CI=1; corepack pnpm install --frozen-lockfile --ignore-scripts && DUSK_DASHBOARD_BASE=/dashboard/ DUSK_SITE_URL=$site corepack pnpm build:dashboard" \
