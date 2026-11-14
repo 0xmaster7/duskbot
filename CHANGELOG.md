@@ -3,6 +3,17 @@
 Notable changes to dusk bot, newest first. Installers and checksums for each version are on the
 [releases page](https://github.com/DuskBotAI/duskbot/releases) and at [dusk.bot/download](https://dusk.bot/download).
 
+## 0.2.7
+
+dusk bot for Windows and Linux, beside the Mac.
+
+- Windows x64: a one-click installer (DuskBot-setup.exe) and a portable zip. Not code-signed yet, so SmartScreen asks
+  before it runs (More info, then Run anyway).
+- Linux x64: an AppImage and a .deb for Ubuntu and Debian.
+- First run asks less: an AI that already answers is used without asking, and Connect an AI shows clear stages.
+- Copilot and Cursor sign in from the app, in the background, with no terminal.
+- Notes from another AI can be pasted or dropped into any bot's chat.
+
 ## 0.2.6
 
 Both packages (your own server and dusk cloud) built from one commit again.
