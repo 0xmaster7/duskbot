@@ -46,7 +46,7 @@ if (dl) {
       go.addEventListener('click', async (e) => {
         e.preventDefault();
         const link = `${location.origin}/download`;
-        if (navigator.share) { try { await navigator.share({ title: 'Dusk Bot', url: link }); } catch {} return; }
+        if (navigator.share) { try { await navigator.share({ title: 'dusk bot', url: link }); } catch {} return; }
         label.textContent = (await copy(link)) ? 'link copied' : link;
       });
     }

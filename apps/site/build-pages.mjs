@@ -351,7 +351,7 @@ for (const page of pages) {
   const body = withStrips(fs.readFileSync(path.join(here, 'pages', `${page.name}.html`), 'utf8'));
   if (WAITLIST_HOME && page.name === 'waitlist') {
     // the waitlist page is frozen as it went out, its structured data included
-    write('/', soloWaitlist(layout({ ...page, page: page.name, at: '/', kind: page.kind || 'p-waitlist', body, jsonld: [{ ...orgLd, name: 'Dusk Bot' }] })));
+    write('/', soloWaitlist(layout({ ...page, page: page.name, at: '/', kind: page.kind || 'p-waitlist', body, jsonld: [{ ...orgLd, name: 'dusk bot' }] })));
     continue;
   }
   const at = page.name === 'home' ? '/' : page.name === '404' ? '/404.html' : `/${page.name}`;
