@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="apps/site/public/landing/brand/bots/kit.svg" alt="" width="72">
-
 <h1>dusk bot</h1>
 
 <p><b>Your own team of AI bots that remember you and work on their own computer.</b><br>
@@ -110,6 +108,8 @@ Open the bot's **Computer** tab to watch it live. **Take control** pauses its ha
 ## Routines
 
 Ask once and it becomes a routine. Schedules can be `once`, `daily` on chosen weekdays, `interval` every few minutes inside a window, or `cron`. App events (a new email, a GitHub issue) and webhooks start them too.
+
+<p align="center"><img src="docs/readme/shots/routine.gif" alt="Nova's Monday price check routine runs: the run opens with its name and time, Nova reads the shops and reports no price changes" width="100%"><br><sub>A routine firing: the Monday price check runs and reports back.</sub></p>
 
 <table>
 <tr>
@@ -385,4 +385,4 @@ Source available under [PolyForm Strict 1.0.0](LICENSE). Free for personal use; 
 
 <br>
 
-<p align="center"><img src="apps/site/public/landing/art/cat.webp" alt="" width="120"><br><sub>Made at dusk. The bots did most of it. <a href="https://dusk.bot">dusk.bot</a></sub></p>
+<p align="center"><sub>Made at dusk. The bots did most of it. <a href="https://dusk.bot">dusk.bot</a></sub></p>
