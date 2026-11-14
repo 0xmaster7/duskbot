@@ -1789,7 +1789,6 @@
   "sidebar.grok.deleteSectionBody": "Its bots move to unassigned. No bots are deleted.",
   "sidebar.grok.support": "Support",
   "sidebar.grok.addAccount": "Add account",
-  "sidebar.grok.logOut": "Log out",
   "sidebar.section.moved": "{name} moved to position {position} of {count}",
   "sidebar.room.renameAria": "Rename {name}",
   "sidebar.room.saveChatName": "Save thread name",

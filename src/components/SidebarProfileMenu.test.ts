@@ -560,6 +560,22 @@ describe("grok's profile menu", () => {
     expect(onAddAccount).not.toHaveBeenCalled();
   });
 
+  it("signed in, says who first (the account's name and address) and signs out as Sign out", () => {
+    const signOut = vi.fn(), onSettings = vi.fn();
+    const active = { id: "acc-1", email: "ada@qa.dusk.test", name: "Ada Lovelace" };
+    const items = grokProfileMenuItems({ ...base, onSettings, accounts: { view: { active }, openSheet: null, signOut, add: vi.fn() } as never });
+    expect(items.map((item) => item.key).slice(-3)).toEqual(["who", "add-account", "log-out"]);
+    expect(items.find((item) => item.key === "who")).toMatchObject({ label: "Ada Lovelace", subtitle: "ada@qa.dusk.test", separatorBefore: true });
+    expect(items.at(-1)).toMatchObject({ label: "Sign out" });
+    items.find((item) => item.key === "who")!.onSelect();
+    expect(onSettings).toHaveBeenCalledOnce();
+    items.at(-1)!.onSelect();
+    expect(signOut).toHaveBeenCalledWith("acc-1");
+    const nameless = grokProfileMenuItems({ ...base, accounts: { view: { active: { id: "acc-2", email: "bo@qa.dusk.test" } }, openSheet: null, signOut, add: vi.fn() } as never });
+    expect(nameless.find((item) => item.key === "who")).toMatchObject({ label: "bo@qa.dusk.test" });
+    expect(nameless.find((item) => item.key === "who")?.subtitle).toBeUndefined();
+  });
+
   it("puts the account dashboard right under the phone row when the menu can open it", () => {
     const onDashboard = vi.fn();
     const items = grokProfileMenuItems({ ...base, onDashboard });

@@ -122,7 +122,8 @@ export function useComputerName(enabled: boolean): string | null {
     })();
     return () => { active = false; };
   }, [enabled]);
-  return name;
+  // once the profile has a name or an address (an account signed in), the computer's name stops standing in for it
+  return enabled ? name : null;
 }
 
 export function profileLabel(profile?: { name?: string; email?: string }): string {
@@ -482,9 +483,11 @@ export function grokProfileMenuItems({ onGetApp, onHelp, onShortcuts, onFeedback
   const active = accounts.view?.active;
   const account: SidebarMenuItem[] = active
     ? [
+      // who is signed in, first: the account's name and address, opening its card in Settings
+      { key: "who", label: active.name?.trim() || active.email, ...(active.name?.trim() ? { subtitle: active.email } : {}), icon: <UserFace account={active} size={16} />, onSelect: onSettings },
       ...(accounts.editAvatar && !active.signIn ? [{ key: "avatar", label: t("accounts.avatar.change"), icon: <UserFace account={active} size={16} />, onSelect: accounts.editAvatar } satisfies SidebarMenuItem] : []),
       { key: "add-account", label: t("sidebar.grok.addAccount"), icon: icon("person-add"), onSelect: () => accounts.add() },
-      { key: "log-out", label: t("sidebar.grok.logOut"), icon: icon("arrow-bracket-from-left"), onSelect: () => accounts.signOut(active.id) },
+      { key: "log-out", label: t("accounts.signOut"), icon: icon("arrow-bracket-from-left"), onSelect: () => accounts.signOut(active.id) },
     ]
     : accounts.openSheet ? [{ key: "accounts-sheet", label: t("accounts.manage"), icon: icon("person"), onSelect: accounts.openSheet }]
       // nobody signed in here: Sign in, at the account button where a person looks for it; it continues in the browser for its
