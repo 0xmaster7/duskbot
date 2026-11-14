@@ -13,7 +13,7 @@ const binary = resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.e
 const enabled = Boolean(binary) || process.env.DUSK_UI_E2E === "1";
 if (!enabled) console.log("skipping draft visibility UI: set DUSK_UI_E2E=1 to install the pinned browser");
 
-(enabled ? it : it.skip)("creates a restricted ready-made bot from its review without widening its audience", async () => {
+(enabled ? it : it.skip)("adds a ready-made bot from Templates in one press, as exactly one bot, with no review step", async () => {
   let child: ChildProcess | undefined;
   try {
     let stdout = "", stderr = "";
@@ -29,27 +29,16 @@ if (!enabled) console.log("skipping draft visibility UI: set DUSK_UI_E2E=1 to in
     }, { timeout: binary ? 180_000 : 600_000, interval: 250 }).toBe(true);
     const ui = (verb: string, ...args: string[]) => runControlDusk(["ui", verb, "--ui", info.ui, ...args]) as Promise<Record<string, any>>;
     const snapshot = async () => (await ui("snapshot")).snapshot as string;
-    const bots = async () => (await fetch(`${info.url}/api/bots?messages=0`).then(response => response.json())).bots as Array<{ id: string; visibility?: string }>;
+    const bots = async () => (await fetch(`${info.url}/api/bots?messages=0`).then(response => response.json())).bots as Array<{ id: string; name: string; visibility?: string }>;
     const before = await bots();
     await openTemplatesWhenFree(ui);
     await expect.poll(snapshot, { timeout: 20_000 }).toContain("Add Scout, Researcher");
+    // since the one create flow (89d92585f) Add makes the bot at once: there is no review, and so no audience to pick
     await ui("click", "--name", "Add Scout, Researcher");
-    await expect.poll(snapshot).toContain("Who can see it");
-    // The dialog appears before its defaults request completes. Never click
-    // the disabled Create button while the fixture is still loading its draft.
-    await expect.poll(async () => (await ui("eval", "--js", "[...document.querySelectorAll('[role=dialog] button')].find(button => button.textContent.trim() === 'Create bot')?.disabled")).result).toBe(false);
-    // Native select popups do not accept routed keys consistently in headless
-    // macOS. Exercise the real select's change handler without the OS popup;
-    // creation and its resulting audience still run through the real UI/API.
-    const state = await ui("snapshot");
-    const audience = Object.entries(state.refs as Record<string, { name: string; role: string }>).find(([, item]) => item.role === "combobox" && item.name === "Who can see it");
-    expect(audience).toBeDefined();
-    await ui("eval", "--js", "(() => { const select = document.querySelector('[data-new-bot-visibility] select'); select.value = 'admins'; select.dispatchEvent(new Event('change', { bubbles: true })); return true; })()");
-    await expect.poll(async () => (await ui("eval", "--js", "document.querySelector('[data-new-bot-visibility] select')?.value")).result).toBe("admins");
-    await ui("click", "--name", "Create bot");
     await expect.poll(async () => (await bots()).length, { timeout: 15_000 }).toBe(before.length + 1);
-    const created = (await bots()).find(bot => !before.some(old => old.id === bot.id));
-    expect(created?.visibility).toBe("admins");
-    await expect.poll(snapshot).not.toContain('dialog "New bot"');
+    const created = (await bots()).filter(bot => !before.some(old => old.id === bot.id));
+    expect(created).toHaveLength(1);
+    expect(created[0]).toMatchObject({ name: "Scout" });
+    expect(await snapshot()).not.toContain("Who can see it");
   } finally { await waitForExit(child, { signal: "SIGINT", graceMs: 30_000 }); }
 }, 720_000);
