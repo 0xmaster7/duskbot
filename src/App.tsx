@@ -70,7 +70,7 @@ import { cloudFirstRun, cloudWelcomeVisible, useCloudWelcome } from "@/lib/cloud
 import { engineReady } from "@/components/EngineLibrary";
 import { CommandPalette } from "@/components/CommandPalette";
 import { CreateBotDialog, openCreateBot } from "@/components/CreateBotDialog";
-import { CHAT_MIN_WIDTH, PANEL_WIDTH, PanelSlot } from "@/components/PanelSlot";
+import { PANEL_DOCKS_AT, PanelSlot } from "@/components/PanelSlot";
 import { PanelPlaceholder } from "@/components/bot-panel/PanelPlaceholder";
 import { TitleTooltips } from "@/components/TitleTooltips";
 import { botCycleStep, shouldOpenKeyboardShortcuts } from "@/lib/keyboard-shortcuts";
@@ -88,9 +88,6 @@ import { loadingLine } from "@/lib/app-loading";
 import { useAiSwitchKeeper } from "@/lib/ai-switch";
 import { SESSION_ENDED_REASON, useSessionEnded } from "@/lib/session-ended";
 import { PairPage } from "./pair/PairPage";
-
-/** the sidebar (280), the chat's floor beside a panel and the panel's own width */
-const BOT_PANEL_DOCKS_AT = 280 + CHAT_MIN_WIDTH + PANEL_WIDTH;
 
 function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const { state, dispatch } = useStore();
@@ -112,7 +109,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
     state.groups.filter((group) => group.unread).length;
   const remoteClient = window.duskDesktop?.remoteClient?.active === true;
   // the bot's panel docks beside the sidebar only while the chat keeps its minimum width beside it
-  const botPanelDocks = useMediaQuery(`(min-width: ${BOT_PANEL_DOCKS_AT}px)`, true);
+  const botPanelDocks = useMediaQuery(`(min-width: ${PANEL_DOCKS_AT}px)`, true);
   useEffect(() => {
     if (!window.duskDesktop?.environments) return;
     const open = () => dispatch({ type: "toggleAppSettings", open: true, section: "desktopWorkspaces" });
@@ -233,7 +230,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   useEffect(() => {
     const opened = state.settingsOpen && !settingsOpened.current;
     settingsOpened.current = state.settingsOpen;
-    const grow = BOT_PANEL_DOCKS_AT - window.innerWidth;
+    const grow = PANEL_DOCKS_AT - window.innerWidth;
     if (opened && grow > 0) void window.duskDesktop?.windowControls?.resizeWidthBy?.(grow).catch(() => {});
   }, [state.settingsOpen]);
   useEffect(() => {

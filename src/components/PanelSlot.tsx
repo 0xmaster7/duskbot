@@ -9,6 +9,9 @@ const DURATION_MS = 260;
 /** The chat keeps at least this much beside a docked pane; narrower, the pane cannot dock. */
 export const CHAT_MIN_WIDTH = 520;
 
+/** The window width at which the bot's panel docks beside the sidebar (280) and a chat of CHAT_MIN_WIDTH; narrower, it overlays. */
+export const PANEL_DOCKS_AT = 280 + CHAT_MIN_WIDTH + PANEL_WIDTH;
+
 /** Below md the panel is its own full-screen sheet, so the slot steps aside there. */
 export function PanelSlot({ open, children }: { open: boolean; children: ReactNode }) {
   const [mounted, setMounted] = useState(open);

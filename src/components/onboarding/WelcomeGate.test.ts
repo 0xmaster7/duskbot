@@ -124,15 +124,22 @@ describe("who gets the welcome flow", () => {
     expect(store.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "select" }));
   });
 
-  it("opens the bot panel once beside the intro chat, but not on a replay or over a phone's chat", () => {
+  it("opens the bot panel once beside the intro chat where it docks, but not on a replay, over a phone's chat or over a narrow window's chat", () => {
     const openPanel = { type: "toggleSettings", open: true };
     const panelOpens = () => store.dispatch.mock.calls.filter(([action]) => action.type === "toggleSettings");
-    const wide = (phone: boolean) => ({ ...LOCAL_PAGE, matchMedia: (query: string) => ({ matches: phone && query.includes("max-width") }) });
+    const wide = (phone: boolean, docks = !phone) => ({ ...LOCAL_PAGE, matchMedia: (query: string) => ({ matches: query.includes("max-width") ? phone : docks }) });
     vi.stubGlobal("window", wide(false));
     store.state = { ...store.state, bots: [{ id: "maus", chiefOfStaff: true }] };
     gate(LOCAL_VIEWER).tree!.props.onDone!("maus");
     expect(panelOpens()).toEqual([[openPanel]]);
     expect(store.dispatch.mock.calls.map(([action]) => action.type)).toEqual(["toggleWelcome", "select", "toggleSettings"]);
+
+    fixture.values = [];
+    store.dispatch.mockReset();
+    vi.stubGlobal("window", wide(false, false));
+    gate(LOCAL_VIEWER).tree!.props.onDone!("maus");
+    expect(store.dispatch, "1040 px: the chat, clean").toHaveBeenCalledWith({ type: "select", id: "maus" });
+    expect(panelOpens()).toEqual([]);
 
     fixture.values = [];
     store.dispatch.mockReset();
