@@ -79,7 +79,9 @@ describe("a move's routes and private port", () => {
     expect(await connections.handoff({ kind: "connection-release", id: "mcp:linear", digest: "0".repeat(64) })).toEqual({ ok: true, release: { changed: true } });
     expect(mcpOAuth.authState("linear", LINEAR)).toBe("signed-in");
     expect(await connections.handoff({ kind: "connection-release", id: "mcp:linear", digest })).toEqual({ ok: true, release: { released: true } });
-    expect(mcpOAuth.authState("linear", LINEAR)).toBe("none");
+    // only the access token stays, lent: never the refresh token My Cloud spends now
+    expect(mcpOAuth.syncRole("linear", LINEAR)).toMatchObject({ role: "lent", access: "a1" });
+    expect(mcpOAuth.signInRecord("linear", LINEAR)?.tokens?.refresh).toBeUndefined();
   });
 
   it("tells a bot on My Cloud with the link, and one on the person's computer that it is signed out right now", () => {

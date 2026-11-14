@@ -27,6 +27,9 @@ const recordSchema = z.object({
   tokenEndpoint: z.string().optional(),
   revocationEndpoint: z.string().optional(),
   tokens: tokensSchema.optional(),
+  /** Lent by another place of the person's own, which keeps the refresh token (connector-sync.ts): only an access
+   * token here, never refreshed here. `grantAt`: when the holder signed in, so a later sign-out anywhere ends it. */
+  lent: z.object({ from: z.string().max(200), grantAt: z.number() }).optional(),
 });
 
 const fileSchema = z.object({

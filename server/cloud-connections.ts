@@ -84,8 +84,16 @@ function privateAddress(host: string): boolean {
   return v6 === "::1" || v6 === "::" || /^f[cd][0-9a-f]{2}:/u.test(v6) || /^fe[89ab][0-9a-f]:/u.test(v6);
 }
 
+/** Fixtures only: loopback stand-ins for public services ("127.0.0.1:4321,…"), which every fixture place reaches. */
+function testReachable(url: string): boolean {
+  const hosts = process.env.DUSK_TEST_CONNECTOR_HOSTS;
+  if (!hosts) return false;
+  try { return hosts.split(",").map((host) => host.trim()).includes(new URL(url).host); } catch { return false; }
+}
+
 /** An address only this computer or its own network reaches: My Cloud would call nothing there. */
 export function addressHere(url: string): boolean {
+  if (testReachable(url)) return false;
   let host: string;
   try { host = new URL(url).hostname.replace(/^\[|\]$/gu, ""); } catch { return true; }
   return (!host.includes(".") && !host.includes(":")) || LOCAL_NAME.test(host) || privateAddress(host);

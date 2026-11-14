@@ -7,7 +7,7 @@ import { createGmailDrafts } from "./host/gmail-drafts.ts";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { existsSync, realpathSync, rmSync } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, hostname } from "node:os";
 import { rm as removeDirectory } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { ToolResults, TOOL_RESULT_MAX_CHARS } from "./tool-results.ts";
@@ -281,7 +281,7 @@ import { botBox, startBotBoxAtBoot } from "./bot-box/boot.ts"; import { attachme
 import { createCloudSignedHost } from "./host/cloud-signed-host.ts"; import { createUpdateHost } from "./host/update-host.ts"; import type { UpdateState } from "./update-state.ts"; import { createUpdateRoutes } from "./routes/updates.ts"; import { createBotNameClash } from "./host/bot-name-clash.ts"; import { hiddenThreadRefusal, hideOthersSyncFolders } from "./host/team-private.ts"; import { createTeamMemberLeft } from "./host/team-member-left.ts"; import { createUploadOwners, uploadsFor } from "./host/member-uploads.ts"; import { createMemberOwnBot } from "./host/member-own-bot.ts"; import { createVisibilityHost } from "./host/visibility-host.ts"; import { createBotAccessHost, refusalFor, relayedSendRefusal } from "./host/bot-access-gate.ts"; import { createBotAccessRoutes, writeAccess } from "./routes/bot-access.ts"; import { createAccessRequests } from "./host/access-requests.ts";
 import { createCloudPower, registerCloudPower, wokeFromSleep, type CloudPower } from "./cloud-power.ts";
 import { noteSyncBotTurn } from "./routes/cloud-sync.ts"; import { mcpReconnectLine, retryBrokeredMcp } from "./bot-box/broker-mcp.ts";
-import { CLOUD_PERSONAL_REFUSAL, type CloudOwnership } from "./cloud-owner.ts"; import { memberLoginRefusal, personalMoveRefusal } from "./cloud-team.ts"; import { createCloudTeamHost, type MemberProfile } from "./host/cloud-team-host.ts"; import { engineHomes } from "./engine-homes/engine-homes.ts"; import { audienceMember, layerId, memberAudience } from "./audience.ts"; import { createPersonRooms, createRoomReads, type OwnGroupFrames } from "./host/room-reads.ts"; import { createMeRoutes } from "./routes/me.ts"; import { createTeamPhoneRoutes } from "./routes/team-phone.ts"; import { settleCloudHome } from "./cloud-home-settle.ts"; import { CLOUD_NOBODY_KEY, CLOUD_OUTSIDE_KEY } from "./cloud-sharing.ts";
+import { CLOUD_PERSONAL_REFUSAL, type CloudOwnership } from "./cloud-owner.ts"; import { memberLoginRefusal, personalConnectionRefusal, personalMoveRefusal } from "./cloud-team.ts"; import { createCloudTeamHost, type MemberProfile } from "./host/cloud-team-host.ts"; import { engineHomes } from "./engine-homes/engine-homes.ts"; import { audienceMember, layerId, memberAudience } from "./audience.ts"; import { createPersonRooms, createRoomReads, type OwnGroupFrames } from "./host/room-reads.ts"; import { createMeRoutes } from "./routes/me.ts"; import { createTeamPhoneRoutes } from "./routes/team-phone.ts"; import { settleCloudHome } from "./cloud-home-settle.ts"; import { CLOUD_NOBODY_KEY, CLOUD_OUTSIDE_KEY } from "./cloud-sharing.ts";
 import { createCloudMoveRoutes } from "./cloud-move-http.ts";
 import { RESTART_EXIT_CODE } from "./restart.ts";
 import { applyIncludedXMessage, holdIncludedServices, researchCredential, xCredential, xResearchStatus } from "./included-services.ts"; import { createResearchAvailability } from "./research.ts";
@@ -597,7 +597,7 @@ import { createBotOrderRoutes } from "./routes/bot-order.ts";
 import { createBotLifecycleRoutes } from "./routes/bot-lifecycle.ts";
 import { createBotSkillsRoutes } from "./routes/bot-skills.ts";
 import { createSkillShareRoutes } from "./routes/skill-share.ts";
-import { createDeciderRoutes } from "./routes/decider.ts"; import { createCloudSendRoutes } from "./routes/cloud-send.ts"; import { claudeCodeSkillInputs } from "./setup-import.ts"; import { createCloudConnectionsHost } from "./cloud-connections-host.ts";
+import { createDeciderRoutes } from "./routes/decider.ts"; import { createCloudSendRoutes } from "./routes/cloud-send.ts"; import { claudeCodeSkillInputs } from "./setup-import.ts"; import { createCloudConnectionsHost } from "./cloud-connections-host.ts"; import { createConnectorSync, createConnectorSyncRoutes, type ConnectorSync } from "./connector-sync.ts";
 import { createUpdateCheckRoutes, serverUpdateChecker } from "./routes/update-check.ts"; import { createTimeZoneRoutes } from "./routes/time-zone.ts";
 import { createBrowserSiteRoutes } from "./routes/browser-sites.ts";
 import { createInternalSignInRoutes } from "./routes/sign-in.ts";
@@ -1340,6 +1340,8 @@ const providerAuthSessions = new ProviderAuthSessions({ signedIn: (instanceId) =
   outcome: (instanceId, outcome, error) => usageSignal("engine_sign_in", { engine: engineFamily(registry.get(instanceId)?.driverKind), outcome,
     ...(outcome === "failed" ? { reason: failureReason(error instanceof Error ? error.message : typeof error === "string" ? error : "") } : {}) }) }); const mcpServersHost = createMcpServersHost({ dataDir: DATA_DIR, cfg: () => cfg, persist: persistMcpServers, bots: () => store.bots, policy: (servers) => managedPolicy.filterMcp(servers), tell: (text, about) => notify(buildNoticeNotification(about, store.bot(about.id)?.threadId ?? "", text)), startsServers: (botId) => { const bot = store.bot(botId); return Boolean(bot && registry.get(bot.modelSelection.instanceId)?.adapter.capabilities.customMcp === true); }, boxed: () => botBox.enabled(),
   checksUrl: (name, server) => mcpOAuth.authState(name, server.url) === "none" && !teamConnections.personMcp().includes(name) });
+// made once MCP servers can be changed (createConnectorSync below); the private port asks for it through this
+let connectorSyncRef: ConnectorSync | null = null;
 const mcpOAuth = new McpOAuthManager({
   file: join(DATA_DIR, "mcp-oauth.json"),
   isOwnerLive: (owner) => owner === "loopback" || sessions.isLive(owner) || isCardOwnerLive(store, owner),
@@ -2884,7 +2886,7 @@ const refusedHandoffs = createRefusedHandoffs({ bots: () => store.bots, runOf: (
 const routineHolds = CLOUD_HOME ? createRoutineHoldsHost({ dataDir: DATA_DIR, store, mcpServers: () => Object.keys(cfg.mcpServers ?? {}).length, log: (line) => console.warn(line),
   appsConnected: async () => composio.configured(cfg) ? Object.values(await composio.connectedServices(cfg)).some((service) => service.connected) : false }) : null;
 const skillsHost = createSkillsLibraryHost({ store, cfg, appendSkillRequestCard, engineConfig: (instanceId) => instanceConfigs(cfg)[instanceId], instanceOf: (instanceId) => { const instance = registry.get(instanceId); return instance ? { instanceId, driverKind: instance.driverKind } : undefined; } });
-const { listBotSkills, readBotSkillFile } = skillsHost; const cloudConnections = createCloudConnectionsHost({ cloudHome: CLOUD_HOME, ownHome: ownHome.owner, config: () => cfg, environmentId: ENVIRONMENT_ID, mcpOAuth, dataDir: DATA_DIR, email: { accounts: () => emailService.store.list(), adopt: (accounts) => emailService.adopt(accounts) }, stayedNotices: { bots: () => store.bots, language: (threadId) => threadLanguage(threadId), say: (threadId, text, kind) => { store.appendMessage(threadId, kind === "line" ? { role: "bot", kind: "text", text } : { role: "bot", kind: "activity", tool: { name: `notice: ${text}`, ok: true } }); }, notify: (text, bot, threadId) => notify(buildNoticeNotification(bot, threadId, text)) }, engines: async () => selectableInstances(await registry.describe()).filter((instance) => readyToRun(instance, selectionContext)).map((instance) => instance.instanceId) });
+const { listBotSkills, readBotSkillFile } = skillsHost; const cloudConnections = createCloudConnectionsHost({ cloudHome: CLOUD_HOME, ownHome: ownHome.owner, config: () => cfg, environmentId: ENVIRONMENT_ID, mcpOAuth, dataDir: DATA_DIR, connectorSync: () => connectorSyncRef, email: { accounts: () => emailService.store.list(), adopt: (accounts) => emailService.adopt(accounts) }, stayedNotices: { bots: () => store.bots, language: (threadId) => threadLanguage(threadId), say: (threadId, text, kind) => { store.appendMessage(threadId, kind === "line" ? { role: "bot", kind: "text", text } : { role: "bot", kind: "activity", tool: { name: `notice: ${text}`, ok: true } }); }, notify: (text, bot, threadId) => notify(buildNoticeNotification(bot, threadId, text)) }, engines: async () => selectableInstances(await registry.describe()).filter((instance) => readyToRun(instance, selectionContext)).map((instance) => instance.instanceId) });
 const emailHost = createEmailHost({ service: emailService, dataDir: DATA_DIR, bot: (id) => store.bot(id), inRoom: (threadId) => Boolean(store.groupByThread(threadId)), appendMessage: (threadId, message) => { store.appendMessage(threadId, message as Parameters<typeof store.appendMessage>[1]); }, appAllowed: () => managedPolicy.appAllowed("email"), onChange: (listener) => store.onChange(listener as never), markOutside: (threadId) => outsideLineage.mark(threadId) }); const slackHost = createSlackHost({ dataDir: DATA_DIR, key: savedSecretsKey ?? fileSavedSecretsKey(DATA_DIR), bot: (id) => { const bot = store.bot(id); return bot ? { id: bot.id, name: bot.name, description: bot.description, color: bot.color, ...(bot.avatarUrl ? { avatarUrl: bot.avatarUrl } : {}) } : null; }, onStoreChange: (listener) => store.onChange(listener), messages: (threadId) => store.messagesFor(threadId), createThread: (botId, title) => store.createTask(botId, title, false, undefined, undefined, "ask")?.threadId ?? null, threadExists: (botId, threadId) => Boolean(store.taskByThread(botId, threadId)), send: async ({ botId, threadId, text, sendId, person, context }) => { outsideLineage.mark(threadId); const receipt = await acceptDirectSend({ botId, threadId, text, sendId, sender: { name: person.name }, trigger: { kind: "user", ...(person.email ? { email: person.email } : {}), label: person.name }, personPresent: false, relayed: true, ...(context ? { app: { context } } : {}) }); return { queued: "queued" in receipt, steered: "steered" in receipt && receipt.steered === true }; }, react: (threadId, messageId, person, emoji) => void store.setReaction(threadId, messageId, relayedPersonKey(person), { emoji, name: person.name, at: Date.now() }), markOutside: (threadId) => outsideLineage.mark(threadId) }); addHeldSecretScrubber((text) => slackHost.scrub(text));
 const phoneHost = createPhones({
   dataDir: DATA_DIR, shared: Boolean(CLOUD_TEAM), cloudHome: Boolean(CLOUD_HOME), cloudOwnerKey: CLOUD_OWNER_KEY,
@@ -13084,8 +13086,14 @@ const cloudComposio = createCloudComposioConnect({ dataDir: DATA_DIR, servers: (
   withToken: async (name, server) => { const spec = (await signedInMcp({ [name]: server }, mcpOAuth))[name]; return spec && "url" in spec ? spec : null; },
   startSignIn: (name, url) => mcpOAuth.start(name, url, undefined, "loopback", { remote: true, origin: CLOUD_HOME?.publicOrigin ?? null }) });
 const cloudAppsViaConnect = () => CLOUD_HOME && composio.connectionMode(cfg) === "unavailable";
+const connectorSync = createConnectorSync({ dataDir: DATA_DIR, config: () => cfg, mcpConfig, mcpOAuth,
+  place: { id: ENVIRONMENT_ID, label: (process.env.DUSK_ENVIRONMENT_LABEL?.trim() || hostname()).slice(0, 120).trim() || "dusk bot" } });
+connectorSyncRef = connectorSync;
+ROUTES.push(createConnectorSyncRoutes({ sync: connectorSync,
+  owners: (auth) => Boolean(CLOUD_HOME && auth.kind === "session" && auth.scopes.includes("admin")) || ownHome.owner(auth),
+  ...(CLOUD_TEAM ? { refusal: (what: string) => personalConnectionRefusal(CLOUD_TEAM!, what) } : {}) }));
 ROUTES.push(createMcpServerRoutes({
-  cfg, bot: (id) => store.bot(id), sessions, mcpOAuth, teamConnections,
+  cfg, bot: (id) => store.bot(id), sessions, mcpOAuth, teamConnections, synced: connectorSync,
   cloudHome: CLOUD_HOME,
   fallbackPublicUrl: FALLBACK_PUBLIC_URL,
   mcpServerResponse, savedCustomDomain, appCatalog: chatAppsMcp, config: mcpConfig }));

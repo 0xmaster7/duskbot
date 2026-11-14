@@ -3,6 +3,7 @@
 // bot, browser or other local process can reach (a plain Node server has no such port, so this never answers there).
 // Nothing here is an HTTP answer, a log line or a chat message, and nothing is kept.
 import type { LoginBots } from "../shared/logins.ts";
+import { parseConnectorHandoff, type ConnectorHandoffWhat } from "./connector-sync.ts";
 import { loginFingerprints, VERIFY_NONCE } from "./cloud-send-verify.ts";
 import type { LoginStore } from "./login-store.ts";
 import { ONE_PASSWORD_MALFORMED, ONE_PASSWORD_REFUSED } from "./onepassword.ts";
@@ -18,12 +19,15 @@ export type ConnectionHandoffWhat =
   | { kind: "connection"; id: string }
   | { kind: "composio-share"; for: string }
   | { kind: "connection-release"; id: string; digest: string }
-  | { kind: "connection-fingerprints"; nonce: string };
+  | { kind: "connection-fingerprints"; nonce: string }
+  /** Connector sync (connector-sync.ts): a sign-in lent, a server's definition, a sign-in taken or let go of. */
+  | ConnectorHandoffWhat;
 export type ConnectionHandoffAnswer =
   | { ok: true; connection: object; digest?: string }
   | { ok: true; share: { code: string } }
   | { ok: true; release: { released: true } | { changed: true } }
   | { ok: true; secrets: Record<string, string> }
+  | { ok: true; connector: Record<string, unknown> }
   | { ok: false; error: string };
 
 /** A saved login as the Cloud's own POST /api/logins takes it: one sign-in address, the 2FA key as an otpauth:// address. */
@@ -69,6 +73,8 @@ function parse(raw: unknown): { requestId: string; what: Ask } | null {
   if (what?.kind === "connection-release" && typeof what.id === "string" && CONNECTION_ID.test(what.id) && typeof what.digest === "string" && DIGEST.test(what.digest)) {
     return { requestId: message.requestId, what: { kind: "connection-release", id: what.id, digest: what.digest } };
   }
+  const connector = parseConnectorHandoff(what);
+  if (connector) return { requestId: message.requestId, what: connector };
   if (what?.kind === "verify-secrets" && typeof what.nonce === "string" && VERIFY_NONCE.test(what.nonce)) return { requestId: message.requestId, what: { kind: "verify-secrets", nonce: what.nonce } };
   return null;
 }
@@ -102,7 +108,7 @@ export function receiveLoginHandoff(raw: unknown, store: HandoffStore, post: (me
   const ask = parse(raw);
   if (!ask) return true;
   const { requestId, what } = ask;
-  if (what.kind === "connection" || what.kind === "composio-share" || what.kind === "connection-release") {
+  if (what.kind === "connection" || what.kind === "composio-share" || what.kind === "connection-release" || what.kind === "connector") {
     const refused: ConnectionHandoffAnswer = { ok: false, error: "This connection could not be read on this computer." };
     const answer = connections ? connections(what).catch((): ConnectionHandoffAnswer => refused) : Promise.resolve(refused);
     void answer.then((answered) => post({ type: LOGIN_HANDOFF_RESULT, requestId, ...answered }));

@@ -138,9 +138,10 @@ it("moves the MCP servers with their secrets and sign-ins, the keys and the conn
   await onCloud("POST", "/api/mcp/servers/linear/test");
   expect(refreshes).toEqual([{ refresh: REFRESH, client: "dusk-fixture-client", secret: CLIENT_SECRET }]);
   expect((await onCloud("GET", "/api/mcp/servers")).body.servers.find((server: { name: string }) => server.name === "linear")).toMatchObject({ auth: "signed-in" });
-  // ...and this computer let go of its own copy, without signing it out, so it never spends that refresh token too.
-  expect(openMcpOAuthFile(desktopSignIns).servers.linear).toBeUndefined();
-  expect((await local("GET", "/api/mcp/servers")).body.servers.find((server: { name: string }) => server.name === "linear").auth).toBeUndefined();
+  // ...and this computer let go of its refresh token, without signing it out, so it never spends it too; it keeps the
+  // access token, lent, which connector sync tops up from My Cloud.
+  expect(openMcpOAuthFile(desktopSignIns).servers.linear.tokens.refresh).toBeUndefined();
+  expect(openMcpOAuthFile(desktopSignIns).servers.linear.lent).toMatchObject({ from: "My Cloud" });
 
   // The key arrived, and so did its engine, before anything that follows it.
   expect((await onCloud("GET", "/api/config")).body.openrouter).toMatchObject({ configured: true });

@@ -19,6 +19,7 @@ import type { RequestAuth } from "./request-auth.ts";
 import { isRemoteMcpServer, parseStoredMcpServer, type McpRunsOn } from "./mcp-registry.ts";
 import { personalConnectionRefusal, type CloudTeam } from "./cloud-team.ts";
 import { createCloudConnectionRoutes } from "./routes/cloud-connections.ts";
+import { answerConnectorHandoff, type ConnectorSync } from "./connector-sync.ts";
 
 export interface CloudConnectionsHostDeps {
   /** This server is the person's Cloud home, reached at this public origin. */
@@ -28,7 +29,7 @@ export interface CloudConnectionsHostDeps {
   config(): AppConfig;
   /** This server's own environment id: the computer a server that needs it is marked as running on. */
   environmentId: string;
-  mcpOAuth: Pick<McpOAuthManager, "authState" | "signInRecord" | "adopt" | "forget">;
+  mcpOAuth: Pick<McpOAuthManager, "authState" | "signInRecord" | "adopt" | "forget" | "keepAsLent">;
   /** The engines (instance ids) ready to run here now. */
   engines(): Promise<string[]>;
   /** This server's data folder, where a Cloud home keeps the computer its bots moved from. */
@@ -37,6 +38,8 @@ export interface CloudConnectionsHostDeps {
   email?: { accounts(): readonly EmailAccount[]; adopt(accounts: unknown[]): { adopted: number; kept: number } };
   /** How the person hears what stayed on their computer; a Cloud home only. */
   stayedNotices?: Pick<StayedNoticesDeps, "bots" | "say" | "notify" | "language">;
+  /** Connector sync, once it is made: what the desktop asks for it over the private port. */
+  connectorSync?(): ConnectorSync | null;
 }
 
 const managedService = (): boolean => { try { return brokerAccess() !== null; } catch { return false; } };
@@ -85,13 +88,21 @@ export function createCloudConnectionsHost(deps: CloudConnectionsHostDeps) {
     /** The private port's ask: one connection's secrets, a code for the person's Cloud to act as this computer's
      * connected-apps account, or letting go of a sign-in that moved. */
     async handoff(what: ConnectionHandoffWhat): Promise<ConnectionHandoffAnswer> {
+      if (what.kind === "connector") {
+        const sync = deps.connectorSync?.();
+        return sync ? answerConnectorHandoff(sync, what) : { ok: false, error: "Connectors are not ready on this computer yet." };
+      }
       if (what.kind === "composio-share") {
         try { return { ok: true, share: { code: await composioShareCode(what.for) } }; }
         catch (error) { return { ok: false, error: error instanceof Error && error.message ? error.message.slice(0, 300) : "Connected apps could not be shared." }; }
       }
       if (what.kind === "connection-fingerprints") return { ok: true, secrets: connectionFingerprints(what.nonce, sources()) };
       if (what.kind === "connection-release") {
-        return releaseConnection(what.id, what.digest, { ...sources(), forgetSignIn: (name) => deps.mcpOAuth.forget(name) });
+        // only the access token stays, lent: My Cloud holds the refresh token now, and connector sync tops this one up
+        return releaseConnection(what.id, what.digest, { ...sources(), forgetSignIn: (name) => {
+          const url = deps.config().mcpServers?.[name] as { url?: unknown } | undefined;
+          if (typeof url?.url === "string") deps.mcpOAuth.keepAsLent(name, url.url, "My Cloud", Date.now()); else deps.mcpOAuth.forget(name);
+        } });
       }
       return answerConnection(what.id, sources());
     },

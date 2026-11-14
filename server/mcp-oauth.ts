@@ -45,6 +45,8 @@ export const cardOwner = (threadId: string, messageId: string) => `card:${thread
 
 const DEFAULT_LIFETIME_MS = 5 * 60_000;
 const REFRESH_MARGIN_MS = 2 * 60_000;
+/** A token lent to another place has at least this long left, so it outlives the gap until the next top-up. */
+const LEND_MIN_MS = 15 * 60_000;
 const REQUEST_TIMEOUT_MS = 10_000;
 /** how long a server's sign-in addresses are kept once read: long enough that a warmed apps page opens its sign-in at once */
 const DISCOVERY_TTL_MS = 10 * 60_000;
@@ -241,7 +243,7 @@ export class McpOAuthManager {
    * app's secret, when it has one, came with the entry itself. */
   adopt(name: string, url: string, record: McpOAuthRecord, replaces?: (current: McpOAuthRecord) => boolean): "adopted" | "kept" {
     const current = this.store.get(name, url);
-    if (current && this.authState(name, url) === "signed-in" && !replaces?.(current)) return "kept";
+    if (current && this.authState(name, url) === "signed-in" && !current.lent && !replaces?.(current)) return "kept";
     this.cancel(name);
     this.store.put(name, { ...record, url, state: record.tokens ? "signed-in" : "needs-sign-in" });
     return "adopted";
@@ -352,7 +354,8 @@ export class McpOAuthManager {
     this.cancel(name);
     const record = this.store.get(name, url);
     const token = record?.tokens?.refresh ?? record?.tokens?.access;
-    if (record?.revocationEndpoint && token) {
+    // a lent token is the holder's own: the holder revokes it when the sign-out reaches it (connector-sync)
+    if (record?.revocationEndpoint && token && !record.lent) {
       await postForm(record.revocationEndpoint, { token }, this.recordClient(name, record) ?? undefined).catch(() => undefined);
     }
     this.store.delete(name);
@@ -391,6 +394,58 @@ export class McpOAuthManager {
     return token && token !== rejected ? token : null;
   }
 
+  /** How this place holds a sign-in, for connector sync: its own (with a refresh token), lent by another place, or none. */
+  syncRole(name: string, url: string): { role: "holder" | "lent" | "needs-sign-in" | "none"; access?: string; expiresAt?: number; grantAt?: number; from?: string } {
+    const record = this.store.get(name, url);
+    if (!record) return { role: "none" };
+    if (record.state !== "signed-in" || !record.tokens) return { role: "needs-sign-in" };
+    const { access, expiresAt } = record.tokens;
+    if (record.lent) return { role: "lent", access, ...(expiresAt ? { expiresAt } : {}), grantAt: record.lent.grantAt, from: record.lent.from };
+    return { role: "holder", access, ...(expiresAt ? { expiresAt } : {}) };
+  }
+
+  /** The holder's access token for another place to use, refreshed first when less than `minMs` is left. Null when this
+   * place does not hold this sign-in itself. */
+  async lend(name: string, url: string, minMs = LEND_MIN_MS): Promise<{ access: string; expiresAt?: number } | null> {
+    const record = this.store.get(name, url);
+    if (!record || record.lent || record.state !== "signed-in" || !record.tokens) return null;
+    const { tokens } = record;
+    let access: string | null = tokens.access;
+    if (tokens.expiresAt && tokens.expiresAt < Date.now() + minMs && tokens.refresh) {
+      let pending = this.refreshing.get(name);
+      if (!pending) {
+        pending = this.refresh(name, { ...record, tokens: { ...tokens, expiresAt: 0 } }).finally(() => this.refreshing.delete(name));
+        this.refreshing.set(name, pending);
+      }
+      access = await pending;
+    }
+    if (!access) return null;
+    const now = this.store.get(name, url)?.tokens;
+    return { access, ...(now?.access === access && now.expiresAt ? { expiresAt: now.expiresAt } : {}) };
+  }
+
+  /** A token another place lent: kept until it ends, never refreshed here. A sign-in of this place's own stays. */
+  borrow(name: string, url: string, lent: { access: string; expiresAt?: number; from: string; grantAt: number }): "borrowed" | "kept" {
+    const current = this.store.get(name, url);
+    if (current && current.state === "signed-in" && current.tokens && !current.lent) return "kept";
+    this.cancel(name);
+    const meta = current ? { issuer: current.issuer, revocationEndpoint: current.revocationEndpoint } : {};
+    this.store.put(name, {
+      url, state: "signed-in", ...Object.fromEntries(Object.entries(meta).filter(([, value]) => value !== undefined)),
+      tokens: { access: lent.access, ...(lent.expiresAt ? { expiresAt: lent.expiresAt } : {}) },
+      lent: { from: lent.from, grantAt: lent.grantAt },
+    });
+    return "borrowed";
+  }
+
+  /** This place gave its sign-in to another place, which holds it now: it keeps only the access token, as lent. */
+  keepAsLent(name: string, url: string, from: string, grantAt: number): void {
+    const record = this.store.get(name, url);
+    if (!record?.tokens) { this.forget(name); return; }
+    this.store.put(name, { url, state: "signed-in", tokens: { access: record.tokens.access, ...(record.tokens.expiresAt ? { expiresAt: record.tokens.expiresAt } : {}) },
+      lent: { from, grantAt } });
+  }
+
   dispose(): void {
     this.disposed = true;
     for (const pending of this.starting.values()) pending.cancelled = true;
@@ -404,6 +459,8 @@ export class McpOAuthManager {
     const client = this.recordClient(name, record);
     if (!tokens.refresh || !record.tokenEndpoint || !client) {
       if (stillValid) return tokens.access;
+      // a lent token that ran out waits for the next one from its holder: it was never this place's to refresh
+      if (record.lent) return null;
       this.markNeedsSignIn(name, record.url);
       return null;
     }

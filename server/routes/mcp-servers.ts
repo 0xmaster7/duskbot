@@ -26,6 +26,8 @@ export interface McpServerRouteDeps extends Pick<McpConfigDeps, "cfg" | "session
   bot(id: string): { id: string; mcpServers?: readonly string[] | null } | null;
   /** Secrets as booleans, sign-in state attached. */
   mcpServerResponse(): { servers: readonly ListedMcpServer[] };
+  /** Connector sync hears what the person changed here, so the person's other places follow (connector-sync.ts). */
+  synced?: { added(url: string): void; removed(url: string): void; signedOut(url: string): void };
 }
 
 export function createMcpServerRoutes(deps: McpServerRouteDeps): RouteHandler {
@@ -101,6 +103,7 @@ export function createMcpServerRoutes(deps: McpServerRouteDeps): RouteHandler {
       const url = parsed.server.url;
       if (action === "sign-out" && method === "POST" && !flowId) {
         await mcpOAuth.signOut(name!, url);
+        deps.synced?.signedOut(url);
         return json(res, 200, withServerDetails(mcpServerResponse()));
       }
       const owner = auth.kind === "session" ? auth.session.id : "loopback";
@@ -153,7 +156,9 @@ export function createMcpServerRoutes(deps: McpServerRouteDeps): RouteHandler {
       const name = typeof body?.name === "string" ? body.name : "";
       const parsed = parseMcpServerMutation(name, mcpServerBody(body));
       if (!parsed.ok) return json(res, 400, { error: parsed.error });
-      return answer(res, json, config.add(name, parsed.server));
+      const added = config.add(name, parsed.server);
+      if ("body" in added && isRemoteMcpServer(parsed.server)) deps.synced?.added(parsed.server.url);
+      return answer(res, json, added);
     }
 
     // The {"mcpServers": {...}} block other agent tools write; imported servers stay disabled until enabled.
@@ -179,7 +184,12 @@ export function createMcpServerRoutes(deps: McpServerRouteDeps): RouteHandler {
         return json(res, 415, { error: "content-type must be application/json" });
       }
       const name = mcpServerRoute[1]!;
-      if (method === "DELETE") return answer(res, json, config.remove(name));
+      if (method === "DELETE") {
+        const before = parseStoredMcpServer(name, cfg.mcpServers?.[name]);
+        const removed = config.remove(name);
+        if ("body" in removed && before.ok && isRemoteMcpServer(before.server)) deps.synced?.removed(before.server.url);
+        return answer(res, json, removed);
+      }
       const body = await readBody(req);
       const current = cfg.mcpServers ?? {};
       if (!Object.hasOwn(current, name)) return json(res, 404, { error: "MCP server not found." });
@@ -194,7 +204,12 @@ export function createMcpServerRoutes(deps: McpServerRouteDeps): RouteHandler {
       }
       const parsed = parseMcpServerMutation(name, body, existing.server);
       if (!parsed.ok) return json(res, 400, { error: parsed.error });
-      return answer(res, json, config.replace(name, parsed.server));
+      const replaced = config.replace(name, parsed.server);
+      if ("body" in replaced && isRemoteMcpServer(parsed.server)) {
+        if (isRemoteMcpServer(existing.server) && existing.server.url !== parsed.server.url) deps.synced?.removed(existing.server.url);
+        deps.synced?.added(parsed.server.url);
+      }
+      return answer(res, json, replaced);
     }
     return PASS;
   };

@@ -224,7 +224,9 @@ it("a move carries everything, apps and keys first, and its check finds every ro
   const final = await fx.move({ final: true });
   expect(final.result.failed).toEqual([]);
   expect((await linearThere()).auth).toBe("signed-in");
-  expect(openMcpOAuthFile(desktopSignIns).servers.linear, "this computer let go of its own copy").toBeUndefined();
+  const kept = openMcpOAuthFile(desktopSignIns).servers.linear;
+  expect(kept?.tokens?.refresh, "this computer let go of its refresh token").toBeUndefined();
+  expect(kept?.lent, "and keeps the access token, lent by My Cloud").toBeDefined();
   expect(broker.actingUser(broker.installationIds().find((id) => id !== fx.desktopInstallation!.id && broker.actingUser(id) === fx.desktopInstallation!.userId)!))
     .toBe(fx.desktopInstallation!.userId);
   expect((await onCloud("GET", "/api/connectors/connected")).body.services.gmail).toMatchObject({ connected: true, accounts: [expect.objectContaining({ id: gmail })] });
