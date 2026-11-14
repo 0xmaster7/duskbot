@@ -2509,6 +2509,26 @@ async function refreshUnsetModelSelections(instances?: readonly SelectableInstan
   }
 }
 
+/** The selection this run last found working, while its engine still reads available and signed in: a send to a bot with
+ * no AI chosen runs on it at once instead of waiting on every engine to be probed again. */
+function knownGoodSelection(): ModelSelection | null {
+  if (!bootSelection.instanceId || !bootSelection.model || cfg.instances?.[bootSelection.instanceId]?.enabled === false) return null;
+  const instance = registry.get(bootSelection.instanceId);
+  const snapshot = registry.lastSnapshot(bootSelection.instanceId);
+  if (!instance || snapshot?.state !== "available" || snapshot.authenticated === false) return null;
+  return withNewBotEffort(bootSelection, cfg.newBots?.effort, instance.adapter.capabilities.effortLevels);
+}
+
+let unsetRecheck: Promise<void> | null = null;
+/** Reads every engine afresh and settles the default again, one at a time: an AI installed or signed in since takes over.
+ * The cached statuses stay until the new reads land, so nothing else sees the engines as unknown meanwhile. */
+function recheckUnsetModelSelections(): Promise<void> {
+  unsetRecheck ??= refreshUnsetModelSelections()
+    .catch((error) => console.warn(`[engines] re-reading the engines after a send failed: ${error instanceof Error ? error.message : String(error)}`))
+    .finally(() => { unsetRecheck = null; });
+  return unsetRecheck;
+}
+
 function saveNewBotModel(replacement: ModelSelection): void {
   const newBotDefaults = cfg.newBotDefaults && newBotDefaultsSchema.parse({
     ...cfg.newBotDefaults, profile: { ...cfg.newBotDefaults.profile, modelSelection: replacement },
@@ -7726,13 +7746,30 @@ async function acceptDirectSend(
       }
 
       // Provider discovery yields, probes afresh for an engine installed or signed in since, and reads a thread's own model's engines at start before it may give way; the transcript reservation after these checks must stay synchronous.
+      const checksAt = Date.now();
       const ownModel = store.taskByThread(botId, threadId)?.modelSelection, ownModelRead = ownModel && registry.engineRead(ownModel.instanceId, store.bot(botId)?.modelSelection.instanceId);
       if (ownModelRead) await ownModelRead;
       const profile = store.bot(botId);
+      let engines: "known" | "startup" | "probed" | null = null;
       if (profile && !profile.modelSelection.instanceId && !profile.modelSelection.model) {
-        if (enginesRead) await enginesRead;
-        registry.forgetSnapshots(); await refreshUnsetModelSelections();
+        const known = knownGoodSelection();
+        if (known) {
+          // the last AI this run found working takes the turn now; the fresh read only moves later turns
+          engines = "known";
+          store.applyModelDefault(profile.id, known);
+          void recheckUnsetModelSelections();
+        } else if (enginesRead) {
+          // the start-up read just probed every engine: probing them all again would only double the wait
+          engines = "startup";
+          await enginesRead;
+          await refreshUnsetModelSelections();
+        } else {
+          engines = "probed";
+          registry.forgetSnapshots(); await refreshUnsetModelSelections();
+        }
       }
+      const checksMs = Date.now() - checksAt;
+      if (checksMs >= 250) trail("send.preturn", { ms: checksMs, ...(engines ? { engines } : {}), ...(ownModelRead ? { ownModelRead: true } : {}) });
       const currentAtStart = store.projectBotForTask(botId, threadId);
       if (!currentAtStart) throw Object.assign(new Error("no such bot"), { status: 404 });
       if (!store.taskByThread(currentAtStart.id, threadId)) {
