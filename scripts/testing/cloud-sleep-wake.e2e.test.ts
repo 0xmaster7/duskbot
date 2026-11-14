@@ -134,6 +134,8 @@ afterAll(async () => {
 it("after Wake it now the page stays awake, the home's pending sleep ends, and the bot's reply shows", async () => {
   const bot = (await api("POST", "/api/bots", { name: "Wren", modelSelection: { instanceId: "claude", model: "claude-sonnet-5" } })).body.bot;
   expect(bot?.id, log.slice(-2000)).toBeTruthy();
+  // a page left untouched: one someone is using wakes its home the moment the sleep frame arrives (cloud-power.ts)
+  resetCloudPowerForTests();
 
   // The page's own requests go where a browser sends them, with its session.
   vi.stubGlobal("fetch", (input: RequestInfo | URL, init?: RequestInit) => realFetch(
