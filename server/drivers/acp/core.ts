@@ -21,7 +21,7 @@ import { runAcpOneShot } from "./background-text.ts";
 import { sanitizeAcpToolMessage } from "./tool-log.ts";
 import { stripLeakedSystemHarnessMessages } from "../../../shared/system-message-guard.ts";
 import {
-  classifyQuiet, describeQuiet, formatQuietLimit, lastSeenPhrase, LIMIT_WORDS, LogTail, promptIdleTimeoutMs, quietKey, quietNoticeMs, quietTickMs, quietVerdict, sampleProcessTree,
+  classifyQuiet, describeQuiet, firstReplyMs, formatQuietLimit, FREE_MODEL_ATTEMPTS, lastSeenPhrase, LIMIT_WORDS, LogTail, promptIdleTimeoutMs, quietKey, quietNoticeMs, quietTickMs, quietVerdict, sampleProcessTree,
   type LogSignal, type ProcessSample, type QuietState,
 } from "./quiet-status.ts";
 import { readSessionReport } from "./session-reports.ts";
@@ -49,6 +49,7 @@ import type {
   TurnImageInput,
 } from "../../contracts.ts";
 import { newEventId, newId, TurnNotStartedError } from "../../contracts.ts";
+import { conversationLanguage, serverLine } from "../../server-lines.ts";
 import { augmentedPath } from "../../env-path.ts";
 import { supportsApprovalMode } from "../../../shared/approval-mode.ts";
 import { MAX_QUESTION_TEXT, parseAskQuestions, parseChoices, questionAnswersByQuestion } from "../../../shared/ask-question.ts";
@@ -137,6 +138,9 @@ export interface AcpSupport {
   /** With `selectModel`: the model a turn runs when it asked for none or for one this session does
    * not offer; null keeps the strict behaviour. */
   fallbackModel?(sessionConfig: unknown, catalogDefault: string): string | null;
+  /** The free models to try in turn when `model` is one of them, in order; null when `model` is no free backup model.
+   * A free model that sends nothing within firstReplyMs() is given up on and the turn runs again on the next one. */
+  freeModelOrder?(model: string, env: Record<string, string | undefined>, models: ModelCatalog): string[] | null;
   /** Env var the runtime reads its new-session default model from, set at spawn so session/new runs
    * it. The runtime takes any id unchecked, so it is set only for a model this account offered. Not
    * part of the spawn contract. */
@@ -1008,7 +1012,8 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
         return session;
       };
 
-      const sendTurn = async (turn: SendTurnInput, retryOf?: string) => {
+      // `freeTried`: the free models this turn already gave up on for sending nothing.
+      const sendTurn = async (turn: SendTurnInput, retryOf?: string, freeTried: readonly string[] = []) => {
         requireRunning();
         if (startupModelRefresh) await startupModelRefresh;
         requireRunning();
@@ -1200,6 +1205,8 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
         if (retryOf === undefined) emit({ ...base(threadId, turnId), type: "turn.started" });
         session.current = current;
 
+        const freeModel = turn.model || catalog.models.default;
+        const freeOrder = freeModel ? support.freeModelOrder?.(freeModel, env, catalog.models) ?? null : null;
         (async () => {
           let pendingSplitReceipt: { key: string; receipt: PromptSplitReceipt; previous: PromptSplitReceipt | null } | null = null;
           try {
@@ -1447,6 +1454,15 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
             acknowledge();
             const promptIdleMs = promptIdleTimeoutMs();
             const quiet = startQuietWatch(threadId, session, current);
+            const replyMs = firstReplyMs();
+            // a free model that hangs before its first word is cut short here, long before the silence guard
+            const firstReply = freeOrder ? setTimeout(() => {
+              if (state.settled || state.stopped || session.current !== current || state.startupActivity || state.producedItem
+                  || state.text || current.runningTools.size || asks.size) return;
+              session.acp.failAll(Object.assign(new Error(`${support.displayName}'s free model ${freeModel} sent nothing for ${formatQuietLimit(replyMs)}`),
+                { acpFirstReplyStall: true }));
+            }, replyMs) : null;
+            firstReply?.unref?.();
             const result = await request(
               "session/prompt",
               { sessionId, prompt: [{ type: "text", text }, ...imageBlocks] },
@@ -1458,7 +1474,7 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
                 return `${support.displayName} sent nothing for ${formatQuietLimit(promptIdleMs)} with no tool running, so the turn was stopped as stuck` +
                   `${last ? ` (last seen: ${lastSeenPhrase(last)})` : ""}. Send the message again to retry.`;
               },
-              );
+              ).finally(() => { if (firstReply) clearTimeout(firstReply); });
             if (pendingSplitReceipt) {
               // session/prompt resolving is the acceptance boundary: a rejected prompt leaves no receipt.
               if (state.usageCompacted) {
@@ -1521,6 +1537,29 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
           } catch (e) {
             if (pendingSplitReceipt && state.promptSent && state.usageCompacted) {
               deletePromptSplitReceipt(DRIVER_KIND, pendingSplitReceipt.key);
+            }
+            if (!state.settled && !state.cancelling && (e as any)?.acpFirstReplyStall === true && freeOrder && !state.stopped) {
+              // nothing reached the person and no tool ran, so the same message goes to the next free model in this turn
+              state.settled = true; session.current = null; active.delete(threadId); current.stopQuietWatch?.();
+              if (current.interruptTimer) clearTimeout(current.interruptTimer);
+              if (session.sessionId) session.acp.send({ jsonrpc: "2.0", method: "session/cancel", params: { sessionId: session.sessionId } });
+              closeSession(threadId, "prompt-stall");
+              const tried = [...freeTried, freeModel];
+              const next = tried.length < FREE_MODEL_ATTEMPTS ? freeOrder.find((model) => !tried.includes(model)) : undefined;
+              const language = conversationLanguage(threadId);
+              if (next) {
+                emit({ ...base(threadId, turnId), type: "runtime.notice",
+                  message: serverLine(language, "server.freeModel.tryingNext", { seconds: Math.round(firstReplyMs() / 1000) }) });
+                try {
+                  await sendTurn({ ...turn, model: next, startupRecovery: undefined, sessionReset: undefined }, turnId, tried);
+                  return;
+                } catch (error) {
+                  console.warn(`${support.displayName}: the next free model did not start on ${threadId}: ${error instanceof Error ? error.message : String(error)}`);
+                }
+              }
+              emit({ ...base(threadId, turnId), type: "runtime.error", message: serverLine(language, "server.freeModel.noReply") });
+              emit({ ...base(threadId, turnId), type: "turn.completed", ok: false, stopReason: "no_reply", cost: null });
+              return;
             }
             if (!state.settled && !state.cancelling) {
               const untouched = retryOf === undefined && !state.producedItem && !state.text && !current.runningTools.size && !asks.size && !state.stopped && !session.closing;

@@ -44,6 +44,7 @@
 //   FAKE_ACP_MODELS_LIST=v2  OpenCode 2: `models` answers empty with exit 0, `models --verbose` exits 1
 //   FAKE_ACP_MODELS_LIST=auto-only  Cursor CLI 2026.10.22: `models` lists only `auto`
 //   FAKE_ACP_VERBOSE_FAIL_ONCE  marker path: the first `models --verbose` fails, like a new OpenCode home's first run
+//   FAKE_ACP_HANG_MODELS  comma-separated model ids whose session/prompt never answers (a hung free model)
 //   FAKE_ACP_MODEL_STICKS  set_config_option succeeds but keeps the old model
 //   FAKE_ACP_OMIT_MODEL_VALUE  when the live model equals this id, the model option has no currentValue
 //     (Copilot CLI 1.0.105 does this for auto)
@@ -895,6 +896,13 @@ function handle(msg: any) {
         writeFileSync(`${process.env.FAKE_ACP_DUMP}.prompt.json`, JSON.stringify(msg.params?.prompt ?? null, null, 2));
       }
       if (failRpc(msg)) return;
+      const hangModels = (process.env.FAKE_ACP_HANG_MODELS ?? "").split(",").filter(Boolean);
+      if (hangModels.length && process.env.FAKE_ACP_DUMP) appendFileSync(`${process.env.FAKE_ACP_DUMP}.models.jsonl`, JSON.stringify(currentModel) + "\n");
+      if (hangModels.includes(String(currentModel))) {
+        hangingPromptId = msg.id;
+        hangKeepAlive = setInterval(() => {}, 1_000);
+        return;
+      }
       if (process.env.FAKE_ACP_TOOL_LIMIT) {
         const limit = Number(process.env.FAKE_ACP_TOOL_LIMIT);
         const handshake = process.env.FAKE_ACP_MCP_HANDSHAKE ? JSON.parse(process.env.FAKE_ACP_MCP_HANDSHAKE) : GROK_MCP_HANDSHAKE;

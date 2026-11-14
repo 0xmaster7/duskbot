@@ -632,6 +632,16 @@ export function openCodeFreeFallback(ownAccess: boolean, models: ModelCatalog): 
     && models.options.every((option) => option.custom === true || OPENCODE_OWN_MODEL.test(option.id));
 }
 
+/** The free models a turn on `model` falls back through when one hangs, OpenCode's own first; null when `model` is no
+ * free model. With no access of the person's own every Zen model offered is free. */
+export function openCodeFreeModelOrder(model: string, ownAccess: boolean, models: ModelCatalog): string[] | null {
+  const keyless = openCodeFreeFallback(ownAccess, models);
+  const free = models.options.filter((option) => option.custom !== true && (keyless || isFreeOpenCodeModel(option.id)))
+    .map((option) => option.id);
+  if (!free.includes(model) && !isFreeOpenCodeModel(model)) return null;
+  return [...free.filter((id) => id.startsWith("opencode/")), ...free.filter((id) => !id.startsWith("opencode/"))];
+}
+
 function withinFolder(path: string, folder: string): boolean {
   const rest = relative(resolvePath(folder), resolvePath(path));
   return rest === "" || (rest !== ".." && !rest.startsWith(`..${sep}`) && !isAbsolute(rest));
@@ -842,6 +852,7 @@ const support = (loadCatalog: OpenCodeCatalogLoader, ownAccess = new Map<string,
     if (catalogDefault && offered.includes(catalogDefault)) return catalogDefault;
     return preferredOpenCodeModel(offered, catalogFromOpenCodeSession(sessionConfig)?.current) || null;
   },
+  freeModelOrder: (model, env, models) => openCodeFreeModelOrder(model, ownOpenCodeAccess(env), models),
   modelVariants: true,
   ownMcpOverHttp: true,
   // OpenCode 1.18.27's build agent lists 13 tools of its own (bash, read, edit, task, skill…); room for a newer CLI's.

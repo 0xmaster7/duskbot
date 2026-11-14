@@ -16,6 +16,7 @@ import {
   describeOpenCodeAccountError,
   discoverOpenCodeModels,
   openCodeFreeFallback,
+  openCodeFreeModelOrder,
   openCodeOwnedDirectories,
   OpenCodeDriver,
   openCodeProviderKeysAllowed,
@@ -1392,6 +1393,71 @@ describe("OpenCode ready only through its free models", () => {
     const snapshot = await snapshotWith(catalog("opencode/big-pickle", "openrouter/vendor/model-v2"));
     expect(snapshot.authenticated).toBe(true);
     expect(snapshot).not.toHaveProperty("freeFallback");
+  });
+});
+
+describe("OpenCode free model that never answers", () => {
+  const noKeys = { OPENCODE_API_KEY: "", OPENCODE_AUTH_CONTENT: "", ...Object.fromEntries(OPENCODE_PROVIDER_ENV.map((key) => [key, ""])) };
+  afterEach(() => { delete process.env.DUSK_ACP_FIRST_REPLY_MS; });
+
+  async function firstMessage(hang: string) {
+    process.env.DUSK_ACP_FIRST_REPLY_MS = "600";
+    const scratch = mkdtempSync(join(tmpdir(), "dusk-opencode-hang-"));
+    resetOpenCodeModelCache();
+    const driver = createOpenCodeDriver(async () => catalog("opencode/big-pickle", "opencode/grok-code", "opencode/minimax-free"));
+    const instance = await driver.create({
+      instanceId: "opencode-hang",
+      displayName: "OpenCode",
+      environment: { HOME: scratch, USERPROFILE: scratch, XDG_DATA_HOME: join(scratch, "data"), ...noKeys,
+        FAKE_ACP_MODELS: "opencode/big-pickle,opencode/grok-code,opencode/minimax-free", FAKE_ACP_HANG_MODELS: hang,
+        FAKE_ACP_TEXT_REPLY: "ok", FAKE_ACP_DUMP: join(scratch, "dump") },
+      enabled: true,
+      config: { cli: FAKE_CLI, fullAuto: false },
+    });
+    const recorder = recordEvents(instance.adapter);
+    const started = Date.now();
+    try {
+      await instance.adapter.sendTurn({ threadId: "t-first", text: "hi", model: "opencode/big-pickle" });
+      const done = await recorder.until((event) => event.type === "turn.completed", 15_000);
+      const tried = readFileSync(join(scratch, "dump.models.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
+      return { done, events: [...recorder.events], tried, ms: Date.now() - started };
+    } finally {
+      recorder.stop();
+      await instance.dispose();
+      await removeTempDir(scratch);
+      resetOpenCodeModelCache();
+    }
+  }
+
+  it("moves the same turn to the next free model when the first sends nothing", async () => {
+    const { done, events, tried, ms } = await firstMessage("opencode/big-pickle");
+    expect(done).toMatchObject({ ok: true });
+    expect(tried).toEqual(["opencode/big-pickle", "opencode/grok-code"]);
+    expect(events.filter((event) => event.type === "turn.started")).toHaveLength(1);
+    expect(new Set(events.map((event) => event.turnId))).toEqual(new Set([done.turnId]));
+    expect(events).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: "runtime.notice", message: "The free backup model sent nothing for 1 s, so another free model is answering instead." }),
+      expect.objectContaining({ type: "item.completed", itemType: "assistant_text", text: "ok" }),
+    ]));
+    expect(events.some((event) => event.type === "runtime.error")).toBe(false);
+    expect(ms).toBeLessThan(10_000);
+  }, 20_000);
+
+  it("ends the turn with a plain line when no free model answers, never in silence", async () => {
+    const { done, events, tried } = await firstMessage("opencode/big-pickle,opencode/grok-code,opencode/minimax-free");
+    expect(tried).toEqual(["opencode/big-pickle", "opencode/grok-code", "opencode/minimax-free"]);
+    expect(done).toMatchObject({ ok: false, stopReason: "no_reply" });
+    expect(events.filter((event) => event.type === "runtime.error")).toEqual([expect.objectContaining({
+      message: "No free backup model answered just now, so this message got no reply. Send it again in a minute, or connect your own AI, like Claude or ChatGPT, for replies you can count on.",
+    })]);
+  }, 20_000);
+
+  it("orders OpenCode's own free models first and leaves paid models alone", () => {
+    expect(openCodeFreeModelOrder("opencode/big-pickle", false, catalog("opencode/big-pickle", "opencode/grok-code")))
+      .toEqual(["opencode/big-pickle", "opencode/grok-code"]);
+    expect(openCodeFreeModelOrder("openrouter/x-free", true, catalog("openrouter/x-free", "opencode/paid-one", "opencode/a-free")))
+      .toEqual(["opencode/a-free", "openrouter/x-free"]);
+    expect(openCodeFreeModelOrder("opencode-go/minimax-m3", true, catalog("opencode-go/minimax-m3"))).toBeNull();
   });
 });
 

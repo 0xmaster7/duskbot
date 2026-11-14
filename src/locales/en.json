@@ -182,6 +182,8 @@
   "server.problem.couldNotStartWhy": "{bot} hit a problem: its run {where} could not start: \"{detail}\"",
   "server.problem.routineFailed": "{bot} hit a problem: its scheduled routine {where} failed",
   "server.problem.routineFailedWhy": "{bot} hit a problem: its scheduled routine {where} failed: \"{detail}\"",
+  "server.freeModel.tryingNext": "The free backup model sent nothing for {seconds} s, so another free model is answering instead.",
+  "server.freeModel.noReply": "No free backup model answered just now, so this message got no reply. Send it again in a minute, or connect your own AI, like Claude or ChatGPT, for replies you can count on.",
   "server.incidents.where.thread": "in its thread #{title}",
   "server.incidents.where.main": "in its main conversation",
   "server.connect.signIn": "I need you to sign in to {site}.",
