@@ -113,15 +113,6 @@ if (form) {
     c.textContent = `${d.count.toLocaleString('en')} people waiting · free forever`; c.hidden = false;
   }).catch(() => {});
 
-  // the headline, the line under it and the chips read like a way in: people press them (rage clicks on "get dusk bot"),
-  // so a press sends them to the email field and says why there is nothing to download yet
-  const hint = $('[data-wl-hint]', form);
-  $$('[data-wl-title], [data-wl-lede], [data-wl-works], [data-wl-count]').forEach((el) => el.addEventListener('click', () => {
-    if (form.hidden || !hint) return;
-    hint.hidden = false; hero.dispatchEvent(new Event('wl:layout'));
-    input.focus({ preventScroll: true });
-  }));
-
   function cheer() {
     const pip = $('.wl-pip svg.bot');
     if (window.duskBots && pip) window.duskBots.react(pip, 'boing');
