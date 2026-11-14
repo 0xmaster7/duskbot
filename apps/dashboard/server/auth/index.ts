@@ -5,7 +5,7 @@ import type { AccountAnswer, AccountErrorCode, AccountView, AppGrant, Notificati
 import { CHECKOUT_SOURCES } from "../../../../shared/billing-api.ts";
 import { createAuthStore } from "./store.ts";
 import type { Account, Identity, Session } from "./store.ts";
-import { codeMessage, recoveryMessage } from "./mail.ts";
+import { codeMessage, isTestAddress, recoveryMessage } from "./mail.ts";
 import type { Mailer } from "./mail.ts";
 import { emailConfig } from "../email/templates.ts";
 import type { EmailConfig } from "../email/templates.ts";
@@ -220,9 +220,12 @@ export function createAuth(options: AuthOptions) {
     // every address and caller together: one botnet spread over many addresses cannot burn the mail quota or our sender reputation
     const perDay = options.mailPerDay ?? AUTH_LIMITS.mailPerDay, limited = (kind: "hour" | "day" | "new") => () => options.onMailLimit?.(kind);
     // the signup share first, so a spray it turns away does not eat the day that is kept for existing accounts
-    if (!state.accounts.some(item => item.email === email)) rate("mail:new", Math.floor(perDay * AUTH_LIMITS.newAddressShare), day, limited("new"));
-    rate("mail:all", options.mailPerHour ?? AUTH_LIMITS.mailPerHour, hour, limited("hour"));
-    rate("mail:day", perDay, day, limited("day"));
+    // a test address's mail never leaves the service (mail.ts), so it spends none of the provider's quota
+    if (!isTestAddress(email)) {
+      if (!state.accounts.some(item => item.email === email)) rate("mail:new", Math.floor(perDay * AUTH_LIMITS.newAddressShare), day, limited("new"));
+      rate("mail:all", options.mailPerHour ?? AUTH_LIMITS.mailPerHour, hour, limited("hour"));
+      rate("mail:day", perDay, day, limited("day"));
+    }
     sentAt.set(email, now());
     const attempt = random(), code = randomInt(0, 100_000_000).toString().padStart(8, "0");
     const item: Attempt = { email, ...(typeof data.pending === "string" ? { pending: data.pending } : {}), codeHash: hmac(`${attempt}:${code}`), device, expiresAt: now() + EMAIL_CODE_TTL_SECONDS * 1000, tries: 0 };

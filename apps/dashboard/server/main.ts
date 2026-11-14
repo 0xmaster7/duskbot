@@ -7,7 +7,7 @@ import { fileSpool } from "../../../electron/error-report-spool.mjs";
 import { TRAIL_HEADER, configureTrail, createStdoutWriter, createTrailWriter, trail, validTrailId } from "../../../electron/trail.mjs";
 import { createDashboardApp } from "./app.ts";
 import { providersFromEnv } from "./auth/providers.ts";
-import { mailerFromEnv, resendMailer } from "./auth/mail.ts";
+import { createTestMailbox, mailerFromEnv, resendMailer } from "./auth/mail.ts";
 import { persisted, useStateBackend } from "./persistence/backend.ts";
 import { openMongoBackend } from "./persistence/mongo.ts";
 import { mongoSink } from "./analytics/sink.ts";
@@ -73,7 +73,10 @@ watchProcess(incidents, { spoolPath: `${dataDir}/incident-spool` });
 watchDatabase(incidents, () => stateBackend()?.health() ?? null);
 console.log(`alerts: ${alertsOn ? `emailing ${alertEmails.length} address${alertEmails.length === 1 ? "" : "es"}` : "off"}`);
 
-const app = createDashboardApp({ errors: { service, page }, incidents, version, dataDir, publicUrl, mailer, oauth: providersFromEnv(process.env), dev,
+// mail to @qa.dusk.test never leaves the service; only preview and development keep it for test harnesses to read
+const testMail = createTestMailbox({ readable: environment === "preview" || dev });
+console.log(`test mail: ${testMail.readable ? "kept for harnesses" : "dropped"}`);
+const app = createDashboardApp({ errors: { service, page }, incidents, version, dataDir, publicUrl, mailer, testMail, oauth: providersFromEnv(process.env), dev,
   signupOpen: process.env.DUSK_AUTH_SIGNUP_OPEN !== "0", trustProxy: process.env.DUSK_TRUST_PROXY === "1", staticDir: staticDir || null,
   pageBase: process.env.DUSK_DASHBOARD_PAGE_BASE || "", waitlistOnly: process.env.DUSK_PRELAUNCH_WAITLIST_ONLY === "1", mailPerHour: process.env.DUSK_AUTH_MAIL_PER_HOUR ? Number(process.env.DUSK_AUTH_MAIL_PER_HOUR) : undefined, mailPerDay: process.env.DUSK_AUTH_MAIL_PER_DAY ? Number(process.env.DUSK_AUTH_MAIL_PER_DAY) : undefined, siteUpstream: process.env.DUSK_SITE_UPSTREAM || null,
   analytics, admin: { emails: adminEmails, environment, live, backupDir: process.env.DUSK_BACKUP_DIR || (database ? "/root/backups/mongo-dusk" : null) } });

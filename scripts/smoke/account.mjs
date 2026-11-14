@@ -1,7 +1,8 @@
 // The smoke's dusk account on the preview account service, signed in through the desktop app's own account client
-// (electron/cloud-account.mjs) with a real emailed code. *@dusk.bot mail lands in the team inbox, so the code is read
-// from Brevo's transactional log (DUSK_BREVO_API_KEY in the dusk env file, never printed). The session is kept in the
-// smoke profile so a run within a day reuses it instead of sending another email.
+// (electron/cloud-account.mjs) with a real sign-in code. Smoke addresses are at qa.dusk.test: the account service never
+// mails them (no Brevo, no one's inbox) and keeps the code in its test mailbox, read here with the preview ops token
+// (DUSK_OPS_TOKEN_PREVIEW in the dusk env file, never printed). The session is kept in the smoke profile so a run within a
+// day reuses it instead of asking for another code.
 import { chmodSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -21,21 +22,19 @@ export function envValue(name, file = process.env.DUSK_ENV_FILE || join(homedir(
   return null;
 }
 
-/** the newest 8-digit sign-in code Brevo sent to `email` after `since` (ms), or null */
-export async function brevoCode(email, since) {
-  const key = envValue("DUSK_BREVO_API_KEY");
-  if (!key) throw new Error("DUSK_BREVO_API_KEY is not set (dusk env file), so the emailed code cannot be read");
-  const headers = { "api-key": key, accept: "application/json" };
-  const list = await (await fetch(`https://api.brevo.com/v3/smtp/emails?email=${encodeURIComponent(email)}&limit=5&sort=desc`, { headers })).json();
-  const items = (list.transactionalEmails ?? []).filter((item) => Date.parse(item.date) >= since - 60_000).sort((a, b) => b.date.localeCompare(a.date));
-  for (const item of items) {
-    const fromSubject = /\b(\d{8})\b/.exec(item.subject ?? "")?.[1];
-    if (fromSubject) return fromSubject;
-    const one = await (await fetch(`https://api.brevo.com/v3/smtp/emails/${item.uuid}`, { headers })).json();
-    const code = /\b(\d{8})\b/.exec(String(one.body ?? "").replace(/<[^>]+>/g, " "))?.[1];
-    if (code) return code;
-  }
-  return null;
+/** harness addresses: mail to this domain never leaves the account service (apps/dashboard/server/auth/mail.ts) */
+export const TEST_MAIL_DOMAIN = "qa.dusk.test";
+export const isTestAddress = (email) => String(email).trim().toLowerCase().endsWith(`@${TEST_MAIL_DOMAIN}`);
+
+/** the newest 8-digit sign-in code the account service kept for test address `email` after `since` (ms), or null */
+export async function testMailCode(email, since, origin = PREVIEW_ORIGIN) {
+  if (!isTestAddress(email)) throw new Error(`${email} is not a test address (@${TEST_MAIL_DOMAIN}); harnesses never send real mail`);
+  const token = envValue("DUSK_OPS_TOKEN_PREVIEW") ?? envValue("DUSK_OPS_TOKEN");
+  if (!token) throw new Error("DUSK_OPS_TOKEN_PREVIEW is not set (dusk env file), so the test mailbox cannot be read");
+  const response = await fetch(`${origin}/v1/ops/test-mail?to=${encodeURIComponent(email)}&since=${Math.max(0, since - 5_000)}`, { headers: { authorization: `Bearer ${token}` } });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`the test mailbox answered ${response.status}`);
+  return (await response.json()).code ?? null;
 }
 
 /**
@@ -56,6 +55,7 @@ export async function smokeAccount({ root, profile, email, force = false, appVer
       chmodSync(file, 0o600);
     },
   };
+  if (!isTestAddress(email)) throw new Error(`${email} is not a test address (@${TEST_MAIL_DOMAIN}); harnesses never send real mail`);
   const client = createCloudAccountClient({ origin: PREVIEW_ORIGIN, platform: process.platform, deviceName: "dusk smoke", appVersion, store, openBrowser: async () => {}, warn: () => {} });
   let state = await client.start();
   if (state?.status === "connected") return { client, state, how: "kept today's session" };
@@ -63,9 +63,8 @@ export async function smokeAccount({ root, profile, email, force = false, appVer
   const sent = await client.emailStart(email);
   if (sent.outcome !== "sent") throw new Error(`the account service did not send a code (${sent.outcome})`);
   let code = null;
-  // Brevo's log lags a minute or two behind the send
-  for (let tries = 0; tries < 30 && !code; tries++) { await sleep(8_000); code = await brevoCode(email, since); }
-  if (!code) throw new Error("no sign-in code showed up in Brevo's log within four minutes");
+  for (let tries = 0; tries < 30 && !code; tries++) { await sleep(1_000); code = await testMailCode(email, since); }
+  if (!code) throw new Error("no sign-in code in the test mailbox within 30 seconds");
   const signed = await client.emailVerify(code);
   if (signed.outcome !== "signed-in") throw new Error(`sign-in with the emailed code failed (${signed.outcome})`);
   state = client.state();

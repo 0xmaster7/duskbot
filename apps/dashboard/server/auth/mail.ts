@@ -10,6 +10,33 @@ export function memoryMailer() {
 export function consoleMailer(): Mailer {
   return { async send(message) { console.log(`code for ${message.to}: ${message.text.match(/\b\d{8}\b/)?.[0] ?? ""}`); } };
 }
+/** test harnesses sign up at <anything>@qa.dusk.test (.test is reserved, RFC 2606): their mail never reaches a provider */
+export const TEST_MAIL_DOMAIN = "qa.dusk.test";
+export const isTestAddress = (email: unknown) => typeof email === "string" && email.trim().toLowerCase().endsWith(`@${TEST_MAIL_DOMAIN}`);
+export interface TestMail { to: string; subject: string; code: string | null; link: string | null; at: number }
+export interface TestMailbox { readonly readable: boolean; keep(message: MailMessage): void; latest(to: string, since?: number): TestMail | null }
+/** where mail to test addresses goes instead. `readable` (preview and dev only) keeps the code and link for a while so
+ *  a harness can read them (GET /v1/ops/test-mail); otherwise it is dropped */
+export function createTestMailbox({ readable, now = Date.now, ttlMs = 30 * 60_000, max = 500 }: { readable: boolean; now?: () => number; ttlMs?: number; max?: number }): TestMailbox {
+  let kept: TestMail[] = [];
+  return {
+    readable,
+    keep(message) {
+      if (!readable) return;
+      const link = /https:\/\/[^\s"'<>)]+/.exec(message.text)?.[0] ?? null;
+      kept = [...kept.filter(item => item.at > now() - ttlMs).slice(-(max - 1)),
+        { to: message.to.trim().toLowerCase(), subject: message.subject, code: /\b\d{8}\b/.exec(message.text)?.[0] ?? null, link, at: now() }];
+    },
+    latest(to, since = 0) {
+      const want = to.trim().toLowerCase();
+      return [...kept].reverse().find(item => item.to === want && item.at >= since && item.at > now() - ttlMs) ?? null;
+    },
+  };
+}
+/** mail to a test address goes to the mailbox, everything else to `inner` */
+export function sinkTestMail(inner: Mailer, box: TestMailbox): Mailer {
+  return { async send(message) { if (isTestAddress(message.to)) { box.keep(message); return; } return inner.send(message); } };
+}
 export const REPLY_TO = "hello@dusk.bot";
 export const SENDER_NAME = "dusk bot";
 /** the address out of "Name <address>" or a bare address; every email goes out under the name "dusk bot" */

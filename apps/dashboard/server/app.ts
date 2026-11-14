@@ -10,7 +10,8 @@ import type { NotificationPrefs } from "../../../shared/account-api.ts";
 import { MCP_CLIENT_METADATA, MCP_CLIENT_METADATA_PATH } from "../../../shared/mcp-client-metadata.ts";
 import { AuthError, createAuth, isAppCorsRoute } from "./auth/index.ts";
 import type { ProviderConfigs } from "./auth/providers.ts";
-import type { Mailer, MailMessage } from "./auth/mail.ts";
+import { createTestMailbox, isTestAddress, sinkTestMail } from "./auth/mail.ts";
+import type { Mailer, MailMessage, TestMailbox } from "./auth/mail.ts";
 import { createStore } from "./store.ts";
 import type { Account, StoredCommand, StoredWorkspace } from "./store.ts";
 import { createBilling } from "./billing/index.ts";
@@ -60,6 +61,8 @@ export interface DashboardAppOptions {
   dataDir: string;
   publicUrl: string;
   mailer: Mailer;
+  /** where mail to test addresses (@qa.dusk.test) goes; readable only on preview and in development */
+  testMail?: TestMailbox;
   oauth?: ProviderConfigs;
   dev?: boolean;
   signupOpen?: boolean;
@@ -207,7 +210,9 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const mailLimitSay = { hour: "the hourly", day: "the daily", new: "the daily signup share of the" } as const;
   // every email to an account's address counts toward its row in admin ops, sign-in codes on their own
   let noteMail: (message: MailMessage) => void = () => {};
-  const mailer: Mailer = { send: message => { try { noteMail(message); } catch { /* counting never stops an email */ } return options.mailer.send(message); } };
+  const testMail = options.testMail ?? createTestMailbox({ readable: dev });
+  const outbound = sinkTestMail(options.mailer, testMail);
+  const mailer: Mailer = { send: message => { try { if (!isTestAddress(message.to)) noteMail(message); } catch { /* counting never stops an email */ } return outbound.send(message); } };
   const auth = createAuth({ dataDir: options.dataDir, publicUrl, pageBase, mailPerHour: options.mailPerHour, mailPerDay: options.mailPerDay, mailer: mailer,
     // one incident a day, whichever limit it was: someone (or a bot) is asking for sign-in codes faster than we will send them
     onMailLimit: kind => incidents.report({ source: "server", name: "SignInMailLimit", key: `auth-mail-${new Date(now()).toISOString().slice(0, 10)}`,
@@ -260,7 +265,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     machine: `${cloud.spec.vcpu} vcpu, ${cloud.spec.ramGb} gb memory, ${cloud.spec.diskGb} gb disk`, region: (regionLabel(cloud.backend ? MANAGED_REGION.id : cloud.region) ?? cloud.region).toLowerCase() });
   const cloudFromCents = Math.min(...Object.values(BILLING_CONFIG.desktops).flatMap(desktop => desktop.monthlyCents === null ? [] : [desktop.monthlyCents]));
   auth.onAccountCreated(owner => send(owner.email, welcomeEmail(emailCfg, { cloudFromCents })));
-  auth.onAccountCreated(owner => analytics.track("signup", { accountId: owner.id, props: { method: auth.directory().identities.find(item => item.accountId === owner.id)?.provider ?? "email" } }));
+  auth.onAccountCreated(owner => !isTestAddress(owner.email) && analytics.track("signup", { accountId: owner.id, props: { method: auth.directory().identities.find(item => item.accountId === owner.id)?.provider ?? "email" } }));
   auth.onSessionCreated(session => {
     analytics.track("sign_in", { accountId: session.accountId, props: { kind: session.kind, ...(session.platform ? { platform: session.platform } : {}), ...(session.appVersion ? { appVersion: session.appVersion } : {}) } });
     if (session.kind !== "web") analytics.track("app_paired", { accountId: session.accountId, props: { via: "app", ...(session.platform ? { platform: session.platform } : {}) } });
@@ -286,7 +291,9 @@ export function createDashboardApp(options: DashboardAppOptions) {
     }
     if (entry.via === "sync") return;
     const paidBefore = !!entry.accountId && billing.store.state.invoices.some(invoice => invoice.accountId === entry.accountId && invoice.status !== "failed" && invoice.amountCents > 0);
-    alerts.money(entry, { email: entry.accountId ? auth.account(entry.accountId)?.email ?? null : null, paidBefore, mrr: mrrAtTime(ledgerState(), now()) });
+    const email = entry.accountId ? auth.account(entry.accountId)?.email ?? null : null;
+    if (isTestAddress(email)) return;
+    alerts.money(entry, { email, paidBefore, mrr: mrrAtTime(ledgerState(), now()) });
   }
   const billing = createBilling({ ...(options.analytics?.db ? { aiStash: mongoAiStashStore(options.analytics.db, now) } : {}), accountExists: id => auth.account(id) !== null,
     findAccount: email => { const found = auth.accountByEmail(email); return found ? { id: found.id, email: found.email } : null; },
@@ -337,7 +344,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     waitlist: options.analytics?.waitlist ?? null, live: options.admin?.live ?? null, now, fetch: options.fetch, env: options.admin?.env, errors: errorsSeen, readBody, bodyObject, json, relayFixture: options.admin?.opsFixture,
     service: { version: options.version ?? null, startedAt, environment: options.admin?.environment ?? (dev ? "development" : "production"), dataDir: options.dataDir,
       backupDir: options.admin?.backupDir ?? null, database: () => stateBackend()?.health() ?? null } });
-  const alerts = createAlerts({ kinds: parseAlerts((options.admin?.env ?? process.env).DUSK_ADMIN_ALERTS), emails: () => adminEmails, mailer: options.mailer, sink: analytics.sink, now, email: emailCfg,
+  const alerts = createAlerts({ kinds: parseAlerts((options.admin?.env ?? process.env).DUSK_ADMIN_ALERTS), emails: () => adminEmails, mailer: outbound, sink: analytics.sink, now, email: emailCfg,
     panelUrl: `${publicUrl}${ADMIN_PATH}`, totals: (from, to) => ({ accounts: auth.directory().accounts.length, signups: auth.directory().accounts.filter(account => account.createdAt >= from && account.createdAt < to).length,
       paid: billing.store.state.invoices.filter(invoice => invoice.status === "paid" && invoice.createdAt >= from && invoice.createdAt < to).length, waitlist: null,
       money: moneyDigestOf({ ...ledgerState(), accounts: new Map(auth.directory().accounts.map(account => [account.id, { email: account.email, createdAt: account.createdAt }])) }, from, to) }),
@@ -356,11 +363,11 @@ export function createDashboardApp(options: DashboardAppOptions) {
     const to = message.to.trim().toLowerCase(), account = auth.directory().accounts.find(item => item.email.toLowerCase() === to);
     if (account) ops.noteMail(account.id, CODE_SUBJECT.test(message.subject));
   };
-  auth.onAccountCreated(owner => ops.noteSignup(requestIp.getStore() ?? null, owner.id));
-  auth.onAccountCreated(owner => alerts.signup(owner.email, auth.directory().identities.find(item => item.accountId === owner.id)?.provider ?? "email"));
+  auth.onAccountCreated(owner => !isTestAddress(owner.email) && ops.noteSignup(requestIp.getStore() ?? null, owner.id));
+  auth.onAccountCreated(owner => !isTestAddress(owner.email) && alerts.signup(owner.email, auth.directory().identities.find(item => item.accountId === owner.id)?.provider ?? "email"));
   analytics.onTrack((name, input = {}) => {
     if (name === "site_goal" && input.props?.goal === "waitlist_join") alerts.waitlistJoin();
-    if (name === "checkout_paid" && input.accountId) alerts.paid(input.accountId, auth.account(input.accountId)?.email ?? null, Number(input.props?.amountCents) || 0);
+    if (name === "checkout_paid" && input.accountId && !isTestAddress(auth.account(input.accountId)?.email)) alerts.paid(input.accountId, auth.account(input.accountId)?.email ?? null, Number(input.props?.amountCents) || 0);
   });
   const incidentRoutes = createIncidentRoutes({ incidents, json, readBody, bodyObject, rate, onClientError: (error, page) => { errorsSeen.note("page"); options.errors?.page.capture(error, { tags: { page } }); },
     admin: (req, mutation) => { const owner = auth.requireWeb(req, { mutation }); if (!admin.isAdmin(owner.email)) throw new AdminError(403, "not_admin", "This account is not an admin."); } });
@@ -678,6 +685,17 @@ export function createDashboardApp(options: DashboardAppOptions) {
       try { return auth.requireWeb(request, { mutation: strict }); } catch (error) { if (error instanceof AuthError && error.code === "signed_out") return null; throw error; }
     } })) return;
     if (await incidentRoutes.handle(req, res, url)) return;
+    // preview and development only: the latest code and link mailed to a test address, for test harnesses
+    if (path === "/v1/ops/test-mail" && method === "GET") {
+      const token = adminEnv.DUSK_OPS_TOKEN, given = String(req.headers.authorization ?? "");
+      if (!testMail.readable || !token || given.length !== token.length + 7 || !timingSafeEqual(Buffer.from(given), Buffer.from(`Bearer ${token}`))) {
+        rate(req, "test-mail-denied", 20); fail(404, "not_found", "Route not found.");
+      }
+      const to = url.searchParams.get("to") ?? "";
+      if (!isTestAddress(to)) fail(400, "invalid_request", "Only test addresses have a test mailbox.");
+      const found = testMail.latest(to, Number(url.searchParams.get("since")) || 0);
+      return found ? json(res, 200, found) : fail(404, "not_found", "No mail yet.");
+    }
     if (path === "/v1/ops/report" && method === "POST") {
       const verdict = ops.authorizeReport(typeof req.headers.authorization === "string" ? req.headers.authorization : undefined);
       if (verdict === "off") fail(404, "not_found", "Route not found.");

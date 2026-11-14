@@ -1,13 +1,14 @@
 // Shared harness of the flow smokes (scripts/smoke/flows/*.mjs): the isolated, invisible smoke app (../app.mjs) on a
 // profile of its own, steps that pass, fail or skip with a screenshot and a note, a friction list (what a new person
 // would trip on), and report.md / report.json. A flow signs in like a new person: the app's own account gate, with a
-// code read from Brevo's sent log (../account.mjs), to a fresh qa-smoke+<flow>-<time>@dusk.bot account on preview.
+// code read from the account service's test mailbox (../account.mjs), to a fresh <flow>-<time>@qa.dusk.test account on
+// preview. No real mail is ever sent.
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { launchSmokeApp, until } from "../app.mjs";
-import { brevoCode, PREVIEW_ORIGIN } from "../account.mjs";
+import { PREVIEW_ORIGIN, TEST_MAIL_DOMAIN, testMailCode } from "../account.mjs";
 
 export const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 const js = (value) => JSON.stringify(value);
@@ -20,7 +21,7 @@ export function flowArgs(name) {
   const out = resolve(option("--out", join(root, ".dusk-scratch", "flows", `${stamp}-${name}`)));
   // a new person each run unless told otherwise: a fresh profile and a fresh account
   const profile = resolve(option("--profile", join(homedir(), ".cache", "dusk-smoke", "flows", `${name}-${stamp}`)));
-  const email = option("--email", `qa-smoke+${name}-${stamp.slice(5, 16).replace(/[-T]/g, "")}@dusk.bot`);
+  const email = option("--email", `${name}-${stamp.slice(5, 16).replace(/[-T]/g, "")}@${TEST_MAIL_DOMAIN}`);
   return { args, option, flag: (key) => args.includes(key), root, stamp, out, profile, email };
 }
 
@@ -97,8 +98,8 @@ export function createFlow({ name, title, root, out, profile, email, env = {} })
       await flow.click("send code");
       await flow.waitText(/8-digit code/i, "the code step");
       let code = null;
-      for (let tries = 0; tries < 30 && !code; tries++) { await sleep(6_000); code = await brevoCode(email, since); }
-      if (!code) throw new Error("no sign-in code in Brevo's log within three minutes");
+      for (let tries = 0; tries < 30 && !code; tries++) { await sleep(1_000); code = await testMailCode(email, since); }
+      if (!code) throw new Error("no sign-in code in the test mailbox within 30 seconds");
       facts.codeSeconds = Math.round((Date.now() - since) / 1000);
       await flow.evaluate(`document.querySelector("input")?.focus(); true`);
       await flow.type(code);
