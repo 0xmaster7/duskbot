@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { RuntimeEvent } from "./contracts.ts";
 import { EngineMemory } from "./engine-memory.ts";
@@ -31,6 +31,26 @@ function rig() {
 }
 
 describe("TurnWatchdog", () => {
+  it("measures silence on the monotonic clock: a wall clock set an hour ahead stops nothing, real silence still does", () => {
+    const stalls: WatchedTurn[] = [];
+    const dog = new TurnWatchdog({ stallMs: STALL, toolStallMs: TOOL_STALL, checkMs: 60_000, onStall: (turn) => stalls.push(turn) });
+    let mono = 1_000;
+    const wall = vi.spyOn(Date, "now").mockReturnValue(1_800_000_000_000);
+    const monotonic = vi.spyOn(performance, "now").mockImplementation(() => mono);
+    try {
+      dog.watch("t1", "b1");
+      wall.mockReturnValue(1_800_000_000_000 + 60 * 60_000);
+      dog.sweep();
+      expect(stalls).toEqual([]);
+      mono += STALL;
+      dog.sweep();
+      expect(stalls.map((turn) => turn.threadId)).toEqual(["t1"]);
+    } finally {
+      wall.mockRestore();
+      monotonic.mockRestore();
+    }
+  });
+
   it("stalls a silent turn once, and only once", () => {
     const { dog, stalls, tick } = rig();
     dog.watch("t1", "bot1");

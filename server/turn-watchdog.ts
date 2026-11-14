@@ -39,8 +39,10 @@ export class TurnWatchdog {
     this.opts = opts;
   }
 
+  /** Silence is measured on the monotonic clock: a wall clock set forward, or a machine that slept with the turn's engine
+   * suspended too, is not silence (libuv's hrtime stops while macOS and Linux sleep). */
   private now(): number {
-    return this.opts.now?.() ?? Date.now();
+    return this.opts.now?.() ?? performance.now();
   }
 
   start(): void {
