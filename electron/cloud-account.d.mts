@@ -7,7 +7,8 @@ export interface CloudAccountState {
   enrollment?: { userCode: string; expiresAt: number };
   /** Signing in at this provider in the browser, which comes back to the app's own link (packaged app only). */
   browser?: import("./cloud-signin.mjs").CloudLinkProvider;
-  account?: { id: string; email: string };
+  /** `name`, `avatarUrl` (https): from an Admin that knows them */
+  account?: { id: string; email: string; name?: string; avatarUrl?: string };
   deviceId?: string;
   expiresAt?: number;
   /** Only a current server-verified session can include an entitlement
@@ -183,7 +184,10 @@ export interface CloudAccountBridge {
   files?: import("./cloud-sync.mjs").CloudFilesBridge;
 }
 /** Who is signed in on this device, as the You menu shows it. `signIn`: this account's sign-in has ended here. */
-export interface AccountRow { id: string; email: string; signIn?: true }
+/** What the account card says of the plan: `free` (none), `active` (paid or a trial: `tier`, and when it renews or ends),
+ * `inactive` (paid once, not now). Absent until a session read said. */
+export interface AccountPlanLine { status: "free" | "active" | "inactive"; tier?: string; trial?: true; renewsAt?: number; endsAt?: number; cancelled?: true }
+export interface AccountRow { id: string; email: string; signIn?: true; name?: string; avatarUrl?: string; plan?: AccountPlanLine }
 export interface AccountsView { active: AccountRow | null }
 export interface AccountSwitchResult { outcome: "switched" | "signed-out" | "moving" | "sign-in" | "gone" | "failed"; email?: string; view: AccountsView }
 /** What a click on a place of another account answers when it didn't switch: nothing moved. `sign-in`: that sign-in has ended. */
@@ -267,6 +271,7 @@ export declare const CHECKOUT_SOURCES: readonly string[];
 export declare const UPGRADE_SOURCES: readonly string[];
 export declare const CLOUD_CANCEL_ANSWERS: readonly CloudCancelAnswer[];
 /** The survey as main sends it (trimmed; words without a reason as `other`), or null when it says nothing or isn't one. */
+export declare function accountProfile(account: unknown): { name?: string; avatarUrl?: string };
 export declare function cancelSurvey(input: unknown): { answer: CloudCancelAnswer; expected?: string; improve?: string } | null;
 /** Only this Admin's own /handoff (or /dashboard/handoff) page with a one-time `#t=` token; anything else is null. */
 export declare function handoffDestination(value: unknown, origin: string): string | null;

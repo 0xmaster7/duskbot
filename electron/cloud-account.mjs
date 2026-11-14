@@ -119,6 +119,20 @@ export function cloudOrigin(value = CLOUD_ORIGIN, fixture = false, custom = fals
 export const createCloudAccountStore = createManagedDesktopStore;
 // oxlint-disable-next-line no-control-regex
 const text = (value, max) => typeof value === "string" && value.length > 0 && value.length <= max && !/[\x00-\x1f\x7f]/.test(value);
+
+/** The account's name and photo as the Admin names them, both optional (an older Admin sends neither): the photo only as an
+ * https address without credentials or a port, at most 1024 characters. */
+export function accountProfile(account) {
+  const name = text(account?.name, 80) && account.name.trim() ? account.name.trim() : null;
+  let avatarUrl = null;
+  if (text(account?.avatarUrl, 1024)) {
+    try {
+      const url = new URL(account.avatarUrl);
+      if (url.protocol === "https:" && !url.username && !url.password && !url.port) avatarUrl = url.href;
+    } catch { /* not an address */ }
+  }
+  return { ...(name ? { name } : {}), ...(avatarUrl ? { avatarUrl } : {}) };
+}
 const timestamp = value => Number.isSafeInteger(value) && value > 0;
 /** Display only: the last verified plan, never an entitlement. */
 function planHint(value) {
@@ -157,6 +171,8 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
     skew = Math.abs(offset) < 5_000 ? 0 : offset;
   }
   let plan = null, savedHint = null;
+  /** The signed-in account's name and photo, from its last sign-in or session read (accountProfile). */
+  let profile = null;
   /** The plan's own Cloud that Cancel and Keep act on, as the last verified session names it. */
   let renewalCloud = null;
   let offerCache = null, offerPending = null, waking = false;
@@ -170,7 +186,8 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
   const lastPlan = () => plan && grant && plan.accountId === grant.account.id ? { ...(plan.tier ? { tier: plan.tier } : {}), active: plan.active } : null;
   const view = (status, message) => {
     const known = status === "connected" ? null : lastPlan();
-    return { status, ...(message ? { message } : {}), ...(grant ? { account: grant.account, deviceId: grant.device.id, expiresAt: grant.expiresAt } : {}), ...(known ? { lastPlan: known } : {}) };
+    const named = grant && profile?.accountId === grant.account.id ? profile.fields : {};
+    return { status, ...(message ? { message } : {}), ...(grant ? { account: { ...grant.account, ...named }, deviceId: grant.device.id, expiresAt: grant.expiresAt } : {}), ...(known ? { lastPlan: known } : {}) };
   };
   const checkout = () => opened && now() - opened.startedAt < CHECKOUT_KEPT_MS
     ? { plan: opened.plan, startedAt: opened.startedAt, ...(opened.signIn ? { signIn: true } : {}), ...(opened.url ? { link: true } : {}), ...(opened.done ? { done: true } : {}) } : null;
@@ -320,6 +337,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       const previous = grant, result = await request("session", { token: previous.token });
       if (!current(stamp) || grant !== previous) return state();
       const next = identity(result);
+      profile = { accountId: next.account.id, fields: accountProfile(result.account) };
       if (next.device.id !== previous.device.id || next.account.id !== previous.account.id || next.account.email !== previous.account.email || next.expiresAt <= serverNow()) {
         throw Object.assign(new Error("Cloud identity changed."), { status: 401, code: "invalid_token" });
       }
@@ -393,6 +411,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
     await store.write(next);
     if (!current(stamp)) return false;
     grant = next; issued = null; pending = null; emailed = null; savedHint = null;
+    profile = { accountId: next.account.id, fields: accountProfile(result.account) };
     if (plan?.accountId !== next.account.id) plan = null;
     return true;
   }

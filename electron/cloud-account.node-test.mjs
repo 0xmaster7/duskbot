@@ -4,7 +4,7 @@ import { createServer } from "node:http";
 import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { cancelSurvey, CHECKOUT_SOURCES, checkoutDestination, cloudMenuSublabel, createCloudAccountClient, createCloudAccountStore, cloudOrigin, cloudPlanSnapshot, CLOUD_ORIGIN } from "./cloud-account.mjs";
+import { accountProfile, cancelSurvey, CHECKOUT_SOURCES, checkoutDestination, cloudMenuSublabel, createCloudAccountClient, createCloudAccountStore, cloudOrigin, cloudPlanSnapshot, CLOUD_ORIGIN } from "./cloud-account.mjs";
 
 const accessToken = `omc_${"T".repeat(43)}`;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -80,6 +80,17 @@ async function fixture(t, options = {}) {
   t.after(async () => { f.client.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); });
   return f;
 }
+
+test("the account's name and photo are taken only as plain words and an https address without credentials or a port", () => {
+  assert.deepEqual(accountProfile({ id: "a", email: "a@example.test", name: " Ada ", avatarUrl: "https://lh3.googleusercontent.com/a/x=s96-c" }),
+    { name: "Ada", avatarUrl: "https://lh3.googleusercontent.com/a/x=s96-c" });
+  assert.deepEqual(accountProfile({ id: "a", email: "a@example.test" }), {}, "an older Admin sends neither");
+  for (const avatarUrl of ["http://example.test/a.png", "javascript:alert(1)", "https://u:p@example.test/a.png", "https://example.test:9443/a.png", `https://example.test/${"a".repeat(1100)}`, 7]) {
+    assert.deepEqual(accountProfile({ avatarUrl }), {}, String(avatarUrl));
+  }
+  assert.deepEqual(accountProfile({ name: "a\u0000b" }), {});
+  assert.deepEqual(accountProfile({ name: "x".repeat(81) }), {});
+});
 
 test("Cloud origin is fixed; only explicit fixtures can use loopback", () => {
   assert.equal(cloudOrigin(), CLOUD_ORIGIN);

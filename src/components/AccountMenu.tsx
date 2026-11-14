@@ -2,11 +2,13 @@ import { useEffect, useState, type ReactNode } from "react";
 import { ContinueInBrowserSheet } from "./SignInSheet";
 import { continueInBrowser } from "@/lib/account-intent";
 import { Check, LogOut, Plus, UserRound, X } from "../icons";
-import type { AccountsView, AccountSwitchResult, RailOpenResult } from "../../electron/cloud-account.mjs";
+import type { AccountPlanLine, AccountRow, AccountsView, AccountSwitchResult, RailOpenResult } from "../../electron/cloud-account.mjs";
 import { cn } from "@/lib/cn";
 import type { CloudSignInPhase } from "@/lib/cloud-plan";
-import { t } from "@/lib/i18n";
-import { usePlaces } from "@/lib/places";
+import { activeLocale, t } from "@/lib/i18n";
+import { cloudPlanLabel } from "@/lib/cloud-plan";
+import { placeInitials, usePlaces } from "@/lib/places";
+import { InitialsAvatar } from "./Avatar";
 import { CLOSE, Heading, PRIMARY, QUIET, SCREEN, SHEET } from "./cloud-buy/parts";
 import { codeDigits, SignInScreen } from "./cloud-buy/SignInScreen";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -192,12 +194,62 @@ export function AccountsSheet({ onClose, adding = null, note: given = null }: { 
         ? <AddAccount start={add} onBack={() => (adding !== null ? onClose() : setAdd(null))} onDone={(said) => { setAdd(null); if (said) setNote(said); else onClose(); }} />
         : <div className={SCREEN}>
           <Heading title={t("accounts.title")} />
-          {active && !given && <p data-accounts-active className="truncate text-[14px] text-ink" title={active.email}>{t("accounts.heading")} {active.email}</p>}
+          {active && !given && <AccountCard account={active} />}
           {note && <p role="status" data-accounts-note className="text-[13px] leading-5 text-ink-secondary">{note}</p>}
-          {active && !given && <button type="button" data-accounts-sign-out className={PRIMARY} onClick={() => setAsking(active.id)}>{t("accounts.signOut")}</button>}
+          {active && !given && <div className="flex flex-wrap items-center justify-end gap-2">
+            <button type="button" data-accounts-sign-out className={QUIET} onClick={() => setAsking(active.id)}>{t("accounts.signOut")}</button>
+            <button type="button" data-accounts-manage className={PRIMARY} onClick={() => { setNote(null); void manageAccount().catch(() => setNote(t("accounts.failed"))); }}>{t("accounts.manageAccount")}</button>
+          </div>}
         </div>}
     </div>
     <CloudSignOutConfirm open={asking !== null} onCancel={() => setAsking(null)} onConfirm={() => { if (asking) signOut(asking); }} />
+  </div>;
+}
+
+/** The account's own page on the dashboard, signed in through the account handoff; the dashboard's home where that page
+ * can't be asked for. */
+async function manageAccount(): Promise<void> {
+  const cloud = window.duskDesktop?.cloudAccount;
+  if (!cloud) throw new Error("no account bridge");
+  const opened = await cloud.openPage?.("account").catch(() => null);
+  if (opened && typeof opened === "object" && "opened" in opened && opened.opened) return;
+  await cloud.openDashboard();
+}
+
+/** The face beside the account: its photo, or its initials (the first letter of its address without a name). */
+export function accountInitials(account: Pick<AccountRow, "name" | "email">): string {
+  return account.name ? placeInitials(account.name) : Array.from(account.email.trim())[0]?.toLocaleUpperCase() ?? "?";
+}
+
+/** What the account card says of the plan: Free, or dusk cloud with its plan and when it renews or ends. */
+export function accountPlanText(plan: AccountPlanLine | undefined): string | null {
+  if (!plan) return null;
+  if (plan.status === "free") return t("accounts.card.free");
+  const name = cloudPlanLabel(plan.tier);
+  if (plan.status === "inactive") return t("accounts.card.inactive", { plan: name });
+  const line = t(plan.trial ? "accounts.card.trial" : "accounts.card.plan", { plan: name });
+  const day = (at: number) => new Intl.DateTimeFormat(activeLocale(), { month: "short", day: "numeric" }).format(at);
+  if (plan.renewsAt) return t("accounts.card.renews", { plan: line, date: day(plan.renewsAt) });
+  if (plan.endsAt) return t("accounts.card.ends", { plan: line, date: day(plan.endsAt) });
+  return line;
+}
+
+/** Who is signed in: photo, name, address and plan on one tonal card, no border. */
+function AccountCard({ account }: { account: AccountRow }) {
+  const plan = accountPlanText(account.plan);
+  const paid = account.plan?.status === "active";
+  return <div data-accounts-active className="flex items-center gap-3.5 rounded-2xl bg-ink/[0.04] p-4">
+    <InitialsAvatar initials={accountInitials(account)} avatarUrl={account.avatarUrl} size={52} fontSize={19}
+      className="bg-composer font-semibold text-ink-secondary inset-ring inset-ring-ink/[0.08]" />
+    <div className="flex min-w-0 flex-1 flex-col">
+      {account.name && <p dir="auto" className="truncate text-[15px] font-semibold leading-5 text-ink" title={account.name}>{account.name}</p>}
+      <p className={cn("truncate leading-5", account.name ? "text-[13px] text-ink-secondary" : "text-[15px] font-semibold text-ink")} title={account.email}>{account.email}</p>
+      {plan && <p data-accounts-plan={account.plan?.status} className="mt-1.5 flex min-w-0 items-center gap-1.5 text-[12px] font-medium leading-4 text-ink-secondary">
+        <PixelIcon name={paid ? "cloud" : "sparkle"} size={14} />
+        <span className="truncate">{plan}</span>
+      </p>}
+      {account.signIn && <p className="mt-1 text-[12px] leading-4 text-warning">{t("accounts.needsSignIn")}</p>}
+    </div>
   </div>;
 }
 

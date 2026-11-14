@@ -569,3 +569,15 @@ describe("grok's profile menu", () => {
     expect(onDashboard).toHaveBeenCalledOnce();
   });
 });
+
+describe("withAccountFace", () => {
+  it("lends the dusk cloud account's photo and name to the same person's profile, or to none, never to someone else's", async () => {
+    const { withAccountFace } = await import("./SidebarProfileMenu");
+    const account = { email: "ada@example.test", name: "Ada", avatarUrl: "https://photos.example.test/ada.png" };
+    expect(withAccountFace(undefined, account)).toEqual(account);
+    expect(withAccountFace({ email: "ADA@example.test" }, account)).toEqual({ email: "ADA@example.test", name: "Ada", avatarUrl: account.avatarUrl });
+    expect(withAccountFace({ email: "ada@example.test", name: "Own", avatarUrl: "/own.png" }, account)).toEqual({ email: "ada@example.test", name: "Own", avatarUrl: "/own.png" });
+    expect(withAccountFace({ email: "bob@example.test" }, account)).toEqual({ email: "bob@example.test" });
+    expect(withAccountFace({ email: "bob@example.test" }, null)).toEqual({ email: "bob@example.test" });
+  });
+});

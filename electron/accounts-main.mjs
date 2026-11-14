@@ -9,7 +9,21 @@ import { accountRows } from "./rail-accounts.mjs";
 export function accountsView(state) {
   const account = state?.account;
   if (!account?.id || state.status === "signed-out" || state.status === "connecting") return { active: null };
-  return { active: { id: account.id, email: account.email, ...(state.status === "reauth-required" ? { signIn: true } : {}) } };
+  const plan = planLine(state);
+  return { active: { id: account.id, email: account.email, ...(account.name ? { name: account.name } : {}), ...(account.avatarUrl ? { avatarUrl: account.avatarUrl } : {}),
+    ...(plan ? { plan } : {}), ...(state.status === "reauth-required" ? { signIn: true } : {}) } };
+}
+
+/** The plan as the account card says it, from a verified session only (AccountPlanLine). */
+function planLine(state) {
+  const access = state.status === "connected" ? state.entitlement : null;
+  if (!access) return null;
+  if (access.plan === "free") return { status: "free" };
+  const renewal = state.renewal;
+  const dates = access.status !== "active" || !renewal ? {}
+    : renewal.cancelled || renewal.renewsAt === null ? (renewal.endsAt ? { endsAt: renewal.endsAt, ...(renewal.cancelled ? { cancelled: true } : {}) } : {})
+      : { renewsAt: renewal.renewsAt };
+  return { status: access.status === "active" ? "active" : "inactive", ...(access.tier ? { tier: access.tier } : {}), ...(access.status === "active" && renewal?.trial ? { trial: true } : {}), ...dates };
 }
 
 /** Everything of the account this window held. `places()` names them while the sign-in still says which Cloud is My Cloud:

@@ -22,6 +22,19 @@ test("the view names the account in use and its address, never a token, and noth
   assert.equal(JSON.stringify(accountsView({ ...signedIn, token: "omc_secret" })).includes("omc_"), false);
 });
 
+test("the view carries the account's name, photo and plan as the account card says it, from a verified session only", () => {
+  const account = { id: "a", email: "a@example.test", name: "Ada", avatarUrl: "https://photos.example.test/ada.png" };
+  const at = Date.UTC(2026, 11, 14);
+  assert.deepEqual(accountsView({ status: "connected", account, entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 1 } }),
+    { active: { ...account, plan: { status: "free" } } });
+  assert.deepEqual(accountsView({ status: "connected", account, entitlement: { plan: "pro", tier: "pro", status: "active", expiresAt: at, version: 1 },
+    renewal: { trial: false, cancelled: false, renewsAt: at, endsAt: null, keptDays: null } }).active.plan, { status: "active", tier: "pro", renewsAt: at });
+  assert.deepEqual(accountsView({ status: "connected", account, entitlement: { plan: "pro", tier: "personal", status: "active", expiresAt: at, version: 1 },
+    renewal: { trial: true, cancelled: true, renewsAt: null, endsAt: at, keptDays: 7 } }).active.plan, { status: "active", tier: "personal", trial: true, endsAt: at, cancelled: true });
+  assert.deepEqual(accountsView({ status: "connected", account, entitlement: { plan: "pro", status: "inactive", expiresAt: null, version: 1 } }).active.plan, { status: "inactive" });
+  assert.equal(accountsView({ status: "reauth-required", account }).active.plan, undefined, "no plan without a verified session");
+});
+
 test("only this app's own pages read who is signed in, add or sign out; another page only opens the sheet, from main", async () => {
   const f = harness({ ownPage: () => false, others: [{ id: "b", email: "b@example.test" }] });
   for (const channel of ["accounts:list", "accounts:sign-out", "accounts:add-start", "accounts:add-verify", "accounts:add-browser", "accounts:add-reopen", "accounts:add-cancel", "accounts:sheet-pending", "accounts:sheet-closed"]) {

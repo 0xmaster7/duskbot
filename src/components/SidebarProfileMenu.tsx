@@ -64,6 +64,15 @@ import {
 } from "@/lib/phone-pairing";
 import { phoneAppEnabled } from "@/lib/feature-flags";
 
+/** The dusk cloud account signed in on this computer lends its name and photo where this place's profile has none: the same
+ * person by address, or a profile with no address of its own. */
+export function withAccountFace(profile: { name?: string; email?: string; avatarUrl?: string } | undefined, account: { email: string; name?: string; avatarUrl?: string } | null): { name?: string; email?: string; avatarUrl?: string } | undefined {
+  if (!account) return profile;
+  const own = profile?.email?.trim().toLowerCase();
+  if (own && own !== account.email.trim().toLowerCase()) return profile;
+  return { ...(profile ?? { email: account.email }), ...(!profile?.name?.trim() && account.name ? { name: account.name } : {}), ...(!profile?.avatarUrl && account.avatarUrl ? { avatarUrl: account.avatarUrl } : {}) };
+}
+
 export function profileInitials(profile?: { name?: string; email?: string }): string {
   const name = profile?.name?.trim();
   if (name) {
@@ -527,7 +536,8 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
     return () => { active = false; };
   }, []);
 
-  const profile = profileForSession(state.config?.profile, session);
+  const accounts = useAccounts();
+  const profile = withAccountFace(profileForSession(state.config?.profile, session), accounts.view?.active ?? null);
   // grok's footer falls back to the computer's account: its initial in the grey circle, its name beside it
   const computer = useComputerName(simple && !profile?.name?.trim() && !profile?.email?.trim());
   const name = computer ?? profileLabel(profile);
@@ -537,7 +547,6 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
   const openCloudAccount = () => dispatch({ type: "toggleAppSettings", open: true, section: "cloudAccount" });
   const phoneApp = phoneAppEnabled();
   const move = useAccountMove(state.config?.cloudHome === true, { onOpen: openCloudAccount, onPairPhone: phoneApp ? () => dispatch(phonePairingSettingsAction()) : undefined });
-  const accounts = useAccounts();
 
   // one place to connect the phone to opens its pairing at once; only a choice of places asks where
   const getApp = () => {
