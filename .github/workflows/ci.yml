@@ -96,8 +96,8 @@ jobs:
         run: |
           pnpm typecheck:dashboard
           pnpm --filter @duskbot/mobile typecheck
-          pnpm exec vitest run --config apps/dashboard/vite.config.ts --root . --exclude 'apps/dashboard/src/data/{connector-rows,live,usage-math}.test.ts' apps/dashboard/src
-          node --test apps/dashboard/src/data/connector-rows.test.ts apps/dashboard/src/data/live.test.ts apps/dashboard/src/data/usage-math.test.ts
+          pnpm exec vitest run --config apps/dashboard/vite.config.ts --root . --exclude 'apps/dashboard/src/data/{connector-rows,live,place,plan-total,usage-math}.test.ts' apps/dashboard/src
+          node --test apps/dashboard/src/data/connector-rows.test.ts apps/dashboard/src/data/live.test.ts apps/dashboard/src/data/place.test.ts apps/dashboard/src/data/plan-total.test.ts apps/dashboard/src/data/usage-math.test.ts
       - name: production UI build
         if: steps.scope.outputs.build == 'true'
         run: pnpm exec vite build

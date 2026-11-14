@@ -128,7 +128,7 @@ test("cloud statuses, progress, errors and destroyed desktops map to the view", 
   SETUP_STEPS.forEach((setupStep, index) => assert.deepEqual(cloudFromWire({ ...cloud, setupStep })!.progress, { step: labels[index], value: (index + 0.5) / 4 }));
   assert.equal(cloudFromWire({ ...cloud, setupStep: null })!.progress, null);
   assert.equal(cloudFromWire({ ...cloud, status: "payment_problem" })!.error, "the last payment did not go through. update your card to wake it.");
-  assert.equal(cloudFromWire({ ...cloud, status: "suspended" })!.error, "it is paused. write to us to sort it out.");
+  assert.equal(cloudFromWire({ ...cloud, status: "suspended" })!.error, "it is paused. write to us at hello@dusk.bot to sort it out.");
   assert.equal(cloudFromWire({ ...cloud, status: "error", error: "Setup failed" })!.error, "Setup failed");
   assert.deepEqual(cloudFromWire({ ...cloud, status: "running" }), { id: "cloud", name: "My Cloud", status: "running", tier: "shared-m", placement: "shared", region: "eu", vcpu: 4, ramGb: 8, diskGb: 80, workspaceId: "workspace", createdAt: 123, progress: null, error: null, botComputers: { used: 0, limit: 5 }, uptimeSec: null });
   assert.equal(cloudFromWire({ ...cloud, kind: "dedicated", placement: "dedicated", botComputers: null })!.tier, "dedicated");
