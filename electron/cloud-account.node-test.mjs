@@ -410,7 +410,7 @@ test("after a restart mid-checkout, the checkout the Admin still holds is watche
   const f = await fixture(t); await f.connect();
   f.offer = { plans: plans(), recommended: "pro", trialDays: 7, checkout: { plan: "starter", openUntil: f.now + 3600_000 } };
   const seen = await f.client.refresh();
-  assert.deepEqual(seen.checkout, { plan: "starter", startedAt: f.now }, "no page is kept: no link");
+  assert.deepEqual(seen.checkout, { plan: "starter", startedAt: f.now, found: true }, "no page is kept: no link; found, not opened here, so no sheet waits on it by itself");
   assert.equal(f.client.checkoutPending(), true, "watched: focus reads the session at once");
   assert.equal(f.delay, 3_000, "every 3 seconds");
   f.now += 10 * 60_000; await f.client.refresh();

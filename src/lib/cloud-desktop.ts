@@ -1,6 +1,7 @@
 import type { CloudAccountState, CloudPlanSnapshot } from "../../electron/cloud-account.mjs";
 import type { KeepHereState } from "../../electron/cloud-send.mjs";
 import type { OneHomeView } from "../../electron/one-home.mjs";
+import { freshCheckout } from "@/lib/cloud-plan";
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 
@@ -30,14 +31,15 @@ const view = (step: CloudDesktopStep, name?: string): CloudDesktopView => ({ ste
 
 /** On this computer's page: from the verified session, the switch "Keep this computer's bots on this computer" and the
  * one-time move's line. Null until the session is first read. */
-export function cloudDesktopOnComputer(account: CloudAccountState | null | undefined, keep: KeepHereState | null, move: OneHomeView | null | undefined): CloudDesktopView | null {
+export function cloudDesktopOnComputer(account: CloudAccountState | null | undefined, keep: KeepHereState | null, move: OneHomeView | null | undefined, now = Date.now()): CloudDesktopView | null {
   if (!account) return null;
   if (account.status !== "connected") return view("get");
   const home = account.clouds?.find((cloud) => cloud.primary && cloud.role === "owner" && cloud.teamId === null && cloud.managed !== false) ?? null;
   // an Admin without the list says nothing of who runs the machine it has
   if (!home) return account.machine && !account.clouds ? view("other") : view("get");
   if (home.provider !== MANAGED_PROVIDER) return view("other", home.name);
-  if (home.status === "checkout") return view("finish", home.name);
+  // a checkout left open is abandoned unless this app opened it in the last half hour: the offer is to get one
+  if (home.status === "checkout") return freshCheckout(account, now) ? view("finish", home.name) : view("get");
   if (home.status === "setting_up") return view("setup", home.name);
   if (home.status !== "ready" && home.status !== "offline") return view("manage", home.name);
   if (keep?.coming) return view("coming-back", home.name);

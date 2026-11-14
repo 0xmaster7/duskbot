@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setLocale } from "@/lib/i18n";
 import { EMPTY_ONBOARDING } from "@/lib/onboarding";
+import { dayKey, NUDGE_KEY } from "@/lib/cloud-nudge";
 
 const f = vi.hoisted(() => ({ values: [] as unknown[], index: 0, effects: [] as EffectCallback[], refs: [] as { current: unknown }[], ref: 0, state: {} as any, dispatch: null as any }));
 vi.mock("react", async original => ({ ...await original<typeof import("react")>(),
@@ -30,8 +31,12 @@ async function settle() { for (let i = 0; i < 3; i++) { render(); f.effects.forE
 /** a new launch: a fresh module, so nothing held from the last one */
 async function launch() { vi.resetModules(); Card = (await import("./CloudUpsell")).SidebarCloudCard; f.values = []; f.refs = []; return settle(); }
 
+/** today on this computer: messages sent, and the last showing's time */
+const today = (messages = 1, over: { shown?: number; lastShownAt?: number } = {}) =>
+  storage.set(NUDGE_KEY, JSON.stringify({ day: dayKey(Date.now()), sessions: 1, messages, shown: 0, lastShownAt: 0, ...over }));
+
 beforeEach(() => {
-  vi.clearAllMocks(); setLocale("en"); storage = new Map(); f.dispatch = vi.fn();
+  vi.clearAllMocks(); setLocale("en"); storage = new Map(); f.dispatch = vi.fn(); today();
   vi.stubGlobal("localStorage", { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value) });
   vi.stubGlobal("sessionStorage", { getItem: () => null, setItem: () => {} });
   vi.stubGlobal("window", { duskDesktop: {} });
@@ -43,9 +48,10 @@ beforeEach(() => {
 });
 
 describe("the sidebar dusk cloud card", () => {
-  it("says the plain 24/7 line, with no nap in it", async () => {
+  it("says Keep your bots working, the bot panel's pitch made small, with no nap in it", async () => {
     const html = await launch();
-    expect(html).toContain("dusk cloud keeps your bots working, even when your Mac is off.");
+    expect(html).toContain("Keep your bots working");
+    expect(html).toContain("On dusk cloud, they keep replying even when this Mac is asleep or off.");
     expect(html).not.toMatch(/\bnap/i);
     expect(track).toHaveBeenCalledWith("upsell_shown", { source: "app_sidebar" });
   });
@@ -60,30 +66,65 @@ describe("the sidebar dusk cloud card", () => {
     expect(track).not.toHaveBeenCalledWith("upsell_shown", { source: "app_sidebar" });
     expect(f.state.config.onboarding.hintsSeen).toContain("cloud-invested-v1");
     expect(await settle(), "holds for the rest of the launch").toContain("good crew of bots");
+    today(1);
     expect(await launch(), "the next launch is back to the plain card").not.toContain("data-invested");
   });
 
   it("quotes messages and routines too", async () => {
     f.state.bots = [...bots(1, 25), ...bots(1, 25)];
     expect(await launch()).toContain("heavy workload");
-    f.state.bots = bots(1); f.state.config.onboarding.hintsSeen = []; storage.clear(); f.state.routines = [{ id: "a" }, { id: "b" }, { id: "c" }];
+    f.state.bots = bots(1); f.state.config.onboarding.hintsSeen = []; storage.clear(); today(); f.state.routines = [{ id: "a" }, { id: "b" }, { id: "c" }];
     expect(await launch()).toContain("routines are doing real work");
   });
 
-  it("Get dusk cloud opens Add a Cloud as app_invested; closing snoozes the card like any other", async () => {
+  it("Get dusk cloud opens Add a Cloud as app_invested, and that showing is over", async () => {
     f.state.bots = bots(3);
     await launch();
     f.index = 0; f.ref = 0;
     const element = (Card as () => unknown)() as any;
     const buttons: any[] = [];
     const walk = (node: any) => { if (!node || typeof node !== "object") return; if (node.type === "button") buttons.push(node); [node.props?.children].flat().forEach(walk); };
-    walk(element);
+    walk(element.type(element.props));
     buttons.find(button => button.props["data-sidebar-cloud-start"] === "").props.onClick();
     expect(f.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_invested", signIn: true });
     expect(track).toHaveBeenCalledWith("upsell_click", { source: "app_invested", ms: expect.any(Number) });
-    buttons.find(button => button.props["aria-label"] === "Hide for a few days").props.onClick();
-    expect(track).toHaveBeenCalledWith("upsell_dismiss", { source: "app_invested" });
-    expect(storage.has("dusk-cloud-sidebar-card-until")).toBe(true);
+    expect(await settle(), "clicked: this showing is over").toBe("");
+  });
+
+  it("the x ends the showing for this launch and is counted as a dismiss", async () => {
+    await launch();
+    f.index = 0; f.ref = 0;
+    const element = (Card as () => unknown)() as any;
+    const buttons: any[] = [];
+    const walk = (node: any) => { if (!node || typeof node !== "object") return; if (node.type === "button") buttons.push(node); [node.props?.children].flat().forEach(walk); };
+    walk(typeof element.type === "function" ? element.type(element.props) : element);
+    buttons.find(button => button.props["aria-label"] === "Hide").props.onClick();
+    expect(track).toHaveBeenCalledWith("upsell_dismiss", { source: "app_sidebar", ms: expect.any(Number) });
+    expect(await settle()).toBe("");
+    expect(storage.has("dusk-cloud-sidebar-card-until")).toBe(false);
+  });
+
+  it("only on a day the app is used, and never again within three hours", async () => {
+    today(0);
+    expect(await launch(), "opened, nothing sent yet").toBe("");
+    today(30, { shown: 1, lastShownAt: Date.now() - 3600_000 });
+    expect(await launch()).toBe("");
+    today(30, { shown: 1, lastShownAt: Date.now() - 3 * 3600_000 - 1 });
+    expect(await launch(), "a busy day earns another, three hours on").toContain("data-sidebar-cloud-card");
+    today(30, { shown: 3, lastShownAt: Date.now() - 5 * 3600_000 });
+    expect(await launch(), "three at most").toBe("");
+  });
+
+  it("never in a store build, nor before the first reply", async () => {
+    vi.stubGlobal("document", { documentElement: { dataset: { mobileApp: "ios" } } });
+    expect(await launch()).toBe("");
+    vi.unstubAllGlobals();
+    vi.stubGlobal("localStorage", { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value) });
+    vi.stubGlobal("sessionStorage", { getItem: () => null, setItem: () => {} });
+    vi.stubGlobal("window", { duskDesktop: {} });
+    f.state.bots = [{ tasks: [] }];
+    expect(await launch(), "first run").toBe("");
+    expect(track).not.toHaveBeenCalledWith("upsell_shown", expect.anything());
   });
 
   it("steps aside when the corner dusk cloud card has this launch, so only one cloud offer is on screen", async () => {

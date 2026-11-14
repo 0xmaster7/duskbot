@@ -25,7 +25,12 @@ describe("the cloud desktop row on this computer's page", () => {
   });
 
   it("follows the Cloud through checkout, setup and trouble", () => {
-    expect(cloudDesktopOnComputer(connected([home({ status: "checkout", origin: null })]), null, null)).toEqual({ step: "finish", name: "Harbor", acts: true });
+    const NOW = 1_800_000_000_000, at = home({ status: "checkout", origin: null });
+    expect(cloudDesktopOnComputer(connected([at], { checkout: { plan: "pro", startedAt: NOW - 60_000, link: true } }), null, null, NOW)).toEqual({ step: "finish", name: "Harbor", acts: true });
+    // left open: an older checkout, or one only found open after a restart, is abandoned, so the offer is to get one
+    expect(cloudDesktopOnComputer(connected([at]), null, null, NOW)).toEqual({ step: "get", acts: true });
+    expect(cloudDesktopOnComputer(connected([at], { checkout: { plan: "pro", startedAt: NOW - 3 * 3600_000, link: true } }), null, null, NOW)?.step).toBe("get");
+    expect(cloudDesktopOnComputer(connected([at], { checkout: { plan: "pro", startedAt: NOW, found: true } }), null, null, NOW)?.step).toBe("get");
     expect(cloudDesktopOnComputer(connected([home({ status: "setting_up", origin: null })]), null, null)).toEqual({ step: "setup", name: "Harbor", acts: false });
     for (const status of ["payment_problem", "ended", "stopped"] as const) expect(cloudDesktopOnComputer(connected([home({ status })]), keep(), null)?.step).toBe("manage");
   });

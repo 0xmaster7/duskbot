@@ -8,7 +8,7 @@ import type { CloudOffer } from "../../electron/cloud-home.mjs";
 import { track } from "@/lib/analytics";
 import { cn } from "@/lib/cn";
 import { cloudColor, cloudNameShown, DEFAULT_CLOUD_COLOR } from "@/lib/cloud-look";
-import { cloudAddView, offerPlan, sameTerms, startedSleeps, type CloudAddView, type CloudSignInPhase } from "@/lib/cloud-plan";
+import { cloudAddView, offerPlan, offerPlanLabel, sameTerms, startedSleeps, type CloudAddView, type CloudSignInPhase } from "@/lib/cloud-plan";
 import { t } from "@/lib/i18n";
 import { welcomeOnScreen } from "@/lib/onboarding";
 import { useStore } from "@/state/store";
@@ -37,6 +37,8 @@ export interface CloudAddActions {
   reopenBrowser(): void;
   cancelSignIn(): void;
   reopenCheckout(): void;
+  /** The plans sheet's Finish your checkout: that pending checkout again, and this sheet waits on it. */
+  resume(): void;
   copyLink(): void;
   changePlan(): void;
   retry(): void;
@@ -68,6 +70,7 @@ export function CloudAddPanel({ view, ui, actions }: { view: CloudAddView; ui: C
     case "offer": return <ChooseScreen offer={view.offer} current={ui.current} now={ui.now} busy={ui.busy} signedOut={view.signedOut}
       notice={view.notice ? t(view.notice === "code-expired" ? "cloudAdd.codeExpired" : view.notice === "signin-ended" ? "cloudAdd.signInEnded"
         : view.notice === "terms" ? "cloudBuy.termsChanged" : "cloudAdd.preparing") : null}
+      pending={view.pending ? offerPlanLabel(offerPlan(view.offer, view.pending)) : null} onResume={actions.resume}
       onStart={actions.start} onSignIn={actions.signIn} />;
     case "sign-in": return <SignInScreen phase={view.phase} email={ui.email} code={ui.code} profileEmail={ui.profileEmail} busy={ui.busy} now={ui.now}
       onBack={actions.back} onEmail={actions.email} onSend={actions.sendCode} onChangeEmail={actions.changeEmail} onCode={actions.code}
@@ -132,6 +135,7 @@ export function CloudAddDialog({ now = Date.now }: { now?: () => number }) {
   const [note, setNote] = useState<Note>(null);
   const [, setTick] = useState(0);
   const [arrived, setArrived] = useState(false);
+  const [following, setFollowing] = useState(false);
   const [terms, setTerms] = useState(false);
   const [extraWide, setExtraWide] = useState(false);
   const open = Boolean(request && bridge);
@@ -145,7 +149,7 @@ export function CloudAddDialog({ now = Date.now }: { now?: () => number }) {
     void bridge.state().then(next => { if (active && !updated) setAccount(next); }).catch(() => {});
     return () => { active = false; unsubscribe(); };
   }, [open, bridge]);
-  const view = open ? cloudAddView(account, offer, { now: now(), error, choosing, conflict, signIn, arrived, terms }) : null;
+  const view = open ? cloudAddView(account, offer, { now: now(), error, choosing, conflict, signIn, arrived, terms, following }) : null;
   const offerKey = open && view && OFFER_VIEWS.includes(view.kind) && account ? `${account.status}:${JSON.stringify(account.offer ?? null)}:${asked}` : null;
   useEffect(() => {
     if (!offerKey || !bridge?.offer) return;
@@ -159,7 +163,7 @@ export function CloudAddDialog({ now = Date.now }: { now?: () => number }) {
     if (signIn) void bridge?.signInCancel?.().catch(() => {});
     dispatch({ type: "closeCloudAdd" });
     setError(null); setConflict(false); setChoosing(false); setOpenFailed(false); setReported([]); setChosen(null);
-    setSignIn(null); setForm({ email: "", code: "" }); setLook(null); setAuto(null); setNote(null); setArrived(false); setTerms(false);
+    setSignIn(null); setForm({ email: "", code: "" }); setLook(null); setAuto(null); setNote(null); setArrived(false); setTerms(false); setFollowing(false);
   };
   // Capture phase, key marked handled: Escape and Tab reach this before anything underneath (Settings). Focus goes back to the opener.
   useEffect(() => {
@@ -196,6 +200,7 @@ export function CloudAddDialog({ now = Date.now }: { now?: () => number }) {
   // Ready shown here ends the purchase for main, so a later Add a Cloud… is one Cloud for now.
   useEffect(() => {
     if ((kind === "waiting" || kind === "starting" || kind === "ready") && !arrived) setArrived(true);
+    if (kind === "waiting" && !following) setFollowing(true);
     if (kind === "ready" || kind === "team-ready") void bridge?.readySeen?.().catch(() => {});
   }, [kind]);
   useEffect(() => {
@@ -368,6 +373,17 @@ export function CloudAddDialog({ now = Date.now }: { now?: () => number }) {
       setBusy(true); setNote(null);
       const again = bridge.reopenCheckout ? bridge.reopenCheckout(view.plan, request.source) : bridge.checkout!(view.plan, request.source);
       void again.then(result => { setAccount(result.state); if (result.outcome !== "opened") setNote("pay-failed"); }, () => setNote("pay-failed")).finally(() => setBusy(false));
+    },
+    resume: () => {
+      if (view.kind !== "offer" || !view.pending || busy) return;
+      const plan = view.pending;
+      setChoosing(false); setFollowing(true); setNote(null); setChosen(plan);
+      run(async () => {
+        const result = bridge.reopenCheckout ? await bridge.reopenCheckout(plan, request.source) : await bridge.checkout!(plan, request.source);
+        setAccount(result.state);
+        if (result.outcome !== "opened") setNote("pay-failed");
+        else track("cloud_checkout_opened", { plan, trial: false, source: request.source, resumed: true });
+      });
     },
     copyLink: () => { void bridge.copyCheckoutLink?.().then(copied => setNote(copied ? "copied" : "pay-failed"), () => setNote("pay-failed")); },
     changePlan: () => { setChosen(view.kind === "waiting" ? view.plan : chosen); setChoosing(true); setNote(null); },

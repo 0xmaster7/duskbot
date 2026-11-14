@@ -55,8 +55,9 @@ export interface CloudAccountState {
   /** A checkout this app opened (or a sign-in it started on the way to
    * one: `signIn`) in the last 24 hours: the plan, and when (Reopen checkout
    * starts the 30-minute watch again). `link`: main keeps its page, so Reopen
-   * and Copy link use that same page. */
-  checkout?: { plan: string; startedAt: number; signIn?: true; link?: true; done?: true };
+   * and Copy link use that same page. `found`: not opened by this app run, only found
+   * still open at the Admin after a restart (so `startedAt` is when it was found). */
+  checkout?: { plan: string; startedAt: number; signIn?: true; link?: true; done?: true; found?: true };
   /** This app talks to the staging Admin (DUSK_CLOUD_STAGING=1): test payments, test Clouds. */
   staging?: true;
   /** Connected: opening My Cloud waits for it to wake. */

@@ -1,5 +1,6 @@
 import { feature } from "./product-analytics";
 import { track } from "@/lib/analytics";
+import { noteNudgeMessage } from "@/lib/cloud-nudge";
 import {
   allow, APP, BOT_SOURCE, BOT_TEMPLATE, CALL_MODE, CONNECTOR_RESULT, engineSlug, KEY_PROVIDER, KEY_RESULT, KEY_VIA, ROOM_MODE,
   SIGN_IN_ENGINE, SIGN_IN_METHOD,
@@ -55,10 +56,12 @@ export function connectorConnect(app: string, result: ConnectorResult): void {
 }
 
 export function directMessageSent(instances: Instances, instanceId: unknown, queued: boolean): void {
+  noteNudgeMessage();
   track("message_sent", { driver: engineSlug(instances, instanceId), queued });
 }
 
 export function roomMessageSent(mode: string, queued: boolean): void {
+  noteNudgeMessage();
   track("message_sent", { room: true, mode: allow(mode, ROOM_MODE), queued });
 }
 

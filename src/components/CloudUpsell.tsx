@@ -4,7 +4,8 @@ import { Cloud, X } from "../icons";
 import type { CloudSource } from "@/lib/cloud-plan";
 import { investedBy, type InvestedFacts } from "../../shared/cloud-upsell";
 import { firstChatQuiet, firstReplyPending } from "@/lib/corner-popup";
-import { cloudUpsellAllowed, investedFacts, isInvested, markAlwaysOn, sidebarCardSnoozed, snoozeSidebarCard, trackUpsell, watchUpsell } from "@/lib/cloud-upsell";
+import { cloudUpsellAllowed, investedFacts, isInvested, markAlwaysOn, trackUpsell, watchUpsell } from "@/lib/cloud-upsell";
+import { endNudge, nextNudgeAt, noteNudgeSession, nudgeDay, nudgeEligible, nudgeShowing, nudgeVersion, takeNudge, watchNudge } from "@/lib/cloud-nudge";
 import { MASCOT_INK } from "@/lib/mascot";
 import { CLOUD_INTRO, dismissNotice, INVESTED_NOTICE, LATE_ROUTINE_NOTICE, launchNotice, noticeSeen, watchLaunchNotice } from "@/lib/notices";
 import { t } from "@/lib/i18n";
@@ -52,27 +53,40 @@ const INVESTED_LINE = { bots: "cloudUpsell.invested.bots", messages: "cloudUpsel
 // the invested pitch holds the card for the rest of the launch it first showed in
 let launchInvested: InvestedFacts | null = null;
 
-/** the small dusk cloud card at the foot of the sidebar: after the first reply, never during setup, and snoozed for some days
- * when closed. A launch that already showed a cloud notice in the corner leaves it out, so the pitch is said once. Someone
- * clearly invested (shared/cloud-upsell.ts INVESTED) gets it in their own numbers instead, once per account. */
+/** the small dusk cloud card at the foot of the sidebar, a few times on a day the app is used (lib/cloud-nudge.ts), never
+ * during first run. A launch that already showed a cloud notice in the corner leaves it out, so the pitch is said once.
+ * Someone clearly invested (shared/cloud-upsell.ts INVESTED) gets it in their own numbers instead, once per account. */
 export function SidebarCloudCard() {
   const { state, dispatch } = useStore();
   const { allowed, open } = useCloudUpsell();
-  const [snoozed, setSnoozed] = useState(() => sidebarCardSnoozed());
   const [held, setHeld] = useState<InvestedFacts | null>(launchInvested);
-  const shown = useRef(false);
+  const [, setTick] = useState(0);
+  useSyncExternalStore(watchNudge, nudgeVersion, nudgeVersion);
   const settled = firstReplyPending(state) === false && !firstChatQuiet(state) && !state.welcomeOpen;
   // a corner cloud card claiming this launch hides this one right away: one dusk cloud offer on screen at a time
   const notice = useSyncExternalStore(watchLaunchNotice, launchNotice, () => null);
-  const visible = allowed === true && settled && !snoozed && !(notice && CLOUD_NOTICES.has(notice));
+  const eligible = nudgeEligible({ allowed, settled, cornerCard: Boolean(notice && CLOUD_NOTICES.has(notice)) });
+  const showing = nudgeShowing();
+  const visible = eligible && showing;
   const record = state.config?.onboarding;
-  const due = !shown.current && !held && !noticeSeen(record, INVESTED_NOTICE) && isInvested(state) ? investedFacts(state) : null;
+  const due = visible && !held && !noticeSeen(record, INVESTED_NOTICE) && isInvested(state) ? investedFacts(state) : null;
   const invested = held ?? due;
   const by = invested ? investedBy(invested) : null;
   const source: CloudSource = by ? "app_invested" : "app_sidebar";
+  useEffect(() => { noteNudgeSession(); }, []);
+  // not showing yet: start a showing when one is due, or wake up when the next one will be
   useEffect(() => {
-    if (!visible || shown.current) return;
-    shown.current = true;
+    if (!eligible || showing) return;
+    if (takeNudge()) return;
+    const at = nextNudgeAt(nudgeDay());
+    if (at === null) return;
+    const timer = setTimeout(() => setTick(tick => tick + 1), Math.min(Math.max(at - Date.now(), 1000), 2 ** 31 - 1));
+    return () => clearTimeout(timer);
+  });
+  const reported = useRef(false);
+  useEffect(() => {
+    if (!visible || reported.current) return;
+    reported.current = true;
     trackUpsell("shown", source);
     if (!due) return;
     launchInvested = due;
@@ -80,28 +94,36 @@ export function SidebarCloudCard() {
     const patch = dismissNotice(record, INVESTED_NOTICE);
     if (patch) void api("/api/config", { method: "PUT", body: JSON.stringify(patch) }).then(config => dispatch({ type: "configStatus", config })).catch(() => {});
   }, [visible]);
+  useEffect(() => { if (!visible) reported.current = false; }, [visible]);
   useEffect(() => { if (visible) return watchUpsell(source); }, [visible, source]);
   if (!visible) return null;
-  const dismiss = () => { trackUpsell("dismiss", source); snoozeSidebarCard(); setSnoozed(true); };
+  return <SidebarCloudNudge invested={invested && by ? { by, count: invested[by] } : null}
+    onDismiss={() => { trackUpsell("dismiss", source); endNudge(); }}
+    onStart={() => { trackUpsell("click", source); endNudge(); open(source); }} />;
+}
+
+/** the card itself: the bot panel's Keep it working pitch made small for the sidebar, or the invested line */
+export function SidebarCloudNudge({ invested, onDismiss, onStart }: {
+  invested: { by: keyof InvestedFacts; count: number } | null; onDismiss: () => void; onStart: () => void;
+}) {
+  const device = deviceWord();
   return (
-    <section aria-labelledby="sidebar-cloud-title" data-sidebar-cloud-card="" data-invested={by ? "" : undefined}
+    <section aria-labelledby="sidebar-cloud-title" data-sidebar-cloud-card="" data-invested={invested ? "" : undefined}
       className="relative mb-2 rounded-xl bg-composer p-3 text-ink ring-[0.5px] ring-transparent [@media(max-height:600px)]:hidden">
-      <button type="button" onClick={dismiss} aria-label={t("cloudUpsell.snooze")}
+      <button type="button" onClick={onDismiss} aria-label={t("cloudUpsell.hide")}
         className="absolute end-1.5 top-1.5 flex size-6 cursor-pointer items-center justify-center rounded-full text-ink/56 transition-[background-color,color] duration-[120ms] ease-[ease] hover:bg-ink/6 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus">
         <X size={13} aria-hidden="true" />
       </button>
-      {invested && by ? <div className="flex items-center gap-2.5 pe-5">
-        <span aria-hidden="true" className="shrink-0"><DuskMark body="kit" colour={MASCOT_INK.blue} state="happy" size={30} label={null} /></span>
+      <div className="flex items-start gap-2.5 pe-5">
+        {invested ? <span aria-hidden="true" className="shrink-0"><DuskMark body="kit" colour={MASCOT_INK.blue} state="happy" size={30} label={null} /></span> : <NappingBot size={30} />}
         <div className="min-w-0">
-          <h2 id="sidebar-cloud-title" className="m-0 text-[13px] font-semibold leading-[1.35] text-ink">{t(INVESTED_LINE[by], { count: invested[by] })}</h2>
-          <p className="m-0 mt-0.5 text-[12px] font-medium leading-[1.45] text-ink-secondary">{t("cloudUpsell.invested.body", { device: deviceWord() })}</p>
+          <h2 id="sidebar-cloud-title" className="m-0 text-[13px] font-semibold leading-[1.35] text-ink [text-wrap:pretty]">
+            {invested ? t(INVESTED_LINE[invested.by], { count: invested.count }) : t("cloudUpsell.nudge.title")}</h2>
+          <p className="m-0 mt-0.5 text-[12px] font-medium leading-[1.45] text-ink-secondary [text-wrap:pretty]">
+            {t(invested ? "cloudUpsell.invested.body" : "cloudUpsell.nudge.body", { device })}</p>
         </div>
-      </div> : <div className="flex items-center gap-2.5 pe-5">
-        <NappingBot size={30} />
-        <h2 id="sidebar-cloud-title" className="m-0 min-w-0 text-[12px] font-medium leading-[1.45] text-ink-secondary">{t("cloudUpsell.sidebar", { device: deviceWord() })}</h2>
-      </div>}
-      <button type="button" data-sidebar-cloud-start="" className="ui-button ui-button-primary mt-2.5 w-full justify-center gap-1.5"
-        onClick={() => { trackUpsell("click", source); open(source); }}>
+      </div>
+      <button type="button" data-sidebar-cloud-start="" className="ui-button ui-button-primary mt-2.5 w-full justify-center gap-1.5" onClick={onStart}>
         <Cloud size={13} aria-hidden="true" />{t("rail.buy")}
       </button>
     </section>

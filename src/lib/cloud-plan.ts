@@ -162,7 +162,7 @@ export interface CloudPlanCardRow { key: "power" | "machine" | "storage" | "back
 /** A plan card. `action` is its buy button, null on the person's own plan (`current`); `terms` is the money in one line under it. */
 export interface CloudPlanCard {
   tier: string; name: string; price: string; popular: boolean; current: boolean; promise: string | null;
-  action: string | null; terms: string | null; rows: CloudPlanCardRow[];
+  action: string | null; terms: string | null; rows: CloudPlanCardRow[]; points: CloudPlanPoint[];
 }
 const PROMISE: Record<string, LocaleKey> = { starter: "cloudBuy.promise.starter", pro: "cloudBuy.promise.pro", max: "cloudBuy.promise.max" };
 const amount = (value: number) => new Intl.NumberFormat(activeLocale(), { maximumFractionDigits: 1 }).format(value);
@@ -178,6 +178,26 @@ export function planCardRows(a: CloudPlanAllowances): CloudPlanCardRow[] {
     ...(a.snapshotDays ? [{ key: "backups" as const, text: t("cloudBuy.row.backups", { days: a.snapshotDays }) }] : []),
   ];
 }
+/** One selling point on a plan card: what it does for the person, every number from the Admin's allowances. */
+export interface CloudPlanPoint { key: "power" | "machine" | "license" | "team" | "backups" | "routines" | "anywhere"; text: string }
+const machineText = (a: CloudPlanAllowances) => {
+  const disk = a.maxDiskGb > a.diskGb ? t("cloudBuy.point.diskGrows", { gb: a.diskGb, max: a.maxDiskGb }) : t("cloudBuy.point.disk", { gb: a.diskGb });
+  return t(a.seats ? "cloudBuy.point.machineDedicated" : "cloudBuy.point.machine", { cpus: t("cloudBuy.plan.cpus", { count: a.cpus }), memory: gb(a.memoryMb), disk });
+};
+/** A plan card's points, at most five: how it stays on, its machine, the license or the team's seats, backups, then what
+ * every plan does (routines on time, reach from anywhere) while there is room. */
+export function planPoints(plan: CloudOfferPlan): CloudPlanPoint[] {
+  const a = plan.allowances;
+  const points: CloudPlanPoint[] = [
+    ...(a ? [{ key: "power" as const, text: t(a.sleeps ? "cloudBuy.point.wakes" : "cloudBuy.row.alwaysOn") }, { key: "machine" as const, text: machineText(a) }] : []),
+    ...(a?.seats ? [{ key: "team" as const, text: t("cloudBuy.point.team", { seats: a.seats }) }]
+      : plan.tier === "pro" || plan.tier === "max" ? [{ key: "license" as const, text: t("cloudBuy.point.workLicense") }] : []),
+    ...(a?.snapshotDays ? [{ key: "backups" as const, text: t("cloudBuy.row.backups", { days: a.snapshotDays }) }] : []),
+    { key: "routines", text: t("cloudBuy.point.routines") },
+    { key: "anywhere", text: t(phoneAppEnabled() ? "cloudBuy.point.anywhere" : "cloudBuy.point.anywhereNoPhone") },
+  ];
+  return points.slice(0, 5);
+}
 /** What a plan's free trial costs and then what it comes to: "Free for 3 days, then $49/month + tax". */
 export function trialTerms(days: number, price: string): string {
   return days === 1 ? t("cloudBuy.card.trial.one", { price }) : t("cloudBuy.card.trial.many", { days, price });
@@ -188,7 +208,7 @@ function planCard(plan: CloudOfferPlan, recommended: string, current: string | n
     promise: Object.hasOwn(PROMISE, plan.tier) ? t(PROMISE[plan.tier]!) : plan.allowances?.seats ? t("cloudBuy.promise.team", { seats: plan.allowances.seats }) : null,
     action: mine ? null : plan.trialDays ? t("cloudBuy.card.startTrial") : t("cloudBuy.card.get", { plan: name }),
     terms: mine ? null : plan.trialDays ? trialTerms(plan.trialDays, price) : t("cloudBuy.card.paid", { price }),
-    rows: plan.allowances ? planCardRows(plan.allowances) : [] };
+    rows: plan.allowances ? planCardRows(plan.allowances) : [], points: planPoints(plan) };
 }
 /** The plans on sale as cards, in the Admin's order. `current` is the person's own tier; `own` is that plan when it is not
  * on sale (a Personal subscriber's), listed where its price falls and only for them. */
@@ -254,6 +274,14 @@ export function cloudIntroView(offer: CloudOffer | null | undefined): { badge: s
 
 export const CHECKOUT_WAIT_MS = 30 * 60_000;
 
+/** The checkout the sheet waits on by itself: one this app run opened (or reopened) in the last 30 minutes, not yet paid.
+ * Anything else still pending (older, or only found open at the Admin after a restart) counts as abandoned: a Get dusk
+ * cloud click shows the plans, never a payment screen for it. */
+export function freshCheckout(account: CloudAccountState | null | undefined, now: number): NonNullable<CloudAccountState["checkout"]> | null {
+  const opened = account?.checkout;
+  return opened && !opened.found && !opened.done && now - opened.startedAt < CHECKOUT_WAIT_MS ? opened : null;
+}
+
 /** The in-app sign-in's step, kept by the sheet: where it is and what the Admin last said, never a code or token. */
 export type CloudSignInProblem = "invalid-email" | "rate-limited" | "failed" | "wrong-code" | "expired" | "signup-closed" | "device-limit" | "sso" | "two-factor" | "browser" | "storage";
 export type CloudSignInPhase =
@@ -275,7 +303,8 @@ export type CloudAddView =
   | { kind: "checking" }
   | { kind: "unreachable" }
   | { kind: "error"; reason: "failed" | "rate-limited" }
-  | { kind: "offer"; offer: CloudOffer; signedOut: boolean; notice: "code-expired" | "signin-ended" | "preparing" | "terms" | null }
+  /** `pending`: a checkout left open (the plan's tier), offered quietly as Finish your checkout, never opened by itself. */
+  | { kind: "offer"; offer: CloudOffer; signedOut: boolean; notice: "code-expired" | "signin-ended" | "preparing" | "terms" | null; pending?: string }
   | { kind: "sign-in"; phase: CloudSignInPhase }
   | { kind: "signing-in"; code: string | null; checkout: boolean }
   | { kind: "waiting"; plan: string; browser: "checkout" | "signin"; late: boolean; link: boolean; email: string | null }
@@ -297,8 +326,11 @@ function teamCloudView(team: ReturnType<typeof planTeam>): CloudAddView {
 
 /** The one state → view function of the buying sheet: every Cloud state is one message and one next step. */
 export function cloudAddView(account: CloudAccountState | null | undefined, offer: CloudOffer | null | undefined,
-  { now, error = null, choosing = false, conflict = false, signIn = null, arrived = false, terms = false }: {
+  { now, error = null, choosing = false, conflict = false, signIn = null, arrived = false, terms = false, following = false }: {
     now: number; error?: "failed" | "rate-limited" | null; choosing?: boolean; conflict?: boolean; signIn?: CloudSignInPhase | null;
+    /** This sheet is already waiting on a checkout (it showed it, or the person chose Finish your checkout): it keeps
+     * waiting past the first 30 minutes, until closed. */
+    following?: boolean;
     /** Signed in here to an account whose own terms differ from those shown: Choose says so. */
     terms?: boolean;
     /** Signed in from this sheet just now: a ready Cloud is theirs to open, not a second one to ask for. */
@@ -328,10 +360,10 @@ export function cloudAddView(account: CloudAccountState | null | undefined, offe
       if (error) return { kind: "error", reason: error };
       if (offer === undefined) return { kind: "checking" };
       if (offer === null) return { kind: "unreachable" };
-      const opened = account?.checkout ?? null;
-      if (signIn && !opened && (view.kind === "signed-out" || signIn.step === "done")) return { kind: "sign-in", phase: signIn };
+      const opened = account?.checkout ?? null, fresh = freshCheckout(account, now);
+      if (signIn && !fresh && (view.kind === "signed-out" || signIn.step === "done")) return { kind: "sign-in", phase: signIn };
       const open = offer.checkout && offer.checkout.openUntil > now ? offer.checkout : null;
-      if (view.kind === "free" && !choosing && (opened || open)) {
+      if (view.kind === "free" && !choosing && (fresh || (following && (opened || open)))) {
         const late = opened ? now - opened.startedAt >= CHECKOUT_WAIT_MS : false;
         return { kind: "waiting", plan: opened?.plan ?? open!.plan, browser: opened?.signIn && !opened.link && !open ? "signin" : "checkout", late,
           link: opened?.link === true, email: account?.account?.email ?? null };
@@ -339,7 +371,8 @@ export function cloudAddView(account: CloudAccountState | null | undefined, offe
       const notice = account?.status === "signed-out" && account.message === "enrollment-expired" ? "code-expired"
         : account?.status === "signed-out" && (account.message === "enrollment-ended" || account.message === "signin-failed") ? "signin-ended"
           : conflict ? "preparing" : terms ? "terms" : null;
-      return { kind: "offer", offer, signedOut: view.kind === "signed-out", notice };
+      const pending = view.kind === "free" ? (opened && !opened.done ? opened.plan : open?.plan) : undefined;
+      return { kind: "offer", offer, signedOut: view.kind === "signed-out", notice, ...(pending ? { pending } : {}) };
     }
     default: return { kind: "settings" };
   }

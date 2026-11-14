@@ -54,7 +54,7 @@ const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/&#x27;/g, 
 const label = (node: Node) => text(renderToStaticMarkup(node));
 const button = (tree: Node[], name: string) => tree.find(node => node.type === "button" && (label(node) === name || label(node).startsWith(name) || node.props["aria-label"] === name));
 const actions = (): CloudAddActions => Object.fromEntries(["start", "signIn", "back", "email", "sendCode", "changeEmail", "code", "resend", "browser", "reopenBrowser",
-  "cancelSignIn", "reopenCheckout", "copyLink", "changePlan", "retry", "name", "color", "openCloud", "openTeam", "notNow", "interest", "close"].map(name => [name, vi.fn()])) as unknown as CloudAddActions;
+  "cancelSignIn", "reopenCheckout", "resume", "copyLink", "changePlan", "retry", "name", "color", "openCloud", "openTeam", "notNow", "interest", "close"].map(name => [name, vi.fn()])) as unknown as CloudAddActions;
 const baseUi = (extra: Partial<CloudAddUi> = {}): CloudAddUi => ({ chosen: null, current: null, offerShown: TRIAL, now: NOW, busy: false, openFailed: false, email: EMAIL, code: "", profileEmail: EMAIL,
   look: { typed: "Studio", name: "Studio", color: "teal" }, counting: null, copied: false, payFailed: false, interest: null, ...extra });
 const panel = (view: CloudAddView, extra: Partial<CloudAddUi> = {}) => {
@@ -75,22 +75,25 @@ beforeEach(() => { vi.clearAllMocks(); setLocale("en"); });
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); setLocale("en"); });
 
 describe("each screen of the sheet says one thing and offers one next step", () => {
-  it("choose: dusk cloud in a line, then one card per plan with its name, price, line, machine and button; the recommended plan's button is the primary one; the money once, under them", () => {
+  it("choose: dusk cloud in a line, then one card per plan with its name, price, line, what it does and button; the recommended plan's button is the primary one; the money once, under them", () => {
     const { html, tree, handlers } = panel({ kind: "offer", offer: TRIAL, signedOut: true, notice: null });
     inOrder(text(html), ["dusk cloud", "Your bots keep working when this computer is off, and you can reach them from anywhere.", "Choose your plan",
-      "Plus", "$15", "/month", "7 days free", "Your bots, always available, at the lowest price.", "2 vCPU · 2 GB RAM · 10 GB disk, grows to 20 GB", "Start free trial",
-      "Pro", "$49", "/month", "7 days free", "A bigger machine, priority wake and a work license.", "4 vCPU · 4 GB RAM · 10 GB disk, grows to 100 GB", "Start free trial",
-      "Max", "$99", "/month", "7 days free", "The biggest machine, for bots on computers all day.", "8 vCPU · 8 GB RAM · 10 GB disk, grows to 100 GB", "Start free trial",
+      "Plus", "$15", "/month", "7 days free", "Your bots, always available, at the lowest price.", "Always available, priority wake",
+      "2 vCPU, 2 GB RAM, 10 GB disk that grows to 20 GB", "Daily backups, kept 14 days", "Routines run on time, day and night", "Reach your bots from any of your computers", "Start free trial",
+      "Pro", "$49", "/month", "7 days free", "A bigger machine, priority wake and a work license.", "Always available, priority wake",
+      "4 vCPU, 4 GB RAM, 10 GB disk that grows to 100 GB", "A work license for one person", "Daily backups, kept 14 days", "Routines run on time, day and night", "Start free trial",
+      "Max", "$99", "/month", "7 days free", "The biggest machine, for bots on computers all day.", "8 vCPU, 8 GB RAM, 10 GB disk that grows to 100 GB", "A work license for one person", "Start free trial",
       "Card needed, nothing charged until your trial ends. Then monthly, plus tax where applicable. Cancel any time.", "14-day money-back.", "Already have a plan? Sign in"]);
     expect(html, "the night card holds the title and the line").toMatch(/<div data-night-card=""><h2 id="cloud-add-title"[^]*<\/p><\/div><\/div><section/);
-    expect(html.match(/data-plan-row="machine"/g), "one spec line on each card").toHaveLength(3);
+    expect(html.match(/data-plan-point="machine"/g), "one machine line on each card").toHaveLength(3);
+    for (const card of html.split('data-plan="').slice(1)) expect(card.split("</ul>")[0]!.match(/data-plan-point=/g)!.length, "three to five points a card").toBeLessThanOrEqual(5);
     expect(tree.filter(node => node.props["data-plan-buy"]).map(node => node.props.className.includes("ui-button-primary")), "one primary action, on the recommended plan")
       .toEqual([false, true, false]);
     expect(html.match(/data-plan-buy=/g), "one button per card").toHaveLength(3);
     expect(html.match(/data-plan-terms/g), "the money said once").toHaveLength(1);
     expect(html).not.toContain("data-plan-mine");
     for (const gone of ["Compare plans", "Most popular", "Every plan includes", "Apple Pay", "G Pay", "Secure checkout", "Cancel in two clicks", "aria-expanded", "Trial starts",
-      "Daily backups", "of swap", "launch", "$89", "Recommended", "AI credit", "This Mac", "A day", "computers at once", "hours a month", "shared", "24/7", "always on", "Personal", "$29",
+      "of swap", "launch", "$89", "Recommended", "AI credit", "This Mac", "A day", "computers at once", "hours a month", "shared", "24/7", "always on", "Personal", "$29",
       "Sleeps", "Everything in", "What Pro gives you", "Due today", "Gmail", "custom", "Customize", "Configure"]) {
       expect(text(html)).not.toContain(gone);
     }
@@ -108,12 +111,12 @@ describe("each screen of the sheet says one thing and offers one next step", () 
     expect(html.indexOf("data-plan-mine")).toBeGreaterThan(html.indexOf('data-plan="pro"'));
     expect(html.indexOf("data-plan-mine")).toBeLessThan(html.indexOf('data-plan="max"'));
     expect(tree.filter(node => node.props["data-plan-buy"]).map(node => node.props["data-plan-buy"])).toEqual(["starter", "max"]);
-    inOrder(text(html), ["Pro", "$49", "4 vCPU · 4 GB RAM", "Your plan", "Max"]);
+    inOrder(text(html), ["Pro", "$49", "4 vCPU, 4 GB RAM", "Your plan", "Max"]);
     expect(html.match(/data-plan-trial/g), "no trial on their own plan").toHaveLength(2);
     const personal = { ...PLANS[0]!, tier: "personal", label: "Personal", amount: 2900 };
     const mine = renderToStaticMarkup(createElement(ChooseScreen, { offer: TRIAL, current: "personal", own: personal, now: NOW, busy: false, signedOut: false, notice: null,
       onStart: vi.fn(), onSignIn: vi.fn() }));
-    inOrder(text(mine), ["Plus", "$15", "Start free trial", "Personal", "$29", "/month", "2 vCPU · 2 GB RAM", "Your plan", "Pro", "$49", "Start free trial", "Max"]);
+    inOrder(text(mine), ["Plus", "$15", "Start free trial", "Personal", "$29", "/month", "2 vCPU, 2 GB RAM", "Your plan", "Pro", "$49", "Start free trial", "Max"]);
     expect(mine.match(/data-plan-mine/g)).toHaveLength(1);
     expect(mine.match(/data-plan-buy=/g)).toHaveLength(3);
     const theirs = renderToStaticMarkup(createElement(ChooseScreen, { offer: TRIAL, current: null, own: personal, now: NOW, busy: false, signedOut: false, notice: null,
@@ -132,8 +135,8 @@ describe("each screen of the sheet says one thing and offers one next step", () 
       for (const gone of ["Personal", "$29", 'data-plan="personal"']) expect(html, why).not.toContain(gone);
       expect(html.match(/data-plan-buy="[a-z]+"/g), why).toEqual(['data-plan-buy="starter"', 'data-plan-buy="pro"', 'data-plan-buy="max"']);
       expect(tree.filter(node => node.props["data-plan-buy"]).map(node => node.props.className.includes("ui-button-primary")), why).toEqual([false, true, false]);
-      expect(html.match(/data-plan-row="machine"/g), why).toHaveLength(3);
-      inOrder(text(html), ["Plus", "$15", "2 vCPU · 2 GB RAM", "Pro", "$49", "4 vCPU · 4 GB RAM", "Max", "$99", "8 vCPU · 8 GB RAM"]);
+      expect(html.match(/data-plan-point="machine"/g), why).toHaveLength(3);
+      inOrder(text(html), ["Plus", "$15", "2 vCPU, 2 GB RAM", "Pro", "$49", "4 vCPU, 4 GB RAM", "Max", "$99", "8 vCPU, 8 GB RAM"]);
     }
   });
 
@@ -503,10 +506,24 @@ describe("the sheet", () => {
     expect(bridge.connectHome).not.toHaveBeenCalled();
   });
 
-  it("after a restart mid-checkout: Pay from the Admin's open checkout, then setup, then ready is theirs to open, not one Cloud for now", async () => {
+  it("a checkout left open (found after a restart, or older than half an hour) never takes over: the plans, with Finish your checkout", async () => {
+    account = { ...free, checkout: { plan: "pro", startedAt: NOW, found: true } }; offer = { ...TRIAL, checkout: { plan: "pro", openUntil: NOW + 20 * 60_000 } };
+    let html = await settle();
+    expect(html).toContain("Choose your plan"); expect(html).not.toContain("Waiting for your payment"); expect(html).toContain("Finish your Pro checkout");
+    push({ ...free, checkout: { plan: "max", startedAt: NOW - 3 * 3600_000, link: true } });
+    html = await settle();
+    expect(html).toContain("Choose your plan"); expect(html).toContain("Finish your Max checkout");
+    html = await buy("starter");
+    expect(bridge.checkout, "a plan picked here opens its own checkout").toHaveBeenCalledExactlyOnceWith("starter", "app_menu");
+    expect(html).toContain("Waiting for your payment");
+  });
+
+  it("after a restart mid-checkout: Finish your checkout, then setup, then ready is theirs to open, not one Cloud for now", async () => {
     focused = false;
     account = free; offer = { ...TRIAL, checkout: { plan: "pro", openUntil: NOW + 3600_000 } };
-    expect(await settle()).toContain("Waiting for your payment");
+    expect(await settle()).toContain("Finish your Pro checkout");
+    expect(await press("Finish your Pro checkout")).toContain("Waiting for your payment");
+    expect(bridge.reopenCheckout).toHaveBeenCalledExactlyOnceWith("pro", "app_menu");
     push(paid({ trial: trial(), machine: { status: "provisioning", setup: { step: "storage" } } }));
     expect(await settle()).toContain("Setting up your new cloud");
     push(paid({ trial: trial(), machine: ready }));

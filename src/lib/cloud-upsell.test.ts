@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 vi.mock("./analytics", () => ({ track: vi.fn() }));
 import { track } from "./analytics";
-import { INVESTED, investedBy, snoozed, snoozeUntil, SNOOZE_DAYS } from "../../shared/cloud-upsell";
-import { alwaysOnCooling, ALWAYS_ON_COOLDOWN, cloudUpsellAllowed, investedFacts, markAlwaysOn, sidebarCardSnoozed, snoozeSidebarCard, trackUpsell } from "./cloud-upsell";
+import { INVESTED, investedBy, snoozed, snoozeUntil } from "../../shared/cloud-upsell";
+import { alwaysOnCooling, ALWAYS_ON_COOLDOWN, cloudUpsellAllowed, investedFacts, markAlwaysOn, trackUpsell } from "./cloud-upsell";
 
 const DAY = 86_400_000, NOW = new Date(2026, 10, 12, 12).getTime();
 let storage: Map<string, string>;
@@ -30,12 +30,7 @@ it("counts visible bots, every task's and room's turns, and routines", () => {
   expect(facts).toEqual({ bots: 2, messages: 22, routines: 2 });
 });
 
-it("snoozes the sidebar card for some days, then brings it back", () => {
-  expect(sidebarCardSnoozed(NOW)).toBe(false);
-  snoozeSidebarCard(NOW);
-  expect(sidebarCardSnoozed(NOW + DAY)).toBe(true);
-  expect(sidebarCardSnoozed(NOW + (SNOOZE_DAYS - 1) * DAY)).toBe(true);
-  expect(sidebarCardSnoozed(NOW + SNOOZE_DAYS * DAY + 1)).toBe(false);
+it("reads a stored snooze, anything unreadable as awake", () => {
   expect(snoozed("garbage", NOW)).toBe(false);
   expect(snoozed(String(snoozeUntil(NOW)), NOW)).toBe(true);
 });

@@ -16,6 +16,8 @@ import { BEAT_ORDER, type BeatId } from "../../src/lib/onboarding";
 import { useStore } from "../../src/state/store";
 import { CloudReady } from "../../src/components/CloudSetup";
 import { AppUpdatePill } from "../../src/components/AppUpdatePill";
+import { SidebarCloudNudge } from "../../src/components/CloudUpsell";
+import type { CloudOffer } from "../../electron/cloud-home.mjs";
 import { useSidebarFooterSlot } from "../../src/lib/sidebar-footer-slot";
 import { auditLayout } from "./chat-gallery/layout-audit";
 import { setLocalBrowserFixture } from "../../src/lib/local-browser";
@@ -49,6 +51,23 @@ const APP_UPDATE: Record<string, ReturnType<typeof heldUpdate>> = {
   "app-update-ready": heldUpdate({ ready: "0.2.7", available: "0.2.7", progress: null }),
 };
 
+// the plans as the Admin sells them now: Plus sleeps when idle, Pro has priority wake and a work license, Team two seats
+const machine = (cpus: number, memoryGb: number, diskGb: number) => ({ cpus, memoryMb: memoryGb * 1024, diskGb, maxDiskGb: diskGb, computers: 1, computerHours: 0, voiceCharacters: 0, snapshotDays: 7 });
+const GALLERY_OFFER: CloudOffer = { recommended: "pro", refundDays: 14, plans: [
+  { tier: "starter", label: "Plus", amount: 2000, allowances: { ...machine(2, 4, 20), sleeps: true } },
+  { tier: "pro", label: "Pro", amount: 5000, allowances: machine(4, 8, 60) },
+  { tier: "team", label: "Team", amount: 11900, allowances: { ...machine(4, 8, 60), seats: 2 } },
+] };
+// ?card=cloud-stale-checkout: a free account whose Pro checkout was left open hours ago (main found it after a restart),
+// then Get dusk cloud: the plans show, with Finish your Pro checkout, never the payment screen
+if (params.get("card") === "cloud-stale-checkout") {
+  const account = { status: "connected", entitlement: { plan: "free" }, account: { email: "sam@example.test" }, checkout: { plan: "pro", startedAt: Date.now() - 5 * 3600_000, found: true } };
+  const offer = { ...GALLERY_OFFER, checkout: { plan: "pro", openUntil: Date.now() + 20 * 60_000 } };
+  Object.assign(window, { duskDesktop: { ...(window as { duskDesktop?: object }).duskDesktop, cloudAccount: {
+    state: async () => account, onState: () => () => undefined, offer: async () => offer, sheet: async () => undefined,
+  } } });
+}
+
 function Cards() {
   const slot = useSidebarFooterSlot();
   const [dock, setDock] = useState<Element | null>(null);
@@ -61,6 +80,8 @@ function Cards() {
   const update = APP_UPDATE[params.get("card") ?? ""];
   if (update && slot) return createPortal(<AppUpdatePill bridge={update} />, slot);
   if (params.get("card") === "cloud-ready") return <CloudReady slot={slot} onDone={() => undefined} />;
+  // ?card=cloud-nudge: the sidebar's dusk cloud card, as a scheduled showing puts it above the account row
+  if (params.get("card") === "cloud-nudge" && slot) return createPortal(<SidebarCloudNudge invested={null} onDismiss={() => undefined} onStart={() => undefined} />, slot);
   // ?card=toast-done / toast-error: a passing toast, held on screen
   if (params.get("card") === "toast-done") return <Toast text="Pepper is ready to use" action={{ label: "Undo", onClick: () => undefined }} timeoutMs={600_000} onDone={() => undefined} />;
   if (params.get("card") === "toast-error") return <Toast tone="error" text="Couldn't save Pepper's name. Try again." timeoutMs={600_000} onDone={() => undefined} />;

@@ -207,7 +207,8 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
     return { status, ...(message ? { message } : {}), ...(grant ? { account: { ...grant.account, ...named }, deviceId: grant.device.id, expiresAt: grant.expiresAt } : {}), ...(known ? { lastPlan: known } : {}) };
   };
   const checkout = () => opened && now() - opened.startedAt < CHECKOUT_KEPT_MS
-    ? { plan: opened.plan, startedAt: opened.startedAt, ...(opened.signIn ? { signIn: true } : {}), ...(opened.url ? { link: true } : {}), ...(opened.done ? { done: true } : {}) } : null;
+    ? { plan: opened.plan, startedAt: opened.startedAt, ...(opened.signIn ? { signIn: true } : {}), ...(opened.url ? { link: true } : {}), ...(opened.done ? { done: true } : {}),
+      ...(opened.source === null ? { found: true } : {}) } : null;
   const buying = () => adding && now() - adding.startedAt < CHECKOUT_KEPT_MS
     ? { cloudId: adding.cloudId, name: adding.name, color: adding.color, tier: adding.tier, startedAt: adding.startedAt, ...(adding.url ? { link: true } : {}), ...(adding.done ? { done: true } : {}) } : null;
   const withCheckout = current => {
