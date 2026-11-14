@@ -120,8 +120,8 @@ describe("room message actions", () => {
     const html = markup([reply]);
     expect(html.match(/title="Save a copy"/g)).toHaveLength(1);
     expect(html).toContain(">notes.md<");
-    expect(html).not.toContain('aria-label="save a copy of notes.md"');
-    expect(html.match(/aria-label="save a copy of report\.pdf"/g)).toHaveLength(1);
+    expect(html).not.toContain('aria-label="Save a copy of notes.md"');
+    expect(html.match(/aria-label="Save a copy of report\.pdf"/g)).toHaveLength(1);
     expect(html).toMatch(/<section[^>]*class="mt-2\.5 /);
     expect(html).toContain('data-testid="message-actions"');
     expect(html).toContain("Reply to message");

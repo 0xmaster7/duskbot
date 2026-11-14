@@ -92,7 +92,7 @@ it("shows a failed start in one line and offers to try again", async () => {
   await flush();
   const tree = render();
   expect(tree.filter((node) => node.type === "button").map(text)).toEqual([expect.stringContaining("try again")]);
-  expect(text(tree.find((node) => (node.props as { role?: string }).role === "alert"))).toContain("Grok is not installed on this server.");
+  expect(text(tree.find((node) => (node.props as { role?: string }).role === "alert"))).toBe("Sign-in could not be completed. Try again, or check the Grok installation.");
   fixture.api.mockResolvedValueOnce({ auth: waiting });
   await button().props.onClick!();
   await flush();
