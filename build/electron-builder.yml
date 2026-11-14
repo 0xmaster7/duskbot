@@ -157,9 +157,9 @@ dmg:
   iconTextSize: 13
   contents:
     - x: 170
-      y: 140
+      y: 168
     - x: 490
-      y: 140
+      y: 168
       type: link
       path: /Applications
 
