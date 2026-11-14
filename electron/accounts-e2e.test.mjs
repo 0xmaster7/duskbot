@@ -254,7 +254,8 @@ describe("accounts across the website, desktop, workspace and phone", () => {
     expect(other.timers.size).toBe(1);
     const [id, tick] = other.timers.entries().next().value; other.timers.delete(id); tick();
     await waitFor(() => expect(other.client.state().status).toBe("connected"));
-    expect(other.client.state().account).toEqual({ id: other.saved.account.id, email: "google@accounts.test" });
+    // the account service sends the name too (b61175e2f), shown on the account card
+    expect(other.client.state().account).toEqual({ id: other.saved.account.id, email: "google@accounts.test", name: "google fixture" });
     expect(other.saved.account.id).toBe((await webAccount(jar)).account.id);
     expect(other.client.state().entitlement.plan).toBe("free");
   }, 30_000);
@@ -298,7 +299,8 @@ describe("accounts across the website, desktop, workspace and phone", () => {
     const deep = await browser().follow(p.opened.at(-1));
     expect(deep.protocol).toBe("duskbot:"); expect(deep.host).toBe("auth"); expect(deep.searchParams.has("code")).toBe(true);
     expect(await p.client.handleAuthUrl(deep.href)).toEqual({ outcome: "signed-in" });
-    expect((await bearer(p.token())).data.account).toEqual(p.client.account());
+    // the same account; the service also sends its name and photo (b61175e2f), which the phone does not keep
+    expect((await bearer(p.token())).data.account).toMatchObject(p.client.account());
     const signedToken = p.token(); await p.client.signOut();
     await p.client.oauthStart("google");
     const tampered = await browser().follow(p.opened.at(-1)); tampered.searchParams.set("state", "tampered");
