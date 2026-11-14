@@ -16,6 +16,7 @@ import { loadPageLanguage } from "./lib/language-preference";
 import { applySkinChoice, readSkinChoice } from "./lib/skins";
 import { applyChatWidth, readChatWidth } from "./lib/chat-width";
 import { applyFont, readFont } from "./lib/fonts";
+import { startSyncedPrefs } from "./lib/synced-prefs";
 import { watchFocusNav } from "./lib/focus-nav";
 import { watchComposerFocus } from "./lib/composer-focus";
 import { BrowserSignInPage } from "./pair/BrowserSignInPage";
@@ -37,6 +38,7 @@ startDesktopAnalytics();
 applySkinChoice(readSkinChoice());
 applyFont(readFont());
 applyChatWidth(readChatWidth());
+startSyncedPrefs();
 watchFocusNav();
 watchComposerFocus();
 

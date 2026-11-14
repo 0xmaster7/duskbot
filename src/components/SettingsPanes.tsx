@@ -197,7 +197,7 @@ export function GeneralPane({ has, remoteActive }: { has: Has; remoteActive: boo
           </SettingsRows>
         </SettingsGroup>
       )}
-      <SettingsGroup label={tPreferred("settings.docs.look", "settings.section.appearance")} block="appearance">
+      <SettingsGroup label={tPreferred("settings.docs.look", "settings.section.appearance")} block="appearance" footnote={t("settings.docs.followsYou")}>
         <SettingsRows>
           <ThemeRow />
           <DressUpRow />

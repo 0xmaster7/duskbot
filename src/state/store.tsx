@@ -1,4 +1,5 @@
 import { feature as productFeature, noteMessageSent, noteAcceptedMessage, noteReplyTurn, noteRoutineRun } from "@/lib/product-analytics";
+import { pullSyncedPrefs } from "@/lib/synced-prefs";
 import { storeApp } from "@/lib/store-app";
 import { aiSendAllowed } from "@/lib/ai-consent-gate";
 import { trailAction } from "@/lib/trail-actions";
@@ -3134,6 +3135,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     let hydrationFallback = bootChat ? undefined : setTimeout(hydrate, 1_000);
 
     handleFrame = (frame) => {
+      // a preference changed at this place, maybe at another of the person's
+      if ((frame as { kind: string }).kind === "ui-prefs") { void pullSyncedPrefs(); return; }
       if (frame.kind === "config") bumpPeripheralVersion("config", "instances");
       else if (frame.kind === "routine" || frame.kind === "routine.deleted" || frame.kind === "routine.run") {
         bumpPeripheralVersion("routines");

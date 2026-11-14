@@ -8534,6 +8534,7 @@
   "settings.dataSharing.unavailable": "Data sharing settings aren't available here.",
   "settings.docs.you": "You",
   "settings.docs.look": "How it looks",
+  "settings.docs.followsYou": "Your settings follow you across your computers.",
   "settings.docs.typing": "Typing and sending",
   "settings.docs.notifications": "Notifications",
   "settings.docs.bring": "Bring your stuff",
