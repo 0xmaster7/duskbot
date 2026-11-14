@@ -109,6 +109,20 @@ if (!enabled) console.log("skipping voice input screenshots: set DUSK_UI_E2E=1 f
     await wait(200);
     await shot("07-error-desktop");
 
+    await open("skin=grok", 900, 360);
+    await click("Start dictation");
+    await evaluate(`voiceFixture.end(1, "mic-denied")`);
+    await wait(200);
+    await shot("07b-mic-denied-desktop");
+    expect(await evaluate(`document.querySelector('[data-open-system-settings="mic"]')?.textContent ?? ""`)).toBe("Open System Settings");
+
+    await open("skin=grok&platform=linux", 900, 360);
+    await click("Start dictation");
+    await wait(200);
+    await shot("07c-nothing-can-listen-desktop");
+    expect(await evaluate(`document.querySelector('[data-open-voice-settings]')?.textContent ?? ""`)).toBe("Choose a speech service");
+    expect(await evaluate(`document.body.textContent.toLowerCase().includes("settings > voice")`)).toBe(false);
+
     await open("skin=grok&firstRun=1", 900, 520);
     await click("Start dictation");
     await wait(400);

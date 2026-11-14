@@ -46,7 +46,9 @@ const quiet = () => {
 };
 
 window.duskDesktop = {
-  platform: "darwin",
+  // ?platform=linux: no recognizer of its own and, with no listening key on the fixture's server, nothing can listen
+  platform: params.get("platform") === "linux" ? "linux" : "darwin",
+  permOpenSettings: async () => {},
   getCapabilities: async () => initialDesktopCapabilities(),
   speechStart: async () => { starts++; listen(); },
   speechStop: async () => { stops++; quiet(); },
