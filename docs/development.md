@@ -1,4 +1,4 @@
-# Contributing to dusk bot
+# Developing dusk bot
 
 Thanks for wanting to help — community PRs have already shipped in this repo, and more are welcome.
 This file tells you how to get a working dev setup, what the codebase expects from a change, and what
