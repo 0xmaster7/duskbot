@@ -2740,6 +2740,8 @@ const localWorkspaceOnly = (channel, handler) => localOnly(channel, workspaceOnl
 for (const method of ["state", "begin", "signInAgain", "reopen", "cancel", "refresh", "signOut", "openDashboard", "offer"]) {
   ipcMain.handle(`cloud-account:${method}`, localWorkspaceOnly(`cloud-account:${method}`, () => (method === "signOut" ? accounts.signOutActive() : ensureCloudAccount()[method]())));
 }
+// an account step in the browser for its context (sign in, upgrade to a plan, billing): the intent is checked in the client
+ipcMain.handle("cloud-account:continueInBrowser", localWorkspaceOnly("cloud-account:continueInBrowser", (_event, intent) => ensureCloudAccount().continueInBrowser(intent)));
 // a page of the account website, opened signed in; the page is one of a fixed few and the address is built in main
 ipcMain.handle("cloud-account:openPage", localWorkspaceOnly("cloud-account:openPage", async (_event, page, workspaceId) => {
   if (!ACCOUNT_PAGES.includes(page)) throw new Error("Unknown account page.");

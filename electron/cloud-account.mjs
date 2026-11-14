@@ -74,6 +74,16 @@ export function checkoutDestination(value, { fixture = false, staging = false, c
 const HANDOFF_PLANS = Object.freeze(["plus", "pro"]);
 /** The website pages a handoff opens (shared/account-api.ts HANDOFF_PAGES), and where each is when the browser signs in itself. */
 export const HANDOFF_PAGES = Object.freeze({ plans: "/billing", home: "/", workspace: "/", cloud: "/cloud", billing: "/billing", account: "/account", usage: "/usage" });
+/** An account step's context (shared/account-api.ts AccountIntent), checked the same way: signin, upgrade (plan, move) or billing. */
+export const ACCOUNT_INTENT_KINDS = Object.freeze(["signin", "upgrade", "billing"]);
+export function cleanAccountIntent(value) {
+  if (!value || typeof value !== "object" || !ACCOUNT_INTENT_KINDS.includes(value.kind)) return null;
+  const kind = value.kind;
+  const plan = kind === "upgrade" && (value.plan === "plus" || value.plan === "pro") ? value.plan : undefined;
+  const source = CHECKOUT_SOURCES.includes(value.source) ? value.source : undefined;
+  const move = kind === "upgrade" && typeof value.move === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(value.move) ? value.move : undefined;
+  return { kind, ...(plan ? { plan } : {}), ...(source ? { source } : {}), ...(move ? { move } : {}) };
+}
 const WORKSPACE_ID = /^ws_[A-Za-z0-9_-]{1,64}$/;
 const HANDOFF_PATHS = Object.freeze(["/handoff", "/dashboard/handoff"]);
 /** Only this Admin's own handoff page with a one-time token in the fragment: no query, no credentials, nothing else. */
@@ -432,8 +442,9 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
     try { return parseProviders(await request(null, { path: APP_PROVIDERS, timeoutMs: 8_000, signal: AbortSignal.timeout(8_000) })); }
     catch { return { providers: [], recovery: false }; }
   }
-  async function begin(intent = null, { provider } = {}) {
+  async function begin(intent = null, { provider, account = null } = {}) {
     if (!intent || typeof intent !== "object" || !text(intent.plan, 24) || !CHECKOUT_SOURCES.includes(intent.source)) intent = null;
+    account = cleanAccountIntent(account);
     if (closed || restoring || clearing || grant || issued || cleanupNeeded) throw new Error("Sign out before starting another Cloud connection.");
     const stamp = reset();
     opened = intent ? { plan: intent.plan, source: intent.source, startedAt: now(), signIn: true } : null;
@@ -449,7 +460,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
     publish({ status: "connecting" });
     try {
       if (!text(deviceName, 100) || !["darwin", "win32", "linux"].includes(platform)) throw new Error("Invalid desktop.");
-      const result = await request("authorize", { method: "POST", body: { deviceName, platform, ...(text(appVersion, 40) ? { appVersion } : {}) } });
+      const result = await request("authorize", { method: "POST", body: { deviceName, platform, ...(text(appVersion, 40) ? { appVersion } : {}), ...(account ? { intent: account } : {}) } });
       if (!current(stamp)) return state();
       if (result.cloudContractVersion !== 1 || !PRIVATE_CODE.test(result.deviceCode) || !CODE.test(result.userCode) ||
         result.verificationUriComplete !== `${origin}/cloud/desktop?code=${result.userCode}` || !Number.isSafeInteger(result.expiresIn) || result.expiresIn < 1 || result.expiresIn > MAX_ENROLL_SECONDS ||
@@ -665,6 +676,31 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
     cancel: () => { if (!pending && value.status !== "connecting") return Promise.resolve(state()); opened = null; return signOut(); },
     refresh, signOut,
     async openDashboard() { await webHandoff({ page: "cloud" }); return state(); },
+    /**
+     * An account step in the browser, for its context (the account context redirect): already signed in, the one-time
+     * handoff opens the right page (the plan checkout, billing or home) with no second sign-in; signed out, the browser
+     * sign-in opens with the intent bound to it, the website lands on that page after signing in or up, and this app
+     * signs itself in when the person approves (polling, or duskbot://auth). Returning to the app is optional.
+     * Answers `opened` (already signed in) or `browser` (a sign-in under way: state().status is "connecting").
+     */
+    async continueInBrowser(input) {
+      const intent = cleanAccountIntent(input);
+      if (!intent) throw new Error("Invalid account step.");
+      const signedIn = grant && state().status === "connected";
+      if (signedIn) {
+        const page = intent.kind === "upgrade" ? "plans" : intent.kind === "billing" ? "billing" : "home";
+        const source = intent.kind === "upgrade" && intent.source ? intent.source : undefined;
+        const opened = await webHandoff({ page, ...(page === "plans" && intent.plan ? { plan: intent.plan } : {}), ...(page === "plans" && source ? { source } : {}) });
+        if (!opened?.signedOut) {
+          if (intent.kind === "upgrade") schedule(refresh, WATCH_REFRESH_MS);
+          return { outcome: "opened", state: state() };
+        }
+      }
+      if (value.status === "connecting") { if (pending && pending.expiresAt > now()) await openBrowser(pending.verificationUri); return { outcome: "browser", state: state() }; }
+      const checkout = intent.kind === "upgrade" && intent.plan && intent.source ? { plan: intent.plan, source: intent.source } : null;
+      await begin(checkout, { account: intent });
+      return { outcome: "browser", state: state() };
+    },
     webHandoff,
     async upgradePreview(plan, source) {
       if (!UPGRADE_TIERS.includes(plan) || !UPGRADE_SOURCES.includes(source)) throw new Error("Invalid Cloud upgrade.");

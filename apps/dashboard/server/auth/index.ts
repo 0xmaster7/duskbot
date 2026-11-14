@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
+import { accountIntentPath, cleanAccountIntent, type AccountIntent } from "../../../../shared/account-api.ts";
 import { ACCOUNT_ROUTES as R, APP_AUTH_REDIRECT, CSRF_COOKIE, CSRF_HEADER, EMAIL_CODE_DIGITS, EMAIL_CODE_TRIES, EMAIL_CODE_TTL_SECONDS, EMAIL_RESEND_SECONDS, HANDOFF_PAGES, HANDOFF_PLANS, NOTIFICATION_DEFAULTS, OAUTH_PROVIDERS, SESSION_COOKIE } from "../../../../shared/account-api.ts";
 import type { AccountAnswer, AccountErrorCode, AccountView, AppGrant, NotificationPrefs, AppSessionIdentity, HandoffAnswer, OAuthErrorCode, OAuthProvider, WebHandoffAnswer } from "../../../../shared/account-api.ts";
 import { CHECKOUT_SOURCES } from "../../../../shared/billing-api.ts";
@@ -77,7 +78,7 @@ export function isAppCorsRoute(path: string) {
 }
 interface DeviceInfo { name: string; platform: string; appVersion: string | null }
 interface Attempt { email: string; codeHash: string; pending?: string; device: DeviceInfo | null; expiresAt: number; tries: number }
-interface DeviceAuthorization { userCode: string; device: DeviceInfo; expiresAt: number; interval: number; lastPollAt: number | null; accountId: string | null; denied: boolean }
+interface DeviceAuthorization { userCode: string; device: DeviceInfo; expiresAt: number; interval: number; lastPollAt: number | null; accountId: string | null; denied: boolean; intent?: AccountIntent }
 interface AppFlow { challenge: string; state: string; expiresAt: number }
 interface OAuthState { provider: OAuthProvider; nonce: string; verifier: string; bindingHash: string; next: string; linkAccount: string | null; linkSession: string | null; appFlow?: string; expiresAt: number }
 interface PendingIdentity { provider: OAuthProvider; profile: ProviderProfile; next: string; appFlow?: string; bindingHash: string; expiresAt: number }
@@ -646,7 +647,7 @@ export function createAuth(options: AuthOptions) {
         requireWeb(req, { mutation: false });
         const device = [...devices.values()].find(item => item.userCode === url.searchParams.get("code") && !item.accountId && !item.denied);
         if (!device) return fail(404, "not_found");
-        json({ device: { name: device.device.name, platform: device.device.platform }, userCode: device.userCode, expiresAt: device.expiresAt });
+        json({ device: { name: device.device.name, platform: device.device.platform }, userCode: device.userCode, expiresAt: device.expiresAt, ...(device.intent ? { intent: device.intent, next: accountIntentPath(device.intent) } : {}) });
       } else if (method === "POST" && (path === R.deviceApprove || path === R.deviceDeny)) {
         const owner = requireWeb(req, { mutation: true });
         const device = [...devices.values()].find(item => item.userCode === data.userCode && !item.accountId && !item.denied);
@@ -662,7 +663,10 @@ export function createAuth(options: AuthOptions) {
         do { const chars = Array.from({ length: 10 }, () => alphabet[randomInt(alphabet.length)]).join(""); userCode = `${chars.slice(0, 5)}-${chars.slice(5)}`; }
         while ([...devices.values()].some(item => item.userCode === userCode));
         const deviceCode = random();
-        devices.set(hash(deviceCode), { userCode, device, expiresAt: now() + 900_000, interval: 5, lastPollAt: null, accountId: null, denied: false });
+        // what the app was doing (shared/account-api.ts AccountIntent): bound to this sign-in, so the website trusts it, not the URL
+        const intent = data.intent === undefined ? null : cleanAccountIntent(data.intent);
+        if (data.intent !== undefined && !intent) return fail(400, "invalid_request");
+        devices.set(hash(deviceCode), { userCode, device, expiresAt: now() + 900_000, interval: 5, lastPollAt: null, accountId: null, denied: false, ...(intent ? { intent } : {}) });
         json({ cloudContractVersion: 1, deviceCode, userCode, verificationUri: `${pages}/cloud/desktop`, verificationUriComplete: `${pages}/cloud/desktop?code=${userCode}`, expiresIn: 900, interval: 5 });
       } else if (method === "POST" && path === R.desktopToken) {
         const key = opaque(data.deviceCode) ? hash(data.deviceCode) : "", device = devices.get(key);

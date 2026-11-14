@@ -139,6 +139,9 @@ export interface CloudAccountBridge {
   refresh(): Promise<CloudAccountState>;
   signOut(): Promise<CloudAccountState>;
   openDashboard(): Promise<CloudAccountState>;
+  /** An account step in the browser for its context (shared/account-api.ts AccountIntent): `opened` already signed in,
+   *  `browser` while the browser sign-in is under way (state().status "connecting"). Absent on an older app. */
+  continueInBrowser?(intent: { kind: "signin" | "upgrade" | "billing"; plan?: "plus" | "pro"; source?: string; move?: string }): Promise<{ outcome: "opened" | "browser"; state: CloudAccountState }>;
   /** A page of the account website in the browser, signed in as this account through a one-time link. */
   openPage?(page: Exclude<CloudHandoffPage, "plans">, workspaceId?: string): Promise<CloudWebHandoffResult>;
   /** What this person may buy now (cloud-account.mjs offer), or null. */
@@ -426,3 +429,5 @@ export declare function cloudMenuSublabel(state: CloudAccountState | null | unde
 /** What a person did that may wake a sleeping Cloud (only `type`, `click` and `send` do). */
 export type WakeIntent = "type" | "click" | "send" | "open" | "view";
 export declare const WAKE_INTENTS: readonly WakeIntent[];
+export declare const ACCOUNT_INTENT_KINDS: readonly ["signin", "upgrade", "billing"];
+export declare function cleanAccountIntent(value: unknown): { kind: "signin" | "upgrade" | "billing"; plan?: "plus" | "pro"; source?: string; move?: string } | null;

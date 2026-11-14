@@ -23,6 +23,7 @@
   "cloudAccount.checkout",
   "cloudAccount.connectHome",
   "cloudAccount.connectHomeForPhone",
+  "cloudAccount.continueInBrowser",
   "cloudAccount.copyCheckoutLink",
   "cloudAccount.files",
   "cloudAccount.holdSignIns",

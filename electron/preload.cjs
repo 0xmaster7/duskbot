@@ -523,6 +523,9 @@ const bridge = {
     openDashboard: () => ipcRenderer.invoke("cloud-account:openDashboard"),
     openPage: (page, workspaceId) => ipcRenderer.invoke("cloud-account:openPage", String(page), workspaceId === undefined ? undefined : String(workspaceId)),
     offer: () => ipcRenderer.invoke("cloud-account:offer"),
+    // an account step in the browser: { kind: "signin" | "upgrade" | "billing", plan?, source?, move? } (shared/account-api.ts)
+    continueInBrowser: intent => ipcRenderer.invoke("cloud-account:continueInBrowser", intent && typeof intent === "object"
+      ? { kind: String(intent.kind), ...(intent.plan ? { plan: String(intent.plan) } : {}), ...(intent.source ? { source: String(intent.source) } : {}), ...(intent.move ? { move: String(intent.move) } : {}) } : null),
     checkout: (plan, source) => ipcRenderer.invoke("cloud-account:checkout", String(plan), String(source)),
     // The buying sheet: plain text in, outcomes out; the attempt, the token and the checkout page stay in main.
     signInStart: email => ipcRenderer.invoke("cloud-account:signInStart", String(email)),

@@ -318,6 +318,13 @@ describe("local account service", () => {
     expect((await call(`/v1/auth/device?code=${authorization.userCode}`)).status).toBe(401);
     expect(await body(call(`/v1/auth/device?code=${authorization.userCode}`, undefined, browserHeaders(browser)))).toEqual({ device: { name: device.deviceName, platform: "darwin" }, userCode: authorization.userCode, expiresAt: time + 900_000 });
     expect((await call("/v1/auth/device?code=unknown", undefined, browserHeaders(browser))).status).toBe(404);
+    // an account step's context is bound to the sign-in (never the URL): the website reads where to land from here
+    const upgrading = await body<Authorization>(call("/api/cloud/desktop/authorize", { ...device, intent: { kind: "upgrade", plan: "pro", source: "app_computer_move", move: "ws_abc" } }));
+    expect(await body(call(`/v1/auth/device?code=${upgrading.userCode}`, undefined, browserHeaders(browser)))).toMatchObject({
+      intent: { kind: "upgrade", plan: "pro", source: "app_computer_move", move: "ws_abc" }, next: "/billing?plan=pro&src=app_computer_move&from=app" });
+    const signingIn = await body<Authorization>(call("/api/cloud/desktop/authorize", { ...device, intent: { kind: "signin", plan: "pro" } }));
+    expect(await body(call(`/v1/auth/device?code=${signingIn.userCode}`, undefined, browserHeaders(browser)))).toMatchObject({ intent: { kind: "signin" }, next: "/" });
+    expect((await call("/api/cloud/desktop/authorize", { ...device, intent: { kind: "anything" } })).status).toBe(400);
     expect((await call("/v1/auth/device/approve", { userCode: authorization.userCode }, { cookie: browser.cookie })).status).toBe(403);
     expect((await call("/v1/auth/device/approve", { userCode: authorization.userCode }, browserHeaders(browser))).status).toBe(200);
     expect((await call("/v1/auth/device/approve", { userCode: authorization.userCode }, browserHeaders(browser))).status).toBe(404);

@@ -159,6 +159,36 @@ export interface AppGrant {
   account: { id: string; email: string };
 }
 export interface EnrollGrantAnswer { v: 1; enrollToken: string; expiresAt: number; dashboardUrl: string }
+/**
+ * What the person was doing when an account step sent them to the browser (the account context redirect): the website
+ * signs them in or up there, then lands on the right page, and the app picks the result up by itself.
+ * - `signin`: the dashboard's home, then back to the app signed in.
+ * - `upgrade`: the plan checkout for `plan` (pricing when none), then a "you're all set" page back to the app; `move` says
+ *   the app moves bots once the cloud is ready ("computer" for this computer, or a server's workspace id).
+ * - `billing`: the billing page.
+ * The intent is bound to the app's browser sign-in on the service (short-lived, never trusted from the URL), or, already
+ * signed in, carried by the one-time web handoff.
+ */
+export const ACCOUNT_INTENT_KINDS = ["signin", "upgrade", "billing"] as const;
+export type AccountIntentKind = (typeof ACCOUNT_INTENT_KINDS)[number];
+export interface AccountIntent { kind: AccountIntentKind; plan?: "plus" | "pro"; source?: string; move?: string }
+/** the intent's checked form, or null: plan only for upgrade, a known kind, a short move id */
+export function cleanAccountIntent(value: unknown): AccountIntent | null {
+  if (!value || typeof value !== "object") return null;
+  const input = value as Record<string, unknown>;
+  if (!ACCOUNT_INTENT_KINDS.includes(input.kind as AccountIntentKind)) return null;
+  const kind = input.kind as AccountIntentKind;
+  const plan = kind === "upgrade" && (input.plan === "plus" || input.plan === "pro") ? input.plan : undefined;
+  const source = typeof input.source === "string" && /^[a-z_]{2,40}$/.test(input.source) ? input.source : undefined;
+  const move = kind === "upgrade" && typeof input.move === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(input.move) ? input.move : undefined;
+  return { kind, ...(plan ? { plan } : {}), ...(source ? { source } : {}), ...(move ? { move } : {}) };
+}
+/** where the website goes for an intent once signed in: the plan checkout, billing, or home */
+export function accountIntentPath(intent: AccountIntent | null): string {
+  if (!intent || intent.kind === "signin") return "/";
+  const query = new URLSearchParams({ ...(intent.plan ? { plan: intent.plan } : {}), ...(intent.source ? { src: intent.source } : {}), from: "app" });
+  return `/billing?${query}`;
+}
 export const HANDOFF_PLANS = ["plus", "pro"] as const;
 /** `source` is one of billing's CHECKOUT_SOURCES; the page it opens is built by the service from these, never sent. */
 /** the website pages an app opens signed in: "plans" is billing with an optional plan and source, "workspace" a workspace

@@ -286,7 +286,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   auth.onAppSeen(session => analytics.appActive(session));
   auth.onAccountDeleted(id => analytics.forget(id));
   auth.onAccountDeleted(id => void usage.forget(id));
-  auth.onAccountDeleted((_id, email) => courtesy(email) && send(email, accountDeletedEmail(emailCfg, { email: email ?? "" })));
+  auth.onAccountDeleted((_id, email) => { if (courtesy(email)) send(email, accountDeletedEmail(emailCfg, { email: email ?? "" })); });
   function billingNotice(notice: BillingNotice) {
     const cloud = notice.kind !== "receipt" && notice.cloudId ? billing.clouds.get(notice.cloudId) : null;
     if (notice.kind === "receipt") analytics.track("checkout_paid", { accountId: notice.accountId, props: { amountCents: notice.amountCents } });
