@@ -42,7 +42,7 @@ function secrets() {
     if (m) values.set(m[1], m[2].replace(/^(["'])(.*)\1$/, "$2"));
   }
   const need = (name) => { const v = values.get(name); if (!v) throw new Error(`${name} is not set in ${file}`); return v; };
-  return { email: need("DUSK_REVIEW_EMAIL").trim().toLowerCase(), code: need("DUSK_REVIEW_CODE").trim(), ai: pickReviewAi(Object.fromEntries(REVIEW_AI_PROVIDERS.map((item) => [item.env, values.get(item.env)]))), ops: values.get(`DUSK_OPS_TOKEN_${target.toUpperCase()}`) || null };
+  return { email: need("DUSK_REVIEW_EMAIL").trim().toLowerCase(), code: need("DUSK_REVIEW_CODE").trim(), ai: pickReviewAi({ ...Object.fromEntries(REVIEW_AI_PROVIDERS.map((item) => [item.env, values.get(item.env)])), DUSK_REVIEW_AI_MODEL: process.env.DUSK_REVIEW_AI_MODEL || values.get("DUSK_REVIEW_AI_MODEL") }), ops: values.get(`DUSK_OPS_TOKEN_${target.toUpperCase()}`) || null };
 }
 
 async function call(base, path, { method = "GET", body, token, timeoutMs = 30_000, headers = {} } = {}) {

@@ -23,7 +23,9 @@ function fakeHome() {
 }
 
 it("picks the paid OpenRouter key over Groq, Groq alone when that is all there is, and nothing without either", () => {
-  expect(pickReviewAi({ DUSK_REVIEW_AI_OPENROUTER_KEY: "sk-or", DUSK_REVIEW_AI_GROQ_KEY: "gsk" })).toMatchObject({ provider: "openrouter", url: "https://openrouter.ai/api/v1", model: "openai/gpt-4o-mini", key: "sk-or" });
+  expect(pickReviewAi({ DUSK_REVIEW_AI_OPENROUTER_KEY: "sk-or", DUSK_REVIEW_AI_GROQ_KEY: "gsk" })).toMatchObject({ provider: "openrouter", url: "https://openrouter.ai/api/v1", model: "deepseek/deepseek-v4.1-flash-1017", key: "sk-or" });
+  expect(pickReviewAi({ DUSK_REVIEW_AI_OPENROUTER_KEY: "sk-or", DUSK_REVIEW_AI_MODEL: "x/cheap" })).toMatchObject({ provider: "openrouter", model: "x/cheap" });
+  expect(pickReviewAi({ DUSK_REVIEW_AI_GROQ_KEY: "gsk", DUSK_REVIEW_AI_MODEL: "x/cheap" })).toMatchObject({ provider: "groq", model: "openai/gpt-oss-120b" });
   expect(pickReviewAi({ DUSK_REVIEW_AI_OPENROUTER_KEY: "  ", DUSK_REVIEW_AI_GROQ_KEY: "gsk" })).toMatchObject({ provider: "groq", url: "https://api.groq.com/openai/v1", model: "openai/gpt-oss-120b", key: "gsk" });
   expect(pickReviewAi({ DUSK_REVIEW_AI_OPENROUTER_KEY: null, DUSK_REVIEW_AI_GROQ_KEY: "" })).toBeNull();
   expect(MISSING_REVIEW_AI).toContain("DUSK_REVIEW_AI_OPENROUTER_KEY and DUSK_REVIEW_AI_GROQ_KEY");
@@ -46,5 +48,5 @@ it("adds the chosen engine once as Demo AI and points the demo bot at its model,
   // the paid key arriving later adds its own Demo AI engine and moves the bot to it
   expect(await wireDemoAi(home.call, { botId: "b1", ai: pickReviewAi({ DUSK_REVIEW_AI_OPENROUTER_KEY: "sk-or", DUSK_REVIEW_AI_GROQ_KEY: "gsk-fake" }) }))
     .toMatchObject({ added: true, pointed: true, provider: "openrouter" });
-  expect(home.bot.modelSelection).toEqual({ instanceId: "openai-compat:2", model: "openai/gpt-4o-mini" });
+  expect(home.bot.modelSelection).toEqual({ instanceId: "openai-compat:2", model: "deepseek/deepseek-v4.1-flash-1017" });
 });

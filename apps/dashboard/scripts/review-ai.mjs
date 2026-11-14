@@ -1,18 +1,20 @@
 // The review cloud's demo bot answers through a dusk-owned key, not the cloud's free model, whose shared free quota runs
 // out. The paid OpenRouter key wins when both are set; Groq's free tier is the fallback. A key's own limit at its
-// provider is the spend cap.
+// provider is the spend cap. DUSK_REVIEW_AI_MODEL (dusk.env or the environment) swaps the OpenRouter model.
+export const REVIEW_AI_OPENROUTER_MODEL = "deepseek/deepseek-v4.1-flash-1017";
 export const REVIEW_AI_NAME = "Demo AI";
 export const REVIEW_AI_PROVIDERS = [
-  { env: "DUSK_REVIEW_AI_OPENROUTER_KEY", provider: "openrouter", url: "https://openrouter.ai/api/v1", model: "openai/gpt-4o-mini" },
+  { env: "DUSK_REVIEW_AI_OPENROUTER_KEY", provider: "openrouter", url: "https://openrouter.ai/api/v1", model: REVIEW_AI_OPENROUTER_MODEL, override: "DUSK_REVIEW_AI_MODEL" },
   { env: "DUSK_REVIEW_AI_GROQ_KEY", provider: "groq", url: "https://api.groq.com/openai/v1", model: "openai/gpt-oss-120b" },
 ];
 export const MISSING_REVIEW_AI = `missing ${REVIEW_AI_PROVIDERS.map((item) => item.env).join(" and ")}: the demo bot stays on the cloud's own AI`;
 
-/** the first provider whose key is set, in REVIEW_AI_PROVIDERS order; `keys` maps env names to values */
+/** the first provider whose key is set, in REVIEW_AI_PROVIDERS order; `keys` maps env names (and the model override) to values */
 export function pickReviewAi(keys) {
   for (const item of REVIEW_AI_PROVIDERS) {
     const key = typeof keys[item.env] === "string" ? keys[item.env].trim() : "";
-    if (key) return { ...item, key };
+    const model = (item.override && typeof keys[item.override] === "string" && keys[item.override].trim()) || item.model;
+    if (key) return { env: item.env, provider: item.provider, url: item.url, model, key };
   }
   return null;
 }
