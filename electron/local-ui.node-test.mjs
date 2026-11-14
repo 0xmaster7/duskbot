@@ -218,3 +218,23 @@ test("the window: a debugger it cannot have leaves every page to its server", as
   assert.deepEqual(sent, []);
   assert.match(lines[0], /could not attach/);
 });
+
+test("the window: a request the page let go of before its answer is dropped quietly; any other refusal is logged and passed on", async () => {
+  const { contents, sent } = fakeWindow();
+  const lines = [];
+  const ui = createLocalUi({ source: { page: async () => null, file: async () => ({ status: 200, headers: {}, body: Buffer.from("js") }) }, origins: () => [CLOUD], log: (line) => lines.push(line) });
+  await ui.attach(contents);
+  let refusal = "Invalid InterceptionId.";
+  contents.debugger.sendCommand = async (method, params) => { sent.push([method, params]); if (method === "Fetch.fulfillRequest") throw new Error(refusal); return {}; };
+  const answer = async (requestId) => {
+    sent.length = 0;
+    contents.debugger.emit("message", {}, "Fetch.requestPaused", { requestId, resourceType: "Script", request: { url: `${CLOUD}/assets/a.js` } });
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    return sent.map(([method]) => method);
+  };
+  assert.deepEqual(await answer("1"), ["Fetch.fulfillRequest"]);
+  assert.deepEqual(lines, []);
+  refusal = "Body too large";
+  assert.deepEqual(await answer("2"), ["Fetch.fulfillRequest", "Fetch.continueRequest"]);
+  assert.match(lines[0], /could not answer file \(Body too large\)/);
+});

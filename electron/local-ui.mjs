@@ -22,6 +22,8 @@ const MIME = Object.freeze({
   ".ttf": "font/ttf", ".wasm": "application/wasm", ".mp3": "audio/mpeg", ".wav": "audio/wav", ".ogg": "audio/ogg", ".mp4": "video/mp4", ".webm": "video/webm",
 });
 /** Never framed and no Referer, as the server's own pages (server/static-files.ts PAGE_HEADERS). */
+/** What CDP says of a paused request that no longer exists. */
+const GONE = /invalid interceptionid/i;
 const PAGE_HEADERS = Object.freeze({ "content-security-policy": "frame-ancestors 'none'", "x-frame-options": "DENY", "referrer-policy": "no-referrer" });
 
 /** The http(s) origin of `value`, or null. */
@@ -180,7 +182,13 @@ export function createLocalUi({ source, origins, log = () => {} }) {
       requestId: paused.requestId, responseCode: answer.status,
       responseHeaders: Object.entries(answer.headers).map(([name, value]) => ({ name, value: String(value) })),
       body: Buffer.from(answer.body).toString("base64"),
-    }).catch((error) => { log(`local ui: could not answer ${route} (${error?.message ?? error})`); return pass(paused.requestId); });
+    }).catch((error) => {
+      // the page let go of it first (a reload or a navigation cancels every module still on its way): nobody is left to
+      // answer, and saying so was 3592 lines in two days that buried everything else in the log
+      if (GONE.test(String(error?.message ?? error))) return;
+      log(`local ui: could not answer ${route} (${error?.message ?? error})`);
+      return pass(paused.requestId);
+    });
   }
 
   function onMessage(_event, method, params) {
