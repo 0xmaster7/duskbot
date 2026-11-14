@@ -310,6 +310,8 @@ export function createAuth(options: AuthOptions) {
       return fail(400, app ? "invalid_code" : "wrong_code");
     }
     attempts.delete(key);
+    // the code was used: the resend wait guarded it, so signing out and in again at once may send the next one
+    sentAt.delete(attempt.email);
     if (!owner && !options.signupOpen && !(app && options.review?.email === attempt.email)) return fail(403, "signup_closed");
     // a pending identity finishes only in the browser that signed in to the provider, never through a link sent to someone else
     const pending = attempt.pending ? pendingFor(req, attempt.pending) : undefined;

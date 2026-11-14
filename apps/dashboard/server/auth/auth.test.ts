@@ -135,6 +135,15 @@ describe("local account service", () => {
     expect((await call("/v1/auth/verify", { attempt: current.attempt, code: code() })).status).toBe(410);
   });
 
+  it("a used code ends the resend wait: signing out and in again at once sends a new code, never \"too many tries\"", async () => {
+    const { attempt } = await start();
+    expect((await call("/v1/auth/verify", { attempt, code: code() })).status).toBe(200);
+    const again = await call("/v1/auth/start", { email });
+    expect(again.status).toBe(200);
+    // an unused code still holds the wait
+    expect(await body(call("/v1/auth/start", { email }))).toMatchObject({ code: "rate_limited" });
+  });
+
   it("shares resend, email and IP limits across web and app sign-in", async () => {
     await start();
     expect((await call("/api/cloud/app/sign-in/start", { email, ...device })).status).toBe(429);
