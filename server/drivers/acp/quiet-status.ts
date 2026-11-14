@@ -35,15 +35,16 @@ export const quietTickMs = (): number => knob("DUSK_ACP_QUIET_TICK_MS", DEFAULT_
 
 /** A free backup model that sends no first word, thought or tool call this long into a prompt is given up on, and the
  * turn runs again on the next free model (DUSK_ACP_FIRST_REPLY_MS overrides). OpenCode's free models answer in seconds
- * when they answer at all; a hung one would otherwise hold the turn for the full silence guard. */
-export const DEFAULT_FIRST_REPLY_MS = 25_000;
+ * when they answer at all; a hung one would otherwise hold the turn for the full silence guard. Short enough that three
+ * hung models still fit the turn's free budget. */
+export const DEFAULT_FIRST_REPLY_MS = 12_000;
 export const firstReplyMs = (): number => knob("DUSK_ACP_FIRST_REPLY_MS", DEFAULT_FIRST_REPLY_MS);
 /** All free models together get this long from the turn's first prompt to send a first word; past it the turn ends with
  * a plain line instead of trying another (DUSK_ACP_FREE_TURN_MS overrides). */
-export const DEFAULT_FREE_TURN_MS = 30_000;
+export const DEFAULT_FREE_TURN_MS = 45_000;
 export const freeTurnMs = (): number => knob("DUSK_ACP_FREE_TURN_MS", DEFAULT_FREE_TURN_MS);
 /** Free models one turn tries before it ends with a plain line instead of silence. */
-export const FREE_MODEL_ATTEMPTS = 3;
+export const FREE_MODEL_ATTEMPTS = 4;
 
 export type LogSignal =
   | { kind: "retry"; status: number | null; delayMs: number | null; attempt: number | null }

@@ -10,6 +10,7 @@ import { DATA_DIR, OPENCODE_PROVIDER_ENV } from "../../config.ts";
 import { decodeInjectId, hostApiKey, localHost, mergeLocalInject } from "../local-inject.ts";
 import { applyStandaloneSpawnEnv } from "../../engine-install.ts";
 import { OPENCODE_STANDALONE } from "./opencode-release.ts";
+import { PREINSTALL_FREE_BACKUP_ENV } from "../../free-backup.ts";
 import { createAcpDriver, type AccountErrorCode, type AcpConfig, type AcpSupport } from "./core.ts";
 import { offeredModels, surveyModelVariants } from "./config-options.ts";
 import { declareTypedOpenCodeModel } from "./opencode-typed-model.ts";
@@ -17,6 +18,9 @@ import { parseOpenCodeLogLine } from "./quiet-status.ts";
 import type { ModelCatalog, ModelVariantOption, ProviderDriver, ProviderErrorCode } from "../../contracts.ts";
 import { titleCaseModelId } from "../../contracts.ts";
 import { execCli, killCliTree, spawnCli } from "../../procs.ts";
+
+/** "0" turns off the start-up probe of the free models. */
+export const FREE_PROBE_ENV = "DUSK_FREE_PROBE";
 
 const NO_MODELS: ModelCatalog = { default: "", options: [] };
 
@@ -860,6 +864,8 @@ const support = (loadCatalog: OpenCodeCatalogLoader, ownAccess = new Map<string,
     return preferredOpenCodeModel(offered, catalogFromOpenCodeSession(sessionConfig)?.current) || null;
   },
   freeModelOrder: (model, env, models) => openCodeFreeModelOrder(model, ownOpenCodeAccess(env), models),
+  freeProbe: (env, models) => env[PREINSTALL_FREE_BACKUP_ENV] === "1" && env[FREE_PROBE_ENV] !== "0"
+    && openCodeFreeFallback(ownOpenCodeAccess(env), models),
   modelVariants: true,
   ownMcpOverHttp: true,
   // OpenCode 1.18.27's build agent lists 13 tools of its own (bash, read, edit, task, skill…); room for a newer CLI's.

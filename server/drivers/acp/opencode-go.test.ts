@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -34,6 +34,8 @@ import { standaloneAssetFor, standaloneEngineDir } from "../../engine-standalone
 import { cloudHomeConfigured } from "../../cloud-home.ts";
 import { DATA_DIR, OPENCODE_PROVIDER_ENV } from "../../config.ts";
 import * as quietStatus from "./quiet-status.ts";
+import { resetFreeLadder } from "./free-ladder.ts";
+import { configureTrail } from "../../../electron/trail.mjs";
 import { TASK_WORKSPACES_DIR, workspaceDir } from "../../workspace.ts";
 import type { ModelCatalog, ProviderInstance, SendTurnInput } from "../../contracts.ts";
 
@@ -1403,10 +1405,17 @@ describe("OpenCode ready only through its free models", () => {
 
 describe("OpenCode free model that never answers, or answers nothing", () => {
   const noKeys = { OPENCODE_API_KEY: "", OPENCODE_AUTH_CONTENT: "", ...Object.fromEntries(OPENCODE_PROVIDER_ENV.map((key) => [key, ""])) };
-  afterEach(() => { delete process.env.DUSK_ACP_FIRST_REPLY_MS; delete process.env.DUSK_ACP_FREE_TURN_MS; });
+  const trailed: Array<Record<string, unknown>> = [];
+  beforeEach(() => {
+    resetFreeLadder();
+    trailed.length = 0;
+    configureTrail({ src: "test", writer: { write: (event: Record<string, unknown>) => { if (String(event.ev).startsWith("free_model.")) trailed.push(event); }, flush: async () => {}, flushSync: () => {}, close: async () => {} } });
+  });
+  afterEach(() => { delete process.env.DUSK_ACP_FIRST_REPLY_MS; delete process.env.DUSK_ACP_FREE_TURN_MS; resetFreeLadder(); });
 
   // `login`: OpenCode's stored auth.json, as on a Mac where the person once signed OpenCode in to something
-  async function firstMessage(hang: string, extra: Record<string, string> = {}, replyMs = "600", login?: Record<string, unknown>) {
+  async function firstMessage(hang: string, extra: Record<string, string> = {}, replyMs = "600", login?: Record<string, unknown>,
+    models: ModelCatalog = catalog("opencode/big-pickle", "opencode/grok-code", "opencode/minimax-free")) {
     process.env.DUSK_ACP_FIRST_REPLY_MS = replyMs;
     const scratch = mkdtempSync(join(tmpdir(), "dusk-opencode-hang-"));
     if (login) {
@@ -1414,7 +1423,7 @@ describe("OpenCode free model that never answers, or answers nothing", () => {
       writeFileSync(join(scratch, "data", "opencode", "auth.json"), JSON.stringify(login));
     }
     resetOpenCodeModelCache();
-    const driver = createOpenCodeDriver(async () => catalog("opencode/big-pickle", "opencode/grok-code", "opencode/minimax-free"));
+    const driver = createOpenCodeDriver(async () => models);
     const instance = await driver.create({
       instanceId: "opencode-hang",
       displayName: "OpenCode",
@@ -1430,7 +1439,8 @@ describe("OpenCode free model that never answers, or answers nothing", () => {
       await instance.adapter.sendTurn({ threadId: "t-first", text: "hi", model: "opencode/big-pickle" });
       const done = await recorder.until((event) => event.type === "turn.completed", 15_000);
       const tried = readFileSync(join(scratch, "dump.models.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
-      return { done, events: [...recorder.events], tried, ms: Date.now() - started };
+      const rungs = readFileSync(join(scratch, "dump.rungs.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
+      return { done, events: [...recorder.events], tried, rungs, ms: Date.now() - started };
     } finally {
       recorder.stop();
       await instance.dispose();
@@ -1446,17 +1456,67 @@ describe("OpenCode free model that never answers, or answers nothing", () => {
     expect(events.filter((event) => event.type === "turn.started")).toHaveLength(1);
     expect(new Set(events.map((event) => event.turnId))).toEqual(new Set([done.turnId]));
     expect(events).toEqual(expect.arrayContaining([
-      expect.objectContaining({ type: "runtime.notice", message: "The free backup model sent nothing for 1 s, so another free model is answering instead." }),
+      expect.objectContaining({ type: "runtime.notice", message: "Still on it: another free model is picking this up so you get a reply." }),
       expect.objectContaining({ type: "item.completed", itemType: "assistant_text", text: "ok" }),
     ]));
     expect(events.some((event) => event.type === "runtime.error")).toBe(false);
     expect(ms).toBeLessThan(10_000);
   }, 20_000);
 
+  it.each([
+    ["busy", "Upstream request failed: Model is unavailable."],
+    ["rate_limited", "Rate limit exceeded. Please try again later."],
+  ])("moves on at once when OpenCode logs the free model as %s, long before the first-reply wait", async (reason, error) => {
+    const { done, events, tried, ms } = await firstMessage("", { FAKE_ACP_ERROR_MODELS: JSON.stringify({ "opencode/big-pickle": error }) }, "8000");
+    expect(tried).toEqual(["opencode/big-pickle", "opencode/grok-code"]);
+    expect(done).toMatchObject({ ok: true });
+    expect(ms).toBeLessThan(6_000);
+    expect(events.some((event) => event.type === "runtime.error")).toBe(false);
+    expect(events.filter((event) => event.type === "runtime.notice").map((event) => (event as { message: string }).message).join(" "))
+      .not.toMatch(/big-pickle|429|unavailable|rate limit/i);
+    expect(trailed).toEqual(expect.arrayContaining([
+      expect.objectContaining({ ev: "free_model.switch", from: "opencode/big-pickle", to: "opencode/grok-code", reason }),
+      expect.objectContaining({ ev: "free_model.answered", model: "opencode/grok-code", rung: 2 }),
+    ]));
+  }, 20_000);
+
+  it("moves on when the free model's request is refused outright", async () => {
+    const { done, tried } = await firstMessage("", { FAKE_ACP_REJECT_MODELS: JSON.stringify({ "opencode/big-pickle": "503 Service Unavailable" }) });
+    expect(tried).toEqual(["opencode/big-pickle", "opencode/grok-code"]);
+    expect(done).toMatchObject({ ok: true });
+    expect(trailed).toEqual(expect.arrayContaining([expect.objectContaining({ ev: "free_model.switch", reason: "busy" })]));
+  }, 20_000);
+
+  it("runs the next rung at its lighter setting where the model offers one", async () => {
+    const effort = [{ id: "low", label: "Low" }, { id: "high", label: "High" }];
+    const models: ModelCatalog = { default: "opencode/big-pickle", options: [
+      { id: "opencode/big-pickle", label: "Big Pickle" }, { id: "opencode/grok-code", label: "Grok Code", variants: effort },
+      { id: "opencode/minimax-free", label: "MiniMax" },
+    ] };
+    const { done, rungs } = await firstMessage("opencode/big-pickle", {
+      FAKE_ACP_VARIANTS: JSON.stringify({ "opencode/grok-code": { currentValue: "high", options: [{ value: "low", name: "Low" }, { value: "high", name: "High" }] } }),
+    }, "600", undefined, models);
+    expect(done).toMatchObject({ ok: true });
+    expect(rungs).toEqual([{ model: "opencode/big-pickle", variant: null }, { model: "opencode/grok-code", variant: "low" }]);
+  }, 20_000);
+
+  it("skips a free model that just failed while it cools down, so the next message starts on one that answers", async () => {
+    await firstMessage("opencode/big-pickle");
+    trailed.length = 0;
+    const { done, tried, ms } = await firstMessage("opencode/big-pickle", {}, "8000");
+    expect(tried).toEqual(["opencode/grok-code"]);
+    expect(done).toMatchObject({ ok: true });
+    expect(ms).toBeLessThan(6_000);
+    expect(trailed).toEqual(expect.arrayContaining([
+      expect.objectContaining({ ev: "free_model.skip", from: "opencode/big-pickle", to: "opencode/grok-code" }),
+    ]));
+  }, 30_000);
+
   it("ends the turn with a plain line when no free model answers, never in silence", async () => {
     const { done, events, tried } = await firstMessage("opencode/big-pickle,opencode/grok-code,opencode/minimax-free");
     expect(tried).toEqual(["opencode/big-pickle", "opencode/grok-code", "opencode/minimax-free"]);
     expect(done).toMatchObject({ ok: false, stopReason: "no_reply" });
+    expect(trailed).toEqual(expect.arrayContaining([expect.objectContaining({ ev: "free_model.exhausted", reason: "timeout", rung: 3 })]));
     expect(events.filter((event) => event.type === "runtime.error")).toEqual([expect.objectContaining({
       message: "No free backup model answered just now, so this message got no reply. Send it again in a minute, or connect your own AI, like Claude or ChatGPT, for replies you can count on.",
     })]);
@@ -1467,7 +1527,7 @@ describe("OpenCode free model that never answers, or answers nothing", () => {
     expect(tried).toEqual(["opencode/big-pickle", "opencode/grok-code"]);
     expect(done).toMatchObject({ ok: true });
     expect(events).toEqual(expect.arrayContaining([
-      expect.objectContaining({ type: "runtime.notice", message: "The free backup model answered with nothing, so another free model is answering instead." }),
+      expect.objectContaining({ type: "runtime.notice", message: "Still on it: another free model is picking this up so you get a reply." }),
       expect.objectContaining({ type: "item.completed", itemType: "assistant_text", text: "ok" }),
     ]));
   }, 20_000);

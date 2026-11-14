@@ -47,6 +47,9 @@
 //   FAKE_ACP_HANG_MODELS  comma-separated model ids whose session/prompt never answers (a hung free model);
 //     with FAKE_ACP_FREE_LIMIT=1 each also logs Zen's "Free usage limit reached" row under XDG_DATA_HOME
 //   FAKE_ACP_EMPTY_MODELS  comma-separated model ids that end their turn with no reply at all
+//   FAKE_ACP_ERROR_MODELS  JSON map model -> provider error: logs it as opencode 1.18's ERROR row under XDG_DATA_HOME,
+//     then the prompt never answers (opencode retrying on its own)
+//   FAKE_ACP_REJECT_MODELS  JSON map model -> message session/prompt is refused with
 //   FAKE_ACP_MODEL_STICKS  set_config_option succeeds but keeps the old model
 //   FAKE_ACP_OMIT_MODEL_VALUE  when the live model equals this id, the model option has no currentValue
 //     (Copilot CLI 1.0.105 does this for auto)
@@ -899,8 +902,24 @@ function handle(msg: any) {
         writeFileSync(`${process.env.FAKE_ACP_DUMP}.prompt.json`, JSON.stringify(msg.params?.prompt ?? null, null, 2));
       }
       if (failRpc(msg)) return;
-      const hangModels = (process.env.FAKE_ACP_HANG_MODELS ?? "").split(",").filter(Boolean);
-      if ((hangModels.length || process.env.FAKE_ACP_EMPTY_MODELS) && process.env.FAKE_ACP_DUMP) appendFileSync(`${process.env.FAKE_ACP_DUMP}.models.jsonl`, JSON.stringify(currentModel) + "\n");
+      const errorModels: Record<string, string> = JSON.parse(process.env.FAKE_ACP_ERROR_MODELS ?? "{}");
+      const rejectModels: Record<string, string> = JSON.parse(process.env.FAKE_ACP_REJECT_MODELS ?? "{}");
+      const hangModels = [...(process.env.FAKE_ACP_HANG_MODELS ?? "").split(",").filter(Boolean), ...Object.keys(errorModels)];
+      if ((hangModels.length || process.env.FAKE_ACP_EMPTY_MODELS || process.env.FAKE_ACP_REJECT_MODELS) && process.env.FAKE_ACP_DUMP) {
+        appendFileSync(`${process.env.FAKE_ACP_DUMP}.models.jsonl`, JSON.stringify(currentModel) + "\n");
+        appendFileSync(`${process.env.FAKE_ACP_DUMP}.rungs.jsonl`, JSON.stringify({ model: currentModel, variant: currentVariant ?? null }) + "\n");
+      }
+      const rejected = rejectModels[String(currentModel)];
+      if (rejected) {
+        out({ jsonrpc: "2.0", id: msg.id, error: { code: -32603, message: rejected } });
+        return;
+      }
+      const loggedError = errorModels[String(currentModel)];
+      if (loggedError && process.env.XDG_DATA_HOME) {
+        const logDir = join(process.env.XDG_DATA_HOME, "opencode", "log");
+        mkdirSync(logDir, { recursive: true });
+        appendFileSync(join(logDir, "opencode.log"), `timestamp=${new Date().toISOString()} level=ERROR run=fake message="stream error" providerID=opencode modelID=${String(currentModel).split("/").pop()} session.id=${msg.params?.sessionId} small=false agent=build mode=primary error.error="AI_APICallError: ${loggedError}"\n`);
+      }
       if (hangModels.includes(String(currentModel)) && process.env.FAKE_ACP_FREE_LIMIT === "1" && process.env.XDG_DATA_HOME) {
         // opencode 1.18 on Zen's free limit: one ERROR row in its shared log, then a prompt that never answers
         const logDir = join(process.env.XDG_DATA_HOME, "opencode", "log");

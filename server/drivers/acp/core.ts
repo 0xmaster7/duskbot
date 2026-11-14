@@ -21,11 +21,14 @@ import { runAcpOneShot } from "./background-text.ts";
 import { sanitizeAcpToolMessage } from "./tool-log.ts";
 import { stripLeakedSystemHarnessMessages } from "../../../shared/system-message-guard.ts";
 import {
-  classifyQuiet, describeQuiet, firstReplyMs, freeTurnMs, waitingOutLimit, formatQuietLimit, FREE_MODEL_ATTEMPTS, lastSeenPhrase, LIMIT_WORDS, LogTail, promptIdleTimeoutMs, quietKey, quietNoticeMs, quietTickMs, quietVerdict, sampleProcessTree,
+  classifyQuiet, describeQuiet, firstReplyMs, freeTurnMs, formatQuietLimit, FREE_MODEL_ATTEMPTS, lastSeenPhrase, LIMIT_WORDS, LogTail, promptIdleTimeoutMs, quietKey, quietNoticeMs, quietTickMs, quietVerdict, sampleProcessTree,
   type LogSignal, type ProcessSample, type QuietState,
 } from "./quiet-status.ts";
 import { readSessionReport } from "./session-reports.ts";
 import { pickSessionModel, SessionModelControls, type AcpModelSelection } from "./session-model-controls.ts";
+import { acpVariantOption } from "./config-options.ts";
+import { coolFreeRung, FREE_POOL_LIMIT, FREE_PROBE_MS, FREE_PROBE_PROMPT, freeFailure, freeLadder, probeFreeLadder, warmFreeModel, warmFreeRung, type FreeFailure, type FreeRung } from "./free-ladder.ts";
+import { trail } from "../../trail.ts";
 import { versionFromProbe } from "./version-probe.ts"; import { engineHomes } from "../../engine-homes/engine-homes.ts";
 
 export function skipSubscriptionAuthForLocalInject(model: string | undefined): boolean {
@@ -141,6 +144,8 @@ export interface AcpSupport {
   /** The free models to try in turn when `model` is one of them, in order; null when `model` is no free backup model.
    * A free model that sends nothing within firstReplyMs() is given up on and the turn runs again on the next one. */
   freeModelOrder?(model: string, env: Record<string, string | undefined>, models: ModelCatalog): string[] | null;
+  /** Whether this instance should probe its free models at start-up, so a first message starts on one that answers. */
+  freeProbe?(env: Record<string, string | undefined>, models: ModelCatalog): boolean;
   /** Env var the runtime reads its new-session default model from, set at spawn so session/new runs
    * it. The runtime takes any id unchecked, so it is set only for a model this account offered. Not
    * part of the spawn contract. */
@@ -537,8 +542,8 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
         let state: QuietState | null = null;
         const promptStartedAt = Date.now();
         let readAt = promptStartedAt;
-        // a limit this prompt's model request failed on, kept even when a later line clears `logged`
-        let limitSeen: LogSignal | null = null;
+        // the last provider error this prompt's model request failed on, kept even when a later line clears `logged`
+        let errorSeen: Extract<LogSignal, { kind: "provider-error" }> | null = null;
         const readLog = (now: number) => {
           for (const line of tail?.read() ?? []) {
             if (!support.statusLog!.shared) session.acp.touch();
@@ -546,7 +551,7 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
             if (signal?.kind === "context") context = { tokens: signal.tokens, threshold: signal.threshold };
             // A shared row was written some time after the last read; date it then, so a reply since clears it.
             else if (signal) logged = { signal, at: support.statusLog!.shared ? readAt : now };
-            if (signal && waitingOutLimit(signal)) limitSeen = signal;
+            if (signal?.kind === "provider-error") errorSeen = signal;
           }
           readAt = now;
         };
@@ -596,7 +601,10 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
         const timer = setInterval(() => { void tick(); }, tickMs);
         timer.unref?.();
         current.stopQuietWatch = () => clearInterval(timer);
-        return { lastState: () => state, limitLogged: () => { readLog(Date.now()); return limitSeen; } };
+        return {
+          lastState: () => state,
+          errorLogged: () => { readLog(Date.now()); return errorSeen; },
+        };
       };
 
       const settle = (threadId: string, session: AcpSession, ok: boolean, stopReason: string | null) => {
@@ -1020,9 +1028,9 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
         return session;
       };
 
-      // `freeTried`: the free models this turn already gave up on for sending nothing; `freeBy`: when the turn's free
-      // models together run out of time
-      const sendTurn = async (turn: SendTurnInput, retryOf?: string, freeTried: readonly string[] = [], freeBy?: number) => {
+      // `freeTried`: the free models this turn already gave up on; `freeBy`: when the turn's free models together run out
+      // of time; `freeRungs`: the ladder the turn steps through
+      const sendTurn = async (turn: SendTurnInput, retryOf?: string, freeTried: readonly string[] = [], freeBy?: number, freeRungs?: readonly FreeRung[]) => {
         requireRunning();
         if (startupModelRefresh) await startupModelRefresh;
         requireRunning();
@@ -1044,6 +1052,18 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
         const turnId = retryOf ?? newId();
         const cwd = turn.cwd ?? turnConfig.workspace ?? homedir();
         const env = childEnv(turnConfig);
+        if (!freeRungs && retryOf === undefined) {
+          const asked = turn.model || catalog.models.default;
+          const order = asked ? support.freeModelOrder?.(asked, env, catalog.models) ?? null : null;
+          if (asked && order) {
+            freeRungs = freeLadder({ model: asked, ...(turn.variant ? { variant: turn.variant } : {}) }, order, catalog.models);
+            const start = freeRungs[0]!;
+            if (start.model !== asked) {
+              trail("free_model.skip", { from: asked, to: start.model, variant: start.variant ?? null, why: "cooling" });
+              turn = { ...turn, model: start.model, variant: start.variant };
+            }
+          }
+        }
         if (
           support.requireAuthenticationBeforeSpawn
           && !skipSubscriptionAuthForLocalInject(turn.model)
@@ -1219,8 +1239,19 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
 
         const freeModel = turn.model || catalog.models.default;
         const freeOrder = freeModel ? support.freeModelOrder?.(freeModel, env, catalog.models) ?? null : null;
+        const ladder = freeOrder
+          ? freeRungs ?? freeLadder({ model: freeModel, ...(turn.variant ? { variant: turn.variant } : {}) }, freeOrder, catalog.models)
+          : null;
         // counted from the turn's start, engine start included: what the person waits for is the whole turn
         const freeDeadline = freeBy ?? Date.now() + freeTurnMs();
+        const freeStartedAt = freeDeadline - freeTurnMs();
+        let freeAnsweredOnce = false;
+        const freeAnswered = () => {
+          if (!ladder || freeAnsweredOnce) return;
+          freeAnsweredOnce = true;
+          warmFreeRung({ model: freeModel, ...(variant ? { variant } : {}) });
+          trail("free_model.answered", { model: freeModel, variant: variant ?? null, rung: freeTried.length + 1, ms: Date.now() - freeStartedAt });
+        };
         (async () => {
           let pendingSplitReceipt: { key: string; receipt: PromptSplitReceipt; previous: PromptSplitReceipt | null } | null = null;
           try {
@@ -1413,6 +1444,10 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
                 // initialize's currentModelId is the CLI default, not this turn's model.
                 if (!selectedModel && cliTurn.model) selectedModel = cliTurn.model;
               }
+              // a free rung's lighter setting is a preference: a model that does not offer it runs at its own
+              if (variant !== undefined && ladder && !acpVariantOption(session.sessionConfigResult)?.options.some((entry) => entry.id === variant)) {
+                variant = undefined;
+              }
               if (variant !== undefined) {
                 const option = requestedVariantOption();
                 await request(
@@ -1471,15 +1506,20 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
             const promptAt = Date.now();
             // one model never waits past the turn's free deadline, so a turn no free model answers ends inside it
             const replyMs = Math.max(0, Math.min(firstReplyMs(), freeDeadline - promptAt));
-            // a free model that hangs before its first word is cut short here, long before the silence guard; a free usage limit
-            // in OpenCode's log ends it sooner, and since that limit covers every free model at once, no other one is tried
-            const firstReply = freeOrder ? setInterval(() => {
-              if (state.settled || state.stopped || session.current !== current || state.startupActivity || state.producedItem
-                  || state.text || current.runningTools.size || asks.size) return;
-              const limited = quiet.limitLogged() !== null;
-              if (!limited && Date.now() - promptAt < replyMs) return;
-              session.acp.failAll(Object.assign(new Error(`${support.displayName}'s free model ${freeModel} sent nothing${limited ? " (free usage limit)" : ` for ${formatQuietLimit(replyMs)}`}`),
-                { acpFirstReplyStall: true, ...(limited ? { acpFreeLimit: true } : {}) }));
+            // a free model that hangs before its first word, or whose request fails in OpenCode's log (busy, rate limited,
+            // unavailable), is cut short here, long before the silence guard; OpenCode keeps retrying such a request on its own
+            const firstReply = ladder ? setInterval(() => {
+              if (state.settled || state.stopped || session.current !== current) return;
+              if (state.startupActivity || state.producedItem || state.text || current.runningTools.size || asks.size) {
+                freeAnswered();
+                return;
+              }
+              const logged = quiet.errorLogged();
+              if (!logged && Date.now() - promptAt < replyMs) return;
+              const limited = logged !== null && FREE_POOL_LIMIT.test(logged.message);
+              const reason = logged ? freeFailure(logged.message) : "timeout";
+              session.acp.failAll(Object.assign(new Error(`${support.displayName}'s free model ${freeModel} ${logged ? `failed: ${logged.message}` : `sent nothing for ${formatQuietLimit(replyMs)}`}`),
+                { acpFirstReplyStall: true, acpFreeFailure: reason, ...(limited ? { acpFreeLimit: true } : {}) }));
             }, Math.max(100, Math.min(replyMs, FIRST_REPLY_CHECK_MS))) : null;
             firstReply?.unref?.();
             const result = await request(
@@ -1542,6 +1582,13 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
             if (reason === "end_turn" && freeOrder && !state.text.trim() && !state.repliedText && !state.producedItem && !state.stopped) {
               throw Object.assign(new Error(`${support.displayName}'s free model ${freeModel} ended its turn with no reply`), { acpFirstReplyStall: true, acpEmptyReply: true });
             }
+            if (reason === "end_turn") freeAnswered();
+            const freeUntouched = ladder && !state.text.trim() && !state.repliedText && !state.producedItem && !state.stopped
+              && !current.runningTools.size && !asks.size;
+            if (freeUntouched && reason !== "end_turn" && reason !== "cancelled") {
+              const said = typeof result?.error === "string" ? result.error : typeof result?.message === "string" ? result.message : String(reason ?? "");
+              throw Object.assign(new Error(`${support.displayName}'s free model ${freeModel} stopped: ${said}`), { acpFirstReplyStall: true, acpFreeFailure: freeFailure(said) });
+            }
             if (reason === "end_turn") settle(threadId, session, true, null);
             else if (reason === "cancelled" || state.stopped) settle(threadId, session, true, "cancelled");
             else {
@@ -1561,23 +1608,33 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
             if (pendingSplitReceipt && state.promptSent && state.usageCompacted) {
               deletePromptSplitReceipt(DRIVER_KIND, pendingSplitReceipt.key);
             }
-            if (!state.settled && !state.cancelling && (e as any)?.acpFirstReplyStall === true && freeOrder && !state.stopped) {
+            const freeError = e instanceof Error ? e.message : String(e);
+            // a free model's request refused outright (busy, rate limited, unavailable) before anything reached the person
+            const freeRefused = ladder && state.promptSent && !state.text && !state.producedItem && !current.runningTools.size && !asks.size
+              && ["pool_limit", "rate_limited", "busy", "timeout"].includes(freeFailure(freeError));
+            if (!state.settled && !state.cancelling && ((e as any)?.acpFirstReplyStall === true || freeRefused) && ladder && !state.stopped) {
               // nothing reached the person and no tool ran, so the same message goes to the next free model in this turn
               state.settled = true; session.current = null; active.delete(threadId); current.stopQuietWatch?.();
               if (current.interruptTimer) clearTimeout(current.interruptTimer);
               if (session.sessionId) session.acp.send({ jsonrpc: "2.0", method: "session/cancel", params: { sessionId: session.sessionId } });
               closeSession(threadId, "prompt-stall");
               const tried = [...freeTried, freeModel];
-              const limited = (e as any)?.acpFreeLimit === true;
+              const failure: FreeFailure = (e as any)?.acpFreeFailure ?? freeFailure(freeError, { empty: (e as any)?.acpEmptyReply === true });
+              const limited = (e as any)?.acpFreeLimit === true || failure === "pool_limit";
+              coolFreeRung(freeModel, failure);
               const next = !limited && tried.length < FREE_MODEL_ATTEMPTS && Date.now() < freeDeadline
-                ? freeOrder.find((model) => !tried.includes(model)) : undefined;
+                ? ladder.find((rung) => !tried.includes(rung.model)) : undefined;
               const language = conversationLanguage(threadId);
+              trail(next ? "free_model.switch" : "free_model.exhausted", {
+                from: freeModel, ...(next ? { to: next.model, variant: next.variant ?? null } : { tried }),
+                reason: failure, rung: tried.length, ms: Date.now() - freeStartedAt,
+              });
               if (next) {
                 emit({ ...base(threadId, turnId), type: "runtime.notice", message: (e as any)?.acpEmptyReply === true
                   ? serverLine(language, "server.freeModel.emptyNext")
                   : serverLine(language, "server.freeModel.tryingNext", { seconds: Math.round(firstReplyMs() / 1000) }) });
                 try {
-                  await sendTurn({ ...turn, model: next, startupRecovery: undefined, sessionReset: undefined }, turnId, tried, freeDeadline);
+                  await sendTurn({ ...turn, model: next.model, variant: next.variant, startupRecovery: undefined, sessionReset: undefined }, turnId, tried, freeDeadline, ladder);
                   return;
                 } catch (error) {
                   console.warn(`${support.displayName}: the next free model did not start on ${threadId}: ${error instanceof Error ? error.message : String(error)}`);
@@ -1677,7 +1734,9 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
 
     /** Memory upkeep's one-shot: a fresh process and session, no MCP servers, an empty folder, and
      * every tool, file or permission request refused. */
-      const generateMemoryText = async (prompt: string, options: TextGenerationOptions = {}): Promise<string> => {
+      const generateMemoryText = (prompt: string, options: TextGenerationOptions = {}): Promise<string> => oneShotText(prompt, options);
+      // `rung`: run on this model and lighter setting rather than the session's default (the free probe)
+      const oneShotText = async (prompt: string, options: TextGenerationOptions, rung?: FreeRung): Promise<string> => {
         if (startupModelRefresh) await startupModelRefresh;
         const turnConfig: AcpConfig = { ...config, fullAuto: false };
         const env = childEnv(turnConfig);
@@ -1704,7 +1763,15 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
             authRequired: support.authFailure === "fail-request" ? "if-requested" : support.authFailure === "fail",
             loginNote: support.loginNote,
             clientCapabilitiesMeta: support.clientCapabilitiesMeta,
-            ...(support.configureSession ? {
+            ...(rung && support.selectModel ? {
+              configure: async ({ request, sessionId }) => {
+                const picked = await request("session/set_config_option", { sessionId, configId: support.selectModel!.configId, value: rung.model });
+                const effort = acpVariantOption(picked);
+                if (rung.variant && effort?.options.some((entry) => entry.id === rung.variant)) {
+                  await request("session/set_config_option", { sessionId, configId: effort.configId, value: rung.variant });
+                }
+              },
+            } : support.configureSession ? {
               configure: ({ request, sessionId, session }) => support.configureSession!({
                 request,
                 sessionId,
@@ -1724,6 +1791,21 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
           try { rmSync(cwd, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); } catch {}
         }
       };
+
+      if (support.freeProbe && support.freeModelOrder) {
+        void (async () => {
+          if (startupModelRefresh) await startupModelRefresh;
+          const env = childEnv();
+          const asked = catalog.models.default;
+          const order = asked ? support.freeModelOrder!(asked, env, catalog.models) : null;
+          if (disposing || !order || warmFreeModel() || !support.freeProbe!(env, catalog.models)) return;
+          await probeFreeLadder(
+            freeLadder({ model: asked }, order, catalog.models),
+            (rung) => oneShotText(FREE_PROBE_PROMPT, { timeoutMs: FREE_PROBE_MS }, rung),
+            ({ rung, ok, ms, reason }) => trail("free_model.probe", { model: rung.model, variant: rung.variant ?? null, ok, ms, ...(reason ? { reason } : {}) }),
+          );
+        })().catch(() => undefined);
+      }
 
       return {
         instanceId,
