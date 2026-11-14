@@ -10,7 +10,9 @@ Later on 2026-11-14 three more files grew past their numbers under active work a
 `electron/cloud-account.mjs` to 1,190 (1,173 then; the account context redirect contract, 45946fefb, by the account
 intents work), `electron/vps-link.mjs` to 1,350 (1,335 then; own-server first run, eb67d076d) and
 `server/drivers/acp/core.ts` to 1,800 (1,779 then; free model fallback, 957120276). Their existing plans below still
-apply; acp/core.ts has a new row. `server/store.ts` went back under its number with a pure move instead
+apply; acp/core.ts has a new row. By evening the three had grown again (cloud-account.mjs 1,214, vps-link.mjs 1,351,
+acp/core.ts 1,805) and were raised to 1,230, 1,365 and 1,820; `src/components/Composer.tsx` (1,156) and
+`server/memory-upkeep.ts` (1,107) joined at 1,170 and 1,120. Every one had edits from the last hour. `server/store.ts` went back under its number with a pure move instead
 (`isProjectEmoji` to `server/project-emoji.ts`).
 
 The same change stopped counting `*.node-test.mjs` files. They are tests (Node's own runner), and the ratchet already
@@ -47,3 +49,5 @@ Follow `server/host/README.md`, which already governs `server/index.ts` and work
 | `src/lib/ready-bots.ts` | 1,024 | Almost all of it is the ready-bot catalogue data: move the data to `src/lib/ready-bots-catalog.ts` (or one file per category) and keep `readyBot`, `readyBotTemplate` and `matchesReadyBot` here. |
 | `shared/wire.ts` | 1,012 | Move the card data interfaces (`OptionCardData`, `SecretRequestCardData`, `SignInRequestCardData`, `QuotaSwitchCardData` and friends) to `shared/wire-cards.ts` and re-export them from `shared/wire.ts`. |
 | `server/drivers/acp/core.ts` | 1,779 | Joined the exception on 2026-11-14 when 957120276 (free model fallback) took it past 1,740 during active work. The free-model handoff lives inside `sendTurn`: lift the first-reply stall timer and the try-the-next-free-model branch of its catch into `server/drivers/acp/free-fallback.ts` as functions taking the turn's state, session and emit explicitly. |
+| `src/components/Composer.tsx` | 1,156 | Joined the exception on the evening of 2026-11-14 (limit 1,038) after voice input (92025211a) and the import-notes and stop-button changes, all under active edit. Move the voice-input wiring (the talk-to-type hooks and its button) into `src/components/composer/VoiceInput.tsx`. |
+| `server/memory-upkeep.ts` | 1,107 | Arrived over 1,000 lines with the general memory (a7eb42f23). Move the pending-capture store (`pendingPath` through `dropPending`) and the state file (`statePath`, `loadState`, `saveState`) into `server/memory-upkeep-store.ts`; `createMemoryUpkeep` stays here. |
