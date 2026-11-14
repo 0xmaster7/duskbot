@@ -10,11 +10,12 @@
 // cloud the way the phone does (waking it if asleep), and signs both sessions out at the end. The cloud comes from the
 // review grant (POST /v1/billing/ops/review), which never goes through the payment provider, so it works with billing off,
 // in test mode and live, and nothing is ever charged.
-// --measure-wake waits for the cloud's idle sleep (up to 75 minutes) and times a phone send that wakes it.
+// --measure-wake[=N] waits for the cloud's idle sleep (up to 75 minutes) and times the phone's wake, N times.
 import { readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
+import { wireDemoAi } from "./review-ai.mjs";
 
 const TARGETS = { preview: "https://preview.dusk.bot", production: "https://dusk.bot" };
 const CLOUD_NAME = "Demo Cloud";
@@ -28,7 +29,7 @@ const PROMPT = "Hi Sunny! In one short sentence, what can you help me with?";
 
 const [target, ...flags] = process.argv.slice(2);
 const origin = TARGETS[target];
-if (!origin) { console.error("usage: review-account.mjs preview|production [--no-reply] [--measure-wake]"); process.exit(2); }
+if (!origin) { console.error("usage: review-account.mjs preview|production [--no-reply] [--measure-wake[=N]]"); process.exit(2); }
 const log = (line) => console.log(`[review ${target}] ${line}`);
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 
@@ -41,7 +42,7 @@ function secrets() {
     if (m) values.set(m[1], m[2].replace(/^(["'])(.*)\1$/, "$2"));
   }
   const need = (name) => { const v = values.get(name); if (!v) throw new Error(`${name} is not set in ${file}`); return v; };
-  return { email: need("DUSK_REVIEW_EMAIL").trim().toLowerCase(), code: need("DUSK_REVIEW_CODE").trim(), ops: values.get(`DUSK_OPS_TOKEN_${target.toUpperCase()}`) || null };
+  return { email: need("DUSK_REVIEW_EMAIL").trim().toLowerCase(), code: need("DUSK_REVIEW_CODE").trim(), aiKey: values.get("DUSK_REVIEW_AI_OPENROUTER_KEY") || null, ops: values.get(`DUSK_OPS_TOKEN_${target.toUpperCase()}`) || null };
 }
 
 async function call(base, path, { method = "GET", body, token, timeoutMs = 30_000, headers = {} } = {}) {
@@ -54,7 +55,7 @@ async function call(base, path, { method = "GET", body, token, timeoutMs = 30_00
 }
 const must = (answer, what) => { if (!answer.ok) throw new Error(`${what} answered ${answer.status} (${answer.data?.code ?? answer.data?.error ?? "no detail"})`); return answer.data; };
 
-const { email, code, ops } = secrets();
+const { email, code, aiKey, ops } = secrets();
 const device = { deviceName: "dusk review setup", platform: "ios", appVersion: "1.0.0" };
 let appToken = null, home = null;
 
@@ -99,7 +100,7 @@ async function pair(cloud) {
   if (answer.status === 409 && (answer.data?.error ?? answer.data?.code) === "not_running") {
     const since = Date.now();
     must(await call(origin, "/api/cloud/desktop/wake", { method: "POST", token: appToken, body: { intent: "click" } }), "the wake");
-    for (let tries = 0; tries < 60 && answer.status === 409; tries++) { await sleep(2_000); answer = await call(origin, "/api/cloud/desktop/pairing", { method: "POST", token: appToken, body: { cloudId: cloud.id } }); }
+    for (let tries = 0; tries < 90 && answer.status === 409; tries++) { await sleep(2_000); answer = await call(origin, "/api/cloud/desktop/pairing", { method: "POST", token: appToken, body: { cloudId: cloud.id } }); }
     wokeIn = Math.round((Date.now() - since) / 1000);
     log(`the cloud was asleep; the phone's pairing wake took ${wokeIn}s`);
   }
@@ -166,9 +167,11 @@ async function measureWake(botId) {
     await sleep(60_000);
   }
   log(`asleep after ${Math.round((Date.now() - since) / 60_000)} minutes idle`);
+  const started = Date.now();
   const woke = await pair(ownCloud(await session()));
+  const paired = Math.round((Date.now() - started) / 1000);
   const timed = await reply(botId).catch((error) => ({ accepted: error.accepted ?? null, total: null, error: error.message }));
-  log(`after sleep: pairing wake ${woke ?? 0}s, then send accepted in ${timed.accepted ?? "?"}s, ${timed.total === null ? `no reply (${timed.error})` : `reply in ${timed.total}s`}`);
+  log(`after sleep: the app could pair after ${woke ?? 0}s, paired with the home after ${paired}s, then send accepted in ${timed.accepted ?? "?"}s, ${timed.total === null ? `no reply (${timed.error})` : `reply in ${timed.total}s`}`);
 }
 
 async function cleanup() {
@@ -186,11 +189,14 @@ try {
   if (!cloud.entitlement) log("warning: the session carries no entitlement for the cloud");
   await pair(cloud);
   const botId = await demoBot();
+  const ai = await wireDemoAi((path, init = {}) => call(home.origin, path, { ...init, token: home.token }), { botId, key: aiKey });
+  log(ai.wired ? `the demo bot answers through ${ai.model} on OpenRouter${ai.added ? " (engine added)" : ""}${ai.pointed ? " (bot switched to it)" : ""}` : `warning: ${ai.reason}`);
   if (!flags.includes("--no-reply")) {
     const answered = await reply(botId);
     log(`the demo bot replied in ${answered.total}s: "${answered.text.slice(0, 160).replace(/\s+/g, " ")}"`);
   }
-  if (flags.includes("--measure-wake")) await measureWake(botId);
+  const cycles = Number(flags.find((flag) => flag.startsWith("--measure-wake="))?.split("=")[1] ?? (flags.includes("--measure-wake") ? 1 : 0));
+  for (let cycle = 1; cycle <= cycles; cycle++) { log(`wake cycle ${cycle} of ${cycles}`); await measureWake(botId); }
   log("done");
 } catch (error) {
   console.error(`[review ${target}] FAILED: ${error instanceof Error ? error.message : error}`);
