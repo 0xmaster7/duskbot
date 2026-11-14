@@ -116,10 +116,10 @@ describe("one name per thing", () => {
     const e = en as Record<string, string>;
     const source = (file: string) => readFileSync(join(ROOT, file), "utf8");
     const myCloud = /CLOUD_HOME_NAME = "([^"]+)"/.exec(source("electron/cloud-home.mjs"))?.[1];
-    // the places popup says this mac on macOS, by the coordinator's call; elsewhere it matches the app's copy
-    const thisComputer = /platform === "darwin" \? "this mac" : "([^"]+)"/.exec(source("electron/environments.cjs"))?.[1];
+    // the places popup says This Mac on macOS, by the coordinator's call; elsewhere it matches the app's copy
+    const thisComputer = /platform === "darwin" \? "This Mac" : "([^"]+)"/.exec(source("electron/environments.cjs"))?.[1];
     const serverMenuLocal = /\{ label: "([^"]+)", type: "radio", checked: !active/.exec(source("electron/menu.mjs"))?.[1];
-    // native menus and saved names keep their own capitals; the app's copy is lowercase
+    // compared without case: native menus and saved names keep their own capitals
     const lower = (text: string | undefined) => text?.toLowerCase();
     expect([myCloud, thisComputer, serverMenuLocal].map(lower)).toEqual([e["cloudSetup.myCloud"], e["place.local"], e["place.local"]].map(lower));
     const pointers: Array<[string, string[]]> = [

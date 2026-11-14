@@ -74,95 +74,27 @@ export function brandCaseEntry(key: string, value: string): string {
   return EXEMPT_KEYS.some((pattern) => pattern.test(key)) ? value : brandCase(value);
 }
 
-/** last key segments that are labels, whatever their value looks like: headings, buttons, tabs, field names, prompts */
-const LABEL_LEAF = /^(title|heading|label|placeholder|aria\w*|tab|chip|menu|button|name|short|cta|tooltip|\w+(Title|Heading|Label|Placeholder|Name))$/i;
+/** the pieces the app fills into the middle of another line ("on a live call from {device}", "your {list}", "turn {name} {state}");
+ * they stay lowercase so the line around them reads as one sentence. Everything else starts with a capital. */
+const FRAGMENT_KEYS = new RegExp(`^(${[
+  "chat\\.event\\.and", "approval\\.voice\\.action\\w+", "helperIntro\\.followup\\.(botsNone|botOne|bots|routinesNone|routineOne|routines|more)",
+  "call\\.live\\.device\\.\\w+", "vm\\.confirm\\.orphanVps", "vm\\.idle\\.minutes", "mcp\\.state\\.(on|off)", "sidebar\\.preview\\.aBot",
+  "vpsLink\\.yourServer", "remote\\.client\\.fallbackName", "remote\\.time\\.justNow", "app\\.sentFrom", "botAccess\\.(theAdmins|folder\\.home)",
+  "browser\\.panel\\.tab", "cloudBuy\\.team\\.unnamed", "bring\\.(kind\\w+|instructions)", "cloudTrial\\.yourPlan",
+  "room\\.(hint|responder)\\.leadFallback", "call\\.questionOptions", "inbox\\.recommendedInline", "activity\\.(approvalIn|to)", "files\\.countMore", "voice\\.provider",
+  "botMove\\.memory", "teamShare\\.skip\\.\\w+", "inbox\\.(in|via)", "model\\.variant\\.(unverified|unavailable)", "vpsLink\\.device\\.\\w+",
+  "automations\\.(time|source|skip)\\.\\w+", "automations\\.app\\.(from|about|labeled|mentioning|in)", "cloudSetup\\.ready\\.(today|tomorrow)",
+  "connectApps\\.account\\.fallback", "automations\\.does\\.default",
+  "server\\.(runs\\.state|incidents\\.where|reports\\.(when|why))\\.\\w+",
+  "server\\.(connect\\.thisApp|rooms\\.sameName\\.chief|teammates\\.(room|handedWork)|mcp\\.card\\.(newKey|newClientSecret))",
+].join("|")})$`);
 
-/** button, subject-line and step-name keys, wherever they sit */
-const LABEL_PATH = /(^|\.)(dismiss|copy|subject|step)(\.|$)/;
-
-/** keys that hold a message even when it has no closing full stop ("Resets in 5 days", "No messages yet") */
-const MESSAGE_KEY = /(^|\.)(error|failed|banner|notices?|toasts?|resets?|resetsIn|empty|emptyHint|emptyBody|body|loadError|loadFailed|saveError|deleteError|openFailed)(\.|$)|(Error|Failed|Notice|Banner|Toast|Resets?)$/;
-
-/** prompts the user sends as themselves; these read as typed, not as app messages */
-const PROMPT_KEYS: readonly RegExp[] = [/^onboarding\.start\.job\./];
-
-const wordCount = (value: string) => value.replace(/\{[^}]*\}/g, "x").trim().split(/\s+/).length;
-
-/** the chat window: its cards (sign-in, widgets, tables, attachments, connector cards) and the computer viewer they open, banners and notices (the corner cards over it, cloudIntro, twoPlaces, cloudNotice and routines.late, included), the helper's first-run greeting and its chips, composer, message actions, turn status lines, approval cards, thread errors. Everything here, buttons and fragments included, reads in sentence case. Sidebar and settings labels are not listed, so they stay lowercase; the bot panel has its own list below. */
-const CHAT_KEYS = /^(chat|composer|approval|question|failedReply|toolStep|toolDetail|nativeUsage|notices?|contextWarning|secretCard|thread|conversation|ask|limits|error|needsYou|goalRun|trace|server\.status|cloudIntro|twoPlaces|cloudNotice|routines\.late|helperIntro|signIn|widget|table|desktopViewer|attach|connectors\.card)\./;
-
-/** spoken-only or machine-read text keeps its case in the chat window too */
-const CHAT_QUIET = /(^|\.)(aria\w*)(\.|$)/i;
-
-/** words that sit between other chat pieces, never at the start of one */
-const CHAT_FRAGMENTS = /^(chat\.event\.and|approval\.voice\.action\w+|helperIntro\.followup\.(botsNone|botOne|bots|routinesNone|routineOne|routines|more))$/;
-
-/** the bot side panel (and a group chat's panel) owns these keys: every label, heading, button and row starts with a capital, as
- * messages do, and so do the cloud move sheets it opens (cloudMove, vpsMove) and its cloud desktop row (place.cloudDesktop). Words it shares
- * with the left sidebar, settings or a chat line get a copy of their own under botPanel.ui, and the move progress lines under botPanel.move.
- * The place hub's own words (runsOn.status, runsOn.hint) stay lowercase. */
-const PANEL_KEYS = /^(botPanel|models|room\.(panel|jev|folder)|runsOn|cloudMove|vpsMove|place\.cloudDesktop)\./;
-const PANEL_LOWER = /^runsOn\.(status|hint)\./;
-
-/** the bots' own lines (server.*) are chat-window lines and read in sentence case, short status rows included; these are the
- * pieces the server fills into the middle of another line, so they stay lowercase */
-const SERVER_FRAGMENTS = /^server\.(runs\.state|incidents\.where|reports\.(when|why))\.|^server\.(connect\.thisApp|rooms\.sameName\.chief|teammates\.(room|handedWork)|mcp\.card\.(newKey|newClientSecret))$/;
-
-/** single labels outside the panel that read in sentence case too */
-const SENTENCE_LABELS: ReadonlySet<string> = new Set(["sidebar.connectApps",
-  // the first run's dusk cloud checkout and price tag, written in the app's coming sentence case
-  "funnel.place.cloudPriceTag", "funnel.checkout.title", "funnel.checkout.opening", "funnel.checkout.waitSignIn", "funnel.checkout.waitCheckout",
-  "funnel.checkout.again", "funnel.checkout.mac"]);
-
-export function isPanelEntry(key: string): boolean {
-  if (SENTENCE_LABELS.has(key)) return true;
-  return PANEL_KEYS.test(key) && !PANEL_LOWER.test(key) && !CHAT_QUIET.test(key) && !EXEMPT_KEYS.some((pattern) => pattern.test(key)) && !PROMPT_KEYS.some((pattern) => pattern.test(key));
+export function isFragment(key: string): boolean {
+  return FRAGMENT_KEYS.test(key);
 }
 
-/** the call button's words: the button and its menu sit in the chat box, so they read in sentence case. call.live.badge
- * is shared with the sidebar and stays lowercase */
-const CHAT_LABELS: ReadonlySet<string> = new Set([
-  "call.callWith", "call.live.callWith", "call.hangUpOn", "call.live.pill", "call.checking", "call.unavailable",
-  "call.setupVoice", "call.pickVoice", "call.mode.menu",
-]);
-
-/** words of the computer view, the cards and the place chip that sit in the chat window or the bot panel, kept under
- * namespaces they share with settings; their settings-only siblings stay lowercase */
-const CHAT_CARD_LABELS: ReadonlySet<string> = new Set([
-  "computer.browserOff.title", "computer.browserSwitch.title", "computer.capturingLocal", "computer.capturingVm", "computer.close",
-  "computer.createVm", "computer.done", "computer.err.vmNotReady", "computer.fullScreen", "computer.handBack", "computer.inControl",
-  "computer.open", "computer.openBrowserTab", "computer.openLiveDesktop", "computer.openSettings", "computer.openVmSetup",
-  "computer.phase.checking", "computer.phase.starting", "computer.phase.vmUnavailable", "computer.phase.vpsIncompatible",
-  "computer.phase.vpsStopped", "computer.preview.connecting", "computer.preview.connectingScreen", "computer.preview.retry",
-  "computer.replaceVm", "computer.simple.addCloud", "computer.sleepTitle", "computer.stopControl", "computer.takeControl",
-  "computer.takeControlHint", "computer.takeControlTitle", "computer.waitingFrame", "computer.wakingUp", "computer.watchOnly",
-  "computer.watching", "computer.unavailableLocal", "place.busy", "place.unpinSimple", "vm.cloud.sleep",
-  "connectApps.manageApp", "connectors.openAuthorizationPage", "onboarding.card.custom", "onboarding.card.dismiss",
-]);
-
-export function isChatEntry(key: string): boolean {
-  if (CHAT_LABELS.has(key) || CHAT_CARD_LABELS.has(key)) return true;
-  return CHAT_KEYS.test(key) && !CHAT_FRAGMENTS.test(key) && !CHAT_QUIET.test(key) && !EXEMPT_KEYS.some((pattern) => pattern.test(key)) && !PROMPT_KEYS.some((pattern) => pattern.test(key));
-}
-
-/**
- * Whether a string is a full-sentence message (notice, banner, status or reset line, error, toast, empty state,
- * dialog body, sentence hint, the bots' own system lines) rather than a UI label.
- * Labels (buttons, nav, row titles, headings, menu items, tabs, chips) stay lowercase.
- */
-export function isSentenceEntry(key: string, value: string): boolean {
-  if (EXEMPT_KEYS.some((pattern) => pattern.test(key)) || PROMPT_KEYS.some((pattern) => pattern.test(key))) return false;
-  if (isChatEntry(key) || isPanelEntry(key)) return true;
-  if (key.startsWith("server.")) return !SERVER_FRAGMENTS.test(key);
-  const leaf = key.split(".").pop() ?? key;
-  if (LABEL_LEAF.test(leaf) || LABEL_PATH.test(key)) return false;
-  const words = wordCount(value);
-  if (MESSAGE_KEY.test(key) && words >= 3) return true;
-  if (/^[^.!?]+\?$/.test(value.trim()) && words <= 6) return false; // a short question is a heading ("send on your behalf?")
-  // one long clause that leads into a list is a sentence ("What you send your bots ... goes to:")
-  if (words >= 10 && /^[^.!?]+:$/.test(value.trim())) return true;
-  return words >= 3 && /[.!?]["”’)]*$/.test(value.trim());
-}
+/** lowercase words a string may start with: other companies' own lowercase names and commands typed as written */
+export const LOWERCASE_STARTS: readonly string[] = ["dusk bot", "dusk cloud", "npm", "pnpm", "npx", "noVNC", "iPhone", "iPad", "iOS", "macOS", "x.com", "e.g."];
 
 const ABBREVIATION_BEFORE = /\b(?:e\.g|i\.e|etc|vs|approx)\.\s*$/i;
 
@@ -185,7 +117,7 @@ export function sentenceCase(text: string): string {
     const at = start + lead;
     if (protectedAt(at)) continue;
     const word = text.slice(at).match(/^[a-z][a-z'’]*(?![A-Za-z0-9_@/]|:\S)/)?.[0];
-    if (!word || word === "dusk") continue;
+    if (!word || word === "dusk" || LOWERCASE_STARTS.some((start) => text.startsWith(start, at))) continue;
     chars[at] = chars[at].toUpperCase();
   }
   const out = chars.join("");
@@ -199,16 +131,28 @@ export function sentenceCase(text: string): string {
   return result + pronoun(out.slice(last));
 }
 
-/** the policy for one English entry: lowercase labels, sentence-case messages */
 /** a chat button named inside a sentence ("tap Take over and tick the box") keeps the capital it has on the button */
-export const QUOTED_BUTTONS: readonly string[] = ["Take over", "Take control", "Hand control back", "I'm done", "Skip", "Open", "Try again"];
+export const QUOTED_BUTTONS: readonly string[] = ["Take over", "Take control", "Hand control back", "I'm done", "Skip", "Open", "Try again", "Manage subscription"];
 const QUOTED_BUTTON = new RegExp(`(?<![\\w'’])(?:${[...QUOTED_BUTTONS].sort((a, b) => b.length - a.length).map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})(?![\\w'’])`, "g");
 
+/** the policy for one English entry: sentence case everywhere (labels, buttons, titles, messages), other companies' names keep
+ * their own case, "dusk bot" and "dusk cloud" stay lowercase, and the fragments filled into another line stay lowercase */
 export function entryCase(key: string, value: string): string {
-  if (!isSentenceEntry(key, value)) return brandCaseEntry(key, value);
+  if (EXEMPT_KEYS.some((pattern) => pattern.test(key))) return value;
+  if (isFragment(key)) return brandCase(value);
   // the names are held as placeholders while the rest is cased, so they come back exactly as written
   const names: string[] = [];
   const held = value.replace(QUOTED_BUTTON, (name) => `{\u0000${names.push(name) - 1}}`);
   // oxlint-disable-next-line no-control-regex -- the NUL marks a held button name no catalog string can contain
-  return sentenceCase(brandCaseEntry(key, held)).replace(/\{\u0000(\d+)\}/g, (_, index: string) => names[Number(index)]!);
+  return sentenceCase(brandCase(held)).replace(/\{\u0000(\d+)\}/g, (_, index: string) => names[Number(index)]!);
+}
+
+/** whether a string a person reads starts the way the rule asks: a capital, or a placeholder, a number, punctuation, a known
+ * lowercase name or anything that isn't Latin text */
+export function startsRight(value: string): boolean {
+  const text = value.trimStart();
+  if (LOWERCASE_STARTS.some((start) => text.startsWith(start))) return true;
+  // a first word with a capital, a digit or code inside it is a name or typed text ("xAI", "s2.1-pro", "you@example.com")
+  if (/^[“"'([]*[a-z][^\s]*[A-Z0-9@/.]/.test(text)) return true;
+  return !/^[“"'([]*[a-z]/.test(text);
 }
