@@ -18,7 +18,7 @@ vi.mock("@/state/store", () => ({
 
 import type { GrokBot } from "../../shared/grok-import";
 import { GROK_EXPORT_FORMAT } from "../../shared/grok-import";
-import { outcome, planBotMove, runBotMove, type BotMoveLook } from "./bot-move";
+import { planBotMove, runBotMove, type BotMoveLook } from "./bot-move";
 
 const bot = (name: string, over: Partial<GrokBot> = {}): GrokBot => ({
   name, title: "", description: "", instructions: `You are ${name}.`, memories: ["a fact"], userFacts: [],
@@ -93,13 +93,8 @@ describe("moving", () => {
       "/api/sidebar-sections", "/api/sidebar-sections?section=Molty", "/api/sidebar-sections", "/api/sidebar-sections?section=Hermes",
     ]);
     expect(steps).toEqual([[0, "Molty"], [1, "Scout"], [2, "Hermes"]]);
-    const result = outcome(reports);
-    expect(result.moved).toBe(2);
-    expect(result.failed).toEqual(["Scout"]);
-    expect(result.line).toBe("moved 2 bots, 1 skill, 1 routine and their memory.");
-    expect(result.leftOut).toContain("Chat history, logins and their Telegram connections stay in OpenClaw and Hermes Agent.");
-    expect(result.leftOut).toContain("Routines arrive paused.");
-    expect(result.leftOut).toContain("Couldn't move Scout.");
-    expect(result.leftOut).toContain("A few files couldn't be read");
+    const moved = reports.flatMap((one) => one.report.bots);
+    expect(moved.map((bot) => bot.name)).toEqual(["Molty", "Hermes"]);
+    expect(reports.flatMap((one) => one.report.failed)).toEqual(["Scout"]);
   });
 });

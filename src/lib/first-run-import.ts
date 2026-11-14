@@ -55,12 +55,13 @@ function rank(find: LocalFind): number {
 
 /** What this computer holds, one row per app with real content in it: bots, standing instructions, or Claude's own
  * setup. A tool that would only add a few skills, MCP servers or saved commands is an `extra`: brought in with the rest,
- * never a row. Grok Bot's exports are left to its prompt. A tool whose agents came in as bots (Claude Code's, Gemini
- * CLI's) is one row with both. */
-export function localFinds(plan: BotMovePlan | null, detection: SetupDetection | null): LocalFind[] {
+ * never a row. Grok bot's exports already saved in Downloads are a row only with `grokExports` (Settings, which may read
+ * Downloads); otherwise they are left to its prompt. A tool whose agents came in as bots (Claude Code's, Gemini CLI's)
+ * is one row with both. */
+export function localFinds(plan: BotMovePlan | null, detection: SetupDetection | null, options: { grokExports?: boolean } = {}): LocalFind[] {
   const finds: LocalFind[] = [];
   for (const app of plan?.apps ?? []) {
-    if (!app.preview.plans.length || app.from.key === GROK_FROM.key) continue;
+    if (!app.preview.plans.length || (app.from.key === GROK_FROM.key && !options.grokExports)) continue;
     finds.push({ id: `bots:${app.from.key}`, app: app.app, bots: app, summary: botsSummary(app) });
   }
   for (const source of SOURCE_ORDER) {
@@ -100,6 +101,8 @@ export function useBringRun(): BringRun {
 
 export const bringRunNow = (): BringRun => run;
 export function resetBringRunForTests() { run = { kind: "idle" }; }
+/** A finished run is forgotten (Settings opening afresh); one still going is kept. */
+export function forgetBringRun() { if (run.kind === "done") set({ kind: "idle" }); }
 
 const INSTRUCTIONS_FILE: Record<InstructionsSource, string> = {
   claudeCode: "memory/instructions-from-claude-code.md",

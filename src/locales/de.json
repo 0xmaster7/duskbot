@@ -1216,7 +1216,6 @@
   "onboarding.engines.signInHint": "Nutze das {name}-Konto, das du schon hast. Du meldest dich auf deren eigener Website an, dein Passwort bleibt also bei ihnen.",
   "onboarding.engines.ready": "Bereit",
   "onboarding.engines.needsSetup": "Einrichtung nötig",
-  "onboarding.import.skillsHint": "Hierher kopiert, damit deine Bots sie mit jeder KI nutzen können.",
   "engineSetup.copyCommand": "Befehl kopieren",
   "engineSetup.sameMachine": "Installiere es auf dem Computer, auf dem deine Bots laufen, und melde dich dort an. Wähle dann „erneut prüfen“.",
   "engineSetup.invalidStatus": "Der Status deiner KIs konnte nicht abgerufen werden. Versuche es erneut.",

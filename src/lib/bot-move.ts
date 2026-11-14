@@ -1,4 +1,3 @@
-import { t } from "@/lib/i18n";
 import { api, type Action, type Bot } from "@/state/store";
 import { moveFrom, readBotLook, EMPTY_LOOK, type BotLook } from "../../shared/bot-move";
 import { GROK_FROM, type GrokBot, type MoveFrom } from "../../shared/grok-import";
@@ -125,47 +124,4 @@ export async function runBotMove(plan: BotMovePlan, dispatch: (action: Action) =
     out.push({ app, report });
   }
   return out;
-}
-
-const CHANNEL_NAMES: Record<string, string> = {
-  telegram: "Telegram", discord: "Discord", whatsapp: "WhatsApp", slack: "Slack", signal: "Signal", imessage: "iMessage", msteams: "Microsoft Teams",
-  googlechat: "Google Chat", matrix: "Matrix", mattermost: "Mattermost", email: "email", sms: "SMS",
-};
-const channelName = (key: string) => CHANNEL_NAMES[key] ?? key;
-
-const list = (parts: string[]) => new Intl.ListFormat(undefined, { style: "long", type: "conjunction" }).format(parts);
-const count = (n: number, one: string, many: string) => (n === 1 ? t(one as never) : t(many as never, { count: n }));
-
-/** The confirm screen's line for one app: what comes over, in counts. */
-export function countsLine(counts: MoveCounts): string {
-  return list([
-    count(counts.bots, "botMove.botsOne", "botMove.bots"),
-    ...(counts.skills ? [count(counts.skills, "botMove.skillsOne", "botMove.skills")] : []),
-    ...(counts.routines ? [count(counts.routines, "botMove.routinesOne", "botMove.routines")] : []),
-    ...(counts.memories ? [t("botMove.memory")] : []),
-    ...(counts.facts ? [count(counts.facts, "botMove.factsOne", "botMove.facts")] : []),
-  ]);
-}
-
-/** The done screen: one line for what moved, and one for what was left out (or nothing). */
-export function outcome(reports: readonly AppReport[]): { line: string; leftOut: string | null; moved: number; failed: string[] } {
-  const bots = reports.flatMap((one) => one.report.bots);
-  const failed = reports.flatMap((one) => one.report.failed);
-  const counts = { bots: bots.length, skills: bots.reduce((n, bot) => n + bot.skills, 0), routines: bots.reduce((n, bot) => n + bot.routines, 0), memories: bots.reduce((n, bot) => n + bot.memories + bot.notes, 0), facts: bots.reduce((n, bot) => n + bot.facts, 0) };
-  const already = reports.flatMap((one) => one.report.moved);
-  const line = bots.length ? t("botMove.moved", { list: countsLine(counts) })
-    : already.length && !failed.length ? t("botMove.allHere") : t("botMove.nothingMoved");
-  const apps = list([...new Set(reports.map((one) => one.app.app))]);
-  const channels = [...new Set(reports.flatMap((one) => one.app.channels))];
-  const reconnect = bots.reduce((n, bot) => n + bot.apps, 0);
-  const notes = [
-    channels.length ? t("botMove.leftOut.historyChannels", { apps, channels: list(channels.map(channelName)) }) : t("botMove.leftOut.history", { apps }),
-    ...(reconnect ? [count(reconnect, "botMove.leftOut.appsOne", "botMove.leftOut.apps")] : []),
-    ...(counts.routines ? [t("botMove.leftOut.paused")] : []),
-    ...(bots.some((bot) => bot.skillsOff.length) ? [t("botMove.leftOut.skillsOff", { names: list(bots.flatMap((bot) => bot.skillsOff)) })] : []),
-    ...(already.length && bots.length ? [t("botMove.leftOut.already", { names: list(already) })] : []),
-    ...(failed.length ? [t("botMove.leftOut.failed", { names: list(failed) })] : []),
-    ...reports.flatMap((one) => [...one.report.unreadable, ...one.app.unreadable]).slice(0, 1).map(() => t("botMove.leftOut.unreadable")),
-  ];
-  return { line, leftOut: notes.join(" "), moved: bots.length, failed };
 }

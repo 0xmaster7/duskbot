@@ -1245,7 +1245,6 @@
   "onboarding.engines.signInHint": "Скористайтеся обліковим записом {name}, який у вас уже є. Ви входите на їхньому власному сайті, тож ваш пароль залишається в них.",
   "onboarding.engines.ready": "Готово",
   "onboarding.engines.needsSetup": "Потребує налаштування",
-  "onboarding.import.skillsHint": "Скопійовано сюди, тож ваші боти можуть користуватися ними з будь-яким AI.",
   "onboarding.card.custom": "Введіть власну відповідь",
   "onboarding.spot.gotIt": "Зрозуміло",
   "onboarding.bot.name": "Ім'я бота",

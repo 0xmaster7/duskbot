@@ -1738,7 +1738,6 @@
   "onboarding.org.connected": "已登入 {organization}",
   "onboarding.org.models": "公司模型：{count}",
   "onboarding.org.manage": "組織設定",
-  "onboarding.import.skillsHint": "已複製到這裡，你的機器人用任何 AI 都能使用它們。",
   "onboarding.card.custom": "輸入你自己的答案",
   "onboarding.card.dismiss": "略過問題",
   "onboarding.spot.gotIt": "知道了",

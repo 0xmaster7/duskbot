@@ -1148,7 +1148,6 @@
   "onboarding.engines.signInHint": "Utilisez le compte {name} que vous avez déjà. Vous vous connectez sur leur propre site, votre mot de passe reste donc chez eux.",
   "onboarding.engines.ready": "Prêts",
   "onboarding.engines.needsSetup": "À configurer",
-  "onboarding.import.skillsHint": "Copiées ici, pour que vos bots puissent les utiliser avec n'importe quelle IA.",
   "engineSetup.copyCommand": "Copier la commande",
   "engineSetup.sameMachine": "Installez-le et connectez-vous sur l'ordinateur où s'exécutent vos bots, puis choisissez vérifier à nouveau.",
   "engineSetup.invalidStatus": "Impossible d’obtenir l’état de vos IA. Réessayez la vérification.",

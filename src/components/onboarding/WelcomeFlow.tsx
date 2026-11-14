@@ -15,7 +15,6 @@ import type { SetupDetection } from "../../../shared/setup-import";
 import { useBotMove } from "../BringBots";
 import { useNotesIntake } from "../NotesWaiting";
 import { WindowDragStrip } from "../DesktopCapabilities";
-import { GrokMoveDialog } from "../lazy-screens";
 import { AccountStep } from "./AccountStep";
 import { AiStep } from "./AiStep";
 import { BringStatus, BringStep } from "./BringStep";
@@ -128,7 +127,6 @@ export function WelcomeFlow({
   const finds = useMemo(() => (move.plan && detection !== undefined ? localFinds(move.plan, detection) : null), [move.plan, detection]);
   const bringRun = useBringRun();
   const [notesLine, setNotesLine] = useState<string | null>(null);
-  const [grokOpen, setGrokOpen] = useState(false);
 
   const saved = initialBeat ?? draft?.beat;
   const steps = funnelSteps({ account: Boolean(account) && !firstKnown.current?.signedIn, desktop, bring: offersMove, cloud,
@@ -248,7 +246,7 @@ export function WelcomeFlow({
     track("onboarding_bring", { apps: chosen.length });
     void bringChosen(chosen, { dispatch, firstBotId: maus?.id ?? null, aboutMe: state.config?.profile?.aboutMe ?? "", team: Boolean(state.config?.team) });
   };
-  // notes from another AI pasted on any step come in from here too
+  // notes from another AI pasted on any step come in from here too (the bring step takes them itself, and says so there)
   const takeNotes = useNotesIntake();
   const onPaste = (event: ReactClipboardEvent<HTMLDivElement>) => {
     const pasted = event.clipboardData.getData("text/plain");
@@ -257,7 +255,7 @@ export function WelcomeFlow({
     takeNotes(pasted, setNotesLine);
   };
 
-  const overlayOpen = Boolean(state.cloudAdd) || Boolean(placeSheet) || grokOpen || macPick;
+  const overlayOpen = Boolean(state.cloudAdd) || Boolean(placeSheet) || macPick;
   const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Escape") {
       if (event.defaultPrevented || overlayOpen) return;
@@ -321,7 +319,6 @@ export function WelcomeFlow({
       {/* the bring step says how its own bringing in went; every later step keeps the line at its foot */}
       <BringStatus working={at !== "bring" && bringRun.kind === "working"} line={notesLine ?? (at !== "bring" && bringRun.kind === "done" ? bringRun.line : null)} />
       {macPick && <MacPickSheet onCloud={cloudPicked} onMac={macPicked} onClose={() => { track("onboarding_mac_sheet", { action: "close" }); setMacPick(false); }} />}
-      {grokOpen && <GrokMoveDialog onClose={() => { setGrokOpen(false); void move.look(); }} />}
     </div>
   );
 }

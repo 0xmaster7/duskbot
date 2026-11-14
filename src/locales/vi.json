@@ -1942,7 +1942,6 @@
   "onboarding.org.connected": "Đã đăng nhập vào {organization}",
   "onboarding.org.models": "Mô hình công ty: {count}",
   "onboarding.org.manage": "Cài đặt tổ chức",
-  "onboarding.import.skillsHint": "Đã sao chép vào đây để bot của bạn dùng được với bất kỳ AI nào.",
   "onboarding.card.custom": "Nhập câu trả lời của riêng bạn",
   "onboarding.card.dismiss": "Bỏ qua câu hỏi",
   "onboarding.spot.gotIt": "Đã hiểu",

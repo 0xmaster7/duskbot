@@ -8,15 +8,18 @@ import { myDefaultBot, useViewerEmail } from "@/lib/default-bot";
 import { t } from "@/lib/i18n";
 import { useStore } from "@/state/store";
 
+export type NotesSay = (line: string, state: "working" | "done" | "failed") => void;
+
 /** Takes a pasted or dropped block: `say` hears "bringing in…" at once, then the outcome or what went wrong. */
 export function useNotesIntake() {
   const { state, dispatch } = useStore();
   const firstBotId = myDefaultBot(state.bots, useViewerEmail())?.id ?? null;
-  return useCallback((text: string, say: (line: string) => void) => {
-    if (isNotesPrompt(text)) { say(t("composer.notes.error.prompt")); return; }
-    say(t("composer.notes.working"));
+  return useCallback((text: string, say: NotesSay) => {
+    if (isNotesPrompt(text)) { say(t("composer.notes.error.prompt"), "failed"); return; }
+    say(t("composer.notes.working"), "working");
     void importNotes(text, { bots: state.bots, aboutMe: state.config?.profile?.aboutMe ?? "", team: Boolean(state.config?.team), firstBotId, dispatch })
-      .then(notesOutcomeLine, notesErrorLine).then(say);
+      .then((outcome) => say(notesOutcomeLine(outcome), outcome.failed.length || outcome.lost?.length ? "failed" : "done"),
+        (cause: unknown) => say(notesErrorLine(cause), "failed"));
   }, [state.bots, state.config?.profile?.aboutMe, state.config?.team, firstBotId, dispatch]);
 }
 

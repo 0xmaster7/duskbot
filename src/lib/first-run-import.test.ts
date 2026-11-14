@@ -55,6 +55,8 @@ describe("the first run's list of what this Mac holds", () => {
       ["setup:codex", "1 skill", "codex"],
       ["setup:cursor", "1 tool", "cursor"],
     ]);
+    expect(localFinds(plan(grok), DETECTION, { grokExports: true }).map((find) => find.id), "Settings, which may read Downloads, lists Grok bot's saved files")
+      .toContain("bots:grok-bot");
   });
 
   it("is empty when nothing is here, and leaves out an app whose bots are all here already", () => {

@@ -11,15 +11,6 @@ export interface GrokLook {
   bots: string[];
 }
 
-export const NOTHING_FOUND: GrokLook = { files: [], bots: [] };
-
-export function lookForGrokBot(): Promise<GrokLook> {
-  return api<Partial<GrokLook> | null>("/api/setup-import/grok", { timeoutMs: 10_000 }).then(
-    (look) => ({ files: Array.isArray(look?.files) ? look.files : [], bots: Array.isArray(look?.bots) ? look.bots : [] }),
-    () => NOTHING_FOUND,
-  );
-}
-
 /** A refusal or an unreadable reply, in the person's words. */
 export function grokErrorText(cause: unknown): string {
   if (!(cause instanceof GrokImportError)) return cause instanceof Error ? cause.message : String(cause);

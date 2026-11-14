@@ -1942,7 +1942,6 @@
   "onboarding.org.connected": "{organization} organizasyonuna giriş yapıldı",
   "onboarding.org.models": "Şirket modelleri: {count}",
   "onboarding.org.manage": "Organizasyon ayarları",
-  "onboarding.import.skillsHint": "Buraya kopyalanır; böylece botlarınız onları her AI ile kullanabilir.",
   "onboarding.card.custom": "Kendi cevabınızı yazın",
   "onboarding.card.dismiss": "Soruyu kapat",
   "onboarding.spot.gotIt": "Anladım",
