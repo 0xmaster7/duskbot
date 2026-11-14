@@ -3,6 +3,13 @@
 Notable changes to dusk bot, newest first. Installers and checksums for each version are on the
 [releases page](https://github.com/DuskBotAI/duskbot/releases) and at [dusk.bot/download](https://dusk.bot/download).
 
+## 0.2.4
+
+- When the free backup model has used up its free replies, the chat says so within seconds and suggests connecting your
+  own AI, instead of trying other free models that share the same limit.
+- A free backup model that answers with nothing counts as no answer: the next free model gets the message, and if none
+  answers, the chat says so plainly.
+
 ## 0.2.3
 
 0.2.1 and 0.2.2 were own-server packages only; this is the first version on every line since 0.2.0.
