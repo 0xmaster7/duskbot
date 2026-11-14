@@ -81,39 +81,55 @@ await runFlow(flow, async () => {
     return `ready in ${flow.facts.readySeconds}s`;
   }, { critical: true });
 
-  await flow.step("move", "the bots move to the cloud", async () => {
+  let bought = null;
+  await flow.step("on-cloud", "the app opens the new cloud by itself", async () => {
+    const cloud = bought = await myCloud();
+    const host = new URL(cloud.origin).host;
     const started = Date.now();
     const seen = new Set();
     for (;;) {
       const screen = await headings();
       if (!seen.has(screen)) { seen.add(screen); flow.log(`screen: ${screen}`); }
-      if (/move:done|all moved|your bots are here/i.test(screen) || await flow.evaluate(`/your bots are working on dusk cloud|your bots are here/i.test(document.body.innerText)`)) break;
-      if (/move:failed/.test(screen)) throw new Error(`the move failed: ${await flow.text("[data-cloud-move]")}`);
-      // what a person would press to move on: the move offer, then the funnel's way forward
+      const where = await flow.evaluate(`location.host`);
+      const chat = await flow.evaluate(`Boolean(document.querySelector('textarea[aria-label^="Message"]'))`);
+      if (where === host && chat) break;
+      // what a person presses to go on: a move offer, then the welcome's ways forward (never "not now")
       const pressed = await flow.evaluate(`(() => {
         const shown = (sel) => [...document.querySelectorAll(sel)].filter((e) => e.getClientRects().length && !e.disabled);
         const move = shown("[data-cloud-move-accept]")[0];
         if (move) { move.click(); return "move"; }
-        // the welcome goes on after the purchase: the free model, no notes for now, no phone
-        const words = ["start with the free model", "skip for now", "skip", "not now", "continue", "start chatting"];
+        const words = ["start chatting", "open dusk cloud", "start with the free model", "skip for now", "skip", "continue"];
         for (const word of words) { const b = shown("button").find((e) => e.innerText.trim().toLowerCase() === word); if (b) { b.click(); return word; } }
         return null;
-      })()`);
-      if (pressed) { flow.log(`pressed: ${pressed}`); flow.facts.pressedWhileMoving = [...(flow.facts.pressedWhileMoving ?? []), pressed]; }
-      if (Date.now() - started > 10 * 60_000) throw new Error(`no move after 10 minutes (screens: ${[...seen].join(" | ")})`);
-      await sleep(4000);
+      })()`).catch(() => null);
+      if (pressed) { flow.log(`pressed: ${pressed}`); flow.facts.pressed = [...(flow.facts.pressed ?? []), pressed]; }
+      if (Date.now() - started > 10 * 60_000) throw new Error(`not on the cloud after 10 minutes (window at ${where}; screens: ${[...seen].join(" | ")})`);
+      await sleep(3000);
     }
-    flow.facts.moveSeconds = Math.round((Date.now() - started) / 1000);
-    flow.facts.screensWhileMoving = [...seen];
-    return `moved in ${flow.facts.moveSeconds}s`;
+    flow.facts.onCloudSeconds = Math.round((Date.now() - started) / 1000);
+    flow.facts.screensAfterReady = [...seen];
+    return `the window shows ${host} after ${flow.facts.onCloudSeconds}s`;
   }, { critical: true });
 
-  await flow.step("working", "the bots work on the cloud", async () => {
-    const cloud = await myCloud();
-    flow.facts.cloud = { id: cloud?.id, status: cloud?.status, name: cloud?.name };
-    await flow.click("open dusk cloud", { timeout: 8_000 }).catch(() => {});
-    await flow.click("start chatting", { timeout: 8_000 }).catch(() => {});
-    await sleep(3000);
-    return `${cloud?.name} is ${cloud?.status}`;
+  await flow.step("working", "a bot on the cloud answers", async () => {
+    const marker = `smoke ${Date.now().toString(36)}`;
+    await flow.evaluate(`document.querySelector('textarea[aria-label^="Message"]').focus(); true`);
+    await flow.type(`Reply with just the word ok. (${marker})`);
+    await flow.press("Enter", "Enter", 13);
+    const started = Date.now();
+    const outcome = await flow.waitFor(`(() => {
+      const rows = document.querySelector("[data-simple-rows]")?.innerText ?? document.body.innerText;
+      const at = rows.lastIndexOf(${JSON.stringify(marker)});
+      if (at < 0) return false;
+      const after = rows.slice(at + ${JSON.stringify(marker).length - 1}).replace(/\\b\\d{1,2}:\\d{2}\\b/g, "").trim();
+      if (/failed|went wrong|couldn.t/i.test(after)) return "error:" + after.slice(0, 160);
+      return /\\bok\\b/i.test(after) ? "reply:" + after.slice(0, 80) : false;
+    })()`, "the bot's reply", 180_000);
+    flow.facts.replySeconds = Math.round((Date.now() - started) / 1000);
+    if (outcome.startsWith("error:")) throw new Error(`the bot answered with an error: ${outcome.slice(6)}`);
+    // the cloud's own page has no account bridge: the cloud is the one bought above
+    const cloud = bought;
+    flow.facts.cloud = { id: cloud?.id, status: cloud?.status, name: cloud?.name, origin: cloud?.origin };
+    return `replied "${outcome.slice(6).replace(/\s+/g, " ")}" in ${flow.facts.replySeconds}s, from ${cloud?.name} (${cloud?.status})`;
   });
 });

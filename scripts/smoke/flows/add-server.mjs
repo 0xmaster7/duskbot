@@ -89,24 +89,27 @@ await runFlow(flow, async () => {
       await flow.shot("move-preview");
       const started = Date.now();
       await flow.click("move everything here", { contains: true });
-      const done = await flow.waitFor(`window.duskDesktop.vpsLink.state().then((v) => v.stage === "moved" || (v.move?.status === "failed" ? "failed: " + (v.move?.error ?? v.move?.step) : false))`, "the move to finish", 15 * 60_000);
+      // once moved, the window opens the server's own page, where the link bridge is not offered
+      const done = await flow.waitFor(`(() => { const link = window.duskDesktop?.vpsLink; if (!link) return "on-server";
+        return link.state().then((v) => v.stage === "moved" || (v.move?.status === "failed" ? "failed: " + (v.move?.error ?? v.move?.step) : false)); })()`, "the move to finish", 15 * 60_000);
       if (typeof done === "string") throw new Error(`the move ${done}`);
       flow.facts.moveSeconds = Math.round((Date.now() - started) / 1000);
       if (flow.facts.moveSeconds > 120) flow.friction("slow", "move", `moving a new person's bots took ${flow.facts.moveSeconds}s`);
       return `moved in ${flow.facts.moveSeconds}s`;
     }, { critical: true });
 
-    await flow.step("on-server", "the app now runs from the server", async () => {
-      await sleep(3000);
-      const where = await flow.evaluate(`window.duskDesktop.vpsLink.where()`);
-      if (where?.place !== "vps") throw new Error(`the app says the bots live on ${where?.place}`);
-      const running = await vm.exec("systemctl is-active duskbot.service; curl -fsS -o /dev/null -w '%{http_code}' http://127.0.0.1:${PORT:-8787}/api/health || true", 30);
-      flow.facts.serverService = running.stdout.replace(/\s+/g, " ").trim();
+    await flow.step("on-server", "the app now runs from the server, with the bots there", async () => {
+      await sleep(5000);
+      flow.facts.windowAt = await flow.evaluate(`location.host`);
+      flow.facts.serverScreen = (await flow.text()).replace(/\s+/g, " ").slice(0, 160);
+      if (/meet dusk bot|where should your bots live/i.test(flow.facts.serverScreen)) flow.friction("confusing", "after the move", "the server opens on the welcome from the start (\"meet dusk bot\", then \"where should your bots live?\" again), though the person already chose this server");
+      const running = await vm.exec("systemctl is-active duskbot.service", 30);
+      flow.facts.serverService = running.stdout.trim();
       if (!/^active/.test(running.stdout)) throw new Error(`duskbot.service is ${running.stdout.split("\n")[0]}`);
-      await flow.click("done", { timeout: 5_000 }).catch(() => {});
-      await flow.click("open", { contains: true, timeout: 5_000 }).catch(() => {});
-      await sleep(4000);
-      return `${where.server?.name ?? "server"}; duskbot.service ${flow.facts.serverService}`;
+      const bots = await flow.evaluate(`fetch("/api/bots").then((r) => r.json()).then((j) => (j.bots ?? j).map((b) => b.name)).catch((e) => "error " + e.message)`);
+      flow.facts.botsOnServer = bots;
+      if (!Array.isArray(bots) || !bots.length) throw new Error(`the server lists no bots (${JSON.stringify(bots)})`);
+      return `window on ${flow.facts.windowAt}; duskbot.service ${flow.facts.serverService}; bots: ${bots.join(", ")}`;
     });
   } finally {
     if (vm && !flag("--keep-vm")) { await vm.remove().catch((error) => flow.log(`could not delete ${vm.id}: ${error.message}`)); flow.log(`deleted ${vm.id}`); }
