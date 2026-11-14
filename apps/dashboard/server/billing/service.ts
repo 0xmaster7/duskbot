@@ -588,6 +588,22 @@ export function createBillingService(options: BillingServiceOptions) {
   retryCloudActions.unref();
   const sweepDeleted = setInterval(() => { try { destroyDeleted(); } catch {} }, 10 * 60_000);
   sweepDeleted.unref();
+  /** checkouts nobody paid before they lapsed: expired with the cloud each reserved, so nothing of them lingers. a late
+   *  payment still lands and orders a fresh cloud (the subscription event's lost-cloud path) */
+  function expireLapsed() {
+    const lapsed = state.checkouts.filter(checkout => checkout.status === "open" && checkout.openUntil <= now());
+    if (!lapsed.length) return 0;
+    for (const checkout of lapsed) {
+      const cloud = checkout.cloudId ? clouds.get(checkout.cloudId) : null;
+      checkout.status = "expired"; if (checkout.cloudId) clouds.abandon(checkout.cloudId);
+      console.log(`billing: expired unpaid checkout ${checkout.id} (account ${checkout.accountId}, started ${new Date(checkout.createdAt).toISOString()})${cloud?.status === "destroyed" && !checkout.revive ? `, retired its pending cloud ${cloud.id} "${cloud.name}" in ${cloud.region}` : ""}`);
+    }
+    store.commit();
+    return lapsed.length;
+  }
+  try { expireLapsed(); } catch {}
+  const sweepLapsed = setInterval(() => { try { expireLapsed(); } catch {} }, 10 * 60_000);
+  sweepLapsed.unref();
   /** `all`: an operator's grant replaces an open checkout the person never paid */
   function expireCheckouts(accountId: string, all = false) {
     for (const checkout of state.checkouts) if (checkout.accountId === accountId && checkout.status === "open" && (all || checkout.openUntil <= now())) {
@@ -1008,12 +1024,13 @@ export function createBillingService(options: BillingServiceOptions) {
     syncFromProvider: guarded(syncFromProvider), setAttribution: guarded(setAttribution),
     funnel: guarded(funnel), markReview: guarded(markReview), grantReview: guarded(grantReview),
     deletionBlockers: guarded(deletionBlockers), closeAccount: guarded(closeAccount), accountDeleted: guarded(accountDeleted), scrubDeleted: guarded(scrubDeleted), destroyDeleted: guarded(destroyDeleted), drainProviderCancels: guarded(drainProviderCancels),
+    expireLapsed: guarded(expireLapsed),
     catalog: guarded(() => catalogView(now(), config)), quote: guarded((input: unknown) => quote(parsed(input), config)), checkout: guarded(checkout), handleWebhook: guarded(handleWebhook),
     subscriptions: guarded((accountId: string) => state.subscriptions.filter(sub => sub.accountId === accountId).map(view)), licenses: guarded(licenses), licenseCheck: guarded(licenseCheck), addMember: guarded(addMember), removeMember: guarded(removeMember),
     cancel: guarded((account: AccountRef, subscriptionId: string, survey?: CancelSurvey) => setCancel(account, subscriptionId, true, survey)), keep: guarded((account: AccountRef, subscriptionId: string) => setCancel(account, subscriptionId, false)),
     feedback: guarded(feedback), retentionStep: guarded(retentionStep), retentionDiscount: guarded(retentionDiscount), previewChange: guarded(previewChange), change: guarded(change),
     operatorChange: guarded(operatorChange), setPeriodEnd: guarded(setPeriodEnd), moveRenewal: guarded(moveRenewal), endNow: guarded(endNow), mode,
     updateCard: guarded(async (account: AccountRef, subscriptionId: string, path?: string) => { const url = returnUrl(path), sub = editable(account.id, subscriptionId); return provider.updatePaymentMethod(sub.providerSubscriptionId!, url); }),
-    invoices: guarded(invoices), invoiceDownload: guarded(invoiceDownload), overview: guarded(overview), appState: guarded(appState), close: guarded(() => { clearInterval(retryCloudActions); clearInterval(sweepDeleted); confirmations.clear(); store.close(); }),
+    invoices: guarded(invoices), invoiceDownload: guarded(invoiceDownload), overview: guarded(overview), appState: guarded(appState), close: guarded(() => { clearInterval(retryCloudActions); clearInterval(sweepDeleted); clearInterval(sweepLapsed); confirmations.clear(); store.close(); }),
   };
 }

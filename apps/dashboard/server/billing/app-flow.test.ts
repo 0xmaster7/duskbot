@@ -206,9 +206,17 @@ it("shows nothing for a checkout left unpaid, lets a new one open, and makes the
   expect(f.snapshot().checkouts[0].status).toBe("expired");
   expect(f.billing.clouds.get(first.cloudId!)?.status).toBe("destroyed");
   expect(parseCloudList((await f.session()).clouds)).toEqual([]);
-  // paying the new one makes exactly one cloud, setting up
-  const paid = await f.complete(1);
-  expect(parseCloudList((await f.session()).clouds)).toMatchObject([{ id: paid.cloudId, status: "setting_up" }]);
+  // left past its window, the sweep expires it with its pending cloud too
+  const second = f.snapshot().checkouts[1];
+  f.setTime(f.now() + (BILLING_CONFIG.checkoutOpenMinutes + 1) * 60_000);
+  expect(f.billing.service.expireLapsed()).toBe(1);
+  expect(f.snapshot().checkouts[1].status).toBe("expired");
+  expect(f.billing.clouds.get(second.cloudId!)?.status).toBe("destroyed");
+  // a late payment on it still lands: exactly one fresh cloud, setting up
+  await f.complete(1);
+  const listed = parseCloudList((await f.session()).clouds);
+  expect(listed).toMatchObject([{ status: "setting_up" }]);
+  expect(listed[0].id).not.toBe(second.cloudId);
 });
 
 it("enforces Admin ownership, one-time confirmations, typed bodies, and the desktop error codes", async () => {
