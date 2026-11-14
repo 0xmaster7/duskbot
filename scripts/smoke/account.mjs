@@ -22,7 +22,7 @@ export function envValue(name, file = process.env.DUSK_ENV_FILE || join(homedir(
 }
 
 /** the newest 8-digit sign-in code Brevo sent to `email` after `since` (ms), or null */
-async function brevoCode(email, since) {
+export async function brevoCode(email, since) {
   const key = envValue("DUSK_BREVO_API_KEY");
   if (!key) throw new Error("DUSK_BREVO_API_KEY is not set (dusk env file), so the emailed code cannot be read");
   const headers = { "api-key": key, accept: "application/json" };
