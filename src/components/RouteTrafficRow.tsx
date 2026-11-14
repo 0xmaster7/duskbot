@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { EgressStatus } from "../../shared/computer-egress";
+import { egressRouteState, type EgressStatus } from "../../shared/computer-egress";
 import { t } from "@/lib/i18n";
 import { serverHas } from "@/lib/server-compat";
 import { NoteRow, SwitchRow } from "./ListRows";
@@ -48,8 +48,9 @@ export function RouteTrafficRow({ blockedOnly = false }: { blockedOnly?: boolean
   };
 
   const inApp = typeof window !== "undefined" && window.duskDesktop?.remoteClient?.active === true;
-  const fallback = status.enabled && status.route !== "computer";
-  const hint = !status.enabled ? t("routeTraffic.hint") : fallback ? t("routeTraffic.offline") : t("routeTraffic.through");
+  const state = egressRouteState(status);
+  const fallback = state === "offline" || state === "slow";
+  const hint = state === "off" || state === "unknown" ? t("routeTraffic.hint") : state === "offline" ? t("routeTraffic.offline") : state === "slow" ? t("routeTraffic.slow") : t("routeTraffic.through");
   return (
     <>
       {!blockedOnly && <SwitchRow

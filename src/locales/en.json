@@ -7595,6 +7595,7 @@
   "routeTraffic.hint": "Route network traffic from the bot's computer through your local desktop computer instead of the cloud. Applies to new connections.",
   "routeTraffic.through": "Through your computer. Applies to new connections.",
   "routeTraffic.offline": "Using the server's network, your computer is offline",
+  "routeTraffic.slow": "Using the server's network for now, the path to your computer is slow",
   "routeTraffic.error": "That didn't save. Try again.",
   "routeTraffic.blockedTitle": "Let your bot browse through this computer's connection when a site blocks the cloud",
   "routeTraffic.blockedTitleWeb": "Let your bot browse through your computer's connection when a site blocks the cloud",

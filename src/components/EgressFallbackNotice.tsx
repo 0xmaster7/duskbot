@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import type { EgressStatus } from "../../shared/computer-egress";
+import { egressRouteState, type EgressStatus } from "../../shared/computer-egress";
 import { useStore } from "@/state/store";
 import { t } from "@/lib/i18n";
 import { serverHas } from "@/lib/server-compat";
@@ -7,7 +7,7 @@ import { serverHas } from "@/lib/server-compat";
 const SEEN_KEY = "dusk-egress-fallback-seen";
 const POLL_MS = 60_000;
 
-/** Once ever: a quiet note when "Route traffic through this computer" is on and the server's own network is in use. */
+/** Once ever: a quiet note when "Route traffic through this computer" is on and the person's computer is offline. */
 export function EgressFallbackNotice() {
   const { dispatch } = useStore();
   useEffect(() => {
@@ -16,6 +16,8 @@ export function EgressFallbackNotice() {
     if (seen) return;
     const abort = new AbortController();
     let timer = 0;
+    // a link that is still coming up reads offline for a moment: only a second offline answer in a row says so
+    let offlineBefore = false;
     const check = async () => {
       try {
         if (!(await serverHas("computerEgress"))) { window.clearInterval(timer); return; }
@@ -23,7 +25,10 @@ export function EgressFallbackNotice() {
         if (response.status === 404 || response.status === 403) { window.clearInterval(timer); return; }
         if (!response.ok) return;
         const status = await response.json() as EgressStatus;
-        if (!status.available || !status.enabled || status.route !== "server") return;
+        const offline = egressRouteState(status) === "offline";
+        const confirmed = offline && offlineBefore;
+        offlineBefore = offline;
+        if (!confirmed) return;
         try { window.localStorage.setItem(SEEN_KEY, "1"); } catch { /* shown once this launch */ }
         window.clearInterval(timer);
         dispatch({ type: "notice", notice: { kind: "note", botName: null, text: t("routeTraffic.notice") } });

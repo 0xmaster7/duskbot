@@ -3,6 +3,7 @@ import { runInNewContext } from "node:vm";
 import { describe, expect, it } from "vitest";
 import { BOT_DESKTOP_BRIDGE } from "../shared/bot-desktop.ts";
 import { EGRESS_PORTS as MAC_PORTS } from "../electron/vps-link-egress.mjs";
+import { egressRouteState } from "../shared/computer-egress.ts";
 import { DIRECT_ASSET_SITES, EGRESS_POLICY_PATH, EGRESS_PORTS, FAST_DIAL_MS, HOME_ONLY_SITES, SLOW_DIAL_MS, createComputerEgress, egressPac, egressPolicy, parseEgressReport, type EgressAgentReport } from "./computer-egress.ts";
 import { createComputerEgressRoutes } from "./routes/computer-egress.ts";
 import { PASS, type RouteContext } from "./routes/table.ts";
@@ -171,6 +172,29 @@ describe("routing the bot computers", () => {
     expect(await route(SLOW_DIAL_MS + 1)).toBe("server");
     expect(applied()).toEqual(["sites", "on", "sites"]);
     expect(await route(SLOW_DIAL_MS)).toBe("server");
+  });
+
+  it("never calls an online computer offline: a fresh link with no dial yet and a slow path read as online", () => {
+    // walkthrough 2026-11-14: right after linking a server and moving bots there, its chat said "Your computer is
+    // offline" while the Mac was online, because route "server" (no dial measured yet, or a slow relay) read as offline
+    let t = 0;
+    const egress = createComputerEgress({ enabled: () => true, docker: () => null, now: () => t });
+    expect(egressRouteState(egress.status())).toBe("unknown");
+    egress.report(report({ dialMs: null }));
+    expect(egress.status()).toMatchObject({ available: true, route: "server", computerOnline: true });
+    expect(egressRouteState(egress.status())).toBe("slow");
+    egress.report(report({ dialMs: 900 }));
+    expect(egressRouteState(egress.status())).toBe("slow");
+    egress.report(report({ dialMs: FAST_DIAL_MS }));
+    expect(egressRouteState(egress.status())).toBe("computer");
+    egress.report(report({ online: false }));
+    expect(egress.status()).toMatchObject({ route: "server", computerOnline: false });
+    expect(egressRouteState(egress.status())).toBe("offline");
+    t = 60_000;
+    expect(egress.status().computerOnline).toBe(false);
+    expect(egressRouteState(egress.status())).toBe("unknown");
+    expect(egressRouteState({ available: true, enabled: true, route: "server" })).toBe("unknown");
+    expect(egressRouteState({ available: true, enabled: false, route: "off", computerOnline: false })).toBe("off");
   });
 
   it("keeps an agent that does not measure dials on the old rule", () => {

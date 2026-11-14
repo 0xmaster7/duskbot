@@ -266,6 +266,7 @@ export function createComputerEgress(deps: ComputerEgressDeps) {
         available: fresh,
         enabled: deps.enabled(),
         route: route(),
+        computerOnline: fresh && report!.online,
         activeStreams: fresh ? report!.active : 0,
         relayedStreams: fresh ? report!.relayed : 0,
         refusedStreams: fresh ? report!.refused : 0,
