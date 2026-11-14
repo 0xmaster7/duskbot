@@ -191,7 +191,7 @@ test("a brand-new Cloud whose name isn't found yet keeps the setup screen and op
   await w.home.openCloud();
   assert.deepEqual(w.home.view(), { screen: "setup", step: "checking" }, "not the offline screen, not \"choose it again\"");
   assert.deepEqual(w.went, [[SCREEN, null]]);
-  assert.deepEqual(w.resolved, [["dusk-u-new1.fly.dev", "disallowed"]], "Electron's own resolver, past its cache");
+  assert.deepEqual(w.resolved, [], "a brand-new Cloud not answering is enough to wait: no lookup decides it");
   w.url = SCREEN;
   assert.deepEqual(w.timers.map((timer) => timer.ms), [NAME_RETRY_MS[0]]);
   for (const ms of NAME_RETRY_MS.slice(0, 3)) {
@@ -206,6 +206,21 @@ test("a brand-new Cloud whose name isn't found yet keeps the setup screen and op
   assert.deepEqual(w.went.at(-1), [CLOUD, CLOUD], "found: My Cloud opens with nothing pressed");
   w.loaded();
   assert.deepEqual([w.home.asking(), w.timers.length], [false, 0]);
+});
+
+test("a brand-new Cloud whose name is found but whose page isn't up yet keeps the setup screen too, never \"Can't reach my cloud\"", async () => {
+  const w = world();
+  w.server.up = false;
+  await w.says(settingUp());
+  await w.says(ready());
+  await w.home.openCloud();
+  assert.deepEqual(w.home.view(), { screen: "setup", step: "checking" });
+  w.url = SCREEN;
+  await w.later(NAME_RETRY_MS[0]);
+  assert.deepEqual(w.home.view(), { screen: "setup", step: "checking" }, "still starting, said calmly");
+  w.server.up = true;
+  await w.later(NAME_RETRY_MS[1]);
+  assert.deepEqual(w.went.at(-1), [CLOUD, CLOUD], "up: My Cloud opens with nothing pressed");
 });
 
 test("the window's own load of a brand-new Cloud failing on its name (ERR_NAME_NOT_RESOLVED) is waited out too, not the old fall-back dialog", async () => {

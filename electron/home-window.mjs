@@ -349,23 +349,15 @@ export function createHomeWindow(deps) {
     const ms = delays[Math.min(count(), delays.length - 1)];
     retry = timers.set(() => { retry = null; if (screen) void show(); }, ms);
   }
-  /** Whether the window's own resolver finds `origin`'s name now, its host cache bypassed. */
-  async function found(origin) {
-    const resolver = hosts();
-    if (!resolver) return true;
-    const slow = new Promise((done) => { const timer = setTimeout(() => done(null), 2 * LOOK_MS); timer.unref?.(); });
-    try { return (await Promise.race([resolver.resolveHost(new URL(origin).hostname, { cacheUsage: "disallowed" }), slow]))?.endpoints?.length > 0; }
-    catch { return false; }
-  }
   const forgetNames = () => Promise.resolve().then(() => hosts()?.clearHostResolverCache()).catch(() => {});
-  /** My Cloud didn't answer: a brand-new one whose name isn't found yet is still settling in (the setup screen, tried
-   * again sooner, for NAME_WAIT_MS); anything else is the offline screen. */
-  async function unreachable(place, token, missing = null) {
-    if (place.kind !== "cloud" || !(naming || clock.fresh(place.origin)) || (missing ?? !(await found(place.origin))) === false) return offline(token);
+  /** My Cloud didn't answer: a brand-new one is still starting (its name not found yet, its page or sign-in not up yet), so
+   * the setup screen stays, tried again sooner, for NAME_WAIT_MS; only then, or for any other place, the offline screen. */
+  async function unreachable(place, token) {
+    if (place.kind !== "cloud" || !(naming || clock.fresh(place.origin))) return offline(token);
     if (!wanted(token)) return;
     naming ??= { since: now(), tries: 0 };
     if (now() - naming.since >= NAME_WAIT_MS) return offline(token);
-    log(`home: My Cloud's name isn't found yet; trying again (${naming.tries + 1})`);
+    log(`home: My Cloud is still starting; trying again (${naming.tries + 1})`);
     toScreen({ screen: "setup", step: "checking" });
     later(NAME_RETRY_MS, () => naming.tries++);
   }
@@ -499,7 +491,7 @@ export function createHomeWindow(deps) {
         if (!wanted(token)) return;
         if (!grant) {
           if (signInNeeded()) return toScreen({ screen: "signin" });
-          return offline(token);
+          return unreachable(place, token);
         }
       }
       // My Cloud opened before the move made it home is a saved server the window shows, as the Server menu opens one.
@@ -510,7 +502,7 @@ export function createHomeWindow(deps) {
       const loaded = await Promise.race([Promise.resolve(go(cloudHomeConnectUrl({ origin, grant }, now(), open === "phone" ? "phone" : null, place.kind === "cloud" && open !== "phone" ? cloudRoute : null), origin, place)).then(() => true, () => true),
         new Promise((done) => { slow = timers.set(() => done(false), OPEN_MS); })]);
       timers.clear(slow);
-      if (!loaded) { log(`home: ${otherPlace(place) ? place.name : "My Cloud"} didn't load in ${OPEN_MS / 1000} s`); return offline(token); }
+      if (!loaded) { log(`home: ${otherPlace(place) ? place.name : "My Cloud"} didn't load in ${OPEN_MS / 1000} s`); return unreachable(place, token); }
       if (place.kind === "cloud") { clearRenewal(); power.woke(); wakeIntent = null; }
       else if (place.kind === "team") renewLater(place, grant || !session?.expiresAt ? TEAM_RENEW_MS : session.expiresAt - now() - TEAM_RENEW_EARLY_MS);
       else clearRenewal();
@@ -730,12 +722,12 @@ export function createHomeWindow(deps) {
     },
     /** The main frame could not load the place, or My Cloud before it is home (Chromium's net error `code`): this
      * computer's screen says so and the window tries again by itself. False for any other server. */
-    failed(url, code = 0) {
+    failed(url) {
       const at = originOf(url), place = placeOrigin(), mine = readyCloudOrigin(state());
       if (!at || (at !== place && (home.kind !== "computer" || at !== mine))) return false;
       if (at !== place) asked ??= { open: null };
       const token = ++opens;
-      void unreachable(otherPlace(shown) && at === place ? shown : { kind: "cloud", origin: at }, token, nameNotFound(code));
+      void unreachable(otherPlace(shown) && at === place ? shown : { kind: "cloud", origin: at }, token);
       return true;
     },
     /** `event` came from the shown place's own page in this window (My Cloud's while it is home, or a team's Cloud's). */
