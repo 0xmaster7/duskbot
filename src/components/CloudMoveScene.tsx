@@ -129,7 +129,9 @@ export function CloudHopScene({ bots, on, asleep = false, sky = true, className 
         if (reduced) return <span key={`${bot.id}-${on}`} data-bot-at={on} className="absolute left-0 top-0 block animate-fade-in" style={{ transform: bandSpot(on === "cloud" ? to : from, size) }}>{mascot}</span>;
         const order = on === "cloud" ? index : shown.length - 1 - index;
         return <motion.span key={bot.id} data-bot-at={on} className="absolute left-0 top-0 block will-change-transform" initial={false}
-          animate={{ transform: on === "cloud" ? [bandSpot(from, size), peak, bandSpot(to, size)] : [bandSpot(to, size), peak, bandSpot(from, size)] }}
+          // null: each hop starts from wherever the bot is, so pointing off mid-hop turns it back in the air instead of snapping
+          // it to the far side first
+          animate={{ transform: [null, peak, bandSpot(on === "cloud" ? to : from, size)] }}
           transition={{ duration: 0.56, ease: "easeInOut", times: [0, 0.45, 1], delay: 0.07 * order }}>{mascot}</motion.span>;
       })}
     </div>
