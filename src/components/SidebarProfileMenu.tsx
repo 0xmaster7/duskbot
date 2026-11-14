@@ -483,8 +483,8 @@ export function grokProfileMenuItems({ onGetApp, onHelp, onShortcuts, onFeedback
   const active = accounts.view?.active;
   const account: SidebarMenuItem[] = active
     ? [
-      // who is signed in, first: the account's name and address, opening its card in Settings
-      { key: "who", label: active.name?.trim() || active.email, ...(active.name?.trim() ? { subtitle: active.email } : {}), icon: <UserFace account={active} size={16} />, onSelect: onSettings },
+      // who is signed in, first: the account's name and address, opening the account dashboard (Settings without one)
+      { key: "who", label: active.name?.trim() || active.email, ...(active.name?.trim() ? { subtitle: active.email } : {}), icon: <UserFace account={active} size={16} />, onSelect: onDashboard ?? onSettings },
       { key: "log-out", label: t("accounts.signOut"), icon: icon("arrow-bracket-from-left"), onSelect: () => accounts.signOut(active.id) },
     ]
     : accounts.openSheet ? [{ key: "accounts-sheet", label: t("accounts.manage"), icon: icon("person"), onSelect: accounts.openSheet }]

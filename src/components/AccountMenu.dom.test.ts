@@ -54,7 +54,7 @@ it("the You menu and settings sign out through the same question", async () => {
   expect(dialog()).toBeNull();
 });
 
-it("the account card shows the photo, name, address and plan, and Manage account opens the account page", async () => {
+it("the account card shows the photo, name, address and plan, and Open dashboard opens the account dashboard", async () => {
   const at = Date.UTC(2026, 11, 14, 12);
   bridge.list.mockResolvedValueOnce({ active: { id: "a", email: "a@example.test", name: "Ada Lovelace", avatarUrl: "https://photos.example.test/ada.png", plan: { status: "active", tier: "pro", renewsAt: at } } } as never);
   const openPage = vi.fn(async () => ({ opened: true })), openDashboard = vi.fn(async () => {});
@@ -66,9 +66,9 @@ it("the account card shows the photo, name, address and plan, and Manage account
   expect(card.textContent).toContain("a@example.test");
   expect(card.querySelector("[data-accounts-plan]")?.textContent).toBe("dusk cloud · Pro");
   expect(card.textContent).not.toContain("Signed in as");
-  await act(async () => { button("Manage account")!.click(); });
-  expect(openPage).toHaveBeenCalledWith("account");
-  expect(openDashboard).not.toHaveBeenCalled();
+  await act(async () => { button("Open dashboard")!.click(); });
+  expect(openDashboard).toHaveBeenCalled();
+  expect(openPage).not.toHaveBeenCalled();
   expect(button("Sign out")).toBeDefined();
 });
 

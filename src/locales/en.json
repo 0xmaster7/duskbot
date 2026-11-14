@@ -1995,7 +1995,7 @@
   "accounts.title": "Your account",
   "accounts.close": "Close",
   "accounts.failed": "That didn't work. Try again in a moment.",
-  "accounts.manageAccount": "Manage account",
+  "accounts.manageAccount": "Open dashboard",
   "accounts.card.free": "Free",
   "accounts.card.plan": "dusk cloud · {plan}",
   "accounts.card.trial": "dusk cloud · {plan} free trial",

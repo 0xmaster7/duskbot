@@ -241,8 +241,6 @@ export function AccountsSheet({ onClose, adding = null, note: given = null }: { 
 async function manageAccount(): Promise<void> {
   const cloud = window.duskDesktop?.cloudAccount;
   if (!cloud) throw new Error("no account bridge");
-  const opened = await cloud.openPage?.("account").catch(() => null);
-  if (opened && typeof opened === "object" && "opened" in opened && opened.opened) return;
   await cloud.openDashboard();
 }
 
