@@ -293,11 +293,12 @@ describe("thread control placement", () => {
       expect(markup).not.toMatch(/border-danger|bg-danger/);
     }
   });
-  it("says in a few words that this computer can't be used, with the server's reason under Details", () => {
+  it("says in a few words that this computer can't be used, with the server's reason behind Copy details", () => {
     const line = "Only the dusk bot app on this computer can let a bot use it. Open the app here, or let the bot work in its own browser or on a cloud desktop instead.";
     const markup = renderToStaticMarkup(createElement(ErrorRow, { message: line, action: { label: "Open screen", onClick: () => {} } }));
     expect(markup).toContain("I can&#x27;t use this computer right now.");
-    expect(markup).toMatch(/<details[\s\S]*details[\s\S]*Only the dusk bot app/);
+    expect(markup).toContain("data-error-details-copy");
+    expect(markup).not.toContain("Only the dusk bot app");
     expect(markup).toContain(">Open screen</button>");
   });
   it("directs ChatGPT plan limits to usage settings rather than repeatedly retrying", () => {
@@ -315,7 +316,7 @@ describe("thread control placement", () => {
     expect(markup).toContain("manage usage");
     expect(markup).not.toContain("<button");
   });
-  it("opens a signed-out engine's failed turn with one sentence and the sign-in, the CLI's words under Details", () => {
+  it("opens a signed-out engine's failed turn with one sentence and the sign-in, the CLI's words behind Copy details", () => {
     const claude = {
       instanceId: "claude", driverKind: "claudeAgent", displayName: "Claude",
       snapshot: { state: "available", authenticated: false },
@@ -326,7 +327,8 @@ describe("thread control placement", () => {
     const markup = renderToStaticMarkup(createElement(FailedTurnRow, { tool: { name: "error: Not logged in · Please run /login", ok: false, setup: true }, engine: claude, onRetry: () => {} }));
     expect(markup).toContain(">Claude isn&#x27;t signed in yet. Sign in below, then send your message again.</span>");
     expect(markup).toContain("sign in to Claude</button>");
-    expect(markup).toMatch(/<summary[^>]*>Details<\/summary><p[^>]*>Not logged in · Please run \/login<\/p>/);
+    expect(markup).toContain("data-error-details-copy");
+    expect(markup).not.toContain("Please run /login");
     expect(markup).not.toContain(">Retry<");
     const update = { name: "error: Claude Code 2.1.268 does not support this model", ok: false, setup: true, claudeUpdate: true };
     for (const engine of [claude, { ...claude, readOnly: true }]) {
@@ -336,11 +338,12 @@ describe("thread control placement", () => {
       expect(activityPreview(update, engine)).toBe("Claude Code 2.1.268 does not support this model");
     }
   });
-  it("opens a failed turn with a technical cause on one plain line, the engine's words under Details", () => {
+  it("opens a failed turn with a technical cause on one plain line, the engine's words behind Copy details", () => {
     const raw = 'API Error: 529 {"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}';
     const markup = renderToStaticMarkup(createElement(FailedTurnRow, { tool: { name: `error: ${raw}`, ok: false }, engine: undefined, onRetry: () => {} }));
     expect(markup).toContain(">The service is busy right now. Try again in a moment.</span>");
-    expect(markup).toMatch(/<summary[^>]*>Details<\/summary><p[^>]*>API Error: 529/);
+    expect(markup).toContain("data-error-details-copy");
+    expect(markup).not.toContain("API Error: 529");
     expect(markup).toContain(" Retry</button>");
     const plain = renderToStaticMarkup(createElement(FailedTurnRow, { tool: { name: "error: no activity for 10 minutes: the turn was stopped", ok: false }, engine: undefined }));
     expect(plain).toContain(">no activity for 10 minutes: the turn was stopped</span>");
