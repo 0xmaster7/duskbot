@@ -35,7 +35,7 @@ for (const interval of ["month", "year"] as const) {
     const total = quote({ ...bundle.cart, interval }, BILLING_CONFIG).totalCents;
     if (bundle.id === "starter") wanted.push({ key: `desktop_shared_s:${interval}`, name: `dusk cloud Plus (${word})`, cents: total, description: bundle.highlights.join(". ") });
     if (bundle.id === "pro") wanted.push({ key: `plan_pro:${interval}`, name: `dusk cloud Pro (${word})`, cents: total, description: bundle.highlights.join(". ") });
-    if (bundle.id === "team") wanted.push({ key: `plan_team:${interval}`, name: `dusk cloud Team (${word})`, cents: total, description: `${bundle.highlights.join(". ")}. Extra seats are added at checkout` });
+    if (bundle.id === "team") wanted.push({ key: `plan_team:${interval}`, name: `dusk cloud Team (${word})`, cents: total, description: bundle.highlights.join(". ") });
   }
 }
 for (const w of wanted) {
@@ -46,7 +46,7 @@ for (const w of wanted) {
     continue;
   }
   const have = await call(`/products/${encodeURIComponent(id)}`, "GET");
-  const same = have!.name === w.name && have!.price?.price === w.cents;
+  const same = have!.name === w.name && have!.price?.price === w.cents && (have!.description ?? "") === w.description;
   console.log(`${w.key}: ${id} ${same ? "ok" : `update to "${w.name}" ${w.cents} cents (was "${have!.name}" ${have!.price?.price})`}`);
   if (!same && apply) await call(`/products/${encodeURIComponent(id)}`, "PATCH", { name: w.name, description: w.description, ...(have!.price?.price === w.cents ? {} : { price: price(w.cents, w.key.endsWith(":year") ? "year" : "month") }) });
 }
