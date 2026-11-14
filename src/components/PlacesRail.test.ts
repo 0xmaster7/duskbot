@@ -149,9 +149,9 @@ it("where the app window can't take the setup, the rail's sheet lists the ways i
   await mount(createElement(PlacesRail));
   await click(host.querySelector("[data-rail-add]"));
   await click(document.querySelector('[data-place-add-choice="server"]'));
-  expect([...document.querySelectorAll("[data-setup-method]")].map((row) => row.getAttribute("data-setup-method"))).toEqual(["tailscale", "tunnel", "domain", "ssh", "address"]);
-  await click(document.querySelector('[data-setup-method="domain"]'));
-  await type(document.querySelector("[data-setup-address]"), "bots.example.test");
+  expect([...document.querySelectorAll("[data-setup-method]")].map((row) => row.getAttribute("data-setup-method"))).toEqual(["address"]);
+  await click(document.querySelector('[data-setup-method="address"]'));
+  await type(document.querySelector("[data-setup-address]"), "https://bots.example.test");
   await type(document.querySelector("[data-setup-code]"), "ABCD-2345-EFGH");
   await submit(document.querySelector("[data-place-setup-way]")!);
   expect(workspaces.add.mock.calls).toEqual([["link", "https://bots.example.test/pair#code=ABCD-2345-EFGH"]]);
@@ -256,7 +256,7 @@ it("a server of the person's own that signed in: a small server mark, the offlin
   expect(placeLabel({ ...servers[2]!, lastSeenAt: undefined, ownNetwork: undefined })).toBe("Mac mini, your own server: offline");
   expect(placeLabel(servers[3]!)).toBe("Render VPS, your own server: connect it to this app");
   expect(placeLabel(place("s", "Mac mini", { kind: "server", server: true, update: { version: "0.1.118", latest: "0.1.130" } })))
-    .toBe("Mac mini, your own server · on 0.1.118, 0.1.130 is out");
+    .toBe("Mac mini, your own server · update ready");
   rail = { places: servers, add: { cloud: true, link: true, address: false } };
   await mount(createElement(PlacesRail));
   expect(host.querySelector('[data-rail-place="vps"] [data-rail-server]')).toBeTruthy();
@@ -296,7 +296,7 @@ it("a server of the person's own on an older release than the newest has a quiet
     place("s-old", "Old box", { kind: "server", server: true, attention: true, update: { version: "0.1.100", latest: "0.1.130" } })], add: { cloud: true, link: true, address: false } };
   await mount(createElement(PlacesRail));
   expect(host.querySelector('[data-rail-place="s-mini"] [data-rail-update]')).toBeTruthy();
-  expect(host.querySelector('[data-rail-place="s-mini"]')?.getAttribute("title")).toContain("on 0.1.118, 0.1.130 is out");
+  expect(host.querySelector('[data-rail-place="s-mini"]')?.getAttribute("title")).toContain("update ready");
   expect(host.querySelector('[data-rail-place="s-old"] [data-rail-update]')).toBeNull();
   expect(host.querySelector('[data-rail-place="s-old"] [data-rail-dot]')).toBeTruthy();
 });
