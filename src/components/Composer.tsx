@@ -3,7 +3,7 @@ import { directMessageSent, roomMessageSent } from "@/lib/product-events";
 import { cueMascot } from "./mascot-events";
 import { useComposerDictation } from "@/lib/use-composer-dictation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type SetStateAction } from "react";
-import { Mic, Square } from "../icons";
+import { Mic } from "../icons";
 import { useStore, visibleMessages, currentTaskBot, type Bot, type Group, type InstanceInfo, type Message } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { PHONE_LAYOUT, useMediaQuery } from "@/lib/use-media-query";
@@ -115,7 +115,7 @@ type SlotGlyph = "waveform" | "mic" | "arrow-up" | "stop";
 function SlotGlyphGhost({ glyph, ink }: { glyph: SlotGlyph; ink: string }) {
   return (
     <span aria-hidden="true" data-composer-glyph-ghost className="pointer-events-none absolute bottom-0 right-0 z-[1] flex size-7 items-center justify-center" style={{ color: ink }}>
-      {glyph === "stop" ? <Square size={10} className="composer-glyph-out fill-current" /> : <Icon name={glyph} variant="filled" size={16} className="composer-glyph-out" />}
+      {glyph === "stop" ? <span aria-hidden className="composer-glyph-out block size-[10px] rounded-[2.5px] bg-current" /> : <Icon name={glyph} variant="filled" size={16} className="composer-glyph-out" />}
     </span>
   );
 }
@@ -1088,7 +1088,7 @@ export function Composer({
             style={stopInSlot ? slot.button.style : undefined}
             title={t("chat.stop")}
           >
-            <Square size={simpleDock ? 10 : 14} className={cn("fill-current", stopInSlot && "composer-glyph")} />
+            <span aria-hidden className={cn("block rounded-[2.5px] bg-current", simpleDock ? "size-[10px]" : "size-[12px]", stopInSlot && "composer-glyph")} />
           </button>
         )}
         {!locked && recording && (
