@@ -10,7 +10,7 @@ const fx = vi.hoisted(() => ({ refreshInstances: vi.fn() }));
 vi.mock("@/state/store", async (original) => {
   const actual = await original<typeof import("@/state/store")>();
   const instances = [{ instanceId: "deepseek", driverKind: "deepseekAgent", displayName: "DeepSeek Harness", snapshot: { state: "unavailable" },
-    install: { platform: "linux", command: { linux: "npm install -g @deepseek-ai/dsh" } }, models: { default: "m", options: [] } }] as unknown as InstanceInfo[];
+    install: { platform: "linux", command: { linux: "npm install -g @deepseek-ai/dsh" }, server: { package: "@deepseek-ai/dsh" } }, models: { default: "m", options: [] } }] as unknown as InstanceInfo[];
   return {
     ...actual,
     useStore: () => ({ state: { ...actual.initialState, config: { deepseek: { configured: true, last4: "9z9z" } }, instances }, dispatch: vi.fn(), refreshInstances: fx.refreshInstances }),
@@ -36,19 +36,26 @@ afterEach(() => {
   host.remove();
 });
 
-const checkAgain = () => host.querySelector<HTMLButtonElement>("[data-key-engine-check]")!;
+const install = () => host.querySelector<HTMLButtonElement>("[data-key-engine-check]")!;
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-it("says when Check again could not reach the server, and clears that on the next try", async () => {
-  fx.refreshInstances.mockRejectedValueOnce(new Error("fixture offline"));
-  flushSync(() => checkAgain().click());
-  expect(fx.refreshInstances).toHaveBeenCalledWith({ reportErrors: true });
+it("installs the key's own engine in place, says plainly when that failed, and clears it on Try again", async () => {
+  const fetchMock = vi.fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify({ error: "npm could not install @deepseek-ai/dsh" }), { status: 500 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ instances: [] })));
+  vi.stubGlobal("fetch", fetchMock);
+  const missing = host.querySelector("[data-key-engine-missing]")!;
+  expect(missing.textContent).not.toContain("npm install");
+  expect(install().textContent).toBe("Install DeepSeek Harness here");
+  flushSync(() => install().click());
   await settle();
-  expect(host.querySelector("[data-key-engine-missing] [role=alert]")?.textContent).toContain("fixture offline");
-  expect(checkAgain().disabled).toBe(false);
+  expect(String(fetchMock.mock.calls[0]![0])).toContain("/api/instances/deepseek/install");
+  expect(host.querySelector("[data-key-engine-missing] [role=alert]")?.textContent).toBe("DeepSeek Harness couldn't be installed on the computer your bots run on. Try again in a moment.");
+  expect(install().textContent).toBe("Try again");
 
-  fx.refreshInstances.mockResolvedValueOnce(undefined);
-  flushSync(() => checkAgain().click());
+  flushSync(() => install().click());
   await settle();
+  expect(fx.refreshInstances).toHaveBeenCalledWith({ reportErrors: true });
   expect(host.querySelector("[data-key-engine-missing] [role=alert]")).toBeNull();
+  vi.unstubAllGlobals();
 });

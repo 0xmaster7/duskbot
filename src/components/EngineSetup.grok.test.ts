@@ -56,11 +56,11 @@ describe("signed out: the in-app code", () => {
     expect(html).not.toMatch(/Connect ChatGPT|ChatGPT security settings/);
   });
 
-  it("keeps `grok login` behind Prefer a terminal? in the desktop app's own window", () => {
+  it("shows no terminal sign-in in the desktop app's own window either", () => {
     const html = render(signedOut, desktop);
     expect(html).toContain('data-device-sign-in="grok"');
-    expect(html).toContain("Prefer a terminal?");
-    expect(html).toContain("grok login");
+    expect(html).not.toContain("Prefer a terminal?");
+    expect(html).not.toContain("grok login");
   });
 
   it.each([
@@ -79,7 +79,7 @@ describe("Grok cannot run here: an xAI key instead", () => {
     ["My Cloud in the desktop app's window", desktop, true],
   ] as const)("says so in one line, with the xAI key's own field right there on %s", (_where, duskDesktop, cloudHome) => {
     const html = render(missing, duskDesktop, cloudHome);
-    expect(grokKeyInstead(missing, cloudHome)).toBe(true);
+    expect(grokKeyInstead(missing)).toBe(true);
     expect(html).toContain("data-engine-setup-key-instead");
     expect(html).toContain(NOT_INSTALLED);
     expect(html).toContain('data-key-row="xai"');
@@ -102,17 +102,22 @@ describe("Grok cannot run here: an xAI key instead", () => {
     expect(html).not.toContain("<button");
   });
 
-  it("keeps the install on the desktop, where a terminal can run it", () => {
-    const html = render(missing, desktop);
-    expect(grokKeyInstead(missing, false)).toBe(false);
-    expect(html).toContain("Set up Grok");
-    expect(html).toContain(CURL);
-    expect(html).not.toContain("Add xAI key");
+  it("installs Grok in place wherever dusk bot can, and never shows the installer command", () => {
+    const installable = { ...missing, install: { ...missing.install, server: { script: true } } };
+    for (const where of [undefined, desktop]) {
+      const html = render(installable, where);
+      expect(grokKeyInstead(installable)).toBe(false);
+      expect(html).toContain("Set up Grok");
+      expect(html).toContain("Install Grok here");
+      expect(html).not.toContain(CURL);
+      expect(html).not.toContain("Terminal");
+      expect(html).not.toContain("Add xAI key");
+    }
   });
 
   it("is about Grok Build alone, and only while it cannot run", () => {
     vi.stubGlobal("duskDesktop", undefined);
-    expect(grokKeyInstead(signedOut, false)).toBe(false);
-    expect(grokKeyInstead({ ...missing, driverKind: "kimiAgent" }, false)).toBe(false);
+    expect(grokKeyInstead(signedOut)).toBe(false);
+    expect(grokKeyInstead({ ...missing, driverKind: "kimiAgent" })).toBe(false);
   });
 });

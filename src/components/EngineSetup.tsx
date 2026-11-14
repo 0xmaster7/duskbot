@@ -8,12 +8,13 @@ import { DEVICE_SIGN_IN_COPY, DeviceSignIn, deviceSignInProvider } from "./Devic
 import { ClaudeSignIn } from "./ClaudeSignIn";
 import { RefreshEngines } from "./EngineLibrary";
 import { AppCopyNotice, AppCopySetup } from "./EngineAppCopy";
-import { installCommandFor, noteAppCopySwitch } from "@/state/engine-install";
+import { installCommandFor, installsHere, noteAppCopySwitch } from "@/state/engine-install";
 
 export { installCommandFor };
 import { keyEntry, keyForInstance, type KeyId } from "./keys/key-catalog";
 import { openKeySettings } from "./keys/key-focus";
 import { KeyRow, SavedKeyLine } from "./keys/KeyRow";
+import { OpenAiCompatUrl } from "./keys/KeyPanels";
 import { Card, CopyRow, ItemRow, NavRow, NoteRow, rowCls } from "./ListRows";
 import { openExternalLink } from "@/lib/app-links";
 import { friendlyError } from "@/lib/plain-error";
@@ -40,8 +41,8 @@ export function serverTerminal(cloudHome: boolean): boolean {
   return Boolean(window.duskDesktop?.openInstallTerminal) && window.duskDesktop?.remoteClient?.active !== true && !cloudHome;
 }
 
-export function grokKeyInstead(instance: InstanceInfo, cloudHome: boolean): boolean {
-  return instance.driverKind === "grokAgent" && needsCli(instance) && !serverTerminal(cloudHome);
+export function grokKeyInstead(instance: InstanceInfo): boolean {
+  return instance.driverKind === "grokAgent" && needsCli(instance) && !installsHere(instance.install);
 }
 
 export function CommandRow({
@@ -165,14 +166,12 @@ export function CommandRow({
   );
 }
 
-function ServerEngineInstall({ instance, mode, command, quiet = false, rows }: { instance: InstanceInfo; mode: "install" | "update"; command: string | null; quiet?: boolean; rows?: { title: string; hint: string } }) {
-  const { state, dispatch, refreshModels } = useStore();
+function ServerEngineInstall({ instance, mode, quiet = false, rows }: { instance: InstanceInfo; mode: "install" | "update"; quiet?: boolean; rows?: { title: string; hint: string } }) {
+  const { dispatch, refreshModels } = useStore();
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const standalone = instance.install?.server?.standalone;
-  // The app installs its own build without npm; the npm command only helps when the server has npm.
-  const terminalCommand = standalone && !instance.install?.server?.package ? null : command;
 
   const run = async () => {
     if (busy) return;
@@ -184,31 +183,29 @@ function ServerEngineInstall({ instance, mode, command, quiet = false, rows }: {
       noteAppCopySwitch(instance.instanceId, usingAppCopy === true);
       const installed = (instances as InstanceInfo[] | undefined)?.find((candidate) => candidate.instanceId === instance.instanceId);
       if (instances) dispatch({ type: "instances", instances });
-      if (installed?.snapshot.state !== "available") {
-        throw new Error(t("engineSetup.installNotVerified", { reason: installed?.snapshot.reason ?? t("engineSetup.noReason") }));
-      }
+      if (installed?.snapshot.state !== "available") throw new Error("not available after install");
       setDone(true);
       await refreshModels(instance.instanceId).catch(() => {});
-    } catch (cause) {
-      setError(friendlyError(cause));
+    } catch {
+      setError(t("engineSetup.installFailed", { name: instance.displayName }));
     } finally {
       setBusy(false);
     }
   };
 
-  // Settings' rows: the notice is the row, its one action the pill; the terminal way is a copyable row under it
+  const label = busy ? t("engineSetup.serverInstalling")
+    : error ? t("common.tryAgain")
+      : t(mode === "update" ? "engineSetup.serverUpdate" : "engineSetup.serverInstall", { name: instance.displayName });
+
   if (rows) {
     return (
       <>
         <ItemRow title={rows.title} hint={rows.hint} tone="warn">
-          <button type="button" className="ui-button" disabled={busy} onClick={() => void run()}>
-            {busy ? t("engineSetup.serverInstalling") : t(mode === "update" ? "engineSetup.serverUpdate" : "engineSetup.serverInstall", { name: instance.displayName })}
-          </button>
+          <button type="button" className="ui-button" disabled={busy} onClick={() => void run()}>{label}</button>
         </ItemRow>
         {done && !busy && <NoteRow>{t("engineSetup.installVerified")}</NoteRow>}
         {!busy && <AppCopyNotice instance={instance} className={rowCls} />}
         {error && <NoteRow tone="danger">{error}</NoteRow>}
-        {terminalCommand && <CopyRow title={t("engineSetup.preferTerminal")} text={terminalCommand} copyLabel={t("engineSetup.copyCommand")} />}
       </>
     );
   }
@@ -222,10 +219,8 @@ function ServerEngineInstall({ instance, mode, command, quiet = false, rows }: {
         className={cn("flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-[13px] font-semibold disabled:cursor-wait disabled:opacity-70",
           quiet ? "bg-control text-ink hover:bg-raised-hover" : "ui-button-primary bg-ink text-app hover:bg-ink/85")}
       >
-        {busy ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-        {busy
-          ? t("engineSetup.serverInstalling")
-          : t(mode === "update" ? "engineSetup.serverUpdate" : "engineSetup.serverInstall", { name: instance.displayName })}
+        {busy ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <Download size={14} aria-hidden="true" />}
+        {label}
       </button>
       {standalone && mode === "install" && !busy && !done && (
         <p className="text-center text-[11px] text-ink-tertiary">
@@ -235,13 +230,7 @@ function ServerEngineInstall({ instance, mode, command, quiet = false, rows }: {
       )}
       {done && !busy && <p role="status" className="text-center text-[11px] text-success">{t("engineSetup.installVerified")}</p>}
       {!busy && <AppCopyNotice instance={instance} />}
-      {error && <p role="alert" className="whitespace-pre-wrap text-[12px] leading-relaxed text-danger">{error}</p>}
-      {terminalCommand && (
-        <details className="rounded-lg border border-transparent bg-app px-2.5 py-2 text-[12px] text-ink-secondary">
-          <summary className="cursor-pointer select-none">{t("engineSetup.preferTerminal")}</summary>
-          <CommandRow command={terminalCommand} actionLabel={t(mode === "update" ? "engineSetup.openUpdate" : "engineSetup.openInstall")} compact allowTerminal={state.config?.cloudHome !== true} />
-        </details>
-      )}
+      {error && <p role="alert" className="text-center text-[12px] leading-relaxed text-danger">{error}</p>}
     </div>
   );
 }
@@ -265,7 +254,7 @@ export function EngineUpdateNotice({
     return (
       <div data-engine-update-notice="" className="contents">
         {instance?.install?.server
-          ? <ServerEngineInstall instance={instance} mode="update" command={update.command} quiet={quiet} rows={{ title: update.title, hint: update.message }} />
+          ? <ServerEngineInstall instance={instance} mode="update" quiet={quiet} rows={{ title: update.title, hint: update.message }} />
           : <>
             <ItemRow title={update.title} hint={update.message} tone="warn" />
             <CopyRow title={t("engineSetup.openUpdate")} text={update.command} copyLabel={t("engineSetup.copyCommand")} />
@@ -286,7 +275,7 @@ export function EngineUpdateNotice({
         </div>
       </div>
       {instance?.install?.server
-        ? <ServerEngineInstall instance={instance} mode="update" command={update.command} quiet={quiet} />
+        ? <ServerEngineInstall instance={instance} mode="update" quiet={quiet} />
         : <CommandRow command={update.command} actionLabel={t("engineSetup.openUpdate")} compact />}
     </div>
   );
@@ -456,13 +445,13 @@ export function hasSavedApiKey(instance: InstanceInfo): boolean {
 function apiKeySetup(instance: InstanceInfo): boolean {
   if (!(isApiKeyEngine(instance) || instance.install?.settings === "connections") || instance.snapshot.authenticationUnavailableReason) return false;
   // A key engine with its own CLI (DeepSeek Harness) is installed first, then given the key.
-  if (instance.snapshot.state !== "available") return !installCommandFor(instance.install);
+  if (instance.snapshot.state !== "available") return !installsHere(instance.install) && !installCommandFor(instance.install);
   return instance.snapshot.authenticated === false;
 }
 
 function inlineKey(instance: InstanceInfo): KeyId | undefined {
   const key = keyForInstance(instance.instanceId);
-  return key && keyEntry(key).kind === "key" && key !== "openaiCompat" ? key : undefined;
+  return key && keyEntry(key).kind === "key" ? key : undefined;
 }
 
 export const openKeysFor = (instance?: InstanceInfo) =>
@@ -515,7 +504,9 @@ function ApiKeyEngineSetup({ instance, className, unframed, configured = false }
   const inline = remote ? undefined : inlineKey(instance);
   const copy = configured
     ? { title: "engineSetup.apiKey.configuredTitle", description: remote ? "engineSetup.apiKey.configuredRemote" : inline ? null : "engineSetup.apiKey.configuredDescription", action: "engineSetup.apiKey.change" } as const
-    : { title: "engineSetup.apiKey.title", description: remote ? "engineSetup.apiKey.remote" : inline ? "engineSetup.apiKey.inline" : "engineSetup.apiKey.description", action: "engineSetup.apiKey.open" } as const;
+    : inline === "openaiCompat"
+      ? { title: "engineSetup.apiKey.compatTitle", description: "engineSetup.apiKey.inlineCompat", action: "engineSetup.apiKey.open" } as const
+      : { title: "engineSetup.apiKey.title", description: remote ? "engineSetup.apiKey.remote" : inline ? "engineSetup.apiKey.inline" : "engineSetup.apiKey.description", action: "engineSetup.apiKey.open" } as const;
   return (
     <div data-engine-setup-api-key={configured ? "configured" : ""} className={cn(!unframed && "rounded-xl border border-transparent bg-control/30 p-3", className)}>
       <div className="flex items-start gap-2.5">
@@ -532,6 +523,7 @@ function ApiKeyEngineSetup({ instance, className, unframed, configured = false }
       {!inline && isApiKeyEngine(instance) && needsSignIn(instance) && (
         <p role="alert" className="mt-2 text-[12px] leading-relaxed text-danger">{t("engineSetup.apiKey.rejected")}</p>
       )}
+      {inline === "openaiCompat" && <div className="mt-3"><OpenAiCompatUrl /></div>}
       {inline ? <KeyRow id={inline} bare via="model_picker" rejected={isApiKeyEngine(instance) && needsSignIn(instance)} className="mt-2 px-0 pb-0" /> : !remote && (
         <button
           type="button"
@@ -569,7 +561,7 @@ export function EngineSetup({
   quiet?: boolean;
   /** A paired desktop: sign-in and setup happen on the host, whose AIs it uses. */
   onHost?: boolean;
-  /** Settings' engine page: an install drawn as rows of one card (title, the command to copy, Check again, the guide) */
+  /** Settings' engine page: an install drawn as rows of one card */
   rows?: boolean;
 }) {
   const { state } = useStore();
@@ -578,14 +570,13 @@ export function EngineSetup({
   const install = instance.install;
   const unavailable = instance.snapshot.state === "unavailable" ? instance.snapshot.reason : undefined;
   const reason = unavailable && (checked || !notInstalledYet(unavailable)) ? unavailable : undefined;
-  const installCommand = installCommandFor(install);
   const signInCommand = install?.signInCommand;
   const signInOnly = intent === "cloud" && needsSignIn(instance);
   const deviceSignIn = signInOnly && instance.authentication?.method === "device-code";
   const browserSignIn = signInOnly && instance.authentication?.method === "browser-pkce";
   const pasteSignIn = signInOnly && instance.authentication?.method === "paste-code";
   const provider = deviceSignInProvider(instance.driverKind);
-  const command = signInOnly ? signInCommand : installCommand;
+  const command = signInOnly ? signInCommand : undefined;
   const title = signInOnly
     ? t("engineSetup.signInTitle", { name: instance.displayName })
     : t("engineSetup.setupTitle", { name: instance.displayName });
@@ -602,12 +593,10 @@ export function EngineSetup({
     : intent === "inject"
       ? t("engineSetup.injectDesc")
       : install?.server
-        ? t("engineSetup.serverInstallDesc")
+        ? t("engineSetup.serverInstallDesc", { name: instance.displayName })
       : install?.managed
         ? t("engineSetup.managedDesc")
-      : signInCommand
-        ? t("engineSetup.installDescSignIn")
-        : t("engineSetup.installDesc"));
+        : t("engineSetup.cantInstallHere", { name: instance.displayName }));
 
   // The host does not open its sign-in and setup calls to a paired desktop, so point the person there instead.
   if (onHost) {
@@ -623,7 +612,7 @@ export function EngineSetup({
     return <ApiKeyEngineSetup instance={instance} className={className} unframed={unframed} />;
   }
 
-  if (intent === "cloud" && grokKeyInstead(instance, cloudHome)) {
+  if (intent === "cloud" && grokKeyInstead(instance)) {
     return <GrokKeyInstead className={className} unframed={unframed} />;
   }
 
@@ -644,7 +633,7 @@ export function EngineSetup({
   }
 
   if (rows && !deviceSignIn && !browserSignIn && !pasteSignIn && !install.managed) {
-    return <EngineSetupRows instance={instance} title={title} description={description} command={command ?? null} installCommand={installCommand}
+    return <EngineSetupRows instance={instance} title={title} description={description} command={command ?? null}
       signInOnly={signInOnly} cloudHome={cloudHome} />;
   }
 
@@ -672,52 +661,24 @@ export function EngineSetup({
       ))}
 
       {deviceSignIn || browserSignIn ? (
-        <>
-          <DeviceSignIn key={instance.instanceId} instanceId={instance.instanceId} browserPkce={browserSignIn} provider={provider} />
-          {deviceSignIn && provider !== "codex" && signInCommand && serverTerminal(cloudHome) && (
-            <details className="mt-2 rounded-lg border border-transparent bg-app px-2.5 py-2 text-[12px] text-ink-secondary">
-              <summary className="cursor-pointer select-none">{t("engineSetup.preferTerminal")}</summary>
-              <CommandRow command={signInCommand} actionLabel={t("engineSetup.openSignIn")} compact />
-            </details>
-          )}
-        </>
+        <DeviceSignIn key={instance.instanceId} instanceId={instance.instanceId} browserPkce={browserSignIn} provider={provider} />
       ) : pasteSignIn ? (
         <ClaudeSignIn key={instance.instanceId} instanceId={instance.instanceId} />
       ) : install.server && !signInOnly ? (
-        <ServerEngineInstall instance={instance} mode="install" command={installCommand} />
+        <ServerEngineInstall instance={instance} mode="install" />
       ) : install.managed ? (
         <ManagedEngineSetup instance={instance} signInOnly={signInOnly} />
       ) : command ? (
-        <CommandRow
-          command={command}
-          actionLabel={signInOnly ? t("engineSetup.openSignIn") : t("engineSetup.openInstall")}
-          allowTerminal={!cloudHome}
-        />
-      ) : (
-        <p className="mt-3 text-[12px] leading-relaxed text-ink-secondary">
-          {t("engineSetup.noInstaller")}
-        </p>
-      )}
+        <CommandRow command={command} actionLabel={t("engineSetup.openSignIn")} allowTerminal={!cloudHome} />
+      ) : null}
 
-      {!signInOnly && install.needsNode && !install.server && (
-        <p className="mt-2 text-[11px] leading-relaxed text-ink-tertiary">
-          {t("engineSetup.needsNode").split("{npm}").flatMap((part, index) =>
-            index === 0
-              ? [part]
-              : [<code key="npm" className="font-mono">npm</code>, part],
-          )}
-        </p>
-      )}
-
-      {(install.command || signInCommand) && !deviceSignIn && !browserSignIn && !pasteSignIn && !install.managed && (
-        <div className="mt-3 border-t border-transparent pt-2">
-          <p className="mb-1 text-[12px] leading-relaxed text-ink-secondary">{t("engineSetup.sameMachine")}</p>
-          {needsCli(instance) && <p className="mb-1 text-[12px] leading-relaxed text-ink-secondary">{t("engineSetup.pathHint")}</p>}
+      {signInOnly && signInCommand && !deviceSignIn && !browserSignIn && !pasteSignIn && !install.managed && (
+        <div className="mt-3 pt-2">
           <RefreshEngines key={instance.instanceId} onChecked={() => setChecked(true)} />
         </div>
       )}
 
-      {install.docsUrl && (
+      {signInOnly && install.docsUrl && (
         <a
           href={install.docsUrl}
           target="_blank"
@@ -731,14 +692,13 @@ export function EngineSetup({
   );
 }
 
-/** An engine's install or terminal sign-in as rows of one Settings card: what it needs in a line, its one action as a pill
- * (install here, or open the command in a terminal), the command as a row to copy, Check again and the setup guide. */
-function EngineSetupRows({ instance, title, description, command, installCommand, signInOnly, cloudHome }: {
+/** An engine's install or terminal sign-in as rows of one Settings card: what it needs in a line and its one action as a
+ * pill (install here); a terminal sign-in adds its command to copy, Check again and the guide. */
+function EngineSetupRows({ instance, title, description, command, signInOnly, cloudHome }: {
   instance: InstanceInfo;
   title: string;
   description: string;
   command: string | null;
-  installCommand: string | null;
   signInOnly: boolean;
   cloudHome: boolean;
 }) {
@@ -761,7 +721,9 @@ function EngineSetupRows({ instance, title, description, command, installCommand
   return (
     <Card data-settings-block="engine-setup">
       {install.server && !signInOnly ? (
-        <ServerEngineInstall instance={instance} mode="install" command={installCommand} rows={{ title, hint: description }} />
+        <ServerEngineInstall instance={instance} mode="install" rows={{ title, hint: description }} />
+      ) : !signInOnly ? (
+        <ItemRow title={title} hint={description} tone="warn" />
       ) : (
         <>
           <ItemRow title={title} hint={description}>
@@ -771,18 +733,16 @@ function EngineSetupRows({ instance, title, description, command, installCommand
               </button>
             )}
           </ItemRow>
-          {command ? <CopyRow title={t("settings.s2.engine.command")} text={command} copyLabel={t("engineSetup.copyCommand")} />
-            : <NoteRow>{t("engineSetup.noInstaller")}</NoteRow>}
+          {command && <CopyRow title={t("settings.s2.engine.command")} text={command} copyLabel={t("engineSetup.copyCommand")} />}
           {opened === false && <NoteRow>{t("engineSetup.noTerminal")}</NoteRow>}
         </>
       )}
       {reason && <NoteRow tone="danger">{reason}</NoteRow>}
-      {!signInOnly && install.needsNode && !install.server && <NoteRow>{t("engineSetup.needsNode").replace("{npm}", "npm")}</NoteRow>}
-      {(install.command || install.signInCommand) && (
+      {signInOnly && install.signInCommand && (
         <NavRow drill={false} title={checking ? t("common.checking") : t("engines.library.refresh")} hint={t("settings.s2.engine.sameMachineShort")} disabled={checking} onClick={() => void check()} />
       )}
       {checkError && <NoteRow tone="danger">{t("engineSetup.checkFailed", { reason: checkError })}</NoteRow>}
-      {install.docsUrl && <NavRow external title={t("engineSetup.viewGuide")} onClick={() => void openExternalLink(install.docsUrl!)} />}
+      {signInOnly && install.docsUrl && <NavRow external title={t("engineSetup.viewGuide")} onClick={() => void openExternalLink(install.docsUrl!)} />}
     </Card>
   );
 }

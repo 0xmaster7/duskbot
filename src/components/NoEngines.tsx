@@ -2,7 +2,8 @@ import { ArrowUpRight, KeyRound, Loader2, RefreshCw } from "../icons";
 import { useState } from "react";
 import { useStore } from "@/state/store";
 import { EngineGroupLabel } from "@/components/EngineGroupLabel";
-import { EngineSetup, installCommandFor } from "@/components/EngineSetup";
+import { EngineSetup } from "@/components/EngineSetup";
+import { installsHere } from "@/state/engine-install";
 import { InstanceProviderMark } from "@/components/ProviderIcons";
 import { WindowDragStrip } from "@/components/DesktopCapabilities";
 import { splitEngineRail } from "@/lib/engine-rail";
@@ -43,9 +44,9 @@ export function NoEngines() {
   const engines = state.instances
     .filter((i) => i.install)
     .sort((a, b) => {
-      const aCmd = installCommandFor(a.install) ? 0 : 1;
-      const bCmd = installCommandFor(b.install) ? 0 : 1;
-      return aCmd - bCmd;
+      const aHere = installsHere(a.install) ? 0 : 1;
+      const bHere = installsHere(b.install) ? 0 : 1;
+      return aHere - bHere;
     });
 
   return (

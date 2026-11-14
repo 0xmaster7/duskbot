@@ -7,9 +7,15 @@ import { cn } from "@/lib/cn";
 import { friendlyError } from "@/lib/plain-error";
 import { connectProvider, listModels, listVerdict, placeLine, type ProviderFields, type ProviderInfo } from "@/lib/model-providers";
 import { FormDialog, FormField } from "../ListRows";
+import { engineReady } from "../EngineLibrary";
+import { connectsInApp, type ConnectInstance } from "../onboarding/connect-flow";
+import { aiTiles, type AiTileId } from "../onboarding/funnel";
+import { ConnectPanel, useConnectFlow } from "../onboarding/SignInPill";
 import { textFieldCls } from "../ui/GrokDialog";
 
 const FIELD = cn(textFieldCls, "bg-ink/[0.04]");
+
+const SIGN_IN_TILE: Partial<Record<string, AiTileId>> = { anthropic: "claude", openai: "chatgpt", google: "gemini", xai: "grok" };
 
 /** The short sheet that connects one provider on the server the bots run on: a sign-in where the provider has one, else
  * its details and key, an optional check that lists its models, and Connect. */
@@ -21,7 +27,11 @@ export function ConnectProviderDialog({ provider, place, model, onClose, onConne
   onClose: () => void;
   onConnected?: (instanceId: string, instances: InstanceInfo[]) => void;
 }) {
-  const { dispatch, refreshInstances } = useStore();
+  const { state, dispatch, refreshInstances } = useStore();
+  const flow = useConnectFlow();
+  const signInTile = provider.signIn && SIGN_IN_TILE[provider.id]
+    ? aiTiles(state.instances, engineReady, (instance) => connectsInApp(instance as unknown as ConnectInstance)).find((tile) => tile.id === SIGN_IN_TILE[provider.id])
+    : undefined;
   const [fields, setFields] = useState<ProviderFields>(model && provider.section === "custom" ? { model } : {});
   const [key, setKey] = useState("");
   const [check, setCheck] = useState<{ ok: boolean; text: string } | "checking" | null>(null);
@@ -61,8 +71,8 @@ export function ConnectProviderDialog({ provider, place, model, onClose, onConne
   };
 
   const openSignIn = () => {
-    onClose();
-    dispatch({ type: "toggleAppSettings", open: true, section: "engines" });
+    if (!signInTile) return;
+    flow.start({ tile: signInTile.id, candidates: signInTile.candidates.map((candidate) => candidate.instanceId) });
   };
 
   return (
@@ -77,7 +87,12 @@ export function ConnectProviderDialog({ provider, place, model, onClose, onConne
       onSave={save}
       onClose={onClose}
     >
-      {provider.signIn && (
+      {signInTile && flow.state.stage !== "idle" && (
+        <div data-connect-sign-in-flow="" className="py-1">
+          <ConnectPanel flow={flow} name={signInTile.label} driverKind={signInTile.instance.driverKind} />
+        </div>
+      )}
+      {provider.signIn && signInTile && flow.state.stage === "idle" && (
         <div className="flex flex-col gap-1.5">
           <button type="button" data-connect-sign-in onClick={openSignIn}
             className="h-8 rounded-[10px] bg-ink/[0.06] px-3 text-[13px] leading-[18px] text-ink hover:bg-ink/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">

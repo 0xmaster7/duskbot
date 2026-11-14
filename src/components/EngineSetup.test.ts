@@ -83,18 +83,23 @@ describe("managed engine setup errors", () => {
 });
 
 describe("engines set up with a key in Settings", () => {
-  it("opens Settings → API keys instead of offering a terminal command", () => {
+  it("takes the base URL and the key right in the card, never sending the person to Settings", () => {
     vi.stubGlobal("window", { duskDesktop: { platform: "darwin" } });
     const engine: InstanceInfo = {
       ...instance({ state: "unavailable", reason: "No API key: open Settings → API keys." }),
       instanceId: "openaiCompat",
       driverKind: "openai-compat",
-      displayName: "other (OpenAI-compatible)",
+      displayName: "Other (OpenAI-compatible)",
       install: { docsUrl: "https://openrouter.ai/keys", settings: "connections" },
     };
     const markup = renderToStaticMarkup(createElement(StoreProvider, null, createElement(EngineSetup, { instance: engine })));
-    expect(markup).toContain("other (OpenAI-compatible) needs an API key");
-    expect(markup).toContain("Open API keys");
+    expect(markup).toContain("Connect Other (OpenAI-compatible)");
+    expect(markup).toContain("Paste its address, and its key if it has one");
+    expect(markup).not.toContain("needs an API key");
+    expect(markup).toContain('aria-label="OpenAI-compatible base URL"');
+    expect(markup).toContain('data-key-row="openaiCompat"');
+    expect(markup).not.toContain("Open API keys");
+    expect(markup).not.toContain("settings → API keys");
     expect(markup).not.toContain("Open install in Terminal");
     expect(markup).not.toContain("config.json");
   });
@@ -111,10 +116,12 @@ describe("engines set up with a key in Settings", () => {
         docsUrl: "https://github.com/deepseek-ai/deepseek-harness",
         needsNode: true,
         settings: "connections",
+        server: { package: "@deepseek-ai/dsh" },
       },
     });
     const missing = renderToStaticMarkup(createElement(StoreProvider, null, createElement(EngineSetup, { instance: dsh({ state: "unavailable", reason: "dsh not found" }) })));
-    expect(missing).toContain("npm install -g @deepseek-ai/dsh");
+    expect(missing).toContain("Install DeepSeek Harness here");
+    expect(missing).not.toContain("npm install -g @deepseek-ai/dsh");
     expect(missing).not.toContain("needs an API key");
     const keyless = renderToStaticMarkup(createElement(StoreProvider, null, createElement(EngineSetup, { instance: dsh({ state: "available", authenticated: false, version: "0.2.1" }) })));
     expect(keyless).toContain("DeepSeek Harness needs an API key");
@@ -142,13 +149,22 @@ describe("install from Settings on the server", () => {
     return renderToStaticMarkup(createElement(StoreProvider, null, createElement(EngineSetup, { instance: engine })));
   }
 
-  it("offers one click on the server and keeps the terminal command behind a disclosure", () => {
+  it("offers one click on the computer the bots run on, with no terminal command anywhere", () => {
     const markup = render(npmEngine({ state: "unavailable", reason: "`kimi` CLI not found" }));
     expect(markup).toContain("Install Kimi here");
-    expect(markup).toContain("as its own user");
-    expect(markup).toContain("Prefer a terminal?");
-    expect(markup).toContain("npm install -g kimi-fixture");
-    expect(markup).not.toContain("needs");
+    expect(markup).toContain("installs Kimi on the computer your bots run on");
+    for (const line of ["Prefer a terminal?", "npm install", "Terminal", "check again", "CLI path", "View setup guide", "Requires Node.js"]) expect(markup).not.toContain(line);
+  });
+
+  it("installs a vendor-script AI like Cursor the same way, never showing its installer", () => {
+    const curl = "curl https://cursor.com/install -fsS | bash";
+    const markup = render({
+      ...instance({ state: "unavailable", reason: "`cursor-agent` CLI not found" }),
+      instanceId: "cursor", driverKind: "cursorAgent", displayName: "Cursor",
+      install: { command: { linux: curl, darwin: curl }, docsUrl: "https://cursor.com/docs/cli/installation", signInCommand: "cursor-agent login", server: { script: true } },
+    });
+    expect(markup).toContain("Install Cursor here");
+    for (const line of [curl, "cursor.com/install", "Copy command", "Check again", "settings → model providers", "View setup guide", "Install it and sign in"]) expect(markup).not.toContain(line);
   });
 
   it("keeps a quiet setup's probe reason behind Details, in plain grey, never as an alert", () => {
@@ -165,16 +181,18 @@ describe("install from Settings on the server", () => {
 
   it("shows an AI that isn't installed yet as a plain setup card, with no error before anyone has tried", () => {
     const markup = render(npmEngine({ state: "unavailable", reason: "`kimi` CLI not found" }, false));
-    expect(markup).toContain("npm install -g kimi-fixture");
+    expect(markup).toContain("Set up Kimi");
     expect(markup).not.toContain("CLI not found");
     expect(render(npmEngine({ state: "unavailable", reason: "`kimi` isn't installed, or isn't on this app's PATH." }, false))).not.toContain("text-danger");
     expect(markup).not.toContain("text-danger");
   });
 
-  it("falls back to the terminal command when the server cannot install", () => {
+  it("says in one plain line when it can't install here, with no command to copy", () => {
     const markup = render(npmEngine({ state: "unavailable", reason: "`kimi` CLI not found" }, false));
     expect(markup).not.toContain("Install Kimi here");
-    expect(markup).toContain("npm install -g kimi-fixture");
+    expect(markup).toContain("can&#x27;t install Kimi on this computer");
+    expect(markup).not.toContain("npm install");
+    expect(markup).not.toContain("<button");
   });
 
   it("offers the vendor's own build on a machine without Node.js, and drops the Node.js line", () => {
@@ -198,11 +216,11 @@ describe("install from Settings on the server", () => {
     expect(standalone).toContain("About 80 MB download");
     expect(render(opencode({ standalone: { version: "1.19.4", downloadBytes: 64_291_659 } }))).toContain("About 64 MB download");
     const withNpm = render(opencode({ standalone: { version: "1.19.4", downloadBytes: 79_667_571 }, package: "opencode-ai" }));
-    expect(withNpm).toContain("Prefer a terminal?");
-    expect(withNpm).toContain("npm install -g opencode-ai");
+    expect(withNpm).not.toContain("Prefer a terminal?");
+    expect(withNpm).not.toContain("npm install -g opencode-ai");
     const neither = render(opencode());
     expect(neither).not.toContain("Install OpenCode here");
-    expect(neither).toContain("Requires Node.js");
+    expect(neither).not.toContain("Requires Node.js");
   });
 
   it("finishes the app's own signed-out copy in the app, never in a terminal", () => {
@@ -247,7 +265,7 @@ describe("install from Settings on the server", () => {
     vi.stubGlobal("window", { duskDesktop: { platform: "linux" } });
     const withServer = renderToStaticMarkup(createElement(StoreProvider, null, createElement(EngineUpdateNotice, { update, instance: npmEngine({ state: "available", authenticated: true }) })));
     expect(withServer).toContain("Update Kimi here");
-    expect(withServer).toContain("Prefer a terminal?");
+    expect(withServer).not.toContain("Prefer a terminal?");
     const without = renderToStaticMarkup(createElement(StoreProvider, null, createElement(EngineUpdateNotice, { update, instance: npmEngine({ state: "available", authenticated: true }, false) })));
     expect(without).not.toContain("Update Kimi here");
     expect(without).toContain("npm install -g kimi-fixture@latest");
@@ -308,7 +326,7 @@ describe("server device-code sign-in", () => {
     };
     const markup = renderToStaticMarkup(createElement(StoreProvider, null, createElement(EngineSetup, { instance: engine, intent: "inject" })));
     expect(markup).not.toContain("Connect ChatGPT");
-    expect(markup).toContain("npm install");
+    expect(markup).not.toContain("npm install");
   });
 });
 

@@ -10,14 +10,20 @@ import { EngineSetup } from "../components/EngineSetup";
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 afterEach(() => vi.unstubAllGlobals());
 
-it("recovers from offline, detects installation, and becomes ready on focus without remounting", async () => {
+it("recovers from a failed install, installs, signs in and becomes ready on focus without remounting", async () => {
   let snapshot: InstanceInfo["snapshot"] = { state: "unavailable", reason: "Fixture CLI missing" };
   let offline = false;
+  const listed = () => ({ instances: [{
+    instanceId: "kimi", driverKind: "kimiAgent", displayName: "Kimi", models: { default: "fixture", options: [] }, snapshot,
+    install: { platform: "linux", command: { linux: "fixture-install" }, signInCommand: "fixture-login", server: { package: "kimi-fixture" } },
+  }] });
   const requests = vi.fn(async (path: string) => {
-    if (path.split("?")[0] === "/api/instances") return new Response(JSON.stringify(offline ? { error: "Fixture offline" } : { instances: [{
-      instanceId: "kimi", driverKind: "kimiAgent", displayName: "Kimi", models: { default: "fixture", options: [] }, snapshot,
-      install: { platform: "linux", command: { linux: "fixture-install" }, signInCommand: "fixture-login" },
-    }] }), { status: offline ? 503 : 200 });
+    if (path === "/api/instances/kimi/install") {
+      if (offline) return new Response(JSON.stringify({ error: "Fixture offline" }), { status: 503 });
+      snapshot = { state: "available", authenticated: false, version: "1.0.0" };
+      return new Response(JSON.stringify(listed()));
+    }
+    if (path.split("?")[0] === "/api/instances" || path === "/api/instances/kimi/refresh-models") return new Response(JSON.stringify(listed()));
     return new Response(JSON.stringify(path.startsWith("/api/bots?") ? { bots: [], groups: [] } : {}));
   });
   vi.stubGlobal("fetch", requests);
@@ -33,8 +39,8 @@ it("recovers from offline, detects installation, and becomes ready on focus with
   }
   const host = document.createElement("div"); document.body.append(host);
   const root = createRoot(host);
-  const check = async () => act(async () => {
-    Array.from(host.querySelectorAll("button")).find((node) => node.textContent === "Check again")!.click();
+  const press = async (name: string) => act(async () => {
+    Array.from(host.querySelectorAll("button")).find((node) => node.textContent === name)!.click();
   });
   try {
     await act(async () => root.render(createElement(StoreProvider, null, createElement(Preview))));
@@ -42,13 +48,13 @@ it("recovers from offline, detects installation, and becomes ready on focus with
     const card = host.querySelector("details")!;
     card.open = true;
     expect(host.textContent).toContain("Set up Kimi");
+    expect(host.textContent).not.toContain("fixture-install");
     offline = true;
-    await check();
-    expect(host.textContent).toContain("previous status is still shown");
-    expect(host.textContent).toContain("Fixture CLI missing");
+    await press("Install Kimi here");
+    expect(host.textContent).toContain("Kimi couldn't be installed on the computer your bots run on. Try again in a moment.");
+    expect(host.textContent).not.toContain("Fixture offline");
     offline = false;
-    snapshot = { state: "available", authenticated: false, version: "1.0.0" };
-    await check();
+    await press("Try again");
     expect(host.textContent).toContain("Sign in to Kimi");
     expect(host.textContent).toContain("Sign-in required");
     expect(host.querySelector("details")).toBe(card);

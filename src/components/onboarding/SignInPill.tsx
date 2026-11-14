@@ -217,13 +217,15 @@ export function ConnectPanel({ flow, name, driverKind, onTrouble }: {
       }
       break;
     case "failed": {
+      const installing = state.at === "installing";
       const plain = state.reason === "timeout" ? t(`connect.timeout.${state.at}`, { name })
         : state.reason === "lost" ? t("connect.lost")
-          : state.message ?? (state.reason === "unavailable" ? t("connect.unavailable", { name }) : t("connect.failed", { name }));
+          : installing ? t("connect.installFailed", { name })
+            : state.message ?? (state.reason === "unavailable" ? t("connect.unavailable", { name }) : t("connect.failed", { name }));
       body = <>
         <p role="alert" className="m-0 max-w-[400px] text-center text-[13px] leading-[18px] text-danger">{plain}</p>
         <button type="button" onClick={flow.retry} className={SECONDARY}>{t("common.tryAgain")}</button>
-        {onTrouble && <button type="button" onClick={onTrouble} className={QUIET} data-connect-trouble="">{t("connect.trouble")}</button>}
+        {onTrouble && !installing && <button type="button" onClick={onTrouble} className={QUIET} data-connect-trouble="">{t("connect.trouble")}</button>}
       </>;
       break;
     }

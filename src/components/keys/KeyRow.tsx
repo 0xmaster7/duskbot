@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Check, CircleAlert, ExternalLink, Eye, EyeOff, Loader2, TriangleAlert } from "../../icons";
-import { useStore } from "@/state/store";
-import { installCommandFor } from "@/state/engine-install";
+import { api, useStore } from "@/state/store";
+import { installsHere } from "@/state/engine-install";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import type { KeyResult, KeyVia } from "@/lib/analytics-allowlist";
@@ -9,7 +9,7 @@ import { keyRemoved, keySaved, keySaveFailure, savedKeyResult } from "@/lib/prod
 import { InstanceProviderMark } from "../ProviderIcons";
 import { keyEntry, keyForInstance, looksLikeOtherKey, savedState, shownKeyEntry, type KeyEntry, type KeyId, type SavedState } from "./key-catalog";
 import { checkKey, cleanKey, looksLikeKey, saveKey } from "./key-save";
-import { CopyRow, FormDialog } from "../ListRows";
+import { FormDialog } from "../ListRows";
 import { fieldLabelCls, smallButtonCls } from "../ui/GrokDialog";
 import { friendlyError } from "@/lib/plain-error";
 
@@ -185,8 +185,8 @@ export function KeyRow({
     : [];
   const missingEngine = keyEngines.some((instance) => instance.snapshot.state === "available")
     ? undefined
-    : keyEngines.find((instance) => instance.snapshot.state === "unavailable" && installCommandFor(instance.install) !== null);
-  const installCommand = installCommandFor(missingEngine?.install);
+    : keyEngines.find((instance) => instance.snapshot.state === "unavailable" && installsHere(instance.install));
+  const installCommand = Boolean(missingEngine);
   const rejected = !works && (rejectedHere ?? (saved.configured && engineRejected));
   const failure = problem ?? (rejected && !busy ? t("keys.testRejected") : null);
   const editing = !saved.configured || replacing;
@@ -256,13 +256,15 @@ export function KeyRow({
     }
   };
 
-  const checkEngines = async () => {
+  const installEngine = async () => {
+    if (!missingEngine) return;
     setEnginesChecking(true);
     setEngineCheckError(null);
     try {
+      await api(`/api/instances/${encodeURIComponent(missingEngine.instanceId)}/install`, { method: "POST" });
       await refreshInstances({ reportErrors: true });
-    } catch (cause) {
-      setEngineCheckError(errorText(cause));
+    } catch {
+      setEngineCheckError(t("engineSetup.installFailed", { name: missingEngine.displayName }));
     } finally {
       setEnginesChecking(false);
     }
@@ -424,12 +426,11 @@ export function KeyRow({
                 <TriangleAlert size={13} aria-hidden="true" className="mt-px shrink-0" />
                 <span>{t("keys.row.engineMissing", { engine: missingEngine.displayName })}</span>
               </p>
-              <CopyRow title={missingEngine.displayName} text={installCommand} copyLabel={t("engineSetup.copyCommand")} />
               <button type="button" data-key-engine-check className="cursor-pointer self-start text-ink-secondary hover:text-ink hover:underline disabled:opacity-50" disabled={enginesChecking}
-                onClick={() => void checkEngines()}>
-                {enginesChecking ? t("common.checking") : t("common.checkAgain")}
+                onClick={() => void installEngine()}>
+                {enginesChecking ? t("engineSetup.serverInstalling") : engineCheckError ? t("common.tryAgain") : t("engineSetup.serverInstall", { name: missingEngine.displayName })}
               </button>
-              {engineCheckError && <p role="alert" className="text-danger">{t("engineSetup.checkFailed", { reason: engineCheckError })}</p>}
+              {engineCheckError && <p role="alert" className="text-danger">{engineCheckError}</p>}
             </div>
           )}
           {note && <p className="text-ink-secondary">{note}</p>}

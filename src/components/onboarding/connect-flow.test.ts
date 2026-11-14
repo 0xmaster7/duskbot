@@ -196,6 +196,67 @@ describe("connect flow stages", () => {
   });
 });
 
+describe("an AI installed by its vendor's own script (Cursor)", () => {
+  const cursor = (snapshot: ConnectInstance["snapshot"]): ConnectInstance => ({
+    instanceId: "cursor", driverKind: "cursorAgent", snapshot, authentication: { method: "device-code" }, install: { server: { script: true } },
+  });
+  const cursorTarget = { tile: "cursor", candidates: ["cursor"] };
+  const cursorCode = { auth: { phase: "waiting", flowId: "c1", authorizationUrl: "https://cursor.com/loginDeepControl?challenge=x", userCode: undefined } };
+
+  it("connects in the app once the server can run the script", () => {
+    expect(connectsInApp(cursor({ state: "unavailable", reason: "`cursor-agent` CLI not found" }))).toBe(true);
+    expect(connectsInApp({ ...cursor({ state: "unavailable", reason: "`cursor-agent` CLI not found" }), install: {} })).toBe(false);
+  });
+
+  it("installs on the bots' computer and goes straight into sign-in", async () => {
+    const { flow, seen, calls } = harness([
+      [cursor({ state: "unavailable", reason: "`cursor-agent` CLI not found" })],
+      [cursor({ state: "available", authenticated: false })],
+    ], {
+      "POST /api/instances/cursor/install": () => ({ instances: [] }),
+      "POST /api/instances/cursor/auth/start": () => cursorCode,
+      "GET /api/instances/cursor/auth/status": () => ({ auth: { phase: "waiting" } }),
+    });
+    flow.start(cursorTarget);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(seen).toEqual(["preparing", "installing", "opening", "waiting"]);
+    expect(flow.state).toMatchObject({ stage: "waiting", kind: "device" });
+    expect(calls.filter((call) => call.endsWith("/install"))).toEqual(["POST /api/instances/cursor/install"]);
+  });
+
+  it("ends a failed install at the install step, and Try again installs again", async () => {
+    let fail = true;
+    const { flow, calls } = harness([
+      [cursor({ state: "unavailable", reason: "`cursor-agent` CLI not found" })],
+      [cursor({ state: "unavailable", reason: "`cursor-agent` CLI not found" })],
+      [cursor({ state: "available", authenticated: false })],
+    ], {
+      "POST /api/instances/cursor/install": () => {
+        if (fail) { fail = false; return Promise.reject(new Error("The installer stopped before it finished.\ncurl: (6) Could not resolve host")); }
+        return { instances: [] };
+      },
+      "POST /api/instances/cursor/auth/start": () => cursorCode,
+      "GET /api/instances/cursor/auth/status": () => ({ auth: { phase: "waiting" } }),
+    });
+    flow.start(cursorTarget);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(flow.state).toMatchObject({ stage: "failed", at: "installing", reason: "error" });
+    flow.retry();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(flow.state.stage).toBe("waiting");
+    expect(calls.filter((call) => call.endsWith("/install"))).toHaveLength(2);
+  });
+
+  it("ends an install that runs past its deadline", async () => {
+    const { flow } = harness([[cursor({ state: "unavailable", reason: "`cursor-agent` CLI not found" })]], { "POST /api/instances/cursor/install": never });
+    flow.start(cursorTarget);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(flow.state).toMatchObject({ stage: "installing", downloadBytes: null });
+    await vi.advanceTimersByTimeAsync(CONNECT_TIMEOUTS.installing + 1);
+    expect(flow.state).toMatchObject({ stage: "failed", at: "installing", reason: "timeout" });
+  });
+});
+
 describe("connect flow timeouts", () => {
   const stuck = (stage: keyof typeof CONNECT_TIMEOUTS, lists: ConnectInstance[][], routes: Record<string, Route>, extra: Partial<ConnectDeps> = {}) => async () => {
     const { flow, trail } = harness(lists, routes, extra);

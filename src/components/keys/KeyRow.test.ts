@@ -88,21 +88,21 @@ describe("a saved key", () => {
     expect(html).toContain("data-key-replace");
   });
 
-  it("says a saved key waits on its engine's own CLI and shows how to install it", () => {
+  it("says a saved key waits on its engine's own CLI and installs it in place", () => {
     fixture.config = { deepseek: { configured: true, last4: "9z9z" } };
     const deepseek = (state: "available" | "unavailable") => ({ instanceId: "deepseek", driverKind: "deepseekAgent", displayName: "DeepSeek Harness",
-      snapshot: { state }, install: { platform: "linux", command: { linux: "npm install -g @deepseek-ai/dsh" } }, models: { default: "m", options: [] } }) as unknown as InstanceInfo;
+      snapshot: { state }, install: { platform: "linux", command: { linux: "npm install -g @deepseek-ai/dsh" }, server: { package: "@deepseek-ai/dsh" } }, models: { default: "m", options: [] } }) as unknown as InstanceInfo;
     fixture.instances = [deepseek("unavailable")];
     const html = render({ id: "deepseek" });
     expect(html).toContain("data-key-engine-missing");
-    expect(html).toContain("Saved, but DeepSeek Harness can&#x27;t run on this computer yet");
-    expect(html).toContain("npm install -g @deepseek-ai/dsh");
-    expect(html).toContain("data-key-engine-check");
+    expect(html).toContain("Saved, but DeepSeek Harness isn&#x27;t installed on this computer yet");
+    expect(html).not.toContain("npm install");
+    expect(html).toContain("Install DeepSeek Harness here");
     expect(html).toContain("••••••••9z9z");
 
-    // Without the server's platform, the command for this computer's platform is used.
+    // Nothing dusk bot can install here: no install offer.
     fixture.instances = [{ ...deepseek("unavailable"), install: { command: { linux: "npm install -g @deepseek-ai/dsh" } } } as InstanceInfo];
-    expect(render({ id: "deepseek" })).toContain("data-key-engine-missing");
+    expect(render({ id: "deepseek" })).not.toContain("data-key-engine-missing");
     fixture.instances = [deepseek("available")];
     expect(render({ id: "deepseek" })).not.toContain("data-key-engine-missing");
     // The Grok CLI drops XAI_API_KEY (it uses a grok.com sign-in), so its install never makes the xAI key usable.
@@ -117,7 +117,7 @@ describe("a saved key", () => {
     // An unavailable engine with nothing to install doesn't hide one that has a command.
     fixture.config = { deepseek: { configured: true, last4: "9z9z" } };
     fixture.instances = [{ ...deepseek("unavailable"), displayName: "Other", install: undefined }, deepseek("unavailable")];
-    expect(render({ id: "deepseek" })).toContain("Saved, but DeepSeek Harness can&#x27;t run on this computer yet");
+    expect(render({ id: "deepseek" })).toContain("Saved, but DeepSeek Harness isn&#x27;t installed on this computer yet");
     fixture.config = {};
     fixture.instances = [deepseek("unavailable")];
     expect(render({ id: "deepseek" })).not.toContain("data-key-engine-missing");

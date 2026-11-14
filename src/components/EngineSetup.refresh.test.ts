@@ -54,7 +54,9 @@ it("does not claim install success when the returned provider probe is unavailab
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ instances: [engine] }))));
   mount(createElement(EngineSetup, { instance: engine }));
   await act(async () => button("Install Kimi here").click());
-  expect(host.textContent).toContain("installer finished, but the provider is not usable yet");
+  const alerts = Array.from(host.querySelectorAll('[role="alert"]')).map((node) => node.textContent);
+  expect(alerts).toContain("Kimi couldn't be installed on the computer your bots run on. Try again in a moment.");
+  expect(button("Try again").disabled).toBe(false);
   expect(host.textContent).not.toContain("Installation verified");
   expect(refreshModels).not.toHaveBeenCalled();
   expect(dispatch).toHaveBeenCalledWith({ type: "instances", instances: [engine] });
@@ -74,8 +76,8 @@ it("never opens a local terminal to install on a paired remote server", () => {
   vi.stubGlobal("window", Object.assign(window, { duskDesktop: { platform: "win32", openInstallTerminal: vi.fn(), remoteClient: { active: true } } }));
   mount(createElement(EngineSetup, { instance: engine }));
   expect(host.textContent).not.toContain("Open install in Terminal");
-  expect(host.textContent).toContain("fixture-install");
-  expect(host.textContent).toContain("sign in on the computer your bots run on");
+  expect(host.textContent).not.toContain("fixture-install");
+  expect(button("Install Kimi here")).toBeTruthy();
 });
 
 it("says plainly when the engine now runs the copy the app installed", async () => {
