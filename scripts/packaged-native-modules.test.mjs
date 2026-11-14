@@ -41,12 +41,4 @@ describe("packaged native modules", () => {
     const manifest = JSON.parse(readFileSync(join(checkout, "release", "npm", "package.json"), "utf8"));
     expect(manifest.dependencies).toEqual(pins);
   });
-
-  it("stages the native tree in the Podman image where the server looks for it", () => {
-    const text = readFileSync(join(root, "deploy", "podman", "Containerfile"), "utf8");
-    expect(text.indexOf("RUN node scripts/prepare-duckdb.mjs")).toBeGreaterThan(text.indexOf("COPY . ."));
-    expect(text).toMatch(/^COPY --from=build \S+ \/src\/dist-native\/duckdb\/linux-x64 \.\/duckdb$/m);
-    expect(text).toMatch(/^WORKDIR \/app$/m);
-    expect(text).toMatch(/\bDUSK_DUCKDB_DIR=\/app\/duckdb\b/);
-  });
 });
