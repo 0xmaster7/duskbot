@@ -144,20 +144,12 @@ describe("the welcome", () => {
     expect(document.body.querySelector("textarea"), "nothing asks for a job").toBeNull();
   });
 
-  it("help improve is one quiet line at the foot of the place step, on by default and saved when switched off", async () => {
+  it("first run never shows the help improve switch; it lives in Settings", async () => {
     vi.stubGlobal("duskDesktop", { remoteClient: { active: false } });
     await show();
-    expect(step(), "the hello comes first on the desktop app too").toBe("welcome");
-    expect(document.body.querySelector("[data-help-improve]"), "not on the hello").toBeNull();
+    expect(document.body.querySelector("[data-help-improve]")).toBeNull();
     await toPlace();
-    const line = document.body.querySelector<HTMLElement>("[data-help-improve]")!;
-    expect(line.textContent).toBe("Share anonymous usage statistics and crash reports to help improve dusk bot. Never your messages, files or keys.");
-    expect(line.className).toContain("text-[12px]");
-    const toggle = line.querySelector<HTMLButtonElement>("[role=switch]")!;
-    expect(toggle.getAttribute("aria-checked")).toBe("true");
-    await act(async () => { toggle.click(); });
-    await settle();
-    expect(f.improve).toEqual([{ enabled: false }]);
+    expect(document.body.querySelector("[data-help-improve]")).toBeNull();
   });
 
   it("with Claude already answering, uses it without asking and goes on to Dusk's chat", async () => {

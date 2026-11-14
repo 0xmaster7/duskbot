@@ -139,7 +139,6 @@ export function PlaceStep({ onMac, onCloud, onServer, cloudTag, cloudNote }: {
       footer={<>
         <button type="button" data-funnel-place="server" onClick={onServer} className={QUIET}>{t("funnel.place.server")}</button>
         {/* help improve: one quiet line on the quick first screen, never on a screen people wait on */}
-        <div className="mt-4 flex justify-center"><ImproveSwitch /></div>
       </>}>
       <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
         <PlaceChoice kind="mac" art="mac" title={t("funnel.place.mac")} sub={t("funnel.place.macSub")} tag={t("funnel.place.macTag")} onClick={onMac} />
