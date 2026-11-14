@@ -30,6 +30,9 @@ let shotCount = 0;
 /** the screen at both window sizes, as steps/NN-<label>-<size>.png; back at the normal size after */
 async function shots(label) {
   const n = String(++shotCount).padStart(2, "0"), files = [];
+  // the app's own "connecting to your bots" cover fades out after a sign-in; the screen under it is the one to shoot
+  await flow.waitFor(`!/connecting to your bots/i.test(document.body.innerText)`, "the connecting cover to go", 20_000).catch(() => {});
+  await sleep(400);
   for (const [size, width, height] of SIZES) {
     await flow.viewport(width, height);
     await sleep(450);
@@ -141,7 +144,18 @@ await runFlow(flow, async () => {
       const browser = await launchBrowser({ width: 1280, height: 860 });
       try {
         await browser.goto(handoff).catch(() => {});
-        await until(async () => /\/billing/.test(await browser.url()) && /get |checkout|plan/i.test(await browser.text()), { timeout: 60_000, what: "the plans page" });
+        // a browser that isn't signed in yet confirms the account the app opened the page for
+        const confirm = await until(async () => /continue as/i.test(await browser.text()) ? "confirm" : /\/billing/.test(await browser.url()) ? "billing" : false, { timeout: 30_000, what: "the handoff page" }).catch(() => null);
+        if (confirm === "confirm") {
+          await browser.screenshot(join(out, "browser-0-confirm.png"));
+          flow.friction("extra-click", "browser handoff", "a fresh browser asks \"continue as <email>?\" before the plans");
+          await browser.click("continue");
+        }
+        await until(async () => /\/billing/.test(await browser.url()) && /get |checkout|plan/i.test(await browser.text()), { timeout: 60_000, what: "the plans page" })
+          .catch(async (error) => {
+            await browser.screenshot(join(out, "browser-0-stuck.png")).catch(() => {});
+            throw new Error(`${error.message} (at ${(await browser.url().catch(() => "?")).replace(/#.*$/, "")}: ${(await browser.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 160)})`);
+          });
         await browser.screenshot(join(out, "browser-1-plans.png"));
         flow.facts.landedOn = new URL(await browser.url()).pathname + new URL(await browser.url()).search;
         // the plan the page itself recommends first, else the first one to get
