@@ -2704,7 +2704,7 @@
   "model.picker.connectName": "Connect {name}",
   "model.picker.needsSignIn": "Needs sign-in",
   "model.picker.needsSetup": "Needs setup",
-  "model.picker.onCloud": "These run on My Cloud, not on your computer.",
+  "model.picker.onCloud": "These run on your dusk cloud, not on your computer.",
   "model.picker.scope": "Use this model for",
   "model.picker.thisBot": "This bot",
   "model.picker.allBots": "All bots",
