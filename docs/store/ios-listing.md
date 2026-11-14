@@ -1,5 +1,8 @@
 # App Store listing draft: dusk bot for iPhone
 
+**Superseded by `docs/store-launch.md`** for the listing copy, privacy label, age rating and review notes; this first
+draft names other platforms and dusk cloud, which the iOS listing must not.
+
 Draft text for App Store Connect. Nothing here names a price, a plan or a place to buy one (guideline 3.1.1). Limits are
 Apple's; the count beside each field is the draft's length.
 

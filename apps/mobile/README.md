@@ -46,8 +46,12 @@ The gate (`scripts/release-gate.mjs`) refuses a bundle that carries material fla
 leftovers, and the Xcode Release configuration runs it before anything else. `VITE_DUSK_ALLOW_SIGNED_OUT=1` builds an
 app that pairs without the account sign-in screen.
 
+- `apps/mobile/scripts/build-ios-release.sh [--check|--upload|--unsigned]` archives, exports or uploads to TestFlight;
+  `apps/mobile/scripts/build-android-release.sh` builds the signed Play `.aab`. Signing, listings, privacy answers and
+  the owner's console steps: `docs/store-launch.md`.
 - `node apps/mobile/scripts/make-icons.mjs` redraws the app icon and launch images from `build/icon.svg`.
-- `node --experimental-strip-types apps/mobile/scripts/store-shots.ts` starts its own isolated fixture (the test bots,
+- The store screenshot sets in `docs/store/ios` and `docs/store/play` come from `apps/mobile/store/capture.ts` and
+  `compose.ts` (`docs/store-launch.md`, Screenshots). The older `node --experimental-strip-types apps/mobile/scripts/store-shots.ts` starts its own isolated fixture (the test bots,
   scripted chats, a temp data dir, its own ports) and draws the store screenshot set into `docs/store/ios`.
 - Readiness notes, the App Store checklist and the steps left: `docs/mobile-readiness.md`. Listing text:
   `docs/store/ios-listing.md`.
