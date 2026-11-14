@@ -9,7 +9,6 @@ import { payDodoTestCheckout } from "../dodo-test-pay.mjs";
 import { launchBrowser } from "./browser.mjs";
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
-const js = (value) => JSON.stringify(value);
 
 /** url: what the app opened. Returns { landed, checkoutUrl?, allSet?, signedInPage?, steps } */
 export async function webAccountStep(url, { email, pay = false, log = () => {}, shot = null, origin = PREVIEW_ORIGIN } = {}) {
@@ -62,7 +61,7 @@ export async function webAccountStep(url, { email, pay = false, log = () => {}, 
     for (let tries = 0; tries < 20 && !checkoutUrl; tries++) {
       const at = await browser.url();
       if (/test\.checkout\.dodopayments\.com/.test(at)) { checkoutUrl = at; break; }
-      if (/^https:\/\/checkout\.dodopayments\.com/.test(at)) throw new Error("a live checkout opened; refusing to pay");
+      if (at.startsWith("https://checkout.dodopayments.com")) throw new Error("a live checkout opened; refusing to pay");
       await browser.evaluate(`(() => { const b = [...document.querySelectorAll("button")].filter((e) => e.getClientRects().length && !e.disabled).find((e) => /continue to checkout|continue to payment|^continue$|start (free )?trial|^get /i.test(e.innerText.trim())); if (b) b.click(); return true; })()`).catch(() => {});
       await sleep(3000);
     }

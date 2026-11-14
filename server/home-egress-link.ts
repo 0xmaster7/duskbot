@@ -47,7 +47,7 @@ export function createHomeEgressLink({ now = Date.now, log = () => {}, dialMs = 
   }
 
   function dropAll() {
-    for (const r of [...streams.keys()]) forget(r, false);
+    for (const r of Array.from(streams.keys())) forget(r, false);
   }
 
   function handle(frame: EgressLinkFrame) {

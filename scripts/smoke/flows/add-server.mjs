@@ -112,7 +112,7 @@ await runFlow(flow, async () => {
       if (/meet dusk bot|where should your bots live/i.test(flow.facts.serverScreen)) flow.friction("confusing", "after the move", "the server opens on the welcome from the start (\"meet dusk bot\", then \"where should your bots live?\" again), though the person already chose this server");
       const running = await vm.exec("systemctl is-active duskbot.service", 30);
       flow.facts.serverService = running.stdout.trim();
-      if (!/^active/.test(running.stdout)) throw new Error(`duskbot.service is ${running.stdout.split("\n")[0]}`);
+      if (!running.stdout.startsWith("active")) throw new Error(`duskbot.service is ${running.stdout.split("\n")[0]}`);
       const bots = await flow.evaluate(`fetch("/api/bots").then((r) => r.json()).then((j) => (j.bots ?? j).map((b) => b.name)).catch((e) => "error " + e.message)`);
       flow.facts.botsOnServer = bots;
       if (!Array.isArray(bots) || !bots.length) throw new Error(`the server lists no bots (${JSON.stringify(bots)})`);

@@ -12,7 +12,6 @@ import { accountLinkFrom, webAccountStep } from "./web-account.mjs";
 const { root, out, profile, email } = flowArgs("acct");
 const flow = createFlow({ name: "account-entry", title: "account steps continue in the browser", root, out, profile, email, env: { DUSK_ALLOW_SIGNED_OUT: "1" } });
 const signedIn = () => flow.evaluate(`window.duskDesktop.cloudAccount.state().then((s) => Boolean(s.account) && s.status === "connected")`);
-const sheet = () => flow.evaluate(`document.querySelector("[data-continue-in-browser]")?.innerText ?? null`);
 
 async function browserHalf(since, label) {
   const link = await until(() => accountLinkFrom(flow.opened(since)), { timeout: 30_000, what: `the browser page for ${label}` });

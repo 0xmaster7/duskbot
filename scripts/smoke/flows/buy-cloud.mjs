@@ -41,7 +41,7 @@ await runFlow(flow, async () => {
     for (let tries = 0; tries < 60 && !checkoutUrl; tries++) { await sleep(1000); checkoutUrl = flow.opened(since).find((url) => /checkout\.dodopayments\.com/.test(url)) ?? null; }
     if (!checkoutUrl) throw new Error(`no checkout opened (app opened: ${flow.opened(since).join(", ") || "nothing"}; screen: ${await headings()})`);
     flow.facts.checkoutSeconds = Math.round((Date.now() - since) / 1000);
-    if (!/^https:\/\/test\./.test(checkoutUrl)) throw new Error("the checkout is not in test mode; refusing to pay");
+    if (!checkoutUrl.startsWith("https://test.")) throw new Error("the checkout is not in test mode; refusing to pay");
     flow.facts.payScreen = (await flow.text("[data-add-cloud-flow]").catch(() => "")).replace(/\s+/g, " ").slice(0, 200);
     return `opened in ${flow.facts.checkoutSeconds}s on ${new URL(checkoutUrl).host}`;
   }, { critical: true });
