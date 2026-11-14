@@ -5413,8 +5413,6 @@
   "helperIntro.lead.member": "여기서 하는 방법이 궁금한 건 무엇이든 물어보세요. 봇, 앱, 루틴 설정을 함께할게요.",
   "helperIntro.typing": "입력 중…",
   "helperIntro.hello": "안녕하세요! 저는 {name}이에요. 여기 처음 왔어요.",
-  "helperIntro.lead.chiefOfStaff": "저는 비서실장으로 일할게요. 다른 봇들을 관리할 수 있어요. 무엇이든 맡겨 주세요. 알맞은 봇에게 전달할게요.",
-  "helperIntro.lookingAround": "제가 맡을 만한 일이 있는지 둘러보고 있어요. 곧 다시 알려 드릴게요.",
   "helperIntro.followup.found": "둘러봤는데 아직 기다리고 있는 일은 없어요.",
   "helperIntro.followup.empty": "끝나지 않은 작업도, 다른 봇이나 루틴도 없고, 아직 연결된 앱도 없어요.",
   "helperIntro.followup.counts": "현재 상황: {bots} · {routines} · 연결된 앱 없음.",

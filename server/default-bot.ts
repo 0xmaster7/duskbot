@@ -39,12 +39,12 @@ export function helperIntroMessage(bot: Pick<BotRecord, "name" | "chiefOfStaff">
   const title = bot.chiefOfStaff ? `Hey! I'm ${bot.name}. I'm new here.` : `Hi! I'm ${bot.name}, your helper for everything here.`;
   const subtitle = [
     bot.chiefOfStaff
-      ? "I'm here to be your Chief of Staff. I can manage your other bots. Task me with anything. I'll make sure it gets to the right bot."
+      ? "I'm your Chief of Staff and I manage your other bots. Task me with anything and I'll get it to the right bot."
       : team
         ? "Ask me how to do anything here. I can set up bots, apps and routines with you."
         : "Ask me how to do anything here. I can set up bots, apps and routines with you, and keep an eye on your day.",
     team ? `On ${team}, I'm here for you and look after your own bots.` : "",
-    "I'm taking a look around to see if there's anything I can pick up for you. I'll follow up in a moment.",
+    "I'm taking a quick look around for anything I can pick up. I'll follow up in a moment.",
   ].filter(Boolean).join(" ");
   return { role: "bot", kind: "options", text: `${title} ${subtitle}`, helperIntro: true, card: { title, subtitle, options: [...HELPER_ASKS], fixedOptions: true } };
 }

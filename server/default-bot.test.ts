@@ -154,7 +154,7 @@ describe("Dusk, every person's helper", () => {
     const maus = boot(store)!;
     expect(store.bot(maus.id)?.chiefOfStaff).toBe(true);
     expect(briefChief(store)?.id).toBe(maus.id);
-    expect(intros(store, maus)[0]?.text).toContain("Hey! I'm dusk bot. I'm new here. I'm here to be your Chief of Staff. I can manage your other bots.");
+    expect(intros(store, maus)[0]?.text).toContain("Hey! I'm dusk bot. I'm new here. I'm your Chief of Staff and I manage your other bots.");
   });
 
   it("makes an adopted Dusk the Chief when its place has none left", () => {

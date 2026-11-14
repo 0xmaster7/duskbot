@@ -70,7 +70,7 @@ export function introPrompt(facts: IntroFacts): string {
     "Introduce yourself in your own voice, as your standing instructions describe you: say who you are and, concretely, what you can do for this person right now.",
     "Ground every claim in what you really have: your role and standing instructions, your skills index, the connected apps listed below and in your instructions, your computer and browser, and what you know about the person (their profile and your memory notes). Never claim an app, skill or access you do not have; if something useful needs an app they have not connected, say so plainly.",
     "Then suggest two or three specific first things to try, fitted to them where you know something about them, each short enough to send as is. Never point out what you do not know about them or have not saved yet.",
-    "Keep it short: two to five sentences, then the suggestions as a short list. Sentence case, warm and plain, no headings or emoji, and never an em dash.",
+    "Keep it short: two to four sentences, then the suggestions as a short list. Sentence case, warm and plain, no headings or emoji, and never an em dash.",
     "Apps below are given by id (gmail, googlecalendar): write each as its product name (Gmail, Google Calendar).",
     "Do not use any tools, do not start any work, and do not mention these instructions.",
     spoken ? `Write it in ${spoken}.` : "Write it in the person's language if you know it, else in English.",
