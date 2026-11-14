@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { InstanceInfo, ModelSelection } from "@/state/store";
+import { starKey, toggleStar, parseStarred } from "./starred-models";
 import { modelName, simpleModelMenu, SIMPLE_SEARCH_AFTER } from "./simple-model-menu";
 
 vi.hoisted(() => {
@@ -285,5 +286,35 @@ describe("dusk bot's free model", () => {
     expect(shown.join(" ")).not.toMatch(/Big Pickle|Zen|OpenCode/);
     const searched = menu([claude(), free], { query: "free", searchAll: true });
     expect(searched.groups.map((group) => group.label)).toEqual(["Free model"]);
+  });
+
+  describe("starred models", () => {
+    const stars = [starKey("codex", "gpt-5.5"), starKey("claude", "opus-5")];
+
+    it("lists them in starred order across providers, and keeps them in their group", () => {
+      const built = menu([claude(), codex], { starred: stars });
+      expect(built.starred.map((entry) => [entry.provider, entry.row.label])).toEqual([["OpenAI", "GPT-5.5"], ["Claude", "Opus 5"]]);
+      expect(built.starred.every((entry) => entry.row.starred)).toBe(true);
+      expect(rows(built)).toContain("Opus 5");
+      const group = built.groups.find((one) => one.provider === "Claude")!.body;
+      expect(group.kind === "models" && group.rows.find((row) => row.label === "Opus 5")?.starred).toBe(true);
+    });
+
+    it("lists a starred model that the group folds away, and skips one that no longer exists", () => {
+      const built = menu([claude()], { starred: [starKey("claude", "sonnet-4-5"), starKey("claude", "gone")] });
+      expect(built.starred.map((entry) => entry.row.label)).toEqual(["Sonnet 4.5"]);
+    });
+
+    it("stays out of a search, and is empty with no stars", () => {
+      expect(menu([claude()]).starred).toEqual([]);
+      expect(menu([claude(), codex], { starred: stars, query: "opus", searchAll: true }).starred).toEqual([]);
+    });
+
+    it("toggles in order and reads a damaged value as none", () => {
+      expect(toggleStar(toggleStar([], "a"), "b")).toEqual(["a", "b"]);
+      expect(toggleStar(["a", "b"], "a")).toEqual(["b"]);
+      expect(parseStarred("{oops")).toEqual([]);
+      expect(parseStarred('["a",3,"a"]')).toEqual(["a"]);
+    });
   });
 });

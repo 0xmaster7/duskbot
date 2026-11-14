@@ -49,6 +49,10 @@ const TYPE = (text: string) => `(() => { const field = document.querySelector("t
 /** Opens the model picker from the bot panel's Model row, the way a click does. */
 const OPEN_PICKER = `(() => { const trigger = document.querySelector("[data-panel-row=model] [data-tour=model]"); if (!trigger) return false; trigger.click();
   return new Promise((done) => setTimeout(() => done(Boolean(document.querySelector("[data-model-picker-content]"))), 400)); })()`;
+/** The picker with two models starred (pressing their stars, as a person does): a Starred section on top, the stars on in their groups. */
+const PICKER_STARRED = `(async () => { if (!(await ${OPEN_PICKER})) return false; const stars = [...document.querySelectorAll("[data-simple-provider] [data-star-toggle]")];
+  if (stars.length < 3) return false; stars[1].click(); await new Promise((done) => setTimeout(done, 100)); stars[2].click();
+  return new Promise((done) => setTimeout(() => done(Boolean(document.querySelector("[data-picker-starred]"))), 300)); })()`;
 /** From the picker, a Not connected row's Connect: the picker closes and Connect an AI opens on that provider. */
 const PICKER_CONNECT = `(async () => { if (!(await ${OPEN_PICKER})) return false; const row = document.querySelector('[data-picker-connect="openrouter"]');
   if (!row) return false; row.click(); return new Promise((done) => setTimeout(() => done(Boolean(document.querySelector("[data-connect-ai]"))), 600)); })()`;
@@ -145,6 +149,7 @@ const SURFACES: Surface[] = [
   { id: "dialog:connect-ai-from-chat", open: `{ type: "select", id: window.__surfaceGallery.botId }`, query: "card=connect-ai", scope: "[data-connect-ai]" },
   // the model picker, opened from the bot panel's Model row
   { id: "picker:model", open: `{ type: "toggleSettings", open: true, section: "overview", botId: window.__surfaceGallery.botId }`, run: OPEN_PICKER, scope: "[data-model-picker-content]" },
+  { id: "picker:model-starred", open: `{ type: "toggleSettings", open: true, section: "overview", botId: window.__surfaceGallery.botId }`, run: PICKER_STARRED, hover: "[data-simple-provider] [data-model-row]", scope: "[data-model-picker-content]" },
   // Connect from the picker: the handoff to Connect an AI, and the bot on the new provider's model once it connects
   { id: "picker:connect", open: `{ type: "toggleSettings", open: true, section: "overview", botId: window.__surfaceGallery.botId }`, run: PICKER_CONNECT, scope: "[data-connect-ai]" },
   { id: "picker:connected", open: `{ type: "toggleSettings", open: true, section: "overview", botId: window.__surfaceGallery.botId }`, run: PICKER_CONNECTED, scope: "#root" },

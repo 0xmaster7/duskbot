@@ -8,6 +8,7 @@ import { engineReady } from "@/components/EngineLibrary";
 import { aiTiles, type AiTileId } from "@/components/onboarding/funnel";
 import { connectsInApp, type ConnectInstance } from "@/components/onboarding/connect-flow";
 import { displayModelLabel, shortModelLabel } from "./model-friendly";
+import { starKey } from "./starred-models";
 import { choiceIsSelected, modelChoices, takesTypedModels, type ModelChoice } from "./model-choices";
 
 export type ModelOption = InstanceInfo["models"]["options"][number];
@@ -24,6 +25,16 @@ export interface MenuModelRow {
   route?: string;
   current: boolean;
   blocked: boolean;
+  /** What a star on this model is kept under (starKey). */
+  star: string;
+  starred: boolean;
+}
+
+/** A starred model, listed under the current model whichever provider it belongs to. */
+export interface MenuStarredRow {
+  instance: InstanceInfo;
+  provider: string;
+  row: MenuModelRow;
 }
 
 export type MenuGroupBody =
@@ -65,6 +76,8 @@ export interface MenuCurrent {
 export interface SimpleMenu {
   current: MenuCurrent | null;
   follow: boolean;
+  /** The person's starred models that can be picked now, in the order they starred them. */
+  starred: MenuStarredRow[];
   /** Providers with models to pick now. */
   groups: MenuGroup[];
   /** Providers listed here that still need a sign-in or a setup before they have models: a Connect row each. */
@@ -88,6 +101,8 @@ export interface SimpleMenuInput {
   refreshing?: string | null;
   /** Always offer the search, which then also looks through providers not connected yet. */
   searchAll?: boolean;
+  /** The person's starred models (starKey), in starred order. */
+  starred?: readonly string[];
 }
 
 /** dusk bot's own free model goes by what it is, never by the service and model behind it. */
@@ -167,8 +182,26 @@ function currentRow(input: SimpleMenuInput): MenuCurrent {
   return option?.provider ? { ...row, meta: option.provider } : row;
 }
 
+function modelRow(instance: InstanceInfo, provider: string, all: readonly ModelChoice[], option: ModelChoice,
+  selection: ModelSelection, starred: readonly string[]): MenuModelRow {
+  const currentSelection = instance.instanceId === selection.instanceId ? selection : undefined;
+  const star = starKey(instance.instanceId, option.nativeModel ?? option.id, option.variant);
+  return {
+    option,
+    ...(option.nativeModel ? { model: option.nativeModel } : {}),
+    ...(option.variant ? { variant: option.variant } : {}),
+    label: shortModelLabel(option.label, provider),
+    ...(repeatedModelLabels(all).has(option.label) && option.provider ? { route: option.provider } : {}),
+    current: currentSelection ? choiceIsSelected(option, currentSelection) : false,
+    blocked: option.orgBlocked === true,
+    star,
+    starred: starred.includes(star),
+  };
+}
+
 export function simpleModelMenu(input: SimpleMenuInput): SimpleMenu {
   const { listed, selection, bot, expanded, probing } = input;
+  const starred = input.starred ?? [];
   const models = new Map(listed.map((instance) => [instance.instanceId, listedModels(instance)]));
   const total = listed.filter((instance) => !instance.policy && !needsCli(instance))
     .reduce((sum, instance) => sum + models.get(instance.instanceId)!.all.length, 0);
@@ -184,17 +217,8 @@ export function simpleModelMenu(input: SimpleMenuInput): SimpleMenu {
     const { signedOut, own, all } = models.get(instance.instanceId)!;
     if (all.length === 0) return query ? null : signedOut ? { kind: "signIn" } : { kind: "empty", loading: input.refreshing === instance.instanceId };
     const currentSelection = instance.instanceId === selection.instanceId ? selection : undefined;
-    const repeated = repeatedModelLabels(all);
     const botSelection = bot.follows === false && bot.selection.instanceId === instance.instanceId ? bot.selection : undefined;
-    const row = (option: ModelChoice): MenuModelRow => ({
-      option,
-      ...(option.nativeModel ? { model: option.nativeModel } : {}),
-      ...(option.variant ? { variant: option.variant } : {}),
-      label: shortModelLabel(option.label, provider),
-      ...(repeated.has(option.label) && option.provider ? { route: option.provider } : {}),
-      current: currentSelection ? choiceIsSelected(option, currentSelection) : false,
-      blocked: option.orgBlocked === true,
-    });
+    const row = (option: ModelChoice) => modelRow(instance, provider, all, option, selection, starred);
     const mixed = own.length > 0 && own.length < all.length;
     if (isFreeModel(instance)) {
       if (query && !filterCustomModels([{ id: "free", label: provider }, ...all], query).length) return null;
@@ -233,8 +257,23 @@ export function simpleModelMenu(input: SimpleMenuInput): SimpleMenu {
   const waits = (group: MenuGroup) => group.body.kind === "signIn" || group.body.kind === "setUp";
   const groups = built.filter((group) => !waits(group));
 
+  // starred models of providers that have models to pick now, in the order they were starred; the free model is no choice
+  const starredRows = query ? [] : starred.flatMap((key): MenuStarredRow[] => {
+    for (const instance of ordered) {
+      if (instance.policy || needsCli(instance) || isFreeModel(instance)) continue;
+      const all = models.get(instance.instanceId)!.all as ModelChoice[];
+      const option = all.find((one) => starKey(instance.instanceId, one.nativeModel ?? one.id, one.variant) === key);
+      if (option && !option.orgBlocked) {
+        const provider = providerName(instance);
+        return [{ instance, provider, row: modelRow(instance, provider, all, option, selection, starred) }];
+      }
+    }
+    return [];
+  });
+
   return {
     current: query ? null : currentRow(input),
+    starred: starredRows,
     follow: !query && bot.follows === false,
     groups,
     connect: built.filter(waits),

@@ -1,9 +1,8 @@
 import type { ReactNode } from "react";
-import { Check, ChevronDown, ChevronRight, ChevronUp, Loader2, LogIn, Plus, RefreshCw, Search, X } from "../icons";
+import { Check, ChevronDown, ChevronRight, ChevronUp, Loader2, LogIn, Plus, RefreshCw, Search, Star, X } from "../icons";
 import type { Bot, InstanceInfo } from "@/state/store";
 import type { EffortLevel } from "../../shared/wire";
 import type { MenuGroup, MenuModelRow, NotConnectedRow, SimpleMenu } from "@/lib/simple-model-menu";
-import { modelBlurb } from "@/lib/model-friendly";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { BotAvatar } from "./Avatar";
@@ -20,6 +19,8 @@ export interface SimpleMenuActions {
   onQuery: (query: string) => void;
   onPick: (instance: InstanceInfo, model: string, variant?: string) => void;
   onPickCurrent: () => void;
+  /** Stars or unstars a model, by its starKey. */
+  onToggleStar?: (key: string) => void;
   onFollowBot: () => void;
   onToggle: (instance: InstanceInfo) => void;
   /** Connects a provider that needs its sign-in again. */
@@ -61,29 +62,45 @@ function RowLines({ label, children }: { label: ReactNode; children?: ReactNode 
   );
 }
 
-function MenuModel({ instance, row, onPick }: { instance: InstanceInfo; row: MenuModelRow; onPick: SimpleMenuActions["onPick"] }) {
+function MenuModel({ instance, row, onPick, onToggleStar }: { instance: InstanceInfo; row: MenuModelRow; onPick: SimpleMenuActions["onPick"]; onToggleStar?: SimpleMenuActions["onToggleStar"] }) {
   const { option } = row;
   const reason = row.blocked ? t("model.orgBlocked") : undefined;
+  const name = row.label;
   return (
-    <button
-      type="button"
-      data-menu-row
-      data-org-blocked={row.blocked || undefined}
-      disabled={row.blocked}
-      aria-pressed={row.current}
-      aria-label={[option.label, option.provider, reason].filter(Boolean).join(" · ")}
-      title={[option.label, option.provider, reason ?? modelBlurb(option)].filter(Boolean).join(" · ")}
-      tabIndex={-1}
-      onClick={() => onPick(instance, row.model ?? option.id, row.variant)}
-      className={SIMPLE_MENU_ROW}
-    >
-      <Gutter />
-      <RowLines label={row.label}>
-        {row.route && <span data-simple-route className={SIMPLE_MENU_META}>{row.route}</span>}
-        {reason && <span data-simple-org-blocked className={SIMPLE_MENU_META}>{reason}</span>}
-      </RowLines>
-      {row.current && <Check size={14} className="shrink-0 text-accent" aria-hidden="true" />}
-    </button>
+    <div data-model-row className="group/star relative">
+      <button
+        type="button"
+        data-menu-row
+        data-org-blocked={row.blocked || undefined}
+        disabled={row.blocked}
+        aria-pressed={row.current}
+        aria-label={[option.label, option.provider, reason].filter(Boolean).join(" · ")}
+        tabIndex={-1}
+        onClick={() => onPick(instance, row.model ?? option.id, row.variant)}
+        className={cn(SIMPLE_MENU_ROW, !row.blocked && onToggleStar && "pr-8")}
+      >
+        <Gutter />
+        <RowLines label={row.label}>
+          {row.route && <span data-simple-route className={SIMPLE_MENU_META}>{row.route}</span>}
+          {reason && <span data-simple-org-blocked className={SIMPLE_MENU_META}>{reason}</span>}
+        </RowLines>
+        {row.current && <Check size={14} className="shrink-0 text-accent" aria-hidden="true" />}
+      </button>
+      {!row.blocked && onToggleStar && (
+        <button
+          type="button"
+          data-star-toggle
+          tabIndex={-1}
+          aria-pressed={row.starred}
+          aria-label={t(row.starred ? "model.picker.unstar" : "model.picker.star", { name })}
+          onClick={() => onToggleStar(row.star)}
+          className={cn("absolute right-1 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-[6px] text-ink-tertiary transition-colors hover:bg-ink/[0.08] hover:text-ink focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent motion-reduce:transition-none touch:size-8",
+            row.starred ? "text-accent hover:text-accent" : "opacity-0 group-hover/star:opacity-100 group-focus-within/star:opacity-100 touch:opacity-100")}
+        >
+          <Star size={14} fill={row.starred ? "currentColor" : "none"} aria-hidden="true" />
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -126,7 +143,7 @@ function GroupBody({ group, props }: { group: MenuGroup; props: SimpleModelMenuP
           {body.rows.map((row, index) => (
             <div key={row.option.id} className="contents">
               {index === body.localFrom && <div className={cn(MENU_LABEL, "pl-8 font-normal")}>{t("model.localModels")}</div>}
-              <MenuModel instance={instance} row={row} onPick={props.onPick} />
+              <MenuModel instance={instance} row={row} onPick={props.onPick} onToggleStar={props.onToggleStar} />
             </div>
           ))}
           {body.probing && (
@@ -289,7 +306,19 @@ export function SimpleModelMenu(props: SimpleModelMenuProps) {
               </RowLines>
             </button>
           )}
-          {top && menu.groups.length > 0 && <div role="separator" className={MENU_SEPARATOR} />}
+          {top && (menu.starred.length > 0 || menu.groups.length > 0) && <div role="separator" className={MENU_SEPARATOR} />}
+
+          {menu.starred.length > 0 && (
+            <div role="group" aria-labelledby={`${idPrefix}-starred`} data-picker-starred="" className={cn("flex flex-col gap-0.5", menu.groups.length > 0 && "mb-1")}>
+              <div id={`${idPrefix}-starred`} className={MENU_LABEL}>
+                <Gutter><Star size={14} fill="currentColor" aria-hidden="true" className="text-ink-tertiary" /></Gutter>
+                <span className="min-w-0 truncate">{t("model.picker.starred")}</span>
+              </div>
+              {menu.starred.map(({ instance, provider, row }) => (
+                <MenuModel key={row.star} instance={instance} row={menu.groups.length > 1 ? { ...row, route: provider } : row} onPick={props.onPick} onToggleStar={props.onToggleStar} />
+              ))}
+            </div>
+          )}
 
           {menu.groups.map((group, index) => {
             const labelId = `${idPrefix}-group-${index}`;

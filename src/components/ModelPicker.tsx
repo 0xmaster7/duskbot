@@ -24,6 +24,7 @@ import { SimpleModelMenu, type PickerScope, type SimpleThinking } from "./Simple
 import { aiTiles, type AiTileId } from "./onboarding/funnel";
 import { ConnectAiDialog } from "./onboarding/ConnectAi";
 import { Toast } from "./ui/Toast";
+import { useStarredModels } from "@/lib/starred-models";
 import { modelMenuKey, modelMenuPointerMove } from "./model-menu-keys";
 import { offersReasoning, useRefocusAfterPick, variantChoices } from "./model-picker-reasoning";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
@@ -594,6 +595,7 @@ export function ModelPicker({
     </button>
   );
 
+  const { starred, toggle: toggleStarred } = useStarredModels();
   const simpleMenu = simpleModelMenu({
     instances,
     listed: pickerInstances,
@@ -604,6 +606,7 @@ export function ModelPicker({
     probing,
     loading: loadingInstances,
     refreshing: refreshingId,
+    starred,
   });
 
   // only the owner connects a provider; the rows stay out of a search, which looks through the models there are
@@ -650,6 +653,7 @@ export function ModelPicker({
         onQuery={setQuery}
         onPick={pick}
         onPickCurrent={() => close(true)}
+        onToggleStar={toggleStarred}
         onFollowBot={pickBotModel}
         onToggle={(instance) => {
           const opening = !expanded.has(instance.instanceId);

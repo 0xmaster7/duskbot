@@ -60,6 +60,21 @@ export function modelMenuKey(event: ReactKeyboardEvent<HTMLElement>, { query, ty
     }
     return;
   }
+  if (target.hasAttribute("data-star-toggle")) {
+    const row = target.parentElement?.querySelector<HTMLElement>("[data-menu-row]");
+    if (event.key === (rtl ? "ArrowRight" : "ArrowLeft")) {
+      handled();
+      row?.focus({ preventScroll: true });
+      return;
+    }
+    // up and down carry on from this row; Enter and Space press the star itself
+    if (event.key === "ArrowUp" || event.key === "ArrowDown" || event.key === "Home" || event.key === "End") {
+      const at = row ? rows.indexOf(row) : -1;
+      const next = nextMenuIndex(event.key, at, rows.length);
+      if (next !== null) return goTo(rows[next]);
+    }
+    return;
+  }
   const index = rows.indexOf(target);
   if (index < 0 && target !== menu) return;
   if (event.key === "Enter" && index >= 0) {
@@ -70,6 +85,12 @@ export function modelMenuKey(event: ReactKeyboardEvent<HTMLElement>, { query, ty
   if (search && ((event.key === "ArrowUp" && target === below[0]) || (event.key === "ArrowDown" && target === above.at(-1)))) return goTo(search);
   const next = nextMenuIndex(event.key, index, rows.length);
   if (next !== null) return goTo(rows[next]);
+  const star = index >= 0 ? rows[index]!.parentElement?.querySelector<HTMLElement>("[data-star-toggle]") : null;
+  if (star && event.key === (rtl ? "ArrowLeft" : "ArrowRight")) {
+    handled();
+    star.focus({ preventScroll: true });
+    return;
+  }
   if (event.key === (rtl ? "ArrowLeft" : "ArrowRight") && index >= 0 && rows[index]!.matches(FORWARD_ROWS)) {
     handled();
     rows[index]!.click();
