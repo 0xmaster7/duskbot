@@ -2717,11 +2717,14 @@ function engineSwitchNeedsAsk(mode: ApprovalMode, from: ModelSelection, to: Mode
   return modelSwitchNeedsAsk(mode, registry.cliTarget(from.instanceId)?.driverKind, registry.cliTarget(to.instanceId)?.driverKind);
 }
 
+/** `nextTurn`: the person's pick while the thread works. The running turn keeps the engine and model it started on
+ * (runningTurnEngines, the driver's own turn), so the pick lands now and the next message is the first to use it. A
+ * pick that would also reset approvals still waits for the turn to end. */
 function checkedTaskModelSwitch(current: BotRecord, raw: unknown, updateBotDefault: boolean,
-  resetApprovalToAsk: boolean, requireAvailableModel = false, trusted = false) {
+  resetApprovalToAsk: boolean, requireAvailableModel = false, trusted = false, nextTurn = false) {
   if (current.approvalGrant) return { ok: false as const, status: 409, error: "Wait for the approval change to finish before switching models" };
   const checked = checkedModelSelection(raw, {
-    selection: current.modelSelection, busy: threadBusy(current.id, current.threadId),
+    selection: current.modelSelection, busy: !nextTurn && threadBusy(current.id, current.threadId),
   }, requireAvailableModel);
   if (!checked.ok) return checked;
   const profile = store.bot(current.id)!;
@@ -2873,7 +2876,7 @@ const { cloudOwnerTurn, cloudThreadStarters, cloudBotOpened, cloudOwnerView, clo
 const actingPeople = createActingPeople({ store, direct: (threadId) => directRequestOwners.get(threadId), roomRun, handed: new HandedPeople(join(DATA_DIR, HANDED_PEOPLE_FILE)) });
 const { stopThreadForPerson, stopOnTypedCommand, restartForPerson } = createPersonStop({
   store, routines: () => routines, handoffs: () => handoffs, interruptDirectThread, clearUnattended,
-  stopGoal: (threadId) => oneOnOneGoals.stop(threadId), markStopped: (threadId) => personStops.stop(threadId, liveTurns.running(threadId), directTurnDispatchClaims.has(threadId)), working: (botId, threadId) => threadBusy(botId, threadId) || coordinator.activeDirect(threadId), asking: (threadId) => coordinator.awaitingAnswer(threadId) || Boolean(openPersonCard(threadId)), language: threadLanguage,
+  stopGoal: (threadId) => oneOnOneGoals.stop(threadId), markStopped: (threadId, said) => { personStops.stop(threadId, liveTurns.running(threadId), directTurnDispatchClaims.has(threadId)); if (said !== undefined) replySaidAtStop.set(threadId, said); }, working: (botId, threadId) => threadBusy(botId, threadId) || coordinator.activeDirect(threadId), asking: (threadId) => coordinator.awaitingAnswer(threadId) || Boolean(openPersonCard(threadId)), language: threadLanguage,
 }); const teamMessages = createTeamMessages({ place: CLOUD_TEAM ? null : createPlaceInbox({ dataDir: DATA_DIR, store, openCards: openCardRows, waiting: () => personWaits.waiting(), send: (notification) => { broadcast({ kind: "notify", notification: logNotification(notification) }); }, sees: (auth, threadId) => visibleTo(viewerFor(auth)).thread(threadId), mayAnswer: (auth, threadId, requestId) => cardAnswerRefusal(auth, threadId, requestId, "allow") === null, viewer: (auth) => placeInboxViewer(auth, { personal: CLOUD_PERSONAL, owner: cloudOwnerSession, personOf: personKey }), guestOf: (threadId) => { if (!CLOUD_PERSONAL || !cloudGuestDriven(threadId)) return null; const person = [...cloudThreadStarters(threadId), threadPersonKey(threadId)].find((one) => one && one !== CLOUD_OUTSIDE_KEY && !cloudOwnerPerson(one)); return person ?? null; }, guestName: (threadId) => guestNameIn(store.messagesFor(threadId)), handedBy: (threadId) => { const from = delegatorOf(threadId); return from && from.threadId !== threadId ? from.botId ?? store.botByThread(from.threadId)?.id ?? null : null; } }), team: CLOUD_TEAM, dataDir: DATA_DIR, store, confined: (threadId) => cloudGuestDriven(threadId), people: teamOwners.people, personName: teamHost.personName, audienceOf: teamHost.audienceOf, starters: threadStarters, notify, sees: (person) => visibleTo(person.role === "member" ? { kind: "member", email: person.email } : { kind: "all", email: person.email }), inbox: { askedPerson: teamOwners.routing.askedPerson, changed: (threadId) => { const bot = store.botByThread(threadId); if (bot) broadcast({ kind: "bot", bot: wireBot(bot) }); }, ensureOwnBot: (email) => { ensureDefaultBot(store, { dataDir: DATA_DIR, person: email, team: CLOUD_TEAM?.name ?? null }); }, handedFrom: (threadId) => { const from = delegatorOf(threadId); return from && from.threadId !== threadId ? from.threadId : null; }, continueTurn: relayedTurn({ store, startTurn, state: (botId, threadId) => ({ atCapacity: botAtThreadCapacity(botId, threadId), threadBusy: threadBusy(botId, threadId), groupTurn: roomTurnHolds(activeGroupTurnForBot(botId), threadId, false), parksBehindCoordination: parksBehindCoordination(botId, threadId) }) }), representative: { generate: async (botId, prompt) => (await sideJobs.text("representative", botId)?.generateText(prompt, { timeoutMs: 60_000 })) ?? null, busy: createPersonCalendar({ access: (person) => teamConnections.personApps().includes("googlecalendar") ? teamConnections.people.appsAccess(person) : null, connected: async (access) => (await composio.connectedServices(cfg, access)).googlecalendar?.connected === true, relay: (payload, session, signal, access) => composio.relayMcp(cfg, payload as never, session, undefined, signal, access) }).busy } } });
 const noAiNotice = createNoAiNotice({ team: CLOUD_TEAM, dataDir: DATA_DIR, people: () => teamOwners.people?.list() ?? [], personName: teamHost.personName, inbox: () => teamMessages.inbox, language: personLanguages.forLine, threadLanguage: conversationLanguage });
 const botNameClash = createBotNameClash({ store, people: () => teamMessages.people(), profileName: () => cfg.profile?.name });
@@ -5062,6 +5065,23 @@ function requestBehavior(value: unknown): "allow" | "deny" | "answer" | null {
 
 const lastReply = new Map<string, string>(); /** Turns whose reply tagged the person before the tag was rewritten. */ const personTaggedTurns = new Map<string, string>();
 const stoppedTurns = new Map<string, string | undefined>(), personStops = new PersonStops();
+// A person's Stop keeps the words already streamed and nothing after: each thread's reply text since its last finished
+// item, and that text frozen at the first frame after the Stop (landed as the turn's last bubble, then cleared).
+const streamedReply = new Map<string, string>(), replyAtStop = new Map<string, string>();
+/** The streaming reply's words the person's app showed when they pressed Stop: what is kept ends there. */
+const replySaidAtStop = new Map<string, string>();
+const flatWords = (text: string) => text.replace(/\s+/g, " ").trim();
+const keptAtStop = (threadId: string, turnId: string | undefined, streamed: string) => {
+  const said = replySaidAtStop.get(threadId);
+  if (said === undefined) return streamed;
+  // the item they watched is still streaming: keep exactly what they saw
+  if (flatWords(streamed).startsWith(flatWords(said))) return said;
+  // it finished on its way to the Stop: its bubble ends where they stopped seeing it, and nothing after is kept
+  const bubble = store.messagesFor(threadId).findLast((message) => message.role === "bot" && message.kind === "text" && message.turnId === turnId);
+  const landed = flatWords(bubble?.text ?? "");
+  if (bubble && landed !== flatWords(said) && landed.startsWith(flatWords(said))) store.patchMessage(threadId, bubble.id, { text: said });
+  return "";
+};
 // The turn each thread runs, from its start to its end, and nothing once the thread is idle: what Stop and the rescue check.
 const liveTurns = new LiveTurns((threadId) => { const owner = store.botByThread(threadId); return owner ? threadBusy(owner.id, threadId) : groupSpeakers.has(threadId); });
 const settlingTurns = new Set<string>();
@@ -6879,7 +6899,16 @@ bus.subscribe((event: RuntimeEvent) => {
     broadcast({ kind: "runtime", event: publicAssistantEvent });
   }
   const privateImageEvent = event.type === "item.completed" && event.itemType === "assistant_image";
-  if (!privateImageEvent) {
+  // words the engine still had in flight when the person pressed Stop: what streamed before it stays, the rest never lands
+  const replyText = (event.type === "content.delta" && event.streamKind === "assistant_text") || (event.type === "item.completed" && event.itemType === "assistant_text");
+  if (event.type === "turn.started") { streamedReply.delete(event.threadId); replyAtStop.delete(event.threadId); replySaidAtStop.delete(event.threadId); }
+  const afterPersonStop = replyText && personStops.stopped(event.threadId, event.turnId);
+  if (afterPersonStop && !replyAtStop.has(event.threadId)) replyAtStop.set(event.threadId, keptAtStop(event.threadId, event.turnId, streamedReply.get(event.threadId) ?? ""));
+  else if (replyText && !afterPersonStop) {
+    if (event.type === "content.delta") streamedReply.set(event.threadId, (streamedReply.get(event.threadId) ?? "") + event.delta);
+    else streamedReply.delete(event.threadId);
+  }
+  if (!privateImageEvent && !afterPersonStop) {
     // Exact executable input is internal; the bus's persistence redactor does not scrub the live event.
     const publicEvent = event.type === "request.opened" ? { ...event, command: undefined, commandLine: undefined, reads: undefined } : event;
     broadcast({ kind: "runtime", event: publicEvent });
@@ -6959,7 +6988,13 @@ bus.subscribe((event: RuntimeEvent) => {
       break;
     case "item.completed":
       if (event.itemType === "assistant_text") {
-        pushAssistantText(event.text, event.turnId);
+        if (!afterPersonStop) pushAssistantText(event.text, event.turnId);
+        else {
+          // the half answer that streamed before the Stop settles as a finished bubble, once
+          const kept = replyAtStop.get(event.threadId) ?? "";
+          replyAtStop.set(event.threadId, "");
+          if (kept.trim()) pushAssistantText(kept, event.turnId);
+        }
       } else if (event.itemType === "assistant_image") {
         try {
           const decoded = decodeGeneratedImage(event.data);
@@ -7238,6 +7273,12 @@ bus.subscribe((event: RuntimeEvent) => {
       }
       break;
     case "turn.completed": {
+      // a Stop the engine ended without a last item: the half answer it had streamed still settles as a bubble
+      if (personStops.stopped(event.threadId, completedTurnId)) {
+        const kept = replyAtStop.get(event.threadId) ?? keptAtStop(event.threadId, completedTurnId, streamedReply.get(event.threadId) ?? "");
+        if (kept.trim()) pushAssistantText(kept, completedTurnId);
+      }
+      streamedReply.delete(event.threadId); replyAtStop.delete(event.threadId); replySaidAtStop.delete(event.threadId);
       askCards.settleWaitingOnPersonChips(event.threadId);
       const internal = isInternalTurn(event.threadId);
       clearInternalTurn(event.threadId);

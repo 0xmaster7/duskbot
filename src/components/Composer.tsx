@@ -81,6 +81,7 @@ import { voiceShortcut, voiceShortcutLabel } from "@/lib/voice-input/shortcut";
 import { openSettings } from "@/lib/open-settings";
 import { NotesWaitingLine, useNotesIntake } from "./NotesWaiting"; import { looksLikeNotes, notesInFiles } from "@/lib/assistant-notes";
 import { escapeCancelsReply } from "@/lib/replies";
+import { useStopPress } from "@/lib/stop-turn";
 import { useThreadRefs } from "./ThreadRefs";
 import {
   QueuedComposerMessages,
@@ -564,12 +565,14 @@ export function Composer({
   const media = useLiveMedia();
   const callTarget = group ? undefined : bot?.id;
   const calling = callTarget !== undefined && (onCall === callTarget || (isLiveCallRunning(media.phase) && media.botId === callTarget));
-  const stoppable = busy || Boolean(!group && bot?.waitingForTeammates);
+  // a Stop pressed here takes the button away at once: the turn reads as over before the server says so
+  const stopPressed = Boolean(useStopPress(threadId || undefined));
+  const stoppable = (busy || Boolean(!group && bot?.waitingForTeammates)) && !stopPressed;
   const live = liveCallEnabled();
   // Simple mode's round button is the mic (the call when live calls are on), Send while there is text, and Stop while the bot works.
   const stopInSlot = simpleDock && stoppable && !locked && !hasContent && !calling;
   // a phone shows one round button at the end of the pill: stop while it works, send once there is text, else the mic
-  const callShown = !hasContent && (singleRow ? !busy : !stopInSlot);
+  const callShown = !hasContent && (singleRow ? !(busy && !stopPressed) : !stopInSlot);
   // with live calls off the mic takes the call's place: the one round button at rest
   const micInSlot = !live && callShown && !locked && !recording;
   // the round button's glyph pops in only when it swaps here (call, send, stop); a fresh composer, as on a chat
@@ -590,7 +593,8 @@ export function Composer({
   const [glyphs, setGlyphs] = useState({ shape: glyphShape, swapped: false, glyph: slotGlyph, from: null as SlotGlyph | null, swaps: 0 });
   // the mic is its own button that only changes colour beside Send, so a swap to or from it lands at once: no pop, no
   // fading ghost of it over Send
-  if (glyphs.shape !== glyphShape) setGlyphs({ shape: glyphShape, swapped: slotGlyph !== "mic" && glyphs.glyph !== "mic", glyph: slotGlyph, from: glyphs.glyph, swaps: glyphs.swaps + 1 });
+  // ...except after Stop: the square fades out over the mic coming back, as Send's arrow does
+  if (glyphs.shape !== glyphShape) setGlyphs({ shape: glyphShape, swapped: (slotGlyph !== "mic" && glyphs.glyph !== "mic") || glyphs.glyph === "stop", glyph: slotGlyph, from: glyphs.glyph, swaps: glyphs.swaps + 1 });
   // the mic at the end of the bar and the small one beside Send are two buttons, so neither slides across when the field
   // fills or empties (only Send or the reserved spot takes a place); focus on the old one carries to the new
   const micPlace = hasContent ? "beside" : "end";
@@ -1079,9 +1083,10 @@ export function Composer({
             />
           )}
           <div data-composer-actions className={cn("flex items-center", simpleDock ? "relative gap-2" : "gap-1", !singleRow && !simpleDock && "@max-[30rem]/composer:ml-auto", stacked && "ml-auto")}>
-          {(simpleDock ? stoppable : busy) && !locked && (
+          {(simpleDock ? stoppable : busy && !stopPressed) && !locked && (
           <button
-            onClick={interruptTurn}
+            // the button leaves with the press: focus goes back to the field (not on a phone, where it would raise the keyboard)
+            onClick={() => { interruptTurn(); if (!singleRow) refocusInput(); }}
             aria-label={t("chat.stopTurn")}
             data-composer-stop={simpleDock ? (stopInSlot ? "slot" : "beside") : undefined}
             className={cn(

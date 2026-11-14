@@ -43,7 +43,7 @@ import { PartlyDoneRow } from "./PartlyDoneRow";
 import { isPureLeakedSystemHarnessMessage, stripLeakedSystemHarnessMessages } from "../../shared/system-message-guard.ts";
 import { ConversationalReply, QuickModelNote, isConversational, useReplySegments, useThreadOpenedAt } from "./ConversationalReply";
 import { isProviderSafetyBlock, PROVIDER_SAFETY_GUIDANCE, PROVIDER_SAFETY_HELP_URL } from "../../shared/provider-safety";
-import { isCancelledTranscriptRow } from "../../shared/client-cancel";
+import { isCancelledTranscriptRow, isStoppedTurnName, PERSON_STOPPED_TURN_NAME } from "../../shared/client-cancel";
 import { isThisComputerNotGranted, isThisComputerNotReady } from "../../shared/your-computer";
 import { BotAvatar, type MausAvatarHandle } from "./Avatar";
 import type { MarkState } from "./mascot-engine";
@@ -63,7 +63,9 @@ import { LIFE_MASCOT_STATE, lifeDraw, lifeMarkState, lifeSpan } from "@/lib/repl
 import { presenceKind, TYPING_MARK, turnWorked, useHeldPresence, workingMark } from "@/lib/presence-mark";
 import { lastNonReceipt } from "@/lib/receipts";
 import { RoutineStartLine, routineStartName } from "./RoutineStartLine"; import { useTurnLive } from "@/state/turn-status"; import { useLiveReplyActive } from "@/state/live-reply"; import { useTurnNow } from "./NowCard"; import { useThreadRoutineRun } from "@/state/older-routine-runs";
-import { followSentTurn, useSentTurn } from "@/state/sent-turn";
+import { followSentTurn, sentTurn, useSentTurn } from "@/state/sent-turn";
+import { forgetLateRow, isLateRow, isSettledRow, noteLateRow, noteSettledRow, useStopPress, type StopPress } from "@/lib/stop-turn";
+import { shownReplyText } from "@/state/live-reply";
 import { ChatMarkdown } from "./ChatMarkdown";
 import { TranscriptStaging } from "./transcript-staging";
 import { LiveToolsContext, useLiveToolIds } from "@/hooks/use-live-tool-ids";
@@ -368,7 +370,7 @@ const Bubble = memo(function Bubble({
   );
   const join: BubbleJoin = { above: joinAbove, below: joinBelow };
   // only rows that arrive while the conversation is open slide in; a reply that streamed in is already in place
-  const fresh = !emerging && message.at > openedAt;
+  const fresh = !emerging && message.at > openedAt && !isSettledRow(message.id);
   const reply = useReplySegments(conversational && !user && !peer && !replyTarget && message.kind === "text", text);
   const split = reply.segments.length > 1;
   // each table of a reply draws as its own card between the reply's prose bubbles
@@ -635,6 +637,47 @@ export function statusMarkFor({ busy, waitingOnYou, answering, live, failed }: {
 }
 
 /** True while `on`, and for `ms` after it goes false: what is still on screen while it leaves. */
+/** The turn the person stopped, as the chat shows it from the press: what the bot had said stays, the words that had
+ * streamed by then settle at once as its last bubble (the server's own copy takes that bubble's place when it lands), and
+ * anything else of that turn that lands after the press is kept out, then and later. */
+export function withoutLateRows(messages: Message[], press: StopPress | undefined, onScreen: ReadonlySet<string> | undefined): Message[] {
+  const flat = (text: string) => text.replace(/\s+/g, " ").trim();
+  const said = press?.said ? flat(press.said) : "";
+  let settled = false;
+  const late = (message: Message) => {
+    // the server's copy of the words the Stop settled (trimmed to them if their item finished on the way) takes the place
+    // of the bubble the Stop drew; a row of more than that waits, hidden, until it is trimmed
+    const words = message.role === "bot" && message.kind === "text" ? flat(message.text ?? "") : "";
+    if (said && words && said.includes(words) && (isLateRow(message.id) || (onScreen && !onScreen.has(message.id)))) {
+      forgetLateRow(message.id);
+      noteSettledRow(message.id);
+      settled = true;
+      return false;
+    }
+    if (isLateRow(message.id)) return true;
+    if (!press || !onScreen || onScreen.has(message.id) || message.role !== "bot") return false;
+    if (press.turnId && message.turnId && message.turnId !== press.turnId) return false;
+    // the server's own stopped row is how the Stop is remembered: it stays
+    if (message.kind === "activity" && isStoppedTurnName(message.tool?.name ?? "")) return false;
+    noteLateRow(message.id);
+    return true;
+  };
+  const kept = messages.some(late) ? messages.filter((message) => !late(message)) : messages;
+  if (!press?.said || settled || !onScreen) return kept;
+  return [...kept, { id: `stop-said:${press.at}`, role: "bot", kind: "text", text: shownReplyText(press.said), at: press.at,
+    ...(press.turnId ? { turnId: press.turnId } : {}) } as Message];
+}
+
+/** The person stopped the newest turn: the chat's last word since their message is that Stop. */
+export function personStoppedLast(messages: readonly Message[]): boolean {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const message = messages[i]!;
+    if (message.role === "user") return false;
+    if (message.kind === "activity" && message.tool?.name === PERSON_STOPPED_TURN_NAME) return true;
+  }
+  return false;
+}
+
 export function useLingering(on: boolean, ms: number): boolean {
   const [lingering, setLingering] = useState(on);
   if (on && !lingering) setLingering(true);
@@ -928,10 +971,17 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   }, []);
 
   const { messages: allMessages, activeLeafId } = bot;
-  const shownMessages = useMemo(() => visibleMessages({ messages: allMessages, activeLeafId }), [allMessages, activeLeafId]);
-  // each new bot bubble waits for its "Typing…" beat on the status line before it lands
+  const visible = useMemo(() => visibleMessages({ messages: allMessages, activeLeafId }), [allMessages, activeLeafId]);
+  // Stop shows the turn over at the press: what the bot had said stays, what its turn says after never lands
+  const press = useStopPress(bot.threadId);
+  const stopCut = Boolean(press) && !((sentTurn(bot.threadId)?.at ?? 0) > press!.at);
+  const pressedOn = useRef<{ at: number; ids: ReadonlySet<string> } | null>(null);
+  if (!press) pressedOn.current = null;
+  else if (pressedOn.current?.at !== press.at) pressedOn.current = { at: press.at, ids: new Set(visible.map((message) => message.id)) };
+  const shownMessages = useMemo(() => withoutLateRows(visible, press, pressedOn.current?.ids), [visible, press]);
+  // each new bot bubble waits for its "Typing…" beat on the status line before it lands; a Stop lets what was said land now
   const hold = useTypingHold(`${bot.id}:${bot.threadId ?? ""}`, shownMessages, bot.id, Boolean(bot.busy));
-  const messages = hold.rows;
+  const messages = stopCut ? shownMessages : hold.rows;
   const lookups = useMemo(() => transcriptLookups(allMessages, messages), [allMessages, messages]);
   const liveTools = useLiveToolIds(messages, bot);
 
@@ -1044,7 +1094,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const mountDue = useReached(!turnBusy ? null : turnStartedAt && messages.length > 0 ? turnStartedAt + mountDelay : 0);
   // notes from another AI being brought in: the import's own steps are this bot's working row until its summary lands
   const importing = useNotesWork(bot.id);
-  const presenceVisible = hold.typing ? !hold.leaving : (waiting && mountDue) || teammatesWorking || Boolean(importing);
+  const presenceVisible = !stopCut && (hold.typing ? !hold.leaving : (waiting && mountDue) || teammatesWorking || Boolean(importing));
   // the bubble the line hangs under keeps its pinched corner until the line has finished leaving, as grok's does
   const presenceShown = useLingering(presenceVisible, 140);
   const paintedMessages = useFirstPaintRows(transcriptKey, windowedMessages, Boolean(focus && !focus.consumed) || laterCount > 0, scrollRef, following);
@@ -1065,7 +1115,9 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   // the turn's start lives: the mascot, one pass of its thinking dots, then the mascot again as the words come
   // the typing dots only while the reply is being written; a turn at work shows the bot's own mascot at work
   const worked = useMemo(() => turnWorked(messages), [messages]);
-  const writing = streamingReply || live.status?.activity === "reply" || hold.typing;
+  const writing = !stopCut && (streamingReply || live.status?.activity === "reply" || hold.typing);
+  // the person's Stop, said once and quietly where the working line was, until the next turn
+  const stoppedShown = (stopCut || personStoppedLast(messages)) && !(turnBusy && !stopCut) && !presenceVisible;
   const typingPhrases = useMemo(() => [t("chat.typing")], [locale]);
   // the bot's own label stays on the line while it leaves, after the turn's end has cleared it
   const shownLabel = useRef<{ seed: string; label?: string }>({ seed: presenceSeed });
@@ -1176,7 +1228,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           data-chathead-controls
           className={cn("flex shrink-0 items-center gap-2", !phone && "@max-[30rem]/chathead:ml-auto @max-[30rem]/chathead:flex-wrap @max-[30rem]/chathead:justify-end @min-[30rem]/chathead:col-start-3 @min-[30rem]/chathead:justify-self-end")}
         >
-          {!simpleHead && (bot.busy || bot.waitingForTeammates) && (
+          {!simpleHead && (bot.busy || bot.waitingForTeammates) && !stopCut && (
             <button
               onClick={() => dispatch({ type: "interrupt", botId: bot.id, threadId: bot.threadId })}
               className={cn(
@@ -1340,6 +1392,11 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             seed={presenceSeed}
             since={busySince}
           />}
+          {stoppedShown && !presenceShown && (
+            <div data-turn-stopped role="status" className={cn("turn-stopped flex h-9 items-center ps-3 text-[13px] text-ink-tertiary", !statusSlot && presenceUnderBubble && SIMPLE_STACKED)}>
+              {t("chat.turnStopped")}
+            </div>
+          )}
           </div>
         </div>
         </div>

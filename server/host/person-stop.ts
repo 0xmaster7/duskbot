@@ -13,8 +13,9 @@ export interface PersonStopDeps {
   handoffs(): Pick<Handoffs, "stoppedByPerson">;
   interruptDirectThread(botId: string, threadId: string): Promise<void>;
   clearUnattended(threadId: string): void;
-  /** Remembers that the person stopped the turn running in this thread, so it ends as their stop. */
-  markStopped(threadId: string): void;
+  /** Remembers that the person stopped the turn running in this thread, so it ends as their stop; `said`: the
+   * streaming reply's words their app showed, where the kept words end. */
+  markStopped(threadId: string, said?: string): void;
   /** Ends a goal running in this one-on-one chat, so the interrupted turn is its last. */
   stopGoal(threadId: string): void;
   /** A turn runs, or teammates are at work, for this thread. */
@@ -41,7 +42,7 @@ export interface TypedStop {
 export function createPersonStop(deps: PersonStopDeps) {
   const { store } = deps;
 
-  async function stopThreadForPerson(botId: string, threadId: string): Promise<void> {
+  async function stopThreadForPerson(botId: string, threadId: string, said?: string): Promise<void> {
     const routines = deps.routines();
     const routine = routines?.activeBotRunForBot(botId);
     if (routine?.threadId === threadId) {
@@ -49,7 +50,7 @@ export function createPersonStop(deps: PersonStopDeps) {
       return;
     }
     deps.handoffs().stoppedByPerson(threadId);
-    deps.markStopped(threadId);
+    deps.markStopped(threadId, said);
     deps.stopGoal(threadId);
     await deps.interruptDirectThread(botId, threadId);
   }

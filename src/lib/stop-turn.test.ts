@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { runtimeFrameAction } from "@/state/store";
 import type { RuntimeEvent } from "../../shared/runtime-events";
-import { forgetStops, sendStop, STOP_REPEAT_MS } from "./stop-turn";
+import { forgetStopPress, forgetStops, isLateRow, noteLateRow, sendStop, STOP_REPEAT_MS, stopPress } from "./stop-turn";
+import { liveReply, noteReplyEvent, resetLiveReplies } from "@/state/live-reply";
 
 const frame = (type: string, turnId: string, threadId = "thread-1") =>
   ({ eventId: `e-${Math.random()}`, provider: "fake", threadId, turnId, createdAt: "", type, ok: true }) as unknown as RuntimeEvent;
@@ -12,6 +13,7 @@ const bodies = (api: ReturnType<typeof vi.fn>) => api.mock.calls.map(([path, ini
 beforeEach(() => {
   vi.useFakeTimers();
   forgetStops();
+  resetLiveReplies();
 });
 
 afterEach(() => {
@@ -89,5 +91,46 @@ describe("Stop", () => {
     expect(showError).toHaveBeenCalledWith(expect.objectContaining({ message: "the bot switched tasks" }));
     sendStop(api, action, showError);
     expect(api).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("the press itself", () => {
+  it("shows the turn over at once, before the server answers, and cuts what was streaming", () => {
+    const api = vi.fn(() => new Promise(() => {}));
+    runtimeFrameAction(frame("turn.started", "turn-1"));
+    noteReplyEvent({ ...frame("content.delta", "turn-1"), streamKind: "assistant_text", delta: "Cheese" } as RuntimeEvent);
+    sendStop(api, { type: "interrupt", botId: "bot-1", threadId: "thread-1" }, vi.fn());
+    expect(stopPress("thread-1")).toMatchObject({ turnId: "turn-1" });
+    expect(liveReply("thread-1")).toMatchObject({ text: "Cheese", cut: true });
+  });
+
+  it("lasts until another turn starts or the person sends again", () => {
+    const api = vi.fn().mockResolvedValue({ ok: true });
+    runtimeFrameAction(frame("turn.started", "turn-1"));
+    sendStop(api, { type: "interrupt", botId: "bot-1", threadId: "thread-1" }, vi.fn());
+    runtimeFrameAction(frame("turn.completed", "turn-1"));
+    expect(stopPress("thread-1")).toBeDefined();
+    runtimeFrameAction(frame("turn.started", "turn-2"));
+    expect(stopPress("thread-1")).toBeUndefined();
+    vi.advanceTimersByTime(STOP_REPEAT_MS);
+    sendStop(api, { type: "interrupt", botId: "bot-1", threadId: "thread-1" }, vi.fn());
+    forgetStopPress("thread-1");
+    expect(stopPress("thread-1")).toBeUndefined();
+  });
+
+  it("gives the turn back when the server refuses the Stop", async () => {
+    const api = vi.fn().mockRejectedValue(new Error("offline"));
+    runtimeFrameAction(frame("turn.started", "turn-1"));
+    sendStop(api, { type: "interrupt", botId: "bot-1", threadId: "thread-1" }, vi.fn());
+    expect(stopPress("thread-1")).toBeDefined();
+    await vi.runAllTimersAsync();
+    expect(stopPress("thread-1")).toBeUndefined();
+  });
+
+  it("remembers a late row for good", () => {
+    noteLateRow("m-late");
+    expect(isLateRow("m-late")).toBe(true);
+    forgetStops();
+    expect(isLateRow("m-late")).toBe(false);
   });
 });

@@ -8,6 +8,8 @@ import { redactSecretsInText } from "../../shared/redact";
 export interface LiveReply {
   text: string;
   startedAt: number;
+  /** The person pressed Stop: the text stays as it was at the press, and nothing more streams into it. */
+  cut?: boolean;
 }
 
 const MAX_THREADS = 200;
@@ -50,8 +52,9 @@ export function noteReplyEvent(event: RuntimeEvent, now = Date.now()): void {
   switch (event.type) {
     case "content.delta": {
       if (event.streamKind !== "assistant_text" || !event.delta) return;
-      cancelOrphan(threadId);
       const current = replies.get(threadId);
+      if (current?.cut) return;
+      cancelOrphan(threadId);
       replies.delete(threadId);
       replies.set(threadId, { text: (current?.text ?? "") + event.delta, startedAt: current?.startedAt ?? now });
       if (replies.size > MAX_THREADS) {
@@ -76,8 +79,23 @@ export function noteReplyEvent(event: RuntimeEvent, now = Date.now()): void {
   }
 }
 
+/** Stop was pressed: what streamed so far stays, and the stopped turn's later words never join it. A turn that streamed
+ * nothing yet gets an empty cut reply, so its first words are dropped too. */
+export function cutLiveReply(threadId: string, now = Date.now()): void {
+  const current = replies.get(threadId);
+  if (current?.cut) return;
+  replies.set(threadId, { text: current?.text ?? "", startedAt: current?.startedAt ?? now, cut: true });
+  notify(threadId);
+}
+
 /** A bot's words landed in the thread: they replace whatever was streaming there. */
 export function noteReplyLanded(threadId: string, messageId: string): void {
+  // a stopped turn's last words: the cut holds until the next turn starts, and the bubble that settles what streamed
+  // takes the place of the one the Stop drew, without an entrance
+  if (replies.get(threadId)?.cut) {
+    if (replies.get(threadId)!.text) streamed.add(messageId);
+    return;
+  }
   if (replies.get(threadId)?.text) {
     streamed.add(messageId);
     if (streamed.size > MAX_STREAMED) streamed.delete(streamed.values().next().value!);
@@ -105,12 +123,17 @@ function subscribe(threadId: string | null | undefined, listener: () => void): (
   };
 }
 
+const liveActive = (threadId: string | null | undefined) => {
+  const reply = liveReply(threadId);
+  return Boolean(reply?.text && !reply.cut);
+};
+
 /** Whether the thread is streaming a reply, for a parent that must not re-render on every delta. */
 export function useLiveReplyActive(threadId: string | null | undefined): boolean {
   return useSyncExternalStore(
     (listener) => subscribe(threadId, listener),
-    () => Boolean(liveReply(threadId)?.text),
-    () => Boolean(liveReply(threadId)?.text),
+    () => liveActive(threadId),
+    () => liveActive(threadId),
   );
 }
 

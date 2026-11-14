@@ -431,6 +431,10 @@
 .turn-label-in {
   animation: turn-label-rise 180ms var(--dusk-ease-out) backwards;
 }
+/* after a Stop: one quiet word where the line was, faded in once the line has left */
+.turn-stopped {
+  animation: dusk-fade-in 180ms var(--dusk-ease-out) backwards;
+}
 .status-shimmer {
   --status-shimmer-ink: var(--color-ink);
   --status-shimmer-dim: color-mix(in srgb, var(--status-shimmer-ink) 40%, transparent);

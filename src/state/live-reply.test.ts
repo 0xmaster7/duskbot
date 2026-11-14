@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { RuntimeEvent } from "../../shared/runtime-events";
-import { forgetLiveReplies, LIVE_REPLY_ORPHAN_MS, liveReply, noteReplyEvent, noteReplyLanded, replacedLiveReply, resetLiveReplies, shownReplyText } from "./live-reply";
+import { cutLiveReply, forgetLiveReplies, LIVE_REPLY_ORPHAN_MS, liveReply, noteReplyEvent, noteReplyLanded, replacedLiveReply, resetLiveReplies, shownReplyText } from "./live-reply";
 
 const frame = (event: Partial<RuntimeEvent>) => ({ eventId: "e", threadId: "t", ...event }) as RuntimeEvent;
 const delta = (text: string, streamKind: "assistant_text" | "reasoning_text" = "assistant_text") => noteReplyEvent(frame({ type: "content.delta", streamKind, delta: text }), 10);
@@ -47,5 +47,19 @@ describe("a streaming reply", () => {
 
   it("masks secrets and holds back a private key that has not ended", () => {
     expect(shownReplyText("key -----BEGIN RSA PRIVATE KEY-----\nabc")).toBe("key ");
+  });
+
+  it("stops growing at the person's Stop: later words of that turn are dropped, and the next turn streams again", () => {
+    delta("Cheese begins");
+    cutLiveReply("t");
+    delta(" as milk");
+    noteReplyLanded("t", "late-bubble");
+    delta(" and more");
+    expect(liveReply("t")).toMatchObject({ text: "Cheese begins", cut: true });
+    expect(replacedLiveReply("late-bubble")).toBe(true);
+    noteReplyEvent(frame({ type: "turn.started", turnId: "turn-2" }));
+    delta("Fresh");
+    expect(liveReply("t")).toMatchObject({ text: "Fresh" });
+    expect(liveReply("t")?.cut).toBeUndefined();
   });
 });

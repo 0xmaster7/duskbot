@@ -62,7 +62,7 @@ import { firstUnreadMessageId, threadOpensUnread, threadReadCursor } from "@/lib
 import type { ComputerStart } from "@/lib/computer-start";
 import { parseComputerHelp } from "@/lib/computer-control";
 import { answerResponse, dismissResponse } from "@/lib/card-answer";
-import { forgetLiveTurns, noteRuntimeTurn, sendStop } from "@/lib/stop-turn"; import { forgetTurnStatuses } from "@/state/turn-status"; import { forgetLiveReplies } from "@/state/live-reply";
+import { forgetLiveTurns, forgetStopPress, noteRuntimeTurn, sendStop } from "@/lib/stop-turn"; import { forgetTurnStatuses } from "@/state/turn-status"; import { forgetLiveReplies } from "@/state/live-reply";
 import { readLastConversation, rememberConversation } from "@/lib/last-conversation";
 import { readLastBotSection, rememberBotSection } from "@/lib/last-bot-section";
 import { showNotification } from "@/lib/notify";
@@ -393,6 +393,8 @@ export type TaskUpdatePatch = Partial<Pick<Task, "modelSelection" | "approvalMod
   acknowledgeLocalAuto?: boolean;
   updateBotDefault?: boolean;
   resetApprovalToAsk?: boolean;
+  /** with modelSelection: the pick lands while the thread works, for its next message */
+  nextTurn?: boolean;
   projectId?: string | null;
   archivedAt?: number | null;
   snoozedUntil?: number | null;
@@ -402,7 +404,7 @@ export type TaskUpdatePatch = Partial<Pick<Task, "modelSelection" | "approvalMod
 };
 
 function taskPatchFields(patch: TaskUpdatePatch): Partial<Task> {
-  const { acknowledgeLocalAuto: _localAck, updateBotDefault: _modelDefault, resetApprovalToAsk, projectId, archivedAt, snoozedUntil, surface, pinned, link, ...fields } = patch;
+  const { acknowledgeLocalAuto: _localAck, updateBotDefault: _modelDefault, nextTurn: _nextTurn, resetApprovalToAsk, projectId, archivedAt, snoozedUntil, surface, pinned, link, ...fields } = patch;
   return { ...fields, ...(resetApprovalToAsk ? { approvalMode: "ask", autoApprove: false, alwaysAllow: [] } : {}),
     ...(projectId === undefined ? {} : { projectId: projectId ?? undefined }),
     ...(archivedAt === undefined ? {} : { archivedAt: archivedAt ?? undefined }),
@@ -785,7 +787,8 @@ export type Action =
   | { type: "dataSheet"; sheet: DataSheet; tables?: DataTable[] }
   | { type: "loadDataSheet"; botId: string; onError?: (message: string) => void }
   | { type: "modelVariantRuntime"; event: RuntimeEvent }
-  | { type: "setModel"; botId: string; selection: ModelSelection; threadId?: string; updateBotDefault?: boolean; resetApprovalToAsk?: boolean }
+  /** `nextTurn`: picked while the thread works, so the running reply keeps its model and the next message uses this one. */
+  | { type: "setModel"; botId: string; selection: ModelSelection; threadId?: string; updateBotDefault?: boolean; resetApprovalToAsk?: boolean; nextTurn?: boolean }
   | { type: "interrupt"; botId: string; threadId?: string; onError?: () => void }
   | { type: "connected"; value: boolean }
   | { type: "loadFailed" }
@@ -2463,7 +2466,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const arrived = () => sendArrived(stateRef.current.bots.find((bot) => bot.id === action.botId && bot.threadId === threadId)?.messages, sendId);
           const outbox = threadId && !action.dataContext && !action.pointed?.length && !action.followUp ? sendOutbox() : null;
           // the bot's working row shows with the bubble, not when the server answers the send
-          if (threadId && botBeforeSend?.threadId === threadId && !botBeforeSend.busy) noteSentTurn(threadId, sendId);
+          if (threadId && botBeforeSend?.threadId === threadId && !botBeforeSend.busy) { forgetStopPress(threadId); noteSentTurn(threadId, sendId); }
           if (threadId) outbox?.hold({ kind: "bot", ownerId: action.botId, threadId, sendId, text: action.text, at: Date.now(), ...(action.replyToId ? { replyToId: action.replyToId } : {}), ...(action.mode ? { mode: action.mode } : {}), ...(action.mentions?.length ? { mentions: action.mentions } : {}) });
           void waitForExecutionSettings(botBeforeSend ? [botBeforeSend] : [], threadId)
             .then(() => sendReconciled((signal) => api(`/api/bots/${action.botId}/messages`, {
@@ -2740,6 +2743,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               modelSelection: action.selection,
               ...(action.updateBotDefault ? { updateBotDefault: true } : {}),
               ...(action.resetApprovalToAsk ? { resetApprovalToAsk: true } : {}),
+              ...(action.nextTurn ? { nextTurn: true } : {}),
             });
             break;
           }

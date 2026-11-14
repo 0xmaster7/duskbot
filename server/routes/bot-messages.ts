@@ -109,7 +109,7 @@ export interface BotMessageRouteDeps {
     decidedFor?: { id: string; name: string }, always?: boolean, rememberCommand?: boolean,
   ): Promise<RequestOutcome>;
   deliverLateQuestionAnswer(auth: RequestAuth, threadId: string, requestId: string, answer: string, cardMessage: Message, owner: BotRecord): Promise<{ queued: boolean }>;
-  stopThreadForPerson(botId: string, threadId: string): Promise<void>;
+  stopThreadForPerson(botId: string, threadId: string, said?: string): Promise<void>;
   cancelDirectTurnDispatch(botId: string, expectedThreadId?: string): unknown;
   revokeInternalCapabilitiesForThread(threadId: string): void;
   cancelGroupTurnOperations(groupId: string, threadId: string): void;
@@ -781,9 +781,14 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
       if (body.turnId !== undefined && (!turnId || turnId.length > 200)) {
         return json(res, 400, { error: "turnId must name a turn" });
       }
+      // the streaming reply's words the app showed at the press: the half answer that is kept ends there
+      const said = body.said;
+      if (said !== undefined && (typeof said !== "string" || said.length > 100_000)) {
+        return json(res, 400, { error: "said must be the reply text the app showed" });
+      }
       if (typeof expectedThreadId === "string" && store.taskByThread(bot.id, expectedThreadId)) {
         if (!stopReachesLiveTurn(turnId, liveTurn(expectedThreadId))) return json(res, 200, { ok: true, outcome: "already-stopped" });
-        await stopThreadForPerson(bot.id, expectedThreadId);
+        await stopThreadForPerson(bot.id, expectedThreadId, said);
         return json(res, 200, { ok: true });
       }
       const directClaim = directTurnDispatchClaims.get(bot.threadId);
@@ -820,7 +825,7 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
         return json(res, 409, { error: "the bot switched tasks before it could be interrupted" });
       }
       if (!stopReachesLiveTurn(turnId, liveTurn(expectedThreadId ?? bot.threadId))) return json(res, 200, { ok: true, outcome: "already-stopped" });
-      await stopThreadForPerson(bot.id, expectedThreadId ?? bot.threadId);
+      await stopThreadForPerson(bot.id, expectedThreadId ?? bot.threadId, said);
       return json(res, 200, { ok: true });
     }
     return PASS;
