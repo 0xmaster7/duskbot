@@ -33,20 +33,20 @@ export function ImportSettings({ client = setupImportApi }: { client?: SetupImpo
     if (!local) return [];
     return move.plan && detection !== undefined ? localFinds(move.plan, detection, { grokExports: true }) : null;
   }, [local, move.plan, detection]);
-  const choice = useBringChoice(finds);
   // a bringing in that finished before this page opened is not this visit's: what is still here is looked at afresh
   useEffect(() => forgetBringRun(), []);
   const run = useBringRun();
+  const choice = useBringChoice(finds, run);
 
-  const bring = () => {
-    track("settings_bring", { apps: choice.toBring.length });
-    void bringChosen(choice.toBring, { client, dispatch, firstBotId: first?.id ?? null, aboutMe: state.config?.profile?.aboutMe ?? "", team: Boolean(state.config?.team) });
+  const bring = (chosen: readonly LocalFind[] = choice.toBring) => {
+    track("settings_bring", { apps: chosen.length });
+    void bringChosen(chosen, { client, dispatch, firstBotId: first?.id ?? null, aboutMe: state.config?.profile?.aboutMe ?? "", team: Boolean(state.config?.team) });
   };
 
   return (
     <section data-import-section="bring" className="flex flex-col gap-4 px-1 pt-1">
       <p className="m-0 text-pretty text-[13px] leading-[18px] text-ink-secondary">{choice.found ? t("bring.sub") : t("bring.subNone")}</p>
-      <BringIn finds={finds} choice={choice} grokWaiting={move.plan?.grokWaiting ?? []} run={run} bringButton onBring={bring} />
+      <BringIn finds={finds} choice={choice} grokWaiting={move.plan?.grokWaiting ?? []} run={run} bringButton onBring={() => bring()} onImport={(find) => bring([find])} />
     </section>
   );
 }

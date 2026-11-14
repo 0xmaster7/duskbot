@@ -17,6 +17,7 @@ import { Art, type ArtName } from "../ui/Art";
 import { PlaceArt, type PlaceArtName } from "../ui/PlaceArt";
 import { Toggle } from "../ui/Toggle";
 import { DEFAULT_BOT_NAME } from "@/lib/default-bot";
+import { MAC_TRAFFIC_LIGHT_CLEAR_X, useDesktopCapabilities } from "../DesktopCapabilities";
 import phoneHome from "../../assets/onboarding/phone-home.webp";
 import { friendlyError } from "@/lib/plain-error";
 
@@ -28,14 +29,18 @@ export const QUIET = "min-h-11 rounded-full px-3 text-[13px] leading-[18px] text
 export const TILE = "rounded-2xl bg-ink/[0.035] transition-[background-color,transform] duration-150 ease-[ease] hover:bg-ink/[0.06] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none motion-reduce:active:scale-100";
 
 // the brand's lilac, a shade deeper than the pastel so the mark reads on the light canvas
-const BRAND_LILAC: [string, string, string] = ["#d0cefb", "#b99af2", "#d0cefb"];
+export const BRAND_LILAC: [string, string, string] = ["#d0cefb", "#b99af2", "#d0cefb"];
 
 /** Back, and how far along the setup is, over every step but the first. */
 export function FunnelBar({ at, count, onBack }: { at: number; count: number; onBack: (() => void) | null }) {
+  // on macOS Back starts clear of the traffic lights, which sit over the window's top left corner (the rail beside the
+  // page, when there is one, already holds them)
+  const lights = useDesktopCapabilities().capabilities.windowChrome === "mac-inset";
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-14 items-center justify-center px-4">
       {onBack && (
-        <button type="button" data-funnel-back="" onClick={onBack}
+        <button type="button" data-funnel-back={lights ? "clear-of-traffic-lights" : ""} onClick={onBack}
+          style={lights ? { left: `max(16px, calc(${MAC_TRAFFIC_LIGHT_CLEAR_X}px - var(--rail-beside, 0px)))` } : undefined}
           className="pointer-events-auto absolute start-4 inline-flex min-h-11 items-center gap-0.5 rounded-full py-1 pe-3 ps-1.5 text-[13px] leading-[18px] text-ink-secondary transition-colors hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none">
           <ChevronLeft size={16} strokeWidth={1.5} aria-hidden="true" className="rtl:-scale-x-100" />{t("funnel.back")}
         </button>

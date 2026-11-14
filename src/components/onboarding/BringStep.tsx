@@ -8,14 +8,15 @@ import { MausAvatar } from "../Avatar";
 import { BringIn, useBringChoice } from "../BringIn";
 import { ClaudeMark, CodexMark, GeminiMark, GrokMark } from "../ProviderIcons";
 import { useMotionReduced } from "../ui/SheetMotion";
-import { PRIMARY, QUIET, StepFrame } from "./FunnelSteps";
+import { cn } from "@/lib/cn";
+import { BRAND_LILAC, PRIMARY, QUIET, StepFrame } from "./FunnelSteps";
 
-/** Logos of the AI apps the prompt is for, in small tiles. */
-const ONLINE: { key: string; mark: (size: number) => ReactNode }[] = [
-  { key: "chatgpt", mark: (size) => <CodexMark size={size} /> },
-  { key: "claude", mark: (size) => <ClaudeMark size={size} /> },
-  { key: "gemini", mark: (size) => <GeminiMark size={size} /> },
-  { key: "grok", mark: (size) => <GrokMark size={size} /> },
+/** The AI apps the prompt is for, as their own app icons: each logo in its colours on its own tile. */
+const ONLINE: { key: string; tile: string; mark: (size: number) => ReactNode }[] = [
+  { key: "chatgpt", tile: "bg-[#10a37f]", mark: (size) => <CodexMark size={size} className="fill-[#fafafa]" /> },
+  { key: "claude", tile: "bg-[#f5efe6]", mark: (size) => <ClaudeMark size={size} /> },
+  { key: "gemini", tile: "bg-[#eef3fd]", mark: (size) => <GeminiMark size={size} /> },
+  { key: "grok", tile: "bg-[#141416]", mark: (size) => <GrokMark size={size} className="fill-[#fafafa]" /> },
 ];
 
 const PACKETS = 3;
@@ -23,16 +24,15 @@ const PACKET_S = 2.8;
 /** The track between the two ends: the scene's 248px less both 52px ends and their 8px gaps, less a packet. */
 const TRACK_PX = 124;
 
-/** Your other AI apps on the left, dusk bot on the right, in the canvas's own greys. Something travels between them only
- * while something is being brought in. */
+/** Your other AI apps on the left, in their own colours, dusk bot's mascot on the right as the welcome shows it.
+ * Something travels between them only while something is being brought in. */
 function BringScene({ moving }: { moving: boolean }) {
   const reduced = useMotionReduced();
   return (
     <div data-bring-scene={moving ? "moving" : "still"} className="relative flex h-16 w-[248px] items-center justify-between">
-      <span className="relative h-14 w-[52px] shrink-0 grayscale">
-        {ONLINE.slice(0, 3).map((app, index) => (
-          <span key={app.key} className="absolute grid size-7 place-items-center rounded-[9px] bg-ink/[0.06] opacity-80"
-            style={{ left: index === 1 ? 22 : 0, top: index * 14 }}>{app.mark(15)}</span>
+      <span className="grid h-[52px] w-[52px] shrink-0 grid-cols-2 gap-1">
+        {ONLINE.map((app) => (
+          <span key={app.key} data-bring-logo={app.key} className={cn("grid size-6 place-items-center rounded-[7px]", app.tile)}>{app.mark(14)}</span>
         ))}
       </span>
       <span className="relative mx-2 h-6 flex-1">
@@ -45,7 +45,7 @@ function BringScene({ moving }: { moving: boolean }) {
             transition={{ duration: PACKET_S, ease: "linear", repeat: Infinity, delay: index * (PACKET_S / PACKETS), times: [0, 0.15, 0.85, 1] }} />
         ))}
       </span>
-      <span className="shrink-0"><MausAvatar color="chrome" size={52} state="happy" trackPointer={false} animated={moving && !reduced} label="" /></span>
+      <span className="shrink-0"><MausAvatar color="purple" gradient={BRAND_LILAC} size={52} state="happy" trackPointer={false} animated={moving && !reduced} label="" /></span>
     </div>
   );
 }
@@ -60,11 +60,12 @@ export function BringStep({ finds, grokWaiting, run = { kind: "idle" }, onBring,
   onBring: (chosen: LocalFind[]) => void;
   onNext: () => void;
 }) {
-  const choice = useBringChoice(finds);
+  const choice = useBringChoice(finds, run);
   const started = run.kind !== "idle";
   return (
     <StepFrame art={<BringScene moving={run.kind === "working"} />} title={t("bring.title")} sub={choice.found ? t("bring.sub") : t("bring.subNone")}
-      footer={choice.found && !started ? (
+      // each app has its own Import; Import all leads only while two or more are still to come
+      footer={choice.found && !started && choice.chosen.length > 1 ? (
         <>
           <button type="button" data-primary="" data-bring-go="" autoFocus disabled={!choice.chosen.length} onClick={() => onBring(choice.toBring)} className={PRIMARY}>{t("bring.bring")}</button>
           <button type="button" data-bring-skip="" onClick={onNext} className={QUIET}>{t("funnel.skip")}</button>
@@ -73,7 +74,7 @@ export function BringStep({ finds, grokWaiting, run = { kind: "idle" }, onBring,
         <button type="button" data-primary="" data-bring-next="" autoFocus={started} onClick={onNext} className={PRIMARY}>{t("funnel.next")}</button>
       )}>
       <div className="w-full max-w-[440px]">
-        <BringIn finds={finds} choice={choice} grokWaiting={grokWaiting} run={run} />
+        <BringIn finds={finds} choice={choice} grokWaiting={grokWaiting} run={run} onImport={(find) => onBring([find])} />
       </div>
     </StepFrame>
   );

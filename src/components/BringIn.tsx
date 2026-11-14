@@ -10,7 +10,7 @@ import { copyNotesPrompt, looksLikeNotes, notesInFiles } from "@/lib/assistant-n
 import { planCounts } from "@/lib/bot-move";
 import { MAUS_COLOR_NAMES, type MausColor } from "@/lib/mascot";
 import { NOTES_PROMPT } from "../../shared/assistant-notes";
-import type { BringRun, LocalFind } from "@/lib/first-run-import";
+import { broughtIds, type BringRun, type LocalFind } from "@/lib/first-run-import";
 import { MausAvatar } from "./Avatar";
 import { GrokBotMark } from "./GrokBotMark";
 import { useNotesIntake, type NotesSay } from "./NotesWaiting";
@@ -59,45 +59,43 @@ function shortLine(find: LocalFind): string {
   return t(counts.bots === 1 ? "bring.botWith" : "bring.botsWith", { bots, list: listFormat(kinds) });
 }
 
-/** A light switch drawn inside the row, which is the real control. */
-function RowSwitch({ on, locked }: { on: boolean; locked: boolean }) {
-  return (
-    <span aria-hidden="true" className={cn("relative inline-flex h-[18px] w-[30px] shrink-0 rounded-full transition-[background-color,opacity] duration-200 ease-[ease] motion-reduce:transition-none",
-      on ? "bg-accent" : "bg-ink/[0.1]", locked && "opacity-50")}>
-      <span className={cn("absolute left-[2px] top-[2px] size-[14px] rounded-full bg-white shadow-[0_1px_2px_0_rgb(28_28_28/0.14)] [transition:translate_220ms_var(--dusk-ease-out)] motion-reduce:transition-none",
-        on && "translate-x-3")} />
-    </span>
-  );
-}
+type RowState = "idle" | "working" | "done";
 
-function FindRow({ find, on, locked, onToggle }: { find: LocalFind; on: boolean; locked: boolean; onToggle: () => void }) {
+/** One app found here: its mark, what it holds, the bots arriving, and its own Import. */
+function FindRow({ find, state, busy, onImport }: { find: LocalFind; state: RowState; busy: boolean; onImport: () => void }) {
   const bots = arriving(find);
   const shown = bots.slice(0, 4);
   return (
-    <li>
-      <button type="button" role="checkbox" aria-checked={on} aria-disabled={locked || undefined} data-bring-find={find.id} onClick={locked ? undefined : onToggle}
-        className={cn("group flex w-full min-w-0 items-center gap-3 rounded-[14px] px-3 py-2.5 text-start focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
-          !locked && "transition-[background-color,transform] duration-150 ease-[ease] hover:bg-ink/[0.04] active:scale-[0.99] motion-reduce:transition-none motion-reduce:active:scale-100")}>
-        <span aria-hidden="true" className={cn("grid size-9 shrink-0 place-items-center rounded-[11px] bg-app transition-opacity duration-200 ease-[ease] motion-reduce:transition-none", !on && "opacity-50")}>
-          <FindMark find={find} />
+    <li data-bring-find={find.id} data-bring-state={state} className="flex min-w-0 items-center gap-3 rounded-[14px] px-3 py-2.5 text-start">
+      <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-app">
+        <FindMark find={find} />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="truncate text-[14px] font-medium leading-5 text-ink">{find.app}</span>
+        <span className="truncate text-[12px] leading-4 text-ink-tertiary">{shortLine(find)}</span>
+        {shown.length > 0 && (
+          <span data-bring-bots="" className="mt-1 flex min-w-0 flex-wrap gap-1">
+            {shown.map((bot) => (
+              <span key={bot.name} className="inline-flex max-w-[150px] items-center gap-1 rounded-full bg-app py-0.5 pe-2 ps-0.5 text-[12px] leading-4 text-ink-secondary">
+                <MausAvatar color={bot.color} size={16} trackPointer={false} animated={false} label="" />
+                <span className="truncate">{bot.name}</span>
+              </span>
+            ))}
+            {bots.length > shown.length && <span className="inline-flex items-center px-1 text-[12px] leading-4 text-ink-tertiary">+{bots.length - shown.length}</span>}
+          </span>
+        )}
+      </span>
+      {state === "done" ? (
+        <span data-bring-imported="" className="inline-flex min-h-9 shrink-0 items-center gap-1 px-2 text-[13px] leading-[18px] text-ink-secondary">
+          <Check size={14} aria-hidden="true" />{t("bring.imported")}
         </span>
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className={cn("truncate text-[14px] font-medium leading-5 transition-colors duration-200 ease-[ease]", on ? "text-ink" : "text-ink-tertiary")}>{find.app}</span>
-          <span className="truncate text-[12px] leading-4 text-ink-tertiary">{shortLine(find)}</span>
-          {shown.length > 0 && (
-            <span data-bring-bots="" className={cn("mt-1 flex min-w-0 flex-wrap gap-1 transition-opacity duration-200 ease-[ease] motion-reduce:transition-none", !on && "opacity-50")}>
-              {shown.map((bot) => (
-                <span key={bot.name} className="inline-flex max-w-[150px] items-center gap-1 rounded-full bg-app py-0.5 pe-2 ps-0.5 text-[12px] leading-4 text-ink-secondary">
-                  <MausAvatar color={bot.color} size={16} trackPointer={false} animated={false} label="" />
-                  <span className="truncate">{bot.name}</span>
-                </span>
-              ))}
-              {bots.length > shown.length && <span className="inline-flex items-center px-1 text-[12px] leading-4 text-ink-tertiary">+{bots.length - shown.length}</span>}
-            </span>
-          )}
-        </span>
-        <RowSwitch on={on} locked={locked} />
-      </button>
+      ) : (
+        <button type="button" data-bring-import={find.id} disabled={busy} onClick={onImport} aria-label={state === "working" ? undefined : t("bring.importApp", { app: find.app })}
+          className="ui-button ui-button-pill min-h-9 shrink-0 gap-1.5 px-3.5 text-[13px] transition-[background-color,transform] duration-150 ease-[ease] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-50 motion-reduce:transition-none motion-reduce:active:scale-100">
+          {state === "working" && <span aria-hidden="true" className="funnel-wait inline-block size-1.5 shrink-0 rounded-full bg-ink/60" />}
+          {state === "working" ? t("bring.importing") : t("bring.import")}
+        </button>
+      )}
     </li>
   );
 }
@@ -132,14 +130,15 @@ function RunLine({ run }: { run: BringRun }) {
   return <StatusLine data-bring-run={run.kind} state={run.kind === "working" ? "working" : run.failed ? "failed" : "done"} line={run.kind === "working" ? t("bring.working") : run.line} />;
 }
 
-/** What was found here, which of it is chosen, and the chosen list to bring in (the extras always come along). */
-export function useBringChoice(finds: readonly LocalFind[] | null) {
+/** What was found here, every app a row of its own (Claude first, then the agent apps: the order localFinds gave), and
+ * what Import all brings in: each row not brought in yet. */
+export function useBringChoice(finds: readonly LocalFind[] | null, run: BringRun = { kind: "idle" }) {
   const [off, setOff] = useState<ReadonlySet<string>>(() => new Set());
+  const brought = broughtIds(run);
   return useMemo(() => {
-    // Claude first, then the agent apps on this computer: the order localFinds gave
-    const rows = (finds ?? []).filter((find) => !find.extra);
-    const extras = (finds ?? []).filter((find) => find.extra);
-    const chosen = rows.filter((find) => !off.has(find.id));
+    const rows = finds ?? [];
+    const extras: LocalFind[] = [];
+    const chosen = rows.filter((find) => !off.has(find.id) && !brought.includes(find.id));
     const toggle = (id: string) => setOff((was) => {
       const next = new Set(was);
       if (next.has(id)) next.delete(id);
@@ -147,7 +146,7 @@ export function useBringChoice(finds: readonly LocalFind[] | null) {
       return next;
     });
     return { rows, off, chosen, toggle, found: rows.length > 0, toBring: [...chosen, ...extras] };
-  }, [finds, off]);
+  }, [finds, off, brought]);
 }
 export type BringChoice = ReturnType<typeof useBringChoice>;
 
@@ -196,7 +195,7 @@ function useNotesHere(): { said: { line: string; state: "working" | "done" | "fa
   return { said, over };
 }
 
-export function BringIn({ finds, choice, grokWaiting, run, bringButton = false, onBring }: {
+export function BringIn({ finds, choice, grokWaiting, run, bringButton = false, onBring, onImport }: {
   /** null while still looking. Extras are never rows: they come in with whatever is chosen. */
   finds: readonly LocalFind[] | null;
   choice: BringChoice;
@@ -207,6 +206,8 @@ export function BringIn({ finds, choice, grokWaiting, run, bringButton = false, 
   /** Settings has no footer, so the press to bring the chosen in sits under the list. */
   bringButton?: boolean;
   onBring?: () => void;
+  /** One app's own Import. */
+  onImport?: (find: LocalFind) => void;
 }) {
   const [copy, setCopy] = useState<"idle" | "copied" | "failed">("idle");
   const [open, setOpen] = useState(false);
@@ -215,7 +216,9 @@ export function BringIn({ finds, choice, grokWaiting, run, bringButton = false, 
   const notes = useNotesHere();
   const started = run.kind !== "idle";
   const promptId = useId();
-  const { rows, off, chosen, toggle, found } = choice;
+  const { rows, chosen, found } = choice;
+  const brought = broughtIds(run);
+  const rowState = (find: LocalFind): RowState => brought.includes(find.id) ? "done" : run.kind === "working" && run.ids.includes(find.id) ? "working" : "idle";
   const showOnline = !found || onlineOpen;
   const copyPrompt = async () => setCopy((await copyNotesPrompt()) ? "copied" : "failed");
 
@@ -286,9 +289,9 @@ export function BringIn({ finds, choice, grokWaiting, run, bringButton = false, 
         <section aria-labelledby={`${promptId}-found`} className="w-full text-start">
           <h2 id={`${promptId}-found`} className={cn(label, "m-0 font-normal")}>{t("bring.foundLabel")}</h2>
           <ul aria-label={t("bring.foundLabel")} className="m-0 flex list-none flex-col gap-0.5 rounded-[18px] bg-ink/[0.035] p-1.5">
-            {rows.map((find) => <FindRow key={find.id} find={find} on={!off.has(find.id)} locked={started} onToggle={() => toggle(find.id)} />)}
+            {rows.map((find) => <FindRow key={find.id} find={find} state={rowState(find)} busy={run.kind === "working"} onImport={() => onImport?.(find)} />)}
           </ul>
-          {bringButton && !started && (
+          {bringButton && !started && chosen.length > 1 && (
             <div className="mt-3 px-1">
               <button type="button" data-bring-go="" disabled={!chosen.length} onClick={onBring}
                 className="ui-button ui-button-pill min-h-9 px-3.5 text-[13px] transition-[background-color,transform] duration-150 ease-[ease] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-50 motion-reduce:transition-none motion-reduce:active:scale-100">

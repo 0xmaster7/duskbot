@@ -17,6 +17,8 @@ export interface FunnelAccountState {
 
 export interface FunnelAccount {
   state(): Promise<FunnelAccountState>;
+  /** the sign-ins shown from the first frame; providers() only narrows them where the service says so */
+  initialProviders: readonly OAuthProvider[];
   providers(): Promise<OAuthProvider[]>;
   emailStart(email: string): Promise<CloudSignInStart>;
   emailVerify(code: string): Promise<SignInVerify>;
@@ -43,6 +45,7 @@ export function funnelAccount(desktop: Window["duskDesktop"] = window.duskDeskto
         return { signedIn: signedIn(view.status) || (view.required && !view.blocked), ...(email ? { email } : {}), required: view.required,
           browser: view.status === "connecting" && Boolean(view.browser || view.enrollment), ...(view.status === "connecting" && view.magic ? { magic: view.magic } : {}) };
       },
+      initialProviders: OAUTH_PROVIDERS,
       providers: async () => {
         if (!gate.options) return [...OAUTH_PROVIDERS];
         const answer = await gate.options();
@@ -66,6 +69,7 @@ export function funnelAccount(desktop: Window["duskDesktop"] = window.duskDeskto
           required: false, browser: account.status === "connecting" };
       },
       // the browser sign-in opens the account page, which offers Google there
+      initialProviders: ["google"],
       providers: async () => ["google"],
       emailStart: (email) => start(email),
       emailVerify: async (code) => {

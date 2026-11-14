@@ -83,12 +83,16 @@ export function localFinds(plan: BotMovePlan | null, detection: SetupDetection |
   return finds.map((find) => (rank(find) === 0 ? { ...find, lead: true } : find)).sort((a, b) => rank(a) - rank(b));
 }
 
+/** `ids`: the finds being brought in now; `brought`: every find brought in so far, each its own Import pressed once. */
 export type BringRun =
   | { kind: "idle" }
-  | { kind: "working" }
-  | { kind: "done"; line: string; failed: boolean };
+  | { kind: "working"; ids: string[]; brought: string[] }
+  | { kind: "done"; line: string; failed: boolean; brought: string[] };
 
 let run: BringRun = { kind: "idle" };
+/** What has come in so far, by find id. */
+const NONE: readonly string[] = [];
+export const broughtIds = (now: BringRun): readonly string[] => (now.kind === "idle" ? NONE : now.brought);
 const listeners = new Set<() => void>();
 function set(next: BringRun) {
   run = next;
@@ -136,7 +140,9 @@ export async function bringChosen(finds: readonly LocalFind[], context: {
   aboutMe?: string; team?: boolean;
 }): Promise<void> {
   if (run.kind === "working" || !finds.length) return;
-  set({ kind: "working" });
+  const before = broughtIds(run);
+  const ids = finds.map((find) => find.id);
+  set({ kind: "working", ids, brought: [...before] });
   const client = context.client ?? setupImportApi;
   const sources = finds.flatMap((find) => (find.source ? [find.source] : []));
   const apps = finds.flatMap((find) => (find.bots ? [find.bots] : []));
@@ -183,7 +189,8 @@ export async function bringChosen(finds: readonly LocalFind[], context: {
     ...(instructions ? [t("bring.instructions")] : []),
   ];
   const line = [parts.length ? t("bring.done", { list: list(parts) }) : failed ? "" : t("bring.allHere"), failed ? t("bring.failed") : ""].filter(Boolean).join(" ");
-  set({ kind: "done", line, failed });
+  // a find that failed stays one to import again
+  set({ kind: "done", line, failed, brought: failed ? [...before] : [...new Set([...before, ...ids])] });
   if (context.firstBotId && (bots || skills || tools || instructions)) {
     const from = [...new Set(finds.filter((find) => find.bots || find.source).map((find) => find.app))];
     void postImportNote(context.firstBotId, { from, bots: botNames, facts, memories, skills, tools, routines, instructions: kept, reconnect, failed });

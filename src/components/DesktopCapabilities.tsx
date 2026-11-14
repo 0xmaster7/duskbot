@@ -39,6 +39,10 @@ export function DesktopCapabilitiesProvider({ children }: { children: ReactNode 
   return <DesktopContext.Provider value={state}>{children}</DesktopContext.Provider>;
 }
 
+/** macOS's traffic lights span 16-76px of a window with its frame off (12-72px framed): nothing clickable starts before
+ * this, counted from the window's left edge. */
+export const MAC_TRAFFIC_LIGHT_CLEAR_X = 88;
+
 export function useDesktopCapabilities(): DesktopState {
   return useContext(DesktopContext);
 }

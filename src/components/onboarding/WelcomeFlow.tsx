@@ -46,6 +46,10 @@ async function nameFromComputer(config: Config, done: (config: NonNullable<Confi
 
 export { cloudBought } from "./funnel";
 
+/** How long the first run looks for other AI apps here before it settles on what it has: the steps before the bring
+ * step take longer than this, so it is never waited on. */
+export const FIRST_RUN_LOOK_MS = 30_000;
+
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /** Tab and Shift+Tab stay inside `root`, the way a modal dialog keeps them. */
@@ -111,14 +115,15 @@ export function WelcomeFlow({
   const [checkoutStart, setCheckoutStart] = useState(false);
   const cloud = path === "cloud";
 
-  // what other AI apps left on this computer: looked for from the start, in the background, so the step is ready by the
-  // time it shows; the step itself is there either way, for the AIs that live online
+  // what other AI apps left on this computer: looked for from the welcome on, in the background, so the step is ready by
+  // the time it shows. The look has until then: a big home takes seconds to read, and a short time box used to drop
+  // everything found and leave only the prompt. The step itself is there either way, for the AIs that live online.
   const offersMove = !replay && desktop && localSetupImport(state.config?.cloudHome === true);
-  const move = useBotMove({ look: offersMove, downloads: false });
+  const move = useBotMove({ look: offersMove, downloads: false, ms: FIRST_RUN_LOOK_MS });
   const [detection, setDetection] = useState<SetupDetection | null | undefined>(offersMove ? undefined : null);
   useEffect(() => {
     if (!offersMove) return;
-    const look = detectSetupWithin(setupImportApi, 4_000);
+    const look = detectSetupWithin(setupImportApi, FIRST_RUN_LOOK_MS);
     void look.found.then(setDetection);
     return look.cancel;
   }, [offersMove]);

@@ -23,15 +23,15 @@ export interface FunnelFacts {
   phone?: boolean;
 }
 
-/** The screens this person gets, in order. On the desktop app the first question is where the bots live (the hello is
- * part of it); this Mac goes on to the account (when there is none yet), an AI and what to bring; dusk cloud goes to the
- * browser for its account, plan and checkout, then an AI while the cloud is made, then the cloud. */
+/** The screens this person gets, in order: the hello, then the account (when there is none yet), then on the desktop app
+ * where the bots live. This Mac goes on to an AI and what to bring; dusk cloud goes to the browser for its plan and
+ * checkout, then an AI while the cloud is made, then the cloud. */
 export function funnelSteps(facts: FunnelFacts): FunnelStep[] {
   const cloud = facts.desktop && facts.path === "cloud";
   return FUNNEL_STEPS.filter((step) => {
-    if (step === "welcome") return facts.hello !== false && !facts.desktop;
+    if (step === "welcome") return facts.hello !== false;
     if (step === "place") return facts.desktop;
-    if (step === "account") return facts.account && !cloud;
+    if (step === "account") return facts.account;
     if (step === "checkout") return cloud;
     if (step === "bring") return facts.desktop && Boolean(facts.bring) && !cloud;
     if (step === "phone") return Boolean(facts.phone) && facts.desktop && !cloud;

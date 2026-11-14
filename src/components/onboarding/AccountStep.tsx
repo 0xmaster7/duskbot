@@ -47,6 +47,12 @@ const PROVIDER_LABEL: Record<OAuthProvider, Parameters<typeof t>[0]> = {
   google: "funnel.account.google", apple: "funnel.account.apple", x: "funnel.account.x",
 };
 
+/** The shown sign-ins less any the service says it doesn't offer; the same array when nothing changes, so nothing redraws. */
+export function refineProviders(shown: readonly OAuthProvider[], offered: readonly OAuthProvider[]): readonly OAuthProvider[] {
+  const next = shown.filter((provider) => offered.includes(provider));
+  return next.length === shown.length ? shown : next;
+}
+
 export function AccountStep({ account, known, onDone, onSkip }: {
   account: FunnelAccount;
   /** what main said last, kept by the flow so a signed-in person sees who they are */
@@ -57,7 +63,8 @@ export function AccountStep({ account, known, onDone, onSkip }: {
 }) {
   const id = useId();
   const host = useRef<HTMLDivElement>(null);
-  const [providers, setProviders] = useState<OAuthProvider[] | null>(null);
+  // every sign-in shows from the first frame; the service's own list only takes away one it doesn't offer
+  const [providers, setProviders] = useState<readonly OAuthProvider[]>(account.initialProviders);
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState<Extract<CloudSignInStart, { outcome: "sent" }> | null>(null);
   const [code, setCode] = useState("");
@@ -71,7 +78,10 @@ export function AccountStep({ account, known, onDone, onSkip }: {
 
   useEffect(() => {
     let alive = true;
-    void account.providers().then((list) => { if (alive) setProviders(list); }, () => { if (alive) setProviders([]); });
+    void account.providers().then((list) => {
+      if (!alive) return;
+      setProviders((shown) => (refineProviders(shown, list)));
+    }, () => {});
     return () => { alive = false; };
   }, [account]);
   useEffect(() => { host.current?.querySelector<HTMLInputElement>("[data-autofocus]")?.focus(); }, [sent]);
@@ -156,7 +166,7 @@ export function AccountStep({ account, known, onDone, onSkip }: {
       )}
       <StepFrame art={<StepArt art="key" />} title={t("funnel.account.title")} sub={t(sent ? "funnel.account.codeSub" : phoneAppEnabled() ? "funnel.account.sub" : "funnel.account.subNoPhone", { email: sent?.email ?? "" })}>
         <div className="flex w-full max-w-[320px] flex-col gap-3">
-          {!sent && providers && providers.length > 0 && (
+          {!sent && providers.length > 0 && (
             <>
               {providers.map((provider) => (
                 <button key={provider} type="button" data-funnel-provider={provider} disabled={busy}
