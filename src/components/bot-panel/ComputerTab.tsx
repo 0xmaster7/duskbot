@@ -289,7 +289,8 @@ export function ComputerTab({ bot, derived, cloudFor }: {
     : stage === "coming-back" ? t("runsOn.movingBack") : t("runsOn.moveDuskCloud");
   const detail = report?.detail ?? null;
   // beside the offer to move, a screen with nothing on it is only a Wake computer the person has no reason to press; it
-  // shows once the bot's computer is awake or waking
+  // shows once the bot's computer is awake or waking. the panel keeps reporting while hidden, so a waking computer
+  // comes out from behind the offer
   const offering = toCloud && (stage === "buy" || stage === "resume" || stage === "ready" || stage === "elsewhere");
   const screenHidden = offering && (report === null || report.stage === "asleep");
 
@@ -298,7 +299,7 @@ export function ComputerTab({ bot, derived, cloudFor }: {
       {local ? cloudBots.length > 0 && !storeApp() && <CloudCtaCard bot={cloudBots[0]!} group={cloudBots} stage={stage} cloudDesktop={cloudDesktop} /> : <>
         <div ref={setScreenBox} hidden={screenHidden} data-panel-screen-hidden={screenHidden || undefined}>
           <Suspense fallback={<AsleepScreen bot={bot} off={current === "off"} />}>
-            <ComputerPanel bot={bot} inline visible={onScreen && !screenHidden} onReport={setReport} />
+            <ComputerPanel bot={bot} inline visible={onScreen} onReport={setReport} />
           </Suspense>
         </div>
         {!screenHidden && <div className="mt-[5px] flex min-h-6 items-center justify-center">
