@@ -92,7 +92,13 @@ await runFlow(flow, async () => {
       if (!seen.has(screen)) { seen.add(screen); flow.log(`screen: ${screen}`); }
       const where = await flow.evaluate(`location.host`);
       const chat = await flow.evaluate(`Boolean(document.querySelector('textarea[aria-label^="Message"]'))`);
-      if (where === host && chat) break;
+      const welcome = await flow.evaluate(`/welcome to dusk cloud/i.test(document.body.innerText)`).catch(() => false);
+      if (welcome && !flow.facts.cloudWelcome) {
+        flow.facts.cloudWelcome = true;
+        flow.friction("extra-click", "on the new cloud", "a second welcome (\"welcome to dusk cloud\", start chatting / not now) covers the chat right after the first-run welcome ended");
+      }
+      // the window is on the cloud, its chat is there and nothing covers it
+      if (where === host && chat && !welcome) { await sleep(3000); if (!(await flow.evaluate(`/welcome to dusk cloud/i.test(document.body.innerText)`))) break; }
       // what a person presses to go on: a move offer, then the welcome's ways forward (never "not now")
       const pressed = await flow.evaluate(`(() => {
         const shown = (sel) => [...document.querySelectorAll(sel)].filter((e) => e.getClientRects().length && !e.disabled);

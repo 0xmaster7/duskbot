@@ -4,7 +4,7 @@
 //
 //   node scripts/smoke/flows/add-server.mjs [--out DIR] [--profile DIR] [--email ADDRESS] [--keep-vm]
 import { createFlow, flowArgs, runFlow, sleep } from "./lib.mjs";
-import { createVm } from "./instabox-vm.mjs";
+import { createVm, leftoverVms, removeVm } from "./instabox-vm.mjs";
 
 const { root, out, profile, email, stamp, flag } = flowArgs("srv");
 const flow = createFlow({ name: "add-server", title: "add your own server", root, out, profile, email });
@@ -42,6 +42,8 @@ await runFlow(flow, async () => {
     }, { critical: true });
 
     await flow.step("server", "a throwaway Linux server (InstaBox)", async () => {
+      // a run killed hard can leave its machine behind (the app's own exit beats the cleanup): those go first
+      for (const old of await leftoverVms()) if (Date.parse(old.createdAt ?? 0) < Date.now() - 60 * 60_000) { await removeVm(old.id).catch(() => {}); flow.log(`deleted a leftover ${old.id}`); }
       vm = await createVm(`dusk-smoke-srv-${stamp.slice(5).replace(/[^0-9]/g, "")}`);
       if (!flag("--keep-vm")) { const made = vm; flow.atClose(async () => { await made.remove(); flow.log(`deleted ${made.id}`); }); }
       flow.facts.vm = vm.id;
@@ -62,7 +64,8 @@ await runFlow(flow, async () => {
         if (Date.now() - started > 25 * 60_000) throw new Error(`the app never saw the server (stage ${v?.stage}); install log ends: ${lastLog}`);
         const tail = await vm.exec("tail -c 600 ~/dusk-install.log 2>/dev/null", 20).catch(() => ({ stdout: "" }));
         lastLog = tail.stdout.replace(/\s+/g, " ").trim().slice(-300);
-        if (/exit [1-9]/.test(tail.stdout)) throw new Error(`the install line failed: ${lastLog}`);
+        // `curl … | sh` exits 0 when curl fails (sh reads nothing), so curl's own error is the sign
+        if (/exit [1-9]/.test(tail.stdout) || /^curl: \(\d+\)/m.test(tail.stdout) && /exit 0\s*$/.test(tail.stdout)) throw new Error(`the install line failed: ${lastLog}`);
         await sleep(10_000);
       }
       flow.facts.installSeconds = Math.round((Date.now() - started) / 1000);
@@ -96,7 +99,7 @@ await runFlow(flow, async () => {
       // once moved, the window opens the server's own page, where the link bridge is not offered
       const done = await flow.waitFor(`(() => { const link = window.duskDesktop?.vpsLink; if (!link) return "on-server";
         return link.state().then((v) => v.stage === "moved" || (v.move?.status === "failed" ? "failed: " + (v.move?.error ?? v.move?.step) : false)); })()`, "the move to finish", 15 * 60_000);
-      if (typeof done === "string") throw new Error(`the move ${done}`);
+      if (typeof done === "string" && done.startsWith("failed")) throw new Error(`the move ${done}`);
       flow.facts.moveSeconds = Math.round((Date.now() - started) / 1000);
       if (flow.facts.moveSeconds > 120) flow.friction("slow", "move", `moving a new person's bots took ${flow.facts.moveSeconds}s`);
       return `moved in ${flow.facts.moveSeconds}s`;
