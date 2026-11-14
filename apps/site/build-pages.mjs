@@ -266,9 +266,9 @@ export function layout({ title, description, body, page, at, section = page, og 
   const links = (list) => list.map(([href, label]) => `<a href="${href}"${here_(href)}>${label}</a>`).join('');
   const foot = ([head, list]) => `<div><h2>${head}</h2>${list.map(([href, label]) => `<a href="${href}"${href === address ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</div>`;
   const brand = '<a class="brand" href="/"><img src="/art/logo-96.webp" alt="" width="28" height="28">dusk bot</a>';
-  const css = home ? ['site.css', 'motion-kit-v2.css', 'home.css', ...(has('home-window.css') ? ['home-window.css'] : [])] : ['site.css', 'pages.css', ...styles.filter(has)];
+  const css = home ? ['site.css', 'px.css', 'motion-kit-v2.css', 'home.css', ...(has('home-window.css') ? ['home-window.css'] : [])] : ['site.css', 'pages.css', ...styles.filter(has)];
   const tail = home
-    ? `<script src="${stamped('motion.min.js')}" defer></script>\n<script src="${stamped('motion-kit-v2.js')}" defer></script>\n<script src="${stamped('home.js')}" defer></script>${has('mascot.js') ? `\n<script src="${stamped('mascot.js')}" defer></script>` : ''}\n<script src="${stamped('site.js')}" defer></script>`
+    ? `<script src="${stamped('px-sky.js')}" defer></script>\n<script src="${stamped('motion.min.js')}" defer></script>\n<script src="${stamped('motion-kit-v2.js')}" defer></script>\n<script src="${stamped('home.js')}" defer></script>${has('mascot.js') ? `\n<script src="${stamped('mascot.js')}" defer></script>` : ''}\n<script src="${stamped('site.js')}" defer></script>`
     : ['mascot.js', 'site.js', 'pages.js', ...scripts].filter(has).map((file) => `<script src="${stamped(file)}" defer></script>`).join('\n');
   return `<!doctype html>
 <html lang="en">
@@ -305,8 +305,8 @@ ${css.map((file) => `<link rel="stylesheet" href="${stamped(file)}">`).join('\n'
 <main id="main" class="${home ? 'home' : `inner${kind ? ' ' + kind : ''}`}">
 ${macros(body).replace(/(src=")\/(art\/[\w./-]+)"/g, (_, lead, file) => `${lead}${stamped(file)}"`)}
 </main>
-<footer class="foot">
-<div class="foot-in">
+<footer class="foot"${home ? ' data-sky="#141842 0, #1b1f4a .5" data-stars=".45" data-density="20000" data-seed="161"' : ''}>
+${home ? `<span class="foot-kit"><span class="snore" aria-hidden="true">z z</span>${bot('kit', 'violet', 'dozer')}</span><i class="tw" style="left:22%;top:18%"></i><i class="tw" style="left:47%;top:8%"></i><i class="tw" style="left:66%;top:26%"></i><i class="tw" style="left:91%;top:62%"></i>\n` : ''}<div class="foot-in">
 <div class="foot-brand">${brand}<p>a team of ai bots that runs where you want it to.</p><a class="foot-mail" href="mailto:hello@dusk.bot">hello@dusk.bot</a></div>
 ${FOOT.map(foot).join('\n')}
 </div>
