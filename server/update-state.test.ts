@@ -71,4 +71,12 @@ describe("update state", () => {
     expect(await browserPageCheck(async () => null)()).toBeNull();
     expect(await browserPageCheck(async () => join(dir, "missing"))()).toBe(false);
   });
+
+  it("keeps the self-test's browser off the macOS keychain, so no keychain dialog appears", async () => {
+    const dir = tmp(), bin = join(dir, "chrome"), args = join(dir, "args");
+    writeFileSync(bin, `#!/bin/sh\nprintf '%s\\n' "$@" > "${args}"\nprintf '%s' dusk-selftest-page\n`);
+    chmodSync(bin, 0o755);
+    expect(await browserPageCheck(async () => bin)()).toBe(true);
+    expect(readFileSync(args, "utf8").split("\n")).toEqual(expect.arrayContaining(["--use-mock-keychain", "--password-store=basic"]));
+  });
 });

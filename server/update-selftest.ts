@@ -51,7 +51,7 @@ export function browserPageCheck(binary: () => Promise<string | null>, options: 
     try {
       const page = `data:text/html,<title>ok</title><p>${SELFTEST_MARK}</p>`;
       return await new Promise<boolean>(resolve => {
-        const child = spawn(path, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check", `--user-data-dir=${profile}`, ...(options.args ?? []), "--dump-dom", page],
+        const child = spawn(path, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check", "--use-mock-keychain", "--password-store=basic", `--user-data-dir=${profile}`, ...(options.args ?? []), "--dump-dom", page],
           { stdio: ["ignore", "pipe", "ignore"], timeout: options.timeoutMs ?? 30_000 });
         let out = "";
         child.stdout.on("data", (chunk: Buffer) => { out = (out + chunk.toString("utf8")).slice(-65_536); });
