@@ -284,7 +284,7 @@ import { RESTART_EXIT_CODE } from "./restart.ts";
 import { applyIncludedXMessage, holdIncludedServices, researchCredential, xCredential, xResearchStatus } from "./included-services.ts"; import { createResearchAvailability } from "./research.ts";
 import { createRoutineHoldsHost } from "./host/routine-holds-host.ts";
 import type { McpServerSpec, ProviderInstance } from "./contracts.ts";
-import { readyToRun, selectDefaultModelSelection, withInstanceConfig, withNewBotEffort, type SelectableInstance } from "./default-model-selection.ts"; import { configIdentity, createTestedAi } from "./tested-ai.ts"; import { instanceIcon } from "./provider-icon.ts";
+import { freeBackupOverConnected, readyToRun, selectDefaultModelSelection, withInstanceConfig, withNewBotEffort, type SelectableInstance } from "./default-model-selection.ts"; import { configIdentity, createTestedAi } from "./tested-ai.ts"; import { instanceIcon } from "./provider-icon.ts";
 import { threadModelFallback, type ThreadEngine } from "./thread-model.ts";
 import { computerEngineMoveText, removedComputerInstanceIds, writeComputerEngineMoveLines } from "./computer-engine-removal.ts";
 import { cancelPeerApprovalsFor, cancelPeerApprovalsForThread, dismissStalePeerCards, peerApprovalFailure, requestPeerApproval, resolvePeerComms, type ApprovalBus } from "./peer-approval.ts";
@@ -2493,6 +2493,13 @@ async function refreshUnsetModelSelections(instances?: readonly SelectableInstan
     registry.get(bootSelection.instanceId)?.adapter.capabilities.effortLevels);
   for (const bot of store.bots) {
     if (!bot.modelSelection.instanceId && !bot.modelSelection.model) store.applyModelDefault(bot.id, selection);
+  }
+  // a connected AI comes first: bots and conversations on OpenCode's free backup move to it once it is ready
+  if (freeBackupOverConnected(selectable, bootSelection, selectionContext)) return;
+  for (const bot of store.bots) {
+    if (freeBackupOverConnected(selectable, bot.modelSelection, selectionContext)) store.applyModelDefault(bot.id, selection);
+    const onFree = store.tasks(bot.id).filter((task) => freeBackupOverConnected(selectable, task.modelSelection, selectionContext) && !threadBusy(bot.id, task.threadId));
+    if (onFree.length) store.followBotModel(bot.id, onFree.map((task) => task.threadId));
   }
 }
 

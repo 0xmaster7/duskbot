@@ -3,7 +3,7 @@ import ts from "typescript";
 import { describe, expect, it, vi } from "vitest";
 
 import type { EngineAccess, ModelCatalog, ModelSelection, ProviderSnapshot } from "./contracts.ts";
-import { readyToRun, selectDefaultModelSelection, withInstanceConfig, withNewBotEffort, type SelectableInstance } from "./default-model-selection.ts";
+import { freeBackupOverConnected, readyToRun, selectDefaultModelSelection, withInstanceConfig, withNewBotEffort, type SelectableInstance } from "./default-model-selection.ts";
 import { ManagedDesktopPolicy } from "./managed-policy.ts";
 
 const codex = {
@@ -152,15 +152,25 @@ describe("new bot default: one ranking with the welcome, tested AIs first", () =
     expect(pick([grok, kimi, chatgpt])).toBe("chatgpt");
   });
 
+  it("gives a saved free backup way to a connected AI, and keeps it while nothing else is ready", () => {
+    const saved = { instanceId: "opencodeGo", model: "opencode/big-pickle" };
+    expect(selectDefaultModelSelection([openCodeFree, claudeReady], saved)).toEqual({ instanceId: "claude", model: "claude-default" });
+    expect(selectDefaultModelSelection([openCodeFree], saved)).toEqual(saved);
+    const claudeOut = ready("claude", "claudeAgent", "claude-default", { authenticated: false });
+    expect(selectDefaultModelSelection([openCodeFree, claudeOut], saved)).toEqual(saved);
+    expect(freeBackupOverConnected([openCodeFree, claudeReady], saved)).toBe(true);
+    expect(freeBackupOverConnected([openCodeFree, claudeReady], { instanceId: "claude", model: "claude-default" })).toBe(false);
+  });
+
   it("picks OpenCode on free models only after every other ready AI, and when it is the only one", () => {
     for (const other of [grok, kimi, chatgpt, claudeReady]) expect(pick([openCodeFree, other])).toBe(other.instanceId);
     expect(pick([openCodeFree])).toBe("opencodeGo");
     expect(selectDefaultModelSelection([openCodeFree])).toEqual({ instanceId: "opencodeGo", model: "opencode/big-pickle" });
   });
 
-  it("always keeps a saved default, over the ranking and over any test", () => {
-    const saved = { instanceId: "opencodeGo", model: "opencode/big-pickle" };
-    expect(selectDefaultModelSelection([claudeReady, openCodeFree], saved, { answered: (instance) => instance.instanceId === "claude" }))
+  it("always keeps a saved default, over the ranking and over any test (the free backup aside)", () => {
+    const saved = { instanceId: "kimi", model: "kimi-default" };
+    expect(selectDefaultModelSelection([claudeReady, kimi], saved, { answered: (instance) => instance.instanceId === "claude" }))
       .toEqual(saved);
     expect(selectDefaultModelSelection([claudeReady, grok], { instanceId: "grok", model: "grok-default" }, { answered: () => false }))
       .toEqual({ instanceId: "grok", model: "grok-default" });

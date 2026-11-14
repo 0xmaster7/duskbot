@@ -57,7 +57,7 @@ export function selectDefaultModelSelection(
   preferred?: ModelSelection,
   context: DefaultSelectionContext = {},
 ): ModelSelection {
-  if (preferred && (preferred.instanceId || preferred.model)) {
+  if (preferred && (preferred.instanceId || preferred.model) && !freeBackupOverConnected(instances, preferred, context)) {
     const instance = instances.find((candidate) => candidate.instanceId === preferred.instanceId);
     if (
       instance?.snapshot.state !== "available" ||
@@ -84,6 +84,22 @@ export function selectDefaultModelSelection(
     : undefined;
   const pick = personal ?? best(ready, context) ?? best(available, context);
   return { instanceId: pick?.instanceId ?? "", model: pick ? defaultModel(pick) : "" };
+}
+
+/** A ready AI the person connected, never OpenCode's free backup. */
+export function connectedAiReady(instances: readonly SelectableInstance[], context: DefaultSelectionContext = {}): boolean {
+  return instances.some((instance) => !freeFallback(instance) && readyToRun(instance, context) && Boolean(defaultModel(instance)));
+}
+
+/** OpenCode's free backup is a bonus while nothing else works, never a choice that outranks an AI the person connected: a
+ * selection on it (a saved default, a bot's or a conversation's model) gives way as soon as a connected AI is ready. */
+export function freeBackupOverConnected(
+  instances: readonly SelectableInstance[],
+  selection: ModelSelection | undefined,
+  context: DefaultSelectionContext = {},
+): boolean {
+  const on = selection ? instances.find((instance) => instance.instanceId === selection.instanceId) : undefined;
+  return Boolean(on && freeFallback(on)) && connectedAiReady(instances, context);
 }
 
 /** An explicit effort or variant wins; an engine without the level sends none rather than failing turn 1. */
