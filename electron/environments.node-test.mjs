@@ -163,6 +163,21 @@ test("Add a Cloud… sits just under the saved servers only where main offers it
   assert.deepEqual(calls, [["add-cloud"]]);
 });
 
+test("the server on screen, the person's own, offers its move to dusk cloud in the menu (no rail to ask)", () => {
+  const state = { environments: [{ id: "vps", name: "Office", origin: "https://office.example" }], activeId: "vps" };
+  const calls = [];
+  const base = { onSwitch() {}, onConnect() {}, onForget() {}, onAddCloud: () => calls.push(["add"]) };
+  assert.equal(env.workspaceMenuTemplate(state, base).some(item => item.id === "workspace-cloud-move"), false);
+  const items = env.workspaceMenuTemplate(state, { ...base, onCloudMove: (id) => calls.push(["move", id]) });
+  const move = items.find(item => item.id === "workspace-cloud-move");
+  assert.equal(move.label, "Move “Office” to dusk cloud…");
+  assert.equal(items.some(item => item.id === "workspace-add-cloud"), false);
+  move.click();
+  const home = env.workspaceMenuTemplate(state, { ...base, onCloudMove: (id) => calls.push(["move", id]), homeOrigin: "https://dusk-u-1.fly.dev" });
+  home.find(item => item.id === "workspace-cloud-move").click();
+  assert.deepEqual(calls, [["move", "vps"], ["move", "vps"]]);
+});
+
 test("Windows and Linux menus clip a sublabel, so the popup there has none: status joins the name", () => {
   const state = { environments: [{ id: "cloud", name: "My Cloud", origin: "https://dusk-u-1.fly.dev" }, { id: "office", name: "Office", origin: "https://office.example" }], activeId: "local" };
   const items = env.workspaceMenuTemplate(state, { onSwitch() {}, onConnect() {}, onForget() {}, onAddCloud() {}, foldSublabels: true, sublabels: { cloud: "Free trial until 15 Oct" } });

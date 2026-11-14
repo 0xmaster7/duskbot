@@ -4,6 +4,9 @@ import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { removePlace, usePlaces, type RailPlace } from "@/lib/places";
 import { vpsLinkAvailable } from "@/lib/vps-link";
+import { openCloudMove } from "@/lib/cloud-move";
+import { desktopShowsOtherServer } from "@/lib/other-server";
+import { useVpsCloudMove } from "@/lib/vps-cloud-move";
 import { Trash2 } from "../icons";
 import { CloudMoveRow } from "./CloudMoveSettings";
 import { askConfirm } from "./ConfirmDialog";
@@ -110,6 +113,9 @@ export function WorkspacesGroup({ onAdd }: { onAdd: () => void }) {
   }];
   const hasCloud = places.some((place) => place.kind === "cloud" || place.kind === "team");
   const canBuy = Boolean(window.duskDesktop?.cloudAccount) && window.duskDesktop?.remoteClient?.active !== true;
+  // a server of the person's own on screen: main answers the move's view only there, so an answer means it can move
+  const serverMove = useVpsCloudMove(desktopShowsOtherServer() && state.config?.cloudHome !== true).view;
+  const moveServer = () => { dispatch({ type: "toggleSettings", open: false }); openCloudMove("cloud"); };
 
   const open = (place: RailPlace) => {
     const bridge = window.duskDesktop?.workspaces;
@@ -135,6 +141,7 @@ export function WorkspacesGroup({ onAdd }: { onAdd: () => void }) {
         <CloudMoveRow otherwise={!hasCloud && canBuy
           ? <NavRow data-settings-open="get-cloud" pixel="cloud" title={t("settings.docs.ws.getCloud")} hint={t("settings.docs.ws.getCloudHint")}
               onClick={() => dispatch({ type: "openCloudAdd", source: "app_settings" })} />
+          : serverMove ? <NavRow data-settings-open="server-cloud-move" pixel="cloud" title={t("vpsMove.title")} hint={t("vpsMove.perk.server")} onClick={moveServer} />
           : null} />
         <NavRow data-settings-open="add-workspace" pixel="plus" title={t("settings.docs.ws.add")} hint={t("settings.docs.ws.addHint")} onClick={onAdd} />
         {(error || here.error) && <NoteRow tone="danger">{error || here.error}</NoteRow>}
