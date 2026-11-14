@@ -38,18 +38,6 @@
   {
     "section": "6",
     "surface": "app",
-    "match": "Sign in to Composio",
-    "note": "confusing, off-brand: Gmail tells a new person to \"sign in to Composio\" (a vendor they never heard of) and offers \"use my own Composio API key\"; the card is a mostly empty full-height sheet"
-  },
-  {
-    "section": "6",
-    "surface": "app",
-    "match": "Waiting for Composio",
-    "note": "slow: after \"Connect Gmail\" the app sits on \"Waiting for Composio...\" with nothing opened in the browser for 8+ seconds (in a plain run the Composio page opened after about 10 s)"
-  },
-  {
-    "section": "6",
-    "surface": "app",
     "match": "saved on this server, which is where its bots run",
     "note": "wording: on this Mac, Settings > Models says connections are \"saved on this server\""
   },
