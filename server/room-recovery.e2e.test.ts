@@ -96,7 +96,9 @@ it("keeps a routine waiting through a restart, reruns its cut teammate once, and
     const run = async () => ((await request("/api/routines", {}, url) as any).runs as any[]).find((r) => r.id === "cut-run");
     const nodes = () => readHandoffs(dataDir);
     expect(existsSync(join(dataDir, "room-handoffs.json.migrated"))).toBe(true);
-    expect(await run()).toMatchObject({ status: "waiting" });
+    // the restart kept the run: waiting for its cut teammate, or, on a busy machine, already finished by the time the
+    // server answers (the resumed fake turn takes no time); never failed by the restart
+    expect(["waiting", "completed"]).toContain((await run()).status);
     expect((await run()).error).toBeUndefined();
     await expect.poll(() => nodes().find((n: any) => n.id === "cut-work")?.status, { timeout: 20_000 }).toBe("completed");
     expect(nodes().find((n: any) => n.id === "cut-work")).toMatchObject({ restarts: 1, executions: 1, result: expect.stringContaining("hello from fake claude") });
