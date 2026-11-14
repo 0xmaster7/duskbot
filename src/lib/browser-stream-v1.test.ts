@@ -483,7 +483,7 @@ describe("the v1 input queue", () => {
     for (let n = 0; n < 40; n++) queue.enqueue(key("keyDown", String(n)));
     queue.enqueue(up);
     queue.enqueue({ type: "reload" });
-    expect(onError).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ message: expect.stringContaining("Reconnect the view before typing again") }));
+    expect(onError).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ message: expect.stringContaining("Reconnect the view, or restart the browser") }));
     first.resolve(); await queue.drain();
     expect(send.mock.calls.map(([body]) => body)).toEqual([key("keyDown", "held"), key("keyUp", "held"), up, { type: "reload" }]);
     queue.clear(); queue.enqueue(key("keyDown", "after reconnect")); await queue.drain();
