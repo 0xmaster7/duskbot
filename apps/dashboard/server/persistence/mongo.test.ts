@@ -1,6 +1,6 @@
 import { MongoClient } from "mongodb";
 import { afterAll, describe, expect, it } from "vitest";
-import { openMongoBackend } from "./mongo.ts";
+import { holderGone, openMongoBackend } from "./mongo.ts";
 
 // needs a replica set; DUSK_TEST_MONGODB_URI names a server whose user may drop DUSK_TEST_MONGODB_DB (default dusk_test)
 const uri = process.env.DUSK_TEST_MONGODB_URI, dbName = process.env.DUSK_TEST_MONGODB_DB || "dusk_test";
@@ -13,6 +13,19 @@ async function empty() {
   for (const { name } of await db.listCollections({}, { nameOnly: true }).toArray()) await db.collection(name).drop();
   await client.close();
 }
+
+describe("the writer lease's holder", () => {
+  it("is gone only when it ran on this host as a process that no longer runs", () => {
+    expect(holderGone({ host: "box", pid: 41 }, "box", () => false)).toBe(true);
+    expect(holderGone({ host: "box", pid: 41 }, "box", () => true)).toBe(false);
+    expect(holderGone({ host: "other", pid: 41 }, "box", () => false)).toBe(false);
+    expect(holderGone({ host: "box", pid: process.pid }, "box", () => false)).toBe(false);
+    expect(holderGone({ host: "box" }, "box", () => false)).toBe(false);
+    // the real check: this process runs, a pid far past any real one does not
+    expect(holderGone({ host: "box", pid: process.pid + 0 }, "box")).toBe(false);
+    expect(holderGone({ host: "box", pid: 2 ** 22 + 7 }, "box")).toBe(true);
+  });
+});
 
 describe.skipIf(!uri)("mongodb backend", () => {
   afterAll(empty);
@@ -41,4 +54,17 @@ describe.skipIf(!uri)("mongodb backend", () => {
     expect(again.state).toEqual({ v: 1, accounts: [{ id: "a1", email: "one@example.test" }] });
     await second.close();
   }, 90_000);
+
+  it("a start that died holding the lease on this host is not waited out", async () => {
+    await empty();
+    const client = await MongoClient.connect(uri!);
+    await client.db(dbName).collection<{ _id: string }>("locks").insertOne({ _id: "account-service", owner: "crashed", host: (await import("node:os")).hostname(), pid: 2 ** 22 + 7, expiresAt: new Date(Date.now() + 30_000) } as never);
+    await client.close();
+    const lines: string[] = [];
+    const started = Date.now();
+    const next = await openMongoBackend({ uri: uri!, db: dbName, layouts, log: line => lines.push(line), acquireWaitMs: 3000 });
+    expect(Date.now() - started).toBeLessThan(2000);
+    expect(lines.join("\n")).toMatch(/took the writer lease/);
+    await next.close();
+  }, 30_000);
 });

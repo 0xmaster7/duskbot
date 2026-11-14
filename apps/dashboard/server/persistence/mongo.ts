@@ -36,6 +36,15 @@ async function load(db: Db, layouts: Record<string, StoreLayout>): Promise<Loade
   return { roots: new Map(roots.map(doc => [doc._id, doc])), rows: new Map(collections.map((name, index) => [name, rows[index]!.map(strip)])) };
 }
 
+/** A lease whose holder ran on `host` as a process that is gone. Another host's holder is never judged from here. */
+export function holderGone(holder: { host?: unknown; pid?: unknown }, host: string, alive = processAlive): boolean {
+  return holder.host === host && typeof holder.pid === "number" && Number.isInteger(holder.pid) && holder.pid > 0 && holder.pid !== process.pid && !alive(holder.pid);
+}
+
+function processAlive(pid: number): boolean {
+  try { process.kill(pid, 0); return true; } catch (error) { return (error as NodeJS.ErrnoException).code !== "ESRCH"; }
+}
+
 /**
  * The account service's state in MongoDB. One process writes at a time: it holds a lease in `locks` (renewed every
  * 10 s, 30 s long) and every write checks the lease inside its transaction, so a process that lost it can never write.
@@ -58,6 +67,15 @@ export async function openMongoBackend(options: { uri: string; db: string; layou
       break;
     } catch (error) {
       if (!(error instanceof MongoServerError && error.code === 11000)) { await client.close(); throw error; }
+      // a process on this host that died holding it (a start that crashed after taking it, a kill) is not waited out:
+      // every restart after such a crash waited its 30 s (2026-11-12)
+      const holder = await locks.findOne({ _id: LEASE_ID });
+      if (holder && holderGone(holder, hostname())) {
+        const taken = await locks.updateOne({ _id: LEASE_ID, owner: holder.owner },
+          { $set: { owner, host: hostname(), pid: process.pid, expiresAt: new Date(Date.now() + LEASE_MS) } });
+        if (taken.modifiedCount === 1) { log(`took the writer lease from process ${holder.pid}, which is no longer running`); break; }
+        continue;
+      }
       if (Date.now() > deadline) { await client.close(); throw new Error("Another account service holds this database's writer lease."); }
       log("another account service holds the writer lease; waiting");
       await new Promise(resolve => setTimeout(resolve, 2000));
