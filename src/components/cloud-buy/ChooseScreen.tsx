@@ -1,7 +1,8 @@
 // Screen 1: dusk cloud in a line, then the plans the Admin sells now as cards that show only what sets each apart,
 // each with its own button; what every plan includes and the money are said once, under them.
 import { useState } from "react";
-import { ChevronDown, CloudUpload, Cpu, HardDrive, Lock, Monitor, Moon, Power, Smartphone, type GlyphIcon } from "../../icons";
+import { phoneAppEnabled } from "@/lib/feature-flags";
+import { ChevronDown, CloudUpload, Cpu, HardDrive, Lock, Monitor, Moon, Power, Smartphone, Laptop, type GlyphIcon } from "../../icons";
 import type { CloudOffer, CloudOfferPlan } from "../../../electron/cloud-home.mjs";
 import { cn } from "@/lib/cn";
 import { cardRows, moneyBackShort, planCards, sharedTrialDays, trialTimeline, type CloudPlanCard, type CloudPlanCardRow } from "@/lib/cloud-plan";
@@ -114,7 +115,7 @@ export function ChooseScreen({ offer, current = null, own = null, now, busy, sig
     <section aria-labelledby="cloud-add-includes" className="flex flex-col gap-2.5">
       <h3 id="cloud-add-includes" className="text-[13px] font-medium leading-[18px] text-ink-secondary">{t("cloudBuy.includes")}</h3>
       <ul className="flex flex-wrap gap-x-5 gap-y-2">
-        {FEATURES.map(([Icon, title, body]) => <li key={title} className="flex text-[13px] leading-[18px] text-ink">
+        {FEATURES.map(([Icon, title, body]) => (body === "cloudBuy.benefit.anywhere" && !phoneAppEnabled() ? [Laptop, title, "cloudBuy.benefit.anywhereNoPhone" as const] as const : [Icon, title, body] as const)).map(([Icon, title, body]) => <li key={title} className="flex text-[13px] leading-[18px] text-ink">
           <span aria-hidden="true" title={t(body)} className="inline-flex items-center gap-1.5">
             <Icon size={16} strokeWidth={1.5} className="shrink-0 text-ink-tertiary" />{t(title)}
           </span>

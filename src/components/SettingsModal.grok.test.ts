@@ -4,7 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setLocale } from "@/lib/i18n";
 import type { AppSettingsSection } from "@/state/store";
 import { SETTINGS_PANES, SettingsModal, openSettings, settingsLocation } from "./SettingsModal";
-import { ADVANCED_PAGES, TextingPane } from "./SettingsPanes";
+import { ADVANCED_PAGES, ComputerPane, TextingPane } from "./SettingsPanes";
+import { SubPageContext } from "./ListRows";
 
 const fixture = vi.hoisted(() => ({
   section: "general" as AppSettingsSection,
@@ -174,6 +175,15 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(markers(open("companion"))).not.toContain("pairing");
     vi.stubEnv("VITE_DUSK_PHONE_APP", "1");
     expect(panes(open("general"))).toEqual(["general", "texting", "computer", "vault", "models", "usage", "updates", "advanced"]);
+  });
+
+  it("keeps the code for pairing another computer under Computer's connect from elsewhere while Phone is hidden", () => {
+    const remoteAccess = { pairing: "PAIRING_BLOCK", companion: "PHONES", client: "CLIENT", desktopPairing: "DESKTOP_PAIRING" };
+    const elsewhere = renderToStaticMarkup(createElement(SubPageContext.Provider, { value: { at: "elsewhere", open: () => {}, back: () => {} } },
+      createElement(ComputerPane, { has: () => true, remoteAccess, servers: null })));
+    expect(elsewhere).toContain("DESKTOP_PAIRING");
+    expect(elsewhere).toContain("CLIENT");
+    expect(elsewhere).not.toContain("PHONES");
   });
 
   it("puts the phone on Phone, the bots' computer and servers on Computer, and logins in the Vault", () => {

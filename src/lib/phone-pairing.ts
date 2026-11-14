@@ -4,6 +4,7 @@ import type { LocaleKey } from "@/locales";
 import { cloudPlanView } from "./cloud-plan";
 import type { Action } from "@/state/store";
 import { isOwnerOrAdmin, readSessionState, type SessionState } from "./session";
+import { PHONE_PAIRING_ACTION as PHONE_PAIRING_WIDGET_ACTION, type WidgetNode, type WidgetRoot } from "../../shared/widget";
 
 export type PhonePairingTarget = "computer" | "cloud" | "server";
 
@@ -119,4 +120,25 @@ export function pairedDestination(search: string): string {
   if (params.get("desktop-settings") === "phone") return "/?desktop-settings=phone";
   const next = params.get("next");
   return next && /^\/(?!\/)/.test(next) && !next.startsWith("/pair") && !/[\\\s]/.test(next) ? next : "/";
+}
+
+const pairsPhone = (action: unknown): boolean =>
+  typeof action === "object" && action !== null && (action as { type?: unknown }).type === PHONE_PAIRING_WIDGET_ACTION;
+
+/** A bot's card without its phone-pairing buttons and rows, for while the phone app is hidden: nothing to press that
+ * goes nowhere. */
+export function withoutPhonePairing(root: WidgetRoot): WidgetRoot {
+  const prune = (node: WidgetNode): WidgetNode => {
+    if (!Array.isArray(node.children)) return node;
+    const children = node.children
+      .filter((child) => !((child.type === "Button" || child.type === "ListViewItem") && pairsPhone(child.onClickAction)))
+      .map(prune);
+    return { ...node, children };
+  };
+  const pruned = prune(root);
+  for (const key of ["confirm", "cancel"] as const) {
+    const spec = pruned[key];
+    if (typeof spec === "object" && spec !== null && pairsPhone((spec as { action?: unknown }).action)) delete pruned[key];
+  }
+  return pruned;
 }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { phoneAppEnabled } from "@/lib/feature-flags";
 
 import { t } from "@/lib/i18n";
 import { api, type ConfigStatus } from "@/state/store";
@@ -35,7 +36,7 @@ export function ComputerNameRow({ saved, onSaved }: { saved: string; onSaved: (n
       <NavRow data-computer-name="" data-settings-open="computer-name" pixel="laptop" title={t("remote.computerName.title")} value={saved || t("settings.s2.pairing.defaultName")}
         onClick={() => { setDraft(saved); setError(null); setOpen(true); }} />
       {open && (
-        <FormDialog data-panel-modal="computer-name" title={t("remote.computerName.title")} description={t("remote.computerName.help")} busy={saving}
+        <FormDialog data-panel-modal="computer-name" title={t("remote.computerName.title")} description={t(phoneAppEnabled() ? "remote.computerName.help" : "remote.computerName.helpNoPhone")} busy={saving}
           error={error ?? undefined} onSave={save} onClose={() => setOpen(false)}>
           <FormField label={t("remote.computerName.title")}>
             <input id="computer-name" autoFocus value={draft} disabled={saving} placeholder={t("remote.computerName.placeholder")} maxLength={60}

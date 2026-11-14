@@ -238,6 +238,7 @@ export function SettingsModal() {
     client: <RemoteComputerSection hideWhenUnavailable />,
     // Security: the server decides who may pair (an owner or admin session), not this gate.
     pairing: <PhoneLinking remote={remoteActive}>{(phone) => <ServerPairingCard phone={phone} cloudHome={cloudHome} focusRequest={computerPairs ? 0 : phoneFocus} team={state.config?.team?.name} teamPhoneBlocked={state.config?.managedPolicy?.remoteAccess === false ? t("policy.teamRemoteBlocked", { organization: state.config.managedPolicy.organizationName }) : null} simple />}</PhoneLinking>,
+    desktopPairing: phoneAppEnabled() || state.config?.team ? null : <ServerPairingCard phone={null} cloudHome={cloudHome} simple />,
     companion: remoteActive ? null : <CompanionSection profileEmail={state.config?.profile?.email} focusRequest={computerPairs ? phoneFocus : 0} />,
   };
   const cloudAccount = has("cloudAccount") && !remoteActive

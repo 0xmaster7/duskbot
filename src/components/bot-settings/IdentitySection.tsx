@@ -1,4 +1,5 @@
 import { DefaultBotHideRow } from "../DefaultBotControls";
+import { phoneAppEnabled } from "@/lib/feature-flags";
 
 import { useStore, type Bot } from "@/state/store";
 import type { MausMotion, MausState } from "@/lib/mascot";
@@ -86,7 +87,7 @@ export function IdentitySection({
           onChange={(e) => patch({ description: e.target.value })}
         />
         <div className="mt-1.5 flex items-start justify-between gap-3 text-[11px] text-ink-secondary">
-          <span>{t("botSettings.identity.blurbHelp")}</span>
+          <span>{t(phoneAppEnabled() ? "botSettings.identity.blurbHelp" : "botSettings.identity.blurbHelpNoPhone")}</span>
           {bot.description.length > 3_000 && (
             <span className="shrink-0 tabular-nums">
               {bot.description.length.toLocaleString()} / {BOT_PROFILE_LIMITS.description.toLocaleString()}

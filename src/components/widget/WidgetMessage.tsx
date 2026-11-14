@@ -2,7 +2,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import { CircleAlert, X } from "../../icons";
 import { useStore, type Message } from "@/state/store";
 import { usePageOpener } from "@/lib/page-open";
-import { phonePairingSettingsAction } from "@/lib/phone-pairing";
+import { phonePairingSettingsAction, withoutPhonePairing } from "@/lib/phone-pairing";
 import { phoneAppEnabled } from "@/lib/feature-flags";
 import { resolvedThreadTarget } from "@/lib/thread-target";
 import { openThread } from "@/state/thread-navigation";
@@ -49,7 +49,7 @@ export function WidgetMessage({ botId, threadId, message }: { botId: string; thr
 }
 
 function WidgetCard({ botId, threadId, messageId, payload }: { botId: string; threadId?: string; messageId: string; payload: WidgetPayload }) {
-  const root = payload.root;
+  const root = useMemo(() => (phoneAppEnabled() ? payload.root : withoutPhonePairing(payload.root)), [payload.root]);
   const { state, dispatch, flushBotPatches } = useStore();
   const botColor = state.bots?.find((candidate) => candidate.id === botId)?.color;
   const openPage = usePageOpener();
@@ -118,7 +118,7 @@ function WidgetCard({ botId, threadId, messageId, payload }: { botId: string; th
     const entry = actions.get(ref);
     if (!entry || sendingNow.current || pending !== undefined) return;
     if (entry.client) {
-      if (entry.action.type === PHONE_PAIRING_ACTION && phoneAppEnabled()) dispatch(phonePairingSettingsAction());
+      if (entry.action.type === PHONE_PAIRING_ACTION) dispatch(phonePairingSettingsAction());
       const url = widgetActionUrl(entry);
       if (url) openPage(url);
       const target = resolvedThreadTarget(widgetThreadTarget(entry), state);

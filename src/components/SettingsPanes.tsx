@@ -63,7 +63,9 @@ import {
 } from "./AppSettingsRows";
 
 export type Has = (id: AppSettingsSection) => boolean;
-export type RemoteAccessCards = Record<"client" | "pairing" | "companion", ReactNode>;
+/** `desktopPairing` is this server's code for another computer, shown under Computer while the phone page (where it
+ * otherwise lives, beside the phone's ways) is hidden. */
+export type RemoteAccessCards = Record<"client" | "pairing" | "companion", ReactNode> & { desktopPairing?: ReactNode };
 export type Disclose = (id: string) => { id: string; open: boolean; onToggle: () => void };
 
 /** The pages a pane's rows open, by the section a deep link names: a link to one lands on that page. */
@@ -276,6 +278,7 @@ export function ComputerPane({ has, remoteAccess, servers, transfer, remoteActiv
       <div data-settings-block="remote" className="flex flex-col gap-5">
         {has("desktopWorkspaces") && <div data-settings-block="desktopWorkspaces" className="flex flex-col gap-5">{servers}</div>}
         {has("companion") && <div className="flex flex-col gap-5 empty:hidden">{remoteAccess.client}</div>}
+        {has("companion") && remoteAccess.desktopPairing && <div data-settings-block="desktop-pairing" className="flex flex-col gap-5">{remoteAccess.desktopPairing}</div>}
       </div>
     );
   }

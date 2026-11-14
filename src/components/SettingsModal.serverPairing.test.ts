@@ -19,6 +19,8 @@ vi.mock("./PeopleSection", () => ({ PeopleSection: () => "PEOPLE" }));
 vi.mock("./ServerPairingCard", () => ({ ServerPairingCard: ({ cloudHome, focusRequest }: { cloudHome?: boolean; focusRequest?: number }) => `SERVER_PAIRING_CARD_MARKER${cloudHome ? " cloud" : ""} focus=${focusRequest ?? 0}` }));
 
 beforeEach(() => {
+  // the phone app offered: these cases are about phones pairing
+  vi.stubEnv("VITE_DUSK_PHONE_APP", "1");
   vi.clearAllMocks();
   fixture.section = "companion";
   fixture.config = undefined;
@@ -27,6 +29,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
 

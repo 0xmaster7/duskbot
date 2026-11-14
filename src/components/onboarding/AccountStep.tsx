@@ -1,6 +1,7 @@
 // Signing in to a dusk bot account, as one step of the first run: Google (and any other provider the account service
 // offers) in the browser, or an emailed one-time code. The attempt and the token stay in main (funnel-account.ts).
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { phoneAppEnabled } from "@/lib/feature-flags";
 import { Check, LoaderCircle } from "../../icons";
 import { CodeBoxes, codeDigits } from "@/components/cloud-buy/CodeBoxes";
 import { problemLine } from "@/components/cloud-buy/SignInScreen";
@@ -106,7 +107,7 @@ export function AccountStep({ account, known, onDone, onSkip }: {
 
   return (
     <div ref={host} className="w-full">
-      <StepFrame art={<StepArt art="key" />} title={t("funnel.account.title")} sub={t(sent ? "funnel.account.codeSub" : "funnel.account.sub", { email: sent?.email ?? "" })}
+      <StepFrame art={<StepArt art="key" />} title={t("funnel.account.title")} sub={t(sent ? "funnel.account.codeSub" : phoneAppEnabled() ? "funnel.account.sub" : "funnel.account.subNoPhone", { email: sent?.email ?? "" })}
         footer={onSkip && !sent ? <button type="button" data-funnel-account-skip="" onClick={onSkip} className={QUIET}>{t("funnel.account.skip")}</button> : undefined}>
         <div className="flex w-full max-w-[320px] flex-col gap-3">
           {!sent && providers && providers.length > 0 && (

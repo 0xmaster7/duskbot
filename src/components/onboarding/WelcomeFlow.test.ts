@@ -380,6 +380,7 @@ describe("on the desktop app", () => {
     await press("get started");
     expect(step()).toBe("account");
     expect(title()).toBe("sign in to dusk bot");
+    expect(text(), "no phone in the pitch while its app is hidden").toContain("Your account keeps dusk cloud and your bots in sync.");
     expect(button("continue with Google")).toBeDefined();
     expect(button("continue without an account")).toBeDefined();
     await type(host.querySelector<HTMLInputElement>("input[type=email]")!, "person@example.com");

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { phoneAppEnabled } from "@/lib/feature-flags";
 import type { CloudAccountState, CloudPlanBridge, CloudPlanSnapshot } from "../../electron/cloud-account.mjs";
 import type { CloudMachine, CloudTrial } from "../../electron/cloud-home.mjs";
 import { planTeam, teamPlan } from "../../electron/cloud-team-plan.mjs";
@@ -312,6 +313,6 @@ export function CloudAccountSettings({ linkRequest = 0, cloudHome = false, teamH
       ? cloudHomeCard({ machine, busy, failed: homeFailed, onConnect: () => { if (team) openTeam(team.id); }, team: { name: team?.name ?? null } })
       : cloudHomeCard({ machine, busy, failed: homeFailed, onConnect: connectHome, trial: Boolean(account?.trial), waking: account?.waking === true, moving }))}
     {!onTeamPlan && <CloudFilesSettings />}
-    {signed && view.kind === "paid" && !onTeamPlan && cloudPhoneCard({ ready: machine?.status === "ready", busy, failed: phoneFailed, onUse: openOnPhone })}
+    {signed && view.kind === "paid" && !onTeamPlan && phoneAppEnabled() && cloudPhoneCard({ ready: machine?.status === "ready", busy, failed: phoneFailed, onUse: openOnPhone })}
   </>;
 }

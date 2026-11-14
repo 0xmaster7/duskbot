@@ -15,6 +15,7 @@ import {
   resetPhonePairingAccess,
   revealPhonePairing,
   takePhonePairingRequest,
+  withoutPhonePairing,
   type PhonePairingAccess,
 } from "./phone-pairing";
 
@@ -226,5 +227,28 @@ describe("the person's Cloud as a destination on this computer", () => {
       expect(phoneDestinations(connectPhoneEntry("server", access(admin)), state).map((d) => d.id)).toEqual(["here"]);
       expect(phoneDestinations(null, state)).toEqual([]);
     }
+  });
+});
+
+describe("a bot's card while the phone app is hidden", () => {
+  it("loses its phone-pairing buttons, rows and confirm, and keeps everything else", () => {
+    const pair = { type: "open_phone_pairing" };
+    const root = {
+      type: "Card", id: "n1", confirm: { label: "pair", action: pair }, cancel: { label: "later", action: { type: "dismiss" } },
+      children: [
+        { type: "Text", id: "n2", value: "Use your bots anywhere" },
+        { type: "Row", id: "n3", children: [
+          { type: "Button", id: "n4", label: "Connect your phone", onClickAction: pair },
+          { type: "Button", id: "n5", label: "Open", onClickAction: { type: "open_url", payload: { url: "https://example.test" } } },
+        ] },
+        { type: "ListView", id: "n6", children: [{ type: "ListViewItem", id: "n7", onClickAction: pair, children: [] }] },
+      ],
+    };
+    const pruned = withoutPhonePairing(root);
+    expect(JSON.stringify(pruned)).not.toContain("open_phone_pairing");
+    expect(pruned.children?.[1]?.children?.map((node) => node.id)).toEqual(["n5"]);
+    expect(pruned.children?.[2]?.children).toEqual([]);
+    expect(pruned.cancel).toEqual(root.cancel);
+    expect(root.confirm, "the bot's own card is left as it was").toBeDefined();
   });
 });

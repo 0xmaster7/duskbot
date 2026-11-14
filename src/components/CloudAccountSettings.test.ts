@@ -24,6 +24,8 @@ const click = (label: string) => { const button = render().nodes.find(node => no
 let bridge: CloudAccountBridge, push: (state: CloudAccountState) => void;
 const free: CloudAccountState = { status: "connected", account: { id: "fixture", email: "person@example.test" }, entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 0 } };
 beforeEach(() => {
+  // the phone app offered: these cases are about phones pairing
+  vi.stubEnv("VITE_DUSK_PHONE_APP", "1");
   f.values = []; f.index = 0; f.effects = []; f.platform = "darwin"; push = () => {};
   bridge = { state: vi.fn().mockResolvedValue({ status: "signed-out" }), begin: vi.fn().mockResolvedValue({ status: "connecting" }),
     signInAgain: vi.fn().mockResolvedValue({ status: "connecting" }),
@@ -32,7 +34,7 @@ beforeEach(() => {
     connectHome: vi.fn().mockResolvedValue(free), connectHomeForPhone: vi.fn().mockResolvedValue(free), onState: vi.fn(callback => { push = callback; return () => {}; }) };
   vi.stubGlobal("window", { duskDesktop: { cloudAccount: bridge } }); vi.stubGlobal("fetch", vi.fn()); setLocale("en");
 });
-afterEach(() => { vi.unstubAllGlobals(); setLocale("en"); });
+afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); setLocale("en"); });
 async function ready(state: CloudAccountState = { status: "signed-out" }) { vi.mocked(bridge.state).mockResolvedValueOnce(state); render(); const cleanup = f.effects[0](); await flush(); return cleanup; }
 it("loads optional account state without enrollment/network and delegates sign-in without arguments", async () => {
   await ready(); expect(bridge.begin).not.toHaveBeenCalled(); expect(fetch).not.toHaveBeenCalled();
@@ -416,6 +418,11 @@ it("a paid plan with a Ready Cloud opens it on its phone pairing with one click,
   click(PHONE); await flush();
   expect(bridge.connectHomeForPhone).toHaveBeenCalledExactlyOnceWith();
   expect(bridge.connectHome).not.toHaveBeenCalled();
+});
+it("has no phone card while the phone app is hidden", async () => {
+  vi.stubEnv("VITE_DUSK_PHONE_APP", "");
+  await ready(readyCloud);
+  expect(render().html).not.toContain("data-cloud-phone");
 });
 it("before the Cloud is Ready, explains the two steps instead of offering a switch that cannot work", async () => {
   for (const machine of [{ status: "provisioning" }, { status: "stopped", origin }, { status: "payment-problem", origin }, { status: "failed", origin }] as const) {
