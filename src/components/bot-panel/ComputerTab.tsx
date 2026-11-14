@@ -288,23 +288,18 @@ export function ComputerTab({ bot, derived, cloudFor }: {
     : stage === "moved" || stage === "open" ? t("runsOn.openCloud")
     : stage === "coming-back" ? t("runsOn.movingBack") : t("runsOn.moveDuskCloud");
   const detail = report?.detail ?? null;
-  // beside the offer to move, a screen with nothing on it is only a Wake computer the person has no reason to press; it
-  // shows once the bot's computer is awake or waking. the panel keeps reporting while hidden, so a waking computer
-  // comes out from behind the offer
-  const offering = toCloud && (stage === "buy" || stage === "resume" || stage === "ready" || stage === "elsewhere");
-  const screenHidden = offering && (report === null || report.stage === "asleep");
 
   return (
     <div data-panel-tabpanel="computer">
       {local ? cloudBots.length > 0 && !storeApp() && <CloudCtaCard bot={cloudBots[0]!} group={cloudBots} stage={stage} cloudDesktop={cloudDesktop} /> : <>
-        <div ref={setScreenBox} hidden={screenHidden} data-panel-screen-hidden={screenHidden || undefined}>
+        <div ref={setScreenBox}>
           <Suspense fallback={<AsleepScreen bot={bot} off={current === "off"} />}>
             <ComputerPanel bot={bot} inline visible={onScreen} onReport={setReport} />
           </Suspense>
         </div>
-        {!screenHidden && <div className="mt-[5px] flex min-h-6 items-center justify-center">
+        <div className="mt-[5px] flex min-h-6 items-center justify-center">
           <span data-panel-screen-of="" className="min-w-0 truncate text-[12px] leading-4 tracking-normal text-ink/[0.56]">{screenOf}</span>
-        </div>}
+        </div>
         {detail && <Card><NoteRow data-sheet-row="problem-detail">{detail}</NoteRow></Card>}
         {toCloud && <CloudDesktopCta bots={cloudBots} stage={stage} label={cloudLabel} />}
         {toHome && (
