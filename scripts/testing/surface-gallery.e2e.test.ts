@@ -42,20 +42,38 @@ const DIALOGS: Record<string, string> = {
 };
 /** What a browser's first run shows (place, bring, phone and making need the desktop app's bridge). */
 const ONBOARDING = ["welcome", "account", "ai"];
+/** Typing into the composer the way a person does, so React sees the change. */
+const TYPE = (text: string) => `(() => { const field = document.querySelector("textarea[aria-label]"); if (!field) return false; field.focus();
+  Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set.call(field, ${JSON.stringify(text)});
+  field.dispatchEvent(new Event("input", { bubbles: true })); return true; })()`;
+/** The chat window itself: empty, mid-typing, and with the app's error and note banners up. */
+const CHAT: Record<string, { open: string | null; run?: string }> = {
+  empty: { open: `{ type: "select", id: window.__surfaceGallery.botId }` },
+  typing: { open: `{ type: "select", id: window.__surfaceGallery.botId }`, run: TYPE("Can you sort out the payouts report and book the call for Monday?") },
+  error: { open: `{ type: "error", message: "Couldn't reach the server. Check your connection and try again." }` },
+  notice: { open: `{ type: "notice", notice: { kind: "note", botName: null, text: "Pepper is set up. Say hi to get started." } }` },
+};
 
-const VIEWPORTS = [
+// "min" is the desktop window's smallest size (electron/window-state.cjs MIN_BOUNDS)
+const ALL_VIEWPORTS = [
   { id: "desktop", width: 1280, height: 860, touch: false },
+  { id: "min", width: 768, height: 520, touch: false },
   { id: "phone", width: 390, height: 844, touch: true },
 ] as const;
+const VIEWPORT_IDS = (process.env.DUSK_SURFACES_VIEWPORTS ?? "desktop,phone").split(",");
+// touch emulation sticks once on, so phones run last
+const VIEWPORTS = ALL_VIEWPORTS.filter((one) => VIEWPORT_IDS.includes(one.id));
+const SKINS = (process.env.DUSK_SURFACES_SKINS ?? "grok").split(",");
 const ONLY = process.env.DUSK_SURFACES_ONLY?.split(",");
 const DIALOG_SCOPE = `[role=dialog], [role=alertdialog], [aria-modal=true]`;
 
-type Surface = { id: string; open: string | null; onboarding?: string; scope: string };
+type Surface = { id: string; open: string | null; onboarding?: string; scope: string; run?: string };
 const SURFACES: Surface[] = [
   ...SETTINGS.map((section) => ({ id: `settings:${section}`, open: `{ type: "toggleAppSettings", open: true, section: "${section}" }`, scope: DIALOG_SCOPE })),
   ...PANEL.map((section) => ({ id: `panel:${section}`, open: `{ type: "toggleSettings", open: true, section: "${section}", botId: window.__surfaceGallery.botId }`, scope: DIALOG_SCOPE })),
   ...Object.entries(DIALOGS).map(([id, action]) => ({ id: `dialog:${id}`, open: action, scope: id === "computer" ? "#root" : DIALOG_SCOPE })),
   ...ONBOARDING.map((step) => ({ id: `onboarding:${step}`, open: null, onboarding: step, scope: "[data-welcome]" })),
+  ...Object.entries(CHAT).map(([id, chat]) => ({ id: `chat:${id}`, open: chat.open, run: chat.run, scope: "#root" })),
 ].filter((surface) => !ONLY || ONLY.includes(surface.id));
 
 (enabled ? it : it.skip)("draws every settings page, panel tab, dialog and first-run step without overlap or clipping", async () => {
@@ -118,13 +136,13 @@ const SURFACES: Surface[] = [
 
     for (const viewport of VIEWPORTS) {
       if (viewport.touch) await request("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
-      for (const surface of SURFACES) {
-        const shot = `surface-${surface.id.replace(":", "-")}-${viewport.id}`;
+      for (const skin of SKINS) for (const surface of SURFACES) {
+        const shot = `surface-${surface.id.replace(":", "-")}-${viewport.id}${skin === "grok" ? "" : `-${skin}`}`;
         current = shot;
         await request("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.touch });
         // each surface from a clean start: an open panel or a settings page must not carry over to the next
         await evaluate(`try { localStorage.clear(); sessionStorage.clear(); } catch {} true`).catch(() => undefined);
-        await request("Page.navigate", { url: surface.onboarding ? `${freshPreview!.previewUrl}?onboarding=${surface.onboarding}` : preview.previewUrl });
+        await request("Page.navigate", { url: surface.onboarding ? `${freshPreview!.previewUrl}?onboarding=${surface.onboarding}&skin=${skin}` : `${preview.previewUrl}?skin=${skin}` });
         await expect.poll(() => evaluate(`Boolean(window.__surfaceGallery?.ready)`).catch(() => false), { timeout: 120_000 }).toBe(true);
         let opened = true;
         if (surface.onboarding) opened = await expect.poll(() => evaluate(`document.querySelector("[data-welcome]")?.getAttribute("data-welcome")`), { timeout: 15_000 }).toBe(surface.onboarding).then(() => true, () => false);
@@ -132,10 +150,25 @@ const SURFACES: Surface[] = [
           await evaluate(`window.__surfaceGallery.dispatch(${surface.open}); true`);
           opened = await expect.poll(() => evaluate(`document.querySelectorAll(${JSON.stringify(surface.scope)}).length > 0`), { timeout: 15_000 }).toBe(true).then(() => true, () => false);
         }
+        if (surface.run) {
+          await evaluate(`new Promise((done) => setTimeout(done, 300))`);
+          opened = Boolean(await evaluate(surface.run));
+        }
         await evaluate(`document.fonts.ready.then(() => new Promise((done) => setTimeout(done, 700)))`);
         const issues: LayoutIssue[] = opened ? await evaluate(`window.__galleryAudit({ touch: ${viewport.touch}, focus: ${viewport.id === "desktop"}, scopeSelector: ${JSON.stringify(surface.scope)} })`) : [];
         const { data } = await request("Page.captureScreenshot", { format: "png" });
         writeFileSync(join(evidence, `${shot}.png`), Buffer.from(data, "base64"));
+        // DUSK_SURFACES_ENDS=1: a long pane's end as well, scrolled in its own scroller, for a person reading the run
+        if (process.env.DUSK_SURFACES_ENDS === "1" && opened) {
+          const scrolled = await evaluate(`(() => { const scope = document.querySelector(${JSON.stringify(surface.scope)}); if (!scope) return false;
+            const all = [scope, ...scope.querySelectorAll("*")].filter((one) => one.scrollHeight - one.clientHeight > 40 && /auto|scroll/.test(getComputedStyle(one).overflowY));
+            const longest = all.sort((a, b) => (b.scrollHeight - b.clientHeight) - (a.scrollHeight - a.clientHeight))[0];
+            if (!longest) return false; longest.scrollTop = longest.scrollHeight; return true; })()`);
+          if (scrolled) {
+            await evaluate(`new Promise((done) => setTimeout(done, 300))`);
+            writeFileSync(join(evidence, `${shot}-end.png`), Buffer.from((await request("Page.captureScreenshot", { format: "png" })).data, "base64"));
+          }
+        }
         const probe = process.env.DUSK_GALLERY_PROBE ? await evaluate(process.env.DUSK_GALLERY_PROBE) : undefined;
         report.push({ shot, opened, issues, ...(probe === undefined ? {} : { probe }) });
       }

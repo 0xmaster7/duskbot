@@ -23,10 +23,14 @@ import { NOTICES } from "../../src/lib/notices.ts";
 const enabled = process.env.DUSK_UI_E2E === "1";
 if (!enabled) console.log("skipping the chat gallery: set DUSK_UI_E2E=1 for isolated browser qualification");
 
-const VIEWPORTS = [
+// "min" is the desktop window's smallest size (electron/window-state.cjs MIN_BOUNDS)
+const ALL_VIEWPORTS = [
   { id: "desktop", width: 1100, height: 900, touch: false },
+  { id: "min", width: 768, height: 520, touch: false },
   { id: "phone", width: 390, height: 844, touch: true },
 ] as const;
+const VIEWPORT_IDS = (process.env.DUSK_GALLERY_VIEWPORTS ?? "desktop,phone").split(",");
+const VIEWPORTS = ALL_VIEWPORTS.filter((one) => VIEWPORT_IDS.includes(one.id));
 const SKINS = (process.env.DUSK_GALLERY_SKINS ?? "grok,grok-dark,midnight,atelier,pop").split(",");
 const ONLY = process.env.DUSK_GALLERY_ONLY?.split(",");
 // "still": the transcript as a reopened chat shows it; "arrive": its rows landing one by one while the chat follows;
@@ -127,6 +131,16 @@ const wide = encodePng(480, 120, (x, y) => [200, 100 + (x % 100), 80 + (y % 40)]
           const issues: LayoutIssue[] = await evaluate(`window.__galleryAudit({ touch: ${viewport.touch}, focus: ${skin === SKINS[0]} })`);
           const { data } = await request("Page.captureScreenshot", { format: "png" });
           writeFileSync(join(evidence, `${shot}.png`), Buffer.from(data, "base64"));
+          // a link's hover card, on a pointer: the first link in the transcript, hovered until its preview is up
+          if (!viewport.touch && mode === "still") {
+            const spot = await evaluate(`(() => { const link = document.querySelector('.glass-scroller a[href^="http"]'); if (!link) return null; link.scrollIntoView({ block: "center" }); const r = link.getBoundingClientRect(); return { x: r.left + Math.min(12, r.width / 2), y: r.top + r.height / 2 }; })()`);
+            if (spot) {
+              await request("Input.dispatchMouseEvent", { type: "mouseMoved", x: spot.x, y: spot.y });
+              await evaluate(`new Promise((done) => setTimeout(done, 1200))`);
+              if (await evaluate(`Boolean(document.querySelector(".link-preview"))`)) writeFileSync(join(evidence, `${shot}-link-hover.png`), Buffer.from((await request("Page.captureScreenshot", { format: "png" })).data, "base64"));
+              await request("Input.dispatchMouseEvent", { type: "mouseMoved", x: 1, y: 1 });
+            }
+          }
           // DUSK_GALLERY_PROBE: an expression to read in each shot while chasing a finding (saved beside its issues)
           const probe = process.env.DUSK_GALLERY_PROBE ? await evaluate(process.env.DUSK_GALLERY_PROBE) : undefined;
           report.push({ shot, ...(probe === undefined ? {} : { probe }), ...(caught.length ? { caught } : {}), issues: [...issues, ...during.map((issue) => ({ ...issue, detail: `while arriving: ${issue.detail}` }))] });
