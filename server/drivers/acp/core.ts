@@ -216,6 +216,10 @@ export interface AcpSupport {
    * "fail-request": cached API credentials need no method, but a requested
    * OAuth login must succeed. "continue": proceed on an ambient login. */
   authFailure: "fail" | "fail-request" | "continue";
+  /** A turn the CLI refused for want of a login: what isAuthenticated answers goes signed out until a sign-in. */
+  noteSignedOut?(env: Record<string, string | undefined>, config: AcpConfig): void;
+  /** The app's own sign-in finished for this engine. */
+  noteSignedIn?(env: Record<string, string | undefined>, config: AcpConfig): void;
   /** Whether this CLI can run a turn (env carries the merged config). */
   isAuthenticated(
     env: Record<string, string | undefined>,
@@ -368,7 +372,7 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
         await refreshModels();
       }
       const deviceSignIn = support.deviceSignIn
-        ? new DeviceAuthController(support.deviceSignIn, { cli: config.cli, environment: () => childEnv(), onAuthenticated: refreshModels })
+        ? new DeviceAuthController(support.deviceSignIn, { cli: config.cli, environment: () => childEnv(), onAuthenticated: async () => { support.noteSignedIn?.(childEnv(), config); await refreshModels(); } })
         : null;
       const listeners = new Set<RuntimeEventListener>();
       let disposing = false;
@@ -1655,6 +1659,7 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
               const code = support.classifyError?.(e) ?? (engineFailureKind(message) === "credits" ? "insufficient_funds" : undefined);
               const needsAuth = code === "invalid_credentials" || code === "inactive_subscription"
                 || code === "insufficient_funds" || message === support.loginNote;
+              if (code === "invalid_credentials" || message === support.loginNote) support.noteSignedOut?.(env, turnConfig);
               const accountError = isAccountError(code);
               const failure = classifyError({ text: message });
               const transientStartup = failure.transient || (failure.reason === "unknown" && code === "upstream_outage");
@@ -1718,7 +1723,7 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
                 : failure.code === "EACCES" || failure.code === "EPERM"
                   ? `\`${config.cli}\` isn't executable. Check its file permissions, then check again.`
                   : failure.killed && failure.code == null
-                    ? `\`${config.cli}\` version check timed out after 8 seconds. Check it in a terminal on the server, then try again.`
+                    ? `\`${config.cli}\` version check timed out after 8 seconds. Try again in a moment.`
                     : `\`${config.cli}\` version check failed. Run it with --version on the server to diagnose the installation, then check again.`;
               // Do not echo arbitrary CLI output or its environment into Settings.
               resolve({ reason });

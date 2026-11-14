@@ -12,7 +12,7 @@ import { BUILT_IN_DRIVERS } from "../builtIn.ts";
 import { SPAWNED_PROXIES } from "../../proxy-paths.ts";
 import { startFakeHttpMcp } from "../../testing/fake-http-mcp-server.ts";
 import {
-  classifyCopilotError, CopilotAgentDriver, copilotModelLabel, copilotSignedIn, forgetCopilotDiscoverySession, resolveCopilotModels,
+  classifyCopilotError, CopilotAgentDriver, copilotModelLabel, copilotSignedIn, copilotSignInFinished, copilotTurnRefusedLogin, forgetCopilotDiscoverySession, resolveCopilotModels,
 } from "./copilot.ts";
 
 const FAKE_CLI = join(dirname(fileURLToPath(import.meta.url)), "../../testing/fake-acp-cli.ts");
@@ -173,7 +173,7 @@ describe("GitHub Copilot ACP driver", () => {
     expect(flaky.launches()).toBe(2);
   });
 
-  it("answers within the wait from the last probe while a hung one runs on, and offers the engine before any answer", async () => {
+  it("answers within the wait from the last probe while a hung one runs on, and offers nothing before any answer", async () => {
     const slow = probe("slow", { FAKE_ACP_MODE: "auth-required" });
     const now = Date.now();
     const clock = vi.spyOn(Date, "now").mockReturnValue(now);
@@ -185,7 +185,7 @@ describe("GitHub Copilot ACP driver", () => {
     expect(await copilotSignedIn(hung, { cli: FAKE_CLI }, 50)).toBe(false);
     expect(await copilotSignedIn(hung, { cli: FAKE_CLI }, 50)).toBe(false);
     const never = probe("never-answered", { FAKE_ACP_MODE: "hang-initialize" });
-    expect(await copilotSignedIn(never.env, { cli: FAKE_CLI }, 50)).toBe(true);
+    expect(await copilotSignedIn(never.env, { cli: FAKE_CLI }, 50)).toBe(false);
     await Promise.all([copilotSignedIn(hung, { cli: FAKE_CLI }, PROBE_WAIT), copilotSignedIn(never.env, { cli: FAKE_CLI }, PROBE_WAIT)]);
     expect([slow.launches(), never.launches()]).toEqual([2, 1]);
   }, 60_000);
@@ -379,7 +379,27 @@ describe("GitHub Copilot ACP driver", () => {
     const { instance, recorder } = await create({ FAKE_ACP_MODE: "auth-required" });
     await instance.adapter.sendTurn({ threadId: "copilot-signed-out", text: "hello", model: "auto", approvalMode: "ask" }).catch(() => undefined);
     const error = await recorder.until((event) => event.type === "runtime.error");
-    expect(String((error as { message?: unknown }).message)).toContain("copilot login");
+    expect(String((error as { message?: unknown }).message)).toBe("GitHub Copilot needs you to sign in again.");
+    expect(String((error as { message?: unknown }).message)).not.toMatch(/terminal|copilot login/);
     expect(existsSync(join(scratch, "launch.json.prompts.jsonl"))).toBe(false);
+  });
+
+  it("reads signed out after a turn the CLI refused for want of a login, whatever an empty session says, until the app signs in", async () => {
+    // an empty session/new passes here, as Copilot CLI's can with no usable login
+    const passes = probe("refused-turn");
+    expect(await copilotSignedIn(passes.env, { cli: FAKE_CLI }, PROBE_WAIT)).toBe(true);
+    copilotTurnRefusedLogin(passes.env, { cli: FAKE_CLI });
+    expect(await copilotSignedIn(passes.env, { cli: FAKE_CLI }, PROBE_WAIT)).toBe(false);
+    await resolveCopilotModels(passes.env, { cli: FAKE_CLI });
+    expect(await copilotSignedIn(passes.env, { cli: FAKE_CLI }, PROBE_WAIT), "a catalog refresh proves no login").toBe(false);
+    copilotSignInFinished(passes.env, { cli: FAKE_CLI });
+    expect(await copilotSignedIn(passes.env, { cli: FAKE_CLI }, PROBE_WAIT)).toBe(true);
+  });
+
+  it("goes signed out in the engine's own status once a turn is refused for the login", async () => {
+    const { instance, recorder } = await create({ FAKE_ACP_MODE: "auth-required" });
+    await instance.adapter.sendTurn({ threadId: "copilot-refused", text: "hello", model: "auto", approvalMode: "ask" }).catch(() => undefined);
+    await recorder.until((event) => event.type === "turn.completed");
+    expect((await instance.snapshot()).authenticated).toBe(false);
   });
 });

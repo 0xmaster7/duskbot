@@ -20,7 +20,7 @@ const AUTO = "auto";
 const MODELS: ModelCatalog = { default: AUTO, options: [{ id: AUTO, label: "Auto" }] };
 const SPAWN_ARGS = ["--acp", "--stdio"];
 const SIGN_IN = "copilot login";
-const LOGIN_NOTE = `GitHub Copilot is not signed in. Run ${SIGN_IN} in a terminal, then check again.`;
+const LOGIN_NOTE = "GitHub Copilot needs you to sign in again.";
 /** Precedence order Copilot CLI reads its token from (`copilot login --help`, 1.0.103); each beats the stored login. */
 const TOKEN_ENV = ["COPILOT_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"] as const;
 const SIGNED_IN_FOR_MS = 5 * 60_000;
@@ -101,6 +101,32 @@ const signInKey = (env: Record<string, string | undefined>, cli: string) => {
 };
 const signIns = new Map<string, { signedIn: Promise<boolean>; until: number }>();
 const lastSignIns = new Map<string, boolean>();
+/** An empty session/new can pass with no usable login, so a turn the CLI refused for one outranks every probe until
+ * the app's own sign-in finishes (or this long passes, for a login fixed outside the app). */
+const refusedTurns = new Map<string, number>();
+const REFUSED_TURN_FOR_MS = 30 * 60_000;
+
+export function copilotTurnRefusedLogin(env: Record<string, string | undefined>, config: Pick<AcpConfig, "cli">): void {
+  const key = signInKey(env, config.cli);
+  refusedTurns.set(key, Date.now());
+  signIns.delete(key);
+  lastSignIns.set(key, false);
+}
+
+export function copilotSignInFinished(env: Record<string, string | undefined>, config: Pick<AcpConfig, "cli">): void {
+  const key = signInKey(env, config.cli);
+  refusedTurns.delete(key);
+  signIns.delete(key);
+  lastSignIns.delete(key);
+}
+
+const refusedTurn = (key: string): boolean => {
+  const at = refusedTurns.get(key);
+  if (at === undefined) return false;
+  if (Date.now() - at < REFUSED_TURN_FOR_MS) return true;
+  refusedTurns.delete(key);
+  return false;
+};
 
 interface SignInAnswer { signedIn: boolean; forMs: number }
 
@@ -137,11 +163,13 @@ export function copilotSignedIn(
   env: Record<string, string | undefined>, config: Pick<AcpConfig, "cli">, waitMs = SIGN_IN_WAIT_MS,
 ): Promise<boolean> {
   const key = signInKey(env, config.cli);
+  if (refusedTurn(key)) return Promise.resolve(false);
   const cached = signIns.get(key);
   const probe = cached && cached.until > Date.now() ? cached.signedIn
     : rememberSignIn(key, signedInAfter(discoverAcpModels(env, config.cli, SPAWN_ARGS, { ...DISCOVERY, variants: false })));
   return new Promise((done) => {
-    const timer = setTimeout(() => done(lastSignIns.get(key) ?? true), waitMs);
+    // a probe that has never answered proves no login, so nothing offers the engine as ready on it
+    const timer = setTimeout(() => done(lastSignIns.get(key) ?? false), waitMs);
     void probe.then((signedIn) => { clearTimeout(timer); done(signedIn); });
   });
 }
@@ -247,6 +275,8 @@ const SUPPORT: AcpSupport = {
   pickAuthMethod: () => null,
   authFailure: "continue",
   isAuthenticated: (env, config) => copilotSignedIn(env, config),
+  noteSignedOut: (env, config) => copilotTurnRefusedLogin(env, config),
+  noteSignedIn: (env, config) => copilotSignInFinished(env, config),
   classifyError: classifyCopilotError,
   describeAccountError: describeCopilotAccountError,
   buildPromptText: (turn) => (turn.system ? `${turn.system}\n\n${turn.text}` : turn.text),
