@@ -10,7 +10,7 @@ import { t } from "@/lib/i18n";
 import { useCloudOffer } from "@/lib/use-cloud-offer";
 import { PlaceArt } from "../ui/PlaceArt";
 import { cloudBought } from "./funnel";
-import { PRIMARY, QUIET, StepFrame } from "./FunnelSteps";
+import { PRIMARY, StepFrame } from "./FunnelSteps";
 
 /** the account is re-read this often while the checkout is open in the browser, beside main's own watch */
 const LOOK_MS = 6_000;
@@ -21,15 +21,6 @@ type Phase = "idle" | "opening" | "waiting" | "failed";
 export function checkoutLine(account: CloudAccountState | null, signingIn: boolean): "signIn" | "checkout" {
   if (account?.status === "connected") return "checkout";
   return signingIn || account?.status === "connecting" ? "signIn" : "checkout";
-}
-
-/** The trial and price, as the offer says them, or null while the app doesn't know them. */
-export function useCloudPriceLine(): string | null {
-  const offer = useCloudOffer(true);
-  if (!offer?.plans.length) return null;
-  const price = usd(Math.min(...offer.plans.map((plan) => plan.amount)) / 100);
-  const days = offerTrialDays(offer);
-  return days ? t("funnel.checkout.trial", { days, price }) : t("funnel.checkout.price", { price });
 }
 
 /** dusk cloud's tile on the place step: the trial as its tag and the price after it, or nothing while unknown. */
@@ -52,7 +43,6 @@ export function CheckoutStep({ start, onPaid, onMac }: {
   const bridge = window.duskDesktop?.cloudAccount;
   const [account, setAccount] = useState<CloudAccountState | null>(null);
   const [phase, setPhase] = useState<Phase>(start ? "opening" : "idle");
-  const price = useCloudPriceLine();
   const paid = useRef(false);
   const signingIn = useRef(false);
   const live = useRef(true);
@@ -120,7 +110,11 @@ export function CheckoutStep({ start, onPaid, onMac }: {
         <button type="button" data-primary="" data-funnel-checkout-again="" disabled={phase === "opening"} onClick={() => void open(true)} className={PRIMARY}>
           {t("funnel.checkout.again")}
         </button>
-        <button type="button" data-funnel-checkout-mac="" onClick={useMac} className={QUIET}>{t("funnel.checkout.mac")}</button>
+        {/* the way out stays, quietly: a small, light text link, clearly second to the page in the browser */}
+        <button type="button" data-funnel-checkout-mac="" onClick={useMac}
+          className="mt-1 min-h-11 rounded-full px-3 text-[12px] leading-4 text-ink-tertiary underline-offset-4 transition-colors hover:text-ink-secondary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none">
+          {t("funnel.checkout.mac")}
+        </button>
       </>}
     >
       <div data-funnel-checkout={phase} className="flex w-full max-w-[360px] flex-col items-center gap-3">
@@ -133,7 +127,6 @@ export function CheckoutStep({ start, onPaid, onMac }: {
             </p>
           )}
         {email && <p data-funnel-checkout-email="" className="text-[13px] leading-[18px] text-ink-tertiary">{t("funnel.account.signedIn", { email })}</p>}
-        {price && <p data-funnel-checkout-price="" className="text-pretty text-[13px] leading-[18px] text-ink-secondary">{price}</p>}
       </div>
     </StepFrame>
   );

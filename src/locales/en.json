@@ -2982,8 +2982,6 @@
   "funnel.checkout.again": "Open the page again",
   "funnel.checkout.mac": "Use this {device} instead",
   "funnel.checkout.failed": "Your browser didn't open. Open the page again, or use this {device} for now.",
-  "funnel.checkout.trial": "Free for {days} days, then from {price}/month + tax. Cancel any time.",
-  "funnel.checkout.price": "From {price}/month + tax. Cancel any time.",
   "funnel.ai.subCloud": "Your cloud is getting ready. Meanwhile, connect an AI you already use, or start with the free model.",
   "funnel.ai.title": "connect an AI",
   "funnel.ai.sub": "Use an account you already have. You sign in on their site, so your password stays with them.",

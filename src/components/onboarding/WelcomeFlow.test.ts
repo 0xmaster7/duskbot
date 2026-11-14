@@ -354,7 +354,9 @@ describe("on the desktop app", () => {
     expect(title()).toBe("Continue in your browser");
     expect(text()).toContain("Create your account, pick a plan and check out");
     expect(text()).toContain("Waiting for your sign-in");
-    expect(host.querySelector("[data-funnel-checkout-price]")?.textContent).toBe("Free for 7 days, then from $15/month + tax. Cancel any time.");
+    expect(host.querySelector("[data-funnel-checkout-price]"), "no price line while the browser asks for money").toBeNull();
+    expect(text()).not.toContain("/month");
+    expect(host.querySelector("[data-funnel-checkout-mac]")?.className, "this Mac is a light, small text link").toContain("text-ink-tertiary");
     expect(host.querySelector("[data-funnel-progress]")?.getAttribute("data-funnel-progress"), "place, checkout, ai, making").toBe("2/4");
     expect(text(), "no dash anywhere").not.toMatch(/\u2014/);
     await bridge.tell({ status: "connected", account: { email: "sam@qa.dusk.test" }, clouds: [] });
