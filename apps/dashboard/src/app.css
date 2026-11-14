@@ -459,3 +459,8 @@
 @media (prefers-reduced-motion: reduce) {
   .burst { display: none; }
 }
+
+/* the plan card's rows when plus and pro swap: a short fade and rise, not a jump */
+@keyframes plan-points-in { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+.plan-points-in { animation: plan-points-in 220ms var(--ease-out, ease-out) both; }
+@media (prefers-reduced-motion: reduce) { .plan-points-in { animation: none; } }

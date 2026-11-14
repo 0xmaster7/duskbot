@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, Check, LoaderCircle, Monitor } from "@/icons";
 import meadow from "../art/p-meadow.webp";
+import layers from "../art/wide-layers-plain.webp";
 import { useCloud } from "../data/cloud";
 import type { BillingInterval, PlanCatalog } from "../data/contracts";
 import { bundleOf, dollars } from "../data/pricing";
@@ -61,13 +62,15 @@ function PlanStep({ catalog, home, setHome, plan, setPlan }: { catalog: PlanCata
           <input id="home-cloud" type="radio" name="home" value="cloud" checked={cloud} onChange={() => setHome("cloud")} className="sr-only" />
           <span className="relative block overflow-hidden rounded-[16px]">
             <img src={meadow} alt="" width={800} height={354} className="h-[84px] w-full object-cover object-bottom" draggable={false} />
+            {/* pro has its own scene, crossfading in over plus's meadow */}
+            <img src={layers} alt="" width={800} height={354} className={cx("absolute inset-0 h-[84px] w-full object-cover object-bottom transition-opacity duration-300 ease-out motion-reduce:transition-none", plan === "pro" ? "opacity-100" : "opacity-0")} draggable={false} />
             <span className="absolute bottom-1 right-4" aria-hidden><Mascot body="kit" color="blue" size={44} state="working" still /></span>
           </span>
           <span className="flex items-baseline justify-between gap-3 px-3 pt-4">
             <span className="text-17 font-medium tracking-[-0.02em] text-ink">dusk cloud</span>
             <span className="num text-14 text-ink-3">from {dollars(plans[0]?.b.monthly ?? 0)}/mo</span>
           </span>
-          <ul className="flex flex-col gap-2 px-3 pb-2 pt-3">
+          <ul key={plan} className="plan-points-in flex flex-col gap-2 px-3 pb-2 pt-3">
             {points(plan, catalog).map((p) => (
               <li key={p} className="flex gap-2.5 text-14 leading-[1.45] text-ink-2">
                 <Check size={17} strokeWidth={2} className="mt-0.5 shrink-0 text-good" aria-hidden />{p}
@@ -86,7 +89,7 @@ function PlanStep({ catalog, home, setHome, plan, setPlan }: { catalog: PlanCata
         <Monitor size={20} strokeWidth={1.5} className="shrink-0 text-ink-3" aria-hidden />
         <span className="min-w-0 flex-1">
           <span className="block text-15 font-medium text-ink">this computer</span>
-          <span className="block text-13 leading-[1.4] text-ink-3">bots work while it's awake. add dusk cloud any time.</span>
+          <span className="block text-13 leading-[1.4] text-ink-3">bots work while it's awake.</span>
         </span>
         <span className="num shrink-0 text-14 text-ink-2">free</span>
       </label>

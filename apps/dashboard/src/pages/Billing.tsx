@@ -6,7 +6,7 @@ import { Check, ChevronDown, Download } from "@/icons";
 import { useCloud } from "../data/cloud";
 import { LoadError } from "./common";
 import type { BillingInterval, LicenseId, PlanCatalog, Selection } from "../data/contracts";
-import { bundleOf, desktopOf, gb, licenseMonthly, licenseOf, perMonthOn, priceCart, wakeSeconds } from "../data/pricing";
+import { bundleOf, desktopOf, gb, licenseMonthly, licenseOf, perMonthOn, priceCart } from "../data/pricing";
 import { useSession } from "../data/session";
 import { track } from "../lib/analytics";
 import { useCart } from "../data/quote";
@@ -38,10 +38,8 @@ export function points(id: Exclude<Tier, "free">, catalog: PlanCatalog): string[
   const d = b ? desktopOf(catalog, b.desktop) : null;
   if (!d) return [];
   const machine = `${d.vcpu} vcpu, ${gb(d.ramGb)} ram, ${gb(d.diskGb)} disk`;
-  const wake = catalog.wake?.[d.id];
-  const seconds = wake ? wakeSeconds(wake.medianMs) : null;
-  if (id === "team") return [`dedicated ${machine}`, "always available, priority wake", `team license, ${members(b!.members)}`];
-  return id === "pro" ? [machine, seconds ? `always available, priority wake in ${seconds} s` : "always available, priority wake", "work license for one person"] : [machine, seconds ? `always available, wakes in ${seconds} s` : "always available, wakes in seconds", "set up in one click"];
+  if (id === "team") return [`dedicated ${machine}`, "always available 24/7", `team license, ${members(b!.members)}`];
+  return id === "pro" ? [machine, "always available 24/7", "work license for one person"] : [machine, "always available 24/7", "set up in one click"];
 }
 const ART = { free: sky, starter: meadow, pro: layers, team: peaks } as const;
 const FREE_POINTS = ["your bots on this computer", "they work while it's awake", "every bot, chat and connector, for personal use"];
