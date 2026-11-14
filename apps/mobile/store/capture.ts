@@ -244,6 +244,10 @@ async function main() {
     await page.send("Emulation.setDeviceMetricsOverride", { width: 440, height: 956, deviceScaleFactor: 3, mobile: true });
     await page.send("Emulation.setTouchEmulationEnabled", { enabled: true });
     await page.send("Emulation.setFocusEmulationEnabled", { enabled: true });
+    // the store build marks <html data-mobile-app="ios"> from the native shell, which hides screen view (4.2.7) and every
+    // plan line; the browser preview would say "web", so the mark is pinned before the app renders
+    await page.send("Page.enable");
+    await page.send("Page.addScriptToEvaluateOnNewDocument", { source: `new MutationObserver(() => { const root = document.documentElement; if (root && root.dataset.mobileApp && root.dataset.mobileApp !== "ios") root.dataset.mobileApp = "ios"; }).observe(document, { attributes: true, subtree: true, attributeFilter: ["data-mobile-app"] });` });
     const open = async (scheme: "light" | "dark", query = "", storage: Record<string, string> = { "dusk.mobile.introSeen": "1" }) => {
       await page.send("Page.navigate", { url: `${base}/?frame=1&scheme=${scheme}${query}` });
       await delay(1200);
@@ -253,6 +257,9 @@ async function main() {
     const home = async (scheme: "light" | "dark") => {
       await open(scheme);
       await page.until(`document.body.textContent.includes(${js(ROOM.name)})`, 30_000);
+      // the store app asks once before anything reaches an AI; the screens show someone who said yes
+      await delay(1200);
+      if (await page.evaluate(`(() => { const b = [...document.querySelectorAll("button")].find((el) => el.textContent.trim().toLowerCase() === "allow"); b?.click(); return Boolean(b); })()`)) await delay(1500);
       await delay(800);
     };
     const chat = async (name: string) => {
@@ -274,7 +281,7 @@ async function main() {
       ["chat-nova", async () => { await home("light"); await chat("Nova"); await shot("chat-nova"); }],
       ["chat-pip", async () => { await home("light"); await chat("Pip"); await shot("chat-pip"); }],
       ["chat-echo", async () => { await home("light"); await chat("Echo"); await shot("chat-echo"); }],
-      ["room", async () => { await home("light"); await chat(ROOM.name); await click(page, `[...document.querySelectorAll("button")].find((el) => /skip for now/i.test(el.textContent))`); await delay(1200); await shot("room"); }],
+      ["room", async () => { await home("light"); await chat(ROOM.name); await page.evaluate(`[...document.querySelectorAll("button")].find((el) => /skip for now/i.test(el.textContent))?.click()`); await delay(1200); await shot("room"); }],
       ["routines-dark", async () => {
         await home("dark");
         await click(page, `document.querySelector('[aria-label^="you and settings" i]') ?? ${button("You")}`);
