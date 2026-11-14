@@ -1,12 +1,14 @@
 // @vitest-environment happy-dom
 import { createElement } from "react";
 import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
+import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setLocale } from "@/lib/i18n";
 import { parseGithubUrl } from "@/lib/github-refs";
 import { renderToStaticMarkup } from "react-dom/server";
-import { HOVER_CLOSE_GRACE_MS, HOVER_OPEN_DELAY_MS, LinkHoverCard, LinkPreviewCard, LONG_PRESS_MS, placeCard } from "./LinkHoverCard";
+import { forgetLinkPreviews } from "@/lib/link-preview";
+import type { LinkPreview } from "../../shared/link-preview";
+import { CARD_EXIT_MS, HOVER_CLOSE_GRACE_MS, HOVER_OPEN_DELAY_MS, imageRatio, LinkHoverCard, LinkPreviewCard, LONG_PRESS_MS, placeCard, PREVIEW_WAIT_MS } from "./LinkHoverCard";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -28,34 +30,50 @@ describe("placeCard", () => {
   });
 });
 
+class LoadingImage {
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  set src(value: string) { queueMicrotask(() => (value.includes("broken") ? this.onerror : this.onload)?.()); }
+}
+
+function mount(href: string, github = parseGithubUrl(href)) {
+  const host = document.createElement("div");
+  document.body.append(host);
+  const root = createRoot(host);
+  act(() => root.render(createElement(LinkHoverCard, { href, github, children: (anchor) => createElement("a", { ...anchor, href }, "link") })));
+  return { link: () => host.querySelector("a")!, unmount: () => { act(() => root.unmount()); host.remove(); } };
+}
+
+const card = () => document.querySelector<HTMLElement>("[data-link-preview]");
+const fire = async (target: EventTarget, type: string, init: PointerEventInit = {}) =>
+  act(async () => { target.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerType: "mouse", ...init })); });
+const advance = (ms: number) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
+const answer = (body: unknown, status = 200) => vi.fn(async () => new Response(JSON.stringify(body), { status }));
+
 describe("LinkHoverCard", () => {
-  let host: HTMLDivElement;
-  let root: Root;
+  let view: ReturnType<typeof mount>;
   const href = "https://github.com/goatedgrokbotalternative/duskbot/pull/2547";
-  const link = () => host.querySelector("a")!;
-  const card = () => document.querySelector<HTMLElement>("[data-link-preview]");
-  const fire = (target: EventTarget, type: string, init: PointerEventInit = {}) =>
-    act(() => { target.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerType: "mouse", ...init })); });
+  const link = () => view.link();
 
   beforeEach(() => {
     vi.useFakeTimers();
     setLocale("en");
-    host = document.createElement("div");
-    document.body.append(host);
-    root = createRoot(host);
-    act(() => root.render(createElement(LinkHoverCard, { href, github: parseGithubUrl(href), children: (anchor) => createElement("a", { ...anchor, href }, "#2547") })));
+    forgetLinkPreviews();
+    vi.stubGlobal("Image", LoadingImage);
+    vi.stubGlobal("fetch", answer({ error: "no" }, 404));
+    view = mount(href);
   });
   afterEach(() => {
-    act(() => root.unmount());
-    host.remove();
+    view.unmount();
+    vi.unstubAllGlobals();
     vi.useRealTimers();
   });
 
-  it("opens after a short rest and describes the link", () => {
-    fire(link(), "pointerover");
-    act(() => { vi.advanceTimersByTime(HOVER_OPEN_DELAY_MS - 50); });
+  it("opens after a short rest and describes the link", async () => {
+    await fire(link(), "pointerover");
+    await advance(HOVER_OPEN_DELAY_MS - 50);
     expect(card()).toBeNull();
-    act(() => { vi.advanceTimersByTime(50); });
+    await advance(50);
     expect(card()?.getAttribute("role")).toBe("tooltip");
     expect(card()?.textContent).toContain("Pull request #2547");
     expect(card()?.textContent).toContain("goatedgrokbotalternative/duskbot");
@@ -63,60 +81,158 @@ describe("LinkHoverCard", () => {
     expect(link().getAttribute("aria-describedby")).toBe(card()?.id);
   });
 
-  it("stays open while the pointer moves into the card, and closes after leaving it", () => {
-    fire(link(), "pointerover");
-    act(() => { vi.advanceTimersByTime(HOVER_OPEN_DELAY_MS); });
-    fire(link(), "pointerout", { relatedTarget: card() });
-    fire(card()!, "pointerover", { relatedTarget: link() });
-    act(() => { vi.advanceTimersByTime(HOVER_CLOSE_GRACE_MS * 2); });
-    expect(card()).not.toBeNull();
-    fire(card()!, "pointerout", { relatedTarget: document.body });
-    act(() => { vi.advanceTimersByTime(HOVER_CLOSE_GRACE_MS); });
+  it("stays open while the pointer moves into the card, and closes after leaving it", async () => {
+    await fire(link(), "pointerover");
+    await advance(HOVER_OPEN_DELAY_MS);
+    await fire(link(), "pointerout", { relatedTarget: card() });
+    await fire(card()!, "pointerover", { relatedTarget: link() });
+    await advance(HOVER_CLOSE_GRACE_MS * 2);
+    expect(card()?.dataset.state).toBe("open");
+    await fire(card()!, "pointerout", { relatedTarget: document.body });
+    await advance(HOVER_CLOSE_GRACE_MS);
+    expect(card()?.dataset.state).toBe("closed");
+    expect(link().hasAttribute("aria-describedby")).toBe(false);
+    await advance(CARD_EXIT_MS);
     expect(card()).toBeNull();
   });
 
-  it("never opens for a pointer that only passes over", () => {
-    fire(link(), "pointerover");
-    fire(link(), "pointerout", { relatedTarget: document.body });
-    act(() => { vi.advanceTimersByTime(HOVER_OPEN_DELAY_MS * 2); });
+  it("reopens a closing card in place instead of starting over", async () => {
+    await fire(link(), "pointerover");
+    await advance(HOVER_OPEN_DELAY_MS);
+    const first = card();
+    await fire(link(), "pointerout", { relatedTarget: document.body });
+    await advance(HOVER_CLOSE_GRACE_MS);
+    expect(card()?.dataset.state).toBe("closed");
+    await fire(link(), "pointerover");
+    expect(card()).toBe(first);
+    expect(card()?.dataset.state).toBe("open");
+  });
+
+  it("never opens for a pointer that only passes over", async () => {
+    await fire(link(), "pointerover");
+    await fire(link(), "pointerout", { relatedTarget: document.body });
+    await advance(HOVER_OPEN_DELAY_MS * 2);
     expect(card()).toBeNull();
   });
 
-  it("opens on a long press and keeps the link from opening", () => {
-    fire(link(), "pointerdown", { pointerType: "touch", clientX: 5, clientY: 5 });
-    act(() => { vi.advanceTimersByTime(LONG_PRESS_MS); });
+  it("opens on a long press and keeps the link from opening", async () => {
+    await fire(link(), "pointerdown", { pointerType: "touch", clientX: 5, clientY: 5 });
+    await advance(LONG_PRESS_MS);
     expect(card()).not.toBeNull();
-    fire(link(), "pointerup", { pointerType: "touch" });
+    await fire(link(), "pointerup", { pointerType: "touch" });
     const click = new MouseEvent("click", { bubbles: true, cancelable: true });
     act(() => { link().dispatchEvent(click); });
     expect(click.defaultPrevented).toBe(true);
   });
 
-  it("lets a quick tap open the link", () => {
-    fire(link(), "pointerdown", { pointerType: "touch", clientX: 5, clientY: 5 });
-    fire(link(), "pointerup", { pointerType: "touch" });
-    act(() => { vi.advanceTimersByTime(LONG_PRESS_MS); });
+  it("lets a quick tap open the link", async () => {
+    await fire(link(), "pointerdown", { pointerType: "touch", clientX: 5, clientY: 5 });
+    await fire(link(), "pointerup", { pointerType: "touch" });
+    await advance(LONG_PRESS_MS);
     expect(card()).toBeNull();
     const click = new MouseEvent("click", { bubbles: true, cancelable: true });
     act(() => { link().dispatchEvent(click); });
     expect(click.defaultPrevented).toBe(false);
   });
 
-  it("closes on Escape", () => {
-    fire(link(), "pointerover");
-    act(() => { vi.advanceTimersByTime(HOVER_OPEN_DELAY_MS); });
+  it("closes on Escape from the link", async () => {
+    await fire(link(), "pointerover");
+    await advance(HOVER_OPEN_DELAY_MS);
     act(() => { link().dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); });
+    await advance(CARD_EXIT_MS);
+    expect(card()).toBeNull();
+  });
+
+  it("closes on Escape while the pointer rests on the card and nothing has focus", async () => {
+    await fire(link(), "pointerover");
+    await advance(HOVER_OPEN_DELAY_MS);
+    await fire(card()!, "pointerover", { relatedTarget: link() });
+    act(() => { document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); });
+    expect(card()?.dataset.state).toBe("closed");
+    await advance(CARD_EXIT_MS);
     expect(card()).toBeNull();
   });
 });
 
+describe("LinkHoverCard with the page's own preview", () => {
+  const href = "https://fieldnotes.example/tide?ref=chat";
+  const rich: LinkPreview = {
+    url: "https://fieldnotes.example/tide?ref=chat",
+    title: "How tide pools survive the winter",
+    description: "A season of measurements from three rocky shores.",
+    siteName: "Field Notes",
+    image: { src: "/api/link-preview/image/0123456789abcdef0123456789abcdef", width: 1200, height: 630 },
+    video: true,
+  };
+  let view: ReturnType<typeof mount>;
+  beforeEach(() => {
+    vi.useFakeTimers();
+    setLocale("en");
+    forgetLinkPreviews();
+    vi.stubGlobal("Image", LoadingImage);
+  });
+  afterEach(() => {
+    view.unmount();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it("asks the app's server, never the site, and shows the picture, title, description and address", async () => {
+    const fetch = answer({ preview: rich });
+    vi.stubGlobal("fetch", fetch);
+    view = mount(href, null);
+    await fire(view.link(), "pointerover");
+    expect(fetch).toHaveBeenCalledWith(`/api/link-preview?url=${encodeURIComponent(href)}`);
+    await advance(HOVER_OPEN_DELAY_MS);
+    const shown = card()!;
+    expect(shown.querySelector("img")?.getAttribute("src")).toBe(rich.image!.src);
+    expect(shown.textContent).toContain("How tide pools survive the winter");
+    expect(shown.textContent).toContain("A season of measurements");
+    expect(shown.textContent).toContain("fieldnotes.example/tide?ref=chat");
+    expect(shown.querySelector(".line-clamp-2")?.textContent).toBe(rich.title);
+    expect(shown.querySelector(".line-clamp-3")?.textContent).toBe(rich.description);
+    expect(shown.querySelectorAll("svg").length).toBeGreaterThan(1);
+  });
+
+  it("drops a picture that will not load before the card appears", async () => {
+    vi.stubGlobal("fetch", answer({ preview: { ...rich, image: { ...rich.image!, src: "/api/link-preview/image/broken" } } }));
+    view = mount(href, null);
+    await fire(view.link(), "pointerover");
+    await advance(HOVER_OPEN_DELAY_MS);
+    expect(card()?.textContent).toContain("How tide pools survive the winter");
+    expect(card()?.querySelector("img[src*='link-preview']")).toBeNull();
+  });
+
+  it("waits a moment for a slow preview, then shows the address alone and keeps it while open", async () => {
+    let finish: (response: Response) => void = () => {};
+    vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>((resolve) => { finish = resolve; })));
+    view = mount(href, null);
+    await fire(view.link(), "pointerover");
+    await advance(HOVER_OPEN_DELAY_MS);
+    expect(card()).toBeNull();
+    await advance(PREVIEW_WAIT_MS);
+    expect(card()?.textContent).toContain("fieldnotes.example");
+    expect(card()?.textContent).toContain("/tide?ref=chat");
+    await act(async () => { finish(new Response(JSON.stringify({ preview: rich }))); });
+    expect(card()?.textContent).not.toContain("How tide pools");
+  });
+});
+
 describe("LinkPreviewCard", () => {
-  it("names a plain link by its site and shows the readable path", () => {
+  it("falls back to the site's icon, its name and the readable path", () => {
     setLocale("en");
     const html = renderToStaticMarkup(createElement(LinkPreviewCard, { href: "https://www.example.com/docs/caf%C3%A9?x=1" }));
-    expect(html).toContain(">example.com</div>");
+    expect(html).toContain(">example.com</span>");
     expect(html).toContain("/docs/café?x=1");
+    expect(html).toContain("/api/site-icon?domain=example.com");
     expect(html).toContain("rounded-2xl bg-composer");
+  });
+
+  it("keeps a picture's shape within reason and gives video 16:9", () => {
+    expect(imageRatio({ width: 1200, height: 630 }, false)).toBeCloseTo(1.905, 2);
+    expect(imageRatio({ width: 500, height: 500 }, false)).toBeCloseTo(4 / 3);
+    expect(imageRatio({ width: null, height: null }, false)).toBe(1.91);
+    expect(imageRatio({ width: 480, height: 360 }, true)).toBeCloseTo(16 / 9);
   });
 
   it("titles a commit by its short sha", () => {

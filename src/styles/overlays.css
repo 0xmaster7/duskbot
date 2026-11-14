@@ -74,6 +74,28 @@
    container draws no ring of its own; the highlighted row is the cue */
 :is([role="menu"], [role="listbox"]):is(.animate-pop-in, .animate-pop-out, .fixed):focus-visible { outline: none; }
 
+/* a link's preview grows out of its link on the menu's curve and timing; a quick re-hover reverses it mid-way, so these
+   are transitions, not keyframes. The origin is set beside the link when the card is placed. */
+.link-preview {
+  transition: opacity 120ms var(--ease-menu-in), transform 120ms var(--ease-menu-in);
+}
+@starting-style {
+  .link-preview[data-state="open"] { opacity: 0; transform: scale(0.97); }
+}
+.link-preview[data-state="closed"] {
+  opacity: 0;
+  transform: scale(0.98);
+  pointer-events: none;
+  transition-duration: 80ms;
+  transition-timing-function: var(--ease-out-bencho);
+}
+@media (prefers-reduced-motion: reduce) {
+  .link-preview, .link-preview[data-state="closed"] { transform: none; transition-property: opacity; }
+  @starting-style { .link-preview[data-state="open"] { transform: none; } }
+}
+:root[data-reduced-motion="true"] :is(.link-preview, .link-preview[data-state="closed"]) { transform: none; transition-property: opacity; }
+@starting-style { :root[data-reduced-motion="true"] .link-preview[data-state="open"] { transform: none; } }
+
 /* centred surfaces: a dialog is simply there, and gone the moment it closes */
 :is([role="alertdialog"], [aria-modal="true"], .ui-modal, .ui-dialog):not(.popover-surface, .menu-surface).animate-pop-in,
 .ui-dialog {
