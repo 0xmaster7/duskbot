@@ -41,7 +41,7 @@ function secrets() {
     if (m) values.set(m[1], m[2].replace(/^(["'])(.*)\1$/, "$2"));
   }
   const need = (name) => { const v = values.get(name); if (!v) throw new Error(`${name} is not set in ${file}`); return v; };
-  return { email: need("DUSK_REVIEW_EMAIL").trim().toLowerCase(), code: need("DUSK_REVIEW_CODE").trim(), ops: need(`DUSK_OPS_TOKEN_${target.toUpperCase()}`) };
+  return { email: need("DUSK_REVIEW_EMAIL").trim().toLowerCase(), code: need("DUSK_REVIEW_CODE").trim(), ops: values.get(`DUSK_OPS_TOKEN_${target.toUpperCase()}`) || null };
 }
 
 async function call(base, path, { method = "GET", body, token, timeoutMs = 30_000, headers = {} } = {}) {
@@ -68,8 +68,9 @@ async function signIn() {
 const session = async () => must(await call(origin, "/api/cloud/desktop/session", { token: appToken }), "the app session");
 const ownCloud = (s) => (s.clouds ?? []).find((c) => c.status !== "ended" && c.status !== "checkout") ?? null;
 
+const opsToken = () => { if (!ops) throw new Error(`DUSK_OPS_TOKEN_${target.toUpperCase()} is not set, so ${target} has no operator routes for the grant and the review flag`); return ops; };
 async function grant() {
-  const answer = await call(origin, "/v1/billing/ops/grant", { method: "POST", token: ops, body: { email, bundle: "starter", name: CLOUD_NAME }, timeoutMs: 60_000 });
+  const answer = await call(origin, "/v1/billing/ops/grant", { method: "POST", token: opsToken(), body: { email, bundle: "starter", name: CLOUD_NAME }, timeoutMs: 60_000 });
   if (answer.status === 404) throw new Error(`${target} has no operator grant (live billing, billing off or no DUSK_OPS_TOKEN): a review cloud cannot be made there yet`);
   const data = must(answer, "the operator grant");
   if (answer.status === 202) {
@@ -81,7 +82,7 @@ async function grant() {
 }
 
 async function markReview() {
-  const marked = must(await call(origin, "/v1/billing/ops/review", { method: "POST", token: ops, body: { email } }), "the review flag");
+  const marked = must(await call(origin, "/v1/billing/ops/review", { method: "POST", token: opsToken(), body: { email } }), "the review flag");
   log(`review flag on: ${marked.subscriptions.filter((s) => s.review).length} plan(s), clouds ${marked.clouds.map((c) => `${c.id} ${c.status} review=${c.review}`).join(", ") || "none"}`);
   return marked;
 }
@@ -122,6 +123,10 @@ async function demoBot() {
     log(`made the demo bot ${made.bot.id} (${BOT.name})`);
     return made.bot.id;
   }
+  if (existing.busy) {
+    must(await call(home.origin, `/api/bots/${existing.id}/interrupt`, { method: "POST", token: home.token, body: {} }), "stopping the demo bot's stuck turn");
+    log(`stopped a turn the demo bot was stuck in`);
+  }
   if (existing.title !== BOT.title || existing.description !== BOT.description) {
     must(await call(home.origin, `/api/bots/${existing.id}`, { method: "PATCH", token: home.token, body: { title: BOT.title, description: BOT.description } }), "repairing the demo bot");
     log(`repaired the demo bot ${existing.id}`);
@@ -146,8 +151,9 @@ async function reply(botId) {
     const answer = asked >= 0 ? messages.slice(asked + 1).find((m) => m.role !== "user" && m.kind === "text" && m.text?.trim()) : null;
     if (answer) return { accepted, total: Math.round((Date.now() - since) / 1000), text: answer.text.trim() };
     if (Date.now() - since > 180_000) {
+      await call(home.origin, `/api/bots/${botId}/interrupt`, { method: "POST", token: home.token, body: {} }).catch(() => {});
       const seen = messages.slice(-4).map((m) => `${m.role}/${m.kind}: ${String(m.text ?? m.error ?? "").slice(0, 160).replace(/\s+/g, " ")}`).join(" | ");
-      throw new Error(`the demo bot did not reply within 3 minutes (last: ${seen || "nothing"})`);
+      throw Object.assign(new Error(`the demo bot did not reply within 3 minutes, its turn was stopped (last: ${seen || "nothing"})`), { accepted });
     }
     await sleep(2_000);
   }
@@ -166,8 +172,8 @@ async function measureWake(botId) {
   }
   log(`asleep after ${Math.round((Date.now() - since) / 60_000)} minutes idle`);
   const woke = await pair(ownCloud(await session()));
-  const timed = await reply(botId);
-  log(`after sleep: pairing wake ${woke ?? 0}s, then send accepted in ${timed.accepted}s, reply in ${timed.total}s`);
+  const timed = await reply(botId).catch((error) => ({ accepted: error.accepted ?? null, total: null, error: error.message }));
+  log(`after sleep: pairing wake ${woke ?? 0}s, then send accepted in ${timed.accepted ?? "?"}s, ${timed.total === null ? `no reply (${timed.error})` : `reply in ${timed.total}s`}`);
 }
 
 async function cleanup() {
