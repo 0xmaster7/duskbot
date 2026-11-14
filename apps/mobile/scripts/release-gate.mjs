@@ -10,6 +10,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, join, relative } from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
@@ -76,10 +77,26 @@ function record() {
   console.log(`recorded ${all.length} flagged files`);
 }
 
+/** npm dependencies whose files the copied app had vendored; the same bytes from the package itself are licensed (MIT) */
+const LICENSED_PACKAGES = [["katex", "dist/fonts"]];
+
+/** hashes of the files those packages ship, as installed; the shared list's copies of them are not findings */
+export function licensedHashes() {
+  const hashes = new Set();
+  const require = createRequire(join(root, "package.json"));
+  for (const [name, sub] of LICENSED_PACKAGES) {
+    let dir;
+    try { dir = join(require.resolve(`${name}/package.json`).replace(/package\.json$/, ""), sub); } catch { continue; }
+    if (existsSync(dir)) for (const file of walk(dir)) hashes.add(sha1(file));
+  }
+  return hashes;
+}
+
 export function flaggedHashes() {
   const flagged = new Map();
   for (const line of readFileSync(FLAGGED, "utf8").split("\n")) if (/^[0-9a-f]{40} /.test(line)) flagged.set(line.slice(0, 40), line.slice(41));
-  if (existsSync(SHARED_HASHES)) for (const line of readFileSync(SHARED_HASHES, "utf8").split("\n")) if (/^[0-9a-f]{40}$/.test(line.trim()) && !flagged.has(line.trim())) flagged.set(line.trim(), "a removed third-party asset");
+  const licensed = licensedHashes();
+  if (existsSync(SHARED_HASHES)) for (const line of readFileSync(SHARED_HASHES, "utf8").split("\n")) if (/^[0-9a-f]{40}$/.test(line.trim()) && !flagged.has(line.trim()) && !licensed.has(line.trim())) flagged.set(line.trim(), "a removed third-party asset");
   return flagged;
 }
 

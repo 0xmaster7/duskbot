@@ -31,6 +31,12 @@ describe("store release gate", () => {
     for (const name of ["xvf.woff2", "xvf-mono.woff2", "grok-icons.woff2", "open-blip.wav", "tick.wav", "double-tick.wav", "chime-a.wav", "chime-b.wav", "gallery-loop.mp3", "1password.svg", "slack.png"]) expect(labels).toContain(name);
   });
 
+  it("passes KaTeX's own fonts from the katex package, which the shared removed-asset list also holds", () => {
+    const fonts = join(fileURLToPath(new URL("../../node_modules/katex/dist/fonts/", import.meta.url)));
+    const font = readFileSync(join(fonts, "KaTeX_Main-Regular.woff2"));
+    expect(inspect(bundle({ "assets/KaTeX_Main-Regular-B22Nviop.woff2": font }))).toEqual([]);
+  });
+
   it("refuses a flagged file whatever it is renamed to", () => {
     const body = Buffer.from("stands in for a flagged font");
     const flagged = new Map([[createHash("sha1").update(body).digest("hex"), "X VF typeface (xAI)"]]);
