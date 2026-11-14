@@ -188,7 +188,9 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   const dialog = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
-  const pageKey = `${page.kind}:${"id" in page ? page.id : "category" in page ? page.category : ""}`;
+  // home and the categories share one pane, so the title, search and chips stay mounted while the list under them changes
+  const browsing = page.kind === "home" || page.kind === "category";
+  const pageKey = browsing ? "browse" : `${page.kind}:${"id" in page ? page.id : ""}`;
 
   const opened = useRef({ requested, nonce });
   useEffect(() => {
@@ -337,7 +339,8 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     setResultsOpen(false);
     setActive(-1);
     setTrail((past) => next.kind === "detail" || next.kind === "yours" ? [...past, page] : []);
-    setNav(next.kind === "detail" || next.kind === "yours" ? "push" : "swap");
+    const staysBrowsing = browsing && (next.kind === "home" || next.kind === "category");
+    setNav(next.kind === "detail" || next.kind === "yours" ? "push" : staysBrowsing ? null : "swap");
     setPage(next);
     setView((count) => count + 1);
   };
@@ -704,7 +707,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     }
     if (!layout.current) return <div className="ca-sections @container"><p className="ca-loading">{t("connectors.loadingCatalog")}</p></div>;
     return (
-      <div className="ca-sections @container">
+      <div key={page.kind === "category" ? page.category : "home"} className="ca-sections @container" data-browse-list="">
         {layout.current.sections.map((section) => {
           const members = section.ids.flatMap((id) => byId.get(id) ?? []);
           const viewAll = section.viewAll;

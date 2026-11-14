@@ -183,6 +183,11 @@
   padding: 22px 32px 28px;
 }
 .ca-home { margin-top: -18px; }
+/* a category change: only the list under the chips changes, and it settles from a faint dip rather than from blank */
+.ca-sections[data-browse-list] { animation: ca-list-in 140ms var(--dusk-ease-out); }
+@keyframes ca-list-in { from { opacity: 0.6; } }
+@media (prefers-reduced-motion: reduce) { .ca-sections[data-browse-list] { animation: none; } }
+:root[data-reduced-motion="true"] .ca-sections[data-browse-list] { animation: none; }
 /* a page change: in from the side it came from, at settings' pace (240ms slide, 180ms fade); reduced motion fades */
 .ca-pane[data-nav] { animation: ca-nav-slide 240ms var(--dusk-ease-out) backwards, dusk-fade-in 180ms var(--dusk-ease-out) backwards; }
 .ca-pane[data-nav="pop"] { --ca-nav-from: -16px; }

@@ -144,6 +144,19 @@ describe("the Connect Apps window", () => {
     expect(titles()[0]).toBe("Connected");
   });
 
+  it("keeps the chips and the pane mounted when the tab changes, and plays no page animation", async () => {
+    const chips = dialog().querySelector('[data-marketplace-chips]')!;
+    const pane = dialog().querySelector(".ca-pane")!;
+    const design = button("Design")!;
+    await act(async () => { design.click(); });
+    await act(async () => { button("Communication")!.click(); });
+    await act(async () => { button("All")!.click(); });
+    expect(dialog().querySelector('[data-marketplace-chips]'), "the chip row is the same element").toBe(chips);
+    expect(dialog().querySelector(".ca-pane"), "the pane is the same element").toBe(pane);
+    expect(button("Design"), "a chip is the same element").toBe(design);
+    expect(pane.hasAttribute("data-nav"), "no slide or page fade between tabs").toBe(false);
+  });
+
   it("finds apps, skills and categories as you type, and opens the one Enter picks", async () => {
     const input = dialog().querySelector<HTMLInputElement>('[role="combobox"]')!;
     await act(async () => {
