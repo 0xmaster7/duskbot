@@ -86,9 +86,18 @@ export function selectDefaultModelSelection(
   return { instanceId: pick?.instanceId ?? "", model: pick ? defaultModel(pick) : "" };
 }
 
-/** A ready AI the person connected, never OpenCode's free backup. */
+/** An AI that is "ready" only because a key and an address are saved (an API key, an OpenAI-compatible server) has shown
+ * nothing until it answers: an address this machine can't reach reads exactly as ready as one it can. */
+const keyOnly = (instance: SelectableInstance) => instance.access === "api" || instance.access === "custom";
+
+/** A ready AI the person connected, never OpenCode's free backup: one whose test message missed never counts, and one
+ * only a saved key makes ready counts once its test message answered. */
 export function connectedAiReady(instances: readonly SelectableInstance[], context: DefaultSelectionContext = {}): boolean {
-  return instances.some((instance) => !freeFallback(instance) && readyToRun(instance, context) && Boolean(defaultModel(instance)));
+  return instances.some((instance) => {
+    if (freeFallback(instance) || !readyToRun(instance, context) || !defaultModel(instance)) return false;
+    const answered = context.answered?.(instance);
+    return answered === true || (answered === undefined && !keyOnly(instance));
+  });
 }
 
 /** OpenCode's free backup is a bonus while nothing else works, never a choice that outranks an AI the person connected: a

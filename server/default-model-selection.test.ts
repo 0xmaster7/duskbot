@@ -162,6 +162,20 @@ describe("new bot default: one ranking with the welcome, tested AIs first", () =
     expect(freeBackupOverConnected([openCodeFree, claudeReady], { instanceId: "claude", model: "claude-default" })).toBe(false);
   });
 
+  it("keeps the free model while an added server only has a key saved, and gives way once it answers", () => {
+    const saved = { instanceId: "opencodeGo", model: "opencode/big-pickle" };
+    // an OpenAI-compatible server added on a cloud home with an address only the person's own computer can reach
+    const server = { ...ready("openai-compat-1", "openai-compat", "meta-llama/llama-3.3-70b-instruct"), access: "api" as const };
+    const untested = { answered: () => undefined };
+    expect(freeBackupOverConnected([openCodeFree, server], saved, untested)).toBe(false);
+    expect(selectDefaultModelSelection([openCodeFree, server], saved, untested)).toEqual(saved);
+    expect(freeBackupOverConnected([openCodeFree, server], saved, { answered: (instance: SelectableInstance) => instance.instanceId === "opencodeGo" ? true : false })).toBe(false);
+    expect(freeBackupOverConnected([openCodeFree, server], saved, { answered: (instance: SelectableInstance) => instance === server ? true : undefined })).toBe(true);
+    // a sign-in that missed its test twice is no reason to leave the free model either
+    expect(freeBackupOverConnected([openCodeFree, claudeReady], saved, { answered: (instance: SelectableInstance) => instance === claudeReady ? false : undefined })).toBe(false);
+    expect(freeBackupOverConnected([openCodeFree, claudeReady], saved, untested)).toBe(true);
+  });
+
   it("picks OpenCode on free models only after every other ready AI, and when it is the only one", () => {
     for (const other of [grok, kimi, chatgpt, claudeReady]) expect(pick([openCodeFree, other])).toBe(other.instanceId);
     expect(pick([openCodeFree])).toBe("opencodeGo");
