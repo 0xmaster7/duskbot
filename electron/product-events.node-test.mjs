@@ -140,3 +140,18 @@ test("main's own events ride with the page's install and session, wait for the p
   await events.flush();
   assert.equal(calls.length, 2, "after the person switched analytics off, main's events wait for a page that sends again");
 });
+
+test("the last batch drops the queue, posts once without retry, and nothing rides after it", async () => {
+  const { events, calls, timers } = harness({ statuses: ["offline"] });
+  events.send({ install: INSTALL, session: SESSION, events: [event()] });
+  events.action("cloud_move_offer", { step: "shown" });
+  const off = event("app_action", { name: "usage_sharing", on: false, where: "settings" });
+  assert.equal(await events.last({ install: INSTALL, session: SESSION, events: [off] }), false);
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].body.events, [off]);
+  assert.equal(events.size(), 0);
+  assert.equal(timers.length, 0);
+  events.action("cloud_move_offer", { step: "shown" });
+  await events.flush();
+  assert.equal(calls.length, 1, "main's own events wait for the page, which sends nothing now");
+});

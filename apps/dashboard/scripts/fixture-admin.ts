@@ -370,6 +370,12 @@ async function seedWeb(app: ReturnType<typeof createDashboardApp>, accounts: See
       await analytics.record("app_close", { accountId: account.id, at: t + 1_200_000, props: { ms: Math.round(120_000 + rand() * 1_800_000) }, ctx });
       if (rand() < 0.05) await analytics.record("app_pair_failed", { accountId: account.id, at: t + 1100_000, props: { reason: pick(["expired_code", "network"]) }, ctx });
     }
+    if (!mobile && i % 3 === 0) {
+      const ctx = { install, session: vid(), app: { platform, version: "0.2.15" } }, where = i % 2 ? "first_run" : "settings";
+      if (i % 4 === 0) await analytics.record("app_action", { accountId: account.id, at: now - (2 + rand() * 20) * DAY, props: { name: "usage_sharing", on: false, where }, ctx });
+      if (i % 12 === 0) await analytics.record("app_action", { accountId: account.id, at: now - rand() * DAY, props: { name: "usage_sharing", on: true, where }, ctx });
+      if (i % 4 !== 0) await analytics.record("app_action", { accountId: account.id, at: now - rand() * 6 * DAY, props: { name: "usage_sharing", on: false, where: "first_run" }, ctx });
+    }
   }
   // one paying person's whole road, for the profile: a launch thread on x, the demo, a direct return, sign-up, the upsell, checkout and a cloud
   const mira = accounts[0]!, story = vid(), paidAt = Math.min(now - 600_000, mira.createdAt + 26 * 3_600_000);

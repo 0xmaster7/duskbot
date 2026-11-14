@@ -902,6 +902,7 @@ const bridge = {
   productEvents: {
     send: batch => ipcRenderer.invoke("product-events:send", batch),
     clear: () => ipcRenderer.invoke("product-events:clear"),
+    last: batch => ipcRenderer.invoke("product-events:last", batch),
   },
   // An error's type, message, stack and page path only; main sends it while error reports are on.
   errorReports: {

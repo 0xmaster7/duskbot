@@ -78,7 +78,7 @@ export function StepArt({ art, place }: { art?: ArtName; place?: PlaceArtName })
 /** "help improve dusk bot": on by default (an opt-out), small and muted, saved the moment it is switched. Shown at the foot
  * of the place step, a quick screen, never on one people wait on. */
 export function ImproveSwitch() {
-  const improve = useHelpImprove();
+  const improve = useHelpImprove("first_run");
   const id = useId();
   if (typeof improve.on !== "boolean") return null;
   return (

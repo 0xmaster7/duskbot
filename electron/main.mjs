@@ -621,6 +621,7 @@ const localOrHome = (channel, handler) => (event, ...args) => (homeWindow.homePa
 const productEvents = createProductEvents({ origin: cloudTarget(process.env).origin, token: () => cloudAccount?.eventToken?.() ?? null, platform: process.platform, version: app.getVersion() });
 ipcMain.handle("product-events:send", localOrHome("product-events:send", (_event, batch) => productEvents.send(batch)));
 ipcMain.handle("product-events:clear", localOrHome("product-events:clear", () => productEvents.clear()));
+ipcMain.handle("product-events:last", localOrHome("product-events:last", (_event, batch) => productEvents.last(batch)));
 const accountErrors = createAccountErrors({ origin: cloudTarget(process.env).origin, platform: process.platform, release: process.getSystemVersion?.(), version: app.getVersion(),
   enabled: () => app.isPackaged && process.env.DUSK_ERROR_REPORTS !== "0" && (desktopPrefs?.errorReports() ?? false) });
 accountErrors.watch(app);

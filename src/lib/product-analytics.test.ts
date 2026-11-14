@@ -63,6 +63,42 @@ describe("product analytics", () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
 
+  it("switching usage sharing off sends that one event once, then nothing at all", async () => {
+    client.configure(config);
+    client.feature("bot_created");
+    client.usageSharingChanged(false, "settings");
+    await vi.advanceTimersByTimeAsync(0);
+    expect(events(), "the queued event is dropped; only the off event goes").toEqual([{ name: "app_action", at: 1_800_000_000_000, props: { name: "usage_sharing", on: false, where: "settings" } }]);
+    const sends = fetcher.mock.calls.length;
+    client.feature("bot_created");
+    client.action("usage_sharing", { on: false, where: "settings" });
+    client.screen("/bots");
+    client.messageSent();
+    await client.flush();
+    await vi.advanceTimersByTimeAsync(10 * 60_000);
+    window.dispatchEvent(new Event("pagehide"));
+    await client.flush();
+    client.usageSharingChanged(false, "settings");
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetcher.mock.calls.length, "nothing after the off event, not even a second off").toBe(sends);
+  });
+
+  it("the off event goes through the desktop relay's one-shot path and switching back on counts where", async () => {
+    const relay = { send: vi.fn(async (_batch: Payload) => {}), clear: vi.fn(async () => {}), last: vi.fn(async (_batch: Payload) => true) };
+    client.configure({ ...config, origin: null, relay });
+    await client.flush();
+    relay.send.mockClear();
+    client.usageSharingChanged(false, "first_run");
+    expect(relay.clear).toHaveBeenCalled();
+    expect(relay.last).toHaveBeenCalledTimes(1);
+    expect(relay.last.mock.calls[0]![0]).toMatchObject({ events: [{ name: "app_action", props: { name: "usage_sharing", on: false, where: "first_run" } }] });
+    await client.flush();
+    expect(relay.send).not.toHaveBeenCalled();
+    client.usageSharingChanged(true, "first_run");
+    await vi.advanceTimersByTimeAsync(0);
+    expect(relay.send.mock.calls.flatMap(([batch]) => batch.events).map(event => event.props)).toContainEqual({ name: "usage_sharing", on: true, where: "first_run" });
+  });
+
   it("the phone app sends nothing unless its switch was turned on", async () => {
     client.configure({ ...config, kind: "mobile" });
     client.feature("bot_created");

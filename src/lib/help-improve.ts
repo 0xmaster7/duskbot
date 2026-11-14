@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { api } from "@/state/api";
-import { setUsageAnalytics } from "@/lib/product-analytics";
+import { setUsageAnalytics, usageSharingChanged, type SharingPlace } from "@/lib/product-analytics";
 
 const ROUTE = "/api/dashboard/usage-signals";
 
 /** The one "help improve dusk bot" switch, on by default: anonymous usage info, the scrubbed notes about how sessions
  * went, and crash reports. The workspace's server keeps the choice; the app's own analytics and the desktop's crash
  * reports follow it. `on` is null until it is read; `failed` when reading or saving it did not work. */
-export function useHelpImprove() {
+export function useHelpImprove(where: SharingPlace) {
   const [on, setOn] = useState<boolean | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -22,7 +22,8 @@ export function useHelpImprove() {
     try {
       const answer = await api<{ enabled: boolean }>(ROUTE, { method: "PUT", body: JSON.stringify({ enabled: next }) });
       setOn(answer.enabled);
-      setUsageAnalytics(answer.enabled);
+      if (before !== null && answer.enabled !== before) usageSharingChanged(answer.enabled, where);
+      else setUsageAnalytics(answer.enabled);
       void window.duskDesktop?.desktopAnalytics?.set?.(answer.enabled)?.catch(() => {});
     } catch {
       setOn(before);

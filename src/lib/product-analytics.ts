@@ -9,7 +9,8 @@ type Platform = "darwin" | "win32" | "linux" | "ios" | "android";
 type Props = Record<string, string | number | boolean>;
 type Event = { name: string; at: number; props: Props };
 /** a transport that posts for this page (the desktop's main process), in place of `origin` and `token` */
-type Relay = { send(batch: { install: string; session: string; events: Event[] }): Promise<unknown>; clear(): Promise<unknown> };
+type Batch = { install: string; session: string; events: Event[] };
+type Relay = { send(batch: Batch): Promise<unknown>; clear(): Promise<unknown>; last?(batch: Batch): Promise<unknown> };
 type Options = { origin: string | null; token: string | null; platform: Platform; version: string; kind: "desktop" | "mobile"; force?: boolean; relay?: Relay };
 type Pending = { event: Event; retried: boolean };
 const ID = /^[A-Za-z0-9_-]{16,40}$/;
@@ -152,6 +153,28 @@ export function screen(path: string): void {
   if (!folded || folded === lastScreen) return;
   lastScreen = folded;
   track("app_screen", { screen: folded });
+}
+
+export type SharingPlace = "settings" | "first_run";
+/** the "help improve dusk bot" switch moved in `where`. On is an ordinary event. Off drops everything still queued and
+ * sends this one event, once and without retries; nothing follows it. */
+export function usageSharingChanged(on: boolean, where: SharingPlace): void {
+  try {
+    const props = cleanProps("app_action", { name: "usage_sharing", on, where });
+    if (on) { setUsageAnalytics(true); track("app_action", props ?? {}); void flush(); return; }
+    const wasOn = usageAnalyticsEnabled();
+    const current = options;
+    setUsageAnalytics(false);
+    if (!wasOn || !props || !current || !(current.origin || current.relay)) return;
+    identity();
+    const batch: Batch = { install, session, events: [{ name: "app_action", at: Date.now(), props }] };
+    if (current.relay) { void current.relay.last?.(batch)?.catch(() => {}); return; }
+    void fetch(`${current.origin}/v1/app/events`, {
+      method: "POST", keepalive: true, credentials: "omit", redirect: "error", referrerPolicy: "no-referrer",
+      headers: { "content-type": "application/json", ...(current.token ? { Authorization: `Bearer ${current.token}` } : {}) },
+      body: JSON.stringify({ ...batch, platform: current.platform, version: current.version }),
+    }).catch(() => {});
+  } catch {}
 }
 
 export function feature(name: Feature): void { track("app_feature", { feature: name }); }

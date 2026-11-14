@@ -5,6 +5,8 @@ export interface ProductEventsBatch { install: string; session?: string; events:
 export interface ProductEventsBridge {
   send(batch: ProductEventsBatch): Promise<boolean>;
   clear(): Promise<void>;
+  /** the final batch as usage analytics goes off: posted once, nothing after */
+  last(batch: ProductEventsBatch): Promise<boolean>;
 }
 export declare const APP_EVENT_PROPS: Readonly<Record<string, readonly string[]>>;
 export declare const MAX_QUEUE: number;
@@ -17,6 +19,7 @@ export interface ProductEvents {
   /** An app_action of main's own, sent with the page's install and session once the page sent a batch. */
   action(name: string, props?: Record<string, string | number | boolean>): boolean;
   clear(): void;
+  last(input: unknown): Promise<boolean>;
   flush(): Promise<boolean | undefined>;
   size(): number;
   close(): Promise<void>;

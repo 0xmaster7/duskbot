@@ -146,6 +146,17 @@ export function createProductEvents({ origin, token = () => null, platform, vers
     },
     /** The person switched usage analytics off: nothing queued is sent, and main's own events wait for the page again. */
     clear() { queue = []; waiting = []; rider = null; stop(); failures = 0; },
+    /** The page's final batch as usage analytics goes off: everything queued is dropped, this one batch is posted once
+     * with no retry, and nothing rides after it (main's own events wait for the page again). */
+    async last(input) {
+      queue = []; waiting = []; rider = null; stop(); failures = 0;
+      if (closed || !input || typeof input !== "object" || !ID.test(input.install) || !Array.isArray(input.events)) return false;
+      const session = typeof input.session === "string" && ID.test(input.session) ? input.session : null;
+      const events = input.events.slice(0, BATCH).map(raw => cleanAppEvent(raw, now())).filter(Boolean);
+      if (!events.length) return false;
+      if (sending) await sending.catch(() => {});
+      try { return (await post(events.map(event => ({ install: input.install, session, event })))) < 300; } catch { return false; }
+    },
     flush,
     size: () => queue.length,
     /** One last try at up to four batches, without retries. */

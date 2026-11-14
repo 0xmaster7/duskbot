@@ -12,6 +12,7 @@ import { AdminHeader, Failed, Loading, n } from "./ui";
 import { Chevron, Fold, Reveal } from "./Fold";
 import { mbit, monthOut, Relays, RelaySummary, useRelays } from "./OpsRelays";
 import { TopAccounts } from "./OpsAccounts";
+import { OpsSharing } from "./OpsSharing";
 import type { OpsRelayCard } from "./ops-types";
 import type { OpsAnswer, OpsBox, OpsCheck, OpsLevel, OpsMeter, OpsRule, OpsSource, OpsSourceId, OpsSpend } from "./ops-types";
 
@@ -565,7 +566,7 @@ function Glance({ data, relays }: { data: OpsAnswer | null; relays: OpsRelayCard
 
 /** everything that costs money or can go down, from what the collectors last stored */
 /** where each part of this long page is, so relays, emails and the abuse list are one tap from the top */
-const JUMPS: Array<[string, string]> = [["ops-relays-summary", "relays"], ["ops-accounts", "top accounts"], ["ops-tile-emails", "emails"], ["ops-spend", "spend"],
+const JUMPS: Array<[string, string]> = [["ops-sharing", "usage sharing"], ["ops-relays-summary", "relays"], ["ops-accounts", "top accounts"], ["ops-tile-emails", "emails"], ["ops-spend", "spend"],
   ["ops-people", "people to look at"], ["ops-machines", "machines"], ["ops-services", "services"]];
 
 export function OpsPage() {
@@ -581,6 +582,7 @@ export function OpsPage() {
         {JUMPS.map(([id, label]) => <Link key={id} to={`/admin/ops#${id}`} className="hover-chip inline-flex h-8 items-center rounded-full bg-card px-3 text-13 text-ink-2">{label}</Link>)}
       </nav>
       <div className="mb-4 flex flex-col gap-4">
+        <OpsSharing />
         <RelaySummary data={relays.data} error={relays.error} />
         <TopAccounts />
         <Glance data={data} relays={relays.data?.relays ?? null} />

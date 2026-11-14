@@ -23,6 +23,7 @@ import { BillingError } from "../billing/service.ts";
 import { PlanError, createPlanEditor } from "./plans.ts";
 import { marginReport, type InfraStore } from "./infra.ts";
 import { RelayError, createRelays } from "./ops/relays.ts";
+import { SHARING_LOOKBACK_DAYS, sharingOf } from "./sharing.ts";
 import { isRange, rangeDays, topAccounts } from "./ops/accounts.ts";
 import { ACCOUNT_NOTES, type AccountNotes } from "./ops/index.ts";
 import type { OpsAccountsAnswer, OpsAccountsRange, OpsRelayCard } from "../../src/admin/ops-types.ts";
@@ -438,6 +439,10 @@ export function createAdmin(options: AdminOptions) {
         return send(await options.ops.answer());
       }
       if (route === "/ops/relays") return send(await relays.list());
+      if (route === "/ops/sharing") {
+        const time = now();
+        return send(sharingOf(await (await viewOf(req)).sink.scan(time - SHARING_LOOKBACK_DAYS * DAY, time + 1, ["app_action", "app_open"]), time));
+      }
       if (route === "/ops/accounts") {
         if (!options.ops) throw new AdminError(404, "not_found", "The ops page is not connected.");
         const asked = url.searchParams.get("range"), range = isRange(asked) ? asked : "month", limit = url.searchParams.get("all") === "1" ? 5000 : 200;
