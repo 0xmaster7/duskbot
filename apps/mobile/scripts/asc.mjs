@@ -127,6 +127,11 @@ async function metadata(file) {
   const { name, subtitle, privacyPolicyUrl, primaryCategory, secondaryCategory } = want.appInfo;
   await call("PATCH", `/v1/appInfoLocalizations/${infoLocal.id}`, { data: { type: "appInfoLocalizations", id: infoLocal.id, attributes: { name, subtitle, privacyPolicyUrl } } });
   console.log("app info: name, subtitle, privacy policy URL");
+  // App Review refuses a submission without it: the app ships no third-party content (fonts, art and sounds are our own)
+  if (want.contentRightsDeclaration) {
+    await call("PATCH", `/v1/apps/${one.id}`, { data: { type: "apps", id: one.id, attributes: { contentRightsDeclaration: want.contentRightsDeclaration } } });
+    console.log(`content rights: ${want.contentRightsDeclaration}`);
+  }
   await call("PATCH", `/v1/appInfos/${info.id}`, { data: { type: "appInfos", id: info.id, relationships: {
     primaryCategory: { data: { type: "appCategories", id: primaryCategory } }, secondaryCategory: { data: { type: "appCategories", id: secondaryCategory } } } } });
   console.log(`categories: ${primaryCategory}, ${secondaryCategory}`);
@@ -215,7 +220,10 @@ async function submit(yes) {
   if (!yes) { console.log(`\nready: run again with --yes to attach build ${build.attributes.version} to ${version.attributes.versionString} and submit for review`); return; }
   await call("PATCH", `/v1/appStoreVersions/${version.id}/relationships/build`, { data: { type: "builds", id: build.id } });
   console.log(`attached build ${build.attributes.version} to ${version.attributes.versionString}`);
-  const { data: sub } = await call("POST", "/v1/reviewSubmissions", { data: { type: "reviewSubmissions", attributes: { platform: "IOS" }, relationships: { app: { data: { type: "apps", id: one.id } } } } });
+  // an earlier try that stopped at the item leaves an empty draft submission open: use it rather than open another
+  const open = (await call("GET", `/v1/reviewSubmissions?filter[app]=${one.id}&filter[platform]=IOS&filter[state]=READY_FOR_REVIEW&limit=10`)).data;
+  const sub = open[0] ?? (await call("POST", "/v1/reviewSubmissions", { data: { type: "reviewSubmissions", attributes: { platform: "IOS" }, relationships: { app: { data: { type: "apps", id: one.id } } } } })).data;
+  for (const extra of open.slice(1)) await call("PATCH", `/v1/reviewSubmissions/${extra.id}`, { data: { type: "reviewSubmissions", id: extra.id, attributes: { canceled: true } } }).catch(() => {});
   await call("POST", "/v1/reviewSubmissionItems", { data: { type: "reviewSubmissionItems", relationships: { reviewSubmission: { data: { type: "reviewSubmissions", id: sub.id } }, appStoreVersion: { data: { type: "appStoreVersions", id: version.id } } } } });
   await call("PATCH", `/v1/reviewSubmissions/${sub.id}`, { data: { type: "reviewSubmissions", id: sub.id, attributes: { submitted: true } } });
   console.log(`submitted ${version.attributes.versionString} for review (submission ${sub.id})`);
