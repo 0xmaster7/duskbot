@@ -605,7 +605,7 @@ export function Composer({
     : hasContent ? (busy && !steersNow ? null : "arrow-up")
     : stopInSlot ? "stop"
     : callShown ? (live ? (bot && !group ? "waveform" : null) : "mic") : null;
-  const [glyphs, setGlyphs] = useState({ shape: glyphShape, swapped: false, glyph: slotGlyph, from: null as SlotGlyph | null, swaps: 0, held });
+  const [glyphs, setGlyphs] = useState({ shape: glyphShape, swapped: false, glyph: slotGlyph, from: null as SlotGlyph | null, swaps: 0, held, fromHeld: false });
   // the mic is its own button that only changes colour beside Send, so a swap to or from it lands at once: no pop, no
   // fading ghost of it over Send
   // ...except after Stop: the square fades out over the mic coming back, as Send's arrow does
@@ -613,7 +613,7 @@ export function Composer({
   if (glyphs.shape !== glyphShape) {
     setGlyphs(slotGlyph === glyphs.glyph
       ? { ...glyphs, shape: glyphShape, held }
-      : { shape: glyphShape, swapped: (slotGlyph !== "mic" && glyphs.glyph !== "mic") || glyphs.glyph === "stop" || glyphs.held, glyph: slotGlyph, from: glyphs.glyph, swaps: glyphs.swaps + 1, held });
+      : { shape: glyphShape, swapped: (slotGlyph !== "mic" && glyphs.glyph !== "mic") || glyphs.glyph === "stop" || glyphs.held, glyph: slotGlyph, from: glyphs.glyph, swaps: glyphs.swaps + 1, held, fromHeld: glyphs.held });
   }
   // the mic at the end of the bar and the small one beside Send are two buttons, so neither slides across when the field
   // fills or empties (only Send or the reserved spot takes a place); focus on the old one carries to the new
@@ -976,7 +976,7 @@ export function Composer({
         )}
         <div ref={pillContentRef} className={singleRow ? cn("flex min-h-[52px] min-w-0 flex-1 flex-col justify-center rounded-[26px] py-1 pl-3 pr-1", ELEVATED_FLOAT) : simpleDock ? "flex shrink-0 flex-col" : "contents"}>
         {replyTo && <ComposerReplyStrip message={replyTo} fallbackName={bot?.name} onClear={onClearReply} />}<ComposerAttachmentStrip items={attachments} onRemove={removeAttachment} onRetry={retryUpload} onDisplayInChatBox={displayPasteInChatBox} notice={attachmentNotice} onNotice={setAttachmentNotice} />
-        <div data-composer-row data-glyph-swap={glyphs.swapped ? "" : undefined} style={simpleDock ? slot.vars : undefined} className={cn("flex items-end", simpleDock ? cn("gap-2", stacked && "gap-y-2") : "gap-1", !singleRow && !simpleDock && "@max-[30rem]/composer:flex-wrap", stacked && "flex-wrap")}>
+        <div data-composer-row data-glyph-swap={glyphs.swapped ? "" : undefined} data-glyph-from-held={glyphs.swapped && glyphs.fromHeld ? "" : undefined} style={simpleDock ? slot.vars : undefined} className={cn("flex items-end", simpleDock ? cn("gap-2", stacked && "gap-y-2") : "gap-1", !singleRow && !simpleDock && "@max-[30rem]/composer:flex-wrap", stacked && "flex-wrap")}>
           {pickers.inputs}
           {!locked && !singleRow && (
             <div className={cn("flex items-center gap-1", simpleDock ? "shrink-0" : "flex-wrap")}>

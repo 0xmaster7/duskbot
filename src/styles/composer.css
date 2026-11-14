@@ -45,6 +45,13 @@
 @keyframes composer-glyph-in {
   from { opacity: 0; transform: scale(0.5); }
 }
+/* a held Send's gray eases into the fill of the button that takes its place (a colour fade, kept under reduced motion) */
+[data-glyph-from-held] :is([data-voice-mic], [data-composer-stop="slot"]) {
+  animation: composer-fill-in 200ms var(--composer-glyph-ease);
+}
+@keyframes composer-fill-in {
+  from { background-color: var(--color-raised-hover); color: var(--color-ink-secondary); }
+}
 .composer-glyph-out {
   animation: composer-glyph-out 200ms var(--composer-glyph-ease) forwards;
 }
