@@ -179,6 +179,8 @@ const SURFACES: Surface[] = [
           opened = Boolean(await evaluate(surface.run));
         }
         await evaluate(`document.fonts.ready.then(() => new Promise((done) => setTimeout(done, 700)))`);
+        // the starter question card lands after the transcript does; wait for it, so every capture shows the same chat
+        if (surface.id.startsWith("chat:")) await expect.poll(() => evaluate(`Boolean(document.querySelector("[data-ask-card]"))`), { timeout: 10_000 }).toBe(true).catch(() => undefined);
         // the chat states from its end, as a person sees them: a banner that lands late may leave the transcript where it was
         if (surface.id.startsWith("chat:")) await evaluate(`(() => { const s = document.querySelector(".glass-scroller"); if (s) s.scrollTop = s.scrollHeight; return new Promise((done) => setTimeout(done, 300)); })()`);
         const issues: LayoutIssue[] = opened ? await evaluate(`window.__galleryAudit({ touch: ${viewport.touch}, focus: ${viewport.id === "desktop"}, scopeSelector: ${JSON.stringify(surface.scope)} })`) : [];
