@@ -697,7 +697,8 @@ describe("the Computer tab", () => {
     expect(rendered.html).toContain('computer-asleep-breathe');
     expect(rendered.html).toContain('var(--color-ink) 56%');
     expect(rendered.html).toContain(">Computer is asleep<");
-    expect(rendered.html).toContain("Scout&#x27;s screen");
+    expect(rendered.html, "beside the move to dusk cloud an asleep screen waits hidden, with no caption").toContain('data-panel-screen-hidden="true"');
+    expect(rendered.html).not.toContain("Scout&#x27;s screen");
     expect(rendered.html).not.toContain('animate-spin');
     for (const gone of ["where", "browser"]) expect(has(rendered, "data-panel-page", gone), gone).toBe(false);
     expect(switches(rendered.html)).toBe(0);
@@ -729,12 +730,12 @@ describe("the Computer tab", () => {
     expect(fixture.dispatch).not.toHaveBeenCalledWith({ type: "toggleSettings", open: false });
   });
 
-  it("on a server leads with the screen, then the move to dusk cloud, with no screen picker, Advanced fold or move back", () => {
+  it("on a server with the computer asleep, leads with the move to dusk cloud (no Wake computer beside it), with no screen picker, Advanced fold or move back", () => {
     const rendered = computer(cloudBot());
-    const screen = rendered.html.indexOf('data-asleep-mascot=""'), card = rendered.html.indexOf('data-panel-card="cloud-desktop"');
+    const screen = rendered.html.indexOf('data-panel-screen-hidden="true"'), card = rendered.html.indexOf('data-panel-card="cloud-desktop"');
     expect(screen).toBeGreaterThan(-1);
     expect(card).toBeGreaterThan(screen);
-    expect(rendered.html).toContain(">Scout&#x27;s screen<");
+    expect(rendered.html).not.toContain(">Scout&#x27;s screen<");
     expect(rendered.html, "no server name under the screen").not.toContain("Studio VPS");
     expect(rendered.html).toContain(">Move to dusk cloud<");
     expect(rendered.html).toContain(">Keep Scout working<");
