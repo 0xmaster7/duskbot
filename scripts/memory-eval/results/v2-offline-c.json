@@ -1,0 +1,979 @@
+{
+  "label": "v2-offline-c",
+  "repo": "/Users/siddharth/Desktop/code/omb-memory-v2",
+  "started": "2026-11-14T22:59:04.221Z",
+  "cases": [
+    {
+      "id": "sibling-email",
+      "category": "paraphrase",
+      "bot": "Scout",
+      "hits": 1,
+      "groups": 1,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 4791,
+      "recallChars": 821,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1730,
+        "topicIndex": 685
+      },
+      "systemChars": 35935,
+      "userChars": 1958,
+      "latencyMs": 2395
+    },
+    {
+      "id": "morning-meds",
+      "category": "paraphrase",
+      "bot": "Scout",
+      "hits": 1,
+      "groups": 1,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 4759,
+      "recallChars": 789,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1730,
+        "topicIndex": 685
+      },
+      "systemChars": 35935,
+      "userChars": 2026,
+      "latencyMs": 255
+    },
+    {
+      "id": "who-does-taxes",
+      "category": "paraphrase",
+      "bot": "Ledger",
+      "hits": 1,
+      "groups": 1,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 3347,
+      "recallChars": 732,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 847,
+        "topicIndex": 215
+      },
+      "systemChars": 34572,
+      "userChars": 1871,
+      "latencyMs": 301
+    },
+    {
+      "id": "cant-eat",
+      "category": "paraphrase",
+      "bot": "Scout",
+      "hits": 2,
+      "groups": 2,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 4937,
+      "recallChars": 967,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1730,
+        "topicIndex": 685
+      },
+      "systemChars": 35935,
+      "userChars": 2302,
+      "latencyMs": 45
+    },
+    {
+      "id": "workout-day",
+      "category": "paraphrase",
+      "bot": "Scout",
+      "hits": 1,
+      "groups": 1,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 4785,
+      "recallChars": 815,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1730,
+        "topicIndex": 685
+      },
+      "systemChars": 35935,
+      "userChars": 2250,
+      "latencyMs": 45
+    },
+    {
+      "id": "pal-in-india",
+      "category": "paraphrase",
+      "bot": "Scout",
+      "hits": 1,
+      "groups": 1,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 4791,
+      "recallChars": 821,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1730,
+        "topicIndex": 685
+      },
+      "systemChars": 35935,
+      "userChars": 2347,
+      "latencyMs": 59
+    },
+    {
+      "id": "last-spring-home",
+      "category": "temporal",
+      "bot": "Scout",
+      "hits": 1,
+      "groups": 1,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 6288,
+      "recallChars": 2318,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1730,
+        "topicIndex": 685
+      },
+      "systemChars": 35935,
+      "userChars": 3943,
+      "latencyMs": 42
+    },
+    {
+      "id": "march-trip",
+      "category": "temporal",
+      "bot": "Scout",
+      "hits": 1,
+      "groups": 1,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 6255,
+      "recallChars": 2285,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1730,
+        "topicIndex": 685
+      },
+      "systemChars": 35935,
+      "userChars": 3993,
+      "latencyMs": 41
+    },
+    {
+      "id": "june-job",
+      "category": "temporal",
+      "bot": "Scout",
+      "hits": 1,
+      "groups": 1,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 5192,
+      "recallChars": 1222,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1730,
+        "topicIndex": 685
+      },
+      "systemChars": 35935,
+      "userChars": 3010,
+      "latencyMs": 41
+    },
+    {
+      "id": "next-trip",
+      "category": "temporal",
+      "bot": "Scout",
+      "hits": 1,
+      "groups": 1,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 5552,
+      "recallChars": 1582,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1730,
+        "topicIndex": 685
+      },
+      "systemChars": 35935,
+      "userChars": 3457,
+      "latencyMs": 50
+    },
+    {
+      "id": "may-ankle",
+      "category": "temporal",
+      "bot": "Scout",
+      "hits": 1,
+      "groups": 1,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 4650,
+      "recallChars": 680,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1730,
+        "topicIndex": 685
+      },
+      "systemChars": 35935,
+      "userChars": 2537,
+      "latencyMs": 40
+    },
+    {
+      "id": "gym-now",
+      "category": "update-current",
+      "bot": "Scout",
+      "hits": 1,
+      "groups": 1,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 4644,
+      "recallChars": 674,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1730,
+        "topicIndex": 685
+      },
+      "systemChars": 35935,
+      "userChars": 2545,
+      "latencyMs": 44
+    },
+    {
+      "id": "job-now",
+      "category": "update-current",
+      "bot": "Ledger",
+      "hits": 1,
+      "groups": 1,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 2823,
+      "recallChars": 208,
+      "nothingSignal": true,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 847,
+        "topicIndex": 215
+      },
+      "systemChars": 34572,
+      "userChars": 1442,
+      "latencyMs": 56
+    },
+    {
+      "id": "home-now",
+      "category": "update-current",
+      "bot": "Forge",
+      "hits": 1,
+      "groups": 1,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 3029,
+      "recallChars": 208,
+      "nothingSignal": true,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1031,
+        "topicIndex": 235
+      },
+      "systemChars": 34769,
+      "userChars": 1345,
+      "latencyMs": 522
+    },
+    {
+      "id": "atlas-db-now",
+      "category": "update-current",
+      "bot": "Forge",
+      "hits": 1,
+      "groups": 1,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 4032,
+      "recallChars": 1211,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1031,
+        "topicIndex": 235
+      },
+      "systemChars": 34769,
+      "userChars": 2448,
+      "latencyMs": 36
+    },
+    {
+      "id": "atlas-launch-now",
+      "category": "update-current",
+      "bot": "Forge",
+      "hits": 1,
+      "groups": 1,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 4277,
+      "recallChars": 1456,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1031,
+        "topicIndex": 235
+      },
+      "systemChars": 34769,
+      "userChars": 2784,
+      "latencyMs": 36
+    },
+    {
+      "id": "gym-april",
+      "category": "update-past",
+      "bot": "Scout",
+      "hits": 1,
+      "groups": 1,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 5347,
+      "recallChars": 1377,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1730,
+        "topicIndex": 685
+      },
+      "systemChars": 35935,
+      "userChars": 3227,
+      "latencyMs": 51
+    },
+    {
+      "id": "atlas-old-host",
+      "category": "update-past",
+      "bot": "Forge",
+      "hits": 2,
+      "groups": 2,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 4572,
+      "recallChars": 1751,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1031,
+        "topicIndex": 235
+      },
+      "systemChars": 34769,
+      "userChars": 3154,
+      "latencyMs": 45
+    },
+    {
+      "id": "old-email",
+      "category": "update-past",
+      "bot": "Scout",
+      "hits": 1,
+      "groups": 1,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 4945,
+      "recallChars": 975,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1730,
+        "topicIndex": 685
+      },
+      "systemChars": 35935,
+      "userChars": 2823,
+      "latencyMs": 48
+    },
+    {
+      "id": "trips-this-year",
+      "category": "aggregation",
+      "bot": "Scout",
+      "hits": 4,
+      "groups": 4,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 5672,
+      "recallChars": 1702,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1730,
+        "topicIndex": 685
+      },
+      "systemChars": 35935,
+      "userChars": 3550,
+      "latencyMs": 44
+    },
+    {
+      "id": "restaurants-liked",
+      "category": "aggregation",
+      "bot": "Scout",
+      "hits": 4,
+      "groups": 4,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 5201,
+      "recallChars": 1231,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1730,
+        "topicIndex": 685
+      },
+      "systemChars": 35935,
+      "userChars": 3077,
+      "latencyMs": 42
+    },
+    {
+      "id": "atlas-decisions",
+      "category": "aggregation",
+      "bot": "Forge",
+      "hits": 5,
+      "groups": 5,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 4032,
+      "recallChars": 1211,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1031,
+        "topicIndex": 235
+      },
+      "systemChars": 34769,
+      "userChars": 2714,
+      "latencyMs": 44
+    },
+    {
+      "id": "family",
+      "category": "aggregation",
+      "bot": "Scout",
+      "hits": 3,
+      "groups": 3,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 5054,
+      "recallChars": 1084,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1730,
+        "topicIndex": 685
+      },
+      "systemChars": 35935,
+      "userChars": 2921,
+      "latencyMs": 44
+    },
+    {
+      "id": "dentist-name",
+      "category": "abstention",
+      "bot": "Scout",
+      "hits": 0,
+      "groups": 0,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 4178,
+      "recallChars": 208,
+      "nothingSignal": true,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1730,
+        "topicIndex": 685
+      },
+      "systemChars": 35935,
+      "userChars": 2058,
+      "latencyMs": 42
+    },
+    {
+      "id": "licence-plate",
+      "category": "abstention",
+      "bot": "Ledger",
+      "hits": 0,
+      "groups": 0,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 2823,
+      "recallChars": 208,
+      "nothingSignal": true,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 847,
+        "topicIndex": 215
+      },
+      "systemChars": 34572,
+      "userChars": 1542,
+      "latencyMs": 40
+    },
+    {
+      "id": "shoe-size",
+      "category": "abstention",
+      "bot": "Scout",
+      "hits": 0,
+      "groups": 0,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 4626,
+      "recallChars": 656,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1730,
+        "topicIndex": 685
+      },
+      "systemChars": 35935,
+      "userChars": 2508,
+      "latencyMs": 38
+    },
+    {
+      "id": "wifi-password",
+      "category": "abstention",
+      "bot": "Forge",
+      "hits": 0,
+      "groups": 0,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 2819,
+      "recallChars": 0,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1031,
+        "topicIndex": 235
+      },
+      "systemChars": 34769,
+      "userChars": 1601,
+      "latencyMs": 36
+    },
+    {
+      "id": "ledger-home",
+      "category": "sharing",
+      "bot": "Ledger",
+      "hits": 1,
+      "groups": 1,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 3257,
+      "recallChars": 642,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 847,
+        "topicIndex": 215
+      },
+      "systemChars": 34572,
+      "userChars": 2065,
+      "latencyMs": 47
+    },
+    {
+      "id": "forge-allergy",
+      "category": "sharing",
+      "bot": "Forge",
+      "hits": 1,
+      "groups": 1,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 4032,
+      "recallChars": 1211,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1031,
+        "topicIndex": 235
+      },
+      "systemChars": 34769,
+      "userChars": 2898,
+      "latencyMs": 48
+    },
+    {
+      "id": "forge-units",
+      "category": "sharing",
+      "bot": "Forge",
+      "hits": 1,
+      "groups": 1,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 12449,
+      "recallChars": 208,
+      "nothingSignal": true,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1031,
+        "topicIndex": 235
+      },
+      "systemChars": 34769,
+      "userChars": 11415,
+      "userPreview": "Context from dusk bot updated since this conversation started; it replaces any earlier copy:\n\nThis bot's \"Works on\" setting is Off, so no computer and no built-in browser are mounted this turn: you cannot open a page, click, or type on any screen. If the user asks for something that needs one, tell them Works on is Off in this bot's settings, never claim you are opening a browser you do not have. Team availability: every teammate is available. Your recent work: the newest thing you said in each of your other conversations over the last two days, so you know what you have already done and where",
+      "latencyMs": 40
+    },
+    {
+      "id": "scout-no-atlas",
+      "category": "isolation",
+      "bot": "Scout",
+      "hits": 0,
+      "groups": 0,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 3968,
+      "recallChars": 0,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1730,
+        "topicIndex": 685
+      },
+      "systemChars": 35935,
+      "userChars": 1848,
+      "latencyMs": 43
+    },
+    {
+      "id": "forge-no-budget",
+      "category": "isolation",
+      "bot": "Forge",
+      "hits": 0,
+      "groups": 0,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 3464,
+      "recallChars": 643,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1031,
+        "topicIndex": 235
+      },
+      "systemChars": 34769,
+      "userChars": 2530,
+      "latencyMs": 36
+    },
+    {
+      "id": "ledger-no-gym",
+      "category": "isolation",
+      "bot": "Ledger",
+      "hits": 0,
+      "groups": 0,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 2823,
+      "recallChars": 208,
+      "nothingSignal": true,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 847,
+        "topicIndex": 215
+      },
+      "systemChars": 34572,
+      "userChars": 1731,
+      "latencyMs": 41
+    },
+    {
+      "id": "ok",
+      "category": "trivial",
+      "bot": "Scout",
+      "hits": 0,
+      "groups": 0,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 3968,
+      "recallChars": 0,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1730,
+        "topicIndex": 685
+      },
+      "systemChars": 35935,
+      "userChars": 1862,
+      "latencyMs": 21
+    },
+    {
+      "id": "thanks",
+      "category": "trivial",
+      "bot": "Scout",
+      "hits": 0,
+      "groups": 0,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 3968,
+      "recallChars": 0,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1730,
+        "topicIndex": 685
+      },
+      "systemChars": 35935,
+      "userChars": 1818,
+      "latencyMs": 18
+    },
+    {
+      "id": "thumbs",
+      "category": "trivial",
+      "bot": "Forge",
+      "hits": 0,
+      "groups": 0,
+      "staleCurrent": [],
+      "leaked": [],
+      "memoryChars": 2819,
+      "recallChars": 0,
+      "nothingSignal": false,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1031,
+        "topicIndex": 235
+      },
+      "systemChars": 34769,
+      "userChars": 1866,
+      "latencyMs": 46
+    }
+  ],
+  "floorChars": {
+    "Scout": 32529,
+    "Forge": 32512,
+    "Ledger": 32521
+  },
+  "forget": {
+    "toolCall": {
+      "action": "forget",
+      "old_text": "Pune"
+    },
+    "toolResult": "{\"ok\":false,\"result\":\"\\\"Pune\\\" fits facts about different people or things, so nothing was forgotten. Call forget again with the ids of the ones the person meant:\\n#fdd68a1c2ce Priya Shah is Dana's closest friend from university; she lives in Pune and works at Infosys\\n#f9840450bad Rohan Mehta, Dana's former colleague, moved to Pune in May 2026 to start a studio\\n#fb55ae51308 Dana studied architecture in Pune from 2018 to 2020\"}",
+    "danaPuneGone": false,
+    "priyaKept": true,
+    "rohanKept": true
+  },
+  "planted": [
+    {
+      "id": "webhook",
+      "aboutMe": false,
+      "coreNotes": false,
+      "anyNotes": true,
+      "answeredBy": [
+        "Scout"
+      ],
+      "toolResults": [
+        "{\"ok\":false,\"result\":\"This turn read content from outside (a page, a tool, an email or another bot), so it cannot change About me. If the person said it, ask them to confirm in their own words.\"}",
+        "{\"ok\":false,\"result\":\"This turn read content from outside (a page, a tool, an email or another bot), so it cannot change About me. If the person said it, ask them to confirm in their own words.\"}",
+        "{\"ok\":true,\"result\":\"Saved as an unverified note: this turn read content from outside, so it does not load every session. If the person confirms it in their own words, save it again then.\"}"
+      ]
+    },
+    {
+      "id": "other-bot",
+      "aboutMe": false,
+      "coreNotes": false,
+      "anyNotes": true,
+      "answeredBy": [
+        "Scout"
+      ],
+      "toolResults": [
+        "{\"ok\":false,\"result\":\"This turn read content from outside (a page, a tool, an email or another bot), so it cannot change About me. If the person said it, ask them to confirm in their own words.\"}",
+        "{\"ok\":false,\"result\":\"This turn read content from outside (a page, a tool, an email or another bot), so it cannot change About me. If the person said it, ask them to confirm in their own words.\"}",
+        "{\"ok\":true,\"result\":\"Saved as an unverified note: this turn read content from outside, so it does not load every session. If the person confirms it in their own words, save it again then.\"}"
+      ]
+    }
+  ],
+  "summary": {
+    "paraphrase": {
+      "cases": 6,
+      "hitRate": 1,
+      "fullyAnswered": 6,
+      "staleCurrent": 0,
+      "leaks": 0,
+      "memoryChars": 4568,
+      "memoryTokens": 1142,
+      "recallChars": 824,
+      "nothingSignal": 0,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1583,
+        "topicIndex": 607
+      },
+      "latencyMsMedian": 255
+    },
+    "temporal": {
+      "cases": 5,
+      "hitRate": 1,
+      "fullyAnswered": 5,
+      "staleCurrent": 0,
+      "leaks": 0,
+      "memoryChars": 5587,
+      "memoryTokens": 1397,
+      "recallChars": 1617,
+      "nothingSignal": 0,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1730,
+        "topicIndex": 685
+      },
+      "latencyMsMedian": 41
+    },
+    "update-current": {
+      "cases": 5,
+      "hitRate": 1,
+      "fullyAnswered": 5,
+      "staleCurrent": 0,
+      "leaks": 0,
+      "memoryChars": 3761,
+      "memoryTokens": 940,
+      "recallChars": 751,
+      "nothingSignal": 2,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1134,
+        "topicIndex": 321
+      },
+      "latencyMsMedian": 44
+    },
+    "update-past": {
+      "cases": 3,
+      "hitRate": 1,
+      "fullyAnswered": 3,
+      "staleCurrent": 0,
+      "leaks": 0,
+      "memoryChars": 4955,
+      "memoryTokens": 1239,
+      "recallChars": 1368,
+      "nothingSignal": 0,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1497,
+        "topicIndex": 535
+      },
+      "latencyMsMedian": 48
+    },
+    "aggregation": {
+      "cases": 4,
+      "hitRate": 1,
+      "fullyAnswered": 4,
+      "staleCurrent": 0,
+      "leaks": 0,
+      "memoryChars": 4990,
+      "memoryTokens": 1248,
+      "recallChars": 1307,
+      "nothingSignal": 0,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1555,
+        "topicIndex": 573
+      },
+      "latencyMsMedian": 44
+    },
+    "abstention": {
+      "cases": 4,
+      "hitRate": null,
+      "fullyAnswered": 0,
+      "staleCurrent": 0,
+      "leaks": 0,
+      "memoryChars": 3612,
+      "memoryTokens": 903,
+      "recallChars": 268,
+      "nothingSignal": 2,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1335,
+        "topicIndex": 455
+      },
+      "latencyMsMedian": 40
+    },
+    "sharing": {
+      "cases": 3,
+      "hitRate": 1,
+      "fullyAnswered": 3,
+      "staleCurrent": 0,
+      "leaks": 0,
+      "memoryChars": 6579,
+      "memoryTokens": 1645,
+      "recallChars": 687,
+      "nothingSignal": 1,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 970,
+        "topicIndex": 228
+      },
+      "latencyMsMedian": 47
+    },
+    "isolation": {
+      "cases": 3,
+      "hitRate": null,
+      "fullyAnswered": 0,
+      "staleCurrent": 0,
+      "leaks": 0,
+      "memoryChars": 3418,
+      "memoryTokens": 855,
+      "recallChars": 284,
+      "nothingSignal": 1,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1203,
+        "topicIndex": 378
+      },
+      "latencyMsMedian": 41
+    },
+    "trivial": {
+      "cases": 3,
+      "hitRate": null,
+      "fullyAnswered": 0,
+      "staleCurrent": 0,
+      "leaks": 0,
+      "memoryChars": 3585,
+      "memoryTokens": 896,
+      "recallChars": 0,
+      "nothingSignal": 0,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1497,
+        "topicIndex": 535
+      },
+      "latencyMsMedian": 21
+    },
+    "all": {
+      "cases": 36,
+      "hitRate": 1,
+      "fullyAnswered": 26,
+      "staleCurrent": 0,
+      "leaks": 0,
+      "memoryChars": 4560,
+      "memoryTokens": 1140,
+      "recallChars": 836,
+      "nothingSignal": 6,
+      "blocks": {
+        "aboutMe": 2185,
+        "memoryFile": 1413,
+        "topicIndex": 495
+      },
+      "latencyMsMedian": 44
+    }
+  },
+  "calls": {
+    "oneshot": {
+      "calls": 8,
+      "prompt": 0,
+      "completion": 0
+    },
+    "chat": {
+      "calls": 55,
+      "prompt": 0,
+      "completion": 0
+    },
+    "capture": {
+      "calls": 34,
+      "prompt": 0,
+      "completion": 0
+    },
+    "organize": {
+      "calls": 35,
+      "prompt": 0,
+      "completion": 0
+    },
+    "tidy": {
+      "calls": 9,
+      "prompt": 0,
+      "completion": 0
+    },
+    "consolidate": {
+      "calls": 1,
+      "prompt": 0,
+      "completion": 0
+    }
+  },
+  "minutes": 4,
+  "serverLog": "/var/folders/h0/0l0xp6fj0vj312kk775yqvfh0000gn/T/dusk-memory-eval-16zLiO/server.log"
+}

@@ -91,6 +91,9 @@ export async function launchSandbox(repo: string, gateway: Gateway, memory: { ca
     DUSK_DATA_DIR: dataDir,
     DUSK_PORT: String(port),
     DUSK_WEBHOOK_PORT: String(port + 1),
+    // a shared copy of the local embedding model, so each run does not download it again
+    ...(process.env.DUSK_MODEL_DIR ? { DUSK_MODEL_DIR: process.env.DUSK_MODEL_DIR } : {}),
+    ...(process.env.DUSK_MEMORY_EMBED ? { DUSK_MEMORY_EMBED: process.env.DUSK_MEMORY_EMBED } : {}),
   };
   const url = `http://127.0.0.1:${port}`;
   const start = async (): Promise<ChildProcess> => {
