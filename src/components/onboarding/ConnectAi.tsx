@@ -4,12 +4,14 @@ import { Art } from "../ui/Art";
 import { ArrowLeft, Check, LoaderCircle, RefreshCw, X } from "../../icons";
 import { engineReady } from "@/components/EngineLibrary";
 import { ModelDirectory } from "@/components/models/ModelDirectory";
+import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { prefetchProviders } from "@/lib/model-providers";
 import { aiWorks, organisationSignIn } from "@/lib/onboarding";
 import { api, useStore } from "@/state/store";
 import { freeFallback } from "../../../shared/ai-ranking";
 import { AiCards } from "./AiCards";
+import { StageSwap } from "./ConnectMotion";
 import { OrganisationRow } from "./beats/OrganisationRow";
 import type { WelcomeAiNow } from "./welcome-ai";
 import type { AiTileId } from "./funnel";
@@ -119,6 +121,9 @@ export function ConnectAi({ tested, onMore, onConnected }: { tested: WelcomeAiNo
   );
 }
 
+/** Leaving, the sheet fades out over this long (overlays.css runs it at 120ms). */
+export const DIALOG_LEAVE_MS = 120;
+
 /** "Connect an AI" over the first screen, the chat or settings: the grid of AIs, and behind its link the model directory
  * for every other provider and API keys (`directory`: open on that). `start` is the AI it was opened for: its
  * card takes the focus, and nothing runs until the person presses it. `onConnected` hears when it is connected (the
@@ -127,6 +132,12 @@ export function ConnectAiDialog({ tested, directory = false, onClose, start, onC
   onClose: () => void; start?: AiTileId; onConnected?: (tile: AiTileId) => void }) {
   const [more, setMore] = useState(directory);
   const box = useRef<HTMLDivElement>(null);
+  const [leaving, setLeaving] = useState(false);
+  const close = () => {
+    if (leaving) return;
+    setLeaving(true);
+    setTimeout(onClose, DIALOG_LEAVE_MS);
+  };
   // focus starts on the AI it was opened for, else on the sheet itself, so Close does not open with its tooltip already showing
   useEffect(() => {
     const card = start ? box.current?.querySelector<HTMLElement>(`button[data-funnel-ai="${start}"]`) : null;
@@ -135,6 +146,8 @@ export function ConnectAiDialog({ tested, directory = false, onClose, start, onC
   return (
     <ModalLayer><div
       className="ui-scrim fixed inset-0 z-[60] flex items-center justify-center p-4"
+      data-leaving={leaving ? "" : undefined}
+      inert={leaving || undefined}
       // a click outside never closes it: a sign-in may be under way; Close or Escape does
     >
       <div
@@ -148,9 +161,9 @@ export function ConnectAiDialog({ tested, directory = false, onClose, start, onC
           if (event.key !== "Escape") return;
           event.preventDefault();
           event.stopPropagation();
-          onClose();
+          close();
         }}
-        className="ui-modal flex max-h-[min(680px,calc(100vh-32px))] w-[520px] max-w-full flex-col overflow-hidden text-left outline-none"
+        className={cn(leaving && "animate-pop-out", "ui-modal flex max-h-[min(680px,calc(100vh-32px))] w-[520px] max-w-full flex-col overflow-hidden text-left outline-none")}
       >
         <div className="flex h-[52px] shrink-0 items-center gap-1 pl-4 pr-3">
           {more && (
@@ -162,18 +175,20 @@ export function ConnectAiDialog({ tested, directory = false, onClose, start, onC
           <h2 id="connect-ai-title" className="min-w-0 flex-1 truncate text-[14px] font-semibold leading-[22px] text-ink">
             {more ? t("connectAi.more") : t("onboarding.meet.connectAi")}
           </h2>
-          <button type="button" onClick={onClose} aria-label={t("common.close")} title={t("common.close")}
+          <button type="button" onClick={close} aria-label={t("common.close")} title={t("common.close")}
             className="ui-icon-button">
             <X size={16} />
           </button>
         </div>
         <div data-art-hover="" className="min-h-0 overflow-y-auto p-4 [scrollbar-width:thin]">
-          {more
-            ? <div data-connect-ai-directory=""><ModelDirectory /></div>
-            : <>
-                <Art name="plug" size="lg" className="mx-auto mb-4 block" />
-                <ConnectAi tested={tested} onMore={() => setMore(true)} onConnected={onConnected} />
-              </>}
+          <StageSwap stage={more ? "directory" : "grid"}>
+            {more
+              ? <div data-connect-ai-directory=""><ModelDirectory /></div>
+              : <>
+                  <Art name="plug" size="lg" className="mx-auto mb-4 block" />
+                  <ConnectAi tested={tested} onMore={() => setMore(true)} onConnected={onConnected} />
+                </>}
+          </StageSwap>
         </div>
       </div>
     </div></ModalLayer>

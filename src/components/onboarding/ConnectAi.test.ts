@@ -30,7 +30,7 @@ vi.mock("@/components/models/ModelDirectory", async () => {
 });
 // The row has its own tests; here only whether the first screen offers it.
 vi.mock("./beats/OrganisationRow", () => ({ OrganisationRow: (props: NonNullable<typeof f.row>) => { f.row = props; return null; } }));
-const { ConnectAi, ConnectAiDialog } = await import("./ConnectAi");
+const { ConnectAi, ConnectAiDialog, DIALOG_LEAVE_MS } = await import("./ConnectAi");
 const { useWelcomeAi } = await import("./welcome-ai");
 const { useStore } = await import("@/state/store");
 
@@ -244,6 +244,11 @@ describe("connecting an AI on the first screen", () => {
     await act(async () => { dialog.querySelector<HTMLButtonElement>("[data-connect-ai-back]")!.click(); });
     expect(dialog.querySelector("h2")?.textContent).toBe("Connect an AI");
     await act(async () => { dialog.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); });
+    // it fades out first, then closes
+    expect(dialog.classList.contains("animate-pop-out")).toBe(true);
+    expect(dialog.parentElement!.hasAttribute("data-leaving")).toBe(true);
+    expect(onClose).not.toHaveBeenCalled();
+    await act(async () => { await new Promise((done) => setTimeout(done, DIALOG_LEAVE_MS + 10)); });
     expect(onClose).toHaveBeenCalledOnce();
     await act(async () => { dialog.parentElement!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true })); });
     expect(onClose, "a click outside stays").toHaveBeenCalledOnce();

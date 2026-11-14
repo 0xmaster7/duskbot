@@ -15,6 +15,7 @@ import { useStore, type InstanceInfo } from "@/state/store";
 import { aiName, aiTiles, type AiTile, type AiTileId } from "./funnel";
 import { TILE } from "./FunnelSteps";
 import { connectsInApp, type ConnectInstance } from "./connect-flow";
+import { Reveal, StageSwap } from "./ConnectMotion";
 import { ConnectPanel, useConnectFlow, type ConnectFlowHandle } from "./SignInPill";
 import type { WelcomeAiNow } from "./welcome-ai";
 
@@ -50,10 +51,14 @@ const inApp = (instance: InstanceInfo) => connectsInApp(instance as unknown as C
 function Connect({ tile, flow }: { tile: AiTile<InstanceInfo>; flow: ConnectFlowHandle }) {
   const [trouble, setTrouble] = useState(false);
   const instance = tile.instance;
-  if (!trouble && tile.candidates.some(inApp)) {
-    return <ConnectPanel flow={flow} name={aiName(instance)} driverKind={instance.driverKind} onTrouble={() => setTrouble(true)} />;
-  }
-  return <EngineSetup instance={instance} {...setupFor(instance)} className="w-full rounded-2xl border-0 bg-ink/[0.035] p-4 text-start" />;
+  const inAppConnect = !trouble && tile.candidates.some(inApp);
+  return (
+    <StageSwap stage={inAppConnect ? "connect" : "setup"} className="w-full">
+      {inAppConnect
+        ? <ConnectPanel flow={flow} name={aiName(instance)} driverKind={instance.driverKind} onTrouble={() => setTrouble(true)} />
+        : <EngineSetup instance={instance} {...setupFor(instance)} className="w-full rounded-2xl border-0 bg-ink/[0.035] p-4 text-start" />}
+    </StageSwap>
+  );
 }
 
 function AiCard({ tile, connected, picked, onPick }: { tile: AiTile<InstanceInfo>; connected: boolean; picked: boolean; onPick: () => void }) {
@@ -64,7 +69,7 @@ function AiCard({ tile, connected, picked, onPick }: { tile: AiTile<InstanceInfo
         <span className="grid size-7 place-items-center"><TileMark tile={tile} size={26} /></span>
         <span className="flex max-w-full flex-col items-center">
           <span className="max-w-full truncate text-[13px] leading-[18px] text-ink">{label(tile)}</span>
-          <span className="flex items-center gap-1 text-[12px] leading-4 text-success">
+          <span className="connect-label-in flex items-center gap-1 text-[12px] leading-4 text-success">
             <Check size={12} strokeWidth={2.5} aria-hidden="true" className="shrink-0" />{t("funnel.ai.ready")}
           </span>
         </span>
@@ -132,11 +137,15 @@ export function AiCards({ onMore, className, onConnected }: { tested: WelcomeAiN
             onPick={() => pick(tile)} />
         ))}
       </div>
-      {chosen && (
-        <div key={chosen.id} data-funnel-ai-connect={chosen.id} className="place-reveal mt-5 flex w-full flex-col items-center">
-          <Connect tile={chosen} flow={{ ...flow, cancel: () => { flow.cancel(); setPicked(null); } }} />
-        </div>
-      )}
+      <Reveal className="pt-5">
+        {chosen && (
+          <StageSwap stage={chosen.id}>
+            <div data-funnel-ai-connect={chosen.id} className="flex w-full flex-col items-center">
+              <Connect key={chosen.id} tile={chosen} flow={{ ...flow, cancel: () => { flow.cancel(); setPicked(null); } }} />
+            </div>
+          </StageSwap>
+        )}
+      </Reveal>
       {/* while a sign-in runs, nothing else to pick */}
       {onMore && !(chosen && flow.state.stage !== "idle" && flow.state.stage !== "failed") && (
         <button type="button" data-ai-more="" onClick={onMore}

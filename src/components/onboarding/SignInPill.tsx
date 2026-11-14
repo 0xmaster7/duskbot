@@ -7,6 +7,7 @@ import { t } from "@/lib/i18n";
 import { engineSignedIn } from "@/lib/product-events";
 import { trail } from "@/lib/trail";
 import { api, useStore, type InstanceInfo } from "@/state/store";
+import { StageSwap } from "./ConnectMotion";
 import { ConnectFlow, type ConnectInstance, type ConnectState, type ConnectTarget } from "./connect-flow";
 
 const QUIET = "min-h-8 rounded-full px-3 text-[13px] leading-[18px] text-ink-secondary transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none";
@@ -186,7 +187,7 @@ export function ConnectPanel({ flow, name, driverKind, onTrouble }: {
     case "connected":
       body = (
         <p role="status" className="m-0 flex items-center gap-1.5 text-[14px] leading-5 text-success">
-          <Check size={14} strokeWidth={2.5} aria-hidden="true" />{t("connect.stage.connected")}
+          <Check size={14} strokeWidth={2.5} aria-hidden="true" className="connect-check-in" />{t("connect.stage.connected")}
         </p>
       );
       break;
@@ -217,5 +218,9 @@ export function ConnectPanel({ flow, name, driverKind, onTrouble }: {
       break;
     }
   }
-  return <div data-connect-stage={state.stage} className="flex w-full flex-col items-center gap-2.5">{body}</div>;
+  return (
+    <StageSwap stage={state.stage === "waiting" ? `waiting-${state.kind}` : state.stage} className="w-full">
+      <div data-connect-stage={state.stage} className="flex w-full flex-col items-center gap-2.5">{body}</div>
+    </StageSwap>
+  );
 }

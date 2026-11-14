@@ -34,6 +34,7 @@ vi.mock("./onboarding/SignInPill", async (importOriginal) => ({
 vi.mock("./Avatar", () => ({ BotAvatar: () => null }));
 
 const { ModelPicker } = await import("./ModelPicker");
+const { DIALOG_LEAVE_MS } = await import("./onboarding/ConnectAi");
 
 type Option = InstanceInfo["models"]["options"][number];
 const claude = (options: Option[], authenticated = true): InstanceInfo => ({
@@ -215,7 +216,7 @@ describe("choosing a model with the keyboard", () => {
     expect(focused()).toBe(chip());
   });
 
-  it("hands a provider that needs signing in to Connect an AI, its connect already started, and Escape there changes nothing", async () => {
+  it("hands a provider that needs signing in to Connect an AI on its card, with nothing started, and Escape there changes nothing", async () => {
     fixture.instances = [{ ...claude(three, false), authentication: { method: "paste-code", signOut: true } }];
     vi.stubGlobal("fetch", vi.fn(async () => Response.json({ instances: fixture.instances })));
     try {
@@ -230,9 +231,12 @@ describe("choosing a model with the keyboard", () => {
       expect(menu()).toBeNull();
       const dialog = document.querySelector<HTMLElement>("[data-connect-ai]")!;
       expect(dialog).not.toBeNull();
-      expect(connect.start).toHaveBeenCalledWith({ tile: "claude", candidates: ["claude"] });
-      expect(dialog.querySelector('[data-funnel-ai="claude"]')?.getAttribute("aria-pressed")).toBe("true");
+      expect(connect.start).not.toHaveBeenCalled();
+      const card = dialog.querySelector<HTMLElement>('[data-funnel-ai="claude"]')!;
+      expect(card.getAttribute("aria-pressed")).toBe("false");
+      expect(document.activeElement).toBe(card);
       press("Escape", dialog);
+      await new Promise((resolve) => setTimeout(resolve, DIALOG_LEAVE_MS + 10));
       await settle();
       expect(document.querySelector("[data-connect-ai]")).toBeNull();
       expect(fixture.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "setModel" }));
