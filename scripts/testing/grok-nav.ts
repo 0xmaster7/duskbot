@@ -77,7 +77,7 @@ export async function openSettings(ui: Ui, pane?: string): Promise<void> {
   await ui("eval", "--js", `${item}.click(); true`);
 }
 
-/** Settings > Advanced features > one of its pages: "Apps and tools", "Privacy and data"... "Bots" is its own pane now,
+/** Settings > Advanced features > one of its pages: "Apps and tools", "Storage and backups"... "Bots" is its own pane now,
  * opened on new bots' defaults. */
 export async function openAdvancedSettings(ui: Ui, page: string): Promise<void> {
   if (page === "Bots") {

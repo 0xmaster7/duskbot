@@ -89,7 +89,7 @@ describe("full backup Settings in the real renderer", () => {
     expect(await snapshot()).not.toContain("Export backup");
     await ui("press", "--keys", "Escape");
     await expect.poll(snapshot).not.toContain('dialog "Templates"');
-    await openAdvancedSettings(ui, "Privacy and data");
+    await openAdvancedSettings(ui, "Storage and backups");
     await clickByName(ui, "Backups", "button");
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Export full backup");
     expect(await snapshot()).toContain("Sign-ins and keys are left out. The password can't be recovered.");
@@ -125,7 +125,7 @@ describe("full backup Settings in the real renderer", () => {
     const evidence = join(ROOT, ".dusk-scratch", "verify-evidence", "workspace-backup-preview.png");
     await ui("screenshot", "--out", evidence);
     await click("Replace installation");
-    await expect.poll(snapshot, { timeout: 10_000 }).toContain("Fully quit Dusk");
+    await expect.poll(snapshot, { timeout: 10_000 }).toContain("Fully quit dusk bot");
     expect(await evaluate("window.backupFixture.calls.find(call => call.path.endsWith('/restore')).body")).toEqual({ id: "validated-stage", confirmation: "REPLACE" });
     expect(await evaluate("window.backupFixture.calls.find(call => call.path.endsWith('/upload')).rawFile")).toBe(true);
     expect(await evaluate("localStorage.getItem('dusk-pending-workspace-restore')")).toBe("validated-stage");
