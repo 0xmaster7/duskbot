@@ -47,8 +47,11 @@ export function revealSettingsBlock(
   lead: boolean,
 ): void {
   const block = lead ? null : scroller.querySelector(`[data-settings-block="${section}"]`);
-  if (block) scrollWithin(scroller, block);
-  else scroller.scrollTop = 0;
+  if (!block) { scroller.scrollTop = 0; return; }
+  // a block that already shows whole from the top stays where it is: scrolling it up would slice the rows above it
+  const top = block.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
+  if (top + (block.offsetHeight ?? 0) <= scroller.clientHeight) scroller.scrollTop = 0;
+  else scrollWithin(scroller, block);
 }
 
 /** Grok's scroll thumb, drawn by its own small component so a scroll re-renders two divs, not the pane. */
