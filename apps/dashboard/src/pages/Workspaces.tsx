@@ -3,7 +3,8 @@ import { ArrowLeft, Monitor, Smartphone } from "@/icons";
 import type { WorkspaceDetail, WorkspaceSummary } from "../../../../shared/dashboard-protocol";
 import { cloudForWorkspace, useCloud } from "../data/cloud";
 import type { CloudDesktop } from "../data/contracts";
-import { useWorkspaceDetail } from "../data/detail";
+import { useWorkspaceLoad } from "../data/detail";
+import { NumbersPending } from "./numbers-pending";
 import { useSession } from "../data/session";
 import { api } from "../lib/api";
 import { appLink, openApp } from "../lib/app-link";
@@ -180,7 +181,7 @@ export function WorkspacePage({ id }: { id: string }) {
   const now = useNow();
   const { clouds, catalog } = useCloud();
   const w = workspaces?.find((item) => item.id === id);
-  const detail = useWorkspaceDetail(w ? id : null);
+  const { detail, error: loadError, retry } = useWorkspaceLoad(w ? id : null);
   const cloud = cloudForWorkspace(clouds, id);
   useEffect(() => { if (w) pick(id); }, [id, Boolean(w), pick]);
   // opening a cloud we put to sleep is using it: it wakes now, and its numbers follow in seconds
@@ -191,7 +192,7 @@ export function WorkspacePage({ id }: { id: string }) {
       <header className="mb-8 flex items-center gap-4"><span className="grid size-14 shrink-0 place-items-center rounded-[12px] bg-card-2 text-ink-2" aria-hidden>{workspaceIcon(w, cloud, 24)}</span><div className="min-w-0 flex-1"><h1 className="t-title truncate">{w.name}</h1><div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-13 text-ink-3"><span>{KIND_LABEL(w.kind, cloud)}</span><FreshnessTag freshness={w.freshness} at={w.lastReportAt} now={now} cloud={cloud} /></div></div></header>
       <div className="flex flex-col gap-4">
         {cloud && <div className="surface flex flex-wrap items-center justify-between gap-3 rounded-card bg-card px-6 py-4"><div className="min-w-0"><p className="text-14 text-ink">{tierName(catalog, cloud)} · {regionName(catalog, cloud.region)}</p><CloudStatus cloud={cloud} className="mt-1" /></div><ButtonLink to="/cloud" size="sm">open dusk cloud</ButtonLink></div>}
-        {!detail || selected?.id !== id ? selected?.id === id && detailError ? <Card><LoadError error={detailError} retry={refresh} /></Card> : <Skeleton className="h-60 !rounded-card" /> : cloud?.resting ? <Skeleton className="h-60 !rounded-card" /> : !detail.report ? <SkyEmpty title="waiting for its first report">keep dusk bot running there. its first report usually arrives in a few seconds.</SkyEmpty> : <><MachineView detail={detail} now={now} /><WorkspaceDevices detail={detail} now={now} ready={selected?.id === id} /></>}
+        {!detail || selected?.id !== id || cloud?.resting ? <NumbersPending cloud={cloud} error={loadError ?? (selected?.id === id ? detailError : null)} retry={retry} className="h-60 !rounded-card" /> : !detail.report ? <SkyEmpty title="waiting for its first report">keep dusk bot running there. its first report usually arrives in a few seconds.</SkyEmpty> : <><MachineView detail={detail} now={now} /><WorkspaceDevices detail={detail} now={now} ready={selected?.id === id} /></>}
         {w.kind === "vps" && !cloud && clouds !== null && <ServerToCloud w={w} />}
       </div>
     </>}

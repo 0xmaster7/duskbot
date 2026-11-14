@@ -13,7 +13,8 @@ import { appLink, openApp } from "../lib/app-link";
 import { Switch } from "../ui/controls";
 import { Button, Card, cx, KV, PageHeader, SectionTitle, Skeleton } from "../ui/kit";
 import { Mascot } from "../ui/Mascot";
-import { useWorkspaceDetail } from "../data/detail";
+import { useWorkspaceLoad } from "../data/detail";
+import { NumbersPending } from "./numbers-pending";
 import { CloudPitch, CloudStatus, PowerButton, prewarm, Provisioning, regionName, tierName } from "./cloud-bits";
 import { DeleteDataAction, DeletionBanner } from "./DeleteData";
 import { canDeleteData, deletion } from "../data/delete-data";
@@ -162,7 +163,7 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
   const { catalog, billing } = useCloud();
   const { pick, workspace } = useSession();
   const now = useNow();
-  const detail = useWorkspaceDetail(cloud.workspaceId);
+  const { detail, error: detailError, retry } = useWorkspaceLoad(cloud.workspaceId);
   useEffect(() => { if (cloud.workspaceId && workspace?.id !== cloud.workspaceId) pick(cloud.workspaceId); }, [cloud.workspaceId, workspace?.id, pick]);
   const asleep = cloud.status === "sleeping" || cloud.status === "stopped";
   // opening its page is using it: a cloud we put to sleep wakes now, its numbers follow in seconds
@@ -202,7 +203,7 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
           <PowerButton cloud={cloud} size="md" />
         </Card>
       )}
-      {asleep ? null : cloud.resting ? <Skeleton className="h-[170px] !rounded-card" /> : detail ? <MachineView detail={detail} now={now} region={regionName(catalog, cloud.region)} /> : cloud.status === "running" ? <Skeleton className="h-[170px] !rounded-card" /> : null}
+      {asleep ? null : !cloud.resting && detail ? <MachineView detail={detail} now={now} region={regionName(catalog, cloud.region)} /> : cloud.resting || cloud.status === "running" ? <NumbersPending cloud={cloud} error={detailError} retry={retry} /> : null}
       <div className="grid gap-4 md:grid-cols-2">
         <Card aria-labelledby="about-title">
           <SectionTitle id="about-title">about</SectionTitle>
