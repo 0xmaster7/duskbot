@@ -204,10 +204,11 @@ Nothing is uploaded; attach the dmgs, zips and the stable `DuskBot.dmg` / `DuskB
 | Entitlement | Why |
 |---|---|
 | `cs.allow-jit` | V8 in the app, its helpers and the headless browser |
-| `cs.allow-unsigned-executable-memory` | V8 and WebAssembly on Intel (MAP_JIT alone is not used there), and the server run as Node |
 | `cs.disable-library-validation` | the server (the app run as Node) loads native modules; bots may load ones they install |
 | `device.audio-input` | dictation (the speech helper and the composer) |
 | `automation.apple-events` | `osascript`: opening Terminal, reading the screen size, bots driving apps the person allows |
 
-No camera, location, contacts or calendar access is used on the Mac (`electron/app-permissions.mjs` keeps camera off).
+`cs.allow-unsigned-executable-memory` is deliberately absent: the app run as Node with only these entitlements and the
+hardened runtime ran optimized JIT code, WebAssembly and DuckDB on arm64 and x64 (2026-11-14). Add it back only with a
+crash that proves the need. No camera, location, contacts or calendar access is used on the Mac (`electron/app-permissions.mjs` keeps camera off).
 The matching purpose strings are in `mac.extendInfo` in `build/electron-builder.yml`.

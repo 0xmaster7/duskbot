@@ -377,7 +377,7 @@ GATE_FAIL=0
 gate() {
   # in a dry run the ad-hoc build is expected to be rejected; the point is that every check runs
   local label="$1"; shift
-  local out; out="$("$@" 2>&1)" && { ok "$label"; printf '%s\n' "$out" | sed 's/^/        /'; return 0; }
+  local out; out="$("$@" 2>&1)" && { ok "$label"; printf '%s\n' "$out" | grep -v -e '^--prepared' -e '^--validated' | tail -4 | sed 's/^/        /'; return 0; }
   if [ "$MODE" != release ]; then echo "  expected (not notarized): $label"; printf '%s\n' "$out" | sed 's/^/        /' | head -3
   else echo "  FAILED: $label"; printf '%s\n' "$out" | sed 's/^/        /'; GATE_FAIL=$((GATE_FAIL + 1)); fi
 }

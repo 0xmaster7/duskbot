@@ -7,20 +7,24 @@ set -euo pipefail
 dmg="$1"; app="$2"; identity="$3"; keychain="${4:-}"
 work="$(mktemp -d "${TMPDIR:-/tmp}/dusk-dmg.XXXXXX")"
 mnt="$work/mnt"
-trap '[ -d "$mnt" ] && hdiutil detach "$mnt" -force -quiet 2>/dev/null; rm -rf "$work"' EXIT
-format="$(hdiutil imageinfo "$dmg" | sed -n 's/^Format: //p')"
+mounted=0
+cleanup() { if [ "$mounted" = 1 ]; then hdiutil detach "$mnt" -force -quiet 2>/dev/null || true; fi; rm -rf "$work"; }
+trap cleanup EXIT
+format="$(hdiutil imageinfo "$dmg" 2>/dev/null | sed -n 's/^Format: //p')"
 rw="$work/rw.dmg"
 hdiutil convert "$dmg" -format UDRW -o "$rw" -quiet
 # room for the ticket and any size drift: 20 MB more than the current size
-sectors="$(hdiutil resize -limits "$rw" | awk 'NR==1{print $2}')"
-hdiutil resize -sectors $((sectors + 40960)) "$rw" -quiet
+sectors="$(hdiutil resize -limits "$rw" 2>/dev/null | awk 'NR==1{print $2}')"
+hdiutil resize -sectors $((sectors + 40960)) "$rw" -quiet 2>/dev/null
 mkdir -p "$mnt"
 hdiutil attach "$rw" -nobrowse -noautoopen -noverify -mountpoint "$mnt" -quiet
+mounted=1
 name="$(basename "$app")"
 [ -d "$mnt/$name" ] || { echo "error: $dmg has no $name to replace" >&2; exit 1; }
 rm -rf "${mnt:?}/$name"
 ditto "$app" "$mnt/$name"
 hdiutil detach "$mnt" -quiet
+mounted=0
 rm -f "$dmg"
 hdiutil convert "$rw" -format "${format:-UDZO}" -o "$dmg" -quiet
 if [ "$identity" = "-" ]; then
