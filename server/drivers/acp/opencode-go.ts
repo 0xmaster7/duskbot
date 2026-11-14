@@ -599,7 +599,7 @@ function usableAuthEntry(parsed: Record<string, unknown>): boolean {
   });
 }
 
-function hasStoredOpenCodeAuth(env: Record<string, string | undefined>) {
+function hasStoredOpenCodeAuth(env: Record<string, string | undefined>, only?: ReadonlySet<string>) {
   const candidates: string[] = [];
   if (env.OPENCODE_AUTH_CONTENT) candidates.push(env.OPENCODE_AUTH_CONTENT);
   for (const path of storedAuthPaths(env)) {
@@ -609,16 +609,23 @@ function hasStoredOpenCodeAuth(env: Record<string, string | undefined>) {
   }
   return candidates.some((raw) => {
     try {
-      return usableAuthEntry(JSON.parse(raw) as Record<string, unknown>);
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      return usableAuthEntry(only ? Object.fromEntries(Object.entries(parsed).filter(([provider]) => only.has(provider))) : parsed);
     } catch {
       return false;
     }
   });
 }
 
+/** Stored logins that open OpenCode's own paid models. A stored login for any other provider shows up as that provider's
+ * models in the catalog, which openCodeFreeFallback already reads; one that lists none (a stray `codex` key on a Mac)
+ * opens nothing, and must not make the free models look like an AI of the person's own. */
+const OPENCODE_OWN_LOGINS: ReadonlySet<string> = new Set(["opencode", "opencode-go"]);
+
 /** A login, a key or a provider key of the person's own: what makes OpenCode more than Zen's free models. */
 function ownOpenCodeAccess(env: Record<string, string | undefined>): boolean {
-  return Boolean(env.OPENCODE_API_KEY) || hasStoredOpenCodeAuth(env) || OPENCODE_PROVIDER_ENV.some((key) => Boolean(env[key]?.trim()));
+  return Boolean(env.OPENCODE_API_KEY) || hasStoredOpenCodeAuth(env, OPENCODE_OWN_LOGINS)
+    || OPENCODE_PROVIDER_ENV.some((key) => Boolean(env[key]?.trim()));
 }
 
 /** OpenCode's own providers: Zen (some models free without a login) and Go (a subscription). */

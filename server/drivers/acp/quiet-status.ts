@@ -38,6 +38,10 @@ export const quietTickMs = (): number => knob("DUSK_ACP_QUIET_TICK_MS", DEFAULT_
  * when they answer at all; a hung one would otherwise hold the turn for the full silence guard. */
 export const DEFAULT_FIRST_REPLY_MS = 25_000;
 export const firstReplyMs = (): number => knob("DUSK_ACP_FIRST_REPLY_MS", DEFAULT_FIRST_REPLY_MS);
+/** All free models together get this long from the turn's first prompt to send a first word; past it the turn ends with
+ * a plain line instead of trying another (DUSK_ACP_FREE_TURN_MS overrides). */
+export const DEFAULT_FREE_TURN_MS = 30_000;
+export const freeTurnMs = (): number => knob("DUSK_ACP_FREE_TURN_MS", DEFAULT_FREE_TURN_MS);
 /** Free models one turn tries before it ends with a plain line instead of silence. */
 export const FREE_MODEL_ATTEMPTS = 3;
 

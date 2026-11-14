@@ -21,7 +21,7 @@ import { runAcpOneShot } from "./background-text.ts";
 import { sanitizeAcpToolMessage } from "./tool-log.ts";
 import { stripLeakedSystemHarnessMessages } from "../../../shared/system-message-guard.ts";
 import {
-  classifyQuiet, describeQuiet, firstReplyMs, waitingOutLimit, formatQuietLimit, FREE_MODEL_ATTEMPTS, lastSeenPhrase, LIMIT_WORDS, LogTail, promptIdleTimeoutMs, quietKey, quietNoticeMs, quietTickMs, quietVerdict, sampleProcessTree,
+  classifyQuiet, describeQuiet, firstReplyMs, freeTurnMs, waitingOutLimit, formatQuietLimit, FREE_MODEL_ATTEMPTS, lastSeenPhrase, LIMIT_WORDS, LogTail, promptIdleTimeoutMs, quietKey, quietNoticeMs, quietTickMs, quietVerdict, sampleProcessTree,
   type LogSignal, type ProcessSample, type QuietState,
 } from "./quiet-status.ts";
 import { readSessionReport } from "./session-reports.ts";
@@ -1020,8 +1020,9 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
         return session;
       };
 
-      // `freeTried`: the free models this turn already gave up on for sending nothing.
-      const sendTurn = async (turn: SendTurnInput, retryOf?: string, freeTried: readonly string[] = []) => {
+      // `freeTried`: the free models this turn already gave up on for sending nothing; `freeBy`: when the turn's free
+      // models together run out of time
+      const sendTurn = async (turn: SendTurnInput, retryOf?: string, freeTried: readonly string[] = [], freeBy?: number) => {
         requireRunning();
         if (startupModelRefresh) await startupModelRefresh;
         requireRunning();
@@ -1218,6 +1219,8 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
 
         const freeModel = turn.model || catalog.models.default;
         const freeOrder = freeModel ? support.freeModelOrder?.(freeModel, env, catalog.models) ?? null : null;
+        // counted from the turn's start, engine start included: what the person waits for is the whole turn
+        const freeDeadline = freeBy ?? Date.now() + freeTurnMs();
         (async () => {
           let pendingSplitReceipt: { key: string; receipt: PromptSplitReceipt; previous: PromptSplitReceipt | null } | null = null;
           try {
@@ -1465,10 +1468,11 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
             acknowledge();
             const promptIdleMs = promptIdleTimeoutMs();
             const quiet = startQuietWatch(threadId, session, current);
-            const replyMs = firstReplyMs();
+            const promptAt = Date.now();
+            // one model never waits past the turn's free deadline, so a turn no free model answers ends inside it
+            const replyMs = Math.max(0, Math.min(firstReplyMs(), freeDeadline - promptAt));
             // a free model that hangs before its first word is cut short here, long before the silence guard; a free usage limit
             // in OpenCode's log ends it sooner, and since that limit covers every free model at once, no other one is tried
-            const promptAt = Date.now();
             const firstReply = freeOrder ? setInterval(() => {
               if (state.settled || state.stopped || session.current !== current || state.startupActivity || state.producedItem
                   || state.text || current.runningTools.size || asks.size) return;
@@ -1476,7 +1480,7 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
               if (!limited && Date.now() - promptAt < replyMs) return;
               session.acp.failAll(Object.assign(new Error(`${support.displayName}'s free model ${freeModel} sent nothing${limited ? " (free usage limit)" : ` for ${formatQuietLimit(replyMs)}`}`),
                 { acpFirstReplyStall: true, ...(limited ? { acpFreeLimit: true } : {}) }));
-            }, Math.min(replyMs, FIRST_REPLY_CHECK_MS)) : null;
+            }, Math.max(100, Math.min(replyMs, FIRST_REPLY_CHECK_MS))) : null;
             firstReply?.unref?.();
             const result = await request(
               "session/prompt",
@@ -1565,14 +1569,15 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
               closeSession(threadId, "prompt-stall");
               const tried = [...freeTried, freeModel];
               const limited = (e as any)?.acpFreeLimit === true;
-              const next = !limited && tried.length < FREE_MODEL_ATTEMPTS ? freeOrder.find((model) => !tried.includes(model)) : undefined;
+              const next = !limited && tried.length < FREE_MODEL_ATTEMPTS && Date.now() < freeDeadline
+                ? freeOrder.find((model) => !tried.includes(model)) : undefined;
               const language = conversationLanguage(threadId);
               if (next) {
                 emit({ ...base(threadId, turnId), type: "runtime.notice", message: (e as any)?.acpEmptyReply === true
                   ? serverLine(language, "server.freeModel.emptyNext")
                   : serverLine(language, "server.freeModel.tryingNext", { seconds: Math.round(firstReplyMs() / 1000) }) });
                 try {
-                  await sendTurn({ ...turn, model: next, startupRecovery: undefined, sessionReset: undefined }, turnId, tried);
+                  await sendTurn({ ...turn, model: next, startupRecovery: undefined, sessionReset: undefined }, turnId, tried, freeDeadline);
                   return;
                 } catch (error) {
                   console.warn(`${support.displayName}: the next free model did not start on ${threadId}: ${error instanceof Error ? error.message : String(error)}`);

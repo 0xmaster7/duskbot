@@ -1389,6 +1389,11 @@ describe("OpenCode ready only through its free models", () => {
     expect(openCodeFreeFallback(true, catalog("opencode/big-pickle"))).toBe(false);
   });
 
+  it("stays the free fallback with a stored login for a provider that offers OpenCode no model (a Mac's stray codex key)", async () => {
+    expect(await snapshotWith(catalog("opencode/big-pickle", "opencode/grok-code"), {}, { codex: { type: "api", key: "sk-stray" } }))
+      .toMatchObject({ authenticated: true, freeFallback: true });
+  });
+
   it("is a normal AI when OpenCode offers another provider's models", async () => {
     const snapshot = await snapshotWith(catalog("opencode/big-pickle", "openrouter/vendor/model-v2"));
     expect(snapshot.authenticated).toBe(true);
@@ -1398,11 +1403,16 @@ describe("OpenCode ready only through its free models", () => {
 
 describe("OpenCode free model that never answers, or answers nothing", () => {
   const noKeys = { OPENCODE_API_KEY: "", OPENCODE_AUTH_CONTENT: "", ...Object.fromEntries(OPENCODE_PROVIDER_ENV.map((key) => [key, ""])) };
-  afterEach(() => { delete process.env.DUSK_ACP_FIRST_REPLY_MS; });
+  afterEach(() => { delete process.env.DUSK_ACP_FIRST_REPLY_MS; delete process.env.DUSK_ACP_FREE_TURN_MS; });
 
-  async function firstMessage(hang: string, extra: Record<string, string> = {}, replyMs = "600") {
+  // `login`: OpenCode's stored auth.json, as on a Mac where the person once signed OpenCode in to something
+  async function firstMessage(hang: string, extra: Record<string, string> = {}, replyMs = "600", login?: Record<string, unknown>) {
     process.env.DUSK_ACP_FIRST_REPLY_MS = replyMs;
     const scratch = mkdtempSync(join(tmpdir(), "dusk-opencode-hang-"));
+    if (login) {
+      mkdirSync(join(scratch, "data", "opencode"), { recursive: true });
+      writeFileSync(join(scratch, "data", "opencode", "auth.json"), JSON.stringify(login));
+    }
     resetOpenCodeModelCache();
     const driver = createOpenCodeDriver(async () => catalog("opencode/big-pickle", "opencode/grok-code", "opencode/minimax-free"));
     const instance = await driver.create({
@@ -1479,6 +1489,40 @@ describe("OpenCode free model that never answers, or answers nothing", () => {
     expect(events.some((event) => event.type === "runtime.notice" && /another free model/.test(event.message))).toBe(false);
     expect(events.filter((event) => event.type === "runtime.error")).toEqual([expect.objectContaining({
       message: "The free backup model has used up its free replies for now, so this message got no reply. Connect your own AI, like Claude or ChatGPT, to keep going, or send it again later.",
+    })]);
+  }, 20_000);
+
+  // The owner's Mac (no AI connected): OpenCode's auth.json held only a stray codex key, so the turn was not treated as a
+  // free model at all and sat on "Waiting on the model" for minutes instead of handing off or stopping at the limit.
+  describe("on this computer, with a stored login that opens no OpenCode model", () => {
+    const stray = { codex: { type: "api", key: "sk-stray" } };
+
+    it("stops at the free usage limit within seconds, with the line the connect card is drawn from", async () => {
+      const { done, events, tried, ms } = await firstMessage("opencode/big-pickle,opencode/grok-code,opencode/minimax-free", { FAKE_ACP_FREE_LIMIT: "1" }, "25000", stray);
+      expect(tried).toEqual(["opencode/big-pickle"]);
+      expect(ms).toBeLessThan(7_000);
+      expect(done).toMatchObject({ ok: false, stopReason: "no_reply" });
+      expect(events.filter((event) => event.type === "runtime.notice")).toEqual([]);
+      expect(events.filter((event) => event.type === "runtime.error")).toEqual([expect.objectContaining({
+        message: expect.stringMatching(/^The free backup model has used up its free replies/),
+      })]);
+    }, 20_000);
+
+    it("hands a hung free model's turn to the next free model", async () => {
+      const { done, tried } = await firstMessage("opencode/big-pickle", {}, "600", stray);
+      expect(tried).toEqual(["opencode/big-pickle", "opencode/grok-code"]);
+      expect(done).toMatchObject({ ok: true });
+    }, 20_000);
+  });
+
+  it("ends a turn no free model answers inside the turn's free budget, not after every model's full wait", async () => {
+    // three models at 600 ms each would take 1.8 s; the budget stops it after the second
+    process.env.DUSK_ACP_FREE_TURN_MS = "1000";
+    const { done, events, tried } = await firstMessage("opencode/big-pickle,opencode/grok-code,opencode/minimax-free");
+    expect(tried.length).toBeLessThan(3);
+    expect(done).toMatchObject({ ok: false, stopReason: "no_reply" });
+    expect(events.filter((event) => event.type === "runtime.error")).toEqual([expect.objectContaining({
+      message: expect.stringMatching(/^No free backup model answered just now/),
     })]);
   }, 20_000);
 
