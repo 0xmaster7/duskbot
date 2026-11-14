@@ -32,7 +32,13 @@ export async function webAccountStep(url, { email, pay = false, log = () => {}, 
       await browser.evaluate(`document.querySelector("input[type=email]").focus(); true`);
       await browser.send("Input.insertText", { text: email });
       await browser.evaluate(`document.querySelector("form button[type=submit]").click(); true`);
-      const code = await until(() => testMailCode(email, since, origin), { timeout: 60_000, every: 1_000, what: "the website's sign-in code" });
+      // a second code to the same address within the resend window is refused: wait, then resend, as a person would
+      let code = await until(() => testMailCode(email, since, origin), { timeout: 20_000, every: 1_000, what: "the website's sign-in code" }).catch(() => null);
+      if (!code) {
+        await until(() => browser.evaluate(`(() => { const b = [...document.querySelectorAll("button")].find((e) => /^resend/i.test(e.innerText.trim()) && !e.disabled); if (!b) return false; b.click(); return true; })()`), { timeout: 60_000, what: "resend" });
+        steps.push("resent the code");
+        code = await until(() => testMailCode(email, since, origin), { timeout: 60_000, every: 1_000, what: "the website's sign-in code" });
+      }
       await until(() => browser.evaluate(`Boolean(document.querySelector("input[autocomplete=one-time-code], input[inputmode=numeric], form input[type=text]"))`), { what: "the code field" });
       await browser.evaluate(`(document.querySelector("input[autocomplete=one-time-code]") ?? document.querySelector("input[inputmode=numeric]") ?? document.querySelector("form input[type=text]")).focus(); true`);
       await browser.send("Input.insertText", { text: code });

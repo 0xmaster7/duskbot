@@ -56,7 +56,7 @@ await runFlow(flow, async () => {
     for (const old of await leftoverVms()) if (Date.parse(old.createdAt ?? 0) < Date.now() - 60 * 60_000) await removeVm(old.id).catch(() => {});
     vm = await createVm(`dusk-smoke-s2c-${stamp.slice(5).replace(/[^0-9]/g, "")}`);
     const made = vm; flow.atClose(async () => { await made.remove(); flow.log(`deleted ${made.id}`); });
-    await vm.exec(`cd ~ && setsid nohup bash -c ${js(`${line}; echo "exit $?" >> ~/dusk-install.log`)} > ~/dusk-install.log 2>&1 < /dev/null & echo started`, 30);
+    await vm.exec(`cd ~ && setsid nohup bash -c ${js(`${line}; echo "exit \\$?" >> ~/dusk-install.log`)} > ~/dusk-install.log 2>&1 < /dev/null & echo started`, 30);
     const started = Date.now();
     for (;;) {
       const v = await flow.evaluate(`window.duskDesktop?.vpsLink?.state()`).catch(() => null);
