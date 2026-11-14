@@ -133,7 +133,7 @@ describe("the welcome", () => {
     await show();
     expect(step()).toBe("place");
     const line = host.querySelector<HTMLElement>("[data-help-improve]")!;
-    expect(line.textContent).toBe("Share anonymous usage to help improve dusk bot. Never your messages or files.");
+    expect(line.textContent).toBe("Share anonymous usage statistics and crash reports to help improve dusk bot. Never your messages, files or keys.");
     expect(line.className).toContain("text-[12px]");
     const toggle = line.querySelector<HTMLButtonElement>("[role=switch]")!;
     expect(toggle.getAttribute("aria-checked")).toBe("true");
