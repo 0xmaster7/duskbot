@@ -86,7 +86,8 @@ export function stepOf(event: StoredEvent): Step | null {
     case "download_click": return step(event, "goal", "account", "download_click", { path: page, detail: str(p.platform) });
     case "signup": return step(event, "signup", "server", "signed up", { detail: str(p.method) });
     case "sign_in": return step(event, "signin", "server", p.kind === "web" || !p.kind ? "signed in" : `signed in on the ${p.kind} app`, { detail: OS_OF[String(p.platform)] ?? null });
-    case "onboarding_step": return step(event, "onboarding", "account", `onboarding: ${words(p.step) ?? "step"}`, msOf(p.ms));
+    case "onboarding_step": return step(event, "onboarding", "account", `onboarding: ${words(p.step) ?? "step"}`, { ...msOf(p.ms), ...(p.from === "app" ? { detail: "from the app" } : {}) });
+    case "app_return": return step(event, "onboarding", "account", "sent back to the app", { detail: p.link === "cloud" ? "cloud sheet" : null });
     case "onboarding_done": return step(event, "onboarding", "account", "finished onboarding", msOf(p.ms));
     case "plan_chosen": return step(event, "plan", "account", `picked ${words(p.plan) ?? "a plan"}`, { detail: p.period === "year" ? "yearly" : p.period === "month" ? "monthly" : null });
     case "app_paired": return p.via === "workspace"
@@ -103,6 +104,7 @@ export function stepOf(event: StoredEvent): Step | null {
     case "app_action": {
       const name = str(p.name);
       if (!name || QUIET_ACTIONS.has(name)) return null;
+      if (name === "account_sign_in") return step(event, "onboarding", "app", p.step === "back" ? "back in the app" : `account sign-in: ${words(p.step) ?? "step"}`, { detail: str(p.method) ?? (p.link === "cloud" ? "cloud sheet" : null) });
       if (UPSELL.has(name)) return step(event, "upsell", "app", name, { path: page, detail: str(p.source), ...msOf(p.ms) });
       if (NOTICE.has(name)) return step(event, "notice", "app", p.acted === true ? "notice_acted" : name, { detail: noticeWords(p.notice), ...msOf(p.ms) });
       return step(event, "goal", "app", name, { path: page, detail: str(p.action) ?? str(p.result) ?? str(p.variant), ...msOf(p.ms) });

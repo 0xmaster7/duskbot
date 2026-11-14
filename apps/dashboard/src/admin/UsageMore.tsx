@@ -12,7 +12,9 @@ interface RateRow { key: string; total: number; good: number; bad: number; rate:
 export interface MoreAnswer {
   setup: { onboarding: Array<{ step: string; reached: number; medianMs: number | null }>; signIn: RateRow[];
     /** the app's account sign-in funnel, by install; absent from an older server */
-    account?: { steps: Array<{ step: string; reached: number }>; methods: RateRow[]; errors: Count[] } };
+    account?: { steps: Array<{ step: string; reached: number }>; methods: RateRow[]; errors: Count[] };
+    /** the app's account step to the website and back, one person across both; absent from an older server */
+    handoff?: Array<{ step: string; side: "app" | "web"; from: string | null; reached: number; medianMs: number | null }> };
   reliability: { firstP50: number | null; firstP90: number | null; engines: Array<{ key: string; turns: number; p50: number | null; p90: number | null; firstP50: number | null }>;
     models: Array<{ key: string; turns: number; p50: number | null; firstP50: number | null; failRate: number | null }>; toolErrors: Array<{ kind: "tool" | "app"; key: string; errors: number; turns: number; rate: number | null }>;
     crashes: { count: number; people: number; top: Count[] }; wake: { count: number; p50Ms: number | null; p90Ms: number | null } };
@@ -34,7 +36,10 @@ const words = (key: string) => key.replace(/_/g, " ");
 const TOOL_WORDS: Record<string, string> = { app: "connected apps", web: "web search", computer: "computer use", mcp: "mcp tools", other: "other tools" };
 const toolWords = (kind: "tool" | "app", key: string) => kind === "tool" ? TOOL_WORDS[key] ?? words(key) : words(key);
 const ACCOUNT_STEP: Record<string, string> = { shown: "saw the sign-in", method: "picked a way", handoff: "went to the website", returned: "came back signed in",
-  cancelled: "cancelled", skipped: "skipped", error: "hit an error" };
+  cancelled: "cancelled", skipped: "skipped", error: "hit an error", back: "back from the website" };
+const HANDOFF_STEP: Record<string, string> = { shown: "saw the account step", method: "picked a way", handoff: "went to the website", landed: "opened the sign-in page",
+  signed_in: "app signed in by itself", app_place: "app: picked where bots live", app_done: "app: finished its first run", name: "named themselves", plan: "saw the plans",
+  checkout: "opened checkout", all_set: "reached all set", sent_back: "sent back to the app", back: "back in the app" };
 const STEP: Record<string, string> = { name: "named themselves", plan: "picked a plan", app: "got the app", done: "finished setup" };
 const CANCEL: Record<string, string> = { feature: "missing a feature", price: "too expensive", setup: "hard to set up", broken: "something broke", later: "not now", other: "other" };
 const DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -74,6 +79,7 @@ export function MoreCards({ more, open }: { more: MoreAnswer; open(detail: MoreD
       <div className="grid grid-cols-2 gap-2 max-lg:grid-cols-1">
         <Card title="setup and sign-in" icon={<KeyRound {...I} />} wash="bg-wash-sky" onOpen={() => open("setup")}>
           {more.setup.onboarding.map((step) => <Line key={step.step} label={STEP[step.step] ?? words(step.step)} value={n(step.reached)} bar={step.reached / signups} onClick={() => open("setup")} />)}
+          {more.setup.handoff?.[0]?.reached ? <p className="mt-2 px-1 text-12 text-ink-3">sign-up from the app: {n(more.setup.handoff.find((row) => row.step === "back")?.reached ?? 0)} of {n(more.setup.handoff[0].reached)} back in the app</p> : null}
           {more.setup.account?.steps[0]?.reached ? <p className="mt-2 px-1 text-12 text-ink-3">app sign-in: {n(more.setup.account.steps.find((row) => row.step === "returned")?.reached ?? 0)} of {n(more.setup.account.steps[0].reached)} who saw it signed in</p> : null}
           {more.setup.signIn.length ? <p className="mt-2 px-1 text-12 text-ink-3">ai sign-ins that finish: {more.setup.signIn.slice(0, 4).map((row) => `${row.key} ${percent(row.rate)}`).join(", ")}</p> : null}
         </Card>
@@ -134,6 +140,12 @@ export function MoreTable({ detail, more }: { detail: MoreDetail; more: MoreAnsw
     <div className="flex flex-col gap-4">
       <Table label="setup steps"><thead><tr><Th>step</Th><Th className="!text-end">people</Th><Th className="!text-end">time on the step before</Th></tr></thead>
         <tbody>{more.setup.onboarding.map((step) => <tr key={step.step}><Td>{STEP[step.step] ?? words(step.step)}</Td><Td className="text-end font-mono num">{n(step.reached)}</Td><Td className="text-end font-mono num">{duration(step.medianMs)}</Td></tr>)}</tbody></Table>
+      {more.setup.handoff && more.setup.handoff[0]!.reached > 0 && (
+        <Table label="sign-up from the app"><thead><tr><Th>step</Th><Th>where</Th><Th className="!text-end">people</Th><Th className="!text-end">share</Th><Th className="!text-end">median time</Th><Th>since</Th></tr></thead>
+          <tbody>{more.setup.handoff.map((row) => <tr key={row.step}><Td>{HANDOFF_STEP[row.step] ?? words(row.step)}</Td><Td>{row.side}</Td><Td className="text-end font-mono num">{n(row.reached)}</Td>
+            <Td className="text-end font-mono num">{percent(row.reached / more.setup.handoff![0]!.reached)}</Td><Td className="text-end font-mono num">{duration(row.medianMs)}</Td>
+            <Td className="text-ink-3">{row.from ? HANDOFF_STEP[row.from] ?? words(row.from) : ""}</Td></tr>)}</tbody></Table>
+      )}
       {more.setup.account && <>
         <Table label="app sign-in"><thead><tr><Th>app sign-in step</Th><Th className="!text-end">installs</Th></tr></thead>
           <tbody>{more.setup.account.steps.map((row) => <tr key={row.step}><Td>{ACCOUNT_STEP[row.step] ?? words(row.step)}</Td><Td className="text-end font-mono num">{n(row.reached)}</Td></tr>)}</tbody></Table>

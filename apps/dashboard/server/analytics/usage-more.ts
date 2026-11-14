@@ -9,7 +9,7 @@ const DAY = 86_400_000;
 export interface Count { key: string; count: number }
 export interface RateRow { key: string; total: number; good: number; bad: number; rate: number | null; reason?: string }
 export interface MoreAnswer {
-  setup: { onboarding: Array<{ step: string; reached: number; medianMs: number | null }>; signIn: RateRow[]; account: AccountFunnel };
+  setup: { onboarding: Array<{ step: string; reached: number; medianMs: number | null }>; signIn: RateRow[]; account: AccountFunnel; handoff: HandoffStep[] };
   reliability: { firstP50: number | null; firstP90: number | null; engines: Array<{ key: string; turns: number; p50: number | null; p90: number | null; firstP50: number | null }>;
     models: Array<{ key: string; turns: number; p50: number | null; firstP50: number | null; failRate: number | null }>; toolErrors: Array<{ kind: "tool" | "app"; key: string; errors: number; turns: number; rate: number | null }>;
     crashes: { count: number; people: number; top: Count[] }; wake: { count: number; p50Ms: number | null; p90Ms: number | null } };
@@ -24,6 +24,9 @@ export interface MoreAnswer {
 }
 /** the first run's account sign-in: installs that reached each step, attempts by method, and why attempts failed */
 export interface AccountFunnel { steps: Array<{ step: string; reached: number }>; methods: RateRow[]; errors: Count[] }
+/** one step of the sign-up handoff from the app's account step to the website and back: people who reached it, and the
+ *  median time from `from` (the step before it on the same path) to it */
+export interface HandoffStep { step: string; side: "app" | "web"; from: string | null; reached: number; medianMs: number | null }
 export interface MoreInput {
   days: string[]; daily: Map<string, Record<string, number>>; people: PersonDay[]; snapshots: SnapshotRow[]; routines: RoutineSpan[]; events: StoredEvent[];
   billing: { checkouts: Array<{ accountId: string; status: string; createdAt: number }>; subscriptions: Array<{ accountId: string; totalCents: number; createdAt: number; status: string }>;
@@ -127,7 +130,7 @@ export function moreOf(input: MoreInput): MoreAnswer {
 
   const setupsOf = (key: string) => counts(env.map(event => String(event.props[key] ?? "")).filter(Boolean));
   return {
-    setup: { onboarding, signIn: signInRows(events), account: accountFunnel(events) },
+    setup: { onboarding, signIn: signInRows(events), account: accountFunnel(events), handoff: handoffFunnel(events) },
     reliability: { firstP50: bucketQuantile(buckets("first:"), 0.5), firstP90: bucketQuantile(buckets("first:"), 0.9), engines, models: models.slice(0, 15), toolErrors: toolErrors.slice(0, 20), crashes,
       wake: input.wake ?? { count: 0, p50Ms: null, p90Ms: null } },
     engagement: { sessionsPerPersonDay: rate(opens.length, openDays), sessionMedianMs: median(closes.map(event => Number(event.props.ms)).filter(ms => ms > 0)), hours, weekdays,
@@ -168,6 +171,66 @@ function accountFunnel(events: StoredEvent[]): AccountFunnel {
     methods: [...methods.values()].map(row => ({ ...row, total: Math.max(row.total, row.good), rate: rate(row.good, Math.max(row.total, row.good)) })).sort((a, b) => b.total - a.total),
     errors: counts(errors),
   };
+}
+
+/** the handoff's steps in the order a person meets them; `from` is the step its time is measured from */
+export const HANDOFF_STEPS: ReadonlyArray<{ step: string; side: "app" | "web"; from: string | null }> = [
+  { step: "shown", side: "app", from: null },
+  { step: "method", side: "app", from: "shown" },
+  { step: "handoff", side: "app", from: "method" },
+  { step: "landed", side: "web", from: "handoff" },
+  { step: "signed_in", side: "app", from: "handoff" },
+  { step: "app_place", side: "app", from: "signed_in" },
+  { step: "app_done", side: "app", from: "app_place" },
+  { step: "name", side: "web", from: "landed" },
+  { step: "plan", side: "web", from: "name" },
+  { step: "checkout", side: "web", from: "plan" },
+  { step: "all_set", side: "web", from: "plan" },
+  { step: "sent_back", side: "web", from: "all_set" },
+  { step: "back", side: "app", from: "sent_back" },
+];
+const SIGN_IN_PAGES = new Set(["/sign-in", "/signin", "/signup", "/cloud/desktop"]);
+
+/** which handoff step an event is, if any */
+function handoffStepOf(event: StoredEvent): string | null {
+  const p = event.props;
+  if (event.name === "app_action" && p.name === "account_sign_in") return p.step === "returned" ? "signed_in" : ["shown", "method", "handoff", "back"].includes(String(p.step)) ? String(p.step) : null;
+  if (event.name === "app_action" && p.name === "onboarding_step" && p.step === "place") return "app_place";
+  if (event.name === "app_action" && p.name === "onboarding_completed") return "app_done";
+  if (event.name === "page_view" && SIGN_IN_PAGES.has(String(p.path))) return "landed";
+  if (event.name === "onboarding_step") return p.step === "app" ? "all_set" : p.step === "name" || p.step === "plan" ? String(p.step) : null;
+  if (event.name === "plan_chosen") return "checkout";
+  if (event.name === "app_return") return "sent_back";
+  return null;
+}
+
+/** the app's account step through the website's sign-in and onboarding and back into the app, as one funnel. One person is
+ *  an app install, its account and the website tabs that account signed in on, joined wherever an event names two of them.
+ *  Only people who saw the app's account step count. */
+export function handoffFunnel(events: readonly StoredEvent[]): HandoffStep[] {
+  const parent = new Map<string, string>();
+  const root = (key: string): string => { let at = key; while (parent.has(at) && parent.get(at) !== at) at = parent.get(at)!; parent.set(key, at); return at; };
+  const keysOf = (event: StoredEvent) => [event.accountId ? `a:${event.accountId}` : null, event.ctx?.install ? `i:${event.ctx.install}` : null,
+    !event.ctx?.install && event.ctx?.session ? `s:${event.ctx.session}` : null].filter((key): key is string => key !== null);
+  for (const event of events) {
+    const keys = keysOf(event);
+    for (const key of keys) if (!parent.has(key)) parent.set(key, key);
+    for (const key of keys.slice(1)) { const a = root(keys[0]!), b = root(key); if (a !== b) parent.set(b, a); }
+  }
+  const first = new Map<string, Map<string, number>>();
+  for (const event of events) {
+    const step = handoffStepOf(event), key = keysOf(event)[0];
+    if (!step || !key) continue;
+    const who = root(key), seen = first.get(who) ?? new Map<string, number>();
+    if (!seen.has(step) || seen.get(step)! > event.at) seen.set(step, event.at);
+    first.set(who, seen);
+  }
+  const people = [...first.values()].filter(seen => seen.has("shown"));
+  return HANDOFF_STEPS.map(({ step, side, from }) => {
+    const reached = people.filter(seen => seen.has(step));
+    const ms = from ? reached.flatMap(seen => seen.has(from) ? [Math.max(0, seen.get(step)! - seen.get(from)!)] : []) : [];
+    return { step, side, from, reached: reached.length, medianMs: median(ms) };
+  });
 }
 
 /** engine sign-ins from the workspace signal records: started, succeeded, failed and why */

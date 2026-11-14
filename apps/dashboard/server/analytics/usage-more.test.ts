@@ -74,8 +74,40 @@ describe("the deeper usage answer", () => {
         signIn("i3", { step: "skipped" }), event("app_action", { name: "account_sign_in" }, null),
       ] });
     expect(m.setup.account.steps).toEqual([{ step: "shown", reached: 3 }, { step: "method", reached: 2 }, { step: "handoff", reached: 1 }, { step: "returned", reached: 1 },
-      { step: "cancelled", reached: 0 }, { step: "skipped", reached: 1 }, { step: "error", reached: 1 }]);
+      { step: "cancelled", reached: 0 }, { step: "skipped", reached: 1 }, { step: "error", reached: 1 }, { step: "back", reached: 0 }]);
     expect(m.setup.account.methods).toEqual([{ key: "google", total: 1, good: 1, bad: 0, rate: 1 }, { key: "email", total: 1, good: 0, bad: 1, rate: 0 }]);
     expect(m.setup.account.errors).toEqual([{ key: "wrong_code", count: 1 }]);
+  });
+
+  it("joins the app's account step, the website's sign-in and onboarding, and the way back into one funnel with times", () => {
+    const T = NOW - 3_600_000, s = 1000;
+    const app = (props: StoredEvent["props"], at: number, accountId: string | null = null): StoredEvent => ({ ...event("app_action", props, accountId, T + at * s), ctx: { install: "inst_one", session: "app_ses_1" } });
+    const web = (name: string, props: StoredEvent["props"], at: number, accountId: string | null = "acct_h"): StoredEvent => ({ ...event(name, props, accountId, T + at * s), ctx: { session: "tab_1" } });
+    const m = moreOf({ days: [dayOf(NOW)], daily: new Map(), people: [], snapshots: [], routines: [], from: NOW - DAY, to: NOW + DAY, now: NOW, accounts: [],
+      billing: { checkouts: [], subscriptions: [], feedback: [] },
+      events: [
+        app({ name: "account_sign_in", step: "shown" }, 0), app({ name: "account_sign_in", step: "method", method: "email", via: "link" }, 10),
+        app({ name: "account_sign_in", step: "handoff", method: "email", via: "link" }, 11),
+        // the website before it is signed in: only its tab, joined later through the same tab signed in
+        web("page_view", { path: "/sign-in" }, 41, null),
+        app({ name: "account_sign_in", step: "returned", method: "email", via: "link" }, 50, "acct_h"), app({ name: "onboarding_step", step: "place" }, 52, "acct_h"),
+        web("onboarding_step", { step: "name", from: "app" }, 47), web("onboarding_step", { step: "plan", ms: 9000, from: "app" }, 56),
+        web("onboarding_step", { step: "app", ms: 4000, from: "app" }, 60), web("app_return", { link: "open", how: "auto" }, 61),
+        app({ name: "account_sign_in", step: "back", link: "open" }, 62, "acct_h"),
+        // someone who signed up on the website alone is not in this funnel
+        { ...event("onboarding_step", { step: "name" }, "acct_other", T), ctx: { session: "tab_2" } },
+      ] });
+    const row = (step: string) => m.setup.handoff.find(item => item.step === step)!;
+    expect(row("shown")).toMatchObject({ reached: 1, medianMs: null });
+    expect(row("handoff")).toMatchObject({ side: "app", reached: 1, medianMs: 1000 });
+    expect(row("landed")).toMatchObject({ side: "web", reached: 1, medianMs: 30_000 });
+    expect(row("signed_in")).toMatchObject({ reached: 1, medianMs: 39_000 });
+    expect(row("name")).toMatchObject({ reached: 1, medianMs: 6000 });
+    expect(row("plan")).toMatchObject({ reached: 1, medianMs: 9000 });
+    expect(row("checkout")).toMatchObject({ reached: 0, medianMs: null });
+    expect(row("all_set")).toMatchObject({ reached: 1, medianMs: 4000 });
+    expect(row("sent_back")).toMatchObject({ reached: 1, medianMs: 1000 });
+    expect(row("back")).toMatchObject({ side: "app", reached: 1, medianMs: 1000 });
+    expect(row("app_place")).toMatchObject({ reached: 1, medianMs: 2000 });
   });
 });

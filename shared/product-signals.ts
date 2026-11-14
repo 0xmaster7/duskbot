@@ -17,7 +17,7 @@ export const SCREEN_BUCKETS = ["xs", "s", "m", "l", "xl"] as const;
 
 /** the in-app account sign-in funnel's steps, how a person signed in, and why an attempt failed (a fixed code, never an
  * email, a token or a message) */
-export const ACCOUNT_SIGN_IN_STEPS = ["shown", "method", "handoff", "returned", "cancelled", "skipped", "error"] as const;
+export const ACCOUNT_SIGN_IN_STEPS = ["shown", "method", "handoff", "returned", "cancelled", "skipped", "error", "back"] as const;
 export const ACCOUNT_SIGN_IN_METHODS = ["google", "x", "apple", "email"] as const;
 export const ACCOUNT_SIGN_IN_ERRORS = ["invalid_email", "rate_limited", "failed", "wrong_code", "expired", "signup_closed", "device_limit", "sso", "two_factor",
   "browser", "storage", "other"] as const;
@@ -27,9 +27,10 @@ export const SIGNALS = {
   /** once per app start: the setup a person runs dusk bot in, and the local hour; at most 8 keys, the app action limit */
   env: { source: "app", props: { os: oneOf("darwin", "win32", "linux", "ios", "android", "other"), arch: oneOf("x64", "arm64", "other"), locale: oneOf(...LOCALES),
     screen: oneOf(...SCREEN_BUCKETS), theme: oneOf("light", "dark"), skin: codeName, notifications: oneOf("granted", "denied", "default", "unsupported"), hour: between(0, 23) } },
-  /** a step of the first run's dusk bot account sign-in: via is the browser handoff, an emailed code or a magic link */
+  /** a step of the first run's dusk bot account sign-in: via is the browser handoff, an emailed code or a magic link;
+   * "back" is the website sending the person back to the app (link: the app as it was, or the cloud sheet) */
   account_sign_in: { source: "app", props: { step: oneOf(...ACCOUNT_SIGN_IN_STEPS), method: oneOf(...ACCOUNT_SIGN_IN_METHODS), via: oneOf("browser", "code", "link"),
-    code: oneOf(...ACCOUNT_SIGN_IN_ERRORS) } },
+    code: oneOf(...ACCOUNT_SIGN_IN_ERRORS), link: oneOf("open", "cloud") } },
   /** an AI sign-in started, finished or failed, by engine family */
   engine_sign_in: { source: "workspace", props: { engine: oneOf(...USAGE_ENGINES), outcome: oneOf("started", "succeeded", "failed", "expired", "cancelled"), reason: oneOf(...USAGE_REASONS) } },
   /** a file attached to a chat: its kind and size bucket, never its name */

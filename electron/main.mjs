@@ -328,16 +328,24 @@ function takeCloudMoveLink(rawLink) {
   return true;
 }
 
+/** The website sent the person back (its onboarding's last step, or after paying): counted, and the account read again so
+ * what they set there (their name, a plan) shows here now rather than at the next refresh. */
+function cameBack(link) {
+  try { productEvents.action("account_sign_in", { step: "back", link }); } catch {}
+  try { if (accountApp() && cloudAccount?.state().status === "connected") void cloudAccount.refresh().catch(() => {}); } catch {}
+  return true;
+}
+
 /** duskbot://open (the website after the person approved this app, or signed in): only the app in front, where it was */
 function takeOpenLink(rawLink) {
   if (typeof rawLink !== "string" || !/^duskbot:\/\/open\/?$/i.test(rawLink)) return false;
   revealForLink();
-  return true;
+  return cameBack("open");
 }
 
 app.on("open-url", (event, rawUrl) => {
   const url = fromLegacyLink(rawUrl);
-  if (!takeSignInLink(url) && !takeOpenLink(url) && !takeCloudMoveLink(url) && !queueOrganizationEntry(url) && !cloudEntry.fromUrl(url) && !queuePackageInstall(url) && !queueChatLink(url) && !slackOAuthLinks.queue(url)) return;
+  if (!takeSignInLink(url) && !takeOpenLink(url) && !takeCloudMoveLink(url) && !queueOrganizationEntry(url) && !(cloudEntry.fromUrl(url) && cameBack("cloud")) && !queuePackageInstall(url) && !queueChatLink(url) && !slackOAuthLinks.queue(url)) return;
   event.preventDefault();
 });
 
@@ -350,7 +358,7 @@ app.on("second-instance", (_event, rawCommandLine) => {
     queueOrganizationEntry("duskbot://organization");
     return;
   }
-  if (cloudEntry.fromArgs(commandLine)) return;
+  if (cloudEntry.fromArgs(commandLine)) { cameBack("cloud"); return; }
   if (slackOAuthLinks.fromCommandLine(commandLine)) return; const packageUrl = packageUrlFromCommandLine(commandLine);
   if (packageUrl) pendingPackageInstallUrl = packageUrl;
   const chatLink = chatLinkFromCommandLine(commandLine);
@@ -620,7 +628,7 @@ const { isLocalSender: senderIsLocal, localOnly, localOnlySync, setLocalOrigin }
 const localOrHome = (channel, handler) => (event, ...args) => (homeWindow.homePage(event) ? handler : localOnly(channel, handler))(event, ...args);
 // only the installed app reports usage; dev, worktree, CI and smoke runs (DUSK_ANALYTICS=0) send nothing
 const productEvents = createProductEvents({ origin: cloudTarget(process.env).origin, token: () => cloudAccount?.eventToken?.() ?? null, platform: process.platform, version: app.getVersion(),
-  enabled: analyticsAllowed({ packaged: app.isPackaged, env: process.env }) });
+  enabled: analyticsAllowed({ packaged: app.isPackaged, env: process.env, custom: cloudTarget(process.env).custom }) });
 ipcMain.handle("product-events:send", localOrHome("product-events:send", (_event, batch) => productEvents.send(batch)));
 ipcMain.handle("product-events:clear", localOrHome("product-events:clear", () => productEvents.clear()));
 ipcMain.handle("product-events:last", localOrHome("product-events:last", (_event, batch) => productEvents.last(batch)));
