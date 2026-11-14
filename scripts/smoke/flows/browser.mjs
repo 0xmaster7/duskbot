@@ -73,6 +73,21 @@ export async function launchBrowser({ dir = null, width = 1280, height = 860 } =
         .find((e) => (e.innerText || e.getAttribute("aria-label") || "").trim().toLowerCase().replace(/\\s+/g, " ").startsWith(want));
       if (!el) return false; el.click(); return true;
     })()`), { timeout, what: `"${label}" in the browser` }),
+    /** a child frame whose host contains `part` (same-site frames share the page's process), driven in an isolated
+     *  world: { evaluate, send }; keyboard input goes to whatever the frame focused */
+    async frame(part, timeout = 30_000) {
+      const find = (node) => { if (node.frame.parentId && new URL(node.frame.url).host.includes(part)) return node.frame; for (const child of node.childFrames ?? []) { const hit = find(child); if (hit) return hit; } return null; };
+      const frame = await until(async () => find((await cdp.send("Page.getFrameTree")).frameTree), { timeout, what: `a frame from ${part}` });
+      const { executionContextId } = await cdp.send("Page.createIsolatedWorld", { frameId: frame.id, worldName: "dusk-smoke" });
+      return {
+        send: cdp.send, close: () => {},
+        async evaluate(expression) {
+          const reply = await cdp.send("Runtime.evaluate", { expression, contextId: executionContextId, awaitPromise: true, returnByValue: true });
+          if (reply.exceptionDetails) throw new Error(reply.exceptionDetails.exception?.description?.split("\n")[0] ?? reply.exceptionDetails.text);
+          return reply.result?.value;
+        },
+      };
+    },
     async screenshot(file) { const shot = await cdp.send("Page.captureScreenshot", { format: "png" }); writeFileSync(file, Buffer.from(shot.data, "base64")); return file; },
     async close() { cdp.close(); kill(); if (!dir) rmSync(profile, { recursive: true, force: true }); },
   };

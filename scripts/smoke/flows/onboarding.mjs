@@ -69,6 +69,8 @@ await runFlow(flow, async () => {
 
   await flow.step("pick-mac", "this Mac goes on to connect an AI", async () => {
     await flow.click("this Mac", { contains: true });
+    // the owner's "this Mac" sheet offers dusk cloud once; the person keeps this Mac
+    await flow.click("continue with this mac", { timeout: 8_000 }).catch(() => {});
     await flow.waitText(/connect an AI/i, "connect an AI");
   });
 
@@ -116,8 +118,22 @@ await runFlow(flow, async () => {
   await flow.step("first-bot", "lands in the app with the imported bot", async () => {
     await flow.waitFor(`Boolean(document.querySelector('textarea[aria-label^="Message"]'))`, "the chat", 60_000);
     const started = Date.now();
+    // the dev app's server is not the desktop's own child, so it refuses to read Downloads (a packaged build does);
+    // there the person pastes the other AI's answer into the chat instead, which is what happens here
+    const look = await flow.evaluate(`fetch("/api/setup-import/notes?since=1").then((r) => r.status)`);
+    if (look === 403) {
+      flow.facts.notesVia = "paste (the dev app cannot read Downloads)";
+      await sleep(6000);
+      await flow.evaluate(`(() => { const box = document.querySelector('textarea[aria-label^="Message"]'); box.focus();
+        const data = new DataTransfer(); data.setData("text/plain", ${JSON.stringify(JSON.stringify(NOTES, null, 2))});
+        box.dispatchEvent(new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true })); return true; })()`);
+    } else flow.facts.notesVia = "Downloads";
     const names = await flow.waitFor(`fetch("/api/bots").then((r) => r.json()).then((j) => { const names = (j.bots ?? j).map((b) => b.name); return names.includes("Ledger") ? names : false; })`, "the imported bot Ledger", 120_000)
-      .catch(async () => { throw new Error(`no imported bot after 2 minutes (bots: ${JSON.stringify(await flow.evaluate(`fetch("/api/bots").then((r) => r.json()).then((j) => (j.bots ?? j).map((b) => b.name))`))})`); });
+      .catch(async () => {
+        const look = await flow.evaluate(`fetch("/api/setup-import/notes?since=1").then(async (r) => r.status + " " + (await r.text()).slice(0, 160)).catch((e) => String(e))`);
+        const line = await flow.evaluate(`document.querySelector("[data-notes-waiting]")?.innerText ?? document.body.innerText.match(/[^\\n]*notes[^\\n]*/i)?.[0] ?? ""`);
+        throw new Error(`no imported bot after 2 minutes (bots: ${JSON.stringify(await flow.evaluate(`fetch("/api/bots").then((r) => r.json()).then((j) => (j.bots ?? j).map((b) => b.name))`))}; Downloads look: ${look}; on screen: ${line})`);
+      });
     flow.facts.importSeconds = Math.round((Date.now() - started) / 1000);
     if (flow.facts.importSeconds > 20) flow.friction("slow", "import", `the notes took ${flow.facts.importSeconds}s to show up after the funnel ended`);
     await flow.click("Ledger", { contains: true, scope: "nav, aside, body" }).catch(() => {});
