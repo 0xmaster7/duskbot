@@ -82,7 +82,7 @@ interface SavedBot { id: string; name: string; toolScope?: { allow?: string[]; d
     await click("Save tool selection");
     const selected = { allow: ["native:*", "mcp:mail:read_notes"], deny: ["mcp:mail:send"] };
     await expect.poll(() => scope()).toEqual(selected);
-    expect(await snapshot()).toContain("Custom selection saved");
+    await expect.poll(snapshot, { timeout: 10_000 }).toContain("Custom selection saved");
 
     await fill("Allow (one per line)", "native:read*");
     expect(await evaluate("document.querySelector('button[aria-label=\"Save tool selection\"]')?.disabled")).toBe(true);
