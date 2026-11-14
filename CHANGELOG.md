@@ -3,6 +3,16 @@
 Notable changes to dusk bot, newest first. Installers and checksums for each version are on the
 [releases page](https://github.com/DuskBotAI/duskbot/releases) and at [dusk.bot/download](https://dusk.bot/download).
 
+## 0.2.8
+
+- The app updates itself on the Mac: the sidebar says Update to, then Downloading with progress, then Restart to update.
+- Stop ends the turn at the press, and nothing of it lands after.
+- A model picked mid-reply applies from the next message.
+- First run: a found AI has Continue, Skip works while it checks, and picking This Mac just goes on.
+- Start fresh in the bot panel, with its confirm, progress and retry.
+- After a move to a server of your own, this computer opens a clean workspace.
+- Menus, switches and dialogs fit their windows and edges better.
+
 ## 0.2.7
 
 dusk bot for Windows and Linux, beside the Mac.
