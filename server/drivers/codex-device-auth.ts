@@ -4,7 +4,7 @@ import { deviceSignInPrompt } from "../../shared/device-sign-in.ts";
 import { DeviceAuthController, type DeviceAuthOptions, type DeviceSignIn } from "./device-auth.ts";
 import { codexReportsLogin } from "./codex-login.ts";
 
-export function codexDevicePrompt(output: string): { authorizationUrl: string; userCode: string } | null {
+export function codexDevicePrompt(output: string): { authorizationUrl: string; userCode?: string } | null {
   return deviceSignInPrompt("codex", stripVTControlCharacters(output));
 }
 
