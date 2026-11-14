@@ -133,6 +133,45 @@ current lines 89 at the start, 93 at the end; About me 1,983 to 2,605 characters
 57 chat calls (854k prompt tokens), 32 capture, 12 organize, 63 tidy, 9 consolidate and 22 other one-shot calls
 (150k prompt tokens together), and 26 judge calls (36k tokens).
 
+### Memory v2
+
+Run on 2026-11-15 on main after the memory v2 commits, with the local embedding model
+(`DUSK_MEMORY_EMBED=1 DUSK_MODEL_DIR=<a folder holding the model>`), the same model and judge as the baseline
+(`results/v2-offline-c.json`, `results/v2-live-a.json`, `results/v2-live-b.json`; run b adds the change that moves a
+bot's copy of a person fact into About me).
+
+| | v1 (baseline) | v2 |
+| --- | --- | --- |
+| offline key groups recalled (hit) | 0.85 | 1.00 |
+| offline questions fully answered | 20 of 26 | 26 of 26 |
+| temporal / update-past / aggregation hit | 0.80 / 0.50 / 0.81 | 1.00 / 1.00 / 1.00 |
+| stale value shown as current, leaks across bots | 0 / 0 | 0 / 0 |
+| abstention: "nothing found" said | 0 of 4 | 2 of 4 (one gets no recall at all, one 656 characters of loosely related notes) |
+| trivial messages recalling anything | 0 | 0 |
+| forget "Pune" (scripted) | erased Priya's and Rohan's facts too | erased nothing, returned the three candidates with ids |
+| forget "that I lived in Pune" (live model) | precise | precise |
+| planted via webhook, always-loaded | `MEMORY.md` | nowhere (unverified note only) |
+| planted via another bot, always-loaded | About me and `MEMORY.md` | nowhere (unverified note only) |
+| memory tokens per turn above the floor, offline | 1,198 | 1,140 |
+| always-loaded memory, largest possible files (24 KB `MEMORY.md`, 24k About me) | about 6,300 tokens | about 1,700 tokens |
+| recall latency, median ms (send to model) | 23 | 44 |
+| live probes / store checks | 14/14, 10/10 | a: 14/14, 10/10; b: 13/14, 8/10 |
+| live near-duplicates after eight months (judge) | 22 (1 exact) | a: 20 (3 exact); b: 14 (1 exact) |
+| live current lines, start to end | 89 to 93 | a: 89 to 95; b: 89 to 90 |
+| live About me characters, start to end | 1,983 to 2,605 | a: 1,983 to 2,440; b: 1,983 to 2,334 |
+| live `MEMORY.md` characters loaded (Scout) | 4,473 | a: 2,523; b: 2,837 |
+| live prompt tokens per chat call | 14,986 | a: 14,619; b: 14,757 |
+
+The corpus is small, so `MEMORY.md` and About me nearly fit whole in both builds and the per-turn saving here is
+modest; the bound on the largest files is the difference that grows with months of use. Recall now costs about
+20 ms more per turn (embedding the message). In run b, one "gym is back to Saturdays" turn failed at the gateway,
+so the bot never struck its own Sunday note and two store checks failed on it; the partner's new job went to
+Scout's topic notes rather than About me, so another bot could not answer it. Both are model and gateway variance
+over one run each, not a rule the build applies; treat single live runs as noisy.
+
+Cost of the two v2 live runs: 57 and 66 chat calls (833k and 974k prompt tokens), about 150k prompt tokens of
+capture, organize, tidy and consolidate calls each, 26 judge calls each (about 36k tokens).
+
 ### The two-week scenario
 
 Run on 2026-11-14 with `gpt-6.1-terra` for the bots and the judge (Claude models were unavailable on the
