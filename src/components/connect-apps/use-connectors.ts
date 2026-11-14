@@ -86,6 +86,9 @@ export interface Connectors {
   phaseOf: (card: ToolkitCard, policyBlocked: string | null) => ConnectorPhase;
   isConnected: (slug: string) => boolean;
   connect: (slug: string, alias?: string, replacing?: ConnectorAccount) => Promise<void>;
+  /** A Connect clicked before Composio Connect was read: reads it on the click and, when signed in, goes straight on to the
+   * app's sign-in in the tab reserved on the click. Resolves false when it is not signed in (the app's page takes over). */
+  connectIfSignedIn: (slug: string) => Promise<boolean>;
   /** Stops the app's connect or sign-in where it is, polling and all, and puts it back to Connect or Authorize. */
   cancel: (slug: string) => void;
   /** After a Composio key is saved: reads the catalog and connections again, then goes on with `slug`'s Connect in the tab
@@ -525,6 +528,21 @@ export function useConnectors(): Connectors {
     if (opensPagesExternally()) await connectVia(slug, reserveConnectionPage());
   };
 
+  const connectIfSignedIn = async (slug: string): Promise<boolean> => {
+    if (busy[slug] || opening.current.has(slug)) return true;
+    const launch = reserveConnectionPage();
+    const signal = begin(slug, launch);
+    let now: ComposioConnect | null = null;
+    try { now = await api("/api/connectors/composio-connect", { signal, timeoutMs: VIA_READ_MS }) as ComposioConnect; } catch { now = null; }
+    // cancelled while reading: the row is back to Connect already
+    if (opening.current.get(slug) !== launch) { launch.cancel(); return true; }
+    end(slug, launch);
+    if (now && mounted.current) { viaNow.current = now; setVia(now); }
+    if (!now?.signedIn) { launch.cancel(); return false; }
+    await connectVia(slug, launch);
+    return true;
+  };
+
   const reopenVia = (slug: string) => {
     const flow = viaFlow[slug];
     if (flow?.step !== "waiting") { void connect(slug); return; }
@@ -708,7 +726,7 @@ export function useConnectors(): Connectors {
     viaRoute: (slug) => !configured || unmanaged.current.has(slug) || keyFor === slug, authorizeComposio, reopenVia, checkVia,
     setError, askAlias: setAliasFor, askKey: setKeyFor, phaseOf,
     isConnected: (slug) => hasActiveConnection(status[slug]) || viaApps[slug] === true,
-    connect, cancel, continueAfterKey, resume, disconnect,
+    connect, connectIfSignedIn, cancel, continueAfterKey, resume, disconnect,
     reload: () => setReloads((count) => count + 1),
   };
 }

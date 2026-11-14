@@ -376,7 +376,17 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     const vendor = vendorOf(entry);
     if (vendor) return void remote.connect(vendor);
     const ready = composioReady;
-    if (entry.kind === "composio" && !ready && !window.duskDesktop?.remoteClient?.active) connectors.askKey(entry.id);
+    const remoteClient = window.duskDesktop?.remoteClient?.active === true;
+    // clicked before Composio Connect was read: read it now rather than take a signed-in person to the app's page
+    if (entry.kind === "composio" && !ready && connectors.via === null && !remoteClient) {
+      void connectors.connectIfSignedIn(entry.id).then((started) => {
+        if (started) return;
+        connectors.askKey(entry.id);
+        go({ kind: "detail", id: entry.id });
+      });
+      return;
+    }
+    if (entry.kind === "composio" && !ready && !remoteClient) connectors.askKey(entry.id);
     if (entry.kind !== "composio" || !ready) return go({ kind: "detail", id: entry.id });
     void connectors.connect(entry.id);
   };

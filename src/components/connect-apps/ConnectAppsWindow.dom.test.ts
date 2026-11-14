@@ -472,6 +472,25 @@ describe("the Connect Apps window", () => {
       }
     });
 
+    it("a row's Connect clicked before Composio Connect is read still opens the app's sign-in, never the app's page", async () => {
+      await remount({ kind: "home" }, "unavailable");
+      viaApi({ signedIn: true }, (method) => method === "POST" ? { status: "started", url: "https://connect.composio.dev/link/ln_attio" } : { status: "none" });
+      // the window's own read of Composio Connect is still out when the row is clicked
+      const answered = fixture.api.getMockImplementation()!;
+      let reads = 0;
+      fixture.api.mockImplementation((path: string, init?: RequestInit) => path === "/api/connectors/composio-connect" && reads++ === 0 ? new Promise(() => {}) : answered(path, init));
+      act(() => root.unmount());
+      root = createRoot(document.body.appendChild(document.createElement("div")));
+      await act(async () => { root.render(createElement(ConnectAppsWindow, { page: { kind: "home" }, nonce: 8, onClose, onTemplates: vi.fn() })); });
+      await flush();
+      await act(async () => { dialog().querySelector<HTMLButtonElement>('[data-app-row="attio"] .ca-pill')!.click(); });
+      await flush();
+      await flush();
+      expect(dialog().querySelector("[data-app-page]"), "no detour to the app's page").toBeNull();
+      expect(fixture.api).toHaveBeenCalledWith("/api/connectors/composio-connect/apps/attio", expect.objectContaining({ method: "POST" }));
+      expect(fixture.opened).toEqual(["https://connect.composio.dev/link/ln_attio"]);
+    });
+
     it("the first time, the one-time Composio step runs inline and goes straight on to the app's own sign-in on the desktop app", async () => {
       const opened: string[] = [];
       vi.stubGlobal("duskDesktop", { openExternal: async (url: string) => { opened.push(url); } });
