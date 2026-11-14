@@ -2,7 +2,7 @@
 // saying; nothing touches the draft until they stop, then the words land at once, ready to edit. A late final from
 // the recognizer, and the optional clean-up, replace those words only while the draft is still exactly as left.
 import { feature } from "./product-analytics";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { createElement, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useDesktopCapabilities } from "@/components/DesktopCapabilities";
 import { withOpenSettings } from "@/components/OpenSystemSettings";
 import { withVoiceSettings } from "@/components/OpenVoiceSettings";
@@ -58,9 +58,14 @@ function serviceName(engine: ResolvedEngine): string {
   return engine.kind === "provider" ? VOICE_PROVIDER_INFO[engine.provider].name : "";
 }
 
+/** The body of the "nothing here can listen" card; the composer gives it a title and the way to pick a service. */
+export function NoRecognizerNote() {
+  return t("composer.voice.noRecognizer");
+}
+
 /** Nothing on this device can listen: say so plainly, with the way to pick a service. */
 export function noRecognizer(): ReactNode {
-  return withVoiceSettings(t("composer.voice.noRecognizer"), "composer.voice.chooseService");
+  return createElement(NoRecognizerNote);
 }
 
 /** The calm line shown over the composer when voice input could not go on. */
@@ -100,7 +105,7 @@ export function useComposerDictation({ draftId, text, onText }: {
   // capabilities load after the first paint: re-read the device when they do, and when the phone registers itself
   useDesktopCapabilities();
   useSyncExternalStore(onPhoneVoice, phoneVoice, () => null);
-  const config = useStore().state.config;
+  const { state: { config, appSettingsOpen, appSettingsSection } } = useStore();
   const prefs = useVoicePrefs();
   const keys = useVoiceKeys();
   const engine = currentEngine(prefs, keys, serverListeningReady(config));
@@ -315,6 +320,13 @@ export function useComposerDictation({ draftId, text, onText }: {
     void s.bridge.speechStop().catch(() => {});
   }, [commit, release]);
 
+  // the note goes once the person is in Settings > Voice; only a later failed press shows it again
+  const inVoiceSettings = appSettingsOpen && appSettingsSection === "voice";
+  useEffect(() => {
+    if (inVoiceSettings) setSpeechError(null);
+  }, [inVoiceSettings]);
+  const dismissError = useCallback(() => setSpeechError(null), []);
+
   const toggle = () => {
     if (!ready) {
       setSpeechError(engine.kind === "none" ? noRecognizer() : t("composer.dictation.unavailable"));
@@ -352,6 +364,7 @@ export function useComposerDictation({ draftId, text, onText }: {
     ready,
     preview,
     speechError,
+    dismissError,
     tidying,
     levels: levels.subscribe,
     hasLevels: Boolean(bridge?.onSpeechLevel),

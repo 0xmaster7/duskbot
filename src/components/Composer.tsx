@@ -1,8 +1,10 @@
 import { AnimatePresence } from "motion/react";
 import { directMessageSent, roomMessageSent } from "@/lib/product-events";
 import { cueMascot } from "./mascot-events";
-import { useComposerDictation } from "@/lib/use-composer-dictation";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type SetStateAction } from "react";
+import { NoRecognizerNote, useComposerDictation } from "@/lib/use-composer-dictation";
+import { CARD_ACTION, ChatErrorCard } from "./ChatErrorBanner";
+import { OpenVoiceSettings } from "./OpenVoiceSettings";
+import { isValidElement, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import { Mic } from "../icons";
 import { useStore, visibleMessages, currentTaskBot, type Bot, type Group, type InstanceInfo, type Message } from "@/state/store";
 import { cn } from "@/lib/cn";
@@ -850,8 +852,17 @@ export function Composer({
   return (
     <div className={cn("pointer-events-none relative px-5", simpleDock ? "pb-4" : "pb-3")}>
       {speechError && (
-        <div role="status" className="pointer-events-auto mb-2 w-full px-0.5 text-[12px] leading-4 text-warning">
-          {speechError}
+        // any settings button on it is a way out of it too
+        <div className="pointer-events-auto mb-2 w-full" data-speech-note=""
+          onClickCapture={(event) => { if ((event.target as Element).closest?.("[data-open-voice-settings],[data-open-system-settings]")) dictation.dismissError(); }}>
+          {isValidElement(speechError) && speechError.type === NoRecognizerNote ? (
+            <ChatErrorCard tone="warning" icon="mic" title={t("composer.voice.unavailableTitle")} onDismiss={dictation.dismissError}
+              actions={<OpenVoiceSettings labelKey="composer.voice.chooseService" className={CARD_ACTION} />}>
+              <p dir="auto" className="text-ink-secondary">{speechError}</p>
+            </ChatErrorCard>
+          ) : (
+            <ChatErrorCard tone="warning" icon="mic" title={speechError} onDismiss={dictation.dismissError} />
+          )}
         </div>
       )}
       {dictation.tidying && !speechError && (

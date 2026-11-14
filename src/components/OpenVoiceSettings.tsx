@@ -5,11 +5,11 @@ import type { LocaleKey } from "@/locales";
 import { useStore } from "@/state/store";
 
 /** A button on a voice line that opens Settings at Voice, where a speech service is picked or its key fixed. */
-export function OpenVoiceSettings({ labelKey }: { labelKey: LocaleKey }) {
+export function OpenVoiceSettings({ labelKey, className }: { labelKey: LocaleKey; className?: string }) {
   const { dispatch } = useStore();
   return (
     <button type="button" data-open-voice-settings="" onClick={() => dispatch(openSettings("voice"))}
-      className="shrink-0 rounded text-[13px] text-ink-secondary transition-colors hover:text-ink">
+      className={className ?? "shrink-0 rounded text-[13px] text-ink-secondary transition-colors hover:text-ink"}>
       {t(labelKey)}
     </button>
   );

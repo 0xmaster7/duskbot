@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { createElement } from "react";
+import { act, createElement } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,13 +8,13 @@ import { restoreComposerDraft } from "@/lib/drafts";
 import { t } from "@/lib/i18n";
 import { DEFAULT_VOICE_PREFS, setVoicePrefs, voicePrefs } from "@/lib/voice-input/prefs";
 
-const fixture = vi.hoisted(() => ({ dispatch: vi.fn() }));
+const fixture = vi.hoisted(() => ({ dispatch: vi.fn(), settings: { appSettingsOpen: false, appSettingsSection: "general" } }));
 vi.mock("@/state/store", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/state/store")>();
   return { ...original, useStore: () => ({
     state: { ...original.initialState, bots: [bot], instances: [{
       instanceId: "fake", driverKind: "claude", displayName: "Fake", capabilities: {},
-    }] },
+    }], ...fixture.settings },
     dispatch: fixture.dispatch,
   }) };
 });
@@ -328,14 +328,43 @@ describe("a computer where nothing can listen", () => {
     vi.unstubAllGlobals();
   });
 
-  it("says so plainly with a button that opens Settings at Voice", () => {
-    flushSync(() => container.querySelector<HTMLButtonElement>(`button[aria-label="${t("composer.dictation.start")}"]`)!.click());
+  const pressMic = () => flushSync(() => container.querySelector<HTMLButtonElement>(`button[aria-label="${t("composer.dictation.start")}"]`)!.click());
+  const note = () => container.querySelector<HTMLElement>("[data-speech-note]");
+
+  it("says so plainly on a card with a button that opens Settings at Voice, and the button closes it", () => {
+    expect(note()).toBeNull();
+    pressMic();
     expect(speechStart).not.toHaveBeenCalled();
-    expect(container.textContent).toContain(t("composer.voice.noRecognizer"));
+    const card = note()!.querySelector<HTMLElement>("[data-chat-error]")!;
+    expect(card.textContent).toContain(t("composer.voice.unavailableTitle"));
+    expect(card.textContent).toContain(t("composer.voice.noRecognizer"));
     expect(container.textContent?.toLowerCase()).not.toContain("settings > voice");
-    const choose = container.querySelector<HTMLButtonElement>("[data-open-voice-settings]")!;
+    const choose = card.querySelector<HTMLButtonElement>("[data-open-voice-settings]")!;
     expect(choose.textContent).toBe(t("composer.voice.chooseService"));
     flushSync(() => choose.click());
     expect(fixture.dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "toggleAppSettings", open: true, section: "voice" }));
+    expect(note()).toBeNull();
+  });
+
+  it("the cross closes it, and only another failed press brings it back", () => {
+    pressMic();
+    flushSync(() => note()!.querySelector<HTMLButtonElement>(`button[aria-label="${t("chat.error.dismiss")}"]`)!.click());
+    expect(note()).toBeNull();
+    flushSync(() => root.render(createElement(Composer, { bot })));
+    expect(note()).toBeNull();
+    pressMic();
+    expect(note()).not.toBeNull();
+  });
+
+  it("goes away once Settings opens at Voice some other way", async () => {
+    pressMic();
+    expect(note()).not.toBeNull();
+    fixture.settings = { appSettingsOpen: true, appSettingsSection: "voice" };
+    try {
+      await act(async () => root.render(createElement(Composer, { bot })));
+      expect(note()).toBeNull();
+    } finally {
+      fixture.settings = { appSettingsOpen: false, appSettingsSection: "general" };
+    }
   });
 });

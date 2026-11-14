@@ -2457,6 +2457,7 @@
   "composer.voice.tidying": "Tidying up your words…",
   "composer.voice.timeout": "Transcription took too long. Try again.",
   "composer.voice.noRecognizer": "Nothing on this computer can turn speech into text yet.",
+  "composer.voice.unavailableTitle": "Voice input isn't available",
   "composer.voice.chooseService": "Choose a speech service",
   "composer.voice.checkKey": "Check the key",
   "composer.voice.finishSetup": "Finish setup",
