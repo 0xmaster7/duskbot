@@ -327,9 +327,9 @@ function SkillSourceDialog({ viewing, error, working, onClose, onEnable }: {
           role="dialog"
           aria-modal="true"
           aria-labelledby="skills-library-view-title"
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 p-6"
+          className="ui-dialog-scrim fixed inset-0 z-[90] flex items-center justify-center p-6"
         >
-          <div className="flex max-h-[min(760px,90vh)] w-full max-w-2xl flex-col rounded-[14px] border border-transparent bg-app p-5">
+          <div className="ui-dialog flex max-h-[min(760px,90vh)] w-full max-w-2xl flex-col p-5">
             <div className="flex items-center justify-between gap-3">
               <div id="skills-library-view-title" className="text-[15px] font-medium leading-[22px] text-ink">{viewing.review ? `review ${viewing.skill.name} before enabling` : viewing.skill.name}</div>
               <button

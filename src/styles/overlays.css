@@ -108,6 +108,8 @@
 :is([role="alertdialog"], [aria-modal="true"], .ui-modal, .ui-dialog):not(.popover-surface, .menu-surface).animate-pop-out {
   animation: overlay-fade-out 120ms var(--ease-out-bencho) forwards;
 }
+/* the command palette is opened many times a day: it stays raw */
+[data-raw-dialog] { animation: none !important; }
 .ui-scrim,
 .ui-dialog-scrim,
 .ui-dialog-scrim-panel,

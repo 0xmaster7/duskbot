@@ -263,6 +263,7 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
       {/* opened often, so it opens and closes raw, as grok's does */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
       <div
+        data-raw-dialog=""
         role="dialog"
         aria-modal="true"
         aria-label={t("sidebar.search")}
