@@ -7,8 +7,8 @@ const ai = (instanceId: string, driverKind: string, ready = false, extra: Record
 const ready = (instance: { snapshot: { state: string } }) => instance.snapshot.state === "available";
 
 describe("the funnel's steps", () => {
-  it("asks for an account only where one can be signed in, and where bots live only on the desktop app", () => {
-    expect(funnelSteps({ account: true, desktop: true })).toEqual(["welcome", "account", "place", "ai"]);
+  it("on the desktop app asks where bots live first (the hello is part of it), then the account where there is none yet", () => {
+    expect(funnelSteps({ account: true, desktop: true })).toEqual(["place", "account", "ai"]);
     expect(funnelSteps({ account: false, desktop: false })).toEqual(["welcome", "ai"]);
   });
 
@@ -17,20 +17,29 @@ describe("the funnel's steps", () => {
   });
 
   it("offers bringing bots in only when another app has some", () => {
-    expect(funnelSteps({ account: false, desktop: true, bring: true })).toEqual(["welcome", "place", "ai", "bring"]);
+    expect(funnelSteps({ account: false, desktop: true, bring: true })).toEqual(["place", "ai", "bring"]);
   });
 
   it("shows the phone only while the phone app is offered, on this computer's own window", () => {
-    expect(funnelSteps({ account: false, desktop: true, bring: true, phone: true })).toEqual(["welcome", "place", "ai", "bring", "phone"]);
+    expect(funnelSteps({ account: false, desktop: true, bring: true, phone: true })).toEqual(["place", "ai", "bring", "phone"]);
     expect(funnelSteps({ account: false, desktop: false, phone: true })).toEqual(["welcome", "ai"]);
-    expect(funnelSteps({ account: false, desktop: true, cloud: true, phone: true })).not.toContain("phone");
+    expect(funnelSteps({ account: false, desktop: true, path: "cloud", phone: true })).not.toContain("phone");
   });
 
-  it("ends a dusk cloud run on the cloud being made, never on this Mac's phone or bots", () => {
-    const steps = funnelSteps({ account: false, desktop: true, bring: true, cloud: true, phone: true });
-    expect(steps).toEqual(["welcome", "place", "ai", "making"]);
-    expect(nextStep(steps, "ai")).toBe("making");
+  it("on dusk cloud goes straight to the browser's checkout, never this Mac's account step, then the AI and the cloud", () => {
+    const steps = funnelSteps({ account: true, desktop: true, bring: true, path: "cloud", phone: true });
+    expect(steps).toEqual(["place", "checkout", "ai", "making"]);
+    expect(nextStep(steps, "place")).toBe("checkout");
+    expect(nextStep(steps, "checkout")).toBe("ai");
     expect(nextStep(steps, "making"), "the chat comes after the last").toBeNull();
+    expect(previousStep(steps, "checkout"), "an easy way back before paying").toBe("place");
+    expect(previousStep(steps, "ai", { paid: true }), "never back to a purchase that is done").toBeNull();
+  });
+
+  it("on this Mac goes from the place to the account, the AI and what to bring", () => {
+    const steps = funnelSteps({ account: true, desktop: true, bring: true, path: "mac" });
+    expect(steps).toEqual(["place", "account", "ai", "bring"]);
+    expect(nextStep(steps, "place")).toBe("account");
   });
 
   it("never passes over the AI step, so a connected AI still shows and more can be added", () => {

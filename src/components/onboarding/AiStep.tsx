@@ -107,7 +107,9 @@ function useFocusOnConnect(connectedIds: readonly string[]) {
   }, [key]);
 }
 
-export function AiStep({ tested, onNext }: { tested: WelcomeAiNow | null; onNext: () => void }) {
+/** `onNext` says how the person went on (an AI connected, the free model, or later), for the funnel's numbers. `cloud`:
+ * the person's dusk cloud is being made meanwhile, which the line says. */
+export function AiStep({ tested, cloud = false, onNext }: { tested: WelcomeAiNow | null; cloud?: boolean; onNext: (how: "connected" | "free" | "later") => void }) {
   const { state } = useStore();
   const [picked, setPicked] = useState<AiTileId | null>(null);
   const [more, setMore] = useState(false);
@@ -118,14 +120,14 @@ export function AiStep({ tested, onNext }: { tested: WelcomeAiNow | null; onNext
   useFocusOnConnect(connected.map((tile) => tile.id));
 
   return (
-    <StepFrame art={<StepArt art="plug" />} title={t("funnel.ai.title")} sub={connected.length ? t("funnel.ai.subMore") : t("funnel.ai.sub")} wide
+    <StepFrame art={<StepArt art="plug" />} title={t("funnel.ai.title")} sub={connected.length ? t("funnel.ai.subMore") : cloud ? t("funnel.ai.subCloud") : t("funnel.ai.sub")} wide
       footer={<>
         {connected.length > 0
-          ? <button type="button" data-primary="" data-funnel-ai-continue="" onClick={onNext} className={PRIMARY}>{t("funnel.next")}</button>
-          : free && <button type="button" data-funnel-free="" onClick={onNext} className={SECONDARY}>{t("funnel.ai.free")}</button>}
+          ? <button type="button" data-primary="" data-funnel-ai-continue="" onClick={() => onNext("connected")} className={PRIMARY}>{t("funnel.next")}</button>
+          : free && <button type="button" data-funnel-free="" onClick={() => onNext("free")} className={SECONDARY}>{t("funnel.ai.free")}</button>}
         <span className="flex flex-wrap items-center justify-center gap-1">
           <button type="button" data-funnel-ai="more" onClick={() => setMore(true)} className={QUIET}>{t("funnel.ai.more")}</button>
-          {connected.length === 0 && <button type="button" data-funnel-later="" onClick={onNext} className={QUIET}>{t("funnel.ai.later")}</button>}
+          {connected.length === 0 && <button type="button" data-funnel-later="" onClick={() => onNext("later")} className={QUIET}>{t("funnel.ai.later")}</button>}
         </span>
       </>}>
       <div role="list" aria-label={t("funnel.ai.title")} className="grid w-full grid-cols-2 gap-2.5 sm:grid-cols-4">

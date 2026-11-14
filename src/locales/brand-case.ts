@@ -109,7 +109,10 @@ const PANEL_LOWER = /^runsOn\.(status|hint)\./;
 const SERVER_FRAGMENTS = /^server\.(runs\.state|incidents\.where|reports\.(when|why))\.|^server\.(connect\.thisApp|rooms\.sameName\.chief|teammates\.(room|handedWork)|mcp\.card\.(newKey|newClientSecret))$/;
 
 /** single labels outside the panel that read in sentence case too */
-const SENTENCE_LABELS: ReadonlySet<string> = new Set(["sidebar.connectApps"]);
+const SENTENCE_LABELS: ReadonlySet<string> = new Set(["sidebar.connectApps",
+  // the first run's dusk cloud checkout and price tag, written in the app's coming sentence case
+  "funnel.place.cloudPriceTag", "funnel.checkout.title", "funnel.checkout.opening", "funnel.checkout.waitSignIn", "funnel.checkout.waitCheckout",
+  "funnel.checkout.again", "funnel.checkout.mac"]);
 
 export function isPanelEntry(key: string): boolean {
   if (SENTENCE_LABELS.has(key)) return true;

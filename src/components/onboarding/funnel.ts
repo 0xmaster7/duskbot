@@ -5,6 +5,9 @@ import { freeFallback } from "../../../shared/ai-ranking";
 export const FUNNEL_STEPS = BEAT_ORDER;
 export type FunnelStep = BeatId;
 
+/** where the bots live, as the person picked it on the place step (none yet before that) */
+export type FunnelPath = "mac" | "cloud";
+
 export interface FunnelFacts {
   /** a dusk bot account can be signed in to from this window, and isn't yet */
   account: boolean;
@@ -12,23 +15,27 @@ export interface FunnelFacts {
   desktop: boolean;
   /** this window can bring in what other AI apps left on this computer (and offer the prompt for ones online) */
   bring?: boolean;
-  /** a dusk cloud was bought in this run: the bots live there, so the run ends by waiting for it */
-  cloud?: boolean;
+  /** where the person put the bots; dusk cloud signs in, picks a plan and pays in the browser, then ends on the cloud */
+  path?: FunnelPath | null;
   /** the hello screen; false for a server opened from the desktop app, whose person has already met dusk bot there */
   hello?: boolean;
   /** the phone app is offered (phoneAppEnabled) */
   phone?: boolean;
 }
 
-/** The screens this person gets, in order. */
+/** The screens this person gets, in order. On the desktop app the first question is where the bots live (the hello is
+ * part of it); this Mac goes on to the account (when there is none yet), an AI and what to bring; dusk cloud goes to the
+ * browser for its account, plan and checkout, then an AI while the cloud is made, then the cloud. */
 export function funnelSteps(facts: FunnelFacts): FunnelStep[] {
+  const cloud = facts.desktop && facts.path === "cloud";
   return FUNNEL_STEPS.filter((step) => {
-    if (step === "welcome") return facts.hello !== false;
-    if (step === "account") return facts.account;
+    if (step === "welcome") return facts.hello !== false && !facts.desktop;
     if (step === "place") return facts.desktop;
-    if (step === "bring") return facts.desktop && Boolean(facts.bring) && !facts.cloud;
-    if (step === "phone") return Boolean(facts.phone) && facts.desktop && !facts.cloud;
-    if (step === "making") return facts.desktop && Boolean(facts.cloud);
+    if (step === "account") return facts.account && !cloud;
+    if (step === "checkout") return cloud;
+    if (step === "bring") return facts.desktop && Boolean(facts.bring) && !cloud;
+    if (step === "phone") return Boolean(facts.phone) && facts.desktop && !cloud;
+    if (step === "making") return cloud;
     return true;
   });
 }
@@ -39,10 +46,19 @@ export function nextStep(steps: readonly FunnelStep[], at: FunnelStep): FunnelSt
   return index >= 0 && index + 1 < steps.length ? steps[index + 1]! : null;
 }
 
-/** Back goes one screen back; the cloud being made has no way back to the purchase. */
-export function previousStep(steps: readonly FunnelStep[], at: FunnelStep): FunnelStep | null {
+/** Back goes one screen back; once dusk cloud is paid for there is no way back to the purchase. */
+export function previousStep(steps: readonly FunnelStep[], at: FunnelStep, { paid = false }: { paid?: boolean } = {}): FunnelStep | null {
   const index = steps.indexOf(at);
-  return index > 0 ? steps[index - 1]! : null;
+  const back = index > 0 ? steps[index - 1]! : null;
+  return paid && back === "checkout" ? null : back;
+}
+
+/** dusk cloud is paid for: the account's own Cloud is being made, made, or its payment is linking. */
+export function cloudBought(account: { purchase?: unknown; machine?: { status: string }; clouds?: Array<{ primary: boolean; runsOn: string; status: string }> } | null): boolean {
+  if (!account) return false;
+  if (account.purchase) return true;
+  if (account.clouds?.some((entry) => entry.primary && entry.runsOn === "cloud" && (entry.status === "setting_up" || entry.status === "ready"))) return true;
+  return account.machine?.status === "provisioning" || account.machine?.status === "ready";
 }
 
 interface AiTileInstance {

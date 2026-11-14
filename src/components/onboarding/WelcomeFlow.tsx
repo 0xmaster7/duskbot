@@ -18,7 +18,8 @@ import { WindowDragStrip } from "../DesktopCapabilities";
 import { AccountStep } from "./AccountStep";
 import { AiStep } from "./AiStep";
 import { BringStatus, BringStep } from "./BringStep";
-import { funnelSteps, nextStep, previousStep, type FunnelStep } from "./funnel";
+import { CheckoutStep, useCloudTile } from "./CheckoutStep";
+import { funnelSteps, nextStep, previousStep, type FunnelPath, type FunnelStep } from "./funnel";
 import { funnelAccount, type FunnelAccountState } from "./funnel-account";
 import { FunnelBar, ImproveSwitch, PhoneStep, PlaceStep, WelcomeStep } from "./FunnelSteps";
 import { MacPickSheet } from "./MacPickSheet";
@@ -44,13 +45,7 @@ async function nameFromComputer(config: Config, done: (config: NonNullable<Confi
   }
 }
 
-/** The plan sheet ended in a purchase: the account's own Cloud is paid for (being made, made, or a payment linking). */
-export function cloudBought(account: { purchase?: unknown; machine?: { status: string }; clouds?: Array<{ primary: boolean; runsOn: string; status: string }> } | null): boolean {
-  if (!account) return false;
-  if (account.purchase) return true;
-  if (account.clouds?.some((entry) => entry.primary && entry.runsOn === "cloud" && (entry.status === "setting_up" || entry.status === "ready"))) return true;
-  return account.machine?.status === "provisioning" || account.machine?.status === "ready";
-}
+export { cloudBought } from "./funnel";
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -72,8 +67,8 @@ export function trapTab(event: ReactKeyboardEvent<HTMLElement>, root: HTMLElemen
 
 /** The first run, one calm screen at a time: the welcome, a dusk bot account, where the bots live, an AI, bots from
  * another app (only when there are some), the phone (while the phone app is offered). It ends in Dusk's chat (Dusk made the Chief of Staff where no other
- * bot is one), where Dusk greets and asks for whatever is still missing. On dusk cloud it is the plan sheet, the AI, then
- * the Cloud being made, and it ends in that Cloud's chat. */
+ * bot is one), where Dusk greets and asks for whatever is still missing. On dusk cloud it is the browser (account, plan and
+ * checkout there, this screen waiting beside it), the AI while the Cloud is made, then the Cloud, ending in that Cloud's chat. */
 export function WelcomeFlow({
   onDone,
   replay = false,
@@ -111,7 +106,11 @@ export function WelcomeFlow({
   }, [account]);
   const desktop = !embedded && localDesktopPage() && window.duskDesktop?.remoteClient?.active !== true;
   const draft = useMemo(() => (keepsDraft ? readWelcomeDraft() : null), [keepsDraft]);
-  const [cloud, setCloud] = useState(draft?.cloud === true);
+  // where the bots live, once picked; a resumed dusk cloud run past its checkout is paid for (the AI or the Cloud being made)
+  const [path, setPath] = useState<FunnelPath | null>(draft?.cloud === true ? "cloud" : null);
+  const [paid, setPaid] = useState(draft?.cloud === true && (draft.beat === "ai" || draft.beat === "making"));
+  const [checkoutStart, setCheckoutStart] = useState(false);
+  const cloud = path === "cloud";
 
   // what other AI apps left on this computer: looked for from the start, in the background, so the step is ready by the
   // time it shows; the step itself is there either way, for the AIs that live online
@@ -129,8 +128,9 @@ export function WelcomeFlow({
   const [notesLine, setNotesLine] = useState<string | null>(null);
 
   const saved = initialBeat ?? draft?.beat;
-  const steps = funnelSteps({ account: Boolean(account) && !firstKnown.current?.signedIn, desktop, bring: offersMove, cloud,
-    hello: window.duskDesktop?.remoteClient?.active !== true, phone: phoneAppEnabled() });
+  const stepsFor = (picked: FunnelPath | null) => funnelSteps({ account: Boolean(account) && !firstKnown.current?.signedIn, desktop, bring: offersMove,
+    path: picked, hello: window.duskDesktop?.remoteClient?.active !== true, phone: phoneAppEnabled() });
+  const steps = stepsFor(path);
 
   const [at, setAt] = useState<FunnelStep>(() => resumeBeat(steps, saved));
   // the second click of a double click lands on the step it opened: it must not choose there
@@ -143,11 +143,19 @@ export function WelcomeFlow({
   };
   const [from, setFrom] = useState<"next" | "back">("next");
   const tested = useWelcomeAi(state.instances);
+  const cloudTile = useCloudTile(desktop);
 
+  // each screen shown, with the path and how long the screen before it took: drop-off per step on the admin page
+  const shownAt = useRef<number | null>(null);
   useEffect(() => {
-    track("onboarding_step", { step: at, replay });
+    const now = Date.now();
+    track("onboarding_step", { step: at, replay, ...(path ? { path } : {}), ...(shownAt.current !== null ? { ms: now - shownAt.current } : {}) });
+    shownAt.current = now;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [at, replay]);
+  useEffect(() => {
     if (keepsDraft && !finishing.current) saveWelcomeDraft({ beat: at, ...(cloud ? { cloud: true as const } : {}) });
-  }, [at, replay, keepsDraft, cloud]);
+  }, [at, keepsDraft, cloud]);
 
   // A Cloud sheet opened over the welcome never switches the window away from it (CloudAddDialog).
   useEffect(() => (embedded ? undefined : showWelcome()), [embedded]);
@@ -166,7 +174,7 @@ export function WelcomeFlow({
     async (reason: "completed" | "skipped", botId: string | null) => {
       if (finishing.current) return;
       finishing.current = true;
-      track("onboarding_completed", { reason, at, replay });
+      track("onboarding_completed", { reason, at, replay, ...(path ? { path } : {}) });
       setEmailGateDone("submitted");
       if (!replay && !embedded) markWelcomeFinished();
       if (keepsDraft) clearWelcomeDraft();
@@ -178,7 +186,7 @@ export function WelcomeFlow({
       } catch {
       }
     },
-    [at, dispatch, onDone, replay, embedded, keepsDraft],
+    [at, path, dispatch, onDone, replay, embedded, keepsDraft],
   );
 
   // where it fits, Dusk becomes the Chief of Staff and greets in its chat, with no screen to ask
@@ -197,7 +205,7 @@ export function WelcomeFlow({
     setAt(step);
   }, [toChat]);
   const next = useCallback(() => go(nextStep(steps, at), "next"), [go, steps, at]);
-  const back = previousStep(steps, at);
+  const back = previousStep(steps, at, { paid });
 
   // signing in in the browser comes back here by itself
   const signedOutSeen = useRef(false);
@@ -207,39 +215,39 @@ export function WelcomeFlow({
     else if (signedOutSeen.current) { signedOutSeen.current = false; next(); }
   }, [at, known, next]);
 
-  // dusk cloud's sheet opens over the funnel; once it is paid for, the sheet closes and the AI step follows, then the
-  // Cloud being made. Closed without a purchase, the choice stays open.
-  const [cloudOpen, setCloudOpen] = useState(false);
-  const cloudSeen = useRef(false);
-  useEffect(() => {
-    if (!cloudOpen) return;
-    if (state.cloudAdd) { cloudSeen.current = true; return; }
-    if (!cloudSeen.current) return;
-    cloudSeen.current = false;
-    setCloudOpen(false);
-    void window.duskDesktop?.cloudAccount?.state().then((account) => {
-      if (!cloudBought(account)) return;
-      track("onboarding_cloud", { action: "bought" });
-      setCloud(true);
-      setFrom("next");
-      setAt("ai");
-    }, () => {});
-  }, [cloudOpen, state.cloudAdd]);
+  // dusk cloud: straight to the browser for the account, the plan and the checkout, with this screen waiting beside it.
+  // Paid, the AI comes next while the Cloud is made. A window that can't buy here opens the plans page and goes on.
   const placeSheet = usePlaceSetupOpen();
   const chooseCloud = () => {
-    track("onboarding_cloud", { action: "open" });
+    track("onboarding_place", { choice: "cloud" });
     if (window.duskDesktop?.cloudAccount && window.duskDesktop.remoteClient?.active !== true) {
-      dispatch({ type: "openCloudAdd", source: "app_onboarding" });
-      setCloudOpen(true);
+      setPath("cloud");
+      setCheckoutStart(true);
+      setFrom("next");
+      setAt("checkout");
       return;
     }
     void openExternalLink(`${DEFAULT_ADMIN_ORIGIN}/pricing`).catch(() => {});
     next();
   };
+  const cloudPaid = useCallback(() => {
+    track("onboarding_cloud", { action: "bought" });
+    setPaid(true);
+    setFrom("next");
+    setAt("ai");
+  }, []);
+  // this Mac, from the place step's sheet or from the browser's waiting screen: on to the step after the place
+  const toMac = () => {
+    setPath("mac");
+    setCheckoutStart(false);
+    setFrom("next");
+    const step = nextStep(stepsFor("mac"), "place");
+    if (step) setAt(step); else toChat();
+  };
   // this computer: first what that means for routines, and what dusk cloud does instead
   const [macPick, setMacPick] = useState(false);
-  const chooseMac = () => { track("onboarding_mac_sheet", { action: "open" }); setMacPick(true); };
-  const macPicked = () => { track("onboarding_mac_sheet", { action: "mac" }); setMacPick(false); setCloud(false); next(); };
+  const chooseMac = () => { track("onboarding_place", { choice: "mac" }); track("onboarding_mac_sheet", { action: "open" }); setMacPick(true); };
+  const macPicked = () => { track("onboarding_mac_sheet", { action: "mac" }); setMacPick(false); toMac(); };
   const cloudPicked = () => { track("onboarding_mac_sheet", { action: "cloud" }); setMacPick(false); chooseCloud(); };
 
   const bring = (chosen: Parameters<typeof bringChosen>[0]) => {
@@ -255,14 +263,14 @@ export function WelcomeFlow({
     takeNotes(pasted, setNotesLine);
   };
 
-  const overlayOpen = Boolean(state.cloudAdd) || Boolean(placeSheet) || macPick;
+  const overlayOpen = Boolean(placeSheet) || macPick;
   const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Escape") {
       if (event.defaultPrevented || overlayOpen) return;
       event.preventDefault();
       // Escape is "not now": past an optional step, never past an account the app needs
       if (at === "account" && known?.required) return;
-      if (at === "welcome" || at === "account" || at === "place" || at === "making") return;
+      if (at === "welcome" || at === "account" || at === "place" || at === "checkout" || at === "making") return;
       next();
       return;
     }
@@ -275,13 +283,19 @@ export function WelcomeFlow({
       body = <WelcomeStep onStart={next} />;
       break;
     case "account":
-      body = account ? <AccountStep account={account} known={known} onDone={next} onSkip={known?.required ? null : next} /> : null;
+      body = account ? <AccountStep account={account} known={known}
+        onDone={() => { track("onboarding_account", { action: "signed_in" }); next(); }}
+        onSkip={known?.required ? null : () => { track("onboarding_account", { action: "skipped" }); next(); }} /> : null;
       break;
     case "place":
-      body = <PlaceStep onMac={chooseMac} onCloud={chooseCloud} onServer={() => openPlaceSetup("way:cloudflare")} />;
+      body = <PlaceStep onMac={chooseMac} onCloud={chooseCloud} cloudTag={cloudTile.tag} cloudNote={cloudTile.note}
+        onServer={() => { track("onboarding_place", { choice: "server" }); openPlaceSetup("way:cloudflare"); }} />;
+      break;
+    case "checkout":
+      body = <CheckoutStep start={checkoutStart} onPaid={cloudPaid} onMac={toMac} />;
       break;
     case "ai":
-      body = <AiStep tested={tested} onNext={next} />;
+      body = <AiStep tested={tested} cloud={cloud} onNext={(how) => { track("onboarding_ai", { action: how }); next(); }} />;
       break;
     case "bring":
       body = <BringStep finds={finds} grokWaiting={move.plan?.grokWaiting ?? []} run={bringRun} onBring={bring} onNext={next} />;

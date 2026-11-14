@@ -103,7 +103,7 @@ export function WelcomeStep({ onStart }: { onStart: () => void }) {
   );
 }
 
-function PlaceChoice({ kind, art, title, sub, tag, onClick }: { kind: string; art: PlaceArtName; title: string; sub: string; tag: string; onClick: () => void }) {
+function PlaceChoice({ kind, art, title, sub, tag, note, onClick }: { kind: string; art: PlaceArtName; title: string; sub: string; tag: string; note?: string | null; onClick: () => void }) {
   return (
     <button type="button" data-funnel-place={kind} onClick={onClick} className={cn(TILE, "flex min-w-0 flex-1 flex-col items-start gap-3 p-5 text-start")}>
       <span className="flex w-full items-start justify-between gap-2">
@@ -112,17 +112,28 @@ function PlaceChoice({ kind, art, title, sub, tag, onClick }: { kind: string; ar
       </span>
       <span className="text-[15px] font-semibold leading-5 text-ink">{title}</span>
       <span className="text-[13px] leading-[18px] text-ink-secondary">{sub}</span>
+      {note && <span data-funnel-place-note="" className="text-[12px] leading-4 text-ink-tertiary">{note}</span>}
     </button>
   );
 }
 
-export function PlaceStep({ onMac, onCloud, onServer }: { onMac: () => void; onCloud: () => void; onServer: () => void }) {
+/** The desktop app's first screen: dusk bot says hello and asks the one question that shapes the rest, where the bots
+ * live. dusk cloud's tile says its trial and price before anything is asked for. */
+export function PlaceStep({ onMac, onCloud, onServer, cloudTag, cloudNote }: {
+  onMac: () => void; onCloud: () => void; onServer: () => void;
+  /** "7 days free" or "From $15/month" once the offer is known */
+  cloudTag?: string | null;
+  /** the price after the trial, in full */
+  cloudNote?: string | null;
+}) {
+  const reduced = usePrefersReducedMotion();
   return (
-    <StepFrame title={t("funnel.place.title")} sub={t("funnel.place.sub")} wide
+    <StepFrame title={t("funnel.place.title")} sub={t("funnel.place.hello")} wide
+      art={<MausAvatar color="purple" gradient={BRAND_LILAC} size={64} state="excited" animated={!reduced} label={DEFAULT_BOT_NAME} />}
       footer={<button type="button" data-funnel-place="server" onClick={onServer} className={QUIET}>{t("funnel.place.server")}</button>}>
       <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
         <PlaceChoice kind="mac" art="mac" title={t("funnel.place.mac")} sub={t("funnel.place.macSub")} tag={t("funnel.place.macTag")} onClick={onMac} />
-        <PlaceChoice kind="cloud" art="cloud" title={t("funnel.place.cloud")} sub={t("funnel.place.cloudSub")} tag={t("funnel.place.cloudTag")} onClick={onCloud} />
+        <PlaceChoice kind="cloud" art="cloud" title={t("funnel.place.cloud")} sub={t("funnel.place.cloudSub")} tag={cloudTag ?? t("funnel.place.cloudTag")} note={cloudNote} onClick={onCloud} />
       </div>
     </StepFrame>
   );

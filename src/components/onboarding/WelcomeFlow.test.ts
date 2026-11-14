@@ -221,12 +221,12 @@ describe("on the desktop app", () => {
     await settle();
   };
 
-  it("walks where bots live, the AI, what to bring, then the chat, with back and progress, no email step and no phone", async () => {
+  it("opens on where bots live (the hello is part of it), then the AI, what to bring and the chat, with back and progress", async () => {
     desktop({ platform: "linux" });
     await show();
-    await press("get started");
-    expect(step()).toBe("place");
-    expect(host.querySelector("[data-funnel-progress]")?.getAttribute("data-funnel-progress")).toBe("2/4");
+    expect(step(), "no separate hello screen to click through").toBe("place");
+    expect(title()).toBe("where should your bots live?");
+    expect(host.querySelector("[data-funnel-progress]")?.getAttribute("data-funnel-progress")).toBe("1/3");
     expect(text()).toContain("this computer");
     expect(text(), "never a Mac on Linux").not.toContain("Mac");
     expect(text()).toContain("dusk cloud");
@@ -252,7 +252,7 @@ describe("on the desktop app", () => {
     vi.stubEnv("VITE_DUSK_PHONE_APP", "1");
     desktop({ platform: "linux" });
     await show({ initialBeat: "place" });
-    expect(host.querySelector("[data-funnel-progress]")?.getAttribute("data-funnel-progress")).toBe("2/5");
+    expect(host.querySelector("[data-funnel-progress]")?.getAttribute("data-funnel-progress")).toBe("1/4");
     await choose("[data-funnel-place=mac]");
     await pick("mac");
     expect(step()).toBe("ai");
@@ -296,8 +296,7 @@ describe("on the desktop app", () => {
     await choose("[data-funnel-place=mac]");
     await pick("cloud");
     expect(macSheet()).toBeNull();
-    expect(f.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_onboarding" });
-    expect(step(), "dusk cloud's own sheet takes it from here").toBe("place");
+    expect(step(), "Use dusk cloud goes to the browser like the tile does").toBe("checkout");
   });
 
   it("says no price on this computer's sheet when the app doesn't know one", async () => {
@@ -310,10 +309,9 @@ describe("on the desktop app", () => {
     expect(step()).toBe("ai");
   });
 
-  it("a double click on get started does not also choose where bots live", async () => {
+  it("a double click that opened the place step does not also choose there", async () => {
     desktop();
     await show();
-    await press("get started");
     const second = new MouseEvent("click", { bubbles: true, cancelable: true, detail: 2 });
     await act(async () => { host.querySelector<HTMLElement>("[data-funnel-place=mac]")!.dispatchEvent(second); });
     await settle();
@@ -323,46 +321,97 @@ describe("on the desktop app", () => {
     expect(step()).toBe("ai");
   });
 
-  it("stays on where bots live when dusk cloud's sheet closes unpaid", async () => {
-    desktop({ cloudAccount: { state: async () => ({ status: "connected", clouds: [] }), onState: () => () => {} } });
-    await show({ initialBeat: "place" });
-    await choose("[data-funnel-place=cloud]");
-    expect(f.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_onboarding" });
-    f.state = { ...f.state, cloudAdd: { source: "app_onboarding" } };
-    await show({ initialBeat: "place" });
-    f.state = { ...f.state, cloudAdd: null };
-    await show({ initialBeat: "place" });
-    expect(step()).toBe("place");
+  const cloudBridge = (start: Record<string, unknown>) => {
+    let listener: ((next: unknown) => void) | null = null;
+    const bridge = {
+      now: start as unknown,
+      state: vi.fn(async () => bridge.now), refresh: vi.fn(async () => bridge.now), cancel: vi.fn(async () => bridge.now),
+      onState: (cb: (next: unknown) => void) => { listener = cb; return () => {}; },
+      continueInBrowser: vi.fn(async () => ({ outcome: "opened", state: bridge.now })),
+      offer: vi.fn(async () => ({ plans: [{ tier: "starter", amount: 1500, trialDays: 7 }, { tier: "pro", amount: 2900, trialDays: 7 }], recommended: "pro" })),
+      holdSignIns: vi.fn(async () => ({ outcome: "held" })), connectHome: vi.fn(async () => ({ status: "connected" })),
+      tell: async (next: unknown) => { bridge.now = next; await act(async () => { listener?.(next); }); await settle(); },
+    };
+    return bridge;
+  };
+
+  it("dusk cloud's tile says the trial and the price before anything is asked for", async () => {
+    desktop({ cloudAccount: cloudBridge({ status: "connected", clouds: [] }) });
+    await show();
+    const tile = host.querySelector("[data-funnel-place=cloud]")!;
+    expect(tile.textContent).toContain("7 days free");
+    expect(tile.querySelector("[data-funnel-place-note]")?.textContent).toBe("Then from $15/month + tax.");
   });
 
-  it("on dusk cloud: pay, connect an AI, then the Cloud being made, its sign-ins held, and its chat once ready", async () => {
-    const own = (status: string, extra: Record<string, unknown> = {}) => ({ status: "connected", clouds: [{ id: "c1", primary: true, runsOn: "cloud", status, origin: status === "ready" ? "https://c1.dusk.test" : null, ...extra }] });
-    let listener: ((next: unknown) => void) | null = null;
-    const cloudAccount = {
-      now: own("setting_up", { setup: { step: "storage", progress: 0.4 } }) as unknown,
-      state: vi.fn(async () => cloudAccount.now), refresh: vi.fn(async () => cloudAccount.now),
-      onState: (cb: (next: unknown) => void) => { listener = cb; return () => {}; },
-      holdSignIns: vi.fn(async () => ({ outcome: "held" })), connectHome: vi.fn(async () => ({ status: "connected" })),
-    };
-    desktop({ cloudAccount });
-    await show({ initialBeat: "place" });
+  it("dusk cloud goes straight to the browser with its intent and waits calmly; back and this Mac are one press away", async () => {
+    const bridge = cloudBridge({ status: "signed-out" });
+    bridge.continueInBrowser.mockImplementation(async () => { bridge.now = { status: "connecting" }; return { outcome: "browser", state: bridge.now }; });
+    desktop({ cloudAccount: bridge });
+    await show();
     await choose("[data-funnel-place=cloud]");
-    f.state = { ...f.state, cloudAdd: { source: "app_onboarding" } };
-    await show({ initialBeat: "place" });
-    f.state = { ...f.state, cloudAdd: null };
-    await show({ initialBeat: "place" });
-    expect(step(), "paid: the AI comes next").toBe("ai");
-    expect(host.querySelector("[data-funnel-progress]")?.getAttribute("data-funnel-progress"), "welcome, place, ai, making").toBe("3/4");
-    await press("continue");
+    expect(step()).toBe("checkout");
+    expect(bridge.continueInBrowser).toHaveBeenCalledExactlyOnceWith({ kind: "upgrade", source: "app_onboarding", move: "computer" });
+    expect(title()).toBe("Continue in your browser");
+    expect(text()).toContain("Create your account, pick a plan and check out");
+    expect(text()).toContain("Waiting for your sign-in");
+    expect(host.querySelector("[data-funnel-checkout-price]")?.textContent).toBe("Free for 7 days, then from $15/month + tax. Cancel any time.");
+    expect(host.querySelector("[data-funnel-progress]")?.getAttribute("data-funnel-progress"), "place, checkout, ai, making").toBe("2/4");
+    expect(text(), "no dash anywhere").not.toMatch(/\u2014/);
+    await bridge.tell({ status: "connected", account: { email: "sam@qa.dusk.test" }, clouds: [] });
+    expect(text(), "signed in: the plan and checkout are what is left").toContain("Waiting for your checkout");
+    expect(host.querySelector("[data-funnel-checkout-email]")?.textContent).toBe("Signed in as sam@qa.dusk.test.");
+    await press("Open the page again");
+    expect(bridge.continueInBrowser).toHaveBeenCalledTimes(2);
+    await press("back");
+    expect(step()).toBe("place");
+    await choose("[data-funnel-place=cloud]");
+    await press("Use this computer instead");
+    expect(step(), "this Mac's own steps, with no dead end").toBe("ai");
+  });
+
+  it("a sign-in still waiting in the browser is let go when the person picks this Mac instead", async () => {
+    const bridge = cloudBridge({ status: "signed-out" });
+    bridge.continueInBrowser.mockImplementation(async () => { bridge.now = { status: "connecting" }; return { outcome: "browser", state: bridge.now }; });
+    desktop({ cloudAccount: bridge });
+    await show();
+    await choose("[data-funnel-place=cloud]");
+    await press("Use this computer instead");
+    expect(bridge.cancel).toHaveBeenCalledOnce();
+  });
+
+  it("says so when the browser can't open, and offers the page again", async () => {
+    const bridge = cloudBridge({ status: "signed-out" });
+    bridge.continueInBrowser.mockImplementation(async () => { throw new Error("no browser"); });
+    desktop({ cloudAccount: bridge });
+    await show();
+    await choose("[data-funnel-place=cloud]");
+    expect(host.querySelector("[role=alert]")?.textContent).toContain("Your browser didn't open.");
+    expect(button("Open the page again")).toBeDefined();
+  });
+
+  it("on dusk cloud: paid in the browser, the AI while the Cloud is made, its sign-ins held, and its chat once ready", async () => {
+    const own = (status: string, extra: Record<string, unknown> = {}) => ({ status: "connected", clouds: [{ id: "c1", primary: true, runsOn: "cloud", status, origin: status === "ready" ? "https://c1.dusk.test" : null, ...extra }] });
+    const bridge = cloudBridge({ status: "connected", clouds: [] });
+    f.state = { ...f.state, instances: [freeOpenCode, ...nothingSignedIn()] };
+    desktop({ cloudAccount: bridge });
+    await show();
+    await choose("[data-funnel-place=cloud]");
+    expect(step()).toBe("checkout");
+    expect(text(), "already signed in: the plan and checkout are what is left").toContain("Waiting for your checkout");
+    await bridge.tell(own("setting_up", { setup: { step: "storage", progress: 0.4 } }));
+    expect(step(), "paid: the app notices by itself and the AI comes next").toBe("ai");
+    expect(text()).toContain("Your cloud is getting ready.");
+    expect(host.querySelector("[data-funnel-back]"), "no way back to a purchase that is done").toBeNull();
+    expect(host.querySelector("[data-funnel-progress]")?.getAttribute("data-funnel-progress")).toBe("3/4");
+    await press("start with the free model");
     expect(step()).toBe("making");
     expect(title()).toBe("making your cloud");
     expect(host.querySelector("[data-funnel-making]")?.getAttribute("data-funnel-making")).toBe("setting-up");
     expect(host.querySelector("[aria-current=step]")?.textContent).toBe("preparing storage");
-    expect(cloudAccount.holdSignIns).toHaveBeenCalledOnce();
+    expect(bridge.holdSignIns).toHaveBeenCalledOnce();
     expect(JSON.parse(localStorage.getItem("dusk.onboarding.welcomeDraft")!), "a closed app comes back here").toMatchObject({ beat: "making", cloud: true });
-    await act(async () => { listener?.(own("ready")); });
-    await settle();
-    expect(cloudAccount.connectHome).toHaveBeenCalledOnce();
+    await bridge.tell(own("ready"));
+    expect(bridge.connectHome).toHaveBeenCalledOnce();
     expect(f.onDone).toHaveBeenCalledOnce();
   });
 
@@ -377,7 +426,9 @@ describe("on the desktop app", () => {
     };
     desktop({ accountGate: gate });
     await show();
-    await press("get started");
+    expect(step(), "where bots live comes first").toBe("place");
+    await choose("[data-funnel-place=mac]");
+    await pick("mac");
     expect(step()).toBe("account");
     expect(title()).toBe("sign in to dusk bot");
     expect(text(), "no phone in the pitch while its app is hidden").toContain("Your account keeps dusk cloud and your bots in sync.");
@@ -390,7 +441,7 @@ describe("on the desktop app", () => {
     for (const [index, digit] of digits.entries()) await type(digit, String(index + 1));
     await press("sign in");
     expect(gate.signInVerify).toHaveBeenCalledWith("12345678");
-    expect(step()).toBe("place");
+    expect(step()).toBe("ai");
   });
 
   it("never offers to go on without an account where the app needs one", async () => {

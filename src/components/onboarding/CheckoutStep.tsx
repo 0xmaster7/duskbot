@@ -1,0 +1,138 @@
+// dusk cloud's purchase as one step of the first run: the account, the plan and the checkout happen in the browser (the
+// account context redirect, src/lib/account-intent.ts), and this screen waits calmly beside it. It moves on by itself
+// once the payment shows on the account; the page opens again in one press, and this Mac is always one press away.
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { CloudAccountState } from "../../../electron/cloud-account.mjs";
+import { track } from "@/lib/analytics";
+import { continueInBrowser, stopWaitingInBrowser } from "@/lib/account-intent";
+import { offerTrialDays, usd } from "@/lib/cloud-plan";
+import { t } from "@/lib/i18n";
+import { useCloudOffer } from "@/lib/use-cloud-offer";
+import { PlaceArt } from "../ui/PlaceArt";
+import { cloudBought } from "./funnel";
+import { PRIMARY, QUIET, StepFrame } from "./FunnelSteps";
+
+/** the account is re-read this often while the checkout is open in the browser, beside main's own watch */
+const LOOK_MS = 6_000;
+
+type Phase = "idle" | "opening" | "waiting" | "failed";
+
+/** What the waiting line says: the sign-in first, then the checkout. */
+export function checkoutLine(account: CloudAccountState | null): "signIn" | "checkout" {
+  return account?.status === "connected" ? "checkout" : "signIn";
+}
+
+/** The trial and price, as the offer says them, or null while the app doesn't know them. */
+export function useCloudPriceLine(): string | null {
+  const offer = useCloudOffer(true);
+  if (!offer?.plans.length) return null;
+  const price = usd(Math.min(...offer.plans.map((plan) => plan.amount)) / 100);
+  const days = offerTrialDays(offer);
+  return days ? t("funnel.checkout.trial", { days, price }) : t("cloudIntro.price", { price });
+}
+
+/** dusk cloud's tile on the place step: the trial as its tag and the price after it, or nothing while unknown. */
+export function useCloudTile(enabled: boolean): { tag: string | null; note: string | null } {
+  const offer = useCloudOffer(enabled);
+  if (!offer?.plans.length) return { tag: null, note: null };
+  const price = usd(Math.min(...offer.plans.map((plan) => plan.amount)) / 100);
+  const days = offerTrialDays(offer);
+  return days
+    ? { tag: t("funnel.place.cloudTrialTag", { days }), note: t("funnel.place.cloudThen", { price }) }
+    : { tag: t("funnel.place.cloudPriceTag", { price }), note: null };
+}
+
+export function CheckoutStep({ start, onPaid, onMac }: {
+  /** open the browser on arrival (the person just picked dusk cloud); a resumed run waits for a press instead */
+  start: boolean;
+  onPaid: () => void;
+  onMac: () => void;
+}) {
+  const bridge = window.duskDesktop?.cloudAccount;
+  const [account, setAccount] = useState<CloudAccountState | null>(null);
+  const [phase, setPhase] = useState<Phase>(start ? "opening" : "idle");
+  const price = useCloudPriceLine();
+  const paid = useRef(false);
+  const signingIn = useRef(false);
+  const live = useRef(true);
+  useEffect(() => () => { live.current = false; }, []);
+
+  const seen = useCallback((next: CloudAccountState | null) => {
+    if (!live.current) return;
+    setAccount(next);
+    if (paid.current || !cloudBought(next)) return;
+    paid.current = true;
+    track("onboarding_checkout", { action: "paid" });
+    void window.duskDesktop?.focusWindow?.().catch(() => {});
+    onPaid();
+  }, [onPaid]);
+
+  // the account as main says it, read again now and then and whenever the window comes back to the front
+  useEffect(() => {
+    if (!bridge) return;
+    const stop = bridge.onState(seen);
+    const look = () => void bridge.refresh().then(seen, () => {});
+    void bridge.state().then(seen, () => {});
+    const timer = setInterval(look, LOOK_MS);
+    window.addEventListener("focus", look);
+    return () => { stop(); clearInterval(timer); window.removeEventListener("focus", look); };
+  }, [bridge, seen]);
+
+  const open = useCallback(async (again: boolean) => {
+    setPhase("opening");
+    try {
+      const outcome = await continueInBrowser({ kind: "upgrade", source: "app_onboarding", move: "computer" });
+      signingIn.current = outcome === "browser";
+      // this screen is the waiting state for the first run, so the app-wide "Continue in your browser" sheet stays closed
+      stopWaitingInBrowser();
+      track("onboarding_checkout", { action: again ? "again" : "open", outcome });
+      if (!live.current) return;
+      setPhase(outcome === "unavailable" ? "failed" : "waiting");
+    } catch {
+      track("onboarding_checkout", { action: again ? "again" : "open", outcome: "failed" });
+      if (live.current) setPhase("failed");
+    }
+  }, []);
+  const started = useRef(false);
+  useEffect(() => {
+    if (!start || started.current) return;
+    started.current = true;
+    void open(false);
+  }, [start, open]);
+
+  const useMac = () => {
+    track("onboarding_checkout", { action: "mac" });
+    // a sign-in still waiting in the browser is let go, so this Mac's own account step starts clean
+    if (account?.status !== "connected" && (signingIn.current || account?.status === "connecting")) void bridge?.cancel().catch(() => {});
+    onMac();
+  };
+
+  const line = signingIn.current && account?.status !== "connected" ? "signIn" : checkoutLine(account);
+  const email = account?.status === "connected" ? account.account?.email : undefined;
+  return (
+    <StepFrame
+      art={<PlaceArt name="cloud" size={60} className="place-mark" />}
+      title={t("funnel.checkout.title")}
+      sub={line === "signIn" ? t("funnel.checkout.subSignIn") : t("funnel.checkout.sub")}
+      footer={<>
+        <button type="button" data-primary="" data-funnel-checkout-again="" disabled={phase === "opening"} onClick={() => void open(true)} className={PRIMARY}>
+          {t("funnel.checkout.again")}
+        </button>
+        <button type="button" data-funnel-checkout-mac="" onClick={useMac} className={QUIET}>{t("funnel.checkout.mac")}</button>
+      </>}
+    >
+      <div data-funnel-checkout={phase} className="flex w-full max-w-[360px] flex-col items-center gap-3">
+        {phase === "failed"
+          ? <p role="alert" className="text-[13px] leading-[18px] text-danger">{t("funnel.checkout.failed")}</p>
+          : (
+            <p role="status" className="flex items-center gap-2 text-[13px] leading-[18px] text-ink-secondary">
+              <span aria-hidden="true" className="funnel-wait inline-block size-1.5 shrink-0 rounded-full bg-ink" />
+              {phase === "opening" ? t("funnel.checkout.opening") : line === "signIn" ? t("funnel.checkout.waitSignIn") : t("funnel.checkout.waitCheckout")}
+            </p>
+          )}
+        {email && <p data-funnel-checkout-email="" className="text-[13px] leading-[18px] text-ink-tertiary">{t("funnel.account.signedIn", { email })}</p>}
+        {price && <p data-funnel-checkout-price="" className="text-pretty text-[13px] leading-[18px] text-ink-secondary">{price}</p>}
+      </div>
+    </StepFrame>
+  );
+}

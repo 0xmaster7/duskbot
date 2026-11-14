@@ -3,7 +3,7 @@ import { BEAT_ORDER, WELCOME_VERSION, type BeatId } from "./onboarding";
 /** The first run in progress: the screen it is on, so a reload resumes there. */
 export interface WelcomeDraft {
   beat: BeatId;
-  /** a dusk cloud was bought in this run, so it ends by waiting for that Cloud */
+  /** dusk cloud was picked in this run: it resumes on the browser checkout, or the Cloud being made once paid */
   cloud?: true;
 }
 
