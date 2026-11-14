@@ -7,6 +7,18 @@ import { SkyEmpty } from "../ui/Sky";
 
 type Step = { kind: "working" } | { kind: "ask"; why: "confirm" | "other_account"; email: string } | { kind: "expired" } | { kind: "failed"; message: string };
 
+// the app opens this page at once and tells the service its link alongside, so a link not known yet is asked again
+// for a few seconds before it counts as expired
+const WAITS_MS = [300, 500, 700, 1000, 1500, 2000, 3000, 4000];
+async function redeemSoon(token: string, opts: { confirm?: boolean; replace?: boolean }, waits = WAITS_MS): ReturnType<typeof api.handoff> {
+  for (let n = 0; ; n++) {
+    try { return await api.handoff(token, opts); } catch (e) {
+      if ((e as { status?: number }).status !== 410 || n >= waits.length) throw e;
+      await new Promise((resolve) => setTimeout(resolve, waits[n]));
+    }
+  }
+}
+
 /** the desktop app opens the website here; the link works once, for about two minutes, and only after the person
  * confirms the account (unless this browser is already signed in to it) */
 export function HandoffPage() {
@@ -19,7 +31,7 @@ export function HandoffPage() {
     if (!token) { setStep({ kind: "expired" }); return; }
     setStep({ kind: "working" });
     try {
-      const answer = await api.handoff(token, opts);
+      const answer = await redeemSoon(token, opts);
       if ("ask" in answer) { setStep({ kind: "ask", why: answer.ask, email: answer.email }); return; }
       forgetHandoff();
       go(handoffNext(answer.next));

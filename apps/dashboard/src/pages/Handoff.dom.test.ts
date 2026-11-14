@@ -66,9 +66,27 @@ test("another account in this browser: asks first, then switches with replace; n
   expect(state.left).toEqual(["/sign-in"]);
 });
 
+test("a link the app has not told the service about yet is asked again until it lands", async () => {
+  vi.useFakeTimers();
+  try {
+    const handoff = vi.spyOn(state.api, "handoff").mockRejectedValueOnce(Object.assign(new Error("Sign-in has expired."), { status: 410 }))
+      .mockRejectedValueOnce(Object.assign(new Error("Sign-in has expired."), { status: 410 }));
+    await land(`#t=${token}`);
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(handoff).toHaveBeenCalledTimes(3);
+    expect(state.left).toEqual(["/billing?plan=pro&src=app_computer_move"]);
+  } finally { vi.useRealTimers(); }
+});
+
 test("a used or unknown link says so plainly; a malformed fragment is stripped and never sent", async () => {
-  const handoff = vi.spyOn(state.api, "handoff").mockRejectedValueOnce(Object.assign(new Error("Sign-in has expired."), { status: 410 }));
-  let host = await land(`#t=${token}`);
+  vi.useFakeTimers();
+  const handoff = vi.spyOn(state.api, "handoff").mockRejectedValue(Object.assign(new Error("Sign-in has expired."), { status: 410 }));
+  let host: HTMLElement;
+  try {
+    host = await land(`#t=${token}`);
+    await act(async () => { await vi.runAllTimersAsync(); });
+  } finally { vi.useRealTimers(); }
+  expect(handoff).toHaveBeenCalledTimes(9);
   expect(host.querySelector("h2")?.textContent).toBe("that link has expired");
   handoff.mockClear();
   host = await land("#t=short");

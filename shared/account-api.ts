@@ -205,7 +205,8 @@ export const HANDOFF_PLANS = ["plus", "pro"] as const;
  * of the account (workspaceId), the rest the page of that name. */
 export const HANDOFF_PAGES = { plans: "/billing", home: "/", workspace: "/", cloud: "/cloud", billing: "/billing", account: "/account", usage: "/usage" } as const;
 export type HandoffPage = keyof typeof HANDOFF_PAGES;
-export interface WebHandoffRequest { next: HandoffPage; plan?: (typeof HANDOFF_PLANS)[number]; source?: string; workspaceId?: string }
+/** `token`: one the app made itself, so it opens the browser on `${handoffUrl}#t=<token>` before this request lands (the page waits for it) */
+export interface WebHandoffRequest { next: HandoffPage; plan?: (typeof HANDOFF_PLANS)[number]; source?: string; workspaceId?: string; token?: string }
 /** `url` is `${publicUrl}${pageBase}/handoff#t=<token>`: the token only in the fragment, single use, about two minutes. */
 export interface WebHandoffAnswer { v: 1; url: string; expiresAt: number }
 /** `next` is an app path (no page base) built from the issued link, e.g. "/billing?plan=pro&src=app_computer_move". */
@@ -216,6 +217,8 @@ export interface AppSessionIdentity {
   expiresAt: number;
   device: { id: string };
   account: { id: string; email: string };
+  /** the website's handoff page, `${publicUrl}${pageBase}/handoff`, so the app can open it at once (WebHandoffRequest.token) */
+  handoffUrl?: string;
 }
 
 /** the error answer of the /v1 routes: { error: human text, code }. the Admin contract v1 routes (/api/cloud/*) answer

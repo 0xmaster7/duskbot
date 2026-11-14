@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { createManagedDesktopStore, retryDelay, unreadableRecord } from "./managed-desktop.mjs";
 import { CLOUD_MACHINE_CONNECTABLE, cloudUnreachableText, parseCloudOffer, parseCloudPurchase, parseCloudSummary, parseCloudTeams, parseCloudRoom, parseCloudTrial, parseCloudUsage, parsePairingGrant, parsePublicOffer, withoutTrial } from "./cloud-home.mjs";
 import { CLOUD_ID, CLOUD_SWATCHES, cleanCloudListName, ORGANIZATION_BLOCKS, otherOwnClouds, ownCloud, parseCloudList, parseCloudRenewal, parseOrganizations, releaseVersion } from "./cloud-list.mjs";
@@ -106,6 +107,13 @@ export function handoffDestination(value, origin) {
     || !/^#t=[A-Za-z0-9_-]{43}$/.test(url.hash) || value !== `${origin}${url.pathname}${url.hash}`) return null;
   return value;
 }
+/** the session's handoff page (no token yet): this Admin's own /handoff or /dashboard/handoff, nothing else */
+export function handoffPage(value, origin) {
+  if (typeof value !== "string" || value.length > 256) return null;
+  let url;
+  try { url = new URL(value); } catch { return null; }
+  return url.origin === origin && !url.username && !url.password && !url.search && !url.hash && HANDOFF_PATHS.includes(url.pathname) && value === `${origin}${url.pathname}` ? value : null;
+}
 function customOrigin(value) {
   if (typeof value !== "string") return false;
   try { const url = new URL(value); return value === url.origin && (url.protocol === "https:" || (url.protocol === "http:" && ["127.0.0.1", "[::1]", "localhost"].includes(url.hostname))); } catch { return false; }
@@ -187,6 +195,8 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
   let opened = null;
   /** Another Cloud this app is buying (POST clouds): its id, name, colour and plan, and its checkout page, kept like `opened`'s. */
   let adding = null;
+  // the website's handoff page, from the last session read (handoffPage)
+  let handoffAt = null;
   /** An email code on its way: the attempt the Admin answered, kept in main only. */
   let emailed = null;
   const newerPlans = new Set();
@@ -344,6 +354,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       const previous = grant, result = await request("session", { token: previous.token });
       if (!current(stamp) || grant !== previous) return state();
       const next = identity(result);
+      handoffAt = handoffPage(result.handoffUrl, origin);
       profile = { accountId: next.account.id, fields: accountProfile(result.account) };
       if (next.device.id !== previous.device.id || next.account.id !== previous.account.id || next.account.email !== previous.account.email || next.expiresAt <= serverNow()) {
         throw Object.assign(new Error("Cloud identity changed."), { status: 401, code: "invalid_token" });
@@ -523,10 +534,19 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
     const signedIn = grant;
     if (!signedIn || state().status === "reauth-required") return { signedOut: true };
     const query = new URLSearchParams({ ...(plan ? { plan } : {}), ...(source ? { src: source } : {}), ...(page === "workspace" ? { workspace: workspaceId } : {}) }).toString();
+    const asked = { next: page, ...(plan ? { plan } : {}), ...(source ? { source } : {}), ...(page === "workspace" ? { workspaceId } : {}) };
+    // the handoff page is known from the session: the browser opens at once on a token made here, and the Admin learns
+    // it alongside (the page waits a few seconds for it), so the click never waits on a round trip
+    if (handoffAt) {
+      const token = randomBytes(32).toString("base64url");
+      void request("", { path: "/v1/app/web-handoff", method: "POST", token: signedIn.token, body: { ...asked, token } })
+        .catch(error => { if (signInEnded(error)) refresh().catch(() => {}); });
+      await openBrowser(`${handoffAt}#t=${token}`);
+      return { opened: true };
+    }
     let destination = null;
     try {
-      const result = await request("", { path: "/v1/app/web-handoff", method: "POST", token: signedIn.token,
-        body: { next: page, ...(plan ? { plan } : {}), ...(source ? { source } : {}), ...(page === "workspace" ? { workspaceId } : {}) } });
+      const result = await request("", { path: "/v1/app/web-handoff", method: "POST", token: signedIn.token, body: asked });
       destination = result?.v === 1 ? handoffDestination(result.url, origin) : null;
     } catch (error) {
       if (signInEnded(error)) { await refresh().catch(() => {}); return { signedOut: true }; }

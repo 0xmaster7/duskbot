@@ -6,14 +6,14 @@ import { createCloudAccountClient, handoffDestination } from "./cloud-account.mj
 const accessToken = `omc_${"T".repeat(43)}`;
 const handoffToken = "H".repeat(43);
 
-async function fixture(t, handoff) {
+async function fixture(t, handoff, page = null) {
   const f = { requests: [], opened: [], handoff };
   const server = createServer(async (req, res) => {
     let body = ""; for await (const chunk of req) body += chunk;
     f.requests.push({ route: req.url, method: req.method, token: req.headers.authorization, body });
     const send = (status, data) => { res.writeHead(status, { "content-type": "application/json" }); res.end(JSON.stringify(data)); };
     if (req.headers.authorization !== `Bearer ${accessToken}`) return send(401, { error: "invalid_token" });
-    if (req.url === "/api/cloud/desktop/session") return send(200, { cloudContractVersion: 1, expiresAt: Date.now() + 86_400_000, device: { id: "device" }, account: { id: "account", email: "person@example.test" }, entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 0 } });
+    if (req.url === "/api/cloud/desktop/session") return send(200, { cloudContractVersion: 1, expiresAt: Date.now() + 86_400_000, device: { id: "device" }, account: { id: "account", email: "person@example.test" }, entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 0 }, ...(page ? { handoffUrl: page(f.origin) } : {}) });
     if (req.url === "/v1/app/web-handoff" && req.method === "POST") { const answer = f.handoff(f.origin); return send(answer.status, answer.body); }
     send(404, { error: "not_found" });
   });
@@ -87,4 +87,23 @@ test("the account's other pages open signed in too: Open your plan page, a works
   for (const bad of [{ page: "admin" }, { page: "workspace" }, { page: "workspace", workspaceId: "../x" }, { page: "cloud", plan: "pro" }, { page: "account", workspaceId: "ws_abc" }, { page: "toString" }]) {
     await assert.rejects(f.client.webHandoff(bad), String(JSON.stringify(bad)));
   }
+});
+
+test("with the session's handoff page the browser opens at once on a token made here, and the Admin learns that token", async t => {
+  const f = await fixture(t, () => ({ status: 200, body: { v: 1, url: "ignored", expiresAt: Date.now() + 120_000 } }), origin => `${origin}/dashboard/handoff`);
+  await f.client.start();
+  await f.client.openDashboard();
+  assert.equal(f.opened.length, 1);
+  const match = new RegExp(`^${f.origin}/dashboard/handoff#t=([A-Za-z0-9_-]{43})$`).exec(f.opened[0]);
+  assert.ok(match, f.opened[0]);
+  for (let n = 0; n < 50 && !f.requests.some(item => item.route === "/v1/app/web-handoff"); n++) await new Promise(resolve => setTimeout(resolve, 10));
+  const asked = f.requests.find(item => item.route === "/v1/app/web-handoff");
+  assert.deepEqual(JSON.parse(asked.body), { next: "cloud", token: match[1] });
+});
+
+test("a session handoff page that is not this Admin's own is never used", async t => {
+  const f = await fixture(t, origin => ({ status: 200, body: { v: 1, url: `${origin}/handoff#t=${handoffToken}`, expiresAt: Date.now() + 120_000 } }), () => "https://evil.test/handoff");
+  await f.client.start();
+  await f.client.openDashboard();
+  assert.deepEqual(f.opened, [`${f.origin}/handoff#t=${handoffToken}`]);
 });

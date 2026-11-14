@@ -84,7 +84,7 @@ it("keeps the app identity available without exposing failed or disabled billing
   const f = await fixture(); await f.signIn();
   const before = await f.session();
   const fields = vi.spyOn(f.billing, "sessionFields").mockImplementation(() => { throw { status: 409, code: "private-provider-detail" }; });
-  const expected = { cloudContractVersion: 1, account: before.account, device: before.device, expiresAt: before.expiresAt,
+  const expected = { cloudContractVersion: 1, account: before.account, device: before.device, expiresAt: before.expiresAt, handoffUrl: `${f.origin}/handoff`,
     entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 0 } };
   expect(await f.request("session")).toEqual({ status: 200, data: expected });
   expect(fields).toHaveBeenCalledOnce();
@@ -161,7 +161,8 @@ it("runs the real desktop client through checkout, setup, pairing, upgrade, anot
   expect(f.snapshot().checkouts[1].amountCents).toBe(BILLING_CONFIG.desktops.shared_m.monthlyCents);
   await f.client.refresh();
   fields = await f.session();
-  expect(parseCloudList(fields.clouds)).toHaveLength(2); expect(otherOwnClouds(parseCloudList(fields.clouds))).toMatchObject([{ name: "Client B", color: "green", primary: false }]);
+  // an unpaid checkout lists nothing: the cloud only shows once paid
+  expect(parseCloudList(fields.clouds)).toHaveLength(1); expect(otherOwnClouds(parseCloudList(fields.clouds))).toEqual([]);
   const cancelled = await f.client.cancelPlan({ answer: "price", improve: "cheaper" });
   expect(cancelled).toMatchObject({ outcome: "cancelled", renewal: { cancelled: true, trial: false, keptDays: 30 }, surveyed: true });
   expect(f.snapshot().feedback[0]).toMatchObject({ cloudId: checkout.cloudId, answer: "price", improve: "cheaper" });
@@ -179,6 +180,35 @@ it("runs the real desktop client through checkout, setup, pairing, upgrade, anot
   }
   expect(await f.request("session", undefined, token)).toMatchObject({ status: 401, data: { error: "invalid_token" } });
   expect((await f.client.refresh()).status).toBe("reauth-required");
+});
+
+it("takes a handoff token the app made, once, and names the handoff page in the session", async () => {
+  const f = await fixture(); await f.signIn();
+  expect((await f.session()).handoffUrl).toBe(`${f.origin}/handoff`);
+  const token = "A".repeat(43);
+  expect(await f.request("/v1/app/web-handoff", { next: "cloud", token })).toMatchObject({ status: 200, data: { v: 1, url: `${f.origin}/handoff#t=${token}` } });
+  expect((await f.request("/v1/app/web-handoff", { next: "cloud", token })).status).toBe(400);
+  expect((await f.request("/v1/app/web-handoff", { next: "cloud", token: "short" })).status).toBe(400);
+});
+
+it("shows nothing for a checkout left unpaid, lets a new one open, and makes the cloud only once that one is paid", async () => {
+  const f = await fixture(); await f.client.start(); await f.signIn();
+  expect((await f.client.checkout("starter", "app_card")).outcome).toBe("opened");
+  const first = f.snapshot().checkouts[0];
+  expect(f.billing.clouds.get(first.cloudId!)?.status).toBe("checkout");
+  // the person closes the checkout page: no cloud anywhere, nothing setting up
+  await f.client.refresh();
+  expect(parseCloudList((await f.session()).clouds)).toEqual([]);
+  expect(f.client.state().clouds ?? []).toEqual([]);
+  expect(f.billing.fakePool?.calls ?? []).toEqual([]);
+  // a new checkout always opens, and retires the old one with its reserved cloud
+  expect((await f.client.checkout("starter", "app_card")).outcome).toBe("opened");
+  expect(f.snapshot().checkouts[0].status).toBe("expired");
+  expect(f.billing.clouds.get(first.cloudId!)?.status).toBe("destroyed");
+  expect(parseCloudList((await f.session()).clouds)).toEqual([]);
+  // paying the new one makes exactly one cloud, setting up
+  const paid = await f.complete(1);
+  expect(parseCloudList((await f.session()).clouds)).toMatchObject([{ id: paid.cloudId, status: "setting_up" }]);
 });
 
 it("enforces Admin ownership, one-time confirmations, typed bodies, and the desktop error codes", async () => {

@@ -511,13 +511,15 @@ export function createAuth(options: AuthOptions) {
     const plans = page === "plans", workspace = page === "workspace";
     if (!page || (!plans && (data.plan !== undefined || data.source !== undefined)) || (data.plan !== undefined && !(HANDOFF_PLANS as readonly unknown[]).includes(data.plan))
       || (data.source !== undefined && (data.source === "other" || !(CHECKOUT_SOURCES as readonly unknown[]).includes(data.source)))
-      || (workspace ? typeof data.workspaceId !== "string" || !/^ws_[A-Za-z0-9_-]{1,64}$/.test(data.workspaceId) : data.workspaceId !== undefined)) return fail(400, "invalid_request");
+      || (workspace ? typeof data.workspaceId !== "string" || !/^ws_[A-Za-z0-9_-]{1,64}$/.test(data.workspaceId) : data.workspaceId !== undefined)
+      || (data.token !== undefined && (!opaque(data.token) || handoffs.has(hash(data.token))))) return fail(400, "invalid_request");
     rate(`handoff:${found.session.id}`, AUTH_LIMITS.handoffsPerSession);
     const query = new URLSearchParams({ ...(typeof data.plan === "string" ? { plan: data.plan } : {}), ...(typeof data.source === "string" ? { src: data.source } : {}),
       ...(workspace ? { workspace: data.workspaceId as string } : {}) }).toString();
     const mine = [...handoffs].filter(([, item]) => item.accountId === found.account.id);
     for (const [key] of mine.slice(0, Math.max(0, mine.length - HANDOFF_OUTSTANDING + 1))) handoffs.delete(key);
-    const token = random(), expiresAt = now() + HANDOFF_TTL_MS;
+    // the app's own token (32 random bytes it made) lets it open the browser before this answer arrives
+    const token = opaque(data.token) ? data.token : random(), expiresAt = now() + HANDOFF_TTL_MS;
     handoffs.set(hash(token), { accountId: found.account.id, sessionId: found.session.id, next: `${HANDOFF_PAGES[page]}${query ? `?${query}` : ""}`, expiresAt });
     return { v: 1, url: `${pages}/handoff#t=${token}`, expiresAt };
   }
@@ -731,7 +733,7 @@ export function createAuth(options: AuthOptions) {
           let extra: Record<string, unknown> = { entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 0 } };
           for (const extension of extensions) extra = { ...extra, ...await extension(found.account.id) };
           if (!state.sessions.includes(found.session)) return fail(401, "invalid_token");
-          json({ ...extra, ...identity(found.account, found.session) });
+          json({ ...extra, ...identity(found.account, found.session), handoffUrl: `${pages}/handoff` });
         }
       } else if (method === "POST" && path === R.appAvatar) {
         const found = appSession(req);
