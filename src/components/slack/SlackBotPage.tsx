@@ -24,7 +24,8 @@ function SlackBotContent({ bot }: { bot: Bot }) {
   const [confirm, setConfirm] = useState(false);
   const { status, error, busy } = slack;
   if (!workspace.available || !slack.available) return null;
-  if (!workspace.status?.ready || !status) return <Card><NoteRow>{t("slack.loading")}</NoteRow>{(error || workspace.error) && <NoteRow tone="danger">{error || workspace.error}</NoteRow>}</Card>;
+  // loaded but not ready means its secure storage is unavailable: say so instead of loading for ever
+  if (!workspace.status?.ready || !status) return <Card><NoteRow>{t(workspace.status && !workspace.status.ready ? "slack.notReady" : "slack.loading")}</NoteRow>{(error || workspace.error) && <NoteRow tone="danger">{error || workspace.error}</NoteRow>}</Card>;
   if (workspace.status.state !== "connected") return <Card>
     <NoteRow>{t("slack.bot.connectFirst")}</NoteRow>
     <NavRow title={t("slack.bot.connections")} onClick={() => dispatch(openSettings("connections"))} />

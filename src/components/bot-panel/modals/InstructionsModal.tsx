@@ -59,8 +59,8 @@ export function InstructionsModal({ bot, derived }: {
         canSave={canSave}
         saved={justSaved && !canSave}
         note={over
-          ? <span data-instructions-count aria-live="polite" className="text-danger">{`too long to save. ${bytes.toLocaleString()} / ${limit.toLocaleString()}`}</span>
-          : !editable ? `only people who can edit ${bot.name} can change this.` : null}
+          ? <span data-instructions-count aria-live="polite" className="text-danger">{`Too long to save. ${bytes.toLocaleString()} / ${limit.toLocaleString()}`}</span>
+          : !editable ? `Only people who can edit ${bot.name} can change this.` : null}
         showSave={editable}
       />
     </SheetPane>

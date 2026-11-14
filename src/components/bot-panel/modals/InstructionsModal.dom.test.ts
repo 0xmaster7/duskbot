@@ -69,7 +69,7 @@ describe("the Instructions dialog", () => {
     type("x".repeat(20_000));
     expect(sheet().querySelector("[data-instructions-count]")).toBeNull();
     type("x".repeat(24_001));
-    expect(sheet().querySelector("[data-instructions-count]")!.textContent).toBe("too long to save. 24,001 / 24,000");
+    expect(sheet().querySelector("[data-instructions-count]")!.textContent).toBe("Too long to save. 24,001 / 24,000");
     expect(save().disabled).toBe(true);
   });
 
@@ -98,6 +98,6 @@ describe("the Instructions dialog", () => {
   it("is read-only for someone who can only view the bot", () => {
     mount({ yourAccess: "view" });
     expect(field().disabled).toBe(true);
-    expect(sheet().textContent).toContain("only people who can edit Scout can change this.");
+    expect(sheet().textContent).toContain("Only people who can edit Scout can change this.");
   });
 });

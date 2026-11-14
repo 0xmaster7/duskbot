@@ -118,7 +118,6 @@ export function SettingsModal() {
 
   const paneShown = (pane: SettingsPane) => (pane !== "texting" || phoneAppEnabled()) && (!remoteActive || pane === "general" || pane === "voice" || pane === "texting" || pane === "computer");
   const panes = SETTINGS_PANES.filter((pane) => paneShown(pane.id) && pane.sections.some(has));
-  const railPanes = panes.filter((pane) => pane.rail !== false);
   const advancedPages = ADVANCED_PAGES.filter((page) => page.sections.some(has)).map((page) => page.id);
 
   // moving between panes and pages stays inside Settings: a store update would re-render the whole app under the sheet
@@ -127,6 +126,9 @@ export function SettingsModal() {
   const requested = localNav && localNav.request === state.appSettingsRequest ? localNav.section : state.appSettingsSection;
   const at = settingsLocation(has(requested) ? requested : remoteActive && requested === "remote" ? "companion" : "general");
   const pane = panes.some((entry) => entry.id === at.pane) ? at.pane : "general";
+  // the Bots pane has no rail row of its own, but a bot's page opened from its panel shows it, selected, so the rail
+  // still says where the sheet is
+  const railPanes = panes.filter((entry) => entry.rail !== false || entry.id === pane);
   const page = pane === "advanced" && at.page && advancedPages.includes(at.page) ? at.page : undefined;
   const paneEntry = SETTINGS_PANES.find((entry) => entry.id === pane)!;
   useEffect(() => { trailNavigation("settings", { pane, page, section: requested }); }, [pane, page, requested]);

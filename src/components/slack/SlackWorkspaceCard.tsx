@@ -14,7 +14,7 @@ export function SlackWorkspaceCard() {
   if (!available) return null;
   return (
     <Card label={t("slack.title")}>
-      {!status || !status.ready ? <NoteRow>{t("slack.loading")}</NoteRow> : <>
+      {!status ? <NoteRow>{t("slack.loading")}</NoteRow> : !status.ready ? <NoteRow>{t("slack.notReady")}</NoteRow> : <>
         {status.state === "connected" ? <>
           <ItemRow title={t("slack.workspace.connected", { team: status.teamName ?? status.teamId ?? "" })} value={status.apps ? t("slack.workspace.bots", { count: status.apps }) : t("slack.workspace.none")}>
             <button type="button" className={pillCls} disabled={busy} onClick={() => void disconnect()}>{t("slack.disconnect")}</button>

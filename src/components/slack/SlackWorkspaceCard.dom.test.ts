@@ -102,10 +102,11 @@ describe("Slack workspace setup", () => {
     expect(host.querySelectorAll("input")).toHaveLength(2);
   });
 
-  it("shows a muted loading row until the secret store is ready", async () => {
+  it("says Slack is not available, rather than loading for ever, while the secret store is not ready", async () => {
     status.ready = false;
     await mount();
-    expect(host.textContent).toContain("Loading Slack settings…");
+    expect(host.textContent).toContain("Slack isn't available on this computer right now.");
+    expect(host.textContent).not.toContain("Loading Slack settings…");
     expect(host.querySelector("button")).toBeNull();
   });
 
