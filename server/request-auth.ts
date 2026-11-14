@@ -346,6 +346,8 @@ export const CLIENT_ALLOW: ReadonlyArray<{ methods: readonly string[]; path: Reg
   { methods: ["GET"], path: /^\/api\/threads\/[\w-]+\/messages\/[\w-]+\/image$/ },
   // a site's own icon for a link or a login: public https sites only, re-encoded (server/site-icons.ts)
   { methods: ["GET"], path: /^\/api\/site-icon$/ },
+  // a link's preview and its picture: public http(s) pages only, text and sniffed raster images (server/link-preview)
+  { methods: ["GET"], path: /^\/api\/link-preview(?:\/image\/[a-f0-9]{32})?$/ },
   { methods: ["GET"], path: /^\/api\/threads\/[\w-]+\/messages\/[\w-]+\/tool$/ },
   // an app row's document is transcript data, read under the transcript's rules
   { methods: ["GET"], path: /^\/api\/threads\/[\w-]+\/messages\/[\w-]+\/app$/ },
