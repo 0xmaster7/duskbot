@@ -7,7 +7,7 @@ import "./computer-tab.css";
 const ASLEEP_GREY = "color-mix(in srgb, var(--color-ink) 56%, transparent)";
 const COVER_GREY = "rgb(255 255 255 / 0.88)";
 const COMPUTER_FILL_CLASS = "flex flex-col items-center justify-center gap-1.5 bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_6%)] text-center text-[13px] leading-[18px] tracking-[0.015em]";
-export const COMPUTER_FRAME_CLASS = `relative w-full overflow-hidden rounded-xl shadow-[inset_0_0_0_0.5px_var(--color-edge)] ${COMPUTER_FILL_CLASS}`;
+export const COMPUTER_FRAME_CLASS = `relative w-full overflow-hidden rounded-xl ${COMPUTER_FILL_CLASS}`;
 /** The asleep card is one button from its first frame, before the panel's code or status lands, so it never jumps. */
 export const COMPUTER_WAKE_BUTTON_CLASS = "flex size-full flex-col items-center justify-center gap-1.5 px-5 enabled:cursor-pointer enabled:transition-[background-color] enabled:duration-100 enabled:hover:bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_8%)] focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--color-ink)_22%,transparent)] disabled:cursor-default";
 /** Bot desktops are 1280x800; a frame waits in that shape so the screen lands edge to edge without a jump. */

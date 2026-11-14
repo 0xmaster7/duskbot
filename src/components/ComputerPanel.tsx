@@ -1375,7 +1375,7 @@ export function ComputerPanel({
             {phase === "vm" && !liveHere && <span className="text-[11px]">{t("vm.dest.vm")}</span>}
             {computerStatusCurrent && bot.computer === "cloud" && (phase === "ready" || phase === "starting") && !liveHere && <span className="text-[11px]">{t("computer.badge.vps")}</span>}
         </div>
-        <div className={cn("relative flex aspect-[16/10] w-full items-center justify-center overflow-hidden rounded-xl bg-card", liveHere && "ring-2 ring-accent")}>
+        <div className={cn("relative flex aspect-[16/10] w-full items-center justify-center overflow-hidden rounded-xl bg-card")}>
           {remoteFrame ?? (cloudPreviewReady || (bot.computer === "cloud" && phase === "starting") ? (
             <CloudScreenPreview
               key={`${bot.id}:${bot.threadId}:${bot.computer}:${cloudBackend}`}

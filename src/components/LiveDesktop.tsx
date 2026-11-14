@@ -9,6 +9,7 @@ import { isMacPlatform } from "@/lib/keyboard-shortcuts";
 import { BotPointer } from "./BotPointer";
 import { ComputerFullscreen } from "./ComputerFullscreen";
 import { Icon } from "./Icon";
+import { useLaunchFeedback } from "./launch-feedback";
 import { useCaptionChrome, useDesktopCapabilities } from "./DesktopCapabilities";
 
 type Connection = "connecting" | "connected" | "disconnected";
@@ -199,13 +200,20 @@ export function LiveDesktop({ target, threadId, botId, name, poster, expanded, o
     </form>
   );
 
+  const launching = useLaunchFeedback(screen, !viewOnly && connection === "connected");
+
   const desktopFrame = (
-      <div className="relative h-full w-full overflow-hidden bg-inset">
+      <div className={cn("relative h-full w-full overflow-hidden", expanded ? "bg-black" : "bg-inset")}>
         {poster && connection !== "connected" && (
           <img src={poster} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-contain opacity-50" />
         )}
         <div ref={screen} role="application" aria-label={label} data-live-desktop-screen="" data-watching={viewOnly ? "" : undefined} className="absolute inset-0" />
         {botId && viewOnly && connection === "connected" && <BotPointer host={screen} botId={botId} />}
+        {launching && (
+          <span data-launch-spinner="" aria-hidden="true" className="pointer-events-none absolute z-[3] size-7 -translate-x-1/2 -translate-y-1/2" style={{ left: launching.x, top: launching.y }}>
+            <span className="absolute inset-0 rounded-full border-2 border-white/25 border-t-white/90 drop-shadow-[0_0_2px_rgb(0_0_0/0.6)] motion-safe:animate-spin" />
+          </span>
+        )}
         {viewOnly && (originalViewer ? !expanded && onOpenPreview : onTakeControl) && (
           <button type="button" data-panel-action={originalViewer ? "open-computer" : undefined} aria-label={originalViewer ? t("computer.open") : t("computer.takeControl")}
             title={originalViewer ? t("computer.open") : t("computer.takeControl")}

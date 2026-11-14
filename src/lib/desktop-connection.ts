@@ -76,7 +76,7 @@ export async function connectDesktop(screen: HTMLElement, target: string, option
   client.viewOnly = true;
   client.focusOnClick = false;
   client.scaleViewport = true;
-  client.background = "var(--color-inset)";
+  client.background = "transparent";
   let ended = false;
   let decoded = false;
   let frameCheck: ReturnType<typeof setTimeout> | undefined;

@@ -95,7 +95,7 @@ export function ComputerFullscreen({ label, onExit, frame, note, control, alert,
       aria-label={label}
       tabIndex={-1}
       data-computer-fullscreen={inline ? undefined : ""}
-      className={inline ? "relative flex size-full flex-col" : "fixed inset-0 z-[65] flex flex-col bg-[rgb(20,20,20)] outline-none"}
+      className={inline ? "relative flex size-full flex-col outline-none" : "fixed inset-0 z-[65] flex flex-col bg-[rgb(20,20,20)] outline-none"}
     >
       {!inline && <ComputerViewerKeys box={box} onExit={onExit} />}
       {!inline && <div {...dragProps} className={cn("flex h-11 shrink-0 items-center justify-end pr-2", macInset ? "pl-[88px]" : "pl-2")}>
