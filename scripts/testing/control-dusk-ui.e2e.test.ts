@@ -280,6 +280,15 @@ describe("control-dusk ui drives the real renderer", () => {
     // The chat header is the pill alone: the model is picked in the bot's panel, and an owner's pick there is the
     // thread's and the bot's default at once.
     await ui("click", info.ui, "--name", "Open Pepper's profile");
+    // the panel slides in: wait until its model button is there and has stopped moving, then press it
+    const modelAt = `(() => { const b = [...document.querySelectorAll('button')].find((e) => e.textContent.trim() === ${JSON.stringify(originalLabel)}); const r = b?.getBoundingClientRect(); return r ? r.left + ',' + r.top : ''; })()`;
+    let lastAt = "";
+    await expect.poll(async () => {
+      const at = (await ui("eval", info.ui, "--js", modelAt)).result as string;
+      const still = at !== "" && at === lastAt;
+      lastAt = at;
+      return still;
+    }, { timeout: 10_000, interval: 150 }).toBe(true);
     await ui("click", info.ui, "--name", originalLabel);
     await expect.poll(async () => (await ui("eval", info.ui, "--js", "String(Boolean(document.querySelector('[data-model-picker-content]')))")).result,
       { timeout: 10_000 }).toBe("true");
@@ -326,9 +335,9 @@ describe("control-dusk ui drives the real renderer", () => {
     const chips = async () => Object.values((await ui("snapshot", info.ui)).refs as Record<string, { name: string; role: string }>)
       .filter((element) => element.role === "button" && element.name.startsWith("Run a command · ")).map((element) => element.name).sort();
     await expect.poll(chips, { timeout: 10_000 }).toEqual([
-      "Run a command · Completed · Tool details",
-      "Run a command · Completed · Tool details",
-      "Run a command · Failed · Tool details",
+      "Run a command · Completed · tool details",
+      "Run a command · Completed · tool details",
+      "Run a command · Failed · tool details",
     ]);
 
     const composerHit = await ui("eval", info.ui, "--js", `(() => {
