@@ -94,6 +94,8 @@ function fixture(kind: "direct" | "group", threadIds = ["first"]) {
     cancelYourComputerAsks: (threadId: string, generation?: string) => {
       if (generation === undefined || yourComputerAsks.get(threadId) === generation) yourComputerAsks.delete(threadId);
     },
+    // the slice now carries the desktop scratch notes that sit between releaseTurnResources and bindTurnComputer
+    BoxDiskNotes: class { record() {} note() { return ""; } },
     turnResources: { release() {} }, cloudComputerPower: { released() {} }, settlingResourceOwners: new Map(), turnComputerResources: new Map(), teamComputerTurns: new Map(), turnVpsTargets: new Map(), computerRelay: { close() {} },
     coordinator: { stopAwaitingDirect: (threadId: string) => { stopAwaiting.push(threadId); } },
     stopParkedCards: (threadId: string) => stoppedCards.push(threadId),
