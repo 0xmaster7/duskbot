@@ -7,8 +7,9 @@ import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { stripVTControlCharacters } from "node:util";
 import { deviceSignInPrompt, type DeviceSignInProvider } from "../../shared/device-sign-in.ts";
-import type { ProviderAuthenticationStart, ProviderAuthenticationStatus } from "../contracts.ts";
+import type { ProviderAuthenticationOptions, ProviderAuthenticationStart, ProviderAuthenticationStatus } from "../contracts.ts";
 import { killCliTree, spawnCli } from "../procs.ts";
+import { browserRecorder, checkLoopbackCallback, forwardLoopbackCallback, loopbackOf, type Loopback } from "./loopback-callback.ts";
 
 const MAX_OUTPUT = 16_384;
 // Only the auth operation on a shared credential home is exclusive, never normal turns.
@@ -46,6 +47,9 @@ export interface DeviceSignIn {
   /** Added to the login command's environment (a CLI that would otherwise open a browser on the server). */
   loginEnv?: Readonly<Record<string, string>>;
   logoutArgs?: readonly string[];
+  /** The CLI's normal browser sign-in, which returns to its own localhost listener; used when the browser can reach
+   * that loopback (same machine, or a desktop relaying it). Its link is read from the output or from $BROWSER. */
+  browserLogin?: { args: readonly string[]; env?: Readonly<Record<string, string>>; page: RegExp };
 }
 
 type Flow = {
@@ -56,6 +60,10 @@ type Flow = {
   reject: (error: Error) => void;
   startupTimer: NodeJS.Timeout;
   expiryTimer: NodeJS.Timeout;
+  browser: boolean;
+  recorder: ReturnType<typeof browserRecorder>;
+  loopback: Loopback | null;
+  relayed?: boolean;
   homeKey: string;
   stopping?: Promise<void>;
   terminationFailed?: boolean;
@@ -96,7 +104,7 @@ export class DeviceAuthController {
     return { home, homeKey: canonicalPath(resolve(named || join(home, homeDir))) };
   }
 
-  async start(): Promise<ProviderAuthenticationStart> {
+  async start(options?: ProviderAuthenticationOptions): Promise<ProviderAuthenticationStart> {
     const { product, account, status } = this.spec;
     if (this.disposed) throw new Error("This provider was removed. Refresh Settings before signing in.");
     if (this.flow?.status.phase === "waiting") {
@@ -118,13 +126,14 @@ export class DeviceAuthController {
           expiresAt: new Date(Date.now() + (this.options.lifetimeMs ?? 15 * 60_000)).toISOString(),
         },
         child: null, ready: false, resolve: resolveStart, reject, homeKey,
+        browser: options?.browser === true && this.spec.browserLogin !== undefined, recorder: null, loopback: null,
         startupTimer: setTimeout(() => this.finish(flow, "failed", `${product} did not provide a sign-in code in time. Check the server connection and update ${product}, then try again.`), this.options.startupTimeoutMs ?? 30_000),
         expiryTimer: setTimeout(() => this.finish(flow, "expired", `The ${account} sign-in code expired. Start sign-in again.`), this.options.lifetimeMs ?? 15 * 60_000),
       };
       flow.startupTimer.unref();
       flow.expiryTimer.unref();
       this.flow = flow;
-      const login = () => this.run(flow, [...this.spec.loginArgs], env, home, (loginCode, loginOutput) => {
+      const login = () => this.run(flow, [...(flow.browser ? this.spec.browserLogin!.args : this.spec.loginArgs)], env, home, (loginCode, loginOutput) => {
         if (loginCode !== 0 || !flow.ready) {
           this.finish(flow, "failed", this.spec.failure(loginOutput));
           return;
@@ -144,6 +153,30 @@ export class DeviceAuthController {
         else this.finish(flow, "failed", `${product} could not confirm the existing sign-in on this server. Update ${product} and check its login status before trying again.`);
       });
     });
+  }
+
+  /** A callback the desktop relayed from the person's browser: handed to the CLI's own listener, which signs in. */
+  async complete(flowId: string, callbackUrl: string): Promise<{ location?: string }> {
+    const flow = this.flow;
+    if (!flowId || flow?.status.flowId !== flowId || flow.status.phase !== "waiting" || !flow.loopback) {
+      throw new Error("This sign-in is no longer available. Start sign-in again.");
+    }
+    if (flow.relayed) throw new Error("This sign-in is already finishing. Wait for the result.");
+    checkLoopbackCallback(flow.loopback, callbackUrl);
+    flow.relayed = true;
+    let location: string | undefined;
+    try {
+      location = await forwardLoopbackCallback(flow.loopback, callbackUrl);
+    } catch (error) {
+      this.finish(flow, "failed", error instanceof Error ? error.message : `${this.spec.account} sign-in did not finish.`);
+      throw error;
+    }
+    const deadline = Date.now() + 60_000;
+    const ended = (): ProviderAuthenticationStatus => flow.status;
+    while (ended().phase === "waiting" && Date.now() < deadline) await new Promise((resolveWait) => setTimeout(resolveWait, 100));
+    const status = ended();
+    if (status.phase !== "succeeded") throw new Error(status.message ?? `${this.spec.account} sign-in did not finish.`);
+    return location ? { location } : {};
   }
 
   async get(flowId: string): Promise<ProviderAuthenticationStatus> {
@@ -282,7 +315,9 @@ export class DeviceAuthController {
     if (flow.status.phase !== "waiting") return;
     let child: ReturnType<typeof spawnCli>;
     try {
-      child = spawnCli(this.options.cli, args, { env: { ...env, ...(parsePrompt ? this.spec.loginEnv : {}), NO_COLOR: "1" }, cwd, stdio: ["pipe", "pipe", "pipe"] });
+      if (parsePrompt && flow.browser) flow.recorder = browserRecorder();
+      const loginEnv = !parsePrompt ? {} : flow.browser ? { ...this.spec.browserLogin!.env, ...flow.recorder?.env } : this.spec.loginEnv;
+      child = spawnCli(this.options.cli, args, { env: { ...env, ...loginEnv, NO_COLOR: "1" }, cwd, stdio: ["pipe", "pipe", "pipe"] });
     } catch {
       this.finish(flow, "failed", `${product} could not start on this server. Install or update the configured ${product} CLI, then try again.`);
       return;
@@ -297,6 +332,7 @@ export class DeviceAuthController {
         return;
       }
       output += chunk.toString("utf8");
+      if (parsePrompt && flow.browser) { this.browserReady(flow, output); return; }
       const prompt = parsePrompt ? deviceSignInPrompt(provider, stripVTControlCharacters(output)) : null;
       if (!prompt || (prompt.userCode === flow.status.userCode && prompt.authorizationUrl === flow.status.authorizationUrl)) return;
       flow.status = { ...flow.status, ...prompt };
@@ -308,12 +344,40 @@ export class DeviceAuthController {
     };
     child.stdout.on("data", receive);
     child.stderr.on("data", receive);
+    if (parsePrompt && flow.browser) {
+      // a CLI that hands its link to $BROWSER prints nothing to read
+      const poll = setInterval(() => {
+        if (flow.ready || flow.status.phase !== "waiting") clearInterval(poll);
+        else this.browserReady(flow, output);
+      }, 100);
+      poll.unref();
+    }
     child.once("error", (error: NodeJS.ErrnoException) => this.finish(flow, "failed", this.startFailure(error)));
     child.once("close", (code) => {
       if (flow.child === child) flow.child = null;
       if (flow.status.phase === "waiting") done(code, stripVTControlCharacters(output));
       output = "";
     });
+  }
+
+  private browserReady(flow: Flow, output: string): void {
+    if (flow.ready || flow.status.phase !== "waiting") return;
+    const page = this.spec.browserLogin!.page;
+    const links = [...stripVTControlCharacters(output).matchAll(/https:\/\/[^\s"'<>]+/g)].map((match) => match[0].replace(/[),.;]+$/, ""));
+    const recorded = flow.recorder?.read();
+    if (recorded) links.push(recorded);
+    for (const link of links) {
+      let host: string;
+      try { host = new URL(link).hostname; } catch { continue; }
+      const loopback = page.test(host) ? loopbackOf(link) : null;
+      if (!loopback) continue;
+      flow.loopback = loopback;
+      flow.status = { ...flow.status, authorizationUrl: link, loopback: { authorizationUrl: link, port: loopback.port, path: loopback.path } };
+      flow.ready = true;
+      clearTimeout(flow.startupTimer);
+      flow.resolve({ ...flow.status, phase: "waiting" });
+      return;
+    }
   }
 
   private finish(flow: Flow, phase: Exclude<ProviderAuthenticationStatus["phase"], "waiting">, message?: string): void {
@@ -325,6 +389,8 @@ export class DeviceAuthController {
       phase, flowId: flow.status.flowId, authorizationUrl: null, expiresAt: null,
       ...(phase !== "succeeded" && message ? { message } : {}),
     };
+    flow.recorder?.dispose();
+    flow.recorder = null;
     if (!flow.ready) {
       if (phase === "succeeded") flow.resolve({ ...flow.status, phase });
       else flow.reject(new Error(message ?? `${account} sign-in did not finish.`));

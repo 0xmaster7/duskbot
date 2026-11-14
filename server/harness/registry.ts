@@ -537,11 +537,9 @@ export class ProviderRegistry {
           install: withServerInstall(driver?.install, npmPresent, this.appStandaloneCopy(driver, cli ?? cliDefaultOf(driver))),
           authentication: inst.startAuthentication
             ? {
-                method: inst.authenticationMethod ?? (inst.getAuthentication && inst.completeAuthentication
-                  ? "paste-code" as const // a link to open, then a code pasted back (Claude)
-                  : inst.getAuthentication
-                    ? "device-code" as const // a code to enter at the provider's page (Codex)
-                    : "browser" as const), // a link and a callback URL (managed engines)
+                method: inst.authenticationMethod ?? (inst.getAuthentication
+                  ? "device-code" as const // a code to enter at the provider's page (Codex)
+                  : "browser" as const), // a link and a callback URL (managed engines)
                 signOut: inst.signOut !== undefined,
               }
             : undefined,

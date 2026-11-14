@@ -1,5 +1,5 @@
 // An in-progress login belongs to the admin session that started it: never put its device code on global SSE.
-import type { ProviderAuthenticationStart, ProviderInstance } from "./contracts.ts";
+import type { ProviderAuthenticationOptions, ProviderAuthenticationStart, ProviderInstance } from "./contracts.ts";
 
 type LoginInstance = Pick<ProviderInstance, "instanceId" | "startAuthentication" | "getAuthentication" | "completeAuthentication" | "cancelAuthentication" | "signOut">;
 type Flow = {
@@ -40,7 +40,7 @@ export class ProviderAuthSessions {
     return [...this.flows.values()].some((flow) => flow.expiresAt > Date.now() && (flow.busy || !flow.revoked));
   }
 
-  async start(instance: LoginInstance, owner: string): Promise<ProviderAuthenticationStart> {
+  async start(instance: LoginInstance, owner: string, options?: ProviderAuthenticationOptions): Promise<ProviderAuthenticationStart> {
     if (!instance.startAuthentication) throw failure("Account setup is unavailable for this provider.", 404);
     const existing = this.flows.get(instance.instanceId);
     if (existing && (existing.busy || (existing.owner !== owner && existing.expiresAt > Date.now()))) {
@@ -52,7 +52,7 @@ export class ProviderAuthSessions {
     flow.starting = true;
     this.flows.set(instance.instanceId, flow);
     try {
-      const result = await instance.startAuthentication();
+      const result = await instance.startAuthentication(options);
       if (flow.revoked || this.flows.get(instance.instanceId) !== flow) {
         await instance.cancelAuthentication?.();
         throw failure("Sign-in cancelled because the session or provider changed.", 409);
@@ -102,10 +102,12 @@ export class ProviderAuthSessions {
     if (!flow.instance.completeAuthentication) throw failure("This provider does not use a callback URL.", 400);
     flow.busy = true;
     try {
-      try { await flow.instance.completeAuthentication(flowId, callbackUrl); } catch (error) { this.tell(instanceId, flowId, "failed", error); throw error; }
+      let done: void | { location?: string };
+      try { done = await flow.instance.completeAuthentication(flowId, callbackUrl); } catch (error) { this.tell(instanceId, flowId, "failed", error); throw error; }
       if (this.flows.get(instanceId) === flow) this.flows.delete(instanceId);
       this.signedIn(instanceId);
       this.tell(instanceId, flowId, "succeeded");
+      return done?.location ? { location: done.location } : {};
     } finally { flow.busy = false; }
   }
 

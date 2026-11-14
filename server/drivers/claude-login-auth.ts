@@ -1,5 +1,6 @@
 // Signs the server's Claude Code CLI in from Settings: the unmodified `claude auth login` runs with
-// pipes, only its sign-in link is shown, the pasted code goes to its stdin, and `claude auth status
+// pipes, its browser sign-in returns to its own localhost listener (relayed by the desktop when the
+// browser is elsewhere), a pasted code goes to its stdin as the fallback, and `claude auth status
 // --json` confirms. Anthropic permits an end user signing in to the unmodified binary with their own
 // subscription, even where a platform hosts it, and forbids flows that intermediate claude.ai
 // credentials: hence no OAuth client code in this repository.
@@ -11,6 +12,7 @@ import { stripVTControlCharacters } from "node:util";
 import type { ProviderAuthenticationStart, ProviderAuthenticationStatus } from "../contracts.ts";
 import { killCliTree, spawnCli } from "../procs.ts";
 import { canonicalPath } from "./device-auth.ts";
+import { browserRecorder, checkLoopbackCallback, forwardLoopbackCallback, isLoopbackCallback, loopbackOf, type Loopback } from "./loopback-callback.ts";
 
 const MAX_OUTPUT = 32_768;
 /** Where Anthropic's sign-in lives. Anything else in the CLI's output is not a link we show. */
@@ -61,6 +63,9 @@ type Flow = {
   completion?: { resolve: () => void; reject: (error: Error) => void };
   stopping?: Promise<void>;
   terminationFailed?: boolean;
+  linking?: boolean;
+  recorder: ReturnType<typeof browserRecorder>;
+  loopback: Loopback | null;
 };
 
 interface ClaudeLoginOptions {
@@ -71,6 +76,8 @@ interface ClaudeLoginOptions {
   lifetimeMs?: number;
   completeTimeoutMs?: number;
   terminateTimeoutMs?: number;
+  /** How long to wait for the browser link after the paste link shows. */
+  browserLinkMs?: number;
 }
 
 const NOT_AVAILABLE = "This sign-in is no longer available. Start sign-in again.";
@@ -120,6 +127,8 @@ export class ClaudeLoginController {
         reject,
         homeKey,
         env,
+        recorder: null,
+        loopback: null,
         startupTimer: setTimeout(
           () => this.finish(flow, "failed", "Claude Code did not show a sign-in link in time. Check that it is installed and up to date on the server, then try again."),
           this.options.startupTimeoutMs ?? 30_000,
@@ -141,11 +150,12 @@ export class ClaudeLoginController {
     });
   }
 
-  async complete(flowId: string, pasted: string): Promise<void> {
+  async complete(flowId: string, pasted: string): Promise<void | { location?: string }> {
     const flow = this.flow;
     if (!flowId || flow?.status.flowId !== flowId) throw new Error(NOT_AVAILABLE);
     if (flow.status.phase !== "waiting" || !flow.ready) throw new Error(NOT_AVAILABLE);
     if (flow.codeSent) throw new Error("A code was already sent for this sign-in. Wait for the result, or cancel and start again.");
+    if (isLoopbackCallback(pasted)) return this.relayed(flow, pasted);
     const code = claudeLoginCode(pasted);
     if (!code) throw new Error("Paste the whole code shown on Anthropic's page after signing in.");
     const child = flow.child;
@@ -163,6 +173,31 @@ export class ClaudeLoginController {
         if (error) this.finish(flow, "failed", "The code could not be handed to Claude Code on the server. Start sign-in again.");
       });
     });
+  }
+
+  private async relayed(flow: Flow, callbackUrl: string): Promise<{ location?: string }> {
+    if (!flow.loopback) throw new Error(NOT_AVAILABLE);
+    checkLoopbackCallback(flow.loopback, callbackUrl);
+    flow.codeSent = true;
+    const finished = new Promise<void>((resolveDone, rejectDone) => {
+      flow.completion = { resolve: resolveDone, reject: rejectDone };
+    });
+    finished.catch(() => {});
+    const timer = setTimeout(
+      () => this.finish(flow, "failed", "Claude Code did not finish the sign-in. Start sign-in again."),
+      this.options.completeTimeoutMs ?? 60_000,
+    );
+    timer.unref();
+    let location: string | undefined;
+    try {
+      location = await forwardLoopbackCallback(flow.loopback, callbackUrl);
+    } catch (error) {
+      this.finish(flow, "failed", error instanceof Error ? error.message : "Claude sign-in did not finish.");
+      throw error;
+    }
+    await finished;
+    clearTimeout(timer);
+    return location ? { location } : {};
   }
 
   async get(flowId: string): Promise<ProviderAuthenticationStatus> {
@@ -311,8 +346,10 @@ export class ClaudeLoginController {
     if (flow.status.phase !== "waiting") return;
     let child: ReturnType<typeof spawnCli>;
     try {
-      // No browser on a server: the CLI then prints the link instead of opening it.
-      const browserless = process.platform === "win32" ? {} : { BROWSER: "true" };
+      // Claude Code 2.1.314 prints the paste link, then opens the localhost-callback link with $BROWSER: record
+      // it instead of opening anything on a server.
+      flow.recorder = browserRecorder();
+      const browserless = flow.recorder?.env ?? {};
       child = spawnCli(this.options.cli, ["auth", "login"], {
         env: { ...flow.env, ...browserless, NO_COLOR: "1" },
         stdio: ["pipe", "pipe", "pipe"],
@@ -329,13 +366,22 @@ export class ClaudeLoginController {
         return;
       }
       flow.output += chunk.toString("utf8");
-      if (flow.ready) return;
+      if (flow.ready || flow.linking) return;
       const prompt = claudeLoginPrompt(flow.output);
       if (!prompt) return;
-      flow.status = { ...flow.status, authorizationUrl: prompt.authorizationUrl };
-      flow.ready = true;
+      flow.linking = true;
       clearTimeout(flow.startupTimer);
-      flow.resolve({ ...flow.status, phase: "waiting" });
+      void this.browserLink(flow).then((browser) => {
+        if (flow.status.phase !== "waiting") return;
+        flow.loopback = browser?.loopback ?? null;
+        flow.status = {
+          ...flow.status,
+          authorizationUrl: prompt.authorizationUrl,
+          ...(browser ? { loopback: { authorizationUrl: browser.url, port: browser.loopback.port, path: browser.loopback.path } } : {}),
+        };
+        flow.ready = true;
+        flow.resolve({ ...flow.status, phase: "waiting" });
+      });
     };
     child.stdout.on("data", receive);
     child.stderr.on("data", receive);
@@ -367,6 +413,19 @@ export class ClaudeLoginController {
     });
   }
 
+  /** The link the CLI handed $BROWSER: a claude.ai sign-in that returns to the CLI's own localhost listener. */
+  private async browserLink(flow: Flow): Promise<{ url: string; loopback: Loopback } | null> {
+    const deadline = Date.now() + (this.options.browserLinkMs ?? 3_000);
+    while (flow.recorder && flow.status.phase === "waiting") {
+      const url = claudeSignInLink(flow.recorder.read());
+      const loopback = url ? loopbackOf(url) : null;
+      if (url && loopback && loopback.path === "/callback") return { url, loopback };
+      if (Date.now() > deadline) return null;
+      await new Promise((resolveWait) => setTimeout(resolveWait, 100));
+    }
+    return null;
+  }
+
   private finish(flow: Flow, phase: Exclude<ProviderAuthenticationStatus["phase"], "waiting">, message?: string): void {
     if (flow.status.phase !== "waiting") return;
     clearTimeout(flow.startupTimer);
@@ -379,6 +438,8 @@ export class ClaudeLoginController {
       ...(phase !== "succeeded" && message ? { message } : {}),
     };
     flow.output = "";
+    flow.recorder?.dispose();
+    flow.recorder = null;
     if (!flow.ready) {
       if (phase === "succeeded") flow.resolve({ ...flow.status, phase });
       else flow.reject(new Error(message ?? "Claude sign-in did not finish."));

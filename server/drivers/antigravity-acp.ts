@@ -673,6 +673,7 @@ export interface AntigravityAuthStart {
   flowId: string | null;
   authorizationUrl: string | null;
   expiresAt: string | null;
+  loopback?: { authorizationUrl: string; port: number; path: string };
 }
 
 interface AuthFlow {
@@ -740,6 +741,7 @@ export class AntigravityAuthController {
         flowId: flow.id,
         authorizationUrl: outcome.request.authorizationUrl,
         expiresAt: new Date(flow.expiresAt).toISOString(),
+        loopback: { authorizationUrl: outcome.request.authorizationUrl, port: Number(new URL(outcome.request.redirectUri).port), path: "/" },
       };
     } catch (error) {
       client.close();

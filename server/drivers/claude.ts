@@ -2029,6 +2029,7 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
       refreshModels,
       ...(startupModelRefresh ? { startupModelRefresh } : {}),
       snapshot,
+      authenticationMethod: "paste-code",
       startAuthentication: () => login.start(),
       getAuthentication: (flowId) => login.get(flowId),
       completeAuthentication: (flowId, code) => login.complete(flowId, code),

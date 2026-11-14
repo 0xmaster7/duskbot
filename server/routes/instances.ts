@@ -213,14 +213,16 @@ export function createInstanceRoutes(deps: InstanceRouteDeps): RouteHandler {
           if (instance.authenticationMethod === "browser-pkce" && (isProxied(req) || !isLoopbackHost(req.socket.remoteAddress))) {
             return json(res, 403, { error: "Continue with ChatGPT on the computer running dusk bot. Hosted Pro sign-in requires OpenAI's hosted-app approval." });
           }
-          const started = await providerAuthSessions.start(instance, owner);
+          const startBody = await readBody(req, 4096).catch(() => null);
+          const started = await providerAuthSessions.start(instance, owner, { browser: startBody?.browser === true });
           if (started.phase === "succeeded") registry.forgetSnapshots();
           // Revocation can arrive while the CLI is obtaining a device code.
           if (auth.kind === "session" && !sessions.isLive(auth.session.id)) {
             providerAuthSessions.revokeOwner(owner);
             return json(res, 401, { error: "Your session ended. Start a new sign-in." });
           }
-          return json(res, 200, { auth: started });
+          // the CLI's loopback is reachable from the browser only when the request did not come from another machine
+          return json(res, 200, { auth: started, sameMachine: !isProxied(req) && isLoopbackHost(req.socket.remoteAddress) });
         }
         if (action === "auth/sign-out") {
           const instance = registry.get(instanceId);
@@ -235,9 +237,9 @@ export function createInstanceRoutes(deps: InstanceRouteDeps): RouteHandler {
           // `code` for a pasted sign-in code (Claude), `callbackUrl` for a browser callback
           const callbackUrl = typeof body?.callbackUrl === "string" ? body.callbackUrl : typeof body?.code === "string" ? body.code : "";
           if (!flowId || !callbackUrl) return json(res, 400, { error: "flowId and a code or callbackUrl are required" });
-          await providerAuthSessions.complete(instanceId, owner, flowId, callbackUrl);
+          const done = await providerAuthSessions.complete(instanceId, owner, flowId, callbackUrl);
           registry.forgetSnapshots();
-          return json(res, 200, { ok: true });
+          return json(res, 200, { ok: true, ...done });
         }
         const body = await readBody(req, 4096);
         await providerAuthSessions.cancel(instanceId, owner, typeof body?.flowId === "string" ? body.flowId : "");

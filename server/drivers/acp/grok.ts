@@ -59,6 +59,8 @@ export const GROK_DEVICE_SIGN_IN: DeviceSignIn = {
   install: "Install it with xAI's installer (https://x.ai/cli), then try again.",
   failure: grokLoginFailure,
   signedIn: grokSignedIn,
+  // grok `login --oauth`: auth.x.ai returns to a localhost callback
+  browserLogin: { args: ["login", "--oauth"], page: /(^|\.)x\.ai$/ },
 };
 
 function unquote(raw: string): string {

@@ -1683,11 +1683,12 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
     ...(startupModelRefresh ? { startupModelRefresh } : {}),
     generateMemoryText,
     ...(plan ? { authenticationMethod: "browser-pkce" as const } : {}),
-    startAuthentication: async () => {
+    startAuthentication: async (options) => {
       if (planUnavailable) throw new Error(planUnavailable);
       if (planSigningOut || disposed) throw new Error("This account is being disconnected. Wait before signing in again.");
-      return (planAuth ?? authentication).start();
+      return planAuth ? planAuth.start() : authentication.start(options);
     },
+    ...(planAuth ? {} : { completeAuthentication: (flowId: string, callbackUrl: string) => authentication.complete(flowId, callbackUrl) }),
     getAuthentication: async (flowId) => {
       const result = await (planAuth ?? authentication).get(flowId);
       if (planAuth && result.phase === "succeeded") planWarning = undefined;

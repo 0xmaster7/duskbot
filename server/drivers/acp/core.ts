@@ -39,6 +39,7 @@ import type {
   DriverCreateInput,
   EffortLevel,
   EngineInstall,
+  ProviderAuthenticationOptions,
   ProviderDriver,
   ProviderInstance,
   ProviderSnapshot,
@@ -1827,8 +1828,9 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
         refreshModels: support.resolveModels ? () => refreshModels(true) : undefined,
         ...(startupModelRefresh ? { startupModelRefresh } : {}),
         ...(deviceSignIn ? {
-          startAuthentication: () => deviceSignIn.start(),
+          startAuthentication: (options?: ProviderAuthenticationOptions) => deviceSignIn.start(options),
           getAuthentication: (flowId: string) => deviceSignIn.get(flowId),
+          completeAuthentication: (flowId: string, callbackUrl: string) => deviceSignIn.complete(flowId, callbackUrl),
           cancelAuthentication: () => deviceSignIn.cancel(),
         } : {}),
         snapshot,

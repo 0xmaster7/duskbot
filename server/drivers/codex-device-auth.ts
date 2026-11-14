@@ -39,6 +39,8 @@ export const CODEX_DEVICE_SIGN_IN: DeviceSignIn = {
       : "unknown",
   },
   logoutArgs: ["logout"],
+  // codex-cli 0.167: `codex login` serves http://localhost:1455/auth/callback and prints the auth.openai.com link
+  browserLogin: { args: ["login"], env: { BROWSER: "true" }, page: /^auth\.openai\.com$/ },
 };
 
 export class CodexDeviceAuthController extends DeviceAuthController {

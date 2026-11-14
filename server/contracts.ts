@@ -442,6 +442,15 @@ export interface ProviderAuthenticationStart {
   expiresAt: string | null;
   /** A short-lived code to enter only at the provider's authorization URL. */
   userCode?: string;
+  /** The provider's normal browser sign-in, which returns to http://localhost:`port``path` on the machine running
+   * the CLI; a desktop on another machine relays that callback to `completeAuthentication`. */
+  loopback?: { authorizationUrl: string; port: number; path: string };
+}
+
+export interface ProviderAuthenticationOptions {
+  /** The person's browser can return to a loopback here (same machine, or a desktop that relays it): prefer the
+   * provider's normal browser sign-in over a device code. */
+  browser?: boolean;
 }
 
 export interface ProviderAuthenticationStatus extends Omit<ProviderAuthenticationStart, "phase"> {
@@ -543,10 +552,11 @@ export interface ProviderInstance {
   readonly startupModelRefresh?: Promise<void>;
   /** Optional first-party runtime installation and account setup. */
   readonly installRuntime?: () => Promise<void>;
-  readonly startAuthentication?: () => Promise<ProviderAuthenticationStart>;
-  readonly authenticationMethod?: "browser-pkce";
+  readonly startAuthentication?: (options?: ProviderAuthenticationOptions) => Promise<ProviderAuthenticationStart>;
+  readonly authenticationMethod?: "browser-pkce" | "paste-code";
   readonly getAuthentication?: (flowId: string) => Promise<ProviderAuthenticationStatus>;
-  readonly completeAuthentication?: (flowId: string, callbackUrl: string) => Promise<void>;
+  /** A pasted code or a loopback callback URL; answers the https page to send the browser on to, if any. */
+  readonly completeAuthentication?: (flowId: string, callbackUrl: string) => Promise<void | { location?: string }>;
   readonly cancelAuthentication?: () => Promise<void>;
   /** Remove the provider CLI's stored sign-in on this server; never touches another instance's home. */
   readonly signOut?: () => Promise<void>;

@@ -27,6 +27,21 @@ if (args.join(' ') === 'auth status --json') {
     const link = mode === 'evil' ? 'https://evil.example/oauth/authorize?code=true' : 'https://claude.com/cai/oauth/authorize?code=true&client_id=fixture&state=abc';
     process.stdout.write('If the browser didn\\'t open, visit: ' + link + '\\n');
     process.stdout.write('Paste code here if prompted > ');
+    if (mode === 'browser') {
+      const { createServer } = await import('node:http');
+      const { execFileSync } = await import('node:child_process');
+      const server = createServer((req, res) => {
+        const url = new URL(req.url, 'http://localhost');
+        if (url.pathname !== '/callback' || url.searchParams.get('state') !== 'abc' || url.searchParams.get('code') !== 'BROWSERCODE') { res.writeHead(400); res.end(); return; }
+        writeFileSync(join(home, 'authenticated'), 'fixture only');
+        res.writeHead(302, { location: 'https://platform.claude.com/oauth/code/success?app=claude-code' });
+        res.end(() => { process.stdout.write('Login successful.\\n'); process.exit(0); });
+      });
+      server.listen(0, '127.0.0.1', () => {
+        const redirect = encodeURIComponent('http://localhost:' + server.address().port + '/callback');
+        execFileSync(process.env.BROWSER, ['https://claude.com/cai/oauth/authorize?code=true&client_id=fixture&response_type=code&redirect_uri=' + redirect + '&state=abc']);
+      });
+    }
     let buffered = '';
     process.stdin.setEncoding('utf8');
     process.stdin.on('data', (chunk) => {
@@ -77,6 +92,45 @@ describe("the sign-in link and code checks", () => {
   });
 });
 
+describe("Claude sign-in through its own localhost callback", () => {
+  let home: string;
+  let controller: ClaudeLoginController | null = null;
+  beforeEach(() => {
+    home = mkdtempSync(join(tmpdir(), "dusk-claude-browser-"));
+    writeFileSync(join(home, "fake-claude.mjs"), FAKE, { mode: 0o700 });
+  });
+  afterEach(async () => {
+    await controller?.dispose();
+    controller = null;
+    await removeTempDir(home);
+  });
+  const create = () => (controller = new ClaudeLoginController({
+    cli: join(home, "fake-claude.mjs"),
+    environment: () => ({ ...process.env, HOME: home, CLAUDE_CONFIG_DIR: join(home, ".claude"), FAKE_AUTH_MODE: "browser" }),
+    startupTimeoutMs: 5000, lifetimeMs: 10_000, completeTimeoutMs: 5000, terminateTimeoutMs: 50,
+  }));
+
+  it.skipIf(process.platform === "win32")("offers the browser link and finishes from a relayed callback, with no code pasted", async () => {
+    const login = create();
+    const start = await login.start();
+    expect(start.authorizationUrl).toContain("code=true");
+    expect(start.loopback).toMatchObject({ path: "/callback" });
+    const { port } = start.loopback!;
+    expect(new URL(start.loopback!.authorizationUrl).searchParams.get("redirect_uri")).toBe(`http://localhost:${port}/callback`);
+    // a callback for another sign-in never reaches the CLI
+    await expect(login.complete(start.flowId!, `http://localhost:${port}/callback?code=BROWSERCODE&state=other`)).rejects.toThrow(/does not belong/);
+  });
+
+  it.skipIf(process.platform === "win32")("hands the desktop's relayed callback to the CLI and sends the browser to Anthropic's page", async () => {
+    const login = create();
+    const start = await login.start();
+    const { port } = start.loopback!;
+    const done = await login.complete(start.flowId!, `http://localhost:${port}/callback?code=BROWSERCODE&state=abc`);
+    expect(done).toEqual({ location: "https://platform.claude.com/oauth/code/success?app=claude-code" });
+    expect((await login.get(start.flowId!)).phase).toBe("succeeded");
+  });
+});
+
 describe("Claude server-owned sign-in", () => {
   let home: string;
   let cli: string;
@@ -89,6 +143,7 @@ describe("Claude server-owned sign-in", () => {
       lifetimeMs: 3000,
       completeTimeoutMs: 3000,
       terminateTimeoutMs: 50,
+      browserLinkMs: 50,
       ...overrides,
     });
     controllers.push(controller);
@@ -129,7 +184,8 @@ describe("Claude server-owned sign-in", () => {
     expect(refreshed).toBe(1);
     expect(calls().map((call) => call.args)).toEqual([["auth", "status", "--json"], ["auth", "login"], ["auth", "status", "--json"]]);
     expect(calls().every((call) => call.home === home && call.configDir === join(home, ".claude"))).toBe(true);
-    expect(calls()[1].browser).toBe(process.platform === "win32" ? undefined : "true");
+    // $BROWSER records the link and never opens anything on the server
+    if (process.platform !== "win32") expect(calls()[1].browser).toMatch(/dusk-signin-.*\/open$/);
     await expect(controller.complete(start.flowId!, "GOODCODE#abc")).rejects.toThrow(/no longer available/);
   });
 

@@ -233,6 +233,8 @@ export const COPILOT_DEVICE_SIGN_IN: DeviceSignIn = {
   install: "Install it with npm install -g @github/copilot, then try again.",
   failure: copilotLoginFailure,
   confirmedByExit: true,
+  // copilot 1.0.106 `login --web-flow`: GitHub's page returns to a local loopback callback
+  browserLogin: { args: ["login", "--web-flow"], page: /^github\.com$/ },
 };
 
 const SUPPORT: AcpSupport = {
