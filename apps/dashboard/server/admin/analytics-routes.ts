@@ -18,6 +18,8 @@ import { LEDGER_LABELS } from "../billing/ledger.ts";
 import { BILLING_CONFIG } from "../billing/plans.ts";
 import { quote } from "../billing/pricing.ts";
 import type { Step } from "../analytics/profile.ts";
+/** an account's face for the people views: its photo and avatar choice, when it has them */
+const face = (account: { avatarUrl?: string; avatar?: string }) => ({ ...(account.avatarUrl ? { avatarUrl: account.avatarUrl } : {}), ...(account.avatar ? { avatar: account.avatar } : {}) });
 
 export class AnalyticsRouteError extends Error {
   status: number; code: string;
@@ -198,7 +200,7 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
       const summary = list.length ? personOf(list) : null;
       const signedUp = account ? account.createdAt : null, paidAt = account ? p.paid.get(account.id) ?? null : null;
       const firstSeen = summary?.firstSeen ?? signedUp;
-      rows.push({ id: key, seed: list[0]?.visitor ?? key, account: account ? { id: account.id, email: account.email, name: account.name } : null, customer: paidAt !== null,
+      rows.push({ id: key, seed: list[0]?.visitor ?? key, account: account ? { id: account.id, email: account.email, name: account.name, ...face(account) } : null, customer: paidAt !== null,
         signedUpAt: signedUp, paidAt, firstSeen, lastSeen: summary?.lastSeen ?? signedUp, timeToSignupMs: signedUp !== null && firstSeen !== null ? Math.max(0, signedUp - firstSeen) : null,
         visits: summary?.visits ?? 0, pageviews: summary?.pageviews ?? 0, source: summary?.source ?? "unknown", channel: summary?.channel ?? "unknown", campaign: summary?.campaign ?? null,
         device: summary?.device ?? null, os: summary?.os ?? null, browser: summary?.browser ?? null, country: summary?.country ?? null, city: summary?.city ?? null, lastPage: summary?.lastPage ?? null });
@@ -245,7 +247,7 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
     const timeline = mine.filter(event => event.name !== "site_leave" && event.name !== "page_leave").slice(-400).reverse().map(event => ({ at: event.at, name: event.name, surface: surface(event), props: event.props,
       page: event.ctx?.page ?? null, source: event.ctx?.source ?? null, country: event.ctx?.country ?? null, device: event.ctx?.device ?? null, app: event.ctx?.app ?? null }));
     return {
-      id, seed: [...visitors][0] ?? id, account: owner ? { id: owner.id, email: owner.email, name: owner.name, createdAt: owner.createdAt } : null,
+      id, seed: [...visitors][0] ?? id, account: owner ? { id: owner.id, email: owner.email, name: owner.name, createdAt: owner.createdAt, ...face(owner) } : null,
       customer: !!(account && p.paid.has(account)), paidAt: account ? p.paid.get(account) ?? null : null, visitors: visitors.size, installs: installs.size,
       summary: visits.length ? personOf(visits) : null, timeline,
       where: whereOf(mine), firstSource, sessions: sessions.slice(0, 120),
@@ -304,7 +306,7 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
       if (event.name === "app_feature") row.features++;
       row.lastAt = Math.max(row.lastAt, event.at);
     }
-    const users = [...power].filter(([id]) => accounts.has(id)).map(([id, row]) => ({ id, email: accounts.get(id)!.email, name: accounts.get(id)!.name, activeDays: row.days.size, opens: row.opens,
+    const users = [...power].filter(([id]) => accounts.has(id)).map(([id, row]) => ({ id, email: accounts.get(id)!.email, name: accounts.get(id)!.name, ...face(accounts.get(id)!), activeDays: row.days.size, opens: row.opens,
       sent: row.sent, replies: row.replies, features: row.features, lastAt: row.lastAt, customer: p.paid.has(id) }))
       .sort((a, b) => b.activeDays - a.activeDays || b.sent - a.sent).slice(0, 25);
     return { now: time, cohorts, power: users };

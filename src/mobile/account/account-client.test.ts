@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { appleNonce, createMobileAccount, isAccountAuthUrl } from "./account-client";
+import { appleNonce, createMobileAccount, isAccountAuthUrl, mobileFace } from "./account-client";
 import { webPlatform, type MobilePlatform } from "../platform";
 
 const origin = "https://accounts.example";
@@ -293,5 +293,14 @@ describe("sign in with Apple, native", () => {
     platform.appleSignIn = undefined;
     client = createMobileAccount({ platform, origin, fetch: fetcher });
     expect(await client.appleNative()).toEqual({ outcome: "unavailable" });
+  });
+});
+
+describe("mobileFace", () => {
+  it("keeps an https photo and an avatar choice, and drops anything else", () => {
+    expect(mobileFace({ avatarUrl: "https://lh3.googleusercontent.com/a/x", avatar: "g:abc123" })).toEqual({ avatarUrl: "https://lh3.googleusercontent.com/a/x", avatar: "g:abc123" });
+    expect(mobileFace({ avatarUrl: "http://example.test/a.png", avatar: "<b>" })).toEqual({});
+    expect(mobileFace({ avatarUrl: "https://u:p@example.test/a.png", avatar: "drawn" })).toEqual({ avatar: "drawn" });
+    expect(mobileFace(null)).toEqual({});
   });
 });

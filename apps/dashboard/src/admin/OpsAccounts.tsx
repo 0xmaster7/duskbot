@@ -122,7 +122,7 @@ function AccountsTable({ rows, sort, onSort, fairUse, label, empty }: { rows: Op
           return (
             <div key={row.accountId ?? row.ref ?? name} role="row" className={cx(COLS, "relative rounded-[12px] px-2.5 py-2", row.accountId && "hover-row")}>
               <span role="rowheader" className="flex min-w-0 items-center gap-2.5">
-                {row.accountId && <Avatar seed={row.accountId} size={20} customer />}
+                {row.accountId && <Avatar seed={row.accountId} size={20} customer account={{ id: row.accountId }} />}
                 <span className="min-w-0">
                   {row.accountId
                     ? <Link to={personLink(row.accountId)} className="block truncate text-13 text-ink after:absolute after:inset-0 after:rounded-[12px]">{name}</Link>

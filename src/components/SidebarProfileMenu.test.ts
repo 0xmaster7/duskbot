@@ -570,6 +570,17 @@ describe("grok's profile menu", () => {
   });
 });
 
+describe("personFace", () => {
+  it("draws the dusk cloud account's face, else this place's photo, else a head from the address or name; nothing for nobody", async () => {
+    const { personFace } = await import("./SidebarProfileMenu");
+    const account = { id: "acc_1", email: "ada@example.test", avatar: "g:abc123" };
+    expect(personFace({ email: "ada@example.test" }, account)).toEqual({ id: "acc_1", avatar: "g:abc123" });
+    expect(personFace({ email: "Bob@Example.test" }, account)).toEqual({ id: "bob@example.test" });
+    expect(personFace({ name: "Bob", avatarUrl: "/bob.png" }, null)).toEqual({ id: "Bob", avatarUrl: "/bob.png", avatar: "photo" });
+    expect(personFace({}, null)).toBeNull();
+  });
+});
+
 describe("withAccountFace", () => {
   it("lends the dusk cloud account's photo and name to the same person's profile, or to none, never to someone else's", async () => {
     const { withAccountFace } = await import("./SidebarProfileMenu");

@@ -4,6 +4,8 @@ import { BellDot, Check, MonitorSmartphone, Pin, PinOff, Plus, RotateCcw, Search
 import { api, retryLoad, useStore, type Bot, type Group } from "@/state/store";
 import { BotAvatar, MausAvatar } from "@/components/Avatar";
 import { GroupAvatar, useGroupYou } from "@/components/GroupAvatar";
+import { UserFace } from "@/components/UserAvatar";
+import { useMobileAccount } from "./account/AccountGate";
 import { botPreview, groupPreview, lastPreviewable, sidebarPreviewMessages } from "@/components/sidebar-preview";
 import { WorkingDots } from "@/components/WorkingIndicator";
 import { partitionSidebarBots, withPrimaryTile } from "@/lib/sidebar-layout";
@@ -54,6 +56,9 @@ export function HomeScreen({ onOpenChat, onOpenSheet }: { onOpenChat: (id: strin
   const offline = useOffline();
   const waking = useSyncExternalStore(onCloudWaking, cloudWaking, () => false);
   const you = useGroupYou();
+  const phone = useMobileAccount()?.account ?? null;
+  // the phone's own account first: its photo, else its drawn head; the desktop's profile otherwise
+  const face = phone ?? you?.face ?? null;
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
   const [menu, setMenu] = useState<{ entry: Entry; rect: DOMRect; pinnedTile: boolean } | null>(null);
@@ -157,8 +162,8 @@ export function HomeScreen({ onOpenChat, onOpenSheet }: { onOpenChat: (id: strin
       <div aria-hidden className={cn("pointer-events-none absolute inset-x-0 top-0 z-[5] h-[calc(var(--m-safe-top)+72px)] bg-gradient-to-b from-app from-60% to-transparent transition-opacity duration-150", scrolled ? "opacity-100" : "opacity-0")} />
       <header className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center gap-2 px-3" style={{ paddingTop: BAR_TOP }}>
         <RoundButton floating label={unreadNotes ? t("mobile.home.youWithNotifications", { count: unreadNotes }) : t("mobile.home.you")} onClick={() => onOpenSheet({ kind: "settings" })} className="pointer-events-auto overflow-visible">
-          {you?.avatarUrl
-            ? <img src={you.avatarUrl} alt="" className="size-full rounded-full object-cover" />
+          {face
+            ? <UserFace account={face} size={40} className="size-full" />
             : <span className="text-[14px] font-semibold">{you?.initials ?? <UserRound size={19} />}</span>}
           {unreadNotes > 0 && <span aria-hidden className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-ink px-1 text-[11px] font-semibold tabular-nums text-app ring-2 ring-app">{unreadNotes > 9 ? "9+" : unreadNotes}</span>}
         </RoundButton>

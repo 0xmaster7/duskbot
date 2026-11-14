@@ -11,6 +11,8 @@ export interface AccountProfile {
   email: string;
   name: string | null;
   avatarUrl: string | null;
+  /** the person's avatar choice (shared/user-avatar.ts), absent for the default */
+  avatar?: string;
   createdAt: number;
   /** false until the first-run onboarding is finished or skipped */
   onboarded: boolean;

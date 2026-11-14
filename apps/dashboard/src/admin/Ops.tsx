@@ -107,7 +107,7 @@ export function Meter({ label, meter, format }: { label: string; meter: OpsMeter
 export function Person({ accountId, email, fallback, sub }: { accountId: string | null; email: string | null; fallback?: string; sub?: ReactNode }) {
   return (
     <span className="flex min-w-0 items-center gap-2.5">
-      {accountId && <Avatar seed={accountId} size={20} customer />}
+      {accountId && <Avatar seed={accountId} size={20} customer account={{ id: accountId }} />}
       <span className="min-w-0">
         <span className="block truncate text-13 text-ink">{accountId ? personName(accountId, email) : email ?? fallback ?? "unknown"}</span>
         {sub && <span className="block truncate text-12 text-ink-3">{sub}</span>}

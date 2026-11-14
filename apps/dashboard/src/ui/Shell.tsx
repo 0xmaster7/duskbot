@@ -13,6 +13,7 @@ import { Button, cx, FreshnessTag } from "./kit";
 import { placeState, TONE_TEXT } from "../data/place";
 import { Mascot } from "./Mascot";
 import { Avatar } from "./Avatar";
+import { UserFace } from "./UserAvatar";
 import { adminCall } from "../admin/api";
 import { SITE_NAME, SITE_URL } from "../lib/site";
 import mark from "../../favicon.svg";
@@ -142,7 +143,7 @@ function UserRow() {
           <button role="menuitem" onClick={() => void api.signOut().finally(() => setAccount(null))} className="hover-ghost flex w-full items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-14 text-ink-2"><LogOut size={16} strokeWidth={1.75} aria-hidden /> sign out</button>
       </Pop>
       <button aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="hover-side flex w-full items-center gap-3 rounded-[18px] px-2.5 py-2 text-start">
-        <Avatar name={name} email={account.email} photo={profile?.profile.avatarUrl} size={36} />
+        {profile ? <UserFace account={profile.profile} size={36} /> : <Avatar name={name} email={account.email} size={36} />}
         <span className="min-w-0 flex-1">
           <span className="block truncate text-14 text-ink">{name}</span>
           <span className="block truncate text-12 text-ink-3">{label}</span>

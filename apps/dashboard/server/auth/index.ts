@@ -213,7 +213,8 @@ export function createAuth(options: AuthOptions) {
     return found;
   }
   function view(owner: Account): AccountView {
-    return { id: owner.id, email: owner.email, name: owner.name, createdAt: owner.createdAt, providers: ["email", ...OAUTH_PROVIDERS.filter(provider => state.identities.some(item => item.accountId === owner.id && item.provider === provider))] };
+    return { id: owner.id, email: owner.email, name: owner.name, createdAt: owner.createdAt, providers: ["email", ...OAUTH_PROVIDERS.filter(provider => state.identities.some(item => item.accountId === owner.id && item.provider === provider))],
+      ...(owner.avatarUrl ? { avatarUrl: owner.avatarUrl } : {}), ...(owner.avatar ? { avatar: owner.avatar } : {}) };
   }
   function notificationsOf(owner: Account): NotificationPrefs {
     return { cloudStatus: owner.notifications?.cloudStatus ?? NOTIFICATION_DEFAULTS.cloudStatus, product: owner.notifications?.product ?? NOTIFICATION_DEFAULTS.product };

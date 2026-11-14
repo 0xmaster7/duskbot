@@ -77,10 +77,22 @@ export function withAccountFace(profile: { name?: string; email?: string; avatar
   return { ...(profile ?? { email: account.email }), ...(!profile?.name?.trim() && account.name ? { name: account.name } : {}), ...(!profile?.avatarUrl && account.avatarUrl ? { avatarUrl: account.avatarUrl } : {}), ...face };
 }
 
-/** The person's face in the sidebar: their account's avatar where it lends one, else this place's photo or initials. */
-function ProfileFace({ profile, initials, size, fallback, fontSize, className }: { profile: ReturnType<typeof withAccountFace>; initials: string; size: number; fallback?: ReactNode; fontSize?: number; className?: string }) {
-  if (profile?.face) return <UserFace account={profile.face} size={size} className="inset-ring inset-ring-ink/[0.08]" />;
-  return <InitialsAvatar initials={initials} avatarUrl={profile?.avatarUrl} size={size} fallback={fallback} fontSize={fontSize} className={className} />;
+/** What `UserFace` draws for a person: an id to seed the drawn head, and the photo and choice that may stand in for it. */
+export type PersonFace = { id: string; avatarUrl?: string; avatar?: string };
+
+/** The person's face: the dusk cloud account's, where it lends one (withAccountFace); else this place's photo, or a head drawn
+ * from their address or name. Nobody to draw for a profile with neither. */
+export function personFace(profile: { name?: string; email?: string; avatarUrl?: string } | undefined, account: { id?: string; email: string; avatarUrl?: string; avatar?: string } | null): PersonFace | null {
+  const lent = withAccountFace(profile, account);
+  if (lent?.face) return lent.face;
+  const seed = profile?.email?.trim().toLowerCase() || profile?.name?.trim();
+  return seed ? { id: seed, ...(profile?.avatarUrl ? { avatarUrl: profile.avatarUrl, avatar: "photo" } : {}) } : null;
+}
+
+/** The person's face in the sidebar: their photo or drawn head; initials only for a computer's name, an icon for nobody. */
+function ProfileFace({ face, initials, size, fallback, fontSize, className }: { face: PersonFace | null; initials: string; size: number; fallback?: ReactNode; fontSize?: number; className?: string }) {
+  if (face) return <UserFace account={face} size={size} className="inset-ring inset-ring-ink/[0.08]" />;
+  return <InitialsAvatar initials={initials} size={size} fallback={fallback} fontSize={fontSize} className={className} />;
 }
 
 export function profileInitials(profile?: { name?: string; email?: string }): string {
@@ -548,7 +560,9 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
   }, []);
 
   const accounts = useAccounts();
-  const profile = withAccountFace(profileForSession(state.config?.profile, session), accounts.view?.active ?? null);
+  const ownProfile = profileForSession(state.config?.profile, session);
+  const profile = withAccountFace(ownProfile, accounts.view?.active ?? null);
+  const face = personFace(ownProfile, accounts.view?.active ?? null);
   // grok's footer falls back to the computer's account: its initial in the grey circle, its name beside it
   const computer = useComputerName(simple && !profile?.name?.trim() && !profile?.email?.trim());
   const name = computer ?? profileLabel(profile);
@@ -642,7 +656,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
             data-sidebar-account=""
             className={cn("relative flex size-9 items-center justify-center rounded-full", !named && (open ? "bg-ink/[0.06]" : "hover:bg-ink/[0.06]"))}
           >
-            <ProfileFace profile={profile} initials={initials} size={36} fallback={nameless} fontSize={14} className="bg-composer leading-[14px] tracking-[-0.35px] text-ink-secondary inset-ring inset-ring-ink/[0.08] group-hover/acct:bg-[color-mix(in_srgb,var(--color-ink)_5%,var(--color-composer))] group-aria-expanded/acct:bg-[color-mix(in_srgb,var(--color-ink)_7%,var(--color-composer))]" />
+            <ProfileFace face={computer ? null : face} initials={initials} size={36} fallback={nameless} fontSize={14} className="bg-composer leading-[14px] tracking-[-0.35px] text-ink-secondary inset-ring inset-ring-ink/[0.08] group-hover/acct:bg-[color-mix(in_srgb,var(--color-ink)_5%,var(--color-composer))] group-aria-expanded/acct:bg-[color-mix(in_srgb,var(--color-ink)_7%,var(--color-composer))]" />
             {dot && <span aria-hidden data-account-dot={dot} className={cn("absolute -right-0.5 -top-0.5 size-2.5 rounded-full ring-2 ring-panel", DOT_COLOR[dot])} />}
           </span>
           {named && <span aria-hidden="true" data-sidebar-account-name="" className={cn("min-w-0 truncate text-[14px] font-medium leading-5 tracking-[0.01em] transition-[opacity,margin,max-width] ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none",
@@ -657,7 +671,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
               open ? "bg-raised" : "hover:bg-raised/50",
             )}
           >
-            <ProfileFace profile={profile} initials={initials} size={rail ? 30 : circle ? 26 : 28} />
+            <ProfileFace face={computer ? null : face} initials={initials} size={rail ? 30 : circle ? 26 : 28} />
             {dot && <span aria-hidden data-account-dot={dot} className={cn("absolute end-1 top-1 size-2.5 rounded-full ring-2 ring-app", DOT_COLOR[dot])} />}
           </span>
         ) : (
@@ -669,7 +683,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
             )}
           >
             <span className="relative flex shrink-0">
-              <ProfileFace profile={profile} initials={profileInitials(profile)} size={28} />
+              <ProfileFace face={computer ? null : face} initials={profileInitials(profile)} size={28} />
               {moveDot && <span aria-hidden data-account-dot={moveDot} className={cn("absolute -right-0.5 -top-0.5 size-2 rounded-full ring-2 ring-app", DOT_COLOR[moveDot])} />}
             </span>
             <span className="flex min-w-0 flex-1 flex-col">

@@ -9,6 +9,7 @@ import { Mascot } from "../ui/Mascot";
 import { avatarOf, friendlyName } from "./names";
 import { countryName } from "./geo";
 import { n } from "./ui";
+import { UserFace } from "../ui/UserAvatar";
 
 export type RangeKey = "today" | "7d" | "30d" | "90d" | "custom";
 export interface Range { key: RangeKey; from: number; to: number }
@@ -74,8 +75,10 @@ export function duration(ms: number | null) {
   return h < 48 ? `${h}h ${m % 60}m` : `${Math.round(h / 24)} days`;
 }
 
-/** a visitor's stable mascot and colour, from the hash of their id */
-export function Avatar({ seed, size = 32, customer }: { seed: string; size?: number; customer?: boolean }) {
+/** a person with an account: their face (photo, or the head drawn from their account id), a sky ring for a customer.
+ * a visitor without one: their stable mascot and colour, from the hash of their id */
+export function Avatar({ seed, size = 32, customer, account }: { seed: string; size?: number; customer?: boolean; account?: { id: string; avatarUrl?: string; avatar?: string } | null }) {
+  if (account) return <UserFace account={account} size={size + 8} className={customer ? "ring-2 ring-wash-sky" : undefined} />;
   const { body, ink } = avatarOf(seed);
   return (
     <span className={cx("grid shrink-0 place-items-center rounded-full bg-card", customer && "bg-wash-sky")} style={{ width: size + 8, height: size + 8 }} aria-hidden>

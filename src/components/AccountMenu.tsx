@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { ContinueInBrowserSheet } from "./SignInSheet";
 import { continueInBrowser } from "@/lib/account-intent";
 import { Check, LogOut, Pencil, Plus, UserRound, X } from "../icons";
@@ -87,6 +87,28 @@ export function useAccounts(): AccountsAccess & { sheet: { email: string | null;
       if (id) void bridge?.signOut(id).then((result) => { setView(result.view); const note = switchNote(result); if (note) setSheet({ email: null, note }); }).catch(() => setSheet({ email: null, note: t("accounts.failed") }));
     }} />,
   };
+}
+
+// one read and one subscription for every face on the page that shows the account in use
+let activeRow: AccountRow | null = null;
+const activeListeners = new Set<() => void>();
+let activeStop: (() => void) | null = null;
+function subscribeActive(listener: () => void) {
+  activeListeners.add(listener);
+  const bridge = window.duskDesktop?.remoteClient?.active ? undefined : window.duskDesktop?.accounts;
+  if (!activeStop && bridge && window.duskDesktop?.app?.ownPage === true) {
+    const read = () => { void bridge.list().then((view) => { activeRow = view.active; for (const tell of activeListeners) tell(); }).catch(() => {}); };
+    read();
+    activeStop = bridge.onChanged(read);
+  }
+  return () => {
+    activeListeners.delete(listener);
+    if (!activeListeners.size) { activeStop?.(); activeStop = null; }
+  };
+}
+/** The dusk cloud account in use on this app's own page, for its face; null anywhere else or signed out. */
+export function useActiveAccount(): AccountRow | null {
+  return useSyncExternalStore(subscribeActive, () => activeRow, () => null);
 }
 
 /** The You menu's row for the dusk cloud page, on this app's own page: Sign in while nobody is signed in here, so whoever was

@@ -13,7 +13,7 @@ import { BillingCard } from "./PersonBilling";
 import type { PersonBilling } from "./revenue-types";
 
 interface Person {
-  id: string; seed: string; account: { id: string; email: string; name: string | null } | null; customer: boolean; signedUpAt: number | null; paidAt: number | null;
+  id: string; seed: string; account: { id: string; email: string; name: string | null; avatarUrl?: string; avatar?: string } | null; customer: boolean; signedUpAt: number | null; paidAt: number | null;
   firstSeen: number | null; lastSeen: number | null; timeToSignupMs: number | null; visits: number; pageviews: number; source: string; channel: string; campaign: string | null;
   device: string | null; os: string | null; browser: string | null; country: string | null; city: string | null; lastPage: string | null;
 }
@@ -25,7 +25,7 @@ interface Step {
 }
 interface Session { start: number; end: number; ms: number; surface: Step["surface"]; source: string | null; channel: string | null; campaign: string | null; referrer: string | null; steps: Step[] }
 interface Profile {
-  id: string; seed: string; account: { id: string; email: string; name: string | null; createdAt: number } | null; customer: boolean; paidAt: number | null; visitors: number; installs: number;
+  id: string; seed: string; account: { id: string; email: string; name: string | null; createdAt: number; avatarUrl?: string; avatar?: string } | null; customer: boolean; paidAt: number | null; visitors: number; installs: number;
   where: { device: string | null; os: string | null; browser: string | null; country: string | null; region: string | null; city: string | null };
   firstSource: { at: number; source: string; channel: string; campaign: string | null; referrer: string | null; ref: string | null } | null;
   stats: { firstSeen: number | null; visits: number; pageviews: number; spentCents: number; refundedCents: number; payments: number; firstPaidAt: number | null; timeToPayMs: number | null };
@@ -61,7 +61,7 @@ export function PeoplePage({ tabs }: { tabs?: ReactNode }) {
             <li key={person.id}>
               <Link to={`/admin/people/visitors?person=${encodeURIComponent(person.id)}`} className="hover-row -mx-3 grid grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_110px] items-center gap-4 rounded-[16px] px-3 py-3 max-md:grid-cols-[minmax(0,1fr)_auto]">
                 <span className="flex min-w-0 items-center gap-3">
-                  <Avatar seed={person.seed} customer={person.customer} />
+                  <Avatar seed={person.seed} customer={person.customer} account={person.account} />
                   <span className="min-w-0">
                     <span className="flex items-center gap-2">
                       <span className="truncate text-14 font-medium text-ink">{personName(person.seed, person.account?.email)}</span>
@@ -171,7 +171,7 @@ function ProfileDialog({ id, onClose }: { id: string; onClose(): void }) {
       {data && place && (
         <div className="text-ink-2">
           <div className="flex items-center gap-3">
-            <Avatar seed={data.seed} size={44} customer={data.customer} />
+            <Avatar seed={data.seed} size={44} customer={data.customer} account={data.account} />
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-1.5">
                 {data.customer && <span className="inline-flex h-6 items-center rounded-full bg-coral-soft px-2.5 text-12 text-coral-deep">customer</span>}

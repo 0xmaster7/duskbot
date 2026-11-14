@@ -131,7 +131,7 @@ export function accountFromWire(answer: AccountAnswer, now = Date.now(), storage
   } catch {}
   const kinds = { web: "browser", desktop: "desktop", mobile: "phone" } as const;
   return {
-    profile: { id: account.id, email: account.email, name: account.name, avatarUrl: null, createdAt: account.createdAt, onboarded: onboarded || account.createdAt < now - 86_400_000 },
+    profile: { id: account.id, email: account.email, name: account.name, avatarUrl: account.avatarUrl ?? null, ...(account.avatar ? { avatar: account.avatar } : {}), createdAt: account.createdAt, onboarded: onboarded || account.createdAt < now - 86_400_000 },
     identities: [
       ...(account.providers.includes("email") ? [{ provider: "email" as const, label: account.email, linkedAt: account.createdAt }] : []),
       ...answer.identities.map((identity) => ({ provider: identity.provider, label: identity.label ?? identity.email ?? "", linkedAt: identity.addedAt })),

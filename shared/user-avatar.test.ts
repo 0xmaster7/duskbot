@@ -1,13 +1,42 @@
 import { describe, expect, it } from "vitest";
-import { drawUserAvatar, newAvatarSeed, parseUserAvatarChoice, seededRandom, userAvatarFace } from "./user-avatar";
+import { AVATAR_SKINS, AVATAR_TILES, avatarDistance, avatarLightness, avatarReadable, drawUserAvatar, newAvatarSeed, parseUserAvatarChoice, seededRandom, userAvatarFace } from "./user-avatar";
 
 describe("user avatars", () => {
-  it("draw the same picture for the same seed, and different ones for different seeds", () => {
+  it("draw the same head for the same seed, and thousands of different heads", () => {
     expect(drawUserAvatar("acc_1")).toEqual(drawUserAvatar("acc_1"));
-    const pictures = new Set(Array.from({ length: 200 }, (_, i) => drawUserAvatar(`acc_${i}`).cells.join()));
-    expect(pictures.size).toBeGreaterThan(190);
-    const { size, cells } = drawUserAvatar("acc_1");
-    expect(cells).toHaveLength(size * size);
+    const heads = Array.from({ length: 3000 }, (_, i) => drawUserAvatar(`acc_${i}`));
+    expect(new Set(heads.map((head) => head.cells.join())).size).toBeGreaterThan(2900);
+    for (const head of heads) {
+      expect(head.size).toBe(16);
+      expect(head.cells).toHaveLength(256);
+      for (const cell of head.cells) expect(cell).toMatch(/^#[0-9a-f]{6}$/);
+    }
+    // every trait shows up, the rares rarely
+    const count = (key: "shape" | "mood" | "gear" | "skin", value: string) => heads.filter((head) => head.traits[key] === value).length;
+    for (const shape of ["round", "tall", "wide", "pointy", "angular", "block", "lean"]) expect(count("shape", shape)).toBeGreaterThan(0);
+    for (const mood of ["chill", "smirk", "side-eye", "determined", "sleepy", "mischief", "shades", "unimpressed", "wink", "shout", "monocle"]) expect(count("mood", mood)).toBeGreaterThan(0);
+    for (const rare of ["crown", "halo"]) { expect(count("gear", rare)).toBeGreaterThan(0); expect(count("gear", rare)).toBeLessThan(150); }
+    expect(count("skin", "gold")).toBeLessThan(150);
+  });
+
+  it("never draw an ugly combination: a head on its own hue, a head too close to its tile, or a face lost in its skin", () => {
+    for (let i = 0; i < 3000; i++) {
+      const { head, tileOf, tile } = drawUserAvatar(`acc_${i}`);
+      expect(tile).toBe(tileOf.color);
+      expect(avatarReadable(head, tileOf)).toBe(true);
+      expect(tileOf.family.replace(/^deep-/, "")).not.toBe(head.family);
+      expect(avatarDistance(head.fill, tileOf.color)).toBeGreaterThanOrEqual(0.14);
+      expect(Math.abs(avatarLightness(head.ink) - avatarLightness(head.fill))).toBeGreaterThanOrEqual(0.4);
+    }
+    // every skin has somewhere to stand
+    for (const [skin] of AVATAR_SKINS) expect(AVATAR_TILES.some((tile) => avatarReadable(skin, tile))).toBe(true);
+  });
+
+  it("keep the head inside the round crop: the corners stay tile", () => {
+    for (let i = 0; i < 500; i++) {
+      const { cells, tile } = drawUserAvatar(`acc_${i}`);
+      for (const [x, y] of [[0, 0], [15, 0], [0, 15], [15, 15]] as const) expect(cells[y * 16 + x]).toBe(tile);
+    }
   });
 
   it("take only a photo or a drawn seed as a choice", () => {

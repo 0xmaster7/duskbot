@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Bell, CalendarClock, Check, FileText, Globe, KeyRound, LayoutDashboard, LifeBuoy, LogOut, Mail, Mic, MoreHorizontal, Palette, Plug, Plus, ShieldCheck, Trash2, UserRound } from "../../icons";
 import { accountDashboardUrl } from "@/lib/account-dashboard";
 import { useGroupYou } from "@/components/GroupAvatar";
+import { UserFace } from "@/components/UserAvatar";
 import { trackUpsell, watchUpsell } from "@/lib/cloud-upsell";
 import { t } from "@/lib/i18n";
 import { effectiveLanguage, setLanguageChoice, useLanguageChoice, usePageLanguage } from "@/lib/language-preference";
@@ -69,6 +70,7 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
   const { state } = useStore();
   const { connections, activeId, switchTo, remove } = useConnections();
   const you = useGroupYou();
+  const face = useMobileAccount()?.account ?? you?.face ?? null;
   const platform = usePlatform();
   const account = useMobileAccount();
   const hapticsEnabled = useHapticsEnabled();
@@ -148,7 +150,7 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
           ) : <>
             <div className="flex items-center gap-4 px-4 pb-6 pt-3">
               <span className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ink/[0.06] text-[22px] font-semibold text-ink">
-                {you?.avatarUrl ? <img src={you.avatarUrl} alt="" className="size-full object-cover" /> : you?.initials ?? <UserRound aria-hidden size={26} />}
+                {face ? <UserFace account={face} size={64} className="size-full" /> : you?.initials ?? <UserRound aria-hidden size={26} />}
               </span>
               <div className="min-w-0"><p className="truncate text-[22px] font-semibold leading-7 tracking-[-0.01em] text-ink">{identity.title}</p><p data-settings-identity className="truncate text-[15px] font-medium text-ink-secondary">{identity.subtitle}</p></div>
             </div>

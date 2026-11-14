@@ -30,7 +30,7 @@ function Row({ c, compact }: { c: InfraCustomer; compact?: boolean }) {
     <li>
       <Link to={personLink(c.accountId)} className={cx("hover-row grid items-center gap-4 rounded-[12px] px-2.5 py-2", compact ? COMPACT : COLS)}>
         <span className="flex min-w-0 items-center gap-3">
-          <Avatar seed={c.accountId} size={22} customer />
+          <Avatar seed={c.accountId} size={22} customer account={{ id: c.accountId }} />
           <span className="min-w-0">
             <span className="block truncate text-13 font-medium text-ink">{personName(c.accountId, c.email)}</span>
             <span className="block truncate text-12 text-ink-4">{c.plan}{compact && c.mrr > 0 ? `, ${usd(c.mrr)}/mo` : ""} · {c.awakeHours}h awake · {c.egressGb} gb out{c.egressState && <span className="text-warn"> · {c.egressState}</span>}</span>

@@ -1,4 +1,5 @@
 import { configure as configureAnalytics } from "@/lib/product-analytics";
+import { parseUserAvatarChoice } from "../../../shared/user-avatar";
 import { cleanCode, cleanEmail, parseSignInStart, SIGN_IN_TRIES, startFailure, verifyFailure } from "../../../electron/cloud-signin.mjs";
 import { ACCOUNT_ROUTES, APP_AUTH_REDIRECT, OAUTH_PROVIDERS, type OAuthErrorCode, type OAuthProvider } from "../../../shared/account-api";
 import type { CloudSignInStart } from "../../../electron/cloud-account.mjs";
@@ -6,7 +7,17 @@ import type { SignInVerify } from "@/components/account-gate/bridge";
 import type { MobilePlatform } from "../platform";
 import { cleanIce, type IceServer } from "../transport/direct-rtc";
 
-export type MobileAccount = { id: string; email: string };
+/** `avatarUrl` (https) and `avatar` (shared/user-avatar.ts): the face the account service names, both optional. */
+export type MobileAccount = { id: string; email: string; avatarUrl?: string; avatar?: string };
+/** The account's photo and avatar choice from a grant or session read, only in the shapes the service sends. */
+export function mobileFace(account: unknown): Pick<MobileAccount, "avatarUrl" | "avatar"> {
+  if (!account || typeof account !== "object") return {};
+  const { avatarUrl, avatar } = account as Record<string, unknown>;
+  let photo: string | null = null;
+  if (typeof avatarUrl === "string" && avatarUrl.length <= 1024) { try { const url = new URL(avatarUrl); if (url.protocol === "https:" && !url.username && !url.password) photo = url.href; } catch { /* not an address */ } }
+  const choice = parseUserAvatarChoice(avatar);
+  return { ...(photo ? { avatarUrl: photo } : {}), ...(choice ? { avatar: choice } : {}) };
+}
 export type MobileCloud = { id: string; name: string; status: string; origin: string | null; primary: boolean; asleep: boolean };
 export type CloudPairGrant = { origin: string; code: string; expiresAt: number };
 export type CloudPairResult = { outcome: "paired"; grant: CloudPairGrant } | { outcome: "asleep" | "unavailable" | "signed-out" | "failed" };
@@ -114,7 +125,7 @@ export function createMobileAccount({ platform, origin, fetch: requestFetch = gl
   const adopt = async (value: unknown, stamp: number): Promise<boolean> => {
     if (stamp !== generation || !object(value) || value.cloudContractVersion !== 1 || typeof value.accessToken !== "string" || !TOKEN.test(value.accessToken)
       || !expiry(value.expiresAt) || value.expiresAt <= Date.now() || !object(value.device) || typeof value.device.id !== "string" || !value.device.id || !identity(value.account)) return false;
-    const next = { origin, token: value.accessToken, expiresAt: value.expiresAt, account: { id: value.account.id, email: value.account.email }, deviceId: value.device.id };
+    const next = { origin, token: value.accessToken, expiresAt: value.expiresAt, account: { id: value.account.id, email: value.account.email, ...mobileFace(value.account) }, deviceId: value.device.id };
     await platform.secrets.set(SECRET, JSON.stringify(next));
     if (stamp !== generation) { await platform.secrets.remove(SECRET); return false; }
     grant = next; attempt = null; analytics();
@@ -132,8 +143,9 @@ export function createMobileAccount({ platform, origin, fetch: requestFetch = gl
       }
       const saved = value as StoredGrant;
       try {
-        await request(ACCOUNT_ROUTES.appSession, "GET", undefined, saved.token);
-        if (stamp === generation) grant = saved;
+        const session = await request(ACCOUNT_ROUTES.appSession, "GET", undefined, saved.token);
+        // the face may have changed on another device since this grant was kept
+        if (stamp === generation) { const { avatarUrl: _photo, avatar: _choice, ...rest } = saved.account; grant = { ...saved, account: { ...rest, ...mobileFace(object(session) ? session.account : null) } }; }
       } catch (error) {
         if (stamp !== generation) return null;
         if (error instanceof AccountRequestError && error.status === 401 && error.code === "invalid_token") await platform.secrets.remove(SECRET);

@@ -6,7 +6,9 @@ import { cn } from "@/lib/cn";
 export function UserAvatarArt({ seed, size = 32, className }: { seed: string; size?: number; className?: string }) {
   const art = useMemo(() => drawUserAvatar(seed), [seed]);
   // whole cells only, so every pixel lands on the screen's grid
-  const scale = Math.max(1, Math.floor(size / art.size));
+  // whole device pixels per cell, so every cell lands on the screen's grid and small sizes still fill the circle
+  const dpr = typeof window === "undefined" ? 1 : Math.max(1, Math.round(window.devicePixelRatio || 1));
+  const scale = Math.max(1, Math.floor((size * dpr) / art.size)) / dpr;
   const view = size / scale, pad = (view - art.size) / 2;
   const runs: { x: number; y: number; w: number; c: string }[] = [];
   for (let y = 0; y < art.size; y++) {

@@ -349,7 +349,7 @@ function TimeToPay({ data }: { data: SubscriptionReport["timeToPay"] }) {
 function PersonCell({ accountId, email, sub }: { accountId: string; email: string | null; sub?: ReactNode }) {
   return (
     <span className="flex min-w-0 items-center gap-3">
-      <Avatar seed={accountId} size={24} customer />
+      <Avatar seed={accountId} size={24} customer account={{ id: accountId }} />
       <span className="min-w-0">
         <span className="block truncate text-14 font-medium text-ink">{personName(accountId, email)}</span>
         {sub && <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-1.5 text-12 text-ink-3">{sub}</span>}

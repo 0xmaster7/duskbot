@@ -5,10 +5,12 @@ import { cn } from "@/lib/cn";
 import { profileForSession, readSessionState, type SessionState } from "@/lib/session";
 import { useStore, type Bot } from "@/state/store";
 import { BotAvatar } from "./Avatar";
-import { profileInitials } from "./SidebarProfileMenu";
+import { personFace, profileInitials, type PersonFace } from "./SidebarProfileMenu";
+import { useActiveAccount } from "./AccountMenu";
+import { UserFace } from "./UserAvatar";
 
-/** The person in a group chat: their initials, or their photo. */
-export type GroupYou = { initials: string; avatarUrl?: string };
+/** The person in a group chat: their face (photo or drawn head), else their initials. */
+export type GroupYou = { initials: string; avatarUrl?: string; face?: PersonFace };
 
 type Cell = { x: number; y: number; size: number };
 
@@ -77,6 +79,8 @@ export function GroupAvatar({ members, size, you, className }: {
           >
             {face.kind === "bot" ? (
               <BotAvatar bot={face.bot} size={px} state="idle" animated={false} trackPointer={false} forward={false} />
+            ) : face.you.face ? (
+              <UserFace account={face.you.face} size={px} className="block size-full" />
             ) : face.you.avatarUrl ? (
               <img src={face.you.avatarUrl} alt="" draggable={false} className="block size-full rounded-full object-cover" />
             ) : (
@@ -111,6 +115,7 @@ export function useGroupYou(): GroupYou | null {
     });
     return () => { active = false; };
   }, []);
+  const account = useActiveAccount();
   const profile = profileForSession(state.config?.profile, session);
   const nameless = !profile?.name?.trim() && !profile?.email?.trim();
   useEffect(() => {
@@ -125,6 +130,7 @@ export function useGroupYou(): GroupYou | null {
     })();
     return () => { active = false; };
   }, [nameless]);
-  if (!nameless) return { initials: profileInitials(profile), ...(profile?.avatarUrl ? { avatarUrl: profile.avatarUrl } : {}) };
+  const face = personFace(profile, account);
+  if (!nameless || face) return { initials: profileInitials(profile), ...(profile?.avatarUrl ? { avatarUrl: profile.avatarUrl } : {}), ...(face ? { face } : {}) };
   return computer ? { initials: computer[0]!.toUpperCase() } : null;
 }

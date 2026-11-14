@@ -38,6 +38,9 @@ export interface AccountView {
   createdAt: number;
   /** every way this account can sign in, email first when it has one. */
   providers: SignInProvider[];
+  /** the photo of the newest google or x sign-in, and the person's avatar choice (shared/user-avatar.ts); absent when none */
+  avatarUrl?: string;
+  avatar?: string;
 }
 export interface IdentityView {
   provider: OAuthProvider;

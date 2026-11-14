@@ -9,7 +9,7 @@ import { AdminHeader, Failed, Loading, Section, n, stamp } from "./ui";
 interface Rate { n: number; of: number }
 interface Cohort { start: number; size: number; d1: Rate | null; d7: Rate | null; d30: Rate | null; weekly: Array<number | null> }
 interface PowerUser {
-  id: string; email: string; name: string | null; activeDays: number; opens: number;
+  id: string; email: string; name: string | null; avatarUrl?: string; avatar?: string; activeDays: number; opens: number;
   sent: number; replies: number; features: number; lastAt: number; customer: boolean;
 }
 interface RetentionAnswer { now: number; cohorts: Cohort[]; power: PowerUser[] }
@@ -63,7 +63,7 @@ export function RetentionPage({ tabs }: { tabs?: ReactNode }) {
                     <tr key={user.id} className="hover-row">
                       <Td>
                         <div className="flex items-center gap-3">
-                          <Avatar seed={user.id} size={24} customer={user.customer} />
+                          <Avatar seed={user.id} size={24} customer={user.customer} account={user} />
                           <div className="min-w-0 max-w-[280px]">
                             <Link to={`/admin/users/${encodeURIComponent(user.id)}`} className="text-link block truncate rounded-[6px] text-14">{user.email}</Link>
                             <span className="block truncate text-12 text-ink-3">{user.name ?? <Nil />}</span>
