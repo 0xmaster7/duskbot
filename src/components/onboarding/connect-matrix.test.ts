@@ -148,7 +148,7 @@ describe("the connect panel after an install", () => {
     return { retry, onTrouble };
   };
 
-  it("a sign-in with a code and one that is only a link are the same step: the blue link, one button, the waiting line", () => {
+  it("a code sign-in shows the code, where to enter it and one button; a link sign-in only waits, with Open again", () => {
     panel({ stage: "waiting", since: Date.now(), kind: "device", flowId: "f", link: "https://github.com/login/device", code: "A1B2-C3D4", opened: true });
     const coded = host.querySelector<HTMLElement>('[data-connect-stage="waiting"]')!;
     expect(coded.textContent).toContain("Enter this code at github.com/login/device");
@@ -158,11 +158,10 @@ describe("the connect panel after an install", () => {
 
     panel({ stage: "waiting", since: Date.now(), kind: "browser", flowId: "f", link: "https://cursor.com/loginDeepControl?challenge=a&uuid=b", code: null, opened: true });
     const linked = host.querySelector<HTMLElement>('[data-connect-stage="waiting"]')!;
-    expect(linked.textContent).toContain("Finish signing in at cursor.com");
+    expect(linked.querySelector('[role="status"]')?.textContent).toContain("Finish signing in to Cursor in your browser");
     expect(linked.querySelector('[data-sign-in="code"]')).toBeNull();
-    expect([...linked.querySelectorAll("[data-connect-copy]")].map((button) => button.textContent)).toEqual(["Copy link and open Cursor"]);
-    expect(linked.querySelector('[role="status"]')?.textContent).toContain("Waiting for you to sign in");
-    expect(linked.textContent).not.toMatch(/Open again|Copy link$/);
+    expect(linked.querySelector("[data-connect-copy]")).toBeNull();
+    expect(linked.textContent).toContain("Open again");
   });
 
   it("shows honest progress while installing", () => {

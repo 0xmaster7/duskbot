@@ -3073,6 +3073,7 @@
   "connect.stage.waiting": "Waiting for you to sign in",
   "connect.stage.enterCode": "Enter this code at {site}",
   "connect.stage.finishAt": "Finish signing in at {site}",
+  "connect.stage.finishInBrowser": "Finish signing in to {site} in your browser",
   "connect.stage.pasteHint": "After signing in, {name} shows a code. Paste it here.",
   "connect.stage.confirming": "Checking your {name} sign-in…",
   "connect.stage.connected": "Connected",

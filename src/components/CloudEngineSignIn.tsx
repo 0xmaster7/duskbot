@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Info } from "../icons";
+import { Check } from "../icons";
 import { MausAvatar } from "@/components/Avatar";
 import { startCloudSetup } from "@/components/CloudIntent";
 import { engineReady } from "@/components/EngineLibrary";
@@ -33,10 +33,6 @@ export function CloudConnectAi({ className }: { className?: string }) {
       const check = live.checks[instance.instanceId];
       return check ? <EngineCheckLine key={instance.instanceId} name={instance.displayName} check={check} onRetry={() => void live.run(instance.instanceId)} /> : null;
     })}
-    <p role="note" className="mx-auto mt-6 flex max-w-[440px] gap-2 text-[12px] leading-relaxed text-ink-secondary">
-      <Info size={13} aria-hidden="true" className="mt-[3px] shrink-0" />
-      <span>{t("cloudSignIn.limits")}</span>
-    </p>
     {more && <ConnectAiDialog tested={null} directory onClose={() => setMore(false)} />}
   </div>;
 }

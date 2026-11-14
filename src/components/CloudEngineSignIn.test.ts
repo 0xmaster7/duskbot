@@ -48,13 +48,12 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it("is the Connect an AI grid every machine shows, with the cloud's limits, and no cloud-only tiles or sign-in cards", () => {
+it("is the Connect an AI grid every machine shows, with no cloud-only tiles or sign-in cards", () => {
   mount([claude, codex, grok]);
   expect(host.querySelector("[data-cloud-sign-in] [data-ai-cards]")).not.toBeNull();
   for (const tile of ["chatgpt", "claude", "grok"]) expect(host.querySelector(`[data-funnel-ai="${tile}"]`)).not.toBeNull();
   expect(host.querySelector("[data-cloud-choice]")).toBeNull();
   expect(host.querySelector("[data-engine-setup], [data-device-sign-in], [data-claude-sign-in]")).toBeNull();
-  expect(host.textContent).toContain("plan's limits apply to your bots in the cloud too");
   expect(host.querySelector("[data-ai-more]")?.textContent).toBe("More providers or use an API key");
 });
 

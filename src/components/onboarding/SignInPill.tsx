@@ -112,28 +112,37 @@ const linkText = (link: string, withPath: boolean) => {
  * button that copies the code (or the link) and opens the site, and a quiet waiting line. A browser that opened by
  * itself and needs no code shows the same step, so a cloud and this computer only differ by the code. */
 function CodeStep({ code, site, link, onOpen, cancel }: { code: string | null; site: string; link: string | null; onOpen: (() => void) | null; cancel: React.ReactNode }) {
-  const { state, copy } = useCopyFeedback(code ?? link ?? "");
-  const [before, after = ""] = t(code ? "connect.stage.enterCode" : "connect.stage.finishAt", { site: "\u0000" }).split("\u0000");
+  const { state, copy } = useCopyFeedback(code ?? "");
   const copied = state === "copied";
-  return <>
-    <p className="m-0 text-center text-[13px] leading-[18px] text-ink-secondary">
-      {before}{link && onOpen
-        ? <button type="button" onClick={onOpen} className="text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">{linkText(link, Boolean(code))}</button>
-        : site}{after}
-    </p>
-    {code && <button type="button" onClick={copy} data-sign-in="code" aria-label={t("connect.copyCode")}
-      className="rounded-xl bg-composer px-4 py-1.5 font-mono text-[20px] font-medium tracking-[0.12em] text-ink transition-colors hover:bg-ink/[0.08] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none">{code}</button>}
-    {(code || (link && onOpen)) && <button type="button" data-connect-copy="" onClick={() => { void copy(); onOpen?.(); }} className="ui-button ui-button-pill ui-button-primary min-h-9 gap-1.5 px-4 text-[14px]">
-      {copied ? <Check size={14} aria-hidden="true" /> : <ExternalLink size={14} aria-hidden="true" />}
-      {code
-        ? copied ? t("connect.codeCopiedPaste", { site }) : onOpen ? t("connect.copyAndOpen", { site }) : t("connect.copyCode")
-        : copied ? t("connect.linkCopiedOpen", { site }) : t("connect.copyLinkAndOpen", { site })}
-    </button>}
-    <div role="status" aria-live="polite" className="flex items-center gap-1 text-[13px] leading-[18px] text-ink-secondary">
-      <LoaderCircle size={13} aria-hidden="true" className="shrink-0 animate-spin motion-reduce:animate-none" />
-      <span className="pl-1">{t("connect.stage.waiting")}</span>
+  const waiting = <div role="status" aria-live="polite" className="flex items-center gap-2 text-[13px] leading-[18px] text-ink-secondary">
+    <LoaderCircle size={13} aria-hidden="true" className="shrink-0 animate-spin motion-reduce:animate-none" />
+    {code ? t("connect.stage.waiting") : t("connect.stage.finishInBrowser", { site })}
+  </div>;
+  // no code: the browser already opened, so only a way back to it and out
+  if (!code) return <>
+    {waiting}
+    <div className="flex items-center gap-1.5">
+      {link && onOpen && <button type="button" onClick={onOpen} className={SECONDARY}><ExternalLink size={13} aria-hidden="true" />{t("connect.openAgain")}</button>}
       {cancel}
     </div>
+  </>;
+  const [before, after = ""] = t("connect.stage.enterCode", { site: "\u0000" }).split("\u0000");
+  return <>
+    <button type="button" onClick={copy} data-sign-in="code" aria-label={t("connect.copyCode")}
+      className="rounded-xl bg-composer px-4 py-1.5 font-mono text-[20px] font-medium tracking-[0.12em] text-ink transition-colors hover:bg-ink/[0.08] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none">{code}</button>
+    <p className="m-0 text-center text-[13px] leading-[18px] text-ink-secondary">
+      {before}{link && onOpen
+        ? <button type="button" onClick={onOpen} className="text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">{linkText(link, true)}</button>
+        : site}{after}
+    </p>
+    <div className="flex items-center gap-1.5">
+      <button type="button" data-connect-copy="" onClick={() => { void copy(); onOpen?.(); }} className="ui-button ui-button-pill ui-button-primary min-h-9 gap-1.5 px-4 text-[14px]">
+        {copied ? <Check size={14} aria-hidden="true" /> : <ExternalLink size={14} aria-hidden="true" />}
+        {copied ? t("connect.codeCopiedPaste", { site }) : onOpen ? t("connect.copyAndOpen", { site }) : t("connect.copyCode")}
+      </button>
+      {cancel}
+    </div>
+    {waiting}
   </>;
 }
 
