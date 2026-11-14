@@ -158,6 +158,8 @@ export const CHAT_COOLDOWN_MS = 6 * 3_600_000;
  * MAX_PER_DAY in a day, so a heavy user's own AI quota is not spent on this */
 export const TURNS_PER_REPORT = 40, MAX_PER_DAY = 4;
 export function weeklyAllowance(turns7d: number): number { return Math.max(1, Math.floor(turns7d / TURNS_PER_REPORT)); }
+/** this many failed turns in FAIL_WINDOW_MS make a chat's note on their own */
+const FAIL_STREAK = 3;
 const RETRY_WINDOW_MS = 5 * 60_000, FAIL_WINDOW_MS = 10 * 60_000, WEEK_MS = 7 * 86_400_000, DAY_MS = 86_400_000;
 /** a usage digest: for people with this many turns and active days in the last 7 days, at most once a week */
 export const DIGEST_MIN_TURNS = 30, DIGEST_MIN_DAYS = 3, DIGEST_EVERY_MS = WEEK_MS;
@@ -217,10 +219,13 @@ export function createFrustrationWatch(deps: {
   function score(chat: ChatState) {
     const signals = new Map(chat.signals);
     if (chat.retries >= 2) signals.set("retried", 1);
-    if (chat.fails.filter(at => at > now() - FAIL_WINDOW_MS).length >= 2) signals.set("failed", 1);
+    const failures = chat.fails.filter(at => at > now() - FAIL_WINDOW_MS).length;
+    if (failures >= 2) signals.set("failed", 1);
     // a repeated swear or shout adds a little more, never past two of each
     let total = 0;
     for (const [signal, times] of signals) total += SIGNAL_WEIGHT[signal] * (signal === "shouting" || signal === "swearing" ? Math.min(2, times) : 1);
+    // the bot failing FAIL_STREAK times in a row is a bad chat by itself, even when the person only moves on
+    if (failures >= FAIL_STREAK) total = Math.max(total, FRUSTRATION_SCORE);
     return { signals: [...signals.keys()], total };
   }
   function check(threadId: string, chat: ChatState) {

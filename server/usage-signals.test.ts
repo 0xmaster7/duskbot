@@ -249,6 +249,22 @@ describe("frustration watch", () => {
     expect(reports[0]!.signals).toEqual(expect.arrayContaining(["thumbs_down", "swearing"]));
   });
 
+  it("fires on three failed turns in a row without anything the person said, but not on two", async () => {
+    const { watch, reports, warm, tick } = setup();
+    warm();
+    for (let i = 0; i < 2; i++) watch.turn("chat", "bot_1", turn("failed"));
+    await flush();
+    expect(reports).toHaveLength(0);
+    tick(11 * 60_000);
+    for (let i = 0; i < 2; i++) watch.turn("chat", "bot_1", turn("failed"));
+    await flush();
+    expect(reports, "failures older than the window do not add up").toHaveLength(0);
+    watch.turn("chat", "bot_1", turn("failed"));
+    await flush();
+    expect(reports).toHaveLength(1);
+    expect(reports[0]!.signals).toEqual(["failed"]);
+  });
+
   it("waits for real use before it fires", async () => {
     const { watch, reports } = setup();
     for (let i = 0; i < 3; i++) watch.turn("chat", "bot_1", turn("cancelled"));
@@ -260,7 +276,7 @@ describe("frustration watch", () => {
   it("fires on retries and stops, once per chat per cooldown, with a scrubbed summary and no raw text", async () => {
     const { watch, reports, warm, tick } = setup({ summary: "Bot kept failing to send a reply in the email app; user retried and gave up. Contact jane@acme.com" });
     warm(80);
-    for (let i = 0; i < 3; i++) watch.turn("chat", "bot_1", turn("failed"));
+    for (let i = 0; i < 3; i++) watch.turn("chat", "bot_1", turn(i === 1 ? "ok" : "failed"));
     watch.message("chat", "send the reply to my landlord about the leak");
     watch.message("chat", "please send that reply to my landlord about the leak");
     watch.message("chat", "SEND THE REPLY TO MY LANDLORD ABOUT THE LEAK");
