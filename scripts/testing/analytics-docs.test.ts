@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
-// docs/analytics.md is the promise of what the app sends: nothing until the person turns "help improve dusk bot" on,
-// and then only the events its table lists.
+// docs/analytics.md is the promise of what the app sends: anonymous usage, on by default in the desktop app and stopped
+// entirely by turning "help improve dusk bot" off; only the events its table lists; nothing from the phone app.
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -32,31 +32,50 @@ describe("docs/analytics.md", () => {
     expect(eventRows(read("docs/analytics.md")).sort()).toEqual([...new Set(accepted)].sort());
   });
 
-  it("says it is off until turned on, and names no third-party SDK", () => {
+  it("says it is on by default and how to turn it off, says the phone app sends none, and names no third-party SDK", () => {
     const docs = read("docs/analytics.md");
-    expect(docs).toMatch(/off on a new\s+install/);
+    expect(docs).toMatch(/on on a new\s+install \(an opt-out\)/);
+    expect(docs).toMatch(/turn it off at any time/);
+    expect(docs).toMatch(/phone app sends none/i);
     expect(docs).not.toMatch(/posthog|\bfork\b/i);
+    expect(read("README.md")).toMatch(/on until you turn off "help improve dusk bot"/);
   });
 
-  it("holds the client to it: nothing is recorded or sent before opt-in", async () => {
+  const harness = async () => {
     vi.useFakeTimers();
     const storage = new Map<string, string>();
     vi.stubGlobal("localStorage", { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value), removeItem: (key: string) => storage.delete(key) });
     const fetcher = vi.fn(async () => new Response(null, { status: 204 }));
     vi.stubGlobal("fetch", fetcher);
     const relay = { send: vi.fn(async () => {}), clear: vi.fn(async () => {}) };
-    const client = await import("../../src/lib/product-analytics");
-    client.configure({ origin: "https://accounts.example", token: null, platform: "darwin", version: "1.2.3", kind: "desktop", force: true });
+    return { storage, fetcher, relay, client: await import("../../src/lib/product-analytics") };
+  };
+
+  it("holds the desktop client to it: on by default, and off stops everything", async () => {
+    const { relay, fetcher, client } = await harness();
+    client.configure({ origin: null, token: null, relay, platform: "darwin", version: "1.2.3", kind: "desktop", force: true });
+    client.feature("bot_created");
+    await client.flush();
+    expect(relay.send, "a new install sends").toHaveBeenCalledTimes(1);
+    client.setUsageAnalytics(false);
     client.feature("bot_created");
     client.action("env", { os: "darwin" });
     client.messageSent();
     await client.flush();
-    client.configure({ origin: null, token: null, relay, platform: "darwin", version: "1.2.3", kind: "desktop", force: true });
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(relay.send, "nothing after off").toHaveBeenCalledTimes(1);
+    expect(relay.clear).toHaveBeenCalled();
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("holds the phone app to it: nothing is recorded or sent", async () => {
+    const { storage, fetcher, client } = await harness();
+    client.configure({ origin: "https://accounts.example", token: null, platform: "ios", version: "1.2.3", kind: "mobile", force: true });
     client.feature("bot_created");
+    client.messageSent();
     await client.flush();
     await vi.advanceTimersByTimeAsync(60_000);
     expect(fetcher).not.toHaveBeenCalled();
-    expect(relay.send).not.toHaveBeenCalled();
     expect(storage.has("dusk-install-id")).toBe(false);
   });
 });

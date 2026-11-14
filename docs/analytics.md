@@ -1,8 +1,9 @@
 # Product analytics
 
-dusk bot sends no usage information unless you turn on **help improve dusk bot**. The switch is off on a new
-install. You can turn it on in the last step of the first run, or later in Settings, and turn it off again at any
-time. Until it is on, the app records nothing, creates no install id and sends nothing.
+The desktop app shares anonymous usage information to help improve dusk bot. **Help improve dusk bot** is on on a new
+install (an opt-out). The switch is on the first screen of the first run ("Share anonymous usage to help improve dusk
+bot. Never your messages or files.") and in Settings, and you can turn it off at any time. Once it is off, the app
+records nothing more, clears anything still queued and sends nothing.
 
 There is no third-party analytics SDK. Everything below goes to the dusk bot account service, the same service your
 sign-in uses.
@@ -11,8 +12,8 @@ sign-in uses.
 
 One switch controls three things:
 
-- **App events**: the small events listed below, sent by the desktop app. The phone app has no switch of its own
-  yet, so it sends none.
+- **App events**: the small events listed below, sent by the desktop app. The phone app sends none: it has no switch
+  of its own yet, and nothing there counts as on.
 - **Usage records**: one record per bot turn and routine run, plus a count snapshot of what is set up, sent by your
   workspace with its regular report. Every value is a word from a fixed list, a count or a time (for example, the
   engine family `claude`, the tool kind `browser`, or a connector slug such as `gmail`). Bot, chat and routine ids are
@@ -49,8 +50,8 @@ and the app version.
 
 ## Turning it off
 
-Turn off **help improve dusk bot** in Settings. The desktop app, its background server and its crash reports all follow
-the same switch. A server you run yourself can also be kept off with `DUSK_USAGE_SIGNALS=off`, and a desktop build's
+Turn off **help improve dusk bot** on the first screen of the first run or in Settings. The desktop app, its background
+server (usage records) and its crash reports all follow the same switch, and stop at once. A server you run yourself can also be kept off with `DUSK_USAGE_SIGNALS=off`, and a desktop build's
 crash reports with `DUSK_ERROR_REPORTS=0`.
 
 Bot usage, cost accounting, server logs and diagnostics stay available in the app and on your server whether the

@@ -2877,8 +2877,8 @@ installCloudPlanIpc({ ipcMain, pageSender: cloudPageSender, account: () => cloud
 const cloudLook = createCloudLook({ store: lookFile(() => path.join(app.getPath("userData"), cloudTarget(process.env).look), fs), accountId: () => cloudAccount?.state().account?.id ?? null,
   homeEntry: cloudHomeEntry, saveEntry: (origin, look) => persistEnvironments(withEnvironmentLook(environmentsState, origin, look)) });
 const cloudBuy = installCloudBuy({ ipcMain, guard: localWorkspaceOnly, client: ensureCloudAccount, offersReady: cloudOffersReady, clipboard, look: cloudLook });
-/** the harness's usage signals follow this desktop's usage-analytics switch; unset counts as off (opt-in) */
-function syncUsageSignals(enabled = desktopPrefs?.analytics() === true) {
+/** the harness's usage signals follow this desktop's usage-analytics switch; unset counts as on */
+function syncUsageSignals(enabled = desktopPrefs?.analytics() !== false) {
   void localServerRequest("/api/dashboard/usage-signals", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ enabled }), signal: AbortSignal.timeout(10_000) })
     .then(response => response.body?.cancel(), () => {});
 }

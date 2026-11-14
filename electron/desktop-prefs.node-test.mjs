@@ -415,11 +415,9 @@ test("Settings reads and changes the window's frame on any page of the window; o
   assert.throws(() => handlers.get("window-frame:set")({}, true), /only available in this app's window/);
 });
 
-test("crash reports follow the one help-improve switch: off until it is turned on", () => {
+test("crash reports follow the one help-improve switch: on until it is turned off", () => {
   let saved = null;
   const prefs = createDesktopPrefs({ read: () => saved, write: value => { saved = structuredClone(value); } });
-  assert.equal(prefs.errorReports(), false);
-  prefs.setAnalytics(true);
   assert.equal(prefs.errorReports(), true);
   prefs.setAnalytics(false);
   assert.equal(prefs.errorReports(), false);

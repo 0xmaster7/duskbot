@@ -117,23 +117,29 @@ afterEach(async () => {
 });
 
 describe("the welcome", () => {
-  it("opens on the welcome with nothing else to decide; help improve is one quiet line on the last screen, on and saved when switched", async () => {
+  it("opens on the welcome with nothing else to decide, and asks nothing about sharing off the desktop app", async () => {
     await show();
     expect(step()).toBe("welcome");
     expect(title()).toBe("meet dusk bot");
-    expect(host.querySelector("[data-help-improve]"), "not the first thing asked").toBeNull();
     await press("get started");
-    expect(step(), "the last screen here").toBe("ai");
+    expect(step()).toBe("ai");
+    expect(host.querySelector("[data-help-improve]"), "Settings has the switch; the run here has no place step").toBeNull();
+    expect(f.onDone).not.toHaveBeenCalled();
+    expect(host.querySelector("textarea"), "nothing asks for a job").toBeNull();
+  });
+
+  it("help improve is one quiet line at the foot of the place step, on by default and saved when switched off", async () => {
+    vi.stubGlobal("duskDesktop", { remoteClient: { active: false } });
+    await show();
+    expect(step()).toBe("place");
     const line = host.querySelector<HTMLElement>("[data-help-improve]")!;
-    expect(line.textContent).toContain("You can turn it off anytime in settings.");
+    expect(line.textContent).toBe("Share anonymous usage to help improve dusk bot. Never your messages or files.");
     expect(line.className).toContain("text-[12px]");
     const toggle = line.querySelector<HTMLButtonElement>("[role=switch]")!;
     expect(toggle.getAttribute("aria-checked")).toBe("true");
     await act(async () => { toggle.click(); });
     await settle();
     expect(f.improve).toEqual([{ enabled: false }]);
-    expect(f.onDone).not.toHaveBeenCalled();
-    expect(host.querySelector("textarea"), "nothing asks for a job").toBeNull();
   });
 
   it("with Claude already answering, still shows the AI step with Claude connected, one press from Dusk's chat", async () => {
@@ -236,10 +242,10 @@ describe("on the desktop app", () => {
     await pick("mac");
     expect(macSheet()).toBeNull();
     expect(step()).toBe("ai");
-    expect(host.querySelector("[data-help-improve]"), "only on the last screen").toBeNull();
+    expect(host.querySelector("[data-help-improve]"), "only on the place step").toBeNull();
     await press("continue");
     expect(step()).toBe("bring");
-    expect(host.querySelector("[data-help-improve]"), "help improve sits on the last screen").not.toBeNull();
+    expect(host.querySelector("[data-help-improve]"), "never on a later screen").toBeNull();
     await press("back");
     expect(step()).toBe("ai");
     await press("continue");
@@ -256,13 +262,13 @@ describe("on the desktop app", () => {
     await choose("[data-funnel-place=mac]");
     await pick("mac");
     expect(step()).toBe("ai");
-    expect(host.querySelector("[data-help-improve]"), "only on the last screen").toBeNull();
+    expect(host.querySelector("[data-help-improve]"), "only on the place step").toBeNull();
     await press("continue");
     expect(step()).toBe("bring");
     await press("continue");
     expect(step()).toBe("phone");
     expect(host.querySelector(".phone-frame img"), "the phone app's own screen").not.toBeNull();
-    expect(host.querySelector("[data-help-improve]"), "help improve sits on the last screen").not.toBeNull();
+    expect(host.querySelector("[data-help-improve]"), "never on a later screen").toBeNull();
     expect(button("skip")?.className, "skip is a real button").toContain("ui-button-lg");
     await press("back");
     expect(step()).toBe("bring");

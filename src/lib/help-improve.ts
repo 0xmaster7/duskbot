@@ -4,7 +4,7 @@ import { setUsageAnalytics } from "@/lib/product-analytics";
 
 const ROUTE = "/api/dashboard/usage-signals";
 
-/** The one "help improve dusk bot" switch, off until the person turns it on: anonymous usage info, the scrubbed notes about how sessions
+/** The one "help improve dusk bot" switch, on by default: anonymous usage info, the scrubbed notes about how sessions
  * went, and crash reports. The workspace's server keeps the choice; the app's own analytics and the desktop's crash
  * reports follow it. `on` is null until it is read; `failed` when reading or saving it did not work. */
 export function useHelpImprove() {

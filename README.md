@@ -88,7 +88,7 @@ sudo apt install ./DuskBot-*.deb
 | vault logins and app tokens | encrypted files in the data folder, keys beside them as `0600` |
 | backups | one file, aes-256-gcm, from a password of at least 12 characters |
 | what you say to a bot | straight from the bot computer to your ai provider, not through us |
-| usage information | nothing leaves your computer unless you turn on "help improve dusk bot". [what it sends](docs/analytics.md) |
+| usage information | anonymous usage counts and crash reports, never your messages or files, on until you turn off "help improve dusk bot" (first screen or Settings). The phone app sends none. [what it sends](docs/analytics.md) |
 
 ## security
 

@@ -21,7 +21,7 @@ import { BringStatus, BringStep } from "./BringStep";
 import { CheckoutStep, useCloudTile } from "./CheckoutStep";
 import { funnelSteps, nextStep, previousStep, type FunnelPath, type FunnelStep } from "./funnel";
 import { funnelAccount, type FunnelAccountState } from "./funnel-account";
-import { FunnelBar, ImproveSwitch, PhoneStep, PlaceStep, WelcomeStep } from "./FunnelSteps";
+import { FunnelBar, PhoneStep, PlaceStep, WelcomeStep } from "./FunnelSteps";
 import { MacPickSheet } from "./MacPickSheet";
 import { MakingStep } from "./MakingStep";
 import { useWelcomeAi } from "./welcome-ai";
@@ -330,8 +330,6 @@ export function WelcomeFlow({
       {at !== "welcome" && steps.length > 1 && <FunnelBar at={index} count={steps.length} onBack={back ? () => go(back, "back") : null} />}
       <div key={at} data-from={from} className="place-step relative flex min-h-full w-full flex-col">
         {body}
-        {/* help improve: one quiet line on the last screen, beside the run's other final choices */}
-        {index === steps.length - 1 && <div className="flex justify-center px-6 pb-8"><ImproveSwitch /></div>}
       </div>
       {/* the bring step says how its own bringing in went; every later step keeps the line at its foot */}
       <BringStatus working={at !== "bring" && bringRun.kind === "working"} line={notesLine ?? (at !== "bring" && bringRun.kind === "done" ? bringRun.line : null)} />

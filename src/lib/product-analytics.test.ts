@@ -20,8 +20,8 @@ beforeEach(async () => {
   vi.useFakeTimers();
   vi.setSystemTime(1_800_000_000_000);
   vi.resetModules();
-  // opted in: usage analytics are opt-in, and the "nothing before opt-in" tests clear this
-  const storage = new Map<string, string>([["dusk-usage-analytics", "on"]]);
+  // a new desktop install: the switch has never been touched, which counts as on
+  const storage = new Map<string, string>();
   vi.stubGlobal("localStorage", { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value), removeItem: (key: string) => storage.delete(key) });
   fetcher.mockReset().mockResolvedValue(new Response(null, { status: 204 }));
   vi.stubGlobal("fetch", fetcher);
@@ -39,10 +39,16 @@ afterEach(() => {
 });
 
 describe("product analytics", () => {
-  it("records and sends nothing until the person opts in", async () => {
-    localStorage.removeItem("dusk-usage-analytics");
+  it("on a new desktop install sends without being asked, and off stops everything at once", async () => {
     const relay = { send: vi.fn(async () => {}), clear: vi.fn(async () => {}) };
-    client.configure(config);
+    client.configure({ ...config, origin: null, relay });
+    expect(client.usageAnalyticsEnabled(), "not set counts as on").toBe(true);
+    client.feature("bot_created");
+    await client.flush();
+    expect(relay.send).toHaveBeenCalledTimes(1);
+
+    client.setUsageAnalytics(false);
+    expect(relay.clear, "what main still holds goes too").toHaveBeenCalled();
     client.feature("bot_created");
     client.action("reply_reaction", { emoji: "love" });
     client.screen("/bots/123");
@@ -52,18 +58,20 @@ describe("product analytics", () => {
     await vi.advanceTimersByTimeAsync(60_000);
     window.dispatchEvent(new Event("pagehide"));
     await client.flush();
-    client.configure({ ...config, origin: null, relay });
+    expect(client.usageAnalyticsEnabled()).toBe(false);
+    expect(relay.send, "nothing after off").toHaveBeenCalledTimes(1);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("the phone app sends nothing unless its switch was turned on", async () => {
+    client.configure({ ...config, kind: "mobile" });
     client.feature("bot_created");
+    client.messageSent();
     await client.flush();
+    await vi.advanceTimersByTimeAsync(60_000);
     expect(client.usageAnalyticsEnabled()).toBe(false);
     expect(fetcher).not.toHaveBeenCalled();
-    expect(relay.send).not.toHaveBeenCalled();
     expect(localStorage.getItem("dusk-install-id")).toBeNull();
-
-    client.setUsageAnalytics(true);
-    client.feature("bot_created");
-    await client.flush();
-    expect(relay.send).toHaveBeenCalledTimes(1);
   });
 
   it("keeps only valid action extras, counts eight valid extras and requires a word name", async () => {
@@ -395,21 +403,20 @@ describe("product analytics", () => {
     expect(events().filter(event => event.name === "app_pair_failed")).toEqual([{ name: "app_pair_failed", at: Date.now(), props: { reason: "expired_code" } }]);
   });
 
-  it("stays off without storage until opted in, then can track and opt out", async () => {
+  it("without storage is on for the desktop app, and off sticks for the session", async () => {
     vi.stubGlobal("localStorage", { getItem: () => { throw new Error("blocked"); }, setItem: () => { throw new Error("blocked"); } });
     client.configure(config);
     client.feature("bot_created");
-    await client.flush();
-    expect(fetcher).not.toHaveBeenCalled();
-    client.setUsageAnalytics(true);
-    client.feature("bot_created");
     await expect(client.flush()).resolves.toBeUndefined();
     expect(bodies()[0].install).toMatch(/^[A-Za-z0-9_-]{22}$/);
+    const sent = fetcher.mock.calls.length;
     client.setUsageAnalytics(false);
     client.feature("bot_created");
     await client.flush();
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(client.usageAnalyticsEnabled()).toBe(false);
+    expect(fetcher).toHaveBeenCalledTimes(sent);
   });
+
 
   it("keeps the feature catalog and event properties compatible with the server", async () => {
     expect(client.APP_FEATURES).toEqual(SERVER_FEATURES);

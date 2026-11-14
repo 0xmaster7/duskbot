@@ -3005,7 +3005,7 @@
   "funnel.making.progress": "cloud setup",
   "funnel.making.open": "open chat",
   "funnel.making.openFailed": "Couldn't open your cloud. Try again.",
-  "helperIntro.improve": "Help improve dusk bot by sharing which features you use and where things get stuck. Never your messages or files. You can turn it off anytime in settings.",
+  "helperIntro.improve": "Share anonymous usage to help improve dusk bot. Never your messages or files.",
   "onboarding.shell.noBots": "no bots yet",
   "onboarding.hint.approval": "Bots ask before doing anything important.",
   "onboarding.hint.connector": "Sign in once in your browser and every bot can use it.",

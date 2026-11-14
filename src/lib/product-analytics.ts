@@ -20,7 +20,7 @@ const PLATFORMS: readonly string[] = ["darwin", "win32", "linux", "ios", "androi
 const started = Date.now();
 let options: Options | null = null;
 let forced = false;
-let optedOut = true;
+let optedOut = false;
 let opened = false;
 let closed = false;
 let listening = false;
@@ -50,9 +50,16 @@ function clear(): void {
   ++revision;
 }
 
-/** opt-in: nothing is recorded or sent until the person turns "help improve dusk bot" on */
+/** on by default in the desktop app (an opt-out): "help improve dusk bot" off stops everything. The phone app (and a page
+ * that hasn't said which app it is yet) sends nothing unless the switch was turned on there. */
 export function usageAnalyticsEnabled(): boolean {
-  try { optedOut = localStorage.getItem("dusk-usage-analytics") !== "on"; } catch {}
+  try {
+    const saved = localStorage.getItem("dusk-usage-analytics");
+    optedOut = saved === "off" || (options?.kind !== "desktop" && saved !== "on");
+  } catch {
+    // no storage: the choice made in this session stands; the phone app stays off
+    if (options?.kind !== "desktop") optedOut = true;
+  }
   const enabled = !optedOut && (import.meta.env?.MODE !== "test" || forced);
   if (!enabled) clear();
   return enabled;

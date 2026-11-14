@@ -74,8 +74,8 @@ export function StepArt({ art, place }: { art?: ArtName; place?: PlaceArtName })
   return art ? <Art name={art} size="xl" className="place-mark h-16" /> : null;
 }
 
-/** "help improve dusk bot": off until switched on, small and muted, saved the moment it is switched. Shown on the run's last
- * screen (WelcomeFlow), not as the first thing. */
+/** "help improve dusk bot": on by default (an opt-out), small and muted, saved the moment it is switched. Shown at the foot
+ * of the place step, a quick screen, never on one people wait on. */
 export function ImproveSwitch() {
   const improve = useHelpImprove();
   const id = useId();
@@ -130,7 +130,11 @@ export function PlaceStep({ onMac, onCloud, onServer, cloudTag, cloudNote }: {
   return (
     <StepFrame title={t("funnel.place.title")} sub={t("funnel.place.hello")} wide
       art={<MausAvatar color="purple" gradient={BRAND_LILAC} size={64} state="excited" animated={!reduced} label={DEFAULT_BOT_NAME} />}
-      footer={<button type="button" data-funnel-place="server" onClick={onServer} className={QUIET}>{t("funnel.place.server")}</button>}>
+      footer={<>
+        <button type="button" data-funnel-place="server" onClick={onServer} className={QUIET}>{t("funnel.place.server")}</button>
+        {/* help improve: one quiet line on the quick first screen, never on a screen people wait on */}
+        <div className="mt-4 flex justify-center"><ImproveSwitch /></div>
+      </>}>
       <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
         <PlaceChoice kind="mac" art="mac" title={t("funnel.place.mac")} sub={t("funnel.place.macSub")} tag={t("funnel.place.macTag")} onClick={onMac} />
         <PlaceChoice kind="cloud" art="cloud" title={t("funnel.place.cloud")} sub={t("funnel.place.cloudSub")} tag={cloudTag ?? t("funnel.place.cloudTag")} note={cloudNote} onClick={onCloud} />

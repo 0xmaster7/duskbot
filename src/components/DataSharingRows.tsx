@@ -3,7 +3,7 @@ import { useHelpImprove } from "@/lib/help-improve";
 import { SettingRow, Switch } from "./SettingsPrimitives";
 
 /** The single "help improve dusk bot" row: anonymous usage info, notes on how sessions went and crash reports, all
- * scrubbed on this computer first. Off until the person turns it on. */
+ * scrubbed on this computer first. On by default. */
 export function DataSharingRows() {
   const { on, failed, set } = useHelpImprove();
   if (on === null) return failed ? <p className="px-3 py-2 text-[13px] text-ink/60">{t("settings.dataSharing.unavailable")}</p> : null;
