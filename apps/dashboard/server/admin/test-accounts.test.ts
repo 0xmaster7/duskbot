@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isAdminTestAccount, testAccountIds, withoutAccounts, withoutBilling } from "./test-accounts.ts";
+import { isAdminTestAccount, isDevBuild, isTestEvent, isTestInstall, testAccountIds, testBuyerIds, withoutAccounts, withoutBilling } from "./test-accounts.ts";
 
 describe("admin test accounts", () => {
   it("flags harness, reserved-domain and review addresses, never real ones", () => {
@@ -20,5 +20,16 @@ describe("admin test accounts", () => {
     const kept = withoutBilling(state, hidden);
     expect(kept).toEqual({ invoices: [state.invoices[0]], refunds: [{ paymentId: "p1" }], licenses: [], webhookEvents: [{ id: "w" }], lastSync: 5 });
     expect(state.invoices).toHaveLength(2);
+  });
+  it("flags harness installs, dev builds and deleted test buyers, never a real install or release", () => {
+    for (const id of ["app:qatest_v8S", "qatest_abc", "app:smoke-1", "e2e_x"]) expect(isTestInstall(id), id).toBe(true);
+    for (const id of ["ws_AgcVuaZCr", "0StaAMU1k1Ci4kLHSFEupg", "app:quest_1", undefined]) expect(isTestInstall(id), String(id)).toBe(false);
+    for (const v of ["0.0.0", "0.0.0-e2e", "0.0.0-test"]) expect(isDevBuild(v), v).toBe(true);
+    for (const v of ["0.2.11", "1.0.0", "0.0.1", null]) expect(isDevBuild(v), String(v)).toBe(false);
+    expect(isTestEvent({ accountId: "t", ctx: {} }, new Set(["t"]))).toBe(true);
+    expect(isTestEvent({ accountId: null, ctx: { install: "app:qatest_1" } }, new Set())).toBe(true);
+    expect(isTestEvent({ accountId: null, ctx: { app: { version: "0.0.0-e2e" } } }, new Set())).toBe(true);
+    expect(isTestEvent({ accountId: "a", ctx: { install: "x1", app: { version: "0.2.9" } } }, new Set(["t"]))).toBe(false);
+    expect([...testBuyerIds([{ accountId: "gone", email: "rev-buyer@qa.dusk.test" }, { accountId: "a", email: "real@gmail.com" }])]).toEqual(["gone"]);
   });
 });

@@ -58,15 +58,15 @@ export function feedbackNote(record: UsageRecord): FeedbackNote | null {
 }
 
 export async function feedbackAnswer(store: UsageStore, input: { now: number; kind: FeedbackKind | null; before: number | null; limit?: number;
-  /** accounts whose notes stay out (the admin's test accounts); the page cursor still walks past them */
-  hidden?: (accountId: string) => boolean }): Promise<FeedbackAnswer> {
+  /** notes that stay out (test accounts', harness installs'); the page cursor still walks past them */
+  hidden?: (record: UsageRecord) => boolean }): Promise<FeedbackAnswer> {
   const kinds = input.kind ? [input.kind] : [...FEEDBACK_KINDS], limit = input.limit ?? FEEDBACK_PAGE;
   const until = input.before ?? input.now + 1, since = input.now - 90 * DAY, recent = input.now - THEME_DAYS * DAY;
   const [pages, ...windows] = await Promise.all([
     Promise.all(kinds.map(kind => store.records(RECORD_KIND[kind], since, until, limit + 1))),
     ...FEEDBACK_KINDS.map(kind => store.records(RECORD_KIND[kind], recent, input.now + 1, FEEDBACK_SCAN)),
   ]);
-  const hidden = input.hidden, kept = (record: UsageRecord) => !hidden || !record.accountId || !hidden(record.accountId);
+  const hidden = input.hidden, kept = (record: UsageRecord) => !hidden || !hidden(record);
   const page = pages.flat().sort((a, b) => b.at - a.at || a.id.localeCompare(b.id)).map(record => ({ record, note: feedbackNote(record) })).filter(row => !!row.note);
   const walked = page.slice(0, limit), shown = walked.filter(row => kept(row.record)).map(row => row.note!);
   const ownWindows = windows.map(rows => rows.filter(kept));

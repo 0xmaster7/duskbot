@@ -7,7 +7,7 @@ import { Figure } from "../ui/Figure";
 import { ago } from "../lib/format";
 import { useNow } from "../lib/now";
 import { toast } from "../lib/toast";
-import { AdminApiError, adminCall, useAdmin } from "./api";
+import { AdminApiError, adminCall, adminMoney, MONEY_KEY, useAdmin } from "./api";
 import { countryName } from "./geo";
 import { flagOf } from "./person";
 import { Avatar, CHANNEL, duration, percent, personName, usd } from "./kit";
@@ -25,9 +25,8 @@ const words = (value: string) => value.replace(/_/g, " ");
 
 /** which money the revenue numbers count: live (the default), test (dodo test mode) or both; kept per browser, shared by every view */
 type MoneyView = MoneyMode | "all";
-const MONEY_KEY = "dusk-admin-money";
 const moneyListeners = new Set<() => void>();
-const readMoney = (): MoneyView => { try { const v = localStorage.getItem(MONEY_KEY); return v === "test" || v === "all" ? v : "live"; } catch { return "live"; } };
+const readMoney = (): MoneyView => adminMoney();
 export function useMoneyView(): [MoneyView, (next: MoneyView) => void] {
   const value = useSyncExternalStore((fn) => { moneyListeners.add(fn); return () => void moneyListeners.delete(fn); }, readMoney, () => "live" as const);
   const set = (next: MoneyView) => { try { if (next === "live") localStorage.removeItem(MONEY_KEY); else localStorage.setItem(MONEY_KEY, next); } catch { /* private mode keeps live */ } moneyListeners.forEach((fn) => fn()); };

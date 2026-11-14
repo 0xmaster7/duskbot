@@ -56,7 +56,7 @@ describe("admin panel api", () => {
     const method = init.method ?? (init.body === undefined ? "GET" : "POST");
     return fetch(`${url}${path}`, { method, headers: { origin, ...(init.body === undefined ? {} : { "content-type": "application/json" }),
       // the fixture's accounts are on example.test, which the panel hides unless asked
-      "x-dusk-admin-tests": "show", ...(init.cookie ? { cookie: init.cookie, ...(init.csrf === false ? {} : { [CSRF_HEADER]: csrf.get(init.cookie) ?? "" }) } : {}), ...init.headers },
+      "x-dusk-admin-tests": "show", "x-dusk-admin-money": "all", ...(init.cookie ? { cookie: init.cookie, ...(init.csrf === false ? {} : { [CSRF_HEADER]: csrf.get(init.cookie) ?? "" }) } : {}), ...init.headers },
       ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }) });
   }
   async function login(email: string) {
@@ -332,6 +332,9 @@ describe("admin panel api", () => {
       };
       expect(overview.range).toHaveLength(7);
       expect(overview.totals).toMatchObject({ accounts: 2, paying: 1, waitlist: 2, clouds: 1, activeToday: 2 });
+      // the fake provider's money is test money: the panel's default (live) counts none of it
+      const live = await (await call("/v1/admin/overview?days=7", { cookie: admin, headers: { "x-dusk-admin-money": "" } })).json() as { totals: { paying: number } };
+      expect(live.totals.paying).toBe(0);
       expect(overview.series.signups.at(-1)).toBe(2);
       expect(overview.series.waitlist.reduce((a, b) => a + b, 0)).toBe(2);
       expect(overview.series.active.at(-1)).toBe(2);

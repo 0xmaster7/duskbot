@@ -18,6 +18,7 @@ import { LEDGER_LABELS } from "../billing/ledger.ts";
 import { BILLING_CONFIG } from "../billing/plans.ts";
 import { quote } from "../billing/pricing.ts";
 import type { Step } from "../analytics/profile.ts";
+import { moneyIn, type MoneyMode } from "./money-mode.ts";
 /** an account's face for the people views: its photo and avatar choice, when it has them */
 const face = (account: { avatarUrl?: string; avatar?: string }) => ({ ...(account.avatarUrl ? { avatarUrl: account.avatarUrl } : {}), ...(account.avatar ? { avatar: account.avatar } : {}) });
 
@@ -25,7 +26,6 @@ export class AnalyticsRouteError extends Error {
   status: number; code: string;
   constructor(status: number, code: string, message: string) { super(message); this.status = status; this.code = code; }
 }
-type MoneyMode = "test" | "live";
 const bad = (message = "Invalid request.") => new AnalyticsRouteError(400, "invalid_request", message);
 
 /** a window from the caller: from and to in ms (the page sends its own local midnight), at most 400 days */
@@ -369,20 +369,7 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
   }
   /** the money records this server holds were made in its provider's mode unless stamped otherwise: preview's dodo is test */
   const serverMode = (): MoneyMode => billing.operator.mode ?? "live";
-  /** the report's records for one mode: test money never counts toward live numbers, or the other way */
-  function scoped(input: SubscriptionsInput, want: MoneyMode | "all"): SubscriptionsInput {
-    if (want === "all") return input;
-    const fallback = serverMode();
-    const subMode = new Map(input.subscriptions.map(sub => [sub.id, sub.mode ?? fallback]));
-    const payMode = new Map(input.invoices.map(row => [row.providerPaymentId, row.mode ?? (row.subscriptionId ? subMode.get(row.subscriptionId) : undefined) ?? fallback]));
-    const of = (subscriptionId: string | null | undefined, paymentId?: string | null) =>
-      (subscriptionId ? subMode.get(subscriptionId) : undefined) ?? (paymentId ? payMode.get(paymentId) : undefined) ?? fallback;
-    return { ...input, subscriptions: input.subscriptions.filter(sub => subMode.get(sub.id) === want),
-      invoices: input.invoices.filter(row => payMode.get(row.providerPaymentId) === want),
-      refunds: input.refunds.filter(row => (payMode.get(row.paymentId) ?? fallback) === want),
-      ledger: input.ledger.filter(row => of(row.subscriptionId, row.providerPaymentId) === want),
-      checkouts: input.checkouts.filter(row => of(row.subscriptionId) === want) };
-  }
+  const scoped = (input: SubscriptionsInput, want: MoneyMode | "all"): SubscriptionsInput => moneyIn(input, want, serverMode());
   function moneyTotals(input: SubscriptionsInput) {
     const report = subscriptionReport(input);
     return { mrr: report.headline.mrr, customers: report.headline.customers, gross: report.cash.gross, payments: report.cash.payments };

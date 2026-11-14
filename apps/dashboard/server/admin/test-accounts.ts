@@ -39,3 +39,20 @@ export function withoutBilling<T extends object>(state: T, hidden: ReadonlySet<s
   if (gone.size && Array.isArray(out.refunds)) out.refunds = (out.refunds as Array<{ paymentId: string }>).filter(row => !gone.has(row.paymentId));
   return out as T;
 }
+
+/** a harness's app install or workspace (the QA runs report as app:qatest_*), never a person's */
+const TEST_INSTALL = /^(?:app:)?(?:qatest|qa|smoke|e2e)[_-]/i;
+export const isTestInstall = (id: unknown) => typeof id === "string" && TEST_INSTALL.test(id);
+/** a build nobody downloads: 0.0.0 is the unreleased version, with or without a -test or -e2e tag */
+const DEV_BUILD = /^0\.0\.0(?:$|[-+])/;
+export const isDevBuild = (version: unknown) => typeof version === "string" && DEV_BUILD.test(version);
+
+/** an analytics event a test made: a hidden account's, a harness install's, or a dev build's */
+export function isTestEvent(event: { accountId: string | null; ctx?: { install?: string; app?: { version?: string | null } | null } }, hidden: ReadonlySet<string>): boolean {
+  return (!!event.accountId && hidden.has(event.accountId)) || isTestInstall(event.ctx?.install) || isDevBuild(event.ctx?.app?.version);
+}
+
+/** test accounts that are gone from the directory but still own billing records: their checkout carries the email they used */
+export function testBuyerIds(checkouts: ReadonlyArray<{ accountId: string; email?: string | null }>, reviewEmail: string | null = null): Set<string> {
+  return new Set(checkouts.filter(row => isAdminTestAccount(row.email, reviewEmail)).map(row => row.accountId));
+}

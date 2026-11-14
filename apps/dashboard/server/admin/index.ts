@@ -27,7 +27,8 @@ import { SHARING_LOOKBACK_DAYS, sharingOf } from "./sharing.ts";
 import { isRange, rangeDays, topAccounts } from "./ops/accounts.ts";
 import { ACCOUNT_NOTES, type AccountNotes } from "./ops/index.ts";
 import type { OpsAccountsAnswer, OpsAccountsRange, OpsRelayCard } from "../../src/admin/ops-types.ts";
-import { testAccountIds, withoutAccounts, withoutBilling } from "./test-accounts.ts";
+import { isTestEvent, isTestInstall, testAccountIds, testBuyerIds, withoutAccounts, withoutBilling } from "./test-accounts.ts";
+import { moneyIn, moneyViewOf, type MoneyView } from "./money-mode.ts";
 import { DAY, choseCloud, dayKey, dayRange, funnel, isPaying, perDay, wasPaid, workspaceTurns } from "./metrics.ts";
 
 export class AdminError extends Error {
@@ -99,16 +100,18 @@ export function createAdmin(options: AdminOptions) {
   const NONE: ReadonlySet<string> = new Set();
   const ownView: View = { live: false, sink: analytics.sink, directory: () => auth.directory(), store: () => billing.store.state, clouds: () => billing.clouds.all?.() ?? [],
     workspaces: options.workspaces, waitlist: live ? null : options.waitlist, deep, hidden: () => NONE };
-  /** the same view without the test accounts (test-accounts.ts) in its people, money, clouds and workspaces; nothing is removed from the data */
-  function withoutTests(view: View, build: (directory: () => Directory, store: () => Billing["store"]["state"]) => typeof deep): View {
-    const hidden = () => testAccountIds(view.directory().accounts, reviewEmail);
+  /** the same view without the test accounts (test-accounts.ts) in its people, money, clouds and workspaces, and without the events
+   *  of test accounts, harness installs and dev builds; nothing is removed from the data */
+  function withoutTests(view: View, build: (directory: () => Directory, store: () => Billing["store"]["state"], sink: AnalyticsSink) => typeof deep): View {
+    const hidden = () => new Set([...testAccountIds(view.directory().accounts, reviewEmail), ...testBuyerIds(view.store().checkouts, reviewEmail)]);
     const directory = () => withoutAccounts(view.directory(), hidden());
     const store = () => withoutBilling(view.store(), hidden());
-    return { ...view, hidden, directory, store, clouds: () => { const ids = hidden(); return view.clouds().filter(c => !ids.has(c.accountId)); },
-      workspaces: () => { const ids = hidden(); return view.workspaces().filter(ws => !ws.ownerAccountId || !ids.has(ws.ownerAccountId)); }, deep: build(directory, store) };
+    const sink: AnalyticsSink = { ...view.sink, scan: async (since, until, names) => { const ids = hidden(); return (await view.sink.scan(since, until, names)).filter(event => !isTestEvent(event, ids)); } };
+    return { ...view, hidden, directory, store, sink, clouds: () => { const ids = hidden(); return view.clouds().filter(c => !ids.has(c.accountId)); },
+      workspaces: () => { const ids = hidden(); return view.workspaces().filter(ws => !isTestInstall(ws.id) && (!ws.ownerAccountId || !ids.has(ws.ownerAccountId))); }, deep: build(directory, store, sink) };
   }
   const billingWith = (store: () => Billing["store"]["state"]) => ({ ...billing, store: Object.defineProperty({ ...billing.store }, "state", { get: store }) }) as Billing;
-  const ownClean = withoutTests(ownView, (directory, store) => createAnalyticsRoutes({ auth: { directory } as unknown as Auth, billing: billingWith(store), analytics,
+  const ownClean = withoutTests(ownView, (directory, store, sink) => createAnalyticsRoutes({ auth: { directory } as unknown as Auth, billing: billingWith(store), analytics: { ...analytics, sink },
     workspaces: () => ownClean.workspaces(), now, actor }));
   const NO_MONEY = { customers: [], checkouts: [], subscriptions: [], licenses: [], invoices: [], credits: [], webhookEvents: [], feedback: [], closures: [], refunds: [], ledger: [] } as unknown as Billing["store"]["state"];
   let liveDirectory: Directory = { accounts: [], identities: [], sessions: [] };
@@ -119,13 +122,26 @@ export function createAdmin(options: AdminOptions) {
       analytics: { ...analytics, sink: live.sink, presence: { ...analytics.presence, list: () => [] } }, workspaces: () => [], now,
       actor: id => liveDirectory.accounts.find(account => account.id === id)?.email ?? null }),
   };
-  const liveClean = liveView && withoutTests(liveView, directory => createAnalyticsRoutes({ auth: { directory } as unknown as Auth,
+  const liveClean = liveView && withoutTests(liveView, (directory, _store, sink) => createAnalyticsRoutes({ auth: { directory } as unknown as Auth,
     billing: { store: { state: NO_MONEY }, operator: { provider: "none" }, service: { setAttribution() { /* never writes the live service's billing */ } } } as unknown as Billing,
-    analytics: { ...analytics, sink: live!.sink, presence: { ...analytics.presence, list: () => [] } }, workspaces: () => [], now,
+    analytics: { ...analytics, sink, presence: { ...analytics.presence, list: () => [] } }, workspaces: () => [], now,
     actor: id => liveDirectory.accounts.find(account => account.id === id)?.email ?? null }));
   /** test accounts stay out unless the panel asks for them (x-dusk-admin-tests: show) */
   const showTests = (req: IncomingMessage) => req.headers["x-dusk-admin-tests"] === "show";
-  const ownViewOf = (req: IncomingMessage) => showTests(req) ? ownView : ownClean;
+  const serverMode = () => billing.operator.mode ?? "live";
+  /** the view with only one mode's money in it (x-dusk-admin-money, live by default), so test checkouts never read as revenue */
+  const moneyViews = new Map<string, View>();
+  function inMoney(base: View, key: string, money: MoneyView): View {
+    if (money === "all") return base;
+    const cached = moneyViews.get(`${key}:${money}`);
+    if (cached) return cached;
+    const store = () => moneyIn(base.store(), money, serverMode());
+    const view: View = { ...base, store, deep: createAnalyticsRoutes({ auth: { directory: base.directory } as unknown as Auth, billing: billingWith(store), analytics: { ...analytics, sink: base.sink }, workspaces: base.workspaces, now, actor }) };
+    moneyViews.set(`${key}:${money}`, view);
+    return view;
+  }
+  const ownViewOf = (req: IncomingMessage, money: MoneyView = moneyViewOf(req.headers["x-dusk-admin-money"])) =>
+    showTests(req) ? inMoney(ownView, "own", money) : inMoney(ownClean, "clean", money);
   async function viewOf(req: IncomingMessage): Promise<View> {
     if (!liveView || req.headers["x-dusk-admin-data"] === "own") return ownViewOf(req);
     liveDirectory = { accounts: await live!.accounts(), identities: [], sessions: [] };
@@ -177,7 +193,7 @@ export function createAdmin(options: AdminOptions) {
   const relayCall = <T>(work: Promise<T>) => work.catch((error: unknown): never => { if (error instanceof RelayError) throw new AdminError(error.status, error.code, error.message); throw error; });
 
   /** what people use it for, over whole UTC days from `from` to `to` (at most 90), against the window before */
-  async function usageAnswer(url: URL) {
+  async function usageAnswer(url: URL, v: View, clean: boolean) {
     const to = int(url.searchParams.get("to"), now(), 0, Number.MAX_SAFE_INTEGER), from = int(url.searchParams.get("from"), to - 30 * DAY, 0, Number.MAX_SAFE_INTEGER);
     const span = Math.min(90, Math.max(1, Math.ceil((to - from) / DAY)));
     const days = dayRange(to, span), previousDays = dayRange(Date.parse(`${days[0]}T00:00:00Z`) - 1, span);
@@ -187,15 +203,21 @@ export function createAdmin(options: AdminOptions) {
       store.daily(days[0]!, days.at(-1)!), store.daily(previousDays[0]!, previousDays.at(-1)!), store.people(days[0]!, days.at(-1)!),
       store.people(previousDays[0]!, previousDays.at(-1)!), store.snapshots(), store.records("frustration", start, end, 500), store.records("digest", start, end, 500),
       store.people(dayKey(now() - 90 * DAY), dayKey(now())), store.records("signal", start, end, 50_000), store.routines(),
-      analytics.sink.scan(start, end, MORE_EVENTS),
-    ]);
+      v.sink.scan(start, end, MORE_EVENTS),
+    ]).then(([daily, previousDaily, ...rows]) => {
+      // test accounts and harness installs stay out of every per-person read; the kept daily totals can't be split
+      const ids = v.hidden(), real = <T extends { accountId?: string | null; workspaceId?: string }>(list: T[]) => !clean ? list
+        : list.filter(row => !isTestInstall(row.workspaceId) && !(row.accountId && ids.has(row.accountId)));
+      const [people, previousPeople, snapshots, frustrations, digests, recentPeople, signals, spans, events] = rows;
+      return [daily, previousDaily, real(people), real(previousPeople), real(snapshots), real(frustrations), real(digests), real(recentPeople), real(signals), real(spans), events] as const;
+    });
     const answer = summarizeUsage({ days, daily, previousDaily, people, previousPeople: new Set(previousPeople.filter(row => row.turns > 0).map(row => row.accountId)).size, snapshots, frustrations, digests, adoption: adoption(snapshots, recentPeople) });
     const signIns = signals.filter(record => (record.data as { name: string }).name === "engine_sign_in")
       .map(record => ({ id: record.id, name: "engine_sign_in", at: record.at, accountId: record.accountId, props: (record.data as { props: StoredEvent["props"] }).props }));
-    const billingState = billing.store.state;
+    const billingState = v.store();
     const more = moreOf({ days, daily: new Map(daily.map(row => [row.day, row.c])), people, snapshots, routines: spans, events: [...events, ...signIns],
       billing: { checkouts: billingState.checkouts, subscriptions: billingState.subscriptions, feedback: billingState.feedback ?? [] },
-      accounts: directory().accounts, from: start, to: end, now: now(), wake: wakeOf() });
+      accounts: v.directory().accounts, from: start, to: end, now: now(), wake: wakeOf() });
     const focus = [...answer.focus, ...moreFocus(more)].sort((a, b) => b.weight - a.weight).slice(0, 5);
     return { ...answer, focus, more };
   }
@@ -452,12 +474,12 @@ export function createAdmin(options: AdminOptions) {
         return true;
       }
       if (route === "/events") return send(await events(url, await viewOf(req)));
-      if (route === "/usage") return send(await usageAnswer(url));
+      if (route === "/usage") return send(await usageAnswer(url, ownViewOf(req), !showTests(req)));
       if (route === "/feedback") {
         const kind = url.searchParams.get("kind"), before = url.searchParams.get("before");
         const hidden = ownViewOf(req).hidden();
         return send(await feedbackAnswer(options.usage.store, { now: now(), kind: FEEDBACK_KINDS.find(one => one === kind) ?? null, before: before ? int(before, now(), 0, Number.MAX_SAFE_INTEGER) : null,
-          hidden: id => hidden.has(id) }));
+          ...(showTests(req) ? {} : { hidden: (record: { accountId: string; workspaceId: string }) => isTestInstall(record.workspaceId) || (!!record.accountId && hidden.has(record.accountId)) }) }));
       }
       if (route === "/revenue/infra") return send(await infraAnswer());
       if (route === "/ops") {
@@ -481,7 +503,7 @@ export function createAdmin(options: AdminOptions) {
           relays: range === "month" ? cards.relays : [], infra, mail, plans: notes?.plans ? new Map(Object.entries(notes.plans)) : undefined, suspects: Array.isArray(notes?.suspects) ? notes.suspects : [] }));
       }
       try {
-        if (route === "/revenue") return send(await ownViewOf(req).deep.revenue(url));
+        if (route === "/revenue") return send(await ownViewOf(req, "all").deep.revenue(url));
         const view = /^\/(?:web|funnel|journeys|realtime|retention|app|product)(?:\/|$)/.test(route) ? await viewOf(req) : ownViewOf(req), reads = view.deep;
         if (route === "/web") return send(await reads.web(url));
         if (route.startsWith("/web/")) { const dim = route.slice(5); if (!reads.isDimension(dim)) throw new AnalyticsRouteError(400, "invalid_request", "Invalid dimension."); return send(await reads.webDetails(dim, url)); }

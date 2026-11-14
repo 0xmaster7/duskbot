@@ -36,12 +36,18 @@ export function setAdminTests(show: boolean) {
   try { if (show) localStorage.setItem(TESTS_KEY, "show"); else localStorage.removeItem(TESTS_KEY); } catch { /* private mode keeps the default */ }
 }
 
+/** which money every number counts: live (the default), test (dodo test mode) or both; the revenue page's switch shares it */
+export const MONEY_KEY = "dusk-admin-money";
+export function adminMoney(): "live" | "test" | "all" {
+  try { const v = localStorage.getItem(MONEY_KEY); return v === "test" || v === "all" ? v : "live"; } catch { return "live"; }
+}
+
 export async function adminCall<T>(path: string, init: { method?: string; body?: unknown; signal?: AbortSignal } = {}): Promise<T> {
   const method = init.method ?? (init.body === undefined ? "GET" : "POST");
   let res: Response;
   try {
     res = await fetch(`/v1/admin${path}`, { method, credentials: "same-origin", signal: init.signal,
-      headers: { accept: "application/json", ...(adminData() === "own" ? { "x-dusk-admin-data": "own" } : {}), ...(adminTests() ? { "x-dusk-admin-tests": "show" } : {}), ...(init.body === undefined ? {} : { "content-type": "application/json" }), ...(method === "GET" ? {} : { [CSRF_HEADER]: await csrf() }) },
+      headers: { accept: "application/json", ...(adminData() === "own" ? { "x-dusk-admin-data": "own" } : {}), ...(adminTests() ? { "x-dusk-admin-tests": "show" } : {}), ...(adminMoney() === "live" ? {} : { "x-dusk-admin-money": adminMoney() }), ...(init.body === undefined ? {} : { "content-type": "application/json" }), ...(method === "GET" ? {} : { [CSRF_HEADER]: await csrf() }) },
       ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }) });
   } catch (error) {
     if ((error as Error).name === "AbortError") throw error;
