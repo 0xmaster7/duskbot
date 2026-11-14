@@ -69,11 +69,11 @@ export function createTwoPlaces({ local, here: computer = null, places, settled,
 
   /** Each place, this computer included, hears which bots the person's other places have: names only, and only when that
    * changed since it was last told. */
-  async function tellEach(listed) {
+  async function tellEach(listed, reached = true) {
     const name = computer && here?.length ? await computer.name().catch(() => null) : null;
     const everyone = [...(name ? [{ key: "here", name, kind: "computer", bots: here }] : []),
       ...listed.filter((place) => known.get(place.key)?.bots.length).map((place) => ({ key: place.key, name: place.name, kind: place.kind, bots: known.get(place.key).bots }))];
-    const receivers = [...(computer && here !== null ? [{ key: "here", name: "this computer", kind: "computer", tell: computer.tell }] : []), ...listed.filter((place) => place.tell)];
+    const receivers = [...(computer && here !== null && reached ? [{ key: "here", name: "this computer", kind: "computer", tell: computer.tell }] : []), ...listed.filter((place) => place.tell)];
     for (const receiver of receivers) {
       const payload = { v: 1, self: { name: receiver.name, kind: receiver.kind },
         places: everyone.filter((place) => place.key !== receiver.key).slice(0, MAX_PLACES).map(({ name: placeName, kind, bots }) => ({ name: placeName, kind, bots: bots.slice(0, 500) })) };
@@ -97,14 +97,17 @@ export function createTwoPlaces({ local, here: computer = null, places, settled,
     if (looking || (!force && now() - lookedAt < LOOK_EVERY_MS) || quiet()) return looking ?? Promise.resolve();
     lookedAt = now();
     looking = (async () => {
+      // this computer's server not answering (the app starting or quitting) says nothing about its bots: what was last
+      // read stands, and it is not told until it answers, so the other places never hear it has none
       const summary = await local().catch(() => undefined);
-      here = summary === null ? null : usedBots(summary);
+      const reached = summary !== undefined;
+      if (reached) here = summary === null ? null : usedBots(summary);
       const listed = places();
       for (const place of listed) {
         const read = await place.read().catch((error) => { log(`two places: ${place.name} did not say which bots it has (${error?.message ?? error})`); return null; });
         if (read) known.set(place.key, { bots: usedBots(read), at: now() });
       }
-      await tellEach(listed);
+      await tellEach(listed, reached);
     })().finally(() => { looking = null; changed(); });
     return looking;
   }

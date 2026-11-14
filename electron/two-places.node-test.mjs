@@ -174,3 +174,26 @@ test("each place of the person's own hears which bots their other places have, n
   assert.equal(told.here.length, 2, "this computer's bots moved: it is told nothing more, whatever changed elsewhere");
   assert.deepEqual(told.garage.at(-1).places.map((entry) => entry.name), ["My Cloud"], "and the others no longer hear of bots on it");
 });
+
+test("this computer's server not answering (the app starting or quitting) is neither told nor reported to the others as having no bots", async () => {
+  const told = { here: [], garage: [] }, lines = [];
+  let down = false;
+  const two = createTwoPlaces({
+    local: async () => { if (down) throw new TypeError("fetch failed"); return summary("Scout"); },
+    here: { name: async () => "Work laptop", tell: async (payload) => { if (down) throw new TypeError("fetch failed"); told.here.push(payload); } },
+    places: () => [{ key: "server:https://garage.example.test", name: "Garage server", kind: "server", read: async () => summary("Ledger"), tell: async (payload) => { told.garage.push(payload); } }],
+    settled: () => true, dismissed: memory(), log: (line) => lines.push(line),
+  });
+  down = true;
+  await two.refresh();
+  assert.deepEqual([told.here.length, told.garage.length, lines], [0, 1, []], "before it ever answered: not told, nothing logged");
+  assert.deepEqual(told.garage[0].places, []);
+  down = false;
+  await two.refresh({ force: true });
+  assert.deepEqual(told.garage.at(-1).places, [{ name: "Work laptop", kind: "computer", bots: ["Scout"] }]);
+  down = true;
+  await two.refresh({ force: true });
+  assert.equal(told.garage.length, 2, "a quitting server: the others still know its bots, nobody is told anything new");
+  assert.deepEqual([told.here.length, lines], [1, []]);
+  assert.deepEqual(two.bots().here, ["Scout"]);
+});

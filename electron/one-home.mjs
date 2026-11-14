@@ -435,18 +435,23 @@ export function createOneHome(deps) {
   /** Home is My Cloud: tops up what a newer app learned to move, deletes this computer's copy once it is old enough and
    * My Cloud was paid for, and comes home if My Cloud ends. */
   async function steady(journal, cloud, waiting) {
-    let next = await settle(journal, cloud);
+    let next = await settle(journal, cloud), soon = false;
     if (cloud?.ended) return ended(next, cloud);
     // Not while this computer's own copy isn't the server answering: it goes as soon as it is, rather than an hour later.
     if (!waiting && !next.forgot && deps.version && next.version !== deps.version && cloud?.ready && deps.ownCopy?.() !== false) {
       try { await deps.send.move({ final: true }); next = write({ ...next, version: deps.version, retryAt: undefined }); }
-      catch (error) { log(`one home: the top-up waits (${error?.message ?? error})`); next = write({ ...next, retryAt: now() + HOUR }); }
+      catch (error) {
+        // nothing answered (this app's server still starting, the mac just awake): a minute, not the hour a refusal waits
+        soon = NOT_ANSWERED.has(failureCode(error, "final"));
+        log(`one home: the top-up waits ${soon ? "a minute" : "an hour"} (${error?.message ?? error})`);
+        next = write({ ...next, retryAt: now() + (soon ? MINUTE : HOUR) });
+      }
     }
     if (!next.forgot && cloud?.paid && now() - next.doneAt >= KEPT_MS && deps.local.forget) {
       try { await deps.local.forget(); next = write({ ...next, forgot: true }); }
       catch (error) { log(`one home: this computer's copy is deleted later (${error?.message ?? error})`); }
     }
-    if (!next.forgot) later(next.doneAt + KEPT_MS - now());
+    if (soon || !next.forgot) later(Math.min(soon ? MINUTE : Infinity, next.forgot ? Infinity : next.doneAt + KEPT_MS - now()));
     return null;
   }
 

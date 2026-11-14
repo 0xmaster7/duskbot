@@ -4,6 +4,8 @@ import test from "node:test";
 import { arrivedCounts, CHECK_PASSES, COPY_RETRY_MS, createOneHome, FAILING_LINE_MS, FROZEN_RETRY_MAX_MS, FROZEN_RETRY_MS, INCOMPLETE, KEPT_MS, missingOf, QUIET_MS, switchOn } from "./one-home.mjs";
 import { oneHomeCloud } from "./one-home-main.mjs";
 
+const MINUTE = 60_000, HOUR = 60 * MINUTE;
+
 const CLOUD = "https://dusk-t-1.fly.dev";
 const reply = (status, body = {}) => ({ ok: status < 400, status, body });
 
@@ -473,6 +475,25 @@ test("a newer app tops up once from the frozen copy, which is deleted 30 days af
   assert.equal(w.server.forgot, 1);
   await w.home.kick();
   assert.equal(w.server.forgot, 1);
+});
+
+test("a top-up nothing answered (the app's server still starting) goes again in a minute; one refused waits its hour", async () => {
+  const w = world({ moves: [undefined, undefined, new TypeError("fetch failed"), Object.assign(new Error("This app isn't signed in."), { code: "session" })] });
+  await w.home.kick();
+  w.version = "0.1.122";
+  await w.relaunch().kick();
+  assert.deepEqual(w.passes, ["copy", "final", "final"]);
+  assert.equal(w.journal.retryAt, w.now() + MINUTE);
+  w.advance(MINUTE);
+  await w.tick();
+  assert.deepEqual(w.passes, ["copy", "final", "final", "final"], "tried again a minute later");
+  assert.equal(w.journal.retryAt, w.now() + HOUR, "a refusal waits the hour");
+  w.advance(MINUTE);
+  await w.tick();
+  assert.equal(w.passes.length, 4);
+  w.advance(HOUR);
+  await w.tick();
+  assert.deepEqual([w.passes.length, w.journal.version], [5, "0.1.122"]);
 });
 
 test("one home reads the Admin's word: a ready Cloud the account may move to, and a held one that ended", () => {
