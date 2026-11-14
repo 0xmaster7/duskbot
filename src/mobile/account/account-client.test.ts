@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createMobileAccount, isAccountAuthUrl } from "./account-client";
+import { appleNonce, createMobileAccount, isAccountAuthUrl } from "./account-client";
 import { webPlatform, type MobilePlatform } from "../platform";
 
 const origin = "https://accounts.example";
@@ -236,5 +236,62 @@ describe("delete account", () => {
   });
   it("does nothing signed out", async () => {
     expect(await client.deleteAccount()).toBe("signed-out"); expect(fetcher).not.toHaveBeenCalled();
+  });
+});
+
+describe("sign in with Apple, native", () => {
+  const credential = { identityToken: "header.payload.signature", authorizationCode: "c0de.abc", givenName: " Sam ", familyName: "" };
+  const withApple = (answer: () => Promise<typeof credential | null>) => {
+    const appleSignIn = vi.fn(async (_hash: string) => answer());
+    platform.appleSignIn = appleSignIn;
+    client = createMobileAccount({ platform, origin, fetch: fetcher });
+    return appleSignIn;
+  };
+
+  it("makes a fresh raw nonce and gives Apple its sha-256 hex", async () => {
+    const one = await appleNonce(), two = await appleNonce();
+    expect(one.raw).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(one.hash).toBe(createHash("sha256").update(one.raw).digest("hex"));
+    expect(one.raw).not.toBe(two.raw);
+  });
+
+  it("hands Apple the hash, the service the raw nonce, and keeps the session as an email sign-in does", async () => {
+    const appleSignIn = withApple(async () => credential);
+    fetcher.mockResolvedValueOnce(response(grant()));
+    expect(await client.appleNative()).toEqual({ outcome: "signed-in" });
+    const [url, init] = fetcher.mock.calls[0];
+    expect(url).toBe(`${origin}/api/cloud/app/sign-in/apple`);
+    const sent = JSON.parse(String(init?.body));
+    expect(sent).toEqual({ identityToken: credential.identityToken, authorizationCode: credential.authorizationCode, nonce: sent.nonce, givenName: "Sam", deviceName: "p".repeat(100), platform: "ios", appVersion: "0.0.0" });
+    expect(appleSignIn.mock.calls[0][0]).toBe(createHash("sha256").update(sent.nonce).digest("hex"));
+    expect(client.account()).toEqual(grant().account);
+    expect(JSON.parse(secrets.get("dusk.account")!)).toMatchObject({ origin, token, account: grant().account });
+  });
+
+  it("says nothing when the person closes Apple's sheet, and asks nothing of the service", async () => {
+    withApple(async () => null);
+    expect(await client.appleNative()).toEqual({ outcome: "canceled" });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["invalid_request", 400, "failed"], ["invalid_grant", 400, "failed"], ["signup_closed", 403, "signup-closed"], ["identity_taken", 409, "taken"],
+    ["provider_unavailable", 503, "unavailable"], ["rate_limited", 429, "rate-limited"], ["something_new", 500, "failed"],
+  ])("turns the service's %s into one problem", async (error, status, outcome) => {
+    withApple(async () => credential);
+    fetcher.mockResolvedValueOnce(response({ error }, status));
+    expect(await client.appleNative()).toEqual({ outcome });
+    expect(client.account()).toBeNull(); expect(secrets.has("dusk.account")).toBe(false);
+  });
+
+  it("tells apart no connection, a failed sheet and a phone without the native sheet", async () => {
+    withApple(async () => credential);
+    fetcher.mockRejectedValueOnce(new TypeError("offline"));
+    expect(await client.appleNative()).toEqual({ outcome: "offline" });
+    withApple(async () => { throw Object.assign(new Error("x"), { code: "failed" }); });
+    expect(await client.appleNative()).toEqual({ outcome: "failed" });
+    platform.appleSignIn = undefined;
+    client = createMobileAccount({ platform, origin, fetch: fetcher });
+    expect(await client.appleNative()).toEqual({ outcome: "unavailable" });
   });
 });

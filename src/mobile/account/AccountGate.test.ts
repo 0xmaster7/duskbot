@@ -166,3 +166,10 @@ it("finishes a cold-launch auth link through StrictMode effect replay", async ()
   await mount(createElement(function Child() { return createElement("p", null, useMobileAccount()?.account?.email ?? "none"); }), true);
   expect(host.textContent).toBe(account.email); expect(fetcher).toHaveBeenCalledOnce();
 });
+
+it("says every Sign in with Apple problem in its own words", async () => {
+  const { appleProblemLine } = await import("./AccountGate");
+  const lines = (["failed", "unavailable", "signup-closed", "taken", "rate-limited", "offline"] as const).map(appleProblemLine);
+  expect(new Set(lines).size).toBe(lines.length);
+  for (const line of lines) expect(line).toMatch(/^[a-z]/);
+});

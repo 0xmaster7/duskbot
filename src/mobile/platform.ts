@@ -15,6 +15,8 @@ export interface ScanResult {
   text: string;
 }
 
+export interface AppleCredential { identityToken: string; authorizationCode: string; givenName?: string; familyName?: string }
+
 export type CameraPermission = "granted" | "denied" | "prompt";
 
 /** A live QR scan under our own viewfinder. Natively the camera draws behind a transparent WebView (the page adds
@@ -67,6 +69,9 @@ export interface MobilePlatform {
   readClipboard?(): Promise<string | null>;
   openExternal(url: string): Promise<void>;
   share?(data: { title?: string; text?: string; url?: string }): Promise<void>;
+  /** Sign in with Apple through the system sheet (iPhone): Apple binds `nonceHash` (sha-256 hex) into the identity token.
+   * Null when the person closed the sheet; throws when it failed. */
+  appleSignIn?(nonceHash: string): Promise<AppleCredential | null>;
   /** Push registration; resolves the device token or null when refused or unsupported. Without `prompt` it never shows
    * the system's question: a phone not yet asked resolves null. */
   registerPush?(options?: { prompt?: boolean }): Promise<{ token: string; platform: "apns" | "fcm" } | null>;

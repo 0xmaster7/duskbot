@@ -6,7 +6,7 @@ import { t } from "@/lib/i18n";
 import type { CloudSignInStart } from "../../../electron/cloud-account.mjs";
 import type { OAuthProvider } from "../../../shared/account-api";
 import { usePlatform, type MobilePlatform } from "../platform";
-import { createMobileAccount, isAccountAuthUrl, type AuthResult, type CloudPairResult, type MobileAccount, type MobileCloud } from "./account-client";
+import { createMobileAccount, isAccountAuthUrl, type AppleProblem, type AuthResult, type CloudPairResult, type MobileAccount, type MobileCloud } from "./account-client";
 import { setTurnSource } from "../transport/direct-rtc";
 
 type AccountContextValue = { account: MobileAccount | null; origin: string;
@@ -44,6 +44,17 @@ export function mobileAccountOrigin(native: boolean, params: URLSearchParams): s
 export function providersFor(kind: MobilePlatform["kind"], enabled: readonly OAuthProvider[]): OAuthProvider[] {
   if (kind !== "ios") return [...enabled];
   return enabled.includes("apple") ? ["apple", ...enabled.filter((provider) => provider !== "apple")] : [];
+}
+
+export function appleProblemLine(problem: AppleProblem): string {
+  switch (problem) {
+    case "unavailable": return t("mobile.apple.unavailable");
+    case "signup-closed": return t("mobile.apple.signupClosed");
+    case "taken": return t("mobile.apple.taken");
+    case "rate-limited": return t("mobile.apple.rateLimited");
+    case "offline": return t("mobile.apple.offline");
+    case "failed": return t("mobile.apple.failed");
+  }
 }
 
 function authProblem(result: AuthResult): string | undefined {
@@ -114,10 +125,17 @@ export function AccountGate({ children }: { children: ReactNode }) {
     signIn: {
       providers: async () => providersFor(platform.kind, await client.providers()),
       emailStart: email => client.emailStart(email), emailVerify: code => client.emailVerify(code), cancelEmail: () => client.cancelEmail(),
-      browser: provider => { setProblem(undefined); return client.oauthStart(provider); },
+      browser: async provider => {
+        setProblem(undefined);
+        // on the iPhone, Apple signs in in the system's own sheet, not a web page
+        if (provider !== "apple" || !platform.appleSignIn) return client.oauthStart(provider);
+        const result = await client.appleNative();
+        if (result.outcome === "signed-in") setAccount(client.account());
+        else if (result.outcome !== "canceled") setProblem(appleProblemLine(result.outcome));
+      },
       problem, signedIn: () => { setAccount(client.account()); setProblem(undefined); },
     },
-  }), [account, origin, wanted, client, platform.kind, problem]);
+  }), [account, origin, wanted, client, platform.kind, platform.appleSignIn, problem]);
   if (wanted && restoring) return <div className="dusk-mobile flex size-full items-center justify-center bg-app"><MausAvatar color="green" size={56} state="idle" animated={false} personality={false} /></div>;
   return <AccountContext value={context}>{children}</AccountContext>;
 }

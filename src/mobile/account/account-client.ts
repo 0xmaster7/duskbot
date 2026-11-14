@@ -12,6 +12,17 @@ export type CloudPairGrant = { origin: string; code: string; expiresAt: number }
 export type CloudPairResult = { outcome: "paired"; grant: CloudPairGrant } | { outcome: "asleep" | "unavailable" | "signed-out" | "failed" };
 type StoredGrant = { origin: string; token: string; expiresAt: number; account: MobileAccount; deviceId: string };
 export type AuthResult = false | SignInVerify | { outcome: OAuthErrorCode | "invalid-state" };
+export type AppleProblem = "failed" | "unavailable" | "signup-closed" | "taken" | "rate-limited" | "offline";
+export type AppleResult = { outcome: "signed-in" | "canceled" } | { outcome: AppleProblem };
+const APPLE_ERRORS: Record<string, AppleProblem> = { invalid_request: "failed", invalid_grant: "failed", signup_closed: "signup-closed", identity_taken: "taken", provider_unavailable: "unavailable", rate_limited: "rate-limited" };
+
+/** A fresh raw nonce for Sign in with Apple and the sha-256 hex Apple is given: the token carries the hash, the service
+ * gets the raw value and checks the two match, so a token taken from somewhere else is useless here. */
+export async function appleNonce(): Promise<{ raw: string; hash: string }> {
+  const raw = base64url(crypto.getRandomValues(new Uint8Array(32)));
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw)));
+  return { raw, hash: Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("") };
+}
 const TOKEN = /^omc_[A-Za-z0-9_-]{43}$/;
 const OPAQUE = /^[A-Za-z0-9_-]{43}$/;
 const SECRET = "dusk.account";
@@ -176,6 +187,25 @@ export function createMobileAccount({ platform, origin, fetch: requestFetch = gl
       try {
         await platform.openExternal(`${origin}${ACCOUNT_ROUTES.appStart}?${new URLSearchParams({ provider, code_challenge: challenge, code_challenge_method: "S256", state, redirect_uri: APP_AUTH_REDIRECT })}`);
       } catch (error) { await platform.secrets.remove(PENDING); throw error; }
+    },
+    /** Sign in with Apple in the system sheet, then the account service's native sign-in; the session is kept as the
+     * email code's is. Closing the sheet is "canceled", said to no one. */
+    async appleNative(): Promise<AppleResult> {
+      if (!platform.appleSignIn) return { outcome: "unavailable" };
+      const stamp = ++generation;
+      const nonce = await appleNonce();
+      let credential;
+      try { credential = await platform.appleSignIn(nonce.hash); } catch { return { outcome: "failed" }; }
+      if (!credential) return { outcome: "canceled" };
+      const name = (value: string | undefined) => value?.trim().slice(0, 80) || undefined;
+      try {
+        const value = await request(ACCOUNT_ROUTES.appAppleSignIn, "POST", { identityToken: credential.identityToken, authorizationCode: credential.authorizationCode, nonce: nonce.raw,
+          ...(name(credential.givenName) ? { givenName: name(credential.givenName) } : {}), ...(name(credential.familyName) ? { familyName: name(credential.familyName) } : {}), ...device() });
+        return { outcome: await adopt(value, stamp) ? "signed-in" : "failed" };
+      } catch (error) {
+        if (!(error instanceof AccountRequestError)) return { outcome: "offline" };
+        return { outcome: (error.code && APPLE_ERRORS[error.code]) || "failed" };
+      }
     },
     async handleAuthUrl(value: string): Promise<AuthResult> {
       if (!isAccountAuthUrl(value)) return false;

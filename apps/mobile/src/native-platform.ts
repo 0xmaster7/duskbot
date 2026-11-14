@@ -18,7 +18,7 @@ const keystore = SecureStorage as unknown as {
 };
 const SECRET_PREFIX = "dusk.";
 import { BarcodeScanner, BarcodeFormat, GoogleBarcodeScannerModuleInstallState } from "@capacitor-mlkit/barcode-scanning";
-import type { CameraPermission, CameraScanner, MobilePlatform } from "@/mobile/platform";
+import type { AppleCredential, CameraPermission, CameraScanner, MobilePlatform } from "@/mobile/platform";
 import { appLinkFromUniversal, type MobileOpenTarget } from "../../../shared/mobile-link";
 
 /** The app's own scanner on ios (ios/App/App/QrScannerPlugin.swift): the ML Kit plugin ships for CocoaPods only, and this
@@ -34,6 +34,8 @@ interface QrScannerPlugin {
   addListener(event: "codeScanned", listener: (event: { text?: string }) => void): Promise<PluginListenerHandle>;
 }
 const QrScanner = registerPlugin<QrScannerPlugin>("QrScanner");
+/** The app's own Sign in with Apple (ios/App/App/AppleSignInPlugin.swift): AuthenticationServices, no SDK. */
+const AppleSignIn = registerPlugin<{ signIn(options: { nonce: string }): Promise<AppleCredential> }>("AppleSignIn");
 
 /** What a live scan needs of whichever scanner the platform has. */
 export interface ScanDriver {
@@ -303,6 +305,12 @@ export async function nativePlatform(): Promise<MobilePlatform> {
     // browser view takes web pages only
     openExternal: async (url) => { if (/^https?:/i.test(url)) await Browser.open({ url, presentationStyle: "popover" }); else window.location.href = url; },
     share: async (data) => { await Share.share(data); },
+    appleSignIn: kind === "ios" && Capacitor.isPluginAvailable("AppleSignIn") ? async (nonceHash) => {
+      try { return await AppleSignIn.signIn({ nonce: nonceHash }); } catch (error) {
+        if ((error as { code?: unknown }).code === "canceled") return null;
+        throw error;
+      }
+    } : undefined,
     async registerPush(options) {
       try {
         const asked = (await PushNotifications.checkPermissions()).receive;
