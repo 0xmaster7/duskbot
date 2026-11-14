@@ -265,8 +265,7 @@ export function CloudAccountSettings({ linkRequest = 0, cloudHome = false, teamH
     {moneyBack && <p className="text-[12px] text-ink-secondary">{moneyBack}</p>}
   </div>;
   return <>
-    <p className="text-[13px] leading-relaxed text-ink-secondary">{t("cloudAccount.optional")}</p>
-    <Card title={t("settings.section.cloudAccount")} subtitle={t("cloudAccount.separate")}>
+    <Card title={t("settings.section.cloudAccount")}>
       {account?.staging && <StagingMark className="mb-3" />}
       {(!account || view.kind === "unknown") && <p role="status" className="text-[13px] text-ink-secondary">{t("cloudAccount.loading")}</p>}
       {message && <p role="status" className="mb-3 text-[13px] text-ink-secondary">{message}</p>}
@@ -296,7 +295,6 @@ export function CloudAccountSettings({ linkRequest = 0, cloudHome = false, teamH
             ? <button type="button" disabled={busy} className="ui-button" onClick={() => void perform(() => bridge.signInAgain())}>{t("cloudAccount.signInAgain")}</button>
             : <>
               {!(view.kind === "free" && addCloudButton) && <button type="button" disabled={busy} className="ui-button" onClick={() => void perform(() => bridge.openDashboard())}>{view.kind === "free" ? t("cloudAccount.dashboard") : dashboardLabel(account, view)}</button>}
-              <button type="button" disabled={busy} className="ui-button" onClick={() => void perform(() => bridge.refresh())}>{t("organization.refresh")}</button>
             </>}
           {!confirm && <button type="button" disabled={busy} className="ui-button" onClick={() => setConfirm(true)}>{t("cloudAccount.signOut")}</button>}
         </div>

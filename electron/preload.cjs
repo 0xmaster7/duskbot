@@ -520,6 +520,7 @@ const bridge = {
     refresh: () => ipcRenderer.invoke("cloud-account:refresh"),
     signOut: () => ipcRenderer.invoke("cloud-account:signOut"),
     openDashboard: () => ipcRenderer.invoke("cloud-account:openDashboard"),
+    openPage: (page, workspaceId) => ipcRenderer.invoke("cloud-account:openPage", String(page), workspaceId === undefined ? undefined : String(workspaceId)),
     offer: () => ipcRenderer.invoke("cloud-account:offer"),
     checkout: (plan, source) => ipcRenderer.invoke("cloud-account:checkout", String(plan), String(source)),
     // The buying sheet: plain text in, outcomes out; the attempt, the token and the checkout page stay in main.

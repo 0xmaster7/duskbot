@@ -32,6 +32,7 @@
   "cloudAccount.offer",
   "cloudAccount.onState",
   "cloudAccount.openDashboard",
+  "cloudAccount.openPage",
   "cloudAccount.openTeam",
   "cloudAccount.readySeen",
   "cloudAccount.refresh",

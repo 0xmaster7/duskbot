@@ -72,6 +72,9 @@ export function checkoutDestination(value, { fixture = false, staging = false, c
   return url.href;
 }
 const HANDOFF_PLANS = Object.freeze(["plus", "pro"]);
+/** The website pages a handoff opens (shared/account-api.ts HANDOFF_PAGES), and where each is when the browser signs in itself. */
+export const HANDOFF_PAGES = Object.freeze({ plans: "/billing", home: "/", workspace: "/", cloud: "/cloud", billing: "/billing", account: "/account", usage: "/usage" });
+const WORKSPACE_ID = /^ws_[A-Za-z0-9_-]{1,64}$/;
 const HANDOFF_PATHS = Object.freeze(["/handoff", "/dashboard/handoff"]);
 /** Only this Admin's own handoff page with a one-time token in the fragment: no query, no credentials, nothing else. */
 export function handoffDestination(value, origin) {
@@ -459,6 +462,28 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
     } catch { if (current(stamp)) { pending = null; opened = null; publish({ status: "signed-out", message: "signin-failed" }); } }
     return state();
   }
+  /** A website page in the browser, already signed in as this app's account through a one-time link: "plans" with an optional
+   * plan and source, "workspace" with one of the account's workspaces, or another page of HANDOFF_PAGES. An Admin without the
+   * link (or one that fails) gets the plain page, where the browser may ask to sign in. */
+  async function webHandoff({ page = "plans", plan, source, workspaceId } = {}) {
+    if (!Object.hasOwn(HANDOFF_PAGES, page) || (plan !== undefined && !HANDOFF_PLANS.includes(plan)) || (source !== undefined && !CHECKOUT_SOURCES.includes(source))
+      || (page !== "plans" && (plan !== undefined || source !== undefined)) || (page === "workspace") !== WORKSPACE_ID.test(workspaceId ?? "")) throw new Error("Invalid web handoff.");
+    const signedIn = grant;
+    if (!signedIn || state().status === "reauth-required") return { signedOut: true };
+    const query = new URLSearchParams({ ...(plan ? { plan } : {}), ...(source ? { src: source } : {}), ...(page === "workspace" ? { workspace: workspaceId } : {}) }).toString();
+    let destination = null;
+    try {
+      const result = await request("", { path: "/v1/app/web-handoff", method: "POST", token: signedIn.token,
+        body: { next: page, ...(plan ? { plan } : {}), ...(source ? { source } : {}), ...(page === "workspace" ? { workspaceId } : {}) } });
+      destination = result?.v === 1 ? handoffDestination(result.url, origin) : null;
+    } catch (error) {
+      if (signInEnded(error)) { await refresh().catch(() => {}); return { signedOut: true }; }
+    }
+    if (grant !== signedIn) return { opened: false };
+    if (destination) { await openBrowser(destination); return { opened: true }; }
+    await openBrowser(`${origin}${HANDOFF_PAGES[page]}${query ? `?${query}` : ""}`);
+    return { opened: true, fallback: true };
+  }
   const signInBlocked = () => closed || restoring || clearing || grant || issued || cleanupNeeded;
   /** Sends the 8-digit code to `email`. Nothing is signed in yet; the answer says what the sheet shows next. */
   async function emailStart(email, { recover = false } = {}) {
@@ -639,26 +664,8 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
     },
     cancel: () => { if (!pending && value.status !== "connecting") return Promise.resolve(state()); opened = null; return signOut(); },
     refresh, signOut,
-    async openDashboard() { await openBrowser(`${origin}/cloud`); return state(); },
-    /** The plans page in the browser, already signed in as this app's account through a one-time link. An Admin without
-     * the link (or one that fails) gets the plain plans page, where the browser may ask to sign in. */
-    async webHandoff({ plan, source } = {}) {
-      if ((plan !== undefined && !HANDOFF_PLANS.includes(plan)) || (source !== undefined && !CHECKOUT_SOURCES.includes(source))) throw new Error("Invalid web handoff.");
-      const signedIn = grant;
-      if (!signedIn || state().status === "reauth-required") return { signedOut: true };
-      let destination = null;
-      try {
-        const result = await request("", { path: "/v1/app/web-handoff", method: "POST", body: { next: "plans", ...(plan ? { plan } : {}), ...(source ? { source } : {}) }, token: signedIn.token });
-        destination = result?.v === 1 ? handoffDestination(result.url, origin) : null;
-      } catch (error) {
-        if (signInEnded(error)) { await refresh().catch(() => {}); return { signedOut: true }; }
-      }
-      if (grant !== signedIn) return { opened: false };
-      if (destination) { await openBrowser(destination); return { opened: true }; }
-      const query = new URLSearchParams({ ...(plan ? { plan } : {}), ...(source ? { src: source } : {}) }).toString();
-      await openBrowser(`${origin}/billing${query ? `?${query}` : ""}`);
-      return { opened: true, fallback: true };
-    },
+    async openDashboard() { await webHandoff({ page: "cloud" }); return state(); },
+    webHandoff,
     async upgradePreview(plan, source) {
       if (!UPGRADE_TIERS.includes(plan) || !UPGRADE_SOURCES.includes(source)) throw new Error("Invalid Cloud upgrade.");
       const signedIn = grant;

@@ -36,7 +36,7 @@ afterEach(() => { vi.unstubAllGlobals(); setLocale("en"); });
 async function ready(state: CloudAccountState = { status: "signed-out" }) { vi.mocked(bridge.state).mockResolvedValueOnce(state); render(); const cleanup = f.effects[0](); await flush(); return cleanup; }
 it("loads optional account state without enrollment/network and delegates sign-in without arguments", async () => {
   await ready(); expect(bridge.begin).not.toHaveBeenCalled(); expect(fetch).not.toHaveBeenCalled();
-  expect(render().html).toContain("Free local use"); expect(render().html).toContain("separate from organization sign-in");
+  expect(render().html).not.toContain("Free local use"); expect(render().html).not.toContain("separate from organization sign-in");
   click("sign in to your cloud plan"); await flush(); expect(bridge.begin).toHaveBeenCalledExactlyOnceWith();
 });
 it("a free account starts in the Add a Cloud dialog, but only a verified native update displays Pro; unavailable/revoked states remove it", async () => {

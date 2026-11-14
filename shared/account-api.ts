@@ -151,7 +151,11 @@ export interface AppGrant {
 export interface EnrollGrantAnswer { v: 1; enrollToken: string; expiresAt: number; dashboardUrl: string }
 export const HANDOFF_PLANS = ["plus", "pro"] as const;
 /** `source` is one of billing's CHECKOUT_SOURCES; the page it opens is built by the service from these, never sent. */
-export interface WebHandoffRequest { next: "plans"; plan?: (typeof HANDOFF_PLANS)[number]; source?: string }
+/** the website pages an app opens signed in: "plans" is billing with an optional plan and source, "workspace" a workspace
+ * of the account (workspaceId), the rest the page of that name. */
+export const HANDOFF_PAGES = { plans: "/billing", home: "/", workspace: "/", cloud: "/cloud", billing: "/billing", account: "/account", usage: "/usage" } as const;
+export type HandoffPage = keyof typeof HANDOFF_PAGES;
+export interface WebHandoffRequest { next: HandoffPage; plan?: (typeof HANDOFF_PLANS)[number]; source?: string; workspaceId?: string }
 /** `url` is `${publicUrl}${pageBase}/handoff#t=<token>`: the token only in the fragment, single use, about two minutes. */
 export interface WebHandoffAnswer { v: 1; url: string; expiresAt: number }
 /** `next` is an app path (no page base) built from the issued link, e.g. "/billing?plan=pro&src=app_computer_move". */

@@ -71,3 +71,20 @@ test("signed out: nothing is asked or opened", async t => {
   assert.deepEqual(await f.client.webHandoff({ plan: "pro" }), { signedOut: true });
   assert.deepEqual(f.opened, []);
 });
+
+test("the account's other pages open signed in too: Open your plan page, a workspace, and the plain page when the Admin is older", async t => {
+  let answer = origin => ({ status: 200, body: { v: 1, url: `${origin}/dashboard/handoff#t=${handoffToken}`, expiresAt: Date.now() + 120_000 } });
+  const f = await fixture(t, origin => answer(origin));
+  await f.client.start();
+  await f.client.openDashboard();
+  assert.deepEqual(await f.client.webHandoff({ page: "workspace", workspaceId: "ws_abc-1" }), { opened: true });
+  const asked = f.requests.filter(item => item.route === "/v1/app/web-handoff").map(item => JSON.parse(item.body));
+  assert.deepEqual(asked, [{ next: "cloud" }, { next: "workspace", workspaceId: "ws_abc-1" }]);
+  assert.deepEqual(f.opened, [`${f.origin}/dashboard/handoff#t=${handoffToken}`, `${f.origin}/dashboard/handoff#t=${handoffToken}`]);
+  answer = () => ({ status: 400, body: { error: "Invalid request.", code: "invalid_request" } });
+  assert.deepEqual(await f.client.webHandoff({ page: "workspace", workspaceId: "ws_abc-1" }), { opened: true, fallback: true });
+  assert.equal(f.opened.at(-1), `${f.origin}/?workspace=ws_abc-1`);
+  for (const bad of [{ page: "admin" }, { page: "workspace" }, { page: "workspace", workspaceId: "../x" }, { page: "cloud", plan: "pro" }, { page: "account", workspaceId: "ws_abc" }, { page: "toString" }]) {
+    await assert.rejects(f.client.webHandoff(bad), String(JSON.stringify(bad)));
+  }
+});

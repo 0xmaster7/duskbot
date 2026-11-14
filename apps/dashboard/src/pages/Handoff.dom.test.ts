@@ -46,8 +46,8 @@ test("signed out: asks first, then confirms once with the same token", async () 
   const handoff = vi.spyOn(state.api, "handoff").mockResolvedValueOnce({ ask: "confirm", email: "owner@duskbot.test" });
   const host = await land(`#t=${token}`);
   expect(state.left).toEqual([]);
-  expect(button(host, "continue to checkout as owner@duskbot.test")).not.toBeNull();
-  await act(async () => button(host, "continue to checkout as")!.click());
+  expect(host.textContent).toContain("continue as owner@duskbot.test?");
+  await act(async () => button(host, "continue")!.click());
   expect(handoff).toHaveBeenLastCalledWith(token, { confirm: true });
   expect(state.left).toEqual(["/billing?plan=pro&src=app_computer_move"]);
 });
@@ -56,7 +56,7 @@ test("another account in this browser: asks first, then switches with replace; n
   const handoff = vi.spyOn(state.api, "handoff").mockResolvedValueOnce({ ask: "other_account", email: "owner@duskbot.test" });
   let host = await land(`#t=${token}`);
   expect(host.textContent).toContain("this browser is signed in as current@duskbot.test");
-  await act(async () => button(host, "continue to checkout as")!.click());
+  await act(async () => button(host, "continue")!.click());
   expect(handoff).toHaveBeenLastCalledWith(token, { confirm: true, replace: true });
   expect(state.left).toEqual(["/billing?plan=pro&src=app_computer_move"]);
   state.left = [];
@@ -76,8 +76,8 @@ test("a used or unknown link says so plainly; a malformed fragment is stripped a
   expect(handoff).not.toHaveBeenCalled();
 });
 
-test("a next that is not the plans page is never followed", async () => {
+test("a next that is not one of the handoff pages is never followed", async () => {
   const { handoffNext } = await import("../data/handoff");
-  expect(handoffNext("/billing?plan=plus&src=app_card")).toBe("/billing?plan=plus&src=app_card");
-  for (const bad of ["//evil.test", "https://evil.test/billing", "/billing/../account", "/account", null]) expect(handoffNext(bad)).toBe("/");
+  for (const good of ["/billing?plan=plus&src=app_card", "/cloud", "/account", "/usage", "/?workspace=ws_abc-1", "/"]) expect(handoffNext(good)).toBe(good);
+  for (const bad of ["//evil.test", "https://evil.test/billing", "/billing/../account", "/admin", "/account#x", null]) expect(handoffNext(bad)).toBe("/");
 });

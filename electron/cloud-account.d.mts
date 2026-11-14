@@ -139,6 +139,8 @@ export interface CloudAccountBridge {
   refresh(): Promise<CloudAccountState>;
   signOut(): Promise<CloudAccountState>;
   openDashboard(): Promise<CloudAccountState>;
+  /** A page of the account website in the browser, signed in as this account through a one-time link. */
+  openPage?(page: Exclude<CloudHandoffPage, "plans">, workspaceId?: string): Promise<CloudWebHandoffResult>;
   /** What this person may buy now (cloud-account.mjs offer), or null. */
   offer?(): Promise<import("./cloud-home.mjs").CloudOffer | null>;
   /** Opens a checkout for a plan of the offer in the browser; `source` is one of CHECKOUT_SOURCES. */
@@ -263,6 +265,8 @@ export declare const CLOUD_CANCEL_ANSWERS: readonly CloudCancelAnswer[];
 export declare function cancelSurvey(input: unknown): { answer: CloudCancelAnswer; expected?: string; improve?: string } | null;
 /** Only this Admin's own /handoff (or /dashboard/handoff) page with a one-time `#t=` token; anything else is null. */
 export declare function handoffDestination(value: unknown, origin: string): string | null;
+export type CloudHandoffPage = "plans" | "home" | "workspace" | "cloud" | "billing" | "account" | "usage";
+export declare const HANDOFF_PAGES: Readonly<Record<CloudHandoffPage, string>>;
 export type CloudWebHandoffResult = { opened: true; fallback?: true } | { opened: false } | { signedOut: true };
 export declare function checkoutDestination(value: unknown, options?: { fixture?: boolean; staging?: boolean; custom?: boolean }): string | null;
 export declare function cloudOrigin(value?: string, fixture?: boolean, custom?: boolean): string;
@@ -299,9 +303,10 @@ export interface CloudAccountClient {
   refresh(): Promise<CloudAccountState>;
   signOut(): Promise<CloudAccountState>;
   openDashboard(): Promise<CloudAccountState>;
-  /** Opens the plans page signed in as this account (a one-time /handoff link); `fallback` when the Admin had none and the
-   * plain plans page opened. `plan` is "plus" or "pro", `source` one of CHECKOUT_SOURCES. */
-  webHandoff(input?: { plan?: "plus" | "pro"; source?: string }): Promise<CloudWebHandoffResult>;
+  /** Opens a website page signed in as this account (a one-time /handoff link); `fallback` when the Admin had none and the
+   * plain page opened. `page` defaults to "plans", which alone takes `plan` ("plus" or "pro") and `source` (one of
+   * CHECKOUT_SOURCES); "workspace" takes `workspaceId`. */
+  webHandoff(input?: { page?: CloudHandoffPage; plan?: "plus" | "pro"; source?: string; workspaceId?: string }): Promise<CloudWebHandoffResult>;
   offer(): Promise<import("./cloud-home.mjs").CloudOffer | null>;
   checkout(plan: string, source: string): Promise<CloudCheckoutResult>;
   /** `recover`: "Can't sign in?": the mail also names the ways this address signs in. */

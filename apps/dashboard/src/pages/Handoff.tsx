@@ -41,7 +41,7 @@ export function HandoffPage() {
     const other = step.why === "other_account";
     body = (
       <SkyEmpty title={`continue as ${step.email}?`} className="w-full max-w-[520px]" action={<>
-        <Button variant="primary" onClick={() => void redeem({ confirm: true, ...(other ? { replace: true } : {}) })}>continue to checkout as {step.email}</Button>
+        <Button variant="primary" onClick={() => void redeem({ confirm: true, ...(other ? { replace: true } : {}) })}>continue</Button>
         <Button onClick={() => { forgetHandoff(); go("/sign-in"); }}>not you? sign in</Button>
       </>}>{other ? `this browser is signed in as ${account?.email ?? "another account"}.` : "the dusk bot app opened this page for that account."}</SkyEmpty>
     );

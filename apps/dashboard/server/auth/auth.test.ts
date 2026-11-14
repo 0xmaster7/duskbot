@@ -638,7 +638,8 @@ describe("local account service", () => {
       time += 30_000;
       const browser = await login();
       expect((await call("/v1/app/web-handoff", plans, browserHeaders(browser))).status).toBe(401);
-      for (const bad of [{}, { next: "account" }, { ...plans, plan: "team" }, { ...plans, source: "other" }, { ...plans, source: "https://evil.test" }, { ...plans, next: "//evil.test" }]) {
+      for (const bad of [{}, { next: "admin" }, { next: "account", plan: "pro" }, { next: "cloud", workspaceId: "ws_abc" }, { next: "workspace" }, { next: "workspace", workspaceId: "../x" },
+        { ...plans, plan: "team" }, { ...plans, source: "other" }, { ...plans, source: "https://evil.test" }, { ...plans, next: "//evil.test" }, { next: "toString" }]) {
         expect((await issue(grant, bad)).status).toBe(400);
       }
       const answer = await body<WebHandoffAnswer>(issue(grant));
@@ -657,11 +658,16 @@ describe("local account service", () => {
       expect(answer).toMatchObject({ account: { email }, csrfToken: expect.any(String), next: "/billing?plan=pro&src=app_computer_move" });
       const cookie = sessionCookie(response)!;
       expect(await body(call("/v1/me", undefined, { cookie }))).toMatchObject({ account: { email } });
-      const sessions = (await body<AccountAnswer>(call("/v1/account", undefined, { cookie }))).sessions;
+      const { sessions, onboarded } = await body<AccountAnswer>(call("/v1/account", undefined, { cookie }));
       expect(sessions.find(item => item.current)).toMatchObject({ kind: "web", createdAt: appSignedInAt });
+      // its first run was in the app: the website does not walk it through another
+      expect(onboarded).toBe(true);
       expect((await redeem(token)).status).toBe(410);
       const plain = tokenOf(await body<WebHandoffAnswer>(issue(grant, { next: "plans" })));
       expect(await body(redeem(plain))).toMatchObject({ next: "/billing" });
+      for (const [input, next] of [[{ next: "cloud" }, "/cloud"], [{ next: "account" }, "/account"], [{ next: "home" }, "/"], [{ next: "workspace", workspaceId: "ws_abc-1" }, "/?workspace=ws_abc-1"]] as const) {
+        expect(await body(redeem(tokenOf(await body<WebHandoffAnswer>(issue(grant, input)))))).toMatchObject({ next });
+      }
     });
 
     it("never signs a signed-out browser in without its confirm, and the ask does not spend the link", async () => {

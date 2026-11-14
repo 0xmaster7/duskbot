@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
-import { ACCOUNT_ROUTES as R, APP_AUTH_REDIRECT, CSRF_COOKIE, CSRF_HEADER, EMAIL_CODE_TRIES, EMAIL_CODE_TTL_SECONDS, EMAIL_RESEND_SECONDS, HANDOFF_PLANS, NOTIFICATION_DEFAULTS, OAUTH_PROVIDERS, SESSION_COOKIE } from "../../../../shared/account-api.ts";
+import { ACCOUNT_ROUTES as R, APP_AUTH_REDIRECT, CSRF_COOKIE, CSRF_HEADER, EMAIL_CODE_TRIES, EMAIL_CODE_TTL_SECONDS, EMAIL_RESEND_SECONDS, HANDOFF_PAGES, HANDOFF_PLANS, NOTIFICATION_DEFAULTS, OAUTH_PROVIDERS, SESSION_COOKIE } from "../../../../shared/account-api.ts";
 import type { AccountAnswer, AccountErrorCode, AccountView, AppGrant, NotificationPrefs, AppSessionIdentity, HandoffAnswer, OAuthErrorCode, OAuthProvider, WebHandoffAnswer } from "../../../../shared/account-api.ts";
 import { CHECKOUT_SOURCES } from "../../../../shared/billing-api.ts";
 import { createAuthStore } from "./store.ts";
@@ -195,7 +195,10 @@ export function createAuth(options: AuthOptions) {
   function identity(owner: Account, session: Session): AppSessionIdentity {
     return { cloudContractVersion: 1, expiresAt: session.expiresAt, device: { id: session.id }, account: { id: owner.id, email: owner.email } };
   }
+  /** an account signed in to an app had its first run there: the website never walks it through a second one */
+  function onboardedInApp(owner: Account) { if (owner.onboardedAt === undefined) { owner.onboardedAt = now(); store.changed(); } }
   function appGrant(owner: Account, device: DeviceInfo): AppGrant {
+    onboardedInApp(owner);
     const { token, session } = makeSession(owner, device);
     return { ...identity(owner, session), accessToken: token };
   }
@@ -392,14 +395,18 @@ export function createAuth(options: AuthOptions) {
   const liveAppSession = (grant: { accountId: string; sessionId: string }) =>
     state.sessions.find(item => item.id === grant.sessionId && item.accountId === grant.accountId && item.kind !== "web" && item.expiresAt > now()) ?? null;
   function issueHandoff(found: { account: Account; session: Session }, data: Record<string, unknown>): WebHandoffAnswer {
-    if (data.next !== "plans" || (data.plan !== undefined && !(HANDOFF_PLANS as readonly unknown[]).includes(data.plan))
-      || (data.source !== undefined && (data.source === "other" || !(CHECKOUT_SOURCES as readonly unknown[]).includes(data.source)))) return fail(400, "invalid_request");
+    const page = typeof data.next === "string" && Object.hasOwn(HANDOFF_PAGES, data.next) ? data.next as keyof typeof HANDOFF_PAGES : null;
+    const plans = page === "plans", workspace = page === "workspace";
+    if (!page || (!plans && (data.plan !== undefined || data.source !== undefined)) || (data.plan !== undefined && !(HANDOFF_PLANS as readonly unknown[]).includes(data.plan))
+      || (data.source !== undefined && (data.source === "other" || !(CHECKOUT_SOURCES as readonly unknown[]).includes(data.source)))
+      || (workspace ? typeof data.workspaceId !== "string" || !/^ws_[A-Za-z0-9_-]{1,64}$/.test(data.workspaceId) : data.workspaceId !== undefined)) return fail(400, "invalid_request");
     rate(`handoff:${found.session.id}`, AUTH_LIMITS.handoffsPerSession);
-    const query = new URLSearchParams({ ...(typeof data.plan === "string" ? { plan: data.plan } : {}), ...(typeof data.source === "string" ? { src: data.source } : {}) }).toString();
+    const query = new URLSearchParams({ ...(typeof data.plan === "string" ? { plan: data.plan } : {}), ...(typeof data.source === "string" ? { src: data.source } : {}),
+      ...(workspace ? { workspace: data.workspaceId as string } : {}) }).toString();
     const mine = [...handoffs].filter(([, item]) => item.accountId === found.account.id);
     for (const [key] of mine.slice(0, Math.max(0, mine.length - HANDOFF_OUTSTANDING + 1))) handoffs.delete(key);
     const token = random(), expiresAt = now() + HANDOFF_TTL_MS;
-    handoffs.set(hash(token), { accountId: found.account.id, sessionId: found.session.id, next: `/billing${query ? `?${query}` : ""}`, expiresAt });
+    handoffs.set(hash(token), { accountId: found.account.id, sessionId: found.session.id, next: `${HANDOFF_PAGES[page]}${query ? `?${query}` : ""}`, expiresAt });
     return { v: 1, url: `${pages}/handoff#t=${token}`, expiresAt };
   }
   function redeemHandoff(req: IncomingMessage, res: ServerResponse, data: Record<string, unknown>): HandoffAnswer {
@@ -417,6 +424,7 @@ export function createAuth(options: AuthOptions) {
     if (current && current.account.id !== owner.id && data.replace !== true) return fail(409, "other_account", { email: owner.email });
     if (!current && data.confirm !== true) return fail(409, "confirm", { email: owner.email });
     handoffs.delete(key);
+    onboardedInApp(owner);
     if (current && current.account.id === owner.id) return { account: view(owner), csrfToken: csrfFor(current.session), next: grant.next };
     if (current) dropSessions(item => item === current.session);
     // security: the web session is only as fresh as the app sign-in behind it, so it never passes a "signed in recently"
