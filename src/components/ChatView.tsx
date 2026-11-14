@@ -109,7 +109,7 @@ import { cn } from "@/lib/cn";
 import { useThinkingMoment } from "@/hooks/use-thinking-moment";
 import { activeLocale, t } from "@/lib/i18n";
 import { COMPACT_BUBBLE } from "@/lib/compact-chip";
-import { groupTranscript, isStatusActivity, type TranscriptItem } from "@/lib/activity-runs";
+import { groupTranscript, isStatusActivity, statusActivity, type TranscriptItem } from "@/lib/activity-runs";
 import { StatusActivityRow } from "@/components/StatusActivityRow";
 import { ActivityRun } from "./ActivityRun";
 import { TurnNarrationRun } from "./TurnNarrationRun";
@@ -1079,9 +1079,19 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
     : presence === "working" ? workingMark(live.status?.activity) : lifeMarkState(statusMarkState, lifeBeat);
   useThinkingMoment(markRef, presenceMarkState === LIFE_MASCOT_STATE);
 
-  // while the turn runs its notices stay in the chat; once it ends, what it left is one card above the composer
+  // while the turn runs its notices are the working row's to say, not the chat's too; once it ends, what it left is one
+  // card above the composer
   const trailing = useTrailingRows(messages, !bot.busy);
-  const folded = useMemo(() => foldedNoticeIds(trailing), [trailing]);
+  const folded = useMemo(() => {
+    const ids = new Set(foldedNoticeIds(trailing));
+    if (!turnBusy) return ids;
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      const message = messages[i]!;
+      if (message.role === "user") break;
+      if (statusActivity(message)?.kind === "notice" && !message.tool?.rescue) ids.add(message.id);
+    }
+    return ids;
+  }, [trailing, turnBusy, messages]);
   const clearLimitError = useCallback(() => dispatch({ type: "error", message: null }), [dispatch]);
   const regenerate = useCallback(() => {
     if (lastUserMessage?.text && !bot.busy && !lastUserMessage.id.startsWith("optimistic-")) {

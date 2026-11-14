@@ -159,6 +159,16 @@ describe("the working line", () => {
     expect(host.querySelector(".turn-status-out")).toBeNull();
   });
 
+  it("says a quiet turn's notice once, in the working row, not in the chat as well", () => {
+    const quiet: Message = { id: "quiet", role: "bot", kind: "activity", at: started + 75_000,
+      tool: { name: "notice: Waiting on the model, no reply for 75 s. Slow models can take a while.", ok: true } };
+    engine({ type: "turn.started" });
+    render(busyBot([ask, quiet]));
+    act(() => void vi.advanceTimersByTime(STATUS_QUIET_MS.max + 10));
+    expect(statusLine()).toContain("Waiting on the model");
+    expect(host.textContent!.split("Waiting on the model").length - 1, "one place only").toBe(1);
+  });
+
   it("opens the same way when a step starts at once: mascot, dots, then the mascot with the bot's words", () => {
     vi.setSystemTime(started);
     const markState = () => host.querySelector(".turn-presence [data-state]")?.getAttribute("data-state");
