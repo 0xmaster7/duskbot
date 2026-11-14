@@ -114,10 +114,25 @@ export function readSkillFrontmatter(raw: string): { fields: Record<string, stri
   const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
   if (!match) return null;
   const fields: Record<string, string> = {};
-  for (const line of match[1]!.split(/\r?\n/)) {
-    const kv = line.match(/^([A-Za-z][\w-]*):\s*(.*)$/);
+  const lines = match[1]!.split(/\r?\n/);
+  for (let at = 0; at < lines.length; at += 1) {
+    const kv = lines[at]!.match(/^([A-Za-z][\w-]*):\s*(.*)$/);
     if (!kv) continue;
-    fields[kv[1]!.toLowerCase()] = unquoteScalar(kv[2]!);
+    // a block scalar (`>`, `|`, with a chomping sign or an indent digit) reads the indented lines under it
+    const block = kv[2]!.trim().match(/^([>|])[+-]?\d?[+-]?(?:\s+#.*)?$/);
+    if (!block) {
+      fields[kv[1]!.toLowerCase()] = unquoteScalar(kv[2]!);
+      continue;
+    }
+    const taken: string[] = [];
+    while (at + 1 < lines.length && (/^\s+\S/.test(lines[at + 1]!) || !lines[at + 1]!.trim())) taken.push(lines[++at]!);
+    while (taken.length && !taken[taken.length - 1]!.trim()) taken.pop();
+    const indent = Math.min(...taken.filter((line) => line.trim()).map((line) => line.match(/^\s*/)![0].length));
+    const text = taken.map((line) => line.slice(Number.isFinite(indent) ? indent : 0));
+    fields[kv[1]!.toLowerCase()] = block[1] === "|"
+      ? text.join("\n").trim()
+      // folded: lines of one paragraph join with a space, a blank line keeps a paragraph break
+      : text.join("\n").split(/\n\s*\n/).map((paragraph) => paragraph.split("\n").map((line) => line.trim()).join(" ")).join("\n").trim();
   }
   return { fields, body: match[2] ?? "" };
 }
