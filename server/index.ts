@@ -371,7 +371,7 @@ import {
   journalTurnWrite,
   type MemoryJournalEntry,
 } from "./memory-journal.ts";
-import { introAllowed, introFallback, introName, introPrompt } from "./bot-intro.ts";
+import { introAllowed, introFallback, introMoment, introName, introPrompt, toneSamples, type IntroFacts } from "./bot-intro.ts";
 import { memoryTarget } from "./memory-for-bot.ts";
 import { readyBotTemplate, templateRoutineHints } from "./ready-bot-templates.ts";
 import {
@@ -8276,9 +8276,31 @@ const INTRO_COMPUTER: Partial<Record<string, string>> = {
   vm: "your own sandboxed Linux desktop",
 };
 
+/** What the person last did before this bot was made: the bot they last wrote to, and their own latest lines (never
+ * on a Team Cloud, where those lines are other members'). */
+function introRecent(newBotId: string, at: number): Pick<IntroFacts, "lastSeen" | "samples"> {
+  if (CLOUD_TEAM) return { samples: [] };
+  const threads = store.bots.filter((bot) => bot.id !== newBotId && !bot.hidden)
+    .flatMap((bot) => store.tasks(bot.id).filter((task) => task.askedAt).map((task) => ({ bot, task })))
+    .sort((a, b) => b.task.askedAt! - a.task.askedAt!).slice(0, 4);
+  const lines = threads.flatMap(({ bot, task }) => store.messagesTail(task.threadId, 40).messages.map((message) => ({ bot, message })))
+    .filter(({ message }) => message.role === "user" && message.kind === "text" && !message.peerAsk && !message.relayed && !message.routineStart && !message.sender && message.text)
+    .sort((a, b) => b.message.at - a.message.at).map(({ bot, message }) => ({ to: bot.name, text: message.text! }));
+  const last = threads[0];
+  return {
+    samples: toneSamples(lines),
+    ...(last ? { lastSeen: { bot: last.bot.name, minutesAgo: Math.max(0, Math.round((at - last.task.askedAt!) / 60_000)) } } : {}),
+  };
+}
+
+const introNow = () => {
+  const simulated = process.env.DUSK_TEST_INTRO_AT ? Date.parse(process.env.DUSK_TEST_INTRO_AT) : Number.NaN;
+  return Number.isFinite(simulated) ? simulated : Date.now();
+};
+
 /** A bot just made writes its first message as a turn on its own engine, model and full instructions; with no engine
  * to answer, it says the fixed hello. Never blocks the caller past the turn's start. */
-async function introduceBot(botId: string, opts: { template?: string; trigger: UsageTrigger }): Promise<"started" | "fallback" | "skipped"> {
+async function introduceBot(botId: string, opts: { template?: string; origin?: "import"; madeBy?: string; trigger: UsageTrigger }): Promise<"started" | "fallback" | "skipped"> {
   const bot = store.bot(botId);
   if (!bot) return "skipped";
   const threadId = bot.threadId;
@@ -8300,8 +8322,13 @@ async function introduceBot(botId: string, opts: { template?: string; trigger: U
     introTurns.delete(threadId);
     return "skipped";
   }
+  const at = introNow();
   const prompt = introPrompt({
     name: introName(current.name),
+    moment: introMoment(at, personTimeZone(proactive.brief.timeZone())),
+    style: talkingStyleOf(cfg.talkingStyle),
+    origin: opts.madeBy ? { kind: "bot", by: opts.madeBy } : { kind: opts.origin ?? (template ? "template" : "scratch") },
+    ...introRecent(botId, Date.now()),
     ...(template ? { template: { category: template.category, title: template.title, tryAsking: template.tryAsking, apps: template.apps, routines: templateRoutineHints(template) } } : {}),
     apps,
     place: introPlace(),
@@ -9253,7 +9280,7 @@ async function beginTurn(
       if (strictResume && !(opts?.cardContinuation && continuingRoutine) && dispatchedConfig !== plannedConfig) dispatchContext = decideContext(dispatchedConfig);
       // Before sendTurn: an adapter may emit the whole turn before it resolves.
       handoffs.dispatching(threadId, dispatchClaimId, dispatchContext.handoff);
-      const clock = takesTurnClock(userTurnText) ? turnClockLine(Date.now(), personTimeZone(proactive.brief.timeZone())) + quietGapNote(previousPersonMessageAt(activeMessages, userMessage.id), Date.now()) + habitReminder(chatMessageCount(activeMessages)) + nearLimitNote(limitClock.limit(instanceId), engineName(instanceId), personTimeZone(proactive.brief.timeZone())) : "";
+      const clock = takesTurnClock(userTurnText) && !introTurns.has(threadId) ? turnClockLine(Date.now(), personTimeZone(proactive.brief.timeZone())) + quietGapNote(previousPersonMessageAt(activeMessages, userMessage.id), Date.now()) + habitReminder(chatMessageCount(activeMessages)) + nearLimitNote(limitClock.limit(instanceId), engineName(instanceId), personTimeZone(proactive.brief.timeZone())) : "";
       const shareNote = skillsHost.shareNote(bot, threadId, Boolean(privateWorkspace));
       const startupRecovery = (opts?.automaticRecoveryIndex ?? 0) < startupBackups(liveBot ?? bot, cfg.automaticRecovery).length;
       const held = limitTakeover.heldAtStart(bot, { instanceId, model }, startupRecovery); // a limit or a sign-out already known: straight to an AI that can carry on, with the reset only when one was named
@@ -15238,7 +15265,7 @@ const handleRequestInner = async (req: IncomingMessage, res: ServerResponse) => 
         // the new bot says hello in its own chat, as one made in the app does; never over a conversation already started
         // a specialist a Chief adds for work in hand starts on that work, not with a hello
         const greets = body.greet !== false && personAsked() && introAllowed(store.messagesFor(created.threadId)) && !threadBusy(created.id, created.threadId);
-        if (greets) void introduceBot(created.id, { template: template?.id, trigger: { kind: "bot", botId: chief.id } });
+        if (greets) void introduceBot(created.id, { template: template?.id, madeBy: chief.name, trigger: { kind: "bot", botId: chief.id } });
         return json(res, 201, {
           ...proposed,
           greeted: greets,

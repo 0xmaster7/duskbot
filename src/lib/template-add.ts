@@ -22,7 +22,7 @@ export async function addTemplate(manifest: unknown, dispatch: (action: Action) 
   const first = response.bots.find((bot) => !bot.hidden);
   if (first) {
     dispatch({ type: "select", id: first.id });
-    void api(`/api/bots/${first.id}/intro`, { method: "POST" }).catch(() => {});
+    void api(`/api/bots/${first.id}/intro`, { method: "POST", body: JSON.stringify({ origin: "import" }) }).catch(() => {});
   }
   return { ...response, ...(first ? { first } : {}) };
 }

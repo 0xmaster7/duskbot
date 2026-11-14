@@ -76,7 +76,7 @@ export interface BotMessageRouteDeps {
   }): Promise<Message>;
   usageTriggerFor(auth: RequestAuth): UsageTrigger;
   /** A bot just made writes its first message; `template` is the ready-made bot it came from. */
-  introduceBot(botId: string, opts: { template?: string; trigger: UsageTrigger }): Promise<"started" | "fallback" | "skipped">;
+  introduceBot(botId: string, opts: { template?: string; origin?: "import"; trigger: UsageTrigger }): Promise<"started" | "fallback" | "skipped">;
   messageSender(auth: RequestAuth): ResolvedSender | undefined;
   cloudGuestSendRefusal(auth: RequestAuth, threadId: string): string | null;
   cloudThreadRefusal(auth: RequestAuth, threadId: string): string | null;
@@ -474,9 +474,9 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
       if (!bot || bot.hidden) return json(res, 404, { error: "no such bot" });
       const notYours = cloudThreadRefusal(auth, bot.threadId);
       if (notYours) return json(res, 403, { error: notYours });
-      const body = await readBody(req).catch(() => null) as { template?: unknown } | null;
+      const body = await readBody(req).catch(() => null) as { template?: unknown; origin?: unknown } | null;
       const template = typeof body?.template === "string" ? body.template.slice(0, 80) : undefined;
-      const outcome = await introduceBot(bot.id, { ...(template ? { template } : {}), trigger: usageTriggerFor(auth) });
+      const outcome = await introduceBot(bot.id, { ...(template ? { template } : {}), ...(body?.origin === "import" ? { origin: "import" as const } : {}), trigger: usageTriggerFor(auth) });
       if (outcome === "skipped") return json(res, 200, { skipped: true });
       return json(res, outcome === "started" ? 202 : 201, { ok: true, threadId: bot.threadId });
     }

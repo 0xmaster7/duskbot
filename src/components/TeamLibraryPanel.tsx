@@ -331,7 +331,7 @@ export function TeamLibraryPanel({
       track("team_imported", { members: response.bots?.length ?? 0, source: "organization", mode: "add", format: "package" });
       if (first) {
         dispatch({ type: "select", id: first.id });
-        void api(`/api/bots/${first.id}/intro`, { method: "POST" }).catch(() => {});
+        void api(`/api/bots/${first.id}/intro`, { method: "POST", body: JSON.stringify({ origin: "import" }) }).catch(() => {});
         onImported({
           name: entry.name,
           members: response.bots!.length,
