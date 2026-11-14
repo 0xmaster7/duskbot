@@ -135,7 +135,7 @@ export function accountProfile(account) {
   const avatar = typeof account?.avatar === "string" && AVATAR_CHOICE.test(account.avatar) ? account.avatar : null;
   return { ...(name ? { name } : {}), ...(avatarUrl ? { avatarUrl } : {}), ...(avatar ? { avatar } : {}) };
 }
-const AVATAR_CHOICE = /^(?:photo|g:[a-z0-9]{1,16})$/;
+const AVATAR_CHOICE = /^(?:photo|drawn|g:[a-z0-9]{1,16})$/;
 const timestamp = value => Number.isSafeInteger(value) && value > 0;
 /** Display only: the last verified plan, never an entitlement. */
 function planHint(value) {

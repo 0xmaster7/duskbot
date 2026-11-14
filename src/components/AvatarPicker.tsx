@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { AccountRow } from "../../electron/cloud-account.mjs";
-import { newAvatarSeed, parseUserAvatarChoice, type UserAvatarChoice } from "../../shared/user-avatar";
+import { newAvatarSeed, parseUserAvatarChoice, plainAvatarChoice, type UserAvatarChoice } from "../../shared/user-avatar";
 import { RefreshCw } from "../icons";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
@@ -21,11 +21,9 @@ export function photoSource(url: string | undefined): "google" | "x" | "other" |
   return "other";
 }
 
-/** The avatar a choice shows, for the preview. `null` is the default: the drawing seeded from the account id, photo or not. */
+/** The avatar a choice shows, for the preview. `null` is the default: the sign-in photo, else the account id's drawing. */
 function choiceAccount(account: AccountRow, choice: UserAvatarChoice | null) {
-  if (choice === "photo") return { id: account.id, avatarUrl: account.avatarUrl, avatar: "photo" };
-  if (choice) return { id: account.id, avatar: choice };
-  return { id: account.id };
+  return { id: account.id, ...(account.avatarUrl ? { avatarUrl: account.avatarUrl } : {}), ...(choice ? { avatar: choice } : {}) };
 }
 
 /** Pick the avatar that follows the person everywhere: shuffle a new drawing, take one of a few suggestions, or use the photo
@@ -33,8 +31,8 @@ function choiceAccount(account: AccountRow, choice: UserAvatarChoice | null) {
 export function AvatarPicker({ account, anchor, onClose }: { account: AccountRow; anchor: HTMLElement | null; onClose: () => void }) {
   const bridge = window.duskDesktop?.accounts;
   const saved = parseUserAvatarChoice(account.avatar);
-  // a saved photo choice without a photo any more reads as the default
-  const start = saved === "photo" && !account.avatarUrl ? null : saved;
+  const hasPhoto = Boolean(account.avatarUrl);
+  const start = plainAvatarChoice(saved, hasPhoto);
   const [choice, setChoice] = useState<UserAvatarChoice | null>(start);
   const [suggested] = useState(() => Array.from({ length: SUGGESTIONS }, () => newAvatarSeed()));
   const [rolled, setRolled] = useState<string | null>(saved?.startsWith("g:") && !suggested.includes(saved.slice(2)) ? saved.slice(2) : null);
@@ -86,7 +84,8 @@ export function AvatarPicker({ account, anchor, onClose }: { account: AccountRow
     }, () => setError(true)).finally(() => setSaving(false));
   };
   const swatches: { key: string; choice: UserAvatarChoice | null; seed: string; label: string }[] = [
-    { key: "default", choice: null, seed: account.id, label: t("accounts.avatar.default") },
+    // with a photo, the account id's drawing is a choice of its own; without one it is the default
+    { key: "default", choice: hasPhoto ? "drawn" : null, seed: account.id, label: t("accounts.avatar.default") },
     ...(rolled ? [{ key: `g:${rolled}`, choice: `g:${rolled}` as const, seed: rolled, label: t("accounts.avatar.rolled") }] : []),
     ...suggested.slice(0, rolled ? SUGGESTIONS - 1 : SUGGESTIONS).map((seed, index) => ({ key: `g:${seed}`, choice: `g:${seed}` as const, seed, label: t("accounts.avatar.suggestion", { n: index + 1 }) })),
   ];
@@ -121,9 +120,9 @@ export function AvatarPicker({ account, anchor, onClose }: { account: AccountRow
           </button>;
         })}
       </div>
-      {account.avatarUrl && <button type="button" data-avatar-photo="" aria-pressed={choice === "photo"} disabled={saving}
-        className={cn("flex min-h-11 items-center gap-3 rounded-xl px-2 text-start text-[14px] leading-5 transition-colors duration-150 ease-out hover:bg-ink/[0.06] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:opacity-50 motion-reduce:transition-none", choice === "photo" && "bg-ink/[0.08]")}
-        onClick={() => pick("photo")}>
+      {account.avatarUrl && <button type="button" data-avatar-photo="" aria-pressed={choice === null} disabled={saving}
+        className={cn("flex min-h-11 items-center gap-3 rounded-xl px-2 text-start text-[14px] leading-5 transition-colors duration-150 ease-out hover:bg-ink/[0.06] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:opacity-50 motion-reduce:transition-none", choice === null && "bg-ink/[0.08]")}
+        onClick={() => pick(null)}>
         <img src={account.avatarUrl} alt="" className="size-7 shrink-0 rounded-full object-cover" />
         <span className="min-w-0 flex-1 truncate">{t(source === "google" ? "accounts.avatar.photoGoogle" : source === "x" ? "accounts.avatar.photoX" : "accounts.avatar.photo")}</span>
       </button>}

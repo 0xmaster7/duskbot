@@ -1,11 +1,12 @@
 /**
- * A person's avatar, as the account keeps it (`avatar` on the account service): absent for the default drawn from the account
- * id, `photo` for the photo of their google or x sign-in, or `g:<seed>` for a drawn one they picked. The drawing is
- * deterministic: the same seed draws the same picture on every device.
+ * A person's avatar, as the account keeps it (`avatar` on the account service): absent for the default (the photo of their
+ * google or x sign-in, else the drawing seeded from their account id), `photo` for that photo, `drawn` for the drawing from
+ * their account id even with a photo, or `g:<seed>` for a drawn one they picked. The drawing is deterministic: the same seed
+ * draws the same picture on every device.
  */
-export type UserAvatarChoice = "photo" | `g:${string}`;
+export type UserAvatarChoice = "photo" | "drawn" | `g:${string}`;
 
-const CHOICE = /^(?:photo|g:[a-z0-9]{1,16})$/;
+const CHOICE = /^(?:photo|drawn|g:[a-z0-9]{1,16})$/;
 
 export function parseUserAvatarChoice(value: unknown): UserAvatarChoice | null {
   return typeof value === "string" && CHOICE.test(value) ? value as UserAvatarChoice : null;
@@ -14,13 +15,20 @@ export function parseUserAvatarChoice(value: unknown): UserAvatarChoice | null {
 /** What to draw for an account: its photo, or a drawing from a seed. */
 export type UserAvatarFace = { kind: "photo"; url: string } | { kind: "drawn"; seed: string };
 
-/** A drawing they picked, the photo of their sign-in when they chose it and still have one, else the drawing seeded from
- * their account id. */
+/** A drawing they picked; the drawing from their account id when they chose it; else the photo of their sign-in when they
+ * have one, and the drawing from their account id when they don't. */
 export function userAvatarFace(account: { id: string; avatarUrl?: string; avatar?: string }): UserAvatarFace {
   const choice = parseUserAvatarChoice(account.avatar);
   if (choice?.startsWith("g:")) return { kind: "drawn", seed: choice.slice(2) };
-  if (choice === "photo" && account.avatarUrl) return { kind: "photo", url: account.avatarUrl };
+  if (choice !== "drawn" && account.avatarUrl) return { kind: "photo", url: account.avatarUrl };
   return { kind: "drawn", seed: account.id };
+}
+
+/** The same choice in its shortest form for this account: the default (null) wherever it shows the same face. */
+export function plainAvatarChoice(choice: UserAvatarChoice | null, hasPhoto: boolean): UserAvatarChoice | null {
+  if (choice === "photo") return null;
+  if (choice === "drawn" && !hasPhoto) return null;
+  return choice;
 }
 
 /** A fresh seed for Shuffle and the suggestions: 8 base-36 characters. */

@@ -96,6 +96,7 @@ test("the account's name and photo are taken only as plain words and an https ad
   assert.deepEqual(accountProfile({ name: "x".repeat(81) }), {});
   assert.deepEqual(accountProfile({ avatar: "g:k3x9a0bz" }), { avatar: "g:k3x9a0bz" });
   assert.deepEqual(accountProfile({ avatar: "photo" }), { avatar: "photo" });
+  assert.deepEqual(accountProfile({ avatar: "drawn" }), { avatar: "drawn" });
   for (const avatar of ["g:", "g:UP", "g:a/b", "https://example.test/a.png", "g:" + "a".repeat(17), 7]) assert.deepEqual(accountProfile({ avatar }), {}, String(avatar));
 });
 

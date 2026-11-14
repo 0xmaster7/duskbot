@@ -56,7 +56,7 @@ it("the You menu and settings sign out through the same question", async () => {
 
 it("the account card shows the photo, name, address and plan, and Manage account opens the account page", async () => {
   const at = Date.UTC(2026, 11, 14, 12);
-  bridge.list.mockResolvedValueOnce({ active: { id: "a", email: "a@example.test", name: "Ada Lovelace", avatarUrl: "https://photos.example.test/ada.png", avatar: "photo", plan: { status: "active", tier: "pro", renewsAt: at } } } as never);
+  bridge.list.mockResolvedValueOnce({ active: { id: "a", email: "a@example.test", name: "Ada Lovelace", avatarUrl: "https://photos.example.test/ada.png", plan: { status: "active", tier: "pro", renewsAt: at } } } as never);
   const openPage = vi.fn(async () => ({ opened: true })), openDashboard = vi.fn(async () => {});
   (window as unknown as { duskDesktop: Record<string, unknown> }).duskDesktop.cloudAccount = { openPage, openDashboard };
   await act(async () => { root.render(createElement(AccountsSheet, { onClose: vi.fn() })); });
@@ -72,7 +72,7 @@ it("the account card shows the photo, name, address and plan, and Manage account
   expect(button("Sign out")).toBeDefined();
 });
 
-it("without a chosen photo the card shows the avatar drawn from the account id; a photo that fails to load falls back to it", async () => {
+it("without a photo the card shows the avatar drawn from the account id; a photo that fails to load falls back to it", async () => {
   bridge.list.mockResolvedValueOnce({ active: { id: "a", email: "zed@example.test", plan: { status: "free" } } } as never);
   await act(async () => { root.render(createElement(AccountsSheet, { onClose: vi.fn() })); });
   const card = host.querySelector<HTMLElement>("[data-accounts-active]")!;
@@ -81,7 +81,7 @@ it("without a chosen photo the card shows the avatar drawn from the account id; 
   expect(card.querySelector("[data-accounts-plan]")?.textContent).toBe("Free");
   act(() => root.unmount());
   root = createRoot(host);
-  bridge.list.mockResolvedValueOnce({ active: { id: "a", email: "zed@example.test", name: "Zed Ward", avatarUrl: "https://photos.example.test/gone.png", avatar: "photo" } } as never);
+  bridge.list.mockResolvedValueOnce({ active: { id: "a", email: "zed@example.test", name: "Zed Ward", avatarUrl: "https://photos.example.test/gone.png" } } as never);
   await act(async () => { root.render(createElement(AccountsSheet, { onClose: vi.fn() })); });
   await act(async () => { host.querySelector("img")!.dispatchEvent(new Event("error")); });
   expect(host.querySelector("[data-accounts-active] img")).toBeNull();
@@ -108,11 +108,12 @@ it("the avatar opens the picker: Shuffle rolls a drawing, Save keeps it on the a
     const picker = () => document.body.querySelector<HTMLElement>("[data-avatar-picker]");
     expect(picker()?.getAttribute("role")).toBe("dialog");
     expect(document.activeElement?.hasAttribute("data-avatar-shuffle")).toBe(true);
-    // nothing picked yet: the drawn default is current and Save waits for a change; the photo is offered, not used
+    // a Google photo and nothing picked: the photo is the avatar, and the drawing from the account id stays a choice
+    expect(host.querySelector("[data-accounts-avatar] img")?.getAttribute("src")).toBe("https://lh3.googleusercontent.com/a/x=s96-c");
     expect(picker()!.querySelector("[data-avatar-photo]")?.textContent).toBe("Use my Google photo");
-    expect(picker()!.querySelector("[data-avatar-photo]")?.getAttribute("aria-pressed")).toBe("false");
+    expect(picker()!.querySelector("[data-avatar-photo]")?.getAttribute("aria-pressed")).toBe("true");
     expect(picker()!.querySelectorAll("[data-avatar-swatch]")).toHaveLength(6);
-    expect(picker()!.querySelector("[data-avatar-swatch][aria-pressed=true]")?.getAttribute("data-avatar-swatch")).toBe("default");
+    expect(picker()!.querySelector("[data-avatar-swatch][aria-pressed=true]")).toBeNull();
     expect(picker()!.querySelector<HTMLButtonElement>("[data-avatar-save]")!.disabled).toBe(true);
     await act(async () => { picker()!.querySelector<HTMLButtonElement>("[data-avatar-shuffle]")!.click(); });
     const rolled = picker()!.querySelector("[data-avatar-swatch][aria-pressed=true]")!.getAttribute("data-avatar-swatch")!;
@@ -121,9 +122,9 @@ it("the avatar opens the picker: Shuffle rolls a drawing, Save keeps it on the a
     expect(setAvatar).toHaveBeenCalledWith(rolled);
     expect(picker()!.querySelector("[data-avatar-error]")?.textContent).toBe("Your avatar wasn't saved. Check your connection, then try again.");
     setAvatar.mockImplementationOnce(async (choice) => ({ outcome: "saved", view: { active: { id: "a", email: "a@example.test", ...(choice ? { avatar: choice } : {}) } } }));
-    await act(async () => { picker()!.querySelector<HTMLButtonElement>("[data-avatar-photo]")!.click(); });
+    await act(async () => { picker()!.querySelector<HTMLButtonElement>("[data-avatar-swatch=default]")!.click(); });
     await act(async () => { picker()!.querySelector<HTMLButtonElement>("[data-avatar-save]")!.click(); });
-    expect(setAvatar).toHaveBeenLastCalledWith("photo");
+    expect(setAvatar).toHaveBeenLastCalledWith("drawn");
     expect(picker()).toBeNull();
     await act(async () => { face.click(); });
     await act(async () => { picker()!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); });

@@ -399,6 +399,7 @@ describe("local account service", () => {
     expect(other.account.avatar).toBe("g:abc123");
     // no photo to use, and nothing that isn't an avatar
     for (const avatar of ["photo", "g:", "g:ABC", "g:../x", "https://example.test/a.png", 7]) expect((await call("/v1/app/avatar", { avatar }, bearer(grant))).status).toBe(400);
+    expect(await body(call("/v1/app/avatar", { avatar: "drawn" }, bearer(grant)))).toEqual({ avatar: "drawn" });
     expect(await body(call("/v1/app/avatar", { avatar: null }, bearer(grant)))).toEqual({ avatar: null });
     expect((await body<AppGrant>(call("/api/cloud/desktop/session", undefined, bearer(grant)))).account.avatar).toBeUndefined();
   });
