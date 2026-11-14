@@ -227,9 +227,10 @@ test("main lists the machine from verified states only, and connects without a d
   // Every open goes through the home window (home-window.mjs), which looks nothing up before the Admin says ready.
   const opened = [], state = { status: "connected" };
   let done = 0, refuse = false;
-  client = { state: () => state, checkoutDone: () => done++ };
+  // connectCloudHome also starts the one-welcome mark (26f73e206), which asks for the cloud's origin: none here
+  client = { state: () => state, checkoutDone: () => done++, homeTarget: () => null };
   context.cloudAccount = client;
-  context.homeWindow = { openCloud: async (open) => { opened.push(open); if (refuse) throw new Error("My Cloud is not ready to connect yet."); } };
+  context.homeWindow = { cloudOrigin: () => null, openCloud: async (open) => { opened.push(open); if (refuse) throw new Error("My Cloud is not ready to connect yet."); } };
   assert.equal(await context.connectCloudHome(), state, "the renderer gets the sign-in's state back, as before");
   await context.connectCloudHome("phone");
   assert.deepEqual(opened, [null, "phone"]);
@@ -435,6 +436,8 @@ test("the Server menu opens My Cloud through the Cloud's own connection, never a
     homePlaces: { remember: (place) => calls.push(`remember:${JSON.stringify(place)}`) },
     runningDataDir: "/data", desktopDataDir: () => "/data", localRuntimeStarting: null,
     handSaved, serverOpens: async (place) => { calls.push(`look:${place.id}`); return answers; }, session: { defaultSession: { fetch: async () => null } }, dialog: {},
+    // the first-pick mark main keeps beside switchEnvironment (47ad2f03a)
+    placesChosenStore: () => ({ choose() {} }), jsonFile: () => ({}), path: { join: (...parts) => parts.join("/") }, app: { getPath: () => "/data" },
   });
   let answers = true;
   vm.runInContext(`${source.slice(start, end)}; this.switchEnvironment = switchEnvironment; this.remember = value => { rememberedHome = value; };`, context);
