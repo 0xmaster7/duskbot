@@ -196,7 +196,11 @@ function start() {
     if (chat[key].busy) $('[data-composer-actions]', row).replaceWith(el(d.composerBusy));
     // the message box only shows what to ask: this demo is spoken to through its question cards
     const ta = $('textarea', row);
-    if (ta) { ta.readOnly = true; ta.tabIndex = -1; ta.setAttribute('aria-hidden', 'true'); }
+    if (ta) {
+      ta.readOnly = true; ta.tabIndex = -1; ta.setAttribute('aria-hidden', 'true');
+      // the app asks for an answer only while a question card waits
+      if (!chat[key].card) { ta.placeholder = `Message ${ids[key].name}`; ta.setAttribute('aria-label', `Message ${ids[key].name}`); }
+    }
     $('[data-composer-row]').replaceWith(row);
   }
   // a row arriving: inserted whole, rising 12px into place over 240ms, as the app's transcript does
