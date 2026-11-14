@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CONNECT_TIMEOUTS, ConnectFlow, LOST_AFTER, POLL_MS, connectsInApp, type ConnectDeps, type ConnectInstance, type ConnectState } from "./connect-flow";
+import { CONNECT_TIMEOUTS, ConnectFlow, LOST_AFTER, POLL_MS, connectsInApp, loopbackOf, type ConnectDeps, type ConnectInstance, type ConnectState } from "./connect-flow";
 
 type Route = (init?: { method?: string; body?: string; signal?: AbortSignal }) => unknown;
 
@@ -415,5 +415,64 @@ describe("the provider's normal browser sign-in, relayed by this desktop for a r
     expect(second.map((body) => JSON.parse(body).browser)).toEqual([true, false]);
     expect(two.calls).toContain("POST /api/instances/codex/auth/cancel");
     expect(two.flow.state).toMatchObject({ stage: "waiting", kind: "device", code: "ABCD-12345" });
+  });
+
+  describe("Gemini (Antigravity) on a remote workspace", () => {
+    const gemini = (authenticated: boolean): ConnectInstance => ({ instanceId: "antigravity", driverKind: "antigravity", snapshot: { state: "available", authenticated }, authentication: { method: "browser" } });
+    const googleLink = "https://accounts.google.com/o/oauth2/v2/auth?client_id=x&redirect_uri=http%3A%2F%2F127.0.0.1%3A51121%2F&state=s";
+    // what a 0.2.8 cloud answers: no loopback, no sameMachine
+    const oldServer = () => ({ auth: { phase: "waiting", flowId: "g1", authorizationUrl: googleLink } });
+
+    it("reads the loopback from the link when the server is older than the relay", () => {
+      expect(loopbackOf(googleLink)).toEqual({ authorizationUrl: googleLink, port: 51121, path: "/" });
+      expect(loopbackOf("https://accounts.google.com/o/oauth2/v2/auth?redirect_uri=https%3A%2F%2Fexample.com%2F")).toBeNull();
+      expect(loopbackOf("http://127.0.0.1:51121/")).toBeNull();
+    });
+
+    it("an old cloud server still connects: the desktop listens on the link's port and hands back the 127.0.0.1 callback", async () => {
+      let done = false;
+      let completeBody = "";
+      const { relay, log, browserReturns } = fakeRelay();
+      const { flow, opened } = harness([[gemini(false)], () => [gemini(done)]], {
+        "POST /api/instances/antigravity/auth/start": oldServer,
+        "POST /api/instances/antigravity/auth/complete": (init) => { completeBody = init?.body ?? ""; done = true; return { ok: true }; },
+      }, { relay });
+      flow.start({ tile: "gemini", candidates: ["antigravity"] });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(log).toContain("open 51121/");
+      expect(flow.state).toMatchObject({ stage: "waiting", kind: "callback", link: googleLink });
+      expect(opened).toEqual([googleLink]);
+      browserReturns("http://127.0.0.1:51121/?state=s&code=fixture");
+      await vi.advanceTimersByTimeAsync(POLL_MS * 2);
+      expect(JSON.parse(completeBody)).toEqual({ flowId: "g1", callbackUrl: "http://127.0.0.1:51121/?state=s&code=fixture" });
+      expect(flow.state).toEqual({ stage: "connected", reused: false });
+    });
+
+    it("never opens Google's page when nothing here can catch the redirect", async () => {
+      for (const relay of [fakeRelay(false).relay, undefined]) {
+        const { flow, opened, calls } = harness([[gemini(false)]], {
+          "POST /api/instances/antigravity/auth/start": oldServer,
+          "POST /api/instances/antigravity/auth/cancel": () => ({ ok: true }),
+        }, relay ? { relay } : {});
+        flow.start({ tile: "gemini", candidates: ["antigravity"] });
+        await vi.advanceTimersByTimeAsync(0);
+        expect(opened).toEqual([]);
+        expect(calls).toContain("POST /api/instances/antigravity/auth/cancel");
+        expect(flow.state).toMatchObject({ stage: "failed", reason: "unavailable" });
+        expect((flow.state as { message: string }).message).toMatch(relay ? /port 51121/ : /desktop app/);
+      }
+    });
+
+    it("on this machine the browser reaches the CLI directly", async () => {
+      const { relay, log } = fakeRelay();
+      const { flow, opened } = harness([[gemini(false)]], {
+        "POST /api/instances/antigravity/auth/start": () => ({ ...oldServer(), sameMachine: true }),
+      }, { relay });
+      flow.start({ tile: "gemini", candidates: ["antigravity"] });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(flow.state).toMatchObject({ stage: "waiting", kind: "callback", link: googleLink });
+      expect(opened).toEqual([googleLink]);
+      expect(log).toEqual([]);
+    });
   });
 });

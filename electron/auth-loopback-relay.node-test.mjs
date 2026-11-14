@@ -19,6 +19,17 @@ const get = (port, path, host = `localhost:${port}`) => new Promise((resolve, re
   req.end();
 });
 
+test("keeps the loopback host the browser used, so a 127.0.0.1 redirect (Antigravity) stays 127.0.0.1", async () => {
+  const port = await freePort();
+  const relay = createLoopbackRelay();
+  assert.equal(await relay.open(port, "/"), true);
+  const waiting = relay.next(port);
+  const browser = get(port, "/?state=s&code=fixture", `127.0.0.1:${port}`);
+  assert.equal(await waiting, `http://127.0.0.1:${port}/?state=s&code=fixture`);
+  relay.done(port, { ok: true, location: null });
+  assert.equal((await browser).status, 200);
+});
+
 test("hands the browser's callback to the page and sends the browser on to the provider's page", async () => {
   const relay = createLoopbackRelay();
   const port = await freePort();

@@ -39,7 +39,8 @@ export function createLoopbackRelay({ lifetimeMs = 15 * 60_000, answerMs = 90_00
       return;
     }
     relay.response = res;
-    relay.callback = `http://localhost:${port}${url.pathname}${url.search}`;
+    // the host the browser used, so a provider that checks the redirect origin (Antigravity: 127.0.0.1) accepts it
+    relay.callback = `http://${host}${url.pathname}${url.search}`;
     for (const resolve of relay.waiting.splice(0)) resolve(relay.callback);
     relay.answerTimer = setTimeout(() => done(port, { ok: false }), answerMs);
     relay.answerTimer.unref?.();

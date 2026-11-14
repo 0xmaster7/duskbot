@@ -124,6 +124,18 @@ export function chatgptPlanLink(value: string | null | undefined): string | null
 }
 
 /** An https page with no login or fragment: the managed engines' provider page (Google for Antigravity). */
+/** A provider link's loopback redirect (http://127.0.0.1:<port>/<path>), for servers that do not report it. */
+export function loopbackOf(authorizationUrl: string | null | undefined): Loopback | null {
+  const link = httpsLink(authorizationUrl);
+  if (!link) return null;
+  try {
+    const redirect = new URL(new URL(link).searchParams.get("redirect_uri") ?? "");
+    const port = Number(redirect.port);
+    if (redirect.protocol !== "http:" || !["127.0.0.1", "localhost", "[::1]"].includes(redirect.hostname) || !Number.isInteger(port) || port < 1024) return null;
+    return { authorizationUrl: link, port, path: redirect.pathname };
+  } catch { return null; }
+}
+
 function httpsLink(value: string | null | undefined): string | null {
   if (!value) return null;
   try {
@@ -363,10 +375,23 @@ export class ConnectFlow {
 
       const method = instance.authentication!.method;
       const provider = signInProvider(instance.driverKind);
-      // the provider's normal sign-in when the browser can reach the CLI's loopback: on this machine, or relayed here
-      const loopback = auth.loopback && httpsLink(auth.loopback.authorizationUrl) ? auth.loopback : null;
-      const viaLoopback = Boolean(loopback && (started.sameMachine || await this.openRelay(loopback)));
+      // the provider's normal sign-in when the browser can reach the CLI's loopback: on this machine, or relayed here.
+      // a server from before the relay (dusk cloud on 0.2.8) sends neither `loopback` nor `sameMachine`: it is remote,
+      // and a callback sign-in's loopback is read from the link's own redirect_uri
+      const sameMachine = started.sameMachine === true;
+      const loopback = auth.loopback && httpsLink(auth.loopback.authorizationUrl) ? auth.loopback
+        : method === "browser" ? loopbackOf(auth.authorizationUrl) : null;
+      const viaLoopback = Boolean(loopback && (sameMachine || await this.openRelay(loopback)));
       if (signal.aborted) { this.closeRelay(); return; }
+      if (method === "browser" && !sameMachine && !viaLoopback) {
+        // the provider page would send the browser to a localhost nothing here listens on: never open it
+        void this.deps.api(`/api/instances/${encodeURIComponent(instance.instanceId)}/auth/cancel`, { method: "POST", body: JSON.stringify({ flowId: auth.flowId }) }).catch(() => {});
+        this.deps.trail("connect.fallback", { tile: target.tile, from: instance.instanceId, to: "none", port: loopback?.port ?? null });
+        throw new StageEnded("unavailable", !this.deps.relay
+          ? "This sign-in comes back to the computer you sign in on. Open dusk bot's desktop app and connect from there."
+          : loopback ? `Another app on this computer is using port ${loopback.port}, which this sign-in needs. Close it and try again.`
+            : "This sign-in can't come back to this computer. Try again in a moment.");
+      }
       const code = !viaLoopback && method === "device-code" && isDeviceSignInCode(provider, auth.userCode) && auth.userCode ? auth.userCode : null;
       link = viaLoopback ? httpsLink(loopback!.authorizationUrl)
         : method === "browser-pkce" ? chatgptPlanLink(auth.authorizationUrl)
