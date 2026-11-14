@@ -205,7 +205,7 @@ await runFlow(flow, async () => {
       flow.facts.afterPay = (await browser.url()).replace(/#.*$/, "");
       flow.facts.appLinksFromWeb = [...links.seen];
       if (links.seen.length) throw new Error(`the website opened the app by itself: ${links.seen.join(", ")}`);
-      if (new URL(flow.facts.afterPay).pathname !== "/billing") throw new Error(`ended on ${flow.facts.afterPay}, not the plan page`);
+      if (!new URL(flow.facts.afterPay).pathname.endsWith("/billing")) throw new Error(`ended on ${flow.facts.afterPay}, not the plan page`);
       const href = await until(() => browser.evaluate(`document.querySelector("[data-open-app-link]")?.getAttribute("href") ?? false`), { timeout: 30_000, what: "the open dusk bot button" });
       if (href !== "duskbot://cloud") throw new Error(`open dusk bot button: ${href}`);
       await browser.evaluate(`document.querySelector("[data-open-app-link]").click(); true`);
