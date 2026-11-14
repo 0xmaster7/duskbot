@@ -2,7 +2,7 @@
 // cacheDir), its own harness port, HOME, user data and data folder, mock keychain, every window hidden
 // (electron-smoke-shim.cjs). Driven over the Chrome DevTools Protocol of its main window.
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
 import { createServer as createNetServer } from "node:net";
 import { join } from "node:path";
@@ -103,6 +103,7 @@ export async function launchSmokeApp({ root, profile, env: extra = {}, log: prin
   for (const dir of [home, userData, dataDir]) mkdirSync(dir, { recursive: true });
   const eventsFile = join(profile, "events.jsonl");
   rmSync(eventsFile, { force: true });
+  rmSync(join(profile, "links.txt"), { force: true });
   rmSync(join(userData, "DevToolsActivePort"), { force: true });
   const port = await freePort(), uiPort = await freePort(), webhookPort = await freePort();
   const requireFromRoot = createRequire(join(root, "package.json"));
@@ -123,7 +124,7 @@ export async function launchSmokeApp({ root, profile, env: extra = {}, log: prin
     DUSK_DEV_OWN_SERVER: "1", DUSK_DEV_SERVER_WATCH: "0", DUSK_NO_TEST_BOTS: "1",
     DUSK_CLOUD_STAGING: "1", DUSK_ERROR_REPORTS: "0", DUSK_ANALYTICS: "0",
     ELECTRON_START_URL: `http://127.0.0.1:${uiPort}`,
-    DUSK_SMOKE_EVENTS: eventsFile, DUSK_SMOKE_PROFILE: profile, DUSK_LOG_DIR: join(profile, "app-paths", "logs"),
+    DUSK_SMOKE_EVENTS: eventsFile, DUSK_SMOKE_LINKS: join(profile, "links.txt"), DUSK_SMOKE_PROFILE: profile, DUSK_LOG_DIR: join(profile, "app-paths", "logs"),
     ...extra,
   };
   mkdirSync(env.TMPDIR, { recursive: true });
@@ -158,6 +159,8 @@ export async function launchSmokeApp({ root, profile, env: extra = {}, log: prin
   const app = {
     root, profile, port, uiPort, cdpPort, eventsFile,
     output: () => output,
+    /** hands a duskbot:// link to the app, as the OS does when a page opens one */
+    openLink: (url) => appendFileSync(join(profile, "links.txt"), `${url}\n`),
     events: () => { try { return readFileSync(eventsFile, "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line)); } catch { return []; } },
     /** windows the shim caught visible: any is a failure of the run */
     onScreen: () => app.events().filter((event) => event.kind === "visible"),

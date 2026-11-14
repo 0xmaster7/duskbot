@@ -164,6 +164,8 @@ test("only a packaged app outside CI reports: dev, worktree, CI and flagged smok
   assert.equal(analyticsAllowed({ packaged: true, env: { DUSK_ANALYTICS: "0" } }), false, "smoke and e2e launches");
   assert.equal(analyticsAllowed({ packaged: true, env: { CI: "true" } }), false, "CI runners");
   assert.equal(analyticsAllowed({ packaged: true, env: { CI: "1" } }), false);
+  assert.equal(analyticsAllowed({ packaged: false, env: { DUSK_ANALYTICS: "1" }, custom: true }), true, "a verification run against preview");
+  assert.equal(analyticsAllowed({ packaged: false, env: { DUSK_ANALYTICS: "1" } }), false, "never a dev build toward dusk.bot");
 });
 
 test("an app with analytics off posts nothing: no page batch, no main action, no last batch, no install for notes", async () => {

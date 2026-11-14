@@ -94,6 +94,19 @@ export default { ...electron, BrowserWindow, WebContentsView, Tray, Notification
     }
   };
   setInterval(watch, 100).unref();
+  // a duskbot:// link the browser hands to the app (no protocol handler is registered here): each new line of
+  // DUSK_SMOKE_LINKS reaches main's own open-url handler, as macOS would deliver it
+  const linkFile = process.env.DUSK_SMOKE_LINKS;
+  if (linkFile) {
+    const { existsSync, readFileSync } = require("node:fs");
+    let seen = 0;
+    setInterval(() => {
+      if (!existsSync(linkFile)) return;
+      const lines = readFileSync(linkFile, "utf8").split("\n").filter(Boolean);
+      for (const url of lines.slice(seen)) { note("open-url", { url }); app.emit("open-url", { preventDefault() {} }, url); }
+      seen = lines.length;
+    }, 300).unref();
+  }
   app.whenReady().then(() => {
     try { app.dock?.hide(); } catch {}
     watch();
