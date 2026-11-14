@@ -151,6 +151,17 @@ await runFlow(flow, async () => {
       if (outcome.startsWith("said:")) flow.friction("confusing", "the server's chat", `the first message on the server got: ${outcome.slice(5).replace(/\s+/g, " ").slice(0, 160)}`);
       return `${outcome.replace(/\s+/g, " ")} in ${flow.facts.serverReplySeconds}s`;
     });
+
+    // this Mac is online and in use: the server's chat must never say it is offline, also past the notice's checks
+    if (signedOut || walkthrough.enabled) await flow.step("mac-online", "the server's chat never says this Mac is offline", async () => {
+      await sleep(130_000);
+      flow.facts.egress = await flow.evaluate(`fetch("/api/computer/egress", { cache: "no-store" }).then((r) => r.ok ? r.json() : "status " + r.status).catch((e) => "error " + e.message)`);
+      const agent = await vm.exec("journalctl -u 'dusk*' --since '-15 min' --no-pager 2>/dev/null | grep -i egress | tail -5", 30).catch(() => ({ stdout: "" }));
+      flow.facts.egressAgent = agent.stdout.trim().slice(0, 600);
+      await walkthrough.capture("app", "the server's chat after a few minutes");
+      if (/your computer is offline/i.test(await flow.text())) throw new Error(`the server's chat says "Your computer is offline" (egress ${JSON.stringify(flow.facts.egress)})`);
+      return `no offline note; egress ${JSON.stringify(flow.facts.egress)}`;
+    });
   } finally {
     // the machine is deleted when the flow closes (flow.atClose), also after a kill
   }
