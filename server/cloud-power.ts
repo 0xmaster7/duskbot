@@ -86,7 +86,9 @@ export const wakeCode = (path: string) => WAKE_CODES.find(([pattern]) => pattern
  * power reads, and the polls of an older desktop that still lends its computer (lending is retired; those get a 404). */
 const BACKGROUND = [/^\/api\/events$/, /^\/api\/health$/, /^\/api\/sync(\/|$)/, /^\/api\/shared-computers(\/|$)/, /^\/api\/cloud\/power(\/|$)/, /^\/api\/cloud\/focus$/,
   // the phone's 25-second "the app is open" beat: a focus hint (server/mobile/link.ts), never use, or an open phone never sleeps its home
-  /^\/api\/mobile\/presence$/];
+  /^\/api\/mobile\/presence$/,
+  // the app lending its connection (server/home-egress-link.ts) links up whenever the home is awake: never someone using it
+  /^\/api\/computer\/egress\/link$/];
 export const CLOUD_POWER_PATH = "/api/cloud/power";
 export const CLOUD_POWER_SLEEP_PATH = "/api/cloud/power/sleep";
 export const CLOUD_BACKGROUND_HEADER = "x-dusk-background";
@@ -94,7 +96,7 @@ export const CLOUD_POWER_HEADER = "x-dusk-cloud-power";
 const MARKER = "cloud-sleep.json";
 /** Long-polls and streams that stay open by design: never "in flight" work. An open screen is not either: its input is
  * someone using the home and the screen itself a hint (server/routes/desktop-viewer.ts `presence`). */
-const HELD = [/^\/api\/events$/, /^\/api\/sync\/changes$/, /^\/api\/desktop-viewer\/.+\/(?:websockify|direct)$/];
+const HELD = [/^\/api\/events$/, /^\/api\/sync\/changes$/, /^\/api\/desktop-viewer\/.+\/(?:websockify|direct)$/, /^\/api\/computer\/egress\/link$/];
 
 /** The answer a held poll (Files sync) gets once the home agreed to sleep: the desktop pauses until it wakes. */
 export function answerAsleep(res: ServerResponse, json: (res: ServerResponse, status: number, body: unknown) => void) {
@@ -243,10 +245,15 @@ export function createCloudPower(options: {
       wokeBy = { by: wakeCode(path), background: !countsAsActivity(path, headers) };
     },
     /** An authenticated request: someone using the home (`countsAsActivity`), and work in progress until it ends. */
-    request(path: string, headers: IncomingHttpHeaders, res: Pick<ServerResponse, "once"> & { socket?: { bytesRead?: number; bytesWritten?: number } | null }) {
+    request(path: string, headers: IncomingHttpHeaders, res: Pick<ServerResponse, "once"> & { socket?: { bytesRead?: number; bytesWritten?: number;
+      once?(event: "close", listener: () => void): unknown; off?(event: "close", listener: () => void): unknown } | null }) {
       if (countsAsActivity(path, headers)) noteActivity();
       // bytes moving on its connection are a transfer's progress (CLOUD_HOLD_CAP_MS)
-      res.once("close", begin(path, () => (res.socket?.bytesRead ?? 0) + (res.socket?.bytesWritten ?? 0)));
+      const socket = res.socket;
+      const release = begin(path, () => (socket?.bytesRead ?? 0) + (socket?.bytesWritten ?? 0));
+      // a websocket route detaches the socket from its response, which then never closes
+      socket?.once?.("close", release);
+      res.once("close", () => { release(); socket?.off?.("close", release); });
     },
     report(activityMs = CLOUD_IDLE_ACTIVITY_MS): CloudPowerReport {
       const busy = busyNow(activityMs);

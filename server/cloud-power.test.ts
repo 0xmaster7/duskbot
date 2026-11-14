@@ -351,6 +351,30 @@ describe("holds that are not a bot's work", () => {
   });
 });
 
+describe("websockets a route takes over", () => {
+  it("hold the home only while their connection is open, though the response never closes", () => {
+    const h = home();
+    h.pass(CLOUD_IDLE_AWAKE_MS);
+    const socket = new PassThrough();
+    const res = Object.assign(new PassThrough(), { socket }) as unknown as ServerResponse;
+    h.power.request("/api/bots/bot-1/browser/stream", {}, res);
+    expect(h.power.report().busy).toContain("maintenance");
+    socket.emit("close");
+    expect(h.power.report().busy).not.toContain("maintenance");
+  });
+
+  it("leave no listener on a kept-alive connection once their response is done", () => {
+    const h = home();
+    const socket = new PassThrough();
+    for (let i = 0; i < 50; i++) {
+      const res = Object.assign(new PassThrough(), { socket }) as unknown as ServerResponse;
+      h.power.request("/api/bots", {}, res);
+      res.emit("close");
+    }
+    expect(socket.listenerCount("close")).toBe(0);
+  });
+});
+
 describe("hints that are not use", () => {
   it("the phone's open beat and an open screen never count as someone using the home", () => {
     expect(countsAsActivity("/api/mobile/presence", {})).toBe(false);
