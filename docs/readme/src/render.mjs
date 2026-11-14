@@ -13,9 +13,9 @@ const here = fileURLToPath(new URL(".", import.meta.url));
 const landing = fileURLToPath(new URL("../../../apps/site/public/landing/", import.meta.url));
 const out = fileURLToPath(new URL("../", import.meta.url));
 
-// name: [page, width in css px, themes]
+// name: [page, width in css px, themes, { scale, quality }]
 const IMAGES = {
-  header: ["header.html", 1040, ["light", "dark"]],
+  header: ["header.html", 1040, ["light", "dark"], { scale: 3, quality: 0.96 }],
   hint: ["hint.html", 1040, ["light", "dark"]],
   "btn-mac": ["button.html?os=mac", 0, ["light", "dark"]],
   "btn-windows": ["button.html?os=windows", 0, ["light", "dark"]],
@@ -58,24 +58,24 @@ const { chromium } = require("playwright");
 const browser = await chromium.launch({ args: ["--use-mock-keychain", "--password-store=basic"] });
 const wanted = process.argv.slice(2);
 try {
-  for (const [name, [page, width, themes]] of Object.entries(IMAGES)) {
+  for (const [name, [page, width, themes, { scale = 2, quality = 0.9 } = {}]] of Object.entries(IMAGES)) {
     if (wanted.length && !wanted.includes(name)) continue;
     for (const theme of themes) {
-      const context = await browser.newContext({ viewport: { width: width || 1040, height: 900 }, deviceScaleFactor: 2, colorScheme: theme });
+      const context = await browser.newContext({ viewport: { width: width || 1040, height: 900 }, deviceScaleFactor: scale, colorScheme: theme });
       const tab = await context.newPage();
       tab.on("pageerror", (error) => console.error(`${name} ${theme}:`, error.message));
       await tab.goto(`${base}/readme/${page}${page.includes("?") ? "&" : "?"}theme=${theme}`);
       await tab.waitForSelector("body[data-ready]", { timeout: 20_000 });
       const png = await tab.locator("#shot").screenshot({ omitBackground: true });
       // chromium encodes the webp, so nothing else needs installing
-      const webp = await tab.evaluate(async (data) => {
+      const webp = await tab.evaluate(async ([data, q]) => {
         const img = new Image();
         img.src = `data:image/png;base64,${data}`;
         await img.decode();
         const canvas = Object.assign(document.createElement("canvas"), { width: img.width, height: img.height });
         canvas.getContext("2d").drawImage(img, 0, 0);
-        return canvas.toDataURL("image/webp", 0.9).split(",")[1];
-      }, png.toString("base64"));
+        return canvas.toDataURL("image/webp", q).split(",")[1];
+      }, [png.toString("base64"), quality]);
       await writeFile(join(out, `${name}-${theme}.webp`), Buffer.from(webp, "base64"));
       console.log(`${name}-${theme}.webp`);
       await context.close();
