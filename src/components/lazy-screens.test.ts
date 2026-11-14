@@ -297,10 +297,11 @@ describe("launch bundle", () => {
     expect([...launchModules()].filter((file) => file.startsWith("locales/")).sort()).toEqual(["locales/en.json", "locales/index.ts"]);
   });
 
-  it("gives the window's rail a page of its own that leaves the app out", () => {
+  // the rail of places is gone (59d0ffb68); its page now only holds the accounts sheet over the window (d791a7fc9)
+  it("gives the window's accounts sheet a page of its own that leaves the app out", () => {
     const rail = launchModules("rail.tsx");
-    expect(rail.has("components/PlacesRail.tsx")).toBe(true);
-    expect(rail.has("components/PlaceAddSheet.tsx")).toBe(true);
+    expect(rail.has("components/ChromeRail.tsx")).toBe(true);
+    expect(rail.has("components/AccountMenu.tsx")).toBe(true);
     expect(["App.tsx", "state/store.tsx", "components/Sidebar.tsx", "components/ChatView.tsx"].filter((file) => rail.has(file))).toEqual([]);
     expect([...rail].filter((file) => file.startsWith("locales/")).sort()).toEqual(["locales/en.json", "locales/index.ts"]);
   });
