@@ -138,6 +138,14 @@ export function MessageActions({
 
   useLayoutEffect(() => {
     if (!menuOpen) return;
+    place();
+    menuRef.current?.querySelector<HTMLButtonElement>("[role=menuitem]:not(:disabled)")?.focus();
+    // the window can shrink while the menu is open: it measures again so it never runs past an edge
+    window.addEventListener("resize", place);
+    return () => window.removeEventListener("resize", place);
+  }, [menuOpen]);
+
+  function place() {
     const menuBox = menuRef.current?.getBoundingClientRect();
     const more = moreRef.current?.getBoundingClientRect();
     // the composer floats over the transcript's bottom: a menu that would run under it opens upward
@@ -152,8 +160,7 @@ export function MessageActions({
       const fitsEnd = rtl ? fitsRight : fitsLeft;
       setMenuFlipped(mirrored ? !fitsEnd && fitsStart : !fitsStart && fitsEnd);
     }
-    menuRef.current?.querySelector<HTMLButtonElement>("[role=menuitem]:not(:disabled)")?.focus();
-  }, [menuOpen]);
+  }
 
   const moveFocus = (event: KeyboardEvent<HTMLDivElement>) => {
     const items = [...(menuRef.current?.querySelectorAll<HTMLButtonElement>("[role=menuitem]:not(:disabled)") ?? [])];
