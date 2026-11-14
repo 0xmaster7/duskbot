@@ -16,14 +16,16 @@ async function stillRegistered(service: MobilePushRegistration["service"]): Prom
   }
 }
 
-export function registerPushForConnection(platform: MobilePlatform): Promise<void> {
+/** `prompt`: the system may ask the person now (they just did something a notification follows up on); without it a
+ * phone that was never asked registers nothing, so the app never asks at launch */
+export function registerPushForConnection(platform: MobilePlatform, { prompt = false }: { prompt?: boolean } = {}): Promise<void> {
   const existing = pending.get(platform);
   if (existing) return existing;
   const work = (async () => {
     if (!platform.native || !platform.registerPush) return;
     const active = await createConnectionStore(platform).active();
     if (!active?.record.deviceId || !active.record.capabilities.notifications) return;
-    const registration = await platform.registerPush();
+    const registration = await platform.registerPush({ prompt });
     if (!registration) return;
     const body: MobilePushRegistration = {
       service: registration.platform, token: registration.token,

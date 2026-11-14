@@ -1,4 +1,6 @@
 import { feature as productFeature, noteMessageSent, noteAcceptedMessage, noteReplyTurn, noteRoutineRun } from "@/lib/product-analytics";
+import { storeApp } from "@/lib/store-app";
+import { aiSendAllowed } from "@/lib/ai-consent-gate";
 import { trailAction } from "@/lib/trail-actions";
 import { cloudAsleep, onCloudPower } from "../lib/cloud-power";
 import { chatInFront } from "@/lib/chat-in-front";
@@ -1540,6 +1542,7 @@ export function reducer(state: AppState, action: Action): AppState {
       };
     }
     case "openCloudAdd":
+      if (storeApp()) return state;
       return { ...state, cloudAdd: state.cloudAdd ?? { source: action.source, ...(action.signIn ? { signIn: true as const } : {}) }, cloudHowTo: false };
     case "closeCloudAdd":
       return state.cloudAdd ? { ...state, cloudAdd: null } : state;
@@ -2259,6 +2262,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const wrapped: React.Dispatch<Action> = (action) => {
       // a saved setting re-renders the whole app: as a transition, so the switch that saved it and the next click never wait
       if (action.type === "configStatus") { startTransition(() => rawDispatch(action)); return; }
+      if ((action.type === "send" || action.type === "sendGroup" || action.type === "editMessage") && !aiSendAllowed(() => wrapped(action))) return;
       if (["select", "newTask", "switchTask", "newGroupTask", "switchGroupTask", "showChat"].includes(action.type)) selectionRevision.current++;
       // Pin before any await or optimistic state change.
       action = pinBotThreadAction(action, stateRef.current.bots);

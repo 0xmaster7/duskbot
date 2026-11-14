@@ -13,7 +13,8 @@ import { roomWorkingIds } from "../RoomWorkingLines";
 import { useCaptionChrome } from "../DesktopCapabilities";
 import { Icon } from "../Icon";
 import { ManageMembersPanel } from "../ManageMembersPanel";
-import { PANEL_TABS, TAB_LABEL, type PanelTab } from "../bot-panel/page-registry";
+import { TAB_LABEL, type PanelTab } from "../bot-panel/page-registry";
+import { panelTabs, screenViewAllowed } from "@/lib/store-app";
 import { pageSurfaceCls } from "../bot-panel/pages";
 import { roundButtonCls } from "../bot-panel/rows";
 import { sidePanelCls } from "../bot-panel/side-panel";
@@ -135,7 +136,7 @@ export function RoomPanel({ group, overlay = false }: { group: Group; overlay?: 
             label={t("room.panel.open")}
             value={tab}
             onChange={openTab}
-            tabs={PANEL_TABS.map((id) => ({ value: id, label: t(TAB_LABEL[id]) }))}
+            tabs={panelTabs().map((id) => ({ value: id, label: t(TAB_LABEL[id]) }))}
           />
         </div>
       </div>
@@ -146,7 +147,7 @@ export function RoomPanel({ group, overlay = false }: { group: Group; overlay?: 
         animate={SWAP.animate}
       >
         {tab === "details" && <RoomDetailsTab {...rowProps} />}
-        {tab === "computer" && <RoomComputerTab members={members} />}
+        {tab === "computer" && screenViewAllowed() && <RoomComputerTab members={members} />}
         {tab === "advanced" && <RoomAdvancedTab {...rowProps} />}
       </MotionDiv>
     </>

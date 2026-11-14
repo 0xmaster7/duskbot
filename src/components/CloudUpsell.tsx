@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { storeApp } from "@/lib/store-app";
 import { Cloud, X } from "../icons";
 import type { CloudSource } from "@/lib/cloud-plan";
 import { investedBy, type InvestedFacts } from "../../shared/cloud-upsell";
@@ -30,7 +31,7 @@ export function useCloudUpsell(): { allowed: boolean | null; open: (source: Clou
     void organization.state().then(next => { if (!updated) accept(next); }).catch(() => {});
     return () => { active = false; unsubscribe(); };
   }, [organization]);
-  const here = localDesktopPage() && window.duskDesktop?.remoteClient?.active !== true && Boolean(state.config)
+  const here = !storeApp() && localDesktopPage() && window.duskDesktop?.remoteClient?.active !== true && Boolean(state.config)
     && !state.config?.cloudHome && !state.config?.managedPolicy;
   const allowed = cloudUpsellAllowed({ here, view: plan?.view ?? null, managed });
   const signedOut = plan?.view.kind === "signed-out";

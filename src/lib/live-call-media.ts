@@ -1,4 +1,5 @@
 import { feature } from "./product-analytics";
+import { aiSendAllowed } from "./ai-consent-gate";
 // Its data channel may only send session.close; everything else about the call runs on the harness.
 import { useSyncExternalStore } from "react";
 import type { LiveCallState, LiveEndReason } from "../../shared/wire";
@@ -179,7 +180,7 @@ function liveClient(capabilities: DesktopCapabilities): "desktop" | "web" {
 }
 
 export async function startLiveCall(target: { botId: string; threadId: string }): Promise<void> {
-  if (isLiveCallRunning(state.phase)) return;
+  if (isLiveCallRunning(state.phase) || !aiSendAllowed(() => void startLiveCall(target))) return;
   release();
   const mine = ++generation;
   serverAttached = false;

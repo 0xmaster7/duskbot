@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { storeApp } from "@/lib/store-app";
 import { Copy } from "../../icons";
 
 import { cn } from "@/lib/cn";
@@ -84,7 +85,8 @@ function BotApiStarter({ className }: { className?: string }) {
 /** The Bot API, the same in the bot panel and in Bot settings: a switch, the key once, the command to paste. */
 export function BotApiCard(props: { bot: Bot; webhooksLink?: boolean; className?: string }) {
   const { state } = useStore();
-  return state.config?.cloudStarter === true ? <BotApiStarter className={props.className} /> : <BotApiSection {...props} />;
+  if (state.config?.cloudStarter === true) return storeApp() ? null : <BotApiStarter className={props.className} />;
+  return <BotApiSection {...props} />;
 }
 
 function BotApiSection({ bot, webhooksLink = false, className }: { bot: Bot; webhooksLink?: boolean; className?: string }) {

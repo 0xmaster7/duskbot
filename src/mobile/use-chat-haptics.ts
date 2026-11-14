@@ -18,7 +18,9 @@ function lastOf(state: AppState, chatId: string | null): Last {
 
 /** The taps a hand expects from a chat: a light one as a message leaves, a soft one as the reply lands in the open chat,
  * an error buzz when something fails, and a selection tick on any switch. */
-export function useChatHaptics(state: AppState, chatId: string | null) {
+export function useChatHaptics(state: AppState, chatId: string | null, onSent?: () => void) {
+  const sent = useRef(onSent);
+  sent.current = onSent;
   const last = useRef<Last>(null);
   const shownChat = useRef<string | null>(null);
   const error = useRef<string | null>(null);
@@ -29,7 +31,7 @@ export function useChatHaptics(state: AppState, chatId: string | null) {
     last.current = next;
     if (shownChat.current !== chatId) { shownChat.current = chatId; return; }
     if (!next || next.id === prev?.id) return;
-    if (next.optimistic) haptic("light");
+    if (next.optimistic) { haptic("light"); sent.current?.(); }
     else if (next.replied && !(prev?.replied && prev.userId === next.userId)) haptic("soft");
   }, [state, chatId]);
 

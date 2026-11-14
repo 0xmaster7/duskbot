@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { storeApp } from "@/lib/store-app";
 import { ArrowUpRight, Check, Copy, Globe, Loader2, X } from "../icons";
 import type { PublishedPageCard as Card } from "../../shared/published-page";
 import { cloudPlanLabel } from "@/lib/cloud-plan";
@@ -14,6 +15,7 @@ const usageLine = (card: Card) => card.usage ? t("chat.page.usage", { pages: car
 function limitLine(card: Card): string {
   const limit = card.usage?.limit;
   if (limit === undefined) return card.message ?? "";
+  if (storeApp()) return t("chat.page.limitReached", { limit });
   return card.plan === "free" ? t("chat.page.freeLimit", { limit }) : t("chat.page.planLimit", { limit, plan: cloudPlanLabel(card.plan) });
 }
 

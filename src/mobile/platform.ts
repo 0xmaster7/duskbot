@@ -67,8 +67,9 @@ export interface MobilePlatform {
   readClipboard?(): Promise<string | null>;
   openExternal(url: string): Promise<void>;
   share?(data: { title?: string; text?: string; url?: string }): Promise<void>;
-  /** Push registration; resolves the device token or null when refused or unsupported. */
-  registerPush?(): Promise<{ token: string; platform: "apns" | "fcm" } | null>;
+  /** Push registration; resolves the device token or null when refused or unsupported. Without `prompt` it never shows
+   * the system's question: a phone not yet asked resolves null. */
+  registerPush?(options?: { prompt?: boolean }): Promise<{ token: string; platform: "apns" | "fcm" } | null>;
   onNotificationOpen?(listener: (target: MobileOpenTarget) => void): () => void;
   deviceName(): string;
   appVersion: string;

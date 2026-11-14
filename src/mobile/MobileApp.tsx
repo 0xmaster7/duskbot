@@ -14,6 +14,11 @@ import { effectiveLanguage, useLanguageChoice, usePageLanguage } from "@/lib/lan
 import { parseMobileOpenLink, type MobileOpenTarget } from "../../shared/mobile-link";
 import { setChatCovered } from "@/lib/chat-in-front";
 import { readSkinChoice, subscribeSkin, THEME_SKINS } from "@/lib/skins";
+import { screenViewAllowed } from "@/lib/store-app";
+import { AiConsentProvider } from "./consent/AiConsent";
+import { installAiReport } from "@/lib/ai-report";
+import { registerPushForConnection } from "./connection/push";
+import { supportMail } from "./legal";
 import { NavStack } from "./NavStack";
 import { ChatScreen } from "./ChatScreen";
 import { HomeScreen, releasePressed } from "./HomeScreen";
@@ -38,8 +43,13 @@ function Shell() {
   useWarmChatImages(state.bots);
   usePageLanguage(effectiveLanguage(useLanguageChoice(), state.config?.language));
   useKeyboardSync(platform, rootRef);
-  useChatHaptics(state, chatId);
+  // notifications are asked for when they mean something: once a message is on its way and its reply will follow
+  useChatHaptics(state, chatId, useCallback(() => { if (platform.native) void registerPushForConnection(platform, { prompt: true }); }, [platform]));
   useOutbox();
+  // a bot's reply someone finds harmful or wrong goes to a person at dusk bot, with the reply in the mail they send
+  useEffect(() => installAiReport(({ text, messageId }) => {
+    void platform.openExternal(supportMail(t("mobile.report.subject"), t("mobile.report.body", { text: text.slice(0, 1500), id: messageId })));
+  }), [platform]);
 
   const latest = useRef(state);
   latest.current = state;
@@ -91,7 +101,7 @@ function Shell() {
       else openChat(id);
       if (target.messageId && target.threadId) dispatch({ type: "focusMessage", threadId: target.threadId, messageId: target.messageId });
     }
-    if (target.view === "computer" && target.botId) openSheet({ kind: "computer", botId: target.botId });
+    if (target.view === "computer" && target.botId && screenViewAllowed()) openSheet({ kind: "computer", botId: target.botId });
     else if (target.view === "profile" && id) openSheet({ kind: "profile", id });
     else if (target.view === "settings") openSheet({ kind: "settings" });
     else if (target.view === "notifications") openSheet({ kind: "notifications" });
@@ -136,7 +146,7 @@ function Shell() {
       members={members}
       onBack={() => setChatId(null)}
       onProfile={() => openSheet({ kind: "profile", id: chatId! })}
-      onComputer={bot ? () => openSheet({ kind: "computer", botId: bot.id }) : undefined}
+      onComputer={bot && screenViewAllowed() ? () => openSheet({ kind: "computer", botId: bot.id }) : undefined}
     />
   ) : null;
 
@@ -167,7 +177,7 @@ export function MobileApp() {
       <DesktopCapabilitiesProvider>
         <StoreProvider>
           <ThreadRefsProvider>
-            <Shell />
+            <AiConsentProvider><Shell /></AiConsentProvider>
           </ThreadRefsProvider>
           <LiveCallHost />
         </StoreProvider>

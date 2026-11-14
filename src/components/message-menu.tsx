@@ -1,4 +1,5 @@
-import { Pencil, Pin, PinOff, RefreshCw, Square, Volume2 } from "../icons";
+import { Pencil, Pin, PinOff, RefreshCw, ShieldAlert, Square, Volume2 } from "../icons";
+import { aiReportHandler } from "@/lib/ai-report";
 import { t } from "@/lib/i18n";
 import type { ConfigStatus, Group, Message, useStore } from "@/state/store";
 import { ACTION_ICON, type MessageMenuItem } from "@/components/MessageActions";
@@ -62,6 +63,8 @@ export function useBotMessageMenu({
   }
   if (onRegenerate) items.push({ key: "regenerate", icon: <RefreshCw {...ACTION_ICON} />, label: t("chat.regenerate"), onSelect: onRegenerate });
   items.push(...pinItem(pin));
+  const report = aiReportHandler();
+  if (report && text) items.push({ key: "report", icon: <ShieldAlert {...ACTION_ICON} />, label: t("chat.reportReply"), onSelect: () => report({ messageId, text }) });
   return items;
 }
 

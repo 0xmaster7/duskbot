@@ -201,6 +201,23 @@ export function createMobileAccount({ platform, origin, fetch: requestFetch = gl
       await Promise.all([platform.secrets.remove(SECRET), platform.secrets.remove(PENDING)]);
       if (token) { try { await request(ACCOUNT_ROUTES.appSession, "DELETE", {}, token); } catch {} }
     },
+    /** Deletes the account for good from the app itself (App Store guideline 5.1.1(v)); the phone is signed out after. */
+    async deleteAccount(): Promise<"deleted" | "signed-out" | "failed"> {
+      const signedIn = grant;
+      if (!signedIn) return "signed-out";
+      let outcome: "deleted" | "signed-out" = "deleted";
+      try {
+        await request(ACCOUNT_ROUTES.appDeleteAccount, "POST", { email: signedIn.account.email }, signedIn.token);
+      } catch (error) {
+        // this sign-in is already gone (deleted or signed out elsewhere): the phone forgets it the same way
+        if (!(error instanceof AccountRequestError) || error.status !== 401) return "failed";
+        outcome = "signed-out";
+      }
+      ++generation;
+      grant = null; attempt = null; iceCache = null; analytics();
+      await Promise.all([platform.secrets.remove(SECRET), platform.secrets.remove(PENDING)]);
+      return outcome;
+    },
     async clouds(): Promise<MobileCloud[] | null> {
       if (!grant) return null;
       try {

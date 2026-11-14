@@ -3,7 +3,7 @@ import type { AppEntry } from "@/components/connect-apps/catalog";
 import { appIsAdded } from "./ConnectorsSheet";
 import { routineResultsThread } from "./RoutinesSheet";
 import { accountRows } from "./SettingsSheet";
-import { LEGAL_LINKS } from "../legal";
+import { LEGAL_LINKS, SUPPORT_EMAIL, supportMail } from "../legal";
 import { swipeOffset, swipeRestingPosition } from "./SwipeRow";
 
 describe("swipe row release", () => {
@@ -61,7 +61,10 @@ describe("settings account rows", () => {
   it("an account made in the app can be deleted from the app", () => {
     expect(accountRows({ native: true, signedIn: true })).toMatchObject({ signOut: true, deleteAccount: true });
     expect(accountRows({ native: true, signedIn: false })).toMatchObject({ signOut: false, deleteAccount: false });
-    expect(LEGAL_LINKS.deleteAccountPath).toBe("/account#delete");
     expect(LEGAL_LINKS.privacy).toBe("https://dusk.bot/privacy");
+  });
+
+  it("a report or a question opens a mail to a person, spaces kept as spaces", () => {
+    expect(supportMail("report a bot reply", "it said x")).toBe(`mailto:${SUPPORT_EMAIL}?subject=report%20a%20bot%20reply&body=it%20said%20x`);
   });
 });

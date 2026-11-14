@@ -299,11 +299,15 @@ export async function nativePlatform(): Promise<MobilePlatform> {
     async readClipboard() {
       try { return await navigator.clipboard?.readText() ?? null; } catch { return null; }
     },
-    openExternal: (url) => Browser.open({ url, presentationStyle: "popover" }),
+    // Capacitor 8 hands a top-level navigation off the app's own origin to the system (Mail for mailto:); the in-app
+    // browser view takes web pages only
+    openExternal: async (url) => { if (/^https?:/i.test(url)) await Browser.open({ url, presentationStyle: "popover" }); else window.location.href = url; },
     share: async (data) => { await Share.share(data); },
-    async registerPush() {
+    async registerPush(options) {
       try {
-        if ((await PushNotifications.requestPermissions()).receive !== "granted") return null;
+        const asked = (await PushNotifications.checkPermissions()).receive;
+        if (asked === "denied" || (asked !== "granted" && !options?.prompt)) return null;
+        if (asked !== "granted" && (await PushNotifications.requestPermissions()).receive !== "granted") return null;
         return await new Promise<{ token: string; platform: "apns" | "fcm" } | null>((resolve) => {
           const handles: PendingHandle[] = [];
           let settled = false;

@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type ComponentType } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Bell, CalendarClock, Check, FileText, Globe, KeyRound, LayoutDashboard, LifeBuoy, LogOut, MoreHorizontal, Palette, Plug, Plus, ShieldCheck, Trash2, UserRound } from "../../icons";
+import { Bell, CalendarClock, Check, FileText, Globe, KeyRound, LayoutDashboard, LifeBuoy, LogOut, Mail, MoreHorizontal, Palette, Plug, Plus, ShieldCheck, Trash2, UserRound } from "../../icons";
 import { accountDashboardUrl } from "@/lib/account-dashboard";
 import { useGroupYou } from "@/components/GroupAvatar";
 import { trackUpsell, watchUpsell } from "@/lib/cloud-upsell";
@@ -15,7 +15,9 @@ import { useConnections } from "../connection/connections";
 import { haptic, setHapticsEnabled, useHapticsEnabled } from "../haptics";
 import { dur, ease, spring } from "../motion";
 import { useMobileAccount } from "../account/AccountGate";
-import { LEGAL_LINKS } from "../legal";
+import { LEGAL_LINKS, SUPPORT_EMAIL, supportMail } from "../legal";
+import { useAiConsent } from "../consent/AiConsent";
+import { WorkingDots } from "@/components/WorkingIndicator";
 import { usePlatform } from "../platform";
 import { Sheet } from "../Sheet";
 import { SettingsRow, SettingsSection, SettingsSwitch } from "./SettingsRow";
@@ -82,6 +84,19 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
   // each page inside the sheet opens at its top, not where the last one was scrolled to
   useEffect(() => { const body = pageRef.current?.closest(".mobile-sheet-body"); if (body) body.scrollTop = 0; }, [page]);
   const rows = accountRows({ native: platform.native, signedIn: Boolean(email) });
+  const consent = useAiConsent();
+  const [deleting, setDeleting] = useState(false);
+  const [deleteFailed, setDeleteFailed] = useState(false);
+  const deleteAccount = async () => {
+    if (deleting || !account) return;
+    setDeleting(true);
+    setDeleteFailed(false);
+    const deleted = await account.deleteAccount().catch(() => false);
+    setDeleting(false);
+    if (!deleted) { haptic("error"); setDeleteFailed(true); return; }
+    haptic("success");
+    onClose();
+  };
 
   const changeWorkspace = async (id: string, unlink = false) => {
     if (busy) return;
@@ -113,12 +128,13 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
               ))}
             </SettingsSection>
           ) : page === "delete" ? (
-            <div className="px-4 pt-2">
+            <div className="px-4 pt-2" aria-busy={deleting}>
               <h2 className="text-[20px] font-semibold text-ink">{t("mobile.settings.deleteTitle")}</h2>
-              <p className="mt-2 text-[15px] leading-6 text-ink-secondary">{t("mobile.settings.deleteBody", { email: email ?? "" })}</p>
+              <p className="mt-2 text-[15px] leading-6 text-ink-secondary">{t("mobile.settings.deleteNow", { email: email ?? "" })}</p>
+              {deleteFailed && <p role="alert" className="mt-3 text-[15px] leading-6 text-danger">{t("mobile.settings.deleteFailed")}</p>}
               <div className="mt-6 flex flex-col gap-2">
-                <button type="button" onClick={() => { void platform.openExternal(`${account?.origin ?? ""}${LEGAL_LINKS.deleteAccountPath}`); }} className="mobile-press flex min-h-12 items-center justify-center rounded-full bg-danger px-5 text-[16px] font-semibold text-[var(--color-danger-ink)]">{t("mobile.settings.deleteContinue")}</button>
-                <button type="button" onClick={() => setPage("main")} className="mobile-press flex min-h-12 items-center justify-center rounded-full bg-ink/[0.05] px-5 text-[16px] font-semibold text-ink">{t("mobile.settings.cancel")}</button>
+                <button type="button" disabled={deleting} onClick={() => void deleteAccount()} className="mobile-press flex min-h-12 items-center justify-center rounded-full bg-danger px-5 text-[16px] font-semibold text-[var(--color-danger-ink)] disabled:opacity-60">{deleting ? <WorkingDots /> : t("mobile.settings.deleteConfirm")}</button>
+                <button type="button" disabled={deleting} onClick={() => setPage("main")} className="mobile-press flex min-h-12 items-center justify-center rounded-full bg-ink/[0.05] px-5 text-[16px] font-semibold text-ink">{t("mobile.settings.cancel")}</button>
               </div>
             </div>
           ) : <>
@@ -164,10 +180,16 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
                 {rows.deleteAccount && <SettingsRow icon={<Trash2 />} label={t("mobile.settings.deleteAccount")} danger onClick={() => setPage("delete")} />}
               </SettingsSection>
             )}
+            {consent && (
+              <SettingsSection title={t("mobile.settings.privacyTitle")} art="key" hint={t("mobile.settings.privacyHint")}>
+                <SettingsRow icon={<ShieldCheck />} label={t("mobile.settings.aiSharing")} value={t(consent.covered ? "mobile.settings.aiSharingOn" : "mobile.settings.aiSharingOff")} onClick={() => { onClose(); consent.open(); }} />
+              </SettingsSection>
+            )}
             <SettingsSection title={t("mobile.settings.about")} art="signpost">
               <SettingsRow icon={<ShieldCheck />} label={t("mobile.settings.privacy")} onClick={() => void platform.openExternal(LEGAL_LINKS.privacy)} />
               <SettingsRow icon={<FileText />} label={t("mobile.settings.terms")} onClick={() => void platform.openExternal(LEGAL_LINKS.terms)} />
               <SettingsRow icon={<LifeBuoy />} label={t("mobile.settings.help")} onClick={() => void platform.openExternal(LEGAL_LINKS.help)} />
+              <SettingsRow icon={<Mail />} label={t("mobile.settings.contact")} detail={SUPPORT_EMAIL} onClick={() => void platform.openExternal(supportMail(t("mobile.settings.contactSubject")))} />
             </SettingsSection>
             <p className="mt-8 text-center text-[13px] font-medium text-ink-secondary">{t("mobile.settings.version", { version: platform.appVersion })}</p>
           </>}

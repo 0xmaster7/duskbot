@@ -366,6 +366,10 @@ describe("push registration", () => {
     await registerPushForConnection(platform);
     expect(puts(fetcher)).toHaveLength(1);
     expect(JSON.parse(puts(fetcher)[0][1].body)).toEqual({ service: "apns", token: "push-device-token", environment: "sandbox" });
+    // connecting never shows the system's question; a sent message may
+    expect(platform.registerPush).toHaveBeenCalledWith({ prompt: false });
+    await registerPushForConnection(platform, { prompt: true });
+    expect(platform.registerPush).toHaveBeenLastCalledWith({ prompt: true });
     platform.registerPush = vi.fn().mockResolvedValue({ platform: "fcm", token: "new-token" });
     await registerPushForConnection(platform);
     expect(JSON.parse(puts(fetcher)[1][1].body)).toEqual({ service: "fcm", token: "new-token" });

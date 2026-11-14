@@ -11,7 +11,9 @@ import { setTurnSource } from "../transport/direct-rtc";
 
 type AccountContextValue = { account: MobileAccount | null; origin: string;
   /** this app keeps a dusk account (the native app, or the preview's ?account=1) */
-  offered: boolean; signOut(): Promise<void>; enrollGrant(): Promise<{ enrollToken: string; dashboardUrl: string } | null>;
+  offered: boolean; signOut(): Promise<void>;
+  /** deletes the account from the app; false when it could not be done (nothing changed) */
+  deleteAccount(): Promise<boolean>; enrollGrant(): Promise<{ enrollToken: string; dashboardUrl: string } | null>;
   clouds(): Promise<MobileCloud[] | null>; pairCloud(cloud: MobileCloud): Promise<CloudPairResult>; wakeCloud(): Promise<boolean>;
   /** what the sign-in screen asks of the account service */
   signIn: {
@@ -101,6 +103,12 @@ export function AccountGate({ children }: { children: ReactNode }) {
   }, [client, platform, wanted]);
   const context = useMemo<AccountContextValue>(() => ({ account, origin, offered: wanted,
     signOut: async () => { setAccount(null); setProblem(undefined); await client.signOut(); },
+    deleteAccount: async () => {
+      const outcome = await client.deleteAccount();
+      if (outcome === "failed") return false;
+      setAccount(null); setProblem(undefined);
+      return true;
+    },
     enrollGrant: () => client.enrollGrant(),
     clouds: () => client.clouds(), pairCloud: cloud => client.pairCloud(cloud), wakeCloud: () => client.wakeCloud(),
     signIn: {

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { storeApp } from "@/lib/store-app";
 
 
 import { cloudMoveStage, openCloudMove, runsOnHost, type CloudMoveStage, type RunsOnHost } from "@/lib/cloud-move";
@@ -290,7 +291,7 @@ export function ComputerTab({ bot, derived, cloudFor }: {
 
   return (
     <div data-panel-tabpanel="computer">
-      {local ? cloudBots.length > 0 && <CloudCtaCard bot={cloudBots[0]!} group={cloudBots} stage={stage} cloudDesktop={cloudDesktop} /> : <>
+      {local ? cloudBots.length > 0 && !storeApp() && <CloudCtaCard bot={cloudBots[0]!} group={cloudBots} stage={stage} cloudDesktop={cloudDesktop} /> : <>
         <div ref={setScreenBox}>
           <Suspense fallback={<AsleepScreen bot={bot} off={current === "off"} />}>
             <ComputerPanel bot={bot} inline visible={onScreen} onReport={setReport} />

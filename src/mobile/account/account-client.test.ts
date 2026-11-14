@@ -210,3 +210,31 @@ describe("own clouds", () => {
     expect(fetcher.mock.calls[0]).toEqual([`${origin}/api/cloud/desktop/wake`, expect.objectContaining({ method: "POST", body: JSON.stringify({ intent: "click" }) })]);
   });
 });
+
+describe("delete account", () => {
+  const signedIn = async () => { secrets.set("dusk.account", JSON.stringify(stored())); fetcher.mockResolvedValueOnce(response({})); await client.restore(); };
+  it("asks the service to delete with this sign-in and the account's email, then forgets the sign-in", async () => {
+    await signedIn();
+    fetcher.mockResolvedValueOnce(response({ ok: true }));
+    expect(await client.deleteAccount()).toBe("deleted");
+    const [url, init] = fetcher.mock.calls[1];
+    expect(url).toBe(`${origin}/v1/app/delete-account`);
+    expect(init).toMatchObject({ method: "POST", headers: { authorization: `Bearer ${token}` } });
+    expect(JSON.parse(String(init?.body))).toEqual({ email: "person@example.com" });
+    expect(client.account()).toBeNull(); expect(secrets.has("dusk.account")).toBe(false);
+  });
+  it("keeps everything when the service could not delete, and forgets a sign-in the service no longer knows", async () => {
+    await signedIn();
+    fetcher.mockResolvedValueOnce(response({ error: "failed" }, 503));
+    expect(await client.deleteAccount()).toBe("failed");
+    expect(client.account()).toEqual(grant().account); expect(secrets.has("dusk.account")).toBe(true);
+    fetcher.mockRejectedValueOnce(new TypeError("offline"));
+    expect(await client.deleteAccount()).toBe("failed");
+    fetcher.mockResolvedValueOnce(response({ error: "invalid_token" }, 401));
+    expect(await client.deleteAccount()).toBe("signed-out");
+    expect(client.account()).toBeNull(); expect(secrets.has("dusk.account")).toBe(false);
+  });
+  it("does nothing signed out", async () => {
+    expect(await client.deleteAccount()).toBe("signed-out"); expect(fetcher).not.toHaveBeenCalled();
+  });
+});

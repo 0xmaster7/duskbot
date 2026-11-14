@@ -9,7 +9,8 @@ import { Icon } from "../Icon";
 import { useCaptionChrome } from "../DesktopCapabilities";
 import type { useBotSettingsDerived } from "../bot-settings/useBotSettingsDerived";
 import { ComputerTab } from "./ComputerTab";
-import { PANEL_TABS, PAGES, resolveTarget, TAB_LABEL, type PanelTab, type PanelTarget, type SimplePageId } from "./page-registry";
+import { panelTabs, screenViewAllowed } from "@/lib/store-app";
+import { PAGES, resolveTarget, TAB_LABEL, type PanelTab, type PanelTarget, type SimplePageId } from "./page-registry";
 import { lazyScreen } from "../lazy-screen";
 import { linkTarget, usePanelLink, type PanelLink } from "./panel-link";
 import { PanelHero } from "./PanelHero";
@@ -36,7 +37,7 @@ export function BotPanel({ bot, derived, linkedSection, computerRequest = 0, onC
 }) {
   const { dragProps } = useCaptionChrome();
   const link = usePanelLink();
-  const [tab, setTab] = useState<PanelTab>(() => initialTarget(linkedSection, link).tab);
+  const [tab, setTab] = useState<PanelTab>(() => { const first = initialTarget(linkedSection, link).tab; return panelTabs().includes(first) ? first : "details"; });
   const [stack, setStack] = useState<SimplePageId[]>(() => {
     const page = initialTarget(linkedSection, link).page;
     return page ? [page] : [];
@@ -51,6 +52,7 @@ export function BotPanel({ bot, derived, linkedSection, computerRequest = 0, onC
   const scrollTop = () => bodyRef.current?.scrollTo({ top: 0 });
   const go = (to: PanelTarget) => {
     const target = resolveTarget(to);
+    if (!panelTabs().includes(target.tab)) return;
     setTab(target.tab);
     setStack(target.page ? [target.page] : []);
     setAnchor(target.anchor ?? null);
@@ -152,7 +154,7 @@ export function BotPanel({ bot, derived, linkedSection, computerRequest = 0, onC
             label={t("botPanel.ui.botSettingsSimpleTabs")}
             value={tab}
             onChange={openTab}
-            tabs={PANEL_TABS.map((id) => ({ value: id, label: t(TAB_LABEL[id]) }))}
+            tabs={panelTabs().map((id) => ({ value: id, label: t(TAB_LABEL[id]) }))}
           />
         </div>
       </div>
@@ -163,7 +165,7 @@ export function BotPanel({ bot, derived, linkedSection, computerRequest = 0, onC
         animate={SWAP.animate}
       >
         {tab === "details" && <PanelDetailsTab bot={bot} derived={derived} onOpen={openPage} />}
-        {tab === "computer" && <ComputerTab bot={bot} derived={derived} onOpen={openPage} />}
+        {tab === "computer" && screenViewAllowed() && <ComputerTab bot={bot} derived={derived} onOpen={openPage} />}
         {tab === "advanced" && <PanelAdvancedTab bot={bot} derived={derived} onOpen={openPage} />}
       </MotionDiv>
     </>
