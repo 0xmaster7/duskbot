@@ -238,10 +238,11 @@ describe("the upkeep loop with a general memory", () => {
     about = [learned("2026-11-01", "Scout", "Lives in Lisbon"), learned("2026-11-01", "Scout", "Is vegetarian")].join("\n");
     writeMemoryFile(SCOUT.id, '- 2026-11-01 · from chat "Hi" · Is vegetarian\n- 2026-11-10 · from chat "Move" · Lives in Porto now\n');
     writeMemoryFile(FORGE.id, '- 2026-11-02 · from chat "Atlas" · Atlas deploys to Railway\n');
-    answers.push(JSON.stringify({ same: [{ drop: "B1", keep: "G2" }], replaced: [{ old: "G1", new: "B2" }], promote: [] }));
+    answers.push(JSON.stringify({ same: [{ drop: "B3", keep: "G2" }], replaced: [{ old: "G1", new: "B1" }], promote: [] }));
     const report = await loop().consolidateGeneral();
     expect(prompts[0]).toContain(CONSOLIDATE_MARKER);
-    expect(prompts[0]).toContain("B3 (Forge, 2026-11-02) Atlas deploys to Railway");
+    // each bot's notes are shared out in turn, newest first, so one bot with many notes cannot crowd the others out
+    expect(prompts[0]).toContain("B1 (Scout, 2026-11-10) Lives in Porto now\nB2 (Forge, 2026-11-02) Atlas deploys to Railway\nB3 (Scout, 2026-11-01) Is vegetarian");
     expect(report).toMatchObject({ removed: 1, promoted: 1, notes: 2 });
     expect(about).toBe([learned("2026-11-01", "Scout", "Is vegetarian"), learned(TODAY, "Scout", "Lives in Porto now")].join("\n"));
     expect(readFileSync(join(workspaceDir(SCOUT.id), "MEMORY.md"), "utf8").trim()).toBe("");

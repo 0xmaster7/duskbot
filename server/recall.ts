@@ -2,7 +2,7 @@
 import { readMessageText, recallMessages, recallTerms, type RecallHit } from "./message-db.ts";
 import { ABOUT_FILE, type FactRow } from "./memory-facts.ts";
 import { asksMemory, recallFacts, type RecalledFact } from "./memory-recall.ts";
-import { ARCHIVE_TOPIC, memoryDate } from "./workspace.ts";
+import { isArchiveTopic, memoryDate } from "./workspace.ts";
 
 type RecallOwner = { id: string; threadId: string; tasks?: readonly { threadId: string }[] };
 type RecallRoom = { threadId: string; memberIds: readonly string[]; tasks?: readonly { threadId: string }[] };
@@ -129,7 +129,7 @@ export interface RecallInput {
 function factLabel(fact: FactRow): string {
   if (fact.file === ABOUT_FILE) return "about the person";
   if (fact.file === "MEMORY.md") return "your notes";
-  if (fact.file === `memory/${ARCHIVE_TOPIC}`) return "older notes";
+  if (fact.file.startsWith("memory/") && isArchiveTopic(fact.file.slice("memory/".length))) return "older notes";
   return fact.file;
 }
 

@@ -5,18 +5,21 @@ import { randomUUID } from "node:crypto";
 import { writeFileAtomic } from "./atomic.ts";
 import { DATA_DIR } from "./config.ts";
 import { CaptureBuffer, captureItemLimit, capturePrompt, captureSize, newCandidates, parseCandidates, statedInConversation, worthCapturing, type Candidate, type CaptureBatch, type CaptureTurn, type KnownFact } from "./memory-capture.ts";
-import { ABOUT_FILE, aboutOwner, annotateFact, type FactRow, type FactSource } from "./memory-facts.ts";
-import { nearDuplicateOf, recallFacts } from "./memory-recall.ts";
+import { ABOUT_FILE, aboutOwner, annotateFact, pruneRetiredFacts, type FactRow, type FactSource } from "./memory-facts.ts";
+import { nearDuplicateOf, recallFacts, SAME_FACT } from "./memory-recall.ts";
 import { looksLikeInstruction } from "./memory-trust.ts";
+import { UNVERIFIED_MAX_BYTES, UNVERIFIED_TOPIC } from "./memory-forget.ts";
+import { cosine, embedderReady, embedPassages } from "./memory-embed.ts";
+import { MERGE_ENTRIES, mergedLine, mergeLoser, mergePairs, mergePrompt, parseMerge, type MergeItem, type MergePair } from "./memory-merge.ts";
 import { DREAM_FIRST_LOOKBACK_MS, DREAM_MIN_CONVERSATIONS, dreamEvidenced, dreamPrompt, parseDream, type DreamConversation } from "./memory-dream.ts";
 import { factIdentity, foldForMatch, isExpired, lineFactIdentity, notebookIdentities, parseMemoryEntries } from "./memory-entries.ts";
 import { applyNotebookChange, consolidatePrompt, namesFact, parseConsolidation, parseGeneral, planConsolidation, recordGeneralHistory, PROMPT_LINES, type NotebookChange, type NotebookLine } from "./general-memory.ts";
 import { mergeTopicText } from "./memory-topics.ts";
 import { commitLearned, dropLearnedLines, isForgotten, learnedState } from "./profile-learned.ts";
 import { applyMoves, MAX_MOVES, organizeCandidates, organizePrompt, parseMoves } from "./memory-organize.ts";
-import { recordMemoryChange } from "./memory-journal.ts";
-import { applyTidy, contradictionCandidates, contradictionPrompt, parseContradictions, planChanges, planTidy, type Contradiction } from "./memory-tidy.ts";
-import { appendMemoryArchive, ARCHIVE_TOPIC, ensureWorkspace, listMemoryTopics, memoryDate, memoryEntry, memoryTopicIndex, readMemoryText, updateMemory, workspaceDir, writeMemoryFile, writeMemoryTopic } from "./workspace.ts";
+import { recordMemoryChange, rotateMemoryJournal } from "./memory-journal.ts";
+import { applyTidy, contradictionBudget, contradictionCandidates, contradictionPrompt, parseContradictions, planChanges, planTidy, type Contradiction } from "./memory-tidy.ts";
+import { appendMemoryArchive, ARCHIVE_TOPIC, compactMemoryTopic, ensureWorkspace, foldOldLogs, isArchiveTopic, listMemoryTopics, memoryDate, memoryEntry, memoryTopicIndex, readMemoryText, updateMemory, workspaceDir, writeMemoryFile, writeMemoryTopic } from "./workspace.ts";
 
 export { dreamConversations } from "./memory-dream.ts";
 
@@ -35,6 +38,12 @@ export const MIN_ENTRIES_FOR_CONTRADICTIONS = 5;
 const ARCHIVE_PATH = `memory/${ARCHIVE_TOPIC}`;
 export const MAX_PENDING_THREADS = 50;
 export const TOPIC_MAX_BYTES = 64 * 1024;
+/** Two entries of one topic this alike, yet not the same fact, are worth a contradiction check first. */
+const LIKELY_CONFLICT = 0.8;
+/** Rows of facts deleted by hand are kept this long, then dropped from the store. */
+export const RETIRED_FACTS_KEEP_MS = 180 * 24 * 60 * 60_000;
+const CONFLICT_SCAN_TOPICS = 40;
+const CONFLICT_SCAN_ENTRIES = 60;
 /** Known facts a capture call is shown to judge new items against. */
 export const KNOWN_FACTS = 20;
 
@@ -86,6 +95,8 @@ export interface TidyReport {
   superseded: number;
   deferred: number;
   organized?: number;
+  /** Lines struck through as the same fact as another line. */
+  merged?: number;
   contradictionsChecked: boolean;
   topicChecks?: number;
   topicsDeferred?: number;
@@ -380,7 +391,7 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
     const names = namesFact(olds);
     const today = memoryDate(now());
     let struck = 0;
-    const paths = ["MEMORY.md", ...listMemoryTopics(botId).filter((topic) => topic.name !== ARCHIVE_TOPIC).map((topic) => `memory/${topic.name}`)];
+    const paths = ["MEMORY.md", ...listMemoryTopics(botId).filter((topic) => !isArchiveTopic(topic.name)).map((topic) => `memory/${topic.name}`)];
     for (const path of paths) {
       const before = readRaw(botId, path);
       if (!before) continue;
@@ -429,6 +440,14 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
     for (const [wanted, group] of byTopic) {
       const name = existing.get(wanted) ?? wanted;
       const path = `memory/${name}`;
+      const full = readRaw(botId, path);
+      if (full !== null && Buffer.byteLength(full, "utf8") > TOPIC_MAX_BYTES) {
+        const archiveBefore = readRaw(botId, ARCHIVE_PATH);
+        if (compactMemoryTopic(botId, name, TOPIC_MAX_BYTES, memoryDate(now()))) {
+          recordMemoryChange(botId, { path: ARCHIVE_PATH, actor: "upkeep", via, threadId, before: archiveBefore, after: readRaw(botId, ARCHIVE_PATH) });
+          recordMemoryChange(botId, { path, actor: "upkeep", via, threadId, before: full, after: readRaw(botId, path) });
+        }
+      }
       const current = readRaw(botId, path);
       if (current !== null && Buffer.byteLength(current, "utf8") > TOPIC_MAX_BYTES) continue;
       const seen = notebookIdentities(current ?? "");
@@ -750,6 +769,96 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
     recordMemoryChange(botId, { path: ARCHIVE_PATH, actor: "upkeep", via: "tidy", before: archiveBefore, after: readRaw(botId, ARCHIVE_PATH) });
   }
 
+  /** Topics whose live entries hold a close but not identical pair (a changed value often reads like this) go first,
+   * so the few contradiction checks a night allows land where they are likely needed; the rest keep the cursor order. */
+  async function likelyConflictsFirst<T extends { name: string }>(botId: string, topics: readonly T[], today: string): Promise<T[]> {
+    if (!embedderReady() || topics.length <= MAX_TOPIC_CHECKS) return [...topics];
+    const scored: Array<{ topic: T; score: number }> = [];
+    for (const topic of topics.slice(0, CONFLICT_SCAN_TOPICS)) {
+      const bodies = contradictionCandidates(readRaw(botId, `memory/${topic.name}`) ?? "", today).slice(-CONFLICT_SCAN_ENTRIES).map((entry) => entry.body);
+      if (bodies.length < 2) continue;
+      const vectors = await embedPassages(bodies);
+      if (!vectors) return [...topics];
+      let score = 0;
+      for (let i = 0; i < vectors.length; i++) for (let j = i + 1; j < vectors.length; j++) {
+        const sim = cosine(vectors[i]!, vectors[j]!);
+        if (sim < SAME_FACT && sim > score) score = sim;
+      }
+      if (score >= LIKELY_CONFLICT) scored.push({ topic, score });
+    }
+    const first = scored.sort((a, b) => b.score - a.score).map((item) => item.topic);
+    return [...first, ...topics.filter((topic) => !first.includes(topic))];
+  }
+
+  /** Every topic under its cap (old and replaced entries into the archive), and old daily logs folded by month. */
+  function keepBounded(botId: string, today: string): void {
+    for (const topic of listMemoryTopics(botId)) {
+      const cap = topic.name === UNVERIFIED_TOPIC ? UNVERIFIED_MAX_BYTES : TOPIC_MAX_BYTES;
+      if (isArchiveTopic(topic.name) || topic.bytes <= cap) continue;
+      const path = `memory/${topic.name}`;
+      const before = readRaw(botId, path);
+      const archiveBefore = readRaw(botId, ARCHIVE_PATH);
+      if (!compactMemoryTopic(botId, topic.name, cap, today)) continue;
+      recordMemoryChange(botId, { path: ARCHIVE_PATH, actor: "upkeep", via: "tidy", before: archiveBefore, after: readRaw(botId, ARCHIVE_PATH) });
+      recordMemoryChange(botId, { path, actor: "upkeep", via: "tidy", before, after: readRaw(botId, path) });
+    }
+    foldOldLogs(botId, today);
+  }
+
+  /** The pairs a model confirms state one fact; word-for-word pairs need no confirming. */
+  async function confirmedPairs(pairs: readonly MergePair[], engine: UpkeepEngine | null, started: number): Promise<MergePair[]> {
+    const exact = pairs.filter((pair) => pair.similarity === 1);
+    const unsure = pairs.filter((pair) => pair.similarity < 1);
+    if (!unsure.length || !engine?.generateText) return exact;
+    const answer = await askModel(engine, mergePrompt(unsure));
+    if (answer === null || cancelled(started)) return exact;
+    return [...exact, ...parseMerge(answer, unsure.length).map((index) => unsure[index]!)];
+  }
+
+  /** Strikes through, as merged, the older line of each near-duplicate pair across MEMORY.md and the topic files. */
+  async function mergeNotes(botId: string, engine: UpkeepEngine | null, started: number): Promise<number> {
+    const today = memoryDate(now());
+    const paths = ["MEMORY.md", ...listMemoryTopics(botId).filter((topic) => !isArchiveTopic(topic.name) && topic.name !== UNVERIFIED_TOPIC).map((topic) => `memory/${topic.name}`)];
+    const read = new Map(paths.map((path) => [path, readRaw(botId, path) ?? ""]));
+    const items: MergeItem[] = [];
+    for (const [where, text] of read) {
+      for (const entry of parseMemoryEntries(text)) if (!entry.struck && !isExpired(entry, today)) items.push({ where, line: entry.line, text: entry.body, date: entry.date });
+    }
+    const recent = items.sort((a, b) => b.date.localeCompare(a.date)).slice(0, MERGE_ENTRIES);
+    const pairs = await confirmedPairs(await mergePairs(recent), engine, started);
+    if (!pairs.length || cancelled(started) || !upkeepEnabled(deps.bot(botId))) return 0;
+    const losers = new Map<string, Set<number>>();
+    for (const pair of pairs) {
+      const loser = mergeLoser(pair);
+      losers.set(loser.where, (losers.get(loser.where) ?? new Set()).add(loser.line));
+    }
+    let merged = 0;
+    for (const [path, lines] of losers) {
+      writing(botId, () => {
+        const before = readRaw(botId, path) ?? "";
+        if (before !== read.get(path)) return;
+        const entries = parseMemoryEntries(before);
+        const live = entries.filter((entry) => !entry.struck && !isExpired(entry, today)).length;
+        const budget = path === "MEMORY.md" ? (live < MIN_ENTRIES_FOR_CONTRADICTIONS ? 0 : contradictionBudget(live)) : Math.max(1, contradictionBudget(live));
+        const out = before.split("\n");
+        let done = 0;
+        for (const entry of entries) {
+          if (done >= budget || !lines.has(entry.line) || entry.struck) continue;
+          out[entry.line] = mergedLine(entry, today);
+          done += 1;
+        }
+        if (!done) return;
+        const after = out.join("\n");
+        if (path === "MEMORY.md") writeMemoryFile(botId, after);
+        else writeMemoryTopic(botId, path.slice("memory/".length), after);
+        recordMemoryChange(botId, { path, actor: "upkeep", via: "merge", before, after: readRaw(botId, path) });
+        merged += done;
+      });
+    }
+    if (merged) log(`memory upkeep: merged ${merged} near-duplicate note(s) for ${deps.bot(botId)?.name ?? botId}`);
+    return merged;
+  }
+
   async function runTidy(botId: string): Promise<TidyReport> {
     const started = generation;
     const bot = deps.bot(botId);
@@ -801,9 +910,9 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
     let topicsDeferred = 0;
     let topicCursor = loaded().bots[botId]?.topicCursor;
     const deadline = Date.now() + MODEL_TIMEOUT_MS;
-    const topics = listMemoryTopics(botId).filter(topic => topic.name !== ARCHIVE_TOPIC).sort((a, b) => a.name.localeCompare(b.name));
+    const topics = listMemoryTopics(botId).filter(topic => !isArchiveTopic(topic.name)).sort((a, b) => a.name.localeCompare(b.name));
     const cursorAt = topics.findIndex(topic => topic.name === topicCursor) + 1;
-    for (const topic of [...topics.slice(cursorAt), ...topics.slice(0, cursorAt)]) {
+    for (const topic of await likelyConflictsFirst(botId, [...topics.slice(cursorAt), ...topics.slice(0, cursorAt)], today)) {
       const path = `memory/${topic.name}`;
       const topicBefore = readRaw(botId, path);
       if (topicBefore === null) continue;
@@ -842,6 +951,19 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
       topicDuplicates += topicPlan.duplicates.length;
     }
     if (topicsDeferred) note = [note, `${topicsDeferred} topic checks deferred because of the budget, a timeout or concurrent edits.`].filter(Boolean).join(" ");
+    try {
+      writing(botId, () => keepBounded(botId, today));
+    } catch (error) {
+      log(`memory upkeep: could not compact ${botId}'s notes: ${(error as Error).message}`);
+    }
+    void rotateMemoryJournal(botId).catch((error: unknown) => log(`memory upkeep: could not rotate ${botId}'s journal: ${(error as Error).message}`));
+    let merged = 0;
+    try {
+      merged = await mergeNotes(botId, engine, started);
+    } catch (error) {
+      log(`memory upkeep: near-duplicate merge failed for ${botId}: ${(error as Error).message}`);
+    }
+    if (cancelled(started) || !upkeepEnabled(deps.bot(botId))) return stopped;
     const report: TidyReport = {
       at,
       expired: plan.expired.length + topicExpired,
@@ -849,6 +971,7 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
       superseded: plan.superseded.length + topicSuperseded,
       deferred: plan.deferred + topicDeferred,
       ...(organized ? { organized } : {}),
+      ...(merged ? { merged } : {}),
       contradictionsChecked,
       topicChecks,
       topicsDeferred,
@@ -962,6 +1085,47 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
     else for (const batch of open) batch.dirty = true;
   };
 
+  /** Up to `limit` notebook lines, shared out across bots in turn so every bot is read; within a bot, the lines most like
+   * a general memory line first (when embeddings are ready), else the newest. */
+  async function fairNotebookLines(perBot: readonly NotebookLine[][], general: readonly string[], limit: number): Promise<NotebookLine[]> {
+    const ranked: NotebookLine[][] = [];
+    for (const lines of perBot) {
+      const newest = [...lines].sort((a, b) => b.entry.date.localeCompare(a.entry.date) || b.entry.line - a.entry.line);
+      let order = newest;
+      if (embedderReady() && general.length && newest.length) {
+        const vectors = await embedPassages([...newest.map((line) => line.entry.body), ...general]);
+        if (vectors) {
+          const score = newest.map((_, i) => Math.max(...general.map((__, j) => cosine(vectors[i]!, vectors[newest.length + j]!))));
+          order = newest.map((line, i) => ({ line, score: score[i]! })).sort((a, b) => b.score - a.score).map((item) => item.line);
+        }
+      }
+      ranked.push(order);
+    }
+    const out: NotebookLine[] = [];
+    for (let round = 0; out.length < limit && ranked.some((lines) => lines.length > round); round++) {
+      for (const lines of ranked) if (lines[round] && out.length < limit) out.push(lines[round]!);
+    }
+    return out;
+  }
+
+  /** Learned About me lines that state one fact twice: the older leaves into the history, at most a third a pass. */
+  async function mergeGeneral(general: NonNullable<UpkeepDeps["general"]>, engine: UpkeepEngine | null, started: number): Promise<number> {
+    const text = general.read();
+    const learned = parseGeneral(text).filter((entry) => entry.learned);
+    const items: MergeItem[] = learned.map((entry) => ({ where: "about", line: entry.line, text: entry.fact, date: entry.date ?? "" }));
+    const pairs = await confirmedPairs(await mergePairs(items.sort((a, b) => b.date.localeCompare(a.date)).slice(0, MERGE_ENTRIES)), engine, started);
+    if (!pairs.length || cancelled(started) || general.read() !== text) return 0;
+    const budget = Math.max(learned.length < 6 ? 1 : 0, Math.floor(learned.length / 3));
+    const gone = new Set(pairs.map((pair) => mergeLoser(pair).line).slice(0, budget));
+    const removed = learned.filter((entry) => gone.has(entry.line));
+    if (!removed.length) return 0;
+    general.write(text.split("\n").filter((_, index) => !gone.has(index)).join("\n"));
+    dropLearnedLines(removed.map((entry) => entry.raw));
+    recordGeneralHistory(removed.map((entry) => ({ raw: entry.raw, fact: entry.fact, reason: "duplicate" as const })));
+    general.changed();
+    return removed.length;
+  }
+
   /** One pass over the general memory and every bot's MEMORY.md, written by one bot's own engine. */
   async function runConsolidation(): Promise<GeneralReport> {
     const started = generation;
@@ -977,17 +1141,25 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
       recordGeneral(done);
       return done;
     }
+    let merged = 0;
+    try {
+      // word-for-word repeats never reach About me, so without embeddings there is nothing to pair
+      if (embedderReady()) merged = await mergeGeneral(general, deps.engine(runner.id), started);
+    } catch (error) {
+      log(`memory upkeep: About me near-duplicate merge failed: ${(error as Error).message}`);
+    }
+    if (cancelled(started)) return report("upkeep stopped");
     const textBefore = general.read();
-    const lines = parseGeneral(textBefore).slice(0, PROMPT_LINES);
+    const parsedGeneral = parseGeneral(textBefore);
+    const lines = [...parsedGeneral.filter((entry) => !entry.learned), ...parsedGeneral.filter((entry) => entry.learned).sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""))].slice(0, PROMPT_LINES);
     const before = new Map<string, string>();
-    const notebooks: NotebookLine[] = [];
+    const perBot: NotebookLine[][] = [];
     for (const bot of bots) {
       const text = readRaw(bot.id, "MEMORY.md") ?? "";
       before.set(bot.id, text);
-      for (const entry of parseMemoryEntries(text)) {
-        if (!entry.struck && !isExpired(entry, today) && notebooks.length < PROMPT_LINES) notebooks.push({ botId: bot.id, botName: bot.name, entry });
-      }
+      perBot.push(parseMemoryEntries(text).filter((entry) => !entry.struck && !isExpired(entry, today)).map((entry) => ({ botId: bot.id, botName: bot.name, entry })));
     }
+    const notebooks = await fairNotebookLines(perBot, lines.map((entry) => entry.fact), PROMPT_LINES);
     if (lines.filter((entry) => entry.learned).length + notebooks.length < 2) {
       const done = report("Nothing to consolidate yet.");
       recordGeneral(done);
@@ -1036,7 +1208,7 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
         notes += change.drop.size + change.strike.size;
       });
     }
-    const done = report(undefined, { removed: plan.removed.length, promoted: plan.added.filter((entry) => entry.botId).length, notes });
+    const done = report(undefined, { removed: plan.removed.length + merged, promoted: plan.added.filter((entry) => entry.botId).length, notes });
     recordGeneral(done);
     if (done.removed || done.promoted || done.notes) log(`memory upkeep: general memory consolidated: ${done.removed} line(s) out (in its history), ${done.promoted} moved in from bots' notes, ${done.notes} bot note(s) tidied`);
     return done;
@@ -1070,6 +1242,7 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
     return !last || memoryDate(new Date(last)) < memoryDate(current);
   }
 
+  let prunedOn = "";
   async function tick(): Promise<void> {
     const started = generation;
     if (cancelled(started)) return;
@@ -1091,6 +1264,15 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
           await dream(bot.id);
         } catch (error) {
           log(`memory upkeep: dream failed for ${bot.id}: ${(error as Error).message}`);
+        }
+      }
+      const today = memoryDate(now());
+      if (prunedOn !== today) {
+        prunedOn = today;
+        try {
+          pruneRetiredFacts(RETIRED_FACTS_KEEP_MS, now().getTime());
+        } catch (error) {
+          log(`memory upkeep: could not prune forgotten facts: ${(error as Error).message}`);
         }
       }
       // after each bot's own tidy-up, so it reads notes already free of exact duplicates and expired lines

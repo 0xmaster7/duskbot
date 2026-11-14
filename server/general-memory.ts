@@ -362,7 +362,7 @@ export function restoreGeneralHistory(id: string, aboutMe: string): { aboutMe: s
 /** Whether a note is one of `olds`: the model copies the old line, and a copy that drops a date mark, a bullet or a
  * full stop, or quotes three quarters or more of the line (twelve characters or more), still names it. */
 export function namesFact(olds: readonly string[]): (fact: string) => boolean {
-  const fold = (text: string) => foldForMatch(factIdentity(text.replace(/ · (?:updated|confirmed|until|expired|superseded|moved) \d{4}-\d{2}-\d{2}/g, ""))).replace(/[.!]+$/, "");
+  const fold = (text: string) => foldForMatch(factIdentity(text.replace(/ · (?:updated|confirmed|until|expired|superseded|merged|moved) \d{4}-\d{2}-\d{2}/g, ""))).replace(/[.!]+$/, "");
   const wanted = olds.map(fold).filter((fact) => fact.length >= 3);
   return (fact) => {
     if (!wanted.length) return false;

@@ -14,7 +14,7 @@ import { blobVector, EMBED_MODEL, embedderReady, embedPassages, vectorBlob } fro
 import { factDates } from "./memory-time.ts";
 import { parseTopicHeader } from "./memory-topics.ts";
 import { memoryStoreDb } from "./message-db.ts";
-import { ARCHIVE_TOPIC, isMemorySeed, listMemoryTopics, memoryDate, readMemoryText, workspaceDir } from "./workspace.ts";
+import { isArchiveTopic, isMemorySeed, listMemoryTopics, memoryDate, readMemoryText, workspaceDir } from "./workspace.ts";
 
 export type FactStatus = "active" | "superseded" | "merged" | "expired" | "suppressed";
 /** Where a fact came from. Only `typed` and `person-said` may describe the person in always-loaded memory. */
@@ -68,6 +68,7 @@ export interface ParsedFact {
 
 const BULLET = /^\s*(?:[-*•]|\d+[.)])\s+/;
 const SUPERSEDED_ON = / · superseded (\d{4}-\d{2}-\d{2})/;
+const MERGED_ON = / · merged \d{4}-\d{2}-\d{2}/;
 const FRONTMATTER = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/;
 const LEAD = /^(?:\s*\r?\n|#{1,6}[ \t]+[^\r\n]*\r?\n)*/;
 
@@ -75,7 +76,8 @@ const LEAD = /^(?:\s*\r?\n|#{1,6}[ \t]+[^\r\n]*\r?\n)*/;
 export function parseFactFile(file: string, raw: string, today: string): ParsedFact[] {
   if (file === "MEMORY.md" && isMemorySeed(raw)) return [];
   const header = file.startsWith("memory/") ? parseTopicHeader(raw) : { aliases: [] as string[] };
-  const keys = file.startsWith("memory/") && file !== `memory/${ARCHIVE_TOPIC}`
+  const archived = file.startsWith("memory/") && isArchiveTopic(file.slice("memory/".length));
+  const keys = file.startsWith("memory/") && !archived
     ? [file.slice("memory/".length).replace(/\.md$/, "").replace(/[-_]+/g, " "), header.title ?? "", ...header.aliases].join(" ").trim()
     : "";
   const lead = LEAD.exec(raw)?.[0] ?? "";
@@ -86,11 +88,10 @@ export function parseFactFile(file: string, raw: string, today: string): ParsedF
   const out: ParsedFact[] = [];
   for (const entry of entries) {
     for (let line = entry.line; line < entry.end; line++) covered.add(line);
-    const body = entry.body.replace(/ · (?:updated|confirmed|moved) \d{4}-\d{2}-\d{2}/g, "").trim();
+    const body = entry.body.replace(/ · (?:updated|confirmed|merged|moved) \d{4}-\d{2}-\d{2}/g, "").trim();
     const ident = factIdentity(body);
     if (!ident) continue;
     const supersededOn = SUPERSEDED_ON.exec(entry.raw)?.[1] ?? null;
-    const archived = file === `memory/${ARCHIVE_TOPIC}`;
     const expired = isExpired(entry, today) || (archived && / · expired \d{4}-\d{2}-\d{2}/.test(entry.raw));
     out.push({
       ident,
@@ -99,7 +100,7 @@ export function parseFactFile(file: string, raw: string, today: string): ParsedF
       date: entry.date,
       until: entry.until,
       supersededOn,
-      status: entry.struck ? "superseded" : expired ? "expired" : "active",
+      status: entry.struck ? (MERGED_ON.test(entry.raw) ? "merged" : "superseded") : expired ? "expired" : "active",
       typed: false,
       learnedBy: null,
     });

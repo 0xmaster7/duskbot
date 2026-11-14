@@ -114,7 +114,7 @@ export async function recallFacts(input: FactRecallInput): Promise<{ facts: Reca
   }
   void embedPendingFacts(owners);
   const time = queryTime(input.query, input.today);
-  const statuses: FactStatus[] = time.past ? ["active", "superseded", "expired", "merged"] : ["active"];
+  const statuses: FactStatus[] = time.past ? ["active", "superseded", "expired"] : ["active"];
   const all = factsOf(owners, statuses);
   if (!all.length) return { facts: [], searched: true };
   const byId = new Map(all.map((fact) => [fact.id, fact]));

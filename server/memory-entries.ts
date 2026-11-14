@@ -3,7 +3,7 @@
 export const UNTIL_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const DATED = /^(- (\d{4}-\d{2}-\d{2}) · (?:from [^·\n]* · )?)(.*)$/;
 const UNTIL_MARK = / · until (\d{4}-\d{2}-\d{2})(?= · |$)/;
-const TRAILING_MARKS = /(?: · (?:updated|confirmed|until|expired|superseded|moved) \d{4}-\d{2}-\d{2})+$/;
+const TRAILING_MARKS = /(?: · (?:updated|confirmed|until|expired|superseded|merged|moved) \d{4}-\d{2}-\d{2})+$/;
 const BULLET = /^\s*(?:[-*•]|\d+[.)])\s+/;
 /** A safety or health fact always loads: neither organize nor the size rule moves one out of MEMORY.md. */
 const ALWAYS_CORE = /\b(?:allerg\w*|anaphyla\w*|intoleran\w*|vegetarian|vegan|halal|kosher|gluten|lactose|co?eliac|diabet\w*|asthma\w*|epilep\w*|pregnan\w*|medicat\w*|disabilit\w*|wheelchair|blind|deaf)\b/i;
