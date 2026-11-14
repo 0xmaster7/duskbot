@@ -52,6 +52,10 @@ describe("Settings > Voice", () => {
       .toEqual(["granted", "denied", "denied", "prompt", "prompt", "unknown", "unknown"]);
   });
 
+  it("shows the default microphone where the platform has no permission to read (Windows)", () => {
+    expect(micStateFrom("unsupported")).toBe("default");
+  });
+
   it("asks for a key in a labelled password field, and once saved shows only that it is saved", () => {
     vi.stubGlobal("window", { duskDesktop: undefined });
     try {

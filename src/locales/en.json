@@ -7130,6 +7130,7 @@
   "settings.voice.mic.granted": "Allowed",
   "settings.voice.mic.denied": "Blocked",
   "settings.voice.mic.prompt": "Not asked yet",
+  "settings.voice.mic.default": "Default microphone",
   "settings.voice.mic.unknown": "Unknown",
   "settings.voice.mic.deniedHint": "Voice input can't hear you until the microphone is allowed.",
   "settings.voice.mic.allow": "Allow",

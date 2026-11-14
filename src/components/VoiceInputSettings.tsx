@@ -64,12 +64,14 @@ export function cleanupConnections(instances: readonly InstanceInfo[]): Instance
   return instances.filter((instance) => instance.snapshot.state === "available" && instance.capabilities?.backgroundText !== false && !instance.policy);
 }
 
-export type MicState = "granted" | "denied" | "prompt" | "unknown";
+/** "default": the platform has no permission to read (Windows), and dictation listens on the default microphone. */
+export type MicState = "granted" | "denied" | "prompt" | "default" | "unknown";
 
 export function micStateFrom(raw: string | undefined): MicState {
   if (raw === "granted") return "granted";
   if (raw === "denied" || raw === "restricted") return "denied";
   if (raw === "not-determined" || raw === "prompt") return "prompt";
+  if (raw === "unsupported") return "default";
   return "unknown";
 }
 

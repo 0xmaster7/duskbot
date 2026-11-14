@@ -35,6 +35,32 @@ describe("listening once for the Settings test", () => {
     events.transcript({ partial: false, text: "late" });
   });
 
+  it("waits out a slow recognizer start: the window opens at its first level, not when start returns", async () => {
+    const events = createVoiceEvents();
+    const { bridge } = fakeBridge({ onSpeechLevel: events.onSpeechLevel, onSpeechTranscript: events.onSpeechTranscript, onSpeechEnd: events.onSpeechEnd });
+    const result = listenOnce(bridge, { ms: 3_000 });
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(bridge.speechFinish).not.toHaveBeenCalled();
+    events.level(0.2);
+    await vi.advanceTimersByTimeAsync(2_999);
+    expect(bridge.speechFinish).not.toHaveBeenCalled();
+    events.transcript({ partial: true, text: "hello" });
+    await vi.advanceTimersByTimeAsync(1);
+    expect(bridge.speechFinish).toHaveBeenCalledTimes(1);
+    events.transcript({ partial: false, text: "hello" });
+    await expect(result).resolves.toEqual({ ok: true, text: "hello" });
+  });
+
+  it("still finishes after the warm-up allowance when no level ever arrives", async () => {
+    const events = createVoiceEvents();
+    const { bridge } = fakeBridge({ onSpeechLevel: events.onSpeechLevel });
+    void listenOnce(bridge, { ms: 3_000, warmupMs: 1_000 });
+    await vi.advanceTimersByTimeAsync(3_999);
+    expect(bridge.speechFinish).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(bridge.speechFinish).toHaveBeenCalledTimes(1);
+  });
+
   it("resolves with what was heard when the engine ends after finishing", async () => {
     const { bridge, events } = fakeBridge();
     const result = listenOnce(bridge, { ms: 100 });
