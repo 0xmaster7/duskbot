@@ -40,8 +40,8 @@ describe("self-hosted update row", () => {
     const stale = check({ current: "0.1.114" });
     expect(serverCheckPhase(stale, "0.1.113")).toBe("reload");
     expect(serverUpdateRow("reload", stale, "0.1.113")).toEqual({
-      label: "reload for v0.1.114",
-      subtitle: "this page is still running v0.1.113",
+      label: "reload to update",
+      subtitle: "this page is out of date",
     });
   });
 
