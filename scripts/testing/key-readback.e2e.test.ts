@@ -53,7 +53,6 @@ beforeAll(async () => {
     for await (const chunk of req) raw += chunk;
     stubCalls.push(`${req.method} ${url.split("?")[0]}`);
     const reply = (status: number, body: unknown) => { res.writeHead(status, { "content-type": "application/json" }); res.end(JSON.stringify(body)); };
-    if (url.startsWith("/sandboxes")) return reply(200, { ok: true, sandboxes: [], pageInfo: { nextCursor: null } });
     if (url.startsWith("/composio/tool_router/session")) {
       return reply(201, { session_id: "trs_readback", mcp: { type: "http", url: "https://app.composio.dev/tool_router/v3/trs_readback/mcp" }, config: { user_id: "duskbot_readback" } });
     }
@@ -77,7 +76,7 @@ beforeAll(async () => {
   fixture = await launchVerificationServer();
   await waitForExit(fixture.child, { signal: "SIGTERM" });
   const configFile = join(fixture.info.dataDir, "config.json");
-  const decider = { baseUrl: `${origin}/jev`, openrouterBaseUrl: `${origin}/openrouter`, workersAiBaseUrl: `${origin}/cf` };
+  const decider = { baseUrl: `${origin}/jev`, openrouterBaseUrl: `${origin}/openrouter`, gatewayBaseUrl: `${origin}/gateway`, workersAiBaseUrl: `${origin}/cf` };
   writeFileSync(configFile, JSON.stringify({ ...JSON.parse(readFileSync(configFile, "utf8")), decider }));
   const env = {
     ...verificationServerEnvironment({}, fixture.info.dataDir, Number(new URL(fixture.info.url).port)),
@@ -124,7 +123,8 @@ it("saves every kind of credential, reads it back and shows it masked to its las
       expect(JSON.stringify(config), entry.id).not.toContain(key);
       view.config = config;
       const html = renderToStaticMarkup(createElement(KeyCatalogRow, { entry }));
-      expect(html, entry.id).toContain(`••••••••${last4}`);
+      // a key row shows the key masked; a row set up on its own page (Workers AI, dee732089) says only that it is connected
+      if (entry.target) expect(html, entry.id).toContain(`••••••••${last4}`);
       expect(html, entry.id).toMatch(/>(Connected|Saved)</);
       expect(html, entry.id).not.toContain(key);
 
@@ -133,7 +133,7 @@ it("saves every kind of credential, reads it back and shows it masked to its las
     }
   }
   expect(stubCalls).toEqual(expect.arrayContaining([
-    "GET /sandboxes", "POST /composio/tool_router/session", "GET /eleven/voices", "GET /fish/model", "POST /jev/v1/systemone", "POST /alpha/decisions",
+    "POST /gateway/typesafe/v1/systemone", "POST /composio/tool_router/session", "GET /eleven/voices", "GET /fish/model", "POST /jev/v1/systemone", "POST /alpha/decisions",
   ]));
 }, hostTimeout(180_000));
 
