@@ -18,11 +18,12 @@ export interface BillingConfig {
 
 /**
  * DUSK_DODO_PRODUCTS is a JSON object mapping every key below to a dodo id (pricing.ts dodoCartKeys picks them per cart).
- * subscription products, the base line: license_solo, license_team, desktop_shared_s, desktop_shared_m, desktop_dedicated.
+ * subscription products, the base line: plan_pro and plan_team (the whole plan at its full price, one line; extra team seats are addon_member),
+ * then for carts that are not a plan: license_solo, license_team, desktop_shared_s, desktop_shared_m, desktop_dedicated.
  * add-ons: addon_member, addon_shared_s, addon_shared_m, addon_dedicated, addon_vcpu, addon_ram_gb, addon_disk_20gb.
  * each in :month and :year. base products and addons must match this config's prices; yearly prices include its yearly discount.
  */
-export const DODO_PRODUCT_KEYS = ["license_solo", "license_team", "desktop_shared_s", "desktop_shared_m", "desktop_dedicated",
+export const DODO_PRODUCT_KEYS = ["plan_pro", "plan_team", "license_solo", "license_team", "desktop_shared_s", "desktop_shared_m", "desktop_dedicated",
   "addon_member", "addon_shared_s", "addon_shared_m", "addon_dedicated", "addon_vcpu", "addon_ram_gb", "addon_disk_20gb"]
   .flatMap(key => [`${key}:month`, `${key}:year`]);
 /** keys a cart may need that DUSK_DODO_PRODUCTS lacks: any cart needing one answers 503 unavailable */

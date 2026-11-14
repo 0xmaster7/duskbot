@@ -71,17 +71,30 @@ export function quote(cart: Cart, config: BillingConfig = BILLING_CONFIG): Quote
     lines, totalCents, monthlyEquivalentCents: cart.interval === "year" ? Math.round(totalCents / 12) : totalCents, machine, botComputers, members };
 }
 
-/** the DUSK_DODO_PRODUCTS keys a cart needs, base product first, each add-on with the quantity it is sent with */
+/** the plan bundle (pro, team) a cart is exactly, whatever its region and team seat count: one dodo product at the plan's full price */
+export function planBundle(cart: Cart, config: BillingConfig = BILLING_CONFIG) {
+  if (cart.license.kind === "none" || cart.desktop.kind === "none") return null;
+  const same = (a: Cart["desktop"], b: Cart["desktop"]) => a.kind === b.kind && a.spec?.vcpu === b.spec?.vcpu && a.spec?.ramGb === b.spec?.ramGb && a.spec?.diskGb === b.spec?.diskGb;
+  return config.bundles.find(item => item.cart.license.kind === cart.license.kind && item.cart.desktop.kind !== "none" && same(item.cart.desktop, cart.desktop)) ?? null;
+}
+/** the DUSK_DODO_PRODUCTS keys a cart needs, base product first, each add-on with the quantity it is sent with. A plan (pro, team) is one
+ *  product at its full price, never a licence line plus a cloud line; only extra team seats are an add-on, so only they show a quantity */
 export function dodoCartKeys(cart: Cart, config: BillingConfig = BILLING_CONFIG): Array<{ key: string; quantity: number }> {
   const hasLicense = cart.license.kind !== "none";
   if (!hasLicense && cart.desktop.kind === "none") return [];
+  const add = (list: Array<{ key: string; quantity: number }>, key: string, quantity: number) => { if (quantity) list.push({ key: `${key}:${cart.interval}`, quantity }); };
+  const plan = planBundle(cart, config);
+  if (plan) {
+    const keys = [{ key: `plan_${plan.id}:${cart.interval}`, quantity: 1 }];
+    if (cart.license.kind === "team") add(keys, "addon_member", cart.license.members! - config.licenses.team.includedMembers);
+    return keys;
+  }
   const keys = [{ key: `${hasLicense ? `license_${cart.license.kind}` : `desktop_${cart.desktop.kind}`}:${cart.interval}`, quantity: 1 }];
-  const add = (key: string, quantity: number) => { if (quantity) keys.push({ key: `${key}:${cart.interval}`, quantity }); };
-  if (cart.license.kind === "team") add("addon_member", cart.license.members! - config.licenses.team.includedMembers);
-  if (hasLicense && cart.desktop.kind !== "none") add(`addon_${cart.desktop.kind}`, 1);
+  if (cart.license.kind === "team") add(keys, "addon_member", cart.license.members! - config.licenses.team.includedMembers);
+  if (hasLicense && cart.desktop.kind !== "none") add(keys, `addon_${cart.desktop.kind}`, 1);
   if (cart.desktop.kind === "dedicated") {
-    add("addon_vcpu", cart.desktop.spec!.vcpu); add("addon_ram_gb", cart.desktop.spec!.ramGb);
-    add("addon_disk_20gb", (cart.desktop.spec!.diskGb - config.dedicated.includedDiskGb) / 20);
+    add(keys, "addon_vcpu", cart.desktop.spec!.vcpu); add(keys, "addon_ram_gb", cart.desktop.spec!.ramGb);
+    add(keys, "addon_disk_20gb", (cart.desktop.spec!.diskGb - config.dedicated.includedDiskGb) / 20);
   }
   return keys;
 }

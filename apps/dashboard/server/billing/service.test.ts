@@ -410,7 +410,7 @@ describe("durable provider reconciliation", () => {
 
 it("waits for a matching signed outcome before granting a Dodo upgrade", async () => {
   const { sub, deliveries } = await buy(); service.close();
-  config.products = Object.fromEntries(["license_solo:month", "addon_shared_s:month", "addon_shared_m:month"].map(key => [key, key]));
+  config.products = Object.fromEntries(["license_solo:month", "addon_shared_s:month", "plan_pro:month"].map(key => [key, key]));
   service = createBillingService({ store, provider: { ...provider, name: "dodo" }, clouds, config, publicUrl: "https://dashboard.test", now: () => time });
   const end = sub.currentPeriodEnd;
   const result = await service.change(owner, sub.id, service.previewChange(owner, sub.id, preset(2)).confirmation);
@@ -418,7 +418,7 @@ it("waits for a matching signed outcome before granting a Dodo upgrade", async (
   const data = JSON.parse(deliveries[1].body.toString()).data;
   deliver([signed("subscription.plan_changed", data)]);
   expect(sub.pendingChange).toBeDefined(); expect(sub.totalCents).toBe(quote(licensedDesktop(), BILLING_CONFIG).totalCents);
-  deliver([signed("subscription.plan_changed", { ...data, addons: [{ addon_id: "addon_shared_m:month", quantity: 1 }] })]);
+  deliver([signed("subscription.plan_changed", { ...data, product_id: "plan_pro:month", addons: [] })]);
   expect(sub.pendingChange).toBeUndefined(); expect(sub.totalCents).toBe(quote(preset(2), config).totalCents);
   expect(sub.currentPeriodEnd).toBe(end); expect(clouds.changePlan).toHaveBeenCalledTimes(1);
 });
