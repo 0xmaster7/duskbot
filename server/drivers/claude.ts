@@ -11,6 +11,7 @@ import { openStartupModelCatalog, unconfirmedModelCatalog, writeStartupModelCach
 import { writeFileAtomicIfChanged } from "../atomic.ts";
 import { augmentedPath } from "../env-path.ts";
 import { brokerSocketPath, cliVersionReader, describeSpawnFailure, execCli, killCliTree, lentBotFolders, readOnlyBotFolders, spawnCli } from "../procs.ts";
+import { conversationLanguage, serverLine } from "../server-lines.ts";
 import { claudeAuthStatus } from "./claude-auth-status.ts";
 import { projectMcpServers } from "./claude-project-mcp.ts";
 import { botSettingsFor, withBotSettings } from "./claude-bot-settings.ts";
@@ -421,7 +422,8 @@ export function permissionSocketPath(threadId: string, botId?: string) {
 }
 
 /** Broker bind paths, in order. Windows pipe names are never unlinkable (a hung child can hold one
- * for minutes), and macOS rejects socket paths past `sun_path`, hence the short temp fallback. */
+ * for minutes), and macOS rejects socket paths past `sun_path`, hence the short temp fallbacks; the last is fresh each
+ * launch, so a path another process still holds never fails a turn on its own. */
 export function brokerSocketCandidates(threadId: string, botId?: string): string[] {
   const base = permissionSocketPath(threadId, botId);
   if (process.platform !== "win32") {
@@ -429,7 +431,7 @@ export function brokerSocketCandidates(threadId: string, botId?: string): string
       .update(`${DATA_DIR}\0${process.pid}\0${botId ?? ""}\0${threadId}`)
       .digest("hex")
       .slice(0, 16);
-    return [base, join(tmpdir(), `dusk-perm-${scope}.sock`)];
+    return [base, join(tmpdir(), `dusk-perm-${scope}.sock`), join(tmpdir(), `dp-${randomBytes(4).toString("hex")}.sock`)];
   }
   return [
     base,
@@ -1295,6 +1297,8 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
               });
               askTools.delete(resolved.id);
             },
+          }).catch((error: unknown) => {
+            throw new Error(serverLine(conversationLanguage(threadId), "server.claude.approvalChannel"), { cause: error });
           });
           if (broker.socketPath !== socketPath && mcpConfigPath) {
             mcpServers.dusk = { command: process.execPath, args: [PERM_PROXY_PATH, broker.socketPath], env: permissionEnv, alwaysLoad: true };

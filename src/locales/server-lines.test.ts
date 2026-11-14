@@ -491,7 +491,6 @@ const PENDING: Readonly<Record<string, ReadonlyArray<readonly [file: string, sni
     ["server/index.ts", "context compaction started ( … )"],
     ["server/index.ts", "context compacted: re-sent the last  …  digest …"],
     ["server/index.ts", "generated image could not be attached:  …"],
-    ["server/index.ts", "retrying, attempt  … / …  in  … s:  …"],
     ["server/index.ts", "invalid image"],
     ["server/index.ts", "Queued follow-up interrupted by restart or restore: it may have alrea"],
     ["shared/first-reply-rescue.ts", "notice:  …  hasn't heard back from  …  yet."],

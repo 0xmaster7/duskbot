@@ -310,9 +310,11 @@ describe("ClaudeDriver.decodeConfig", () => {
       expect(candidates.length).toBeGreaterThan(1);
       expect(new Set(candidates).size).toBe(candidates.length);
     } else {
-      expect(candidates).toHaveLength(2);
+      expect(candidates).toHaveLength(3);
       expect(candidates[1]).toMatch(/dusk-perm-[0-9a-f]{16}\.sock$/);
-      expect(candidates[1]).not.toBe(candidates[0]);
+      expect(candidates[2]).toMatch(/dp-[0-9a-f]{8}\.sock$/);
+      expect(new Set(candidates).size).toBe(3);
+      expect(brokerSocketCandidates("t-candidates")[2]).not.toBe(candidates[2]);
     }
   });
 

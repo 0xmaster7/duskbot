@@ -376,7 +376,7 @@ describe("tool history in a rebuilt session", () => {
       said("u1", "user", "run the tests"),
       ran("t1", "Bash", { summary: "pnpm test", ok: false }),
       // a harness chip, not a tool call: no provider item behind it
-      { id: "n1", role: "bot", kind: "activity", tool: { name: "retrying, attempt 2/3 in 2s: overloaded", ok: true }, at: 1 },
+      { id: "n1", role: "bot", kind: "activity", tool: { name: "Trying again in 2s (attempt 2 of 3). The AI is busy right now.", ok: true }, at: 1 },
       ran("t2", "Read"),
       said("a1", "bot", "They fail."),
       ran("t3", "Edit", { ok: undefined }),

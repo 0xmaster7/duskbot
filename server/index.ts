@@ -208,7 +208,7 @@ import {
   type SteerOutcome,
   newId,
 } from "./contracts.ts";
-import { RETRY_MAX_ATTEMPTS } from "./drivers/retry.ts";
+import { retryLine } from "./retry-line.ts";
 import { recoveryCapabilityError, startupBackups } from "./automatic-recovery.ts";
 import { createQuotaSwitchHost } from "./host/quota-switch.ts"; import { quotaSwitchEnabled } from "./quota-switch.ts";
 import { decodeGeneratedImage } from "./generated-image.ts";
@@ -7102,7 +7102,7 @@ bus.subscribe((event: RuntimeEvent) => {
       pushMessage({
         role: "bot",
         kind: "activity",
-        tool: { name: `retrying, attempt ${event.attempt + 1}/${RETRY_MAX_ATTEMPTS} in ${Math.round(event.delayMs / 1000)}s: ${event.reason}`, ok: true },
+        tool: { name: retryLine(threadLanguage(event.threadId), event), ok: true },
       });
       break;
     case "runtime.notice":
