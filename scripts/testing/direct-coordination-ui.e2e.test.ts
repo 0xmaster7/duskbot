@@ -64,7 +64,9 @@ const enabled = process.env.DUSK_UI_E2E === "1" || Boolean(resolveAgentBrowserBi
     writeFileSync(gateFile, "complete fixture work");
     await ui("wait-settle", "--timeout", "60");
     await expect.poll(snapshot, { timeout: 15_000 }).toContain("Engineer checked the fixture CSV export");
-    expect(await snapshot()).toContain("Sent to Engineer");
+    // the hand-off row reads "Pepper → Engineer: brief" (sentRow); its message is still named Sent to Engineer
+    const handoff = "Pepper Pepper Engineer Check the fixture CSV export";
+    expect(await snapshot()).toContain(`button "${handoff}"`);
     const state = await api("/api/bots");
     const parent = state.bots.find((bot: any) => bot.id === info.botId);
     const receipt = parent.messages.find((message: any) => message.tool?.name === "Sent to Engineer");
@@ -72,10 +74,11 @@ const enabled = process.env.DUSK_UI_E2E === "1" || Boolean(resolveAgentBrowserBi
     expect(receipt.threadRef.threadId).not.toBe(lead.threadId);
     const screenshot = info.logPath + ".direct-coordination.png";
     await ui("screenshot", "--out", screenshot);
-    await click("Sent to Engineer");
+    await click(handoff);
     await expect.poll(snapshot, { timeout: 15_000 }).toContain("CSV export checked in my separate task");
-    // The request in the teammate's thread names the bot that sent it.
-    expect(await snapshot()).toMatch(/Pepper[\s\S]{0,80}sent a request/);
+    // The request in the teammate's thread names the bot that sent it, folded under that bot's messages.
+    await click("Show messages with Pepper");
+    await expect.poll(snapshot, { timeout: 10_000 }).toMatch(/Pepper[\s\S]{0,80}Sent a request/);
     const selected = (await api("/api/bots")).bots.find((bot: any) => bot.id === lead.id);
     expect(selected.threadId).toBe(receipt.threadRef.threadId);
     const evidence = { source: parent.messages, receipt, selectedThread: selected.threadId, final: await snapshot(), screenshot };
