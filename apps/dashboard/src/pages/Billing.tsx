@@ -5,8 +5,10 @@ import { tryAppLink } from "./DeviceApproval";
 import { Check, ChevronDown, Download } from "@/icons";
 import { useCloud } from "../data/cloud";
 import { LoadError } from "./common";
-import type { BillingInterval, LicenseId, PlanCatalog } from "../data/contracts";
-import { bundleOf, desktopOf, gb, licenseMonthly, licenseOf, perMonthOn, wakeSeconds } from "../data/pricing";
+import type { BillingInterval, LicenseId, PlanCatalog, Selection } from "../data/contracts";
+import { bundleOf, desktopOf, gb, licenseMonthly, licenseOf, perMonthOn, priceCart, wakeSeconds } from "../data/pricing";
+import { useSession } from "../data/session";
+import { track } from "../lib/analytics";
 import { useCart } from "../data/quote";
 import { longDate, shortDate, usd } from "../lib/format";
 import { navigate, useLocation } from "../lib/router";
@@ -20,7 +22,8 @@ import { SectionHead } from "../ui/table";
 import { regionName } from "./cloud-bits";
 import { AnimatePresence } from "../ui/motion";
 import { CancelFlow, CONTACT } from "./cancel-flow";
-import { cartText, CHECKOUT_PLAN_KEY, IntervalToggle, LicenseSheet, PlanSheet, priceText, TeamSheet, useInterval, type PaidPlan } from "./plan-sheet";
+import { BUSY, cartText, ChargeLine, CHECKOUT_PLAN_KEY, IntervalToggle, LicenseSheet, money, PlanSheet, planSelection, priceText, sharedRegions, useInterval, Working, type PaidPlan } from "./plan-sheet";
+import { CHECKOUT_SOON } from "./cloud-offer";
 
 export { IntervalToggle, useInterval };
 
@@ -43,7 +46,7 @@ function points(id: Exclude<Tier, "free">, catalog: PlanCatalog): string[] {
 const ART = { free: sky, starter: meadow, pro: layers, team: peaks } as const;
 const FREE_POINTS = ["your bots on this computer", "they work while it's awake", "every bot, chat and connector, for personal use"];
 
-function PlanCard({ id, catalog, interval, current, onChoose, href, action, disabled, i }: { id: Tier; catalog: PlanCatalog; interval: BillingInterval; current: boolean; onChoose: (() => void) | null; href?: string; action: string; disabled: boolean; i: number }) {
+function PlanCard({ id, catalog, interval, current, onChoose, href, action, disabled, busy = false, note, i }: { id: Tier; catalog: PlanCatalog; interval: BillingInterval; current: boolean; onChoose: (() => void) | null; href?: string; action: string; disabled: boolean; busy?: boolean; note?: ReactNode; i: number }) {
   const b = bundleOf(catalog, id);
   const paid = id !== "free";
   const monthly = b?.monthly ?? 0;
@@ -63,8 +66,9 @@ function PlanCard({ id, catalog, interval, current, onChoose, href, action, disa
         {href ? (
           <a href={href} className="press hover-btn mt-6 grid h-12 w-full place-items-center rounded-full bg-btn text-15 font-medium text-ink">{action}</a>
         ) : onChoose ? (
-          <button type="button" onClick={onChoose} disabled={disabled} className="press hover-btn mt-6 h-12 w-full rounded-full bg-btn text-15 font-medium text-ink disabled:cursor-default disabled:opacity-50">{action}</button>
+          <button type="button" onClick={onChoose} disabled={disabled || busy} aria-busy={busy} className={cx("press hover-btn mt-6 inline-flex h-12 w-full items-center justify-center gap-1.5 rounded-full bg-btn text-15 font-medium text-ink disabled:cursor-default disabled:opacity-50", busy && BUSY)}>{busy ? <Working>{action}</Working> : action}</button>
         ) : <p className="mt-6 grid h-12 place-items-center rounded-full text-14 text-ink-3">{action}</p>}
+        {note}
         <h3 className="sr-only">what you get</h3>
         <ul className="mt-6 flex flex-col gap-3">
           {(paid ? points(id, catalog) : FREE_POINTS).map((pt) => <li key={pt} className={cx("flex gap-2.5 text-14", paid ? "text-ink-2" : "text-ink-3")}><Check size={17} strokeWidth={1.75} className={cx("mt-0.5 shrink-0", paid ? "text-good" : "text-ink-4")} aria-hidden />{pt}</li>)}
@@ -198,16 +202,76 @@ function YourBilling({ catalog, onLicense, onManage }: { catalog: PlanCatalog; o
   );
 }
 
+/** a cloud plan from its card, with no sheet: no plan yet goes straight to checkout, a running plan changes in place,
+ * stopping once on the card when the change charges something now */
+function useDirectPlan(catalog: PlanCatalog | null, interval: BillingInterval) {
+  const { billing, checkout, changeCharge, changePlan } = useCloud();
+  const { toast } = useSession();
+  const owned = billing?.subscription?.selection ?? null;
+  const [busy, setBusy] = useState<Tier | null>(null);
+  const [error, setError] = useState<{ id: Tier; text: string } | null>(null);
+  const [charge, setCharge] = useState<{ id: Tier; key: string; usd: number } | null>(null);
+  const selectionFor = (id: Exclude<Tier, "free">): Selection | null => {
+    if (!catalog) return null;
+    if (id === "team") {
+      const team = bundleOf(catalog, "team");
+      return owned && team ? { license: "team", members: Math.max(team.members, owned.members), desktop: team.desktop, size: null, region: owned.region, interval: owned.interval } : null;
+    }
+    const regions = sharedRegions(catalog);
+    const region = owned && owned.desktop !== "none" && regions.some((r) => r.id === owned.region) ? owned.region : regions[0]?.id;
+    return planSelection(catalog, id, { interval, region, work: Boolean(owned && owned.license !== "personal"), keep: owned });
+  };
+  const choose = async (id: Exclude<Tier, "free">) => {
+    const sel = selectionFor(id);
+    if (!catalog || !sel || busy) return;
+    const key = JSON.stringify(sel);
+    const shown = charge?.id === id && charge.key === key ? charge.usd : null;
+    setBusy(id); setError(null);
+    try {
+      if (owned) {
+        if (shown === null) {
+          const usd = await changeCharge(sel);
+          if (usd > 0) { setCharge({ id, key, usd }); return; }
+        }
+        await changePlan(sel, shown ?? 0);
+        setCharge(null);
+        toast(`you are on ${bundleOf(catalog, id)?.name ?? id}`);
+      } else {
+        track({ name: "plan_chosen", props: { plan: id, period: interval } });
+        if (catalog.checkoutOpen === false) { setError({ id, text: CHECKOUT_SOON }); return; }
+        try { sessionStorage.setItem(CHECKOUT_PLAN_KEY, id); } catch {}
+        if (await checkout({ source: "dash_billing", kind: "plan", selection: sel, bundle: null })) { toast("paid. your dusk cloud is being set up."); navigate("/cloud"); }
+        else setError({ id, text: "checkout didn't open. try again." });
+      }
+    } catch (e) { setCharge(null); setError({ id, text: (e as Error).message }); } finally { setBusy(null); }
+  };
+  /** what a card shows under its button: the charge to confirm, or what went wrong */
+  const note = (id: Tier): ReactNode => {
+    if (error?.id === id) return <p role="alert" className="mt-3 text-13 text-bad">{error.text}</p>;
+    if (charge?.id !== id || !catalog || id === "free") return null;
+    const sel = selectionFor(id);
+    return sel && charge.key === JSON.stringify(sel)
+      ? <>{id === "team" && <p className="mt-3 text-13 text-ink-3">your dusk cloud moves to its own machine. your bots pause for a minute or two.</p>}<ChargeLine charge={charge.usd} cart={priceCart(sel, catalog)} interval={sel.interval} from={billing?.subscription?.currentPeriodEnd} /></>
+      : null;
+  };
+  const label = (id: Tier, fallback: string) => {
+    if (busy === id) return owned ? "switching" : "opening checkout";
+    const sel = id !== "free" && charge?.id === id ? selectionFor(id) : null;
+    return sel && charge && charge.key === JSON.stringify(sel) ? `pay ${money(charge.usd)} and switch` : fallback;
+  };
+  return { busy, choose, note, label, retry: (plan: PaidPlan) => void choose(plan) };
+}
+
 export function BillingPage() {
   const { catalog, billing, clouds, error, refresh } = useCloud();
   const { query } = useLocation();
   const [interval, setIv] = useInterval();
   const owned = billing?.subscription?.selection ?? null;
   const [planSheet, setPlanSheet] = useState<PaidPlan | null>(null);
-  const [teamSheet, setTeamSheet] = useState(false);
   const [licenseSheet, setLicenseSheet] = useState<{ license: LicenseId; members: number } | null>(null);
   const [managing, setManaging] = useState(0);
   const [flowOpen, setFlowOpen] = useState(false);
+  const direct = useDirectPlan(catalog, interval);
   const manage = () => { setManaging((n) => n + 1); setFlowOpen(true); };
   // back from the payment page unpaid or still confirming: say so, keep looking for a while, and offer the plan again
   const [back, setBack] = useState<Back | null>(() => backFromCheckout(query));
@@ -232,7 +296,7 @@ export function BillingPage() {
     let last: string | null = null;
     try { last = sessionStorage.getItem(CHECKOUT_PLAN_KEY); } catch {}
     setBack(null);
-    setPlanSheet(last === "starter" || last === "pro" ? last : "starter");
+    direct.retry(last === "starter" || last === "pro" ? last : "starter");
   };
   // a running plan shows its own billing period and use
   useEffect(() => { if (owned) setIv(owned.interval); }, [owned?.interval]);
@@ -271,10 +335,10 @@ export function BillingPage() {
     const name = bundleOf(catalog, id)?.name ?? id;
     if (id === "free") return <PlanCard key={id} id={id} i={i} catalog={catalog} interval={interval} current={current(id)} action="your plan" onChoose={null} disabled={false} />;
     // only a managed cloud can move to a dedicated machine on its own; any other moves by hand
-    if (id === "team" && !current(id) && movable) return <PlanCard key={id} id={id} i={i} catalog={catalog} interval={interval} current={false} action={`switch to ${name}`} onChoose={() => setTeamSheet(true)} disabled={false} />;
+    if (id === "team" && !current(id) && movable) return <PlanCard key={id} id={id} i={i} catalog={catalog} interval={interval} current={false} action={direct.label(id, `switch to ${name}`)} onChoose={() => void direct.choose("team")} disabled={direct.busy !== null} busy={direct.busy === id} note={direct.note(id)} />;
     if (id === "team" && !current(id)) return <PlanCard key={id} id={id} i={i} catalog={catalog} interval={interval} current={false} action="talk to us" href={`${CONTACT}?subject=${encodeURIComponent("move to team")}`} onChoose={null} disabled={false} />;
     const label = current(id) ? "your plan" : `${onCloud ? "switch to" : "get"} ${name}`;
-    return <PlanCard key={id} id={id} i={i} catalog={catalog} interval={interval} current={current(id)} action={label} onChoose={id === "team" ? null : () => setPlanSheet(id)} disabled={current(id)} />;
+    return <PlanCard key={id} id={id} i={i} catalog={catalog} interval={interval} current={current(id)} action={current(id) ? label : direct.label(id, label)} onChoose={id === "team" ? null : () => void direct.choose(id)} disabled={current(id) || direct.busy !== null} busy={direct.busy === id} note={current(id) ? null : direct.note(id)} />;
   };
 
   return (
@@ -302,7 +366,6 @@ export function BillingPage() {
       <YourBilling catalog={catalog} onLicense={() => openLicense()} onManage={manage} />
 
       <AnimatePresence>{planSheet && <PlanSheet key="plan" source="dash_billing" start={planSheet} work={ownsLicense} onClose={() => setPlanSheet(null)} />}</AnimatePresence>
-      <AnimatePresence>{teamSheet && <TeamSheet key="team" onClose={() => setTeamSheet(false)} />}</AnimatePresence>
       <AnimatePresence>{licenseSheet && <LicenseSheet key="license" source="dash_license" start={licenseSheet} onClose={() => setLicenseSheet(null)} onNothingLeft={manage} />}</AnimatePresence>
       <CancelFlow key={managing} open={flowOpen} onClose={() => setFlowOpen(false)} catalog={catalog} />
     </div>

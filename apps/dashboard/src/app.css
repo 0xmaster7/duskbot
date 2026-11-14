@@ -94,9 +94,10 @@
   --coral-soft: rgb(240 143 119 / 0.24);
 }
 
-.surface { --btn: #ffffff; --btn-hover: #ebebe8; }
-[data-theme="dark"] .surface { --btn: #2c2c33; --btn-hover: #383840; }
-.pop { --btn: #efefed; --btn-hover: #e4e4e1; }
+/* a white button on a card: the full ink tint would land on the card's own tone and the button would vanish */
+.surface { --btn: #ffffff; --btn-hover: #ebebe8; --btn-tint: color-mix(in oklab, var(--ink) 2.5%, transparent); }
+[data-theme="dark"] .surface { --btn: #2c2c33; --btn-hover: #383840; --btn-tint: var(--tint); }
+.pop { --btn: #efefed; --btn-hover: #e4e4e1; --btn-tint: var(--tint); }
 [data-theme="dark"] .pop { --btn: #2e2e35; --btn-hover: #3a3a42; }
 
 /* on a phone a list table reads as a stack of cards, like the app catalogue; the header row folds to nothing but keeps
@@ -394,7 +395,7 @@
   .hover-row:hover { background-color: var(--tint); }
   .hover-side:hover { background-color: var(--tint); color: var(--ink); }
   .hover-ghost:hover:not(:disabled) { box-shadow: inset 0 0 0 100vmax var(--tint-2); }
-  .hover-btn:hover:not(:disabled) { box-shadow: inset 0 0 0 100vmax var(--tint); }
+  .hover-btn:hover:not(:disabled) { box-shadow: inset 0 0 0 100vmax var(--btn-tint, var(--tint)); }
   .hover-card:hover { box-shadow: inset 0 0 0 100vmax var(--tint); }
   /* a selected dark chip keeps its own colors on hover */
   .hover-chip:hover:not([aria-pressed="true"], [aria-selected="true"], [aria-current="page"], .bg-ink) { box-shadow: inset 0 0 0 100vmax var(--tint-2); color: var(--ink); }

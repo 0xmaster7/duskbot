@@ -1,0 +1,69 @@
+// @vitest-environment happy-dom
+import { act, createElement } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach, expect, test, vi } from "vitest";
+import type { BillingOverview, Selection } from "../data/contracts";
+import { fixtureCatalog } from "../data/fixtures";
+
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+// the server quote never answers: nothing on these pages may wait for it
+const state = vi.hoisted(() => ({ cloud: {} as Record<string, unknown>, quote: vi.fn(() => new Promise<never>(() => {})) }));
+vi.mock("../lib/api", async (real) => ({ ...(await real<typeof import("../lib/api")>()), FIXTURE: null, api: { quote: state.quote } }));
+vi.mock("../data/cloud", () => ({ useCloud: () => state.cloud }));
+vi.mock("../data/session", () => ({ useSession: () => ({ toast: () => {} }) }));
+vi.mock("../lib/analytics", () => ({ track: () => {} }));
+
+const plus: Selection = { license: "personal", members: 1, desktop: "shared-s", size: null, region: "eu-central", interval: "month" };
+const billingFor = (selection: Selection | null): BillingOverview => ({
+  subscription: selection ? { id: "sub", bundle: null, selection, status: "active", amountUsd: 20, currentPeriodEnd: Date.UTC(2026, 11, 13), cancelAt: null } : null,
+  paymentMethod: null, invoices: [], retention: { offer: null, applied: null },
+});
+const roots: Root[] = [];
+afterEach(async () => { for (const root of roots.splice(0)) await act(async () => root.unmount()); document.body.innerHTML = ""; });
+async function mount(el: ReturnType<typeof createElement>) {
+  const root = createRoot(document.body.appendChild(document.createElement("div")));
+  roots.push(root);
+  await act(async () => root.render(el));
+}
+const button = (text: RegExp) => [...document.querySelectorAll("button")].find((b) => text.test(b.textContent ?? "")) ?? null;
+
+test("the license sheet's button enables the moment the selection changes, before any server quote", async () => {
+  state.cloud = { catalog: fixtureCatalog, billing: billingFor(plus), changeCharge: vi.fn(), changePlan: vi.fn(), checkout: vi.fn() };
+  const { LicenseSheet } = await import("./plan-sheet");
+  await mount(createElement(LicenseSheet, { source: "dash_license", start: { license: "personal", members: 1 }, onClose: () => {}, onNothingLeft: () => {} }));
+  const work = [...document.querySelectorAll<HTMLInputElement>("input[name=sheet-license]")].find((i) => i.value === "starter")!;
+  const started = performance.now();
+  await act(async () => work.click());
+  const update = button(/^update license$/);
+  expect(update).not.toBeNull();
+  expect(update!.disabled).toBe(false);
+  expect(performance.now() - started).toBeLessThan(100);
+  // the total is the local price straight away: plus $20 and work $12
+  expect(document.body.textContent).toContain("$32");
+});
+
+test("switch to pro on the plans page goes straight to checkout, with no sheet", async () => {
+  const checkout = vi.fn(() => new Promise<boolean>(() => {}));
+  state.cloud = { catalog: fixtureCatalog, billing: billingFor(null), clouds: [], refresh: () => {}, error: null, checkout, changeCharge: vi.fn(), changePlan: vi.fn() };
+  const { BillingPage } = await import("./Billing");
+  await mount(createElement(BillingPage));
+  await act(async () => button(/^get pro$/)!.click());
+  expect(checkout).toHaveBeenCalledTimes(1);
+  expect(checkout.mock.calls[0]![0]).toMatchObject({ kind: "plan", source: "dash_billing", selection: { desktop: "shared-m", license: "starter" } });
+  expect(document.querySelector("[role=dialog]")).toBeNull();
+  expect(button(/opening checkout/)?.getAttribute("aria-busy")).toBe("true");
+});
+
+test("a running plan switches in place, and stops on the card to show a charge", async () => {
+  const changeCharge = vi.fn(async () => 15);
+  const changePlan = vi.fn(async () => {});
+  state.cloud = { catalog: fixtureCatalog, billing: billingFor(plus), clouds: [], refresh: () => {}, error: null, checkout: vi.fn(), changeCharge, changePlan };
+  const { BillingPage } = await import("./Billing");
+  await mount(createElement(BillingPage));
+  await act(async () => button(/^switch to pro$/)!.click());
+  expect(document.querySelector("[role=dialog]")).toBeNull();
+  expect(changePlan).not.toHaveBeenCalled();
+  await act(async () => button(/^pay \$15 and switch$/)!.click());
+  expect(changePlan).toHaveBeenCalledWith(expect.objectContaining({ desktop: "shared-m" }), 15);
+});

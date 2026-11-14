@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Minus, Plus } from "@/icons";
+import { LoaderCircle, Minus, Plus } from "@/icons";
 import { useCloud } from "../data/cloud";
 import type { BillingInterval, BundleId, CheckoutSource, LicenseId, PlanCatalog, Selection } from "../data/contracts";
 import { bundleOf, desktopOf, dollars, planSpecLine, licenseMonthly, licenseOf, perMonthOn, yearlyPerk } from "../data/pricing";
@@ -9,8 +9,12 @@ import { longDate } from "../lib/format";
 import { navigate } from "../lib/router";
 import { Choice, Field, Select, Sheet, Toggle } from "../ui/controls";
 import { track } from "../lib/analytics";
-import { Button, Skeleton } from "../ui/kit";
+import { Button, cx, Skeleton } from "../ui/kit";
 import { CHECKOUT_SOON } from "./cloud-offer";
+
+/** a submit in flight: the button keeps its color and shows a quiet spinner */
+export const Working = ({ children }: { children: ReactNode }) => <><LoaderCircle size={17} strokeWidth={2} className="spin" aria-hidden />{children}</>;
+export const BUSY = "disabled:!opacity-100 disabled:cursor-progress";
 
 export const money = (n: number) => dollars(n, !Number.isInteger(Math.round(n * 100) / 100));
 
@@ -25,7 +29,7 @@ const INTERVAL_KEY = "dusk-dash-interval";
 /** the plan someone left for the payment page with, so coming back unpaid can offer it again */
 export const CHECKOUT_PLAN_KEY = "dusk-dash-checkout-plan";
 /** Plus and Pro are shared desktops: only the pool regions can take them. */
-function sharedRegions(catalog: PlanCatalog) {
+export function sharedRegions(catalog: PlanCatalog) {
   return catalog.poolRegions ? catalog.regions.filter((r) => catalog.poolRegions!.includes(r.id)) : catalog.regions;
 }
 
@@ -94,7 +98,7 @@ export function PlanSheet({ start, source, work = false, onClose }: { source: Ch
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sel = catalog ? planSelection(catalog, plan, { interval, region, work: withLicense, keep: owned }) : null;
-  const { cart, ready, error: quoteError } = useCart(sel, catalog);
+  const { cart, error: quoteError } = useCart(sel, catalog);
   const { charge, apply } = useChangeCharge(sel);
   if (!catalog || !sel) return <Sheet open onClose={onClose} title="get dusk cloud"><Skeleton className="mt-4 h-40" /></Sheet>;
   const b = bundleOf(catalog, plan);
@@ -134,7 +138,7 @@ export function PlanSheet({ start, source, work = false, onClose }: { source: Ch
           <p className="num mt-0.5 text-end text-13 text-ink-4">{interval === "year" ? "billed yearly, + tax where applicable" : "billed monthly, + tax where applicable"}</p>
           {charge !== null && <ChargeLine charge={charge} cart={cart} interval={interval} from={billing?.subscription?.currentPeriodEnd} />}
           {(error ?? quoteError) && <p role="alert" className="mt-3 text-13 text-bad">{error ?? quoteError}</p>}
-          <Button variant="primary" className="mt-4 w-full !h-11" onClick={() => void go()} disabled={busy || !ready || unchanged}>{busy ? (owned ? "switching" : "opening checkout") : unchanged ? "your plan" : charge !== null ? `pay ${money(charge)} and switch` : owned ? "switch plan" : "checkout"}</Button>
+          <Button variant="primary" className={cx("mt-4 w-full !h-11", busy && BUSY)} onClick={() => void go()} disabled={busy || unchanged} aria-busy={busy}>{busy ? <Working>{owned ? "switching" : "opening checkout"}</Working> : unchanged ? "your plan" : charge !== null ? `pay ${money(charge)} and switch` : owned ? "switch plan" : "checkout"}</Button>
           <p className="mt-3 text-center text-12 text-ink-4">set up in about a minute.</p>
         </div>
       }
@@ -182,7 +186,7 @@ export function TeamSheet({ onClose }: { onClose(): void }) {
   const owned = billing?.subscription?.selection ?? null;
   const team = catalog ? bundleOf(catalog, "team") : null;
   const sel: Selection | null = owned && team ? { license: "team", members: Math.max(team.members, owned.members), desktop: team.desktop, size: null, region: owned.region, interval: owned.interval } : null;
-  const { cart, ready, error: quoteError } = useCart(sel, catalog);
+  const { cart, error: quoteError } = useCart(sel, catalog);
   const { charge, apply } = useChangeCharge(sel);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -207,7 +211,7 @@ export function TeamSheet({ onClose }: { onClose(): void }) {
           <p className="num mt-0.5 text-end text-13 text-ink-4">{sel.interval === "year" ? "billed yearly, + tax where applicable" : "billed monthly, + tax where applicable"}</p>
           {charge !== null && <ChargeLine charge={charge} cart={cart} interval={sel.interval} from={billing?.subscription?.currentPeriodEnd} />}
           {(error ?? quoteError) && <p role="alert" className="mt-3 text-13 text-bad">{error ?? quoteError}</p>}
-          <Button variant="primary" className="mt-4 w-full !h-11" onClick={() => void go()} disabled={busy || !ready}>{busy ? "switching" : charge !== null ? `pay ${money(charge)} and switch` : "switch plan"}</Button>
+          <Button variant="primary" className={cx("mt-4 w-full !h-11", busy && BUSY)} onClick={() => void go()} disabled={busy} aria-busy={busy}>{busy ? <Working>switching</Working> : charge !== null ? `pay ${money(charge)} and switch` : "switch plan"}</Button>
         </div>
       }
     >
@@ -241,7 +245,7 @@ export function LicenseSheet({ start, source, onClose, onNothingLeft }: { source
   const [sel, setSel] = useState<Selection>(() => ({ ...(owned ?? { desktop: "none", size: null, region: catalog?.regions[0]?.id ?? "" }), license: start.license, members: start.members, interval: owned?.interval ?? "month" }));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { cart, ready, error: quoteError } = useCart(sel, catalog);
+  const { cart, error: quoteError } = useCart(sel, catalog);
   const { charge, apply } = useChangeCharge(sel);
   if (!catalog) return null;
   const set = (patch: Partial<Selection>) => { setSel((s) => ({ ...s, ...patch })); setError(null); };
@@ -271,7 +275,7 @@ export function LicenseSheet({ start, source, onClose, onNothingLeft }: { source
           <p className="num mt-0.5 text-end text-13 text-ink-4">{cart?.free ? "nothing to pay" : sel.interval === "year" ? "billed yearly, + tax where applicable" : "billed monthly, + tax where applicable"}</p>
           {charge !== null && <ChargeLine charge={charge} cart={cart} interval={sel.interval} from={billing?.subscription?.currentPeriodEnd} />}
           {(error ?? quoteError) && <p role="alert" className="mt-3 text-13 text-bad">{error ?? quoteError}</p>}
-          <Button variant="primary" className="mt-4 w-full !h-11" onClick={() => void go()} disabled={busy || !ready || unchanged}>{busy ? (owned ? "updating" : "opening checkout") : charge !== null ? `pay ${money(charge)} and update` : owned ? (sel.license === "personal" ? "remove license" : "update license") : sel.license === "personal" ? "personal use is free" : `buy ${lic?.name} license`}</Button>
+          <Button variant="primary" className={cx("mt-4 w-full !h-11", busy && BUSY)} onClick={() => void go()} disabled={busy || unchanged} aria-busy={busy}>{busy ? <Working>{owned ? "updating" : "opening checkout"}</Working> : charge !== null ? `pay ${money(charge)} and update` : owned ? (sel.license === "personal" ? "remove license" : "update license") : sel.license === "personal" ? "personal use is free" : `buy ${lic?.name} license`}</Button>
         </div>
       }
     >
