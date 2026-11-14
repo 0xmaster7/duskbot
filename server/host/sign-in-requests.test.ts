@@ -119,6 +119,33 @@ describe("one ask per site per task", () => {
   });
 });
 
+describe("one ask on screen, whatever the bot wrote", () => {
+  it("turns the bot's own line that only asked into the card, and trims the ask out of a line with news", async () => {
+    const run = harness();
+    run.person("post my notes on pastebin");
+    const say = (text: string) => run.messages.push({ id: `t${run.messages.length + 1}`, at: 0, role: "bot", kind: "text", text } as Message);
+    say("Pastebin is showing a Cloudflare check. I drafted the paste with your notes, 214 lines.");
+    say("Please complete this check on the cloud computer. I'll carry on from there.");
+    const made = await run.requestSignIn(bot, "t1", "pastebin.com", "", true, "the person asked for pastebin");
+    const texts = run.messages.filter((message) => message.kind === "text" && message.role === "bot").map((message) => message.text);
+    expect(texts).toEqual(["I drafted the paste with your notes, 214 lines."]);
+    const cards = run.messages.filter((message) => message.kind === "signin");
+    expect(cards).toHaveLength(1);
+    expect(cards[0]!.id).toBe("t3");
+    expect(made).toMatchObject({ messageId: "t3", site: "pastebin.com" });
+    expect(cards[0]!.text).toMatch(/^pastebin\.com wants a quick human check/);
+    expect(run.pleas[0]!.ref).toMatchObject({ messageId: "t3", check: true });
+  });
+
+  it("leaves the bot's lines from before the person's latest message alone", async () => {
+    const run = harness();
+    run.messages.push({ id: "old", at: 0, role: "bot", kind: "text", text: "Please complete the captcha on the cloud computer." } as Message);
+    run.person("try again");
+    await run.requestSignIn(bot, "t1", "pastebin.com", "", true, "none fits");
+    expect(run.messages.find((message) => message.id === "old")!.kind).toBe("text");
+  });
+});
+
 describe("a human check card", () => {
   it("says what to do in one line, drops the bot's reason, marks the plea a check and starts watching the page", async () => {
     const run = harness();

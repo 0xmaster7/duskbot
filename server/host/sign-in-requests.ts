@@ -6,6 +6,7 @@ import { isPendingSignInRequest, normalizeSignInSite } from "../../shared/sign-i
 import type { ComputerControl } from "../computer-control.ts";
 import { humanCheckCardText, signInCardText } from "../connector-card-text.ts";
 import type { BotRecord, GroupRecord, Message, Store } from "../store.ts";
+import { withoutCheckAsk } from "./check-ask-filter.ts";
 import { otherRoutesHint, type LadderResult } from "./site-block-ladder.ts";
 
 export interface CheckRef { botId: string; threadId: string; site: string; place: Surface }
@@ -52,14 +53,18 @@ export function createSignInRequests(deps: SignInRequestDeps) {
 
   function postCard(from: BotRecord, threadId: string, owner: { group: GroupRecord | undefined }, target: { url: string; site: string }, place: Surface, reason: string, check: boolean): SignInCard {
     const language = deps.threadLanguage(threadId);
-    // Appends the new card first, so a failed append leaves the older one actionable.
-    const message = deps.store.appendMessage(threadId, {
-      role: "bot",
-      kind: "signin",
+    const card = {
+      role: "bot" as const,
+      kind: "signin" as const,
       text: check ? humanCheckCardText(from.name, target.site, language) : signInCardText(from.name, target.site, language),
       ...(owner.group ? { from: { botId: from.id, name: from.name, color: from.color } } : {}),
       signIn: { url: target.url, site: target.site, place, ...(reason ? { reason } : {}), ...(check ? { check: true as const } : {}) },
-    });
+    };
+    // a check's ask is the card's alone: the bot's own lines this turn that only said it go, and one that said nothing
+    // else becomes the card, so the person sees one ask
+    const merged = check ? mergeCheckAsk(threadId, from, owner) : null;
+    // Appends the new card first, so a failed append leaves the older one actionable.
+    const message = (merged && deps.store.patchMessage(threadId, merged.id, card)) || deps.store.appendMessage(threadId, card);
     for (const prior of deps.store.activePath(threadId)) {
       if (prior.id === message.id || !prior.signIn || !isPendingSignInRequest(prior, target.site, from.id, Boolean(owner.group))) continue;
       deps.store.patchMessage(threadId, prior.id, { signIn: { ...prior.signIn, superseded: true } }); deps.followCard(threadId, prior.id, message.id);
@@ -70,6 +75,24 @@ export function createSignInRequests(deps: SignInRequestDeps) {
       check ? { ...ref, check: true } : ref);
     if (check) deps.watchCheck?.(ref);
     return { messageId: message.id, site: target.site, place };
+  }
+
+  /** The bot's text since the person's latest message and its own latest card; the newest one that only asked, if any. */
+  function mergeCheckAsk(threadId: string, from: BotRecord, owner: { group: GroupRecord | undefined }): Message | null {
+    const said: Message[] = [];
+    for (const message of [...currentTask(deps.store.activePath(threadId))].reverse()) {
+      if (message.kind === "signin") break;
+      if (message.role === "bot" && message.kind === "text" && typeof message.text === "string" && !message.attachments?.length &&
+        (!owner.group || message.from?.botId === from.id)) said.push(message);
+    }
+    let onlyAsked: Message | null = null;
+    for (const message of said) {
+      const kept = withoutCheckAsk(message.text!);
+      if (kept === message.text!.trim()) continue;
+      if (kept) deps.store.patchMessage(threadId, message.id, { text: kept });
+      else onlyAsked ??= message;
+    }
+    return onlyAsked;
   }
 
   /** The order for a check: one ask per site per task, dusk bot's own recovery, other routes, and only then the card. */

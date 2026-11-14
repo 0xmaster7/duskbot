@@ -444,6 +444,10 @@ import { createDesktopLogin, DESKTOP_FILL_BUSY } from "./host/desktop-login.ts";
 import { createSignInRequests } from "./host/sign-in-requests.ts";
 import { createHumanCheckWatch, readHumanCheckPage, reloadHumanCheckPage } from "./host/human-check-watch.ts";
 import { runSiteBlockLadder } from "./host/site-block-ladder.ts";
+import { pendingCheckCard, withoutCheckAsk } from "./host/check-ask-filter.ts";
+import { createHomeEgressLink, runHomeEgress } from "./home-egress-link.ts";
+import { browserEgress } from "./browser/egress/registry.ts";
+import { createHomeEgressLinkRoutes } from "./routes/home-egress-link.ts";
 import { boxBrowserRoute, browserCallComputerResource, ownBoxBrowser } from "./box-browser-route.ts";
 import { BotLogins, cardLoginPlace, cardSignInElsewhere, observeSignInPage, type ObservedPage } from "./bot-logins.ts";
 import { relayFrame } from "./browser-relay.ts";
@@ -6797,8 +6801,11 @@ bus.subscribe((event: RuntimeEvent) => {
     // a room member's "(pass)" is its choice to stay quiet, never a line in the room
     if (group && isPassText(spoken.text) && spoken.text.trim()) return;
     const voiced = cleanBotVoice(spoken.text, (speaker ?? bot)?.name); if (voiced.taggedLine && turnId && group && !personTaggedTurns.has(`${event.threadId}:${turnId}`)) personTaggedTurns.set(`${event.threadId}:${turnId}`, voiced.taggedLine);
-    for (const bubble of replyBubbles(voiced.text)) pushMessage({ role: "bot", kind: "text", text: bubble, turnId });
-    lastReply.set(event.threadId, voiced.text);
+    // while a human-check card waits, it is the only ask: lines that only say it again never reach the chat
+    const shown = pendingCheckCard(store.activePath(event.threadId), speaker?.botId ?? bot?.id) ? withoutCheckAsk(voiced.text) : voiced.text;
+    if (!shown.trim()) return;
+    for (const bubble of replyBubbles(shown)) pushMessage({ role: "bot", kind: "text", text: bubble, turnId });
+    lastReply.set(event.threadId, shown);
   };
   const landParkedFiles = (stopped: boolean) => {
     const key = turnAttachmentKey(event.threadId, event.turnId);
@@ -9921,10 +9928,18 @@ ROUTES.push(appTriggers.routes); ROUTES.unshift(createMoveFreezeRoutes({ freeze:
 ROUTES.push(createLimitResetRoutes({ clock: limitClock, routines: routines!, requests: routineRequests, engineName, threadEngine: (botId, threadId) => turnSelection(botId, threadId)?.instanceId,
   threadTitle: (botId, threadId) => store.bot(botId) && !store.bot(botId)!.hidden ? store.taskByThread(botId, threadId)?.title ?? null : null,
   created: (id, auth) => cloudRoutineAuthors?.wrote(id, auth.kind === "session" ? actorKey(auth) : CLOUD_NOBODY_KEY) }));
-const computerEgress = createComputerEgress({ enabled: () => cfg.vps?.routeThroughComputer !== false, blockedSitesEnabled: () => cfg.vps?.routeBlockedSites !== false, log: (line) => console.warn(line),
+// a dusk cloud home routes only the sites that block it through the person's connection, never all of its traffic
+const computerEgress = createComputerEgress({ enabled: () => !CLOUD_HOME && cfg.vps?.routeThroughComputer !== false, blockedSitesEnabled: () => cfg.vps?.routeBlockedSites !== false, log: (line) => console.warn(line),
   docker: () => (isThisServerVps(vpsSshAlias(cfg)) ? (args, timeoutMs) => vps.defaultRunner(args, { timeoutMs }) : null) });
 ROUTES.push(createScreenTransportAgentRoutes({ stats: () => screenDirect.stats() })); ROUTES.push(createComputerEgressRoutes({ egress: computerEgress, setEnabled: (enabled) => { saveConfig({ vps: { routeThroughComputer: enabled } }); Object.assign(cfg, loadConfig()); },
-  setBlockedSites: (enabled) => { saveConfig({ vps: { routeBlockedSites: enabled } }); Object.assign(cfg, loadConfig()); } })); const mobileLink = createMobileLink({ dataDir: DATA_DIR, sessions, workspace: () => ({ name: cfg.computerName || environmentDescriptor({ environmentId: ENVIRONMENT_ID, ...TEAM_LABEL, desktopManaged: DESKTOP_MANAGED }).label, environmentId: ENVIRONMENT_ID, kind: DESKTOP_MANAGED ? "mac" : "server" }), publicOrigin: () => (publicUrl()?.startsWith("https://") ? publicUrl() : null), refusal: () => (CLOUD_HOME ? "Phones sign in to this workspace through its own sign-in." : null), lookupRelay: mobileLookupRelay(), isRead: (id) => recentNotificationLog(200).some((entry) => entry.id === id && entry.read) }); ROUTES.push(async (ctx) => ((await mobileLink.route(ctx)) ? undefined : PASS));
+  setBlockedSites: (enabled) => { saveConfig({ vps: { routeBlockedSites: enabled } }); Object.assign(cfg, loadConfig()); } }));
+// a cloud home has no link agent: the app's own link carries its connections (server/home-egress-link.ts)
+const homeEgressLink = CLOUD_HOME ? createHomeEgressLink({ log: (line) => console.warn(line) }) : null;
+if (homeEgressLink) {
+  runHomeEgress({ link: homeEgressLink, report: (value) => computerEgress.report(value), log: (line) => console.warn(line) });
+  browserEgress.routeThrough((target) => (homeEgressLink.online() && computerEgress.routesHome(target.host) ? homeEgressLink.open(target.host, target.port) : null));
+}
+ROUTES.push(createHomeEgressLinkRoutes({ link: homeEgressLink, upgrades })); const mobileLink = createMobileLink({ dataDir: DATA_DIR, sessions, workspace: () => ({ name: cfg.computerName || environmentDescriptor({ environmentId: ENVIRONMENT_ID, ...TEAM_LABEL, desktopManaged: DESKTOP_MANAGED }).label, environmentId: ENVIRONMENT_ID, kind: DESKTOP_MANAGED ? "mac" : "server" }), publicOrigin: () => (publicUrl()?.startsWith("https://") ? publicUrl() : null), refusal: () => (CLOUD_HOME ? "Phones sign in to this workspace through its own sign-in." : null), lookupRelay: mobileLookupRelay(), isRead: (id) => recentNotificationLog(200).some((entry) => entry.id === id && entry.read) }); ROUTES.push(async (ctx) => ((await mobileLink.route(ctx)) ? undefined : PASS));
 
 let webhookIngress: WebhookIngress | null = null;
 let webhookIngressError: string | null = null;
@@ -12037,8 +12052,14 @@ const { requestSignIn } = createSignInRequests({ store, connectorThread, signInP
     return runSiteBlockLadder({
       read: () => readHumanCheckPage(at, checkPageDeps),
       reload: () => reloadHumanCheckPage(at, checkPageDeps),
-      // only a cloud computer's browser can leave through the person's connection (computer-egress.ts)
+      // a cloud computer's browser through its PAC (computer-egress.ts); the built-in browser through its gate, where the
+      // app's own link reaches this server (a dusk cloud home)
       ...(ref.place === "cloud" ? { homeRoute: () => computerEgress.routeSite(ref.site) } : {}),
+      ...(ref.place === "browser" && homeEgressLink ? { homeRoute: async () => {
+        if (!homeEgressLink.online() || !computerEgress.markBlocked(ref.site)) return false;
+        await browserEgress.dropSite(ref.site);
+        return true;
+      } } : {}),
     }, { quick });
   } });
 
