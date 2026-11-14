@@ -110,6 +110,24 @@ function Busy({ label, hint, seconds }: { label: string; hint?: string | null; s
   );
 }
 
+/** a device code: the code, one button that copies it and opens the site, and a quiet waiting line. */
+function CodeStep({ code, site, onOpen, cancel }: { code: string; site: string; onOpen: (() => void) | null; cancel: React.ReactNode }) {
+  const { state, copy } = useCopyFeedback(code);
+  return <>
+    <button type="button" onClick={copy} data-sign-in="code" aria-label={t("connect.copyCode")}
+      className="rounded-xl bg-composer px-4 py-1.5 font-mono text-[20px] font-medium tracking-[0.12em] text-ink transition-colors hover:bg-ink/[0.08] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none">{code}</button>
+    <button type="button" data-connect-copy="" onClick={() => { void copy(); onOpen?.(); }} className="ui-button ui-button-pill ui-button-primary min-h-9 gap-1.5 px-4 text-[14px]">
+      {state === "copied" ? <Check size={14} aria-hidden="true" /> : <ExternalLink size={14} aria-hidden="true" />}
+      {state === "copied" ? t("connect.codeCopiedPaste", { site }) : onOpen ? t("connect.copyAndOpen", { site }) : t("connect.copyCode")}
+    </button>
+    <div role="status" aria-live="polite" className="flex items-center gap-1 text-[13px] leading-[18px] text-ink-secondary">
+      <LoaderCircle size={13} aria-hidden="true" className="shrink-0 animate-spin motion-reduce:animate-none" />
+      <span className="pl-1">{t("connect.stage.waiting")}</span>
+      {cancel}
+    </div>
+  </>;
+}
+
 const linkText = (link: string) => {
   try {
     const url = new URL(link);
@@ -171,20 +189,7 @@ export function ConnectPanel({ flow, name, driverKind, onTrouble }: {
           </div>
         </>;
       } else if (state.code) {
-        body = <>
-          <p className="m-0 text-[13px] leading-[18px] text-ink-secondary">{t("connect.stage.enterCode", { site: state.link ? linkText(state.link) : site })}</p>
-          <div data-sign-in="code" className="flex items-center gap-2">
-            <span className="rounded-xl bg-composer px-4 py-1.5 font-mono text-[20px] font-medium tracking-[0.12em] text-ink">{state.code}</span>
-            <CopyButton text={state.code} label={t("connect.copyCode")} />
-          </div>
-          {state.link && (
-            <button type="button" onClick={() => void flow.openAgain()} className={SECONDARY}>
-              <ExternalLink size={13} aria-hidden="true" />{t("connect.openSite", { site })}
-            </button>
-          )}
-          <Busy label={t("connect.stage.waiting")} seconds={0} />
-          {cancel}
-        </>;
+        body = <CodeStep code={state.code} site={site} onOpen={state.link ? () => void flow.openAgain() : null} cancel={cancel} />;
       } else {
         body = <>
           <Busy label={t("connect.stage.waiting")} hint={state.opened ? t("connect.stage.waitingHint") : null} seconds={seconds} />

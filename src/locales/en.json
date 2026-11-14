@@ -3064,6 +3064,8 @@
   "connect.copyCode": "Copy code",
   "connect.copyLink": "Copy link",
   "connect.copied": "Copied",
+  "connect.copyAndOpen": "Copy code and open {site}",
+  "connect.codeCopiedPaste": "Copied. Paste it on {site}",
   "connect.trouble": "Having trouble?",
   "connect.timeout.waking": "Your cloud is taking too long to wake up. Try again in a minute.",
   "connect.timeout.preparing": "{name} didn't answer while getting ready. Try again.",
