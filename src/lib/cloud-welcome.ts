@@ -28,7 +28,20 @@ function store(key: string, value: string | null): void {
     else globalThis.localStorage?.removeItem(key);
   } catch {}
 }
+/** The query the desktop app adds when it opens the person's own Cloud: they met dusk bot on that computer, so the Cloud's
+ * own welcome ends before it shows (saved to the Cloud's record like one ended here). Only ever ends a welcome. */
+export const WELCOMED_QUERY = "welcomed";
+function welcomedByTheApp(): boolean {
+  try {
+    const url = new URL(globalThis.location.href);
+    if (url.searchParams.get(WELCOMED_QUERY) !== "1") return false;
+    url.searchParams.delete(WELCOMED_QUERY);
+    globalThis.history?.replaceState(globalThis.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    return true;
+  } catch { return false; }
+}
 const initial = (): Snapshot => {
+  if (welcomedByTheApp()) store(DONE_HERE, "1");
   const doneHere = stored(DONE_HERE) !== null;
   return { aside: false, ended: doneHere, early: doneHere ? [CLOUD_WELCOME_DONE] : [], requested: null, seen: false, doneHere };
 };

@@ -111,7 +111,7 @@ import { createCloudEntry } from "./cloud-entry.mjs";
 import { createOpenAtLogin, installOpenAtLogin } from "./open-at-login.mjs";
 import { createCleanWorkspace } from "./clean-workspace.mjs"; import { installOneHome } from "./one-home-main.mjs"; import { handSaved, installOwnHome } from "./own-home-main.mjs"; import { installVpsCloudMoveMain } from "./vps-cloud-move-main.mjs"; import { oneHomeCloud } from "./one-home-main.mjs"; import { newServerReach, serverOpens } from "./saved-server.mjs"; import { installTwoPlacesMain } from "./two-places-main.mjs"; import { installVpsLink, unlimitTunnelConnections } from "./vps-link-main.mjs"; import { installSealTrust } from "./seal-trust.mjs";
 import { askForMicrophone, openPrivacySettings } from "./privacy-settings.mjs"; import { installUserPresence } from "./user-presence.mjs";
-import { createHomeWindow, HOME_SCREEN_PATH, installHomeWindowIpc } from "./home-window.mjs";
+import { createHomeWindow, HOME_SCREEN_PATH, installHomeWindowIpc, WELCOMED_ROUTE } from "./home-window.mjs";
 import { settledActive } from "./workspace-choice.mjs"; import { createWorkspaceReconnect, installWorkspaceReconnectIpc, RECONNECT_PATH } from "./workspace-reconnect.mjs";
 import { createTeamProfileSeeds } from "./team-profile-seed.mjs";
 import { createHomePlaces } from "./home-places.mjs"; import { createDesktopRing, installAccounts } from "./accounts-main.mjs"; import { createAddedCloudNotice, installCloudRail, railPlaces } from "./cloud-rail.mjs"; import { createPlaceInboxWatch } from "./place-inbox-watch.mjs"; import { homeLook, otherOwnClouds, withoutOldCloudHome } from "./cloud-list.mjs"; import { installPlaceLook } from "./place-look.mjs"; import { CHROME_RAIL_PATH, createChromeRail } from "./chrome-rail.mjs";
@@ -2010,8 +2010,7 @@ async function connectCloudHome(open = null) {
   return client.state();
 }
 /** one welcome only: the person met dusk bot here, so My Cloud opens on its chat, not on a second welcome. Once the window
- * shows the cloud (a new one can take minutes to load the first time), its own session marks it once; a page still on
- * that welcome is loaded again. */
+ * shows the cloud (a new one can take minutes to load the first time), its own session marks the record once. */
 const welcomedClouds = new Set();
 async function welcomedOnCloud() {
   const origin = homeWindow.cloudOrigin() ?? cloudAccount?.homeTarget()?.origin ?? null;
@@ -2024,8 +2023,12 @@ async function welcomedOnCloud() {
   }
   const changed = await carryWelcomeToCloud({ origin, fetch: (...args) => session.defaultSession.fetch(...args),
     local: async () => { const response = await localServerRequest("/api/config", { signal: AbortSignal.timeout(10_000) }); return response.ok ? response.json() : null; }, log: slog });
+  // the page itself ends its welcome before it shows (home-window.mjs WELCOMED_ROUTE); this also carries the first run as met,
+  // and loads again a page from an older cloud that still shows the welcome
   slog(`cloud welcome: ${changed ? "marked done here" : "nothing to mark"}`);
-  if (changed && showsCloud()) mainWindow.webContents.reload();
+  if (!changed || !showsCloud()) return;
+  const still = await mainWindow.webContents.executeJavaScript(`Boolean(document.querySelector("[data-welcome-action]"))`).catch(() => false);
+  if (still && showsCloud()) mainWindow.webContents.reload();
 }
 
 /** My Cloud listed under Servers once, and the server this window shows: the purchase that made it is over. */
@@ -2917,7 +2920,7 @@ trailMain = installTrailMain({ ipcMain, app, dialog, shell, powerMonitor, Browse
   linkPath: event => { const origin = activePageOrigin(event); return origin ? vpsLink.pathAt(origin) : null; } });
 // Teams from the verified session as places this window shows (home-places.mjs): the one to open next time, and its lines.
 const homePlaces = createHomePlaces({ store: jsonFile(path.join(app.getPath("userData"), "home-place.json")), environments: () => environmentsState, persist: persistEnvironments, makeId: randomUUID, homeOrigin: myCloud, log: slog });
-const homeWindow = createHomeWindow({ clean: cleanWorkspace, journal: () => oneHome.journal() ?? vpsCloudMove?.homeJournal() ?? null, frozen: oneHome.marker, account: () => (accountApp() ? cloudAccount : null), restored: cloudAccountRestored,
+const homeWindow = createHomeWindow({ cloudRoute: WELCOMED_ROUTE, clean: cleanWorkspace, journal: () => oneHome.journal() ?? vpsCloudMove?.homeJournal() ?? null, frozen: oneHome.marker, account: () => (accountApp() ? cloudAccount : null), restored: cloudAccountRestored,
   window: () => (mainWindow && !mainWindow.isDestroyed() ? mainWindow : null), ensureWindow: () => { if (!mainWindow || mainWindow.isDestroyed()) createWindow({ deferNavigation: true }); },
   localOrigin: rendererOrigin, cookieFetch: (...args) => session.defaultSession.fetch(...args), power: cloudPower, splash: () => startupScreen, lastInput: oneHome.lastInput, rehomed: () => talk.homeChanged(), log: slog,
   hosts: () => session.defaultSession, readyStore: jsonFile(path.join(app.getPath("userData"), "cloud-ready.json")), ownMove: () => ownHome?.underWay() ?? null, lastSeen: createLastSeenStore({ file: path.join(app.getPath("userData"), "cloud-last-seen.bin"), encryption: cloudEncryption }),

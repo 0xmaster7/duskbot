@@ -137,3 +137,36 @@ describe("the welcome's progress", () => {
     expect((await read()).doneHere).toBe(false);
   });
 });
+
+describe("one welcome only", () => {
+  afterEach(() => { vi.unstubAllGlobals(); resetCloudWelcome(); });
+
+  it("a Cloud opened by the desktop app (?welcomed=1) ends its welcome before it shows, keeps it until saved, and cleans the address", async () => {
+    const stored = new Map<string, string>();
+    vi.stubGlobal("localStorage", { getItem: (key: string) => stored.get(key) ?? null, setItem: (key: string, value: string) => { stored.set(key, value); }, removeItem: (key: string) => { stored.delete(key); } });
+    const replaceState = vi.fn();
+    vi.stubGlobal("location", { href: "https://c1.dusk.test/?welcomed=1&x=2#t" });
+    vi.stubGlobal("history", { state: null, replaceState });
+    resetCloudWelcome();
+    const { createElement } = await import("react");
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    let welcome: ReturnType<typeof useCloudWelcome> | null = null;
+    function Probe() { welcome = useCloudWelcome(); return null; }
+    renderToStaticMarkup(createElement(Probe));
+    expect(welcome!.ended).toBe(true);
+    expect(welcome!.early).toContain(CLOUD_WELCOME_DONE);
+    expect(stored.get("dusk.cloudWelcome.done"), "kept here until the Cloud's record has it").toBe("1");
+    expect(replaceState).toHaveBeenCalledWith(null, "", "/?x=2#t");
+    const facts = { viewer: { canSave: true, cloudHome: true }, connected: true, enginesKnown: true, onboarding: EMPTY_ONBOARDING };
+    expect(cloudWelcomeVisible(facts, welcome!)).toBe(false);
+  });
+
+  it("an address without it changes nothing", async () => {
+    vi.stubGlobal("localStorage", { getItem: () => null, setItem: vi.fn(), removeItem: vi.fn() });
+    const replaceState = vi.fn();
+    vi.stubGlobal("location", { href: "https://c1.dusk.test/?x=2" });
+    vi.stubGlobal("history", { state: null, replaceState });
+    resetCloudWelcome();
+    expect(replaceState).not.toHaveBeenCalled();
+  });
+});

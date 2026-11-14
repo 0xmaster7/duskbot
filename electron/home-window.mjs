@@ -14,6 +14,9 @@ import { asleepAnswer, BACKGROUND_HEADERS, openSleepingCloud, SIGNED_IN_MS } fro
 import { awayIn, parseJournal } from "./one-home.mjs";
 
 export const HOME_SCREEN_PATH = "/home";
+/** My Cloud opened from this computer, where the person met dusk bot: the Cloud's own welcome ends before it shows
+ * (src/lib/cloud-welcome.ts WELCOMED_QUERY). One welcome only. */
+export const WELCOMED_ROUTE = "/?welcomed=1";
 /** The look at an awake My Cloud before the window moves there: under 3 s, so the offline screen shows within 3 s. */
 export const LOOK_MS = 2_500;
 /** A place whose page hasn't loaded this long after the window went there (it answered the look, then nothing) is the
@@ -234,7 +237,9 @@ export function createHomeWindow(deps) {
   const { journal, frozen, account, restored = async () => {}, window, ensureWindow, localOrigin, cookieFetch, power, go, showLocal, clean = null,
     remembered = () => null, remember = () => {}, left = () => {}, drop = (place) => { if (place.kind === "team") left(place.name); remember(null); },
     splash = () => null, lastInput = () => 0, publish = () => {}, rehomed = () => {}, versionEveryMs = VERSION_EVERY_MS, quietMs = QUIET_MS,
-    now = Date.now, timers = DEFAULT_TIMERS, hosts = () => null, readyStore = null, ownMove = () => null, lastSeen = null, log = () => {} } = deps;
+    now = Date.now, timers = DEFAULT_TIMERS, hosts = () => null, readyStore = null, ownMove = () => null, lastSeen = null, log = () => {},
+    /** where My Cloud opens (a path of its own, e.g. WELCOMED_ROUTE), or null for its home page */
+    cloudRoute = null } = deps;
   let home = { kind: "computer" }, screen = null, status = null, opens = 0, retry = null, tries = 0, loaded = null, newer = false, repairing = null;
   /** My Cloud asked for before the move made it home (`{ open }`), until its page loads or the person goes elsewhere;
    * `naming`: since when, and how often, a brand-new My Cloud's name was not found. */
@@ -502,7 +507,7 @@ export function createHomeWindow(deps) {
       screen = null; status = null; tries = 0; away = asHome; shown = asHome ? place : null;
       // A page that never finishes loading is the offline screen after OPEN_MS, which looks again by itself and has Try again.
       let slow = null;
-      const loaded = await Promise.race([Promise.resolve(go(cloudHomeConnectUrl({ origin, grant }, now(), open === "phone" ? "phone" : null), origin, place)).then(() => true, () => true),
+      const loaded = await Promise.race([Promise.resolve(go(cloudHomeConnectUrl({ origin, grant }, now(), open === "phone" ? "phone" : null, place.kind === "cloud" && open !== "phone" ? cloudRoute : null), origin, place)).then(() => true, () => true),
         new Promise((done) => { slow = timers.set(() => done(false), OPEN_MS); })]);
       timers.clear(slow);
       if (!loaded) { log(`home: ${otherPlace(place) ? place.name : "My Cloud"} didn't load in ${OPEN_MS / 1000} s`); return offline(token); }

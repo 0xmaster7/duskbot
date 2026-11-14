@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { cloudScreen, HOME_SCREEN_PATH, installHomeWindowIpc, OPEN_MS } from "./home-window.mjs";
+import { cloudScreen, HOME_SCREEN_PATH, installHomeWindowIpc, OPEN_MS, WELCOMED_ROUTE } from "./home-window.mjs";
 import { CLIENT, CLIENT_A, CLOUD, connected, LOCAL, world } from "./fixtures/home-window-world.mjs";
 
 const ENDED_HOME = { ...CLIENT_A, id: "c-home", name: "My Cloud", color: null, origin: CLOUD, primary: true, status: "ended", deleteAfter: 1_900_000_000_000, removable: true };
@@ -159,4 +159,13 @@ test("Sign in never dead-ends: another account's sign-in ends first, then the br
   const opening = world({ state: { status: "connecting", account: null } });
   await opening.home.signIn();
   assert.deepEqual(opening.signIns, ["reopen"]);
+});
+
+test("one welcome only: My Cloud opened from this computer goes to the route that ends its own welcome; the phone pairing keeps its page", async () => {
+  const w = world({ deps: { cloudRoute: WELCOMED_ROUTE } });
+  await w.home.openCloud();
+  assert.equal(w.went.at(-1)?.[0], `${CLOUD}${WELCOMED_ROUTE}`);
+  const phone = world({ deps: { cloudRoute: WELCOMED_ROUTE } });
+  await phone.home.openCloud("phone");
+  assert.equal(phone.went.at(-1)?.[0], `${CLOUD}/?desktop-settings=phone`, "the phone pairing keeps its own page");
 });
