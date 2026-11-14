@@ -62,10 +62,20 @@ interface SavedBot { id: string; name: string; toolScope?: { allow?: string[]; d
         input.dispatchEvent(new Event('input', { bubbles: true })); return true;
       })()`);
     };
+    // the settings sheet stays over the page until closed: Escape steps back out of its pages, then closes it
+    const closeSheet = async () => {
+      for (let step = 0; step < 4 && await evaluate("Boolean(document.querySelector('[data-settings-sheet]'))"); step++) {
+        await ui("press", "--keys", "Escape");
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
+      await expect.poll(() => evaluate("Boolean(document.querySelector('[data-settings-sheet]'))"), { timeout: 10_000 }).toBe(false);
+    };
     const scope = async (id = first.id) => (await bots()).find(bot => bot.id === id)?.toolScope;
     // Settings open the bot's panel; Advanced > Tools opens its settings at Tools.
     await selectBot(first.name); await click("Open settings"); await openBotSheet(ui, first.name, "tools");
-    expect(await snapshot()).toContain("All current tools");
+    // the Tools page's select names the choice; its status line belongs to the custom selection's own page
+    expect(await snapshot()).toContain('combobox "Tool selection" [expanded=false, ref=');
+    expect(await snapshot()).toMatch(/combobox "Tool selection"[^\n]*: All tools/);
     await mode("custom");
     await fill("Allow (one per line)", "native:*\nmcp:mail:read_notes");
     await fill("Exclude (one per line)", "mcp:mail:send");
@@ -78,7 +88,7 @@ interface SavedBot { id: string; name: string; toolScope?: { allow?: string[]; d
     expect(await evaluate("document.querySelector('button[aria-label=\"Save tool selection\"]')?.disabled")).toBe(true);
     expect(await scope()).toEqual(selected);
     await fill("Allow (one per line)", "");
-    expect(await snapshot()).toContain("An empty Allow list selects no tools");
+    expect(await snapshot()).toContain("An empty allow list selects no tools");
     expect(await snapshot()).toContain("This AI cannot limit native tools");
     await click("Save tool selection");
     await expect.poll(() => scope()).toEqual({ allow: [], deny: ["mcp:mail:send"] });
@@ -117,9 +127,11 @@ interface SavedBot { id: string; name: string; toolScope?: { allow?: string[]; d
     })()`);
     await fill("Allow (one per line)", ""); await click("Save tool selection");
     await expect.poll(snapshot).toContain("Saving tool selection…");
+    // the settings sheet stays over the app until it is closed; a person closes it before going to another bot
+    await closeSheet();
     await selectBot(second.name);
     await click("Open settings"); await openBotSheet(ui, second.name, "tools");
-    await expect.poll(snapshot).toContain("All current tools");
+    await expect.poll(snapshot).toMatch(/combobox "Tool selection"[^\n]*: All tools/);
     await evaluate("window.rejectSelection(); true");
     expect(await snapshot()).not.toContain("Late first-bot error");
     expect(await scope(second.id)).toBeUndefined();
@@ -138,6 +150,7 @@ interface SavedBot { id: string; name: string; toolScope?: { allow?: string[]; d
         } return fetch(input, init);
       }; return true;
     })()`);
+    await closeSheet();
     await click("Duplicate selected bot");
     await expect.poll(() => evaluate("window.scopeAtCreation")).toEqual({ allow: ["native:*"], deny: [] });
     expect(await evaluate("window.duplicateCreation.settings.toolScope")).toEqual({ allow: ["native:*"], deny: [] });
