@@ -153,7 +153,7 @@ export function ConnectPanel({ flow, name, driverKind, onTrouble }: {
   const since = "since" in state ? state.since : null;
   const seconds = useSeconds(since);
   const site = siteName(driverKind) || name;
-  const cancel = <button type="button" onClick={flow.cancel} className={QUIET} data-connect-cancel="">{t("common.cancel")}</button>;
+  const cancel = <button type="button" onClick={flow.cancel} className={SECONDARY} data-connect-cancel="">{t("common.cancel")}</button>;
 
   let body: React.ReactNode;
   switch (state.stage) {

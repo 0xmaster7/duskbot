@@ -141,7 +141,7 @@ export function AiCards({ onMore, className, start, onConnected }: { tested: Wel
       </div>
       {chosen && (
         <div key={chosen.id} data-funnel-ai-connect={chosen.id} className="place-reveal mt-5 flex w-full flex-col items-center">
-          <Connect tile={chosen} flow={flow} />
+          <Connect tile={chosen} flow={{ ...flow, cancel: () => { flow.cancel(); setPicked(null); } }} />
         </div>
       )}
       {onMore && (
