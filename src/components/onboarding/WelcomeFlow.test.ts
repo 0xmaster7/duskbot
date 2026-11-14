@@ -280,8 +280,8 @@ describe("on the desktop app", () => {
     await choose("[data-funnel-place=mac]");
     const sheet = macSheet()!;
     expect(sheet.getAttribute("role")).toBe("dialog");
-    expect(sheet.textContent).toContain("Close the lid and routines pause");
-    expect(sheet.textContent).toContain("Always on, even while your Mac sleeps");
+    expect(sheet.textContent).toContain("they stop when it sleeps or the lid is shut");
+    expect(sheet.textContent).toContain("dusk cloud runs your bots 24/7");
     expect(sheet.querySelector("[data-mac-pick-price]")?.textContent).toBe("Free for 7 days, then from $15/month + tax.");
     expect(sheet.textContent, "no dash anywhere").not.toMatch(/\u2014/);
     expect(document.querySelector("[data-mac-pick=cloud]")?.textContent).toBe("Use dusk cloud");
