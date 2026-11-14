@@ -7,7 +7,8 @@ import { createFlow, flowArgs, runFlow, sleep } from "./lib.mjs";
 import { createVm, leftoverVms, removeVm } from "./instabox-vm.mjs";
 
 const { root, out, profile, email, stamp, flag } = flowArgs("srv");
-const flow = createFlow({ name: "add-server", title: "add your own server", root, out, profile, email });
+// the app works signed out now; this flow starts from a signed-in account, at the sign-in an install can still require
+const flow = createFlow({ name: "add-server", title: "add your own server", root, out, profile, email, env: { DUSK_REQUIRE_ACCOUNT: "1" } });
 const view = () => flow.evaluate(`window.duskDesktop?.vpsLink?.state()`);
 const screen = () => flow.evaluate(`document.querySelector("[data-vps-screen]")?.getAttribute("data-vps-screen") ?? null`);
 let vm = null;

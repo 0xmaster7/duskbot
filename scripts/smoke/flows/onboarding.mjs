@@ -13,7 +13,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { until } from "../app.mjs";
-import { smokeAccount } from "../account.mjs";
+import { smokeAccount, testMailCode } from "../account.mjs";
 import { payDodoTestCheckout } from "../dodo-test-pay.mjs";
 import { launchBrowser } from "./browser.mjs";
 import { createFlow, flowArgs, runFlow, sleep } from "./lib.mjs";
@@ -21,7 +21,10 @@ import { createFlow, flowArgs, runFlow, sleep } from "./lib.mjs";
 const { option, flag, root, out, profile, email } = flowArgs("onb");
 const path = option("--path", "mac");
 if (!["mac", "cloud", "server"].includes(path)) throw new Error("--path is mac, cloud or server");
-const flow = createFlow({ name: `onboarding-${path}`, title: `onboarding (${path === "mac" ? "this Mac" : path === "cloud" ? "dusk cloud" : "own server"})`, root, out, profile, email });
+// signed out, as the installed app starts now; --gate starts at the sign-in an install can still require (DUSK_REQUIRE_ACCOUNT)
+const gate = flag("--gate");
+const flow = createFlow({ name: `onboarding-${path}`, title: `onboarding (${path === "mac" ? "this Mac" : path === "cloud" ? "dusk cloud" : "own server"}, ${gate ? "signed in at the gate" : "signed out"})`,
+  root, out, profile, email, env: gate ? { DUSK_REQUIRE_ACCOUNT: "1" } : {} });
 
 /** the app's main window sizes (electron/window-state.cjs): the default and the smallest it can be */
 const SIZES = [["normal", 1040, 760], ["min", 768, 520]];
@@ -81,9 +84,14 @@ async function firstReply(where) {
 
 await runFlow(flow, async () => {
   const funnelStarted = { at: 0 };
-  await flow.step("launch", "a fresh app starts at the account gate", async () => {
+  await flow.step("launch", gate ? "a fresh app starts at the account gate" : "a fresh app starts on where the bots live, with no account", async () => {
     await flow.launch();
     await flow.viewport(SIZES[0][1], SIZES[0][2]);
+    if (!gate) {
+      await flow.waitText(/where should your bots live|meet dusk bot|sign in to dusk bot/i, "the first screen", { timeout: 120_000 });
+      if (/sign in to dusk bot/i.test(await flow.text())) throw new Error("the app asked for an account before anything else");
+      return `account: ${(await flow.accountState().catch(() => null))?.status ?? "none"}`;
+    }
     await flow.waitText(/sign in to dusk bot/i, "the account gate", { timeout: 120_000 });
     await shots("account-gate");
     const providers = await flow.evaluate(`[...document.querySelectorAll("button")].map((b) => b.innerText.trim()).filter((t) => /^continue with/i.test(t))`);
@@ -91,7 +99,7 @@ await runFlow(flow, async () => {
     return providers.join(", ");
   }, { critical: true });
 
-  await flow.step("sign-in", "signs in with an emailed code (sink address)", () => flow.signInAtGate(), { critical: true });
+  if (gate) await flow.step("sign-in", "signs in with an emailed code (sink address)", () => flow.signInAtGate(), { critical: true });
 
   await flow.step("place", "the first screen asks where the bots live", async () => {
     await flow.waitText(/meet dusk bot|where should your bots live/i, "the welcome", { timeout: 60_000 });
@@ -145,6 +153,24 @@ await runFlow(flow, async () => {
       const browser = await launchBrowser({ width: 1280, height: 860 });
       try {
         await browser.goto(handoff).catch(() => {});
+        // signed out, the app opened its browser sign-in: the website signs up with the emailed code (sink), the person
+        // approves this app, and the page goes on to the plans by itself
+        if (/\/cloud\/desktop/.test(handoff)) {
+          await until(() => browser.evaluate(`Boolean(document.querySelector("input[type=email]"))`), { timeout: 30_000, what: "the website's sign-in" });
+          await browser.screenshot(join(out, "browser-0-sign-up.png"));
+          await browser.evaluate(`document.querySelector("input[type=email]").focus(); true`);
+          await browser.send("Input.insertText", { text: email });
+          const asked = Date.now();
+          await browser.click("continue");
+          const code = await until(() => testMailCode(email, asked), { timeout: 60_000, every: 1_000, what: "the website's sign-in code" });
+          await until(() => browser.evaluate(`Boolean(document.querySelector("input[inputmode=numeric]"))`), { what: "the code field" });
+          await browser.evaluate(`document.querySelector("input[inputmode=numeric]").focus(); true`);
+          await browser.send("Input.insertText", { text: code });
+          await browser.evaluate(`document.querySelector("form")?.requestSubmit(); true`).catch(() => {});
+          await until(async () => /approve/i.test(await browser.text()), { timeout: 30_000, what: "the app's approval" });
+          await browser.screenshot(join(out, "browser-0-approve.png"));
+          await browser.click("approve");
+        }
         // a browser that isn't signed in yet confirms the account the app opened the page for
         const confirm = await until(async () => /continue as/i.test(await browser.text()) ? "confirm" : /\/billing/.test(await browser.url()) ? "billing" : false, { timeout: 30_000, what: "the handoff page" }).catch(() => null);
         if (confirm === "confirm") {
@@ -296,10 +322,11 @@ await runFlow(flow, async () => {
     return firstReply("this Mac");
   });
 
-  await flow.step("account-menu", "the account menu knows who is signed in", async () => {
+  await flow.step("account-menu", gate ? "the account menu knows who is signed in" : "nothing asked for an account on this Mac", async () => {
     const state = await flow.accountState();
-    if (state?.status !== "connected") throw new Error(`the app's account is ${state?.status}`);
-    flow.facts.account = { email: state.account?.email, plan: state.entitlement?.plan };
-    return `${state.account.email}, ${state.entitlement?.plan ?? "no"} plan`;
+    flow.facts.account = { status: state?.status, email: state?.account?.email, plan: state?.entitlement?.plan };
+    if (gate && state?.status !== "connected") throw new Error(`the app's account is ${state?.status}`);
+    if (!gate && state?.status === "connected") throw new Error("the app signed in although nothing needed an account");
+    return gate ? `${state.account.email}, ${state.entitlement?.plan ?? "no"} plan` : `account: ${state?.status ?? "none"}; the bots worked without one`;
   });
 });

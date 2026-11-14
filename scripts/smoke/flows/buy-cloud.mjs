@@ -9,7 +9,8 @@ import { createFlow, flowArgs, runFlow, sleep } from "./lib.mjs";
 import { payDodoTestCheckout } from "../dodo-test-pay.mjs";
 
 const { root, out, profile, email } = flowArgs("buy");
-const flow = createFlow({ name: "buy-cloud", title: "buy dusk cloud (test mode)", root, out, profile, email });
+// the app works signed out now; this flow starts from a signed-in account, at the sign-in an install can still require
+const flow = createFlow({ name: "buy-cloud", title: "buy dusk cloud (test mode)", root, out, profile, email, env: { DUSK_REQUIRE_ACCOUNT: "1" } });
 const headings = () => flow.evaluate(`[...document.querySelectorAll("h1,h2,[role=dialog] h2,[data-add-cloud-flow],[data-cloud-move]")].filter((e) => e.getClientRects().length)
   .map((e) => e.getAttribute("data-add-cloud-flow") ? "flow:" + e.getAttribute("data-add-cloud-flow") : e.getAttribute("data-cloud-move") ? "move:" + e.getAttribute("data-cloud-move") : e.innerText.trim()).join(" / ")`);
 const myCloud = () => flow.evaluate(`window.duskDesktop.cloudAccount.state().then((s) => (s.clouds ?? [])[0] ?? null)`);
