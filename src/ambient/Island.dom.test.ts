@@ -159,29 +159,44 @@ it("shows nothing with no bots: no notch face, no panel, no placeholder", async 
   await act(async () => root.unmount());
 });
 
-it("keeps sign-ins, human checks, passwords and other handoffs out of the island: no ask, no bubble, no compact mark", async () => {
+it("wakes for a sign-in too, with an Open button since it is settled in the app", async () => {
   let feed: (snapshot: AmbientSnapshot) => void = () => {};
   const bridge: AmbientBridge = {
     surface: "island", onState: (cb) => { feed = cb; return () => {}; }, onLayout: () => () => {}, pointer() {}, open() {}, act() {}, order() {}, ready() {},
   };
   const host = document.body.appendChild(document.createElement("div"));
   const root = createRoot(host);
-  await act(async () => root.render(createElement(Island, { bridge, forceOpen: true })));
-  await act(async () => feed({ lang: "en", labels: { waiting: "Waiting", "needs-you": "Needs you", openShort: "Open" }, bots: [
-    bot("Cinder", { status: "needs-you", waits: "sign-in", asks: 1, detail: "sign in to pastebin.com" }),
-    bot("Lark", { status: "needs-you", waits: "password", asks: 1, detail: "needs OpenAI key" }),
-    bot("Moss", { status: "needs-you", waits: "other", asks: 1, detail: "Action needed" }),
-    bot("Nova", { status: "needs-you", waits: "question", asks: 1, question: { requestId: "q1", threadId: "t-Nova", title: "Which branch?", choices: ["main", "dev"] } }),
+  await act(async () => root.render(createElement(Island, { bridge })));
+  await act(async () => feed({ lang: "en", labels: { waiting: "Waiting", "needs-you": "Needs you", openShort: "Open", wakeSignIn: "Needs you to sign in" }, bots: [
+    bot("Cinder", { status: "needs-you", waits: "sign-in", asks: 1, detail: "Sign in to pastebin.com" }),
   ] }));
   await act(async () => new Promise((resolve) => setTimeout(resolve, 650)));
-  expect([...host.querySelectorAll(".amb-ask")].map((ask) => ask.getAttribute("data-ask"))).toEqual(["Nova"]);
-  expect(host.textContent).not.toContain("pastebin");
-  const bubbles = [...host.querySelectorAll(".amb-strip [data-row]")].filter((cell) => cell.querySelector(".amb-bubble")).map((cell) => cell.getAttribute("data-row"));
-  expect(bubbles).toEqual(["Nova"]);
-  expect(host.querySelector(".amb-more")).toBeNull();
-  // a handoff never counts as waiting: the resting cell says when it was last active, not "Waiting"
-  const cinder = host.querySelector('.amb-strip [data-row="Cinder"]');
-  expect(cinder?.getAttribute("data-status")).toBe("idle");
-  expect(cinder?.querySelector(".amb-strip-state")?.textContent).not.toBe("Waiting");
+  const glyph = host.querySelector(".amb-emoji-glyph");
+  expect(glyph?.textContent).toBe("🔑");
+  expect(glyph?.getAttribute("aria-label")).toBe("Needs you to sign in");
+  expect(host.querySelector('.amb-ask[data-ask="Cinder"] .amb-choices button')?.textContent).toBe("Open");
+  await act(async () => root.unmount());
+});
+
+it("stays a bare notch while bots work or send quick replies, and wakes with a fitting emoji for what needs the person", async () => {
+  let feed: (snapshot: AmbientSnapshot) => void = () => {};
+  const bridge: AmbientBridge = {
+    surface: "island", onState: (cb) => { feed = cb; return () => {}; }, onLayout: () => () => {}, pointer() {}, open() {}, act() {}, order() {}, ready() {},
+  };
+  const host = document.body.appendChild(document.createElement("div"));
+  const root = createRoot(host);
+  await act(async () => root.render(createElement(Island, { bridge })));
+  const settle = () => act(async () => new Promise((resolve) => setTimeout(resolve, 700)));
+  const emoji = () => host.querySelector(".amb-emoji-glyph")?.textContent ?? null;
+  await act(async () => feed({ lang: "en", labels: {}, bots: [bot("Nova", { status: "working" }), bot("Rivet", { status: "talking" })] }));
+  await settle();
+  expect([emoji(), host.querySelector(".amb-compact-tile")]).toEqual([null, null]);
+  await act(async () => feed({ lang: "en", labels: {}, bots: [bot("Nova", { status: "done", unread: true, at: 5, ran: 20_000 }), bot("Rivet", { status: "talking" })] }));
+  await settle();
+  expect(emoji()).toBeNull();
+  await act(async () => feed({ lang: "en", labels: {}, bots: [bot("Nova", { status: "done", unread: true, at: 5, ran: 20_000 }), bot("Rivet", { status: "done", unread: true, at: 6, ran: 300_000 })] }));
+  await settle();
+  expect(emoji()).toBe("🎉");
+  expect(host.querySelector(".amb-compact-mark")?.getAttribute("data-moment")).toBe("celebrate");
   await act(async () => root.unmount());
 });

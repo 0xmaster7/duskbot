@@ -4,6 +4,7 @@
 import { pickDisplay } from "./ambient-geometry.mjs";
 import { watchStill } from "./ambient-still.mjs";
 import { createChatFiller } from "./ambient-chats.mjs";
+import { createTurnClock } from "./ambient-wake.mjs";
 import { createTrace, traceFolder, traceWanted } from "./ambient-trace.mjs";
 import { applyPrefsChange, parseAct, parsePrefs, parseSnapshot, seenKeys } from "./ambient-state.mjs";
 import { createDockWindow } from "./dock-window.mjs";
@@ -91,6 +92,7 @@ export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, ope
     return response.json();
   });
   const chats = createChatFiller({ read, onChange: () => tellAll() });
+  const clock = createTurnClock();
 
   function tellAll() {
     const shown = chats.fill(snapshot);
@@ -163,9 +165,9 @@ export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, ope
     if (!next) return;
     watchPage(event.sender);
     const hadBots = hasBots();
-    snapshot = next;
+    snapshot = clock(next);
     try { from = new URL(event.senderFrame?.url ?? event.sender.getURL()).origin; } catch { from = null; }
-    chats.want(next, from);
+    chats.want(snapshot, from);
     if (hadBots !== hasBots() || (next.bots.length !== dockCount && saved().dock)) relayout(hadBots !== hasBots() ? "bots arrived or left" : "bot count");
     else tellAll();
   });

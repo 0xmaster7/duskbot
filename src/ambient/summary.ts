@@ -115,6 +115,13 @@ function askLine(wait: PersonWait): string {
   return "";
 }
 
+/** The newest turn was started by a routine: its run card is the newest thing, or the newest person row is its start. */
+export function fromRoutine(visible: readonly Message[]): boolean {
+  const newest = visible.at(-1);
+  if (newest?.kind === "routine.run") return true;
+  return Boolean(visible.findLast((message) => message.role === "user")?.routineStart);
+}
+
 export function ambientBot(bot: Bot, instances: InstanceInfo[], turnLive: (threadId: string) => TurnLive, viewed = 0): AmbientBot {
   const visible = sidebarPreviewMessages(bot);
   const approvals = pendingApprovals(visible);
@@ -152,6 +159,8 @@ export function ambientBot(bot: Bot, instances: InstanceInfo[], turnLive: (threa
       ? { requestId: question.card.requestId!, threadId: bot.threadId, title: cardQuestions(question.card)[0]?.question || question.card.title, choices: question.choices ?? [], custom: question.custom }
       : null,
     step: bot.busy ? stepOf(live) : null,
+    ...(bot.busy && bot.turnStartedAt ? { since: bot.turnStartedAt } : {}),
+    ...(fromRoutine(visible) ? { scheduled: true } : {}),
     chat: viewed ? chatOf(visible, Math.min(VIEWED_MAX, viewed), VIEWED_CHARS) : chatOf(visible),
     // what it is writing now, word by word, in the chat it writes it to
     ...(bot.busy ? streamingOf(workingOn) : {}),

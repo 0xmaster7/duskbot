@@ -1,17 +1,20 @@
-// The notch island: black around the camera (or a floating pill on a display without a notch), the bot it is about on
-// the left and the team's mood as an emoji on the right, only for what happens out of sight: what the person is watching
-// in the app never shows here, and a change has to hold a moment before it does. Under the pointer it grows into a panel,
+// The notch island: black around the camera (or a floating pill on a display without a notch). It wakes on its own only
+// for what needs the person or earns a look (wake.ts): the bot it is about on the left, an emoji for why on the right,
+// and only for what happens out of sight: what the person is watching in the app never shows here, and a change has to
+// hold a moment before it does. Under the pointer it grows into a panel,
 // on one spring (its width, height, corners and the two flares where it meets the top of the screen all ride it): every
 // bot's mascot in a wrapping grid with its state, and below it any ask waiting on the person, answered in place.
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion, useTransform } from "motion/react";
 import { Check, Plus } from "../icons";
-import { CELEBRATE_MS, MOOD_EMOJI, finishedSince, isBusy, islandBots, moodOf, rankBots, shortAgo, waitingCount, type Mood } from "./mood";
+import { MOOD_EMOJI, isBusy, rankBots, shortAgo } from "./mood";
+import { MOMENT_POSE, WAKE_EMOJI, WAKE_MOMENT, wakeCount, wakesOf, type WakeKind, type WakeMoment } from "./wake";
 import { Reveal, rowLine, trayFor, useRowMoments } from "./rows";
 import { attention, dotOf, eventKey, isFresh, isSeenEvent, newsOf, useSeen } from "./seen";
 import { say, type AmbientLabels } from "./say";
 import { BotMark, EASE_OUT, FADE, FADE_OUT, HOLD_MS, ISLAND_EXIT, useSettledSignal, useTraceTransitions, LIVELY, SETTLE, SETTLE_MS, useAllClear, useSteady, useSurfaceValue, useAmbientFeed, useChangeMoment, useNow, usePointerRegion, useStill } from "./shared";
 import type { AmbientAct, AmbientBot, AmbientBridge, IslandLayout } from "./types";
+import type { AmbientLabel } from "./say";
 
 const PANEL_W = 432;
 /** The flares where a notch island meets the top edge of the screen. */
@@ -19,7 +22,7 @@ const EAR = 10;
 /** The island stays this long after the pointer leaves, and keeps a little margin around it while open. */
 export const HOVER_OUT_MS = 260;
 export const GRACE = 16;
-/** The island widens this much for a moment when someone starts needing the person, or a turn finishes. */
+/** The island widens this much for a moment when it wakes for something new. */
 const NUDGE = 22;
 const NUDGE_MS = 1600;
 /** Everything answered or seen: the island smiles this long, then shrinks back to the bare notch. */
@@ -39,9 +42,8 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
   const { snapshot, layout } = useAmbientFeed(bridge);
   const island = layout?.surface === "island" ? layout : null;
   const reduced = useReducedMotion() === true;
-  const bots = snapshot?.bots ?? [];
-  // sign-ins, human checks, passwords and other handoffs are settled in the app: here those bots rest
-  const shown = useMemo(() => islandBots(snapshot?.bots ?? []), [snapshot]);
+  const bots = useMemo(() => snapshot?.bots ?? [], [snapshot]);
+  const shown = bots;
   const labels = snapshot?.labels ?? {};
 
   const [hovered, setHovered] = useState(false);
@@ -51,36 +53,25 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
   const { seen, mark } = useSeen(bridge, bots, open);
   useSettledSignal(bridge, open);
   const live = attention(shown, seen);
-  const [celebrating, setCelebrating] = useState(false);
+  const wakes = wakesOf(live, seen);
   const [nudged, setNudged] = useState(false);
-  const before = useRef<readonly AmbientBot[] | null>(null);
-  const cheer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => {
-    // a turn the person watched end in the app is no news here
-    const outOfSight = bots.filter((bot) => !bot.quiet);
-    const finished = finishedSince(before.current, outOfSight);
-    before.current = outOfSight;
-    if (!finished.length) return;
-    setCelebrating(true);
-    clearTimeout(cheer.current);
-    cheer.current = setTimeout(() => setCelebrating(false), CELEBRATE_MS);
-  }, [bots]);
-  useEffect(() => () => clearTimeout(cheer.current), []);
 
-  // with nothing left to see and nobody busy, a smile for a moment, then only the notch
-  const busyOrNews = useSteady(String(live.some((bot) => bot.status !== "idle"))) === "true";
-  const { smiling, cheer: allClear } = useAllClear(busyOrNews, SMILE_MS);
-  const minimal = !busyOrNews && !smiling && !celebrating;
-  const mood = useSteady(moodOf(live, celebrating)) as Mood;
-  const lastMood = useRef<Mood>(mood);
+  // the most important wake, held steady: no taking turns, no swapping on every blip
+  const wakeKey = useSteady(wakes[0] ? `${wakes[0].bot.id}|${wakes[0].kind}` : "", SETTLE_MS, HOLD_MS);
+  const [focusId = "", focusKind = ""] = wakeKey.split("|");
+  const awake = wakeKey !== "";
+  // once everything that woke it is answered or seen, a smile for a moment, then only the notch
+  const { smiling, cheer: allClear } = useAllClear(awake, SMILE_MS);
+  const minimal = !awake && !smiling;
+  const lastWake = useRef(wakeKey);
   useEffect(() => {
-    const was = lastMood.current;
-    lastMood.current = mood;
-    if (was === mood || (mood !== "needs-you" && mood !== "celebrate")) return;
+    const was = lastWake.current;
+    lastWake.current = wakeKey;
+    if (was === wakeKey || !wakeKey) return;
     setNudged(true);
     const timer = setTimeout(() => setNudged(false), NUDGE_MS);
     return () => clearTimeout(timer);
-  }, [mood]);
+  }, [wakeKey]);
 
   const c = island?.collapsed ?? FALLBACK;
   const notch = c.kind === "notch";
@@ -165,15 +156,15 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
 
   // while the person is elsewhere the mark holds still, except open, or for a moment after it changes
   const still = useStill(bridge);
-  // the most important thing worth a glance, held steady: no taking turns, no swapping on every blip
-  const focusId = useSteady(rankBots(live.filter((bot) => bot.status !== "idle"))[0]?.id ?? "", SETTLE_MS, HOLD_MS);
-  const focus = live.find((bot) => bot.id === focusId && bot.status !== "idle") ?? null;
+  const focus = awake ? live.find((bot) => bot.id === focusId) ?? null : null;
+  const kind = (awake ? focusKind : null) as WakeKind | null;
+  const moment: WakeMoment | null = kind ? WAKE_MOMENT[kind] : null;
   // all clear: a smile, not the finish's party
-  const emoji = minimal ? null : MOOD_EMOJI[smiling ? "idle" : mood];
-  const changed = useChangeMoment(focus ? `${focus.id}:${focus.status}` : "");
-  const moving = !still || open || changed || celebrating;
+  const emoji = smiling ? MOOD_EMOJI.idle : kind ? WAKE_EMOJI[kind] : null;
+  const changed = useChangeMoment(wakeKey);
+  const moving = !still || open || changed;
   // the compact island shows the most urgent; this many more wait behind it
-  const more = Math.max(0, waitingCount(live) - 1);
+  const more = Math.max(0, wakeCount(wakes) - 1);
   const islandLabel = more ? `${say(labels, "island")}, ${say(labels, "more", { count: more })}` : say(labels, "island");
   const close = () => { setPinned(false); setHovered(false); };
   const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") close(); };
@@ -222,14 +213,17 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
         <motion.div className="amb-compact amb-compact-tile" style={{ x: tileX, top: c.top + (c.height - tile) / 2, width: tile, height: tile }}>
           <AnimatePresence initial={false} mode="popLayout">
             <motion.span
-              key={focus.id}
+              key={wakeKey}
               className="amb-compact-mark"
-              initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.6, y: 6, filter: "blur(3px)" }}
+              data-moment={moment ?? undefined}
+              initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.9, y: -8, filter: "blur(3px)" }}
               animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
               exit={reduced ? { opacity: 0, transition: FADE_OUT } : { opacity: 0, scale: 0.9, y: -4, filter: "blur(3px)", transition: FADE_OUT }}
               transition={{ opacity: FADE, filter: FADE, scale: LIVELY, y: LIVELY }}
             >
-              <BotMark bot={focus} size={tile} state={celebrating ? "celebrate" : undefined} animated={moving && (isBusy(focus.status) || focus.status === "needs-you" || celebrating)} />
+              <MomentMotion moment={moment} reduced={reduced}>
+                <BotMark bot={focus} size={tile} state={moment ? MOMENT_POSE[moment].state : undefined} animated={moving} moment={moment ? { key: wakeKey, reactions: MOMENT_POSE[moment].reactions } : undefined} />
+              </MomentMotion>
             </motion.span>
           </AnimatePresence>
           {more > 0 && <span className="amb-more" aria-hidden>+{more}</span>}
@@ -241,17 +235,45 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
             key={emoji}
             className="amb-emoji-glyph"
             role="img"
-            aria-label={say(labels, smiling ? "quiet" : mood === "celebrate" ? "done" : mood)}
-            initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.5, y: 6, filter: "blur(3px)" }}
-            animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+            data-wake={smiling ? undefined : kind ?? undefined}
+            aria-label={say(labels, smiling || !kind ? "quiet" : WAKE_LABEL[kind])}
+            initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.5, y: 6, rotate: moment === "celebrate" ? -24 : 0, filter: "blur(3px)" }}
+            animate={{ opacity: 1, scale: 1, y: 0, rotate: 0, filter: "blur(0px)" }}
             exit={reduced ? { opacity: 0, transition: FADE_OUT } : { opacity: 0, scale: 0.96, filter: "blur(4px)", transition: FADE_OUT }}
-            transition={{ opacity: FADE, filter: FADE, scale: LIVELY, y: LIVELY }}
+            transition={{ opacity: FADE, filter: FADE, scale: LIVELY, y: LIVELY, rotate: LIVELY }}
           >
             {emoji}
           </motion.span>}
         </AnimatePresence>
       </motion.div>
     </div>
+  );
+}
+
+const WAKE_LABEL: Record<WakeKind, AmbientLabel> = {
+  question: "wakeQuestion", approval: "wakeApproval", "sign-in": "wakeSignIn", review: "wakeReview", "needs-you": "wakeNeedsYou",
+  failed: "wakeFailed", "long-done": "wakeLongDone", scheduled: "wakeScheduled",
+};
+
+/** One beat as the mascot lands on the island: a tilt for an ask, a hop and sway for a long task done, a small shiver for
+ * a failure. Played once per wake; reduced motion keeps only the fade. */
+const MOMENT_MOVES: Record<WakeMoment, { keyframes: Record<string, number[]>; duration: number }> = {
+  nudge: { keyframes: { rotate: [0, -12, 10, -6, 0] }, duration: 0.7 },
+  celebrate: { keyframes: { y: [0, -5, 0, -2, 0], rotate: [0, -8, 8, -3, 0] }, duration: 0.85 },
+  worried: { keyframes: { x: [0, -1.5, 1.5, -1, 1, 0], y: [0, 1, 1, 1, 0.5, 0] }, duration: 0.5 },
+};
+
+function MomentMotion({ moment, reduced, children }: { moment: WakeMoment | null; reduced: boolean; children: ReactNode }) {
+  const move = moment && !reduced ? MOMENT_MOVES[moment] : null;
+  return (
+    <motion.span
+      className="amb-moment"
+      initial={false}
+      animate={move ? move.keyframes : {}}
+      transition={move ? { duration: move.duration, ease: "easeInOut", delay: 0.18 } : undefined}
+    >
+      {children}
+    </motion.span>
   );
 }
 

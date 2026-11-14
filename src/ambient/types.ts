@@ -35,6 +35,13 @@ export interface AmbientBot {
   step?: AmbientStep | null;
   /** The person watched this turn or this news in the app's own focused window: nothing here to catch their eye. */
   quiet?: boolean;
+  /** When the running turn began (epoch ms), while it runs. */
+  since?: number;
+  /** Its newest news came from a routine run, not a message the person sent. */
+  scheduled?: boolean;
+  /** How long the turn that ended in its current reply or failure ran, in ms; stamped by main (electron/ambient-wake.mjs)
+   * only for a turn it saw start. */
+  ran?: number;
   /** The newest messages of its chat, plain text, for the surfaces' chat: a few for every bot, a long stretch for the one
    * a surface is showing (AmbientViewing). */
   chat?: AmbientMessage[];

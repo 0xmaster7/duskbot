@@ -2,7 +2,8 @@
 export type AmbientLabel =
   | "idle" | "thinking" | "working" | "talking" | "needs-you" | "done" | "error" | "now" | "open" | "reply" | "replyTo" | "send"
   | "allow" | "deny" | "newBot" | "quiet" | "quietHint" | "empty" | "emptyHint" | "island" | "dock" | "reorder" | "stop" | "more"
-  | "answer" | "openShort" | "sent" | "dismiss" | "recent" | "waiting";
+  | "answer" | "openShort" | "sent" | "dismiss" | "recent" | "waiting"
+  | "wakeQuestion" | "wakeApproval" | "wakeSignIn" | "wakeReview" | "wakeNeedsYou" | "wakeFailed" | "wakeLongDone" | "wakeScheduled";
 export type AmbientLabels = Partial<Record<AmbientLabel, string>>;
 
 /** A label with its {name} and {count} filled in; "" before the first summary brings the words. */

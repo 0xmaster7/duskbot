@@ -154,12 +154,14 @@ export interface BotMarkProps {
   index?: number;
   /** Changes for a group moment (everything clear): every mark cheers, one after another. */
   cheer?: number;
+  /** Moves played once for each new `key`, from the first one on (the island's wake: wake.ts MOMENT_POSE). */
+  moment?: { key: string; reactions: readonly MarkReaction[] };
 }
 
 /** The bot's own mascot (or its picture), drawn still unless `animated`. Alive, it breathes on its own clock, reacts
  * when its state changes (a hop for a reply, a wave for an ask), waves again while it waits, and squashes under the
  * pointer. Transform and opacity only. */
-export function BotMark({ bot, size, state, animated, awake = false, shown, index = 0, cheer = 0 }: BotMarkProps) {
+export function BotMark({ bot, size, state, animated, awake = false, shown, index = 0, cheer = 0, moment }: BotMarkProps) {
   const reduced = useReducedMotion() === true;
   const mark = useRef<MausAvatarHandle>(null);
   const alive = animated && !reduced;
@@ -179,6 +181,21 @@ export function BotMark({ bot, size, state, animated, awake = false, shown, inde
     const timer = setInterval(() => mark.current?.react?.(index % 2 ? "hop" : "greet"), WAVE_MS + (index % 3) * 400);
     return () => clearInterval(timer);
   }, [alive, bot.status, index]);
+  const played = useRef("");
+  const momentKey = moment?.key ?? "";
+  const momentMoves = moment?.reactions.join(",") ?? "";
+  useEffect(() => {
+    if (!momentKey || played.current === momentKey || !alive) return;
+    played.current = momentKey;
+    const moves = momentMoves.split(",").filter(Boolean) as MarkReaction[];
+    const timers = moves.map((kind, step) => setTimeout(() => mark.current?.react?.(kind), 220 + step * 640));
+    const started = Date.now(), last = 220 + (moves.length - 1) * 640;
+    return () => {
+      for (const timer of timers) clearTimeout(timer);
+      // cut short before it played (a remount, or the mark held still): it plays the next time it can
+      if (Date.now() - started < last) played.current = "";
+    };
+  }, [momentKey, momentMoves, alive]);
   const lastCheer = useRef(cheer);
   useEffect(() => {
     if (lastCheer.current === cheer) return;

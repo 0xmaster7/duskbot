@@ -35,6 +35,14 @@ export const AMBIENT_LABELS = {
   dismiss: "ambient.dismiss",
   recent: "ambient.recent",
   waiting: "ambient.status.waiting",
+  wakeQuestion: "ambient.wake.question",
+  wakeApproval: "ambient.wake.approval",
+  wakeSignIn: "ambient.wake.signIn",
+  wakeReview: "ambient.wake.review",
+  wakeNeedsYou: "ambient.wake.needsYou",
+  wakeFailed: "ambient.wake.failed",
+  wakeLongDone: "ambient.wake.longDone",
+  wakeScheduled: "ambient.wake.scheduled",
 } as const satisfies Record<AmbientLabel, LocaleKey>;
 
 export type { AmbientLabel, AmbientLabels } from "./say";

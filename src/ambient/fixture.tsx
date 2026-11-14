@@ -60,7 +60,15 @@ const busy = base
   .map(set("tally", { status: "thinking", step: "thinking", detail: "Thinking", at: now - 50_000 }))
   .map(set("rivet", { status: "done", unread: true, at: now - 6 * min, line: "The footer is fixed and deployed. I also cleaned up the old styles." }))
   .map(set("echo", { status: "error", line: "Couldn't reach Gmail: the sign-in expired.", at: now - 30 * min }));
+const wake = (fields: Partial<AmbientBot>) => base.map(set("nova", { at: now - 20_000, ...fields }));
 const SCENES: Record<string, AmbientBot[]> = {
+  question: wake({ status: "needs-you", waits: "question", asks: 1, question: { requestId: "q1", threadId: "t-nova", title: "Aisle or window for the flight home?", choices: ["Aisle", "Window"], custom: true } }),
+  approval: wake({ status: "needs-you", waits: "approval", asks: 1, detail: "Wants to run a command", approval: { requestId: "r1", threadId: "t-nova", title: "npm run build" } }),
+  "sign-in": wake({ status: "needs-you", waits: "sign-in", asks: 1, detail: "Sign in to Gmail" }),
+  failed: wake({ status: "error", unread: true, line: "Couldn't reach Gmail: the sign-in expired." }),
+  "long-done": wake({ status: "done", unread: true, ran: 6 * min, line: "Compared 14 flights and booked the 9:40 to Lisbon." }),
+  scheduled: wake({ status: "done", unread: true, scheduled: true, line: "Your morning digest is ready." }),
+  "quick-reply": wake({ status: "done", unread: true, ran: 20_000, line: "Done." }),
   quiet: base,
   empty: [],
   few: busy.slice(0, 4),

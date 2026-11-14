@@ -69,6 +69,8 @@ function bot(raw) {
     question,
     step: STEPS.includes(raw.step) ? raw.step : null,
     quiet: raw.quiet === true,
+    ...(Number.isFinite(raw.since) && raw.since > 0 ? { since: Math.floor(raw.since) } : {}),
+    ...(raw.scheduled === true ? { scheduled: true } : {}),
     chat: Array.isArray(raw.chat) ? raw.chat.slice(-MAX_CHAT).map(chatLine).filter(Boolean) : [],
     ...(typeof raw.streaming === "string" && raw.streaming.trim() ? { streaming: lines(raw.streaming, MAX_STREAMING) } : {}),
     ...(raw.hasMore === true ? { hasMore: true } : {}),
