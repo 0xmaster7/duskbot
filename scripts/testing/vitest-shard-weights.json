@@ -3,8 +3,6 @@
     "apps/companion/test/mdns.test.ts": 5,
     "apps/companion/test/proxy.test.ts": 6,
     "electron/cua-launch.test.mjs": 9,
-    "evals/evals.test.ts": 71,
-    "evals/runners/run-skill-bench.test.ts": 18,
     "scripts/testing/bot-draft-visibility-ui.e2e.test.ts": 1,
     "scripts/testing/bot-tools-ui.e2e.test.ts": 1,
     "scripts/testing/browser-evidence.e2e.test.ts": 1,
@@ -265,8 +263,6 @@
   "linux": {
     "apps/companion/test/mdns.test.ts": 5,
     "apps/companion/test/proxy.test.ts": 6,
-    "evals/evals.test.ts": 74,
-    "evals/runners/run-skill-bench.test.ts": 20,
     "scripts/testing/bot-draft-visibility-ui.e2e.test.ts": 1,
     "scripts/testing/bot-tools-ui.e2e.test.ts": 1,
     "scripts/testing/browser-evidence.e2e.test.ts": 1,
@@ -590,9 +586,6 @@
   "win32": {
     "apps/companion/test/mdns.test.ts": 5,
     "apps/companion/test/proxy.test.ts": 7,
-    "evals/evals.test.ts": 81,
-    "evals/golden/golden.test.ts": 5,
-    "evals/runners/run-skill-bench.test.ts": 25,
     "scripts/ci-scope.test.ts": 16,
     "scripts/testing/bot-draft-visibility-ui.e2e.test.ts": 1,
     "scripts/testing/bot-tools-ui.e2e.test.ts": 1,
