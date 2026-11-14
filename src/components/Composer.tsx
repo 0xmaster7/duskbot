@@ -1,3 +1,4 @@
+import { AnimatePresence } from "motion/react";
 import { directMessageSent, roomMessageSent } from "@/lib/product-events";
 import { cueMascot } from "./mascot-events";
 import { useComposerDictation } from "@/lib/use-composer-dictation";
@@ -581,7 +582,16 @@ export function Composer({
     : stopInSlot ? "stop"
     : callShown ? (live ? (bot && !group ? "waveform" : null) : "mic") : null;
   const [glyphs, setGlyphs] = useState({ shape: glyphShape, swapped: false, glyph: slotGlyph, from: null as SlotGlyph | null, swaps: 0 });
-  if (glyphs.shape !== glyphShape) setGlyphs({ shape: glyphShape, swapped: true, glyph: slotGlyph, from: glyphs.glyph, swaps: glyphs.swaps + 1 });
+  // the mic is its own button that only changes colour beside Send, so a swap to or from it lands at once: no pop, no
+  // fading ghost of it over Send
+  if (glyphs.shape !== glyphShape) setGlyphs({ shape: glyphShape, swapped: slotGlyph !== "mic" && glyphs.glyph !== "mic", glyph: slotGlyph, from: glyphs.glyph, swaps: glyphs.swaps + 1 });
+  // the mic at the end of the bar and the small one beside Send are two buttons, so neither slides across when the field
+  // fills or empties (only Send or the reserved spot takes a place); focus on the old one carries to the new
+  const micPlace = hasContent ? "beside" : "end";
+  const micFocused = useRef(false);
+  useLayoutEffect(() => {
+    if (micFocused.current && document.activeElement !== micButtonRef.current) micButtonRef.current?.focus({ preventScroll: true });
+  }, [micPlace]);
   const ghostGlyph = glyphs.swapped && glyphs.from && slotGlyph && glyphs.from !== slotGlyph ? glyphs.from : null;
   const retryFailedSend = (failed: FailedComposerSend) => {
     const failedMode = failed.channelMode ?? "chat";
@@ -839,9 +849,11 @@ export function Composer({
           {t("composer.voice.tidying")}
         </div>
       )}
-      {dictation.firstRun.open && (
-        <div className="pointer-events-auto">
+      {/* portalled over the window, so it adds nothing to the bar's height */}
+      <AnimatePresence>
+        {dictation.firstRun.open && (
           <VoiceFirstRunSheet
+            key="voice-first-run"
             where={dictation.firstRun.where}
             onContinue={dictation.firstRun.accept}
             onClose={dictation.firstRun.dismiss}
@@ -850,8 +862,8 @@ export function Composer({
               dispatch(openSettings("voice"));
             }}
           />
-        </div>
-      )}
+        )}
+      </AnimatePresence>
       <div className="pointer-events-auto relative w-full">
         <ComposerFailedSends sends={failedSends} onRetry={retryFailedSend} onEdit={editFailedSend} onDismiss={(failed) => forgetFailedComposerSend(draftId, failed.id)} />
         <SlashCommandMenu listRef={commandListRef} motion={commandMotion} commands={commandCandidates} highlight={highlight}
@@ -1041,7 +1053,9 @@ export function Composer({
           })}
           aria-label={t("composer.placeholder.bot", { name: group ? group.name : (bot?.name ?? "") })}
             className={cn(
-              "block max-h-[9rem] w-full resize-none overflow-y-auto bg-transparent focus:outline-none",
+              // the hint stays on one line and trails off: a long name must not make the empty bar taller than the
+              // typed one, or the bar grows each time the field empties
+              "block max-h-[9rem] w-full resize-none overflow-y-auto bg-transparent focus:outline-none placeholder:overflow-hidden placeholder:text-ellipsis placeholder:whitespace-nowrap",
               !simpleDock && "px-1 text-[15px] placeholder:text-ink-tertiary",
               simpleDock
                 ? cn("text-[14px] leading-5 tracking-[0.01em] placeholder:text-ink/40", stacked ? "min-h-6 px-1 pt-1 pb-0" : "min-h-5 p-0 mt-[3px] mb-px")
@@ -1092,10 +1106,16 @@ export function Composer({
             <Icon name="close" size={14} />
           </button>
         )}
+        {/* the mic in the round button's place keeps the small control's place beside it, so Send or Discard takes
+            that spot and nothing in the bar moves when the field fills, empties or starts listening */}
+        {micInSlot && !stoppable && <span aria-hidden="true" data-mic-spacer="" className={cn("shrink-0", simpleDock ? "size-7" : "size-8 max-md:size-10")} />}
         {!locked && (
           <button
+            key={micPlace}
             ref={micButtonRef}
             type="button"
+            onFocus={() => { micFocused.current = true; }}
+            onBlur={() => { micFocused.current = false; }}
             onClick={toggleMic}
             data-voice-mic={recording ? "done" : "start"}
             disabled={dictation.phase === "finishing"}

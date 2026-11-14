@@ -1,4 +1,6 @@
-// The first tap on the mic: which recognizer listens, and a quiet way to choose a service instead. Shown once.
+// The first tap on the mic: which recognizer listens, and a quiet way to choose a service instead. Shown once; the
+// parent keeps it in an AnimatePresence so it eases out as it eased in.
+import { useIsPresent } from "motion/react";
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import type { systemEngineWhere } from "@/lib/voice-input/engines";
@@ -21,23 +23,28 @@ export function VoiceFirstRunSheet({ where, onContinue, onSetUp, onClose }: {
   onSetUp: () => void;
   onClose: () => void;
 }) {
+  // answered once: while it eases out a second press (or a click that lands on it) does nothing
+  const present = useIsPresent();
+  const once = (act: () => void) => () => { if (present) act(); };
   return (
     <GrokDialog
       data-panel-modal="voice-first-run"
       title={t(TITLES[where])}
       width={400}
-      onClose={onClose}
+      animated
+      notice
+      onClose={once(onClose)}
       footer={
         <>
           <button
             type="button"
             data-voice-setup=""
-            onClick={onSetUp}
-            className="me-auto cursor-pointer rounded-[6px] text-start text-[13px] leading-[18px] text-ink/68 underline-offset-2 transition-colors duration-100 ease-[ease] hover:text-ink hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            onClick={once(onSetUp)}
+            className="me-auto inline-flex min-h-8 min-w-0 cursor-pointer items-center rounded-[6px] text-start text-[13px] leading-[18px] text-ink/68 underline-offset-2 transition-colors duration-100 ease-[ease] hover:text-ink hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           >
             {t("composer.voice.firstRun.setUp")}
           </button>
-          <button type="button" data-autofocus="" className={mdPrimaryCls} onClick={onContinue}>
+          <button type="button" data-autofocus="" className={mdPrimaryCls} onClick={once(onContinue)}>
             {t("composer.voice.firstRun.continue")}
           </button>
         </>

@@ -27,6 +27,13 @@
 .composer-press:active:not(:disabled) {
   transform: scale(0.98);
 }
+/* the mic turns from the round button into the small control (and back) the moment the field fills or empties: its
+   fill and ink change at once, only the hover shade and the press ease */
+.composer-press[data-voice-mic] {
+  transition-property: filter, transform;
+  transition-duration: 100ms, 50ms;
+  transition-timing-function: ease, cubic-bezier(0.165, 0.84, 0.44, 1);
+}
 /* the send button presses deeper, as bencho's primary buttons do */
 .composer-press[data-composer-send]:active:not(:disabled) {
   transform: scale(0.96);

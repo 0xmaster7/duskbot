@@ -250,13 +250,23 @@ describe("the first tap on the mic", () => {
 
   const tapMic = () => flushSync(() => container.querySelector<HTMLButtonElement>(`button[aria-label="${t("composer.dictation.start")}"]`)!.click());
 
-  it("says the Mac's own transcription listens, then starts on Continue and never shows again", () => {
+  // the sheet eases out: it takes no more presses the moment it is answered, and is gone once it has faded
+  const leaves = async () => {
+    expect(dialog()?.closest("[data-leaving]")?.hasAttribute("inert")).toBe(true);
+    await vi.waitFor(() => expect(dialog()).toBeNull());
+  };
+
+  it("says the Mac's own transcription listens, then starts on Continue and never shows again", async () => {
     tapMic();
     expect(dialog()?.textContent).toContain(t("composer.voice.firstRun.mac"));
     expect(speechStart).not.toHaveBeenCalled();
-    flushSync(() => [...dialog()!.querySelectorAll("button")].find((b) => b.textContent === t("composer.voice.firstRun.continue"))!.click());
-    expect(dialog()).toBeNull();
+    const go = [...dialog()!.querySelectorAll("button")].find((b) => b.textContent === t("composer.voice.firstRun.continue"))!;
+    flushSync(() => go.click());
+    // listening starts at once, under the leaving sheet; a second press on it does nothing
     expect(speechStart).toHaveBeenCalledOnce();
+    flushSync(() => go.click());
+    expect(speechStart).toHaveBeenCalledOnce();
+    await leaves();
     expect(voicePrefs().firstRunSeen).toBe(true);
     flushSync(() => container.querySelector<HTMLButtonElement>(`button[aria-label="${t("composer.dictation.stop")}"]`)!.click());
     tapMic();
@@ -264,10 +274,10 @@ describe("the first tap on the mic", () => {
     expect(speechStart).toHaveBeenCalledTimes(2);
   });
 
-  it("opens Settings > Voice from its quiet link without listening", () => {
+  it("opens Settings > Voice from its quiet link without listening", async () => {
     tapMic();
     flushSync(() => dialog()!.querySelector<HTMLButtonElement>("[data-voice-setup]")!.click());
-    expect(dialog()).toBeNull();
+    await leaves();
     expect(speechStart).not.toHaveBeenCalled();
     expect(fixture.dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "toggleAppSettings", open: true, section: "voice" }));
     expect(voicePrefs().firstRunSeen).toBe(true);

@@ -4,7 +4,9 @@ import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { Icon, type IconName } from "../Icon";
-import { ScrimMotion, SheetMotion } from "./SheetMotion";
+import { useIsPresent } from "motion/react";
+import { dialogMotion } from "@/lib/motion-presets";
+import { ScrimMotion, SheetMotion, useMotionReduced } from "./SheetMotion";
 
 const buttonBase = "dusk-press inline-flex shrink-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-[9999px] font-normal outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-default";
 const sizeLg = "h-9 px-4 text-[14px] leading-5 tracking-[0.01em]";
@@ -110,6 +112,11 @@ interface DialogProps {
   footer?: ReactNode;
   children: ReactNode;
   "data-panel-modal"?: string;
+  /** Eases in and out (the parent keeps it in an AnimatePresence) instead of opening and closing raw, sheet only. */
+  animated?: boolean;
+  /** A short notice, a line or two under the title: the title sits centred on its close and the words follow close
+   * under it, as a confirm's do, sheet only. */
+  notice?: boolean;
 }
 
 const headerCls = "flex shrink-0 flex-col gap-1 pb-1.5 pl-8 pr-[54px] pt-8";
@@ -117,7 +124,7 @@ const titleCls = "m-0 min-w-0 truncate pl-2 text-[17px] font-medium leading-6 tr
 
 /** The same dialog as one pane of a railed sheet: Settings' header and scrolling body, the footer right under its content.
  * Grok's panes carry a title and nothing under it, so a description is left to the dialog on its own. */
-function PaneView({ title, description: _description, art: _art, footer, children, onClose: _onClose, width: _width, ...rest }: DialogProps) {
+function PaneView({ title, description: _description, art: _art, footer, children, onClose: _onClose, width: _width, animated: _animated, notice: _notice, ...rest }: DialogProps) {
   const titleId = useId();
   return (
     <section {...rest} aria-labelledby={titleId} className="flex min-h-0 flex-1 flex-col">
@@ -132,18 +139,23 @@ function PaneView({ title, description: _description, art: _art, footer, childre
   );
 }
 
-function SheetView({ title, description, art, width = 440, onClose, footer, children, ...rest }: DialogProps) {
+function SheetView({ title, description, art, width = 440, onClose, footer, children, animated = false, notice = false, ...rest }: DialogProps) {
   const sheet = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const descriptionId = useId();
   const close = useDialogKeys(sheet, onClose);
+  const reduced = useMotionReduced();
+  const motion = animated ? dialogMotion(reduced) : null;
+  // on its way out (inside its parent's AnimatePresence) it takes no more presses or focus
+  const leaving = !useIsPresent();
 
   return createPortal(
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <ScrimMotion aria-hidden="true" data-modal-scrim className="ui-dialog-scrim absolute inset-0" onMouseDown={() => close.current()} />
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" inert={leaving || undefined} data-leaving={leaving ? "" : undefined}>
+      <ScrimMotion aria-hidden="true" data-modal-scrim className="ui-dialog-scrim absolute inset-0" onMouseDown={() => close.current()} {...motion?.scrim} />
       <SheetMotion
         ref={sheet}
         {...rest}
+        {...motion?.sheet}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -152,7 +164,7 @@ function SheetView({ title, description, art, width = 440, onClose, footer, chil
         style={{ maxWidth: `min(${width}px, calc(100vw - 32px))` }}
         className={formSheetCls}
       >
-        <header className={formHeaderCls}>
+        <header className={cn(formHeaderCls, notice && "items-center pb-1")}>
           {art
             ? <div className="flex min-w-0 flex-1 flex-col items-start gap-3 pt-1">{art}<h2 id={titleId} className={cn(formTitleCls, "w-full")}>{title}</h2></div>
             : <h2 id={titleId} className={formTitleCls}>{title}</h2>}
@@ -160,7 +172,7 @@ function SheetView({ title, description, art, width = 440, onClose, footer, chil
             <Icon name="close" size={16} />
           </button>
         </header>
-        <div className={cn(formBodyCls, "flex flex-col", !footer && "pb-4")}>
+        <div className={cn(formBodyCls, "flex flex-col", notice && "pt-0", !footer && "pb-4")}>
           {description && <p id={descriptionId} className={cn(rowHintCls, "m-0 mb-3 text-pretty")}>{description}</p>}
           {children}
         </div>
