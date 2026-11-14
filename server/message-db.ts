@@ -8,7 +8,7 @@ import { peerProvenanceAuthor, type WorkOrigin } from "./peer-provenance.ts";
 import type { ResolvedSender, SteerQueueReason } from "../shared/wire.ts";
 import type { Message } from "./store.ts";
 import type { UsageTrigger } from "./usage-ledger.ts";
-import { ensureMemoryIndex } from "./message-db-memory-index.ts";
+import { ensureFactStore, ensureMemoryIndex } from "./message-db-memory-index.ts";
 import { MessageSearchWorker } from "./message-search-worker.ts";
 import { rowToMessage, threadPreviewRows, type ThreadRows, type ThreadTailRows } from "./message-db-rows.ts";
 import { searchMessagesInDatabase, type SearchHit } from "./message-search-query.ts";
@@ -104,6 +104,7 @@ function open(): DatabaseSync {
   if (!notificationColumns.some((column) => column.name === "for_person")) db.exec("ALTER TABLE notification_log ADD COLUMN for_person TEXT");
   ensureRecallIndex(db);
   ensureMemoryIndex(db);
+  ensureFactStore(db);
   return db;
 }
 
@@ -166,6 +167,11 @@ function db(): DatabaseSync {
   handlePath = file;
   handleCheckedAt = Date.now();
   return handle;
+}
+
+/** The open database for the memory fact store (memory-facts.ts), which keeps its own statements. */
+export function memoryStoreDb(): DatabaseSync {
+  return db();
 }
 
 /** One prepared statement per SQL text for the life of the open database. */
