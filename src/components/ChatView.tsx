@@ -61,7 +61,7 @@ import { useReplyLife, type LifeTurn } from "@/hooks/use-reply-life";
 import { LIFE_MASCOT_STATE, lifeDraw, lifeMarkState, lifeSpan } from "@/lib/reply-life";
 import { presenceKind, TYPING_MARK, turnWorked, useHeldPresence, workingMark } from "@/lib/presence-mark";
 import { lastNonReceipt } from "@/lib/receipts";
-import { useTurnLive } from "@/state/turn-status"; import { useLiveReplyActive } from "@/state/live-reply"; import { useTurnNow } from "./NowCard"; import { useThreadRoutineRun } from "@/state/older-routine-runs";
+import { RoutineStartLine, routineStartName } from "./RoutineStartLine"; import { useTurnLive } from "@/state/turn-status"; import { useLiveReplyActive } from "@/state/live-reply"; import { useTurnNow } from "./NowCard"; import { useThreadRoutineRun } from "@/state/older-routine-runs";
 import { followSentTurn, useSentTurn } from "@/state/sent-turn";
 import { ChatMarkdown } from "./ChatMarkdown";
 import { TranscriptStaging } from "./transcript-staging";
@@ -851,6 +851,8 @@ const MessagesList = memo(function MessagesList({
               if (m.publishedPage) return <PublishedPageCard message={m} />;
               const peer = peerLine(m) ?? peerRequest(m, botId);
               const user = m.role === "user" && !peer;
+              const routine = user ? routineStartName(m) : null;
+              if (routine !== null) return <RoutineStartLine name={routine} at={m.at} />;
               if (!user && isPureLeakedSystemHarnessMessage(m.text) && !m.attachments?.length) return null;
               return (
                 <Bubble

@@ -103,3 +103,24 @@ describe("an automation's line in the chat", () => {
     expect(document.querySelector('[data-mid="c1"]')?.textContent).toContain("Which account should I check?");
   });
 });
+
+describe("a routine run's opening turn", () => {
+  const prompt = '[Scheduled routine "Monday price check", do this now:]\nTrigger id: 1d5d5e0a-7c1f-4b6e-9d2a-3f0e8b1c2d4e\nCheck the prices and tell me what moved.';
+  const shown = () => document.body.textContent ?? "";
+  for (const [label, row] of [
+    ["marked by the server", { routineStart: { name: "Monday price check" } }],
+    ["an older line, known by its header", {}],
+  ] as const) {
+    it(`is a quiet line with the routine's name and time, never the prompt or its ids (${label})`, async () => {
+      await draw(transcript([
+        { id: "p1", parentId: "m2", role: "user", kind: "text", text: prompt, at: at(30), ...row },
+        { id: "p2", parentId: "p1", role: "bot", kind: "text", text: "Two prices moved.", at: at(31), turnId: "t2", turnTerminal: true },
+      ]));
+      const lines = document.querySelectorAll("[data-routine-start]");
+      expect(lines).toHaveLength(1);
+      expect(lines[0]!.textContent).toMatch(/^Monday price check · ran at /);
+      for (const raw of ["do this now", "Trigger id", "1d5d5e0a", "[Scheduled routine", "Check the prices"]) expect(shown()).not.toContain(raw);
+      expect(shown()).toContain("Two prices moved.");
+    });
+  }
+});

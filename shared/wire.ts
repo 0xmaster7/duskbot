@@ -21,7 +21,7 @@ import type { ModelRequestCardData } from "./model-request.ts";
 import type { ConnectorCardData } from "./connector-card.ts"; import type { McpChangeRequest } from "./mcp-request.ts";
 import type { SkillRequestCardData } from "./skill-request.ts"; import type { OutsideWriteCardField } from "./outside-write.ts";
 import type { QuestionRequestCardData } from "./ask-question.ts";
-import type { AutomationLine, RoutineRunCardData } from "./routine-run.ts";
+import type { AutomationLine, RoutineRunCardData, RoutineStartLine } from "./routine-run.ts";
 import type { WidgetPayload } from "./widget.ts";
 import type { AppFromRef, AppPayload, AppPointedRef } from "./app.ts";
 import type { GroupGoalRunCardData } from "./group-goal-run.ts";
@@ -511,6 +511,8 @@ export interface WireMessage extends HelperIntroField, SetupCardFields, WaitLine
   /** One idempotently updated status card for a routine run. */
   routineRun?: RoutineRunCardData;
   automation?: AutomationLine;
+  /** user rows a routine run started with: the prompt is the bot's, never shown; clients draw a quiet line instead. */
+  routineStart?: RoutineStartLine;
   /** Terminal receipt for a bounded multi-bot channel goal. */
   goalRun?: GroupGoalRunCardData;
   /** call rows (kind "call"): the finished Live call this row records. */

@@ -29,6 +29,7 @@ import { assertRequestTarget, guardedRequestPath, requestConflict, requestNeedsI
 import { botAvatarUrlFromStoredPath } from "../shared/bot-avatar.ts";
 import { BOT_PROFILE_LIMITS } from "../shared/bot-profile.ts";
 import { failedTurnTool } from "../shared/failed-turn.ts";
+import { routinePromptName } from "../shared/routine-run.ts";
 import { assistantTranscript, errorTranscript } from "../shared/client-cancel.ts"; import { PersonStops, stoppedTurnRow } from "./person-stops.ts"; import { LiveTurns } from "./live-turns.ts"; import { previousPersonMessageAt, quietGapNote } from "./turn-gap.ts";
 import { phonePairingLink } from "../shared/pairing-link.ts"; import { personTagNames, withoutPersonTags } from "../shared/person-mention.ts";
 import { canWorkOnCloud, type CloudEngine } from "../shared/cloud-computer.ts";
@@ -8256,6 +8257,7 @@ async function beginTurn(
           sender: opts?.sender,
           ...spokenLineFields(opts?.via, opts?.callId),
           ...(opts?.relayed ? { relayed: true } : {}),
+          ...(opts?.automationSource !== undefined ? { routineStart: { name: activeRoutineRunForThread(threadId)?.routineName ?? routinePromptName(text) ?? "" } } : {}),
         });
   }
   const personLine = !opts?.coordination && !opts?.cardContinuation && !opts?.automationSource && !opts?.compactOnly

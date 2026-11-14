@@ -4677,6 +4677,8 @@
   "routines.results.back": "Back to results",
   "routines.results.showReport": "Show report",
   "routines.executionDetails": "Run details · {name}",
+  "routines.startLine": "{name} · ran at {time}",
+  "routines.startLineUnnamed": "Routine · ran at {time}",
   "routines.logsFor": "Run logs for {name}",
   "routines.logsHint": "Recent saved runs across your bots. Open a run for its result, error, and execution thread.",
   "routines.markAllSeen": "Mark all as read",

@@ -47,3 +47,16 @@ export interface AutomationLine {
    * is copied whole, a sign-in, connection or credential card is named. */
   copyOf?: string;
 }
+
+/** A routine run's opening line in its own conversation: what the person sees instead of the prompt the bot was given. */
+export interface RoutineStartLine { name: string }
+
+const ROUTINE_PROMPT_HEAD = /^\[(?:Scheduled routine|Routine) ("(?:[^"\\]|\\.)*"), do this now:\]/u;
+
+/** The routine's name from a run's prompt (server/routine-execution.ts writes the header), else null. Older lines carry no
+ * `routineStart` mark, so the header is how they are known. */
+export function routinePromptName(text: string | undefined): string | null {
+  const head = text ? ROUTINE_PROMPT_HEAD.exec(text) : null;
+  if (!head) return null;
+  try { const name = JSON.parse(head[1]!); return typeof name === "string" ? name : null; } catch { return null; }
+}
