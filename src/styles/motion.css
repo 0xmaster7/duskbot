@@ -92,6 +92,15 @@
 }
 .dusk-press-soft:enabled:active { scale: 0.985; transition-duration: 140ms, 140ms, 140ms, 160ms; }
 :root[data-reduced-motion="true"] :is(.dusk-press, .dusk-press-soft):active { scale: none; }
+/* SlidingPills' thumb (a menu's pick-one): it steps a whole pill at a time on the app's spring */
+.sliding-pill-thumb {
+  transform: translateX(calc(var(--pill-at, 0) * 100%));
+  transition: transform var(--dusk-duration-slow) var(--dusk-ease-spring), opacity var(--dusk-duration-normal) ease;
+}
+.sliding-pill-thumb:dir(rtl) { transform: translateX(calc(var(--pill-at, 0) * -100%)); }
+@media (prefers-reduced-motion: reduce) {
+  .sliding-pill-thumb { transition: opacity var(--dusk-duration-normal) ease; }
+}
 /* the app's own reduced-motion switch: segmented pills and switch knobs jump, colours still fade */
 :root[data-reduced-motion="true"] :is([data-segmented-pill], [data-ui-toggle] > span) { transition: none; }
 :root[data-reduced-motion="true"] [data-panel-slot] { transition: none; }

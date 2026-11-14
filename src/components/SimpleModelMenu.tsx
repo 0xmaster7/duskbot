@@ -10,6 +10,7 @@ import { BotAvatar } from "./Avatar";
 import { InstanceProviderMark } from "./ProviderIcons";
 import { MENU_GUTTER, MENU_ICON, MENU_LABEL, MENU_LINE, MENU_NOTE, MENU_ROW, MENU_SEPARATOR, MENU_STROKE, MENU_TRAILING, SIMPLE_MENU_META, SIMPLE_MENU_ROW } from "./menu-recipe";
 import { effortLabel } from "./ModelPicker";
+import { SlidingPills } from "./ui/SlidingPills";
 
 export type SimpleThinking =
   | { levels: readonly EffortLevel[]; current?: EffortLevel; onPick: (level: EffortLevel) => void; onReset: () => void }
@@ -161,7 +162,6 @@ function GroupBody({ group, props }: { group: MenuGroup; props: SimpleModelMenuP
 function Thinking({ thinking, labelId }: { thinking: SimpleThinking; labelId: string }) {
   if ("variants" in thinking) return <div data-simple-thinking>{thinking.variants}</div>;
   const levels = thinking;
-  const tabStop = Math.max(0, levels.levels.findIndex((level) => level === levels.current));
   return (
     <div data-simple-thinking className="flex flex-col">
       <div className="flex h-6 items-end justify-between gap-2 px-2 pb-0.5">
@@ -175,26 +175,9 @@ function Thinking({ thinking, labelId }: { thinking: SimpleThinking; labelId: st
             </button>
           ))}
       </div>
-      <div data-simple-effort role="group" aria-labelledby={labelId} className="m-1 grid rounded-full bg-ink/[0.05] p-[3px]"
-        style={{ gridTemplateColumns: `repeat(${levels.levels.length}, minmax(0, 1fr))` }}>
-        {levels.levels.map((level, index) => (
-          <button
-            key={level}
-            type="button"
-            data-effort-pill
-            aria-pressed={levels.current === level}
-            tabIndex={index === tabStop ? 0 : -1}
-            title={t("model.simple.thinkingLevel", { level: effortLabel(level) })}
-            onClick={() => levels.onPick(level)}
-            className={cn(
-              "h-6 min-w-0 truncate rounded-full px-1 text-[12px] leading-4 transition-colors touch:h-8",
-              levels.current === level ? "bg-ink/[0.1] font-medium text-ink" : "text-ink-secondary hover:text-ink",
-            )}
-          >
-            {effortLabel(level)}
-          </button>
-        ))}
-      </div>
+      <SlidingPills aria-labelledby={labelId} data-simple-effort value={levels.current} onPick={levels.onPick} pillClassName="px-1"
+        options={levels.levels.map((level) => ({ value: level, label: effortLabel(level), title: t("model.simple.thinkingLevel", { level: effortLabel(level) }),
+          attrs: { "data-effort-pill": "" } }))} />
     </div>
   );
 }
@@ -225,7 +208,7 @@ function NotConnected({ rows, onConnect, labelId }: { rows: readonly NotConnecte
   );
 }
 
-/** This bot, or every bot: two pills, the chosen one filled, its meaning in the tooltip. */
+/** This bot, or every bot: two pills, the fill sliding to the chosen one, its meaning in the tooltip. */
 function Scope({ scope, labelId }: { scope: NonNullable<SimpleModelMenuProps["scope"]>; labelId: string }) {
   const choices: Array<{ value: PickerScope; label: string; hint: string }> = [
     { value: "bot", label: t("model.picker.thisBot"), hint: t("model.picker.thisBotHint") },
@@ -234,16 +217,8 @@ function Scope({ scope, labelId }: { scope: NonNullable<SimpleModelMenuProps["sc
   return (
     <div className="flex flex-col">
       <span id={labelId} className="flex h-6 items-end px-2 pb-0.5 text-[12px] font-medium leading-4 text-ink-tertiary">{t("model.picker.scope")}</span>
-      <div data-picker-scope role="group" aria-labelledby={labelId} className="m-1 grid grid-cols-2 rounded-full bg-ink/[0.05] p-[3px]">
-        {choices.map((choice) => (
-          <button key={choice.value} type="button" data-scope-pill={choice.value} aria-pressed={scope.value === choice.value}
-            tabIndex={scope.value === choice.value ? 0 : -1} title={choice.hint} onClick={() => scope.onChange(choice.value)}
-            className={cn("h-6 min-w-0 truncate rounded-full px-2 text-[12px] leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus motion-reduce:transition-none touch:h-8",
-              scope.value === choice.value ? "bg-ink/[0.1] font-medium text-ink" : "text-ink-secondary hover:text-ink")}>
-            {choice.label}
-          </button>
-        ))}
-      </div>
+      <SlidingPills aria-labelledby={labelId} data-picker-scope value={scope.value} onPick={scope.onChange}
+        options={choices.map((choice) => ({ value: choice.value, label: choice.label, title: choice.hint, attrs: { "data-scope-pill": choice.value } }))} />
     </div>
   );
 }
