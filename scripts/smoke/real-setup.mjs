@@ -15,6 +15,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { launchSmokeApp, OWNER_PORTS, until } from "./app.mjs";
 import { envValue, smokeAccount } from "./account.mjs";
+import { compare as compareOwner, snapshot as snapshotOwner } from "./owner-guard.mjs";
 
 const args = process.argv.slice(2);
 const option = (name, fallback = null) => { const at = args.indexOf(name); return at === -1 ? fallback : args[at + 1] ?? fallback; };
@@ -428,6 +429,7 @@ async function openSettings() {
 }
 
 let failedHard = false;
+const ownerBefore = snapshotOwner();
 try {
   await main();
 } catch (error) {
@@ -436,6 +438,12 @@ try {
   if (app) writeFileSync(join(out, "app-output.txt"), app.output().slice(-200_000));
   await cleanup();
 }
+// after the app is gone: the owner's app, config and logs are as they were
+await sleep(1500);
+const ownerProblems = compareOwner(ownerBefore, ["oracle smoke", "owner server (smoke)", "dusk smoke", `127.0.0.1:${TUNNEL_PORT}`, "dusk-smoke", profile]);
+results.push({ id: "owner-untouched", title: "the owner's app, config and logs are untouched", status: ownerProblems.length ? "fail" : "pass",
+  note: ownerProblems.join("; ").slice(0, 600), ms: 0, shot: null, issues: [] });
+log(`${ownerProblems.length ? "FAIL" : "PASS"} the owner's app, config and logs are untouched${ownerProblems.length ? `: ${ownerProblems.join("; ")}` : ""}`);
 const ok = report() && !failedHard;
 log(`${ok ? "PASS" : "FAIL"}: ${join(out, "report.md")}`);
 process.exit(ok ? 0 : 1);

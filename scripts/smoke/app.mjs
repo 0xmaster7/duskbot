@@ -83,7 +83,7 @@ export async function neverVisibleCheck(root, profile) {
   mkdirSync(join(profile, "never-visible"), { recursive: true });
   const child = spawn(binary, ["-r", join(root, "scripts", "smoke", "electron-smoke-shim.cjs"), join(root, "scripts", "smoke", "never-visible-check.mjs"),
     `--user-data-dir=${join(profile, "never-visible")}`, "--use-mock-keychain", "--password-store=basic"],
-  { cwd: root, env: { PATH: process.env.PATH, HOME: process.env.HOME, DUSK_SMOKE_EVENTS: events }, stdio: ["ignore", "pipe", "pipe"], detached: true });
+  { cwd: root, env: { PATH: process.env.PATH, HOME: join(profile, "never-visible"), DUSK_SMOKE_EVENTS: events, DUSK_SMOKE_PROFILE: join(profile, "never-visible") }, stdio: ["ignore", "pipe", "pipe"], detached: true });
   launched.add(child);
   let output = "";
   child.stdout.on("data", (chunk) => { output += chunk; });
@@ -123,7 +123,7 @@ export async function launchSmokeApp({ root, profile, env: extra = {}, log: prin
     DUSK_DEV_OWN_SERVER: "1", DUSK_DEV_SERVER_WATCH: "0", DUSK_NO_TEST_BOTS: "1",
     DUSK_CLOUD_STAGING: "1", DUSK_ERROR_REPORTS: "0",
     ELECTRON_START_URL: `http://127.0.0.1:${uiPort}`,
-    DUSK_SMOKE_EVENTS: eventsFile,
+    DUSK_SMOKE_EVENTS: eventsFile, DUSK_SMOKE_PROFILE: profile, DUSK_LOG_DIR: join(profile, "app-paths", "logs"),
     ...extra,
   };
   mkdirSync(env.TMPDIR, { recursive: true });

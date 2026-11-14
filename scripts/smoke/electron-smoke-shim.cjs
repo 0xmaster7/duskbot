@@ -18,6 +18,18 @@ if (electron.app && process.type === "browser") {
   try { app.dock?.hide(); } catch {}
   app.setActivationPolicy?.("prohibited");
 
+  // Electron names some folders after the app, not HOME or --user-data-dir (logs are ~/Library/Logs/duskbot, the
+  // owner's own): every one of them goes into the smoke's profile instead
+  const isolated = process.env.DUSK_SMOKE_PROFILE;
+  if (isolated) {
+    const { mkdirSync } = require("node:fs");
+    const into = (name) => { const dir = join(isolated, "app-paths", name); mkdirSync(dir, { recursive: true }); return dir; };
+    app.setAppLogsPath(into("logs"));
+    for (const name of ["appData", "temp", "crashDumps", "downloads", "documents", "desktop", "music", "pictures", "videos", "recent"]) {
+      try { app.setPath(name, into(name)); } catch {}
+    }
+  }
+
   // main's ESM imports of "electron" resolve to this copy: windows and views are made hidden and offscreen-rendered
   const replaced = ["default", "BrowserWindow", "WebContentsView", "Tray", "Notification"];
   const names = Object.keys(electron).filter((name) => !replaced.includes(name) && /^[A-Za-z_$][\w$]*$/.test(name));

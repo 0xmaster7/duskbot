@@ -42,6 +42,13 @@ and still paints. A watchdog fails the run if any window ever reports itself
 visible. Teardown kills the app's whole process group on exit, errors and
 signals.
 
+Electron also puts some folders by app name, not by `HOME` or user data. On macOS its logs go to
+`~/Library/Logs/duskbot`, which is the owner's log folder. The shim moves logs, crash dumps, temp,
+downloads and the other app paths into `profile/app-paths`. The last step checks the owner's setup:
+`~/.config/duskbot`, the owner's places and home files and `~/.duskbot/config.json` must be
+byte-identical after the run. No owner app file and no new owner log line may name the smoke's server,
+port or profile.
+
 The smoke uses the real backends:
 
 | step | what passes |
