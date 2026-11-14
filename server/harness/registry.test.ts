@@ -684,7 +684,31 @@ process.exit(0);
     expect(installs).toEqual([]);
   });
 
-  it("offers nothing without npm, for a curl installer, or for a managed engine", async () => {
+  it("runs the vendor's own installer script when there is no npm package, and the npm-less fallback before giving up", async () => {
+    const fake = makeFakeDriver();
+    fake.driver.defaultConfig = () => ({ cli: "fakebin" });
+    const curl = "curl -fsSL https://example.test/install.sh | bash";
+    const irm = "irm https://example.test/install.ps1 | iex";
+    Object.assign(fake.driver, { install: { command: { linux: curl, darwin: curl, win32: irm } } });
+    const ran: Array<{ url: string; cli?: string }> = [];
+    const registry = new ProviderRegistry([fake.driver], { enginesBaseDir: join(scratch, "data"), npmAvailable: () => false,
+      installScript: async (installer, options) => { ran.push({ url: installer.url, cli: options.cli }); } });
+    await registry.load({ a: { driver: "fake" } });
+    const [described] = await registry.describe();
+    expect(described.install?.server).toEqual({ script: true });
+    expect(await registry.installRuntime("a")).toBe(true);
+    expect(ran).toEqual([{ url: process.platform === "win32" ? "https://example.test/install.ps1" : "https://example.test/install.sh", cli: "fakebin" }]);
+
+    const npm = { linux: "npm install -g fake-engine", darwin: "npm install -g fake-engine", win32: "npm install -g fake-engine" };
+    Object.assign(fake.driver, { install: { command: npm, installer: { linux: curl, darwin: curl, win32: irm } } });
+    const [fallback] = await registry.describe();
+    expect(fallback.install?.server).toEqual({ script: true });
+    expect(fallback.install).not.toHaveProperty("installer");
+    expect(await registry.installRuntime("a")).toBe(true);
+    expect(ran).toHaveLength(2);
+  });
+
+  it("offers nothing without npm or for a managed engine", async () => {
     withFakeNpm(true);
     const fake = makeFakeDriver();
     Object.assign(fake.driver, { install: { command: { linux: "npm install -g fake-engine" } } });
@@ -695,9 +719,6 @@ process.exit(0);
     expect(await without.installRuntime("a")).toBe(false);
     const registry = new ProviderRegistry([fake.driver], { enginesBaseDir: join(scratch, "data") });
     await registry.load({ a: { driver: "fake" } });
-    Object.assign(fake.driver, { install: { command: { linux: "curl -fsSL https://example.test/install.sh | bash" } } });
-    expect((await registry.describe())[0].install?.server).toBeUndefined();
-    expect(await registry.installRuntime("a")).toBe(false);
     Object.assign(fake.driver, { install: { command: { linux: "npm install -g fake-engine" }, managed: { label: "Install", downloadBytes: 1 } } });
     expect((await registry.describe())[0].install?.server).toBeUndefined();
     expect(existsSync(join(scratch, "data"))).toBe(false);

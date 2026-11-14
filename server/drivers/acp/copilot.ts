@@ -218,6 +218,7 @@ const SUPPORT: AcpSupport = {
   install: {
     command: { darwin: "npm install -g @github/copilot", linux: "npm install -g @github/copilot", win32: "npm install -g @github/copilot" },
     needsNode: true,
+    installer: { darwin: "curl -fsSL https://gh.io/copilot-install | bash", linux: "curl -fsSL https://gh.io/copilot-install | bash" },
     docsUrl: "https://docs.github.com/en/copilot/reference/acp-server",
     signInCommand: SIGN_IN,
   },

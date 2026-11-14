@@ -753,6 +753,7 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
       win32: "npm install -g @anthropic-ai/claude-code",
     },
     needsNode: true,
+    installer: { darwin: "curl -fsSL https://claude.ai/install.sh | bash", linux: "curl -fsSL https://claude.ai/install.sh | bash", win32: "irm https://claude.ai/install.ps1 | iex" },
     docsUrl: "https://claude.com/claude-code",
     signInCommand: "claude",
   },

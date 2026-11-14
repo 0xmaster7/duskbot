@@ -200,7 +200,7 @@ export function createInstanceRoutes(deps: InstanceRouteDeps): RouteHandler {
         }
         if (action === "install") {
           const installed = await registry.installRuntime(instanceId);
-          if (!installed) return json(res, 404, { error: "Installing this engine from Settings is not available on this server. Use the install command on the machine running dusk bot." });
+          if (!installed) return json(res, 404, { error: "This AI can't be installed automatically on this computer." });
           const usingAppCopy = installed !== true && await useAppCopy(instanceId, installed.useCli);
           return json(res, 200, { instances: await describeInstances(), ...(usingAppCopy ? { usingAppCopy: true } : {}) });
         }

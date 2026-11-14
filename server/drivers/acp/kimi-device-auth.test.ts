@@ -16,9 +16,9 @@ const CODE = "QKXP-7M4D";
 const PAGE = `https://www.kimi.com/code/authorize_device?user_code=${CODE}`;
 
 describe("Kimi on a server without a terminal", () => {
-  it("installs from Settings with Moonshot's npm package when the server has npm", () => {
+  it("installs with Moonshot's npm package when the server has npm, else with Moonshot's own installer", () => {
     expect(serverInstallFor(KimiAgentDriver.install, true)).toEqual({ package: "@moonshot-ai/kimi-code" });
-    expect(serverInstallFor(KimiAgentDriver.install, false)).toBeNull();
+    expect(serverInstallFor(KimiAgentDriver.install, false, "linux")).toEqual({ script: true });
   });
 
   it("keeps Moonshot's own installer as the command for a terminal", () => {

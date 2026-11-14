@@ -2,6 +2,7 @@
 import { findCliCandidates } from "../env-path.ts";
 import { installNpmEngine, npmAvailable, serverInstallFor, standaloneLookupPath } from "../engine-install.ts";
 import { installStandaloneEngine, isAppStandaloneCopy, type StandaloneInstalled } from "../engine-standalone.ts";
+import { installScriptEngine, scriptInstallerOf, type ScriptInstaller } from "../engine-script-install.ts";
 import { withEngineMemory } from "../engine-memory.ts";
 import { withEngineHomes } from "../engine-homes/engine-homes.ts";
 import { withLocalContext } from "../drivers/local-inject.ts";
@@ -45,6 +46,7 @@ function withServerInstall(install: AnyProviderDriver["install"], npmPresent: bo
 }
 
 type InstallStandalone = (release: StandaloneRelease, options: { baseDir?: string }) => Promise<StandaloneInstalled>;
+type InstallScript = (installer: ScriptInstaller, options: { cli?: string }) => Promise<void>;
 
 /** Installed; `useCli` when the copy this engine's CLI finds does not start and it should run the app's own copy instead. */
 export type InstallResult = true | { useCli: string };
@@ -119,15 +121,17 @@ export class ProviderRegistry {
   private readonly npmPresent: () => boolean;
   private readonly status: ReturnType<typeof engineStatusFile> | null;
   private readonly installStandalone: InstallStandalone;
+  private readonly installScript: InstallScript;
 
   constructor(
     drivers: readonly AnyProviderDriver[],
-    options: { enginesBaseDir?: string; npmAvailable?: () => boolean; statusFile?: string; installStandalone?: InstallStandalone } = {},
+    options: { enginesBaseDir?: string; npmAvailable?: () => boolean; statusFile?: string; installStandalone?: InstallStandalone; installScript?: InstallScript } = {},
   ) {
     this.enginesBaseDir = options.enginesBaseDir;
     this.npmPresent = options.npmAvailable ?? npmAvailable;
     this.status = options.statusFile ? engineStatusFile(options.statusFile) : null;
     this.installStandalone = options.installStandalone ?? installStandaloneEngine;
+    this.installScript = options.installScript ?? installScriptEngine;
     this.driversByKind = new Map(drivers.map((d) => [d.driverKind, d]));
   }
 
@@ -362,8 +366,13 @@ export class ProviderRegistry {
         const installed = await this.installStandalone(driver.install.standalone, { baseDir: this.enginesBaseDir });
         return (await this.appCopyAdvice(instanceId, driver, installed)) ?? true;
       }
-      if (!server?.package) return false;
-      await installNpmEngine(server.package, { baseDir: this.enginesBaseDir, cli: cliDefaultOf(driver) });
+      if (server?.package) {
+        await installNpmEngine(server.package, { baseDir: this.enginesBaseDir, cli: cliDefaultOf(driver) });
+        return true;
+      }
+      const script = server?.script ? scriptInstallerOf(driver?.install) : null;
+      if (!script) return false;
+      await this.installScript(script, { cli: cliDefaultOf(driver) });
       return true;
     } finally {
       this.forgetSnapshots();

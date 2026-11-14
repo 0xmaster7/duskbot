@@ -371,6 +371,8 @@ export interface EngineInstall {
   /** The vendor's npm package, for an engine whose `command` is its own installer script: Settings installs it on the
    * server when npm is there, while a terminal keeps the vendor's command. */
   npmPackage?: string;
+  /** The vendor's own installer one-liner per platform, run by the app when `command` (npm) can't be: no npm here. */
+  installer?: Partial<Record<"darwin" | "win32" | "linux", string>>;
   /** The app downloads and verifies a pinned provider runtime itself. */
   managed?: {
     label: string;
@@ -380,17 +382,18 @@ export interface EngineInstall {
   settings?: "connections";
   /** The vendor's own build, pinned here, that the app can download, verify and install without Node.js. */
   standalone?: StandaloneRelease;
-  /** Settings can install this on the server as its own user into an app-owned dir: the vendor's standalone build when one
-   * exists for this platform, otherwise this npm package. Set by the registry, never by a client. */
-  server?: { package?: string; standalone?: { version: string; downloadBytes: number } };
+  /** The app can install this on the server as its own user: the vendor's standalone build when one exists for this
+   * platform, otherwise this npm package, otherwise (`script`) the vendor's installer from `command`. Set by the registry,
+   * never by a client. */
+  server?: { package?: string; standalone?: { version: string; downloadBytes: number }; script?: boolean };
   /** Set by the registry: the CLI runs the copy the app installed, which the person's terminal does not reach. */
   appCopy?: boolean;
 }
 
-/** What a client may see of an install descriptor: the standalone pins (URLs, hashes) stay on the server. */
+/** What a client may see of an install descriptor: the standalone pins (URLs, hashes) and installer scripts stay on the server. */
 export function clientInstall(install: EngineInstall | undefined): EngineInstall | undefined {
   if (!install) return undefined;
-  const { standalone: _pins, ...shown } = install;
+  const { standalone: _pins, installer: _installer, ...shown } = install;
   return shown;
 }
 

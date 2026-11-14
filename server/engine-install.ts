@@ -8,6 +8,7 @@ import { DATA_DIR, stripWorkspaceCredentialEnv } from "./config.ts";
 import { npmEnginesPrefix } from "./engine-roots.ts";
 import { registerStandaloneBinDirs, standaloneAssetFor, standaloneRunEnv } from "./engine-standalone.ts";
 import { STANDALONE_RELEASES } from "./standalone-releases.ts";
+import { scriptInstallerOf } from "./engine-script-install.ts";
 import { augmentedPath, findCliCandidates, registerPathDir, resetPathCache } from "./env-path.ts";
 import { execCli, killCliTree, spawnCli } from "./procs.ts";
 
@@ -66,16 +67,17 @@ export function npmAvailable(): boolean {
 
 export type ServerInstall = NonNullable<EngineInstall["server"]>;
 
-/** The vendor's own build when it has one for this platform (no Node.js needed), otherwise npm when npm is here. With a
- * standalone build, `package` says npm is here too, so the client can still offer the npm command for a terminal. */
-export function serverInstallFor(install: EngineInstall | undefined, npmPresent: boolean = npmAvailable()): ServerInstall | null {
+/** The vendor's own pinned build when it has one for this platform (no Node.js needed), otherwise npm when npm is here,
+ * otherwise the vendor's own installer script for this platform. */
+export function serverInstallFor(install: EngineInstall | undefined, npmPresent: boolean = npmAvailable(), platform: NodeJS.Platform = process.platform): ServerInstall | null {
   if (!install || install.managed) return null;
   const asset = standaloneAssetFor(install.standalone);
   const pkg = npmPresent ? npmPackageOf(install) : null;
   if (install.standalone && asset) {
     return { standalone: { version: install.standalone.version, downloadBytes: asset.approxBytes }, ...(pkg ? { package: pkg } : {}) };
   }
-  return pkg ? { package: pkg } : null;
+  if (pkg) return { package: pkg };
+  return scriptInstallerOf(install, platform) ? { script: true } : null;
 }
 
 interface InstallOptions {
