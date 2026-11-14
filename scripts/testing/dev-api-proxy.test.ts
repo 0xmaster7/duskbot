@@ -1,5 +1,6 @@
 import { createServer as createHttpServer, get, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { createServer, type ViteDevServer } from "vite";
 
@@ -18,6 +19,7 @@ async function harnessAndProxy() {
   await new Promise<void>((done) => harness.listen(0, "127.0.0.1", done));
   closers.push(() => new Promise((done) => { harness.closeAllConnections(); harness.close(done); }));
   const vite: ViteDevServer = await createServer({ configFile: false, logLevel: "silent", root: import.meta.dirname,
+    cacheDir: join(import.meta.dirname, "..", "..", ".dusk-scratch", "vite-dev-api-proxy"),
     server: { host: "127.0.0.1", port: 0, hmr: false, proxy: { "/api": devApiProxy((harness.address() as AddressInfo).port) } } });
   await vite.listen();
   closers.unshift(() => vite.close());
