@@ -195,13 +195,14 @@ if (cta && fine && !still) {
 // or leaving, so a click-out in the last 1.5 s or a pagehide keeps the real title
 const title = document.title;
 const MISS = [
-  'the bots miss you', 'kit is crying rn', 'ur bots are gossiping', 'come back bestie', 'the bots started a group chat without u',
-  'pls 🥺 come back', 'kit is not ok', 'the bots noticed u left', 'they are talking about u', 'u left them on read',
-  'who said u could leave', 'kit is staring at the door', 'the bots are being dramatic', 'one of them is crying. guess who',
-  'ur crew is in shambles', 'come back, they made u a playlist', 'the bots are sulking', 'kit put on a sad song',
-  'we saved u a seat', 'the bots are spiralling', 'abandonment issues: activated', 'kit is writing a breakup text',
-  'they rearranged the furniture', 'the bots ate ur snacks', 'it is giving abandonment', 'not u ghosting the bots',
-  'the bots are refreshing the page', 'u had one job. stay.', 'kit is pretending to be fine', 'come back, the tea is hot',
+  'the bots miss you', 'kitten is crying rn', 'ur bots are gossiping', 'come back bestie', 'pls 🥺 come back',
+  'kitten is not ok', 'u left them on read', 'who said u could leave', 'kitten put on a sad song',
+  'kitten is writing a breakup text', 'they rearranged the furniture', 'the bots ate ur snacks',
+  'not u ghosting the bots', 'u had one job. stay.', 'kitten is pretending to be fine',
+  'kitten is at the window 🪟', 'u forgot us already? 💔', 'the bots threw a party without u 🎉',
+  'kitten knocked ur cup over ☕', 'kitten is sitting on ur keyboard ⌨️', 'brb crying 😿',
+  'come back, it is snack time 🍿', 'kitten is loafing in protest 🍞', 'the bots are doing ur work rn 💼',
+  'one more tab? really? 👀', 'kitten left u a voice note 🎙️', 'the bots lit a candle for u 🕯️',
 ];
 let away = 0, gone = false, last = -1;
 const leaving = () => { away = Date.now(); };
