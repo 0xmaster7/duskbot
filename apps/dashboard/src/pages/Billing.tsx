@@ -33,7 +33,7 @@ export type Tier = "free" | PaidPlan | "team";
 export const tiersFor = (onCloud: boolean): Tier[] => (onCloud ? ["starter", "pro", "team"] : ["free", "starter", "pro"]);
 
 /** three rows, the machine first; every number comes from the catalog */
-function points(id: Exclude<Tier, "free">, catalog: PlanCatalog): string[] {
+export function points(id: Exclude<Tier, "free">, catalog: PlanCatalog): string[] {
   const b = bundleOf(catalog, id);
   const d = b ? desktopOf(catalog, b.desktop) : null;
   if (!d) return [];

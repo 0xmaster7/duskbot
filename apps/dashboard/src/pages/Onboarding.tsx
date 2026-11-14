@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, LoaderCircle, Monitor } from "@/icons";
+import { ArrowLeft, Check, LoaderCircle, Monitor } from "@/icons";
 import meadow from "../art/p-meadow.webp";
 import { useCloud } from "../data/cloud";
 import type { BillingInterval, PlanCatalog } from "../data/contracts";
@@ -14,7 +14,8 @@ import { SplitFrame } from "../ui/Frame";
 import { Button, cx, Skeleton } from "../ui/kit";
 import { Mascot, type MascotHandle } from "../ui/Mascot";
 import type { SceneHandle, SceneMood } from "../ui/Scene";
-import { CHECKOUT_SOON, Points } from "./cloud-offer";
+import { points } from "./Billing";
+import { CHECKOUT_SOON } from "./cloud-offer";
 import { track } from "../lib/analytics";
 import { per, planSelection, type PaidPlan } from "./plan-sheet";
 
@@ -64,7 +65,13 @@ function PlanStep({ catalog, home, setHome, plan, setPlan }: { catalog: PlanCata
             <span className="text-17 font-medium tracking-[-0.02em] text-ink">dusk cloud</span>
             <span className="num text-14 text-ink-3">from {dollars(plans[0]?.b.monthly ?? 0)}/mo</span>
           </span>
-          <Points className="px-3 pb-2 pt-3 [&_li]:text-14" />
+          <ul className="flex flex-col gap-2 px-3 pb-2 pt-3">
+            {points(plan, catalog).map((p) => (
+              <li key={p} className="flex gap-2.5 text-14 leading-[1.45] text-ink-2">
+                <Check size={17} strokeWidth={2} className="mt-0.5 shrink-0 text-good" aria-hidden />{p}
+              </li>
+            ))}
+          </ul>
         </label>
         {cloud && (
           <div className="step-in flex flex-col gap-2 px-1 pb-1 pt-2">
