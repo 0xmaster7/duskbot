@@ -363,7 +363,7 @@ import {
   journalTurnWrite,
   type MemoryJournalEntry,
 } from "./memory-journal.ts";
-import { introAllowed, introPrompt } from "./bot-intro.ts";
+import { introAllowed, introText } from "./bot-intro.ts";
 import { memoryTarget } from "./memory-for-bot.ts";
 import { readyBotTemplate, templateRoutineHints } from "./ready-bot-templates.ts";
 import {
@@ -15026,8 +15026,7 @@ const handleRequestInner = async (req: IncomingMessage, res: ServerResponse) => 
         // a specialist a Chief adds for work in hand starts on that work, not with a hello
         const greets = body.greet !== false && personAsked() && introAllowed(store.messagesFor(created.threadId)) && !threadBusy(created.id, created.threadId);
         if (greets) {
-          void startTurn(created.id, introPrompt(conversationLanguage(created.threadId)), { threadId: created.threadId, cardContinuation: true, trigger: { kind: "bot", botId: chief.id } })
-            .catch((error) => console.warn(`create_bot: intro for ${created.id} did not start: ${error instanceof Error ? error.message : String(error)}`));
+          store.appendMessage(created.threadId, { role: "bot", kind: "text", text: introText(created) });
         }
         return json(res, 201, {
           ...proposed,

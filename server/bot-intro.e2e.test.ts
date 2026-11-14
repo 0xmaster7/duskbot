@@ -9,13 +9,14 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 import { freePortBlock } from "./testing/ports.ts";
 
-// A bot just made says hello in its own voice: one turn with no line from the person, its role in the prompt, and
+// A bot just made says a fixed hello with no model call (nothing spends on the person's key before they write), and
 // never a second hello.
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(SERVER_DIR, "..");
 const FAKE_CLAUDE = join(SERVER_DIR, "testing", "fake-claude-cli.ts");
-const HELLO = "Hi, I'm Ledger. I keep your books tidy. Want me to start with last month's receipts?";
+const HELLO = "Hi, I'm Ledger (Bookkeeper). Tell me what you'd like to start with and I'll take it from there.";
+const IDLE_MS = 15_000;
 
 let child: ChildProcess;
 let home = "";
@@ -88,36 +89,27 @@ afterAll(async () => {
 });
 
 describe("a new bot's intro", { timeout: 60_000 }, () => {
-  it("greets once in its own voice, with no line from the person, and never twice", async () => {
+  it("says a fixed hello once, makes no model call, and never says it twice", async () => {
     const { bot } = (await api("POST", "/api/bots", {
       name: "Ledger", title: "Bookkeeper", greeting: false, useDefaults: false,
       modelSelection: { instanceId: "intro", model: "claude-sonnet-5" }, requireAvailableModel: true,
     })).body;
-    expect((await api("PATCH", `/api/bots/${bot.id}`, { soul: "You keep the person's books.", memoryUpkeep: false })).status).toBe(200);
+    expect((await api("PATCH", `/api/bots/${bot.id}`, { soul: "You keep the person's books." })).status).toBe(200);
     expect(await messages(bot.threadId)).toEqual([]);
 
     const started = await api("POST", `/api/bots/${bot.id}/intro`);
-    expect(started.status).toBe(202);
-    const deadline = Date.now() + 20_000;
-    let thread = await messages(bot.threadId);
-    while (!thread.some((message) => message.role === "bot" && message.text === HELLO) && Date.now() < deadline) {
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      thread = await messages(bot.threadId);
-    }
+    expect(started.status).toBe(201);
+    const thread = await messages(bot.threadId);
     expect(thread.filter((message) => message.role === "user")).toEqual([]);
-    expect(thread.filter((message) => message.role === "bot" && message.kind === "text").map((message) => message.text)).toEqual([HELLO]);
+    expect(thread.filter((message) => message.role === "bot").map((message) => message.text)).toEqual([HELLO]);
 
-    expect(existsSync(dump)).toBe(true);
-    const sent = JSON.parse(readFileSync(dump, "utf8")) as { prompt: unknown; systemPrompt: string };
-    expect(JSON.stringify(sent.prompt)).toContain("You were just created");
-    expect(sent.systemPrompt).toContain("You keep the person's books.");
+    // a minute of idle time: the fake engine records every prompt it is sent, and it was sent none
+    await new Promise((resolve) => setTimeout(resolve, IDLE_MS));
+    expect(existsSync(dump)).toBe(false);
+    expect((await api("GET", "/api/bots?messages=0")).body.bots.find((each: { id: string }) => each.id === bot.id)?.busy).toBeFalsy();
 
-    for (let quiet = Date.now() + 5_000; Date.now() < quiet;) {
-      if (!(await api("GET", "/api/bots?messages=0")).body.bots.find((each: { id: string }) => each.id === bot.id)?.busy) break;
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
     expect((await api("POST", `/api/bots/${bot.id}/intro`)).body).toEqual({ skipped: true });
-    expect((await messages(bot.threadId)).filter((message) => message.role === "bot" && message.kind === "text")).toHaveLength(1);
+    expect((await messages(bot.threadId)).filter((message) => message.role === "bot")).toHaveLength(1);
   });
 
   it("knows no bot it cannot find", async () => {

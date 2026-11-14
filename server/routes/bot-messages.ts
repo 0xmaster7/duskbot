@@ -33,7 +33,7 @@ import { extractSteerImages } from "../turn-images.ts";
 import { followupFacts, helperFollowup, helperFollowupBody, mayFollowUp } from "../helper-followup.ts";
 import { importNoteSchema } from "../../shared/import-note.ts";
 import { importNoteText } from "../import-note.ts";
-import { introAllowed, introPrompt } from "../bot-intro.ts";
+import { introAllowed, introText } from "../bot-intro.ts";
 import { conversationLanguage } from "../server-lines.ts";
 import type { UsageTrigger } from "../usage-ledger.ts";
 import { noteTypedSend } from "../typed-sends.ts";
@@ -466,7 +466,7 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
       if (!text) return json(res, 400, { error: "nothing came in" });
       return json(res, 201, { message: store.appendMessage(bot.threadId, { role: "bot", kind: "text", text }) });
     }
-    // a bot just made greets the person in its own voice; its chat holds nothing yet, or this is a no-op
+    // a bot just made greets the person with a fixed line, no model call; its chat holds nothing yet, or this is a no-op
     m = path.match(/^\/api\/bots\/([\w-]+)\/intro$/);
     if (m && method === "POST") {
       const bot = store.bot(m[1]!);
@@ -474,10 +474,8 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
       const notYours = cloudThreadRefusal(auth, bot.threadId);
       if (notYours) return json(res, 403, { error: notYours });
       if (!introAllowed(store.messagesFor(bot.threadId)) || threadBusy(bot.id, bot.threadId)) return json(res, 200, { skipped: true });
-      await startTurn(bot.id, introPrompt(conversationLanguage(bot.threadId)), {
-        threadId: bot.threadId, cardContinuation: true, trigger: usageTriggerFor(auth),
-      });
-      return json(res, 202, { ok: true, threadId: bot.threadId });
+      store.appendMessage(bot.threadId, { role: "bot", kind: "text", text: introText(bot) });
+      return json(res, 201, { ok: true, threadId: bot.threadId });
     }
     m = path.match(/^\/api\/bots\/([\w-]+)\/compact$/);
     if (m && method === "POST") {
