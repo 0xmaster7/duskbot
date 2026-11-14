@@ -262,18 +262,23 @@ server, where they do the work; the phone sends messages, shows replies, and let
 runs on the phone except the interface, which is bundled in the app.
 
 DEMO ACCOUNT
-[DEMO CREDENTIALS: drafted by the in-app branch. A free-plan account with an always-on demo bot on our servers, signed
-in without an email code. Keep it running for the whole review.]
+Tap "log in", enter app-review@dusk.bot, tap send, and type the code [DUSK_REVIEW_CODE from dusk.env]. No email is
+needed. The account is on the free plan; paid plans are not sold in the app.
+[HOW THE REVIEWER REACHES THE ALWAYS-ON REVIEW BOT: still to decide, see "Reviewer bot" in the owner steps. Keep it
+running for the whole review.]
 
 STEPS
 1. Launch the app. Tap "log in" and use the demo account above.
-2. Before the first message, the app shows who receives what you write and asks for permission. Tap Allow.
+2. On first arrival at the home screen, the app shows "before you chat": who receives what you send (your computer,
+   the AI your bots use, by name, apps you connected, and our relay). Tap "allow". "not now" keeps chats readable and
+   asks again when you send.
 3. The home screen lists the bots. Tap a bot to open its chat and send a message; the reply arrives within seconds.
 4. Open a room (group chat) from the home screen to see several bots working together.
 5. When a bot asks before acting, an approval card appears in the chat: tap "Allow once" or "Deny".
 6. Tap the profile button (top left) for Settings: routines, appearance, notifications, privacy policy, terms.
-7. Report a reply: long-press a bot's message and tap Report.
-8. Delete the account: Settings, Account, Delete account. This deletes the account and revokes Sign in with Apple.
+7. Report a reply: open a bot message's menu (long-press) and tap "Report this reply".
+8. Delete the account: Settings, Account, Delete account, "delete my account". This deletes it right away in the app,
+   cancels any plan and revokes Sign in with Apple.
 
 NATIVE FEATURES
 Camera QR pairing (custom AVFoundation scanner), Keychain storage of the pairing, push notifications for replies and
