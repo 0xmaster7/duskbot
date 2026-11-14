@@ -11,7 +11,7 @@
     "linux-appimage": "DuskBot.AppImage"
   },
   "checksums": "SHA256SUMS",
-  "macNotarized": false,
+  "macNotarized": true,
   "ios": "",
   "android": ""
 }
