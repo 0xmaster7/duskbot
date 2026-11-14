@@ -1,6 +1,7 @@
 // egress on the fastest live path: the agent's real tunnel (apps/link-service/agent.mjs) and the app's real proxy and
 // endpoint, through the real link service, plus an in-memory direct connection handed to the agent's direct hub.
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { createServer as createHttpServer } from "node:http";
 import { connect, createServer } from "node:net";
@@ -76,7 +77,7 @@ async function socks(port, host, targetPort) {
   return { socket, reply: reply ? reply[1] : null, read };
 }
 
-async function fixture() {
+async function fixture({ serverPort = 9, viaProcess = false } = {}) {
   const root = fileURLToPath(new URL("../apps/link-service/", import.meta.url));
   const service = createLinkService({ base: "http://fixture.invalid", scriptPath: `${root}install.sh`, agentPath: `${root}agent.mjs`, trustProxy: false });
   const credentials = { id: "abcdefghij", key: Buffer.alloc(32, 3).toString("base64url"), token: "a".repeat(43) };
@@ -97,7 +98,7 @@ async function fixture() {
   const base = `http://127.0.0.1:${await listen(relay)}`;
   const site = createServer((socket) => { socket.on("error", () => {}); socket.pipe(socket); });
   const sitePort = await listen(site);
-  const agent = createTunnelAgent({ ...credentials, base, token: vpsToken, server: { host: "127.0.0.1", port: 9 }, fetchImpl: vpsFetch, log: () => {}, egress: {
+  const agent = createTunnelAgent({ ...credentials, base, token: vpsToken, server: { host: "127.0.0.1", port: serverPort }, fetchImpl: vpsFetch, log: () => {}, egress: {
     bind: () => ({ host: "127.0.0.1", port: 0, allow: () => true }), reportMs: 100, dialMs: 1500, probe: null,
     report: async () => ({ enabled: true }),
   } });
@@ -108,7 +109,16 @@ async function fixture() {
     connect: () => connect({ host: "127.0.0.1", port: sitePort }),
   });
   const links = [];
-  const directConnect = async () => {
+  const sockDir = viaProcess ? mkdtempSync(join(tmpdir(), "dusk-direct-")) : null;
+  const sockFile = sockDir ? join(sockDir, "direct.sock") : null;
+  const listening = viaProcess ? await listenDirectSocket(agent.direct, sockFile, () => {}) : null;
+  const directConnect = viaProcess ? async () => {
+    // as sshd runs it: `agent.mjs direct` in its own process on stdio pipes, handing its connection to the tunnel's socket
+    const child = spawn(process.execPath, ["--input-type=module", "-e", `import { Socket } from "node:net"; import { pipeToTunnel } from ${JSON.stringify(new URL("../apps/link-service/agent.mjs", import.meta.url).href)}; const output = new Socket({ fd: 1, readable: false, writable: true }); process.exit((await pipeToTunnel(${JSON.stringify(sockFile)}, process.stdin, output)) ?? 9);`], { stdio: ["pipe", "pipe", "ignore"] });
+    const link = { readable: child.stdout, writable: child.stdin, close: () => child.kill() };
+    links.push(link);
+    return link;
+  } : async () => {
     const up = new PassThrough(), down = new PassThrough();
     agent.direct.accept(up, down);
     const link = { readable: down, writable: up, close: () => { up.destroy(); down.destroy(); } };
@@ -116,11 +126,14 @@ async function fixture() {
     return link;
   };
   const proxy = createTunnelProxy({ ...credentials, base, fetch: appFetch, log: () => {}, direct: { connect: directConnect }, egress: (tunnel) => createEgressEndpoint({ ...tunnel, dialer }) });
-  await proxy.start();
+  const origin = await proxy.start();
   await until(() => agent.egress.listening && agent.egress.online());
   return {
-    agent, proxy, links, relaySeen, port: () => agent.egress.listening.port,
+    agent, proxy, links, relaySeen, origin, port: () => agent.egress.listening.port,
     async close() {
+      listening?.close();
+      for (const link of links) link.close();
+      if (sockDir) rmSync(sockDir, { recursive: true, force: true });
       agent.stop();
       await running;
       await proxy.close();
@@ -186,4 +199,40 @@ test("the direct command hands its connection to the tunnel's process, which ser
     assert.equal(await exit, 0);
     assert.equal(await pipeToTunnel(join(dir, "nobody.sock"), new PassThrough(), new PassThrough()), null, "with no tunnel listening, the command serves the connection itself");
   } finally { listening?.close(); rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("a desktop stream that ends, from either side and either way (the hand-back), closes only that stream, not the direct path", { timeout: 30_000 }, async () => {
+  // the bot computer's websockify: an upgrade that streams screen bytes until either end closes
+  const desk = createHttpServer((_req, res) => { res.writeHead(404); res.end(); });
+  const sockets = new Set();
+  desk.on("upgrade", (_req, socket) => {
+    sockets.add(socket);
+    socket.on("error", () => {});
+    socket.write("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n");
+    const timer = setInterval(() => socket.write(Buffer.alloc(30_000, 9)), 20);
+    socket.on("close", () => { clearInterval(timer); sockets.delete(socket); });
+    socket.resume();
+  });
+  const deskPort = await listen(desk);
+  const f = await fixture({ serverPort: deskPort, viaProcess: true });
+  try {
+    await until(() => f.proxy.transport() === "direct" && f.agent.direct.best());
+    const target = new URL(f.origin);
+    for (const how of ["app ends", "app drops", "server ends", "server drops"]) {
+      const socket = connect({ host: "127.0.0.1", port: Number(target.port) });
+      socket.on("error", () => {});
+      let got = 0;
+      socket.on("data", (chunk) => { got += chunk.length; });
+      await new Promise((resolve) => socket.once("connect", resolve));
+      socket.write(`GET /api/desktop-viewer/vps/x/websockify HTTP/1.1\r\nHost: ${target.host}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: ${"A".repeat(22)}==\r\nSec-WebSocket-Version: 13\r\n\r\n`);
+      await until(() => got > 300_000, 10_000);
+      if (how === "app ends") socket.end();
+      if (how === "app drops") socket.destroy();
+      for (const one of sockets) if (how === "server ends") one.end(); else if (how === "server drops") one.destroy();
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      socket.destroy();
+      assert.equal(f.proxy.transport(), "direct", `${how}: the direct path stayed up`);
+      assert.equal(f.links.length, 1, `${how}: no new direct connection was needed`);
+    }
+  } finally { await f.close(); await new Promise((resolve) => desk.close(resolve)); }
 });

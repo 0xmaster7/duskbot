@@ -520,8 +520,10 @@ export function createDirectLink({ id, key: keyText, guard, connect, onFrame, on
       onFrame(frame);
     });
     link.readable.on("data", (chunk) => { try { read(chunk); } catch (error) { if (conn === mine) drop(error.message); } });
-    link.readable.on("end", () => { if (conn === mine) drop("closed"); });
-    link.readable.on("close", () => { if (conn === mine) drop("closed"); });
+    // "closed", with what the transport knows of why when it can tell (ssh: the command's exit, the connection's end)
+    const ended = () => { if (conn !== mine) return; let why = null; try { why = link.why?.() ?? null; } catch { /* no reason */ } drop(why ? `closed: ${why}` : "closed"); };
+    link.readable.on("end", () => setImmediate(ended));
+    link.readable.on("close", () => setImmediate(ended));
     link.readable.on("error", (error) => { if (conn === mine) drop(error?.message ?? "error"); });
     link.writable.on("error", (error) => { if (conn === mine) drop(error?.message ?? "error"); });
     link.writable.on("drain", () => { if (conn === mine) writer.drained(); });
@@ -634,7 +636,21 @@ export function sshConnector({ host, port = 22, user, privateKey, hostKeys, time
         if (error) return fail(error);
         clearTimeout(silent);
         settled = true;
-        resolve({ readable: channel, writable: channel, close: () => { channel.destroy?.(); client.end(); sock.destroy(); } });
+        // why it ended, for the "direct path lost" line: the server's command exiting (and what it said on stderr),
+        // the server closing the channel, or the connection itself going (an error, a keepalive with no answer)
+        let exited = null, said = "", gone = null;
+        channel.on("exit", (code, signal) => { exited = signal ? `signal ${signal}` : `code ${code}`; });
+        channel.stderr?.on?.("data", (chunk) => { said = `${said}${chunk}`.slice(-300); });
+        client.on("error", (problem) => { gone ??= problem?.message ?? String(problem); });
+        client.once("close", () => { gone ??= "the connection closed"; });
+        const why = () => {
+          const parts = [];
+          if (exited) parts.push(`the server's direct command exited (${exited})`);
+          if (said.trim()) parts.push(`it said: ${said.trim().split("\n").at(-1).slice(0, 160)}`);
+          if (gone) parts.push(gone);
+          return parts.length ? parts.join("; ") : "the server ended the channel";
+        };
+        resolve({ readable: channel, writable: channel, why, close: () => { channel.destroy?.(); client.end(); sock.destroy(); } });
       });
     });
     client.connect({

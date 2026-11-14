@@ -253,6 +253,34 @@ test("identity pinned: sshd's host key must be one the agent sent, and the app's
   } finally { await new Promise((resolve) => sshd.close(resolve)); }
 });
 
+test("a direct ssh path that ends says why: the server's command exiting, what it said, or the connection going", async () => {
+  const { Server, utils } = loadSsh2();
+  const hostKey = utils.generateKeyPairSync("ed25519");
+  const appKey = newDirectKey();
+  let ending = null;
+  const sshd = new Server({ hostKeys: [hostKey.private] }, (client) => {
+    client.on("authentication", (ctx) => (ctx.method === "publickey" ? ctx.accept() : ctx.reject(["publickey"])));
+    client.on("ready", () => client.on("session", (accept) => accept().on("exec", (acceptExec) => {
+      const stream = acceptExec();
+      ending = () => { stream.stderr.write("link direct: something broke\n"); stream.exit(3); stream.end(); };
+    })));
+    client.on("error", () => {});
+  });
+  const port = await listen(sshd);
+  try {
+    const link = await sshConnector({ host: "127.0.0.1", port, user: "maus", privateKey: appKey.privateKey, hostKeys: [hostKey.public] })();
+    const closed = new Promise((resolve) => link.readable.once("close", resolve));
+    link.readable.resume();
+    await until(() => ending);
+    ending();
+    await closed;
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.match(link.why(), /the server's direct command exited \(code 3\)/);
+    assert.match(link.why(), /it said: link direct: something broke/);
+    link.close();
+  } finally { await new Promise((resolve) => sshd.close(resolve)); }
+});
+
 test("DUSK_LINK_DIRECT=off on the server refuses a key before touching anything", async () => {
   const before = process.env.DUSK_LINK_DIRECT;
   process.env.DUSK_LINK_DIRECT = "off";
