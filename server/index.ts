@@ -13028,7 +13028,7 @@ ROUTES.push(createInstanceRoutes({
   store, cfg, registry, sessions, providerAuthSessions,
   providerConfigBusy: { get: () => providerConfigBusy, set: (busy) => { providerConfigBusy = busy; } },
   providerInstancesChanging, describeInstances, persistProviderInstance, configStatus, broadcast, testCliBinary,
-  cliProbeEnvironment, threadBusy, botForThread, activeGroupTurnForBot, checkInstance: testedAi.check,
+  cliProbeEnvironment, threadBusy, botForThread, activeGroupTurnForBot, checkInstance: testedAi.check, cloudHome: placeFromEnv(process.env) === "cloud",
 }));
 const modelCatalog = new ModelCatalogStore({ dataDir: DATA_DIR });
 ROUTES.push(createModelProviderRoutes({

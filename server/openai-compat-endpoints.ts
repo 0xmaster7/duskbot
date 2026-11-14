@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { InstanceConfig, InstanceConfigMap } from "./contracts.ts";
+import { addressHere } from "./cloud-connections.ts";
 
 export const ADDED_ENDPOINT_PREFIX = "openai-compat-";
 
@@ -39,9 +40,14 @@ export function isAddedEndpoint(instanceId: string, entry: InstanceConfig | unde
   return entry?.driver === "openai-compat" && instanceId.startsWith(ADDED_ENDPOINT_PREFIX);
 }
 
-export function addEndpoint(instances: InstanceConfigMap, body: AddEndpoint): { instanceId: string } | { error: string } {
+/** What dusk cloud says to an address only the person's own computer or network has (model-providers.ts addressProblem):
+ * the cloud runs the bot, so it would call that address from itself and never reach it. */
+export const CLOUD_CANT_REACH = "dusk cloud can't reach an address on your own computer or network. Use a public address.";
+
+export function addEndpoint(instances: InstanceConfigMap, body: AddEndpoint, where: { cloudHome?: boolean } = {}): { instanceId: string } | { error: string } {
   const url = endpointBaseUrl(body.url);
   if (!url) return { error: "Enter an http or https base URL without a user name, password or query string." };
+  if (where.cloudHome && addressHere(url)) return { error: CLOUD_CANT_REACH };
   if (/^https?:\/\//i.test(body.key)) return { error: "That API key looks like a URL. Paste the secret key itself, not a web address." };
   const instanceId = `${ADDED_ENDPOINT_PREFIX}${randomUUID()}`;
   const models = [...new Set(body.models ?? [])];

@@ -17,7 +17,7 @@ afterEach(async () => {
 
 const SECRET = "sk-test-0123456789";
 
-async function serve(options: { botInstance?: string } = {}) {
+async function serve(options: { botInstance?: string; cloudHome?: boolean } = {}) {
   const cfg = { instances: { openaiCompat: { driver: "openai-compat" }, claude: { driver: "claudeAgent" } } } as unknown as AppConfig;
   const persisted: InstanceConfigMap[] = [];
   let busy = false;
@@ -39,6 +39,7 @@ async function serve(options: { botInstance?: string } = {}) {
     threadBusy: () => false,
     botForThread: () => null,
     activeGroupTurnForBot: () => null,
+    ...(options.cloudHome ? { cloudHome: true } : {}),
   } as unknown as InstanceRouteDeps;
   const routes = [createInstanceRoutes(deps)];
   const server = createServer(async (req, res) => {
@@ -68,6 +69,21 @@ describe("added OpenAI-compatible servers", () => {
   it("are admin-only", () => {
     expect(requiredScope("POST", "/api/instances/openai-compat")).toBe("admin");
     expect(requiredScope("DELETE", "/api/instances/openai-compat-1")).toBe("admin");
+  });
+
+  it("on dusk cloud, refuses an address only the person's own computer or network reaches, and keeps a public one", async () => {
+    const { cfg, persisted, call } = await serve({ cloudHome: true });
+    for (const url of ["http://localhost:11434/v1", "http://127.0.0.1:1234/v1", "http://192.168.1.20:8080/v1", "http://my-mac.local:11434/v1"]) {
+      const refused = await call("POST", "/api/instances/openai-compat", { ...add, url });
+      expect(refused.status, url).toBe(400);
+      expect(refused.body.error).toBe("dusk cloud can't reach an address on your own computer or network. Use a public address.");
+    }
+    expect(persisted).toHaveLength(0);
+    expect(Object.keys(cfg.instances ?? {}).some((id) => id.startsWith("openai-compat-"))).toBe(false);
+    expect((await call("POST", "/api/instances/openai-compat", add)).status).toBe(201);
+    // the same local address is fine on a computer or a server of the person's own, where it is that machine's
+    const { call: onComputer } = await serve();
+    expect((await onComputer("POST", "/api/instances/openai-compat", { ...add, url: "http://localhost:11434/v1" })).status).toBe(201);
   });
 
   it("saves a new instance with its own key, base URL and models, and never sends the key back", async () => {

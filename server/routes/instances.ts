@@ -43,6 +43,8 @@ export interface InstanceRouteDeps {
   activeGroupTurnForBot(botId: string): { threadId: string } | null;
   /** The server's tested-AI record (server/tested-ai.ts): a check there also settles the new-bot default. */
   checkInstance?(instance: ProviderInstance): Promise<EngineCheck>;
+  /** This server is a dusk cloud: an address on the person's own computer or network is out of its reach. */
+  cloudHome?: boolean;
 }
 
 export function createInstanceRoutes(deps: InstanceRouteDeps): RouteHandler {
@@ -148,7 +150,7 @@ export function createInstanceRoutes(deps: InstanceRouteDeps): RouteHandler {
       providerConfigBusy.set(true);
       try {
         const instances = persistableInstanceConfigs(cfg);
-        const added = addEndpoint(instances, parsed.data);
+        const added = addEndpoint(instances, parsed.data, { cloudHome: deps.cloudHome === true });
         if ("error" in added) return json(res, 400, { error: added.error });
         await persistProviderInstance(added.instanceId, instances);
         return json(res, 201, { instanceId: added.instanceId, instances: await describeInstances() });

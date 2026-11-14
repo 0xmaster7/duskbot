@@ -13,7 +13,7 @@ import { addressHere } from "./cloud-connections.ts";
 import type { InstanceConfig } from "./contracts.ts";
 import type { ModelCatalog } from "./model-catalog/catalog.ts";
 import type { CatalogModel } from "./model-catalog/trim.ts";
-import { ADDED_ENDPOINT_PREFIX } from "./openai-compat-endpoints.ts";
+import { ADDED_ENDPOINT_PREFIX, CLOUD_CANT_REACH } from "./openai-compat-endpoints.ts";
 
 export const CATALOG_PROVIDER_PREFIX = "catalog:";
 export const ANTHROPIC_CONNECTION_PREFIX = "claude-api-";
@@ -141,7 +141,7 @@ export function addressProblem(raw: string, place: Place): string | null {
   const host = url.hostname.replace(/^\[|\]$/gu, "").toLowerCase();
   if (host.startsWith("169.254.") || /^fe[89ab][0-9a-f]:/u.test(host) || host === "metadata.google.internal") return "That address can't be used.";
   const here = addressHere(url.href);
-  if (place === "cloud" && here) return "dusk cloud can't reach an address on your own computer or network. Use a public address.";
+  if (place === "cloud" && here) return CLOUD_CANT_REACH;
   if (url.protocol === "http:" && !here) return "Use https:// for an address on the internet.";
   return null;
 }
