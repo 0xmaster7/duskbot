@@ -56,7 +56,7 @@ export function AppUpdatePill({ className, bridge = ownBridge() }: { className?:
       aria-busy={restarting || downloading || undefined}
       disabled={restarting}
       onClick={onClick}
-      className={cn("relative isolate flex items-center gap-1.5 overflow-hidden rounded-full bg-raised px-2.5 py-1 text-[12px] leading-4 text-ink transition-colors duration-150 ease-out hover:bg-[color-mix(in_srgb,var(--color-raised),var(--color-ink)_6%)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-progress", className)}
+      className={cn("relative isolate flex items-center gap-1.5 overflow-hidden rounded-full bg-[light-dark(color-mix(in_srgb,var(--color-raised),white_25%),color-mix(in_srgb,var(--color-raised),white_3%))] px-3 py-[5px] text-[12.5px] leading-4 text-ink transition-colors duration-150 ease-out hover:bg-[color-mix(in_srgb,var(--color-raised),var(--color-ink)_6%)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-progress", className)}
     >
       {percent !== null && (
         <span
@@ -67,8 +67,8 @@ export function AppUpdatePill({ className, bridge = ownBridge() }: { className?:
         />
       )}
       {ready
-        ? <RefreshCw size={12} aria-hidden="true" className={restarting ? "animate-spin motion-reduce:animate-none" : undefined} />
-        : <ArrowDownToLine size={12} aria-hidden="true" />}
+        ? <RefreshCw size={13} aria-hidden="true" className={restarting ? "animate-spin motion-reduce:animate-none" : undefined} />
+        : <ArrowDownToLine size={13} aria-hidden="true" />}
       {ready ? t("appUpdate.restart") : downloading ? t("appUpdate.downloading", { version }) : t("appUpdate.available", { version })}
       {percent !== null && <span className="tabular-nums text-ink-secondary">{t("appUpdate.percent", { percent })}</span>}
     </button>
