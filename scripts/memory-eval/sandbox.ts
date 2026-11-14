@@ -53,11 +53,24 @@ export interface Sandbox {
   dataDir: string;
   logPath: string;
   child: ChildProcess;
+  /** Stops the server and keeps its data, runs `between` (to write files as an older install left them), starts again. */
+  restart(between?: () => void | Promise<void>): Promise<void>;
   close(keep?: boolean): Promise<void>;
 }
 
+export interface SandboxOptions {
+  /** More of config.json, merged over the eval's own. */
+  config?: Record<string, unknown>;
+}
+
+async function stop(child: ChildProcess): Promise<void> {
+  if (child.exitCode !== null) return;
+  child.kill("SIGTERM");
+  await new Promise((r) => { child.once("exit", r); setTimeout(r, 8_000); });
+}
+
 /** `repo` is the checkout whose server/index.ts runs: the eval compares two checkouts with the same script. */
-export async function launchSandbox(repo: string, gateway: Gateway, memory: { captureQuietMs: number }): Promise<Sandbox> {
+export async function launchSandbox(repo: string, gateway: Gateway, memory: { captureQuietMs: number }, options: SandboxOptions = {}): Promise<Sandbox> {
   const port = await freePair();
   const root = mkdtempSync(join(process.env.DUSK_EVAL_TMP ?? tmpdir(), "dusk-memory-eval-"));
   const dataDir = join(root, "data");
@@ -66,9 +79,9 @@ export async function launchSandbox(repo: string, gateway: Gateway, memory: { ca
     features: { smartSetupChoices: false },
     memory,
     instances: { gw: { driver: "openai-compat", displayName: "Eval gateway", config: { url: gateway.url, key: gateway.key, model: gateway.model } } },
+    ...options.config,
   }, null, 2), { mode: 0o600 });
   const logPath = join(root, "server.log");
-  const log = openSync(logPath, "a", 0o600);
   const env: NodeJS.ProcessEnv = {
     PATH: process.env.PATH,
     HOME: dataDir,
@@ -79,25 +92,31 @@ export async function launchSandbox(repo: string, gateway: Gateway, memory: { ca
     DUSK_PORT: String(port),
     DUSK_WEBHOOK_PORT: String(port + 1),
   };
-  const child = spawn(process.execPath, ["--experimental-strip-types", join(repo, "server", "index.ts")], { cwd: repo, env, stdio: ["ignore", log, log] });
-  closeSync(log);
   const url = `http://127.0.0.1:${port}`;
-  const deadline = Date.now() + 60_000;
-  for (;;) {
-    if (child.exitCode !== null) throw new Error(`sandbox server exited; see ${logPath}`);
-    const ok = await fetch(`${url}/api/health`, { signal: AbortSignal.timeout(1_000) }).then((r) => r.ok ? r.json() : null).catch(() => null) as { app?: string } | null;
-    if (ok?.app === "duskbot") break;
-    if (Date.now() > deadline) throw new Error(`sandbox server did not start; see ${logPath}`);
-    await new Promise((r) => setTimeout(r, 250));
-  }
-  return {
-    url, dataDir, logPath, child,
+  const start = async (): Promise<ChildProcess> => {
+    const log = openSync(logPath, "a", 0o600);
+    const child = spawn(process.execPath, ["--experimental-strip-types", join(repo, "server", "index.ts")], { cwd: repo, env, stdio: ["ignore", log, log] });
+    closeSync(log);
+    const deadline = Date.now() + 90_000;
+    for (;;) {
+      if (child.exitCode !== null) throw new Error(`sandbox server exited; see ${logPath}`);
+      const ok = await fetch(`${url}/api/health`, { signal: AbortSignal.timeout(1_000) }).then((r) => r.ok ? r.json() : null).catch(() => null) as { app?: string } | null;
+      if (ok?.app === "duskbot") return child;
+      if (Date.now() > deadline) throw new Error(`sandbox server did not start; see ${logPath}`);
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  };
+  const box: Sandbox = {
+    url, dataDir, logPath, child: await start(),
+    async restart(between) {
+      await stop(box.child);
+      await between?.();
+      box.child = await start();
+    },
     async close(keep = false) {
-      if (child.exitCode === null) {
-        child.kill("SIGTERM");
-        await new Promise((r) => { child.once("exit", r); setTimeout(r, 8_000); });
-      }
+      await stop(box.child);
       if (!keep) rmSync(root, { recursive: true, force: true });
     },
   };
+  return box;
 }
