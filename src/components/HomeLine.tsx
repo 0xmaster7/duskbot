@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { mdPrimaryCls } from "./ui/GrokDialog";
+import { ModalLayer } from "./ui/ModalLayer";
 import { Cloud, Users } from "../icons";
 import { freeFallback } from "../../shared/ai-ranking";
 import { engineReady } from "@/components/EngineLibrary";
@@ -44,9 +46,35 @@ export function HomeLine() {
     void bridge.state().then((place) => setNotificationPlace(place.role ? place.name : null)).catch(() => {});
   }, [bridge]);
   if (!line) return null;
+  // the move to a server of the person's own: one popup, once, then never again on this computer
+  if (line.kind === "clean" && line.place) return <MovedPopup place={line.place} />;
   return <div role="status" data-home-line={line.kind} className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-3 py-1.5 text-[13px] text-ink-secondary">
     {line.kind === "clean" ? <Cloud size={14} aria-hidden="true" /> : <Users size={14} aria-hidden="true" />}
     <span dir="auto">{homeLineText(line)}</span>
     {line.kind === "clean" && <ConnectAiLink />}
   </div>;
+}
+
+const MOVED_SEEN = "dusk.movedPopupSeen";
+
+function MovedPopup({ place }: { place: string }) {
+  const [open, setOpen] = useState(() => localStorage.getItem(MOVED_SEEN) !== place);
+  const close = () => { localStorage.setItem(MOVED_SEEN, place); setOpen(false); };
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") close(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+  if (!open) return null;
+  return <ModalLayer>
+    <div data-moved-popup="" className="fixed inset-0 z-[80] grid place-items-center bg-black/30 p-4" onClick={(event) => { if (event.target === event.currentTarget) close(); }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="moved-popup-title" className="w-full max-w-[380px] rounded-[20px] bg-panel p-6 text-center shadow-xl">
+        <Cloud size={22} aria-hidden="true" className="mx-auto text-ink-secondary" />
+        <h2 id="moved-popup-title" className="mt-3 text-[17px] font-medium text-ink">{t("homeLine.movedTitle")}</h2>
+        <p className="mt-2 text-[14px] leading-5 text-ink-secondary" dir="auto">{t("homeLine.cleanPlace", { name: place })}</p>
+        <button type="button" autoFocus onClick={close} className={`${mdPrimaryCls} mt-5 w-full`}>{t("homeLine.movedOk")}</button>
+      </div>
+    </div>
+  </ModalLayer>;
 }
