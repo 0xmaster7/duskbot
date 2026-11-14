@@ -25,9 +25,10 @@ import { PixelArt } from "../Illustration";
 import type { SheetPageProps } from "./registry";
 
 /** The account rows Settings shows. The account dashboard sells plans, so the store apps never link to it (App Store
- * guideline 3.1.1, Play payments policy); a signed-in account can always be signed out and deleted from here. */
-export function accountRows(input: { native: boolean; signedIn: boolean }): { dashboard: boolean; signOut: boolean; deleteAccount: boolean } {
-  return { dashboard: !input.native, signOut: input.signedIn, deleteAccount: input.signedIn };
+ * guideline 3.1.1, Play payments policy); a signed-in account can always be signed out and deleted from here, and a
+ * phone with no account (a paired computer needs none) is offered the sign-in that finds a dusk cloud. */
+export function accountRows(input: { native: boolean; signedIn: boolean; offered?: boolean }): { dashboard: boolean; signOut: boolean; deleteAccount: boolean; signIn: boolean } {
+  return { dashboard: !input.native, signOut: input.signedIn, deleteAccount: input.signedIn, signIn: Boolean(input.offered) && !input.signedIn };
 }
 
 /** A label a person would recognise for where these bots live: never an address like 127.0.0.1:5331 or a URL. */
@@ -83,7 +84,7 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
   const pageRef = useRef<HTMLDivElement>(null);
   // each page inside the sheet opens at its top, not where the last one was scrolled to
   useEffect(() => { const body = pageRef.current?.closest(".mobile-sheet-body"); if (body) body.scrollTop = 0; }, [page]);
-  const rows = accountRows({ native: platform.native, signedIn: Boolean(email) });
+  const rows = accountRows({ native: platform.native, signedIn: Boolean(email), offered: account?.offered });
   const consent = useAiConsent();
   const [deleting, setDeleting] = useState(false);
   const [deleteFailed, setDeleteFailed] = useState(false);
@@ -173,9 +174,10 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
               <SettingsRow icon={<Globe />} label={t("mobile.settings.language")} value={localeChoices.find((choice) => choice.code === language)?.label ?? t("mobile.settings.system")} onClick={() => setPage("language")} />
             </SettingsSection>
             {rows.dashboard && !state.config?.cloudHome && <CloudCard onOpen={() => void accountDashboardUrl().then((url) => platform.openExternal(url))} />}
-            {(rows.dashboard || rows.signOut) && (
+            {(rows.dashboard || rows.signOut || rows.signIn) && (
               <SettingsSection title={t("mobile.settings.account")} art="key" hint={email}>
                 {rows.dashboard && <SettingsRow icon={<LayoutDashboard />} label={t("mobile.settings.accountDashboard")} onClick={() => void accountDashboardUrl().then((url) => platform.openExternal(url))} />}
+                {rows.signIn && <SettingsRow icon={<UserRound />} label={t("mobile.entry.signIn")} detail={t("mobile.settings.signInDetail")} onClick={() => { onClose(); window.dispatchEvent(new Event("dusk:sign-in")); }} />}
                 {rows.signOut && <SettingsRow icon={<LogOut />} label={t("accountGate.signOut")} onClick={() => void account?.signOut()} />}
                 {rows.deleteAccount && <SettingsRow icon={<Trash2 />} label={t("mobile.settings.deleteAccount")} danger onClick={() => setPage("delete")} />}
               </SettingsSection>

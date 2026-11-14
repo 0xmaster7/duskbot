@@ -27,10 +27,11 @@ function installationName(payload: TypedPairing | null): string {
   try { return new URL(payload?.origin ?? "").host; } catch { return t("mobile.pair.workspace"); }
 }
 
-/** Where a fresh start lands: a link that arrived goes to its confirmation, a signed-in phone to its clouds, anyone else
- * to the three ways in. */
-export function firstStep({ incoming, signedIn, adding }: { incoming: boolean; signedIn: boolean; adding: boolean }): Step {
+/** Where a fresh start lands: a link that arrived goes to its confirmation, a signed-in phone to its clouds, a sign-in
+ * asked for from Settings to the sign-in, anyone else to pairing with their computer. */
+export function firstStep({ incoming, signedIn, adding, startAt = "welcome" }: { incoming: boolean; signedIn: boolean; adding: boolean; startAt?: "welcome" | "signin" }): Step {
   if (incoming) return "confirm";
+  if (startAt === "signin") return signedIn ? "clouds" : "signin";
   if (signedIn && !adding) return "clouds";
   return "welcome";
 }
@@ -45,10 +46,12 @@ function Failed({ failure }: { failure: Failure }) {
   );
 }
 
-/** First launch to linked. Three equal ways in, each enough on its own: scan the computer's QR code, type its code, or
- * sign in to a dusk account (which then finds the account's cloud and pairs with it). The success moment and the hand-off
+/** First launch to linked. Pairing with your own computer needs no account (App Store guideline 5.1.1(v)): scan its QR
+ * code first, or type its code. Signing in is only for a dusk cloud (the account finds it and pairs with it). The success moment and the hand-off
  * to Home belong to the connection gate. */
-export function Onboarding({ initial = null, reason = null, startAtLink = false, onLinked, onCancel }: {
+export function Onboarding({ initial = null, reason = null, startAtLink = false, startAt = "welcome", onLinked, onCancel }: {
+  /** where a sheet opened from inside the app starts */
+  startAt?: "welcome" | "signin";
   initial?: TypedPairing | null;
   /** Linking another computer from inside the app: a way back out. */
   startAtLink?: boolean;
@@ -60,7 +63,7 @@ export function Onboarding({ initial = null, reason = null, startAtLink = false,
   const account = useMobileAccount();
   const signedIn = Boolean(account?.account);
   const home: Step = firstStep({ incoming: false, signedIn, adding: startAtLink });
-  const [step, setStep] = useState<Step>(() => firstStep({ incoming: Boolean(initial), signedIn, adding: startAtLink }));
+  const [step, setStep] = useState<Step>(() => firstStep({ incoming: Boolean(initial), signedIn, adding: startAtLink, startAt }));
   const [confirm, setConfirm] = useState<TypedPairing | null>(initial);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<Failure | null>(null);
@@ -132,9 +135,9 @@ export function Onboarding({ initial = null, reason = null, startAtLink = false,
         {step === "welcome" && (
           <StepPane id="welcome">
             <Screen top={close} art={<MascotTrio scale={1.4} />} actions={<>
-              <button type="button" data-entry="scan" className={TONAL} onClick={() => void openScanner()}><QrCode size={20} />{t("mobile.entry.scan")}</button>
+              <button type="button" data-entry="scan" className={PRIMARY} onClick={() => void openScanner()}><QrCode size={20} />{t("mobile.entry.scan")}</button>
               <button type="button" data-entry="code" className={TONAL} onClick={() => go("code")}><Keyboard size={20} />{t("mobile.entry.code")}</button>
-              <button type="button" data-entry="signin" className={TONAL} onClick={() => go(signedIn ? "clouds" : "signin")}><UserRound size={20} />{t("mobile.entry.signIn")}</button>
+              <button type="button" data-entry="signin" className={`${QUIET} gap-2`} onClick={() => go(signedIn ? "clouds" : "signin")}><UserRound size={18} />{t("mobile.entry.signInCloud")}</button>
             </>}>
               {reason === "revoked" && <ErrorLine>{t("mobile.pair.revoked")}</ErrorLine>}
               <h1 className={`${HEADLINE} ${reason === "revoked" ? "mt-5" : ""}`}>{t(startAtLink ? "mobile.entry.addTitle" : "mobile.entry.title")}</h1>

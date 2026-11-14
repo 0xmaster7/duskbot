@@ -28,7 +28,8 @@ export function SignInOffer({ paused = false }: { paused?: boolean }) {
   const reduced = useReducedMotion();
   const [visible, setVisible] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
-  const wanted = Boolean(account?.offered && !account.account);
+  // the store apps never ask for an account a paired computer does not need (App Store guideline 5.1.1(v))
+  const wanted = Boolean(account?.offered && !account.account) && !storeApp();
 
   useEffect(() => {
     if (!wanted || paused) return;

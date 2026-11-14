@@ -51,14 +51,6 @@ const entries = () => [...host.querySelectorAll<HTMLButtonElement>("[data-entry]
 const press = (selector: string) => act(async () => { host.querySelector<HTMLButtonElement>(selector)!.click(); });
 const heading = () => host.querySelector("h1")?.textContent;
 
-it("offers three equal ways in up front: scan, code, or log in", async () => {
-  await mount(onboarding());
-  expect(entries().map((button) => button.dataset.entry)).toEqual(["scan", "code", "signin"]);
-  expect(entries().map((button) => button.textContent)).toEqual(["scan a QR code", "enter a code", "log in"]);
-  expect(new Set(entries().map((button) => button.className)).size).toBe(1);
-  expect(host.textContent).not.toContain("demo");
-});
-
 it("log in opens the account sign-in straight away", async () => {
   await mount(onboarding());
   await press("[data-entry=signin]");
@@ -84,6 +76,22 @@ it("picks the first screen from what the phone already has", () => {
   expect(firstStep({ incoming: false, signedIn: true, adding: false })).toBe("clouds");
   expect(firstStep({ incoming: true, signedIn: true, adding: false })).toBe("confirm");
   expect(firstStep({ incoming: false, signedIn: true, adding: true })).toBe("welcome");
+  // a sign-in asked for from Settings goes to it, or straight to the clouds once signed in
+  expect(firstStep({ incoming: false, signedIn: false, adding: true, startAt: "signin" })).toBe("signin");
+  expect(firstStep({ incoming: false, signedIn: true, adding: true, startAt: "signin" })).toBe("clouds");
+  expect(firstStep({ incoming: true, signedIn: false, adding: true, startAt: "signin" })).toBe("confirm");
+});
+
+it("leads with pairing your own computer; logging in is the quiet way, for a dusk cloud", async () => {
+  await mount(onboarding());
+  const [scan, code, signIn] = entries();
+  expect(scan?.dataset.entry).toBe("scan");
+  expect(code?.dataset.entry).toBe("code");
+  expect(signIn?.dataset.entry).toBe("signin");
+  expect(scan?.className).toContain("bg-ink ");
+  expect(signIn?.className).not.toContain("bg-ink");
+  expect(entries().map((button) => button.textContent)).toEqual(["scan a QR code", "enter a code", "Have a dusk cloud? Log in"]);
+  expect(host.textContent).not.toContain("demo");
 });
 
 it("a signed-in phone pairs with its only cloud by itself, never saying it is asleep", async () => {
@@ -111,6 +119,17 @@ it("a signed-in account with no cloud is pointed at linking a computer", async (
   await mount(onboarding());
   expect(heading()).toBe("no cloud yet");
   expect([...host.querySelectorAll("button")].map((button) => button.textContent)).toEqual(expect.arrayContaining(["scan a QR code", "enter a code"]));
+});
+
+it("the store apps never offer an account to a phone paired with its own computer", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  document.documentElement.dataset.mobileApp = "ios";
+  try {
+    await mount(createElement(SignInOffer));
+    await act(async () => { vi.advanceTimersByTime(3000); });
+    await act(async () => {});
+    expect(host.querySelector("[data-sign-in-offer]")).toBeNull();
+  } finally { delete document.documentElement.dataset.mobileApp; }
 });
 
 it("after a QR or code link, offers the account sign-in once, quietly, and remembers not now", async () => {
