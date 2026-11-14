@@ -913,7 +913,6 @@
   "composer.goal.soloTitle": "पूरा होने तक काम करें — लक्ष्य पूरा होने तक बॉट काम करता रहता है",
   "composer.goal.chip": "लक्ष्य",
   "goalRun.coordinating": "{name} समन्वय कर रहा है",
-  "goalRun.turnOf": "{max} में से बारी {turn}",
   "goalRun.aria": "लक्ष्य: {status}",
   "composer.placeholder.locked": "थ्रेड शुरू करने के लिए समूह का सेटअप पूरा करें",
   "composer.placeholder.approval": "जारी रखने के लिए ऊपर की मंज़ूरी का जवाब दें",

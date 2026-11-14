@@ -1047,7 +1047,6 @@
   "composer.goal.soloTitle": "Працювати до кінця — бот працює, доки ціль не буде досягнута",
   "composer.goal.chip": "Ціль",
   "goalRun.coordinating": "{name} координує",
-  "goalRun.turnOf": "Запит {turn} з {max}",
   "goalRun.aria": "Ціль: {status}",
   "composer.placeholder.locked": "Завершіть налаштування групи, щоб почати гілку",
   "composer.placeholder.approval": "Дайте відповідь на погодження вище, щоб продовжити",

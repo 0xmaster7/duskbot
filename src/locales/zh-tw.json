@@ -1442,7 +1442,6 @@
   "composer.goal.soloTitle": "做到完成——機器人會持續工作，直到目標達成",
   "composer.goal.chip": "目標",
   "goalRun.coordinating": "{name} 正在協調",
-  "goalRun.turnOf": "第 {turn}/{max} 回合",
   "goalRun.aria": "目標：{status}",
   "composer.placeholder.locked": "完成聊天室設定後即可開始對話",
   "composer.placeholder.approval": "請先回覆上方的核准要求以繼續",

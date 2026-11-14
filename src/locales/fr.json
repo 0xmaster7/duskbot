@@ -913,7 +913,6 @@
   "composer.goal.soloTitle": "Travailler jusqu'au bout — le bot travaille jusqu'à ce que l'objectif soit atteint",
   "composer.goal.chip": "Objectif",
   "goalRun.coordinating": "{name} coordonne",
-  "goalRun.turnOf": "Tour {turn} sur {max}",
   "goalRun.aria": "Objectif : {status}",
   "composer.placeholder.locked": "Terminez la configuration du groupe pour démarrer un fil",
   "composer.placeholder.approval": "Répondez à l'autorisation ci-dessus pour continuer",

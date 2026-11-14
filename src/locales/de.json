@@ -1067,7 +1067,6 @@
   "composer.goal.soloTitle": "Bis zum Ziel arbeiten — der Bot arbeitet, bis das Ziel erreicht ist",
   "composer.goal.chip": "Ziel",
   "goalRun.coordinating": "{name} koordiniert",
-  "goalRun.turnOf": "Zug {turn} von {max}",
   "goalRun.aria": "Ziel: {status}",
   "composer.placeholder.locked": "Schließe die Gruppeneinrichtung ab, um einen Thread zu starten",
   "composer.placeholder.approval": "Beantworte die Freigabe oben, um fortzufahren",
