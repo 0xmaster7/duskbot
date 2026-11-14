@@ -9,6 +9,12 @@ import { turnWaitedOnPerson } from "./waiting-on-person.ts";
 
 export { peerAllowKey } from "./peer-approval-key.ts";
 
+/** "Ask before contacting other bots" is the person's explicit ask, so it holds at every approval level, Full access
+ * included, the way Sending on your behalf: Ask every time does. */
+export function peerReviewRequired(bot: Pick<BotRecord, "approvePeerComms">): boolean {
+  return bot.approvePeerComms === true;
+}
+
 /** Only allow authorizes work; absence of an answer is not a user decision. */
 export type PeerApprovalOutcome = "allow" | "deny" | "cancelled";
 export type PeerApprovalFailure = Exclude<PeerApprovalOutcome, "allow">;

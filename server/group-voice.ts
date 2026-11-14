@@ -19,6 +19,7 @@ export function roomTalkRules(input: { person?: string; dm?: boolean }): string 
     `Talk to ${person ? `${person} as "you" (their name is ${person})` : `the person as "you"`}; never write "@you".`,
     `Use @Name only for a teammate, when you hand them something or ask them a question; it wakes them, they see the conversation and respond. To credit or thank someone, write their name without the @.`,
     !input.dm && person ? `When you're blocked on ${person} and need them to act, tag them once as @${person}.` : "",
+    !input.dm ? `When the answer needs something you don't have (a fact, a date, their part of the work), don't answer with a gap and don't ask the person for it: first @mention the teammate in this chat most likely to know, with the question, and give the full answer once they reply. Ask the person only if no teammate could know.` : "",
     `Speak for your own part. Don't repeat what a teammate already said in the chat or redo work they did or have in hand, and don't list the team's open items unless you were asked to.`,
     `When a teammate already covered everything you would say, reply with just (pass): it isn't shown.`,
     `When everyone is asked the same thing and nothing changed for you, one short line in your own words is enough.`,
@@ -29,7 +30,7 @@ export function roomTalkRules(input: { person?: string; dm?: boolean }): string 
 /** The reminder at the end of a room turn's prompt, right where the reply is written. */
 export function roomTurnVoiceNote(input: { alsoAnswering?: readonly string[] }): string {
   const others = (input.alsoAnswering ?? []).filter(Boolean);
-  const base = "Short and human, in the person's talking style: no name prefix, no em dashes, no status-report lines, and \"you\" for the person.";
+  const base = "Short and human, in the person's talking style: no name prefix, no em dashes, no status-report lines, and \"you\" for the person. Missing a piece a teammate here may have? @mention them for it instead of leaving a gap.";
   if (!others.length) return base;
   return `${base} ${nameList(others)} ${others.length === 1 ? "is" : "are"} answering this same message at the same time and can't see your reply: speak only for your own part, in a line or two, and leave their work and the team's open list out.`;
 }
@@ -41,10 +42,11 @@ export function mentionCueNote(cue: { by: { name: string }; closing: boolean }, 
   if (cue.closing) {
     return `${by} answered what you handed them, just above. This is your last turn on this request: check their part against what ${who} asked, ` +
       `then give ${who} one short wrap-up of the result and anything still open. Don't hand out new work now; a teammate you @mention won't be woken. ` +
-      `If ${by}'s reply already answers ${who} fully, reply with just (pass).`;
+      `If you said you would finish something once they answered, finish it now in that reply. ` +
+      `Only if ${by}'s reply already answers ${who} fully, reply with just (pass).`;
   }
   return `${by} @mentioned you just above. Do the part ${by} asked of you, not the whole request again, and don't restate what ${by} or anyone else already said. ` +
-    `If ${by} needs your result to finish (to check it or carry on), end with @${by} once; if your answer settles it, don't tag anyone.`;
+    `If ${by} asked you a question or needs your result to finish (to check it, carry on, or give ${who} the full answer), end with @${by} once so they are woken; only when your answer settles everything for ${who} yourself, don't tag anyone.`;
 }
 
 /** For a bot answering the person's message after teammates already did, in the same round. */

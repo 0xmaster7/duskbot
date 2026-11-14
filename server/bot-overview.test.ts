@@ -80,10 +80,10 @@ describe("buildBotOverview", () => {
       .toContain("Command approvals follow the provider's custom configuration.");
   });
 
-  it("does not promise duplicate profile or peer approvals in Full Access", () => {
+  it("does not promise duplicate profile approvals in Full Access, but keeps the person's ask before contacting other bots", () => {
     const bot = { ...baseFacts().bot, peers: undefined, approvePeerComms: true, approvalMode: "full" as const, autoApprove: false };
     const full = buildBotOverview(baseFacts({ bot })).wont;
-    expect(full).not.toContain("Asks before contacting other bots.");
+    expect(full).toContain("Asks before contacting other bots.");
     expect(full).not.toContain("Profile proposal cards require your approval.");
     for (const approvalMode of ["ask", "custom"] as const) {
       const reviewed = buildBotOverview(baseFacts({ bot: { ...bot, approvalMode, autoApprove: true } })).wont;

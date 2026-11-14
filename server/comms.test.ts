@@ -1127,7 +1127,6 @@ describe("routine comms e2e on the job runtime (fake ACP fleet)", () => {
       await hideAll();
       const helper = await named("Helper", { modelSelection: HELPER });
       const asker = (await api("POST", "/api/bots")).body.bot;
-      // Peer review applies below Full access, so the asker is on Ask.
       const approval = await api("PATCH", `/api/bots/${asker.id}`, { name: "Asker", modelSelection: ASKER, approvePeerComms: true, approvalMode: "ask" });
       expect(approval.status).toBe(200);
       expect(approval.body.bot.approvePeerComms).toBe(true);
@@ -1163,6 +1162,27 @@ describe("routine comms e2e on the job runtime (fake ACP fleet)", () => {
       expect(askerBot.messages.some((m: any) => m.kind === "text" && m.role === "bot" && m.text?.startsWith("peer says:") && m.text.includes('"requestId"'))).toBe(true);
       expect(assignments(helper.id, asker.id)[0]).toMatchObject({ mode: "consult", status: "completed", approvalGranted: true, result: "hello from fake acp" });
       expect(chip(askerBot.messages, "Helper replied")?.tool.output).toBe("hello from fake acp");
+    },
+    60_000,
+  );
+
+  it(
+    "asks before contacting another bot at Full access too, when the person turned that on",
+    async () => {
+      await hideAll();
+      const helper = await named("Helper", { modelSelection: HELPER });
+      const asker = await named("Asker", { modelSelection: ASKER, approvePeerComms: true, approvalMode: "full" });
+      expect((await startRoutine(asker.id, "hey @Helper ask first even at full")).status).toBe(201);
+      let card: any;
+      await waitUntil(async () => {
+        card = (await bot(asker.id)).messages.find((m: any) => m.kind === "options" && m.card?.requestId && m.card?.tool === "ask_bot");
+        return Boolean(card);
+      }, 20_000, "no approval card at Full access");
+      expect((await bot(helper.id)).busy).toBeFalsy();
+      expect(assignments(helper.id, asker.id)).toEqual([]);
+      expect((await api("POST", `/api/bots/${asker.id}/respond`, { requestId: card.card.requestId, behavior: "deny" })).status).toBe(200);
+      await waitUntil(async () => !(await bot(asker.id)).busy, 30_000, "asker never settled after deny");
+      expect(assignments(helper.id, asker.id)).toEqual([]);
     },
     60_000,
   );

@@ -26,6 +26,11 @@ describe("the room's talk rules", () => {
     }
   });
 
+  it("tells a bot missing something another member has to pull that member in, not answer with a gap", () => {
+    expect(roomTalkRules({ person: "Sidd" })).toContain("don't answer with a gap and don't ask the person for it: first @mention the teammate");
+    expect(roomTalkRules({ person: "Sidd", dm: true })).not.toContain("answer with a gap");
+  });
+
   it("reminds every room turn of the voice, and tells a bot answering at once who else is answering", () => {
     const alone = roomTurnVoiceNote({});
     expect(alone).toMatch(/no name prefix, no em dashes, no status-report lines/);
