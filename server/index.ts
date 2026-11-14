@@ -212,7 +212,7 @@ import { RETRY_MAX_ATTEMPTS } from "./drivers/retry.ts";
 import { recoveryCapabilityError, startupBackups } from "./automatic-recovery.ts";
 import { createQuotaSwitchHost } from "./host/quota-switch.ts"; import { quotaSwitchEnabled } from "./quota-switch.ts";
 import { decodeGeneratedImage } from "./generated-image.ts";
-import { failedReplyReason } from "./failed-reply-reason.ts"; import { createMcpServersHost } from "./host/mcp-servers-host.ts"; import { createLimitTakeover, signedOutStop } from "./host/limit-takeover.ts";
+import { failedReplyReason } from "./failed-reply-reason.ts"; import { isDiskFull } from "./sqlite-rollback.ts"; import { createMcpServersHost } from "./host/mcp-servers-host.ts"; import { createLimitTakeover, signedOutStop } from "./host/limit-takeover.ts";
 import {
   isRemoteMcpServer,
   parseMcpServerMutation,
@@ -4592,7 +4592,9 @@ function settleTrackedRequest(threadId: string, incoming: ReadonlySet<string> = 
   const owner = directRequestOwners.get(threadId);
   const bot = store.botByThread(threadId);
   if (!owner?.messageId || owner.stopped || !bot || threadBusy(bot.id, threadId) || coordinator.parkedDirect(threadId)) return;
-  const newest = coordinator.all().filter(node => !node.parentId && node.threadId === threadId && owner.generations.has(node.id))
+  // only this request's own nodes: the whole table holds every turn of the last 30 days
+  const newest = [...owner.generations].map(id => coordinator.node(id))
+    .filter((node): node is HandoffView => node !== undefined && !node.parentId && node.threadId === threadId)
     .sort((a, b) => a.createdAt - b.createdAt).at(-1);
   if (newest && newest.status !== "completed") return;
   const path = store.activePath(threadId).filter(message => !incoming.has(message.id));
@@ -15852,6 +15854,7 @@ const handleRequestInner = async (req: IncomingMessage, res: ServerResponse) => 
 
     return json(res, 404, { error: `no route: ${method} ${path}` });
   } catch (e) {
+    if (isDiskFull(e)) return json(res, 507, { error: "The disk is full, so this could not be saved. Free up some space, then try again.", code: "disk_full" });
     const status = (e as any)?.status ?? 500;
     const candidateCode = (e as { code?: unknown })?.code;
     const code = typeof candidateCode === "string" && ["guarded_busy", "guarded_branch", "guarded_permissions", "guarded_request_changed", "guarded_request_untracked", "outside_workspace", "no_ai", BOT_LIMIT_CODE].includes(candidateCode)

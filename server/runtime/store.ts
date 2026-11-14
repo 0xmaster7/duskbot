@@ -3,6 +3,7 @@ import { chmodSync, closeSync, mkdirSync, openSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { z } from "zod";
+import { rollbackKeeping } from "../sqlite-rollback.ts";
 
 import { APPROVAL_MODES } from "../../shared/approval-mode.ts";
 import { TERMINAL, type Assignment, type AssignmentEvent, type EventKind, type InboxItem, type Owner } from "./types.ts";
@@ -240,8 +241,10 @@ export function openRuntimeStore(path: string): RuntimeStore {
         db.exec(`RELEASE ${savepoint}`);
         return result;
       } catch (error) {
-        db.exec(`ROLLBACK TO ${savepoint}`);
-        db.exec(`RELEASE ${savepoint}`);
+        if (db.isTransaction) {
+          db.exec(`ROLLBACK TO ${savepoint}`);
+          db.exec(`RELEASE ${savepoint}`);
+        }
         throw error;
       } finally { depth -= 1; }
     }
@@ -252,8 +255,7 @@ export function openRuntimeStore(path: string): RuntimeStore {
       db.exec("COMMIT");
       return result;
     } catch (error) {
-      db.exec("ROLLBACK");
-      throw error;
+      rollbackKeeping(db, error);
     } finally { depth = 0; }
   }
 

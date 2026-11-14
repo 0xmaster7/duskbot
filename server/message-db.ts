@@ -12,6 +12,7 @@ import { ensureMemoryIndex } from "./message-db-memory-index.ts";
 import { MessageSearchWorker } from "./message-search-worker.ts";
 import { rowToMessage, threadPreviewRows, type ThreadRows, type ThreadTailRows } from "./message-db-rows.ts";
 import { searchMessagesInDatabase, type SearchHit } from "./message-search-query.ts";
+import { rollbackKeeping } from "./sqlite-rollback.ts";
 import type { Notification, NotificationLogEntry } from "../shared/notification.ts";
 export type { SearchHit } from "./message-search-query.ts";
 export type { ThreadRows, ThreadTailRows } from "./message-db-rows.ts"; import { missingMediaRows, setMediaRow } from "./message-media-rows.ts";
@@ -187,8 +188,10 @@ function transaction<T>(fn: (database: DatabaseSync) => T): T {
       database.exec(`RELEASE ${savepoint}`);
       return result;
     } catch (error) {
-      database.exec(`ROLLBACK TO ${savepoint}`);
-      database.exec(`RELEASE ${savepoint}`);
+      if (database.isTransaction) {
+        database.exec(`ROLLBACK TO ${savepoint}`);
+        database.exec(`RELEASE ${savepoint}`);
+      }
       throw error;
     } finally { transactionDepth -= 1; }
   }
@@ -199,8 +202,7 @@ function transaction<T>(fn: (database: DatabaseSync) => T): T {
     database.exec("COMMIT");
     return result;
   } catch (error) {
-    database.exec("ROLLBACK");
-    throw error;
+    rollbackKeeping(database, error);
   } finally {
     transactionDepth = 0;
   }
@@ -242,7 +244,7 @@ function writeFollowups(write: (connection: DatabaseSync) => void): void {
   try {
     connection.exec("BEGIN IMMEDIATE");
     try { write(connection); connection.exec("COMMIT"); }
-    catch (error) { connection.exec("ROLLBACK"); throw error; }
+    catch (error) { rollbackKeeping(connection, error); }
   } finally { connection.exec("PRAGMA synchronous = NORMAL"); }
 }
 
@@ -428,8 +430,7 @@ function importLegacy(threadId: string, legacyFile: string): ThreadRows {
     setActiveLeaf(threadId, activeLeafId);
     db().exec("COMMIT");
   } catch (error) {
-    db().exec("ROLLBACK");
-    throw error;
+    rollbackKeeping(db(), error);
   }
   try {
     renameSync(legacyFile, `${legacyFile}.imported`);
