@@ -4,7 +4,7 @@
    push (200ms, the app "out" curve). On a phone it is a full-screen stack: the list of panes, then a pane pushed over it. */
 
 /* The one set of Settings colours, measured from Grok Bot's light settings sheet (#fcfcfc sheet, white cards on an ink/8
-   edge, ink/68 secondary, ink/8 selected, ink/6 hover, ink/6 switch track that is ink/10 on hover, the accent when on).
+   edge, ink/68 secondary, ink/8 selected, ink/6 hover, ink/12 switch track that is ink/16 on hover, the accent when on).
    Every pane and the bot's sheet read these through SettingsPrimitives and the classes below. */
 .settings-dialog,
 [data-settings-look] {
@@ -18,8 +18,8 @@
   --settings-row-hover: color-mix(in srgb, var(--color-ink) 3%, transparent);
   --settings-pill: color-mix(in srgb, var(--color-ink) 6%, transparent);
   --settings-pill-hover: color-mix(in srgb, var(--color-ink) 10%, transparent);
-  --settings-switch-off: color-mix(in srgb, var(--color-ink) 6%, transparent);
-  --settings-switch-off-hover: color-mix(in srgb, var(--color-ink) 10%, transparent);
+  --settings-switch-off: color-mix(in srgb, var(--color-ink) 12%, transparent);
+  --settings-switch-off-hover: color-mix(in srgb, var(--color-ink) 16%, transparent);
   --settings-switch-on: var(--color-accent-border);
 }
 

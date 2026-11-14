@@ -33,7 +33,7 @@ export function Toggle({ checked: owned, className, tone, style, disabled: owned
           ? tone
             ? "bg-(--toggle-on) enabled:hover:bg-(--toggle-on-hover)"
             : "bg-accent enabled:hover:brightness-95 [:root[data-skin=grok]_&]:bg-accent-border [:root[data-skin=grok]_&]:enabled:hover:bg-accent [:root[data-skin=grok]_&]:enabled:hover:brightness-100"
-          : "bg-ink/[0.06] enabled:hover:bg-ink/[0.10]",
+          : "bg-ink/[0.12] enabled:hover:bg-ink/[0.16]",
         className,
       )}
     >
