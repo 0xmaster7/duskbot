@@ -1,6 +1,7 @@
 // This computer's page with no bots of its own while the person's live somewhere else: a short list of every place they
 // have, how many bots each holds and whether it is up, the one with their bots marked, and a click on a row opens it
 // (src/lib/bots-elsewhere.ts). Kept apart from the first run (onboarding/*), which it covers while it shows.
+import { ModalLayer } from "./ui/ModalLayer";
 import { Fragment, useCallback, useEffect, useState } from "react";
 import type { RailPlace } from "../../electron/cloud-rail.mjs";
 import { WindowDragStrip } from "@/components/DesktopCapabilities";
@@ -147,7 +148,7 @@ export function PlacesHub({ places, counts, lit, opening = null, failed = null, 
   const counted = places.some((place) => !place.active && (counts[place.id] ?? 0) > 0);
   const holds = (place: RailPlace) => (counted ? (counts[place.id] ?? 0) > 0 : place.id === lit);
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby="elsewhere-title" aria-busy={busy || undefined} data-elsewhere="bots-on"
+    <ModalLayer><div role="dialog" aria-modal="true" aria-labelledby="elsewhere-title" aria-busy={busy || undefined} data-elsewhere="bots-on"
       className="fixed inset-0 z-[60] flex overflow-y-auto bg-app">
       <WindowDragStrip />
       <div className="m-auto w-full max-w-[480px] px-6 py-12">
@@ -173,7 +174,7 @@ export function PlacesHub({ places, counts, lit, opening = null, failed = null, 
           </div>
         </div>
       </div>
-    </div>
+    </div></ModalLayer>
   );
 }
 
@@ -217,7 +218,7 @@ export function SetUpOnCard({ screen, simulated = false, opening = null, onConne
   const name = screen.setup.name;
   const busy = opening !== null;
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby="elsewhere-title" aria-busy={busy || undefined} data-elsewhere="set-up-on"
+    <ModalLayer><div role="dialog" aria-modal="true" aria-labelledby="elsewhere-title" aria-busy={busy || undefined} data-elsewhere="set-up-on"
       className="fixed inset-0 z-[60] flex overflow-y-auto bg-app">
       <WindowDragStrip />
       <div className="m-auto w-full max-w-[480px] px-6 py-12">
@@ -245,7 +246,7 @@ export function SetUpOnCard({ screen, simulated = false, opening = null, onConne
           </button>
         </div>
       </div>
-    </div>
+    </div></ModalLayer>
   );
 }
 

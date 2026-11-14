@@ -1,3 +1,4 @@
+import { ModalLayer } from "./ui/ModalLayer";
 import { useEffect, useId, useRef, useState, type FocusEvent as ReactFocusEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { DUSK_BODY_IDS, type DuskBodyId } from "../../shared/body-migration";
 import { MAUS_COLOR_LABEL, PICKER_COLORS, colorSwatch, rowsOfFive, type MausColor } from "@/lib/mascot";
@@ -115,7 +116,7 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-[60]">
+    <ModalLayer><div className="fixed inset-0 z-[60]">
       <div aria-hidden className="absolute inset-0 bg-black/50" onMouseDown={onClose} />
       <div
         ref={dialog}
@@ -205,7 +206,7 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
           </button>
         </div>
       </div>
-    </div>
+    </div></ModalLayer>
   );
 }
 

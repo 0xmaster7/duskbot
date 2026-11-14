@@ -1,3 +1,4 @@
+import { ModalLayer } from "../ui/ModalLayer";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Art } from "../ui/Art";
 import { ArrowLeft, Check, LoaderCircle, RefreshCw, X } from "../../icons";
@@ -117,7 +118,7 @@ export function ConnectAi({ tested, onMore }: { tested: WelcomeAiNow | null; onM
 export function ConnectAiDialog({ tested, directory = false, onClose }: { tested: WelcomeAiNow | null; directory?: boolean; onClose: () => void }) {
   const [more, setMore] = useState(directory);
   return (
-    <div
+    <ModalLayer><div
       className="ui-scrim fixed inset-0 z-[60] flex items-center justify-center p-4"
       onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
     >
@@ -159,6 +160,6 @@ export function ConnectAiDialog({ tested, directory = false, onClose }: { tested
               </>}
         </div>
       </div>
-    </div>
+    </div></ModalLayer>
   );
 }

@@ -1,5 +1,6 @@
 // The editor for an automation that runs when another app sends something: who does it and what it does, with the
 // rest under More. The words a person sees never say webhook, endpoint or payload.
+import { ModalLayer } from "./ui/ModalLayer";
 import { useRef, useState } from "react";
 import { Cloud, Laptop, Loader2 } from "../icons";
 
@@ -60,7 +61,7 @@ export function WebhookEditor({ webhook, bots, initialBotId, onClose, onCredenti
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <ModalLayer><div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div aria-hidden="true" className="ui-dialog-scrim absolute inset-0" onMouseDown={onClose} />
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={webhook ? t("automations.editor.app.editTitle") : t("automations.editor.app.title")} tabIndex={-1} style={{ maxWidth: "min(460px, calc(100vw - 32px))" }} className={formSheetCls}>
         <div className={formHeaderCls}>
@@ -104,6 +105,6 @@ export function WebhookEditor({ webhook, bots, initialBotId, onClose, onCredenti
           <button type="button" disabled={saving || !botId} onClick={() => void save()} className={cn(mdPrimaryCls, "gap-1.5")}>{saving && <Loader2 size={14} className="animate-spin" />}{webhook ? t("automations.editor.app.save") : t("automations.editor.app.create")}</button>
         </div>
       </div>
-    </div>
+    </div></ModalLayer>
   );
 }

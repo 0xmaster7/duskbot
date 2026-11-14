@@ -1,4 +1,5 @@
 // Security: local browse only, with no registry and no network fetch, so an import is exactly the bytes pasted here.
+import { ModalLayer } from "./ui/ModalLayer";
 import { Search, X } from "../icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { t } from "@/lib/i18n";
@@ -321,7 +322,7 @@ function SkillSourceDialog({ viewing, error, working, onClose, onEnable }: {
   const dialogRef = useRef<HTMLDivElement>(null);
   useModalDialog(dialogRef, onClose);
   return (
-        <div
+        <ModalLayer><div
           ref={dialogRef}
           tabIndex={-1}
           role="dialog"
@@ -353,6 +354,6 @@ function SkillSourceDialog({ viewing, error, working, onClose, onEnable }: {
             {error && <div role="alert" className="mt-2 text-[12px] text-danger">{error}</div>}
             {viewing.review && <button type="button" disabled={working} onClick={onEnable} className="ui-button ui-button-primary mt-3 self-end">Enable reviewed skill</button>}
           </div>
-        </div>
+        </div></ModalLayer>
   );
 }

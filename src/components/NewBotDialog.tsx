@@ -1,3 +1,4 @@
+import { ModalLayer } from "./ui/ModalLayer";
 import { useEffect, useRef, useState } from "react";
 import { NavRow } from "./ListRows";
 import { Loader2, Plus, Trash2, X } from "../icons";
@@ -111,7 +112,7 @@ export function BotDefaultsDialog({ onClose }: { onClose: () => void }) {
     },
   };
   const title = t("newBot.defaults");
-  return <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4">
+  return <ModalLayer><div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4">
     <div aria-hidden="true" className="ui-dialog-scrim pointer-events-none absolute inset-0" />
     <div ref={dialog} role="dialog" aria-modal="true" aria-label={title} aria-busy={saving} tabIndex={-1}
       className="relative flex h-[min(700px,94dvh)] w-full max-w-[900px] flex-col overflow-hidden rounded-[14px] border border-transparent bg-app text-[13px] font-[425] leading-[18px] text-ink outline-none focus-visible:outline-none!">
@@ -143,7 +144,7 @@ export function BotDefaultsDialog({ onClose }: { onClose: () => void }) {
         </button>
       </div>
     </div>
-  </div>;
+  </div></ModalLayer>;
 }
 
 function DraftSection({ active, draft }: { active: Section; draft: BotCreationDraft }) {

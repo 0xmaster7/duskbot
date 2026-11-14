@@ -1,3 +1,4 @@
+import { ModalLayer } from "./ui/ModalLayer";
 import { useEffect, useState } from "react";
 import { X } from "../icons";
 import { t } from "@/lib/i18n";
@@ -9,7 +10,7 @@ import { signedInNow } from "@/lib/sign-in-sheet";
 export function ContinueInBrowserSheet({ kind, onClose }: { kind: "signin" | "upgrade" | "billing"; onClose: () => void }) {
   const bridge = window.duskDesktop?.cloudAccount;
   const [busy, setBusy] = useState(false);
-  return <div className="ui-scrim fixed inset-0 z-[70] flex items-center justify-center p-4">
+  return <ModalLayer><div className="ui-scrim fixed inset-0 z-[70] flex items-center justify-center p-4">
     <div role="dialog" aria-modal="true" aria-labelledby="continue-browser-title" data-continue-in-browser={kind} className="relative w-full max-w-[400px] rounded-[20px] bg-app p-7 shadow-xl">
       <button type="button" onClick={onClose} aria-label={t("accounts.close")} className="absolute end-4 top-4 grid size-8 place-items-center rounded-full text-ink-secondary hover:bg-ink/[0.06] hover:text-ink"><X size={16} /></button>
       <h2 id="continue-browser-title" className="m-0 text-[17px] font-medium leading-6 text-ink">{t("continueBrowser.title")}</h2>
@@ -20,7 +21,7 @@ export function ContinueInBrowserSheet({ kind, onClose }: { kind: "signin" | "up
         <button type="button" data-continue-cancel="" className="ui-button" disabled={busy} onClick={() => { void bridge?.cancel().catch(() => {}); onClose(); }}>{t("continueBrowser.cancel")}</button>
       </div>
     </div>
-  </div>;
+  </div></ModalLayer>;
 }
 
 /** Mounted once on the app's page: shows the sheet while the app waits on the browser, and goes on once signed in. */

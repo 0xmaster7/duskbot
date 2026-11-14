@@ -1,3 +1,4 @@
+import { ModalLayer } from "../ui/ModalLayer";
 import { BookOpen, Trash2 } from "../../icons";
 import { t } from "@/lib/i18n";
 import { useEffect, useRef, useState } from "react";
@@ -214,7 +215,7 @@ export function SkillReviewDialog({
   }, [working]);
 
   return (
-    <div
+    <ModalLayer><div
       ref={dialogRef}
       tabIndex={-1}
       role="dialog"
@@ -261,7 +262,7 @@ export function SkillReviewDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div></ModalLayer>
   );
 }
 
@@ -527,7 +528,7 @@ export function SkillsSection({ bot }: { bot: Bot }) {
       )}
 
       {viewing && (
-        <div
+        <ModalLayer><div
           ref={skillDialogRef}
           tabIndex={-1}
           role="dialog"
@@ -554,7 +555,7 @@ export function SkillsSection({ bot }: { bot: Bot }) {
               {viewing.text}
             </pre>
           </div>
-        </div>
+        </div></ModalLayer>
       )}
     </div>
   );

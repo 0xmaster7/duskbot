@@ -1,5 +1,6 @@
 // "When something happens in an app": pick the bot, the app and what happens in it, a few plain filters, and what the
 // bot does. Only connected apps the chosen bot may use are offered.
+import { ModalLayer } from "../ui/ModalLayer";
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "../../icons";
 
@@ -89,7 +90,7 @@ export function AppEventEditor({ trigger, bots, initialBotId, onClose, onSaved }
   const title = trigger ? t("automations.editor.app.editTitle") : t("automations.editor.appEvent.title");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <ModalLayer><div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div aria-hidden="true" className="ui-dialog-scrim absolute inset-0" onMouseDown={onClose} />
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} style={{ maxWidth: "min(460px, calc(100vw - 32px))" }} className={formSheetCls}>
         <div className={formHeaderCls}>
@@ -174,6 +175,6 @@ export function AppEventEditor({ trigger, bots, initialBotId, onClose, onSaved }
           <button type="button" disabled={saving || !botId || (!trigger && !chosen) || required.some((field) => !config[field.name]?.trim())} onClick={() => void save()} className={cn(mdPrimaryCls, "gap-1.5")}>{saving && <Loader2 size={14} className="animate-spin" />}{trigger ? t("automations.editor.app.save") : t("automations.editor.app.create")}</button>
         </div>
       </div>
-    </div>
+    </div></ModalLayer>
   );
 }

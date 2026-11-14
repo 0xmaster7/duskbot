@@ -1,3 +1,4 @@
+import { ModalLayer } from "./ui/ModalLayer";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ContinueInBrowserSheet } from "./SignInSheet";
 import { continueInBrowser } from "@/lib/account-intent";
@@ -195,7 +196,7 @@ export function AccountsSheet({ onClose, adding = null, note: given = null }: { 
   const active = view?.active ?? null;
   // nobody signed in here: the sign-in continues in the browser at once, never a pointer to somewhere else
   if (view && !active && !given && add === null && window.duskDesktop?.cloudAccount?.continueInBrowser) return <SignInInBrowser onClose={onClose} />;
-  return <div className="ui-scrim fixed inset-0 z-[60] flex items-center justify-center p-4" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+  return <ModalLayer><div className="ui-scrim fixed inset-0 z-[60] flex items-center justify-center p-4" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <div role="dialog" aria-modal="true" aria-labelledby="cloud-add-title" data-accounts-sheet className={cn(SHEET, "relative w-full max-w-[420px]")}>
       <button type="button" onClick={onClose} aria-label={t("accounts.close")} className={cn(CLOSE, "absolute end-4 top-4 z-10")}><X size={16} /></button>
       {add !== null
@@ -211,7 +212,7 @@ export function AccountsSheet({ onClose, adding = null, note: given = null }: { 
         </div>}
     </div>
     <CloudSignOutConfirm open={asking !== null} onCancel={() => setAsking(null)} onConfirm={() => { if (asking) signOut(asking); }} />
-  </div>;
+  </div></ModalLayer>;
 }
 
 /** The account's own page on the dashboard, signed in through the account handoff; the dashboard's home where that page

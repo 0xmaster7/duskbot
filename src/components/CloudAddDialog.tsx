@@ -1,5 +1,6 @@
 // Security: checkout never runs in the app; main opens the provider's checkout page in the default browser and the app
 // follows its own session, never the return. The emailed code's attempt, the token and the checkout page stay in main.
+import { ModalLayer } from "./ui/ModalLayer";
 import { useEffect, useState, type ReactNode } from "react";
 import { X } from "../icons";
 import type { CloudColor } from "../../electron/cloud-buy.mjs";
@@ -94,14 +95,14 @@ const HELD: ReadonlySet<CloudAddView["kind"]> = new Set(["sign-in", "signing-in"
 /** The sheet over the app: one width per screen, the close button, and the staging mark when the app is on staging.
  * Above the z-50 layers (Settings, the welcome flow) and the full-screen places picker (z-60), which it may be opened over. */
 export function CloudAddSheet({ kind, staging, onClose, children }: { kind: CloudAddView["kind"]; staging: boolean; onClose: () => void; children: ReactNode }) {
-  return <div className="ui-scrim fixed inset-0 z-[61] flex items-center justify-center p-4 sm:p-6" onMouseDown={event => event.target === event.currentTarget && !HELD.has(kind) && onClose()}>
+  return <ModalLayer><div className="ui-scrim fixed inset-0 z-[61] flex items-center justify-center p-4 sm:p-6" onMouseDown={event => event.target === event.currentTarget && !HELD.has(kind) && onClose()}>
     <div role="dialog" aria-modal="true" aria-labelledby="cloud-add-title" data-cloud-add-dialog tabIndex={-1}
       className={cn(SHEET, "group/sheet relative max-h-full w-full overflow-y-auto overscroll-contain rounded-[14px] border border-transparent outline-none", WIDTH[kind] ?? "max-w-[540px]")}>
       <button type="button" onClick={onClose} aria-label={t("cloudAdd.close")} className={cn(formCloseCls, ON_NIGHT, "absolute end-3 top-3 z-10")}><X size={16} /></button>
       {staging && <StagingMark className="absolute end-11 top-[15px] z-10 group-has-[[data-night-card]]/sheet:bg-app" />}
       {children}
     </div>
-  </div>;
+  </div></ModalLayer>;
 }
 const OFFER_VIEWS: ReadonlyArray<CloudAddView["kind"]> = ["offer", "checking", "unreachable", "waiting", "sign-in", "signing-in"];
 const FOCUSABLE = "button:not([disabled]):not([tabindex='-1']), input:not([disabled]):not([tabindex='-1']), [href], [tabindex='0']";
