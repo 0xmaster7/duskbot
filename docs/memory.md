@@ -43,14 +43,17 @@ never sits in memory: secrets belong in the vault.
 **When something changes.** Say "I moved to Porto" and the older "lives in
 Lisbon" is replaced at once: the new fact is saved, the old line leaves
 general memory, and in a bot's notes it is struck through as superseded.
-The newest fact wins. Nothing is lost: what left general memory is listed
-under About me as **Replaced or merged**, with **Restore**, and a bot's
-struck lines stay in its file.
+The newest fact wins, and the old one becomes history: it never loads as
+current, but a question about the past ("where did I live last spring?")
+still finds it with the days it held. Nothing is lost: what left general
+memory is listed under About me as **Replaced or merged**, with **Restore**,
+and a bot's struck lines stay in its file.
 
 **Tidying (consolidation).** Each night, and when you press **Tidy up now**
 under About me, one background call (using your own AI, the engine your bots
 already run on) reads general memory and every bot's main notes together and:
-- merges facts that say the same thing twice;
+- merges facts that say the same thing twice, even in other words (numbers,
+  names and "not" keep two facts apart);
 - where two facts disagree, keeps the newer one;
 - moves lasting facts about you that ended up in one bot's notes into general
   memory, so every bot knows them (only where one person uses all the bots,
@@ -60,38 +63,57 @@ already run on) reads general memory and every bot's main notes together and:
 
 It never deletes a line you typed yourself as a duplicate, and changes at most
 one of your own lines a night. Each bot's own tidy-up also clears expired
-notes, exact duplicates and contradictions in its notes.
+notes, merges repeated notes and settles contradictions in its notes.
 
 **How it is used in a chat.** Every message a bot answers starts with:
 - general memory: your own lines, health and safety facts, and the newest
-  learned lines up to about 3,000 characters (roughly 750 tokens);
-- the bot's `MEMORY.md`: the first 200 lines or 24 KB;
+  learned lines up to about 2,000 characters (roughly 500 tokens);
+- the bot's `MEMORY.md`: your own lines, health and safety notes, and its
+  newest notes, up to about 5,000 characters (roughly 1,250 tokens);
 - the list of the bot's topic files.
 
-Then, for the message itself, recall adds up to three older general-memory
-facts, four topic-note passages and four passages from the bot's earlier
-chats that share words with it, at most 6,000 characters in all.
+These are read once when a conversation starts and kept for it, so the
+cached prompt stays the same while you talk; something saved meanwhile is
+told to the bot once, with your next message, and something removed or
+replaced stops reaching it at once.
+
+Then, for the message itself, recall looks up what fits it among everything
+the bot may read, by words and by meaning (a local model on your computer,
+nothing sent anywhere), by names and by the time asked about, and adds the
+best facts and a few passages from earlier chats, at most 6,000 characters
+(about 1,500 tokens). When a question about you finds nothing, the bot is told
+so, and says it does not know instead of guessing.
+
+**What a bot may not keep.** Only your own words, or work the bot checked,
+become memory that loads every time. During work that read a web page, an
+email, a file, a tool's result or another bot's message, a note the bot saves
+goes to its *unverified notes*: recalled when relevant and marked unverified,
+never loaded each time and never into About me. Anything that reads like an
+instruction ("always cc …", "send … to …") is refused.
 
 **Seeing and editing it.** General memory is the About me box in Settings,
 with **Added by your bots** (remove any learned fact; it is not learned
 again) and **Replaced or merged** (restore any). A bot's own memory is under
 **What it remembers** in its settings: edit any file, see every change in the
-journal, undo one. Saying "forget that" in a chat removes it from both.
+journal, undo one. Saying "forget that" in a chat removes exactly that fact
+from both; when your words could mean facts about different people ("forget
+Pune" while a friend lives there too), the bot asks which.
 
 **Sizes at a glance.**
 
 | What | Limit |
 | --- | --- |
-| About me, total | 24,000 characters (4,000 for a person on a team) |
-| Learned general facts loaded each turn | about 3,000 characters; the rest recalled by matching words |
+| About me, total | 24,000 characters (4,000 for a person on a team); when full, the oldest learned lines move to the history |
+| Learned general facts loaded each turn | about 2,000 characters, health and safety up to 1,000 more; the rest are recalled |
 | Learned general facts kept | about 12,000 characters; older ones go to the history |
 | History of replaced or merged lines | the latest 300 |
-| A bot's `MEMORY.md` loaded each turn | 200 lines or 24 KB; older entries move to `memory/archive.md` |
+| A bot's `MEMORY.md` loaded each turn | about 5,000 characters, health and safety up to 1,500 more; the rest are recalled |
+| A bot's `MEMORY.md` file | 200 lines or 24 KB; older entries move to `memory/archive.md` |
 | One note | 1,000 characters, 20 lines |
-| Recall per message | 3 general facts, 4 notes, 4 chat passages, 6,000 characters |
+| Recall per message | 14 facts and 4 chat passages, 6,000 characters |
 
-How well this works is measured by a scripted eval with a real model
-(`scripts/memory-eval/`, see its README for the latest scores).
+How well this works is measured by an offline suite and a live suite with a
+real model (`scripts/memory-eval/`, see its README for the latest scores).
 
 The rest of this page is the detailed reference.
 
@@ -115,12 +137,15 @@ instructions to forbid that when memory must stay in another source of truth.
 
 ```
 ~/.duskbot/workspaces/<botId>/
-├── MEMORY.md            the notes that load into every conversation
+├── MEMORY.md            core notes; the newest ~5,000 characters load each conversation
 └── memory/
-    ├── <topic>.md       longer notes the bot reads on demand
-    ├── archive.md       older notes moved out of MEMORY.md, and expired ones
+    ├── <topic>.md       notes about one subject, recalled when a message needs them
+    ├── unverified.md    notes saved during work that read outside content
+    ├── archive.md       older notes moved out of other files, and expired ones
+    ├── archive-2026.md  the archive's older half, once it passes 128 KB
     └── log/
-        └── 2026-09-10.md   what the bot did that day, in its own words
+        ├── 2026-09-10.md   what the bot did that day, in its own words
+        └── 2026-05.md      daily logs older than 90 days, one file a month
 ```
 
 The folder is the bot's private workspace: the directory its file tools work in
@@ -138,82 +163,141 @@ that helpfully "remembers" a key it read from a `.env` does not get to keep it.
 
 ## What loads, and the budget
 
-At the start of every turn the **first 200 lines or 24 KB of `MEMORY.md`,
-whichever cuts first**, are placed into the bot's system prompt. Nothing past
-that line loads, and the bot is only told that the file was cut off. Topic files
-and daily logs are never loaded automatically; the bot reads a topic file with
-its file tools when it decides it needs it, and logs are for you.
+At the start of a conversation the bot's `MEMORY.md` is read and a part of it
+goes into the system prompt (`coreForPrompt` in `server/workspace.ts`): every
+line the person wrote by hand (no date), then dated health and safety notes
+(`CORE_PINNED_CHARS`, 1,500 characters, newest first), then the newest live
+entries until `CORE_LOAD_CHARS` (5,000 characters), all in file order. Struck
+(superseded or merged) and expired entries never load. When something is left
+out, the prompt says how many older notes are not shown and that they are
+recalled when a message touches them; the file keeps every line.
 
-The gauge at the top of the Memory panel is that rule made visible: lines and
-size against the budget, amber from 80%, red once anything stops loading —
-with the count of lines that are not being loaded, and always the plain
-sentence *only the first 200 lines load each turn*.
+The gauge at the top of the Memory panel shows the file against its own cap
+(`MEMORY_MAX_LINES`, 200 lines, and `MEMORY_MAX_BYTES`, 24 KB) and how much of
+it loads each turn. It is amber from 80% of the cap and red only past it.
 
 `MEMORY.md` never fills up. Every write that goes through the harness
-(`memory_update`, and capture) keeps the file within the budget in the same
+(`memory_update`, and capture) keeps the file within its cap in the same
 step: when the new entry would push it past, the oldest dated entries move to
-`memory/archive.md` — struck-through ones first, then expired ones, then the
-oldest live ones — each marked `· moved <date>`. An entry moves whole, with
-the lines indented under it (a code block) or, in older entries, the code block
-right below it. The archive is written before
-`MEMORY.md`, so a line is never out of one without already being in the other,
-and `session_search` still finds it. Lines you wrote by hand (no date), health
-and safety facts, and the entry just written never move. The bot is told which
-entries moved (the first few, and how many), so it can add back anything that
-should stay loaded. One entry is at most 1,000 characters and 20 lines, so a
-single note cannot push the rest out. The gauge
-can only go red when the lines that never move fill the budget by themselves
-(or a bot edited the file with its own file tools): then the entry is still
-saved, and the bot asks you to trim `MEMORY.md`.
+`memory/archive.md` (struck-through ones first, then expired ones, then the
+oldest live ones), each marked `· moved <date>`. An entry moves whole, with
+the lines indented under it. The archive is written before `MEMORY.md`, so a
+line is never out of one without already being in the other, and recall and
+`session_search` still find it. Lines you wrote by hand, health and safety
+facts, and the entry just written never move. One entry is at most 1,000
+characters and 20 lines.
 
-Both limits are `MEMORY_MAX_LINES` and `MEMORY_MAX_BYTES` in
-`server/workspace.ts`; the panel, the loader, and the bot's prompt all read the
-same two constants.
+About me loads too: every line the person typed, every health or safety fact
+(up to `GENERAL_PINNED_CHARS`, 1,000 characters), then the newest learned
+lines up to `GENERAL_LOAD_CHARS` (2,000 characters). When all learned lines
+fit, the text is exactly About me.
 
-About me loads too, in the stable half of the prompt: every line the person
-typed, every health or safety fact, then the newest learned lines up to
-`GENERAL_LOAD_CHARS` (3,000 characters). When all learned lines fit, the text is
-exactly About me, so the cached prompt does not change; when some are left out,
-the prompt says how many, and recall (below) brings back those that share words
-with the message.
+**Held for the conversation.** About me, `MEMORY.md` and the topic index are
+read once per conversation and kept (`server/memory-snapshot.ts`), so the
+"memory" and "About the user" parts of the prompt are the same bytes on every
+turn and sit in its cached half. A line saved meanwhile reaches the bot once,
+at the top of its next message ("Saved to your memory since this
+conversation started"). A line removed, forgotten or replaced takes a fresh
+copy at once, cache or not. After 30 minutes without a turn (longer than a
+provider keeps its prompt cache) the next turn reads them again.
 
 Two more things load with it:
 
 - **Expired notes stay out.** An entry that ends in `· until 2026-09-28` stops
-  loading the day after that date. The file keeps it (the gauge still counts
-  it) until the tidy-up or a person moves it.
+  loading the day after that date.
 - **The topic index.** Every `memory/<topic>.md` is listed by name under the
   memory block, with its `title`, `description` and `aliases` when the file
-  starts with frontmatter — at most 40 topics or 2,000 characters. The files
-  themselves still load only when the bot reads them.
+  starts with frontmatter, at most 40 topics or 2,000 characters.
+
+A saved line that reads like an instruction (overriding rules, sending data to
+an address or link, reaching for keys) is shown to the bot as
+`[blocked: a saved line read like an instruction …]` and stays in the file for
+the person to review.
+
+## The fact store
+
+Every line of memory is also a row in `messages.db` (`memory_facts`,
+`server/memory-facts.ts`): one per dated entry or hand-written line of
+`MEMORY.md`, each topic file and the archive, and one per About me line and
+per line in its history. The text stays in the files, which remain what the
+person reads and edits; the row holds what code knows about it:
+
+- **status**: active, superseded (struck through, or replaced in About me),
+  merged, expired (past its `until`), or suppressed (deleted by hand);
+- **when**: the day it was noted, the day it stopped holding, and for events
+  the days they happened (dates named in the text, "April 2026", "spring
+  2025", are read as ranges; capture writes relative dates out as absolute
+  ones);
+- **where it came from**: typed by the person, said by the person (with the
+  quoted words and the message), verified by the bot, another person in a
+  group chat, a tool, the web, another bot, an import, or an older line of
+  unknown origin; and a **trust** level from that (high, medium, low);
+- its **embedding**, for recall by meaning.
+
+Rows follow the files: a file whose size or time changed is read again on the
+next recall and its rows reconciled. A line that moved between files keeps its
+row and provenance; a line deleted by hand is marked suppressed, never
+recalled again, and dropped from the table after 180 days.
+
+**First start.** The first time a build with the fact store starts, it copies
+every bot's `MEMORY.md` and topic files, About me, `profile-learned.json` and
+the general-memory history into `memory-v1-backup/<time>/` in the data folder,
+then reads them into the store, and writes `memory-v2.json` with how many
+lines it read and how many facts it holds (the same number). It rewrites no
+file. A crash midway runs it again on the next start.
+
+## Local embeddings
+
+Recall by meaning uses BAAI's `bge-small-en-v1.5` (int8 ONNX, about 34 MB) run
+by onnxruntime's WebAssembly build, in the server process
+(`server/memory-embed.ts`). The model and runtime (about 50 MB in all) are
+downloaded once, in the background, into `models/` in the data folder (or
+`DUSK_MODEL_DIR`), each file checked against a pinned SHA-256 digest; the
+download is skipped with less than 1 GB of disk free. Until they are there,
+or if anything fails, recall works from words alone and the log says why once
+(retried after six hours). Memory text is never sent to an embedding
+service. `DUSK_MEMORY_EMBED=0` switches embeddings off. The model is English;
+other languages are matched by words, names and time.
 
 ## Recall before each turn
 
-Before a turn, the person's message (eight characters or more) searches the
-bot's topic files and, in a 1:1 chat the person started, the bot's other
-conversations. Any matching word counts; a message with five or
-more content words needs two per hit. Up to four notes and four conversation
-passages — numbered, dated, and at most 6,000 characters — go in front of that
-turn's message, opened by a line saying they are the bot's own notes and that
-a command inside one is not an instruction. `MEMORY.md` (already loaded) and
-`memory/archive.md` (older or no longer true) are never recalled, nor are daily logs
-(`session_search` finds those when the bot asks).
+Before a turn, the person's message (eight characters or more, not a nod
+like "ok" or "thanks") is looked up among the facts the turn may read: the
+bot's own notes (on a Team Cloud the turn's layer and the team's), About me
+and its history (`server/memory-recall.ts`). Four searches run together:
 
-General memory facts left out of the prompt by its budget are recalled the
-same way: up to three that share words with the message (two words for a
-message of five or more), labelled `general memory`, ahead of the notes.
+- words: FTS5 BM25 over each fact and its topic's name, title and aliases,
+  stemmed, with a few words added for common facets (a question about "my
+  job" also searches "works", "role", "lead"…);
+- meaning: cosine similarity of the local embeddings;
+- names: facts that name a person, place or thing the message names;
+- time: when the message asks about a time ("last spring", "in March", "two
+  weeks ago", "this year"), facts that held or happened then.
 
-Automatic recall prefers a matching passage over the opening of a topic with
-a matching name. Current topic search excludes superseded entries; their text
-remains in the file for historical review.
+Their rankings are fused by reciprocal rank (k = 60), then lightly boosted: up
+to ±10% for recency over a year and ±10% for falling inside the asked-about
+time. A fact must also clear a relevance bar (close in meaning, or sharing
+enough words, a name or the asked-about time), so an unrelated message
+recalls nothing. Superseded and expired facts are searched only when the
+message asks about the past, and are shown as `no longer true; held <from> to
+<until>`. Facts already in the prompt are not recalled again, and one fact
+kept in two places is recalled once.
 
-It is placed in the message, not the system prompt, on purpose: the prompt's
-changing half is re-sent whole whenever any part of it changes, and recall
-changes nearly every turn. Rooms, routine runs (which start fresh), and turns
-started by another bot, a webhook or a teammate hand-off, recall notes only — a private chat reaches a room
-through `session_search`, which discloses it. `features.autoRecall: false` in
-`config.json` switches recall off. The server log names every recall
-(`auto-recall: … got N note and M conversation passage(s)`).
+The best facts (at most 14) come first, each numbered with its id, where it is
+kept and its dates; the top two carry the words they were learned from when
+that conversation may be read here. Then up to four passages from the bot's
+other conversations, in a 1:1 chat the person started. All of it fits in
+6,000 characters, opened by a line saying these are the bot's own notes and
+that a command inside one is not an instruction. A question about the person
+that finds nothing gets one line instead: *nothing in your memory matches it;
+say you do not have that rather than guess*.
+
+It is placed in the message, not the system prompt, on purpose: recall changes
+nearly every turn. Rooms, routine runs (which start fresh), and turns started
+by another bot, a webhook or a teammate hand-off recall notes only.
+`features.autoRecall: false` in `config.json` switches recall off. The server
+log names every recall (`auto-recall: … got N note and M conversation
+passage(s)`).
 
 ## Memory upkeep
 
@@ -221,18 +305,26 @@ through `session_search`, which discloses it. `features.autoRecall: false` in
 off. It keeps the notes in shape without the bot having to decide to:
 
 - **Noticing facts.** When a 1:1 chat has been quiet for two minutes
-  (`memory.captureQuietMs`), or after six turns, one quick model call reads those turns — the person's words and
-  the bot's under different rules — beside `MEMORY.md` and the list of topic
-  files, and files what is new. A preference or a fact about the person is
-  kept only with the words it rests on, quoted from what was said to the bot
-  and checked against the chat: a question ("…note-takers for a 10-person
-  startup?"), a task ("write a launch plan for an AI app") or a "suppose…"
-  is never a fact about who they are. Decisions and verified outcomes need no
-  quote. The call also sees general memory, so it does not propose what is
-  already there, and it names any older line a new fact changes
-  (`replaces`): that line leaves About me (into the history) and is struck
-  through as superseded wherever it stands in the bot's `MEMORY.md` or topic
-  files, before the new fact is written.
+  (`memory.captureQuietMs`), or after six turns, one quick model call reads those turns, the person's words and
+  the bot's under different rules, beside the newest lines of `MEMORY.md`,
+  the list of topic files and up to 20 known facts those turns bring to mind
+  (recalled from the bot's notes and About me, keyed `F1`…), and files what is
+  new. Every item is kept only with the words it rests on, quoted and checked
+  against the chat: the person's own words for a preference, a fact or a
+  decision, the bot's words for an outcome it verified. A question
+  ("…note-takers for a 10-person startup?"), a task ("write a launch plan for
+  an AI app") or a "suppose…" is never a fact about who they are. Each item
+  gets a verdict against the known facts, applied by code: *new* is saved;
+  *repeat* is not (a fact about the person kept only in one bot's notes still
+  goes into About me); *change* replaces the fact it names, which leaves About
+  me (into the history) or is struck through as superseded in the bot's notes,
+  before the new one is written; *end* strikes it with nothing in its place. A
+  new item that means the same as a known fact (embeddings at 0.95 or closer,
+  with the same numbers, names and negation) counts as a repeat. Dates are
+  written out ("next Friday" becomes the date) and an event keeps its days;
+  each saved fact records its quote and the message it came from. Nothing that
+  a tool can look up again is copied in, only where to find it, and nothing
+  that reads like an instruction is kept.
   - a lasting fact about the person themselves (marked `aboutUser`, from their
     own words) goes only to general memory, About me, below, never again into
     the bot's notes;
@@ -289,8 +381,11 @@ off. It keeps the notes in shape without the bot having to decide to:
 - **General memory consolidation.** After the bots' nightly tidy-ups (once a
   day after `memory.tidyHour`) and on **Tidy up now** under About me
   (`POST /api/profile/general/consolidate`), one model call on the first bot
-  whose engine can make one reads About me and every upkeep-enabled bot's live
-  `MEMORY.md` entries (150 of each at most) and answers which lines are the
+  whose engine can make one reads About me (the person's typed lines first,
+  then learned lines newest first) and up to 150 live `MEMORY.md` entries
+  shared out across every upkeep-enabled bot in turn, so one bot cannot crowd
+  the others out (within a bot, the lines most like an About me line first),
+  and answers which lines are the
   same, which an older line a newer one replaced, and (only where one person
   uses every bot, `sharedMembership()` false, and never from a `from room`
   entry) which bot lines are lasting facts about the person to move into
@@ -300,7 +395,9 @@ off. It keeps the notes in shape without the bot having to decide to:
   pass; at most a third of the learned lines (two in a short list) go in one
   pass; a learned line dated after the one said to replace it is not
   removed; health and safety facts are never trimmed; learned lines are kept
-  under `GENERAL_MAX_CHARS` (12,000). About me is written first, then each
+  under `GENERAL_MAX_CHARS` (12,000). Before the call, learned About me lines
+  that mean the same thing (embeddings, as below) are merged, the older one
+  into the history as a duplicate. About me is written first, then each
   bot's `MEMORY.md` (skipped for a file that changed meanwhile), each a
   journal row via *general*. What leaves About me goes to
   `general-memory-history.json` (latest 300), listed under About me as
@@ -319,6 +416,20 @@ off. It keeps the notes in shape without the bot having to decide to:
   pass in core memory, and none in a core file of fewer than five. Topic files
   may reconcile one pair even with two entries; writes recheck for concurrent edits. The archive is written before
   the file it came from, so undoing the newest change never loses a line.
+  Four topics are checked a night, first those holding two close but not
+  identical facts. Then:
+  - **Merging.** Among the bot's newest 300 live entries, pairs that mean the
+    same (embeddings at 0.95 or closer, the same numbers, names and negation;
+    without embeddings only word-for-word repeats) are confirmed by one model
+    call (at most 20 pairs); the older or shorter line is struck through as
+    `· merged <date>`, never deleted. The same caps apply, and a hand-written
+    line is never merged away.
+  - **Keeping files bounded.** A topic past 64 KB moves its struck, then
+    expired, then oldest entries into the archive; `memory/unverified.md` is
+    kept under 16 KB the same way; past 128 KB the oldest half of
+    `memory/archive.md` rolls into `memory/archive-<year>.md`. Daily logs older
+    than 90 days fold into one `memory/log/YYYY-MM.md` per month. Everything
+    stays searchable; nothing is deleted.
 
 "Exactly the same fact" is narrow on purpose: spacing, a bullet and a final
 full stop are ignored, nothing else — `Balance is -10` and `Balance is 10`,
@@ -425,15 +536,30 @@ model*, which is also what the CSV's `triggered_by` column says.
 as soon as the turn ends, and the bot confirms it in one plain line ("Got it:
 short answers, and times in India time.").
 
-"Forget that" is `memory_update` with `action: "forget"` and a few words that
-name it. Every note that mentions those words as whole words ("IST" is not in
-"dentist") goes: from `MEMORY.md`, judged by the fact and never by the chat it
-came from; from every topic file and the archive, keeping their headers; and,
-when the person asked in their own 1:1 chat, from **About me**, learned or
-written. A note never ends up as a date with no words. The words are kept in
-`profile-learned.json` so no bot learns a fact that mentions them again, until
-the person asks a bot to remember it once more. The bot confirms in one plain
-line and names no files.
+"Forget that" is `memory_update` with `action: "forget"` and either the ids of
+the facts (`ids`, the `#f…` each recalled fact carries) or a few words that
+name it (`old_text`). Words find the facts that mention them as whole words
+("IST" is not in "dentist"); when those are about different people or things
+("forget Pune" with the person's own old city, a friend who lives there and a
+colleague who moved there), nothing is removed and the bot gets the candidates
+with their ids to ask which one was meant. The facts named go, and every copy
+of them: from `MEMORY.md`, every topic file and the archive, keeping their
+headers, and, when the person asked in their own 1:1 chat, from **About me**,
+learned or written. A note never ends up as a date with no words. What was
+forgotten is kept in `profile-learned.json` so no bot learns it again until the
+person asks a bot to remember it once more: the words themselves when they
+asked with two or more ("forget short answers"), only the facts removed when
+they named one word. The bot confirms in one plain line and names no files.
+
+**Who may write what.** Each turn knows where its words came from: the
+person, another bot (a hand-off or `coordinate_bots`), or an automation (a
+routine, a webhook, the Bot API); and whether, since the person's last message,
+it read outside content (a page, a fetch or search, mail, a connected app or an
+MCP tool). During a turn whose words came from outside, `append`, `replace`
+and `supersede` save to `memory/unverified.md` instead (source and low trust in
+the fact store; recalled marked *unverified*, never loaded each session),
+`prefer` is refused, and so are `forget` and `remove`. In every turn, text
+that reads like an instruction is refused (`server/memory-trust.ts`).
 
 A standing preference or lasting fact for all of the person's bots ("reminders
 go to my task app", "I moved to Porto") is `memory_update` with
@@ -523,6 +649,10 @@ same bot's threads running at once are both diffed; a change lands under
 whichever thread finished first. Journaling never fails a turn: a row that
 cannot be written is logged and dropped.
 
+A bot's journal is kept under 4 MB: past that, its older half moves to
+`<botId>.rotated.ndjson.gz` beside it, without the earlier file copies, so
+those rows can be read but no longer undone; the newest rows stay undoable.
+
 ## Conventions inside the files
 
 The files are yours and the bot's, and any markdown is fine. The app itself
@@ -533,11 +663,18 @@ bot follows when it writes are:
   bullet with its date and the chat it came from:
   `- 2026-09-10 · from chat "Follow-up" · the user prefers short replies`.
   A person's hand-written bullet without a date is just as valid.
-- **Superseded, not deleted.** When a fact is replaced, the old bullet is
-  struck through and dated rather than removed —
-  `- ~~the office is in Pune~~ · superseded 2026-09-10` — so the file itself
-  shows what changed. Struck lines still count against the budget; trim them
-  when the file fills up.
+- **Superseded or merged, not deleted.** When a fact is replaced, the old
+  bullet is struck through and dated rather than removed:
+  `- ~~the office is in Pune~~ · superseded 2026-09-10`, or `· merged
+  2026-09-10` when another line says the same thing, so the file itself shows
+  what changed. Struck lines never load and answer only questions about the
+  past; they count against the file's size and move to the archive first.
+- **Unverified notes.** `memory/unverified.md` holds what a bot saved during
+  work that read outside content. It is recalled marked unverified and never
+  loads each session; a fact the person confirms in their own words is saved
+  again normally.
+- **Archives.** `memory/archive.md` and the yearly `memory/archive-<year>.md`
+  hold notes moved out of other files: history, searchable, never loaded.
 - **Daily logs** under `memory/log/YYYY-MM-DD.md` are the bot's diary of what
   it did; they are never loaded into a conversation and are meant for you to
   read in the panel or in Obsidian.
@@ -580,25 +717,3 @@ On a Team Cloud each person also reaches what a bot remembers about them, their 
 `GET /api/bots/:id/memory/mine` is its overview, and `GET`, `PUT` and `DELETE /api/bots/:id/memory/mine/file` read,
 save and remove one of its files as above. Nobody reaches another person's layer. The bot panel's **What it
 remembers** shows these notes on a team.
-
-## Shared team memory integrity
-
-Team memory ownership uses persistent keys. Renaming a team preserves its notes
-and pending cards; deleting it retires the identity. Creating a new team with the
-old name never restores the retired notes. Existing version-1 team-memory files
-migrate atomically to version 2. Retired records remain on disk for recovery;
-team deletion is not a secure erase.
-
-The team panel reports how many accepted notes load within the 6,000-byte prompt
-budget. Pin essential rules to load them first. Omitted notes remain available
-with `session_search {"scope":"team","query":"..."}`; ordinary search also
-includes accepted team notes. Proposals, superseded entries and deleted entries
-are excluded. A stable `key`, such as `tapa/sequence-02/colour`, lets a reviewed
-correction replace the same fact even when its title changes. The previous
-accepted entry remains in history. Recent text versions (up to 50) can be
-restored from the panel; restoring text is a new revision.
-
-Every panel edit, delete or acceptance carries the revision it was based on.
-Stale writes return 409; writes without a revision return 428. Reloading after a
-conflict retains the unsaved draft for comparison. Pending replacement cards
-also refuse approval if the accepted fact changed since the proposal.
