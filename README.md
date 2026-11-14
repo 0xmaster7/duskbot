@@ -102,7 +102,7 @@ Sign in once with the AI you pay for and every bot can use it. Give each bot a d
 - What you say goes straight from your machine to your AI provider, not through us.
 - Keys and sign-ins stay on the machine your bots run on and are never shown again after you save them.
 - Phone notifications carry the bot's name, never the message.
-- No analytics SDK and no usage events. Backups are encrypted with a password only you know.
+- No third-party analytics SDK, and no usage information leaves your computer unless you turn on "help improve dusk bot" ([what it sends](docs/analytics.md)). Backups are encrypted with a password only you know.
 
 <img src="docs/readme/backups.webp" alt="Settings, storage and backups" width="720">
 
