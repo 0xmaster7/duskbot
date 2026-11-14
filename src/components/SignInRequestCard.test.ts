@@ -84,7 +84,7 @@ describe("SignInRequestCard while it waits", () => {
 
   it("asks for a human check in one plain line, without the bot's own words", () => {
     const html = view({ check: true, reason: undefined });
-    expect(html).toMatch(/data-testid="sign-in-site"[^>]*>Quick human check on example\.com\. Tap Take over and tick the box\.</);
+    expect(html).toMatch(/data-testid="sign-in-site"[^>]*>example\.com wants a quick human check\. Tap Take over and I&#x27;ll carry on from there\.</);
     expect(html).not.toContain("sign in to example.com");
   });
 

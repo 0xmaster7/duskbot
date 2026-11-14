@@ -1764,18 +1764,18 @@ describe("harness HTTP API", () => {
     expect(dm.memberIds).toEqual(["test-bot-a", "test-bot-b"]);
   });
 
-  it("starts a room on everyone at once and goes back to it when the chosen lead leaves", async () => {
+  it("starts a room led by its first member and hands it to who is left when the chosen lead leaves", async () => {
     const [lead, other] = await Promise.all([api("POST", "/api/bots"), api("POST", "/api/bots")]).then((created) =>
       created.map((response) => response.body.bot),
     );
     const room = (await api("POST", "/api/groups", { name: "Handover", memberIds: [lead.id, other.id] })).body.group;
     try {
-      expect(room.defaultResponder).toEqual({ kind: "everyone" });
+      expect(room.defaultResponder).toEqual({ kind: "member", botId: lead.id, leader: true });
       const chosen = await api("PATCH", `/api/groups/${room.id}`, { defaultResponder: { kind: "member", botId: lead.id } });
       expect(chosen.body.group.defaultResponder).toEqual({ kind: "member", botId: lead.id });
       const patched = await api("PATCH", `/api/groups/${room.id}`, { memberIds: [other.id] });
       expect(patched.status).toBe(200);
-      expect(patched.body.group.defaultResponder).toEqual({ kind: "everyone" });
+      expect(patched.body.group.defaultResponder).toEqual({ kind: "member", botId: other.id });
     } finally {
       await api("DELETE", `/api/groups/${room.id}`);
       for (const bot of [lead, other]) await api("DELETE", `/api/bots/${bot.id}`);
@@ -5261,7 +5261,7 @@ describe("harness HTTP API", () => {
       name: "War Room",
       bulletin: "",
       memberIds: [trusted.id],
-      defaultResponder: { kind: "everyone" },
+      defaultResponder: { kind: "member", botId: trusted.id },
     });
 
     await api("PATCH", `/api/bots/${impostor.id}`, { description: "edited after import", composio: true });
