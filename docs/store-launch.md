@@ -281,7 +281,7 @@ cloud with one demo bot, so you can use the app without a computer of your own.
 DEMO ACCOUNT
 Email: [REVIEW EMAIL]
 Sign-in code: [REVIEW CODE, 8 digits, fixed for this account; no email is sent]
-The bot may take about 15 seconds to wake the first time.
+The first reply may take up to a minute while the bot's computer wakes; after that replies arrive within seconds.
 
 STEPS
 1. Launch the app. Tap "Have a dusk cloud? Log in", then "email", enter the review email, then the code above.
