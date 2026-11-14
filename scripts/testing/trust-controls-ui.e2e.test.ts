@@ -6,7 +6,7 @@ import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlDusk } from "../control-dusk.ts";
 import { UI_TOOLS_DIR } from "./control-dusk-ui.ts";
-import { clickByName, openBotSheet, openPanelMenu, openTeamMap, sheetPage } from "./grok-nav.ts";
+import { clickByName, openBotSheet, openTeamMap, sheetPage } from "./grok-nav.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const enabled = process.env.DUSK_UI_E2E === "1" || Boolean(resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env }));
@@ -60,15 +60,10 @@ describe("trust controls in the real renderer", () => {
     const saved = async () => (await bots()).find(candidate => candidate.id === bot.id)!;
     const memory = async () => (await fetch(`${info.url}/api/team-memory?section=`).then(response => response.json())).entries as Array<{ id: string; name: string; detail: string }>;
 
-    // Activity sits in the bot panel's Share menu, with this chat's copy, download, usage and the Inspector.
-    await openPanelMenu(ui, "Pepper");
-    await clickByName(ui, /^Activity/, "menuitem");
-    await expect.poll(snapshot, { timeout: 10_000 }).toContain("Nothing yet.");
+    // the bot runs a harmless fixture tool first. Its Activity panel, which showed that run, left the Share menu on
+    // purpose in 65902595e, so the run is not read back on screen here.
     await runControlDusk(["send", "--bot", bot.id, "--text", "Run the harmless fixture tool.", "--url", info.url]);
     await runControlDusk(["wait", "--bot", bot.id, "--timeout", "20", "--url", info.url]);
-    await expect.poll(snapshot, { timeout: 10_000 }).toContain("Ran a command");
-    await ui("screenshot", "--out", `${info.logPath}.activity.png`);
-    await click("Close activity");
 
     await openBotSheet(ui, "Pepper", "permissions");
     // Sending on your behalf is a menu on its row
