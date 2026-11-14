@@ -117,7 +117,7 @@
 .ad-p-top .ad-p-back { margin-right: auto; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; color: #1c1c1ca8; }
 .ad-p-top .ad-p-back:hover { background: #1c1c1c0f; color: var(--ink); }
 .ad-p-title { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 55%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; font-weight: 500; line-height: 18px; }
-.ad-p-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 16px 28px; scrollbar-width: thin; }
+.ad-p-body { position: relative; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 16px 28px; scrollbar-width: thin; }
 .ad-hero { display: flex; flex-direction: column; align-items: center; padding: 8px 0 12px; }
 .ad-hero .bot { width: 72px; height: 72px; }
 .ad-hero h3 { margin: 12px 0 0; font-size: 17px; font-weight: 500; line-height: 24px; letter-spacing: 0.01em; }

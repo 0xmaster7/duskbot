@@ -34,8 +34,6 @@
 .c-white { color: #fff; } .c-white .px-e { fill: #212121; }
 @keyframes pulse { 50% { opacity: 0.35; } }
 @keyframes ring { 25% { rotate: -16deg; } 75% { rotate: -2deg; } }
-.spark { position: absolute; z-index: 20; width: 8px; height: 8px; border-radius: 2px; pointer-events: none; animation: spark 0.7s ease-out forwards; }
-@keyframes spark { to { translate: var(--dx) var(--dy); rotate: 180deg; opacity: 0; scale: 0.4; } }
 
 /* hero */
 .hero { text-align: center; padding: 68px 24px 0; }
@@ -320,14 +318,8 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
 
 /* where it runs: three cards on a picture. each panel is the same slice of the real app, in the hero demo's own sizes and
    colours: a few bot rows, then one status card. only the picture sits behind the panel */
-/* two ways, dusk cloud first: the one people should pick carries the only dark button. an own server is one line under them */
 .ways { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gut); }
-.way-art { position: relative; aspect-ratio: 4 / 3; border-radius: var(--r-xl); overflow: hidden; }
-.way > .way-tag { display: flex; align-items: center; gap: 10px; margin: 22px 0 0; font: 500 12.5px/1 var(--mono); color: var(--ink-3); }
-.way-tag span { padding: 5px 10px; border-radius: 999px; background: var(--wash); font: 500 13px/1 var(--sans); color: var(--ink); }
-.way.pick .way-tag span { background: var(--ink); color: #fff; }
-.way > .way-go { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; margin: 18px 0 0; }
-.way-go .go { margin-top: 0; }
+.way-art { position: relative; aspect-ratio: 10 / 9.9; border-radius: var(--r-xl); overflow: hidden; }
 .way-more { margin: 36px 0 0; color: var(--ink-2); font-size: 16px; font-weight: 500; }
 .way-more { line-height: 1.6; }
 .way-more a { font-weight: 500; color: var(--ink); text-decoration: none; white-space: nowrap; }
@@ -356,14 +348,14 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
 .wa-awake::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18); }
 /* only the cloud looks wide awake: the mac has dozed off and the server is still being set up */
 .wa-asleep::before { background: #b4b4ba; box-shadow: 0 0 0 3px rgba(150, 150, 160, 0.16); }
-.wa-setup::before { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18); animation: pulse 1.6s ease-in-out infinite; }
+.wa-setup::before { background: #fb7c01; box-shadow: 0 0 0 3px rgba(251, 124, 1, 0.2); }
 /* the one line: a label and copy above, then the whole command on a single line, sized to the panel so it never wraps or cuts */
 /* clouds float in the strip of sky above the panel, clear of it, drifting a little */
 .way-art > .perch { position: absolute; z-index: 1; right: 8%; top: 6%; width: 30%; height: auto; image-rendering: pixelated; pointer-events: none; animation: perch 9s ease-in-out infinite alternate; }
 .way-art > .perch.lemon { right: auto; left: 30%; width: 24%; top: 8%; animation-delay: -4s; }
 @keyframes perch { to { translate: -14% 0; } }
 
-.home .way h3 { margin: 12px 0 6px; }
+.home .way h3 { margin: 22px 0 6px; }
 .way > p { margin: 0; max-width: 25em; color: var(--text); font-size: 16.5px; line-height: 1.5; }
 .go { display: inline-flex; align-items: center; gap: 5px; margin-top: 4px; padding: 10px 0; font-weight: 500; text-decoration: none; }
 .go .i { width: 16px; height: 16px; transition: translate 0.25s var(--pop); }
@@ -538,8 +530,7 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
   .ways { grid-template-columns: 1fr; gap: 40px; }
   .way { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: 1fr auto auto auto 1fr; column-gap: 32px; }
   .way-art { grid-row: 1 / -1; }
-  .way { grid-template-rows: 1fr auto auto auto auto 1fr; }
-  .way .way-tag { grid-row: 2; } .way h3 { grid-row: 3; } .way > p:not(.way-tag):not(.way-go) { grid-row: 4; } .way > .go, .way-go { grid-row: 5; justify-self: start; }
+  .way h3 { grid-row: 2; } .way > p { grid-row: 3; } .way .go { grid-row: 4; justify-self: start; }
   .pricing .head { margin-bottom: 40px; }
   .plans { grid-template-columns: 1fr; max-width: 480px; margin: 0 auto; }
   .plan.has-cat { margin-top: 64px; }
@@ -596,12 +587,11 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
   .fig-head { flex-wrap: wrap; row-gap: 10px; }
   .home .tag.avail { gap: 6px; padding: 9px 13px; }
   /* the where cards go square so both chat rows fit above the computer card */
-  .way-art { aspect-ratio: 1 / 1; }
   /* the computer card keeps its name and status whole; its one-line note is the part that gives way */
   .wa-card small { display: none; }
   .fares li { grid-template-columns: 38px 1fr auto 44px; gap: 6px; padding: 5px 6px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .home *, .home *::before, .home *::after, .spark { animation: none !important; transition: none !important; }
+  .home *, .home *::before, .home *::after { animation: none !important; transition: none !important; }
   .cloud, .zz { display: none; }
 }

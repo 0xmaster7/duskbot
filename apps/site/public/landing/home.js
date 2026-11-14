@@ -15,24 +15,6 @@ function once(el, fn, threshold = 0.4) {
 // the bots themselves (looks, blinks, moods, answers to a poke) are the app's mascot code, in mascot.js. they show how
 // they feel by moving, never with words in a bubble
 
-const sparkColours = ['#2f7bf2', '#ff7d1f', '#8d5cf0', '#ff5c9d', '#1fb866', '#f8c623'];
-// a burst of little squares where something was poked
-function sparkle(x, y) {
-  if (still) return;
-  for (let i = 0; i < 9; i++) {
-    const s = document.createElement('i'), a = (Math.PI * 2 * i) / 9 + Math.random() * 0.5, d = 34 + Math.random() * 34;
-    s.className = 'spark'; s.style.background = sparkColours[i % sparkColours.length];
-    s.style.left = `${x + scrollX - 4}px`; s.style.top = `${y + scrollY - 4}px`;
-    s.style.setProperty('--dx', `${(Math.cos(a) * d).toFixed(0)}px`); s.style.setProperty('--dy', `${(Math.sin(a) * d).toFixed(0)}px`);
-    document.body.append(s); setTimeout(() => s.remove(), 720);
-  }
-}
-document.addEventListener('click', (e) => {
-  const hit = e.target.closest?.('.cat img, .bot');
-  if (!hit || hit.closest('[data-own]')) return;
-  sparkle(e.clientX, e.clientY);
-});
-
 // the bot beside the questions nods along
 
 // the stickers in the big sentence can be picked up; they spring back when dropped

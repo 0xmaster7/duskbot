@@ -379,12 +379,16 @@
     let alive = true;
     const vh = innerHeight, first = [];
     const painted = (performance.getEntriesByType?.('paint') || []).length > 0;
+    // coming from another page of this site the first screen is simply there: its entrance replayed on every visit and
+    // read as a slow, flickery page change
+    let fromSite = false;
+    try { fromSite = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch {}
     for (const el of els) {
       if (seen.has(el)) continue;
       const r = el.getBoundingClientRect();
       if (r.top >= vh) { pending.add(el); continue; }
       seen.add(el);
-      if (!painted && !intended && r.top < vh * .92 && r.bottom > 0) first.push(el);
+      if (!painted && !fromSite && !intended && r.top < vh * .92 && r.bottom > 0) first.push(el);
     }
     first.forEach(el => { el._mkLoad = true; arm(el); });
     // release the first viewport once its fonts are in, so line breaks are final (capped at 800ms)

@@ -25,19 +25,6 @@ for (const b of $$('[data-copy]')) b.addEventListener('click', async () => {
   later(1600, () => { b.textContent = label; b.classList.remove('done'); });
 });
 
-// a burst of little squares where a bot (or the cat) was poked
-const sparkColours = ['#2f7bf2', '#ff7d1f', '#8d5cf0', '#ff5c9d', '#1fb866', '#f8c623'];
-document.addEventListener('click', (e) => {
-  if (still || !e.target.closest?.('.cat img, .bot') || e.target.closest('[data-own]')) return;
-  for (let i = 0; i < 9; i++) {
-    const s = document.createElement('i'), a = (Math.PI * 2 * i) / 9 + Math.random() * 0.5, d = 34 + Math.random() * 34;
-    s.className = 'spark'; s.style.background = sparkColours[i % sparkColours.length];
-    s.style.left = `${e.clientX + scrollX - 4}px`; s.style.top = `${e.clientY + scrollY - 4}px`;
-    s.style.setProperty('--dx', `${(Math.cos(a) * d).toFixed(0)}px`); s.style.setProperty('--dy', `${(Math.sin(a) * d).toFixed(0)}px`);
-    document.body.append(s); later(720, () => s.remove());
-  }
-});
-
 // download: the big button and the list follow the system you are on. on a phone the desktop app cannot be installed,
 // so the button sends this page to your computer instead
 const dl = $('[data-dl-page]');

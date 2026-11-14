@@ -364,7 +364,7 @@
     send.disabled = !draft.trim();
     input.addEventListener('input', () => { draft = input.value; send.disabled = !input.value.trim(); });
     const form = h('form', { class: 'ad-compose', onsubmit: (e) => { e.preventDefault(); ask(input.value); } },
-      h('button', { class: 'ad-plus', type: 'button', 'aria-label': 'Add files' }, icon('plus')), input, send);
+      h('button', { class: 'ad-plus', type: 'button', 'aria-label': 'Add files', onclick: () => nudge('files') }, icon('plus')), input, send);
     chipsEl = h('div', { class: 'ad-chips', role: 'group', 'aria-label': 'Suggestions' });
     paintChips();
     main.replaceChildren(h('div', { class: 'ad-head' }, back, pill, panelOpen && !phone.matches ? null : more), thread, h('div', { class: 'ad-foot' }, h('div', { class: 'ad-foot-in' }, chipsEl, form)));
@@ -374,6 +374,7 @@
     const s = state[current];
     chipsEl.replaceChildren(...(s.busy ? [] : s.chips.map((c) => h('button', { class: 'ad-chip', type: 'button', text: c, onclick: () => ask(c, true) }))));
     chipsEl.hidden = !chipsEl.childElementCount;
+    toBottom();
   }
   const toBottom = () => { if (thread) thread.scrollTop = thread.scrollHeight; };
   const work = (text) => h('div', { class: 'ad-work ad-in', 'data-work': '' }, h('i', { 'aria-hidden': 'true' }, h('b'), h('b'), h('b')), text + '…');
@@ -438,6 +439,31 @@
     }, wait);
   }
 
+  // the parts of the app the demo only shows: the open bot says what they do in the app, with the download card
+  const NUDGE = {
+    search: 'Search finds any chat, file or note across all your bots. That part is in the app.',
+    new: 'In the app a new bot takes a few seconds: give it a name and a job, and it gets its own chat and its own computer.',
+    account: 'Your account, plan and devices are in the app.',
+    apps: 'In the app you connect Gmail, Calendar, Slack and more in one click, and your bots use them for you.',
+    files: 'In the app you can drop in files and photos. PDFs, sheets and screenshots all work.',
+    share: 'In the app you can share this chat, or hand the bot to a teammate.',
+  };
+  function nudge(what) {
+    const text = NUDGE[what], s = state[current];
+    if (phone.matches && app.dataset.view !== 'chat') open(current);
+    else if (phone.matches && panelOpen) togglePanel(false);
+    const last = s.msgs[s.msgs.length - 2];
+    // the same button twice in a row brings the answer back into view instead of repeating it
+    if (last && last[0] === 'b' && last[1] === text) {
+      toBottom();
+      const card = col && [...col.querySelectorAll('.ad-get')].pop();
+      if (card) { card.classList.remove('ad-in'); void card.offsetWidth; card.classList.add('ad-in'); }
+      return;
+    }
+    push(current, ['b', text]);
+    push(current, ['dl']);
+  }
+
   // the bot panel
   function togglePanel(open = !panelOpen) {
     closeMenu();
@@ -486,7 +512,7 @@
       h('div', { class: 'ad-hero' }, hero, h('h3', { text: b.name }), h('p', { text: b.role })),
       tablist,
       h('div', { class: 'ad-tabpanel ad-in', id: 'ad-tabpanel', role: 'tabpanel', 'aria-labelledby': `ad-tab-${tab}` }, tab === 'details' ? details(b, s) : tab === 'computer' ? computer(b) : advanced(b)));
-    panel.replaceChildren(h('div', { class: 'ad-p-top' }, h('button', { class: 'ad-round', type: 'button', 'aria-label': 'Share and more' }, icon('share')), closeBtn()), body);
+    panel.replaceChildren(h('div', { class: 'ad-p-top' }, h('button', { class: 'ad-round', type: 'button', 'aria-label': 'Share and more', onclick: () => nudge('share') }, icon('share')), closeBtn()), body);
     if (window.DuskPixel && hero.querySelector('.px')) {
       try { heroBot = window.DuskPixel.create(hero, { body: row(current).querySelector('svg.bot').dataset.px, seed: ORDER.indexOf(current) * 7 + 3 }); } catch { heroBot = null; }
     }
@@ -561,10 +587,12 @@
     let top = btn.offsetTop + btn.offsetHeight + 6, el = btn.offsetParent;
     let right = wrap.clientWidth - (btn.offsetLeft + btn.offsetWidth);
     while (el && el !== wrap) { top += el.offsetTop; right -= el.offsetLeft; el = el.offsetParent; }
-    list.style.top = `${top}px`;
     list.style.right = `${Math.max(8, right)}px`;
-    wrap.style.position = 'relative';
     wrap.append(list);
+    // no room under the button (the panel ends there): open upward instead, so the whole list stays in the window
+    const up = top + list.offsetHeight > wrap.scrollTop + wrap.clientHeight - 8 && top - btn.offsetHeight - 12 - list.offsetHeight >= wrap.scrollTop;
+    list.style.top = `${up ? top - btn.offsetHeight - 12 - list.offsetHeight : top}px`;
+    list.style.transformOrigin = up ? 'bottom right' : 'top right';
     btn.setAttribute('aria-expanded', 'true');
     menu = { list, btn };
     (items.find((x) => x.getAttribute('aria-checked') === 'true') || items[0]).focus({ preventScroll: true });
@@ -599,6 +627,7 @@
   }
   for (const r of app.querySelectorAll('.ad-bot')) r.addEventListener('click', () => { open(r.dataset.bot); if (phone.matches) main.querySelector('.ad-back')?.focus({ preventScroll: true }); });
   for (const el of app.querySelectorAll('[data-ic]')) el.append(icon(el.dataset.ic));
+  for (const [sel, what] of [['[data-ic="search"]', 'search'], ['[data-ic="plus"]', 'new'], ['[data-ic="person"]', 'account'], ['.ad-apps', 'apps']]) app.querySelector(sel)?.addEventListener('click', () => nudge(what));
   app.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (menu) return;

@@ -388,9 +388,24 @@ const LEGAL_ABOUT = {
   license: 'The dusk bot license: free for personal use, what needs a work license, and the notices that come with the code.',
   security: 'How to report a security problem in dusk bot, what is in scope, and what to expect from us.',
 };
+const licenseSummary = `<section class="lic-sum" aria-label="the license in short">
+<p class="lic-lead">dusk bot's code is free for personal, non-commercial use. commercial use is not allowed without a separate written license from us.</p>
+<dl>
+<div><dt>you can</dt><dd>read the code, run dusk bot for yourself, and change it for personal use.</dd></div>
+<div><dt>you can't</dt><dd>sell it, host it for others, use it inside a business, ship it in a product, or offer it as a service without our license. this applies to every version, including older copies.</dd></div>
+<div><dt>commercial license</dt><dd><a href="mailto:hello@dusk.bot">hello@dusk.bot</a></dd></div>
+</dl>
+<p>the license is the <a href="https://polyformproject.org/licenses/strict/1.0.0">polyform strict license 1.0.0</a>; its full text is at the end of this page. parts originally from the open source openmausbot project stay under their original apache 2.0 license, listed in <a href="https://github.com/DuskBotAI/duskbot/tree/main/third_party/openmausbot">third_party/openmausbot</a>.</p>
+</section>
+`;
+// the LICENSE file under its own heading, its headings a level down so they sit under it
+const licenseText = (md) => `\n<h2 id="full-license-text">full license text</h2>\n<div class="lic-full">${markdown(md.replace(/^<(https?:[^>]+)>$/gm, '[$1]($1)').replace(/^(#{1,2}) /gm, (_, h) => `${'#'.repeat(h.length + 2)} `))}</div>`;
 for (const [name, title] of legal) {
   // the site never shows a person's name as copyright holder
-  const html = markdown(fs.readFileSync(path.join(repo, 'docs', 'legal', `${name}.md`), 'utf8').replace(/Copyright (\d{4}) [^.\n]+\./g, 'Copyright $1 dusk bot.'));
+  const own = (md) => md.replace(/Copyright (\d{4}) [^.\n]+\./g, 'Copyright $1 dusk bot.');
+  let html = markdown(own(fs.readFileSync(path.join(repo, 'docs', 'legal', `${name}.md`), 'utf8')));
+  // the license page opens with what it means in plain words and ends with the repository's LICENSE in full
+  if (name === 'license') html = licenseSummary + html + licenseText(own(fs.readFileSync(path.join(repo, 'LICENSE'), 'utf8')));
   const toc = [...html.matchAll(/<h2 id="([^"]+)">([\s\S]*?)<\/h2>/g)].map((m) => `<li><a href="#${m[1]}">${m[2]}</a></li>`).join('');
   const others = legal.map(([n, , s]) => `<a href="/${n}"${n === name ? ' aria-current="page"' : ''}>${s}</a>`).join('');
   write(`/${name}`, layout({ title: `${title.toLowerCase()} / dusk bot`, description: LEGAL_ABOUT[name], page: name, section: 'legal', og: 'legal', kind: 'p-legal',
