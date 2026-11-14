@@ -3,6 +3,14 @@
 Notable changes to dusk bot, newest first. Installers and checksums for each version are on the
 [releases page](https://github.com/DuskBotAI/duskbot/releases) and at [dusk.bot/download](https://dusk.bot/download).
 
+## 0.2.10
+
+- When the backup AI takes over, the model chip and panel show the AI that is answering now.
+- Voice: a problem shows as a card above the message box, and the home page listens through this computer.
+- Gemini sign-in on a remote workspace comes back through the desktop.
+- Connect an AI opens and closes smoothly, and Send stays until the server has your message.
+- Ready-made bots have new names and sharper instructions.
+
 ## 0.2.9
 
 - Sign up in the browser and come straight back to the app, signed in.
