@@ -485,6 +485,9 @@ body:has(.p-doc) .bar { max-width: 1440px; padding-left: 32px; padding-right: 32
 .rows-plain { list-style: none; margin: 0; padding: 0; max-width: 760px; }
 .rows-plain li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 24px; align-items: baseline; padding: 18px 0; font-size: 17px; }
 .rows-plain span { color: var(--text); }
+/* a label beside its text, not text beside a link: the label column keeps its width */
+.rows-plain.labeled li { grid-template-columns: minmax(0, 200px) minmax(0, 1fr); }
+.rows-plain.labeled li > span:first-child { color: var(--ink); font-weight: 500; }
 .rows-plain a { font-weight: 500; }
 
 /* brand */
@@ -670,7 +673,7 @@ body:has(.p-doc) .bar { max-width: 1440px; padding-left: 32px; padding-right: 32
   .plan.has-cat { margin-top: 96px; }
   .prose h2 { font-size: 25px; margin-top: 44px; }
   .prose > ol > li { padding-left: 46px; }
-  .rows-plain li { grid-template-columns: 1fr; }
+  .rows-plain li, .rows-plain.labeled li { grid-template-columns: 1fr; }
   .team-line { padding: 26px 22px; }
   .note-row { align-items: flex-start; }
 }
