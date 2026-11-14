@@ -189,6 +189,40 @@ describe("admin panel api", () => {
     expect(events.filter(event => event.accountId === given.id || event.accountId === comped.id).map(event => `${event.name}:${String(event.props.type ?? event.props.amountCents)}`)).toEqual([]);
   });
 
+  it("sends no money alert for what the operator gave, and still does for a customer's payment", async () => {
+    app.close();
+    await new Promise<void>(resolve => { server.close(() => resolve()); server.closeAllConnections(); });
+    app = createDashboardApp({ dataDir, publicUrl: origin, mailer, staticDir: null, now: () => time, analytics: { sink, waitlist, infra },
+      admin: { emails: [ADMIN], environment: "production", env: { DUSK_ADMIN_ALERTS: "paid" } } });
+    server = createServer(app.handle);
+    await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
+    url = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
+    await login(ADMIN);
+    await login(OTHER);
+    await login("given@example.test");
+    const given = app.auth.accountByEmail("given@example.test")!;
+    const bundle = BILLING_CONFIG.bundles.find(item => item.id === "starter")!;
+    const settle = () => new Promise(resolve => setTimeout(resolve, 20));
+    const before = mailer.outbox.length;
+    const alertsTo = () => mailer.outbox.slice(before).filter(item => item.to === ADMIN).map(item => item.subject);
+    const answer = await app.billing.service.checkout({ id: given.id, email: given.email }, { kind: "cart", cart: app.billing.service.quote({ ...bundle.cart, interval: "month" }).cart },
+      { operator: { source: "ops_grant", amountCents: 1500 } });
+    const stored = app.billing.store.state.checkouts.find(item => item.id === answer.checkoutId)!;
+    for (const delivery of app.billing.fake!.complete(stored.providerSessionId!)) app.billing.service.handleWebhook(delivery.headers, delivery.body);
+    await settle();
+    const granted = app.billing.store.state.invoices.find(row => row.accountId === given.id && row.status === "paid" && row.amountCents === 1500)!;
+    for (const delivery of app.billing.fake!.refund(granted.providerPaymentId)) app.billing.service.handleWebhook(delivery.headers, delivery.body);
+    await settle();
+    expect(alertsTo()).toEqual([]);
+    await grantCloud(OTHER);
+    await settle();
+    expect(alertsTo().some(subject => subject.startsWith("first payment ever"))).toBe(true);
+    const bought = app.billing.store.state.invoices.find(row => row.accountId === app.auth.accountByEmail(OTHER)!.id && row.status === "paid")!;
+    for (const delivery of app.billing.fake!.refund(bought.providerPaymentId)) app.billing.service.handleWebhook(delivery.headers, delivery.body);
+    await settle();
+    expect(alertsTo().some(subject => subject.startsWith("refund:"))).toBe(true);
+  });
+
   it("pauses and resumes a cloud only with the typed confirmation, and audits each action", async () => {
     const admin = await login(ADMIN);
     await login(OTHER);

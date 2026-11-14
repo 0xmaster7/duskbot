@@ -12,7 +12,7 @@ import { MCP_CLIENT_METADATA, MCP_CLIENT_METADATA_PATH } from "../../../shared/m
 import { AuthError, createAuth, isAppCorsRoute, reviewAccountFromEnv, type ReviewAccount } from "./auth/index.ts";
 import type { ProviderConfigs } from "./auth/providers.ts";
 import { createTestMailbox, isTestAccount, isTestAddress, sinkTestMail } from "./auth/mail.ts";
-import { isOpsMade } from "./admin/money-mode.ts";
+import { isOpsMade, withoutOps } from "./admin/money-mode.ts";
 import type { Mailer, MailMessage, TestMailbox } from "./auth/mail.ts";
 import type { RoutedMailer } from "./auth/mail-router.ts";
 import { createStore } from "./store.ts";
@@ -308,20 +308,24 @@ export function createDashboardApp(options: DashboardAppOptions) {
   }
   const opsPayment = (invoiceId: string) => opsInvoice(billing.store.state.invoices.find(row => row.id === invoiceId));
   const opsLedger = (entry: LedgerEntry) => opsSubscription(entry.subscriptionId) || (!!entry.providerPaymentId && opsInvoice(billing.store.state.invoices.find(row => row.providerPaymentId === entry.providerPaymentId)));
-  const ledgerState = () => ({ subscriptions: billing.store.state.subscriptions, invoices: billing.store.state.invoices, ledger: billing.store.state.ledger ?? [] });
+  /** the money records without what the operator gave, so an alert's mrr and "paid before" are customers' money only */
+  const ledgerState = () => withoutOps({ subscriptions: billing.store.state.subscriptions, invoices: billing.store.state.invoices, checkouts: billing.store.state.checkouts, ledger: billing.store.state.ledger ?? [] });
   function ledgerRow(entry: LedgerEntry) {
     const accountId = entry.accountId;
-    if (accountId) {
-      const props = { type: entry.type, ...(entry.amountCents !== null ? { amountCents: Math.abs(entry.amountCents) } : {}), ...(entry.mrrCents !== null ? { mrrCents: entry.mrrCents } : {}),
-        ...(entry.previousMrrCents !== null ? { previousMrrCents: entry.previousMrrCents } : {}), ...(entry.plan ? { plan: entry.plan } : {}), ...(entry.interval ? { interval: entry.interval } : {}) };
-      // a payment's row is written before its invoice and subscription link it to a grant: judge it once the webhook settles
-      queueMicrotask(() => { if (!opsLedger(entry)) analytics.track("billing", { accountId, at: entry.at, props }); });
-    }
-    if (entry.via === "sync") return;
-    const paidBefore = !!entry.accountId && billing.store.state.invoices.some(invoice => invoice.accountId === entry.accountId && invoice.status !== "failed" && invoice.amountCents > 0);
-    const email = entry.accountId ? auth.account(entry.accountId)?.email ?? null : null;
-    if (isTestAccount(email)) return;
-    alerts.money(entry, { email, paidBefore, mrr: mrrAtTime(ledgerState(), now()) });
+    const paidBefore = !!accountId && ledgerState().invoices.some(invoice => invoice.accountId === accountId && invoice.status !== "failed" && invoice.amountCents > 0);
+    const email = accountId ? auth.account(accountId)?.email ?? null : null;
+    // a payment's row is written before its invoice and subscription link it to a grant: judge it once the webhook settles.
+    // a grant, a comp or App Review's plan is our own action: no analytics event and no money alert
+    queueMicrotask(() => {
+      if (opsLedger(entry)) return;
+      if (accountId) {
+        const props = { type: entry.type, ...(entry.amountCents !== null ? { amountCents: Math.abs(entry.amountCents) } : {}), ...(entry.mrrCents !== null ? { mrrCents: entry.mrrCents } : {}),
+          ...(entry.previousMrrCents !== null ? { previousMrrCents: entry.previousMrrCents } : {}), ...(entry.plan ? { plan: entry.plan } : {}), ...(entry.interval ? { interval: entry.interval } : {}) };
+        analytics.track("billing", { accountId, at: entry.at, props });
+      }
+      if (entry.via === "sync" || isTestAccount(email)) return;
+      alerts.money(entry, { email, paidBefore, mrr: mrrAtTime(ledgerState(), now()) });
+    });
   }
   const billing = createBilling({ ...(options.analytics?.db ? { aiStash: mongoAiStashStore(options.analytics.db, now) } : {}), accountExists: id => auth.account(id) !== null,
     findAccount: email => { const found = auth.accountByEmail(email); return found ? { id: found.id, email: found.email } : null; },
