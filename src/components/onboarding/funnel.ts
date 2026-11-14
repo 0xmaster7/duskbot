@@ -16,6 +16,8 @@ export interface FunnelFacts {
   cloud?: boolean;
   /** the hello screen; false for a server opened from the desktop app, whose person has already met dusk bot there */
   hello?: boolean;
+  /** the phone app is offered (phoneAppEnabled) */
+  phone?: boolean;
 }
 
 /** The screens this person gets, in order. */
@@ -25,7 +27,7 @@ export function funnelSteps(facts: FunnelFacts): FunnelStep[] {
     if (step === "account") return facts.account;
     if (step === "place") return facts.desktop;
     if (step === "bring") return facts.desktop && Boolean(facts.bring) && !facts.cloud;
-    if (step === "phone") return facts.desktop && !facts.cloud;
+    if (step === "phone") return Boolean(facts.phone) && facts.desktop && !facts.cloud;
     if (step === "making") return facts.desktop && Boolean(facts.cloud);
     return true;
   });

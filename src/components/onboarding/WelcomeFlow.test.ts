@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 // The first run as a funnel: the welcome, a dusk bot account, where the bots live, an AI,
-// bots from another app when there are some, the phone (with the help-improve line on the last screen), then Dusk's chat;
+// bots from another app when there are some, the phone while its app is offered (with the help-improve line on the last
+// screen), then Dusk's chat;
 // on dusk cloud, the Cloud being made. What each step shows, where it goes, and what it saves.
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -111,6 +112,7 @@ afterEach(async () => {
   await act(async () => root.unmount());
   host.remove();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
   vi.useRealTimers();
 });
 
@@ -213,17 +215,46 @@ describe("on the desktop app", () => {
     expect(host.querySelector("[data-funnel-progress]"), "one screen has no progress to show").toBeNull();
   });
 
-  it("walks where bots live, the AI, what to bring, the phone, then the chat, with back and progress, and no email step", async () => {
+  const macSheet = () => document.querySelector<HTMLElement>("[data-panel-modal=mac-pick]");
+  const pick = async (which: "mac" | "cloud") => {
+    await act(async () => { document.querySelector<HTMLElement>(`[data-mac-pick=${which}]`)!.click(); });
+    await settle();
+  };
+
+  it("walks where bots live, the AI, what to bring, then the chat, with back and progress, no email step and no phone", async () => {
     desktop({ platform: "linux" });
     await show();
     await press("get started");
     expect(step()).toBe("place");
-    expect(host.querySelector("[data-funnel-progress]")?.getAttribute("data-funnel-progress")).toBe("2/5");
+    expect(host.querySelector("[data-funnel-progress]")?.getAttribute("data-funnel-progress")).toBe("2/4");
     expect(text()).toContain("this computer");
     expect(text(), "never a Mac on Linux").not.toContain("Mac");
     expect(text()).toContain("dusk cloud");
     expect(text()).toContain("from $20 a month");
     await choose("[data-funnel-place=mac]");
+    expect(step(), "this computer asks first").toBe("place");
+    await pick("mac");
+    expect(macSheet()).toBeNull();
+    expect(step()).toBe("ai");
+    expect(host.querySelector("[data-help-improve]"), "only on the last screen").toBeNull();
+    await press("continue");
+    expect(step()).toBe("bring");
+    expect(host.querySelector("[data-help-improve]"), "help improve sits on the last screen").not.toBeNull();
+    await press("back");
+    expect(step()).toBe("ai");
+    await press("continue");
+    await press("continue");
+    expect(f.onDone).toHaveBeenCalledExactlyOnceWith("maus");
+    expect(host.querySelector(".phone-frame"), "the phone app is hidden").toBeNull();
+  });
+
+  it("with the phone app offered, ends on the phone: a code to scan, then the chat", async () => {
+    vi.stubEnv("VITE_DUSK_PHONE_APP", "1");
+    desktop({ platform: "linux" });
+    await show({ initialBeat: "place" });
+    expect(host.querySelector("[data-funnel-progress]")?.getAttribute("data-funnel-progress")).toBe("2/5");
+    await choose("[data-funnel-place=mac]");
+    await pick("mac");
     expect(step()).toBe("ai");
     expect(host.querySelector("[data-help-improve]"), "only on the last screen").toBeNull();
     await press("continue");
@@ -242,6 +273,43 @@ describe("on the desktop app", () => {
     expect(f.onDone).toHaveBeenCalledExactlyOnceWith("maus");
   });
 
+  it("this computer first says routines pause while it sleeps, then dusk cloud's way, with its price when known", async () => {
+    const offer = { plans: [{ tier: "starter", amount: 1500, trialDays: 7 }, { tier: "pro", amount: 2900, trialDays: 7 }], recommended: "pro" };
+    desktop({ platform: "darwin", cloudAccount: { state: async () => ({ status: "signed-out" }), onState: () => () => {}, offer: vi.fn(async () => offer) } });
+    await show({ initialBeat: "place" });
+    await choose("[data-funnel-place=mac]");
+    const sheet = macSheet()!;
+    expect(sheet.getAttribute("role")).toBe("dialog");
+    expect(sheet.textContent).toContain("Close the lid and routines pause");
+    expect(sheet.textContent).toContain("Always on, even while your Mac sleeps");
+    expect(sheet.querySelector("[data-mac-pick-price]")?.textContent).toBe("Free for 7 days, then from $15/month + tax.");
+    expect(sheet.textContent, "no dash anywhere").not.toMatch(/\u2014/);
+    expect(document.querySelector("[data-mac-pick=cloud]")?.textContent).toBe("Use dusk cloud");
+    expect(document.querySelector("[data-mac-pick=mac]")?.textContent).toBe("Continue with this Mac");
+    expect(document.activeElement, "the strong way is where focus starts").toBe(document.querySelector("[data-mac-pick=cloud]"));
+
+    await act(async () => { document.activeElement!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })); });
+    await settle();
+    expect(macSheet(), "Escape closes the sheet").toBeNull();
+    expect(step(), "and leaves the choice open").toBe("place");
+
+    await choose("[data-funnel-place=mac]");
+    await pick("cloud");
+    expect(macSheet()).toBeNull();
+    expect(f.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_onboarding" });
+    expect(step(), "dusk cloud's own sheet takes it from here").toBe("place");
+  });
+
+  it("says no price on this computer's sheet when the app doesn't know one", async () => {
+    desktop();
+    await show({ initialBeat: "place" });
+    await choose("[data-funnel-place=mac]");
+    expect(macSheet()?.querySelector("[data-mac-pick-price]")).toBeNull();
+    expect(document.querySelector("[data-mac-pick=mac]")?.textContent).toBe("Continue with this computer");
+    await pick("mac");
+    expect(step()).toBe("ai");
+  });
+
   it("a double click on get started does not also choose where bots live", async () => {
     desktop();
     await show();
@@ -251,6 +319,7 @@ describe("on the desktop app", () => {
     await settle();
     expect(step()).toBe("place");
     await choose("[data-funnel-place=mac]");
+    await pick("mac");
     expect(step()).toBe("ai");
   });
 
@@ -386,7 +455,7 @@ describe("bots from another app on this computer", () => {
     });
   };
 
-  it("lists what this Mac holds, all chosen, and brings it in on one press while the run goes on to the phone", async () => {
+  it("lists what this Mac holds, all chosen, and brings it in on one press while the run goes on to the chat", async () => {
     desktop(found, { skills: [{ name: "pdf", source: "claudeCode" }], tools: [{ name: "notion", source: "cursor" }] });
     await show({ initialBeat: "bring" });
     expect(title()).toBe("bring what you already use");
@@ -395,13 +464,25 @@ describe("bots from another app on this computer", () => {
       .toEqual([["bots:openclaw", "true"]]);
     // a skill or an MCP server alone is no row: it comes in with the rest
     expect(text()).not.toContain("Cursor");
+    const online = host.querySelector<HTMLButtonElement>("[data-bring-online]")!;
+    expect(online.getAttribute("aria-expanded"), "the prompt for AIs online waits behind one quiet line").toBe("false");
+    await act(async () => { online.click(); });
+    expect(online.getAttribute("aria-expanded")).toBe("true");
+    expect(host.querySelector("[data-bring-prompt] [style*=background]"), "the steps' numbers are tonal, not coloured").toBeNull();
+    expect(host.querySelector("[data-bring-scene]")?.getAttribute("data-bring-scene"), "nothing travels before anything is brought").toBe("still");
     await press("bring it in");
-    expect(step(), "the run goes on at once").toBe("phone");
+    expect(button("continue"), "the way on is there at once, without waiting").toBeTruthy();
+    expect(button("bring it in")).toBeUndefined();
     await settle();
     const applied = f.api.mock.calls.filter(([path, init]) => path === "/api/setup-import" && init?.method === "POST").map(([, init]) => JSON.parse(init.body));
     expect(applied).toEqual([{ skills: true, tools: true, instructions: true, sources: ["claudeCode", "cursor"] }]);
     expect(f.api.mock.calls.filter(([path]) => String(path).startsWith("/api/teams/import"))).toHaveLength(1);
-    expect(host.querySelector("[data-bring-status]")?.textContent).toBe("Brought in 1 bot and 1 skill.");
+    expect(host.querySelector("[data-bring-run]")?.textContent, "what came in, said on the step itself").toBe("Brought in 1 bot and 1 skill.");
+    expect(host.querySelector("[data-bring-find]")?.getAttribute("aria-disabled"), "what was brought is no longer a choice").toBe("true");
+    expect(host.querySelector("[data-bring-status]"), "and not twice").toBeNull();
+    expect(host.querySelector("[data-bring-scene]")?.getAttribute("data-bring-scene"), "nothing travels once it's done").toBe("still");
+    await press("continue");
+    expect(f.onDone).toHaveBeenCalledOnce();
   });
 
   it("with nothing on this Mac, offers the prompt for an AI online: copy, then go on without waiting", async () => {
@@ -418,6 +499,6 @@ describe("bots from another app on this computer", () => {
     expect(host.querySelector("[data-bring-copied]")?.textContent).toContain("Copied.");
     expect(JSON.parse(localStorage.getItem("dusk.notesWaiting")!)).toHaveProperty("since");
     await press("continue");
-    expect(step()).toBe("phone");
+    expect(f.onDone).toHaveBeenCalledOnce();
   });
 });

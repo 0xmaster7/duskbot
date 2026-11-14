@@ -8,7 +8,7 @@ const ready = (instance: { snapshot: { state: string } }) => instance.snapshot.s
 
 describe("the funnel's steps", () => {
   it("asks for an account only where one can be signed in, and where bots live only on the desktop app", () => {
-    expect(funnelSteps({ account: true, desktop: true })).toEqual(["welcome", "account", "place", "ai", "phone"]);
+    expect(funnelSteps({ account: true, desktop: true })).toEqual(["welcome", "account", "place", "ai"]);
     expect(funnelSteps({ account: false, desktop: false })).toEqual(["welcome", "ai"]);
   });
 
@@ -17,21 +17,28 @@ describe("the funnel's steps", () => {
   });
 
   it("offers bringing bots in only when another app has some", () => {
-    expect(funnelSteps({ account: false, desktop: true, bring: true })).toEqual(["welcome", "place", "ai", "bring", "phone"]);
+    expect(funnelSteps({ account: false, desktop: true, bring: true })).toEqual(["welcome", "place", "ai", "bring"]);
+  });
+
+  it("shows the phone only while the phone app is offered, on this computer's own window", () => {
+    expect(funnelSteps({ account: false, desktop: true, bring: true, phone: true })).toEqual(["welcome", "place", "ai", "bring", "phone"]);
+    expect(funnelSteps({ account: false, desktop: false, phone: true })).toEqual(["welcome", "ai"]);
+    expect(funnelSteps({ account: false, desktop: true, cloud: true, phone: true })).not.toContain("phone");
   });
 
   it("ends a dusk cloud run on the cloud being made, never on this Mac's phone or bots", () => {
-    const steps = funnelSteps({ account: false, desktop: true, bring: true, cloud: true });
+    const steps = funnelSteps({ account: false, desktop: true, bring: true, cloud: true, phone: true });
     expect(steps).toEqual(["welcome", "place", "ai", "making"]);
     expect(nextStep(steps, "ai")).toBe("making");
     expect(nextStep(steps, "making"), "the chat comes after the last").toBeNull();
   });
 
   it("never passes over the AI step, so a connected AI still shows and more can be added", () => {
-    const steps = funnelSteps({ account: false, desktop: true });
+    const steps = funnelSteps({ account: false, desktop: true, phone: true });
     expect(nextStep(steps, "place")).toBe("ai");
     expect(previousStep(steps, "phone")).toBe("ai");
     expect(nextStep(steps, "phone")).toBeNull();
+    expect(nextStep(funnelSteps({ account: false, desktop: true }), "ai"), "without the phone the AI is the last screen").toBeNull();
   });
 });
 

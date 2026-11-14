@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ClipboardEvent as ReactClipboardEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import { setEmailGateDone, track } from "@/lib/analytics";
 import { openExternalLink } from "@/lib/app-links";
+import { phoneAppEnabled } from "@/lib/feature-flags";
 import { cn } from "@/lib/cn";
 import { chiefFor, chiefStepFits, createChiefPatch, myDefaultBot, stageIntro, useViewerEmail } from "@/lib/default-bot";
 import { completionPatch, DEFAULT_ADMIN_ORIGIN, firstRunPatch, markWelcomeFinished, resumeBeat, showWelcome, type BeatId } from "@/lib/onboarding";
@@ -21,6 +22,7 @@ import { BringStatus, BringStep } from "./BringStep";
 import { funnelSteps, nextStep, previousStep, type FunnelStep } from "./funnel";
 import { funnelAccount, type FunnelAccountState } from "./funnel-account";
 import { FunnelBar, ImproveSwitch, PhoneStep, PlaceStep, WelcomeStep } from "./FunnelSteps";
+import { MacPickSheet } from "./MacPickSheet";
 import { MakingStep } from "./MakingStep";
 import { useWelcomeAi } from "./welcome-ai";
 import { localDesktopPage } from "./WelcomeGate";
@@ -70,7 +72,7 @@ export function trapTab(event: ReactKeyboardEvent<HTMLElement>, root: HTMLElemen
 }
 
 /** The first run, one calm screen at a time: the welcome, a dusk bot account, where the bots live, an AI, bots from
- * another app (only when there are some), the phone. It ends in Dusk's chat (Dusk made the Chief of Staff where no other
+ * another app (only when there are some), the phone (while the phone app is offered). It ends in Dusk's chat (Dusk made the Chief of Staff where no other
  * bot is one), where Dusk greets and asks for whatever is still missing. On dusk cloud it is the plan sheet, the AI, then
  * the Cloud being made, and it ends in that Cloud's chat. */
 export function WelcomeFlow({
@@ -130,7 +132,7 @@ export function WelcomeFlow({
 
   const saved = initialBeat ?? draft?.beat;
   const steps = funnelSteps({ account: Boolean(account) && !firstKnown.current?.signedIn, desktop, bring: offersMove, cloud,
-    hello: window.duskDesktop?.remoteClient?.active !== true });
+    hello: window.duskDesktop?.remoteClient?.active !== true, phone: phoneAppEnabled() });
 
   const [at, setAt] = useState<FunnelStep>(() => resumeBeat(steps, saved));
   // the second click of a double click lands on the step it opened: it must not choose there
@@ -236,12 +238,15 @@ export function WelcomeFlow({
     void openExternalLink(`${DEFAULT_ADMIN_ORIGIN}/pricing`).catch(() => {});
     next();
   };
-  const chooseMac = () => { setCloud(false); next(); };
+  // this computer: first what that means for routines, and what dusk cloud does instead
+  const [macPick, setMacPick] = useState(false);
+  const chooseMac = () => { track("onboarding_mac_sheet", { action: "open" }); setMacPick(true); };
+  const macPicked = () => { track("onboarding_mac_sheet", { action: "mac" }); setMacPick(false); setCloud(false); next(); };
+  const cloudPicked = () => { track("onboarding_mac_sheet", { action: "cloud" }); setMacPick(false); chooseCloud(); };
 
   const bring = (chosen: Parameters<typeof bringChosen>[0]) => {
     track("onboarding_bring", { apps: chosen.length });
     void bringChosen(chosen, { dispatch, firstBotId: maus?.id ?? null, aboutMe: state.config?.profile?.aboutMe ?? "", team: Boolean(state.config?.team) });
-    next();
   };
   // notes from another AI pasted on any step come in from here too
   const takeNotes = useNotesIntake();
@@ -252,7 +257,7 @@ export function WelcomeFlow({
     takeNotes(pasted, setNotesLine);
   };
 
-  const overlayOpen = Boolean(state.cloudAdd) || Boolean(placeSheet) || grokOpen;
+  const overlayOpen = Boolean(state.cloudAdd) || Boolean(placeSheet) || grokOpen || macPick;
   const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Escape") {
       if (event.defaultPrevented || overlayOpen) return;
@@ -281,7 +286,7 @@ export function WelcomeFlow({
       body = <AiStep tested={tested} onNext={next} />;
       break;
     case "bring":
-      body = <BringStep finds={finds} grokWaiting={move.plan?.grokWaiting ?? []} onBring={bring} onNext={next} />;
+      body = <BringStep finds={finds} grokWaiting={move.plan?.grokWaiting ?? []} run={bringRun} onBring={bring} onNext={next} />;
       break;
     case "phone":
       body = <PhoneStep onNext={next} />;
@@ -313,7 +318,9 @@ export function WelcomeFlow({
         {/* help improve: one quiet line on the last screen, beside the run's other final choices */}
         {index === steps.length - 1 && <div className="flex justify-center px-6 pb-8"><ImproveSwitch /></div>}
       </div>
-      <BringStatus working={bringRun.kind === "working"} line={notesLine ?? (bringRun.kind === "done" ? bringRun.line : null)} />
+      {/* the bring step says how its own bringing in went; every later step keeps the line at its foot */}
+      <BringStatus working={at !== "bring" && bringRun.kind === "working"} line={notesLine ?? (at !== "bring" && bringRun.kind === "done" ? bringRun.line : null)} />
+      {macPick && <MacPickSheet onCloud={cloudPicked} onMac={macPicked} onClose={() => { track("onboarding_mac_sheet", { action: "close" }); setMacPick(false); }} />}
       {grokOpen && <GrokMoveDialog onClose={() => { setGrokOpen(false); void move.look(); }} />}
     </div>
   );
