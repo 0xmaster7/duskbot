@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ProviderInstance, RuntimeEvent, SendTurnInput } from "../../contracts.ts";
 import { TurnNotStartedError } from "../../contracts.ts";
+import { botBox } from "../../bot-box/box.ts";
 import { engineHomes } from "../../engine-homes/engine-homes.ts";
 import * as procs from "../../procs.ts";
 import { removeTempDir } from "../../testing/cleanup.ts";
@@ -126,6 +127,17 @@ describe("ACP threads sharing one agent process", () => {
     const sessions = [a, b, c].map((result) => (result.events.find((event) => event.type === "session.started") as { sessionId: string }).sessionId);
     expect(new Set(sessions).size).toBe(3);
     expect(f.methods().filter((method) => method === "initialize")).toHaveLength(1);
+  });
+
+  // a boxed process sees only the folder it started in: another bot's thread in it hit OpenCode's "Invalid path" at once
+  it("never shares a boxed process with a thread in another folder", async () => {
+    vi.spyOn(botBox, "enabled").mockReturnValue(true);
+    const f = await fixture();
+    const [a, b] = await Promise.all([f.run("thread-a"), f.run("thread-b")]);
+    expect([a.done, b.done]).toEqual([expect.objectContaining({ ok: true }), expect.objectContaining({ ok: true })]);
+    expect(f.spawned).toHaveLength(2);
+    await f.run("thread-a");
+    expect(f.spawned).toHaveLength(2);
   });
 
   it("gives a thread with another spawn contract, and every thread of a driver that does not share, its own process", async () => {
