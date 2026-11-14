@@ -36,6 +36,8 @@ it("paints the saved panel mascot with the first chat while engine and computer 
     expect(probe.panelAtFirstChat).toBe(true);
     expect(probe.mascotAtFirstChat).toBe(true);
     expect(engineReads).toBeGreaterThan(0);
+    // the boot cover closes its ring and fades once the first chat paints; a click waits for it like a person does
+    await until("!document.querySelector('[data-boot-cover]:not([data-boot-cover=fading])')");
     await browser(["click", '[data-panel-tab="computer"]']);
     await until("Boolean(document.querySelector('[data-panel-screen] [data-asleep-mascot]'))");
     await until("Boolean(document.querySelector('[data-inline-computer]'))");
