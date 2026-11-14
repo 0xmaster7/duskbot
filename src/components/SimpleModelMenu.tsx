@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Check, ChevronDown, ChevronRight, ChevronUp, Loader2, LogIn, Plus, RefreshCw, Search, X } from "../icons";
 import type { Bot, InstanceInfo } from "@/state/store";
 import type { EffortLevel } from "../../shared/wire";
-import type { MenuGroup, MenuModelRow, SimpleMenu } from "@/lib/simple-model-menu";
+import type { MenuGroup, MenuModelRow, NotConnectedRow, SimpleMenu } from "@/lib/simple-model-menu";
 import { modelBlurb } from "@/lib/model-friendly";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
@@ -29,7 +29,8 @@ export interface SimpleMenuActions {
   onResetVariant?: () => void;
 }
 
-export type PickerScope = "thread" | "bot";
+/** This bot's model, or every bot's and the default for new ones. */
+export type PickerScope = "bot" | "all";
 
 export interface SimpleModelMenuProps extends SimpleMenuActions {
   menu: SimpleMenu;
@@ -38,9 +39,9 @@ export interface SimpleModelMenuProps extends SimpleMenuActions {
   botModel: { label: string; title: string };
   thinking?: SimpleThinking | null;
   idPrefix: string;
-  /** The providers not connected here, under the connected ones. */
-  connect?: ReactNode;
-  /** Whether a pick is for this chat only or the bot's default too; left out where there is no choice. */
+  /** The providers not connected here, under the connected ones; a press hands the row to Connect an AI. */
+  notConnected?: { rows: readonly NotConnectedRow[]; onConnect: (row: NotConnectedRow) => void };
+  /** Whether a pick is for this bot or every bot; left out where there is no choice. */
   scope?: { value: PickerScope; onChange: (value: PickerScope) => void };
 }
 
@@ -196,11 +197,37 @@ function Thinking({ thinking, labelId }: { thinking: SimpleThinking; labelId: st
   );
 }
 
-/** This chat only, or the bot's default too: two pills, the chosen one filled, its meaning in the tooltip. */
+/** One quiet row per provider that isn't connected: its mark, its name, why (when it was set up before) and Connect. */
+function NotConnected({ rows, onConnect, labelId }: { rows: readonly NotConnectedRow[]; onConnect: (row: NotConnectedRow) => void; labelId: string }) {
+  return (
+    <div role="group" aria-labelledby={labelId} data-picker-not-connected="" className="flex flex-col gap-0.5">
+      <div role="separator" className={MENU_SEPARATOR} />
+      <div id={labelId} className={MENU_LABEL}>{t("model.picker.notConnected")}</div>
+      {rows.map((row) => {
+        const note = row.state === "signIn" ? t("model.picker.needsSignIn") : row.state === "setUp" ? t("model.picker.needsSetup") : null;
+        return (
+          <button key={row.key} type="button" data-menu-row data-picker-connect={row.key} tabIndex={-1}
+            aria-label={[t("model.picker.connectName", { name: row.name }), note].filter(Boolean).join(" · ")}
+            onClick={() => onConnect(row)} className={SIMPLE_MENU_ROW}>
+            <Gutter><InstanceProviderMark instance={row.instance} size={14} subtle /></Gutter>
+            <RowLines label={<span className="text-ink-secondary group-hover:text-ink group-focus:text-ink">{row.name}</span>}>
+              {note && <span className={SIMPLE_MENU_META}>{note}</span>}
+            </RowLines>
+            <span aria-hidden="true" className="flex h-6 shrink-0 items-center rounded-full bg-ink/[0.06] px-2.5 text-[12px] leading-4 text-ink-secondary transition-colors group-hover:bg-ink/[0.1] group-hover:text-ink group-focus:bg-ink/[0.1] group-focus:text-ink motion-reduce:transition-none">
+              {t("model.picker.connect")}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** This bot, or every bot: two pills, the chosen one filled, its meaning in the tooltip. */
 function Scope({ scope, labelId }: { scope: NonNullable<SimpleModelMenuProps["scope"]>; labelId: string }) {
   const choices: Array<{ value: PickerScope; label: string; hint: string }> = [
-    { value: "thread", label: t("model.picker.thisChat"), hint: t("model.picker.thisChatHint") },
-    { value: "bot", label: t("model.picker.botDefault"), hint: t("model.picker.botDefaultHint") },
+    { value: "bot", label: t("model.picker.thisBot"), hint: t("model.picker.thisBotHint") },
+    { value: "all", label: t("model.picker.allBots"), hint: t("model.picker.allBotsHint") },
   ];
   return (
     <div className="flex flex-col">
@@ -310,7 +337,9 @@ export function SimpleModelMenu(props: SimpleModelMenuProps) {
           )}
           {menu.empty === "none" && <p className={cn(MENU_NOTE, !top && "pt-2")}>{t("model.noProviders")}</p>}
           {menu.results === 0 && <p className={cn(MENU_NOTE, "py-2")}>{t("model.noMatch", { query: menu.query })}</p>}
-          {props.connect}
+          {props.notConnected && props.notConnected.rows.length > 0 && (
+            <NotConnected rows={props.notConnected.rows} onConnect={props.notConnected.onConnect} labelId={`${idPrefix}-not-connected`} />
+          )}
         </div>
       </div>
 

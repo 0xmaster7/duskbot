@@ -215,28 +215,30 @@ describe("choosing a model with the keyboard", () => {
     expect(focused()).toBe(chip());
   });
 
-  it("connects a provider that needs signing in under its own row, and Escape puts the connect away on that row", async () => {
+  it("hands a provider that needs signing in to Connect an AI, its connect already started, and Escape there changes nothing", async () => {
     fixture.instances = [{ ...claude(three, false), authentication: { method: "paste-code", signOut: true } }];
-    render();
-    await openWith("click");
-    expect(document.querySelector("[data-simple-set-up]")).toBeNull();
-    const row = document.querySelector<HTMLElement>('[data-picker-connect="claude"]')!;
-    expect(row.closest("[data-picker-not-connected]")?.textContent).toContain("Not connected");
-    row.focus();
-    press("ArrowRight");
-    await settle();
-    expect(connect.start).toHaveBeenCalledExactlyOnceWith({ tile: "claude", candidates: ["claude"] });
-    expect(document.querySelector("[data-simple-model-menu]")).not.toBeNull();
-    expect(row.getAttribute("aria-expanded")).toBe("true");
-    expect(document.querySelector('[data-picker-connect-panel="claude"] [data-connect-stage="preparing"]')).not.toBeNull();
-    press("Escape");
-    await settle();
-    expect(connect.cancel).toHaveBeenCalled();
-    expect(document.querySelector("[data-picker-connect-panel]")).toBeNull();
-    expect(focused()?.getAttribute("data-picker-connect")).toBe("claude");
-    press("Escape");
-    await settle();
-    expect(menu()).toBeNull();
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ instances: fixture.instances })));
+    try {
+      render();
+      await openWith("click");
+      expect(document.querySelector("[data-simple-set-up]")).toBeNull();
+      const row = document.querySelector<HTMLElement>('[data-picker-connect="claude"]')!;
+      expect(row.closest("[data-picker-not-connected]")?.textContent).toContain("Not connected");
+      row.focus();
+      press("ArrowRight");
+      await settle();
+      expect(menu()).toBeNull();
+      const dialog = document.querySelector<HTMLElement>("[data-connect-ai]")!;
+      expect(dialog).not.toBeNull();
+      expect(connect.start).toHaveBeenCalledWith({ tile: "claude", candidates: ["claude"] });
+      expect(dialog.querySelector('[data-funnel-ai="claude"]')?.getAttribute("aria-pressed")).toBe("true");
+      press("Escape", dialog);
+      await settle();
+      expect(document.querySelector("[data-connect-ai]")).toBeNull();
+      expect(fixture.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "setModel" }));
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 

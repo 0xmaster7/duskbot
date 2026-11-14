@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, X } from "../icons";
-import { useStore, currentTaskBot, type Bot, type InstanceInfo, type ModelSelection } from "@/state/store";
+import { api, useStore, currentTaskBot, type Bot, type InstanceInfo, type ModelSelection } from "@/state/store";
 import type { EffortLevel } from "../../shared/wire";
 import type { ModelVariantOption } from "../../shared/runtime-events";
 import { configuredModelInstances, isCustomOnly, modelsAwaitEngine } from "@/lib/engine-rail";
-import { isFreeModel, modelName, providerName, simpleModelMenu, variantSuffix } from "@/lib/simple-model-menu";
+import { isFreeModel, modelName, notConnectedRows, providerName, simpleModelMenu, variantSuffix, type NotConnectedRow } from "@/lib/simple-model-menu";
 import { modelSelectionForPick, withTypedModels } from "@/lib/model-choices";
 export { modelSelectionForPick } from "@/lib/model-choices";
 import { pickerPlacement, type PickerPlacement } from "@/lib/picker-placement";
@@ -21,10 +21,9 @@ import { approvalModeFor, modelSwitchNeedsAsk } from "../../shared/approval-mode
 import { cn } from "@/lib/cn";
 import { useMenuMotion } from "./MenuMotion";
 import { SimpleModelMenu, type PickerScope, type SimpleThinking } from "./SimpleModelMenu";
-import { PickerConnect, type PickerConnectRow } from "./models/PickerConnect";
-import { aiTiles } from "./onboarding/funnel";
-import { connectsInApp, type ConnectInstance } from "./onboarding/connect-flow";
-import { useConnectFlow } from "./onboarding/SignInPill";
+import { aiTiles, type AiTileId } from "./onboarding/funnel";
+import { ConnectAiDialog } from "./onboarding/ConnectAi";
+import { Toast } from "./ui/Toast";
 import { modelMenuKey, modelMenuPointerMove } from "./model-menu-keys";
 import { offersReasoning, useRefocusAfterPick, variantChoices } from "./model-picker-reasoning";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
@@ -203,30 +202,6 @@ export function ModelVariantRow({ bot, threadId, updateBotDefault, className, la
 export const SIMPLE_POPOVER_WIDTH = 320;
 const MENU_ITSELF = ":scope";
 
-const inApp = (instance: InstanceInfo) => connectsInApp(instance as unknown as ConnectInstance);
-
-/** The AIs to offer under Not connected: the providers listed here that wait for a sign-in or a setup, then the popular
- * AIs (the Connect an AI cards) that aren't connected yet and connect in the app. A local model lives in the directory. */
-export function pickerConnectRows(instances: readonly InstanceInfo[], waiting: readonly { instance: InstanceInfo; label: string; body: { kind: string } }[]): PickerConnectRow[] {
-  const tiles = aiTiles(instances, engineReady, inApp).filter((tile) => tile.id !== "local");
-  const rows: PickerConnectRow[] = [];
-  const taken = new Set<string>();
-  for (const group of waiting) {
-    const tile = tiles.find((one) => one.candidates.includes(group.instance));
-    const candidates = tile ? [group.instance, ...tile.candidates.filter((other) => other !== group.instance)] : [group.instance];
-    candidates.forEach((one) => taken.add(one.instanceId));
-    rows.push({ key: tile?.id ?? group.instance.instanceId, name: tile?.label ?? group.label, instance: group.instance,
-      candidates: candidates.map((one) => one.instanceId), inApp: inApp(group.instance),
-      state: group.body.kind === "setUp" ? "setUp" : "signIn" });
-  }
-  for (const tile of tiles) {
-    if (engineReady(tile.instance) || tile.candidates.some((one) => taken.has(one.instanceId)) || !tile.candidates.some(inApp)) continue;
-    if (rows.some((row) => row.key === tile.id)) continue;
-    rows.push({ key: tile.id, name: tile.label, instance: tile.instance, candidates: tile.candidates.map((one) => one.instanceId), inApp: true, state: "new" });
-  }
-  return rows;
-}
-
 export function ModelPicker({
   bot: shown,
   threadId,
@@ -255,13 +230,16 @@ export function ModelPicker({
   // A guest changes only their own conversation's model, never the shared bot's default; thread-only until authority loads.
   const mayChangeBot = ownerOrAdmin === true;
   const [scope, setScope] = useState<PickerScope>("bot");
-  const updatesBotDefault = !threadId || (mayChangeBot && scope === "bot");
+  // the owner's pick is the bot's model; a guest's stays in their own conversation
+  const updatesBotDefault = !threadId || mayChangeBot;
   const [pendingSwitch, setPendingSwitch] = useState<{ botId: string; threadId: string;
-    selection: ModelSelection; updateBotDefault: boolean; name: string } | null>(null);
+    selection: ModelSelection; updateBotDefault: boolean; name: string; toast?: string;
+    /** every bot at once: the pick, applied to each when confirmed */
+    all?: { instance: InstanceInfo; model: string; variant?: string } } | null>(null);
+  const [handoff, setHandoff] = useState<{ tile: AiTileId; scope: PickerScope } | null>(null);
+  const [toast, setToast] = useState<{ text: string; tone: "done" | "error" } | null>(null);
   const [placement, setPlacement] = useState<PickerPlacement | null>(null);
   const [changedBotModel, setChangedBotModel] = useState(false);
-  const flow = useConnectFlow();
-  const [connecting, setConnecting] = useState<PickerConnectRow | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -356,16 +334,10 @@ export function ModelPicker({
     if (bot.busy) setOpen(false);
   }, [bot.busy]);
 
-  const stopConnect = () => {
-    flow.cancel();
-    setConnecting(null);
-  };
-
   usePopoverDismiss(open, inside, () => close(false));
 
   function close(refocus: boolean) {
     setOpen(false);
-    stopConnect();
     if (refocus) triggerRef.current?.focus({ preventScroll: true });
   }
 
@@ -405,8 +377,7 @@ export function ModelPicker({
     setExpanded(new Set());
     setPlacement(null);
     setQuery("");
-    setScope(mayChangeBot ? "bot" : "thread");
-    stopConnect();
+    setScope("bot");
     focusOnPlace.current = "";
     setOpen(true);
   }
@@ -437,32 +408,83 @@ export function ModelPicker({
     dispatch({ type: "setModel", botId: bot.id, threadId: threadId ?? bot.threadId, updateBotDefault: false, selection: profile.modelSelection });
   };
 
-  const pick = (instance: InstanceInfo, model: string, variant?: string) => {
-    if (bot.busy || instance.policy) return;
+  const driverOf = (instanceId: string) => state.instances.find((candidate) => candidate.instanceId === instanceId)?.driverKind;
+  const asksFor = (target: Bot, instance: InstanceInfo) =>
+    modelSwitchNeedsAsk(approvalModeFor(target), driverOf(target.modelSelection.instanceId), instance.driverKind);
+
+  /** Every bot on the pick, and new bots too; a bot with its own different model changes as well, since that's the ask. */
+  const applyAll = (instance: InstanceInfo, model: string, variant: string | undefined, confirmed: boolean): "applied" | "asked" => {
+    const bots = state.bots.length > 0 ? state.bots : [profile];
+    const plan = bots.map((one) => {
+      const thread = one.id === bot.id ? threadId ?? bot.threadId : one.threadId;
+      const next = modelSelectionForPick(one.modelSelection, instance, model);
+      if (variant !== undefined) next.variant = variant;
+      return { one, thread, next, ask: asksFor(currentTaskBot(one, thread), instance) || asksFor(one, instance) };
+    });
+    const name = modelName(instance, model, variant);
+    const text = bots.length === 1 ? t("model.picker.allNowUseOne", { model: name }) : t("model.picker.allNowUse", { count: bots.length, model: name });
+    if (!confirmed && plan.some((step) => step.ask)) {
+      setPendingSwitch({ botId: bot.id, threadId: threadId ?? bot.threadId, selection: plan[0]!.next, updateBotDefault: true, name, toast: text,
+        all: { instance, model, ...(variant !== undefined ? { variant } : {}) } });
+      return "asked";
+    }
+    for (const { one, thread, next, ask } of plan) {
+      (one.id === bot.id ? dispatch : storeDispatch)({ type: "setModel", botId: one.id, threadId: thread, updateBotDefault: true, selection: next,
+        ...(ask ? { resetApprovalToAsk: true } : {}) });
+    }
+    const fresh: ModelSelection = { instanceId: instance.instanceId, model, ...(variant !== undefined ? { variant } : {}) };
+    void api("/api/config", { method: "PATCH", body: JSON.stringify({ defaultModelSelection: fresh }) })
+      .then(() => setToast({ text, tone: "done" }), () => setToast({ text: t("model.picker.allFailed"), tone: "error" }));
+    return "applied";
+  };
+
+  /** Puts the pick where the scope says: this bot (or a guest's own conversation), or every bot. */
+  const commit = (instance: InstanceInfo, model: string, variant: string | undefined, to: PickerScope, toastText?: string): "applied" | "asked" => {
+    if (to === "all" && mayChangeBot) return applyAll(instance, model, variant, false);
     const nextSelection = modelSelectionForPick(selection, instance, model);
     if (variant !== undefined) nextSelection.variant = variant;
     const updateBotDefault = updatesBotDefault;
     const targets = [currentTaskBot(profile, threadId ?? bot.threadId), ...(updateBotDefault ? [profile] : [])];
-    if (targets.some((target) => modelSwitchNeedsAsk(approvalModeFor(target),
-      state.instances.find((candidate) => candidate.instanceId === target.modelSelection.instanceId)?.driverKind,
-      instance.driverKind))) {
+    if (targets.some((target) => asksFor(target, instance))) {
       setPendingSwitch({ botId: bot.id, threadId: threadId ?? bot.threadId,
-        selection: nextSelection, updateBotDefault, name: modelName(instance, model) });
-      close(false);
-      return;
+        selection: nextSelection, updateBotDefault, name: modelName(instance, model), ...(toastText ? { toast: toastText } : {}) });
+      return "asked";
     }
-    dispatch({
-      type: "setModel",
-      botId: bot.id,
-      threadId: threadId ?? bot.threadId,
-      updateBotDefault,
-      selection: nextSelection,
-    });
+    dispatch({ type: "setModel", botId: bot.id, threadId: threadId ?? bot.threadId, updateBotDefault, selection: nextSelection });
     if (updateBotDefault && threadId) setChangedBotModel(true);
+    if (toastText) setToast({ text: toastText, tone: "done" });
+    return "applied";
+  };
+
+  const pick = (instance: InstanceInfo, model: string, variant?: string) => {
+    if (bot.busy || instance.policy) return;
+    const to = mayChangeBot ? scope : "bot";
+    if (commit(instance, model, variant, to) === "asked") return close(false);
+    const nextSelection = modelSelectionForPick(selection, instance, model);
     // A model with reasoning levels keeps the menu open, so its level can be set next without opening it again;
     // picking a variant row already sets that level.
-    if (variant !== undefined || contained || !offersReasoning(state, instance, nextSelection, threadId ?? bot.threadId)) close(true);
+    if (to === "all" || variant !== undefined || contained || !offersReasoning(state, instance, nextSelection, threadId ?? bot.threadId)) close(true);
     else refocusAfterPick();
+  };
+
+  /** A Not connected row: Connect an AI opens on that provider with its connect started; one with no card there goes to
+   * the model directory. */
+  const connect = (row: NotConnectedRow) => {
+    if (!row.tile) return openDirectory();
+    close(false);
+    setHandoff({ tile: row.tile, scope });
+  };
+  /** The handed-over connect finished: its suggested model becomes this bot's (or every bot's), with a short toast. */
+  const connected = (tileId: AiTileId) => {
+    const to = handoff?.scope ?? "bot";
+    setHandoff(null);
+    const tile = aiTiles(state.instances, engineReady).find((one) => one.id === tileId);
+    const instance = tile?.candidates.find(engineReady);
+    if (!tile || !instance) return;
+    const options = instance.models.options;
+    const model = (options.find((option) => option.id === instance.models.default) ?? options.find((option) => !option.custom) ?? options[0])?.id;
+    if (!model) return setToast({ text: t("model.picker.connectedName", { name: tile.label }), tone: "done" });
+    commit(instance, model, undefined, mayChangeBot ? to : "bot", t("model.picker.nowUses", { name: profile.name, model: modelName(instance, model) }));
   };
 
   const resetVariant = contained && selection.variant !== undefined ? () => {
@@ -495,10 +517,6 @@ export function ModelPicker({
     if (query) {
       setQuery("");
       refocusAfterPick();
-    } else if (connecting) {
-      const key = connecting.key;
-      stopConnect();
-      menuRef.current?.querySelector<HTMLElement>(`[data-picker-connect="${key.replace(/["\\]/g, "\\$&")}"]`)?.focus({ preventScroll: true });
     } else close(true);
   };
 
@@ -576,21 +594,13 @@ export function ModelPicker({
   });
 
   // only the owner connects a provider; the rows stay out of a search, which looks through the models there are
-  const connectRows = mayChangeBot && !simpleMenu.query ? pickerConnectRows(state.instances, simpleMenu.connect) : [];
-  if (connecting && !connectRows.some((row) => row.key === connecting.key)) connectRows.push(connecting);
-
-  const startConnect = (row: PickerConnectRow) => {
-    if (!row.inApp) return openDirectory();
-    if (connecting?.key === row.key) return stopConnect();
-    flow.cancel();
-    setConnecting(row);
-    flow.start({ tile: row.key, candidates: row.candidates });
-  };
+  const connectRows = mayChangeBot && !simpleMenu.query ? notConnectedRows(state.instances, simpleMenu.connect) : [];
   const connectInstance = (instance: InstanceInfo) => {
-    const row = pickerConnectRows(state.instances, [{ instance, label: providerName(instance), body: { kind: needsCli(instance) ? "setUp" : "signIn" } }])
-      .find((one) => one.candidates.includes(instance.instanceId));
-    if (row && mayChangeBot) startConnect(row);
-    else if (mayChangeBot && !remote) openDirectory();
+    if (!mayChangeBot) return;
+    const [row] = notConnectedRows(state.instances, [{ instance, label: providerName(instance), provider: providerName(instance),
+      body: needsCli(instance) ? { kind: "setUp" } : { kind: "signIn" } }]);
+    if (row?.tile) connect(row);
+    else if (!remote) openDirectory();
   };
 
   const menu = motion.shown && (
@@ -642,11 +652,8 @@ export function ModelPicker({
         onCheckAgain={(instance) => refreshModels(instance.instanceId)}
         onMore={mayChangeBot && !remote ? openDirectory : undefined}
         onResetVariant={resetVariant}
-        scope={threadId && mayChangeBot ? { value: scope, onChange: setScope } : undefined}
-        connect={connectRows.length > 0 ? (
-          <PickerConnect rows={connectRows} flow={flow} active={connecting?.key ?? null} onPress={startConnect}
-            onTrouble={remote ? stopConnect : openDirectory} />
-        ) : undefined}
+        scope={mayChangeBot ? { value: scope, onChange: setScope } : undefined}
+        notConnected={connectRows.length > 0 ? { rows: connectRows, onConnect: connect } : undefined}
       />
     </div>
   );
@@ -662,6 +669,8 @@ export function ModelPicker({
         trigger
       )}
       {menu && floating ? createPortal(menu, document.body) : menu}
+      {handoff && <ConnectAiDialog tested={null} start={handoff.tile} onClose={() => setHandoff(null)} onConnected={connected} />}
+      {toast && <Toast text={toast.text} tone={toast.tone} onDone={() => setToast(null)} data-notice-toast="model" />}
       {!contained && changedBotModel && !open && ownModelThreads > 0 && (
         <div data-thread-models-notice role="status"
           className="menu-surface absolute right-0 top-full z-30 mt-1 flex w-max max-w-[min(300px,calc(100vw-2rem))] items-center gap-2 py-1.5 pl-3 pr-1.5 text-[13px] leading-[18px]">
@@ -683,6 +692,12 @@ export function ModelPicker({
           if (!pendingSwitch || bot.busy || pendingSwitch.botId !== bot.id || pendingSwitch.threadId !== (threadId ?? bot.threadId)) {
             setPendingSwitch(null); return;
           }
+          if (pendingSwitch.all) {
+            applyAll(pendingSwitch.all.instance, pendingSwitch.all.model, pendingSwitch.all.variant, true);
+            setPendingSwitch(null);
+            return;
+          }
+          if (pendingSwitch.toast) setToast({ text: pendingSwitch.toast, tone: "done" });
           dispatch({ type: "setModel", botId: pendingSwitch.botId, threadId: pendingSwitch.threadId,
             selection: pendingSwitch.selection, updateBotDefault: pendingSwitch.updateBotDefault,
             resetApprovalToAsk: true });

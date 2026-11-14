@@ -248,9 +248,9 @@ OK") is preferred over one that did not answer or was not tested.
   All four routes are admin only.
 - UI: `src/components/models/` (`ModelDirectory`, `ConnectProviderDialog`,
   `ModelBadges`), wired into Settings > Models. The bot's model picker lists
-  the connected models, connects a popular AI in place (`PickerConnect`, the
-  same connect as the Connect an AI cards) and links to the directory for the
-  rest.
+  the connected models; a Not connected row hands its connect to the Connect
+  an AI dialog on that provider (`ConnectAiDialog` with `start`), and links to
+  the directory for the rest.
 - Tests: `shared/model-providers.test.ts`, `shared/model-search.test.ts`,
   `server/model-providers.test.ts`, `server/routes/model-providers.test.ts`,
   and `src/components/models/ModelDirectory.dom.test.ts`. The live check against a real

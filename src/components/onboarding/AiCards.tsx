@@ -100,8 +100,10 @@ export function connectedAiCards(instances: readonly InstanceInfo[]): AiTileId[]
 }
 
 /** The grid of popular AIs and, under it, the pressed one's way in. `onMore`: the small link to every other provider and
- * API keys (the model directory). */
-export function AiCards({ onMore, className }: { tested: WelcomeAiNow | null; onMore?: () => void; className?: string }) {
+ * API keys (the model directory). `start`: press that AI's card as the grid opens (the model picker's Connect);
+ * `onConnected`: called once when the AI pressed here becomes connected. */
+export function AiCards({ onMore, className, start, onConnected }: { tested: WelcomeAiNow | null; onMore?: () => void; className?: string;
+  start?: AiTileId; onConnected?: (tile: AiTileId) => void }) {
   const { state } = useStore();
   const [picked, setPicked] = useState<AiTileId | null>(null);
   const flow = useConnectFlow();
@@ -114,6 +116,20 @@ export function AiCards({ onMore, className }: { tested: WelcomeAiNow | null; on
   };
   const chosen = tiles.find((tile) => tile.id === picked && !ready(tile.instance));
   useFocusOnConnect(tiles.filter((tile) => ready(tile.instance)).map((tile) => tile.id));
+  const started = useRef(false);
+  useEffect(() => {
+    const tile = start ? tiles.find((one) => one.id === start) : undefined;
+    if (started.current || !tile) return;
+    started.current = true;
+    if (!ready(tile.instance)) pick(tile);
+  }, [start, tiles.length]);
+  const told = useRef(false);
+  const pickedReady = Boolean(picked && tiles.some((tile) => tile.id === picked && ready(tile.instance)));
+  useEffect(() => {
+    if (told.current || !picked || !(pickedReady || flow.state.stage === "connected")) return;
+    told.current = true;
+    onConnected?.(picked);
+  }, [picked, pickedReady, flow.state.stage]);
 
   return (
     <div data-ai-cards="" className={cn("@container flex w-full flex-col items-center", className)}>

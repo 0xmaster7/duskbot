@@ -4,6 +4,9 @@ import { t } from "./i18n";
 import { filterCustomModels, partitionCustomModels, suggestedModels } from "./custom-models";
 import { isCustomOnly, SIGN_IN_FAMILY_LABEL, signInFamily, splitEngineRail } from "./engine-rail";
 import { freeFallback } from "../../shared/ai-ranking";
+import { engineReady } from "@/components/EngineLibrary";
+import { aiTiles, type AiTileId } from "@/components/onboarding/funnel";
+import { connectsInApp, type ConnectInstance } from "@/components/onboarding/connect-flow";
 import { displayModelLabel, shortModelLabel } from "./model-friendly";
 import { choiceIsSelected, modelChoices, takesTypedModels, type ModelChoice } from "./model-choices";
 
@@ -241,4 +244,35 @@ export function simpleModelMenu(input: SimpleMenuInput): SimpleMenu {
     empty: listed.length > 0 ? null : input.loading ? "loading" : "none",
     busy: input.loading || input.refreshing != null,
   };
+}
+
+/** A provider that isn't connected here, as one Connect row in the picker. */
+export interface NotConnectedRow {
+  key: string;
+  name: string;
+  instance: InstanceInfo;
+  /** Its card in Connect an AI, where the picker hands the connect over; none sends the row to the model directory. */
+  tile?: AiTileId;
+  /** Set up here before and signed out since, or never set up. */
+  state: "signIn" | "setUp" | "new";
+}
+
+const inApp = (instance: InstanceInfo) => connectsInApp(instance as unknown as ConnectInstance);
+
+/** The picker's Not connected rows: the providers listed here that wait for a sign-in or a setup, then the Connect an AI
+ * cards that aren't connected yet. A local model lives in the directory, not here. */
+export function notConnectedRows(instances: readonly InstanceInfo[], waiting: readonly MenuGroup[]): NotConnectedRow[] {
+  const tiles = aiTiles(instances, engineReady, inApp).filter((tile) => tile.id !== "local");
+  const rows: NotConnectedRow[] = [];
+  for (const group of waiting) {
+    const tile = tiles.find((one) => one.candidates.includes(group.instance));
+    if (tile && rows.some((row) => row.tile === tile.id)) continue;
+    rows.push({ key: tile?.id ?? group.instance.instanceId, name: tile?.label ?? group.label, instance: group.instance,
+      ...(tile ? { tile: tile.id } : {}), state: group.body.kind === "setUp" ? "setUp" : "signIn" });
+  }
+  for (const tile of tiles) {
+    if (engineReady(tile.instance) || rows.some((row) => row.tile === tile.id || tile.candidates.includes(row.instance))) continue;
+    rows.push({ key: tile.id, name: tile.label, instance: tile.instance, tile: tile.id, state: "new" });
+  }
+  return rows;
 }

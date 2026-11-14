@@ -49,6 +49,15 @@ const TYPE = (text: string) => `(() => { const field = document.querySelector("t
 /** Opens the model picker from the bot panel's Model row, the way a click does. */
 const OPEN_PICKER = `(() => { const trigger = document.querySelector("[data-panel-row=model] [data-tour=model]"); if (!trigger) return false; trigger.click();
   return new Promise((done) => setTimeout(() => done(Boolean(document.querySelector("[data-model-picker-content]"))), 400)); })()`;
+/** From the picker, a Not connected row's Connect: the picker closes and Connect an AI opens on that provider. */
+const PICKER_CONNECT = `(async () => { if (!(await ${OPEN_PICKER})) return false; const row = document.querySelector('[data-picker-connect="openrouter"]');
+  if (!row) return false; row.click(); return new Promise((done) => setTimeout(() => done(Boolean(document.querySelector("[data-connect-ai]"))), 600)); })()`;
+/** ...and that provider connecting: the store hears it ready, the dialog closes and the bot moves to its model. */
+const PICKER_CONNECTED = `(async () => { if (!(await ${PICKER_CONNECT})) return false;
+  const { instances } = await (await fetch("/api/instances")).json();
+  const next = instances.map((one) => one.instanceId === "openrouter" ? { ...one, snapshot: { ...one.snapshot, state: "available", authenticated: true, reason: undefined } } : one);
+  window.__surfaceGallery.dispatch({ type: "instances", instances: next });
+  return new Promise((done) => setTimeout(() => done(true), 800)); })()`;
 /** The chat window itself: empty, mid-typing, and with the app's error and note banners up. */
 const CHAT: Record<string, { open: string | null; run?: string }> = {
   empty: { open: `{ type: "select", id: window.__surfaceGallery.botId }` },
@@ -101,6 +110,9 @@ const SURFACES: Surface[] = [
   { id: "dialog:connect-ai-from-chat", open: `{ type: "select", id: window.__surfaceGallery.botId }`, query: "card=connect-ai", scope: "[data-connect-ai]" },
   // the model picker, opened from the bot panel's Model row
   { id: "picker:model", open: `{ type: "toggleSettings", open: true, section: "overview", botId: window.__surfaceGallery.botId }`, run: OPEN_PICKER, scope: "[data-model-picker-content]" },
+  // Connect from the picker: the handoff to Connect an AI, and the bot on the new provider's model once it connects
+  { id: "picker:connect", open: `{ type: "toggleSettings", open: true, section: "overview", botId: window.__surfaceGallery.botId }`, run: PICKER_CONNECT, scope: "[data-connect-ai]" },
+  { id: "picker:connected", open: `{ type: "toggleSettings", open: true, section: "overview", botId: window.__surfaceGallery.botId }`, run: PICKER_CONNECTED, scope: "#root" },
 ].filter((surface) => !ONLY || ONLY.includes(surface.id));
 
 (enabled ? it : it.skip)("draws every settings page, panel tab, dialog and first-run step without overlap or clipping", async () => {
