@@ -3,6 +3,14 @@
 Notable changes to dusk bot, newest first. Installers and checksums for each version are on the
 [releases page](https://github.com/DuskBotAI/duskbot/releases) and at [dusk.bot/download](https://dusk.bot/download).
 
+## 0.2.11
+
+- First run starts with a welcome, offers every sign-in from the first frame, and leads with what this Mac already holds.
+- Signing in from the app lands on onboarding or home, never on the app link.
+- New bots greet with a fixed line, so nothing is spent before your first message.
+- Every bot knows the basics about itself: its name, home, memory, computer, browser, routines and apps.
+- Voice settings test the mic once it is ready; Windows shows the default microphone.
+
 ## 0.2.10
 
 - When the backup AI takes over, the model chip and panel show the AI that is answering now.
