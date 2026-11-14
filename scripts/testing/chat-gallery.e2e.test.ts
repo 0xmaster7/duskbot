@@ -90,6 +90,9 @@ const wide = encodePng(480, 120, (x, y) => [200, 100 + (x % 100), 80 + (y % 40)]
     await request("Runtime.enable");
     await request("Page.addScriptToEvaluateOnNewDocument", { source: `try { for (const notice of ${JSON.stringify(NOTICES)}) localStorage.setItem(notice, "1"); } catch {}` });
     await request("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+    // DUSK_GALLERY_STEADY=1 (the visual baseline): code blocks settle their highlighting and scroll at different moments
+    // run to run, so their text is left out of the picture; the block itself still shows
+    if (process.env.DUSK_GALLERY_STEADY === "1") await request("Page.addScriptToEvaluateOnNewDocument", { source: `addEventListener("DOMContentLoaded", () => { const style = document.createElement("style"); style.textContent = "pre, pre * { color: transparent !important; }"; document.head.append(style); });` });
     const errors: string[] = [];
     let current = "";
     // a card that throws falls back to plain text inside MessageBoundary: React's error log is how the run sees it

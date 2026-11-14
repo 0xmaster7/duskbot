@@ -157,6 +157,8 @@ const SURFACES: Surface[] = [
           opened = Boolean(await evaluate(surface.run));
         }
         await evaluate(`document.fonts.ready.then(() => new Promise((done) => setTimeout(done, 700)))`);
+        // the chat states from its end, as a person sees them: a banner that lands late may leave the transcript where it was
+        if (surface.id.startsWith("chat:")) await evaluate(`(() => { const s = document.querySelector(".glass-scroller"); if (s) s.scrollTop = s.scrollHeight; return new Promise((done) => setTimeout(done, 300)); })()`);
         const issues: LayoutIssue[] = opened ? await evaluate(`window.__galleryAudit({ touch: ${viewport.touch}, focus: ${viewport.id === "desktop"}, scopeSelector: ${JSON.stringify(surface.scope)} })`) : [];
         const { data } = await request("Page.captureScreenshot", { format: "png" });
         writeFileSync(join(evidence, `${shot}.png`), Buffer.from(data, "base64"));

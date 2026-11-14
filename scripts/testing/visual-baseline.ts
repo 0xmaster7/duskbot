@@ -30,8 +30,8 @@ export const KEY_CHATS = ["cards-pending", "cards-settled", "text"];
 const SKINS = "grok,grok-dark";
 const VIEWPORTS = "desktop,min";
 
-/** a channel this far off counts as changed: antialiasing moves a few levels, a new fill or shadow moves many */
-const CHANNEL_TOLERANCE = 24;
+/** a channel this far off counts as changed: the same Chrome draws the same pixels, and a faint new shadow or fill moves 8 or more */
+const CHANNEL_TOLERANCE = 8;
 /** the share of a shot's pixels that may change before it is flagged */
 const MAX_CHANGED = 0.002;
 
@@ -43,7 +43,7 @@ const dir = process.env.DUSK_GALLERY_DIR || join(REPO_ROOT, ".dusk-scratch", "vi
 
 function capture() {
   mkdirSync(dir, { recursive: true });
-  const env = { ...process.env, DUSK_UI_E2E: "1", DUSK_GALLERY_DIR: dir };
+  const env = { ...process.env, DUSK_UI_E2E: "1", DUSK_GALLERY_DIR: dir, DUSK_GALLERY_STEADY: "1" };
   const runs = [
     { test: "scripts/testing/surface-gallery.e2e.test.ts", env: { DUSK_SURFACES_ONLY: KEY_SURFACES.join(","), DUSK_SURFACES_SKINS: SKINS, DUSK_SURFACES_VIEWPORTS: VIEWPORTS } },
     { test: "scripts/testing/chat-gallery.e2e.test.ts", env: { DUSK_GALLERY_ONLY: KEY_CHATS.join(","), DUSK_GALLERY_SKINS: SKINS, DUSK_GALLERY_VIEWPORTS: VIEWPORTS, DUSK_GALLERY_MODES: "still" } },
