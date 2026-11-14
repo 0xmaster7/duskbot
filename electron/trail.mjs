@@ -52,7 +52,9 @@ const MASK = "«redacted»";
 const URL_RE = /\b([a-z][a-z0-9+.-]{1,15}):\/\/[^\s"'<>]+/gi;
 const JWT = /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g;
 // long opaque values (a key, a session id, a signed blob) with letters and digits mixed in
-const OPAQUE = /(?<![A-Za-z0-9_+/=-])(?=[A-Za-z0-9_+/=-]*\d)(?=[A-Za-z0-9_+/=-]*[A-Za-z])[A-Za-z0-9_+/=-]{32,}(?![A-Za-z0-9_+/=-])/g;
+// (a "/" ends one, so a path keeps its other segments; a UUID is an id, not a secret)
+const OPAQUE = /(?<![A-Za-z0-9_+=-])(?=[A-Za-z0-9_+=-]*\d)(?=[A-Za-z0-9_+=-]*[A-Za-z])[A-Za-z0-9_+=-]{32,}(?![A-Za-z0-9_+=-])/g;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g;
 const SECRET_PAIR = /\b(pass(?:word|wd)?|pwd|secret|token|cookie|session|auth|key|pin|otp)(\s*[:=]\s*)("[^"]*"|'[^']*'|[^\s"',;&]+)/gi;
 
@@ -72,7 +74,7 @@ export function scrubString(value) {
   if (out.length > 4 * MAX_STRING) out = out.slice(0, 4 * MAX_STRING);
   out = out.replace(URL_RE, (url) => urlHostPath(url)).replace(/\b(data|blob):[^\s"'<>]+/gi, "$1:«…»");
   out = redactSecretsInLine(out);
-  out = out.replace(JWT, MASK).replace(OPAQUE, MASK).replace(EMAIL, "«email»");
+  out = out.replace(JWT, MASK).replace(OPAQUE, (found) => (UUID.test(found) ? found : MASK)).replace(EMAIL, "«email»");
   out = out.replace(SECRET_PAIR, (_m, key, sep) => `${key}${sep}${MASK}`);
   return out.length > MAX_STRING ? `${out.slice(0, MAX_STRING)}…` : out;
 }
@@ -354,7 +356,7 @@ export function trail(ev, fields = {}) {
   try {
     if (typeof ev !== "string" || !EVENT_NAME.test(ev)) return;
     const ctx = context?.() ?? null;
-    const event = redactEvent({ ts: new Date().toISOString(), ev, src: fields?.src ?? source, run: RUN_ID, ...ctx, ...fields });
+    const event = redactEvent({ ...ctx, ...fields, ts: typeof fields?.ts === "string" ? fields.ts : new Date().toISOString(), ev, src: fields?.src ?? source, run: RUN_ID });
     if (!event) return;
     if (sink) sink.write(event);
     else if (early.length < 200) early.push(event);
@@ -373,8 +375,11 @@ export function trailFrom(src, events, extra = () => ({})) {
   let n = 0;
   for (const raw of events.slice(0, 200)) {
     if (!raw || typeof raw !== "object" || typeof raw.ev !== "string" || !EVENT_NAME.test(raw.ev)) continue;
-    const { ev, ts: _ts, src: _src, run: _run, ...fields } = raw;
-    trail(ev, { ...fields, ...extra(ev, fields), src });
+    const { ev, ts, src: _src, run: _run, ...fields } = raw;
+    // the sender's own time keeps the timeline in order, when it is a time and a recent one
+    const at = typeof ts === "string" ? Date.parse(ts) : NaN;
+    const when = Number.isFinite(at) && Math.abs(Date.now() - at) < 5 * 60_000 ? { ts: new Date(at).toISOString() } : {};
+    trail(ev, { ...fields, ...extra(ev, fields), ...when, src });
     n++;
   }
   return n;

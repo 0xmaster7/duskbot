@@ -37,6 +37,14 @@ test("what people and bots write is never kept, only its length", () => {
   assert.equal(event.bot, "b_1");
 });
 
+test("ids and paths stay readable: a UUID is an id, a path keeps its segments", () => {
+  const id = "ab30b993-104a-4fd0-9111-abfc72147b26";
+  const event = redactEvent({ ev: "takeover.take", bot: id, path: `/api/bots/${id}/computer/control?lease=9f86d081884c7d659a2feaa0c55ad015a3bf4f1b`, lease: "9f86d081884c7d659a2feaa0c55ad015" });
+  assert.equal(event.bot, id);
+  assert.equal(event.path, `/api/bots/${id}/computer/control`);
+  assert.equal(event.lease, "«redacted»");
+});
+
 test("addresses keep host and path only", () => {
   assert.equal(urlHostPath("https://a:b@host.example:8443/p/q?x=1#y"), "https://host.example:8443/p/q");
   assert.equal(scrubString("open wss://h.trycloudflare.com/link?k=v now"), "open wss://h.trycloudflare.com/link now");
