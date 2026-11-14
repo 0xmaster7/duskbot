@@ -13,7 +13,7 @@ import { Resvg } from "@resvg/resvg-js";
 import { openHeadlessChrome } from "../../../scripts/testing/headless-chrome.ts";
 import { C, opaquePng72, scene } from "../../../build/art/pixel-scene.mjs";
 import { stillSvgPaths } from "../../../src/pixel/core.ts";
-import { FEATURE, PLAY_SHOTS, SHOTS, SIZES } from "./story.mjs";
+import { FEATURE, IOS_SHOTS, PLAY_SHOTS, SHOTS, SIZES } from "./story.mjs";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const fonts = fileURLToPath(new URL("../../../build/art/fonts/", import.meta.url));
@@ -205,10 +205,14 @@ async function main() {
     for (const size of SIZES) {
       const dir = join(store, size.store, size.name);
       mkdirSync(dir, { recursive: true });
-      const shots = size.store === "play" ? SHOTS.filter((shot) => PLAY_SHOTS.includes(shot.id)) : SHOTS;
+      const shots = SHOTS.filter((shot) => (size.store === "play" ? PLAY_SHOTS : IOS_SHOTS).includes(shot.id));
       for (const shot of shots) await render(shotHtml(shot, size), size.width, size.height, join(dir, `${shot.id}.png`), `${size.store} ${size.name} ${shot.id}`);
     }
     await render(featureHtml(), 1024, 500, join(store, "play", "feature-graphic.png"), "play feature graphic");
+    // Play's 512 x 512 listing icon is the app icon itself (Play rounds the corners)
+    const icon = fileURLToPath(new URL("../ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png", import.meta.url));
+    writeFileSync(join(store, "play", "icon-512.png"), opaque(readFileSync(icon), 512, 512));
+    console.log(`${join(store, "play", "icon-512.png")} 512x512`);
 
     const tiles = written.filter((one) => one.label.startsWith("ios 6.9") || one.label.startsWith("play"));
     const sheet = `<!doctype html><html><head><style>

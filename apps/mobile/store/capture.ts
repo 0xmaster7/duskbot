@@ -219,8 +219,10 @@ function startVite(apiPort: number, port: number): Promise<void> {
 }
 
 const js = (value: unknown) => JSON.stringify(value);
-const button = (name: string) => `[...document.querySelectorAll("button")].find((el) => el.textContent.trim().startsWith(${js(name)}))`;
-const click = (page: HeadlessPage, expression: string) => page.evaluate(`(() => { const el = ${expression}; if (!el) return false; el.click(); return true; })()`);
+const button = (name: string) => `[...document.querySelectorAll("button")].find((el) => el.textContent.trim().toLowerCase().startsWith(${js(name.toLowerCase())}))`;
+const click = async (page: HeadlessPage, expression: string) => {
+  if (!(await page.evaluate(`(() => { const el = ${expression}; if (!el) return false; el.click(); return true; })()`))) throw new Error(`nothing to click: ${expression.slice(0, 120)}`);
+};
 
 async function main() {
   mkdirSync(out, { recursive: true });
@@ -275,7 +277,7 @@ async function main() {
       ["room", async () => { await home("light"); await chat(ROOM.name); await click(page, `[...document.querySelectorAll("button")].find((el) => /skip for now/i.test(el.textContent))`); await delay(1200); await shot("room"); }],
       ["routines-dark", async () => {
         await home("dark");
-        await click(page, `document.querySelector('[aria-label="You and settings"]') ?? ${button("You")}`);
+        await click(page, `document.querySelector('[aria-label^="you and settings" i]') ?? ${button("You")}`);
         await delay(900);
         await click(page, button("Routines"));
         await delay(1800);
@@ -283,7 +285,7 @@ async function main() {
       }],
       ["apps", async () => {
         await home("light");
-        await click(page, `document.querySelector('[aria-label="You and settings"]')`);
+        await click(page, `document.querySelector('[aria-label^="you and settings" i]')`);
         await delay(900);
         await click(page, button("Connected apps"));
         await delay(2500);
@@ -297,7 +299,7 @@ async function main() {
         await delay(1500);
         await shot("profile");
       }],
-      ["pair", async () => { await open("dark", "&pair=1"); await page.until(`document.body.textContent.includes("Scan")`, 20_000); await shot("pair"); }],
+      ["pair", async () => { await open("dark", "&pair=1"); await page.until(`document.body.textContent.includes("on your phone")`, 20_000); await delay(1200); await shot("pair"); }],
     ];
     for (const [name, run] of screens) {
       if (!want(name)) continue;

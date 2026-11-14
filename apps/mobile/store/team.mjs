@@ -18,12 +18,12 @@ export const TEAM = [
     name: "Pip", color: "blue", body: "pip", pinned: true,
     chat: [
       ["me", "can you book dinner for 4 on friday? thai, near soho, not too loud", 31],
-      ["Pip", "checked 12 places on OpenTable and Resy. the best three:\n\n- **Som Saa**, 7:45pm, a booth for 4\n- **Kiln**, 8:00pm, counter seats\n- **Fish Cheeks**, 8:30pm, quieter room\n\nwhich one?", 29],
-      ["me", "som saa!", 27],
-      ["Pip", "booked **Som Saa** for 4 at 7:45 on friday. it's on your calendar and i texted the group.", 26],
+      ["Pip", "checked 12 places nearby. the best three:\n\n- **Saffron House**, 7:45pm, a booth for 4\n- **Ember Room**, 8:00pm, counter seats\n- **Little Lime**, 8:30pm, quieter room\n\nwhich one?", 29],
+      ["me", "saffron house!", 27],
+      ["Pip", "booked **Saffron House** for 4 at 7:45 on friday. it's on your calendar and i texted the group.", 26],
     ],
     /** a real turn the fake engine holds open, so the chat shows Pip mid-work */
-    live: { text: "amazing. can you grab 4 movie tickets for after?", tool: "mcp__browser__navigate", input: { url: "https://www.fandango.com" } },
+    live: { text: "amazing. can you grab 4 movie tickets for after?", tool: "mcp__browser__navigate", input: { url: "https://tickets.example.com" } },
   },
   {
     name: "Echo", color: "pink", body: "mochi", pinned: true, unread: true,
@@ -66,7 +66,7 @@ export const TEAM = [
       ["me", "find 2-bed flats under $3k near the park", 60 * 27],
       ["Basil", "found 3 that fit. the second has the balcony you wanted, viewing saturday at 11.", 60 * 27 - 3],
     ],
-    live: { text: "book the saturday viewing and ask about parking", tool: "mcp__browser__navigate", input: { url: "https://streeteasy.com" } },
+    live: { text: "book the saturday viewing and ask about parking", tool: "mcp__browser__navigate", input: { url: "https://flats.example.com" } },
   },
 ];
 

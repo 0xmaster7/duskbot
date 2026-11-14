@@ -64,6 +64,10 @@ export const SHOTS = [
   },
 ];
 
+/** the App Store set leaves out what iOS v1 does not offer or must not advertise: dusk cloud (sold on the web, 3.1.1),
+ * other companies' apps and AI models (5.2.1, 2.3.7), and the pairing screen, which names dusk cloud */
+export const IOS_SHOTS = ["01-team", "02-text", "03-work", "04-approve", "05-sleep", "06-rooms"];
+
 /** Google Play takes eight phone screenshots at most */
 export const PLAY_SHOTS = ["01-team", "02-text", "03-work", "04-approve", "05-sleep", "07-apps", "08-cloud", "09-private"];
 

@@ -112,5 +112,14 @@ xcodebuild -quiet -exportArchive -archivePath "$archive" -exportOptionsPlist "$o
 if [ "$mode" = upload ]; then
   echo "uploaded build $build_number; it shows in App Store Connect, TestFlight once processing ends (5 to 30 minutes)"
 else
-  ls "$out/export"/*.ipa
+  ipa=$(ls "$out/export"/*.ipa | head -1)
+  # the source entitlements say development; the App Store export must have switched push to production
+  check=$(mktemp -d)
+  unzip -q "$ipa" -d "$check"
+  ents=$(codesign -d --entitlements :- "$check"/Payload/*.app 2>/dev/null || true)
+  rm -rf "$check"
+  echo "$ents" | grep -A1 aps-environment | grep -q production || { echo "error: the exported app's aps-environment is not production" >&2; exit 1; }
+  echo "$ents" | grep -q com.apple.developer.applesignin || { echo "error: the exported app lacks the Sign in with Apple entitlement" >&2; exit 1; }
+  echo "$ipa"
+  echo "upload it: apps/mobile/scripts/build-ios-release.sh --upload, or Transporter"
 fi
