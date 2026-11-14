@@ -51,6 +51,8 @@ export interface VpsConfig {
   lifecycle?: Partial<VpsLifecyclePolicy>;
   /** The bot computers' browsers reach the web through the person's linked computer while it is online; default true. */
   routeThroughComputer?: boolean;
+  /** A site that blocks a bot computer's browser on this server's network goes through the person's computer instead; default true. */
+  routeBlockedSites?: boolean;
   /** This linked VPS's bots may use the owner's Mac through the Mac app while it is online; default true. */
   macControl?: boolean;
 }
@@ -64,6 +66,7 @@ export const vpsConfigSchema = z.object({
   idleTimeoutMinutes: z.union([z.literal(0), z.literal(5), z.literal(10), z.literal(30)]).optional(),
   lifecycle: vpsLifecycleSchema.optional(),
   routeThroughComputer: z.boolean().optional(),
+  routeBlockedSites: z.boolean().optional(),
   macControl: z.boolean().optional(),
 }).superRefine((value, context) => {
   const enabled = (["browserIdleMinutes", "screenIdleMinutes", "computerIdleMinutes"] as const).map(key => value.lifecycle?.[key]).filter((minutes): minutes is number => minutes !== undefined && minutes > 0);

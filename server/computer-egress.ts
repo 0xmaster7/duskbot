@@ -124,8 +124,22 @@ export function egressPrompt(enabled: boolean): string {
     : "";
 }
 
+/** A site that blocked a bot computer's browser keeps going through the person's connection for this long. */
+export const BLOCKED_SITE_MS = 12 * 60 * 60_000;
+const BLOCKED_SITES_MAX = 50;
+
+/** The site a block was met on, as the PAC matches it: the host without "www.", or null for what never goes that way. */
+export function blockedSiteName(raw: string): string | null {
+  const host = raw.trim().toLowerCase().replace(/\.$/u, "").replace(/^www\./u, "");
+  if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/u.test(host) || /^\d+(\.\d+){3}$/u.test(host)) return null;
+  if (/\.(localhost|local|localdomain|internal|intranet|lan|home|corp|arpa)$/u.test(host)) return null;
+  return host;
+}
+
 export interface ComputerEgressDeps {
   enabled(): boolean;
+  /** "When a site blocks the cloud": only the sites that blocked a bot computer go through the person's connection. */
+  blockedSitesEnabled?(): boolean;
   /** Docker on this server's own daemon, or null when the bot computers run somewhere else. */
   docker(): Docker | null;
   now?(): number;
@@ -141,6 +155,15 @@ export function createComputerEgress(deps: ComputerEgressDeps) {
   // what each running box holds. a box not in here (just started, or from before this server) gets the current policy,
   // off included: its writable root keeps whatever an earlier route or server left in it across restarts
   const applied = new Map<string, string>();
+  // sites that blocked a bot computer's browser on this server's network, and until when they go the person's way
+  const blocked = new Map<string, number>();
+  const blockedOn = () => deps.blockedSitesEnabled?.() !== false;
+  const agentUp = () => Boolean(report?.online && report.proxy) && now() - reportedAt < AGENT_STALE_MS;
+
+  function blockedSites(): string[] {
+    for (const [site, until] of blocked) if (now() >= until) blocked.delete(site);
+    return blockedOn() ? [...blocked.keys()].sort() : [];
+  }
 
   function route(): EgressRoute {
     if (!deps.enabled()) return "off";
@@ -150,16 +173,17 @@ export function createComputerEgress(deps: ComputerEgressDeps) {
   async function pass(): Promise<void> {
     const docker = deps.docker();
     const up = route() === "computer";
-    // online but slow: only the sites that block this server's address still go through the person's computer
-    const sitesOnly = !up && deps.enabled() && Boolean(report?.online && report.proxy) && now() - reportedAt < AGENT_STALE_MS;
+    // online but slow, or the whole route off: only the sites that block this server's address go through the person's computer
+    const sites = [...new Set([...(deps.enabled() ? HOME_ONLY_SITES : []), ...blockedSites()])];
+    const sitesOnly = !up && agentUp() && sites.length > 0;
     if (up && !routeUp) generation += 1;
     if (up && report && report.fallbacks > lastFallbacks && now() >= retryAt) { generation += 1; retryAt = now() + FALLBACK_RETRY_MS; }
     lastFallbacks = report?.fallbacks ?? 0;
     routeUp = up;
     if (!docker) return;
     const proxy = report?.proxy;
-    const want = (up || sitesOnly) && proxy ? { proxy, body: egressPolicy(proxy, generation, up ? null : HOME_ONLY_SITES) } : null;
-    const key = want ? `${up ? "on" : "sites"}:${generation}:${want.proxy.host}:${want.proxy.port}` : "off";
+    const want = (up || sitesOnly) && proxy ? { proxy, body: egressPolicy(proxy, generation, up ? null : sites) } : null;
+    const key = want ? `${up ? "on" : `sites=${sites.join(",")}`}:${generation}:${want.proxy.host}:${want.proxy.port}` : "off";
     let ids: string[];
     try {
       const listed = await docker(["ps", "--filter", `label=${BOT_DESKTOP_LABEL}`, "--format", "{{.ID}}"], 15_000);
@@ -199,11 +223,29 @@ export function createComputerEgress(deps: ComputerEgressDeps) {
       if (value.dialMs === undefined) fast = true;
       else if (value.dialMs !== null) fast = value.dialMs <= (fast ? SLOW_DIAL_MS : FAST_DIAL_MS);
       void reconcile();
-      return { enabled: deps.enabled() };
+      // the agent refuses every stream while this is false, so it is on for either setting; the PAC picks the sites
+      return { enabled: deps.enabled() || blockedOn() };
     },
     /** after the setting changed */
     changed(): Promise<void> {
       return reconcile();
+    },
+    /**
+     * A bot computer's browser was blocked on `site` from this server's network: from now on, for this session, that
+     * site (and its subdomains) goes through the person's own connection while their computer is online. True once the
+     * bot computers hold that route; false when it cannot happen now (setting off, computer offline, no link agent),
+     * so the caller moves on. Offline later, the policy goes and the site is back on this network by itself.
+     */
+    async routeSite(raw: string): Promise<boolean> {
+      const site = blockedSiteName(raw);
+      if (!site || !blockedOn() || !agentUp() || !deps.docker()) return false;
+      // everything already leaves through the person's computer: that route cannot help this site
+      if (route() === "computer") return false;
+      blocked.set(site, now() + BLOCKED_SITE_MS);
+      while (blocked.size > BLOCKED_SITES_MAX) blocked.delete(blocked.keys().next().value!);
+      generation += 1;
+      await reconcile();
+      return agentUp();
     },
     status(): EgressStatus {
       const fresh = report !== null && now() - reportedAt < AGENT_STALE_MS;
@@ -214,6 +256,8 @@ export function createComputerEgress(deps: ComputerEgressDeps) {
         activeStreams: fresh ? report!.active : 0,
         relayedStreams: fresh ? report!.relayed : 0,
         refusedStreams: fresh ? report!.refused : 0,
+        blockedSitesEnabled: blockedOn(),
+        blockedSites: blockedSites(),
       };
     },
     prompt(): string {

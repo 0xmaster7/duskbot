@@ -234,9 +234,13 @@ describe("the routes", () => {
 
   it("takes the agent's report only from owner-trust loopback", async () => {
     const saved: boolean[] = [];
-    const egress = createComputerEgress({ enabled: () => false, docker: () => null });
+    let blockedOn = false;
+    const egress = createComputerEgress({ enabled: () => false, blockedSitesEnabled: () => blockedOn, docker: () => null });
     const routes = createComputerEgressRoutes({ egress, setEnabled: (on) => saved.push(on) });
     expect(await call(routes, owner, "POST", "/api/computer/egress/agent", report())).toEqual({ status: 200, body: { enabled: false } });
+    // the agent refuses every stream while told off, so "when a site blocks the cloud" alone keeps it taking them
+    blockedOn = true;
+    expect(await call(routes, owner, "POST", "/api/computer/egress/agent", report())).toEqual({ status: 200, body: { enabled: true } });
     expect((await call(routes, service, "POST", "/api/computer/egress/agent", report()) as { status: number }).status).toBe(403);
     expect((await call(routes, session(["admin", "client"]), "POST", "/api/computer/egress/agent", report()) as { status: number }).status).toBe(403);
     expect((await call(routes, owner, "POST", "/api/computer/egress/agent", { online: "yes" }) as { status: number }).status).toBe(400);
@@ -252,6 +256,93 @@ describe("the routes", () => {
     expect(enabled).toBe(true);
     expect(await call(routes, owner, "GET", "/api/computer/egress")).toMatchObject({ status: 200, body: { enabled: true } });
     expect(await call(routes, owner, "GET", "/api/computers/vps")).toBe("pass");
+  });
+
+  it("saves \"when a site blocks the cloud\" on its own, owner or admin only", async () => {
+    let sites = true;
+    const egress = createComputerEgress({ enabled: () => true, blockedSitesEnabled: () => sites, docker: () => null });
+    const routes = createComputerEgressRoutes({ egress, setEnabled: () => { throw new Error("not this one"); }, setBlockedSites: (on) => { sites = on; } });
+    expect((await call(routes, session(["client"]), "PUT", "/api/computer/egress", { blockedSitesEnabled: false }) as { status: number }).status).toBe(403);
+    expect((await call(routes, owner, "PUT", "/api/computer/egress", { blockedSitesEnabled: "no" }) as { status: number }).status).toBe(400);
+    expect(await call(routes, owner, "PUT", "/api/computer/egress", { blockedSitesEnabled: false })).toMatchObject({ status: 200, body: { enabled: true, blockedSitesEnabled: false, blockedSites: [] } });
+    expect(sites).toBe(false);
+  });
+});
+
+describe("a site that blocks a bot computer", () => {
+  const pacSites = (args: string[]) => {
+    const pac = Buffer.from(JSON.parse(args[10]!).ProxySettings.ProxyPacUrl.split(",")[1], "base64").toString();
+    return JSON.parse(/if \(!(\[[^\]]*\])\.some/u.exec(pac)?.[1] ?? "null") as string[] | null;
+  };
+
+  it("goes through the person's connection by itself, sticky for the session, while the rest stays on this network", async () => {
+    let t = 1_000;
+    const fake = fakeDocker(["aaaaaaaaaaaa"]);
+    const egress = createComputerEgress({ enabled: () => false, docker: () => fake.docker, now: () => t });
+    egress.report(report());
+    await egress.changed();
+    expect(fake.calls.filter((args) => args[0] === "exec").map((args) => args[7])).toEqual(["off"]);
+    expect(await egress.routeSite("www.Pastebin.com")).toBe(true);
+    const last = fake.calls.filter((args) => args[0] === "exec").at(-1)!;
+    expect(last[7]).toBe("on");
+    expect(pacSites(last)).toEqual(["pastebin.com"]);
+    expect(egress.status()).toMatchObject({ blockedSitesEnabled: true, blockedSites: ["pastebin.com"] });
+    // the PAC sends that site and its subdomains the person's way, and nothing else
+    const pac = (url: string) => {
+      const sandbox: Record<string, unknown> = { isPlainHostName: (h: string) => !h.includes("."), dnsDomainIs: (h: string, d: string) => h.endsWith(d), isInNet: () => false };
+      runInNewContext(Buffer.from(JSON.parse(last[10]!).ProxySettings.ProxyPacUrl.split(",")[1], "base64").toString(), sandbox);
+      return (sandbox.FindProxyForURL as (u: string, h: string) => string)(url, new URL(url).hostname);
+    };
+    expect(pac("https://pastebin.com/")).toBe(`SOCKS5 ${proxy.host}:${proxy.port}; DIRECT`);
+    expect(pac("https://www.pastebin.com/api")).toBe(`SOCKS5 ${proxy.host}:${proxy.port}; DIRECT`);
+    expect(pac("https://example.com/")).toBe("DIRECT");
+    // later blocks add to the list; after the session window a site goes back
+    t += 60_000;
+    egress.report(report());
+    expect(await egress.routeSite("example.org")).toBe(true);
+    expect(pacSites(fake.calls.filter((args) => args[0] === "exec").at(-1)!)).toEqual(["example.org", "pastebin.com"]);
+    t += 12 * 60 * 60_000 - 30_000;
+    egress.report(report());
+    await egress.changed();
+    expect(egress.status().blockedSites).toEqual(["example.org"]);
+  });
+
+  it("joins the sites that always go home while the whole route is on but slow", async () => {
+    const fake = fakeDocker(["aaaaaaaaaaaa"]);
+    const egress = createComputerEgress({ enabled: () => true, docker: () => fake.docker });
+    egress.report(report({ dialMs: 900 }));
+    await egress.changed();
+    expect(await egress.routeSite("pastebin.com")).toBe(true);
+    expect(pacSites(fake.calls.filter((args) => args[0] === "exec").at(-1)!)).toEqual([...HOME_ONLY_SITES, "pastebin.com"]);
+  });
+
+  it("falls back to this network when the person's computer goes offline, and comes back with it", async () => {
+    const fake = fakeDocker(["aaaaaaaaaaaa"]);
+    const egress = createComputerEgress({ enabled: () => false, docker: () => fake.docker });
+    egress.report(report());
+    expect(await egress.routeSite("pastebin.com")).toBe(true);
+    egress.report(report({ online: false }));
+    await egress.changed();
+    expect(fake.calls.filter((args) => args[0] === "exec").at(-1)![7]).toBe("off");
+    egress.report(report());
+    await egress.changed();
+    expect(pacSites(fake.calls.filter((args) => args[0] === "exec").at(-1)!)).toEqual(["pastebin.com"]);
+  });
+
+  it("says no, so the bot moves on, when the setting is off, the computer is offline, there is no link agent or everything already goes home", async () => {
+    const fake = fakeDocker(["aaaaaaaaaaaa"]);
+    const off = createComputerEgress({ enabled: () => false, blockedSitesEnabled: () => false, docker: () => fake.docker });
+    off.report(report());
+    expect(await off.routeSite("pastebin.com")).toBe(false);
+    expect(off.status().blockedSites).toEqual([]);
+    const offline = createComputerEgress({ enabled: () => false, docker: () => fake.docker });
+    offline.report(report({ online: false }));
+    expect(await offline.routeSite("pastebin.com")).toBe(false);
+    expect(await createComputerEgress({ enabled: () => false, docker: () => fake.docker }).routeSite("pastebin.com")).toBe(false);
+    const all = createComputerEgress({ enabled: () => true, docker: () => fake.docker });
+    all.report(report());
+    expect(await all.routeSite("pastebin.com")).toBe(false);
+    for (const name of ["localhost", "10.0.0.1", "printer.local", "intranet", ""]) expect(await offline.routeSite(name)).toBe(false);
   });
 });
 

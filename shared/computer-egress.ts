@@ -8,4 +8,8 @@ export interface EgressStatus {
   activeStreams: number;
   relayedStreams: number;
   refusedStreams: number;
+  /** "When a site blocks the cloud": a site that blocked a bot computer's browser goes through the person's computer. */
+  blockedSitesEnabled: boolean;
+  /** The sites that go that way now, for this session. */
+  blockedSites: string[];
 }

@@ -29,14 +29,14 @@ export function RouteTrafficRow() {
 
   if (!status?.available) return null;
 
-  const toggle = async () => {
+  const save = async (change: { enabled: boolean } | { blockedSitesEnabled: boolean }) => {
     setPending(true);
     setError(null);
     try {
       const response = await fetch("/api/computer/egress", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ enabled: !status.enabled }),
+        body: JSON.stringify(change),
       });
       if (!response.ok) throw new Error();
       setStatus(await response.json() as EgressStatus);
@@ -58,8 +58,18 @@ export function RouteTrafficRow() {
         hint={<span aria-live="polite" className={fallback ? "text-warning" : undefined}>{hint}</span>}
         checked={status.enabled}
         disabled={pending}
-        onChange={() => void toggle()}
+        onChange={() => void save({ enabled: !status.enabled })}
       />
+      {typeof status.blockedSitesEnabled === "boolean" && (
+        <SwitchRow
+          data-settings-row="route-blocked-sites"
+          title={inApp ? t("routeTraffic.blockedTitle") : t("routeTraffic.blockedTitleWeb")}
+          hint={t("routeTraffic.blockedHint")}
+          checked={status.blockedSitesEnabled}
+          disabled={pending}
+          onChange={() => void save({ blockedSitesEnabled: !status.blockedSitesEnabled })}
+        />
+      )}
       {error && <NoteRow tone="danger">{error}</NoteRow>}
     </>
   );
