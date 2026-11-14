@@ -1,7 +1,9 @@
 import { useId, useMemo, useState, type ReactNode } from "react";
-import { Download } from "@/icons";
+import { ArrowDown, Check, Download } from "@/icons";
+import { AnimatePresence, EASE_OUT, m, Pill, SPRING, usePill } from "../ui/motion";
 import { Button, cx, Segmented } from "../ui/kit";
 import { Link } from "../lib/router";
+import { PersonLink } from "./sheet";
 import { useAdmin } from "./api";
 import { Avatar, percent, personName, usd } from "./kit";
 import { AdminHeader, Failed, Loading, n, Pager, SearchBox } from "./ui";
@@ -9,7 +11,6 @@ import { DataSwitch } from "./DataSwitch";
 import { Bar, Empty, Panel, size } from "./Ops";
 import type { OpsAccountFlag, OpsAccountRow, OpsAccountsAnswer, OpsAccountsRange, OpsFairStage, OpsLevel } from "./ops-types";
 
-const personLink = (accountId: string) => `/admin/people/visitors?person=${encodeURIComponent(accountId)}`;
 const STAGE: Record<OpsFairStage, { word: string; level: OpsLevel }> = { full: { word: "full speed", level: "ok" }, slowing: { word: "slowing", level: "watch" }, chat: { word: "chat only", level: "bad" } };
 const FLAG: Record<OpsAccountFlag["kind"], { word: string; cls: string; rank: number }> = {
   abuse: { word: "possible abuse", cls: "bg-wash-pink text-ink", rank: 0 },
@@ -70,29 +71,58 @@ const hasFlag = (row: OpsAccountRow, kinds: ReadonlySet<FlagKind>) => !kinds.siz
 const nameOf = (row: OpsAccountRow) => row.accountId ? personName(row.accountId, row.email) : `account ${(row.ref ?? "").slice(0, 8)}`;
 const nextSort = (s: Sort, key: SortKey): Sort => s.key === key ? { key, desc: !s.desc } : { key, desc: true };
 
-const CHIP = "hover-chip inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-13";
 const SORT_CHIPS: Array<{ key: SortKey; label: string }> = [
   { key: "relay", label: "relay gb" }, { key: "share", label: "relay share" }, { key: "cost", label: "cloud cost" }, { key: "awake", label: "cloud hours" }, { key: "emails", label: "emails" }, { key: "codes", label: "codes" },
 ];
-function Chips({ sort, onSort, flags, onFlags }: { sort?: Sort; onSort?(s: Sort): void; flags: ReadonlySet<FlagKind>; onFlags(next: Set<FlagKind>): void }) {
+const DOT: Record<FlagKind, string> = { abuse: "bg-bad", throttled: "bg-warn", check: "bg-accent" };
+/** each flag's account count, for the filter toggles */
+const flagCounts = (rows: OpsAccountRow[]) => Object.fromEntries((Object.keys(FLAG) as FlagKind[]).map((kind) => [kind, rows.filter((row) => row.flags?.some((flag) => flag.kind === kind)).length])) as Record<FlagKind, number>;
+
+/** sort by one measure (a sliding pill, the direction said in words) and show only some flags (toggles with their counts) */
+function Chips({ sort, onSort, flags, onFlags, counts }: { sort?: Sort; onSort?(s: Sort): void; flags: ReadonlySet<FlagKind>; onFlags(next: Set<FlagKind>): void; counts: Record<FlagKind, number> }) {
   const flip = (kind: FlagKind) => { const next = new Set(flags); if (next.has(kind)) next.delete(kind); else next.add(kind); onFlags(next); };
+  const pill = usePill(), sortLabel = useId(), onlyLabel = useId();
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
       {sort && onSort && (
-        <div role="group" aria-label="sort by" className="flex flex-wrap gap-1.5">
-          {SORT_CHIPS.map((chip) => {
-            const on = sort.key === chip.key;
-            return <button key={chip.key} type="button" aria-pressed={on} onClick={() => onSort(nextSort(sort, chip.key))} className={cx(CHIP, on ? "bg-ink text-bg" : "bg-card text-ink-2")}>
-              {chip.label}{on && <span aria-hidden className="text-[10px]">{sort.desc ? "▼" : "▲"}</span>}{on && <span className="sr-only">, {sort.desc ? "most first" : "least first"}</span>}
-            </button>;
-          })}
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
+          <span id={sortLabel} className="text-12 text-ink-3">sort by</span>
+          <div role="radiogroup" aria-labelledby={sortLabel} className="scroll-x inline-flex max-w-full shrink-0 rounded-full bg-card-2 p-1">
+            {SORT_CHIPS.map((chip) => {
+              const on = sort.key === chip.key;
+              return (
+                <button key={chip.key} type="button" role="radio" aria-checked={on} onClick={() => onSort(nextSort(sort, chip.key))}
+                  className={cx("relative inline-flex h-8 shrink-0 items-center gap-1 whitespace-nowrap rounded-full pe-2.5 ps-3 text-13 font-medium transition-colors duration-150 ease-out", on ? "text-ink" : "text-ink-3 hover-link")}>
+                  {on && <Pill id={pill} />}
+                  <span className="relative">{chip.label}</span>
+                  <span aria-hidden className={cx("relative grid size-3.5 place-items-center transition-opacity duration-150 ease-out", on ? "opacity-100" : "opacity-0")}>
+                    <m.span className="grid place-items-center" initial={false} animate={{ rotate: on && !sort.desc ? 180 : 0 }} transition={SPRING}><ArrowDown size={12} strokeWidth={2} /></m.span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <button type="button" onClick={() => onSort({ ...sort, desc: !sort.desc })} aria-label={`order: ${sort.desc ? "most first" : "least first"}. switch to ${sort.desc ? "least" : "most"} first`}
+            className="press hover-ghost inline-flex h-8 w-[92px] shrink-0 items-center justify-center rounded-full text-12 text-ink-2">
+            {sort.desc ? "most first" : "least first"}
+          </button>
         </div>
       )}
-      <div role="group" aria-label="only flagged" className="flex flex-wrap gap-1.5">
-        {(Object.keys(FLAG) as FlagKind[]).map((kind) => {
-          const on = flags.has(kind);
-          return <button key={kind} type="button" aria-pressed={on} onClick={() => flip(kind)} className={cx(CHIP, on ? "bg-ink text-bg" : FLAG[kind].cls)}>{FLAG[kind].word}</button>;
-        })}
+      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
+        <span id={onlyLabel} className="text-12 text-ink-3">show only</span>
+        <div role="group" aria-labelledby={onlyLabel} className="flex flex-wrap gap-1.5">
+          {(Object.keys(FLAG) as FlagKind[]).map((kind) => {
+            const on = flags.has(kind);
+            return (
+              <button key={kind} type="button" aria-pressed={on} onClick={() => flip(kind)}
+                className={cx("press inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full ps-2.5 pe-3 text-13 transition-colors duration-150 ease-out", on ? cx(FLAG[kind].cls, "font-medium") : "hover-chip bg-card text-ink-2")}>
+                <span aria-hidden className="grid size-3.5 place-items-center">{on ? <Check size={13} strokeWidth={2.25} /> : <span className={cx("size-2 rounded-full", DOT[kind])} />}</span>
+                {FLAG[kind].word}
+                <span className={cx("font-mono text-12 num", on ? "text-ink-2" : "text-ink-4")}>{n(counts[kind])}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -117,15 +147,18 @@ function AccountsTable({ rows, sort, onSort, fairUse, label, empty }: { rows: Op
             );
           })}
         </div>
+        <AnimatePresence initial={false} mode="popLayout">
         {rows.length ? rows.map((row) => {
           const name = nameOf(row);
           return (
-            <div key={row.accountId ?? row.ref ?? name} role="row" className={cx(COLS, "relative rounded-[12px] px-2.5 py-2", row.accountId && "hover-row")}>
+            <m.div key={row.accountId ?? row.ref ?? name} role="row" className={cx(COLS, "relative rounded-[12px] px-2.5 py-2", row.accountId && "hover-row")}
+              layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.12, ease: EASE_OUT } }}
+              transition={{ layout: { type: "spring", visualDuration: 0.26, bounce: 0 }, opacity: { duration: 0.18, ease: EASE_OUT } }}>
               <span role="rowheader" className="flex min-w-0 items-center gap-2.5">
                 {row.accountId && <Avatar seed={row.accountId} size={20} customer account={{ id: row.accountId }} />}
                 <span className="min-w-0">
                   {row.accountId
-                    ? <Link to={personLink(row.accountId)} className="block truncate text-13 text-ink after:absolute after:inset-0 after:rounded-[12px]">{name}</Link>
+                    ? <PersonLink id={row.accountId} className="block truncate text-13 text-ink after:absolute after:inset-0 after:rounded-[12px]">{name}</PersonLink>
                     : <span className="block truncate text-13 text-ink">{name}</span>}
                   {row.plan && row.plan !== "none" && <span className="block truncate text-12 text-ink-3">{row.plan}</span>}
                 </span>
@@ -137,9 +170,10 @@ function AccountsTable({ rows, sort, onSort, fairUse, label, empty }: { rows: Op
               <span role="cell" className="text-end font-mono text-13 text-ink-2 num">{num(row.emails)}</span>
               <span role="cell" className="text-end font-mono text-13 text-ink-2 num">{num(row.codes)}</span>
               <span role="cell" className="relative z-[1]"><Flags flags={row.flags} /></span>
-            </div>
+            </m.div>
           );
-        }) : <Empty>{empty}</Empty>}
+        }) : <m.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}><Empty>{empty}</Empty></m.div>}
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -165,7 +199,7 @@ export function TopAccounts() {
       {error && !data && <Empty>accounts can't be read right now: {error.message}</Empty>}
       {!data && !error && <div className="h-[360px] animate-pulse rounded-[12px] bg-card" />}
       {data && <>
-        <div className="px-1.5 pb-2 pt-1"><Chips sort={sort} onSort={setSort} flags={flags} onFlags={setFlags} /></div>
+        <div className="px-1.5 pb-2 pt-1"><Chips sort={sort} onSort={setSort} flags={flags} onFlags={setFlags} counts={flagCounts(data.rows)} /></div>
         <AccountsTable rows={rows.slice(0, TOP)} sort={sort} onSort={setSort} fairUse={data.fairUse} label="top accounts this month"
           empty={flags.size ? "no account has those flags this month." : "nobody has used the relay, a dusk cloud or an email this month."} />
         <div className="flex flex-wrap items-center justify-between gap-3 px-2.5 pb-1.5 pt-2">
@@ -241,7 +275,7 @@ export function AccountsUsagePage() {
           <SearchBox value={q} onChange={reset(setQ)} label="search accounts by email" placeholder="search by email" />
         </div>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-          <Chips flags={flags} onFlags={reset(setFlags)} />
+          {data && <Chips flags={flags} onFlags={reset(setFlags)} counts={flagCounts(data.rows)} />}
           {plans.length > 0 && (
             <div className="flex items-center gap-2">
               <label htmlFor={planId} className="text-13 text-ink-2">plan</label>

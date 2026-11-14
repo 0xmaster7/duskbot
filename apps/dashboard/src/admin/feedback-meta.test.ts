@@ -32,7 +32,7 @@ describe("feedback note meta", () => {
     expect(host.textContent).toContain("google sheets");
     const link = host.querySelector("a");
     expect(link?.textContent).toBe("view person");
-    expect(link?.getAttribute("href")).toContain("/admin/people/visitors?person=acct_1");
+    expect(link?.getAttribute("href")).toContain("?person=acct_1");
     done();
   });
   it("leaves out what the note does not have, and renders nothing when it has none of it", () => {

@@ -4,6 +4,7 @@ import { Button, cx } from "../ui/kit";
 import { m } from "../ui/motion";
 import { ago, compact } from "../lib/format";
 import { Link } from "../lib/router";
+import { PersonLink } from "./sheet";
 import { useNow } from "../lib/now";
 import { toast } from "../lib/toast";
 import { adminCall, useAdmin } from "./api";
@@ -16,7 +17,6 @@ import { OpsSharing } from "./OpsSharing";
 import type { OpsRelayCard } from "./ops-types";
 import type { OpsAnswer, OpsBox, OpsCheck, OpsLevel, OpsMeter, OpsRule, OpsSource, OpsSourceId, OpsSpend } from "./ops-types";
 
-const personLink = (accountId: string) => `/admin/people/visitors?person=${encodeURIComponent(accountId)}`;
 const here = (id: string) => `/admin/ops#${id}`;
 export function size(value: number | null | undefined) {
   if (value === null || value === undefined || !Number.isFinite(value)) return "-";
@@ -119,12 +119,12 @@ export function Person({ accountId, email, fallback, sub }: { accountId: string 
 
 export function PersonRow({ accountId, children }: { accountId: string | null; children: ReactNode }) {
   const cls = "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] px-2.5 py-2";
-  return <li>{accountId ? <Link to={personLink(accountId)} className={cx("hover-row", cls)}>{children}</Link> : <div className={cls}>{children}</div>}</li>;
+  return <li>{accountId ? <PersonLink id={accountId} className={cx("hover-row", cls)}>{children}</PersonLink> : <div className={cls}>{children}</div>}</li>;
 }
 
 const gaugeLevel = (v: number | null): OpsLevel => v === null ? "unknown" : v >= 90 ? "bad" : v >= 75 ? "watch" : "ok";
 
-type Item = { key: string; level: OpsLevel; label: string; why: string; to: string };
+type Item = { key: string; level: OpsLevel; label: string; why: string; to: string; person?: string };
 /** everything that is not ok right now, worst first */
 function attention(data: OpsAnswer): Item[] {
   const items: Item[] = [];
@@ -150,9 +150,12 @@ function attention(data: OpsAnswer): Item[] {
   }
   if (composio?.nearLimit) items.push({ key: "composio", level: "watch", label: "composio", why: `${n(composio.nearLimit)} ${composio.nearLimit === 1 ? "install is" : "installs are"} past 80% of their daily limit`, to: here("ops-spend") });
   for (const source of data.sources) if (source.configured && !source.ok) items.push({ key: `source:${source.id}`, level: "bad", label: source.label, why: source.error ? `collector failing: ${source.error}` : "collector failing, numbers are stale", to: here("ops-sources") });
-  for (const row of instabox.limited) items.push({ key: `limited:${row.cloudId}`, level: row.state === "paused" ? "bad" : "watch", label: personName(row.accountId, row.email), why: `cloud ${row.state}, ${gb(row.egressGb)} out this month`, to: personLink(row.accountId) });
+  for (const row of instabox.limited) items.push({ key: `limited:${row.cloudId}`, level: row.state === "paused" ? "bad" : "watch", label: personName(row.accountId, row.email), why: `cloud ${row.state}, ${gb(row.egressGb)} out this month`, to: "", person: row.accountId });
   return items.sort((a, b) => RANK[a.level] - RANK[b.level]);
 }
+
+const ItemLink = ({ item, className, children }: { item: Item; className: string; children: ReactNode }) =>
+  item.person ? <PersonLink id={item.person} className={className}>{children}</PersonLink> : <Link to={item.to} className={className}>{children}</Link>;
 
 function Summary({ data, items }: { data: OpsAnswer; items: Item[] }) {
   const checks = data.health.checks, ok = checks.filter((check) => check.level === "ok").length;
@@ -169,7 +172,7 @@ function Summary({ data, items }: { data: OpsAnswer; items: Item[] }) {
           <ul>
             {items.map((item) => (
               <li key={item.key}>
-                <Link to={item.to} className="hover-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] px-2.5 py-2">
+                <ItemLink item={item} className="hover-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] px-2.5 py-2">
                   <span className="flex min-w-0 items-baseline gap-2.5">
                     <span className="translate-y-[-1px]"><Dot level={item.level} /></span>
                     <span className="min-w-0">
@@ -178,7 +181,7 @@ function Summary({ data, items }: { data: OpsAnswer; items: Item[] }) {
                     </span>
                   </span>
                   <span className={cx("text-12", item.level === "bad" ? "text-bad" : "text-ink-3")}>{item.level === "bad" ? "bad" : "watch"}</span>
-                </Link>
+                </ItemLink>
               </li>
             ))}
           </ul>

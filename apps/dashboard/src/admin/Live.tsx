@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Segmented, cx } from "../ui/kit";
 import { ago } from "../lib/format";
-import { Link } from "../lib/router";
+import { PersonLink } from "./sheet";
 import { useNow } from "../lib/now";
 import { Mascot, type MascotHandle } from "../ui/Mascot";
 import { AnimatePresence, m } from "../ui/motion";
@@ -86,14 +86,14 @@ export function LivePage() {
                 <AnimatePresence initial={false}>
                   {feed.slice(0, 80).map((item) => (
                     <m.li key={item.id} layout="position" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ layout: { type: "spring", visualDuration: 0.3, bounce: 0 }, opacity: { duration: 0.2 } }}>
-                      <Link to={`/admin/people/visitors?person=${encodeURIComponent(item.seed)}`} className={cx("hover-row flex items-center gap-3 rounded-[14px] px-2 py-2", selected === item.seed && "bg-card-2", BIG.has(item.name) && "bg-lime")}>
+                      <PersonLink id={item.seed} className={cx("hover-row flex items-center gap-3 rounded-[14px] px-2 py-2", selected === item.seed && "bg-card-2", BIG.has(item.name) && "bg-lime")}>
                         <Avatar seed={item.seed} size={24} customer={item.customer} />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-13 text-ink"><span className="font-medium">{item.email ?? friendlyName(item.seed)}</span> {(SAYS[item.name] ?? (() => item.name))(item)}</span>
                           <span className="block truncate text-12 text-ink-3">{[place(item), item.source && item.source !== "direct" ? `from ${item.source}` : null].filter(Boolean).join(" · ") || " "}</span>
                         </span>
                         <span className="shrink-0 text-12 text-ink-3">{ago(item.at, now)}</span>
-                      </Link>
+                      </PersonLink>
                     </m.li>
                   ))}
                 </AnimatePresence>

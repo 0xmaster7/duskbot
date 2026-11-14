@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useId, useRef, useState, type MouseEvent, type MutableRefObject, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { ArrowUpRight, Check, Copy, X } from "@/icons";
+import { ArrowUpRight, Check, Copy } from "@/icons";
 import { Button, cx, Segmented } from "../ui/kit";
-import { AnimatePresence, EASE_OUT, GLIDE, m } from "../ui/motion";
+import { AnimatePresence, m } from "../ui/motion";
 import { ago } from "../lib/format";
-import { Link, useLocation, withBase } from "../lib/router";
+import { Link, useLocation } from "../lib/router";
+import { CardLink, closeCard, SidePanel } from "./sheet";
 import { useNow } from "../lib/now";
 import { toast } from "../lib/toast";
 import { AdminApiError, adminCall, useAdmin, type PlanChange, type PlanPreview, type PlanSubscription, type UserDetail } from "./api";
@@ -15,7 +16,7 @@ import type { MoneyMode } from "./revenue-types";
 
 const DAY = 86_400_000;
 const LIVE = ["active", "payment_problem", "cancelled"];
-const PARAM = "customer";
+const PARAM = "customer" as const;
 const isoDay = (t: number) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 const shortDay = (t: number) => new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", ...(new Date(t).getFullYear() !== new Date().getFullYear() ? { year: "numeric" } : {}) }).toLowerCase();
 const endOfDay = (value: string) => new Date(`${value}T23:59:59`).getTime();
@@ -24,35 +25,8 @@ const AUDIT: Record<string, string> = { "plan.interval": "billing period", "plan
   "plan.cancel_now": "ended now", "plan.cancel_at_end": "set to end", "plan.keep": "kept going", "person.note": "note", "user.view": "viewed" };
 const addMonths = (t: number, months: number) => { const d = new Date(t); d.setMonth(d.getMonth() + months); return d.getTime(); };
 
-/** the page's own url with the customer card open on someone, so the link can be shared */
-export function customerHref(accountId: string) {
-  const url = new URL(window.location.href);
-  url.searchParams.set(PARAM, accountId);
-  return url.pathname + url.search;
-}
-const notify = () => window.dispatchEvent(new PopStateEvent("popstate"));
-/** opens the card in place: a history entry of its own, so back closes it, and no scroll jump */
-export function openCustomer(accountId: string) {
-  window.history.pushState({ customerCard: true }, "", customerHref(accountId));
-  notify();
-}
-function closeCustomer() {
-  if ((window.history.state as { customerCard?: boolean } | null)?.customerCard) { window.history.back(); return; }
-  const url = new URL(window.location.href);
-  url.searchParams.delete(PARAM);
-  window.history.replaceState(null, "", url.pathname + url.search);
-  notify();
-}
-
-/** a row that opens the customer card here; a new tab or window still gets the shareable url */
-export function CustomerLink({ accountId, className, children }: { accountId: string; className?: string; children: ReactNode }) {
-  const go = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    event.preventDefault();
-    openCustomer(accountId);
-  };
-  return <a href={withBase(customerHref(accountId))} onClick={go} className={className}>{children}</a>;
-}
+/** a row that opens the customer card here */
+export const CustomerLink = ({ accountId, ...rest }: { accountId: string; className?: string; children: ReactNode }) => <CardLink param="customer" id={accountId} {...rest} />;
 
 /** test money gets a small chip wherever it shows; live money needs none */
 export function ModeChip({ mode, live }: { mode: MoneyMode | undefined; live?: boolean }) {
@@ -69,45 +43,16 @@ export function CustomerSheetHost() {
 }
 
 function Sheet({ id }: { id: string }) {
-  const panel = useRef<HTMLDivElement>(null);
   const titleId = useId();
-  // a confirm step in progress takes escape first, so escape never skips past it
   const pending = useRef<(() => void) | null>(null);
-  const close = useCallback(() => closeCustomer(), []);
-  useEffect(() => {
-    const back = document.activeElement as HTMLElement | null;
-    panel.current?.querySelector<HTMLElement>("[data-close]")?.focus();
-    const key = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { e.preventDefault(); if (pending.current) pending.current(); else close(); return; }
-      if (e.key !== "Tab" || !panel.current) return;
-      const items = [...panel.current.querySelectorAll<HTMLElement>("button:not(:disabled), input, select, textarea, a[href]")];
-      if (!items.length) return;
-      const [a, z] = [items[0]!, items[items.length - 1]!];
-      if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); }
-      else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); }
-    };
-    document.addEventListener("keydown", key);
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.removeEventListener("keydown", key); document.body.style.overflow = overflow; back?.focus({ preventScroll: true }); };
-  }, [close]);
+  const close = useCallback(() => closeCard(PARAM), []);
   const { data, error, reload, setData } = useAdmin<UserDetail>(`/users/${encodeURIComponent(id)}`);
   return (
-    <div className="fixed inset-0 z-50">
-      <m.div className="absolute inset-0" style={{ background: "var(--scrim)" }} onClick={close} aria-hidden initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2, ease: EASE_OUT }} />
-      <m.div ref={panel} role="dialog" aria-modal="true" aria-labelledby={titleId}
-        className="absolute inset-y-0 right-0 flex w-[min(540px,100vw)] flex-col overflow-y-auto overscroll-contain rounded-s-[28px] bg-pop px-6 pb-8 pt-5 max-sm:rounded-none max-sm:px-4"
-        style={{ boxShadow: "var(--pop-shadow)" }}
-        initial={{ x: 48, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 48, opacity: 0, transition: { duration: 0.16, ease: EASE_OUT } }} transition={GLIDE}>
-        <div className="flex items-center justify-between gap-3">
-          <span className="t-meta">customer</span>
-          <button data-close type="button" onClick={close} aria-label="close" className="press hover-ghost -me-2 grid size-11 shrink-0 place-items-center rounded-full text-ink-3"><X size={18} strokeWidth={1.5} /></button>
-        </div>
-        {error && <div className="mt-4"><Failed error={error.status === 404 ? { message: "this account is gone. its payments stay in the revenue numbers." } : error} retry={reload} /></div>}
-        {!data && !error && <div className="mt-4"><Loading rows={6} /></div>}
-        {data && <Body detail={data} titleId={titleId} onChange={setData} pending={pending} />}
-      </m.div>
-    </div>
+    <SidePanel label="customer" titleId={titleId} onClose={close} pending={pending}>
+      {error && <div className="mt-4"><Failed error={error.status === 404 ? { message: "this account is gone. its payments stay in the revenue numbers." } : error} retry={reload} /></div>}
+      {!data && !error && <div className="mt-4"><Loading rows={6} /></div>}
+      {data && <Body detail={data} titleId={titleId} onChange={setData} pending={pending} />}
+    </SidePanel>
   );
 }
 

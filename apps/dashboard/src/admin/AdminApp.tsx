@@ -8,11 +8,11 @@ import { Link, navigate, useLocation } from "../lib/router";
 import { useToasts } from "../lib/toast";
 import mark from "../../favicon.svg";
 import { useAdmin } from "./api";
-import { DataSwitch, TestSwitch } from "./DataSwitch";
+import { DataSwitch, MoneySwitch, StagingTag, TestSwitch } from "./DataSwitch";
 import { OverviewPage } from "./Overview";
 import { DetailsPage } from "./Details";
 import { RetentionPage } from "./Retention";
-import { PeoplePage } from "./People";
+import { PeoplePage, PersonSheetHost } from "./People";
 import { LivePage } from "./Live";
 import { ProductPage } from "./Product";
 import { RevenuePage } from "./RevenuePage";
@@ -202,6 +202,7 @@ export function AdminApp() {
           {me.data?.live && <DataSwitch live={me.data.live} />}
           {me.data && <span className="truncate px-2 text-12 text-ink-3" title={me.data.email}>{me.data.email}</span>}
           {me.data && <span className="t-meta px-2 !text-[11.5px]">{me.data.environment} · {me.data.version ?? "dev"}</span>}
+          {me.data && <MoneySwitch />}
           {me.data && <TestSwitch />}
           <button type="button" onClick={() => setTheme(dark ? "light" : "dark")} className="hover-ghost flex h-9 items-center gap-2 rounded-full px-2 text-13 text-ink-3 max-lg:h-11">{dark ? <Sun size={15} strokeWidth={1.75} aria-hidden /> : <Moon size={15} strokeWidth={1.75} aria-hidden />}{dark ? "light mode" : "dark mode"}</button>
           <Link to="/" className="hover-ghost flex h-9 items-center gap-2 rounded-full px-2 text-13 text-ink-3 max-lg:h-11"><ArrowUpRight size={15} strokeWidth={1.75} aria-hidden /> app</Link>
@@ -237,6 +238,7 @@ export function AdminApp() {
       </AnimatePresence>
       <main id="admin-main" className="lg:ps-[232px]">
         <PageIn key={path} id={path} className="mx-auto w-full max-w-[1320px] px-10 pb-24 pt-10 max-lg:px-5 max-lg:pt-6 max-sm:px-4">
+          {me.data && <StagingTag environment={me.data.environment} live={me.data.live} />}
           {me.data ? page(path) : <Loading rows={8} />}
         </PageIn>
       </main>
@@ -248,6 +250,7 @@ export function AdminApp() {
         </ul>
       </Modal>
       {me.data && <CustomerSheetHost />}
+      {me.data && <PersonSheetHost />}
       <Toasts />
     </div>
   );

@@ -1,8 +1,10 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { ArrowUpRight } from "@/icons";
 import { Segmented, cx } from "../ui/kit";
-import { Modal } from "../ui/controls";
 import { ago } from "../lib/format";
-import { Link, navigate, useLocation } from "../lib/router";
+import { Link, useLocation } from "../lib/router";
+import { closeCard, PersonLink, SidePanel } from "./sheet";
 import { useNow } from "../lib/now";
 import { useAdmin } from "./api";
 import { AdminHeader, Failed, Loading, n, SearchBox, stamp } from "./ui";
@@ -37,7 +39,6 @@ const FILTERS = [{ value: "all", label: "everyone" }, { value: "signups", label:
 type Only = (typeof FILTERS)[number]["value"];
 
 export function PeoplePage({ tabs }: { tabs?: ReactNode }) {
-  const { query } = useLocation();
   const [range, setRange] = useState<Range>(() => rangeOf("30d"));
   const [only, setOnly] = useState<Only>("all");
   const [q, setQ] = useState("");
@@ -45,7 +46,6 @@ export function PeoplePage({ tabs }: { tabs?: ReactNode }) {
   useEffect(() => { const t = setTimeout(() => setSearch(q.trim().toLowerCase()), 220); return () => clearTimeout(t); }, [q]);
   const { data, error, loading, reload } = useAdmin<{ total: number; people: Person[] }>(`/journeys?from=${range.from}&to=${range.to}&only=${only}&q=${encodeURIComponent(search)}`);
   const now = useNow(60_000);
-  const open = query.get("person");
   return (
     <>
       <AdminHeader title="people" sub={data ? `${n(data.total)} in this window` : "visitors and accounts, from first visit to first bot reply"} action={<RangePicker value={range} onChange={setRange} />} tabs={tabs} />
@@ -59,7 +59,7 @@ export function PeoplePage({ tabs }: { tabs?: ReactNode }) {
         <ul className={cx("", loading && "opacity-70")}>
           {data.people.map((person) => (
             <li key={person.id}>
-              <Link to={`/admin/people/visitors?person=${encodeURIComponent(person.id)}`} className="hover-row -mx-3 grid grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_110px] items-center gap-4 rounded-[16px] px-3 py-3 max-md:grid-cols-[minmax(0,1fr)_auto]">
+              <PersonLink id={person.id} className="hover-row -mx-3 grid grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_110px] items-center gap-4 rounded-[16px] px-3 py-3 max-md:grid-cols-[minmax(0,1fr)_auto]">
                 <span className="flex min-w-0 items-center gap-3">
                   <Avatar seed={person.seed} customer={person.customer} account={person.account} />
                   <span className="min-w-0">
@@ -78,12 +78,11 @@ export function PeoplePage({ tabs }: { tabs?: ReactNode }) {
                 <span className="min-w-0 max-md:hidden"><span className="block truncate text-14 text-ink-2">{person.source === "direct" ? "direct" : person.source}</span>{person.campaign && <span className="block truncate text-12 text-ink-3">{person.campaign}</span>}</span>
                 <span className="text-13 text-ink-3 max-md:hidden">{person.timeToSignupMs !== null ? <>signed up after <span className="text-ink">{duration(person.timeToSignupMs)}</span></> : `${n(person.visits)} visit${person.visits === 1 ? "" : "s"}, ${n(person.pageviews)} page${person.pageviews === 1 ? "" : "s"}`}</span>
                 <span className="text-end text-13 text-ink-3">{ago(person.lastSeen, now)}</span>
-              </Link>
+              </PersonLink>
             </li>
           ))}
         </ul>
       ) : <p className="rounded-[18px] bg-card px-4 py-6 text-center text-14 text-ink-3">{search ? `no one matches "${search}".` : "no one in this window yet."}</p>)}
-      <AnimatePresence>{open && <ProfileDialog key="profile" id={open} onClose={() => navigate("/admin/people/visitors", { replace: true })} />}</AnimatePresence>
     </>
   );
 }
@@ -159,23 +158,35 @@ function Stat({ label, value, note, money }: { label: string; value: ReactNode; 
   );
 }
 
-function ProfileDialog({ id, onClose }: { id: string; onClose(): void }) {
+/** the person card, on whatever admin page carries ?person= */
+export function PersonSheetHost() {
+  const { query } = useLocation();
+  const id = query.get("person");
+  return createPortal(<AnimatePresence>{id && <PersonSheet key={id} id={id} />}</AnimatePresence>, document.body);
+}
+
+function PersonSheet({ id }: { id: string }) {
+  const titleId = useId();
+  const close = useCallback(() => closeCard("person"), []);
+  return <SidePanel label="person" titleId={titleId} onClose={close} wide><PersonCard id={id} titleId={titleId} /></SidePanel>;
+}
+
+function PersonCard({ id, titleId }: { id: string; titleId: string }) {
+  const { path } = useLocation();
   const { data, error, reload } = useAdmin<Profile>(`/journeys/${encodeURIComponent(id)}`);
-  const name = data ? personName(data.seed, data.account?.email) : "loading";
   const first = data?.firstSource;
   const place = data?.where;
+  if (error) return <div className="mt-4"><h2 id={titleId} className="sr-only">person</h2><Failed error={error} retry={reload} /></div>;
+  if (!data || !place) return <div className="mt-4"><h2 id={titleId} className="sr-only">loading</h2><Loading rows={5} /></div>;
   return (
-    <Modal open onClose={onClose} title={name} wide="xl">
-      {error && <Failed error={error} retry={reload} />}
-      {!data && !error && <Loading rows={5} />}
-      {data && place && (
-        <div className="text-ink-2">
-          <div className="flex items-center gap-3">
-            <Avatar seed={data.seed} size={44} customer={data.customer} account={data.account} />
+        <div className="text-14 leading-[1.55] text-ink-2">
+          <div className="mt-2 flex items-center gap-3.5">
+            <Avatar seed={data.seed} size={48} customer={data.customer} account={data.account} />
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-1.5">
+              <h2 id={titleId} className="truncate text-20 font-medium tracking-[-0.03em] text-ink">{personName(data.seed, data.account?.email)}</h2>
+              <div className="mt-1 flex flex-wrap items-center gap-1.5">
                 {data.customer && <span className="inline-flex h-6 items-center rounded-full bg-coral-soft px-2.5 text-12 text-coral-deep">customer</span>}
-                {data.account ? <Link to={`/admin/users/${encodeURIComponent(data.account.id)}`} className="tag">account</Link> : <span className="tag">anonymous</span>}
+                {data.account ? <span className="tag">account</span> : <span className="tag">anonymous</span>}
                 {data.account?.name && <span className="text-13 text-ink-3">{data.account.name}</span>}
                 {data.installs > 0 && <span className="tag">{data.installs} app install{data.installs === 1 ? "" : "s"}</span>}
               </div>
@@ -196,7 +207,7 @@ function ProfileDialog({ id, onClose }: { id: string; onClose(): void }) {
             <Stat label="time to first payment" value={data.stats.timeToPayMs !== null ? duration(data.stats.timeToPayMs) : "-"} note={data.stats.firstPaidAt ? `paid ${day(data.stats.firstPaidAt)}` : "not paid yet"} />
           </div>
           {data.billing && <BillingCard billing={data.billing} />}
-          <div className="mt-5 max-h-[52dvh] overflow-y-auto pe-1">
+          <div className="mt-5">
             {data.sessions.map((session) => {
               const label = sessionLabel(session);
               return (
@@ -222,8 +233,10 @@ function ProfileDialog({ id, onClose }: { id: string; onClose(): void }) {
             {!data.sessions.length && <p className="text-13">nothing recorded.</p>}
           </div>
           <p className="mt-3 text-12 text-ink-4">since {stamp(data.stats.firstSeen ?? data.account?.createdAt ?? null)}. a person's site visits join their account when they sign in on the same domain; app use joins when the app signs in. a new session starts after 30 quiet minutes.</p>
+          <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-13">
+            {data.account && <Link to={`/admin/users/${encodeURIComponent(data.account.id)}`} className="text-link inline-flex items-center gap-1.5">full account page <ArrowUpRight size={14} strokeWidth={1.75} aria-hidden /></Link>}
+            {path !== "/admin/people/visitors" && <Link to={`/admin/people/visitors?person=${encodeURIComponent(id)}`} className="text-link inline-flex items-center gap-1.5">open in people <ArrowUpRight size={14} strokeWidth={1.75} aria-hidden /></Link>}
+          </div>
         </div>
-      )}
-    </Modal>
   );
 }

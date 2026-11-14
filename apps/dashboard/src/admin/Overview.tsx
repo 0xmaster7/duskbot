@@ -6,6 +6,7 @@ import { AnimatePresence, m, Pill, SwapText, usePill, useSlots } from "../ui/mot
 import { Figure } from "../ui/Figure";
 import { ago } from "../lib/format";
 import { Link } from "../lib/router";
+import { PersonLink } from "./sheet";
 import { useNow } from "../lib/now";
 import { adminCall, useAdmin, type Overview } from "./api";
 import { avatarOf } from "./names";
@@ -163,7 +164,7 @@ function PeopleCard({ range, data, filters }: { range: Range; data: WebAnswer; f
               <AnimatePresence initial={false} mode="popLayout">
               {list.map((p, index) => (
                 <m.li key={slots[index]} layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.1 } }}>
-                  <Link to={p.account ? `/admin/users/${encodeURIComponent(p.account.id)}` : `/admin/people/visitors?person=${encodeURIComponent(p.id)}`} className="hover-row grid grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,1fr)_96px] items-center gap-4 rounded-[12px] px-3 py-2.5 max-md:grid-cols-[minmax(0,1fr)_auto]">
+                  <PersonLink id={p.id} className="hover-row grid grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,1fr)_96px] items-center gap-4 rounded-[12px] px-3 py-2.5 max-md:grid-cols-[minmax(0,1fr)_auto]">
                     <span className="flex min-w-0 items-center gap-3">
                       <Avatar seed={p.seed} size={26} customer={p.customer} />
                       <span className="min-w-0">
@@ -175,7 +176,7 @@ function PeopleCard({ range, data, filters }: { range: Range; data: WebAnswer; f
                     <span className="max-md:hidden"><VisitDots count={p.visits} /></span>
                     <span className="text-13 text-ink-2 max-md:hidden">{p.timeToSignupMs !== null ? duration(p.timeToSignupMs) : <span className="text-ink-4">not yet</span>}</span>
                     <span className="text-end text-12 text-ink-3">{ago(p.lastSeen, now)}</span>
-                  </Link>
+                  </PersonLink>
                 </m.li>
               ))}
               </AnimatePresence>

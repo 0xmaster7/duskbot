@@ -3,7 +3,7 @@ import { Award, CreditCard, Crown, Heart, Lock, PartyPopper, Star, Users, X } fr
 import { cx } from "../ui/kit";
 import { SkyEmpty } from "../ui/Sky";
 import { ago } from "../lib/format";
-import { Link } from "../lib/router";
+import { PersonLink } from "./sheet";
 import { useNow } from "../lib/now";
 import { countryName } from "./geo";
 import { Avatar, duration, personName, usd, type Mark } from "./kit";
@@ -50,7 +50,7 @@ export function PaymentsCard({ revenue }: { revenue: RevenueAnswer }) {
               const waited = p.firstSeen !== null && p.kind !== "refund" && p.kind !== "renewal" ? Math.max(0, p.at - p.firstSeen) : null;
               return (
                 <li key={p.id}>
-                  <Link to={`/admin/people/visitors?person=${encodeURIComponent(p.accountId)}`} className="hover-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] px-2.5 py-2.5">
+                  <PersonLink id={p.accountId} className="hover-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] px-2.5 py-2.5">
                     <span className="flex min-w-0 items-center gap-3">
                       <Avatar seed={p.seed} size={24} customer={p.kind !== "refund"} />
                       <span className="min-w-0">
@@ -67,7 +67,7 @@ export function PaymentsCard({ revenue }: { revenue: RevenueAnswer }) {
                       <span className={cx("block font-mono text-14 font-medium num text-money")}>{p.amountCents > 0 ? "+" : ""}{usd(p.amountCents)}</span>
                       <span className="block text-12 text-ink-4">{ago(p.at, now)}</span>
                     </span>
-                  </Link>
+                  </PersonLink>
                 </li>
               );
             })}

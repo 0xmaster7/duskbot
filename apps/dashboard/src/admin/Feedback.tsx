@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ago } from "../lib/format";
-import { Link } from "../lib/router";
+import { PersonLink } from "./sheet";
 import { Button, cx } from "../ui/kit";
 import { adminCall, useAdmin } from "./api";
 import { AdminHeader, Failed, Loading, Section, n, stamp } from "./ui";
@@ -21,7 +21,6 @@ const KIND_TAG: Record<Kind, { label: string; wash: string }> = {
 };
 const SIGNAL: Record<string, string> = { thumbs_down: "thumbs down", stopped: "stopped it", retried: "asked again", failed: "turns failed", corrective: "corrected it", shouting: "shouted", swearing: "swore" };
 const SHOWN_TOOLS = 4;
-const personLink = (id: string) => `/admin/people/visitors?person=${encodeURIComponent(id)}`;
 
 /** what a note came with besides its words: the session's size and what the person did, in plain words */
 export function facts(note: Note): string {
@@ -51,7 +50,7 @@ export function NoteMeta({ note }: { note: Note }) {
       {ran && <span className={CHIP}>{ran}</span>}
       {shown.map((name) => <span key={name} className={CHIP}>{name}</span>)}
       {more > 0 && <span className={cx(CHIP, "text-ink-3")}>+{more}</span>}
-      {note.person && <Link to={personLink(note.person)} className="hover-chip ml-auto inline-flex h-6 items-center rounded-full px-2.5 text-12 text-ink-2 hover:text-ink">view person</Link>}
+      {note.person && <PersonLink id={note.person} className="hover-chip ml-auto inline-flex h-6 items-center rounded-full px-2.5 text-12 text-ink-2 hover:text-ink">view person</PersonLink>}
     </div>
   );
 }

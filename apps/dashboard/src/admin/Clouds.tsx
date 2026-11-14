@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Segmented } from "../ui/kit";
 import { Nil, RowMenu, Table, Td, Th } from "../ui/table";
 import { ago, duration } from "../lib/format";
-import { Link } from "../lib/router";
+import { PersonLink } from "./sheet";
 import { useNow } from "../lib/now";
 import { toast } from "../lib/toast";
 import { adminCall, useAdmin, type CloudRow } from "./api";
@@ -29,7 +29,7 @@ export function CloudTable({ clouds, onChanged, owner = true }: { clouds: CloudR
           {clouds.map((c) => (
             <tr key={c.id} className="hover-row">
               <Td className="max-w-[240px]"><span className="block truncate text-14 text-ink">{c.name}</span><span className="t-id block truncate !text-[12px] text-ink-3">{c.id}</span></Td>
-              {owner && <Td className="max-w-[220px]">{c.owner ? <Link to={`/admin/users/${encodeURIComponent(c.accountId)}`} className="text-link block truncate text-13">{c.owner}</Link> : <span className="text-13 text-ink-4">deleted account</span>}</Td>}
+              {owner && <Td className="max-w-[220px]">{c.owner ? <PersonLink id={c.accountId} className="text-link block truncate text-13">{c.owner}</PersonLink> : <span className="text-13 text-ink-4">deleted account</span>}</Td>}
               <Td><Status value={c.suspended ? "suspended" : c.status} label={c.suspended ? "suspended" : `${c.status.replace(/_/g, " ")}${c.setupStep && c.status === "provisioning" ? `, ${c.setupStep}` : ""}`} />{c.error && <span className="mt-0.5 block max-w-[220px] truncate text-12 text-bad" title={c.error}>{c.error}</span>}</Td>
               <Td className="whitespace-nowrap text-13 text-ink-2">{c.plan}{c.backend ? " · managed" : ""}<span className="block text-12 text-ink-3 num">{c.spec.vcpu} vcpu · {c.spec.ramGb} gb · {c.spec.diskGb} gb</span>{c.egress && <span className="block text-12 text-ink-3 num" title="internet upload this month">{(c.egress.bytes / 1e9).toFixed(1)} gb out{c.egress.state !== "ok" && <span className="text-warn"> · {c.egress.state}</span>}</span>}</Td>
               <Td className="whitespace-nowrap text-13 text-ink-2">{c.regionLabel}</Td>
