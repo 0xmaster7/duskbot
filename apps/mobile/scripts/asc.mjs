@@ -7,7 +7,7 @@
 // Reads APPLE_API_KEY_ID, APPLE_API_ISSUER, APPLE_API_KEY_PATH from the environment, else ~/.config/duskbot/dusk.env.
 // Never prints the key or the token.
 import { createPrivateKey, sign } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -75,7 +75,39 @@ async function testflight(emails) {
   }
 }
 
+async function bundleIdRecord() {
+  const { data } = await call("GET", `/v1/bundleIds?filter[identifier]=${BUNDLE_ID}&limit=5`);
+  const one = data.find((b) => b.attributes.identifier === BUNDLE_ID);
+  if (!one) throw new Error(`no App ID ${BUNDLE_ID} in the developer account`);
+  return one;
+}
+
+/** uploads a CSR for an Apple Distribution certificate and writes the certificate (DER) */
+async function distCert(csrPath, outPath) {
+  const csrContent = readFileSync(csrPath, "utf8").replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
+  const { data } = await call("POST", "/v1/certificates", { data: { type: "certificates", attributes: { certificateType: "DISTRIBUTION", csrContent } } });
+  writeFileSync(outPath, Buffer.from(data.attributes.certificateContent, "base64"), { mode: 0o600 });
+  console.log(`certificate ${data.id}: ${data.attributes.name}, expires ${data.attributes.expirationDate}, written to ${outPath}`);
+}
+
+/** makes (or remakes) the App Store profile for the app with one certificate and writes it */
+async function storeProfile(certId, outPath, name = "dusk bot App Store") {
+  const bundle = await bundleIdRecord();
+  const { data: existing } = await call("GET", `/v1/profiles?filter[name]=${encodeURIComponent(name)}&limit=10`);
+  for (const old of existing) await call("DELETE", `/v1/profiles/${old.id}`).then(() => console.log(`removed the old profile ${old.id}`));
+  const { data } = await call("POST", "/v1/profiles", { data: { type: "profiles", attributes: { name, profileType: "IOS_APP_STORE" }, relationships: {
+    bundleId: { data: { type: "bundleIds", id: bundle.id } }, certificates: { data: [{ type: "certificates", id: certId }] } } } });
+  writeFileSync(outPath, Buffer.from(data.attributes.profileContent, "base64"), { mode: 0o600 });
+  console.log(`profile ${data.id} "${data.attributes.name}" (${data.attributes.uuid}), expires ${data.attributes.expirationDate}, written to ${outPath}`);
+}
+
 const [verb, ...rest] = process.argv.slice(2);
-const run = { status: () => status(), testflight: () => testflight(rest) }[verb];
-if (!run) { console.error("usage: node apps/mobile/scripts/asc.mjs status | testflight [email...]"); process.exit(2); }
+const run = {
+  status: () => status(),
+  testflight: () => testflight(rest),
+  get: async () => console.log(JSON.stringify(await call("GET", rest[0]), null, 1)),
+  "dist-cert": () => distCert(rest[0], rest[1]),
+  "store-profile": () => storeProfile(rest[0], rest[1], rest[2]),
+}[verb];
+if (!run) { console.error("usage: node apps/mobile/scripts/asc.mjs status | testflight [email...] | get <path> | dist-cert <csr> <out.cer> | store-profile <certId> <out.mobileprovision> [name]"); process.exit(2); }
 run().catch((error) => { console.error(`error: ${error.message}`); process.exit(1); });
