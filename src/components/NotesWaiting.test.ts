@@ -92,11 +92,28 @@ describe("the notes card above the message box", () => {
     expect(card(), "and the waiting is over").toBeNull();
   });
 
+  it("notes pasted in another bot's chat: that bot says it got them, works through them and posts the summary; memory stays the first bot's", async () => {
+    f.api.mockImplementation(async (path: string) => (path.includes("/memory/file?") ? { text: "" } : { message: {} }));
+    await show("atlas");
+    let work: unknown = null;
+    f.api.mockImplementation(async (path: string, init?: { method?: string }) => {
+      if (path.endsWith("/memory/file") && init?.method === "PUT") work = notesWork();
+      return path.includes("/memory/file?") ? { text: "" } : { message: {} };
+    });
+    await act(async () => take!(NOTES, undefined, "paste", "atlas"));
+    await settle();
+    const notes = f.api.mock.calls.filter(([path]) => String(path).endsWith("/import-note")).map(([path]) => path);
+    expect(notes).toEqual(["/api/bots/atlas/import-note", "/api/bots/atlas/import-note"]);
+    expect(work, "the working row is Atlas's").toMatchObject({ botId: "atlas" });
+    expect(f.api).toHaveBeenCalledWith("/api/bots/maus/memory/file", expect.objectContaining({ method: "PUT" }));
+    expect(card()?.dataset.notesArrived).toBe("paste");
+  });
+
   it("a paste in another bot's chat says so there; the prompt pasted by mistake says what to do, longer", async () => {
     f.state = { ...f.state, selectedId: "atlas" };
     f.api.mockResolvedValue({});
     await show("atlas");
-    await act(async () => take!("I'm moving to a new assistant\nfrom: <name of this app, e.g. ChatGPT>\nformat: dusk-bot-notes", undefined, "paste"));
+    await act(async () => take!("I'm moving to a new assistant\nfrom: <name of this app, e.g. ChatGPT>\nformat: dusk-bot-notes", undefined, "paste", "atlas"));
     expect(card()?.dataset.notesArrived).toBe("failed");
     expect(card()?.textContent).toMatch(/^That's the prompt itself/);
     await act(async () => { vi.advanceTimersByTime(ARRIVAL_SHOWN_MS); });

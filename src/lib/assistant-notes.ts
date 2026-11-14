@@ -150,6 +150,9 @@ export interface NotesContext {
   team: boolean;
   /** The first bot, whose memory keeps what the other AI remembered. */
   firstBotId: string | null;
+  /** The bot whose chat the notes were pasted or dropped into: it says it got them, works through them on its working
+   * row and posts the summary. None (Downloads, a screen of its own): the first bot does. */
+  chatBotId?: string | null;
   dispatch: (action: Action) => void;
 }
 
@@ -294,18 +297,18 @@ async function joinMovedBots(notes: AssistantNotes, bots: readonly Bot[], movedN
 export async function importNotes(text: string, context: NotesContext, options: { via?: NotesVia } = {}): Promise<NotesOutcome> {
   const parsed = parseNotes(text);
   // read: the first bot says it got them in its chat, and its working row shows each step until the summary
-  const worker = context.firstBotId;
+  const worker = context.chatBotId || context.firstBotId;
   const step = (label: string) => { if (worker) setNotesWork(worker, label); };
   step(t("composer.notes.row.reading", { from: parsed.from.name }));
   if (worker) await postImportNote(worker, { from: [parsed.from.name], start: true });
   try {
-    return await bringNotesIn(parsed, context, options, step);
+    return await bringNotesIn(parsed, context, options, step, worker);
   } finally {
     if (worker) setNotesWork(worker, null);
   }
 }
 
-async function bringNotesIn(parsed: AssistantNotes, context: NotesContext, options: { via?: NotesVia }, step: (label: string) => void): Promise<NotesOutcome> {
+async function bringNotesIn(parsed: AssistantNotes, context: NotesContext, options: { via?: NotesVia }, step: (label: string) => void, worker: string | null): Promise<NotesOutcome> {
   // the rules pass: noise and near-repeats out; another AI's own notes are already chosen, so the caps are wider
   const seen = aboutLines(context.aboutMe);
   const memories = distillLines(parsed.memories, { cap: NOTES_MEMORY_CAP, seen: [...seen] });
@@ -350,7 +353,7 @@ async function bringNotesIn(parsed: AssistantNotes, context: NotesContext, optio
   }
   const came = outcome.facts || outcome.memories || outcome.threads || outcome.bots || outcome.joined || outcome.routines || outcome.skills;
   if (came || !(outcome.failed.length || outcome.lost!.length)) stopWaiting();
-  if (came && context.firstBotId) await postImportNote(context.firstBotId, { ...notesNoteFacts(outcome), ...(options.via === "downloads" ? { via: "downloads" as const } : {}) });
+  if (came && worker) await postImportNote(worker, { ...notesNoteFacts(outcome), ...(options.via === "downloads" ? { via: "downloads" as const } : {}) });
   return outcome;
 }
 

@@ -153,8 +153,17 @@ describe("bringing in what other AIs and agent apps hold, on a real server", () 
     expect(await aboutMe()).toMatch(/penicillin/);
   }, 120_000);
 
-  it("Gemini's answer: Gems become bots, its monthly scheduled action a paused routine", async () => {
-    const outcome = await importNotes(exported("gemini.md"), await context());
+  it("Gemini's answer, pasted into another bot's chat: that bot says it got them and posts the summary; Gems become bots, its monthly action a paused routine of the first bot", async () => {
+    const critique = await bot("Critique Partner");
+    const since = server.answers.length;
+    const outcome = await importNotes(exported("gemini.md"), { ...await context(), chatBotId: critique.id });
+    const notes = server.answers.slice(since).filter((one) => one.path.endsWith("/import-note"));
+    expect(notes.map((one) => [one.path, one.status]), "both notes in Critique Partner's chat, none in the first bot's").toEqual([
+      [`/api/bots/${critique.id}/import-note`, 201], [`/api/bots/${critique.id}/import-note`, 201],
+    ]);
+    expect(String((notes[0]!.body.message as { text?: string }).text)).toBe("Got it. Setting up your bots, memories and routines now…");
+    expect(String((notes[1]!.body.message as { text?: string }).text)).toMatch(/Gemini[\s\S]*Trip Planner/);
+    expect(await memory(first.id, "memory/notes-from-gemini.md"), "what Gemini remembered is still the first bot's").toMatch(/\S/);
     expect(outcome.failed).toEqual([]);
     expect(outcome.botNames).toEqual(["Trip Planner", "Mug Copywriter"]);
     expect(await persona((await bot("Mug Copywriter")).id)).toMatch(/under 140 characters/);

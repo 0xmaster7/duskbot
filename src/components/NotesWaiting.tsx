@@ -19,8 +19,9 @@ export type NotesSay = (line: string, state: "working" | "done" | "failed") => v
 export function useNotesIntake() {
   const { state, dispatch } = useStore();
   const firstBotId = myDefaultBot(state.bots, useViewerEmail())?.id ?? null;
-  const here = state.selectedId ?? firstBotId;
-  return useCallback((text: string, say?: NotesSay, via: NotesVia = "paste") => {
+  return useCallback((text: string, say?: NotesSay, via: NotesVia = "paste", chatBot?: string | null) => {
+    // the chat it was pasted or dropped into; a group's or none is the first bot's
+    const here = (chatBot && state.bots.some((bot) => bot.id === chatBot) ? chatBot : null) ?? firstBotId;
     if (isNotesPrompt(text)) {
       if (say) say(t("composer.notes.error.prompt"), "failed");
       else { noteArrival(via, here); arrivalFailed(t("composer.notes.error.prompt")); }
@@ -28,10 +29,12 @@ export function useNotesIntake() {
     }
     if (say) say(t("composer.notes.working"), "working");
     else noteArrival(via, here);
-    void importNotes(text, { bots: state.bots, aboutMe: state.config?.profile?.aboutMe ?? "", team: Boolean(state.config?.team), firstBotId, dispatch }, { via })
+    // in a chat, that chat's bot says how it goes; a screen of its own leaves it to the first bot
+    const chatBotId = say ? null : here;
+    void importNotes(text, { bots: state.bots, aboutMe: state.config?.profile?.aboutMe ?? "", team: Boolean(state.config?.team), firstBotId, chatBotId, dispatch }, { via })
       .then((outcome) => say?.(notesOutcomeLine(outcome), outcome.failed.length || outcome.lost?.length ? "failed" : "done"),
         (cause: unknown) => (say ? say(notesErrorLine(cause), "failed") : arrivalFailed(notesErrorLine(cause))));
-  }, [state.bots, state.config?.profile?.aboutMe, state.config?.team, firstBotId, here, dispatch]);
+  }, [state.bots, state.config?.profile?.aboutMe, state.config?.team, firstBotId, dispatch]);
 }
 
 /** While the prompt's answer may still come, Downloads is checked every few seconds for the dusk-bot-notes.md it

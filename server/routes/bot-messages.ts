@@ -452,12 +452,15 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
       if ("skip" in next) return json(res, 200, { skipped: true });
       return json(res, 201, { message: store.appendMessage(threadId, next.append) });
     }
-    // after a bring-in from other apps, the person's own first bot says briefly what came in; written here from counts
+    // after a bring-in from other apps, a bot says briefly what came in, written here from counts and names only: the
+    // person's own first bot, or the bot whose chat the notes were pasted or dropped into
     m = path.match(/^\/api\/bots\/([\w-]+)\/import-note$/);
     if (m && method === "POST") {
       const bot = store.bot(m[1]!);
-      if (!bot?.defaultBot || bot.hidden) return json(res, 404, { error: "no such bot" });
-      if (!mayFollowUp(bot, auth)) return json(res, 403, { error: "only the bot's own person can do this" });
+      if (!bot || bot.hidden) return json(res, 404, { error: "no such bot" });
+      if (bot.defaultBot && !mayFollowUp(bot, auth)) return json(res, 403, { error: "only the bot's own person can do this" });
+      const notYours = cloudThreadRefusal(auth, bot.threadId);
+      if (notYours) return json(res, 403, { error: notYours });
       const parsed = importNoteSchema.safeParse(await readBody(req));
       const text = parsed.success ? importNoteText(parsed.data, conversationLanguage(bot.threadId)) : null;
       if (!text) return json(res, 400, { error: "nothing came in" });

@@ -530,7 +530,7 @@ export function Composer({
     // a notes file from another AI comes in as notes, never as an attachment
     const notes = await notesInFiles(files);
     if (notes) {
-      takeNotes(notes.text, undefined, "drop");
+      takeNotes(notes.text, undefined, "drop", group ? null : bot?.id);
       files = files.filter((file) => !notes.names.includes(file.name));
       if (!files.length) return;
     }
@@ -782,7 +782,7 @@ export function Composer({
     // notes another AI wrote for dusk bot come in, wherever they are pasted, instead of being sent
     if (looksLikeNotes(pasted)) {
       e.preventDefault();
-      takeNotes(pasted, undefined, "paste");
+      takeNotes(pasted, undefined, "paste", group ? null : bot?.id);
       return;
     }
     const reference = threadTokenFromPaste(pasted, threads, currentBotId);
@@ -890,7 +890,7 @@ export function Composer({
           onAdd={addAttachments}
           allowImages={engineSupportsImages}
           onNotice={setAttachmentNotice}
-          onNotes={(notes) => takeNotes(notes, undefined, "drop")}
+          onNotes={(notes) => takeNotes(notes, undefined, "drop", group ? null : bot?.id)}
           onPendingChange={(pending) => changeDraftAttachmentPending(draftId, pending)}
           onDraggingChange={setDragOver}
           uploadImage={uploadImage}

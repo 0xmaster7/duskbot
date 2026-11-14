@@ -22,7 +22,7 @@ const ENGINE = "claude-3f0c2b1e-9d1a-4c55-8a51-0a3a6f1e2b7c";
 vi.mock("@/state/store", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/state/store")>();
   return { ...original, useStore: () => ({
-    state: { ...original.initialState, selectedId: "atlas", config: fixture.config ?? original.initialState.config, bots: [{ ...bot, defaultBot: {} }, peer], liveCall: fixture.liveCall, instances: [{
+    state: { ...original.initialState, selectedId: "atlas", config: fixture.config ?? original.initialState.config, bots: [bot, { ...peer, defaultBot: {} }], liveCall: fixture.liveCall, instances: [{
       instanceId: ENGINE, driverKind: "claudeAgent", displayName: "Claude", capabilities: { agentsMcp: fixture.agentsMcp },
     }] },
     dispatch: fixture.dispatch,
@@ -86,6 +86,8 @@ describe("notes pasted into a chat", () => {
     const rest = (container.textContent ?? "").replace(card?.textContent ?? "", "");
     expect(rest, "no import words inside the message box").not.toMatch(/bringing|brought|notes/i);
     expect([...container.querySelectorAll("[role=status]")].filter((node) => node !== card && node.textContent), "no status line in the box").toEqual([]);
+    // Atlas is not the first bot: it is the chat the notes went into, so it is the one that says it got them
     expect(fixture.api).toHaveBeenCalledWith("/api/bots/atlas/import-note", expect.objectContaining({ body: JSON.stringify({ from: ["ChatGPT"], start: true }) }));
+    expect(fixture.api).not.toHaveBeenCalledWith("/api/bots/juniper/import-note", expect.anything());
   });
 });
