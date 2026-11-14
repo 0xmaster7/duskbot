@@ -183,6 +183,8 @@
   "server.problem.routineFailed": "{bot} hit a problem: its scheduled routine {where} failed",
   "server.problem.routineFailedWhy": "{bot} hit a problem: its scheduled routine {where} failed: \"{detail}\"",
   "server.freeModel.tryingNext": "The free backup model sent nothing for {seconds} s, so another free model is answering instead.",
+  "server.freeModel.emptyNext": "The free backup model answered with nothing, so another free model is answering instead.",
+  "server.freeModel.limit": "The free backup model has used up its free replies for now, so this message got no reply. Connect your own AI, like Claude or ChatGPT, to keep going, or send it again later.",
   "server.freeModel.noReply": "No free backup model answered just now, so this message got no reply. Send it again in a minute, or connect your own AI, like Claude or ChatGPT, for replies you can count on.",
   "server.incidents.where.thread": "in its thread #{title}",
   "server.incidents.where.main": "in its main conversation",

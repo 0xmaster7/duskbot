@@ -44,7 +44,9 @@
 //   FAKE_ACP_MODELS_LIST=v2  OpenCode 2: `models` answers empty with exit 0, `models --verbose` exits 1
 //   FAKE_ACP_MODELS_LIST=auto-only  Cursor CLI 2026.10.22: `models` lists only `auto`
 //   FAKE_ACP_VERBOSE_FAIL_ONCE  marker path: the first `models --verbose` fails, like a new OpenCode home's first run
-//   FAKE_ACP_HANG_MODELS  comma-separated model ids whose session/prompt never answers (a hung free model)
+//   FAKE_ACP_HANG_MODELS  comma-separated model ids whose session/prompt never answers (a hung free model);
+//     with FAKE_ACP_FREE_LIMIT=1 each also logs Zen's "Free usage limit reached" row under XDG_DATA_HOME
+//   FAKE_ACP_EMPTY_MODELS  comma-separated model ids that end their turn with no reply at all
 //   FAKE_ACP_MODEL_STICKS  set_config_option succeeds but keeps the old model
 //   FAKE_ACP_OMIT_MODEL_VALUE  when the live model equals this id, the model option has no currentValue
 //     (Copilot CLI 1.0.105 does this for auto)
@@ -68,6 +70,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { spawn } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 const mode = process.env.FAKE_ACP_MODE ?? "happy";
 
@@ -897,7 +900,17 @@ function handle(msg: any) {
       }
       if (failRpc(msg)) return;
       const hangModels = (process.env.FAKE_ACP_HANG_MODELS ?? "").split(",").filter(Boolean);
-      if (hangModels.length && process.env.FAKE_ACP_DUMP) appendFileSync(`${process.env.FAKE_ACP_DUMP}.models.jsonl`, JSON.stringify(currentModel) + "\n");
+      if ((hangModels.length || process.env.FAKE_ACP_EMPTY_MODELS) && process.env.FAKE_ACP_DUMP) appendFileSync(`${process.env.FAKE_ACP_DUMP}.models.jsonl`, JSON.stringify(currentModel) + "\n");
+      if (hangModels.includes(String(currentModel)) && process.env.FAKE_ACP_FREE_LIMIT === "1" && process.env.XDG_DATA_HOME) {
+        // opencode 1.18 on Zen's free limit: one ERROR row in its shared log, then a prompt that never answers
+        const logDir = join(process.env.XDG_DATA_HOME, "opencode", "log");
+        mkdirSync(logDir, { recursive: true });
+        appendFileSync(join(logDir, "opencode.log"), `timestamp=${new Date().toISOString()} level=ERROR run=fake message="stream error" providerID=opencode modelID=${String(currentModel).split("/").pop()} session.id=${msg.params?.sessionId} small=false agent=build mode=primary error.error="AI_APICallError: Free usage limit reached. Free models work in OpenCode (https://opencode.ai); subscribe to OpenCode Go to keep going: https://opencode.ai/go"\n`);
+      }
+      if ((process.env.FAKE_ACP_EMPTY_MODELS ?? "").split(",").includes(String(currentModel))) {
+        result(msg.id, { stopReason: "end_turn", _meta: { inputTokens: 12, outputTokens: 0 } });
+        return;
+      }
       if (hangModels.includes(String(currentModel))) {
         hangingPromptId = msg.id;
         hangKeepAlive = setInterval(() => {}, 1_000);

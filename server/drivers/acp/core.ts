@@ -21,7 +21,7 @@ import { runAcpOneShot } from "./background-text.ts";
 import { sanitizeAcpToolMessage } from "./tool-log.ts";
 import { stripLeakedSystemHarnessMessages } from "../../../shared/system-message-guard.ts";
 import {
-  classifyQuiet, describeQuiet, firstReplyMs, formatQuietLimit, FREE_MODEL_ATTEMPTS, lastSeenPhrase, LIMIT_WORDS, LogTail, promptIdleTimeoutMs, quietKey, quietNoticeMs, quietTickMs, quietVerdict, sampleProcessTree,
+  classifyQuiet, describeQuiet, firstReplyMs, waitingOutLimit, formatQuietLimit, FREE_MODEL_ATTEMPTS, lastSeenPhrase, LIMIT_WORDS, LogTail, promptIdleTimeoutMs, quietKey, quietNoticeMs, quietTickMs, quietVerdict, sampleProcessTree,
   type LogSignal, type ProcessSample, type QuietState,
 } from "./quiet-status.ts";
 import { readSessionReport } from "./session-reports.ts";
@@ -260,6 +260,8 @@ const SESSION_CONFIG_TIMEOUT = 300_000;
 const NEW_SESSION_TIMEOUT = 300_000;
 const LOAD_SESSION_TIMEOUT = 120_000;
 const ACP_STUCK_AFTER_MS = 180_000;
+/** How often a free model's prompt is looked at for its first word or a free usage limit in its log. */
+const FIRST_REPLY_CHECK_MS = 2_000;
 const SHARED_SESSIONS_MAX = 6, SHARED_SESSIONS_LIFETIME = 12;
 /** Closing a session for these leaves its process fit for other threads' sessions; any other reason retires it. */
 const HEALTHY_CLOSE = new Set(["idle", "reset", "contract", "stop", "stopAll", "dispose", "approval-unconfirmed"]);
@@ -535,17 +537,23 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
         let state: QuietState | null = null;
         const promptStartedAt = Date.now();
         let readAt = promptStartedAt;
-        const tick = async () => {
-          if (probing || current.state.settled || session.current !== current) return;
-          const now = Date.now();
+        // a limit this prompt's model request failed on, kept even when a later line clears `logged`
+        let limitSeen: LogSignal | null = null;
+        const readLog = (now: number) => {
           for (const line of tail?.read() ?? []) {
             if (!support.statusLog!.shared) session.acp.touch();
             const signal = support.statusLog!.parse(line, sessionId!);
             if (signal?.kind === "context") context = { tokens: signal.tokens, threshold: signal.threshold };
             // A shared row was written some time after the last read; date it then, so a reply since clears it.
             else if (signal) logged = { signal, at: support.statusLog!.shared ? readAt : now };
+            if (signal && waitingOutLimit(signal)) limitSeen = signal;
           }
           readAt = now;
+        };
+        const tick = async () => {
+          if (probing || current.state.settled || session.current !== current) return;
+          const now = Date.now();
+          readLog(now);
           const quietMs = now - Math.max(promptStartedAt, session.acp.lastInboundAt);
           if (quietMs < noticeAfterMs || current.asks.size || current.runningTools.size) {
             if (quietMs < noticeAfterMs && (!support.statusLog?.shared || session.acp.lastInboundAt > (logged?.at ?? 0))) logged = null;
@@ -588,7 +596,7 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
         const timer = setInterval(() => { void tick(); }, tickMs);
         timer.unref?.();
         current.stopQuietWatch = () => clearInterval(timer);
-        return { lastState: () => state };
+        return { lastState: () => state, limitLogged: () => { readLog(Date.now()); return limitSeen; } };
       };
 
       const settle = (threadId: string, session: AcpSession, ok: boolean, stopReason: string | null) => {
@@ -1455,13 +1463,17 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
             const promptIdleMs = promptIdleTimeoutMs();
             const quiet = startQuietWatch(threadId, session, current);
             const replyMs = firstReplyMs();
-            // a free model that hangs before its first word is cut short here, long before the silence guard
-            const firstReply = freeOrder ? setTimeout(() => {
+            // a free model that hangs before its first word is cut short here, long before the silence guard; a free usage limit
+            // in OpenCode's log ends it sooner, and since that limit covers every free model at once, no other one is tried
+            const promptAt = Date.now();
+            const firstReply = freeOrder ? setInterval(() => {
               if (state.settled || state.stopped || session.current !== current || state.startupActivity || state.producedItem
                   || state.text || current.runningTools.size || asks.size) return;
-              session.acp.failAll(Object.assign(new Error(`${support.displayName}'s free model ${freeModel} sent nothing for ${formatQuietLimit(replyMs)}`),
-                { acpFirstReplyStall: true }));
-            }, replyMs) : null;
+              const limited = quiet.limitLogged() !== null;
+              if (!limited && Date.now() - promptAt < replyMs) return;
+              session.acp.failAll(Object.assign(new Error(`${support.displayName}'s free model ${freeModel} sent nothing${limited ? " (free usage limit)" : ` for ${formatQuietLimit(replyMs)}`}`),
+                { acpFirstReplyStall: true, ...(limited ? { acpFreeLimit: true } : {}) }));
+            }, Math.min(replyMs, FIRST_REPLY_CHECK_MS)) : null;
             firstReply?.unref?.();
             const result = await request(
               "session/prompt",
@@ -1474,7 +1486,7 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
                 return `${support.displayName} sent nothing for ${formatQuietLimit(promptIdleMs)} with no tool running, so the turn was stopped as stuck` +
                   `${last ? ` (last seen: ${lastSeenPhrase(last)})` : ""}. Send the message again to retry.`;
               },
-              ).finally(() => { if (firstReply) clearTimeout(firstReply); });
+              ).finally(() => { if (firstReply) clearInterval(firstReply); });
             if (pendingSplitReceipt) {
               // session/prompt resolving is the acceptance boundary: a rejected prompt leaves no receipt.
               if (state.usageCompacted) {
@@ -1519,6 +1531,10 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
               });
             }
             const reason = result?.stopReason;
+            // a free model that ends its turn with nothing to show counts as no reply at all
+            if (reason === "end_turn" && freeOrder && !state.text.trim() && !state.repliedText && !state.producedItem && !state.stopped) {
+              throw Object.assign(new Error(`${support.displayName}'s free model ${freeModel} ended its turn with no reply`), { acpFirstReplyStall: true, acpEmptyReply: true });
+            }
             if (reason === "end_turn") settle(threadId, session, true, null);
             else if (reason === "cancelled" || state.stopped) settle(threadId, session, true, "cancelled");
             else {
@@ -1545,11 +1561,13 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
               if (session.sessionId) session.acp.send({ jsonrpc: "2.0", method: "session/cancel", params: { sessionId: session.sessionId } });
               closeSession(threadId, "prompt-stall");
               const tried = [...freeTried, freeModel];
-              const next = tried.length < FREE_MODEL_ATTEMPTS ? freeOrder.find((model) => !tried.includes(model)) : undefined;
+              const limited = (e as any)?.acpFreeLimit === true;
+              const next = !limited && tried.length < FREE_MODEL_ATTEMPTS ? freeOrder.find((model) => !tried.includes(model)) : undefined;
               const language = conversationLanguage(threadId);
               if (next) {
-                emit({ ...base(threadId, turnId), type: "runtime.notice",
-                  message: serverLine(language, "server.freeModel.tryingNext", { seconds: Math.round(firstReplyMs() / 1000) }) });
+                emit({ ...base(threadId, turnId), type: "runtime.notice", message: (e as any)?.acpEmptyReply === true
+                  ? serverLine(language, "server.freeModel.emptyNext")
+                  : serverLine(language, "server.freeModel.tryingNext", { seconds: Math.round(firstReplyMs() / 1000) }) });
                 try {
                   await sendTurn({ ...turn, model: next, startupRecovery: undefined, sessionReset: undefined }, turnId, tried);
                   return;
@@ -1557,7 +1575,7 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
                   console.warn(`${support.displayName}: the next free model did not start on ${threadId}: ${error instanceof Error ? error.message : String(error)}`);
                 }
               }
-              emit({ ...base(threadId, turnId), type: "runtime.error", message: serverLine(language, "server.freeModel.noReply") });
+              emit({ ...base(threadId, turnId), type: "runtime.error", message: serverLine(language, limited ? "server.freeModel.limit" : "server.freeModel.noReply") });
               emit({ ...base(threadId, turnId), type: "turn.completed", ok: false, stopReason: "no_reply", cost: null });
               return;
             }

@@ -1396,12 +1396,12 @@ describe("OpenCode ready only through its free models", () => {
   });
 });
 
-describe("OpenCode free model that never answers", () => {
+describe("OpenCode free model that never answers, or answers nothing", () => {
   const noKeys = { OPENCODE_API_KEY: "", OPENCODE_AUTH_CONTENT: "", ...Object.fromEntries(OPENCODE_PROVIDER_ENV.map((key) => [key, ""])) };
   afterEach(() => { delete process.env.DUSK_ACP_FIRST_REPLY_MS; });
 
-  async function firstMessage(hang: string) {
-    process.env.DUSK_ACP_FIRST_REPLY_MS = "600";
+  async function firstMessage(hang: string, extra: Record<string, string> = {}, replyMs = "600") {
+    process.env.DUSK_ACP_FIRST_REPLY_MS = replyMs;
     const scratch = mkdtempSync(join(tmpdir(), "dusk-opencode-hang-"));
     resetOpenCodeModelCache();
     const driver = createOpenCodeDriver(async () => catalog("opencode/big-pickle", "opencode/grok-code", "opencode/minimax-free"));
@@ -1410,7 +1410,7 @@ describe("OpenCode free model that never answers", () => {
       displayName: "OpenCode",
       environment: { HOME: scratch, USERPROFILE: scratch, XDG_DATA_HOME: join(scratch, "data"), ...noKeys,
         FAKE_ACP_MODELS: "opencode/big-pickle,opencode/grok-code,opencode/minimax-free", FAKE_ACP_HANG_MODELS: hang,
-        FAKE_ACP_TEXT_REPLY: "ok", FAKE_ACP_DUMP: join(scratch, "dump") },
+        FAKE_ACP_TEXT_REPLY: "ok", FAKE_ACP_DUMP: join(scratch, "dump"), ...extra },
       enabled: true,
       config: { cli: FAKE_CLI, fullAuto: false },
     });
@@ -1449,6 +1449,36 @@ describe("OpenCode free model that never answers", () => {
     expect(done).toMatchObject({ ok: false, stopReason: "no_reply" });
     expect(events.filter((event) => event.type === "runtime.error")).toEqual([expect.objectContaining({
       message: "No free backup model answered just now, so this message got no reply. Send it again in a minute, or connect your own AI, like Claude or ChatGPT, for replies you can count on.",
+    })]);
+  }, 20_000);
+
+  it("moves the turn on when a free model ends it with no reply at all", async () => {
+    const { done, events, tried } = await firstMessage("", { FAKE_ACP_EMPTY_MODELS: "opencode/big-pickle" });
+    expect(tried).toEqual(["opencode/big-pickle", "opencode/grok-code"]);
+    expect(done).toMatchObject({ ok: true });
+    expect(events).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: "runtime.notice", message: "The free backup model answered with nothing, so another free model is answering instead." }),
+      expect.objectContaining({ type: "item.completed", itemType: "assistant_text", text: "ok" }),
+    ]));
+  }, 20_000);
+
+  it("ends with a plain line when every free model answers nothing", async () => {
+    const all = "opencode/big-pickle,opencode/grok-code,opencode/minimax-free";
+    const { done, events, tried } = await firstMessage("", { FAKE_ACP_EMPTY_MODELS: all });
+    expect(tried).toHaveLength(3);
+    expect(done).toMatchObject({ ok: false, stopReason: "no_reply" });
+    expect(events.filter((event) => event.type === "runtime.error")).toHaveLength(1);
+  }, 20_000);
+
+  it("stops at OpenCode's free usage limit, which every free model shares, and says so", async () => {
+    // well before the first-reply wait: the limit in OpenCode's log ends the turn at the next 2 s look
+    const { done, events, tried, ms } = await firstMessage("opencode/big-pickle,opencode/grok-code,opencode/minimax-free", { FAKE_ACP_FREE_LIMIT: "1" }, "8000");
+    expect(tried).toEqual(["opencode/big-pickle"]);
+    expect(ms).toBeLessThan(7_000);
+    expect(done).toMatchObject({ ok: false, stopReason: "no_reply" });
+    expect(events.some((event) => event.type === "runtime.notice" && /another free model/.test(event.message))).toBe(false);
+    expect(events.filter((event) => event.type === "runtime.error")).toEqual([expect.objectContaining({
+      message: "The free backup model has used up its free replies for now, so this message got no reply. Connect your own AI, like Claude or ChatGPT, to keep going, or send it again later.",
     })]);
   }, 20_000);
 
