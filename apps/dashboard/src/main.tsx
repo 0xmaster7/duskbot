@@ -135,7 +135,7 @@ function SignedIn() {
 function App() {
   const { path, query } = useLocation();
   const search = query.toString();
-  useEffect(() => trackPage(path, new URLSearchParams(search)), [path, search]);
+  useEffect(() => trackPage(path), [path, search]);
   const { account, accountError, retryAccount } = useSession();
   useEffect(() => {
     // the admin panel names its own tabs

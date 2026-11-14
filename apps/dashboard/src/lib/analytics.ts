@@ -3,7 +3,8 @@ import type { UpsellStep } from "../../../../shared/cloud-upsell";
 import { seenTimer, upsellClock, type SeenTimer } from "../../../../shared/seen-clock";
 
 type PageEvent = { name: "page_view"; props: { path: string } } | { name: "page_leave"; props: { path: string; ms: number } }
-  | { name: "onboarding_step"; props: { step: string; ms?: number } } | { name: "onboarding_done"; props?: { ms?: number } }
+  | { name: "onboarding_step"; props: { step: string; ms?: number; from?: "app" } } | { name: "onboarding_done"; props?: { ms?: number } }
+  | { name: "app_return"; props: { link: "open" | "cloud"; how: "auto" | "button" } }
   | { name: "plan_chosen"; props: { plan: string; period: "month" | "year" } } | { name: "page_action"; props: { action: string; path: string; label?: string; value?: string; ms?: number } }
   | { name: "download_click"; props: { platform: string; detected_os: string } };
 
@@ -109,21 +110,21 @@ function endPage() {
   if (ms >= BRIEF_MS) track({ name: "page_leave", props: { path: currentPath, ms } });
 }
 
-/** one page view per route change, and the visible time of the one before; the onboarding step rides along with how long
- * the step before it took */
-export function trackPage(path: string, query: URLSearchParams) {
+/** one page view per route change, and the visible time of the one before */
+export function trackPage(path: string) {
   if (path === "/admin" || path.startsWith("/admin/")) { endPage(); return; }
   endPage();
   currentPath = path;
   if (live() && !declined()) listen();
   track({ name: "page_view", props: { path } });
   pageTimer = seenTimer();
-  const step = query.get("step");
-  if (path === "/welcome" && step) {
-    const now = Date.now();
-    track({ name: "onboarding_step", props: { step, ...(stepAt !== null ? { ms: now - stepAt } : {}) } });
-    stepAt = now;
-  }
+}
+
+/** an onboarding step shown, with how long the step before it took; `fromApp` when the desktop app's sign-in led here */
+export function trackOnboardingStep(step: string, fromApp: boolean) {
+  const now = Date.now();
+  track({ name: "onboarding_step", props: { step, ...(stepAt !== null ? { ms: now - stepAt } : {}), ...(fromApp ? { from: "app" as const } : {}) } });
+  stepAt = now;
 }
 
 type UpsellSource = "dash_sidebar" | "dash_invested" | "dash_routines";

@@ -15,11 +15,12 @@ import { SplitFrame } from "../ui/Frame";
 import { Button, cx, Skeleton } from "../ui/kit";
 import { Mascot, type MascotHandle } from "../ui/Mascot";
 import type { SceneHandle, SceneMood } from "../ui/Scene";
-import { points } from "./Billing";
+import { backFromCheckout, points } from "./Billing";
 import { CHECKOUT_SOON } from "./cloud-offer";
-import { track } from "../lib/analytics";
+import { track, trackOnboardingStep } from "../lib/analytics";
 import { per, planSelection, type PaidPlan } from "./plan-sheet";
-import { fromApp } from "../lib/from-app";
+import { APP_CLOUD_LINK, fromApp } from "../lib/from-app";
+import { APP_LINK, tryAppLink } from "./DeviceApproval";
 
 const STEPS = ["name", "plan", "app"] as const;
 type Step = (typeof STEPS)[number];
@@ -123,6 +124,10 @@ export function Onboarding() {
   const shownName = name ?? guess;
   // signed up from the app (its sign-in brought them here): they have it, so the last step sends them back to it
   const [inApp] = useState(fromApp);
+  // back from the payment page, paid or still confirming: the cloud is on its way even before the webhook lands
+  const [paidBack] = useState(() => (query.has("subscription_id") || query.has("payment_id")) && backFromCheckout(query) !== "failed");
+  const appLink = bought || paidBack ? APP_CLOUD_LINK : APP_LINK;
+  const sentBack = useRef(false);
 
   const search = query.toString();
   const address = (to: Step) => {
@@ -132,6 +137,19 @@ export function Onboarding() {
   };
   const here = address(step);
   useEffect(() => { sessionStorage.setItem(SAVED, step); }, [step]);
+  useEffect(() => { trackOnboardingStep(step, inApp); }, [step, inApp]);
+  // from the app, the last step hands the person straight back to it: the cloud sheet after paying, else the app as it was
+  useEffect(() => {
+    if (!inApp || step !== "app" || sentBack.current) return;
+    sentBack.current = true;
+    track({ name: "app_return", props: { link: appLink === APP_CLOUD_LINK ? "cloud" : "open", how: "auto" } });
+    tryAppLink(appLink);
+  }, [inApp, step, appLink]);
+  const backToApp = () => {
+    track({ name: "app_return", props: { link: appLink === APP_CLOUD_LINK ? "cloud" : "open", how: "button" } });
+    tryAppLink(appLink);
+    void finish();
+  };
   useEffect(() => { setError(null); scene.current?.react("perk"); }, [step]);
   useEffect(() => { if (step === "plan") setInterval("month"); }, [step]);
   // each history entry names its step, so back and forward move between steps and a refresh stays put
@@ -215,11 +233,11 @@ export function Onboarding() {
         </div>
       ) : inApp ? (
         <div key="app" className="step-in">
-          {bought && <p className="tag mb-4 !bg-lime !text-ink" role="status"><span className="live-dot text-good" data-live />your dusk cloud is being set up</p>}
+          {(bought || paidBack) && <p className="tag mb-4 !bg-lime !text-ink" role="status"><span className="live-dot text-good" data-live />your dusk cloud is being set up</p>}
           <h1 className="t-title">you're all set.</h1>
           <p className="mt-3 text-16 text-ink-2">dusk bot is signed in already, make your first bot there.</p>
-          <Button variant="primary" className={cx("mt-6", big)} onClick={() => void finish()} disabled={busy}>{busy ? <Busy>opening</Busy> : "go to my dashboard"}</Button>
-          {!bought && <div className="mt-1">{back("plan")}</div>}
+          <Button variant="primary" className={cx("mt-6", big)} onClick={backToApp} disabled={busy} data-back-to-app="">{busy ? <Busy>opening</Busy> : "back to dusk bot"}</Button>
+          {!bought && !paidBack && <div className="mt-1">{back("plan")}</div>}
         </div>
       ) : (
         <div key="app" className="step-in">
