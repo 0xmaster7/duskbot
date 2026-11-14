@@ -251,6 +251,8 @@ function runForget(state) {
     path,
     AbortSignal,
     remoteMicrophoneRefused: new Set(),
+    // no account dashboard here: forgetting a server unlinks nothing there (e1c663e93)
+    serverEnroll: null,
     desktopDataDir: () => "/Users/me/.duskbot",
     slog: () => {},
     session: { defaultSession: { fetch: async () => ({ ok: true }), clearStorageData: async () => {} } },
@@ -327,7 +329,9 @@ function switchFixture(t, { startResults = [], releaseLeaseThrows = false, stopU
   const forks = [];
   let forkIndex = 0;
   const context = vm.createContext({
-    app: { isPackaged: true },
+    app: { isPackaged: true, getPath: () => "/data" },
+    // the slice ends at switchEnvironment, so it carries the first-pick mark main makes just before it (47ad2f03a)
+    placesChosenStore: () => ({ choose() {} }), jsonFile: () => ({}), path: { join: (...parts) => parts.join("/") },
     localSwitchInFlight: false,
     runningDataDir: null,
     serverProc: null,
