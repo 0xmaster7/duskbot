@@ -97,24 +97,17 @@ type Fx = Awaited<ReturnType<typeof fixture>>;
 async function noDeleteUntil(f: Fx, until: number) { while (f.now() + DAY_MS < until) { f.advance(DAY_MS); await f.settle(1); expect(f.api.deletes()).toHaveLength(0); } }
 
 for (const destroyNow of [false, true]) {
-  it(`account closed with a paid plan (destroyDesktopsNow=${destroyNow}): stopped, 30 days kept from the right date, then deleted`, async () => {
+  // since 4c4bf4ad3 a deleted account's clouds go at once, whatever destroyDesktopsNow says
+  it(`account closed with a paid plan (destroyDesktopsNow=${destroyNow}): its cloud is deleted at once and stays deleted`, async () => {
     const f = await fixture();
     const owner = await f.login("owner@example.test");
     const { cloud, subscriptionId } = await f.buy(owner);
-    const periodEnd = f.billing.service.subscriptions(cloud.accountId)[0]!.currentPeriodEnd!;
-    const closedAt = f.now();
     expect((await f.page("/v1/account/delete", { email: "owner@example.test", cancelBilling: true, destroyDesktopsNow: destroyNow }, owner)).status).toBe(200);
-    await f.settle(4);
-    if (destroyNow) expect(cloud.status).toBe("stopped");
-    const expected = (destroyNow ? closedAt : periodEnd) + 30 * DAY_MS;
-    if (!destroyNow) { f.advance(periodEnd - f.now() + 60_000); await f.settle(6); expect(cloud.status).toBe("stopped"); }
+    await f.settle(6);
+    expect(cloud.status).toBe("destroyed");
     // Dodo's late expiry for a closed account changes nothing
     await deliver(f, f.billing.fake!.expire(subscriptionId)); await f.settle(4);
-    const shown = f.billing.clouds.view(cloud).destroyAt!;
-    console.info(`[recheck] closed destroyNow=${destroyNow}: delete at ${new Date(shown).toISOString()} expected >= ${new Date(expected).toISOString()}`);
-    expect(shown).toBeGreaterThanOrEqual(expected - 60_000);
-    await noDeleteUntil(f, shown);
-    f.advance(shown - f.now() + 60_000); await f.settle(6);
+    f.advance(31 * DAY_MS); await f.settle(6);
     expect(cloud.status).toBe("destroyed");
   });
 }

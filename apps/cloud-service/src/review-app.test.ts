@@ -94,23 +94,21 @@ async function deliver(f: Awaited<ReturnType<typeof fixture>>, deliveries: Array
   return codes;
 }
 
-it("deleting the account with a paid plan pauses the managed cloud at the period end and deletes it 30 days later", async () => {
+// since 4c4bf4ad3 deleting an account deletes its clouds at once, past any paid period (privacy and terms say so)
+it("deleting the account with a paid plan deletes the managed cloud at once, and Dodo's later expiry brings nothing back", async () => {
   const f = await fixture();
   const owner = await f.login("owner@example.test");
   const { cloud, subscriptionId } = await f.buy(owner);
-  const periodEnd = f.billing.service.subscriptions(cloud.accountId)[0]!.currentPeriodEnd!;
   const res = await f.page("/v1/account/delete", { email: "owner@example.test", cancelBilling: true, destroyDesktopsNow: false }, owner);
   expect(res.status).toBe(200);
-  await f.settle(4);
-  // Dodo ends the cancelled subscription at the period end
-  f.advance(periodEnd - f.now() + 60_000);
+  await f.settle(6);
+  console.info(`[review] after account deletion: cloud=${cloud.status} deletes=${f.api.deletes().length}`);
+  expect(cloud.status, "the deleted account's cloud is gone right away").toBe("destroyed");
+  expect(f.api.deletes().length, "its machine is deleted at the provider").toBeGreaterThanOrEqual(1);
+  // Dodo ends the cancelled subscription later; that changes nothing for a deleted account
   console.info(`[review] expiry webhook after account deletion answered ${JSON.stringify(await deliver(f, f.billing.fake!.expire(subscriptionId)))}`);
   await f.settle(6);
-  console.info(`[review] after period end: cloud=${cloud.status} destroyAt=${f.billing.clouds.view(cloud).destroyAt}`);
-  expect.soft(cloud.status, "the deleted account's cloud is still running after its paid period").toBe("stopped");
-  f.advance(31 * DAY_MS); await f.settle(6);
-  console.info(`[review] 31 days later: cloud=${cloud.status} deletes=${f.api.deletes().length}`);
-  expect(cloud.status, "the deleted account's cloud and data are never removed").toBe("destroyed");
+  expect(cloud.status).toBe("destroyed");
 });
 
 it("signed but late, replayed or out-of-order billing events never bring retention forward", async () => {
