@@ -61,12 +61,6 @@ describe("bot setup and tools in the real renderer", () => {
       await openTools();
       await evaluate("document.querySelector('[data-settings-sheet] [data-sheet-row=servers]').click(); true");
     };
-    const reviewReadyBot = async (name: string, title: string) => {
-      await openTemplates(ui);
-      await expect.poll(snapshot, { timeout: 20_000 }).toContain(`Add ${name}, ${title}`);
-      await click(`Add ${name}, ${title}`);
-      await expect.poll(snapshot, { timeout: 10_000 }).toContain("Starting role");
-    };
     const dialogCount = () => evaluate("document.querySelectorAll('[role=dialog]').length");
     const original = await bots();
 
@@ -86,17 +80,15 @@ describe("bot setup and tools in the real renderer", () => {
       };
       return true;
     })()`);
-    const createDisabled = () => evaluate("[...document.querySelectorAll('[data-create-bot-dialog] button')].find(button => button.textContent.trim() === 'Create')?.disabled ?? null");
+    const creatingDisabled = () => evaluate("[...document.querySelectorAll('[data-create-bot-dialog] button')].find(button => button.textContent.trim() === 'Creating…')?.disabled ?? null");
     await press("Control+n");
-    await expect.poll(snapshot, { timeout: 10_000 }).toContain('dialog "Create New Bot"');
+    await expect.poll(snapshot, { timeout: 10_000 }).toContain('dialog "Create new bot"');
     await ui("type", "--name", "Bot name", "--text", "Fixture helper");
     await press("Enter");
     await expect.poll(() => evaluate("window.botCreateRequests"), { timeout: 10_000 }).toBe(1);
-    expect(await dialogCount()).toBe(0);
-    await press("Control+n");
-    await expect.poll(snapshot, { timeout: 10_000 }).toContain('dialog "Create New Bot"');
-    await ui("type", "--name", "Bot name", "--text", "Second helper");
-    expect(await createDisabled()).toBe(true);
+    // the dialog stays open, saying it is creating, until the bot exists (4a70e281f); Enter again makes no second bot
+    expect(await dialogCount()).toBe(1);
+    expect(await creatingDisabled()).toBe(true);
     await press("Enter");
     expect(await evaluate("window.botCreateRequests")).toBe(1);
     await press("Escape");
@@ -122,18 +114,18 @@ describe("bot setup and tools in the real renderer", () => {
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("No servers");
     await press("Escape");
     await expect.poll(() => evaluate("Boolean(document.querySelector('[data-settings-sheet]'))"), { timeout: 10_000 }).toBe(false);
-    // The panel's Share menu shows this chat's cost; its Usage opens Settings at Usage & Billing.
+    // The panel's Share menu shows this chat's cost; its Usage opens Settings at Usage & billing.
     await openPanelMenu(ui, created[0].name);
     const state = await ui("snapshot", "--interactive");
     const cost = Object.entries(state.refs as Record<string, { role: string; name: string }>)
-      .filter(([, entry]) => entry.role === "menuitem" && entry.name.includes("$0.01"));
+      .filter(([, entry]) => entry.role === "menuitem" && /^Usage \$0\.0[1-9]/.test(entry.name));
     expect(cost).toHaveLength(1);
     await ui("click", "--ref", `@${cost[0][0]}`);
     await expect.poll(snapshot, { timeout: 10_000 }).toContain('dialog "Settings"');
-    await expect.poll(() => evaluate("[...document.querySelectorAll('[role=dialog] h2')].some(heading => heading.textContent.trim() === 'Usage & Billing')"), { timeout: 10_000 }).toBe(true);
+    await expect.poll(() => evaluate("[...document.querySelectorAll('[role=dialog] h2')].some(heading => heading.textContent.trim() === 'Usage & billing')"), { timeout: 10_000 }).toBe(true);
     await ui("screenshot", "--out", `${info.logPath}.settings.png`);
     await press("Escape");
-    await expect.poll(() => evaluate("[...document.querySelectorAll('[role=dialog] h2')].some(heading => heading.textContent.trim() === 'Usage & Billing')"), { timeout: 10_000 }).toBe(false);
+    await expect.poll(() => evaluate("[...document.querySelectorAll('[role=dialog] h2')].some(heading => heading.textContent.trim() === 'Usage & billing')"), { timeout: 10_000 }).toBe(false);
     await openServers();
     await click("Add an MCP server…");
     // The registry loads on mount; Add MCP server is disabled until it finishes.
@@ -181,7 +173,7 @@ describe("bot setup and tools in the real renderer", () => {
     // modal is left behind to hold the focus.
     const beforeShortcut = await bots();
     await press("Control+n");
-    await expect.poll(snapshot, { timeout: 10_000 }).toContain('dialog "Create New Bot"');
+    await expect.poll(snapshot, { timeout: 10_000 }).toContain('dialog "Create new bot"');
     // the open panel names its own heading Bot name too: type into the dialog's field
     const nameField = Object.entries((await ui("snapshot", "--interactive")).refs as Record<string, { role: string; name: string }>)
       .find(([, entry]) => entry.role === "textbox" && entry.name === "Bot name");
@@ -195,7 +187,8 @@ describe("bot setup and tools in the real renderer", () => {
     await expect.poll(dialogCount, { timeout: 10_000 }).toBe(0);
 
     // A failed profile step must roll back the incomplete ready-made bot and
-    // leave its review open, over Templates, for a single successful retry.
+    // leave Templates open for a single successful retry. Add makes the bot at
+    // once, with no review step, since the one create flow (89d92585f).
     const beforeFailure = await bots();
     await evaluate(`(() => {
       const fetch = window.fetch.bind(window);
@@ -210,12 +203,14 @@ describe("bot setup and tools in the real renderer", () => {
       return true;
     })()`);
     const ops = BOT_ROLES.find((role) => role.id === "ops")!;
-    await reviewReadyBot(ops.name, ops.title);
-    await click("Create bot");
+    const addOps = `Add ${ops.name}, ${ops.title}`;
+    await openTemplates(ui);
+    await expect.poll(snapshot, { timeout: 20_000 }).toContain(addOps);
+    await click(addOps);
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Fixture preset rejected");
     expect((await bots()).map(bot => bot.id)).toEqual(beforeFailure.map(bot => bot.id));
-    expect(await dialogCount()).toBe(2);
-    await click("Create bot");
+    expect(await snapshot()).toContain('dialog "Templates"');
+    await click(addOps);
     await expect.poll(async () => (await bots()).length, { timeout: 10_000 }).toBe(beforeFailure.length + 1);
     await expect.poll(dialogCount, { timeout: 10_000 }).toBe(0);
     expect((await bots()).filter(bot => !beforeFailure.some(old => old.id === bot.id))).toMatchObject([{ name: ops.name, soul: ops.soul }]);
