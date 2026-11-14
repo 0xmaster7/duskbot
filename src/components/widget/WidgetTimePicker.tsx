@@ -245,7 +245,7 @@ export function WidgetTimePicker({ node, bare }: { node: WidgetNode; bare: boole
               )}
             >
               <span className="min-w-0 flex-1 truncate">{widgetTimeLabel(slot)}</span>
-              {index === chosen && <Check aria-hidden="true" size={14} className="shrink-0 text-accent-text" />}
+              {index === chosen && <Check aria-hidden="true" size={14} className="shrink-0 text-ink" />}
             </div>
           ))}
         </div>,

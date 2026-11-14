@@ -237,7 +237,7 @@ function WidgetCard({ botId, threadId, messageId, payload }: { botId: string; th
             <div className={cn("flex items-start gap-3 px-4 pt-3.5", kids(root).length ? "pb-3" : "pb-3.5")}>
               <div className="min-w-0 flex-1">
                 {statusText && (
-                  <p className={cn("flex items-center gap-1.5 text-[13px] font-semibold leading-[18px] text-accent-text", (title || caption) && "mb-1")}>
+                  <p className={cn("flex items-center gap-1.5 text-[13px] font-semibold leading-[18px] text-ink-secondary", (title || caption) && "mb-1")}>
                     {typeof status.icon === "string" && <WidgetGlyph name={status.icon} size={14} />}
                     <bdi dir="auto" className="min-w-0 truncate">{statusText}</bdi>
                   </p>

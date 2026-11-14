@@ -68,7 +68,7 @@ const BUTTON =
 
 /** inset-ring, never ring-inset: this theme has a colour named `inset`, so ring-inset also paints the ring in it. */
 const BUTTON_LOOK: Record<string, string> = {
-  primary: "bg-accent text-accent-ink enabled:hover:brightness-110",
+  primary: "bg-ink text-app enabled:hover:bg-[color-mix(in_srgb,var(--color-ink)_88.5%,var(--color-menu))]",
   secondary: "bg-ink/[0.07] text-ink enabled:hover:bg-ink/[0.12]",
   outline: "bg-composer text-ink inset-ring inset-ring-transparent enabled:hover:bg-raised-hover",
   quiet: "px-2.5 text-ink-secondary enabled:hover:bg-ink/[0.07] enabled:hover:text-ink",
@@ -274,7 +274,7 @@ export function WidgetRadioMark({ on, invalid = false }: { on: boolean; invalid?
   return (
     <span
       aria-hidden="true"
-      className={cn("size-[18px] rounded-full", MARK, on ? "shadow-[inset_0_0_0_5.5px_var(--color-accent)]" : invalid ? "shadow-[inset_0_0_0_1.5px_var(--color-danger)]" : MARK_IDLE)}
+      className={cn("size-[18px] rounded-full", MARK, on ? "shadow-[inset_0_0_0_5.5px_var(--color-ink)]" : invalid ? "shadow-[inset_0_0_0_1.5px_var(--color-danger)]" : MARK_IDLE)}
     />
   );
 }
@@ -288,7 +288,7 @@ export function WidgetCheckbox({ node }: { node: WidgetNode }) {
       <input {...field.control} type="checkbox" checked={checked} onChange={(event) => field.set(event.target.checked)} className="peer sr-only" />
       <span
         aria-hidden="true"
-        className={cn("flex size-[18px] items-center justify-center rounded-[6px]", MARK, checked ? "bg-accent text-accent-ink" : field.invalid ? "shadow-[inset_0_0_0_1.5px_var(--color-danger)]" : MARK_IDLE)}
+        className={cn("flex size-[18px] items-center justify-center rounded-[6px]", MARK, checked ? "bg-ink text-app" : field.invalid ? "shadow-[inset_0_0_0_1.5px_var(--color-danger)]" : MARK_IDLE)}
       >
         {checked && <Check size={12} strokeWidth={2.6} />}
       </span>

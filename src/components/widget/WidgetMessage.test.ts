@@ -124,7 +124,7 @@ describe("drawing a widget", () => {
     expect(rows[0]!.querySelector(".size-\\[7px\\].bg-success")).not.toBeNull();
     expect(rows[2]!.querySelector(".size-\\[7px\\].bg-danger")).not.toBeNull();
     expect(rows[0]!.firstElementChild!.className).toContain("size-10");
-    expect(button("Merge the two ready")!.className).toContain("bg-accent");
+    expect(button("Merge the two ready")!.className).toContain("bg-ink");
     expect(button("Fix #719 first")!.className).toContain("ring-transparent");
   });
 
