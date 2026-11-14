@@ -366,6 +366,11 @@ const bridge = {
     ipcRenderer.on("speech:end", handler);
     return () => ipcRenderer.removeListener("speech:end", handler);
   },
+  onSpeechLevel: (cb) => {
+    const handler = (_event, level) => cb(level);
+    ipcRenderer.on("speech:level", handler);
+    return () => ipcRenderer.removeListener("speech:level", handler);
+  },
   talkShortcut: {
     state: () => ipcRenderer.invoke("talk-shortcut:state"),
     set: (change) => ipcRenderer.invoke("talk-shortcut:set", {

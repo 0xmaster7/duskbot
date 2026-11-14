@@ -22,6 +22,40 @@ declare global {
 /** The package.json version, inlined by Vite's define at build time. */
 const __APP_VERSION__: string;
 
+  type VoiceInputProvider = import("../../electron/voice-catalog.mjs").VoiceProvider;
+  interface VoiceInputSessionOptions {
+    provider: VoiceInputProvider;
+    /** A BCP 47 tag; unset lets the service detect the language. */
+    language?: string;
+    model?: string;
+    /** ElevenLabs: stream words while talking. */
+    realtime?: boolean;
+    /** OpenAI-compatible: the service's address, such as https://example.com/v1. */
+    baseUrl?: string;
+    whisperCpp?: { binary: string; model: string };
+  }
+  interface VoiceInputBridge {
+    keys: {
+      /** Which services have a key saved on this computer. Never the keys. */
+      status(): Promise<Partial<Record<VoiceInputProvider, boolean>>>;
+      set(provider: VoiceInputProvider, key: string): Promise<void>;
+      clear(provider: VoiceInputProvider): Promise<void>;
+    };
+    /** Rejects with a plain message when the service is not set up. */
+    start(options: VoiceInputSessionOptions): Promise<{ id: string }>;
+    /** 16 kHz mono 16-bit little-endian PCM. */
+    audio(id: string, pcm: ArrayBuffer): void;
+    /** Stop listening and deliver the last words, then end. */
+    finish(id: string): Promise<void>;
+    /** Drop the session without words. */
+    stop(id: string): Promise<void>;
+    /** `text` is everything heard in the session so far. */
+    onTranscript(cb: (event: { id: string; text: string; partial: boolean }) => void): () => void;
+    onEnd(cb: (event: { id: string; code: number; reason?: string; message?: string }) => void): () => void;
+    /** whisper.cpp programs and models found in the usual places. */
+    findWhisperCpp(): Promise<{ binaries: string[]; models: string[] }>;
+  }
+
   /** the direct ssh path of a relay-linked server: whether it is allowed, and the path a request takes now */
   interface LinkDirectState { on: boolean; path: "direct" | "cloudflare" | "relay"; via?: string }
   type DesktopCapabilities = {
@@ -34,6 +68,8 @@ const __APP_VERSION__: string;
       packaged: boolean;
     };
     windowChrome: "mac-inset" | "win-caption" | "native";
+    /** This page is another computer's server, shown in this app. */
+    remote?: boolean;
     /** The page draws the window's frame: false once the person turned it off. Absent on an older app, whose window
      * draws it. */
     windowFrame?: boolean;
@@ -44,7 +80,7 @@ const __APP_VERSION__: string;
     };
     dictation: {
       available: boolean;
-      engine: "apple-speech" | "fish-audio" | "none";
+      engine: "apple-speech" | "windows-speech" | "fish-audio" | "none";
       onDevice: boolean;
       reasonCode?: string;
     };
@@ -315,7 +351,7 @@ const __APP_VERSION__: string;
       screenFrame(): Promise<string | null>;
       /** Start native dictation. Call mode supplies endpointMs so silence
        * finalizes a turn; composer dictation omits it and remains manual. */
-      speechStart(options?: { endpointMs?: number }): Promise<void>;
+      speechStart(options?: { endpointMs?: number; locale?: string }): Promise<void>;
       speechStop(): Promise<void>;
       /** Finish capture and emit the recognizer's final transcript. */
       speechFinish?(): Promise<void>;
@@ -333,6 +369,11 @@ const __APP_VERSION__: string;
         cb: (line: { partial?: boolean; text?: string; error?: string }) => void,
       ): () => void;
       onSpeechEnd(cb: (info: { code: number | null; reason?: string; message?: string }) => void): () => void;
+      /** Input loudness from 0 to 1 while the native helper listens. Absent in older builds of the shell. */
+      onSpeechLevel?(cb: (level: number) => void): () => void;
+      /** Voice input through a speech-to-text service the person set up in Settings > Voice (electron/voice-input-main.mjs).
+       * Keys stay in this computer's credential store; the page sends audio and hears words. Absent in older builds. */
+      voiceInput?: VoiceInputBridge;
       /** Absolute path of a dropped File ("" when the drag carried no
        * file on disk). Absent in older builds of the shell. */
       getPathForFile?(file: File): string;

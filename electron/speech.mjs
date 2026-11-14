@@ -42,6 +42,7 @@ function ensureBuilt() {
   buildSpeechHelper();
 }
 
+const SPEECH_LOCALE = /^[A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8}){0,3}$/;
 const RELEASE_MODIFIERS = ["control", "option", "shift", "command"];
 const PAGE_GONE = ["render-process-gone", "did-navigate"];
 
@@ -49,6 +50,7 @@ function speechTarget(target) {
   if (typeof target?.transcript === "function") return {
       owner: target,
       transcript: (line) => target.transcript(line),
+      level: (value) => target.level?.(value),
       end: (info) => target.end(info),
       replaced: () => target.replaced(),
       whenGone: () => () => {},
@@ -59,6 +61,7 @@ function speechTarget(target) {
   return {
     owner: target,
     transcript: (line) => send("speech:transcript", line),
+    level: (value) => send("speech:level", value),
     end: (info) => send("speech:end", info),
     replaced: () => {},
     whenGone: (listener) => {
@@ -95,6 +98,8 @@ export function startSpeech(target, options = {}) {
   const release = [...new Set(Array.isArray(options?.finishOnRelease) ? options.finishOnRelease : [])]
     .filter((name) => RELEASE_MODIFIERS.includes(name));
   if (release.length) args.push("--finish-on-release", release.join(","));
+  const locale = typeof options?.locale === "string" ? options.locale.trim() : "";
+  if (SPEECH_LOCALE.test(locale)) args.push("--locale", locale);
 
   try {
     ensureBuilt();
@@ -163,12 +168,18 @@ export function startSpeech(target, options = {}) {
     buf += content.slice(offset);
     offset = content.length;
     let nl;
+    let level = null;
     while ((nl = buf.indexOf("\n")) !== -1) {
       const line = buf.slice(0, nl).trim();
       buf = buf.slice(nl + 1);
       if (!line) continue;
       try {
         const parsed = JSON.parse(line);
+        // loudness for the waveform: one message per poll, the loudest of its lines
+        if (typeof parsed.level === "number" && Number.isFinite(parsed.level)) {
+          level = Math.max(level ?? 0, Math.min(1, Math.max(0, parsed.level)));
+          continue;
+        }
         if (typeof parsed.error === "string") reportedError = parsed.error;
         if (parsed.partial === false && typeof parsed.text === "string") completed = true;
         // A stopped or replaced helper can flush one last chunk: never into the session that replaced it.
@@ -176,6 +187,7 @@ export function startSpeech(target, options = {}) {
       } catch {
       }
     }
+    if (level !== null && child === speechSession) sink.level(level);
   };
   watchFile(outputPath, { interval: 50, persistent: false }, drain);
 

@@ -2,6 +2,7 @@
 //   {"partial":true,"text":"…"}   while recognizing
 //   {"partial":false,"text":"…"}  final result, then exit 0
 //   {"error":"…"}                 then exit 1
+//   {"level":0.42}                input loudness 0…1, about 20 times a second
 // Runs until the final result or a per-session stop marker. Launched by
 // electron/speech.mjs as this background app bundle so macOS can resolve the
 // microphone and speech purpose strings in its Info.plist.
@@ -12,6 +13,9 @@
 // Composer dictation omits this flag and keeps its existing press-to-stop
 // behavior, while call mode opts into silence endpointing.
 //
+// `--locale en-US` listens in that language first; unset follows the person's
+// preferred languages.
+//
 // `--finish-on-release control,option` finishes recognition once any of the
 // listed modifiers (control, option, shift, command) is no longer held.
 import AVFoundation
@@ -19,12 +23,16 @@ import CoreGraphics
 import Foundation
 import Speech
 
+// The audio tap and the recognizer call back on different threads: one line at a time.
+let emitQueue = DispatchQueue(label: "bot.dusk.speech.emit")
 func emit(_ obj: [String: Any]) {
   if let data = try? JSONSerialization.data(withJSONObject: obj),
     let line = String(data: data, encoding: .utf8)
   {
-    print(line)
-    fflush(stdout)
+    emitQueue.sync {
+      print(line)
+      fflush(stdout)
+    }
   }
 }
 
@@ -42,6 +50,28 @@ let endpointMs: Int = {
   else { return 0 }
   return min(5_000, max(250, value))
 }()
+
+let localeArg: String? = {
+  let args = CommandLine.arguments
+  guard let index = args.firstIndex(of: "--locale"), index + 1 < args.count else { return nil }
+  let value = args[index + 1]
+  return value.isEmpty ? nil : value
+}()
+
+/// Loudness for the composer's waveform: rms lifted by a square root so a soft
+/// voice still moves it. Matches levelOf in src/lib/voice-input/bridge.ts.
+var lastLevelAt = DispatchTime(uptimeNanoseconds: 0)
+func emitLevel(_ buffer: AVAudioPCMBuffer) {
+  guard let channel = buffer.floatChannelData?[0], buffer.frameLength > 0 else { return }
+  let now = DispatchTime.now()
+  guard now.uptimeNanoseconds - lastLevelAt.uptimeNanoseconds >= 45_000_000 else { return }
+  lastLevelAt = now
+  var sum: Float = 0
+  for i in 0..<Int(buffer.frameLength) { sum += channel[i] * channel[i] }
+  let rms = (sum / Float(buffer.frameLength)).squareRoot()
+  let level = min(1, (rms * 6).squareRoot())
+  emit(["level": (Double(level) * 1000).rounded() / 1000])
+}
 
 let stopFile: String? = {
   let args = CommandLine.arguments
@@ -176,7 +206,8 @@ SFSpeechRecognizer.requestAuthorization { status in
   // transcribes everyone else into nonsense. First preference that has an
   // available recognizer wins, with en-US as the last resort.
   let candidates =
-    Locale.preferredLanguages.map { Locale(identifier: $0) }
+    (localeArg.map { [Locale(identifier: $0)] } ?? [])
+    + Locale.preferredLanguages.map { Locale(identifier: $0) }
     + [Locale.current, Locale(identifier: "en-US")]
   guard
     let recognizer = candidates.lazy.compactMap({ SFSpeechRecognizer(locale: $0) })
@@ -214,6 +245,7 @@ SFSpeechRecognizer.requestAuthorization { status in
   }
   node.installTap(onBus: 0, bufferSize: 1024, format: node.outputFormat(forBus: 0)) { buffer, _ in
     request.append(buffer)
+    emitLevel(buffer)
   }
   do {
     engine.prepare()
