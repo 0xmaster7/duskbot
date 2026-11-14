@@ -678,14 +678,14 @@ export function McpServersPanel({ embedded = false, rows = false, hostedCards, h
         })}</div>}
         <ClaudeCodeSwitches />
 
-        <div className="mt-4 px-0.5 text-[12px] leading-relaxed text-ink-secondary in-data-[settings-look=simple]:hidden in-data-[connect-apps]:rounded-[14px] in-data-[connect-apps]:border-transparent in-data-[connect-apps]:bg-transparent in-data-[connect-apps]:px-3.5 in-data-[connect-apps]:py-2.5 in-data-[connect-apps]:leading-4 in-data-[connect-apps]:text-ink/[0.68]">
+        <div className="mt-4 px-0.5 text-[12px] leading-relaxed text-ink-secondary in-data-[settings-look=simple]:hidden in-data-[connect-apps]:rounded-[14px] in-data-[connect-apps]:border-transparent in-data-[connect-apps]:bg-transparent in-data-[connect-apps]:px-0 in-data-[connect-apps]:py-2.5 in-data-[connect-apps]:leading-4 in-data-[connect-apps]:text-ink/[0.68]">
           {t("mcp.trustNotice")}
         </div>
 
         {servers === null ? (
           <div className="flex items-center justify-center gap-2 py-24 text-[13px] text-ink-secondary"><Loader2 size={14} className="animate-spin" /> {t("mcp.loading")}</div>
         ) : visibleServers?.length === 0 && !editing ? (
-          <div className="mt-5 flex min-h-32 flex-col items-center justify-center rounded-2xl border border-dashed border-transparent text-center in-data-[settings-look=simple]:mt-3 in-data-[settings-look=simple]:min-h-16 in-data-[settings-look=simple]:rounded-[14px] in-data-[connect-apps]:mt-3 in-data-[connect-apps]:min-h-0 in-data-[connect-apps]:items-start in-data-[connect-apps]:border-0 in-data-[connect-apps]:px-3.5 in-data-[connect-apps]:text-start">
+          <div className="mt-5 flex min-h-32 flex-col items-center justify-center rounded-2xl border border-dashed border-transparent text-center in-data-[settings-look=simple]:mt-3 in-data-[settings-look=simple]:min-h-16 in-data-[settings-look=simple]:rounded-[14px] in-data-[connect-apps]:mt-3 in-data-[connect-apps]:min-h-0 in-data-[connect-apps]:items-start in-data-[connect-apps]:border-0 in-data-[connect-apps]:px-0 in-data-[connect-apps]:text-start">
             <Art name="plug" size="lg" className="in-data-[connect-apps]:hidden" />
             <div className="mt-3 text-[14px] font-medium text-ink in-data-[settings-look=simple]:mt-3 in-data-[settings-look=simple]:text-[14px] in-data-[settings-look=simple]:font-semibold in-data-[connect-apps]:mt-0 in-data-[connect-apps]:text-[12px] in-data-[connect-apps]:font-normal in-data-[connect-apps]:leading-4 in-data-[connect-apps]:text-ink/[0.56]">{t("mcp.empty.title")}</div>
             <div className="mt-1 max-w-sm text-[13px] font-medium text-ink-secondary in-data-[connect-apps]:mt-0.5 in-data-[connect-apps]:max-w-none in-data-[connect-apps]:text-[12px] in-data-[connect-apps]:leading-4 in-data-[connect-apps]:text-ink/[0.56]">{t("mcp.empty.desc")}</div>
