@@ -19,13 +19,10 @@ export interface DeviceSignInStatus {
   message?: string;
 }
 
-export function deviceSignInProvider(driverKind: string): DeviceSignInProvider {
-  switch (driverKind) {
-    case "grokAgent": return "grok";
-    case "kimiAgent": return "kimi";
-    default: return "codex";
-  }
-}
+import { chatgptPlanLink, signInProvider } from "./onboarding/connect-flow";
+
+export { chatgptPlanLink };
+export const deviceSignInProvider = signInProvider;
 
 export const DEVICE_SIGN_IN_COPY: Record<DeviceSignInProvider, Record<"description" | "start" | "enterCode" | "open" | "security" | "connected" | "connectedAccount" | "failed" | "invalidChallenge", LocaleKey>> = {
   codex: {
@@ -49,6 +46,28 @@ export const DEVICE_SIGN_IN_COPY: Record<DeviceSignInProvider, Record<"descripti
     connectedAccount: "engineSetup.grok.connectedAccount",
     failed: "engineSetup.grok.failed",
     invalidChallenge: "engineSetup.grok.invalidChallenge",
+  },
+  copilot: {
+    description: "engineSetup.copilot.description",
+    start: "engineSetup.copilot.start",
+    enterCode: "engineSetup.copilot.enterCode",
+    open: "engineSetup.copilot.open",
+    security: "engineSetup.copilot.security",
+    connected: "engineSetup.copilot.connected",
+    connectedAccount: "engineSetup.copilot.connectedAccount",
+    failed: "engineSetup.copilot.failed",
+    invalidChallenge: "engineSetup.copilot.invalidChallenge",
+  },
+  cursor: {
+    description: "engineSetup.cursor.description",
+    start: "engineSetup.cursor.start",
+    enterCode: "engineSetup.cursor.enterCode",
+    open: "engineSetup.cursor.open",
+    security: "engineSetup.cursor.security",
+    connected: "engineSetup.cursor.connected",
+    connectedAccount: "engineSetup.cursor.connectedAccount",
+    failed: "engineSetup.cursor.failed",
+    invalidChallenge: "engineSetup.cursor.invalidChallenge",
   },
   kimi: {
     description: "engineSetup.kimi.description",
@@ -76,14 +95,6 @@ export function codexDeviceLink(value: string | null): string | null {
   return deviceSignInLink("codex", value);
 }
 
-export function chatgptPlanLink(value: string | null): string | null {
-  if (!value) return null;
-  try {
-    const url = new URL(value);
-    return url.origin === "https://auth.openai.com" && url.pathname === "/api/accounts/authorize" &&
-      !url.username && !url.password && !url.hash ? url.href : null;
-  } catch { return null; }
-}
 
 const chatgptButton = "flex w-full items-center justify-center gap-2 rounded-lg border border-black/20 bg-white px-3 py-2 text-[13px] font-semibold text-black hover:opacity-85 disabled:opacity-50";
 

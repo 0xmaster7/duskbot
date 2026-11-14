@@ -1,204 +1,220 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowUp, Check, Copy, LoaderCircle } from "../../icons";
-import { claudeSignInLink } from "@/components/ClaudeSignIn";
-import { chatgptPlanLink, deviceSignInProvider, type DeviceSignInStatus } from "@/components/DeviceSignIn";
-import { needsSignIn } from "@/components/EngineSetup";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, Copy, ExternalLink, LoaderCircle } from "../../icons";
 import { openExternalLink } from "@/lib/app-links";
+import { cloudAsleep, cloudWaking } from "@/lib/cloud-power";
 import { useCopyFeedback } from "@/lib/copy-text";
 import { t } from "@/lib/i18n";
-import { plainSignIn } from "@/lib/onboarding";
 import { engineSignedIn } from "@/lib/product-events";
+import { trail } from "@/lib/trail";
 import { api, useStore, type InstanceInfo } from "@/state/store";
-import { deviceSignInLink, isDeviceSignInCode } from "../../../shared/device-sign-in";
-import { friendlyError } from "@/lib/plain-error";
+import { ConnectFlow, type ConnectInstance, type ConnectState, type ConnectTarget } from "./connect-flow";
 
-const POLL_MS = 2_000;
-/** Checks in a row that got no answer before the sign-in says it lost track, instead of waiting forever. */
-const LOST_AFTER = 5;
-// grok's lg pill: 425 weight, .14px tracking
-export const PILL = "ui-button ui-button-pill ui-button-lg ui-button-primary w-[288px] max-w-full font-normal tracking-[0.14px]";
+const QUIET = "min-h-8 rounded-full px-3 text-[13px] leading-[18px] text-ink-secondary transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none";
+const SECONDARY = "inline-flex min-h-8 items-center gap-1.5 rounded-full bg-ink/[0.06] px-3 text-[13px] leading-[18px] text-ink transition-colors hover:bg-ink/[0.1] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none";
 
-type Slot =
-  | { kind: "start" }
-  | { kind: "busy" }
-  | { kind: "waiting"; flowId: string; link: string | null }
-  | { kind: "paste"; flowId: string }
-  | { kind: "code"; flowId: string; code: string; link: string | null };
-
-/** How the first screen's pill connects `instance`: in place for a website sign-in or an install the app does itself,
- * else through the Connect an AI dialog. */
-export function pillWay(instance: InstanceInfo | undefined): "install" | "sign-in" | "dialog" {
-  if (!instance || !plainSignIn(instance)) return "dialog";
-  return needsSignIn(instance) ? "sign-in" : "install";
+/** The page a sign-in finishes on, by what people call it. */
+export function siteName(driverKind: string): string {
+  switch (driverKind) {
+    case "codex": return "ChatGPT";
+    case "claudeAgent": return "Claude";
+    case "grokAgent": return "Grok";
+    case "copilotAgent": return "GitHub";
+    case "cursorAgent": return "Cursor";
+    case "kimiAgent": return "Kimi";
+    case "antigravityAgent": case "geminiAgent": return "Google";
+    default: return "";
+  }
 }
 
-/** One AI connected from the first screen's pill: installed (when the app installs it), signed in on the provider's
- * page, and the code pasted or shown in the same place. A finished sign-in refreshes the AIs, where the welcome's test
- * message takes over. */
-export function useSignInPill(instance: InstanceInfo | undefined) {
-  const { refreshInstances, refreshModels } = useStore();
-  const [slot, setSlot] = useState<Slot>({ kind: "start" });
-  const [error, setError] = useState<string | null>(null);
-  const id = instance?.instanceId ?? "";
-  const method = instance?.authentication?.method;
-  const provider = deviceSignInProvider(instance?.driverKind ?? "");
-  const base = `/api/instances/${encodeURIComponent(id)}`;
-  const live = useRef(true);
-  useEffect(() => () => { live.current = false; }, []);
-
-  const done = useCallback(async () => {
-    engineSignedIn(method === "paste-code" ? "claude" : provider,
-      method === "browser-pkce" ? "browser" : method === "paste-code" ? "code" : "device_code");
-    try { await refreshInstances(); } catch {}
-    try { await refreshModels(id); } catch {}
-    if (live.current) setSlot({ kind: "start" });
-  }, [id, provider, method, refreshInstances, refreshModels]);
-
-  const fail = (cause: unknown) => {
-    if (!live.current) return;
-    setError(friendlyError(cause, t("engineSetup.device.failed")));
-    setSlot({ kind: "start" });
-  };
-
-  const install = async () => {
-    setSlot({ kind: "busy" });
-    setError(null);
-    try {
-      await api(`${base}/install`, { method: "POST" });
-      try { await refreshInstances(); } catch {}
-      if (live.current) setSlot({ kind: "start" });
-    } catch (cause) { fail(cause); }
-  };
-
-  const start = async () => {
-    setSlot({ kind: "busy" });
-    setError(null);
-    try {
-      const { auth }: { auth: DeviceSignInStatus } = await api(`${base}/auth/start`, { method: "POST" });
-      if (auth.phase === "succeeded") return void await done();
-      if (auth.phase !== "waiting" || !auth.flowId) throw new Error(auth.message ?? t("engineSetup.device.failed"));
-      if (method === "paste-code") {
-        const link = claudeSignInLink(auth.authorizationUrl);
-        if (link) await openExternalLink(link).catch(() => {});
-        setSlot({ kind: "paste", flowId: auth.flowId });
-      } else if (method === "browser-pkce") {
-        const link = chatgptPlanLink(auth.authorizationUrl);
-        if (link) await openExternalLink(link).catch(() => {});
-        setSlot({ kind: "waiting", flowId: auth.flowId, link });
-      } else {
-        const code = isDeviceSignInCode(provider, auth.userCode) ? auth.userCode! : "";
-        const link = deviceSignInLink(provider, auth.authorizationUrl, auth.userCode);
-        if (link) await openExternalLink(link).catch(() => {});
-        setSlot(code ? { kind: "code", flowId: auth.flowId, code, link } : { kind: "waiting", flowId: auth.flowId, link });
-      }
-    } catch (cause) { fail(cause); }
-  };
-
-  const submit = async (code: string) => {
-    if (slot.kind !== "paste" || !code.trim()) return;
-    const flowId = slot.flowId;
-    setSlot({ kind: "busy" });
-    setError(null);
-    try {
-      await api(`${base}/auth/complete`, { method: "POST", body: JSON.stringify({ flowId, code: code.trim() }) });
-      await done();
-    } catch (cause) {
-      fail(cause);
+/** One connect at a time for a whole grid: a new one cancels the running one, and leaving the grid cancels it too. */
+export function useConnectFlow() {
+  const { dispatch, refreshModels } = useStore();
+  const flow = useMemo(() => new ConnectFlow({
+    api: (path, init) => api(path, init),
+    refresh: async () => {
+      const { instances } = await api<{ instances: InstanceInfo[] }>("/api/instances?fresh=1", { timeoutMs: 120_000 });
+      if (Array.isArray(instances)) dispatch({ type: "instances", instances });
+      return (instances ?? []) as unknown as ConnectInstance[];
+    },
+    open: (link) => openExternalLink(link).then(() => true, () => false),
+    trail: (ev, fields) => trail(ev, fields),
+    waking: () => cloudAsleep() || cloudWaking(),
+  }), [dispatch]);
+  const [state, setState] = useState<ConnectState>(flow.state);
+  const models = useRef(refreshModels);
+  models.current = refreshModels;
+  useEffect(() => flow.subscribe((next) => {
+    setState(next);
+    if (next.stage === "connected" && !next.reused) {
+      engineSignedIn(flow.target?.tile === "claude" ? "claude" : flow.target?.tile ?? "", "browser");
+      void models.current(flow.instance).catch(() => {});
     }
+  }), [flow]);
+  useEffect(() => () => flow.cancel(), [flow]);
+  return {
+    state,
+    target: flow.target,
+    start: (target: ConnectTarget) => flow.start(target),
+    cancel: () => flow.cancel(),
+    retry: () => flow.retry(),
+    openAgain: () => flow.openAgain(),
+    submit: (code: string) => flow.submit(code),
   };
-
-  const polling = slot.kind === "waiting" || slot.kind === "code" ? slot.flowId : null;
-  useEffect(() => {
-    if (!polling) return;
-    const controller = new AbortController();
-    let missed = 0;
-    const timer = window.setInterval(() => {
-      void api(`${base}/auth/status?flowId=${encodeURIComponent(polling)}`, { signal: controller.signal })
-        .then(({ auth }: { auth: DeviceSignInStatus }) => {
-          missed = 0;
-          if (auth.phase === "succeeded") void done();
-          else if (auth.phase !== "waiting") fail(new Error(auth.message ?? t("engineSetup.device.failed")));
-          else if (isDeviceSignInCode(provider, auth.userCode)) {
-            const code = auth.userCode;
-            setSlot((current) => current.kind === "code" && current.flowId === polling && current.code !== code
-              ? { ...current, code, link: deviceSignInLink(provider, auth.authorizationUrl, code) } : current);
-          }
-        })
-        .catch(() => {
-          if (controller.signal.aborted || ++missed < LOST_AFTER) return;
-          fail(new Error(t("onboarding.start.ai.lost")));
-        });
-    }, POLL_MS);
-    return () => {
-      window.clearInterval(timer);
-      controller.abort();
-    };
-  }, [polling, base, done, provider]);
-
-  return { slot, error, install, start, submit };
 }
 
-type PillState = ReturnType<typeof useSignInPill>;
+export type ConnectFlowHandle = ReturnType<typeof useConnectFlow>;
 
-export function CodeSlot({ code }: { code: string }) {
-  const { state, copy } = useCopyFeedback(code);
+function useSeconds(since: number | null): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (since === null) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1_000);
+    return () => window.clearInterval(timer);
+  }, [since]);
+  return since === null ? 0 : Math.max(0, Math.floor((now - since) / 1_000));
+}
+
+function CopyButton({ text, label }: { text: string; label: string }) {
+  const { state, copy } = useCopyFeedback(text);
   return (
-    <div data-sign-in="code" className="flex h-9 w-[288px] max-w-full items-center justify-between rounded-[18px] border-[0.5px] border-transparent bg-composer pl-4 pr-1">
-      <span className="font-mono text-[15px] tracking-[0.08em] text-ink">{code}</span>
-      <button type="button" onClick={copy} aria-label={t("engineSetup.copy")} title={t("engineSetup.copy")}
-        className="flex size-7 items-center justify-center rounded-full text-ink-secondary hover:bg-ink/[0.06] hover:text-ink">
-        {state === "copied" ? <Check size={14} /> : <Copy size={14} />}
-      </button>
-    </div>
+    <button type="button" onClick={copy} className={SECONDARY} data-connect-copy="">
+      {state === "copied" ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
+      {state === "copied" ? t("connect.copied") : label}
+    </button>
   );
 }
 
 export function PasteSlot({ name, onSubmit }: { name: string; onSubmit: (code: string) => void }) {
   const [code, setCode] = useState("");
   return (
-    <form data-sign-in="paste" className="relative flex w-[288px] max-w-full flex-col items-center gap-1.5" onSubmit={(event) => { event.preventDefault(); onSubmit(code); }}>
+    <form data-sign-in="paste" className="flex w-[288px] max-w-full flex-col items-center gap-2" onSubmit={(event) => { event.preventDefault(); onSubmit(code); }}>
       <input autoFocus value={code} onChange={(event) => setCode(event.target.value)} aria-label={t("onboarding.meet.paste", { name })}
         placeholder={t("onboarding.meet.paste", { name })}
-        className="h-9 w-full rounded-[18px] border-[0.5px] border-transparent bg-composer pl-4 pr-10 text-[14px] leading-5 text-ink placeholder:text-ink-tertiary" />
-      <button type="submit" disabled={!code.trim()} aria-label={t("onboarding.meet.pasteSubmit")} title={t("onboarding.meet.pasteSubmit")}
-        className="absolute right-1 top-1 flex size-7 items-center justify-center rounded-full bg-ink text-app disabled:opacity-40">
-        <ArrowUp size={14} strokeWidth={2} />
-      </button>
-      <p data-sign-in="paste-hint" className="m-0 text-center text-[12px] leading-4 text-ink-tertiary">{t("onboarding.meet.pasteHint", { name })}</p>
+        className="h-9 w-full rounded-[18px] border-[0.5px] border-transparent bg-composer px-4 text-[14px] leading-5 text-ink placeholder:text-ink-tertiary" />
+      <button type="submit" disabled={!code.trim()} className={SECONDARY}>{t("onboarding.meet.pasteSubmit")}</button>
+      <p className="m-0 text-center text-[12px] leading-4 text-ink-tertiary">{t("connect.stage.pasteHint", { name })}</p>
     </form>
   );
 }
 
-/** The first screen's 288×36 slot while an AI is still to connect: its one button, the field for the code a provider
- * shows, or the code to enter on the provider's page. */
-export function SignInPill({ pill, instance, waiting, onDialog }: {
-  pill: PillState;
-  instance: InstanceInfo | undefined;
-  /** The test message after a sign-in is under way: the pill waits with it. */
-  waiting: boolean;
-  onDialog: () => void;
-}) {
-  const { slot, install, start, submit } = pill;
-  const name = instance?.displayName ?? "";
-  if (waiting || slot.kind === "busy" || slot.kind === "waiting") {
-    const link = slot.kind === "waiting" ? slot.link : null;
-    return (
-      <button type="button" data-sign-in="waiting" className={PILL} aria-disabled={!link}
-        onClick={() => link && void openExternalLink(link).catch(() => {})}>
-        <LoaderCircle size={14} aria-hidden="true" className="shrink-0 animate-spin" />{t("onboarding.meet.waiting", { name })}
-      </button>
-    );
-  }
-  if (slot.kind === "paste") return <PasteSlot name={name} onSubmit={(code) => void submit(code)} />;
-  if (slot.kind === "code") return <CodeSlot code={slot.code} />;
-  const way = pillWay(instance);
-  const label = way === "install" ? t("onboarding.meet.install", { name })
-    : way === "sign-in" ? t("onboarding.meet.signIn", { name })
-    : instance ? t("onboarding.meet.connectNamed", { name }) : t("onboarding.meet.connectAi");
+function Busy({ label, hint, seconds }: { label: string; hint?: string | null; seconds: number }) {
   return (
-    <button type="button" data-primary="" data-sign-in={way} className={PILL}
-      onClick={() => (way === "install" ? void install() : way === "sign-in" ? void start() : onDialog())}>
-      {label}
-    </button>
+    <div role="status" aria-live="polite" className="flex flex-col items-center gap-1 text-center">
+      <p className="m-0 flex items-center gap-2 text-[14px] leading-5 text-ink">
+        <LoaderCircle size={14} aria-hidden="true" className="shrink-0 animate-spin motion-reduce:animate-none" />
+        {label}
+        {seconds >= 5 && <span className="tabular-nums text-ink-tertiary">{t("connect.elapsed", { seconds })}</span>}
+      </p>
+      {hint && <p className="m-0 max-w-[360px] text-[12px] leading-4 text-ink-secondary">{hint}</p>}
+    </div>
   );
+}
+
+const linkText = (link: string) => {
+  try {
+    const url = new URL(link);
+    return `${url.host}${url.pathname === "/" ? "" : url.pathname}`;
+  } catch { return link; }
+};
+
+/** The pressed AI's connect, stage by stage: honest progress, a deadline on each step, and a way out of every one. */
+export function ConnectPanel({ flow, name, driverKind, onTrouble }: {
+  flow: ConnectFlowHandle;
+  name: string;
+  driverKind: string;
+  onTrouble?: () => void;
+}) {
+  const { state } = flow;
+  const since = "since" in state ? state.since : null;
+  const seconds = useSeconds(since);
+  const site = siteName(driverKind) || name;
+  const cancel = <button type="button" onClick={flow.cancel} className={QUIET} data-connect-cancel="">{t("common.cancel")}</button>;
+
+  let body: React.ReactNode;
+  switch (state.stage) {
+    case "idle":
+      body = null;
+      break;
+    case "waking":
+      body = <><Busy label={t("connect.stage.waking")} hint={t("connect.stage.wakingHint")} seconds={seconds} />{cancel}</>;
+      break;
+    case "preparing":
+      body = <><Busy label={t("connect.stage.preparing", { name })} seconds={seconds} />{cancel}</>;
+      break;
+    case "installing": {
+      const hint = state.downloadBytes
+        ? t("connect.stage.downloadSize", { name, mb: Math.max(1, Math.round(state.downloadBytes / 1024 / 1024)) })
+        : t("connect.stage.download", { name });
+      body = <><Busy label={t("connect.stage.installing", { name })} hint={hint} seconds={seconds} />{cancel}</>;
+      break;
+    }
+    case "opening":
+      body = <><Busy label={t("connect.stage.opening", { name })} seconds={seconds} />{cancel}</>;
+      break;
+    case "confirming":
+      body = <Busy label={t("connect.stage.confirming", { name })} seconds={seconds} />;
+      break;
+    case "connected":
+      body = (
+        <p role="status" className="m-0 flex items-center gap-1.5 text-[14px] leading-5 text-success">
+          <Check size={14} strokeWidth={2.5} aria-hidden="true" />{t("connect.stage.connected")}
+        </p>
+      );
+      break;
+    case "waiting":
+      if (state.kind === "paste") {
+        body = <>
+          <PasteSlot name={name} onSubmit={flow.submit} />
+          <div className="flex items-center gap-1">
+            {state.link && <button type="button" onClick={() => void flow.openAgain()} className={QUIET}>{t("connect.openAgain")}</button>}
+            {cancel}
+          </div>
+        </>;
+      } else if (state.code) {
+        body = <>
+          <p className="m-0 text-[13px] leading-[18px] text-ink-secondary">{t("connect.stage.enterCode", { site: state.link ? linkText(state.link) : site })}</p>
+          <div data-sign-in="code" className="flex items-center gap-2">
+            <span className="rounded-xl bg-composer px-4 py-1.5 font-mono text-[20px] font-medium tracking-[0.12em] text-ink">{state.code}</span>
+            <CopyButton text={state.code} label={t("connect.copyCode")} />
+          </div>
+          {state.link && (
+            <button type="button" onClick={() => void flow.openAgain()} className={SECONDARY}>
+              <ExternalLink size={13} aria-hidden="true" />{t("connect.openSite", { site })}
+            </button>
+          )}
+          <Busy label={t("connect.stage.waiting")} seconds={0} />
+          {cancel}
+        </>;
+      } else {
+        body = <>
+          <Busy label={t("connect.stage.waiting")} hint={state.opened ? t("connect.stage.waitingHint") : null} seconds={seconds} />
+          {!state.opened && state.link && (
+            <div className="flex w-full max-w-[400px] flex-col items-center gap-1.5">
+              <p className="m-0 text-[12px] leading-4 text-ink-secondary">{t("connect.stage.notOpened")}</p>
+              <code className="block w-full truncate rounded-lg bg-composer px-3 py-1.5 text-[12px] text-ink" title={state.link}>{state.link}</code>
+            </div>
+          )}
+          <div className="flex flex-wrap items-center justify-center gap-1.5">
+            {state.link && <button type="button" onClick={() => void flow.openAgain()} className={SECONDARY}>
+              <ExternalLink size={13} aria-hidden="true" />{state.opened ? t("connect.openAgain") : t("connect.openSite", { site })}
+            </button>}
+            {state.link && <CopyButton text={state.link} label={t("connect.copyLink")} />}
+            {cancel}
+          </div>
+        </>;
+      }
+      break;
+    case "failed": {
+      const plain = state.reason === "timeout" ? t(`connect.timeout.${state.at}`, { name })
+        : state.reason === "lost" ? t("connect.lost")
+          : state.message ?? (state.reason === "unavailable" ? t("connect.unavailable", { name }) : t("connect.failed", { name }));
+      body = <>
+        <p role="alert" className="m-0 max-w-[400px] text-center text-[13px] leading-[18px] text-danger">{plain}</p>
+        <button type="button" onClick={flow.retry} className={SECONDARY}>{t("common.tryAgain")}</button>
+        {onTrouble && <button type="button" onClick={onTrouble} className={QUIET} data-connect-trouble="">{t("connect.trouble")}</button>}
+      </>;
+      break;
+    }
+  }
+  return <div data-connect-stage={state.stage} className="flex w-full flex-col items-center gap-2.5">{body}</div>;
 }

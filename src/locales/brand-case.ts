@@ -2,7 +2,7 @@
 export const KEEP_WORDS: ReadonlySet<string> = new Set([
   // companies and products
   "Agentcard", "Android", "Anthropic", "Antigravity", "Apple", "Azure", "Bionic", "Caddy", "Cerebras", "Chatterbox", "Chrome",
-  "Claude", "Clef", "Cloudflare", "Codex", "Composio", "Cua", "Cursor", "Debian", "Discord", "Docker", "Dropbox", "Electron", "Entra", "Firefox",
+  "Claude", "Clef", "Cloudflare", "Codex", "Copilot", "Composio", "Cua", "Cursor", "Debian", "Discord", "Docker", "Dropbox", "Electron", "Entra", "Firefox",
   "Foundry", "Gemini", "Gmail", "Google", "Greenference", "Grok", "Groq", "Jev", "Kimi", "Linux", "Mac", "Markdown",
   "Mermaid", "Meta", "Microsoft", "Mistral", "Moonshot", "Muse", "Node", "Notion", "Ollama", "OpenClaw", "Outlook", "Pi", "Podman",
   "PowerShell", "Qwen", "Reddit", "Safari", "Slack", "Stripe", "Tailscale", "Telegram", "Terminal", "Twitter", "Ubuntu",

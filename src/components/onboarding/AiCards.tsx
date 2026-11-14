@@ -1,7 +1,8 @@
-// The AIs people already use, as a grid of cards with their own logos. A press opens that provider's own sign-in in the
-// browser (SignInPill's flows), or its setup under the grid where it has no sign-in (EngineSetup: an API key, an install,
-// a local endpoint). A connected AI turns green with a check and can't be pressed again; the window comes back to the
-// front when a sign-in finishes. The first run, the Connect an AI dialog and Settings > Models all show this one grid.
+// The AIs people already use, as a grid of cards with their own logos. A press starts that AI's connect under the grid
+// (connect-flow: getting it ready, its own sign-in in the browser, the code to enter), or shows its setup where it has
+// no sign-in (EngineSetup: an API key, a local endpoint). One connect runs at a time: pressing another card cancels the
+// running one. A connected AI turns green with a check and can't be pressed again; the window comes back to the front
+// when a sign-in finishes. The first run, the Connect an AI dialog and Settings > Models all show this one grid.
 import { useEffect, useRef, useState } from "react";
 import { Check, Server } from "../../icons";
 import { EngineSetup } from "@/components/EngineSetup";
@@ -13,7 +14,8 @@ import { plainSignIn } from "@/lib/onboarding";
 import { useStore, type InstanceInfo } from "@/state/store";
 import { aiName, aiTiles, type AiTile, type AiTileId } from "./funnel";
 import { TILE } from "./FunnelSteps";
-import { SignInPill, pillWay, useSignInPill } from "./SignInPill";
+import { connectsInApp, type ConnectInstance } from "./connect-flow";
+import { ConnectPanel, useConnectFlow, type ConnectFlowHandle } from "./SignInPill";
 import type { WelcomeAiNow } from "./welcome-ai";
 
 const ready = (instance: InstanceInfo) => engineReady(instance);
@@ -41,27 +43,15 @@ export function setupFor(instance: InstanceInfo) {
     : { intent: "cloud" as const };
 }
 
-/** The pressed AI's way in. A website sign-in or an install starts on the press itself; what is left here is the wait,
- * the code to paste back or to enter, or the setup for an AI without a sign-in. */
-function Connect({ instance, testing, onMore }: { instance: InstanceInfo; testing: boolean; onMore?: () => void }) {
-  const pill = useSignInPill(instance);
-  const way = pillWay(instance);
-  const begin = useRef(pill);
-  begin.current = pill;
-  const started = useRef(false);
-  useEffect(() => {
-    if (started.current) return;
-    started.current = true;
-    if (way === "install") void begin.current.install();
-    else if (way === "sign-in") void begin.current.start();
-  }, [way]);
-  if (way !== "dialog") {
-    return (
-      <div className="flex flex-col items-center gap-2.5">
-        <SignInPill pill={pill} instance={{ ...instance, displayName: aiName(instance) }} waiting={testing} onDialog={() => onMore?.()} />
-        {pill.error && <p role="alert" className="text-[13px] leading-[18px] text-danger">{pill.error}</p>}
-      </div>
-    );
+const inApp = (instance: InstanceInfo) => connectsInApp(instance as unknown as ConnectInstance);
+
+/** The pressed AI's way in: its connect, stage by stage, or the setup for an AI without a sign-in. "Having trouble?"
+ * after a failure shows that setup too. */
+function Connect({ tile, flow }: { tile: AiTile<InstanceInfo>; flow: ConnectFlowHandle }) {
+  const [trouble, setTrouble] = useState(false);
+  const instance = tile.instance;
+  if (!trouble && tile.candidates.some(inApp)) {
+    return <ConnectPanel flow={flow} name={aiName(instance)} driverKind={instance.driverKind} onTrouble={() => setTrouble(true)} />;
   }
   return <EngineSetup instance={instance} {...setupFor(instance)} className="w-full max-w-[440px] rounded-2xl border-0 bg-ink/[0.035] p-4 text-start" />;
 }
@@ -111,10 +101,17 @@ export function connectedAiCards(instances: readonly InstanceInfo[]): AiTileId[]
 
 /** The grid of popular AIs and, under it, the pressed one's way in. `onMore`: the small link to every other provider and
  * API keys (the model directory). */
-export function AiCards({ tested, onMore, className }: { tested: WelcomeAiNow | null; onMore?: () => void; className?: string }) {
+export function AiCards({ onMore, className }: { tested: WelcomeAiNow | null; onMore?: () => void; className?: string }) {
   const { state } = useStore();
   const [picked, setPicked] = useState<AiTileId | null>(null);
-  const tiles = aiTiles(state.instances, ready);
+  const flow = useConnectFlow();
+  const tiles = aiTiles(state.instances, ready, inApp);
+  const pick = (tile: AiTile<InstanceInfo>) => {
+    flow.cancel();
+    if (picked === tile.id) return setPicked(null);
+    setPicked(tile.id);
+    if (tile.candidates.some(inApp)) flow.start({ tile: tile.id, candidates: tile.candidates.map((candidate) => candidate.instanceId) });
+  };
   const chosen = tiles.find((tile) => tile.id === picked && !ready(tile.instance));
   useFocusOnConnect(tiles.filter((tile) => ready(tile.instance)).map((tile) => tile.id));
 
@@ -123,13 +120,12 @@ export function AiCards({ tested, onMore, className }: { tested: WelcomeAiNow | 
       <div role="list" aria-label={t("funnel.ai.title")} className="grid w-full grid-cols-2 gap-2.5 @min-[400px]:grid-cols-4">
         {tiles.map((tile) => (
           <AiCard key={tile.id} tile={tile} connected={ready(tile.instance)} picked={picked === tile.id}
-            onPick={() => setPicked(picked === tile.id ? null : tile.id)} />
+            onPick={() => pick(tile)} />
         ))}
       </div>
       {chosen && (
         <div key={chosen.id} data-funnel-ai-connect={chosen.id} className="place-reveal mt-5 flex w-full flex-col items-center">
-          <Connect instance={chosen.instance} onMore={onMore}
-            testing={tested?.state === "testing" && tested.instance.instanceId === chosen.instance.instanceId} />
+          <Connect tile={chosen} flow={flow} />
         </div>
       )}
       {onMore && (

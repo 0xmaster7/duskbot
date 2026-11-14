@@ -65,7 +65,7 @@ interface AiTileInstance {
   instanceId: string;
   driverKind: string;
   access?: string;
-  snapshot: { state: string; authenticated?: boolean; freeFallback?: boolean };
+  snapshot: { state: string; authenticated?: boolean; freeFallback?: boolean; authenticationUnavailableReason?: string };
 }
 
 export type AiTileId = "chatgpt" | "claude" | "grok" | "gemini" | "cursor" | "copilot" | "openrouter" | "local";
@@ -82,18 +82,26 @@ const TILES: ReadonlyArray<{ id: AiTileId; label: string; ids: readonly string[]
   { id: "local", label: "Local model", ids: ["openaiCompat"], drivers: [] },
 ];
 
-export interface AiTile<Instance> { id: AiTileId; label: string; instance: Instance }
+export interface AiTile<Instance> {
+  id: AiTileId;
+  label: string;
+  instance: Instance;
+  /** Every instance that is this AI, best first: the one shown, then the ones a connect falls back to. */
+  candidates: Instance[];
+}
 
-/** The grid, in its fixed order, with only the AIs this app can connect here. */
-export function aiTiles<Instance extends AiTileInstance>(instances: readonly Instance[], ready: (instance: Instance) => boolean): AiTile<Instance>[] {
+/** The grid, in its fixed order, with only the AIs this app can connect here. `usable`: whether one can be connected
+ * here (a ChatGPT plan sign-in a hosted cloud can't take is passed over for the Codex one). */
+export function aiTiles<Instance extends AiTileInstance>(instances: readonly Instance[], ready: (instance: Instance) => boolean,
+  usable: (instance: Instance) => boolean = (instance) => !instance.snapshot.authenticationUnavailableReason): AiTile<Instance>[] {
   const tiles: AiTile<Instance>[] = [];
   for (const tile of TILES) {
     const byId = tile.ids.map((id) => instances.find((instance) => instance.instanceId === id)).filter(Boolean) as Instance[];
     const byDriver = instances.filter((instance) => tile.drivers.includes(instance.driverKind) && !byId.includes(instance));
     const candidates = [...byId, ...byDriver];
-    // a signed-in one stands for the tile, else the first of its kind
-    const instance = candidates.find(ready) ?? candidates[0];
-    if (instance) tiles.push({ id: tile.id, label: tile.label, instance });
+    // a signed-in one stands for the tile, else the first that can connect here, else the first of its kind
+    const instance = candidates.find(ready) ?? candidates.find(usable) ?? candidates[0];
+    if (instance) tiles.push({ id: tile.id, label: tile.label, instance, candidates: [instance, ...candidates.filter((other) => other !== instance)] });
   }
   return tiles;
 }
