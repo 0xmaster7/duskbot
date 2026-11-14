@@ -120,8 +120,9 @@ export const createCloudAccountStore = createManagedDesktopStore;
 // oxlint-disable-next-line no-control-regex
 const text = (value, max) => typeof value === "string" && value.length > 0 && value.length <= max && !/[\x00-\x1f\x7f]/.test(value);
 
-/** The account's name and photo as the Admin names them, both optional (an older Admin sends neither): the photo only as an
- * https address without credentials or a port, at most 1024 characters. */
+/** The account's name, photo and chosen avatar as the Admin names them, all optional (an older Admin sends none): the photo
+ * only as an https address without credentials or a port, at most 1024 characters; the avatar only as shared/user-avatar.ts
+ * spells one. */
 export function accountProfile(account) {
   const name = text(account?.name, 80) && account.name.trim() ? account.name.trim() : null;
   let avatarUrl = null;
@@ -131,8 +132,10 @@ export function accountProfile(account) {
       if (url.protocol === "https:" && !url.username && !url.password && !url.port) avatarUrl = url.href;
     } catch { /* not an address */ }
   }
-  return { ...(name ? { name } : {}), ...(avatarUrl ? { avatarUrl } : {}) };
+  const avatar = typeof account?.avatar === "string" && AVATAR_CHOICE.test(account.avatar) ? account.avatar : null;
+  return { ...(name ? { name } : {}), ...(avatarUrl ? { avatarUrl } : {}), ...(avatar ? { avatar } : {}) };
 }
+const AVATAR_CHOICE = /^(?:photo|g:[a-z0-9]{1,16})$/;
 const timestamp = value => Number.isSafeInteger(value) && value > 0;
 /** Display only: the last verified plan, never an entitlement. */
 function planHint(value) {
@@ -647,6 +650,20 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
         const result = await request("", { path: "/v1/app/enroll-grant", method: "POST", body: {}, token: signedIn.token });
         if (grant !== signedIn || result?.v !== 1 || typeof result.enrollToken !== "string" || result.enrollToken.length !== 43 || !PRIVATE_CODE.test(result.enrollToken) || !Number.isSafeInteger(result.expiresAt) || result.expiresAt <= serverNow() || typeof result.dashboardUrl !== "string" || new URL(result.dashboardUrl).origin !== origin) return null;
         return { enrollToken: result.enrollToken, dashboardUrl: result.dashboardUrl };
+      } catch (error) { if (signInEnded(error)) await refresh().catch(() => {}); return null; }
+    },
+    /** Keeps the person's avatar on the account ("photo", "g:<seed>", or null for the default): true once the account
+     * service has it, null when signed out or it did not answer. */
+    async setAvatar(choice) {
+      const signedIn = grant;
+      if (!signedIn || state().status !== "connected" || (choice !== null && (typeof choice !== "string" || !AVATAR_CHOICE.test(choice)))) return null;
+      try {
+        const result = await request("", { path: "/v1/app/avatar", method: "POST", body: { avatar: choice }, token: signedIn.token });
+        if (grant !== signedIn || (result?.avatar !== choice)) return null;
+        const { avatar: _old, ...rest } = profile?.accountId === signedIn.account.id ? profile.fields : {};
+        profile = { accountId: signedIn.account.id, fields: { ...rest, ...(choice ? { avatar: choice } : {}) } };
+        if (value.account) { const { avatar: _was, ...account } = value.account; publish({ ...value, account: { ...account, ...(choice ? { avatar: choice } : {}) } }); }
+        return true;
       } catch (error) { if (signInEnded(error)) await refresh().catch(() => {}); return null; }
     },
     /** Takes a workspace this account owns off its dashboard (a server this app forgot): true once it is gone, null when

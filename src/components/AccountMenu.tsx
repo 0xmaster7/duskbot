@@ -1,14 +1,15 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ContinueInBrowserSheet } from "./SignInSheet";
 import { continueInBrowser } from "@/lib/account-intent";
-import { Check, LogOut, Plus, UserRound, X } from "../icons";
+import { Check, LogOut, Pencil, Plus, UserRound, X } from "../icons";
 import type { AccountPlanLine, AccountRow, AccountsView, AccountSwitchResult, RailOpenResult } from "../../electron/cloud-account.mjs";
 import { cn } from "@/lib/cn";
 import type { CloudSignInPhase } from "@/lib/cloud-plan";
-import { activeLocale, t } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
 import { cloudPlanLabel } from "@/lib/cloud-plan";
-import { placeInitials, usePlaces } from "@/lib/places";
-import { InitialsAvatar } from "./Avatar";
+import { usePlaces } from "@/lib/places";
+import { AvatarPicker } from "./AvatarPicker";
+import { UserFace } from "./UserAvatar";
 import { CLOSE, Heading, PRIMARY, QUIET, SCREEN, SHEET } from "./cloud-buy/parts";
 import { codeDigits, SignInScreen } from "./cloud-buy/SignInScreen";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -24,6 +25,8 @@ export interface AccountsAccess {
   noRail: boolean;
   signOut(id: string): void;
   add(email?: string): void;
+  /** Opens the avatar picker for the account in use, where this app can save one. */
+  editAvatar?: () => void;
 }
 
 /** What a click or sign-out that didn't go through says; null when it went through. */
@@ -45,7 +48,7 @@ export function CloudSignOutConfirm({ open, pending = false, onCancel, onConfirm
 
 /** Who is signed in on this device, on this app's own page; on any other page, only whether main offers the sheet. `signOut`
  * asks first: render `signOutConfirm` wherever the hook is used. */
-export function useAccounts(): AccountsAccess & { sheet: { email: string | null; note: string | null } | null; closeSheet(): void; signOutConfirm: ReactNode } {
+export function useAccounts(): AccountsAccess & { sheet: { email: string | null; note: string | null } | null; closeSheet(): void; signOutConfirm: ReactNode; picking: boolean; closeAvatar(): void } {
   const bridge = window.duskDesktop?.remoteClient?.active ? undefined : window.duskDesktop?.accounts;
   const remote = window.duskDesktop?.accountSheet;
   const own = window.duskDesktop?.app?.ownPage === true && Boolean(bridge);
@@ -54,6 +57,7 @@ export function useAccounts(): AccountsAccess & { sheet: { email: string | null;
   const [offered, setOffered] = useState(false);
   const [sheet, setSheet] = useState<{ email: string | null; note: string | null } | null>(null);
   const [asking, setAsking] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
   useEffect(() => {
     if (!own) return;
     const read = () => { void bridge!.list().then(setView).catch(() => {}); };
@@ -72,6 +76,9 @@ export function useAccounts(): AccountsAccess & { sheet: { email: string | null;
     noRail: !places.beside && !places.places.length,
     signOut: (id) => setAsking(id),
     add: (email) => setSheet({ email: email ?? "", note: null }),
+    ...(own && bridge?.setAvatar ? { editAvatar: () => setPicking(true) } : {}),
+    picking: own && picking,
+    closeAvatar: () => setPicking(false),
     sheet,
     closeSheet: () => setSheet(null),
     signOutConfirm: <CloudSignOutConfirm open={asking !== null} onCancel={() => setAsking(null)} onConfirm={() => {
@@ -91,12 +98,13 @@ export function cloudRowLabel(view: AccountsView | null): string {
 /** The You menu's last rows: who is signed in here and Sign out. The other accounts are on the rail, and so is Add another account,
  * in its ＋; with no rail beside this page (nothing to list but This computer, or the person hid it) it is here. On another page,
  * one row that opens the sheet, with no address. Signed out: nothing, as Settings has the sign-in. */
-export function accountMenuItems({ view, openSheet, noRail, signOut, add }: AccountsAccess): SidebarMenuItem[] {
+export function accountMenuItems({ view, openSheet, noRail, signOut, add, editAvatar }: AccountsAccess): SidebarMenuItem[] {
   if (openSheet) return [{ key: "accounts-sheet", label: t("accounts.manage"), icon: <UserRound size={18} />, onSelect: openSheet }];
   const active = view?.active;
   if (!active) return [];
   return [
     { key: "accounts-active", heading: t("accounts.heading"), label: active.email, title: active.email, checked: true, icon: <Check size={18} />, disabled: !active.signIn, ...(active.signIn ? { subtitle: t("accounts.needsSignIn") } : {}), onSelect: () => { if (active.signIn) add(active.email); } },
+    ...(editAvatar && !active.signIn ? [{ key: "accounts-avatar", label: t("accounts.avatar.change"), icon: <UserFace account={active} size={18} />, onSelect: editAvatar }] : []),
     ...(noRail ? [{ key: "accounts-add", label: t("accounts.add"), icon: <Plus size={18} />, onSelect: () => add() }] : []),
     { key: "accounts-sign-out", label: t("accounts.signOut"), icon: <LogOut size={18} />, onSelect: () => signOut(active.id) },
   ];
@@ -216,31 +224,35 @@ async function manageAccount(): Promise<void> {
   await cloud.openDashboard();
 }
 
-/** The face beside the account: its photo, or its initials (the first letter of its address without a name). */
-export function accountInitials(account: Pick<AccountRow, "name" | "email">): string {
-  return account.name ? placeInitials(account.name) : Array.from(account.email.trim())[0]?.toLocaleUpperCase() ?? "?";
-}
-
-/** What the account card says of the plan: Free, or dusk cloud with its plan and when it renews or ends. */
+/** What the account card says of the plan: Free, or dusk cloud with its plan. Renewal dates live on the billing page. */
 export function accountPlanText(plan: AccountPlanLine | undefined): string | null {
   if (!plan) return null;
   if (plan.status === "free") return t("accounts.card.free");
   const name = cloudPlanLabel(plan.tier);
   if (plan.status === "inactive") return t("accounts.card.inactive", { plan: name });
-  const line = t(plan.trial ? "accounts.card.trial" : "accounts.card.plan", { plan: name });
-  const day = (at: number) => new Intl.DateTimeFormat(activeLocale(), { month: "short", day: "numeric" }).format(at);
-  if (plan.renewsAt) return t("accounts.card.renews", { plan: line, date: day(plan.renewsAt) });
-  if (plan.endsAt) return t("accounts.card.ends", { plan: line, date: day(plan.endsAt) });
-  return line;
+  return t(plan.trial ? "accounts.card.trial" : "accounts.card.plan", { plan: name });
 }
 
-/** Who is signed in: photo, name, address and plan on one tonal card, no border. */
+/** Who is signed in: avatar, name, address and plan on one tonal card, no border. The avatar opens the picker while the
+ * sign-in is good. */
 function AccountCard({ account }: { account: AccountRow }) {
   const plan = accountPlanText(account.plan);
   const paid = account.plan?.status === "active";
+  const [picking, setPicking] = useState(false);
+  const faceRef = useRef<HTMLButtonElement>(null);
+  const editable = Boolean(window.duskDesktop?.accounts?.setAvatar) && !account.signIn;
+  const face = <UserFace account={account} size={52} className="inset-ring inset-ring-ink/[0.08]" />;
   return <div data-accounts-active className="flex items-center gap-3.5 rounded-2xl bg-ink/[0.04] p-4">
-    <InitialsAvatar initials={accountInitials(account)} avatarUrl={account.avatarUrl} size={52} fontSize={19}
-      className="bg-composer font-semibold text-ink-secondary inset-ring inset-ring-ink/[0.08]" />
+    {editable
+      ? <button ref={faceRef} type="button" data-accounts-avatar="" aria-label={t("accounts.avatar.change")} aria-haspopup="dialog" aria-expanded={picking}
+        className="group/face relative shrink-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" onClick={() => setPicking((open) => !open)}>
+        {face}
+        <span aria-hidden className="absolute -bottom-0.5 -end-0.5 flex size-5 items-center justify-center rounded-full bg-menu text-ink-secondary shadow-(--shadow-popover) transition-colors duration-150 ease-out group-hover/face:text-ink motion-reduce:transition-none">
+          <Pencil size={11} />
+        </span>
+      </button>
+      : face}
+    {picking && <AvatarPicker account={account} anchor={faceRef.current} onClose={() => setPicking(false)} />}
     <div className="flex min-w-0 flex-1 flex-col">
       {account.name && <p dir="auto" className="truncate text-[15px] font-semibold leading-5 text-ink" title={account.name}>{account.name}</p>}
       <p className={cn("truncate leading-5", account.name ? "text-[13px] text-ink-secondary" : "text-[15px] font-semibold text-ink")} title={account.email}>{account.email}</p>

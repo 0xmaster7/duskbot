@@ -128,6 +128,8 @@ export const ACCOUNT_ROUTES = {
   desktopAuthorize: "/api/cloud/desktop/authorize",
   desktopToken: "/api/cloud/desktop/token",
   appSession: "/api/cloud/desktop/session", //  GET -> AppSessionAnswer; DELETE {} -> { ok: true }
+  /** bearer app session: the person's avatar (shared/user-avatar.ts): "photo", "g:<seed>", or null for the default. */
+  appAvatar: "/v1/app/avatar", //               POST { avatar: string | null } -> { avatar: string | null }
 } as const;
 
 /** `nonce` is the raw nonce; the app sets the request's nonce to its sha-256 hex. `givenName`/`familyName` come from the
@@ -156,8 +158,9 @@ export interface AppGrant {
   accessToken: string;
   expiresAt: number;
   device: { id: string };
-  /** `name` and `avatarUrl` (https): absent when the account has none, and from services older than them */
-  account: { id: string; email: string; name?: string; avatarUrl?: string };
+  /** `name` and `avatarUrl` (https): absent when the account has none, and from services older than them. `avatar`: the
+   * person's choice (shared/user-avatar.ts), absent for the default. */
+  account: { id: string; email: string; name?: string; avatarUrl?: string; avatar?: string };
 }
 export interface EnrollGrantAnswer { v: 1; enrollToken: string; expiresAt: number; dashboardUrl: string }
 /**

@@ -21,7 +21,7 @@ async function fixture(t, options = {}) {
     // how far this computer's clock runs ahead of the Admin's
     macAhead: 0 };
   const serverTime = () => f.now - f.macAhead;
-  const identity = () => ({ cloudContractVersion: 1, expiresAt: serverTime() + 86400_000, device: { id: "fixture-device" }, account: { id: "fixture-account", email: "person@example.test" } });
+  const identity = () => ({ cloudContractVersion: 1, expiresAt: serverTime() + 86400_000, device: { id: "fixture-device" }, account: { id: "fixture-account", email: "person@example.test", ...(f.avatar ? { avatar: f.avatar } : {}) } });
   const server = createServer(async (req, res) => {
     res.setHeader("date", new Date(serverTime()).toUTCString());
     let body = ""; for await (const chunk of req) body += chunk;
@@ -51,6 +51,10 @@ async function fixture(t, options = {}) {
       if (req.url !== route || req.method !== "POST" || req.headers.authorization !== `Bearer ${accessToken}`) continue;
       if (typeof answer.body === "string") { res.writeHead(answer.status, { "content-type": "text/html" }); return res.end(answer.body); }
       return send(answer.status, answer.body);
+    }
+    if (req.url === "/v1/app/avatar" && req.method === "POST" && req.headers.authorization === `Bearer ${accessToken}`) {
+      if (f.avatarDown) return send(503, { error: "unavailable" });
+      const { avatar } = JSON.parse(body); f.avatar = avatar; return send(200, { avatar });
     }
     if (req.url === "/api/cloud/desktop/token") {
       if (f.tokenPage) { res.writeHead(f.tokenPage, { "content-type": "text/html" }); return res.end("<!doctype html>Just a moment"); }
@@ -90,6 +94,26 @@ test("the account's name and photo are taken only as plain words and an https ad
   }
   assert.deepEqual(accountProfile({ name: "a\u0000b" }), {});
   assert.deepEqual(accountProfile({ name: "x".repeat(81) }), {});
+  assert.deepEqual(accountProfile({ avatar: "g:k3x9a0bz" }), { avatar: "g:k3x9a0bz" });
+  assert.deepEqual(accountProfile({ avatar: "photo" }), { avatar: "photo" });
+  for (const avatar of ["g:", "g:UP", "g:a/b", "https://example.test/a.png", "g:" + "a".repeat(17), 7]) assert.deepEqual(accountProfile({ avatar }), {}, String(avatar));
+});
+
+test("the avatar the person picks is kept on the account and shows at once; nothing changes when the service does not answer", async (t) => {
+  const f = await fixture(t);
+  assert.equal(await f.client.setAvatar("g:k3x9a0bz"), null, "signed out");
+  await f.connect();
+  assert.equal(await f.client.setAvatar("g:k3x9a0bz"), true);
+  assert.equal(f.client.state().account.avatar, "g:k3x9a0bz");
+  assert.equal(f.states.at(-1).account.avatar, "g:k3x9a0bz", "the pages hear of it");
+  f.avatarDown = true;
+  assert.equal(await f.client.setAvatar("g:other1"), null);
+  assert.equal(f.client.state().account.avatar, "g:k3x9a0bz");
+  f.avatarDown = false;
+  for (const bad of ["g:UP", "https://example.test/a.png", 7]) assert.equal(await f.client.setAvatar(bad), null, String(bad));
+  assert.equal(await f.client.setAvatar(null), true);
+  assert.equal(f.client.state().account.avatar, undefined);
+  assert.equal(f.requests.filter(request => request.route === "/v1/app/avatar").length, 3);
 });
 
 test("Cloud origin is fixed; only explicit fixtures can use loopback", () => {

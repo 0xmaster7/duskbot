@@ -23,7 +23,7 @@ test("the view names the account in use and its address, never a token, and noth
 });
 
 test("the view carries the account's name, photo and plan as the account card says it, from a verified session only", () => {
-  const account = { id: "a", email: "a@example.test", name: "Ada", avatarUrl: "https://photos.example.test/ada.png" };
+  const account = { id: "a", email: "a@example.test", name: "Ada", avatarUrl: "https://photos.example.test/ada.png", avatar: "g:k3x9a0bz" };
   const at = Date.UTC(2026, 11, 14);
   assert.deepEqual(accountsView({ status: "connected", account, entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 1 } }),
     { active: { ...account, plan: { status: "free" } } });
@@ -37,7 +37,7 @@ test("the view carries the account's name, photo and plan as the account card sa
 
 test("only this app's own pages read who is signed in, add or sign out; another page only opens the sheet, from main", async () => {
   const f = harness({ ownPage: () => false, others: [{ id: "b", email: "b@example.test" }] });
-  for (const channel of ["accounts:list", "accounts:sign-out", "accounts:add-start", "accounts:add-verify", "accounts:add-browser", "accounts:add-reopen", "accounts:add-cancel", "accounts:sheet-pending", "accounts:sheet-closed"]) {
+  for (const channel of ["accounts:list", "accounts:sign-out", "accounts:set-avatar", "accounts:add-start", "accounts:add-verify", "accounts:add-browser", "accounts:add-reopen", "accounts:add-cancel", "accounts:sheet-pending", "accounts:sheet-closed"]) {
     await assert.rejects(async () => f.call(channel, "a"), /only available/, channel);
   }
   assert.equal(await f.call("accounts:offered"), true);

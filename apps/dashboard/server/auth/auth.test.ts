@@ -389,6 +389,20 @@ describe("local account service", () => {
       teams: [grant.account.id], cloud: { id: "cloud_fixture" }, entitlement: { plan: "pro", status: "active", expiresAt: time + day, version: 1 } });
   });
 
+  it("keeps the avatar the person picks on the account, for every app session", async () => {
+    const grant = await appLogin();
+    expect((await call("/v1/app/avatar", { avatar: "g:abc123" })).status).toBe(401);
+    expect(await body(call("/v1/app/avatar", { avatar: "g:abc123" }, bearer(grant)))).toEqual({ avatar: "g:abc123" });
+    expect(await body<AppGrant>(call("/api/cloud/desktop/session", undefined, bearer(grant)))).toMatchObject({ account: { avatar: "g:abc123" } });
+    time += 30_000;
+    const other = await appLogin();
+    expect(other.account.avatar).toBe("g:abc123");
+    // no photo to use, and nothing that isn't an avatar
+    for (const avatar of ["photo", "g:", "g:ABC", "g:../x", "https://example.test/a.png", 7]) expect((await call("/v1/app/avatar", { avatar }, bearer(grant))).status).toBe(400);
+    expect(await body(call("/v1/app/avatar", { avatar: null }, bearer(grant)))).toEqual({ avatar: null });
+    expect((await body<AppGrant>(call("/api/cloud/desktop/session", undefined, bearer(grant)))).account.avatar).toBeUndefined();
+  });
+
   it("enrolls with a signed grant and refuses bad, stale, replayed and reused grants", async () => {
     const grant = await appLogin();
     expect((await call("/v1/app/enroll-grant", {})).status).toBe(401);

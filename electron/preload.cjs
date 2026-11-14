@@ -729,6 +729,7 @@ const bridge = {
   accounts: process.argv.includes("--dusk-company-desktop=1") ? {
     list: () => ipcRenderer.invoke("accounts:list"),
     signOut: id => ipcRenderer.invoke("accounts:sign-out", String(id)),
+    setAvatar: choice => ipcRenderer.invoke("accounts:set-avatar", choice === null ? null : String(choice)),
     addStart: email => ipcRenderer.invoke("accounts:add-start", String(email)),
     addVerify: code => ipcRenderer.invoke("accounts:add-verify", String(code)),
     addBrowser: () => ipcRenderer.invoke("accounts:add-browser"),

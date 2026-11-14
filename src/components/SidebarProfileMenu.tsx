@@ -27,6 +27,8 @@ import { devToolsShown, setSimulatedFreshInstall } from "@/lib/bots-elsewhere";
 import { GROK_FOCUS } from "./SidebarSimpleTop";
 import { AccountMoveStatus, useAccountMove, type AccountMoveKind } from "./AccountMove";
 import { InitialsAvatar } from "./Avatar";
+import { AvatarPicker } from "./AvatarPicker";
+import { UserFace } from "./UserAvatar";
 import { DiscordIcon } from "./DiscordIcon";
 import { AboutDialog } from "./AboutDialog";
 import { PhoneAppDialog } from "./lazy-screens";
@@ -66,11 +68,19 @@ import { phoneAppEnabled } from "@/lib/feature-flags";
 
 /** The dusk cloud account signed in on this computer lends its name and photo where this place's profile has none: the same
  * person by address, or a profile with no address of its own. */
-export function withAccountFace(profile: { name?: string; email?: string; avatarUrl?: string } | undefined, account: { email: string; name?: string; avatarUrl?: string } | null): { name?: string; email?: string; avatarUrl?: string } | undefined {
+export function withAccountFace(profile: { name?: string; email?: string; avatarUrl?: string } | undefined, account: { id?: string; email: string; name?: string; avatarUrl?: string; avatar?: string } | null): { name?: string; email?: string; avatarUrl?: string; face?: { id: string; avatarUrl?: string; avatar?: string } } | undefined {
   if (!account) return profile;
   const own = profile?.email?.trim().toLowerCase();
   if (own && own !== account.email.trim().toLowerCase()) return profile;
-  return { ...(profile ?? { email: account.email }), ...(!profile?.name?.trim() && account.name ? { name: account.name } : {}), ...(!profile?.avatarUrl && account.avatarUrl ? { avatarUrl: account.avatarUrl } : {}) };
+  // the avatar the person picked on their account shows over this place's own photo; without a pick, the place's photo stays
+  const face = account.id && (account.avatar || !profile?.avatarUrl) ? { face: { id: account.id, ...(account.avatarUrl ? { avatarUrl: account.avatarUrl } : {}), ...(account.avatar ? { avatar: account.avatar } : {}) } } : {};
+  return { ...(profile ?? { email: account.email }), ...(!profile?.name?.trim() && account.name ? { name: account.name } : {}), ...(!profile?.avatarUrl && account.avatarUrl ? { avatarUrl: account.avatarUrl } : {}), ...face };
+}
+
+/** The person's face in the sidebar: their account's avatar where it lends one, else this place's photo or initials. */
+function ProfileFace({ profile, initials, size, fallback, fontSize, className }: { profile: ReturnType<typeof withAccountFace>; initials: string; size: number; fallback?: ReactNode; fontSize?: number; className?: string }) {
+  if (profile?.face) return <UserFace account={profile.face} size={size} className="inset-ring inset-ring-ink/[0.08]" />;
+  return <InitialsAvatar initials={initials} avatarUrl={profile?.avatarUrl} size={size} fallback={fallback} fontSize={fontSize} className={className} />;
 }
 
 export function profileInitials(profile?: { name?: string; email?: string }): string {
@@ -454,12 +464,13 @@ export function grokProfileMenuItems({ onGetApp, onHelp, onShortcuts, onFeedback
   onFeedback: () => void;
   onAbout: () => void;
   onSettings: () => void;
-  accounts: Pick<AccountsAccess, "view" | "openSheet" | "signOut" | "add">;
+  accounts: Pick<AccountsAccess, "view" | "openSheet" | "signOut" | "add" | "editAvatar">;
 }): SidebarMenuItem[] {
   const icon = (name: IconName) => <Icon name={name} size={14} />;
   const active = accounts.view?.active;
   const account: SidebarMenuItem[] = active
     ? [
+      ...(accounts.editAvatar && !active.signIn ? [{ key: "avatar", label: t("accounts.avatar.change"), icon: <UserFace account={active} size={16} />, onSelect: accounts.editAvatar } satisfies SidebarMenuItem] : []),
       { key: "add-account", label: t("sidebar.grok.addAccount"), icon: icon("person-add"), onSelect: () => accounts.add() },
       { key: "log-out", label: t("sidebar.grok.logOut"), icon: icon("arrow-bracket-from-left"), onSelect: () => accounts.signOut(active.id) },
     ]
@@ -631,7 +642,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
             data-sidebar-account=""
             className={cn("relative flex size-9 items-center justify-center rounded-full", !named && (open ? "bg-ink/[0.06]" : "hover:bg-ink/[0.06]"))}
           >
-            <InitialsAvatar initials={initials} avatarUrl={profile?.avatarUrl} size={36} fallback={nameless} fontSize={14} className="bg-composer leading-[14px] tracking-[-0.35px] text-ink-secondary inset-ring inset-ring-ink/[0.08] group-hover/acct:bg-[color-mix(in_srgb,var(--color-ink)_5%,var(--color-composer))] group-aria-expanded/acct:bg-[color-mix(in_srgb,var(--color-ink)_7%,var(--color-composer))]" />
+            <ProfileFace profile={profile} initials={initials} size={36} fallback={nameless} fontSize={14} className="bg-composer leading-[14px] tracking-[-0.35px] text-ink-secondary inset-ring inset-ring-ink/[0.08] group-hover/acct:bg-[color-mix(in_srgb,var(--color-ink)_5%,var(--color-composer))] group-aria-expanded/acct:bg-[color-mix(in_srgb,var(--color-ink)_7%,var(--color-composer))]" />
             {dot && <span aria-hidden data-account-dot={dot} className={cn("absolute -right-0.5 -top-0.5 size-2.5 rounded-full ring-2 ring-panel", DOT_COLOR[dot])} />}
           </span>
           {named && <span aria-hidden="true" data-sidebar-account-name="" className={cn("min-w-0 truncate text-[14px] font-medium leading-5 tracking-[0.01em] transition-[opacity,margin,max-width] ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none",
@@ -646,7 +657,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
               open ? "bg-raised" : "hover:bg-raised/50",
             )}
           >
-            <InitialsAvatar initials={initials} avatarUrl={profile?.avatarUrl} size={rail ? 30 : circle ? 26 : 28} />
+            <ProfileFace profile={profile} initials={initials} size={rail ? 30 : circle ? 26 : 28} />
             {dot && <span aria-hidden data-account-dot={dot} className={cn("absolute end-1 top-1 size-2.5 rounded-full ring-2 ring-app", DOT_COLOR[dot])} />}
           </span>
         ) : (
@@ -658,7 +669,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
             )}
           >
             <span className="relative flex shrink-0">
-              <InitialsAvatar initials={profileInitials(profile)} avatarUrl={profile?.avatarUrl} size={28} />
+              <ProfileFace profile={profile} initials={profileInitials(profile)} size={28} />
               {moveDot && <span aria-hidden data-account-dot={moveDot} className={cn("absolute -right-0.5 -top-0.5 size-2 rounded-full ring-2 ring-app", DOT_COLOR[moveDot])} />}
             </span>
             <span className="flex min-w-0 flex-1 flex-col">
@@ -683,6 +694,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
       <AboutDialog open={aboutOpen} onClose={() => setAboutOpen(false)} />
       {accounts.sheet && <AccountsSheet adding={accounts.sheet.email} note={accounts.sheet.note} onClose={accounts.closeSheet} />}
       {accounts.signOutConfirm}
+      {accounts.picking && accounts.view?.active && <AvatarPicker account={accounts.view.active} anchor={triggerRef.current?.closest("button") ?? null} onClose={accounts.closeAvatar} />}
       {phoneAppOpen && <PhoneAppDialog
         open
         onClose={() => setPhoneAppOpen(false)}

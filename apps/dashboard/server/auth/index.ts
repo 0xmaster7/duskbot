@@ -4,6 +4,7 @@ import { accountIntentPath, cleanAccountIntent, type AccountIntent } from "../..
 import { ACCOUNT_ROUTES as R, APP_AUTH_REDIRECT, CSRF_COOKIE, CSRF_HEADER, EMAIL_CODE_DIGITS, EMAIL_CODE_TRIES, EMAIL_CODE_TTL_SECONDS, EMAIL_RESEND_SECONDS, HANDOFF_PAGES, HANDOFF_PLANS, NOTIFICATION_DEFAULTS, OAUTH_PROVIDERS, SESSION_COOKIE } from "../../../../shared/account-api.ts";
 import type { AccountAnswer, AccountErrorCode, AccountView, AppGrant, NotificationPrefs, AppSessionIdentity, HandoffAnswer, OAuthErrorCode, OAuthProvider, WebHandoffAnswer } from "../../../../shared/account-api.ts";
 import { CHECKOUT_SOURCES } from "../../../../shared/billing-api.ts";
+import { parseUserAvatarChoice } from "../../../../shared/user-avatar.ts";
 import { createAuthStore } from "./store.ts";
 import type { Account, Identity, Session } from "./store.ts";
 import { codeMessage, isTestAddress, recoveryMessage } from "./mail.ts";
@@ -74,7 +75,7 @@ export function cleanEmail(value: unknown): string | null {
   return email.length <= 254 && !controls(email) && /^[^\s@]{1,64}@[^\s@.]+(?:\.[^\s@.]+)+$/.test(email) ? email : null;
 }
 export function isAppCorsRoute(path: string) {
-  return path.startsWith("/api/cloud/app/sign-in/") || [R.appSession, R.enrollGrant, R.webHandoff, R.appToken, R.appDeleteAccount].some(route => route === path);
+  return path.startsWith("/api/cloud/app/sign-in/") || [R.appSession, R.appAvatar, R.enrollGrant, R.webHandoff, R.appToken, R.appDeleteAccount].some(route => route === path);
 }
 interface DeviceInfo { name: string; platform: string; appVersion: string | null }
 interface Attempt { email: string; codeHash: string; pending?: string; device: DeviceInfo | null; expiresAt: number; tries: number }
@@ -238,7 +239,7 @@ export function createAuth(options: AuthOptions) {
   }
   function identity(owner: Account, session: Session): AppSessionIdentity {
     return { cloudContractVersion: 1, expiresAt: session.expiresAt, device: { id: session.id },
-      account: { id: owner.id, email: owner.email, ...(owner.name ? { name: owner.name } : {}), ...(owner.avatarUrl ? { avatarUrl: owner.avatarUrl } : {}) } };
+      account: { id: owner.id, email: owner.email, ...(owner.name ? { name: owner.name } : {}), ...(owner.avatarUrl ? { avatarUrl: owner.avatarUrl } : {}), ...(owner.avatar ? { avatar: owner.avatar } : {}) } };
   }
   /** an account signed in to an app had its first run there: the website never walks it through a second one */
   function onboardedInApp(owner: Account) { if (owner.onboardedAt === undefined) { owner.onboardedAt = now(); store.changed(); } }
@@ -552,7 +553,7 @@ export function createAuth(options: AuthOptions) {
   async function handle(req: IncomingMessage, res: ServerResponse, url: URL, helpers: BodyHelpers): Promise<boolean> {
     const path = url.pathname, method = req.method ?? "GET", cors = isAppCorsRoute(path);
     const routes: string[] = [R.providers, R.emailStart, R.emailVerify, R.signOut, R.me, R.account, R.notifications, R.onboarded, R.signOutEverywhere, R.deleteAccount, R.deviceLookup, R.deviceApprove, R.deviceDeny,
-      R.appEmailStart, R.appEmailVerify, R.appAppleSignIn, R.desktopAuthorize, R.desktopToken, R.appSession, R.enrollGrant, R.webHandoff, R.handoffRedeem, R.appToken, R.appStart, R.appDeleteAccount];
+      R.appEmailStart, R.appEmailVerify, R.appAppleSignIn, R.desktopAuthorize, R.desktopToken, R.appSession, R.appAvatar, R.enrollGrant, R.webHandoff, R.handoffRedeem, R.appToken, R.appStart, R.appDeleteAccount];
     if (!routes.includes(path) && !path.startsWith("/v1/auth/oauth/") && !path.startsWith("/v1/account/identities/") && !path.startsWith("/v1/account/sessions/") && !cors) return false;
     res.setHeader("cache-control", "no-store");
     if (cors) {
@@ -695,6 +696,15 @@ export function createAuth(options: AuthOptions) {
           if (!state.sessions.includes(found.session)) return fail(401, "invalid_token");
           json({ ...extra, ...identity(found.account, found.session) });
         }
+      } else if (method === "POST" && path === R.appAvatar) {
+        const found = appSession(req);
+        if (!found) return fail(401, "invalid_token");
+        const choice = data.avatar === null ? null : parseUserAvatarChoice(data.avatar);
+        // the photo only while a sign-in still gives one
+        if ((data.avatar !== null && !choice) || (choice === "photo" && !found.account.avatarUrl)) return fail(400, "invalid_request");
+        if (choice) found.account.avatar = choice; else delete found.account.avatar;
+        store.changed();
+        json({ avatar: found.account.avatar ?? null });
       } else if (method === "POST" && path === R.enrollGrant) {
         const found = appSession(req);
         if (!found) return fail(401, "invalid_token");

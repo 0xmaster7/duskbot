@@ -11,7 +11,7 @@ export function accountsView(state) {
   if (!account?.id || state.status === "signed-out" || state.status === "connecting") return { active: null };
   const plan = planLine(state);
   return { active: { id: account.id, email: account.email, ...(account.name ? { name: account.name } : {}), ...(account.avatarUrl ? { avatarUrl: account.avatarUrl } : {}),
-    ...(plan ? { plan } : {}), ...(state.status === "reauth-required" ? { signIn: true } : {}) } };
+    ...(account.avatar ? { avatar: account.avatar } : {}), ...(plan ? { plan } : {}), ...(state.status === "reauth-required" ? { signIn: true } : {}) } };
 }
 
 /** The plan as the account card says it, from a verified session only (AccountPlanLine). */
@@ -83,7 +83,7 @@ export function createDesktopRing(deps) {
  *   ownPage(event: unknown): boolean,
  *   placePage(event: unknown): boolean,
  *   account(): { state(): any } | null,
- *   client(): { state(): any, signOut(): Promise<any> },
+ *   client(): { state(): any, signOut(): Promise<any>, setAvatar?(choice: string | null): Promise<true | null> },
  *   ring(): ReturnType<typeof import("./cloud-accounts.mjs").createCloudAccounts> | null,
  *   holdSheet(open: boolean): void,
  *   tellSheet(): void,
@@ -104,6 +104,10 @@ export function installAccounts({ ipcMain, ownPage, placePage, account, client, 
   own("accounts:sign-out", async (id) => {
     try { return { ...await ring().signOut(text(id, 128)), view: view() }; }
     catch { return { outcome: "failed", view: view() }; }
+  });
+  own("accounts:set-avatar", async (choice) => {
+    const saved = await client().setAvatar?.(choice === null ? null : text(choice, 24)).catch(() => null);
+    return { outcome: saved ? "saved" : "failed", view: view() };
   });
   own("accounts:add-start", (email) => ring().addStart(text(email, 254)));
   own("accounts:add-verify", async (code) => {
