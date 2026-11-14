@@ -1,4 +1,5 @@
 import { DASHBOARD_DISCOVERY_PATH, DEFAULT_DASHBOARD_URL } from "../../shared/dashboard-protocol.ts";
+import { EnrollRefusedError } from "../dashboard-reporter.ts";
 import type { createDashboardReporter } from "../dashboard-reporter.ts";
 import { ownerOrAdmin } from "../request-auth.ts";
 import { PASS } from "./table.ts";
@@ -62,6 +63,10 @@ export function createDashboardRoutes(deps: DashboardRouteDeps): RouteHandler {
     try {
       const answer = await (body.enrollToken === undefined ? deps.reporter.link(url) : deps.reporter.link(url, { enrollToken: body.enrollToken as string }));
       return json(res, 200, { claimUrl: answer.claimUrl, dashboardUrl: answer.dashboardUrl, workspaceId: answer.workspaceId, claimed: answer.claimExpiresAt === 0 });
-    } catch { return json(res, 502, { error: "Could not connect to the dashboard. Try again shortly." }); }
+    } catch (error) {
+      // a refusal says why (another account owns this computer, a limit); only a dashboard out of reach is "try again"
+      if (error instanceof EnrollRefusedError) return json(res, 409, { error: error.message });
+      return json(res, 502, { error: "Could not connect to the dashboard. Try again shortly." });
+    }
   };
 }

@@ -65,7 +65,8 @@ describe("accounts across the website, desktop, workspace and phone", () => {
 
   function assertPrivateFiles() {
     const saved = ["auth.json", "state.json"].map(name => readFileSync(join(f.dir, name), "utf8"));
-    for (const message of f.mailer.outbox) f.secrets.add(message.text.match(/\b\d{8}\b/)[0]);
+    // sign-in codes are secrets; the welcome and other notices carry none
+    for (const message of f.mailer.outbox) { const code = message.text.match(/\b\d{8}\b/)?.[0]; if (code) f.secrets.add(code); }
     for (const file of saved) {
       expect(file.includes("omc_")).toBe(false);
       for (const secret of f.secrets) expect(file.includes(secret)).toBe(false);
@@ -184,6 +185,7 @@ describe("accounts across the website, desktop, workspace and phone", () => {
       devices: async () => ({ thisDevice: { label: "Fixture Mac", kind: "mac" }, link: null, phones: [], sessions: [] }),
       activity: async () => ({ from: "2026-01-01", to: "2026-11-08", timeZone: "UTC", days: [], byBot: [], byModel: [], totals: { turns: 0, tokens: 0, costUsd: null } }),
       plans: async () => ({ providers: [] }),
+      apps: async () => null,
     };
     const reporter = createDashboardReporter({ dataDir: join(f.dir, "workspace"), collect, fetch: f.fetch, now: f.now,
       execute: async command => ({ id: command.id, ok: true, message: "Fixture command.", at: f.now() }) });
@@ -193,7 +195,7 @@ describe("accounts across the website, desktop, workspace and phone", () => {
       localRequest: async (path, init) => {
         let response;
         await route({ path, method: init.method, req: { headers: init.headers }, res: { setHeader() {} }, auth: { kind: "loopback", scopes: ["admin", "client"] },
-          readBody: async () => JSON.parse(init.body), json: (_res, status, body) => { link.answers.push(body); response = Response.json(body, { status }); } });
+          readBody: async () => JSON.parse(init.body), json: (_res, status, body) => { link.answers.push({ status, ...body }); response = Response.json(body, { status }); } });
         expect(response).toBeDefined(); return response;
       } });
     f.cleanup.push(() => { link.enroll.close(); reporter.stop(); });
@@ -266,24 +268,25 @@ describe("accounts across the website, desktop, workspace and phone", () => {
     await d.client.refresh(); expect(d.client.state().status).toBe("reauth-required");
   }, 30_000);
 
-  it("automatically enrolls a signed workspace without a claim and moves it to a second account", async () => {
+  it("automatically enrolls a signed workspace without a claim, and another account cannot take it", async () => {
     const d = await desktop(), first = browser(); await desktopSignIn(d, "owner@accounts.test");
     f.resend(); await webSignIn(first, "owner@accounts.test");
     const link = workspaceLink(() => d.client);
     link.enroll.onState(d.client.state());
     await waitFor(() => expect(link.memory?.accountId).toBe(d.saved.account.id));
-    const workspaceId = link.memory.workspaceId;
-    expect(link.answers[0]).toMatchObject({ claimed: true, workspaceId });
+    const owner = d.saved.account.id, workspaceId = link.memory.workspaceId;
+    expect(link.answers[0]).toMatchObject({ status: 200, claimed: true, workspaceId });
     expect(new URL(link.answers[0].claimUrl).hash).toBe("");
     expect(await workspaces(first)).toMatchObject([{ id: workspaceId, name: "Fixture Mac" }]);
     await waitFor(() => expect(link.reporter.status().lastReportAt).toEqual(expect.any(Number)));
+    // security: a grant never claims a computer another account owns; the person hears why, not "try again"
     await d.client.signOut(); await desktopSignIn(d, "second@accounts.test");
     const second = browser(); f.resend(); await webSignIn(second, "second@accounts.test");
     link.enroll.onState(d.client.state());
-    await waitFor(() => expect(link.memory?.accountId).toBe(d.saved.account.id));
-    expect(link.memory.workspaceId).toBe(workspaceId);
-    expect(link.answers).toHaveLength(2); expect(link.answers[1].claimed).toBe(true);
-    expect(await workspaces(first)).toEqual([]); expect(await workspaces(second)).toMatchObject([{ id: workspaceId }]);
+    await waitFor(() => expect(link.answers).toHaveLength(2));
+    expect(link.answers[1]).toMatchObject({ status: 409, error: expect.stringMatching(/belongs to another dusk bot account/) });
+    expect(link.memory).toMatchObject({ accountId: owner, workspaceId });
+    expect(await workspaces(first)).toMatchObject([{ id: workspaceId }]); expect(await workspaces(second)).toEqual([]);
   }, 30_000);
 
   it("signs the phone in by email and PKCE deep links, rejects tampering and issues an enrollment grant", async () => {

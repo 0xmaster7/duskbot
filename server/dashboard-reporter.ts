@@ -41,6 +41,9 @@ const RESUME_JUMP_MS = 15_000;
 const GONE_GRACE_MS = 2 * 60_000;
 class GoneError extends Error {}
 
+/** the account service said no for a reason the person can act on (owned by another account, a limit): its words are kept */
+export class EnrollRefusedError extends Error {}
+
 export function createDashboardReporter(deps: DashboardReporterDeps) {
   const file = join(deps.dataDir, "dashboard-link.json"), fetcher = deps.fetch ?? fetch, now = deps.now ?? Date.now;
   let state: LinkState | null = null;
@@ -251,8 +254,8 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
     if (!response.ok) {
       const error = await response.json().catch(() => ({})) as { code?: unknown; error?: unknown };
       // the service's own words for its limits (too many computers on the account, too many joining at once)
-      if ((error.code === "too_many_workspaces" || error.code === "busy") && typeof error.error === "string") throw new Error(error.error.slice(0, 200));
-      if (response.status === 409) throw new Error("This workspace belongs to another dusk bot account. Remove it from that account's dashboard first.");
+      if ((error.code === "too_many_workspaces" || error.code === "busy") && typeof error.error === "string") throw new EnrollRefusedError(error.error.slice(0, 200));
+      if (response.status === 409) throw new EnrollRefusedError("This workspace belongs to another dusk bot account. Remove it from that account's dashboard first.");
       throw new Error(`Dashboard enrollment failed (${response.status}).`);
     }
     const answer = await response.json() as EnrollAnswer;
