@@ -6,7 +6,8 @@ import type { NotificationPrefs, OAuthProvider, SessionView } from "../../../../
 
 /** `notifications`: only what the owner changed (NOTIFICATION_DEFAULTS fill the rest); `onboardedAt`: first-run steps done */
 export interface Account { id: string; email: string; name: string | null; createdAt: number; notifications?: Partial<NotificationPrefs>; onboardedAt?: number }
-export interface Identity { accountId: string; provider: OAuthProvider; subject: string; email: string | null; label: string | null; addedAt: number }
+/** `revoke`: Apple's refresh token, sealed with the auth secret, for the revoke on deletion; never sent to a client */
+export interface Identity { accountId: string; provider: OAuthProvider; subject: string; email: string | null; label: string | null; addedAt: number; revoke?: string }
 /** `parentId`: the app session a handoff web session came from; it ends with that session. never sent to a client. */
 export interface Session extends Omit<SessionView, "current"> { accountId: string; tokenHash: string; parentId?: string }
 /** a sign-in code in flight: only its hmac, kept so a restart between sending a code and typing it does not kill it */

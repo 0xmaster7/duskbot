@@ -109,6 +109,9 @@ export const ACCOUNT_ROUTES = {
   linkGrant: "/v1/app/link-grant", //           POST {} -> { v: 1, grant, expiresAt }
   /** bearer app session: short-lived Cloudflare TURN credentials for the direct screen path; 503 when TURN is off. */
   screenIce: "/v1/app/screen-ice", //           POST {} -> { v: 1, iceServers, expiresAt }
+  /** bearer app session: deletes the account from the app, as deleteAccount does on the website, cancelling any plan
+   * (it does not renew; a dusk cloud is deleted after its paid time and the usual grace). `email` must be the account's. */
+  appDeleteAccount: "/v1/app/delete-account", // POST { email } -> { ok: true }
   /** bearer app session: a one-time link that opens the website signed in to the same account (WebHandoffRequest). */
   webHandoff: "/v1/app/web-handoff", //         POST WebHandoffRequest -> WebHandoffAnswer
   /** website, same-origin only (Origin must be the service's): redeems a WebHandoffAnswer link's token.

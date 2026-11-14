@@ -205,6 +205,25 @@ describe("OAuth over isolated HTTP", () => {
     const deleted = await call("/v1/account/identities/apple", {}, { [CSRF_HEADER]: jar.values.get("dusk_csrf")! }, "DELETE");
     expect(deleted.status).toBe(200); expect((await account()).identities).toHaveLength(1);
   });
+  it("revokes the Apple sign-in at Apple when the account is deleted or Apple is unlinked, and keeps its token sealed", async () => {
+    await oauth("apple");
+    const [issued] = fake.appleTokens();
+    expect(issued).toBeTruthy();
+    const saved = app.auth.directory().identities;
+    expect(saved[0]?.revoke).toBeTruthy();
+    expect(JSON.stringify(saved)).not.toContain(issued!);
+    expect((await account()).identities[0]).not.toHaveProperty("revoke");
+    const email = (await account()).account.email;
+    const deleted = await call("/v1/account/delete", { email }, { [CSRF_HEADER]: jar.values.get("dusk_csrf")! });
+    expect(deleted.status).toBe(200);
+    expect(fake.revoked()).toEqual([issued]);
+
+    jar = new CookieJar();
+    await oauth("google"); await oauth("apple", "?link=1&next=/account");
+    const [linked] = fake.appleTokens();
+    expect((await call("/v1/account/identities/apple", {}, { [CSRF_HEADER]: jar.values.get("dusk_csrf")! }, "DELETE")).status).toBe(200);
+    expect(fake.revoked()).toEqual([issued, linked]);
+  });
   it("refuses linking without a session, after signout, or when another account owns the identity", async () => {
     expect(error(await call("/v1/auth/oauth/google/start?link=1"))).toBe("oauth_failed");
     await oauth("google"); const google = await account(); const ownerJar = jar;

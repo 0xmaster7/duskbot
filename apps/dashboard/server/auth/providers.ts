@@ -4,19 +4,22 @@ import { OAUTH_PROVIDERS, type OAuthProvider } from "../../../../shared/account-
 import { createJwtVerifier, fetchJson, signEs256Jwt } from "./jwt.ts";
 
 export interface ProviderConfig {
-  clientId: string; clientSecret?: string; authorizeUrl: string; tokenUrl: string; jwksUrl?: string; issuers?: string[]; userUrl?: string; scopes: string;
+  clientId: string; clientSecret?: string; authorizeUrl: string; tokenUrl: string; revokeUrl?: string; jwksUrl?: string; issuers?: string[]; userUrl?: string; scopes: string;
   apple?: { teamId: string; keyId: string; privateKey: string };
 }
 export type ProviderConfigs = Partial<Record<OAuthProvider, ProviderConfig>>;
-export interface ProviderProfile { subject: string; email: string | null; label: string | null; name: string | null }
+/** `refreshToken`: Apple's, kept (sealed) only so the account's deletion can revoke it */
+export interface ProviderProfile { subject: string; email: string | null; label: string | null; name: string | null; refreshToken?: string }
 export interface Provider {
   id: OAuthProvider;
   authorize(input: { state: string; nonce: string; verifier: string; redirectUri: string }): string;
   profile(input: { code: string; nonce: string; verifier: string; redirectUri: string; user?: string }): Promise<ProviderProfile>;
+  /** Apple only: ends the app's grant (Sign in with Apple's REST revoke), as App Store guideline 5.1.1(v) asks on deletion */
+  revoke?(refreshToken: string): Promise<void>;
 }
 const defaults = {
   google: { authorizeUrl: "https://accounts.google.com/o/oauth2/v2/auth", tokenUrl: "https://oauth2.googleapis.com/token", jwksUrl: "https://www.googleapis.com/oauth2/v3/certs", issuers: ["https://accounts.google.com", "accounts.google.com"], scopes: "openid email profile" },
-  apple: { authorizeUrl: "https://appleid.apple.com/auth/authorize", tokenUrl: "https://appleid.apple.com/auth/token", jwksUrl: "https://appleid.apple.com/auth/keys", issuers: ["https://appleid.apple.com"], scopes: "name email" },
+  apple: { authorizeUrl: "https://appleid.apple.com/auth/authorize", tokenUrl: "https://appleid.apple.com/auth/token", revokeUrl: "https://appleid.apple.com/auth/revoke", jwksUrl: "https://appleid.apple.com/auth/keys", issuers: ["https://appleid.apple.com"], scopes: "name email" },
   x: { authorizeUrl: "https://x.com/i/oauth2/authorize", tokenUrl: "https://api.x.com/2/oauth2/token", userUrl: "https://api.x.com/2/users/me?user.fields=confirmed_email", scopes: "users.read tweet.read" },
 };
 const text = (value: unknown, max: number) => typeof value === "string" && value.trim() && value.trim().length <= max && !Array.from(value).some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127) ? value.trim() : null;
@@ -30,7 +33,18 @@ export function createProviderRegistry(configs: ProviderConfigs = {}, options: {
   for (const id of OAUTH_PROVIDERS) {
     const config = configs[id];
     if (!config) continue;
+    const appleSecret = () => {
+      if (!config.apple) throw new Error("Apple signing configuration is missing.");
+      const iat = Math.floor(now() / 1000);
+      return signEs256Jwt({ alg: "ES256", kid: config.apple.keyId }, { iss: config.apple.teamId, iat, exp: iat + 600, aud: "https://appleid.apple.com", sub: config.clientId }, config.apple.privateKey);
+    };
     registry.set(id, { id,
+      ...(id === "apple" ? { async revoke(refreshToken: string) {
+        const body = new URLSearchParams({ client_id: config.clientId, client_secret: appleSecret(), token: refreshToken, token_type_hint: "refresh_token" });
+        const response = await request(config.revokeUrl ?? defaults.apple.revokeUrl, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: body.toString(), redirect: "error", signal: AbortSignal.timeout(10_000) });
+        await response.body?.cancel();
+        if (!response.ok) throw new Error("Apple revoke failed.");
+      } } : {}),
       authorize({ state, nonce, verifier, redirectUri }) {
         const url = new URL(config.authorizeUrl);
         const params = { client_id: config.clientId, redirect_uri: redirectUri, response_type: "code", scope: config.scopes, state };
@@ -46,11 +60,8 @@ export function createProviderRegistry(configs: ProviderConfigs = {}, options: {
         if (id === "x" && config.clientSecret) headers.authorization = `Basic ${Buffer.from(`${encodeURIComponent(config.clientId)}:${encodeURIComponent(config.clientSecret)}`).toString("base64")}`;
         else body.set("client_id", config.clientId);
         if (id !== "apple") body.set("code_verifier", verifier);
-        if (id === "apple") {
-          if (!config.apple) throw new Error("Apple signing configuration is missing.");
-          const iat = Math.floor(now() / 1000);
-          body.set("client_secret", signEs256Jwt({ alg: "ES256", kid: config.apple.keyId }, { iss: config.apple.teamId, iat, exp: iat + 600, aud: "https://appleid.apple.com", sub: config.clientId }, config.apple.privateKey));
-        } else if (id === "google" && config.clientSecret) body.set("client_secret", config.clientSecret);
+        if (id === "apple") body.set("client_secret", appleSecret());
+        else if (id === "google" && config.clientSecret) body.set("client_secret", config.clientSecret);
         const tokens = await fetchJson(request, config.tokenUrl, { method: "POST", headers, body: body.toString() });
         if (id === "x") {
           if (typeof tokens.access_token !== "string" || !tokens.access_token || !config.userUrl) throw new Error("Invalid provider token.");
@@ -71,7 +82,8 @@ export function createProviderRegistry(configs: ProviderConfigs = {}, options: {
         const verified = claims.email_verified === true || (id === "apple" && claims.email_verified === "true"), address = verified ? email(claims.email) : null;
         // google is authoritative only for gmail and for a workspace domain (hd); other addresses go through an email code
         const trusted = id !== "google" || (address !== null && (/@(gmail|googlemail)\.com$/.test(address) || (typeof claims.hd === "string" && address.endsWith(`@${claims.hd.toLowerCase()}`))));
-        return { subject: claims.sub as string, email: trusted ? address : null, label: name, name };
+        const refreshToken = id === "apple" && typeof tokens.refresh_token === "string" && tokens.refresh_token.length <= 2048 ? tokens.refresh_token : undefined;
+        return { subject: claims.sub as string, email: trusted ? address : null, label: name, name, ...(refreshToken ? { refreshToken } : {}) };
       },
     });
   }

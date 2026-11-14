@@ -5,7 +5,7 @@ import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDashboardApp, type DashboardAppOptions } from "../app.ts";
-import { AUTH_LIMITS, HANDOFF_OUTSTANDING, HANDOFF_TTL_MS } from "./index.ts";
+import { AUTH_LIMITS, HANDOFF_OUTSTANDING, HANDOFF_TTL_MS, reviewAccountFromEnv } from "./index.ts";
 import { memoryMailer } from "./mail.ts";
 import { createCloudAccountClient } from "../../../../electron/cloud-account.mjs";
 import { verifyLinkGrant } from "../../../link-service/src/grant.mjs";
@@ -587,6 +587,66 @@ describe("local account service", () => {
     app.close();
     expect(JSON.parse(readFileSync(`${dataDir}/auth.json`, "utf8"))).toEqual({ accounts: [], identities: [], sessions: [], codes: [] });
     expect(JSON.parse(readFileSync(`${dataDir}/state.json`, "utf8"))).toEqual({ accounts: [], sessions: [], workspaces: [], commands: [] });
+  });
+
+  it("deletes the account from the app with its own session: the account's email, a bearer, nothing else", async () => {
+    const grant = await appLogin();
+    const other = await appLogin("other@example.test");
+    const route = "/v1/app/delete-account";
+    expect((await call(route, { email })).status).toBe(401);
+    expect((await call(route, { email: "other@example.test" }, bearer(grant))).status).toBe(400);
+    expect((await call(route, { email }, bearer(other))).status).toBe(400);
+    const preflight = await fetch(url + route, { method: "OPTIONS", headers: { origin: "capacitor://localhost", "access-control-request-method": "POST" } });
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers.get("access-control-allow-headers")).toContain("authorization");
+    const response = await call(route, { email: email.toUpperCase() }, bearer(grant));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true });
+    expect(app.auth.account(grant.account.id)).toBeNull();
+    expect((await call("/api/cloud/desktop/session", undefined, bearer(grant))).status).toBe(401);
+    expect((await call("/api/cloud/desktop/session", undefined, bearer(other))).status).toBe(200);
+    expect(mailer.outbox.some(item => item.to === email && /deleted/i.test(item.subject))).toBe(true);
+  });
+
+  describe("App Review sign-in", () => {
+    const reviewer = "review@example.test", reviewCode = "48213907";
+    beforeEach(() => restart({ review: { email: reviewer, code: reviewCode }, signupOpen: false }));
+    const appStart = (address: string) => call("/api/cloud/app/sign-in/start", { email: address, ...device });
+
+    it("signs the one review address in to an app with its fixed code and sends it no mail, even with signups closed", async () => {
+      const started = await appStart(reviewer);
+      expect(started.status).toBe(200);
+      const { attempt } = await body<EmailStartAnswer>(started);
+      expect(mailer.outbox.filter(item => item.to === reviewer)).toEqual([]);
+      const verified = await call("/api/cloud/app/sign-in/verify", { attempt, code: reviewCode });
+      expect(verified.status).toBe(200);
+      const grant = await body<AppGrant>(verified);
+      expect(grant.account.email).toBe(reviewer);
+      expect((await call("/api/cloud/desktop/session", undefined, bearer(grant))).status).toBe(200);
+    });
+
+    it("never takes the fixed code for any other address, and holds it to the normal tries and limits", async () => {
+      const { attempt: mine } = await body<EmailStartAnswer>(await appStart(email));
+      expect((await call("/api/cloud/app/sign-in/verify", { attempt: mine, code: reviewCode })).status).toBe(400);
+      // the website never uses the fixed code: the address gets an ordinary emailed one
+      const web = await body<EmailStartAnswer>(await call("/v1/auth/start", { email: reviewer }));
+      expect((await call("/v1/auth/verify", { attempt: web.attempt, code: reviewCode })).status).toBe(400);
+      time += 31_000;
+      const { attempt } = await body<EmailStartAnswer>(await appStart(reviewer));
+      for (let tries = 0; tries < 5; tries++) expect((await call("/api/cloud/app/sign-in/verify", { attempt, code: "00000000" })).status).toBe(400);
+      expect((await call("/api/cloud/app/sign-in/verify", { attempt, code: reviewCode })).status).toBe(410);
+      for (let starts = 0; starts < AUTH_LIMITS.startsPerEmail; starts++) { time += 31_000; await appStart(reviewer); }
+      time += 31_000;
+      expect((await appStart(reviewer)).status).toBe(429);
+    });
+
+    it("is off without both settings and refuses a malformed one", () => {
+      expect(reviewAccountFromEnv({})).toBeNull();
+      expect(reviewAccountFromEnv({ DUSK_REVIEW_EMAIL: " Review@Example.test ", DUSK_REVIEW_CODE: "12345678" })).toEqual({ email: "review@example.test", code: "12345678" });
+      expect(() => reviewAccountFromEnv({ DUSK_REVIEW_EMAIL: reviewer })).toThrow();
+      expect(() => reviewAccountFromEnv({ DUSK_REVIEW_EMAIL: reviewer, DUSK_REVIEW_CODE: "1234" })).toThrow();
+      expect(() => reviewAccountFromEnv({ DUSK_REVIEW_EMAIL: "nope", DUSK_REVIEW_CODE: "12345678" })).toThrow();
+    });
   });
 
   it("removes a linked identity while retaining email and does not expose provider subjects", async () => {

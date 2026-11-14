@@ -8,7 +8,7 @@ import type { CommandKind, CommandView, ConnectorsAnswer, MachineSample, ReportA
 import { PULSE_INTERVAL_MS, PULSE_WINDOW_MS, PulseRing, type PulseAnswer } from "../../../shared/machine-pulse.ts";
 import type { NotificationPrefs } from "../../../shared/account-api.ts";
 import { MCP_CLIENT_METADATA, MCP_CLIENT_METADATA_PATH } from "../../../shared/mcp-client-metadata.ts";
-import { AuthError, createAuth, isAppCorsRoute } from "./auth/index.ts";
+import { AuthError, createAuth, isAppCorsRoute, reviewAccountFromEnv, type ReviewAccount } from "./auth/index.ts";
 import type { ProviderConfigs } from "./auth/providers.ts";
 import { createTestMailbox, isTestAddress, sinkTestMail } from "./auth/mail.ts";
 import type { Mailer, MailMessage, TestMailbox } from "./auth/mail.ts";
@@ -66,6 +66,8 @@ export interface DashboardAppOptions {
   oauth?: ProviderConfigs;
   dev?: boolean;
   signupOpen?: boolean;
+  /** App Review's fixed app sign-in; read from DUSK_REVIEW_EMAIL and DUSK_REVIEW_CODE when not given */
+  review?: ReviewAccount | null;
   trustProxy?: boolean;
   staticDir: string | null;
   /** the page's path on publicUrl: "/dashboard" when the site shares the origin, "" (the default) at the root */
@@ -217,7 +219,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
     // one incident a day, whichever limit it was: someone (or a bot) is asking for sign-in codes faster than we will send them
     onMailLimit: kind => incidents.report({ source: "server", name: "SignInMailLimit", key: `auth-mail-${new Date(now()).toISOString().slice(0, 10)}`,
       message: `sign-in emails reached ${mailLimitSay[kind]} limit, so more codes are refused until it resets. a spike of signups or someone spraying addresses; check admin > health for rate-limited ips` }), now, fetch: options.fetch, oauth: options.oauth,
-    dev, signupOpen: options.signupOpen ?? true, trustProxy: options.trustProxy ?? false, legacyAccounts: () => state.accounts });
+    dev, signupOpen: options.signupOpen ?? true, trustProxy: options.trustProxy ?? false, legacyAccounts: () => state.accounts,
+    review: options.review === undefined ? reviewAccountFromEnv(process.env) : options.review });
   state.sessions = [];
   store.changed();
   const linkGrants = linkGrantSignerFromEnv(process.env, { dataDir: options.dataDir, loopback: dev });

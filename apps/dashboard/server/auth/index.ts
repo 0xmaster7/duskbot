@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
-import { ACCOUNT_ROUTES as R, APP_AUTH_REDIRECT, CSRF_COOKIE, CSRF_HEADER, EMAIL_CODE_TRIES, EMAIL_CODE_TTL_SECONDS, EMAIL_RESEND_SECONDS, HANDOFF_PAGES, HANDOFF_PLANS, NOTIFICATION_DEFAULTS, OAUTH_PROVIDERS, SESSION_COOKIE } from "../../../../shared/account-api.ts";
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
+import { ACCOUNT_ROUTES as R, APP_AUTH_REDIRECT, CSRF_COOKIE, CSRF_HEADER, EMAIL_CODE_DIGITS, EMAIL_CODE_TRIES, EMAIL_CODE_TTL_SECONDS, EMAIL_RESEND_SECONDS, HANDOFF_PAGES, HANDOFF_PLANS, NOTIFICATION_DEFAULTS, OAUTH_PROVIDERS, SESSION_COOKIE } from "../../../../shared/account-api.ts";
 import type { AccountAnswer, AccountErrorCode, AccountView, AppGrant, NotificationPrefs, AppSessionIdentity, HandoffAnswer, OAuthErrorCode, OAuthProvider, WebHandoffAnswer } from "../../../../shared/account-api.ts";
 import { CHECKOUT_SOURCES } from "../../../../shared/billing-api.ts";
 import { createAuthStore } from "./store.ts";
@@ -33,7 +33,19 @@ export interface AuthOptions {
   /** a service-wide sign-in mail limit was reached ("hour", "day" or "new" for the signup share of the day) */
   onMailLimit?: (kind: "hour" | "day" | "new") => void;
   oauth?: ProviderConfigs;
+  /** App Review's sign-in (reviewAccountFromEnv): this one address signs in to the apps with this fixed code, and no email
+   *  is sent to it. security: the code is checked only for this exact address, under the same per-address and per-ip
+   *  limits and tries as an emailed code, and nothing else about the account changes */
+  review?: ReviewAccount | null;
   dev: boolean; signupOpen: boolean; trustProxy: boolean; legacyAccounts?: () => Array<{ id: string; email: string }>;
+}
+export interface ReviewAccount { email: string; code: string }
+/** DUSK_REVIEW_EMAIL and DUSK_REVIEW_CODE (EMAIL_CODE_DIGITS digits, what the apps' code field takes), both or none */
+export function reviewAccountFromEnv(env: Record<string, string | undefined>): ReviewAccount | null {
+  const email = cleanEmail(env.DUSK_REVIEW_EMAIL), code = env.DUSK_REVIEW_CODE?.trim() ?? "";
+  if (!env.DUSK_REVIEW_EMAIL && !env.DUSK_REVIEW_CODE) return null;
+  if (!email || !new RegExp(`^\\d{${EMAIL_CODE_DIGITS}}$`).test(code)) throw new Error(`DUSK_REVIEW_EMAIL needs a valid address and DUSK_REVIEW_CODE ${EMAIL_CODE_DIGITS} digits.`);
+  return { email, code };
 }
 export class AuthError extends Error {
   status: number;
@@ -61,7 +73,7 @@ export function cleanEmail(value: unknown): string | null {
   return email.length <= 254 && !controls(email) && /^[^\s@]{1,64}@[^\s@.]+(?:\.[^\s@.]+)+$/.test(email) ? email : null;
 }
 export function isAppCorsRoute(path: string) {
-  return path.startsWith("/api/cloud/app/sign-in/") || [R.appSession, R.enrollGrant, R.webHandoff, R.appToken].some(route => route === path);
+  return path.startsWith("/api/cloud/app/sign-in/") || [R.appSession, R.enrollGrant, R.webHandoff, R.appToken, R.appDeleteAccount].some(route => route === path);
 }
 interface DeviceInfo { name: string; platform: string; appVersion: string | null }
 interface Attempt { email: string; codeHash: string; pending?: string; device: DeviceInfo | null; expiresAt: number; tries: number }
@@ -102,6 +114,22 @@ export function createAuth(options: AuthOptions) {
   const sessionHooks: Array<(session: Session) => void> = [];
   const appSeenHooks: Array<(session: Session) => void> = [];
   const hmac = (value: string) => createHmac("sha256", store.secret).update(value).digest("base64url");
+  const sealKey = createHash("sha256").update(`provider-token:${store.secret}`).digest();
+  function seal(value: string) {
+    const iv = randomBytes(12), cipher = createCipheriv("aes-256-gcm", sealKey, iv), data = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
+    return Buffer.concat([iv, cipher.getAuthTag(), data]).toString("base64url");
+  }
+  function unseal(value: string) {
+    const raw = Buffer.from(value, "base64url"), decipher = createDecipheriv("aes-256-gcm", sealKey, raw.subarray(0, 12));
+    decipher.setAuthTag(raw.subarray(12, 28));
+    return Buffer.concat([decipher.update(raw.subarray(28)), decipher.final()]).toString("utf8");
+  }
+  /** best effort: a deletion or unlink never waits on Apple answering */
+  async function revokeProvider(identity: Identity) {
+    const provider = providers.get(identity.provider);
+    if (!identity.revoke || !provider?.revoke) return;
+    try { await provider.revoke(unseal(identity.revoke)); } catch { console.error(`Revoking a ${identity.provider} sign-in failed.`); }
+  }
   const csrfFor = (session: Session) => hmac(session.tokenHash);
   const fail = (status: number, code: AccountErrorCode, fields?: Record<string, unknown>): never => { throw new AuthError(status, code, fields); };
   const account = (id: string) => state.accounts.find(item => item.id === id) ?? null;
@@ -217,6 +245,12 @@ export function createAuth(options: AuthOptions) {
     rate(`start:${ip(req)}`, AUTH_LIMITS.startsPerIp);
     rate(`email:${email}`, AUTH_LIMITS.startsPerEmail);
     rate(`email-day:${email}`, AUTH_LIMITS.emailsPerAddressPerDay, day);
+    if (app && options.review && email === options.review.email && data.recover === undefined) {
+      sentAt.set(email, now());
+      const attempt = random();
+      attempts.set(hash(attempt), { email, codeHash: hmac(`${attempt}:${options.review.code}`), device, expiresAt: now() + EMAIL_CODE_TTL_SECONDS * 1000, tries: 0 });
+      return { cloudContractVersion: 1, attempt, expiresIn: EMAIL_CODE_TTL_SECONDS, resendAfter: EMAIL_RESEND_SECONDS, signupOpen: options.signupOpen };
+    }
     // every address and caller together: one botnet spread over many addresses cannot burn the mail quota or our sender reputation
     const perDay = options.mailPerDay ?? AUTH_LIMITS.mailPerDay, limited = (kind: "hour" | "day" | "new") => () => options.onMailLimit?.(kind);
     // the signup share first, so a spray it turns away does not eat the day that is kept for existing accounts
@@ -258,7 +292,7 @@ export function createAuth(options: AuthOptions) {
       return fail(400, app ? "invalid_code" : "wrong_code");
     }
     attempts.delete(key);
-    if (!owner && !options.signupOpen) return fail(403, "signup_closed");
+    if (!owner && !options.signupOpen && !(app && options.review?.email === attempt.email)) return fail(403, "signup_closed");
     // a pending identity finishes only in the browser that signed in to the provider, never through a link sent to someone else
     const pending = attempt.pending ? pendingFor(req, attempt.pending) : undefined;
     if (attempt.pending && (!pending || pending.expiresAt <= now())) return fail(410, "expired");
@@ -298,7 +332,9 @@ export function createAuth(options: AuthOptions) {
   function attach(owner: Account, provider: OAuthProvider, profile: ProviderProfile) {
     const existing = linkedIdentity(provider, profile.subject);
     if (existing && existing.accountId !== owner.id) return fail(409, "identity_taken");
-    if (!existing) state.identities.push({ accountId: owner.id, provider, subject: profile.subject, email: profile.email, label: profile.label, addedAt: now() });
+    const revoke = profile.refreshToken ? { revoke: seal(profile.refreshToken) } : {};
+    if (!existing) state.identities.push({ accountId: owner.id, provider, subject: profile.subject, email: profile.email, label: profile.label, addedAt: now(), ...revoke });
+    else if (revoke.revoke) existing.revoke = revoke.revoke;
     if (provider !== "x" && owner.name === null && profile.name) owner.name = profile.name;
     store.changed();
   }
@@ -436,6 +472,21 @@ export function createAuth(options: AuthOptions) {
     cookies(res, token, csrfToken);
     return { account: view(owner), csrfToken, next: grant.next };
   }
+  /** the account, its ways in and every session, at once; `email` must be the account's own, as the person typed or confirmed it */
+  async function deleteAccount(owner: Account, data: Record<string, unknown>) {
+    if (cleanEmail(data.email) !== owner.email) fail(400, "invalid_request");
+    for (const hook of beforeDeleteHooks) await hook(owner, data);
+    removeSessions(owner.id);
+    const linked = state.identities.filter(item => item.accountId === owner.id);
+    state.accounts = state.accounts.filter(item => item !== owner);
+    state.identities = state.identities.filter(item => item.accountId !== owner.id);
+    for (const [key, grant] of grants) if (grant.accountId === owner.id) grants.delete(key);
+    for (const [key, item] of handoffs) if (item.accountId === owner.id) handoffs.delete(key);
+    for (const [key, attempt] of attempts) if (attempt.email === owner.email) attempts.delete(key);
+    store.close();
+    await Promise.all(linked.map(revokeProvider));
+    for (const hook of deletedHooks) { try { await hook(owner.id, owner.email); } catch { console.error("Account deletion cleanup failed."); } }
+  }
   function removeSessions(accountId: string) {
     dropSessions(item => item.accountId === accountId);
     for (const [key, item] of handoffs) if (item.accountId === accountId) handoffs.delete(key);
@@ -447,7 +498,7 @@ export function createAuth(options: AuthOptions) {
   async function handle(req: IncomingMessage, res: ServerResponse, url: URL, helpers: BodyHelpers): Promise<boolean> {
     const path = url.pathname, method = req.method ?? "GET", cors = isAppCorsRoute(path);
     const routes: string[] = [R.providers, R.emailStart, R.emailVerify, R.signOut, R.me, R.account, R.notifications, R.onboarded, R.signOutEverywhere, R.deleteAccount, R.deviceLookup, R.deviceApprove, R.deviceDeny,
-      R.appEmailStart, R.appEmailVerify, R.desktopAuthorize, R.desktopToken, R.appSession, R.enrollGrant, R.webHandoff, R.handoffRedeem, R.appToken, R.appStart];
+      R.appEmailStart, R.appEmailVerify, R.desktopAuthorize, R.desktopToken, R.appSession, R.enrollGrant, R.webHandoff, R.handoffRedeem, R.appToken, R.appStart, R.appDeleteAccount];
     if (!routes.includes(path) && !path.startsWith("/v1/auth/oauth/") && !path.startsWith("/v1/account/identities/") && !path.startsWith("/v1/account/sessions/") && !cors) return false;
     res.setHeader("cache-control", "no-store");
     if (cors) {
@@ -521,7 +572,9 @@ export function createAuth(options: AuthOptions) {
         const linked = state.identities.find(item => item.accountId === owner.id && item.provider === provider);
         if (!linked) fail(404, "not_found");
         if (!owner.email && state.identities.filter(item => item.accountId === owner.id).length <= 1) fail(409, "last_identity");
-        state.identities = state.identities.filter(item => item !== linked); store.changed(); json(accountAnswer(owner, webSession(req)?.session.id));
+        state.identities = state.identities.filter(item => item !== linked); store.changed();
+        await revokeProvider(linked!);
+        json(accountAnswer(owner, webSession(req)?.session.id));
       } else if (method === "DELETE" && path.startsWith("/v1/account/sessions/")) {
         const owner = requireWeb(req, { mutation: true }), id = decodeURIComponent(path.slice("/v1/account/sessions/".length));
         const session = state.sessions.find(item => item.accountId === owner.id && item.id === id);
@@ -529,19 +582,14 @@ export function createAuth(options: AuthOptions) {
         dropSessions(item => item === session); json({ ok: true });
       } else if (method === "POST" && (path === R.signOutEverywhere || path === R.deleteAccount)) {
         const owner = requireWeb(req, { mutation: true });
-        if (path === R.deleteAccount && cleanEmail(data.email) !== owner.email) fail(400, "invalid_request");
-        if (path === R.deleteAccount) for (const hook of beforeDeleteHooks) await hook(owner, data);
-        removeSessions(owner.id);
-        if (path === R.deleteAccount) {
-          state.accounts = state.accounts.filter(item => item !== owner);
-          state.identities = state.identities.filter(item => item.accountId !== owner.id);
-          for (const [key, grant] of grants) if (grant.accountId === owner.id) grants.delete(key);
-          for (const [key, item] of handoffs) if (item.accountId === owner.id) handoffs.delete(key);
-          for (const [key, attempt] of attempts) if (attempt.email === owner.email) attempts.delete(key);
-          store.close();
-          for (const hook of deletedHooks) { try { await hook(owner.id, owner.email); } catch { console.error("Account deletion cleanup failed."); } }
-        }
+        if (path === R.deleteAccount) await deleteAccount(owner, data);
+        else removeSessions(owner.id);
         cookies(res); json({ ok: true });
+      } else if (method === "POST" && path === R.appDeleteAccount) {
+        const found = appSession(req);
+        if (!found) return fail(401, "invalid_token");
+        await deleteAccount(found.account, { email: data.email, cancelBilling: true });
+        json({ ok: true });
       } else if (path === R.deviceLookup && method === "GET") {
         requireWeb(req, { mutation: false });
         const device = [...devices.values()].find(item => item.userCode === url.searchParams.get("code") && !item.accountId && !item.denied);

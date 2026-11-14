@@ -18,12 +18,14 @@ export async function startFakeProviders({ port = 0 }: { port?: number } = {}) {
     x: { subject: "x-sid", email: null, label: "sid_fixture", name: "X Fixture" },
   };
   const denied = new Set<OAuthProvider>(), seenApple = new Set<string>();
+  /** Apple refresh tokens issued, and those revoked through /apple/revoke */
+  const appleRefresh = new Set<string>(), revoked: string[] = [];
   const codes = new Map<string, Authorization>(), tokens = new Map<string, { profile: FakeProfile; expiresAt: number }>();
   let url = "";
   const config: ProviderConfigs = {};
   const server = createServer((req, res) => {
     void (async () => {
-      const address = new URL(req.url ?? "/", url), match = /^\/(google|apple|x)\/(authorize|token|jwks|users\/me)$/.exec(address.pathname);
+      const address = new URL(req.url ?? "/", url), match = /^\/(google|apple|x)\/(authorize|token|revoke|jwks|users\/me)$/.exec(address.pathname);
       const json = (value: unknown, status = 200) => { res.writeHead(status, { "content-type": "application/json", "cache-control": "no-store" }); res.end(JSON.stringify(value)); };
       if (!match) return json({ error: "not_found" }, 404);
       const id = match[1] as OAuthProvider, route = match[2], settings = config[id]!;
@@ -55,6 +57,15 @@ export async function startFakeProviders({ port = 0 }: { port?: number } = {}) {
         } else { callback.search = fields.toString(); res.writeHead(302, { location: callback.href }); res.end(); }
         return;
       }
+      if (route === "revoke" && id === "apple" && req.method === "POST") {
+        let raw = "";
+        for await (const chunk of req) { raw += String(chunk); if (raw.length > 65_536) throw new Error(); }
+        const body = new URLSearchParams(raw), token = body.get("token") ?? "";
+        const { header, claims } = decodeJws(body.get("client_secret") ?? "");
+        if (body.get("client_id") !== settings.clientId || header.kid !== settings.apple!.keyId || claims.sub !== settings.clientId || body.get("token_type_hint") !== "refresh_token" || !appleRefresh.has(token)) throw new Error();
+        appleRefresh.delete(token); revoked.push(token);
+        res.writeHead(200); res.end(); return;
+      }
       if (route === "token" && req.method === "POST") {
         let raw = "";
         for await (const chunk of req) { raw += String(chunk); if (raw.length > 65_536) throw new Error(); }
@@ -84,7 +95,9 @@ export async function startFakeProviders({ port = 0 }: { port?: number } = {}) {
         const claims = { iss: `${url}/${id}`, aud: settings.clientId, sub: profile.subject, email: profile.email, email_verified: profile.emailVerified ?? true,
           ...(id === "google" ? { name: profile.name, ...(profile.hd ? { hd: profile.hd } : {}) } : {}), nonce: issued.nonce, iat, exp: iat + 600 };
         const input = [ { alg: "RS256", kid: jwk.kid }, claims ].map(value => Buffer.from(JSON.stringify(value)).toString("base64url")).join(".");
-        return json({ id_token: `${input}.${sign("sha256", Buffer.from(input), rsa.privateKey).toString("base64url")}`, token_type: "bearer" });
+        const refresh = id === "apple" ? random() : null;
+        if (refresh) appleRefresh.add(refresh);
+        return json({ id_token: `${input}.${sign("sha256", Buffer.from(input), rsa.privateKey).toString("base64url")}`, token_type: "bearer", ...(refresh ? { refresh_token: refresh } : {}) });
       }
       if (id === "x" && route === "users/me" && req.method === "GET") {
         const auth = req.headers.authorization, token = auth?.startsWith("Bearer ") ? tokens.get(auth.slice(7)) : undefined;
@@ -101,13 +114,17 @@ export async function startFakeProviders({ port = 0 }: { port?: number } = {}) {
   url = `http://127.0.0.1:${address.port}`;
   for (const id of ["google", "apple", "x"] as const) config[id] = { clientId: `fixture-${id}`, clientSecret: `fixture-${id}-secret`, authorizeUrl: `${url}/${id}/authorize`, tokenUrl: `${url}/${id}/token`, scopes: id === "google" ? "openid email profile" : id === "apple" ? "name email" : "users.read tweet.read",
     ...(id === "x" ? { userUrl: `${url}/x/users/me?user.fields=confirmed_email` } : { jwksUrl: `${url}/${id}/jwks`, issuers: [`${url}/${id}`] }),
-    ...(id === "apple" ? { apple: { teamId: "fixture-team", keyId: "fixture-apple-key", privateKey: apple.privateKey.export({ type: "pkcs8", format: "pem" }).toString() } } : {}) };
+    ...(id === "apple" ? { revokeUrl: `${url}/apple/revoke`, apple: { teamId: "fixture-team", keyId: "fixture-apple-key", privateKey: apple.privateKey.export({ type: "pkcs8", format: "pem" }).toString() } } : {}) };
   const timer = setInterval(() => {
     for (const [key, value] of codes) if (value.expiresAt <= Date.now()) codes.delete(key);
     for (const [key, value] of tokens) if (value.expiresAt <= Date.now()) tokens.delete(key);
   }, 60_000);
   timer.unref();
   return { url, config,
+    /** Apple refresh tokens revoked so far, oldest first */
+    revoked: () => [...revoked],
+    /** Apple refresh tokens issued and still live */
+    appleTokens: () => [...appleRefresh],
     setUser(provider: OAuthProvider, profile: FakeProfile) { users[provider] = { ...profile }; },
     deny(provider: OAuthProvider) { denied.add(provider); },
     async close() { clearInterval(timer); await new Promise<void>((resolve, reject) => { server.close(error => error ? reject(error) : resolve()); server.closeAllConnections(); }); },
