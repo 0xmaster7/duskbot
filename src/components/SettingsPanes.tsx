@@ -194,7 +194,6 @@ export function GeneralPane({ has, remoteActive }: { has: Has; remoteActive: boo
         <SettingsGroup label={tPreferred("settings.docs.you", "settings.group.account")} block="general">
           <SettingsRows>
             <AccountRows />
-            <CloudPlanRow place="account" />
           </SettingsRows>
         </SettingsGroup>
       )}
