@@ -91,14 +91,19 @@ then open the app, sign in to your ai, make a bot and hand it something real. ab
 ## how it fits together
 
 ```text
- you                        the link                          the bot computer
- desktop app      ──▶   1. direct (same machine, ssh,   ──▶   dusk bot server  127.0.0.1:8799
- phone (soon)              https, tailscale)                 engines   claude code, codex, gemini, grok, ...
- a browser               2. a cloudflare tunnel                tools     browser, desktop, files, shell, apps
-                         3. the dusk bot relay                 your data ~/.duskbot
-                         end to end encrypted                           │
-                                                                         ▼
-                                                               your ai provider and your apps
+you        desktop app · phone (soon) · a browser
+             │
+the link     1. direct: same machine, ssh, https, tailscale
+             2. a cloudflare tunnel on your server
+             3. the dusk bot relay
+             end to end encrypted
+             │
+bot computer dusk bot server on 127.0.0.1:8799
+             engines: claude code, codex, gemini, grok, ...
+             tools:   browser, desktop, files, shell, apps
+             data:    ~/.duskbot
+             │
+             your ai provider and your apps
 ```
 
 - **the desktop app** (electron and react) is where you talk. it also owns the local browser views and the desktop driver.
