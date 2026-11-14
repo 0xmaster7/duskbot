@@ -1,17 +1,19 @@
 import { expect, it } from "vitest";
-import { REVIEW_AI, wireDemoAi } from "../scripts/review-ai.mjs";
+import { MISSING_REVIEW_AI, pickReviewAi, wireDemoAi } from "../scripts/review-ai.mjs";
 
 function fakeHome() {
-  const instances: Array<{ instanceId: string; displayName: string }> = [{ instanceId: "opencodeGo", displayName: "OpenCode" }];
+  const instances: Array<{ instanceId: string; displayName: string; url?: string }> = [{ instanceId: "opencodeGo", displayName: "OpenCode" }];
   const bot = { id: "b1", modelSelection: { instanceId: "opencodeGo", model: "opencode/big-pickle" } as { instanceId: string; model: string } };
   const sent: Array<{ path: string; method: string; body?: Record<string, unknown> }> = [];
+  let n = 0;
   async function call(path: string, init: { method?: string; body?: Record<string, unknown> } = {}) {
     const method = init.method ?? "GET";
     sent.push({ path, method, ...(init.body ? { body: init.body } : {}) });
     if (path === "/api/instances" && method === "GET") return { ok: true, status: 200, data: { instances } };
     if (path === "/api/instances/openai-compat" && method === "POST") {
-      instances.push({ instanceId: "openai-compat:1", displayName: String(init.body!.displayName) });
-      return { ok: true, status: 201, data: { instanceId: "openai-compat:1" } };
+      const instanceId = `openai-compat:${++n}`;
+      instances.push({ instanceId, displayName: String(init.body!.displayName), url: String(init.body!.url) });
+      return { ok: true, status: 201, data: { instanceId } };
     }
     if (path.startsWith("/api/bots?")) return { ok: true, status: 200, data: { bots: [bot] } };
     if (path === "/api/bots/b1" && method === "PATCH") { bot.modelSelection = init.body!.modelSelection as typeof bot.modelSelection; return { ok: true, status: 200, data: { bot } }; }
@@ -20,18 +22,29 @@ function fakeHome() {
   return { call, sent, bot };
 }
 
-it("says the key is missing and changes nothing without one", async () => {
+it("picks the paid OpenRouter key over Groq, Groq alone when that is all there is, and nothing without either", () => {
+  expect(pickReviewAi({ DUSK_REVIEW_AI_OPENROUTER_KEY: "sk-or", DUSK_REVIEW_AI_GROQ_KEY: "gsk" })).toMatchObject({ provider: "openrouter", url: "https://openrouter.ai/api/v1", model: "openai/gpt-4o-mini", key: "sk-or" });
+  expect(pickReviewAi({ DUSK_REVIEW_AI_OPENROUTER_KEY: "  ", DUSK_REVIEW_AI_GROQ_KEY: "gsk" })).toMatchObject({ provider: "groq", url: "https://api.groq.com/openai/v1", model: "openai/gpt-oss-120b", key: "gsk" });
+  expect(pickReviewAi({ DUSK_REVIEW_AI_OPENROUTER_KEY: null, DUSK_REVIEW_AI_GROQ_KEY: "" })).toBeNull();
+  expect(MISSING_REVIEW_AI).toContain("DUSK_REVIEW_AI_OPENROUTER_KEY and DUSK_REVIEW_AI_GROQ_KEY");
+});
+
+it("says both keys are missing and changes nothing without one", async () => {
   const home = fakeHome();
-  expect(await wireDemoAi(home.call, { botId: "b1", key: null })).toEqual({ wired: false, reason: expect.stringContaining("missing DUSK_REVIEW_AI_OPENROUTER_KEY") });
+  expect(await wireDemoAi(home.call, { botId: "b1", ai: null })).toEqual({ wired: false, reason: MISSING_REVIEW_AI });
   expect(home.sent).toEqual([]);
 });
 
-it("adds the OpenRouter engine once and points the demo bot at the cheap model, idempotently", async () => {
-  const home = fakeHome();
-  expect(await wireDemoAi(home.call, { botId: "b1", key: "sk-or-fake" })).toMatchObject({ wired: true, added: true, pointed: true, model: REVIEW_AI.model });
-  expect(home.sent.find(item => item.method === "POST")?.body).toEqual({ displayName: "Demo AI", url: "https://openrouter.ai/api/v1", key: "sk-or-fake", models: ["openai/gpt-4o-mini"] });
-  expect(home.bot.modelSelection).toEqual({ instanceId: "openai-compat:1", model: "openai/gpt-4o-mini" });
+it("adds the chosen engine once as Demo AI and points the demo bot at its model, idempotently", async () => {
+  const home = fakeHome(), ai = pickReviewAi({ DUSK_REVIEW_AI_GROQ_KEY: "gsk-fake" });
+  expect(await wireDemoAi(home.call, { botId: "b1", ai })).toMatchObject({ wired: true, added: true, pointed: true, provider: "groq", model: "openai/gpt-oss-120b" });
+  expect(home.sent.find(item => item.method === "POST")?.body).toEqual({ displayName: "Demo AI", url: "https://api.groq.com/openai/v1", key: "gsk-fake", models: ["openai/gpt-oss-120b"] });
+  expect(home.bot.modelSelection).toEqual({ instanceId: "openai-compat:1", model: "openai/gpt-oss-120b" });
   const again = home.sent.length;
-  expect(await wireDemoAi(home.call, { botId: "b1", key: "sk-or-fake" })).toMatchObject({ wired: true, added: false, pointed: false });
+  expect(await wireDemoAi(home.call, { botId: "b1", ai })).toMatchObject({ wired: true, added: false, pointed: false });
   expect(home.sent.slice(again).filter(item => item.method !== "GET")).toEqual([]);
+  // the paid key arriving later adds its own Demo AI engine and moves the bot to it
+  expect(await wireDemoAi(home.call, { botId: "b1", ai: pickReviewAi({ DUSK_REVIEW_AI_OPENROUTER_KEY: "sk-or", DUSK_REVIEW_AI_GROQ_KEY: "gsk-fake" }) }))
+    .toMatchObject({ added: true, pointed: true, provider: "openrouter" });
+  expect(home.bot.modelSelection).toEqual({ instanceId: "openai-compat:2", model: "openai/gpt-4o-mini" });
 });

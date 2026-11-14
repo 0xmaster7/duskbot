@@ -15,7 +15,7 @@ import { readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
-import { wireDemoAi } from "./review-ai.mjs";
+import { pickReviewAi, REVIEW_AI_PROVIDERS, wireDemoAi } from "./review-ai.mjs";
 
 const TARGETS = { preview: "https://preview.dusk.bot", production: "https://dusk.bot" };
 const CLOUD_NAME = "Demo Cloud";
@@ -42,7 +42,7 @@ function secrets() {
     if (m) values.set(m[1], m[2].replace(/^(["'])(.*)\1$/, "$2"));
   }
   const need = (name) => { const v = values.get(name); if (!v) throw new Error(`${name} is not set in ${file}`); return v; };
-  return { email: need("DUSK_REVIEW_EMAIL").trim().toLowerCase(), code: need("DUSK_REVIEW_CODE").trim(), aiKey: values.get("DUSK_REVIEW_AI_OPENROUTER_KEY") || null, ops: values.get(`DUSK_OPS_TOKEN_${target.toUpperCase()}`) || null };
+  return { email: need("DUSK_REVIEW_EMAIL").trim().toLowerCase(), code: need("DUSK_REVIEW_CODE").trim(), ai: pickReviewAi(Object.fromEntries(REVIEW_AI_PROVIDERS.map((item) => [item.env, values.get(item.env)]))), ops: values.get(`DUSK_OPS_TOKEN_${target.toUpperCase()}`) || null };
 }
 
 async function call(base, path, { method = "GET", body, token, timeoutMs = 30_000, headers = {} } = {}) {
@@ -55,7 +55,7 @@ async function call(base, path, { method = "GET", body, token, timeoutMs = 30_00
 }
 const must = (answer, what) => { if (!answer.ok) throw new Error(`${what} answered ${answer.status} (${answer.data?.code ?? answer.data?.error ?? "no detail"})`); return answer.data; };
 
-const { email, code, aiKey, ops } = secrets();
+const { email, code, ai, ops } = secrets();
 const device = { deviceName: "dusk review setup", platform: "ios", appVersion: "1.0.0" };
 let appToken = null, home = null;
 
@@ -190,8 +190,8 @@ try {
   if (!cloud.entitlement) log("warning: the session carries no entitlement for the cloud");
   await pair(cloud);
   const botId = await demoBot();
-  const ai = await wireDemoAi((path, init = {}) => call(home.origin, path, { ...init, token: home.token }), { botId, key: aiKey });
-  log(ai.wired ? `the demo bot answers through ${ai.model} on OpenRouter${ai.added ? " (engine added)" : ""}${ai.pointed ? " (bot switched to it)" : ""}` : `warning: ${ai.reason}`);
+  const wired = await wireDemoAi((path, init = {}) => call(home.origin, path, { ...init, token: home.token }), { botId, ai });
+  log(wired.wired ? `the demo bot answers through ${wired.model} on ${wired.provider}${wired.added ? " (engine added)" : ""}${wired.pointed ? " (bot switched to it)" : ""}` : `warning: ${wired.reason}`);
   if (!flags.includes("--no-reply")) {
     const answered = await reply(botId);
     log(`the demo bot replied in ${answered.total}s: "${answered.text.slice(0, 160).replace(/\s+/g, " ")}"`);
