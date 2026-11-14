@@ -29,7 +29,7 @@ dusk bot is a desktop app where your AI helpers live as contacts. Make a bot, gi
 
 It runs on the AI you already pay for, with your own sign-in. Bots, chats and files stay on your machine, or on a server you choose.
 
-<p align="center"><img src="docs/readme/shots/work.gif" alt="Nova gets a question about mug prices, searches the web, reads two shop pages, saves a CSV and answers" width="100%"><br><sub>A bot at work: you ask, it searches, reads the pages, saves a file and answers. The working row shows each step.</sub></p>
+<p align="center"><img src="docs/readme/shots/work.gif" alt="Nova gets a question about mug prices; its computer, open on the right, searches Bing, reads East Fork and Mud Australia, then Nova saves a CSV and answers" width="100%"><br><sub>A bot at work: it searches and reads real shop pages on its own computer (right), then answers.</sub></p>
 
 ## Contents
 
@@ -52,11 +52,7 @@ It runs on the AI you already pay for, with your own sign-in. Bots, chats and fi
 | **Move in** | Bring bots from OpenClaw, Hermes Agent and Grok bot, or from ChatGPT and Claude with one prompt. |
 | **Live in your notch** | On a Mac, your bots sit in the notch: who is working, and what needs you. |
 
-<p align="center"><img src="docs/readme/art/divider-pond.webp" alt="" width="100%"></p>
-
 ## Chat and rooms
-
-<img src="docs/readme/art/notebook.webp" align="right" height="90" alt="">
 
 Every bot is a chat. Bots answer with tables, code and files, ask with cards you answer in a tap, and several bots can share a room.
 
@@ -66,16 +62,16 @@ Every bot is a chat. Bots answer with tables, code and files, ask with cards you
 <td width="50%"><img src="docs/readme/shots/chat-echo.webp" alt="Echo sorts the inbox into a table by priority"></td>
 </tr>
 <tr>
-<td><sub><b>Questions as cards.</b> Quill drafts the newsletter and asks which subject line to send.</sub></td>
-<td><sub><b>Real answers.</b> Echo sorts the morning's email into a table and drafts the replies.</sub></td>
+<td><sub><b>Questions as cards.</b> Quill asks which subject line to send.</sub></td>
+<td><sub><b>Real answers.</b> Echo sorts the inbox into a table.</sub></td>
 </tr>
 <tr>
 <td><img src="docs/readme/shots/chat-room.webp" alt="The Shop standup room: Nova, Quill, Rivet and Echo each report in"></td>
 <td><img src="docs/readme/shots/panel-overview.webp" alt="Nova's chat with the bot panel open on the right: routines, model and usage"></td>
 </tr>
 <tr>
-<td><sub><b>Rooms.</b> A standup where four bots report in one thread.</sub></td>
-<td><sub><b>The bot panel.</b> Its routines, model and usage, one click from the chat.</sub></td>
+<td><sub><b>Rooms.</b> Four bots report in one thread.</sub></td>
+<td><sub><b>The bot panel.</b> Routines, model and usage.</sub></td>
 </tr>
 </table>
 
@@ -89,14 +85,12 @@ Each bot has its own settings: what it remembers, how much it may do alone, its 
 <td width="50%"><img src="docs/readme/shots/panel-permissions.webp" alt="Nova's permissions: approval level and sending on your behalf"></td>
 </tr>
 <tr>
-<td><sub><b>Memory.</b> Notes the bot keeps about you, yours to read, edit or switch off.</sub></td>
-<td><sub><b>Permissions.</b> From "ask for approval" to full access, and a separate rule for sending in your name.</sub></td>
+<td><sub><b>Memory.</b> Notes you can read and edit.</sub></td>
+<td><sub><b>Permissions.</b> From ask first to full access.</sub></td>
 </tr>
 </table>
 
 ## A computer of its own
-
-<img src="docs/readme/art/computer.webp" align="right" height="110" alt="">
 
 Every bot has a browser it can read and drive. For anything without an API it gets a full desktop: a cloud desktop on dusk cloud, a private container per bot on your server, a Linux VM in Docker on this computer, or your own screen on macOS and Ubuntu (Xorg) when you turn that on.
 
@@ -104,37 +98,31 @@ Open the bot's **Computer** tab to watch it live. **Take control** pauses its ha
 
 <table>
 <tr>
-<td width="34%"><img src="docs/readme/shots/bot-screen.webp" alt="Nova's computer tab showing its live screen on a shop page"></td>
-<td width="66%"><img src="docs/readme/shots/set-computer.webp" alt="Settings, Computer: this computer is current, and an option to add a cloud or your own server"></td>
+<td width="50%"><img src="docs/readme/shots/bot-screen.webp" alt="Nova's computer: Chromium on the bot desktop, open on a real shop page"></td>
+<td width="50%"><img src="docs/readme/shots/set-computer.webp" alt="Settings, Computer: this computer is current, and an option to add a cloud or your own server"></td>
 </tr>
 <tr>
-<td><sub><b>Nova's screen.</b> Live, in the bot panel.</sub></td>
-<td><sub><b>Where bots run.</b> This computer, dusk cloud, or a server of your own.</sub></td>
+<td><sub><b>Nova's screen.</b> A real browser on its own desktop.</sub></td>
+<td><sub><b>Where bots run.</b> Here, dusk cloud or your server.</sub></td>
 </tr>
 </table>
 
 ## Routines
 
-<img src="docs/readme/art/clock.webp" align="right" height="100" alt="">
-
 Ask once and it becomes a routine. Schedules can be `once`, `daily` on chosen weekdays, `interval` every few minutes inside a window, or `cron`. App events (a new email, a GitHub issue) and webhooks start them too.
-
-<p align="center"><img src="docs/readme/shots/routine.gif" alt="The Monday price check routine runs: Nova starts a run, reads a shop page and posts its answer" width="100%"><br><sub>A routine firing: Nova's Monday price check starts a run, reads the shops and reports back.</sub></p>
 
 <table>
 <tr>
 <td width="100%"><img src="docs/readme/shots/panel-routines.webp" alt="Echo's routines in the side panel: an inbox sweep every two hours and a trigger on new support email"></td>
 </tr>
 <tr>
-<td><sub><b>Routines per bot.</b> Echo sweeps the inbox every two hours and wakes up for each new support email.</sub></td>
+<td><sub><b>Routines.</b> An inbox sweep every two hours and a trigger on new email.</sub></td>
 </tr>
 </table>
 
 Routines run inside the dusk bot server, next to the bot. A sleeping computer runs nothing, so while it's plugged in the desktop app keeps it awake for the hour before a due routine, and a missed run can still start up to 12 hours late. On dusk cloud or your own server they run around the clock. See [routine schedules](docs/routine-schedules.md).
 
 ## Apps and AI
-
-<img src="docs/readme/art/plug.webp" align="right" height="100" alt="">
 
 Sign in once with the AI you already pay for and every bot can use it. Give each bot a different model and switch any time; it keeps its chats, files and memory. Connect your apps once and choose which bots may use each one.
 
@@ -144,16 +132,16 @@ Sign in once with the AI you already pay for and every bot can use it. Give each
 <td width="50%"><img src="docs/readme/shots/model-directory.webp" alt="All models: search every model and provider"></td>
 </tr>
 <tr>
-<td><sub><b>Connect an AI.</b> One card per provider you can sign in to.</sub></td>
-<td><sub><b>Model directory.</b> Search every model and provider, from models.dev.</sub></td>
+<td><sub><b>Connect an AI.</b> Sign in to the one you use.</sub></td>
+<td><sub><b>Model directory.</b> Every model and provider.</sub></td>
 </tr>
 <tr>
 <td><img src="docs/readme/shots/dlg-apps.webp" alt="Connect apps: Gmail, Google Calendar, Slack, GitHub, Notion, Linear, Figma and more"></td>
 <td><img src="docs/readme/shots/dlg-mcp.webp" alt="MCP servers: add a server, or reuse your Claude Code MCP servers and skills"></td>
 </tr>
 <tr>
-<td><sub><b>Connect apps.</b> One click on your own account, or hundreds more through Composio.</sub></td>
-<td><sub><b>MCP servers.</b> Add any server by URL or as a command.</sub></td>
+<td><sub><b>Connect apps.</b> One click, or Composio.</sub></td>
+<td><sub><b>MCP servers.</b> By URL or command.</sub></td>
 </tr>
 </table>
 
@@ -168,8 +156,6 @@ Sign-in engines run their own tool loop and get dusk bot's tools (browser, compu
 
 ## Vault and moving in
 
-<img src="docs/readme/art/key.webp" align="right" height="90" alt="">
-
 Save a login once and bots sign in with it without ever seeing it: dusk bot types it in or hands it to a tool, so the value never reaches the AI. Coming from another assistant? Bring your bots, skills and memories along.
 
 <table>
@@ -178,8 +164,8 @@ Save a login once and bots sign in with it without ever seeing it: dusk bot type
 <td width="50%"><img src="docs/readme/shots/set-import.webp" alt="Bring in from other apps in three steps"></td>
 </tr>
 <tr>
-<td><sub><b>Vault.</b> Logins and secrets, encrypted on the bot computer.</sub></td>
-<td><sub><b>Bring in from other apps.</b> OpenClaw, Hermes Agent, Grok bot, ChatGPT, Claude and Gemini.</sub></td>
+<td><sub><b>Vault.</b> Logins bots use but never see.</sub></td>
+<td><sub><b>Move in.</b> From Grok bot, ChatGPT, Claude and more.</sub></td>
 </tr>
 </table>
 
@@ -192,9 +178,9 @@ Save a login once and bots sign in with it without ever seeing it: dusk bot type
 <td width="34%"><img src="docs/readme/shots/account.webp" alt="Your account: name, address, dusk cloud plan, Sign out and Manage account"></td>
 </tr>
 <tr>
-<td><sub><b>Welcome.</b> No account needed to start.</sub></td>
-<td><sub><b>Connect an AI.</b> Sign in to the one you use.</sub></td>
-<td><sub><b>Your account.</b> Only for dusk cloud or a work license.</sub></td>
+<td><sub><b>Welcome.</b> No account needed.</sub></td>
+<td><sub><b>Pick your AI.</b> Sign in to the one you use.</sub></td>
+<td><sub><b>Your account.</b> Only for dusk cloud.</sub></td>
 </tr>
 </table>
 
@@ -202,17 +188,11 @@ Backups are one encrypted file you can move anywhere:
 
 <img src="docs/readme/shots/set-backups.webp" alt="Settings, Backups: export a full backup or import one" width="100%">
 
-<p align="center"><img src="docs/readme/art/divider-hills.webp" alt="" width="100%"></p>
-
 ## Where bots live
 
-<table>
-<tr>
-<td width="33%" align="center"><img src="docs/readme/art/where-computer.webp" alt="Pixel art of a computer on a hill" width="100%"><br><b>This computer</b><br><sub>Free, no account. Bots work while it's awake.</sub></td>
-<td width="33%" align="center"><img src="docs/readme/art/where-cloud.webp" alt="Pixel art of a computer in the clouds" width="100%"><br><b>dusk cloud</b><br><sub>We host it. Bots keep working with your laptop shut. From $20 a month.</sub></td>
-<td width="34%" align="center"><img src="docs/readme/art/where-server.webp" alt="Pixel art of a server rack" width="100%"><br><b>Your own server</b><br><sub>Free. One line on Ubuntu or Debian, and bots stay on as long as it does.</sub></td>
-</tr>
-</table>
+| This computer | dusk cloud | Your own server |
+| --- | --- | --- |
+| Free, no account. Bots work while it's awake. | We host it. Bots keep working with your laptop shut. | Free. One line on Ubuntu or Debian, and bots stay on as long as it does. |
 
 A phone app to text your bots from anywhere is coming soon.
 
@@ -262,8 +242,6 @@ bot computer dusk bot server on 127.0.0.1:8799
 - **The dusk bot server** (Node) runs on the bot computer: this computer, dusk cloud or your own server. It owns chats, routines, approvals, the vault and the engine processes. Webhooks get their own listener on the next port.
 - **The link** to a remote server tries direct ways first, then the Cloudflare tunnel on your server, then the dusk bot relay. Frames are sealed with AES-256-GCM using a key only your app and your server hold, so the relay passes blobs it can't read. See [the link service](apps/link-service/README.md).
 
-<p align="center"><img src="docs/readme/art/divider-dunes.webp" alt="" width="100%"></p>
-
 ## Where your data lives
 
 | What | Where |
@@ -277,8 +255,6 @@ bot computer dusk bot server on 127.0.0.1:8799
 
 ## Security
 
-<img src="docs/readme/art/key.webp" align="right" height="80" alt="">
-
 - **Loopback trust.** On your own computer the server trusts loopback as its owner. Browsers never get that trust: a browser signs in once, and tunneled or relayed requests need a paired session.
 - **Pairing.** `duskbot pair` prints a single-use code that lasts 5 minutes. Sessions last 30 days and renew on use. Five wrong codes lock an address out for 10 minutes.
 - **Approvals.** Each bot has a level, from Ask to Full access. Real questions and missing sign-ins always reach you, and sending in your name has its own setting. See [approval levels](docs/approval-levels.md).
@@ -289,8 +265,6 @@ bot computer dusk bot server on 127.0.0.1:8799
 Found a problem? See [SECURITY.md](SECURITY.md).
 
 ## Self-hosting
-
-<img src="docs/readme/art/server.webp" align="right" height="70" alt="">
 
 Run your bots on a server you look after, so they keep working with the laptop shut. It's free. In the app, choose **Add a cloud or your own server** and paste the line it gives you on Ubuntu 20.04+ or Debian 11+:
 
