@@ -5135,7 +5135,6 @@
   "models.place.server": "Bu sunucuda kayıtlı.",
   "models.place.cloud": "dusk cloud hesabınızda kayıtlı.",
   "models.place.computer": "Bu bilgisayarda kayıtlı.",
-  "bring.howFile": "Tek bir dosya oluşturur. Dosyayı İndirilenler klasörüne kaydedin, dusk bot her şeyi kursun; ya da buradaki herhangi bir sohbete bırakın.",
   "settings.docs.vault.emptyBody": "Bir giriş bilgisi ekleyin veya bir bot istediğinde bir gizli bilgiyi kaydedin. Botlar içeriği asla göremez.",
   "mcp.claudeSkills.desc": "Claude botları ~/.claude/skills içindeki becerileri de yükler. Hook'larınız ve diğer ayarlarınız dahil edilmez.",
   "slack.connect": "Bağlan",

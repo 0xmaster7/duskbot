@@ -6001,7 +6001,6 @@
   "models.place.server": "Salvato su questo server.",
   "models.place.cloud": "Salvato sul tuo dusk cloud.",
   "models.place.computer": "Salvato su questo computer.",
-  "bring.howFile": "Viene creato un unico file. Salvalo in Download e dusk bot configura tutto, oppure trascinalo in una chat qui.",
   "settings.docs.vault.emptyBody": "Aggiungi un login o salva un segreto quando un bot lo richiede. I bot non vedono mai il contenuto.",
   "slack.connect": "Connetti",
   "slack.disconnect": "Disconnetti",

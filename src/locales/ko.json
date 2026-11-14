@@ -6574,7 +6574,6 @@
   "models.place.server": "이 서버에 저장됨.",
   "models.place.cloud": "내 dusk cloud에 저장됨.",
   "models.place.computer": "이 컴퓨터에 저장됨.",
-  "bring.howFile": "파일 하나가 생성됩니다. 다운로드 폴더에 저장하면 dusk bot이 모두 설정하며, 여기의 아무 채팅에나 끌어다 놓아도 됩니다.",
   "settings.docs.vault.emptyBody": "로그인 정보를 추가하거나, 봇이 요청할 때 시크릿을 저장하세요. 봇은 저장된 내용을 볼 수 없습니다.",
   "slack.connect": "연결",
   "slack.disconnect": "연결 해제",

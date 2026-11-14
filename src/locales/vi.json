@@ -5135,7 +5135,6 @@
   "models.place.server": "Đã lưu trên máy chủ này.",
   "models.place.cloud": "Đã lưu trên dusk cloud của bạn.",
   "models.place.computer": "Đã lưu trên máy tính này.",
-  "bring.howFile": "Thao tác này tạo một tệp. Lưu tệp vào Downloads để dusk bot tự thiết lập mọi thứ, hoặc thả tệp vào bất kỳ cuộc trò chuyện nào tại đây.",
   "settings.docs.vault.emptyBody": "Thêm thông tin đăng nhập, hoặc lưu bí mật khi bot yêu cầu. Bot không bao giờ thấy nội dung bên trong.",
   "mcp.claudeSkills.desc": "Bot Claude cũng tải các kỹ năng trong ~/.claude/skills. Hook và các cài đặt khác của bạn không bị ảnh hưởng.",
   "slack.connect": "Kết nối",

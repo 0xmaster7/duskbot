@@ -3249,7 +3249,6 @@
   "models.place.server": "Enregistré sur ce serveur.",
   "models.place.cloud": "Enregistré sur votre dusk cloud.",
   "models.place.computer": "Enregistré sur cet ordinateur.",
-  "bring.howFile": "Cela crée un seul fichier. Enregistrez-le dans Téléchargements et dusk bot configure tout, ou déposez-le dans n’importe quelle discussion ici.",
   "settings.docs.vault.emptyBody": "Ajoutez un identifiant, ou enregistrez un secret lorsqu’un bot vous le demande. Les bots n’en voient jamais le contenu.",
   "skills.library.empty": "Aucune compétence pour l’instant. Importez-en une ci-dessous.",
   "skills.library.subtitle": "Les compétences que vos bots peuvent utiliser. Tout reste sur cet ordinateur.",

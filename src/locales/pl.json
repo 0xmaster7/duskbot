@@ -6164,7 +6164,6 @@
   "models.place.server": "Zapisano na tym serwerze.",
   "models.place.cloud": "Zapisano w Twojej dusk cloud.",
   "models.place.computer": "Zapisano na tym komputerze.",
-  "bring.howFile": "Tworzy jeden plik. Zapisz go w Pobranych, a dusk bot wszystko skonfiguruje, lub upuść go w dowolnym czacie tutaj.",
   "settings.docs.vault.emptyBody": "Dodaj dane logowania lub zapisz sekret, gdy bot o niego poprosi. Boty nigdy nie widzą zawartości.",
   "slack.connect": "Połącz",
   "slack.disconnect": "Rozłącz",

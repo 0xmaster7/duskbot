@@ -6189,7 +6189,6 @@
   "models.place.server": "このサーバーに保存されています。",
   "models.place.cloud": "dusk cloud に保存されています。",
   "models.place.computer": "このコンピューターに保存されています。",
-  "bring.howFile": "ファイルが 1 つ作成されます。ダウンロードフォルダーに保存すると dusk bot がすべて設定します。ここでチャットにドロップすることもできます。",
   "settings.docs.vault.emptyBody": "ログインを追加するか、ボットに求められたときにシークレットを保存してください。ボットが中身を見ることはありません。",
   "slack.connect": "接続",
   "slack.disconnect": "切断",
