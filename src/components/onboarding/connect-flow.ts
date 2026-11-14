@@ -345,7 +345,8 @@ export class ConnectFlow {
         : method === "paste-code" || method === "browser" ? httpsLink(auth.authorizationUrl)
           : deviceSignInLink(provider, auth.authorizationUrl, code ?? undefined);
       const kind: WaitKind = method === "browser-pkce" ? "browser" : method === "paste-code" ? "paste" : method === "browser" ? "callback" : "device";
-      const opened = link ? await this.deps.open(link).catch(() => false) : false;
+      // a device code shows first: the person copies it, then opens the page with one press (Copy code and open)
+      const opened = link && !code ? await this.deps.open(link).catch(() => false) : false;
       if (signal.aborted) return;
       this.deps.trail("connect.open", { tile: target.tile, instance: instance.instanceId, opened, again: false });
       this.flowId = auth.flowId;

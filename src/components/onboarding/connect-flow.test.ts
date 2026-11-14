@@ -57,7 +57,7 @@ describe("connect flow stages", () => {
     expect(trail.find(([ev]) => ev === "connect.done")?.[1]).toMatchObject({ tile: "chatgpt", reused: true });
   });
 
-  it("installs a missing helper, then opens the sign-in, waits for the code and confirms", async () => {
+  it("installs a missing helper, shows the device code without opening the page, waits for it and confirms", async () => {
     let signedIn = false;
     const { flow, seen, opened, calls } = harness([
       [codex({ state: "unavailable", reason: "codex CLI not found" })],
@@ -70,8 +70,8 @@ describe("connect flow stages", () => {
     });
     flow.start({ tile: "chatgpt", candidates: ["codex"] });
     await vi.advanceTimersByTimeAsync(0);
-    expect(flow.state).toMatchObject({ stage: "waiting", kind: "device", code: "ABCD-12345", link: "https://auth.openai.com/codex/device", opened: true });
-    expect(opened).toEqual(["https://auth.openai.com/codex/device"]);
+    expect(flow.state).toMatchObject({ stage: "waiting", kind: "device", code: "ABCD-12345", link: "https://auth.openai.com/codex/device", opened: false });
+    expect(opened, "the code shows first; the page opens from Copy code and open").toEqual([]);
     signedIn = true;
     await vi.advanceTimersByTimeAsync(POLL_MS * 2);
     expect(seen).toEqual(["preparing", "installing", "opening", "waiting", "confirming", "connected"]);
