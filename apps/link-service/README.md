@@ -668,7 +668,11 @@ The relay is not a free pipe: every setup session needs a dusk account, and ever
 
 The app's base comes from `DUSK_LINK_BASE` (default `https://link.dusk.bot`).
 
-Deploy with the `deploy` CLI from the repo root:
+Deploy every node with `apps/link-service/deploy/deploy.sh` from the repo root. A node restarts only when a file it runs
+changed (tests, the chaos lab, this readme and the deploy scripts do not count): each restart makes every app and agent
+on that node reconnect its relay stream. Contabo runs under prozessor, which restarts only on a `deploy` of this folder
+(its checkout is a local repo fed by the deploy cli, not main); oracle-in is a tar and a systemd restart. `--force`
+ships anyway. The first install on contabo was:
 
 ```
 printf 'LINK_DATA_DIR=/root/omb-link-data\n' > /tmp/omb-link.env
