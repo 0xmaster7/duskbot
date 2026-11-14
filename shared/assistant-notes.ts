@@ -129,6 +129,7 @@ ${NOTES_END}
 Rules:
 - One "## Bot:" section for each custom GPT, Project, Gem, companion, agent or bot I made with its own instructions, each filled in completely before the next. No bots: leave out the Bots section.
 - Facts about me go under About me or Contacts, even when a bot learned them. A bot's own Memories are only what matters for its job.
+- If you are yourself one of my bots or agents (for example a bot in Grok Bot), you are the one "## Bot:" section: your own instructions, personality, memories, skills, routines and apps go only there, never in the sections above it, which are for me and my whole account.
 - Copy saved memories, my custom instructions and each bot's instructions word for word; never summarize them. For everything else be thorough and specific: names, numbers, dates.
 - Write only what you actually know. Never guess or invent anything.
 - Leave out passwords, API keys, tokens, account numbers and card numbers.
@@ -311,10 +312,26 @@ export function parseNotes(source: string): AssistantNotes {
     setup: union(documents.map((document) => text(document.setup)).filter(Boolean)).join("\n\n"),
     partial,
   });
+  dropBotsOwn(notes);
   if (!notes.aboutMe.length && !notes.instructions && !notes.memories.length && !notes.bots.length && !notes.openThreads.length && !notes.recurring.length && !notes.skills.length) {
     throw new GrokImportError(partial ? "cutOff" : "notExport");
   }
   return notes;
+}
+
+/** A bot answering for itself (a Grok bot) may write its own instructions, memories, skills and routines at the top as
+ * well as in its own section: they are that bot's, so the top's copies go, and nothing is made twice. */
+function dropBotsOwn(notes: AssistantNotes): void {
+  const flat = (value: string) => value.replace(/\s+/g, " ").trim().toLowerCase();
+  const bots = notes.bots;
+  if (!bots.length) return;
+  const routineNames = new Set(bots.flatMap((bot) => bot.routines.flatMap((one) => [flat(one.name), flat(one.instruction)])).filter(Boolean));
+  const skillNames = new Set(bots.flatMap((bot) => bot.skills.map((one) => flat(one.name))));
+  const memories = new Set(bots.flatMap((bot) => bot.memories.map(flat)));
+  notes.recurring = notes.recurring.filter((one) => !(one.name && routineNames.has(flat(one.name))) && !routineNames.has(flat(one.instruction)));
+  notes.skills = notes.skills.filter((one) => !skillNames.has(flat(one.name)));
+  notes.memories = notes.memories.filter((one) => !memories.has(flat(one)));
+  if (notes.instructions && bots.some((bot) => flat(bot.instructions).includes(flat(notes.instructions)))) notes.instructions = "";
 }
 
 /** The first bot's memory topic for what the assistant remembered: projects and ongoing work, by the app it came from. */

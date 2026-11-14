@@ -139,6 +139,23 @@ describe("the markdown notes file", () => {
     expect(notes.recurring[0]).toMatchObject({ name: "Standup", cron: "0 9 * * 1-5", timeZone: "Europe/Oslo" });
   });
 
+  it("a bot answering for itself keeps its own instructions, memories, skills and routines, never the person's too", () => {
+    const notes = parseNotes(file([
+      "# How I like answers", "~~~text", "You run the shop.", "~~~", "# Memories", "- Tidepool sells out fastest", "- Maya hates phone calls",
+      "# Routines", "## Morning orders", "- Cron: 30 8 * * *", "~~~text", "Check new orders.", "~~~",
+      "# Skills", "## Order triage", "~~~text", "List new orders.", "~~~",
+      "# Bots", "## Bot: Kiln", "### Instructions", "~~~text", "You run the shop.", "~~~", "### Memories", "- Tidepool sells out fastest",
+      "### Skills", "#### Order triage", "~~~text", "List new orders.", "~~~", "### Routines", "#### Morning orders", "- Cron: 30 8 * * *", "~~~text", "Check new orders.", "~~~",
+      "", "END OF DUSK BOT NOTES",
+    ].join("\n")));
+    expect(notes.instructions).toBe("");
+    expect(notes.memories).toEqual(["Maya hates phone calls"]);
+    expect(notes.recurring).toEqual([]);
+    expect(notes.skills).toEqual([]);
+    expect(notes.bots[0]).toMatchObject({ name: "Kiln", memories: ["Tidepool sells out fastest"] });
+    expect(notes.bots[0]!.routines).toHaveLength(1);
+  });
+
   it("refuses the prompt itself, a template never filled in, and credentials", () => {
     expect(code(() => parseNotes(NOTES_PROMPT))).toBe("cutOff");
     expect(code(() => parseNotes(file("# Memories\n- <each saved memory>\n\nEND OF DUSK BOT NOTES")))).toBe("notExport");
