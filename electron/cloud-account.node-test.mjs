@@ -413,7 +413,10 @@ test("signed out, a checkout is a sign-in first: the verified link only gains th
   f.offer = { plans: plans(), recommended: "pro", trialDays: 7 };
   const result = await f.client.checkout("pro", "app_card");
   assert.equal(result.outcome, "signing-in"); assert.equal(result.state.status, "connecting");
-  assert.deepEqual(f.browsers, [`${f.origin}/cloud/desktop?code=ABCDE-FGHJK&next=checkout&plan=pro&src=app_card`]);
+  // the plan rides on the sign-in itself (bound on the service), never in the page's URL, where the website's sign-in would
+  // read it as a plan pick, go to billing and never ask to approve this app
+  assert.deepEqual(f.browsers, [`${f.origin}/cloud/desktop?code=ABCDE-FGHJK`]);
+  assert.deepEqual(JSON.parse(f.requests.find(row => row.route.endsWith("/authorize")).body).intent, { kind: "upgrade", plan: "pro", source: "app_card" });
   assert.deepEqual(result.state.checkout, { plan: "pro", startedAt: f.now, signIn: true });
   assert.ok(!f.requests.some(row => row.route.endsWith("/checkout")), "no checkout before the sign-in");
   await f.client.reopen(); assert.equal(f.browsers.at(-1), f.browsers[0]);
@@ -425,7 +428,7 @@ test("signed out, a checkout is a sign-in first: the verified link only gains th
   const old = await fixture(t);
   await old.client.checkout("max", "app_menu");
   old.approved = true; old.tick(); await until(() => old.browsers.length === 2);
-  assert.deepEqual(old.browsers, [`${old.origin}/cloud/desktop?code=ABCDE-FGHJK&next=checkout&plan=max&src=app_menu`, `${old.origin}/billing?plan=max&src=app_menu`]);
+  assert.deepEqual(old.browsers, [`${old.origin}/cloud/desktop?code=ABCDE-FGHJK`, `${old.origin}/billing?plan=max&src=app_menu`]);
   const payer = await fixture(t);
   payer.entitlement = { plan: "pro", tier: "pro", status: "active", expiresAt: payer.now + 30 * 86400_000, version: 1 };
   await payer.client.checkout("pro", "app_card");

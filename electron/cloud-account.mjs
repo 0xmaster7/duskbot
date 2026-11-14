@@ -453,7 +453,10 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
   }
   async function begin(intent = null, { provider, account = null } = {}) {
     if (!intent || typeof intent !== "object" || !text(intent.plan, 24) || !CHECKOUT_SOURCES.includes(intent.source)) intent = null;
-    account = cleanAccountIntent(account);
+    // the checkout a signed-out purchase leads to is bound to the sign-in on the service as an upgrade intent, never put in the
+    // page's URL: the website's sign-in reads a plan in the URL as a plan pick and goes to billing, so the person never
+    // approved this app and it never signed in
+    account = cleanAccountIntent(account) ?? (intent ? cleanAccountIntent({ kind: "upgrade", plan: intent.plan === "starter" ? "plus" : intent.plan, source: intent.source }) : null);
     if (closed || restoring || clearing || grant || issued || cleanupNeeded) throw new Error("Sign out before starting another Cloud connection.");
     const stamp = reset();
     opened = intent ? { plan: intent.plan, source: intent.source, startedAt: now(), signIn: true } : null;
@@ -474,7 +477,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       if (result.cloudContractVersion !== 1 || !PRIVATE_CODE.test(result.deviceCode) || !CODE.test(result.userCode) ||
         !desktopApprovalLink(result.verificationUriComplete, origin, result.userCode) || !Number.isSafeInteger(result.expiresIn) || result.expiresIn < 1 || result.expiresIn > MAX_ENROLL_SECONDS ||
         !Number.isSafeInteger(result.interval) || result.interval < 5 || result.interval > 60) throw new Error("Invalid Cloud authorization.");
-      const next = intent ? `&${new URLSearchParams({ next: "checkout", plan: intent.plan, src: intent.source })}` : "";
+      const next = "";
       pending = { deviceCode: result.deviceCode, verificationUri: ["google", "apple", "x"].includes(provider) ? `${origin}/v1/auth/oauth/${provider}/start?next=${encodeURIComponent(`/cloud/desktop?code=${result.userCode}`)}` : `${result.verificationUriComplete}${next}`, expiresAt: now() + result.expiresIn * 1000, interval: result.interval * 1000 };
       publish({ status: "connecting", enrollment: { userCode: result.userCode, expiresAt: pending.expiresAt } });
       await openBrowser(pending.verificationUri);

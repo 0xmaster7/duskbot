@@ -76,7 +76,7 @@ await runFlow(flow, async () => {
 
   await flow.step("server-page", "opens the server's own page", async () => {
     await flow.waitText(/is connected/i, "the connected screen", { timeout: 60_000 });
-    await flow.click("open", { contains: true });
+    await until(() => flow.evaluate(`(() => { const b = [...document.querySelectorAll("[role=dialog] button, button")].filter((e) => e.getClientRects().length).find((e) => /^open \\S/i.test(e.innerText.trim())); if (!b) return false; b.click(); return true; })()`), { what: "open <server>" });
     const url = await until(async () => { const page = (await flow.app.targets()).find((t) => t.type === "page" && t.url.startsWith("https:") && !/\/rail/.test(t.url)); return page?.url; }, { timeout: 60_000, what: "the server's page" });
     serverOrigin = new URL(url).origin;
     await flow.app.reattach(serverOrigin);

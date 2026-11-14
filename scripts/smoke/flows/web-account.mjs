@@ -74,6 +74,10 @@ export async function webAccountStep(url, { email, pay = false, log = () => {}, 
     const allSet = await until(() => browser.evaluate(`Boolean(document.querySelector("[data-all-set]"))`), { timeout: 90_000, what: "you're all set" }).catch(() => false);
     await snap("web-all-set");
     return { landed, checkoutUrl, paidAt: paid.url, allSet: Boolean(allSet), steps };
+  } catch (error) {
+    await snap("web-failed");
+    const at = await browser.url().catch(() => "?"), text = (await browser.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 200);
+    throw new Error(`${error.message} (at ${at}: ${text})`);
   } finally {
     await browser.close();
   }
