@@ -66,13 +66,15 @@ export function anchoredMenuPosition(anchor: Box, menu: Size, viewport: Size, rt
   return { left, top: Math.min(Math.max(top, EDGE_MARGIN), maxTop) };
 }
 
-/** Grok's submenu: tucked 10px over its menu's edge, its top on the row's. */
+/** A submenu: 4px clear of its menu's edge, its top on the row's; it opens on the other side when the window has no room,
+ * and on the roomier side when neither fits, so it never covers the menu it came from. */
 export function submenuPosition(menu: Box, row: Box, submenu: Size, viewport: Size, rtl = false): { left: number; top: number } {
-  const gap = -10;
+  const gap = 4;
   const after = rtl ? menu.left - gap - submenu.width : menu.right + gap;
   const before = rtl ? menu.right + gap : menu.left - gap - submenu.width;
   const fits = (left: number) => left >= EDGE_MARGIN && left + submenu.width <= viewport.width - EDGE_MARGIN;
-  const preferred = fits(after) ? after : fits(before) ? before : after;
+  const roomier = viewport.width - menu.right >= menu.left ? menu.right + gap : menu.left - gap - submenu.width;
+  const preferred = fits(after) ? after : fits(before) ? before : roomier;
   const maxLeft = Math.max(EDGE_MARGIN, viewport.width - submenu.width - EDGE_MARGIN);
   const maxTop = Math.max(EDGE_MARGIN, viewport.height - submenu.height - EDGE_MARGIN);
   return {
