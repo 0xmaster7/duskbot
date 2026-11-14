@@ -1,0 +1,42 @@
+/* the README images: the landing's own css (site.css, home.css) plus this file. each page draws one #shot.
+   light matches github's white page, dark matches github's dark page, so every image sits flush in both. */
+html, body { background: transparent !important; }
+body { display: block; min-height: 0; }
+#shot { width: 100vw; padding: 28px 24px 32px; background: var(--bg); }
+#shot.tight { padding-top: 8px; padding-bottom: 8px; }
+.home { --gap: 0px; }
+.go, .tape-pause, .split-more, .dl-menu { display: none !important; }
+
+/* github dark: the same system, lit for a dark page */
+html.dark {
+  color-scheme: dark;
+  --bg: #0d1117; --wash: #161b22; --line: #262c36; --ink: #f0f0f2; --ink-2: #c7c9d1; --ink-3: #9198a1;
+  --surf: #1f252e;
+}
+html.dark .home { --text: #b7bcc6; --t-sky: #13283a; --t-lime: #1f2a12; --t-pink: #33192a; --t-lemon: #2f2a12; --lilac: #4b3f86; }
+html.dark :is(.fig, .win, .team-card, .chip-btn, .tag.avail b) { background: var(--surf) !important; box-shadow: none !important; }
+html.dark .win-bar { background: #262d37; }
+html.dark .btn.dark { background: #f0f0f2; color: #0d1117; }
+html.dark .btn.dark .os { color: #0d1117; }
+html.dark .btn.cloud-cta { background: var(--wash); color: var(--ink); }
+html.dark .step-copy p { color: var(--text); }
+html.dark .hero .m { color: var(--ink); background: color-mix(in oklab, var(--wash) 80%, var(--t)); }
+html.dark svg.bot .px-e { fill: #fff; }
+
+/* readme-only pieces, built from the landing's tokens */
+.r-title { font-size: 48px; line-height: 1.03; letter-spacing: -0.045em; font-weight: 500; margin: 0; color: var(--ink); text-wrap: balance; }
+.r-sub { font-size: 18px; line-height: 1.5; letter-spacing: -0.012em; color: var(--text, var(--ink-2)); margin: 14px 0 0; max-width: 34em; }
+.r-grid { display: grid; gap: 16px; margin-top: 30px; }
+.r-card { padding: 26px; border-radius: 28px; background: var(--wash); min-width: 0; }
+.r-card h3 { font-size: 21px; line-height: 1.2; letter-spacing: -0.03em; font-weight: 550; margin: 0 0 6px; }
+.r-card > p { margin: 0; font-size: 15.5px; line-height: 1.5; color: var(--text, var(--ink-2)); }
+.r-fig { margin-top: 18px; padding: 14px 16px; border-radius: 20px; background: #fff; font-size: 14.5px; }
+html.dark .r-fig { background: var(--surf); }
+.r-mono { font: 500 12.5px/1.5 var(--mono); letter-spacing: -0.01em; color: var(--ink-3); }
+.r-n { display: block; font: 600 44px/0.9 var(--pixel); margin-bottom: 14px; }
+.r-pill { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; border-radius: 999px; background: var(--wash); font-size: 14px; font-weight: 500; white-space: nowrap; }
+.r-pill i { width: 7px; height: 7px; border-radius: 2px; background: var(--green); }
+.r-soon { font: 500 12px/1 var(--pixel); letter-spacing: 0.04em; text-transform: uppercase; padding: 7px 10px; border-radius: 999px; background: var(--wash); color: var(--ink-2); }
+html.dark .r-soon { background: var(--surf); }
+
+#shot.pad { padding-left: 48px; padding-right: 48px; }

@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="/site.css"><link rel="stylesheet" href="/home.css"><link rel="stylesheet" href="/readme/readme.css"></head>
+<body><main class="home"><div id="shot"></div></main>
+<script type="module">
+import { take, done } from "/readme/landing.js";
+const section = await take(new URLSearchParams(location.search).get("s"));
+document.querySelector("#shot").append(section);
+await done();
+</script></body></html>

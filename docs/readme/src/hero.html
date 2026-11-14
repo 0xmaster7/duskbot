@@ -1,0 +1,14 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="/site.css"><link rel="stylesheet" href="/home.css"><link rel="stylesheet" href="/readme/readme.css"></head>
+<body><main class="home"><div id="shot" class="tight"></div></main>
+<script type="module">
+import { take, done } from "/readme/landing.js";
+const stage = await take(".hero-stage");
+stage.style.margin = "0"; stage.style.padding = "0";
+// the real app, from a demo workspace with sample bots, in place of the landing's live demo
+const img = Object.assign(document.createElement("img"), { src: document.documentElement.classList.contains("dark") ? "/readme/assets/app-desktop-dark.webp" : "/readme/assets/app-desktop.webp", alt: "" });
+img.style.cssText = "display:block;width:100%;height:auto";
+stage.querySelector(".win-body").replaceChildren(img);
+stage.querySelector(".win-note").textContent = "juniper lane, a demo shop";
+document.querySelector("#shot").append(stage);
+await done();
+</script></body></html>
