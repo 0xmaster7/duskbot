@@ -55,7 +55,8 @@ export function MakingView({ making, opening, openFailed, onOpen }: { making: Ma
       title={ready ? t("funnel.making.readyTitle") : t("funnel.making.title")}
       sub={ready ? t("funnel.making.readySub") : making.kind === "failed" ? t("funnel.making.failed") : t("funnel.making.sub")}
       footer={ready ? (
-        <button type="button" data-primary="" data-funnel-open-cloud="" disabled={opening} onClick={onOpen} className={PRIMARY}>{t("funnel.making.open")}</button>
+        // ready is ready: the button stays live while the chat opens by itself (a second press waits on the same open)
+        <button type="button" data-primary="" data-funnel-open-cloud="" aria-busy={opening || undefined} onClick={onOpen} className={PRIMARY}>{t("funnel.making.open")}</button>
       ) : undefined}
     >
       <div data-funnel-making={making.kind} className="flex w-full max-w-[360px] flex-col gap-3 text-start">
