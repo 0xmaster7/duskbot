@@ -44,7 +44,8 @@ export function createSweep(options: { dataDir: string; file: string; provider: 
       }
       let orphan = store.state.orphans.find(o => o.serverId === s.id);
       if (!orphan) { orphan = { serverId: s.id, cloudId: s.cloudId, firstSeenAt: now(), deletion: null }; store.state.orphans.push(orphan); store.commit(); }
-      if (orphan.deletion) continue;
+      // a delete asked for that has not taken after half an hour is asked again: the machine is still in the inventory
+      if (orphan.deletion && now() - orphan.deletion.at < 30 * 60_000) continue;
       if (cloud?.status === "destroyed" && cloud.managed?.deletedAt != null) {
         const answer = await provider.requestDelete(s.id);
         orphan.deletion = { operationId: answer.operationId, at: now() }; store.commit();
@@ -56,5 +57,11 @@ export function createSweep(options: { dataDir: string; file: string; provider: 
       }
     }
   }
-  return { sweep, state: () => store.state, close: () => store.close() };
+  /** the next pass runs `inMs` from now instead of on its usual turn (a deleted account: a machine whose create was still
+   *  in flight when its cloud was deleted has no server id on the record, and is found here) */
+  function soon(inMs = 60_000) {
+    const at = now() + inMs - (options.everyMs ?? 30 * 60_000);
+    if (at < store.state.lastSweepAt) { store.state.lastSweepAt = at; store.commit(); }
+  }
+  return { sweep, soon, state: () => store.state, close: () => store.close() };
 }

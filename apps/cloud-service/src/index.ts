@@ -187,7 +187,7 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
         confirmDelete: (c, token) => lifecycle.confirmDelete(c, token),
         cancelDelete: c => lifecycle.cancelDelete(c),
         operatorDelete: (c, reason) => lifecycle.operatorDelete(c, reason),
-        accountDeleted: (c) => lifecycle.accountDeleted(c),
+        accountDeleted: (c) => { lifecycle.accountDeleted(c); sweep.soon(); },
         resizeNow: c => lifecycle.resizeNow(c),
         noteView: c => lifecycle.noteView(c),
         resizing: c => lifecycle.resizing(c),

@@ -439,6 +439,17 @@ it("a deleted account's home is deleted at once, paid period or not, and only on
   expect(f.service.destroyForDeletedAccount(c.id)).toBe(false);
 });
 
+it("a machine whose create was still in flight when the account was deleted is found and deleted within minutes", async () => {
+  const f = await homeFixture();
+  const { c } = await f.paid();
+  const late = await f.provider.create({ cloudId: c.id, spec: plan.spec, region: "eu", userData: "", ttlSeconds: 3600, attempt: 9 });
+  f.service.destroyForDeletedAccount(c.id);
+  await f.settle(c, c => c.status === "destroyed");
+  for (let n = 0; n < 4 && f.api.machines.has(late.id); n++) { f.advance(61_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
+  expect(f.api.deletes().length).toBeGreaterThanOrEqual(2);
+  expect(f.audit.entries().some(e => e.action === "delete_requested" && e.reason === "orphan_of_deleted_cloud" && e.serverId === late.id)).toBe(true);
+});
+
 it("tells a busy home's open apps it is going to sleep on the owner's pause, then stops it after the grace", async () => {
   const f = await homeFixture();
   const { c } = await f.paid();
