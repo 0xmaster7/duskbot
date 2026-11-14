@@ -5,7 +5,7 @@ import type { SearchHit } from "../../../shared/model-search";
 import { useStore } from "@/state/store";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
-import { fetchProviders, placeLine, useModelSearch, type ProviderInfo, type ProvidersAnswer } from "@/lib/model-providers";
+import { cachedProviders, loadProviders, placeLine, useModelSearch, type ProviderInfo, type ProvidersAnswer } from "@/lib/model-providers";
 import { Card, ItemRow, NavRow } from "../ListRows";
 import { ConnectProviderDialog } from "./ConnectProviderDialog";
 import { ModelBadges } from "./ModelBadges";
@@ -28,7 +28,7 @@ export function providerStatus(provider: ProviderInfo): { text: string; tone?: "
  * bots run. */
 export function ModelDirectory() {
   const { state } = useStore();
-  const [answer, setAnswer] = useState<ProvidersAnswer | null>(null);
+  const [answer, setAnswer] = useState<ProvidersAnswer | null>(cachedProviders);
   const [failed, setFailed] = useState(false);
   const [query, setQuery] = useState("");
   const [showMore, setShowMore] = useState(false);
@@ -37,7 +37,7 @@ export function ModelDirectory() {
 
   useEffect(() => {
     let live = true;
-    fetchProviders().then((next) => { if (live) setAnswer(next); }, () => { if (live) setFailed(true); });
+    loadProviders().then((next) => { if (live) setAnswer(next); }, () => { if (live) setFailed(true); });
     return () => { live = false; };
   }, [state.instances]);
 

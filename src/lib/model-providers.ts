@@ -26,6 +26,23 @@ export type ProviderFields = Partial<Record<ProviderFieldId, string>>;
 
 export const fetchProviders = () => api<ProvidersAnswer>("/api/model-providers");
 
+// the last answer, shown at once the next time the directory opens while a fresh one loads behind it
+let lastProviders: ProvidersAnswer | null = null;
+let loadingProviders: Promise<ProvidersAnswer> | null = null;
+
+export const cachedProviders = () => lastProviders;
+
+/** One request at a time, kept for the next open. */
+export function loadProviders(): Promise<ProvidersAnswer> {
+  loadingProviders ??= fetchProviders().then((answer) => { lastProviders = answer; return answer; }).finally(() => { loadingProviders = null; });
+  return loadingProviders;
+}
+
+/** Starts loading the directory before it is opened, so "More providers" has its list ready. */
+export function prefetchProviders(): void {
+  if (!lastProviders) loadProviders().catch(() => undefined);
+}
+
 export const searchEverywhere = (query: string, signal?: AbortSignal) =>
   api<{ hits: SearchHit[] }>(`/api/model-providers/search?q=${encodeURIComponent(query)}`, { signal });
 

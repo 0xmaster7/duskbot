@@ -5,6 +5,7 @@ import { ArrowLeft, Check, LoaderCircle, RefreshCw, X } from "../../icons";
 import { engineReady } from "@/components/EngineLibrary";
 import { ModelDirectory } from "@/components/models/ModelDirectory";
 import { t } from "@/lib/i18n";
+import { prefetchProviders } from "@/lib/model-providers";
 import { aiWorks, organisationSignIn } from "@/lib/onboarding";
 import { api, useStore } from "@/state/store";
 import { freeFallback } from "../../../shared/ai-ranking";
@@ -23,6 +24,9 @@ export function ConnectAi({ tested, onMore, start, onConnected }: { tested: Welc
   const [failed, setFailed] = useState(false);
   const [checking, setChecking] = useState(false);
   const latestRequest = useRef(0);
+  // the directory behind "More providers" loads now, so it opens on its list
+  const offersMore = Boolean(onMore);
+  useEffect(() => { if (offersMore) prefetchProviders(); }, [offersMore]);
 
   const refresh = useCallback(async (fresh = true) => {
     const request = ++latestRequest.current;
@@ -121,12 +125,17 @@ export function ConnectAi({ tested, onMore, start, onConnected }: { tested: Welc
 export function ConnectAiDialog({ tested, directory = false, onClose, start, onConnected }: { tested: WelcomeAiNow | null; directory?: boolean;
   onClose: () => void; start?: AiTileId; onConnected?: (tile: AiTileId) => void }) {
   const [more, setMore] = useState(directory);
+  const box = useRef<HTMLDivElement>(null);
+  // focus starts on the sheet itself, so Close does not open with its tooltip already showing
+  useEffect(() => { box.current?.focus({ preventScroll: true }); }, []);
   return (
     <ModalLayer><div
       className="ui-scrim fixed inset-0 z-[60] flex items-center justify-center p-4"
       onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
     >
       <div
+        ref={box}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="connect-ai-title"
@@ -137,7 +146,7 @@ export function ConnectAiDialog({ tested, directory = false, onClose, start, onC
           event.stopPropagation();
           onClose();
         }}
-        className="ui-modal flex max-h-[min(680px,calc(100vh-32px))] w-[520px] max-w-full flex-col overflow-hidden text-left"
+        className="ui-modal flex max-h-[min(680px,calc(100vh-32px))] w-[520px] max-w-full flex-col overflow-hidden text-left outline-none"
       >
         <div className="flex h-[52px] shrink-0 items-center gap-1 pl-4 pr-3">
           {more && (
@@ -149,12 +158,11 @@ export function ConnectAiDialog({ tested, directory = false, onClose, start, onC
           <h2 id="connect-ai-title" className="min-w-0 flex-1 truncate text-[14px] font-semibold leading-[22px] text-ink">
             {more ? t("connectAi.more") : t("onboarding.meet.connectAi")}
           </h2>
-          <button type="button" autoFocus onClick={onClose} aria-label={t("common.close")} title={t("common.close")}
+          <button type="button" onClick={onClose} aria-label={t("common.close")} title={t("common.close")}
             className="ui-icon-button">
             <X size={16} />
           </button>
         </div>
-        <div className="ui-modal-divider shrink-0" />
         <div data-art-hover="" className="min-h-0 overflow-y-auto p-4 [scrollbar-width:thin]">
           {more
             ? <div data-connect-ai-directory=""><ModelDirectory /></div>
