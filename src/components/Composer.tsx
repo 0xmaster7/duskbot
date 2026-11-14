@@ -114,6 +114,8 @@ interface ComposerDraftSnapshot extends ComposerSendSnapshot {
 }
 
 type SlotGlyph = "waveform" | "mic" | "arrow-up" | "stop";
+/** A send the server never answers lets go of the grayed Send after this long. */
+export const SEND_HOLD_MAX_MS = 15_000;
 
 function SlotGlyphGhost({ glyph, ink }: { glyph: SlotGlyph; ink: string }) {
   return (
@@ -563,6 +565,16 @@ export function Composer({
 
   const pickers = useComposerFilePickers((files) => void pickFiles(files));
   const hasContent = Boolean(effectiveText.trim()) || attachments.length > 0;
+  // a sent message keeps Send, grayed, until the server has it; then the arrow crossfades to the mic (or Stop)
+  const [sendHeld, setSendHeld] = useState<string | null>(null);
+  useEffect(() => {
+    if (!sendHeld) return;
+    const timer = setTimeout(() => setSendHeld((held) => (held === sendHeld ? null : held)), SEND_HOLD_MAX_MS);
+    return () => clearTimeout(timer);
+  }, [sendHeld]);
+  useEffect(() => { setSendHeld(null); }, [threadId, bot?.id, group?.id]);
+  const held = Boolean(sendHeld) && !hasContent && !locked;
+  const filled = hasContent || held;
   const onCall = useOnCall();
   const media = useLiveMedia();
   const callTarget = group ? undefined : bot?.id;
@@ -572,14 +584,14 @@ export function Composer({
   const stoppable = (busy || Boolean(!group && bot?.waitingForTeammates)) && !stopPressed;
   const live = liveCallEnabled();
   // Simple mode's round button is the mic (the call when live calls are on), Send while there is text, and Stop while the bot works.
-  const stopInSlot = simpleDock && stoppable && !locked && !hasContent && !calling;
+  const stopInSlot = simpleDock && stoppable && !locked && !filled && !calling;
   // a phone shows one round button at the end of the pill: stop while it works, send once there is text, else the mic
-  const callShown = !hasContent && (singleRow ? !(busy && !stopPressed) : !stopInSlot);
+  const callShown = !filled && (singleRow ? !(busy && !stopPressed) : !stopInSlot);
   // with live calls off the mic takes the call's place: the one round button at rest
   const micInSlot = !live && callShown && !locked && !recording;
   // the round button's glyph pops in only when it swaps here (call, send, stop); a fresh composer, as on a chat
   // switch, shows it at rest like grok's
-  const glyphShape = `${hasContent}|${stopInSlot}|${callShown}`;
+  const glyphShape = `${filled}|${held}|${stopInSlot}|${callShown}`;
   const slotColor = bot?.color; const room = Boolean(group);
   const slot = useMemo(() => slotColors(slotColor, room), [slotColor, room]);
   // A one-to-one bot at work: Enter does the chosen follow-up and Ctrl/⌘ with it the other one. Rooms keep their own queue.
@@ -589,17 +601,23 @@ export function Composer({
   // grok's round button keeps one glyph stack and crossfades it; ours swaps the button, so the glyph it showed fades
   // out over the new one's
   const slotGlyph: SlotGlyph | null = !simpleDock || calling || locked ? null
+    : held ? "arrow-up"
     : hasContent ? (busy && !steersNow ? null : "arrow-up")
     : stopInSlot ? "stop"
     : callShown ? (live ? (bot && !group ? "waveform" : null) : "mic") : null;
-  const [glyphs, setGlyphs] = useState({ shape: glyphShape, swapped: false, glyph: slotGlyph, from: null as SlotGlyph | null, swaps: 0 });
+  const [glyphs, setGlyphs] = useState({ shape: glyphShape, swapped: false, glyph: slotGlyph, from: null as SlotGlyph | null, swaps: 0, held });
   // the mic is its own button that only changes colour beside Send, so a swap to or from it lands at once: no pop, no
   // fading ghost of it over Send
   // ...except after Stop: the square fades out over the mic coming back, as Send's arrow does
-  if (glyphs.shape !== glyphShape) setGlyphs({ shape: glyphShape, swapped: (slotGlyph !== "mic" && glyphs.glyph !== "mic") || glyphs.glyph === "stop", glyph: slotGlyph, from: glyphs.glyph, swaps: glyphs.swaps + 1 });
+  // ...and after a held send lets go, the arrow fades out over whatever comes back; the press itself changes no glyph
+  if (glyphs.shape !== glyphShape) {
+    setGlyphs(slotGlyph === glyphs.glyph
+      ? { ...glyphs, shape: glyphShape, held }
+      : { shape: glyphShape, swapped: (slotGlyph !== "mic" && glyphs.glyph !== "mic") || glyphs.glyph === "stop" || glyphs.held, glyph: slotGlyph, from: glyphs.glyph, swaps: glyphs.swaps + 1, held });
+  }
   // the mic at the end of the bar and the small one beside Send are two buttons, so neither slides across when the field
   // fills or empties (only Send or the reserved spot takes a place); focus on the old one carries to the new
-  const micPlace = hasContent ? "beside" : "end";
+  const micPlace = filled ? "beside" : "end";
   const micFocused = useRef(false);
   useLayoutEffect(() => {
     if (micFocused.current && document.activeElement !== micButtonRef.current) micButtonRef.current?.focus({ preventScroll: true });
@@ -667,6 +685,9 @@ export function Composer({
       threadId,
       channelMode: effectiveChannelMode, mentions: picks.ids(body),
     };
+    const sendId = sentDraft.sendId;
+    const onSettled = () => setSendHeld((current) => (current === sendId ? null : current));
+    setSendHeld(sendId);
     if (group) {
       dispatch({
         type: "sendGroup",
@@ -676,7 +697,7 @@ export function Composer({
         replyToId: replyTo?.id,
         threadId,
         mode: effectiveChannelMode, mentions: sentDraft.mentions,
-        onError: () => restoreDraft(sentDraft),
+        onError: () => restoreDraft(sentDraft), onSettled,
       });
       roomMessageSent(effectiveChannelMode, busy);
     } else if (bot) {
@@ -684,7 +705,7 @@ export function Composer({
       dispatch({
         type: "send", botId: bot.id, text: body, sendId: sentDraft.sendId, replyToId: replyTo?.id, threadId, mode: effectiveChannelMode, mentions: sentDraft.mentions,
         ...(points ? { pointed: points.pointed } : {}), ...(followUp ? { followUp } : {}),
-        onError: () => { points?.restore(); restoreDraft(sentDraft); },
+        onError: () => { points?.restore(); restoreDraft(sentDraft); }, onSettled,
       });
       directMessageSent(state.instances, bot.modelSelection?.instanceId, busy && followUp !== "steer");
     }
@@ -1158,10 +1179,10 @@ export function Composer({
           </button>
         )}
         {live && callShown && bot && !group && <CallButton bot={bot} placement="composer" fill={singleRow ? undefined : slot.fill} ink={slot.ink} inverse={singleRow} />}
-        {hasContent && !locked && (
-          <ComposerSendButton compact={simpleDock} waits={busy && !steersNow} label={sendNames.label} title={sendNames.title} look={slot.button}
-            disabled={attachmentPending || unsentUpload} onSend={(alternate) => send(followUpFor(alternate))} onChoose={send}
-            menu={followUpFor(false) && { choices: followUpChoices(followUpDefault, canSteer), name: busyName, sendKey: sendLabel, alternateKey: alternateSendLabel(sendKey) }} />
+        {filled && !locked && (
+          <ComposerSendButton compact={simpleDock} waits={!held && busy && !steersNow} label={sendNames.label} title={sendNames.title} look={slot.button}
+            disabled={held || attachmentPending || unsentUpload} onSend={(alternate) => send(followUpFor(alternate))} onChoose={send}
+            menu={held ? undefined : followUpFor(false) && { choices: followUpChoices(followUpDefault, canSteer), name: busyName, sendKey: sendLabel, alternateKey: alternateSendLabel(sendKey) }} />
           )}
           {ghostGlyph && <SlotGlyphGhost key={glyphs.swaps} glyph={ghostGlyph} ink={slot.ink} />}
           </div>

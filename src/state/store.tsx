@@ -696,6 +696,8 @@ export type Action =
       threadId?: string;
       mode?: "chat" | "goal"; mentions?: string[];
       onError?: () => void;
+      /** The server answered the send, or it failed: the composer lets go of its Send button. */
+      onSettled?: () => void;
     }
   | {
       type: "patchGroup";
@@ -728,6 +730,8 @@ export type Action =
       threadId?: string;
       dataContext?: import("../../shared/data-context").DataContext; pointed?: import("../../shared/app-frame/point").PointedElement[]; mode?: "chat" | "goal";
       followUp?: import("../../shared/follow-up").FollowUp; mentions?: string[]; onError?: () => void;
+      /** The server answered the send, or it failed: the composer lets go of its Send button. */
+      onSettled?: () => void;
     }
   | { type: "pendingQueued"; threadId: string; queueId: string; text: string; reason?: SteerQueueReason }
   | { type: "consumePendingQueued"; threadId: string; queueId: string }
@@ -2477,8 +2481,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               outbox?.release(sendId);
               if (threadId) followSendReceipt(sent, threadId, sendId);
               applySendReceipt(sent, sendId, action.text, rawDispatch);
+              action.onSettled?.();
             })
             .catch((error) => {
+              action.onSettled?.();
               if (threadId) dropSentTurn(threadId, sendId);
               if (outbox && (!(error instanceof ApiError) || sendAnswerLost(error)) && outbox.keep(sendId)) return;
               outbox?.release(sendId);
@@ -2716,8 +2722,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 mode: action.mode ?? "chat", ...(action.mentions?.length ? { mentions: action.mentions } : {}),
               }),
             }), arrived, undefined, threadId ? { threadId, sendId, text: action.text, replyToId: action.replyToId, channelMode: action.mode } : undefined))
-            .then((sent) => { outbox?.release(sendId); applySendReceipt(sent, sendId, action.text, rawDispatch); })
+            .then((sent) => { outbox?.release(sendId); applySendReceipt(sent, sendId, action.text, rawDispatch); action.onSettled?.(); })
             .catch((error) => {
+              action.onSettled?.();
               if (outbox && (!(error instanceof ApiError) || sendAnswerLost(error)) && outbox.keep(sendId)) return;
               outbox?.release(sendId);
               if (threadId) {

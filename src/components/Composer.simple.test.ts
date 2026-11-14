@@ -36,7 +36,7 @@ vi.mock("./CallView", () => ({ CallButton: (props: Record<string, unknown>) => {
   return null;
 } }));
 
-import { Composer } from "./Composer";
+import { Composer, SEND_HOLD_MAX_MS } from "./Composer";
 
 // these cover live calls, which ship behind a switch that is off
 vi.stubEnv("VITE_DUSK_LIVE_CALL", "1");
@@ -206,7 +206,7 @@ describe("the Simple composer in a bot chat", () => {
     expectBotButton(sendButton(), "yellow");
   });
 
-  it("hands focus back to the field after a click on Send, and fades the arrow out over the call glyph", () => {
+  it("hands focus back to the field after a click on Send, holds Send grayed until the server has it, then fades the arrow out over the call glyph", () => {
     const frames: FrameRequestCallback[] = [];
     vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => frames.push(callback));
     restoreComposerDraft(`bot:${bot.id}:${bot.threadId}`, { text: "hello", attachments: [] });
@@ -217,9 +217,32 @@ describe("the Simple composer in a bot chat", () => {
     flushSync(() => frames.splice(0).forEach((frame) => frame(0)));
     expect(container.querySelector("textarea")!.value).toBe("");
     expect(document.activeElement).toBe(container.querySelector("textarea"));
+    // the same button stays, disabled (the bot button's gray), with no glyph change and no follow-up menu
+    expect(sendButton()).toBe(send);
+    expect(send.disabled).toBe(true);
+    expect(container.querySelector("[data-composer-glyph-ghost]")).toBeNull();
+    expect(container.querySelector("[data-composer-row]")!.hasAttribute("data-glyph-swap")).toBe(false);
+    const sent = fixture.dispatch.mock.calls.map(([action]) => action).find((action) => action.type === "send")!;
+    expect(sent).toMatchObject({ text: "hello", onSettled: expect.any(Function) });
+    flushSync(() => sent.onSettled());
+    expect(sendButton()).toBeNull();
     const ghost = container.querySelector("[data-composer-glyph-ghost]")!;
     expect(ghost.getAttribute("aria-hidden")).toBe("true");
     expect(ghost.querySelector(".composer-glyph-out")).not.toBeNull();
+  });
+
+  it("lets go of a held Send when the send fails, and on its own after a send the server never answers", () => {
+    vi.useFakeTimers();
+    try {
+      restoreComposerDraft(`bot:${bot.id}:${bot.threadId}`, { text: "hello", attachments: [] });
+      render({ bot });
+      click(sendButton());
+      expect(sendButton()!.disabled).toBe(true);
+      flushSync(() => { vi.advanceTimersByTime(SEND_HOLD_MAX_MS); });
+      expect(sendButton()).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("turns its round button into Stop while the bot works, and keeps a quiet Stop beside Send while you type", () => {
