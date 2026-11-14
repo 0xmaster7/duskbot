@@ -1131,6 +1131,7 @@ export function createVpsLink(deps) {
     try {
       const backup = await backupNow("before-move");
       moveTo("copy", "running", { backupId: backup.id });
+      await carryWelcome(link);
       await ownHome.start(link.envId);
     } catch (error) {
       moveTo(state.move.step, "failed", { error: plain(error, "The move could not start. Nothing on this Mac changed.") });
@@ -1138,6 +1139,16 @@ export function createVpsLink(deps) {
     }
     watchMove();
     return view();
+  }
+
+  /** the person met dusk bot on this Mac: the server keeps that, so it never opens on the welcome a second time */
+  async function carryWelcome(link) {
+    try {
+      const mine = (await local("GET", "/api/config"))?.onboarding;
+      if (!mine?.completedAt) return;
+      if ((await serverCall(link, "GET", "/api/config"))?.onboarding?.completedAt) return;
+      await serverCall(link, "PUT", "/api/config", { onboarding: { completedAt: mine.completedAt, version: mine.version, ...(Array.isArray(mine.hintsSeen) ? { hintsSeen: mine.hintsSeen } : {}) } });
+    } catch (error) { log(`vps link: the server may show the welcome again (${error?.message ?? error})`); }
   }
 
   /** the own-home move does the copy, the check and the switch; this follows it and empties this mac only at the end */

@@ -2004,7 +2004,10 @@ finale() {
   printf '\n  %s%s %sYour dusk bot is ready%s  %s%s %s%s\n' "$OK" "$_ok" "$BOLD" "$R" "$DIM" "$G" "$total" "$R"
   printf '    %s%s%s\n\n' "$DIM" "$where" "$R"
   if [ "${DUSK_VERBOSE:-}" = 1 ]; then printf '%s\n' "$table" | sed 's/^/    /'; printf '\n'; fi
-  printf '  %s%sYour bots now live here, go back to the app.%s\n' "$ACC" "$BOLD" "$R"
+  if [ -z "$DEMO" ] && ! box_works >/dev/null 2>&1; then
+    printf '  %sBots can'"'"'t answer here yet: this server does not let bubblewrap make the bot box'"'"'s user namespace.%s\n' "$WARN" "$R"
+  fi
+  printf '  %s%sNow go back to the app to move your bots here.%s\n' "$ACC" "$BOLD" "$R"
   printf '  %sTo take it off later: dusk.bot/docs/your-own-server#removing-it%s\n\n' "$DIM" "$R"
 }
 

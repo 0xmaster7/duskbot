@@ -80,6 +80,7 @@ beforeAll(async () => {
       if (req.url === "/api/auth/pair") return JSON.parse(body).code === "RR8Y-BLR6-H939" ? reply(200, { session: {}, environment: { environmentId: "6f1c2d3e-0000-4000-8000-000000000001" } }, { "set-cookie": "dusk_session=good; HttpOnly; Path=/" }) : reply(401, { error: "bad code" });
       if (req.url === "/api/auth/session") return reply(200, signedIn ? { kind: "session" } : { kind: "none" });
       if (!signedIn) return reply(403, { error: "pair this device" });
+      if (req.url === "/api/config") return reply(200, { onboarding: req.method === "PUT" ? JSON.parse(body).onboarding : { completedAt: "", version: 0 } });
       if (req.url === "/api/instances?fresh=1") return reply(200, { instances: [
         { instanceId: "claude", driverKind: "claudeAgent", snapshot: { authenticated: false } },
         { instanceId: "codex", driverKind: "codex", snapshot: { authenticated: false } },
@@ -112,6 +113,7 @@ function localServer({ exportFails = false } = {}) {
     if (route === "/api/workspace-backup/export") return exportFails ? json(409, { error: "A backup is already running." }) : json(200, { id: "11111111-2222-4333-8444-555555555555", bytes: backupBytes.length, summary: { bots: 2, threads: 3, messages: 40 } });
     if (route.startsWith("/api/workspace-backup/download/")) return new Response(backupBytes, { status: 200 });
     if (route === "/api/move/forget") return json(200, { forgot: true });
+    if (route === "/api/config") return json(200, { onboarding: { completedAt: "2026-11-14T06:00:00.000Z", version: 1, hintsSeen: ["met-chief-v1"] } });
     return json(404, { error: "not here" });
   };
   return { calls, localRequest };
@@ -255,6 +257,9 @@ describe("Add your VPS", () => {
     const moved = await until(() => link.view().stage === "moved" && link.view());
     expect(moved.move).toMatchObject({ step: "done", status: "done" });
     expect(local.calls.filter((call) => call === "POST /api/move/forget")).toHaveLength(1);
+    // the person met dusk bot on this mac: the server does not open on the welcome again
+    expect(vpsSeen.filter((seen) => seen.url === "/api/config" && seen.method === "PUT").map((seen) => JSON.parse(seen.body)))
+      .toEqual([{ onboarding: { completedAt: "2026-11-14T06:00:00.000Z", version: 1, hintsSeen: ["met-chief-v1"] } }]);
 
     await link.forget();
     expect(saved.at(-1)).toEqual({ forgot: "env-1" });
