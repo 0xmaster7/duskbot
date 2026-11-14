@@ -20,7 +20,6 @@ import { CHECKOUT_SOON } from "./cloud-offer";
 import { track } from "../lib/analytics";
 import { per, planSelection, type PaidPlan } from "./plan-sheet";
 import { fromApp } from "../lib/from-app";
-import { APP_LINK, tryAppLink } from "./DeviceApproval";
 
 const STEPS = ["name", "plan", "app"] as const;
 type Step = (typeof STEPS)[number];
@@ -218,8 +217,8 @@ export function Onboarding() {
         <div key="app" className="step-in">
           {bought && <p className="tag mb-4 !bg-lime !text-ink" role="status"><span className="live-dot text-good" data-live />your dusk cloud is being set up</p>}
           <h1 className="t-title">you're all set.</h1>
-          <p className="mt-3 text-16 text-ink-2">head back to dusk bot. it's signed in already.</p>
-          <Button variant="primary" className={cx("mt-6", big)} onClick={() => { tryAppLink(APP_LINK); void finish(); }} disabled={busy} data-back-to-app="">back to dusk bot</Button>
+          <p className="mt-3 text-16 text-ink-2">dusk bot is signed in already, make your first bot there.</p>
+          <Button variant="primary" className={cx("mt-6", big)} onClick={() => void finish()} disabled={busy}>{busy ? <Busy>opening</Busy> : "go to my dashboard"}</Button>
           {!bought && <div className="mt-1">{back("plan")}</div>}
         </div>
       ) : (

@@ -70,10 +70,12 @@ export function DeviceApprovalPage() {
           if (cloud.account && !cloud.account.profile.onboarded) await cloud.finishOnboarding().catch(() => {});
           navigate(found.next, { replace: true }); return;
         }
-        // a new account: the app is signed in already; the website goes on with its usual first steps (name, plan), minus
-        // getting the app, which they are in
-        if (found.created && cloud.account && !cloud.account.profile.onboarded) { try { sessionStorage.setItem(FROM_APP_KEY, "1"); } catch {} navigate("/", { replace: true }); return; }
-        setState("approved"); tryAppLink(APP_LINK);
+        // the app notices the sign-in on its own (it polls), so no app link here. a new account goes on with the usual first
+        // steps (name, plan) minus getting the app, which they are in; an existing one lands on home. the router decides
+        // which once the profile is in
+        if (found.created) { try { sessionStorage.setItem(FROM_APP_KEY, "1"); } catch {} }
+        if (PRELAUNCH) { setState("approved"); return; }
+        navigate("/", { replace: true });
       }
       else { await api.deviceDeny(found.userCode); setState("denied"); }
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
@@ -91,11 +93,7 @@ export function DeviceApprovalPage() {
         ) : state === "approved" ? (
           <>
             <h1 className="text-20 font-medium text-ink">you're signed in</h1>
-            <p className="mt-1.5 text-14 leading-[1.55] text-ink-3">head back to the app. {found.device.name} signed itself in, nothing else to do here.</p>
-            <div className="mt-6 flex flex-wrap gap-2">
-              <a href={APP_LINK} data-back-to-app="" className="press hover-btn inline-flex h-10 items-center rounded-full bg-ink px-4.5 text-14 font-medium text-bg">back to dusk bot</a>
-              {!PRELAUNCH && <Button onClick={() => navigate("/", { replace: true })}>go to my dashboard</Button>}
-            </div>
+            <p className="mt-1.5 text-14 leading-[1.55] text-ink-3">{found.device.name} signed itself in. you can close this tab.</p>
           </>
         ) : state === "denied" ? (
           <>
