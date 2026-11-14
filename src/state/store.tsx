@@ -21,6 +21,7 @@ import { botOpensTo, openBot, openThread, visibleNotificationThread } from "./th
 import { patchGroupTask } from "./thread-edits";
 import type { EngineInstall } from "./engine-install";
 import { optimisticMessageId, optimisticUserMessage, sendAnswerLost, sendArrived, sendReconciled } from "./optimistic-send";
+import { dropSentTurn, followSendReceipt, noteSentTurn } from "./sent-turn";
 import { applySendReceipt } from "./send-receipt";
 import { foldSnapshotOntoStreamed, patchedGroups, roomAnswers, snapshotPatch } from "./room-frames";
 import { savedStateAction, type SavedOwner, type SavedSnapshot } from "./saved-state";
@@ -2461,14 +2462,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           noteMessageSent(sendId);
           const arrived = () => sendArrived(stateRef.current.bots.find((bot) => bot.id === action.botId && bot.threadId === threadId)?.messages, sendId);
           const outbox = threadId && !action.dataContext && !action.pointed?.length && !action.followUp ? sendOutbox() : null;
+          // the bot's working row shows with the bubble, not when the server answers the send
+          if (threadId && botBeforeSend?.threadId === threadId && !botBeforeSend.busy) noteSentTurn(threadId, sendId);
           if (threadId) outbox?.hold({ kind: "bot", ownerId: action.botId, threadId, sendId, text: action.text, at: Date.now(), ...(action.replyToId ? { replyToId: action.replyToId } : {}), ...(action.mode ? { mode: action.mode } : {}), ...(action.mentions?.length ? { mentions: action.mentions } : {}) });
           void waitForExecutionSettings(botBeforeSend ? [botBeforeSend] : [], threadId)
             .then(() => sendReconciled((signal) => api(`/api/bots/${action.botId}/messages`, {
                 method: "POST", signal,
                 body: JSON.stringify({ text: action.text, replyToId: action.replyToId, threadId, sendId, ...(action.dataContext ? { dataContext: action.dataContext } : {}), ...(action.pointed?.length ? { pointed: action.pointed } : {}), ...(action.mode === "goal" ? { mode: "goal" } : {}), ...(action.followUp ? { followUp: action.followUp } : {}), ...(action.mentions?.length ? { mentions: action.mentions } : {}) }),
               }), arrived, undefined, threadId ? { threadId, sendId, text: action.text, replyToId: action.replyToId, channelMode: action.mode } : undefined))
-            .then((sent) => { outbox?.release(sendId); applySendReceipt(sent, sendId, action.text, rawDispatch); })
+            .then((sent) => {
+              outbox?.release(sendId);
+              if (threadId) followSendReceipt(sent, threadId, sendId);
+              applySendReceipt(sent, sendId, action.text, rawDispatch);
+            })
             .catch((error) => {
+              if (threadId) dropSentTurn(threadId, sendId);
               if (outbox && (!(error instanceof ApiError) || sendAnswerLost(error)) && outbox.keep(sendId)) return;
               outbox?.release(sendId);
               if (threadId) {

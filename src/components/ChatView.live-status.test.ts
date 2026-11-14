@@ -38,6 +38,7 @@ vi.mock("./ApprovalModeSelector", () => ({ ApprovalModeSelector: (_props: Compon
 const { ChatView } = await import("./ChatView");
 const { noteTurnEvent, resetTurnLive } = await import("@/state/turn-status");
 const { resetLandedReplies } = await import("@/hooks/use-landed-reply");
+const { noteSentTurn, resetSentTurns } = await import("@/state/sent-turn");
 
 const THREAD = "selected";
 const started = Date.UTC(2026, 9, 23, 12, 0, 0);
@@ -71,6 +72,7 @@ beforeEach(() => {
   vi.useFakeTimers({ now: started + 72_000 });
   resetTurnLive();
   resetLandedReplies();
+  resetSentTurns();
   vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 200, headers: { "content-type": "application/json" } })));
   host = document.createElement("div");
   document.body.append(host);
@@ -138,6 +140,23 @@ describe("the working line", () => {
     expect(markState(), "and back, for good").toBe(LIFE_MASCOT_STATE);
     act(() => void vi.advanceTimersByTime(STATUS_QUIET_MS.max));
     expect(statusLine()).not.toBe("");
+  });
+
+  // the owner's "hi": the server answered the send 6.9 s after Enter, and the bot showed nothing until then
+  it("shows within 100 ms of a send from this window, and stays put when the server's turn arrives seconds later", () => {
+    vi.setSystemTime(started);
+    const sentAsk: Message = { ...ask, id: "optimistic-s1", sendId: "s1" };
+    act(() => noteSentTurn(THREAD, "s1", started));
+    render(busyBot([sentAsk], false));
+    act(() => void vi.advanceTimersByTime(100));
+    expect(mascot(), "the bot is at it the moment the bubble is").not.toBeNull();
+    act(() => void vi.advanceTimersByTime(6_800));
+    const shown = mascot();
+    expect(shown).not.toBeNull();
+    engine({ type: "turn.started" });
+    act(() => root.render(createElement(ChatView, { bot: { ...busyBot([sentAsk]), turnStartedAt: started + 6_900 } })));
+    expect(mascot(), "no gap and no second opening when the server's turn starts").toBe(shown);
+    expect(host.querySelector(".turn-status-out")).toBeNull();
   });
 
   it("opens the same way when a step starts at once: mascot, dots, then the mascot with the bot's words", () => {

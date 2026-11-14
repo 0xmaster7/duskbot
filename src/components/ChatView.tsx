@@ -62,6 +62,7 @@ import { LIFE_MASCOT_STATE, lifeDraw, lifeMarkState, lifeSpan } from "@/lib/repl
 import { presenceKind, TYPING_MARK, turnWorked, useHeldPresence, workingMark } from "@/lib/presence-mark";
 import { lastNonReceipt } from "@/lib/receipts";
 import { useTurnLive } from "@/state/turn-status"; import { useLiveReplyActive } from "@/state/live-reply"; import { useTurnNow } from "./NowCard"; import { useThreadRoutineRun } from "@/state/older-routine-runs";
+import { followSentTurn, useSentTurn } from "@/state/sent-turn";
 import { ChatMarkdown } from "./ChatMarkdown";
 import { TranscriptStaging } from "./transcript-staging";
 import { LiveToolsContext, useLiveToolIds } from "@/hooks/use-live-tool-ids";
@@ -1012,23 +1013,30 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   // a first reply's wait is no phrase for the line: the line already says the bot is at work
   const lastForLine = useMemo(() => lastMessage?.tool?.rescue ? lastNonReceipt(messages.filter((m) => !m.tool?.rescue)) : lastMessage, [messages, lastMessage]);
   const live = useTurnLive(bot.threadId), now = useTurnNow(bot, messages, lastForLine, live);
+  // a send from this window is the turn's start here: its row shows with the bubble, before the server answers the send
+  const sent = useSentTurn(bot.threadId);
+  useEffect(() => { if (bot.threadId) followSentTurn(bot.threadId, Boolean(bot.busy)); }, [bot.threadId, bot.busy]);
+  const turnBusy = Boolean(bot.busy) || sent?.phase === "sending";
+  const turnStartedAt = sent?.at ?? bot.turnStartedAt;
   // The mascot and its status line stay for the whole turn, through every bubble it sends; only its end hides them.
-  const waiting = Boolean(bot.busy && bot.activity !== "waiting-on-you" && showWorkingDots(bot.busy, lastMessage, undefined, live.ended));
+  const waiting = Boolean(turnBusy && bot.activity !== "waiting-on-you" && showWorkingDots(turnBusy, lastMessage, undefined, sent?.phase === "sending" ? false : live.ended));
   const teammatesWorking = !bot.busy && Boolean(bot.waitingForTeammates);
   const markRef = useRef<MausAvatarHandle>(null);
   const [markEmphasized, setMarkEmphasized] = useState(false);
   // the reply is written whole; while the engine types it the mark only looks like it is answering
   const streamingReply = useLiveReplyActive(bot.threadId);
-  const statusMarkState = bot.busy ? turnMarkState({ running: true, composing: streamingReply, activity: live.status?.activity ?? null, awaiting: bot.activity === "waiting-on-you", settled: null }, Date.now()) : statusMarkFor({ busy: false, waitingOnYou: bot.activity === "waiting-on-you", answering: streamingReply, live: live.status?.activity, failed: lastMessage?.kind === "activity" && lastMessage.tool?.ok === false });
+  const statusMarkState = turnBusy ? turnMarkState({ running: true, composing: streamingReply, activity: live.status?.activity ?? null, awaiting: bot.activity === "waiting-on-you", settled: null }, Date.now()) : statusMarkFor({ busy: false, waitingOnYou: bot.activity === "waiting-on-you", answering: streamingReply, live: live.status?.activity, failed: lastMessage?.kind === "activity" && lastMessage.tool?.ok === false });
   const [busySince, setBusySince] = useState<number | null>(null);
   useEffect(() => {
-    setBusySince(bot.busy ? bot.turnStartedAt ?? Date.now() : null);
-  }, [bot.busy, bot.id, bot.threadId, bot.turnStartedAt]);
+    setBusySince(turnBusy ? turnStartedAt ?? Date.now() : null);
+  }, [turnBusy, bot.id, bot.threadId, turnStartedAt]);
   const presenceSeed = `${bot.id}:${bot.threadId ?? ""}:${busySince ?? ""}`;
   // grok's line comes 0.55 to 1.2 s after a send, wordless; a bubble waiting on its typing beat brings it at once
   // a turn whose start this client does not know (a chat opened mid-turn from an older server) shows its line at once,
   // and so does a new bot's hello in a chat with nothing in it yet: there is no send for the wait to follow
-  const mountDue = useReached(!bot.busy ? null : bot.turnStartedAt && messages.length > 0 ? bot.turnStartedAt + lifeDraw(presenceSeed, "mount", STATUS_MOUNT_MS) : 0);
+  // a send from this window shows it at once: the person pressed Enter and is looking for the bot to pick it up
+  const mountDelay = sent ? 0 : lifeDraw(presenceSeed, "mount", STATUS_MOUNT_MS);
+  const mountDue = useReached(!turnBusy ? null : turnStartedAt && messages.length > 0 ? turnStartedAt + mountDelay : 0);
   const presenceVisible = hold.typing ? !hold.leaving : (waiting && mountDue) || teammatesWorking;
   // the bubble the line hangs under keeps its pinched corner until the line has finished leaving, as grok's does
   const presenceShown = useLingering(presenceVisible, 140);
@@ -1058,11 +1066,11 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   if (busySince !== null && shownLabel.current.seed !== presenceSeed) shownLabel.current = { seed: presenceSeed };
   if (live.label) shownLabel.current.label = live.label;
   const turnLabel = live.label ?? shownLabel.current.label;
-  const presence = useHeldPresence(bot.busy && bot.activity !== "waiting-on-you" ? presenceKind({ writing, activity: live.status?.activity, worked }) : null);
+  const presence = useHeldPresence(turnBusy && bot.activity !== "waiting-on-you" ? presenceKind({ writing, activity: live.status?.activity, worked }) : null);
   // grok's mark opens every turn the same way, mascot then dots then mascot with the first words, even when a step has
   // already started
-  const openingEnd = bot.busy && bot.turnStartedAt
-    ? bot.turnStartedAt + lifeDraw(presenceSeed, "mount", STATUS_MOUNT_MS) + lifeSpan(presenceSeed, 0) + lifeSpan(presenceSeed, 1)
+  const openingEnd = turnBusy && turnStartedAt
+    ? turnStartedAt + mountDelay + lifeSpan(presenceSeed, 0) + lifeSpan(presenceSeed, 1)
     : null;
   const opening = !useReached(openingEnd) && openingEnd !== null && presence === "working";
   const lifeBeat = useReplyLife(presenceVisible && !teammatesWorking && (presence === "waiting" || opening) ? [{ key: bot.id, seed: presenceSeed, typing: writing }] : NO_LIFE).get(bot.id);
