@@ -18,7 +18,7 @@ const STEPS = [
 export type Making =
   | { kind: "waiting" }
   | { kind: "setting-up"; step: CloudSetupStep; progress: number; slow: boolean }
-  | { kind: "ready" }
+  | { kind: "ready"; origin?: string }
   | { kind: "failed" };
 
 const PROGRESS: Record<CloudSetupStep, number> = { reserving: 0.15, storage: 0.4, starting: 0.65, checking: 0.9 };
@@ -27,7 +27,7 @@ const PROGRESS: Record<CloudSetupStep, number> = { reserving: 0.15, storage: 0.4
 export function makingFrom(account: CloudAccountState | null): Making {
   const own = account?.clouds?.find((entry) => entry.primary && entry.runsOn === "cloud");
   if (own) {
-    if (own.status === "ready" && own.origin) return { kind: "ready" };
+    if (own.status === "ready" && own.origin) return { kind: "ready", origin: own.origin };
     if (own.status === "setting_up") {
       const step = own.setup?.step ?? "reserving";
       return { kind: "setting-up", step, progress: own.setup?.progress ?? PROGRESS[step], slow: account?.machine?.setup?.slow === true };
@@ -36,7 +36,7 @@ export function makingFrom(account: CloudAccountState | null): Making {
     return { kind: "waiting" };
   }
   const machine = account?.machine;
-  if (machine?.status === "ready") return { kind: "ready" };
+  if (machine?.status === "ready") return { kind: "ready", ...(machine.origin ? { origin: machine.origin } : {}) };
   if (machine?.status === "provisioning") {
     const step = machine.setup?.step ?? "reserving";
     return { kind: "setting-up", step, progress: PROGRESS[step], slow: machine.setup?.slow === true };
@@ -72,6 +72,40 @@ export function MakingView({ making, opening, openFailed, onOpen }: { making: Ma
   );
 }
 
+/** How long a ready Cloud's page gets to answer before the chat is opened anyway (the window then says it is starting). */
+export const ANSWER_WAIT_MS = 4 * 60_000;
+const ANSWER_EVERY_MS = 3_000;
+
+/** Whether the page at `origin` answers at all: an opaque answer is enough, only a page that can't be reached throws. */
+export async function cloudAnswers(origin: string, fetchImpl: typeof fetch = fetch): Promise<boolean> {
+  try {
+    await fetchImpl(`${origin}/api/health`, { mode: "no-cors", cache: "no-store", credentials: "omit", signal: AbortSignal.timeout(5_000) });
+    return true;
+  } catch { return false; }
+}
+
+/** The Admin says ready a little before a brand-new Cloud's address answers: until it does, the step stays on its last
+ * check, so the chat opens straight onto the Cloud rather than onto a second setup screen. */
+function useAnswering(making: Making): Making {
+  const origin = making.kind === "ready" ? making.origin ?? null : null;
+  const [answered, setAnswered] = useState<string | null>(null);
+  useEffect(() => {
+    if (!origin || answered === origin) return;
+    let live = true, timer = 0;
+    const since = Date.now();
+    const look = async () => {
+      const yes = await cloudAnswers(origin);
+      if (!live) return;
+      if (yes || Date.now() - since >= ANSWER_WAIT_MS) setAnswered(origin);
+      else timer = window.setTimeout(() => void look(), ANSWER_EVERY_MS);
+    };
+    void look();
+    return () => { live = false; window.clearTimeout(timer); };
+  }, [origin, answered]);
+  if (!origin || answered === origin) return making;
+  return { kind: "setting-up", step: "checking", progress: 0.95, slow: false };
+}
+
 /** Follows the Admin's word on the Cloud, holds this computer's AI sign-ins for it once, and opens its chat when it is ready. */
 export function MakingStep({ onOpened }: { onOpened: () => void }) {
   const bridge = window.duskDesktop?.cloudAccount;
@@ -94,7 +128,7 @@ export function MakingStep({ onOpened }: { onOpened: () => void }) {
     void bridge.holdSignIns().catch(() => {});
   }, [bridge, account?.status]);
 
-  const making = makingFrom(account);
+  const making = useAnswering(makingFrom(account));
   const open = () => {
     if (!bridge || opening) return;
     setOpening(true);

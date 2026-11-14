@@ -443,7 +443,16 @@ describe("on the desktop app", () => {
     expect(document.body.querySelector("[aria-current=step]")?.textContent).toBe("Preparing storage");
     expect(bridge.holdSignIns).toHaveBeenCalledOnce();
     expect(JSON.parse(localStorage.getItem("dusk.onboarding.welcomeDraft")!), "a closed app comes back here").toMatchObject({ beat: "making", cloud: true });
+    let up = false;
+    vi.stubGlobal("fetch", vi.fn(async () => { if (!up) throw new TypeError("Failed to fetch"); return new Response(null); }));
     await bridge.tell(own("ready"));
+    await settle();
+    expect(title(), "ready at the Admin, but its page doesn't answer yet: still the last check, never a second setup screen").toBe("Making your cloud");
+    expect(document.body.querySelector("[aria-current=step]")?.textContent).toBe("Checking it's ready");
+    expect(bridge.connectHome).not.toHaveBeenCalled();
+    up = true;
+    await act(async () => { await vi.advanceTimersByTimeAsync(3_000); });
+    await settle();
     expect(bridge.connectHome).toHaveBeenCalledOnce();
     expect(f.onDone).toHaveBeenCalledOnce();
   });
