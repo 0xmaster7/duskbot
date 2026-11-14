@@ -477,7 +477,7 @@ export function grokProfileMenuItems({ onGetApp, onHelp, onShortcuts, onFeedback
   onFeedback: () => void;
   onAbout: () => void;
   onSettings: () => void;
-  accounts: Pick<AccountsAccess, "view" | "openSheet" | "signOut" | "add" | "editAvatar">;
+  accounts: Pick<AccountsAccess, "view" | "openSheet" | "signOut" | "add">;
 }): SidebarMenuItem[] {
   const icon = (name: IconName) => <Icon name={name} size={14} />;
   const active = accounts.view?.active;
@@ -485,8 +485,6 @@ export function grokProfileMenuItems({ onGetApp, onHelp, onShortcuts, onFeedback
     ? [
       // who is signed in, first: the account's name and address, opening its card in Settings
       { key: "who", label: active.name?.trim() || active.email, ...(active.name?.trim() ? { subtitle: active.email } : {}), icon: <UserFace account={active} size={16} />, onSelect: onSettings },
-      ...(accounts.editAvatar && !active.signIn ? [{ key: "avatar", label: t("accounts.avatar.change"), icon: <UserFace account={active} size={16} />, onSelect: accounts.editAvatar } satisfies SidebarMenuItem] : []),
-      { key: "add-account", label: t("sidebar.grok.addAccount"), icon: icon("person-add"), onSelect: () => accounts.add() },
       { key: "log-out", label: t("accounts.signOut"), icon: icon("arrow-bracket-from-left"), onSelect: () => accounts.signOut(active.id) },
     ]
     : accounts.openSheet ? [{ key: "accounts-sheet", label: t("accounts.manage"), icon: icon("person"), onSelect: accounts.openSheet }]

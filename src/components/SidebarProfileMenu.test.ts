@@ -560,11 +560,11 @@ describe("grok's profile menu", () => {
     expect(onAddAccount).not.toHaveBeenCalled();
   });
 
-  it("signed in, says who first (the account's name and address) and signs out as Sign out", () => {
+  it("signed in, says who (the account's name and address) and Sign out, nothing more", () => {
     const signOut = vi.fn(), onSettings = vi.fn();
     const active = { id: "acc-1", email: "ada@qa.dusk.test", name: "Ada Lovelace" };
-    const items = grokProfileMenuItems({ ...base, onSettings, accounts: { view: { active }, openSheet: null, signOut, add: vi.fn() } as never });
-    expect(items.map((item) => item.key).slice(-3)).toEqual(["who", "add-account", "log-out"]);
+    const items = grokProfileMenuItems({ ...base, onSettings, accounts: { view: { active }, openSheet: null, signOut, add: vi.fn(), editAvatar: vi.fn() } as never });
+    expect(items.map((item) => item.key).slice(-2), "no Change avatar or Add account rows").toEqual(["who", "log-out"]);
     expect(items.find((item) => item.key === "who")).toMatchObject({ label: "Ada Lovelace", subtitle: "ada@qa.dusk.test", separatorBefore: true });
     expect(items.at(-1)).toMatchObject({ label: "Sign out" });
     items.find((item) => item.key === "who")!.onSelect();
