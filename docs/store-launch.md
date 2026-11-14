@@ -18,12 +18,16 @@ Apple (developer.apple.com and appstoreconnect.apple.com). Done on 2026-11-14:
 - App record "dusk bot", Apple ID `6834725640`, SKU `dusk-mobile-ios`, English (U.S.).
 - Build 1.0 (2611140813) uploaded, processed, in internal TestFlight (group "dusk team"); the owner's Apple ID is
   invited as an internal tester.
+- APNs key "dusk bot push" `P6RM334469` (Sandbox and Production, team scoped), in dusk.env as `APPLE_APNS_KEY_ID` and
+  `APPLE_APNS_KEY_PATH`.
+- App Privacy published: Email Address, User ID, Device ID, Other User Content, all linked, App Functionality, no
+  tracking.
 
 Left for you:
 
 1. Accept the TestFlight invite email, install the TestFlight app, install dusk bot, and test it on your iPhone.
-2. Keys (developer account): make an APNs key (.p8) for push and give it to the link service (`docs/phone-push.md`).
-3. App Privacy in App Store Connect (the API cannot set it): answers in "App Privacy" below.
+2. Give the APNs key to the link service so pushes reach phones (`docs/phone-push.md`).
+3. Nothing left in App Privacy unless the app starts collecting more (see "App Privacy" below).
 
 The listing text, URLs, categories, age rating answers, review notes and the 6.9-inch screenshots are already in App
 Store Connect, applied from `apps/mobile/store/app-store.json` with `node apps/mobile/scripts/asc.mjs metadata` and
