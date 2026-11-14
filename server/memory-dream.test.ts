@@ -275,9 +275,10 @@ describe("dreaming in the upkeep loop", () => {
     writeMemoryFile(BOT.id, "# Memory\n\n- 2026-09-01 · The person lives in Pune\n");
     answers.push(JSON.stringify({
       learned: [
-        { text: "The person wants drafts under 100 words", from: [1, 2], confidence: 0.9 },
+        { text: "The person wants drafts under 100 words", from: [1, 2], evidence: "Shorter please", confidence: 0.9 },
         { text: "The person reviews drafts with their editor", from: [1, 2], topic: "work", topicAliases: ["editor"], confidence: 0.8 },
-        { text: "The person prefers plain words", from: [1, 2], aboutUser: true, confidence: 0.8 },
+        { text: "The person prefers plain words", from: [1, 2], evidence: "Too long again", aboutUser: true, confidence: 0.8 },
+        { text: "The person likes jazz", from: [1, 2], evidence: "I love jazz", aboutUser: true, confidence: 0.9 },
       ],
       outdated: [{ line: 0, now: "The person lives in Bangalore", from: [2] }],
       ideas: [{ text: "Keep a short-draft checklist as a skill", from: [1, 2] }],
@@ -289,6 +290,7 @@ describe("dreaming in the upkeep loop", () => {
         { text: "The person wants drafts under 100 words", where: "MEMORY.md" },
         { text: "The person prefers plain words", where: "MEMORY.md" },
         { text: "The person reviews drafts with their editor", where: "memory/work.md" },
+        { text: "The person likes jazz", where: "memory/habits.md" },
       ],
       outdated: [{ was: "The person lives in Pune", now: "The person lives in Bangalore" }],
       ideas: ["Keep a short-draft checklist as a skill"],

@@ -435,7 +435,7 @@ describe("the upkeep loop", () => {
       now: () => clock,
     });
     const turn: CaptureTurn = { person: "", bot: "Noted.", owner: false, room: [{ by: "other", name: "Asha", text: "Launch moved to Friday. I'm vegetarian, by the way." }] };
-    answers.push(JSON.stringify([{ text: "The launch moved to Friday", kind: "decision", confidence: 0.9 }, { text: "Asha is vegetarian", kind: "preference", evidence: "I'm vegetarian", aboutUser: true, confidence: 0.9 }]));
+    answers.push(JSON.stringify([{ text: "The launch moved to Friday", kind: "decision", evidence: "Launch moved to Friday", confidence: 0.9 }, { text: "Asha is vegetarian", kind: "preference", evidence: "I'm vegetarian", aboutUser: true, confidence: 0.9 }]));
     const report = await roomUpkeep.capture({ botId: BOT.id, threadId: "room-thread", turns: [turn] });
     expect(report).toMatchObject({ added: 2, aboutMe: 0 });
     expect(memory()).toContain('from room "Launch" (noticed) · The launch moved to Friday');

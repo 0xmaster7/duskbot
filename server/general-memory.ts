@@ -10,6 +10,7 @@ import { randomUUID } from "node:crypto";
 import { writeFileAtomic } from "./atomic.ts";
 import { DATA_DIR } from "./config.ts";
 import { alwaysCore, factIdentity, foldForMatch, type MemoryEntryLine } from "./memory-entries.ts";
+import { BLOCKED_LINE, looksLikeInstruction } from "./memory-trust.ts";
 
 /** Learned lines loaded into every turn beyond the person's own lines; the rest reach a turn through recall. */
 export const GENERAL_LOAD_CHARS = 2_000;
@@ -51,7 +52,9 @@ const newestFirst = (a: GeneralLine, b: GeneralLine) => (b.date ?? "").localeCom
 
 /** The text a turn loads: the person's own lines and health or safety facts always, then the newest learned lines
  * within `budget`. Unchanged (the same bytes) when everything fits, so the cached prompt prefix stays the same. */
-export function generalForPrompt(text: string, budget = GENERAL_LOAD_CHARS): { text: string; omitted: GeneralLine[] } {
+export function generalForPrompt(raw: string, budget = GENERAL_LOAD_CHARS): { text: string; omitted: GeneralLine[] } {
+  const planted = new Set(parseGeneral(raw).filter((entry) => entry.learned && looksLikeInstruction(entry.fact)).map((entry) => entry.line));
+  const text = planted.size ? raw.split("\n").map((line, index) => (planted.has(index) ? `- ${BLOCKED_LINE}` : line)).join("\n") : raw;
   const learned = parseGeneral(text).filter((entry) => entry.learned);
   if (learned.reduce((sum, entry) => sum + entry.raw.length + 1, 0) <= budget) return { text, omitted: [] };
   const keep = new Set<number>();
@@ -357,14 +360,15 @@ export function restoreGeneralHistory(id: string, aboutMe: string): { aboutMe: s
 }
 
 /** Whether a note is one of `olds`: the model copies the old line, and a copy that drops a date mark, a bullet or a
- * full stop, or quotes most of a longer line (twelve characters or more), still names it. */
+ * full stop, or quotes three quarters or more of the line (twelve characters or more), still names it. */
 export function namesFact(olds: readonly string[]): (fact: string) => boolean {
   const fold = (text: string) => foldForMatch(factIdentity(text.replace(/ · (?:updated|confirmed|until|expired|superseded|moved) \d{4}-\d{2}-\d{2}/g, ""))).replace(/[.!]+$/, "");
   const wanted = olds.map(fold).filter((fact) => fact.length >= 3);
   return (fact) => {
     if (!wanted.length) return false;
     const folded = fold(fact);
-    return wanted.some((want) => want === folded || (want.length >= 12 && folded.includes(want)));
+    // a quote names a line only when it is most of that line: "lives in Pune" never names "Priya lives in Pune with Sam"
+    return wanted.some((want) => want === folded || (want.length >= 12 && folded.includes(want) && want.length >= 0.75 * folded.length));
   };
 }
 

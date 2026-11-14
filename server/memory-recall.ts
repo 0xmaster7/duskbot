@@ -2,10 +2,11 @@
 // Hindsight's TEMPR does), then gently boosted for recency and for falling inside the asked-about time. Replaced and
 // expired facts answer only questions about the past.
 import { factIdentity, parseMemoryEntries } from "./memory-entries.ts";
-import { cosine, embedderReady, embedQuery, warmEmbedder } from "./memory-embed.ts";
+import { cosine, embedderReady, embedPassages, embedQuery, warmEmbedder } from "./memory-embed.ts";
 import { embedPendingFacts, factsOf, factVectors, searchFactText, syncAboutFacts, syncWorkspaceFacts, type FactRow, type FactStatus } from "./memory-facts.ts";
 import { daysOutside, overlaps, queryTime, type DayRange } from "./memory-time.ts";
 import { parseGeneral } from "./general-memory.ts";
+import { looksLikeInstruction } from "./memory-trust.ts";
 import { recallTerms } from "./message-db.ts";
 
 export const RRF_K = 60;
@@ -31,6 +32,8 @@ export interface FactRecallInput {
   today: string;
   /** Text already in the prompt: facts in it are not recalled again. */
   loaded?: readonly string[];
+  /** Looser relevance, for showing the capture step what it might repeat or change. */
+  wide?: boolean;
 }
 
 const QUESTION = /\?\s*$|^\s*(?:what|when|where|who|whom|which|why|how|did|do|does|have|has|is|are|was|were|can|could|should|will|would)\b/i;
@@ -159,9 +162,9 @@ export async function recallFacts(input: FactRecallInput): Promise<{ facts: Reca
   const scored: RecalledFact[] = [];
   for (const [id, rrf] of fused) {
     const fact = byId.get(id)!;
-    if (fact.status === "active" && loaded.has(fact.ident)) continue;
+    if ((fact.status === "active" && loaded.has(fact.ident)) || looksLikeInstruction(fact.text)) continue;
     const sim = similarity.get(id) ?? 0;
-    const relevant = sim >= SIMILAR
+    const relevant = (input.wide && (sim >= SIMILAR_WITH_WORDS || lexicalSet.has(id) || entitySet.has(id))) || sim >= SIMILAR
       || (lexicalSet.has(id) && (sim >= SIMILAR_WITH_WORDS || (!similarity.size && (wordHits(content, fact) >= need || keyHit(content, fact))) || wordHits(content, fact) >= Math.min(2, content.length)))
       || (entitySet.has(id) && (sim >= SIMILAR_WITH_WORDS || !similarity.size || lexicalSet.has(id)))
       || (inWindow.has(id) && (timeOnly || lexicalSet.has(id) || sim >= SIMILAR_WITH_WORDS));
@@ -184,4 +187,31 @@ export async function recallFacts(input: FactRecallInput): Promise<{ facts: Reca
   const seen = new Set<string>();
   const facts = scored.filter((item) => (seen.has(item.fact.ident) ? false : (seen.add(item.fact.ident), true))).slice(0, MAX_FACTS);
   return { facts, searched: true };
+}
+
+/** Cosine similarity past which two facts say the same thing, unless their numbers, names or a negation differ. */
+export const SAME_FACT = 0.95;
+const NEGATION = /\b(?:not|no|never|none|n't|without|stopped|quit|no longer)\b/i;
+const numbers = (text: string) => (text.match(/-?\d+(?:[.,]\d+)?/g) ?? []).sort().join(" ");
+
+/** Whether two near-identical sentences may still be different facts: other numbers, other names, one negated. */
+export function differInDetail(a: string, b: string): boolean {
+  return numbers(a) !== numbers(b) || NEGATION.test(a) !== NEGATION.test(b) || names(a).sort().join(" ") !== names(b).sort().join(" ");
+}
+
+/** For each new text, a known fact that already says it (by meaning, not wording); none without embeddings. */
+export async function nearDuplicateOf(texts: readonly string[], known: readonly FactRow[]): Promise<Map<string, FactRow>> {
+  const out = new Map<string, FactRow>();
+  if (!texts.length || !known.length || !embedderReady()) return out;
+  const vectors = await embedPassages([...texts, ...known.map((fact) => fact.text)]);
+  if (!vectors) return out;
+  texts.forEach((text, i) => {
+    let best: { fact: FactRow; sim: number } | null = null;
+    known.forEach((fact, j) => {
+      const sim = cosine(vectors[i]!, vectors[texts.length + j]!);
+      if (sim >= SAME_FACT && (!best || sim > best.sim) && !differInDetail(text, fact.text)) best = { fact, sim };
+    });
+    if (best) out.set(text, (best as { fact: FactRow }).fact);
+  });
+  return out;
 }

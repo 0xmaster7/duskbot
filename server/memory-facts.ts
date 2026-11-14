@@ -18,7 +18,7 @@ import { ARCHIVE_TOPIC, isMemorySeed, listMemoryTopics, memoryDate, readMemoryTe
 
 export type FactStatus = "active" | "superseded" | "merged" | "expired" | "suppressed";
 /** Where a fact came from. Only `typed` and `person-said` may describe the person in always-loaded memory. */
-export type FactSource = "typed" | "person-said" | "bot-verified" | "tool" | "web" | "other-bot" | "import" | "legacy";
+export type FactSource = "typed" | "person-said" | "bot-verified" | "other-person" | "tool" | "web" | "other-bot" | "import" | "legacy";
 export type FactTrust = "high" | "medium" | "low";
 export const ABOUT_FILE = "about-me";
 
@@ -49,7 +49,7 @@ export interface FactRow {
 
 export function trustOf(source: FactSource): FactTrust {
   if (source === "typed" || source === "person-said") return "high";
-  if (source === "bot-verified" || source === "import" || source === "legacy") return "medium";
+  if (source === "bot-verified" || source === "other-person" || source === "import" || source === "legacy") return "medium";
   return "low";
 }
 

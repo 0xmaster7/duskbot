@@ -7,6 +7,7 @@ import { alwaysCore, isExpired, isMemoryDate, parseMemoryEntries, untilMark, wit
 import { parseTopicHeader, readTopicHead, renderTopicIndex } from "./memory-topics.ts";
 import { indexMemoryFile, indexedMemoryFiles, recallMemory, removeMemoryFile, type MemoryHit, type SearchMode } from "./message-db.ts";
 import { redactSecretsInText } from "./redact.ts";
+import { BLOCKED_LINE, looksLikeInstruction } from "./memory-trust.ts";
 
 import { DATA_DIR } from "./config.ts";
 
@@ -202,7 +203,11 @@ export function coreForPrompt(raw: string, today: string, budget = CORE_LOAD_CHA
     omitted += 1;
     for (let line = entry.line; line < entry.end; line++) drop.add(line);
   }
-  let text = drop.size ? all.filter((_, index) => !drop.has(index)).join("\n") : raw;
+  const blocked = new Map<number, number>();
+  for (const entry of keep) if (looksLikeInstruction(entry.body)) blocked.set(entry.line, entry.end);
+  for (const [line, end] of blocked) for (let index = line + 1; index < end; index++) drop.add(index);
+  const shown = blocked.size ? all.map((line, index) => (blocked.has(index) ? `- ${BLOCKED_LINE}` : line)) : all;
+  let text = drop.size || blocked.size ? shown.filter((_, index) => !drop.has(index)).join("\n") : raw;
   // the person's own undated lines alone can pass the budget; they are cut at a line end, and recalled like the rest
   const clipped = text.length > budget + CORE_PINNED_CHARS;
   if (clipped) {

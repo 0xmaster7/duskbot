@@ -24,7 +24,7 @@ describe("the capture prompt", () => {
     expect(prompt).not.toContain("prefers short replies");
     expect(prompt).toContain("Never infer a fact about them from a task, a question, an example or a hypothetical");
     expect(prompt).toContain("- When the Person asks to forget something, keep nothing about it.");
-    expect(prompt).toContain("- Give every preference and fact its evidence: the words it rests on, copied exactly from what was said to the assistant.");
+    expect(prompt).toContain("- Give every item its evidence, copied exactly: for a preference, a fact or a decision, the Person's own words it rests on;");
     expect(prompt).toContain('"evidence": "the exact words"');
     expect(parseCandidates(JSON.stringify([{ text: "The person is vegetarian", kind: "preference", evidence: "  I'm\n vegetarian " }]), TODAY)[0]!.evidence).toBe("I'm vegetarian");
   });
@@ -238,7 +238,7 @@ describe("capture calls", () => {
 
   it("files each item under the conversation it came from: its source line and its journal rows", async () => {
     answer = () => JSON.stringify([
-      { from: 2, text: "The launch moved to Friday", kind: "decision", confidence: 0.9 },
+      { from: 2, text: "The launch moved to Friday", kind: "decision", evidence: "The launch moved to Friday", confidence: 0.9 },
       { from: 1, text: "The person is vegetarian", kind: "preference", evidence: "I'm vegetarian", aboutUser: true, confidence: 0.9 },
       { from: 2, text: "Asha owns the press kit", kind: "fact", evidence: "Asha owns the press kit", topic: "launch", topicAliases: ["release"], confidence: 0.9 },
     ]);

@@ -103,7 +103,7 @@ describe("scheduled memory upkeep", () => {
       expect(memory()).not.toContain("Prefers detailed project updates");
       expect(loop.dream(BOT.id)).toBe(current);
       expect(generateText).toHaveBeenCalledTimes(2);
-      releaseNew('{"learned":[{"text":"Prefers brief project updates","from":[1,2],"confidence":0.9}]}');
+      releaseNew('{"learned":[{"text":"Prefers brief project updates","from":[1,2],"evidence":"Keep project updates brief","confidence":0.9}]}');
       await current;
       await loop.idle();
       expect(loop.status(BOT.id).lastDream).toMatchObject({

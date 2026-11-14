@@ -125,6 +125,7 @@ import { buildRecall, recallRooms, recallThreadIds, withRecalled } from "./recal
 import { heldMemory, takeMemoryDelta } from "./memory-snapshot.ts";
 import { aboutOwner } from "./memory-facts.ts";
 import { migrateMemory } from "./memory-migrate.ts";
+import { readOutsideContent } from "./memory-trust.ts";
 import { warmEmbedder } from "./memory-embed.ts";
 import { generalForPrompt } from "./general-memory.ts";
 import { computerFailuresToResolve, RESOLVE_SCAN } from "./computer-failure-resolution.ts";
@@ -136,7 +137,7 @@ import { createSkillReview, turnToolSteps } from "./skill-review.ts";
 import { createSideJobs, helperSelection } from "./side-jobs.ts";
 import type { CaptureTurn, RoomLine } from "./memory-capture.ts";
 import { createAboutMe } from "./about-me.ts"; import { createPersonPreference } from "./host/person-preference.ts";
-import { botMemoryUpdate, ownersOwnAsk } from "./memory-forget.ts";
+import { botMemoryUpdate, ownersOwnAsk, type WriteTrust } from "./memory-forget.ts";
 import { canManage, canReach, hasTeamAuthority, livePeerRoster, livePeerRosterBlock, peerName, peerRosterSystemPrompt, peerStatus, peerStatusWords, reachablePeers, resolveTeammate, roomPeerRosterSystemPrompt, roomRosterLine } from "./peer-roster.ts"; import { roomPostRefusal, sharedNamesNote, unreachedMentionLines } from "./same-name-mentions.ts";
 import {
   containerComputerAction,
@@ -1167,6 +1168,17 @@ function heldMemoryParts(bot: BotRecord, threadId: string, shape: Parameters<typ
     about: userProfileSystemPrompt(profile ? { ...profile, aboutMe: held.about } : profile),
     core: memorySystemPrompt(layer, { ...shape, held: { notes: held.notes, topics: held.topics } }) + teamHost.sharedNotesPrompt(bot.id, threadId),
   };
+}
+
+/** Whether this turn's words are the person's own, or came from outside (another bot, a webhook, an app, or a page or
+ * tool result the turn read): outside words never become always-loaded memory. */
+function memoryWriteTrust(botId: string, threadId: string): WriteTrust {
+  const path = store.activePath(threadId);
+  const asked = path.findLast((message) => message.role === "user" && message.kind === "text");
+  if (asked?.peerAsk) return { from: "outside", source: "other-bot" };
+  if (isUnattended(botId, threadId) || botApiThread(threadId)) return { from: "outside", source: "tool" };
+  if (readOutsideContent(path)) return { from: "outside", source: "web" };
+  return { from: "person" };
 }
 
 /** Other conversations only for a 1:1 turn the person started: another bot, a webhook or a room must not pull a private chat into its reply. */
@@ -5407,6 +5419,7 @@ function captureTurnFor(threadId: string, turnId: string): CaptureTurn | null {
     bot: path[replyAt]!.text ?? "",
     owner: !asked.sender,
     turnId,
+    messageId: asked.id,
   };
 }
 
@@ -14030,9 +14043,12 @@ const handleRequestInner = async (req: IncomingMessage, res: ServerResponse) => 
             return json(res, saved.ok ? 200 : saved.code === "conflict" ? 409 : 400, saved.ok ? { ...saved, forBot: found.target.name } : saved);
           }
         }
-        const result = botMemoryUpdate(teamHost.layer(internalSender.id, internalCapability.threadId), body, { source: memorySource(), aboutMe: ownersAsk ? aboutMeFacts : null,
-          prefer: body?.action === "prefer" ? personPreference.target(internalCapability, internalSender) : null });
-        return json(res, result.ok ? 200 : result.code === "conflict" ? 409 : 400, result);
+        const layer = teamHost.layer(internalSender.id, internalCapability.threadId);
+        const result = botMemoryUpdate(layer, body, { source: memorySource(), aboutMe: ownersAsk ? aboutMeFacts : null,
+          prefer: body?.action === "prefer" ? personPreference.target(internalCapability, internalSender) : null,
+          trust: memoryWriteTrust(internalSender.id, internalCapability.threadId),
+          about: { owner: aboutOwnerFor(internalSender.id, internalCapability.threadId), text: teamHost.profileFor(internalCapability.threadId, cfg.profile)?.aboutMe ?? "" } });
+        return json(res, result.ok ? 200 : result.code === "conflict" || result.code === "ambiguous" ? 409 : 400, result);
       }
       if (method === "POST" && path === "/api/internal/memory/log") {
         const body = await readInternalBody();

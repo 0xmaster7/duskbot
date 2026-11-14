@@ -4,9 +4,12 @@ import { randomUUID } from "node:crypto";
 
 import { writeFileAtomic } from "./atomic.ts";
 import { DATA_DIR } from "./config.ts";
-import { CaptureBuffer, captureItemLimit, capturePrompt, captureSize, newCandidates, parseCandidates, statedInConversation, worthCapturing, type Candidate, type CaptureBatch, type CaptureTurn } from "./memory-capture.ts";
-import { DREAM_FIRST_LOOKBACK_MS, DREAM_MIN_CONVERSATIONS, dreamPrompt, parseDream, type DreamConversation } from "./memory-dream.ts";
-import { factIdentity, isExpired, lineFactIdentity, notebookIdentities, parseMemoryEntries } from "./memory-entries.ts";
+import { CaptureBuffer, captureItemLimit, capturePrompt, captureSize, newCandidates, parseCandidates, statedInConversation, worthCapturing, type Candidate, type CaptureBatch, type CaptureTurn, type KnownFact } from "./memory-capture.ts";
+import { ABOUT_FILE, aboutOwner, annotateFact, type FactRow, type FactSource } from "./memory-facts.ts";
+import { nearDuplicateOf, recallFacts } from "./memory-recall.ts";
+import { looksLikeInstruction } from "./memory-trust.ts";
+import { DREAM_FIRST_LOOKBACK_MS, DREAM_MIN_CONVERSATIONS, dreamEvidenced, dreamPrompt, parseDream, type DreamConversation } from "./memory-dream.ts";
+import { factIdentity, foldForMatch, isExpired, lineFactIdentity, notebookIdentities, parseMemoryEntries } from "./memory-entries.ts";
 import { applyNotebookChange, consolidatePrompt, namesFact, parseConsolidation, parseGeneral, planConsolidation, recordGeneralHistory, PROMPT_LINES, type NotebookChange, type NotebookLine } from "./general-memory.ts";
 import { mergeTopicText } from "./memory-topics.ts";
 import { commitLearned, dropLearnedLines, isForgotten, learnedState } from "./profile-learned.ts";
@@ -32,6 +35,8 @@ export const MIN_ENTRIES_FOR_CONTRADICTIONS = 5;
 const ARCHIVE_PATH = `memory/${ARCHIVE_TOPIC}`;
 export const MAX_PENDING_THREADS = 50;
 export const TOPIC_MAX_BYTES = 64 * 1024;
+/** Known facts a capture call is shown to judge new items against. */
+export const KNOWN_FACTS = 20;
 
 export interface UpkeepEngine {
   generateText?: (prompt: string, options?: { signal?: AbortSignal }) => Promise<string>;
@@ -401,7 +406,7 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
   function fileCandidates(botId: string, candidates: readonly Candidate[], filed: { source: string; via: string; threadId?: string }): { added: number; topics: number; kept: { text: string; where: string }[] } {
     const before = readRaw(botId, "MEMORY.md");
     const archiveBefore = readRaw(botId, ARCHIVE_PATH);
-    const fresh = newCandidates(candidates, before ?? "").filter((candidate) => !isForgotten(candidate.text));
+    const fresh = newCandidates(candidates, before ?? "").filter((candidate) => !isForgotten(candidate.text) && !looksLikeInstruction(candidate.text));
     const { source, via, threadId } = filed;
     const kept: { text: string; where: string }[] = [];
     let added = 0;
@@ -464,6 +469,49 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
     });
   }
 
+  /** The facts a capture call is shown, keyed F1…: those its conversations bring to mind, from the bot's notes and About me. */
+  async function knownFacts(botId: string, conversations: readonly CaptureBatch[], today: string): Promise<Array<KnownFact & { fact: FactRow }>> {
+    const said = conversations
+      .flatMap((conversation) => conversation.turns.flatMap((turn) => turn.room ? turn.room.filter((line) => line.by === "person").map((line) => line.text) : [turn.person]))
+      .join("\n")
+      .slice(0, 1_500);
+    if (!said.trim()) return [];
+    try {
+      const about = deps.general ? { owner: aboutOwner(), text: deps.general.read() } : undefined;
+      const { facts } = await recallFacts({ memoryIds: [botId], ...(about ? { about } : {}), query: said, today, wide: true });
+      return facts.slice(0, KNOWN_FACTS).map((item, i) => ({
+        key: `F${i + 1}`,
+        text: item.fact.text,
+        where: item.fact.file === ABOUT_FILE ? "general memory" : item.fact.file === "MEMORY.md" ? "notebook" : item.fact.file,
+        date: item.fact.validFrom,
+        fact: item.fact,
+      }));
+    } catch (error) {
+      log(`memory upkeep: could not look up known facts for capture: ${(error as Error).message}`);
+      return [];
+    }
+  }
+
+  /** Where a captured fact came from: the words quoted, and the message they were said in. */
+  function noteProvenance(owner: string, file: string, candidate: Candidate, conversation: CaptureBatch): void {
+    const quote = candidate.evidence ?? "";
+    const folded = foldForMatch(quote);
+    const said = (entry: CaptureTurn) => (candidate.kind === "outcome" ? entry.bot : entry.room ? entry.room.map((line) => line.text).join("\n") : entry.person);
+    const turn = conversation.turns.find((entry) => folded && foldForMatch(said(entry)).includes(folded));
+    const byOther = Boolean(turn?.room) && !turn!.room!.some((line) => line.by === "person" && foldForMatch(line.text).includes(folded));
+    const source: FactSource = candidate.kind === "outcome" ? "bot-verified" : byOther ? "other-person" : "person-said";
+    try {
+      annotateFact(owner, file, candidate.text, {
+        source,
+        ...(quote ? { quote } : {}),
+        refs: { threadId: conversation.threadId, ...(turn?.messageId ? { messageIds: [turn.messageId] } : {}) },
+        ...(candidate.happened ? { happened: candidate.happened, kind: "event" as const } : {}),
+      }, now().getTime());
+    } catch (error) {
+      log(`memory upkeep: could not record where a fact came from: ${(error as Error).message}`);
+    }
+  }
+
   /** One model call for one bot's waiting chats, each read as its own conversation. */
   async function captureCall(batches: readonly CaptureBatch[]): Promise<CaptureReport> {
     const started = generation;
@@ -491,6 +539,7 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
     }
     ensureWorkspace(id);
     const today = memoryDate(now());
+    const known = await knownFacts(id, conversations, today);
     const answer = await askModel(engine, capturePrompt({
       botName: bot.name,
       conversations: conversations.map((conversation) => conversation.turns),
@@ -498,6 +547,7 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
       today,
       topics: memoryTopicIndex(id),
       general: generalFacts(),
+      known: known.map(({ fact: _fact, ...shown }) => shown),
     }));
     if (started !== generation) return { ...off, note: "upkeep stopped" };
     if (answer === null) {
@@ -513,10 +563,27 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
     if (!upkeepEnabled(deps.bot(id))) return off;
     const still = conversations.map((conversation) => allowed(conversation.threadId));
     if (!still.some(Boolean)) return refused;
-    const filed = attribute(parseCandidates(answer, today, captureItemLimit(conversations.length)), conversations, still).flatMap((item) => {
+    const byKey = new Map(known.map((entry) => [entry.key, entry.fact]));
+    const ended: FactRow[] = [];
+    const parsed = parseCandidates(answer, today, captureItemLimit(conversations.length));
+    const duplicate = await nearDuplicateOf(parsed.filter((candidate) => !candidate.verdict || candidate.verdict === "new").map((candidate) => candidate.text), known.map((entry) => entry.fact));
+    const filed = attribute(parsed, conversations, still).flatMap((item) => {
       const turns = conversations[item.at]!.turns;
-      if (isForgotten(item.candidate.text) || !statedInConversation(item.candidate, turns, false)) return [];
-      return [{ ...item, aboutMe: item.aboutMe && statedInConversation(item.candidate, turns, true) }];
+      if (isForgotten(item.candidate.text) || looksLikeInstruction(item.candidate.text) || !statedInConversation(item.candidate, turns, false)) return [];
+      const aboutMe = item.aboutMe && statedInConversation(item.candidate, turns, true);
+      const target = item.candidate.target ? byKey.get(item.candidate.target) : undefined;
+      const verdict = item.candidate.verdict ?? "new";
+      const same = target && verdict === "repeat" ? target : duplicate.get(item.candidate.text);
+      if (same) {
+        // already known: only a fact about the person kept in one bot's notes still belongs in About me
+        return aboutMe && same.file !== ABOUT_FILE && deps.general ? [{ ...item, aboutMe, onlyAboutMe: true }] : [];
+      }
+      if (target && verdict === "end") {
+        ended.push(target);
+        return [];
+      }
+      const candidate = target && verdict === "change" ? { ...item.candidate, replaces: target.text } : item.candidate;
+      return [{ ...item, candidate, aboutMe, onlyAboutMe: false }];
     });
     const { added, topics } = writing(id, () => {
       let added = 0;
@@ -527,17 +594,29 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
         const replaced = mine.flatMap((item) => item.candidate.replaces ? [item.candidate.replaces] : []);
         if (replaced.length) supersedeInNotes(id, replaced, { via: "capture", threadId: conversation.threadId });
         // a fact about the person lives once, in the general memory every bot reads, not again in each bot's notes
-        const own = mine.filter((item) => !item.aboutMe).map((item) => item.candidate);
+        const own = mine.filter((item) => !item.aboutMe && !item.onlyAboutMe).map((item) => item.candidate);
         if (!own.length) return;
         const result = fileCandidates(id, own, { source: `${deps.sourceLabel(id, conversation.threadId)} (noticed)`, via: "capture", threadId: conversation.threadId });
         added += result.added;
         topics += result.topics;
+        for (const kept of result.kept) {
+          const item = own.find((candidate) => candidate.text === kept.text);
+          if (item) noteProvenance(id, kept.where, item, conversation);
+        }
       });
+      const endedNotes = ended.filter((fact) => fact.file !== ABOUT_FILE).map((fact) => fact.text);
+      if (endedNotes.length) supersedeInNotes(id, endedNotes, { via: "capture" });
       return { added, topics };
     });
     const learned = filed.filter((item) => item.aboutMe).map((item) => item.candidate.text);
-    const replacedAbout = filed.filter((item) => item.aboutMe && item.candidate.replaces).map((item) => item.candidate.replaces!);
-    const aboutMe = learned.length ? deps.addToAboutMe({ botId: id, botName: bot.name }, learned, replacedAbout) : 0;
+    const replacedAbout = [
+      ...filed.filter((item) => item.aboutMe && item.candidate.replaces).map((item) => item.candidate.replaces!),
+      ...ended.filter((fact) => fact.file === ABOUT_FILE).map((fact) => fact.text),
+    ];
+    const aboutMe = learned.length || replacedAbout.length ? deps.addToAboutMe({ botId: id, botName: bot.name }, learned, replacedAbout) : 0;
+    if (aboutMe && deps.general) {
+      for (const item of filed.filter((entry) => entry.aboutMe)) noteProvenance(aboutOwner(), ABOUT_FILE, item.candidate, conversations[item.at]!);
+    }
     const organized = await organize(id);
     const report: CaptureReport = { at, added, topics, aboutMe, organized };
     if (cancelled(started)) return report;
@@ -837,17 +916,18 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
         }
         if (outdated.length) recordMemoryChange(botId, { path: "MEMORY.md", actor: "upkeep", via: "dream", before, after: readRaw(botId, "MEMORY.md") });
       }
-      const candidates: Candidate[] = dreamt.learned.map((item) => ({
+      // a pattern with no words of the Person behind it is kept as a topic note, never in always-loaded memory
+      const candidates: Candidate[] = dreamt.learned.map((item) => dreamEvidenced(item, conversations) ? {
         text: item.text,
         kind: "preference",
         aboutUser: item.aboutUser,
         ...(item.topic ? { topic: item.topic } : {}),
         ...(item.topicAliases ? { topicAliases: item.topicAliases } : {}),
-      }));
+      } : { text: item.text, kind: "preference", aboutUser: false, topic: item.topic ?? "habits.md", topicAliases: item.topicAliases ?? ["patterns", "routine", "usually"] });
       const { kept } = candidates.length ? fileCandidates(botId, candidates, { source, via: "dream" }) : { kept: [] };
       return { outdated, kept, stale };
     });
-    const aboutUser = dreamt.learned.filter((item) => item.aboutUser).map((item) => item.text);
+    const aboutUser = dreamt.learned.filter((item) => item.aboutUser && dreamEvidenced(item, conversations)).map((item) => item.text);
     const aboutMe = aboutUser.length ? deps.addToAboutMe({ botId, botName: bot.name }, aboutUser) : 0;
     const done: DreamReport = {
       at,

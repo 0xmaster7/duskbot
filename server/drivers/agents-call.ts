@@ -704,10 +704,11 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
       return { text: "for_bot_id works only with action=append: one new note for that bot. To change or forget its notes, ask the person to tell that bot in its own chat.", isError: true };
     }
     const passageOnly = args.action === "remove" || args.action === "forget";
+    const ids = Array.isArray(args.ids) ? args.ids.filter((id): id is string => typeof id === "string" && id.trim() !== "") : [];
     if (!["append", "replace", "remove", "supersede", "forget", "prefer"].includes(String(args.action))
       || (!passageOnly && (typeof args.text !== "string" || !args.text.trim()))
-      || (args.action !== "append" && args.action !== "prefer" && (typeof args.old_text !== "string" || !args.old_text.trim()))) {
-      return { text: "Use memory_update action=append with text, replace or supersede with text and old_text, remove with old_text, forget with old_text naming what to forget, or prefer with text: one standing preference of the person.", isError: true };
+      || (args.action !== "append" && args.action !== "prefer" && !(args.action === "forget" && ids.length) && (typeof args.old_text !== "string" || !args.old_text.trim()))) {
+      return { text: "Use memory_update action=append with text, replace or supersede with text and old_text, remove with old_text, forget with ids or old_text naming what to forget, or prefer with text: one standing preference of the person.", isError: true };
     }
     const { body: r } = await apiResponse("/api/internal/memory", {
       method: "POST",
@@ -717,12 +718,14 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
         action: args.action,
         text: args.text,
         oldText: args.old_text,
+        ...(ids.length ? { ids } : {}),
         ...(typeof args.until === "string" && args.until.trim() ? { until: args.until.trim() } : {}),
         ...(typeof args.for_bot_id === "string" && args.for_bot_id.trim() ? { forBotId: args.for_bot_id.trim() } : {}),
       }),
     });
     if (r.error || r.ok !== true) return { text: String(r.error ?? "Memory update was not confirmed."), isError: true };
-    if (args.action === "forget") return { text: forgetText(String(args.old_text), r) };
+    if (args.action === "forget") return { text: forgetText(typeof args.old_text === "string" ? args.old_text : "those notes", r) };
+    if (r.unverified === true) return { text: String(r.note ?? "Saved as an unverified note.") };
     if (args.action === "prefer") return { text: preferText(r) };
     if (r.known === true) return { text: `Already remembered${r.forBot ? ` by @${String(r.forBot)}` : ""}, so nothing was added.${typeof r.entry === "string" && r.entry ? ` Entry: ${r.entry}` : ""}` };
     if (typeof r.forBot === "string") return { text: `Saved to @${r.forBot}'s notebook, marked as from you; it reads it from its next conversation on.${typeof r.entry === "string" && r.entry ? ` Entry: ${r.entry}` : ""}` };

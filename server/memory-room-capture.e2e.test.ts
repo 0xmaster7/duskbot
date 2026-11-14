@@ -12,7 +12,7 @@ it("captures a member bot's room turn into its memory, sourced to the room, once
   const routes = join(scratch, "routes.json");
   const textLog = join(scratch, "text-prompts.jsonl");
   writeFileSync(routes, JSON.stringify({
-    [CAPTURE_MARKER]: JSON.stringify([{ text: "The garden launch moved to Friday", kind: "decision", confidence: 0.9 }]),
+    [CAPTURE_MARKER]: JSON.stringify([{ text: "The garden launch moved to Friday", kind: "decision", evidence: "the garden launch moved to Friday", confidence: 0.9 }]),
   }));
   const fixture = await launchVerificationServer({ ...process.env, FAKE_CLAUDE_TEXT_ROUTES: routes, FAKE_CLAUDE_TEXT_LOG: textLog });
   const env = { DUSK_URL: fixture.info.url };
@@ -69,7 +69,7 @@ it("captures a Codex member bot's room turn through Codex's own background call"
   const routes = join(scratch, "routes.json");
   const textLog = join(scratch, "codex-exec.jsonl");
   writeFileSync(routes, JSON.stringify({
-    [CAPTURE_MARKER]: JSON.stringify([{ text: "The orchard tour moved to Monday", kind: "decision", confidence: 0.9 }]),
+    [CAPTURE_MARKER]: JSON.stringify([{ text: "The orchard tour moved to Monday", kind: "decision", evidence: "the orchard tour moved to Monday", confidence: 0.9 }]),
   }));
   const fixture = await launchVerificationServer({ ...process.env, FAKE_CODEX_TEXT_ROUTES: routes, FAKE_CODEX_TEXT_LOG: textLog },
     undefined, undefined, undefined, undefined, ["codex"]);
