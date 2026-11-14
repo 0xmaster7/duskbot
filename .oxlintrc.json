@@ -19,7 +19,9 @@
     "release/**",
     "third_party/**",
     "electron/resources/**",
-    "apps/site/public/landing/mascot.js"
+    "apps/site/public/landing/mascot.js",
+    "apps/site/public/landing/home-window-app.js",
+    "apps/site/public/landing/home-window.js"
   ],
   "overrides": [
     {

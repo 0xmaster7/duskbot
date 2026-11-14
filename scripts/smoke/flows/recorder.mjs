@@ -115,7 +115,7 @@ function makeRecorder(dir) {
       let cdp = s.cdp, look = null;
       try { look = cdp ? await cdp.evaluate(LOOK) : null; } catch { look = null; }
       if (!look) { cdp = await connect(s).catch(() => null); if (cdp) look = await cdp.evaluate(LOOK).catch(() => null); }
-      if (!look || look.ready === "loading" || /^about:blank/.test(look.url)) return;
+      if (!look || look.ready === "loading" || String(look.url).startsWith("about:blank")) return;
       const key = keyOf(look), now = Date.now();
       if (key === s.key) { s.pending = null; return; }
       if (key !== s.pending) { if (!s.pending) s.churnAt = now; s.pending = key; s.pendingAt = now; s.activeUntil = now + 4_000; return; }
