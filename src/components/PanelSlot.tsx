@@ -6,8 +6,8 @@ export const PANEL_WIDTH = 320;
 // a soft start then a long settle: the first frames, where the panel mounts, move it only a little, so nothing jumps
 const DURATION_MS = 260;
 
-/** The chat keeps at least this much beside a docked pane, as in Grok Bot; narrower, the pane cannot dock. */
-export const CHAT_MIN_WIDTH = 424;
+/** The chat keeps at least this much beside a docked pane; narrower, the pane cannot dock. */
+export const CHAT_MIN_WIDTH = 520;
 
 /** Below md the panel is its own full-screen sheet, so the slot steps aside there. */
 export function PanelSlot({ open, children }: { open: boolean; children: ReactNode }) {
