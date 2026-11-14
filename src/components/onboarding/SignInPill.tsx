@@ -110,10 +110,23 @@ function Busy({ label, hint, seconds }: { label: string; hint?: string | null; s
   );
 }
 
-/** a device code: the code, one button that copies it and opens the site, and a quiet waiting line. */
-function CodeStep({ code, site, onOpen, cancel }: { code: string; site: string; onOpen: (() => void) | null; cancel: React.ReactNode }) {
+const linkText = (link: string) => {
+  try {
+    const url = new URL(link);
+    return `${url.host}${url.pathname === "/" ? "" : url.pathname}`;
+  } catch { return link; }
+};
+
+/** a device code: where to enter it, the code, one button that copies it and opens the site, and a quiet waiting line. */
+function CodeStep({ code, site, link, onOpen, cancel }: { code: string; site: string; link: string | null; onOpen: (() => void) | null; cancel: React.ReactNode }) {
   const { state, copy } = useCopyFeedback(code);
+  const [before, after = ""] = t("connect.stage.enterCode", { site: "\u0000" }).split("\u0000");
   return <>
+    <p className="m-0 text-center text-[13px] leading-[18px] text-ink-secondary">
+      {before}{link && onOpen
+        ? <button type="button" onClick={onOpen} className="text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">{link}</button>
+        : site}{after}
+    </p>
     <button type="button" onClick={copy} data-sign-in="code" aria-label={t("connect.copyCode")}
       className="rounded-xl bg-composer px-4 py-1.5 font-mono text-[20px] font-medium tracking-[0.12em] text-ink transition-colors hover:bg-ink/[0.08] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none">{code}</button>
     <button type="button" data-connect-copy="" onClick={() => { void copy(); onOpen?.(); }} className="ui-button ui-button-pill ui-button-primary min-h-9 gap-1.5 px-4 text-[14px]">
@@ -128,12 +141,6 @@ function CodeStep({ code, site, onOpen, cancel }: { code: string; site: string; 
   </>;
 }
 
-const linkText = (link: string) => {
-  try {
-    const url = new URL(link);
-    return `${url.host}${url.pathname === "/" ? "" : url.pathname}`;
-  } catch { return link; }
-};
 
 /** The pressed AI's connect, stage by stage: honest progress, a deadline on each step, and a way out of every one. */
 export function ConnectPanel({ flow, name, driverKind, onTrouble }: {
@@ -189,7 +196,7 @@ export function ConnectPanel({ flow, name, driverKind, onTrouble }: {
           </div>
         </>;
       } else if (state.code) {
-        body = <CodeStep code={state.code} site={site} onOpen={state.link ? () => void flow.openAgain() : null} cancel={cancel} />;
+        body = <CodeStep code={state.code} site={site} link={state.link ? linkText(state.link) : null} onOpen={state.link ? () => void flow.openAgain() : null} cancel={cancel} />;
       } else {
         body = <>
           <Busy label={t("connect.stage.waiting")} hint={state.opened ? t("connect.stage.waitingHint") : null} seconds={seconds} />
