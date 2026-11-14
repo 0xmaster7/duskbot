@@ -43,7 +43,7 @@ const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 const t0 = Date.now();
 const results = [];
 const facts = {};
-let app = null, tunnel = null, shotCount = 0, accountState = null;
+let app = null, tunnel = null, shotCount = 0, accountState = null, accountClient = null;
 const log = (line) => console.log(`[${((Date.now() - t0) / 1000).toFixed(0).padStart(4)}s] ${line}`);
 
 async function shot(name) {
@@ -204,7 +204,8 @@ async function main() {
   }, { critical: true });
 
   await step("sign-in", "signs in to the preview account service", async () => {
-    const { state, how } = await smokeAccount({ root, profile, email: EMAIL, force: flag("--fresh-sign-in"), appVersion: facts.appVersion });
+    const { client, state, how } = await smokeAccount({ root, profile, email: EMAIL, force: flag("--fresh-sign-in"), appVersion: facts.appVersion });
+    accountClient = client;
     facts.account = { email: EMAIL, status: state.status, clouds: state.clouds?.length ?? 0 };
     accountState = state;
     return `${how} (the dev app shows no account sign-in; the packaged app's client signed in)`;
@@ -217,18 +218,20 @@ async function main() {
     const cloud = state.clouds[0];
     const origin = cloud.origin ?? cloud.machine?.origin;
     if (!origin) throw new Error(`the cloud is listed without an address (${cloud.status ?? "no status"})`);
-    // a cloud home asleep answers 503 "waking up" while its edge starts it: wait that out (reads only), up to 90 s
+    // a read never wakes a home: one asleep (x-dusk-cloud-power: asleep) is woken the way the app does on a click, through
+    // the account service, then read until it answers; a wake under way is waited out. Up to 3 minutes either way.
     const started = Date.now();
-    let health, waited = false;
+    let health, waited = false, woke = null;
     for (;;) {
       health = await fetch(`${origin}/api/health`, { signal: AbortSignal.timeout(30_000) });
-      const text = health.status === 503 ? await health.text().catch(() => "") : "";
-      if (health.status !== 503 || !/waking/i.test(text) || Date.now() - started > 90_000) break;
+      const power = health.status === 503 ? health.headers.get("x-dusk-cloud-power") : null;
+      if (!power || Date.now() - started > 180_000) break;
+      if (power === "asleep" && woke === null) woke = await accountClient?.wakeHome("click").catch(() => null) ?? "no client";
       waited = true;
-      await sleep(5_000);
+      await sleep(3_000);
     }
-    facts.myCloud = { origin, health: health.status, wokeInSeconds: waited ? Math.round((Date.now() - started) / 1000) : 0 };
-    if (!health.ok) throw new Error(`${origin} answered ${health.status}${waited ? " after 90 s of waking" : ""}`);
+    facts.myCloud = { origin, health: health.status, wake: woke, wokeInSeconds: waited ? Math.round((Date.now() - started) / 1000) : 0 };
+    if (!health.ok) throw new Error(`${origin} answered ${health.status}${waited ? ` after ${facts.myCloud.wokeInSeconds} s (wake asked: ${woke ?? "no"})` : ""}`);
     return `${origin} healthy${waited ? ` (woke in ${facts.myCloud.wokeInSeconds} s)` : ""}`;
   });
 

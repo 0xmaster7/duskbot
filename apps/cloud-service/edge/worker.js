@@ -89,7 +89,10 @@ async function wakeAndWait(label, reason, env, ctx, now = () => Date.now()) {
 /** `asleep`: the home sleeps and a person's action would wake it, so the page's x-dusk-cloud-power answer (src/lib/cloud-power.ts)
  *  tells it to stop polling and wake it on the next key press or click, instead of reconnecting forever */
 function waking(status, { asleep = false, wakeable = true } = {}) {
-  const text = status === 429 ? "This dusk bot was woken too often this hour. Try again later." : "This dusk bot is waking up. Try again in a few seconds.";
+  // asleep and not being woken (a read never wakes a home): say so, never "waking up", or a reader waits for a wake that
+  // nobody started
+  const text = status === 429 ? "This dusk bot was woken too often this hour. Try again later."
+    : asleep ? "This dusk bot is asleep. It wakes when someone uses it." : "This dusk bot is waking up. Try again in a few seconds.";
   return new Response(text, { status: status === 429 ? 429 : 503, headers: { "content-type": "text/plain; charset=utf-8", "retry-after": status === 429 ? "300" : "5", "cache-control": "no-store",
     ...(status === 429 || !wakeable ? {} : { "x-dusk-cloud-power": asleep ? "asleep" : "waking", "x-omb-cloud-power": asleep ? "asleep" : "waking" }) } });
 }
