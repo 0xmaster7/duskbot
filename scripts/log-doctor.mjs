@@ -40,6 +40,8 @@ export const KNOWN = Object.freeze([
   { re: /docker gate: refused POST \/grpc|pulling docker\.io\/moby\/buildkit/, note: "a computer image build through the gate (BuildKit is refused): follows an unpublished image" },
   { re: /computer update: .* could not update yet/, note: "image tag shipped before it was published: guarded since f4a6e70bf" },
   { re: /New commit detected|Reinstalling and restarting|Restarting\.\.\./, note: "prozessor restarts the service on every push to main" },
+  { re: /pulling ghcr\.io\/duskbotai\/dusk-desktop is not allowed|could not pull ghcr\.io\/duskbotai\/dusk-desktop/, note: "gate older than the image rename: d31ddbf2f, lands with the next signed server build" },
+  { re: /startup HTTP cache cleared \(no-persisted-version/, note: "another app copy shares this userData and rewrites last-run-version.json: not the app" },
   { re: /direct path did not connect \(connect ENETUNREACH/, note: "this network has no ipv4 route to the server (nat64): expected" },
 ]);
 
