@@ -1,0 +1,164 @@
+[
+  {
+    "section": "5",
+    "surface": "browser",
+    "match": "Order Summary[\\s\\S]*GST",
+    "note": "confusing: the plan said $20/month, the checkout totals $23.60 (GST added) with no word about tax before; the merchant name reads \"Dusk Bot\" (off-brand capitals) and the phone field defaults to +91"
+  },
+  {
+    "section": "5",
+    "surface": "browser",
+    "match": "no workspace yet[\\s\\S]*keep them working",
+    "note": "confusing: the website's plans page says \"no workspace yet, connect one from the app\" and shows a \"keep them working\" upsell for dusk cloud while the person is in the middle of buying it"
+  },
+  {
+    "section": "5",
+    "surface": "app",
+    "match": "Can't reach my cloud right now",
+    "note": "broken: right after \"Your cloud is ready, opening its chat now\" the window says \"Can't reach my cloud right now\" before the chat appears"
+  },
+  {
+    "section": "5",
+    "surface": "app",
+    "match": "Your cloud is ready",
+    "note": "confusing: \"Open chat\" stays a grey, disabled-looking button while the screen says it is opening the chat"
+  },
+  {
+    "section": "5",
+    "surface": "app",
+    "match": "All moved[\\s\\S]*Your bots are working on dusk cloud",
+    "note": "confusing: an \"All moved\" sheet pops over the cloud's chat while the person's first message is being answered (this person had nothing to move: it was a fresh first run)"
+  },
+  {
+    "section": "5",
+    "surface": "app",
+    "match": "free backup is busy",
+    "note": "broken: the first reply on the new cloud is \"The free backup is busy right now. Connect your AI\"; a brand-new person never gets an answer from the free model"
+  },
+  {
+    "section": "6",
+    "surface": "app",
+    "match": "Sign in to Composio",
+    "note": "confusing, off-brand: Gmail tells a new person to \"sign in to Composio\" (a vendor they never heard of) and offers \"use my own Composio API key\"; the card is a mostly empty full-height sheet"
+  },
+  {
+    "section": "6",
+    "surface": "app",
+    "match": "Waiting for Composio",
+    "note": "slow: after \"Connect Gmail\" the app sits on \"Waiting for Composio...\" with nothing opened in the browser for 8+ seconds (in a plain run the Composio page opened after about 10 s)"
+  },
+  {
+    "section": "6",
+    "surface": "app",
+    "match": "saved on this server, which is where its bots run",
+    "note": "wording: on this Mac, Settings > Models says connections are \"saved on this server\""
+  },
+  {
+    "section": "1",
+    "surface": "app",
+    "match": "dusk cloud runs your bots 24/7",
+    "note": "confusing: choosing the free \"This Mac\" opens an upsell for dusk cloud, with \"Use dusk cloud\" as the dark primary button and \"Continue with this Mac\" as the quiet one"
+  },
+  {
+    "section": "1",
+    "surface": "app",
+    "match": "Waiting for ChatGPT",
+    "note": "confusing: one click on the ChatGPT card starts its sign-in at once (\"Waiting for ChatGPT...\") with no cancel next to it, and the wait stays on screen after closing the full list"
+  },
+  {
+    "section": "1",
+    "surface": "app",
+    "match": "saved on this server, which is where its bots run",
+    "note": "wording: on this Mac, the full list of AIs says connections are \"saved on this server\""
+  },
+  {
+    "section": "1",
+    "surface": "app",
+    "match": "Waiting for your notes from another AI",
+    "note": "layout: the first chat opens with the bot panel on the right (Details / Computer / Advanced, only a routines hint and the model), which squeezes the chat into a narrow column at the normal window size"
+  },
+  {
+    "section": "1",
+    "surface": "app",
+    "match": "free backup is busy",
+    "note": "broken: the first message on this Mac gets \"Connect your AI to keep chatting. The free backup is busy right now.\" (same in a run with nothing else going on); a new person on the free model never gets a first reply"
+  },
+  {
+    "section": "3",
+    "surface": "app",
+    "match": "of \\d+ layers|\\d+ B of \\d+ KB",
+    "note": "wording: the install progress shows container jargon (\"0 of 13 layers\", \"0 B of 203 KB\") to a person who just pasted one line"
+  },
+  {
+    "section": "3",
+    "surface": "app",
+    "match": "is connected[\\s\\S]*Sign in to your AI",
+    "note": "confusing: after linking, the primary button says \"Sign in to your AI\", but what follows is a skip and \"Move everything to <server>\": the button doesn't say what comes next"
+  },
+  {
+    "section": "3",
+    "surface": "app",
+    "match": "Moving to instabox",
+    "note": "broken visual: the moving bot avatar overlaps the title (\"Moving to <server>\") while it travels"
+  },
+  {
+    "section": "3",
+    "surface": "app",
+    "match": "Your computer is offline, so your bot computers use the server's network",
+    "note": "broken: on the freshly linked server the chat says \"Your computer is offline\" although this Mac is online and in use"
+  },
+  {
+    "section": "3",
+    "surface": "browser",
+    "match": "you are signed in[\\s\\S]*MacBook-Pro is signed in too|no workspace yet",
+    "note": "confusing: the website's \"signed in\" page sits beside a dashboard that says \"no workspace yet\" and a \"keep them working\" cloud upsell, while the person is in the middle of linking their own server"
+  },
+  {
+    "section": "2",
+    "surface": "app",
+    "match": "Add account[\\s\\S]*Log out",
+    "note": "confusing: signed in, the account menu never says who is signed in (no name or email), the account button still shows the Mac user's initial \"S\" rather than the account's, and it says \"Log out\" where Settings says \"Sign out\""
+  },
+  {
+    "section": "2",
+    "surface": "browser",
+    "match": "too many tries",
+    "note": "broken: signing in again from the menu a few minutes after the first sign-in is refused on the website with \"too many tries. wait a minute, then try again.\""
+  },
+  {
+    "section": "2",
+    "surface": "browser",
+    "match": "that sign-in link has expired",
+    "note": "broken: after waiting out \"too many tries\" and signing in, the approve page says \"that sign-in link has expired, codes last 10 minutes\" about 2.5 minutes after the app opened it; the app never gets signed in"
+  },
+  {
+    "section": "4",
+    "surface": "app",
+    "match": "Move to dusk cloud[\\s\\S]*Get dusk cloud",
+    "note": "confusing: the \"Move to dusk cloud\" sheet shows no price, and \"Get dusk cloud\" opens the website with the $50/month pro plan picked (not plus at $20)"
+  },
+  {
+    "section": "4",
+    "surface": "browser",
+    "match": "work license \\(monthly\\)",
+    "note": "confusing: the checkout leads with \"work license (monthly) $12\" and lists \"dusk cloud - pro $38\" as an add-on, totalling $59 with GST; nothing in the app or the plans page mentioned a work license or tax"
+  },
+  {
+    "section": "4",
+    "surface": "app",
+    "match": "Wake computer",
+    "note": "confusing: on the server's page, the bot panel's Computer tab offers \"Wake computer\" and \"Keep dusk bot working, move to dusk cloud\" side by side, with the move card being the only way to reach dusk cloud from a server"
+  },
+  {
+    "section": "4",
+    "surface": "app",
+    "match": "Connect them again on My Cloud",
+    "note": "wording: the done sheet says \"Connect them again on My Cloud\" while everything else says \"dusk cloud\""
+  },
+  {
+    "section": "4",
+    "surface": "app",
+    "match": "Your computer is offline, so your bot computers use the server's network",
+    "note": "broken: the server's chat says \"Your computer is offline\" although this Mac is online"
+  }
+]

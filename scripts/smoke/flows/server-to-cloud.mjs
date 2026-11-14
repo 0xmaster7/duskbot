@@ -4,14 +4,16 @@
 // accounts sheet in the rail's view), and after it the checkout opens by itself, is paid in Dodo TEST mode, and the move
 // follows. Sink addresses only.
 //
-//   node scripts/smoke/flows/server-to-cloud.mjs [--out DIR] [--profile DIR] [--email ADDRESS] [--no-pay]
+//   node scripts/smoke/flows/server-to-cloud.mjs [--out DIR] [--profile DIR] [--email ADDRESS] [--no-pay] [--move-first]
 import { join } from "node:path";
 import { until } from "../app.mjs";
+import { walkthrough } from "./recorder.mjs";
 import { accountLinkFrom, webAccountStep } from "./web-account.mjs";
 import { createFlow, flowArgs, runFlow, sleep, INSTALL_LINE, shellQuote } from "./lib.mjs";
 import { createVm, leftoverVms, removeVm } from "./instabox-vm.mjs";
 
 const { root, out, profile, email, stamp, flag } = flowArgs("s2c");
+const moveFirst = flag("--move-first");
 const flow = createFlow({ name: "server-to-cloud", title: "server to dusk cloud, signed out", root, out, profile, email, env: { DUSK_ALLOW_SIGNED_OUT: "1" } });
 
 /** in the main window, as a person's click (user activation), awaiting the answer */
@@ -20,6 +22,29 @@ const act = async (expression) => {
   if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description?.split("\n")[0] ?? "failed");
   return r.result?.value;
 };
+
+/** as a person does it on the server's page: the bot's name in the chat header opens its panel, the Computer tab's
+ *  dusk cloud card opens "Move to dusk cloud", and its "Get dusk cloud" starts the buy */
+async function getCloudFromPanel() {
+  await flow.app.reattach(serverOrigin).catch(() => {});
+  await flow.waitFor(`Boolean(document.querySelector('textarea[aria-label^="Message"]'))`, "the server's chat", 60_000);
+  await sleep(1500);
+  await flow.clickSelector("[data-chathead-identity] button", 15_000);
+  await flow.waitFor(`Boolean(document.querySelector("[data-panel-tabs]"))`, "the bot's panel", 15_000);
+  await sleep(1200);
+  await flow.clickSelector('[data-panel-tab="computer"]', 10_000);
+  await flow.waitFor(`Boolean(document.querySelector('[data-panel-action="move-cloud"]'))`, "the panel's dusk cloud card", 15_000);
+  await sleep(1500);
+  await flow.clickSelector('[data-panel-action="move-cloud"]', 10_000);
+  await flow.waitFor(`Boolean(document.querySelector('[data-cloud-move-action="buy"]'))`, "the move sheet's Get dusk cloud", 30_000);
+  await sleep(2000);
+  const label = await act(`(() => { const b = document.querySelector('[data-cloud-move-action="buy"]'); b.click(); return b.innerText.trim(); })()`);
+  walkthrough.did(`clicks "${label}"`);
+  // "buying" comes first; signed out, the sign-in in the browser (signingIn) follows it a moment later
+  let last = null;
+  return until(async () => { const v = last = await flow.evaluate(`window.duskDesktop.vpsCloudMove.view()`).catch(() => null); return v && (v.signingIn === true || !["none", "buying"].includes(v.stage)) ? v : false; }, { timeout: 20_000, what: "the move to start" })
+    .catch(() => last);
+}
 
 let vm = null, serverOrigin = null;
 await runFlow(flow, async () => {
@@ -54,6 +79,7 @@ await runFlow(flow, async () => {
   await flow.step("server", "a throwaway server runs the line, and the app links it", async () => {
     for (const old of await leftoverVms()) if (Date.parse(old.createdAt ?? 0) < Date.now() - 60 * 60_000) await removeVm(old.id).catch(() => {});
     vm = await createVm(`dusk-smoke-s2c-${stamp.slice(5).replace(/[^0-9]/g, "")}`);
+    flow.facts.vm = vm.id;
     const made = vm; flow.atClose(async () => { await made.remove(); flow.log(`deleted ${made.id}`); });
     await vm.exec(`cd ~ && setsid nohup bash -c ${shellQuote(`${line}; echo "exit $?" >> ~/dusk-install.log`)} > ~/dusk-install.log 2>&1 < /dev/null & echo started`, 30);
     const started = Date.now();
@@ -73,9 +99,20 @@ await runFlow(flow, async () => {
     await flow.waitFor(`window.duskDesktop.cloudAccount.state().then((s) => !s.account)`, "signed out", 30_000);
   }, { critical: true });
 
-  await flow.step("server-page", "opens the server's own page", async () => {
+  // --move-first: the bots go to the server first ("move everything here", as in add-server.mjs), so its page opens on
+  // their chat, where a person who later wants dusk cloud finds it
+  await flow.step("server-page", moveFirst ? "moves the bots to the server, which opens on their chat" : "opens the server's own page", async () => {
     await flow.waitText(/is connected/i, "the connected screen", { timeout: 60_000 });
-    await until(() => flow.evaluate(`(() => { const b = [...document.querySelectorAll("[role=dialog] button, button")].filter((e) => e.getClientRects().length).find((e) => /^open \\S/i.test(e.innerText.trim())); if (!b) return false; b.click(); return true; })()`), { what: "open <server>" });
+    if (moveFirst) {
+      await flow.click("sign in to your AI");
+      await flow.waitFor(`Boolean(document.querySelector("[data-vps-screen]"))`, "the server sheet", 60_000);
+      if (await flow.evaluate(`document.querySelector("[data-vps-screen]")?.getAttribute("data-vps-screen")`) === "signin") { await flow.click("skip for now"); await sleep(1500); }
+      await flow.waitFor(`(() => { const b = [...document.querySelectorAll("button")].find((e) => /^move everything/i.test(e.innerText.trim())); return Boolean(b && !b.disabled); })()`, "the move button", 120_000);
+      await sleep(1000);
+      await flow.click("move everything here", { contains: true });
+      await flow.waitFor(`(() => { const link = window.duskDesktop?.vpsLink; if (!link) return "on-server";
+        return link.state().then((v) => v.stage === "moved" || (v.move?.status === "failed" ? "failed: " + (v.move?.error ?? v.move?.step) : false)); })()`, "the move to the server", 15 * 60_000);
+    } else await until(() => flow.evaluate(`(() => { const b = [...document.querySelectorAll("[role=dialog] button, button")].filter((e) => e.getClientRects().length).find((e) => /^open \\S/i.test(e.innerText.trim())); if (!b) return false; b.click(); return true; })()`), { what: "open <server>" });
     const url = await until(async () => { const page = (await flow.app.targets()).find((t) => t.type === "page" && t.url.startsWith("https:") && !/\/rail/.test(t.url)); return page?.url; }, { timeout: 60_000, what: "the server's page" });
     serverOrigin = new URL(url).origin;
     await flow.app.reattach(serverOrigin);
@@ -87,8 +124,14 @@ await runFlow(flow, async () => {
   await flow.step("get-cloud", "Get dusk cloud while signed out continues in the browser (no 'sign in on this Mac's page first')", async () => {
     since = Date.now();
     let answer;
-    try { answer = await act(`window.duskDesktop.vpsCloudMove.buy("plus")`); }
-    catch (error) { throw new Error(`the buy refused: ${error.message}`); }
+    // the bot panel's card and the sheet, as a person does it; the move's own call when that way isn't there
+    try { answer = await getCloudFromPanel(); flow.facts.getCloudVia = "bot panel, Computer tab, move sheet"; }
+    catch (error) {
+      flow.facts.getCloudVia = `the bridge (${error.message.slice(0, 120)})`;
+      flow.friction("confusing", "get dusk cloud", `the walkthrough could not reach "Get dusk cloud" through the bot panel and the sheet: ${error.message.slice(0, 160)}`);
+      try { answer = await act(`window.duskDesktop.vpsCloudMove.buy("plus")`); }
+      catch (failed) { throw new Error(`the buy refused: ${failed.message}`); }
+    }
     flow.facts.afterBuy = answer;
     if (answer?.signingIn !== true) throw new Error(`the move did not wait in the browser: ${JSON.stringify(answer).slice(0, 160)}`);
     await sleep(1500);
@@ -123,5 +166,30 @@ await runFlow(flow, async () => {
     }
     flow.facts.moveSteps = [...seen];
     return `${Math.round((Date.now() - started) / 1000)}s: ${[...seen].join(" > ")}`;
+  });
+
+  await flow.step("cloud-chat", "opens dusk cloud: the moved bots and a chat there", async () => {
+    const started = Date.now();
+    for (;;) {
+      const where = await flow.evaluate(`location.origin`).catch(() => "");
+      if (!where) await flow.app.reattach().catch(() => {});
+      const chat = await flow.evaluate(`Boolean(document.querySelector('textarea[aria-label^="Message"]'))`).catch(() => false);
+      const welcome = await flow.evaluate(`/welcome to dusk cloud/i.test(document.body.innerText)`).catch(() => false);
+      if (where && where !== serverOrigin && where.startsWith("https://") && chat && !welcome) break;
+      const pressed = await flow.evaluate(`(() => {
+        const shown = (sel) => [...document.querySelectorAll(sel)].filter((e) => e.getClientRects().length && !e.disabled);
+        for (const word of ["open dusk cloud", "start chatting", "open chat", "continue"]) { const b = shown("button").find((e) => e.innerText.trim().toLowerCase() === word); if (b) { b.click(); return b.innerText.trim(); } }
+        return null; })()`).catch(() => null);
+      if (pressed) { walkthrough.did(`clicks "${pressed}"`); flow.facts.pressedForCloud = [...(flow.facts.pressedForCloud ?? []), pressed]; }
+      if (Date.now() - started > 6 * 60_000) throw new Error(`not on the cloud's chat after 6 minutes (window at ${where})`);
+      await sleep(3000);
+      if (where === serverOrigin || !where) await flow.app.reattach().catch(() => {});
+    }
+    flow.facts.cloudOrigin = await flow.evaluate(`location.origin`);
+    await walkthrough.capture("app", "looks at the moved bots on dusk cloud");
+    const asked = Date.now();
+    const outcome = await flow.chatOk();
+    if (outcome.startsWith("said:")) flow.friction("confusing", "the cloud's chat", `the first message on the cloud got: ${outcome.slice(5).replace(/\s+/g, " ").slice(0, 160)}`);
+    return `${new URL(flow.facts.cloudOrigin).host}: ${outcome.replace(/\s+/g, " ")} in ${Math.round((Date.now() - asked) / 1000)}s`;
   });
 });

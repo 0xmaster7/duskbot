@@ -9,6 +9,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { launchSmokeApp, until } from "../app.mjs";
 import { PREVIEW_ORIGIN, TEST_MAIL_DOMAIN, testMailCode } from "../account.mjs";
+import { APP_SIZE, typedWords, walkthrough } from "./recorder.mjs";
+export { typedWords };
 
 export const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 const js = (value) => JSON.stringify(value);
@@ -34,12 +36,14 @@ export function createFlow({ name, title, root, out, profile, email, env = {} })
   const t0 = Date.now();
   const results = [], frictions = [], facts = {}, closers = [];
   let shots = 0;
+  walkthrough.setEmail(email);
   const flow = {
     name, root, out, profile, email, facts, app: null,
     log: (line) => console.log(`[${name} ${((Date.now() - t0) / 1000).toFixed(0).padStart(4)}s] ${line}`),
     async launch(extra = {}) {
-      flow.app = await launchSmokeApp({ root, profile, log: flow.log, env: { DUSK_CLOUD_ORIGIN: PREVIEW_ORIGIN, ...env, ...extra } });
+      flow.app = await launchSmokeApp({ root, profile, log: flow.log, env: { DUSK_CLOUD_ORIGIN: PREVIEW_ORIGIN, ...(walkthrough.enabled ? { DUSK_SMOKE_THEME: "light" } : {}), ...env, ...extra } });
       await flow.viewport(1280, 820);
+      walkthrough.attachApp(flow.app);
       return flow.app;
     },
     async shot(label) {
@@ -48,9 +52,10 @@ export function createFlow({ name, title, root, out, profile, email, env = {} })
       try { await flow.app.screenshot(file); return file; } catch { return null; }
     },
     /** what a new person would trip on: `kind` is confusing, extra-click, wording, slow or broken */
-    friction(kind, where, note) { frictions.push({ kind, where, note }); flow.log(`friction (${kind}) ${where}: ${note}`); },
+    friction(kind, where, note) { frictions.push({ kind, where, note }); walkthrough.warn(kind, where, note); flow.log(`friction (${kind}) ${where}: ${note}`); },
     async step(id, label, fn, { critical = false } = {}) {
       const started = Date.now();
+      walkthrough.step(id, label);
       const entry = { id, title: label, status: "pass", note: "", ms: 0, shot: null };
       try { const result = await fn(entry); if (typeof result === "string") entry.note = result; }
       catch (error) { entry.status = error?.skip ? "skip" : "fail"; entry.note = String(error?.message ?? error).split("\n")[0].slice(0, 400); }
@@ -58,6 +63,7 @@ export function createFlow({ name, title, root, out, profile, email, env = {} })
       entry.ms = Date.now() - started;
       entry.shot ??= await flow.shot(id);
       results.push(entry);
+      walkthrough.stepDone(id, entry.status, entry.note);
       flow.log(`${entry.status.toUpperCase().padEnd(4)} ${label} (${(entry.ms / 1000).toFixed(1)}s)${entry.note ? `: ${entry.note}` : ""}`);
       if (critical && entry.status === "fail") throw Object.assign(new Error(`stopped: ${label} failed`), { stopped: true });
       return entry;
@@ -77,16 +83,19 @@ export function createFlow({ name, title, root, out, profile, email, env = {} })
         .filter((e) => e.getClientRects().length && !e.disabled).find((e) => match(e.getAttribute("aria-label")) || match(e.innerText));
       if (!el) return false;
       el.click();
-      return true;
-    })()`), { timeout, what: `"${text}" to click` }),
-    clickSelector: (selector, timeout = 15_000) => until(() => flow.app.evaluate(`(() => { const el = document.querySelector(${js(selector)}); if (!el || !el.getClientRects().length) return false; el.click(); return true; })()`), { timeout, what: selector }),
-    type: (text) => flow.app.send("Input.insertText", { text }),
+      return (el.getAttribute("aria-label") || el.innerText || "").trim().replace(/\\s+/g, " ").slice(0, 60) || true;
+    })()`), { timeout, what: `"${text}" to click` }).then((label) => { walkthrough.did(`clicks "${typeof label === "string" ? label : text}"`); return true; }),
+    clickSelector: (selector, timeout = 15_000) => until(() => flow.app.evaluate(`(() => { const el = document.querySelector(${js(selector)}); if (!el || !el.getClientRects().length) return false; el.click(); return (el.getAttribute("aria-label") || el.innerText || "").trim().replace(/\\s+/g, " ").slice(0, 60) || true; })()`), { timeout, what: selector })
+      .then((label) => { walkthrough.did(`clicks "${typeof label === "string" ? label.split(" ").slice(0, 8).join(" ") : selector}"`); return true; }),
+    type: (text) => { walkthrough.did(typedWords(text)); return flow.app.send("Input.insertText", { text }); },
     async press(key, code = key, keyCode = 0) {
+      walkthrough.did(`presses ${key}`);
       await flow.app.send("Input.dispatchKeyEvent", { type: "keyDown", key, code, windowsVirtualKeyCode: keyCode });
       await flow.app.send("Input.dispatchKeyEvent", { type: "keyUp", key, code, windowsVirtualKeyCode: keyCode });
     },
     escape: () => flow.press("Escape", "Escape", 27),
-    viewport: (width, height = 820) => flow.app.send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: false }),
+    // the walkthrough keeps the app's normal window for every shot
+    viewport: (width, height = 820) => flow.app.send("Emulation.setDeviceMetricsOverride", { ...(walkthrough.enabled ? APP_SIZE : { width, height }), deviceScaleFactor: 1, mobile: false }),
     /** the system-browser links the app asked to open since `since` (recorded by the shim, never opened) */
     opened(since = 0) { return flow.app.events().filter((event) => event.kind === "open-external" && event.at >= since).map((event) => event.url); },
     /** the account gate, as a new person meets it: email, the emailed code, in */
@@ -105,6 +114,22 @@ export function createFlow({ name, title, root, out, profile, email, env = {} })
       await flow.type(code);
       await flow.waitFor(`!/sign in to dusk bot/i.test(document.body.innerText)`, "the gate to let the person in", 30_000);
       return `${email}, code arrived in ${facts.codeSeconds}s`;
+    },
+    /** sends "reply with just ok" in the open chat; "reply:<text>", or "said:<text>" when the bot answered with a problem */
+    async chatOk(timeout = 180_000) {
+      const marker = `walk ${Date.now().toString(36)}`;
+      await flow.waitFor(`Boolean(document.querySelector('textarea[aria-label^="Message"]'))`, "the chat box", 60_000);
+      await flow.evaluate(`document.querySelector('textarea[aria-label^="Message"]').focus(); true`);
+      await flow.type(`Reply with just the word ok. (${marker})`);
+      await flow.press("Enter", "Enter", 13);
+      return flow.waitFor(`(() => {
+        const rows = document.querySelector("[data-simple-rows]")?.innerText ?? document.body.innerText;
+        const at = rows.lastIndexOf(${js(marker)});
+        if (at < 0) return false;
+        const after = rows.slice(at + ${marker.length + 1}).replace(/\\b\\d{1,2}:\\d{2}\\b/g, "").trim();
+        if (/failed|went wrong|couldn.t|sign in|connect an ai/i.test(after)) return "said:" + after.slice(0, 160);
+        return /\\bok\\b/i.test(after) ? "reply:" + after.slice(0, 80) : false;
+      })()`, "the bot's reply", timeout);
     },
     accountState: () => flow.evaluate(`window.duskDesktop?.cloudAccount?.state()`),
     async openSettings(section) {
@@ -144,10 +169,12 @@ export function createFlow({ name, title, root, out, profile, email, env = {} })
     /** run when the flow closes, also after Ctrl-C or a kill (a paid machine is never left behind) */
     atClose(fn) { closers.push(fn); },
     async close({ keepProfile = false } = {}) {
+      await walkthrough.finish().catch((error) => flow.log(`walkthrough: ${error?.message ?? error}`));
+      walkthrough.detachApp();
       for (const fn of closers.splice(0)) await Promise.resolve().then(fn).catch((error) => flow.log(`cleanup failed: ${error?.message ?? error}`));
       await flow.app?.close().catch(() => {});
       flow.app = null;
-      if (!keepProfile && profile.includes(`${join(".cache", "dusk-smoke", "flows")}`)) rmSync(profile, { recursive: true, force: true });
+      if (!keepProfile && profile.includes(`${join(".cache", "dusk-smoke", "flows")}`)) { try { rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 }); } catch (error) { flow.log(`could not remove the profile: ${error.message}`); } }
     },
   };
   return flow;

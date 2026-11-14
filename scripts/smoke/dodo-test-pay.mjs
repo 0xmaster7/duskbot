@@ -3,6 +3,7 @@
 // never spend money. Used by the buy-cloud flow and by test-purchase.mjs (the operator grant on preview).
 import { launchBrowser } from "./flows/browser.mjs";
 import { until } from "./app.mjs";
+import { walkthrough } from "./flows/recorder.mjs";
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 const js = (value) => JSON.stringify(value);
@@ -21,6 +22,7 @@ export async function payDodoTestCheckout(checkoutUrl, { shot = null, log = () =
   const press = async (selector, mark = null) => {
     if (mark) await browser.evaluate(mark);
     const box = await until(() => browser.evaluate(`(() => { const el = document.querySelector(${js(selector)}); if (!el || !el.getClientRects().length || el.disabled) return false; el.scrollIntoView({ block: "center" }); const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`), { what: selector, timeout: 30_000 });
+    walkthrough.did(`clicks "${(await browser.evaluate(`document.querySelector(${js(selector)})?.innerText?.trim().slice(0, 40) ?? ""`).catch(() => "")) || "continue"}"`, "browser");
     for (const type of ["mouseMoved", "mousePressed", "mouseReleased"]) await browser.send("Input.dispatchMouseEvent", { type, x: box.x, y: box.y, button: "left", clickCount: 1 });
   };
   const fill = async (selector, text) => {
@@ -59,6 +61,7 @@ export async function payDodoTestCheckout(checkoutUrl, { shot = null, log = () =
     const typeIn = async (match, text) => {
       const ok = await card.evaluate(`(() => { const el = [...document.querySelectorAll("input")].filter((e) => e.getClientRects().length).find((e) => ${match}); if (!el) return false; el.focus(); return true; })()`);
       if (!ok) throw new Error(`no card field for ${match}`);
+      walkthrough.did(`types the test card's ${text === TEST_CARD.number ? "number (4242 ...)" : text === TEST_CARD.expiry ? "expiry" : "CVC"}`, "browser");
       await card.send("Input.insertText", { text });
       await sleep(400);
     };
@@ -70,7 +73,7 @@ export async function payDodoTestCheckout(checkoutUrl, { shot = null, log = () =
     // "pay now" may sit in the page or in the card frame
     const inPage = await browser.evaluate(`Boolean([...document.querySelectorAll("button")].find((b) => /^pay now$/i.test(b.innerText.trim()) && b.getClientRects().length))`);
     if (inPage) await press(`button[data-dusk-pay]`, `[...document.querySelectorAll("button")].find((b) => /^pay now$/i.test(b.innerText.trim()) && b.getClientRects().length)?.setAttribute("data-dusk-pay", "1")`);
-    else await card.evaluate(`[...document.querySelectorAll("button")].find((b) => /pay/i.test(b.innerText))?.click(); true`);
+    else { walkthrough.did(`clicks "Pay"`, "browser"); await card.evaluate(`[...document.querySelectorAll("button")].find((b) => /pay/i.test(b.innerText))?.click(); true`); }
     log("paid, waiting for the confirmation");
     // a card from an Indian address goes through 3-D Secure: the test page's own "complete" button passes it
     const complete = `(() => { const b = [...document.querySelectorAll("button,a,input[type=submit]")].find((e) => /complete( authentication)?$|authori[sz]e/i.test((e.innerText || e.value || "").trim()) && e.getClientRects().length); if (!b) return false; b.click(); return true; })()`;

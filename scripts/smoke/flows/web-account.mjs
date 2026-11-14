@@ -7,6 +7,7 @@ import { testMailCode, PREVIEW_ORIGIN } from "../account.mjs";
 import { until } from "../app.mjs";
 import { payDodoTestCheckout } from "../dodo-test-pay.mjs";
 import { launchBrowser } from "./browser.mjs";
+import { walkthrough } from "./recorder.mjs";
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 
@@ -15,7 +16,8 @@ export async function webAccountStep(url, { email, pay = false, log = () => {}, 
   const browser = await launchBrowser();
   const steps = [];
   const snap = async (label) => { if (shot) { const file = shot(label); if (file) await browser.screenshot(file).catch(() => {}); } };
-  const press = (pattern) => until(() => browser.evaluate(`(() => { const b = [...document.querySelectorAll("button,a")].filter((e) => e.getClientRects().length && !e.disabled).find((e) => ${pattern}.test(e.innerText.trim())); if (!b) return false; b.click(); return true; })()`), { timeout: 30_000, what: `${pattern} in the browser` });
+  const press = (pattern) => until(() => browser.evaluate(`(() => { const b = [...document.querySelectorAll("button,a")].filter((e) => e.getClientRects().length && !e.disabled).find((e) => ${pattern}.test(e.innerText.trim())); if (!b) return false; b.click(); return b.innerText.trim().slice(0, 60) || true; })()`), { timeout: 30_000, what: `${pattern} in the browser` })
+    .then((said) => { walkthrough.did(`clicks "${typeof said === "string" ? said : pattern.source}"`, "browser"); return true; });
   try {
     await browser.goto(url).catch(() => {});
     // signed out in this browser: the website's own sign-in (or sign-up) with an emailed code
@@ -31,11 +33,21 @@ export async function webAccountStep(url, { email, pay = false, log = () => {}, 
       const since = Date.now();
       await browser.evaluate(`document.querySelector("input[type=email]").focus(); true`);
       await browser.send("Input.insertText", { text: email });
+      walkthrough.did("clicks continue", "browser");
       await browser.evaluate(`document.querySelector("form button[type=submit]").click(); true`);
       // a second code to the same address within the resend window is refused: wait, then resend, as a person would
+      // "too many tries, wait a minute": the person waits, then presses continue again
+      await sleep(2500);
+      for (let tries = 0; tries < 4 && /too many tries/i.test(await browser.text().catch(() => "")); tries++) {
+        steps.push("told \"too many tries, wait a minute\"; waited and pressed continue again");
+        await sleep(65_000);
+        walkthrough.did("waits a minute, then clicks continue again", "browser");
+        await browser.evaluate(`document.querySelector("form button[type=submit]").click(); true`);
+        await sleep(2500);
+      }
       let code = await until(() => testMailCode(email, since, origin), { timeout: 20_000, every: 1_000, what: "the website's sign-in code" }).catch(() => null);
       if (!code) {
-        await until(() => browser.evaluate(`(() => { const b = [...document.querySelectorAll("button")].find((e) => /^resend/i.test(e.innerText.trim()) && !e.disabled); if (!b) return false; b.click(); return true; })()`), { timeout: 60_000, what: "resend" });
+        await until(() => browser.evaluate(`(() => { const b = [...document.querySelectorAll("button")].find((e) => /^resend/i.test(e.innerText.trim()) && !e.disabled); if (!b) return false; b.click(); return true; })()`), { timeout: 180_000, what: "resend" });
         steps.push("resent the code");
         code = await until(() => testMailCode(email, since, origin), { timeout: 60_000, every: 1_000, what: "the website's sign-in code" });
       }
@@ -69,9 +81,10 @@ export async function webAccountStep(url, { email, pay = false, log = () => {}, 
       if (/test\.checkout\.dodopayments\.com/.test(at)) { checkoutUrl = at; break; }
       if (at.startsWith("https://checkout.dodopayments.com")) throw new Error("a live checkout opened; refusing to pay");
       // the most final step first: a sheet's checkout before the card's "get plus" that opened it
-      await browser.evaluate(`(() => { const shown = [...document.querySelectorAll("button")].filter((e) => e.getClientRects().length && !e.disabled);
-        for (const want of [/^checkout$/i, /continue to checkout|continue to payment/i, /start (free )?trial/i, /^continue$/i, /^get /i]) { const b = shown.find((e) => want.test(e.innerText.trim())); if (b) { b.click(); return true; } }
-        return false; })()`).catch(() => {});
+      const said = await browser.evaluate(`(() => { const shown = [...document.querySelectorAll("button")].filter((e) => e.getClientRects().length && !e.disabled);
+        for (const want of [/^checkout$/i, /continue to checkout|continue to payment/i, /start (free )?trial/i, /^continue$/i, /^get /i]) { const b = shown.find((e) => want.test(e.innerText.trim())); if (b) { b.click(); return b.innerText.trim().slice(0, 60); } }
+        return false; })()`).catch(() => false);
+      if (said) walkthrough.did(`clicks "${said}"`, "browser");
       await sleep(3000);
     }
     if (!checkoutUrl) throw new Error(`no checkout after the plan step (at ${await browser.url()})`);

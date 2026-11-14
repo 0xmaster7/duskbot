@@ -4,6 +4,7 @@ import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { until } from "../app.mjs";
+import { BROWSER_SIZE, typedWords, walkthrough } from "./recorder.mjs";
 
 const CANDIDATES = [
   process.env.DUSK_SMOKE_CHROME,
@@ -37,7 +38,7 @@ function connect(url) {
 }
 
 /** dir: where the profile lives (kept between runs only when given). Returns { goto, evaluate, text, click, screenshot, url, close }. */
-export async function launchBrowser({ dir = null, width = 1280, height = 860 } = {}) {
+export async function launchBrowser({ dir = null, width = BROWSER_SIZE.width, height = BROWSER_SIZE.height } = {}) {
   const profile = dir ?? mkdtempSync(join(process.env.TMPDIR || "/tmp", "dusk-flow-chrome-"));
   mkdirSync(profile, { recursive: true });
   const child = spawn(chromeBinary(), [
@@ -59,9 +60,15 @@ export async function launchBrowser({ dir = null, width = 1280, height = 860 } =
     if (reply.exceptionDetails) throw new Error(reply.exceptionDetails.exception?.description?.split("\n")[0] ?? reply.exceptionDetails.text);
     return reply.result?.value;
   };
+  // what the person does in the page: the walkthrough's caption for the next shot of it
+  const send = (method, params = {}) => {
+    if (method === "Input.insertText") walkthrough.did(typedWords(params.text ?? ""), "browser");
+    return cdp.send(method, params);
+  };
   const browser = {
     profile,
-    send: cdp.send,
+    wsUrl: page.webSocketDebuggerUrl,
+    send,
     evaluate,
     url: () => evaluate("location.href"),
     text: () => evaluate("document.body?.innerText ?? ''"),
@@ -71,8 +78,8 @@ export async function launchBrowser({ dir = null, width = 1280, height = 860 } =
       const want = ${JSON.stringify(label.toLowerCase())};
       const el = [...document.querySelectorAll("button,a,[role=button]")].filter((e) => e.getClientRects().length && !e.disabled)
         .find((e) => (e.innerText || e.getAttribute("aria-label") || "").trim().toLowerCase().replace(/\\s+/g, " ").startsWith(want));
-      if (!el) return false; el.click(); return true;
-    })()`), { timeout, what: `"${label}" in the browser` }),
+      if (!el) return false; el.click(); return (el.innerText || el.getAttribute("aria-label") || "").trim().replace(/\\s+/g, " ").slice(0, 60) || true;
+    })()`), { timeout, what: `"${label}" in the browser` }).then((said) => { walkthrough.did(`clicks "${typeof said === "string" ? said : label}"`, "browser"); return true; }),
     /** a child frame whose host contains `part` (same-site frames share the page's process), driven in an isolated
      *  world: { evaluate, send }; keyboard input goes to whatever the frame focused */
     async frame(part, timeout = 30_000) {
@@ -89,8 +96,9 @@ export async function launchBrowser({ dir = null, width = 1280, height = 860 } =
       };
     },
     async screenshot(file) { const shot = await cdp.send("Page.captureScreenshot", { format: "png" }); writeFileSync(file, Buffer.from(shot.data, "base64")); return file; },
-    async close() { cdp.close(); kill(); if (!dir) rmSync(profile, { recursive: true, force: true }); },
+    async close() { await walkthrough.detachBrowser().catch(() => {}); cdp.close(); kill(); if (!dir) rmSync(profile, { recursive: true, force: true }); },
   };
+  walkthrough.attachBrowser(browser);
   return browser;
 }
 

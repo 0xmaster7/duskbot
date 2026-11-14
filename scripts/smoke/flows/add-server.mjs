@@ -2,25 +2,33 @@
 // one install line pasted into a real Linux server (a throwaway InstaBox machine, deleted at the end whatever happens),
 // the app noticing the server by itself, sign-in skipped, "move everything here", and the app working from the server.
 //
-//   node scripts/smoke/flows/add-server.mjs [--out DIR] [--profile DIR] [--email ADDRESS] [--keep-vm]
+// --signed-out starts as a new person does now: no account, "use your own server" asks for one in the browser (the
+// website's sign-up and approval), and the line comes by itself after. It ends with a chat on the server.
+//
+//   node scripts/smoke/flows/add-server.mjs [--out DIR] [--profile DIR] [--email ADDRESS] [--keep-vm] [--signed-out]
+import { join } from "node:path";
+import { until } from "../app.mjs";
 import { createFlow, flowArgs, runFlow, sleep, INSTALL_LINE, shellQuote } from "./lib.mjs";
 import { createVm, leftoverVms, removeVm } from "./instabox-vm.mjs";
+import { walkthrough } from "./recorder.mjs";
+import { accountLinkFrom, webAccountStep } from "./web-account.mjs";
 
 const { root, out, profile, email, stamp, flag } = flowArgs("srv");
-// the app works signed out now; this flow starts from a signed-in account, at the sign-in an install can still require
-const flow = createFlow({ name: "add-server", title: "add your own server", root, out, profile, email, env: { DUSK_REQUIRE_ACCOUNT: "1" } });
+const signedOut = flag("--signed-out");
+// the app works signed out now; without --signed-out this flow starts from a signed-in account, at the sign-in an install can still require
+const flow = createFlow({ name: "add-server", title: `add your own server${signedOut ? ", signed out" : ""}`, root, out, profile, email, env: signedOut ? {} : { DUSK_REQUIRE_ACCOUNT: "1" } });
 const view = () => flow.evaluate(`window.duskDesktop?.vpsLink?.state()`);
 const screen = () => flow.evaluate(`document.querySelector("[data-vps-screen]")?.getAttribute("data-vps-screen") ?? null`);
 let vm = null;
 
 await runFlow(flow, async () => {
   try {
-    await flow.step("launch", "a fresh app starts at the account gate", async () => {
+    await flow.step("launch", signedOut ? "a fresh app, no account" : "a fresh app starts at the account gate", async () => {
       await flow.launch();
-      await flow.waitText(/sign in to dusk bot/i, "the account gate", { timeout: 120_000 });
+      await flow.waitText(signedOut ? /meet dusk bot|where should your bots live/i : /sign in to dusk bot/i, signedOut ? "the welcome" : "the account gate", { timeout: 120_000 });
     }, { critical: true });
 
-    await flow.step("sign-in", "signs in with an emailed code", () => flow.signInAtGate(), { critical: true });
+    if (!signedOut) await flow.step("sign-in", "signs in with an emailed code", () => flow.signInAtGate(), { critical: true });
 
     let line = null;
     await flow.step("install-line", "\"use your own server\" shows the one install line", async () => {
@@ -28,6 +36,7 @@ await runFlow(flow, async () => {
       await flow.click("get started", { timeout: 10_000 }).catch(() => {});
       await flow.waitText(/where should your bots live/i, "where should your bots live");
       const started = Date.now();
+      if (signedOut) await flow.clickSelector("[data-funnel-account-skip]", 5_000).catch(() => {});
       await flow.click("use your own server", { contains: true });
       // a chooser of ways to connect comes first; a new person takes the recommended one
       const chooser = await flow.waitText(/how should it connect/i, "the connect chooser", { timeout: 8_000 }).catch(() => null);
@@ -37,7 +46,16 @@ await runFlow(flow, async () => {
         await flow.shot("connect-chooser");
         await flow.click("cloudflare tunnel", { contains: true });
       }
-      line = await flow.waitText(INSTALL_LINE, "the install line", { timeout: 45_000 });
+      // signed out: linking needs the account, so the sign-in continues in the browser and the line comes by itself after
+      if (signedOut) {
+        const signIn = await flow.waitFor(`Boolean(document.querySelector('[data-install-phase="sign-in"]'))`, "the sign-in state", 20_000).catch(() => false);
+        if (signIn) {
+          const link = await until(() => accountLinkFrom(flow.opened(started)), { timeout: 30_000, what: "the browser sign-in for linking" });
+          const web = await webAccountStep(link, { email, log: flow.log, shot: (label) => join(out, `link-${label}.png`) });
+          flow.facts.linkWeb = web.steps;
+        }
+      }
+      line = await flow.waitText(INSTALL_LINE, "the install line", { timeout: signedOut ? 90_000 : 45_000 });
       flow.facts.lineSeconds = Math.round((Date.now() - started) / 1000);
       return `ready in ${flow.facts.lineSeconds}s`;
     }, { critical: true });
@@ -54,6 +72,7 @@ await runFlow(flow, async () => {
     await flow.step("install", "the line runs on the server and the app sees the server by itself", async () => {
       const started = Date.now();
       // pasted as is, as the person would in their server's terminal
+      walkthrough.did("pastes the install line into the server's terminal");
       await vm.exec(`cd ~ && setsid nohup bash -c ${shellQuote(`${line}; echo "exit $?" >> ~/dusk-install.log`)} > ~/dusk-install.log 2>&1 < /dev/null & echo started`, 30);
       let lastLog = "";
       for (;;) {
@@ -118,6 +137,16 @@ await runFlow(flow, async () => {
       flow.facts.botsOnServer = bots;
       if (!Array.isArray(bots) || !bots.length) throw new Error(`the server lists no bots (${JSON.stringify(bots)})`);
       return `window on ${flow.facts.windowAt}; duskbot.service ${flow.facts.serverService}; bots: ${bots.join(", ")}`;
+    });
+
+    if (signedOut || walkthrough.enabled) await flow.step("server-chat", "the server's bots in the sidebar, and a chat on the server", async () => {
+      await flow.waitFor(`Boolean(document.querySelector('textarea[aria-label^="Message"]'))`, "the server's chat", 60_000);
+      await walkthrough.capture("app", "looks at the bots on the server");
+      const started = Date.now();
+      const outcome = await flow.chatOk();
+      flow.facts.serverReplySeconds = Math.round((Date.now() - started) / 1000);
+      if (outcome.startsWith("said:")) flow.friction("confusing", "the server's chat", `the first message on the server got: ${outcome.slice(5).replace(/\s+/g, " ").slice(0, 160)}`);
+      return `${outcome.replace(/\s+/g, " ")} in ${flow.facts.serverReplySeconds}s`;
     });
   } finally {
     // the machine is deleted when the flow closes (flow.atClose), also after a kill

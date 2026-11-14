@@ -9,7 +9,9 @@
 // With --root pointing at an older checkout the same script shoots that checkout's funnel ("before" shots); a path the
 // older funnel doesn't have stops with a note.
 //
-//   node scripts/smoke/flows/onboarding.mjs [--path mac|cloud|server] [--out DIR] [--profile DIR] [--email ADDRESS] [--keep] [--no-pay]
+// --tour (the walkthrough) also opens an AI's card and the full list of AIs on the way, as a curious person would.
+//
+//   node scripts/smoke/flows/onboarding.mjs [--path mac|cloud|server] [--out DIR] [--profile DIR] [--email ADDRESS] [--keep] [--no-pay] [--tour]
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { until } from "../app.mjs";
@@ -17,6 +19,7 @@ import { smokeAccount, testMailCode } from "../account.mjs";
 import { payDodoTestCheckout } from "../dodo-test-pay.mjs";
 import { launchBrowser } from "./browser.mjs";
 import { createFlow, flowArgs, runFlow, sleep, INSTALL_LINE } from "./lib.mjs";
+import { walkthrough } from "./recorder.mjs";
 
 const { option, flag, root, out, profile, email } = flowArgs("onb");
 const path = option("--path", "mac");
@@ -27,7 +30,7 @@ const flow = createFlow({ name: `onboarding-${path}`, title: `onboarding (${path
   root, out, profile, email, env: gate ? { DUSK_REQUIRE_ACCOUNT: "1" } : {} });
 
 /** the app's main window sizes (electron/window-state.cjs): the default and the smallest it can be */
-const SIZES = [["normal", 1040, 760], ["min", 768, 520]];
+const SIZES = walkthrough.enabled ? [["normal", 1040, 760]] : [["normal", 1040, 760], ["min", 768, 520]];
 const stepsDir = join(out, "steps");
 mkdirSync(stepsDir, { recursive: true });
 let shotCount = 0;
@@ -262,6 +265,26 @@ await runFlow(flow, async () => {
     await shots("ai");
     return await funnelText();
   }, { critical: true });
+
+  if (flag("--tour")) await flow.step("ai-cards", "looks at an AI's card and the full list of AIs, then comes back", async () => {
+    const card = await flow.evaluate(`(() => { const b = [...document.querySelectorAll("button[data-funnel-ai]")].find((e) => e.getClientRects().length); if (!b) return null; b.click(); return b.getAttribute("data-funnel-ai"); })()`);
+    if (!card) throw flow.skip("no AI cards on this screen");
+    walkthrough.did(`clicks the ${card} card`);
+    await sleep(2000);
+    await walkthrough.capture("app");
+    const more = await flow.clickSelector("[data-ai-more]", 5_000).then(() => true, () => false);
+    if (more) {
+      await flow.waitFor(`Boolean(document.querySelector("[data-connect-ai]"))`, "the list of AIs", 10_000).catch(() => {});
+      await sleep(1500);
+      await walkthrough.capture("app");
+      await flow.escape();
+      await sleep(1000);
+    }
+    // back to no card picked, as before
+    await flow.evaluate(`document.querySelector('button[data-funnel-ai][aria-pressed="true"]')?.click(); true`);
+    await sleep(800);
+    return `opened ${card}${more ? " and the full list" : ""}`;
+  });
 
   await flow.step("ai-free", "starts with the free model", async () => {
     await flow.click("start with the free model");

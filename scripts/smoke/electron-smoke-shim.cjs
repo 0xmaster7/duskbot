@@ -17,6 +17,9 @@ if (electron.app && process.type === "browser") {
   const note = (kind, detail = {}) => { if (eventsFile) try { appendFileSync(eventsFile, `${JSON.stringify({ at: Date.now(), kind, ...detail })}\n`); } catch {} };
   try { app.dock?.hide(); } catch {}
   app.setActivationPolicy?.("prohibited");
+  // the walkthrough shoots every screen in one look, whatever this Mac's appearance (DUSK_SMOKE_THEME=light|dark)
+  const theme = /^(light|dark)$/.test(process.env.DUSK_SMOKE_THEME ?? "") ? process.env.DUSK_SMOKE_THEME : null;
+  if (theme) { try { electron.nativeTheme.themeSource = theme; } catch {} app.whenReady().then(() => { try { electron.nativeTheme.themeSource = theme; } catch {} }); }
 
   // Electron names some folders after the app, not HOME or --user-data-dir (logs are ~/Library/Logs/duskbot, the
   // owner's own): every one of them goes into the smoke's profile instead

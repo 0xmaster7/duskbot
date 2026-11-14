@@ -47,7 +47,7 @@ export async function until(check, { timeout = 30_000, every = 300, what = "cond
   throw new Error(`timed out waiting for ${what}${last instanceof Error ? ` (${last.message})` : ""}`);
 }
 
-function connectCdp(url) {
+export function connectCdp(url) {
   const socket = new WebSocket(url);
   let next = 0;
   const waiting = new Map();
