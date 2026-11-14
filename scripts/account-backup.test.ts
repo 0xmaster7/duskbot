@@ -20,7 +20,8 @@ function fixture() {
   return { root, data, dest, env };
 }
 
-describe("account service backup", () => {
+// the script runs on the Linux account host: it locks under /run/lock with flock, which macOS and Windows lack
+describe.skipIf(process.platform !== "linux")("account service backup", () => {
   it("writes one encrypted archive of the data folder to the destination and prunes old ones", () => {
     const f = fixture();
     execFileSync("sh", [SCRIPT], { env: f.env, encoding: "utf8" });
