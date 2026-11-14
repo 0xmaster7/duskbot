@@ -7,7 +7,7 @@ const API = "https://api.instabox.sh";
 async function call(method, path, body, headers = {}) {
   const key = envValue("INSTABOX_API_KEY_PREVIEW") ?? envValue("INSTABOX_API_KEY");
   if (!key) throw new Error("INSTABOX_API_KEY_PREVIEW is not set (dusk env file)");
-  const response = await fetch(`${API}${path}`, { method, headers: { authorization: `Bearer ${key}`, "content-type": "application/json", ...headers }, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(700_000) });
+  const response = await fetch(`${API}${path}`, { method, headers: { authorization: `Bearer ${key}`, "content-type": "application/json", ...headers }, ...(body === undefined ? {} : { body: JSON.stringify(body) }), signal: AbortSignal.timeout(700_000) });
   const text = await response.text();
   if (!response.ok && !(method === "DELETE" && response.status === 404)) throw new Error(`instabox ${method} ${path.split("?")[0]}: ${response.status} ${text.slice(0, 200)}`);
   try { return JSON.parse(text); } catch { return null; }

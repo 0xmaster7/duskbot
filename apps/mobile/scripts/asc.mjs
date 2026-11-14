@@ -40,7 +40,7 @@ function token() {
 let bearer;
 async function call(method, path, body) {
   bearer ??= token();
-  const res = await fetch(`${API}${path}`, { method, headers: { authorization: `Bearer ${bearer}`, "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+  const res = await fetch(`${API}${path}`, { method, headers: { authorization: `Bearer ${bearer}`, "content-type": "application/json" }, ...(body ? { body: JSON.stringify(body) } : {}) });
   const text = await res.text();
   const json = text ? JSON.parse(text) : {};
   if (!res.ok) throw new Error(`${method} ${path.split("?")[0]}: ${res.status} ${json.errors?.map((e) => e.detail ?? e.title).join("; ") ?? text.slice(0, 200)}`);

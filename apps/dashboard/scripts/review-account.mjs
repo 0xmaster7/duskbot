@@ -73,7 +73,7 @@ async function grant() {
   if (answer.status === 404) throw new Error(`${target} has no operator grant (live billing, billing off or no DUSK_OPS_TOKEN): a review cloud cannot be made there yet`);
   const data = must(answer, "the operator grant");
   if (answer.status === 202) {
-    if (!/^https:\/\/test\./.test(data.checkoutUrl ?? "")) throw new Error("the grant's checkout is not in test mode; refusing to pay");
+    if (!(data.checkoutUrl ?? "").startsWith("https://test.")) throw new Error("the grant's checkout is not in test mode; refusing to pay");
     log(`test-mode checkout ${data.checkoutId} for cloud ${data.cloudId}; paying with the test card`);
     const { payDodoTestCheckout } = await import("../../../scripts/smoke/dodo-test-pay.mjs");
     await payDodoTestCheckout(data.checkoutUrl, { log: (line) => log(`pay: ${line}`) });
