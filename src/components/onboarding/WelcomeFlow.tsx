@@ -22,7 +22,6 @@ import { CheckoutStep, useCloudTile } from "./CheckoutStep";
 import { funnelSteps, nextStep, previousStep, type FunnelPath, type FunnelStep } from "./funnel";
 import { funnelAccount, type FunnelAccountState } from "./funnel-account";
 import { FunnelBar, PhoneStep, PlaceStep, WelcomeStep } from "./FunnelSteps";
-import { MacPickSheet } from "./MacPickSheet";
 import { MakingStep } from "./MakingStep";
 import { useWelcomeAi } from "./welcome-ai";
 import { localDesktopPage } from "./WelcomeGate";
@@ -239,7 +238,7 @@ export function WelcomeFlow({
     setFrom("next");
     setAt("ai");
   }, []);
-  // this Mac, from the place step's sheet or from the browser's waiting screen: on to the step after the place
+  // this Mac, from the place step or from the browser's waiting screen: on to the step after the place
   const toMac = () => {
     setPath("mac");
     setCheckoutStart(false);
@@ -247,11 +246,7 @@ export function WelcomeFlow({
     const step = nextStep(stepsFor("mac"), "place");
     if (step) setAt(step); else toChat();
   };
-  // this computer: first what that means for routines, and what dusk cloud does instead
-  const [macPick, setMacPick] = useState(false);
-  const chooseMac = () => { track("onboarding_place", { choice: "mac" }); track("onboarding_mac_sheet", { action: "open" }); setMacPick(true); };
-  const macPicked = () => { track("onboarding_mac_sheet", { action: "mac" }); setMacPick(false); toMac(); };
-  const cloudPicked = () => { track("onboarding_mac_sheet", { action: "cloud" }); setMacPick(false); chooseCloud(); };
+  const chooseMac = () => { track("onboarding_place", { choice: "mac" }); toMac(); };
 
   const bring = (chosen: Parameters<typeof bringChosen>[0]) => {
     track("onboarding_bring", { apps: chosen.length });
@@ -266,7 +261,7 @@ export function WelcomeFlow({
     takeNotes(pasted, setNotesLine);
   };
 
-  const overlayOpen = Boolean(placeSheet) || macPick;
+  const overlayOpen = Boolean(placeSheet);
   const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Escape") {
       if (event.defaultPrevented || overlayOpen) return;
@@ -333,7 +328,6 @@ export function WelcomeFlow({
       </div>
       {/* the bring step says how its own bringing in went; every later step keeps the line at its foot */}
       <BringStatus working={at !== "bring" && bringRun.kind === "working"} line={notesLine ?? (at !== "bring" && bringRun.kind === "done" ? bringRun.line : null)} />
-      {macPick && <MacPickSheet onCloud={cloudPicked} onMac={macPicked} onClose={() => { track("onboarding_mac_sheet", { action: "close" }); setMacPick(false); }} />}
     </div>
   );
 }

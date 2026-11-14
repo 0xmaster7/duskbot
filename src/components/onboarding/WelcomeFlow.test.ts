@@ -240,12 +240,6 @@ describe("on the desktop app", () => {
     expect(document.body.querySelector("[data-funnel-progress]"), "one screen has no progress to show").toBeNull();
   });
 
-  const macSheet = () => document.querySelector<HTMLElement>("[data-panel-modal=mac-pick]");
-  const pick = async (which: "mac" | "cloud") => {
-    await act(async () => { document.querySelector<HTMLElement>(`[data-mac-pick=${which}]`)!.click(); });
-    await settle();
-  };
-
   it("opens on where bots live (the hello is part of it), then the AI, what to bring and the chat, with back and progress", async () => {
     desktop({ platform: "linux" });
     await show();
@@ -257,9 +251,7 @@ describe("on the desktop app", () => {
     expect(text()).toContain("dusk cloud");
     expect(text()).toContain("From $20 a month");
     await choose("[data-funnel-place=mac]");
-    expect(step(), "this computer asks first").toBe("place");
-    await pick("mac");
-    expect(macSheet()).toBeNull();
+    expect(document.querySelector("[data-panel-modal]"), "the free way never asks again").toBeNull();
     expect(document.body.querySelector("[data-help-improve]"), "only on the place step").toBeNull();
     await usesFoundAi();
     expect(step()).toBe("bring");
@@ -279,7 +271,6 @@ describe("on the desktop app", () => {
     await show({ initialBeat: "place" });
     expect(document.body.querySelector("[data-funnel-progress]")?.getAttribute("data-funnel-progress")).toBe("1/4");
     await choose("[data-funnel-place=mac]");
-    await pick("mac");
     expect(document.body.querySelector("[data-help-improve]"), "only on the place step").toBeNull();
     await usesFoundAi();
     expect(step()).toBe("bring");
@@ -297,39 +288,11 @@ describe("on the desktop app", () => {
     expect(f.onDone).toHaveBeenCalledExactlyOnceWith("maus");
   });
 
-  it("this computer first says routines pause while it sleeps, then dusk cloud's way, with its price when known", async () => {
-    const offer = { plans: [{ tier: "starter", amount: 1500, trialDays: 7 }, { tier: "pro", amount: 2900, trialDays: 7 }], recommended: "pro" };
-    desktop({ platform: "darwin", cloudAccount: { state: async () => ({ status: "signed-out" }), onState: () => () => {}, offer: vi.fn(async () => offer) } });
+  it("this computer just goes on to the AI, with no dusk cloud sheet in between", async () => {
+    desktop({ platform: "darwin", cloudAccount: { state: async () => ({ status: "signed-out" }), onState: () => () => {}, offer: vi.fn(async () => ({ plans: [{ tier: "starter", amount: 1500 }] })) } });
     await show({ initialBeat: "place" });
     await choose("[data-funnel-place=mac]");
-    const sheet = macSheet()!;
-    expect(sheet.getAttribute("role")).toBe("dialog");
-    expect(sheet.textContent).toContain("they stop when it sleeps or the lid is shut");
-    expect(sheet.textContent).toContain("dusk cloud runs your bots 24/7");
-    expect(sheet.querySelector("[data-mac-pick-price]")?.textContent).toBe("Free for 7 days, then from $15/month + tax where applicable.");
-    expect(sheet.textContent, "no dash anywhere").not.toMatch(/\u2014/);
-    expect(document.querySelector("[data-mac-pick=cloud]")?.textContent).toBe("Use dusk cloud");
-    expect(document.querySelector("[data-mac-pick=mac]")?.textContent).toBe("Continue with this Mac");
-    expect(document.activeElement, "the way they picked is where focus starts").toBe(document.querySelector("[data-mac-pick=mac]"));
-
-    await act(async () => { document.activeElement!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })); });
-    await settle();
-    expect(macSheet(), "Escape closes the sheet").toBeNull();
-    expect(step(), "and leaves the choice open").toBe("place");
-
-    await choose("[data-funnel-place=mac]");
-    await pick("cloud");
-    expect(macSheet()).toBeNull();
-    expect(step(), "Use dusk cloud goes to the browser like the tile does").toBe("checkout");
-  });
-
-  it("says no price on this computer's sheet when the app doesn't know one", async () => {
-    desktop();
-    await show({ initialBeat: "place" });
-    await choose("[data-funnel-place=mac]");
-    expect(macSheet()?.querySelector("[data-mac-pick-price]")).toBeNull();
-    expect(document.querySelector("[data-mac-pick=mac]")?.textContent).toBe("Continue with this computer");
-    await pick("mac");
+    expect(document.querySelector("[data-panel-modal]")).toBeNull();
     expect(step()).toBe("ai");
   });
 
@@ -341,7 +304,6 @@ describe("on the desktop app", () => {
     await settle();
     expect(step()).toBe("place");
     await choose("[data-funnel-place=mac]");
-    await pick("mac");
     expect(step()).toBe("ai");
   });
 
@@ -456,7 +418,6 @@ describe("on the desktop app", () => {
     desktop({ accountGate: { state: async () => ({ required: false, blocked: false, status: "signed-out" }), options: async () => ({ providers: ["google"], recovery: true }), onChange: () => () => {} } });
     await show();
     await choose("[data-funnel-place=mac]");
-    await pick("mac");
     expect(step(), "straight on to the AI, signed out").toBe("ai");
   });
 
@@ -473,7 +434,6 @@ describe("on the desktop app", () => {
     await show();
     expect(step(), "where bots live comes first").toBe("place");
     await choose("[data-funnel-place=mac]");
-    await pick("mac");
     expect(step()).toBe("account");
     expect(title()).toBe("Sign in to dusk bot");
     expect(text(), "no phone in the pitch while its app is hidden").toContain("Your account keeps dusk cloud and your bots in sync.");
@@ -493,7 +453,6 @@ describe("on the desktop app", () => {
     desktop({ accountGate: { state: async () => ({ required: true, blocked: true, status: "signed-out" }), options: async () => ({ providers: [], recovery: false }), onChange: () => () => {} } });
     await show();
     await choose("[data-funnel-place=mac]");
-    await pick("mac");
     expect(step()).toBe("account");
     expect(button("Continue without an account")).toBeUndefined();
     await key("Escape");

@@ -262,11 +262,8 @@ await runFlow(flow, async () => {
     return;
   }
 
-  await flow.step("pick-mac", "this Mac shows the owner's sheet, then goes on to connect an AI", async () => {
+  await flow.step("pick-mac", "this Mac goes straight on to connect an AI", async () => {
     await flow.clickSelector("[data-funnel-place=mac]");
-    await flow.waitFor(`Boolean(document.querySelector("[data-panel-modal=mac-pick]"))`, "this Mac's sheet", 8_000);
-    await shots("mac-sheet");
-    await flow.click("continue with this mac");
     await flow.waitText(/connect an AI/i, "connect an AI");
     await shots("ai");
     return await funnelText();
