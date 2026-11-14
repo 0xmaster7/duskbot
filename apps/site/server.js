@@ -214,7 +214,8 @@ const server = http.createServer((req, res) => {
   // /explore/ holds design boards that set positions and colours through style attributes
   const explore = (req.url || '').startsWith('/explore/');
   // cloudflare's edge injects its web analytics beacon into every page; allow just that script and where it reports
-  const beacon = "script-src 'self' https://static.cloudflareinsights.com; connect-src 'self' https://cloudflareinsights.com";
+  // 'inline-speculation-rules' lets site.js add the prerender rules and nothing else inline
+  const beacon = "script-src 'self' 'inline-speculation-rules' https://static.cloudflareinsights.com; connect-src 'self' https://cloudflareinsights.com";
   res.setHeader('Content-Security-Policy', explore
     ? `default-src 'self'; ${beacon}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'`
     : `default-src 'self'; ${beacon}; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'`);

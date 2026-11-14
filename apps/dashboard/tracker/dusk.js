@@ -164,7 +164,7 @@
       if (force === true || engaged > 0 || depth > 0) send("leave", { s: depth, t: Math.round(engaged), f: folds });
     }
     function pageview() {
-      if (d.visibilityState === "prerender" || (pv && pagePath === loc.pathname)) return;
+      if (d.prerendering || d.visibilityState === "prerender" || (pv && pagePath === loc.pathname)) return;
       leave(true);
       pagePath = loc.pathname;
       path = cleanPath(pagePath);
@@ -225,6 +225,8 @@
       else if (d.visibilityState === "visible") { time(); ping(); }
       else leave();
     }));
+    // a page prerendered on hover counts only once it is actually opened
+    d.addEventListener("prerenderingchange", safe(function () { if (!pv) start(); }));
     w.addEventListener("pagehide", safe(leave));
     w.addEventListener("scroll", safe(measure), { passive: true });
     ["pushState", "replaceState"].forEach(function (method) {
