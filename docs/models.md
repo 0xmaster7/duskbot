@@ -67,6 +67,55 @@ Any other OpenAI-compatible server (LiteLLM, a company proxy, a self-hosted
 vLLM) goes under **OpenAI-compatible**, with its base URL, key, and a model id
 if it needs one.
 
+## How each AI gets installed and signed in
+
+Pressing an AI's card under **Connect an AI** runs one connect, in stages, on
+the machine the bots run on (this computer, your dusk cloud or your own
+server). Each stage has a deadline; one that runs past it ends with a plain
+message and **Try again**, never a spinner left alone. Only one connect runs at
+a time: pressing another card cancels the one under way.
+
+1. **Waking your cloud.** A dusk cloud that went to sleep is woken first.
+2. **Getting the AI ready.** The app reads the AI's status again. A sign-in that
+   already works is used as it is, without asking. If the AI's official helper
+   (its own command-line program) is missing, it is downloaded now, from the
+   provider's own source.
+3. **Opening the sign-in.** Your browser opens the provider's own page. If it
+   can't, the link is shown with **Copy link**.
+4. **Waiting for you to sign in.** Where the provider uses a code, the card
+   shows it with **Copy code** and **Open GitHub** (or ChatGPT, Grok…). It
+   connects by itself when you finish.
+5. **Connected.** The card turns green.
+
+Your password is only ever typed on the provider's own page. dusk bot never
+sees it; it keeps the sign-in token the provider's helper saves, where the bots
+run.
+
+| AI | What is downloaded, and from where | Where it is kept | How you sign in |
+|---|---|---|---|
+| ChatGPT | Codex CLI, the npm package `@openai/codex` (from OpenAI, via the npm registry). Not downloaded when a copy is already there: one on your PATH, or the one inside ChatGPT.app (`/Applications/ChatGPT.app/Contents/Resources/codex-cli`) | dusk bot's `tools/npm` folder | On this computer: ChatGPT's own sign-in page, which comes back to the app by itself (the token is kept in dusk bot's own folder, `providers/chatgpt-plan`, apart from any other Codex login). On a server or dusk cloud: a code to enter at `auth.openai.com/codex/device`; the token is kept in Codex's own `~/.codex` on that machine. A Codex login that already works there is reused |
+| Claude | Claude Code, the npm package `@anthropic-ai/claude-code` (from Anthropic) | dusk bot's `tools/npm` folder | Claude's page opens; it shows a code, which you paste back into the card. Claude Code keeps the token |
+| Gemini | Google Antigravity's official ACP server, a zip from `dl.google.com` (checked against its pinned hash) | dusk bot's `tools/antigravity-acp` folder | Google's own page opens and returns to the app by itself. The token is kept in a Google profile of its own, apart from your browser's |
+| Grok | Grok Build, xAI's own installer (`x.ai/cli`) | `~/.grok` | A code to enter on xAI's page. Grok keeps the token in `~/.grok` |
+| GitHub Copilot | Copilot CLI, the npm package `@github/copilot` (from GitHub) | dusk bot's `tools/npm` folder | A code to enter at `github.com/login/device`. Copilot keeps the token in the system's credential store (or `~/.copilot`) |
+| Cursor | Cursor's CLI, Cursor's own installer (`cursor.com/install`) | `~/.local/bin` | A one-time link to Cursor's page; approve there. Cursor keeps the token |
+| OpenRouter | Nothing | The key, in dusk bot's settings where the bots run | Paste an API key |
+| Local model | Nothing | The address, in dusk bot's settings | Ollama, LM Studio and others are found on this computer |
+| Free backup (OpenCode) | OpenCode's pinned build, downloaded in the background right after setup | dusk bot's `tools/standalone` folder | No sign-in |
+
+Grok's and Cursor's helpers come from their vendors' shell installers, which
+the app does not run for you yet; where one is missing, the card says how to
+install it.
+
+Each stage writes a trail event (`connect.stage`, `connect.open`,
+`connect.timeout`, `connect.fail`, `connect.cancel`, `connect.done`), so
+`node scripts/trail.mjs` shows where a connect stopped.
+
+In the first run, an AI already signed in on this machine is sent one tiny test
+message. If it answers, the AI step says "Using your Claude account" and goes
+on without asking; a login that only exists as a file but no longer works shows
+the cards instead.
+
 ## The model catalog
 
 The model list, with each model's context window, price, tool support and

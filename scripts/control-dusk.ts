@@ -282,7 +282,7 @@ export async function launchVerificationServer(
   browser?: { binaryPath: string; executablePath: string },
   room?: { scripted: boolean },
   /** Optional repository-owned fake providers for multi-engine setup checks. */
-  extraProviders: Array<"codex" | "cline" | "copilot" | "customAcp"> = [],
+  extraProviders: Array<"codex" | "cline" | "copilot" | "customAcp" | "cursorLogin"> = [],
   /** Programmatic web UI qualification against the fixture's static server. */
   staticDir?: string,
 ): Promise<VerificationServer> {
@@ -326,6 +326,12 @@ export async function launchVerificationServer(
         config: { cli: fileURLToPath(new URL("../server/testing/fake-acp-cli.ts", import.meta.url)) },
         environment: { FAKE_ACP_MODELS: "auto,claude-haiku-4.5,gpt-5.6-luna", FAKE_ACP_REJECT_STDIO_MCP: "1",
           FAKE_ACP_DUMP: join(dataDir, "copilot-launch.json") },
+      } } : {}),
+      // Cursor signed out, whose own sign-in prints its link and then never finishes (server/testing/fake-login-cli.ts).
+      ...(extraProviders.includes("cursorLogin") ? { cursor: {
+        driver: "cursorAgent", displayName: "Cursor",
+        config: { cli: fileURLToPath(new URL("../server/testing/fake-login-cli.ts", import.meta.url)) },
+        environment: { FAKE_LOGIN_PROVIDER: "cursor", FAKE_LOGIN_OUTCOME: "never" },
       } } : {}),
       ...(extraProviders.includes("customAcp") ? { myAgent: {
         driver: "customAcp", displayName: "Verification custom ACP",
