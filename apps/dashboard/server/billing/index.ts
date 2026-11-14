@@ -168,10 +168,13 @@ export function createBilling(options: BillingOptions) {
     void clouds.reconcile().catch(() => {});
     return { checkoutId: stored.id, subscriptionId: sub?.id ?? null };
   }
+  const reviewEmail = env.DUSK_REVIEW_EMAIL?.trim().toLowerCase() || null;
+  // nothing is sold while billing is off or the site is the pre-launch waitlist; an operator's grant still works
+  const checkoutOpen = billingProvider !== "preview" && billingProvider !== "off" && env.DUSK_PRELAUNCH_WAITLIST_ONLY !== "1";
   const context = { service, clouds, store, config, accounts: options.accounts, now, enabled: billingProvider !== "off", fake: loopback ? fake : null, wakeStats: options.wakeStats ?? (() => ({})), opsToken,
-    checkoutOpen: billingProvider !== "preview", endTrials: billingProvider === "preview" || env.DUSK_OPS_END_TRIAL === "1", grants: billingProvider === "preview" ? fake : null, grant,
-    testPurchases: billingProvider === "dodo" && dodoMode === "test", findAccount: options.findAccount ?? (() => null),
-    reviewEmail: env.DUSK_REVIEW_EMAIL?.trim().toLowerCase() || null };
+    appRoutes: billingProvider !== "off" || reviewEmail !== null,
+    checkoutOpen, endTrials: billingProvider === "preview" || env.DUSK_OPS_END_TRIAL === "1", grants: billingProvider === "preview" ? fake : null, grant,
+    testPurchases: billingProvider === "dodo" && dodoMode === "test", findAccount: options.findAccount ?? (() => null), reviewEmail };
   const routes = createBillingRoutes(context), admin = createAdminRoutes(context);
   return {
     async handle(req: IncomingMessage, res: ServerResponse, target: URL) { return await routes(req, res, target) || await admin.handle(req, res, target); },
@@ -195,7 +198,7 @@ export function createBilling(options: BillingOptions) {
     },
     /** the owner's plan edits: grants only where the fake provider completes them */
     operator: { provider: billingProvider as "preview" | "fake" | "dodo" | "off", grants: completer !== null, grant, setEnd },
-    enabled: context.enabled, sessionFields: admin.sessionFields, licenseCheck: service.licenseCheck, service, clouds, store, fake, fakePool,
+    enabled: context.enabled, appRoutes: context.appRoutes, sessionFields: admin.sessionFields, licenseCheck: service.licenseCheck, service, clouds, store, fake, fakePool,
     close() { clouds.close(); service.close(); },
   };
 }
@@ -205,8 +208,10 @@ export type BillingContext = {
   wakeStats(): NonNullable<Catalog["wake"]>;
   /** DUSK_OPS_TOKEN: unset hides the operator's funnel read */
   opsToken: string | null;
-  /** false in preview: people cannot pay yet */
+  /** false in preview, with billing off and before launch (DUSK_PRELAUNCH_WAITLIST_ONLY=1): nothing can be bought */
   checkoutOpen: boolean;
+  /** the apps' cloud routes (/api/cloud/desktop/*): with billing, or with billing off for App Review's granted cloud */
+  appRoutes?: boolean;
   /** the operator may end a home package's trial early: preview, or DUSK_OPS_END_TRIAL=1 */
   endTrials?: boolean;
   /** preview only: the provider that completes an operator's grant */

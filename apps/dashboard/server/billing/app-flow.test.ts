@@ -87,7 +87,7 @@ it("keeps the app identity available without exposing failed or disabled billing
     entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 0 } };
   expect(await f.request("session")).toEqual({ status: 200, data: expected });
   expect(fields).toHaveBeenCalledOnce();
-  fields.mockClear(); f.billing.enabled = false;
+  fields.mockClear(); f.billing.appRoutes = false;
   expect(await f.request("session")).toEqual({ status: 200, data: expected });
   expect(fields).not.toHaveBeenCalled();
 });

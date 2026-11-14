@@ -929,6 +929,31 @@ export function createBillingService(options: BillingServiceOptions) {
     })().finally(() => { syncing = null; });
     return syncing;
   }
+  /** App Review's demo plan, made here and never through the payment provider (no provider subscription, nothing to bill or
+   *  cancel there), whatever billing runs on: an open-ended plan of `bundle` with its cloud, both marked review. Idempotent. */
+  function grantReview(account: AccountRef, input: { bundle: string; name: string }) {
+    const live = state.subscriptions.find(sub => sub.accountId === account.id && sub.review && sub.status === "active");
+    if (live) return { subscriptionId: live.id, cloudId: live.cloudId, created: false };
+    const bundle = config.bundles.find(item => item.id === input.bundle && item.id !== "free");
+    if (!bundle || bundle.cart.desktop.kind === "none") fail(400, "invalid_request");
+    const cart = quote({ ...copy(bundle.cart), interval: "month" }, config).cart;
+    cart.desktop.region ??= config.defaultRegion;
+    cap(account.id);
+    const priced = quote(cart, config), plan = desktopPlan(cart);
+    const cloud = clouds.order({ ...plan, accountId: account.id, name: input.name, color: null, region: cart.desktop.region! });
+    clouds.setReview(cloud.id, true);
+    const checkout: StoredCheckout = { id: id("chk"), accountId: account.id, email: emailOf(account.email), kind: "cart", cart: copy(cart), cloudId: cloud.id, providerSessionId: null, url: null,
+      status: "completed", source: "ops_grant", createdAt: now(), openUntil: now(), subscriptionId: null, amountCents: 0, lines: priced.lines };
+    const sub: StoredSubscription = { id: id("sub"), accountId: account.id, providerSubscriptionId: null, checkoutId: checkout.id, cart: copy(cart), totalCents: 0, lines: priced.lines,
+      status: "active", source: "ops_grant", review: true, licenseId: null, cloudId: cloud.id, currentPeriodStart: now(), currentPeriodEnd: OPEN_ENDED_AT, cancelAtPeriodEnd: false,
+      createdAt: now(), updatedAt: now(), version: 0 };
+    checkout.subscriptionId = sub.id;
+    state.checkouts.push(checkout); state.subscriptions.push(sub);
+    refreshLicense(sub, account.email);
+    cloudAction({ kind: "activate", cloudId: cloud.id, subscriptionId: sub.id, plan });
+    store.commit(); flushCloudActions();
+    return { subscriptionId: sub.id, cloudId: cloud.id, created: true };
+  }
   /** App Review's demo account: its plans and clouds are marked (or cleared) so no billing, retention or revenue path counts them */
   function markReview(accountId: string, review: boolean) {
     for (const sub of state.subscriptions) if (sub.accountId === accountId && !!sub.review !== review) {
@@ -950,7 +975,7 @@ export function createBillingService(options: BillingServiceOptions) {
   }
   return {
     syncFromProvider: guarded(syncFromProvider), setAttribution: guarded(setAttribution),
-    funnel: guarded(funnel), markReview: guarded(markReview),
+    funnel: guarded(funnel), markReview: guarded(markReview), grantReview: guarded(grantReview),
     deletionBlockers: guarded(deletionBlockers), closeAccount: guarded(closeAccount), accountDeleted: guarded(accountDeleted), scrubDeleted: guarded(scrubDeleted), drainProviderCancels: guarded(drainProviderCancels),
     catalog: guarded(() => catalogView(now(), config)), quote: guarded((input: unknown) => quote(parsed(input), config)), checkout: guarded(checkout), handleWebhook: guarded(handleWebhook),
     subscriptions: guarded((accountId: string) => state.subscriptions.filter(sub => sub.accountId === accountId).map(view)), licenses: guarded(licenses), licenseCheck: guarded(licenseCheck), addMember: guarded(addMember), removeMember: guarded(removeMember),

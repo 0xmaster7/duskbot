@@ -513,6 +513,47 @@ it("the operator marks App Review's demo account only, and only with its token, 
   expect((await mark(billingOff, { email: "review@example.test" })).status).toBe(200);
 });
 
+it("App Review's grant never touches the payment provider, works with billing off and live, and nothing is for sale before launch", async () => {
+  const token = "o".repeat(40), reviewer = { id: "r", email: "review@example.test" }, bearer = `omc_${"a".repeat(43)}`, calls: string[] = [];
+  const fetchStub = (async (url: string | URL) => { calls.push(String(url)); return new Response("{}", { status: 500 }); }) as typeof fetch;
+  const live = { DUSK_BILLING_PROVIDER: "dodo", DUSK_DODO_MODE: "live", DUSK_DODO_API_KEY: "fixture-key", DUSK_DODO_WEBHOOK_SECRET: `whsec_${Buffer.alloc(32).toString("base64")}`,
+    DUSK_DODO_PRODUCTS: JSON.stringify({ "desktop_shared_s:month": "fixture-product" }), DUSK_PRELAUNCH_WAITLIST_ONLY: "1" };
+  for (const env of [{}, live]) {
+    const billing = createBilling(options({ env: { ...env, DUSK_OPS_TOKEN: token, DUSK_REVIEW_EMAIL: reviewer.email }, fetch: fetchStub,
+      findAccount: email => email === reviewer.email ? reviewer : null, accounts: { fromCookie: () => reviewer, fromBearer: () => reviewer } }));
+    cleanup.push(() => billing.close());
+    const origin = await listen(createServer(async (req, res) => { if (!await billing.handle(req, res, new URL(req.url!, "https://dashboard.example.test"))) { res.writeHead(404); res.end(); } }));
+    const post = (path: string, data: unknown, auth: string) => fetch(`${origin}${path}`, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${auth}` }, body: JSON.stringify(data) });
+    const granted = await post("/v1/billing/ops/review", { email: reviewer.email, grant: true, name: "Demo Cloud" }, token);
+    expect(granted.status).toBe(200);
+    const answer = await granted.json() as { granted: { created: boolean; cloudId: string; subscriptionId: string }; clouds: Array<{ name: string; review: boolean }> };
+    expect(answer.granted.created).toBe(true); expect(answer.clouds).toEqual([expect.objectContaining({ name: "Demo Cloud", review: true })]);
+    const sub = billing.store.state.subscriptions.find(row => row.id === answer.granted.subscriptionId)!;
+    expect(sub).toMatchObject({ providerSubscriptionId: null, totalCents: 0, status: "active", review: true, source: "ops_grant", cloudId: answer.granted.cloudId });
+    expect(billing.clouds.get(answer.granted.cloudId)).toMatchObject({ review: true, subscriptionId: sub.id });
+    expect(((await (await post("/v1/billing/ops/review", { email: reviewer.email, grant: true }, token)).json()) as typeof answer).granted).toMatchObject({ created: false, cloudId: answer.granted.cloudId });
+    expect(billing.store.state.subscriptions).toHaveLength(1);
+    // the phone's cloud routes answer for the granted cloud (not 503), and the session lists it
+    expect(billing.appRoutes).toBe(true);
+    expect((billing.sessionFields(reviewer).clouds as Array<{ id: string }>).map(cloud => cloud.id)).toEqual([answer.granted.cloudId]);
+    const pairing = await post("/api/cloud/desktop/pairing", { cloudId: answer.granted.cloudId }, bearer);
+    expect(pairing.status).toBe(409); expect(await pairing.json()).toMatchObject({ error: "not_running" });
+    // nothing can be bought, from the apps or the web
+    for (const [path, data] of [["/api/cloud/desktop/checkout", { plan: "starter", source: "app_welcome" }], ["/api/cloud/desktop/clouds", { tier: "starter", interval: "month" }],
+      ["/api/cloud/desktop/upgrade/preview", { plan: "pro", source: "app_welcome" }], ["/api/cloud/desktop/upgrade", { plan: "pro", source: "app_welcome" }]] as const) {
+      const refused = await post(path, data, bearer);
+      expect(refused.status, path).toBe(503); expect(await refused.json(), path).toMatchObject({ error: "checkout_soon" });
+    }
+    expect((await post("/v1/billing/checkout", { kind: "cart", cart: bundle("starter") }, bearer)).status).toBe(503);
+    // the account can still be deleted: the plan has nothing at the provider to cancel
+    await billing.beforeAccountDelete(reviewer, { cancelBilling: true, destroyDesktopsNow: true });
+    expect(billing.clouds.get(answer.granted.cloudId)!.review).toBeUndefined();
+  }
+  expect(calls.filter(url => /dodopayments/.test(url))).toEqual([]);
+  const closed = createBilling(options({ env: { DUSK_OPS_TOKEN: token } })); cleanup.push(() => closed.close());
+  expect(closed.appRoutes).toBe(false);
+});
+
 it("walks the cancel flow over HTTP: steps, the one-time discount, then an online cancel with no contact needed", async () => {
   const f = await fixture(), { cookie } = await f.login();
   const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: bundle("pro") }, cookie);

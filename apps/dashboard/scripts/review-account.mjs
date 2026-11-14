@@ -7,9 +7,9 @@
 //
 // Reads DUSK_REVIEW_EMAIL, DUSK_REVIEW_CODE and DUSK_OPS_TOKEN_<TARGET> from ~/.config/duskbot/dusk.env (DUSK_ENV
 // overrides) and never prints them. It signs in the way the phone does (the fixed review code, no email), pairs with the
-// cloud the way the phone does (waking it if asleep), and signs both sessions out at the end. A cloud is granted through
-// the operator's grant: in process where the fake provider completes it, else Dodo's TEST-mode checkout paid with the
-// test card in a headless Chrome (scripts/smoke/dodo-test-pay.mjs refuses any live page). Live billing has no grant.
+// cloud the way the phone does (waking it if asleep), and signs both sessions out at the end. The cloud comes from the
+// review grant (POST /v1/billing/ops/review), which never goes through the payment provider, so it works with billing off,
+// in test mode and live, and nothing is ever charged.
 // --measure-wake waits for the cloud's idle sleep (up to 75 minutes) and times a phone send that wakes it.
 import { readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
@@ -70,15 +70,10 @@ const ownCloud = (s) => (s.clouds ?? []).find((c) => c.status !== "ended" && c.s
 
 const opsToken = () => { if (!ops) throw new Error(`DUSK_OPS_TOKEN_${target.toUpperCase()} is not set, so ${target} has no operator routes for the grant and the review flag`); return ops; };
 async function grant() {
-  const answer = await call(origin, "/v1/billing/ops/grant", { method: "POST", token: opsToken(), body: { email, bundle: "starter", name: CLOUD_NAME }, timeoutMs: 60_000 });
-  if (answer.status === 404) throw new Error(`${target} has no operator grant (live billing, billing off or no DUSK_OPS_TOKEN): a review cloud cannot be made there yet`);
-  const data = must(answer, "the operator grant");
-  if (answer.status === 202) {
-    if (!(data.checkoutUrl ?? "").startsWith("https://test.")) throw new Error("the grant's checkout is not in test mode; refusing to pay");
-    log(`test-mode checkout ${data.checkoutId} for cloud ${data.cloudId}; paying with the test card`);
-    const { payDodoTestCheckout } = await import("../../../scripts/smoke/dodo-test-pay.mjs");
-    await payDodoTestCheckout(data.checkoutUrl, { log: (line) => log(`pay: ${line}`) });
-  } else log("granted in process");
+  const answer = await call(origin, "/v1/billing/ops/review", { method: "POST", token: opsToken(), body: { email, grant: true, name: CLOUD_NAME }, timeoutMs: 60_000 });
+  if (answer.status === 404) throw new Error(`${target} has no review grant (the service needs DUSK_OPS_TOKEN and DUSK_REVIEW_EMAIL)`);
+  const data = must(answer, "the review grant");
+  log(`granted cloud ${data.granted?.cloudId} (${data.granted?.created ? "new" : "already there"}), never through the payment provider`);
 }
 
 async function markReview() {

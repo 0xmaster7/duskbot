@@ -56,9 +56,12 @@ export function createBillingRoutes(ctx: BillingContext) {
         // only App Review's own address: an ops token alone can never make another account's cloud free for good
         if (email !== ctx.reviewEmail) throw new BillingError(403, "forbidden");
         const owner = ctx.findAccount(email);
-        if (data.review !== undefined && typeof data.review !== "boolean") invalid();
+        if (data.review !== undefined && typeof data.review !== "boolean" || data.grant !== undefined && data.grant !== true) invalid();
         if (!owner) throw new BillingError(404, "not_found");
-        json(res, 200, { ok: true, accountId: owner.id, ...service.markReview(owner.id, data.review !== false) }); return true;
+        // the grant never goes through the payment provider, so it works with billing off, in test mode and live
+        const granted = data.grant === true ? service.grantReview(owner, { bundle: data.bundle === undefined ? "starter" : text(data.bundle), name: data.name === undefined ? "Demo Cloud" : cloudName(data.name) }) : null;
+        if (granted?.created) void clouds.reconcile().catch(() => {});
+        json(res, 200, { ok: true, accountId: owner.id, ...(granted ? { granted } : {}), ...service.markReview(owner.id, data.review !== false) }); return true;
       }
       const purge = /^\/v1\/billing\/ops\/clouds\/(c[0-9a-f]{24})\/delete$/.exec(path);
       if (purge && method === "POST") {

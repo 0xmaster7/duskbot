@@ -14,7 +14,7 @@ export const WAKE_INTENTS = ["type", "click", "send", "connector", "routine"];
 export function createAdminRoutes(ctx: BillingContext) {
   const { service, clouds, config, now } = ctx;
   const confirmations = new Map<string, { accountId: string; plan: string; subscriptionId: string; expiresAt: number }>();
-  function available() { if (!ctx.enabled) throw new BillingError(503, "unavailable"); }
+  function available() { if (!(ctx.appRoutes ?? ctx.enabled)) throw new BillingError(503, "unavailable"); }
   function bundleCart(plan: unknown, interval: unknown): Cart {
     const bundle = config.bundles.find(b => b.id === plan && b.id !== "free");
     if (!bundle || (interval !== "month" && interval !== "year")) invalid();
@@ -140,6 +140,7 @@ export function createAdminRoutes(ctx: BillingContext) {
       }
       if (method !== "POST") throw new BillingError(404, "not_found");
       const data = await body(req);
+      if (!ctx.checkoutOpen && ["checkout", "clouds", "upgrade", "upgrade/preview"].includes(route)) throw new BillingError(503, "checkout_soon");
       if (route === "checkout" || route === "clouds") {
         const add = route === "clouds", cart = bundleCart(add ? data.tier : data.plan, add ? data.interval : "month");
         const source = add ? optionalText(data.source) : text(data.source);

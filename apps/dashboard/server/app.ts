@@ -341,7 +341,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   auth.extendSession(async accountId => {
     const owner = auth.account(accountId);
     // the app session must survive a billing failure; it then reads as the free plan
-    try { return owner && billing.enabled ? await billing.sessionFields(owner) : {}; } catch { console.warn("billing: session fields failed"); return {}; }
+    try { return owner && billing.appRoutes ? await billing.sessionFields(owner) : {}; } catch { console.warn("billing: session fields failed"); return {}; }
   });
   const managedRoutes = createManagedRoutes({ clouds: billing.clouds, publicUrl: pagesUrl, now, json, readJson: async req => bodyObject(await readBody(req)),
     owner: req => {
