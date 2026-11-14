@@ -114,8 +114,8 @@ describe("what Dusk says first", () => {
   it("as the Chief: who it is, what it does here, and that it is looking around, never by the person's name", () => {
     const said = [
       "Hey! I'm Dusk. I'm new here.",
-      "I'm your chief of staff and I manage your other bots. Task me with anything and I'll get it to the right bot.",
-      "I'm taking a quick look around for anything I can pick up. I'll follow up in a moment.",
+      "I'm here to be your chief of staff. I can manage your other bots. Task me with anything. I'll make sure it gets to the right bot.",
+      "I'm taking a look around to see if there's anything I can pick up for you. I'll follow up in a moment.",
     ];
     expect(introLines({ name: "Dusk", chief: true })).toEqual(said);
     expect(introLines({ name: "Dusk", chief: true, person: "Ada" })).toEqual(said);
