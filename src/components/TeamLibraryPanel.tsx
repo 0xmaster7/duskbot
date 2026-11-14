@@ -1,4 +1,3 @@
-import { UPSTREAM } from "../../electron/legacy-names.mjs";
 import { track } from "@/lib/analytics";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
@@ -20,7 +19,6 @@ import { MAX_TEAM_BACKUP_BYTES } from "../../shared/team-backup";
 import { takeImportName } from "../../shared/import-name";
 import { friendlyError } from "@/lib/plain-error";
 import { glassPopupTopInset } from "@/lib/glass-popup";
-const COMMUNITY_TEAMS_REPOSITORY = UPSTREAM.teamLibrary.repository;
 
 export { TeamImportDetails };
 
@@ -492,17 +490,6 @@ export function TeamLibraryPanel({
             </p>}
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            {!pending && (
-              <button
-                onClick={() => void openExternal(catalog?.repositoryUrl ?? COMMUNITY_TEAMS_REPOSITORY)}
-                className="flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-[13px] text-ink-secondary hover:bg-raised hover:text-ink"
-                title={t("templates.openRepository")}
-              >
-                <Github size={16} />
-                <span className="max-sm:hidden">{t("templates.communityRepo")}</span>
-                <ExternalLink size={12} />
-              </button>
-            )}
             <button
               onClick={leave}
               disabled={importing}
