@@ -128,7 +128,10 @@ describe("bringing in what other AIs and agent apps hold, on a real server", () 
     expect(notesOutcomeLine(outcome)).toMatch(/^Brought in from ChatGPT: .*2 bots.*2 paused routines/);
     // one summary in the first bot's chat, written by the server
     await vi.waitFor(() => expect(server.answers.some((one) => one.path === `/api/bots/${first.id}/import-note`)).toBe(true));
-    const note = server.answers.find((one) => one.path === `/api/bots/${first.id}/import-note`)!;
+    const notes = server.answers.filter((one) => one.path === `/api/bots/${first.id}/import-note`);
+    expect(notes.map((one) => one.status)).toEqual([201, 201]);
+    expect(String((notes[0]!.body.message as { text?: string }).text), "it says it got them first").toBe("Got it. Setting up your bots, memories and routines now…");
+    const note = notes.at(-1)!;
     expect(note.status).toBe(201);
     const said = String((note.body.message as { text?: string }).text);
     expect(said).toMatch(/ChatGPT/);

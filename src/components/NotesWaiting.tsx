@@ -1,8 +1,12 @@
-// Notes from another AI, as the chat takes them: pasted or dropped into any chat, and one quiet line in the first bot's
-// chat while they are on their way.
+// Notes from another AI, as the chat takes them: pasted or dropped into any chat, and one quiet card above the first
+// bot's message box while they are on their way. When they come (from Downloads, a drop or a paste) that card says so
+// for a few seconds and goes; the first bot says it got them, works through them on its working row, and ends with its
+// summary. Nothing about the import is ever said inside the message box.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { X } from "../icons";
+import { CircleAlert, X } from "../icons";
+import type { LocaleKey } from "@/locales";
 import { localSetupImport } from "@/lib/setup-import";
+import { arrivalFailed, dismissArrival, noteArrival, useNotesArrival, useNotesWork, type NotesVia } from "@/lib/notes-arrival";
 import { copyNotesPrompt, importNotes, notesWatch, takeNotesFromDownloads, WATCH_EVERY_MS, isNotesPrompt, notesErrorLine, notesOutcomeLine, scheduleNotesReminder, stopWaiting, useNotesWaiting } from "@/lib/assistant-notes";
 import { myDefaultBot, useViewerEmail } from "@/lib/default-bot";
 import { t } from "@/lib/i18n";
@@ -10,17 +14,24 @@ import { useStore } from "@/state/store";
 
 export type NotesSay = (line: string, state: "working" | "done" | "failed") => void;
 
-/** Takes a pasted or dropped block: `say` hears "bringing in…" at once, then the outcome or what went wrong. */
+/** Takes a pasted or dropped block. A chat passes no `say`: the card above its message box and the first bot's chat
+ * say how it goes. A screen of its own (the bring step) passes `say` to hear "bringing in…", then the outcome. */
 export function useNotesIntake() {
   const { state, dispatch } = useStore();
   const firstBotId = myDefaultBot(state.bots, useViewerEmail())?.id ?? null;
-  return useCallback((text: string, say: NotesSay) => {
-    if (isNotesPrompt(text)) { say(t("composer.notes.error.prompt"), "failed"); return; }
-    say(t("composer.notes.working"), "working");
-    void importNotes(text, { bots: state.bots, aboutMe: state.config?.profile?.aboutMe ?? "", team: Boolean(state.config?.team), firstBotId, dispatch })
-      .then((outcome) => say(notesOutcomeLine(outcome), outcome.failed.length || outcome.lost?.length ? "failed" : "done"),
-        (cause: unknown) => say(notesErrorLine(cause), "failed"));
-  }, [state.bots, state.config?.profile?.aboutMe, state.config?.team, firstBotId, dispatch]);
+  const here = state.selectedId ?? firstBotId;
+  return useCallback((text: string, say?: NotesSay, via: NotesVia = "paste") => {
+    if (isNotesPrompt(text)) {
+      if (say) say(t("composer.notes.error.prompt"), "failed");
+      else { noteArrival(via, here); arrivalFailed(t("composer.notes.error.prompt")); }
+      return;
+    }
+    if (say) say(t("composer.notes.working"), "working");
+    else noteArrival(via, here);
+    void importNotes(text, { bots: state.bots, aboutMe: state.config?.profile?.aboutMe ?? "", team: Boolean(state.config?.team), firstBotId, dispatch }, { via })
+      .then((outcome) => say?.(notesOutcomeLine(outcome), outcome.failed.length || outcome.lost?.length ? "failed" : "done"),
+        (cause: unknown) => (say ? say(notesErrorLine(cause), "failed") : arrivalFailed(notesErrorLine(cause))));
+  }, [state.bots, state.config?.profile?.aboutMe, state.config?.team, firstBotId, here, dispatch]);
 }
 
 /** While the prompt's answer may still come, Downloads is checked every few seconds for the dusk-bot-notes.md it
@@ -65,28 +76,50 @@ export function useNotesReminder() {
   }, [waiting, firstBotId, dispatch]);
 }
 
-/** In the first bot's chat while notes are on their way: what to do with them, the prompt again, and a way to stop. */
+const GOT: Record<NotesVia, LocaleKey> = { downloads: "composer.notes.got.downloads", drop: "composer.notes.got.drop", paste: "composer.notes.got.paste" };
+
+const cardClass = "mb-2 flex items-center gap-2 rounded-[14px] bg-ink/[0.04] py-1.5 pe-1.5 ps-3 text-[13px] leading-[18px] text-ink-secondary";
+const xClass = "grid size-7 shrink-0 place-items-center rounded-full text-ink-tertiary transition-colors hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none";
+
+/** Above the message box: while notes are on their way (first bot's chat only), "waiting" with the prompt again and a
+ * way to stop; once they come into this chat, that they came, for a few seconds, then nothing. */
 export function NotesWaitingLine({ botId }: { botId: string | undefined }) {
   const { state } = useStore();
   const waiting = useNotesWaiting();
+  const arrival = useNotesArrival();
   const first = myDefaultBot(state.bots, useViewerEmail());
+  // while the first bot works through them, its chat says how it goes: no waiting card under that
+  const working = useNotesWork(first?.id);
   const [copied, setCopied] = useState(false);
   useEffect(() => {
     if (!copied) return;
     const timer = setTimeout(() => setCopied(false), 2_000);
     return () => clearTimeout(timer);
   }, [copied]);
-  if (!waiting || !botId || botId !== first?.id) return null;
+  if (!botId) return null;
+  if (arrival && (arrival.botId ?? first?.id) === botId) {
+    return (
+      <div data-notes-arrived={arrival.failed ? "failed" : arrival.via} role="status" aria-live="polite" className={cardClass}>
+        {arrival.failed
+          ? <CircleAlert size={14} aria-hidden="true" className="shrink-0" />
+          : <span aria-hidden="true" className="funnel-wait inline-block size-1.5 shrink-0 rounded-full bg-ink/60" />}
+        <span className="min-w-0 flex-1 text-pretty">{arrival.failed ?? t(GOT[arrival.via])}</span>
+        <button type="button" data-notes-dismiss="" onClick={dismissArrival} aria-label={t("composer.notes.dismiss")} title={t("composer.notes.dismiss")} className={xClass}>
+          <X size={14} aria-hidden="true" />
+        </button>
+      </div>
+    );
+  }
+  if (!waiting || working || botId !== first?.id) return null;
   return (
-    <div data-notes-waiting="" className="mb-2 flex items-center gap-2 rounded-[14px] bg-ink/[0.04] py-1.5 pe-1.5 ps-3 text-[13px] leading-[18px] text-ink-secondary">
+    <div data-notes-waiting="" className={cardClass}>
       <span aria-hidden="true" className="funnel-wait inline-block size-1.5 shrink-0 rounded-full bg-ink/60" />
       <span className="min-w-0 flex-1 text-pretty">{t("composer.notes.waiting")}</span>
       <button type="button" data-notes-copy="" onClick={() => void copyNotesPrompt().then(setCopied)}
         className="shrink-0 rounded-full px-2 py-1 text-ink transition-colors hover:bg-ink/[0.06] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none">
         {copied ? t("composer.notes.copied") : t("composer.notes.copyAgain")}
       </button>
-      <button type="button" data-notes-stop="" onClick={stopWaiting} aria-label={t("composer.notes.stopWaiting")} title={t("composer.notes.stopWaiting")}
-        className="grid size-7 shrink-0 place-items-center rounded-full text-ink-tertiary transition-colors hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none">
+      <button type="button" data-notes-stop="" onClick={stopWaiting} aria-label={t("composer.notes.stopWaiting")} title={t("composer.notes.stopWaiting")} className={xClass}>
         <X size={14} aria-hidden="true" />
       </button>
     </div>

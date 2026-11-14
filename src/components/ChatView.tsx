@@ -55,6 +55,7 @@ import { liveCallEnabled, showToolCallsEnabled } from "@/lib/feature-flags";
 import { normalizeState } from "@/lib/mascot";
 import { peerLine, peerRequest, type PeerLine } from "@/lib/peer-message";
 import { showWorkingDots } from "@/lib/turn-tail";
+import { useNotesWork } from "@/lib/notes-arrival";
 import { useTypingHold } from "@/hooks/use-typing-hold";
 import { STATUS_MOUNT_MS, useReached } from "@/hooks/use-reached";
 import { useReplyLife, type LifeTurn } from "@/hooks/use-reply-life";
@@ -1041,7 +1042,9 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   // a send from this window shows it at once: the person pressed Enter and is looking for the bot to pick it up
   const mountDelay = sent ? 0 : lifeDraw(presenceSeed, "mount", STATUS_MOUNT_MS);
   const mountDue = useReached(!turnBusy ? null : turnStartedAt && messages.length > 0 ? turnStartedAt + mountDelay : 0);
-  const presenceVisible = hold.typing ? !hold.leaving : (waiting && mountDue) || teammatesWorking;
+  // notes from another AI being brought in: the import's own steps are this bot's working row until its summary lands
+  const importing = useNotesWork(bot.id);
+  const presenceVisible = hold.typing ? !hold.leaving : (waiting && mountDue) || teammatesWorking || Boolean(importing);
   // the bubble the line hangs under keeps its pinched corner until the line has finished leaving, as grok's does
   const presenceShown = useLingering(presenceVisible, 140);
   const paintedMessages = useFirstPaintRows(transcriptKey, windowedMessages, Boolean(focus && !focus.consumed) || laterCount > 0, scrollRef, following);
@@ -1327,12 +1330,12 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             }
             simple
             className={cn(!statusSlot && presenceUnderBubble && SIMPLE_STACKED)}
-            label={teammatesWorking ? t("chat.teammatesWorking") : undefined}
+            label={teammatesWorking ? t("chat.teammatesWorking") : importing && !turnBusy ? importing : undefined}
             visible={presenceVisible}
             {...now}
             // grok shows no steps in the chat: the list under the line only with tool calls shown
             card={showToolCalls ? now.card : undefined}
-            phrases={teammatesWorking ? undefined : writing ? typingPhrases : opening ? undefined : turnLabel ? [turnLabel] : now.phrases}
+            phrases={teammatesWorking || (importing && !turnBusy) ? undefined : writing ? typingPhrases : opening ? undefined : turnLabel ? [turnLabel] : now.phrases}
             phase={writing ? TYPING_PHASE : turnLabel ? `label:${turnLabel}` : now.phase}
             seed={presenceSeed}
             since={busySince}

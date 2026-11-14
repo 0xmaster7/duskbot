@@ -166,7 +166,7 @@ function useNotesHere(): { said: { line: string; state: "working" | "done" | "fa
       if (!looksLikeNotes(pasted)) return;
       event.preventDefault();
       event.stopPropagation();
-      takeNotes(pasted, say);
+      takeNotes(pasted, say, "paste");
     };
     const hold = (event: DragEvent) => {
       if (!carriesFiles(event)) return;
@@ -183,7 +183,7 @@ function useNotesHere(): { said: { line: string; state: "working" | "done" | "fa
       depth = 0;
       setOver(false);
       void notesInFiles(Array.from(event.dataTransfer?.files ?? [])).then((notes) => {
-        if (notes) takeNotes(notes.text, say);
+        if (notes) takeNotes(notes.text, say, "drop");
         else say(t("composer.notes.error.notExport"), "failed");
       });
     };

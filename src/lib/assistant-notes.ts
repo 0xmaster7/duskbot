@@ -9,6 +9,7 @@ import {
   aboutMeWithNotes, isNotesPrompt, NOTES_MAX_CHARS, looksLikeNotes, notesMemoryFile, notesMemoryText, notesThreadsFile, notesThreadsText, NOTES_PROMPT, parseNotes, type AssistantNotes,
 } from "../../shared/assistant-notes";
 import { notesNoteFacts, postImportNote } from "./import-note";
+import { arrivalFailed, noteArrival, setNotesWork, type NotesVia } from "./notes-arrival";
 import { distillChunks, distillLines } from "../../shared/memory-distill";
 import { GrokImportError } from "../../shared/grok-import";
 import { copyText } from "./copy-text";
@@ -107,9 +108,11 @@ export async function takeNotesFromDownloads(context: NotesContext, now = Date.n
   setWatch({ ...latest, until: Math.max(latest.until, now + WATCH_AFTER_FILE_MS), taken: [...latest.taken, ...fresh.map((file) => `${file.name}:${file.modifiedAt}`)].slice(-50) });
   const notes = fresh.filter((file) => looksLikeNotes(file.text) && !isNotesPrompt(file.text));
   if (!notes.length) return null;
+  noteArrival("downloads", context.firstBotId);
   try {
     return await importNotes(notes.map((file) => file.text).join("\n\n"), context, { via: "downloads" });
-  } catch {
+  } catch (cause) {
+    arrivalFailed(notesErrorLine(cause));
     return null;
   }
 }
@@ -288,14 +291,28 @@ async function joinMovedBots(notes: AssistantNotes, bots: readonly Bot[], movedN
 
 /** Everything in the notes, each part on its own: About me, the first bot's memory, then a bot for each of the other
  * AI's own assistants. A part that fails leaves the others in; the waiting stops once anything came in. */
-export async function importNotes(text: string, context: NotesContext, options: { via?: "downloads" } = {}): Promise<NotesOutcome> {
+export async function importNotes(text: string, context: NotesContext, options: { via?: NotesVia } = {}): Promise<NotesOutcome> {
   const parsed = parseNotes(text);
+  // read: the first bot says it got them in its chat, and its working row shows each step until the summary
+  const worker = context.firstBotId;
+  const step = (label: string) => { if (worker) setNotesWork(worker, label); };
+  step(t("composer.notes.row.reading", { from: parsed.from.name }));
+  if (worker) await postImportNote(worker, { from: [parsed.from.name], start: true });
+  try {
+    return await bringNotesIn(parsed, context, options, step);
+  } finally {
+    if (worker) setNotesWork(worker, null);
+  }
+}
+
+async function bringNotesIn(parsed: AssistantNotes, context: NotesContext, options: { via?: NotesVia }, step: (label: string) => void): Promise<NotesOutcome> {
   // the rules pass: noise and near-repeats out; another AI's own notes are already chosen, so the caps are wider
   const seen = aboutLines(context.aboutMe);
   const memories = distillLines(parsed.memories, { cap: NOTES_MEMORY_CAP, seen: [...seen] });
   const notes = { ...parsed, aboutMe: distillLines(parsed.aboutMe, { cap: NOTES_ABOUT_CAP, seen }).keep, memories: memories.keep };
   const outcome: NotesOutcome = { from: notes.from.name, facts: 0, memories: 0, threads: 0, bots: 0, botNames: [], joined: 0, routines: 0, failed: [], lost: [], partial: notes.partial };
   let aboutMe = context.aboutMe;
+  step(t("composer.notes.row.memory"));
   try {
     const saved = await saveAboutMe(notes, context);
     outcome.facts = saved.added;
@@ -308,6 +325,7 @@ export async function importNotes(text: string, context: NotesContext, options: 
     await api(`/api/bots/${encodeURIComponent(context.firstBotId)}/memory/import-distill`, { method: "POST", body: JSON.stringify({ from: notes.from.name, chunks: later.slice(0, 10) }) }).catch(() => {});
   }
   let general = notes.recurring;
+  if (notes.recurring.length || notes.skills.length) step(t("composer.notes.row.routines"));
   try {
     const routines = await saveRoutines(notes, context.firstBotId);
     outcome.routines = routines.made;
@@ -322,7 +340,7 @@ export async function importNotes(text: string, context: NotesContext, options: 
       bots: context.bots, servers: new Set(servers.map((server) => server.name)), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, from: notes.from,
     });
     const saveFacts = aboutMeSaver({ ...context, aboutMe });
-    const reports = await runBotMove({ apps: [{ app: notes.from.name, where: "", from: notes.from, preview, channels: [], unreadable: [] }], grokWaiting: [] }, context.dispatch, undefined, saveFacts);
+    const reports = await runBotMove({ apps: [{ app: notes.from.name, where: "", from: notes.from, preview, channels: [], unreadable: [] }], grokWaiting: [] }, context.dispatch, (_done, name) => step(t("composer.notes.row.bot", { name })), saveFacts);
     const moved = reports.flatMap((one) => one.report.bots);
     outcome.bots = moved.length;
     outcome.botNames = moved.map((bot) => bot.name);
@@ -332,7 +350,7 @@ export async function importNotes(text: string, context: NotesContext, options: 
   }
   const came = outcome.facts || outcome.memories || outcome.threads || outcome.bots || outcome.joined || outcome.routines || outcome.skills;
   if (came || !(outcome.failed.length || outcome.lost!.length)) stopWaiting();
-  if (came && context.firstBotId) void postImportNote(context.firstBotId, { ...notesNoteFacts(outcome), ...(options.via ? { via: options.via } : {}) });
+  if (came && context.firstBotId) await postImportNote(context.firstBotId, { ...notesNoteFacts(outcome), ...(options.via === "downloads" ? { via: "downloads" as const } : {}) });
   return outcome;
 }
 

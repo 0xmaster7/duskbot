@@ -8,6 +8,7 @@ const MAX_NAMED = 8;
 export function importNoteText(input: ImportNoteFacts, language?: string): string | null {
   const facts = importNoteSchema.parse(input);
   const say = (key: ServerLineKey, params?: Record<string, string | number>) => serverLine(language, key, params);
+  if (facts.start) return say("server.importNote.start");
   const counted = (n: number, one: ServerLineKey, many: ServerLineKey) => (n === 1 ? say(one) : say(many, { count: n }));
   let and: (items: string[]) => string;
   try {

@@ -24,6 +24,10 @@ describe("the first bot's note after a bring-in", () => {
     expect(text).not.toMatch(/\u2014/);
   });
 
+  it("as the bringing in starts, says it got them and is setting things up", () => {
+    expect(importNoteText({ from: ["ChatGPT"], start: true })).toBe("Got it. Setting up your bots, memories and routines now…");
+  });
+
   it("says it found the notes in Downloads when they came by themselves", () => {
     expect(importNoteText({ from: ["ChatGPT"], facts: 4, via: "downloads" })).toMatch(/^I found your notes from ChatGPT in Downloads and brought them in:\n- 4 things about you/);
   });

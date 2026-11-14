@@ -130,7 +130,9 @@ describe("bringing notes in", () => {
     expect(outcome).toMatchObject({ threads: 1, joined: 1, bots: 0 });
     expect(notesOutcomeLine(outcome)).toBe("Brought in from Claude: 2 things about you, 1 open thread, and 1 bot already here, with more.");
     await vi.waitFor(() => expect(f.api).toHaveBeenCalledWith("/api/bots/dusk/import-note", expect.objectContaining({ method: "POST" })));
-    const note = JSON.parse(f.api.mock.calls.find(([path]) => path === "/api/bots/dusk/import-note")![1].body);
+    const said = f.api.mock.calls.filter(([path]) => path === "/api/bots/dusk/import-note").map(([, init]) => JSON.parse(init.body));
+    expect(said[0], "first it says it got them").toEqual({ from: ["Claude"], start: true });
+    const note = said.at(-1);
     expect(note).toMatchObject({ from: ["Claude"], facts: 2, threads: 1 });
   });
 
@@ -215,7 +217,7 @@ describe("the notes file in Downloads", () => {
     const outcome = await takeNotesFromDownloads(context(), 3_000);
     expect(outcome).toMatchObject({ from: "Claude", memories: 1 });
     await vi.waitFor(() => expect(f.api).toHaveBeenCalledWith("/api/bots/dusk/import-note", expect.anything()));
-    expect(JSON.parse(f.api.mock.calls.find(([path]) => path === "/api/bots/dusk/import-note")![1].body)).toMatchObject({ via: "downloads", from: ["Claude"] });
+    expect(JSON.parse(f.api.mock.calls.findLast(([path]) => path === "/api/bots/dusk/import-note")![1].body)).toMatchObject({ via: "downloads", from: ["Claude"] });
     expect(notesWatch()!.taken).toEqual(["dusk-bot-notes.json:2000"]);
     f.api.mockClear();
     expect(await takeNotesFromDownloads(context(), 4_000), "the same file never twice").toBeNull();
