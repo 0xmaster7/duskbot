@@ -99,7 +99,7 @@ import { createAccountErrors } from "./account-errors.mjs";
 import { CHECKOUT_SOURCES, cloudMenuSublabel, cloudTarget, createCloudAccountClient, createCloudAccountStore } from "./cloud-account.mjs"; import { isAppLink } from "./cloud-signin.mjs";
 import { ACCOUNT_PAGES, installCloudPlanIpc } from "./cloud-plan-ipc.mjs";
 import { cloudLinkOpensSheet, colorDotIcons, createCloudLook, createCloudReadyNotice, installCloudBuy, lookFile } from "./cloud-buy.mjs";
-import { createAccountEnroll } from "./account-enroll.mjs"; import { cloudMoveLinkWorkspace, createServerEnroll } from "./server-enroll.mjs"; import { accountGateRequired, installAccountGate } from "./account-gate.mjs";
+import { createAccountEnroll } from "./account-enroll.mjs"; import { cloudMoveLinkWorkspace, createServerEnroll } from "./server-enroll.mjs"; import { accountGateRequired, installAccountGate } from "./account-gate.mjs"; import { carryWelcomeToCloud } from "./cloud-welcome-carry.mjs";
 import { createTrialNotices } from "./cloud-trial-notice.mjs";
 import { createDesktopPrefs, DESKTOP_PORTS, jsonFile, registerDesktopPrefs, writeFileDurably } from "./desktop-prefs.mjs";
 import { createDesktopIncludedX } from "./included-x.mjs"; import { createDesktopIncludedPages } from "./included-pages.mjs";
@@ -1926,7 +1926,7 @@ async function openCloudEntry() {
   if (desktopRemoteAccess) throw new Error("This app is connected to another computer. Disconnect it to use dusk cloud on this computer.");
   if (!serverReady) throw new Error("This installation is unavailable. Restart the app and open My Cloud again.");
   await cloudAccountRestored();
-  if ((await homeWindow.refresh()).kind !== "computer") { await showHome({ place: "cloud" }); return true; }
+  if ((await homeWindow.refresh()).kind !== "computer") { await showHome({ place: "cloud" }); void welcomedOnCloud(); return true; }
   const active = activeRemote(environmentsState);
   const showingCloud = Boolean(active) && active.origin === cloudAccount?.homeTarget()?.origin;
   if (active && !showingCloud) persistEnvironments(withActive(environmentsState, LOCAL_ID), "chosen");
@@ -2006,7 +2006,25 @@ function rememberCloudHome(state) {
 async function connectCloudHome(open = null) {
   const client = ensureCloudAccount();
   await homeWindow.openCloud(open);
+  void welcomedOnCloud();
   return client.state();
+}
+/** one welcome only: the person met dusk bot here, so My Cloud opens on its chat, not on a second welcome. The window's
+ * own session with the cloud marks it once; a page still on that welcome is loaded again. */
+async function welcomedOnCloud() {
+  const origin = homeWindow.cloudOrigin() ?? cloudAccount?.homeTarget()?.origin ?? null;
+  if (!origin || desktopRemoteAccess) return;
+  for (const wait of [0, 3_000, 10_000]) {
+    if (wait) await new Promise(done => setTimeout(done, wait));
+    const win = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
+    let shows = false;
+    try { shows = Boolean(win) && new URL(win.webContents.getURL()).origin === origin; } catch {}
+    if (!shows) continue;
+    const changed = await carryWelcomeToCloud({ origin, fetch: (...args) => session.defaultSession.fetch(...args),
+      local: async () => { const response = await localServerRequest("/api/config", { signal: AbortSignal.timeout(10_000) }); return response.ok ? response.json() : null; }, log: slog });
+    if (changed && win && !win.isDestroyed() && new URL(win.webContents.getURL()).origin === origin) win.webContents.reload();
+    return;
+  }
 }
 
 /** My Cloud listed under Servers once, and the server this window shows: the purchase that made it is over. */
