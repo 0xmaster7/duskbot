@@ -318,3 +318,102 @@ describe("connect flow timeouts", () => {
     expect(flow.state.stage).toBe("waiting");
   });
 });
+
+describe("the provider's normal browser sign-in, relayed by this desktop for a remote workspace", () => {
+  const claude = (authenticated: boolean): ConnectInstance => ({ instanceId: "claude", driverKind: "claudeAgent", snapshot: { state: "available", authenticated }, authentication: { method: "paste-code" } });
+  const browserLink = "https://claude.com/cai/oauth/authorize?code=true&redirect_uri=http%3A%2F%2Flocalhost%3A54321%2Fcallback&state=s";
+  const claudeStart = (sameMachine: boolean) => () => ({
+    sameMachine,
+    auth: { phase: "waiting", flowId: "c1", authorizationUrl: "https://claude.com/cai/oauth/authorize?code=true&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback", loopback: { authorizationUrl: browserLink, port: 54321, path: "/callback" } },
+  });
+  const fakeRelay = (portFree = true) => {
+    let deliver: (url: string | null) => void = () => {};
+    const log: string[] = [];
+    const relay = {
+      open: vi.fn(async (port: number, path: string) => { log.push(`open ${port}${path}`); return portFree; }),
+      next: vi.fn(() => new Promise<string | null>((resolve) => { deliver = resolve; })),
+      done: vi.fn(async (_port: number, result: { ok: boolean; location?: string | null }) => { log.push(`done ${result.ok} ${result.location ?? ""}`); }),
+      close: vi.fn(async (port: number) => { log.push(`close ${port}`); }),
+    };
+    return { relay, log, browserReturns: (url: string) => deliver(url) };
+  };
+
+  it("Claude on a remote workspace: one click, the browser comes back here, nothing to paste", async () => {
+    let done = false;
+    let completeBody = "";
+    const { relay, log, browserReturns } = fakeRelay();
+    const { flow, opened, calls } = harness([[claude(false)], () => [claude(done)]], {
+      "POST /api/instances/claude/auth/start": claudeStart(false),
+      "GET /api/instances/claude/auth/status": () => ({ auth: { phase: "waiting" } }),
+      "POST /api/instances/claude/auth/complete": (init) => { completeBody = init?.body ?? ""; done = true; return { ok: true, location: "https://platform.claude.com/oauth/code/success?app=claude-code" }; },
+    }, { relay });
+    flow.start({ tile: "claude", candidates: ["claude"] });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(flow.state).toMatchObject({ stage: "waiting", kind: "browser", link: browserLink, code: null });
+    expect(opened).toEqual([browserLink]);
+    expect(log).toContain("open 54321/callback");
+    browserReturns("http://localhost:54321/callback?code=fixture&state=s");
+    await vi.advanceTimersByTimeAsync(POLL_MS * 2);
+    expect(JSON.parse(completeBody)).toEqual({ flowId: "c1", callbackUrl: "http://localhost:54321/callback?code=fixture&state=s" });
+    expect(log).toContain("done true https://platform.claude.com/oauth/code/success?app=claude-code");
+    expect(flow.state).toEqual({ stage: "connected", reused: false });
+    expect(calls.filter((call) => call.startsWith("POST /api/instances/claude/auth/start"))).toHaveLength(1);
+  });
+
+  it("asks the server for the browser sign-in only when this desktop can relay it", async () => {
+    const bodies: string[] = [];
+    const { flow } = harness([[claude(false)]], {
+      "POST /api/instances/claude/auth/start": (init) => { bodies.push(init?.body ?? ""); return claudeStart(false)(); },
+    });
+    flow.start({ tile: "claude", candidates: ["claude"] });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(JSON.parse(bodies[0]!)).toEqual({ browser: false });
+    expect(flow.state).toMatchObject({ stage: "waiting", kind: "paste" });
+  });
+
+  it("on the same machine the browser reaches the CLI directly, with no relay", async () => {
+    const { relay, log } = fakeRelay();
+    const { flow, opened } = harness([[claude(false)]], {
+      "POST /api/instances/claude/auth/start": claudeStart(true),
+      "GET /api/instances/claude/auth/status": () => ({ auth: { phase: "waiting" } }),
+    }, { relay });
+    flow.start({ tile: "claude", candidates: ["claude"] });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(flow.state).toMatchObject({ stage: "waiting", kind: "browser", link: browserLink });
+    expect(opened).toEqual([browserLink]);
+    expect(log).toEqual([]);
+  });
+
+  it("keeps the paste fallback when this computer's port is taken", async () => {
+    const { relay } = fakeRelay(false);
+    const { flow } = harness([[claude(false)]], { "POST /api/instances/claude/auth/start": claudeStart(false) }, { relay });
+    flow.start({ tile: "claude", candidates: ["claude"] });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(flow.state).toMatchObject({ stage: "waiting", kind: "paste" });
+  });
+
+  it("ChatGPT on a remote workspace signs in on ChatGPT's own page, and gets a device code if the port is taken here", async () => {
+    const codexBrowser = { sameMachine: false, auth: { phase: "waiting", flowId: "b1", authorizationUrl: "https://auth.openai.com/oauth/authorize?redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback", loopback: { authorizationUrl: "https://auth.openai.com/oauth/authorize?redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback", port: 1455, path: "/auth/callback" } } };
+    const routes = (bodies: string[]) => ({
+      "POST /api/instances/codex/auth/start": (init?: { body?: string }) => { bodies.push(init?.body ?? ""); return JSON.parse(init?.body ?? "{}").browser ? codexBrowser : device; },
+      "POST /api/instances/codex/auth/cancel": () => ({ ok: true }),
+      "GET /api/instances/codex/auth/status": () => ({ auth: { phase: "waiting" } }),
+    });
+    const free = fakeRelay();
+    const first: string[] = [];
+    const one = harness([[codex({ state: "available", authenticated: false })]], routes(first), { relay: free.relay });
+    one.flow.start({ tile: "chatgpt", candidates: ["codex"] });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(one.flow.state).toMatchObject({ stage: "waiting", kind: "browser", code: null, link: codexBrowser.auth.loopback.authorizationUrl });
+    one.flow.cancel();
+
+    const taken = fakeRelay(false);
+    const second: string[] = [];
+    const two = harness([[codex({ state: "available", authenticated: false })]], routes(second), { relay: taken.relay });
+    two.flow.start({ tile: "chatgpt", candidates: ["codex"] });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(second.map((body) => JSON.parse(body).browser)).toEqual([true, false]);
+    expect(two.calls).toContain("POST /api/instances/codex/auth/cancel");
+    expect(two.flow.state).toMatchObject({ stage: "waiting", kind: "device", code: "ABCD-12345" });
+  });
+});

@@ -440,6 +440,14 @@ const bridge = {
   copyText: (text) => ipcRenderer.invoke("clipboard:write-text", text),
   /** Unlike window.open, this still works after an asynchronous API request. */
   openExternal: (url) => ipcRenderer.invoke("desktop:open-external", url),
+  /** A provider's browser sign-in that returns to localhost on a remote workspace: listen on that port here, hand
+   * back the callback, then answer the browser. `open` is false when the port is taken on this computer. */
+  authRelay: {
+    open: (port, path) => ipcRenderer.invoke("auth-relay:open", port, path),
+    next: (port) => ipcRenderer.invoke("auth-relay:next", port),
+    done: (port, result) => ipcRenderer.invoke("auth-relay:done", port, result),
+    close: (port) => ipcRenderer.invoke("auth-relay:close", port),
+  },
   /** Brings this window back to the front, after a sign-in finished in the browser. */
   focusWindow: () => ipcRenderer.invoke("desktop:focus-window"),
   applySkin: (skin) => ipcRenderer.invoke("desktop:skin", skin),

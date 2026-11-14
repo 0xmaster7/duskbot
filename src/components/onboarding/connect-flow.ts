@@ -66,11 +66,25 @@ export interface ConnectDeps {
   /** Opens a link in the person's browser; false when it could not. */
   open(link: string): Promise<boolean>;
   trail(ev: string, fields: Record<string, string | number | boolean | null | undefined>): void;
+  /** The desktop app listening on a loopback port for a provider's browser sign-in on a remote workspace. */
+  relay?: LoopbackRelay;
   /** The cloud is asleep or waking right now. */
   waking?(): boolean;
   now?(): number;
   timeouts?: Partial<ConnectTimeouts>;
 }
+
+export interface LoopbackRelay {
+  /** False when the port is taken on this computer. */
+  open(port: number, path: string): Promise<boolean>;
+  /** The callback the browser brought back, or null once closed. */
+  next(port: number): Promise<string | null>;
+  done(port: number, result: { ok: boolean; location?: string | null }): Promise<unknown>;
+  close(port: number): Promise<unknown>;
+}
+
+type Loopback = { authorizationUrl: string; port: number; path: string };
+type StartAnswer = { auth: { phase: string; flowId?: string | null; authorizationUrl?: string | null; userCode?: string; message?: string; loopback?: Loopback }; sameMachine?: boolean };
 
 export interface ConnectTarget {
   /** The card's name for the trail and the messages ("chatgpt"). */
@@ -145,6 +159,7 @@ export class ConnectFlow {
   private readonly limits: ConnectTimeouts;
   private readonly deps: ConnectDeps;
   private pasteDone: ((code: string) => void) | null = null;
+  private relayPort: number | null = null;
 
   constructor(deps: ConnectDeps) {
     this.deps = deps;
@@ -199,6 +214,7 @@ export class ConnectFlow {
     this.abort?.abort();
     this.abort = null;
     this.pasteDone = null;
+    this.closeRelay();
     if (state.stage === "waiting" && this.instanceId) {
       void this.deps.api(`/api/instances/${encodeURIComponent(this.instanceId)}/auth/cancel`, { method: "POST", body: JSON.stringify({ flowId: state.flowId }) }).catch(() => {});
     }
@@ -221,6 +237,12 @@ export class ConnectFlow {
   /** The code a provider showed after sign-in (Claude), pasted back. */
   submit(code: string): void {
     if (this.state.stage === "waiting" && this.state.kind === "paste" && code.trim()) this.pasteDone?.(code.trim());
+  }
+
+  private closeRelay(): void {
+    if (this.relayPort === null) return;
+    void this.deps.relay?.close(this.relayPort).catch(() => {});
+    this.relayPort = null;
   }
 
   /** Races `work` against this stage's deadline and a cancel. */
@@ -317,7 +339,9 @@ export class ConnectFlow {
         .filter((id) => id !== instance!.instanceId)
         .map((id) => latest.find((candidate) => candidate.instanceId === id))
         .filter((candidate): candidate is ConnectInstance => Boolean(candidate && candidate.snapshot.state === "available" && candidate.authentication && connectsInApp(candidate)))];
-      let started: { auth: { phase: string; flowId?: string | null; authorizationUrl?: string | null; userCode?: string; message?: string } } | null = null;
+      let started: StartAnswer | null = null;
+      const startOnce = (candidate: ConnectInstance, browser: boolean) => this.awake(run, signal, { stage: "opening", since: this.now() }, () => this.within("opening", signal,
+        (stageSignal) => this.deps.api<StartAnswer>(`${base(candidate.instanceId)}/auth/start`, { method: "POST", body: JSON.stringify({ browser }), signal: stageSignal })));
       for (const [at, candidate] of signIns.entries()) {
         if (!candidate.authentication) continue;
         const opening: ConnectState = { stage: "opening", since: this.now() };
@@ -325,8 +349,7 @@ export class ConnectFlow {
         this.instanceId = candidate.instanceId;
         instance = candidate;
         try {
-          started = await this.awake(run, signal, opening, () => this.within("opening", signal,
-            (stageSignal) => this.deps.api(`${base(candidate.instanceId)}/auth/start`, { method: "POST", signal: stageSignal })));
+          started = await this.browserStart(candidate, Boolean(this.deps.relay), startOnce, signal);
           break;
         } catch (cause) {
           if ((cause as { status?: number }).status !== 403 || at === signIns.length - 1) throw cause;
@@ -340,11 +363,17 @@ export class ConnectFlow {
 
       const method = instance.authentication!.method;
       const provider = signInProvider(instance.driverKind);
-      const code = method === "device-code" && isDeviceSignInCode(provider, auth.userCode) && auth.userCode ? auth.userCode : null;
-      link = method === "browser-pkce" ? chatgptPlanLink(auth.authorizationUrl)
-        : method === "paste-code" || method === "browser" ? httpsLink(auth.authorizationUrl)
-          : deviceSignInLink(provider, auth.authorizationUrl, code ?? undefined);
-      const kind: WaitKind = method === "browser-pkce" ? "browser" : method === "paste-code" ? "paste" : method === "browser" ? "callback" : "device";
+      // the provider's normal sign-in when the browser can reach the CLI's loopback: on this machine, or relayed here
+      const loopback = auth.loopback && httpsLink(auth.loopback.authorizationUrl) ? auth.loopback : null;
+      const viaLoopback = Boolean(loopback && (started.sameMachine || await this.openRelay(loopback)));
+      if (signal.aborted) { this.closeRelay(); return; }
+      const code = !viaLoopback && method === "device-code" && isDeviceSignInCode(provider, auth.userCode) && auth.userCode ? auth.userCode : null;
+      link = viaLoopback ? httpsLink(loopback!.authorizationUrl)
+        : method === "browser-pkce" ? chatgptPlanLink(auth.authorizationUrl)
+          : method === "paste-code" || method === "browser" ? httpsLink(auth.authorizationUrl)
+            : deviceSignInLink(provider, auth.authorizationUrl, code ?? undefined);
+      const kind: WaitKind = viaLoopback ? (method === "browser" ? "callback" : "browser")
+        : method === "browser-pkce" ? "browser" : method === "paste-code" ? "paste" : method === "browser" ? "callback" : "device";
       // a device code shows first: the person copies it, then opens the page with one press (Copy code and open)
       const opened = link && !code ? await this.deps.open(link).catch(() => false) : false;
       if (signal.aborted) return;
@@ -353,8 +382,10 @@ export class ConnectFlow {
       this.set({ stage: "waiting", since: this.now(), kind, flowId: auth.flowId, link, code, opened }, run);
       const waitingOn = instance;
       await this.within("waiting", signal, (stageSignal) => this.wait(run, stageSignal, waitingOn, auth.flowId!, kind, provider, target));
+      this.closeRelay();
       await this.confirm(run, signal, target, false);
     } catch (cause) {
+      this.closeRelay();
       if (signal.aborted || run !== this.run) return;
       const current = this.state.stage;
       const at = (cause instanceof StageEnded && cause.waking ? "waking" : STAGES.includes(current) ? current : "preparing") as ConnectStageName;
@@ -362,6 +393,55 @@ export class ConnectFlow {
       const message = cause instanceof StageEnded ? cause.detail : messageOf(cause);
       this.set({ stage: "failed", at, reason, message, link }, run);
       if (at === "waiting") this.cancelServerFlow();
+    }
+  }
+
+  /** Asks for the provider's browser sign-in when this desktop can relay it; a CLI whose browser sign-in did not
+   * start, or a loopback this computer cannot listen on, gets its device-code sign-in instead. */
+  private async browserStart(candidate: ConnectInstance, browser: boolean, startOnce: (candidate: ConnectInstance, browser: boolean) => Promise<StartAnswer>, signal: AbortSignal): Promise<StartAnswer> {
+    if (!browser || candidate.authentication?.method !== "device-code") return startOnce(candidate, browser);
+    let answer: StartAnswer;
+    try {
+      answer = await startOnce(candidate, true);
+    } catch (cause) {
+      if (signal.aborted || (cause as { status?: number }).status === 403) throw cause;
+      this.deps.trail("connect.fallback", { tile: this.target?.tile, from: candidate.instanceId, to: "device" });
+      return startOnce(candidate, false);
+    }
+    const loopback = answer.auth.loopback;
+    if (!loopback || answer.auth.phase !== "waiting" || answer.sameMachine || await this.openRelay(loopback)) return answer;
+    if (answer.auth.flowId) await this.deps.api(`/api/instances/${encodeURIComponent(candidate.instanceId)}/auth/cancel`, { method: "POST", body: JSON.stringify({ flowId: answer.auth.flowId }) }).catch(() => {});
+    this.deps.trail("connect.fallback", { tile: this.target?.tile, from: candidate.instanceId, to: "device" });
+    return startOnce(candidate, false);
+  }
+
+  private async openRelay(loopback: Loopback): Promise<boolean> {
+    if (this.relayPort === loopback.port) return true;
+    const relay = this.deps.relay;
+    if (!relay) return false;
+    this.closeRelay();
+    const ok = await relay.open(loopback.port, loopback.path).catch(() => false);
+    if (ok) this.relayPort = loopback.port;
+    return ok;
+  }
+
+  /** The browser came back to this computer's loopback: the workspace's CLI gets it and finishes the sign-in. */
+  private async relayed(run: number, signal: AbortSignal, base: string, flowId: string, quiet: { relaying: boolean }): Promise<void> {
+    const port = this.relayPort;
+    const relay = this.deps.relay;
+    if (port === null || !relay) return new Promise<void>(() => {});
+    const callbackUrl = await relay.next(port);
+    if (!callbackUrl || signal.aborted) return new Promise<void>(() => {});
+    quiet.relaying = true;
+    this.set({ stage: "confirming", since: this.now() }, run);
+    try {
+      const done = await this.deps.api<{ location?: string }>(`${base}/auth/complete`, { method: "POST", body: JSON.stringify({ flowId, callbackUrl }), signal });
+      await relay.done(port, { ok: true, location: done?.location ?? null }).catch(() => {});
+    } catch (cause) {
+      await relay.done(port, { ok: false }).catch(() => {});
+      throw cause;
+    } finally {
+      if (this.relayPort === port) this.relayPort = null;
     }
   }
 
@@ -385,9 +465,25 @@ export class ConnectFlow {
       await this.deps.api(`${base}/auth/complete`, { method: "POST", body: JSON.stringify({ flowId, code }), signal });
       return;
     }
+    const quiet = { relaying: false };
+    const polling = new AbortController();
+    const stopPolling = () => polling.abort();
+    signal.addEventListener("abort", stopPolling, { once: true });
+    const relayed = this.relayed(run, signal, base, flowId, quiet);
+    relayed.catch(() => {});
+    try {
+      await Promise.race([relayed, this.poll(run, polling.signal, base, flowId, kind, provider, target, quiet)]);
+    } finally {
+      polling.abort();
+      signal.removeEventListener("abort", stopPolling);
+    }
+  }
+
+  private async poll(run: number, signal: AbortSignal, base: string, flowId: string, kind: WaitKind, provider: DeviceSignInProvider, target: ConnectTarget, quiet: { relaying: boolean }): Promise<void> {
     let missed = 0;
     for (;;) {
       await sleep(POLL_MS, signal);
+      if (quiet.relaying) continue;
       try {
         if (kind === "callback") {
           if (this.find(await this.deps.refresh(), target).reused) return;

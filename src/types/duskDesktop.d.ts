@@ -406,6 +406,14 @@ const __APP_VERSION__: string;
       copyText?(text: string): Promise<boolean>;
       /** Opens an http(s) link in the user's default browser. */
       openExternal?(url: string): Promise<boolean>;
+      /** A provider's browser sign-in that returns to localhost on a remote workspace: this computer listens on that
+       * port, hands back the callback, then answers the browser. Absent on older builds. */
+      authRelay?: {
+        open(port: number, path: string): Promise<boolean>;
+        next(port: number): Promise<string | null>;
+        done(port: number, result: { ok: boolean; location?: string | null }): Promise<unknown>;
+        close(port: number): Promise<unknown>;
+      };
       /** Brings this window back to the front, after a sign-in finished in the browser. */
       focusWindow?(): Promise<boolean>;
       /** Recolor the native window chrome for a skin; absent on older builds. */

@@ -611,6 +611,7 @@ import { createCappedLog } from "./capped-log.mjs";
 import { TRAIL_CAP_BYTES, configureTrail, createTrailWriter, trail } from "./trail.mjs";
 import { installTrailMain } from "./trail-main.mjs";
 import { applyPendingDesktopStartFresh, createStartFresh, markDesktopStartFresh } from "./start-fresh.mjs";
+import { createLoopbackRelay } from "./auth-loopback-relay.mjs";
 
 /** Second wall after preload's reduced bridge: computer-controlling IPC answers only the local server's UI.
  * Declared before any handler registration (temporal dead zone). */
@@ -2636,6 +2637,17 @@ ipcMain.handle("desktop:open-external", localOnly("desktop:open-external", async
   await shell.openExternal(externalLinkUrl(rawUrl));
   return true;
 }));
+
+// A provider's browser sign-in for a remote workspace returns here; the page relays it over the workspace link.
+const authLoopbackRelay = createLoopbackRelay();
+ipcMain.handle("auth-relay:open", localOnly("auth-relay:open", (_event, port, path) => authLoopbackRelay.open(Number(port), String(path ?? ""))));
+ipcMain.handle("auth-relay:next", localOnly("auth-relay:next", (_event, port) => authLoopbackRelay.next(Number(port))));
+ipcMain.handle("auth-relay:done", localOnly("auth-relay:done", (_event, port, result) => {
+  authLoopbackRelay.done(Number(port), { ok: result?.ok === true, location: typeof result?.location === "string" ? result.location : null });
+  return true;
+}));
+ipcMain.handle("auth-relay:close", localOnly("auth-relay:close", (_event, port) => { authLoopbackRelay.close(Number(port)); return true; }));
+app.on("will-quit", () => authLoopbackRelay.closeAll());
 
 ipcMain.handle("desktop-viewer:open", localOnly("desktop-viewer:open", (event, rawUrl, title, contextId) => {
   const owner = BrowserWindow.fromWebContents(event.sender);

@@ -37,6 +37,7 @@ export function useConnectFlow() {
       return (instances ?? []) as unknown as ConnectInstance[];
     },
     open: (link) => openExternalLink(link).then(() => true, () => false),
+    ...(window.duskDesktop?.authRelay ? { relay: window.duskDesktop.authRelay } : {}),
     trail: (ev, fields) => trail(ev, fields),
     waking: () => cloudAsleep() || cloudWaking(),
   }), [dispatch]);
