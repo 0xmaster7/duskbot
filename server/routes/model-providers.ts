@@ -118,6 +118,7 @@ export function createModelProviderRoutes(deps: ModelProviderRouteDeps): RouteHa
     if (method === "GET" && path === "/api/model-providers/search") {
       const query = (url.searchParams.get("q") ?? "").slice(0, 120);
       const catalog = deps.catalog.get();
+      void deps.catalog.refresh();
       const instances = asInstances(await deps.describeInstances());
       const index = new CatalogIndex(catalog);
       const own: SearchGroup[] = instances.filter((instance) => instanceReady(instance) && instance.models?.options?.length).map((instance) => {

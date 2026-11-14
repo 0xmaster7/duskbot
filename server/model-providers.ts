@@ -139,7 +139,7 @@ export function addressProblem(raw: string, place: Place): string | null {
   if (url.protocol !== "https:" && url.protocol !== "http:") return "Enter a full address that starts with https:// or http://.";
   if (url.username || url.password || url.search || url.hash) return "Leave the user name, password and anything after ? or # out of the address.";
   const host = url.hostname.replace(/^\[|\]$/gu, "").toLowerCase();
-  if (/^169\.254\./u.test(host) || /^fe[89ab][0-9a-f]:/u.test(host) || host === "metadata.google.internal") return "That address can't be used.";
+  if (host.startsWith("169.254.") || /^fe[89ab][0-9a-f]:/u.test(host) || host === "metadata.google.internal") return "That address can't be used.";
   const here = addressHere(url.href);
   if (place === "cloud" && here) return "dusk cloud can't reach an address on your own computer or network. Use a public address.";
   if (url.protocol === "http:" && !here) return "Use https:// for an address on the internet.";

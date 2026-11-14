@@ -58,6 +58,7 @@ import { TalkShortcutRow } from "./TalkShortcutRow";
 import { ThemeRow, useSkinChoice } from "./ThemeRow";
 import { UsageSection } from "./UsageSection";
 import { WorkspaceBackupSettings } from "./WorkspaceBackupSettings";
+import { ModelDirectory } from "./models/ModelDirectory";
 import { reportsUsage, useEngineLimits } from "@/lib/limit-resets";
 import {
   ExperimentalFeaturesRow, FollowUpRow, LanguageRow, QuickUpdatesRow, SendKeyRow, TalkingStyleRow,
@@ -506,6 +507,7 @@ export function ModelsPane({ has, disclose, connections }: { has: Has; disclose:
   if (at) return <div data-settings-block="engines" className="contents"><AdminOnly><EnginesSettings simple more={disclose("ai-more")} /></AdminOnly></div>;
   return (
     <>
+      {has("engines") && <AdminOnly><ModelDirectory /></AdminOnly>}
       {has("engines") && <div data-settings-block="engines" className="flex scroll-mt-4 flex-col gap-5"><AdminOnly><EnginesSettings simple more={disclose("ai-more")} /></AdminOnly></div>}
       {has("connections") && (
         <RowsCard label={t("settings.rows.more")} data-settings-block="models-more">

@@ -101,7 +101,7 @@ const CHAT_FRAGMENTS = /^(chat\.event\.and|approval\.voice\.action\w+|helperIntr
  * messages do, and so do the cloud move sheets it opens (cloudMove, vpsMove) and its cloud desktop row (place.cloudDesktop). Words it shares
  * with the left sidebar, settings or a chat line get a copy of their own under botPanel.ui, and the move progress lines under botPanel.move.
  * The place hub's own words (runsOn.status, runsOn.hint) stay lowercase. */
-const PANEL_KEYS = /^(botPanel|room\.(panel|jev|folder)|runsOn|cloudMove|vpsMove|place\.cloudDesktop)\./;
+const PANEL_KEYS = /^(botPanel|models|room\.(panel|jev|folder)|runsOn|cloudMove|vpsMove|place\.cloudDesktop)\./;
 const PANEL_LOWER = /^runsOn\.(status|hint)\./;
 
 /** the bots' own lines (server.*) are chat-window lines and read in sentence case, short status rows included; these are the

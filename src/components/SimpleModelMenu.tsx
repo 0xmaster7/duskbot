@@ -26,6 +26,8 @@ export interface SimpleMenuActions {
   /** Opens the provider settings; left out where they live on another computer. */
   onManage?: () => void;
   onResetVariant?: () => void;
+  /** Turns the search on for a short list, so it can look through every provider. */
+  onSearchAll?: () => void;
 }
 
 export interface SimpleModelMenuProps extends SimpleMenuActions {
@@ -35,6 +37,8 @@ export interface SimpleModelMenuProps extends SimpleMenuActions {
   botModel: { label: string; title: string };
   thinking?: SimpleThinking | null;
   idPrefix: string;
+  /** Matches from providers not connected here, under the connected ones. */
+  more?: ReactNode;
 }
 
 const Gutter = ({ children }: { children?: ReactNode }) => <span className={MENU_GUTTER}>{children}</span>;
@@ -286,21 +290,28 @@ export function SimpleModelMenu(props: SimpleModelMenuProps) {
           )}
           {menu.empty === "none" && <p className={cn(MENU_NOTE, !top && "pt-2")}>{t("model.noProviders")}</p>}
           {menu.results === 0 && <p className={cn(MENU_NOTE, "py-2")}>{t("model.noMatch", { query: menu.query })}</p>}
+          {props.more}
         </div>
       </div>
 
-      {(props.thinking || props.onResetVariant || props.onManage) && (
+      {(props.thinking || props.onResetVariant || props.onManage || (props.onSearchAll && !menu.search)) && (
         <div data-simple-effort-band className="flex shrink-0 flex-col gap-0.5 border-t-[0.5px] border-transparent p-1.5">
           {props.thinking && (
             <>
               <Thinking thinking={props.thinking} labelId={`${idPrefix}-thinking`} />
-              {(props.onResetVariant || props.onManage) && <div role="separator" className={MENU_SEPARATOR} />}
+              {(props.onResetVariant || props.onManage || (props.onSearchAll && !menu.search)) && <div role="separator" className={MENU_SEPARATOR} />}
             </>
           )}
           {props.onResetVariant && (
             <button type="button" data-menu-row data-simple-variant-default onClick={props.onResetVariant} className={MENU_ROW}>
               <Gutter />
               <span className="min-w-0 flex-1 truncate">{t("model.variant.session")}</span>
+            </button>
+          )}
+          {props.onSearchAll && !menu.search && (
+            <button type="button" data-menu-row data-simple-search-all onClick={props.onSearchAll} className={MENU_ROW}>
+              <Gutter><Search size={16} strokeWidth={MENU_STROKE} className={MENU_ICON} aria-hidden="true" /></Gutter>
+              <span className="min-w-0 flex-1 truncate">{t("models.picker.searchAll")}</span>
             </button>
           )}
           {props.onManage && (

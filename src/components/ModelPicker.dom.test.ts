@@ -419,3 +419,38 @@ describe("a model the organization turned off", () => {
   });
 
 });
+
+describe("searching every provider from the picker", () => {
+  const hit = { group: { providerId: "groq", label: "Groq", connected: false, words: [] },
+    models: [{ id: "llama-3.3-70b-versatile", name: "Llama 3.3 70B", context: 131072, input: 0.59, output: 0.79, tools: true }], total: 1 };
+  const providers = { place: "computer", catalog: { origin: "snapshot", updatedAt: "2026-11-01T00:00:00Z", providers: 1, models: 1 }, more: [],
+    providers: [{ id: "groq", label: "Groq", section: "fast", wire: "openai", baseUrl: "https://api.groq.com/openai/v1", listModels: "openai",
+      keyUrl: "https://console.groq.com/keys", offered: true, modelCount: 7, connected: [] }] };
+
+  it("turns the search on, lists a model from a provider not connected yet with its badges, and opens its connect sheet", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => Response.json(String(url).includes("/search") ? { hits: [hit] } : providers)));
+    try {
+      await openWith("click");
+      expect(menu()!.querySelector("[data-menu-search]")).toBeNull();
+      flushSync(() => menu()!.querySelector<HTMLButtonElement>("[data-simple-search-all]")!.click());
+      await settle();
+      const search = menu()!.querySelector<HTMLInputElement>("[data-menu-search]")!;
+      expect(search).not.toBeNull();
+      type(search, "llama");
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      await settle();
+      const match = menu()!.querySelector<HTMLButtonElement>('[data-catalog-match="groq"]')!;
+      expect(match.textContent).toContain("Llama 3.3 70B");
+      expect(match.textContent).toContain("131K");
+      expect(match.textContent).toContain("$0.59 / $0.79");
+      flushSync(() => match.click());
+      await settle();
+      expect(menu()).toBeNull();
+      const sheet = document.querySelector('[data-panel-modal="connect-provider"]');
+      expect(sheet?.textContent).toContain("Connect Groq");
+      expect(sheet?.textContent).toContain("saved on this computer");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});

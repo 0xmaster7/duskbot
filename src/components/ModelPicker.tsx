@@ -22,6 +22,7 @@ import { approvalModeFor, modelSwitchNeedsAsk } from "../../shared/approval-mode
 import { cn } from "@/lib/cn";
 import { useMenuMotion } from "./MenuMotion";
 import { SimpleModelMenu, type SimpleThinking } from "./SimpleModelMenu";
+import { CatalogMatches, ConnectById } from "./models/CatalogMatches";
 import { apiKeysLabel, ClaudeAccountSelect, engineStatus, FollowBotModelRow, ModelEngineRail, ModelRow, ModelSearch } from "./ModelPickerFull";
 import { MENU_LABEL, MENU_LINE, MENU_ROW, MENU_SEPARATOR, MENU_STROKE, MENU_TRAILING } from "./menu-recipe";
 import { modelMenuKey, modelMenuPointerMove } from "./model-menu-keys";
@@ -242,6 +243,8 @@ export function ModelPicker({
     selection: ModelSelection; updateBotDefault: boolean; name: string } | null>(null);
   const [placement, setPlacement] = useState<PickerPlacement | null>(null);
   const [changedBotModel, setChangedBotModel] = useState(false);
+  const [connecting, setConnecting] = useState<{ providerId: string; model: string } | null>(null);
+  const [searchingAll, setSearchingAll] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -419,6 +422,7 @@ export function ModelPicker({
     const initial = pickerInstances.find((instance) => instance.instanceId === selection.instanceId) ?? pickerInstances[0];
     setRailId(initial?.instanceId ?? null);
     setChangedBotModel(false);
+    setSearchingAll(false);
     setFullView(false);
     setExpanded(new Set());
     setPlacement(null);
@@ -627,6 +631,8 @@ export function ModelPicker({
     </button>
   );
 
+  // the owner can connect another provider from here; a remote window's providers live on the other computer
+  const searchEverywhere = ownerOrAdmin === true && !remote;
   const simpleMenu = simpleView ? simpleModelMenu({
     instances,
     listed: pickerInstances,
@@ -637,6 +643,7 @@ export function ModelPicker({
     probing,
     loading: loadingInstances,
     refreshing: refreshingId,
+    searchAll: searchEverywhere && searchingAll,
   }) : null;
 
   const fullPane = (
@@ -943,6 +950,10 @@ export function ModelPicker({
           onCheckAgain={(instance) => refreshModels(instance.instanceId)}
           onManage={remote ? undefined : openEngines}
           onResetVariant={resetVariant}
+          onSearchAll={searchEverywhere ? () => { setSearchingAll(true); focusOnPlace.current = "[data-menu-search]"; setPlacement(null); } : undefined}
+          more={searchEverywhere && simpleMenu.search ? (
+            <CatalogMatches query={query} onConnect={(providerId, model) => { close(false); setConnecting({ providerId, model }); }} />
+          ) : undefined}
         />
       ) : fullPane}
     </div>
@@ -950,6 +961,7 @@ export function ModelPicker({
 
   return (
     <div ref={rootRef} className={cn(contained ? "w-full" : "relative", className)}>
+      {connecting && <ConnectById providerId={connecting.providerId} model={connecting.model} onClose={() => setConnecting(null)} />}
       {contained ? (
         <div className="flex items-center justify-between gap-4">
           {label}

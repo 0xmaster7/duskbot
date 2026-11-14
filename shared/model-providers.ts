@@ -152,7 +152,7 @@ export function providerBaseUrl(def: ModelProviderDef, fields: Partial<Record<Pr
 }
 
 /** The fields a person must fill in before the connection can be saved. */
-export function requiredFields(def: ModelProviderDef): ProviderField[] {
+export function requiredFields(def: Pick<ModelProviderDef, "fields">): ProviderField[] {
   return (def.fields ?? []).filter((field) => !field.optional);
 }
 
