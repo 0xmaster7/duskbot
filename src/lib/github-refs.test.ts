@@ -51,9 +51,11 @@ describe("owner/repo#N in text", () => {
 });
 
 describe("rendered references", () => {
-  it("draws a bare pull request URL as a left-to-right pill with the address as its tooltip", () => {
+  // the address shows in the link's hover card; a native title would open a second tooltip over it (05e37c059)
+  it("draws a bare pull request URL as a left-to-right pill with no native tooltip", () => {
     const html = render("- سحب النافذة https://github.com/goatedgrokbotalternative/duskbot/pull/2547");
-    expect(html).toContain('dir="ltr" title="https://github.com/goatedgrokbotalternative/duskbot/pull/2547" data-github-ref="pull"');
+    expect(html).toContain('href="https://github.com/goatedgrokbotalternative/duskbot/pull/2547" target="_blank" rel="noreferrer" dir="ltr" data-github-ref="pull"');
+    expect(html).not.toMatch(/<a [^>]*data-github-ref[^>]*\stitle=/);
     expect(html).toContain("<span>#2547</span>");
     expect(html).toContain("unicode-bidi:isolate");
   });

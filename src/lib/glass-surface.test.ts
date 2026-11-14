@@ -14,7 +14,8 @@ function rule(selector: string, from = 0): string {
 }
 
 function skinBlocks(): string[] {
-  return [...css.matchAll(/\[data-skin="[a-z-]+"\] \{[\s\S]*?\n\}/g)].map((match) => match[0]);
+  // a skin's own block starts its line; a later :root[data-skin=…] override is not one
+  return [...css.matchAll(/^\[data-skin="[a-z-]+"\] \{[\s\S]*?\n\}/gm)].map((match) => match[0]);
 }
 
 describe("glass surface", () => {
