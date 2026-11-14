@@ -98,7 +98,10 @@ export function auditLayout(options: AuditOptions = {}): LayoutIssue[] {
         walk(child, clips ? { top: Math.max(clip.top, box.top), bottom: Math.min(clip.bottom, box.bottom), left: Math.max(clip.left, box.left), right: Math.min(clip.right, box.right) } : clip);
       }
     };
-    walk(element, { top: -Infinity, bottom: Infinity, left: -Infinity, right: Infinity });
+    // a scroller paints only inside its own box: what scrolls past its edge is hidden, not over its sibling
+    const own = getComputedStyle(element);
+    const scrolls = own.overflowX !== "visible" || own.overflowY !== "visible" || own.contain.includes("paint");
+    walk(element, scrolls ? { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right } : { top: -Infinity, bottom: Infinity, left: -Infinity, right: Infinity });
     return { top, bottom, left, right };
   };
 
