@@ -258,7 +258,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       if ((section === "cloud" || section === "cloud-settings") && cloud?.continueInBrowser && !remoteClient) {
         void cloud.state().then((state) => {
           if (state.account && state.status === "connected") dispatch(section === "cloud" ? CLOUD_LINK_SETTINGS : { type: "toggleAppSettings", open: true, section: "cloudAccount" });
-          else openSignIn({ then: () => { if (section === "cloud") dispatch(CLOUD_LINK_SETTINGS); } });
+          else openSignIn({ after: () => { if (section === "cloud") dispatch(CLOUD_LINK_SETTINGS); } });
         }, () => openSignIn());
         return;
       }

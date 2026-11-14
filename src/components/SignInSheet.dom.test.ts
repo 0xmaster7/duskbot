@@ -53,7 +53,7 @@ it("finished in the browser: the app signs itself in, the sheet goes and what th
   const { become } = desktop();
   const then = vi.fn();
   await act(async () => { root.render(createElement(SignInSheetHost)); });
-  await act(async () => { openSignIn({ then }); });
+  await act(async () => { openSignIn({ after: then }); });
   await settle();
   expect(q("[data-continue-in-browser]")).toBeTruthy();
   await become("connected");
