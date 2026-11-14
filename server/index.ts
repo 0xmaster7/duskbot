@@ -120,6 +120,7 @@ import { connectorCallFromFrame, connectorRefusalText, connectorScopeRefusalText
 import { connectorCardDescription, connectorCardText } from "./connector-card-text.ts";
 import { BOT_LIMIT_CODE } from "../shared/bot-limit.ts"; import { createBotLimit } from "./host/starter-bot-limit.ts"; import { chiefOfStaffSystemPrompt } from "./chief-of-staff.ts"; import { chiefLevel, readTeamRolesWith } from "./chief-level.ts"; import { defaultBotRefusal, ensureDefaultBot, renameLegacyDefaultBots } from "./default-bot.ts";
 import { buildRecall, recallRooms, recallThreadIds, withRecalled } from "./recall.ts";
+import { generalForPrompt } from "./general-memory.ts";
 import { computerFailuresToResolve, RESOLVE_SCAN } from "./computer-failure-resolution.ts";
 import { chatMessageCount, habitReminder } from "./habit-reminder.ts"; import { HANDOFF_BRIEF_RULE } from "./handoff-brief.ts"; import { hostTimeZone, personTimeZone, takesTurnClock, turnClockLine, withTurnClock } from "./turn-clock.ts";
 import { createMemoryUpkeep, dreamConversations, upkeepEnabled } from "./memory-upkeep.ts";
@@ -1142,6 +1143,7 @@ function autoRecallPrompt(bot: BotRecord, threadId: string, message: string, opt
       botId: bot.id, memoryIds: teamHost.memoryIds(bot.id, threadId),
       message,
       threadIds,
+      general: generalForPrompt(teamHost.profileFor(threadId, cfg.profile)?.aboutMe?.trim() ?? "").omitted,
       label: (id) => {
         const room = roomByThread.get(id);
         if (room) return `room ${JSON.stringify(room.name)}`;
@@ -5155,7 +5157,14 @@ const memoryUpkeep = createMemoryUpkeep({
   bot: (id) => store.bot(teamHost.baseBotId(id)) ?? undefined,
   engine: (botId) => sideJobs.text("memory", teamHost.baseBotId(botId)),
   busy: (botId) => botHasActiveTurn(teamHost.baseBotId(botId)),
-  addToAboutMe: (from, texts) => aboutMeFacts.learn(from, texts),
+  addToAboutMe: (from, texts, replaces) => aboutMeFacts.learn(from, texts, replaces),
+  ...(CLOUD_TEAM ? {} : { general: {
+    read: () => cfg.profile?.aboutMe ?? "",
+    write: (aboutMe: string) => { saveConfig({ profile: { ...cfg.profile, aboutMe } }); Object.assign(cfg, loadConfig()); },
+    changed: () => broadcast({ kind: "config", ...configStatus() }),
+    // a bot's notes may hold what a teammate told it; only where one person uses every bot are they all about that person
+    promote: () => !sharedMembership(),
+  } }),
   sourceLabel: (botId, threadId) => memorySourceLabel({ room: store.groupByThread(threadId), task: store.taskByThread(teamHost.baseBotId(botId), threadId), threadId }),
   mayCapture: (botId, threadId) => {
     const room = store.groupByThread(threadId);
@@ -12705,6 +12714,7 @@ ROUTES.push(createBotMemoryRoutes({
     ? layerId(botId, memberAudience(personKey(auth.session))) : null } : {}),
   taskByThread: (botId, threadId) => store.taskByThread(botId, threadId),
   upkeep: memoryUpkeep,
+  generalTier: !CLOUD_TEAM,
   importDistill,
   aboutMe: (auth) => CLOUD_TEAM ? (auth.kind === "session" ? teamHost.memberProfile(auth.session).aboutMe : "") : cfg.profile?.aboutMe ?? "",
   saveAboutMe: (aboutMe, auth) => {

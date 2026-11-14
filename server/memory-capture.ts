@@ -18,6 +18,8 @@ export interface Candidate {
   from?: number;
   /** The words said to the bot that the item rests on, quoted exactly. */
   evidence?: string;
+  /** An older line, in the notebook or the general memory, that this item changes or contradicts: the newer one wins. */
+  replaces?: string;
 }
 
 export function topicFileName(raw: unknown): string | null {
@@ -62,7 +64,7 @@ export function captureItemLimit(conversations: number): number {
 const clip = (text: string) => text.replace(/\s+/g, " ").trim().slice(0, LINE_MAX);
 
 /** One conversation per entry of `conversations`; `turns` is the same as a single one. */
-export function capturePrompt(input: { botName: string; turns?: readonly CaptureTurn[]; conversations?: readonly (readonly CaptureTurn[])[]; notebook: string; today: string; topics?: string }): string {
+export function capturePrompt(input: { botName: string; turns?: readonly CaptureTurn[]; conversations?: readonly (readonly CaptureTurn[])[]; notebook: string; today: string; topics?: string; general?: string }): string {
   const said = (line: RoomLine) =>
     line.by === "person" ? `Person: ${clip(line.text)}`
     : line.by === "other" ? `${clip(line.name).slice(0, 40)} (another person): ${clip(line.text)}`
@@ -83,6 +85,7 @@ export function capturePrompt(input: { botName: string; turns?: readonly Capture
   const room = conversations.some(isRoom);
   const limit = captureItemLimit(conversations.length);
   const notebook = input.notebook.trim() ? input.notebook.trim().slice(-NOTEBOOK_MAX) : "(empty)";
+  const general = input.general?.trim() ? input.general.trim().slice(-NOTEBOOK_MAX) : "";
   return [
     `${CAPTURE_MARKER} for an assistant named ${input.botName}. You have no tools. Read only what is below. Today is ${weekday(input.today)}, ${input.today}.`,
     "",
@@ -109,7 +112,9 @@ export function capturePrompt(input: { botName: string; turns?: readonly Capture
       `- From a line marked (another bot): only an outcome that bot verified (it shows what was checked or done) or a decision the Person agreed to. Never its suggestions, plans, guesses, opinions or claims that something was done without evidence, and never what it says about the Person: that is a claim, not the Person's words.`,
     ] : []),
     `- Judge the Person's words yourself. What ${input.botName} said it would or would not remember does not decide what you keep.`,
-    "- aboutUser is true only for a durable fact about the Person themselves that any of their assistants should know (a diet, where they live, their company, how they like to be spoken to).",
+    "- aboutUser is true only for a durable fact about the Person themselves that any of their assistants should know: their name, where they live, their work, a diet or health need, how they like to be answered, and the people close to them with how to reach them. A project's details, a task or a decision about one piece of work is never aboutUser.",
+    "- Small talk, the weather, a one-off question or task, a code or password pasted for a moment, and anything only true today are never worth keeping.",
+    "- When the Person changes or contradicts something already written (a new city, a reversed preference, a new email, a changed plan), keep the new fact and give replaces: the old line's words, copied exactly from the notebook or the general memory below. A change is always worth keeping.",
     "",
     "Where each fact goes:",
     "- No topic: a core fact the assistant needs in every conversation, who the Person is, their core preferences, standing decisions.",
@@ -119,13 +124,14 @@ export function capturePrompt(input: { botName: string; turns?: readonly Capture
     "",
     "The notebook already holds these lines. Propose nothing already there, and nothing that only restates one: except a durable aboutUser fact, which you list anyway with \"noted\": true when the notebook already holds it:",
     notebook,
+    ...(general ? ["", "The Person's general memory, which all of their assistants read, already holds these lines. Propose nothing already there, and nothing that only restates one, unless it changes it:", general] : []),
     "",
     "Work through the Person's messages sentence by sentence and check each stated fact against these rules before answering.",
     ...(many ? ['Give every item "from": the number of the conversation it came from.'] : []),
     `Answer with a JSON list and nothing else, at most ${limit} items. Answer [] only when the Person stated nothing worth keeping:`,
     many
-      ? '[{"from": 1, "text": "...", "kind": "preference|fact|decision|outcome", "evidence": "the exact words", "until": "YYYY-MM-DD or omit", "aboutUser": true|false, "noted": true|false, "topic": "name or omit", "topicAliases": ["..."], "confidence": 0..1}]'
-      : '[{"text": "...", "kind": "preference|fact|decision|outcome", "evidence": "the exact words", "until": "YYYY-MM-DD or omit", "aboutUser": true|false, "noted": true|false, "topic": "name or omit", "topicAliases": ["..."], "confidence": 0..1}]',
+      ? '[{"from": 1, "text": "...", "kind": "preference|fact|decision|outcome", "evidence": "the exact words", "until": "YYYY-MM-DD or omit", "aboutUser": true|false, "noted": true|false, "replaces": "old line or omit", "topic": "name or omit", "topicAliases": ["..."], "confidence": 0..1}]'
+      : '[{"text": "...", "kind": "preference|fact|decision|outcome", "evidence": "the exact words", "until": "YYYY-MM-DD or omit", "aboutUser": true|false, "noted": true|false, "replaces": "old line or omit", "topic": "name or omit", "topicAliases": ["..."], "confidence": 0..1}]',
   ].join("\n");
 }
 
@@ -175,7 +181,7 @@ export function parseCandidates(text: string, today: string, max = MAX_CANDIDATE
   const out: Candidate[] = [];
   for (const item of list) {
     if (!item || typeof item !== "object") continue;
-    const { text: raw, kind, until, aboutUser, noted, topic, topicAliases, confidence, from: rawFrom, evidence } = item as Record<string, unknown>;
+    const { text: raw, kind, until, aboutUser, noted, topic, topicAliases, confidence, from: rawFrom, evidence, replaces } = item as Record<string, unknown>;
     const from = typeof rawFrom === "string" && /^\d+$/.test(rawFrom.trim()) ? Number(rawFrom) : rawFrom;
     if (typeof raw !== "string" || !raw.trim()) continue;
     if (typeof kind !== "string" || !CANDIDATE_KINDS.includes(kind as CandidateKind)) continue;
@@ -196,6 +202,7 @@ export function parseCandidates(text: string, today: string, max = MAX_CANDIDATE
         : {}),
       ...(typeof from === "number" && Number.isInteger(from) && from >= 1 ? { from } : {}),
       ...(typeof evidence === "string" && evidence.trim() ? { evidence: evidence.replace(/\s+/g, " ").trim().slice(0, TEXT_MAX) } : {}),
+      ...(typeof replaces === "string" && replaces.trim() ? { replaces: replaces.replace(/\s+/g, " ").replace(/^\s*(?:[-*•]|\d+[.)])\s+/, "").trim().slice(0, TEXT_MAX) } : {}),
     });
     if (out.length >= max) break;
   }

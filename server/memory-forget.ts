@@ -82,8 +82,9 @@ export const PREFERENCE_CHARS = 300;
 export interface PreferenceTarget {
   /** Their name on a Team Cloud, for the bot's words; none for the one person of a desktop or My Cloud. */
   person?: string;
-  /** Adds the line; 0 when it was there already or the person removed it before. */
-  save(text: string): number;
+  /** Adds the line; 0 when it was there already or the person removed it before. `replaces`: an older learned line it
+   * changes, which leaves About me (the newer fact wins). */
+  save(text: string, replaces?: readonly string[]): number;
 }
 
 /** memory_update from a bot's turn. forget takes the passage in oldText; `aboutMe` is null when this conversation may not
@@ -104,7 +105,8 @@ export function botMemoryUpdate(
     }
     // Said again now, it holds again, even after the person had it forgotten.
     clearForgotten(text);
-    return { ok: true, preference: opts.prefer.save(text) > 0 ? "saved" : "known", ...(opts.prefer.person ? { person: opts.prefer.person } : {}) };
+    const replaces = typeof body.oldText === "string" && body.oldText.trim() ? [body.oldText.trim()] : [];
+    return { ok: true, preference: opts.prefer.save(text, replaces) > 0 ? "saved" : "known", ...(opts.prefer.person ? { person: opts.prefer.person } : {}) };
   }
   if (body.action === "forget") {
     const passage = typeof body.oldText === "string" ? body.oldText : "";

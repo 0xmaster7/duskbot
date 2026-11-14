@@ -1,13 +1,15 @@
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import { randomUUID } from "node:crypto";
 
 import { writeFileAtomic } from "./atomic.ts";
 import { DATA_DIR } from "./config.ts";
 import { CaptureBuffer, captureItemLimit, capturePrompt, captureSize, newCandidates, parseCandidates, statedInConversation, worthCapturing, type Candidate, type CaptureBatch, type CaptureTurn } from "./memory-capture.ts";
 import { DREAM_FIRST_LOOKBACK_MS, DREAM_MIN_CONVERSATIONS, dreamPrompt, parseDream, type DreamConversation } from "./memory-dream.ts";
-import { factIdentity, lineFactIdentity, notebookIdentities } from "./memory-entries.ts";
+import { factIdentity, isExpired, lineFactIdentity, notebookIdentities, parseMemoryEntries } from "./memory-entries.ts";
+import { applyNotebookChange, consolidatePrompt, namesFact, parseConsolidation, parseGeneral, planConsolidation, recordGeneralHistory, PROMPT_LINES, type NotebookChange, type NotebookLine } from "./general-memory.ts";
 import { mergeTopicText } from "./memory-topics.ts";
-import { isForgotten } from "./profile-learned.ts";
+import { commitLearned, dropLearnedLines, isForgotten, learnedState } from "./profile-learned.ts";
 import { applyMoves, MAX_MOVES, organizeCandidates, organizePrompt, parseMoves } from "./memory-organize.ts";
 import { recordMemoryChange } from "./memory-journal.ts";
 import { applyTidy, contradictionCandidates, contradictionPrompt, parseContradictions, planChanges, planTidy, type Contradiction } from "./memory-tidy.ts";
@@ -51,7 +53,12 @@ export interface UpkeepDeps {
   bot: (id: string) => UpkeepBot | undefined;
   engine: (botId: string) => UpkeepEngine | null;
   busy: (botId: string) => boolean;
-  addToAboutMe: (from: { botId: string; botName: string }, texts: readonly string[]) => number;
+  /** `replaces`: older facts the new ones change; they leave About me. */
+  addToAboutMe: (from: { botId: string; botName: string }, texts: readonly string[], replaces?: readonly string[]) => number;
+  /** The one general memory every bot reads (About me), where there is one person to keep it for: absent on a Team Cloud,
+   * where each person's About me is their own. `promote`: whether lasting facts about the person may move into it from
+   * a bot's own notes, which only holds where one person uses every bot. */
+  general?: { read(): string; write(text: string): void; changed(): void; promote(): boolean };
   sourceLabel: (botId: string, threadId: string) => string;
   /** Asked again at capture, so a turn queued before a visibility change is dropped. */
   mayCapture?: (botId: string, threadId: string) => boolean;
@@ -89,6 +96,17 @@ export interface CaptureReport {
   note?: string;
 }
 
+export interface GeneralReport {
+  at: number;
+  /** Lines taken out of general memory (duplicates, replaced, trimmed); each is in the history. */
+  removed: number;
+  /** Facts moved into general memory from bots' own notes. */
+  promoted: number;
+  /** Bot notes removed as copies of general memory, or struck through as replaced by it. */
+  notes: number;
+  note?: string;
+}
+
 export interface DreamReport {
   at: number;
   conversations: number;
@@ -100,6 +118,7 @@ export interface DreamReport {
 }
 
 interface UpkeepState {
+  general?: { last?: GeneralReport };
   bots: Record<string, {
     lastTidy?: TidyReport;
     lastCapture?: CaptureReport;
@@ -262,6 +281,8 @@ export interface MemoryUpkeep {
   /** The last dream's ideas while they are fresh, with how many chats it read. */
   ideas(botId: string): { ideas: string[]; conversations: number };
   status(botId: string): { lastTidy?: TidyReport; lastCapture?: CaptureReport; lastDream?: DreamReport; modelSteps: boolean };
+  consolidateGeneral(): Promise<GeneralReport>;
+  generalStatus(): { last?: GeneralReport };
   tick(): Promise<void>;
   start(): void;
   stop(): void;
@@ -341,6 +362,40 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
   };
 
   const writing = deps.writing ?? (<T>(_botId: string, write: () => T): T => write());
+
+  /** The general memory's facts as the capture step reads them, one per line; nothing on a Team Cloud. */
+  function generalFacts(): string | undefined {
+    if (!deps.general) return undefined;
+    const lines = parseGeneral(deps.general.read()).map((entry) => `- ${entry.fact}`);
+    return lines.length ? lines.join("\n") : undefined;
+  }
+
+  /** Strikes through, as superseded, the live entries of MEMORY.md and the topic files that `olds` name. */
+  function supersedeInNotes(botId: string, olds: readonly string[], filed: { via: string; threadId?: string }): number {
+    const names = namesFact(olds);
+    const today = memoryDate(now());
+    let struck = 0;
+    const paths = ["MEMORY.md", ...listMemoryTopics(botId).filter((topic) => topic.name !== ARCHIVE_TOPIC).map((topic) => `memory/${topic.name}`)];
+    for (const path of paths) {
+      const before = readRaw(botId, path);
+      if (!before) continue;
+      const entries = parseMemoryEntries(before);
+      const hits = entries.filter((entry) => !entry.struck && names(entry.body));
+      if (!hits.length) continue;
+      const change: NotebookChange = { drop: new Set(), strike: new Map(hits.map((entry) => [entry.line, undefined])), moved: 0 };
+      const after = applyNotebookChange(before, entries, change, today);
+      try {
+        if (path === "MEMORY.md") writeMemoryFile(botId, after);
+        else writeMemoryTopic(botId, path.slice("memory/".length), after);
+      } catch (error) {
+        log(`memory upkeep: could not mark a replaced note in ${path}: ${(error as Error).message}`);
+        continue;
+      }
+      recordMemoryChange(botId, { path, actor: "upkeep", via: filed.via, threadId: filed.threadId, before, after: readRaw(botId, path) });
+      struck += hits.length;
+    }
+    return struck;
+  }
 
   /** Files items under one source label, with the step and thread (when there is one) on every journal row. */
   function fileCandidates(botId: string, candidates: readonly Candidate[], filed: { source: string; via: string; threadId?: string }): { added: number; topics: number; kept: { text: string; where: string }[] } {
@@ -442,6 +497,7 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
       notebook: readRaw(id, "MEMORY.md") ?? "",
       today,
       topics: memoryTopicIndex(id),
+      general: generalFacts(),
     }));
     if (started !== generation) return { ...off, note: "upkeep stopped" };
     if (answer === null) {
@@ -466,7 +522,12 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
       let added = 0;
       let topics = 0;
       conversations.forEach((conversation, i) => {
-        const own = filed.filter((item) => item.at === i).map((item) => item.candidate);
+        const mine = filed.filter((item) => item.at === i);
+        // what changed an older note strikes that note first, so the new line is never mistaken for the old one
+        const replaced = mine.flatMap((item) => item.candidate.replaces ? [item.candidate.replaces] : []);
+        if (replaced.length) supersedeInNotes(id, replaced, { via: "capture", threadId: conversation.threadId });
+        // a fact about the person lives once, in the general memory every bot reads, not again in each bot's notes
+        const own = mine.filter((item) => !item.aboutMe).map((item) => item.candidate);
         if (!own.length) return;
         const result = fileCandidates(id, own, { source: `${deps.sourceLabel(id, conversation.threadId)} (noticed)`, via: "capture", threadId: conversation.threadId });
         added += result.added;
@@ -475,7 +536,8 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
       return { added, topics };
     });
     const learned = filed.filter((item) => item.aboutMe).map((item) => item.candidate.text);
-    const aboutMe = learned.length ? deps.addToAboutMe({ botId: id, botName: bot.name }, learned) : 0;
+    const replacedAbout = filed.filter((item) => item.aboutMe && item.candidate.replaces).map((item) => item.candidate.replaces!);
+    const aboutMe = learned.length ? deps.addToAboutMe({ botId: id, botName: bot.name }, learned, replacedAbout) : 0;
     const organized = await organize(id);
     const report: CaptureReport = { at, added, topics, aboutMe, organized };
     if (cancelled(started)) return report;
@@ -812,6 +874,107 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
     return promise;
   }
 
+  const recordGeneral = (report: GeneralReport) => {
+    const state = loaded();
+    state.general = { last: report };
+    unsaved = true;
+    if (!open.length) flush();
+    else for (const batch of open) batch.dirty = true;
+  };
+
+  /** One pass over the general memory and every bot's MEMORY.md, written by one bot's own engine. */
+  async function runConsolidation(): Promise<GeneralReport> {
+    const started = generation;
+    const at = now().getTime();
+    const today = memoryDate(now());
+    const report = (note?: string, counts?: Partial<GeneralReport>): GeneralReport => ({ at, removed: 0, promoted: 0, notes: 0, ...counts, ...(note ? { note } : {}) });
+    const general = deps.general;
+    if (!general) return report("There is no single general memory here.");
+    const bots = deps.bots().filter((bot) => upkeepEnabled(bot));
+    const runner = bots.find((bot) => deps.engine(bot.id)?.generateText);
+    if (!runner) {
+      const done = report(NO_TEXT_ENGINE);
+      recordGeneral(done);
+      return done;
+    }
+    const textBefore = general.read();
+    const lines = parseGeneral(textBefore).slice(0, PROMPT_LINES);
+    const before = new Map<string, string>();
+    const notebooks: NotebookLine[] = [];
+    for (const bot of bots) {
+      const text = readRaw(bot.id, "MEMORY.md") ?? "";
+      before.set(bot.id, text);
+      for (const entry of parseMemoryEntries(text)) {
+        if (!entry.struck && !isExpired(entry, today) && notebooks.length < PROMPT_LINES) notebooks.push({ botId: bot.id, botName: bot.name, entry });
+      }
+    }
+    if (lines.filter((entry) => entry.learned).length + notebooks.length < 2) {
+      const done = report("Nothing to consolidate yet.");
+      recordGeneral(done);
+      return done;
+    }
+    const promote = general.promote();
+    const answer = await askModel(deps.engine(runner.id)!, consolidatePrompt({ general: lines, notebooks, promote, today }));
+    if (cancelled(started)) return report("upkeep stopped");
+    if (answer === null) {
+      const done = report("The consolidation call did not answer in time.");
+      recordGeneral(done);
+      return done;
+    }
+    const parsed = parseConsolidation(answer, { general: lines.length, notebooks: notebooks.length });
+    if (!parsed) {
+      const done = report("The consolidation answer could not be read.");
+      recordGeneral(done);
+      return done;
+    }
+    // written by the person or a capture while the model thought: the next pass reads the new text
+    if (general.read() !== textBefore) return report("General memory changed meanwhile; it is consolidated next time.");
+    const removedByPerson = new Set(learnedState().removed);
+    const plan = planConsolidation(lines, notebooks, parsed, {
+      text: textBefore, today, promote,
+      blocked: (fact) => isForgotten(fact) || removedByPerson.has(factIdentity(fact)),
+    });
+    // general memory first: a line moved out of a bot's notes is already in it if the notebook write fails
+    if (plan.text !== textBefore) {
+      general.write(plan.text);
+      commitLearned(plan.added.filter((entry) => entry.botId).map((entry) => ({ id: randomUUID(), text: entry.fact, line: entry.line, botId: entry.botId, botName: entry.botName, at })));
+      if (plan.removed.length) {
+        dropLearnedLines(plan.removed.map((entry) => entry.raw));
+        recordGeneralHistory(plan.removed, at);
+      }
+      general.changed();
+    }
+    let notes = 0;
+    for (const [botId, change] of plan.notebooks) {
+      writing(botId, () => {
+        const current = readRaw(botId, "MEMORY.md") ?? "";
+        if (current !== before.get(botId)) return;
+        const next = applyNotebookChange(current, parseMemoryEntries(current), change, today);
+        if (next === current) return;
+        writeMemoryFile(botId, next);
+        recordMemoryChange(botId, { path: "MEMORY.md", actor: "upkeep", via: "general", before: current, after: readRaw(botId, "MEMORY.md") });
+        notes += change.drop.size + change.strike.size;
+      });
+    }
+    const done = report(undefined, { removed: plan.removed.length, promoted: plan.added.filter((entry) => entry.botId).length, notes });
+    recordGeneral(done);
+    if (done.removed || done.promoted || done.notes) log(`memory upkeep: general memory consolidated: ${done.removed} line(s) out (in its history), ${done.promoted} moved in from bots' notes, ${done.notes} bot note(s) tidied`);
+    return done;
+  }
+
+  let consolidating: Promise<GeneralReport> | null = null;
+  function consolidateGeneral(): Promise<GeneralReport> {
+    consolidating ??= track(batched(() => runConsolidation())).finally(() => { consolidating = null; });
+    return consolidating;
+  }
+
+  function generalDue(): boolean {
+    const current = now();
+    if (!deps.general || current.getHours() < deps.tidyHour()) return false;
+    const last = loaded().general?.last?.at;
+    return !last || memoryDate(new Date(last)) < memoryDate(current);
+  }
+
   function dreamDue(botId: string): boolean {
     const current = now();
     const saved = loaded().bots[botId];
@@ -850,6 +1013,13 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
           log(`memory upkeep: dream failed for ${bot.id}: ${(error as Error).message}`);
         }
       }
+      // after each bot's own tidy-up, so it reads notes already free of exact duplicates and expired lines
+      if (cancelled(started) || !generalDue()) return;
+      try {
+        await consolidateGeneral();
+      } catch (error) {
+        log(`memory upkeep: general memory consolidation failed: ${(error as Error).message}`);
+      }
     });
   }
 
@@ -885,6 +1055,8 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
       const { lastTidy, lastCapture, lastDream } = loaded().bots[botId] ?? {};
       return { ...(lastTidy ? { lastTidy } : {}), ...(lastCapture ? { lastCapture } : {}), ...(lastDream ? { lastDream } : {}), modelSteps: Boolean(deps.engine(botId)?.generateText) };
     },
+    consolidateGeneral,
+    generalStatus: () => (loaded().general?.last ? { last: loaded().general!.last } : {}),
     tick,
     start() {
       if (timer) return;

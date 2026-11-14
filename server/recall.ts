@@ -111,6 +111,26 @@ export interface RecallInput {
   threadIds: readonly string[];
   label: (threadId: string) => string;
   author: (hit: RecallHit) => string;
+  /** General memory (About me) facts past the per-turn budget, so not in the system prompt (general-memory.ts). */
+  general?: readonly { fact: string; date: string | null }[];
+}
+
+const GENERAL_HITS = 3;
+
+/** The general memory facts left out of the prompt that share words with the message, best match first. */
+export function generalPassages(lines: readonly { fact: string; date: string | null }[], query: string): RecallPassage[] {
+  const terms = recallTerms(query);
+  if (!terms.length) return [];
+  const need = terms.length >= MIN_TERMS_FOR_TWO ? 2 : 1;
+  return lines
+    .map((line) => {
+      const words = line.fact.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+      return { line, hits: terms.filter((term) => words.some((word) => sameWord(term, word))).length };
+    })
+    .filter((match) => match.hits >= need)
+    .sort((a, b) => b.hits - a.hits)
+    .slice(0, GENERAL_HITS)
+    .map(({ line }) => ({ source: "memory" as const, label: "general memory", ...(line.date ? { at: Date.parse(`${line.date}T12:00:00Z`) } : {}), snippet: line.fact }));
 }
 
 const TOPIC_PASSAGE_CHARS = 600;
@@ -180,7 +200,8 @@ export function buildRecall(input: RecallInput): RecallResult | null {
   const memoryIds = input.memoryIds?.length ? input.memoryIds : [input.botId];
   const topics = memoryIds.flatMap((id) => topicPassages(id, query));
   const notes = selectMemoryPassages(memoryIds.flatMap((id) => memoryPassages(id, query)), topics);
-  return renderRecall([...notes, ...conversationPassages(input, query)]);
+  const general = input.general?.length ? generalPassages(input.general, query) : [];
+  return renderRecall([...general, ...notes, ...conversationPassages(input, query)]);
 }
 
 export function selectMemoryPassages(matches: readonly RecallPassage[], topics: readonly RecallPassage[]): RecallPassage[] {

@@ -30,9 +30,9 @@ export function createPersonPreference<T extends Turn>(deps: PersonPreferenceDep
         const name = deps.personName(person);
         // Their own layer of this bot, which is how About me finds the person it belongs to.
         const layer = layerId(bot.id, memberAudience(person));
-        return { ...(name ? { person: name } : {}), save: (text) => deps.aboutMe.learn({ botId: layer, botName: bot.name }, [text]) };
+        return { ...(name ? { person: name } : {}), save: (text, replaces) => replaces?.length ? deps.aboutMe.learn({ botId: layer, botName: bot.name }, [text], replaces) : deps.aboutMe.learn({ botId: layer, botName: bot.name }, [text]) };
       }
-      return deps.userStarted(turn) ? { save: (text) => deps.aboutMe.learn({ botId: bot.id, botName: bot.name }, [text]) } : null;
+      return deps.userStarted(turn) ? { save: (text, replaces) => replaces?.length ? deps.aboutMe.learn({ botId: bot.id, botName: bot.name }, [text], replaces) : deps.aboutMe.learn({ botId: bot.id, botName: bot.name }, [text]) } : null;
     },
   };
 }

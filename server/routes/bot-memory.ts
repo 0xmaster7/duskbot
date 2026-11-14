@@ -20,6 +20,7 @@ import {
 } from "../memory-journal.ts";
 import { upkeepEnabled, type MemoryUpkeep } from "../memory-upkeep.ts";
 import { listLearnedFacts, removeLearned } from "../profile-learned.ts";
+import { listGeneralHistory, restoreGeneralHistory } from "../general-memory.ts";
 import type { RequestAuth } from "../request-auth.ts";
 import { importDistillBody, type ImportDistill } from "../import-distill.ts";
 import { PASS, type RouteHandler } from "./table.ts";
@@ -27,7 +28,10 @@ import { PASS, type RouteHandler } from "./table.ts";
 export interface BotMemoryRouteDeps {
   bot(id: string): { id: string; memoryUpkeep?: boolean } | null | undefined;
   taskByThread(botId: string, threadId: string): { title?: string } | undefined;
-  upkeep: Pick<MemoryUpkeep, "status" | "tidy">;
+  upkeep: Pick<MemoryUpkeep, "status" | "tidy"> & Partial<Pick<MemoryUpkeep, "consolidateGeneral" | "generalStatus">>;
+  /** Whether there is one general memory (About me) for the whole server: false on a Team Cloud, where each person has
+   * their own and its history is not kept here. */
+  generalTier?: boolean;
   /** The caller's About me: the server's profile's, or on a Team Cloud the signed-in person's own. */
   aboutMe(auth: RequestAuth): string;
   saveAboutMe(text: string, auth: RequestAuth): void;
@@ -149,6 +153,23 @@ export function createBotMemoryRoutes(deps: BotMemoryRouteDeps): RouteHandler {
     }
     if (method === "GET" && path === "/api/profile/learned") {
       return json(res, 200, { learned: listLearnedFacts() });
+    }
+    if (path.startsWith("/api/profile/general")) {
+      if (!deps.generalTier || !deps.upkeep.consolidateGeneral || !deps.upkeep.generalStatus) return json(res, 404, { error: "There is no shared general memory here." });
+      if (method === "GET" && path === "/api/profile/general") {
+        return json(res, 200, { history: listGeneralHistory().reverse(), ...deps.upkeep.generalStatus() });
+      }
+      if (method === "POST" && path === "/api/profile/general/consolidate") {
+        const report = await deps.upkeep.consolidateGeneral();
+        return json(res, 200, { ok: true, report, aboutMe: deps.aboutMe(auth), history: listGeneralHistory().reverse() });
+      }
+      m = path.match(/^\/api\/profile\/general\/history\/([\w-]+)\/restore$/);
+      if (m && method === "POST") {
+        const restored = restoreGeneralHistory(m[1], deps.aboutMe(auth));
+        if (!restored) return json(res, 404, { error: "That line is no longer in the history." });
+        deps.saveAboutMe(restored.aboutMe, auth);
+        return json(res, 200, { ok: true, aboutMe: deps.aboutMe(auth), history: listGeneralHistory().reverse() });
+      }
     }
     m = path.match(/^\/api\/profile\/learned\/([\w-]+)\/remove$/);
     if (m && method === "POST") {

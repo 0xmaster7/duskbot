@@ -125,6 +125,15 @@ export function clearForgotten(text: string): void {
   save({ ...file, forgotten: kept, removed: file.removed.filter((identity) => identity !== factIdentity(text)) });
 }
 
+/** Lines that left About me because a newer fact replaced them: no longer listed, and free to be learned again. */
+export function dropLearnedLines(lines: readonly string[]): void {
+  if (!lines.length) return;
+  const gone = new Set(lines);
+  const file = load();
+  const kept = file.learned.filter((fact) => !gone.has(fact.line));
+  if (kept.length !== file.learned.length) save({ ...file, learned: kept });
+}
+
 /** Save About me before committing removal, so a failed profile save leaves the fact retryable. */
 export function removeLearned(id: string, aboutMe: string, saveAboutMe?: (text: string) => void): { fact: LearnedFact; aboutMe: string } | null {
   const file = load();

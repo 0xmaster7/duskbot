@@ -85,7 +85,7 @@ it("recalls, captures, suggests, forgets and tidies a bot's memory", async () =>
     const index = await memoryFile(bot.id);
     await api(`/api/bots/${bot.id}/memory/file`, "PUT", {
       path: "MEMORY.md",
-      text: `${index.text}\n- 2026-01-01 · Dentist appointment on Monday · until 2026-01-05\n- 2026-01-01 · Prefers short replies\n`,
+      text: `${index.text}\n- 2026-01-01 · Dentist appointment on Monday · until 2026-01-05\n- 2026-01-01 · Prefers short replies\n- 2026-01-01 · Works from the Pune office\n`,
       expectedHash: index.hash,
     });
     const withExpired = JSON.stringify(await api(`/api/bots/${bot.id}/system-prompt`));
@@ -95,18 +95,19 @@ it("recalls, captures, suggests, forgets and tidies a bot's memory", async () =>
     await api(`/api/bots/${bot.id}/memory/tidy`, "POST", undefined, 409);
     await turn(bot.id, bot.threadId, "Just so you know, I'm vegetarian and I have exams this weekend. The account balance is -10. I love Irani cafes.");
     await new Promise((resolve) => setTimeout(resolve, 2_500));
-    expect((await memoryFile(bot.id)).text).not.toContain("The person is vegetarian");
+    expect((await memoryFile(bot.id)).text).not.toContain("The account balance is -10");
 
     await api("/api/config", "PUT", { memory: { captureQuietMs: 5_000 } });
     await api(`/api/bots/${bot.id}`, "PATCH", { memoryUpkeep: true });
     await turn(bot.id, bot.threadId, "Just so you know, I'm vegetarian and I have exams this weekend. The account balance is -10. I love Irani cafes.");
-    expect((await memoryFile(bot.id)).text).not.toContain("The person is vegetarian");
+    expect((await memoryFile(bot.id)).text).not.toContain("The account balance is -10");
     await api(`/api/bots/${bot.id}`, "PATCH", { memoryUpkeep: false, browser: "invalid" }, 400);
     expect(await api(`/api/bots/${bot.id}/memory/upkeep`)).toMatchObject({ enabled: true });
-    await expect.poll(async () => (await memoryFile(bot.id)).text, { timeout: 20_000 }).toContain("The person is vegetarian");
+    await expect.poll(async () => (await memoryFile(bot.id)).text, { timeout: 20_000 }).toContain("The account balance is -10");
     await api("/api/config", "PUT", { memory: { captureQuietMs: 1_000 } });
     const captured = (await memoryFile(bot.id)).text;
-    expect(captured).toMatch(/- \d{4}-\d{2}-\d{2} · from chat "[^"]*" \(noticed\) · The person is vegetarian/);
+    // a fact about the person lives once, in About me (below), not again in the bot's own notes
+    expect(captured).not.toContain("vegetarian");
     expect(captured).toContain(`The person has exams this weekend · until ${future}`);
     expect(captured).toContain("The account balance is -10");
     const food = (await memoryFile(bot.id, "memory/food.md")).text;

@@ -249,12 +249,13 @@ describe("capture calls", () => {
     upkeep.flushThread("t2");
     await upkeep.idle();
     expect(captures).toHaveLength(1);
-    expect(memory(LEAD.id)).toContain('from chat "t1" (noticed) · The person is vegetarian');
+    // a fact about the person goes only to About me, which every bot reads
+    expect(memory(LEAD.id)).not.toContain("vegetarian");
     expect(memory(LEAD.id)).toContain('from chat "t2" (noticed) · The launch moved to Friday');
     expect(readMemoryTopic(LEAD.id, "launch.md")).toContain('from chat "t2" (noticed) · Asha owns the press kit');
     await flushMemoryJournal(LEAD.id);
     const rows = readMemoryJournal(LEAD.id, 10).filter((row) => row.via === "capture").map((row) => `${row.path} ${row.threadId}`);
-    expect(rows.sort()).toEqual(["MEMORY.md t1", "MEMORY.md t2", "memory/launch.md t2"]);
+    expect(rows.sort()).toEqual(["MEMORY.md t2", "memory/launch.md t2"]);
     expect(aboutMe).toEqual(["The person is vegetarian"]);
   });
 
@@ -297,7 +298,7 @@ describe("capture calls", () => {
     upkeep.flushThread("a");
     upkeep.flushThread("b");
     await upkeep.idle();
-    expect(memory(LEAD.id)).toContain('from chat "b" (noticed) · The person plays the cello');
+    expect(memory(LEAD.id)).not.toContain("cello");
     expect(aboutMe).toEqual(["The person plays the cello"]);
   });
 
