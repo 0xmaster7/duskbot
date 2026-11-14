@@ -94,7 +94,7 @@ const AREAS = [
   [/^(?:src|public)\//, "web"],
   [/^(?:server|shared|apps\/companion|evals|skills|deploy|apps\/cloudflare\/composio-broker)\//, "server"],
   [/^electron\/(?:cua|cua-failure|cua-connection|capabilities|paced-typing)\.[cm]js$/, "windows-computer-control"],
-  [/^(?:electron|build)\//, "desktop"],
+  [/^(?:electron|build)\/|^index\.html$/, "desktop"],
   [/^cloudflare\/control-plane\//, "control-plane"],
 ];
 
