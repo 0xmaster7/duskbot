@@ -91,14 +91,13 @@ describe("the Simple model menu", () => {
     expect(menu([cursor], { selection: { instanceId: "cursor", model: "auto" } }).groups).toEqual([]);
   });
 
-  it("names each signed-in account of one family, and keeps a signed-out sibling one click from signing in", () => {
+  it("names each signed-in account of one family, and keeps a signed-out sibling apart, to connect", () => {
     const work = engine("claude-work", "claudeAgent", "Work", "subscription", claudeModels.slice(0, 2));
     const home = { ...engine("claude-home", "claudeAgent", "Home", "subscription", claudeModels.slice(0, 2)),
       snapshot: { state: "available" as const, authenticated: false } };
     const built = menu([claude(), work, home]);
-    expect(built.groups.map((group) => [group.label, group.body.kind])).toEqual([
-      ["Claude", "models"], ["Claude · Work", "models"], ["Claude · Home", "signIn"],
-    ]);
+    expect(built.groups.map((group) => [group.label, group.body.kind])).toEqual([["Claude", "models"], ["Claude · Work", "models"]]);
+    expect(built.connect.map((group) => [group.label, group.body.kind])).toEqual([["Claude · Home", "signIn"]]);
     expect(built.groups[1]).toMatchObject({ provider: "Claude", account: "Work" });
     expect(built.current!.meta).toBe("Claude");
   });
@@ -109,8 +108,12 @@ describe("the Simple model menu", () => {
     const managed = { ...openaiKey, policy: { organizationName: "Acme", reason: "Company models only." } };
     const plan = engine("chatgpt", "codex", "ChatGPT plan", "subscription", [], { snapshot: { state: "available", authenticated: true, chatgptPlan: true } });
     const built = menu([claude(), missing, signedOut, managed, plan]);
-    expect(Object.fromEntries(built.groups.map((group) => [group.instance.instanceId, group.body]))).toMatchObject({
-      cursor: { kind: "setUp" }, codex: { kind: "signIn" }, openai: { kind: "policy", organization: "Acme" }, chatgpt: { kind: "empty", loading: false },
+    expect(Object.fromEntries(built.groups.map((group) => [group.instance.instanceId, group.body]))).toEqual({
+      claude: expect.objectContaining({ kind: "models" }), openai: { kind: "policy", organization: "Acme" }, chatgpt: { kind: "empty", loading: false },
+    });
+    // the ones waiting for a setup or a sign-in go to Not connected
+    expect(Object.fromEntries(built.connect.map((group) => [group.instance.instanceId, group.body]))).toEqual({
+      cursor: { kind: "setUp" }, codex: { kind: "signIn" },
     });
   });
 
@@ -259,5 +262,28 @@ describe("a model the organization turned off", () => {
   it("says so on the current row, with nothing to set up", () => {
     expect(menuOn("opus-5-5").current).toMatchObject({ warning: true, blocked: true, meta: "Turned off by your organization" });
     expect(menuOn("sonnet-5").current?.blocked).toBeUndefined();
+  });
+});
+
+describe("dusk bot's free model", () => {
+  const free = engine("opencode", "opencodeGo", "OpenCode", "subscription",
+    [{ id: "opencode/big-pickle", label: "Zen · Big Pickle" }, { id: "opencode/other", label: "Zen · Other" }],
+    { snapshot: { state: "available", version: "1.0.0", authenticated: true, freeFallback: true } });
+
+  it("goes by Free model, never by the service and model behind it, on the current row and with a short tooltip", () => {
+    const onFree = menu([free, claude()], { selection: { instanceId: "opencode", model: "opencode/big-pickle" } });
+    expect(onFree.current).toMatchObject({ label: "Free model", title: "A free model from dusk bot, so you can start right away. Connect your own AI any time." });
+    expect(onFree.groups.map((group) => group.label)).toEqual(["Claude"]);
+    expect(modelName(free, "opencode/big-pickle")).toBe("Free model");
+  });
+
+  it("is one Free model row among the providers when another model is picked, and searchable by that name", () => {
+    const built = menu([claude(), free]);
+    expect(built.groups.map((group) => group.label)).toEqual(["Claude", "Free model"]);
+    expect(rows(built, 1)).toEqual(["Free model"]);
+    const shown = built.groups.flatMap((group) => [group.label, ...(group.body.kind === "models" ? group.body.rows.flatMap((row) => [row.label, row.option.label, row.route ?? ""]) : [])]);
+    expect(shown.join(" ")).not.toMatch(/Big Pickle|Zen|OpenCode/);
+    const searched = menu([claude(), free], { query: "free", searchAll: true });
+    expect(searched.groups.map((group) => group.label)).toEqual(["Free model"]);
   });
 });

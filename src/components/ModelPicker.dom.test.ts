@@ -24,6 +24,13 @@ vi.mock("@/state/store", async (importOriginal) => ({
   }),
 }));
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => true }));
+// the connect itself (connect-flow) has its own tests; here only that the picker starts it and shows its stages in place
+const connect = vi.hoisted(() => ({ start: vi.fn(), cancel: vi.fn() }));
+vi.mock("./onboarding/SignInPill", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./onboarding/SignInPill")>()),
+  useConnectFlow: () => ({ state: { stage: "preparing", since: Date.now() }, target: null, start: connect.start, cancel: connect.cancel,
+    retry: () => {}, openAgain: () => {}, submit: () => {} }),
+}));
 vi.mock("./Avatar", () => ({ BotAvatar: () => null }));
 
 const { ModelPicker } = await import("./ModelPicker");
@@ -84,6 +91,8 @@ beforeEach(() => {
   fixture.bots = [];
   fixture.instances = [claude(three)];
   fixture.dispatch.mockReset();
+  connect.start.mockReset();
+  connect.cancel.mockReset();
   parentKey.mockReset();
   document.documentElement.dataset.reducedMotion = "true";
   vi.spyOn(HTMLElement.prototype, "scrollIntoView").mockImplementation(() => {});
@@ -149,13 +158,13 @@ describe("choosing a model with the keyboard", () => {
   it("wraps around the rows, and jumps to a row by the letters typed", async () => {
     await openWith("click");
     press("ArrowUp");
-    expect(focused()?.hasAttribute("data-simple-manage")).toBe(true);
+    expect(focused()?.hasAttribute("data-picker-more")).toBe(true);
     press("ArrowDown");
     expect(focused()?.hasAttribute("data-current-model")).toBe(true);
     press("h");
     expect(focused()?.textContent).toBe("Haiku 5.5");
     press("End");
-    expect(focused()?.hasAttribute("data-simple-manage")).toBe(true);
+    expect(focused()?.hasAttribute("data-picker-more")).toBe(true);
     press("Home");
     expect(focused()?.hasAttribute("data-current-model")).toBe(true);
   });
@@ -199,32 +208,35 @@ describe("choosing a model with the keyboard", () => {
 
   it("closes when Tab leaves its last stop, and hands focus back to the chip", async () => {
     await openWith("click");
-    document.querySelector<HTMLElement>("[data-simple-manage]")!.focus();
+    document.querySelector<HTMLElement>("[data-picker-more]")!.focus();
     expect(press("Tab").defaultPrevented).toBe(true);
     await settle();
     expect(menu()).toBeNull();
     expect(focused()).toBe(chip());
   });
 
-  it("opens the full picker from a provider that needs signing in, and Escape brings the list back on that row", async () => {
-    fixture.instances = [claude(three, false)];
+  it("connects a provider that needs signing in under its own row, and Escape puts the connect away on that row", async () => {
+    fixture.instances = [{ ...claude(three, false), authentication: { method: "paste-code", signOut: true } }];
     render();
     await openWith("click");
-    const signIn = document.querySelector<HTMLElement>("[data-simple-set-up]")!;
-    signIn.focus();
+    expect(document.querySelector("[data-simple-set-up]")).toBeNull();
+    const row = document.querySelector<HTMLElement>('[data-picker-connect="claude"]')!;
+    expect(row.closest("[data-picker-not-connected]")?.textContent).toContain("Not connected");
+    row.focus();
     press("ArrowRight");
     await settle();
-    expect(document.querySelector("[data-simple-model-menu]")).toBeNull();
-    expect(focused()?.hasAttribute("data-model-back")).toBe(true);
+    expect(connect.start).toHaveBeenCalledExactlyOnceWith({ tile: "claude", candidates: ["claude"] });
+    expect(document.querySelector("[data-simple-model-menu]")).not.toBeNull();
+    expect(row.getAttribute("aria-expanded")).toBe("true");
+    expect(document.querySelector('[data-picker-connect-panel="claude"] [data-connect-stage="preparing"]')).not.toBeNull();
     press("Escape");
     await settle();
-    expect(document.querySelector("[data-simple-model-menu]")).not.toBeNull();
-    expect(focused()?.hasAttribute("data-simple-set-up")).toBe(true);
-
-    flushSync(() => focused()!.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 })));
+    expect(connect.cancel).toHaveBeenCalled();
+    expect(document.querySelector("[data-picker-connect-panel]")).toBeNull();
+    expect(focused()?.getAttribute("data-picker-connect")).toBe("claude");
+    press("Escape");
     await settle();
-    expect(document.querySelector("[data-model-back]")).not.toBeNull();
-    expect(focused()).toBe(menu());
+    expect(menu()).toBeNull();
   });
 });
 
@@ -351,13 +363,13 @@ describe("the floating menu and the pointer", () => {
     vi.spyOn(chip(), "getBoundingClientRect").mockImplementation(() =>
       ({ left: right - 80, right, top: 40, bottom: 72, width: 80, height: 32, x: right - 80, y: 40, toJSON: () => ({}) }) as DOMRect);
     await openWith("click");
-    expect(menu()!.style.left).toBe(`${980 - 300}px`);
+    expect(menu()!.style.left).toBe(`${980 - 320}px`);
     right = 952;
     flushSync(() => chip().parentElement!.dispatchEvent(new Event("animationend", { bubbles: true })));
-    expect(menu()!.style.left).toBe(`${952 - 300}px`);
+    expect(menu()!.style.left).toBe(`${952 - 320}px`);
     right = 900;
     flushSync(() => menu()!.dispatchEvent(new Event("animationend", { bubbles: true })));
-    expect(menu()!.style.left).toBe(`${952 - 300}px`);
+    expect(menu()!.style.left).toBe(`${952 - 320}px`);
   });
 
   it("moves the keyboard highlight to the row under the mouse once the keyboard is in the list", async () => {
@@ -418,39 +430,4 @@ describe("a model the organization turned off", () => {
     expect(fixture.dispatch).not.toHaveBeenCalled();
   });
 
-});
-
-describe("searching every provider from the picker", () => {
-  const hit = { group: { providerId: "groq", label: "Groq", connected: false, words: [] },
-    models: [{ id: "llama-3.3-70b-versatile", name: "Llama 3.3 70B", context: 131072, input: 0.59, output: 0.79, tools: true }], total: 1 };
-  const providers = { place: "computer", catalog: { origin: "snapshot", updatedAt: "2026-11-01T00:00:00Z", providers: 1, models: 1 }, more: [],
-    providers: [{ id: "groq", label: "Groq", section: "fast", wire: "openai", baseUrl: "https://api.groq.com/openai/v1", listModels: "openai",
-      keyUrl: "https://console.groq.com/keys", offered: true, modelCount: 7, connected: [] }] };
-
-  it("turns the search on, lists a model from a provider not connected yet with its badges, and opens its connect sheet", async () => {
-    vi.stubGlobal("fetch", vi.fn(async (url: string) => Response.json(String(url).includes("/search") ? { hits: [hit] } : providers)));
-    try {
-      await openWith("click");
-      expect(menu()!.querySelector("[data-menu-search]")).toBeNull();
-      flushSync(() => menu()!.querySelector<HTMLButtonElement>("[data-simple-search-all]")!.click());
-      await settle();
-      const search = menu()!.querySelector<HTMLInputElement>("[data-menu-search]")!;
-      expect(search).not.toBeNull();
-      type(search, "llama");
-      await new Promise((resolve) => setTimeout(resolve, 250));
-      await settle();
-      const match = menu()!.querySelector<HTMLButtonElement>('[data-catalog-match="groq"]')!;
-      expect(match.textContent).toContain("Llama 3.3 70B");
-      expect(match.textContent).toContain("131K");
-      expect(match.textContent).toContain("$0.59 / $0.79");
-      flushSync(() => match.click());
-      await settle();
-      expect(menu()).toBeNull();
-      const sheet = document.querySelector('[data-panel-modal="connect-provider"]');
-      expect(sheet?.textContent).toContain("Connect Groq");
-      expect(sheet?.textContent).toContain("Saved on this computer");
-    } finally {
-      vi.unstubAllGlobals();
-    }
-  });
 });

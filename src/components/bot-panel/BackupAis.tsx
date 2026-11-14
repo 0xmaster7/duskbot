@@ -203,7 +203,7 @@ export function BackupChooser({ bot, current, exclude, onPick, label, title, but
             })}
             onSetUp={manage}
             onCheckAgain={checkAgain}
-            onManage={manage}
+            onMore={manage}
           />
         </div>,
         document.body,

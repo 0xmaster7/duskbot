@@ -3,6 +3,7 @@ import { needsCli, needsSignIn } from "@/components/EngineSetup";
 import { t } from "./i18n";
 import { filterCustomModels, partitionCustomModels, suggestedModels } from "./custom-models";
 import { isCustomOnly, SIGN_IN_FAMILY_LABEL, signInFamily, splitEngineRail } from "./engine-rail";
+import { freeFallback } from "../../shared/ai-ranking";
 import { displayModelLabel, shortModelLabel } from "./model-friendly";
 import { choiceIsSelected, modelChoices, takesTypedModels, type ModelChoice } from "./model-choices";
 
@@ -61,7 +62,10 @@ export interface MenuCurrent {
 export interface SimpleMenu {
   current: MenuCurrent | null;
   follow: boolean;
+  /** Providers with models to pick now. */
   groups: MenuGroup[];
+  /** Providers listed here that still need a sign-in or a setup before they have models: a Connect row each. */
+  connect: MenuGroup[];
   search: boolean;
   query: string;
   results: number | null;
@@ -83,7 +87,11 @@ export interface SimpleMenuInput {
   searchAll?: boolean;
 }
 
+/** dusk bot's own free model goes by what it is, never by the service and model behind it. */
+export const isFreeModel = (instance: InstanceInfo | undefined): boolean => Boolean(instance && freeFallback(instance));
+
 export function providerName(instance: InstanceInfo): string {
+  if (isFreeModel(instance)) return t("model.free.name");
   const family = signInFamily(instance);
   if (family) return SIGN_IN_FAMILY_LABEL[family];
   if (instance.access !== "api") return instance.displayName;
@@ -101,6 +109,7 @@ export function variantSuffix(instance: InstanceInfo | undefined, model: string,
 export function modelName(instance: InstanceInfo | undefined, model: string, variant?: string): string {
   const option = instance?.models.options.find((candidate) => candidate.id === model);
   if (!instance || !option) return model;
+  if (isFreeModel(instance)) return t("model.free.name");
   return displayModelLabel(option.label, providerName(instance), option.custom) + variantSuffix(instance, model, variant);
 }
 
@@ -127,6 +136,7 @@ function localFrom(rows: readonly MenuModelRow[], mixed: boolean): number | null
 function heading(instance: InstanceInfo, listed: readonly InstanceInfo[]): Pick<MenuGroup, "label" | "provider" | "account"> {
   const provider = providerName(instance);
   const family = signInFamily(instance);
+  if (isFreeModel(instance)) return { label: provider, provider };
   if (instance.access === "api") return { label: `${provider} · ${t("model.simple.apiKey")}`, provider };
   const several = family !== undefined && listed.filter((other) => signInFamily(other) === family).length > 1;
   const account = several && instance.displayName !== provider ? instance.displayName : undefined;
@@ -138,7 +148,9 @@ function currentRow(input: SimpleMenuInput): MenuCurrent {
   const active = instances.find((instance) => instance.instanceId === selection.instanceId);
   const option = active?.models.options.find((candidate) => candidate.id === selection.model);
   const name = option?.label ?? selection.model;
-  const row = { instance: active, label: modelName(active, selection.model, selection.variant), title: active ? `${active.displayName} · ${name}${variantSuffix(active, selection.model, selection.variant)}` : name, warning: false, pending: false };
+  const title = isFreeModel(active) ? t("model.free.hint")
+    : active ? `${active.displayName} · ${name}${variantSuffix(active, selection.model, selection.variant)}` : name;
+  const row = { instance: active, label: modelName(active, selection.model, selection.variant), title, warning: false, pending: false };
   if (!active) return loading ? { ...row, pending: true } : { ...row, meta: t("model.simple.unavailable"), warning: true };
   if (!option && input.refreshing === active.instanceId) return { ...row, pending: true };
   if (option?.orgBlocked) return { ...row, meta: t("model.orgBlocked"), warning: true, blocked: true };
@@ -181,6 +193,14 @@ export function simpleModelMenu(input: SimpleMenuInput): SimpleMenu {
       blocked: option.orgBlocked === true,
     });
     const mixed = own.length > 0 && own.length < all.length;
+    if (isFreeModel(instance)) {
+      if (query && !filterCustomModels([{ id: "free", label: provider }, ...all], query).length) return null;
+      const picked = all.find((option) => currentSelection && choiceIsSelected(option, currentSelection))
+        ?? all.find((option) => option.id === instance.models.default) ?? all[0]!;
+      if (!query && currentSelection && choiceIsSelected(picked, currentSelection)) return null;
+      const { provider: _route, ...named } = picked;
+      return { kind: "models", rows: [{ ...row(picked), option: { ...named, label: provider }, label: provider }], total: 1, toggle: null, localFrom: null, signInForOwn: false, probing: false };
+    }
     if (query) {
       const rows = filterCustomModels(all, query).map(row);
       return rows.length === 0 ? null
@@ -202,16 +222,19 @@ export function simpleModelMenu(input: SimpleMenuInput): SimpleMenu {
     };
   }
 
-  const groups = (current ? [current, ...ordered.filter((instance) => instance !== current)] : ordered).flatMap((instance): MenuGroup[] => {
+  const built = (current ? [current, ...ordered.filter((instance) => instance !== current)] : ordered).flatMap((instance): MenuGroup[] => {
     const named = heading(instance, listed);
     const body = groupBody(instance, named.provider);
     return body ? [{ instance, ...named, body }] : [];
   });
+  const waits = (group: MenuGroup) => group.body.kind === "signIn" || group.body.kind === "setUp";
+  const groups = built.filter((group) => !waits(group));
 
   return {
     current: query ? null : currentRow(input),
     follow: !query && bot.follows === false,
     groups,
+    connect: built.filter(waits),
     search,
     query,
     results: query ? groups.reduce((sum, group) => sum + (group.body.kind === "models" ? group.body.rows.length : 0), 0) : null,

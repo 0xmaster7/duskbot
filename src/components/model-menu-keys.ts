@@ -3,10 +3,10 @@ import { isTypeaheadKey, TYPEAHEAD_RESET_MS, typeaheadMatch, typeaheadText, type
 import { nextMenuIndex } from "./SidebarPopoverMenu";
 
 const FOCUSABLE = "button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex]";
-const FORWARD_ROWS = "[data-simple-set-up], [data-simple-sign-in], [data-simple-manage], [data-model-local-entry]";
+const FORWARD_ROWS = "[data-simple-sign-in], [data-picker-connect], [data-picker-more]";
 
 /** A model menu's keys other than Escape: Tab past its last stop closes it; the arrows, Home and End move between its
- * rows, its search box and its thinking pills; Enter picks; typing jumps to a row, or into the search box. */
+ * rows, its search box and its thinking and scope pills; Enter picks; typing jumps to a row, or into the search box. */
 export function modelMenuKey(event: ReactKeyboardEvent<HTMLElement>, { query, typed, close }: {
   query: string;
   typed: { current: Typeahead | null };
@@ -30,7 +30,7 @@ export function modelMenuKey(event: ReactKeyboardEvent<HTMLElement>, { query, ty
   }
   if (target instanceof HTMLSelectElement) return;
   const rtl = getComputedStyle(menu).direction === "rtl";
-  const pills = target.closest("[data-simple-effort]");
+  const pills = target.closest("[data-simple-effort], [data-picker-scope]");
   if (pills) {
     const buttons = [...pills.querySelectorAll<HTMLElement>("button:not(:disabled)")];
     const step = { ArrowRight: rtl ? "ArrowUp" : "ArrowDown", ArrowLeft: rtl ? "ArrowDown" : "ArrowUp", Home: "Home", End: "End" }[event.key];

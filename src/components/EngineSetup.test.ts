@@ -3,7 +3,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { EngineSetup, EngineUpdateNotice, installCommandFor, needsCli, needsSignIn } from "./EngineSetup";
-import { engineStatus } from "./ModelPickerFull";
 import { StoreProvider, type InstanceInfo } from "@/state/store";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -67,20 +66,17 @@ describe("managed engine setup errors", () => {
     expect(markup).toContain(reason);
     expect(markup).toContain('role="alert"');
     expect(markup).toContain("install official Antigravity");
-    expect(engineStatus(engine)).toBe("Setup required");
     expect(markup).not.toMatch(/CLI not found|Not installed/);
   });
 
   it("renders an initialization failure reported by the snapshot", () => {
     const engine = managed({ state: "unavailable", reason: "initialize timed out." });
     expect(render(engine)).toContain("initialize timed out.");
-    expect(engineStatus(engine)).toBe("Setup required");
   });
 
   it("preserves the installed engine's sign-in flow", () => {
     const engine = managed({ state: "available", authenticated: false, version: "1.1.1" });
     const markup = render(engine);
-    expect(engineStatus(engine)).toBe("Sign-in required");
     expect(markup).toContain("Sign in with Google");
     expect(markup).not.toContain("install official Antigravity");
   });

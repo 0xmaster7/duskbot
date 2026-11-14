@@ -1,43 +1,40 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, KeyRound, Loader2, RefreshCw, X } from "../icons";
+import { ChevronDown, X } from "../icons";
 import { useStore, currentTaskBot, type Bot, type InstanceInfo, type ModelSelection } from "@/state/store";
 import type { EffortLevel } from "../../shared/wire";
 import type { ModelVariantOption } from "../../shared/runtime-events";
-import { filterCustomModels, partitionCustomModels, suggestedModels } from "@/lib/custom-models";
-import { configuredModelInstances, isClaudeAccount, isCustomOnly, modelsAwaitEngine, SIGN_IN_FAMILY_LABEL, signInFamily } from "@/lib/engine-rail";
-import { modelName, simpleModelMenu, variantSuffix } from "@/lib/simple-model-menu";
-import { choiceIsSelected, modelChoices, modelSelectionForPick, takesTypedModels, withTypedModels, type ModelChoice } from "@/lib/model-choices";
+import { configuredModelInstances, isCustomOnly, modelsAwaitEngine } from "@/lib/engine-rail";
+import { isFreeModel, modelName, providerName, simpleModelMenu, variantSuffix } from "@/lib/simple-model-menu";
+import { modelSelectionForPick, withTypedModels } from "@/lib/model-choices";
 export { modelSelectionForPick } from "@/lib/model-choices";
 import { pickerPlacement, type PickerPlacement } from "@/lib/picker-placement";
 import type { Typeahead } from "@/lib/menu-keys";
 import { usePopoverDismiss } from "@/hooks/use-popover-dismiss";
 import { InstanceProviderMark } from "./ProviderIcons";
 import { ELEVATED_FLOAT } from "./elevated";
-import { ApiKeyHint, EngineSetup, EngineUpdateNotice, InstanceAccountNotes, needsCli, needsSignIn, openKeysFor } from "./EngineSetup";
+import { needsCli, needsSignIn } from "./EngineSetup";
+import { engineReady } from "./EngineLibrary";
 import { offersLocalModels, probeLocalModels } from "./local-model-probe";
 import { ConfirmDialog } from "./ConfirmDialog";
-import { ChatGptPlanStatus } from "./ChatGptPlanStatus";
 import { approvalModeFor, modelSwitchNeedsAsk } from "../../shared/approval-mode";
 import { cn } from "@/lib/cn";
 import { useMenuMotion } from "./MenuMotion";
-import { SimpleModelMenu, type SimpleThinking } from "./SimpleModelMenu";
-import { CatalogMatches, ConnectById } from "./models/CatalogMatches";
-import { apiKeysLabel, ClaudeAccountSelect, engineStatus, FollowBotModelRow, ModelEngineRail, ModelRow, ModelSearch } from "./ModelPickerFull";
-import { MENU_LABEL, MENU_LINE, MENU_ROW, MENU_SEPARATOR, MENU_STROKE, MENU_TRAILING } from "./menu-recipe";
+import { SimpleModelMenu, type PickerScope, type SimpleThinking } from "./SimpleModelMenu";
+import { PickerConnect, type PickerConnectRow } from "./models/PickerConnect";
+import { aiTiles } from "./onboarding/funnel";
+import { connectsInApp, type ConnectInstance } from "./onboarding/connect-flow";
+import { useConnectFlow } from "./onboarding/SignInPill";
 import { modelMenuKey, modelMenuPointerMove } from "./model-menu-keys";
 import { offersReasoning, useRefocusAfterPick, variantChoices } from "./model-picker-reasoning";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 
 import { t } from "@/lib/i18n";
 import { useAiSwitch } from "@/lib/ai-switch";
-import { usePickerPane } from "@/lib/model-picker-pane";
 import { threadsOnOwnModel } from "../../shared/thread-model";
 import { ThreadModelsLine } from "./ThreadModelsLine";
 import { UsageBars } from "./EngineUsage";
 import { Select } from "./Select";
-
-const COMPACT_MODEL_COUNT = 5;
 
 function modelLabel(instance: InstanceInfo | undefined, model: string): string {
   return instance?.models.options.find((option) => option.id === model)?.label ?? model;
@@ -203,10 +200,32 @@ export function ModelVariantRow({ bot, threadId, updateBotDefault, className, la
   );
 }
 
-const POPOVER_WIDTH = 420;
-const POPOVER_HEIGHT = 600;
-export const SIMPLE_POPOVER_WIDTH = 300;
+export const SIMPLE_POPOVER_WIDTH = 320;
 const MENU_ITSELF = ":scope";
+
+const inApp = (instance: InstanceInfo) => connectsInApp(instance as unknown as ConnectInstance);
+
+/** The AIs to offer under Not connected: the providers listed here that wait for a sign-in or a setup, then the popular
+ * AIs (the Connect an AI cards) that aren't connected yet and connect in the app. A local model lives in the directory. */
+export function pickerConnectRows(instances: readonly InstanceInfo[], waiting: readonly { instance: InstanceInfo; label: string; body: { kind: string } }[]): PickerConnectRow[] {
+  const tiles = aiTiles(instances, engineReady, inApp).filter((tile) => tile.id !== "local");
+  const rows: PickerConnectRow[] = [];
+  const taken = new Set<string>();
+  for (const group of waiting) {
+    const tile = tiles.find((one) => one.candidates.includes(group.instance));
+    const candidates = tile ? [group.instance, ...tile.candidates.filter((other) => other !== group.instance)] : [group.instance];
+    candidates.forEach((one) => taken.add(one.instanceId));
+    rows.push({ key: tile?.id ?? group.instance.instanceId, name: tile?.label ?? group.label, instance: group.instance,
+      candidates: candidates.map((one) => one.instanceId), inApp: inApp(group.instance),
+      state: group.body.kind === "setUp" ? "setUp" : "signIn" });
+  }
+  for (const tile of tiles) {
+    if (engineReady(tile.instance) || tile.candidates.some((one) => taken.has(one.instanceId)) || !tile.candidates.some(inApp)) continue;
+    if (rows.some((row) => row.key === tile.id)) continue;
+    rows.push({ key: tile.id, name: tile.label, instance: tile.instance, candidates: tile.candidates.map((one) => one.instanceId), inApp: true, state: "new" });
+  }
+  return rows;
+}
 
 export function ModelPicker({
   bot: shown,
@@ -227,38 +246,32 @@ export function ModelPicker({
   const [open, setOpen] = useState(false);
   const { bot, dispatch } = useAiSwitch({ bot: shown, threadId, contained, dispatch: storeDispatch, setOpen: (next) => (next ? openMenu() : setOpen(false)) });
   const motion = useMenuMotion(open && !bot.busy);
-  const [railId, setRailId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [showAll, setShowAll] = useState(false);
   const [loadingInstances, setLoadingInstances] = useState(false);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [probing, setProbing] = useState<ReadonlySet<string>>(() => new Set());
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
-  const [scope, setScope] = useState<"bot" | "thread">("thread");
   const ownerOrAdmin = useOwnerOrAdmin();
   // A guest changes only their own conversation's model, never the shared bot's default; thread-only until authority loads.
-  const simpleUpdatesBotDefault = ownerOrAdmin === true;
-  const [fullView, setFullView] = useState(false);
+  const mayChangeBot = ownerOrAdmin === true;
+  const [scope, setScope] = useState<PickerScope>("bot");
+  const updatesBotDefault = !threadId || (mayChangeBot && scope === "bot");
   const [pendingSwitch, setPendingSwitch] = useState<{ botId: string; threadId: string;
     selection: ModelSelection; updateBotDefault: boolean; name: string } | null>(null);
   const [placement, setPlacement] = useState<PickerPlacement | null>(null);
   const [changedBotModel, setChangedBotModel] = useState(false);
-  const [connecting, setConnecting] = useState<{ providerId: string; model: string } | null>(null);
-  const [searchingAll, setSearchingAll] = useState(false);
+  const flow = useConnectFlow();
+  const [connecting, setConnecting] = useState<PickerConnectRow | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const refreshingRef = useRef(false);
-  const lastClaudeIdRef = useRef<string | null>(null);
-  const lastOpenaiIdRef = useRef<string | null>(null);
   const focusOnPlace = useRef<string | null>(null);
   const typed = useRef<Typeahead | null>(null);
   const menuId = useId();
   const inside = useRef({ contains: (target: unknown) => [rootRef.current, menuRef.current].some((node) => node?.contains(target as Node)) });
 
   const floating = typeof document !== "undefined";
-  const simpleView = !fullView;
-  const popoverWidth = simpleView ? SIMPLE_POPOVER_WIDTH : POPOVER_WIDTH;
   useLayoutEffect(() => {
     if (!open) return;
     const place = (event?: Event) => {
@@ -267,8 +280,7 @@ export function ModelPicker({
       const menu = menuRef.current;
       if (!anchor || !menu) return;
       const viewport = { width: window.innerWidth, height: window.innerHeight };
-      setPlacement((locked) => pickerPlacement(anchor, { width: popoverWidth, height: menu.offsetHeight }, viewport, locked ?? undefined,
-        simpleView ? undefined : POPOVER_HEIGHT));
+      setPlacement((locked) => pickerPlacement(anchor, { width: SIMPLE_POPOVER_WIDTH, height: menu.offsetHeight }, viewport, locked ?? undefined));
     };
     const settled = (event: Event) => {
       if (event.target instanceof Node && triggerRef.current && event.target.contains(triggerRef.current)) place();
@@ -282,7 +294,7 @@ export function ModelPicker({
       window.removeEventListener("scroll", place, true);
       window.removeEventListener("animationend", settled, true);
     };
-  }, [open, popoverWidth, simpleView]);
+  }, [open]);
 
   useEffect(() => {
     if (!open || !placement || focusOnPlace.current === null) return;
@@ -306,22 +318,6 @@ export function ModelPicker({
       ?? { id: selection.variant, label: selection.variant },
     active?.driverKind,
   );
-  const claudeAccounts = pickerInstances.filter(isClaudeAccount);
-  const openaiAccounts = pickerInstances.filter((instance) => signInFamily(instance) === "openai");
-  const openaiRailInstance = openaiAccounts.find((instance) => instance.instanceId === lastOpenaiIdRef.current)
-    ?? openaiAccounts.find((instance) => instance.instanceId === selection.instanceId) ?? openaiAccounts[0];
-  const claudeRailInstance = claudeAccounts.find((instance) => instance.instanceId === lastClaudeIdRef.current)
-    ?? claudeAccounts.find((instance) => instance.instanceId === selection.instanceId) ?? claudeAccounts[0];
-  const railInstance =
-    pickerInstances.find((instance) => instance.instanceId === (railId ?? selection.instanceId)) ?? pickerInstances[0];
-  const displayedInstanceId = railInstance?.instanceId;
-  // A plan account discovers its allowed models only after sign-in: an empty catalog must still lead to cloud sign-in,
-  // never local models.
-  const hasOfficialModels = Boolean(railInstance?.snapshot.chatgptPlan || railInstance?.models.options.some((option) => !option.custom));
-  const customOnly = isCustomOnly(railInstance);
-  const { pane, setPane, loading: loadingList } = usePickerPane({ instanceId: displayedInstanceId, railId, hasOfficialModels, customOnly,
-    reading: open && (loadingInstances || refreshingId !== null),
-    selectedIsCustom: Boolean(railInstance?.models.options.some((option) => option.id === selection.model && option.custom)) }, () => resetList());
 
   const refreshLocalInstances = useCallback(() => {
     if (refreshingRef.current) return;
@@ -350,33 +346,28 @@ export function ModelPicker({
 
   // An engine with no models listed yet, or only a list it never confirmed, is asked for them, then they are shown.
   useEffect(() => {
-    if (open) ((hasOfficialModels || customOnly) && !modelsAwaitEngine(railInstance) ? refreshLocalInstances : () => refreshModels(displayedInstanceId))();
+    if (!open) return;
+    const listsModels = Boolean(active?.snapshot.chatgptPlan || active?.models.options.some((option) => !option.custom)) || isCustomOnly(active);
+    if (listsModels && !modelsAwaitEngine(active)) refreshLocalInstances();
+    else refreshModels(active?.instanceId);
   }, [open, refreshLocalInstances]);
 
   useEffect(() => {
     if (bot.busy) setOpen(false);
   }, [bot.busy]);
 
-  usePopoverDismiss(open, inside, () => setOpen(false));
+  const stopConnect = () => {
+    flow.cancel();
+    setConnecting(null);
+  };
 
-  const close = (refocus: boolean) => {
+  usePopoverDismiss(open, inside, () => close(false));
+
+  function close(refocus: boolean) {
     setOpen(false);
+    stopConnect();
     if (refocus) triggerRef.current?.focus({ preventScroll: true });
-  };
-
-  const resetList = () => {
-    setQuery("");
-    setShowAll(false);
-  };
-
-  const openFor = (instance: InstanceInfo | undefined) => {
-    const official = instance?.models.options.filter((option) => !option.custom) ?? [];
-    const selectedIsCustom = instance?.models.options.some(
-      (option) => option.id === selection.model && option.custom,
-    );
-    setPane(selectedIsCustom || isCustomOnly(instance) || (official.length === 0 && !instance?.snapshot.chatgptPlan) ? "custom" : "main");
-    resetList();
-  };
+  }
 
   const lookForLocal = (instance: InstanceInfo) => {
     if (needsCli(instance) || instance.policy || probing.has(instance.instanceId)) return;
@@ -391,62 +382,41 @@ export function ModelPicker({
     if (offersLocalModels(instance, instance.models.options.filter((option) => option.custom).length)) lookForLocal(instance);
   };
 
-  const openLocalModels = (instance: InstanceInfo) => {
-    setPane("custom");
-    resetList();
-    lookForLocal(instance);
-  };
-
-  const openApiKeys = () => {
-    close(false);
-    dispatch(openKeysFor(railInstance));
-  };
-  const openEngines = () => {
+  const remote = window.duskDesktop?.remoteClient?.active === true;
+  /** Settings > Models, at its directory: every provider, API keys and local models. */
+  const openDirectory = () => {
     close(false);
     dispatch({ type: "toggleAppSettings", open: true, section: "engines" });
+    if (typeof document === "undefined") return;
+    let tries = 0;
+    const focusSearch = () => {
+      const search = document.querySelector<HTMLInputElement>("[data-model-directory-search]");
+      if (search) {
+        search.scrollIntoView?.({ block: "center" });
+        search.focus({ preventScroll: true });
+      } else if (++tries < 30) setTimeout(focusSearch, 50);
+    };
+    setTimeout(focusSearch, 50);
   };
 
-  const selectRail = (instance: InstanceInfo) => {
-    if (isClaudeAccount(instance)) lastClaudeIdRef.current = instance.instanceId;
-    if (signInFamily(instance) === "openai") lastOpenaiIdRef.current = instance.instanceId;
-    setRailId(instance.instanceId);
-    const official = instance.models.options.filter((option) => !option.custom);
-    setPane(isCustomOnly(instance) || (official.length === 0 && !instance.snapshot.chatgptPlan) ? "custom" : "main");
-    resetList();
-  };
-
-  const openMenu = () => {
+  function openMenu() {
     if (bot.busy) return;
-    if (active && isClaudeAccount(active)) lastClaudeIdRef.current = active.instanceId;
-    if (active && signInFamily(active) === "openai") lastOpenaiIdRef.current = active.instanceId;
-    const initial = pickerInstances.find((instance) => instance.instanceId === selection.instanceId) ?? pickerInstances[0];
-    setRailId(initial?.instanceId ?? null);
     setChangedBotModel(false);
-    setSearchingAll(false);
-    setFullView(false);
     setExpanded(new Set());
     setPlacement(null);
-    openFor(initial);
+    setQuery("");
+    setScope(mayChangeBot ? "bot" : "thread");
+    stopConnect();
     focusOnPlace.current = "";
     setOpen(true);
-  };
-
-  const openFull = (instance: InstanceInfo, keyboard: boolean) => {
-    selectRail(instance);
-    setScope(simpleUpdatesBotDefault ? "bot" : "thread");
-    focusOnPlace.current = keyboard ? "[data-model-back]" : MENU_ITSELF;
-    setFullView(true);
-  };
-  const backToList = (keyboard: boolean) => {
-    focusOnPlace.current = keyboard && railInstance ? `[data-simple-provider="${railInstance.instanceId.replace(/["\\]/g, "\\$&")}"] [data-menu-row]` : MENU_ITSELF;
-    resetList();
-    setFullView(false);
-  };
+  }
 
   const profile = state.bots.find((candidate) => candidate.id === bot.id) ?? bot;
   const follows = threadId ? profile.tasks?.find((task) => task.threadId === threadId)?.followsBotModel : undefined;
   const botModelInstance = state.instances.find((instance) => instance.instanceId === profile.modelSelection.instanceId);
-  const botModelName = botModelInstance ? `${botModelInstance.displayName} · ${modelLabel(botModelInstance, profile.modelSelection.model)}${variantSuffix(botModelInstance, profile.modelSelection.model, profile.modelSelection.variant)}` : profile.modelSelection.model;
+  const botModelName = modelName(botModelInstance, profile.modelSelection.model, profile.modelSelection.variant);
+  const botModelTitle = !botModelInstance ? profile.modelSelection.model : isFreeModel(botModelInstance) ? t("model.free.hint")
+    : `${botModelInstance.displayName} · ${modelLabel(botModelInstance, profile.modelSelection.model)}${variantSuffix(botModelInstance, profile.modelSelection.model, profile.modelSelection.variant)}`;
   const ownModelThreads = threadsOnOwnModel(profile.modelSelection, profile.tasks ?? []).length;
 
   const pickBotModel = () => {
@@ -471,13 +441,13 @@ export function ModelPicker({
     if (bot.busy || instance.policy) return;
     const nextSelection = modelSelectionForPick(selection, instance, model);
     if (variant !== undefined) nextSelection.variant = variant;
-    const updateBotDefault = !threadId || (simpleView ? simpleUpdatesBotDefault : scope === "bot");
+    const updateBotDefault = updatesBotDefault;
     const targets = [currentTaskBot(profile, threadId ?? bot.threadId), ...(updateBotDefault ? [profile] : [])];
     if (targets.some((target) => modelSwitchNeedsAsk(approvalModeFor(target),
       state.instances.find((candidate) => candidate.instanceId === target.modelSelection.instanceId)?.driverKind,
       instance.driverKind))) {
       setPendingSwitch({ botId: bot.id, threadId: threadId ?? bot.threadId,
-        selection: nextSelection, updateBotDefault, name: modelLabel(instance, model) });
+        selection: nextSelection, updateBotDefault, name: modelName(instance, model) });
       close(false);
       return;
     }
@@ -497,65 +467,25 @@ export function ModelPicker({
 
   const resetVariant = contained && selection.variant !== undefined ? () => {
     const { variant: _variant, ...nextSelection } = selection;
-    dispatch({ type: "setModel", botId: bot.id, threadId: threadId ?? bot.threadId, updateBotDefault: !threadId || simpleUpdatesBotDefault, selection: nextSelection });
+    dispatch({ type: "setModel", botId: bot.id, threadId: threadId ?? bot.threadId, updateBotDefault: updatesBotDefault, selection: nextSelection });
     close(true);
   } : undefined;
-
-  const official = railInstance ? modelChoices(railInstance, railInstance.models.options.filter((option) => !option.custom)) : [];
-  const custom = railInstance?.models.options.filter((option) => option.custom) ?? [];
-  const currentModel = selection.instanceId === railInstance?.instanceId
-    ? official.find((option) => choiceIsSelected(option, selection))?.id : undefined;
-  const filteredOfficial = filterCustomModels(official, query);
-  const compactOfficial = railInstance
-    ? suggestedModels(official, railInstance.models.default, currentModel, COMPACT_MODEL_COUNT)
-    : [];
-  const shownOfficial = query ? filteredOfficial : showAll ? official : compactOfficial;
-  const filteredCustom = filterCustomModels(custom, query);
-  const { pinned, rest } = partitionCustomModels(filteredCustom);
-  const blocked = railInstance
-    ? pane === "custom"
-      ? needsCli(railInstance)
-      : needsCli(railInstance) || needsSignIn(railInstance)
-    : false;
-  const canOpenCustom = Boolean(railInstance && !needsCli(railInstance));
-  const canReturnToOfficial = official.length > 0 && !isCustomOnly(railInstance);
-  const lookingForLocal = Boolean(railInstance && probing.has(railInstance.instanceId));
-  const lookingForLocalStatus = (
-    <div role="status" className={cn(MENU_LINE, "justify-center text-ink-tertiary")}>
-      <Loader2 size={14} className="shrink-0 animate-spin" aria-hidden="true" />
-      {t("model.lookingLocal")}
-    </div>
-  );
-  const remote = window.duskDesktop?.remoteClient?.active === true;
 
   const levels = active?.capabilities?.effortLevels ?? [];
   const writeEffort = (effort: EffortLevel | undefined) => {
     const { effort: _effort, ...model } = selection;
-    dispatch({ type: "setModel", botId: bot.id, threadId, ...(threadId && simpleUpdatesBotDefault ? { updateBotDefault: true } : {}),
+    dispatch({ type: "setModel", botId: bot.id, threadId, ...(threadId && updatesBotDefault ? { updateBotDefault: true } : {}),
       selection: effort ? { ...model, effort } : model });
   };
   const thinking: SimpleThinking | null = contained ? null
     : variantChoices(state, selection, threadId ?? bot.threadId) ? {
       variants: (
-        <ModelVariantRow compact quiet bot={shown} threadId={threadId} updateBotDefault={Boolean(threadId) && simpleUpdatesBotDefault} className="px-2 py-1"
+        <ModelVariantRow compact quiet bot={shown} threadId={threadId} updateBotDefault={Boolean(threadId) && updatesBotDefault} className="px-2 py-1"
           label={<span className="shrink-0 text-[12px] font-medium leading-4 text-ink-tertiary">{t("botSettings.simple.thinking")}</span>} />
       ),
     }
     : levels.length > 0 && !shown.busy ? { levels, current: selection.effort, onPick: writeEffort, onReset: () => writeEffort(undefined) }
     : null;
-
-  const botModelSelection = follows !== undefined && profile.modelSelection.instanceId === railInstance?.instanceId
-    ? profile.modelSelection : undefined;
-  const renderRow = (option: ModelChoice) => (
-    <ModelRow
-      key={option.id}
-      option={option}
-      current={selection.instanceId === railInstance?.instanceId && choiceIsSelected(option, selection)}
-      defaultId={railInstance?.models.default ?? ""}
-      botModel={botModelSelection ? choiceIsSelected(option, botModelSelection) : false}
-      onPick={() => railInstance && pick(railInstance, option.nativeModel ?? option.id, option.variant)}
-    />
-  );
 
   const onMenuKey = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.nativeEvent.isComposing || event.defaultPrevented || !(event.target instanceof HTMLElement)) return;
@@ -565,9 +495,11 @@ export function ModelPicker({
     if (query) {
       setQuery("");
       refocusAfterPick();
-    } else if (!simpleView && pane === "custom" && canReturnToOfficial) setPane("main");
-    else if (fullView) backToList(true);
-    else close(true);
+    } else if (connecting) {
+      const key = connecting.key;
+      stopConnect();
+      menuRef.current?.querySelector<HTMLElement>(`[data-picker-connect="${key.replace(/["\\]/g, "\\$&")}"]`)?.focus({ preventScroll: true });
+    } else close(true);
   };
 
   const currentOption = active?.models.options.find((option) => option.id === selection.model);
@@ -576,7 +508,7 @@ export function ModelPicker({
       : needsCli(active) ? t("model.setupRequired")
         : needsSignIn(active) && !isCustomOnly(active) && !currentOption?.custom ? t("model.signInRequired") : currentOption?.orgBlocked ? t("model.orgBlocked") : undefined;
   const summary = active
-    ? `${active.displayName} · ${modelLabel(active, selection.model)}${
+    ? `${isFreeModel(active) ? modelName(active, selection.model) : `${active.displayName} · ${modelLabel(active, selection.model)}`}${
         modelProvider(active, selection.model) ? ` · ${modelProvider(active, selection.model)}` : ""
       }${selectedVariantLabel ? ` · ${selectedVariantLabel}` : selection.effort
         ? ` · ${t("model.simple.thinkingSummary", { level: effortLabel(selection.effort) })}` : ""}`
@@ -631,9 +563,7 @@ export function ModelPicker({
     </button>
   );
 
-  // the owner can connect another provider from here; a remote window's providers live on the other computer
-  const searchEverywhere = ownerOrAdmin === true && !remote;
-  const simpleMenu = simpleView ? simpleModelMenu({
+  const simpleMenu = simpleModelMenu({
     instances,
     listed: pickerInstances,
     selection,
@@ -643,262 +573,25 @@ export function ModelPicker({
     probing,
     loading: loadingInstances,
     refreshing: refreshingId,
-    searchAll: searchEverywhere && searchingAll,
-  }) : null;
+  });
 
-  const fullPane = (
-    <>
-      {fullView && (
-        <div className="shrink-0 border-b-[0.5px] border-transparent p-1.5">
-          <button type="button" data-menu-row data-model-back onClick={(event) => backToList(event.detail === 0)} className={cn(MENU_ROW, "text-ink-secondary hover:text-ink")}>
-            <ChevronLeft size={16} strokeWidth={MENU_STROKE} className="shrink-0 rtl:-scale-x-100" aria-hidden="true" />
-            <span className="min-w-0 flex-1 truncate">{t("model.simple.back")}</span>
-          </button>
-        </div>
-      )}
-      {follows !== undefined && (
-        <FollowBotModelRow name={profile.name} model={botModelName} follows={follows} onPick={pickBotModel} />
-      )}
-      <div className="flex min-h-0 min-w-0 flex-1">
-        {pickerInstances.length > 0 && <ModelEngineRail instances={pickerInstances} selectedInstance={railInstance} claudeInstance={claudeRailInstance} openaiInstance={openaiRailInstance} onSelect={selectRail}
-          onAddApiKeys={remote ? undefined : openApiKeys} />}
+  // only the owner connects a provider; the rows stay out of a search, which looks through the models there are
+  const connectRows = mayChangeBot && !simpleMenu.query ? pickerConnectRows(state.instances, simpleMenu.connect) : [];
+  if (connecting && !connectRows.some((row) => row.key === connecting.key)) connectRows.push(connecting);
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
-          {threadId && (
-            <div className="shrink-0 border-b-[0.5px] border-transparent px-3.5 py-2">
-              <div role="group" aria-label={t("model.scope.label")} className="flex gap-1">
-                {(["thread", "bot"] as const).map((value) => (
-                  <button key={value} type="button" aria-pressed={scope === value} onClick={() => setScope(value)}
-                    className={cn("h-6 rounded-full px-2.5 text-[12px] leading-4",
-                      scope === value ? "bg-ink/[0.08] font-medium text-ink" : "text-ink-secondary hover:bg-ink/[0.06] hover:text-ink")}>
-                    {value === "bot" ? t("model.scope.bot") : t("model.scope.thread")}
-                  </button>
-                ))}
-              </div>
-              <p className="mt-1.5 text-[12px] leading-4 text-ink-tertiary">
-                {scope === "bot" ? t("model.scope.botHelp") : t("model.scope.threadHelp")}
-              </p>
-            </div>
-          )}
-          {railInstance ? (
-            <>
-              <div className="shrink-0 px-3.5 pb-2 pt-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="truncate text-[14px] font-semibold leading-5 text-ink">{signInFamily(railInstance) ? SIGN_IN_FAMILY_LABEL[signInFamily(railInstance)!] : railInstance.displayName}</div>
-                  <div className="flex shrink-0 items-center gap-1">
-                    <button
-                      type="button"
-                      data-model-refresh
-                      disabled={loadingInstances || refreshingId !== null}
-                      onClick={() => refreshModels(railInstance.instanceId)}
-                      aria-label={
-                        loadingInstances || refreshingId !== null
-                          ? t("model.refreshing", { name: railInstance.displayName })
-                          : t("model.refresh", { name: railInstance.displayName })
-                      }
-                      title={t("model.refreshTitle")}
-                      className="flex size-7 items-center justify-center rounded-full text-ink-tertiary hover:bg-ink/[0.06] hover:text-ink disabled:cursor-wait"
-                    >
-                      {loadingInstances || refreshingId !== null ? (
-                        <Loader2 size={14} className="animate-spin" aria-hidden="true" />
-                      ) : (
-                        <RefreshCw size={14} strokeWidth={MENU_STROKE} aria-hidden="true" />
-                      )}
-                    </button>
-                    <span
-                      className={cn(
-                        "flex h-5 shrink-0 items-center rounded-full px-2 text-[11px] font-medium leading-4",
-                        blocked ? "bg-warning/10 text-warning" : "bg-success/10 text-success",
-                      )}
-                    >
-                      {pane === "custom" && !blocked && railInstance.access !== "api" ? t("model.localModels") : engineStatus(railInstance)}
-                    </span>
-                  </div>
-                </div>
-                {isClaudeAccount(railInstance) && claudeAccounts.length > 1 && (
-                  <ClaudeAccountSelect accounts={claudeAccounts} selectedId={railInstance.instanceId} onSelect={selectRail} />
-                )}
-                {signInFamily(railInstance) === "openai" && openaiAccounts.length > 1 && (
-                  <ClaudeAccountSelect accounts={openaiAccounts} selectedId={railInstance.instanceId} onSelect={selectRail} />
-                )}
-                <InstanceAccountNotes instance={railInstance} listsModels={pane === "main"} />
-                {railInstance.snapshot.chatgptPlan && railInstance.snapshot.authenticated && (
-                  <ChatGptPlanStatus key={railInstance.instanceId} instanceId={railInstance.instanceId} />
-                )}
-                {railInstance.access === "api"
-                  ? <ApiKeyHint instance={railInstance} />
-                  : pane === "custom" && <div className="mt-0.5 text-[12px] leading-4 text-ink-tertiary">{t("model.localHint")}</div>}
-              </div>
-
-              {pane === "custom" && canReturnToOfficial && (
-                <div className="shrink-0 px-1.5 pb-1">
-                  <button
-                    type="button"
-                    data-menu-row
-                    onClick={() => {
-                      setPane("main");
-                      resetList();
-                    }}
-                    className={cn(MENU_ROW, "text-ink-secondary hover:text-ink")}
-                  >
-                    <ChevronLeft size={16} strokeWidth={MENU_STROKE} className="shrink-0 rtl:-scale-x-100" aria-hidden="true" />
-                    <span className="min-w-0 flex-1 truncate">{t("model.backTo", { name: railInstance.displayName })}</span>
-                  </button>
-                </div>
-              )}
-
-              {railInstance.policy ? (
-                <div data-policy-blocked className="min-h-0 flex-1 overflow-y-auto px-3.5 pb-3 pt-1 text-[13px] leading-[18px] text-ink-secondary">
-                  <p className="font-medium text-ink">{t("policy.managedBy", { organization: railInstance.policy.organizationName })}</p>
-                  <p className="mt-1">{t(railInstance.policy.team ? "policy.teamModelBlocked" : "policy.modelBlocked", { organization: railInstance.policy.organizationName })}</p>
-                </div>
-              ) : blocked ? (
-                <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3 pt-1">
-                  <EngineSetup instance={railInstance} intent={pane === "custom" ? "inject" : "cloud"} quiet onHost={remote} />
-                  {!remote && railInstance.claudeAccount && needsSignIn(railInstance) && pane !== "custom" && (
-                    <p className="mt-2 px-1.5 text-[12px] leading-4 text-ink-tertiary">
-                      {railInstance.claudeAccount.signInShell === "powershell" && `${t("engines.account.powershell")} `}
-                      {t("engines.account.signInHint")}
-                    </p>
-                  )}
-                  <p className="mt-2 text-center text-[12px] leading-4 text-ink-tertiary">
-                    {railInstance.snapshot.chatgptPlan ? t("engineSetup.chatgpt.modelsAfterSignIn") : pane === "main" && official.length > 0
-                      ? official.length === 1
-                        ? t("model.afterSetupOne")
-                        : t("model.afterSetupMany", { count: official.length })
-                      : t("model.localSoon")}
-                  </p>
-                </div>
-              ) : (
-                <>
-                  {((pane === "main" && (official.length > COMPACT_MODEL_COUNT || takesTypedModels(railInstance))) ||
-                    (pane === "custom" && custom.length > COMPACT_MODEL_COUNT)) && (
-                    <ModelSearch
-                      value={query}
-                      local={pane === "custom"}
-                      onChange={(value) => {
-                        setQuery(value);
-                        if (value) setShowAll(true);
-                      }}
-                    />
-                  )}
-
-                  <div data-model-list className="flex min-h-[min(180px,30dvh)] flex-1 flex-col gap-0.5 overflow-y-auto p-1.5">
-                    {pane === "main" && loadingList ? (
-                      <div role="status" className={cn(MENU_LINE, "justify-center text-ink-tertiary")}>
-                        <Loader2 size={14} className="shrink-0 animate-spin" aria-hidden="true" />
-                        {t("model.loadingModels", { name: railInstance.displayName })}
-                      </div>
-                    ) : pane === "main" ? (
-                      <>
-                        {railInstance.snapshot.update && (
-                          <EngineUpdateNotice update={railInstance.snapshot.update} instance={railInstance} className="mx-0.5 mb-1.5" />
-                        )}
-                        <div className={MENU_LABEL}>
-                          {query
-                            ? t("model.results", { count: filteredOfficial.length })
-                            : showAll
-                              ? t("model.allModels", { count: official.length })
-                              : t("model.suggested")}
-                        </div>
-                        {shownOfficial.map(renderRow)}
-                        {shownOfficial.length === 0 && (
-                          <div className="px-2 py-5 text-center text-[13px] leading-[18px] text-ink-secondary">
-                            {t("model.noMatch", { query: query.trim() })}
-                          </div>
-                        )}
-                        {!query && !showAll && official.length > compactOfficial.length && (
-                          <button type="button" data-menu-row onClick={() => setShowAll(true)} className={cn(MENU_ROW, "text-ink-secondary hover:text-ink")}>
-                            <span className="min-w-0 flex-1 truncate">{t("model.showAll", { count: official.length })}</span>
-                            <ChevronDown size={16} strokeWidth={MENU_STROKE} className={MENU_TRAILING} aria-hidden="true" />
-                          </button>
-                        )}
-                        {!query && showAll && official.length > COMPACT_MODEL_COUNT && (
-                          <button type="button" data-menu-row onClick={() => setShowAll(false)} className={cn(MENU_ROW, "text-ink-secondary hover:text-ink")}>
-                            <span className="min-w-0 flex-1 truncate">{t("model.showSuggested")}</span>
-                            <ChevronUp size={16} strokeWidth={MENU_STROKE} className={MENU_TRAILING} aria-hidden="true" />
-                          </button>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        {lookingForLocal && custom.length > 0 && lookingForLocalStatus}
-                        {pinned.length > 0 && <div className={MENU_LABEL}>{t("model.loadedNow")}</div>}
-                        {pinned.map(renderRow)}
-                        {pinned.length > 0 && rest.length > 0 && <div role="separator" className={MENU_SEPARATOR} />}
-                        {rest.map(renderRow)}
-                        {custom.length === 0 && (lookingForLocal ? lookingForLocalStatus : (
-                          <div className="px-3 py-6 text-center">
-                            <div className="text-[13px] leading-[18px] text-ink">{t("model.noLocal")}</div>
-                            <div className="mt-1 text-[12px] leading-4 text-ink-tertiary">{t("model.noLocalHint")}</div>
-                          </div>
-                        ))}
-                        {custom.length > 0 && filteredCustom.length === 0 && (
-                          <div className="px-2 py-5 text-center text-[13px] leading-[18px] text-ink-secondary">
-                            {t("model.noMatch", { query: query.trim() })}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </>
-              )}
-
-              {!contained && (
-                <EffortRow
-                  compact
-                  bot={shown}
-                  threadId={threadId}
-                  updateBotDefault={Boolean(threadId && scope === "bot")}
-                  className="shrink-0 border-t-[0.5px] border-transparent px-3.5 py-[5px]"
-                  label={<span className="text-[13px] leading-[18px] text-ink">{active?.capabilities?.modelVariants ? t("model.simple.reasoning") : t("model.section.effort")}</span>}
-                />
-              )}
-
-              {pane === "main" && offersLocalModels(railInstance, custom.length) && (
-                <button
-                  type="button"
-                  data-model-local-entry
-                  data-menu-row
-                  aria-label={
-                    custom.length > 0
-                      ? t("model.useLocalCount", { count: custom.length })
-                      : t("model.useLocal")
-                  }
-                  disabled={!canOpenCustom}
-                  onClick={() => openLocalModels(railInstance)}
-                  className="flex h-10 w-full shrink-0 items-center justify-between gap-2 border-t-[0.5px] border-transparent px-3.5 text-left text-[13px] leading-[18px] text-ink hover:bg-ink/[0.06] focus:bg-ink/[0.06] disabled:cursor-not-allowed disabled:text-ink-tertiary disabled:hover:bg-transparent"
-                >
-                  <span>{t("model.useLocal")}</span>
-                  <span className="flex items-center gap-2">
-                    {custom.length > 0 && (
-                      <span className="text-[12px] leading-4 text-ink-tertiary">{t("model.available", { count: custom.length })}</span>
-                    )}
-                    <ChevronRight size={16} strokeWidth={MENU_STROKE} className={MENU_TRAILING} aria-hidden="true" />
-                  </span>
-                </button>
-              )}
-            </>
-          ) : (
-            <div className="px-3.5 py-5 text-[13px] leading-[18px] text-ink-secondary">{t("model.noProviders")}</div>
-          )}
-          {!remote && (
-            <div className="flex h-9 shrink-0 items-center gap-1 border-t-[0.5px] border-transparent px-1.5">
-              <button type="button" onClick={openEngines}
-                className="h-7 min-w-0 flex-1 truncate rounded-md px-2 text-left text-[12px] leading-4 text-ink-secondary hover:bg-ink/[0.06] hover:text-ink">
-                {t("settings.engines.title")}
-              </button>
-              <button type="button" data-model-add-api-keys onClick={openApiKeys}
-                className="flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[12px] leading-4 text-ink-secondary hover:bg-ink/[0.06] hover:text-ink">
-                <KeyRound size={14} strokeWidth={MENU_STROKE} aria-hidden="true" />
-                {apiKeysLabel(pickerInstances)}
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </>
-  );
+  const startConnect = (row: PickerConnectRow) => {
+    if (!row.inApp) return openDirectory();
+    if (connecting?.key === row.key) return stopConnect();
+    flow.cancel();
+    setConnecting(row);
+    flow.start({ tile: row.key, candidates: row.candidates });
+  };
+  const connectInstance = (instance: InstanceInfo) => {
+    const row = pickerConnectRows(state.instances, [{ instance, label: providerName(instance), body: { kind: needsCli(instance) ? "setUp" : "signIn" } }])
+      .find((one) => one.candidates.includes(instance.instanceId));
+    if (row && mayChangeBot) startConnect(row);
+    else if (mayChangeBot && !remote) openDirectory();
+  };
 
   const menu = motion.shown && (
     <div
@@ -917,51 +610,49 @@ export function ModelPicker({
         left: placement?.left ?? 0,
         top: placement?.top,
         bottom: placement?.bottom,
-        width: placement?.width ?? popoverWidth,
+        width: placement?.width ?? SIMPLE_POPOVER_WIDTH,
         maxHeight: placement?.maxHeight,
         transformOrigin: placement?.origin,
         visibility: placement ? undefined : "hidden",
-      } : { width: popoverWidth }}
+      } : { width: SIMPLE_POPOVER_WIDTH }}
       className={cn("menu-surface z-[80] flex flex-col overflow-hidden", motion.className)}
     >
-      {simpleMenu ? (
-        <SimpleModelMenu
-          menu={simpleMenu}
-          query={query}
-          bot={profile}
-          botModel={{ label: modelName(botModelInstance, profile.modelSelection.model, profile.modelSelection.variant), title: botModelName }}
-          thinking={thinking}
-          idPrefix={menuId}
-          onQuery={setQuery}
-          onPick={pick}
-          onPickCurrent={() => close(true)}
-          onFollowBot={pickBotModel}
-          onToggle={(instance) => {
-            const opening = !expanded.has(instance.instanceId);
-            setExpanded((current) => {
-              const next = new Set(current);
-              if (opening) next.add(instance.instanceId);
-              else next.delete(instance.instanceId);
-              return next;
-            });
-            if (opening) lookForLocalIn(instance);
-          }}
-          onSetUp={openFull}
-          onCheckAgain={(instance) => refreshModels(instance.instanceId)}
-          onManage={remote ? undefined : openEngines}
-          onResetVariant={resetVariant}
-          onSearchAll={searchEverywhere ? () => { setSearchingAll(true); focusOnPlace.current = "[data-menu-search]"; setPlacement(null); } : undefined}
-          more={searchEverywhere && simpleMenu.search ? (
-            <CatalogMatches query={query} onConnect={(providerId, model) => { close(false); setConnecting({ providerId, model }); }} />
-          ) : undefined}
-        />
-      ) : fullPane}
+      <SimpleModelMenu
+        menu={simpleMenu}
+        query={query}
+        bot={profile}
+        botModel={{ label: botModelName, title: botModelTitle }}
+        thinking={thinking}
+        idPrefix={menuId}
+        onQuery={setQuery}
+        onPick={pick}
+        onPickCurrent={() => close(true)}
+        onFollowBot={pickBotModel}
+        onToggle={(instance) => {
+          const opening = !expanded.has(instance.instanceId);
+          setExpanded((current) => {
+            const next = new Set(current);
+            if (opening) next.add(instance.instanceId);
+            else next.delete(instance.instanceId);
+            return next;
+          });
+          if (opening) lookForLocalIn(instance);
+        }}
+        onSetUp={connectInstance}
+        onCheckAgain={(instance) => refreshModels(instance.instanceId)}
+        onMore={mayChangeBot && !remote ? openDirectory : undefined}
+        onResetVariant={resetVariant}
+        scope={threadId && mayChangeBot ? { value: scope, onChange: setScope } : undefined}
+        connect={connectRows.length > 0 ? (
+          <PickerConnect rows={connectRows} flow={flow} active={connecting?.key ?? null} onPress={startConnect}
+            onTrouble={remote ? stopConnect : openDirectory} />
+        ) : undefined}
+      />
     </div>
   );
 
   return (
     <div ref={rootRef} className={cn(contained ? "w-full" : "relative", className)}>
-      {connecting && <ConnectById providerId={connecting.providerId} model={connecting.model} onClose={() => setConnecting(null)} />}
       {contained ? (
         <div className="flex items-center justify-between gap-4">
           {label}

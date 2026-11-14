@@ -21,7 +21,7 @@ const BASELINE = join(import.meta.dirname, "visual-baseline");
 /** The surfaces that carry the look: chat with its cards, the composer, settings, the bot panel, dialogs, first run. */
 export const KEY_SURFACES = [
   "settings:general", "settings:appearance", "settings:engines", "settings:import", "settings:apps", "settings:usage",
-  "panel:overview", "panel:routines", "panel:voice", "panel:model",
+  "panel:overview", "panel:routines", "panel:voice", "panel:model", "picker:model",
   "dialog:connect-apps", "dialog:cloud-add", "dialog:shortcuts", "dialog:connect-ai-from-chat",
   "onboarding:welcome", "onboarding:account", "onboarding:ai",
   "chat:empty", "chat:typing", "chat:error", "chat:notice", "card:cloud-ready",

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Check, ChevronDown, ChevronRight, ChevronUp, Download, Loader2, LogIn, RefreshCw, Search, Settings, X } from "../icons";
+import { Check, ChevronDown, ChevronRight, ChevronUp, Loader2, LogIn, Plus, RefreshCw, Search, X } from "../icons";
 import type { Bot, InstanceInfo } from "@/state/store";
 import type { EffortLevel } from "../../shared/wire";
 import type { MenuGroup, MenuModelRow, SimpleMenu } from "@/lib/simple-model-menu";
@@ -21,14 +21,15 @@ export interface SimpleMenuActions {
   onPickCurrent: () => void;
   onFollowBot: () => void;
   onToggle: (instance: InstanceInfo) => void;
-  onSetUp: (instance: InstanceInfo, keyboard: boolean) => void;
+  /** Connects a provider that needs its sign-in again. */
+  onSetUp: (instance: InstanceInfo) => void;
   onCheckAgain: (instance: InstanceInfo) => void;
-  /** Opens the provider settings; left out where they live on another computer. */
-  onManage?: () => void;
+  /** Opens the model directory (more providers, API keys, local models); left out where they live on another computer. */
+  onMore?: () => void;
   onResetVariant?: () => void;
-  /** Turns the search on for a short list, so it can look through every provider. */
-  onSearchAll?: () => void;
 }
+
+export type PickerScope = "thread" | "bot";
 
 export interface SimpleModelMenuProps extends SimpleMenuActions {
   menu: SimpleMenu;
@@ -37,8 +38,10 @@ export interface SimpleModelMenuProps extends SimpleMenuActions {
   botModel: { label: string; title: string };
   thinking?: SimpleThinking | null;
   idPrefix: string;
-  /** Matches from providers not connected here, under the connected ones. */
-  more?: ReactNode;
+  /** The providers not connected here, under the connected ones. */
+  connect?: ReactNode;
+  /** Whether a pick is for this chat only or the bot's default too; left out where there is no choice. */
+  scope?: { value: PickerScope; onChange: (value: PickerScope) => void };
 }
 
 const Gutter = ({ children }: { children?: ReactNode }) => <span className={MENU_GUTTER}>{children}</span>;
@@ -92,14 +95,8 @@ function GroupBody({ group, props }: { group: MenuGroup; props: SimpleModelMenuP
       );
     case "setUp":
     case "signIn":
-      return (
-        <button type="button" data-menu-row data-simple-set-up tabIndex={-1} onClick={(event) => props.onSetUp(instance, event.detail === 0)}
-          title={t("model.simple.needsSetup", { name: group.account ?? group.provider })} className={MENU_ROW}>
-          <Gutter>{body.kind === "setUp" ? <Download size={16} strokeWidth={MENU_STROKE} className={MENU_ICON} aria-hidden="true" /> : <LogIn size={16} strokeWidth={MENU_STROKE} className={MENU_ICON} aria-hidden="true" />}</Gutter>
-          <span className="min-w-0 flex-1 truncate">{body.kind === "setUp" ? t("model.simple.setUp") : t("model.simple.signIn")}</span>
-          <Forward />
-        </button>
-      );
+      // listed under Not connected instead (SimpleMenu.connect)
+      return null;
     case "empty":
       return body.loading ? (
         <div role="status" className={cn(MENU_LINE, "text-ink-tertiary")}>
@@ -135,7 +132,7 @@ function GroupBody({ group, props }: { group: MenuGroup; props: SimpleModelMenuP
             </div>
           )}
           {body.signInForOwn && (
-            <button type="button" data-menu-row data-simple-sign-in tabIndex={-1} onClick={(event) => props.onSetUp(instance, event.detail === 0)} className={MENU_ROW}>
+            <button type="button" data-menu-row data-simple-sign-in tabIndex={-1} onClick={() => props.onSetUp(instance)} className={MENU_ROW}>
               <Gutter><LogIn size={16} strokeWidth={MENU_STROKE} className={MENU_ICON} aria-hidden="true" /></Gutter>
               <span className="min-w-0 flex-1 truncate">{t("model.simple.signInForOwn", { name: group.provider })}</span>
               <Forward />
@@ -199,6 +196,29 @@ function Thinking({ thinking, labelId }: { thinking: SimpleThinking; labelId: st
   );
 }
 
+/** This chat only, or the bot's default too: two pills, the chosen one filled, its meaning in the tooltip. */
+function Scope({ scope, labelId }: { scope: NonNullable<SimpleModelMenuProps["scope"]>; labelId: string }) {
+  const choices: Array<{ value: PickerScope; label: string; hint: string }> = [
+    { value: "thread", label: t("model.picker.thisChat"), hint: t("model.picker.thisChatHint") },
+    { value: "bot", label: t("model.picker.botDefault"), hint: t("model.picker.botDefaultHint") },
+  ];
+  return (
+    <div className="flex flex-col">
+      <span id={labelId} className="flex h-6 items-end px-2 pb-0.5 text-[12px] font-medium leading-4 text-ink-tertiary">{t("model.picker.scope")}</span>
+      <div data-picker-scope role="group" aria-labelledby={labelId} className="m-1 grid grid-cols-2 rounded-full bg-ink/[0.05] p-[3px]">
+        {choices.map((choice) => (
+          <button key={choice.value} type="button" data-scope-pill={choice.value} aria-pressed={scope.value === choice.value}
+            tabIndex={scope.value === choice.value ? 0 : -1} title={choice.hint} onClick={() => scope.onChange(choice.value)}
+            className={cn("h-6 min-w-0 truncate rounded-full px-2 text-[12px] leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus motion-reduce:transition-none touch:h-8",
+              scope.value === choice.value ? "bg-ink/[0.1] font-medium text-ink" : "text-ink-secondary hover:text-ink")}>
+            {choice.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function SimpleModelMenu(props: SimpleModelMenuProps) {
   const { menu, query, idPrefix } = props;
   const current = menu.current;
@@ -236,9 +256,9 @@ export function SimpleModelMenu(props: SimpleModelMenuProps) {
               data-current-model
               aria-pressed="true"
               title={current.title}
-              onClick={(event) => {
+              onClick={() => {
                 const setUp = current.warning && current.instance && !current.instance.policy && !current.blocked ? current.instance : undefined;
-                if (setUp) props.onSetUp(setUp, event.detail === 0);
+                if (setUp) props.onSetUp(setUp);
                 else props.onPickCurrent();
               }}
               className={SIMPLE_MENU_ROW}
@@ -290,36 +310,29 @@ export function SimpleModelMenu(props: SimpleModelMenuProps) {
           )}
           {menu.empty === "none" && <p className={cn(MENU_NOTE, !top && "pt-2")}>{t("model.noProviders")}</p>}
           {menu.results === 0 && <p className={cn(MENU_NOTE, "py-2")}>{t("model.noMatch", { query: menu.query })}</p>}
-          {props.more}
+          {props.connect}
         </div>
       </div>
 
-      {(props.thinking || props.onResetVariant || props.onManage || (props.onSearchAll && !menu.search)) && (
+      {(props.thinking || props.onResetVariant || props.scope || props.onMore) && (
         <div data-simple-effort-band className="flex shrink-0 flex-col gap-0.5 border-t-[0.5px] border-transparent p-1.5">
-          {props.thinking && (
-            <>
-              <Thinking thinking={props.thinking} labelId={`${idPrefix}-thinking`} />
-              {(props.onResetVariant || props.onManage || (props.onSearchAll && !menu.search)) && <div role="separator" className={MENU_SEPARATOR} />}
-            </>
-          )}
+          {props.thinking && <Thinking thinking={props.thinking} labelId={`${idPrefix}-thinking`} />}
+          {props.scope && <Scope scope={props.scope} labelId={`${idPrefix}-scope`} />}
           {props.onResetVariant && (
             <button type="button" data-menu-row data-simple-variant-default onClick={props.onResetVariant} className={MENU_ROW}>
               <Gutter />
               <span className="min-w-0 flex-1 truncate">{t("model.variant.session")}</span>
             </button>
           )}
-          {props.onSearchAll && !menu.search && (
-            <button type="button" data-menu-row data-simple-search-all onClick={props.onSearchAll} className={MENU_ROW}>
-              <Gutter><Search size={16} strokeWidth={MENU_STROKE} className={MENU_ICON} aria-hidden="true" /></Gutter>
-              <span className="min-w-0 flex-1 truncate">{t("models.picker.searchAll")}</span>
-            </button>
-          )}
-          {props.onManage && (
-            <button type="button" data-menu-row data-simple-manage onClick={props.onManage} className={MENU_ROW}>
-              <Gutter><Settings size={16} strokeWidth={MENU_STROKE} className={MENU_ICON} aria-hidden="true" /></Gutter>
-              <span className="min-w-0 flex-1 truncate">{t("model.simple.manage")}</span>
-              <Forward />
-            </button>
+          {props.onMore && (
+            <>
+              {(props.thinking || props.scope || props.onResetVariant) && <div role="separator" className={MENU_SEPARATOR} />}
+              <button type="button" data-menu-row data-picker-more onClick={props.onMore} className={MENU_ROW}>
+                <Gutter><Plus size={16} strokeWidth={MENU_STROKE} className={MENU_ICON} aria-hidden="true" /></Gutter>
+                <span className="min-w-0 flex-1 truncate">{t("connectAi.more")}</span>
+                <Forward />
+              </button>
+            </>
           )}
         </div>
       )}

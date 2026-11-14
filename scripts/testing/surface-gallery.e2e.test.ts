@@ -46,6 +46,9 @@ const ONBOARDING = ["welcome", "account", "ai"];
 const TYPE = (text: string) => `(() => { const field = document.querySelector("textarea[aria-label]"); if (!field) return false; field.focus();
   Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set.call(field, ${JSON.stringify(text)});
   field.dispatchEvent(new Event("input", { bubbles: true })); return true; })()`;
+/** Opens the model picker from the bot panel's Model row, the way a click does. */
+const OPEN_PICKER = `(() => { const trigger = document.querySelector("[data-panel-row=model] [data-tour=model]"); if (!trigger) return false; trigger.click();
+  return new Promise((done) => setTimeout(() => done(Boolean(document.querySelector("[data-model-picker-content]"))), 400)); })()`;
 /** The chat window itself: empty, mid-typing, and with the app's error and note banners up. */
 const CHAT: Record<string, { open: string | null; run?: string }> = {
   empty: { open: `{ type: "select", id: window.__surfaceGallery.botId }` },
@@ -96,6 +99,8 @@ const SURFACES: Surface[] = [
   ...Object.entries(CHAT).map(([id, chat]) => ({ id: `chat:${id}`, open: chat.open, run: chat.run, scope: "#root" })),
   { id: "card:cloud-ready", open: null, query: "card=cloud-ready", scope: "[data-cloud-setup-ready]" },
   { id: "dialog:connect-ai-from-chat", open: `{ type: "select", id: window.__surfaceGallery.botId }`, query: "card=connect-ai", scope: "[data-connect-ai]" },
+  // the model picker, opened from the bot panel's Model row
+  { id: "picker:model", open: `{ type: "toggleSettings", open: true, section: "overview", botId: window.__surfaceGallery.botId }`, run: OPEN_PICKER, scope: "[data-model-picker-content]" },
 ].filter((surface) => !ONLY || ONLY.includes(surface.id));
 
 (enabled ? it : it.skip)("draws every settings page, panel tab, dialog and first-run step without overlap or clipping", async () => {

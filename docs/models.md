@@ -247,11 +247,12 @@ OK") is preferred over one that did not answer or was not tested.
 
   All four routes are admin only.
 - UI: `src/components/models/` (`ModelDirectory`, `ConnectProviderDialog`,
-  `CatalogMatches`, `ModelBadges`), wired into Settings > Models and the
-  bot's model picker.
+  `ModelBadges`), wired into Settings > Models. The bot's model picker lists
+  the connected models, connects a popular AI in place (`PickerConnect`, the
+  same connect as the Connect an AI cards) and links to the directory for the
+  rest.
 - Tests: `shared/model-providers.test.ts`, `shared/model-search.test.ts`,
   `server/model-providers.test.ts`, `server/routes/model-providers.test.ts`,
-  `src/components/models/ModelDirectory.dom.test.ts` and the picker test in
-  `src/components/ModelPicker.dom.test.ts`. The live check against a real
+  and `src/components/models/ModelDirectory.dom.test.ts`. The live check against a real
   gateway, which sends one short message, is
   `DUSK_LIVE_GATEWAY_URL=http://127.0.0.1:8317/v1 DUSK_LIVE_GATEWAY_KEY=… pnpm exec vitest run server/model-providers.live.test.ts`.

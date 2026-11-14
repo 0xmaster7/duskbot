@@ -25,6 +25,7 @@ const fixture = vi.hoisted(() => {
     dispatch: (() => {}) as (...args: unknown[]) => void,
     refreshModels: (() => Promise.resolve()) as (instanceId: string) => Promise<void>,
     refreshInstances: (() => Promise.resolve()) as () => Promise<void>,
+    connect: { start: (() => {}) as (target: unknown) => void, cancel: (() => {}) as () => void, stage: "idle" },
   };
 });
 vi.mock("react", async (original) => ({
@@ -37,6 +38,12 @@ vi.mock("react", async (original) => ({
     }];
   },
   useEffect: () => {},
+}));
+// the connect itself (connect-flow) has its own tests; here only what the picker starts and shows
+vi.mock("./onboarding/SignInPill", () => ({
+  useConnectFlow: () => ({ state: { stage: fixture.connect.stage }, target: null, start: fixture.connect.start, cancel: fixture.connect.cancel,
+    retry: () => {}, openAgain: () => {}, submit: () => {} }),
+  ConnectPanel: ({ name }: { name: string }) => createElement("div", { "data-connect-panel": name }),
 }));
 vi.mock("./MenuMotion", () => ({ useMenuMotion: (open: boolean) => ({ shown: open, closing: false, className: "", exitProps: {} }) }));
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => fixture.ownerOrAdmin }));
@@ -51,7 +58,7 @@ vi.mock("@/state/store", async (importOriginal) => ({
 }));
 
 const { ModelPicker, ModelVariantRow, SIMPLE_POPOVER_WIDTH } = await import("./ModelPicker");
-const { ModelEngineRail, ModelRow } = await import("./ModelPickerFull");
+const { PickerConnect } = await import("./models/PickerConnect");
 const { SimpleModelMenu } = await import("./SimpleModelMenu");
 const { EngineSetup } = await import("./EngineSetup");
 
@@ -162,13 +169,14 @@ beforeEach(() => {
   fixture.dispatch = vi.fn();
   fixture.refreshModels = vi.fn(() => Promise.resolve());
   fixture.refreshInstances = vi.fn(() => Promise.resolve());
+  fixture.connect = { start: vi.fn(), cancel: vi.fn(), stage: "idle" };
 });
 
 describe("the model picker in Simple mode", () => {
-  it("opens one calm list: the current model on top, its provider's other models below, then Thinking and a way to accounts", () => {
+  it("opens one calm list: the current model on top, its provider's other models below, then Thinking, the scope and the directory", () => {
     const opened = open(bot("high"));
     const html = menu(opened.html);
-    expect(opened.nodes.some((node) => node.type === ModelEngineRail)).toBe(false);
+    expect(html).not.toContain("data-rail");
     const current = html.indexOf("data-current-model");
     const provider = html.indexOf('data-simple-provider="claude"');
     const band = html.indexOf("data-simple-effort-band");
@@ -180,22 +188,27 @@ describe("the model picker in Simple mode", () => {
     const bottom = region(html, "data-simple-effort-band");
     for (const step of ["Low", "Medium", "High", "X-high", "Max"]) expect(bottom).toContain(`>${step}</button>`);
     expect(bottom).toContain(">Thinking</span>");
-    expect(bottom).toContain("Manage AI accounts");
+    expect(bottom).toContain(">This chat only</button>");
+    expect(bottom).toContain(">Default for this bot</button>");
+    expect(bottom).toContain("More providers or use an API key");
+    expect(html).not.toContain("Manage AI accounts");
     expect(html).not.toContain(">Quick</button>");
     expect(html).not.toContain("new chats too");
   });
 
-  it("is a 300px menu on the shared menu surface, and the full picker keeps its own 420px", () => {
-    expect(SIMPLE_POPOVER_WIDTH).toBe(300);
+  it("is one 320px menu on the shared menu surface, and stays that menu while a provider connects", () => {
+    expect(SIMPLE_POPOVER_WIDTH).toBe(320);
     fixture.instances = [claude(false)];
     const forBot = bot();
     const opened = open(forBot);
     const content = opened.nodes.find((node) => node.props["data-model-picker-content"] !== undefined)!;
     expect(String(content.props.className)).toContain("menu-surface");
     expect(String(content.props.className)).not.toMatch(/\bborder\b|shadow-2xl|rounded-2xl/);
-    expect(menu(opened.html)).toContain("width:300px");
-    pane(opened)!.props.onSetUp(instance("claude"), false);
-    expect(menu(render(forBot).html)).toContain("width:420px");
+    expect(menu(opened.html)).toContain("width:320px");
+    pane(opened)!.props.onSetUp(instance("claude"));
+    const connecting = render(forBot);
+    expect(menu(connecting.html)).toContain("width:320px");
+    expect(pane(connecting)).toBeDefined();
   });
 
   it("lists every ready provider at once: the current one first, then sign-ins, API keys and local engines", () => {
@@ -211,14 +224,15 @@ describe("the model picker in Simple mode", () => {
     expect(labels(opened, "pi")).toEqual(["Llama 4", "Gemma 4", "Qwen 3"]);
   });
 
-  it("has no More row: the full picker opens only from a provider that needs setting up", () => {
+  it("has no More row and no setup page: every provider here is ready, and the directory is the footer's one link", () => {
     fixture.instances = [claude(), codex, grok, cursor, openaiKey, local];
     const opened = open(bot());
     const html = menu(opened.html);
     expect(html).not.toContain("data-simple-model-more");
     expect(html).not.toMatch(/>More( options)?</);
     expect(html).not.toContain("data-simple-set-up");
-    expect(pane(opened)!.props).not.toHaveProperty("onMore");
+    expect(html).not.toContain("data-model-back");
+    expect(html.match(/data-picker-more/g)).toHaveLength(1);
   });
 
   it("names a model in short under its provider, and in full on the chip, in the tooltip and to a screen reader", () => {
@@ -331,10 +345,12 @@ describe("the model picker in Simple mode", () => {
     expect(html).toContain("Sign in for Claude&#x27;s own models");
     expect(html).not.toContain(">Opus 5.5<");
 
-    pane(opened)!.props.onSetUp(instance("claude"), false);
-    const full = render(forBot);
-    expect(pane(full)).toBeUndefined();
-    expect(full.nodes.find((node) => node.type === EngineSetup)?.props).toMatchObject({ intent: "cloud" });
+    pane(opened)!.props.onSetUp(instance("claude"));
+    expect(fixture.connect.start).toHaveBeenCalledExactlyOnceWith({ tile: "claude", candidates: ["claude"] });
+    const connecting = render(forBot);
+    expect(pane(connecting)).toBeDefined();
+    expect(menu(connecting.html)).toContain('data-connect-panel="Claude"');
+    expect(connecting.nodes.some((node) => node.type === EngineSetup)).toBe(false);
   });
 
   it("offers no sign-in row on a signed-in engine", () => {
@@ -356,7 +372,7 @@ describe("the model picker in Simple mode", () => {
       selection: { instanceId: "claude", model: "claude-opus-5-5" },
     });
     fixture.values = [];
-    const atDefault = region(menu(open(bot()).html), "data-simple-effort-band");
+    const atDefault = region(menu(open(bot()).html), "data-simple-effort-band", "data-picker-scope");
     expect(atDefault).not.toContain('aria-pressed="true"');
     expect(atDefault).not.toContain("Use default");
     expect(atDefault).toContain('title="The model decides how hard to think." class="text-[12px] leading-4 text-ink-tertiary">Default</span>');
@@ -547,54 +563,72 @@ describe("the model picker in Simple mode", () => {
     });
   });
 
-  it("sends a provider that needs sign-in to the full picker's setup, with a way back to the list", () => {
+  it("lists a provider that needs sign-in as one Connect row under Not connected, and connects it right there", () => {
     fixture.instances = [claude(false)];
     const forBot = bot();
     const opened = open(forBot);
     expect(list(opened).current).toMatchObject({ label: "Opus 5.5", meta: "Sign-in required", warning: true });
-    expect(group(opened, "claude")!.body).toEqual({ kind: "signIn" });
+    expect(group(opened, "claude")).toBeUndefined();
+    expect(list(opened).connect.map((entry) => [entry.label, entry.body.kind])).toEqual([["Claude", "signIn"]]);
     const html = menu(opened.html);
-    expect(html).toContain('title="Claude needs to be set up before you can use it."');
-    expect(html).toContain(">Sign in</span>");
+    const section = region(html, "data-picker-not-connected", "data-simple-effort-band");
+    expect(section).toContain(">Not connected</div>");
+    expect(section).toContain('aria-label="Connect Claude · Needs sign-in"');
+    expect(section).toContain(">Needs sign-in</span>");
+    expect(section).toContain(">Connect</span>");
     expect(html).not.toContain(">Sonnet 5.5<");
+    expect(html).not.toMatch(/terminal|View setup guide|Sign in to Claude/i);
 
-    pane(opened)!.props.onSetUp(instance("claude"), false);
-    const full = render(forBot);
-    expect(pane(full)).toBeUndefined();
-    expect(full.nodes.some((node) => node.type === ModelEngineRail)).toBe(true);
-    const back = full.nodes.find((node) => node.props["data-model-back"] !== undefined)!;
-    expect(menu(full.html)).toContain(">Back</span>");
-    click(back);
-    expect(pane(render(forBot))).toBeDefined();
+    const connectRows = (rendered: Rendered) => pane(rendered)!.props.connect as ReactElement<ComponentProps<typeof PickerConnect>>;
+    const row = connectRows(opened);
+    const claudeRow = row.props.rows[0]!;
+    row.props.onPress(claudeRow);
+    expect(fixture.connect.start).toHaveBeenCalledExactlyOnceWith({ tile: "claude", candidates: ["claude"] });
+    const connecting = render(forBot);
+    expect(menu(connecting.html)).toMatch(/data-picker-connect="claude"[^>]*aria-expanded="true"/);
+    expect(menu(connecting.html)).toContain('data-connect-panel="Claude"');
+    // the same row again puts the connect away
+    connectRows(connecting).props.onPress(claudeRow);
+    expect(fixture.connect.cancel).toHaveBeenCalled();
+    expect(menu(render(forBot).html)).not.toContain("data-connect-panel");
   });
 
-  it("sets up a missing engine from its row", () => {
+  it("says a provider that is connected now with a check, in its row", () => {
+    fixture.instances = [claude(false)];
+    const forBot = bot();
+    pane(open(forBot))!.props.onSetUp(instance("claude"));
+    fixture.connect.stage = "connected";
+    const html = menu(render(forBot).html);
+    expect(region(html, 'data-picker-connect="claude"', "data-connect-panel")).toContain(">Connected</span>");
+    expect(region(html, 'data-picker-connect="claude"', "data-connect-panel")).not.toContain(">Connect</span>");
+  });
+
+  it("sends a missing engine with no sign-in of its own to the model directory", () => {
     const missing: InstanceInfo = { ...cursor, snapshot: { state: "unavailable", reason: "`cursor-agent` isn't installed" } };
     fixture.instances = [claude(), missing];
     const forBot = bot(undefined, "cursor", "auto");
     const opened = open(forBot);
     expect(list(opened).current).toMatchObject({ meta: "Setup required", warning: true });
-    expect(list(opened).groups.map((entry) => [entry.label, entry.body.kind])).toEqual([["Cursor", "setUp"], ["Claude", "models"]]);
-    const html = region(menu(opened.html), 'data-simple-provider="cursor"', 'data-simple-provider="claude"');
-    expect(html).toContain(">Set up</span>");
-    expect(html).toContain("data-simple-set-up");
-    pane(opened)!.props.onSetUp(missing, false);
-    const full = render(forBot);
-    expect(full.nodes.find((node) => node.type === EngineSetup)?.props).toMatchObject({ instance: missing, quiet: true });
+    expect(list(opened).groups.map((entry) => entry.label)).toEqual(["Claude"]);
+    expect(list(opened).connect.map((entry) => [entry.label, entry.body.kind])).toEqual([["Cursor", "setUp"]]);
+    expect(region(menu(opened.html), "data-picker-not-connected")).toContain(">Needs setup</span>");
+    pane(opened)!.props.onSetUp(missing);
+    expect(fixture.connect.start).not.toHaveBeenCalled();
+    expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "toggleAppSettings", open: true, section: "engines" });
+    expect(render(forBot).html).not.toContain("data-model-picker-content");
   });
 
-  it("opens setup from the checked row when its engine cannot run, and closes from it otherwise, writing nothing", () => {
+  it("connects from the checked row when its engine cannot run, and closes from it otherwise, writing nothing", () => {
     const missing: InstanceInfo = { ...cursor, snapshot: { state: "unavailable", reason: "`cursor-agent` isn't installed" } };
     fixture.instances = [claude(), missing];
     const forBot = bot(undefined, "cursor", "auto");
     const currentRow = (rendered: Rendered) =>
       nodes(SimpleModelMenu(pane(rendered)!.props)).find((node) => node.props["data-current-model"] !== undefined)!;
     click(currentRow(open(forBot)));
-    const full = render(forBot);
-    expect(pane(full)).toBeUndefined();
-    expect(full.nodes.find((node) => node.type === EngineSetup)?.props).toMatchObject({ instance: missing });
+    expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "toggleAppSettings", open: true, section: "engines" });
 
     fixture.values = [];
+    fixture.dispatch = vi.fn();
     fixture.instances = [claude()];
     click(currentRow(open(bot())));
     expect(fixture.dispatch).not.toHaveBeenCalled();
@@ -602,30 +636,40 @@ describe("the model picker in Simple mode", () => {
   });
 
   it.each([[true, true], [false, false], [null, false]] as const)(
-    "keeps the list's rule for a pick in the full picker behind Set up (owner: %s)", (ownerOrAdmin, updatesDefault) => {
+    "makes a pick for this chat only or the bot's default too by the scope pills, which only the owner gets (owner: %s)", (ownerOrAdmin, updatesDefault) => {
       fixture.ownerOrAdmin = ownerOrAdmin;
-      const missing: InstanceInfo = { ...cursor, snapshot: { state: "unavailable", reason: "`cursor-agent` isn't installed" } };
-      fixture.instances = [claude(), missing];
-      const forBot = bot();
-      pane(open(forBot))!.props.onSetUp(missing, false);
       fixture.instances = [claude(), cursor];
-      const full = render(forBot);
-      expect(menu(full.html)).toContain(updatesDefault ? "every thread that uses the bot&#x27;s model" : "This thread only.");
-      (full.nodes.find((node) => node.type === ModelRow)!.props.onPick as () => void)();
+      const forBot = bot();
+      const opened = open(forBot);
+      const scope = pane(opened)!.props.scope;
+      expect(Boolean(scope)).toBe(ownerOrAdmin === true);
+      if (scope) expect(scope.value).toBe("bot");
+      pane(opened)!.props.onPick(cursor, "auto");
       expect(fixture.dispatch).toHaveBeenLastCalledWith(expect.objectContaining({
         type: "setModel", threadId: "thread-scout", updateBotDefault: updatesDefault,
         selection: expect.objectContaining({ instanceId: "cursor", model: "auto" }),
       }));
+      if (!scope) return;
+      fixture.values = [];
+      pane(open(forBot))!.props.scope!.onChange("thread");
+      const chatOnly = render(forBot);
+      expect(region(menu(chatOnly.html), "data-picker-scope")).toMatch(/aria-pressed="true"[^>]*>This chat only<\/button>/);
+      pane(chatOnly)!.props.onPick(cursor, "auto");
+      expect(fixture.dispatch).toHaveBeenLastCalledWith(expect.objectContaining({ updateBotDefault: false }));
     },
   );
 
-  it("starts over in the Simple view the next time it opens", () => {
+  it("starts over, with no connect open and the scope back on the bot's default, the next time it opens", () => {
     fixture.instances = [claude(false)];
     const forBot = bot();
-    pane(open(forBot))!.props.onSetUp(instance("claude"), false);
+    const opened = open(forBot);
+    pane(opened)!.props.onSetUp(instance("claude"));
+    pane(render(forBot))!.props.scope!.onChange("thread");
     const trigger = render(forBot).nodes.find((node) => node.props["data-tour"] === "model")!;
     (trigger.props.onClick as () => void)();
-    expect(pane(open(forBot))).toBeDefined();
+    const again = open(forBot);
+    expect(pane(again)!.props.scope!.value).toBe("bot");
+    expect(menu(again.html)).not.toContain("data-connect-panel");
   });
 
   it("says so when there is no provider at all, and still names the bot's model", () => {
@@ -633,7 +677,7 @@ describe("the model picker in Simple mode", () => {
     const opened = open(bot());
     expect(list(opened).current).toMatchObject({ label: "claude-opus-5-5", meta: "Unavailable", warning: true });
     expect(menu(opened.html)).toContain("No model providers are available.");
-    expect(menu(opened.html)).toContain("Manage AI accounts");
+    expect(menu(opened.html)).toContain("More providers or use an API key");
   });
 
   it("asks a provider with nothing to list to check again", async () => {
@@ -677,23 +721,23 @@ describe("the model picker in Simple mode", () => {
     expect(other(menu(render(forBot).html))).not.toMatch(/data-simple-refresh="true"[^>]* disabled=""/);
   });
 
-  it("lists each ready Claude account as its own provider, and a signed-out one as one to sign in", () => {
+  it("lists each ready Claude account as its own provider, and a signed-out one as one to connect", () => {
     const work: InstanceInfo = { ...claude(true, [{ id: "claude-sonnet-5-5", label: "Sonnet 5.5" }, { id: "claude-fable", label: "Fable 5" }]), instanceId: "claude-work", displayName: "Work" };
     const home: InstanceInfo = { ...claude(false), instanceId: "claude-home", displayName: "Home" };
     fixture.instances = [claude(), work, home];
     const forBot = bot();
     const opened = open(forBot);
     expect(list(opened).groups.map((entry) => [entry.label, entry.body.kind]))
-      .toEqual([["Claude", "models"], ["Claude · Work", "models"], ["Claude · Home", "signIn"]]);
+      .toEqual([["Claude", "models"], ["Claude · Work", "models"]]);
+    expect(list(opened).connect.map((entry) => [entry.label, entry.body.kind])).toEqual([["Claude · Home", "signIn"]]);
     expect(list(opened).current!.meta).toBe("Claude");
     pane(opened)!.props.onPick(work, "claude-sonnet-5-5");
     expect(fixture.dispatch).toHaveBeenLastCalledWith(expect.objectContaining({
       type: "setModel", selection: expect.objectContaining({ instanceId: "claude-work", model: "claude-sonnet-5-5" }),
     }));
     fixture.values = [];
-    pane(open(forBot))!.props.onSetUp(home, false);
-    const full = render(forBot);
-    expect(full.html).toContain('<option value="claude-home" selected="">Home</option>');
+    pane(open(forBot))!.props.onSetUp(home);
+    expect(fixture.connect.start).toHaveBeenLastCalledWith({ tile: "claude-home", candidates: ["claude-home"] });
   });
 
   it("lists Codex and the ChatGPT plan each under OpenAI", () => {
@@ -773,9 +817,9 @@ describe("the model picker in Simple mode", () => {
     expect(fixture.refreshModels).toHaveBeenCalledTimes(2);
   });
 
-  it("opens AI accounts from the footer", () => {
-    const manage = open(bot()).nodes.find((node) => node.type === SimpleModelMenu)!;
-    (manage.props.onManage as () => void)();
+  it("opens the model directory from the footer", () => {
+    const more = open(bot()).nodes.find((node) => node.type === SimpleModelMenu)!;
+    (more.props.onMore as () => void)();
     expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "toggleAppSettings", open: true, section: "engines" });
   });
 
@@ -912,7 +956,7 @@ describe("every capability of the picker stays reachable", () => {
   }
   const missingFrom = (checks: Record<string, boolean>) => Object.entries(checks).filter(([, reached]) => !reached).map(([name]) => name);
 
-  it("in Simple mode, from the chip, its menu and the full picker behind Set up", () => {
+  it("from the chip and its one menu, Not connected rows and footer included", () => {
     fixture.instances = rich();
     const forBot = followed();
     const chip = render(forBot).nodes.find((node) => node.props["data-tour"] === "model")!;
@@ -930,33 +974,24 @@ describe("every capability of the picker stays reachable", () => {
       "every ready provider's models at once": labels(opened, "claude").length > 0 && labels(opened, "pi").length > 0,
       "local models beside a provider's own": html.includes(">Local models</div>") && labels(opened, "claude").includes("qwen3 (Ollama)"),
       "show every model of a provider": html.includes("data-simple-show-all"),
-      "a signed-out account signs in": body("claude-work") === "signIn",
+      "a signed-out account connects from its row": simple.connect.some((entry) => entry.instance.instanceId === "claude-work") && html.includes('data-picker-connect="claude-work"'),
       "a managed provider says who manages it": body("openai") === "policy" && html.includes("Managed by Acme"),
       "a provider with nothing listed checks again": body("chatgpt") === "empty" && html.includes("data-simple-refresh"),
       "thinking levels in the provider's own names, and back to Default": html.includes(">X-high</button>") && html.includes(">Use default</button>"),
-      "AI accounts in Settings": html.includes("data-simple-manage"),
+      "this chat or the bot's default": html.includes(">This chat only</button>") && html.includes(">Default for this bot</button>"),
+      "more providers, API keys and local models in the directory": html.includes("data-picker-more"),
     };
     expect(missingFrom(before)).toEqual([]);
 
     props.onToggle(local);
     expect(labels(render(forBot), "pi").length).toBeGreaterThan(labels(opened, "pi").length);
-    props.onSetUp(signedOutWork, false);
-    const full = render(forBot);
-    const fullHtml = menu(full.html);
-    const behind = {
-      "the full picker opens in place, with a way back": pane(full) === undefined && fullHtml.includes("data-model-back"),
-      "engine rail with API keys": full.nodes.some((node) => node.type === ModelEngineRail) && fullHtml.includes(">API keys<"),
-      "this thread or the bot's default": fullHtml.includes("Only this thread") && fullHtml.includes("Thread + bot default"),
-      "engine status and refresh": fullHtml.includes("Sign-in required") && fullHtml.includes("data-model-refresh"),
-      "the account select": fullHtml.includes('<option value="claude-work" selected="">Work</option>'),
-      "install and sign-in help": full.nodes.some((node) => node.type === EngineSetup),
-      "providers and accounts, and API keys": fullHtml.includes("Model providers and accounts") && fullHtml.includes("data-model-add-api-keys"),
-    };
-    expect(missingFrom(behind)).toEqual([]);
+    props.onSetUp(signedOutWork);
+    expect(fixture.connect.start).toHaveBeenCalledWith(expect.objectContaining({ candidates: expect.arrayContaining(["claude-work"]) }));
+    expect(menu(render(forBot).html)).toContain("data-connect-panel");
 
     fixture.values = [];
     const onMissing = open({ ...forBot, modelSelection: { instanceId: "cursor", model: "auto" } });
-    expect(group(onMissing, "cursor")?.body.kind).toBe("setUp");
+    expect(list(onMissing).connect.find((entry) => entry.instance.instanceId === "cursor")?.body.kind).toBe("setUp");
     expect(list(onMissing).current).toMatchObject({ meta: "Setup required", warning: true });
   });
 
@@ -968,7 +1003,7 @@ describe("every capability of the picker stays reachable", () => {
     try {
       const html = menu(open(forBot).html);
       expect(html).toContain("Sonnet 5.5");
-      for (const hostOnly of ["data-simple-manage", "Model providers and accounts", "data-model-add-api-keys"]) {
+      for (const hostOnly of ["data-picker-more", "More providers or use an API key"]) {
         expect(html, hostOnly).not.toContain(hostOnly);
       }
       // Nothing follows the thinking levels, so no divider hangs under them.
