@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { launchCloudSendFixture, type CloudSendFixture, type CloudTeamFixture } from "../scripts/testing/cloud-send-fixture.ts";
+import { DEFAULT_BOT_NAME } from "../shared/default-bot.ts";
 import { personKey } from "./person-key.ts";
 import { hostTimeout } from "./testing/host-timeout.ts";
 
@@ -119,7 +120,7 @@ it("Bob reads and writes his own private chat, with its words, its file, his sea
   const recolour = await team.as(bob, "PATCH", `/api/bots/${bot.id}`, { color: "blue" });
   expect(recolour.status).toBe(403);
   expect(recolour.body.error).toContain("\"color\"");
-  const dusk = ((await team.as(bob, "GET", "/api/bots")).body.bots as Array<{ id: string; name: string }>).find((entry) => entry.name === "Dusk")!;
+  const dusk = ((await team.as(bob, "GET", "/api/bots")).body.bots as Array<{ id: string; name: string }>).find((entry) => entry.name === DEFAULT_BOT_NAME)!;
   expect((await team.as(bob, "PATCH", `/api/bots/${dusk.id}`, { color: "blue" })).status).toBe(200);
   // The session says which conversations are his.
   expect((await team.as(bob, "GET", "/api/auth/session")).body.openedThreads).toContain(bobThread);
@@ -281,7 +282,7 @@ it("when Bob leaves the team, his private chats and everything only his are dele
   expect(existsSync(layer)).toBe(true);
   expect(existsSync(adminsLayer)).toBe(true);
   for (const file of [bobFile, bobDoc, bobUnsent]) expect(existsSync(dataDir("attachments", file))).toBe(true);
-  const bobsDusk = ((await team.as(bob, "GET", "/api/bots")).body.bots as Array<{ id: string; threadId: string; name: string }>).find((entry) => entry.name === "Dusk")!;
+  const bobsDusk = ((await team.as(bob, "GET", "/api/bots")).body.bots as Array<{ id: string; threadId: string; name: string }>).find((entry) => entry.name === DEFAULT_BOT_NAME)!;
   expect(bobsDusk).toBeDefined();
   const room = (await team.as(owner, "POST", "/api/groups", { name: "Desk", memberIds: [bot.id], setup: { bulletin: "", defaultResponder: { kind: "everyone" } } })).body.group as { id: string; threadId: string };
   expect((await team.as(owner, "POST", `/api/groups/${room.id}/messages`, { text: "@Scout hello" })).status).toBe(202);
