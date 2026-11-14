@@ -12,6 +12,9 @@ import { request } from "../scripts/mcp-server.ts";
 interface Seen { method: string; path: string; authorization: string | undefined; tregToken: string | undefined; idempotencyKey: string | undefined; body: unknown; startedAt: number; finishedAt?: number }
 const RELAY_PATH = "/api/cloud/services/x", PLAN_TOKEN = "dusk_x_e2e_fixture", OWN_KEY = "treg_e2e_own_key";
 const RESEARCH_TOOLS = ["web_search_many", "x_search", "research_search", "research_endpoint", "research_call"];
+// the scripted engine is a fake Claude Code, which searches the web on its own: the paid web_search_many is not mounted
+// for it (4f5ccabd4, agents-turn.ts engineHasNativeWeb), so its research tools are the rest
+const MOUNTED_RESEARCH_TOOLS = RESEARCH_TOOLS.filter((tool) => tool !== "web_search_many");
 const POSTS = { output: { data: { items: [
   { id: "2107987482155561188", authorUsername: "maus", authorName: "Maus", createdUtc: 1791418354, text: "Dusk searched X", likeCount: 4, viewCount: 120 },
 ], nextCursor: "" } } };
@@ -117,22 +120,14 @@ async function withFixture(test: (f: any) => Promise<void>, options: { plan: boo
 const SEARCH = { tool: "x_search", arguments: { query: "dusk" } };
 const PEOPLE = { tool: "research_call", arguments: { id: "apollo.people.search", params: { q_organization_domains: "dusk.bot" } } };
 
-it.each([false, true])("runs a search batch concurrently through the real harness (own key: %s)", async (ownKey) => withFixture(async (f) => {
+// The batch's concurrency, ordering and per-query payment are tested in web-search-many.test.ts, and its own-key and
+// plan credentials in routes/x-research.test.ts; through this harness only its absence is visible.
+it.each([false, true])("gives an engine with its own web search no paid search batch, and spends nothing (own key: %s)", async (ownKey) => withFixture(async (f) => {
   const bot = await f.newBot("Batch search");
-  const queries = ["first product", "second product", "third product"];
-  const { tools, results, evidence } = await f.turn(bot, [{ tool: "web_search_many", arguments: { queries } }]);
-  expect(tools).toContain("web_search_many");
-  expect(results).toEqual([{ results: queries.map((query) => ({ query, results: [{ title: query, url: "https://example.com/", snippet: `Found ${query}` }] })) }]);
-  const calls = f.seen.filter((entry: Seen) => entry.path.endsWith("/call/perplexity.web.search.fast"));
-  expect(calls).toHaveLength(3);
-  expect(Math.max(...calls.map((entry: Seen) => entry.startedAt))).toBeLessThan(Math.min(...calls.map((entry: Seen) => entry.finishedAt!)));
-  expect(new Set(calls.map((entry: Seen) => entry.idempotencyKey)).size).toBe(3);
-  for (const entry of calls) {
-    expect(entry.tregToken).toBe(ownKey ? OWN_KEY : undefined);
-    expect(entry.authorization).toBe(ownKey ? undefined : `Bearer ${PLAN_TOKEN}`);
-    expect(ownKey ? entry.body : entry.body.params).toMatchObject({ search_type: "fast", max_results: 5 });
-  }
-  for (const secret of [OWN_KEY, PLAN_TOKEN]) expect(evidence + f.engineLaunch()).not.toContain(secret);
+  const { tools } = await f.turn(bot, []);
+  expect(tools).toEqual(expect.arrayContaining(MOUNTED_RESEARCH_TOOLS));
+  expect(tools).not.toContain("web_search_many");
+  expect(f.seen.filter((entry: Seen) => entry.path.endsWith("/call/perplexity.web.search.fast"))).toEqual([]);
 }, { plan: !ownKey, ownKey }), 90_000);
 
 it("shows no research tools without a treg key or a Cloud plan, even to a bot switched on", async () => withFixture(async (f) => {
@@ -154,7 +149,7 @@ it("with the person's own treg key, every bot has the tools by default and calls
   const bot = await f.newBot("Own key");
   expect(bot.xResearch).toBeUndefined();
   const { tools, results } = await f.turn(bot, [SEARCH, PEOPLE]);
-  expect(tools).toEqual(expect.arrayContaining(RESEARCH_TOOLS));
+  expect(tools).toEqual(expect.arrayContaining(MOUNTED_RESEARCH_TOOLS));
   expect(results[0].posts).toEqual([expect.objectContaining({ id: "2107987482155561188", author: "@maus", text: "Dusk searched X" })]);
   expect(results[1]).toEqual({ result: { people: [{ name: "Maus" }] }, cost: "$0.0020", callId: "call-e2e" });
   const calls = f.seen.filter((seen: Seen) => !seen.path.startsWith("/auth/") && !seen.path.startsWith("/orgs/"));
@@ -175,7 +170,7 @@ it("with only a Cloud plan, calls go through the relay with the plan's token, an
   await expect(f.api("/api/bots/" + off.id, { xResearch: "yes" }, "PATCH")).rejects.toThrow(/xResearch must be true or false/);
   expect((await f.turn(off, [])).tools).not.toContain("x_search");
   const { tools, results } = await f.turn(on, [SEARCH, PEOPLE]);
-  expect(tools).toEqual(expect.arrayContaining(RESEARCH_TOOLS));
+  expect(tools).toEqual(expect.arrayContaining(MOUNTED_RESEARCH_TOOLS));
   expect(results[0].newestId).toBe("2107987482155561188");
   expect(results[1]).toEqual({ result: { people: [{ name: "Maus" }] }, cost: "$0.0020" });
   // The server asked once, at start, whether research is on, with a request that spends nothing.
@@ -196,7 +191,7 @@ it("with only a Cloud plan, calls go through the relay with the plan's token, an
 it("with both a treg key and a Cloud plan, the person's own key wins and the card says so; removing it falls back to the plan", async () => withFixture(async (f) => {
   const bot = await f.newBot("Both");
   const { tools, evidence } = await f.turn(bot, [SEARCH]);
-  expect(tools).toEqual(expect.arrayContaining(RESEARCH_TOOLS));
+  expect(tools).toEqual(expect.arrayContaining(MOUNTED_RESEARCH_TOOLS));
   expect(f.seen.filter((seen: Seen) => !isProbe(seen)).map((seen: Seen) => [seen.path, seen.tregToken, seen.authorization])).toEqual([["/call/anyapi.x.search.posts", OWN_KEY, undefined]]);
   expect(await f.status()).toEqual({ using: "own", ownKey: true, included: true, usage: USAGE });
   // Security: neither the person's key nor the plan's token reaches the bot: not its engine's arguments, environment,
@@ -208,7 +203,7 @@ it("with both a treg key and a Cloud plan, the person's own key wins and the car
   await f.api("/api/config", { treg: { key: "" } }, "PUT");
   expect(await f.status()).toEqual({ using: "included", ownKey: false, included: true, usage: USAGE });
   const after = f.seen.length;
-  expect((await f.turn(bot, [SEARCH])).tools).toEqual(expect.arrayContaining(RESEARCH_TOOLS));
+  expect((await f.turn(bot, [SEARCH])).tools).toEqual(expect.arrayContaining(MOUNTED_RESEARCH_TOOLS));
   expect(f.seen.slice(after).filter((seen: Seen) => !isProbe(seen)).map((seen: Seen) => [seen.path, seen.tregToken, seen.authorization])).toEqual([[`${RELAY_PATH}/call/anyapi.x.search.posts`, undefined, `Bearer ${PLAN_TOKEN}`]]);
 }, { plan: true, ownKey: true }), 90_000);
 
