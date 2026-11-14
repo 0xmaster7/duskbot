@@ -57,7 +57,8 @@ function nextRunLabel(at: number | null, now = Date.now()): string | null {
   return t("cloudSetup.ready.on", { day: when.toLocaleDateString([], { weekday: "long" }), time });
 }
 
-function CloudReady({ routine, onDone, slot }: { routine?: Routine; onDone: () => void; slot: HTMLElement | null }) {
+/** Exported for the surfaces gallery, which shows it in the footer without a cloud account. */
+export function CloudReady({ routine, onDone, slot }: { routine?: Routine; onDone: () => void; slot: HTMLElement | null }) {
   const { dispatch } = useStore();
   const [motion, setMotion] = useState<{ kind: MausMotion; key: number }>({ kind: "none", key: 0 });
   const [leaving, setLeaving] = useState(false);

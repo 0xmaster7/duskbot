@@ -67,13 +67,35 @@ const SKINS = (process.env.DUSK_SURFACES_SKINS ?? "grok").split(",");
 const ONLY = process.env.DUSK_SURFACES_ONLY?.split(",");
 const DIALOG_SCOPE = `[role=dialog], [role=alertdialog], [aria-modal=true]`;
 
-type Surface = { id: string; open: string | null; onboarding?: string; scope: string; run?: string };
+/** Points across the window outside an open modal must hit its scrim or the modal itself (elementFromPoint). */
+const COVER_CHECK = `(() => {
+  const modal = [...document.querySelectorAll('[aria-modal="true"], [role="alertdialog"], dialog[open]')].filter((one) => one.getClientRects().length).at(-1);
+  if (!modal) return [];
+  const w = innerWidth, h = innerHeight, box = modal.getBoundingClientRect();
+  const points = { "top left": [3, 3], "top right": [w - 4, 3], "bottom left": [3, h - 4], "bottom right": [w - 4, h - 4],
+    "toolbar": [Math.min(240, w * 0.2), 28], "chat header": [w * 0.62, 30], "sidebar footer": [Math.min(120, w * 0.12), h - 30],
+    "sidebar": [Math.min(120, w * 0.12), h * 0.4], "composer": [w * 0.62, h - 40], "chat": [w * 0.62, h * 0.5] };
+  const issues = [];
+  for (const [where, [x, y]] of Object.entries(points)) {
+    if (x >= box.left && x <= box.right && y >= box.top && y <= box.bottom) continue;
+    const hit = document.elementFromPoint(x, y);
+    if (!hit) continue;
+    // the scrim is the modal's own backdrop: an element holding the modal, or a backdrop beside it in the same layer
+    const scrim = hit === modal || modal.contains(hit) || hit.contains(modal) || /scrim|backdrop/.test(String(hit.className)) || hit.matches("dialog[open]");
+    if (!scrim) issues.push({ kind: "overlap", hard: true, where, detail: "above the open dialog's scrim: " + (hit.closest("[data-sidebar-footer], [data-glass-bar], [data-chathead-row], aside, nav, button")?.tagName ?? hit.tagName).toLowerCase() + " " + String(hit.className).slice(0, 60) });
+  }
+  return issues;
+})()`;
+
+type Surface = { id: string; open: string | null; onboarding?: string; scope: string; run?: string; query?: string };
 const SURFACES: Surface[] = [
   ...SETTINGS.map((section) => ({ id: `settings:${section}`, open: `{ type: "toggleAppSettings", open: true, section: "${section}" }`, scope: DIALOG_SCOPE })),
   ...PANEL.map((section) => ({ id: `panel:${section}`, open: `{ type: "toggleSettings", open: true, section: "${section}", botId: window.__surfaceGallery.botId }`, scope: DIALOG_SCOPE })),
   ...Object.entries(DIALOGS).map(([id, action]) => ({ id: `dialog:${id}`, open: action, scope: id === "computer" ? "#root" : DIALOG_SCOPE })),
   ...ONBOARDING.map((step) => ({ id: `onboarding:${step}`, open: null, onboarding: step, scope: "[data-welcome]" })),
   ...Object.entries(CHAT).map(([id, chat]) => ({ id: `chat:${id}`, open: chat.open, run: chat.run, scope: "#root" })),
+  { id: "card:cloud-ready", open: null, query: "card=cloud-ready", scope: "[data-cloud-setup-ready]" },
+  { id: "dialog:connect-ai-from-chat", open: `{ type: "select", id: window.__surfaceGallery.botId }`, query: "card=connect-ai", scope: "[data-connect-ai]" },
 ].filter((surface) => !ONLY || ONLY.includes(surface.id));
 
 (enabled ? it : it.skip)("draws every settings page, panel tab, dialog and first-run step without overlap or clipping", async () => {
@@ -144,7 +166,7 @@ const SURFACES: Surface[] = [
         await request("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.touch });
         // each surface from a clean start: an open panel or a settings page must not carry over to the next
         await evaluate(`try { localStorage.clear(); sessionStorage.clear(); } catch {} true`).catch(() => undefined);
-        await request("Page.navigate", { url: surface.onboarding ? `${freshPreview!.previewUrl}?onboarding=${surface.onboarding}&skin=${skin}` : `${preview.previewUrl}?skin=${skin}` });
+        await request("Page.navigate", { url: surface.onboarding ? `${freshPreview!.previewUrl}?onboarding=${surface.onboarding}&skin=${skin}` : `${preview.previewUrl}?skin=${skin}${surface.query ? `&${surface.query}` : ""}` });
         await expect.poll(() => evaluate(`Boolean(window.__surfaceGallery?.ready)`).catch(() => false), { timeout: 120_000 }).toBe(true);
         let opened = true;
         if (surface.onboarding) opened = await expect.poll(() => evaluate(`document.querySelector("[data-welcome]")?.getAttribute("data-welcome")`), { timeout: 15_000 }).toBe(surface.onboarding).then(() => true, () => false);
@@ -160,6 +182,9 @@ const SURFACES: Surface[] = [
         // the chat states from its end, as a person sees them: a banner that lands late may leave the transcript where it was
         if (surface.id.startsWith("chat:")) await evaluate(`(() => { const s = document.querySelector(".glass-scroller"); if (s) s.scrollTop = s.scrollHeight; return new Promise((done) => setTimeout(done, 300)); })()`);
         const issues: LayoutIssue[] = opened ? await evaluate(`window.__galleryAudit({ touch: ${viewport.touch}, focus: ${viewport.id === "desktop"}, scopeSelector: ${JSON.stringify(surface.scope)} })`) : [];
+        // a modal's scrim covers the whole window: across the window outside the dialog (corners, the toolbar and the
+        // chat's header, the sidebar footer, the composer), the topmost thing is the scrim or the dialog, never the app
+        if (opened) issues.push(...await evaluate(COVER_CHECK) as LayoutIssue[]);
         const { data } = await request("Page.captureScreenshot", { format: "png" });
         writeFileSync(join(evidence, `${shot}.png`), Buffer.from(data, "base64"));
         // DUSK_SURFACES_ENDS=1: a long pane's end as well, scrolled in its own scroller, for a person reading the run

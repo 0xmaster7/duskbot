@@ -231,6 +231,8 @@ export function auditLayout(options: AuditOptions = {}): LayoutIssue[] {
     root.setAttribute("data-focus-nav", "");
     for (const control of controls) {
       const target = control as HTMLElement;
+      // a control focused on open (a dialog's close) is measured at rest first, or before and after would match
+      if (document.activeElement === target) target.blur();
       const before = look(target);
       target.focus({ preventScroll: true });
       if (document.activeElement !== target) continue;

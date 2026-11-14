@@ -22,9 +22,9 @@ const BASELINE = join(import.meta.dirname, "visual-baseline");
 export const KEY_SURFACES = [
   "settings:general", "settings:appearance", "settings:engines", "settings:import", "settings:apps", "settings:usage",
   "panel:overview", "panel:routines", "panel:voice", "panel:model",
-  "dialog:connect-apps", "dialog:cloud-add", "dialog:shortcuts",
+  "dialog:connect-apps", "dialog:cloud-add", "dialog:shortcuts", "dialog:connect-ai-from-chat",
   "onboarding:welcome", "onboarding:account", "onboarding:ai",
-  "chat:empty", "chat:typing", "chat:error", "chat:notice",
+  "chat:empty", "chat:typing", "chat:error", "chat:notice", "card:cloud-ready",
 ];
 export const KEY_CHATS = ["cards-pending", "cards-settled", "text"];
 const SKINS = "grok,grok-dark";
