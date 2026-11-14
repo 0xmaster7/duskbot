@@ -1,6 +1,6 @@
 // the owner's relay controls (GET /ops/relay/stats, PUT /ops/relay/limits), the same shape the link service answers on
 // the contabo box. pure functions, unit tested; the ops Durable Object (accounts.js) holds the state.
-import { DEFAULT_LIMITS } from "./fair-use.js";
+import { DEFAULT_LIMITS, RETIRED_LIMITS } from "./fair-use.js";
 
 /** a linked server's standing socket hibernates, so the tunnel's object checks in this often while it is connected */
 export const HEARTBEAT_MS = 5 * 60_000;
@@ -23,13 +23,15 @@ const RATE = { min: 8_000, max: 10_000_000_000 };
 const LIMIT_RULES = {
   perTunnelBytesPerSec: { ...RATE, nullable: true },
   burstBytes: { min: 64 * 1024, max: 10_000_000_000, nullable: true },
-  perTunnelDailyBytes: { min: 1_000_000, max: 1e15, nullable: true },
   tunnelsPerAccount: { min: 0, max: 100_000, nullable: true },
   globalCeilingBytesPerSec: { ...RATE, nullable: true },
   maxTunnels: { min: 0, max: 10_000_000, nullable: true },
   accountBytesPerSec: { ...RATE, nullable: false },
   accountFullSpeedBytes: { min: 0, max: 1e15, nullable: false },
+  accountFloorAtBytes: { min: 1, max: 1e15, nullable: false },
   floorBytesPerSec: { ...RATE, nullable: false },
+  chatBytesPerSec: { min: 4_000, max: 10_000_000_000, nullable: false },
+  accountBurstSeconds: { min: 0, max: 600, nullable: false },
 };
 
 /** stored limits over the defaults, keeping only known keys */
@@ -54,6 +56,7 @@ export function applyLimits(current, patch) {
       next.paused = value;
       continue;
     }
+    if (RETIRED_LIMITS.has(key)) continue;
     const rule = LIMIT_RULES[key];
     if (!rule) return { ok: false, error: `unknown limit ${key.slice(0, 40)}` };
     if (value === null && rule.nullable) { next[key] = null; continue; }
@@ -61,6 +64,7 @@ export function applyLimits(current, patch) {
     next[key] = value;
   }
   if (next.floorBytesPerSec > next.accountBytesPerSec) return { ok: false, error: "floorBytesPerSec can't be above accountBytesPerSec" };
+  if (next.accountFloorAtBytes <= next.accountFullSpeedBytes) return { ok: false, error: "accountFloorAtBytes must be above accountFullSpeedBytes" };
   return { ok: true, limits: next };
 }
 

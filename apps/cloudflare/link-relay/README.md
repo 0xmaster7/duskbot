@@ -28,8 +28,10 @@ stay on the link service.
   runtime answers `pong` without waking the object, and a client drops a socket silent for 75 s. An idle server
   (app closed) costs no duration. Both ends reconnect by themselves (agent: 1 s to 2 min backoff; app: the direct
   link's backoff), which covers deploys dropping sockets. On the cloud path the app's sealed ping is every 20 s.
-- **Fair use, per dusk account** (`src/fair-use.js`): 25 Mbit/s with a burst of 8 s of rate, up to 50 GB a month;
-  past that the rate halves for every further 50 GB, never below 2 Mbit/s (never cut off). An account's rate is
+- **Fair use, per dusk account** (`src/fair-use.js`), the link service's curve: 3 MiB/s up to 20 GB a month, then
+  slower along a smooth curve to 2 Mbit/s at 80 GB, and past that 256 kbit/s for chat (never cut off). A burst of 45 s
+  of the current rate stays when slowed, and a message up to 16 KB the spent bucket cannot take goes from a small
+  allowance of its own (64 KB/s), so chat still feels instant. An account's rate is
   shared by its tunnels that moved bytes in the last 10 s. Holding a message back slows the sender through the ack
   window; a tunnel queue past 48 MB closes the sender (4003).
 - **Limits.** 8 app sessions per tunnel; an app session its server does not pick up within 15 s is closed (4002);
@@ -52,10 +54,10 @@ With the `OPS_TOKEN` secret set, `Authorization: Bearer <OPS_TOKEN>`:
   Speeds and today's bytes come from the per-account roll-up, every 10 s while bytes move. `cost` is an estimate from
   the tunnels' awake time (an app session open) and incoming messages at the prices below; the $5 plan is not in it.
 - `GET /ops/relay/limits` -> `{ limits }`; `PUT /ops/relay/limits` with any of these (null turns one off) -> `{ ok, limits }`:
-  `perTunnelBytesPerSec`, `burstBytes` (null: 8 s of the rate), `perTunnelDailyBytes` (past it a tunnel drops to the
-  floor rate for the rest of the utc day, never cut off), `tunnelsPerAccount`, `globalCeilingBytesPerSec` (each active
-  tunnel gets an equal share), `maxTunnels`, `accountBytesPerSec`, `accountFullSpeedBytes`, `floorBytesPerSec` (these
-  three are the fair use below, not null), `paused` (true: no new linked server gets on; ones already on stay). Kept in
+  `perTunnelBytesPerSec`, `burstBytes` (null: `accountBurstSeconds` of the rate), `tunnelsPerAccount`,
+  `globalCeilingBytesPerSec` (each active tunnel gets an equal share), `maxTunnels`, `accountBytesPerSec`,
+  `accountFullSpeedBytes`, `accountFloorAtBytes`, `floorBytesPerSec`, `chatBytesPerSec`, `accountBurstSeconds` (the fair
+  use above, not null; the retired `perTunnelDailyBytes` is skipped), `paused` (true: no new linked server gets on; ones already on stay). Kept in
   the ops object's storage (`src/ops.js`). A new server past `maxTunnels` or `tunnelsPerAccount`, or while paused, gets
   503 `relay_busy` / `account_tunnels`; the agent backs off and stays on the link service. Rate changes reach a busy
   tunnel within about 10 s. The ops object being unreachable never blocks a tunnel.

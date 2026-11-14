@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { CAP_BYTES_PER_S, DEFAULT_LIMITS, FLOOR_BYTES_PER_S, GB, accountReport, tunnelAnswer } from "../src/fair-use.js";
+import { CAP_BYTES_PER_S, DEFAULT_LIMITS, GB, accountReport, tunnelAnswer } from "../src/fair-use.js";
 import { DO_PRICE, admitTunnel, applyLimits, costCents, globalShareOf, isBusy, monthElapsed, normalizeLimits, projected } from "../src/ops.js";
 
 describe("limits", () => {
@@ -9,8 +9,16 @@ describe("limits", () => {
     expect(normalizeLimits({ maxTunnels: 3, nope: 1 })).toEqual({ ...DEFAULT_LIMITS, maxTunnels: 3 });
   });
   it("takes known keys in range, null for off and a boolean pause", () => {
-    const done = applyLimits(DEFAULT_LIMITS, { maxTunnels: 10, globalCeilingBytesPerSec: 50_000_000, perTunnelDailyBytes: null, paused: true });
-    expect(done).toMatchObject({ ok: true, limits: { maxTunnels: 10, globalCeilingBytesPerSec: 50_000_000, perTunnelDailyBytes: null, paused: true } });
+    const done = applyLimits(DEFAULT_LIMITS, { maxTunnels: 10, globalCeilingBytesPerSec: 50_000_000, paused: true });
+    expect(done).toMatchObject({ ok: true, limits: { maxTunnels: 10, globalCeilingBytesPerSec: 50_000_000, paused: true } });
+  });
+  it("skips the retired per tunnel day cap instead of refusing the rest", () => {
+    const done = applyLimits(DEFAULT_LIMITS, { perTunnelDailyBytes: 1_000_000_000, chatBytesPerSec: 40_000 });
+    expect(done.ok).toBe(true);
+    expect("perTunnelDailyBytes" in done.limits).toBe(false);
+    expect(done.limits.chatBytesPerSec).toBe(40_000);
+    expect(normalizeLimits({ perTunnelDailyBytes: 5 })).toEqual(DEFAULT_LIMITS);
+    expect(applyLimits(DEFAULT_LIMITS, { accountFloorAtBytes: DEFAULT_LIMITS.accountFullSpeedBytes }).ok).toBe(false);
   });
   it("refuses unknown keys, bad numbers, off for a required one and a floor above full speed", () => {
     expect(applyLimits(DEFAULT_LIMITS, { speed: 1 }).ok).toBe(false);
@@ -50,14 +58,11 @@ describe("rates under the owner's limits", () => {
     expect(globalShareOf(DEFAULT_LIMITS, 6)).toBeNull();
     expect(tunnelAnswer(accountReport(null, { tunnel: "aaaaaaaaaa", bytes: 0, t }, { limits }).state, { tunnel: "aaaaaaaaaa", t }, { limits }).rate).toBe(1_000_000);
   });
-  it("drops a tunnel past its daily bytes to the floor, and a new day starts fresh", () => {
-    const limits = { ...DEFAULT_LIMITS, perTunnelDailyBytes: 1 * GB };
-    let { state, answer } = accountReport(null, { tunnel: "aaaaaaaaaa", bytes: 2 * GB, t }, { limits });
-    expect(answer.rate).toBe(FLOOR_BYTES_PER_S);
-    ({ answer } = accountReport(state, { tunnel: "bbbbbbbbbb", bytes: 0, t }, { limits }));
-    expect(answer.rate).toBe(Math.floor(CAP_BYTES_PER_S / 2));
-    ({ state, answer } = accountReport(state, { tunnel: "aaaaaaaaaa", bytes: 0, t: t + 86_400_000 }, { limits }));
-    expect(answer.rate).toBe(CAP_BYTES_PER_S);
+  it("slows an account along the month's curve, shared by its active tunnels", () => {
+    let { state, answer } = accountReport(null, { tunnel: "aaaaaaaaaa", bytes: 90 * GB, t });
+    expect(answer.rate).toBe(32_000);
+    ({ answer } = accountReport(state, { tunnel: "bbbbbbbbbb", bytes: 0, t }));
+    expect(answer.rate).toBe(16_000);
   });
   it("uses a set burst and the owner's account speed", () => {
     const limits = { ...DEFAULT_LIMITS, burstBytes: 1_000_000, accountBytesPerSec: 1_250_000, perTunnelBytesPerSec: null };

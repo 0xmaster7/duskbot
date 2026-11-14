@@ -28,7 +28,7 @@ export class TunnelRelay extends DurableObject {
     this.awakeMs = 0;
     this.awakeFrom = ctx.getWebSockets("app").length ? Date.now() : null;
     this.reportTimer = null;
-    this.forwarder = createForwarder({ bucket: createBucket(), charge: (size, dir) => this.charge(size, dir) });
+    this.forwarder = createForwarder({ bucket: createBucket({ small: true }), charge: (size, dir) => this.charge(size, dir) });
   }
 
   async registration() {

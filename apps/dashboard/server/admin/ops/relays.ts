@@ -101,8 +101,8 @@ export function createRelays(options: { env: NodeJS.ProcessEnv; fetch?: typeof f
       accountFullSpeedBytes: 20 * GB, accountFloorAtBytes: 80 * GB, paused: false },
     "oracle-in": { perTunnelBytesPerSec: 25 * MBIT, burstBytes: 32 * 1024 * 1024, tunnelsPerAccount: 5, globalCeilingBytesPerSec: 400 * MBIT, maxTunnels: 150, maxConnected: 250, maxServers: 500,
       accountFullSpeedBytes: 20 * GB, accountFloorAtBytes: 80 * GB, paused: false },
-    cloudflare: { perTunnelBytesPerSec: 25 * MBIT, burstBytes: null, perTunnelDailyBytes: null, tunnelsPerAccount: 10, globalCeilingBytesPerSec: null, maxTunnels: 5000,
-      accountBytesPerSec: 25 * MBIT, accountFullSpeedBytes: 50 * GB, floorBytesPerSec: 2 * MBIT, paused: false },
+    cloudflare: { perTunnelBytesPerSec: 3 * 1024 * 1024, burstBytes: null, tunnelsPerAccount: 10, globalCeilingBytesPerSec: null, maxTunnels: 5000,
+      accountBytesPerSec: 3 * 1024 * 1024, accountFullSpeedBytes: 20 * GB, accountFloorAtBytes: 80 * GB, floorBytesPerSec: 2 * MBIT, paused: false },
   };
   const fixtureCard = (target: RelayTarget, who: ReturnType<typeof people>): OpsRelayCard =>
     ({ id: target.id, label: target.label, url: target.url, at: options.now(), configured: true, ok: true, error: null, stats: shapeRelayStats(fixtureStats(options.now(), options.accounts(), sample)[target.id]!, who) });

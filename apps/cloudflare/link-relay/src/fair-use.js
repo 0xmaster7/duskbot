@@ -1,28 +1,41 @@
-// per-account fair use: full speed (25 Mbit/s with a burst) up to 50 GB a month, then the rate halves for every
-// further 50 GB down to a floor, so a heavy month gets slower but is never cut off. pure functions, unit tested.
+// per-account fair use over a utc month, the same curve as the link service (apps/link-service/src/fair-use.mjs): full
+// speed up to 20 GB, then slower along a smooth curve (linear in the log of the rate) to 2 Mbit/s at 80 GB, and past
+// that a chat-only rate (256 kbit/s) that still carries messages and approvals. a short burst at the current rate stays
+// even when slowed, and small messages have an allowance of their own. pure functions, unit tested.
 
 export const GB = 1_000_000_000;
-/** the per-account cap, in bytes per second (25 Mbit/s) */
-export const CAP_BYTES_PER_S = 25_000_000 / 8;
+const KiB = 1024, MiB = 1024 * 1024;
+/** the per-account top rate, all its servers together (3 MiB/s, as the link service) */
+export const CAP_BYTES_PER_S = 3 * MiB;
 /** a month's bytes at full speed */
-export const FULL_SPEED_BYTES = 50 * GB;
-/** past full speed, every this many more bytes halve the rate */
-export const HALVING_BYTES = 50 * GB;
-/** the slowest it ever gets (2 Mbit/s) */
-export const FLOOR_BYTES_PER_S = 2_000_000 / 8;
+export const FULL_SPEED_BYTES = 20 * GB;
+/** where the curve reaches FLOOR_BYTES_PER_S */
+export const FLOOR_AT_BYTES = 80 * GB;
+/** the end of the curve (2 Mbit/s) */
+export const FLOOR_BYTES_PER_S = 250_000;
+/** past FLOOR_AT_BYTES: chat, approvals and a slow page (256 kbit/s) */
+export const CHAT_BYTES_PER_S = 32_000;
 /** the burst is this many seconds of the current rate, at least BURST_MIN */
-export const BURST_SECONDS = 8;
-export const BURST_MIN = 2 * 1024 * 1024;
+export const BURST_SECONDS = 45;
+export const BURST_MIN = 2 * MiB;
+/** a message this small (a chat message, an approval) takes the small allowance when the rate's bucket is spent */
+export const SMALL_MESSAGE_BYTES = 16 * KiB;
+export const SMALL_BYTES_PER_S = 64 * KiB;
+export const SMALL_BURST_BYTES = MiB;
 /** a tunnel counts toward its account's share while it moved bytes this recently */
 export const ACTIVE_MS = 10_000;
 
 /** the account's rate for the month so far, in bytes per second */
-export function tierRate(monthBytes, { cap = CAP_BYTES_PER_S, full = FULL_SPEED_BYTES, halving = HALVING_BYTES, floor = FLOOR_BYTES_PER_S } = {}) {
+export function fairRate(monthBytes, { cap = CAP_BYTES_PER_S, full = FULL_SPEED_BYTES, floorAt = FLOOR_AT_BYTES, floor = FLOOR_BYTES_PER_S, chat = CHAT_BYTES_PER_S } = {}) {
+  const lowest = Math.min(cap, floor);
+  const end = Math.max(full + 1, floorAt);
   if (!(monthBytes > full)) return cap;
-  return Math.max(floor, Math.floor(cap * 2 ** (-(monthBytes - full) / halving)));
+  if (monthBytes >= end) return Math.min(lowest, chat);
+  const f = (monthBytes - full) / (end - full);
+  return Math.max(lowest, Math.round(Math.exp(Math.log(cap) * (1 - f) + Math.log(lowest) * f)));
 }
 
-export const burstFor = (rate) => Math.max(BURST_MIN, Math.floor(rate * BURST_SECONDS));
+export const burstFor = (rate, seconds = BURST_SECONDS) => Math.max(BURST_MIN, Math.floor(rate * seconds));
 
 /** "2026-11" for a time, utc: the month a byte counts toward */
 export const monthOf = (t) => new Date(t).toISOString().slice(0, 7);
@@ -30,14 +43,22 @@ export const monthOf = (t) => new Date(t).toISOString().slice(0, 7);
 /**
  * a token bucket that may go into debt by one message: a message goes now while the bucket is not negative, so one
  * larger than the burst never waits forever. `take` answers 0 (sent, charged) or the ms to wait before asking again.
+ * `small`: a message up to SMALL_MESSAGE_BYTES the spent bucket cannot take goes from an allowance of its own.
  */
-export function createBucket({ rate = CAP_BYTES_PER_S, burst = burstFor(rate), now = () => Date.now() } = {}) {
-  let tokens = burst, at = now();
-  const refill = (t) => { tokens = Math.min(burst, tokens + (Math.max(0, t - at) * rate) / 1000); at = t; };
+export function createBucket({ rate = CAP_BYTES_PER_S, burst = burstFor(rate), small: smallOn = false, now = () => Date.now() } = {}) {
+  let tokens = burst, small = smallOn ? SMALL_BURST_BYTES : 0, at = now();
+  const refill = (t) => {
+    const dt = Math.max(0, t - at);
+    tokens = Math.min(burst, tokens + (dt * rate) / 1000);
+    if (smallOn) small = Math.min(SMALL_BURST_BYTES, small + (dt * SMALL_BYTES_PER_S) / 1000);
+    at = t;
+  };
   return {
     take(size, t = now()) {
       refill(t);
       if (tokens >= 0) { tokens -= size; return 0; }
+      // a slowed account's chat still goes at once
+      if (smallOn && size <= SMALL_MESSAGE_BYTES && small >= size) { small -= size; return 0; }
       return Math.max(1, Math.ceil((-tokens * 1000) / rate));
     },
     set(nextRate, nextBurst = burstFor(nextRate), t = now()) {
@@ -62,38 +83,40 @@ export const dayOf = (t) => new Date(t).toISOString().slice(0, 10);
 export const DEFAULT_LIMITS = Object.freeze({
   /** one tunnel's top speed; its account's share applies too */
   perTunnelBytesPerSec: CAP_BYTES_PER_S,
-  /** the burst a tunnel may send at once; null: BURST_SECONDS of its rate */
+  /** the burst a tunnel may send at once; null: accountBurstSeconds of its rate */
   burstBytes: null,
-  /** past this many bytes in a utc day a tunnel drops to the floor rate (never cut off) */
-  perTunnelDailyBytes: null,
   /** linked servers one account may have on the relay at once */
   tunnelsPerAccount: 10,
   /** every tunnel's bytes together; each active tunnel gets an equal share of it */
   globalCeilingBytesPerSec: null,
   /** linked servers on the relay at once; past it a new one is told the relay is busy */
   maxTunnels: 5000,
-  /** the account's full speed and how many bytes a month it keeps it */
+  /** the account's full speed, how many bytes a month it keeps it, and where the curve ends */
   accountBytesPerSec: CAP_BYTES_PER_S,
   accountFullSpeedBytes: FULL_SPEED_BYTES,
-  /** the slowest the halving goes */
+  accountFloorAtBytes: FLOOR_AT_BYTES,
+  /** the end of the curve, and the chat-only rate past it */
   floorBytesPerSec: FLOOR_BYTES_PER_S,
+  chatBytesPerSec: CHAT_BYTES_PER_S,
+  /** seconds of the current rate a tunnel may burst, slowed or not */
+  accountBurstSeconds: BURST_SECONDS,
   /** no new linked server gets on; the ones already on stay */
   paused: false,
 });
+/** limits that are gone (the per tunnel day cap, replaced by the monthly account curve): skipped when stored or sent */
+export const RETIRED_LIMITS = Object.freeze(new Set(["perTunnelDailyBytes"]));
 
 const fresh = (month) => ({ month, bytes: 0, bytesOut: 0, bytesIn: 0, awakeMs: 0, messages: 0, tunnels: {}, slowedAt: null, day: null, dayTunnels: {} });
 
 /** the rate one tunnel may use now: its account's tier shared by its active tunnels, then the owner's caps */
-export function tunnelAnswer(state, { tunnel, t }, { limits = DEFAULT_LIMITS, globalShare = null } = {}) {
+export function tunnelAnswer(state, { t: _t }, { limits = DEFAULT_LIMITS, globalShare = null } = {}) {
   const active = Math.max(1, Object.keys(state.tunnels).length);
-  const accountRate = tierRate(state.bytes, { cap: limits.accountBytesPerSec, full: limits.accountFullSpeedBytes, floor: limits.floorBytesPerSec });
+  const accountRate = fairRate(state.bytes, { cap: limits.accountBytesPerSec, full: limits.accountFullSpeedBytes, floorAt: limits.accountFloorAtBytes ?? FLOOR_AT_BYTES, floor: limits.floorBytesPerSec, chat: limits.chatBytesPerSec ?? CHAT_BYTES_PER_S });
   let rate = Math.floor(accountRate / active);
   if (limits.perTunnelBytesPerSec) rate = Math.min(rate, limits.perTunnelBytesPerSec);
   if (globalShare) rate = Math.min(rate, globalShare);
-  const dayBytes = state.day === dayOf(t) ? state.dayTunnels[tunnel] ?? 0 : 0;
-  if (limits.perTunnelDailyBytes && dayBytes > limits.perTunnelDailyBytes) rate = Math.min(rate, limits.floorBytesPerSec);
   rate = Math.max(1, rate);
-  return { rate, burst: limits.burstBytes ?? burstFor(rate), accountRate, monthBytes: state.bytes, active };
+  return { rate, burst: limits.burstBytes ?? burstFor(rate, limits.accountBurstSeconds ?? BURST_SECONDS), accountRate, monthBytes: state.bytes, active };
 }
 
 /**
