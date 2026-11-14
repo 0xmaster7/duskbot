@@ -369,7 +369,7 @@ describe("marketing tracker", () => {
     for (let i = 0; i < 7; i++) win.dispatchEvent(new win.ErrorEvent("error", { message: "private@example.com", error: new Error("secret") }));
     win.dispatchEvent(new win.Event("unhandledrejection"));
     await events();
-    expect(payloads.filter(p => p.g === "js_error").map(p => p.m)).toEqual(Array(5).fill({ label: "error" }));
+    expect(payloads.filter(p => p.g === "js_error").map(p => p.m)).toEqual(Array(5).fill({ label: "error", value: "error" }));
     win.history.pushState(null, "", "/next");
     win.dispatchEvent(new win.Event("unhandledrejection"));
     await events();
@@ -645,6 +645,6 @@ describe("marketing tracker", () => {
   });
 
   it("fits the gzip budget", () => {
-    expect(gzipSync(source).length).toBeLessThanOrEqual(5376);
+    expect(gzipSync(source).length).toBeLessThanOrEqual(5440);
   });
 });

@@ -235,8 +235,13 @@
     });
     w.addEventListener("popstate", safe(pageview));
     ["error", "unhandledrejection"].forEach(function (event) {
-      w.addEventListener(event, safe(function () {
-        if (pv && errors < 5) { errors++; goal("js_error", { label: event === "error" ? "error" : "rejection" }); }
+      w.addEventListener(event, safe(function (e) {
+        if (pv && errors < 5) {
+          errors++;
+          var c = e.error || e.reason, m = { label: event === "error" ? "error" : "rejection" };
+          if (c && c.name) m.value = slug(String(c.name));
+          goal("js_error", m);
+        }
       }));
     });
     d.addEventListener("click", safe(function (event) {

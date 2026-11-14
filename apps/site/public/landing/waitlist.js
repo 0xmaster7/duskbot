@@ -113,6 +113,15 @@ if (form) {
     c.textContent = `${d.count.toLocaleString('en')} people waiting · free forever`; c.hidden = false;
   }).catch(() => {});
 
+  // the headline, the line under it and the chips read like a way in: people press them (rage clicks on "get dusk bot"),
+  // so a press sends them to the email field and says why there is nothing to download yet
+  const hint = $('[data-wl-hint]', form);
+  $$('[data-wl-title], [data-wl-lede], [data-wl-works], [data-wl-count]').forEach((el) => el.addEventListener('click', () => {
+    if (form.hidden || !hint) return;
+    hint.hidden = false; hero.dispatchEvent(new Event('wl:layout'));
+    input.focus({ preventScroll: true });
+  }));
+
   function cheer() {
     const pip = $('.wl-pip svg.bot');
     if (window.duskBots && pip) window.duskBots.react(pip, 'boing');
@@ -152,9 +161,11 @@ if (form) {
     try {
       const r = await fetch('/api/waitlist', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, source, ref: ref || undefined, website: $('#wl-website', form).value }) });
       const d = await r.json().catch(() => ({}));
-      if (d.ok) return joined(d.position, email.toLowerCase(), d.already);
+      if (d.ok) { window.dusk?.('waitlist_saved'); return joined(d.position, email.toLowerCase(), d.already); }
+      window.dusk?.('waitlist_failed', { label: String(d.error || r.status).toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 30) });
       showError(d.message || COPY.offline);
     } catch {
+      window.dusk?.('waitlist_failed', { label: 'offline' });
       showError(COPY.offline);
     } finally {
       go.disabled = false; go.textContent = label; form.removeAttribute('aria-busy');
