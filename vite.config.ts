@@ -4,6 +4,7 @@ import type { Connect, Plugin } from "vite";
 import { configDefaults, defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { devApiProxy } from "./scripts/testing/dev-api-proxy.ts";
 import { DurationSequencer } from "./scripts/testing/duration-sequencer.ts";
 import { hostE2eOnly, portableE2eFiles } from "./scripts/testing/host-e2e.ts";
 import { hostTimeout } from "./server/testing/host-timeout.ts";
@@ -158,10 +159,7 @@ export default defineConfig({
     // the harness server owns every provider process; the app only ever
     // talks to /api — clients hold no transports
     proxy: {
-      "/api": {
-        ws: true,
-        target: `http://127.0.0.1:${process.env.DUSK_PORT || 8799}`,
-      },
+      "/api": devApiProxy(process.env.DUSK_PORT || 8799),
       "/.well-known/duskbot/environment": {
         target: `http://127.0.0.1:${process.env.DUSK_PORT || 8799}`,
       },
