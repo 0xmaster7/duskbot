@@ -69,6 +69,11 @@ edge could no longer forward the original request as sent. That is a later step 
 }
 ```
 
+One edge can front several account services on the same public domain (preview and production): `ROUTE_URL` lists
+their origins comma-separated, and `EDGE_TOKEN` holds one token for all or one per origin in the same order. A label
+belongs to one service; the edge asks them in order, sends the wake to the one that answered, and never treats a label
+as missing while a service that might know it is down.
+
 Secrets: `wrangler secret put EDGE_TOKEN` (same value as `DUSK_MANAGED_EDGE_TOKEN`) and `wrangler secret put
 HOOK_SEAL_KEY` (32 random bytes, base64url; 32 characters at least). Rotating `HOOK_SEAL_KEY` makes hooks queued at that
 moment unsealable: they are dropped with `reason: "unsealable"`, so rotate while few hooks are queued.

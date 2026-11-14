@@ -7,7 +7,8 @@
 // HookQueue Durable Object (hook-queue.js), which delivers it when the home answers; without that binding, and for a
 // client's action, the request is held until the home answers.
 //
-// Bindings: ROUTE_URL (the account service origin), EDGE_TOKEN (secret, same value as its DUSK_MANAGED_EDGE_TOKEN),
+// Bindings: ROUTE_URL (the account service origin, or several comma-separated: route.js routeServices), EDGE_TOKEN
+// (secret, its DUSK_MANAGED_EDGE_TOKEN, or one per origin in the same order),
 // PUBLIC_DOMAIN (the wildcard's parent, e.g. desktops.example.com), and for the queue HOOK_QUEUE (Durable Object,
 // class HookQueue) with HOOK_SEAL_KEY (secret, 32+ characters, only here). Route: *.<PUBLIC_DOMAIN>/*.
 import { DOWN, LABEL, askWake, lookupRoute, upstreamRequest } from "./route.js";
