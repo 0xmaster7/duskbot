@@ -22,12 +22,7 @@ vi.mock("@/state/store", async (original) => ({
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
 vi.mock("@/components/Avatar", () => ({ MausAvatar: () => null }));
 vi.mock("@/components/CloudTrialNotice", () => ({ useCloudPlanSnapshot: () => fixture.plan }));
-// The sign-in cards and the team library have their own tests.
-vi.mock("@/components/EngineSetup", async () => {
-  const { createElement: h } = await import("react");
-  return { EngineSetup: ({ instance, description }: { instance: { instanceId: string }; description?: string }) =>
-    h("div", { "data-engine-setup": instance.instanceId, "data-description": description }) };
-});
+// The team library has its own tests.
 vi.mock("@/components/TeamLibraryPanel", async () => {
   const { createElement: h } = await import("react");
   return { TeamLibraryPanel: ({ onImported }: { onImported: () => void }) => { fixture.imported = onImported; return h("div", { "data-team-library": "" }); } };
@@ -139,15 +134,13 @@ describe("CloudWelcome", () => {
     expect(await bring(true, false), "in a browser").toBe(false);
   });
 
-  it("with no AI working, Connect your AI leads with the Claude sign-in, folds the other ways under it, and Skip comes back", () => {
+  it("with no AI working, Connect your AI shows the same Connect an AI grid as this computer, and Skip comes back", () => {
     render();
     click("Connect your AI");
-    expect(host.querySelector('[data-welcome-step="engine"]')).not.toBeNull();
-    expect(host.querySelector('[data-welcome-recommended="claude"] [data-engine-setup="claude"]')?.getAttribute("data-description"))
-      .toBe("Use the Claude account you already have. You sign in on their own website, so your password stays with them.");
-    click("Other ways");
-    expect(host.querySelector('[data-cloud-choice="codex"]')).not.toBeNull();
-    expect(host.querySelector('[data-cloud-choice="claude"]'), "the recommended way is not offered twice").toBeNull();
+    expect(host.querySelector('[data-welcome-step="engine"] [data-ai-cards]')).not.toBeNull();
+    expect(host.querySelector('[data-funnel-ai="claude"]')).not.toBeNull();
+    expect(host.querySelector('[data-funnel-ai="chatgpt"]')).not.toBeNull();
+    expect(host.querySelector("[data-cloud-choice], [data-engine-setup]"), "no cloud-only tiles or sign-in cards").toBeNull();
     click("Skip for now");
     expect(host.querySelector('[data-welcome-step="engine"]')).toBeNull();
     expect(hintsPut().at(-1)).toEqual(expect.arrayContaining([welcomeStepHint("engine")]));
@@ -165,7 +158,6 @@ describe("CloudWelcome", () => {
     });
     render();
     click("Connect your AI");
-    click("Other ways");
     expect(checks).toEqual([]);
     fixture.state = { ...fixture.state, instances: [signedIn, codex] };
     render();

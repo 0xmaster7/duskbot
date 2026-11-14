@@ -1,45 +1,16 @@
-import { Children, createElement, isValidElement, type ReactElement, type ReactNode } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
-import { beforeEach, expect, it, vi } from "vitest";
-import type { InstanceInfo } from "@/state/store";
+// @vitest-environment happy-dom
+// A cloud's own sign-in page shows the same Connect an AI grid as this computer (AiCards and its connect panel), never
+// a cloud-only set of tiles and sign-in cards.
+import { act, createElement } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { setLocale } from "@/lib/i18n";
+import { BotEditorStore, initialState, type InstanceInfo, type useStore } from "@/state/store";
 
-const f = vi.hoisted(() => ({ values: [] as unknown[], index: 0 }));
-vi.mock("react", async (original) => ({
-  ...(await original<typeof import("react")>()),
-  useState: (initial: unknown) => {
-    const index = f.index++;
-    if (!(index in f.values)) f.values[index] = typeof initial === "function" ? (initial as () => unknown)() : initial;
-    return [f.values[index], (next: unknown) => { f.values[index] = next; }];
-  },
-}));
-const store = vi.hoisted(() => ({ instances: [] as unknown[], dispatch: vi.fn(), refreshInstances: vi.fn() }));
-vi.mock("@/state/store", () => ({
-  useStore: () => ({ state: { instances: store.instances }, dispatch: store.dispatch, refreshInstances: store.refreshInstances }),
-}));
-// The sign-in cards themselves have their own tests (ClaudeSignIn, DeviceSignIn, EngineSetup).
-vi.mock("@/components/EngineSetup", () => ({
-  EngineSetup: ({ instance }: { instance: InstanceInfo }) => createElement("div", { "data-engine-setup": instance.instanceId }),
-}));
-import { CloudEngineSignIn, cloudEngine } from "./CloudEngineSignIn";
+vi.mock("@/components/Avatar", () => ({ MausAvatar: () => null }));
+import { CloudEngineSignIn, cloudOwnEngines } from "./CloudEngineSignIn";
 
-type Node = ReactElement<{ children?: ReactNode; onClick?: () => void; "data-cloud-choice"?: string }>;
-function nodes(value: ReactNode): Node[] {
-  if (!isValidElement(value)) return [];
-  const node = value as Node;
-  return [node, ...Children.toArray(node.props.children).flatMap(nodes)];
-}
-function render() {
-  f.index = 0;
-  let tree: ReactNode;
-  function Capture() { tree = CloudEngineSignIn(); return tree; }
-  const html = renderToStaticMarkup(createElement(Capture));
-  return { html, nodes: nodes(tree) };
-}
-const choose = (id: string) => {
-  const choice = render().nodes.find((node) => node.props["data-cloud-choice"] === id)!;
-  nodes(choice).find((node) => node.type === "button")!.props.onClick!();
-};
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const engine = (instanceId: string, driverKind: string, method: "paste-code" | "device-code", extra: Partial<InstanceInfo> = {}): InstanceInfo => ({
   instanceId, driverKind, displayName: driverKind === "codex" ? "Codex" : driverKind === "grokAgent" ? "Grok" : "Claude", access: "subscription",
@@ -48,77 +19,56 @@ const engine = (instanceId: string, driverKind: string, method: "paste-code" | "
 } as InstanceInfo);
 const claude = engine("claude", "claudeAgent", "paste-code");
 const codex = engine("codex", "codex", "device-code");
+const grok = engine("grok", "grokAgent", "device-code");
+
+let host: HTMLDivElement;
+let root: Root;
+const dispatch = vi.fn();
+function mount(instances: InstanceInfo[]) {
+  const store = { state: { ...initialState, config: {}, instances }, dispatch, refreshInstances: vi.fn(async () => {}), refreshModels: vi.fn(async () => {}) } as unknown as ReturnType<typeof useStore>;
+  act(() => root.render(createElement(BotEditorStore, { value: store, children: createElement(CloudEngineSignIn) })));
+}
 
 beforeEach(() => {
-  f.values = [];
-  store.instances = [claude, codex];
-  store.dispatch.mockReset();
-  store.refreshInstances.mockReset().mockResolvedValue(undefined);
-  vi.stubGlobal("window", {});
   setLocale("en");
+  dispatch.mockReset();
+  vi.stubGlobal("duskDesktop", undefined);
+  vi.stubGlobal("fetch", vi.fn(async (path: string) => {
+    if (String(path).includes("/auth/start")) return new Response(JSON.stringify({ auth: { phase: "waiting", flowId: "f", userCode: "RJ4K-WQ8M", authorizationUrl: "https://accounts.x.ai/device" } }));
+    if (String(path).startsWith("/api/instances")) return new Response(JSON.stringify({ instances: [claude, codex, grok] }));
+    return new Response("{}");
+  }));
+  host = document.createElement("div");
+  document.body.append(host);
+  root = createRoot(host);
+});
+afterEach(() => {
+  act(() => root.unmount());
+  host.remove();
+  vi.unstubAllGlobals();
 });
 
-it("offers the three ways in and says plainly whose plan limits apply", () => {
-  const { html } = render();
-  expect(html).toContain("data-cloud-sign-in");
-  for (const label of ["Claude", "Use your Claude subscription.", "ChatGPT", "Use your ChatGPT plan with Codex.", "Use an API key"]) expect(html).toContain(label);
-  expect(html).toContain("plan&#x27;s limits apply to your bots in the cloud too");
-  expect(html).toContain("Anthropic&#x27;s Claude max plan or an API key works best");
-  expect(html).not.toMatch(/included/i);
-  expect(html).not.toContain("data-engine-setup");
+it("is the Connect an AI grid every machine shows, with the cloud's limits, and no cloud-only tiles or sign-in cards", () => {
+  mount([claude, codex, grok]);
+  expect(host.querySelector("[data-cloud-sign-in] [data-ai-cards]")).not.toBeNull();
+  for (const tile of ["chatgpt", "claude", "grok"]) expect(host.querySelector(`[data-funnel-ai="${tile}"]`)).not.toBeNull();
+  expect(host.querySelector("[data-cloud-choice]")).toBeNull();
+  expect(host.querySelector("[data-engine-setup], [data-device-sign-in], [data-claude-sign-in]")).toBeNull();
+  expect(host.textContent).toContain("plan's limits apply to your bots in the cloud too");
+  expect(host.querySelector("[data-ai-more]")?.textContent).toBe("More providers or use an API key");
 });
 
-it("opens the existing paste-code and device-code sign-ins on this server's own engines", () => {
-  choose("claude");
-  expect(render().html).toContain('data-engine-setup="claude"');
-  choose("codex");
-  const { html } = render();
-  expect(html).toContain('data-engine-setup="codex"');
-  expect(html).not.toContain('data-engine-setup="claude"');
-  expect(store.dispatch).not.toHaveBeenCalled();
+it("signs in with the same code step as this computer", async () => {
+  mount([claude, codex, grok]);
+  await act(async () => { host.querySelector<HTMLElement>('[data-funnel-ai="grok"]')!.click(); });
+  await vi.waitFor(() => expect(host.querySelector('[data-connect-stage="waiting"]')).not.toBeNull());
+  expect(host.querySelector('[data-sign-in="code"]')?.textContent).toBe("RJ4K-WQ8M");
+  expect(host.querySelector("[data-connect-copy]")?.textContent).toBe("Copy code and open Grok");
+  expect(host.textContent).toContain("Enter this code at accounts.x.ai/device");
 });
 
-it("sends an API key to the existing model-provider keys in Settings → API keys", () => {
-  choose("api-key");
-  expect(store.dispatch).toHaveBeenCalledExactlyOnceWith({ type: "toggleAppSettings", open: true, section: "connections" });
-});
-
-it("picks the person's own engine, never a local-model or read-only one, and says when there is none", () => {
+it("checks only the cloud's own engines, never a local-model or read-only one", () => {
   const local = engine("claude-local", "claudeAgent", "paste-code", { access: "custom" });
   const company = engine("company.acme.anthropic", "claudeAgent", "paste-code", { readOnly: true });
-  expect(cloudEngine([local, company, claude], "claudeAgent")).toBe(claude);
-  expect(cloudEngine([local, company], "claudeAgent")).toBeUndefined();
-  store.instances = [codex];
-  choose("claude");
-  expect(render().html).toContain("isn&#x27;t available in the cloud yet");
-});
-
-it("offers Grok as a third choice when this Cloud computer has the Grok CLI, and opens its code sign-in", () => {
-  const grok = engine("grok", "grokAgent", "device-code");
-  store.instances = [claude, codex, grok];
-  const { html } = render();
-  for (const label of ["Claude", "ChatGPT", "Grok", "Use your grok.com subscription with Grok build.", "Use an API key"]) expect(html).toContain(label);
-  expect(html.indexOf('data-cloud-choice="grok"')).toBeGreaterThan(html.indexOf('data-cloud-choice="codex"'));
-  expect(html.indexOf('data-cloud-choice="grok"')).toBeLessThan(html.indexOf('data-cloud-choice="api-key"'));
-  expect(html).toContain("grid-cols-3");
-  choose("grok");
-  expect(render().html).toContain('data-engine-setup="grok"');
-});
-
-it("leaves Grok out where this Cloud computer has no Grok CLI (an older image)", () => {
-  store.instances = [claude, codex, engine("grok", "grokAgent", "device-code", { snapshot: { state: "unavailable", reason: "`grok` CLI not found" } })];
-  const { html } = render();
-  expect(html).not.toContain('data-cloud-choice="grok"');
-  expect(html).toContain("grid-cols-2");
-  expect(html).toContain("Use an API key");
-});
-
-it("says a Claude connected through an API key runs on that key, not on a subscription", () => {
-  store.instances = [engine("claude", "claudeAgent", "paste-code", { snapshot: { state: "available", authenticated: true, account: { method: "api-key" } } }), codex];
-  const keyed = render().html;
-  expect(keyed).toContain("Runs on your API key.");
-  expect(keyed).not.toContain("Use your Claude subscription.");
-  store.instances = [engine("claude", "claudeAgent", "paste-code", { snapshot: { state: "available", authenticated: true, account: { method: "login", email: "a@example.test" } } }), codex];
-  f.values = [];
-  expect(render().html).toContain("Use your Claude subscription.");
+  expect(cloudOwnEngines([local, company, claude])).toEqual([claude]);
 });

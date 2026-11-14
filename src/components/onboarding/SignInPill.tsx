@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Copy, ExternalLink, LoaderCircle } from "../../icons";
+import { Check, ExternalLink, LoaderCircle } from "../../icons";
 import { openExternalLink } from "@/lib/app-links";
 import { cloudAsleep, cloudWaking } from "@/lib/cloud-power";
 import { useCopyFeedback } from "@/lib/copy-text";
@@ -74,16 +74,6 @@ function useSeconds(since: number | null): number {
   return since === null ? 0 : Math.max(0, Math.floor((now - since) / 1_000));
 }
 
-function CopyButton({ text, label }: { text: string; label: string }) {
-  const { state, copy } = useCopyFeedback(text);
-  return (
-    <button type="button" onClick={copy} className={SECONDARY} data-connect-copy="">
-      {state === "copied" ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
-      {state === "copied" ? t("connect.copied") : label}
-    </button>
-  );
-}
-
 export function PasteSlot({ name, onSubmit }: { name: string; onSubmit: (code: string) => void }) {
   const [code, setCode] = useState("");
   return (
@@ -110,29 +100,35 @@ function Busy({ label, hint, seconds }: { label: string; hint?: string | null; s
   );
 }
 
-const linkText = (link: string) => {
+/** A link by its site and, for a code page, its path ("github.com/login/device"); a sign-in link by its site alone. */
+const linkText = (link: string, withPath: boolean) => {
   try {
     const url = new URL(link);
-    return `${url.host}${url.pathname === "/" ? "" : url.pathname}`;
+    return withPath ? `${url.host}${url.pathname === "/" ? "" : url.pathname}` : url.host;
   } catch { return link; }
 };
 
-/** a device code: where to enter it, the code, one button that copies it and opens the site, and a quiet waiting line. */
-function CodeStep({ code, site, link, onOpen, cancel }: { code: string; site: string; link: string | null; onOpen: (() => void) | null; cancel: React.ReactNode }) {
-  const { state, copy } = useCopyFeedback(code);
-  const [before, after = ""] = t("connect.stage.enterCode", { site: "\u0000" }).split("\u0000");
+/** The one sign-in step every machine shows: where to finish (a blue link), the device code when there is one, one
+ * button that copies the code (or the link) and opens the site, and a quiet waiting line. A browser that opened by
+ * itself and needs no code shows the same step, so a cloud and this computer only differ by the code. */
+function CodeStep({ code, site, link, onOpen, cancel }: { code: string | null; site: string; link: string | null; onOpen: (() => void) | null; cancel: React.ReactNode }) {
+  const { state, copy } = useCopyFeedback(code ?? link ?? "");
+  const [before, after = ""] = t(code ? "connect.stage.enterCode" : "connect.stage.finishAt", { site: "\u0000" }).split("\u0000");
+  const copied = state === "copied";
   return <>
     <p className="m-0 text-center text-[13px] leading-[18px] text-ink-secondary">
       {before}{link && onOpen
-        ? <button type="button" onClick={onOpen} className="text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">{link}</button>
+        ? <button type="button" onClick={onOpen} className="text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">{linkText(link, Boolean(code))}</button>
         : site}{after}
     </p>
-    <button type="button" onClick={copy} data-sign-in="code" aria-label={t("connect.copyCode")}
-      className="rounded-xl bg-composer px-4 py-1.5 font-mono text-[20px] font-medium tracking-[0.12em] text-ink transition-colors hover:bg-ink/[0.08] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none">{code}</button>
-    <button type="button" data-connect-copy="" onClick={() => { void copy(); onOpen?.(); }} className="ui-button ui-button-pill ui-button-primary min-h-9 gap-1.5 px-4 text-[14px]">
-      {state === "copied" ? <Check size={14} aria-hidden="true" /> : <ExternalLink size={14} aria-hidden="true" />}
-      {state === "copied" ? t("connect.codeCopiedPaste", { site }) : onOpen ? t("connect.copyAndOpen", { site }) : t("connect.copyCode")}
-    </button>
+    {code && <button type="button" onClick={copy} data-sign-in="code" aria-label={t("connect.copyCode")}
+      className="rounded-xl bg-composer px-4 py-1.5 font-mono text-[20px] font-medium tracking-[0.12em] text-ink transition-colors hover:bg-ink/[0.08] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none">{code}</button>}
+    {(code || (link && onOpen)) && <button type="button" data-connect-copy="" onClick={() => { void copy(); onOpen?.(); }} className="ui-button ui-button-pill ui-button-primary min-h-9 gap-1.5 px-4 text-[14px]">
+      {copied ? <Check size={14} aria-hidden="true" /> : <ExternalLink size={14} aria-hidden="true" />}
+      {code
+        ? copied ? t("connect.codeCopiedPaste", { site }) : onOpen ? t("connect.copyAndOpen", { site }) : t("connect.copyCode")
+        : copied ? t("connect.linkCopiedOpen", { site }) : t("connect.copyLinkAndOpen", { site })}
+    </button>}
     <div role="status" aria-live="polite" className="flex items-center gap-1 text-[13px] leading-[18px] text-ink-secondary">
       <LoaderCircle size={13} aria-hidden="true" className="shrink-0 animate-spin motion-reduce:animate-none" />
       <span className="pl-1">{t("connect.stage.waiting")}</span>
@@ -140,7 +136,6 @@ function CodeStep({ code, site, link, onOpen, cancel }: { code: string; site: st
     </div>
   </>;
 }
-
 
 /** The pressed AI's connect, stage by stage: honest progress, a deadline on each step, and a way out of every one. */
 export function ConnectPanel({ flow, name, driverKind, onTrouble }: {
@@ -195,25 +190,8 @@ export function ConnectPanel({ flow, name, driverKind, onTrouble }: {
             {cancel}
           </div>
         </>;
-      } else if (state.code) {
-        body = <CodeStep code={state.code} site={site} link={state.link ? linkText(state.link) : null} onOpen={state.link ? () => void flow.openAgain() : null} cancel={cancel} />;
       } else {
-        body = <>
-          <Busy label={t("connect.stage.waiting")} hint={state.opened ? t("connect.stage.waitingHint") : null} seconds={seconds} />
-          {!state.opened && state.link && (
-            <div className="flex w-full max-w-[400px] flex-col items-center gap-1.5">
-              <p className="m-0 text-[12px] leading-4 text-ink-secondary">{t("connect.stage.notOpened")}</p>
-              <code className="block w-full truncate rounded-lg bg-composer px-3 py-1.5 text-[12px] text-ink" title={state.link}>{state.link}</code>
-            </div>
-          )}
-          <div className="flex flex-wrap items-center justify-center gap-1.5">
-            {state.link && <button type="button" onClick={() => void flow.openAgain()} className={SECONDARY}>
-              <ExternalLink size={13} aria-hidden="true" />{state.opened ? t("connect.openAgain") : t("connect.openSite", { site })}
-            </button>}
-            {state.link && <CopyButton text={state.link} label={t("connect.copyLink")} />}
-            {cancel}
-          </div>
-        </>;
+        body = <CodeStep code={state.code} site={site} link={state.link} onOpen={state.link ? () => void flow.openAgain() : null} cancel={cancel} />;
       }
       break;
     case "failed": {
