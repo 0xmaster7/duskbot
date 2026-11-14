@@ -120,7 +120,7 @@ await runFlow(flow, async () => {
   if (path === "server") {
     await flow.step("pick-server", "your own server shows the install line", async () => {
       await flow.click("use your own server", { contains: true });
-      const line = await flow.waitText(/\(curl -fsSL https:\/\/link\.dusk\.bot\/i\/[a-z0-9-]+ \|\| echo '[^']*'\) \| sh/, "the install line", { timeout: 45_000 });
+      const line = await flow.waitText(/\(for f in [^\n]*?curl -fsSL \$f https:\/\/link\.dusk\.bot\/i\/[a-z0-9-]+[^\n]*?\| sh( -s -- --[a-z]+)?/, "the install line", { timeout: 45_000 });
       flow.facts.installLine = line.replace(/\/i\/[a-z0-9-]+/, "/i/<code>");
       await shots("server-line");
       return "the one line is ready";

@@ -11,11 +11,14 @@ import { createRelayClient, createTunnelProxy, newLinkKeys, openResult } from ".
 import { shortHash, trail } from "./trail.mjs";
 import { WELCOME_VERSION } from "./onboarding-record.mjs";
 
-/** the one line to paste on the server. a bare `curl … | sh` runs nothing and exits 0 when the download fails, so a
- * failed download hands sh two commands instead: a plain message and exit 1. PlaceSetup's wayLine adds the way after
- * the closing `| sh`. (`sh -c "$(curl …)"` is out: the installer is near Linux's 128 KB limit for one argument.) */
+/** the one line to paste on the server. it tries the download five times, every other try over IPv4 (a flaky IPv6
+ * path to the link service drops TLS handshakes), 2 s apart: a shell loop, since curl's --retry-all-errors is newer
+ * than Ubuntu 20.04's curl. the script goes to sh only once it arrived whole, so a cut-off try runs nothing; when every
+ * try fails, sh gets a plain message and exit 1 (a bare `curl … | sh` runs nothing and exits 0). PlaceSetup's wayLine
+ * adds the way after the closing `| sh`. (`sh -c "$(curl …)"` is out: the installer is near Linux's 128 KB limit for
+ * one argument; printf is a builtin, so it has no such limit.) */
 export function installLine(base, token) {
-  return `(curl -fsSL ${base}/i/${token} || echo 'echo "dusk bot could not be downloaded. check the internet and paste the line again." >&2; exit 1') | sh`;
+  return `(for f in "" -4 "" -4 ""; do s=$(curl -fsSL $f ${base}/i/${token}) && { printf '%s\\n' "$s"; exit; }; sleep 2; done; echo 'echo "dusk bot could not be downloaded. check the internet and paste the line again." >&2; exit 1') | sh`;
 }
 
 export const STEP_IDS = Object.freeze(["check", "basics", "docker", "user", "node", "app", "engines", "service", "address", "desktop", "link"]);

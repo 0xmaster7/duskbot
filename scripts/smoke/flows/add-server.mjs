@@ -37,7 +37,7 @@ await runFlow(flow, async () => {
         await flow.shot("connect-chooser");
         await flow.click("cloudflare tunnel", { contains: true });
       }
-      line = await flow.waitText(/\(curl -fsSL https:\/\/link\.dusk\.bot\/i\/[a-z0-9-]+ \|\| echo '[^']*'\) \| sh( -s -- --[a-z]+)?/, "the install line", { timeout: 45_000 });
+      line = await flow.waitText(/\(for f in [^\n]*?curl -fsSL \$f https:\/\/link\.dusk\.bot\/i\/[a-z0-9-]+[^\n]*?\| sh( -s -- --[a-z]+)?/, "the install line", { timeout: 45_000 });
       flow.facts.lineSeconds = Math.round((Date.now() - started) / 1000);
       return `ready in ${flow.facts.lineSeconds}s`;
     }, { critical: true });

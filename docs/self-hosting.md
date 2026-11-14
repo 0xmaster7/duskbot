@@ -35,8 +35,9 @@ curl -fsSL https://link.dusk.bot/i/<code> | sh -s -- --tailscale    # your tailn
 curl -fsSL https://link.dusk.bot/i/<code> | sh -s -- --ssh          # over your SSH port
 ```
 
-(The app's line wraps the curl as `(curl -fsSL … || echo '…; exit 1') | sh`, so a failed download stops with a plain
-message and exit 1 instead of silently running nothing; the way goes after its closing `| sh` all the same.)
+(The app's line wraps the curl in a short retry loop, `(for f in "" -4 "" -4 ""; do s=$(curl -fsSL $f …) && … done; echo '…; exit 1') | sh`:
+five tries, every other one over IPv4, the script run only once it arrived whole, and a plain message with exit 1 when
+every try fails. The way goes after its closing `| sh` all the same.)
 
 | Way | What it needs | What the line does |
 |---|---|---|

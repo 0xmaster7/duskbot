@@ -36,7 +36,7 @@ export type WayKey = (typeof WAYS)[number]["key"];
 type Way = (typeof WAYS)[number];
 type LineWay = Extract<Way, { flag: string }>;
 const lineWay = (way: Way): way is LineWay => "flag" in way;
-/** the relay's line with a way on the end: `… | sh` becomes `… | sh -s -- --tailscale` */
+/** the relay's line (electron/vps-link.mjs installLine) with a way on the end: `… | sh` becomes `… | sh -s -- --tailscale` */
 export function wayLine(line: string, way: LineWay | undefined): string {
   if (!way) return line;
   return line.endsWith("| sh") ? `${line} -s -- ${way.flag}` : line;

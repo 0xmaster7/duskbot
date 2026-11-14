@@ -4,13 +4,15 @@ Links a person's VPS to their dusk bot app with one pasted line. It's a small No
 nothing tied to dusk.bot or Cloudflare.
 
 ```
-(curl -fsSL https://link.dusk.bot/i/<code> || echo 'echo "dusk bot could not be downloaded. check the internet and paste the line again." >&2; exit 1') | sh
+(for f in "" -4 "" -4 ""; do s=$(curl -fsSL $f https://link.dusk.bot/i/<code>) && { printf '%s\n' "$s"; exit; }; sleep 2; done; echo 'echo "dusk bot could not be downloaded. check the internet and paste the line again." >&2; exit 1') | sh
 ```
 
-The app builds it (`installLine` in electron/vps-link.mjs). A bare `curl … | sh` exits 0 having run nothing when the
-download fails; the fallback makes that exit 1 with a plain message. Inside, every download (and the report of how a step
-ended) is tried five times, 2, 5, 10 and 20 seconds apart, and a connect or TLS error (curl 7, 28, 35, 52, 55, 56)
-switches the next try to the other address family, IPv4 when IPv6 was in use; the family that works stays for the run.
+The app builds it (`installLine` in electron/vps-link.mjs). It tries the download five times, 2 s apart, every other try
+over IPv4 (a shell loop: curl's `--retry-all-errors` is newer than Ubuntu 20.04's curl), and hands the script to sh only
+once it arrived whole. When every try fails it exits 1 with a plain message; a bare `curl … | sh` would run nothing and
+exit 0. Inside, every download (and the report of how a step ended) is tried five times, 2, 5, 10 and 20 seconds apart,
+and a connect or TLS error (curl 7, 28, 35, 52, 55, 56) switches the next try to the other address family, IPv4 when
+IPv6 was in use; the family that works stays for the run.
 
 ## Ways in
 

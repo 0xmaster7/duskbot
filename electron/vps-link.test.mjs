@@ -1,7 +1,7 @@
 // "Add your VPS" end to end on loopback, with the real link service, the real agent (its `link` and `tunnel` commands in
 // their own processes and home folder) and a fake dusk bot on each side: command, live steps, the sealed result, the
 // app signed in through the tunnel, AI sign-ins sent from this mac, and the move with its backup first.
-import { execFile, spawn } from "node:child_process";
+import { execFile, execFileSync, spawn } from "node:child_process";
 import { generateKeyPairSync, sign } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, request as httpRequest } from "node:http";
@@ -180,8 +180,8 @@ describe("Add your VPS", () => {
     const first = await link.start();
     expect(first.stage).toBe("command");
     const command = first.command;
-    const token = /\/i\/([a-z2-7]{10}-[a-z2-7]{26}) /.exec(command)?.[1];
-    expect(command.startsWith("(curl -fsSL http://placeholder/i/")).toBe(true);
+    const token = /\/i\/([a-z2-7]{10}-[a-z2-7]{26})\)/.exec(command)?.[1];
+    expect(command).toContain("$(curl -fsSL $f http://placeholder/i/");
     expect(command.endsWith(") | sh")).toBe(true);
     expect(token).toBeTruthy();
     expect(first.steps.map((step) => step.id)).toEqual(STEP_IDS);
@@ -272,7 +272,7 @@ describe("Add your VPS", () => {
     const store = memoryStore();
     const { link, saved } = controller({ local: localServer(), ownHome, store });
     const linkOnce = async () => {
-      const token = /\/i\/([a-z2-7]{10}-[a-z2-7]{26}) /.exec((await link.start()).command)[1];
+      const token = /\/i\/([a-z2-7]{10}-[a-z2-7]{26})\)/.exec((await link.start()).command)[1];
       const [id, secret] = token.split("-");
       await post(`/v1/sessions/${id}/claim`, vpsTokenOf(secret), {});
       await run(process.execPath, [agentPath, "link"], { env: { ...process.env, HOME: home, LINK_BASE: base, LINK_ID: id, LINK_TOKEN: vpsTokenOf(secret), LINK_MODE: "relay", LINK_NAME: "oracle-arm", LINK_SERVER_PORT: String(vpsPort) } });
@@ -340,7 +340,7 @@ describe("Add your VPS", () => {
   it("shows what the installer asks of the person live, and clears it when that step ends", async () => {
     const { link } = controller({ local: localServer(), ownHome: { start: async () => {}, view: () => null, away: () => false, home: () => null, chosen: () => null }, store: memoryStore() });
     const made = await link.start();
-    const [id, secret] = /\/i\/([a-z2-7]{10}-[a-z2-7]{26}) /.exec(made.command)[1].split("-");
+    const [id, secret] = /\/i\/([a-z2-7]{10}-[a-z2-7]{26})\)/.exec(made.command)[1].split("-");
     const vpsToken = vpsTokenOf(secret);
     await post(`/v1/sessions/${id}/claim`, vpsToken, {});
     await post(`/v1/sessions/${id}/events`, vpsToken, { step: "address", status: "running" });
@@ -403,24 +403,40 @@ describe("the welcome a server gets when everything moves there", () => {
 });
 
 describe("the install line", () => {
-  const sh = (shell, line) => new Promise((resolve) => execFile(shell, ["-c", line], { timeout: 15_000 }, (error, stdout, stderr) => resolve({ code: error ? error.code : 0, stdout, stderr })));
+  const sh = (shell, line) => new Promise((resolve) => execFile(shell, ["-c", line], { timeout: 30_000 }, (error, stdout, stderr) => resolve({ code: error ? error.code : 0, stdout, stderr })));
+  const shells = ["sh", "bash", "zsh"].filter((shell) => { try { execFileSync("which", [shell]); return true; } catch { return false; } });
 
-  it("exits 1 with a plain message when the installer can't be downloaded, instead of running nothing and exiting 0", async () => {
-    for (const shell of ["sh", "bash"]) {
+  it("tries five times, then exits 1 with a plain message instead of running nothing and exiting 0", async () => {
+    for (const shell of shells) {
+      const started = Date.now();
       const result = await sh(shell, `${installLine("http://127.0.0.1:9", "abcdefghij-abcdefghijklmnopqrstuvwxyz")} -s -- --cloudflare`);
-      expect(result.code).toBe(1);
-      expect(result.stderr).toContain("dusk bot could not be downloaded. check the internet and paste the line again.");
+      expect(result.code, shell).toBe(1);
+      expect(result.stderr, shell).toContain("dusk bot could not be downloaded. check the internet and paste the line again.");
+      expect(result.stderr.match(/curl: \(7\)/g), shell).toHaveLength(5);
+      expect(Date.now() - started, shell).toBeGreaterThanOrEqual(8000);
     }
-  });
+  }, 120_000);
 
-  it("runs the downloaded installer with the way after it, and passes on its exit code", async () => {
-    const server = createServer((req, res) => res.end(req.url.endsWith("-fail") ? "echo nope; exit 3\n" : 'echo "ran $*"\n'));
+  it("runs the installer only once it arrived whole, with the way after it, and passes on its exit code", async () => {
+    let hits = 0;
+    const server = createServer((req, res) => {
+      hits += 1;
+      if (req.url.endsWith("-fail")) { res.end("echo nope; exit 3\n"); return; }
+      const body = 'main() { echo "ran $*"; }\nmain "$@"\n';
+      // the first try is cut off half way: what it got must never reach sh
+      if (hits === 1) { res.writeHead(200, { "content-length": body.length }); res.write(body.slice(0, 12)); setTimeout(() => res.destroy(), 20); return; }
+      res.end(body);
+    });
     await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
     const base = `http://127.0.0.1:${server.address().port}`;
     try {
-      const ok = await sh("sh", `${installLine(base, "abcdefghij-abcdefghijklmnopqrstuvwxyz")} -s -- --cloudflare`);
-      expect(ok).toMatchObject({ code: 0, stdout: "ran --cloudflare\n" });
+      for (const shell of shells) {
+        hits = 0;
+        const ok = await sh(shell, `${installLine(base, "abcdefghij-abcdefghijklmnopqrstuvwxyz")} -s -- --cloudflare`);
+        expect(ok, shell).toMatchObject({ code: 0, stdout: "ran --cloudflare\n" });
+        expect(hits, shell).toBe(2);
+      }
       expect(await sh("bash", installLine(base, "abcdefghij-fail"))).toMatchObject({ code: 3, stdout: "nope\n" });
-    } finally { server.close(); }
-  });
+    } finally { server.closeAllConnections(); server.close(); }
+  }, 60_000);
 });
