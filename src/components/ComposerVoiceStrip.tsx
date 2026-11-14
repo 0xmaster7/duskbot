@@ -93,11 +93,13 @@ export function VoiceWaveform({ levels, hasLevels, className }: { levels: LevelS
 /** One line, its end always in view: older words slide off the left edge under a short fade. */
 function PreviewLine({ phase, preview }: { phase: DictationPhase; preview: string }) {
   const lineRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
   const [overflow, setOverflow] = useState(false);
   const shown = previewText(preview);
+  // the text's own width, not scrollWidth: a line pinned to its end overflows to the left, which scrollWidth misses
   useLayoutEffect(() => {
-    const line = lineRef.current;
-    if (line) setOverflow(line.scrollWidth > line.clientWidth + 1 || shown.startsWith("…"));
+    const line = lineRef.current, text = textRef.current;
+    if (line && text) setOverflow(text.offsetWidth > line.clientWidth + 1);
   }, [shown]);
   const waiting = phase === "finishing" ? t("composer.voice.transcribing") : t("composer.placeholder.listening");
   return (
@@ -106,11 +108,11 @@ function PreviewLine({ phase, preview }: { phase: DictationPhase; preview: strin
       data-voice-preview=""
       className={cn(
         "flex min-w-0 flex-1 justify-end overflow-hidden whitespace-nowrap",
-        overflow && "[mask-image:linear-gradient(to_right,transparent,black_28px)]",
+        (overflow || shown.startsWith("…")) && "[mask-image:linear-gradient(to_right,transparent,black_28px)]",
       )}
     >
       {/* justify-end only while it overflows, so a short line still starts at the left */}
-      <span className={cn("shrink-0", !overflow && "me-auto", shown ? "text-ink" : "text-ink/40")}>{shown || waiting}</span>
+      <span ref={textRef} className={cn("shrink-0", !overflow && "me-auto", shown ? "text-ink" : "text-ink/40")}>{shown || waiting}</span>
     </div>
   );
 }
