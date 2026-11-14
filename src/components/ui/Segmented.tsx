@@ -7,7 +7,8 @@ export interface SegmentedOption<V extends string> {
   disabled?: boolean;
 }
 
-/** A pick-one of two to four short choices, all visible at once: a soft track and the chosen one lifted onto the card.
+/** A pick-one of two to four short choices, all visible at once: a soft track and the chosen one lifted onto the card
+ * (white in a light skin, a lighter tone of ink in a dark one: see .segmented-fill).
  * The lifted card is one pill that slides to the chosen option (240ms on the web's ease-out, as the dashboard's does);
  * a transition, so a quick second pick retargets from wherever it is. Reduced motion drops the slide. */
 export function Segmented<V extends string>({ value, options, onChange, disabled, className, "aria-label": label, ...rest }: {
@@ -68,7 +69,7 @@ export function Segmented<V extends string>({ value, options, onChange, disabled
           data-segmented-pill=""
           style={{ width: pill.width, height: pill.height, transform: `translate3d(${pill.x}px, ${pill.y}px, 0)` }}
           className={cn(
-            "pointer-events-none absolute left-0 top-0 -z-10 rounded-full bg-menu shadow-[0_1px_2px_rgb(28_28_28/0.08),0_0_0_0.5px_rgb(28_28_28/0.04)]",
+            "pointer-events-none absolute left-0 top-0 -z-10 rounded-full segmented-fill",
             pill.moved && "[transition:transform_240ms_var(--dusk-ease-out),width_240ms_var(--dusk-ease-out)] motion-reduce:transition-none",
           )}
         />
@@ -91,7 +92,7 @@ export function Segmented<V extends string>({ value, options, onChange, disabled
               "outline-none focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-focus",
               "disabled:cursor-default enabled:active:scale-[0.97] motion-reduce:enabled:active:scale-100",
               checked && "text-ink",
-              checked && !pill && "bg-menu shadow-[0_1px_2px_rgb(28_28_28/0.08),0_0_0_0.5px_rgb(28_28_28/0.04)]",
+              checked && !pill && "segmented-fill",
             )}
           >
             {option.label}

@@ -3403,3 +3403,16 @@ button:disabled.bg-danger {
 .mention-editor-mirror .mention-highlight {
   font-weight: inherit;
 }
+
+/* the chosen option of a segmented control: the card colour lifted off a soft track in a light skin. Dark skins have no
+   lighter card to lift to (the menu colour is the track's own surface), so the chosen pill is a lighter tone of ink. */
+.segmented-fill {
+  background-color: var(--color-menu);
+  box-shadow: 0 1px 2px rgb(28 28 28 / 0.08), 0 0 0 0.5px rgb(28 28 28 / 0.04);
+}
+@container style(--code-color-scheme: dark) {
+  .segmented-fill {
+    background-color: color-mix(in srgb, var(--color-ink) 17%, var(--color-menu));
+    box-shadow: none;
+  }
+}

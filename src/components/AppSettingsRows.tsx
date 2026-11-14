@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import { quickUpdatesEnabled, skillAuthoringEnabled } from "@/lib/feature-flags";
 import { localeChoices } from "@/locales";
@@ -64,26 +64,32 @@ export function NewBotEffortRow() {
 export function TalkingStyleRow() {
   const { state, dispatch } = useStore();
   const [saving, setSaving] = useState(false);
+  // the pick shows at once and holds while it saves; the control never dims, so a click is one pill slide with no blink
+  const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState("");
   const save = async (value: string) => {
     if (saving) return;
     setSaving(true);
+    setPending(talkingStyleOf(value));
     setError("");
     try {
       const config: ConfigStatus = await api("/api/config", { method: "PATCH", body: JSON.stringify({ talkingStyle: talkingStyleOf(value) }) });
       dispatch({ type: "configStatus", config });
     } catch (cause) {
+      setPending(null);
       setError(friendlyError(cause, t("settings.talkingStyle.error")));
     } finally {
       setSaving(false);
     }
   };
+  // the pick lets go once the saved config shows it, so the pill never steps back for a render in between
+  const saved = talkingStyleOf(state.config?.talkingStyle);
+  useEffect(() => { if (pending === saved) setPending(null); }, [pending, saved]);
   return (
     <SettingRow icon="bubble" title={t("settings.talkingStyle.title")} subtitle={tOptional("settings.docs.talkingStyle.hint")} message={error ? <p role="alert" className="text-danger">{error}</p> : null}>
       <SettingsSelect
         variant="segmented"
-        value={talkingStyleOf(state.config?.talkingStyle)}
-        disabled={saving}
+        value={pending ?? saved}
         aria-label={t("settings.talkingStyle.title")}
         data-settings-select="talking-style"
         options={TALKING_STYLES.map((style) => ({ value: style, label: t(`settings.talkingStyle.${style}`) }))}
