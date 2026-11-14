@@ -140,6 +140,8 @@ const DETAIL: Record<Exclude<FailedReplyKind, "signed_out" | "credits" | "claude
   other: "error.plain.generic",
 };
 
+const AI_UNREACHABLE: ReadonlySet<string> = new Set(["error.plain.unreachable", "error.plain.connection"]);
+
 /** The card's one plain line for a kind; place, trial and update failures bring their own words. Any other failure says
  * the server's own cause, as the sidebar does, unless it is technical. */
 export function failedReplyDetail(kind: FailedReplyKind, engineName: string, onServer: boolean, cause = ""): string {
@@ -147,6 +149,8 @@ export function failedReplyDetail(kind: FailedReplyKind, engineName: string, onS
   if (kind === "credits") return t("failedReply.credits", { engine: engineName });
   if (kind === "claude_update") return t("chat.claudeUpdate.offer");
   if (kind === "place" || kind === "blocker") return t("error.plain.generic");
+  // a turn's own network failure is its AI's server not answering, never the app: "fetch failed" from a model call
+  if (kind === "other" && AI_UNREACHABLE.has(plainErrorKind(cause.trim()) ?? "")) return t("failedReply.unreachable", { engine: engineName });
   if (kind === "other" && cause.trim()) return plainErrorLine(cause) ?? currentFailureWords(cause.trim());
   return t(DETAIL[kind]);
 }

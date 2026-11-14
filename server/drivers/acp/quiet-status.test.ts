@@ -103,6 +103,13 @@ describe("describeQuiet", () => {
       .toBe('The model hit an error and may try again: "Rate limit exceeded. Please try again later."');
   });
 
+  it("never quotes OpenCode's free limit words, only what helps", () => {
+    const raw = "Free usage limit reached. Free models work in OpenCode (https://opencode.ai); subscribe to OpenCode Go to keep going: https://opencode.ai/go";
+    const line = describeQuiet({ kind: "provider-error", message: raw }, 20_000, 900_000);
+    expect(line).toBe("The free model is busy right now. Connect your own AI to keep going.");
+    expect(line).not.toMatch(/opencode/i);
+  });
+
   it("a new retry attempt is news; the same state is not", () => {
     expect(quietKey({ kind: "retrying", status: 429, delayMs: 1, attempt: 1 }))
       .not.toBe(quietKey({ kind: "retrying", status: 429, delayMs: 1, attempt: 2 }));

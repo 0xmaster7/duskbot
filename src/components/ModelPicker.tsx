@@ -653,6 +653,7 @@ export function ModelPicker({
         onMore={mayChangeBot && !remote ? openDirectory : undefined}
         onResetVariant={resetVariant}
         scope={mayChangeBot ? { value: scope, onChange: setScope } : undefined}
+        where={state.config?.cloudHome ? t("model.picker.onCloud") : undefined}
         notConnected={connectRows.length > 0 ? { rows: connectRows, onConnect: connect } : undefined}
       />
     </div>

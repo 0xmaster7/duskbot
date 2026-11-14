@@ -7,6 +7,7 @@ import { closeSync, existsSync, fstatSync, openSync, readdirSync, readFileSync, 
 import { join } from "node:path";
 
 import { redactSecretsInText } from "../../redact.ts";
+import { FREE_POOL_LIMIT } from "./free-ladder.ts";
 
 // Prompt silence guard (0 disables). Healthy agents go quiet for minutes: Qwen Code 0.24 sends
 // nothing while it compresses history, backs off a rate limit (60 s up to 5 min per wait) or runs
@@ -404,6 +405,9 @@ const minutes = (ms: number): string => {
   return `${Math.round(ms / 60_000)} min`;
 };
 
+/** What a turn on the free model says once the free models are used up where the bot runs. */
+export const FREE_MODEL_BUSY = "The free model is busy right now. Connect your own AI to keep going.";
+
 export function describeQuiet(state: QuietState, quietMs: number, stopAfterMs: number): string {
   const quiet = minutes(quietMs);
   switch (state.kind) {
@@ -415,6 +419,8 @@ export function describeQuiet(state: QuietState, quietMs: number, stopAfterMs: n
       return `${why}, trying again${next}. Still working.`;
     }
     case "provider-error":
+      // the free model's own words name OpenCode and its plans: the person only needs to know it ran out and what helps
+      if (FREE_POOL_LIMIT.test(state.message)) return FREE_MODEL_BUSY;
       return `The model hit an error and may try again: "${state.message}"`;
     case "compressing":
       return "Tidying up a long chat to make room. This can take a few minutes.";

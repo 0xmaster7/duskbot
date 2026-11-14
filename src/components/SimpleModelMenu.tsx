@@ -43,6 +43,8 @@ export interface SimpleModelMenuProps extends SimpleMenuActions {
   notConnected?: { rows: readonly NotConnectedRow[]; onConnect: (row: NotConnectedRow) => void };
   /** Whether a pick is for this bot or every bot; left out where there is no choice. */
   scope?: { value: PickerScope; onChange: (value: PickerScope) => void };
+  /** Where these models run, when that is not the person's own computer (a dusk cloud lists only its own AIs). */
+  where?: string;
 }
 
 const Gutter = ({ children }: { children?: ReactNode }) => <span className={MENU_GUTTER}>{children}</span>;
@@ -276,6 +278,7 @@ export function SimpleModelMenu(props: SimpleModelMenuProps) {
       <div data-simple-models className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain",
         menu.groups.some((group) => group.body.kind === "models" && group.body.toggle === "less") && "scroll-pt-8 scroll-pb-12")}>
         <div className="flex flex-col gap-0.5 p-1.5">
+          {props.where && !query && <p data-picker-where className="px-2 pb-0.5 pt-1 text-[12px] leading-4 text-ink-tertiary">{props.where}</p>}
           {current && (
             <button
               type="button"
