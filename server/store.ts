@@ -43,6 +43,8 @@ import { initialGreetingMessage } from "./initial-greeting.ts"; import { createD
 import { appsFromCreator } from "./inherited-apps.ts";
 import { ThreadCache, type ThreadState } from "./thread-cache.ts";
 import { parseMemberRun } from "./room-member-runs.ts";
+import { isProjectEmoji } from "./project-emoji.ts";
+export { isProjectEmoji };
 export type {
   BotActivity, GroupDefaultResponder, OptionCardData,
   SecretRequestCardData, Surface, TaskClosedBy, TaskOpenedBy, TaskUsage,
@@ -64,12 +66,6 @@ export type GroupWirePrivateKeys = "installedPackage" | "respondersAtOnce";
 export type GroupWireProjection = Omit<GroupRecord, GroupWirePrivateKeys> & Pick<WireGroup, "usage"> & { working: boolean };
 export type GroupWireProjectionIsExact = AssertExact<WireGroup, GroupWireProjection> & AssertSameKeys<WireGroup, GroupWireProjection>;
 export const groupWireProjectionIsExact: GroupWireProjectionIsExact = true;
-
-// Unicode counts a lone digit, skin tone or regional indicator as an emoji component, not an emoji.
-const projectEmojiPattern = new RegExp("^(?!\\p{Emoji_Component}$)(?:\\p{RGI_Emoji}|[\\p{Emoji}--\\p{Emoji_Component}])$", "v");
-export function isProjectEmoji(value: unknown): value is string {
-  return typeof value === "string" && value.length <= 64 && projectEmojiPattern.exec(value)?.[0] === value;
-}
 
 export interface TaskRecord extends Omit<WireTask, TaskWireDerivedKeys> {
   resumeCursors: Record<string, unknown>;
