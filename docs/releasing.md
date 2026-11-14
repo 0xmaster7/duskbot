@@ -125,29 +125,46 @@ The **Prepare next release** workflow also needs
 to create and approve pull requests** enabled. The workflow only creates the
 version PR; it never approves or merges it.
 
+The Mac signing secrets, exactly these names (the Mac job signs, notarizes and staples only when
+`MAC_CERT_P12_BASE64` is set; without it the build is ad-hoc signed):
+
+| Secret | Value |
+|---|---|
+| `MAC_CERT_P12_BASE64` | base64 of `~/.config/duskbot/apple/developer-id.p12` |
+| `MAC_CERT_PASSWORD` | `APPLE_DEVELOPER_ID_P12_PASSWORD` from `~/.config/duskbot/dusk.env` |
+| `APPLE_API_KEY_P8_BASE64` | base64 of the App Store Connect API key (`AuthKey_<KEYID>.p8`) |
+| `APPLE_API_KEY_ID` | the key's Key ID |
+| `APPLE_API_ISSUER_ID` | the Issuer ID for a Team key; leave unset for an Individual key |
+
 ### 1. `MAC_CERT_P12_BASE64` + `MAC_CERT_PASSWORD`
 
-The Developer ID Application certificate, exported from the Mac that
-currently signs releases:
+The Developer ID Application certificate (team `S85QBF7KWC`). Its private key never left this Mac: it is
+`~/.config/duskbot/apple/developer-id.key`, the certificate Apple issued for its CSR is `developer_id.cer` beside it,
+and the first run of `scripts/release-mac-local.sh` (any mode but `--dry-run`) joins them into `developer-id.p12` with a
+generated password saved as `APPLE_DEVELOPER_ID_P12_PASSWORD` in `dusk.env`. To hand it to Actions without printing
+either:
 
 ```sh
-# Keychain Access → My Certificates → "Developer ID Application: Milind Soni
-# (993D98NH4J)" → right-click → Export… → .p12 with a strong password, then:
-base64 -i DeveloperID.p12 | pbcopy   # → MAC_CERT_P12_BASE64
-# the export password             → MAC_CERT_PASSWORD
+base64 -i ~/.config/duskbot/apple/developer-id.p12 | gh secret set MAC_CERT_P12_BASE64 -R DuskBotAI/duskbot
+sed -n 's/^APPLE_DEVELOPER_ID_P12_PASSWORD=//p' ~/.config/duskbot/dusk.env | gh secret set MAC_CERT_PASSWORD -R DuskBotAI/duskbot
 ```
 
 ### 2. `APPLE_API_KEY_P8_BASE64` + `APPLE_API_KEY_ID` + `APPLE_API_ISSUER_ID`
 
 An App Store Connect API key for notarization (better than an app-specific
-password for CI — revocable, scoped, no 2FA dance):
+password for CI: revocable, scoped, no 2FA dance):
 
 1. [App Store Connect → Users and Access → Integrations → App Store Connect API](https://appstoreconnect.apple.com/access/integrations/api)
-2. Generate a **Team Key** with the **Developer** role
-3. Download the `.p8` (one chance only), note the Key ID and Issuer ID
+2. Generate a **Team Key** (Developer role is enough for notarizing; App Manager also covers TestFlight uploads), or an
+   Individual Key under your own user
+3. Download the `.p8` (one chance only) into `~/.config/duskbot/apple/`, `chmod 600` it, and fill in `APPLE_API_KEY_ID`,
+   `APPLE_API_ISSUER` (Team keys only) and `APPLE_API_KEY_PATH` in `dusk.env`
 
 ```sh
-base64 -i AuthKey_XXXXXXXX.p8 | pbcopy   # → APPLE_API_KEY_P8_BASE64
+source_env() { sed -n "s/^$1=//p" ~/.config/duskbot/dusk.env; }
+base64 -i "$(source_env APPLE_API_KEY_PATH)" | gh secret set APPLE_API_KEY_P8_BASE64 -R DuskBotAI/duskbot
+source_env APPLE_API_KEY_ID | gh secret set APPLE_API_KEY_ID -R DuskBotAI/duskbot
+source_env APPLE_API_ISSUER | gh secret set APPLE_API_ISSUER_ID -R DuskBotAI/duskbot   # Team keys only
 ```
 
 ### 3. `DUSK_RELEASE_SIGNING_KEY`
@@ -158,10 +175,39 @@ signs `latest.json` with it; without it the release still builds but apps never 
 `node apps/cloud-service/scripts/keygen.mjs rel-2027-01 ~/.config/duskbot/keys`, pin the printed public key in both
 files, ship an app with it, and only then switch the secret.
 
-### Local fallback
+### Releasing the Mac app from this Mac (no Actions)
 
-The hand-cut path still works when Actions is down or a release needs
-surgery: `pnpm package:mac`, gate with `codesign --verify --deep --strict`,
-notarize with the local keychain profile (`xcrun notarytool submit …
---keychain-profile AC_PASSWORD`), staple, re-zip, upload the complete asset set to the release, and verify the
-published bytes by downloading them back.
+`scripts/release-mac-local.sh` does the whole Mac job locally: build both arches, sign with the Developer ID from a
+throwaway keychain (deleted on exit; the login keychain is never used, so nothing prompts), check every nested
+Mach-O (hardened runtime, team, secure timestamp, no unsigned code inside zips or jars, the expected entitlements),
+notarize the apps with `notarytool` and staple them, put each stapled app into its dmg
+(`scripts/mac-dmg-swap-app.sh`, which keeps the dmg layout), notarize and staple the dmgs, re-zip the stapled apps for
+the updater, then run Gatekeeper the way a downloaded copy meets it (`spctl` on the app and the dmg, `stapler
+validate`, the same again with the quarantine flag set, and `syspolicy_check distribution`). On success it sets
+`"macNotarized": true` in `apps/site/releases.json`; commit that with the release.
+
+```sh
+scripts/release-mac-local.sh --check         # what is present, what is missing, and where to get it
+scripts/release-mac-local.sh --dry-run       # ad-hoc signed, every check that needs no Apple credentials
+scripts/release-mac-local.sh --no-notarize   # Developer ID signed, not notarized (no API key needed)
+scripts/release-mac-local.sh                 # signed, notarized, stapled: release/DuskBot-<v>-{arm64,x64}.{dmg,zip}
+```
+
+Output lands in `release/` (plus `release/notary/*.json`, Apple's notarization logs, and `release/SHA256SUMS-mac`).
+Nothing is uploaded; attach the dmgs, zips and the stable `DuskBot.dmg` / `DuskBot-intel.dmg` copies to the release.
+
+### Entitlements
+
+`build/entitlements.mac.plist` covers the app and, through `entitlementsInherit`, every nested executable
+(Electron helpers, the speech helper, cua-driver, cloudflared, adb, the headless browser, native modules):
+
+| Entitlement | Why |
+|---|---|
+| `cs.allow-jit` | V8 in the app, its helpers and the headless browser |
+| `cs.allow-unsigned-executable-memory` | V8 and WebAssembly on Intel (MAP_JIT alone is not used there), and the server run as Node |
+| `cs.disable-library-validation` | the server (the app run as Node) loads native modules; bots may load ones they install |
+| `device.audio-input` | dictation (the speech helper and the composer) |
+| `automation.apple-events` | `osascript`: opening Terminal, reading the screen size, bots driving apps the person allows |
+
+No camera, location, contacts or calendar access is used on the Mac (`electron/app-permissions.mjs` keeps camera off).
+The matching purpose strings are in `mac.extendInfo` in `build/electron-builder.yml`.

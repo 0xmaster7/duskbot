@@ -155,6 +155,11 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
           security list-keychains -d user -s "$KEYCHAIN" login.keychain
           rm "$RUNNER_TEMP/cert.p12"
+          # the dmg is signed again after the stapled app goes into it (scripts/mac-dmg-swap-app.sh)
+          identity=$(security find-identity -v -p codesigning "$KEYCHAIN" | sed -n 's/.*"\(Developer ID Application: .*\)"$/\1/p' | head -1)
+          test -n "$identity" || { echo "::error::no Developer ID Application identity in MAC_CERT_P12_BASE64"; exit 1; }
+          echo "MAC_SIGN_IDENTITY=$identity" >> "$GITHUB_ENV"
+          echo "MAC_KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
 
       - name: Ad-hoc sign the Mac build (no Developer ID certificate yet)
         if: env.MAC_SIGNED != 'true'
@@ -260,28 +265,28 @@ jobs:
             fi
           done
 
-      - name: Notarize all four artifacts
+      # the apps first, so each one carries its own ticket inside the dmg and opens offline too; then the dmgs
+      # (scripts/release-mac-local.sh does the same on a Mac)
+      - name: Notarize and staple, apps then dmgs
         if: env.MAC_SIGNED == 'true'
         env:
           APPLE_API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          # empty for an Individual API key, the Issuer ID for a Team key
           APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
         run: |
           echo "$APPLE_API_KEY_P8_BASE64" | base64 --decode > "$RUNNER_TEMP/notary.p8"
-          for f in release/*.dmg release/*.zip; do
-            out=$(xcrun notarytool submit "$f" \
-              --key "$RUNNER_TEMP/notary.p8" \
-              --key-id "$APPLE_API_KEY_ID" \
-              --issuer "$APPLE_API_ISSUER_ID" \
-              --wait 2>&1)
+          auth=(--key "$RUNNER_TEMP/notary.p8" --key-id "$APPLE_API_KEY_ID")
+          test -n "$APPLE_API_ISSUER_ID" && auth+=(--issuer "$APPLE_API_ISSUER_ID")
+          notarize() {
+            out=$(xcrun notarytool submit "$1" "${auth[@]}" --wait --timeout 2h 2>&1)
             echo "$out" | tail -2
-            echo "$out" | grep -q "status: Accepted" || { echo "::error::notarization not Accepted for $f"; exit 1; }
-          done
-          rm "$RUNNER_TEMP/notary.p8"
-
-      - name: Staple and re-zip
-        if: env.MAC_SIGNED == 'true'
-        run: |
+            echo "$out" | grep -q "status: Accepted" && return 0
+            id=$(echo "$out" | sed -n 's/^ *id: //p' | head -1)
+            test -n "$id" && xcrun notarytool log "$id" "${auth[@]}" || true
+            echo "::error::notarization not Accepted for $1"
+            return 1
+          }
           # stapler fetches the ticket from Apple's CloudKit: the connection drops now and then (error 68), and a
           # ticket can lag notarytool's Accepted verdict by a minute (error 65).
           staple() {
@@ -293,13 +298,34 @@ jobs:
             echo "::error::could not staple $1 after 6 attempts"
             return 1
           }
-          for f in release/DuskBot-*-arm64.dmg release/DuskBot-*-x64.dmg "release/mac-arm64/Dusk Bot.app" "release/mac/Dusk Bot.app"; do
-            staple "$f"
-          done
           v=$(node -p "require('./package.json').version")
-          rm -f "release/DuskBot-$v-arm64.zip" "release/DuskBot-$v-x64.zip"
-          ditto -c -k --sequesterRsrc --keepParent "release/mac-arm64/Dusk Bot.app" "release/DuskBot-$v-arm64.zip"
-          ditto -c -k --sequesterRsrc --keepParent "release/mac/Dusk Bot.app" "release/DuskBot-$v-x64.zip"
+          for pair in "arm64:release/mac-arm64" "x64:release/mac"; do
+            arch="${pair%%:*}"; app="${pair#*:}/Dusk Bot.app"
+            ditto -c -k --sequesterRsrc --keepParent "$app" "$RUNNER_TEMP/app-$arch.zip"
+            notarize "$RUNNER_TEMP/app-$arch.zip"
+            staple "$app"
+            scripts/mac-dmg-swap-app.sh "release/DuskBot-$v-$arch.dmg" "$app" "$MAC_SIGN_IDENTITY" "$MAC_KEYCHAIN"
+            notarize "release/DuskBot-$v-$arch.dmg"
+            staple "release/DuskBot-$v-$arch.dmg"
+            rm -f "release/DuskBot-$v-$arch.zip" "release/DuskBot-$v-$arch.zip.blockmap"
+            ditto -c -k --sequesterRsrc --keepParent "$app" "release/DuskBot-$v-$arch.zip"
+          done
+          rm "$RUNNER_TEMP/notary.p8"
+
+      - name: "Gate: Gatekeeper accepts what a browser download gets"
+        if: env.MAC_SIGNED == 'true'
+        run: |
+          v=$(node -p "require('./package.json').version")
+          for pair in "arm64:release/mac-arm64" "x64:release/mac"; do
+            arch="${pair%%:*}"; app="${pair#*:}/Dusk Bot.app"; dmg="release/DuskBot-$v-$arch.dmg"
+            codesign --verify --deep --strict --verbose=2 "$app"
+            spctl -a -vvv -t exec "$app" 2>&1 | tee /dev/stderr | grep -q "source=Notarized Developer ID"
+            xcrun stapler validate "$app"
+            xcrun stapler validate "$dmg"
+            q="$RUNNER_TEMP/quarantined-$arch.dmg"; cp "$dmg" "$q"
+            xattr -w com.apple.quarantine "0083;$(printf %x "$(date +%s)");Safari;$(uuidgen)" "$q"
+            spctl -a -vvv -t open --context context:primary-signature "$q" 2>&1 | tee /dev/stderr | grep -q "source=Notarized Developer ID"
+          done
 
       - name: Stable-named copies for the README's /latest/download links
         run: |
