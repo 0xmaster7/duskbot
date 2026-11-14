@@ -79,3 +79,16 @@ describe("a notice that signing in fixes", () => {
     expect(button("sign in")).toBeUndefined();
   });
 });
+
+describe("a notice that asks for an AI", () => {
+  it("is one short line with Sign in beside it", () => {
+    render({ id: "m-2", at: AT, role: "bot", kind: "activity", tool: { name: "notice: Routines are paused. Sign in to your AI to turn them back on.", ok: true, signIn: true } } as Message, { busy: false });
+    expect(host.textContent).toBe("Routines are paused. Sign in to your AI to turn them back on.Sign in");
+    expect(button("Sign in")?.type).toBe("button");
+  });
+
+  it("offers nothing beside a notice that asks for no sign-in", () => {
+    render({ id: "m-3", at: AT, role: "bot", kind: "activity", tool: { name: "notice: Paused because the plan was cancelled.", ok: true } } as Message, { busy: false });
+    expect(button("Sign in")).toBeUndefined();
+  });
+});

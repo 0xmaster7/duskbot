@@ -102,3 +102,15 @@ describe("the card says what really stopped the reply", () => {
     expect(text()).toContain("Already done: sent an email (gmail_send)");
   });
 });
+
+describe("a notice that asks for an AI", () => {
+  it("is the card above the composer, short, with Sign in that opens the connect flow", async () => {
+    const notice: Message = { id: "paused", role: "bot", kind: "activity", at: T0 + 2, tool: { name: "notice: Routines are paused. Sign in to your AI to turn them back on.", ok: true, signIn: true } };
+    const buttons = await show(notice);
+    expect(document.querySelector("[data-chat-error]")!.textContent).toContain("Routines are paused. Sign in to your AI to turn them back on.");
+    expect(labels(buttons)).toEqual(["Sign in"]);
+    await act(async () => { buttons[0]!.click(); });
+    expect(fixture.dispatch, "the connect flow, not Settings").not.toHaveBeenCalled();
+    expect(document.querySelector("[role='dialog']"), "the connect flow").not.toBeNull();
+  });
+});

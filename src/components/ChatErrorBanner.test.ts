@@ -19,7 +19,7 @@ describe("ChatErrorBanner", () => {
     expect(markup).toContain('aria-label="Dismiss"');
     expect(markup).toContain('type="button"');
     // a neutral borderless card; only the pixel stop glyph says it is an error
-    expect(markup).toContain("border-transparent bg-composer");
+    expect(markup, "a tonal card on the page, like a bot's message").toContain("border-transparent bg-card");
     expect(markup).toContain('data-pixel-icon="stop"');
     expect(markup).not.toMatch(/bg-danger|border-danger|text-\[12px\]/);
   });

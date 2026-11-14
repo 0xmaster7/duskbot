@@ -11,7 +11,7 @@ afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: tru
 
 const START = Date.parse("2026-10-30T06:00:00Z");
 const HOUR = 60 * 60_000;
-type Line = { threadId: string; name: string };
+type Line = { threadId: string; name: string; signIn?: true };
 const IN = { ready: true, signedIn: true }, OUT = { ready: false, signedIn: false };
 
 /** A Cloud home's routines and bots: the owner's Chief, a teammate's later one, and a bot that is no Chief. */
@@ -30,7 +30,7 @@ function world(dataDir?: string) {
   ];
   const host = createRoutineHoldsHost({
     dataDir: dir, now: () => now,
-    store: { bots, appendMessage: (threadId: string, message: { tool?: { name: string } }) => { lines.push({ threadId, name: message.tool!.name }); return {}; } } as never,
+    store: { bots, appendMessage: (threadId: string, message: { tool?: { name: string; signIn?: boolean } }) => { lines.push({ threadId, name: message.tool!.name, ...(message.tool!.signIn ? { signIn: true } : {}) }); return {}; } } as never,
     mcpServers: () => mcp, appsConnected: async () => apps,
   });
   const routine = routines.create({ name: "Clarity export", prompt: "Export Clarity", botId: "ops", schedule: { type: "interval", everyMinutes: 60, anchorAt: START + HOUR } });
@@ -52,7 +52,7 @@ describe("a Cloud home's routines wait while the owner has left", () => {
     w.host.engines(IN);
     w.host.engines(OUT);
     expect(w.state()).toMatchObject({ enabled: false, heldFor: "no_engine" });
-    expect(w.lines).toEqual([{ threadId: "chief-main", name: `notice: ${ROUTINE_HOLD_LINES.no_engine}` }]);
+    expect(w.lines, "one short line, with Sign in beside it").toEqual([{ threadId: "chief-main", name: "notice: Routines are paused. Sign in to your AI to turn them back on.", signIn: true }]);
     // Read again and again while signed out: nothing more is said.
     w.host.engines(OUT);
     w.host.engines(OUT);

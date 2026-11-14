@@ -73,7 +73,7 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
   const tool = lead?.message.tool;
   const leadBotId = lead?.bot?.id ?? ownBotId;
   const resume = useLimitResetContinue(leadBotId, threadId, lead?.kind === "usage_limit" ? tool?.limitResetsAt : undefined);
-  const signInNotice = notices.find((m) => m.tool?.setup === true);
+  const signInNotice = notices.find((m) => m.tool?.setup === true || m.tool?.signIn === true);
   const close = () => {
     for (const item of items) dismissed.add(item.message.id);
     for (const notice of notices) dismissed.add(notice.id);
@@ -84,10 +84,13 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
     const last = notices.at(-1);
     if (!last) return null;
     const notice = signInNotice ?? last;
+    // a notice that asks for an AI opens the connect flow; a sign-out of one AI opens that AI in settings
+    const signIn = signInNotice?.tool?.signIn ? () => setConnecting(true) : () => dispatch(openEngines);
     return (
       <div className="mb-2 w-full px-5" data-failed-reply="">
-        <ChatErrorCard tone="info" title={noticeText(notice)} onDismiss={close}
-          actions={signInNotice && <button type="button" onClick={() => dispatch(openEngines)} className={CARD_ACTION}>{t("chat.notice.signIn")}</button>} />
+        <ChatErrorCard tone="info" icon={signInNotice ? "key" : undefined} title={noticeText(notice)} onDismiss={close}
+          actions={signInNotice && <button type="button" onClick={signIn} className={CARD_ACTION}>{t("chat.notice.signIn")}</button>} />
+        {connecting && <ConnectAiDialog tested={null} onClose={() => setConnecting(false)} />}
       </div>
     );
   }

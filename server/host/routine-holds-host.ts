@@ -18,7 +18,7 @@ const RECHECK_MS = 15 * 60_000;
 /** The owner's one line when a cause begins and pauses routines. */
 export const ROUTINE_HOLD_LINES: Record<RoutineHoldCause, string> = {
   plan_cancelled: "Your routines are paused because the plan was cancelled. To keep one running until the plan ends, turn it back on in Routines.",
-  no_engine: "Your routines are paused: none of your AI accounts is signed in here any more. They turn back on by themselves when you sign in again.",
+  no_engine: "Routines are paused. Sign in to your AI to turn them back on.",
   no_connections: "Your routines are paused: every connected app and MCP server was removed. They turn back on when you connect one, or turn one back on in Routines.",
 };
 
@@ -61,17 +61,17 @@ export function createRoutineHoldsHost(deps: RoutineHoldsHostDeps) {
   }
 
   /** The owner's Chief: the place's own one, else the first made (a Team Cloud's founder's). */
-  function tell(line: string): void {
+  function tell(cause: RoutineHoldCause): void {
     const chief = deps.store.bots.filter((bot) => !bot.hidden && bot.chiefOfStaff)
       .sort((a, b) => Number(Boolean(b.defaultBot)) - Number(Boolean(a.defaultBot)) || a.createdAt - b.createdAt)[0];
-    if (chief) deps.store.appendMessage(chief.threadId, { role: "bot", kind: "activity", tool: { name: `notice: ${line}`, ok: true } });
+    if (chief) deps.store.appendMessage(chief.threadId, { role: "bot", kind: "activity", tool: { name: `notice: ${ROUTINE_HOLD_LINES[cause]}`, ok: true, ...(cause === "no_engine" ? { signIn: true } : {}) } });
   }
 
   /** Never throws: it runs inside reading the engines, which must not fail for it. */
   function review(): void {
     if (!routines) return;
     try {
-      for (const cause of routines.holdFor(causes())) tell(ROUTINE_HOLD_LINES[cause]);
+      for (const cause of routines.holdFor(causes())) tell(cause);
     } catch (error) {
       deps.log?.(`[routines] could not pause or resume routines (${error instanceof Error ? error.message : "error"})`);
     }

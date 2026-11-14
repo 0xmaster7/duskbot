@@ -28,7 +28,7 @@ export function ChatNotice({ notice }: { notice: AppState["notice"] }) {
 }
 
 // grok's error tray: a card on a hairline with one coloured glyph, a 14/20 title, quiet words, ink pill actions
-const CARD = "flex items-start gap-2.5 rounded-[14px] border border-transparent bg-composer px-3 py-2.5 text-[13px] leading-[18px] text-ink";
+const CARD = "flex items-start gap-2.5 rounded-[14px] border border-transparent bg-card px-3 py-2.5 text-[13px] leading-[18px] text-ink";
 export const CARD_ACTION = "ui-button ui-button-sm ui-button-pill border-transparent bg-ink/[0.06] text-ink hover:bg-ink/[0.1]";
 
 export function ChatErrorCard({ tone = "danger", icon, title, details, children, actions, onDismiss, className = "" }: {
