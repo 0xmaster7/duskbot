@@ -2,7 +2,7 @@ import { UNTITLED_TASK, UNTITLED_THREAD, threadTitleFrom, titleFromMessage } fro
 import { chmodSync, existsSync, mkdirSync, rmSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path"; import { isDeepStrictEqual } from "node:util";
 
-import { OwnedFile, writeFileAtomic } from "./atomic.ts"; import { readRegistryFile } from "./registry-file.ts"; import { saveSoon } from "./save-batch.ts"; import { discardNativeLog } from "./drivers/native.ts";
+import { OwnedFile, writeFileAtomic } from "./atomic.ts"; import { readRegistryFile } from "./registry-file.ts"; import { saveDeferred, saveSoon } from "./save-batch.ts"; import { discardNativeLog } from "./drivers/native.ts";
 import { commitRegistryChange, keptRevocation, saveRegistryFor, touchesPermissions } from "./registry-save.ts";
 import { parseToolScope, toolScopeWidens } from "../shared/tool-scope.ts"; import { grantScopedApps } from "../shared/connector-scopes.ts";
 import { reorderStable } from "../shared/bot-order.ts"; import { normalizeGroupDefaultResponder } from "./group-responder.ts";
@@ -160,6 +160,8 @@ export type BotWireProjectionIsExact = AssertExact<Omit<WireBot, "avatarUrl" | "
 export const botWireProjectionIsExact: BotWireProjectionIsExact = true;
 
 const BOTS_FILE = join(DATA_DIR, "bots.json");
+/** Task fields every turn rewrites (store.saveBotsLater). */
+const TURN_MARKS = new Set(["unread", "lastContextModel"]);
 const GROUPS_FILE = join(DATA_DIR, "groups.json");
 const THREAD_MODEL_COPIES_CLEARED = join(DATA_DIR, "thread-model-copies-cleared");
 const ASKED_AT_FILLED = join(DATA_DIR, "asked-at-filled");
@@ -636,8 +638,9 @@ export class Store {
     if (botsDirty) this.saveBots();
   }
 
-  private commitBotChange(bot: BotRecord, action: string, change: () => void, onRollback?: () => void, bookkeeping = false) {
-    commitRegistryChange(bot, "bots.json", action, bookkeeping ? () => this.saveBotsSoon() : () => this.saveBots(), change, onRollback);
+  /** `save`: "now" for what a person changed, "soon" at the end of the running pass, "later" for marks a crash may lose. */
+  private commitBotChange(bot: BotRecord, action: string, change: () => void, onRollback?: () => void, save: "now" | "soon" | "later" = "now") {
+    commitRegistryChange(bot, "bots.json", action, save === "later" ? () => this.saveBotsLater() : save === "soon" ? () => this.saveBotsSoon() : () => this.saveBots(), change, onRollback);
   }
 
   private commitGroupChange(group: GroupRecord, action: string, change: () => void) {
@@ -645,6 +648,8 @@ export class Store {
   }
 
   private saveBotsSoon() { saveSoon(this.botsFile, () => this.saveBots()); }
+  /** Per-turn marks (unread, usage, when a person last wrote): a busy server writes the whole registry once a second at most. */
+  private saveBotsLater() { saveDeferred(this.botsFile, () => this.saveBots()); }
   private saveBots(bots: BotRecord[] = this.bots, registerSections = true) {
     if (registerSections) this.rememberSections([...this.bots, ...bots].map((bot) => bot.section));
     this.botsFile.write(JSON.stringify(bots.map(({ busy: _busy, activity: _activity, ...bot }) => ({ ...bot,
@@ -1164,12 +1169,21 @@ export class Store {
   activePath(threadId: string): Message[] {
     threadId = this.roomThreadOf(threadId);
     const t = this.thread(threadId);
-    const byId = new Map(t.messages.map((m) => [m.id, m]));
+    const messages = t.messages;
+    // a message's parent is nearly always the row stored just before it: walk back by index, and build the id map only
+    // when a branch makes that guess miss (this runs several times per turn on chats of thousands of rows)
+    let byId: Map<string, number> | null = null;
+    const indexOf = (id: string, guess: number): number => {
+      if (guess >= 0 && guess < messages.length && messages[guess]!.id === id) return guess;
+      byId ??= new Map(messages.map((m, i) => [m.id, i]));
+      return byId.get(id) ?? -1;
+    };
     const path: Message[] = [];
-    let cur = t.activeLeafId ? byId.get(t.activeLeafId) : undefined;
-    while (cur) {
+    let at = t.activeLeafId ? indexOf(t.activeLeafId, messages.length - 1) : -1;
+    while (at >= 0) {
+      const cur = messages[at]!;
       path.push(cur);
-      cur = cur.parentId ? byId.get(cur.parentId) : undefined;
+      at = cur.parentId ? indexOf(cur.parentId, at - 1) : -1;
     }
     return path.reverse();
   }
@@ -1913,7 +1927,7 @@ export class Store {
         ? { context: { tokens: contextTokens, ...(contextWindow > 0 ? { window: contextWindow } : {}) } }
         : prev.context ? { context: prev.context } : {}),
     };
-    saveRegistryFor("bots.json", "the thread's usage", () => this.saveBotsSoon());
+    saveRegistryFor("bots.json", "the thread's usage", () => this.saveBotsLater());
     this.emit({ type: "bot", botId });
     return task.usage;
   }
@@ -2101,7 +2115,7 @@ export class Store {
       if (task.routineRunId) task.unread = false;
       if (bot.threadId === threadId) this.mirrorActiveTask(bot, task);
       bot.unread = bot.tasks!.some(taskCountsAsBotUnread);
-    }, revocation && (() => Object.assign(task, revocation)), !touchesPermissions(patch));
+    }, revocation && (() => Object.assign(task, revocation)), Object.keys(patch).every((key) => TURN_MARKS.has(key)) ? "later" : touchesPermissions(patch) ? "now" : "soon");
     this.emit({ type: "bot", botId });
     return task;
   }
@@ -2250,7 +2264,7 @@ export class Store {
     const task = this.taskByThread(botId, threadId);
     if (!task || !Number.isFinite(at) || (task.askedAt ?? -1) >= at) return task ?? null;
     task.askedAt = at;
-    saveRegistryFor("bots.json", "when you last wrote in this thread", () => this.saveBotsSoon());
+    saveRegistryFor("bots.json", "when you last wrote in this thread", () => this.saveBotsLater());
     this.emit({ type: "bot", botId });
     return task;
   }
@@ -2288,7 +2302,7 @@ export class Store {
     this.commitBotChange(bot, "the thread's title", () => {
       task.title = titleFromMessage(text);
       task.titleFromFirstMessage = true;
-    }, undefined, true);
+    }, undefined, "soon");
     this.emit({ type: "bot", botId });
     return task;
   }

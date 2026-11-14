@@ -1,4 +1,5 @@
 // Encrypted filesystem snapshot: quiesce writers before create/commit; restore runs before config/store load.
+import { flushDeferredSaves } from "./save-batch.ts";
 import { SERVER_CHILD_DIR, SERVER_LEASE_NAME } from "../electron/legacy-names.mjs";
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID, scrypt } from "node:crypto";
 import {
@@ -302,6 +303,7 @@ export async function createWorkspaceBackup(dataDir: string, options: CreateWork
 export async function createWorkspaceBackupSnapshot(dataDir: string, options: CreateWorkspaceBackupOptions, jobId?: string): Promise<CreatedWorkspaceBackup> {
   if (Object.hasOwn(options, "credentials")) throw new Error("Workspace backups do not transfer credentials.");
   assertLocalAuthOutsideSnapshot(dataDir);
+  flushDeferredSaves();
   const salt = randomBytes(16);
   const key = await passwordKey(options.password, salt);
   const job = newJob(dataDir, jobId);

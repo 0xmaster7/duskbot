@@ -164,6 +164,19 @@ export function unifiedDiff(before: string, after: string, path: string, cap = D
 }
 
 
+/** The diff of an append from the note's last lines and what was added, renumbered: the same text unifiedDiff gives,
+ * without walking the whole (growing) note on every append. */
+export function appendDiff(before: string, after: string, path: string, cap = DIFF_CAP): UnifiedDiff {
+  const cut = before.endsWith("\n") ? before.length - 1 : before.length;
+  let start = cut;
+  for (let lines = 0; start > 0 && lines < CONTEXT; lines++) start = before.lastIndexOf("\n", start - 1);
+  start = start <= 0 ? 0 : start + 1;
+  const skipped = splitLines(before.slice(0, start)).length;
+  const diff = unifiedDiff(before.slice(start), after.slice(start), path, cap);
+  if (!skipped) return diff;
+  return { ...diff, text: diff.text.replace(/^@@ -(\d+),(\d+) \+(\d+),(\d+) @@/gm, (_all, a, b, c, d) => `@@ -${Number(a) + skipped},${b} +${Number(c) + skipped},${d} @@`) };
+}
+
 const writeQueues = new Map<string, Promise<void>>();
 
 function enqueue(botId: string, entry: MemoryJournalEntry): void {
@@ -286,17 +299,13 @@ export function recordMemoryChange(botId: string, change: MemoryChangeInput): Me
   if (before === after) return null;
   advanceBaseline(botId, change.path, after);
   const kind: MemoryChangeKind = before === null ? "created" : after === null ? "deleted" : "edited";
-  const diff = unifiedDiff(before ?? "", after ?? "", change.path);
+  const appended = before !== null && before.length > APPEND_COPY_CAP && after !== null && after.startsWith(before);
+  const diff = appended ? appendDiff(before, after, change.path) : unifiedDiff(before ?? "", after ?? "", change.path);
   let keptBefore: string | null = null;
   let canRevert = true;
   let revertUnavailableReason: string | undefined;
-  const appended = before !== null && before.length > APPEND_COPY_CAP && after !== null && after.startsWith(before);
-  if (appended) {
-    if (redactSecretsInText(before) !== before) {
-      canRevert = false;
-      revertUnavailableReason = "The earlier version contained sensitive text that was hidden, so it cannot be restored exactly.";
-    }
-  } else if (before !== null) {
+  // an append keeps no copy of the earlier text (a revert reads it back from the note), so nothing of it is redacted
+  if (!appended && before !== null) {
     if (Buffer.byteLength(before, "utf8") > BEFORE_CAP) {
       canRevert = false;
       revertUnavailableReason = "The earlier version was too large to keep, so this change cannot be reverted.";

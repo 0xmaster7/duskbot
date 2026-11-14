@@ -432,7 +432,7 @@ import { addHeldSecretScrubber, redactSecretsInText, scrubHeldSecrets } from "./
 import * as vps from "./vps-computer.ts";
 import { BoxDiskNotes, clearBoxScratch } from "./box-scratch.ts";
 import { vpsConfigForBot, vpsSshAliasForBot } from "./vps-hosts.ts";
-import { ROUTINE_RESTARTED, RoutineManager, type RoutineRun, type RoutineRunOn, type RoutineRunTrigger } from "./routines.ts"; import { routineRunsFor } from "./routine-run-window.ts"; import { batchSaves } from "./save-batch.ts";
+import { ROUTINE_RESTARTED, RoutineManager, type RoutineRun, type RoutineRunOn, type RoutineRunTrigger } from "./routines.ts"; import { routineRunsFor } from "./routine-run-window.ts"; import { batchSaves, flushDeferredSaves } from "./save-batch.ts";
 import { BROWSER_UPLOAD_TOOL, browserRuntimeEnv } from "./browser-runtime.ts";
 import { BrowserUploadRefusal, uploadableFiles } from "./browser-upload.ts";
 import { listSignedInSites, signOutOfSites } from "./browser-sites.ts";
@@ -16041,6 +16041,7 @@ const gracefulShutdown = createGracefulShutdown({
       await browserRuntime.closeAll();
     },
     () => liveCalls.shutdown(),
+    () => flushDeferredSaves(),
     () => flushAllProfileHistory(),
     () => flushAllMemoryJournals(),
     () => flushUsageLedger(DATA_DIR),

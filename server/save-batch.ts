@@ -33,3 +33,34 @@ function writePending(): void {
     }
   }
 }
+
+/** How long a bookkeeping save may wait: a crash can lose at most this much of it. */
+export const DEFERRED_SAVE_MS = 1_000;
+const deferred = new Map<object, { write: () => void; timer: ReturnType<typeof setTimeout> }>();
+
+function runSave(write: () => void): void {
+  try {
+    write();
+  } catch (error) {
+    console.error("a deferred save failed; the next save of the file retries it", error);
+  }
+}
+
+/** A save of bookkeeping only (unread marks, usage, ordering times), never of something a person changed: every change
+ * within `ms` becomes one write, so a busy server does not rewrite and fsync a whole registry file per turn event. */
+export function saveDeferred(owner: object, write: () => void, ms = DEFERRED_SAVE_MS): void {
+  const held = deferred.get(owner);
+  if (held) { held.write = write; return; }
+  const entry = { write, timer: setTimeout(() => { deferred.delete(owner); runSave(entry.write); }, ms) };
+  entry.timer.unref?.();
+  deferred.set(owner, entry);
+}
+
+/** Writes every deferred save now: at shutdown, and before anything reads those files from disk. */
+export function flushDeferredSaves(): void {
+  for (const [owner, entry] of deferred) {
+    clearTimeout(entry.timer);
+    deferred.delete(owner);
+    runSave(entry.write);
+  }
+}

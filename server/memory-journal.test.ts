@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   APPEND_COPY_CAP,
+  appendDiff,
   BEFORE_CAP,
   DIFF_CAP,
   JOURNAL_DIR,
@@ -118,6 +119,17 @@ describe("unifiedDiff", () => {
     expect(diff.text.length).toBeLessThan(600);
     expect(diff.text.endsWith("… (diff cut here)")).toBe(true);
     expect(diff.removed).toBe(2000);
+  });
+
+  it("diffs an append from the note's tail exactly as the whole-note diff does", () => {
+    const lines = Array.from({ length: 300 }, (_, i) => `- 09:${String(i % 60).padStart(2, "0")} line ${i}`);
+    for (const [before, after] of [
+      [`${lines.join("\n")}\n`, `${lines.join("\n")}\n- 10:00 added\n`],
+      [`${lines.join("\n")}`, `${lines.join("\n")}\n- 10:00 added\n- 10:01 and more\n`],
+      ["one\n", "one\ntwo\n"],
+    ] as const) {
+      expect(appendDiff(before, after, "memory/log/x.md")).toEqual(unifiedDiff(before, after, "memory/log/x.md"));
+    }
   });
 
   it("still counts correctly when the files are too big for an LCS table", () => {

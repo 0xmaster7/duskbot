@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { soulFile, soulHash } from "./bot-folder.ts";
 import { flushProfileHistory, readHistory, recordProfileChange } from "./profile-versions.ts";
 import { DATA_DIR } from "./config.ts";
+import { flushDeferredSaves } from "./save-batch.ts";
 import { memberRunThreadId } from "./room-member-runs.ts";
 import {
   beginMemoryTurn,
@@ -846,6 +847,23 @@ describe("Store", () => {
     expect(bot).toMatchObject({ approvalMode: "full", autoApprove: false, alwaysAllow: ["old-tool"] });
   });
 
+  it("writes per-turn marks (usage, unread) to bots.json once a second at most, not once per turn", () => {
+    const store = new Store(selection);
+    const bot = store.createBot({ name: "Busy marks" });
+    flushDeferredSaves();
+    const botsFile = join(DATA_DIR, "bots.json");
+    const before = statSync(botsFile).mtimeMs;
+    const text = readFileSync(botsFile, "utf8");
+    for (let turn = 0; turn < 20; turn++) {
+      store.patchTask(bot.id, bot.threadId, { unread: turn % 2 === 0 });
+      store.addTaskUsage(bot.id, bot.threadId, { input: 10, output: 1, costUsd: null });
+    }
+    expect(readFileSync(botsFile, "utf8")).toBe(text);
+    expect(statSync(botsFile).mtimeMs).toBe(before);
+    flushDeferredSaves();
+    expect(new Store(selection).taskByThread(bot.id, bot.threadId)?.usage?.turns).toBe(20);
+  });
+
   it("addTaskUsage accumulates settled-turn totals per task and survives a restart", () => {
     const store = new Store(selection);
     const bot = store.createBot();
@@ -862,6 +880,8 @@ describe("Store", () => {
     store.addTaskUsage(bot.id, bot.threadId, { input: 10, output: 0, cachedInput: 20, costUsd: null });
     expect(store.addTaskUsage(bot.id, "no-such-thread", { input: 5, output: 5, costUsd: null })).toBeNull();
 
+    // a graceful stop writes deferred marks (server/index.ts shutdown)
+    flushDeferredSaves();
     const reloaded = new Store(selection);
     expect(reloaded.taskByThread(bot.id, bot.threadId)?.usage).toMatchObject({
       input: 2010,
