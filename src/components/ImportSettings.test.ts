@@ -71,7 +71,7 @@ describe("Settings → bring in from other apps", () => {
       .toEqual([["bots:openclaw", "true"], ["bots:grok-bot", "true"]]);
     expect(text()).toContain("Molty");
     expect(text()).toContain("Drew");
-    expect(host.querySelector("[data-bring-online]")?.textContent).toBe("from ChatGPT, Claude, Gemini or Grok");
+    expect(host.querySelector("[data-bring-online]")?.textContent).toBe("from Grok bot, ChatGPT, Claude or Gemini");
     expect(host.querySelector("[data-bring-grok]")?.textContent, "a Grok bot bot with nothing saved yet goes through the prompt").toContain("Eggbot in Grok bot");
     for (const old of ["move from Grok bot", "start import", "copy prompt", "look for bots"]) expect(button(old), old).toBeUndefined();
     expect(host.querySelector("[data-import-section=grok], [data-import-section=notes], [data-import-section=apps], [data-import-section=bots]")).toBeNull();

@@ -206,6 +206,15 @@ describe("Hermes Agent", () => {
     expect(JSON.stringify(look)).not.toContain(SENTINEL);
   });
 
+  it("reads a USER.md written by hand as a markdown page, not with § entries, one fact a line under its section", () => {
+    const home = newHome();
+    const put = putter(home);
+    put(".hermes/SOUL.md", "# Ananya\n\nWarm and direct.");
+    put(".hermes/memories/USER.md", "# Memory: Sam\n\n## Who he is\n- **Sam**, 19. Lives in Jaipur.\n- Plans to move to Bangalore.\n\n## Work\n- Freelance web developer\n\n---\n");
+    const bot = lookForBots(machineAt(home)).apps[0]!.bots[0]!;
+    expect(bot.userFacts).toEqual(["Who he is: Sam, 19. Lives in Jaipur.", "Who he is: Plans to move to Bangalore.", "Work: Freelance web developer"]);
+  });
+
   it("follows HERMES_HOME", () => {
     const home = newHome();
     putter(home)("custom/SOUL.md", "Elsewhere.");

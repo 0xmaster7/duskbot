@@ -662,7 +662,7 @@ export function Composer({
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const copiedFiles = Array.from(e.clipboardData.files ?? []);
     if (copiedFiles.some((file) => /\.(?:json|md|txt)$/i.test(file.name))) {
-      // a file copied in Finder, such as the dusk-bot-notes.json another AI made
+      // a file copied in Finder, such as the dusk-bot-notes.md another AI made
       e.preventDefault();
       void pickFiles(copiedFiles);
       return;

@@ -608,3 +608,13 @@ export function grokMovePlan(bot: GrokBot, options: { timeZone?: string; takenSe
     dropped: memory.dropped,
   };
 }
+
+/** A schedule another AI described for one of the person's own routines (pasted notes): its cron in its zone, else none. */
+export function notesRoutineSchedule(routine: { cron?: string; when?: string; timeZone?: string }, timeZone: string): PackageRoutineSchedule | null {
+  return routineSchedule({ name: "", instruction: "", trigger: "", cron: routine.cron ?? "", when: routine.when ?? "", timeZone: routine.timeZone ?? "", paused: false, skills: [], details: "" }, timeZone);
+}
+
+/** One of the person's own skills as a SKILL.md for a bot already here, under a name not in `taken`; null when it can't be one. */
+export function notesSkillTemplate(skill: GrokSkill, taken: Set<string>): { name: string; description: string; instructions: string } | null {
+  return skillEntry(skill, uniqueSlug(skill.name, "skill", taken));
+}

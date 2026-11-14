@@ -470,7 +470,18 @@ const PROFILE_MARKERS = ["config.yaml", ".env", "SOUL.md", "profile.yaml", "auth
 const HERMES_PLATFORMS = ["telegram", "discord", "whatsapp", "slack", "signal", "email", "matrix", "mattermost", "sms", "homeassistant", "dingtalk", "feishu", "wecom"];
 
 function hermesEntries(body: string): string[] {
-  return body.split(/\n?\s*§\s*\n?/).map((entry) => entry.trim()).filter((entry) => entry && hasContent(entry));
+  if (body.includes("§")) return body.split(/\n?\s*§\s*\n?/).map((entry) => entry.trim()).filter((entry) => entry && hasContent(entry));
+  // written by hand as a markdown page rather than by Hermes's memory tool: one entry per line, led by its section
+  const out: string[] = [];
+  let section = "";
+  for (const raw of body.split(/\r?\n/)) {
+    const heading = /^#{2,6}\s+(.+?)\s*#*$/.exec(raw.trim());
+    if (heading) { section = heading[1]!.replace(/[*_`]/g, "").trim(); continue; }
+    const line = raw.replace(/^\s*(?:[-*•+]|\d+[.)])\s+/, "").replace(/\*\*(.+?)\*\*/g, "$1").trim();
+    if (!line || line.startsWith("#") || line.startsWith("<!--") || /^[-*_=]{3,}$/.test(line)) continue;
+    out.push(section && !line.toLowerCase().startsWith(section.toLowerCase()) ? `${section}: ${line}` : line);
+  }
+  return out;
 }
 
 function bundledSkills(reader: Reader, skills: string): Set<string> {

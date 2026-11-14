@@ -1,66 +1,143 @@
 // Notes from an assistant whose files this computer can't read (ChatGPT, Claude, Gemini, Grok, a bot in another app):
-// the person pastes NOTES_PROMPT there, and that assistant writes everything it knows into one JSON block marked with
-// NOTES_FORMAT. Pasted or dropped into any chat here, the block is split into About me, the first bot's memory, and a
-// bot each for its custom assistants. One combined block, not a file per bot: one copy and one paste whatever the
+// the person pastes NOTES_PROMPT there, and that assistant writes everything it knows into one markdown file whose front
+// matter names NOTES_FORMAT (shared/notes-markdown.ts; the older JSON block is still read). Pasted or dropped into any
+// chat here, or saved to Downloads, it is split into About me, the first bot's memory, skills and routines, and a bot
+// each for its custom assistants. One combined block, not a file per bot: one copy and one paste whatever the
 // assistant holds, and the importer, not the person, does the sorting. Pure text: the renderer and tests both read it.
+import { markdownNotes, NOTES_END } from "./notes-markdown.ts";
 import {
-  bracedObjects, credentialKeys, GrokImportError, looseJson, mergeGrokBots, readBot, redactStrings, type GrokBot, type MoveFrom,
+  bracedObjects, credentialKeys, GrokImportError, looseJson, mergeGrokBots, readBot, redactStrings, type GrokBot, type GrokSkill, type MoveFrom,
 } from "./grok-import.ts";
 
 export const NOTES_FORMAT = "dusk-bot-notes";
 export const NOTES_MAX_CHARS = 4 * 1024 * 1024;
-/** 2 asks for About me in sections, open threads, recurring tasks, connected apps and each bot's knowledge files. */
-export const NOTES_VERSION = 2;
-const TEMPLATE_FROM = "your app's name";
+/** 3 is a markdown file with front matter, a setup block for dusk bot, contacts, skills and per-bot personality; 2 (JSON)
+ * is still read. */
+export const NOTES_VERSION = 3;
+export const NOTES_FILE_NAME = "dusk-bot-notes.md";
+const TEMPLATE_FROM = "<name of this app";
+const OLD_TEMPLATE_FROM = "your app's name";
 
-export const NOTES_PROMPT = `I'm moving to a new assistant, dusk bot, and want it to know everything you know about me so I don't start over. Please write me one complete copy. Don't change or delete anything on your side.
+export { NOTES_END };
 
-Go through everything you have: your saved memories, my custom instructions and personalization, every custom GPT, Project, Gem, agent or bot I made with its own instructions and the files attached to it, my scheduled tasks, my connected apps, and what you've learned about me from our chats.
+export const NOTES_PROMPT = `I'm moving to a new assistant called dusk bot and want it to pick up where you and I are, so I don't start over. Please make me one complete export of everything you know about me and everything I've set up with you. Don't change or delete anything on your side.
 
-Save it as a file named dusk-bot-notes.json in my Downloads folder: if you can write files on my computer, write it straight to ~/Downloads/dusk-bot-notes.json; otherwise give me a download link for it. If you can't make files at all, put the whole JSON in one \`\`\`json code block instead.
+Go through all of it: your saved memories, my custom instructions and personalization, every custom GPT, Project, Gem, companion, agent or bot I made (its instructions, personality and attached files), my scheduled tasks, my connected apps, and what you've learned about me from our chats.
 
-{
-  "format": "${NOTES_FORMAT}",
-  "version": ${NOTES_VERSION},
-  "from": "${TEMPLATE_FROM}, e.g. ChatGPT",
-  "about_me": {
-    "basics": ["my name, where I live, my time zone, languages I speak"],
-    "work": ["my job, company, role, what I'm responsible for, my field"],
-    "projects": ["each project I'm on: what it is, its status, who's involved, key dates"],
-    "goals": ["what I'm working toward, short and long term"],
-    "people": ["each person I've mentioned: their name, who they are to me, what to remember"],
-    "preferences": ["likes, dislikes, food, travel, health, money, and anything else I prefer"],
-    "writing_style": ["how I write: tone, length, words I use or avoid, formatting I like, a short sample if you have one"],
-    "tools": ["apps, software, devices and services I use"],
-    "schedule": ["when I work, sleep and exercise; regular meetings; weekly patterns"]
-  },
-  "instructions": "my custom instructions and how I've asked you to answer and behave, word for word",
-  "memories": ["every saved memory, word for word, one per string, with its date if you know it"],
-  "open_threads": ["what's still open: to-dos, open questions, decisions I haven't made, things I said I'd come back to"],
-  "recurring_tasks": [{"name": "task name", "instruction": "what it does, word for word", "schedule_text": "when, in words", "schedule_cron": "5-field cron, or empty", "timezone": "IANA time zone"}],
-  "connected_apps": ["each app or service connected for me, e.g. Gmail"],
-  "bots": [
-    {
-      "name": "its name",
-      "description": "what it's for, in one line",
-      "instructions": "its full instructions, word for word, never summarized",
-      "knowledge_files": ["the name of each file attached to it"],
-      "memories": ["what it knows, one per string"],
-      "skills": [{"name": "skill name", "description": "when to use it", "instructions": "the full text"}],
-      "routines": [{"name": "routine name", "instruction": "what it does, word for word", "schedule_text": "when, in words", "schedule_cron": "5-field cron, or empty", "timezone": "IANA time zone"}],
-      "apps": [{"name": "connected app or tool", "mcp_url": "its remote MCP address, or empty"}]
-    }
-  ]
-}
+Deliver it as ONE file named ${NOTES_FILE_NAME}:
+- If you can write files on my computer, save it straight to ~/Downloads/${NOTES_FILE_NAME}.
+- Otherwise, if you can make files, give me ${NOTES_FILE_NAME} to download.
+- Otherwise, reply with the whole file inside one code block that starts with \`\`\`\`markdown and ends with \`\`\`\`, so I can copy it.
+
+Use exactly this layout. Keep every heading and the front matter in English as written, even if we usually talk in another language; what you write under them can be in any language. Leave out any section you have nothing for. Replace every <...> with the real thing and never leave a placeholder.
+
+---
+format: ${NOTES_FORMAT}
+version: ${NOTES_VERSION}
+from: ${TEMPLATE_FROM}, e.g. Grok, ChatGPT, Claude or Gemini>
+exported: <today's date, YYYY-MM-DD>
+---
+
+# SETUP INSTRUCTIONS FOR DUSK BOT
+
+<Write this part yourself, to dusk bot, in 3 to 6 sentences: which app this export comes from and who I am in one line; how many bots are listed under Bots, and that each is an assistant I built here which dusk bot should recreate as its own bot with the instructions, personality, memories, skills and routines given; that About me, Contacts and Memories are facts about me for the memory all my bots share; that Skills are mine for every bot; and that Routines are things you did for me on a schedule, to set up again.>
+
+# About me
+## Basics
+- <my name, where I live, my time zone, languages I speak>
+## Work
+- <my job, company, role, what I'm responsible for>
+## Projects
+- <each project: what it is, its status, who's involved, key dates>
+## Goals
+- <what I'm working toward, short and long term>
+## Preferences
+- <likes, dislikes, food, travel, health, money, anything I prefer>
+## Writing style
+- <how I write: tone, length, words I use or avoid, formatting I like>
+## Tools
+- <apps, software, devices and services I use>
+## Schedule
+- <when I work, sleep and exercise; regular meetings; weekly patterns>
+
+# Contacts
+- <a person's name>: <who they are to me, how I reach them if I told you, what to remember>
+
+# How I like answers
+~~~text
+<my custom instructions and how I've asked you to answer, word for word>
+~~~
+
+# Memories
+- <each saved memory, word for word, one per line, with its date if you know it>
+
+# Open threads
+- <a to-do, open question, or decision I haven't made yet>
+
+# Routines
+## <routine name>
+- Schedule: <when, in words>
+- Cron: <5-field cron, or leave this line out>
+- Time zone: <IANA time zone, e.g. Europe/London>
+~~~text
+<what it does, word for word>
+~~~
+
+# Connected apps
+- <each app or service connected for me, e.g. Gmail>
+
+# Skills
+## <skill name>
+- When to use: <one line>
+~~~text
+<the skill's full text>
+~~~
+
+# Bots
+## Bot: <its name>
+- Kind: <Custom GPT, Project, Gem, companion, agent or bot>
+- Description: <what it's for, in one line>
+### Instructions
+~~~text
+<its full instructions, word for word, never summarized>
+~~~
+### Personality
+- <its tone, voice or character, one trait per line>
+### Memories
+- <something it knows that matters for its job, one per line>
+### Knowledge files
+- <the name of each file attached to it>
+### Skills
+#### <skill name>
+- When to use: <one line>
+~~~text
+<the skill's full text>
+~~~
+### Routines
+#### <routine name>
+- Schedule: <when, in words>
+- Cron: <5-field cron, or leave this line out>
+- Time zone: <IANA time zone>
+~~~text
+<what it does, word for word>
+~~~
+### Apps
+- <app or tool it uses, with its remote MCP address if it has one>
+
+${NOTES_END}
 
 Rules:
-- "bots" has one entry for each custom GPT, Claude Project, Gem, agent or bot I made with its own instructions. Use [] when there are none.
-- Copy saved memories and instructions word for word; never summarize them. For everything else be thorough and specific: names, numbers, dates.
-- Write only what you actually know. Never guess; leave a list empty instead.
+- One "## Bot:" section for each custom GPT, Project, Gem, companion, agent or bot I made with its own instructions, each filled in completely before the next. No bots: leave out the Bots section.
+- Facts about me go under About me or Contacts, even when a bot learned them. A bot's own Memories are only what matters for its job.
+- Copy saved memories, my custom instructions and each bot's instructions word for word; never summarize them. For everything else be thorough and specific: names, numbers, dates.
+- Write only what you actually know. Never guess or invent anything.
 - Leave out passwords, API keys, tokens, account numbers and card numbers.
-- Valid JSON only, no comments.
-- If it doesn't fit in one file or reply, split it: part 1 now, ending at a complete item, and tell me to say "continue" for the next. Name the files dusk-bot-notes-2.json, dusk-bot-notes-3.json and so on. Each part is valid JSON on its own, in this same shape, with the same "format".
+- Keep verbatim text between the ~~~text and ~~~ lines, so headings inside it stay part of it.
+- The file's last line is ${NOTES_END}. If it doesn't all fit, stop after a whole section or bot, tell me to say "continue", and give the rest as dusk-bot-notes-2.md (then -3 and so on), each part starting with the same front matter. Only the last part ends with ${NOTES_END}.
 `;
+
+/** Something the other AI did on a schedule for the person; `cron` and `timeZone` when it gave them. */
+export interface NotesRoutine { name: string; instruction: string; when: string; cron?: string; timeZone?: string }
 
 export interface AssistantNotes {
   /** The app the notes come from, as it named itself, and a slug for file names. */
@@ -72,7 +149,11 @@ export interface AssistantNotes {
   /** To-dos, open questions and things to come back to. */
   openThreads: string[];
   /** Things it did on a schedule for the person, to set up again here. */
-  recurring: Array<{ name: string; instruction: string; when: string }>;
+  recurring: NotesRoutine[];
+  /** The person's own skills, for every bot: kept on the first bot. */
+  skills: GrokSkill[];
+  /** What the other AI wrote to dusk bot about the file (SETUP INSTRUCTIONS FOR DUSK BOT). */
+  setup: string;
   /** Apps it was connected to for the person, by name. */
   apps: string[];
   /** The block was cut off: what was whole before the cut is here, the rest is missing. */
@@ -81,18 +162,18 @@ export interface AssistantNotes {
 
 /** Cheap enough to run on every paste: the marker and an opening brace. Whether it really is notes is parseNotes's call. */
 export function looksLikeNotes(text: string): boolean {
-  return text.length <= NOTES_MAX_CHARS && text.includes(NOTES_FORMAT) && text.includes("{");
+  return text.length <= NOTES_MAX_CHARS && text.includes(NOTES_FORMAT) && (text.includes("{") || /^\s*format\s*:\s*dusk-bot-notes\s*$/m.test(text));
 }
 
 /** The prompt itself, pasted here instead of into the other AI: its example block must never be read as notes. */
 export function isNotesPrompt(text: string): boolean {
-  return text.includes(`"from": "${TEMPLATE_FROM}`);
+  return text.includes(`from: ${TEMPLATE_FROM}`) || text.includes(`"from": "${OLD_TEMPLATE_FROM}`);
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 const isNotes = (value: unknown): value is Record<string, unknown> =>
-  isRecord(value) && value.format === NOTES_FORMAT && !(typeof value.from === "string" && value.from.startsWith(TEMPLATE_FROM));
+  isRecord(value) && value.format === NOTES_FORMAT && !(typeof value.from === "string" && (value.from.startsWith(TEMPLATE_FROM) || value.from.startsWith(OLD_TEMPLATE_FROM)));
 const text = (value: unknown) => (typeof value === "string" ? value.trim() : "");
 const BULLET = /^\s*(?:[-*•]|\d+[.)])\s+/;
 
@@ -117,13 +198,23 @@ function aboutLines(value: unknown): string[] {
   });
 }
 
-function tasks(value: unknown): AssistantNotes["recurring"] {
+function tasks(value: unknown): NotesRoutine[] {
   return (Array.isArray(value) ? value : []).flatMap((item) => {
     if (typeof item === "string") return item.trim() ? [{ name: "", instruction: item.trim(), when: "" }] : [];
     if (!isRecord(item)) return [];
     const instruction = text(item.instruction ?? item.prompt ?? item.task);
-    const when = [text(item.schedule_text ?? item.when ?? item.schedule), text(item.schedule_cron) && `(${text(item.schedule_cron)}${text(item.timezone) ? `, ${text(item.timezone)}` : ""})`].filter(Boolean).join(" ");
-    return instruction ? [{ name: text(item.name).slice(0, 100), instruction, when }] : [];
+    const cron = text(item.schedule_cron ?? item.cron);
+    const timeZone = text(item.timezone ?? item.timeZone);
+    const when = [text(item.schedule_text ?? item.when ?? item.schedule), cron && `(${cron}${timeZone ? `, ${timeZone}` : ""})`].filter(Boolean).join(" ");
+    return instruction ? [{ name: text(item.name).slice(0, 100), instruction, when, ...(cron ? { cron } : {}), ...(timeZone ? { timeZone } : {}) }] : [];
+  });
+}
+
+function ownSkills(value: unknown): GrokSkill[] {
+  return (Array.isArray(value) ? value : []).flatMap((item) => {
+    if (!isRecord(item)) return [];
+    const skill = { name: text(item.name).slice(0, 100), description: text(item.description ?? item.when_to_use), instructions: text(item.instructions ?? item.text ?? item.body) };
+    return skill.name && skill.instructions ? [skill] : [];
   });
 }
 
@@ -165,6 +256,11 @@ export function closeCutOff(source: string): string | null {
 }
 
 function documentsIn(source: string): { documents: Array<Record<string, unknown>>; partial: boolean } {
+  const written = markdownNotes(source, NOTES_FORMAT);
+  if (written) {
+    const documents = written.documents.filter(isNotes);
+    if (documents.length) return { documents, partial: written.partial };
+  }
   const repaired = source.replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
   for (const version of repaired === source ? [source] : [source, repaired]) {
     const whole = looseJson(version.trim());
@@ -211,9 +307,11 @@ export function parseNotes(source: string): AssistantNotes {
     openThreads: union(documents.flatMap((document) => lines(document.open_threads ?? document.openThreads ?? document.todos))),
     recurring: uniqueTasks(documents.flatMap((document) => tasks(document.recurring_tasks ?? document.recurringTasks ?? document.routines))),
     apps: union(documents.flatMap((document) => lines(document.connected_apps ?? document.connectedApps ?? document.apps).map((app) => app.slice(0, 100)))),
+    skills: [...new Map(documents.flatMap((document) => ownSkills(document.skills)).map((skill) => [skill.name.toLowerCase(), skill])).values()],
+    setup: union(documents.map((document) => text(document.setup)).filter(Boolean)).join("\n\n"),
     partial,
   });
-  if (!notes.aboutMe.length && !notes.instructions && !notes.memories.length && !notes.bots.length && !notes.openThreads.length && !notes.recurring.length) {
+  if (!notes.aboutMe.length && !notes.instructions && !notes.memories.length && !notes.bots.length && !notes.openThreads.length && !notes.recurring.length && !notes.skills.length) {
     throw new GrokImportError(partial ? "cutOff" : "notExport");
   }
   return notes;
