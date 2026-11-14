@@ -1,15 +1,15 @@
 #!/usr/bin/env node
-// Prepares dusk cloud for an account service (production first, preview for its home package): the dusk.env names it
-// needs, and a signed home package on the VPS. Dry run unless --apply; idempotent (only what is missing or different is
+// Prepares dusk cloud on the production account service: the dusk.env names it needs, and a check that the home
+// package the release flow placed matches its signature and sha256. Dry run unless --apply; idempotent (only what is missing or different is
 // written); prints names, paths and sha256s, never a secret's value.
 //
 //   node deploy/account/production-cloud.mjs env [--apply]                         the [production] names below
-//   node deploy/account/production-cloud.mjs package <preview|production> [--apply] release/home/omb-home.tgz(.sig), as built and
-//                                                                                signed, uploaded under its version and named in dusk.env
+//   node deploy/account/production-cloud.mjs package-check <preview|production>   the release flow's home package, its
+//                                                                                signature and dusk.env's sha256 agree (read only)
 // The deploys themselves are in deploy/account/PRODUCTION-CLOUD.md.
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { chmodSync, copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -72,29 +72,19 @@ if (step === "env") {
   const probe = join(mkdtempSync(join(tmpdir(), "dusk-env-")), "env");
   try { execFileSync("node", [join(root, "deploy/env.mjs"), "production", probe], { stdio: "inherit" }); say(`production env builds (${readFileSync(probe, "utf8").split("\n").filter(Boolean).length} names)`); }
   finally { rmSync(dirname(probe), { recursive: true, force: true }); }
-} else if (step === "package") {
-  const target = rest.find((arg) => arg === "preview" || arg === "production") ?? fail("package needs preview or production");
-  const tgz = join(root, "release/home/omb-home.tgz"), sig = `${tgz}.sig`;
-  if (!existsSync(tgz) || !existsSync(sig)) fail("build and sign it first: node apps/cloud-service/scripts/build-home-package.mjs, then sign-release.ts (PRODUCTION-CLOUD.md)");
-  const sha = createHash("sha256").update(readFileSync(tgz)).digest("hex");
-  const version = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version;
-  const dir = target === "production" ? "/var/lib/dusk-account-prod/home" : "/var/lib/dusk-account-preview/home";
-  const remote = `${dir}/omb-home-${version}.tgz`, suffix = target.toUpperCase();
-  const there = execFileSync("ssh", ["-o", "BatchMode=yes", "contabo", `sha256sum ${remote} 2>/dev/null | cut -c1-64; test -f ${remote}.sig && echo sig; true`], { encoding: "utf8" }).split("\n");
-  if (there[0] === sha && there[1] === "sig") say(`${remote}: already there (sha256 ${sha.slice(0, 12)}...)`);
-  else {
-    say(`${remote}(.sig): would upload version ${version}, sha256 ${sha.slice(0, 12)}...`);
-    if (apply) {
-      execFileSync("ssh", ["-o", "BatchMode=yes", "contabo", `mkdir -p ${dir}`]);
-      execFileSync("scp", ["-q", tgz, `contabo:${remote}`]); execFileSync("scp", ["-q", sig, `contabo:${remote}.sig`]);
-      const check = execFileSync("ssh", ["-o", "BatchMode=yes", "contabo", `sha256sum ${remote} | cut -c1-64`], { encoding: "utf8" }).trim();
-      if (check !== sha) fail(`the uploaded package's sha256 differs (${check.slice(0, 12)}...)`);
-    }
-  }
-  setNames(target, [[`DUSK_MANAGED_HOME_PACKAGE_FILE_${suffix}`, remote], [`DUSK_MANAGED_HOME_PACKAGE_SIGNATURE_FILE_${suffix}`, `${remote}.sig`], [`DUSK_MANAGED_HOME_PACKAGE_SHA256_${suffix}`, sha]],
-    { replace: [`DUSK_MANAGED_HOME_PACKAGE_FILE_${suffix}`, `DUSK_MANAGED_HOME_PACKAGE_SIGNATURE_FILE_${suffix}`, `DUSK_MANAGED_HOME_PACKAGE_SHA256_${suffix}`] });
-  say(`then: deploy/account/deploy.sh ${target} (homes take the newer package when idle)`);
+} else if (step === "package-check") {
+  // home packages are built, signed and placed by the release flow only, always as <dir>/omb-home.tgz(.sig) with its
+  // sha256 in dusk.env; this only checks that the file, its signature and the env agree before a deploy, and changes nothing
+  const target = rest.find((arg) => arg === "preview" || arg === "production") ?? fail("package-check needs preview or production");
+  const suffix = target.toUpperCase(), { lines, names } = readEnv();
+  const value = (name) => { const i = names.get(name); return i === undefined ? null : lines[i].slice(name.length + 1).replace(/^(["'])(.*)\1$/, "$2"); };
+  const file = value(`DUSK_MANAGED_HOME_PACKAGE_FILE_${suffix}`), sig = value(`DUSK_MANAGED_HOME_PACKAGE_SIGNATURE_FILE_${suffix}`), sha = value(`DUSK_MANAGED_HOME_PACKAGE_SHA256_${suffix}`);
+  if (!file || !sig || !sha) fail(`dusk.env has no DUSK_MANAGED_HOME_PACKAGE_FILE/SIGNATURE_FILE/SHA256_${suffix}: the release flow places ${target}'s package first`);
+  const there = execFileSync("ssh", ["-o", "BatchMode=yes", "contabo", `sha256sum '${file}' 2>/dev/null | cut -c1-64; test -s '${sig}' && echo sig; true`], { encoding: "utf8" }).split("\n");
+  if (there[0] !== sha) fail(`${file} has sha256 ${there[0] ? `${there[0].slice(0, 12)}...` : "(missing)"}, dusk.env says ${sha.slice(0, 12)}...: do not deploy`);
+  if (there[1] !== "sig") fail(`${sig} is missing or empty: do not deploy`);
+  console.log(`${target}: ${file} matches dusk.env (sha256 ${sha.slice(0, 12)}...) and has its signature`);
 } else {
-  console.error("usage: production-cloud.mjs env [--apply] | package <preview|production> [--apply]");
+  console.error("usage: production-cloud.mjs env [--apply] | package-check <preview|production>");
   process.exit(2);
 }

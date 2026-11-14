@@ -39,18 +39,20 @@ node deploy/account/production-cloud.mjs env --apply    # writes them, prints th
 Check: the apply ends with `production env builds (N names)`.
 Rollback: `cp -p <the backup it printed> ~/.config/duskbot/dusk.env` (nothing was deployed yet).
 
-## 2. The signed home package on the VPS
+## 2. The home package (release flow only)
+
+Home packages are built, signed and placed only by the release flow (the owner-agent for package builds): it puts
+`/var/lib/dusk-account-prod/home/omb-home.tgz(.sig)` on the VPS and sets `DUSK_MANAGED_HOME_PACKAGE_FILE_PRODUCTION`,
+`DUSK_MANAGED_HOME_PACKAGE_SIGNATURE_FILE_PRODUCTION` and `DUSK_MANAGED_HOME_PACKAGE_SHA256_PRODUCTION`. Nobody else
+builds a package or edits those names. Ask for it, then check, right before step 3 (and before any preview deploy):
 
 ```sh
-node apps/cloud-service/scripts/build-home-package.mjs
-DUSK_RELEASE_SIGNING_KEY="$(sed -n 's/^DUSK_RELEASE_SIGNING_KEY=//p' ~/.config/duskbot/dusk.env | tr -d "\"'")" \
-  node apps/cloud-service/scripts/sign-release.ts release/home/omb-home.tgz --kind home-package --name omb-home --version "$(node -p 'require("./package.json").version')"
-node deploy/account/production-cloud.mjs package production            # dry run
-node deploy/account/production-cloud.mjs package production --apply    # uploads omb-home-<version>.tgz(.sig), names it in dusk.env
+node deploy/account/production-cloud.mjs package-check production    # read only: file, signature and sha256 agree
 ```
 
-Check: a second `package production` run says `already there` and `unchanged` for all three names.
-Rollback: `cp -p <the backup it printed> ~/.config/duskbot/dusk.env`; the uploaded files are inert.
+Check: `production: ... matches dusk.env (sha256 ...) and has its signature`. Anything else: do not deploy.
+Also skip a deploy when the release flow deployed that service in the last 15 minutes
+(`ssh contabo 'git -C /root/autorunner/projects/dusk-account-prod log -1 --format=%cI'`).
 
 ## 3. The production account service with dusk cloud on
 
