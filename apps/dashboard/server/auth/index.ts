@@ -652,7 +652,8 @@ export function createAuth(options: AuthOptions) {
       } else if (method === "POST" && path === R.appDeleteAccount) {
         const found = appSession(req);
         if (!found) return fail(401, "invalid_token");
-        await deleteAccount(found.account, { email: data.email, cancelBilling: true });
+        // the app's "Start fresh" ends the clouds now too, not at the paid period's end
+        await deleteAccount(found.account, { email: data.email, cancelBilling: true, destroyDesktopsNow: data.destroyDesktopsNow === true });
         json({ ok: true });
       } else if (path === R.deviceLookup && method === "GET") {
         requireWeb(req, { mutation: false });
