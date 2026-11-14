@@ -81,9 +81,8 @@ export function PasteSlot({ name, onSubmit }: { name: string; onSubmit: (code: s
     <form data-sign-in="paste" className="flex w-[288px] max-w-full flex-col items-center gap-2" onSubmit={(event) => { event.preventDefault(); onSubmit(code); }}>
       <input autoFocus value={code} onChange={(event) => setCode(event.target.value)} aria-label={t("onboarding.meet.paste", { name })}
         placeholder={t("onboarding.meet.paste", { name })}
-        className="h-9 w-full rounded-[18px] border-[0.5px] border-transparent bg-composer px-4 text-[14px] leading-5 text-ink placeholder:text-ink-tertiary" />
+        className="h-9 w-full rounded-[18px] border-0 bg-ink/[0.06] px-4 text-[14px] leading-5 text-ink outline-none placeholder:text-ink-tertiary focus-visible:bg-ink/[0.08]" spellCheck={false} autoCorrect="off" autoCapitalize="off" />
       <button type="submit" disabled={!code.trim()} className={SECONDARY}>{t("onboarding.meet.pasteSubmit")}</button>
-      <p className="m-0 text-center text-[12px] leading-4 text-ink-tertiary">{t("connect.stage.pasteHint", { name })}</p>
     </form>
   );
 }

@@ -144,7 +144,8 @@ export function AiCards({ onMore, className, start, onConnected }: { tested: Wel
           <Connect tile={chosen} flow={{ ...flow, cancel: () => { flow.cancel(); setPicked(null); } }} />
         </div>
       )}
-      {onMore && (
+      {/* while a sign-in runs, nothing else to pick */}
+      {onMore && !(chosen && flow.state.stage !== "idle" && flow.state.stage !== "failed") && (
         <button type="button" data-ai-more="" onClick={onMore}
           className="mt-3 min-h-9 rounded-full px-3 text-[13px] leading-[18px] text-ink-secondary transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none">
           {t("connectAi.more")}

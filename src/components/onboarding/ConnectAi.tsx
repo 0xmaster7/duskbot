@@ -131,7 +131,7 @@ export function ConnectAiDialog({ tested, directory = false, onClose, start, onC
   return (
     <ModalLayer><div
       className="ui-scrim fixed inset-0 z-[60] flex items-center justify-center p-4"
-      onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
+      // a click outside never closes it: a sign-in may be under way; Close or Escape does
     >
       <div
         ref={box}

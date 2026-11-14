@@ -216,7 +216,7 @@ describe("connecting an AI on the first screen", () => {
     delete window.duskDesktop;
   });
 
-  it("opens as the Connect an AI dialog, which Escape and a click outside close", async () => {
+  it("opens as the Connect an AI dialog, which Escape closes and a click outside never does", async () => {
     const onClose = vi.fn();
     await act(async () => { root.render(createElement(ConnectAiDialog, { tested: null, onClose })); });
     const dialog = document.body.querySelector<HTMLElement>("[data-connect-ai]")!;
@@ -232,8 +232,6 @@ describe("connecting an AI on the first screen", () => {
     await act(async () => { dialog.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); });
     expect(onClose).toHaveBeenCalledOnce();
     await act(async () => { dialog.parentElement!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true })); });
-    expect(onClose).toHaveBeenCalledTimes(2);
-    await act(async () => { dialog.dispatchEvent(new MouseEvent("mousedown", { bubbles: true })); });
-    expect(onClose, "a click inside stays").toHaveBeenCalledTimes(2);
+    expect(onClose, "a click outside stays").toHaveBeenCalledOnce();
   });
 });
