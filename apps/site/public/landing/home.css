@@ -54,13 +54,6 @@
 /* a few of the bots hang around the headline, off to the sides, so the top has some life; placed out of the flow, so
    nothing moves when they wake up, and only where there is room beside the words */
 .hero { position: relative; }
-.hero-pals { position: absolute; inset: 0; pointer-events: none; }
-.hero-pals .bot { position: absolute; pointer-events: auto; cursor: pointer; }
-.hero-pals .bot:nth-child(1) { width: 46px; left: calc(50% - 540px); top: 196px; rotate: -6deg; }
-.hero-pals .bot:nth-child(2) { width: 34px; left: calc(50% + 470px); top: 150px; rotate: 5deg; }
-.hero-pals .bot:nth-child(3) { width: 30px; left: calc(50% + 430px); top: 318px; }
-.hero-pals .bot:nth-child(4) { width: 28px; left: calc(50% - 470px); top: 352px; rotate: 4deg; }
-@media (max-width: 1140px) { .hero-pals { display: none; } }
 
 /* every screen: one scene. a laptop, a monitor and a phone stand apart on the grass, each showing the same bot in a slice
    of the real app, each with its own label underneath. the devices are flat and drawn in css: a device is placed by its left
