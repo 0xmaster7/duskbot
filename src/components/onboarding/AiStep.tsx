@@ -1,31 +1,49 @@
 // Connecting an AI, as one step of the first run: the grid of AIs people already use (AiCards), and the free model or
-// later when none is connected yet. More ways opens every other provider and API keys.
-import { useState } from "react";
-import { LoaderCircle, RefreshCw } from "../../icons";
+// later when none is connected yet. More ways opens every other provider and API keys. An AI already signed in here
+// that answers its test message is used without asking: the step says so for a moment and goes on.
+import { useEffect, useRef, useState } from "react";
+import { Check, LoaderCircle, RefreshCw } from "../../icons";
 import { engineReady } from "@/components/EngineLibrary";
 import { t } from "@/lib/i18n";
 import { useStore } from "@/state/store";
 import { AiCards } from "./AiCards";
 import { ConnectAiDialog } from "./ConnectAi";
 import { aiName, aiTiles, freeModel } from "./funnel";
-import { PRIMARY, QUIET, SECONDARY, StepArt, StepFrame } from "./FunnelSteps";
+import { PRIMARY, SECONDARY, StepArt, StepFrame } from "./FunnelSteps";
 import type { WelcomeAiNow } from "./welcome-ai";
 
 /** `onNext` says how the person went on (an AI connected, the free model, or later), for the funnel's numbers. `cloud`:
- * the person's dusk cloud is being made meanwhile, which the line says. */
-export function AiStep({ tested, cloud = false, onNext }: { tested: WelcomeAiNow | null; cloud?: boolean; onNext: (how: "connected" | "free" | "later") => void }) {
+ * the person's dusk cloud is being made meanwhile, which the line says. `auto`: an AI that already works is used without
+ * asking (false when the person came back to this step). */
+export function AiStep({ tested, cloud = false, auto = true, onNext }: { tested: WelcomeAiNow | null; cloud?: boolean; auto?: boolean; onNext: (how: "connected" | "free" | "later") => void }) {
   const { state } = useStore();
   const [more, setMore] = useState(false);
   const free = freeModel(state.instances, engineReady);
   const connected = aiTiles(state.instances, engineReady).filter((tile) => engineReady(tile.instance));
+  const using = useFoundAi(auto ? tested : null, onNext);
+
+  if (using !== "none") {
+    const name = tested ? aiName(tested.instance) : "";
+    return (
+      <StepFrame art={<StepArt art="plug" />} title={using === "found" ? t("funnel.ai.using", { name }) : t("funnel.ai.looking")}>
+        {using === "checking"
+          ? <p role="status" data-ai-checking="" className="flex items-center gap-2 text-[14px] text-ink-secondary">
+              <LoaderCircle size={15} aria-hidden="true" className="shrink-0 animate-spin motion-reduce:animate-none" />
+              {t("onboarding.engines.checkingAnswer", { name })}
+            </p>
+          : <p role="status" data-ai-found="" className="flex items-center gap-2 text-[14px] text-success">
+              <Check size={15} strokeWidth={2.5} aria-hidden="true" className="shrink-0" />
+              {t("funnel.ai.usingSub")}
+            </p>}
+      </StepFrame>
+    );
+  }
 
   return (
     <StepFrame art={<StepArt art="plug" />} title={t("funnel.ai.title")} sub={connected.length ? t("funnel.ai.subMore") : cloud ? t("funnel.ai.subCloud") : t("funnel.ai.sub")} wide
       footer={<>
-        {connected.length > 0
-          ? <button type="button" data-primary="" data-funnel-ai-continue="" onClick={() => onNext("connected")} className={PRIMARY}>{t("funnel.next")}</button>
-          : free && <button type="button" data-funnel-free="" onClick={() => onNext("free")} className={SECONDARY}>{t("funnel.ai.free")}</button>}
-        {connected.length === 0 && <button type="button" data-funnel-later="" onClick={() => onNext("later")} className={QUIET}>{t("funnel.ai.later")}</button>}
+        <button type="button" data-primary="" data-funnel-ai-continue="" disabled={connected.length === 0} onClick={() => onNext("connected")} className={PRIMARY}>{t("funnel.next")}</button>
+        {connected.length === 0 && <button type="button" data-funnel-later="" onClick={() => onNext(free ? "free" : "later")} className={SECONDARY}>{t("funnel.ai.later")}</button>}
       </>}>
       <AiCards tested={tested} onMore={() => setMore(true)} />
 
@@ -44,4 +62,23 @@ export function AiStep({ tested, cloud = false, onNext }: { tested: WelcomeAiNow
       {more && <ConnectAiDialog tested={tested} directory onClose={() => setMore(false)} />}
     </StepFrame>
   );
+}
+
+/** On arriving at the step: "checking" while an AI already signed in here gets its test message, "found" once it
+ * answered (then the step goes on by itself), "none" for the cards. Only on arrival, so Back to this step stays. */
+function useFoundAi(tested: WelcomeAiNow | null, onNext: (how: "connected") => void): "checking" | "found" | "none" {
+  const decided = useRef<"checking" | "found" | "none">(tested?.state === "testing" || tested?.state === "passed" ? "checking" : "none");
+  if (decided.current === "checking") {
+    if (tested?.state === "passed") decided.current = "found";
+    else if (tested?.state !== "testing") decided.current = "none";
+  }
+  const found = decided.current === "found";
+  const next = useRef(onNext);
+  next.current = onNext;
+  useEffect(() => {
+    if (!found) return;
+    const timer = window.setTimeout(() => next.current("connected"), 1_400);
+    return () => window.clearTimeout(timer);
+  }, [found]);
+  return decided.current;
 }

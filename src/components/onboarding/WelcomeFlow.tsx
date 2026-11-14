@@ -298,7 +298,7 @@ export function WelcomeFlow({
       body = <CheckoutStep start={checkoutStart} onPaid={cloudPaid} onMac={toMac} />;
       break;
     case "ai":
-      body = <AiStep tested={tested} cloud={cloud} onNext={(how) => { track("onboarding_ai", { action: how }); next(); }} />;
+      body = <AiStep tested={tested} cloud={cloud} auto={from === "next"} onNext={(how) => { track("onboarding_ai", { action: how }); next(); }} />;
       break;
     case "bring":
       body = <BringStep finds={finds} grokWaiting={move.plan?.grokWaiting ?? []} run={bringRun} onBring={bring} onNext={next} />;
