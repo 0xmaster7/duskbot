@@ -41,7 +41,7 @@ it("loads only local and VPS inventories and offers the existing VPS setup flow"
     await act(async () => { root.render(createElement(LocalComputerSection)); });
     // the server's own description (server-compat), read once for the egress row, and the two inventories
     expect(paths.sort()).toEqual(["/.well-known/duskbot/environment", "/.well-known/openmausbot/environment", "/api/computer/egress", "/api/computers/vps", "/api/local-computer", "/api/mac"]);
-    expect(container.textContent).toContain("add your own server");
+    expect(container.textContent).toContain("Add your own server");
     expect(local.openPlaceSetup).not.toHaveBeenCalled();
     expect(container.textContent).not.toMatch(/\x42oat|credit|cloud desktop/i);
     await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
