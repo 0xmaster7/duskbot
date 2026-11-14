@@ -145,6 +145,15 @@ export class LimitFailovers {
     return false;
   }
 
+  /** The thread's takeover while it still runs on that backup: the AI it left and when it goes back (null: once that
+   * AI works again). */
+  backupOf(threadId: string, current: ModelSelection): { from: ModelSelection; until: number | null; why?: "signed-out" | "provider" } | undefined {
+    const row = this.rows.find((candidate) => candidate.threadId === threadId);
+    if (!row || !sameModelSelection(current, row.to)) return undefined;
+    const until = row.why === "signed-out" ? null : row.resetsAt;
+    return { from: { ...row.from }, until, ...(row.why ? { why: row.why } : {}) };
+  }
+
   list(): LimitFailover[] {
     return this.rows.map((row) => ({ ...row }));
   }

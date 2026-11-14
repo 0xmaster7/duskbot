@@ -2968,11 +2968,14 @@ if (browserCleanupReferencesReconciled) browserCleanup.startPending();
 
 let threadsAwaitingTeammates = (): ReadonlySet<string> => new Set<string>();
 let cacheKeepWarmStatus = (_threadId: string): KeepWarmStatus | undefined => undefined;
+/** The thread's live takeover (limitFailovers, set once it exists): what it left and when it goes back. */
+let threadBackup: (task: TaskRecord, model: ModelSelection) => WireTask["backup"] | undefined = () => undefined;
 const wireTask = (task: TaskRecord, botModel: ModelSelection, awaiting = threadsAwaitingTeammates()): WireTask => {
   // Snoozes heal on read against the server clock; the 0 sentinel ("until new activity") survives reads.
   const { snoozedUntil, ...base } = toWireTask(task, botModel);
   const keepWarm = cacheKeepWarmStatus(task.threadId);
-  const coordinated = { ...base, waitingForTeammates: awaiting.has(task.threadId) && !task.busy, ...(keepWarm ? { cacheKeepWarm: keepWarm } : {}), ...(teamHost.ownTurn(task.threadId) ? { private: true as const } : {}), ...teamMessages.inbox.wire(task.threadId) };
+  const backup = threadBackup(task, base.modelSelection ?? botModel);
+  const coordinated = { ...base, waitingForTeammates: awaiting.has(task.threadId) && !task.busy, ...(keepWarm ? { cacheKeepWarm: keepWarm } : {}), ...(backup ? { backup } : {}), ...(teamHost.ownTurn(task.threadId) ? { private: true as const } : {}), ...teamMessages.inbox.wire(task.threadId) };
   const asleep = snoozedUntil === 0 || (snoozedUntil !== undefined && snoozedUntil > Date.now());
   return asleep ? { ...coordinated, snoozedUntil } : coordinated;
 };
@@ -9404,6 +9407,7 @@ const limitFailovers = new LimitFailovers({ file: join(DATA_DIR, "limit-failover
     const current = store.projectBotForTask(botId, threadId), checked = current ? checkedTaskModelSwitch(current, from, false, false, true) : null;
     return Boolean(checked?.ok && store.switchTaskModel(botId, threadId, checked.selection, false, false, { rewound: true }));
   } });
+threadBackup = (task, model) => limitFailovers.backupOf(task.threadId, model);
 const automationDestinations = createAutomationDestinations({ store, mainThread: botMainThread, runs: () => routines?.listRuns() ?? [],
   cloud: CLOUD_HOME ? { owner: CLOUD_OWNER_KEY!, opener: routineOpener, reportFromOthers: cloudReportFromOthers, opened: (threadId, person) => threadStarters.set(threadId, person), outside: (threadId) => outsideLineage.mark(threadId) } : null });
 const runHealth = startRunHealth({ dataDir: DATA_DIR, turns: () => liveTurnByThread.size, log: (line) => console.log(line) }); const wakeGate = new WakeGate({ onRelease: () => routines?.lookAgain(), log: (line) => console.log(line) }); routines = new RoutineManager({ heldAfterWake: () => wakeGate.held(),

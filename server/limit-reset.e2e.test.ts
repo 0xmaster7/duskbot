@@ -166,6 +166,7 @@ it("continues on the backup engine with one line, and goes back to its own engin
     expect(first.findLast((message) => message.role === "bot" && message.kind === "text")).toMatchObject({ text: "done from fake codex", turnSucceeded: true });
     const task = async (id: string) => (await api("GET", "/api/bots")).bots.find((entry: any) => entry.id === bot.id).tasks.find((entry: any) => entry.threadId === id);
     expect((await task(threadId)).modelSelection).toEqual(codex);
+    expect((await task(threadId)).backup, "the app shows the backup answering and when it goes back").toEqual({ from: claudeModel, until: resetsAt * 1000 });
     expect(claudePrompts()).toHaveLength(1);
 
     // Known to be refusing: a new conversation goes to the backup without spending a refused turn on Claude.
@@ -185,6 +186,7 @@ it("continues on the backup engine with one line, and goes back to its own engin
       "recovery: Verification fixture's limit has reset, so this conversation is back on Verification fixture.",
     ]);
     expect((await task(threadId)).modelSelection).toEqual(claudeModel);
+    expect((await task(threadId)).backup).toBeUndefined();
     expect(claudePrompts()).toHaveLength(2);
     expect(JSON.stringify(claudePrompts()[1])).toContain("Now polish it");
     expect(back.findLast((message) => message.role === "bot" && message.kind === "text")).toMatchObject({ text: "hello from fake claude" });

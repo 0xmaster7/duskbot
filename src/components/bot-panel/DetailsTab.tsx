@@ -11,6 +11,7 @@ import { BotRoutines } from "../routines/BotRoutines";
 import { Card, PanelSections, rowCls, RowText } from "./rows";
 import { ModelSelectRow } from "../native/ModelSelectRow";
 import { UsageMeterRow } from "../native/UsageMeter";
+import { answeringModel, useThreadBackup } from "@/lib/thread-backup";
 import { setVoicePrefs, useVoicePrefs, VOICE_LANGUAGES, VOICE_SPEEDS, type VoiceSpeed } from "./voice-prefs";
 
 type Derived = ReturnType<typeof useBotSettingsDerived>;
@@ -44,12 +45,14 @@ function VoiceChatRow({ label, children, row }: { label: string; children: React
 /** The bot's model as it was on Bot settings: the Model row with the provider's mark, then its plan's usage when the
  * engine reports one. No heading over it: its first row already says Model. */
 export function ModelCard({ bot }: { bot: Bot }) {
+  useThreadBackup(bot, bot.threadId);
+  const engine = answeringModel(bot, bot.threadId, bot.modelSelection).instanceId;
   return (
     <Card anchor="model">
       <div className="[&_[data-tour=model]>span:first-child]:flex! [&_[data-provider-mark]]:opacity-100!">
         <ModelSelectRow bot={bot} threadId={bot.threadId} title={t("botPanel.page.model")} />
       </div>
-      <UsageMeterRow engine={bot.modelSelection?.instanceId} />
+      <UsageMeterRow engine={engine} />
     </Card>
   );
 }

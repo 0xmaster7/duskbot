@@ -80,7 +80,7 @@ export interface TaskRecord extends Omit<WireTask, TaskWireDerivedKeys> {
   askedAt?: number;
 }
 
-export type TaskWireDerivedKeys = "surfaceAuto" | "followsBotModel";
+export type TaskWireDerivedKeys = "surfaceAuto" | "followsBotModel" | "backup";
 type AssertExact<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
 type AssertSameKeys<A, B> = [keyof A] extends [keyof B] ? ([keyof B] extends [keyof A] ? true : never) : never;
 export function toWireTask(task: TaskRecord, botModel: ModelSelection): WireTask {

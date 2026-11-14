@@ -63,6 +63,16 @@ describe("LimitFailovers", () => {
     expect(f.notes).toHaveLength(1);
   });
 
+  it("tells the app which AI a conversation left and until when, only while it is still on that backup", () => {
+    const f = fixture();
+    f.failovers.record({ botId: "scout", threadId: "t", from, to, resetsAt: NOW + HOUR, at: NOW });
+    expect(f.failovers.backupOf("t", to)).toEqual({ from, until: NOW + HOUR });
+    expect(f.failovers.backupOf("t", from), "moved off the backup by hand").toBeUndefined();
+    expect(f.failovers.backupOf("other", to)).toBeUndefined();
+    f.failovers.record({ botId: "scout", threadId: "s", from, to, resetsAt: null, at: NOW, why: "signed-out" });
+    expect(f.failovers.backupOf("s", to)).toEqual({ from, until: null, why: "signed-out" });
+  });
+
   it("brings a conversation back after a provider failure's ten-minute hold, kept across a restart", () => {
     const f = fixture();
     f.failovers.record({ botId: "scout", threadId: "t", from, to, resetsAt: NOW + 10 * 60_000, at: NOW, why: "provider" });

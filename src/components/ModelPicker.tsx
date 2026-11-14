@@ -34,6 +34,7 @@ import { threadsOnOwnModel } from "../../shared/thread-model";
 import { ThreadModelsLine } from "./ThreadModelsLine";
 import { UsageBars } from "./EngineUsage";
 import { Select } from "./Select";
+import { answeringModel, backupLine, backupTitle, useThreadBackup } from "@/lib/thread-backup";
 
 function modelLabel(instance: InstanceInfo | undefined, model: string): string {
   return instance?.models.options.find((option) => option.id === model)?.label ?? model;
@@ -381,6 +382,9 @@ export function ModelPicker({
 
   const profile = state.bots.find((candidate) => candidate.id === bot.id) ?? bot;
   const follows = threadId ? profile.tasks?.find((task) => task.threadId === threadId)?.followsBotModel : undefined;
+  const backup = useThreadBackup(profile, threadId);
+  const answering = threadId ? answeringModel(profile, threadId, selection) : selection;
+  const shownInstance = instances.find((instance) => instance.instanceId === answering.instanceId);
   const botModelInstance = state.instances.find((instance) => instance.instanceId === profile.modelSelection.instanceId);
   const botModelName = modelName(botModelInstance, profile.modelSelection.model, profile.modelSelection.variant);
   const botModelTitle = !botModelInstance ? profile.modelSelection.model : isFreeModel(botModelInstance) ? t("model.free.hint")
@@ -562,7 +566,7 @@ export function ModelPicker({
     "aria-expanded": open,
     "aria-haspopup": "dialog" as const,
     "aria-controls": open ? menuId : undefined,
-    title: `${summary}${followLine}${attentionLine}${busyLine}`,
+    title: backup ? `${backupTitle(backup, modelName(shownInstance, answering.model))}${busyLine}` : `${summary}${followLine}${attentionLine}${busyLine}`,
   };
 
   const trigger = (
@@ -577,14 +581,15 @@ export function ModelPicker({
       )}
     >
       <span className="relative mr-1.5 flex shrink-0 group-disabled:opacity-50">
-        {active
-          ? <InstanceProviderMark instance={active} size={14} subtle />
+        {shownInstance
+          ? <InstanceProviderMark instance={shownInstance} size={14} subtle />
           : <span className="size-3.5 rounded-full bg-ink/[0.08]" aria-hidden="true" />}
-        {attention && <span data-model-attention className="absolute -bottom-0.5 -right-0.5 size-1.5 rounded-full bg-warning ring-[1.5px] ring-app" />}
+        {attention && !backup && <span data-model-attention className="absolute -bottom-0.5 -right-0.5 size-1.5 rounded-full bg-warning ring-[1.5px] ring-app" />}
       </span>
-      <span className="min-w-0 max-w-[160px] truncate">{modelName(active, selection.model)}</span>
-      {selection.variant !== undefined && <span className="shrink-0 whitespace-pre">{variantSuffix(active, selection.model, selection.variant)}</span>}
-      <UsageBars engine={selection.instanceId} className="ml-1.5" />
+      <span className="min-w-0 max-w-[160px] truncate">{modelName(shownInstance, answering.model)}</span>
+      {answering.variant !== undefined && <span className="shrink-0 whitespace-pre">{variantSuffix(shownInstance, answering.model, answering.variant)}</span>}
+      {backup && !contained && <span data-model-backup="" className="ms-1.5 shrink-0 text-ink-tertiary">{t("model.backup.chip")}</span>}
+      <UsageBars engine={answering.instanceId} className="ml-1.5" />
       <ChevronDown size={12} strokeWidth={2} aria-hidden="true" className="ml-1 shrink-0 text-ink-tertiary" />
     </button>
   );
@@ -671,7 +676,12 @@ export function ModelPicker({
     <div ref={rootRef} className={cn(contained ? "w-full" : "relative", className)}>
       {contained ? (
         <div className="flex items-center justify-between gap-4">
-          {label}
+          {backup ? (
+            <span className="flex shrink-0 flex-col">
+              {label}
+              <span data-model-backup="" className="whitespace-nowrap text-[12px] leading-4 text-ink-secondary">{backupLine(backup)}</span>
+            </span>
+          ) : label}
           {trigger}
         </div>
       ) : (

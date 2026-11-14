@@ -142,6 +142,8 @@ import { SettledChangeEvent, showsSettledChange } from "./ApprovalCard";
 import { TranscriptAnnouncer } from "./TranscriptAnnouncer";
 import { JumpToLatestButton } from "./JumpToLatestButton";
 import { UsageBanner } from "./native/UsageMeter";
+import { mayTakeOver, useRescueGrace } from "@/lib/rescue-grace";
+import { answeringModel } from "@/lib/thread-backup";
 import { openSettings } from "@/lib/open-settings";
 import { useTimestampPeek } from "./chat-timestamp-peek";
 import { emojiOnly, EMOJI_ONLY_TEXT, grokUserBubbleFill, isBotTextRow, joinedCorners, needsStamp, quietRow, simpleRowLayout, SIMPLE_BOT_BUBBLE, SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT, SIMPLE_STACKED, SIMPLE_USER_BUBBLE, type BubbleJoin } from "./chat-bubble";
@@ -1141,6 +1143,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   // while the turn runs its notices are the working row's to say, not the chat's too; once it ends, what it left is one
   // card above the composer
   const trailing = useTrailingRows(messages, !bot.busy);
+  const rescuing = useRescueGrace(Boolean(bot.busy), mayTakeOver(bot, state.instances), `${bot.id}:${bot.threadId}`);
+  const answering = answeringModel(profile, bot.threadId, bot.modelSelection);
   const folded = useMemo(() => {
     const ids = new Set(foldedNoticeIds(trailing));
     if (!turnBusy) return ids;
@@ -1411,17 +1415,17 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
         </div>
       )}
       {/* grok's usage warning rides just above the composer, near or at a limit; a failed reply's card already says so, so it wins */}
-      {canWrite !== false && !trailing?.failures.length && !(lastShownRow && codexUsageLimitReached(`${lastShownRow.text ?? ""} ${lastShownRow.tool?.name ?? ""}`)) && (
+      {canWrite !== false && !rescuing && !trailing?.failures.length && !(lastShownRow && codexUsageLimitReached(`${lastShownRow.text ?? ""} ${lastShownRow.tool?.name ?? ""}`)) && (
         <div className="pointer-events-auto px-5 pb-2">
           <WeeklyLimitLine onSeeUsage={() => dispatch(openSettings("usage"))} error={state.error} clearError={clearLimitError} />
-          <UsageBanner engine={bot.modelSelection?.instanceId} onSeeUsage={() => dispatch(openSettings("usage"))} />
+          <UsageBanner engine={answering.instanceId} onSeeUsage={() => dispatch(openSettings("usage"))} />
         </div>
       )}
       {/* grok says what went wrong, or a passing note, in one quiet line just above the message box; at the top it ran
           into the transcript's first time stamp */}
       <div className="pointer-events-auto"><ChatNotice notice={state.notice} /></div>
       <div className="pointer-events-auto"><ChatErrorBanner message={state.error} onDismiss={() => dispatch({ type: "error", message: null })} /></div>
-      <div className="pointer-events-auto"><FailedReplyCard rows={trailing} botId={bot.id} threadId={bot.threadId} onRetry={lastUserMessage ? regenerate : undefined} /></div>
+      <div className="pointer-events-auto"><FailedReplyCard rows={rescuing ? null : trailing} botId={bot.id} threadId={bot.threadId} onRetry={lastUserMessage ? regenerate : undefined} /></div>
       {canWrite !== false && !trailing?.failures.length && !trailing?.notices.length && <div className="pointer-events-auto"><ComposerSignInNotice bot={bot} /></div>}
       {liveCallEnabled() && <LiveCallBar bot={bot} />}
       {canWrite === false ? (

@@ -198,6 +198,10 @@ export interface WireTask extends InboxTask {
   /** Prompt-cache keep-warm status for this thread, derived at projection;
    * absent when no window is open. */
   cacheKeepWarm?: CacheKeepWarmStatus;
+  /** The thread runs on a backup because its own AI hit its limit, was signed out or did not answer: that AI, and when
+   * the thread goes back to it (null: once it works again). Derived at projection, only while the thread is still on
+   * that backup. */
+  backup?: { from: ModelSelection; until: number | null; why?: "signed-out" | "provider" };
   /** the folder this task's turns run in, pinned on its first turn; one in its own folder moves to its bot's working folder. */
   cwd?: string | null;
   /** Set me up was pressed here (server/setup-request.ts): the person's next line in this conversation runs as a
