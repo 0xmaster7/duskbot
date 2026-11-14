@@ -102,6 +102,23 @@ describe("submenu hover intent", () => {
   });
 });
 
+describe("a slow diagonal path", () => {
+  it("keeps the submenu open while the pointer keeps moving inside the triangle", () => {
+    const { intent, events, dwellOpen } = setup();
+    dwellOpen();
+    intent.move({ x: 200, y: 150 }, true);
+    intent.leaveRow("support");
+    intent.enterRow("settings", false, { x: 215, y: 170 });
+    for (let i = 0; i < 6; i++) {
+      vi.advanceTimersByTime(SUBMENU_GRACE_MS - 50);
+      intent.move({ x: 225 + i * 12, y: 175 + i * 8 }, false);
+    }
+    expect(events).toEqual(["open support"]);
+    vi.advanceTimersByTime(SUBMENU_GRACE_MS);
+    expect(events).toEqual(["open support", "close"]);
+  });
+});
+
 describe("towardSubmenu", () => {
   it("is true inside the triangle from the pointer to the submenu's near edge, on either side", () => {
     expect(towardSubmenu({ x: 200, y: 150 }, { x: 260, y: 170 }, submenu)).toBe(true);

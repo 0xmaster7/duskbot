@@ -91,7 +91,12 @@ export function submenuIntent({ open, close, submenuBox, timers = WINDOW_TIMERS 
         anchor = point;
         return;
       }
-      if (grace && !heading(point)) closeNow();
+      if (!grace) return;
+      if (!heading(point)) closeNow();
+      else {
+        cancelGrace();
+        grace = timers.set(closeNow, SUBMENU_GRACE_MS);
+      }
     },
     // grok's submenu closes once the pointer leaves the menu for anywhere but the submenu, which overlaps the menu's
     // edge, so the submenu's own enter cancels this before it runs
