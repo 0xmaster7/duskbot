@@ -295,7 +295,8 @@ try {
   if (!capabilities.screenPreview.available || capabilities.screenPreview.interaction !== expectedPreview) {
     throw new Error(`${wayland ? "Wayland" : "X11"} screen preview capability was not available`);
   }
-  if (capabilities.dictation.available) throw new Error("dictation must be unavailable on Linux");
+  // on Linux the page listens and Fish Audio transcribes (electron/capabilities.cjs); Apple speech is Mac only
+  if (capabilities.dictation.engine !== "fish-audio" || capabilities.dictation.onDevice) throw new Error("dictation on Linux must be Fish Audio, not on-device");
   if (sessionBlocked) {
     if (
       initialCapabilities.localComputer.available ||
