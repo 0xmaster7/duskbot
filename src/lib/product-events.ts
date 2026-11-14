@@ -5,6 +5,7 @@ import {
   SIGN_IN_ENGINE, SIGN_IN_METHOD,
   type BotSource, type ConnectorResult, type KeyProvider, type KeyResult, type KeyVia, type SignInMethod,
 } from "@/lib/analytics-allowlist";
+import { ACCOUNT_SIGN_IN_ERRORS, ACCOUNT_SIGN_IN_METHODS, type ACCOUNT_SIGN_IN_STEPS } from "../../shared/product-signals";
 
 type Instances = ReadonlyArray<{ instanceId: string; driverKind: string }>;
 
@@ -64,4 +65,19 @@ export function roomMessageSent(mode: string, queued: boolean): void {
 export function callStarted(instances: Instances, instanceId: unknown, mode: string): void {
   feature("call_started");
   track("call_started", { driver: engineSlug(instances, instanceId), mode: allow(mode, CALL_MODE) });
+}
+
+type AccountSignInStep = (typeof ACCOUNT_SIGN_IN_STEPS)[number];
+export type AccountSignInMethod = (typeof ACCOUNT_SIGN_IN_METHODS)[number];
+export type AccountSignInVia = "browser" | "code" | "link";
+
+/** a step of the first run's account sign-in; an error is a fixed code ("wrong-code" -> "wrong_code"), never what was typed */
+export function accountSignIn(step: AccountSignInStep, detail: { method?: AccountSignInMethod; via?: AccountSignInVia; problem?: string } = {}): void {
+  const code = detail.problem === undefined ? undefined : detail.problem.replace(/-/g, "_");
+  track("account_sign_in", {
+    step,
+    ...(detail.method && ACCOUNT_SIGN_IN_METHODS.includes(detail.method) ? { method: detail.method } : {}),
+    ...(detail.via ? { via: detail.via } : {}),
+    ...(code === undefined ? {} : { code: (ACCOUNT_SIGN_IN_ERRORS as readonly string[]).includes(code) ? code : "other" }),
+  });
 }

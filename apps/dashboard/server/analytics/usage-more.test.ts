@@ -62,4 +62,20 @@ describe("the deeper usage answer", () => {
     expect(focus).toContain("the first reply takes 30 s for half of turns: people wait before seeing anything.");
     expect(focus).toContain("connected app calls error in 20% of the turns that use it.");
   });
+
+  it("rolls the app's account sign-in into a funnel by install, attempts by way, and error codes", () => {
+    const signIn = (install: string, props: StoredEvent["props"]): StoredEvent => ({ ...event("app_action", { name: "account_sign_in", ...props }, null), ctx: { install } });
+    const m = moreOf({ days: [dayOf(NOW)], daily: new Map(), people: [], snapshots: [], routines: [], from: NOW - DAY, to: NOW + DAY, now: NOW, accounts: [],
+      billing: { checkouts: [], subscriptions: [], feedback: [] },
+      events: [
+        ...["i1", "i1", "i2", "i3"].map(install => signIn(install, { step: "shown" })),
+        signIn("i1", { step: "method", method: "google", via: "browser" }), signIn("i1", { step: "handoff", method: "google", via: "browser" }), signIn("i1", { step: "returned", method: "google", via: "browser" }),
+        signIn("i2", { step: "method", method: "email", via: "code" }), signIn("i2", { step: "error", method: "email", via: "code", code: "wrong_code" }),
+        signIn("i3", { step: "skipped" }), event("app_action", { name: "account_sign_in" }, null),
+      ] });
+    expect(m.setup.account.steps).toEqual([{ step: "shown", reached: 3 }, { step: "method", reached: 2 }, { step: "handoff", reached: 1 }, { step: "returned", reached: 1 },
+      { step: "cancelled", reached: 0 }, { step: "skipped", reached: 1 }, { step: "error", reached: 1 }]);
+    expect(m.setup.account.methods).toEqual([{ key: "google", total: 1, good: 1, bad: 0, rate: 1 }, { key: "email", total: 1, good: 0, bad: 1, rate: 0 }]);
+    expect(m.setup.account.errors).toEqual([{ key: "wrong_code", count: 1 }]);
+  });
 });

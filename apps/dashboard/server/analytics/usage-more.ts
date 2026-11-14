@@ -3,12 +3,13 @@
 import { LATENCY_EDGES, REASON_WORDS, type PersonDay, type RoutineSpan, type SnapshotRow } from "./usage.ts";
 import type { StoredEvent } from "./sink.ts";
 import type { FocusItem } from "./usage-summary.ts";
+import { ACCOUNT_SIGN_IN_STEPS } from "../../../../shared/product-signals.ts";
 
 const DAY = 86_400_000;
 export interface Count { key: string; count: number }
 export interface RateRow { key: string; total: number; good: number; bad: number; rate: number | null; reason?: string }
 export interface MoreAnswer {
-  setup: { onboarding: Array<{ step: string; reached: number; medianMs: number | null }>; signIn: RateRow[] };
+  setup: { onboarding: Array<{ step: string; reached: number; medianMs: number | null }>; signIn: RateRow[]; account: AccountFunnel };
   reliability: { firstP50: number | null; firstP90: number | null; engines: Array<{ key: string; turns: number; p50: number | null; p90: number | null; firstP50: number | null }>;
     models: Array<{ key: string; turns: number; p50: number | null; firstP50: number | null; failRate: number | null }>; toolErrors: Array<{ kind: "tool" | "app"; key: string; errors: number; turns: number; rate: number | null }>;
     crashes: { count: number; people: number; top: Count[] }; wake: { count: number; p50Ms: number | null; p90Ms: number | null } };
@@ -21,6 +22,8 @@ export interface MoreAnswer {
   discovery: Array<{ feature: string; people: number; share: number | null; medianDays: number | null }>;
   setups: Record<"version" | "os" | "arch" | "locale" | "screen" | "theme" | "skin" | "notifications", Count[]>;
 }
+/** the first run's account sign-in: installs that reached each step, attempts by method, and why attempts failed */
+export interface AccountFunnel { steps: Array<{ step: string; reached: number }>; methods: RateRow[]; errors: Count[] }
 export interface MoreInput {
   days: string[]; daily: Map<string, Record<string, number>>; people: PersonDay[]; snapshots: SnapshotRow[]; routines: RoutineSpan[]; events: StoredEvent[];
   billing: { checkouts: Array<{ accountId: string; status: string; createdAt: number }>; subscriptions: Array<{ accountId: string; totalCents: number; createdAt: number; status: string }>;
@@ -124,7 +127,7 @@ export function moreOf(input: MoreInput): MoreAnswer {
 
   const setupsOf = (key: string) => counts(env.map(event => String(event.props[key] ?? "")).filter(Boolean));
   return {
-    setup: { onboarding, signIn: signInRows(events) },
+    setup: { onboarding, signIn: signInRows(events), account: accountFunnel(events) },
     reliability: { firstP50: bucketQuantile(buckets("first:"), 0.5), firstP90: bucketQuantile(buckets("first:"), 0.9), engines, models: models.slice(0, 15), toolErrors: toolErrors.slice(0, 20), crashes,
       wake: input.wake ?? { count: 0, p50Ms: null, p90Ms: null } },
     engagement: { sessionsPerPersonDay: rate(opens.length, openDays), sessionMedianMs: median(closes.map(event => Number(event.props.ms)).filter(ms => ms > 0)), hours, weekdays,
@@ -141,6 +144,29 @@ export function moreOf(input: MoreInput): MoreAnswer {
     discovery,
     setups: { version: counts(opens.map(event => String(event.props.appVersion ?? "")).filter(Boolean)).slice(0, 8), os: setupsOf("os"), arch: setupsOf("arch"), locale: setupsOf("locale"), screen: setupsOf("screen"),
       theme: setupsOf("theme"), skin: setupsOf("skin"), notifications: setupsOf("notifications") },
+  };
+}
+
+/** the app's account_sign_in actions: each step counted once per install (or account), methods by attempt */
+function accountFunnel(events: StoredEvent[]): AccountFunnel {
+  const steps = new Map<string, Set<string>>(), methods = new Map<string, RateRow>(), errors: string[] = [];
+  for (const event of events) {
+    if (event.name !== "app_action" || event.props.name !== "account_sign_in") continue;
+    const step = String(event.props.step ?? ""), who = event.ctx?.install ?? event.accountId ?? event.id, method = typeof event.props.method === "string" ? event.props.method : null;
+    if (!(ACCOUNT_SIGN_IN_STEPS as readonly string[]).includes(step)) continue;
+    steps.set(step, (steps.get(step) ?? new Set()).add(who));
+    if (step === "error") errors.push(String(event.props.code ?? "other"));
+    if (!method) continue;
+    const row = methods.get(method) ?? { key: method, total: 0, good: 0, bad: 0, rate: null };
+    if (step === "method") row.total++;
+    else if (step === "returned") row.good++;
+    else if (step === "error") row.bad++;
+    methods.set(method, row);
+  }
+  return {
+    steps: ACCOUNT_SIGN_IN_STEPS.map(step => ({ step, reached: steps.get(step)?.size ?? 0 })),
+    methods: [...methods.values()].map(row => ({ ...row, total: Math.max(row.total, row.good), rate: rate(row.good, Math.max(row.total, row.good)) })).sort((a, b) => b.total - a.total),
+    errors: counts(errors),
   };
 }
 

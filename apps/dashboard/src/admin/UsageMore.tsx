@@ -10,7 +10,9 @@ import { n } from "./ui";
 interface Count { key: string; count: number }
 interface RateRow { key: string; total: number; good: number; bad: number; rate: number | null; reason?: string }
 export interface MoreAnswer {
-  setup: { onboarding: Array<{ step: string; reached: number; medianMs: number | null }>; signIn: RateRow[] };
+  setup: { onboarding: Array<{ step: string; reached: number; medianMs: number | null }>; signIn: RateRow[];
+    /** the app's account sign-in funnel, by install; absent from an older server */
+    account?: { steps: Array<{ step: string; reached: number }>; methods: RateRow[]; errors: Count[] } };
   reliability: { firstP50: number | null; firstP90: number | null; engines: Array<{ key: string; turns: number; p50: number | null; p90: number | null; firstP50: number | null }>;
     models: Array<{ key: string; turns: number; p50: number | null; firstP50: number | null; failRate: number | null }>; toolErrors: Array<{ kind: "tool" | "app"; key: string; errors: number; turns: number; rate: number | null }>;
     crashes: { count: number; people: number; top: Count[] }; wake: { count: number; p50Ms: number | null; p90Ms: number | null } };
@@ -31,6 +33,8 @@ const I = { size: 14, strokeWidth: 1.75 } as const;
 const words = (key: string) => key.replace(/_/g, " ");
 const TOOL_WORDS: Record<string, string> = { app: "connected apps", web: "web search", computer: "computer use", mcp: "mcp tools", other: "other tools" };
 const toolWords = (kind: "tool" | "app", key: string) => kind === "tool" ? TOOL_WORDS[key] ?? words(key) : words(key);
+const ACCOUNT_STEP: Record<string, string> = { shown: "saw the sign-in", method: "picked a way", handoff: "went to the website", returned: "came back signed in",
+  cancelled: "cancelled", skipped: "skipped", error: "hit an error" };
 const STEP: Record<string, string> = { name: "named themselves", plan: "picked a plan", app: "got the app", done: "finished setup" };
 const CANCEL: Record<string, string> = { feature: "missing a feature", price: "too expensive", setup: "hard to set up", broken: "something broke", later: "not now", other: "other" };
 const DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -70,6 +74,7 @@ export function MoreCards({ more, open }: { more: MoreAnswer; open(detail: MoreD
       <div className="grid grid-cols-2 gap-2 max-lg:grid-cols-1">
         <Card title="setup and sign-in" icon={<KeyRound {...I} />} wash="bg-wash-sky" onOpen={() => open("setup")}>
           {more.setup.onboarding.map((step) => <Line key={step.step} label={STEP[step.step] ?? words(step.step)} value={n(step.reached)} bar={step.reached / signups} onClick={() => open("setup")} />)}
+          {more.setup.account?.steps[0]?.reached ? <p className="mt-2 px-1 text-12 text-ink-3">app sign-in: {n(more.setup.account.steps.find((row) => row.step === "returned")?.reached ?? 0)} of {n(more.setup.account.steps[0].reached)} who saw it signed in</p> : null}
           {more.setup.signIn.length ? <p className="mt-2 px-1 text-12 text-ink-3">ai sign-ins that finish: {more.setup.signIn.slice(0, 4).map((row) => `${row.key} ${percent(row.rate)}`).join(", ")}</p> : null}
         </Card>
         <Card title="speed and errors" icon={<Gauge {...I} />} onOpen={() => open("reliability")}>
@@ -129,6 +134,12 @@ export function MoreTable({ detail, more }: { detail: MoreDetail; more: MoreAnsw
     <div className="flex flex-col gap-4">
       <Table label="setup steps"><thead><tr><Th>step</Th><Th className="!text-end">people</Th><Th className="!text-end">time on the step before</Th></tr></thead>
         <tbody>{more.setup.onboarding.map((step) => <tr key={step.step}><Td>{STEP[step.step] ?? words(step.step)}</Td><Td className="text-end font-mono num">{n(step.reached)}</Td><Td className="text-end font-mono num">{duration(step.medianMs)}</Td></tr>)}</tbody></Table>
+      {more.setup.account && <>
+        <Table label="app sign-in"><thead><tr><Th>app sign-in step</Th><Th className="!text-end">installs</Th></tr></thead>
+          <tbody>{more.setup.account.steps.map((row) => <tr key={row.step}><Td>{ACCOUNT_STEP[row.step] ?? words(row.step)}</Td><Td className="text-end font-mono num">{n(row.reached)}</Td></tr>)}</tbody></Table>
+        <RateTable title="app sign-in by way" rows={more.setup.account.methods} good="signed in" bad="errors" />
+        <CountTable title="app sign-in errors" rows={more.setup.account.errors} />
+      </>}
       <RateTable title="ai sign-in" rows={more.setup.signIn} good="worked" bad="failed" />
     </div>
   );

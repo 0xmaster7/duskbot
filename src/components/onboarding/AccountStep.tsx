@@ -8,6 +8,7 @@ import { problemLine } from "@/components/cloud-buy/SignInScreen";
 import type { CloudSignInProblem } from "@/lib/cloud-plan";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
+import { accountSignIn, type AccountSignInMethod, type AccountSignInVia } from "@/lib/product-events";
 import type { OAuthProvider } from "../../../shared/account-api";
 import type { CloudSignInStart } from "../../../electron/cloud-account.mjs";
 import type { FunnelAccount, FunnelAccountState } from "./funnel-account";
@@ -75,6 +76,25 @@ export function AccountStep({ account, known, onDone, onSkip }: {
   const [triesLeft, setTriesLeft] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
   const locked = useRef(false);
+  // the funnel: the attempt under way (how), and whether this step already counted as shown or signed in
+  const attempt = useRef<{ method: AccountSignInMethod; via: AccountSignInVia } | null>(null);
+  const counted = useRef({ shown: false, returned: false });
+  const begin = (method: AccountSignInMethod, via: AccountSignInVia) => { attempt.current = { method, via }; accountSignIn("method", attempt.current); };
+  const fail = (next: CloudSignInProblem) => { setProblem(next); accountSignIn("error", { ...attempt.current, problem: next }); };
+  const returned = () => {
+    if (counted.current.returned) return;
+    counted.current.returned = true;
+    accountSignIn("returned", attempt.current ?? {});
+  };
+  const cancelled = () => { accountSignIn("cancelled", attempt.current ?? {}); attempt.current = null; };
+
+  useEffect(() => {
+    if (known?.signedIn || counted.current.shown) return;
+    counted.current.shown = true;
+    accountSignIn("shown");
+  }, [known?.signedIn]);
+  // a browser or magic-link sign-in comes back through main's state; only an attempt from this step counts
+  useEffect(() => { if (known?.signedIn && attempt.current) returned(); });
 
   useEffect(() => {
     let alive = true;
@@ -96,19 +116,21 @@ export function AccountStep({ account, known, onDone, onSkip }: {
     locked.current = true;
     setBusy(true);
     setProblem(null);
-    try { await work(); } catch { setProblem("failed"); } finally { locked.current = false; setBusy(false); }
+    try { await work(); } catch { fail("failed"); } finally { locked.current = false; setBusy(false); }
   };
   const send = () => run(async () => {
+    if (!attempt.current || attempt.current.via !== "code") begin("email", "code");
     const result = await account.emailStart(email.trim());
     if (result.outcome === "sent") { setSent(result); setEmail(result.email); setCode(""); setNow(Date.now()); }
-    else setProblem(result.outcome);
+    else fail(result.outcome);
   });
   // a magic link: the website signs them in (or up), runs its first steps, and this app follows on its own
   const sendLink = () => run(async () => {
     const to = email.trim();
+    begin("email", "link");
     await account.magicLink!(to);
     const now = await account.state();
-    if (now.magic || now.browser) setMagic(now.magic ?? to); else setProblem("failed");
+    if (now.magic || now.browser) { setMagic(now.magic ?? to); accountSignIn("handoff", attempt.current!); } else fail("failed");
   });
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -117,8 +139,8 @@ export function AccountStep({ account, known, onDone, onSkip }: {
     if (code.length !== 8) return;
     void run(async () => {
       const result = await account.emailVerify(code);
-      if (result.outcome === "signed-in") onDone();
-      else { setProblem(result.outcome); setTriesLeft(result.outcome === "wrong-code" ? result.triesLeft : null); }
+      if (result.outcome === "signed-in") { returned(); onDone(); }
+      else { fail(result.outcome); setTriesLeft(result.outcome === "wrong-code" ? result.triesLeft : null); }
     });
   };
 
@@ -139,7 +161,7 @@ export function AccountStep({ account, known, onDone, onSkip }: {
           <p role="status" className="flex items-center gap-2 text-[13px] leading-[18px] text-ink-secondary">
             <LoaderCircle size={14} aria-hidden="true" className="shrink-0 animate-spin motion-reduce:animate-none" />{t("funnel.account.magicWaiting")}
           </p>
-          <button type="button" className={QUIET} onClick={() => void account.cancelBrowser().catch(() => {}).finally(() => setMagic(null))}>{t("funnel.cancel")}</button>
+          <button type="button" className={QUIET} onClick={() => { cancelled(); void account.cancelBrowser().catch(() => {}).finally(() => setMagic(null)); }}>{t("funnel.cancel")}</button>
         </>} />
     );
   }
@@ -151,7 +173,7 @@ export function AccountStep({ account, known, onDone, onSkip }: {
           <p role="status" className="flex items-center gap-2 text-[13px] leading-[18px] text-ink-secondary">
             <LoaderCircle size={14} aria-hidden="true" className="shrink-0 animate-spin motion-reduce:animate-none" />{t("funnel.account.waiting")}
           </p>
-          <button type="button" className={QUIET} onClick={() => void account.cancelBrowser().catch(() => {}).finally(() => setBrowser(null))}>{t("funnel.cancel")}</button>
+          <button type="button" className={QUIET} onClick={() => { cancelled(); void account.cancelBrowser().catch(() => {}).finally(() => setBrowser(null)); }}>{t("funnel.cancel")}</button>
         </>} />
     );
   }
@@ -161,7 +183,7 @@ export function AccountStep({ account, known, onDone, onSkip }: {
       {/* top right, across from Back, and quiet: the account is the way on */}
       {onSkip && !sent && (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex h-14 items-center justify-end px-4">
-          <button type="button" data-funnel-account-skip="" onClick={onSkip} className={cn(QUIET, "pointer-events-auto text-[12px] opacity-40 hover:opacity-70 focus-visible:opacity-100")}>{t("funnel.account.skip")}</button>
+          <button type="button" data-funnel-account-skip="" onClick={() => { accountSignIn("skipped", attempt.current ?? {}); onSkip(); }} className={cn(QUIET, "pointer-events-auto text-[12px] opacity-40 hover:opacity-70 focus-visible:opacity-100")}>{t("funnel.account.skip")}</button>
         </div>
       )}
       <StepFrame art={<StepArt art="key" />} title={t("funnel.account.title")} sub={t(sent ? "funnel.account.codeSub" : phoneAppEnabled() ? "funnel.account.sub" : "funnel.account.subNoPhone", { email: sent?.email ?? "" })}>
@@ -170,7 +192,7 @@ export function AccountStep({ account, known, onDone, onSkip }: {
             <>
               {providers.map((provider) => (
                 <button key={provider} type="button" data-funnel-provider={provider} disabled={busy}
-                  onClick={() => void run(async () => { setBrowser(provider); await account.browser(provider); })}
+                  onClick={() => void run(async () => { begin(provider, "browser"); setBrowser(provider); await account.browser(provider); accountSignIn("handoff", { method: provider, via: "browser" }); })}
                   className={cn(TILE, "flex min-h-11 w-full items-center justify-center gap-2.5 px-5 text-[14px] text-ink disabled:opacity-50")}>
                   {(() => { const Mark = PROVIDER_MARK[provider]; return <Mark />; })()}
                   {t(PROVIDER_LABEL[provider])}
@@ -199,7 +221,7 @@ export function AccountStep({ account, known, onDone, onSkip }: {
             </button>
             {sent && (
               <div className="flex items-center justify-center gap-1">
-                <button type="button" className={QUIET} disabled={busy} onClick={() => void run(async () => { await account.emailCancel(); setSent(null); setCode(""); })}>{t("funnel.account.change")}</button>
+                <button type="button" className={QUIET} disabled={busy} onClick={() => void run(async () => { cancelled(); await account.emailCancel(); setSent(null); setCode(""); })}>{t("funnel.account.change")}</button>
                 <button type="button" className={cn(QUIET, "disabled:opacity-40")} disabled={busy || (problem !== "expired" && now < sent.resendAt)} onClick={() => void send()}>{t("funnel.account.resend")}</button>
               </div>
             )}

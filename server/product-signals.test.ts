@@ -10,6 +10,7 @@ const NOW = Date.now();
 const SECRET = "Email jane.doe@acme.com /Users/jane/Plan.xlsx https://acme.com";
 const valid: Record<string, Record<string, string | number>> = {
   env: { os: "darwin", arch: "arm64", locale: "pt_br", screen: "m", theme: "dark", skin: "grok_dark", notifications: "granted", hour: 9 },
+  account_sign_in: { step: "error", method: "email", via: "code", code: "wrong_code" },
   engine_sign_in: { engine: "claude", outcome: "failed", reason: "auth" },
   attachment: { kind: "pdf", size: "lt1m" },
   setting_changed: { key: "newBotDefaults" },
