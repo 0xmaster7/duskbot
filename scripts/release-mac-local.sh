@@ -172,17 +172,44 @@ if [ "$MODE" != dry ]; then
 fi
 
 # ---------------------------------------------------------------- signing keychain
-WORK="$(mktemp -d "${TMPDIR:-/tmp}/dusk-mac-release.XXXXXX")"
+# the real path, the form the keychain search list stores (TMPDIR is /var/..., the list says /private/var/...)
+WORK="$(cd "$(mktemp -d "${TMPDIR:-/tmp}/dusk-mac-release.XXXXXX")" && pwd -P)"
 KEYCHAIN=""
-ORIGINAL_KEYCHAINS=()
+# the user keychain search list, one path per line
+user_keychains() {
+  local line
+  security list-keychains -d user | while IFS= read -r line; do
+    line="${line#"${line%%[![:space:]]*}"}"; line="${line%\"}"; line="${line#\"}"
+    [ -n "$line" ] && printf '%s\n' "$line"
+  done
+}
+# rewrites the search list without $1, without duplicates, and without any dusk-signing keychain whose file is gone
+# (a run killed with SIGKILL leaves one behind); the order of the rest and the default keychain are left alone
+prune_keychains() {
+  local drop="${1:-}" kept=() line k seen
+  while IFS= read -r line; do
+    [ -n "$drop" ] && [ "$line" = "$drop" ] && continue
+    case "$line" in */dusk-signing.keychain-db) [ -e "$line" ] || continue ;; esac
+    seen=0
+    for k in ${kept[@]+"${kept[@]}"}; do [ "$k" = "$line" ] && seen=1; done
+    [ "$seen" = 1 ] || kept+=("$line")
+  done < <(user_keychains)
+  security list-keychains -d user -s ${kept[@]+"${kept[@]}"}
+}
+CLEANED=0
 cleanup() {
+  [ "$CLEANED" = 1 ] && return; CLEANED=1
   if [ -n "$KEYCHAIN" ]; then
-    if [ "${#ORIGINAL_KEYCHAINS[@]}" -gt 0 ]; then security list-keychains -d user -s "${ORIGINAL_KEYCHAINS[@]}" 2>/dev/null || true; fi
     security delete-keychain "$KEYCHAIN" 2>/dev/null || true
+    prune_keychains "$KEYCHAIN" 2>/dev/null || true
   fi
   rm -rf "$WORK"
 }
 trap cleanup EXIT
+# a signal exits, so the EXIT trap puts the search list back on every path but SIGKILL (pruned on the next run)
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
 
 IDENTITY="-"
 if [ "$MODE" = release ] || [ "$MODE" = signed ]; then
@@ -205,10 +232,7 @@ if [ "$MODE" = release ] || [ "$MODE" = signed ]; then
   fi
   KEYCHAIN="$WORK/dusk-signing.keychain-db"
   KC_PASSWORD="$(openssl rand -hex 24)"
-  while IFS= read -r line; do
-    line="${line#"${line%%[![:space:]]*}"}"; line="${line%\"}"; line="${line#\"}"
-    [ -n "$line" ] && ORIGINAL_KEYCHAINS+=("$line")
-  done < <(security list-keychains -d user)
+  prune_keychains
   security create-keychain -p "$KC_PASSWORD" "$KEYCHAIN"
   security set-keychain-settings -lut 21600 "$KEYCHAIN"
   security unlock-keychain -p "$KC_PASSWORD" "$KEYCHAIN"
@@ -219,7 +243,11 @@ if [ "$MODE" = release ] || [ "$MODE" = signed ]; then
     [ -f "$APPLE_DIR/$ca.cer" ] && security import "$APPLE_DIR/$ca.cer" -k "$KEYCHAIN" >/dev/null 2>&1 || true
   done
   security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KC_PASSWORD" "$KEYCHAIN" >/dev/null
-  security list-keychains -d user -s "$KEYCHAIN" "${ORIGINAL_KEYCHAINS[@]}"
+  # last in the search list, never first, and never the default: codesign and security name it with --keychain, and
+  # codesign only needs to find it to build the certificate chain
+  existing=()
+  while IFS= read -r line; do existing+=("$line"); done < <(user_keychains)
+  security list-keychains -d user -s ${existing[@]+"${existing[@]}"} "$KEYCHAIN"
   security find-identity -v -p codesigning "$KEYCHAIN" | grep -q "Developer ID Application" \
     || die "the keychain has no valid Developer ID Application identity (is the certificate chain trusted?)"
   IDENTITY="$CERT_NAME"

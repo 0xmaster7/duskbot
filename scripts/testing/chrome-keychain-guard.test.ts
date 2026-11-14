@@ -56,6 +56,14 @@ describe("headless Chrome never reaches the macOS keychain", () => {
     expect(missing, "add --use-mock-keychain and --password-store=basic (or credentialStoreFlags()) to these launchers").toEqual([]);
   });
 
+  it("keeps the local mac release's signing keychain last in the search list and puts the list back on any exit", () => {
+    const script = readFileSync(`${ROOT}/scripts/release-mac-local.sh`, "utf8");
+    expect(script).not.toMatch(/list-keychains -d user -s "\$KEYCHAIN"/u);
+    expect(script).toMatch(/list-keychains -d user -s \$\{existing\[@\]\+"\$\{existing\[@\]\}"\} "\$KEYCHAIN"/u);
+    expect(script).not.toMatch(/default-keychain/u);
+    for (const signal of ["EXIT", "INT", "TERM", "HUP"]) expect(script).toMatch(new RegExp(`^trap .+ ${signal}$`, "mu"));
+  });
+
   it("keeps its exemptions real", () => {
     for (const file of Object.keys(EXEMPT)) expect(LAUNCH.test(readFileSync(`${ROOT}/${file}`, "utf8")), file).toBe(true);
   });
