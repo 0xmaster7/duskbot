@@ -121,11 +121,18 @@ export const ACCOUNT_ROUTES = {
   // Admin contract v1 (unchanged shapes; bearer omc_ token where signed in)
   appEmailStart: "/api/cloud/app/sign-in/start",
   appEmailVerify: "/api/cloud/app/sign-in/verify",
+  /** a native app's sign in with apple (AppleNativeSignIn): the identity token and authorization code from
+   * ASAuthorizationAppleIDCredential -> AppGrant; errors { error: invalid_request | invalid_grant | signup_closed |
+   * identity_taken | provider_unavailable | rate_limited } */
+  appAppleSignIn: "/api/cloud/app/sign-in/apple",
   desktopAuthorize: "/api/cloud/desktop/authorize",
   desktopToken: "/api/cloud/desktop/token",
   appSession: "/api/cloud/desktop/session", //  GET -> AppSessionAnswer; DELETE {} -> { ok: true }
 } as const;
 
+/** `nonce` is the raw nonce; the app sets the request's nonce to its sha-256 hex. `givenName`/`familyName` come from the
+ * credential's fullName, which apple fills only the first time; send them whenever present. */
+export interface AppleNativeSignIn { identityToken: string; authorizationCode: string; nonce: string; givenName?: string; familyName?: string; deviceName: string; platform: "ios" | "darwin"; appVersion: string }
 /** `recovery`: start takes `recover: true` ("Can't sign in?"): the code goes out with the ways the address signs in (and a
  * one-time link for the website), or, for an address no account uses, only that. */
 export interface ProvidersAnswer { v: 1; providers: ProviderView[]; signupOpen: boolean; recovery?: boolean }

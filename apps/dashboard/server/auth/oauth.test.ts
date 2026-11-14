@@ -117,6 +117,53 @@ describe("OAuth over isolated HTTP", () => {
     const badPost = await fetch(url + "/v1/auth/oauth/google/callback", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", origin: "https://appleid.apple.com" }, body: "state=bad" });
     expect(badPost.status).toBe(403);
   });
+  const native = (body: Record<string, unknown>) => fetch(new URL("/api/cloud/app/sign-in/apple", url), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  const nativeBody = (input: Parameters<typeof fake.nativeApple>[0], extra: Record<string, unknown> = {}) => ({ ...fake.nativeApple(input), nonce: input.nonce, ...mobile, ...extra });
+  it("signs the iphone app in with a native Apple token: private relay email, first-time name, same account after", async () => {
+    const nonce = random(), response = await native(nativeBody({ nonce, privateEmail: true }, { givenName: "Native", familyName: "Fixture" }));
+    expect(response.status).toBe(200); expect(response.headers.get("access-control-allow-origin")).toBe("*");
+    const grant = await response.json() as AppGrant;
+    expect(grant).toMatchObject({ cloudContractVersion: 1, account: { email: "sid@privaterelay.appleid.test" } }); expect(grant.accessToken).toMatch(/^omc_/);
+    const session = await fetch(new URL("/api/cloud/desktop/session", url), { headers: { authorization: `Bearer ${grant.accessToken}` } });
+    expect(session.status).toBe(200);
+    const again = await (await native(nativeBody({ nonce: random() }))).json() as AppGrant;
+    expect(again.account.id).toBe(grant.account.id);
+    app.close(); const stored = JSON.parse(readFileSync(`${dataDir}/auth.json`, "utf8")) as { accounts: Array<{ name: string }>; identities: Array<{ provider: string; revoke?: string }> };
+    expect(stored.accounts).toHaveLength(1); expect(stored.accounts[0]!.name).toBe("Native Fixture");
+    expect(stored.identities).toHaveLength(1); expect(stored.identities[0]!.revoke).toBeTruthy();
+    for (const token of fake.appleTokens()) expect(JSON.stringify(stored)).not.toContain(token);
+  });
+  it("links a native Apple sign-in to the email account with the same verified address", async () => {
+    const signed = await (await emailLogin("sid@duskbot.test")).json() as WebSignInAnswer;
+    const grant = await (await native(nativeBody({ nonce: random(), email: "sid@duskbot.test" }))).json() as AppGrant;
+    expect(grant.account.id).toBe(signed.account.id); expect((await account()).account.providers).toEqual(["email", "apple"]);
+  });
+  it("refuses native Apple tokens with a wrong nonce, another audience, a spent code, unknown fields, or no native client", async () => {
+    const nonce = random();
+    const status = async (body: Record<string, unknown>) => { const res = await native(body); return [res.status, (await res.json() as { error: string }).error]; };
+    expect(await status({ ...nativeBody({ nonce }), nonce: random() })).toEqual([400, "invalid_grant"]);
+    expect(await status(nativeBody({ nonce, clientId: "other.app" }))).toEqual([400, "invalid_grant"]);
+    expect(await status(nativeBody({ nonce, issuedAt: Math.floor(Date.now() / 1000) - 3600 }))).toEqual([400, "invalid_grant"]);
+    const body = nativeBody({ nonce });
+    expect((await native(body)).status).toBe(200); expect(await status(body)).toEqual([400, "invalid_grant"]);
+    expect(await status({ ...nativeBody({ nonce }), admin: true })).toEqual([400, "invalid_request"]);
+    expect(await status({ ...nativeBody({ nonce }), platform: "android" })).toEqual([400, "invalid_request"]);
+    restart({ signupOpen: false }); expect(await status(nativeBody({ nonce, subject: "apple-new", email: "new@privaterelay.appleid.test" }))).toEqual([403, "signup_closed"]);
+    restart({ oauth: { ...fake.config, apple: { ...fake.config.apple!, nativeClientIds: undefined } } });
+    expect(await status(nativeBody({ nonce }))).toEqual([503, "provider_unavailable"]);
+  });
+  it("revokes both Apple grants, the website's and the iphone app's, each with its own client, when the account is deleted", async () => {
+    await oauth("apple"); const [web] = fake.appleTokens();
+    await native(nativeBody({ nonce: random() })); const [, app] = fake.appleTokens();
+    await oauth("apple"); expect(fake.appleTokens()).toHaveLength(3);
+    expect(app).toBeTruthy(); expect(JSON.stringify(await account())).not.toContain("revoke");
+    const { account: owner } = await account();
+    expect((await call("/v1/account/delete", { email: owner.email }, { [CSRF_HEADER]: jar.values.get("dusk_csrf")! })).status).toBe(200);
+    // the newest web token and the app's token are revoked; the replaced web token is not kept, so it is not sent
+    const revoked = fake.revoked();
+    expect(revoked).toHaveLength(2); expect(revoked).toContain(app); expect(revoked).not.toContain(web);
+    expect(fake.appleTokens()).toEqual([web]);
+  });
   it("rejects an Apple client secret signed with a different key", async () => {
     const key = generateKeyPairSync("ec", { namedCurve: "prime256v1" }).privateKey.export({ type: "pkcs8", format: "pem" }).toString();
     restart({ oauth: { ...fake.config, apple: { ...fake.config.apple!, apple: { ...fake.config.apple!.apple!, privateKey: key } } } });
@@ -383,6 +430,14 @@ describe("provider environment configuration", () => {
       expect(providersFromEnv({ ...env, DUSK_AUTH_APPLE_PRIVATE_KEY: undefined, DUSK_AUTH_APPLE_PRIVATE_KEY_FILE: file }).apple?.apple?.privateKey).toBe(key);
     } finally { rmSync(dir, { recursive: true, force: true }); }
     expect(providersFromEnv({})).toEqual({});
+  });
+  it("reads the Apple key base64-encoded on one line and the native bundle ids", () => {
+    const key = generateKeyPairSync("ec", { namedCurve: "prime256v1" }).privateKey.export({ type: "pkcs8", format: "pem" }).toString();
+    const env = { DUSK_AUTH_APPLE_CLIENT_ID: "bot.dusk.signin", DUSK_AUTH_APPLE_TEAM_ID: "team", DUSK_AUTH_APPLE_KEY_ID: "key", DUSK_AUTH_APPLE_PRIVATE_KEY: Buffer.from(key).toString("base64"), DUSK_AUTH_APPLE_NATIVE_CLIENT_IDS: "bot.dusk.mobile, bot.dusk.mac" };
+    expect(providersFromEnv(env).apple).toMatchObject({ clientId: "bot.dusk.signin", nativeClientIds: ["bot.dusk.mobile", "bot.dusk.mac"], revokeUrl: "https://appleid.apple.com/auth/revoke", apple: { privateKey: key } });
+    expect(providersFromEnv({ ...env, DUSK_AUTH_APPLE_NATIVE_CLIENT_IDS: undefined }).apple?.nativeClientIds).toBeUndefined();
+    expect(() => providersFromEnv({ ...env, DUSK_AUTH_APPLE_NATIVE_CLIENT_IDS: "bad id" })).toThrow("DUSK_AUTH_APPLE_NATIVE_CLIENT_IDS");
+    expect(() => providersFromEnv({ ...env, DUSK_AUTH_APPLE_PRIVATE_KEY: "bm90IGEga2V5" })).toThrow("expected a P-256 private key");
   });
   it.each([
     [{ DUSK_AUTH_GOOGLE_CLIENT_ID: "client" }, "DUSK_AUTH_GOOGLE_CLIENT_SECRET"],

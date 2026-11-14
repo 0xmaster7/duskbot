@@ -17,7 +17,7 @@ import { clientIp, rateIp } from "../client-ip.ts";
 /** sign-in limits. starts are emails: one address gets at most startsPerEmail an hour and emailsPerAddressPerDay a day, so
  *  nobody can use us to flood a stranger's inbox. mailPerDay sits under brevo's free 300 a day, and addresses with no
  *  account (signups) only get newAddressShare of it, so a spray of made-up addresses never locks existing people out */
-export const AUTH_LIMITS = { startsPerIp: 60, startsPerEmail: 6, emailsPerAddressPerDay: 12, verifiesPerIp: 600, oauthPerIp: 600, deviceAuthorizePerIp: 300,
+export const AUTH_LIMITS = { nativeApplePerIp: 300, startsPerIp: 60, startsPerEmail: 6, emailsPerAddressPerDay: 12, verifiesPerIp: 600, oauthPerIp: 600, deviceAuthorizePerIp: 300,
   mailPerHour: 120, mailPerDay: 250, newAddressShare: 0.8, handoffsPerSession: 60, handoffsPerIp: 600 };
 /** a web handoff link: how long it lives, and how many one account holds unredeemed at once (older ones are dropped) */
 export const HANDOFF_TTL_MS = 120_000, HANDOFF_OUTSTANDING = 5;
@@ -125,10 +125,25 @@ export function createAuth(options: AuthOptions) {
     return Buffer.concat([decipher.update(raw.subarray(28)), decipher.final()]).toString("utf8");
   }
   /** best effort: a deletion or unlink never waits on Apple answering */
+  /** the sealed grants of an identity: the newest refresh token per client id, as json; a bare token (the first format) is the
+   *  services id's */
+  type Grant = { clientId?: string; token: string };
+  function grantsOf(identity: Identity): Grant[] {
+    if (!identity.revoke) return [];
+    let text: string;
+    try { text = unseal(identity.revoke); } catch { return []; }
+    try {
+      const data = JSON.parse(text) as unknown;
+      if (Array.isArray(data)) return data.filter((item): item is Grant => typeof item?.token === "string" && (item.clientId === undefined || typeof item.clientId === "string"));
+    } catch { /* the first format */ }
+    return [{ token: text }];
+  }
   async function revokeProvider(identity: Identity) {
     const provider = providers.get(identity.provider);
-    if (!identity.revoke || !provider?.revoke) return;
-    try { await provider.revoke(unseal(identity.revoke)); } catch { console.error(`Revoking a ${identity.provider} sign-in failed.`); }
+    if (!provider?.revoke) return;
+    await Promise.all(grantsOf(identity).map(async grant => {
+      try { await provider.revoke!(grant.token, grant.clientId); } catch { console.error(`Revoking a ${identity.provider} sign-in failed.`); }
+    }));
   }
   const csrfFor = (session: Session) => hmac(session.tokenHash);
   const fail = (status: number, code: AccountErrorCode, fields?: Record<string, unknown>): never => { throw new AuthError(status, code, fields); };
@@ -332,7 +347,9 @@ export function createAuth(options: AuthOptions) {
   function attach(owner: Account, provider: OAuthProvider, profile: ProviderProfile) {
     const existing = linkedIdentity(provider, profile.subject);
     if (existing && existing.accountId !== owner.id) return fail(409, "identity_taken");
-    const revoke = profile.refreshToken ? { revoke: seal(profile.refreshToken) } : {};
+    // the newest apple refresh token per client (the website's services id, the iphone app's bundle id) replaces the last
+    const fresh = profile.refreshToken ? { clientId: profile.refreshClient, token: profile.refreshToken } : null;
+    const revoke = fresh ? { revoke: seal(JSON.stringify([...(existing ? grantsOf(existing) : []).filter(item => item.clientId !== fresh.clientId), fresh])) } : {};
     if (!existing) state.identities.push({ accountId: owner.id, provider, subject: profile.subject, email: profile.email, label: profile.label, addedAt: now(), ...revoke });
     else if (revoke.revoke) existing.revoke = revoke.revoke;
     if (provider !== "x" && owner.name === null && profile.name) owner.name = profile.name;
@@ -431,6 +448,40 @@ export function createAuth(options: AuthOptions) {
       redirect(res, `${pageBase}${item.next}`);
     } catch { oauthError(res, "oauth_failed", item?.next, item?.appFlow); }
   }
+  /** the iphone app's sign in with apple: a verified identity token and its code make an app session, linking by apple's
+   *  verified email (a private relay address too) exactly as the web flow does */
+  async function nativeApple(req: IncomingMessage, data: Record<string, unknown>): Promise<AppGrant> {
+    rate(`oauth:${ip(req)}`, AUTH_LIMITS.oauthPerIp);
+    rate(`native-apple:${ip(req)}`, AUTH_LIMITS.nativeApplePerIp);
+    if (!providers.nativeApple) return fail(503, "provider_unavailable");
+    const known = ["identityToken", "authorizationCode", "nonce", "givenName", "familyName", "deviceName", "platform", "appVersion"];
+    const name = (value: unknown) => value === undefined || value === null || (typeof value === "string" && value.length <= 80 && !controls(value));
+    if (Object.keys(data).some(key => !known.includes(key)) || typeof data.identityToken !== "string" || data.identityToken.length > 8192
+      || typeof data.authorizationCode !== "string" || !/^[A-Za-z0-9._-]{1,512}$/.test(data.authorizationCode)
+      || typeof data.nonce !== "string" || !/^[A-Za-z0-9._~-]{16,128}$/.test(data.nonce) || !name(data.givenName) || !name(data.familyName)
+      || !["ios", "darwin"].includes(data.platform as string)) return fail(400, "invalid_request");
+    const device = deviceInfo(data, true);
+    let profile: ProviderProfile;
+    try {
+      profile = await providers.nativeApple({ identityToken: data.identityToken, authorizationCode: data.authorizationCode, nonce: data.nonce, givenName: data.givenName as string | undefined, familyName: data.familyName as string | undefined });
+    } catch { return fail(400, "invalid_grant"); }
+    const existing = linkedIdentity("apple", profile.subject);
+    let owner = existing ? account(existing.accountId) : profile.email ? state.accounts.find(item => item.email === profile.email) ?? null : null, created = false;
+    if (existing && !owner) return fail(400, "invalid_grant");
+    if (!owner) {
+      // apple always shares an address (a private relay one if the person hides theirs); none means the token is not usable
+      if (!profile.email) return fail(400, "invalid_grant");
+      if (!options.signupOpen) return fail(403, "signup_closed");
+      const legacy = options.legacyAccounts?.().find(item => cleanEmail(item.email) === profile.email);
+      owner = { id: legacy?.id ?? `acct_${randomBytes(16).toString("base64url")}`, email: profile.email, name: null, createdAt: now() };
+      state.accounts.push(owner);
+      created = true;
+    }
+    attach(owner, "apple", profile);
+    for (const hook of signedInHooks) hook(owner);
+    if (created) for (const hook of createdHooks) hook(owner);
+    return appGrant(owner, device);
+  }
   const liveAppSession = (grant: { accountId: string; sessionId: string }) =>
     state.sessions.find(item => item.id === grant.sessionId && item.accountId === grant.accountId && item.kind !== "web" && item.expiresAt > now()) ?? null;
   function issueHandoff(found: { account: Account; session: Session }, data: Record<string, unknown>): WebHandoffAnswer {
@@ -498,7 +549,7 @@ export function createAuth(options: AuthOptions) {
   async function handle(req: IncomingMessage, res: ServerResponse, url: URL, helpers: BodyHelpers): Promise<boolean> {
     const path = url.pathname, method = req.method ?? "GET", cors = isAppCorsRoute(path);
     const routes: string[] = [R.providers, R.emailStart, R.emailVerify, R.signOut, R.me, R.account, R.notifications, R.onboarded, R.signOutEverywhere, R.deleteAccount, R.deviceLookup, R.deviceApprove, R.deviceDeny,
-      R.appEmailStart, R.appEmailVerify, R.desktopAuthorize, R.desktopToken, R.appSession, R.enrollGrant, R.webHandoff, R.handoffRedeem, R.appToken, R.appStart, R.appDeleteAccount];
+      R.appEmailStart, R.appEmailVerify, R.appAppleSignIn, R.desktopAuthorize, R.desktopToken, R.appSession, R.enrollGrant, R.webHandoff, R.handoffRedeem, R.appToken, R.appStart, R.appDeleteAccount];
     if (!routes.includes(path) && !path.startsWith("/v1/auth/oauth/") && !path.startsWith("/v1/account/identities/") && !path.startsWith("/v1/account/sessions/") && !cors) return false;
     res.setHeader("cache-control", "no-store");
     if (cors) {
@@ -537,6 +588,7 @@ export function createAuth(options: AuthOptions) {
         try { device = deviceInfo(data, false); } catch { return fail(400, "invalid_grant"); }
         json(appGrant(owner, device));
       }
+      else if (method === "POST" && path === R.appAppleSignIn) json(await nativeApple(req, data));
       else if (method === "POST" && (path === R.emailStart || path === R.appEmailStart)) json(await start(req, data, path === R.appEmailStart));
       else if (method === "POST" && (path === R.emailVerify || path === R.appEmailVerify)) json(verifyEmail(req, res, data, path === R.appEmailVerify));
       else if (method === "POST" && path === R.signOut) {
