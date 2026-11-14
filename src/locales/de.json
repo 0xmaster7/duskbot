@@ -36,6 +36,7 @@
   "server.reports.sent": "An das Dusk-Team gesendet (Bericht {report}). Milind und Omkar bekommen ihn per E-Mail.",
   "server.reports.sentReply": "An das Dusk-Team gesendet (Bericht {report}). Milind und Omkar bekommen ihn per E-Mail und antworten dir an {contact}.",
   "server.reports.sentLater": "An das Dusk-Team gesendet (Bericht {report}), nachdem ein früherer Versuch nicht geklappt hat. Milind und Omkar bekommen ihn per E-Mail.",
+  "server.intro.hello": "Hallo, ich bin {name}. Sag mir, womit du anfangen möchtest, und ich kümmere mich darum.",
   "server.importNote.lead": "Ich habe übernommen, was du in {apps} hattest:",
   "server.importNote.start": "Verstanden. Ich richte jetzt deine Bots, Erinnerungen und Routinen ein…",
   "server.importNote.leadDownloads": "Ich habe deine Notizen aus {apps} in Downloads gefunden und übernommen:",

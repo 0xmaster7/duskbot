@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,14 +9,14 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 import { freePortBlock } from "./testing/ports.ts";
 
-// A bot just made says a fixed hello with no model call (nothing spends on the person's key before they write), and
-// never a second hello.
+// A bot just made writes its hello as a turn on its own engine with its full instructions, never twice; an engine that
+// fails leaves the fixed hello and no failure row.
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(SERVER_DIR, "..");
 const FAKE_CLAUDE = join(SERVER_DIR, "testing", "fake-claude-cli.ts");
-const HELLO = "Hi, I'm Ledger (Bookkeeper). Tell me what you'd like to start with and I'll take it from there.";
-const IDLE_MS = 15_000;
+const HELLO = "Hi, I'm Ledger. I keep your books tidy. Want me to start with last month's receipts?";
+const FALLBACK = "Hi, I'm Edie. Tell me what you'd like to start with and I'll take it from there.";
 
 let child: ChildProcess;
 let home = "";
@@ -51,6 +51,10 @@ beforeAll(async () => {
       intro: {
         driver: "claudeAgent", displayName: "Intro fixture", config: { cli: FAKE_CLAUDE },
         environment: { FAKE_CLAUDE_MODE: "happy", FAKE_CLAUDE_DUMP: dump, FAKE_CLAUDE_TOOL_CALLS: "[]", FAKE_CLAUDE_REPLIES: JSON.stringify([HELLO, HELLO]) },
+      },
+      broken: {
+        driver: "claudeAgent", displayName: "Broken fixture", config: { cli: FAKE_CLAUDE },
+        environment: { FAKE_CLAUDE_MODE: "exit-early", FAKE_CLAUDE_TOOL_CALLS: "[]" },
       },
     },
   }));
@@ -88,28 +92,65 @@ afterAll(async () => {
   if (home) await removeTempDir(home);
 });
 
+const waitFor = async <T>(read: () => Promise<T>, done: (value: T) => boolean, ms = 20_000): Promise<T> => {
+  const deadline = Date.now() + ms;
+  let value = await read();
+  while (!done(value) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    value = await read();
+  }
+  return value;
+};
+
+const idle = async (botId: string) => waitFor(
+  async () => (await api("GET", "/api/bots?messages=0")).body.bots.find((each: { id: string }) => each.id === botId)?.busy,
+  (busy) => !busy, 5_000);
+
 describe("a new bot's intro", { timeout: 60_000 }, () => {
-  it("says a fixed hello once, makes no model call, and never says it twice", async () => {
+  it("writes its hello in a turn with its instructions and template, with no line from the person, and never twice", async () => {
     const { bot } = (await api("POST", "/api/bots", {
-      name: "Ledger", title: "Bookkeeper", greeting: false, useDefaults: false,
+      name: "ledger", title: "Bookkeeper", greeting: false, useDefaults: false,
       modelSelection: { instanceId: "intro", model: "claude-sonnet-5" }, requireAvailableModel: true,
     })).body;
-    expect((await api("PATCH", `/api/bots/${bot.id}`, { soul: "You keep the person's books." })).status).toBe(200);
+    expect((await api("PATCH", `/api/bots/${bot.id}`, { soul: "You keep the person's books.", memoryUpkeep: false, browser: false, computer: "off" })).status).toBe(200);
     expect(await messages(bot.threadId)).toEqual([]);
 
-    const started = await api("POST", `/api/bots/${bot.id}/intro`);
-    expect(started.status).toBe(201);
-    const thread = await messages(bot.threadId);
+    const [first, second] = await Promise.all([
+      api("POST", `/api/bots/${bot.id}/intro`, { template: "bookkeeper" }),
+      api("POST", `/api/bots/${bot.id}/intro`, { template: "bookkeeper" }),
+    ]);
+    expect([first.status, second.status].sort()).toEqual([200, 202]);
+    const thread = await waitFor(() => messages(bot.threadId), (rows) => rows.some((message) => message.role === "bot" && message.text === HELLO));
     expect(thread.filter((message) => message.role === "user")).toEqual([]);
-    expect(thread.filter((message) => message.role === "bot").map((message) => message.text)).toEqual([HELLO]);
+    expect(thread.filter((message) => message.role === "bot" && message.kind === "text").map((message) => message.text)).toEqual([HELLO]);
 
-    // a minute of idle time: the fake engine records every prompt it is sent, and it was sent none
-    await new Promise((resolve) => setTimeout(resolve, IDLE_MS));
-    expect(existsSync(dump)).toBe(false);
-    expect((await api("GET", "/api/bots?messages=0")).body.bots.find((each: { id: string }) => each.id === bot.id)?.busy).toBeFalsy();
+    expect(existsSync(dump)).toBe(true);
+    const sent = JSON.parse(readFileSync(dump, "utf8")) as { prompt: unknown; systemPrompt: string };
+    const prompt = JSON.stringify(sent.prompt);
+    expect(prompt).toContain("You were just created");
+    expect(prompt).toContain("Your name, as you write it: Ledger.");
+    expect(prompt).toContain("ready-made bot");
+    expect(sent.systemPrompt).toContain("You keep the person's books.");
 
+    await idle(bot.id);
     expect((await api("POST", `/api/bots/${bot.id}/intro`)).body).toEqual({ skipped: true });
-    expect((await messages(bot.threadId)).filter((message) => message.role === "bot")).toHaveLength(1);
+    expect((await messages(bot.threadId)).filter((message) => message.role === "bot" && message.kind === "text")).toHaveLength(1);
+  });
+
+  it("says the fixed hello, and nothing broken, when its engine fails", async () => {
+    const { bot } = (await api("POST", "/api/bots", {
+      name: "edie", title: "Writer", greeting: false, useDefaults: false,
+      modelSelection: { instanceId: "broken", model: "claude-sonnet-5" },
+    })).body;
+    expect((await api("PATCH", `/api/bots/${bot.id}`, { memoryUpkeep: false, browser: false, computer: "off" })).status).toBe(200);
+    const started = await api("POST", `/api/bots/${bot.id}/intro`);
+    expect([201, 202]).toContain(started.status);
+    const thread = await waitFor(() => messages(bot.threadId), (rows) => rows.some((message) => message.role === "bot" && message.kind === "text"));
+    await idle(bot.id);
+    const settled = await messages(bot.threadId);
+    expect(thread.length).toBeGreaterThan(0);
+    // the turn's work receipt (kind digest) is a record the chat does not draw
+    expect(settled.filter((message) => message.role === "bot" && message.kind !== "digest").map((message) => message.text)).toEqual([FALLBACK]);
   });
 
   it("knows no bot it cannot find", async () => {

@@ -363,7 +363,7 @@ import {
   journalTurnWrite,
   type MemoryJournalEntry,
 } from "./memory-journal.ts";
-import { introAllowed, introText } from "./bot-intro.ts";
+import { introAllowed, introFallback, introName, introPrompt } from "./bot-intro.ts";
 import { memoryTarget } from "./memory-for-bot.ts";
 import { readyBotTemplate, templateRoutineHints } from "./ready-bot-templates.ts";
 import {
@@ -7293,6 +7293,7 @@ bus.subscribe((event: RuntimeEvent) => {
       break;
     }
     case "turn.retrying":
+      if (introTurns.has(event.threadId)) break;
       pushMessage({
         role: "bot",
         kind: "activity",
@@ -7309,6 +7310,7 @@ bus.subscribe((event: RuntimeEvent) => {
         break;
       }
       landParkedFiles(false); // above the failure row, which stays the last, retryable line
+      if (introTurns.has(event.threadId)) break;
       // any failure on OpenCode's free backup is fixed by connecting an AI; the app says so unless one is connected by then
       pushMessage({ role: "bot", kind: "activity", tool: failedTurnTool(event.message, { ...event,
         reason: event.providerInstanceId && registry.knownSnapshot(event.providerInstanceId)?.freeFallback === true ? "no_ai" : failedReplyReason(event.message, event) }) });
@@ -7321,6 +7323,7 @@ bus.subscribe((event: RuntimeEvent) => {
       }
       break;
     case "turn.completed": {
+      introTurns.delete(event.threadId);
       // a Stop the engine ended without a last item: the half answer it had streamed still settles as a bubble
       if (personStops.stopped(event.threadId, completedTurnId)) {
         const kept = replyAtStop.get(event.threadId) ?? keptAtStop(event.threadId, completedTurnId, streamedReply.get(event.threadId) ?? "");
@@ -8202,6 +8205,80 @@ function threadTitleGate(bot: Pick<BotRecord, "modelSelection">): { ok: true; in
 }
 
 const titleRegenerations = new Set<string>();
+
+/** Intro turns in flight, by thread: claimed before any await, so two windows or a retry start one; a failure row is
+ * never shown in one, the fixed hello is. */
+const introTurns = new Set<string>();
+
+async function introApps(bot: BotRecord, instance: ProviderInstance): Promise<string[] | null> {
+  if (!instance.adapter.capabilities.composioMcp || bot.composio === false || !composio.configured(cfg)) return [];
+  const timeout = new Promise<null>((resolve) => setTimeout(resolve, 4_000, null).unref?.());
+  const services = await Promise.race([composio.connectedServices(cfg).catch(() => null), timeout]);
+  if (!services) return null;
+  return Object.entries(services).filter(([slug, state]) => state.connected && (!bot.connectorTools || Object.hasOwn(bot.connectorTools, slug))).map(([slug]) => slug);
+}
+
+function introPlace(): string {
+  if (CLOUD_TEAM) return "your team's dusk cloud";
+  if (CLOUD_HOME) return "dusk cloud";
+  if (!DESKTOP_MANAGED) return "a server";
+  return process.platform === "darwin" ? "this Mac" : process.platform === "win32" ? "this Windows PC" : "this computer";
+}
+
+const INTRO_COMPUTER: Partial<Record<string, string>> = {
+  local: "access to this computer's apps and screen",
+  cloud: "your own Linux desktop and browser in the cloud",
+  vm: "your own sandboxed Linux desktop",
+};
+
+/** A bot just made writes its first message as a turn on its own engine, model and full instructions; with no engine
+ * to answer, it says the fixed hello. Never blocks the caller past the turn's start. */
+async function introduceBot(botId: string, opts: { template?: string; trigger: UsageTrigger }): Promise<"started" | "fallback" | "skipped"> {
+  const bot = store.bot(botId);
+  if (!bot) return "skipped";
+  const threadId = bot.threadId;
+  if (introTurns.has(threadId) || !introAllowed(store.messagesFor(threadId)) || threadBusy(bot.id, threadId)) return "skipped";
+  introTurns.add(threadId);
+  const language = conversationLanguage(threadId);
+  const fallback = () => {
+    introTurns.delete(threadId);
+    if (introAllowed(store.messagesFor(threadId))) store.appendMessage(threadId, { role: "bot", kind: "text", text: introFallback(language, bot) });
+    return "fallback" as const;
+  };
+  const instance = registry.get(bot.modelSelection.instanceId);
+  const snapshot = instance ? registry.lastSnapshot(instance.instanceId) : undefined;
+  if (!instance || !instance.enabled || snapshot?.state === "unavailable" || snapshot?.authenticated === false) return fallback();
+  const template = readyBotTemplate(opts.template);
+  const apps = await introApps(bot, instance);
+  const current = store.bot(botId);
+  if (!current || !introAllowed(store.messagesFor(threadId)) || threadBusy(botId, threadId)) {
+    introTurns.delete(threadId);
+    return "skipped";
+  }
+  const prompt = introPrompt({
+    name: introName(current.name),
+    ...(template ? { template: { category: template.category, title: template.title, tryAsking: template.tryAsking, apps: template.apps, routines: templateRoutineHints(template) } } : {}),
+    apps,
+    place: introPlace(),
+    ...(INTRO_COMPUTER[current.computer ?? ""] ? { computer: INTRO_COMPUTER[current.computer ?? ""] } : {}),
+    ...(cfg.profile?.name?.trim() && !CLOUD_TEAM ? { person: cfg.profile.name.trim() } : {}),
+    teammates: reachablePeers(store.bots, current).filter((peer) => !peer.hidden).map((peer) => ({ name: peer.name, ...(peer.title ? { title: peer.title } : {}) })),
+    ...(language ? { language } : {}),
+  });
+  try {
+    await startTurn(botId, prompt, {
+      threadId, cardContinuation: true, trigger: opts.trigger,
+      onSettled: (outcome) => {
+        introTurns.delete(threadId);
+        if (!outcome.ok || !outcome.text.trim()) fallback();
+      },
+    });
+    return "started";
+  } catch (error) {
+    console.warn(`intro for ${botId} did not start: ${error instanceof Error ? error.message : String(error)}`);
+    return fallback();
+  }
+}
 
 /** The turn's start saves its thread's bookkeeping (title, last asked, read) once, when its synchronous part returns. */
 function startTurn(...args: Parameters<typeof beginTurn>): ReturnType<typeof beginTurn> { return batchSaves(() => beginTurn(...args)); }
@@ -9304,8 +9381,9 @@ async function beginTurn(
           }
         } else if (refusal) message = `Automatic recovery unavailable: ${refusal} Original error: ${message}`;
       }
+      const introduction = introTurns.has(threadId);
       settleDirectFollowup(dispatchClaimId, { ok: false, text: message });
-      store.appendMessage(threadId, {
+      if (!introduction) store.appendMessage(threadId, {
         role: "bot",
         kind: "activity",
         turnSucceeded: false,
@@ -12864,7 +12942,7 @@ const orgInstallStatuses = () => orgLibrary?.installStatuses() ?? new Map();
 ROUTES.push(createBotPresetRoutes({ presets: presetStore, orgStatuses: orgInstallStatuses })); ROUTES.push(createWorkspaceBannerRoutes({ changed: () => broadcast({ kind: "config", ...configStatus() }) }));
 // `routines` is assigned at boot, so it is read per request.
 ROUTES.push(createBotMessageRoutes({
-  store, registry, handoffs, liveTurn: (threadId) => liveTurns.running(threadId), phoneSecretSubmissions, directTurnDispatchClaims, groupSpeakers,
+  store, registry, introduceBot, handoffs, liveTurn: (threadId) => liveTurns.running(threadId), phoneSecretSubmissions, directTurnDispatchClaims, groupSpeakers,
   routines: () => routines,
   fromPhone: phones.fromPhone, notePhoneSend: phones.noteSend,
   desktopManaged: DESKTOP_MANAGED, cloudHome: Boolean(CLOUD_HOME), DirectSendRefused,
@@ -15108,9 +15186,7 @@ const handleRequestInner = async (req: IncomingMessage, res: ServerResponse) => 
         // the new bot says hello in its own chat, as one made in the app does; never over a conversation already started
         // a specialist a Chief adds for work in hand starts on that work, not with a hello
         const greets = body.greet !== false && personAsked() && introAllowed(store.messagesFor(created.threadId)) && !threadBusy(created.id, created.threadId);
-        if (greets) {
-          store.appendMessage(created.threadId, { role: "bot", kind: "text", text: introText(created) });
-        }
+        if (greets) void introduceBot(created.id, { template: template?.id, trigger: { kind: "bot", botId: chief.id } });
         return json(res, 201, {
           ...proposed,
           greeted: greets,
@@ -16318,7 +16394,9 @@ function noteTurnsCutByShutdown(): void {
   const cut = (threadId: string) => !coordinator.continuesAfterRestart(threadId) && !runtimeHoldsRoot(threadId);
   for (const bot of store.bots) {
     for (const task of store.tasks(bot.id)) {
-      if (threadBusy(bot.id, task.threadId) && cut(task.threadId)) {
+      if (threadBusy(bot.id, task.threadId) && cut(task.threadId) && introTurns.has(task.threadId)) {
+        if (introAllowed(store.messagesFor(task.threadId))) store.appendMessage(task.threadId, { role: "bot", kind: "text", text: introFallback(conversationLanguage(task.threadId), bot) });
+      } else if (threadBusy(bot.id, task.threadId) && cut(task.threadId)) {
         store.appendMessage(task.threadId, { role: "bot", kind: "activity", tool: failedTurnTool("turn interrupted: dusk bot restarted") });
       }
     }

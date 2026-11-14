@@ -20,6 +20,9 @@ export async function addTemplate(manifest: unknown, dispatch: (action: Action) 
   for (const group of response.groups ?? []) dispatch({ type: "groupPatched", group });
   for (const routine of response.routines ?? []) dispatch({ type: "routinePatched", routine });
   const first = response.bots.find((bot) => !bot.hidden);
-  if (first) dispatch({ type: "select", id: first.id });
+  if (first) {
+    dispatch({ type: "select", id: first.id });
+    void api(`/api/bots/${first.id}/intro`, { method: "POST" }).catch(() => {});
+  }
   return { ...response, ...(first ? { first } : {}) };
 }

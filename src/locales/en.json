@@ -7681,6 +7681,7 @@
   "vpsLink.progress.paused": "Setup needs attention",
   "vpsLink.progress.continue": "Continue setup",
   "server.botDesktop.building": "Setting up the computer. This takes a few minutes.",
+  "server.intro.hello": "Hi, I'm {name}. Tell me what you'd like to start with and I'll take it from there.",
   "server.importNote.lead": "I brought in what you had in {apps}:",
   "server.importNote.start": "Got it. Setting up your bots, memories and routines now…",
   "server.importNote.leadDownloads": "I found your notes from {apps} in Downloads and brought them in:",

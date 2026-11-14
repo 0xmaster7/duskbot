@@ -33,7 +33,6 @@ import { extractSteerImages } from "../turn-images.ts";
 import { followupFacts, helperFollowup, helperFollowupBody, mayFollowUp } from "../helper-followup.ts";
 import { importNoteSchema } from "../../shared/import-note.ts";
 import { importNoteText } from "../import-note.ts";
-import { introAllowed, introText } from "../bot-intro.ts";
 import { conversationLanguage } from "../server-lines.ts";
 import type { UsageTrigger } from "../usage-ledger.ts";
 import { noteTypedSend } from "../typed-sends.ts";
@@ -76,6 +75,8 @@ export interface BotMessageRouteDeps {
     dataContext?: DataContext; compactOnly?: boolean; cardContinuation?: boolean; editedMessageId?: string;
   }): Promise<Message>;
   usageTriggerFor(auth: RequestAuth): UsageTrigger;
+  /** A bot just made writes its first message; `template` is the ready-made bot it came from. */
+  introduceBot(botId: string, opts: { template?: string; trigger: UsageTrigger }): Promise<"started" | "fallback" | "skipped">;
   messageSender(auth: RequestAuth): ResolvedSender | undefined;
   cloudGuestSendRefusal(auth: RequestAuth, threadId: string): string | null;
   cloudThreadRefusal(auth: RequestAuth, threadId: string): string | null;
@@ -164,7 +165,7 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
   const {
     store, registry, handoffs, liveTurn, phoneSecretSubmissions, directTurnDispatchClaims, groupSpeakers,
     desktopManaged: DESKTOP_MANAGED, cloudHome: CLOUD_HOME, DirectSendRefused,
-    acceptDirectSend, directSendRefusal, startTurn, usageTriggerFor, messageSender, cloudGuestSendRefusal, cloudThreadRefusal,
+    acceptDirectSend, directSendRefusal, startTurn, usageTriggerFor, introduceBot, messageSender, cloudGuestSendRefusal, cloudThreadRefusal,
     cardAnswerRefusal, commandRememberRefusal, requestBehavior, requestedTaskBot, botForThread, threadBusy,
     botAtThreadCapacity, parksBehindCoordination, activeGroupTurnForBot, runningTurnInstance, engineSteersImages, resolveReplyTarget,
     turnSelection, policyModelRefusal, clearUnattended, drainQueuedSends, answeringCardAs, resolveAndSendTrust, resolveAndSendTeamSetup, resolveAndSendMcp,
@@ -466,16 +467,18 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
       if (!text) return json(res, 400, { error: "nothing came in" });
       return json(res, 201, { message: store.appendMessage(bot.threadId, { role: "bot", kind: "text", text }) });
     }
-    // a bot just made greets the person with a fixed line, no model call; its chat holds nothing yet, or this is a no-op
+    // a bot just made writes its own hello; its chat holds nothing yet, or this is a no-op
     m = path.match(/^\/api\/bots\/([\w-]+)\/intro$/);
     if (m && method === "POST") {
       const bot = store.bot(m[1]!);
       if (!bot || bot.hidden) return json(res, 404, { error: "no such bot" });
       const notYours = cloudThreadRefusal(auth, bot.threadId);
       if (notYours) return json(res, 403, { error: notYours });
-      if (!introAllowed(store.messagesFor(bot.threadId)) || threadBusy(bot.id, bot.threadId)) return json(res, 200, { skipped: true });
-      store.appendMessage(bot.threadId, { role: "bot", kind: "text", text: introText(bot) });
-      return json(res, 201, { ok: true, threadId: bot.threadId });
+      const body = await readBody(req).catch(() => null) as { template?: unknown } | null;
+      const template = typeof body?.template === "string" ? body.template.slice(0, 80) : undefined;
+      const outcome = await introduceBot(bot.id, { ...(template ? { template } : {}), trigger: usageTriggerFor(auth) });
+      if (outcome === "skipped") return json(res, 200, { skipped: true });
+      return json(res, outcome === "started" ? 202 : 201, { ok: true, threadId: bot.threadId });
     }
     m = path.match(/^\/api\/bots\/([\w-]+)\/compact$/);
     if (m && method === "POST") {

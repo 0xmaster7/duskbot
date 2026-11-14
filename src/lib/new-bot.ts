@@ -37,17 +37,17 @@ export function reportsToFor(chosen: string | null, section: string | undefined,
   return departmentOwner(department, team)?.email ?? team.me?.email ?? null;
 }
 
-/** The bot says hello in its own voice as its chat opens; the server skips it once anyone has spoken there, and a bot
- * with no AI to answer simply stays quiet. */
-export function greetNewBot(bot: Pick<Bot, "id">, request: typeof api = api): void {
-  void request(`/api/bots/${bot.id}/intro`, { method: "POST" }).catch(() => {});
+/** The bot writes its own hello as its chat opens, from `template` too when it was made from a ready-made bot; the
+ * server skips it once anyone has spoken there, and a bot with no AI to answer says a fixed hello. */
+export function greetNewBot(bot: Pick<Bot, "id">, request: typeof api = api, template?: string): void {
+  void request(`/api/bots/${bot.id}/intro`, { method: "POST", ...(template ? { body: JSON.stringify({ template }) } : {}) }).catch(() => {});
 }
 
 /** A bot just made joins the sidebar and, unless the caller keeps its own place, its chat opens (and the bot greets the
  * person there): on a team's Cloud the creator's own conversation, never the main chat every member reads. */
 export function announceNewBot(dispatch: (action: Action) => void, bot: Bot, warnings: readonly string[],
   { preserveSelection = false, source, role, request = api }: { preserveSelection?: boolean; source: BotSource; role?: string; request?: typeof api }) {
-  if (!preserveSelection) greetNewBot(bot, request);
+  if (!preserveSelection) greetNewBot(bot, request, source === "template" ? role : undefined);
   botCreated(source, role);
   dispatch({ type: "botAdded", bot, preserveSelection });
   if (!preserveSelection && teamChats()) openBot(dispatch, bot);
