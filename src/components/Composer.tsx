@@ -87,7 +87,7 @@ import {
   doubleEnterSteerWindowExpiresAt,
   doubleEnterSteersQueue,
 } from "./ComposerQueuedMessages";
-import { skillAuthoringEnabled } from "@/lib/feature-flags";
+import { liveCallEnabled, skillAuthoringEnabled } from "@/lib/feature-flags";
 import { mentionChoicesForQuery, mentionQueryAt } from "@/lib/mentions"; import { mentionPicksFor, restoreMentionPicks } from "@/lib/mention-picks";
 import { serializeThreadRefs, threadTokenFromPaste, threadTokenSpacing } from "@/lib/thread-refs";
 import {
@@ -109,7 +109,7 @@ interface ComposerDraftSnapshot extends ComposerSendSnapshot {
   reply: Message | null;
 }
 
-type SlotGlyph = "waveform" | "arrow-up" | "stop";
+type SlotGlyph = "waveform" | "mic" | "arrow-up" | "stop";
 
 function SlotGlyphGhost({ glyph, ink }: { glyph: SlotGlyph; ink: string }) {
   return (
@@ -144,7 +144,7 @@ export function Composer({
   const locked = setupLocked || Boolean(bot?.awaitingThreadSnapshot);
   const { state, dispatch } = useStore();
   const { threads, currentBotId } = useThreadRefs();
-  // On a phone the composer is a dock: a round + (attach and every other tool), then one pill with the field, the mic and the voice button.
+  // On a phone the composer is a dock: a round + (attach and every other tool), then one pill with the field and the mic.
   const singleRow = useMediaQuery(PHONE_LAYOUT);
   // On a wider screen: one pill holding a round +, the field, the mic and one round button in the bot's colour.
   const simpleDock = !singleRow;
@@ -558,10 +558,13 @@ export function Composer({
   const callTarget = group ? undefined : bot?.id;
   const calling = callTarget !== undefined && (onCall === callTarget || (isLiveCallRunning(media.phase) && media.botId === callTarget));
   const stoppable = busy || Boolean(!group && bot?.waitingForTeammates);
-  // Simple mode's round button is the call, Send while there is text, and Stop while the bot works.
+  const live = liveCallEnabled();
+  // Simple mode's round button is the mic (the call when live calls are on), Send while there is text, and Stop while the bot works.
   const stopInSlot = simpleDock && stoppable && !locked && !hasContent && !calling;
-  // a phone shows one round button at the end of the pill: stop while it works, send once there is text, else the call
+  // a phone shows one round button at the end of the pill: stop while it works, send once there is text, else the mic
   const callShown = !hasContent && (singleRow ? !busy : !stopInSlot);
+  // with live calls off the mic takes the call's place: the one round button at rest
+  const micInSlot = !live && callShown && !locked && !recording;
   // the round button's glyph pops in only when it swaps here (call, send, stop); a fresh composer, as on a chat
   // switch, shows it at rest like grok's
   const glyphShape = `${hasContent}|${stopInSlot}|${callShown}`;
@@ -576,7 +579,7 @@ export function Composer({
   const slotGlyph: SlotGlyph | null = !simpleDock || calling || locked ? null
     : hasContent ? (busy && !steersNow ? null : "arrow-up")
     : stopInSlot ? "stop"
-    : callShown && bot && !group ? "waveform" : null;
+    : callShown ? (live ? (bot && !group ? "waveform" : null) : "mic") : null;
   const [glyphs, setGlyphs] = useState({ shape: glyphShape, swapped: false, glyph: slotGlyph, from: null as SlotGlyph | null, swaps: 0 });
   if (glyphs.shape !== glyphShape) setGlyphs({ shape: glyphShape, swapped: true, glyph: slotGlyph, from: glyphs.glyph, swaps: glyphs.swaps + 1 });
   const ghostGlyph = glyphs.swapped && glyphs.from && slotGlyph && glyphs.from !== slotGlyph ? glyphs.from : null;
@@ -913,7 +916,7 @@ export function Composer({
               goal={goal}
               teach={canLearn ? teachTask : undefined}
               approval={approvalChoice && modeBot && { name: modeBot.name, choice: approvalChoice }}
-              callBotId={bot && !group ? bot.id : undefined}
+              callBotId={live && bot && !group ? bot.id : undefined}
             />
           </div>
         )}
@@ -931,7 +934,7 @@ export function Composer({
           )}
           <MentionTextarea
           // grok keeps 80px clear at the field's end for its mic and voice buttons, whether or not the mic shows
-          wrapperClassName={cn(singleRow ? undefined : simpleDock ? cn(stacked ? "order-first basis-full" : !(micReady && !locked) && "me-9") : cn("@max-[30rem]/composer:order-first @max-[30rem]/composer:basis-full", stacked && "order-first basis-full"), recording && "hidden")}
+          wrapperClassName={cn(singleRow ? undefined : simpleDock ? cn(stacked ? "order-first basis-full" : locked && "me-9") : cn("@max-[30rem]/composer:order-first @max-[30rem]/composer:basis-full", stacked && "order-first basis-full"), recording && "hidden")}
           inputRef={inputRef}
           peers={[...(group ? members ?? [] : state.bots.filter((member) => member.id !== bot?.id)), ...teammates.peers]}
           everyone={Boolean(group && !group.dm)}
@@ -1074,7 +1077,7 @@ export function Composer({
             <Square size={simpleDock ? 10 : 14} className={cn("fill-current", stopInSlot && "composer-glyph")} />
           </button>
         )}
-        {!locked && micReady && recording && (
+        {!locked && recording && (
           <button
             type="button"
             onClick={discardDictation}
@@ -1089,7 +1092,7 @@ export function Composer({
             <Icon name="close" size={14} />
           </button>
         )}
-        {!locked && micReady && (
+        {!locked && (
           <button
             ref={micButtonRef}
             type="button"
@@ -1102,15 +1105,17 @@ export function Composer({
               simpleDock ? "size-7" : "size-8 max-md:size-10",
               recording
                 ? "composer-press bg-ink text-app hover:bg-[color-mix(in_srgb,var(--color-ink)_88.5%,var(--color-menu))] disabled:opacity-40"
+                : micInSlot ? singleRow ? "composer-press bg-ink text-app hover:opacity-90" : "composer-press hover:brightness-[0.88]"
                 : singleRow ? "text-ink-secondary hover:bg-raised hover:text-ink" : SIMPLE_CONTROL,
             )}
+            style={micInSlot && !singleRow ? { backgroundColor: slot.fill, color: slot.ink } : undefined}
             title={recording ? t("composer.voice.stopHint", { key: voiceShortcutLabel() }) : t("composer.voice.hint", { key: voiceShortcutLabel() })}
           >
             {recording ? <Icon name="check" size={14} />
-              : simpleDock ? <Icon name="mic" variant="filled" size={16} /> : <Mic size={16} strokeWidth={1.75} absoluteStrokeWidth className="[&_rect]:fill-current" />}
+              : simpleDock ? <Icon name="mic" variant="filled" size={16} className={micInSlot ? "composer-glyph" : undefined} /> : <Mic size={16} strokeWidth={1.75} absoluteStrokeWidth className="[&_rect]:fill-current" />}
           </button>
         )}
-        {callShown && bot && !group && <CallButton bot={bot} placement="composer" fill={singleRow ? undefined : slot.fill} ink={slot.ink} inverse={singleRow} />}
+        {live && callShown && bot && !group && <CallButton bot={bot} placement="composer" fill={singleRow ? undefined : slot.fill} ink={slot.ink} inverse={singleRow} />}
         {hasContent && !locked && (
           <ComposerSendButton compact={simpleDock} waits={busy && !steersNow} label={sendNames.label} title={sendNames.title} look={slot.button}
             disabled={attachmentPending || unsentUpload} onSend={(alternate) => send(followUpFor(alternate))} onChoose={send}

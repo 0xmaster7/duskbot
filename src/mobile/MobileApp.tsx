@@ -7,6 +7,7 @@ import { useWarmChatImages } from "@/components/use-warm-chat-images";
 import { ThreadRefsProvider } from "@/components/ThreadRefs";
 import { DesktopCapabilitiesProvider } from "@/components/DesktopCapabilities";
 import { LiveCallHost } from "@/components/LiveCallHost";
+import { liveCallEnabled } from "@/lib/feature-flags";
 import { ConnectAppsHost } from "@/components/connect-apps";
 import { openChatLink } from "@/components/ThreadRefs";
 import { parseBotRefUrl, parseThreadRefUrl } from "@/lib/thread-refs"; import { completeSlackOAuth } from "@/lib/slack-oauth-link"; import { parseSlackOAuthLink } from "../../shared/slack";
@@ -181,7 +182,7 @@ export function MobileApp() {
           <ThreadRefsProvider>
             <AiConsentProvider><Shell /></AiConsentProvider>
           </ThreadRefsProvider>
-          <LiveCallHost />
+          {liveCallEnabled() && <LiveCallHost />}
         </StoreProvider>
       </DesktopCapabilitiesProvider>
     </MotionConfig>

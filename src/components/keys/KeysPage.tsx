@@ -8,6 +8,7 @@ import { Card as RowsCard, FormDialog } from "../ListRows";
 import { smallButtonCls } from "../ui/GrokDialog";
 import { LiveProviderSettings } from "../LiveProviderSettings";
 import { BuiltInReplyWait, LmStudioServer, OtherOpenAiCompatServers } from "../OpenAiCompatServers";
+import { liveCallEnabled } from "@/lib/feature-flags";
 import { KEY_CATALOG, KEY_SECTIONS, keyMatches, savedState, type KeyEntry, type KeyId, type KeySectionId } from "./key-catalog";
 import { finishKeyFocus, useKeyFocus, type KeyFocusRequest } from "./key-focus";
 import { AnthropicEveryClaudeBot, OpenAiCompatUrl, OpenCodeProviderKeys, VpsRow } from "./KeyPanels";
@@ -161,7 +162,9 @@ export function KeysPage() {
 
   // With Azure chosen, Live calls do not use the OpenAI key that row points at.
   const azureLive = state.config?.live?.provider === "azure";
-  const rows = KEY_CATALOG.filter((entry) => keyMatches(entry, q) && !(azureLive && entry.id === "liveCalls"));
+  const live = liveCallEnabled();
+  const rows = KEY_CATALOG.filter((entry) => keyMatches(entry, q) && !(azureLive && entry.id === "liveCalls")
+    && (live || (entry.id !== "liveCalls" && entry.id !== "liveKey")));
   const sections = KEY_SECTIONS.flatMap((section) => {
     const own = rows.filter((entry) => entry.section === section.id);
     return own.length > 0 ? [{ id: section.id, rows: own }] : [];

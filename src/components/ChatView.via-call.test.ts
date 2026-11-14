@@ -23,6 +23,8 @@ vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
 vi.mock("./ModelPicker", () => ({ ModelPicker: () => createElement("span") }));
 vi.mock("./ApprovalModeSelector", () => ({ ApprovalModeSelector: () => createElement("span") }));
 
+// these cover live calls, which ship behind a switch that is off
+vi.stubEnv("VITE_DUSK_LIVE_CALL", "1");
 const { ChatView } = await import("./ChatView");
 const { noteTurnEvent, resetTurnLive } = await import("@/state/turn-status");
 const { resetLandedReplies } = await import("@/hooks/use-landed-reply");

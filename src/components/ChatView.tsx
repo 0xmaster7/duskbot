@@ -51,7 +51,7 @@ import { turnMarkState } from "./mascot-presence";
 import type { LiveStatus } from "@/state/turn-status";
 import { TurnPresence, TYPING_PHASE } from "./TurnPresence";
 import { MarkCrossfade } from "./MarkCrossfade";
-import { showToolCallsEnabled } from "@/lib/feature-flags";
+import { liveCallEnabled, showToolCallsEnabled } from "@/lib/feature-flags";
 import { normalizeState } from "@/lib/mascot";
 import { peerLine, peerRequest, type PeerLine } from "@/lib/peer-message";
 import { showWorkingDots } from "@/lib/turn-tail";
@@ -1095,7 +1095,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   return (
     <ThreadLinkContext value={threadLink}>
     <main className="relative flex h-full min-w-0 flex-1 flex-col bg-app">
-      <CallOverlay bot={bot} />
+      {liveCallEnabled() && <CallOverlay bot={bot} />}
       <GlassScrollFrame className="flex-1 [--glass-tint:var(--color-app)]">
       {/* z-[25]: above the room set-up card (z-20), below the CallOverlay (z-30). */}
       <GlassBar edge="top" fade={!remoteClient} className="z-[25]">
@@ -1168,7 +1168,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           {phone && <UsageAlert engine={bot.modelSelection?.instanceId} />}
           {/* Simple mode chooses the model in the bot panel's Details, as its header is the bot's pill alone. */}
           {!phone && !simpleHead && <ModelPicker key={bot.threadId} bot={bot} threadId={bot.threadId} />}
-          <LiveCallChip currentBotId={bot.id} onOpen={(botId, threadId) => openThread(dispatch, { botId, threadId }, state)} />
+          {liveCallEnabled() && <LiveCallChip currentBotId={bot.id} onOpen={(botId, threadId) => openThread(dispatch, { botId, threadId }, state)} />}
           {/* Grok's header is the bot's pill alone: the pill opens the panel, whose Computer tab shows the bot's screen. */}
           {!phoneMenu && !simpleHead && <button
             data-tour="computer"
@@ -1341,7 +1341,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
       <div className="pointer-events-auto"><ChatErrorBanner message={state.error} onDismiss={() => dispatch({ type: "error", message: null })} /></div>
       <div className="pointer-events-auto"><FailedReplyCard rows={trailing} botId={bot.id} threadId={bot.threadId} onRetry={lastUserMessage ? regenerate : undefined} /></div>
       {canWrite !== false && !trailing?.failures.length && !trailing?.notices.length && <div className="pointer-events-auto"><ComposerSignInNotice bot={bot} /></div>}
-      <LiveCallBar bot={bot} />
+      {liveCallEnabled() && <LiveCallBar bot={bot} />}
       {canWrite === false ? (
         <NewConversationInstead bot={bot} onNew={() => dispatch({ type: "newTask", botId: bot.id })} />
       ) : (

@@ -81,7 +81,23 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+// these cover live calls, which ship behind a switch that is off
+vi.stubEnv("VITE_DUSK_LIVE_CALL", "1");
+
 describe("the phone composer", () => {
+  it("with live calls off, ends the pill on an inverse mic and offers no call", () => {
+    vi.stubEnv("VITE_DUSK_LIVE_CALL", "");
+    try {
+      render({ bot });
+      expect(fixture.call).toBeNull();
+      const mic = container.querySelector<HTMLButtonElement>('button[data-voice-mic="start"]')!;
+      expect(mic.getAttribute("aria-label")).toBe("Start dictation");
+      expect(mic.className.split(" ")).toEqual(expect.arrayContaining(["bg-ink", "text-app", "size-8", "max-md:size-10"]));
+    } finally {
+      vi.stubEnv("VITE_DUSK_LIVE_CALL", "1");
+    }
+  });
+
   it("shows only the + and the pill, with an inverse voice button", () => {
     render({ bot });
     expect(plus()).not.toBeNull();

@@ -38,6 +38,9 @@ vi.mock("./CallView", () => ({ CallButton: (props: Record<string, unknown>) => {
 
 import { Composer } from "./Composer";
 
+// these cover live calls, which ship behind a switch that is off
+vi.stubEnv("VITE_DUSK_LIVE_CALL", "1");
+
 const bot: Bot = {
   id: "atlas", threadId: "atlas-thread", name: "Atlas", title: "", description: "",
   color: "purple", notifications: false, unread: false, busy: false, messages: [], approvalMode: "ask",
@@ -100,6 +103,23 @@ afterEach(() => {
 });
 
 describe("the Simple composer in a bot chat", () => {
+  it("with live calls off, makes the mic its one round button in the bot's tone, and offers no call", () => {
+    vi.stubEnv("VITE_DUSK_LIVE_CALL", "");
+    try {
+      render({ bot });
+      expect(fixture.call).toBeNull();
+      const mic = container.querySelector<HTMLButtonElement>('[data-composer-actions] button[data-voice-mic="start"]')!;
+      expect(mic.getAttribute("aria-label")).toBe("Start dictation");
+      expect(mic.style.backgroundColor).not.toBe("");
+      expect(mic.className.split(" ")).toEqual(expect.arrayContaining(["size-7", "rounded-full", "composer-press"]));
+      expect(container.querySelector("[data-composer-actions]")!.lastElementChild).toBe(mic);
+      openPlus();
+      expect([...menu()!.querySelectorAll("[data-menu-key]")].map((row) => row.getAttribute("data-menu-key"))).toEqual(["attach", "teach"]);
+    } finally {
+      vi.stubEnv("VITE_DUSK_LIVE_CALL", "1");
+    }
+  });
+
   it("is one pill: a round + with three rows, the field, and one round button in the bot's tone", () => {
     render({ bot });
     expect(plus()?.getAttribute("aria-label")).toBe("Add");

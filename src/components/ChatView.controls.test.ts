@@ -264,7 +264,14 @@ describe("thread control placement", () => {
     expect(markup.includes('data-testid="chat-more"')).toBe(remote);
   });
 
+  it("with live calls off, offers no call anywhere and keeps the mic in the composer", () => {
+    const markup = renderToStaticMarkup(createElement(ChatView, { bot }));
+    expect(markup).not.toContain("data-call-button");
+    expect(markup.slice(markup.indexOf("data-composer-actions"))).toContain('data-voice-mic="start"');
+  });
+
   it("calls from the composer beside dictation, not the header", () => {
+    vi.stubEnv("VITE_DUSK_LIVE_CALL", "1");
     const markup = renderToStaticMarkup(createElement(ChatView, { bot }));
     const header = markup.slice(markup.indexOf("data-chathead-controls"), markup.indexOf("data-composer-row"));
     expect(header).not.toContain("data-call-button");
@@ -272,6 +279,7 @@ describe("thread control placement", () => {
     const actions = markup.slice(markup.indexOf("data-composer-actions"));
     expect(actions).toContain('data-call-button="composer"');
     expect(markup.match(/data-call-button=/g)).toHaveLength(1);
+    vi.unstubAllEnvs();
   });
 
   it("keeps the composer inert until the deleted thread's replacement transcript arrives", () => {

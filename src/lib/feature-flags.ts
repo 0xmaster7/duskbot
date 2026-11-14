@@ -11,6 +11,12 @@ export function phoneAppEnabled(): boolean {
   return import.meta.env?.VITE_DUSK_PHONE_APP === "1";
 }
 
+/** Live calls, off: the call button, its mode menu, the live bar and pill, the "live key needed" prompt and the
+ * live key rows in Settings all follow this one switch. The engine stays; a build with `VITE_DUSK_LIVE_CALL=1` brings it back. */
+export function liveCallEnabled(): boolean {
+  return import.meta.env?.VITE_DUSK_LIVE_CALL === "1";
+}
+
 export function browserAvailable(config: FeatureFlagConfig | null | undefined): boolean {
   return config?.browserEngine?.kind === "engine";
 }

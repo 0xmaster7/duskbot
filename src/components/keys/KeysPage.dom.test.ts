@@ -30,6 +30,8 @@ vi.mock("@/lib/sealed-send", () => ({ putConfig: (patch: unknown) => fx.api("/ap
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
 vi.mock("@/lib/live-call-media", () => ({ dismissLiveNotice: vi.fn() }));
 
+// these cover live calls, which ship behind a switch that is off
+vi.stubEnv("VITE_DUSK_LIVE_CALL", "1");
 const { KeysPage } = await import("./KeysPage");
 const { LiveKeyNeeded } = await import("../LiveKeyNeeded");
 const { openKeySettings } = await import("./key-focus");
@@ -105,6 +107,18 @@ describe("the keys page", () => {
     expect(row("openrouter")!.textContent).not.toContain("Hundreds of models through one key");
     expect(row("openai")!.textContent).not.toContain("Codex doesn't use this key");
     expect(host.textContent).not.toContain("Save a key for any provider OpenCode supports");
+  });
+
+  it("shows no live call rows while live calls are off", () => {
+    vi.stubEnv("VITE_DUSK_LIVE_CALL", "");
+    try {
+      page();
+      expect(row("liveKey")).toBeNull();
+      expect(row("liveCalls")).toBeNull();
+      expect(row("elevenlabs")).not.toBeNull();
+    } finally {
+      vi.stubEnv("VITE_DUSK_LIVE_CALL", "1");
+    }
   });
 
   it("offers the Live calls service, OpenAI or Azure OpenAI, on the separate live key row", () => {

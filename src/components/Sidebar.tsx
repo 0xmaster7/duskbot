@@ -6,7 +6,7 @@ import { Bot as BotIcon, Check, ClipboardCopy, Crown, FolderPlus, Library, Loade
 import { api, useStore, formatTime, visibleMessages, botOpensTo, openBot, openThread, type Action, type AppState, type Bot, type Group, type InstanceInfo, type Message } from "@/state/store";
 import { SidebarWorkingStep, useWorkingLabel } from "./SidebarWorkingStep";
 import { openBotRow } from "@/state/thread-navigation";
-import { llmThreadTitlesEnabled } from "@/lib/feature-flags";
+import { liveCallEnabled, llmThreadTitlesEnabled } from "@/lib/feature-flags";
 
 import { BotAvatar } from "./Avatar";
 import { hoverGaze } from "./mascot-engine";
@@ -1256,11 +1256,11 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
       </p>
 
       <GlassBar edge="bottom">
-      <LiveCallPill
+      {liveCallEnabled() && <LiveCallPill
         currentBotId={state.activeView === "chat" ? state.selectedId : null}
         onOpen={(botId, threadId) => openThread(dispatch, { botId, threadId }, state)}
         iconOnly={density === "icons"}
-      />
+      />}
 
       {rail ? <SimpleRailFooter
         owner={cloudOwner}

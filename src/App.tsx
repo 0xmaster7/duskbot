@@ -13,6 +13,7 @@ import { CloudTimeZoneSync } from "@/components/CloudTimeZone";
 import { useWarmChatImages } from "@/components/use-warm-chat-images";
 import { cloudSignInDue, type WelcomeViewer } from "@/lib/onboarding";
 import { LiveCallHost } from "@/components/LiveCallHost";
+import { liveCallEnabled } from "@/lib/feature-flags";
 import { AmbientPublisher } from "@/ambient/AmbientPublisher";
 import { useAmbientAway } from "@/ambient/away";
 import { BotsElsewhere, DevFreshInstallButton } from "@/components/BotsElsewhere";
@@ -417,7 +418,7 @@ function Application({ children }: { children?: ReactNode }) {
         <DevFreshInstallButton />
         <IslandIntroHost />
         <CloudTimeZoneSync viewer={viewer} />
-        <LiveCallHost />
+        {liveCallEnabled() && <LiveCallHost />}
         <AmbientPublisher />
         {children}
       </StoreProvider>
