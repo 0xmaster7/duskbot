@@ -59,6 +59,7 @@ import { ThemeRow, useSkinChoice } from "./ThemeRow";
 import { UsageSection } from "./UsageSection";
 import { WorkspaceBackupSettings } from "./WorkspaceBackupSettings";
 import { ModelDirectory } from "./models/ModelDirectory";
+import { AiCards } from "./onboarding/AiCards";
 import { reportsUsage, useEngineLimits } from "@/lib/limit-resets";
 import {
   ExperimentalFeaturesRow, FollowUpRow, LanguageRow, QuickUpdatesRow, SendKeyRow, TalkingStyleRow,
@@ -500,6 +501,21 @@ function DataPage({ has }: { has: Has }) {
   );
 }
 
+/** Models' top: the same grid of popular AIs as the first run and the Connect an AI dialog; its link goes to the
+ * directory just under it. */
+function ConnectAiCards() {
+  const toDirectory = () => {
+    const search = document.querySelector<HTMLInputElement>("[data-model-directory-search]");
+    search?.scrollIntoView({ block: "center" });
+    search?.focus({ preventScroll: true });
+  };
+  return (
+    <RowsCard label={t("onboarding.meet.connectAi")} data-settings-block="connect-ai">
+      <div className="p-2"><AiCards tested={null} onMore={toDirectory} /></div>
+    </RowsCard>
+  );
+}
+
 /** Model providers and their sign-ins and API keys: what every bot's model picker draws from. */
 export function ModelsPane({ has, disclose, connections }: { has: Has; disclose: Disclose; connections: ReactNode }) {
   const { at } = useSubPage();
@@ -507,6 +523,7 @@ export function ModelsPane({ has, disclose, connections }: { has: Has; disclose:
   if (at) return <div data-settings-block="engines" className="contents"><AdminOnly><EnginesSettings simple more={disclose("ai-more")} /></AdminOnly></div>;
   return (
     <>
+      {has("engines") && <AdminOnly><ConnectAiCards /></AdminOnly>}
       {has("engines") && <AdminOnly><ModelDirectory /></AdminOnly>}
       {has("engines") && <div data-settings-block="engines" className="flex scroll-mt-4 flex-col gap-5"><AdminOnly><EnginesSettings simple more={disclose("ai-more")} /></AdminOnly></div>}
       {has("connections") && (

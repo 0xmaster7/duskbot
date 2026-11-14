@@ -24,6 +24,10 @@ vi.mock("@/components/EngineSetup", async () => {
   return { EngineSetup: ({ instance, intent, description }: { instance: InstanceInfo; intent: string; description?: string }) =>
     h("div", { "data-engine-setup": instance.instanceId, "data-intent": intent, "data-description": description }) };
 });
+vi.mock("@/components/models/ModelDirectory", async () => {
+  const { createElement: h } = await import("react");
+  return { ModelDirectory: () => h("div", { "data-model-directory-stub": "" }) };
+});
 // The row has its own tests; here only whether the first screen offers it.
 vi.mock("./beats/OrganisationRow", () => ({ OrganisationRow: (props: NonNullable<typeof f.row>) => { f.row = props; return null; } }));
 const { ConnectAi, ConnectAiDialog } = await import("./ConnectAi");
@@ -33,7 +37,7 @@ const { useStore } = await import("@/state/store");
 /** As the first screen has it: the AI it stands on, tested once, handed to the block. */
 function FirstScreenAi() {
   const { state } = useStore();
-  return createElement(ConnectAi, { tested: useWelcomeAi(state.instances) });
+  return createElement(ConnectAi, { tested: useWelcomeAi(state.instances), onMore: () => {} });
 }
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -47,9 +51,14 @@ const text = () => host.textContent ?? "";
 const show = async () => {
   await act(async () => { root.render(createElement(FirstScreenAi)); });
 };
-/** Every other way is listed under the recommended one, with nothing to unfold. */
 const otherWays = async () => {
   await act(async () => {});
+};
+/** The AIs shown as cards, in their order. */
+const cards = () => [...host.querySelectorAll<HTMLElement>("[data-funnel-ai]")].map((card) => card.dataset.funnelAi);
+const press = async (selector: string) => {
+  const target = host.querySelector<HTMLElement>(selector)!;
+  await act(async () => { target.click(); });
 };
 
 beforeEach(() => {
@@ -72,74 +81,56 @@ afterEach(async () => {
 });
 
 describe("connecting an AI on the first screen", () => {
-  it("says when it could not check the AIs, keeps what it already lists, and checks again", async () => {
+  it("says when it could not check the AIs, keeps the cards it already shows, and checks again", async () => {
     // Was a step of scripts/verify-onboarding-ui.ts, whose fixture no longer reaches this step (its AI already works).
-    await show();
-    await otherWays();
-    const listed = () => [...host.querySelectorAll("[aria-expanded]")].map((node) => node.textContent);
-    const before = listed();
-    const checkAgain = async () => {
-      const button = [...host.querySelectorAll("button")].find((node) => node.textContent === "Check again")!;
-      await act(async () => { button.click(); });
-    };
     f.fail = true;
-    await checkAgain();
+    await show();
     expect(text()).toContain("Couldn't check your AI connections");
-    expect(listed()).toEqual(before);
-    await checkAgain();
+    expect(cards()).toEqual(["chatgpt", "claude", "grok"]);
+    const button = [...host.querySelectorAll("button")].find((node) => node.textContent === "Check again")!;
+    await act(async () => { button.click(); });
     expect(text()).not.toContain("Couldn't check your AI connections");
+    expect(cards()).toEqual(["chatgpt", "claude", "grok"]);
   });
 
-  it("leads with one recommended way, then lists every other way, with no status list and no engine talk", async () => {
+  it("shows the popular AIs as a grid of cards by the names people use, with a small link to every other provider", async () => {
     await show();
-    expect([...host.querySelectorAll("[data-engine-setup]")].map((node) => node.getAttribute("data-engine-setup"))).toEqual(["claude"]);
-    expect(host.querySelector("[data-ai-recommended]")?.getAttribute("data-ai-recommended")).toBe("claude");
-    const rows = [...host.querySelectorAll("button[aria-expanded]")].map((node) => node.textContent);
-    expect(rows).toHaveLength(2);
-    expect(rows).toContain("Codex");
-    expect(text()).not.toContain("Other ways");
-    for (const word of [/\bengines?\b/i, /\bReady\b/, /Needs setup/i, /to set up/i, /provider/i]) expect(text()).not.toMatch(word);
+    expect(cards()).toEqual(["chatgpt", "claude", "grok"]);
+    expect(host.querySelector("[data-funnel-ai=chatgpt]")?.tagName, "a card to press").toBe("BUTTON");
+    expect(host.querySelector("[data-engine-setup]"), "nothing unfolds until a card is pressed").toBeNull();
+    expect(host.querySelector("[data-ai-more]")?.textContent).toBe("More providers or use an API key");
+    for (const word of [/\bengines?\b/i, /Needs setup/i, /to set up/i]) expect(text()).not.toMatch(word);
   });
 
-  it("says one plain line on a sign-in at the provider's website, and leaves a step finished in Terminal and a local-model setup their own words", async () => {
-    const signsIn = (instance: InstanceInfo, method?: "paste-code" | "device-code"): InstanceInfo =>
-      ({ ...instance, snapshot: { state: "available", authenticated: false }, ...(method ? { authentication: { method } } : {}) });
-    f.instances = [
-      signsIn(engine("claude", "claudeAgent", "Claude", false), "paste-code"),
-      signsIn(engine("grok", "grokAgent", "Grok", false), "device-code"),
-      signsIn(engine("kimi", "kimiAgent", "Kimi", false)),
-      engine("codex", "codex", "Codex", false),
-      { ...engine("droid", "droidAgent", "Droid", false), install: { docsUrl: "https://example.test", server: { package: "droid" } } },
-      { ...engine("local", "openai-compat", "local models", false), access: "custom" },
-    ];
+  it("opens a pressed card's own setup under the grid, a local model's as its own", async () => {
+    f.instances = [engine("codex", "codex", "Codex", false), { ...engine("openaiCompat", "openai-compat", "local models", false), access: "custom" }];
     const setup = (id: string) => host.querySelector(`[data-engine-setup="${id}"]`);
-    const plain = (name: string) => `Use the ${name} account you already have. You sign in on their own website, so your password stays with them.`;
     await show();
-    expect(setup("claude")?.getAttribute("data-description")).toBe(plain("Claude"));
-    await otherWays();
-    const openRow = async (name: string) => {
-      const row = [...host.querySelectorAll<HTMLButtonElement>("button[aria-expanded]")].find((button) => button.textContent?.includes(name))!;
-      await act(async () => { row.click(); });
-    };
-    await openRow("Grok");
-    expect(setup("grok")?.getAttribute("data-description")).toBe(plain("Grok"));
-    await openRow("Droid");
-    expect(setup("droid")?.getAttribute("data-description"), "the app installs it, then the sign-in follows").toBe(plain("Droid"));
-    for (const [id, name] of [["kimi", "Kimi"], ["codex", "Codex"]]) {
-      await openRow(name);
-      expect(setup(id)?.hasAttribute("data-description"), `${name} is finished in Terminal: its setup keeps its own instructions`).toBe(false);
-    }
-    await openRow("local models");
-    expect(setup("local")?.getAttribute("data-intent")).toBe("inject");
-    expect(setup("local")?.hasAttribute("data-description")).toBe(false);
+    expect(cards()).toEqual(["chatgpt", "local"]);
+    await press("[data-funnel-ai=chatgpt]");
+    expect(host.querySelector("[data-funnel-ai=chatgpt]")?.getAttribute("aria-pressed")).toBe("true");
+    expect(setup("codex")?.getAttribute("data-intent")).toBe("cloud");
+    await press("[data-funnel-ai=local]");
+    expect(setup("codex")).toBeNull();
+    expect(setup("openaiCompat")?.getAttribute("data-intent")).toBe("inject");
   });
 
-  it("says which AI is connected once one is, and recommends nothing more", async () => {
+  it("shows a connected AI's card green with a check and Connected, not to be pressed again", async () => {
+    f.instances = [engine("claude", "claudeAgent", "Claude", true), engine("codex", "codex", "Codex", false)];
+    await show();
+    const claude = host.querySelector<HTMLElement>("[data-funnel-ai=claude]")!;
+    expect(claude.tagName).toBe("DIV");
+    expect(claude.hasAttribute("data-connected")).toBe(true);
+    expect(claude.className).toContain("bg-success");
+    expect(claude.textContent).toContain("Connected");
+    expect(claude.querySelector("svg"), "a check, not colour alone").not.toBeNull();
+    expect(host.querySelector("button[data-funnel-ai=chatgpt]")).not.toBeNull();
+  });
+
+  it("says which AI is connected once one is", async () => {
     f.instances = [engine("claude", "claudeAgent", "Claude", true), engine("codex", "codex", "Codex", false)];
     await show();
     expect(host.querySelector("[data-ai-connected]")?.textContent).toContain("Claude");
-    expect(host.querySelector("[data-ai-recommended]")).toBeNull();
-    expect(text()).not.toContain("Other ways");
   });
 
   it("says Connected only after the AI answered a test message, and plainly while it checks", async () => {
@@ -162,9 +153,9 @@ describe("connecting an AI on the first screen", () => {
     expect(host.querySelector("[data-ai-silent] [data-ai-reason]")?.textContent).toBe("Claude didn't answer within 90 seconds.");
     expect(host.querySelector("[data-ai-silent]")?.textContent).toContain("Or connect another AI below.");
     expect(host.querySelector("[data-ai-connected]")).toBeNull();
-    expect(host.querySelector("[data-ai-recommended]")?.getAttribute("data-ai-recommended")).toBe("codex");
+    expect(host.querySelector("button[data-funnel-ai=chatgpt]"), "another AI is still a card to press").not.toBeNull();
     await otherWays();
-    expect(text()).toContain("Kimi");
+    expect(host.querySelector("[data-ai-more]")).not.toBeNull();
     // The next ready AI gets its own test.
     f.instances = [...f.instances, engine("grok", "grokAgent", "Grok", true)];
     f.check = () => Promise.resolve({ ok: true });
@@ -208,10 +199,10 @@ describe("connecting an AI on the first screen", () => {
     expect(f.checks).toEqual([]);
     expect(host.querySelector("[data-ai-connected]")).toBeNull();
     expect(host.querySelector("[data-ai-backup]")?.textContent).toBe("OpenCode's free model is ready as a backup. For the best answers, connect an AI you already use.");
-    expect(host.querySelector("[data-ai-recommended]")?.getAttribute("data-ai-recommended")).toBe("claude");
+    expect(host.querySelector("button[data-funnel-ai=claude]")).not.toBeNull();
   });
 
-  it("offers the organization sign-in under Other ways on this computer's own window only", async () => {
+  it("offers the organization sign-in under the cards on this computer's own window only", async () => {
     await show();
     await otherWays();
     expect(f.row).toBeNull();
@@ -230,7 +221,13 @@ describe("connecting an AI on the first screen", () => {
     const dialog = host.querySelector<HTMLElement>("[data-connect-ai]")!;
     expect(dialog.getAttribute("role")).toBe("dialog");
     expect(dialog.querySelector("h2")?.textContent).toBe("Connect an AI");
-    expect(dialog.querySelector("[data-ai-recommended]")).not.toBeNull();
+    expect(dialog.querySelector("[data-ai-cards]")).not.toBeNull();
+    const more = dialog.querySelector<HTMLButtonElement>("[data-ai-more]")!;
+    await act(async () => { more.click(); });
+    expect(dialog.querySelector("h2")?.textContent).toBe("More providers or use an API key");
+    expect(dialog.querySelector("[data-model-directory-stub]")).not.toBeNull();
+    await act(async () => { dialog.querySelector<HTMLButtonElement>("[data-connect-ai-back]")!.click(); });
+    expect(dialog.querySelector("h2")?.textContent).toBe("Connect an AI");
     await act(async () => { dialog.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); });
     expect(onClose).toHaveBeenCalledOnce();
     await act(async () => { dialog.parentElement!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true })); });

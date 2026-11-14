@@ -16,6 +16,8 @@ const f = vi.hoisted(() => ({ state: {} as Record<string, unknown>, dispatch: vi
   improve: [] as unknown[] }));
 vi.mock("@/state/store", () => ({ useStore: () => ({ state: f.state, dispatch: f.dispatch, refreshInstances: vi.fn(), refreshModels: vi.fn() }), api: f.api }));
 vi.mock("@/state/api", () => ({ api: f.api }));
+// the directory has its own tests; here only that More providers opens it
+vi.mock("@/components/models/ModelDirectory", () => ({ ModelDirectory: () => null }));
 vi.mock("@/lib/product-analytics", () => ({ setUsageAnalytics: vi.fn() }));
 vi.mock("@/lib/analytics", () => ({ track: vi.fn(), setEmailGateDone: vi.fn() }));
 vi.mock("@/components/Avatar", () => ({ BotAvatar: () => null, MausAvatar: () => null }));
@@ -163,13 +165,14 @@ describe("connecting an AI", () => {
     await press("Get started");
     expect(step()).toBe("ai");
     expect(title()).toBe("Connect an AI");
-    expect([...host.querySelectorAll<HTMLElement>("[data-funnel-ai]")].map((tile) => tile.dataset.funnelAi)).toEqual(["chatgpt", "claude", "cursor", "copilot", "more"]);
+    expect([...host.querySelectorAll<HTMLElement>("[data-funnel-ai]")].map((tile) => tile.dataset.funnelAi)).toEqual(["chatgpt", "claude", "cursor", "copilot"]);
     expect(text()).toContain("ChatGPT");
     await press("Claude");
     expect(host.querySelector("[data-funnel-ai-connect=claude]")).not.toBeNull();
     expect(button("Sign in with Claude")).toBeDefined();
-    await press("More ways");
+    await press("More providers or use an API key");
     expect(host.querySelector("[data-connect-ai]")).not.toBeNull();
+    expect(host.querySelector("[data-connect-ai] h2")?.textContent, "it opens on every other provider").toBe("More providers or use an API key");
   });
 
   it("shows connected AIs as connected, not to be pressed again, with continue ready and more still to add", async () => {

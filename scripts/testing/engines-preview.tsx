@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { WelcomeFlow } from "../../src/components/onboarding/WelcomeFlow";
 import { SettingsModal } from "../../src/components/SettingsModal";
+import { ConnectAiDialog } from "../../src/components/onboarding/ConnectAi";
 import { DesktopCapabilitiesProvider } from "../../src/components/DesktopCapabilities";
 import { StoreProvider, useStore } from "../../src/state/store";
 import { applySkin } from "../../src/lib/skins";
@@ -9,14 +10,18 @@ import "../../src/styles.css";
 
 function Preview() {
   const { state, dispatch, refreshInstances } = useStore();
-  const [onboarding, setOnboarding] = useState(false);
-  useEffect(() => { dispatch({ type: "toggleAppSettings", open: true, section: "engines" }); }, [dispatch]);
+  const view = new URLSearchParams(location.search).get("view");
+  const [onboarding, setOnboarding] = useState(view === "onboarding");
+  const [dialog, setDialog] = useState(view === "dialog");
+  useEffect(() => { if (!view || view === "settings") dispatch({ type: "toggleAppSettings", open: true, section: "engines" }); }, [dispatch, view]);
   return <>
     <main className="p-8 text-ink-secondary">Isolated preview · sample engines, no real accounts</main>
-    {onboarding ? <WelcomeFlow bot={null} initialBeat="engines" replay onDone={() => setOnboarding(false)} /> : state.appSettingsOpen && <SettingsModal />}
+    {onboarding ? <WelcomeFlow bot={null} initialBeat="ai" replay onDone={() => setOnboarding(false)} /> : state.appSettingsOpen && <SettingsModal />}
+    {dialog && <ConnectAiDialog tested={null} onClose={() => setDialog(false)} />}
     <nav aria-label="Preview controls" className="fixed bottom-1 left-1/2 z-[100] flex max-w-full -translate-x-1/2 gap-1 overflow-x-auto rounded-lg border border-hairline bg-panel p-1 text-[11px] text-ink shadow-sm [&_button]:whitespace-nowrap [&_button]:rounded [&_button]:px-2 [&_button]:py-1 [&_button:hover]:bg-control">
       <button onClick={() => { setOnboarding(false); dispatch({ type: "toggleAppSettings", open: true, section: "engines" }); }}>Settings preview</button>
       <button onClick={() => { dispatch({ type: "toggleAppSettings", open: false }); setOnboarding(true); }}>Onboarding preview</button>
+      <button onClick={() => { dispatch({ type: "toggleAppSettings", open: false }); setOnboarding(false); setDialog(true); }}>Connect an AI preview</button>
       <button onClick={() => applySkin("midnight")}>Dark</button>
       <button onClick={() => applySkin("atelier")}>Light</button>
       <button onClick={async () => { await fetch("/__fixture/connect", { method: "POST" }); await refreshInstances(); }}>Toggle sample connection</button>

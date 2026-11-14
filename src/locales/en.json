@@ -3026,6 +3026,7 @@
   "funnel.ai.connectedName": "{name} is connected.",
   "funnel.ai.local": "Local model",
   "funnel.ai.more": "More ways",
+  "connectAi.more": "More providers or use an API key",
   "funnel.ai.free": "Start with the free model",
   "funnel.ai.later": "Set up later",
   "funnel.phone.title": "{app} on your phone",
