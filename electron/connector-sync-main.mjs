@@ -24,23 +24,31 @@ async function answer(response) {
  *   log?(line: string): void,
  * }} deps
  */
+/** The person's own places other than this computer, each with `call(method, route, body?)` over this window's own
+ * sign-in there: My Cloud while it is awake, and each server that says it is the person's alone. Settings sync
+ * (settings-sync-main.mjs) reads the same ones. */
+export function ownRemotePlaces({ fetch: fetchImpl, environments, cloud, ownHome }) {
+  const out = [];
+  const mine = cloud();
+  if (mine.origin && !mine.asleep) {
+    const call = async (method, route, body) => answer(await fetchImpl(`${mine.origin}${route}`, {
+      method, credentials: "include", cache: "no-store", redirect: "error", signal: AbortSignal.timeout(20_000),
+      headers: { accept: "application/json", origin: mine.origin, ...BACKGROUND_HEADERS, ...(body === undefined ? {} : { "content-type": "application/json" }) },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    }));
+    out.push({ key: `cloud:${mine.origin}`, kind: mine.sleeps ? "sleeping-cloud" : "cloud", label: "My Cloud", call });
+  }
+  for (const place of environments().filter((entry) => handSaved(entry) && ownHome.owns(entry))) {
+    out.push({ key: `server:${place.origin}`, kind: "server", label: place.name, call: serverRequests(place, fetchImpl).call });
+  }
+  return out;
+}
+
 export function installConnectorSyncMain({ localRequest, handoff, fetch: fetchImpl, environments, cloud, ownHome, log = () => {} }) {
-  const places = () => {
-    const out = [{ key: "local", kind: "local", label: "This computer", client: localPlace(localRequest, handoff) }];
-    const mine = cloud();
-    if (mine.origin && !mine.asleep) {
-      const call = async (method, route, body) => answer(await fetchImpl(`${mine.origin}${route}`, {
-        method, credentials: "include", cache: "no-store", redirect: "error", signal: AbortSignal.timeout(20_000),
-        headers: { accept: "application/json", origin: mine.origin, ...BACKGROUND_HEADERS, ...(body === undefined ? {} : { "content-type": "application/json" }) },
-        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-      }));
-      out.push({ key: `cloud:${mine.origin}`, kind: mine.sleeps ? "sleeping-cloud" : "cloud", label: "My Cloud", client: remotePlace(call) });
-    }
-    for (const place of environments().filter((entry) => handSaved(entry) && ownHome.owns(entry))) {
-      out.push({ key: `server:${place.origin}`, kind: "server", label: place.name, client: remotePlace(serverRequests(place, fetchImpl).call) });
-    }
-    return out;
-  };
+  const places = () => [
+    { key: "local", kind: "local", label: "This computer", client: localPlace(localRequest, handoff) },
+    ...ownRemotePlaces({ fetch: fetchImpl, environments, cloud, ownHome }).map(({ call, ...place }) => ({ ...place, client: remotePlace(call) })),
+  ];
   let running = null, again = false;
   const pass = async () => {
     if (running) { again = true; return running; }

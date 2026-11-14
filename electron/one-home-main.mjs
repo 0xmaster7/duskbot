@@ -154,7 +154,7 @@ async function answer(response) {
  * installCloudSend's.
  */
 export function installOneHome({ localRequest: anyServer, clean = null, account, journalFile, tempRoot, lend, phone, openHome, openLocal, restart, version, log = () => {}, journal: kept, keep: keptChoice, openTeam, teamJournal,
-  reportTimers, other = () => null, accountsHere = () => 1, offer: offerDeps = null, ...sendDeps }) {
+  reportTimers, other = () => null, accountsHere = () => 1, offer: offerDeps = null, settingsHome = null, ...sendDeps }) {
   const fetchImpl = sendDeps.fetch ?? globalThis.fetch;
   const localRequest = clean ? clean.realCopy(anyServer) : anyServer;
   const onOwnCopy = (work) => (clean ? clean.holding(work) : work());
@@ -234,6 +234,7 @@ export function installOneHome({ localRequest: anyServer, clean = null, account,
     local: backupLocal,
     tempRoot: tempRoot(),
     bringSignIns: true,
+    ...(settingsHome ? { bringSettings: settingsHome } : {}),
   });
   const keepHome = createHomeAgain({
     async exportGrant() {
