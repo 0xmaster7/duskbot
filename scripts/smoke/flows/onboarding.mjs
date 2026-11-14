@@ -13,6 +13,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { until } from "../app.mjs";
+import { smokeAccount } from "../account.mjs";
 import { payDodoTestCheckout } from "../dodo-test-pay.mjs";
 import { launchBrowser } from "./browser.mjs";
 import { createFlow, flowArgs, runFlow, sleep } from "./lib.mjs";
@@ -175,9 +176,12 @@ await runFlow(flow, async () => {
       const result = await payDodoTestCheckout(checkoutUrl, { log: flow.log, shot: (label) => join(out, `pay-${++n}-${label}.png`) });
       flow.atClose(async () => {
         if (flag("--keep")) return;
-        // the trial's renewal off, so the test cloud ends with its trial (the local page's bridge, while it is there)
-        const answer = await flow.evaluate(`window.duskDesktop?.cloudAccount?.cancelPlan?.(null).then((r) => r.outcome)`).catch(() => null);
-        flow.log(`cancel the trial's renewal: ${answer ?? "not reachable from this page"}`);
+        // the trial's renewal off, so the test cloud ends with its trial (the window is on the cloud by now, so the
+        // account is asked directly, signed in again with a code from the sink)
+        mkdirSync(join(out, "account"), { recursive: true });
+        const { client } = await smokeAccount({ root, profile: join(out, "account"), email, force: true });
+        await client.refresh();
+        flow.log(`cancel the trial's renewal: ${(await client.cancelPlan(null)).outcome}`);
       });
       return `paid; ended at ${new URL(result.url).pathname}`;
     }, { critical: true });

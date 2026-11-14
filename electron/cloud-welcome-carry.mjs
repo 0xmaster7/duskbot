@@ -27,7 +27,7 @@ export async function carryWelcomeToCloud({ origin, fetch, local, now = () => ne
   const headers = { accept: "application/json", origin };
   try {
     const read = await fetch(`${origin}/api/config`, { credentials: "include", cache: "no-store", redirect: "error", headers, signal: AbortSignal.timeout(10_000) });
-    if (!read.ok) return false;
+    if (!read.ok) { log(`cloud welcome: the cloud's settings didn't answer (${read.status})`); return false; }
     const theirs = (await read.json())?.onboarding;
     const mine = (await local())?.onboarding;
     const patch = welcomeForCloud(mine, theirs, now());

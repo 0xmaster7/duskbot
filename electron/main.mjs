@@ -2009,22 +2009,23 @@ async function connectCloudHome(open = null) {
   void welcomedOnCloud();
   return client.state();
 }
-/** one welcome only: the person met dusk bot here, so My Cloud opens on its chat, not on a second welcome. The window's
- * own session with the cloud marks it once; a page still on that welcome is loaded again. */
+/** one welcome only: the person met dusk bot here, so My Cloud opens on its chat, not on a second welcome. Once the window
+ * shows the cloud (a new one can take minutes to load the first time), its own session marks it once; a page still on
+ * that welcome is loaded again. */
+const welcomedClouds = new Set();
 async function welcomedOnCloud() {
   const origin = homeWindow.cloudOrigin() ?? cloudAccount?.homeTarget()?.origin ?? null;
-  if (!origin || desktopRemoteAccess) return;
-  for (const wait of [0, 3_000, 10_000]) {
-    if (wait) await new Promise(done => setTimeout(done, wait));
-    const win = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
-    let shows = false;
-    try { shows = Boolean(win) && new URL(win.webContents.getURL()).origin === origin; } catch {}
-    if (!shows) continue;
-    const changed = await carryWelcomeToCloud({ origin, fetch: (...args) => session.defaultSession.fetch(...args),
-      local: async () => { const response = await localServerRequest("/api/config", { signal: AbortSignal.timeout(10_000) }); return response.ok ? response.json() : null; }, log: slog });
-    if (changed && win && !win.isDestroyed() && new URL(win.webContents.getURL()).origin === origin) win.webContents.reload();
-    return;
+  if (!origin || desktopRemoteAccess || welcomedClouds.has(origin)) return;
+  welcomedClouds.add(origin);
+  const showsCloud = () => { try { return Boolean(mainWindow && !mainWindow.isDestroyed()) && new URL(mainWindow.webContents.getURL()).origin === origin; } catch { return false; } };
+  for (let waited = 0; !showsCloud(); waited += 3_000) {
+    if (waited >= 6 * 60_000) { welcomedClouds.delete(origin); return; }
+    await new Promise(done => setTimeout(done, 3_000));
   }
+  const changed = await carryWelcomeToCloud({ origin, fetch: (...args) => session.defaultSession.fetch(...args),
+    local: async () => { const response = await localServerRequest("/api/config", { signal: AbortSignal.timeout(10_000) }); return response.ok ? response.json() : null; }, log: slog });
+  slog(`cloud welcome: ${changed ? "marked done here" : "nothing to mark"}`);
+  if (changed && showsCloud()) mainWindow.webContents.reload();
 }
 
 /** My Cloud listed under Servers once, and the server this window shows: the purchase that made it is over. */
