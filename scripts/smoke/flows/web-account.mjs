@@ -21,8 +21,12 @@ export async function webAccountStep(url, { email, pay = false, log = () => {}, 
     await browser.goto(url).catch(() => {});
     // signed out in this browser: the website's own sign-in (or sign-up) with an emailed code
     // already signed in, the app's one-time handoff lands straight on the page: no sign-in, no approval
-    const first = await until(async () => /\/billing|test\.checkout\.dodopayments/.test(await browser.url()) ? "landed"
-      : browser.evaluate(`document.querySelector("input[type=email]") ? "email" : [...document.querySelectorAll("button")].some((b) => /^approve$/i.test(b.innerText.trim())) ? "approve" : false`), { timeout: 60_000, what: "the sign-in, the approval or the page" });
+    const first = await until(async () => {
+      // already signed in, the app's one-time handoff asks once "continue as <you>?" (no sign-in), then lands on the page
+      if (/\/handoff/.test(await browser.url()) && /continue as/i.test(await browser.text().catch(() => ""))) { await press(/^continue$/i).catch(() => {}); steps.push("handoff: continue as this account (one click, no sign-in)"); return false; }
+      if (/\/billing|test\.checkout\.dodopayments/.test(await browser.url())) return "landed";
+      return browser.evaluate(`document.querySelector("input[type=email]") ? "email" : [...document.querySelectorAll("button")].some((b) => /^approve$/i.test(b.innerText.trim())) ? "approve" : false`);
+    }, { timeout: 60_000, what: "the sign-in, the approval or the page" });
     if (first === "email") {
       await snap("web-sign-in");
       const since = Date.now();

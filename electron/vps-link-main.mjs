@@ -133,6 +133,7 @@ export function installLinkDirectIpc({ ipcMain, pageOrigin, link }) {
  *   pageOrigin?(event: any): string | null,
  *   appVersion?: string,
  *   linkGrant?(): Promise<string | null>,
+ *   signIn?(): Promise<unknown>,
  *   screenIce?(): Promise<Array<{ urls: string[], username?: string, credential?: string }> | null>,
  *   myCloud?(): string | null,
  *   cloudAwake?(): boolean,
@@ -162,6 +163,8 @@ export function installVpsLink(deps) {
     base,
     appVersion: deps.appVersion,
     linkGrant: deps.linkGrant,
+    // not signed in to an account: the sign-in continues in the browser and the line is made once it is done
+    ...(deps.signIn ? { signIn: deps.signIn } : {}),
     screenIce: deps.screenIce,
     // the home's public address comes from the tunnel's own node, over the relay's own connection (vps-link-protocol.mjs)
     egress: (tunnel) => createEgressEndpoint({ ...tunnel, dialer: createEgressDialer({ seenAs: seenAsCache(tunnel.seenAs, { log }) }), ...(awake ? { onUse: awake.touch } : {}) }),
