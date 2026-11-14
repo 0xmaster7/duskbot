@@ -70,12 +70,11 @@ export function DeviceApprovalPage() {
           if (cloud.account && !cloud.account.profile.onboarded) await cloud.finishOnboarding().catch(() => {});
           navigate(found.next, { replace: true }); return;
         }
-        // the app notices the sign-in on its own (it polls), so no app link here. a new account goes on with the usual first
-        // steps (name, plan) minus getting the app, which they are in; an existing one lands on home. the router decides
-        // which once the profile is in
-        if (found.created) { try { sessionStorage.setItem(FROM_APP_KEY, "1"); } catch {} }
-        if (PRELAUNCH) { setState("approved"); return; }
-        navigate("/", { replace: true });
+        // the app notices the sign-in on its own (it polls). a new account goes on with the usual first steps (name, plan)
+        // minus getting the app, which they are in; anyone else gets a clear "you're signed in" with the way back to the app
+        // instead of the dashboard, which they did not come for
+        if (found.created && !PRELAUNCH) { try { sessionStorage.setItem(FROM_APP_KEY, "1"); } catch {} navigate("/", { replace: true }); return; }
+        setState("approved");
       }
       else { await api.deviceDeny(found.userCode); setState("denied"); }
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
@@ -92,8 +91,11 @@ export function DeviceApprovalPage() {
           <p className="text-14 text-ink-3" aria-busy="true">{fresh ? "signing in the app" : "looking up the device"}</p>
         ) : state === "approved" ? (
           <>
-            <h1 className="text-20 font-medium text-ink">you're signed in</h1>
-            <p className="mt-1.5 text-14 leading-[1.55] text-ink-3">{found.device.name} signed itself in. you can close this tab.</p>
+            <h1 className="text-20 font-medium text-ink">you're signed in. go back to dusk bot</h1>
+            <p className="mt-1.5 text-14 leading-[1.55] text-ink-3">{found.device.name} signs itself in, there's nothing else to do here. you can close this tab after.</p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <a href={APP_LINK} data-back-to-app="" className="press hover-btn inline-flex h-10 items-center rounded-full bg-ink px-4.5 text-14 font-medium text-bg">go back to dusk bot</a>
+            </div>
           </>
         ) : state === "denied" ? (
           <>
@@ -112,9 +114,10 @@ export function DeviceApprovalPage() {
             </div>
             <p className="mt-3 text-13 leading-[1.5] text-ink-3">it signs in as <span className="text-ink-2">{account?.email}</span>. only approve if you started this from the app just now and the code matches.</p>
             {error && <p role="alert" className="mt-3 text-13 text-bad">{error}</p>}
-            <div className="mt-6 flex gap-2">
+            <div className="mt-6 flex flex-wrap items-center gap-4">
               <Button variant="primary" onClick={() => void answer(true)} disabled={busy}>{busy ? "approving" : "approve"}</Button>
-              <Button onClick={() => void answer(false)} disabled={busy}>deny</Button>
+              <button type="button" data-deny="" onClick={() => void answer(false)} disabled={busy}
+                className="rounded-[6px] text-13 text-ink-3 underline-offset-2 hover:text-ink hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-50">that wasn't me, deny</button>
             </div>
           </>
         )}
