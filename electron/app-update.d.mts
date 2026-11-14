@@ -1,6 +1,9 @@
-export interface AppUpdateState { ready: string | null }
+/** `available`: a newer version was found; `progress` (0 to 1) while it downloads; `ready` once it waits for a restart */
+export interface AppUpdateState { ready: string | null; available?: string | null; progress?: number | null }
 export interface AppUpdateBridge {
   state(): Promise<AppUpdateState>;
+  /** downloads the newer version now (again, after a failed try); the version once ready, null when there is none */
+  download?(): Promise<string | null>;
   /** restarts into the downloaded update now; false when none is waiting */
   restart(): Promise<boolean>;
   onState(cb: (state: AppUpdateState) => void): () => void;

@@ -15,6 +15,7 @@ import { saveWelcomeDraft } from "../../src/lib/welcome-draft";
 import { BEAT_ORDER, type BeatId } from "../../src/lib/onboarding";
 import { useStore } from "../../src/state/store";
 import { CloudReady } from "../../src/components/CloudSetup";
+import { AppUpdatePill } from "../../src/components/AppUpdatePill";
 import { useSidebarFooterSlot } from "../../src/lib/sidebar-footer-slot";
 import { auditLayout } from "./chat-gallery/layout-audit";
 import "../../src/styles.css";
@@ -39,6 +40,14 @@ function Probe() {
 // ?card=cloud-ready: the cloud-ready card in the sidebar footer, as a new dusk cloud shows it.
 // ?card=connect-ai: Connect an AI opened from inside the chat's composer dock, where the no-AI card opens it, so the
 // gallery's cover check sees whether its scrim escapes the dock's stacking context and covers the whole window
+const heldUpdate = (state: { ready: string | null; available: string; progress: number | null }) =>
+  ({ state: async () => state, restart: async () => false, download: async () => null, onState: () => () => undefined });
+const APP_UPDATE: Record<string, ReturnType<typeof heldUpdate>> = {
+  "app-update-available": heldUpdate({ ready: null, available: "0.2.7", progress: null }),
+  "app-update-downloading": heldUpdate({ ready: null, available: "0.2.7", progress: 0.4 }),
+  "app-update-ready": heldUpdate({ ready: "0.2.7", available: "0.2.7", progress: null }),
+};
+
 function Cards() {
   const slot = useSidebarFooterSlot();
   const [dock, setDock] = useState<Element | null>(null);
@@ -47,6 +56,9 @@ function Cards() {
     const timer = setInterval(() => { const found = document.querySelector("[data-grok-inset]"); if (found) { setDock(found); clearInterval(timer); } }, 100);
     return () => clearInterval(timer);
   }, []);
+  // ?card=app-update-available / -downloading / -ready: the sidebar's update pill, where it sits above the account row
+  const update = APP_UPDATE[params.get("card") ?? ""];
+  if (update && slot) return createPortal(<AppUpdatePill bridge={update} />, slot);
   if (params.get("card") === "cloud-ready") return <CloudReady slot={slot} onDone={() => undefined} />;
   // ?card=toast-done / toast-error: a passing toast, held on screen
   if (params.get("card") === "toast-done") return <Toast text="Pepper is ready to use" action={{ label: "Undo", onClick: () => undefined }} timeoutMs={600_000} onDone={() => undefined} />;

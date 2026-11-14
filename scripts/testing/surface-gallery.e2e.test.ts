@@ -141,6 +141,7 @@ const SURFACES: Surface[] = [
   ...Object.entries(CHAT).map(([id, chat]) => ({ id: `chat:${id}`, open: chat.open, run: chat.run, scope: "#root" })),
   ...Object.entries(SMALL).map(([id, small]) => ({ id: `small:${id}`, open: small.open, run: small.run, hover: small.hover, query: small.query, scope: small.scope ?? "#root" })),
   { id: "card:cloud-ready", open: null, query: "card=cloud-ready", scope: "[data-cloud-setup-ready]" },
+  ...["available", "downloading", "ready"].map((state) => ({ id: `card:app-update-${state}`, open: null, query: `card=app-update-${state}`, scope: "[data-sidebar-footer]" })),
   { id: "dialog:connect-ai-from-chat", open: `{ type: "select", id: window.__surfaceGallery.botId }`, query: "card=connect-ai", scope: "[data-connect-ai]" },
   // the model picker, opened from the bot panel's Model row
   { id: "picker:model", open: `{ type: "toggleSettings", open: true, section: "overview", botId: window.__surfaceGallery.botId }`, run: OPEN_PICKER, scope: "[data-model-picker-content]" },

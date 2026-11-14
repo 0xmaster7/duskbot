@@ -3557,8 +3557,9 @@ function startAppUpdates(notice) {
     onState: (state) => { if (mainWindow && !mainWindow.isDestroyed() && senderIsLocal({ sender: mainWindow.webContents })) mainWindow.webContents.send("app-update:changed", state); } });
   appUpdater.start();
 }
-ipcMain.handle("app-update:state", localOnly("app-update:state", () => appUpdater?.state() ?? { ready: null }));
+ipcMain.handle("app-update:state", localOnly("app-update:state", () => appUpdater?.state() ?? { ready: null, available: null, progress: null }));
 ipcMain.handle("app-update:restart", localOnly("app-update:restart", () => appUpdater?.restart() ?? false));
+ipcMain.handle("app-update:download", localOnly("app-update:download", () => appUpdater?.check() ?? null));
 
 app.on("before-quit", (e) => {
   talk.close(); ambientSurfaces.close();

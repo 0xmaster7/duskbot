@@ -26,7 +26,7 @@ function world({ version = "1.1.0", current = "1.0.0", signed = true, zip = Buff
   const w = { told: 0, prepared: [], installed: 0, states: [], fetched: [], dir: mkdtempSync(join(tmpdir(), "dusk-app-update-")), quiet: false, timers: [] };
   w.updater = createAppUpdater({
     current, arch: "arm64", dir: w.dir, keys, signed: async () => signed,
-    fetchImpl: async (url) => { w.fetched.push(url); const body = routes.get(url); return body === undefined ? new Response("no", { status: 404 }) : new Response(body); },
+    fetchImpl: async (url) => { w.fetched.push(url); const body = routes.get(url); return body === undefined ? new Response("no", { status: 404 }) : new Response(body, { headers: { "content-length": String(Buffer.byteLength(body)) } }); },
     installer: { prepare: async (file, v) => { w.prepared.push({ file, v, bytes: readFileSync(file) }); await prepare(); }, install: () => { w.installed += 1; } },
     quiet: async () => w.quiet, fallback: { check: async () => { w.told += 1; return null; } }, onState: (s) => w.states.push(s),
     timers: { setTimeout: (fn) => { w.timers.push(fn); return w.timers.length; }, clearTimeout: () => {} },
@@ -47,8 +47,9 @@ test("a newer signed release is downloaded, checked against the signed sums, and
   assert.equal(w.prepared.length, 1);
   assert.equal(w.prepared[0].v, "1.1.0");
   assert.equal(w.prepared[0].bytes.toString(), "zip bytes");
-  assert.deepEqual(w.states, [{ ready: "1.1.0" }]);
-  assert.deepEqual(w.updater.state(), { ready: "1.1.0" });
+  assert.deepEqual(w.states.at(0), { ready: null, available: "1.1.0", progress: 0 });
+  assert.deepEqual(w.states.at(-1), { ready: "1.1.0", available: "1.1.0", progress: null });
+  assert.deepEqual(w.updater.state(), { ready: "1.1.0", available: "1.1.0", progress: null });
   assert.equal(w.told, 0);
   done(w);
 });
@@ -98,8 +99,27 @@ test("nothing newer, nothing done; an installer that fails falls back to the not
   const broken = world({ prepare: async () => { throw new Error("Could not get code signature for running application"); } });
   assert.equal(await broken.updater.check(), null);
   assert.equal(broken.told, 1);
-  assert.deepEqual(broken.states, []);
+  assert.equal(broken.states.some((s) => s.ready), false);
+  assert.deepEqual(broken.updater.state(), { ready: null, available: "1.1.0", progress: null });
   done(broken);
+});
+
+test("the download's progress reaches the window in whole percents, and a failed one can be tried again", async () => {
+  const w = world({ zip: Buffer.alloc(256 * 1024, 7) });
+  await w.updater.check();
+  const shown = w.states.map((s) => s.progress).filter((p) => p !== null);
+  assert.equal(shown[0], 0);
+  assert.ok(shown.length > 1 && shown.at(-1) > 0.5, `progress was told: ${shown}`);
+  assert.ok(shown.every((p, i) => i === 0 || p > shown[i - 1]), "progress only climbs");
+  assert.ok(shown.every((p) => p <= 0.99 && Math.round(p * 100) === p * 100), "whole percents, never 100 before ready");
+  done(w);
+  let fail = true;
+  const retry = world({ prepare: async () => { if (fail) { fail = false; throw new Error("busy"); } } });
+  assert.equal(await retry.updater.check(), null);
+  assert.deepEqual(retry.updater.state(), { ready: null, available: "1.1.0", progress: null });
+  assert.equal(await retry.updater.check(), "1.1.0");
+  assert.equal(retry.updater.state().ready, "1.1.0");
+  done(retry);
 });
 
 test("verifiedRelease and zipIn read only what they vouch for", () => {

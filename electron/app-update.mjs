@@ -10,7 +10,7 @@ import { createHash, createPublicKey, randomBytes, verify } from "node:crypto";
 import { createReadStream, createWriteStream, mkdirSync, readdirSync, renameSync, rmSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { join } from "node:path";
-import { Readable } from "node:stream";
+import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
 export const DESKTOP_MANIFEST_URL = "https://dusk.bot/releases/latest.json";
@@ -123,10 +123,13 @@ export async function quietNow(signals, now = Date.now()) {
 /**
  * keeps the mac app current. `signed()`: whether this build can install updates (developerIdSigned); when it can't, or
  * anything on the way fails, `fallback.check()` (update-notice.mjs) tells the person instead. `onState({ ready })` says
- * a downloaded version waits for a restart.
+ * a downloaded version waits for a restart; `available` names a newer version found, and `progress` (0 to 1) its download
+ * while it runs.
  */
 export function createAppUpdater({ current, arch, dir, fetchImpl = fetch, keys = RELEASE_KEYS, signed, installer, quiet, fallback, onState = () => {}, log = () => {}, firstDelayMs = 2 * 60_000, intervalMs = HOUR_MS, jitterMs = JITTER_MS, random = Math.random, quietEveryMs = 60_000, timers = globalThis }) {
-  let ready = null, timer = null, quietTimer = null, checking = null, installing = false;
+  let ready = null, available = null, progress = null, timer = null, quietTimer = null, checking = null, installing = false;
+  const state = () => ({ ready, available, progress });
+  const tell = () => onState(state());
 
   async function text(url, limit) {
     const response = await fetchImpl(url, { signal: AbortSignal.timeout(20_000), cache: "no-store" });
@@ -141,7 +144,16 @@ export function createAppUpdater({ current, arch, dir, fetchImpl = fetch, keys =
     const part = `${file}.part`;
     const response = await fetchImpl(url, { signal: AbortSignal.timeout(30 * 60_000) });
     if (!response.ok || !response.body) throw new Error(`the update download answered ${response.status}`);
-    await pipeline(Readable.fromWeb(response.body), createWriteStream(part));
+    // progress in whole percents, so the window hears at most a hundred changes
+    const total = Number(response.headers.get("content-length")) || 0;
+    let got = 0;
+    const count = new Transform({ transform(chunk, _encoding, next) {
+      got += chunk.length;
+      const now = total ? Math.min(99, Math.floor((got * 100) / total)) / 100 : null;
+      if (now !== null && now !== progress) { progress = now; tell(); }
+      next(null, chunk);
+    } });
+    await pipeline(Readable.fromWeb(response.body), count, createWriteStream(part));
     if (await hashOf(part) !== sha256) { rmSync(part, { force: true }); throw new Error("the update did not match its checksum"); }
     renameSync(part, file);
   }
@@ -159,17 +171,21 @@ export function createAppUpdater({ current, arch, dir, fetchImpl = fetch, keys =
     mkdirSync(dir, { recursive: true });
     for (const name of readdirSync(dir)) if (name !== zip.name && name !== `${zip.name}.part`) rmSync(join(dir, name), { recursive: true, force: true });
     const file = join(dir, zip.name);
-    await download(zipUrl(release.version, zip.name), file, zip.sha256);
-    await installer.prepare(file, release.version);
+    available = release.version; progress = 0; tell();
+    try {
+      await download(zipUrl(release.version, zip.name), file, zip.sha256);
+      await installer.prepare(file, release.version);
+    } finally { progress = null; }
     ready = release.version;
     log(`app update: ${ready} is ready; it installs on quit or at a quiet moment`);
-    onState({ ready });
+    tell();
     watchQuiet();
     return ready;
   }
 
   function check() {
     checking ??= run().catch(async (error) => {
+      if (available) tell();
       log(`app update: ${error instanceof Error ? error.message : String(error)}; telling the person instead`);
       await fallback.check();
       return null;
@@ -200,7 +216,7 @@ export function createAppUpdater({ current, arch, dir, fetchImpl = fetch, keys =
 
   return {
     check, restart,
-    state: () => ({ ready }),
+    state,
     start() {
       if (timer) return;
       const again = (delay) => { timer = timers.setTimeout(() => { void check().finally(() => again(intervalMs + Math.floor(random() * jitterMs))); }, delay); timer?.unref?.(); };
