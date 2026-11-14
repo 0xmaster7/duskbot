@@ -796,9 +796,9 @@ describe("the Where it works page", () => {
   const choose = (rendered: Rendered, value: string) => click(find(rendered, "data-panel-choice", value));
 
   it("offers Let it choose, this computer, the bot's browser and the Cloud desktop, with the chosen one checked", () => {
-    // The tests run on no platform in particular, so this computer is a PC; a Mac says This Mac.
+    // The tests run on no platform in particular, so it reads This computer; a Mac says This Mac and Windows This PC.
     expect(choices(where(makeBot()))).toEqual([
-      ["auto", "Let it choose", false, true], ["local", "This PC", false, false], ["browser", "Browser", false, false], ["cloud", "Cloud desktop", false, false],
+      ["auto", "Let it choose", false, true], ["local", "This computer", false, false], ["browser", "Browser", false, false], ["cloud", "Cloud desktop", false, false],
     ]);
     expect(where(makeBot()).html).toContain('role="radiogroup"');
   });
@@ -846,7 +846,7 @@ describe("the Where it works page", () => {
 
   it("says where the bot works right now when that is not the place chosen", () => {
     const html = where(makeBot({ computer: "cloud", tasks: [{ threadId: "thread-scout", title: "Main", surface: "local" }] as Bot["tasks"] })).html;
-    expect(html).toContain("Right now: This PC");
+    expect(html).toContain("Right now: This computer");
   });
 
   it("warns before this computer for a bot that decides alone", () => {
