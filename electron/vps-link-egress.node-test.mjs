@@ -110,6 +110,21 @@ test("a failed lookup keeps the last address, logs, and asks again soon", async 
   assert.equal(asked, 3);
 });
 
+test("the home's public address is asked of the tunnel's node over the relay's own connection, not a bare fetch", { timeout: 10_000 }, async () => {
+  const target = await fixture();
+  const bare = globalThis.fetch;
+  // the app's own fetch timed out on a network where the relay worked (2026-11-12, 110 times): it is never used
+  globalThis.fetch = async () => { throw new Error("The operation was aborted due to timeout"); };
+  try {
+    assert.equal(typeof target.seenAs, "function");
+    assert.equal(await target.seenAs(), "127.0.0.1");
+    assert.equal(await seenAsCache(target.seenAs)(), "127.0.0.1");
+  } finally {
+    globalThis.fetch = bare;
+    await target.close();
+  }
+});
+
 test("the proxy answers only boxes on the bridge, never the bridge's own address", () => {
   const bridge = bridgeAddress("omb-desk0", { "omb-desk0": [{ address: "172.18.0.1", netmask: "255.255.0.0", family: "IPv4", mac: "", internal: false, cidr: "172.18.0.1/16" }] });
   assert.equal(bridge.host, "172.18.0.1");
@@ -171,12 +186,13 @@ async function fixture({ macOn = true, enabled = true, dialMs = 1500, endpoint =
     resolve: async (host) => (host === "site.example" ? [{ address: "93.184.216.34", family: 4 }] : host === "lan.example" ? [{ address: "192.168.1.1", family: 4 }] : []),
     connect: (options) => { dials.push(options.host); return connect({ host: "127.0.0.1", port: sitePort }); },
   });
-  const proxy = createTunnelProxy({ ...credentials, base, log: () => {}, egress: (tunnel) => createEgressEndpoint({ ...tunnel, dialer, ...endpoint }) });
+  let seenAs = null;
+  const proxy = createTunnelProxy({ ...credentials, base, log: () => {}, egress: (tunnel) => { seenAs = tunnel.seenAs; return createEgressEndpoint({ ...tunnel, dialer, ...endpoint }); } });
   if (macOn) await proxy.start();
   for (let i = 0; i < 100 && !agent.egress.listening; i += 1) await new Promise((resolve) => setTimeout(resolve, 20));
   if (macOn) for (let i = 0; i < 100 && !agent.egress.online(); i += 1) await new Promise((resolve) => setTimeout(resolve, 20));
   return {
-    agent, proxy, dials, reports, state, port: agent.egress.listening.port,
+    agent, proxy, dials, reports, state, port: agent.egress.listening.port, seenAs,
     async close() {
       agent.stop();
       await running;

@@ -941,6 +941,9 @@ export function createTunnelProxy({ base, id, route: givenRoute = null, key: key
   const egress = makeEgress?.({
     send: (frame) => { if (frame.t === "cancel") lane.discard(frame.r); lane.push(sealFrame(key, id, "to-vps", frame), frame.r); },
     bytes: (r, chunk) => lane.bytes(r, chunk), queued: () => lane.size, onDrain: (resume) => lane.onDrain(resume), direct: egressDirect, log,
+    // the public address the tunnel's own node sees, asked over the relay's own connection: a bare fetch to the first
+    // node timed out for days on a network where the relay itself worked (nat64, a lossy vpn's mtu)
+    seenAs: async () => (await (await fetchImpl(`${node}/v1/ip`, { signal: AbortSignal.any([abort.signal, AbortSignal.timeout(15_000)]) })).json())?.ip,
   }) ?? null;
 
   /** "direct" as the path a request took, named by how the direct path is connected (ssh, wss, rtc, cf, cloud) */

@@ -158,13 +158,13 @@ export function installVpsLink(deps) {
   const macHost = process.env.DUSK_MAC_CONTROL === "off" ? null
     : createMacControlHost({ fetch: (...args) => session.defaultSession.fetch(...args), name: deps.label, execute: (job, io) => (awake ? awake.busy(execute(job, io)) : execute(job, io)), log });
   const followMac = (view) => macHost?.follow(view?.server?.origin ?? null);
-  const seenAs = seenAsCache(async () => (await (await fetch(`${base}/v1/ip`, { signal: AbortSignal.timeout(5000) })).json())?.ip, { log });
   const link = createVpsLink({
     base,
     appVersion: deps.appVersion,
     linkGrant: deps.linkGrant,
     screenIce: deps.screenIce,
-    egress: (tunnel) => createEgressEndpoint({ ...tunnel, dialer: createEgressDialer({ seenAs }), ...(awake ? { onUse: awake.touch } : {}) }),
+    // the home's public address comes from the tunnel's own node, over the relay's own connection (vps-link-protocol.mjs)
+    egress: (tunnel) => createEgressEndpoint({ ...tunnel, dialer: createEgressDialer({ seenAs: seenAsCache(tunnel.seenAs, { log }) }), ...(awake ? { onUse: awake.touch } : {}) }),
     serverFetch: (...args) => session.defaultSession.fetch(...args),
     // setup sessions through chromium's network (the system proxy included); the relay's own connections ask chromium
     // which proxy it would use and tunnel through it
