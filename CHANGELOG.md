@@ -3,6 +3,19 @@
 Notable changes to dusk bot, newest first. Installers and checksums for each version are on the
 [releases page](https://github.com/DuskBotAI/duskbot/releases) and at [dusk.bot/download](https://dusk.bot/download).
 
+## 0.2.3
+
+0.2.1 and 0.2.2 were own-server packages only; this is the first version on every line since 0.2.0.
+
+- A new person's first message always gets an answer: a free backup model that sends nothing in 25 seconds hands the same
+  message to the next free model, and if none answers, the chat says so plainly and what to do.
+- Every account step goes to your browser for its context: sign in or make your account there, then land on your plan's
+  checkout, billing or home, and the app signs itself in and goes on by itself (coming back to the app is optional).
+- Moving a server's bots to dusk cloud while signed out no longer stops at "sign in on this Mac's own page first".
+- Linking your own server while signed out signs you in in the browser, then shows the install line by itself.
+- The install line stops with a plain message when a download fails, and every download retries, falling back to IPv4.
+- A sleeping cloud says it is asleep instead of "waking up".
+
 ## 0.2.0, first light
 
 The first public release. dusk bot is your own crew of AI helpers: each bot gets a job, a chat and a computer of its own,
