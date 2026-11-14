@@ -101,7 +101,7 @@ async function readyCloud() {
 async function pair(cloud) {
   let answer = await call(origin, "/api/cloud/desktop/pairing", { method: "POST", token: appToken, body: { cloudId: cloud.id } });
   let wokeIn = null;
-  if (answer.status === 409 && answer.data?.code === "not_running") {
+  if (answer.status === 409 && (answer.data?.error ?? answer.data?.code) === "not_running") {
     const since = Date.now();
     must(await call(origin, "/api/cloud/desktop/wake", { method: "POST", token: appToken, body: { intent: "click" } }), "the wake");
     for (let tries = 0; tries < 60 && answer.status === 409; tries++) { await sleep(2_000); answer = await call(origin, "/api/cloud/desktop/pairing", { method: "POST", token: appToken, body: { cloudId: cloud.id } }); }
