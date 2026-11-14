@@ -63,6 +63,8 @@ export function SkillsSection() {
     try {
       const response = await fetch("/api/skills-library");
       const body = (await response.json()) as { skills?: SkillsLibrarySkillWire[]; error?: string };
+      // a server without the library reads as an empty one, not as a red server message beside "no skills yet"
+      if (response.status === 404) { if (!cancelled?.()) { setSkills([]); setError(""); } return; }
       if (!response.ok) throw new Error(body.error ?? t("skills.library.loadError"));
       if (cancelled?.()) return;
       setSkills(body.skills ?? []);
