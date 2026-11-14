@@ -5,6 +5,9 @@
 //   node apps/mobile/scripts/asc.mjs testflight [email...]   make the internal group (all builds) and add testers
 //   node apps/mobile/scripts/asc.mjs metadata                listing, categories, age rating, review notes (store/app-store.json)
 //   node apps/mobile/scripts/asc.mjs screenshots <dir> [type] replace the en-US screenshots (default APP_IPHONE_67)
+//   node apps/mobile/scripts/asc.mjs free                    price Free (USD 0), every territory but mainland China
+//   node apps/mobile/scripts/asc.mjs submit [--yes]          check everything App Review needs; --yes attaches the newest
+//                                                            valid build to the version and submits it
 //
 // Reads APPLE_API_KEY_ID, APPLE_API_ISSUER, APPLE_API_KEY_PATH from the environment, else ~/.config/duskbot/dusk.env.
 // Never prints the key or the token.
@@ -134,11 +137,88 @@ async function metadata(file) {
   await call("PATCH", `/v1/appStoreVersions/${version.id}`, { data: { type: "appStoreVersions", id: version.id, attributes: { copyright } } });
   await call("PATCH", `/v1/appStoreVersionLocalizations/${local.id}`, { data: { type: "appStoreVersionLocalizations", id: local.id, attributes: text } });
   console.log(`version ${version.attributes.versionString}: copyright, description, keywords, promotional text, support and marketing URLs`);
-  // only the notes: the contact and the demo account are filled by hand
+  // the notes, the demo account and the contact; the demo values and the phone come from dusk.env, never the repo
+  const review = reviewDetail(want.reviewNotes);
+  if (review.missing.length) { console.log(`review details skipped: add ${review.missing.join(", ")} to dusk.env (App Store Connect refuses the notes without a contact)`); return false; }
   const detail = await call("GET", `/v1/appStoreVersions/${version.id}/appStoreReviewDetail`).catch(() => ({ data: null }));
-  if (detail.data) await call("PATCH", `/v1/appStoreReviewDetails/${detail.data.id}`, { data: { type: "appStoreReviewDetails", id: detail.data.id, attributes: { notes: want.reviewNotes } } });
-  else await call("POST", "/v1/appStoreReviewDetails", { data: { type: "appStoreReviewDetails", attributes: { notes: want.reviewNotes }, relationships: { appStoreVersion: { data: { type: "appStoreVersions", id: version.id } } } } });
-  console.log("review notes");
+  if (detail.data) await call("PATCH", `/v1/appStoreReviewDetails/${detail.data.id}`, { data: { type: "appStoreReviewDetails", id: detail.data.id, attributes: review.attributes } });
+  else await call("POST", "/v1/appStoreReviewDetails", { data: { type: "appStoreReviewDetails", attributes: review.attributes, relationships: { appStoreVersion: { data: { type: "appStoreVersions", id: version.id } } } } });
+  console.log(`review details: notes, demo account ${review.attributes.demoAccountName}, contact ${review.attributes.contactFirstName} ${review.attributes.contactLastName}`);
+  return true;
+}
+
+/** App Review's section: the notes with the demo account filled in, and the contact. Reports what dusk.env still lacks. */
+function reviewDetail(notes) {
+  const email = env("DUSK_REVIEW_EMAIL"), code = env("DUSK_REVIEW_CODE"), phone = env("APP_REVIEW_CONTACT_PHONE");
+  const missing = [["DUSK_REVIEW_EMAIL", email], ["DUSK_REVIEW_CODE", code], ["APP_REVIEW_CONTACT_PHONE (like +91 98765 43210)", phone]].filter(([, v]) => !v).map(([k]) => k);
+  if (phone && !/^\+\d[\d ()-]{6,}$/.test(phone)) missing.push("APP_REVIEW_CONTACT_PHONE must start with + and the country code");
+  const filled = notes.replace("[REVIEW EMAIL]", email).replace(/\[REVIEW CODE[^\]]*\]/, `${code} (fixed for this account; no email is sent)`);
+  return { missing, attributes: {
+    notes: filled, demoAccountRequired: true, demoAccountName: email, demoAccountPassword: code,
+    contactFirstName: env("APP_REVIEW_CONTACT_FIRST_NAME") || "Siddharth", contactLastName: env("APP_REVIEW_CONTACT_LAST_NAME") || "Meena",
+    contactEmail: env("APP_REVIEW_CONTACT_EMAIL") || "hello@dusk.bot", contactPhone: phone } };
+}
+
+/** the app is free: price USD 0 (Free) and available everywhere except mainland China, where AI chat apps need a
+ *  government licence */
+async function free() {
+  const one = await app();
+  const { data: points } = await call("GET", `/v1/apps/${one.id}/appPricePoints?filter[territory]=USA&limit=200`);
+  const zero = points.find((p) => p.attributes.customerPrice === "0.0");
+  if (!zero) throw new Error("no USD 0 price point");
+  const priced = await call("GET", `/v1/apps/${one.id}/appPriceSchedule?include=manualPrices`).catch(() => null);
+  if (!priced?.included?.some((p) => p.type === "appPrices")) await call("POST", "/v1/appPriceSchedules", { data: { type: "appPriceSchedules", relationships: { app: { data: { type: "apps", id: one.id } },
+    baseTerritory: { data: { type: "territories", id: "USA" } }, manualPrices: { data: [{ type: "appPrices", id: "${free}" }] } } },
+    included: [{ type: "appPrices", id: "${free}", attributes: { startDate: null }, relationships: { appPricePoint: { data: { type: "appPricePoints", id: zero.id } } } }] });
+  console.log("price: Free (USD 0)");
+  const { data: territories } = await call("GET", "/v1/territories?limit=200");
+  const all = territories.map((t) => t.id), open = all.filter((id) => id !== "CHN");
+  const existing = await call("GET", `/v1/apps/${one.id}/appAvailabilityV2`).catch(() => null);
+  if (existing?.data) { console.log("availability already set; change it in App Store Connect if needed"); return; }
+  await call("POST", "/v2/appAvailabilities", { data: { type: "appAvailabilities", attributes: { availableInNewTerritories: true }, relationships: {
+    app: { data: { type: "apps", id: one.id } }, territoryAvailabilities: { data: all.map((id) => ({ type: "territoryAvailabilities", id: `\${${id}}` })) } } },
+    included: all.map((id) => ({ type: "territoryAvailabilities", id: `\${${id}}`, attributes: { available: id !== "CHN" }, relationships: { territory: { data: { type: "territories", id } } } })) });
+  console.log(`availability: ${open.length} territories (not mainland China), new territories on`);
+}
+
+/** checks everything App Review needs, then (with --yes) attaches the newest valid build and submits the version */
+async function submit(yes) {
+  const one = await app();
+  const { version, local } = await editableVersion(one.id);
+  const problems = [], ok = (line) => console.log(`  ok    ${line}`);
+  const { data: builds } = await call("GET", `/v1/builds?filter[app]=${one.id}&filter[processingState]=VALID&filter[expired]=false&sort=-uploadedDate&limit=1&fields[builds]=version,usesNonExemptEncryption,uploadedDate`);
+  const build = builds[0];
+  if (!build) problems.push("no valid, unexpired build: run apps/mobile/scripts/build-ios-release.sh --upload");
+  else {
+    ok(`build ${build.attributes.version} (uploaded ${build.attributes.uploadedDate})`);
+    if (build.attributes.usesNonExemptEncryption !== false) problems.push(`build ${build.attributes.version} has no export compliance answer (ITSAppUsesNonExemptEncryption = NO in Info.plist)`);
+    else ok("export compliance: no non-exempt encryption");
+  }
+  const sets = await call("GET", `/v1/appStoreVersionLocalizations/${local.id}/appScreenshotSets?include=appScreenshots`);
+  const shots = (sets.included ?? []).filter((s) => s.type === "appScreenshots" && s.attributes.assetDeliveryState?.state === "COMPLETE").length;
+  if (!shots) problems.push("no finished screenshots: node apps/mobile/scripts/asc.mjs screenshots docs/store/ios/6.9");
+  else ok(`${shots} screenshots`);
+  const review = reviewDetail(JSON.parse(readFileSync(new URL("../store/app-store.json", import.meta.url), "utf8")).reviewNotes);
+  if (review.missing.length) problems.push(`review details: add ${review.missing.join(", ")} to dusk.env, then run metadata`);
+  else {
+    const detail = await call("GET", `/v1/appStoreVersions/${version.id}/appStoreReviewDetail`).catch(() => ({ data: null }));
+    const a = detail.data?.attributes ?? {};
+    if (a.contactPhone !== review.attributes.contactPhone || a.demoAccountName !== review.attributes.demoAccountName || a.notes !== review.attributes.notes) problems.push("review details on App Store Connect are not the current ones: run node apps/mobile/scripts/asc.mjs metadata");
+    else ok(`review details: demo account ${a.demoAccountName}, contact phone set`);
+  }
+  if (!env("DUSK_REVIEW_AI_OPENROUTER_KEY")) problems.push("DUSK_REVIEW_AI_OPENROUTER_KEY is empty: the demo bot has no working AI (then node apps/dashboard/scripts/review-ai.mjs production)");
+  else ok("demo bot AI key present");
+  const price = await call("GET", `/v1/apps/${one.id}/appPriceSchedule?include=manualPrices`).catch(() => null);
+  if (!price?.included?.some((p) => p.type === "appPrices")) problems.push("no price set: App Store Connect, Pricing and Availability, Free (USD 0), all territories");
+  else ok("price schedule set");
+  if (problems.length) { console.log(`\nnot ready, ${problems.length} left:`); for (const p of problems) console.log(`  - ${p}`); process.exitCode = 1; return; }
+  if (!yes) { console.log(`\nready: run again with --yes to attach build ${build.attributes.version} to ${version.attributes.versionString} and submit for review`); return; }
+  await call("PATCH", `/v1/appStoreVersions/${version.id}/relationships/build`, { data: { type: "builds", id: build.id } });
+  console.log(`attached build ${build.attributes.version} to ${version.attributes.versionString}`);
+  const { data: sub } = await call("POST", "/v1/reviewSubmissions", { data: { type: "reviewSubmissions", attributes: { platform: "IOS" }, relationships: { app: { data: { type: "apps", id: one.id } } } } });
+  await call("POST", "/v1/reviewSubmissionItems", { data: { type: "reviewSubmissionItems", relationships: { reviewSubmission: { data: { type: "reviewSubmissions", id: sub.id } }, appStoreVersion: { data: { type: "appStoreVersions", id: version.id } } } } });
+  await call("PATCH", `/v1/reviewSubmissions/${sub.id}`, { data: { type: "reviewSubmissions", id: sub.id, attributes: { submitted: true } } });
+  console.log(`submitted ${version.attributes.versionString} for review (submission ${sub.id})`);
 }
 
 /** replaces the en-US screenshots of one display type with the PNGs in dir, in file name order */
@@ -175,6 +255,8 @@ const run = {
   "store-profile": () => storeProfile(rest[0], rest[1], rest[2]),
   metadata: () => metadata(rest[0] ?? new URL("../store/app-store.json", import.meta.url).pathname),
   screenshots: () => screenshots(rest[0], rest[1] ?? "APP_IPHONE_67"),
+  submit: () => submit(rest.includes("--yes")),
+  free: () => free(),
 }[verb];
-if (!run) { console.error("usage: node apps/mobile/scripts/asc.mjs status | testflight [email...] | get <path> | dist-cert <csr> <out.cer> | store-profile <certId> <out.mobileprovision> [name] | metadata [app-store.json] | screenshots <dir> [displayType]"); process.exit(2); }
+if (!run) { console.error("usage: node apps/mobile/scripts/asc.mjs status | testflight [email...] | get <path> | dist-cert <csr> <out.cer> | store-profile <certId> <out.mobileprovision> [name] | metadata [app-store.json] | screenshots <dir> [displayType] | free | submit [--yes]"); process.exit(2); }
 run().catch((error) => { console.error(`error: ${error.message}`); process.exit(1); });
