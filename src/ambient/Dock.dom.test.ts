@@ -305,3 +305,25 @@ it("comes out only on purpose: not for a pointer that slides along the edge or d
   expect(opened).toEqual([]);
   await unmount();
 });
+
+it("comes out for a rest at the edge even when the panel takes focus as the pointer arrives, and a window switch elsewhere still holds it back", async () => {
+  const { host, unmount } = await mount([bot("Ada", {})]);
+  const hidden = () => host.querySelector(".amb-dock")!.hasAttribute("data-hidden");
+  const move = (x: number, y: number) => act(async () => { document.dispatchEvent(new MouseEvent("mousemove", { clientX: x, clientY: y })); });
+  // the pointer reaches the edge, the panel gets focus right after, and the pointer rests without another move
+  await move(100, 360);
+  await move(400, 360);
+  await act(async () => { window.dispatchEvent(new FocusEvent("focus")); });
+  await wait(REVEAL.dwellMs + 40);
+  expect(hidden()).toBe(false);
+  await move(5000, 5000);
+  await wait(HIDE_MS + 60);
+  expect(hidden()).toBe(true);
+  // focus arriving while the pointer is elsewhere: a window switch, so reaching the edge just then opens nothing yet
+  await move(100, 360);
+  await act(async () => { window.dispatchEvent(new FocusEvent("focus")); });
+  await move(400, 360);
+  await wait(REVEAL.dwellMs + 40);
+  expect(hidden()).toBe(true);
+  await unmount();
+});

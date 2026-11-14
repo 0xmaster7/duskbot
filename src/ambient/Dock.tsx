@@ -296,8 +296,9 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
   useEffect(() => {
     const key = (event: { key: string }) => { if (event.key === "Tab" || event.key.startsWith("Arrow")) keyboard.current = true; };
     const point = () => { keyboard.current = false; };
-    // focus moving to or from this panel is a window switch, not a reach for the dock
-    const focus = () => { intent.quiet(); bridge.trace?.("window-focus", `inside=${inside.current}`); };
+    // focus moving to this panel from elsewhere is a window switch, not a reach for the dock; while the pointer already
+    // rests on the edge it is that very reach (a click there, or macOS keying the panel), which must not cancel the rest
+    const focus = () => { if (!inside.current) intent.quiet(); bridge.trace?.("window-focus", `inside=${inside.current}`); };
     document.addEventListener("keydown", key, true);
     document.addEventListener("pointerdown", point, true);
     window.addEventListener("focus", focus);

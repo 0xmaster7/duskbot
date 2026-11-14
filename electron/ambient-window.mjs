@@ -13,7 +13,7 @@ const PRELOAD = fileURLToPath(new URL("./ambient-preload.cjs", import.meta.url))
  * @param {{ BrowserWindow: any, surface: "island" | "dock", url: () => string | null, level: string,
  *   platform?: string, onMessage: (channel: string, payload: unknown) => void, log?: (line: string) => void }} deps
  */
-export function createAmbientWindow({ BrowserWindow, surface, url, level, platform = process.platform, onMessage, log = () => {}, trace = null }) {
+export function createAmbientWindow({ BrowserWindow, surface, url, level, platform = process.platform, onMessage, log = () => {}, trace = null, hoverKey = true }) {
   let win = null, loaded = false, interactive = false, bounds = null, page = null, keyed = false, typing = false;
   // from the pointer reaching the surface until its page says it has finished closing: nothing moves or resizes the
   // window meanwhile (a new place waits in `held`), so a closing animation always plays out where it started
@@ -27,8 +27,10 @@ export function createAmbientWindow({ BrowserWindow, surface, url, level, platfo
   // macOS shows a page's cursor (the pointing hand) only in the key window or the active app, and these panels are
   // neither while another app is in front. Over the shape the panel becomes key: Electron's focus() on a panel does
   // not activate the app, so the app in front stays in front. Off the shape it gives key back, unless the person is
-  // typing in one of its fields.
-  const keyOnHover = platform === "darwin";
+  // typing in one of its fields. Electron 43's blur() on macOS is orderOut + orderBack: the panel fades out and back in.
+  // A surface that cannot hide that (`hoverKey: false`, the dock) never takes the key on hover; a click still makes it
+  // key, as macOS does for any panel.
+  const keyOnHover = platform === "darwin" && hoverKey;
   // asked of the window itself each time: macOS can take the key away without telling us (another app clicked or
   // switched to while the pointer was here), and a remembered "we have it" would then leave its fields deaf
   function takeKey() {

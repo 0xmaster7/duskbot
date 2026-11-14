@@ -3,7 +3,7 @@ import { DOCK, dockLayout } from "./ambient-geometry.mjs";
 import { createAmbientWindow } from "./ambient-window.mjs";
 
 export function createDockWindow({ BrowserWindow, url, platform = process.platform, onMessage, log, trace = null }) {
-  const overlay = createAmbientWindow({ BrowserWindow, surface: "dock", url, level: "floating", platform, onMessage, log, trace });
+  const overlay = createAmbientWindow({ BrowserWindow, surface: "dock", url, level: "floating", platform, onMessage, log, trace, hoverKey: false });
   return {
     ...overlay,
     layout(display, { order }) {

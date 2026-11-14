@@ -164,32 +164,32 @@ test("over its shape a panel takes the keyboard so macOS shows its cursor, and g
   const { windows, ambient, screen } = fakes();
   ambient.start(screen);
   await tick();
-  const dock = surface(windows, "dock");
-  const say = (channel, payload) => dock.webContents.emit("ipc-message", {}, channel, payload);
+  const island = surface(windows, "island");
+  const say = (channel, payload) => island.webContents.emit("ipc-message", {}, channel, payload);
   say("ambient:pointer", true);
-  assert.deepEqual([dock.ignore, dock.keys], [{ ignore: false }, ["focus"]]);
+  assert.deepEqual([island.ignore, island.keys], [{ ignore: false }, ["focus"]]);
   // moving between bots: still over the shape, nothing more
   say("ambient:pointer", true);
-  assert.deepEqual(dock.keys, ["focus"]);
+  assert.deepEqual(island.keys, ["focus"]);
   // off the shape: clicks fall through at once, but the keyboard stays until the closing animation is done
   say("ambient:pointer", false);
-  assert.deepEqual([dock.ignore, dock.keys], [{ ignore: true, forward: true }, ["focus"]]);
+  assert.deepEqual([island.ignore, island.keys], [{ ignore: true, forward: true }, ["focus"]]);
   say("ambient:settled");
-  assert.deepEqual(dock.keys, ["focus", "blur"]);
+  assert.deepEqual(island.keys, ["focus", "blur"]);
   // back before it settled: nothing to give back
   say("ambient:pointer", true);
   say("ambient:pointer", false);
   say("ambient:pointer", true);
   say("ambient:settled");
-  assert.deepEqual(dock.keys, ["focus", "blur", "focus"]);
+  assert.deepEqual(island.keys, ["focus", "blur", "focus"]);
   // typing in an answer: the keyboard stays while the pointer wanders, and goes back once the field lets go and it settles
   say("ambient:typing", true);
   say("ambient:pointer", false);
   say("ambient:settled");
-  assert.deepEqual(dock.keys, ["focus", "blur", "focus"]);
+  assert.deepEqual(island.keys, ["focus", "blur", "focus"]);
   say("ambient:typing", false);
   say("ambient:settled");
-  assert.deepEqual(dock.keys, ["focus", "blur", "focus", "blur"]);
+  assert.deepEqual(island.keys, ["focus", "blur", "focus", "blur"]);
   ambient.close();
 });
 
@@ -197,14 +197,14 @@ test("a panel macOS took the keyboard from (another app clicked or switched to) 
   const { windows, ambient, screen } = fakes();
   ambient.start(screen);
   await tick();
-  const dock = surface(windows, "dock");
-  const say = (channel, payload) => dock.webContents.emit("ipc-message", {}, channel, payload);
+  const island = surface(windows, "island");
+  const say = (channel, payload) => island.webContents.emit("ipc-message", {}, channel, payload);
   say("ambient:pointer", true);
-  assert.deepEqual(dock.keys, ["focus"]);
-  dock.focused = false;
+  assert.deepEqual(island.keys, ["focus"]);
+  island.focused = false;
   say("ambient:pointer", false);
   say("ambient:pointer", true);
-  assert.deepEqual([dock.focused, dock.keys], [true, ["focus", "focus"]]);
+  assert.deepEqual([island.focused, island.keys], [true, ["focus", "focus"]]);
   ambient.close();
 });
 
@@ -212,12 +212,34 @@ test("a page that never says it settled still gets the keyboard taken back, a mo
   const { windows, ambient, screen } = fakes();
   ambient.start(screen);
   await tick();
-  const dock = surface(windows, "dock");
-  dock.webContents.emit("ipc-message", {}, "ambient:pointer", true);
-  dock.webContents.emit("ipc-message", {}, "ambient:pointer", false);
-  assert.deepEqual(dock.keys, ["focus"]);
+  const island = surface(windows, "island");
+  island.webContents.emit("ipc-message", {}, "ambient:pointer", true);
+  island.webContents.emit("ipc-message", {}, "ambient:pointer", false);
+  assert.deepEqual(island.keys, ["focus"]);
   await new Promise((resolve) => setTimeout(resolve, SETTLE_WAIT_MS + 50));
-  assert.deepEqual(dock.keys, ["focus", "blur"]);
+  assert.deepEqual(island.keys, ["focus", "blur"]);
+  ambient.close();
+});
+
+test("the dock never takes the keyboard on hover: giving it back would fade the panel out and in, and the edge would read the focus as a window switch", async () => {
+  const { windows, ambient, screen } = fakes();
+  ambient.start(screen);
+  await tick();
+  const dock = surface(windows, "dock");
+  const say = (channel, payload) => dock.webContents.emit("ipc-message", {}, channel, payload);
+  for (let visit = 0; visit < 3; visit++) {
+    say("ambient:pointer", true);
+    assert.deepEqual(dock.ignore, { ignore: false });
+    say("ambient:pointer", false);
+    say("ambient:settled");
+  }
+  assert.deepEqual(dock.keys, []);
+  await new Promise((resolve) => setTimeout(resolve, SETTLE_WAIT_MS + 50));
+  assert.deepEqual(dock.keys, []);
+  // the island still does, so macOS shows its pointing hand
+  const island = surface(windows, "island");
+  island.webContents.emit("ipc-message", {}, "ambient:pointer", true);
+  assert.deepEqual(island.keys, ["focus"]);
   ambient.close();
 });
 
@@ -236,11 +258,11 @@ test("a panel that already has the keyboard (the person clicked into it) is left
   const mac = fakes();
   mac.ambient.start(mac.screen);
   await tick();
-  const dock = surface(mac.windows, "dock");
-  dock.focused = true;
-  dock.webContents.emit("ipc-message", {}, "ambient:pointer", true);
-  dock.webContents.emit("ipc-message", {}, "ambient:pointer", false);
-  assert.deepEqual(dock.keys, []);
+  const island = surface(mac.windows, "island");
+  island.focused = true;
+  island.webContents.emit("ipc-message", {}, "ambient:pointer", true);
+  island.webContents.emit("ipc-message", {}, "ambient:pointer", false);
+  assert.deepEqual(island.keys, []);
   mac.ambient.close();
   const windows = fakes({ platform: "win32", prefs: { island: true, dock: true } });
   windows.ambient.start(windows.screen);
@@ -311,7 +333,7 @@ test("a surface in use or still closing is never moved or resized: the new place
   assert.equal(dock.bounds.height, 900);
   // every window action is in the trace, in order
   const actions = lines.filter((line) => line.startsWith("dock win:") || line.startsWith("dock page:settled")).map((line) => line.split(" ").slice(0, 2).join(" "));
-  assert.deepEqual(actions.slice(-6), ["dock win:setIgnoreMouseEvents", "dock win:focus", "dock win:setIgnoreMouseEvents", "dock page:settled", "dock win:setBounds", "dock win:blur"]);
+  assert.deepEqual(actions.slice(-4), ["dock win:setIgnoreMouseEvents", "dock win:setIgnoreMouseEvents", "dock page:settled", "dock win:setBounds"]);
   ambient.close();
 });
 
