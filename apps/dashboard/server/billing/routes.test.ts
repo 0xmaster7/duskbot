@@ -464,6 +464,27 @@ it("preview billing: checkout says it opens soon, and only the operator's token 
   expect(billing.clouds.list("a").map(cloud => cloud.name)).toEqual(["Test Cloud"]);
 });
 
+it("dodo test mode: the operator's grant opens a real test-mode checkout for a harness to pay; live mode has no grant", async () => {
+  const token = "o".repeat(40), calls: string[] = [];
+  const fetchStub = (async (url: string | URL) => { calls.push(String(url));
+    return new Response(JSON.stringify({ session_id: "cks_fixture", checkout_url: "https://test.checkout.dodopayments.com/session/cks_fixture" }), { status: 200, headers: { "content-type": "application/json" } }); }) as typeof fetch;
+  const env = { DUSK_BILLING_PROVIDER: "dodo", DUSK_DODO_API_KEY: "fixture-key", DUSK_DODO_WEBHOOK_SECRET: `whsec_${Buffer.alloc(32).toString("base64")}`,
+    DUSK_DODO_PRODUCTS: JSON.stringify({ "desktop_shared_s:month": "fixture-product" }), DUSK_OPS_TOKEN: token };
+  const findAccount = (email: string) => email === "a@example.test" ? { id: "a", email } : null;
+  for (const mode of ["test", "live"]) {
+    const billing = createBilling(options({ env: { ...env, DUSK_DODO_MODE: mode }, findAccount, fetch: fetchStub })); cleanup.push(() => billing.close());
+    const origin = await listen(createServer(async (req, res) => { if (!await billing.handle(req, res, new URL(req.url!, "https://dashboard.example.test"))) { res.writeHead(404); res.end(); } }));
+    const grant = (auth: string) => fetch(`${origin}/v1/billing/ops/grant`, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${auth}` }, body: JSON.stringify({ email: "a@example.test", bundle: "starter" }) });
+    expect((await grant("x".repeat(40))).status).toBe(404);
+    const answer = await grant(token);
+    if (mode === "live") { expect(answer.status).toBe(404); continue; }
+    expect(answer.status).toBe(202);
+    expect(await answer.json()).toMatchObject({ ok: true, pay: "test_card", checkoutUrl: "https://test.checkout.dodopayments.com/session/cks_fixture" });
+    expect(calls.some(url => url.startsWith("https://test.dodopayments.com/checkouts"))).toBe(true);
+    expect(billing.store.state.checkouts[0]).toMatchObject({ source: "ops_grant", status: "open" });
+  }
+});
+
 it("walks the cancel flow over HTTP: steps, the one-time discount, then an online cancel with no contact needed", async () => {
   const f = await fixture(), { cookie } = await f.login();
   const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: bundle("pro") }, cookie);

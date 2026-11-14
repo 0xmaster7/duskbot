@@ -34,10 +34,19 @@ export function createBillingRoutes(ctx: BillingContext) {
         json(res, 200, service.funnel(ctx.now() - days * 86_400_000, ctx.now())); return true;
       }
       if (path === "/v1/billing/ops/grant" && method === "POST") {
-        if (!ctx.opsToken || !ctx.grants || !opsAllowed(req.headers.authorization, ctx.opsToken)) throw new BillingError(404, "not_found");
+        if (!ctx.opsToken || !(ctx.grants || ctx.testPurchases) || !opsAllowed(req.headers.authorization, ctx.opsToken)) throw new BillingError(404, "not_found");
         const data = await body(req), owner = ctx.findAccount(text(data.email).trim().toLowerCase());
         if (!owner) throw new BillingError(404, "not_found");
         if (typeof data.bundle !== "string") invalid();
+        // dodo in test mode cannot complete a plan in process: the grant is a real test-mode checkout, marked as the
+        // operator's (never revenue), that the harness pays with a test card (scripts/smoke/test-purchase.mjs)
+        if (!ctx.grants) {
+          const bundle = ctx.config.bundles.find(item => item.id === data.bundle && item.id !== "free");
+          if (!bundle) invalid();
+          const answer = await service.checkout(owner, { kind: "cart", cart: service.quote({ ...bundle.cart, interval: data.interval === "year" ? "year" : "month" }).cart,
+            ...(data.name === undefined ? {} : { name: cloudName(data.name) }) }, { operator: { source: "ops_grant" } });
+          json(res, 202, { ok: true, pay: "test_card", checkoutId: answer.checkoutId, checkoutUrl: answer.checkoutUrl, cloudId: answer.cloudId }); return true;
+        }
         const { checkoutId } = await ctx.grant(owner, { bundle: data.bundle, interval: data.interval === "year" ? "year" : "month", source: "ops_grant", ...(data.name === undefined ? {} : { name: cloudName(data.name) }) });
         json(res, 200, { ok: true, checkoutId, subscriptions: service.subscriptions(owner.id).map(sub => ({ id: sub.id, status: sub.status, cloudId: sub.cloudId })) }); return true;
       }

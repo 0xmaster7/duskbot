@@ -72,9 +72,10 @@ export function createBilling(options: BillingOptions) {
   const fake = billingProvider === "fake" || billingProvider === "preview" ? createFakeBillingProvider({ now }) : null;
   const unavailable = () => { throw new BillingProviderError("unavailable"); };
   let provider: BillingProvider;
+  const dodoMode = env.DUSK_DODO_MODE ?? "test";
   if (billingProvider === "dodo") {
     const apiKey = required("DUSK_DODO_API_KEY"), webhookSecret = required("DUSK_DODO_WEBHOOK_SECRET");
-    const mode = env.DUSK_DODO_MODE ?? "test";
+    const mode = dodoMode;
     if (mode !== "test" && mode !== "live") throw new Error("Invalid DUSK_DODO_MODE.");
     required("DUSK_DODO_PRODUCTS");
     provider = createDodoProvider({ apiKey, webhookSecret, mode, now, fetch: options.fetch });
@@ -168,7 +169,8 @@ export function createBilling(options: BillingOptions) {
     return { checkoutId: stored.id, subscriptionId: sub?.id ?? null };
   }
   const context = { service, clouds, store, config, accounts: options.accounts, now, enabled: billingProvider !== "off", fake: loopback ? fake : null, wakeStats: options.wakeStats ?? (() => ({})), opsToken,
-    checkoutOpen: billingProvider !== "preview", endTrials: billingProvider === "preview" || env.DUSK_OPS_END_TRIAL === "1", grants: billingProvider === "preview" ? fake : null, grant, findAccount: options.findAccount ?? (() => null) };
+    checkoutOpen: billingProvider !== "preview", endTrials: billingProvider === "preview" || env.DUSK_OPS_END_TRIAL === "1", grants: billingProvider === "preview" ? fake : null, grant,
+    testPurchases: billingProvider === "dodo" && dodoMode === "test", findAccount: options.findAccount ?? (() => null) };
   const routes = createBillingRoutes(context), admin = createAdminRoutes(context);
   return {
     async handle(req: IncomingMessage, res: ServerResponse, target: URL) { return await routes(req, res, target) || await admin.handle(req, res, target); },
@@ -208,6 +210,8 @@ export type BillingContext = {
   endTrials?: boolean;
   /** preview only: the provider that completes an operator's grant */
   grants: ReturnType<typeof createFakeBillingProvider> | null;
+  /** dodo in test mode: an operator's grant opens a real test-mode checkout for a harness to pay with a test card */
+  testPurchases?: boolean;
   /** a plan given through the same checkout, webhook and provisioning code, completed by the fake provider */
   grant(owner: AccountRef, input: { bundle: string; interval: "month" | "year"; name?: string; source: OperatorGrant["source"]; amountCents?: number; until?: number }): Promise<{ checkoutId: string; subscriptionId: string | null }>;
   findAccount(email: string): AccountRef | null;
