@@ -102,13 +102,16 @@ test("the talk bridge keys stay off other servers' pages; a call can be reported
   const list = name => preload.match(new RegExp(`const ${name} = (?:new Set\\()?\\[([^\\]]*)\\]`))[1];
   assert.doesNotMatch(list("REMOTE_SAFE"), /talkShortcut|callActive/);
   assert.match(list("HOME_PAGE"), /"callActive"/);
+  // the home page (My Cloud or the person's own server) listens through this computer's own speech
+  for (const key of ["speechStart", "speechStop", "speechFinish", "onSpeechTranscript", "onSpeechEnd", "onSpeechLevel"]) assert.match(list("HOME_PAGE"), new RegExp(`"${key}"`));
+  assert.doesNotMatch(list("REMOTE_SAFE"), /speech/i);
   assert.doesNotMatch(list("HOME_PAGE"), /talkShortcut/);
 });
 
-test("every microphone channel answers only this computer's page; a call can be reported from My Cloud's page too", () => {
+test("every microphone channel answers only this computer's page; dictation and a call work from the home page too", () => {
   const { guards, handlers } = harness();
   assert.deepEqual(Object.fromEntries(guards), {
-    "speech:start": "localOnly", "speech:stop": "localOnly", "speech:finish": "localOnly",
+    "speech:start": "localOrHome", "speech:stop": "localOrHome", "speech:finish": "localOrHome",
     "talk-shortcut:state": "localOnly", "talk-shortcut:set": "localOnly", "call:active": "localOrHome",
   });
   assert.deepEqual([...handlers.keys()], [...guards.keys()]);

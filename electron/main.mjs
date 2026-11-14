@@ -3171,6 +3171,7 @@ ipcMain.handle("workspaces:menu", workspaceOnly(async (_event, from) => {
 ipcMain.handle("desktop:capabilities", async (event) =>
   desktopCapabilities({
     remote: !senderIsLocal(event),
+    homeSpeech: homeWindow.homePage(event),
     platform: process.platform,
     env: process.env,
     packaged: app.isPackaged,
@@ -3231,19 +3232,21 @@ ipcMain.handle("approvals:set-trusted-mode", localOnly("approvals:set-trusted-mo
 const windowFrameNow = () => (process.platform === "win32" ? windowFrameMade : null) ?? desktopPrefs?.windowFrame() ?? FRAME_BY_DEFAULT;
 async function broadcastDesktopCapabilities() {
   const localConnection = await cuaReady;
-  const build = (remote) =>
-    desktopCapabilities({ remote, platform: process.platform, env: process.env, packaged: app.isPackaged, localConnection, frame: windowFrameNow() });
+  const build = (remote, homeSpeech = false) =>
+    desktopCapabilities({ remote, homeSpeech, platform: process.platform, env: process.env, packaged: app.isPackaged, localConnection, frame: windowFrameNow() });
   const local = build(false);
   chromeRail.send("desktop:capabilities-changed", local);
-  let redacted = null;
+  let redacted = null, home = null;
   for (const window of appWindows()) {
     if (window.isDestroyed()) continue;
     let isLocal = false;
     try {
       isLocal = new URL(window.webContents.getURL()).origin === confirmedRendererOrigin();
     } catch {}
-    if (!isLocal) redacted ??= build(true);
-    window.webContents.send("desktop:capabilities-changed", isLocal ? local : redacted);
+    const isHome = !isLocal && homeWindow.homePage({ sender: window.webContents, senderFrame: window.webContents.mainFrame });
+    if (isHome) home ??= build(true, true);
+    else if (!isLocal) redacted ??= build(true);
+    window.webContents.send("desktop:capabilities-changed", isLocal ? local : isHome ? home : redacted);
   }
 }
 

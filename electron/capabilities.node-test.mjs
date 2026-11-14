@@ -21,3 +21,14 @@ test("a remote server's page is told this computer offers no screen, voice or lo
   assert.equal(remote.host.homeDir, "");
   assert.notEqual(local.host.homeDir, "");
 });
+
+test("the home page (My Cloud or the person's own server) still listens through this computer, nothing else", () => {
+  const home = desktopCapabilities({ platform: "darwin", env: {}, packaged: true, localConnection: { status: "ready", enabled: true }, remote: true, homeSpeech: true });
+  assert.equal(home.remote, true);
+  assert.deepEqual(home.dictation, { available: true, engine: "apple-speech", onDevice: true });
+  assert.equal(home.screenPreview.available, false);
+  assert.equal(home.localComputer.available, false);
+  assert.equal(home.host.homeDir, "");
+  const linux = desktopCapabilities({ platform: "freebsd", env: {}, remote: true, homeSpeech: true });
+  assert.equal(linux.dictation.available, false);
+});

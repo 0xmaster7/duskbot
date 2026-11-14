@@ -17,7 +17,7 @@ export function installTalk({ ipcMain, localOnly, localOrHome, BrowserWindow, ap
   const callPresence = createCallPresence();
   let shortcut = null, session = null, panel = null, theme = null;
 
-  ipcMain.handle("speech:start", localOnly("speech:start", (event, options) => {
+  ipcMain.handle("speech:start", localOrHome("speech:start", (event, options) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (!win) return;
     if (!nativeSpeech) {
@@ -26,10 +26,10 @@ export function installTalk({ ipcMain, localOnly, localOrHome, BrowserWindow, ap
     }
     speech.start(win, options);
   }));
-  ipcMain.handle("speech:stop", localOnly("speech:stop", (event) => {
+  ipcMain.handle("speech:stop", localOrHome("speech:stop", (event) => {
     if (nativeSpeech) speech.stop(BrowserWindow.fromWebContents(event.sender));
   }));
-  ipcMain.handle("speech:finish", localOnly("speech:finish", (event) => {
+  ipcMain.handle("speech:finish", localOrHome("speech:finish", (event) => {
     if (nativeSpeech) speech.finish(BrowserWindow.fromWebContents(event.sender));
   }));
   ipcMain.handle("talk-shortcut:state", localOnly("talk-shortcut:state", () => shortcut?.state() ?? TALK_SHORTCUT_UNAVAILABLE));

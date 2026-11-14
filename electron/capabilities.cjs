@@ -98,6 +98,8 @@ function desktopCapabilities({
   frame = true,
   // A remote server's page: this computer's screen, voice and local control are never on offer.
   remote = false,
+  // the person's home page (My Cloud or their own server) is this app's page: it still listens through this computer
+  homeSpeech = false,
 } = {}) {
   const hostPlatform = normalizedPlatform(platform);
   const isMac = hostPlatform === "darwin";
@@ -176,7 +178,7 @@ function desktopCapabilities({
   if (remote) {
     const unavailable = { reasonCode: "remote-server" };
     Object.assign(screenPreview, { available: false, interaction: "none" }, unavailable);
-    Object.assign(dictation, { available: false, engine: "none", onDevice: false }, unavailable);
+    if (!homeSpeech || !dictation.available) Object.assign(dictation, { available: false, engine: "none", onDevice: false }, unavailable);
     Object.assign(localComputer, {
       available: false,
       support: "unsupported",
