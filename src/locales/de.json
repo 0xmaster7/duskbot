@@ -2147,7 +2147,7 @@
   "app.loading.updating": "My Cloud wird aktualisiert…",
   "cloudSend.list.routineOne": "1 Routine",
   "cloudSend.list.routines": "{count} Routinen",
-  "cloudSend.move.copy": "deine Bots ziehen zu dusk cloud um…",
+  "cloudSend.move.copy": "Deine Bots ziehen zu dusk cloud um…",
   "cloudSend.move.copyChats": "Deine Bots ziehen in die Cloud um… {done} von {total} Chats",
   "cloudSend.move.bringing": "deine Bots sind auf dem Weg hierher…",
   "cloudSend.move.bringingChats": "Die Bots dieses Computers kommen in die Cloud… {done} von {total} Chats",

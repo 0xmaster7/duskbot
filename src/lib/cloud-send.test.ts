@@ -81,9 +81,9 @@ describe("the one-time move's line", () => {
 
   it("is in every language's own words", () => {
     setLocale("de");
-    expect(moveLine({ phase: "copy" }, "local")?.text).toBe("Deine Bots ziehen in die Cloud um…");
-    expect(moveLine({ phase: "copy", updating: true }, "local")?.text).toBe("My Cloud wird gerade aktualisiert. Dein Umzug beginnt, sobald das erledigt ist.");
-    expect(moveLine({ phase: "wait", waitingFor: "", waitingWhat: "sign-in" }, "local")?.text).toBe("Deine Bots ziehen in die Cloud um…");
+    expect(moveLine({ phase: "copy" }, "local")?.text).toBe("Deine Bots ziehen zu dusk cloud um…");
+    expect(moveLine({ phase: "copy", updating: true }, "local")?.text).toBe("dusk cloud wird gerade aktualisiert. Deine Bots ziehen um, sobald das erledigt ist.");
+    expect(moveLine({ phase: "wait", waitingFor: "", waitingWhat: "sign-in" }, "local")?.text).toBe("Deine Bots ziehen zu dusk cloud um…");
   });
 });
 
