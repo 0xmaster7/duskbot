@@ -7,6 +7,7 @@ import { DesktopCapabilitiesProvider } from "../../src/components/DesktopCapabil
 import { StoreProvider, useStore } from "../../src/state/store";
 import { applySkin } from "../../src/lib/skins";
 import "../../src/styles.css";
+import "../../src/styles/overlays.css";
 
 function Preview() {
   const { state, dispatch, refreshInstances } = useStore();

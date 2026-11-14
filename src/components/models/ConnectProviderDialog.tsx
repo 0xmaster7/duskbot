@@ -113,19 +113,19 @@ export function ConnectProviderDialog({ provider, place, model, onClose, onConne
             placeholder={provider.keyPlaceholder ?? "…"} spellCheck={false} autoComplete="off" className={cn(FIELD, "font-mono text-[12px] placeholder:font-sans")} />
         </FormField>
       )}
-      <div className="flex min-h-5 items-center gap-3 text-[12px] leading-4">
+      <div className="flex min-h-5 flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] leading-4">
         {provider.keyUrl && needsKey && (
-          <a href={provider.keyUrl} target="_blank" rel="noreferrer" className="text-ink-secondary underline-offset-2 hover:text-ink hover:underline">
+          <a href={provider.keyUrl} target="_blank" rel="noreferrer" className="whitespace-nowrap text-ink-secondary underline-offset-2 hover:text-ink hover:underline">
             {t("models.connect.getKey")}
           </a>
         )}
         <button type="button" data-connect-check disabled={!ready || check === "checking"} onClick={runCheck}
-          className="text-ink-secondary underline-offset-2 enabled:hover:text-ink enabled:hover:underline disabled:opacity-45">
+          className="whitespace-nowrap text-ink-secondary underline-offset-2 enabled:hover:text-ink enabled:hover:underline disabled:opacity-45">
           {t("models.connect.check")}
         </button>
         {check === "checking" && <Loader2 size={13} className="animate-spin text-ink-tertiary" aria-label={t("models.connect.checking")} />}
         {check && check !== "checking" && (
-          <span role="status" data-connect-check-result={check.ok ? "ok" : "failed"} className={cn("min-w-0 truncate", check.ok ? "text-ink-secondary" : "text-danger")}>{check.text}</span>
+          <span role="status" data-connect-check-result={check.ok ? "ok" : "failed"} className={cn("min-w-0 basis-full text-pretty", check.ok ? "text-ink-secondary" : "text-danger")}>{check.text}</span>
         )}
       </div>
     </FormDialog>
