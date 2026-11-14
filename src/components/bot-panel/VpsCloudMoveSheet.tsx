@@ -67,21 +67,23 @@ export function VpsCloudMoveSheet({ onClose }: { onClose: () => void }) {
       if (!onError?.(message)) setFailed(message ?? t("place.cloudDesktop.failed"));
     });
   };
+  // signed out, main opens the sign-in over this page and the checkout follows it (view.signingIn); an app with no sign-in
+  // of its own still never sends the person elsewhere first: the account sheet, or this computer's buying sheet
   const buy = () => run(() => bridge.buy("pro"), (message) => {
     if (message !== SIGN_IN_FIRST) return false;
-    // the sign-in sheet needs cloudAccount, which the preload keeps off a server's page
-    if (!window.duskDesktop?.cloudAccount) { setFailed(t("vpsMove.signInFirst", { device })); return true; }
-    onClose();
-    dispatch({ type: "openCloudAdd", source: "app_computer_move", signIn: true });
-    return true;
+    if (window.duskDesktop?.cloudAccount) { onClose(); dispatch({ type: "openCloudAdd", source: "app_computer_move", signIn: true }); return true; }
+    if (window.duskDesktop?.accountSheet) { void window.duskDesktop.accountSheet.open().catch(() => {}); return true; }
+    return false;
   });
+  const signingIn = view.stage === "buying" && view.signingIn === true;
+  const signIn = () => run(() => bridge.signIn ? bridge.signIn() : Promise.resolve(view));
   const start = () => run(() => bridge.start());
   const retry = () => run(() => bridge.retry());
   const cancel = () => run(() => bridge.cancel());
 
   const title = step === "buy" || step === "ready" ? t("vpsMove.title")
     : step === "setting-up" ? t("vpsMove.settingUpTitle")
-    : step === "buying" ? t("vpsMove.buyingTitle")
+    : step === "buying" ? (signingIn ? t("vpsMove.signInTitle") : t("vpsMove.buyingTitle"))
     : step === "moving" ? t("cloudMove.movingTitle")
     : step === "fallback" ? t("vpsMove.fallbackTitle", { device })
     : step === "failed" ? t("vpsMove.failedTitle")
@@ -92,9 +94,10 @@ export function VpsCloudMoveSheet({ onClose }: { onClose: () => void }) {
   const primary = step === "buy" ? { label: trialDays ? t("botPanel.ui.cloudIntroStart") : t("vpsMove.get"), act: buy }
     : step === "ready" ? { label: bots === 1 ? t("cloudMove.moveOne") : t("cloudMove.moveMany", { count: bots }), act: start }
     : step === "failed" ? { label: t("vpsMove.retry"), act: retry }
+    : signingIn ? { label: t("vpsMove.signIn"), act: signIn }
     : null;
   const secondary = step === "buy" || step === "ready" || step === "buying" ? notNow : close;
-  const extra = step === "buying" ? { label: t("vpsMove.checkoutAgain"), act: buy } : null;
+  const extra = step === "buying" && !signingIn ? { label: t("vpsMove.checkoutAgain"), act: buy } : null;
   const body = bots === 1 ? t("vpsMove.bodyOne", { place }) : t("vpsMove.bodyMany", { count: bots, place });
 
   return (
@@ -122,7 +125,7 @@ export function VpsCloudMoveSheet({ onClose }: { onClose: () => void }) {
         </>}
         {step === "setting-up" && <Progress line={t("vpsMove.settingUp")} />}
         {step === "buying" && <>
-          <p className={muted}>{t("vpsMove.buying", { place })}</p>
+          <p className={muted}>{signingIn ? t("vpsMove.signInBody", { place }) : t("vpsMove.buying", { place })}</p>
           <button type="button" className={linkCls} disabled={busy} onClick={cancel}>{t("vpsMove.cancel")}</button>
         </>}
         {view.stage === "moving" && <>

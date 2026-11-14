@@ -6,7 +6,7 @@ export interface VpsMoveCounts { bots?: number; chats?: number; routines?: numbe
 
 export type VpsCloudMoveView =
   | { stage: "none"; cloud: "signed-out" | "none" | "starting" | "ready" }
-  | { stage: "buying" | "waiting"; place: string; route: VpsMoveRoute }
+  | { stage: "buying" | "waiting"; place: string; route: VpsMoveRoute; /** the purchase waits on the sign-in main opened over this page */ signingIn?: true }
   | { stage: "moving"; place: string; route: VpsMoveRoute; phase: string; chats?: { done: number; total: number }; waitingFor?: string; retrying?: boolean; error?: string | null }
   | { stage: "fallback"; place: string; route: "via-mac"; why?: "outdated" | "vps_failing"; phase?: string }
   | { stage: "failed"; place: string; route: VpsMoveRoute; error: string | null }
@@ -16,9 +16,12 @@ export interface VpsCloudMoveBridge {
   view(): Promise<VpsCloudMoveView>;
   /** The four below need the person's click. */
   start(): Promise<VpsCloudMoveView>;
-  /** Opens the plans on dusk.bot already signed in; rejects with "Sign in to dusk cloud first." while signed out. */
+  /** Opens the plans on dusk.bot already signed in; signed out, main opens the sign-in here first (`signingIn`) and the
+   *  checkout follows it by itself. Rejects with "Sign in to dusk cloud first." only where this app has no sign-in. */
   buy(plan?: "plus" | "pro"): Promise<VpsCloudMoveView>;
   retry(): Promise<VpsCloudMoveView>;
+  /** The sign-in a purchase waits on, opened again. */
+  signIn?(): Promise<VpsCloudMoveView>;
   /** Only before anything moved. */
   cancel(): Promise<VpsCloudMoveView>;
   onChange(callback: (view: VpsCloudMoveView) => void): () => void;

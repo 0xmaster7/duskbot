@@ -227,6 +227,7 @@
   "vpsCloudMove.cancel",
   "vpsCloudMove.onChange",
   "vpsCloudMove.retry",
+  "vpsCloudMove.signIn",
   "vpsCloudMove.start",
   "vpsCloudMove.view",
   "windowControls",

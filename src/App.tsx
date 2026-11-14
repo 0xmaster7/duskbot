@@ -3,6 +3,10 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronLeft, Menu } from "./icons";
 import { AnimatePresence } from "motion/react";
 import { CLOUD_LINK_SETTINGS, openBot, StoreProvider, useStore } from "@/state/store";
+import { SignInSheetHost } from "./components/SignInSheet";
+import { openSignIn } from "@/lib/sign-in-sheet";
+import { funnelAccount } from "./components/onboarding/funnel-account";
+
 import { nextShortcutBot, shortcutBots, shownBotIds } from "@/lib/sidebar-shortcut-order";
 import { useWelcomeViewer, WelcomeGate } from "@/components/onboarding/WelcomeGate";
 import { IslandIntroHost } from "@/components/onboarding/IslandIntroHost";
@@ -249,13 +253,24 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   }, [state.selectedId, bot?.threadId, group?.threadId, state.activeView, state.pluginsOpen, state.settingsOpen]);
 
   useEffect(() => {
-    return window.duskDesktop?.onOpenAppSettings?.(section => dispatch((section === "cloud-add" || section === "cloud-add-howto") && window.duskDesktop?.cloudAccount && !remoteClient
+    return window.duskDesktop?.onOpenAppSettings?.(section => {
+      // signed out, any "sign in to dusk cloud" from main is the sign-in sheet right here, then what was asked for
+      const cloud = window.duskDesktop?.cloudAccount;
+      if ((section === "cloud" || section === "cloud-settings") && cloud && !remoteClient && funnelAccount()) {
+        void cloud.state().then((state) => {
+          if (state.account && state.status === "connected") dispatch(section === "cloud" ? CLOUD_LINK_SETTINGS : { type: "toggleAppSettings", open: true, section: "cloudAccount" });
+          else openSignIn({ then: () => { if (section === "cloud") dispatch(CLOUD_LINK_SETTINGS); } });
+        }, () => openSignIn());
+        return;
+      }
+      dispatch((section === "cloud-add" || section === "cloud-add-howto") && window.duskDesktop?.cloudAccount && !remoteClient
       ? { type: "openCloudAdd", source: section === "cloud-add" ? "app_menu" : "app_howto" }
       : section === "cloud" && window.duskDesktop?.cloudAccount && !remoteClient
         ? CLOUD_LINK_SETTINGS
         : section === "cloud-settings" && (window.duskDesktop?.cloudAccount || window.duskDesktop?.cloudPlan) && !remoteClient
           ? { type: "toggleAppSettings", open: true, section: "cloudAccount" }
-          : { type: "toggleAppSettings", open: true, ...(section === "organization" && window.duskDesktop?.organization && !remoteClient ? { section } : {}) }));
+          : { type: "toggleAppSettings", open: true, ...(section === "organization" && window.duskDesktop?.organization && !remoteClient ? { section } : {}) });
+    });
   }, [dispatch]);
 
   useEffect(() => {
@@ -361,6 +376,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       <ConnectAppsHost />
       <AddVpsHost />
       <PlaceSetupHost />
+      <SignInSheetHost />
       <CloudMoveHost />
       {state.shortcutsOpen && (
         <KeyboardShortcutsModal

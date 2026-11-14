@@ -1,4 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { SignInSheet } from "./SignInSheet";
+import { funnelAccount } from "./onboarding/funnel-account";
 import { Check, LogOut, Plus, UserRound, X } from "../icons";
 import type { AccountsView, AccountSwitchResult, RailOpenResult } from "../../electron/cloud-account.mjs";
 import { cn } from "@/lib/cn";
@@ -166,6 +168,7 @@ export function AccountsSheet({ onClose, adding = null, note: given = null }: { 
   const [asking, setAsking] = useState<string | null>(null);
   useEffect(() => {
     if (!bridge) return;
+    // nobody signed in here: the sheet is the sign-in itself, never a pointer to somewhere else
     const read = () => { void bridge.list().then(setView).catch(() => setNote(t("accounts.failed"))); };
     read();
     return bridge.onChanged(read);
@@ -180,6 +183,8 @@ export function AccountsSheet({ onClose, adding = null, note: given = null }: { 
     }, () => setNote(t("accounts.failed")));
   };
   const active = view?.active ?? null;
+  // nobody signed in here: the sheet is the sign-in itself (the first run's step), never a pointer to somewhere else
+  if (view && !active && !given && add === null && funnelAccount()) return <SignInSheet onClose={onClose} onDone={onClose} />;
   return <div className="ui-scrim fixed inset-0 z-[60] flex items-center justify-center p-4" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <div role="dialog" aria-modal="true" aria-labelledby="cloud-add-title" data-accounts-sheet className={cn(SHEET, "relative w-full max-w-[420px]")}>
       <button type="button" onClick={onClose} aria-label={t("accounts.close")} className={cn(CLOSE, "absolute end-4 top-4 z-10")}><X size={16} /></button>

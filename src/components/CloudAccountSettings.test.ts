@@ -13,6 +13,8 @@ vi.mock("./DesktopCapabilities", () => ({ useDesktopCapabilities: () => ({ capab
 vi.mock("@/state/store", async original => ({ ...await original<typeof import("@/state/store")>(), useStore: () => ({ state: { bots: [{ name: "Ember" }] }, dispatch: vi.fn() }) }));
 // the sign-out ask is the app's ConfirmDialog, a portal: here only its props are read
 vi.mock("./AccountMenu", async original => ({ ...await original<typeof import("./AccountMenu")>(), CloudSignOutConfirm: () => null }));
+const signIn = vi.hoisted(() => ({ open: vi.fn() }));
+vi.mock("@/lib/sign-in-sheet", () => ({ openSignIn: signIn.open, closeSignIn: vi.fn(), useSignInOpen: () => null }));
 import { CloudSignOutConfirm } from "./AccountMenu";
 import { CloudAccountSettings, CloudPlanOnCloud, TeamPeopleCard, cloudLinkAction, cloudPlanLabel } from "./CloudAccountSettings";
 type Node = ReactElement<{ children?: ReactNode; onClick?: () => void }>;
@@ -40,6 +42,12 @@ it("loads optional account state without enrollment/network and delegates sign-i
   await ready(); expect(bridge.begin).not.toHaveBeenCalled(); expect(fetch).not.toHaveBeenCalled();
   expect(render().html).not.toContain("Free local use"); expect(render().html).not.toContain("separate from organization sign-in");
   click("sign in to your cloud plan"); await flush(); expect(bridge.begin).toHaveBeenCalledExactlyOnceWith();
+});
+it("signed out, sign in opens the sign-in sheet right here where this app has one, never the browser's code page", async () => {
+  vi.stubGlobal("window", { duskDesktop: { cloudAccount: bridge, accountGate: { state: vi.fn(), signInStart: vi.fn(), signInVerify: vi.fn(), browser: vi.fn(), cancel: vi.fn(), onChange: vi.fn() } } });
+  await ready(); signIn.open.mockClear();
+  click("sign in to your cloud plan"); await flush();
+  expect(signIn.open).toHaveBeenCalledTimes(1); expect(bridge.begin).not.toHaveBeenCalled();
 });
 it("a free account starts in the Add a Cloud dialog, but only a verified native update displays Pro; unavailable/revoked states remove it", async () => {
   const onAddCloud = vi.fn();

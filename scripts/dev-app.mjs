@@ -8,6 +8,10 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const require = createRequire(import.meta.url);
 const uiPort = Number(process.env.DUSK_UI_PORT) || 5199;
 const env = { ...process.env, DUSK_DEV_OWN_SERVER: "1", ELECTRON_START_URL: process.env.ELECTRON_START_URL || `http://127.0.0.1:${uiPort}` };
+// the dev app has the packaged app's account (sign-in sheet, dusk cloud, checkout) against preview, test payments only;
+// it never blocks on the sign-in gate. DUSK_CLOUD_ORIGIN or DUSK_CLOUD_STAGING given by hand win.
+if (!env.DUSK_CLOUD_ORIGIN && env.DUSK_CLOUD_STAGING !== "1") env.DUSK_CLOUD_ORIGIN = "https://preview.dusk.bot";
+env.DUSK_ALLOW_SIGNED_OUT ??= "1";
 delete env.ELECTRON_RUN_AS_NODE;
 
 const prepared = spawnSync(process.execPath, ["scripts/prepare-cloudflared.mjs", "--current"], { cwd: root, stdio: "inherit" });

@@ -19,7 +19,8 @@ const PLANS = new Set(["plus", "pro"]);
  *   home(): { origin: string, grant(): Promise<{ origin: string, code: string }> } | null,
  *   cloudRead(route: string): Promise<Response>,
  *   file(name: string): { read(): unknown, write(value: unknown): void },
- *   account(): { webHandoff?(options: { plan?: string, source?: string }): Promise<unknown>, refresh?(): Promise<unknown> } | null,
+ *   account(): { webHandoff?(options: { plan?: string, source?: string }): Promise<unknown>, refresh?(): Promise<unknown>, state?(): any } | null,
+ *   signIn?(): void,
  *   viaMac: { available(place: { origin: string }): boolean, start(place: any): Promise<unknown>, view(): any },
  *   openHome(): void,
  *   lastInput?(): number,
@@ -31,6 +32,10 @@ const PLANS = new Set(["plus", "pro"]);
  * own page, which may only read the move. `tell`: every page that shows the move hears it changed.
  */
 export function installVpsCloudMoveMain(deps) {
+  // signed out when the person chose to buy: the sign-in opens right here, and the checkout follows it by itself
+  let pendingPlan = null;
+  // an account client that can't say who is signed in is asked by the checkout itself (webHandoff answers signedOut)
+  const signedIn = () => { const client = deps.account(); if (client && typeof client.state !== "function") return true; const state = client?.state?.(); return Boolean(state?.account) && state?.status === "connected"; };
   const move = installVpsCloudMove({
     fetch: deps.fetch,
     environments: deps.environments,
@@ -43,17 +48,35 @@ export function installVpsCloudMoveMain(deps) {
     viaMac: deps.viaMac,
     buy: async (plan) => {
       const client = deps.account();
-      if (!client?.webHandoff) throw new Error("Sign in to dusk cloud first.");
-      const opened = await client.webHandoff({ plan: PLANS.has(plan) ? plan : "pro", source: "app_computer_move" });
-      if (opened?.signedOut) throw Object.assign(new Error("Sign in to dusk cloud first."), { code: "signed_out" });
+      const chosen = PLANS.has(plan) ? plan : "pro";
+      const askSignIn = () => {
+        if (!deps.signIn) throw Object.assign(new Error("Sign in to dusk cloud first."), { code: "signed_out" });
+        pendingPlan = chosen; deps.signIn(); deps.tell(viewNow());
+      };
+      if (!client?.webHandoff || !signedIn()) { askSignIn(); return; }
+      const opened = await client.webHandoff({ plan: chosen, source: "app_computer_move" });
+      if (opened?.signedOut) askSignIn();
     },
     openHome: deps.openHome,
     ...(deps.lastInput ? { lastInput: deps.lastInput } : {}),
     track: deps.track,
     ...(deps.version ? { version: deps.version } : {}),
-    onChange: () => deps.tell(move.view()),
+    onChange: () => deps.tell(viewNow()),
     log: deps.log,
   });
+  /** the move's view, and while a sign-in it asked for is open, that it waits on that */
+  const viewNow = () => { const seen = move.view(); return pendingPlan && seen?.stage === "buying" ? { ...seen, signingIn: true } : seen; };
+  /** the account changed: a purchase waiting on the sign-in goes on to its checkout, with no other step */
+  move.signedInNow = async () => {
+    if (!pendingPlan || !signedIn()) return;
+    const plan = pendingPlan; pendingPlan = null;
+    const chosen = move.chosen?.();
+    try { if (chosen) await move.start(chosen.id, { buying: true, plan }); }
+    catch (error) { deps.log(`vps to cloud: checkout after sign-in failed (${error?.message ?? error})`); }
+    deps.tell(viewNow());
+  };
+  /** the person reopens the sign-in from the sheet */
+  move.signInAgain = () => { if (pendingPlan && deps.signIn) deps.signIn(); };
 
   /** The saved server whose page asks, only while it is the one on screen. */
   const placeOf = (event) => {
@@ -83,12 +106,14 @@ export function installVpsCloudMoveMain(deps) {
     if (yes) asked = null;
     return yes;
   });
-  deps.ipcMain.handle("vps-cloud-move:view", (event) => { reading(event); return move.view(); });
+  deps.ipcMain.handle("vps-cloud-move:view", (event) => { reading(event); return viewNow(); });
   deps.ipcMain.handle("vps-cloud-move:start", async (event) => { const place = acting(event); return move.start(place.id); });
   deps.ipcMain.handle("vps-cloud-move:buy", async (event, plan) => {
     const place = acting(event);
-    return move.start(place.id, { buying: true, plan: PLANS.has(plan) ? plan : "pro" });
+    await move.start(place.id, { buying: true, plan: PLANS.has(plan) ? plan : "pro" });
+    return viewNow();
   });
+  deps.ipcMain.handle("vps-cloud-move:sign-in", (event) => { acting(event); move.signInAgain(); return viewNow(); });
   deps.ipcMain.handle("vps-cloud-move:retry", async (event) => { reading(event); return move.retry(); });
   deps.ipcMain.handle("vps-cloud-move:cancel", (event) => { reading(event); return move.cancel(); });
   return move;

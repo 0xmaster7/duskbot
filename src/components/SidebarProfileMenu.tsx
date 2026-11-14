@@ -20,6 +20,7 @@ import {
 } from "../icons";
 
 import { accountMenuItems, AccountsSheet, cloudRowLabel, useAccounts, type AccountsAccess } from "./AccountMenu";
+import { openSignIn } from "@/lib/sign-in-sheet";
 import { Icon, type IconName } from "./Icon";
 import { exportUsageLog, trailAvailable } from "@/lib/trail";
 import { GROK_FOCUS } from "./SidebarSimpleTop";
@@ -583,7 +584,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
     onHelp: () => void openExternalLink(HELP_CENTER_URL),
     onFeedback: () => void openExternalLink(FEEDBACK_URL),
     // signed out, the row reads sign in: the same sheet as the simple menu, not settings
-    onAccount: accounts.view && !accounts.view.active ? () => accounts.add() : openCloudAccount,
+    onAccount: accounts.view && !accounts.view.active ? () => openSignIn() : openCloudAccount,
     onDashboard: () => void openAccountDashboard(),
   });
   const noteworthy = update && updateNoteworthy(update.phase, update.pending);

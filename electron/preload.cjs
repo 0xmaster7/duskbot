@@ -496,7 +496,8 @@ const bridge = {
       return () => ipcRenderer.removeListener("workspaces:open-settings", handler);
     },
   },
-  accountGate: process.argv.includes("--dusk-account-gate=1") ? {
+  // the sign-in itself (email code and every provider): the gate's page, and any sign-in sheet of an app with an account
+  accountGate: process.argv.includes("--dusk-account-gate=1") || process.argv.includes("--dusk-company-desktop=1") ? {
     state: () => ipcRenderer.invoke("account-gate:state"),
     signInStart: (email, options) => ipcRenderer.invoke("account-gate:signInStart", String(email), { recover: options?.recover === true }),
     options: () => ipcRenderer.invoke("account-gate:options"),
@@ -609,6 +610,9 @@ const bridge = {
     retry: () => navigator.userActivation?.isActive === true
       ? ipcRenderer.invoke("vps-cloud-move:retry") : Promise.reject(new Error("Choose Try again to move.")),
     cancel: () => ipcRenderer.invoke("vps-cloud-move:cancel"),
+    // the sign-in a purchase waits on, opened again: main opens it over this page and goes on to checkout after it
+    signIn: () => navigator.userActivation?.isActive === true
+      ? ipcRenderer.invoke("vps-cloud-move:sign-in") : Promise.reject(new Error("Choose Sign in to continue.")),
     // whether the person asked for this server's move sheet (its menu on the rail, or the dashboard): true once, then false
     asked: () => ipcRenderer.invoke("vps-cloud-move:asked"),
     onShow: cb => {

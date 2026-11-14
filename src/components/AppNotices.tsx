@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { openSignIn } from "@/lib/sign-in-sheet";
+import { funnelAccount } from "./onboarding/funnel-account";
 import type { CloudAccountState } from "../../electron/cloud-account.mjs";
 import type { CloudOffer } from "../../electron/cloud-home.mjs";
 import { api, useStore } from "@/state/store";
@@ -195,6 +197,7 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
   if (notice === CLOUD_NOTICE && kind && bridge) {
     const act = () => {
       if (busy) return;
+      if (funnelAccount()) { noticeClosed(true); close(); openSignIn(); return; }
       setFailed(false); setBusy(true);
       void cloudNoticeStep(kind, bridge).then(next => { noticeClosed(true); setAccount(next); }, () => setFailed(true)).finally(() => setBusy(false));
     };

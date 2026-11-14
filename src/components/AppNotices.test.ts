@@ -12,6 +12,8 @@ import { registerDesktopPrefs } from "../../electron/desktop-prefs.mjs";
 
 const f = vi.hoisted(() => ({ values: [] as unknown[], index: 0, effects: [] as EffectCallback[], state: {} as any, dispatch: null as any,
   viewerEmail: undefined as string | null | undefined }));
+const signInSheet = vi.hoisted(() => ({ open: vi.fn() }));
+vi.mock("@/lib/sign-in-sheet", () => ({ openSignIn: signInSheet.open, closeSignIn: vi.fn(), useSignInOpen: () => null }));
 vi.mock("react", async original => ({ ...await original<typeof import("react")>(),
   useState: (initial: unknown) => { const index = f.index++; if (!(index in f.values)) f.values[index] = typeof initial === "function" ? initial() : initial;
     return [f.values[index], (next: unknown) => { f.values[index] = typeof next === "function" ? (next as (value: unknown) => unknown)(f.values[index]) : next; }]; },
@@ -360,8 +362,10 @@ describe("upstream promotional campaigns", () => {
   it("keeps an expired account's sign-in recovery", async () => {
     account = { status: "reauth-required", message: "expired", lastPlan: { tier: "pro", active: true } }; returning();
     expect(await launch()).toContain("Sign in again to reach the cloud");
+    // the sign-in opens right here (the sign-in sheet), not the browser's code page
+    signInSheet.open.mockClear();
     press("Sign in again"); await flush();
-    expect(bridges.cloud.signInAgain).toHaveBeenCalledOnce();
+    expect(signInSheet.open).toHaveBeenCalledOnce();
   });
 });
 

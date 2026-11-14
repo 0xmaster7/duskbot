@@ -49,7 +49,7 @@ export const TREG_TOP_UP_URL = "https://treg.to";
 export const X_MESSAGES = {
   noKey: "Research isn't set up on this server. Add a treg key in Settings → API keys, or use a paid dusk cloud plan.",
   botOff: "Research is off for this bot. Turn it on in this bot's settings under Access.",
-  badKey: "Sign in to dusk cloud again in Settings to use X research.",
+  badKey: "Sign in to dusk cloud again (your account menu) to use X research.",
   ownBadKey: "treg rejected your key. Check it in Settings → API keys.",
   /** A Cloud home's relay token is the Admin's to replace; the person has no sign-in to redo there. */
   homeBadKey: "X research isn't connected on this Cloud right now. It comes with your plan, so there is nothing to sign in to: try again later, and tell dusk bot support if it keeps happening.",

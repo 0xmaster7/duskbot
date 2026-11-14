@@ -105,14 +105,34 @@ describe("move a VPS's bots to dusk cloud", () => {
     expect(document.body.querySelector("[role='alert']")).toBeNull();
   });
 
-  it("signed out where the sign-in sheet can't open: says where to sign in", async () => {
-    const { vps } = desktop({ stage: "none", cloud: "signed-out" });
+  it("signed out on a server's page: the account sheet opens right here, never a pointer to another page", async () => {
+    const { vps, bridges } = desktop({ stage: "none", cloud: "signed-out" });
+    const open = vi.fn(async () => {});
+    (bridges as Record<string, unknown>).accountSheet = { open, offered: vi.fn(async () => true) };
     vps.buy.mockRejectedValueOnce(new Error("Sign in to dusk cloud first."));
     await render();
     button("Get dusk cloud")!.click();
     await settle();
-    expect(fixture.dispatch).not.toHaveBeenCalled();
-    expect(document.body.querySelector("[role='alert']")?.textContent).toBe("Sign in to dusk cloud on this Mac's own page first, then come back here.");
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(document.body.querySelector("[role='alert']")).toBeNull();
+    expect(text()).not.toContain("own page");
+  });
+
+  it("a purchase waiting on the sign-in main opened says so, and Sign in opens it again; checkout follows by itself", async () => {
+    const { vps, tell } = desktop({ stage: "buying", place: PLACE, route: "direct", signingIn: true });
+    const signIn = vi.fn(async (): Promise<VpsCloudMoveView> => ({ stage: "buying", place: PLACE, route: "direct", signingIn: true }));
+    (vps as Record<string, unknown>).signIn = signIn;
+    await render();
+    expect(text()).toContain("Sign in to continue");
+    expect(text()).toContain("Checkout opens right after");
+    expect(button("Open checkout again")).toBeUndefined();
+    button("Sign in")!.click();
+    await settle();
+    expect(signIn).toHaveBeenCalledTimes(1);
+    // signed in: main opens the checkout, and the sheet is the usual one again
+    tell({ stage: "buying", place: PLACE, route: "direct" });
+    await settle();
+    expect(text()).toContain("Finish checkout in your browser");
   });
 
   it("with a cloud ready: one tap starts the move", async () => {
