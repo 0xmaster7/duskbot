@@ -164,6 +164,8 @@ dmg:
       path: /Applications
 
 win:
+  # the portable zip needs its own name: DuskBot-<version>-x64.zip is the intel mac's updater zip on the same release
+  artifactName: DuskBot-${version}-win-${arch}.${ext}
   target:
     - target: nsis
       arch: x64

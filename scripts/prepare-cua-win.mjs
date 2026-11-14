@@ -8,8 +8,12 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { build } from "esbuild";
 import { createBackgroundExecutable } from "./cua-windows-background.mjs";
+import { packedPackage } from "./prepare-duckdb.mjs";
 
-if (process.platform !== "win32" || process.arch !== "x64") throw new Error("prepare-cua-win requires Windows x64");
+// on another host (a cross build from a mac) the exe cannot run, so its version is vouched for by the pinned zip's
+// sha256 alone, and the native package the host never installs comes from npm pack
+const cross = process.platform !== "win32";
+if (!cross && process.arch !== "x64") throw new Error("prepare-cua-win requires Windows x64");
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const run = promisify(execFile);
@@ -34,6 +38,7 @@ if (expectedVersion !== release.version) {
 
 async function binaryVersion(candidate) {
   if (!candidate || !existsSync(candidate)) return null;
+  if (cross) return expectedVersion;
   try {
     const { stdout } = await run(candidate, ["--version"], { timeout: 5000, windowsHide: true });
     return stdout.match(/cua-driver\s+([\d.]+)/)?.[1] ?? null;
@@ -45,7 +50,7 @@ async function binaryVersion(candidate) {
 async function officialBinary() {
   const cache = join(root, "node_modules", ".cache", "duskbot", `cua-driver-${release.version}-win`);
   const cachedBinary = join(cache, "cua-driver.exe");
-  if ((await binaryVersion(cachedBinary)) === expectedVersion) return cachedBinary;
+  if (!cross && (await binaryVersion(cachedBinary)) === expectedVersion) return cachedBinary;
 
   await rm(cache, { recursive: true, force: true });
   await mkdir(cache, { recursive: true });
@@ -63,12 +68,16 @@ async function officialBinary() {
   }
   const archive = join(cache, release.file);
   await writeFile(archive, bytes);
-  await run("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command",
-    "Expand-Archive -LiteralPath $env:DUSK_CUA_ARCHIVE -DestinationPath $env:DUSK_CUA_EXTRACT"], {
-    env: { ...process.env, DUSK_CUA_ARCHIVE: archive, DUSK_CUA_EXTRACT: cache },
-    timeout: 60_000,
-    windowsHide: true,
-  });
+  if (cross) {
+    await run("unzip", ["-q", "-o", archive, "-d", cache], { timeout: 60_000 });
+  } else {
+    await run("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command",
+      "Expand-Archive -LiteralPath $env:DUSK_CUA_ARCHIVE -DestinationPath $env:DUSK_CUA_EXTRACT"], {
+      env: { ...process.env, DUSK_CUA_ARCHIVE: archive, DUSK_CUA_EXTRACT: cache },
+      timeout: 60_000,
+      windowsHide: true,
+    });
+  }
   if ((await binaryVersion(cachedBinary)) !== expectedVersion) {
     throw new Error(`downloaded CUA Driver does not report version ${expectedVersion}`);
   }
@@ -84,6 +93,8 @@ if (process.env.CUA_DRIVER_PATH) {
     );
   }
   binary = process.env.CUA_DRIVER_PATH;
+} else if (cross) {
+  binary = await officialBinary();
 } else {
   const nativePackage = join(dependencyRoot, "@trycua", "cua-driver-win32-x64-msvc");
   if (!existsSync(nativePackage)) {
@@ -113,7 +124,10 @@ await copyFile(binary, join(stage, "cua-driver.exe"));
 await writeFile(join(stage, "cua-driver-background.exe"), createBackgroundExecutable(await readFile(binary)));
 
 const nativeDir = join(stage, "cua-sdk", "native");
-const winNativePackage = join(dependencyRoot, "@trycua", "cua-driver-win32-x64-msvc");
+let winNativePackage = join(dependencyRoot, "@trycua", "cua-driver-win32-x64-msvc");
+if (cross && !existsSync(winNativePackage)) {
+  winNativePackage = await packedPackage("cua-driver-win32-x64-msvc", expectedVersion, join(root, "node_modules", ".cache", "duskbot", "cua-win-native"), "@trycua");
+}
 if (!existsSync(winNativePackage)) {
   throw new Error(
     `required CUA win32-x64 native package is missing`,
