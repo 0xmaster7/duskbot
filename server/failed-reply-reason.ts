@@ -3,9 +3,11 @@
 import type { FailedReplyReason } from "../shared/failed-turn.ts";
 import { engineFailureKind } from "./drivers/engine-errors.ts";
 import { classifyError } from "./drivers/retry.ts";
+import { isServerLine } from "./server-lines.ts";
 
 export function failedReplyReason(message: string, event: { setup?: boolean; claudeUpdate?: boolean; stalled?: boolean; limit?: string; limitResetsAt?: number }): FailedReplyReason | undefined {
   if (event.claudeUpdate) return undefined;
+  if (isServerLine("server.freeModel.noReply", message) || isServerLine("server.freeModel.limit", message)) return "no_ai";
   const kind = engineFailureKind(message);
   const classified = classifyError({ text: message }).reason;
   if (kind === "credits") return "credits";

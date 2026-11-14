@@ -80,8 +80,9 @@ const SIGNED_OUT_WORDS = /not logged in|logged out|\/login|not signed in|sign in
 const USAGE_WORDS = /usage limit|limit reached|hit your [\w' -]{0,30}limit/i;
 const CREDIT_WORDS = /out of credits?|payment required|insufficient (?:funds|balance|credits?)/i;
 
-/** What stopped a failed row: the server's own reading when it stored one, its flags and words for an older row. */
-export function failedReplyKind(tool: NonNullable<Message["tool"]>, engine: InstanceInfo | undefined): FailedReplyKind {
+/** What stopped a failed row: the server's own reading when it stored one, its flags and words for an older row.
+ * `ownAi`: an AI the person connected is ready now, so connecting one is no longer the fix. */
+export function failedReplyKind(tool: NonNullable<Message["tool"]>, engine: InstanceInfo | undefined, ownAi = false): FailedReplyKind {
   if (tool.rescue) return "no_answer";
   if (tool.blocker) return "blocker";
   const cause = failedTurnCause(tool.name) ?? tool.name;
@@ -95,6 +96,7 @@ export function failedReplyKind(tool: NonNullable<Message["tool"]>, engine: Inst
     : PLAIN_KIND[plainErrorKind(cause) ?? ""] ?? "other");
   // signed in again since: signing in is no longer the fix
   if (kind === "signed_out" && engine?.snapshot?.state === "available" && engine.snapshot.authenticated !== false) kind = "other";
+  if (kind === "no_ai" && ownAi) kind = "other";
   return kind;
 }
 
@@ -111,7 +113,7 @@ export function plainFailureWords(cause: string): string | null {
 }
 
 /** Most actionable first: when bots fail for different reasons, the card says the one a person can fix. */
-const PRIORITY: FailedReplyKind[] = ["blocker", "signed_out", "claude_update", "credits", "usage_limit", "place", "restart_interrupted", "rate_limit", "overloaded", "timeout", "no_answer", "other"];
+const PRIORITY: FailedReplyKind[] = ["blocker", "no_ai", "signed_out", "claude_update", "credits", "usage_limit", "place", "restart_interrupted", "rate_limit", "overloaded", "timeout", "no_answer", "other"];
 
 export function mostActionable<T extends { kind: FailedReplyKind }>(items: readonly T[]): T | undefined {
   return [...items].sort((a, b) => PRIORITY.indexOf(a.kind) - PRIORITY.indexOf(b.kind))[0];
@@ -122,6 +124,7 @@ const DETAIL: Record<Exclude<FailedReplyKind, "signed_out" | "credits" | "claude
   rate_limit: "failedReply.rateLimited",
   overloaded: "failedReply.overloaded",
   timeout: "failedReply.timeout",
+  no_ai: "failedReply.noAi",
   restart_interrupted: "failedReply.restarted",
   no_answer: "error.plain.generic",
   other: "error.plain.generic",

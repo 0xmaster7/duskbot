@@ -6,6 +6,9 @@ import { statusActivity } from "@/lib/activity-runs";
 import { openPlaceAction, placeRowViewFor, usePlaceSeat, worksOnSimpleLabel } from "@/lib/place-view";
 import { useStore, type Message } from "@/state/store";
 import { failedTurnCause } from "../../shared/failed-turn";
+import { freeFallback } from "../../shared/ai-ranking";
+import { engineReady } from "./EngineLibrary";
+import { ConnectAiDialog } from "./onboarding/ConnectAi";
 import { CARD_ACTION, ChatErrorCard } from "./ChatErrorBanner";
 import { ClaudeUpdatePrompt } from "./ClaudeUpdatePrompt";
 import { aiRunsOnServer } from "./ComposerSignInNotice";
@@ -54,13 +57,16 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
   const [, setClosed] = useState(0);
   // a retry that may repeat what a cut turn already did asks once more first; keyed by the row it is for
   const [confirming, setConfirming] = useState<string | null>(null);
+  const [connecting, setConnecting] = useState(false);
+  // an AI the person connected is ready: the free backup's failure is then an ordinary one
+  const ownAi = state.instances.some((instance) => !freeFallback(instance) && engineReady(instance));
   const failures = rows?.failures ?? [];
   const notices = (rows?.notices ?? []).filter((m) => !dismissed.has(m.id));
   const items = failures.filter((m) => !dismissed.has(m.id)).map((message) => {
     const id = message.from?.botId ?? ownBotId;
     const bot = state.bots.find((candidate) => candidate.id === id);
     const engine = botEngine(bot, state.instances);
-    return { message, bot, engine, kind: failedReplyKind(message.tool!, engine) };
+    return { message, bot, engine, kind: failedReplyKind(message.tool!, engine, ownAi) };
   });
   const lead = mostActionable(items);
   const tool = lead?.message.tool;
@@ -81,6 +87,19 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
       <div className="mb-2 w-full px-5" data-failed-reply="">
         <ChatErrorCard tone="info" title={noticeText(notice)} onDismiss={close}
           actions={signInNotice && <button type="button" onClick={() => dispatch(openEngines)} className={CARD_ACTION}>{t("chat.notice.signIn")}</button>} />
+      </div>
+    );
+  }
+
+  if (lead.kind === "no_ai") {
+    // no AI of the person's own yet: the first reply is the way to connect one, not an error
+    return (
+      <div className="mb-2 w-full px-5" data-failed-reply="" data-connect-ai-card="">
+        <ChatErrorCard tone="info" icon="key" title={t("failedReply.noAi.title")} onDismiss={close}
+          actions={<button type="button" onClick={() => setConnecting(true)} className={CARD_ACTION}>{t("composer.freeBackup.connect")}</button>}>
+          <p dir="auto" className="text-ink-secondary">{t("failedReply.noAi")}</p>
+        </ChatErrorCard>
+        {connecting && <ConnectAiDialog tested={null} onClose={() => setConnecting(false)} />}
       </div>
     );
   }

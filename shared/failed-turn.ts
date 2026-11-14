@@ -6,8 +6,9 @@ import type { PlaceRow } from "./place-view.ts";
 
 const MARKER = "error:";
 
-/** What stopped a reply, read by the server from the engine's own words, so the app says it in plain words. */
-export type FailedReplyReason = "signed_out" | "credits" | "usage_limit" | "rate_limit" | "overloaded" | "timeout";
+/** What stopped a reply, read by the server from the engine's own words, so the app says it in plain words. `no_ai`: only
+ * OpenCode's free backup could answer and it didn't, so connecting an AI is the way on. */
+export type FailedReplyReason = "signed_out" | "credits" | "usage_limit" | "rate_limit" | "overloaded" | "timeout" | "no_ai";
 
 /** Why dusk bot stopped a browser run itself: `loop`, the same step did nothing three times; the others, a page said
  * so in words a retry cannot change. */

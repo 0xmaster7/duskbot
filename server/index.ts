@@ -7126,7 +7126,9 @@ bus.subscribe((event: RuntimeEvent) => {
         break;
       }
       landParkedFiles(false); // above the failure row, which stays the last, retryable line
-      pushMessage({ role: "bot", kind: "activity", tool: failedTurnTool(event.message, { ...event, reason: failedReplyReason(event.message, event) }) });
+      // any failure on OpenCode's free backup is fixed by connecting an AI; the app says so unless one is connected by then
+      pushMessage({ role: "bot", kind: "activity", tool: failedTurnTool(event.message, { ...event,
+        reason: event.providerInstanceId && registry.knownSnapshot(event.providerInstanceId)?.freeFallback === true ? "no_ai" : failedReplyReason(event.message, event) }) });
       if (event.setup && bot) store.setTaskActivity(bot.id, event.threadId, "dead");
       break;
     case "thread.token-usage.updated":

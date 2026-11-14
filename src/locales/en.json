@@ -7336,6 +7336,8 @@
   "vpsLink.move.pausedTitle": "the move paused",
   "vpsLink.move.statsAria": "what moves",
   "failedReply.title": "Bot failed to respond",
+  "failedReply.noAi.title": "Connect your AI to start",
+  "failedReply.noAi": "The free backup model couldn't answer just now. Connect an AI you already use, like Claude or ChatGPT, and your bot answers with it.",
   "failedReply.titleOne": "{name} couldn't respond",
   "failedReply.titleTwo": "{first} and {second} couldn't respond",
   "failedReply.titleMore": "{first}, {second} and {count} more couldn't respond",
