@@ -15,12 +15,11 @@ import { SplitFrame } from "../ui/Frame";
 import { Button, cx, Skeleton } from "../ui/kit";
 import { Mascot, type MascotHandle } from "../ui/Mascot";
 import type { SceneHandle, SceneMood } from "../ui/Scene";
-import { backFromCheckout, points } from "./Billing";
+import { points } from "./Billing";
 import { CHECKOUT_SOON } from "./cloud-offer";
 import { track, trackOnboardingStep } from "../lib/analytics";
 import { per, planSelection, type PaidPlan } from "./plan-sheet";
-import { APP_CLOUD_LINK, fromApp } from "../lib/from-app";
-import { APP_LINK, tryAppLink } from "./DeviceApproval";
+import { fromApp } from "../lib/from-app";
 
 const STEPS = ["name", "plan", "app"] as const;
 type Step = (typeof STEPS)[number];
@@ -125,8 +124,6 @@ export function Onboarding() {
   // signed up from the app (its sign-in brought them here): they have it, so the last step sends them back to it
   const [inApp] = useState(fromApp);
   // back from the payment page, paid or still confirming: the cloud is on its way even before the webhook lands
-  const [paidBack] = useState(() => (query.has("subscription_id") || query.has("payment_id")) && backFromCheckout(query) !== "failed");
-  const appLink = bought || paidBack ? APP_CLOUD_LINK : APP_LINK;
   const sentBack = useRef(false);
 
   const search = query.toString();
@@ -138,18 +135,20 @@ export function Onboarding() {
   const here = address(step);
   useEffect(() => { sessionStorage.setItem(SAVED, step); }, [step]);
   useEffect(() => { trackOnboardingStep(step, inApp); }, [step, inApp]);
-  // from the app, the last step hands the person straight back to it: the cloud sheet after paying, else the app as it was
+  // from the app, nothing bounces the person back: the last step ends on the plans page (their plan after paying, the
+  // pricing after skipping), which carries a quiet "open dusk bot". the app signs itself in and sees a purchase on its own
   useEffect(() => {
     if (!inApp || step !== "app" || sentBack.current) return;
     sentBack.current = true;
-    track({ name: "app_return", props: { link: appLink === APP_CLOUD_LINK ? "cloud" : "open", how: "auto" } });
-    tryAppLink(appLink);
-  }, [inApp, step, appLink]);
-  const backToApp = () => {
-    track({ name: "app_return", props: { link: appLink === APP_CLOUD_LINK ? "cloud" : "open", how: "button" } });
-    tryAppLink(appLink);
-    void finish();
-  };
+    leaving.current = true;
+    void (async () => {
+      try { await finishOnboarding(); } catch { /* the dashboard asks again next time */ }
+      sessionStorage.removeItem(SAVED);
+      const params = new URLSearchParams(search);
+      params.delete("step");
+      navigate(`/billing${params.size ? `?${params}` : ""}`, { replace: true });
+    })();
+  }, [inApp, step]);
   useEffect(() => { setError(null); scene.current?.react("perk"); }, [step]);
   useEffect(() => { if (step === "plan") setInterval("month"); }, [step]);
   // each history entry names its step, so back and forward move between steps and a refresh stays put
@@ -199,7 +198,7 @@ export function Onboarding() {
       step={at}
       scene={scene}
       snug
-      card={<p key={step} className="swap-in flex items-end gap-3.5"><span className="font-pixel text-[72px] font-medium leading-[0.72] text-ink">{at + 1}</span><span className="pb-0.5 text-20 font-medium tracking-[-0.03em] text-ink">{inApp && step === "app" ? "all set" : LABELS[at]}</span></p>}
+      card={<p key={step} className="swap-in flex items-end gap-3.5"><span className="font-pixel text-[72px] font-medium leading-[0.72] text-ink">{at + 1}</span><span className="pb-0.5 text-20 font-medium tracking-[-0.03em] text-ink">{LABELS[at]}</span></p>}
       aside={<button type="button" onClick={() => void finish()} disabled={busy} className="text-link -me-2 h-11 rounded-full px-2 text-14">skip</button>}
     >
       <Rail at={at} />
@@ -232,13 +231,7 @@ export function Onboarding() {
           <div className="mt-2 flex items-center justify-between gap-3">{back("name")}{home === "cloud" && <span className="t-meta">cancel any time</span>}</div>
         </div>
       ) : inApp ? (
-        <div key="app" className="step-in">
-          {(bought || paidBack) && <p className="tag mb-4 !bg-lime !text-ink" role="status"><span className="live-dot text-good" data-live />your dusk cloud is being set up</p>}
-          <h1 className="t-title">you're all set.</h1>
-          <p className="mt-3 text-16 text-ink-2">dusk bot is signed in already, make your first bot there.</p>
-          <Button variant="primary" className={cx("mt-6", big)} onClick={backToApp} disabled={busy} data-back-to-app="">{busy ? <Busy>opening</Busy> : "back to dusk bot"}</Button>
-          {!bought && !paidBack && <div className="mt-1">{back("plan")}</div>}
-        </div>
+        <div key="app" className="step-in"><p className="text-16 text-ink-2" aria-busy="true">taking you to your plan</p></div>
       ) : (
         <div key="app" className="step-in">
           {bought && <p className="tag mb-4 !bg-lime !text-ink" role="status"><span className="live-dot text-good" data-live />your dusk cloud is being set up</p>}

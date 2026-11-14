@@ -1,8 +1,10 @@
 // The first run's account step handed to the website and back, as a new person does it: a fresh app (signed out) shows
 // the account step; Google, X and Apple each open the website's provider start with this app's sign-in code (checked up
 // to the provider's own page, never signed in there); an emailed magic link (sink address) signs in on the website, the
-// app signs itself in and goes on with its own first run while the website asks a name and a plan, then hands the person
-// back to the app (duskbot://open, or duskbot://cloud after a test-mode checkout, delivered to the app as the OS would).
+// app signs itself in and goes on with its own first run while the website asks a name and a plan. The website never opens
+// the app by itself: skipping the plan ends on the pricing page, paying (test-mode checkout) ends on the plan page, and both
+// show a quiet "open dusk bot" (duskbot://open, or duskbot://cloud after paying) that the run presses, delivered to the app
+// as the OS would.
 //
 //   node scripts/smoke/flows/account-handoff.mjs [--plan free|paid] [--out DIR] [--profile DIR] [--email ADDRESS] [--no-providers]
 import { join } from "node:path";
@@ -167,21 +169,21 @@ await runFlow(flow, async () => {
   }, { critical: true });
 
   if (plan === "free") {
-    await flow.step("web-free", "free goes to the last step, which sends the person back to the app", async () => {
+    await flow.step("web-free", "free ends on the pricing page, with a quiet open dusk bot and no automatic app link", async () => {
       await browser.evaluate(`document.querySelector("#home-free").click(); true`);
       await sleep(400);
       await browser.click("continue with free");
-      await until(async () => /all set/i.test(await browser.text()), { timeout: 30_000, what: "the last step" });
-      mark("website last step", "web");
-      await sleep(1500);
-      await web("all-set");
-      const back = await browser.evaluate(`document.querySelector("[data-back-to-app]")?.innerText?.trim() ?? null`);
-      if (back) await browser.evaluate(`document.querySelector("[data-back-to-app]").click(); true`);
-      await sleep(1500);
-      await web("after-back");
+      await until(async () => /plans and billing/i.test(await browser.text()), { timeout: 30_000, what: "the pricing page" });
+      mark("website pricing page", "web");
+      await sleep(2500);
+      await web("pricing");
+      const href = await browser.evaluate(`document.querySelector("[data-open-app-link]")?.getAttribute("href") ?? null`);
       flow.facts.appLinksFromWeb = [...links.seen];
-      if (!links.seen.length) throw new Error(`no app link from the website (button: ${back ?? "none"}; at ${await browser.url()})`);
-      return `the website opened ${links.seen.join(", ")}`;
+      if (links.seen.length) throw new Error(`the website opened the app by itself: ${links.seen.join(", ")}`);
+      if (href !== "duskbot://open") throw new Error(`open dusk bot button: ${href}`);
+      await browser.evaluate(`document.querySelector("[data-open-app-link]").click(); true`);
+      await sleep(1500);
+      return `on ${new URL(await browser.url()).pathname}, button ${href}, nothing opened until pressed (${links.seen.join(", ") || "headless: no handler"})`;
     });
   } else {
     let checkoutUrl = null;
@@ -198,15 +200,21 @@ await runFlow(flow, async () => {
       const paid = await payDodoTestCheckout(checkoutUrl, { browser, log: flow.log, shot: (label) => join(out, `pay-${label}.png`) });
       mark("paid", "web");
       await until(async () => /preview\.dusk\.bot/.test(await browser.url()), { timeout: 90_000, what: "back on the website" });
-      await sleep(4000);
+      await sleep(6000);
       await web("after-pay");
       flow.facts.afterPay = (await browser.url()).replace(/#.*$/, "");
       flow.facts.appLinksFromWeb = [...links.seen];
-      return `${new URL(paid.url).host}, then ${flow.facts.afterPay}; app links: ${links.seen.join(", ") || "none"}`;
+      if (links.seen.length) throw new Error(`the website opened the app by itself: ${links.seen.join(", ")}`);
+      if (new URL(flow.facts.afterPay).pathname !== "/billing") throw new Error(`ended on ${flow.facts.afterPay}, not the plan page`);
+      const href = await until(() => browser.evaluate(`document.querySelector("[data-open-app-link]")?.getAttribute("href") ?? false`), { timeout: 30_000, what: "the open dusk bot button" });
+      if (href !== "duskbot://cloud") throw new Error(`open dusk bot button: ${href}`);
+      await browser.evaluate(`document.querySelector("[data-open-app-link]").click(); true`);
+      await sleep(1500);
+      return `${new URL(paid.url).host}, then ${flow.facts.afterPay} and stopped; button ${href}`;
     });
   }
 
-  await flow.step("back-in-app", "the link reaches the app, which comes forward where it was", async (entry) => {
+  await flow.step("back-in-app", "open dusk bot from the website's button reaches the app, which comes forward where it was", async (entry) => {
     const sent = links.seen.at(-1);
     if (!sent) throw flow.skip("the website sent no app link");
     const before = await at();

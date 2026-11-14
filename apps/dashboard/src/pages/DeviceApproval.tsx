@@ -91,10 +91,10 @@ export function DeviceApprovalPage() {
           <p className="text-14 text-ink-3" aria-busy="true">{fresh ? "signing in the app" : "looking up the device"}</p>
         ) : state === "approved" ? (
           <>
-            <h1 className="text-20 font-medium text-ink">you're signed in. go back to dusk bot</h1>
-            <p className="mt-1.5 text-14 leading-[1.55] text-ink-3">{found.device.name} signs itself in, there's nothing else to do here. you can close this tab after.</p>
+            <h1 className="text-20 font-medium text-ink">you're signed in</h1>
+            <p className="mt-1.5 text-14 leading-[1.55] text-ink-3">{found.device.name} signs itself in, there's nothing else to do here. open dusk bot when you like, or close this tab.</p>
             <div className="mt-6 flex flex-wrap gap-2">
-              <a href={APP_LINK} data-back-to-app="" className="press hover-btn inline-flex h-10 items-center rounded-full bg-ink px-4.5 text-14 font-medium text-bg">go back to dusk bot</a>
+              <a href={APP_LINK} data-back-to-app="" className="press hover-btn inline-flex h-10 items-center rounded-full bg-ink px-4.5 text-14 font-medium text-bg">open dusk bot</a>
             </div>
           </>
         ) : state === "denied" ? (
