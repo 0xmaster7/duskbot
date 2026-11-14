@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { unlimitTunnelConnections, unprotectWith } from "./vps-link-main.mjs";
+import { homeEgressEndpoint, unlimitTunnelConnections, unprotectWith } from "./vps-link-main.mjs";
 
 describe("unprotectWith", () => {
   const sealed = `e:${Buffer.from("watch-token").toString("base64")}`;
@@ -19,5 +19,16 @@ describe("unlimitTunnelConnections", () => {
     const switches = [];
     unlimitTunnelConnections({ commandLine: { appendSwitch: (...args) => switches.push(args) } });
     expect(switches).toEqual([["ignore-connections-limit", "localhost"]]);
+  });
+});
+
+describe("homeEgressEndpoint", () => {
+  it("builds the home's egress endpoint without a seenAs lookup (was a ReferenceError)", () => {
+    const touched = [];
+    const tunnel = { send: () => true, bytes: () => true, queued: () => 0, onDrain: () => {} };
+    const endpoint = homeEgressEndpoint(tunnel, { touch: () => touched.push(1) });
+    expect(typeof endpoint.handle).toBe("function");
+    expect(typeof endpoint.start).toBe("function");
+    expect(typeof homeEgressEndpoint(tunnel).handle).toBe("function");
   });
 });

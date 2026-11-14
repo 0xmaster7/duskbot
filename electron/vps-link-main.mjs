@@ -139,6 +139,11 @@ export function installLinkDirectIpc({ ipcMain, pageOrigin, link }) {
  *   cloudAwake?(): boolean,
  * }} deps
  */
+// the home has no tunnel node to ask for this computer's public address, so the dialer goes by the interfaces alone
+export function homeEgressEndpoint(tunnel, awake = null) {
+  return createEgressEndpoint({ ...tunnel, dialer: createEgressDialer(), ...(awake ? { onUse: awake.touch } : {}) });
+}
+
 export function installVpsLink(deps) {
   const { ipcMain, guard, userData, session, shell, encryption, jsonFile, log } = deps;
   const pins = createPins();
@@ -276,7 +281,7 @@ export function installVpsLink(deps) {
     },
     connect: (url, headers) => wssConnector({ url, spki: null, headers, via: "home",
       proxy: async (target) => proxyFromPac(await session.defaultSession.resolveProxy(String(target))) })(),
-    endpoint: (tunnel) => createEgressEndpoint({ ...tunnel, dialer: createEgressDialer({ seenAs }), ...(awake ? { onUse: awake.touch } : {}) }),
+    endpoint: (tunnel) => homeEgressEndpoint(tunnel, awake),
     log,
   }) : null;
   const closeLink = link.close;

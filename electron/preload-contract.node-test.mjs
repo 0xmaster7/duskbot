@@ -41,6 +41,6 @@ test("a Cloud or server page keeps the bridge keys it had, and the home page its
 
 
 test("the account gate exposes its complete local contract and never joins the remote bridge", () => {
-  assert.deepEqual(Object.keys(exposed.api.accountGate).sort(), ["state", "signInStart", "signInVerify", "signInCancel", "browser", "cancel", "onChange", "options", "reopen"].sort());
+  assert.deepEqual(Object.keys(exposed.api.accountGate).sort(), ["state", "signInStart", "signInVerify", "signInCancel", "browser", "magicLink", "cancel", "onChange", "options", "reopen"].sort());
   for (const name of ["REMOTE_SAFE", "HOME_PAGE"]) assert.equal(listed(name).includes("accountGate"), false);
 });
