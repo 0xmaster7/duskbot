@@ -31,7 +31,7 @@ const LEVEL_WEIGHT = { error: 3, warn: 2, info: 1 };
  * cause is found; take it out once the fix shipped and the signature is gone.
  */
 export const KNOWN = Object.freeze([
-  { re: /NGHTTP2_INTERNAL_ERROR|the relay closed the stream|node \S+ is reachable/, note: "link service restarted (every main push, deploy-link.sh): relay agent" },
+  { re: /NGHTTP2_INTERNAL_ERROR|the relay closed the stream|node \S+ is reachable/, note: "link service restarted by a deploy: relay agent, 6cfc7d6cc restarts only on a changed file" },
   { re: /local ui: could not answer \S+ \(Invalid InterceptionId/, note: "a reload cancelled the request: quiet since 2026-11-14" },
   { re: /egress: the home's public address is unknown/, note: "asked over a bare fetch: fixed 2026-11-14, asks the tunnel's node" },
   { re: /two places: this computer was not told .*fetch failed/, note: "app starting or quitting: fixed 2026-11-14" },
@@ -39,7 +39,7 @@ export const KNOWN = Object.freeze([
   { re: /holds the writer lease; waiting/, note: "a crashed start kept the lease: fixed 2026-11-14 (taken from a dead holder)" },
   { re: /docker gate: refused POST \/grpc|pulling docker\.io\/moby\/buildkit/, note: "a computer image build through the gate (BuildKit is refused): follows an unpublished image" },
   { re: /computer update: .* could not update yet/, note: "image tag shipped before it was published: guarded since f4a6e70bf" },
-  { re: /New commit detected|Reinstalling and restarting|Restarting\.\.\./, note: "prozessor restarts the service on every push to main" },
+  { re: /New commit detected|Reinstalling and restarting|Restarting\.\.\./, note: "prozessor restarts the service on every deploy (a second or two of 502)" },
   { re: /pulling ghcr\.io\/duskbotai\/dusk-desktop is not allowed|could not pull ghcr\.io\/duskbotai\/dusk-desktop/, note: "gate older than the image rename: d31ddbf2f, lands with the next signed server build" },
   { re: /startup HTTP cache cleared \(no-persisted-version/, note: "another app copy shares this userData and rewrites last-run-version.json: not the app" },
   { re: /direct path did not connect \(connect ENETUNREACH/, note: "this network has no ipv4 route to the server (nat64): expected" },
