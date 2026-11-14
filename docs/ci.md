@@ -45,6 +45,17 @@ areas run the union of their jobs. Why the mapping is what it is:
   Linux ARM64 cloudflared installer tests only its own script and pinned
   download.
 
+## Checking main locally: `pnpm test:main`
+
+While GitHub Actions is off, `pnpm test:main` (scripts/test-main.mjs) is how an agent or the coordinator checks main's
+health: the locale check, lint, `pnpm typecheck`, `check:electron`, the dashboard's and phone app's typechecks and page
+tests, the whole root vitest suite (`DUSK_VITEST_WORKERS`, default half the cores up to 6), the broker's workerd tests
+and the node --test suites (electron and deploy). Every step runs even after one fails; logs go to
+`.dusk-scratch/test-main/<step>.log` and the end lists each step and the failing test names. `--only=lint,vitest`,
+`--skip=vitest` and `--list` pick steps. It leaves out the production builds, packaging and the e2e smokes. Run it in a
+worktree with its own `pnpm install`, never one that links the owner's node_modules (the suite's Vite servers keep their
+own caches, but vitest's cache still lives there).
+
 ## Lanes: pull requests, main and the full lane
 
 Only pull requests use the areas. Every other event runs one of two fixed
