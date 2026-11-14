@@ -56,8 +56,9 @@ const READS_AS_NUMBER = /^[+\u2212-]?[$€£¥]?\d[\d,]*(?:\.\d+)?\s?(?:%|pt|pp|
 
 /** Grok's card corner key: 24px white, a hairline and a small drop, as on its code blocks. */
 const TABLE_PLATE_BUTTON = "composer-press inline-flex h-6 touch:h-10 items-center justify-center border border-transparent bg-composer text-ink/[0.66] hover:bg-[linear-gradient(rgb(28_28_28/0.06),rgb(28_28_28/0.06))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
-/** Grok's table card: white, rounded 20, a 0.5px 12% ring and a soft drop, 24px of room above the header for its plate. */
-const TABLE_CARD = "group/table relative w-full overflow-hidden rounded-[20px] bg-(--chat-card) pt-6 text-ink shadow-[0_2px_8px_var(--card-lift)] touch:pt-11";
+/** The table card: the chat card's tone, rounded 20, the header row from the top (the plate floats over its right end on
+ * hover; touch keeps a band for the always-shown plate), and 6px under the last row so its corners clip cleanly. */
+const TABLE_CARD = "group/table relative w-full overflow-hidden rounded-[20px] bg-(--chat-card) pb-1.5 pt-1 text-ink shadow-[0_2px_8px_var(--card-lift)] touch:pt-11";
 
 export function RichTable({ columns, rows, name = t("table.title"), expanded = false, direction = "ltr", headless = false, card: asCard = true }: RichTableProps) {
   const [query, setQuery] = useState("");
@@ -206,7 +207,7 @@ function TableViewport({ columns, rows, order, name, wrap, large, sort, onSort, 
     style={{ maxHeight: large ? "65dvh" : virtual || !wrap ? 400 : undefined }} data-fit={fit || undefined}>
     <table dir={direction} aria-label={name} aria-rowcount={order.length + 1} className={cn("w-full border-separate border-spacing-0 text-[14px]", fit ? "table-auto" : "table-fixed", card && "leading-5")} style={fit ? undefined : { minWidth: widths.reduce((a, b) => a + b, 0) }}>
       {!fit && <colgroup>{widths.map((width, index) => <col key={index} style={{ width }} />)}</colgroup>}
-      <thead ref={heading} hidden={headless} className="sticky top-0 z-10 bg-composer"><tr aria-rowindex={1}>
+      <thead ref={heading} hidden={headless} className={cn("sticky top-0 z-10", card ? "bg-(--chat-card)" : "bg-composer")}><tr aria-rowindex={1}>
         {columns.map((column, index) => <th key={index} scope="col" aria-sort={sort?.column === index ? sort.descending ? "descending" : "ascending" : "none"}
           className={card ? "px-4 py-2.5 align-bottom font-semibold" : "h-10 border-b border-transparent px-3 py-2 font-medium"} style={{ textAlign: alignment(column, index) }}>
           <div className="break-words [overflow-wrap:anywhere]" style={fit ? { minWidth: minimums[index] } : undefined}>
