@@ -20,6 +20,7 @@ import { isRemoteMcpServer, parseStoredMcpServer, type McpRunsOn } from "./mcp-r
 import { personalConnectionRefusal, type CloudTeam } from "./cloud-team.ts";
 import { createCloudConnectionRoutes } from "./routes/cloud-connections.ts";
 import { answerConnectorHandoff, type ConnectorSync } from "./connector-sync.ts";
+import { answerSettingsHandoff, type SettingsSync } from "./settings-sync.ts";
 
 export interface CloudConnectionsHostDeps {
   /** This server is the person's Cloud home, reached at this public origin. */
@@ -40,6 +41,8 @@ export interface CloudConnectionsHostDeps {
   stayedNotices?: Pick<StayedNoticesDeps, "bots" | "say" | "notify" | "language">;
   /** Connector sync, once it is made: what the desktop asks for it over the private port. */
   connectorSync?(): ConnectorSync | null;
+  /** Settings sync, once it is made: the person's settings, secrets with them, over the private port only. */
+  settingsSync?(): SettingsSync | null;
 }
 
 const managedService = (): boolean => { try { return brokerAccess() !== null; } catch { return false; } };
@@ -91,6 +94,10 @@ export function createCloudConnectionsHost(deps: CloudConnectionsHostDeps) {
       if (what.kind === "connector") {
         const sync = deps.connectorSync?.();
         return sync ? answerConnectorHandoff(sync, what) : { ok: false, error: "Connectors are not ready on this computer yet." };
+      }
+      if (what.kind === "settings") {
+        const sync = deps.settingsSync?.();
+        return sync ? answerSettingsHandoff(sync, what) : { ok: false, error: "Settings are not ready on this computer yet." };
       }
       if (what.kind === "composio-share") {
         try { return { ok: true, share: { code: await composioShareCode(what.for) } }; }

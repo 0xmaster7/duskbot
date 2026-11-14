@@ -597,7 +597,7 @@ import { createBotOrderRoutes } from "./routes/bot-order.ts";
 import { createBotLifecycleRoutes } from "./routes/bot-lifecycle.ts";
 import { createBotSkillsRoutes } from "./routes/bot-skills.ts";
 import { createSkillShareRoutes } from "./routes/skill-share.ts";
-import { createDeciderRoutes } from "./routes/decider.ts"; import { createCloudSendRoutes } from "./routes/cloud-send.ts"; import { claudeCodeSkillInputs } from "./setup-import.ts"; import { createCloudConnectionsHost } from "./cloud-connections-host.ts"; import { createConnectorSync, createConnectorSyncRoutes, type ConnectorSync } from "./connector-sync.ts";
+import { createDeciderRoutes } from "./routes/decider.ts"; import { createCloudSendRoutes } from "./routes/cloud-send.ts"; import { claudeCodeSkillInputs } from "./setup-import.ts"; import { createCloudConnectionsHost } from "./cloud-connections-host.ts"; import { createConnectorSync, createConnectorSyncRoutes, type ConnectorSync } from "./connector-sync.ts"; import { createSettingsSync, createSettingsSyncRoutes, type SettingsSync } from "./settings-sync.ts"; import { onAccountChoice, readAccountChoices, setAccountChoice } from "./connector-account-choice.ts";
 import { createUpdateCheckRoutes, serverUpdateChecker } from "./routes/update-check.ts"; import { createTimeZoneRoutes } from "./routes/time-zone.ts";
 import { createBrowserSiteRoutes } from "./routes/browser-sites.ts";
 import { createInternalSignInRoutes } from "./routes/sign-in.ts";
@@ -1342,6 +1342,9 @@ const providerAuthSessions = new ProviderAuthSessions({ signedIn: (instanceId) =
   checksUrl: (name, server) => mcpOAuth.authState(name, server.url) === "none" && !teamConnections.personMcp().includes(name) });
 // made once MCP servers can be changed (createConnectorSync below); the private port asks for it through this
 let connectorSyncRef: ConnectorSync | null = null;
+// settings sync (createSettingsSync below), the same way
+let settingsSyncRef: SettingsSync | null = null;
+let dashboardReporterRef: { syncChoice(): void } | null = null;
 const mcpOAuth = new McpOAuthManager({
   file: join(DATA_DIR, "mcp-oauth.json"),
   isOwnerLive: (owner) => owner === "loopback" || sessions.isLive(owner) || isCardOwnerLive(store, owner),
@@ -1392,7 +1395,7 @@ type UtilityParentPort = {
 };
 // Only Electron's utility process supplies parentPort, private to the desktop main process; plain Node leaves it absent.
 const utilityParentPort = (process as NodeJS.Process & { parentPort?: UtilityParentPort }).parentPort;
-type DesktopPrivateMessage = BrowserCleanupWireRequest | import("./login-handoff.ts").LoginHandoffResult | {
+type DesktopPrivateMessage = BrowserCleanupWireRequest | import("./login-handoff.ts").LoginHandoffResult | { type: "duskbot:settings-changed" } | {
   type: "duskbot:browser-control";
   botId: string;
   held: true;
@@ -2886,7 +2889,7 @@ const refusedHandoffs = createRefusedHandoffs({ bots: () => store.bots, runOf: (
 const routineHolds = CLOUD_HOME ? createRoutineHoldsHost({ dataDir: DATA_DIR, store, mcpServers: () => Object.keys(cfg.mcpServers ?? {}).length, log: (line) => console.warn(line),
   appsConnected: async () => composio.configured(cfg) ? Object.values(await composio.connectedServices(cfg)).some((service) => service.connected) : false }) : null;
 const skillsHost = createSkillsLibraryHost({ store, cfg, appendSkillRequestCard, engineConfig: (instanceId) => instanceConfigs(cfg)[instanceId], instanceOf: (instanceId) => { const instance = registry.get(instanceId); return instance ? { instanceId, driverKind: instance.driverKind } : undefined; } });
-const { listBotSkills, readBotSkillFile } = skillsHost; const cloudConnections = createCloudConnectionsHost({ cloudHome: CLOUD_HOME, ownHome: ownHome.owner, config: () => cfg, environmentId: ENVIRONMENT_ID, mcpOAuth, dataDir: DATA_DIR, connectorSync: () => connectorSyncRef, email: { accounts: () => emailService.store.list(), adopt: (accounts) => emailService.adopt(accounts) }, stayedNotices: { bots: () => store.bots, language: (threadId) => threadLanguage(threadId), say: (threadId, text, kind) => { store.appendMessage(threadId, kind === "line" ? { role: "bot", kind: "text", text } : { role: "bot", kind: "activity", tool: { name: `notice: ${text}`, ok: true } }); }, notify: (text, bot, threadId) => notify(buildNoticeNotification(bot, threadId, text)) }, engines: async () => selectableInstances(await registry.describe()).filter((instance) => readyToRun(instance, selectionContext)).map((instance) => instance.instanceId) });
+const { listBotSkills, readBotSkillFile } = skillsHost; const cloudConnections = createCloudConnectionsHost({ cloudHome: CLOUD_HOME, ownHome: ownHome.owner, config: () => cfg, environmentId: ENVIRONMENT_ID, mcpOAuth, dataDir: DATA_DIR, connectorSync: () => connectorSyncRef, settingsSync: () => settingsSyncRef, email: { accounts: () => emailService.store.list(), adopt: (accounts) => emailService.adopt(accounts) }, stayedNotices: { bots: () => store.bots, language: (threadId) => threadLanguage(threadId), say: (threadId, text, kind) => { store.appendMessage(threadId, kind === "line" ? { role: "bot", kind: "text", text } : { role: "bot", kind: "activity", tool: { name: `notice: ${text}`, ok: true } }); }, notify: (text, bot, threadId) => notify(buildNoticeNotification(bot, threadId, text)) }, engines: async () => selectableInstances(await registry.describe()).filter((instance) => readyToRun(instance, selectionContext)).map((instance) => instance.instanceId) });
 const emailHost = createEmailHost({ service: emailService, dataDir: DATA_DIR, bot: (id) => store.bot(id), inRoom: (threadId) => Boolean(store.groupByThread(threadId)), appendMessage: (threadId, message) => { store.appendMessage(threadId, message as Parameters<typeof store.appendMessage>[1]); }, appAllowed: () => managedPolicy.appAllowed("email"), onChange: (listener) => store.onChange(listener as never), markOutside: (threadId) => outsideLineage.mark(threadId) }); const slackHost = createSlackHost({ dataDir: DATA_DIR, key: savedSecretsKey ?? fileSavedSecretsKey(DATA_DIR), bot: (id) => { const bot = store.bot(id); return bot ? { id: bot.id, name: bot.name, description: bot.description, color: bot.color, ...(bot.avatarUrl ? { avatarUrl: bot.avatarUrl } : {}) } : null; }, onStoreChange: (listener) => store.onChange(listener), messages: (threadId) => store.messagesFor(threadId), createThread: (botId, title) => store.createTask(botId, title, false, undefined, undefined, "ask")?.threadId ?? null, threadExists: (botId, threadId) => Boolean(store.taskByThread(botId, threadId)), send: async ({ botId, threadId, text, sendId, person, context }) => { outsideLineage.mark(threadId); const receipt = await acceptDirectSend({ botId, threadId, text, sendId, sender: { name: person.name }, trigger: { kind: "user", ...(person.email ? { email: person.email } : {}), label: person.name }, personPresent: false, relayed: true, ...(context ? { app: { context } } : {}) }); return { queued: "queued" in receipt, steered: "steered" in receipt && receipt.steered === true }; }, react: (threadId, messageId, person, emoji) => void store.setReaction(threadId, messageId, relayedPersonKey(person), { emoji, name: person.name, at: Date.now() }), markOutside: (threadId) => outsideLineage.mark(threadId) }); addHeldSecretScrubber((text) => slackHost.scrub(text));
 const phoneHost = createPhones({
   dataDir: DATA_DIR, shared: Boolean(CLOUD_TEAM), cloudHome: Boolean(CLOUD_HOME), cloudOwnerKey: CLOUD_OWNER_KEY,
@@ -13057,7 +13060,7 @@ const tokenApps = createTokenApps({ dataDir: DATA_DIR, origin: () => `http://127
   remove: (name) => { if (cfg.mcpServers && Object.hasOwn(cfg.mcpServers, name)) mcpConfig.remove(name); },
 } }); addHeldSecretScrubber((text) => tokenApps.scrub(text)); tokenApps.repointServers(); tokenApps.startAutoRefresh(); ROUTES.push(tokenApps.routes);
 const persistAnnouncedMcpServers = (next: Record<string, unknown>) => { persistMcpServers(next); broadcast({ kind: "mcp.changed" }); };
-ROUTES.push(createConfigRoutes({ settingsChanged: (keys) => { for (const key of keys.slice(0, 10)) usageSignal("setting_changed", { key }); },
+const configRoutes = createConfigRoutes({ settingsChanged: (keys) => { for (const key of keys.slice(0, 10)) usageSignal("setting_changed", { key }); },
   sealer, store, cfg, registry, sessions, browserCleanup, browserLive, browserRuntime, usedBrowserSessions, decider,
   closeBrowser, browserEngineSwitched,
   cloudHome: Boolean(CLOUD_HOME),
@@ -13070,7 +13073,8 @@ ROUTES.push(createConfigRoutes({ settingsChanged: (keys) => { for (const key of 
   configForAccess: (status, auth) => configForAccess(status as ReturnType<typeof configStatus>, auth.scopes.includes("admin"), auth.kind === "session" ? auth.session : null),
   ...(CLOUD_TEAM ? { ownProfile: (auth: RequestAuth, profile: { name?: string; avatarUrl?: string; aboutMe?: string }) => auth.kind === "session" ? (teamHost.saveMemberProfile(auth.session, profile), true) : false } : {}),
   resyncOpenCodeProviderKeys, revokeEngineCapabilities, reloadProviders, broadcast, drainQueuedSends,
-}));
+});
+ROUTES.push(configRoutes);
 ROUTES.push(createInstanceRoutes({
   store, cfg, registry, sessions, providerAuthSessions,
   providerConfigBusy: { get: () => providerConfigBusy, set: (busy) => { providerConfigBusy = busy; } },
@@ -13096,6 +13100,37 @@ connectorSyncRef = connectorSync;
 ROUTES.push(createConnectorSyncRoutes({ sync: connectorSync,
   owners: (auth) => Boolean(CLOUD_HOME && auth.kind === "session" && auth.scopes.includes("admin")) || ownHome.owner(auth),
   ...(CLOUD_TEAM ? { refusal: (what: string) => personalConnectionRefusal(CLOUD_TEAM!, what) } : {}) }));
+// a setting another place changed is saved as Settings saves one: through the same route, as this computer's own app
+const LOOPBACK_ADMIN: RequestAuth = { kind: "loopback", scopes: ["admin", "client"] };
+async function saveConfigAsApp(patch: Record<string, unknown>): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  let answered: { status: number; body: unknown } | null = null;
+  try {
+    await configRoutes({ req: null as never, res: null as never, url: new URL("http://127.0.0.1/api/config"), path: "/api/config", method: "PATCH", auth: LOOPBACK_ADMIN,
+      json: ((_res: unknown, status: number, body: unknown) => { answered = { status, body }; }) as never, readBody: (async () => patch) as never });
+  } catch (error) {
+    const status = Number((error as { status?: unknown }).status) || 500;
+    return { ok: false, status, error: error instanceof Error ? error.message.slice(0, 300) : "could not save" };
+  }
+  const done = answered as { status: number; body: unknown } | null;
+  if (!done) return { ok: false, status: 500, error: "could not save" };
+  if (done.status >= 200 && done.status < 300) return { ok: true };
+  const error = (done.body as { error?: unknown } | null)?.error;
+  return { ok: false, status: done.status, error: typeof error === "string" ? error.slice(0, 300) : "could not save" };
+}
+let settingsChangedSoon: NodeJS.Timeout | null = null;
+const settingsSync = createSettingsSync({ dataDir: DATA_DIR, config: () => cfg, saveConfig: saveConfigAsApp,
+  usageSignals: { get: () => usageSignals.choice().enabled, set: (enabled) => { usageSignals.set({ enabled }); dashboardReporterRef?.syncChoice(); } },
+  appAccounts: { defaults: () => readAccountChoices(DATA_DIR).defaults, set: (slug, accountId) => { setAccountChoice({ slug, accountId }, DATA_DIR); } },
+  place: { id: ENVIRONMENT_ID, label: (process.env.DUSK_ENVIRONMENT_LABEL?.trim() || hostname()).slice(0, 120).trim() || "dusk bot" },
+  // the desktop brings the person's other places level at once
+  changed: () => { settingsChangedSoon ??= setTimeout(() => { settingsChangedSoon = null; postDesktopPrivateMessage({ type: "duskbot:settings-changed" }); }, 500); settingsChangedSoon.unref?.(); } });
+settingsSyncRef = settingsSync;
+// after the save's own reload of cfg, which the same tick finishes
+onConfigSaved(() => { setImmediate(() => settingsSync.touch()); });
+onAccountChoice(() => settingsSync.touch());
+ROUTES.push(createSettingsSyncRoutes({ sync: settingsSync, team: Boolean(CLOUD_TEAM),
+  owners: (auth) => Boolean(CLOUD_HOME && auth.kind === "session" && auth.scopes.includes("admin")) || ownHome.owner(auth),
+  uiChanged: () => broadcast({ kind: "ui-prefs" }) }));
 ROUTES.push(createMcpServerRoutes({
   cfg, bot: (id) => store.bot(id), sessions, mcpOAuth, teamConnections, synced: connectorSync,
   cloudHome: CLOUD_HOME,
@@ -13125,7 +13160,7 @@ ROUTES.push(createStatusRoutes({
   adminActivityRecording, configStatus, broadcast, threadShown,
   browserEngineInstall: { get: () => browserEngineInstall, set: (install) => { browserEngineInstall = install; } },
   browserEngineInstallError: { set: (error) => { browserEngineInstallError = error; } },
-})); const dashboardCollector = createDashboardCollector({ dataDir: DATA_DIR, cfg, bots: () => store.bots, managedVpsOwners, teamComputers: () => teamComputers.list(), localInventory: localVmInventoryPayload, localRuntime: containerRuntimeStatus, vps, lastUsedAt: (id) => { const bot = store.bot(id); return bot ? Math.max(0, ...(bot.tasks ?? []).map((task) => task.updatedAt ?? 0)) || null : null; }, phones: phoneHost.listOwner, sessions: () => sessions.list(), mobile: mobileLink.state, publicUrl, deviceLabel: () => cfg.computerName || "", checkUpdate: serverUpdateChecker({ desktopManaged: DESKTOP_MANAGED, managed: Boolean(CLOUD_HOME) }), prices: () => null, computerKind: (id) => { const bot = store.bot(id); return bot && inheritedTeamComputer(bot) ? "team" : undefined; }, busy: botHasActiveTurn, engine: (id) => registry.get(id) ?? undefined, routines: () => { const runs = routines?.listRuns() ?? []; return (routines?.listRoutines() ?? []).map((routine) => ({ ...routine, lastRunAt: runs.find((run) => run.routineId === routine.id && run.startedAt !== undefined)?.startedAt ?? null, running: runs.some((run) => run.routineId === routine.id && run.status === "running") })); }, planUsage: () => loadPlanUsage({ accounts: planAccountsFromInstances(instanceConfigs(cfg)) }), apps: () => dashboardApps(cfg, composio, cloudAppsViaConnect() ? () => cloudComposio.apps() : undefined).then((apps) => { appSignIns.settled(apps.services.filter((app) => app.connected).map((app) => app.slug)); return apps; }), workspaceKind: isThisServerVps("this-server") || CLOUD_HOME ? "vps" : undefined }); const dashboardCommands = createDashboardCommands({ port: PORT, collect: dashboardCollector }); dashboardCommandOwner = dashboardCommands.owns; const machinePulse = process.platform === "linux" ? createPulseSampler() : undefined; machinePulse?.start(); const dashboardReporter = createDashboardReporter({ dataDir: DATA_DIR, collect: dashboardCollector, usage: usageOutbox, choice: usageSignals, pulse: machinePulse, execute: dashboardCommands.execute, log: (line) => console.warn(line) }); dashboardReporter.start(); ROUTES.push(createDashboardRoutes({ reporter: dashboardReporter, usageSignals, onUsageChoice: () => dashboardReporter.syncChoice(), linkAgentBase: () => mobileLink.state().agent?.base ?? null }));
+})); const dashboardCollector = createDashboardCollector({ dataDir: DATA_DIR, cfg, bots: () => store.bots, managedVpsOwners, teamComputers: () => teamComputers.list(), localInventory: localVmInventoryPayload, localRuntime: containerRuntimeStatus, vps, lastUsedAt: (id) => { const bot = store.bot(id); return bot ? Math.max(0, ...(bot.tasks ?? []).map((task) => task.updatedAt ?? 0)) || null : null; }, phones: phoneHost.listOwner, sessions: () => sessions.list(), mobile: mobileLink.state, publicUrl, deviceLabel: () => cfg.computerName || "", checkUpdate: serverUpdateChecker({ desktopManaged: DESKTOP_MANAGED, managed: Boolean(CLOUD_HOME) }), prices: () => null, computerKind: (id) => { const bot = store.bot(id); return bot && inheritedTeamComputer(bot) ? "team" : undefined; }, busy: botHasActiveTurn, engine: (id) => registry.get(id) ?? undefined, routines: () => { const runs = routines?.listRuns() ?? []; return (routines?.listRoutines() ?? []).map((routine) => ({ ...routine, lastRunAt: runs.find((run) => run.routineId === routine.id && run.startedAt !== undefined)?.startedAt ?? null, running: runs.some((run) => run.routineId === routine.id && run.status === "running") })); }, planUsage: () => loadPlanUsage({ accounts: planAccountsFromInstances(instanceConfigs(cfg)) }), apps: () => dashboardApps(cfg, composio, cloudAppsViaConnect() ? () => cloudComposio.apps() : undefined).then((apps) => { appSignIns.settled(apps.services.filter((app) => app.connected).map((app) => app.slug)); return apps; }), workspaceKind: isThisServerVps("this-server") || CLOUD_HOME ? "vps" : undefined }); const dashboardCommands = createDashboardCommands({ port: PORT, collect: dashboardCollector }); dashboardCommandOwner = dashboardCommands.owns; const machinePulse = process.platform === "linux" ? createPulseSampler() : undefined; machinePulse?.start(); const dashboardReporter = createDashboardReporter({ dataDir: DATA_DIR, collect: dashboardCollector, usage: usageOutbox, choice: usageSignals, pulse: machinePulse, execute: dashboardCommands.execute, log: (line) => console.warn(line) }); dashboardReporterRef = dashboardReporter; dashboardReporter.start(); ROUTES.push(createDashboardRoutes({ reporter: dashboardReporter, usageSignals, onUsageChoice: () => { dashboardReporter.syncChoice(); settingsSyncRef?.touch(); }, linkAgentBase: () => mobileLink.state().agent?.base ?? null }));
 
 ROUTES.push(desktopViewer.route);
 // the bot browser's stream on the same direct peer as the desktop (server/routes/direct-sockets.ts)

@@ -24,11 +24,19 @@ export function readAccountChoices(dir = DATA_DIR): AccountChoices {
   return { defaults: {}, bots: {} };
 }
 
+const listeners = new Set<() => void>();
+/** Settings sync hears when an app's default account changes. */
+export function onAccountChoice(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => { listeners.delete(listener); };
+}
+
 function writeAccountChoices(choices: AccountChoices, dir: string): void {
   mkdirSync(dir, { recursive: true });
   const temporary = `${file(dir)}.${process.pid}.tmp`;
   writeFileSync(temporary, JSON.stringify(choices, null, 2), { mode: 0o600 });
   renameSync(temporary, file(dir));
+  for (const listener of listeners) { try { listener(); } catch {} }
 }
 
 /** The account each app uses for one bot: its own pick, else the app's default. */

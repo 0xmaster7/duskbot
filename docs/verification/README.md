@@ -129,6 +129,11 @@ fake connector service and checks that a server and its sign-in connected on
 one side are connected and usable on the other, through the move, a sign-out,
 the way home and a removal.
 
+The [settings fixture](settings-sync.md) runs this computer, My Cloud and a
+stand-in for a server of the person's own, and checks that a setting changed in
+any one of them reaches the others, the last change winning, that keys travel
+only over the person's own links, and that a Team Cloud keeps none.
+
 The [server of the person's own as home fixture](own-home.md) runs this
 computer's server and servers of the person's own with main's wiring for
 **Make <server> my home**: the move, routines that run once, this computer then

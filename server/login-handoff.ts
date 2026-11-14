@@ -4,6 +4,7 @@
 // Nothing here is an HTTP answer, a log line or a chat message, and nothing is kept.
 import type { LoginBots } from "../shared/logins.ts";
 import { parseConnectorHandoff, type ConnectorHandoffWhat } from "./connector-sync.ts";
+import { parseSettingsHandoff, type SettingsHandoffWhat } from "./settings-sync.ts";
 import { loginFingerprints, VERIFY_NONCE } from "./cloud-send-verify.ts";
 import type { LoginStore } from "./login-store.ts";
 import { ONE_PASSWORD_MALFORMED, ONE_PASSWORD_REFUSED } from "./onepassword.ts";
@@ -21,13 +22,16 @@ export type ConnectionHandoffWhat =
   | { kind: "connection-release"; id: string; digest: string }
   | { kind: "connection-fingerprints"; nonce: string }
   /** Connector sync (connector-sync.ts): a sign-in lent, a server's definition, a sign-in taken or let go of. */
-  | ConnectorHandoffWhat;
+  | ConnectorHandoffWhat
+  /** Settings sync (settings-sync.ts): the values of the person's settings, keys with them. */
+  | SettingsHandoffWhat;
 export type ConnectionHandoffAnswer =
   | { ok: true; connection: object; digest?: string }
   | { ok: true; share: { code: string } }
   | { ok: true; release: { released: true } | { changed: true } }
   | { ok: true; secrets: Record<string, string> }
   | { ok: true; connector: Record<string, unknown> }
+  | { ok: true; settings: Record<string, unknown> }
   | { ok: false; error: string };
 
 /** A saved login as the Cloud's own POST /api/logins takes it: one sign-in address, the 2FA key as an otpauth:// address. */
@@ -75,6 +79,8 @@ function parse(raw: unknown): { requestId: string; what: Ask } | null {
   }
   const connector = parseConnectorHandoff(what);
   if (connector) return { requestId: message.requestId, what: connector };
+  const settings = parseSettingsHandoff(what);
+  if (settings) return { requestId: message.requestId, what: settings };
   if (what?.kind === "verify-secrets" && typeof what.nonce === "string" && VERIFY_NONCE.test(what.nonce)) return { requestId: message.requestId, what: { kind: "verify-secrets", nonce: what.nonce } };
   return null;
 }
@@ -108,7 +114,7 @@ export function receiveLoginHandoff(raw: unknown, store: HandoffStore, post: (me
   const ask = parse(raw);
   if (!ask) return true;
   const { requestId, what } = ask;
-  if (what.kind === "connection" || what.kind === "composio-share" || what.kind === "connection-release" || what.kind === "connector") {
+  if (what.kind === "connection" || what.kind === "composio-share" || what.kind === "connection-release" || what.kind === "connector" || what.kind === "settings") {
     const refused: ConnectionHandoffAnswer = { ok: false, error: "This connection could not be read on this computer." };
     const answer = connections ? connections(what).catch((): ConnectionHandoffAnswer => refused) : Promise.resolve(refused);
     void answer.then((answered) => post({ type: LOGIN_HANDOFF_RESULT, requestId, ...answered }));
