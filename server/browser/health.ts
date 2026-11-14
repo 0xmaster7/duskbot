@@ -2,6 +2,7 @@
 // failed documents, APIs and scripts, Chrome's own error lines (network, CORS, blocked requests) and human checks.
 import { collapsePath, healthLine, sanitizePageText, type FailedRequest, type HealthDelta } from "../browser-page-health.ts";
 import type { HealthReport } from "./cdp/health.ts";
+import { BLOCKED_NEXT } from "./cdp/settle.ts";
 
 const SHOWN_TYPES = new Set(["document", "fetch", "xhr", "script"]);
 const SHOWN_PER_VISIT = 200;
@@ -59,7 +60,7 @@ export function pageHealthLine(report: HealthReport, { pageUrl, loaderId, shown 
   const parts = [healthLine(delta, [], "after", 0, pageHost)];
   const checks = report.humanChecks.filter((check) => shown.once(visit, `h\u0000${check.kind}`));
   if (checks.length) {
-    parts.push(`The page shows a human check (${checks.map((check) => check.kind).join(", ")}). Never try to solve or get around it. Many clear by themselves: wait about 15 seconds and look again. If it is still there, use another route if the task allows one, or call request_sign_in with human_check true.`);
+    parts.push(`The page shows a human check (${checks.map((check) => check.kind).join(", ")}). Many clear by themselves in a few seconds; if it is still there on your next look, ${BLOCKED_NEXT.charAt(0).toLowerCase()}${BLOCKED_NEXT.slice(1)}`);
   }
   const text = parts.filter((part): part is string => Boolean(part)).join(" ");
   return text || null;

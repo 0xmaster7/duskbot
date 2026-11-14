@@ -74,6 +74,19 @@ describe("internal sign-in route", () => {
     expect(request).not.toHaveBeenCalled();
   });
 
+  it("passes a check with the bot's other routes, and answers a check that ended without a new card with 200", async () => {
+    const answer = { site: "pastebin.com", place: "cloud" as const, outcome: "cleared" as const, via: "wait" as const };
+    const request = vi.fn(async () => answer);
+    const ctx = context("/api/internal/request-sign-in", "POST");
+    await createInternalSignInRoutes({ readBody: async () => ({ site: "pastebin.com", check: true, otherRoutes: "no API key" }), request })(ctx);
+    expect(request).toHaveBeenCalledExactlyOnceWith("pastebin.com", undefined, { otherRoutes: "no API key" });
+    expect(ctx.json).toHaveBeenCalledExactlyOnceWith(ctx.res, 200, answer);
+    const reused = { messageId: "card-1", site: "pastebin.com", place: "cloud" as const, reused: true as const };
+    const again = context("/api/internal/request-sign-in", "POST");
+    await createInternalSignInRoutes({ readBody: async () => ({ site: "pastebin.com", check: true }), request: async () => reused })(again);
+    expect(again.json).toHaveBeenCalledExactlyOnceWith(again.res, 200, reused);
+  });
+
   it("lets request errors reach the existing outer handler", async () => {
     const error = new Error("fixture persistence failure");
     const ctx = context("/api/internal/request-sign-in");
@@ -113,5 +126,5 @@ it.each(["createInternalSignInRoutes", "createInternalThreadRoutes", "createInte
 it("hands the internal sign-in route the guarded reader and the caller's own thread", () => {
   const { call, source } = internalDispatch("createInternalSignInRoutes");
   expect(call.arguments[0]!.getText(source)).toContain("readBody: readInternalBody");
-  expect(call.arguments[0]!.getText(source)).toContain("requestSignIn(internalSender, internalCapability.threadId, site, reason)");
+  expect(call.arguments[0]!.getText(source)).toContain("requestSignIn(internalSender, internalCapability.threadId, site, reason, Boolean(check), check?.otherRoutes)");
 });

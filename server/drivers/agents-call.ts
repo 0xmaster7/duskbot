@@ -60,6 +60,30 @@ const SIGN_IN_PLACES: Record<string, string> = {
   cloud: "your VPS computer",
 };
 
+/** What a bot does after request_sign_in with human_check: dusk bot's own recovery already ran on the server. */
+export function humanCheckAnswer(r: Json, site: string, where: string): string {
+  const tried = `dusk bot waited about 45 s and reloaded once${r.homeTried === true ? ", then tried the person's own internet connection" : ""}`;
+  const hint = typeof r.hint === "string" ? ` ${r.hint}` : "";
+  switch (r.outcome) {
+    case "cleared":
+      return r.via === "home"
+        ? `The check on ${site} cleared once dusk bot sent ${site} through the person's own internet connection; it stays on that route for this session. Look at the page again and carry on; do not mention the check.`
+        : `The check on ${site} cleared by itself while dusk bot waited. Look at the page again and carry on; do not mention the check.`;
+    case "no-check":
+      return `dusk bot sees no human check or bot block on the ${site} page now. Look at the page again and carry on. A sign-in page is request_sign_in without human_check; do not call this again for a page with no check.`;
+    case "other-routes":
+      return `The check on ${site} is still there: ${tried}. Before anyone is asked, reach the same goal another way.${hint} Use one now if it does the job, and do not mention the check. Only if none fits, or the person asked for this exact site, call request_sign_in again with human_check true and other_routes saying in a few words what you tried or why none fits.`;
+    case "blocked":
+      return `${site} keeps blocking this browser: ${tried}. It is not a check a person can answer, so do not ask for one. Reach the same goal another way.${hint} If none works, tell the person in one short line what you could not do.`;
+    case "asked-before":
+      return `The person already did a human check on ${site} in this task, so do not ask again. Reach the same goal another way (the site's API, a connected app, another site that does the job), or tell them in one short line that ${site} keeps checking, then stop.`;
+    default:
+      return r.reused === true
+        ? `The person already has the card for the check on ${site}; nothing new was sent. Write nothing more and end your turn: you are resumed by yourself once the page clears.`
+        : `The person was shown a card for the human check on ${site} on ${where}; it hands back to you by itself once the page clears. The card says all they need: write nothing more and end your turn now.`;
+  }
+}
+
 const STATUS_WORDS: Record<string, string> = {
   queued: "queued, not started yet",
   running: "running",
@@ -582,15 +606,16 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     if (!site) return { text: "request_sign_in needs site: the page's address or its domain, such as example.com.", isError: true };
     const reason = typeof args.reason === "string" ? args.reason.trim().slice(0, 240) : "";
     const check = args.human_check === true;
+    const otherRoutes = check && typeof args.other_routes === "string" ? args.other_routes.trim().slice(0, 400) : "";
     const r = await api("/api/internal/request-sign-in", {
       method: "POST",
-      body: JSON.stringify({ fromBotId: BOT_ID, fromThreadId: THREAD_ID, site, ...(reason ? { reason } : {}), ...(check ? { check: true } : {}) }),
+      body: JSON.stringify({ fromBotId: BOT_ID, fromThreadId: THREAD_ID, site, ...(reason ? { reason } : {}), ...(check ? { check: true } : {}), ...(otherRoutes ? { otherRoutes } : {}) }),
     });
     const where = SIGN_IN_PLACES[String(r.place)] ?? "the place you work";
+    const host = typeof r.site === "string" ? r.site : site;
+    if (check) return { text: humanCheckAnswer(r, host, where) };
     return {
-      text: check
-        ? `The person was shown a card for the human check on ${r.site ?? site} on ${where}; it hands back to you by itself once the page clears. Your turn ends now. The card already says what to do, so do not repeat it: write nothing more, or at most one short line, then stop.`
-        : `The person was asked to sign in to ${r.site ?? site} on ${where}. Your turn ends now. The card already says what to do, so do not repeat it: write nothing more, or at most one short line, then stop. dusk bot resumes you when they finish or decline. Never ask for the password or a code in chat.`,
+      text: `The person was asked to sign in to ${host} on ${where}. Your turn ends now. The card already says what to do, so do not repeat it: write nothing more, or at most one short line, then stop. dusk bot resumes you when they finish or decline. Never ask for the password or a code in chat.`,
     };
   }
   if (name === "fill_login") {

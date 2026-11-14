@@ -442,7 +442,8 @@ import { nativeRequire } from "./data/engine.ts";
 import { createFillLoginTurn } from "./host/fill-login-turn.ts";
 import { createDesktopLogin, DESKTOP_FILL_BUSY } from "./host/desktop-login.ts";
 import { createSignInRequests } from "./host/sign-in-requests.ts";
-import { createHumanCheckWatch, readHumanCheckPage } from "./host/human-check-watch.ts";
+import { createHumanCheckWatch, readHumanCheckPage, reloadHumanCheckPage } from "./host/human-check-watch.ts";
+import { runSiteBlockLadder } from "./host/site-block-ladder.ts";
 import { boxBrowserRoute, browserCallComputerResource, ownBoxBrowser } from "./box-browser-route.ts";
 import { BotLogins, cardLoginPlace, cardSignInElsewhere, observeSignInPage, type ObservedPage } from "./bot-logins.ts";
 import { relayFrame } from "./browser-relay.ts";
@@ -9920,9 +9921,10 @@ ROUTES.push(appTriggers.routes); ROUTES.unshift(createMoveFreezeRoutes({ freeze:
 ROUTES.push(createLimitResetRoutes({ clock: limitClock, routines: routines!, requests: routineRequests, engineName, threadEngine: (botId, threadId) => turnSelection(botId, threadId)?.instanceId,
   threadTitle: (botId, threadId) => store.bot(botId) && !store.bot(botId)!.hidden ? store.taskByThread(botId, threadId)?.title ?? null : null,
   created: (id, auth) => cloudRoutineAuthors?.wrote(id, auth.kind === "session" ? actorKey(auth) : CLOUD_NOBODY_KEY) }));
-const computerEgress = createComputerEgress({ enabled: () => cfg.vps?.routeThroughComputer !== false, log: (line) => console.warn(line),
+const computerEgress = createComputerEgress({ enabled: () => cfg.vps?.routeThroughComputer !== false, blockedSitesEnabled: () => cfg.vps?.routeBlockedSites !== false, log: (line) => console.warn(line),
   docker: () => (isThisServerVps(vpsSshAlias(cfg)) ? (args, timeoutMs) => vps.defaultRunner(args, { timeoutMs }) : null) });
-ROUTES.push(createScreenTransportAgentRoutes({ stats: () => screenDirect.stats() })); ROUTES.push(createComputerEgressRoutes({ egress: computerEgress, setEnabled: (enabled) => { saveConfig({ vps: { routeThroughComputer: enabled } }); Object.assign(cfg, loadConfig()); } })); const mobileLink = createMobileLink({ dataDir: DATA_DIR, sessions, workspace: () => ({ name: cfg.computerName || environmentDescriptor({ environmentId: ENVIRONMENT_ID, ...TEAM_LABEL, desktopManaged: DESKTOP_MANAGED }).label, environmentId: ENVIRONMENT_ID, kind: DESKTOP_MANAGED ? "mac" : "server" }), publicOrigin: () => (publicUrl()?.startsWith("https://") ? publicUrl() : null), refusal: () => (CLOUD_HOME ? "Phones sign in to this workspace through its own sign-in." : null), lookupRelay: mobileLookupRelay(), isRead: (id) => recentNotificationLog(200).some((entry) => entry.id === id && entry.read) }); ROUTES.push(async (ctx) => ((await mobileLink.route(ctx)) ? undefined : PASS));
+ROUTES.push(createScreenTransportAgentRoutes({ stats: () => screenDirect.stats() })); ROUTES.push(createComputerEgressRoutes({ egress: computerEgress, setEnabled: (enabled) => { saveConfig({ vps: { routeThroughComputer: enabled } }); Object.assign(cfg, loadConfig()); },
+  setBlockedSites: (enabled) => { saveConfig({ vps: { routeBlockedSites: enabled } }); Object.assign(cfg, loadConfig()); } })); const mobileLink = createMobileLink({ dataDir: DATA_DIR, sessions, workspace: () => ({ name: cfg.computerName || environmentDescriptor({ environmentId: ENVIRONMENT_ID, ...TEAM_LABEL, desktopManaged: DESKTOP_MANAGED }).label, environmentId: ENVIRONMENT_ID, kind: DESKTOP_MANAGED ? "mac" : "server" }), publicOrigin: () => (publicUrl()?.startsWith("https://") ? publicUrl() : null), refusal: () => (CLOUD_HOME ? "Phones sign in to this workspace through its own sign-in." : null), lookupRelay: mobileLookupRelay(), isRead: (id) => recentNotificationLog(200).some((entry) => entry.id === id && entry.read) }); ROUTES.push(async (ctx) => ((await mobileLink.route(ctx)) ? undefined : PASS));
 
 let webhookIngress: WebhookIngress | null = null;
 let webhookIngressError: string | null = null;
@@ -12021,15 +12023,27 @@ function signInControlKey(bot: BotRecord, threadId: string, place: Surface): str
   return team?.botId === bot.id && !vpsDefaults().independentScreens ? teamComputerOwner(team.computerId) : botComputerControlKey(bot);
 }
 
+/** The page behind a check, in the bot's browser or on its cloud computer: read and reloaded only, never answered. */
+const checkPageDeps: Parameters<typeof readHumanCheckPage>[1] = { boxChrome: (botId) => botBoxChrome(botId), browserEval: async ({ botId, threadId }, expression) => {
+  const bot = store.bot(botId);
+  const browser = bot ? await botBrowserTarget(botForThread(botId, threadId) ?? bot, threadId) : null;
+  return browser ? (await loginInput(browser.session, browser.spec, browser.env).engine(["eval", expression]))?.result : null;
+} };
+
 const { requestSignIn } = createSignInRequests({ store, connectorThread, signInPlace, threadLanguage, followCard: (threadId, from, to) => coordinator.followCard(threadId, from, to),
-  computerControl, signInControlKey, watchCheck: (ref) => void humanCheckWatch.watch(ref) });
+  computerControl, signInControlKey, watchCheck: (ref) => void humanCheckWatch.watch(ref),
+  recoverCheck: (ref, { quick }) => {
+    const at = { ...ref, messageId: "" };
+    return runSiteBlockLadder({
+      read: () => readHumanCheckPage(at, checkPageDeps),
+      reload: () => reloadHumanCheckPage(at, checkPageDeps),
+      // only a cloud computer's browser can leave through the person's connection (computer-egress.ts)
+      ...(ref.place === "cloud" ? { homeRoute: () => computerEgress.routeSite(ref.site) } : {}),
+    }, { quick });
+  } });
 
 const humanCheckWatch = createHumanCheckWatch({
-  read: (ref) => readHumanCheckPage(ref, { boxChrome: (botId) => botBoxChrome(botId), browserEval: async ({ botId, threadId }, expression) => {
-    const bot = store.bot(botId);
-    const browser = bot ? await botBrowserTarget(botForThread(botId, threadId) ?? bot, threadId) : null;
-    return browser ? (await loginInput(browser.session, browser.spec, browser.env).engine(["eval", expression]))?.result : null;
-  } }),
+  read: (ref) => readHumanCheckPage(ref, checkPageDeps),
   waits: ({ botId, threadId, messageId }) => { const card = signInMessage(botId, threadId, messageId)?.signIn; return Boolean(card && !card.stopped && signInWaits(card)); },
   cleared: ({ botId, threadId, messageId }) => { signInSettle.settle(botId, threadId, messageId, "done"); }, log: (line) => console.warn(line),
 });
@@ -14827,7 +14841,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       if (await dispatchRoutes([createInternalCredentialRequestRoutes({ readBody: readInternalBody, request: (body) => secretCards.requestCredential(internalSender, internalCapability.threadId, body) })], { req, res, url, path, method, auth, json, readBody })) return;
       if (await dispatchRoutes([createInternalSignInRoutes({
         readBody: readInternalBody,
-        request: (site, reason, check) => requestSignIn(internalSender, internalCapability.threadId, site, reason, check),
+        request: (site, reason, check) => requestSignIn(internalSender, internalCapability.threadId, site, reason, Boolean(check), check?.otherRoutes),
       })], { req, res, url, path, method, auth, json, readBody })) return;
       if (method === "POST" && path === "/api/internal/fill-login") {
         const body = await readInternalBody();

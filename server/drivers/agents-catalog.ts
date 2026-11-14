@@ -471,14 +471,15 @@ const TOOL_DEFINITIONS = [
   {
     name: "request_sign_in",
     description:
-      "Ask the person for a step only they can do, where you work now: a passkey, phone approval, OAuth consent or one-time code you cannot read, or a human check (human_check true). Do everything else yourself. A missing password: request_credential login. A code sent to the person's own email or messages for a sign-in they asked for: read it there and type it yourself. A human check often clears by itself: wait about 15 s first, and use another route if there is one. They get a card and press Done; a human check also hands back once the page clears. Never ask for a password or code in chat. Then end your turn without restating the card; you are resumed when they finish or decline.",
+      "Ask the person for a step only they can do, where you work now: a passkey, phone approval, OAuth consent or one-time code you cannot read, or a human check (human_check true). Do everything else yourself. A missing password: request_credential login. A code sent to the person's own email or messages for a sign-in they asked for: read it there and type it yourself. A human check or bot block: call with human_check true at once, no waiting yourself; dusk bot waits, reloads and tries the person's connection, then says what to do next. They get a card and press Done; a human check also hands back once the page clears. Never ask for a password or code in chat. Then end your turn without restating the card; you are resumed when they finish or decline.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
       properties: {
         site: { type: "string", minLength: 1, maxLength: 2048, description: "The page to sign in on: its address, or the domain, such as example.com." },
         reason: { type: "string", description: "One short sentence, in your words, on what the sign-in is for." },
-        human_check: { type: "boolean", description: "true for a CAPTCHA or \"verify you are human\" page." },
+        human_check: { type: "boolean", description: "true for a CAPTCHA, \"Verifying...\", \"press and hold\" or access denied page." },
+        other_routes: { type: "string", maxLength: 400, description: "With human_check: what you tried instead, or why nothing else fits." },
       },
       required: ["site"],
     },

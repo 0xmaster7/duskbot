@@ -25,6 +25,16 @@ describe("bot-check interstitials", () => {
     ["an AWS WAF challenge", { textLength: 0, scripts: ["https://abc.token.awswaf.com/abc/challenge.js"] }, [], { vendor: "AWS WAF", state: "checking" }],
     ["Vercel's checkpoint", { title: "Vercel Security Checkpoint", textLength: 50 }, [], { vendor: "Vercel", state: "checking" }],
     ["DDoS-Guard", { title: "DDoS-Guard", textLength: 50 }, [], { vendor: "DDoS-Guard", state: "checking" }],
+    // no vendor's markers: the same general detector reads the wall by its words and its status
+    ["Google's unusual traffic page", { title: "https://www.google.com/search?q=x", text: "Our systems have detected unusual traffic from your computer network.", textLength: 300, status: 429,
+      iframes: ["https://www.google.com/recaptcha/api2/anchor?k=1&size=normal"] }, [], { vendor: "Site", state: "needs-user" }],
+    ["a press and hold with no PerimeterX element", { title: "Before we continue", text: "Press & Hold to confirm you are a human (and not a bot).", textLength: 80 }, [], { vendor: "PerimeterX", state: "needs-user" }],
+    ["a bare 403", { title: "403 Forbidden", text: "Forbidden", textLength: 9, status: 403 }, [], { vendor: "Site", state: "blocked" }],
+    ["a bare 429", { title: "", text: "Too Many Requests", textLength: 17, status: 429 }, [], { vendor: "Site", state: "blocked" }],
+    ["Reddit's network security block", { title: "Blocked", text: "You've been blocked by network security. To continue, log in to your Reddit account.", textLength: 120, status: 403 }, [], { vendor: "Site", state: "blocked" }],
+    ["YouTube's sign-in wall for bots", { title: "YouTube", text: "Sign in to confirm you're not a bot", textLength: 400 }, [], { vendor: "Site", state: "blocked" }],
+    ["a long article that mentions bot protection", { text: "How bot protection works: sites block suspicious traffic ...", textLength: 9_000, status: 200 }, [], null],
+    ["a long 403 page with its own content", { title: "Members only", textLength: 3_000, status: 403 }, [], null],
   ])("%s", (_name, probe, frames, expected) => {
     expect(classifyChallenge(page(probe), frames)).toEqual(expected);
   });
@@ -78,11 +88,11 @@ describe("settling a page before it is read", () => {
     const check = page({ title: "Just a moment...", textLength: 60, controls: 0 });
     const lingering = await settle(fakePage([check]));
     expect(lingering.challenge).toMatchObject({ state: "checking", cleared: false, waitedMs: 15_000 });
-    expect(settleNote(lingering)).toMatch(/still running a Cloudflare bot check after 15 s\. Wait a little/);
+    expect(settleNote(lingering)).toMatch(/still shows a Cloudflare bot check after 15 s\. Never click it, solve it or try to hide that you are a bot\. Do not wait or reload yourself: call request_sign_in with the site and human_check true now/);
     const turnstile = await settle(fakePage([check], ["https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/if/ov2"]));
     expect(turnstile.challenge).toMatchObject({ state: "needs-user", cleared: false });
-    expect(settleNote(turnstile)).toMatch(/shows a Cloudflare check that a person must answer\. Never try to solve or get around it/);
-    expect(settleNote(turnstile)).toMatch(/request_sign_in with human_check true/);
+    expect(settleNote(turnstile)).toMatch(/still shows a Cloudflare bot check after 15 s\. Never click it/);
+    expect(settleNote(turnstile)).toMatch(/waits it out, reloads once and tries the person's own connection before anyone is asked/);
   });
 
   it("does not wait on a check only a person or nobody can clear", async () => {

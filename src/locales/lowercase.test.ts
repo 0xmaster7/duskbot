@@ -68,10 +68,10 @@ it("known messages and labels land on the right side of the split", () => {
 });
 
 it("a chat button named inside a sentence keeps its capital, the rest of the sentence is cased as usual", () => {
-  expect(entryCase("signIn.humanCheck", "Quick human check on {site}. Tap Take over and tick the box.")).toBe("Quick human check on {site}. Tap Take over and tick the box.");
+  expect(entryCase("signIn.humanCheck", "{site} wants a quick human check. Tap Take over and I'll carry on from there.")).toBe("{site} wants a quick human check. Tap Take over and I'll carry on from there.");
   expect(entryCase("chat.x", "Press I'm done when you Finish.")).toBe("Press I'm done when you finish.");
   expect(entryCase("chat.x", "tap take over and wait.")).toBe("Tap take over and wait.");
-  expect(english["signIn.humanCheck"]).toBe("Quick human check on {site}. Tap Take over and tick the box.");
+  expect(english["signIn.humanCheck"]).toBe("{site} wants a quick human check. Tap Take over and I'll carry on from there.");
   expect(english["server.notify.humanCheckBody"]).toBe("Open dusk bot, tap Take over and tick the box.");
   expect(entryCase("sidebar.nav.x", "Take over"), "a label is not a sentence: it stays lowercase").toBe("take over");
 });

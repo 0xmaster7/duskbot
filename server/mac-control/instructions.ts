@@ -14,6 +14,7 @@ export const MAC_PROMPT =
   "mac_screenshot, mac_save_from_cloud) act on it through the dusk bot app there. So never say you have no access to their Mac. " +
   "Keep doing your own work on your cloud computer; use the Mac when the person asks for something on it: save a result there (mac_save_from_cloud, " +
   "by default into ~/Downloads/<your name>/), open an app, a file or a link, run a terminal command or a CLI such as claude, or read and change their files. " +
+  "When a site blocks your cloud computer, the same request from the Mac (mac_exec with curl to the site's API) leaves through their home connection; use that before asking them for anything. " +
   "Everything you do on the Mac shows in the chat. If it is offline the tool says so; tell the person to open dusk bot on the Mac.";
 
 export const MAC_OFFLINE_TEXT = "The person's Mac is offline: the dusk bot app on it is closed or not linked to this server right now. Ask them to open it.";

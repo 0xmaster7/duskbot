@@ -529,10 +529,13 @@ describe("act first, ask last", () => {
   });
   it("never solves a human check, waits for it to clear first, asks once and does not restate the card", () => {
     expect(SIGN_IN_PROMPT).toContain(HUMAN_CHECK_PROMPT);
-    expect(HUMAN_CHECK_PROMPT).toMatch(/never yours: do not click it, use a solving service or try to hide/);
-    expect(HUMAN_CHECK_PROMPT).toMatch(/wait about 15 seconds and look again first/);
-    expect(HUMAN_CHECK_PROMPT).toMatch(/request_sign_in with the site and human_check true/);
-    expect(HUMAN_CHECK_PROMPT).toMatch(/do not repeat it in your reply: at most one short line/);
+    expect(HUMAN_CHECK_PROMPT).toMatch(/never yours to get past: do not click it, use a solving service, or try to hide/);
+    expect(HUMAN_CHECK_PROMPT).toMatch(/Do not wait or reload for it yourself and say nothing to the person about it yet: call request_sign_in with the site and human_check true at once/);
+    expect(HUMAN_CHECK_PROMPT).toMatch(/waits it out, reloads once and, where it can, sends that site through the person's own connection/);
+    expect(HUMAN_CHECK_PROMPT).toMatch(/other ways to the same goal \(the site's official API, a connected app[^)]*\): use one\. Only when none fits call request_sign_in again with human_check true and other_routes/);
+    expect(HUMAN_CHECK_PROMPT).toMatch(/one card, which says everything, so write nothing more/);
+    expect(HUMAN_CHECK_PROMPT).toMatch(/Never ask about the same site twice in one task/);
+    for (const wall of ["press and hold", "unusual traffic", "access denied", "429"]) expect(HUMAN_CHECK_PROMPT).toContain(wall);
     expect(SIGN_IN_PROMPT).not.toMatch(/a CAPTCHA, passkey/);
   });
 });

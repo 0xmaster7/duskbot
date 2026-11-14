@@ -57,6 +57,7 @@ let lastCreateRoomBody: unknown = null;
 let lastManageRoomBody: unknown = null;
 let lastCredentialBody: any = null;
 let lastSignInBody: any = null;
+let signInAnswer: Record<string, unknown> | null = null;
 let lastFillBody: any = null;
 let fillAnswer: { ok: boolean; text: string } = { ok: true, text: "Filled the username and the password for alice on example.com." };
 let lastRoutineQuery = "";
@@ -331,8 +332,8 @@ beforeAll(async () => {
       req.on("data", (c) => (data += c));
       req.on("end", () => {
         lastSignInBody = JSON.parse(data);
-        res.writeHead(201, { "content-type": "application/json" });
-        res.end(JSON.stringify({ messageId: "msg-sign-in", site: "example.com", place: "browser" }));
+        res.writeHead(signInAnswer ? 200 : 201, { "content-type": "application/json" });
+        res.end(JSON.stringify(signInAnswer ?? { messageId: "msg-sign-in", site: "example.com", place: "browser" }));
       });
       return;
     }
@@ -1145,14 +1146,30 @@ describe("agents-proxy MCP surface", () => {
     expect(lastSignInBody).toBeNull();
   });
 
-  it("asks for a human check as a check, and tells the bot not to restate the card", async () => {
-    const res = await callTool("request_sign_in", { site: "pastebin.com", human_check: true });
+  it("asks for a human check as a check, and tells the bot to write nothing beside the card", async () => {
+    const res = await callTool("request_sign_in", { site: "pastebin.com", human_check: true, other_routes: " no API key, the person asked for pastebin " });
     const text = res.result.content[0].text as string;
     expect(text).toContain("card for the human check on example.com");
     expect(text).toContain("hands back to you by itself once the page clears");
-    expect(text).toContain("do not repeat it: write nothing more, or at most one short line");
-    expect(lastSignInBody).toEqual({ fromBotId: "bot-asker", fromThreadId: "thread-asker-routine", site: "pastebin.com", check: true });
+    expect(text).toContain("The card says all they need: write nothing more and end your turn now.");
+    expect(lastSignInBody).toEqual({ fromBotId: "bot-asker", fromThreadId: "thread-asker-routine", site: "pastebin.com", check: true, otherRoutes: "no API key, the person asked for pastebin" });
     lastSignInBody = null;
+  });
+
+  it("turns each way a check ended without a card into the bot's next step", async () => {
+    const answer = async (body: Record<string, unknown>) => {
+      signInAnswer = { site: "pastebin.com", place: "cloud", ...body };
+      try { return (await callTool("request_sign_in", { site: "pastebin.com", human_check: true })).result.content[0].text as string; }
+      finally { signInAnswer = null; lastSignInBody = null; }
+    };
+    expect(await answer({ outcome: "cleared", via: "wait" })).toBe("The check on pastebin.com cleared by itself while dusk bot waited. Look at the page again and carry on; do not mention the check.");
+    expect(await answer({ outcome: "cleared", via: "home" })).toMatch(/cleared once dusk bot sent pastebin\.com through the person's own internet connection/);
+    expect(await answer({ outcome: "other-routes", homeTried: true, hint: "For pastebin.com: Pastebin has an API." }))
+      .toMatch(/still there: dusk bot waited about 45 s and reloaded once, then tried the person's own internet connection\. Before anyone is asked, reach the same goal another way\. For pastebin\.com: Pastebin has an API\. .*other_routes/);
+    expect(await answer({ outcome: "blocked", homeTried: false, hint: "In general: the API." })).toMatch(/keeps blocking this browser.*not a check a person can answer, so do not ask for one/);
+    expect(await answer({ outcome: "asked-before" })).toMatch(/already did a human check on pastebin\.com in this task, so do not ask again/);
+    expect(await answer({ outcome: "no-check" })).toMatch(/sees no human check or bot block/);
+    expect(await answer({ messageId: "m1", reused: true })).toMatch(/already has the card .* nothing new was sent\. Write nothing more/);
   });
 
   it("fills a saved login with at most a username and a submit choice, and hands the harness's status through, a refusal as an error", async () => {

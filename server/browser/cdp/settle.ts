@@ -12,7 +12,8 @@ const CHALLENGE_POLL_MS = 1_000;
 const BUSY_POLL_MS = 100;
 const QUIET_MS = 150;
 
-export type ChallengeVendor = "Cloudflare" | "DataDome" | "PerimeterX" | "Imperva" | "Akamai" | "AWS WAF" | "Vercel" | "DDoS-Guard";
+/** "Site" is a block with no vendor's markers: a 403 or 429 page, an "unusual traffic" or "are you a robot" page. */
+export type ChallengeVendor = "Cloudflare" | "DataDome" | "PerimeterX" | "Imperva" | "Akamai" | "AWS WAF" | "Vercel" | "DDoS-Guard" | "Site";
 export type ChallengeState = "checking" | "needs-user" | "blocked";
 export interface Challenge { vendor: ChallengeVendor; state: ChallengeState }
 
@@ -27,6 +28,8 @@ export interface PageProbe {
   scripts: string[];
   iframes: string[];
   selectors: string[];
+  /** The document's HTTP status, 0 when unknown. */
+  status?: number;
 }
 
 const MARKERS = ["#challenge-running", "#challenge-stage", "#challenge-form", "#cf-challenge-running", ".cf-browser-verification", "#cf-error-details",
@@ -48,11 +51,22 @@ export const PROBE_EXPRESSION = `(() => {
     scripts: [...document.scripts].map((s) => s.src).filter(Boolean).slice(0, 60).map((src) => src.slice(0, 300)),
     iframes: [...document.querySelectorAll("iframe")].map((f) => f.src).filter(Boolean).slice(0, 30).map((src) => src.slice(0, 300)),
     selectors: ${JSON.stringify(MARKERS)}.filter((selector) => document.querySelector(selector) !== null),
+    status: (() => { try { return performance.getEntriesByType("navigation")[0]?.responseStatus || 0; } catch { return 0; } })(),
   };
 })()`;
 
 const has = (probe: PageProbe, selector: (typeof MARKERS)[number]) => probe.selectors.includes(selector);
 const anyUrl = (urls: readonly string[], pattern: RegExp) => urls.some((url) => pattern.test(url));
+/** A check widget a person answers: Turnstile, reCAPTCHA or hCaptcha, not an invisible one. */
+const CHECK_WIDGET = /^https:\/\/(?:challenges\.cloudflare\.com\/|(?:www\.google\.com|www\.recaptcha\.net)\/recaptcha\/|(?:[\w-]+\.)?hcaptcha\.com\/)/u;
+const widgetShown = (frames: readonly string[]) => frames.some((url) => CHECK_WIDGET.test(url) && !/[?&]size=invisible\b/u.test(url));
+/** What a bot wall says, in any vendor's or site's words; only read on a short page, where it is the page's point. */
+const BOT_WALL = new RegExp([
+  "unusual traffic", "automated (?:queries|requests|traffic|access)", "are you a (?:robot|human)", "(?:i'm|i am|you're|you are) not a robot",
+  "verify (?:that )?you(?:'re| are) (?:a )?human", "prove you(?:'re| are) (?:a )?human", "confirm you(?:'re| are) not a bot", "press (?:&|and) hold",
+  "blocked by (?:network|our) security", "(?:request|access) (?:was |has been )?(?:blocked|denied)", "bot (?:detection|protection|traffic)",
+  "suspicious (?:activity|traffic)", "too many requests", "you have been (?:rate[- ]limited|blocked)",
+].join("|").replace(/'/gu, "['\u2019]?"), "iu");
 
 /** Which vendor's interstitial the page is, and whether it clears by itself; null for an ordinary page. */
 export function classifyChallenge(probe: PageProbe, frameUrls: readonly string[] = []): Challenge | null {
@@ -81,6 +95,12 @@ export function classifyChallenge(probe: PageProbe, frameUrls: readonly string[]
 
   if (/^Vercel Security Checkpoint/iu.test(title)) return { vendor: "Vercel", state: "checking" };
   if (/^DDoS-Guard/iu.test(title) || (short && anyUrl(probe.scripts, /ddos-guard\.net\//u) && /Checking your browser/iu.test(text))) return { vendor: "DDoS-Guard", state: "checking" };
+
+  // no vendor's markers: a bot wall by its words or its status. a check widget on it is a person's; without one it is a block
+  const status = probe.status ?? 0;
+  const wall = short && BOT_WALL.test(`${title}\n${text}`);
+  if (wall && /press (?:&|and) hold/iu.test(`${title}\n${text}`)) return { vendor: "PerimeterX", state: "needs-user" };
+  if (wall || (short && probe.textLength < 600 && (status === 403 || status === 429))) return { vendor: "Site", state: widgetShown(frames) ? "needs-user" : "blocked" };
   return null;
 }
 
@@ -176,16 +196,19 @@ export async function settlePage(target: SettleTarget | PageReader, { deadline, 
   return report;
 }
 
+/** What a bot does about a check or block that did not clear: never solve it, let dusk bot's recovery run, ask last. */
+export const BLOCKED_NEXT = "Never click it, solve it or try to hide that you are a bot. Do not wait or reload yourself: call request_sign_in with the site and human_check true now. " +
+  "dusk bot waits it out, reloads once and tries the person's own connection before anyone is asked, and tells you what to do next.";
+
 /** The report as one line of a tool's answer, or null when there is nothing to say. */
 export function settleNote(report: SettleReport): string | null {
   const lines: string[] = [];
   const check = report.challenge;
   if (check) {
     const waited = `${Math.round(check.waitedMs / 1_000)} s`;
-    if (check.cleared) lines.push(`The site ran a ${check.vendor} bot check first; it cleared by itself after ${waited}.`);
-    else if (check.state === "checking") lines.push(`The site is still running a ${check.vendor} bot check after ${waited}. Wait a little and take a snapshot again; do not try to solve it or reload the page in a loop. If it is still there then, use another route or call request_sign_in with human_check true.`);
-    else if (check.state === "needs-user") lines.push(`The site shows a ${check.vendor} check that a person must answer. Never try to solve or get around it. Use another route if the task allows one (another site that does the same job, or the site's API); otherwise call request_sign_in with human_check true and end your turn: you carry on by yourself once it clears.`);
-    else lines.push(`The site's ${check.vendor} protection blocked this browser. Do not retry it; find what you need another way (another site that does the same job, or the site's API), and tell the person only if there is none.`);
+    const what = check.vendor === "Site" ? "bot check" : `${check.vendor} bot check`;
+    if (check.cleared) lines.push(`The site ran a ${what} first; it cleared by itself after ${waited}.`);
+    else lines.push(`The site still shows a ${check.state === "blocked" ? "bot block" : what} after ${waited}. ${BLOCKED_NEXT}`);
   }
   if (report.stillBusy) lines.push(`Parts of the page were still loading after ${BUSY_WAIT_MS / 1_000} s (placeholders or spinners). If what you need is missing, wait for it and read again.`);
   return lines.length ? lines.join(" ") : null;

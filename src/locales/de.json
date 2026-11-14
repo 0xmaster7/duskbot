@@ -106,7 +106,7 @@
   "server.connect.description": "Verbinde {app}, damit der Bot weitermachen kann",
   "server.connect.descriptionAs": "Verbinde {app} als „{account}“, damit der Bot weitermachen kann",
   "server.connect.signInCard": "{bot} braucht deine Anmeldung bei {site}. Öffne diese Unterhaltung in dusk bot, melde dich an und bestätige es dann auf der Karte.",
-  "server.connect.humanCheckCard": "{bot} ist auf {site} auf eine kurze Prüfung gestoßen, ob du ein Mensch bist. Öffne diese Unterhaltung in dusk bot, tippe auf Übernehmen und setze das Häkchen.",
+  "server.connect.humanCheckCard": "{site} möchte kurz prüfen, ob du ein Mensch bist. Öffne diese Unterhaltung in dusk bot und tippe auf Übernehmen, dann macht {bot} dort weiter.",
   "server.connect.emailLabel": "Verbinde dein Postfach",
   "server.connect.emailPlaceholder": "Passwort des Postfachs",
   "server.connect.secretHandoff": "Gib {label} sicher in dusk bot auf deinem Telefon oder Computer ein. Es wird nie in den Chat übernommen.",

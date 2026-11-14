@@ -37,7 +37,8 @@ export function parseHumanCheckPage(value: unknown): HumanCheckPage | null {
   const page = value as Partial<HumanCheckPage> | null;
   if (!page || typeof page !== "object" || typeof page.title !== "string" || !Array.isArray(page.iframes) || !Array.isArray(page.scripts) || !Array.isArray(page.selectors)) return null;
   return { title: page.title, text: String(page.text ?? ""), textLength: Number(page.textLength) || 0, nodes: Number(page.nodes) || 0, controls: Number(page.controls) || 0,
-    busy: page.busy === true, scripts: page.scripts.map(String), iframes: page.iframes.map(String), selectors: page.selectors.map(String), answered: page.answered === true };
+    busy: page.busy === true, scripts: page.scripts.map(String), iframes: page.iframes.map(String), selectors: page.selectors.map(String), answered: page.answered === true,
+    status: Number(page.status) || 0 };
 }
 
 export const CHECK_POLL_MS = 2_500;
@@ -95,18 +96,30 @@ export function createHumanCheckWatch(deps: HumanCheckWatchDeps) {
   return { watch, watching: (messageId: string) => watching.has(messageId) };
 }
 
+/** A reload as a person presses it, answered before the page goes so the eval is not cut off. */
+export const RELOAD_PAGE = `(() => { setTimeout(() => location.reload(), 0); return "reloading"; })()`;
+
 /** The page behind a check card: the bot's browser, or the front page of its own VPS desktop's Chromium; null elsewhere. */
 export async function readHumanCheckPage(ref: HumanCheckRef, deps: {
   browserEval(ref: HumanCheckRef, expression: string): Promise<unknown>;
   boxChrome(botId: string): Promise<string | false | null>;
   open?: typeof openBoxLoginPage;
 }): Promise<HumanCheckPage | null> {
-  if (ref.place === "browser") return parseHumanCheckPage(await deps.browserEval(ref, HUMAN_CHECK_PAGE));
+  return parseHumanCheckPage(await evalAtCheck(ref, HUMAN_CHECK_PAGE, deps));
+}
+
+/** Reloads the page behind a check, where it can be reached; false elsewhere. */
+export async function reloadHumanCheckPage(ref: HumanCheckRef, deps: Parameters<typeof readHumanCheckPage>[1]): Promise<boolean> {
+  return (await evalAtCheck(ref, RELOAD_PAGE, deps).catch(() => null)) !== null;
+}
+
+async function evalAtCheck(ref: HumanCheckRef, expression: string, deps: Parameters<typeof readHumanCheckPage>[1]): Promise<unknown> {
+  if (ref.place === "browser") return deps.browserEval(ref, expression);
   if (ref.place !== "cloud") return null;
   const url = await deps.boxChrome(ref.botId);
   if (!url) return null;
   const page = await (deps.open ?? openBoxLoginPage)(url);
   if ("refusal" in page) return null;
-  try { return parseHumanCheckPage((await page.input.engine(["eval", HUMAN_CHECK_PAGE]))?.result); }
+  try { return (await page.input.engine(["eval", expression]))?.result ?? null; }
   finally { page.close(); }
 }
