@@ -3,6 +3,15 @@
 Notable changes to dusk bot, newest first. Installers and checksums for each version are on the
 [releases page](https://github.com/DuskBotAI/duskbot/releases) and at [dusk.bot/download](https://dusk.bot/download).
 
+## 0.2.6
+
+Both packages (your own server and dusk cloud) built from one commit again.
+
+- A server's bots move to a new dusk cloud by themselves once it is ready (the cloud now says it takes moves).
+- The install line retries its own download five times, every other try over IPv4, and stops with a plain message if
+  none arrives.
+- Menus, dialogs and status lines read in sentence case on the desktop and the phone.
+
 ## 0.2.5
 
 - An AI you connect always comes first: new bots start on it, and bots and conversations on the free backup model move
