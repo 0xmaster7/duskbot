@@ -2777,7 +2777,11 @@ function relaunchAfterDesktopRemoteChange() {
   desktopShutdownStarted = true;
   const timer = setTimeout(() => {
     // Electron's default relaunch reuses the native argv, which still holds the consumed one-shot action.
-    app.relaunch({ args: process.argv.slice(1) });
+    const args = process.argv.slice(1);
+    // pnpm dev:app owns Vite and this process; app.relaunch would orphan the new window, so ask the runner to restart it
+    const devRunnerFile = app.isPackaged ? "" : process.env.DUSK_DEV_RELAUNCH_FILE;
+    if (devRunnerFile) fs.writeFileSync(devRunnerFile, JSON.stringify(args));
+    else app.relaunch({ args });
     app.quit();
   }, 250);
   timer.unref?.();

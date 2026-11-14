@@ -3,6 +3,9 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+import os from "node:os";
+import path from "node:path";
+import { takeRelaunchRequest } from "./dev-relaunch.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const require = createRequire(import.meta.url);
@@ -13,6 +16,9 @@ const env = { ...process.env, DUSK_DEV_OWN_SERVER: "1", ELECTRON_START_URL: proc
 if (!env.DUSK_CLOUD_ORIGIN && env.DUSK_CLOUD_STAGING !== "1") env.DUSK_CLOUD_ORIGIN = "https://preview.dusk.bot";
 env.DUSK_ALLOW_SIGNED_OUT ??= "1";
 delete env.ELECTRON_RUN_AS_NODE;
+// a relaunch inside the app (Start fresh, desktop remote change) asks this runner to restart Electron; Vite stays up
+const relaunchFile = path.join(os.tmpdir(), `dusk-dev-relaunch-${process.pid}.json`);
+env.DUSK_DEV_RELAUNCH_FILE = relaunchFile;
 
 const prepared = spawnSync(process.execPath, ["scripts/prepare-cloudflared.mjs", "--current"], { cwd: root, stdio: "inherit" });
 if (prepared.status !== 0) process.exit(prepared.status ?? 1);
@@ -25,10 +31,15 @@ const end = (code) => {
   for (const child of children) child.kill("SIGTERM");
   process.exitCode = code ?? 0;
 };
-const run = (command, args) => {
+const run = (command, args, { relaunches = false } = {}) => {
   const child = spawn(command, args, { cwd: root, env, stdio: "inherit" });
   children.add(child);
-  child.once("exit", (code) => { children.delete(child); end(code); });
+  child.once("exit", (code) => {
+    children.delete(child);
+    const again = relaunches && !ending ? takeRelaunchRequest(relaunchFile) : null;
+    if (again) run(command, again, { relaunches });
+    else end(code);
+  });
   return child;
 };
 process.once("SIGINT", () => end(0));
@@ -39,4 +50,4 @@ for (let attempt = 0; attempt < 120 && !ending; attempt += 1) {
   if (await fetch(env.ELECTRON_START_URL).then(() => true, () => false)) break;
   await new Promise((resolve) => setTimeout(resolve, 250));
 }
-if (!ending) run(require("electron"), [".", ...process.argv.slice(2)]);
+if (!ending) run(require("electron"), [".", ...process.argv.slice(2)], { relaunches: true });
