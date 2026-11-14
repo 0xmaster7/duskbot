@@ -9,6 +9,7 @@ import type { LocaleKey } from "@/locales";
 import type { InstanceInfo, Message } from "@/state/store";
 import { failedTurnCause, type BrowserBlocker, type FailedReplyReason } from "../../shared/failed-turn";
 import { isCancelledTranscriptRow } from "../../shared/client-cancel";
+import { freeFallback } from "../../shared/ai-ranking";
 
 export type FailedReplyKind = FailedReplyReason | "claude_update" | "place" | "restart_interrupted" | "no_answer" | "blocker" | "other";
 
@@ -82,7 +83,16 @@ const CREDIT_WORDS = /out of credits?|payment required|insufficient (?:funds|bal
 
 /** What stopped a failed row: the server's own reading when it stored one, its flags and words for an older row.
  * `ownAi`: an AI the person connected is ready now, so connecting one is no longer the fix. */
+/** What the free backup running out, being rate limited or not answering reads as: with no AI of the person's own none
+ * of these is a failure they can fix by trying harder, only by connecting one. */
+const FREE_BACKUP_DOWN: ReadonlySet<FailedReplyKind> = new Set(["credits", "usage_limit", "rate_limit", "overloaded", "timeout", "no_answer", "other"]);
+
 export function failedReplyKind(tool: NonNullable<Message["tool"]>, engine: InstanceInfo | undefined, ownAi = false): FailedReplyKind {
+  const kind = failedKind(tool, engine, ownAi);
+  return !ownAi && FREE_BACKUP_DOWN.has(kind) && (!engine || freeFallback(engine)) ? "no_ai" : kind;
+}
+
+function failedKind(tool: NonNullable<Message["tool"]>, engine: InstanceInfo | undefined, ownAi: boolean): FailedReplyKind {
   if (tool.rescue) return "no_answer";
   if (tool.blocker) return "blocker";
   const cause = failedTurnCause(tool.name) ?? tool.name;

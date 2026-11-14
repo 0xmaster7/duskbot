@@ -36,29 +36,48 @@ const noReply: Message = {
 };
 
 let root: ReturnType<typeof createRoot> | null = null;
-const show = async (instances: InstanceInfo[]) => {
+// the owner's 75 s wait: the turn ended on the reply watchdog, with nothing that says the free backup was the cause
+const timedOut: Message = {
+  id: "timed-out", role: "bot", kind: "activity", at: T0 + 2,
+  tool: { name: "error: The reply timed out.", ok: false, reason: "timeout" },
+};
+const retry = vi.fn();
+const show = async (instances: InstanceInfo[], failed: Message = noReply) => {
   fixture.instances = instances;
   document.body.innerHTML = "";
   root = createRoot(document.body.appendChild(document.createElement("div")));
-  await act(async () => { root!.render(createElement(FailedReplyCard, { rows: trailingRows([ask, noReply]), botId: "echo", threadId: "main", onRetry: vi.fn() })); });
+  await act(async () => { root!.render(createElement(FailedReplyCard, { rows: trailingRows([ask, failed]), botId: "echo", threadId: "main", onRetry: retry })); });
   return document.querySelector("[data-chat-error]");
 };
 afterEach(async () => { await act(async () => root?.unmount()); root = null; });
 
 describe("a first reply with no AI connected", () => {
-  it("is a card to connect one, with one button that opens the connect flow", async () => {
+  it("is a card to connect one: the way to connect first, a quiet try again after it", async () => {
     const card = await show([free]);
-    expect(card?.textContent).toContain("Connect your AI to start");
+    expect(card?.textContent).toContain("Connect your AI to keep chatting");
+    expect(card?.textContent).toContain("The free backup is busy right now.");
     expect(card?.textContent).not.toContain("failed to respond");
     const buttons = [...card!.querySelectorAll<HTMLButtonElement>("button:not([aria-label])")];
-    expect(buttons.map((button) => button.textContent)).toEqual(["Connect your AI"]);
+    expect(buttons.map((button) => button.textContent)).toEqual(["Connect your AI", "Try again"]);
+    expect(buttons[1]!.className).toContain("bg-transparent");
+    await act(async () => buttons[1]!.click());
+    expect(retry).toHaveBeenCalledOnce();
     await act(async () => buttons[0]!.click());
     expect(document.querySelector("[data-connect-ai-dialog]")).not.toBeNull();
   });
 
+  it("says so when the free backup timed out, never that the bot failed or timed out", async () => {
+    for (const instances of [[free], []]) {
+      const card = await show(instances, timedOut);
+      expect(card?.textContent).toContain("Connect your AI to keep chatting");
+      expect(card?.textContent).not.toMatch(/failed|timed out/i);
+      await act(async () => root?.unmount()); root = null;
+    }
+  });
+
   it("is an ordinary failure once an AI of the person's own is ready", async () => {
     const card = await show([free, claude]);
-    expect(card?.textContent).not.toContain("Connect your AI to start");
+    expect(card?.textContent).not.toContain("Connect your AI to keep chatting");
     expect(card?.textContent).toContain("failed to respond");
   });
 });

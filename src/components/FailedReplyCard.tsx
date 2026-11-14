@@ -11,6 +11,9 @@ import { freeFallback } from "../../shared/ai-ranking";
 import { engineReady } from "./EngineLibrary";
 import { ConnectAiDialog } from "./onboarding/ConnectAi";
 import { CARD_ACTION, ChatErrorCard } from "./ChatErrorBanner";
+
+// the card's second way on, next to its one main action: the same pill, without the fill until hovered
+const QUIET_CARD_ACTION = "ui-button ui-button-sm ui-button-pill border-transparent bg-transparent text-ink-secondary hover:bg-ink/[0.06] hover:text-ink";
 import { ClaudeUpdatePrompt } from "./ClaudeUpdatePrompt";
 import { aiRunsOnServer } from "./ComposerSignInNotice";
 import { useDesktopCapabilities } from "./DesktopCapabilities";
@@ -100,7 +103,10 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
     return (
       <div className="mb-2 w-full px-5" data-failed-reply="" data-connect-ai-card="">
         <ChatErrorCard tone="info" icon="key" title={t("failedReply.noAi.title")} onDismiss={close}
-          actions={<button type="button" onClick={() => setConnecting(true)} className={CARD_ACTION}>{t("composer.freeBackup.connect")}</button>}>
+          actions={<>
+            <button type="button" onClick={() => setConnecting(true)} className={CARD_ACTION}>{t("composer.freeBackup.connect")}</button>
+            {onRetry && <button type="button" onClick={onRetry} className={QUIET_CARD_ACTION}>{t("failedReply.tryAgain")}</button>}
+          </>}>
           <p dir="auto" className="text-ink-secondary">{t("failedReply.noAi")}</p>
         </ChatErrorCard>
         {connecting && <ConnectAiDialog tested={null} onClose={() => setConnecting(false)} />}
