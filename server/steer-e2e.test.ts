@@ -37,6 +37,7 @@ posixOnly("mid-turn steering e2e", () => {
     return { status: res.status, body: await res.json() };
   };
   const getBot = async (id: string) => (await api("GET", "/api/bots")).body.bots.find((b: any) => b.id === id);
+  // askedAt is a per-turn mark: bots.json gets it within a second (store.saveBotsLater), so callers poll
   const askedAt = (botId: string, threadId: string) => (JSON.parse(readFileSync(join(home, ".duskbot", "bots.json"), "utf8")) as any[])
     .find((bot) => bot.id === botId).tasks.find((task: any) => task.threadId === threadId).askedAt;
   const PAIRED = { name: "Safari on Mac", id: expect.stringMatching(/^p_[\w-]{22}$/) };
@@ -184,7 +185,7 @@ posixOnly("mid-turn steering e2e", () => {
       ]);
       const steered = bot.messages.find((m: any) => m.text === "and also this");
       expect(steered.steered).toBe(true);
-      expect(askedAt(created.id, created.threadId)).toBe(steered.at);
+      await expect.poll(() => askedAt(created.id, created.threadId), { timeout: 5_000 }).toBe(steered.at);
       expect(bot.messages.filter((m: any) => m.role === "bot" && m.kind === "text" && m.text.startsWith("reply to:"))).toHaveLength(1);
       const chip = bot.messages.find((m: any) => m.kind === "activity" && m.tool?.name === "Bash");
       expect(chip.tool).toMatchObject({ ok: true, summary: "echo hi" });
@@ -222,7 +223,10 @@ posixOnly("mid-turn steering e2e", () => {
     await waitFor(async () => ((await api("GET", "/api/notifications")).body.notifications ?? []).some((n: any) => n.botId === created.id && n.kind === "done"), "the done notification");
     const dones = ((await api("GET", "/api/notifications")).body.notifications as any[]).filter((n) => n.botId === created.id && n.kind === "done");
     expect(dones).toHaveLength(1);
-    expect(dones[0].body).toContain("a new task for l");
+    // the body previews the reply that finished last; the fake engine echoes the turn clock first, whose length
+    // depends on the zone, so the preview is matched against that reply rather than a fixed slice of it
+    const last = bot.messages.find((m: any) => m.role === "bot" && m.kind === "text" && withoutTurnClock(m.text).startsWith("reply to: a new task for later"));
+    expect(last.text.replace(/\s+/g, " ").startsWith(dones[0].body.replace(/…$/, ""))).toBe(true);
   }, 40_000);
 
   it("a message sent with followUp: restart during a Claude turn stops that turn and runs as the next one, never steered", async () => {
@@ -722,7 +726,7 @@ posixOnly("mid-turn steering e2e", () => {
     expect(folded.steered).toBe(true);
     expect(folded.sender).toEqual(PAIRED);
     expect(steered.body.messages[0].sender).toEqual(PAIRED);
-    expect(askedAt(created.id, created.threadId)).toBe(folded.at);
+    await expect.poll(() => askedAt(created.id, created.threadId), { timeout: 5_000 }).toBe(folded.at);
 
     await api("POST", `/api/bots/${created.id}/interrupt`);
     await waitFor(async () => (await getBot(created.id)).busy === false, "the queue-steered turn to settle");
