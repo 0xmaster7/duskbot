@@ -4,7 +4,7 @@
 // tab across bots and swaps its content in place; a model change only changes the label. nothing leaves the page.
 import data from '@demo-data';
 import { createPixel, stillFrame } from '../../../src/pixel/engine.ts';
-import { BOTS, MODELS } from './content.mjs';
+import { BOTS } from './content.mjs';
 
 const host = document.querySelector('[data-dw-host]');
 const root = host && host.shadowRoot;
@@ -438,18 +438,55 @@ function start() {
   }
 
   // ---------- the model picker ----------
+  // the app's SimpleModelMenu: the bot's model on top, each connected AI with its suggested models, the AIs not
+  // connected yet, then which bots the pick is for and more providers. connecting and more providers do nothing here.
+  const PROVIDERS = [
+    { key: 'claude', name: 'Claude', base: 'sonnet', models: [['fable51', 'Claude Fable 5.1', 'Fable 5.1'], ['fable5', 'Claude Fable 5', 'Fable 5'], ['opus', 'Claude Opus 5.5', 'Opus 5.5'], ['opus5', 'Claude Opus 5', 'Opus 5'], ['sonnet', 'Claude Sonnet 5', 'Sonnet 5'], ['sonnet46', 'Claude Sonnet 4.6', 'Sonnet 4.6'], ['opus46', 'Claude Opus 4.6', 'Opus 4.6'], ['haiku45', 'Claude Haiku 4.5', 'Haiku 4.5']] },
+    { key: 'codex', name: 'Codex', base: 'gpt', models: [['gpt', 'GPT-6.1 Terra', 'GPT-6.1 Terra'], ['gpt61sol', 'GPT-6.1-Sol', 'GPT-6.1-Sol'], ['gpt6astra', 'GPT-6-Astra', 'GPT-6-Astra'], ['gpt56luna', 'GPT-5.6-Luna', 'GPT-5.6-Luna']] },
+    { key: 'antigravity', name: 'Google Gemini', base: 'gemini', models: [['gemini', 'Gemini 3.8 Flash', 'Gemini 3.8 Flash']] },
+    { key: 'grok', name: 'Grok', base: 'grok', models: [['grok', 'Grok 4.7', 'Grok 4.7'], ['grok46', 'Grok 4.6', 'Grok 4.6'], ['grok45', 'Grok 4.5', 'Grok 4.5']] },
+  ];
+  const NOT_CONNECTED = [['cursor', 'Cursor'], ['githubCopilot', 'GitHub Copilot']];
+  const providerOf = {}, LABEL = {}, SHORT = {};
+  for (const p of PROVIDERS) for (const [k, long, short] of p.models) { providerOf[k] = p; LABEL[k] = long; SHORT[k] = short; }
   const modelOf = {};
   for (const b of BOTS) if (!modelOf[b.model]) modelOf[b.model] = b.key;
-  const modelButton = (scope) => $$('button', scope).find((b) => b.getAttribute('aria-haspopup') && /Claude|GPT|Gemini|Grok/.test(b.textContent) && b.closest('[data-panel-row], [data-panel-card]'));
+  const modelButton = (scope) => $$('button', scope).find((b) => b.getAttribute('aria-haspopup') && b.closest('[data-panel-row="model"]'));
+  // the chip the app draws for a model: a bot's own chip for its provider, with the name swapped
   function modelButtonHtml(model) {
+    const p = providerOf[model];
+    if (!p || !modelOf[p.base]) return null;
     const t = document.createElement('template');
-    t.innerHTML = unpack(data.bots[modelOf[model]].panel.details);
-    return modelButton(t.content)?.innerHTML ?? null;
+    t.innerHTML = unpack(data.bots[modelOf[p.base]].panel.details);
+    const btn = modelButton(t.content);
+    if (!btn) return null;
+    const walker = document.createTreeWalker(btn, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) if (n.textContent.includes(LABEL[p.base])) n.textContent = n.textContent.replace(LABEL[p.base], LABEL[model]);
+    return btn.innerHTML;
   }
-  const LABEL = { sonnet: 'Claude Sonnet 5', opus: 'Claude Opus 5.5', gpt: 'GPT-6.1 Terra', gemini: 'Gemini 3.8 Flash', grok: 'Grok 4.7' };
-  const SHORT = { sonnet: 'Sonnet 5', opus: 'Opus 5.5', gpt: 'GPT-6.1 Terra', gemini: 'Gemini 3.8 Flash', grok: 'Grok 4.7' };
-  const PROVIDERS = [['Claude', ['sonnet', 'opus']], ['Codex', ['gpt']], ['Google Gemini', ['gemini']], ['Grok', ['grok']]];
-  const markOf = (model) => { const t = document.createElement('template'); t.innerHTML = modelButtonHtml(model) ?? ''; return t.content.querySelector('[data-provider-mark]')?.outerHTML ?? ''; };
+  // the providers' subtle marks, as the captured picker drew them by its group headings
+  const marks = {};
+  {
+    const t = document.createElement('template');
+    t.innerHTML = unpack(data.menu.html);
+    for (const g of t.content.querySelectorAll('[data-simple-provider]')) marks[g.dataset.simpleProvider] ??= g.querySelector('[data-provider-mark]')?.outerHTML ?? '';
+    const tb = document.createElement('template');
+    tb.innerHTML = modelButtonHtml('gemini') ?? '';
+    marks.antigravity ??= tb.content.querySelector('[data-provider-mark]')?.outerHTML ?? '';
+  }
+  const glyph = (name) => data.table.find((piece) => piece.includes(`gi-${name}"`) || piece.includes(`gi-${name} `)) ?? '';
+  const icon = (name, cls) => glyph(name).replace(/class="[^"]*"/, `class="gi gi-${name} ${cls}"`).replace(/ width="\d+"/, ' width="16"').replace(/ height="\d+"/, ' height="16"');
+  const CHECK = () => icon('check', 'shrink-0 text-accent').replace(/ width="16"/, ' width="14"').replace(/ height="16"/, ' height="14"');
+  const ROW = 'group flex min-h-[30px] w-full min-w-0 shrink-0 items-center gap-2 rounded-[10px] px-2 py-1 text-left text-[13px] leading-[18px] text-ink hover:bg-ink/[0.06] focus:bg-ink/[0.06] active:bg-ink/[0.08] disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent touch:min-h-10';
+  const LINE_ROW = 'group flex h-[30px] w-full min-w-0 shrink-0 items-center gap-2 rounded-[10px] px-2 text-left text-[13px] leading-[18px] text-ink hover:bg-ink/[0.06] focus:bg-ink/[0.06] active:bg-ink/[0.08] disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent touch:h-10';
+  const META = 'min-w-0 max-w-full truncate text-[12px] leading-4 text-ink-tertiary';
+  const HEAD = 'flex h-6 shrink-0 items-end gap-2 px-2 pb-0.5 text-[12px] font-medium leading-4 text-ink-tertiary';
+  const SEP = '<div role="separator" class="mx-2 my-1 h-[0.5px] shrink-0 bg-ink/[0.12]"></div>';
+  const GUTTER = 'flex size-4 shrink-0 items-center justify-center';
+  const TRAIL = 'shrink-0 text-ink-tertiary rtl:-scale-x-100';
+  const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  const lines = (label, meta) => `<span data-simple-model-text class="flex min-w-0 flex-1 flex-col"><span class="truncate">${esc(label)}</span>${meta ? `<span class="${META}">${esc(meta)}</span>` : ''}</span>`;
+  const picker = { scope: 'bot', open: new Set() };
   let menu = null;
   function closeMenu() {
     if (!menu) return;
@@ -458,68 +495,83 @@ function start() {
     modelButton($('#bot-panel'))?.setAttribute('aria-expanded', 'false');
     m.remove();
   }
-  // the app's model picker, from its captured parts: the bot's model on top, then each AI with its models
-  function buildMenu() {
-    const m = el(data.menu.html);
-    const list = $('[data-simple-models] > div', m);
-    const current = $('[data-current-model]', list).cloneNode(true);
-    const group = $('[role="group"]', list).cloneNode(true);
-    const sep = $('[role="separator"]', list).cloneNode(true);
-    const item = $('[role="group"] .contents', list).cloneNode(true);
-    const model = chat[S.bot].model;
-    current.querySelector('[data-provider-mark]')?.closest('span.flex')?.replaceChildren(html(markOf(model)));
-    $('[data-simple-model-text] .truncate', current).textContent = LABEL[model];
-    current.title = LABEL[model];
-    current.dataset.model = model;
-    list.replaceChildren(current, sep);
-    PROVIDERS.forEach(([name, models], gi) => {
-      const g = group.cloneNode(false);
-      if (gi) g.classList.add('mt-1');
-      const head = $('[id]', group).cloneNode(true);
-      head.removeAttribute('id');
-      head.firstElementChild.replaceChildren(html(markOf(models[0])));
-      head.lastElementChild.textContent = name;
-      g.removeAttribute('aria-labelledby');
-      g.setAttribute('aria-label', name);
-      g.append(head);
-      for (const mk of models) {
-        const it = item.cloneNode(true);
-        const btn = it.firstElementChild;
-        btn.dataset.model = mk;
-        btn.setAttribute('aria-label', LABEL[mk]);
-        btn.title = LABEL[mk];
-        btn.setAttribute('aria-pressed', String(mk === model));
-        btn.tabIndex = 0;
-        $('[data-simple-model-text] .truncate', btn).textContent = SHORT[mk];
-        g.append(it);
+  function menuBody() {
+    const model = chat[S.bot].model, cur = providerOf[model];
+    let list = `<button type="button" data-menu-row data-current-model data-model="${model}" aria-pressed="true" title="${esc(`${cur.name} · ${LABEL[model]}`)}" class="${ROW}"><span class="${GUTTER}">${marks[cur.key]}</span>${lines(LABEL[model], `${ids[S.bot].name}'s model`)}${CHECK()}</button>${SEP}`;
+    const order = [cur, ...PROVIDERS.filter((p) => p !== cur)];
+    order.forEach((p, gi) => {
+      const others = p.models.filter(([k]) => k !== model);
+      if (!others.length) return;
+      const open = picker.open.has(p.key);
+      const shown = open ? others : others.slice(0, p === cur ? 4 : 3);
+      list += `<div role="group" aria-label="${esc(p.name)}" data-simple-provider="${p.key}" class="flex flex-col gap-0.5${gi ? ' mt-1' : ''}"><div class="${HEAD}"><span class="${GUTTER}">${marks[p.key]}</span><span class="min-w-0 truncate">${esc(p.name)}</span></div>`;
+      for (const [k] of shown) list += `<button type="button" data-menu-row data-model="${k}" aria-pressed="false" aria-label="${esc(`${LABEL[k]} · ${p.name}`)}" title="${esc(`${LABEL[k]} · ${p.name}`)}" class="${ROW}"><span class="${GUTTER}"></span>${lines(SHORT[k])}</button>`;
+      if (others.length > shown.length || open) {
+        list += `<button type="button" data-menu-row data-simple-show-all="${p.key}" aria-expanded="${open}" class="${LINE_ROW} text-ink-secondary hover:text-ink focus:text-ink"><span class="${GUTTER}"></span><span class="min-w-0 flex-1 truncate">${open ? 'Show suggested only' : `Show all ${p.models.length} models`}</span>${icon(open ? 'chevron-up' : 'chevron-down', TRAIL) || icon('chevron-down', `${TRAIL} rotate-180`)}</button>`;
       }
-      list.append(g);
+      list += '</div>';
     });
-    const search = $('input', m);
-    if (search) { search.readOnly = true; search.tabIndex = -1; }
-    return m;
+    list += `<div role="group" aria-label="Not connected" data-picker-not-connected class="flex flex-col gap-0.5">${SEP}<div class="${HEAD}">Not connected</div>`;
+    for (const [k, name] of NOT_CONNECTED) list += `<button type="button" data-menu-row data-picker-connect="${k}" aria-label="Connect ${esc(name)}" class="${ROW}"><span class="${GUTTER}">${marks[k] ?? ''}</span>${lines(name).replace('<span class="truncate">', '<span class="truncate text-ink-secondary group-hover:text-ink group-focus:text-ink">')}<span aria-hidden="true" class="flex h-6 shrink-0 items-center rounded-full bg-ink/[0.06] px-2.5 text-[12px] leading-4 text-ink-secondary transition-colors group-hover:bg-ink/[0.1] group-hover:text-ink group-focus:bg-ink/[0.1] group-focus:text-ink motion-reduce:transition-none">Connect</span></button>`;
+    list += '</div>';
+    const pill = (value, label, hint) => `<button type="button" data-scope-pill="${value}" aria-pressed="${picker.scope === value}" tabindex="${picker.scope === value ? 0 : -1}" title="${esc(hint)}" class="h-6 min-w-0 truncate rounded-full px-2 text-[12px] leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus motion-reduce:transition-none touch:h-8 ${picker.scope === value ? 'bg-ink/[0.1] font-medium text-ink' : 'text-ink-secondary hover:text-ink'}">${label}</button>`;
+    const band = `<div data-simple-effort-band class="flex shrink-0 flex-col gap-0.5 border-t-[0.5px] border-transparent p-1.5"><div class="flex flex-col"><span class="flex h-6 items-end px-2 pb-0.5 text-[12px] font-medium leading-4 text-ink-tertiary">Use this model for</span><div data-picker-scope role="group" aria-label="Use this model for" class="m-1 grid grid-cols-2 rounded-full bg-ink/[0.05] p-[3px]">${pill('bot', 'This bot', 'Only this bot uses the model you pick.')}${pill('all', 'All bots', 'Every bot uses the model you pick, and new bots start on it.')}</div></div>${SEP}<button type="button" data-menu-row data-picker-more class="${LINE_ROW}"><span class="${GUTTER}">${icon('plus', 'shrink-0 text-ink-secondary')}</span><span class="min-w-0 flex-1 truncate">More providers or use an API key</span>${icon('chevron-right', TRAIL)}</button></div>`;
+    return `<div data-simple-model-menu class="flex min-h-0 flex-1 flex-col"><div data-simple-models class="min-h-0 flex-1 overflow-y-auto"><div class="flex flex-col gap-0.5 p-1.5">${list}</div></div>${band}</div>`;
   }
-  function openMenu(btn) {
-    if (menu) return closeMenu();
-    const m = buildMenu();
+  function paintMenu() {
+    const keep = $('[data-simple-models]', menu)?.scrollTop ?? 0;
+    menu.replaceChildren(html(menuBody()));
+    $('[data-simple-models]', menu).scrollTop = keep;
+  }
+  // the app's pickerPlacement inside the demo window: under the chip when it fits or has the most room, else over
+  // it, right-aligned to it. the gap is kept from the model card rather than the chip, so the menu never covers its edge
+  function placeMenu(btn) {
     const box = $('.dw-root');
     const k = parseFloat(getComputedStyle(host).scale) || 1;
     const ar = box.getBoundingClientRect(), br = btn.getBoundingClientRect();
-    const right = (ar.right - br.right) / k, bottom = (ar.bottom - br.top) / k + 6;
-    Object.assign(m.style, { position: 'absolute', left: 'auto', top: 'auto', right: `${Math.max(8, right)}px`, bottom: `${bottom}px`, maxHeight: `${Math.min(390, ar.height / k - bottom - 8)}px`, width: `${Math.min(300, ar.width / k - 16)}px` });
-    box.append(m);
-    btn.setAttribute('aria-expanded', 'true');
-    $('[data-current-model]', m)?.focus({ preventScroll: true });
+    const card = (btn.closest('[data-panel-row="model"]')?.parentElement?.closest('.rounded-\\[12px\\]') ?? btn).getBoundingClientRect();
+    const W = ar.width / k, H = ar.height / k, GAP = 6, MARGIN = 8;
+    const width = Math.min(320, W - MARGIN * 2);
+    const right = Math.min(Math.max((ar.right - br.right) / k, MARGIN), W - width - MARGIN);
+    const below = H - (card.bottom - ar.top) / k - GAP - MARGIN, above = (card.top - ar.top) / k - GAP - MARGIN;
+    menu.style.cssText = '';
+    Object.assign(menu.style, { position: 'absolute', left: 'auto', right: `${right}px`, width: `${width}px`, visibility: 'hidden' });
+    const need = menu.offsetHeight;
+    const down = need <= below || below >= above;
+    Object.assign(menu.style, down
+      ? { top: `${(card.bottom - ar.top) / k + GAP}px`, bottom: 'auto', maxHeight: `${Math.min(480, below)}px`, transformOrigin: 'top right' }
+      : { bottom: `${H - (card.top - ar.top) / k + GAP}px`, top: 'auto', maxHeight: `${Math.min(480, above)}px`, transformOrigin: 'bottom right' });
+    menu.style.visibility = '';
+  }
+  function openMenu(btn) {
+    if (menu) return closeMenu();
+    const m = el(data.menu.html);
+    m.className = m.className.replace(/\bds-\w+\b/g, '').trim();
+    m.removeAttribute('id');
     menu = m;
+    paintMenu();
+    $('.dw-root').append(m);
+    placeMenu(btn);
+    btn.setAttribute('aria-expanded', 'true');
+    m.focus({ preventScroll: true });
   }
   function pickModel(model) {
-    chat[S.bot].model = model;
+    const keys = picker.scope === 'all' ? BOTS.map((b) => b.key) : [S.bot];
+    for (const key of keys) chat[key].model = model;
     // only the label changes: the panel stays as it is
     const btn = modelButton($('#bot-panel'));
     const src = modelButtonHtml(model);
-    if (btn && src) { btn.innerHTML = src; btn.title = LABEL[model]; }
+    if (btn && src) { btn.innerHTML = src; btn.title = `${providerOf[model].name} · ${LABEL[model]}`; }
     closeMenu();
     btn?.focus({ preventScroll: true });
+  }
+  function menuClick(t) {
+    const show = t.closest('[data-simple-show-all]');
+    if (show) { const p = show.dataset.simpleShowAll; picker.open.has(p) ? picker.open.delete(p) : picker.open.add(p); return paintMenu(); }
+    const pill = t.closest('[data-scope-pill]');
+    if (pill) { picker.scope = pill.dataset.scopePill; return paintMenu(); }
+    const r = t.closest('[data-menu-row][data-model]');
+    if (r) pickModel(r.dataset.model);
   }
 
   // ---------- a bot's screen ----------
@@ -606,7 +658,7 @@ function start() {
   root.addEventListener('click', (e) => {
     const t = e.target instanceof Element ? e.target : null;
     if (!t) return;
-    if (menu && menu.contains(t)) { const r = t.closest('[data-menu-row][data-model]'); if (r) pickModel(r.dataset.model); return; }
+    if (menu && menu.contains(t)) return menuClick(t);
     if (menu) { closeMenu(); if (t.closest('#bot-panel button[aria-haspopup]')) return; return; }
     const row = t.closest('[data-dw-bot]');
     if (row && !t.closest('[data-bot-actions]')) return select(row.dataset.dwBot);
@@ -663,5 +715,4 @@ function start() {
     new ResizeObserver(() => setDock()).observe(dock());
   };
   if (document.fonts && document.fonts.status !== 'loaded') document.fonts.ready.then(setup); else setup();
-  void MODELS;
 }

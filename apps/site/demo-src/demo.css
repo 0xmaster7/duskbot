@@ -35,3 +35,11 @@
 .dw-dock i:nth-child(3) { background: #f2b33d; }
 .dw-screen-pointer { position: absolute; left: 0; top: 0; width: 18px; height: 18px; transition: transform 900ms cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .dw-screen-pointer { transition: none; } }
+
+/* the demo sits in a page: a scroll that reaches the end of anything inside it carries on to the page, never stops there */
+:host, *, .dw-body { overscroll-behavior: auto !important; }
+
+/* what does something here shows the hand; the app's other buttons do nothing in the demo and keep the arrow */
+[data-sidebar-bot-row], [data-chathead-pill], #bot-panel [data-panel-tab], #bot-panel [role="switch"], #bot-panel [data-tour="model"],
+#bot-panel button[aria-label="Close"], button[aria-label="Open bot list"], [data-ask-card] button,
+[data-model-picker-content] [data-model], [data-model-picker-content] [data-simple-show-all], [data-model-picker-content] [data-scope-pill] { cursor: pointer; }

@@ -101,6 +101,8 @@ const classes = new Set();
 for (const m of allHtml.matchAll(/class=\\?"([^"\\]*)\\?"/g)) for (const c of decode(m[1]).split(/\s+/)) if (c) classes.add(c);
 const demoJs = fs.readFileSync(path.join(here, 'demo.js'), 'utf8');
 for (const m of demoJs.matchAll(/['"`]([^'"`\n]*)['"`]/g)) for (const c of m[1].split(/\s+/)) if (c) classes.add(c);
+// markup built in template literals nests quotes, so every bare token is a candidate too, as tailwind's own scanner reads
+for (const c of demoJs.split(/[\s'"`<>{}]+/)) if (c) classes.add(c);
 const attrs = new Set();
 for (const m of allHtml.matchAll(/\s(data-[\w-]+|aria-[\w-]+|role|dir|hidden|disabled|inert|open|type|title|id)=/g)) attrs.add(m[1]);
 for (const m of demoJs.matchAll(/(data-[\w-]+)/g)) attrs.add(m[1]);
