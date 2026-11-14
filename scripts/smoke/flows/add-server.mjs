@@ -103,6 +103,9 @@ await runFlow(flow, async () => {
       await flow.click("sign in to your AI");
       await flow.waitFor(`Boolean(document.querySelector("[data-vps-screen]"))`, "the server sheet", 60_000);
       if (await screen() === "signin") {
+        // the AIs on the server, each with its own sign in, before anything is skipped
+        await flow.waitFor(`Boolean(document.querySelector('[data-vps-screen] ul:not([aria-busy])') || /no ai is set up/i.test(document.querySelector("[data-vps-screen]")?.innerText ?? ""))`, "the server's AIs to sign in to", 60_000);
+        await flow.shot("sign-in");
         flow.facts.signInScreen = (await flow.text("[data-vps-screen]")).replace(/\s+/g, " ").slice(0, 300);
         await flow.click("skip for now");
         await sleep(1500);

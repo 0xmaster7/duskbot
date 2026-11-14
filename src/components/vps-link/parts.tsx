@@ -32,7 +32,8 @@ export function useNow(every: number): number {
 
 export function Heading({ children }: { children: ReactNode }) {
   return (
-    <h1 id={TITLE_ID} className="absolute left-1/2 top-[calc(50%-264px)] m-0 w-max max-w-[min(560px,calc(100%-32px))] -translate-x-1/2 text-center text-[28px] font-normal leading-[34px] tracking-[-0.02em] text-ink text-balance">
+    // held by its last line, so a long server name wraps upward, away from the picture and the mascot hopping in it
+    <h1 id={TITLE_ID} className="absolute bottom-[calc(50%+230px)] left-1/2 m-0 w-max max-w-[min(560px,calc(100%-32px))] -translate-x-1/2 text-center text-[28px] font-normal leading-[34px] tracking-[-0.02em] text-ink text-balance">
       {children}
     </h1>
   );
