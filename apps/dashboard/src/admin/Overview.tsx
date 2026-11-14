@@ -58,6 +58,9 @@ function useSelection() {
   });
   useEffect(() => {
     const q = new URLSearchParams();
+    // the customer card's own param rides along
+    const customer = new URLSearchParams(location.search).get("customer");
+    if (customer) q.set("customer", customer);
     if (state.range.key !== "30d") q.set("range", state.range.key);
     if (state.surface !== "all") q.set("site", state.surface);
     for (const [k, v] of Object.entries(state.filters)) if (v !== undefined) q.set(`f.${k}`, v);

@@ -25,6 +25,7 @@ import { OpsPage } from "./Ops";
 import { AccountsUsagePage } from "./OpsAccounts";
 import { FeedbackPage } from "./Feedback";
 import { Loading, Tabs } from "./ui";
+import { CustomerSheetHost } from "./CustomerSheet";
 import { AnimatePresence, EASE_OUT, GLIDE, m, PageIn, ToastStack } from "../ui/motion";
 
 const ICON = { size: 17, strokeWidth: 1.75 } as const;
@@ -245,6 +246,7 @@ export function AdminApp() {
           <li className="contents"><kbd className="font-mono text-ink">?</kbd><span>this list</span></li>
         </ul>
       </Modal>
+      {me.data && <CustomerSheetHost />}
       <Toasts />
     </div>
   );

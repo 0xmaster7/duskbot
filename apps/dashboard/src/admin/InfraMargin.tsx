@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { cx } from "../ui/kit";
 import { AnimatePresence } from "../ui/motion";
-import { Link } from "../lib/router";
+import { CustomerLink } from "./CustomerSheet";
 import { useAdmin } from "./api";
 import { Avatar, percent, personName, usd } from "./kit";
 import { BarRow, ChartCard } from "./charts";
 import { n } from "./ui";
 import type { InfraCustomer, InfraReport } from "./revenue-types";
 
-const personLink = (accountId: string) => `/admin/people/visitors?person=${encodeURIComponent(accountId)}`;
 const COLS = "grid-cols-[minmax(0,2fr)_72px_84px_84px_72px] max-md:grid-cols-[minmax(0,1fr)_auto]";
 const COMPACT = "grid-cols-[minmax(0,1fr)_72px_64px]";
 
@@ -28,7 +27,7 @@ function Margin({ row }: { row: Pick<InfraCustomer, "margin"> }) {
 function Row({ c, compact }: { c: InfraCustomer; compact?: boolean }) {
   return (
     <li>
-      <Link to={personLink(c.accountId)} className={cx("hover-row grid items-center gap-4 rounded-[12px] px-2.5 py-2", compact ? COMPACT : COLS)}>
+      <CustomerLink accountId={c.accountId} className={cx("hover-row grid items-center gap-4 rounded-[12px] px-2.5 py-2", compact ? COMPACT : COLS)}>
         <span className="flex min-w-0 items-center gap-3">
           <Avatar seed={c.accountId} size={22} customer account={{ id: c.accountId }} />
           <span className="min-w-0">
@@ -40,7 +39,7 @@ function Row({ c, compact }: { c: InfraCustomer; compact?: boolean }) {
         <span className={cx("text-end font-mono text-13 text-ink num", !compact && "max-md:hidden")} title="instabox so far this month">{usd(c.costCents)}</span>
         {!compact && <span className="text-end font-mono text-13 text-ink-3 num max-md:hidden">{usd(c.projectedCents)}</span>}
         <Margin row={c} />
-      </Link>
+      </CustomerLink>
     </li>
   );
 }

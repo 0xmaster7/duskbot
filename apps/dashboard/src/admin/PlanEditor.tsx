@@ -22,7 +22,7 @@ const CODES: Record<string, string> = {
   invalid_request: "that date or plan didn't work. pick a date after today.",
 };
 const ACTION: Record<string, string> = {
-  "plan.grant": "gave a plan", "plan.change": "changed the plan", "plan.set_end": "moved the end date", "plan.cancel_now": "ended the plan now",
+  "plan.grant": "gave a plan", "plan.change": "changed the plan", "plan.interval": "changed how often it bills", "plan.set_end": "moved the end date", "plan.cancel_now": "ended the plan now",
   "plan.cancel_at_end": "set it to end at the period end", "plan.keep": "kept the plan going", "person.note": "note",
   "cloud.pause": "paused a cloud", "cloud.resume": "resumed a cloud", "cloud.delete": "deleted a cloud",
 };
@@ -205,6 +205,7 @@ function AuditList({ entries }: { entries: AuditEntry[] }) {
                 <m.li key={entry.id} layout="position" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-2 text-13">
                   <span className="text-ink">{ACTION[entry.action] ?? entry.action.replace(/[._]/g, " ")}</span>
                   {typeof d.text === "string" ? <span className="min-w-0 basis-full text-ink-2">{d.text}</span>
+                    : entry.action === "plan.interval" && typeof d.interval === "string" ? <span className="min-w-0 text-ink-3">{d.from === "year" ? "yearly" : "monthly"} <span aria-hidden>→</span><span className="sr-only">to</span> {d.interval === "year" ? "yearly" : "monthly"}</span>
                     : (typeof d.before === "string" || typeof d.after === "string") && <span className="min-w-0 text-ink-3">{String(d.before ?? "")} <span aria-hidden>→</span><span className="sr-only">to</span> {String(d.after ?? "")}</span>}
                   {d.ok === false && <span className="text-bad">failed{typeof d.code === "string" ? `: ${d.code.replace(/_/g, " ")}` : ""}</span>}
                   <span className="ms-auto shrink-0 text-12 text-ink-4" title={stamp(entry.at)}>{entry.actorEmail ?? "someone"} · {ago(entry.at, now)}</span>

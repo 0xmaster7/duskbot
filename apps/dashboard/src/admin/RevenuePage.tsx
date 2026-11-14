@@ -1,11 +1,10 @@
-import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { RefreshCw } from "@/icons";
 import { Button, cx, Segmented } from "../ui/kit";
 import { SkyEmpty } from "../ui/Sky";
 import { AnimatePresence, m, Pill, usePill, useSlots } from "../ui/motion";
 import { Figure } from "../ui/Figure";
 import { ago } from "../lib/format";
-import { Link } from "../lib/router";
 import { useNow } from "../lib/now";
 import { toast } from "../lib/toast";
 import { AdminApiError, adminCall, useAdmin } from "./api";
@@ -18,11 +17,41 @@ import { AdminHeader, Failed, Loading, n, SearchBox } from "./ui";
 import { STATUS } from "./PersonBilling";
 import { InfraMargin } from "./InfraMargin";
 import { Fold } from "./Fold";
-import type { BreakdownRow, CustomerRow, FeedItem, FeedKind, Health, RevenueFunnelStep, RiskRow, SubscriptionReport } from "./revenue-types";
+import { CustomerLink, ModeChip } from "./CustomerSheet";
+import type { BreakdownRow, CustomerRow, FeedItem, FeedKind, Health, MoneyMode, RevenueFunnelStep, RiskRow, SubscriptionReport } from "./revenue-types";
 
 const DAY = 86_400_000;
-export const personLink = (accountId: string) => `/admin/people/visitors?person=${encodeURIComponent(accountId)}`;
 const words = (value: string) => value.replace(/_/g, " ");
+
+/** which money the revenue numbers count: live (the default), test (dodo test mode) or both; kept per browser, shared by every view */
+type MoneyView = MoneyMode | "all";
+const MONEY_KEY = "dusk-admin-money";
+const moneyListeners = new Set<() => void>();
+const readMoney = (): MoneyView => { try { const v = localStorage.getItem(MONEY_KEY); return v === "test" || v === "all" ? v : "live"; } catch { return "live"; } };
+export function useMoneyView(): [MoneyView, (next: MoneyView) => void] {
+  const value = useSyncExternalStore((fn) => { moneyListeners.add(fn); return () => void moneyListeners.delete(fn); }, readMoney, () => "live" as const);
+  const set = (next: MoneyView) => { try { if (next === "live") localStorage.removeItem(MONEY_KEY); else localStorage.setItem(MONEY_KEY, next); } catch { /* private mode keeps live */ } moneyListeners.forEach((fn) => fn()); };
+  return [value, set];
+}
+const MONEY_OPTIONS: Array<{ value: MoneyView; label: string }> = [{ value: "live", label: "live" }, { value: "test", label: "test" }, { value: "all", label: "all" }];
+function MoneySwitch() {
+  const [view, setView] = useMoneyView();
+  return <Segmented<MoneyView> label="which money" value={view} onChange={setView} options={MONEY_OPTIONS} />;
+}
+/** live and test totals side by side, so test money is visible without ever joining the live numbers */
+function MoneyTotals({ report }: { report: SubscriptionReport }) {
+  const [, setView] = useMoneyView();
+  if (!report.modes) return null;
+  const { live, test } = report.modes;
+  const line = (label: string, t: typeof live) => `${label}: ${usd(t.mrr, true)} mrr, ${n(t.customers)} paying, ${usd(t.gross, true)} charged`;
+  return (
+    <p className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-12 text-ink-3">
+      <span>{line("live", live)}</span>
+      <span className="inline-flex items-center gap-1.5"><ModeChip mode="test" />{line("test", test)}</span>
+      {report.mode === "live" && report.serverMode === "test" && !live.payments && test.payments > 0 && <button type="button" onClick={() => setView("test")} className="text-link h-8 text-12">this server takes test payments. show them</button>}
+    </p>
+  );
+}
 const shortDay = (t: number) => new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric" }).toLowerCase();
 const signed = (cents: number) => `${cents > 0 ? "+" : ""}${usd(cents, true)}`;
 const rate = (v: number | null) => v === null ? "-" : percent(v);
@@ -346,12 +375,12 @@ function TimeToPay({ data }: { data: SubscriptionReport["timeToPay"] }) {
   );
 }
 
-function PersonCell({ accountId, email, sub }: { accountId: string; email: string | null; sub?: ReactNode }) {
+function PersonCell({ accountId, email, name, sub }: { accountId: string; email: string | null; name?: string | null; sub?: ReactNode }) {
   return (
     <span className="flex min-w-0 items-center gap-3">
       <Avatar seed={accountId} size={24} customer account={{ id: accountId }} />
       <span className="min-w-0">
-        <span className="block truncate text-14 font-medium text-ink">{personName(accountId, email)}</span>
+        <span className="flex min-w-0 items-baseline gap-2"><span className="truncate text-14 font-medium text-ink" title={email ?? undefined}>{personName(accountId, email)}</span>{name && <span className="shrink-0 truncate text-13 text-ink-3 max-sm:hidden">{name}</span>}</span>
         {sub && <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-1.5 text-12 text-ink-3">{sub}</span>}
       </span>
     </span>
@@ -369,13 +398,13 @@ function Renewals({ report }: { report: SubscriptionReport }) {
         <ul>
           {list.map((row) => (
             <li key={`${row.accountId}:${row.at}`}>
-              <Link to={personLink(row.accountId)} className="hover-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] px-2.5 py-2">
+              <CustomerLink accountId={row.accountId} className="hover-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] px-2.5 py-2">
                 <PersonCell accountId={row.accountId} email={row.email} sub={<>{row.plan}{row.interval === "year" ? ", yearly" : ""}{row.activeDays !== null && <span className="text-ink-4">· active {n(row.activeDays)} of 14 days</span>}</>} />
                 <span className="text-end">
                   <span className="block font-mono text-14 font-medium text-money num">{usd(row.amountCents)}</span>
                   <span className="block text-12 text-ink-4">{Math.max(0, Math.round((row.at - now) / DAY)) === 0 ? "today" : `in ${Math.round((row.at - now) / DAY)} days`}</span>
                 </span>
-              </Link>
+              </CustomerLink>
             </li>
           ))}
         </ul>
@@ -397,13 +426,13 @@ function RiskList({ risk }: { risk: RiskRow[] }) {
       <ul className="-mx-1.5">
         {risk.slice(0, 6).map((row) => (
           <li key={`${row.accountId}:${row.reason}`}>
-            <Link to={personLink(row.accountId)} className="hover-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] px-2.5 py-2">
+            <CustomerLink accountId={row.accountId} className="hover-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] px-2.5 py-2">
               <PersonCell accountId={row.accountId} email={row.email} sub={<><Chip wash={REASON[row.reason].wash}>{REASON[row.reason].label}</Chip>{row.plan}{row.renewsAt && <span className="text-ink-4">· renews {shortDay(row.renewsAt)}</span>}</>} />
               <span className="text-end">
                 <span className="block font-mono text-14 text-ink-2 num">{usd(row.mrr)}<span className="text-12 text-ink-4">/mo</span></span>
                 <span className="block text-12 text-ink-4">{row.activeDays === null ? "no app use seen" : `active ${n(row.activeDays)} of 14 days`}</span>
               </span>
-            </Link>
+            </CustomerLink>
           </li>
         ))}
       </ul>
@@ -463,7 +492,7 @@ function Feed({ feed }: { feed: FeedItem[] }) {
               );
               return (
                 <m.li key={item.id} layout="position" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, transition: { duration: 0.1 } }} transition={{ type: "spring", visualDuration: 0.28, bounce: 0 }}>
-                  {item.accountId ? <Link to={personLink(item.accountId)} className="hover-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] px-2.5 py-2">{body}</Link>
+                  {item.accountId ? <CustomerLink accountId={item.accountId} className="hover-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] px-2.5 py-2">{body}</CustomerLink>
                     : <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-2.5 py-2">{body}</div>}
                 </m.li>
               );
@@ -503,7 +532,7 @@ function Customers({ customers }: { customers: CustomerRow[] }) {
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return customers.filter((c) => (status === "all" || c.status === status) && (plan === "all" || c.plan === plan) && (channel === "all" || c.channel === channel) && (health === "all" || c.health === health)
-      && (!needle || [c.email ?? "", c.accountId, c.plan, c.source, c.country ? countryName(c.country) : ""].some((v) => v.toLowerCase().includes(needle))))
+      && (!needle || [c.email ?? "", c.name ?? "", c.accountId, c.plan, c.source, c.country ? countryName(c.country) : ""].some((v) => v.toLowerCase().includes(needle))))
       .sort((a, b) => sort === "mrr" ? b.mrr - a.mrr || b.ltv - a.ltv : sort === "ltv" ? b.ltv - a.ltv : (b.firstPaidAt ?? 0) - (a.firstPaidAt ?? 0));
   }, [customers, q, status, plan, channel, health, sort]);
   useEffect(() => setAll(false), [q, status, plan, channel, health]);
@@ -517,7 +546,7 @@ function Customers({ customers }: { customers: CustomerRow[] }) {
         <Segmented<"mrr" | "ltv" | "newest"> label="sort by" value={sort} onChange={setSort} options={[{ value: "mrr", label: "mrr" }, { value: "ltv", label: "lifetime" }, { value: "newest", label: "newest" }]} />
       </div>
       <div className="flex flex-wrap items-center gap-2 px-1 pb-2">
-        <SearchBox value={q} onChange={setQ} label="search customers" placeholder="email, plan, source or country" />
+        <SearchBox value={q} onChange={setQ} label="search customers" placeholder="email, name, plan, source or country" />
         <Filter label="status" value={status} onChange={setStatus} options={[["all", "any status"], ...Object.entries(STATUS).map(([k, v]) => [k, v.label] as [string, string])]} />
         <Filter label="plan" value={plan} onChange={setPlan} options={[["all", "any plan"], ...plans.map((p) => [p, p] as [string, string])]} />
         <Filter label="channel" value={channel} onChange={setChannel} options={[["all", "any channel"], ...channels.map((c) => [c, CHANNEL[c] ?? c] as [string, string])]} />
@@ -531,9 +560,10 @@ function Customers({ customers }: { customers: CustomerRow[] }) {
               <AnimatePresence initial={false} mode="popLayout">
                 {list.map((c, i) => (
                   <m.li key={slots[i]} layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.1 } }} transition={{ layout: { type: "spring", visualDuration: 0.3, bounce: 0 }, opacity: { duration: 0.16 } }}>
-                    <Link to={personLink(c.accountId)} className={cx("hover-row grid items-center gap-4 rounded-[12px] px-2.5 py-2.5", COLS)}>
-                      <PersonCell accountId={c.accountId} email={c.email} sub={<>
+                    <CustomerLink accountId={c.accountId} className={cx("hover-row grid items-center gap-4 rounded-[12px] px-2.5 py-2.5", COLS)}>
+                      <PersonCell accountId={c.accountId} email={c.email} name={c.name} sub={<>
                         <Chip wash={STATUS[c.status].wash}>{STATUS[c.status].label}</Chip>
+                        <ModeChip mode={c.mode} />
                         <span className="text-ink-4">{c.status === "churned" && c.churnedAt ? `left ${shortDay(c.churnedAt)}` : c.renewsAt ? `renews ${shortDay(c.renewsAt)}` : c.firstPaidAt ? `since ${shortDay(c.firstPaidAt)}` : ""}</span>
                         <span className="md:hidden">· {c.plan}</span>
                         {c.failed > 0 && <span className="text-ink-4">· {n(c.failed)} failed</span>}
@@ -543,7 +573,7 @@ function Customers({ customers }: { customers: CustomerRow[] }) {
                       <span className="text-end font-mono text-13 text-money num max-md:hidden">{usd(c.ltv, true)}</span>
                       <span className="max-md:hidden"><Chip wash={HEALTH[c.health].wash}>{HEALTH[c.health].label}</Chip></span>
                       <span className="min-w-0 max-md:hidden"><span className="block truncate text-13 text-ink-2">{c.source === "unknown" ? <span className="text-ink-4">unknown</span> : c.source}</span><span className="block truncate text-12 text-ink-4">{CHANNEL[c.channel] ?? c.channel}{c.country ? ` · ${flagOf(c.country)} ${countryName(c.country)}` : ""}</span></span>
-                    </Link>
+                    </CustomerLink>
                   </m.li>
                 ))}
               </AnimatePresence>
@@ -560,17 +590,19 @@ function Customers({ customers }: { customers: CustomerRow[] }) {
 const DAYS: Array<[string, string]> = [["30", "30 days"], ["90", "90 days"], ["365", "a year"]];
 export function RevenuePage() {
   const [days, setDays] = useState("90");
-  const { data, error, loading, reload } = useAdmin<SubscriptionReport>(`/revenue?days=${days}`, 60_000);
+  const [money] = useMoneyView();
+  const { data, error, loading, reload } = useAdmin<SubscriptionReport>(`/revenue?days=${days}&mode=${money}`, 60_000);
   const empty = data !== null && data.customers.length === 0 && data.cash.payments === 0;
   return (
     <>
-      <AdminHeader title="revenue" sub="mrr, churn and every customer, straight from the billing records." action={data ? <SyncButton sync={data.sync} onDone={reload} /> : undefined} />
+      <AdminHeader title="revenue" sub="mrr, churn and every customer, straight from the billing records." action={<div className="flex flex-wrap items-center gap-3"><MoneySwitch />{data && <SyncButton sync={data.sync} onDone={reload} />}</div>} />
       {error && <Failed error={error} retry={reload} />}
       {!data && loading && <Loading rows={8} />}
       {data && (
         <div className={cx("flex flex-col gap-4 transition-opacity duration-150", loading && "opacity-80")}>
+          <MoneyTotals report={data} />
           {empty ? (
-            <section className="rounded-[24px] bg-card"><SkyEmpty art="notebook" title="no subscriptions yet.">the first paid plan lands here with mrr, churn, cohorts and every customer.</SkyEmpty></section>
+            <section className="rounded-[24px] bg-card"><SkyEmpty art="notebook" title={money === "live" ? "no live subscriptions yet." : money === "test" ? "no test subscriptions." : "no subscriptions yet."}>{money === "live" ? "test-mode payments never count here. switch to test to see them." : "the first paid plan lands here with mrr, churn, cohorts and every customer."}</SkyEmpty></section>
           ) : (
             <>
               <Headline report={data} />
@@ -620,7 +652,7 @@ function Buyers({ customers }: { customers: CustomerRow[] }) {
     if (!all) return sorted.slice(0, 5);
     const needle = q.trim().toLowerCase();
     return sorted.filter((c) => (plan === "all" || c.plan === plan) && (status === "all" || c.status === status)
-      && (!needle || [c.email ?? "", personName(c.accountId, c.email)].some((v) => v.toLowerCase().includes(needle))));
+      && (!needle || [c.email ?? "", c.name ?? "", personName(c.accountId, c.email)].some((v) => v.toLowerCase().includes(needle))));
   }, [sorted, all, q, plan, status]);
   const slots = useSlots(rows.map((c) => c.accountId));
   const filtered = all && (q.trim() !== "" || plan !== "all" || status !== "all");
@@ -633,7 +665,7 @@ function Buyers({ customers }: { customers: CustomerRow[] }) {
       </div>
       {all && (
         <div className="flex flex-wrap items-center gap-2 px-1 pb-2 pt-1">
-          <SearchBox value={q} onChange={setQ} label="search customers by email" placeholder="search by email" />
+          <SearchBox value={q} onChange={setQ} label="search customers by email or name" placeholder="search by email or name" />
           <Filter label="plan" value={plan} onChange={setPlan} options={[["all", "any plan"], ...plans.map((p) => [p, p] as [string, string])]} />
           <Filter label="status" value={status} onChange={setStatus} options={[["all", "any status"], ...Object.entries(STATUS).map(([k, v]) => [k, v.label] as [string, string])]} />
         </div>
@@ -643,9 +675,10 @@ function Buyers({ customers }: { customers: CustomerRow[] }) {
           <AnimatePresence initial={false} mode="popLayout">
             {rows.map((c, i) => (
               <m.li key={slots[i]} layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.1 } }} transition={{ layout: { type: "spring", visualDuration: 0.25, bounce: 0 }, opacity: { duration: 0.16 } }}>
-                <Link to={personLink(c.accountId)} className={cx("hover-row grid items-center gap-4 rounded-[12px] px-2 py-2", BUYER_COLS)}>
-                  <PersonCell accountId={c.accountId} email={c.email} sub={<>
+                <CustomerLink accountId={c.accountId} className={cx("hover-row grid items-center gap-4 rounded-[12px] px-2 py-2", BUYER_COLS)}>
+                  <PersonCell accountId={c.accountId} email={c.email} name={c.name} sub={<>
                     <Chip wash={STATUS[c.status].wash}>{STATUS[c.status].label}</Chip>
+                    <ModeChip mode={c.mode} />
                     {c.country && <span title={countryName(c.country)}><span aria-hidden>{flagOf(c.country)}</span><span className="sr-only">{countryName(c.country)}</span></span>}
                     <span className="truncate md:hidden">{c.plan}{c.interval ? `, ${c.interval === "year" ? "yearly" : "monthly"}` : ""}</span>
                   </>} />
@@ -655,7 +688,7 @@ function Buyers({ customers }: { customers: CustomerRow[] }) {
                     <span className="block font-sans text-12 text-ink-4 md:hidden">{ago(paidAt(c) || null, now).toLowerCase()}</span>
                   </span>
                   <span className="truncate text-end text-12 text-ink-3 max-md:hidden">{ago(paidAt(c) || null, now).toLowerCase()}</span>
-                </Link>
+                </CustomerLink>
               </m.li>
             ))}
           </AnimatePresence>
@@ -668,14 +701,15 @@ function Buyers({ customers }: { customers: CustomerRow[] }) {
 
 /** the overview's money line: mrr, net new and customers, the path from visitor to a second month's payment, and who bought */
 export function RevenueStrip({ days }: { days: number }) {
-  const { data } = useAdmin<SubscriptionReport>(`/revenue?days=${Math.min(400, Math.max(7, days))}`, 120_000);
+  const [money] = useMoneyView();
+  const { data } = useAdmin<SubscriptionReport>(`/revenue?days=${Math.min(400, Math.max(7, days))}&mode=${money}`, 120_000);
   if (!data) return <div className="h-[120px] rounded-[24px] bg-card" aria-busy="true" />;
   const h = data.headline;
   return (
     <section aria-labelledby="revenue-strip" className="flex flex-col gap-1.5 rounded-[24px] bg-card p-2">
       <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-1.5 max-lg:grid-cols-1">
         <div className="flex flex-col rounded-[18px] bg-pop p-3">
-          <h2 id="revenue-strip" className="text-14 font-medium text-ink">subscriptions</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2"><h2 id="revenue-strip" className="text-14 font-medium text-ink">subscriptions</h2><MoneySwitch /></div>
           <div className="mt-2 grid grid-cols-3 gap-3">
             <div className="min-w-0"><div className="truncate text-12 text-ink-3">mrr</div><div className="truncate font-mono text-[22px] font-medium leading-8 tracking-[-0.04em] text-money num"><Figure value={usd(h.mrr, true)} className="!font-mono !text-[22px] !leading-8 !tracking-[-0.04em] ![color:inherit]" /></div><MoneyDelta now={h.mrr} before={h.previous.mrr} /></div>
             <div className="min-w-0"><div className="truncate text-12 text-ink-3">net new</div><div className={cx("truncate font-mono text-[22px] font-medium leading-8 tracking-[-0.04em] num", h.netNewMrr >= 0 ? "text-money" : "text-ink-2")}>{signed(h.netNewMrr)}</div><span className="text-12 text-ink-4">this month</span></div>
@@ -689,6 +723,7 @@ export function RevenueStrip({ days }: { days: number }) {
         </div>
       </div>
       <Buyers customers={data.customers} />
+      <MoneyTotals report={data} />
     </section>
   );
 }

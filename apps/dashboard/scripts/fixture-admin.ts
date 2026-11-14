@@ -165,7 +165,7 @@ function ledgerRow(state: BillingState, input: { type: string; at: number; sub: 
     country: input.type === "payment.succeeded" ? pick(["US", "US", "US", "IN", "DE", "GB", "CA", "FR", "BR", "NL", "AU", "JP"]) : null, status: null }), id: ledgerId(key), recordedAt: input.at });
 }
 
-/** a year of made-up subscription lives: renewals, upgrades and downgrades, failed payments that recover or do not,
+/** a year of made-up subscription lives, shown as live money beside the fixture's own test checkouts: renewals, upgrades and downgrades, failed payments that recover or do not,
  * cancellations, a comeback, a yearly plan, a comp, a refund and a dispute */
 function seedHistoric(app: ReturnType<typeof createDashboardApp>, now: number) {
   const state = app.billing.store.state, quote = (bundle: string, interval: "month" | "year") => app.billing.service.quote({ ...BILLING_CONFIG.bundles.find(item => item.id === bundle)!.cart, interval });
@@ -177,7 +177,7 @@ function seedHistoric(app: ReturnType<typeof createDashboardApp>, now: number) {
       status: "completed", source, createdAt: start - 6 * 60_000, openUntil: start + 30 * 60_000, subscriptionId: null, amountCents: priced.totalCents, lines: priced.lines });
     const sub: Sub = { id: `sub_hist_${account.id.slice(5, 15)}_${start}`, accountId: account.id, providerSubscriptionId: `dsub_hist_${account.id.slice(5, 15)}_${start}`, checkoutId, cart: priced.cart,
       totalCents: source === "admin_comp" ? 0 : priced.totalCents, lines: priced.lines, status: "active", source, licenseId: null, cloudId: null, currentPeriodStart: start, currentPeriodEnd: add(start, interval === "year" ? 12 : 1),
-      cancelAtPeriodEnd: false, createdAt: start, updatedAt: start, version: 1, lastEventAt: start };
+      cancelAtPeriodEnd: false, createdAt: start, updatedAt: start, version: 1, lastEventAt: start, mode: "live" };
     state.checkouts.at(-1)!.subscriptionId = sub.id;
     state.subscriptions.push(sub);
     ledgerRow(state, { type: "checkout.started", at: start - 6 * 60_000, sub, ref: checkoutId, amount: sub.totalCents });

@@ -1,3 +1,5 @@
+export type MoneyMode = "test" | "live";
+export interface MoneyTotals { mrr: number; customers: number; gross: number; payments: number }
 export interface MonthRow {
   start: number; label: string; startMrr: number; mrr: number; startCustomers: number; customers: number;
   new: number; expansion: number; reactivation: number; contraction: number; churned: number; netNew: number;
@@ -11,6 +13,8 @@ export type Health = "good" | "watch" | "risk" | "gone";
 export type CustomerStatus = "active" | "past_due" | "on_hold" | "cancelling" | "churned" | "comped";
 export interface CustomerRow {
   accountId: string; email: string | null; plan: string; interval: "month" | "year" | null; status: CustomerStatus;
+  /** their real name when the account has one; test or live money (absent from an older service) */
+  name?: string | null; mode?: MoneyMode;
   mrr: number; ltv: number; payments: number; failed: number; refunds: number; firstPaidAt: number | null; renewsAt: number | null; churnedAt: number | null;
   /** their newest payment, before tax */
   lastPaidAt: number | null; lastPaidCents: number | null;
@@ -44,6 +48,8 @@ export interface SubscriptionReport {
   funnel: { days: number; steps: RevenueFunnelStep[] };
   sync: { available: boolean; last: { at: number; added: number; scanned: number } | null };
   /** the dashboard's cancel flow over the last 90 days; absent from an older service */
+  /** which money these numbers count (live by default), the mode this server takes payments in, and both totals apart; absent from an older service */
+  mode?: MoneyMode | "all"; serverMode?: MoneyMode; modes?: Record<MoneyMode, MoneyTotals>;
   cancelFlow?: { started: number; saved: number; cancelled: number; discounts: number; reasons: Array<{ reason: string; started: number; saved: number; cancelled: number }> };
 }
 export interface PersonBilling {
