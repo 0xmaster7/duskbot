@@ -7,7 +7,7 @@ import { NoteRow, SwitchRow } from "./ListRows";
 const POLL_MS = 10_000;
 
 /** Settings > Computer > Your computer: the bot computers' web traffic through the person's own computer. Only on a linked VPS. */
-export function RouteTrafficRow() {
+export function RouteTrafficRow({ blockedOnly = false }: { blockedOnly?: boolean } = {}) {
   const [status, setStatus] = useState<EgressStatus | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,14 +52,14 @@ export function RouteTrafficRow() {
   const hint = !status.enabled ? t("routeTraffic.hint") : fallback ? t("routeTraffic.offline") : t("routeTraffic.through");
   return (
     <>
-      <SwitchRow
+      {!blockedOnly && <SwitchRow
         data-settings-row="route-traffic"
         title={inApp ? t("routeTraffic.title") : t("routeTraffic.titleWeb")}
         hint={<span aria-live="polite" className={fallback ? "text-warning" : undefined}>{hint}</span>}
         checked={status.enabled}
         disabled={pending}
         onChange={() => void save({ enabled: !status.enabled })}
-      />
+      />}
       {typeof status.blockedSitesEnabled === "boolean" && (
         <SwitchRow
           data-settings-row="route-blocked-sites"

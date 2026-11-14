@@ -856,6 +856,11 @@ export function LocalComputerSection() {
         />
       </RowsCard>
 
+      {cloudHome && (
+        <RowsCard label={t("settings.grok.group.yourComputer")} data-settings-block="cloud-home-connection">
+          <RouteTrafficRow blockedOnly />
+        </RowsCard>
+      )}
       {!cloudHome && (
         <RowsCard label={t("settings.grok.group.yourComputer")} data-settings-block="private-desktop">
           <DirectLinkRow />

@@ -23,6 +23,7 @@ function rtcWay(screenIce) {
 }
 import { createEgressDialer, createEgressEndpoint, seenAsCache } from "./vps-link-egress.mjs";
 import { createVpsLink } from "./vps-link.mjs";
+import { createHomeEgressLink } from "./home-egress-link.mjs";
 import { proxyFromPac } from "./vps-link-protocol.mjs";
 
 export const DEFAULT_LINK_BASE = "https://link.dusk.bot";
@@ -133,6 +134,8 @@ export function installLinkDirectIpc({ ipcMain, pageOrigin, link }) {
  *   appVersion?: string,
  *   linkGrant?(): Promise<string | null>,
  *   screenIce?(): Promise<Array<{ urls: string[], username?: string, credential?: string }> | null>,
+ *   myCloud?(): string | null,
+ *   cloudAwake?(): boolean,
  * }} deps
  */
 export function installVpsLink(deps) {
@@ -259,7 +262,21 @@ export function installVpsLink(deps) {
     for (const event of ["on-ac", "on-battery"]) deps.powerMonitor?.on(event, () => awake?.check());
     return link.resume();
   }).then(() => followMac(link.view())).catch((error) => log(`vps link: ${error?.message ?? error}`));
+  // the person's dusk cloud home (My Cloud) has no link agent: it gets this computer's connection over its own https,
+  // for the sites that block it, while it is awake (home-egress-link.mjs)
+  const homeEgress = deps.myCloud && process.env.DUSK_HOME_EGRESS !== "off" ? createHomeEgressLink({
+    origin: () => deps.myCloud?.() ?? null,
+    awake: () => deps.cloudAwake?.() !== false,
+    cookie: async (origin) => {
+      const cookies = await session.defaultSession.cookies.get({ url: origin }).catch(() => []);
+      return cookies.length ? cookies.map((one) => `${one.name}=${one.value}`).join("; ") : null;
+    },
+    connect: (url, headers) => wssConnector({ url, spki: null, headers, via: "home",
+      proxy: async (target) => proxyFromPac(await session.defaultSession.resolveProxy(String(target))) })(),
+    endpoint: (tunnel) => createEgressEndpoint({ ...tunnel, dialer: createEgressDialer({ seenAs }), ...(awake ? { onUse: awake.touch } : {}) }),
+    log,
+  }) : null;
   const closeLink = link.close;
-  link.close = () => { closedLink = true; stopNetwork(); macHost?.close(); awake?.close(); return closeLink(); };
+  link.close = () => { closedLink = true; stopNetwork(); macHost?.close(); homeEgress?.close(); awake?.close(); return closeLink(); };
   return link;
 }

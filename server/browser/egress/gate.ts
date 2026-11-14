@@ -8,6 +8,7 @@
 // upstream connection gets a SOCKS reply.
 import { lookup } from "node:dns/promises";
 import { connect, createServer, isIP, type Socket } from "node:net";
+import type { Duplex } from "node:stream";
 
 import { namesThisMachine } from "./policy.ts";
 
@@ -21,10 +22,15 @@ export interface GateOptions {
   decide(target: GateTarget, addresses: readonly ResolvedAddress[]): Promise<string | null>;
   onRefusal?(target: GateTarget, reason: string): void;
   resolve?(host: string): Promise<ResolvedAddress[]>;
+  /** A route other than this machine's own network for an allowed target (the person's connection), or null for the
+   * usual one. Its connection resolving to null falls back to the usual route. */
+  through?(target: GateTarget): Promise<Duplex | null> | null;
 }
 
 export interface EgressGate {
   port: number;
+  /** Ends the open connections to the hosts `match` names, so the browser's next request opens a new one. */
+  drop(match: (host: string) => boolean): number;
   close(): Promise<void>;
 }
 
@@ -101,6 +107,7 @@ function readRequest(data: Buffer) {
 export function openGate(options: GateOptions): Promise<EgressGate> {
   const resolve = options.resolve ?? resolveTarget;
   const sockets = new Set<Socket>();
+  const byHost = new Map<Socket, string>();
   const track = (socket: Socket) => {
     sockets.add(socket);
     socket.on("close", () => sockets.delete(socket));
@@ -126,6 +133,8 @@ export function openGate(options: GateOptions): Promise<EgressGate> {
       client.off("data", onData);
       if (request === undefined || request.command !== 1 || request.port === 0) return refuse(client, UNSUPPORTED);
       const target = { host: request.host, port: request.port };
+      byHost.set(client, target.host.toLowerCase());
+      client.once("close", () => byHost.delete(client));
       // Keeps reading while the target resolves, so a client that leaves is noticed, and holds what it sends early.
       const early: Buffer[] = [request.rest];
       let earlyBytes = request.rest.length;
@@ -147,6 +156,21 @@ export function openGate(options: GateOptions): Promise<EgressGate> {
         }
         if (!addresses.length) return refuse(client, HOST_UNREACHABLE);
         client.pause();
+        const other = options.through?.(target);
+        const routed = other ? await other.catch(() => null) : null;
+        if (routed) {
+          if (client.destroyed) return void routed.destroy();
+          client.write(reply(SUCCEEDED));
+          for (const chunk of early) routed.write(chunk);
+          routed.on("error", () => client.destroy());
+          routed.pipe(client);
+          client.pipe(routed);
+          routed.on("close", () => client.destroy());
+          client.on("close", () => routed.destroy());
+          client.resume();
+          return;
+        }
+        if (client.destroyed) return;
         // Every checked address, IPv6 and IPv4 alike, so a host is still reached where one family is broken; the
         // lookup hands back only checked addresses, so a name that now resolves elsewhere changes nothing.
         const upstream = track(connect({
@@ -181,6 +205,11 @@ export function openGate(options: GateOptions): Promise<EgressGate> {
       const address = server.address();
       done({
         port: typeof address === "object" && address !== null ? address.port : 0,
+        drop: (match) => {
+          let dropped = 0;
+          for (const [socket, host] of byHost) if (match(host)) { socket.destroy(); dropped += 1; }
+          return dropped;
+        },
         close: () => new Promise<void>((closed) => {
           for (const socket of sockets) socket.destroy();
           server.close(() => closed());

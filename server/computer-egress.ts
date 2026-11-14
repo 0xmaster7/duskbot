@@ -160,6 +160,16 @@ export function createComputerEgress(deps: ComputerEgressDeps) {
   const blockedOn = () => deps.blockedSitesEnabled?.() !== false;
   const agentUp = () => Boolean(report?.online && report.proxy) && now() - reportedAt < AGENT_STALE_MS;
 
+  /** Puts a site on the sticky list (the built-in browser's gate reads it through routesHome); false when the setting is off. */
+  function markBlocked(raw: string): boolean {
+    const site = blockedSiteName(raw);
+    if (!site || !blockedOn()) return false;
+    blocked.delete(site);
+    blocked.set(site, now() + BLOCKED_SITE_MS);
+    while (blocked.size > BLOCKED_SITES_MAX) blocked.delete(blocked.keys().next().value!);
+    return true;
+  }
+
   function blockedSites(): string[] {
     for (const [site, until] of blocked) if (now() >= until) blocked.delete(site);
     return blockedOn() ? [...blocked.keys()].sort() : [];
@@ -237,15 +247,18 @@ export function createComputerEgress(deps: ComputerEgressDeps) {
      * so the caller moves on. Offline later, the policy goes and the site is back on this network by itself.
      */
     async routeSite(raw: string): Promise<boolean> {
-      const site = blockedSiteName(raw);
-      if (!site || !blockedOn() || !agentUp() || !deps.docker()) return false;
+      if (!agentUp() || !deps.docker()) return false;
       // everything already leaves through the person's computer: that route cannot help this site
-      if (route() === "computer") return false;
-      blocked.set(site, now() + BLOCKED_SITE_MS);
-      while (blocked.size > BLOCKED_SITES_MAX) blocked.delete(blocked.keys().next().value!);
+      if (route() === "computer" || !markBlocked(raw)) return false;
       generation += 1;
       await reconcile();
       return agentUp();
+    },
+    markBlocked,
+    /** Whether a connection to `host` goes the person's way: it or a parent domain is on the list. */
+    routesHome(host: string): boolean {
+      const name = host.toLowerCase().replace(/\.$/u, "");
+      return blockedSites().some((site) => name === site || name.endsWith(`.${site}`));
     },
     status(): EgressStatus {
       const fresh = report !== null && now() - reportedAt < AGENT_STALE_MS;

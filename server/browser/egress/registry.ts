@@ -107,6 +107,24 @@ export class BrowserEgress {
     };
   }
 
+  private through: ((target: GateTarget) => Promise<import("node:stream").Duplex | null> | null) | null = null;
+
+  /** A connection through the person's own computer for a site that blocks this server, or null (gate.ts through). */
+  routeThrough(through: ((target: GateTarget) => Promise<import("node:stream").Duplex | null> | null) | null): void {
+    this.through = through;
+  }
+
+  /** Ends every gate's open connections to `site` and its subdomains: a route change applies to the next request. */
+  async dropSite(site: string): Promise<number> {
+    const name = site.toLowerCase();
+    let dropped = 0;
+    for (const gate of this.gates.values()) {
+      const opened = await gate.catch(() => null);
+      dropped += opened?.drop((host) => host === name || host.endsWith(`.${name}`)) ?? 0;
+    }
+    return dropped;
+  }
+
   /** Why a destination is refused by its name alone on this host: Reddit, from dusk cloud. */
   nameRefusal(name: string): Refusal | null {
     return this.setup && refusesReddit(this.setup.host, name) ? "reddit" : null;
@@ -140,6 +158,7 @@ export class BrowserEgress {
         decide: (target, addresses) => refusalFor(target, addresses, this.rules()),
         onRefusal: (target, reason) => this.note(session, target, reason as Refusal),
         resolve: this.setup.resolve,
+        through: (target) => this.through?.(target) ?? null,
       });
       this.gates.set(session, gate);
       gate.then((opened) => this.setup?.listeners.add(opened.port), () => this.gates.delete(session));
