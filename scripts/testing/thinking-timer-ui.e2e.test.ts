@@ -217,7 +217,22 @@ describe("the thinking timer stays anchored across a thread switch", () => {
     const { info } = launched;
     const api = fixtureApi(info.url);
     const evaluate = async (js: string) => (await ui("eval", info.ui, "--js", js)).result;
-    const timerText = () => evaluate(`document.querySelector('.turn-presence .tabular-nums')?.textContent ?? null`);
+    // the elapsed time is in the status row's tooltip (969f4d85f), read the way the 1:1 test above reads it
+    const handle = JSON.parse(readFileSync(info.ui, "utf8")) as UiHandle;
+    const hover = (selector: string) => agentBrowser(handle.binary, sessionEnv(handle), ["hover", selector]);
+    const until = (probe: string) => evaluate(`new Promise((done) => {
+      const end = performance.now() + 3000;
+      const read = () => { const value = ${probe}; value || performance.now() > end ? done(value || null) : setTimeout(read, 50); };
+      read();
+    })`);
+    const timerText = async () => {
+      if (!await evaluate("Boolean(document.querySelector('.turn-presence > div'))")) return null;
+      await hover('textarea[aria-label="Message Timer group"]');
+      await until("!document.querySelector('[role=tooltip]')");
+      await hover(".turn-presence > div");
+      const tip = await until("document.querySelector('[role=tooltip]:not([data-ending])')?.textContent") as string | null;
+      return tip?.split(" · ").find((part) => /^(?:\d+m \d{2}s|\d+s)$/.test(part)) ?? null;
+    };
     const botsState = () => api("GET", "/api/bots");
     const groupState = async () => (await botsState()).groups.find((row: any) => row.id === groupId);
 
