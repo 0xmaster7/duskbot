@@ -463,9 +463,9 @@ describe("the model picker in Simple mode", () => {
   it("says a dusk cloud's list is the cloud's own AIs, above the current model", () => {
     fixture.cloudHome = true;
     const opened = open(bot());
-    expect(pane(opened)!.props.where).toBe("These run on My Cloud, not on your computer.");
+    expect(pane(opened)!.props.where).toBe("These run on your dusk cloud, not on your computer.");
     const html = menu(opened.html);
-    expect(html).toContain("These run on My Cloud, not on your computer.");
+    expect(html).toContain("These run on your dusk cloud, not on your computer.");
     expect(html.indexOf("data-picker-where")).toBeLessThan(html.indexOf("data-current-model"));
   });
 
