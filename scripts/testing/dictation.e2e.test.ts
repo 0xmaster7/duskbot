@@ -14,7 +14,7 @@ describe("dictation in the isolated real browser", () => {
   let child: ChildProcess | undefined;
   afterAll(async () => { await waitForExit(child, { signal: "SIGINT", graceMs: 30_000 }); });
 
-  (enabled ? it : it.skip)("retains utterances and stops capture when the send arrow is clicked", async () => {
+  (enabled ? it : it.skip)("keeps each utterance on the live line and sends them, ending capture, on Enter", async () => {
     let output = "";
     let errors = "";
     let info: { ui: string; url: string; botId: string };
@@ -35,14 +35,19 @@ describe("dictation in the isolated real browser", () => {
     const click = (label: string) => ui("click", "--name", label);
     await expect.poll(() => button("Start dictation"), { timeout: 20_000 }).toBe(true);
     await click("Start dictation");
+    // since 92025211a the words show on one live line while talking and nothing touches the draft until they land
+    const heard = () => evaluate('document.querySelector("[data-voice-preview]")?.textContent ?? null');
     await evaluate('window.dictationFixture.hear({text:"架空の一文目。",partial:true,utteranceFinal:true,speechStart:0}); true');
-    await expect.poll(input).toBe("架空の一文目。");
+    await expect.poll(heard).toBe("架空の一文目。");
     await evaluate('window.dictationFixture.hear({text:"架空の二文目。",partial:true,utteranceFinal:true,speechStart:5}); true');
-    await expect.poll(input).toBe("架空の一文目。 架空の二文目。");
+    await expect.poll(heard).toBe("架空の一文目。 架空の二文目。");
     await evaluate('window.dictationFixture.hear({text:"",partial:true}); true');
-    expect(await input()).toBe("架空の一文目。 架空の二文目。");
+    expect(await heard()).toBe("架空の一文目。 架空の二文目。");
+    expect(await input()).toBe("");
     expect(await button("Stop dictation")).toBe(true);
-    await click("Send message");
+    // while talking the bar shows Discard and Stop, no send arrow: Enter sends what was heard (92025211a)
+    await evaluate('document.querySelector("textarea")?.focus(); true');
+    await ui("press", "--keys", "Enter");
     await expect.poll(input).toBe("");
     expect((await evaluate("window.dictationFixture.stats()")).capturing).toBe(false);
     await evaluate('window.dictationFixture.late("架空の一文目。 架空の二文目。"); window.dictationFixture.hear({text:"送信後の独り言。",partial:true}); true');

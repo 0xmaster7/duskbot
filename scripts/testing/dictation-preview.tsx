@@ -3,11 +3,14 @@ import { Composer } from "../../src/components/Composer";
 import { DesktopCapabilitiesProvider } from "../../src/components/DesktopCapabilities";
 import { initialDesktopCapabilities } from "../../src/lib/desktop";
 import { setLocale } from "../../src/lib/i18n";
+import { DEFAULT_VOICE_PREFS, setVoicePrefs } from "../../src/lib/voice-input/prefs";
 import { StoreProvider, useStore } from "../../src/state/store";
 import { createSpeechTranscript } from "../../electron/speech-transcript.mjs";
 import "../../src/styles.css";
 
 setLocale("en");
+// the first press would show which recognizer listens (92025211a); this fixture has seen it
+setVoicePrefs({ ...DEFAULT_VOICE_PREFS, firstRunSeen: true });
 
 type Line = { text?: string; partial?: boolean; utteranceFinal?: boolean; speechStart?: number };
 let normalize = createSpeechTranscript();
@@ -22,6 +25,8 @@ window.duskDesktop = {
   getCapabilities: async () => initialDesktopCapabilities(),
   speechStart: async () => { starts++; capturing = true; normalize = createSpeechTranscript(); },
   speechStop: async () => { stops++; capturing = false; },
+  speechFinish: async () => { stops++; capturing = false; },
+  onSpeechLevel: () => () => {},
   onSpeechTranscript: (cb: (line: Line) => void) => {
     listeners.add(cb);
     oldListeners.add(cb);
