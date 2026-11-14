@@ -43,8 +43,8 @@ if (!enabled) console.log("skipping usage details UI: set DUSK_UI_E2E=1 to insta
     await ui("press", "--keys", "Enter");
     const settled = await ui("wait-settle", "--timeout", "60");
     await ui("type", "--name", "Message Pepper", "--text", "A draft that stays editable at every width");
-    // The chat header is the pill alone on a desktop window; a phone's header keeps ⋯ with the conversation's usage,
-    // export and Inspector.
+    // The chat header is the pill alone on a desktop window; a phone's header keeps ⋯ with the conversation's usage
+    // and export.
     await viewport(390);
     await ui("click", "--name", "More");
     const read = () => ui("eval", "--js", `(() => {
@@ -60,7 +60,7 @@ if (!enabled) console.log("skipping usage details UI: set DUSK_UI_E2E=1 to insta
     // denied clipboard. Only this disposable browser's clipboard is stubbed.
     await evaluate(`Object.defineProperty(navigator.clipboard, 'writeText', { configurable: true, value: async () => { throw new Error('fixture denial'); } }); true`);
     await ui("click", "--name", "Copy as Markdown");
-    await expect.poll(() => evaluate("document.querySelector('[role=menu] [role=status]')?.textContent")).toBe("Couldn't copy. Use Download instead.");
+    await expect.poll(() => evaluate("document.querySelector('[role=menu] [role=status]')?.textContent")).toBe("Couldn't copy. Use download instead.");
     await evaluate(`Object.defineProperty(navigator.clipboard, 'writeText', { configurable: true, value: async text => { window.copiedTranscript = text; } }); true`);
     await evaluate(`document.querySelector('[role=menu] button:has([role=status])').click(); true`);
     await expect.poll(() => evaluate("document.querySelector('[role=menu] [role=status]')?.textContent")).toBe("Copied");
@@ -101,20 +101,17 @@ if (!enabled) console.log("skipping usage details UI: set DUSK_UI_E2E=1 to insta
       if (phone) await ui("press", "--keys", "Escape");
     }
 
-    // Usage in that menu opens Settings at Usage & Billing.
+    // Usage in that menu opens Settings at Usage & billing.
     await viewport(390);
     await ui("click", "--name", "More");
     const snapshot = await ui("snapshot", "--interactive");
     const usage = Object.entries(snapshot.refs as Record<string, { name: string; role: string }>).find(([, entry]) => entry.role === "menuitem" && entry.name.startsWith("Usage"))!;
     await ui("click", "--ref", `@${usage[0]}`);
     await expect.poll(async () => (await ui("snapshot")).snapshot as string, { timeout: 10_000 }).toContain('dialog "Settings"');
-    expect(await evaluate("[...document.querySelectorAll('[role=dialog] h2')].some(heading => heading.textContent.trim() === 'Usage & Billing')")).toBe(true);
+    expect(await evaluate("[...document.querySelectorAll('[role=dialog] h2')].some(heading => heading.textContent.trim() === 'Usage & billing')")).toBe(true);
     await ui("screenshot", "--out", `${handle.logPath}.settings-390.png`);
     await ui("press", "--keys", "Escape");
     await expect.poll(() => evaluate("Boolean(document.querySelector('[role=dialog]'))")).toBe(false);
-    await ui("click", "--name", "More");
-    await ui("click", "--name", "Inspector");
-    await expect.poll(() => evaluate("Boolean(document.querySelector('[aria-label=Inspector]'))"), { timeout: 10_000 }).toBe(true);
     const consoleResult = await ui("console");
     expect((consoleResult.messages ?? []).filter((row: { type?: string }) => row.type === "error")).toEqual([]);
     const evidence = handle.logPath + ".usage-details.json";
@@ -125,9 +122,9 @@ if (!enabled) console.log("skipping usage details UI: set DUSK_UI_E2E=1 to insta
   }
 }, 660_000);
 
-// A desktop window's header is the pill alone; the conversation's usage, copy, download, Activity and Inspector live in
-// the bot panel's Share menu, Grok's one menu of rich items.
-(enabled ? it : it.skip)("keeps a desktop window's chat usage, copy, download, Activity and Inspector in the bot panel's Share menu", async () => {
+// A desktop window's header is the pill alone; the conversation's usage, copy and download live in the bot panel's
+// Share menu, Grok's one menu of rich items. Activity and the Inspector left it on purpose (65902595e, 71de7f59b).
+(enabled ? it : it.skip)("keeps a desktop window's chat usage, copy and download in the bot panel's Share menu", async () => {
   let child: ChildProcess | undefined;
   let info: { ui: string; url: string; botId: string; logPath: string } | undefined;
   try {
@@ -165,7 +162,7 @@ if (!enabled) console.log("skipping usage details UI: set DUSK_UI_E2E=1 to insta
       expect(layout.menu.left).toBeGreaterThanOrEqual(0);
       expect(layout.menu.right).toBeLessThanOrEqual(width);
       expect(layout.menu.bottom).toBeLessThanOrEqual(900);
-      expect(layout.items).toEqual(["duplicate", "copy", "download", "usage", "activity", "inspector"]);
+      expect(layout.items).toEqual(["duplicate", "copy", "download", "usage"]);
       expect(layout.usage).toContain("$0.01");
       geometry.push(layout);
       await ui("screenshot", "--out", `${handle.logPath}.panel-menu-${width}.png`);
@@ -180,7 +177,7 @@ if (!enabled) console.log("skipping usage details UI: set DUSK_UI_E2E=1 to insta
     await evaluate(`Object.defineProperty(navigator.clipboard, 'writeText', { configurable: true, value: async () => { throw new Error('fixture denial'); } }); true`);
     await openPanelMenu(ui, "Pepper");
     await clickByName(ui, /^Copy chat/, "menuitem");
-    await expect.poll(() => evaluate("document.querySelector('[data-panel-share-menu] [role=status]')?.textContent")).toBe("Couldn't copy. Use Download instead.");
+    await expect.poll(() => evaluate("document.querySelector('[data-panel-share-menu] [role=status]')?.textContent")).toBe("Couldn't copy. Use download instead.");
     await evaluate(`Object.defineProperty(navigator.clipboard, 'writeText', { configurable: true, value: async text => { window.copiedTranscript = text; } }); true`);
     await evaluate("document.querySelector('[data-panel-share-item=copy]').click(); true");
     await expect.poll(() => evaluate("document.querySelector('[data-panel-share-menu] [role=status]')?.textContent")).toBe("Copied");
@@ -188,19 +185,15 @@ if (!enabled) console.log("skipping usage details UI: set DUSK_UI_E2E=1 to insta
     await ui("press", "--keys", "Escape");
     await expect.poll(menuOpen).toBe(false);
 
-    // Usage opens Settings at Usage & Billing.
+    // Usage opens Settings at Usage & billing.
     await openPanelMenu(ui, "Pepper");
     await clickByName(ui, /^Usage/, "menuitem");
     await expect.poll(async () => (await ui("snapshot")).snapshot as string, { timeout: 10_000 }).toContain('dialog "Settings"');
-    expect(await evaluate("[...document.querySelectorAll('[role=dialog] h2')].some(heading => heading.textContent.trim() === 'Usage & Billing')")).toBe(true);
+    expect(await evaluate("[...document.querySelectorAll('[role=dialog] h2')].some(heading => heading.textContent.trim() === 'Usage & billing')")).toBe(true);
     await ui("screenshot", "--out", `${handle.logPath}.settings-1100.png`);
     await ui("press", "--keys", "Escape");
-    await expect.poll(() => evaluate("[...document.querySelectorAll('[role=dialog] h2')].some(heading => heading.textContent.trim() === 'Usage & Billing')")).toBe(false);
+    await expect.poll(() => evaluate("[...document.querySelectorAll('[role=dialog] h2')].some(heading => heading.textContent.trim() === 'Usage & billing')")).toBe(false);
 
-    await openPanelMenu(ui, "Pepper");
-    await clickByName(ui, /^Inspector/, "menuitem");
-    await expect.poll(() => evaluate("Boolean(document.querySelector('[aria-label=Inspector]'))"), { timeout: 10_000 }).toBe(true);
-    await ui("screenshot", "--out", `${handle.logPath}.inspector-1100.png`);
     const consoleResult = await ui("console");
     expect((consoleResult.messages ?? []).filter((row: { type?: string }) => row.type === "error")).toEqual([]);
     writeFileSync(handle.logPath + ".panel-menu.json", JSON.stringify({ geometry }, null, 2));
