@@ -24,12 +24,12 @@ export function MotionDiv(props: HTMLMotionProps<"div">) {
 }
 
 
-/** A centered sheet's own box. Dialogs open and close raw, in one frame, like the rest of the app's windows. */
+/** A centered sheet's own box. It opens with the app's one dialog motion, from overlays.css on its aria-modal role. */
 export function SheetMotion(props: HTMLMotionProps<"div">) {
   return <MotionDiv initial={false} {...props} />;
 }
 
-/** The dimmed backdrop behind a sheet, there at once. */
+/** The dimmed backdrop behind a sheet; overlays.css fades it in. */
 export function ScrimMotion(props: HTMLMotionProps<"div">) {
   return <MotionDiv initial={false} {...props} />;
 }

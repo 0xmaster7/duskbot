@@ -49,6 +49,9 @@ export const GROK_DURATION = {
   drawer: 0.5,
 } as const;
 
+/** a centred dialog leaving: a 120ms fade on the out curve, the exit half of overlays.css's one dialog motion */
+export const SHEET_EXIT = { duration: 0.12, ease: [0.22, 1, 0.36, 1] } as const;
+
 /** pane push and pop: incoming slides 100% (pop: -30%), outgoing leaves -30% (pop: 100%), 200ms */
 export const WIPE = { duration: 0.2, ease: EASE.out, pushFrom: "100%", popFrom: "-30%" } as const;
 

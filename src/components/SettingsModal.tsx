@@ -6,7 +6,7 @@ import { trailNavigation } from "@/lib/trail";
 import { cn } from "@/lib/cn";
 import { scrollWithin } from "@/lib/scroll-within";
 import { useMediaQuery } from "@/lib/use-media-query";
-import { REDUCED, WIPE } from "@/lib/motion-presets";
+import { REDUCED, SHEET_EXIT, WIPE } from "@/lib/motion-presets";
 import { MotionDiv, useMotionReduced } from "./ui/SheetMotion";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { currentPhonePairingTarget, phonePairingSettingsAction } from "@/lib/phone-pairing";
@@ -371,6 +371,7 @@ export function SettingsModal() {
         aria-hidden="true"
         className="settings-backdrop"
         initial={false}
+        exit={{ opacity: 0, transition: SHEET_EXIT }}
         onMouseDown={close}
       />
       <MotionDiv
@@ -381,8 +382,9 @@ export function SettingsModal() {
         tabIndex={-1}
         data-phone-view={phone ? (listShown ? "list" : "pane") : undefined}
         className="settings-dialog"
-        // the sheet opens and closes raw, in one frame, on a phone too; only its drill-in slides
+        // the sheet opens with the app's one dialog motion (overlays.css) and fades out on close; on a phone its drill-in slides
         initial={false}
+        exit={{ opacity: 0, transition: SHEET_EXIT }}
       >
         <div className="settings-layout">
           {phone ? (

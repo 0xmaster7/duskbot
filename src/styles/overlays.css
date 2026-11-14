@@ -1,7 +1,8 @@
 /* Overlays: menus, popovers, dialogs, tooltips and toasts in Grok Bot's look. Imported after styles.css and unlayered,
    so these win over the `animate-pop-*` utilities for overlay surfaces only; a reaction chip or a jump button keeps the
-   general pop. Anchored surfaces (menus, listboxes, popovers) move as bencho's menu does; dialogs, tooltips and toasts
-   open and close raw, like Grok's. */
+   general pop. Two motions only: anchored surfaces (menus, listboxes, popovers, link previews) grow out of their
+   trigger as bencho's menu does; every centred dialog settles in as Settings and Templates do. Tooltips and toasts
+   stay raw. */
 
 :root {
   --ease-menu-in: cubic-bezier(0.16, 1, 0.3, 1);
@@ -96,33 +97,34 @@
 :root[data-reduced-motion="true"] :is(.link-preview, .link-preview[data-state="closed"]) { transform: none; transition-property: opacity; }
 @starting-style { :root[data-reduced-motion="true"] .link-preview[data-state="open"] { transform: none; } }
 
-/* centred surfaces: a dialog is simply there, and gone the moment it closes */
-:is([role="alertdialog"], [aria-modal="true"], .ui-modal, .ui-dialog):not(.popover-surface, .menu-surface).animate-pop-in,
-.ui-dialog {
-  animation: none;
+/* The one dialog motion: every centred sheet (Settings, Templates, a confirm, a form, a kit dialog) settles from a 6px
+   rise at .985 over 240ms on the app's out curve while its scrim fades in over 160ms; leaving, it fades out in 120ms.
+   Only mounting runs it, so a dialog that re-renders never replays it. Reduced motion keeps the fades and drops the
+   travel. A list a dialog fetches fades in, and a wait that ends fast never shows its spinner. */
+@keyframes dialog-sheet-in { from { opacity: 0; transform: translate3d(0, 6px, 0) scale(0.985); } }
+:is([role="alertdialog"], [role="dialog"][aria-modal="true"], .ui-modal, .ui-dialog, .templates-sheet):not(.popover-surface, .menu-surface) {
+  animation: dialog-sheet-in 240ms var(--ease-out-bencho);
 }
 :is([role="alertdialog"], [aria-modal="true"], .ui-modal, .ui-dialog):not(.popover-surface, .menu-surface).animate-pop-out {
-  animation: none;
-  opacity: 0;
+  animation: overlay-fade-out 120ms var(--ease-out-bencho) forwards;
 }
 .ui-scrim,
-.ui-dialog-scrim {
-  animation: none;
+.ui-dialog-scrim,
+.ui-dialog-scrim-panel,
+.settings-backdrop {
+  animation: overlay-fade-in 160ms var(--ease-out-bencho);
 }
-
-/* Templates opens as Settings moves: the scrim fades in quickly while the sheet settles from a 6px rise on the app's out
-   curve in 240ms; the list it fetches fades in, and a wait that ends fast never shows its spinner. Reduced motion keeps
-   the fades and drops the travel. */
-@keyframes templates-sheet-in { from { opacity: 0; transform: translate3d(0, 6px, 0) scale(0.985); } }
-.ui-dialog-scrim.templates-scrim { animation: overlay-fade-in 160ms var(--ease-out-bencho); }
-.templates-sheet { animation: templates-sheet-in 240ms var(--ease-out-bencho); }
+:is(.ui-scrim, .ui-dialog-scrim)[data-leaving] { pointer-events: none; animation: overlay-fade-out 120ms var(--ease-out-bencho) forwards; }
 .templates-fade { animation: overlay-fade-in 160ms var(--ease-out-bencho); }
 .templates-wait { animation: overlay-fade-in 160ms var(--ease-out-bencho) 200ms backwards; }
-.ui-dialog-scrim.templates-scrim[data-leaving] { pointer-events: none; animation: overlay-fade-out 120ms var(--ease-out-bencho) forwards; }
 @media (prefers-reduced-motion: reduce) {
-  .templates-sheet { animation: overlay-fade-in 160ms ease-out; }
+  :is([role="alertdialog"], [role="dialog"][aria-modal="true"], .ui-modal, .ui-dialog, .templates-sheet):not(.popover-surface, .menu-surface) {
+    animation: overlay-fade-in 160ms ease-out;
+  }
 }
-:root[data-reduced-motion="true"] .templates-sheet { animation: overlay-fade-in 160ms ease-out; }
+:root[data-reduced-motion="true"] :is([role="alertdialog"], [role="dialog"][aria-modal="true"], .ui-modal, .ui-dialog, .templates-sheet):not(.popover-surface, .menu-surface) {
+  animation: overlay-fade-in 160ms ease-out;
+}
 
 /* A dialog, as Grok's kit dialog: the elevated tone on a 1px ink/12 edge at 14px corners, no lift over the scrim. */
 .ui-dialog {
