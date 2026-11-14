@@ -46,6 +46,20 @@ describe("engineFailureMessage", () => {
     }
   });
 
+  it("words a provider that never answered, as Claude Code's statusless API errors say it, keeping the words retries read", () => {
+    const cases: Array<[string, string, string]> = [
+      ["API Error: Request timed out.", "Claude did not answer in time (the request timed out). Check the internet connection, then run it again.", "timeout"],
+      ["API Error: Connection error.", "Claude could not be reached (a network error). Check the internet connection, then run it again.", "connection_reset"],
+      ["API Error: fetch failed ECONNRESET", "Claude could not be reached (a network error). Check the internet connection, then run it again.", "connection_reset"],
+    ];
+    for (const [raw, words, kind] of cases) {
+      const message = engineFailureMessage("Claude", raw)!;
+      expect(message, raw).toBe(words);
+      expect(classifyError({ text: message }), message).toEqual({ transient: true, reason: kind });
+    }
+    expect(engineFailureKind("the tool call timed out")).toBeNull();
+  });
+
   it("leaves a failure it does not know to the caller, whose text stays as it was", () => {
     expect(engineFailureMessage("Grok", "Internal error: could not change mode")).toBeNull();
     expect(engineFailureMessage("Grok", "Grok could not confirm its MCP catalog in time. No prompt was sent.")).toBeNull();

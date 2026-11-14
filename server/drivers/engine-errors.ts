@@ -7,7 +7,10 @@ import { toolCountLimitFromError } from "../tool-count-limit.ts";
 import { USAGE_LIMIT } from "./retry.ts";
 import { usageLimitWait } from "./acp/quiet-status.ts";
 
-export type EngineFailureKind = "credits" | "usage_limit" | "rate_limit" | "overloaded" | "server" | "tool_schema" | "tool_count" | "refused";
+export type EngineFailureKind = "credits" | "usage_limit" | "rate_limit" | "overloaded" | "server" | "tool_schema" | "tool_count" | "refused" | "network";
+
+/** No answer at all from the provider: the Anthropic SDK's "Request timed out." and "Connection error.", Node's errno codes. */
+const NETWORK = /\b(?:request timed out|connection error|network error|fetch failed|socket hang up|ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|EAI_AGAIN)\b/i;
 
 /** A provider refusing for want of credit or payment, in its own words (402 is read from the status). */
 const OUT_OF_CREDITS = /\bpayment required\b|\binsufficient (?:account )?(?:funds|balance|credits?)\b|\b(?:credit|account) balance is too low\b|\bout of credits?\b|\bno credits? (?:left|remaining)\b|\bused all (?:available |of (?:your|its) )?credits\b/i;
@@ -78,6 +81,7 @@ export function engineFailureKind(text: string, status = httpStatusOf(text)): En
   if (TOOL_SCHEMA.test(text)) return "tool_schema";
   if (toolCountLimitFromError(text) !== undefined) return "tool_count";
   if (status !== null) return status >= 500 ? "server" : "refused";
+  if (NETWORK.test(text)) return "network";
   return null;
 }
 
@@ -111,6 +115,9 @@ export function engineFailureMessage(
     case "tool_count": return `${provider} refused this turn because this model takes at most ${toolCountLimitFromError(text) ?? "a limited number of"} tools `
       + "and this bot offers more, even with its tool lists trimmed, so nothing ran. Turn off some of this bot's apps or MCP servers, or switch the bot to another model.";
     case "refused": return `${provider} stopped with an error${detail(code, says)}.`;
+    case "network": return /\b(?:timed out|ETIMEDOUT)\b/i.test(text)
+      ? `${provider} did not answer in time (the request timed out). Check the internet connection, then run it again.`
+      : `${provider} could not be reached (a network error). Check the internet connection, then run it again.`;
   }
 }
 
