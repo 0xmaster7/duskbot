@@ -21,7 +21,6 @@ import {
 import type { ModelSelection } from "./contracts.ts";
 import * as mdb from "./message-db.ts";
 import { peerAllowKey } from "./peer-approval-key.ts";
-import { hasTeamAuthority } from "./peer-roster.ts";
 import { Store, toWireTask, type BotRecord } from "./store.ts";
 import type { TeamSetupRequest } from "../shared/team-setup.ts";
 import { SECTION_CONTEXTS_FILE } from "./section-context.ts";
@@ -190,16 +189,12 @@ describe("Store", () => {
       .toEqual(JSON.parse(before).find((g: { id: string }) => g.id === room.id).memberIds);
   });
 
-  it("renames populated teams without changing members, conversations, grants or computer identity", () => {
+  it("renames populated teams without changing members, conversations, the Chief or computer identity", () => {
     const store = new Store(selection);
     const chief = store.createBot({ section: "Delivery" });
     store.setChiefOfStaff(chief.id);
     const archived = store.createBot({ section: "Delivery" });
     store.patchBot(archived.id, { hidden: true });
-    const manager = store.createBot({ section: "Office" });
-    store.setChiefOfStaff(manager.id);
-    store.patchBot(manager.id, { managedSections: ["Delivery", " Delivery ", "Other"] });
-    expect(hasTeamAuthority(manager, "Delivery")).toBe(true);
     const room = store.createGroup("Room", [chief.id], false, "Delivery");
     const message = store.appendMessage(chief.threadId, { role: "user", kind: "text", text: "Keep this conversation" });
     writeSectionContext("Delivery", "Shared team instructions");
@@ -210,20 +205,16 @@ describe("Store", () => {
     expect(store.bot(chief.id)).toBe(chief);
     expect(chief).toMatchObject({ section: "Launch", chiefOfStaff: true });
     expect(archived).toMatchObject({ section: "Launch", hidden: true });
-    expect(manager.managedSections).toEqual(["Launch", "Other"]);
-    expect(hasTeamAuthority(manager, "Launch")).toBe(true);
     expect(room.section).toBe("Launch");
     expect(readSectionContext("Launch")?.text).toBe("Shared team instructions");
     expect(readSectionContext("Delivery")).toBeNull();
     expect(computers.forSection("Launch")?.id).toBe(computer.id);
     const restored = new Store(selection);
     expect(restored.bot(chief.id)?.section).toBe("Launch");
-    expect(hasTeamAuthority(restored.bot(manager.id)!, "Launch")).toBe(true);
+    expect(restored.bot(chief.id)?.chiefOfStaff).toBe(true);
     expect(restored.group(room.id)?.section).toBe("Launch");
     expect(restored.messagesFor(chief.threadId)).toContainEqual(message);
     expect(restored.sections).not.toContain("Delivery");
-    store.setBotsSection([], "Delivery");
-    expect(hasTeamAuthority(manager, "Delivery")).toBe(false);
   });
 
   it("rejects rename conflicts and active work without changing teams", () => {
@@ -260,7 +251,6 @@ describe("Store", () => {
     store.patchBot(archived.id, { hidden: true });
     const chief = store.createBot({ section: "Office" });
     store.setChiefOfStaff(chief.id);
-    store.patchBot(chief.id, { managedSections: ["Studio", "Other"] });
     const room = store.createGroup("Discussion", [bot.id], false, "Studio");
     store.appendMessage(bot.threadId, { role: "user", kind: "text", text: "Keep private history" });
     store.appendMessage(room.threadId, { role: "user", kind: "text", text: "Keep shared history" });
@@ -277,26 +267,24 @@ describe("Store", () => {
     expect(restored.group(room.id)).toMatchObject({ memberIds: [bot.id], threadId: room.threadId });
     expect(restored.group(room.id)?.section).toBeUndefined();
     expect([restored.messagesFor(bot.threadId), restored.messagesFor(room.threadId)]).toEqual(before);
-    expect(restored.bot(chief.id)?.managedSections).toEqual(["Other"]);
+    expect(restored.bot(chief.id)?.chiefOfStaff).toBe(true);
     expect(readSectionContext("Studio")).toBeNull();
     expect(readSectionContext("")?.text).toBe("General brief");
-    restored.createBot({ section: "Studio" });
-    expect(restored.bot(chief.id)?.managedSections).toEqual(["Other"]);
   });
 
-  it("refuses active work and Chief conflicts without silently demoting a Chief", () => {
+  it("refuses active work, and keeps the one Chief through a section's deletion", () => {
     const store = new Store(selection);
     const chief = store.createBot({ section: "Studio" });
     store.setChiefOfStaff(chief.id);
     store.patchBot(chief.id, { busy: true });
     expect(store.deleteSection("Studio")).toMatch(/Stop/);
     store.patchBot(chief.id, { busy: false });
-    const general = store.createBot();
-    store.setChiefOfStaff(general.id);
-    expect(store.deleteSection("Studio")).toMatch(/Chief/);
-    expect(store.bot(chief.id)).toMatchObject({ chiefOfStaff: true, section: "Studio" });
-    expect(store.deleteSection("missing")).toBe("No such department");
-    expect(store.deleteSection("")).toBe("No such department");
+    store.createBot();
+    expect(store.deleteSection("Studio")).toBeUndefined();
+    expect(store.bot(chief.id)).toMatchObject({ chiefOfStaff: true });
+    expect(store.bot(chief.id)?.section).toBeUndefined();
+    expect(store.deleteSection("missing")).toBe("No such section");
+    expect(store.deleteSection("")).toBe("No such section");
   });
 
   it("restores persisted membership if deleting the team cannot finish", () => {
@@ -1399,7 +1387,7 @@ describe("Store", () => {
     expect(reloaded.projectBotForTask(bot.id, second.threadId)!.modelSelection).toEqual(next);
   });
 
-  it("keeps one persisted Chief of Staff per section and supports handoff", () => {
+  it("keeps one persisted Chief of Staff for the whole workspace and supports handoff", () => {
     const store = new Store(selection);
     const first = store.createBot({ section: "Work" });
     const second = store.createBot({ section: "Work" });
@@ -1407,21 +1395,32 @@ describe("Store", () => {
 
     expect(store.setChiefOfStaff(first.id)?.map((bot) => bot.id)).toEqual([first.id]);
     expect(store.bot(first.id)?.chiefOfStaff).toBe(true);
-    expect(store.setChiefOfStaff(personal.id)?.map((bot) => bot.id)).toEqual([personal.id]);
+    expect(store.setChiefOfStaff(personal.id)?.map((bot) => bot.id).sort()).toEqual([first.id, personal.id].sort());
 
     const changed = store.setChiefOfStaff(second.id)!;
-    expect(changed.map((bot) => bot.id).sort()).toEqual([first.id, second.id].sort());
+    expect(changed.map((bot) => bot.id).sort()).toEqual([personal.id, second.id].sort());
     expect(store.bot(first.id)?.chiefOfStaff).toBe(false);
     expect(store.bot(second.id)?.chiefOfStaff).toBe(true);
-    expect(store.bot(personal.id)?.chiefOfStaff).toBe(true);
+    expect(store.bot(personal.id)?.chiefOfStaff).toBe(false);
 
     const reloaded = new Store(selection);
-    expect(reloaded.bots.filter((bot) => bot.chiefOfStaff).map((bot) => bot.id).sort()).toEqual(
-      [second.id, personal.id].sort(),
-    );
-    expect(reloaded.setChiefOfStaff(null, "Work")?.map((bot) => bot.id)).toEqual([second.id]);
-    expect(reloaded.bot(personal.id)?.chiefOfStaff).toBe(true);
+    expect(reloaded.bots.filter((bot) => bot.chiefOfStaff).map((bot) => bot.id)).toEqual([second.id]);
+    expect(reloaded.setChiefOfStaff(null)?.map((bot) => bot.id)).toEqual([second.id]);
     expect(reloaded.bot(second.id)?.chiefOfStaff).toBe(false);
+  });
+
+  it("drops a saved departments list on load and never crashes on it", () => {
+    const store = new Store(selection);
+    const chief = store.createBot({ section: "Work" });
+    store.setChiefOfStaff(chief.id);
+    const file = join(DATA_DIR, "bots.json");
+    const saved = JSON.parse(readFileSync(file, "utf8"));
+    const list = Array.isArray(saved) ? saved : saved.bots;
+    list.find((bot: { id: string }) => bot.id === chief.id).managedSections = ["Sales", 42];
+    writeFileSync(file, JSON.stringify(saved));
+    const reloaded = new Store(selection);
+    expect(reloaded.bot(chief.id)).toMatchObject({ chiefOfStaff: true });
+    expect(reloaded.bot(chief.id)).not.toHaveProperty("managedSections");
   });
 
   it("adds and removes members together without replacing unrelated concurrent additions", () => {
@@ -1444,19 +1443,15 @@ describe("Store", () => {
     expect(restored.sections).toContain("Delivery");
   });
 
-  it("rejects stale removals and Chief conflicts without applying the additions", () => {
+  it("rejects stale removals without applying the additions, and moves the Chief like any bot", () => {
     const store = new Store(selection);
     const chief = store.createBot({ section: "Delivery" });
-    const generalChief = store.createBot();
     const incoming = store.createBot({ section: "Research" });
     store.setChiefOfStaff(chief.id);
-    store.setChiefOfStaff(generalChief.id);
-    expect(store.updateTeamMembers("Delivery", [incoming.id], [chief.id])).toEqual({ ok: false, reason: "chief-conflict" });
-    expect(store.bot(incoming.id)?.section).toBe("Research");
     expect(store.updateTeamMembers("Delivery", [], [incoming.id])).toEqual({ ok: false, reason: "membership-changed" });
+    expect(store.bot(incoming.id)?.section).toBe("Research");
     expect(store.updateTeamMembers("Delivery", ["missing"], [])).toEqual({ ok: false, reason: "unavailable" });
     expect(store.updateTeamMembers("Delivery", [chief.id], [chief.id])).toEqual({ ok: false, reason: "membership-changed" });
-    store.setChiefOfStaff(null, "");
     expect(store.updateTeamMembers("Delivery", [incoming.id], [chief.id]).ok).toBe(true);
     expect(store.bot(chief.id)).toMatchObject({ section: undefined, chiefOfStaff: true });
   });
@@ -1499,64 +1494,13 @@ describe("Store", () => {
       .toEqual([incumbent.id]);
   });
 
-  it.each([null, "Renamed"])("revokes exact old team grants before changing the empty team to %s", (nextName) => {
-    const store = new Store(selection);
-    const chief = store.createBot({ section: "Office" });
-    store.setChiefOfStaff(chief.id);
-    store.setBotsSection([], "Delivery");
-    store.setBotsSection([], "Delivery East");
-    store.patchBot(chief.id, { managedSections: ["Delivery", " Delivery ", "Delivery East", ""] });
-    const announcements: string[] = [];
-    store.onChange(change => { if (change.type === "bot") announcements.push(change.botId); });
-
-    expect(store.changeEmptySection("Delivery", nextName)).toBeUndefined();
-    expect(chief.managedSections).toEqual(["Delivery East", ""]);
-    expect(hasTeamAuthority(chief, "Delivery")).toBe(false);
-    expect(announcements).toEqual([chief.id]);
-    store.setBotsSection([], "Delivery");
-    const reloaded = new Store(selection);
-    expect(reloaded.sections).toContain("Delivery");
-    expect(hasTeamAuthority(reloaded.bot(chief.id)!, "Delivery")).toBe(false);
-    expect(hasTeamAuthority(reloaded.bot(chief.id)!, "Delivery East")).toBe(true);
-    expect(hasTeamAuthority(reloaded.bot(chief.id)!, "")).toBe(true);
-  });
-
-  it("keeps grants when an empty-team rename is a no-op or rejected", () => {
-    const store = new Store(selection);
-    const chief = store.createBot({ section: "Office" });
-    store.setChiefOfStaff(chief.id);
-    for (const name of ["Delivery", "Existing"]) store.setBotsSection([], name);
-    store.patchBot(chief.id, { managedSections: ["Delivery"] });
-    const changes: string[] = [];
-    store.onChange(change => { changes.push(change.type); });
-    expect(store.changeEmptySection("Delivery", "Delivery")).toBeUndefined();
-    expect(store.changeEmptySection("Delivery", "Existing")).toContain("already exists");
-    expect(changes).toEqual([]);
-    expect(chief.managedSections).toEqual(["Delivery"]);
-    expect(new Store(selection).bot(chief.id)?.managedSections).toEqual(["Delivery"]);
-  });
-
-  it("does not free a team name when its grant revocation cannot persist", () => {
-    const store = new Store(selection);
-    const chief = store.createBot({ section: "Office" });
-    store.setChiefOfStaff(chief.id);
-    store.setBotsSection([], "Delivery");
-    store.patchBot(chief.id, { managedSections: ["Delivery"] });
-    (store as unknown as { saveBots: () => void }).saveBots = () => { throw new Error("disk unavailable"); };
-    expect(() => store.changeEmptySection("Delivery", null)).toThrow("disk unavailable");
-    expect(store.sections).toContain("Delivery");
-    expect(chief.managedSections).toEqual(["Delivery"]);
-    expect(new Store(selection).sections).toContain("Delivery");
-  });
-
-  it("rejects unavailable or Chief-conflicting section assignments without changing bots", () => {
+  it("rejects unavailable section assignments without changing bots", () => {
     const store = new Store(selection);
     const incumbent = store.createBot({ section: "Launch" });
     const incoming = store.createBot({ section: "Research" });
     const teammate = store.createBot({ section: "Personal" });
     const hidden = store.createBot({ section: "Private" });
     store.setChiefOfStaff(incumbent.id);
-    store.setChiefOfStaff(incoming.id);
     store.patchBot(hidden.id, { hidden: true });
 
     const snapshot = () => store.bots.map((bot) => ({
@@ -1570,13 +1514,11 @@ describe("Store", () => {
       .toEqual({ ok: false, reason: "unavailable" });
     expect(store.setBotsSection([teammate.id, hidden.id], "Launch"))
       .toEqual({ ok: false, reason: "unavailable" });
-    expect(store.setBotsSection([incoming.id, teammate.id], "Launch"))
-      .toEqual({ ok: false, reason: "chief-conflict" });
     expect(snapshot()).toEqual(before);
 
     const reloaded = new Store(selection);
     expect(reloaded.bot(incumbent.id)).toMatchObject({ section: "Launch", chiefOfStaff: true });
-    expect(reloaded.bot(incoming.id)).toMatchObject({ section: "Research", chiefOfStaff: true });
+    expect(reloaded.bot(incoming.id)?.section).toBe("Research");
     expect(reloaded.bot(teammate.id)?.section).toBe("Personal");
     expect(Boolean(reloaded.bot(teammate.id)?.chiefOfStaff)).toBe(false);
   });
@@ -2773,11 +2715,11 @@ describe("soul", () => {
     }
   });
 
-  it("reviewed setup freezes legacy thread settings and persists valid team grants and its receipt on reload", () => {
+  it("reviewed setup freezes legacy thread settings and persists its new section and its receipt on reload", () => {
     const store = new Store(selection);
     const chief = store.createBot({ name: "Clive", section: "Operations" });
     const bot = store.createBot({ name: "Patch", section: "Operations" });
-    store.patchBot(chief.id, { chiefOfStaff: true, managedSections: Array.from({ length: 99 }, (_, i) => `Team ${i}`) });
+    store.patchBot(chief.id, { chiefOfStaff: true });
     store.patchBot(bot.id, { approvalMode: "edits", autoApprove: false, alwaysAllow: ["Read"] });
     const task = bot.tasks![0];
     delete task.modelSelection; delete task.approvalMode; delete task.autoApprove; delete task.alwaysAllow;
@@ -2794,23 +2736,20 @@ describe("soul", () => {
     const result = store.applyTeamSetup(request);
     expect(store.applyTeamSetup(request)).toEqual(result);
     const reloaded = new Store(selection);
-    expect(reloaded.bot(chief.id)?.managedSections).toHaveLength(100);
-    expect(reloaded.bot(chief.id)?.managedSections).toContain(name);
+    expect(reloaded.bot(chief.id)).not.toHaveProperty("managedSections");
     expect(reloaded.bot(chief.id)?.lastTeamSetupReceipt?.requestId).toBe(request.requestId);
     expect(reloaded.bot(bot.id)).toMatchObject({ section: name, modelSelection: { instanceId: "codex", model: "fixture" } });
     expect(reloaded.bot(bot.id)?.tasks?.[0]).toMatchObject({ approvalMode: "ask", autoApprove: false, alwaysAllow: [] });
     expect(reloaded.bot(bot.id)?.tasks?.[0].modelSelection).toBeUndefined();
     expect(reloaded.projectBotForTask(bot.id, bot.threadId)?.modelSelection).toEqual({ instanceId: "codex", model: "fixture" });
-    expect(() => reloaded.applyTeamSetup({ ...request, requestId: "too-many", newTeams: ["Overflow"] })).toThrow(/scope/);
     expect(() => reloaded.applyTeamSetup({ ...request, requestId: "too-long", newTeams: ["X".repeat(61)] })).toThrow(/scope/);
-    expect(reloaded.bot(chief.id)?.managedSections).toHaveLength(100);
   });
 
-  it("persists reviewed Chief replacement atomically and revokes the outgoing Chief's grants", () => {
+  it("persists reviewed Chief replacement atomically", () => {
     const store = new Store(selection);
     const chief = store.createBot({ name: "Outgoing", section: "Operations" });
     const successor = store.createBot({ name: "Successor", section: "Operations" });
-    store.patchBot(chief.id, { chiefOfStaff: true, managedSections: ["Engineering"] });
+    store.patchBot(chief.id, { chiefOfStaff: true });
     const request: TeamSetupRequest = { version: 1, requestId: "leadership-reload", botId: chief.id, threadId: chief.threadId,
       reason: "Requested succession", createdAt: 1, requesterRevision: "fixture", newTeams: [], operations: [
         { action: "update", botId: successor.id, fields: { chiefOfStaff: true } },
@@ -2825,9 +2764,7 @@ describe("soul", () => {
     expect(result.bots.map(bot => bot.chiefOfStaff)).toEqual([true, false]);
     const reloaded = new Store(selection);
     expect(reloaded.bot(chief.id)?.chiefOfStaff).toBe(false);
-    expect(reloaded.bot(chief.id)?.managedSections).toBeUndefined();
     expect(reloaded.bot(successor.id)?.chiefOfStaff).toBe(true);
-    expect(reloaded.bot(successor.id)?.managedSections).toBeUndefined();
     expect(reloaded.bot(successor.id)?.tasks).toEqual(successor.tasks);
     expect(reloaded.applyTeamSetup(request)).toEqual(result);
   });

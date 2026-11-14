@@ -94,7 +94,7 @@ async function chiefJob(test: (f: any) => Promise<void>) {
     const clive = await bot("Clive", "Leadership");
     const mira = await bot("Mira", "Engineering");
     const eli = await bot("Eli", "Engineering");
-    expect((await api("PATCH", `/api/bots/${clive.id}`, { chiefOfStaff: true, managedSections: ["Engineering"], acknowledgePeerScope: true })).status).toBe(200);
+    expect((await api("PATCH", `/api/bots/${clive.id}`, { chiefOfStaff: true })).status).toBe(200);
     const compat = { key: "synthetic-fixture-key", url: `http://127.0.0.1:${(model.address() as AddressInfo).port}/v1`, model: "loop-model" };
     expect((await api("PATCH", "/api/config", { openaiCompat: compat })).status).toBe(200);
     await cli("set-model", "--bot", eli.id, "--instance", "openaiCompat", "--model", "loop-model");

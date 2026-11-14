@@ -87,17 +87,17 @@ describe("Full access in bot settings", () => {
 });
 
 describe("on a team", () => {
-  const chief: Bot = { ...base, chiefOfStaff: true, managedSections: ["Sales"] };
+  const chief: Bot = { ...base, chiefOfStaff: true };
   afterEach(() => setTeamPeople(null));
 
-  it("offers no Chief of Staff card and no departments to be in charge of; off a team both stay", () => {
+  it("offers no Chief of Staff card; off a team it stays, overseeing every bot with no departments", () => {
     render(chief);
     expect(host.textContent).toContain(t("permissions.chief.title"));
-    expect(host.textContent).toContain(t("botAccess.teams.title"));
+    expect(host.textContent).toContain(t("permissions.chief.overseesAll"));
+    expect(host.textContent).not.toMatch(/department|in charge of/i);
     setTeamPeople({ people: [], me: null, admin: true, needsYou: [] });
     render(chief);
     expect(host.textContent).not.toContain(t("permissions.chief.title"));
-    expect(host.textContent).not.toContain(t("botAccess.teams.title"));
   });
 });
 

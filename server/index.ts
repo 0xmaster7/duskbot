@@ -1236,7 +1236,6 @@ function requestedBotFields(req: IncomingMessage, path: string): string[] {
   if (!body || typeof body !== "object" || Array.isArray(body)) return [];
   const fields = new Set(Object.keys(body));
   if (fields.has("autoApprove") || fields.has("approvalMode")) fields.add("autoApprove").add("approvalMode");
-  if (fields.has("chiefOfStaff")) fields.add("managedSections");
   return [...fields];
 }
 
@@ -3146,7 +3145,6 @@ async function botOverview(bot: BotRecord): Promise<BotOverview> {
       connectorTools: bot.connectorTools,
       browser: bot.browser,
       chiefOfStaff: bot.chiefOfStaff,
-      managedSections: bot.managedSections,
     },
     routines: routines!.listRoutines()
       .filter((routine) => routine.botId === bot.id)
@@ -9773,7 +9771,7 @@ const routineRequests = new RoutineRequestService({
     const targetBot = store.bot(target.botId);
     if (!targetBot) return `@${target.name} no longer exists, so this routine request cannot be confirmed for it`;
     if (!proposer || !canManage(proposer, targetBot)) {
-      return `@${target.name} is no longer in this department, so this routine request cannot be confirmed for it`;
+      return `@${target.name} is no longer one this Chief manages, so this routine request cannot be confirmed for it`;
     }
     return null;
   },
@@ -9931,7 +9929,7 @@ const chiefPeerTargetRule = (noun: string) => (proposerBotId: string, targetBotI
   const target = store.bot(targetBotId);
   if (!target) return "that bot no longer exists";
   if (!proposer || !chiefLevel(proposer)) return "only a section's Chief of Staff can change another bot's " + noun;
-  if (!canManage(proposer, target)) return "that bot is not in a department this Chief manages";
+  if (!canManage(proposer, target)) return "that bot is not one this Chief manages";
   return null;
 };
 const validateModelProposal = (selection: ModelSelection, current?: BotRecord): string | null => {
@@ -14114,7 +14112,7 @@ const handleRequestInner = async (req: IncomingMessage, res: ServerResponse) => 
             return {
               id: b.id,
               name: b.name,
-              section: b.section?.trim() || "",
+              ...(b.chiefOfStaff ? { chiefOfStaff: true } : {}),
               model: b.modelSelection.model,
               busy: !!b.busy,
               status,
@@ -14636,7 +14634,7 @@ const handleRequestInner = async (req: IncomingMessage, res: ServerResponse) => 
             : roomHandoffProblem(target, address);
           if (eligibility) return refuse(403, eligibility);
         }
-        // a group's leader gets a few rounds and tasks per message of the person's, so a department never ping-pongs
+        // a group's leader gets a few rounds and tasks per message of the person's, so a group never ping-pongs
         if (source && roomLeaderId(source) === internalSender.id && call.reply !== "none") {
           const self = coordinator.node(internalCapability.roomHandoffId ?? internalCapability.generation);
           if (self && !self.parentId) {
@@ -15204,7 +15202,7 @@ const handleRequestInner = async (req: IncomingMessage, res: ServerResponse) => 
         const body = await readInternalBody();
         const chief = store.bot(internalCapability.botId)!;
         if (chief.hidden || !chiefLevel(chief) || !connectorThread(chief.id, internalCapability.threadId)) {
-          return json(res, 403, { error: "only an active section Chief of Staff can manage rooms" });
+          return json(res, 403, { error: "only an active Chief of Staff can manage rooms" });
         }
         if (!body || typeof body !== "object" || Array.isArray(body)) {
           return json(res, 400, { error: "room request must be a JSON object" });
@@ -15212,11 +15210,11 @@ const handleRequestInner = async (req: IncomingMessage, res: ServerResponse) => 
         if (peerReviewRequired(chief, internalCapability.threadId)) {
           return json(res, 403, { error: "peer approval is required; ask the user to make this room change" });
         }
-        // A Chief gathers only bots it can reach; which department a room is filed in is the person's choice.
+        // A Chief gathers only bots it can reach; which sidebar section a room is filed in is the person's choice.
         const allowedIds = new Set([chief.id, ...reachablePeers(store.bots, chief).map((bot) => bot.id)]);
         const allowedRoster = (ids: string[]) => ids.includes(chief.id) && ids.every((id) => allowedIds.has(id));
         if (body.section !== undefined && (typeof body.section !== "string" || sectionKey(body.section) !== sectionKey(chief.section))) {
-          return json(res, 403, { error: "rooms stay in your own department; ask the person to move them" });
+          return json(res, 403, { error: "a room stays in the section it is made in; ask the person to move it" });
         }
         if (path === "/api/internal/create-room") {
           if ((internalCapability.createdRooms ?? 0) >= 4) {
@@ -15250,8 +15248,8 @@ const handleRequestInner = async (req: IncomingMessage, res: ServerResponse) => 
         }).strict().safeParse(body);
         if (!parsed.success) return json(res, 400, { error: "provide roomId and a supported room action; section moves are user-only" });
         const room = store.group(parsed.data.roomId);
-        if (!room || room.dm || sectionKey(room.section) !== sectionKey(chief.section) || !allowedRoster(room.memberIds)) {
-          return json(res, 403, { error: "you can only manage rooms you belong to in your own department, whose members you can all reach; no bot needs adding to get work, since coordinate_bots reaches bots outside the room directly" });
+        if (!room || room.dm || !allowedRoster(room.memberIds)) {
+          return json(res, 403, { error: "you can only manage rooms you belong to whose members you can all reach; no bot needs adding to get work, since coordinate_bots reaches bots outside the room directly" });
         }
         const { action, memberIds, name, bulletin } = parsed.data;
         if (cloudGuestDriven(internalCapability.threadId)) {

@@ -19,13 +19,13 @@ export function botOwner(bot: Pick<OwnedBot, "createdBy" | "reportsTo" | "defaul
   return email ? ownerEmail(email) : null;
 }
 
-/** One Chief of Staff per key: a bot someone owns is its owner's Chief, any other one its department's. */
+/** One Chief of Staff per key: a bot someone owns is its owner's Chief, any other one the workspace's. */
 export function chiefScope(bot: OwnedBot): string {
   const owner = botOwner(bot);
-  return owner ? `owner:${owner}` : `section:${bot.section?.trim() || ""}`;
+  return owner ? `owner:${owner}` : "workspace";
 }
 
-/** Two Chiefs of Staff in one scope: the same owner on a Team Cloud, the same department anywhere else. */
+/** Two Chiefs of Staff in one scope: the same owner on a Team Cloud, the workspace anywhere else. */
 export function chiefConflict(bots: readonly OwnedBot[]): boolean {
   const seen = new Set<string>();
   for (const bot of bots) {

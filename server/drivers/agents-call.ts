@@ -338,11 +338,10 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
       const state = typeof b.statusText === "string"
         ? (b.status === "available" ? "" : b.statusText)
         : (b.busy ? "busy" : "");
-      const team = typeof b.section === "string" ? `, department: ${peerName(b.section) || "General"}` : "";
-      return `- ${b.name}${role}${about} [id: ${b.id}, model: ${b.model}${team}${state ? `, ${state}` : ""}]`;
+      return `- ${b.name}${role}${about} [id: ${b.id}, model: ${b.model}${b.chiefOfStaff === true ? ", Chief of Staff" : ""}${state ? `, ${state}` : ""}]`;
     });
     return {
-      text: `Bots you can reach (every department; you can contact any of them):\n${lines.join("\n")}\n\nUse coordinate_bots for concrete work or, with consult: true, for advice, then end your turn. Busy teammates queue and results resume you automatically.`,
+      text: `Bots you can reach (you can contact any of them):\n${lines.join("\n")}\n\nUse coordinate_bots for concrete work or, with consult: true, for advice, then end your turn. Busy teammates queue and results resume you automatically.`,
     };
   }
   if (name === "list_rooms") {
@@ -519,7 +518,7 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     };
   }
   if (member === "create_room") {
-    if (args.section !== undefined) return { text: "A room you create stays in your own department; ask the user to move it.", isError: true };
+    if (args.section !== undefined) return { text: "A room you create stays where it is made; ask the user to move it to a sidebar section.", isError: true };
     const roomName = String(args.name ?? "").trim();
     const memberIds = Array.isArray(args.member_bot_ids)
       ? args.member_bot_ids.map((id) => String(id).trim()).filter(Boolean)

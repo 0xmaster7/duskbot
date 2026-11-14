@@ -16,10 +16,10 @@ describe("who gets a webhook automation's address", () => {
     expect(addressRefusal(ask({ id: "chief", chiefOfStaff: true, section: "Sales", managedSections: ["Ops"] }))).toBeNull();
   });
 
-  it("never a teammate, a Chief that cannot reach the bot, or one whose audience differs on a shared workspace", () => {
+  it("never a teammate (a Chief in any sidebar section may), a Chief that cannot reach the bot, or one whose audience differs on a shared workspace", () => {
     const only = "Only Courier, which owns this automation, or a Chief of Staff gets its address.";
     expect(addressRefusal(ask({ id: "peer", section: "Ops" }))).toBe(only);
-    expect(addressRefusal(ask({ id: "chief", chiefOfStaff: true, section: "Sales" }))).toBe(only);
+    expect(addressRefusal(ask({ id: "chief", chiefOfStaff: true, section: "Sales" }))).toBeNull();
     expect(addressRefusal(ask({ id: "chief", chiefOfStaff: true, section: "Ops", peers: ["someone-else"] }))).toBe(only);
     expect(addressRefusal(ask({ id: "chief", chiefOfStaff: true, section: "Ops", visibility: { people: ["ada@example.com"] } }))).toBe(only);
   });

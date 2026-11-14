@@ -43,7 +43,7 @@ export interface TeamSetupRequest {
   operations: TeamSetupOperation[];
   newTeams: string[];
   deletion?: { botId: string; name: string; expectedRevision: string };
-  /** A bot that is not a Chief making one bot in its own department because its person asked it directly. */
+  /** A bot that is not a Chief making one bot in its own sidebar section because its person asked it directly. */
   byPerson?: true;
   result?: TeamSetupResult;
   resumed?: boolean;
@@ -55,6 +55,6 @@ export interface TeamSetupRequest {
  * the Chief its earlier teams; `revisions` pin every bot it touched as it applied, so a later change refuses Undo. */
 export interface TeamSetupUndo {
   created: string[];
-  before: Array<{ botId: string; fields: TeamSetupFields; managedSections?: string[] | null }>;
+  before: Array<{ botId: string; fields: TeamSetupFields }>;
   revisions: Record<string, string>;
 }

@@ -58,7 +58,7 @@ it("shares New bot defaults as a preset, imports it, and creates bots from file 
 
     const lead = (await ok("POST", "/api/bots", { name: "Morgan", section: "Sales desk", useDefaults: false })).bot;
     // sharing a department is gone; only the library kind above still exports
-    const gone = { status: 410, body: { error: "Sharing a department is no longer available." } };
+    const gone = { status: 410, body: { error: "Sharing a section is no longer available." } };
     expect(await call("POST", "/api/teams/export", { format: "package", version: 2, team: "Sales desk", dryRun: true })).toEqual(gone);
     expect(await call("POST", "/api/teams/export", { format: "package", version: 2, team: "Sales desk", includeDefaultsPreset: true, presetName: "Support agent", dryRun: true })).toEqual(gone);
     expect(lead.name).toBe("Morgan");

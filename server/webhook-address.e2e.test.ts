@@ -43,13 +43,12 @@ it("gives the address to the owning bot and its Chief, never to a teammate, anot
     const ledger = (await cli("new-bot", "--name", "Ledger", "--section", "Operations")).bot;
     const clive = (await cli("new-bot", "--name", "Clive", "--section", "Operations")).bot;
     await api("PATCH", `/api/bots/${clive.id}`, { chiefOfStaff: true });
-    // Another team's Chief that also manages Operations, but is shown to a different audience.
+    // A bot in another sidebar section, shown to a different audience.
     const vera = (await cli("new-bot", "--name", "Vera", "--section", "Finance")).bot;
-    await api("PATCH", `/api/bots/${vera.id}`, { chiefOfStaff: true, managedSections: ["Operations"], acknowledgePeerScope: true });
     await api("PATCH", `/api/bots/${vera.id}`, { visibility: { people: ["ada@example.test"] } });
-    // Chief first: the fixture's starter is the Chief of its own, unsectioned team.
+    // One Chief for the workspace: crowning Clive took the role from the fixture's starter.
     const roster = (await api("GET", "/api/bots")).bots as any[];
-    expect(roster.filter((bot) => bot.chiefOfStaff).map((bot) => bot.name).sort()).toEqual(["Clive", "Fixture Starter", "Vera"]);
+    expect(roster.filter((bot) => bot.chiefOfStaff).map((bot) => bot.name)).toEqual(["Clive"]);
 
     // 1. Creating it hands the owner the address, which works; a careless reply repeating it is masked in the transcript.
     const created = await turn(courier, "Set up an address my WhatsApp watcher can send new messages to, and connect it yourself.", [
@@ -90,7 +89,7 @@ it("gives the address to the owning bot and its Chief, never to a teammate, anot
 
     // 6. A Chief whose audience differs cannot reach that bot at all.
     const hidden = await turn(vera, "Get Courier's watcher address.", [{ ...ask(webhookId, courier.id), expectError: true }]);
-    expect(said(hidden, "list_triggers")).toContain("set up by bots in its own department or by its Chief, or it is unavailable");
+    expect(said(hidden, "list_triggers")).toContain("set up by its Chief, or it is unavailable");
     expect(JSON.stringify(hidden)).not.toContain(secret);
 
     // 7. The person's Copy address is that same address.

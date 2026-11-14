@@ -114,7 +114,7 @@ export function createTeamOwnerRoutes(deps: TeamOwnerRouteDeps): RouteHandler {
     });
 
     if (bulk) {
-      if (!admin) return json(res, 403, { error: `Only ${team.name}'s admins can set who a department's bots report to.` });
+      if (!admin) return json(res, 403, { error: `Only ${team.name}'s admins can set who a section's bots report to.` });
       const parsed = bulkBody.safeParse(await readBody(req));
       if (!parsed.success) return json(res, 400, { error: "Send botIds and an email." });
       const { email } = parsed.data;

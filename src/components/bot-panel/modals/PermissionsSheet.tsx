@@ -10,21 +10,19 @@ import { effectiveOutboundPolicy, type OutboundPolicy } from "../../../../shared
 import type { useBotSettingsDerived } from "../../bot-settings/useBotSettingsDerived";
 import { CommandAllowlistDialog } from "../../CommandAllowlistDialog";
 import { LocalComputerAutoWarning } from "../../LocalComputerAutoWarning";
-import { Card, CheckRow, FormDialog, FormField, NavRow, NoteRow, pillCls, SelectRow, SwitchRow, useSubPage } from "../../ListRows";
+import { Card, FormDialog, FormField, NavRow, SelectRow, SwitchRow } from "../../ListRows";
 import { textFieldCls } from "../../ui/GrokDialog";
 
 type Derived = ReturnType<typeof useBotSettingsDerived>;
 
-/** Chief of Staff and the departments it also leads, contact with other bots, the approval level and sending, as rows. */
+/** Chief of Staff, contact with other bots, the approval level and sending, as rows. */
 export function PermissionsSheet({ bot, derived }: { bot: Bot; derived: Derived }) {
-  const { patch, engine, canCoordinate, approvalMode, trustedModesAvailable, sectionName } = derived;
+  const { patch, engine, canCoordinate, approvalMode, trustedModesAvailable, currentChief } = derived;
   const { state, dispatch } = useStore();
-  const { at, open } = useSubPage();
   const team = useTeamPeople();
   const ownerOrAdmin = useOwnerOrAdmin();
   const [localAutoWarning, setLocalAutoWarning] = useState<string | null>(null);
   const [allowlistOpen, setAllowlistOpen] = useState(false);
-  const section = sectionName === "General" ? t("botPanel.ui.botAccessTeamsGeneral") : sectionName;
   const driverKind = engine?.driverKind ?? "";
   const applyFullEverywhere = () => dispatch({ type: "updateBot", botId: bot.id, patch: { approvalMode: "full", applyToAllThreads: true } });
   const setApprovalMode = (mode: ApprovalMode) => {
@@ -34,41 +32,23 @@ export function PermissionsSheet({ bot, derived }: { bot: Bot; derived: Derived 
     else patch({ approvalMode: mode });
   };
   const peerNames = Array.isArray(bot.peers) ? bot.peers.flatMap((id) => state.bots.find((other) => other.id === id && !other.hidden)?.name ?? []) : null;
-  const led = bot.managedSections?.length ?? 0;
-
-  if (at === "teams" && !team && bot.chiefOfStaff) {
-    return (
-      // a saved change remounts the list, so another bot's old selection can never be saved from it
-      <ChiefTeams
-        key={bot.id + JSON.stringify(bot.managedSections ?? [])}
-        ownTeam={bot.section?.trim() || ""}
-        teams={["", ...(state.sections ?? []), ...[...state.bots, ...state.groups].map((member) => member.section?.trim() || "")]}
-        allowed={bot.managedSections ?? []}
-        onSave={(managedSections) => patch({ managedSections, acknowledgePeerScope: true })}
-      />
-    );
-  }
+  const otherChief = currentChief && currentChief.id !== bot.id ? currentChief : null;
 
   return (
     <>
       {!team && (
-        <Card label={t("botPanel.ui.permissionsChiefTitle")} data-sheet-group="chief">
+        <Card data-sheet-group="chief">
           <SwitchRow
-            title={t("botPanel.sheet.chiefRow", { section })}
-            hint={canCoordinate ? undefined : t("botPanel.sheet.chiefNoModel")}
+            data-sheet-row="chief"
+            title={t("botPanel.ui.permissionsChiefTitle")}
+            hint={!canCoordinate ? t("botPanel.sheet.chiefNoModel")
+              : !bot.chiefOfStaff && otherChief ? t("botPanel.sheet.chiefTakesOver", { current: otherChief.name })
+                : t("botPanel.sheet.chiefHint")}
             label={t("botPanel.ui.permissionsChiefTitle")}
             checked={Boolean(bot.chiefOfStaff)}
             disabled={!bot.chiefOfStaff && !canCoordinate}
             onChange={() => patch({ chiefOfStaff: !bot.chiefOfStaff })}
           />
-          {bot.chiefOfStaff && (
-            <NavRow
-              data-sheet-row="chief-teams"
-              title={t("botPanel.ui.botAccessTeamsTitle")}
-              value={led ? t("botPanel.sheet.chosen", { count: led }) : t("botPanel.none")}
-              onClick={() => open("teams", t("botPanel.ui.botAccessTeamsTitle"))}
-            />
-          )}
         </Card>
       )}
 
@@ -119,42 +99,6 @@ export function PermissionsSheet({ bot, derived }: { bot: Bot; derived: Derived 
           if (target) dispatch({ type: "updateBot", botId: target, patch: { approvalMode: "auto", acknowledgeLocalAuto: true } });
         }}
       />
-    </>
-  );
-}
-
-function ChiefTeams({ ownTeam, teams, allowed, onSave }: {
-  ownTeam: string;
-  teams: string[];
-  allowed: string[];
-  onSave: (teams: string[]) => void;
-}) {
-  const [selected, setSelected] = useState(allowed);
-  const choices = [...new Set([...teams, ...allowed])].filter((team) => team !== ownTeam).sort();
-  const changed = JSON.stringify([...selected].sort()) !== JSON.stringify([...allowed].sort());
-  return (
-    <>
-      <Card data-sheet-group="chief-teams">
-        {choices.length === 0 && <NoteRow>{t("botAccess.teams.empty")}</NoteRow>}
-        {choices.map((team) => {
-          const name = team === "General" || !team ? t("botPanel.ui.botAccessTeamsGeneral") : team;
-          return (
-            <CheckRow
-              key={team}
-              aria-label={name}
-              title={name}
-              checked={selected.includes(team)}
-              onClick={() => setSelected((current) => (current.includes(team) ? current.filter((value) => value !== team) : [...current, team]))}
-            />
-          );
-        })}
-      </Card>
-      {choices.length > 0 && (
-        <div className="-mt-2.5 flex items-center justify-end gap-3 px-3">
-          <span className="mr-auto text-[12px] leading-4 tracking-[0.01em] text-ink-secondary">{changed ? t("botPanel.sheet.unsaved") : t("botPanel.sheet.chosen", { count: selected.length })}</span>
-          <button type="button" aria-label={t("botPanel.ui.botAccessTeamsSave")} disabled={!changed} onClick={() => onSave(selected)} className={pillCls}>{t("botPanel.sheet.save")}</button>
-        </div>
-      )}
     </>
   );
 }

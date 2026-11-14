@@ -109,8 +109,8 @@ The tools are `list_room_targets` and `coordinate_bots`. Discovery includes
 reachable bots as well as rooms. The latter addresses 1–4 existing bots in this
 room (default), or — in ordinary direct chat without a room — the sender's one
 thread with each recipient for that conversation. Every bot can reach every
-other bot, in any department; a Chief's authority over other departments is a
-separate grant ([Chief authority](team-access.md)).
+other bot, whatever sidebar section it is in; the one Chief of Staff oversees
+them all.
 A multi-recipient room request posts its brief once, addressed to all accepted
 recipients. Each recipient still has a separate execution and result. An
 identical retry does not post again; different briefs remain separate. Requests
@@ -304,10 +304,9 @@ with the second job queued in the first member's thread. After release it
 checks three result cards and three "Sent to" lines in the room, the
 first member's two turns in one thread, and one resume of the Lead.
 
-### Rooms that mix departments
+### Rooms that mix sidebar sections
 
-A room's members can come from any department, a Chief that manages none of
-them included: they list each other with `list_room_targets` and hand each
+A room's members can come from any sidebar section, the Chief included: they list each other with `list_room_targets` and hand each
 other work with `coordinate_bots` like any room. A bot's own peers list still
 narrows what it can address, and a revoked peer is refused before queued work
 starts. On a Team Cloud, nothing from a member's private chat is handed into a
@@ -344,7 +343,7 @@ own department.
 pnpm exec vitest run server/host/room-access.test.ts server/room-coordination.e2e.test.ts
 ```
 
-The e2e test has a Chief in a room create three bots in its department and hand
+The e2e test has a Chief in a room create three bots in its sidebar section and hand
 them work with the room as `group_id`: each runs in a thread of its own without
 the room's bulletin, the room's members stay the same, the room shows the three
 notes and three result cards, the Chief resumes once, and no card waits on the

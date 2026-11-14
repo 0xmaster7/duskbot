@@ -194,7 +194,7 @@ it("gives each person a Chief of Staff of their own whose team is the bots that 
   const adasChief = await create(ada, { name: "Ada's Chief", reportsTo: ADA.email });
   bobsChief = await create(ada, { name: "Bob's Chief", reportsTo: BOB.email });
   for (const chief of [adasChief, bobsChief]) expect((await team.as(ada, "PATCH", `/api/bots/${chief.id}`, { chiefOfStaff: true })).status).toBe(200);
-  // Both crowned in General beside the department's own Chief, which nobody owns.
+  // Both crowned beside the workspace's own Chief, which nobody owns.
   const crowned = (await bots(olive)).filter((one) => one.chiefOfStaff);
   expect(crowned.filter((one) => one.reportsTo).map((one) => one.name).sort()).toEqual(["Ada's Chief", "Bob's Chief"]);
   expect(crowned.filter((one) => !one.reportsTo && !one.createdBy)).toHaveLength(1);

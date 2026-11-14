@@ -27,7 +27,7 @@ async function fixture(test: (f: any) => Promise<void>) {
 
 it("starts the person's own line ahead of a hand-off that was already waiting for memory, and the hand-off right after", () => fixture(async (f) => {
   const [chief, first, second, person] = [await f.bot("Clive"), await f.bot("First"), await f.bot("Second"), await f.bot("Person's bot")];
-  await f.api(`/api/bots/${chief.id}`, { chiefOfStaff: true, managedSections: ["Team"], acknowledgePeerScope: true }, "PATCH");
+  await f.api(`/api/bots/${chief.id}`, { chiefOfStaff: true }, "PATCH");
   const gate = join(f.dataDir, "first-may-finish");
   writeFileSync(f.planPath, JSON.stringify({
     [chief.id]: { steps: [{ arguments: { bot_ids: [first.id], message: "First job" } }, { arguments: { bot_ids: [second.id], message: "Second job" } }], reply: "Sent", resumeReply: "Done" },
@@ -61,7 +61,7 @@ it("on Starter with 13 bots, hand-offs to busy bots start at once: one thread pe
   writeFileSync(join(f.dataDir, "test-starter"), "");
   expect((await f.api("/api/config", undefined, "GET")).cloudStarter).toBe(true);
   const [chief, target, other] = bots;
-  await f.api(`/api/bots/${chief.id}`, { chiefOfStaff: true, managedSections: ["Team"], acknowledgePeerScope: true }, "PATCH");
+  await f.api(`/api/bots/${chief.id}`, { chiefOfStaff: true }, "PATCH");
   const gate = join(f.dataDir, "target-may-finish");
   writeFileSync(f.planPath, JSON.stringify({
     [chief.id]: { steps: [{ arguments: { bot_ids: [target.id], message: "While you are busy" } }, { arguments: { bot_ids: [other.id], message: "Also while busy" } }], reply: "Sent", resumeReply: "Done" },

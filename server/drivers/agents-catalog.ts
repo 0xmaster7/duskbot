@@ -164,7 +164,7 @@ const TRIGGER_FIELDS_SCHEMA = {
   },
 } as const;
 
-const CHIEF_PROFILE_TARGET = " A Chief of Staff may pass for_bot_id (from list_bots) for a requested change to another bot in its section.";
+const CHIEF_PROFILE_TARGET = " A Chief of Staff may pass for_bot_id (from list_bots) for a requested change to another bot.";
 const APPLIES_OUTCOME = " Read the result: it applies immediately at every access level, and the person sees it with an Undo where possible. If applied, continue the work without another confirmation. Only a pending result (a Cloud conversation its owner did not drive) means ending the turn to wait for the owner. Never claim success without an applied result; report failures honestly. This does not elevate another bot's execution permissions.";
 
 
@@ -206,7 +206,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "list_room_targets",
-    description: "Discover actual dusk bot teammates you can reach, in every department, and rooms. Works in a normal bot conversation too; no room is required. Returns bot and room IDs, roles and working folders, never other conversations' history. Use these bots, not native coding helpers with similar names, when the user asks their team to work together.",
+    description: "Discover actual dusk bot teammates you can reach, and rooms. Works in a normal bot conversation too; no room is required. Returns bot and room IDs, roles and working folders, never other conversations' history. Use these bots, not native coding helpers with similar names, when the user asks their team to work together.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
   {
@@ -237,7 +237,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "list_bots",
     description:
-      "List every other bot (agent) you can contact, in every department, with its department, model and current status. Call this to discover exact teammate IDs before assigning work or asking advice with coordinate_bots.",
+      "List every other bot (agent) you can contact, with its model, current status and whether it is the Chief of Staff. Call this to discover exact teammate IDs before assigning work or asking advice with coordinate_bots.",
     inputSchema: { type: "object", properties: {} },
   },
   USAGE_LIMITS_TOOL_DEFINITION,
@@ -378,7 +378,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "propose_team_setup",
-    description: "Chief of Staff only: submit all requested specialist creation, profile/model configuration, Chief assignments, and authorized team moves in ONE combined plan. Use exact catalog engine/model IDs from list_team_setup. Combine all fields for each bot; use the same create key or botId to coalesce repeated entries. New teams must be named explicitly in newTeams and have a specialist in this plan; access is granted only to those new teams. Existing unauthorized teams cannot be included. Models change bot defaults for groups/new threads; existing threads and execution permissions stay unchanged. If review is pending, the decision and structured result automatically resume you once; do not ask again, poll, or repeat the proposal." + APPLIES_OUTCOME,
+    description: "Chief of Staff only: submit all requested specialist creation, profile/model configuration, Chief assignments, and sidebar section moves in ONE combined plan. Use exact catalog engine/model IDs from list_team_setup. Combine all fields for each bot; use the same create key or botId to coalesce repeated entries. A new sidebar section must be named explicitly in newTeams and have a specialist in this plan. Models change bot defaults for groups/new threads; existing threads and execution permissions stay unchanged. If review is pending, the decision and structured result automatically resume you once; do not ask again, poll, or repeat the proposal." + APPLIES_OUTCOME,
     inputSchema: {
       type: "object", additionalProperties: false,
       properties: {
@@ -392,10 +392,10 @@ const TOOL_DEFINITIONS = [
             botId: { type: "string", description: "For update: exact existing bot ID from list_team_setup." },
             fields: { type: "object", additionalProperties: false, properties: {
               name: { type: "string", maxLength: 100 }, title: { type: "string", maxLength: 200 },
-              chiefOfStaff: { type: "boolean", description: "Appoint or remove this team's Chief. At most one Chief per team: explicitly demote the current Chief in the same plan when replacing them. Does not grant access to other teams or change execution permissions." },
+              chiefOfStaff: { type: "boolean", description: "Appoint or remove the Chief of Staff, who oversees every bot. There is at most one: explicitly demote the current Chief in the same plan when replacing them. Does not change execution permissions." },
               description: { type: "string", maxLength: 4000 }, soul: { type: "string", description: "Standing instructions; required with name/title/modelSelection for every new bot." },
               cwd: { type: "string", maxLength: 1024, description: "Create only: absolute path of the folder the new bot's tools read and write in. It must already exist. Leave it out for a private workspace." },
-              section: { type: "string", maxLength: 60, description: "Exact authorized existing team, or a team explicitly named in newTeams. Empty string means General." },
+              section: { type: "string", maxLength: 60, description: "Sidebar section to file the bot under: an existing one, or one named in newTeams. Empty string means none." },
               modelSelection: { type: "object", additionalProperties: false, properties: {
                 instanceId: { type: "string" }, model: { type: "string" }, effort: { type: "string" }, variant: { type: "string" },
               }, required: ["instanceId", "model"] },
@@ -415,7 +415,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "manage_room",
     description:
-      "Chiefs only, for rooms in your own department. create a room (was create_room) when the user asks for one (at most four per turn), with active bots from list_bots in any department; you are included automatically as the default responder, and it creates no turns or messages. For a room from list_rooms: rename it, change its bulletin, add, remove or set members, with any bots you can reach (keep yourself as a member), or open a new thread in it (new_thread, at most four per turn), which becomes the room's current thread. Busy rooms, pending approvals and team-goal leads are protected. Moving rooms or bots between departments stays with the user; coordinate_bots reaches bots outside a room directly. Follow the tool result under the effective access level; if the change is refused, report the blocker, or ask the user to make the room change, without trying another route.",
+      "Chiefs only. create a room (was create_room) when the user asks for one (at most four per turn), with active bots from list_bots; you are included automatically as the default responder, and it creates no turns or messages. For a room from list_rooms: rename it, change its bulletin, add, remove or set members, with any bots you can reach (keep yourself as a member), or open a new thread in it (new_thread, at most four per turn), which becomes the room's current thread. Busy rooms, pending approvals and team-goal leads are protected. Moving rooms or bots between sidebar sections stays with the user; coordinate_bots reaches bots outside a room directly. Follow the tool result under the effective access level; if the change is refused, report the blocker, or ask the user to make the room change, without trying another route.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -600,7 +600,7 @@ const TOOL_DEFINITIONS = [
         action: { type: "string", enum: ["list", "events"] },
         trigger_id: { type: "string", description: "list: one trigger's details and recent fires." },
         include_address: { type: "boolean", description: "list, with a webhook's trigger_id: also its private address. For the bot that owns it, or a Chief of Staff." },
-        for_bot_id: { type: "string", description: "list: ANOTHER bot's triggers in your section, from list_bots." },
+        for_bot_id: { type: "string", description: "list: ANOTHER bot's triggers, from list_bots." },
         app: { type: "string", description: "events: optional app slug, e.g. gmail." },
         search: { type: "string", description: "events: optional words in event names." },
       },
@@ -636,7 +636,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "delete_trigger",
     description:
-      "Delete a trigger for good, only when the person asks (was manage_trigger delete); to stop it for now, pause it with trigger. It applies at once, with an Undo. for_bot_id: ANOTHER bot's trigger in your section.",
+      "Delete a trigger for good, only when the person asks (was manage_trigger delete); to stop it for now, pause it with trigger. It applies at once, with an Undo. for_bot_id: ANOTHER bot's trigger.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -676,7 +676,7 @@ const TOOL_DEFINITIONS = [
         reason: { type: "string", minLength: 1, maxLength: 500, description: "One sentence the user will see explaining why." },
         for_bot_id: {
           type: "string",
-          description: "Chief of Staff only: the id of another bot in your section whose profile this changes. Omit to change your own.",
+          description: "Chief of Staff only: the id of another bot whose profile this changes. Omit to change your own.",
         },
       },
       required: ["reason"],
@@ -705,7 +705,7 @@ const TOOL_DEFINITIONS = [
         reason: { type: "string", minLength: 1, maxLength: 500, description: "One sentence the user will see explaining why." },
         for_bot_id: {
           type: "string",
-          description: "Chief of Staff only: the id of another bot in your section whose default model this changes. Omit to change your own.",
+          description: "Chief of Staff only: the id of another bot whose default model this changes. Omit to change your own.",
         },
       },
       required: ["model_selection", "reason"],

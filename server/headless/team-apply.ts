@@ -262,16 +262,15 @@ export async function reconcile(client: HeadlessClient, file: TeamFile, options:
 
   for (const desired of file.bots.filter((bot) => bot.chief !== undefined)) {
     const bot = (current.bots ?? []).find((candidate: Rec) => candidate.id === botId(desired.name));
-    const managed = desired.manages.map((name) => sectionNamed(name) ?? name);
     if (desired.chief === false) {
       if (!bot?.chiefOfStaff) continue;
       note(`bot "${desired.name}": no longer Chief of Staff`, "changed");
       if (options.apply) await write(`/api/bots/${enc(bot.id)}`, { method: "PATCH", body: JSON.stringify({ chiefOfStaff: false }) });
       continue;
     }
-    if (bot?.chiefOfStaff === true && sameSet(bot.managedSections ?? [], managed)) continue;
-    if (!created.has(key(desired.name))) note(`bot "${desired.name}": Chief of Staff of ${desired.team ?? "General"}${managed.length ? `, also in charge of ${managed.join(", ")}` : ""}`, "changed");
-    if (options.apply) await write(`/api/bots/${enc(bot!.id)}`, { method: "PATCH", body: JSON.stringify({ chiefOfStaff: true, managedSections: managed, acknowledgePeerScope: true }) });
+    if (bot?.chiefOfStaff === true) continue;
+    if (!created.has(key(desired.name))) note(`bot "${desired.name}": Chief of Staff`, "changed");
+    if (options.apply) await write(`/api/bots/${enc(bot!.id)}`, { method: "PATCH", body: JSON.stringify({ chiefOfStaff: true }) });
   }
 
   const rooms: Rec[] = (current.groups ?? []).filter((group: Rec) => !group.dm);
@@ -421,7 +420,7 @@ export async function teamExportVerb(ctx: VerbContext): Promise<VerbOutcome> {
   for (const [index, bot] of bots.entries()) {
     const entry: Rec = { name: bot.name, ...(bot.section ? { team: bot.section } : {}), ...(bot.title ? { title: bot.title } : {}),
       ...(bot.description ? { description: clean(bot.description, `bot "${bot.name}" description`) } : {}) };
-    if (bot.chiefOfStaff) Object.assign(entry, { chief: true, ...(bot.managedSections?.length ? { manages: bot.managedSections } : {}) });
+    if (bot.chiefOfStaff) entry.chief = true;
     if (bot.soul?.trim()) entry.soul = clean(bot.soul, `bot "${bot.name}" soul`);
     if (bot.modelSelection?.instanceId) {
       entry.model = `${bot.modelSelection.instanceId}/${bot.modelSelection.model}`;

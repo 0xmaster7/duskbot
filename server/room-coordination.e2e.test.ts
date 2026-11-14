@@ -52,7 +52,7 @@ async function withRooms(test: (f: any) => Promise<void>) {
 
 async function addSupervisingChief(f: any, section = "") {
   const chief = (await f.cli("new-bot", "--name", "Supervisor")).bot;
-  await f.api(`/api/bots/${chief.id}`, { section, chiefOfStaff: true, managedSections: ["A"], acknowledgePeerScope: true }, "PATCH");
+  await f.api(`/api/bots/${chief.id}`, { section, chiefOfStaff: true }, "PATCH");
   await f.tool("update_channel", { channel_id: f.source.id, member_ids: [f.sender.id, f.target.id, chief.id] });
   f.plan[chief.id] = { reply: "Supervisor checked the work" };
   return chief;
@@ -76,9 +76,8 @@ it.each(["", "Leadership"])("lists and coordinates with a supervising Chief and 
   expect(children.every((node: any) => node.status === "completed" && node.groupId === f.source.id && node.threadId === f.source.activeTaskId)).toBe(true);
 }), 45_000);
 
-it("coordinates in a room that mixes departments, with a Chief that manages none of them", () => withRooms(async f => {
+it("coordinates in a room that mixes sidebar sections, with the Chief in it", () => withRooms(async f => {
   const chief = await addSupervisingChief(f);
-  await f.api(`/api/bots/${chief.id}`, { managedSections: [] }, "PATCH");
   const outsider = (await f.cli("new-bot", "--name", "Outsider", "--section", "Finance")).bot;
   await f.tool("update_channel", { channel_id: f.source.id, member_ids: [f.sender.id, f.target.id, chief.id, outsider.id] });
   f.plan[outsider.id] = { reply: "Finance numbers checked" };
@@ -153,7 +152,7 @@ it("frames room work it cannot trace as outside content, and defuses forged enve
 
 it("lets an explicitly authorized Chief coordinate another team, which can consult its own specialist", () => withRooms(async f => {
   await f.api(`/api/bots/${f.target.id}`, { section: "Engineering" }, "PATCH");
-  await f.api(`/api/bots/${f.sender.id}`, { chiefOfStaff: true, managedSections: ["Engineering"], acknowledgePeerScope: true }, "PATCH");
+  await f.api(`/api/bots/${f.sender.id}`, { chiefOfStaff: true }, "PATCH");
   const reviewer = (await f.cli("new-bot", "--name", "Reviewer", "--section", "Engineering")).bot;
   const reviewRoom = (await f.tool("create_channel", { name: "Quality", member_ids: [reviewer.id] })).channel;
   f.plan[f.target.id] = {
@@ -168,9 +167,6 @@ it("lets an explicitly authorized Chief coordinate another team, which can consu
   expect((await f.messages(f.source.activeTaskId)).some((m: any) => m.text === "Reviewed downstream outcome")).toBe(true);
   const resumedPrompt = f.provider().filter((turn: any) => turn.botId === f.target.id).at(-1).prompt;
   expect(JSON.stringify(resumedPrompt).match(/CSV checks passed/g)).toHaveLength(1);
-  const bots = (await f.api("/api/bots")).bots;
-  expect(bots.find((b: any) => b.id === f.target.id).managedSections).toBeUndefined();
-  expect(bots.find((b: any) => b.id === reviewer.id).managedSections).toBeUndefined();
 }), 45_000);
 
 it("withholds a cross-department result if the sender's peers list cuts the recipient off while it runs", () => withRooms(async f => {

@@ -254,7 +254,7 @@ it("refuses a parked conversation after its own provider settles while its teamm
     const chief = (await control(["new-bot", "--name", "Guarded coordinator", "--section", "Leadership"])).bot;
     const teammate = (await control(["new-bot", "--name", "Guarded teammate", "--section", "Engineering"])).bot;
     expect((await api("PATCH", `/api/bots/${chief.id}`, {
-      chiefOfStaff: true, managedSections: ["Engineering"], acknowledgePeerScope: true, parkDirectMessages: true,
+      chiefOfStaff: true, parkDirectMessages: true,
     })).status).toBe(200);
     const gate = join(fixture.info.dataDir, "guarded-teammate.gate");
     writeFileSync(join(fixture.info.dataDir, "room-plan.json"), JSON.stringify({

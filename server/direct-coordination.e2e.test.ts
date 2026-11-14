@@ -35,7 +35,7 @@ async function fixtureSession(test: (f: any) => Promise<void>, fakeEnv: NodeJS.P
     const chief = (await cli("new-bot", "--name", "Clive", "--section", "Leadership")).bot;
     const lead = (await cli("new-bot", "--name", "Engineering lead", "--section", "Engineering")).bot;
     const specialist = (await cli("new-bot", "--name", "Reviewer", "--section", "Engineering")).bot;
-    await api(`/api/bots/${chief.id}`, { chiefOfStaff: true, managedSections: ["Engineering"], acknowledgePeerScope: true }, "PATCH");
+    await api(`/api/bots/${chief.id}`, { chiefOfStaff: true }, "PATCH");
     const planPath = join(session.info.dataDir, "room-plan.json");
     const plan: Record<string, any> = {
       [chief.id]: { steps: [{ arguments: { bot_ids: [lead.id], message: "Implement and independently verify the CSV export" } }], reply: "Assigned to Engineering", resumeReply: "The requested CSV export is implemented and verified" },
@@ -133,9 +133,8 @@ it("marks a failed one-way send so restart recovery cannot duplicate its notice"
   expect((await failureNotice())?.tool?.handoffId).toEqual(expect.any(String));
 }), 45_000);
 
-it("lets a bot ask a bot in another department directly, with nothing set up first", () => fixture(async f => {
-  // Engineering lead and Clive, the Chief in Leadership: different departments, no peers list, no grant either way.
-  await f.api(`/api/bots/${f.chief.id}`, { managedSections: [] }, "PATCH");
+it("lets a bot ask a bot in another sidebar section directly, with nothing set up first", () => fixture(async f => {
+  // Engineering lead and Clive, the Chief in Leadership: different sidebar sections, no peers list, nothing set up.
   f.plan[f.lead.id] = {
     steps: [{ arguments: { bot_ids: ["Clive"], message: "Can we upgrade to the latest PHP version?", consult: true } }],
     reply: "Asked Clive", resumeReply: "Clive says yes: the latest PHP is fine for us.",
@@ -145,8 +144,9 @@ it("lets a bot ask a bot in another department directly, with nothing set up fir
   await f.cli("send", "--bot", f.lead.id, "--task", f.lead.activeTaskId, "--text", "Please ask Clive if we can upgrade to the latest PHP version");
   expect((await f.cli("wait", "--bot", f.lead.id, "--task", f.lead.activeTaskId, "--timeout", "30")).status).toBe("settled");
   const asked = f.evidence().find((turn: any) => turn.botId === f.lead.id);
-  expect(asked.system).toContain("You can reach every other bot on this team, in every department");
-  expect(asked.system).toContain("Clive, General assistant (Leadership) [Chief of Staff]");
+  expect(asked.system).toContain("You can reach every other bot on this team");
+  expect(asked.system).toContain("Clive, General assistant [Chief of Staff]");
+  expect(asked.system).not.toMatch(/department/i);
   const response = asked.evidence.find((entry: any) => entry.step).response;
   expect(response.result.isError).toBeFalsy();
   const child = f.nodes().find((node: any) => node.parentId);
@@ -198,7 +198,6 @@ it("coordinates a lead and its specialist from ordinary chat, returns to Clive, 
   expect(receipt.threadRef.threadId).not.toBe(f.lead.activeTaskId);
   expect((await f.messages(f.chief.activeTaskId)).some((message: any) => message.text === "The requested CSV export is implemented and verified")).toBe(true);
   const bots = (await f.api("/api/bots")).bots;
-  expect(bots.find((bot: any) => bot.id === f.lead.id).managedSections).toBeUndefined();
   const turn = f.evidence().find((entry: any) => entry.botId === f.lead.id);
   const leadTools = turn.evidence[0].result.tools;
   const tools = leadTools.map((tool: any) => tool.name);

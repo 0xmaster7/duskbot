@@ -81,16 +81,16 @@ afterAll(async () => {
   await fx?.close();
 });
 
-it("lets Scout, in Bob's private chat, ask Bolt in another department and brings Bolt's answer back", async () => {
+it("lets Scout, in Bob's private chat, ask Bolt in another sidebar section and brings Bolt's answer back", async () => {
   const sent = await team.as(bob, "POST", `/api/bots/${scout.id}/messages`, { text: ASK, threadId: bobsChat });
   expect(sent.status, JSON.stringify(sent.body)).toBe(202);
   await expect.poll(async () => (await messages(bob, bobsChat)).messages.some((message) => message.text === RELAYED), { timeout: 60_000 }).toBe(true);
   await expect.poll(settled, { timeout: 20_000 }).toBe(true);
 
   const asked = turns().find((turn) => turn.botId === scout.id && turn.turnIndex === 0)!;
-  expect(asked.system).toContain("You can reach every other bot on this team, in every department");
-  expect(asked.system).toContain(`- Bolt, Developer (Dev) [id: ${bolt.id}]`);
-  expect(asked.system).toContain(`- Quill, Support writer (Support) [id: ${quill.id}]`);
+  expect(asked.system).toContain("You can reach every other bot on this team");
+  expect(asked.system).toContain(`- Bolt, Developer [id: ${bolt.id}]`);
+  expect(asked.system).toContain(`- Quill, Support writer [id: ${quill.id}]`);
   expect(asked.system).toContain(`[Chief of Staff] [id: ${chief.id}]`);
   expect(asked.system).not.toMatch(/allowed peer|team membership/i);
   expect(`${asked.system}\n${JSON.stringify(asked.prompt)}`).toContain(`The user named these existing teammates: Bolt (${bolt.id})`);

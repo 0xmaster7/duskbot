@@ -18,7 +18,7 @@ const ids = (bots: ReadonlyArray<{ id: string }>) => bots.map((one) => one.id).s
 const everyoneBut = (id: string) => ids(team.filter((one) => one.id !== id));
 
 describe("one Chief per person on a Team Cloud", () => {
-  it("reaches every bot, but has authority over exactly the bots its person owns, in every department", () => {
+  it("reaches every bot, but has authority over exactly the bots its person owns, in every sidebar section", () => {
     expect(ids(reachablePeers(team, bot("ada-chief")))).toEqual(everyoneBut("ada-chief"));
     expect(ids(team.filter((one) => one.id !== "ada-chief" && hasAuthority(bot("ada-chief"), one)))).toEqual(["lead", "seo"]);
     expect(ids(team.filter((one) => one.id !== "bob-chief" && hasAuthority(bot("bob-chief"), one)))).toEqual(["fox", "owl"]);
@@ -47,11 +47,14 @@ describe("one Chief per person on a Team Cloud", () => {
     expect(others).not.toMatch(/\bFox\b/);
   });
 
-  it("leaves a team nobody owns bots in, and every other server, on departments for authority only", () => {
+  it("leaves a team nobody owns bots in, and every other server, with one Chief over every bot", () => {
     const plain = team.map(({ createdBy: _createdBy, reportsTo: _reportsTo, ...rest }) => rest);
     expect(canReach(plain[0]!, plain[2]!)).toBe(true);
-    expect(hasAuthority(plain[0]!, plain[2]!)).toBe(false);
+    expect(hasAuthority(plain[0]!, plain[2]!)).toBe(true);
+    expect(hasAuthority(plain[0]!, plain[5]!)).toBe(true);
     expect(ids(reachablePeers(plain, plain.find((one) => one.id === "fox")!))).toEqual(ids(plain.filter((one) => one.id !== "fox")));
-    expect(chiefOfStaffSystemPrompt("ada-chief", plain, true)).toContain("Chief of Staff for the General department");
+    const prompt = chiefOfStaffSystemPrompt("ada-chief", plain, true);
+    expect(prompt).toContain("Every one of their bots is your team");
+    expect(prompt).not.toMatch(/department/i);
   });
 });

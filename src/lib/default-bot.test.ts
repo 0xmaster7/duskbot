@@ -82,9 +82,9 @@ describe("the first run's Chief step", () => {
     expect(chiefStepFits([{ id: "research" }], undefined)).toBe(false);
   });
 
-  it("keeps a Chief in another department out of it", () => {
+  it("counts a Chief in any sidebar section", () => {
     const other = { ...maus, chiefOfStaff: false };
-    expect(chiefStepFits([other, { id: "sales", chiefOfStaff: true, section: "Sales" }], other)).toBe(true);
+    expect(chiefStepFits([other, { id: "sales", chiefOfStaff: true, section: "Sales" }], other)).toBe(false);
   });
 });
 
@@ -93,16 +93,16 @@ describe("who becomes the Chief of Staff on the first run", () => {
   const maus: Candidate = { id: "maus", defaultBot: {}, chiefOfStaff: true };
   const research: Candidate = { id: "research" };
 
-  it("finds the Chief in Dusk's own department, never a department's or a hidden one", () => {
+  it("finds the workspace's one Chief in any sidebar section, never a hidden one", () => {
     expect(chiefFor([maus, research], maus)?.id).toBe("maus");
     expect(chiefFor([{ ...maus, chiefOfStaff: false }, { ...research, chiefOfStaff: true }], maus)?.id).toBe("research");
-    expect(chiefFor([{ ...maus, chiefOfStaff: false }, { id: "sales", section: "Sales", chiefOfStaff: true }], maus)).toBeUndefined();
+    expect(chiefFor([{ ...maus, chiefOfStaff: false }, { id: "sales", section: "Sales", chiefOfStaff: true }], maus)?.id).toBe("sales");
     expect(chiefFor([{ ...maus, chiefOfStaff: false }, { id: "old", chiefOfStaff: true, hidden: true }], maus)).toBeUndefined();
   });
 
   it("offers the person's own bots there to choose from, never Dusk, a hidden bot or someone else's", () => {
     const bots: Candidate[] = [maus, research, { id: "sales", section: "Sales" }, { id: "gone", hidden: true }, { id: "ada-maus", defaultBot: { person: "ada@example.com" } }];
-    expect(chiefChoices(bots, maus, null).map((bot) => bot.id)).toEqual(["research"]);
+    expect(chiefChoices(bots, maus, null).map((bot) => bot.id)).toEqual(["research", "sales"]);
     expect(chiefChoices([maus], maus, null)).toEqual([]);
   });
 

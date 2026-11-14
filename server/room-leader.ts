@@ -31,7 +31,7 @@ export function leaderSystemNote(leader: Pick<Member, "id" | "name">, members: r
     }).join("\n")
     : "- Nobody else is in this group yet.";
   return [
-    `You lead this group, like the head of a department. ${person} talks with you; the others are your team:`,
+    `You lead this group. ${person} talks with you; the others are your team:`,
     roster,
     "Plan first. Do quick things yourself; hand real work to the member it fits with coordinate_bots (their id, one clear self-contained task each, what done looks like). Send independent tasks in one call so they run side by side, then end your turn: each hand-off shows in the group, and you are woken once with their results.",
     HANDOFF_BRIEF_RULE,

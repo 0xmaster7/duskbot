@@ -238,7 +238,8 @@ const botFieldsSchema = z.object({
   hidden: z.boolean().nullable().optional(),
   pinned: z.boolean().nullable().optional(),
   chiefOfStaff: z.boolean().nullable().optional(),
-  managedSections: z.array(z.string().trim().max(60)).max(100).nullable().optional(),
+  // an older desktop still sends the dropped departments list: accepted and ignored
+  managedSections: z.unknown().optional(),
   fallback: z.array(z.object({ instanceId: z.string().regex(/^[\w.-]{1,128}$/u), model: z.string().min(1).max(500) })).max(5).nullable().optional(),
   projects: z.array(z.object({ id: z.string().regex(/^[\w-]{1,128}$/u), name: z.string().min(1).max(80), emoji: z.string().max(16).optional() }).passthrough()).max(200).nullable().optional(),
   playbooks: z.array(playbookSchema).max(50).nullable().optional(),
@@ -270,7 +271,6 @@ function applyBotFields(deps: MoveKindsDeps, id: string, raw: unknown): void {
   set("pinned", fields.pinned ?? undefined);
   set("sidebarHidden", fields.sidebarHidden ?? undefined);
   set("welcomed", fields.welcomed ?? undefined);
-  set("managedSections", fields.managedSections ? [...new Set(fields.managedSections.filter(Boolean))] : undefined);
   set("fallback", fields.fallback ? fields.fallback.filter((entry) => deps.instanceExists(entry.instanceId)) : undefined);
   if (fields.projects) {
     const arriving = new Set(fields.projects.map((project) => project.id));
@@ -286,10 +286,7 @@ function applyBotFields(deps: MoveKindsDeps, id: string, raw: unknown): void {
   if (Object.hasOwn(fields, "chiefOfStaff") && fields.chiefOfStaff !== true) patch.chiefOfStaff = fields.chiefOfStaff ?? undefined;
   if (fields.chiefOfStaff === true) delete patch.hidden;
   deps.store.patchBot(id, patch);
-  if (fields.chiefOfStaff === true) {
-    deps.store.setChiefOfStaff(id);
-    if (patch.managedSections) deps.store.patchBot(id, { managedSections: patch.managedSections });
-  }
+  if (fields.chiefOfStaff === true) deps.store.setChiefOfStaff(id);
   if (fields.defaultBot) takeArrivingDefaultBot(deps.store, id);
   retireUnusedStarter(deps.store, deps.dataDir);
 }

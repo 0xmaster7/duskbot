@@ -55,7 +55,7 @@ it("Clive sets up multi-provider teams at Ask with no card, keeps existing threa
     } });
     const plan = { reason: "Set up Research, Engineering and Growth specialists as requested", newTeams: ["Research", "Engineering", "Growth"], operations: [
       build("Mira", "Research", selection(claude)), build("Patch", "Engineering", selection(codex)), build("Quill", "Growth", selection(claude)),
-      { action: "create", key: "Patch", fields: { title: "Implementation and verification engineer", chiefOfStaff: true } },
+      { action: "create", key: "Patch", fields: { title: "Implementation and verification engineer" } },
     ] };
     const decisionReplies = async (requestId: string) => ((await api("GET", `/api/threads/${chief.threadId}/messages`)).messages as any[])
       .filter((message) => message.text?.includes(`team setup decision ${requestId}:`)).length;
@@ -70,14 +70,13 @@ it("Clive sets up multi-provider teams at Ask with no card, keeps existing threa
     const created = saved.filter((bot: any) => !initialBotIds.has(bot.id));
     expect(created.map((bot: any) => bot.name).sort()).toEqual(["Mira", "Patch", "Quill"]);
     const engineer = created.find((bot: any) => bot.name === "Patch");
-    expect(engineer).toMatchObject({ title: "Implementation and verification engineer", section: "Engineering", chiefOfStaff: true, modelSelection: selection(codex), approvalMode: "full", autoApprove: false });
+    expect(engineer).toMatchObject({ title: "Implementation and verification engineer", section: "Engineering", modelSelection: selection(codex), approvalMode: "full", autoApprove: false });
     for (const bot of created) expect(bot.connectorTools, bot.name).toEqual({ slack: { tools: ["SLACK_SEND_MESSAGE"] } });
-    expect(engineer.managedSections).toBeUndefined();
-    expect(saved.find((bot: any) => bot.id === chief.id).managedSections).toEqual(expect.arrayContaining(plan.newTeams));
+    expect(saved.find((bot: any) => bot.id === chief.id).managedSections).toBeUndefined();
     const notice = saved.find((bot: any) => bot.id === chief.id).messages.find((message: any) => message.card?.requestId === applied.requestId).card;
     expect(notice).toMatchObject({ autoApplied: true, answered: "allow", options: [], teamSetupRequest: { undo: { created: expect.any(Array) } } });
-    expect(notice.subtitle).toContain("Authorize @Clive");
-    expect(notice.subtitle).toContain("Chief of Staff: No → Yes");
+    expect(notice.subtitle).toContain('Create sidebar sections: "Research", "Engineering", "Growth"');
+    expect(notice.subtitle).not.toMatch(/department|Authorize/);
     await finish();
     expect(await decisionReplies(applied.requestId)).toBe(0);
 

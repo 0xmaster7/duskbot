@@ -27,28 +27,28 @@ export function createSidebarSectionRoutes(deps: SidebarSectionRouteDeps): Route
     }
     if (path === "/api/sidebar-sections" && (method === "PATCH" || method === "DELETE")) {
       const section = url.searchParams.get("section")?.trim();
-      if (!section) return json(res, 400, { error: "Choose a named department" });
-      if (method === "DELETE" && teamComputers.forSection(section)) return json(res, 409, { error: "Unassign this department's computer before deleting the department" });
+      if (!section) return json(res, 400, { error: "Choose a named section" });
+      if (method === "DELETE" && teamComputers.forSection(section)) return json(res, 409, { error: "Unassign this section's computer before deleting the section" });
       let nextName: string | null = null;
       if (method === "PATCH") {
         const parsed = z.object({ name: z.string().trim().min(1).max(60) }).strict().safeParse(await readBody(req));
-        if (!parsed.success) return json(res, 400, { error: "Department name must be 1 to 60 characters" });
+        if (!parsed.success) return json(res, 400, { error: "Section name must be 1 to 60 characters" });
         nextName = parsed.data.name;
       }
       const error = nextName === null ? store.deleteSection(section) : store.renameSection(section, nextName, teamComputers);
-      if (error) return json(res, error === "No such department" ? 404 : 409, { error });
+      if (error) return json(res, error === "No such section" ? 404 : 409, { error });
       return json(res, 200, { sections: store.sections });
     }
     if (method === "PUT" && path === "/api/sidebar-sections") {
       const section = url.searchParams.get("section")?.trim();
-      if (!section || !store.sections.includes(section)) return json(res, 404, { error: "No such department" });
+      if (!section || !store.sections.includes(section)) return json(res, 404, { error: "No such section" });
       const ids = z.array(z.string().regex(/^[\w-]+$/)).max(MAX_WORKSPACE_BOTS);
       const parsed = z.object({ addBotIds: ids, removeBotIds: ids }).strict().safeParse(await readBody(req));
       if (!parsed.success) return json(res, 400, { error: "Provide addBotIds and removeBotIds" });
       const checked = store.updateTeamMembers(section, parsed.data.addBotIds, parsed.data.removeBotIds, true);
       if (!checked.ok) return json(res, checked.reason === "unavailable" ? 404 : 409, { error:
-        checked.reason === "chief-conflict" ? "A department can have only one Chief of Staff. Change the Chief before moving this bot."
-          : checked.reason === "membership-changed" ? "Department membership changed. Reopen the dialog and try again."
+        checked.reason === "chief-conflict" ? "There can be only one Chief of Staff. Change the Chief before moving this bot."
+          : checked.reason === "membership-changed" ? "Section membership changed. Reopen the dialog and try again."
             : "One or more bots are unavailable" });
       for (const [botIds, destination] of [[parsed.data.addBotIds, section], [parsed.data.removeBotIds, undefined]] as const) {
         for (const id of botIds) {
@@ -58,24 +58,24 @@ export function createSidebarSectionRoutes(deps: SidebarSectionRouteDeps): Route
       }
       const result = store.updateTeamMembers(section, parsed.data.addBotIds, parsed.data.removeBotIds);
       if (!result.ok) return json(res, result.reason === "unavailable" ? 404 : 409, { error:
-        result.reason === "chief-conflict" ? "A department can have only one Chief of Staff. Change the Chief before moving this bot."
-          : result.reason === "membership-changed" ? "Department membership changed. Reopen the dialog and try again."
+        result.reason === "chief-conflict" ? "There can be only one Chief of Staff. Change the Chief before moving this bot."
+          : result.reason === "membership-changed" ? "Section membership changed. Reopen the dialog and try again."
           : "One or more bots are unavailable" });
       return json(res, 200, { sections: store.sections, bots: result.bots.map(wireBot) });
     }
     if (method === "POST" && path === "/api/sidebar-sections") {
       const parsed = createSidebarSectionSchema.safeParse(await readBody(req));
       if (!parsed.success) {
-        return json(res, 400, { error: "Provide a department name and up to 100 valid botIds" });
+        return json(res, 400, { error: "Provide a section name and up to 100 valid botIds" });
       }
       const name = parsed.data.name.trim();
       if (name.length > 60) {
         return json(res, 400, { error: "name must be at most 60 characters" });
       }
       const botIds = [...new Set(parsed.data.botIds)];
-      if (!name && !botIds.length) return json(res, 400, { error: "Department name is required" });
+      if (!name && !botIds.length) return json(res, 400, { error: "Section name is required" });
       const checked = store.setBotsSection(botIds, name, true);
-      if (!checked.ok) return json(res, checked.reason === "unavailable" ? 404 : 409, { error: checked.reason === "chief-conflict" ? "A department can have only one Chief of Staff. Choose one Chief or use a department without one." : "one or more bots are unavailable" });
+      if (!checked.ok) return json(res, checked.reason === "unavailable" ? 404 : 409, { error: checked.reason === "chief-conflict" ? "There can be only one Chief of Staff. Choose one Chief first." : "one or more bots are unavailable" });
       for (const botId of botIds) {
         const bot = store.bot(botId);
         if (bot) await assertTeamComputerChangeIdle(bot, { ...bot, section: name || undefined });
@@ -84,7 +84,7 @@ export function createSidebarSectionRoutes(deps: SidebarSectionRouteDeps): Route
       if (!result.ok) {
         if (result.reason === "chief-conflict") {
           return json(res, 409, {
-            error: "A department can have only one Chief of Staff. Choose one Chief or use a department without one.",
+            error: "There can be only one Chief of Staff. Choose one Chief first.",
           });
         }
         return json(res, 404, { error: "one or more bots are unavailable" });

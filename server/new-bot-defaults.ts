@@ -19,7 +19,7 @@ export const botDefaultModelSchema = z.object({
   "choose either a model variant or an effort level");
 
 // Preferences only: consent flags, live grants, bot IDs and execution state can never be replayed as permission grants.
-export const botDefaultsProfileSchema = profilePatchSchema.extend({
+const strictBotDefaultsProfileSchema = profilePatchSchema.extend({
   name: z.string({ error: "name must be a string" }).max(100, { error: "name must be at most 100 characters" })
     .refine(fitsOnOneLine, "name must fit on one line").optional(),
   section: z.string({ error: "section must be a string" }).trim().max(60, { error: "section must be at most 60 characters" }).optional(),
@@ -33,7 +33,6 @@ export const botDefaultsProfileSchema = profilePatchSchema.extend({
   approvalMode: z.enum(["ask", "auto", "full", "custom"]).optional(),
   alwaysAllow: strings(200, 500).optional(),
   chiefOfStaff: z.boolean().optional(),
-  managedSections: strings(100, 60).optional(),
   approvePeerComms: z.boolean().optional(),
   peers: strings(1000, 100).nullable().optional(),
   composio: z.boolean().optional(),
@@ -46,6 +45,13 @@ export const botDefaultsProfileSchema = profilePatchSchema.extend({
   /** At creation, so a copy of a bot kept off the helper model is off it from its first moment. */
   helperModel: z.boolean().optional(),
 }).strict();
+
+// a template saved before departments were dropped can still name managedSections: it is ignored, never refused
+export const botDefaultsProfileSchema = z.preprocess((value) => {
+  if (!value || typeof value !== "object" || Array.isArray(value) || !("managedSections" in value)) return value;
+  const { managedSections: _dropped, ...rest } = value as Record<string, unknown>;
+  return rest;
+}, strictBotDefaultsProfileSchema);
 
 const scheduleSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("once"), at: timestamp }).strict(),

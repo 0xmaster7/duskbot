@@ -96,7 +96,7 @@ async function fixture(test: (f: any) => Promise<void>, options: { env?: NodeJS.
     const lead = await bot("Engineering lead", "Engineering");
     const qa = await bot("QA", "Engineering");
     const ops = await bot("Ops", "Engineering");
-    await api(`/api/bots/${chief.id}`, { chiefOfStaff: true, managedSections: ["Engineering"], acknowledgePeerScope: true }, "PATCH");
+    await api(`/api/bots/${chief.id}`, { chiefOfStaff: true }, "PATCH");
     const plan: Record<string, any> = {};
     const save = () => writeFileSync(planPath, JSON.stringify(plan));
     save();

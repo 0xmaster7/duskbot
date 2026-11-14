@@ -91,7 +91,7 @@ export function createTeamRoutes(deps: TeamRouteDeps): RouteHandler {
           throw error;
         }
       }
-      if (body.format === "package" && body.version === 2) return json(res, 410, { error: "Sharing a department is no longer available." });
+      if (body.format === "package" && body.version === 2) return json(res, 410, { error: "Sharing a section is no longer available." });
       const name =
         typeof body.name === "string" && body.name.trim()
           ? body.name.trim()

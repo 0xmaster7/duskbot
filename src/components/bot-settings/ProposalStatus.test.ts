@@ -97,20 +97,12 @@ describe("ProposalStatus", () => {
     expect(renderMarker(makeBot(), "owner")).toBe("");
   });
 
-  it("shows markers when a Chief of another section manages this one", () => {
+  it("shows markers when the Chief sits in another sidebar section", () => {
     fixture.bots = [
       makeBot({ section: "General" }),
-      makeBot({ id: "chief-1", name: "Atlas", section: "Elsewhere", chiefOfStaff: true, managedSections: ["General"] }),
+      makeBot({ id: "chief-1", name: "Atlas", section: "Elsewhere", chiefOfStaff: true }),
     ];
     expect(renderMarker(makeBot({ section: "General" }), "chief")).toContain(CHIEF_COPY);
-  });
-
-  it("hides markers for a Chief outside the section it does not manage", () => {
-    fixture.bots = [
-      makeBot({ section: "General" }),
-      makeBot({ id: "chief-1", name: "Atlas", section: "Elsewhere", chiefOfStaff: true, managedSections: ["Other"] }),
-    ];
-    expect(renderMarker(makeBot({ section: "General" }), "chief")).toBe("");
   });
 
   it("hides markers when the bot itself is the only Chief", () => {

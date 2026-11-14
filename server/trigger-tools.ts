@@ -226,6 +226,6 @@ export function triggerTarget<T extends RosterMember>(from: T, forBotId: unknown
   const target = bot(named && "id" in named ? named.id : id);
   if (target?.id === from.id) return {};
   if (!target) return { status: 404, error: "no bot with that id: call list_bots and copy the exact id from the result" };
-  if (!canManage(from, target)) return { status: 403, error: "that bot's automations are set up by bots in its own department or by its Chief, or it is unavailable. You can still hand it the work itself with coordinate_bots, or tell the person what to set up there." };
+  if (!canManage(from, target)) return { status: 403, error: "that bot's automations are set up by its Chief, or it is unavailable. You can still hand it the work itself with coordinate_bots, or tell the person what to set up there." };
   return { forBot: { botId: target.id, name: target.name } };
 }

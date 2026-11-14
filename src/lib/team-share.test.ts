@@ -169,6 +169,6 @@ describe("part names", () => {
     expect(describeSkip({ part: "agents[scout].skills[step-31]", reason: "bot_skill_limit" }, document))
       .toBe("Scout · Skill · step-31 (a bot can share at most 30 skills (switched-on skills go first))");
     expect(describeSkip({ part: "skills[pricing]", reason: "skill_conflict" }, document)).toBe("pricing · Skill (two bots have different skills with this name)");
-    expect(describeSkip({ part: "skills[extra]", reason: "team_skill_limit" }, document)).toBe("extra · Skill (a department can share at most 60 skills)");
+    expect(describeSkip({ part: "skills[extra]", reason: "team_skill_limit" }, document)).toBe("extra · Skill (a section can share at most 60 skills)");
   });
 });

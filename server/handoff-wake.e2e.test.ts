@@ -18,7 +18,7 @@ it("starts a hand-off at once on a Cloud that just woke, with a dozen teammates 
     const bots = [];
     for (let at = 0; at < 13; at += 1) bots.push((await cli("new-bot", "--name", `Teammate ${at}`, "--section", "Team")).bot);
     const [chief, teammate] = bots;
-    await api(`/api/bots/${chief.id}`, { chiefOfStaff: true, managedSections: ["Team"], acknowledgePeerScope: true }, "PATCH");
+    await api(`/api/bots/${chief.id}`, { chiefOfStaff: true }, "PATCH");
     writeFileSync(join(session.info.dataDir, "room-plan.json"), JSON.stringify({
       [chief.id]: { steps: [{ arguments: { bot_ids: [teammate.id], message: "Fetch the setting" } }], reply: "Asked", resumeReply: "Have it" },
       [teammate.id]: { reply: "Here it is" },

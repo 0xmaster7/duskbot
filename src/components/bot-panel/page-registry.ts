@@ -16,7 +16,7 @@ export type PageId =
   | "setup" | "model" | "instructions" | "approvals" | "always" | "routines" | "apps"
   | "memory" | "skills"
   | "browser" | "folder" | "android"
-  | "voice" | "blurb" | "team" | "chiefteams" | "mcp" | "tools" | "webhooks" | "visibility" | "slack"
+  | "voice" | "blurb" | "team" | "mcp" | "tools" | "webhooks" | "visibility" | "slack"
   | "overview" | "prompt" | "history"
   | "backups" | "threads" | "api" | "library";
 
@@ -52,7 +52,6 @@ export const PAGES: Record<PageId, PageMeta> = {
   voice: { title: "botPanel.page.voice", home: "details" },
   blurb: { title: "botPanel.page.blurb", home: "details" },
   team: { title: "botPanel.page.team", home: "details" },
-  chiefteams: { title: "botPanel.page.chiefTeams", home: "details" },
   mcp: { title: "connectors.tab.mcp", home: "details" },
   tools: { title: "botPanel.ui.botAccessToolsTitle", home: "details" },
   webhooks: { title: "botPanel.page.webhooks", home: "details" },

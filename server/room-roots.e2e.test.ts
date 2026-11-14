@@ -181,7 +181,7 @@ it("R1 runs each responder of a person's room message as a root in the room thre
 
 it("R2 a member's coordinate_bots reuses its turn's root, and a Chief's Full reaches the teammate's row and turn", () => scenario(async (f) => {
   const mira = await f.bot("Mira", "Engineering");
-  expect((await f.api("PATCH", `/api/bots/${f.clive.id}`, { chiefOfStaff: true, managedSections: ["Engineering"], acknowledgePeerScope: true })).status).toBe(200);
+  expect((await f.api("PATCH", `/api/bots/${f.clive.id}`, { chiefOfStaff: true })).status).toBe(200);
   // Full on the Chief is the operator's grant, seeded on the stored record while the server is down.
   await f.restart("SIGTERM", {}, () => {
     const stored = JSON.parse(readFileSync(join(f.dataDir, "bots.json"), "utf8"));

@@ -168,7 +168,7 @@ describe("My Cloud sets a bot's move-only fields", () => {
       projects: [{ id: "p1", name: "Launch", emoji: "🚀" }], playbooks: [{ key: "k", name: "Close", summary: "s", triggers: ["t"], instructions: "i" }], installedPackage: null,
       assignedSkills: ["digest", "missing"] };
     expect((await take(d, "bot:b1", fields)).status).toBe(200);
-    expect(d.patched[0]![1]).toEqual({ pinned: true, managedSections: ["Ops"], fallback: [{ instanceId: "claude", model: "h" }],
+    expect(d.patched[0]![1]).toEqual({ pinned: true, fallback: [{ instanceId: "claude", model: "h" }],
       projects: [{ id: "p1", name: "Launch", emoji: "🚀" }, { id: "p-cloud", name: "Mine" }], playbooks: fields.playbooks, installedPackage: undefined, assignedSkills: ["digest"] });
     expect(d.chief).toEqual(["b1"]);
     expect((await take(d, "bot:b1", { hidden: true, chiefOfStaff: false })).status).toBe(200);

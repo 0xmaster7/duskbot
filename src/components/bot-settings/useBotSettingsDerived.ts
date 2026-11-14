@@ -3,6 +3,7 @@ import { browserAvailable, builtInBrowserEnabled } from "@/lib/feature-flags";
 import { stateForBot } from "@/lib/mascot";
 import { useStore, type Bot } from "@/state/store";
 import { approvalModeFor } from "../../../shared/approval-mode";
+import { chiefScope } from "../../../shared/bot-owner";
 import { connectorGrantsState, type ConnectorGrantsState } from "@/lib/connector-grants";
 
 export type BotPatch = Partial<
@@ -37,7 +38,6 @@ export type BotPatch = Partial<
     | "macControl"
     | "voice"
     | "chiefOfStaff"
-    | "managedSections"
     | "approvePeerComms"
     | "composio"
     | "browser"
@@ -76,12 +76,8 @@ export function useBotSettingsDerived(bot: Bot) {
   const browserFeature = builtInBrowserEnabled(state.config);
   const browserAllowed = bot.browser !== false;
   const browserEnabled = browserFeature && browserAllowed;
-  const sectionName = bot.section?.trim() || "General";
-  const currentChief = state.bots.find(
-    (candidate) =>
-      candidate.chiefOfStaff &&
-      (candidate.section?.trim() || "") === (bot.section?.trim() || ""),
-  );
+  // one Chief of Staff for the whole workspace (per person on a Team Cloud), whatever sidebar section a bot is in
+  const currentChief = state.bots.find((candidate) => candidate.chiefOfStaff && chiefScope(candidate) === chiefScope(bot));
   const botRoutines = state.routines.filter((routine) => routine.botId === bot.id);
   const activeBotRoutines = botRoutines.filter((routine) => routine.enabled).length;
 
@@ -101,7 +97,6 @@ export function useBotSettingsDerived(bot: Bot) {
     browserFeature,
     browserAllowed,
     browserEnabled,
-    sectionName,
     currentChief,
     botRoutines,
     activeBotRoutines,

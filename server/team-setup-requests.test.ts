@@ -20,7 +20,7 @@ function harness(caps?: Record<string, { driverKind: string; agentsMcp: boolean 
       ...overrides };
     bots.push(value); return value;
   };
-  const chief = bot("Clive", { chiefOfStaff: true, managedSections: ["Engineering"] });
+  const chief = bot("Clive", { chiefOfStaff: true });
   const peer = bot("Ada");
   const apply = vi.fn((request: TeamSetupRequest): TeamSetupResult => {
     const result: TeamSetupResult = { state: "applied", newTeams: request.newTeams, bots: request.operations.map((op) => {
@@ -77,7 +77,7 @@ describe("reviewed Chief team setup", () => {
       .toMatchObject({ state: "applied", applied: true });
   });
 
-  it("lets a bot that is not a Chief make one bot in its own department when its person asks, and nothing more", async () => {
+  it("lets a bot that is not a Chief make one bot in its own sidebar section when its person asks, and nothing more", async () => {
     const h = harness();
     h.autoApply.mockReturnValue("level");
     const ask = (operations: unknown[], newTeams: string[] = []) => h.service.submit({ botId: h.peer.id, threadId: h.peer.threadId, byPerson: true,
@@ -100,12 +100,13 @@ describe("reviewed Chief team setup", () => {
     expect(() => h.propose([{ action: "create", key: "Odd", fields: { ...specialist("Odd", "Work").fields, color: "plaid" } }])).toThrow();
     expect(() => h.propose([{ action: "update", botId: h.peer.id, fields: { color: "red" } }])).toThrow(/only be chosen when creating/);
   });
-  it("reviews promotion in an authorized team without changing anything on denial", async () => {
+  it("reviews a handover in any sidebar section without changing anything on denial", async () => {
     const h = harness(); h.peer.section = "Engineering";
     const before = structuredClone(h.store.bots);
-    const request = h.propose([{ action: "update", botId: h.peer.id, fields: { chiefOfStaff: true } }]);
+    const request = h.propose([{ action: "update", botId: h.peer.id, fields: { chiefOfStaff: true } }, { action: "update", botId: h.chief.id, fields: { chiefOfStaff: false } }]);
     expect(request.detail).toContain("Chief of Staff: No → Yes");
-    expect(request.detail).toContain("May coordinate and configure bots in this department");
+    expect(request.detail).toContain("Oversees and coordinates every bot");
+    expect(request.detail).not.toMatch(/department/i);
     expect(h.store.bots).toEqual(before);
     expect((await h.resolve(request.requestId, "deny"))?.result.state).toBe("denied");
     expect(h.store.bots).toEqual(before);
@@ -129,28 +130,25 @@ describe("reviewed Chief team setup", () => {
     expect(card.detail).not.toContain("peer coordination");
     expect(card.detail).not.toContain("approval levels");
   });
-  it("creates a Chief in a new team and permits explicit replacement regardless of operation order", async () => {
+  it("keeps one Chief for the workspace and permits explicit replacement regardless of operation order", async () => {
     const h = harness();
     const next = specialist("Mira", "Research");
-    const card = h.propose([{ ...next, fields: { ...next.fields, chiefOfStaff: true } }], ["Research"]);
-    expect((await h.resolve(card.requestId))?.result.state).toBe("applied");
-    expect(h.store.bots.find(bot => bot.name === "Mira")).toMatchObject({ chiefOfStaff: true, section: "Research" });
+    expect(() => h.propose([{ ...next, fields: { ...next.fields, chiefOfStaff: true } }], ["Research"])).toThrow(/one Chief/);
     expect(() => h.propose([{ action: "update", botId: h.peer.id, fields: { chiefOfStaff: true } }])).toThrow(/one Chief/);
     const replace = h.propose([
       { action: "update", botId: h.peer.id, fields: { chiefOfStaff: true } },
       { action: "update", botId: h.chief.id, fields: { chiefOfStaff: false } },
     ]);
-    expect(replace.detail).toContain("Access to additional departments is removed");
+    expect(replace.detail).toContain("Chief of Staff: Yes → No.");
     expect((await h.resolve(replace.requestId))?.result.state).toBe("applied");
     expect(h.chief.chiefOfStaff).toBe(false);
     expect(h.peer.chiefOfStaff).toBe(true);
     expect((await h.resolve(replace.requestId))?.duplicate).toBe(true);
   });
-  it.each(["conflict", "scope", "busy", "peer", "revision"])("cancels promotion after a %s change without partial mutation", async change => {
+  it.each(["conflict", "busy", "peer", "revision"])("cancels promotion after a %s change without partial mutation", async change => {
     const h = harness(); h.peer.section = "Engineering";
-    const card = h.propose([{ action: "update", botId: h.peer.id, fields: { chiefOfStaff: true } }]);
+    const card = h.propose([{ action: "update", botId: h.peer.id, fields: { chiefOfStaff: true } }, { action: "update", botId: h.chief.id, fields: { chiefOfStaff: false } }]);
     if (change === "conflict") h.bot("New Chief", { section: "Engineering", chiefOfStaff: true });
-    if (change === "scope") h.chief.managedSections = [];
     if (change === "busy") h.peer.busy = true;
     if (change === "peer") h.chief.peers = [];
     if (change === "revision") h.peer.chiefOfStaff = true;
@@ -159,21 +157,20 @@ describe("reviewed Chief team setup", () => {
     expect(h.store.bots).toEqual(before);
     expect(h.apply).not.toHaveBeenCalled();
   });
-  it("rejects malformed leadership and promotion outside team or peer scope", () => {
+  it("rejects malformed leadership and promotion outside peer scope", () => {
     const h = harness();
+    const handover = [{ action: "update", botId: h.peer.id, fields: { chiefOfStaff: true } }, { action: "update", botId: h.chief.id, fields: { chiefOfStaff: false } }];
     expect(() => h.propose([{ action: "update", botId: h.peer.id, fields: { chiefOfStaff: "true" } }])).toThrow();
-    h.peer.section = "Private";
-    expect(() => h.propose([{ action: "update", botId: h.peer.id, fields: { chiefOfStaff: true } }])).toThrow(/authorized/);
     h.peer.section = "Engineering"; h.chief.peers = [];
-    expect(() => h.propose([{ action: "update", botId: h.peer.id, fields: { chiefOfStaff: true } }])).toThrow(/peer scope/);
+    expect(() => h.propose(handover)).toThrow(/peer scope/);
     h.chief.chiefOfStaff = false;
     expect(() => h.propose([{ action: "update", botId: h.chief.id, fields: { chiefOfStaff: true } }])).toThrow(/Only an active Chief/);
     expect(h.messages).toHaveLength(0);
   });
-  it("does not advertise new team access for a Chief being demoted in the same plan", () => {
+  it("names a new sidebar section without granting anyone access to it", () => {
     const h = harness();
     const card = h.propose([specialist("Mira", "Research"), { action: "update", botId: h.chief.id, fields: { chiefOfStaff: false } }], ["Research"]);
-    expect(card.detail).toContain('Create departments: "Research"');
+    expect(card.detail).toContain('Create sidebar sections: "Research"');
     expect(card.detail).not.toContain("Authorize @Clive");
   });
   it("shows what stays owner-owned after creation on create cards, and keeps update cards lean", () => {
@@ -220,11 +217,11 @@ describe("reviewed Chief team setup", () => {
     expect((await h.resolve(request.requestId))?.duplicate).toBe(true);
     expect(h.apply).toHaveBeenCalledTimes(1);
   });
-  it("reviews Research, Engineering and Growth with multiple providers and explicit new-team access", async () => {
+  it("reviews Research, Engineering and Growth with multiple providers and explicit new sections", async () => {
     const h = harness();
     const request = h.propose([specialist("Mira", "Research"), specialist("Patch", "Engineering", { instanceId: "codex", model: "gpt-fixture" }), specialist("Quill", "Growth")], ["Research", "Growth"]);
-    expect(request.detail).toContain('Create departments: "Research", "Growth"');
-    expect(request.detail).toContain("Authorize @Clive");
+    expect(request.detail).toContain('Create sidebar sections: "Research", "Growth"');
+    expect(request.detail).not.toMatch(/department|Authorize/);
     expect(h.store.bots).toHaveLength(2);
     expect((await h.resolve(request.requestId))?.result.bots).toHaveLength(3);
   });
@@ -240,22 +237,22 @@ describe("reviewed Chief team setup", () => {
     expect(() => h.propose([{ action: "update", botId: h.peer.id, fields: { [field]: true } }])).toThrow();
     expect(h.messages).toHaveLength(0);
   });
-  it("rejects unknown models, foreign teams, missing specialists and duplicate names", () => {
+  it("rejects unknown models, unnamed sections, missing specialists and duplicate names, but not another sidebar section", () => {
     const h = harness();
     expect(() => h.propose([specialist("Mira", "Engineering", { instanceId: "codex", model: "made-up" })])).toThrow(/catalog/);
-    expect(() => h.propose([specialist("Mira", "Private")])).toThrow(/authorized/);
+    expect(() => h.propose([specialist("Mira", "Private")])).not.toThrow();
+    expect(() => h.propose([specialist("Mira", "Nowhere")])).toThrow(/no longer exists/);
     expect(() => h.propose([specialist("Mira", "Private")], ["Private"])).toThrow(/exists/);
     expect(() => h.propose([specialist("Mira", "Engineering")], ["Growth"])).toThrow(/needs a specialist/);
     expect(() => h.propose([specialist("Ada", "Work")])).toThrow(/already exists/);
     expect(h.apply).not.toHaveBeenCalled();
   });
-  it.each(["target", "chief", "team", "scope", "busy", "source"])("cancels a %s change while the review was open, without any batch mutation", async (change) => {
+  it.each(["target", "chief", "team", "busy", "source"])("cancels a %s change while the review was open, without any batch mutation", async (change) => {
     const h = harness();
     const request = h.propose([{ action: "update", botId: h.peer.id, fields: { title: "Researcher", section: "Engineering" } }, specialist("Mira", "Research")], ["Research"]);
     if (change === "target") h.peer.title = "newer user edit";
     if (change === "chief") h.chief.chiefOfStaff = false;
     if (change === "team") h.teams.push("Research");
-    if (change === "scope") h.chief.managedSections = [];
     if (change === "busy") h.peer.busy = true;
     if (change === "source") h.removeSource();
     const before = structuredClone(h.store.bots);
@@ -323,14 +320,11 @@ describe("reviewed Chief team setup", () => {
     expect((await h.resolve(request.requestId))?.result).toMatchObject({ state: "failed", bots: [], error: "fixture disk full" });
     expect(h.store.bots).toHaveLength(2);
   });
-  it("enforces the persisted 60-character team and 100-grant boundaries", async () => {
+  it("enforces the persisted 60-character section boundary", async () => {
     const h = harness(); const name = "T".repeat(60);
     expect(() => h.propose([specialist("Mira", name + "x")], [name + "x"])).toThrow();
-    h.chief.managedSections = Array.from({ length: 99 }, (_, i) => `Team ${i}`);
     const card = h.propose([specialist("Mira", name)], [name]);
     expect((await h.resolve(card.requestId))?.result.state).toBe("applied");
-    h.chief.managedSections.push("Last allowed team");
-    expect(() => h.propose([specialist("Patch", "One too many")], ["One too many"])).toThrow(/100 additional/);
   });
   it("does not apply or resurrect a review closed by Stop", async () => {
     const h = harness(); const card = h.propose([specialist("Mira", "Work")]);
@@ -353,7 +347,7 @@ describe("reviewed Chief team setup", () => {
       title: "Research lead", section: "Engineering", modelSelection: { instanceId: "codex", model: "gpt-fixture" },
     } }]);
     expect(card.detail).toContain('Title: "Researcher" → "Research lead"');
-    expect(card.detail).toContain('Department: "Work" → "Engineering"');
+    expect(card.detail).toContain('Sidebar section: "Work" → "Engineering"');
     expect(card.detail).toContain("Default AI and model: claude/sonnet (no variant) → codex/gpt-fixture (no variant)");
   });
   it("shows the model variant on the current selection and its absence on the proposed one", () => {
@@ -367,13 +361,13 @@ describe("reviewed Chief team setup", () => {
 });
 
 describe("team setup that applies on its own", () => {
-  it("applies authorized leadership under Full Access with an explicit receipt", async () => {
+  it("applies a leadership handover under Full Access with an explicit receipt", async () => {
     const h = harness(); h.autoApply.mockReturnValue("full-access"); h.peer.section = "Engineering";
-    const response = await h.submit([{ action: "update", botId: h.peer.id, fields: { chiefOfStaff: true } }]);
+    const response = await h.submit([{ action: "update", botId: h.peer.id, fields: { chiefOfStaff: true } }, { action: "update", botId: h.chief.id, fields: { chiefOfStaff: false } }]);
     expect(response).toMatchObject({ applied: true, state: "applied" });
     expect(response.detail).toContain("Chief of Staff: No → Yes");
     expect(h.peer.chiefOfStaff).toBe(true);
-    expect(h.peer.managedSections).toBeUndefined();
+    expect(h.chief.chiefOfStaff).toBe(false);
   });
   it("creates and updates immediately with one settled receipt and an explicit result", async () => {
     const h = harness(); h.autoApply.mockReturnValue("full-access");
@@ -505,7 +499,7 @@ describe("team setup that applies on its own", () => {
 
   it("retains model, scope, source, permission-field and deletion safety checks", async () => {
     const h = harness(); h.autoApply.mockReturnValue("full-access");
-    await expect(h.submit([specialist("Mira", "Private")])).rejects.toThrow(/authorized/);
+    await expect(h.submit([specialist("Mira", "Nowhere")])).rejects.toThrow(/no longer exists/);
     await expect(h.submit([specialist("Mira", "Work", { instanceId: "claude", model: "unknown" })])).rejects.toThrow(/catalog/);
     await expect(h.submit([{ action: "update", botId: h.peer.id, fields: { approvalMode: "full" } }])).rejects.toThrow();
     await expect(h.service.submitDeletion({ botId: h.chief.id, threadId: h.chief.threadId, targetBotId: h.chief.id, reason: "remove" })).rejects.toThrow(/authorized/);
@@ -575,16 +569,12 @@ describe("team setup below Full access", () => {
     expect(await undo(h, response.requestId)).toEqual({ claimed: true, state: "already_undone" });
   });
 
-  it("gives updated bots back what the card showed and the Chief its earlier teams", async () => {
+  it("gives updated bots back what the card showed", async () => {
     const h = harness(); h.autoApply.mockReturnValue("level"); h.peer.title = "Analyst";
-    const apply = h.apply.getMockImplementation()!;
-    h.apply.mockImplementationOnce((request) => { h.chief.managedSections = ["Engineering", ...request.newTeams]; return apply(request); });
     const response = await h.submit([specialist("Mira", "Research"), { action: "update", botId: h.peer.id, fields: { title: "Research lead" } }], ["Research"]);
-    expect(h.chief.managedSections).toEqual(["Engineering", "Research"]);
     expect(h.peer.title).toBe("Research lead");
     expect(await undo(h, response.requestId)).toMatchObject({ state: "undone" });
     expect(h.peer.title).toBe("Analyst");
-    expect(h.chief.managedSections).toEqual(["Engineering"]);
     expect(h.store.bots.some((bot) => bot.name === "Mira")).toBe(false);
   });
 

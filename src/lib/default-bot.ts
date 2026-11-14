@@ -44,7 +44,7 @@ export function myDefaultBot<T extends DefaultBotFields>(bots: readonly T[], vie
 
 type ChiefCandidate = DefaultBotFields & OwnedBot & { id: string; hidden?: boolean };
 
-/** The Chief of Staff in Dusk's scope (its department, or its person on a Team Cloud), if one is there to see. */
+/** The Chief of Staff in Dusk's scope (the workspace, or its person on a Team Cloud), if one is there to see. */
 export function chiefFor<T extends ChiefCandidate>(bots: readonly T[], maus: T | undefined): T | undefined {
   const scope = chiefScope(maus ?? {});
   return bots.find((bot) => bot.chiefOfStaff && !bot.hidden && chiefScope(bot) === scope);

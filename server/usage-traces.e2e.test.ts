@@ -16,7 +16,7 @@ it("traces a person's message to the Chief through the teammate it delegated to 
   try {
     const chief = (await cli("new-bot", "--name", "Clive", "--section", "Leadership")).bot;
     const researcher = (await cli("new-bot", "--name", "Researcher", "--section", "Engineering")).bot;
-    await api(`/api/bots/${chief.id}`, { chiefOfStaff: true, managedSections: ["Engineering"], acknowledgePeerScope: true }, "PATCH");
+    await api(`/api/bots/${chief.id}`, { chiefOfStaff: true }, "PATCH");
     writeFileSync(join(session.info.dataDir, "room-plan.json"), JSON.stringify({
       [chief.id]: { steps: [{ arguments: { bot_ids: [researcher.id], message: "Compare the pricing pages" } }], reply: "Assigned", resumeReply: "Pricing compared" },
       [researcher.id]: { steps: [{ tool: "list_bots", arguments: {} }, { tool: "list_rooms", arguments: {} }], reply: "Two pages compared" },

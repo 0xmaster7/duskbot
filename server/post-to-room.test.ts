@@ -137,14 +137,13 @@ const makeBot = async (
     section,
     modelSelection: { instanceId, model: "claude-sonnet-5" },
   });
-  expect(patched.status).toBe(200);
+  expect(patched.status, JSON.stringify(patched.body)).toBe(200);
   return { id, threadId: str(field(created.body, "bot", "threadId")) };
 };
 
 const makeCoordinator = async (
   name: string,
   section: string,
-  managedSections: string[],
   instanceId = "claude",
 ): Promise<{ id: string; threadId: string }> => {
   const created = await api("POST", "/api/bots");
@@ -153,8 +152,6 @@ const makeCoordinator = async (
     name,
     section,
     chiefOfStaff: true,
-    managedSections,
-    acknowledgePeerScope: true,
     modelSelection: { instanceId, model: "claude-sonnet-5" },
   });
   expect(patched.status).toBe(200);
@@ -532,7 +529,7 @@ describe("post_to_room", () => {
     const inside = await makeBot("Section Inside", "Section A");
     const outside = await makeBot("Section Outside", "Section B");
     await makeBot("Finance Bot", "Finance");
-    const unmanaging = await makeCoordinator("Finance Chief", "Coordinators", ["Finance"]);
+    const unmanaging = await makeCoordinator("Finance Chief", "Coordinators");
     const mixed = await makeRoom("Cross section", [inside.id, outside.id, unmanaging.id], "Section A");
 
     const posted = await post(inside.id, inside.threadId, mixed.id, "hello other section");
@@ -542,7 +539,7 @@ describe("post_to_room", () => {
 
   it.each(["Coordinators", ""])("allows a section bot to post to and list a room holding its supervising coordinator in section %j", async (section) => {
     const member = await makeBot("Build Member", "Build");
-    const coordinator = await makeCoordinator("Build Chief", section, ["Build"]);
+    const coordinator = await makeCoordinator("Build Chief", section);
     const room = await makeRoom("Build Room", [member.id, coordinator.id], "Build");
 
     const listed = await internal("GET", `/api/internal/rooms?fromBotId=${member.id}&fromThreadId=${member.threadId}`);

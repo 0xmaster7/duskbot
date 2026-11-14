@@ -26,7 +26,7 @@ try {
   const researcher = await bot("Researcher", "Launch");
   const writer = await bot("Writer", "Launch");
   const coder = await bot("Coder", "Launch");
-  await api("PATCH", `/api/bots/${clive.id}`, { chiefOfStaff: true, managedSections: ["Launch"], acknowledgePeerScope: true });
+  await api("PATCH", `/api/bots/${clive.id}`, { chiefOfStaff: true });
   const gate = join(fixture.info.dataDir, "live-gate");
   const plan = (steps: unknown[], reply: string, extra: Record<string, unknown> = {}) => ({ steps, reply, ...extra });
   const ask = (ids: string[], message: string) => ({ arguments: { bot_ids: ids, message } });

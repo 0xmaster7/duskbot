@@ -413,15 +413,15 @@ whose inbox a bot's own asks reach; who may chat with the bot is its sharing's (
 person (crowning a second hands the role over, and moving a Chief to someone who has one is refused). Its authority is
 exactly the bots that person owns, in every department: they are its team in its roster, and it retries their threads
 and changes their setup. The person's private
-chat with it is their inbox (below). A crowned bot nobody owns stays its department's Chief, as on any other server.
+chat with it is their inbox (below). A crowned bot nobody owns is the workspace's one Chief, as on any other server.
 The app offers no crown on a team, so this is reached only through the API (`PATCH /api/bots/<id>` with `chiefOfStaff`).
 
 **A member's Dusk is not crowned.** It is theirs alone, and the audience rule below keeps a bot only one person sees
 from reaching a bot everyone sees (`sameAudience`), so today it cannot hand work to the team's shared bots.
 
 **Every bot reaches every bot.** Departments are folders, not walls. Any bot can ask, hand work to or @mention any
-other bot on the team, in any department, someone's Chief included, with nothing to set up (`canReach` in
-`server/peer-roster.ts`). Each bot's roster lists them all, its own department first; a Chief's lists its own team
+other bot on the team, in any sidebar section, someone's Chief included, with nothing to set up (`canReach` in
+`server/peer-roster.ts`). Each bot's roster lists them all; a Chief's lists its own team
 first and everyone else as reachable. Reaching a bot gives no authority over it: supervision,
 the inbox, setup changes and automations follow ownership and departments as above (`hasAuthority`, `canManage`).
 Only three things narrow reach: a bot's own peers list (a person can open it again in the bot's settings, under
@@ -429,7 +429,7 @@ Permissions), archived bots, and the audience rule below (a bot shared with diff
 private chat may ask any bot, and the work it hands on stays in that person's audience; it never hands work into a room
 or posts in one.
 
-On a My Cloud and on a desktop no bot has an owner: nothing is routed, and one Chief per department holds as before.
+On a My Cloud and on a desktop no bot has an owner: nothing is routed, and one Chief of Staff oversees every bot.
 Every bot still reaches every bot there.
 
 ## Bringing a bot in from My Cloud

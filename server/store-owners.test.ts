@@ -20,9 +20,9 @@ describe("a Team Cloud bot's owner", () => {
     expect(nameFromEmail("marie-claire.dupont@acme.test")).toBe("Marie Claire Dupont");
   });
 
-  it("keeps one Chief per person on a team and one per department everywhere else", () => {
+  it("keeps one Chief per person on a team and one for the workspace everywhere else", () => {
     expect(chiefScope({ section: "Work", createdBy: ADA })).toBe(`owner:${ADA}`);
-    expect(chiefScope({ section: "Work" })).toBe("section:Work");
+    expect(chiefScope({ section: "Work" })).toBe("workspace");
     const store = new Store(selection);
     const adas = store.createBot({ name: "Ada's Chief", createdBy: ADA });
     const bobs = store.createBot({ name: "Bob's Chief", createdBy: ADA, reportsTo: BOB });
@@ -37,7 +37,7 @@ describe("a Team Cloud bot's owner", () => {
     // Reported to Ada, Bob's Chief would be her second: refused, and nothing changes.
     expect(setReportsTo(store, [bobs.id], ADA)).toEqual({ ok: false, reason: "chief-conflict" });
     expect(store.bot(bobs.id)?.reportsTo).toBe(BOB);
-    // Moving departments never touches a person's Chief.
+    // Moving sidebar sections never touches a person's Chief.
     expect(store.setBotsSection([another.id], "Product A").ok).toBe(true);
     expect(store.bot(another.id)?.chiefOfStaff).toBe(true);
     // Saved and read back the same way.
@@ -62,7 +62,7 @@ describe("a Team Cloud bot's owner", () => {
     expect(store.bot(fox.id)?.createdBy).toBe(ADA);
   });
 
-  it("changes nothing for bots nobody owns: one Chief per department, as before", () => {
+  it("keeps one Chief for the whole workspace when nobody owns the bots, whatever their sidebar section", () => {
     const store = new Store(selection);
     const first = store.createBot({ section: "Work" });
     const second = store.createBot({ section: "Work" });
@@ -70,7 +70,8 @@ describe("a Team Cloud bot's owner", () => {
     expect(store.setChiefOfStaff(second.id)?.map((bot) => bot.id).sort()).toEqual([first.id, second.id].sort());
     expect(store.bot(first.id)?.chiefOfStaff).toBe(false);
     const elsewhere = store.createBot({ section: "Home" });
-    store.setChiefOfStaff(elsewhere.id);
-    expect(store.setBotsSection([elsewhere.id], "Work")).toEqual({ ok: false, reason: "chief-conflict" });
+    expect(store.setChiefOfStaff(elsewhere.id)?.map((bot) => bot.id).sort()).toEqual([second.id, elsewhere.id].sort());
+    expect(store.bots.filter((bot) => bot.chiefOfStaff).map((bot) => bot.id)).toEqual([elsewhere.id]);
+    expect(store.setBotsSection([elsewhere.id], "Work")).toMatchObject({ ok: true });
   });
 });

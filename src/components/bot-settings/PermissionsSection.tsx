@@ -13,7 +13,6 @@ import { ApprovalModeSelector } from "../ApprovalModeSelector";
 import { CommandAllowlistDialog } from "../CommandAllowlistDialog";
 import { LocalComputerAutoWarning } from "../LocalComputerAutoWarning";
 import { Switch } from "../SettingsPrimitives";
-import { ManagedTeamsSettings } from "./ManagedTeamsSettings";
 import { ProposalStatus } from "./ProposalStatus";
 import type { useBotSettingsDerived } from "./useBotSettingsDerived";
 import { useBotEditor } from "./BotEditorContext";
@@ -29,12 +28,11 @@ export function PermissionsSection({
   derived: ReturnType<typeof useBotSettingsDerived>;
   parts?: readonly PermissionsPart[];
 }) {
-  const { patch, engine, canCoordinate, approvalMode, trustedModesAvailable, sectionName, currentChief } = derived;
+  const { patch, engine, canCoordinate, approvalMode, trustedModesAvailable, currentChief } = derived;
   const team = useTeamPeople();
   const { state, dispatch } = useStore();
   const ownerOrAdmin = useOwnerOrAdmin();
   const { draft } = useBotEditor();
-  const displaySectionName = sectionName === "General" ? t("botAccess.teams.general") : sectionName;
   const [localAutoWarning, setLocalAutoWarning] = useState<string | null>(null);
   const [commandAllowlistTarget, setCommandAllowlistTarget] = useState<{ botId: string; botName: string } | null>(null);
   const shows = (part: PermissionsPart) => !parts || parts.includes(part);
@@ -72,7 +70,7 @@ export function PermissionsSection({
           </span>
           <div className="min-w-0 flex-1">
             <div className="text-[15px] font-medium text-ink">{t("permissions.chief.title")}</div>
-            <div className="text-[12px] text-ink-secondary">{t("permissions.chief.oneFor", { section: displaySectionName })}</div>
+            <div className="text-[12px] text-ink-secondary">{t("botPanel.sheet.chiefHint")}</div>
           </div>
           <Switch
             checked={Boolean(bot.chiefOfStaff)}
@@ -87,21 +85,14 @@ export function PermissionsSection({
           {bot.chiefOfStaff && !canCoordinate
             ? t("permissions.chief.unsupportedCurrent")
             : bot.chiefOfStaff
-              ? t("permissions.chief.active", { section: displaySectionName })
+              ? t("permissions.chief.overseesAll")
               : !canCoordinate
                 ? t("permissions.chief.unsupported")
-                : currentChief
-                  ? t("permissions.chief.replace", { section: displaySectionName, current: currentChief.name })
-                  : t("permissions.chief.make", { section: displaySectionName })}
+                : currentChief && currentChief.id !== bot.id
+                  ? t("botPanel.sheet.chiefTakesOver", { current: currentChief.name })
+                  : t("permissions.chief.makeChief")}
         </div>
         <ProposalStatus bot={bot} kind="chief" />
-        {bot.chiefOfStaff && <ManagedTeamsSettings
-          key={bot.id + JSON.stringify(bot.managedSections ?? [])}
-          name={bot.name} ownTeam={bot.section?.trim() || ""}
-          teams={["", ...(state.sections ?? []), ...[...state.bots, ...state.groups].map(member => member.section?.trim() || "")]}
-          allowed={bot.managedSections ?? []}
-          onSave={managedSections => patch({ managedSections, acknowledgePeerScope: true })}
-        />}
         {bot.chiefOfStaff && <ProposalStatus bot={bot} kind="owner" />}
       </div>}
 
