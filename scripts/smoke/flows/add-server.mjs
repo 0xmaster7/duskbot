@@ -43,6 +43,7 @@ await runFlow(flow, async () => {
 
     await flow.step("server", "a throwaway Linux server (InstaBox)", async () => {
       vm = await createVm(`dusk-smoke-srv-${stamp.slice(5).replace(/[^0-9]/g, "")}`);
+      if (!flag("--keep-vm")) { const made = vm; flow.atClose(async () => { await made.remove(); flow.log(`deleted ${made.id}`); }); }
       flow.facts.vm = vm.id;
       return vm.id;
     }, { critical: true });
@@ -55,6 +56,9 @@ await runFlow(flow, async () => {
       for (;;) {
         const v = await view().catch(() => null);
         if (v && ["linked", "moving", "moved"].includes(v.stage)) break;
+        // the app's own view of the install: a failed step or an error stops here, with the step's last words
+        const failed = v?.steps?.find((step) => step.status === "failed");
+        if (v?.stage === "error" || failed) throw new Error(`the install stopped${failed ? ` at ${failed.id}` : ""}: ${String(failed?.log ?? v?.error ?? "").replace(/\s+/g, " ").slice(-300)}`);
         if (Date.now() - started > 25 * 60_000) throw new Error(`the app never saw the server (stage ${v?.stage}); install log ends: ${lastLog}`);
         const tail = await vm.exec("tail -c 600 ~/dusk-install.log 2>/dev/null", 20).catch(() => ({ stdout: "" }));
         lastLog = tail.stdout.replace(/\s+/g, " ").trim().slice(-300);
@@ -112,6 +116,6 @@ await runFlow(flow, async () => {
       return `window on ${flow.facts.windowAt}; duskbot.service ${flow.facts.serverService}; bots: ${bots.join(", ")}`;
     });
   } finally {
-    if (vm && !flag("--keep-vm")) { await vm.remove().catch((error) => flow.log(`could not delete ${vm.id}: ${error.message}`)); flow.log(`deleted ${vm.id}`); }
+    // the machine is deleted when the flow closes (flow.atClose), also after a kill
   }
 });

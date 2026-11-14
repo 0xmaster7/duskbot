@@ -32,7 +32,7 @@ export function flowArgs(name) {
 export function createFlow({ name, title, root, out, profile, email, env = {} }) {
   mkdirSync(out, { recursive: true });
   const t0 = Date.now();
-  const results = [], frictions = [], facts = {};
+  const results = [], frictions = [], facts = {}, closers = [];
   let shots = 0;
   const flow = {
     name, root, out, profile, email, facts, app: null,
@@ -141,7 +141,10 @@ export function createFlow({ name, title, root, out, profile, email, env = {} })
       writeFileSync(join(out, "report.md"), `${lines.join("\n")}\n`);
       return ok;
     },
+    /** run when the flow closes, also after Ctrl-C or a kill (a paid machine is never left behind) */
+    atClose(fn) { closers.push(fn); },
     async close({ keepProfile = false } = {}) {
+      for (const fn of closers.splice(0)) await Promise.resolve().then(fn).catch((error) => flow.log(`cleanup failed: ${error?.message ?? error}`));
       await flow.app?.close().catch(() => {});
       flow.app = null;
       if (!keepProfile && profile.includes(`${join(".cache", "dusk-smoke", "flows")}`)) rmSync(profile, { recursive: true, force: true });
