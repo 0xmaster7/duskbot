@@ -6170,7 +6170,6 @@
   "slack.notReady": "Slack сейчас недоступен на этом компьютере. Попробуйте снова после перезапуска.",
   "models.place.server": "Сохранено на этом сервере.",
   "models.place.cloud": "Сохранено в вашем dusk cloud.",
-  "models.place.computer": "Сохранено на этом компьютере.",
   "settings.docs.vault.emptyBody": "Добавьте учётные данные или сохраните секрет, когда бот его запросит. Боты не видят содержимое.",
   "slack.connect": "Подключить",
   "slack.disconnect": "Отключить",

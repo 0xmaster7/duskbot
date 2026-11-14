@@ -4702,7 +4702,6 @@
   "slack.notReady": "這台電腦目前無法使用 Slack。請在重新啟動後再試一次。",
   "models.place.server": "已儲存在這台伺服器上。",
   "models.place.cloud": "已儲存在您的 dusk cloud 上。",
-  "models.place.computer": "已儲存在這台電腦上。",
   "settings.docs.vault.emptyBody": "請新增登入資訊，或在機器人要求時儲存密鑰。機器人絕不會看到其中的內容。",
   "mcp.claudeSkills.desc": "Claude 機器人也會載入 ~/.claude/skills 中的技能。您的 hooks 和其他設定不會被載入。",
   "slack.connect": "連線",

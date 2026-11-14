@@ -6163,7 +6163,6 @@
   "slack.notReady": "Slack jest teraz niedostępny na tym komputerze. Spróbuj ponownie po ponownym uruchomieniu.",
   "models.place.server": "Zapisano na tym serwerze.",
   "models.place.cloud": "Zapisano w Twojej dusk cloud.",
-  "models.place.computer": "Zapisano na tym komputerze.",
   "settings.docs.vault.emptyBody": "Dodaj dane logowania lub zapisz sekret, gdy bot o niego poprosi. Boty nigdy nie widzą zawartości.",
   "slack.connect": "Połącz",
   "slack.disconnect": "Rozłącz",

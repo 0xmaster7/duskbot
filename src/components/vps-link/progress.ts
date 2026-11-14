@@ -24,6 +24,15 @@ export function reportedProgress(progress: VpsInstallProgress | undefined): { va
   return { value: bytes?.value ?? progress.completed / progress.total, detail: bytes?.detail ? `${counts} · ${bytes.detail}` : counts };
 }
 
+/** The whole install as one percentage: the steps done, plus how far the running one has got. Never its layers or bytes. */
+export function installProgress(steps: VpsLinkView["steps"], current: VpsLinkView["steps"][number] | undefined): { detail: string | null; value: number | null } {
+  if (!steps.length) return { detail: null, value: null };
+  const done = steps.filter((step) => step.status === "done" || step.status === "skipped").length;
+  const running = current?.status === "running" ? reportedProgress(current.progress).value ?? 0 : 0;
+  const value = Math.min(1, (done + Math.min(1, Math.max(0, running))) / steps.length);
+  return { detail: t("vpsLink.progress.percent", { percent: Math.floor(value * 100) }), value };
+}
+
 export function vpsProgress(view: VpsLinkView): { title: string; detail: string | null; value: number | null; failed: boolean; error: string | null } {
   const failedStep = view.steps.find((step) => step.status === "failed");
   const error = view.move?.error ?? view.error ?? view.activity?.error ?? failedStep?.log ?? null;
@@ -40,10 +49,7 @@ export function vpsProgress(view: VpsLinkView): { title: string; detail: string 
   }
   if (view.stage === "installing") {
     const current = failedStep ?? view.steps.find((step) => step.status === "running") ?? view.steps.find((step) => step.status === "waiting");
-    const reported = reportedProgress(current?.progress);
-    return { title: current ? t(STEP_TITLE[current.id]) : t("vpsLink.install.almost"),
-      detail: reported.detail ?? t("vpsLink.progress.steps", { done: view.steps.filter((step) => step.status === "done" || step.status === "skipped").length, total: view.steps.length }),
-      value: reported.value, failed, error };
+    return { title: current ? t(STEP_TITLE[current.id]) : t("vpsLink.install.almost"), ...installProgress(view.steps, current), failed, error };
   }
   return { title: view.stage === "linked" || view.stage === "moved" ? t("vpsLink.progress.linked") : failed ? t("vpsLink.progress.paused") : t("vpsLink.progress.waiting"),
     detail: view.server?.name ?? null, value: null, failed, error };

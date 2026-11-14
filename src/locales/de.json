@@ -3359,7 +3359,6 @@
   "slack.notReady": "Slack ist auf diesem Computer gerade nicht verfügbar. Versuche es nach einem Neustart erneut.",
   "models.place.server": "Auf diesem Server gespeichert.",
   "models.place.cloud": "In deiner dusk cloud gespeichert.",
-  "models.place.computer": "Auf diesem Computer gespeichert.",
   "settings.docs.vault.emptyBody": "Füge ein Login hinzu oder speichere ein Geheimnis, wenn ein Bot danach fragt. Bots sehen nie, was darin steht.",
   "skills.library.empty": "Noch keine Skills. Importiere unten einen.",
   "skills.library.subtitle": "Skills, die deine Bots nutzen können. Alles bleibt auf diesem Computer.",

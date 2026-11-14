@@ -6573,7 +6573,6 @@
   "slack.notReady": "현재 이 컴퓨터에서 Slack을 사용할 수 없습니다. 다시 시작한 후 시도하세요.",
   "models.place.server": "이 서버에 저장됨.",
   "models.place.cloud": "내 dusk cloud에 저장됨.",
-  "models.place.computer": "이 컴퓨터에 저장됨.",
   "settings.docs.vault.emptyBody": "로그인 정보를 추가하거나, 봇이 요청할 때 시크릿을 저장하세요. 봇은 저장된 내용을 볼 수 없습니다.",
   "slack.connect": "연결",
   "slack.disconnect": "연결 해제",

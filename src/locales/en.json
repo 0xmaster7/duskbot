@@ -7555,7 +7555,7 @@
   "vpsLink.progress.linked": "VPS linked",
   "vpsLink.progress.reconnecting": "Reconnecting",
   "vpsLink.progress.open": "Open server setup",
-  "vpsLink.progress.steps": "{done} of {total} steps done",
+  "vpsLink.progress.percent": "{percent}%",
   "vpsLink.progress.download": "{received} of {total}",
   "vpsLink.progress.received": "{received} downloaded",
   "vpsLink.progress.layers": "{done} of {total} layers",

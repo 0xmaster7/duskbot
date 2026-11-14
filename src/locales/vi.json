@@ -5134,7 +5134,6 @@
   "slack.notReady": "Slack hiện không khả dụng trên máy tính này. Hãy thử lại sau khi khởi động lại.",
   "models.place.server": "Đã lưu trên máy chủ này.",
   "models.place.cloud": "Đã lưu trên dusk cloud của bạn.",
-  "models.place.computer": "Đã lưu trên máy tính này.",
   "settings.docs.vault.emptyBody": "Thêm thông tin đăng nhập, hoặc lưu bí mật khi bot yêu cầu. Bot không bao giờ thấy nội dung bên trong.",
   "mcp.claudeSkills.desc": "Bot Claude cũng tải các kỹ năng trong ~/.claude/skills. Hook và các cài đặt khác của bạn không bị ảnh hưởng.",
   "slack.connect": "Kết nối",

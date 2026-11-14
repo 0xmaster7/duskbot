@@ -6742,7 +6742,6 @@
   "slack.notReady": "Slack 目前在此电脑上不可用。请重启后重试。",
   "models.place.server": "已保存在此服务器上。",
   "models.place.cloud": "已保存在你的 dusk cloud 上。",
-  "models.place.computer": "已保存在此电脑上。",
   "settings.docs.vault.emptyBody": "添加登录信息，或在机器人请求时保存密钥。机器人永远看不到其中的内容。",
   "slack.connect": "连接",
   "slack.disconnect": "断开连接",

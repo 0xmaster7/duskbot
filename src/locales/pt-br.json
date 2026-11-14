@@ -6034,7 +6034,6 @@
   "slack.notReady": "O Slack não está disponível neste computador no momento. Tente novamente após reiniciar.",
   "models.place.server": "Salvo neste servidor.",
   "models.place.cloud": "Salvo na sua dusk cloud.",
-  "models.place.computer": "Salvo neste computador.",
   "settings.docs.vault.emptyBody": "Adicione um login ou salve um segredo quando um bot pedir. Os bots nunca veem o conteúdo.",
   "slack.connect": "Conectar",
   "slack.disconnect": "Desconectar",

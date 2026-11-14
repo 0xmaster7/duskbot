@@ -6188,7 +6188,6 @@
   "slack.notReady": "現在このコンピューターでは Slack を利用できません。再起動後にもう一度お試しください。",
   "models.place.server": "このサーバーに保存されています。",
   "models.place.cloud": "dusk cloud に保存されています。",
-  "models.place.computer": "このコンピューターに保存されています。",
   "settings.docs.vault.emptyBody": "ログインを追加するか、ボットに求められたときにシークレットを保存してください。ボットが中身を見ることはありません。",
   "slack.connect": "接続",
   "slack.disconnect": "切断",

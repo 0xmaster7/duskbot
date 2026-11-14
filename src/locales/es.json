@@ -5602,7 +5602,6 @@
   "slack.notReady": "Slack no está disponible en este equipo en este momento. Inténtalo de nuevo después de reiniciar.",
   "models.place.server": "Guardado en este servidor.",
   "models.place.cloud": "Guardado en tu dusk cloud.",
-  "models.place.computer": "Guardado en este equipo.",
   "settings.docs.vault.emptyBody": "Añade un inicio de sesión o guarda un secreto cuando un bot te lo pida. Los bots nunca ven su contenido.",
   "slack.connect": "Conectar",
   "slack.disconnect": "Desconectar",
