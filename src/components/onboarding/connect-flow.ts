@@ -3,6 +3,7 @@
 // confirming. A stage that runs past its deadline ends in a plain message with Try again, never a spinner left alone.
 // Kept free of React so a remount (StrictMode, a closed dialog) can't strand it and each transition is testable.
 import { deviceSignInLink, isDeviceSignInCode, type DeviceSignInProvider } from "../../../shared/device-sign-in";
+import { friendlyError } from "@/lib/plain-error";
 
 export type ConnectStageName = "waking" | "preparing" | "installing" | "opening" | "waiting" | "confirming";
 
@@ -128,7 +129,7 @@ const wakingError = (cause: unknown): boolean => {
   return error?.status === 503 && (error.body?.error === "waking" || error.body?.error === "asleep");
 };
 
-const messageOf = (cause: unknown): string | null => (cause instanceof Error && cause.message ? cause.message : null);
+const messageOf = (cause: unknown): string | null => (cause instanceof Error && cause.message ? friendlyError(cause) : null);
 
 type Listener = (state: ConnectState) => void;
 
