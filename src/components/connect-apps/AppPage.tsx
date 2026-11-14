@@ -6,6 +6,7 @@ import { needsReconnect } from "@/lib/connector-status";
 import { connectorSetupNotice } from "./connector-helpers";
 import type { ToolkitCard } from "../ServiceIcon";
 import { Icon } from "../Icon";
+import { Select } from "../Select";
 import { AppTile, ConnectedMark, RowPill, type RowAction } from "./AppRow";
 import type { AppEntry, Connection } from "./catalog";
 import type { ConnectorPhase, Connectors } from "./use-connectors";
@@ -243,12 +244,12 @@ export function AppPage({ model }: { model: AppPageModel }) {
               return (
                 <label key={bot.id} className="ca-card-row" data-account-bot={bot.id}>
                   <span>{bot.name}</span>
-                  <select className="ca-account-select" value={own && active.some((account) => account.id === own) ? own : ""}
+                  <Select variant="pill" size="sm" className="ml-auto max-w-[220px]" value={own && active.some((account) => account.id === own) ? own : ""}
                     aria-label={t("connectApps.botsUse.aria", { bot: bot.name, service: entry.label })}
                     onChange={(event) => pick(event.target.value || null, bot.id)}>
                     <option value="">{t("connectApps.botsUse.default", { name: accountName(usual) })}</option>
                     {active.map((account) => <option key={account.id} value={account.id}>{accountName(account)}</option>)}
-                  </select>
+                  </Select>
                 </label>
               );
             })}
@@ -388,12 +389,12 @@ export function RemoteAccounts({ remote, name, accounts }: { remote: NonNullable
               return (
                 <label key={bot.id} className="ca-card-row" data-account-bot={bot.id}>
                   <span>{bot.name}</span>
-                  <select className="ca-account-select" value={own && working.some((account) => account.name === own) ? own : ""}
+                  <Select variant="pill" size="sm" className="ml-auto max-w-[220px]" value={own && working.some((account) => account.name === own) ? own : ""}
                     aria-label={t("connectApps.botsUse.aria", { bot: bot.name, service: name })}
                     onChange={(event) => pick(event.target.value || null, bot.id)}>
                     <option value="">{t("connectApps.botsUse.default", { name: titles.get(usual.name)! })}</option>
                     {working.map((account) => <option key={account.name} value={account.name}>{titles.get(account.name)}</option>)}
-                  </select>
+                  </Select>
                 </label>
               );
             })}

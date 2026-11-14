@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { openExternalLink } from "@/lib/app-links";
+import { copyText } from "@/lib/copy-text";
 import { tokenApp, type TokenAppId, type TokenField } from "../../../shared/app-tokens";
 import { KitActions, KitBody, KitButton, KitCard, KitRow, KitStatus, KitText } from "./detail-kit";
 import { StepGuide, type GuideStep } from "./StepGuide";
@@ -95,7 +96,7 @@ export function TokenCard({ app, tokens, replacing: startReplacing, preferToken 
           <>
             <span className="ca-token-code" data-device-code="">{flow.start.userCode}</span>
             <KitButton onClick={() => void openExternalLink(flow.start.verificationUrl)}>{t("tokenApps.device.open", { name: spec.label })}</KitButton>
-            <KitButton variant="secondary" onClick={() => void navigator.clipboard?.writeText(flow.start.userCode!)}>{t("tokenApps.device.copy")}</KitButton>
+            <KitButton variant="secondary" onClick={() => void copyText(flow.start.userCode!)}>{t("tokenApps.device.copy")}</KitButton>
           </>
         ) }
       : { key: "finish", text: t("tokenApps.line.finish", { name: spec.label }), done: false,

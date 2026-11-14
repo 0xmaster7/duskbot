@@ -944,19 +944,6 @@ a.ca-pill { color: inherit; text-decoration: none; }
   .ca-installed { min-width: 44px; min-height: 44px; justify-content: center; }
 }
 .ca-account-tag[data-tone="quiet"] { color: var(--ca-ink-56); }
-.ca-account-select {
-  margin-inline-start: auto;
-  max-width: 220px;
-  height: 28px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--ca-ink-6);
-  color: inherit;
-  font: inherit;
-  font-size: 12px;
-}
-.ca-account-select:hover { background: var(--ca-ink-8); }
 
 /* a step-by-step guide: number, mascot and picture, one line, the one thing to do; tonal, no outlines */
 .ca-guide { display: flex; flex-direction: column; gap: 10px; align-self: stretch; }
