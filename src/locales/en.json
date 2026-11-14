@@ -2921,6 +2921,7 @@
   "onboarding.meet.install": "install {name}",
   "onboarding.meet.waiting": "waiting for {name}…",
   "onboarding.meet.paste": "paste the code from {name}",
+  "onboarding.meet.pasteHint": "{name} opened in your browser. Sign in there, then paste the code it shows.",
   "onboarding.meet.pasteSubmit": "use this code",
   "onboarding.start.ai.connect": "Connect an AI and {name} can start.",
   "onboarding.start.ai.lost": "Lost track of the sign-in. Try again.",

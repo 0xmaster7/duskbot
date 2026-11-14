@@ -9,6 +9,7 @@ import { APP_LINK_PROTOCOL, agentInfo, linkCompat, missingCap } from "./vps-link
 import { orderedConnect } from "./vps-link-direct.mjs";
 import { createRelayClient, createTunnelProxy, newLinkKeys, openResult } from "./vps-link-protocol.mjs";
 import { shortHash, trail } from "./trail.mjs";
+import { WELCOME_VERSION } from "./onboarding-record.mjs";
 
 export const STEP_IDS = Object.freeze(["check", "basics", "docker", "user", "node", "app", "engines", "service", "address", "desktop", "link"]);
 const STATUSES = new Set(["running", "done", "failed", "skipped"]);
@@ -98,6 +99,16 @@ const plain = (error, fallback) => {
  *   addressCheckMs?: number,
  * }} deps
  */
+/** The welcome record a server gets when this Mac moves everything to it, or null when it needs none. The person met
+ *  dusk bot here: a finished welcome is kept as it was, and one still under way (they chose their own server from the
+ *  welcome itself) counts as met, so the server never starts over at "meet dusk bot" and asks where the bots live. */
+export function welcomeForServer(mine, theirs, now) {
+  if (theirs?.completedAt) return null;
+  const hints = Array.isArray(mine?.hintsSeen) ? { hintsSeen: mine.hintsSeen } : {};
+  if (mine?.completedAt) return { completedAt: mine.completedAt, version: mine.version, ...hints };
+  return { completedAt: now.toISOString(), version: WELCOME_VERSION, ...hints };
+}
+
 export function createVpsLink(deps) {
   const { base, serverFetch, store, protect, unprotect, ownHome, localRequest, now = Date.now, onChange = () => {}, log = () => {}, pollMs = 1000 } = deps;
   const relay = createRelayClient({ base, fetch: deps.fetch ?? fetch });
@@ -1145,9 +1156,9 @@ export function createVpsLink(deps) {
   async function carryWelcome(link) {
     try {
       const mine = (await local("GET", "/api/config"))?.onboarding;
-      if (!mine?.completedAt) return;
-      if ((await serverCall(link, "GET", "/api/config"))?.onboarding?.completedAt) return;
-      await serverCall(link, "PUT", "/api/config", { onboarding: { completedAt: mine.completedAt, version: mine.version, ...(Array.isArray(mine.hintsSeen) ? { hintsSeen: mine.hintsSeen } : {}) } });
+      const theirs = (await serverCall(link, "GET", "/api/config"))?.onboarding;
+      const record = welcomeForServer(mine, theirs, new Date());
+      if (record) await serverCall(link, "PUT", "/api/config", { onboarding: record });
     } catch (error) { log(`vps link: the server may show the welcome again (${error?.message ?? error})`); }
   }
 

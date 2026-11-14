@@ -368,3 +368,19 @@ it("before a line exists it says it is making one, with no step waiting yet", as
   expect(q("li")).toBeNull();
   expect(q("[role=status]")?.textContent).toBe("making your line…");
 });
+
+it("the welcome's own server opens on the recommended way's one line, with every other way one back away", async () => {
+  const link = fakeLink();
+  vi.stubGlobal("duskDesktop", { vpsLink: link.bridge, cloudAccount: {} });
+  const { openPlaceSetup, closePlaceSetup } = await import("@/lib/place-setup");
+  const { PlaceSetupHost } = await import("./PlaceSetupHost");
+  openPlaceSetup("way:cloudflare");
+  await act(async () => { root.render(createElement(PlaceSetupHost)); });
+  await settle();
+  expect(q("[data-place-setup]")?.getAttribute("data-place-setup")).toBe("way:cloudflare");
+  expect(document.body.textContent).toContain("| sh -s -- --cloudflare");
+  await click(byText("back"));
+  expect(q("[data-place-setup]")?.getAttribute("data-place-setup")).toBe("server");
+  expect(document.body.textContent).toContain("Tailscale");
+  closePlaceSetup();
+});

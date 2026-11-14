@@ -12,7 +12,7 @@ import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createLinkService } from "../apps/link-service/src/app.mjs";
-import { STEP_IDS, createVpsLink } from "./vps-link.mjs";
+import { STEP_IDS, createVpsLink, welcomeForServer } from "./vps-link.mjs";
 import { vpsTokenOf } from "./vps-link-protocol.mjs";
 
 const run = promisify(execFile);
@@ -385,3 +385,18 @@ function linkDeps(local, ownHome, store) {
     relaunch: () => {}, pollMs: 10,
   };
 }
+
+describe("the welcome a server gets when everything moves there", () => {
+  const now = new Date("2026-11-14T07:00:00.000Z");
+  it("keeps a finished welcome as it was", () => {
+    expect(welcomeForServer({ completedAt: "2026-11-14T06:00:00.000Z", version: 1, hintsSeen: ["met-chief-v1"] }, undefined, now))
+      .toEqual({ completedAt: "2026-11-14T06:00:00.000Z", version: 1, hintsSeen: ["met-chief-v1"] });
+  });
+  it("counts a welcome still under way as met: the person chose their own server from it, so the server never starts over", () => {
+    expect(welcomeForServer(undefined, undefined, now)).toEqual({ completedAt: "2026-11-14T07:00:00.000Z", version: 1 });
+    expect(welcomeForServer({ hintsSeen: ["onboarding-cloud-v1"] }, {}, now)).toEqual({ completedAt: "2026-11-14T07:00:00.000Z", version: 1, hintsSeen: ["onboarding-cloud-v1"] });
+  });
+  it("leaves a server that already met the person alone", () => {
+    expect(welcomeForServer({ completedAt: "2026-11-14T06:00:00.000Z", version: 1 }, { completedAt: "2026-11-01T00:00:00.000Z" }, now)).toBeNull();
+  });
+});

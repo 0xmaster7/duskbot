@@ -280,7 +280,7 @@ export function WelcomeFlow({
       body = account ? <AccountStep account={account} known={known} onDone={next} onSkip={known?.required ? null : next} /> : null;
       break;
     case "place":
-      body = <PlaceStep onMac={chooseMac} onCloud={chooseCloud} onServer={() => openPlaceSetup("server")} />;
+      body = <PlaceStep onMac={chooseMac} onCloud={chooseCloud} onServer={() => openPlaceSetup("way:cloudflare")} />;
       break;
     case "ai":
       body = <AiStep tested={tested} onNext={next} />;

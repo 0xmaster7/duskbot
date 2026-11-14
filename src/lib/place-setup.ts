@@ -49,8 +49,9 @@ export function pairingLink(address: string, code: string): { link: string } | {
   return { link: `${url.origin}/pair#code=${parts[1]}-${parts[2]}-${parts[3]}` };
 }
 
-/** Where the sheet opens: the first choice, or straight at a server's ways to connect. */
-export type PlaceSetupStart = "choose" | "server";
+/** Where the sheet opens: the first choice, straight at a server's ways to connect, or at the recommended way's line
+ *  (the welcome: a new person gets the one line, and the other ways are one "back" away). */
+export type PlaceSetupStart = "choose" | "server" | "way:cloudflare";
 let open: { start?: PlaceSetupStart } | null = null;
 const watchers = new Set<() => void>();
 const tell = () => { for (const watch of Array.from(watchers)) watch(); };

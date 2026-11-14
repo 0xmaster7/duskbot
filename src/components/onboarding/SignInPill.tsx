@@ -156,7 +156,7 @@ export function CodeSlot({ code }: { code: string }) {
 export function PasteSlot({ name, onSubmit }: { name: string; onSubmit: (code: string) => void }) {
   const [code, setCode] = useState("");
   return (
-    <form data-sign-in="paste" className="relative w-[288px] max-w-full" onSubmit={(event) => { event.preventDefault(); onSubmit(code); }}>
+    <form data-sign-in="paste" className="relative flex w-[288px] max-w-full flex-col items-center gap-1.5" onSubmit={(event) => { event.preventDefault(); onSubmit(code); }}>
       <input autoFocus value={code} onChange={(event) => setCode(event.target.value)} aria-label={t("onboarding.meet.paste", { name })}
         placeholder={t("onboarding.meet.paste", { name })}
         className="h-9 w-full rounded-[18px] border-[0.5px] border-transparent bg-composer pl-4 pr-10 text-[14px] leading-5 text-ink placeholder:text-ink-tertiary" />
@@ -164,6 +164,7 @@ export function PasteSlot({ name, onSubmit }: { name: string; onSubmit: (code: s
         className="absolute right-1 top-1 flex size-7 items-center justify-center rounded-full bg-ink text-app disabled:opacity-40">
         <ArrowUp size={14} strokeWidth={2} />
       </button>
+      <p data-sign-in="paste-hint" className="m-0 text-center text-[12px] leading-4 text-ink-tertiary">{t("onboarding.meet.pasteHint", { name })}</p>
     </form>
   );
 }
