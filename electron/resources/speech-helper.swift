@@ -200,6 +200,7 @@ final class SilenceEndpointer {
   }
 }
 
+func runRecognizer() {
 SFSpeechRecognizer.requestAuthorization { status in
   guard status == .authorized else { fail("speech-not-authorized") }
   // Recognize in the user's language: a hardcoded en-US recognizer
@@ -275,6 +276,194 @@ SFSpeechRecognizer.requestAuthorization { status in
         fail("dictation-disabled")
       }
       fail("recognition-error")
+    }
+  }
+}
+
+}
+
+let filePath: String? = {
+  let args = CommandLine.arguments
+  guard let index = args.firstIndex(of: "--file"), index + 1 < args.count else { return nil }
+  return args[index + 1]
+}()
+
+let localeCandidates: [Locale] =
+  (localeArg.map { [Locale(identifier: $0)] } ?? [])
+  + Locale.preferredLanguages.map { Locale(identifier: $0) }
+  + [Locale.current, Locale(identifier: "en-US")]
+
+/// Finalized pieces plus the words still being revised, as one line.
+final class Heard {
+  private let lock = NSLock()
+  private var settled: [String] = []
+  private var pending = ""
+  func take(_ text: String, final: Bool) -> String {
+    lock.lock()
+    defer { lock.unlock() }
+    let piece = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    if final {
+      if !piece.isEmpty { settled.append(piece) }
+      pending = ""
+    } else {
+      pending = piece
+    }
+    return (settled + (pending.isEmpty ? [] : [pending])).joined(separator: " ")
+  }
+}
+
+// macOS 26+: SpeechAnalyzer runs fully on device with the system's own models. It needs no Siri, no Dictation and
+// no speech-recognition permission (only the microphone), so it works on Macs where SFSpeechRecognizer reports no
+// available recognizer. Returns false when no language here is supported, so the older recognizer can try.
+@available(macOS 26.0, *)
+func analyzerLocale() async -> Locale? {
+  for candidate in localeCandidates {
+    if let found = await SpeechTranscriber.supportedLocale(equivalentTo: candidate) { return found }
+  }
+  return nil
+}
+
+@available(macOS 26.0, *)
+func prepareTranscriber(live: Bool) async throws -> SpeechTranscriber? {
+  guard SpeechTranscriber.isAvailable, let locale = await analyzerLocale() else { return nil }
+  let transcriber = SpeechTranscriber(
+    locale: locale, transcriptionOptions: [], reportingOptions: live ? [.volatileResults] : [], attributeOptions: [])
+  // the language's model downloads once, the first time it is used
+  if let install = try await AssetInventory.assetInstallationRequest(supporting: [transcriber]) {
+    try await install.downloadAndInstall()
+  }
+  return transcriber
+}
+
+@available(macOS 26.0, *)
+func transcribeFile(_ path: String) async throws -> Bool {
+  guard let transcriber = try await prepareTranscriber(live: false) else { return false }
+  let file = try AVAudioFile(forReading: URL(fileURLWithPath: path))
+  let analyzer = SpeechAnalyzer(modules: [transcriber])
+  let heard = Heard()
+  let results = Task {
+    var text = ""
+    for try await result in transcriber.results { text = heard.take(String(result.text.characters), final: result.isFinal) }
+    return text
+  }
+  if let end = try await analyzer.analyzeSequence(from: file) {
+    try await analyzer.finalizeAndFinish(through: end)
+  } else {
+    await analyzer.cancelAndFinishNow()
+  }
+  emit(["partial": false, "text": try await results.value])
+  return true
+}
+
+@available(macOS 26.0, *)
+func listenWithAnalyzer() async throws -> Bool {
+  guard let transcriber = try await prepareTranscriber(live: true),
+    let format = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [transcriber])
+  else { return false }
+  let analyzer = SpeechAnalyzer(modules: [transcriber])
+  let (stream, input) = AsyncStream<AnalyzerInput>.makeStream()
+  let heard = Heard()
+  var endpointer: SilenceEndpointer?
+  let results = Task {
+    var text = ""
+    for try await result in transcriber.results {
+      text = heard.take(String(result.text.characters), final: result.isFinal)
+      endpointer?.saw(text)
+      if !text.isEmpty { emit(["partial": true, "text": text]) }
+    }
+    return text
+  }
+  try await analyzer.start(inputSequence: stream)
+
+  let engine = AVAudioEngine()
+  let node = engine.inputNode
+  let micFormat = node.outputFormat(forBus: 0)
+  guard micFormat.sampleRate > 0, micFormat.channelCount > 0 else { fail("mic-failed") }
+  let converter = AVAudioConverter(from: micFormat, to: format)
+  node.installTap(onBus: 0, bufferSize: 1024, format: micFormat) { buffer, _ in
+    emitLevel(buffer)
+    guard let converter else { return }
+    let capacity = AVAudioFrameCount(Double(buffer.frameLength) * format.sampleRate / micFormat.sampleRate + 64)
+    guard let out = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: capacity) else { return }
+    var fed = false
+    var error: NSError?
+    converter.convert(to: out, error: &error) { _, status in
+      if fed {
+        status.pointee = .noDataNow
+        return nil
+      }
+      fed = true
+      status.pointee = .haveData
+      return buffer
+    }
+    if error == nil, out.frameLength > 0 { input.yield(AnalyzerInput(buffer: out)) }
+  }
+  do {
+    engine.prepare()
+    try engine.start()
+  } catch { fail("mic-failed") }
+
+  var finishing = false
+  let finishAudio = {
+    DispatchQueue.main.async {
+      guard !finishing else { return }
+      finishing = true
+      engine.stop()
+      node.removeTap(onBus: 0)
+      input.finish()
+      Task {
+        do {
+          try await analyzer.finalizeAndFinishThroughEndOfInput()
+          emit(["partial": false, "text": try await results.value])
+          exit(0)
+        } catch { fail("recognition-error") }
+      }
+    }
+  }
+  finishHandler = finishAudio
+  if endpointMs > 0 {
+    endpointer = SilenceEndpointer(gapMs: endpointMs) { finishAudio() }
+    endpointer?.start()
+  }
+  return true
+}
+
+/// The microphone first: a refusal is reported plainly instead of as silence. Asking happens only when macOS has
+/// never been asked, and only because the person pressed the mic.
+func withMicrophone(_ then: @escaping () -> Void) {
+  switch AVCaptureDevice.authorizationStatus(for: .audio) {
+  case .authorized: then()
+  case .notDetermined:
+    AVCaptureDevice.requestAccess(for: .audio) { granted in
+      if granted { DispatchQueue.main.async(execute: then) } else { fail("mic-denied") }
+    }
+  default: fail("mic-denied")
+  }
+}
+
+if let filePath {
+  // a recording instead of the microphone: for tests, never asks for anything
+  Task {
+    if #available(macOS 26.0, *) {
+      do {
+        if try await transcribeFile(filePath) { exit(0) }
+      } catch { fail("recognition-error") }
+    }
+    fail("recognizer-unavailable")
+  }
+} else {
+  withMicrophone {
+    if #available(macOS 26.0, *) {
+      Task {
+        do {
+          if try await listenWithAnalyzer() { return }
+        } catch {
+          // no model for this language, or the analyzer refused: the older recognizer may still hear it
+        }
+        DispatchQueue.main.async { runRecognizer() }
+      }
+    } else {
+      runRecognizer()
     }
   }
 }

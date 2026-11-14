@@ -207,6 +207,18 @@ describe("voice input in the real composer", () => {
     expect(container.textContent).not.toContain(t("composer.dictation.failed"));
   });
 
+  it("says a refused microphone in one line with a button to System Settings", () => {
+    const permOpenSettings = vi.fn().mockResolvedValue(undefined);
+    Object.assign(window.duskDesktop!, { permOpenSettings });
+    start();
+    flushSync(() => end({ code: 1, reason: "mic-denied" }));
+    expect(container.textContent).toContain(t("composer.voice.micDenied"));
+    const open = container.querySelector<HTMLButtonElement>('[data-open-system-settings="mic"]')!;
+    expect(open.textContent).toBe(t("permissions.openSystemSettings"));
+    flushSync(() => open.click());
+    expect(permOpenSettings).toHaveBeenCalledWith("mic");
+  });
+
   it("keeps the heard words when recognition ends in an error", () => {
     start();
     hear("失敗しても残す文章。");
@@ -281,5 +293,49 @@ describe("the first tap on the mic", () => {
     expect(speechStart).not.toHaveBeenCalled();
     expect(fixture.dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "toggleAppSettings", open: true, section: "voice" }));
     expect(voicePrefs().firstRunSeen).toBe(true);
+  });
+});
+
+describe("a computer where nothing can listen", () => {
+  let root: Root;
+  let container: HTMLDivElement;
+  let speechStart: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
+    vi.spyOn(HTMLElement.prototype, "scrollIntoView").mockImplementation(() => {});
+    setVoicePrefs({ ...DEFAULT_VOICE_PREFS, firstRunSeen: true });
+    speechStart = vi.fn().mockResolvedValue(undefined);
+    // Linux has no recognizer of its own, and this server has no listening key
+    window.duskDesktop = {
+      platform: "linux", speechStart, speechStop: vi.fn().mockResolvedValue(undefined), speechFinish: vi.fn().mockResolvedValue(undefined),
+      onSpeechTranscript: () => vi.fn(), onSpeechEnd: () => vi.fn(),
+    } as unknown as typeof window.duskDesktop;
+    restoreComposerDraft(draftId, { text: "", attachments: [] });
+    container = document.createElement("div");
+    document.body.append(container);
+    root = createRoot(container);
+    flushSync(() => root.render(createElement(Composer, { bot })));
+  });
+
+  afterEach(() => {
+    flushSync(() => root.unmount());
+    container.remove();
+    setVoicePrefs(DEFAULT_VOICE_PREFS);
+    delete window.duskDesktop;
+    vi.clearAllMocks();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("says so plainly with a button that opens Settings at Voice", () => {
+    flushSync(() => container.querySelector<HTMLButtonElement>(`button[aria-label="${t("composer.dictation.start")}"]`)!.click());
+    expect(speechStart).not.toHaveBeenCalled();
+    expect(container.textContent).toContain(t("composer.voice.noRecognizer"));
+    expect(container.textContent?.toLowerCase()).not.toContain("settings > voice");
+    const choose = container.querySelector<HTMLButtonElement>("[data-open-voice-settings]")!;
+    expect(choose.textContent).toBe(t("composer.voice.chooseService"));
+    flushSync(() => choose.click());
+    expect(fixture.dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "toggleAppSettings", open: true, section: "voice" }));
   });
 });

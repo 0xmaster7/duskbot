@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ConfigStatus } from "@/state/store";
 import { cacheDesktopCapabilities, initialDesktopCapabilities } from "./desktop";
 import { fishSpeech } from "./fish-speech";
-import { fishListeningReady, listensHere, speechBridge } from "./speech";
+import { serverListeningReady, listensHere, speechBridge } from "./speech";
 
 const withDictation = (dictation: DesktopCapabilities["dictation"]): DesktopCapabilities =>
   ({ ...initialDesktopCapabilities(), dictation });
@@ -37,8 +37,8 @@ describe("speechBridge", () => {
 
 describe("listening readiness", () => {
   it("needs a saved Fish Audio key to listen through Fish Audio", () => {
-    expect(fishListeningReady(savedFish)).toBe(true);
-    expect(fishListeningReady(null)).toBe(false);
+    expect(serverListeningReady(savedFish)).toBe(true);
+    expect(serverListeningReady(null)).toBe(false);
     expect(listensHere(withDictation(FISH), savedFish)).toBe(true);
     expect(listensHere(withDictation(FISH), null)).toBe(false);
   });

@@ -10,7 +10,7 @@ import {
 } from "@/lib/approval-mode-options";
 import { CALL_MODES, effectiveCallMode, useCallMode } from "@/lib/call-mode";
 import { callCapabilityHelp } from "@/lib/call-capability";
-import { fishListeningReady, listensHere, speechBridge } from "@/lib/speech";
+import { serverListeningReady, listensHere, speechBridge } from "@/lib/speech";
 import { requestCallStart } from "@/lib/call-start-request";
 import { useOnCall } from "@/lib/call";
 import { isLiveCallRunning, useLiveMedia } from "@/lib/live-call-media";
@@ -182,7 +182,7 @@ export function ComposerPlusMenu({ onAttach, attachChoices, goal, teach, approva
   const media = useLiveMedia();
   const turnsHere = !ready || listensHere(capabilities, state.config);
   const callMode = effectiveCallMode(storedMode, { turnsHere, canLive: true });
-  const turnsHelp = turnsHere ? null : callCapabilityHelp(capabilities, Boolean(speechBridge()?.speechStart), fishListeningReady(state.config));
+  const turnsHelp = turnsHere ? null : callCapabilityHelp(capabilities, Boolean(speechBridge()?.speechStart), serverListeningReady(state.config));
   // As the call button, which hides while Live is the mode and its line is held on another device.
   const lineHeldElsewhere = callMode === "live" && liveLineHeldElsewhere(media, state.liveCall);
   const calling = callBotId !== undefined && (onCall === callBotId || isLiveCallRunning(media.phase) || lineHeldElsewhere);

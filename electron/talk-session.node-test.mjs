@@ -54,6 +54,7 @@ test("the box's words and timings are fixed", () => {
     noDusk: "Set up your helper first, then try again.",
     moved: "Your bots live on dusk cloud now: talk to them there",
     permission: "Talking needs Microphone + Speech Recognition access in System Settings → Privacy & Security.",
+    micOff: "Turn on the microphone for dusk bot in System Settings → Privacy & Security.",
     dictationOff: "Turn on Dictation in System Settings → Keyboard, then try again.",
     unavailable: "Talking couldn't start. Try again.",
     failed: "Your helper couldn't take that · Open chat",

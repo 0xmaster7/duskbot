@@ -26,7 +26,7 @@ import { callStarted } from "@/lib/product-events";
 import { useDesktopCapabilities } from "./DesktopCapabilities";
 import { callCapabilityHelp, type CallCapabilityHelp } from "@/lib/call-capability";
 import { onCallStartRequest } from "@/lib/call-start-request";
-import { fishListeningReady, listensHere, speechBridge } from "@/lib/speech";
+import { serverListeningReady, listensHere, speechBridge } from "@/lib/speech";
 import { VoiceSetupDialog } from "./lazy-screens";
 import { openBotSettings } from "./bot-panel/panel-link";
 import { MENU_SHEET } from "./menu-recipe";
@@ -101,7 +101,7 @@ export function CallTargetButton({
   const active = onCall || onLiveCall;
   const remoteClient = globalThis.window?.duskDesktop?.remoteClient?.active === true;
   const capabilityHelp = capabilitiesReady
-    ? callCapabilityHelp(capabilities, Boolean(speechBridge()?.speechStart), fishListeningReady(state.config))
+    ? callCapabilityHelp(capabilities, Boolean(speechBridge()?.speechStart), serverListeningReady(state.config))
     : null;
   const supported = capabilitiesReady && !capabilityHelp;
   const localVoice = localSystemVoiceActive();
@@ -643,7 +643,7 @@ function Call({ bot }: { bot: Bot }) {
               ? t("composer.dictation.disabled")
               : reason === "speech-not-authorized"
                 ? t("call.allowSpeech")
-                : reason === "mic-failed"
+                : reason === "mic-failed" || reason === "mic-denied"
                   ? t("composer.dictation.micFailed")
                   : t("composer.dictation.failed")),
         );

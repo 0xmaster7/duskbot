@@ -7,6 +7,7 @@ import { VOICE_PROVIDERS, VOICE_PROVIDER_INFO, type VoiceProvider } from "../../
 import { openExternalLink } from "@/lib/app-links";
 import { activeLocale, t } from "@/lib/i18n";
 import { friendlyError } from "@/lib/plain-error";
+import { serverListeningReady } from "@/lib/speech";
 import { dictationError } from "@/lib/use-composer-dictation";
 import { currentVoiceDevice, onPhoneVoice, phoneVoice } from "@/lib/voice-input/device";
 import { providerRunsOn, resolveEngine, systemEngineWhere, type KeyState, type ResolvedEngine, type VoiceDevice } from "@/lib/voice-input/engines";
@@ -392,7 +393,7 @@ function MicrophoneRow({ device }: { device: VoiceDevice }) {
 }
 
 /** Three seconds through the engine in use, the words it heard shown under the row. Runs only when pressed. */
-function TestRow({ prefs, keys, device }: { prefs: VoicePrefs; keys: KeyState; device: VoiceDevice }) {
+function TestRow({ prefs, keys, device, serverListens }: { prefs: VoicePrefs; keys: KeyState; device: VoiceDevice; serverListens: boolean }) {
   const [listening, setListening] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: ReactNode } | null>(null);
   const running = useRef<AbortController | null>(null);
@@ -400,7 +401,7 @@ function TestRow({ prefs, keys, device }: { prefs: VoicePrefs; keys: KeyState; d
 
   const run = async () => {
     if (running.current) return;
-    const engine = resolveEngine(prefs, device, keys);
+    const engine = resolveEngine(prefs, device, keys, serverListens);
     const where = systemEngineWhere(device);
     const bridge = voiceBridgeFor(engine, prefs);
     if (!bridge) {
@@ -483,7 +484,8 @@ export function VoiceInputSettings() {
   const device = useVoiceDevice();
   const prefs = useVoicePrefs();
   const keys = useVoiceKeys();
-  const engine = resolveEngine(prefs, device, keys);
+  const serverListens = serverListeningReady(useStore().state.config);
+  const engine = resolveEngine(prefs, device, keys, serverListens);
   const options = engineOptions(device, prefs.engine);
   const note = engineNote(engine, prefs, device);
   const service = prefs.engine !== "system" && providerRunsOn(prefs.engine, device) ? prefs.engine : null;
@@ -516,7 +518,7 @@ export function VoiceInputSettings() {
             />
           </SettingRow>
           <MicrophoneRow device={device} />
-          <TestRow prefs={prefs} keys={keys} device={device} />
+          <TestRow prefs={prefs} keys={keys} device={device} serverListens={serverListens} />
         </SettingsRows>
       </SettingsGroup>
       <SettingsGroup label={t("settings.voice.group.cleanup")} block="voice-cleanup">

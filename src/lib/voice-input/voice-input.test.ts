@@ -37,6 +37,20 @@ describe("which engine listens", () => {
       .toEqual({ kind: "none", reason: "no-recognizer" });
   });
 
+  it("listens through the server's key wherever the device has no recognizer of its own", () => {
+    const linux: VoiceDevice = { kind: "desktop", os: "linux", system: "fish-audio", providers: true };
+    const remote: VoiceDevice = { kind: "desktop", os: "mac", system: null, providers: false };
+    // Linux: available once any listening key is connected to the bot's server, nothing before
+    expect(resolveEngine(prefs(), linux, {}, true)).toEqual({ kind: "system", engine: "fish-audio" });
+    expect(resolveEngine(prefs(), linux, {}, false)).toEqual({ kind: "none", reason: "no-recognizer" });
+    // a page from another computer cannot reach this Mac's recognizer, but the server can still hear it
+    expect(resolveEngine(prefs(), remote, {}, true)).toEqual({ kind: "system", engine: "fish-audio" });
+    // the Mac's own recognizer always wins over the server
+    expect(resolveEngine(prefs(), mac, {}, true)).toEqual({ kind: "system", engine: "apple-speech" });
+    // a phone records only through its own plugin
+    expect(resolveEngine(prefs(), { kind: "phone", os: "android", system: null, providers: true }, {}, true)).toEqual({ kind: "none", reason: "no-recognizer" });
+  });
+
   it("knows what setting a service up means for each kind", () => {
     expect(providerReady("whisper-cpp", prefs({ whisperCpp: { binary: "/usr/local/bin/whisper-cli", model: "" } }), {})).toBe(false);
     expect(providerReady("whisper-cpp", prefs({ whisperCpp: { binary: "/usr/local/bin/whisper-cli", model: "/m.bin" } }), {})).toBe(true);

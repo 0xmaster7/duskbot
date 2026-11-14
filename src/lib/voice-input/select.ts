@@ -9,8 +9,8 @@ import { createWebSpeech } from "./web-speech";
 
 let webSpeech: VoiceBridge | null = null;
 
-export function currentEngine(prefs: VoicePrefs, keys: KeyState): ResolvedEngine {
-  return resolveEngine(prefs, currentVoiceDevice(), keys);
+export function currentEngine(prefs: VoicePrefs, keys: KeyState, serverListens = false): ResolvedEngine {
+  return resolveEngine(prefs, currentVoiceDevice(), keys, serverListens);
 }
 
 export function voiceBridgeFor(engine: ResolvedEngine, prefs: VoicePrefs): VoiceBridge | null {

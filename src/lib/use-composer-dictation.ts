@@ -5,11 +5,12 @@ import { feature } from "./product-analytics";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useDesktopCapabilities } from "@/components/DesktopCapabilities";
 import { withOpenSettings } from "@/components/OpenSystemSettings";
+import { withVoiceSettings } from "@/components/OpenVoiceSettings";
 import { useStore } from "@/state/store";
 import { VOICE_PROVIDER_INFO } from "../../electron/voice-catalog.mjs";
 import { appendDictatedText } from "./drafts";
 import { t } from "./i18n";
-import { fishListeningReady } from "./speech";
+import { serverListeningReady } from "./speech";
 import type { VoiceBridge, VoiceEnd, VoiceLine } from "./voice-input/bridge";
 import { cleanTranscript, cleanupWanted } from "./voice-input/cleanup";
 import { currentVoiceDevice, onPhoneVoice, phoneVoice } from "./voice-input/device";
@@ -57,12 +58,18 @@ function serviceName(engine: ResolvedEngine): string {
   return engine.kind === "provider" ? VOICE_PROVIDER_INFO[engine.provider].name : "";
 }
 
+/** Nothing on this device can listen: say so plainly, with the way to pick a service. */
+export function noRecognizer(): ReactNode {
+  return withVoiceSettings(t("composer.voice.noRecognizer"), "composer.voice.chooseService");
+}
+
 /** The calm line shown over the composer when voice input could not go on. */
 export function dictationError(info: VoiceEnd, engine: ResolvedEngine, where: ReturnType<typeof systemEngineWhere>): ReactNode {
   if (info.message) return info.message;
   const reason = info.reason ?? "";
   const service = serviceName(engine);
-  if (info.code === 2) return engine.kind === "none" ? t("composer.voice.noRecognizer") : t("composer.dictation.unavailable");
+  if (info.code === 2) return engine.kind === "none" ? noRecognizer() : t("composer.dictation.unavailable");
+  if (reason === "mic-denied") return withOpenSettings(t("composer.voice.micDenied"), "mic");
   if (reason === "speech-not-authorized") return withOpenSettings(t("composer.dictation.permission"), "speech");
   if (reason === "dictation-disabled") return t("composer.dictation.disabled");
   if (reason === "mic-failed" && where === "mac") return withOpenSettings(t("composer.dictation.micFailed"), "mic");
@@ -73,11 +80,13 @@ export function dictationError(info: VoiceEnd, engine: ResolvedEngine, where: Re
     return where === "mac" ? withOpenSettings(t("composer.dictation.micFailed"), "mic") : t("composer.voice.micMissing");
   }
   if (reason === "microphone-missing") return t("composer.voice.micMissing");
-  if (reason === "recognizer-unavailable") return where === "windows" ? t("composer.voice.windowsRecognizer") : t("composer.voice.noRecognizer");
-  if (reason === "service-bad-key") return t("composer.voice.serviceKey", { service });
+  if (reason === "recognizer-unavailable") {
+    return where === "windows" ? withVoiceSettings(t("composer.voice.windowsRecognizer"), "composer.voice.chooseService") : noRecognizer();
+  }
+  if (reason === "service-bad-key") return withVoiceSettings(t("composer.voice.serviceKey", { service }), "composer.voice.checkKey");
   if (reason === "service-rate-limited") return t("composer.voice.serviceBusy", { service });
   if (reason === "service-network") return t("composer.voice.serviceOffline", { service });
-  if (reason === "service-not-set-up") return t("composer.voice.serviceSetup", { service });
+  if (reason === "service-not-set-up") return withVoiceSettings(t("composer.voice.serviceSetup", { service }), "composer.voice.finishSetup");
   if (reason === "transcribe-timeout") return t("composer.voice.timeout");
   if (reason.startsWith("service-") && service) return t("composer.voice.serviceFailed", { service });
   return t("composer.dictation.failed");
@@ -94,10 +103,10 @@ export function useComposerDictation({ draftId, text, onText }: {
   const config = useStore().state.config;
   const prefs = useVoicePrefs();
   const keys = useVoiceKeys();
-  const engine = currentEngine(prefs, keys);
+  const engine = currentEngine(prefs, keys, serverListeningReady(config));
   const bridge = voiceBridgeFor(engine, prefs);
   const where = systemEngineWhere(currentVoiceDevice());
-  const ready = Boolean(bridge) && (engine.kind !== "system" || engine.engine !== "fish-audio" || fishListeningReady(config));
+  const ready = Boolean(bridge);
 
   const [phase, setPhase] = useState<DictationPhase>("idle");
   const [preview, setPreview] = useState("");
@@ -308,7 +317,7 @@ export function useComposerDictation({ draftId, text, onText }: {
 
   const toggle = () => {
     if (!ready) {
-      setSpeechError(engine.kind === "none" ? t("composer.voice.noRecognizer") : t("composer.dictation.unavailable"));
+      setSpeechError(engine.kind === "none" ? noRecognizer() : t("composer.dictation.unavailable"));
       return;
     }
     if (session.current && phase !== "idle") return finish();

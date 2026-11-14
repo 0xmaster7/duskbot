@@ -5,7 +5,9 @@ import type { VoicePrefs } from "./prefs";
 
 export type { VoiceProvider };
 
-/** The device's own recognizers. `fish-audio` is Linux's stand-in: Linux has no built-in one. */
+/** The device's own recognizers. `fish-audio` is the page recording clips that the bot's server turns into text with
+ * whichever listening key is connected (Fish Audio, OpenAI, Groq, Deepgram and others): Linux's stand-in, and the
+ * fallback anywhere the device's own recognizer is missing. */
 export type SystemEngine = "apple-speech" | "windows-speech" | "phone-native" | "web-speech" | "fish-audio";
 
 export type VoiceDevice =
@@ -33,9 +35,18 @@ export function providerReady(provider: VoiceProvider, prefs: VoicePrefs, keys: 
   return keys[provider] === true;
 }
 
-export function resolveEngine(prefs: VoicePrefs, device: VoiceDevice, keys: KeyState): ResolvedEngine {
-  const system = (fellBack?: "not-set-up" | "not-here"): ResolvedEngine =>
-    device.system ? { kind: "system", engine: device.system, ...(fellBack ? { fellBack } : {}) } : { kind: "none", reason: "no-recognizer" };
+/**
+ * `serverListens`: the bot's server has a key that turns speech into text. It stands in when the device has no
+ * recognizer of its own, so "none" means nothing at all here can listen.
+ */
+export function resolveEngine(prefs: VoicePrefs, device: VoiceDevice, keys: KeyState, serverListens = false): ResolvedEngine {
+  const own = device.system && (device.system !== "fish-audio" || serverListens) ? device.system : null;
+  // a phone records through its native plugin only; desktops and browsers can record in the page
+  const server = serverListens && device.kind !== "phone" ? "fish-audio" : null;
+  const system = (fellBack?: "not-set-up" | "not-here"): ResolvedEngine => {
+    const engine = own ?? server;
+    return engine ? { kind: "system", engine, ...(fellBack ? { fellBack } : {}) } : { kind: "none", reason: "no-recognizer" };
+  };
   if (prefs.engine === "system") return system();
   const provider = prefs.engine;
   if (!providerRunsOn(provider, device)) return system("not-here");
