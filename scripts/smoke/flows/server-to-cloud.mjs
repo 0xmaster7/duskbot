@@ -63,7 +63,7 @@ await runFlow(flow, async () => {
       if (v && ["linked", "moving", "moved"].includes(v.stage)) break;
       const tail = (await vm.exec("tail -c 400 ~/dusk-install.log", 20).catch(() => ({ stdout: "" }))).stdout;
       if (/exit [1-9]/.test(tail) || /^curl: \(\d+\)/m.test(tail) && /exit 0\s*$/.test(tail)) throw new Error(`the install line failed: ${tail.replace(/\s+/g, " ").slice(-200)}`);
-      if (Date.now() - started > 20 * 60_000) throw new Error("the app never saw the server");
+      if (Date.now() - started > 20 * 60_000) throw new Error(`the app never saw the server (stage ${v?.stage ?? "?"}; install log: ${tail.replace(/\s+/g, " ").slice(-300)})`);
       await sleep(10_000);
     }
     return `linked after ${Math.round((Date.now() - started) / 1000)}s`;
