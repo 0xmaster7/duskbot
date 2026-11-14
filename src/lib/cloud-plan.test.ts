@@ -86,10 +86,10 @@ describe("the plan line", () => {
 
   it("in its last two days, a trial says how to step down to the plan the Admin names, with its price", () => {
     const active = trial("active", { chargeAt: ENDS }), starter = { tier: "starter" as const, amount: 1500 };
-    expect(cloudTrialView({ ...active, switchTo: starter }).switchPlan).toBe("Prefer Starter at $15? Tell us from your plan page before Oct 15, and we'll switch your plan.");
+    expect(cloudTrialView({ ...active, switchTo: starter }).switchPlan).toBe("Prefer Plus at $15? Tell us from your plan page before Oct 15, and we'll switch your plan.");
     expect(cloudTrialView({ ...active, tier: "max", switchTo: starter, personalAmount: 2900 }).switchPlan, "the Admin's switchTo wins")
-      .toBe("Prefer Starter at $15? Tell us from your plan page before Oct 15, and we'll switch your plan.");
-    expect(cloudTrialView({ ...active, tier: "personal", switchTo: starter }).switchPlan).toBe("Prefer Starter at $15? Tell us from your plan page before Oct 15, and we'll switch your plan.");
+      .toBe("Prefer Plus at $15? Tell us from your plan page before Oct 15, and we'll switch your plan.");
+    expect(cloudTrialView({ ...active, tier: "personal", switchTo: starter }).switchPlan).toBe("Prefer Plus at $15? Tell us from your plan page before Oct 15, and we'll switch your plan.");
     expect(cloudTrialView({ ...active, personalAmount: 2900 }).switchPlan, "an older Admin names only Personal's price: Personal is the way down").toBe("Prefer Personal at $29? Tell us from your plan page before Oct 15, and we'll switch your plan.");
     expect(cloudTrialView(active).switchPlan, "no plan named, no switch to offer").toBeUndefined();
     for (const quiet of [{ ...active, tier: "personal", personalAmount: 2900 }, { ...active, tier: "starter", switchTo: starter }, { ...active, switchTo: { tier: "max" as const, amount: 9900 } },
@@ -131,15 +131,15 @@ describe("what is for sale, as the Admin says", () => {
 
   it("one card per plan on sale, in the Admin's order: name, price, promise, its own button and the money in one line; Most popular is the Admin's recommended plan", () => {
     expect(planCards(OFFER).map(({ rows: _rows, ...card }) => card)).toEqual([
-      { tier: "starter", name: "Starter", price: "$15", popular: false, current: false, promise: "Your bots keep working with your laptop closed, at the lowest price.",
+      { tier: "starter", name: "Plus", price: "$15", popular: false, current: false, promise: "Your bots, always available, at the lowest price.",
         action: "Start free trial", terms: "Free for 7 days, then $15/month + tax where applicable" },
-      { tier: "pro", name: "Pro", price: "$49", popular: true, current: false, promise: "A bigger machine with priority wake, and a work license for one person.",
+      { tier: "pro", name: "Pro", price: "$49", popular: true, current: false, promise: "A bigger machine, priority wake and a work license.",
         action: "Start free trial", terms: "Free for 7 days, then $49/month + tax where applicable" },
-      { tier: "max", name: "Max", price: "$99", popular: false, current: false, promise: "The biggest cloud machine, for bots that use computers all day.",
+      { tier: "max", name: "Max", price: "$99", popular: false, current: false, promise: "The biggest machine, for bots on computers all day.",
         action: "Start free trial", terms: "Free for 7 days, then $99/month + tax where applicable" },
     ]);
     expect(planCards({ ...OFFER, recommended: "max" }).map(card => card.popular), "never Pro by itself").toEqual([false, false, true]);
-    expect(planCards(noTrial(OFFER)).map(card => [card.action, card.terms])).toEqual([["Get Starter", "$15 + tax where applicable today, then each month"],
+    expect(planCards(noTrial(OFFER)).map(card => [card.action, card.terms])).toEqual([["Get Plus", "$15 + tax where applicable today, then each month"],
       ["Get Pro", "$49 + tax where applicable today, then each month"], ["Get Max", "$99 + tax where applicable today, then each month"]]);
     expect(planCards({ plans: [{ tier: "team", label: "Team", amount: 19900 }], recommended: "team" })).toEqual([{ tier: "team", name: "Team", price: "$199", popular: true, current: false,
       promise: null, action: "Get Team", terms: "$199 + tax where applicable today, then each month", rows: [] }]);
@@ -152,7 +152,7 @@ describe("what is for sale, as the Admin says", () => {
     const personal: CloudOfferPlan = { tier: "personal", label: "Personal", amount: 2900, allowances: { cpus: 2, cpuKind: "shared", memoryMb: 2048, swapMb: 3072, diskGb: 10, maxDiskGb: 20,
       computers: 15, computerHours: 100, voiceCharacters: 30_000, snapshotDays: 14 } };
     const mine = planCards(OFFER, { current: "personal", own: personal });
-    expect(mine.map(card => [card.name, card.price, card.current, card.action])).toEqual([["Starter", "$15", false, "Start free trial"], ["Personal", "$29", true, null],
+    expect(mine.map(card => [card.name, card.price, card.current, card.action])).toEqual([["Plus", "$15", false, "Start free trial"], ["Personal", "$29", true, null],
       ["Pro", "$49", false, "Start free trial"], ["Max", "$99", false, "Start free trial"]]);
     expect(mine[1]!.rows.map(row => row.text)).toContain("10 GB disk, grows to 20 GB");
     expect(planCards(OFFER, { own: personal }).map(card => card.tier), "nobody else sees Personal").toEqual(["starter", "pro", "max"]);
@@ -208,11 +208,11 @@ describe("what is for sale, as the Admin says", () => {
   it("says who a team plan is for, from the most people the Admin allows it, and nothing it can't back", () => {
     const allowances = { cpus: 4, cpuKind: "shared" as const, memoryMb: 4096, diskGb: 10, maxDiskGb: 100, computers: 4, computerHours: 300, voiceCharacters: 180_000 };
     const promise = (seats?: number) => planCards({ plans: [{ tier: "team", amount: 16900, allowances: { ...allowances, ...(seats ? { seats } : {}) } }], recommended: "team" })[0]!.promise;
-    expect(promise(5)).toBe("One cloud for up to 5 people: bots, group chats and roles your whole team uses.");
+    expect(promise(5)).toBe("One cloud for your team, up to 5 people.");
     expect(promise(20)).toContain("up to 20 people");
     expect(promise()).toBeNull();
     const pro = planCards({ plans: [{ tier: "pro", amount: 4900, allowances: { ...allowances, seats: 5 } }], recommended: "pro" })[0]!.promise;
-    expect(pro, "a plan with its own words keeps them").toBe("A bigger machine with priority wake, and a work license for one person.");
+    expect(pro, "a plan with its own words keeps them").toBe("A bigger machine, priority wake and a work license.");
   });
 
   it("says a 1-day trial in the singular, in English and every language, and leaves other lengths as they read", () => {

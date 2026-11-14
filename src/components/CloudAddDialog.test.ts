@@ -75,43 +75,31 @@ beforeEach(() => { vi.clearAllMocks(); setLocale("en"); });
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); setLocale("en"); });
 
 describe("each screen of the sheet says one thing and offers one next step", () => {
-  it("choose: dusk cloud in a line, then one card per plan with only what sets it apart and its own button; Most popular on the Admin's recommended plan; the money and what every plan includes once", () => {
+  it("choose: dusk cloud in a line, then one card per plan with its name, price, line, machine and button; the recommended plan's button is the primary one; the money once, under them", () => {
     const { html, tree, handlers } = panel({ kind: "offer", offer: TRIAL, signedOut: true, notice: null });
-    const card = (max: number, cpus: number, swap: number) => [`${cpus} vCPU · ${cpus} GB RAM`, `Plus ${swap} GB of swap`, `10 GB disk, grows to ${max} GB`,
-      "Always available, priority wake", "Daily backups, kept 14 days", "Start free trial"];
-    inOrder(text(html), ["dusk cloud", "Your bots, always available.", "Runs your bots in the cloud, even when this computer is off.", "Compare plans", "Choose your plan",
-      "Starter", "$15", "/month", "Your bots keep working with your laptop closed, at the lowest price.", ...card(20, 2, 3),
-      "Free for 7 days, then $15/month + tax where applicable",
-      "Pro", "Most popular", "$49", "/month", "A bigger machine with priority wake, and a work license for one person.", ...card(100, 4, 4),
-      "Free for 7 days, then $49/month + tax where applicable",
-      "Max", "$99", "/month", "The biggest cloud machine, for bots that use computers all day.", ...card(100, 8, 4),
-      "Free for 7 days, then $99/month + tax where applicable",
-      "Today", "Trial starts", "Oct 13", "Reminder email", "Oct 15", "First payment",
-      "Card needed, nothing charged until your trial ends. Cancel in the app any time.", "14-day money-back",
-      "Every plan includes", "Works while you're away", "Routines, long jobs and replies keep going while you're away.", "Private to you", "Reach it from anywhere",
-      "A real browser and desktop", "Bring everything over", "Your bots, chats and memory move across in about a minute.",
-      "Secure checkout in your browser", "Apple Pay", "G Pay", "Card", "Cancel in two clicks", "Already have a plan? Sign in"]);
-    expect(html, "the night card holds the title, the line and Compare plans").toMatch(/<div data-night-card=""><h2 id="cloud-add-title"[^]*Compare plans[^]*<\/div><\/div><section/);
-    expect(html.match(/data-plan-row="(machine|storage)"/g), "what sets the cards apart, two rows on each").toHaveLength(6);
-    expect(tree.filter(node => node.props.id?.startsWith?.("cloud-plan-details-")).map(node => node.props.hidden), "the rest waits for Compare plans").toEqual([true, true, true]);
+    inOrder(text(html), ["dusk cloud", "Your bots keep working when this computer is off, and you can reach them from anywhere.", "Choose your plan",
+      "Plus", "$15", "/month", "7 days free", "Your bots, always available, at the lowest price.", "2 vCPU · 2 GB RAM · 10 GB disk, grows to 20 GB", "Start free trial",
+      "Pro", "$49", "/month", "7 days free", "A bigger machine, priority wake and a work license.", "4 vCPU · 4 GB RAM · 10 GB disk, grows to 100 GB", "Start free trial",
+      "Max", "$99", "/month", "7 days free", "The biggest machine, for bots on computers all day.", "8 vCPU · 8 GB RAM · 10 GB disk, grows to 100 GB", "Start free trial",
+      "Card needed, nothing charged until your trial ends. Then monthly, plus tax where applicable. Cancel any time.", "14-day money-back.", "Already have a plan? Sign in"]);
+    expect(html, "the night card holds the title and the line").toMatch(/<div data-night-card=""><h2 id="cloud-add-title"[^]*<\/p><\/div><\/div><section/);
+    expect(html.match(/data-plan-row="machine"/g), "one spec line on each card").toHaveLength(3);
     expect(tree.filter(node => node.props["data-plan-buy"]).map(node => node.props.className.includes("ui-button-primary")), "one primary action, on the recommended plan")
       .toEqual([false, true, false]);
-    expect(html.match(/Most popular/g)).toHaveLength(1);
-    expect(html.match(/data-plan-popular/g)).toHaveLength(1);
-    expect(html.indexOf("data-plan-popular")).toBeGreaterThan(html.indexOf('data-plan="pro"'));
-    expect(html.indexOf("data-plan-popular")).toBeLessThan(html.indexOf('data-plan="max"'));
     expect(html.match(/data-plan-buy=/g), "one button per card").toHaveLength(3);
+    expect(html.match(/data-plan-terms/g), "the money said once").toHaveLength(1);
     expect(html).not.toContain("data-plan-mine");
-    for (const gone of ["launch", "$89", "Recommended", "AI credit", "This Mac", "A day", "computers at once", "hours a month", "shared", "24/7", "always on", "Personal", "$29", "Sleeps", "Everything in",
-      "What Pro gives you", "Due today", "Gmail"]) {
+    for (const gone of ["Compare plans", "Most popular", "Every plan includes", "Apple Pay", "G Pay", "Secure checkout", "Cancel in two clicks", "aria-expanded", "Trial starts",
+      "Daily backups", "of swap", "launch", "$89", "Recommended", "AI credit", "This Mac", "A day", "computers at once", "hours a month", "shared", "24/7", "always on", "Personal", "$29",
+      "Sleeps", "Everything in", "What Pro gives you", "Due today", "Gmail", "custom", "Customize", "Configure"]) {
       expect(text(html)).not.toContain(gone);
     }
     tree.find(node => node.props["data-plan-buy"] === "max")!.props.onClick(); expect(handlers.start).toHaveBeenCalledExactlyOnceWith("max");
     tree.find(node => node.props["data-plan-buy"] === "starter")!.props.onClick(); expect(handlers.start).toHaveBeenLastCalledWith("starter");
     button(tree, "Already have a plan? Sign in")!.props.onClick(); expect(handlers.signIn).toHaveBeenCalledOnce();
-    const maxFirst = panel({ kind: "offer", offer: { ...TRIAL, recommended: "max" }, signedOut: false, notice: null }).html;
-    expect(maxFirst.indexOf("Most popular"), "the Admin's recommended plan, not Pro by itself").toBeGreaterThan(maxFirst.indexOf('data-plan="max"'));
-    expect(maxFirst.match(/Most popular/g)).toHaveLength(1);
+    const maxFirst = panel({ kind: "offer", offer: { ...TRIAL, recommended: "max" }, signedOut: false, notice: null }).tree;
+    expect(maxFirst.filter(node => node.props["data-plan-buy"]).map(node => node.props.className.includes("ui-button-primary")), "the Admin's recommended plan, not Pro by itself")
+      .toEqual([false, false, true]);
   });
 
   it("Choose for someone on a plan: their card says Your plan instead of a button, and a Personal subscriber's own card is theirs alone", () => {
@@ -120,12 +108,12 @@ describe("each screen of the sheet says one thing and offers one next step", () 
     expect(html.indexOf("data-plan-mine")).toBeGreaterThan(html.indexOf('data-plan="pro"'));
     expect(html.indexOf("data-plan-mine")).toBeLessThan(html.indexOf('data-plan="max"'));
     expect(tree.filter(node => node.props["data-plan-buy"]).map(node => node.props["data-plan-buy"])).toEqual(["starter", "max"]);
-    inOrder(text(html), ["Pro", "Most popular", "$49", "4 vCPU · 4 GB RAM", "Always available, priority wake", "Your plan", "Max"]);
-    expect(text(html)).not.toContain("Free for 7 days, then $49/month + tax where applicable");
+    inOrder(text(html), ["Pro", "$49", "4 vCPU · 4 GB RAM", "Your plan", "Max"]);
+    expect(html.match(/data-plan-trial/g), "no trial on their own plan").toHaveLength(2);
     const personal = { ...PLANS[0]!, tier: "personal", label: "Personal", amount: 2900 };
     const mine = renderToStaticMarkup(createElement(ChooseScreen, { offer: TRIAL, current: "personal", own: personal, now: NOW, busy: false, signedOut: false, notice: null,
       onStart: vi.fn(), onSignIn: vi.fn() }));
-    inOrder(text(mine), ["Starter", "$15", "Start free trial", "Personal", "$29", "/month", "2 vCPU · 2 GB RAM", "Your plan", "Pro", "Most popular", "$49", "Start free trial", "Max"]);
+    inOrder(text(mine), ["Plus", "$15", "Start free trial", "Personal", "$29", "/month", "2 vCPU · 2 GB RAM", "Your plan", "Pro", "$49", "Start free trial", "Max"]);
     expect(mine.match(/data-plan-mine/g)).toHaveLength(1);
     expect(mine.match(/data-plan-buy=/g)).toHaveLength(3);
     const theirs = renderToStaticMarkup(createElement(ChooseScreen, { offer: TRIAL, current: null, own: personal, now: NOW, busy: false, signedOut: false, notice: null,
@@ -134,28 +122,26 @@ describe("each screen of the sheet says one thing and offers one next step", () 
     expect(text(theirs)).not.toMatch(/(?<!Choose )[Yy]our plan/);
   });
 
-  it("Choose from an Admin that still sells Personal: no Personal card, Pro is Most popular, and every card keeps the same rows", () => {
+  it("Choose from an Admin that still sells Personal: no Personal card, Pro leads, and every card keeps the same rows", () => {
     const wire = ({ tier, label, amount, allowances }: (typeof PLANS)[number]) => ({ tier, label, price: { currency: "USD", amount, interval: "month" }, allowances });
     const personal = { ...PLANS[0]!, tier: "personal", label: "Personal", amount: 2900 };
     for (const recommended of ["pro", "personal"]) {
       const older = parseCloudOffer({ plans: [wire(PLANS[0]!), wire(personal), wire(PLANS[1]!), wire(PLANS[2]!)], recommended, trialDays: 7, refundDays: 14 })!;
-      const { html } = panel({ kind: "offer", offer: older, signedOut: true, notice: null }, { offerShown: older });
+      const { html, tree } = panel({ kind: "offer", offer: older, signedOut: true, notice: null }, { offerShown: older });
       const why = `recommended ${recommended}`;
       for (const gone of ["Personal", "$29", 'data-plan="personal"']) expect(html, why).not.toContain(gone);
       expect(html.match(/data-plan-buy="[a-z]+"/g), why).toEqual(['data-plan-buy="starter"', 'data-plan-buy="pro"', 'data-plan-buy="max"']);
-      expect(html.match(/Most popular/g), why).toHaveLength(1);
-      expect(html.indexOf("data-plan-popular"), why).toBeGreaterThan(html.indexOf('data-plan="pro"'));
+      expect(tree.filter(node => node.props["data-plan-buy"]).map(node => node.props.className.includes("ui-button-primary")), why).toEqual([false, true, false]);
       expect(html.match(/data-plan-row="machine"/g), why).toHaveLength(3);
-      inOrder(text(html), ["Starter", "$15", "2 vCPU · 2 GB RAM", "Pro", "Most popular", "$49", "4 vCPU · 4 GB RAM", "Max", "$99", "8 vCPU · 8 GB RAM"]);
+      inOrder(text(html), ["Plus", "$15", "2 vCPU · 2 GB RAM", "Pro", "$49", "4 vCPU · 4 GB RAM", "Max", "$99", "8 vCPU · 8 GB RAM"]);
     }
   });
 
-  it("Choose without a trial: each card's button gets that plan at its price, due today, with no card line or timeline; no Sign in once signed in", () => {
+  it("Choose without a trial: each card's button gets that plan, the money said once under the cards; no Sign in once signed in", () => {
     const { html, tree, handlers } = panel({ kind: "offer", offer: PLAIN, signedOut: false, notice: null }, { offerShown: PLAIN });
     const plain = text(html);
-    inOrder(plain, ["Starter", "Get Starter", "$15 + tax where applicable today, then each month", "Pro", "Get Pro", "$49 + tax where applicable today, then each month", "Max", "Get Max", "$99 + tax where applicable today, then each month",
-      "14-day money-back"]);
-    for (const gone of ["Card needed", "Trial starts", "Reminder email", "First payment", "Already have a plan", "Claude credit", "Start free trial"]) expect(plain).not.toContain(gone);
+    inOrder(plain, ["Plus", "$15", "Get Plus", "Pro", "$49", "Get Pro", "Max", "$99", "Get Max", "Monthly, plus tax where applicable. Cancel any time.", "14-day money-back."]);
+    for (const gone of ["Card needed", "days free", "Trial starts", "Reminder email", "First payment", "Already have a plan", "Claude credit", "Start free trial", "today, then each month"]) expect(plain).not.toContain(gone);
     button(tree, "Get Pro")!.props.onClick(); expect(handlers.start).toHaveBeenCalledExactlyOnceWith("pro");
     expect(text(panel({ kind: "offer", offer: { ...PLAIN, refundDays: undefined }, signedOut: false, notice: null }).html)).not.toContain("money-back");
     expect(text(panel({ kind: "offer", offer: TRIAL, signedOut: true, notice: "code-expired" }).html)).toContain("The sign-in code expired, so nothing changed.");
@@ -378,7 +364,7 @@ describe("the sheet", () => {
   });
 
   it("signed out, Start free trial signs in inside the sheet: the code, then straight to checkout, with no browser until payment", async () => {
-    expect(await settle()).toContain("Your bots, always available.");
+    expect(await settle()).toContain("Your bots keep working when this computer is off");
     expect(track).toHaveBeenCalledWith("cloud_dialog_shown", { source: "app_menu", view: "offer" });
     expect(bridge.sheet).toHaveBeenCalledWith(true);
     expect(await buy("max")).toContain("Create your dusk bot account");
@@ -396,18 +382,6 @@ describe("the sheet", () => {
     expect(await settle()).toContain("Waiting for your payment");
     expect(track).toHaveBeenCalledWith("cloud_signin", { step: "signed_in", source: "app_menu" });
     expect(track).toHaveBeenCalledWith("cloud_checkout_opened", { plan: "max", trial: true, source: "app_menu" });
-  });
-
-  it("Compare plans shows every card's details and hides them again; a button names the cards it opens", async () => {
-    await settle();
-    const compare = () => tree().find(node => node.type === "button" && typeof node.props["aria-expanded"] === "boolean")!;
-    const hidden = () => tree().filter(node => node.props.id?.startsWith?.("cloud-plan-details-")).map(node => node.props.hidden);
-    expect([label(compare()), compare().props["aria-expanded"], hidden()]).toEqual(["Compare plans", false, [true, true, true]]);
-    expect(compare().props["aria-controls"]).toBe("cloud-plan-details-starter cloud-plan-details-pro cloud-plan-details-max");
-    compare().props.onClick();
-    expect([compare().props["aria-expanded"], hidden()]).toEqual([true, [false, false, false]]);
-    compare().props.onClick();
-    expect([compare().props["aria-expanded"], hidden()]).toEqual([false, [true, true, true]]);
   });
 
   it("someone with a Cloud buys another in the same sheet, which sends where they started with its checkout", async () => {
@@ -439,7 +413,7 @@ describe("the sheet", () => {
     push({ ...free, offer: own });
     const html = await settle();
     expect(html).toContain("You're signed in. These are the plans for your account");
-    expect(html).toContain("$49 + tax where applicable today, then each month"); expect(html).not.toContain("Free for");
+    expect(html).toContain("Monthly, plus tax where applicable."); expect(html).not.toContain("days free");
     await press("Get Pro");
     expect(bridge.checkout).toHaveBeenCalledExactlyOnceWith("pro", "app_menu");
   });

@@ -5,7 +5,7 @@ import { activeLocale, t } from "@/lib/i18n";
 import { phoneAppEnabled } from "@/lib/feature-flags";
 import type { LocaleKey } from "@/locales";
 
-const PLAN_LABEL: Record<string, string> = { starter: "Starter", personal: "Personal", pro: "Pro", max: "Max" };
+const PLAN_LABEL: Record<string, string> = { starter: "Plus", personal: "Personal", pro: "Pro", max: "Max" };
 const CHEAPEST_FIRST: readonly string[] = ["starter", "personal", "pro", "max"];
 function switchesDown(tier: string | undefined, target: string): boolean {
   const below = CHEAPEST_FIRST.indexOf(target);

@@ -305,7 +305,7 @@ describe("the free trial's notice, here and on My Cloud", () => {
     offer = { ...PLAIN_OFFER };
     const html = await launch();
     expect(html).toContain("Your free trial ends on"); expect(html).not.toContain("Claude credit");
-    expect(html).toContain("Prefer Starter at $15?");
+    expect(html).toContain("Prefer Plus at $15?");
     expect(bridges.cloud.offer, "the trial's notice needs nothing from the offer").not.toHaveBeenCalled();
     expect(bridges.plan.noticeSeen).toHaveBeenCalledOnce();
     snapshot = { ...snapshot, notice: undefined };
