@@ -10,6 +10,7 @@ import { failedTurnCause } from "../../shared/failed-turn";
 import { freeFallback } from "../../shared/ai-ranking";
 import { engineReady } from "./EngineLibrary";
 import { ConnectAiDialog } from "./onboarding/ConnectAi";
+import { aiTileOf, type AiTileId } from "./onboarding/funnel";
 import { CARD_ACTION, ChatErrorCard } from "./ChatErrorBanner";
 
 // the card's second way on, next to its one main action: the same pill, without the fill until hovered
@@ -61,7 +62,7 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
   const [, setClosed] = useState(0);
   // a retry that may repeat what a cut turn already did asks once more first; keyed by the row it is for
   const [confirming, setConfirming] = useState<string | null>(null);
-  const [connecting, setConnecting] = useState(false);
+  const [connecting, setConnecting] = useState<boolean | AiTileId>(false);
   // an AI the person connected is ready: the free backup's failure is then an ordinary one
   const ownAi = state.instances.some((instance) => !freeFallback(instance) && engineReady(instance));
   const failures = rows?.failures ?? [];
@@ -138,7 +139,10 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
     const target = claudeUpdateTarget(lead.engine);
     if (target) { detail = null; update = <ClaudeUpdatePrompt instance={target} onRetry={retry} />; }
   } else if (lead.kind === "signed_out") {
-    if (canOfferSignIn(lead.kind, lead.engine) || signInNotice) actions.push({ label: t("chat.notice.signIn"), onClick: () => dispatch(openEngines) });
+    // the same in-app sign-in as Connect an AI, started on this AI's card
+    const tile = lead.engine && aiTileOf(lead.engine);
+    if (canOfferSignIn(lead.kind, lead.engine) || signInNotice) actions.push({ label: t("chat.notice.signIn"), onClick: () => tile ? setConnecting(tile) : dispatch(openEngines) });
+    if (retry) actions.push({ label: t("failedReply.tryAgain"), onClick: retry });
   } else if (lead.kind === "restart_interrupted") {
     did = restartAlreadyDid(cause);
     if (retry && confirming === lead.message.id) {
@@ -160,7 +164,8 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
   }
   if (actions.length === 0 && !update && lead.kind !== "place" && leadBotId) actions.push({ label: t("chat.rescue.switchAi"), onClick: () => openBotSettings(dispatch, "model", { botId: leadBotId }) });
   // a sign-out notice beside a failure for another reason: still one card, its Sign in a pill on it
-  if (signInNotice && !actions.some((action) => action.label === t("chat.notice.signIn"))) actions.unshift({ label: t("chat.notice.signIn"), onClick: () => dispatch(openEngines) });
+  const signInTile = lead.engine && aiTileOf(lead.engine);
+  if (signInNotice && !actions.some((action) => action.label === t("chat.notice.signIn"))) actions.unshift({ label: t("chat.notice.signIn"), onClick: () => signInTile ? setConnecting(signInTile) : dispatch(openEngines) });
   return (
     <div className="mb-2 w-full px-5" data-failed-reply="">
       <ChatErrorCard
@@ -175,6 +180,7 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
         {did && <p dir="auto" className="text-ink-secondary">{t("failedReply.restartedDid", { done: did })}</p>}
         {update}
       </ChatErrorCard>
+      {connecting && <ConnectAiDialog tested={null} start={typeof connecting === "string" ? connecting : undefined} onClose={() => setConnecting(false)} />}
     </div>
   );
 }

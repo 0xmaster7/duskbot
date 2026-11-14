@@ -764,7 +764,7 @@ export const MuseCodeDriver: ProviderDriver<MuseConfig> = {
           return { state: "unavailable", reason: "Muse Code isn't installed on this computer.", authenticated: false };
         }
         if (!signedIn()) {
-          return { state: "unavailable", reason: "Sign in to Muse Code: run `muse login` in a terminal.", authenticated: false, version };
+          return { state: "unavailable", reason: "Muse Code needs you to sign in.", authenticated: false, version };
         }
         return {
           state: "available", authenticated: true, version, billing: input.environment.META_API_KEY ? "metered" : "subscription",

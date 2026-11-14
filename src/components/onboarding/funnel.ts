@@ -106,6 +106,11 @@ export function aiTiles<Instance extends AiTileInstance>(instances: readonly Ins
   return tiles;
 }
 
+/** The grid's card for this AI, so a sign-in elsewhere opens the same connect flow. */
+export function aiTileOf(instance: { instanceId: string; driverKind: string }): AiTileId | undefined {
+  return TILES.find((one) => one.ids.includes(instance.instanceId) || one.drivers.includes(instance.driverKind))?.id;
+}
+
 /** What people call this AI: the grid's name for it ("ChatGPT", not "ChatGPT plan"), else its own. */
 export function aiName(instance: { instanceId: string; driverKind: string; displayName: string }): string {
   const tile = TILES.find((one) => one.ids.includes(instance.instanceId) || one.drivers.includes(instance.driverKind));

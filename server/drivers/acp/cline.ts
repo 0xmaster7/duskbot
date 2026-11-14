@@ -49,7 +49,7 @@ function savedProvider(env: Record<string, string | undefined>, config: AcpConfi
 
 const OAUTH = new Set(["cline", "cline-pass", "openai-codex"]);
 
-const LOGIN_NOTE = "Cline is not configured. Run cline auth in a terminal, then try again.";
+const LOGIN_NOTE = "Cline needs you to set it up again. Open Connect an AI to finish.";
 
 const SUPPORT: AcpSupport = {
   driverKind: "clineAgent",

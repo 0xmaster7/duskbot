@@ -71,7 +71,7 @@ export const SNAPSHOT_DEADLINE_MS = 60_000;
 export const SNAPSHOT_REUSE_MS = 3_000;
 /** How long the engine list people see answers from earlier reads before one is read again in the background. */
 export const ENGINE_LIST_REUSE_MS = 60_000;
-const SNAPSHOT_DEADLINE_REASON = "This engine did not report its status within a minute. Check that its CLI starts in a terminal.";
+const SNAPSHOT_DEADLINE_REASON = "This engine did not report its status within a minute. Check again in a moment.";
 
 function withinDeadline(read: () => Promise<ProviderSnapshot>): Promise<ProviderSnapshot> {
   let deadline: NodeJS.Timeout | undefined;

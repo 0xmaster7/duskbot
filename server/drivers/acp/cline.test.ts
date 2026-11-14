@@ -172,7 +172,7 @@ describe("Cline ACP driver", () => {
     expect(await recorder.until((event) => event.type === "turn.completed")).toMatchObject({ ok: false });
     expect(recorder.events.some((event) => event.type === "content.delta")).toBe(false);
     expect(existsSync(join(scratch, "launch.json.session.json"))).toBe(false);
-    await expect(instance.generateMemoryText!("remember this")).rejects.toThrow("not configured");
+    await expect(instance.generateMemoryText!("remember this")).rejects.toThrow("set it up again");
   });
 
   it("uses the configured model for tool-free memory upkeep too", async () => {
