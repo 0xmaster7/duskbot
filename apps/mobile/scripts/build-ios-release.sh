@@ -83,9 +83,14 @@ if [ "$mode" = unsigned ]; then
   echo "unsigned archive (cannot be uploaded): $archive"
   exit 0
 fi
+# automatic signing archives with a development profile, which Apple only makes once the team has a registered device
+# ("Your team has no devices"): register one iPhone once (docs/store-launch.md, iOS signing)
 xcodebuild -quiet -project "$project" -scheme App -configuration Release -destination 'generic/platform=iOS' \
   -archivePath "$archive" "${auth[@]}" DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic \
-  CURRENT_PROJECT_VERSION="$build_number" archive
+  CURRENT_PROJECT_VERSION="$build_number" archive || {
+  echo "error: the archive failed; if it says the team has no devices, register your iPhone's UDID once in the developer account (Devices, +) and rerun" >&2
+  exit 1
+}
 
 options="$out/ExportOptions.plist"
 destination=export

@@ -12,16 +12,20 @@ Apple (developer.apple.com and appstoreconnect.apple.com):
 
 1. Done: App ID `bot.dusk.mobile` with Push Notifications, Sign in with Apple, Associated Domains.
 2. Accept the latest agreements in App Store Connect (Business), or the API key and uploads are refused.
-3. Users and Access, Integrations, App Store Connect API, Team Keys: make a key with the **App Manager** role (Admin if
-   automatic signing is refused creating the distribution certificate). Download the `.p8` once into
-   `~/.config/duskbot/apple/` and put `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, `APPLE_API_KEY_PATH` in
-   `~/.config/duskbot/dusk.env`.
-4. Keys (developer account): make an APNs key (.p8) for push and give it to the link service (`docs/phone-push.md`).
-5. App Store Connect, Apps, +, New App: iOS, name **dusk bot**, language English (U.S.), bundle ID `bot.dusk.mobile`,
+3. Done: Users and Access, Integrations, App Store Connect API, Team Keys: a key with the **App Manager** role (Admin if the
+   export is refused creating the cloud distribution certificate), `.p8` in `~/.config/duskbot/apple/`,
+   `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, `APPLE_API_KEY_PATH` in `~/.config/duskbot/dusk.env`.
+4. **Register one device** (the API key authenticates; checked): developer account,
+   Certificates, Identifiers & Profiles, Devices, +, your iPhone's name and UDID (Finder, select the iPhone, click the
+   line under its name until the UDID shows, or Apple Configurator). Automatic signing archives with a development
+   profile first and Apple refuses to make one for a team with no devices ("Your team has no devices from which to
+   generate a provisioning profile"). This is a one-time step.
+5. Keys (developer account): make an APNs key (.p8) for push and give it to the link service (`docs/phone-push.md`).
+6. App Store Connect, Apps, +, New App: iOS, name **dusk bot**, language English (U.S.), bundle ID `bot.dusk.mobile`,
    SKU `dusk-mobile-ios`, full access. The public API cannot create app records, so this one is by hand.
-6. In the record: paste the listing below, answer App Privacy and Age Rating from this file, upload `docs/store/ios/6.9`,
+7. In the record: paste the listing below, answer App Privacy and Age Rating from this file, upload `docs/store/ios/6.9`,
    set the privacy, support and marketing URLs, fill Review Notes and the demo account.
-7. After the first upload has processed: TestFlight, check the internal group "dusk team" has the build, install it
+8. After the first upload has processed: TestFlight, check the internal group "dusk team" has the build, install it
    with the TestFlight app on your iPhone, test, then attach the build to version 1.0 and Submit for Review.
 
 Google (play.google.com/console):
@@ -41,7 +45,7 @@ Google (play.google.com/console):
 | Item | State |
 |---|---|
 | iOS archive, Release config, unsigned | **verified** here: `build-ios-release.sh --unsigned` archives, the release gate passes, `PrivacyInfo.xcprivacy` and the icon catalog are inside |
-| iOS signed archive, export, TestFlight upload | **ready, waits on the API key**: `build-ios-release.sh --upload` |
+| iOS signed archive, export, TestFlight upload | **blocked on two owner steps**: register one device (owner step 4) and create the app record (step 6), then `build-ios-release.sh --upload`. Tried here with the API key: the key authenticates, the archive stops at "Your team has no devices" |
 | Android signed `.aab` | **verified** here: built and signed with the upload key, target SDK 36 |
 | Upload keystore | made, outside the repo (below) |
 | Screenshots | made for both stores (`docs/store/ios`, `docs/store/play`); iOS set needs one retake after screen view is hidden on iOS (below) |
