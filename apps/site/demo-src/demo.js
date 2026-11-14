@@ -441,7 +441,7 @@ function start() {
   // the app's SimpleModelMenu: the bot's model on top, each connected AI with its suggested models, the AIs not
   // connected yet, then which bots the pick is for and more providers. connecting and more providers do nothing here.
   const PROVIDERS = [
-    { key: 'claude', name: 'Claude', base: 'sonnet', models: [['fable51', 'Claude Fable 5.1', 'Fable 5.1'], ['fable5', 'Claude Fable 5', 'Fable 5'], ['opus', 'Claude Opus 5.5', 'Opus 5.5'], ['opus5', 'Claude Opus 5', 'Opus 5'], ['sonnet', 'Claude Sonnet 5', 'Sonnet 5'], ['sonnet46', 'Claude Sonnet 4.6', 'Sonnet 4.6'], ['opus46', 'Claude Opus 4.6', 'Opus 4.6'], ['haiku45', 'Claude Haiku 4.5', 'Haiku 4.5']] },
+    { key: 'claude', name: 'Claude', base: 'sonnet', models: [['sonnet', 'Claude Sonnet 5', 'Sonnet 5'], ['fable51', 'Claude Fable 5.1', 'Fable 5.1'], ['fable5', 'Claude Fable 5', 'Fable 5'], ['opus', 'Claude Opus 5.5', 'Opus 5.5'], ['opus5', 'Claude Opus 5', 'Opus 5'], ['sonnet55', 'Claude Sonnet 5.5', 'Sonnet 5.5'], ['haiku55', 'Claude Haiku 5.5', 'Haiku 5.5']] },
     { key: 'codex', name: 'Codex', base: 'gpt', models: [['gpt', 'GPT-6.1 Terra', 'GPT-6.1 Terra'], ['gpt61sol', 'GPT-6.1-Sol', 'GPT-6.1-Sol'], ['gpt6astra', 'GPT-6-Astra', 'GPT-6-Astra'], ['gpt56luna', 'GPT-5.6-Luna', 'GPT-5.6-Luna']] },
     { key: 'antigravity', name: 'Google Gemini', base: 'gemini', models: [['gemini', 'Gemini 3.8 Flash', 'Gemini 3.8 Flash']] },
     { key: 'grok', name: 'Grok', base: 'grok', models: [['grok', 'Grok 4.7', 'Grok 4.7'], ['grok46', 'Grok 4.6', 'Grok 4.6'], ['grok45', 'Grok 4.5', 'Grok 4.5']] },
