@@ -158,7 +158,8 @@ describe("the setup import routes", () => {
 
     expect((await call("POST", "/api/setup-import", { body: {} })).status).toBe(400);
     expect((await call("POST", "/api/setup-import", { body: { skills: false, tools: false } })).status).toBe(400);
-    expect((await call("POST", "/api/setup-import", { body: { skills: true, instructions: true } })).status).toBe(400);
+    // instructions is a kind of its own since the first run brings them (0a1f45872); a key it does not know is refused
+    expect((await call("POST", "/api/setup-import", { body: { skills: true, everything: true } })).status).toBe(400);
     expect((await call("POST", "/api/setup-import", { body: { skills: "yes" } })).status).toBe(400);
     expect((await call("POST", "/api/setup-import", { body: "skills=true", type: "text/plain" })).status).toBe(415);
   });

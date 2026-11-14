@@ -169,7 +169,8 @@ describe("dashboard app commands", () => {
   });
   it("passes a workspace's refusal through but hides its internal failures", async () => {
     let status = 403;
-    const w = await workspace(() => [status, { error: status === 403 ? "Your team admin has not allowed this app." : "Composio authorization: HTTP 500 internal detail" }]);
+    // a short plain reason is shown even from a 5xx (f3fdbf0be); one carrying a path, link or stack stays inside
+    const w = await workspace(() => [status, { error: status === 403 ? "Your team admin has not allowed this app." : "Composio authorization failed reading /data/.duskbot/composio.json" }]);
     expect((await w.run("app.connect", "gmail")).message).toBe("Your team admin has not allowed this app.");
     status = 502;
     expect((await w.run("app.connect", "gmail")).message).toBe("The workspace could not complete this action.");
