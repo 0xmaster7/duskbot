@@ -68,7 +68,7 @@ const PAIR_FORM = "Boolean(document.querySelector('form input') && /pairing code
       await world.home.openCloud();
       await until(() => screen(), (value) => value === "setup", 30_000, "the setup screen");
       const words = await page<string>("document.querySelector('main').innerText");
-      expect(words).toContain("Setting up My Cloud…");
+      expect(words).toContain("Setting up my cloud…");
       expect(words).toContain("This takes about a minute. It opens by itself when it's ready.");
       expect(words).not.toMatch(/Server menu|choose it again|not reachable/);
       expect(await page<string[]>("[...document.querySelectorAll('main button')].map((button) => button.textContent)"), "nothing to press").toEqual([]);
@@ -138,7 +138,7 @@ const PAIR_FORM = "Boolean(document.querySelector('form input') && /pairing code
     world.account.power = { state: "asleep", since: Date.now(), sleeps: true };
     const before = world.cloudRequests.length;
     const launched = world.launch();
-    await until(async () => world.splash && !world.splash.destroyed ? world.splash.evaluate<string>("document.querySelector('.status')?.textContent ?? ''") : "", (text) => text === "Waking My Cloud…", 20_000, "the startup screen");
+    await until(async () => world.splash && !world.splash.destroyed ? world.splash.evaluate<string>("document.querySelector('[role=status]')?.textContent ?? ''") : "", (text) => text === "Waking My Cloud…", 20_000, "the startup screen");
     await world.splash!.screenshot(join(shots, "1-startup-waking.png"));
     expect(world.cloudRequests.slice(before).filter((entry) => entry.at < Date.now()).map((entry) => entry.path)).not.toContain("/api/health");
     await launched;
@@ -198,7 +198,7 @@ const PAIR_FORM = "Boolean(document.querySelector('form input') && /pairing code
     void world.home.show();
     await until(() => screen(), (value) => value === "offline", 3_000, "the offline screen within 3 s");
     expect(Date.now() - started).toBeLessThan(3_000);
-    expect(await page<string>("document.body.innerText")).toContain("Can't reach My Cloud right now.");
+    expect(await page<string>("document.body.innerText")).toContain("Can't reach my cloud right now.");
     await world.window.screenshot(join(shots, "5-offline.png"));
     world.network.down = false;
     await onCloudPage();
@@ -260,7 +260,7 @@ const PAIR_FORM = "Boolean(document.querySelector('form input') && /pairing code
     world.account.state.teams = [ACME()];
     await world.sync();
     await onCloudPage();
-    expect(world.menu().map((item) => [item.label, item.sublabel])).toEqual([["My Cloud", new URL(world.cloudOrigin).host], ["Acme", "Admin"]]);
+    expect(world.menu().map((item) => [item.label, item.sublabel])).toEqual([["dusk cloud", new URL(world.cloudOrigin).host], ["Acme", "Admin"]]);
     expect((await bridgeState()).home, "two places: the switcher shows").toBeUndefined();
     expect(await homeLine()).toBeNull();
     await world.home.show({ place: { team: "team-acme" } });
@@ -341,11 +341,11 @@ const PAIR_FORM = "Boolean(document.querySelector('form input') && /pairing code
     await world.home.renew();
     await onCloudPage();
     await until(() => homeLine(), (text) => text === "You're no longer in Acme.", 20_000, "the one line");
-    expect(world.menu().map((item) => item.label), "gone from the switcher at once").toEqual(["My Cloud"]);
+    expect(world.menu().map((item) => item.label), "gone from the switcher at once").toEqual(["dusk cloud"]);
     expect(world.places.remembered()).toBeNull();
     world.admin.removed.clear();
     await world.sync();
-    expect(world.menu().map((item) => item.label), "the session still lists Acme: back").toEqual(["My Cloud", "Acme"]);
+    expect(world.menu().map((item) => item.label), "the session still lists Acme: back").toEqual(["dusk cloud", "Acme"]);
   }, hostTimeout(180_000));
 
   it("removed from the team: after the next session check Acme is gone from the switcher, My Cloud opens, and one line says so", async () => {
@@ -357,7 +357,7 @@ const PAIR_FORM = "Boolean(document.querySelector('form input') && /pairing code
     await until(() => homeLine(), (text) => text === "You're no longer in Acme.", 20_000, "the one line");
     await world.window.screenshot(join(shots, "10-team-left.png"));
     expect(world.environments().environments.some((entry: any) => entry.team)).toBe(false);
-    expect(world.menu().map((item) => item.label)).toEqual(["My Cloud"]);
+    expect(world.menu().map((item) => item.label)).toEqual(["dusk cloud"]);
     expect(world.places.remembered()).toBeNull();
     expect((await bridgeState()).home, "My Cloud alone again: no switcher").toBe(true);
     world.window.webContents.reload();

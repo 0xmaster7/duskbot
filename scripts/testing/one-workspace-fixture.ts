@@ -532,7 +532,9 @@ export async function launchHomeWorld(fx: CloudSendFixture, { chrome, ports, ver
   const linkContext = vm.createContext({
     homeWindow: home, rendererOrigin: () => localOrigin, activeRemote: () => null, environmentsState: { environments: [], activeId: "local" },
     showHome: () => home.show(), workspaceMenuAction: (action: () => unknown) => action(), switchEnvironment: () => {}, LOCAL_ID: "local",
-    mainWindow: win, desktopTray: null, startupScreen: null, BrowserWindow: { getAllWindows: () => [win] }, activateExistingWindow: () => true,
+    mainWindow: win, desktopTray: null, startupScreen: null, BrowserWindow: { getAllWindows: () => [win] }, appWindows: () => [win], app: {},
+    // the window is already up, so a link only brings it to the front (ae44ce520's revealForLink)
+    createWindowPlacement: () => ({ fit: () => {} }), screen: {}, slog: () => {}, windowToReveal: () => win, bringToFront: () => true,
     chatLinkFrom, packageUrlFromDeepLink, pendingChatLink: null, pendingPackageInstallUrl: null, URL,
   });
   vm.runInContext(`${MAIN.slice(start, end)}; this.queueChatLink = queueChatLink; this.deliverChatLink = deliverChatLink;`, linkContext);
