@@ -229,7 +229,7 @@ it("does not give a recreated account the deleted account's license", async () =
   const f = await fixture(), owner = await f.login();
   const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: bundle("pro") }, owner.cookie);
   await f.complete(checkout.checkoutId); await f.reconcile();
-  const before = f.saved(), cloud = f.billing.clouds.get(checkout.cloudId!)!;
+  const cloud = f.billing.clouds.get(checkout.cloudId!)!;
   await f.answer("/v1/account/delete", { email: owner.account.email, cancelBilling: true }, owner.cookie);
   expect(f.dashboard.state.accounts).toHaveLength(0);
   expect(f.dashboard.state.workspaces).toHaveLength(0);
