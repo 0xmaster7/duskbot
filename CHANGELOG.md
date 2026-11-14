@@ -3,6 +3,14 @@
 Notable changes to dusk bot, newest first. Installers and checksums for each version are on the
 [releases page](https://github.com/DuskBotAI/duskbot/releases) and at [dusk.bot/download](https://dusk.bot/download).
 
+## 0.2.5
+
+- An AI you connect always comes first: new bots start on it, and bots and conversations on the free backup model move
+  to it as soon as it is ready.
+- With no AI connected, a reply the free backup model couldn't give is a "Connect your AI to start" card with one button
+  to connect one, instead of an error.
+- A new bot's first message on dusk cloud no longer fails at once with "Invalid path" when another bot's turn is running.
+
 ## 0.2.4
 
 - When the free backup model has used up its free replies, the chat says so within seconds and suggests connecting your
