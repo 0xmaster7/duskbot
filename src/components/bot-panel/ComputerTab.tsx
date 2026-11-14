@@ -4,6 +4,7 @@ import { storeApp } from "@/lib/store-app";
 
 import { cloudMoveStage, openCloudMove, runsOnHost, type CloudMoveStage, type RunsOnHost } from "@/lib/cloud-move";
 import { cloudPlanView } from "@/lib/cloud-plan";
+import { ipcErrorText } from "@/lib/cloud-send";
 import { cn } from "@/lib/cn";
 import { writeComputerPanelView, type ComputerPanelView } from "@/lib/computer-panel-view";
 import { t } from "@/lib/i18n";
@@ -261,6 +262,30 @@ export function CloudCtaCard({ bot, group, stage, cloudDesktop }: { bot: Bot; gr
   });
 }
 
+/** The account has a dusk cloud: its own computer is on the cloud's page, never an offer to get or move to one here. */
+export function hasDuskCloud(stage: CloudMoveStage | null): boolean {
+  return stage !== null && stage !== "buy" && stage !== "resume" && stage !== "elsewhere";
+}
+
+/** Under this computer's screen when the account has a dusk cloud: where the cloud's own computer is, and the way there. */
+export function CloudSwitchLine({ cloudDesktop }: { cloudDesktop: CloudDesktopRow | null }) {
+  const [failed, setFailed] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const openHome = cloudDesktop?.openHome;
+  const go = () => {
+    if (!openHome || busy) return;
+    setBusy(true); setFailed(null);
+    void openHome().then(() => setBusy(false), (cause: unknown) => { setBusy(false); setFailed(ipcErrorText(cause) ?? t("place.cloudDesktop.failed")); });
+  };
+  return (
+    <div data-panel-cloud-switch="" className="mt-2 flex flex-col items-center gap-1 text-center">
+      <p className="text-[12px] leading-4 text-ink/[0.56]">{t("computer.cloudHasOwn")}</p>
+      {openHome && <button type="button" data-panel-action="switch-cloud" className={`${quietCls} disabled:cursor-default`} disabled={busy} onClick={go}>{t("runsOn.switchCloud")}</button>}
+      {failed && <p role="alert" className="text-[12px] leading-4 text-danger">{failed}</p>}
+    </div>
+  );
+}
+
 /** One small disclosure for what a person rarely needs: the computer's own words for a problem, and its settings. */
 export function ComputerTab({ bot, derived, cloudFor }: {
   bot: Bot; derived: Derived; onOpen: (page: SimplePageId) => void;
@@ -288,10 +313,12 @@ export function ComputerTab({ bot, derived, cloudFor }: {
     : stage === "moved" || stage === "open" ? t("runsOn.openCloud")
     : stage === "coming-back" ? t("runsOn.movingBack") : t("runsOn.moveDuskCloud");
   const detail = report?.detail ?? null;
+  // with a dusk cloud already, this computer's bot shows this computer's screen and the way to the cloud's own, never the offer
+  const cloudOwned = local && hasDuskCloud(stage);
 
   return (
     <div data-panel-tabpanel="computer">
-      {local ? cloudBots.length > 0 && !storeApp() && <CloudCtaCard bot={cloudBots[0]!} group={cloudBots} stage={stage} cloudDesktop={cloudDesktop} /> : <>
+      {local && !cloudOwned ? cloudBots.length > 0 && !storeApp() && <CloudCtaCard bot={cloudBots[0]!} group={cloudBots} stage={stage} cloudDesktop={cloudDesktop} /> : <>
         <div ref={setScreenBox}>
           <Suspense fallback={<AsleepScreen bot={bot} off={current === "off"} />}>
             <ComputerPanel bot={bot} inline visible={onScreen} onReport={setReport} />
@@ -301,6 +328,7 @@ export function ComputerTab({ bot, derived, cloudFor }: {
           <span data-panel-screen-of="" className="min-w-0 truncate text-[12px] leading-4 tracking-normal text-ink/[0.56]">{screenOf}</span>
         </div>
         {detail && <Card><NoteRow data-sheet-row="problem-detail">{detail}</NoteRow></Card>}
+        {cloudOwned && <CloudSwitchLine cloudDesktop={cloudDesktop} />}
         {toCloud && <CloudDesktopCta bots={cloudBots} stage={stage} label={cloudLabel} />}
         {toHome && (
           <div className="mt-2 flex justify-center">

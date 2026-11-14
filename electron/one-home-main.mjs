@@ -298,7 +298,9 @@ export function installOneHome({ localRequest: anyServer, clean = null, account,
    * applies to; `moved`, turning it on brings this computer's bots home; `coming`, they are on their way past turning back. */
   const keepState = () => {
     const cloud = oneHomeCloud(account()?.state()), moving = parseJournal(journal.read());
-    return { shown: Boolean(cloud?.origin) && (!moving || moving.cloud.account === cloud.account) && (cloud.moves || Boolean(moving) || home.keeps()), on: home.keeps(), moved: awayIn(moving) && moving.phase !== "keeping",
+    // the clean workspace is never moved: with nothing moved yet, there is no move to offer from it
+    const here = Boolean(moving) || (clean?.ownCopy() ?? true);
+    return { shown: here && Boolean(cloud?.origin) && (!moving || moving.cloud.account === cloud.account) && (cloud.moves || Boolean(moving) || home.keeps()), on: home.keeps(), moved: awayIn(moving) && moving.phase !== "keeping",
       coming: underWay(moving) };
   };
   const onPage = (channel, handler) => (event, ...args) => {

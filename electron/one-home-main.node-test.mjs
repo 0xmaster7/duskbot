@@ -84,6 +84,27 @@ test("the switch that keeps this computer's bots here: only on this app's pages,
   } finally { main.close(); }
 });
 
+test("the clean workspace offers no move: its bots are never moved, so Move there would do nothing", () => {
+  // Seen in the owner's app on Nov 14: a clean workspace with My Cloud ready showed Move my bot, and each press did nothing.
+  const handlers = new Map();
+  let ownCopy = false;
+  const clean = { ownCopy: () => ownCopy, realCopy: (request) => request, holding: (work) => work() };
+  const main = installOneHome({
+    ipcMain: { handle: (channel, handler) => handlers.set(channel, handler) }, cloudPage: () => "local", server: () => null, home: () => null, clean,
+    cookieFetch: async () => json({}, 401), reconnect: async () => false, power: { asleep: () => false }, file: () => "/nonexistent/cloud-send.json", window: () => null,
+    localOrigin: () => "http://127.0.0.1:4100", fetch: async () => json({}, 404), localRequest: async () => json({ frozen: false }),
+    account: () => ({ state: () => ({ status: "connected", account: { id: "acct-1" }, entitlement: { plan: "pro", tier: "personal", status: "active" }, machine: { status: "ready", origin: "https://dusk-c-1.fly.dev", moves: true } }) }),
+    journalFile: () => "/nonexistent/one-home.json", tempRoot: () => "/nonexistent", journal: { read: () => null, write: () => {} },
+    keep: { read: () => null, write: () => {} },
+  });
+  try {
+    const keep = () => handlers.get("one-home:keep")({});
+    assert.equal(keep().shown, false, "the clean workspace runs: nothing here to move");
+    ownCopy = true;
+    assert.equal(keep().shown, true, "this computer's own copy runs: the move is offered as ever");
+  } finally { main.close(); }
+});
+
 test("the freeze's answer carries what holds the move, by name or, with none, what it is", () => {
   assert.deepEqual(freezeAnswer({ ok: false, status: 409, body: { error: "A bot is still working.", busy: "Scout", what: "bot" } }), { busy: "Scout", what: "bot" });
   assert.deepEqual(freezeAnswer({ ok: false, status: 409, body: { busy: "", what: "sign-in" } }), { busy: "", what: "sign-in" });

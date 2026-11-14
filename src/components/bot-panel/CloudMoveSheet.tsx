@@ -38,7 +38,7 @@ function useCloudMove(onBuy?: () => void) {
     onBuy?.();
     dispatch({ type: "openCloudAdd", source: "app_computer_move", ...(signedOut ? { signIn: true as const } : {}) });
   };
-  const move = () => { writeMoveIntent(false); if (cloudDesktop) run(() => cloudDesktop.setKeep(false)); };
+  const move = () => { writeMoveIntent(false); if (cloudDesktop) run(() => cloudDesktop.moveNow()); };
   const keepHere = () => { writeMoveIntent(false); if (cloudDesktop) run(() => cloudDesktop.setKeep(true)); };
 
   // a move asked for here goes on after checkout with no second tap, and is forgotten once there is nothing left to do

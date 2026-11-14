@@ -31,8 +31,22 @@ const calls: string[] = [];
 Object.assign(window, { cloudMoveCalls: calls });
 let ticker: ReturnType<typeof setInterval> | null = null;
 
+// ?cloud=ready: the account already has My Cloud, and this computer's bots have not moved (?clean=1: the clean workspace runs,
+// so main offers no move from it). Switch to dusk cloud is recorded as "switch-cloud".
+const cloud = params.get("cloud") === "ready";
+const HOME = { id: "c-home", name: "My Cloud", color: null, role: "owner", tier: "pro", runsOn: "cloud", status: "ready", origin: "https://home.example.test", teamId: null, primary: true, managed: true, provider: "managed" };
+const account = { status: "connected", account: { id: "acct-1", email: "owner@qa.dusk.test" }, entitlement: { plan: "pro", tier: "personal", status: "active" }, clouds: [HOME] };
+let kept = { shown: params.get("clean") !== "1", on: false, moved: false, coming: false };
+const cloudBridges = cloud ? {
+  cloudAccount: {
+    state: async () => account, onState: () => () => {}, offer: async () => null, openDashboard: async () => account,
+    connectHome: async () => { calls.push("switch-cloud"); return account; },
+  },
+} : {};
+
 window.duskDesktop = {
   platform: "darwin",
+  ...cloudBridges,
   getCapabilities: async () => initialDesktopCapabilities(),
   onCapabilitiesChanged: () => () => {},
   // the page opens Settings as main's menu would: window.cloudMoveOpenSettings()
@@ -43,6 +57,7 @@ window.duskDesktop = {
     onChanged: () => () => {},
   },
   cloudSendPage: {
+    ...(cloud ? { keepHere: async () => kept, setKeepHere: async (on: boolean) => { calls.push(`keep:${on}`); return (kept = { ...kept, on }); } } : {}),
     notice: async () => notice,
     onNotice: (listener: (next: CloudSendNotice) => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
     dismiss: async (signature: string) => { calls.push(`dismiss:${signature}`); return tell({ ...notice, move: undefined }); },

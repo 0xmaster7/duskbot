@@ -5211,6 +5211,7 @@
   "computer.simple.showAdvanced": "Show advanced controls",
   "computer.close": "Close the screen panel",
   "computer.screenOf": "{name}'s screen",
+  "computer.cloudHasOwn": "Your dusk cloud has its own computer. Switch to it from the left to see it.",
   "computer.watching": "Watching",
   "computer.done": "I'm done",
   "computer.stopControl": "Stop",

@@ -31,13 +31,14 @@ const settle = async () => { for (let at = 0; at < 5; at++) await new Promise((r
 const button = (label: string) => [...document.body.querySelectorAll("button")].find((candidate) => candidate.textContent === label);
 const stage = () => document.body.querySelector("[data-cloud-move-stage]")?.getAttribute("data-cloud-move-stage");
 
-function desktop({ account = { status: "connected", clouds: [HOME] } as CloudAccountState, keep = { shown: true, on: true, moved: false, coming: false } as Keep, move = null as unknown } = {}) {
+function desktop({ account = { status: "connected", clouds: [HOME] } as CloudAccountState, keep = { shown: true, on: true, moved: false, coming: false } as Keep, move = null as unknown, offer = null as unknown } = {}) {
   let kept = keep;
   const bridges = {
     cloudAccount: { state: vi.fn(async () => account), onState: vi.fn(() => () => {}), offer: vi.fn(async () => OFFER), openDashboard: vi.fn(async () => account), connectHome: vi.fn(async () => account) },
     cloudSendPage: {
-      notice: vi.fn(async () => (move ? { move } : null)), onNotice: vi.fn(() => () => {}), keepHere: vi.fn(async () => kept),
+      notice: vi.fn(async () => (move || offer ? { ...(move ? { move } : {}), ...(offer ? { offer } : {}) } : null)), onNotice: vi.fn(() => () => {}), keepHere: vi.fn(async () => kept),
       setKeepHere: vi.fn(async (on: boolean) => (kept = { ...kept, on })),
+      moveOfferAccept: vi.fn(async () => ({})),
     },
   };
   (window as unknown as { duskDesktop: unknown }).duskDesktop = bridges;
@@ -100,6 +101,17 @@ describe("move to cloud desktop", () => {
     await settle();
     expect(bridges.cloudSendPage.setKeepHere).toHaveBeenCalledWith(false);
     expect(fixture.dispatch).not.toHaveBeenCalled();
+  });
+
+  it("with a Cloud never moved to: Move is the person's yes the first move waits for, not the keep-here switch it already is", async () => {
+    // Seen Nov 14: keep-here was already off, so Move only turned it off again, the move went on waiting for a yes, and nothing happened.
+    const bridges = desktop({ keep: { shown: true, on: false, moved: false, coming: false }, offer: { stage: "prompt", bots: 3 } });
+    await render();
+    expect(stage()).toBe("ready");
+    button("Move 3 bots")!.click();
+    await settle();
+    expect(bridges.cloudSendPage.moveOfferAccept).toHaveBeenCalledWith("settings");
+    expect(bridges.cloudSendPage.setKeepHere).not.toHaveBeenCalled();
   });
 
   it("after the checkout it asked for, finishes the move with no second tap, then forgets it", async () => {

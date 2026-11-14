@@ -66,7 +66,13 @@ export function useCloudDesktop() {
     setBusy(true); setFailed(null);
     void work().then(() => { setBusy(false); after?.(); }, (cause: unknown) => { setBusy(false); setFailed(ipcErrorText(cause) ?? t("place.cloudDesktop.failed")); });
   };
-  const switchKeep = (on: boolean) => run(async () => setKeep(await send!.setKeepHere!(on)), () => setConfirming(null));
+  // the first move waits for the person's yes (main's move offer): Move is that yes, never only the keep-here switch turned off
+  const offerWaits = Boolean(send?.moveOfferAccept && notice?.offer && notice.offer.stage !== "none");
+  const moveNow = async () => {
+    if (offerWaits) { await send!.moveOfferAccept!("settings"); return setKeep(await send!.keepHere!()); }
+    setKeep(await send!.setKeepHere!(false));
+  };
+  const switchKeep = (on: boolean) => run(async () => { if (on) setKeep(await send!.setKeepHere!(true)); else await moveNow(); }, () => setConfirming(null));
 
   const choose = () => {
     if (!view?.acts || busy) return;
@@ -106,6 +112,8 @@ export function useCloudDesktop() {
     move: notice?.move ?? null,
     /** off moves this computer's bots to the Cloud desktop; on keeps them here, and brings them back once moved */
     setKeep: (on: boolean) => send!.setKeepHere!(on).then((next) => { setKeep(next); return next; }),
+    /** moves this computer's bots to the Cloud desktop: the offer's yes while it waits for one, else keep-here off */
+    moveNow,
     openHome: accountBridge ? () => accountBridge.connectHome() : undefined,
     openPlan: accountBridge ? () => accountBridge.openDashboard() : undefined,
     label: t("botPanel.ui.placeCloudDesktopTitle"),

@@ -125,7 +125,7 @@ const { DetailsTab } = await import("./bot-panel/DetailsTab");
 const { AdvancedTab } = await import("./bot-panel/AdvancedTab");
 const { SettingsPage } = await import("./bot-panel/SettingsPage");
 const { LibraryPage, LibrarySection } = await import("./bot-panel/LibraryTab");
-const { CloudCtaCard, ComputerTab, WherePage, cloudCtaStep } = await import("./bot-panel/ComputerTab");
+const { CloudCtaCard, CloudSwitchLine, ComputerTab, WherePage, cloudCtaStep, hasDuskCloud } = await import("./bot-panel/ComputerTab");
 const { PageBody, AppsPage, RoutinesPage, MemoryPage, SkillsPage, FolderPage, BrowserPage } = await import("./bot-panel/pages");
 const { BrowserLogins } = await import("./bot-panel/browser-logins");
 const { PAGES, sectionTarget } = await import("./bot-panel/page-registry");
@@ -786,6 +786,24 @@ describe("the Computer tab", () => {
     expect(fixture.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "openCloudAdd" }));
     expect(cloudCtaStep("moving")).toBe("moving");
     expect(cloudCtaStep("buy")).toBe("get");
+  });
+});
+
+describe("the Computer tab with a dusk cloud already", () => {
+  it("never offers dusk cloud again: only an account with no cloud, or one still at checkout, sees the offer", () => {
+    for (const stage of ["ready", "preparing", "moving", "moved", "open", "manage", "coming-back"] as const) expect(hasDuskCloud(stage), stage).toBe(true);
+    for (const stage of [null, "buy", "resume", "elsewhere"] as const) expect(hasDuskCloud(stage), String(stage)).toBe(false);
+  });
+
+  it("says the cloud has its own computer, and Switch to dusk cloud goes there", () => {
+    const openHome = vi.fn(() => Promise.resolve());
+    const line = capture(() => CloudSwitchLine({ cloudDesktop: { openHome } as unknown as Parameters<typeof CloudSwitchLine>[0]["cloudDesktop"] }));
+    expect(line.html).toContain(">Your dusk cloud has its own computer. Switch to it from the left to see it.<");
+    expect(line.html).not.toMatch(/Keep .* working|Move to dusk cloud/);
+    click(find(line, "data-panel-action", "switch-cloud"));
+    expect(openHome).toHaveBeenCalledTimes(1);
+    const bare = capture(() => CloudSwitchLine({ cloudDesktop: null }));
+    expect(has(bare, "data-panel-action", "switch-cloud"), "no way to switch here: the line alone").toBe(false);
   });
 });
 
