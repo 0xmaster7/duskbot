@@ -39,6 +39,8 @@ export interface CloudSendFixture {
   logs(): string;
   local(method: string, path: string, body?: unknown): Promise<{ status: number; body: any }>;
   onCloud(method: string, path: string, body?: unknown): Promise<{ status: number; body: any }>;
+  /** The Admin's signed request to My Cloud: its power report (GET /api/cloud/power) and the sleep handshake. */
+  signed(method: string, path: string, body?: unknown): Promise<{ status: number; body: any }>;
   /** A picture on this computer's server, as an avatarUrl. */
   picture(bytes: Uint8Array): Promise<string>;
   /** Main's IPC handlers, as this computer's page (or My Cloud's, with page "cloud") calls them. */
@@ -537,6 +539,7 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
 
   return {
     root, desktopBase, cloudBase, get owner() { return owner; }, ownerCapability, edge: EDGE, answers, labels, logs: () => logs, local, onCloud, desktopInstallation,
+    signed: (method, path, body) => signedRequest(cloudBase, method, path, body === undefined ? "" : JSON.stringify(body)),
     account, journalFile, spies, teamJournalFile,
     get beforeTeamJournalWrite() { return fixture.beforeTeamJournalWrite; },
     set beforeTeamJournalWrite(hook) { fixture.beforeTeamJournalWrite = hook; },

@@ -139,6 +139,11 @@ describe("the public edge and a sleeping home", () => {
     const hook = new Request("https://d.example/hooks/github", { method: "POST", headers: { "x-dusk-background": "1" } });
     expect(wakeReason(hook, new URL(hook.url))).toBe("webhook");
   });
+
+  it("never wakes a home for the app's egress link redialing it, with its cookie, after the home fell asleep", () => {
+    const link = new Request("https://d.example/api/computer/egress/link", { headers: { cookie: "dusk_session=s", origin: "https://d.example", upgrade: "websocket", connection: "Upgrade" } });
+    expect(wakeReason(link, new URL(link.url))).toBeNull();
+  });
 });
 
 describe("the edge's hook queue for a sleeping home", () => {
