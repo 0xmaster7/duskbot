@@ -102,7 +102,7 @@ export function billingFromWire(overview: WireBillingOverview, catalog: PlanCata
 export const SETUP_LABELS = { reserving: "reserving your machine", storage: "preparing its disk", starting: "installing dusk bot", checking: "waking your bots" } as const;
 
 export function cloudFromWire(cloud: CloudDesktopView): CloudDesktop | null {
-  if (cloud.status === "destroying" || cloud.status === "destroyed") return null;
+  if (cloud.status === "checkout" || cloud.status === "destroying" || cloud.status === "destroyed") return null;
   const statuses = { checkout: "provisioning", provisioning: "provisioning", running: "running", sleeping: "sleeping", stopped: "stopped", payment_problem: "error", suspended: "error", error: "error" } as const;
   // asleep only because nobody used it (our cost saving, never the owner's pause): live to its owner, any use wakes it
   const resting = cloud.provider === "managed" && cloud.status === "sleeping" && (cloud.stoppedBy === "idle" || cloud.stoppedBy === null) && cloud.egress?.state !== "paused";
@@ -113,7 +113,6 @@ export function cloudFromWire(cloud: CloudDesktopView): CloudDesktop | null {
     progress: status === "provisioning" && cloud.setupStep !== null ? { step: SETUP_LABELS[cloud.setupStep], value: (SETUP_STEPS.indexOf(cloud.setupStep) + 0.5) / 4 } : null,
     error: cloud.status === "payment_problem" ? "the last payment did not go through. update your card to wake it." : cloud.status === "suspended" ? "it is paused. write to us at hello@dusk.bot to sort it out." : cloud.error,
     botComputers: { used: 0, limit: cloud.botComputers }, uptimeSec: null,
-    ...(cloud.status === "checkout" ? { awaitingPayment: true } : {}),
     ...(resting ? { resting: true } : {}),
     ...(cloud.revivedAt ? { revivedAt: cloud.revivedAt } : {}),
     ...(cloud.egress && cloud.egress.state !== "ok" && cloud.egress.until !== null ? { egressLimit: { state: cloud.egress.state, until: cloud.egress.until } } : {}),

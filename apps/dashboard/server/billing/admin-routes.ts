@@ -34,8 +34,8 @@ export function createAdminRoutes(ctx: BillingContext) {
     }) };
   }
   function openCheckout(account: AccountRef) { return ctx.store.state.checkouts.find(c => c.accountId === account.id && c.kind === "cart" && c.status === "open" && c.openUntil > now()); }
-  /** the account's clouds, less the ones a checkout reserved and nobody paid for */
-  const listed = (account: AccountRef) => clouds.list(account.id).filter(c => !(c.status === "destroyed" && c.subscriptionId === null));
+  /** the account's clouds, less the ones a checkout reserved: unpaid they are never shown, paid they show as setting up */
+  const listed = (account: AccountRef) => clouds.list(account.id).filter(c => c.status !== "checkout" && !(c.status === "destroyed" && c.subscriptionId === null));
   function primary(account: AccountRef) {
     const list = listed(account), id = service.appState(account).primary?.cloudId;
     return list.find(c => c.id === id) ?? list.find(c => c.primary) ?? null;
