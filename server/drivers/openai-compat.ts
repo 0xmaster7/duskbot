@@ -155,7 +155,7 @@ function decodeConfig(raw: unknown): OpenAICompatConfig {
 export const OpenAICompatDriver: ProviderDriver<OpenAICompatConfig> = {
   driverKind: DRIVER_KIND,
   metadata: {
-    displayName: "other (OpenAI-compatible)",
+    displayName: "Other (OpenAI-compatible)",
     supportsMultipleInstances: true,
     access: "api",
   },
