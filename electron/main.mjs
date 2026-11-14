@@ -91,7 +91,7 @@ import {
 import capabilitiesModule from "./capabilities.cjs";
 import environmentsModule from "./environments.cjs";
 import localOriginModule from "./local-origin.cjs";
-import { aboutPanelOptions, buildApplicationMenu } from "./menu.mjs"; import { installDesktopBots } from "./desktop-bots.mjs"; import { installReloadKeys } from "./reload-keys.mjs"; import { startDesktopErrorReporting } from "./desktop-errors.mjs"; import { createUpdateNotice } from "./update-notice.mjs"; import { createAppUpdater, developerIdSigned, quietNow, squirrelInstaller } from "./app-update.mjs"; import { quietSignals } from "./update-when-quiet-main.mjs";
+import { aboutPanelOptions, buildApplicationMenu } from "./menu.mjs"; import { installDesktopBots } from "./desktop-bots.mjs"; import { installReloadKeys } from "./reload-keys.mjs"; import { startDesktopErrorReporting } from "./desktop-errors.mjs"; import { createUpdateNotice } from "./update-notice.mjs"; import { createAppUpdater, developerIdSigned, quietNow, squirrelInstaller } from "./app-update.mjs"; import { quietSignals } from "./update-when-quiet-main.mjs"; import { createDemoUpdater, demoUpdateFlag } from "./app-update-demo.mjs";
 import { acquireDataDirLease } from "./data-dir-lease.mjs";
 import { switchLocalEnvironment } from "./environment-switch.mjs";
 import { createManagedDesktopClient, createManagedDesktopRelay, createManagedDesktopStore } from "./managed-desktop.mjs";
@@ -3463,7 +3463,7 @@ app.whenReady().then(async () => {
     activeRemoteMicrophone: () => activeEnvironment(environmentsState)?.microphone === true,
     askRemoteMicrophone,
     homeOrigin: () => homeWindow.placeOrigin(),
-  }); startDesktopErrorReporting({ app, prefs: desktopPrefs }); if (app.isPackaged) startAppUpdates(createUpdateNotice({ request: localServerRequest, open: url => void shell.openExternal(url), memory: jsonFile(path.join(app.getPath("userData"), "update-notice.json")), log: slog, notify: ({ title, body, click }) => { if (!Notification.isSupported()) return; const note = new Notification({ title, body }); note.on("click", click); note.show(); } }));
+  }); startDesktopErrorReporting({ app, prefs: desktopPrefs }); if (!app.isPackaged) startDemoUpdates(); else startAppUpdates(createUpdateNotice({ request: localServerRequest, open: url => void shell.openExternal(url), memory: jsonFile(path.join(app.getPath("userData"), "update-notice.json")), log: slog, notify: ({ title, body, click }) => { if (!Notification.isSupported()) return; const note = new Notification({ title, body }); note.on("click", click); note.show(); } }));
   session.defaultSession.setPermissionRequestHandler(appPermissions.request);
   session.defaultSession.setPermissionCheckHandler(appPermissions.check);
   // Before the window, so the harness has the CUA descriptor on first render.
@@ -3638,6 +3638,13 @@ process.once("SIGTERM", requestSignalQuit);
 // the mac app installs its own updates when it is Developer ID signed (electron/app-update.mjs); elsewhere, and on an
 // unsigned build, the notice says a release is out
 let appUpdater = null;
+function startDemoUpdates() {
+  const flag = demoUpdateFlag(app.getPath("userData"));
+  if (!fs.existsSync(flag)) return;
+  appUpdater = createDemoUpdater({ flag, relaunch: relaunchAfterDesktopRemoteChange,
+    onState: (state) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("app-update:changed", state); } });
+  appUpdater.start();
+}
 function startAppUpdates(notice) {
   if (process.platform !== "darwin") { notice.start(); return; }
   const bundle = path.resolve(path.dirname(app.getPath("exe")), "..", "..");
