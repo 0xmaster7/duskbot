@@ -145,7 +145,10 @@ async function reply(botId) {
     const asked = messages.findIndex((m) => m.role === "user" && m.text === text);
     const answer = asked >= 0 ? messages.slice(asked + 1).find((m) => m.role !== "user" && m.kind === "text" && m.text?.trim()) : null;
     if (answer) return { accepted, total: Math.round((Date.now() - since) / 1000), text: answer.text.trim() };
-    if (Date.now() - since > 180_000) throw new Error("the demo bot did not reply within 3 minutes");
+    if (Date.now() - since > 180_000) {
+      const seen = messages.slice(-4).map((m) => `${m.role}/${m.kind}: ${String(m.text ?? m.error ?? "").slice(0, 160).replace(/\s+/g, " ")}`).join(" | ");
+      throw new Error(`the demo bot did not reply within 3 minutes (last: ${seen || "nothing"})`);
+    }
     await sleep(2_000);
   }
 }
