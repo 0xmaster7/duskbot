@@ -261,5 +261,10 @@ await runFlow(flow, async () => {
     return `pressed ${pressed.join(", ")}; "${NAME}" on screen`;
   });
 
+  // the app sends its usage every 30 s; a run that sends analytics (DUSK_ANALYTICS=1) hands over what is still queued
+  if (flow.app && process.env.DUSK_ANALYTICS !== "0") {
+    await flow.evaluate(`import("/src/lib/product-analytics.ts").then((m) => m.flush()).then(() => true)`).catch(() => {});
+    await sleep(8000);
+  }
   flow.facts.timeline = timeline.map((row, i) => ({ ...row, sinceStart: Math.round((row.at - timeline[0].at) / 1000), sincePrev: i ? Math.round((row.at - timeline[i - 1].at) / 1000) : 0 }));
 }, { keepProfile: flag("--keep-profile") });

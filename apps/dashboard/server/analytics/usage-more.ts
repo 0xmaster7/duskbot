@@ -217,18 +217,23 @@ export function handoffFunnel(events: readonly StoredEvent[]): HandoffStep[] {
     for (const key of keys) if (!parent.has(key)) parent.set(key, key);
     for (const key of keys.slice(1)) { const a = root(keys[0]!), b = root(key); if (a !== b) parent.set(b, a); }
   }
-  const first = new Map<string, Map<string, number>>();
+  const times = new Map<string, Map<string, number[]>>();
   for (const event of events) {
     const step = handoffStepOf(event), key = keysOf(event)[0];
     if (!step || !key) continue;
-    const who = root(key), seen = first.get(who) ?? new Map<string, number>();
-    if (!seen.has(step) || seen.get(step)! > event.at) seen.set(step, event.at);
-    first.set(who, seen);
+    const who = root(key), seen = times.get(who) ?? new Map<string, number[]>();
+    seen.set(step, [...(seen.get(step) ?? []), event.at]);
+    times.set(who, seen);
   }
-  const people = [...first.values()].filter(seen => seen.has("shown"));
+  const people = [...times.values()].filter(seen => seen.has("shown"));
+  // a step's time runs from the last try of the step before it (a cancelled google sign-in, then email): never from the first
+  const since = (seen: Map<string, number[]>, step: string, from: string) => {
+    const at = Math.min(...seen.get(step)!), before = seen.get(from)!.filter(time => time <= at);
+    return at - (before.length ? Math.max(...before) : Math.min(...seen.get(from)!));
+  };
   return HANDOFF_STEPS.map(({ step, side, from }) => {
     const reached = people.filter(seen => seen.has(step));
-    const ms = from ? reached.flatMap(seen => seen.has(from) ? [Math.max(0, seen.get(step)! - seen.get(from)!)] : []) : [];
+    const ms = from ? reached.flatMap(seen => seen.has(from) ? [Math.max(0, since(seen, step, from))] : []) : [];
     return { step, side, from, reached: reached.length, medianMs: median(ms) };
   });
 }

@@ -86,7 +86,10 @@ describe("the deeper usage answer", () => {
     const m = moreOf({ days: [dayOf(NOW)], daily: new Map(), people: [], snapshots: [], routines: [], from: NOW - DAY, to: NOW + DAY, now: NOW, accounts: [],
       billing: { checkouts: [], subscriptions: [], feedback: [] },
       events: [
-        app({ name: "account_sign_in", step: "shown" }, 0), app({ name: "account_sign_in", step: "method", method: "email", via: "link" }, 10),
+        app({ name: "account_sign_in", step: "shown" }, 0),
+        // a google try given up on first: the email that worked is what the next steps are timed from
+        app({ name: "account_sign_in", step: "method", method: "google", via: "browser" }, 2), app({ name: "account_sign_in", step: "handoff", method: "google", via: "browser" }, 3),
+        app({ name: "account_sign_in", step: "method", method: "email", via: "link" }, 10),
         app({ name: "account_sign_in", step: "handoff", method: "email", via: "link" }, 11),
         // the website before it is signed in: only its tab, joined later through the same tab signed in
         web("page_view", { path: "/sign-in" }, 41, null),
@@ -99,6 +102,7 @@ describe("the deeper usage answer", () => {
       ] });
     const row = (step: string) => m.setup.handoff.find(item => item.step === step)!;
     expect(row("shown")).toMatchObject({ reached: 1, medianMs: null });
+    expect(row("method")).toMatchObject({ reached: 1, medianMs: 2000 });
     expect(row("handoff")).toMatchObject({ side: "app", reached: 1, medianMs: 1000 });
     expect(row("landed")).toMatchObject({ side: "web", reached: 1, medianMs: 30_000 });
     expect(row("signed_in")).toMatchObject({ reached: 1, medianMs: 39_000 });
