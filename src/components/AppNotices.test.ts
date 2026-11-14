@@ -162,7 +162,7 @@ describe("the card after the update", () => {
     returning();
     const html = await launch();
     const words = [INTRO, "Free for 7 days", "dusk cloud runs your bots for you in the cloud, always available.", "Routines run on time, day and night",
-      "Then from $15/month + tax. Cancel any time.",
+      "Then from $15/month + tax where applicable. Cancel any time.",
       "14-day money-back on every plan.", "Start free trial", "Show me how", "Sign in to your cloud plan", "Not now"];
     for (const text of words) expect(html).toContain(text);
     for (let i = 1; i < words.length; i++) expect(html.indexOf(words[i - 1]!), words[i]).toBeLessThan(html.indexOf(words[i]!));

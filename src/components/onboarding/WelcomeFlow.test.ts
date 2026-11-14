@@ -306,7 +306,7 @@ describe("on the desktop app", () => {
     expect(sheet.getAttribute("role")).toBe("dialog");
     expect(sheet.textContent).toContain("they stop when it sleeps or the lid is shut");
     expect(sheet.textContent).toContain("dusk cloud runs your bots 24/7");
-    expect(sheet.querySelector("[data-mac-pick-price]")?.textContent).toBe("Free for 7 days, then from $15/month + tax.");
+    expect(sheet.querySelector("[data-mac-pick-price]")?.textContent).toBe("Free for 7 days, then from $15/month + tax where applicable.");
     expect(sheet.textContent, "no dash anywhere").not.toMatch(/\u2014/);
     expect(document.querySelector("[data-mac-pick=cloud]")?.textContent).toBe("Use dusk cloud");
     expect(document.querySelector("[data-mac-pick=mac]")?.textContent).toBe("Continue with this Mac");
@@ -364,7 +364,7 @@ describe("on the desktop app", () => {
     await show();
     const tile = document.body.querySelector("[data-funnel-place=cloud]")!;
     expect(tile.textContent).toContain("7 days free");
-    expect(tile.querySelector("[data-funnel-place-note]")?.textContent).toBe("Then from $15/month + tax.");
+    expect(tile.querySelector("[data-funnel-place-note]")?.textContent).toBe("Then from $15/month + tax where applicable.");
   });
 
   it("dusk cloud goes straight to the browser with its intent and waits calmly; back and this Mac are one press away", async () => {

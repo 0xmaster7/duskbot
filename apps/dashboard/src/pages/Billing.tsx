@@ -48,7 +48,7 @@ function PlanCard({ id, catalog, interval, current, onChoose, href, action, disa
   const paid = id !== "free";
   const monthly = b?.monthly ?? 0;
   const perMonth = interval === "year" ? Math.round(perMonthOn(monthly, interval, catalog)) : monthly;
-  const sub = !paid ? "on your own computer" : interval === "year" ? `per month · ${priceText(monthly, interval, catalog).replace("/yr", "")} billed yearly` : "per month";
+  const sub = !paid ? "on your own computer" : interval === "year" ? `per month · ${priceText(monthly, interval, catalog).replace("/yr", "")} billed yearly, + tax where applicable` : "per month, + tax where applicable";
   return (
     <article className={cx("surface enter flex min-w-0 flex-col rounded-card bg-card p-2.5 pb-7", !paid && "max-lg:order-last")} style={{ ["--i" as string]: i }} aria-labelledby={`plan-card-${id}`}>
       <img src={ART[id]} alt="" width={800} height={354} className="aspect-[800/300] w-full rounded-[16px] object-cover object-bottom" draggable={false} />

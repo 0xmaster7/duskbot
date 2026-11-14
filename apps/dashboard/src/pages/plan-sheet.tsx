@@ -131,7 +131,7 @@ export function PlanSheet({ start, source, work = false, onClose }: { source: Ch
             <span className="text-14 text-ink-3">total</span>
             <span className="num"><span className="text-24 font-medium tracking-[-0.035em] text-ink">{cart ? money(interval === "year" ? cart.dueNow : cart.perMonth) : "..."}</span><span className="text-14 text-ink-3">{interval === "year" ? "/yr" : "/mo"}</span></span>
           </div>
-          <p className="num mt-0.5 text-end text-13 text-ink-4">{interval === "year" ? "billed yearly" : "billed monthly"}</p>
+          <p className="num mt-0.5 text-end text-13 text-ink-4">{interval === "year" ? "billed yearly, + tax where applicable" : "billed monthly, + tax where applicable"}</p>
           {charge !== null && <ChargeLine charge={charge} cart={cart} interval={interval} from={billing?.subscription?.currentPeriodEnd} />}
           {(error ?? quoteError) && <p role="alert" className="mt-3 text-13 text-bad">{error ?? quoteError}</p>}
           <Button variant="primary" className="mt-4 w-full !h-11" onClick={() => void go()} disabled={busy || !ready || unchanged}>{busy ? (owned ? "switching" : "opening checkout") : unchanged ? "your plan" : charge !== null ? `pay ${money(charge)} and switch` : owned ? "switch plan" : "checkout"}</Button>
@@ -204,7 +204,7 @@ export function TeamSheet({ onClose }: { onClose(): void }) {
             <span className="text-14 text-ink-3">total</span>
             <span className="num"><span className="text-24 font-medium tracking-[-0.035em] text-ink">{cart ? money(sel.interval === "year" ? cart.dueNow : cart.perMonth) : "..."}</span><span className="text-14 text-ink-3">{sel.interval === "year" ? "/yr" : "/mo"}</span></span>
           </div>
-          <p className="num mt-0.5 text-end text-13 text-ink-4">{sel.interval === "year" ? "billed yearly" : "billed monthly"}</p>
+          <p className="num mt-0.5 text-end text-13 text-ink-4">{sel.interval === "year" ? "billed yearly, + tax where applicable" : "billed monthly, + tax where applicable"}</p>
           {charge !== null && <ChargeLine charge={charge} cart={cart} interval={sel.interval} from={billing?.subscription?.currentPeriodEnd} />}
           {(error ?? quoteError) && <p role="alert" className="mt-3 text-13 text-bad">{error ?? quoteError}</p>}
           <Button variant="primary" className="mt-4 w-full !h-11" onClick={() => void go()} disabled={busy || !ready}>{busy ? "switching" : charge !== null ? `pay ${money(charge)} and switch` : "switch plan"}</Button>
@@ -268,7 +268,7 @@ export function LicenseSheet({ start, source, onClose, onNothingLeft }: { source
             <span className="text-14 text-ink-3">{owned ? "your plan in total" : "total"}</span>
             <span className="num"><span className="text-24 font-medium tracking-[-0.035em] text-ink">{cart ? money(sel.interval === "year" ? cart.dueNow : cart.perMonth) : "..."}</span><span className="text-14 text-ink-3">{sel.interval === "year" ? "/yr" : "/mo"}</span></span>
           </div>
-          <p className="num mt-0.5 text-end text-13 text-ink-4">{cart?.free ? "nothing to pay" : sel.interval === "year" ? "billed yearly" : "billed monthly"}</p>
+          <p className="num mt-0.5 text-end text-13 text-ink-4">{cart?.free ? "nothing to pay" : sel.interval === "year" ? "billed yearly, + tax where applicable" : "billed monthly, + tax where applicable"}</p>
           {charge !== null && <ChargeLine charge={charge} cart={cart} interval={sel.interval} from={billing?.subscription?.currentPeriodEnd} />}
           {(error ?? quoteError) && <p role="alert" className="mt-3 text-13 text-bad">{error ?? quoteError}</p>}
           <Button variant="primary" className="mt-4 w-full !h-11" onClick={() => void go()} disabled={busy || !ready || unchanged}>{busy ? (owned ? "updating" : "opening checkout") : charge !== null ? `pay ${money(charge)} and update` : owned ? (sel.license === "personal" ? "remove license" : "update license") : sel.license === "personal" ? "personal use is free" : `buy ${lic?.name} license`}</Button>

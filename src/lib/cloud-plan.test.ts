@@ -132,23 +132,23 @@ describe("what is for sale, as the Admin says", () => {
   it("one card per plan on sale, in the Admin's order: name, price, promise, its own button and the money in one line; Most popular is the Admin's recommended plan", () => {
     expect(planCards(OFFER).map(({ rows: _rows, ...card }) => card)).toEqual([
       { tier: "starter", name: "Starter", price: "$15", popular: false, current: false, promise: "Your bots keep working with your laptop closed, at the lowest price.",
-        action: "Start free trial", terms: "Free for 7 days, then $15/month + tax" },
+        action: "Start free trial", terms: "Free for 7 days, then $15/month + tax where applicable" },
       { tier: "pro", name: "Pro", price: "$49", popular: true, current: false, promise: "A bigger machine with priority wake, and a work license for one person.",
-        action: "Start free trial", terms: "Free for 7 days, then $49/month + tax" },
+        action: "Start free trial", terms: "Free for 7 days, then $49/month + tax where applicable" },
       { tier: "max", name: "Max", price: "$99", popular: false, current: false, promise: "The biggest cloud machine, for bots that use computers all day.",
-        action: "Start free trial", terms: "Free for 7 days, then $99/month + tax" },
+        action: "Start free trial", terms: "Free for 7 days, then $99/month + tax where applicable" },
     ]);
     expect(planCards({ ...OFFER, recommended: "max" }).map(card => card.popular), "never Pro by itself").toEqual([false, false, true]);
-    expect(planCards(noTrial(OFFER)).map(card => [card.action, card.terms])).toEqual([["Get Starter", "$15 + tax today, then each month"],
-      ["Get Pro", "$49 + tax today, then each month"], ["Get Max", "$99 + tax today, then each month"]]);
+    expect(planCards(noTrial(OFFER)).map(card => [card.action, card.terms])).toEqual([["Get Starter", "$15 + tax where applicable today, then each month"],
+      ["Get Pro", "$49 + tax where applicable today, then each month"], ["Get Max", "$99 + tax where applicable today, then each month"]]);
     expect(planCards({ plans: [{ tier: "team", label: "Team", amount: 19900 }], recommended: "team" })).toEqual([{ tier: "team", name: "Team", price: "$199", popular: true, current: false,
-      promise: null, action: "Get Team", terms: "$199 + tax today, then each month", rows: [] }]);
+      promise: null, action: "Get Team", terms: "$199 + tax where applicable today, then each month", rows: [] }]);
     expect(planCards({ plans: [{ tier: "pro", amount: 5831 }], recommended: "pro" })[0]!.price).toBe("$58.31");
   });
 
   it("the person's own plan says Your plan instead of a button; a Personal subscriber sees Personal's own card, only for themselves", () => {
     expect(planCards(OFFER, { current: "pro" }).map(card => [card.tier, card.current, card.action, card.terms])).toEqual([
-      ["starter", false, "Start free trial", "Free for 7 days, then $15/month + tax"], ["pro", true, null, null], ["max", false, "Start free trial", "Free for 7 days, then $99/month + tax"]]);
+      ["starter", false, "Start free trial", "Free for 7 days, then $15/month + tax where applicable"], ["pro", true, null, null], ["max", false, "Start free trial", "Free for 7 days, then $99/month + tax where applicable"]]);
     const personal: CloudOfferPlan = { tier: "personal", label: "Personal", amount: 2900, allowances: { cpus: 2, cpuKind: "shared", memoryMb: 2048, swapMb: 3072, diskGb: 10, maxDiskGb: 20,
       computers: 15, computerHours: 100, voiceCharacters: 30_000, snapshotDays: 14 } };
     const mine = planCards(OFFER, { current: "personal", own: personal });
@@ -218,13 +218,13 @@ describe("what is for sale, as the Admin says", () => {
   it("says a 1-day trial in the singular, in English and every language, and leaves other lengths as they read", () => {
     const allowances = { cpus: 8, cpuKind: "shared" as const, memoryMb: 8192, diskGb: 10, maxDiskGb: 100, computers: 15, computerHours: 800, voiceCharacters: 90_000, snapshotDays: 14 };
     const terms = (trialDays: number) => planCards({ plans: [{ tier: "team", amount: 16900, trialDays, allowances }], recommended: "team" })[0]!.terms;
-    expect(terms(1)).toBe("Free for 1 day, then $169/month + tax");
-    expect(terms(3)).toBe("Free for 3 days, then $169/month + tax");
+    expect(terms(1)).toBe("Free for 1 day, then $169/month + tax where applicable");
+    expect(terms(3)).toBe("Free for 3 days, then $169/month + tax where applicable");
     const badge = (trialDays: number) => cloudIntroView({ plans: [{ tier: "team", amount: 16900, trialDays }], recommended: "team" })!.badge;
     expect(badge(1)).toBe("Free for 1 day");
     expect(badge(3)).toBe("Free for 3 days");
     setLocale("de");
-    expect(terms(1)).toBe("1 Tag kostenlos, dann $169/Monat zzgl. Steuern");
+    expect(terms(1)).toBe("1 Tag kostenlos, dann $169/Monat zzgl. ggf. anfallender Steuern");
     expect(badge(3)).toBe("3 Tage kostenlos");
     setLocale("en");
   });
@@ -235,7 +235,7 @@ describe("what is for sale, as the Admin says", () => {
       computerHours: 800, voiceCharacters: 90_000, snapshotDays: 14 } }], recommended: "max" });
     expect(card!.rows.map(row => row.text)).toEqual(["Immer verfügbar, bevorzugtes Aufwachen", "8 vCPU · 8 GB RAM", "10 GB Festplatte, wächst bis 100 GB",
       "Tägliche Backups, 14 Tage aufbewahrt"]);
-    expect([card!.action, card!.terms]).toEqual(["Kostenlos testen", "3 Tage kostenlos, dann $99/Monat zzgl. Steuern"]);
+    expect([card!.action, card!.terms]).toEqual(["Kostenlos testen", "3 Tage kostenlos, dann $99/Monat zzgl. ggf. anfallender Steuern"]);
   });
 
   it("money-back only while the Admin offers it; due today in cents", () => {
@@ -284,7 +284,7 @@ describe("what is for sale, as the Admin says", () => {
   it("the card after the update needs a trial, and says only the Admin's numbers: never a launch price or a later one", () => {
     expect(cloudIntroView(OFFER)).toEqual({ badge: "Free for 7 days",
       points: ["Routines run on time, day and night"],
-      price: "Then from $15/month + tax. Cancel any time.", moneyBack: "14-day money-back on every plan." });
+      price: "Then from $15/month + tax where applicable. Cancel any time.", moneyBack: "14-day money-back on every plan." });
     const bare = cloudIntroView({ ...OFFER, refundDays: undefined })!;
     expect(bare.points).toEqual(["Routines run on time, day and night"]); expect(bare.moneyBack).toBeNull();
     vi.stubEnv("VITE_DUSK_PHONE_APP", "1");
@@ -293,7 +293,7 @@ describe("what is for sale, as the Admin says", () => {
     expect(cloudIntroView(noTrial(OFFER))).toBeNull(); expect(cloudIntroView(null)).toBeNull(); expect(cloudIntroView(undefined)).toBeNull();
     expect(JSON.stringify(cloudIntroView(OFFER))).not.toMatch(/launch|\$89|first 100/i);
     const partial: CloudOffer = { ...OFFER, plans: OFFER.plans.map(plan => plan.tier === "starter" ? { ...plan, trialDays: undefined } : plan) };
-    expect(cloudIntroView(partial)!.price).toBe("Then from $49/month + tax. Cancel any time.");
+    expect(cloudIntroView(partial)!.price).toBe("Then from $49/month + tax where applicable. Cancel any time.");
   });
 });
 

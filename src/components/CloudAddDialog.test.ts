@@ -81,11 +81,11 @@ describe("each screen of the sheet says one thing and offers one next step", () 
       "Always available, priority wake", "Daily backups, kept 14 days", "Start free trial"];
     inOrder(text(html), ["dusk cloud", "Your bots, always available.", "Runs your bots in the cloud, even when this computer is off.", "Compare plans", "Choose your plan",
       "Starter", "$15", "/month", "Your bots keep working with your laptop closed, at the lowest price.", ...card(20, 2, 3),
-      "Free for 7 days, then $15/month + tax",
+      "Free for 7 days, then $15/month + tax where applicable",
       "Pro", "Most popular", "$49", "/month", "A bigger machine with priority wake, and a work license for one person.", ...card(100, 4, 4),
-      "Free for 7 days, then $49/month + tax",
+      "Free for 7 days, then $49/month + tax where applicable",
       "Max", "$99", "/month", "The biggest cloud machine, for bots that use computers all day.", ...card(100, 8, 4),
-      "Free for 7 days, then $99/month + tax",
+      "Free for 7 days, then $99/month + tax where applicable",
       "Today", "Trial starts", "Oct 13", "Reminder email", "Oct 15", "First payment",
       "Card needed, nothing charged until your trial ends. Cancel in the app any time.", "14-day money-back",
       "Every plan includes", "Works while you're away", "Routines, long jobs and replies keep going while you're away.", "Private to you", "Reach it from anywhere",
@@ -121,7 +121,7 @@ describe("each screen of the sheet says one thing and offers one next step", () 
     expect(html.indexOf("data-plan-mine")).toBeLessThan(html.indexOf('data-plan="max"'));
     expect(tree.filter(node => node.props["data-plan-buy"]).map(node => node.props["data-plan-buy"])).toEqual(["starter", "max"]);
     inOrder(text(html), ["Pro", "Most popular", "$49", "4 vCPU · 4 GB RAM", "Always available, priority wake", "Your plan", "Max"]);
-    expect(text(html)).not.toContain("Free for 7 days, then $49/month + tax");
+    expect(text(html)).not.toContain("Free for 7 days, then $49/month + tax where applicable");
     const personal = { ...PLANS[0]!, tier: "personal", label: "Personal", amount: 2900 };
     const mine = renderToStaticMarkup(createElement(ChooseScreen, { offer: TRIAL, current: "personal", own: personal, now: NOW, busy: false, signedOut: false, notice: null,
       onStart: vi.fn(), onSignIn: vi.fn() }));
@@ -153,7 +153,7 @@ describe("each screen of the sheet says one thing and offers one next step", () 
   it("Choose without a trial: each card's button gets that plan at its price, due today, with no card line or timeline; no Sign in once signed in", () => {
     const { html, tree, handlers } = panel({ kind: "offer", offer: PLAIN, signedOut: false, notice: null }, { offerShown: PLAIN });
     const plain = text(html);
-    inOrder(plain, ["Starter", "Get Starter", "$15 + tax today, then each month", "Pro", "Get Pro", "$49 + tax today, then each month", "Max", "Get Max", "$99 + tax today, then each month",
+    inOrder(plain, ["Starter", "Get Starter", "$15 + tax where applicable today, then each month", "Pro", "Get Pro", "$49 + tax where applicable today, then each month", "Max", "Get Max", "$99 + tax where applicable today, then each month",
       "14-day money-back"]);
     for (const gone of ["Card needed", "Trial starts", "Reminder email", "First payment", "Already have a plan", "Claude credit", "Start free trial"]) expect(plain).not.toContain(gone);
     button(tree, "Get Pro")!.props.onClick(); expect(handlers.start).toHaveBeenCalledExactlyOnceWith("pro");
@@ -254,7 +254,7 @@ describe("each screen of the sheet says one thing and offers one next step", () 
     expect(text(panel(waiting, { copied: true }).html)).toContain("Link copied");
     expect(text(panel(waiting, { payFailed: true }).html)).toContain("Checkout couldn't open again. Nothing was charged.");
     expect(text(panel({ ...waiting, link: false }).html)).not.toContain("Copy link");
-    expect(text(panel({ ...waiting, plan: "max" }, { offerShown: PLAIN }).html)).toContain("Max · $99/month + tax");
+    expect(text(panel({ ...waiting, plan: "max" }, { offerShown: PLAIN }).html)).toContain("Max · $99/month + tax where applicable");
     const late = text(panel({ ...waiting, late: true }).html);
     inOrder(late, ["We haven't seen a payment yet.", "If you paid, it shows up here within a few minutes.", "Reopen checkout", "Change plan"]);
     expect(text(panel({ ...waiting, browser: "signin", link: false }).html)).toContain("Your browser shows the next step.");
@@ -439,7 +439,7 @@ describe("the sheet", () => {
     push({ ...free, offer: own });
     const html = await settle();
     expect(html).toContain("You're signed in. These are the plans for your account");
-    expect(html).toContain("$49 + tax today, then each month"); expect(html).not.toContain("Free for");
+    expect(html).toContain("$49 + tax where applicable today, then each month"); expect(html).not.toContain("Free for");
     await press("Get Pro");
     expect(bridge.checkout).toHaveBeenCalledExactlyOnceWith("pro", "app_menu");
   });

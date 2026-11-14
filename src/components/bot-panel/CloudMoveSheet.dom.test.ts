@@ -75,7 +75,7 @@ describe("move to cloud desktop", () => {
     const text = document.body.textContent ?? "";
     expect(text).toContain("All 3 bots move together, with their chats, memory, files and routines.");
     expect(text).toContain("Keeps working while your computer sleeps or is closed");
-    expect(text).toContain("From $19/month + tax.");
+    expect(text).toContain("From $19/month + tax where applicable.");
     expect(text).toContain("After you pay, your bots move by themselves.");
     button("Get cloud desktop")!.click();
     await settle();
