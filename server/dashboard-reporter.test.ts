@@ -170,3 +170,34 @@ describe("dashboard reporter", () => {
     expect(reporter.status()).toMatchObject({ connected: true, workspaceId: "workspace" });
   }, 15_000);
 });
+
+describe("dashboard reporter and the help-improve switch", () => {
+  it("sends a change made in the app with the next report until one gets through, and follows the account's answer", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "dashboard-choice-")); dirs.push(dir);
+    const bodies: WorkspaceReport[] = [];
+    let optOutAnswer: boolean | undefined, failReports = 0;
+    const calls: string[] = [];
+    let pending: boolean | null = true;
+    const choice = { pending: () => pending, pushed: (value: boolean) => { calls.push(`pushed:${value}`); if (pending === value) pending = null; }, fromAccount: (value: boolean) => { calls.push(`account:${value}`); } };
+    const fetcher = (async (input: string, init?: { body?: string }) => {
+      const url = String(input), reply = (status: number, body: object) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+      if (url.endsWith("/v1/enroll")) return reply(200, { v: 1, workspaceId: "workspace", claimUrl: "http://x/claim", dashboardUrl: "http://x", claimExpiresAt: 0 });
+      if (url.endsWith("/v1/report")) {
+        bodies.push(JSON.parse(init!.body!));
+        if (failReports > 0) { failReports--; return reply(500, {}); }
+        return reply(200, { v: 1, watching: false, nextReportMs: 600_000, commands: [], ...(optOutAnswer === undefined ? {} : { usageOptOut: optOutAnswer }) });
+      }
+      return new Promise(() => {});
+    }) as unknown as typeof fetch;
+    failReports = 1; optOutAnswer = true;
+    const reporter = createDashboardReporter({ dataDir: dir, collect: collector(), choice, execute: async (c) => ({ id: c.id, ok: true, message: null, at: Date.now() }), fetch: fetcher }); reporters.push(reporter);
+    await reporter.link("http://127.0.0.1:1");
+    await vi.waitFor(() => expect(calls).toContain("account:true"), { timeout: 15_000 });
+    expect(bodies[0]!.usageOptOut).toBe(true);
+    expect(calls.slice(0, 2)).toEqual(["pushed:true", "account:true"]);
+    reporter.syncChoice();
+    await vi.waitFor(() => expect(bodies.length).toBeGreaterThan(2));
+    expect(bodies.at(-1)!.usageOptOut).toBeUndefined();
+  }, 30_000);
+});
+

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { syncHelpImprove } from "./help-improve";
 import { configure, feature, screen } from "./product-analytics";
 
 export function startDesktopAnalytics(): void {
@@ -7,6 +8,7 @@ export function startDesktopAnalytics(): void {
   const platform = bridge.platform;
   if (platform !== "darwin" && platform !== "win32" && platform !== "linux") return;
   const relay = bridge.productEvents;
+  if (bridge.desktopAnalytics) { setTimeout(() => void syncHelpImprove(), 15_000); setInterval(() => void syncHelpImprove(), 10 * 60_000); }
   if (relay) {
     configure({ origin: null, token: null, relay, platform, version: bridge.app?.version || __APP_VERSION__, kind: "desktop" });
     return;

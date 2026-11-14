@@ -1,10 +1,10 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
-  USAGE_DIGEST_KEYS, USAGE_FRUSTRATION_KEYS, USAGE_SESSION_KEYS, SESSION_NOTE_MAX, cleanUsageSession, USAGE_RUN_KEYS, USAGE_TURN_KEYS, categorize, cleanUsageFrustration, cleanUsageReport, cleanUsageTurn, failureReason, scrubSummary, toolSignals,
+  USAGE_DIGEST_KEYS, USAGE_FRUSTRATION_KEYS, USAGE_SESSION_KEYS, SESSION_NOTE_MAX, cleanUsageSession, USAGE_RUN_KEYS, USAGE_TURN_KEYS, categorize, cleanUsageDigest, cleanUsageFrustration, cleanUsageReport, cleanUsageTurn, failureReason, scrubSummary, toolSignals,
   type UsageFrustration, type UsageSession,
 } from "../shared/usage-signals.ts";
 import { parseWorkspaceReport } from "../shared/dashboard-protocol.ts";
@@ -324,5 +324,81 @@ describe("frustration watch", () => {
     const parsed = cleanUsageReport({ turns: [], runs: [], digests: [{ id: "digest0001", at: NOW, turns: 40, days: 4, summary }, { id: "digest0002", at: NOW, turns: 40, days: 4, summary: "Mail Bob" }] }, NOW)!;
     expect(parsed.digests).toHaveLength(1);
     expect(Object.keys(parsed.digests![0]!).sort()).toEqual([...USAGE_DIGEST_KEYS].sort());
+  });
+});
+
+describe("notes survive quitting the app", () => {
+  const dirs: string[] = [];
+  afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }); });
+  const folder = () => { const dir = mkdtempSync(join(tmpdir(), "quit-")); dirs.push(dir); return dir; };
+  const flush = () => new Promise(resolve => setTimeout(resolve, 0));
+  const frustration = () => cleanUsageFrustration({ id: "frustrate1", at: NOW, engine: "claude", category: "email", tools: ["app"], apps: ["gmail"], signals: ["retried"], retries: 2,
+    summary: "bot kept failing to draft a reply in the email app; the person retried and gave up." }, NOW);
+  const session = () => cleanUsageSession({ id: "session0001", at: NOW, engine: "claude", category: "coding", tools: ["terminal"], apps: [], turns: 18, minutes: 40, failed: 1,
+    summary: "a long coding session in the terminal; tests ran fine." }, NOW);
+  const digest = () => cleanUsageDigest({ id: "digest00001", at: NOW, turns: 40, days: 4, summary: "uses it mostly for research and file work with a few routines." }, NOW);
+
+  it("keeps the notes a report has not carried yet, and gives them to the next launch's first report", () => {
+    const file = join(folder(), "usage-outbox.json");
+    const first = createUsageOutbox({ now: () => NOW, file });
+    first.frustration(frustration()); first.session(session()); first.digest(digest());
+    // the app quits here; the next launch reads the file
+    const second = createUsageOutbox({ now: () => NOW, file });
+    expect(second.size()).toMatchObject({ frustrations: 1, sessions: 1, digests: 1 });
+    const report = second.take()!;
+    expect(report.frustrations).toEqual([frustration()]); expect(report.sessions).toEqual([session()]); expect(report.digests).toEqual([digest()]);
+    // taken for a report: a launch after that does not send them again
+    expect(createUsageOutbox({ now: () => NOW, file }).size()).toMatchObject({ frustrations: 0, sessions: 0, digests: 0 });
+    // a report that failed puts them back, on disk too
+    second.requeue(report);
+    expect(createUsageOutbox({ now: () => NOW, file }).size()).toMatchObject({ frustrations: 1, sessions: 1, digests: 1 });
+  });
+  it("sends nothing from the file while switched off, and forgets it", () => {
+    const file = join(folder(), "usage-outbox.json");
+    createUsageOutbox({ now: () => NOW, file }).frustration(frustration());
+    let on = false;
+    const off = createUsageOutbox({ now: () => NOW, file, enabled: () => on });
+    expect(off.take()).toBeNull();
+    on = true;
+    expect(createUsageOutbox({ now: () => NOW, file }).size().frustrations).toBe(0);
+  });
+  it("reads only what a report would accept from the file", () => {
+    const file = join(folder(), "usage-outbox.json");
+    writeFileSync(file, JSON.stringify({ frustrations: [{ ...frustration(), summary: "Email jane.doe@acme.com about the plan", signals: ["evil"] }, { nonsense: true }], sessions: "no", digests: [digest()] }));
+    expect(createUsageOutbox({ now: () => NOW, file }).size()).toMatchObject({ frustrations: 0, sessions: 0, digests: 1 });
+    writeFileSync(file, "{broken");
+    expect(createUsageOutbox({ now: () => NOW, file }).size().frustrations).toBe(0);
+  });
+  it("ends a session left open by a quit after the next start, and writes its note", async () => {
+    const dataDir = folder();
+    let now = NOW;
+    const turn: FrustrationTurn = { engine: "claude", category: "coding", tools: ["terminal"], apps: ["github"], outcome: "ok", ms: 20_000 };
+    const before = createFrustrationWatch({ dataDir, now: () => now, report: () => {} });
+    for (let i = 0; i < BIG_SESSION_TURNS; i++) { before.turn("c1", "bot_1", turn); now += 60_000; }
+    // the app quits with the session still open; the next launch is 3 hours later
+    now += 3 * 3_600_000;
+    const sessions: UsageSession[] = [];
+    const after = createFrustrationWatch({ dataDir, now: () => now, report: () => {}, reportSession: record => sessions.push(record),
+      describe: async () => "a long coding session in the terminal with github; tests ran fine but signing in took 2 tries." });
+    after.sweep(); await flush();
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0]).toMatchObject({ engine: "claude", category: "coding", tools: ["terminal"], apps: ["github"], turns: BIG_SESSION_TURNS, failed: 0 });
+    expect(sessions[0]!.summary).toContain("signing in took 2 tries");
+    // it is ended once: a third launch has nothing open
+    const third = createFrustrationWatch({ dataDir, now: () => now + 1000, report: () => {}, reportSession: record => sessions.push(record) });
+    third.sweep(); await flush();
+    expect(sessions).toHaveLength(1);
+  });
+  it("keeps a session that is still within its gap open across the restart", async () => {
+    const dataDir = folder();
+    let now = NOW;
+    const turn: FrustrationTurn = { engine: "claude", category: "coding", tools: [], apps: [], outcome: "ok", ms: 20_000 };
+    const before = createFrustrationWatch({ dataDir, now: () => now, report: () => {} });
+    for (let i = 0; i < BIG_SESSION_TURNS - 1; i++) { before.turn("c1", "bot_1", turn); now += 1000; }
+    const sessions: UsageSession[] = [];
+    const after = createFrustrationWatch({ dataDir, now: () => now, report: () => {}, reportSession: record => sessions.push(record) });
+    after.turn("c1", "bot_1", turn); now += SESSION_GAP_MS + 1; after.sweep(); await flush();
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0]!.turns).toBe(BIG_SESSION_TURNS);
   });
 });

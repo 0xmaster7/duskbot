@@ -228,6 +228,27 @@ describe("hosted dashboard service", () => {
     } finally { Object.assign(WORKSPACE_LIMITS, saved); }
   });
 
+  it("keeps the app's help-improve switch and the account's one setting, both ways", async () => {
+    const cookie = await login();
+    const id = await claim(cookie);
+    const answer = async (seq: number, extra: object = {}) => readJson<{ usageOptOut?: boolean }>(signed("/v1/report", id, { ...report(seq), ...extra }).send());
+    expect((await answer(1)).usageOptOut).toBe(false);
+    // the app turned it off: the account's switch follows, and the answer says so
+    expect((await answer(2, { usageOptOut: true })).usageOptOut).toBe(true);
+    const sharing = async () => (await readJson<{ optOut: boolean }>(fetch(`${url}/v1/account/analytics`, { headers: { cookie } }))).optOut;
+    expect(await sharing()).toBe(true);
+    // a report that says nothing leaves it off; the app turned it back on
+    expect((await answer(3)).usageOptOut).toBe(true);
+    expect((await answer(4, { usageOptOut: false })).usageOptOut).toBe(false);
+    expect(await sharing()).toBe(false);
+    // the account's own page turns it off: the next answer tells the app
+    const put = await fetch(`${url}/v1/account/analytics`, { method: "PUT", headers: { cookie, [CSRF_HEADER]: csrf.get(cookie) ?? "", "content-type": "application/json", origin }, body: JSON.stringify({ optOut: true }) });
+    expect(put.status).toBe(200);
+    expect((await answer(5)).usageOptOut).toBe(true);
+    // a malformed value is dropped like any bad section
+    expect((await answer(6, { usageOptOut: "yes" })).usageOptOut).toBe(true);
+  });
+
   it("stores sections independently, reports live freshness, and restores sections from disk", async () => {
     const cookie = await login();
     const id = await claim(cookie);

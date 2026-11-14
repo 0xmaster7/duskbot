@@ -7,7 +7,7 @@ import { join } from "node:path";
 
 import { writeFileAtomic } from "./atomic.ts";
 import {
-  MAX_REPORT_FRUSTRATIONS, MAX_REPORT_RUNS, MAX_REPORT_SESSIONS, SESSION_NOTE_MAX, cleanUsageSession, MAX_REPORT_SIGNALS, MAX_REPORT_TURNS, categorize, cleanUsageFrustration, cleanUsageRun, cleanUsageSnapshot, cleanUsageTurn, engineFamily, failureReason,
+  MAX_REPORT_FRUSTRATIONS, MAX_REPORT_RUNS, cleanUsageDigest, MAX_REPORT_SESSIONS, SESSION_NOTE_MAX, cleanUsageSession, MAX_REPORT_SIGNALS, MAX_REPORT_TURNS, categorize, cleanUsageFrustration, cleanUsageRun, cleanUsageSnapshot, cleanUsageTurn, engineFamily, failureReason,
   appAction, modelFamily, runTrigger, scrubSummary, toolSignals, type RunEvery, type UsageSignal,
   type FrustrationSignal, type UsageFrom, type UsageFrustration, type UsageOutcome, type UsagePlace, type UsageReport, type UsageRun, type UsageSnapshot, type UsageTurn, type UsageDigest, type UsageSession,
 } from "../shared/usage-signals.ts";
@@ -55,9 +55,24 @@ export function turnRecord(facts: TurnFacts, place: UsagePlace, now: number): Us
 }
 
 /** records waiting for the next dashboard report: memory only, oldest dropped past the cap */
-export function createUsageOutbox(options: { now?: () => number; snapshot?: () => UsageSnapshot | null; enabled?: () => boolean } = {}) {
+export function createUsageOutbox(options: { now?: () => number; snapshot?: () => UsageSnapshot | null; enabled?: () => boolean; file?: string } = {}) {
   const now = options.now ?? Date.now;
   let turns: UsageTurn[] = [], runs: UsageRun[] = [], frustrations: UsageFrustration[] = [], sessions: UsageSession[] = [], digests: UsageDigest[] = [], signals: UsageSignal[] = [];
+  // the notes (a bad chat, a big session, the weekly one) wait on disk until a report carries them, so quitting the app
+  // before the next report does not lose them; they come back through the same cleaning as a report's
+  const list = (value: unknown) => Array.isArray(value) ? value.slice(0, 50) : [];
+  try {
+    if (options.file) {
+      const saved = JSON.parse(readFileSync(options.file, "utf8")) as Record<string, unknown>;
+      frustrations = list(saved.frustrations).map(item => cleanUsageFrustration(item, now())).filter((item): item is UsageFrustration => !!item).slice(-MAX_REPORT_FRUSTRATIONS);
+      sessions = list(saved.sessions).map(item => cleanUsageSession(item, now())).filter((item): item is UsageSession => !!item).slice(-MAX_REPORT_SESSIONS);
+      digests = list(saved.digests).map(item => cleanUsageDigest(item, now())).filter((item): item is UsageDigest => !!item).slice(-2);
+    }
+  } catch {}
+  const persist = () => {
+    if (!options.file) return;
+    try { writeFileAtomic(options.file, JSON.stringify({ frustrations, sessions, digests }), { mode: 0o600, durable: false }); } catch {}
+  };
   const seenRuns = new Set<string>();
   const on = () => options.enabled?.() !== false;
   const cap = <T>(list: T[], max: number) => list.length > max ? list.slice(-max) : list;
@@ -74,9 +89,9 @@ export function createUsageOutbox(options: { now?: () => number; snapshot?: () =
         ...(ms !== undefined ? { ms } : {}), ...about }, now());
       if (record) runs = cap([...runs, record], OUTBOX_RUNS);
     },
-    frustration(record: UsageFrustration | null) { if (record && on()) frustrations = cap([...frustrations, record], MAX_REPORT_FRUSTRATIONS); },
-    session(record: UsageSession | null) { if (record && on()) sessions = cap([...sessions, record], MAX_REPORT_SESSIONS); },
-    digest(record: UsageDigest | null) { if (record && on()) digests = cap([...digests, record], 2); },
+    frustration(record: UsageFrustration | null) { if (record && on()) { frustrations = cap([...frustrations, record], MAX_REPORT_FRUSTRATIONS); persist(); } },
+    session(record: UsageSession | null) { if (record && on()) { sessions = cap([...sessions, record], MAX_REPORT_SESSIONS); persist(); } },
+    digest(record: UsageDigest | null) { if (record && on()) { digests = cap([...digests, record], 2); persist(); } },
     /** a named workspace signal; `clean` is cleanSignal from shared/product-signals.ts, and a signal it refuses is dropped */
     signal(name: string, props: Record<string, unknown>, clean: (name: unknown, props: unknown) => UsageSignal["props"] | null) {
       if (!on()) return;
@@ -85,11 +100,12 @@ export function createUsageOutbox(options: { now?: () => number; snapshot?: () =
     },
     /** the next report's usage section, taken out of the outbox; `requeue` puts it back when the report fails */
     take(): UsageReport | null {
-      if (!on()) { turns = []; runs = []; frustrations = []; sessions = []; digests = []; signals = []; return null; }
+      if (!on()) { const had = frustrations.length + sessions.length + digests.length; turns = []; runs = []; frustrations = []; sessions = []; digests = []; signals = []; if (had) persist(); return null; }
       const snapshot = (() => { try { return cleanUsageSnapshot(options.snapshot?.()); } catch { return null; } })();
       const report: UsageReport = { turns: turns.slice(0, MAX_REPORT_TURNS), runs: runs.slice(0, MAX_REPORT_RUNS), ...(frustrations.length ? { frustrations } : {}), ...(sessions.length ? { sessions } : {}),
         ...(digests.length ? { digests } : {}), ...(signals.length ? { signals: signals.slice(0, MAX_REPORT_SIGNALS) } : {}), ...(snapshot ? { snapshot } : {}) };
-      turns = turns.slice(MAX_REPORT_TURNS); runs = runs.slice(MAX_REPORT_RUNS); frustrations = []; sessions = []; digests = []; signals = signals.slice(MAX_REPORT_SIGNALS);
+      turns = turns.slice(MAX_REPORT_TURNS); runs = runs.slice(MAX_REPORT_RUNS); signals = signals.slice(MAX_REPORT_SIGNALS);
+      if (frustrations.length || sessions.length || digests.length) { frustrations = []; sessions = []; digests = []; persist(); }
       return report.turns.length || report.runs.length || report.frustrations || report.sessions || report.digests || report.signals || report.snapshot ? report : null;
     },
     requeue(report: UsageReport) {
@@ -98,6 +114,7 @@ export function createUsageOutbox(options: { now?: () => number; snapshot?: () =
       sessions = cap([...(report.sessions ?? []), ...sessions], MAX_REPORT_SESSIONS);
       digests = cap([...(report.digests ?? []), ...digests], 2);
       signals = cap([...(report.signals ?? []), ...signals], OUTBOX_RUNS);
+      if (report.frustrations || report.sessions || report.digests) persist();
     },
     size: () => ({ turns: turns.length, runs: runs.length, frustrations: frustrations.length, sessions: sessions.length, digests: digests.length, signals: signals.length }),
     /** this week's turns so far by category and tool, for the digest's prompt */
@@ -189,17 +206,34 @@ export function createFrustrationWatch(deps: {
   const now = deps.now ?? Date.now;
   const file = deps.dataDir ? join(deps.dataDir, "frustration.json") : null;
   let kept: Kept = { turns: 0, sent: [], big: [], days: {}, digestAt: 0 };
+  let saved: Record<string, unknown> = {};
   try {
     if (file) {
-      const saved = JSON.parse(readFileSync(file, "utf8")) as Partial<Kept>;
+      saved = JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>;
       const days = saved.days && typeof saved.days === "object" ? Object.fromEntries(Object.entries(saved.days).filter(([key, value]) => /^\d{4}-\d{2}-\d{2}$/.test(key) && Number.isSafeInteger(value))) : {};
-      kept = { turns: Number.isSafeInteger(saved.turns) ? saved.turns! : 0, sent: Array.isArray(saved.sent) ? saved.sent.filter(Number.isSafeInteger) : [],
-        big: Array.isArray(saved.big) ? saved.big.filter(Number.isSafeInteger) : [], days, digestAt: Number.isSafeInteger(saved.digestAt) ? saved.digestAt! : 0 };
+      kept = { turns: Number.isSafeInteger(saved.turns) ? saved.turns as number : 0, sent: Array.isArray(saved.sent) ? saved.sent.filter(Number.isSafeInteger) : [],
+        big: Array.isArray(saved.big) ? saved.big.filter(Number.isSafeInteger) : [], days, digestAt: Number.isSafeInteger(saved.digestAt) ? saved.digestAt as number : 0 };
     }
   } catch {}
   let dirty = false;
-  const save = () => { if (!file || !dirty) return; dirty = false; try { writeFileAtomic(file, JSON.stringify(kept), { mode: 0o600, durable: false }); } catch {} };
   const chats = new Map<string, ChatState>(), fired = new Map<string, number>(), sessions = new Map<string, Session>(), bigFired = new Map<string, number>();
+  // a session still open when the app quits is written with the counts and ended by the sweep after the next start
+  const num = (value: unknown) => typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
+  const words_ = (value: unknown, max: number) => Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.length <= 40).slice(0, max) : [];
+  if (saved.open && typeof saved.open === "object" && !Array.isArray(saved.open)) {
+    for (const [threadId, raw] of Object.entries(saved.open as Record<string, unknown>).slice(0, 500)) {
+      const v = raw as Record<string, unknown> | null;
+      if (!v || typeof v !== "object" || threadId.length > 100) continue;
+      const start = num(v.start), last = num(v.last), turns = num(v.turns), failed = num(v.failed), busyMs = num(v.busyMs);
+      if (start === null || last === null || turns === null || failed === null || busyMs === null || typeof v.engine !== "string" || typeof v.botId !== "string") continue;
+      const categories = new Map<UsageTurn["category"], number>();
+      if (Array.isArray(v.categories)) for (const pair of v.categories.slice(0, 20)) if (Array.isArray(pair) && typeof pair[0] === "string" && num(pair[1]) !== null) categories.set(pair[0] as UsageTurn["category"], pair[1] as number);
+      sessions.set(threadId, { start, last, turns, failed, busyMs, tools: new Set(words_(v.tools, 20) as UsageTurn["tools"]), apps: new Set(words_(v.apps, 30)), categories, engine: v.engine as UsageTurn["engine"], botId: v.botId });
+    }
+  }
+  const openSessions = () => Object.fromEntries([...sessions].map(([threadId, s]) => [threadId, { start: s.start, last: s.last, turns: s.turns, failed: s.failed, busyMs: s.busyMs,
+    tools: [...s.tools], apps: [...s.apps], categories: [...s.categories], engine: s.engine, botId: s.botId }]));
+  const save = () => { if (!file || !dirty) return; dirty = false; try { writeFileAtomic(file, JSON.stringify({ ...kept, open: openSessions() }), { mode: 0o600, durable: false }); } catch {} };
   const recent = () => {
     const since = new Date(now() - 6 * DAY_MS).toISOString().slice(0, 10);
     const days = Object.entries(kept.days).filter(([day]) => day >= since);
@@ -252,7 +286,7 @@ export function createFrustrationWatch(deps: {
     const at = now();
     for (const [threadId, session] of sessions) {
       if (at - session.last < SESSION_GAP_MS) continue;
-      sessions.delete(threadId);
+      sessions.delete(threadId); dirty = true;
       if (!isBig(session) || !deps.reportSession || (bigFired.get(threadId) ?? 0) > at - BIG_CHAT_COOLDOWN_MS) continue;
       kept.big = kept.big.filter(when => when > at - WEEK_MS);
       if (kept.big.length >= BIG_PER_WEEK || kept.big.filter(when => when > at - DAY_MS).length >= BIG_PER_DAY) continue;
@@ -270,6 +304,7 @@ export function createFrustrationWatch(deps: {
       if (!deps.describe) send();
       else void deps.describe({ threadId, botId: session.botId, stats }).then(text => send(scrubSummary(text, SESSION_NOTE_MAX)), () => send());
     }
+    save();
   }
   function sessionTurn(threadId: string, botId: string, turn: FrustrationTurn) {
     const at = now(), open = sessions.get(threadId);
@@ -305,14 +340,13 @@ export function createFrustrationWatch(deps: {
       const today = day();
       kept.days[today] = (kept.days[today] ?? 0) + 1;
       if (Object.keys(kept.days).length > 10) kept.days = Object.fromEntries(Object.entries(kept.days).sort(([a], [b]) => a.localeCompare(b)).slice(-8));
-      dirty = true;
-      if (kept.turns <= MIN_WORKSPACE_TURNS || kept.turns % 10 === 0) save();
+      dirty = true; save();
       if (turn.outcome === "cancelled") add(chat, "stopped");
       if (turn.outcome === "failed") chat.fails = [...chat.fails.filter(at => at > now() - FAIL_WINDOW_MS), now()];
       check(threadId, chat);
     },
     thumbsDown(threadId: string) { const chat = state(threadId); add(chat, "thumbs_down"); check(threadId, chat); },
-    forget(threadId: string) { chats.delete(threadId); sessions.delete(threadId); },
+    forget(threadId: string) { chats.delete(threadId); if (sessions.delete(threadId)) { dirty = true; save(); } },
     /** call every few minutes, so a session's note is written once it goes quiet even when nothing else happens */
     sweep,
     flush: () => { dirty = true; save(); },

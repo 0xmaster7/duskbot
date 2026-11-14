@@ -31,3 +31,16 @@ export function useHelpImprove() {
   };
   return { on, failed, set };
 }
+
+let lastSynced: boolean | null = null;
+/** the account can turn the switch off (or on again) from its own page, and the server follows on its next report: the
+ * app's own analytics and the desktop's crash reports follow the server's answer, now and every few minutes */
+export async function syncHelpImprove(): Promise<void> {
+  try {
+    const answer = await api<{ enabled: boolean }>(ROUTE);
+    if (typeof answer.enabled !== "boolean" || answer.enabled === lastSynced) return;
+    lastSynced = answer.enabled;
+    setUsageAnalytics(answer.enabled);
+    void window.duskDesktop?.desktopAnalytics?.set?.(answer.enabled)?.catch(() => {});
+  } catch {}
+}

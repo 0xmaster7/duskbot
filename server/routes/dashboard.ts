@@ -6,10 +6,12 @@ import { PASS } from "./table.ts";
 import type { RouteHandler } from "./table.ts";
 
 export interface DashboardRouteDeps {
-  reporter: ReturnType<typeof createDashboardReporter>;
+  reporter: Omit<ReturnType<typeof createDashboardReporter>, "syncChoice">;
   linkAgentBase(): string | null;
   /** the usage-signals switch the desktop app's usage-analytics setting drives */
   usageSignals?: { choice(): { enabled: boolean }; set(next: { enabled: boolean }): void };
+  /** called after the person changes the switch, so the account hears of it at once */
+  onUsageChoice?(): void;
   env?: NodeJS.ProcessEnv;
   fetch?: typeof fetch;
 }
@@ -31,6 +33,7 @@ export function createDashboardRoutes(deps: DashboardRouteDeps): RouteHandler {
         const body = await readBody(req) as { enabled?: unknown } | null;
         if (!body || typeof body !== "object" || typeof body.enabled !== "boolean") return json(res, 400, { error: "Expected { enabled: boolean }." });
         deps.usageSignals.set({ enabled: body.enabled });
+        deps.onUsageChoice?.();
       }
       return json(res, 200, deps.usageSignals.choice());
     }

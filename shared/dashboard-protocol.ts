@@ -157,13 +157,20 @@ export interface WorkspaceReport {
   apps?: AppsReport;
   /** structured usage since the last report (usage-signals.ts); the service rolls it up and never keeps it on the workspace */
   usage?: UsageReport;
+  /** the person changed "help improve dusk bot" in the app: true is off. The service sets the account's switch to match
+   * (off also deletes what it stored); sent until a report gets through */
+  usageOptOut?: boolean;
   /** cpu and memory samples newer than the last report's, sent only while someone watches (machine-pulse.ts) */
   pulse?: PulseSample[];
   results?: CommandResult[];
 }
 
 /** answer to POST /v1/report and GET /v1/wait */
-export interface ReportAnswer { v: 1; watching: boolean; nextReportMs: number; commands: DashboardCommand[] }
+export interface ReportAnswer {
+  v: 1; watching: boolean; nextReportMs: number; commands: DashboardCommand[];
+  /** the account's "help improve dusk bot" switch (true is off), so the app follows a change made on the account */
+  usageOptOut?: boolean;
+}
 
 /** POST /v1/enroll: a workspace introduces its ed25519 public key (spki der, base64) and gets a one-time claim link */
 export interface EnrollRequest { v: 1; publicKey: string; name: string; kind: WorkspaceKind; version: string }
@@ -275,6 +282,7 @@ const dashboardSections: Record<string, DashboardParser> = {
   apps: dashboardObject({ available: dashboardBoolean, complete: dashboardBoolean,
     services: dashboardArray(dashboardObject({ slug: input => appSlug(input) ?? dashboardInvalid, connected: dashboardBoolean, pending: dashboardBoolean }), 500) }),
   pulse: input => parsePulse(input) ?? dashboardInvalid,
+  usageOptOut: dashboardBoolean,
   usage: input => cleanUsageReport(input, Date.now(), (name, props) => cleanSignal(name, props, "workspace")) ?? dashboardInvalid,
   results: dashboardArray(input => {
     const result = dashboardObject({ id: dashboardId, ok: dashboardBoolean, message: dashboardNullable(dashboardText()), at: dashboardNumber })(input);

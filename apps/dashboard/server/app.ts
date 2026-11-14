@@ -505,7 +505,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     const delivery = queued.map(({ id, kind, target, issuedAt, expiresAt }) => ({ id, kind, target, issuedAt, expiresAt }));
     for (const command of queued) { command.status = "sent"; deliveredAt.set(command.id, now()); }
     if (queued.length) store.changed();
-    return { v: 1, watching: watched, nextReportMs: watched ? FAST_REPORT_MS : SLOW_REPORT_MS, commands: delivery };
+    return { v: 1, watching: watched, nextReportMs: watched ? FAST_REPORT_MS : SLOW_REPORT_MS, commands: delivery, ...(ws.ownerAccountId ? { usageOptOut: analytics.optedOut(ws.ownerAccountId) } : {}) };
   }
   function watch(owner: Account) {
     const wasWatching = (watching.get(owner.id) ?? -Infinity) > now();
@@ -828,6 +828,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
           }
         }
         if (ws.ownerAccountId && workspaceTurns(ws) > 0) analytics.botReplied(ws.ownerAccountId);
+        // the app's switch is the account's switch: off here deletes what was stored, on again lets it flow
+        if (ws.ownerAccountId && report.usageOptOut !== undefined && report.usageOptOut !== analytics.optedOut(ws.ownerAccountId)) await analytics.setOptOut(ws.ownerAccountId, report.usageOptOut);
         if (report.usage) void usage.ingest(ws.ownerAccountId, ws.id, report.usage);
         // a plain report changes only its own workspace row: with 2000 computers reporting, diffing every row per
         // report held the whole service (measured 2026-11-14 on the contabo box)
