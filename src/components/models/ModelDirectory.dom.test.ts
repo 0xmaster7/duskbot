@@ -47,7 +47,7 @@ describe("Settings > Models", () => {
     serve("computer");
     flushSync(() => root.render(createElement(ModelDirectory)));
     await settle();
-    expect(host.querySelector("[data-model-directory-place]")?.textContent).toContain("saved on this computer");
+    expect(host.querySelector("[data-model-directory-place]")?.textContent).toContain("Saved on this computer");
     expect(host.querySelector('[data-provider-row="anthropic"]')?.textContent).toContain("Connected");
     expect(host.querySelector('[data-provider-row="ollama"]')?.textContent).toContain("Not running");
     expect(host.querySelector('[data-provider-section="local"]')?.textContent).toContain("CLIProxyAPI");

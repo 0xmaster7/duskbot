@@ -76,7 +76,7 @@ export function ModelDirectory() {
               </button>
             )}
           </div>
-          <p data-model-directory-place className="m-0 px-2 text-[12px] leading-4 text-ink-tertiary">{placeLine(answer.place)}</p>
+          <p data-model-directory-place className="m-0 text-[12px] leading-4 text-ink-tertiary">{placeLine(answer.place)}</p>
         </div>
         {query.trim()
           ? <SearchResults hits={hits} query={query} onConnect={open} />

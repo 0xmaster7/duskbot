@@ -18,7 +18,7 @@ export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = [
     items: [
       {
         id: "command-palette",
-        description: "Open command palette (switcher & transcript search)",
+        description: "Search bots and chats",
         macKeys: ["⌘", "K"],
         winKeys: ["Ctrl", "K"],
       },
@@ -30,19 +30,19 @@ export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = [
       },
       {
         id: "jump-bot",
-        description: "Jump to bot 1–9 in the roster",
+        description: "Go to bot 1–9",
         macKeys: ["⌘", "1–9"],
         winKeys: ["Ctrl", "1–9"],
       },
       {
         id: "toggle-sidebar",
-        description: "Collapse or expand the sidebar",
+        description: "Show or hide the sidebar",
         macKeys: ["⌘", "\\"],
         winKeys: ["Ctrl", "\\"],
       },
       {
         id: "switch-bot",
-        description: "Switch to previous / next bot",
+        description: "Previous or next bot",
         macKeys: ["⌘", "⇧", "[ / ]"],
         winKeys: ["Ctrl", "Shift", "[ / ]"],
       },
@@ -65,19 +65,19 @@ export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = [
       },
       {
         id: "new-line",
-        description: "Insert new line without sending",
+        description: "New line",
         macKeys: ["⇧", "Return"],
         winKeys: ["Shift", "Enter"],
       },
       {
         id: "send-follow-up",
-        description: "While a bot works: queue instead of steering, or the other way round",
+        description: "Queue or steer while a bot works",
         macKeys: ["⌘", "Return"],
         winKeys: ["Ctrl", "Enter"],
       },
       {
         id: "voice-input",
-        description: "Start voice input, or finish it and put the words in the chat bar",
+        description: "Talk to type",
         macKeys: ["⌘", "⇧", "D"],
         winKeys: ["Ctrl", "Shift", "D"],
       },
@@ -95,19 +95,19 @@ export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = [
       },
       {
         id: "edit-last-message",
-        description: "Edit last message (when composer is empty)",
+        description: "Edit your last message",
         macKeys: ["↑"],
         winKeys: ["↑"],
       },
       {
         id: "close-panel",
-        description: "Close active drawer, modal, or find bar",
+        description: "Close",
         macKeys: ["Esc"],
         winKeys: ["Esc"],
       },
       {
         id: "shortcuts-cheat-sheet",
-        description: "Show keyboard shortcuts cheat sheet",
+        description: "Keyboard shortcuts",
         macKeys: ["⌘", "/"],
         winKeys: ["Ctrl", "/"],
       },
@@ -118,13 +118,13 @@ export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = [
     items: [
       {
         id: "live-call-mute",
-        description: "Mute or unmute a live call",
+        description: "Mute or unmute",
         macKeys: ["⌘", "⇧", "M"],
         winKeys: ["Ctrl", "Shift", "M"],
       },
       {
         id: "live-call-hang-up",
-        description: "Hang up a live call",
+        description: "Hang up",
         macKeys: ["⌘", "⇧", "H"],
         winKeys: ["Ctrl", "Shift", "H"],
       },
@@ -135,13 +135,13 @@ export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = [
     items: [
       {
         id: "save-bulletin",
-        description: "Save group instruction changes",
+        description: "Save group instructions",
         macKeys: ["⌘", "Return"],
         winKeys: ["Ctrl", "Enter"],
       },
       {
         id: "reorder-section",
-        description: "Reorder sidebar sections (focus a section heading)",
+        description: "Move a sidebar section",
         macKeys: ["⌥", "↑ / ↓"],
         winKeys: ["Alt", "↑ / ↓"],
       },

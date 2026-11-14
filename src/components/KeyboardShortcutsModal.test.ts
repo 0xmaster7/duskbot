@@ -40,7 +40,7 @@ describe("KeyboardShortcutsModal", () => {
     fixture.sendKey = sendKey;
     const html = renderToStaticMarkup(createElement(KeyboardShortcutsModal, { open: true, onClose: vi.fn() }));
     expect(keys(html, "Send message")).toEqual(send);
-    expect(keys(html, "Insert new line without sending")).toEqual(newLine);
+    expect(keys(html, "New line")).toEqual(newLine);
     fixture.sendKey = "enter";
   });
 

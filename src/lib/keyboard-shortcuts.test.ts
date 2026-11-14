@@ -12,7 +12,7 @@ import {
 describe("keyboard-shortcuts", () => {
   it("lists ⌘\\ or Ctrl+\\ for collapsing the sidebar, and matches only that chord", () => {
     const item = SHORTCUT_GROUPS.flatMap((group) => group.items).find((entry) => entry.id === "toggle-sidebar")!;
-    expect(item).toMatchObject({ description: "Collapse or expand the sidebar", macKeys: ["⌘", "\\"], winKeys: ["Ctrl", "\\"] });
+    expect(item).toMatchObject({ description: "Show or hide the sidebar", macKeys: ["⌘", "\\"], winKeys: ["Ctrl", "\\"] });
     const chord = { key: "\\", metaKey: true, ctrlKey: false, shiftKey: false, altKey: false, defaultPrevented: false };
     expect(isSidebarToggle(chord)).toBe(true);
     expect(isSidebarToggle({ ...chord, metaKey: false, ctrlKey: true })).toBe(true);

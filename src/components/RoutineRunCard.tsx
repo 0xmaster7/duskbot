@@ -11,7 +11,7 @@ const DETAIL_LIMIT = 280;
 
 const COPY = {
   queued: { label: "routineRun.status.queued", tone: "text-ink-secondary" },
-  running: { label: "routineRun.status.running", tone: "text-accent" },
+  running: { label: "routineRun.status.running", tone: "text-accent-text" },
   waiting: { label: "routineRun.status.waiting", tone: "text-warning" },
   completed: { label: "routineRun.status.completed", tone: "text-ink-secondary" },
   failed: { label: "routineRun.status.failed", tone: "text-danger" },
