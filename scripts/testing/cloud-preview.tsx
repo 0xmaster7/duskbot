@@ -90,7 +90,7 @@ window.fetch = async (input, init) => {
     const selectedMode = mode;
     if (transport.capturing || selectedMode === "contended") {
       transport.conflicts++;
-      return json({ error: "this bot's cloud computer is being changed — wait for it to finish" }, 409);
+      return json({ error: "this bot's cloud computer is being changed: wait for it to finish" }, 409);
     }
     if (selectedMode === "held") {
       transport.capturing = true;
