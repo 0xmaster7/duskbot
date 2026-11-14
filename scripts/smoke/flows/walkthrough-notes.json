@@ -22,11 +22,5 @@
     "surface": "app",
     "match": "free backup is busy",
     "note": "broken: the first message on this Mac gets \"Connect your AI to keep chatting. The free backup is busy right now.\" (same in a run with nothing else going on); a new person on the free model never gets a first reply"
-  },
-  {
-    "section": "3",
-    "surface": "browser",
-    "match": "you are signed in[\\s\\S]*MacBook-Pro is signed in too|no workspace yet",
-    "note": "confusing: the website's \"signed in\" page sits beside a dashboard that says \"no workspace yet\" and a \"keep them working\" cloud upsell, while the person is in the middle of linking their own server"
   }
 ]
