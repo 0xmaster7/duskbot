@@ -606,5 +606,8 @@ describe("withAccountFace", () => {
     expect(withAccountFace({ email: "ada@example.test", name: "Own", avatarUrl: "/own.png" }, account)).toEqual({ email: "ada@example.test", name: "Own", avatarUrl: "/own.png" });
     expect(withAccountFace({ email: "bob@example.test" }, account)).toEqual({ email: "bob@example.test" });
     expect(withAccountFace({ email: "bob@example.test" }, null)).toEqual({ email: "bob@example.test" });
+    // a profile with no address of its own (this computer's) takes the account's, so the computer's initial never stands in
+    expect(withAccountFace({}, { ...account, id: "acc_1" })).toMatchObject({ email: "ada@example.test", face: { id: "acc_1" } });
+    expect(withAccountFace({ name: "Siddharth" }, account)).toMatchObject({ email: "ada@example.test", name: "Siddharth" });
   });
 });

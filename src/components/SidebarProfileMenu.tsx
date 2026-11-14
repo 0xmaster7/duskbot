@@ -74,7 +74,7 @@ export function withAccountFace(profile: { name?: string; email?: string; avatar
   if (own && own !== account.email.trim().toLowerCase()) return profile;
   // the avatar the person picked on their account shows over this place's own photo; without a pick, the place's photo stays
   const face = account.id && (account.avatar || !profile?.avatarUrl) ? { face: { id: account.id, ...(account.avatarUrl ? { avatarUrl: account.avatarUrl } : {}), ...(account.avatar ? { avatar: account.avatar } : {}) } } : {};
-  return { ...(profile ?? { email: account.email }), ...(!profile?.name?.trim() && account.name ? { name: account.name } : {}), ...(!profile?.avatarUrl && account.avatarUrl ? { avatarUrl: account.avatarUrl } : {}), ...face };
+  return { ...profile, ...(!own ? { email: account.email } : {}), ...(!profile?.name?.trim() && account.name ? { name: account.name } : {}), ...(!profile?.avatarUrl && account.avatarUrl ? { avatarUrl: account.avatarUrl } : {}), ...face };
 }
 
 /** What `UserFace` draws for a person: an id to seed the drawn head, and the photo and choice that may stand in for it. */
