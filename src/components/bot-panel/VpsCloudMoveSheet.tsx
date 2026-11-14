@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Loader2 } from "../../icons";
 
-import { moneyBackLine, offerTrialDays, usd } from "@/lib/cloud-plan";
+import { cloudPlanLabel, moneyBackLine, usd } from "@/lib/cloud-plan";
 import { arrivedList, ipcErrorText, listOf } from "@/lib/cloud-send";
 import { t } from "@/lib/i18n";
 import { useOtherServerName } from "@/lib/other-server";
-import { SIGN_IN_FIRST, useVpsCloudMove, useVpsCloudOffer, type VpsCloudMoveView, type VpsMoveCounts } from "@/lib/vps-cloud-move";
+import { cheapestPlan, SIGN_IN_FIRST, useVpsCloudMove, useVpsCloudOffer, type VpsCloudMoveView, type VpsMoveCounts } from "@/lib/vps-cloud-move";
 import { useStore } from "@/state/store";
 import { GrokDialog, mdPrimaryCls, mdSecondaryCls } from "../ui/GrokDialog";
 import { PlaceArt } from "../ui/PlaceArt";
@@ -53,9 +53,11 @@ export function VpsCloudMoveSheet({ onClose }: { onClose: () => void }) {
   if (!bridge || !view || !step) return null;
   const place = "place" in view ? view.place : (serverName ?? "");
   const bots = state.bots.filter((bot) => !bot.hidden && !bot.movedTo).length;
-  const trialDays = offerTrialDays(offer);
-  const cheapest = offer?.plans.length ? Math.min(...offer.plans.map((plan) => plan.amount)) : null;
-  const price = cheapest !== null ? usd(cheapest / 100) : null;
+  // Get dusk cloud buys the cheapest plan, named with its price before the browser opens
+  const plan = cheapestPlan(offer);
+  const planName = plan ? plan.label ?? cloudPlanLabel(plan.tier) : null;
+  const price = plan ? usd(plan.amount / 100) : null;
+  const trialDays = plan?.trialDays ?? null;
   const moneyBack = moneyBackLine(offer);
 
   const run = (work: () => Promise<VpsCloudMoveView>, onError?: (message: string | null) => boolean) => {
@@ -69,7 +71,7 @@ export function VpsCloudMoveSheet({ onClose }: { onClose: () => void }) {
   };
   // signed out, main opens the sign-in over this page and the checkout follows it (view.signingIn); an app with no sign-in
   // of its own still never sends the person elsewhere first: the account sheet, or this computer's buying sheet
-  const buy = () => run(() => bridge.buy("pro"), (message) => {
+  const buy = () => run(() => bridge.buy(plan?.tier === "pro" ? "pro" : "plus"), (message) => {
     if (message !== SIGN_IN_FIRST) return false;
     if (window.duskDesktop?.cloudAccount) { onClose(); dispatch({ type: "openCloudAdd", source: "app_computer_move", signIn: true }); return true; }
     if (window.duskDesktop?.accountSheet) { void window.duskDesktop.accountSheet.open().catch(() => {}); return true; }
@@ -116,7 +118,7 @@ export function VpsCloudMoveSheet({ onClose }: { onClose: () => void }) {
             <Perk>{t("vpsMove.perk.server")}</Perk>
             <Perk>{t("vpsMove.perk.awake", { device })}</Perk>
           </ul>
-          {price && <p data-cloud-move-price="" className="text-ink">{trialDays ? t("cloudMove.trialPrice", { days: trialDays, price }) : t("cloudMove.price", { price })}</p>}
+          {price && planName && <p data-cloud-move-price="" className="text-ink">{trialDays ? t("vpsMove.planTrial", { plan: planName, days: trialDays, price }) : t("vpsMove.plan", { plan: planName, price })}</p>}
           <p className={`mt-1 ${note}`}>{[t("vpsMove.afterPay", { place }), moneyBack].filter(Boolean).join(" ")}</p>
         </>}
         {step === "ready" && <>

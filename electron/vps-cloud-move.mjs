@@ -8,7 +8,7 @@
 //
 // What can't go this way: saved logins, 1Password and the keys of connected apps leave a server only over the desktop
 // app's private utility port (server/login-handoff.ts), which a VPS doesn't have. They stay on the VPS, are counted as
-// refused for good (so the move goes on without them), and the done line says to connect them again on My Cloud.
+// refused for good (so the move goes on without them), and the done line says to connect them again on dusk cloud.
 //
 // When the direct path can't run (a VPS too old to be frozen by its owner, or one that keeps failing on its own side)
 // and this computer's bots are the ones that moved to that VPS (`viaMac.available`), the move falls back by itself to
@@ -31,7 +31,7 @@ export const FALLBACK_AFTER = 2;
 const VPS_SIDE = new Set(["local", "freeze"]);
 
 /** What stays on the VPS, in the person's words. */
-export const staysLine = (name) => `Saved logins, 1Password and app keys stay on ${name}. Connect them again on My Cloud.`;
+export const staysLine = (name) => `Saved logins, 1Password and app keys stay on ${name}. Connect them again on dusk cloud.`;
 
 /** The person's choice, read back; null when there is none or it is damaged. */
 export function parseVpsChoice(value) {

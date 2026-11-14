@@ -646,7 +646,8 @@ const bridge = {
     start: () => navigator.userActivation?.isActive === true
       ? ipcRenderer.invoke("vps-cloud-move:start") : Promise.reject(new Error("Choose Move to move your bots.")),
     buy: plan => navigator.userActivation?.isActive === true
-      ? ipcRenderer.invoke("vps-cloud-move:buy", plan === "plus" ? "plus" : "pro") : Promise.reject(new Error("Choose Get dusk cloud to continue.")),
+      ? ipcRenderer.invoke("vps-cloud-move:buy", plan === "pro" ? "pro" : "plus") : Promise.reject(new Error("Choose Get dusk cloud to continue.")),
+    offer: () => ipcRenderer.invoke("vps-cloud-move:offer"),
     retry: () => navigator.userActivation?.isActive === true
       ? ipcRenderer.invoke("vps-cloud-move:retry") : Promise.reject(new Error("Choose Try again to move.")),
     cancel: () => ipcRenderer.invoke("vps-cloud-move:cancel"),

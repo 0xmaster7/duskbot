@@ -47,10 +47,10 @@ test("only the saved server whose page asks is moved; any other page is refused 
   assert.equal(files.get("vps-cloud-choice.json"), undefined);
 });
 
-test("buy first: the checkout opens signed in, as the computer move's checkout, and the move waits for its Cloud", async () => {
+test("buy first: the checkout opens signed in on the cheapest plan (plus) when none is named, and the move waits for its Cloud", async () => {
   const { call, files, asked, tracked } = setup({ state: { status: "connected", account: { id: "acct" } } });
   const view = await call("vps-cloud-move:buy", { origin: VPS.origin }, "not-a-plan");
-  assert.deepEqual(asked, [{ plan: "pro", source: "app_computer_move" }]);
+  assert.deepEqual(asked, [{ plan: "plus", source: "app_computer_move" }]);
   assert.equal(view.stage, "buying");
   assert.equal(files.get("vps-cloud-choice.json").route, "direct");
   assert.deepEqual(tracked.map((entry) => [entry.name, entry.props.step]), [["vps_cloud_move", "buy"]]);

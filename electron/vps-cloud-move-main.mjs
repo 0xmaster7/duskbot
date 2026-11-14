@@ -20,7 +20,7 @@ const PLANS = new Set(["plus", "pro"]);
  *   cloudRead(route: string): Promise<Response>,
  *   file(name: string): { read(): unknown, write(value: unknown): void },
  *   account(): { webHandoff?(options: { plan?: string, source?: string }): Promise<unknown>, continueInBrowser?(intent: object): Promise<{ outcome: string }>,
- *     reopen?(): Promise<unknown>, refresh?(): Promise<unknown>, state?(): any } | null,
+ *     reopen?(): Promise<unknown>, refresh?(): Promise<unknown>, state?(): any, offer?(): Promise<unknown> } | null,
  *   viaMac: { available(place: { origin: string }): boolean, start(place: any): Promise<unknown>, view(): any },
  *   openHome(): void,
  *   lastInput?(): number,
@@ -47,7 +47,7 @@ export function installVpsCloudMoveMain(deps) {
     viaMac: deps.viaMac,
     buy: async (plan) => {
       const client = deps.account();
-      const chosen = PLANS.has(plan) ? plan : "pro";
+      const chosen = PLANS.has(plan) ? plan : "plus";
       if (client?.continueInBrowser) {
         const answer = await client.continueInBrowser({ kind: "upgrade", plan: chosen, source: "app_computer_move" });
         if (answer?.outcome === "failed") throw Object.assign(new Error("The sign-in page didn't open. Try again."), { code: "signin_failed" });
@@ -103,10 +103,12 @@ export function installVpsCloudMoveMain(deps) {
     return yes;
   });
   deps.ipcMain.handle("vps-cloud-move:view", (event) => { reading(event); return viewNow(); });
+  // the plans and prices before the browser opens; public, so signed out too
+  deps.ipcMain.handle("vps-cloud-move:offer", async (event) => { reading(event); return (await deps.account()?.offer?.().catch(() => null)) ?? null; });
   deps.ipcMain.handle("vps-cloud-move:start", async (event) => { const place = acting(event); return move.start(place.id); });
   deps.ipcMain.handle("vps-cloud-move:buy", async (event, plan) => {
     const place = acting(event);
-    await move.start(place.id, { buying: true, plan: PLANS.has(plan) ? plan : "pro" });
+    await move.start(place.id, { buying: true, plan: PLANS.has(plan) ? plan : "plus" });
     return viewNow();
   });
   deps.ipcMain.handle("vps-cloud-move:sign-in", async (event) => { acting(event); await move.signInAgain(); return viewNow(); });

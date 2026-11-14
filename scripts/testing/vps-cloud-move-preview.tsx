@@ -11,7 +11,7 @@ import "../../src/styles.css";
 
 const params = new URLSearchParams(location.search);
 const PLACE = "hetzner-box";
-const STAYS = `Saved logins, 1Password and app keys stay on ${PLACE}. Connect them again on My Cloud.`;
+const STAYS = `Saved logins, 1Password and app keys stay on ${PLACE}. Connect them again on dusk cloud.`;
 const COUNTS = { bots: 1, chats: 142, routines: 4, skills: 5 };
 const STATES: Record<string, VpsCloudMoveView> = {
   "no-cloud": { stage: "none", cloud: "none" },

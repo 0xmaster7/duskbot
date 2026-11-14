@@ -19,6 +19,8 @@ export interface VpsCloudMoveBridge {
   /** Opens the plans on dusk.bot already signed in; signed out, main opens the sign-in here first (`signingIn`) and the
    *  checkout follows it by itself. Rejects with "Sign in to dusk cloud first." only where this app has no sign-in. */
   buy(plan?: "plus" | "pro"): Promise<VpsCloudMoveView>;
+  /** What dusk cloud sells, signed in or out; absent on an older app. */
+  offer?(): Promise<CloudOffer | null>;
   retry(): Promise<VpsCloudMoveView>;
   /** The sign-in a purchase waits on, opened again. */
   signIn?(): Promise<VpsCloudMoveView>;
@@ -53,13 +55,19 @@ export function useVpsCloudMove(enabled: boolean): { bridge: VpsCloudMoveBridge 
 
 /** The plans' price: cloudAdd is the one account bridge a server's page gets. */
 export function useVpsCloudOffer(enabled: boolean): CloudOffer | null {
+  const move = enabled ? window.duskDesktop?.vpsCloudMove : undefined;
   const add = enabled ? window.duskDesktop?.cloudAdd : undefined;
   const [offer, setOffer] = useState<CloudOffer | null>(null);
   useEffect(() => {
-    if (!add?.state) return;
     let alive = true;
-    void add.state().then((view) => { if (alive && view.signedIn) setOffer(view.offer); }, () => {});
+    if (move?.offer) void move.offer().then((next) => { if (alive && next) setOffer(next); }, () => {});
+    else if (add?.state) void add.state().then((view) => { if (alive && view.signedIn) setOffer(view.offer); }, () => {});
     return () => { alive = false; };
-  }, [add]);
+  }, [move, add]);
   return offer;
+}
+
+/** the plan Get dusk cloud buys: the cheapest one on offer (Plus) */
+export function cheapestPlan(offer: CloudOffer | null): CloudOffer["plans"][number] | null {
+  return offer?.plans.length ? offer.plans.reduce((low, plan) => (plan.amount < low.amount ? plan : low)) : null;
 }

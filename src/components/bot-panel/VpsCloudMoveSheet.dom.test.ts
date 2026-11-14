@@ -20,7 +20,7 @@ vi.mock("@/state/store", async (importOriginal) => {
 const { CloudMoveSheet } = await import("./CloudMoveSheet");
 
 const PLACE = "hetzner-box";
-const OFFER = { plans: [{ tier: "pro", amount: 4900, label: "Pro" }, { tier: "starter", amount: 1900, label: "Starter" }], recommended: "pro" };
+const OFFER = { plans: [{ tier: "pro", amount: 5000, label: "Pro" }, { tier: "starter", amount: 2000, label: "Plus" }], recommended: "pro" };
 let root: Root, host: HTMLElement;
 const onClose = vi.fn();
 const settle = async () => { for (let at = 0; at < 5; at++) await new Promise((resolve) => setTimeout(resolve, 0)); };
@@ -85,12 +85,20 @@ describe("move a VPS's bots to dusk cloud", () => {
     await render();
     expect(stage()).toBe("vps-buy");
     expect(text()).toContain(`All 3 bots move straight from ${PLACE}`);
-    expect(text()).toContain("From $19/month + tax.");
+    expect(text(), "the cheapest plan, named with its price, before the browser opens").toContain("Plus: $20/month + tax where applicable.");
     expect(text()).toContain(`After you pay, your bots move from ${PLACE} by themselves.`);
     button("Get dusk cloud")!.click();
     await settle();
-    expect(vps.buy).toHaveBeenCalledWith("pro");
+    expect(vps.buy, "Get dusk cloud buys Plus, not Pro").toHaveBeenCalledWith("plus");
     expect(stage()).toBe("vps-buying");
+  });
+
+  it("signed out: the plan and its price come from the move's own offer, before any sign-in", async () => {
+    const { bridges, vps } = desktop({ stage: "none", cloud: "signed-out" });
+    Object.assign(bridges, { cloudAdd: { state: vi.fn(async () => ({ signedIn: false, hasCloud: false, supported: true, canAdd: true, offer: null, count: 0 })) } });
+    Object.assign(vps, { offer: vi.fn(async () => OFFER) });
+    await render();
+    expect(text()).toContain("Plus: $20/month + tax where applicable.");
   });
 
   it("signed out: buy's refusal opens the sign-in, from this source", async () => {
@@ -188,7 +196,7 @@ describe("move a VPS's bots to dusk cloud", () => {
   });
 
   it("done: what moved, and what stays on the server", async () => {
-    const stays = `Saved logins, 1Password and app keys stay on ${PLACE}. Connect them again on My Cloud.`;
+    const stays = `Saved logins, 1Password and app keys stay on ${PLACE}. Connect them again on dusk cloud.`;
     desktop({ stage: "done", place: PLACE, route: "direct", counts: { bots: 3, chats: 142, routines: 4 }, stays });
     await render();
     expect(text()).toContain("Your bots are on dusk cloud");
