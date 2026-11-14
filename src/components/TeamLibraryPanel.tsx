@@ -19,6 +19,8 @@ import { MAX_TEAM_BACKUP_BYTES } from "../../shared/team-backup";
 import { takeImportName } from "../../shared/import-name";
 import { friendlyError } from "@/lib/plain-error";
 import { glassPopupTopInset } from "@/lib/glass-popup";
+import { readTeamCatalog, shownTeamCatalog } from "@/lib/team-catalog-cache";
+import { takeTemplatesHandoff } from "./SidebarTemplates";
 
 export { TeamImportDetails };
 
@@ -55,8 +57,6 @@ interface DirectoryCandidate {
 
 const DIRECTORY_COLORS = ["cyan", "red", "purple", "green", "orange"] as const;
 
-// the last catalog read, so a second open draws the list at once and only refreshes it quietly
-let shownCatalog: TeamCatalog | null = null;
 const LEAVE_MS = 120;
 
 async function openExternal(url: string): Promise<void> {
@@ -91,8 +91,11 @@ export function TeamLibraryPanel({
   const dialogRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<TeamTab>("explore");
-  const [catalog, setCatalog] = useState<TeamCatalog | null>(shownCatalog);
-  const [catalogLoading, setCatalogLoading] = useState(shownCatalog === null);
+  const [catalog, setCatalog] = useState<TeamCatalog | null>(shownTeamCatalog);
+  // a list that was there at the first frame is drawn with the sheet; only one that arrives later fades in
+  const [catalogArrived, setCatalogArrived] = useState(false);
+  const [catalogLoading, setCatalogLoading] = useState(() => shownTeamCatalog() === null);
+  const [handoff] = useState(takeTemplatesHandoff);
   const [catalogError, setCatalogError] = useState("");
   const [busySlug, setBusySlug] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingTeamImport | null>(null);
@@ -138,13 +141,13 @@ export function TeamLibraryPanel({
   const importedNames = pending?.members.map((member) => takeImportName(member.name, takenNames)) ?? [];
 
   const loadCatalog = useCallback(async () => {
-    const quiet = shownCatalog !== null;
+    const quiet = shownTeamCatalog() !== null;
     if (!quiet) setCatalogLoading(true);
     setCatalogError("");
     try {
-      // SAFETY: this endpoint is owned by the app and returns TeamCatalog.
-      shownCatalog = (await api("/api/team-library/catalog")) as TeamCatalog;
-      setCatalog(shownCatalog);
+      const read = await readTeamCatalog();
+      if (!quiet) setCatalogArrived(true);
+      setCatalog(read);
     } catch (cause) {
       if (!quiet) setCatalogError(friendlyError(cause));
     } finally {
@@ -446,6 +449,7 @@ export function TeamLibraryPanel({
       // the top clears the macOS traffic lights and the Windows caption buttons, as every pop-up's does
       style={{ paddingTop: glassPopupTopInset() }}
       data-leaving={leaving ? "" : undefined}
+      data-handoff={handoff ? "" : undefined}
       onMouseDown={(event) => event.target === event.currentTarget && !importing && leave()}
     >
       <div
@@ -657,7 +661,7 @@ export function TeamLibraryPanel({
                     </div>
                   )}
                   {!catalogLoading && catalog && (
-                    <div className="templates-fade grid grid-cols-1 gap-x-10 md:grid-cols-2">
+                    <div className={cn("grid grid-cols-1 gap-x-10 md:grid-cols-2", catalogArrived && "templates-fade")}>
                       {visibleTeams.map((entry, index) => {
                         const copy = catalogCopy(entry);
                         return (

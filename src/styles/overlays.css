@@ -116,6 +116,10 @@
 .settings-backdrop {
   animation: overlay-fade-in 160ms var(--ease-out-bencho);
 }
+/* Templates opened from Connect apps: that window's scrim is already up and leaves in the same commit, so this one
+   takes over still, with no scrim fade or sheet rise to flash the bare app between them. */
+.ui-dialog-scrim[data-handoff]:not([data-leaving]),
+.ui-dialog-scrim[data-handoff]:not([data-leaving]) > .templates-sheet { animation: none !important; }
 :is(.ui-scrim, .ui-dialog-scrim)[data-leaving] { pointer-events: none; animation: overlay-fade-out 120ms var(--ease-out-bencho) forwards; }
 .templates-fade { animation: overlay-fade-in 160ms var(--ease-out-bencho); }
 .templates-wait { animation: overlay-fade-in 160ms var(--ease-out-bencho) 200ms backwards; }

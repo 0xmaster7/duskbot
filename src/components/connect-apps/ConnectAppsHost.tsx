@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { lazyScreen, TeamLibraryPanel } from "../lazy-screens";
-import { openTemplates } from "../SidebarTemplates";
+import { warmTeamCatalog } from "@/lib/team-catalog-cache";
+import { markTemplatesHandoff, openTemplates } from "../SidebarTemplates";
 import { closeConnectApps, useConnectApps } from "./open";
 
 const FIRST_FRAME_WAIT_MS = 600;
@@ -45,7 +46,7 @@ export function ConnectAppsHost() {
   return (
     <>
       {open && createPortal(
-        <ConnectAppsWindow page={page} nonce={nonce} onClose={closeConnectApps} onTemplates={() => { closeConnectApps(); if (!openTemplates()) setTemplates(true); }} />,
+        <ConnectAppsWindow page={page} nonce={nonce} onClose={closeConnectApps} onTemplates={() => { closeConnectApps(); if (!openTemplates(true)) { markTemplatesHandoff(); setTemplates(true); } }} />,
         document.body,
       )}
       {templates && (
@@ -57,4 +58,7 @@ export function ConnectAppsHost() {
 
 export function preloadConnectApps(): void {
   void ConnectAppsWindow.preload().catch(() => {});
+  // the Templates button swaps this window for it in one commit, so its code and list are already here
+  void TeamLibraryPanel.preload().catch(() => {});
+  warmTeamCatalog();
 }

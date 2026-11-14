@@ -26,6 +26,7 @@ import { nextRename } from "@/lib/rename";
 import { useDesktopCapabilities, windowFramed } from "./DesktopCapabilities";
 import { MIN_QUERY, SearchResults } from "./SearchResults";
 import { TeamLibraryPanel } from "./lazy-screens";
+import { warmTeamCatalog } from "@/lib/team-catalog-cache";
 import { openCommandPalette } from "./CommandPalette";
 import { NEW_GROUP_EVENT } from "@/lib/new-group-request";
 import { RenameTitle } from "./RenameTitle";
@@ -832,7 +833,10 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
   // draws in one frame instead of after the fetch
   useEffect(() => {
     if (remoteClient) return;
-    const fetchTemplates = () => void TeamLibraryPanel.preload().catch(() => {});
+    const fetchTemplates = () => {
+      void TeamLibraryPanel.preload().catch(() => {});
+      warmTeamCatalog();
+    };
     if (plusOpen) return fetchTemplates();
     const timer = setTimeout(fetchTemplates, 4_000);
     return () => clearTimeout(timer);
