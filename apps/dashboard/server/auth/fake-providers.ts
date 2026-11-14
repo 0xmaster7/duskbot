@@ -105,7 +105,7 @@ export async function startFakeProviders({ port = 0 }: { port?: number } = {}) {
         }
         const iat = Math.floor(Date.now() / 1000), profile = issued.profile;
         const claims = { iss: `${url}/${id}`, aud: settings.clientId, sub: profile.subject, email: profile.email, email_verified: profile.emailVerified ?? true,
-          ...(id === "google" ? { name: profile.name, ...(profile.hd ? { hd: profile.hd } : {}) } : {}), nonce: issued.nonce, iat, exp: iat + 600 };
+          ...(id === "google" ? { name: profile.name, ...(profile.hd ? { hd: profile.hd } : {}), ...(profile.picture ? { picture: profile.picture } : {}) } : {}), nonce: issued.nonce, iat, exp: iat + 600 };
         const refresh = id === "apple" ? random() : null;
         if (refresh) appleRefresh.set(refresh, settings.clientId);
         return json({ id_token: signToken(claims), token_type: "bearer", ...(refresh ? { refresh_token: refresh } : {}) });
@@ -114,7 +114,7 @@ export async function startFakeProviders({ port = 0 }: { port?: number } = {}) {
         const auth = req.headers.authorization, token = auth?.startsWith("Bearer ") ? tokens.get(auth.slice(7)) : undefined;
         if (!token || token.expiresAt <= Date.now()) throw new Error();
         const profile = token.profile;
-        return json({ data: { id: profile.subject, username: profile.label, name: profile.name, ...(profile.email ? { confirmed_email: profile.email } : {}) } });
+        return json({ data: { id: profile.subject, username: profile.label, name: profile.name, ...(profile.email ? { confirmed_email: profile.email } : {}), ...(profile.picture ? { profile_image_url: profile.picture } : {}) } });
       }
       json({ error: "not_found" }, 404);
     })().catch(() => { if (!res.headersSent) res.writeHead(400, { "content-type": "application/json" }); res.end(JSON.stringify({ error: "invalid_request" })); });

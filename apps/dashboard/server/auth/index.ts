@@ -237,7 +237,8 @@ export function createAuth(options: AuthOptions) {
     return { token, session };
   }
   function identity(owner: Account, session: Session): AppSessionIdentity {
-    return { cloudContractVersion: 1, expiresAt: session.expiresAt, device: { id: session.id }, account: { id: owner.id, email: owner.email } };
+    return { cloudContractVersion: 1, expiresAt: session.expiresAt, device: { id: session.id },
+      account: { id: owner.id, email: owner.email, ...(owner.name ? { name: owner.name } : {}), ...(owner.avatarUrl ? { avatarUrl: owner.avatarUrl } : {}) } };
   }
   /** an account signed in to an app had its first run there: the website never walks it through a second one */
   function onboardedInApp(owner: Account) { if (owner.onboardedAt === undefined) { owner.onboardedAt = now(); store.changed(); } }
@@ -354,6 +355,7 @@ export function createAuth(options: AuthOptions) {
     if (!existing) state.identities.push({ accountId: owner.id, provider, subject: profile.subject, email: profile.email, label: profile.label, addedAt: now(), ...revoke });
     else if (revoke.revoke) existing.revoke = revoke.revoke;
     if (provider !== "x" && owner.name === null && profile.name) owner.name = profile.name;
+    if (profile.picture) owner.avatarUrl = profile.picture;
     store.changed();
   }
   function pendingFor(req: IncomingMessage, id: string) {

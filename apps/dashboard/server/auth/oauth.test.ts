@@ -8,7 +8,7 @@ import { createDashboardApp, type DashboardAppOptions } from "../app.ts";
 import { startFakeProviders } from "./fake-providers.ts";
 import { AUTH_LIMITS } from "./index.ts";
 import { memoryMailer } from "./mail.ts";
-import { providersFromEnv } from "./providers.ts";
+import { pictureUrl, providersFromEnv } from "./providers.ts";
 import { createCloudAccountClient } from "../../../../electron/cloud-account.mjs";
 import { APP_AUTH_REDIRECT, CSRF_HEADER, type AccountAnswer, type AppGrant, type OAuthProvider, type WebSignInAnswer } from "../../../../shared/account-api.ts";
 
@@ -296,6 +296,23 @@ describe("OAuth over isolated HTTP", () => {
     const next = new URL(location(await oauth("x")), url).searchParams.get("pending")!;
     const start = await call("/v1/auth/start", { email: "new@example.test", pending: next }); expect(start.status).toBe(200);
     expect(mailer.outbox.some(message => message.to === "new@example.test")).toBe(false);
+  });
+  it("gives the app the account's name and its google photo, and a later x sign-in's larger photo", async () => {
+    fake.setUser("google", { subject: "google-photo", email: "photo@gmail.com", emailVerified: true, label: "Photo Person", name: "Photo Person", picture: "https://lh3.googleusercontent.test/a/photo=s96-c" });
+    const flow = await appAuthorization();
+    const grant = await (await redeem(flow.target.searchParams.get("code")!, flow.verifier)).json() as AppGrant;
+    expect(grant.account).toEqual({ id: grant.account.id, email: "photo@gmail.com", name: "Photo Person", avatarUrl: "https://lh3.googleusercontent.test/a/photo=s96-c" });
+    const session = await call("/api/cloud/desktop/session", undefined, { authorization: `Bearer ${grant.accessToken}` });
+    expect(await session.json()).toMatchObject({ account: grant.account });
+    await oauth("google");
+    fake.setUser("x", { subject: "x-photo", email: null, label: "photo", name: "X Photo", picture: "https://pbs.twimg.test/profile_images/1/me_normal.jpg" });
+    await oauth("x", "?link=1");
+    const again = await call("/api/cloud/desktop/session", undefined, { authorization: `Bearer ${grant.accessToken}` });
+    expect((await again.json() as AppGrant).account).toMatchObject({ name: "Photo Person", avatarUrl: "https://pbs.twimg.test/profile_images/1/me_400x400.jpg" });
+  });
+  it("keeps only https photos without credentials or ports", () => {
+    expect(pictureUrl("https://lh3.googleusercontent.com/a/x=s96-c")).toBe("https://lh3.googleusercontent.com/a/x=s96-c");
+    for (const bad of ["http://lh3.googleusercontent.com/a", "javascript:alert(1)", "https://user:pass@example.test/a.png", "https://example.test:8443/a.png", `https://example.test/${"a".repeat(1100)}`, 42, null]) expect(pictureUrl(bad), String(bad)).toBeNull();
   });
   it("advertises configured providers and hides unavailable ones in production", async () => {
     expect(await (await call("/v1/auth/providers")).json()).toMatchObject({ providers: ["google", "apple", "x"].map(id => ({ id, enabled: true, comingSoon: false })) });

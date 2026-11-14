@@ -156,7 +156,8 @@ export interface AppGrant {
   accessToken: string;
   expiresAt: number;
   device: { id: string };
-  account: { id: string; email: string };
+  /** `name` and `avatarUrl` (https): absent when the account has none, and from services older than them */
+  account: { id: string; email: string; name?: string; avatarUrl?: string };
 }
 export interface EnrollGrantAnswer { v: 1; enrollToken: string; expiresAt: number; dashboardUrl: string }
 /**

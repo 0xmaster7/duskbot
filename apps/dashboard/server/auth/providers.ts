@@ -13,7 +13,8 @@ export type ProviderConfigs = Partial<Record<OAuthProvider, ProviderConfig>>;
 /** `refreshToken`: Apple's, kept (sealed) only so the account's deletion can revoke it, with the client id that got it
  *  (`refreshClient`: the website's services id, or the iphone app's bundle id); `privateEmail`: an apple private relay
  *  address, which only gets mail from a registered email source (account@dusk.bot) */
-export interface ProviderProfile { subject: string; email: string | null; label: string | null; name: string | null; refreshToken?: string; refreshClient?: string; privateEmail?: boolean }
+/** `picture`: the provider's https profile photo (google, x); apple shares none */
+export interface ProviderProfile { subject: string; email: string | null; label: string | null; name: string | null; picture?: string | null; refreshToken?: string; refreshClient?: string; privateEmail?: boolean }
 export interface NativeAppleInput { identityToken: string; authorizationCode: string; nonce: string; givenName?: string | null; familyName?: string | null }
 export interface Provider {
   id: OAuthProvider;
@@ -26,9 +27,18 @@ export interface Provider {
 const defaults = {
   google: { authorizeUrl: "https://accounts.google.com/o/oauth2/v2/auth", tokenUrl: "https://oauth2.googleapis.com/token", jwksUrl: "https://www.googleapis.com/oauth2/v3/certs", issuers: ["https://accounts.google.com", "accounts.google.com"], scopes: "openid email profile" },
   apple: { authorizeUrl: "https://appleid.apple.com/auth/authorize", tokenUrl: "https://appleid.apple.com/auth/token", revokeUrl: "https://appleid.apple.com/auth/revoke", jwksUrl: "https://appleid.apple.com/auth/keys", issuers: ["https://appleid.apple.com"], scopes: "name email" },
-  x: { authorizeUrl: "https://x.com/i/oauth2/authorize", tokenUrl: "https://api.x.com/2/oauth2/token", userUrl: "https://api.x.com/2/users/me?user.fields=confirmed_email", scopes: "users.read tweet.read" },
+  x: { authorizeUrl: "https://x.com/i/oauth2/authorize", tokenUrl: "https://api.x.com/2/oauth2/token", userUrl: "https://api.x.com/2/users/me?user.fields=confirmed_email,profile_image_url", scopes: "users.read tweet.read" },
 };
 const text = (value: unknown, max: number) => typeof value === "string" && value.trim() && value.trim().length <= max && !Array.from(value).some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127) ? value.trim() : null;
+/** an https photo address the app may show: no credentials, no port games, at most 1024 characters */
+export function pictureUrl(value: unknown): string | null {
+  const address = text(value, 1024);
+  if (!address) return null;
+  try {
+    const url = new URL(address);
+    return url.protocol === "https:" && !url.username && !url.password && !url.port ? url.href : null;
+  } catch { return null; }
+}
 function email(value: unknown) {
   const address = text(value, 254)?.toLowerCase();
   return address && /^[^\s@]{1,64}@[^\s@.]+(?:\.[^\s@.]+)+$/.test(address) ? address : null;
@@ -76,7 +86,9 @@ export function createProviderRegistry(configs: ProviderConfigs = {}, options: {
           const data = result.data as Record<string, unknown> | undefined;
           if (!data || !text(data.id, 256)) throw new Error("Invalid provider subject.");
           // x does not vouch that the address is still the person's today: it never links or creates an account by itself
-          return { subject: data.id as string, email: null, label: text(data.username, 100), name: text(data.name, 80) };
+          // x's profile_image_url is its 48px "_normal" size; the same address with "_400x400" is the full one
+          const picture = pictureUrl(typeof data.profile_image_url === "string" ? data.profile_image_url.replace(/_normal(\.[a-z]+)$/i, "_400x400$1") : null);
+          return { subject: data.id as string, email: null, label: text(data.username, 100), name: text(data.name, 80), picture };
         }
         if (typeof tokens.id_token !== "string" || !config.jwksUrl || !config.issuers) throw new Error("Missing identity token.");
         const claims = await verifyJwt(tokens.id_token, { jwksUrl: config.jwksUrl, issuers: config.issuers, clientId: config.clientId, nonce, algorithms: ["RS256"] });
@@ -90,7 +102,8 @@ export function createProviderRegistry(configs: ProviderConfigs = {}, options: {
         // google is authoritative only for gmail and for a workspace domain (hd); other addresses go through an email code
         const trusted = id !== "google" || (address !== null && (/@(gmail|googlemail)\.com$/.test(address) || (typeof claims.hd === "string" && address.endsWith(`@${claims.hd.toLowerCase()}`))));
         const refreshToken = id === "apple" && typeof tokens.refresh_token === "string" && tokens.refresh_token.length <= 2048 ? tokens.refresh_token : undefined;
-        return { subject: claims.sub as string, email: trusted ? address : null, label: name, name, ...(refreshToken ? { refreshToken, refreshClient: config.clientId } : {}),
+        const picture = id === "google" ? pictureUrl(claims.picture) : null;
+        return { subject: claims.sub as string, email: trusted ? address : null, label: name, name, picture, ...(refreshToken ? { refreshToken, refreshClient: config.clientId } : {}),
           ...(id === "apple" ? { privateEmail: claims.is_private_email === true || claims.is_private_email === "true" } : {}) };
       },
     });

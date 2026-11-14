@@ -4,8 +4,9 @@ import { createJsonStore } from "../billing/json-store.ts";
 import { randomBytes } from "node:crypto";
 import type { NotificationPrefs, OAuthProvider, SessionView } from "../../../../shared/account-api.ts";
 
-/** `notifications`: only what the owner changed (NOTIFICATION_DEFAULTS fill the rest); `onboardedAt`: first-run steps done */
-export interface Account { id: string; email: string; name: string | null; createdAt: number; notifications?: Partial<NotificationPrefs>; onboardedAt?: number }
+/** `notifications`: only what the owner changed (NOTIFICATION_DEFAULTS fill the rest); `onboardedAt`: first-run steps done;
+ *  `avatarUrl`: the photo of the newest google or x sign-in that had one */
+export interface Account { id: string; email: string; name: string | null; avatarUrl?: string; createdAt: number; notifications?: Partial<NotificationPrefs>; onboardedAt?: number }
 /** `revoke`: Apple's newest refresh token per client id (json), sealed with the auth secret, for the revoke on deletion;
  *  never sent to a client */
 export interface Identity { accountId: string; provider: OAuthProvider; subject: string; email: string | null; label: string | null; addedAt: number; revoke?: string }
