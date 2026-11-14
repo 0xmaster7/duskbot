@@ -638,7 +638,7 @@ import { createMcpServerRoutes } from "./routes/mcp-servers.ts";
 import { teamAdminSummary } from "./cloud-team-admin.ts";
 import { createSetupImportRoutes } from "./routes/setup-import.ts";
 import { createComputerRoutes } from "./routes/computers.ts";
-import { createStatusRoutes } from "./routes/status.ts"; import { createDashboardRoutes } from "./routes/dashboard.ts"; import { createDashboardCollector } from "./dashboard-report.ts"; import { createDashboardReporter } from "./dashboard-reporter.ts"; import { createPulseSampler } from "./dashboard-pulse.ts"; import { memoryFiles } from "./cloud-send-memory.ts"; import { createFrustrationWatch, createUsageOutbox, digestPrompt, hashId, sessionPrompt, summaryPrompt, turnRecord } from "./usage-signals.ts"; import { DIGEST_MAX, SESSION_NOTE_MAX, cleanUsageDigest, engineFamily, failureReason, runEvery, scrubSummary } from "../shared/usage-signals.ts"; import { attachmentKind, cleanSignal, sizeBucket } from "../shared/product-signals.ts"; import { createUsageSignalsSwitch } from "./usage-signals-switch.ts"; import { createDashboardCommands } from "./dashboard-commands.ts"; import { dashboardApps } from "./dashboard-apps.ts"; import { createAppSignIns } from "./app-sign-ins.ts";
+import { browserNeedsAutoInstall, createStatusRoutes, startBrowserEngineInstall } from "./routes/status.ts"; import { createBrowserChat } from "./host/browser-chat.ts"; import { sealedFixture } from "./env-path.ts"; import { browserEngineKind } from "./browser/config.ts"; import { createDashboardRoutes } from "./routes/dashboard.ts"; import { createDashboardCollector } from "./dashboard-report.ts"; import { createDashboardReporter } from "./dashboard-reporter.ts"; import { createPulseSampler } from "./dashboard-pulse.ts"; import { memoryFiles } from "./cloud-send-memory.ts"; import { createFrustrationWatch, createUsageOutbox, digestPrompt, hashId, sessionPrompt, summaryPrompt, turnRecord } from "./usage-signals.ts"; import { DIGEST_MAX, SESSION_NOTE_MAX, cleanUsageDigest, engineFamily, failureReason, runEvery, scrubSummary } from "../shared/usage-signals.ts"; import { attachmentKind, cleanSignal, sizeBucket } from "../shared/product-signals.ts"; import { createUsageSignalsSwitch } from "./usage-signals-switch.ts"; import { createDashboardCommands } from "./dashboard-commands.ts"; import { dashboardApps } from "./dashboard-apps.ts"; import { createAppSignIns } from "./app-sign-ins.ts";
 import { findAntigravityLeftovers, removeAntigravityLeftovers } from "./drivers/antigravity-temp.ts";
 import { createLiveRoutes } from "./routes/live.ts";
 import { createNotificationRoutes } from "./routes/notifications.ts";
@@ -2401,6 +2401,30 @@ const emailIntegration = (bot: BotRecord, turn: { threadId: string; generation: 
 
 let browserEngineInstall: Promise<void> | null = null;
 let browserEngineInstallError: string | null = null;
+let browserInstallFailedAt = 0;
+const BROWSER_INSTALL_RETRY_MS = 10 * 60_000;
+const browserInstallDeps = {
+  browserEngineInstall: { get: () => browserEngineInstall, set: (install: Promise<void> | null) => { browserEngineInstall = install; } },
+  browserEngineInstallError: { set: (error: string | null) => { browserEngineInstallError = error; if (error !== null) browserInstallFailedAt = Date.now(); } },
+  broadcast: (payload: Record<string, unknown>) => broadcast(payload),
+  configStatus: () => configStatus(),
+};
+
+/** Called at start and before each turn: a missing engine is fetched rather than leaving bots without a browser. A turn
+ * waits for an install under way, up to a minute and a half, so its browser is there when it starts. */
+async function browserEngineInstalled(): Promise<void> {
+  autoInstallBrowserEngine();
+  const install = browserEngineInstall;
+  if (install) await Promise.race([install.catch(() => {}), new Promise((resolve) => setTimeout(resolve, 90_000).unref?.())]);
+}
+
+function autoInstallBrowserEngine(): void {
+  if (!browserNeedsAutoInstall({ enabled: builtInBrowserEnabled(cfg), engine: browserEngineKind(cfg), status: browserEngineStatus(),
+    installing: Boolean(browserEngineInstall), failed: Date.now() - browserInstallFailedAt < BROWSER_INSTALL_RETRY_MS, sealedTest: sealedFixture(),
+    optedOut: process.env.DUSK_BROWSER_AUTO_INSTALL === "0" })) return;
+  console.log("browser engine: not installed here; installing it for the bots' built-in browser");
+  startBrowserEngineInstall(browserInstallDeps);
+}
 export function browserEngineSummary(): { kind: "engine" | "unavailable"; reason?: string; installable?: boolean; version?: string; chrome?: string; installing?: boolean; installError?: string; myChrome: boolean; serverSites?: boolean; engine: "agent-browser" | "chrome" } {
   const status = browserEngineStatus();
   const progress = { myChrome: myChromeAvailable(), ...(browserEngineInstall ? { installing: true } : {}), ...(browserEngineInstallError ? { installError: browserEngineInstallError } : {}) };
@@ -7421,7 +7445,7 @@ bus.subscribe((event: RuntimeEvent) => {
             ...(tokens ? { usage: { input: tokens.input ?? 0, output: tokens.output ?? 0, ...(typeof tokens.cachedInput === "number" ? { cachedInput: tokens.cachedInput } : {}), costUsd: event.cost ?? null } } : {}),
           }) : Promise.resolve();
         if (resourceOwner) settlingResourceOwners.set(resourceOwner.threadId, resourceOwner.generation);
-        if (bot && browserUsedInTurn.delete(event.threadId)) closeThreadTabsLater(bot.id, event.threadId);
+        if (bot) browserChat.turnEnded(bot.id, event.threadId);
         settlingTurns.add(event.threadId);
         liveTurnByThread.delete(event.threadId);
         const routineReportThread = routineRun ? routineSourceThread(routineRun) : null;
@@ -7438,7 +7462,7 @@ bus.subscribe((event: RuntimeEvent) => {
             finalScreenFrame(bot.id, event.threadId),
             new Promise<null>((resolve) => { timeout = setTimeout(() => resolve(null), SCREEN_SETTLE_TIMEOUT_MS); }),
           ]).then((frame) => {
-            if (frame && isCurrent() && !postedBotScreenshot(event.threadId, resourceOwner?.generation)) {
+            if (frame && isCurrent() && !browserChat.postedScreenshot(event.threadId, resourceOwner?.generation)) {
               store.insertMessageAfter(event.threadId, settleLeafId, { role: "bot", kind: "screen", png: frame.png, mime: frame.mime });
             }
           }).catch(() => {}).finally(() => {
@@ -8102,51 +8126,15 @@ function startScreenPoller(
   screenPollers.set(threadId, entry);
 }
 
-/** A conversation's tabs close a little after its task ends, unless it waits on the person or someone watches the browser. */
-const browserUsedInTurn = new Set<string>();
-const threadTabTimers = new Map<string, ReturnType<typeof setTimeout>>();
-const THREAD_TABS_GRACE_MS = 2 * 60_000;
-const THREAD_TABS_TRIES = 30;
-
-function closeThreadTabsLater(botId: string, threadId: string, tries = 0): void {
-  clearTimeout(threadTabTimers.get(threadId));
-  const timer = setTimeout(() => {
-    threadTabTimers.delete(threadId);
-    const bot = store.bot(botId);
-    if (!bot || threadBusy(botId, threadId) || coordinator.parkedDirect(threadId)) return;
+const browserChat = createBrowserChat({
+  postScreen: (threadId, frame) => { store.appendMessage(threadId, { role: "bot", kind: "screen", ...frame }); },
+  stillNeeded: (botId, threadId) => !store.bot(botId) || threadBusy(botId, threadId) || Boolean(coordinator.parkedDirect(threadId)),
+  runningSession: (botId, threadId) => {
     const session = currentBrowserSession(botId, botForThread(botId, threadId)?.browserProfile, teamHost.browserAudience(threadId));
-    if (!session || !browserRunning(session, usedBrowserSessions.get(session))) return;
-    void browserRuntime.closeThreadTabs(session, threadId).then((outcome) => {
-      if (outcome === "closed") console.info(`browser ${session}: closed the tabs of a finished conversation`);
-      if (outcome === "kept" && tries < THREAD_TABS_TRIES) closeThreadTabsLater(botId, threadId, tries + 1);
-    }, () => {});
-  }, THREAD_TABS_GRACE_MS);
-  timer.unref?.();
-  threadTabTimers.set(threadId, timer);
-}
-
-/** A bot's own browser screenshots go into its chat too, a few a turn and never the same picture twice in a row. */
-const botScreenshots = new Map<string, { generation: string; count: number; hash: string }>();
-const BOT_SCREENSHOTS_PER_TURN = 4;
-
-function postBotScreenshot(threadId: string, generation: string, result: unknown, from?: { botId: string; name: string; color: string }): void {
-  const content = (result as { isError?: boolean; content?: unknown } | null)?.isError ? null : (result as { content?: unknown } | null)?.content;
-  const images = Array.isArray(content) ? content.filter((part): part is { type: "image"; data: string; mimeType: string } =>
-    part?.type === "image" && typeof part.data === "string" && part.data.length > 0 && (part.mimeType === "image/png" || part.mimeType === "image/jpeg")) : [];
-  for (const image of images) {
-    const prior = botScreenshots.get(threadId);
-    const turn = prior?.generation === generation ? prior : { generation, count: 0, hash: "" };
-    const hash = screenFrameHash(image.data);
-    if (turn.count >= BOT_SCREENSHOTS_PER_TURN) return;
-    if (hash === turn.hash) continue;
-    store.appendMessage(threadId, { role: "bot", kind: "screen", png: image.data, mime: image.mimeType, ...(from ? { from } : {}) });
-    botScreenshots.set(threadId, { generation, count: turn.count + 1, hash });
-  }
-}
-
-function postedBotScreenshot(threadId: string, generation: string | undefined): boolean {
-  return Boolean(generation) && botScreenshots.get(threadId)?.generation === generation;
-}
+    return session && browserRunning(session, usedBrowserSessions.get(session)) ? session : null;
+  },
+  closeThreadTabs: (session, threadId) => browserRuntime.closeThreadTabs(session, threadId),
+});
 
 /** The screen this turn works on, as it is now: its browser tab or its computer. */
 async function screenNow(threadId: string): Promise<Frame> {
@@ -9027,6 +9015,7 @@ async function beginTurn(
         instance.adapter.capabilities.browserMcp === true
       ) {
         const selectedProfile = liveBot.browserProfile;
+        await browserEngineInstalled();
         browser = await browserIntegration(bot.id, selectedProfile, { threadId, generation: dispatchClaimId });
         if (browser) integrations.browser = browser.integration;
         if (browser) {
@@ -10887,6 +10876,7 @@ async function runClaimedGroupMemberTurn(
   const earlierInRoom = await roomEarlier.prompt(conversationOfRun(threadId), bot.id, roomWindow.earlier);
   if (roomPlan.browser && !(roomPlan.computer === undefined && roomTeamComputer)) {
     const selectedProfile = readyBot.browserProfile;
+    await browserEngineInstalled();
     const browser = await browserIntegration(readyBot.id, selectedProfile, { threadId, generation: internalGeneration });
     if (browser) integrations.browser = browser.integration;
   }
@@ -13232,8 +13222,8 @@ ROUTES.push(createStatusRoutes({
   store, cfg, outboundCounts,
   staticDir: STATIC_DIR,
   adminActivityRecording, configStatus, broadcast, threadShown,
-  browserEngineInstall: { get: () => browserEngineInstall, set: (install) => { browserEngineInstall = install; } },
-  browserEngineInstallError: { set: (error) => { browserEngineInstallError = error; } },
+  browserEngineInstall: browserInstallDeps.browserEngineInstall,
+  browserEngineInstallError: browserInstallDeps.browserEngineInstallError,
 })); const dashboardCollector = createDashboardCollector({ dataDir: DATA_DIR, cfg, bots: () => store.bots, managedVpsOwners, teamComputers: () => teamComputers.list(), localInventory: localVmInventoryPayload, localRuntime: containerRuntimeStatus, vps, lastUsedAt: (id) => { const bot = store.bot(id); return bot ? Math.max(0, ...(bot.tasks ?? []).map((task) => task.updatedAt ?? 0)) || null : null; }, phones: phoneHost.listOwner, sessions: () => sessions.list(), mobile: mobileLink.state, publicUrl, deviceLabel: () => cfg.computerName || "", checkUpdate: serverUpdateChecker({ desktopManaged: DESKTOP_MANAGED, managed: Boolean(CLOUD_HOME) }), prices: () => null, computerKind: (id) => { const bot = store.bot(id); return bot && inheritedTeamComputer(bot) ? "team" : undefined; }, busy: botHasActiveTurn, engine: (id) => registry.get(id) ?? undefined, routines: () => { const runs = routines?.listRuns() ?? []; return (routines?.listRoutines() ?? []).map((routine) => ({ ...routine, lastRunAt: runs.find((run) => run.routineId === routine.id && run.startedAt !== undefined)?.startedAt ?? null, running: runs.some((run) => run.routineId === routine.id && run.status === "running") })); }, planUsage: () => loadPlanUsage({ accounts: planAccountsFromInstances(instanceConfigs(cfg)) }), apps: () => dashboardApps(cfg, composio, cloudAppsViaConnect() ? () => cloudComposio.apps() : undefined).then((apps) => { appSignIns.settled(apps.services.filter((app) => app.connected).map((app) => app.slug)); return apps; }), workspaceKind: isThisServerVps("this-server") || CLOUD_HOME ? "vps" : undefined }); const dashboardCommands = createDashboardCommands({ port: PORT, collect: dashboardCollector }); dashboardCommandOwner = dashboardCommands.owns; const machinePulse = process.platform === "linux" ? createPulseSampler() : undefined; machinePulse?.start(); const dashboardReporter = createDashboardReporter({ dataDir: DATA_DIR, collect: dashboardCollector, usage: usageOutbox, choice: usageSignals, pulse: machinePulse, execute: dashboardCommands.execute, log: (line) => console.warn(line) }); dashboardReporterRef = dashboardReporter; dashboardReporter.start(); ROUTES.push(createDashboardRoutes({ reporter: dashboardReporter, usageSignals, usageNotes: usageOutbox, onUsageChoice: () => { dashboardReporter.syncChoice(); settingsSyncRef?.touch(); }, linkAgentBase: () => mobileLink.state().agent?.base ?? null }));
 
 ROUTES.push(desktopViewer.route);
@@ -13980,10 +13970,10 @@ const handleRequestInner = async (req: IncomingMessage, res: ServerResponse) => 
           }
         }, stepContext(bot, internalCapability, () => liveTurnByThread.get(internalCapability.threadId) ?? null));
         requireActiveInternalCapability(); if (body.method === "tools/call") { browserSeats.used(internalCapability, browser.session); if (!(result as { isError?: boolean })?.isError) noteVpsTurnActivity(internalCapability); }
-        if (body.method === "tools/call") browserUsedInTurn.add(internalCapability.threadId);
+        if (body.method === "tools/call") browserChat.used(internalCapability.threadId);
         if (body.method === "tools/call" && (params?.name === "agent_browser_screenshot" || params?.name === BATCH_TOOL)) {
           const source = connectorThread(bot.id, internalCapability.threadId);
-          postBotScreenshot(internalCapability.threadId, internalCapability.generation, result, source?.group ? { botId: bot.id, name: bot.name, color: bot.color } : undefined);
+          browserChat.screenshot(internalCapability.threadId, internalCapability.generation, result, source?.group ? { botId: bot.id, name: bot.name, color: bot.color } : undefined);
         }
         const site = body.method === "tools/call" ? landingSite(params?.name, params?.arguments) : null;
         // Security: notes are read for the capability's own bot only, and never into a guest's or the Bot API's turn.
@@ -16290,7 +16280,7 @@ server.listen(PORT, "127.0.0.1", async () => {
   companyRuntimeReady();
   console.log(`duskbot server on http://127.0.0.1:${PORT}`);
   startFreeBackupPreinstall(process.env, () => { registry.forgetSnapshots(); broadcast({ kind: "config", ...configStatus() }); });
-  personWaits.boot(); browserSweep.start(); startCloudTeamPolicy({ cloudHome: CLOUD_HOME, dataDir: DATA_DIR, managed: managedPolicy, sessions }); moveFreeze.hold(() => appTriggers.start(), () => void appTriggers.stop()); startCloudHomeConnectedApps({ cloudHome: CLOUD_HOME !== null, dataDir: DATA_DIR, cloudGrant: CLOUD_ENV.DUSK_CLOUD_CONNECTED_APPS_GRANT, apply: (access) => { composio.setManagedBrokerAccess(access); broadcast({ kind: "config", ...configStatus() }); } });
+  personWaits.boot(); browserSweep.start(); autoInstallBrowserEngine(); startCloudTeamPolicy({ cloudHome: CLOUD_HOME, dataDir: DATA_DIR, managed: managedPolicy, sessions }); moveFreeze.hold(() => appTriggers.start(), () => void appTriggers.stop()); startCloudHomeConnectedApps({ cloudHome: CLOUD_HOME !== null, dataDir: DATA_DIR, cloudGrant: CLOUD_ENV.DUSK_CLOUD_CONNECTED_APPS_GRANT, apply: (access) => { composio.setManagedBrokerAccess(access); broadcast({ kind: "config", ...configStatus() }); } });
   void afterFirstEngineRead().then(() => { if (builtInBrowserEnabled(cfg)) chromeLauncher.start(); }); void updateState?.boot()?.catch((error) => console.warn("[update] self-test failed to run:", error)); if (updateState) routineHost.rerunFree(updateState.takeFreeReruns());
   followupsReady = true;
   drainQueuedSends();

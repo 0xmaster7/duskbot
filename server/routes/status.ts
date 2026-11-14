@@ -32,6 +32,35 @@ export interface StatusRouteDeps {
   threadShown?(auth: RequestAuth): (threadId: string) => boolean;
 }
 
+type InstallDeps = Pick<StatusRouteDeps, "browserEngineInstall" | "browserEngineInstallError" | "broadcast" | "configStatus">;
+
+/** Installs agent-browser and its Chrome for this data directory; one install at a time. */
+export function startBrowserEngineInstall({ browserEngineInstall, browserEngineInstallError, broadcast, configStatus }: InstallDeps): void {
+  if (browserEngineInstall.get()) return;
+  browserEngineInstallError.set(null);
+  browserEngineInstall.set((async () => {
+    const binary = resolveAgentBrowserBinary() ?? await installAgentBrowserBinary({ log: (line) => console.log(line) });
+    await ensureChrome(binary, { log: (line) => console.log(line) });
+  })().then(
+    () => { browserEngineInstallError.set(null); },
+    (error: unknown) => { browserEngineInstallError.set(error instanceof Error ? error.message : String(error)); },
+  ).finally(() => {
+    browserEngineInstall.set(null);
+    broadcast({ kind: "config", ...configStatus() });
+  }));
+  broadcast({ kind: "config", ...configStatus() });
+}
+
+/** A workspace without the built-in browser's engine gets it by itself, as the packaged app ships it: a source checkout, a
+ * fresh workspace after Start fresh, or a self-hosted server. Not again within minutes of a failed try, nor in sealed test servers. */
+export function browserNeedsAutoInstall(input: {
+  enabled: boolean; engine: "agent-browser" | "chrome"; status: { kind: string; installable?: boolean };
+  installing: boolean; failed: boolean; sealedTest: boolean; optedOut: boolean;
+}): boolean {
+  return input.enabled && input.engine === "agent-browser" && input.status.kind === "unavailable" && input.status.installable === true
+    && !input.installing && !input.failed && !input.sealedTest && !input.optedOut;
+}
+
 /** A decision in a conversation the reader may not see keeps its when, which bot, which tool and what was decided (the
  * activity a team's admin sees), never its words or where. */
 function readable(rows: DecisionRow[], shown: (threadId: string) => boolean): DecisionRow[] {
@@ -41,7 +70,7 @@ function readable(rows: DecisionRow[], shown: (threadId: string) => boolean): De
 export function createStatusRoutes(deps: StatusRouteDeps): RouteHandler {
   const {
     store, cfg, outboundCounts, staticDir: STATIC_DIR, adminActivityRecording,
-    configStatus, broadcast, browserEngineInstall, browserEngineInstallError,
+    browserEngineInstall,
   } = deps;
   return async ({ req, res, url, path, method, auth, json, readBody }) => {
     let m: RegExpMatchArray | null = null;
@@ -61,18 +90,7 @@ export function createStatusRoutes(deps: StatusRouteDeps): RouteHandler {
       if (!browserEngineInstall.get()) {
         const status = browserEngineStatus();
         if (status.kind === "unavailable" && !status.installable) return json(res, 409, { error: status.reason });
-        browserEngineInstallError.set(null);
-        browserEngineInstall.set((async () => {
-          const binary = resolveAgentBrowserBinary() ?? await installAgentBrowserBinary({ log: (line) => console.log(line) });
-          await ensureChrome(binary, { log: (line) => console.log(line) });
-        })().then(
-          () => { browserEngineInstallError.set(null); },
-          (error: unknown) => { browserEngineInstallError.set(error instanceof Error ? error.message : String(error)); },
-        ).finally(() => {
-          browserEngineInstall.set(null);
-          broadcast({ kind: "config", ...configStatus() });
-        }));
-        broadcast({ kind: "config", ...configStatus() });
+        startBrowserEngineInstall(deps);
       }
       return json(res, 202, { installing: true });
     }
