@@ -54,6 +54,7 @@ describe("providerBaseUrl", () => {
 describe("where a connection lives", () => {
   it("reads the place from the server's environment", () => {
     expect(placeFromEnv({ DUSK_DESKTOP_PARENT: "1" })).toBe("computer");
+    expect(placeFromEnv({ DUSK_DEV_OWN_SERVER: "1" })).toBe("computer");
     expect(placeFromEnv({ DUSK_CLOUD_ROLE: "home", DUSK_DESKTOP_PARENT: "1" })).toBe("cloud");
     expect(placeFromEnv({ DUSK_CLOUD_ROLE: "team" })).toBe("cloud");
     expect(placeFromEnv({})).toBe("server");

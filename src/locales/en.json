@@ -8938,7 +8938,7 @@
   "models.directory.modelCount": "{count} models",
   "models.directory.moreMatches": "{count} more matches",
   "models.directory.noLocalOnCloud": "Local models like Ollama and LM Studio aren't offered on dusk cloud. They run on your own computer or server.",
-  "models.place.computer": "Saved on this computer.",
+  "models.place.computer": "Saved on this {device}.",
   "models.place.cloud": "Saved on your dusk cloud.",
   "models.place.server": "Saved on this server.",
   "models.section.major": "Popular",

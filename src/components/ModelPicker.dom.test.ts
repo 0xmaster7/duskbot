@@ -448,7 +448,7 @@ describe("searching every provider from the picker", () => {
       expect(menu()).toBeNull();
       const sheet = document.querySelector('[data-panel-modal="connect-provider"]');
       expect(sheet?.textContent).toContain("Connect Groq");
-      expect(sheet?.textContent).toContain("saved on this computer");
+      expect(sheet?.textContent).toContain("Saved on this computer");
     } finally {
       vi.unstubAllGlobals();
     }

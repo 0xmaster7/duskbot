@@ -174,7 +174,8 @@ export function providerOffer(def: ModelProviderDef, place: Place, running: Read
 /** The place a server runs as, from its environment. */
 export function placeFromEnv(env: Record<string, string | undefined>): Place {
   if (env.DUSK_CLOUD_ROLE === "home" || env.DUSK_CLOUD_ROLE === "team") return "cloud";
-  return env.DUSK_DESKTOP_PARENT === "1" ? "computer" : "server";
+  // a source checkout's `pnpm dev:app` runs the harness as the desktop app's own child too (DUSK_DEV_OWN_SERVER)
+  return env.DUSK_DESKTOP_PARENT === "1" || env.DUSK_DEV_OWN_SERVER === "1" ? "computer" : "server";
 }
 
 export interface ConnectableInstance {
