@@ -155,7 +155,7 @@ ships, whichever command you ran it from:
 | Platform | Node | Script |
 |---|---|---|
 | macOS | `/Applications/Dusk Bot.app/Contents/MacOS/Dusk Bot` (or under `~/Applications`) | `…/Contents/Resources/server/duskbot.js` |
-| Ubuntu `.deb` | `/opt/Dusk Bot/duskbot` | `/opt/Dusk Bot/resources/server/duskbot.js` |
+| Ubuntu `.deb` | `/opt/dusk-bot/duskbot` | `/opt/dusk-bot/resources/server/duskbot.js` |
 
 The app's own executable runs as Node with `ELECTRON_RUN_AS_NODE=1`, just as
 the [MCP server](mcp-server.md#from-the-installed-desktop-app) does. App

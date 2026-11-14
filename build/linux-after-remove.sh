@@ -31,8 +31,8 @@ fi
 # remove an unrelated file that now happens to use the same command name.
 if [ "$TEST_MODE" -eq 0 ]; then
   if command -v update-alternatives >/dev/null 2>&1; then
-    update-alternatives --remove duskbot "/opt/Dusk Bot/duskbot"
-  elif [ -L /usr/bin/duskbot ] && [ "$(readlink /usr/bin/duskbot)" = "/opt/Dusk Bot/duskbot" ]; then
+    update-alternatives --remove duskbot "/opt/dusk-bot/duskbot"
+  elif [ -L /usr/bin/duskbot ] && [ "$(readlink /usr/bin/duskbot)" = "/opt/dusk-bot/duskbot" ]; then
     rm -- /usr/bin/duskbot
   fi
 fi

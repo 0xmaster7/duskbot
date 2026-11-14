@@ -259,7 +259,7 @@ keeps one open view under about 15% of a core.
 ## Linux sandbox
 
 Use the `.deb` on Ubuntu 24.04. Its package hooks install a narrowly scoped
-AppArmor policy for the root-owned browser executable under `/opt/Dusk Bot`.
+AppArmor policy for the root-owned browser executable under `/opt/dusk-bot`.
 They do not disable the browser sandbox or change the global user-namespace
 restriction. See [Linux desktop](linux-desktop.md).
 
@@ -285,7 +285,7 @@ node scripts/smoke-browser-bundle.mjs --resources /absolute/app/resources
 
 On macOS, use `/absolute/Dusk Bot.app/Contents/Resources`. On Linux, run as
 an unprivileged user against the installed `.deb` at
-`/opt/Dusk Bot/resources`. This check creates its own empty home and local
+`/opt/dusk-bot/resources`. This check creates its own empty home and local
 web page, checks automatic discovery, navigation, typing/clicking, the
 loopback command relay the server reads, pictures and types through
 (`server/browser-relay.ts`), screenshot delivery and two-bot cookie/storage

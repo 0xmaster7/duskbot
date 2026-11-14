@@ -33,7 +33,7 @@ const executables = [
   path.join(root, "release", appImage),
 ];
 if (process.env.DUSK_SMOKE_INSTALLED_DEB === "1") {
-  executables.push("/opt/Dusk Bot/duskbot");
+  executables.push("/opt/dusk-bot/duskbot");
 }
 
 for (const executable of executables) {

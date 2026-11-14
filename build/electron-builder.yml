@@ -222,9 +222,11 @@ linux:
       to: duckdb/node_modules
     - from: build/linux-dusk-browser.apparmor
       to: duskbot-browser.apparmor
+  # the install folder is /opt/<productName>: package:linux passes -c.productName=dusk-bot, because Chromium splits the
+  # setuid sandbox's path on spaces and "/opt/Dusk Bot" crashed every launch. the name people see is this one
   desktop:
     entry:
-      Name: Dusk Bot
+      Name: dusk bot
       Comment: Your own team of AI bots, in a chat app
       Keywords: AI;Agents;Chat;Productivity;
 

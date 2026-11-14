@@ -152,7 +152,7 @@ export function shippedSentinelCli(
     ? ["/Applications/Dusk Bot.app", join(home, "Applications", "Dusk Bot.app")].map((app) => ({
       node: join(app, "Contents", "MacOS", "Dusk Bot"), script: join(app, "Contents", "Resources", "server", "duskbot.js"),
     }))
-    : platform === "linux" ? [{ node: "/opt/Dusk Bot/duskbot", script: "/opt/Dusk Bot/resources/server/duskbot.js" }] : [];
+    : platform === "linux" ? [{ node: "/opt/dusk-bot/duskbot", script: "/opt/dusk-bot/resources/server/duskbot.js" }] : [];
   return candidates.find((cli) => exists(cli.node) && exists(cli.script) && hasSentinel(cli.script)) ?? null;
 }
 

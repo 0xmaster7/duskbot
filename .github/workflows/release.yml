@@ -476,13 +476,13 @@ jobs:
           sudo chmod 4755 release/linux-unpacked/chrome-sandbox
           test "$(stat -c '%U:%G %a' release/linux-unpacked/chrome-sandbox)" = "root:root 4755"
       - name: "Gate: installed browser works with Ubuntu sandbox restrictions"
-        run: node scripts/smoke-browser-bundle.mjs --resources "/opt/Dusk Bot/resources"
+        run: node scripts/smoke-browser-bundle.mjs --resources "/opt/dusk-bot/resources"
       - name: "Gate: packaged Linux server discovers its browser"
         env:
-          DUSK_SMOKE_DIST: /opt/Dusk Bot/resources/server
-        run: node scripts/smoke-packaged-server.mjs --browser-bundle "/opt/Dusk Bot/resources/browser-engine"
+          DUSK_SMOKE_DIST: /opt/dusk-bot/resources/server
+        run: node scripts/smoke-packaged-server.mjs --browser-bundle "/opt/dusk-bot/resources/browser-engine"
       - name: "Gate: packaged server and phone helper load as ES modules"
-        run: node scripts/check-module-scopes.mjs "/opt/Dusk Bot/resources"
+        run: node scripts/check-module-scopes.mjs "/opt/dusk-bot/resources"
       - name: Smoke the packages
         env:
           DUSK_KEEP_SMOKE_DIR: "1"

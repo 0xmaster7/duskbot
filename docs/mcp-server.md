@@ -100,8 +100,8 @@ On Windows, use the installed `Dusk Bot.exe` as `command`, the adjacent
 `resources\\server\\mcp-server.js` as the argument, and the same `ELECTRON_RUN_AS_NODE=1` environment value.
 The usual per-user install is under `%LOCALAPPDATA%\\Programs\\dusk bot`.
 
-On Ubuntu `.deb` installs, the executable is normally `/opt/Dusk Bot/duskbot` and the script is
-`/opt/Dusk Bot/resources/server/mcp-server.js`. Use the same environment value.
+On Ubuntu `.deb` installs, the executable is normally `/opt/dusk-bot/duskbot` and the script is
+`/opt/dusk-bot/resources/server/mcp-server.js`. Use the same environment value.
 
 ## Connection discovery
 

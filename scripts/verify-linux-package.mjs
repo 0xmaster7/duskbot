@@ -404,10 +404,18 @@ for (const expected of [
   if (!fields.includes(expected)) fail(`DEB metadata is missing ${JSON.stringify(expected)}`);
 }
 
+// Chromium splits the setuid sandbox's path on spaces, so an install folder with a space crashes every launch on
+// Ubuntu 24.04 ("failed to execvp: /opt/Dusk"). package:linux sets a space-free productName for this.
+const debPaths = execFileSync("dpkg-deb", ["--contents", deb], { encoding: "utf8" })
+  .split("\n").map((line) => line.replace(/^.*?\s\.\//, "/").replace(/ -> .*$/, "")).filter((entry) => entry.startsWith("/opt/") && entry !== "/opt/");
+if (!debPaths.length) fail("DEB installs nothing under /opt");
+for (const entry of debPaths) if (!entry.startsWith("/opt/dusk-bot/")) fail(`DEB installs outside /opt/dusk-bot: ${entry}`);
+if (debPaths.some((entry) => /\s/.test(entry.split("/")[2] ?? ""))) fail("the DEB install folder has a space in it");
+
 const extracted = mkdtempSync(path.join(tmpdir(), "dusk-deb-verify-"));
 try {
   execFileSync("dpkg-deb", ["--extract", deb, extracted]);
-  const debAppRoot = path.join(extracted, "opt", "Dusk Bot");
+  const debAppRoot = path.join(extracted, "opt", "dusk-bot");
   requireDirectoryMode(debAppRoot, 0o755);
   const debResources = path.join(debAppRoot, "resources");
   const debHashes = verifyCuaResources(debResources, "DEB");
@@ -440,9 +448,8 @@ try {
   requireFile(scalableIcon);
   const desktop = readFileSync(desktopFile, "utf8");
   for (const expected of [
-    "Name=Dusk Bot",
-    // electron-builder quotes a path with a space, as the desktop entry spec asks
-    'Exec="/opt/Dusk Bot/duskbot" %U',
+    "Name=dusk bot",
+    "Exec=/opt/dusk-bot/duskbot %U",
     "Icon=duskbot",
     "StartupWMClass=bot.dusk.app",
     "Categories=Utility;",
