@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { BATCH, FLUSH_MS, MAX_BACKOFF_MS, MAX_QUEUE, cleanAppEvent, createProductEvents } from "./product-events.mjs";
+import { BATCH, FLUSH_MS, MAX_BACKOFF_MS, MAX_QUEUE, analyticsAllowed, cleanAppEvent, createProductEvents } from "./product-events.mjs";
 
 const INSTALL = "AbCdEfGhIjKlMnOpQrStUv", SESSION = "ZyXwVuTsRqPoNmLkJiHgFe", TOKEN = `omc_${"a".repeat(43)}`;
 const NOW = 1_800_000_000_000;
 
-function harness({ token = () => null, statuses = [] } = {}) {
+function harness({ token = () => null, statuses = [], enabled } = {}) {
   const calls = [], timers = [];
   const fetch = async (url, init) => {
     calls.push({ url, init, body: JSON.parse(init.body) });
@@ -15,7 +15,8 @@ function harness({ token = () => null, statuses = [] } = {}) {
     return new Response(null, { status: next });
   };
   const events = createProductEvents({ origin: "https://preview.dusk.bot", token, platform: "darwin", version: "1.2.3", fetch, now: () => NOW,
-    setTimer: (fn, ms) => { const timer = { fn, ms }; timers.push(timer); return timer; }, clearTimer: timer => { const at = timers.indexOf(timer); if (at >= 0) timers.splice(at, 1); }, random: () => 1 });
+    setTimer: (fn, ms) => { const timer = { fn, ms }; timers.push(timer); return timer; }, clearTimer: timer => { const at = timers.indexOf(timer); if (at >= 0) timers.splice(at, 1); }, random: () => 1,
+    ...(enabled === undefined ? {} : { enabled }) });
   return { events, calls, timers };
 }
 const event = (name = "app_feature", props = { feature: "bot_created" }) => ({ name, at: NOW - 1000, props });
@@ -154,4 +155,33 @@ test("the last batch drops the queue, posts once without retry, and nothing ride
   events.action("cloud_move_offer", { step: "shown" });
   await events.flush();
   assert.equal(calls.length, 1, "main's own events wait for the page, which sends nothing now");
+});
+
+test("only a packaged app outside CI reports: dev, worktree, CI and flagged smoke runs do not", () => {
+  assert.equal(analyticsAllowed({ packaged: true, env: {} }), true, "the owner's installed app");
+  assert.equal(analyticsAllowed({ packaged: true, env: { CI: "false" } }), true);
+  assert.equal(analyticsAllowed({ packaged: false, env: {} }), false, "dev and worktree builds");
+  assert.equal(analyticsAllowed({ packaged: true, env: { DUSK_ANALYTICS: "0" } }), false, "smoke and e2e launches");
+  assert.equal(analyticsAllowed({ packaged: true, env: { CI: "true" } }), false, "CI runners");
+  assert.equal(analyticsAllowed({ packaged: true, env: { CI: "1" } }), false);
+});
+
+test("an app with analytics off posts nothing: no page batch, no main action, no last batch, no install for notes", async () => {
+  for (const env of [{ packaged: false, env: {} }, { packaged: true, env: { DUSK_ANALYTICS: "0" } }]) {
+    const { events, calls, timers } = harness({ enabled: analyticsAllowed(env) });
+    assert.equal(events.send({ install: INSTALL, session: SESSION, events: [event()] }), false);
+    assert.equal(events.action("account_sign_in", { step: "shown" }), false);
+    assert.equal(await events.last({ install: INSTALL, events: [event()] }), false);
+    await events.flush();
+    await events.close();
+    assert.equal(events.install(), null);
+    assert.equal(events.size(), 0);
+    assert.equal(timers.length, 0);
+    assert.equal(calls.length, 0);
+  }
+  const on = harness({ enabled: analyticsAllowed({ packaged: true, env: {} }) });
+  assert.equal(on.events.send({ install: INSTALL, session: SESSION, events: [event()] }), true);
+  await on.events.flush();
+  assert.equal(on.calls.length, 1, "the packaged app's batch is posted");
+  assert.equal(on.calls[0].url, "https://preview.dusk.bot/v1/app/events");
 });

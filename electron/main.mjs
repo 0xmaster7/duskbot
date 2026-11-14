@@ -95,7 +95,7 @@ import { aboutPanelOptions, buildApplicationMenu } from "./menu.mjs"; import { i
 import { acquireDataDirLease } from "./data-dir-lease.mjs";
 import { switchLocalEnvironment } from "./environment-switch.mjs";
 import { createManagedDesktopClient, createManagedDesktopRelay, createManagedDesktopStore } from "./managed-desktop.mjs";
-import { createProductEvents } from "./product-events.mjs"; import { createUsageNotes } from "./usage-notes.mjs";
+import { analyticsAllowed, createProductEvents } from "./product-events.mjs"; import { createUsageNotes } from "./usage-notes.mjs";
 import { createAccountErrors } from "./account-errors.mjs";
 import { CHECKOUT_SOURCES, cloudMenuSublabel, cloudTarget, createCloudAccountClient, createCloudAccountStore } from "./cloud-account.mjs"; import { isAppLink } from "./cloud-signin.mjs";
 import { ACCOUNT_PAGES, installCloudPlanIpc } from "./cloud-plan-ipc.mjs";
@@ -618,7 +618,9 @@ import { createLoopbackRelay } from "./auth-loopback-relay.mjs";
 const { isLocalSender: senderIsLocal, localOnly, localOnlySync, setLocalOrigin } = localOriginModule;
 /** This computer's page, or My Cloud's own page once it is home (home-window.mjs). */
 const localOrHome = (channel, handler) => (event, ...args) => (homeWindow.homePage(event) ? handler : localOnly(channel, handler))(event, ...args);
-const productEvents = createProductEvents({ origin: cloudTarget(process.env).origin, token: () => cloudAccount?.eventToken?.() ?? null, platform: process.platform, version: app.getVersion() });
+// only the installed app reports usage; dev, worktree, CI and smoke runs (DUSK_ANALYTICS=0) send nothing
+const productEvents = createProductEvents({ origin: cloudTarget(process.env).origin, token: () => cloudAccount?.eventToken?.() ?? null, platform: process.platform, version: app.getVersion(),
+  enabled: analyticsAllowed({ packaged: app.isPackaged, env: process.env }) });
 ipcMain.handle("product-events:send", localOrHome("product-events:send", (_event, batch) => productEvents.send(batch)));
 ipcMain.handle("product-events:clear", localOrHome("product-events:clear", () => productEvents.clear()));
 ipcMain.handle("product-events:last", localOrHome("product-events:last", (_event, batch) => productEvents.last(batch)));

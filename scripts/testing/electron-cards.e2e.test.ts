@@ -66,6 +66,7 @@ const CARD_TOOLS = [
       ELECTRON_START_URL: `http://127.0.0.1:${uiPort}`,
       NODE_OPTIONS: `--require ${join(REPO_ROOT, "scripts", "testing", "electron-hidden.cjs")}`,
       DUSK_ERROR_REPORTS: "0",
+      DUSK_ANALYTICS: "0",
     };
     const userData = join(dataDir, "electron");
     const binary = createRequire(join(REPO_ROOT, "package.json"))("electron") as unknown as string;

@@ -51,14 +51,22 @@ export function cleanAppEvent(input, at = Date.now()) {
   return { name: input.name, at: when, props: clean };
 }
 
+/** Usage analytics leave only an installed (packaged) app, and never a CI, e2e or smoke launch: those set
+ * DUSK_ANALYTICS=0 (or run with CI set), so test builds never count as installs. */
+export function analyticsAllowed({ packaged, env = process.env }) {
+  const ci = typeof env.CI === "string" && env.CI !== "" && env.CI !== "0" && env.CI.toLowerCase() !== "false";
+  return packaged === true && env.DUSK_ANALYTICS !== "0" && !ci;
+}
+
 /** Posts the desktop renderer's usage events to the account service from main, with this computer's account token when
  * it is signed in and the renderer's install id either way; batches, retries with backoff and keeps at most MAX_QUEUE
  * events while offline. */
 export function createProductEvents({ origin, token = () => null, platform, version, fetch: fetcher = globalThis.fetch, now = Date.now,
-  setTimer = setTimeout, clearTimer = clearTimeout, random = Math.random }) {
+  setTimer = setTimeout, clearTimer = clearTimeout, random = Math.random, enabled = true }) {
   const endpoint = `${new URL(origin).origin}/v1/app/events`;
   const app = { platform: String(platform), version: VERSION.test(String(version)) ? String(version) : "0.0.0" };
-  let queue = [], timer = null, sending = null, failures = 0, closed = false;
+  // off (a dev, CI or smoke run): every event is dropped here, nothing is ever posted
+  let queue = [], timer = null, sending = null, failures = 0, closed = !enabled;
   /** The install and session of the page's last batch: main's own events ride with them, and wait until one came. */
   let rider = null, waiting = [];
 

@@ -121,7 +121,7 @@ export async function launchSmokeApp({ root, profile, env: extra = {}, log: prin
     PATH: process.env.PATH, HOME: home, USERPROFILE: home, TMPDIR: join(profile, "tmp"), LANG: "en_US.UTF-8",
     DUSK_PORT: String(port), DUSK_WEBHOOK_PORT: String(webhookPort), DUSK_DATA_DIR: dataDir,
     DUSK_DEV_OWN_SERVER: "1", DUSK_DEV_SERVER_WATCH: "0", DUSK_NO_TEST_BOTS: "1",
-    DUSK_CLOUD_STAGING: "1", DUSK_ERROR_REPORTS: "0",
+    DUSK_CLOUD_STAGING: "1", DUSK_ERROR_REPORTS: "0", DUSK_ANALYTICS: "0",
     ELECTRON_START_URL: `http://127.0.0.1:${uiPort}`,
     DUSK_SMOKE_EVENTS: eventsFile, DUSK_SMOKE_PROFILE: profile, DUSK_LOG_DIR: join(profile, "app-paths", "logs"),
     ...extra,

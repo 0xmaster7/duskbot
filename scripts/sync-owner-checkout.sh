@@ -10,6 +10,8 @@
 # Env: DUSK_OWNER_CHECKOUT (default ~/Desktop/code/OpenMausBot), DUSK_SMOKE_HOME (default ~/.cache/dusk-smoke),
 # DUSK_SMOKE_SSH_HOST (owner's server, default oracle), DUSK_CLOUD_PACKAGE_HOST (preview host, default contabo).
 set -eu
+# smoke launches never report usage analytics (electron/product-events.mjs analyticsAllowed)
+export DUSK_ANALYTICS=0
 OWNER=${DUSK_OWNER_CHECKOUT:-$HOME/Desktop/code/OpenMausBot}
 HOME_DIR=${DUSK_SMOKE_HOME:-$HOME/.cache/dusk-smoke}
 WT=$HOME_DIR/gate-worktree

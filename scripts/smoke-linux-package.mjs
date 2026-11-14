@@ -188,6 +188,8 @@ if (!brokerAddress || typeof brokerAddress === "string") {
 
 const desktopEnv = {
   ...process.env,
+  // a smoke launch of the installed package must never count as an install in usage analytics
+  DUSK_ANALYTICS: "0",
   HOME: home,
   XDG_CONFIG_HOME: xdgConfig,
   XDG_RUNTIME_DIR: xdgRuntime,
