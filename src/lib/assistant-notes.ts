@@ -158,6 +158,8 @@ export interface NotesOutcome {
   /** Bots an earlier part made that this part added to. */
   joined?: number;
   routines?: number;
+  /** The person's own skills, added to the first bot. */
+  skills?: number;
 }
 
 async function writeAboutMe(text: string, context: Pick<NotesContext, "team" | "dispatch">): Promise<string> {
@@ -211,6 +213,52 @@ async function saveMemories(notes: AssistantNotes, botId: string | null): Promis
   return await mergeTopic(botId, notesMemoryFile(notes), (before) => notesMemoryText(notes, before)) ? notes.memories.length : 0;
 }
 
+/** The person's own routines (not one of the bots'), as real routines of the first bot: paused, as any routine that
+ * moves in is, until they switch it on. One already there with the same name and words is not made again. Those with no
+ * readable clock are left for the open threads note. */
+async function saveRoutines(notes: AssistantNotes, botId: string | null): Promise<{ made: number; kept: AssistantNotes["recurring"] }> {
+  if (!botId || !notes.recurring.length) return { made: 0, kept: notes.recurring };
+  const { notesRoutineSchedule } = await import("../../shared/grok-import");
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const there = await api<{ routines?: Array<{ botId?: string; name?: string; prompt?: string }> }>("/api/routines").then((answer) => answer.routines ?? [], () => []);
+  const same = (a = "", b = "") => a.trim().toLowerCase() === b.trim().toLowerCase();
+  let made = 0;
+  const kept: AssistantNotes["recurring"] = [];
+  for (const task of notes.recurring) {
+    const schedule = notesRoutineSchedule(task, timeZone);
+    if (!schedule) { kept.push(task); continue; }
+    const name = (task.name || task.instruction.split(/\s+/).slice(0, 6).join(" ")).slice(0, 80);
+    if (there.some((one) => one.botId === botId && same(one.name, name) && same(one.prompt, task.instruction))) { made += 1; continue; }
+    try {
+      await api("/api/routines", { method: "POST", body: JSON.stringify({ botId, name, prompt: task.instruction, schedule, enabled: false }) });
+      made += 1;
+    } catch { kept.push(task); }
+  }
+  return { made, kept };
+}
+
+/** The person's own skills, on the first bot, switched off until they read them, like any skill that moves in. */
+async function saveSkills(notes: AssistantNotes, botId: string | null): Promise<number> {
+  if (!botId || !notes.skills.length) return 0;
+  const { notesSkillTemplate } = await import("../../shared/grok-import");
+  const there = await api<{ skills?: Array<{ name: string }> }>(`/api/bots/${encodeURIComponent(botId)}/skills`).then((answer) => answer.skills ?? [], () => []);
+  const taken = new Set(there.map((skill) => skill.name));
+  let added = 0;
+  for (const skill of notes.skills) {
+    // the same skill brought in before is there under its own name: not added twice
+    const base = notesSkillTemplate(skill, new Set())?.name;
+    const entry = base && !taken.has(base) ? notesSkillTemplate(skill, taken) : null;
+    if (!entry) continue;
+    try {
+      await api(`/api/bots/${encodeURIComponent(botId)}/skill-template`, { method: "POST", body: JSON.stringify({
+        name: entry.name, description: entry.description, text: entry.instructions, source: `notes from ${notes.from.name}`, enabled: false,
+      }) });
+      added += 1;
+    } catch {}
+  }
+  return added;
+}
+
 async function saveThreads(notes: AssistantNotes, botId: string | null): Promise<number> {
   const count = notes.openThreads.length + notes.recurring.length;
   if (!botId || !(count || notes.apps.length)) return 0;
@@ -258,7 +306,14 @@ export async function importNotes(text: string, context: NotesContext, options: 
   if (later.length && context.firstBotId) {
     await api(`/api/bots/${encodeURIComponent(context.firstBotId)}/memory/import-distill`, { method: "POST", body: JSON.stringify({ from: notes.from.name, chunks: later.slice(0, 10) }) }).catch(() => {});
   }
-  try { outcome.threads = await saveThreads(notes, context.firstBotId); } catch { outcome.lost!.push("memory"); }
+  let general = notes.recurring;
+  try {
+    const routines = await saveRoutines(notes, context.firstBotId);
+    outcome.routines = routines.made;
+    general = routines.kept;
+  } catch {}
+  try { outcome.skills = await saveSkills(notes, context.firstBotId); } catch {}
+  try { outcome.threads = await saveThreads({ ...notes, recurring: general }, context.firstBotId); } catch { outcome.lost!.push("memory"); }
   if (notes.bots.length) {
     const [{ runBotMove }, { previewGrokMove }] = await Promise.all([import("./bot-move"), import("./grok-move")]);
     const servers = await api<{ servers?: Array<{ name: string }> }>("/api/mcp/servers").then((answer) => answer.servers ?? [], () => []);
@@ -270,11 +325,11 @@ export async function importNotes(text: string, context: NotesContext, options: 
     const moved = reports.flatMap((one) => one.report.bots);
     outcome.bots = moved.length;
     outcome.botNames = moved.map((bot) => bot.name);
-    outcome.routines = moved.reduce((sum, bot) => sum + bot.routines, 0);
+    outcome.routines = (outcome.routines ?? 0) + moved.reduce((sum, bot) => sum + bot.routines, 0);
     outcome.failed.push(...reports.flatMap((one) => one.report.failed));
     outcome.joined = await joinMovedBots(notes, context.bots, preview.moved);
   }
-  const came = outcome.facts || outcome.memories || outcome.threads || outcome.bots || outcome.joined;
+  const came = outcome.facts || outcome.memories || outcome.threads || outcome.bots || outcome.joined || outcome.routines || outcome.skills;
   if (came || !(outcome.failed.length || outcome.lost!.length)) stopWaiting();
   if (came && context.firstBotId) void postImportNote(context.firstBotId, { ...notesNoteFacts(outcome), ...(options.via ? { via: options.via } : {}) });
   return outcome;
@@ -291,6 +346,8 @@ export function notesOutcomeLine(outcome: NotesOutcome): string {
     ...(outcome.threads ? [count(outcome.threads, "composer.notes.threadsOne", "composer.notes.threads")] : []),
     ...(outcome.bots ? [count(outcome.bots, "composer.notes.botsOne", "composer.notes.bots")] : []),
     ...(outcome.joined ? [count(outcome.joined, "composer.notes.joinedOne", "composer.notes.joined")] : []),
+    ...(outcome.routines ? [count(outcome.routines, "bring.routinesOne", "bring.routines")] : []),
+    ...(outcome.skills ? [count(outcome.skills, "onboarding.import.addedSkillsOne", "onboarding.import.addedSkills")] : []),
   ];
   const lines = [parts.length ? t("composer.notes.added", { from: outcome.from, list: list(parts) }) : t("composer.notes.nothingNew", { from: outcome.from })];
   if (outcome.lost?.includes("about")) lines.push(t("composer.notes.lostAbout"));
@@ -311,7 +368,7 @@ export async function notesInFiles(files: readonly Pick<File, "name" | "size" | 
   const found: Array<{ name: string; text: string }> = [];
   let size = 0;
   for (const file of files) {
-    if (!/\.(?:json|md|txt)$/i.test(file.name) || file.size > NOTES_MAX_CHARS || size + file.size > NOTES_MAX_CHARS) continue;
+    if (!/\.(?:json|md|markdown|txt)$/i.test(file.name) || file.size > NOTES_MAX_CHARS || size + file.size > NOTES_MAX_CHARS) continue;
     try {
       const text = await file.text();
       if (looksLikeNotes(text) && !isNotesPrompt(text)) {

@@ -13,6 +13,6 @@ export async function postImportNote(botId: string, facts: ImportNoteFacts): Pro
 export function notesNoteFacts(outcome: NotesOutcome): ImportNoteFacts {
   return {
     from: [outcome.from], bots: outcome.botNames ?? [], facts: outcome.facts, memories: outcome.memories, threads: outcome.threads ?? 0,
-    routines: outcome.routines ?? 0, failed: outcome.failed.length > 0 || Boolean(outcome.lost?.length),
+    routines: outcome.routines ?? 0, skills: outcome.skills ?? 0, failed: outcome.failed.length > 0 || Boolean(outcome.lost?.length),
   };
 }

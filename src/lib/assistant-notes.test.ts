@@ -134,6 +134,37 @@ describe("bringing notes in", () => {
     expect(note).toMatchObject({ from: ["Claude"], facts: 2, threads: 1 });
   });
 
+  it("makes the person's own routines real, paused routines and their skills switched-off skills of the first bot, once", async () => {
+    const routines: Array<Record<string, unknown>> = [];
+    const skills: Array<{ name: string }> = [];
+    f.api.mockImplementation(async (path: string, init?: { method?: string; body?: string }) => {
+      if (path === "/api/config") return { profile: JSON.parse(init!.body!).profile };
+      if (path === "/api/routines" && init?.method === "POST") { routines.push({ ...JSON.parse(init.body!), id: `r${routines.length}` }); return { routine: {} }; }
+      if (path === "/api/routines") return { routines };
+      if (path === "/api/bots/dusk/skills") return { skills };
+      if (path === "/api/bots/dusk/skill-template") { skills.push({ name: JSON.parse(init!.body!).name }); return { installed: {} }; }
+      return { ok: true };
+    });
+    const md = [
+      "---", "format: dusk-bot-notes", "version: 3", "from: Gemini", "---", "",
+      "# Routines", "## Morning brief", "- Cron: 0 8 * * 1-5", "- Time zone: Europe/Lisbon", "~~~text", "Summarize my inbox.", "~~~",
+      "## Someday", "- Schedule: whenever it rains", "~~~text", "Tell me to take an umbrella.", "~~~",
+      "# Skills", "## Tone check", "- When to use: before I send an email", "~~~text", "Flag anything curt.", "~~~", "", "END OF DUSK BOT NOTES",
+    ].join("\n");
+    const context = { bots: [], aboutMe: "", team: false, firstBotId: "dusk", dispatch: vi.fn() };
+    const outcome = await importNotes(md, context);
+    expect(routines).toEqual([{ id: "r0", botId: "dusk", name: "Morning brief", prompt: "Summarize my inbox.", enabled: false, schedule: { type: "cron", expression: "0 8 * * 1-5", timeZone: "Europe/Lisbon" } }]);
+    const skill = JSON.parse(f.api.mock.calls.find(([path]) => path === "/api/bots/dusk/skill-template")![1].body);
+    expect(skill).toMatchObject({ name: "tone-check", description: "before I send an email", enabled: false, source: "notes from Gemini" });
+    expect(skill.text).toContain("Flag anything curt.");
+    expect(outcome).toMatchObject({ routines: 1, skills: 1, threads: 1 });
+    expect(notesOutcomeLine(outcome)).toBe("Brought in from Gemini: 1 open thread, 1 paused routine, and 1 skill.");
+    const again = await importNotes(md, context);
+    expect(routines, "the same file twice makes nothing twice").toHaveLength(1);
+    expect(skills).toHaveLength(1);
+    expect(again).toMatchObject({ routines: 1, skills: 0 });
+  });
+
   it("says what went wrong in plain words, and what a cut-off paste still brought", async () => {
     expect(notesErrorLine(new GrokImportError("cutOff"))).toBe("That answer looks cut off. Ask for the rest in the same shape, then paste it too.");
     expect(notesErrorLine(new Error("boom"))).toBe("Couldn't bring in your notes. Try pasting them again.");
