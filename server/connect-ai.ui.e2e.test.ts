@@ -59,7 +59,8 @@ it.skipIf(!ready)("a sign-in nobody finishes ends on its timeout message with Tr
   const opened: string[] = [];
   await page.exposeFunction("__openedLink", (link: string) => { opened.push(link); });
   await page.addInitScript(() => {
-    window.open = ((url: string) => { (window as any).__openedLink(String(url)); return null; }) as typeof window.open;
+    const page = globalThis as unknown as { open: (url: string) => null; __openedLink: (link: string) => void };
+    page.open = (url) => { page.__openedLink(String(url)); return null; };
   });
   const grid = await openModels(page);
   const shot = (name: string) => grid.screenshot({ path: join(shots, name) });
@@ -88,7 +89,7 @@ it.skipIf(!ready)("a sign-in nobody finishes ends on its timeout message with Tr
 
 it.skipIf(!ready)("each card's stage, for the record", async () => {
   const page = await browser.newPage({ viewport: { width: 1280, height: 860 }, deviceScaleFactor: 2 });
-  await page.addInitScript(() => { window.open = (() => null) as typeof window.open; });
+  await page.addInitScript(() => { (globalThis as unknown as { open: () => null }).open = () => null; });
   const grid = await openModels(page);
   const shot = (name: string) => grid.screenshot({ path: join(shots, name) });
   const instances = async () => ((await (await fetch(`${fixture.info.url}/api/instances`, { headers: { origin: fixture.info.url } })).json()) as { instances: any[] }).instances;
