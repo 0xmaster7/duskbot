@@ -8,8 +8,9 @@ import { emailConfig } from "../email/templates.ts";
 
 /** DUSK_ADMIN_ALERTS: which emails the admins get; "all", or any of these, comma-separated; unset sends none.
  *  "paid" is the first payment ever and money trouble: a paying customer's failed payment, a dispute, a refund, a big
- *  customer's churn and MRR milestones */
-export const ALERT_KINDS = ["signup", "paid", "waitlist", "spike", "digest"] as const;
+ *  customer's churn and MRR milestones. signups, waitlist joins and cloud lifecycle never email: they are in the admin
+ *  panel and the daily digest (admin-mail.test.ts holds this list) */
+export const ALERT_KINDS = ["paid", "spike", "digest"] as const;
 /** MRR milestones in cents: $100, $500, $1k, $2.5k, $5k, $10k, $25k, $50k, $100k a month */
 export const MRR_MILESTONES = [10_000, 50_000, 100_000, 250_000, 500_000, 1_000_000, 2_500_000, 5_000_000, 10_000_000];
 /** DUSK_ALERT_CHURN_CENTS: a churned customer worth at least this much MRR gets its own email; $50 unless set */
@@ -41,20 +42,19 @@ export interface AlertsOptions {
   now: () => number;
   /** the admin panel's address, for links in the emails */
   panelUrl: string;
-  /** yesterday's numbers for the digest: signups, payments, waitlist joins */
-  totals(from: number, to: number): { signups: number; paid: number; waitlist: number | null; accounts: number; money?: MoneyDigest };
+  /** yesterday's numbers for the digest: signups, payments, waitlist joins, clouds that came up and were deleted */
+  totals(from: number, to: number): { signups: number; paid: number; waitlist: number | null; accounts: number; money?: MoneyDigest; clouds?: { ready: number; deleted: number } };
   churnCents?: number;
   email?: EmailConfig;
 }
 
 /**
- * Emails to the admins: a signup, a first payment, waitlist joins (batched hourly), a traffic spike (at most every six hours)
- * and a daily digest at 08:00 UTC. Marks in the sink keep a restart from sending one twice.
+ * Emails to the admins: a first payment and money trouble, a traffic spike (at most every six hours) and a daily digest at
+ * 08:00 UTC, only when the day had news. Marks in the sink keep a restart from sending one twice.
  */
 export function createAlerts(options: AlertsOptions) {
   const { kinds, sink, now } = options;
   const sent: number[] = [];
-  let waitlist = 0;
   const cfg = options.email ?? emailConfig({}, { publicUrl: options.panelUrl });
   async function send(subject: string, mail: AlertMail) {
     const to = options.emails();
@@ -67,9 +67,6 @@ export function createAlerts(options: AlertsOptions) {
     const { html, text } = render(cfg, { subject, preheader: first?.t === "p" ? first.text.replace(/\*\*/g, "").slice(0, 120) : subject, tag: "admin", say: mail.say, accent: mail.accent,
       status: mail.status, blocks: [{ t: "h1", text: mail.heading }, ...mail.blocks, { t: "button", label: "open admin", href: options.panelUrl }], reason: REASON });
     for (const address of to) await options.mailer.send({ to: address, subject, text, html }).catch(() => console.warn("alerts: an admin email failed"));
-  }
-  function signup(email: string, method: string) {
-    if (kinds.has("signup")) void send(`new signup: ${email}`, { say: "someone new!", accent: "sky", heading: "new signup", blocks: [{ t: "p", text: `**${email}** made a dusk bot account, with ${method}.` }] });
   }
   /** the first payment ever; each later new customer is in the daily digest instead */
   function paid(accountId: string, email: string | null, amountCents: number) {
@@ -108,14 +105,8 @@ export function createAlerts(options: AlertsOptions) {
     if (fresh.length) await send(`mrr passed ${usd(fresh.at(-1)!).replace(/\.00$/, "")} a month`, { say: "a new milestone!", accent: "lime", heading: `mrr passed ${usd(fresh.at(-1)!).replace(/\.00$/, "")} a month`, blocks: [
       { t: "total", label: "mrr", value: usd(facts.mrr) }, { t: "p", text: `dusk bot now makes ${usd(facts.mrr)} a month in recurring revenue.` }] });
   }
-  function waitlistJoin() { if (kinds.has("waitlist")) waitlist++; }
   async function tick() {
     const time = now();
-    if (kinds.has("waitlist") && waitlist > 0) {
-      const count = waitlist; waitlist = 0;
-      await send(`${count} new on the waitlist`, { say: "more people waiting!", accent: "sky", heading: `${count} new on the waitlist`, blocks: [
-        { t: "p", text: `${count} ${count === 1 ? "person" : "people"} joined the waitlist in the last hour.` }] });
-    }
     if (kinds.has("spike")) {
       const events = await sink.scan(time - 7 * DAY - HOUR, time, ["site_view"]);
       const hours = Array.from({ length: 7 * 24 }, () => new Set<string>());
@@ -137,12 +128,18 @@ export function createAlerts(options: AlertsOptions) {
       for (const visit of visits) channels.set(visit.channel, (channels.get(visit.channel) ?? 0) + 1);
       const top = [...channels].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([channel, count]) => `${channel} ${count}`).join(", ");
       const totals = options.totals(from, today);
-      const money = totals.money, more = money ? money.newCustomers.length - 10 : 0;
+      const joined = totals.waitlist ?? events.filter(event => event.name === "site_goal" && event.props?.goal === "waitlist_join").length;
+      const money = totals.money, more = money ? money.newCustomers.length - 10 : 0, clouds = totals.clouds;
+      // a quiet day sends nothing: the mark above still keeps it to one look a day
+      const news = visitors + totals.signups + totals.paid + joined + (clouds ? clouds.ready + clouds.deleted : 0)
+        + (money ? money.newCustomers.length + money.failed + money.recovered + money.churned + money.refunds : 0);
+      if (!news) return;
       const day = new Date(from).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" }).toLowerCase();
       await send(`dusk bot yesterday: ${visitors} visitors, ${totals.signups} signups`, { say: "here's yesterday", accent: "lav", heading: `yesterday, ${day}`, blocks: [
         { t: "stats", items: [["visitors", String(visitors), top || undefined], ["signups", String(totals.signups), `${totals.accounts.toLocaleString("en-US")} accounts in all`],
           ...(money ? [["mrr", usd(money.mrr), `${money.netNew >= 0 ? "+" : "-"}${usd(Math.abs(money.netNew))} yesterday`] as [string, string, string]] : []),
-          ["paid", String(totals.paid), totals.waitlist === null ? undefined : `${totals.waitlist} joined the waitlist`]] },
+          ["paid", String(totals.paid), `${joined} joined the waitlist`],
+          ...(clouds ? [["clouds", `${clouds.ready} up`, `${clouds.deleted} deleted`] as [string, string, string]] : [])] },
         ...(money?.newCustomers.length ? [{ t: "label", text: `new paying customers: ${money.newCustomers.length}` } as Block,
           { t: "facts", rows: [...money.newCustomers.slice(0, 10).map(row => [row.email ?? "an account", usd(row.cents)] as [string, string]), ...(more > 0 ? [["and more", `${more}`] as [string, string]] : [])] } as Block] : []),
         ...(money && (money.failed || money.recovered || money.churned || money.refunds) ? [{ t: "label", text: "payments" } as Block,
@@ -152,5 +149,5 @@ export function createAlerts(options: AlertsOptions) {
   }
   const timer = kinds.size ? setInterval(() => { void tick().catch(() => console.warn("alerts: a check failed")); }, 10 * 60_000) : null;
   timer?.unref();
-  return { signup, paid, money: (entry: LedgerEntry, facts: { email: string | null; paidBefore: boolean; mrr: number }) => { void money(entry, facts).catch(() => console.warn("alerts: a money alert failed")); }, waitlistJoin, tick, close() { if (timer) clearInterval(timer); } };
+  return { paid, money: (entry: LedgerEntry, facts: { email: string | null; paidBefore: boolean; mrr: number }) => { void money(entry, facts).catch(() => console.warn("alerts: a money alert failed")); }, tick, close() { if (timer) clearInterval(timer); } };
 }

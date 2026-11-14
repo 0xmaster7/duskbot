@@ -55,7 +55,7 @@ const billingLink = (cfg: EmailConfig, before: string): Block => ({ t: "link", b
 export const CODE_SUBJECT = / is your dusk bot code$/;
 export function codeEmail(cfg: EmailConfig, { code }: { code: string }): Rendered {
   return render(cfg, {
-    subject: `${code} is your dusk bot code`, preheader: `your dusk bot code is ${code}. it works for 10 minutes.`, tag: "sign in", ...SAY.code,
+    subject: `${code} is your dusk bot code`, preheader: `your dusk bot code is ${code}. it works for 10 minutes.`, tag: "sign in", ...SAY.code, transactional: true,
     blocks: [
       { t: "h1", text: "here's your code" },
       { t: "p", text: "pop it in where you signed in. it works for 10 minutes." },
@@ -72,7 +72,7 @@ const WAYS: Record<string, string> = { email: "an emailed code", google: "google
 export function recoveryEmail(cfg: EmailConfig, { code, link = null, ways }: { code: string; link?: string | null; ways: string[] | null }): Rendered {
   const reason = "you got this because someone asked to sign in to dusk bot with this address.";
   if (!ways) return render(cfg, {
-    subject: "signing in to dusk bot", preheader: "no dusk bot account uses this address.", tag: "sign in", ...SAY.nobody,
+    subject: "signing in to dusk bot", preheader: "no dusk bot account uses this address.", tag: "sign in", ...SAY.nobody, transactional: true,
     blocks: [
       { t: "h1", text: "no account uses this address" },
       { t: "p", text: "someone asked to sign in to dusk bot with this address, but no account uses it. try another address you use." },
@@ -81,7 +81,7 @@ export function recoveryEmail(cfg: EmailConfig, { code, link = null, ways }: { c
   });
   const list = joinOr(ways.map(way => WAYS[way] ?? way)) || WAYS.email;
   return render(cfg, {
-    subject: `${code} is your dusk bot code`, preheader: `your dusk bot code is ${code}. here's how you get back in.`, tag: "sign in", ...SAY.recover,
+    subject: `${code} is your dusk bot code`, preheader: `your dusk bot code is ${code}. here's how you get back in.`, tag: "sign in", ...SAY.recover, transactional: true,
     blocks: [
       { t: "h1", text: "here's how you get back in" },
       { t: "p", text: "use this code where you asked. it works for 10 minutes." },
@@ -127,7 +127,7 @@ const cloudRows = (cloud: CloudFacts, status: [string, "ok" | "warn" | "off"]): 
 /** a cloud's first time up */
 export function cloudReadyEmail(cfg: EmailConfig, cloud: CloudFacts): Rendered {
   return render(cfg, {
-    subject: `your dusk cloud is ready`, preheader: `${cloud.name} is up and running. pair the app and give it something to do.`, tag: "dusk cloud", ...SAY.ready,
+    subject: `your dusk cloud is ready`, preheader: `${cloud.name} is up and running. pair the app and give it something to do.`, tag: "dusk cloud", ...SAY.ready, transactional: true,
     blocks: [
       { t: "h1", text: "your dusk cloud is ready" },
       { t: "p", text: `**${cloud.name}** is up and running. from now on your bots can work around the clock, even with your computer off.` },
@@ -160,7 +160,7 @@ export function receiptEmail(cfg: EmailConfig, input: ReceiptInput): Rendered {
   if (input.periodEnd !== null) rows.push(["next charge", input.renews ? formatDate(input.periodEnd) : "none, the plan ends then"]);
   rows.push(["receipt", input.receiptId]);
   return render(cfg, {
-    subject: `receipt for ${amount}: ${input.description}`, preheader: `thanks! ${amount} for ${input.description}.`, tag: "receipt", ...(input.revived ? SAY.revived : SAY.receipt),
+    subject: `receipt for ${amount}: ${input.description}`, preheader: `thanks! ${amount} for ${input.description}.`, tag: "receipt", ...(input.revived ? SAY.revived : SAY.receipt), transactional: true,
     blocks: [
       { t: "h1", text: input.revived ? "welcome back" : input.first ? "thanks, you're all set" : "thanks, payment received" },
       { t: "p", text: input.revived ? `your plan is active again, and your cloud and bots are restored where they stopped. here's your receipt for **${input.description}**.`

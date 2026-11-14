@@ -32,6 +32,17 @@ describe("account emails", () => {
     for (const href of hrefs(email.html)) expect(email.text).toContain(href);
   });
 
+  it("sends codes, receipts and cloud ready as plain text with no footer links, and leaves the rest as designed", () => {
+    const transactional = new Set(["01-code", "01b-recovery", "01c-recovery-none", "03-cloud-ready", "04-receipt"]);
+    for (const { id, email } of all) {
+      expect(!!email.textOnly, id).toBe(transactional.has(id));
+      if (transactional.has(id)) {
+        expect(email.text, id).not.toMatch(/\/docs|x\.com|\/privacy|unsubscribe/);
+        expect(email.text.match(/https:\/\//g)?.length ?? 0, id).toBeLessThanOrEqual(2);
+      } else expect(email.text, id).toContain("/privacy");
+    }
+  });
+
   it("never puts a plan action in an email: one plain billing page link where billing matters, and nothing into the payment provider", () => {
     for (const { id, email } of all) {
       const buttons = [...email.html.matchAll(/class="btn-a" href="([^"]*)"/g)].map(match => match[1]!);

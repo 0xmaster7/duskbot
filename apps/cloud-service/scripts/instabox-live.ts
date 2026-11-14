@@ -85,7 +85,7 @@ const edgeToken = randomBytes(32).toString("base64url");
 const env: NodeJS.ProcessEnv = { ...process.env, DUSK_BILLING_PROVIDER: "fake", DUSK_POOL_DRIVER: "fake", DUSK_CLOUD_SEAL_KEY: randomBytes(32).toString("base64url"), DUSK_MANAGED: "1",
   DUSK_MANAGED_EDGE_TOKEN: edgeToken, DUSK_MANAGED_SCOPE: scope, DUSK_MANAGED_HOME_PACKAGE_FILE: packageFile, DUSK_MANAGED_HOME_PACKAGE_SHA256: sha256,
   DUSK_MANAGED_HOME_PACKAGE_SIGNATURE: signature, DUSK_RELEASE_PUBLIC_KEYS: releasePublic, DUSK_ENTITLEMENT_SIGNING_KEY: entitlementKey,
-  DUSK_MANAGED_LEASE_HOURS: "1", DUSK_MANAGED_IDLE_MINUTES: "3", DUSK_MANAGED_LOST_AFTER_MINUTES: "2", DUSK_OPS_ALERT_EMAIL: "ops@example.test",
+  DUSK_MANAGED_LEASE_HOURS: "1", DUSK_MANAGED_IDLE_MINUTES: "3", DUSK_MANAGED_LOST_AFTER_MINUTES: "2",
   DUSK_MANAGED_PUBLIC_DOMAIN: PUBLIC_DOMAIN };
 for (const [k, v] of Object.entries(env)) if (v !== undefined) process.env[k] = v;
 

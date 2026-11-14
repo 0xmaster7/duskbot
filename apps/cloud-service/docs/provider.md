@@ -93,7 +93,7 @@ The code is `apps/cloud-service/src/lifecycle.ts`, the adapter `src/instabox.ts`
 - **Machines a recovery replaced** are kept asleep (their disk costs nothing up to the plan's storage), paused if found
   running, and deleted only with their cloud.
 
-Every action is one line in `managed-audit.jsonl`. A deletion also alerts `DUSK_OPS_ALERT_EMAIL`.
+Every action is one line in `managed-audit.jsonl`. A deletion is a plain log line too; it never emails (lifecycle is in admin and the daily digest).
 
 ## Configuration (account service)
 

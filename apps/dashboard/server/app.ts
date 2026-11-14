@@ -10,7 +10,7 @@ import type { NotificationPrefs } from "../../../shared/account-api.ts";
 import { MCP_CLIENT_METADATA, MCP_CLIENT_METADATA_PATH } from "../../../shared/mcp-client-metadata.ts";
 import { AuthError, createAuth, isAppCorsRoute, reviewAccountFromEnv, type ReviewAccount } from "./auth/index.ts";
 import type { ProviderConfigs } from "./auth/providers.ts";
-import { createTestMailbox, isTestAddress, sinkTestMail } from "./auth/mail.ts";
+import { createTestMailbox, isTestAccount, isTestAddress, sinkTestMail } from "./auth/mail.ts";
 import type { Mailer, MailMessage, TestMailbox } from "./auth/mail.ts";
 import { createStore } from "./store.ts";
 import type { Account, StoredCommand, StoredWorkspace } from "./store.ts";
@@ -187,6 +187,12 @@ function siteProxy(upstream: string, onError: (error: Error, res: ServerResponse
 /** unclaimed workspaces at once (each lives a day unless claimed), computers one account holds, reports one workspace sends an hour */
 export const WORKSPACE_LIMITS = { unclaimed: 5000, perAccount: 50, reportsPerHour: 2400 };
 /** a dusk cloud's own reports above this cpu share for this long open an incident */
+/** the digest's cloud line: clouds first up, and clouds deleted, in [from, to); harness accounts left out */
+export function cloudDigest(clouds: StoredCloud[], from: number, to: number, test: (accountId: string) => boolean) {
+  const within = (at: number | undefined) => at !== undefined && at >= from && at < to;
+  const real = clouds.filter(cloud => !test(cloud.accountId));
+  return { ready: real.filter(cloud => within(cloud.mailed?.ready)).length, deleted: real.filter(cloud => cloud.status === "destroyed" && within(cloud.updatedAt)).length };
+}
 export const CLOUD_CPU_ALERT = { percent: 90, hours: 6 };
 /** every sample of the last CLOUD_CPU_ALERT.hours above its share, with the window covered (at least 20 samples, the first within half an hour of its start) */
 export function cpuPinned(samples: Array<{ t: number; cpu: number }>, at: number): boolean {
@@ -239,11 +245,11 @@ export function createDashboardApp(options: DashboardAppOptions) {
   });
   let slackEdge: ReturnType<typeof createSlackEdgeHost> | null = null;
   const emailCfg = emailConfig(process.env, { publicUrl, pageBase });
-  const mail = (to: string | null | undefined, subject: string, text: string, owner = false) => {
+  const mail = (to: string | null | undefined, subject: string, text: string) => {
     if (!to) return;
-    const message = render(emailCfg, { subject, preheader: text.slice(0, 120), tag: owner ? "alert" : "dusk cloud", say: owner ? "a cloud needs a look" : "a note about your cloud",
-      accent: owner ? "pink" : "sky", blocks: [{ t: "h1", text: subject.toLowerCase() }, { t: "p", text }],
-      reason: owner ? "you got this because your address is in DUSK_OPS_ALERT_EMAIL for this dusk bot service." : "you got this because you have a dusk bot account. it's about your account, so it can't be turned off." });
+    const message = render(emailCfg, { subject, preheader: text.slice(0, 120), tag: "dusk cloud", say: "a note about your cloud",
+      accent: "sky", blocks: [{ t: "h1", text: subject.toLowerCase() }, { t: "p", text }],
+      reason: "you got this because you have a dusk bot account. it's about your account, so it can't be turned off." });
     void mailer.send({ to, ...message }).catch(() => console.warn("clouds: a notice email failed"));
   };
   const ownIncidents = options.incidents ? null : createIncidents({ env: options.admin?.environment ?? "development", store: memoryIncidentStore(), to: () => [], mailers: [],
@@ -263,11 +269,14 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const sendTo = (accountId: string, kind: "required" | keyof NotificationPrefs, message: Rendered) => {
     if (kind === "required" || auth.wantsEmail(accountId, kind)) send(emailOf(accountId), message);
   };
+  /** a harness's account (isTestAccount) gets no account mail at all: welcome, cloud ready, receipts, billing, goodbye. only the
+   *  sign-in codes it needs, and those to @qa.dusk.test never leave the service */
+  const courtesy = (email: string | null | undefined) => !!email && !isTestAccount(email);
   const retentionDays = Number(process.env.DUSK_MANAGED_RETENTION_DAYS) || DEFAULT_RETENTION_DAYS;
   const cloudFacts = (cloud: StoredCloud) => ({ name: cloud.name, plan: (BILLING_CONFIG.desktops[cloud.kind]?.label ?? cloud.kind).toLowerCase(),
     machine: `${cloud.spec.vcpu} vcpu, ${cloud.spec.ramGb} gb memory, ${cloud.spec.diskGb} gb disk`, region: (regionLabel(cloud.backend ? MANAGED_REGION.id : cloud.region) ?? cloud.region).toLowerCase() });
   const cloudFromCents = Math.min(...Object.values(BILLING_CONFIG.desktops).flatMap(desktop => desktop.monthlyCents === null ? [] : [desktop.monthlyCents]));
-  auth.onAccountCreated(owner => send(owner.email, welcomeEmail(emailCfg, { cloudFromCents })));
+  auth.onAccountCreated(owner => courtesy(owner.email) && send(owner.email, welcomeEmail(emailCfg, { cloudFromCents })));
   auth.onAccountCreated(owner => !isTestAddress(owner.email) && analytics.track("signup", { accountId: owner.id, props: { method: auth.directory().identities.find(item => item.accountId === owner.id)?.provider ?? "email" } }));
   auth.onSessionCreated(session => {
     analytics.track("sign_in", { accountId: session.accountId, props: { kind: session.kind, ...(session.platform ? { platform: session.platform } : {}), ...(session.appVersion ? { appVersion: session.appVersion } : {}) } });
@@ -276,11 +285,12 @@ export function createDashboardApp(options: DashboardAppOptions) {
   auth.onAppSeen(session => analytics.appActive(session));
   auth.onAccountDeleted(id => analytics.forget(id));
   auth.onAccountDeleted(id => void usage.forget(id));
-  auth.onAccountDeleted((_id, email) => send(email, accountDeletedEmail(emailCfg, { email: email ?? "" })));
+  auth.onAccountDeleted((_id, email) => courtesy(email) && send(email, accountDeletedEmail(emailCfg, { email: email ?? "" })));
   function billingNotice(notice: BillingNotice) {
     const cloud = notice.kind !== "receipt" && notice.cloudId ? billing.clouds.get(notice.cloudId) : null;
     if (notice.kind === "receipt") analytics.track("checkout_paid", { accountId: notice.accountId, props: { amountCents: notice.amountCents } });
-    if (notice.kind === "receipt") sendTo(notice.accountId, "required", receiptEmail(emailCfg, { ...notice, receiptId: notice.invoiceId, cloud: notice.cloudId !== null }));
+    if (notice.kind === "receipt") { if (courtesy(emailOf(notice.accountId))) sendTo(notice.accountId, "required", receiptEmail(emailCfg, { ...notice, receiptId: notice.invoiceId, cloud: notice.cloudId !== null })); }
+    else if (!courtesy(emailOf(notice.accountId))) return;
     else if (notice.kind === "payment_failed") sendTo(notice.accountId, "required", paymentFailedEmail(emailCfg, { ...notice, cloudName: cloud?.name ?? null }));
     else sendTo(notice.accountId, "required", cancelledEmail(emailCfg, { description: notice.description, cloudName: cloud?.name ?? null, endsAt: notice.endsAt,
       keptPaused: cloud?.backend === "managed", keepDays: cloud?.backend === "managed" ? retentionDays : notice.graceDays }));
@@ -295,12 +305,13 @@ export function createDashboardApp(options: DashboardAppOptions) {
     if (entry.via === "sync") return;
     const paidBefore = !!entry.accountId && billing.store.state.invoices.some(invoice => invoice.accountId === entry.accountId && invoice.status !== "failed" && invoice.amountCents > 0);
     const email = entry.accountId ? auth.account(entry.accountId)?.email ?? null : null;
-    if (isTestAddress(email)) return;
+    if (isTestAccount(email)) return;
     alerts.money(entry, { email, paidBefore, mrr: mrrAtTime(ledgerState(), now()) });
   }
   const billing = createBilling({ ...(options.analytics?.db ? { aiStash: mongoAiStashStore(options.analytics.db, now) } : {}), accountExists: id => auth.account(id) !== null,
     findAccount: email => { const found = auth.accountByEmail(email); return found ? { id: found.id, email: found.email } : null; },
     mail: (cloud, letter) => {
+      if (!courtesy(emailOf(cloud.accountId))) return;
       if (!letter.notice) return mail(emailOf(cloud.accountId), letter.subject, letter.text);
       const email = cloudNoticeEmail(emailCfg, { ...letter.notice, name: cloud.name });
       if (email) sendTo(cloud.accountId, letter.notice.kind === "recovered" ? "cloudStatus" : "required", email);
@@ -309,12 +320,12 @@ export function createDashboardApp(options: DashboardAppOptions) {
     onLedger: entry => ledgerRow(entry),
     onRetention: entry => analytics.track("cancel_flow", { accountId: entry.accountId, props: { reason: entry.reason, step: entry.step, outcome: entry.outcome } }),
     cloudStatus: (cloud, from) => analytics.track("cloud_state", { accountId: cloud.accountId, props: { cloudId: cloud.id, kind: cloud.kind, region: cloud.region, from: from ?? "new", to: cloud.status } }),
-    cloudEvent: (kind, cloud) => kind === "ready" ? sendTo(cloud.accountId, "cloudStatus", cloudReadyEmail(emailCfg, cloudFacts(cloud)))
+    // once per cloud, ever: clouds/service.ts keeps cloud.mailed.ready, so a restart, a wake or a rebuild never sends it again
+    cloudEvent: (kind, cloud) => !courtesy(emailOf(cloud.accountId)) ? undefined : kind === "ready" ? sendTo(cloud.accountId, "cloudStatus", cloudReadyEmail(emailCfg, cloudFacts(cloud)))
       : sendTo(cloud.accountId, "required", cloudDeletedEmail(emailCfg, { name: cloud.name, at: now() })),
-    // every other cloud alert also prints a "managed: ALERT" line, which the console tap already makes an incident
-    alert: entry => options.incidents
-      ? entry.action === "starts_alert" && incidents.report({ source: "log", name: "managed alert", message: `${entry.action} ${entry.cloudId}: ${entry.reason}` })
-      : mail(process.env.DUSK_OPS_ALERT_EMAIL, `cloud ${entry.action}: cloud ${entry.cloudId}`, `${entry.action} by ${entry.actor} (${entry.reason}) at ${new Date(entry.at).toISOString()}`, true), dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, wakeStats: () => slackEdge?.edge.wakeStats() ?? {}, accounts: {
+    // cloud lifecycle (deletions, reconciler steps, backups) never emails the operator: it is in the managed audit, admin and
+    // the daily digest. a real cloud problem prints a "managed: ALERT" line, which the console tap makes an incident
+    alert: entry => { if (entry.action === "starts_alert") incidents.report({ source: "log", name: "managed alert", message: `${entry.action} ${entry.cloudId}: ${entry.reason}` }); }, dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, wakeStats: () => slackEdge?.edge.wakeStats() ?? {}, accounts: {
     fromCookie: req => { try { return account(req); } catch (error) { if (error instanceof AuthError && error.code === "signed_out") return null; throw error; } },
     fromBearer: req => auth.appSession(req)?.account ?? null } });
   const pagesRoutes = pagesRoutesFromEnv({ dataDir: options.dataDir, publicUrl, clouds: billing.clouds, now, fetch: options.fetch });
@@ -347,10 +358,13 @@ export function createDashboardApp(options: DashboardAppOptions) {
     waitlist: options.analytics?.waitlist ?? null, live: options.admin?.live ?? null, now, fetch: options.fetch, env: options.admin?.env, errors: errorsSeen, readBody, bodyObject, json, relayFixture: options.admin?.opsFixture,
     service: { version: options.version ?? null, startedAt, environment: options.admin?.environment ?? (dev ? "development" : "production"), dataDir: options.dataDir,
       backupDir: options.admin?.backupDir ?? null, database: () => stateBackend()?.health() ?? null } });
-  const alerts = createAlerts({ kinds: parseAlerts((options.admin?.env ?? process.env).DUSK_ADMIN_ALERTS), emails: () => adminEmails, mailer: outbound, sink: analytics.sink, now, email: emailCfg,
+  // only production's numbers are news: preview and development share the env but never email the admins
+  const alertsEnv = options.admin?.environment ?? (dev ? "development" : "production");
+  const alerts = createAlerts({ kinds: alertsEnv === "production" ? parseAlerts((options.admin?.env ?? process.env).DUSK_ADMIN_ALERTS) : new Set(), emails: () => adminEmails, mailer: outbound, sink: analytics.sink, now, email: emailCfg,
     panelUrl: `${publicUrl}${ADMIN_PATH}`, totals: (from, to) => ({ accounts: auth.directory().accounts.length, signups: auth.directory().accounts.filter(account => account.createdAt >= from && account.createdAt < to).length,
       paid: billing.store.state.invoices.filter(invoice => invoice.status === "paid" && invoice.createdAt >= from && invoice.createdAt < to).length, waitlist: null,
-      money: moneyDigestOf({ ...ledgerState(), accounts: new Map(auth.directory().accounts.map(account => [account.id, { email: account.email, createdAt: account.createdAt }])) }, from, to) }),
+      money: moneyDigestOf({ ...ledgerState(), accounts: new Map(auth.directory().accounts.map(account => [account.id, { email: account.email, createdAt: account.createdAt }])) }, from, to),
+      clouds: cloudDigest(billing.clouds.all?.() ?? [], from, to, id => isTestAccount(emailOf(id))) }),
     churnCents: churnThreshold((options.admin?.env ?? process.env).DUSK_ALERT_CHURN_CENTS) });
   const adminEnv = options.admin?.env ?? process.env;
   const ops = createOps({ store: options.analytics?.ops ?? memoryOpsStore(), env: adminEnv, now, fetch: options.fetch, db: options.analytics?.db ?? null, infra: infraStore,
@@ -367,10 +381,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
     if (account) ops.noteMail(account.id, CODE_SUBJECT.test(message.subject));
   };
   auth.onAccountCreated(owner => !isTestAddress(owner.email) && ops.noteSignup(requestIp.getStore() ?? null, owner.id));
-  auth.onAccountCreated(owner => !isTestAddress(owner.email) && alerts.signup(owner.email, auth.directory().identities.find(item => item.accountId === owner.id)?.provider ?? "email"));
   analytics.onTrack((name, input = {}) => {
-    if (name === "site_goal" && input.props?.goal === "waitlist_join") alerts.waitlistJoin();
-    if (name === "checkout_paid" && input.accountId && !isTestAddress(auth.account(input.accountId)?.email)) alerts.paid(input.accountId, auth.account(input.accountId)?.email ?? null, Number(input.props?.amountCents) || 0);
+    if (name === "checkout_paid" && input.accountId && !isTestAccount(auth.account(input.accountId)?.email)) alerts.paid(input.accountId, auth.account(input.accountId)?.email ?? null, Number(input.props?.amountCents) || 0);
   });
   const incidentRoutes = createIncidentRoutes({ incidents, json, readBody, bodyObject, rate, onClientError: (error, page) => { errorsSeen.note("page"); options.errors?.page.capture(error, { tags: { page } }); },
     admin: (req, mutation) => { const owner = auth.requireWeb(req, { mutation }); if (!admin.isAdmin(owner.email)) throw new AdminError(403, "not_admin", "This account is not an admin."); } });

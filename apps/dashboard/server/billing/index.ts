@@ -50,7 +50,7 @@ export interface BillingOptions {
   cloudStatus?: (cloud: StoredCloud, from: StoredCloud["status"] | null) => void;
   /** where AI sign-ins for a Cloud still being made are held (clouds/ai-stash.ts); in memory when absent */
   aiStash?: AiStashStore;
-  /** the operator's alert for every deletion action of a managed cloud */
+  /** every deletion action of a managed cloud and fleet alerts, for the record; never an email */
   alert?: (entry: { at: number; cloudId: string; action: string; actor: string; reason: string }) => void;
 }
 /** the hosted app's Bearer resolver remains null until shared/account-api.ts supplies the accounts service */

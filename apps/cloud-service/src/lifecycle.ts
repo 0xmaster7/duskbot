@@ -162,7 +162,7 @@ export function createLifecycle(deps: LifecycleDeps) {
   const log = (c: StoredCloud, action: string, actor: AuditActor, reason: string, detail?: Record<string, string | number | boolean | null>) =>
     audit.record({ cloudId: c.id, action, actor, reason, serverId: c.serverId, ...(detail ? { detail } : {}) });
   const state = (c: StoredCloud): HomeLifecycleState => (c.managed ??= freshManagedState());
-  /** the operator hears of it once: an audit line, the console's ALERT line (an incident) and the alert hook (an email) */
+  /** the operator hears of it once: an audit line, the console's ALERT line (an incident) and the alert hook (recorded, never an email) */
   const opsAlert = (c: StoredCloud | null, action: string, reason: string, text: string) => {
     console.warn(`managed: ALERT ${text}`);
     if (c) log(c, action, "reconciler", reason);

@@ -1,5 +1,5 @@
 // Every lifecycle action on a managed home, one JSON line each, appended and never rewritten: who asked, why, when. A deletion
-// also raises an alert to the operator. Lines carry ids and fixed codes only, never a secret, a token or an email address.
+// also goes to the alert hook (recorded, never emailed). Lines carry ids and fixed codes only, never a secret, a token or an email address.
 import { appendFileSync, closeSync, existsSync, openSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { stateBackend } from "../../dashboard/server/persistence/backend.ts";
@@ -21,9 +21,11 @@ export function createAudit(options: { dataDir: string; now?: () => number; aler
       const line: AuditEntry = { at: now(), ...entry, action: clean(entry.action), reason: clean(entry.reason), serverId: entry.serverId == null ? entry.serverId : clean(entry.serverId), ...(detail ? { detail } : {}) };
       if (backend) { backend.append("managed_audit", line); written.push(line); if (written.length > 1000) written.shift(); }
       else appendFileSync(path, `${JSON.stringify(line)}\n`, { mode: 0o600 });
+      // a deletion step is routine lifecycle: a plain log line (never an incident or an email) and the alert hook, which only
+      // records it; the operator reads deletions in admin and the daily digest
       if (/^delete|deleted$/.test(entry.action)) {
-        console.warn(`managed: ALERT ${entry.action} cloud ${entry.cloudId} by ${entry.actor} (${entry.reason})`);
-        try { options.alert?.(line); } catch { console.warn("managed: deletion alert failed"); }
+        console.log(`managed: ${line.action} cloud ${line.cloudId} by ${line.actor} (${line.reason})`);
+        try { options.alert?.(line); } catch { console.log("managed: a deletion hook threw"); }
       }
       return line;
     },

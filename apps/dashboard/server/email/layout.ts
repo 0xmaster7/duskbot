@@ -51,8 +51,11 @@ export interface Email {
   /** why this arrived; promo mail also carries an unsubscribe link */
   reason: string;
   unsubscribe?: string;
+  /** a code, a receipt or "cloud ready": it goes out as plain text (no tracking pixel or wrapped links) with a footer
+   *  of no links, the way a person's email looks, so gmail files it in primary */
+  transactional?: boolean;
 }
-export interface Rendered { subject: string; html: string; text: string }
+export interface Rendered { subject: string; html: string; text: string; textOnly?: boolean }
 
 const C = {
   page: "#fdfdfd", off: "#f6f6f4", ink: "#1b1b1f", body: "#4a4a54", muted: "#73737c", kit: "#894ef0", log: "#232328",
@@ -220,6 +223,7 @@ export function render(cfg: EmailConfig, email: Email): Rendered {
 @font-face { font-family: 'Geist Mono'; src: url(${cfg.assets}/fonts/geist-mono.woff2) format('woff2'); font-weight: 100 900; }`;
   const links: Array<[string, string]> = [["help", `${cfg.site}/docs`], ["x", cfg.x], ["privacy", `${cfg.site}/privacy`]];
   if (email.unsubscribe) links.push(["unsubscribe", email.unsubscribe]);
+  if (email.transactional) links.length = 0;
   const html = `<!doctype html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting">
@@ -243,7 +247,7 @@ ${email.status ? statusPill(email.status) : ""}
 ${email.blocks.map(block => blockHtml(cfg, block, email.accent)).join("\n")}
 <div style="height:20px;font-size:0;line-height:0">&nbsp;</div>
 <div class="muted" style="font-family:${SANS};font-size:13px;line-height:20px;color:${C.muted}">
-<p style="margin:0 0 6px">${links.map(([label, href]) => `<a class="muted" href="${esc(href)}" target="_blank" style="color:${C.muted};text-decoration:underline;text-underline-offset:2px">${esc(label)}</a>`).join("&nbsp;&nbsp;&middot;&nbsp;&nbsp;")}</p>
+${links.length ? `<p style="margin:0 0 6px">${links.map(([label, href]) => `<a class="muted" href="${esc(href)}" target="_blank" style="color:${C.muted};text-decoration:underline;text-underline-offset:2px">${esc(label)}</a>`).join("&nbsp;&nbsp;&middot;&nbsp;&nbsp;")}</p>` : ""}
 <p style="margin:0">${esc(email.reason)}</p>
 ${cfg.address ? `<p style="margin:8px 0 0">${esc(cfg.address)}</p>` : ""}
 </div>
@@ -253,5 +257,5 @@ ${cfg.address ? `<p style="margin:8px 0 0">${esc(cfg.address)}</p>` : ""}
 </body></html>`;
   const footer = [email.reason, ...links.map(([label, href]) => `${label}: ${href}`), ...(cfg.address ? [cfg.address] : [])].join("\n");
   const text = [...(email.status ? [`[ ${email.status[0]} ]`] : []), ...email.blocks.map(blockText), "--", `dusk bot\n${footer}`].join("\n\n");
-  return { subject: email.subject, html, text };
+  return { subject: email.subject, html, text, ...(email.transactional ? { textOnly: true } : {}) };
 }

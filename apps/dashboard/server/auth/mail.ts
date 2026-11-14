@@ -1,6 +1,7 @@
 import { codeEmail, emailConfig, recoveryEmail } from "../email/templates.ts";
 import type { EmailConfig } from "../email/templates.ts";
-export interface MailMessage { to: string; subject: string; text: string; html: string }
+/** textOnly: a transactional email (templates.ts marks codes, receipts and "cloud ready"); providers that track html send only the text */
+export interface MailMessage { to: string; subject: string; text: string; html: string; textOnly?: boolean }
 export interface Mailer { send(message: MailMessage): Promise<void> }
 
 export function memoryMailer() {
@@ -12,7 +13,17 @@ export function consoleMailer(): Mailer {
 }
 /** test harnesses sign up at <anything>@qa.dusk.test (.test is reserved, RFC 2606): their mail never reaches a provider */
 export const TEST_MAIL_DOMAIN = "qa.dusk.test";
-export const isTestAddress = (email: unknown) => typeof email === "string" && email.trim().toLowerCase().endsWith(`@${TEST_MAIL_DOMAIN}`);
+// qa@dusk.bot, qa-<x>@dusk.bot and qa+<x>@dusk.bot: older harnesses signed up there, and dusk.bot's catch-all lands in the owner's inbox
+const OWN_QA = /^qa(?:[-+._][^@]*)?@dusk\.bot$/;
+export const isTestAddress = (email: unknown) => {
+  if (typeof email !== "string") return false;
+  const address = email.trim().toLowerCase();
+  return address.endsWith(`@${TEST_MAIL_DOMAIN}`) || OWN_QA.test(address);
+};
+// the preview end-to-end runs sign up at a real throwaway inbox (apps/cloud-service/scripts/preview-e2e.ts) to prove a code arrives
+const E2E_LOCAL = /^dusk-(?:e2e|appconn)-[a-z0-9]+@/;
+/** a harness's account: it gets sign-in codes and links it acts on, never the courtesy mail (welcome, cloud ready, receipts) */
+export const isTestAccount = (email: unknown) => isTestAddress(email) || (typeof email === "string" && E2E_LOCAL.test(email.trim().toLowerCase()));
 export interface TestMail { to: string; subject: string; code: string | null; link: string | null; at: number }
 export interface TestMailbox { readonly readable: boolean; keep(message: MailMessage): void; latest(to: string, since?: number): TestMail | null }
 /** where mail to test addresses goes instead. `readable` (preview and dev only) keeps the code and link for a while so
@@ -46,7 +57,7 @@ export function resendMailer(options: { apiKey: string; from: string; fetch?: ty
   return { async send(message) {
     try {
       const response = await request("https://api.resend.com/emails", { method: "POST", redirect: "error", signal: AbortSignal.timeout(15_000),
-        headers: { authorization: `Bearer ${options.apiKey}`, "content-type": "application/json" }, body: JSON.stringify({ from: `${SENDER_NAME} <${senderAddress(options.from)}>`, reply_to: REPLY_TO, ...message }) });
+        headers: { authorization: `Bearer ${options.apiKey}`, "content-type": "application/json" }, body: JSON.stringify({ from: `${SENDER_NAME} <${senderAddress(options.from)}>`, reply_to: REPLY_TO, to: message.to, subject: message.subject, text: message.text, ...(message.textOnly ? {} : { html: message.html }) }) });
       await response.body?.cancel();
       if (!response.ok) throw new Error();
     } catch { throw new Error("Email delivery failed."); }
@@ -59,7 +70,10 @@ export function brevoMailer(options: { apiKey: string; from: string; fetch?: typ
     try {
       const response = await request("https://api.brevo.com/v3/smtp/email", { method: "POST", redirect: "error", signal: AbortSignal.timeout(15_000),
         headers: { "api-key": options.apiKey, "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify({ sender, replyTo: { email: REPLY_TO }, to: [{ email: message.to }], subject: message.subject, textContent: message.text, htmlContent: message.html }) });
+        // a transactional email goes as text only: brevo puts an open pixel and rewritten click links into every html part it
+        // relays and can't turn them off below its enterprise plan; both push mail to gmail's promotions tab
+        body: JSON.stringify({ sender, replyTo: { email: REPLY_TO }, to: [{ email: message.to }], subject: message.subject, textContent: message.text,
+          ...(message.textOnly ? {} : { htmlContent: message.html }) }) });
       await response.body?.cancel();
       if (!response.ok) throw new Error();
     } catch { throw new Error("Email delivery failed."); }

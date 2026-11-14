@@ -189,7 +189,7 @@ Audit actions: `update_applied`, `update_settled`, `update_rolled_back`, `update
 `_IDLE_MINUTES`, `_LEASE_HOURS`, `_WAKE_LEAD_MINUTES` (default 2), `_EDGE_WAKES_PER_HOUR`, `_BACKUP_DIR`, `_BACKUP_KEY`,
 `_BACKUP_KEY_PREVIOUS`, `_BACKUP_HOURS`, `_BACKUP_KEEP`, `_BACKUP_TAIL_DAYS`, `_BACKUP_MAX_MB`, `_RETENTION_DAYS`,
 `_DELETE_DELAY_DAYS`, `_LOST_AFTER_MINUTES`, `_HOME_RELEASE_FILE`, `DUSK_RELEASE_PUBLIC_KEYS` (staging keys),
-`DUSK_OPS_ALERT_EMAIL`, `DUSK_UPDATE_POLICY_FILE`. Details in `docs/provider.md`.
+`DUSK_UPDATE_POLICY_FILE`. Details in `docs/provider.md`.
 
 ## Tests
 

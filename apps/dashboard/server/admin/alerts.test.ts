@@ -15,8 +15,8 @@ describe("admin alerts", () => {
     return { mailer, sink, alerts };
   }
   it("reads which alerts are on", () => {
-    expect([...parseAlerts("all")]).toEqual(["signup", "paid", "waitlist", "spike", "digest"]);
-    expect([...parseAlerts("signup, digest, nonsense")]).toEqual(["signup", "digest"]);
+    expect([...parseAlerts("all")]).toEqual(["paid", "spike", "digest"]);
+    expect([...parseAlerts("signup, digest, nonsense")]).toEqual(["digest"]);
     expect(parseAlerts(undefined).size).toBe(0);
   });
   it("calls a spike only at four times a usual hour and at least 20 visitors", () => {
@@ -25,19 +25,18 @@ describe("admin alerts", () => {
     expect(isSpike(40, [10, 12, 11])).toBe(false);
     expect(isSpike(44, [10, 11, 12])).toBe(true);
   });
-  it("mails a signup, a first payment once, batches waitlist joins, and sends nothing that is off", async () => {
+  it("mails a first payment once, and sends nothing that is off", async () => {
     const time = { now: Date.parse("2026-11-12T06:00:00Z") };
-    const { mailer, alerts } = setup("signup,paid,waitlist", time);
-    alerts.signup("new@example.test", "google");
+    const { mailer, alerts } = setup("all", time);
     alerts.paid("acct_1", "new@example.test", 2000); alerts.paid("acct_1", "new@example.test", 2000);
-    alerts.waitlistJoin(); alerts.waitlistJoin();
     await settle();
     await alerts.tick();
-    expect(mailer.outbox.map(mail => mail.subject)).toEqual(["new signup: new@example.test", "first payment ever: new@example.test", "2 new on the waitlist"]);
-    expect(mailer.outbox[1]!.text).toContain("$20.00");
+    expect(mailer.outbox.map(mail => mail.subject)).toEqual(["first payment ever: new@example.test"]);
+    expect(mailer.outbox[0]!.text).toContain("$20.00");
     alerts.close();
     const off = setup("", time);
-    off.alerts.signup("x@example.test", "email");
+    off.alerts.paid("acct_2", "x@example.test", 2000);
+    await settle();
     await off.alerts.tick();
     expect(off.mailer.outbox).toEqual([]);
   });

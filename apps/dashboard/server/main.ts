@@ -60,7 +60,10 @@ console.log(`admin: ${adminEmails.length} allowed account${adminEmails.length ==
 
 const mailer = mailerFromEnv(process.env, { dev });
 const alertEmails = process.env.DUSK_ALERT_EMAILS ? parseAdminEmails(process.env.DUSK_ALERT_EMAILS) : adminEmails;
-const alertsOn = process.env.DUSK_ALERTS !== "off" && alertEmails.length > 0 && (!dev || !!process.env.DUSK_ALERT_EMAILS);
+// "something's wrong" mail comes from production only: preview's incidents are test runs and stay on its health page.
+// DUSK_ALERTS=on mails from any environment (a one-off check), off from none
+const alertsOn = process.env.DUSK_ALERTS !== "off" && alertEmails.length > 0 && (!dev || !!process.env.DUSK_ALERT_EMAILS)
+  && (environment === "production" || process.env.DUSK_ALERTS === "on");
 const fallbackMailer = process.env.DUSK_MAIL_PROVIDER !== "resend" && process.env.DUSK_RESEND_API_KEY && process.env.DUSK_MAIL_FROM
   ? resendMailer({ apiKey: process.env.DUSK_RESEND_API_KEY, from: process.env.DUSK_MAIL_FROM }) : null;
 const incidentStore = database ? await mongoIncidentStore(database.db).catch(() => { console.warn("incidents: the incidents collection is unavailable; kept in memory"); return memoryIncidentStore(); }) : memoryIncidentStore();
