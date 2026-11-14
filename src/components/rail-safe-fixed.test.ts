@@ -17,15 +17,21 @@ function* sources(dir: string): Generator<string> {
 }
 
 /** A fixed element pinned to the left edge: `left-<n>`, `left-[…]` or `inset-x-<n>`, but not centred (`left-1/2`). */
+// placed by a translate taken from getBoundingClientRect, which is already past the rail: its left-0 is the origin
+const MEASURED = new Set(["components/SidebarBotDrag.tsx: pointer-events-none fixed left-0 top-0 z-[60] h-0.5 rounded-full bg-accent"]);
+
 const pinnedLeft = (classes: string) => /(^|\s)fixed(\s|$)/.test(classes)
   && /(^|\s)(left-(\d|\[)|inset-x-\d|start-\d)/.test(classes) && !/(^|\s)left-1\/2(\s|$)/.test(classes);
 
 describe("fixed elements and the desktop rail", () => {
   it("make room for the rail when they are pinned to the left edge", () => {
     const offending: string[] = [];
+    // the phone app (src/mobile) has no desktop rail
     for (const path of sources(SRC)) {
+      if (relative(SRC, path).split("\\").join("/").startsWith("mobile/")) continue;
       for (const [, classes] of readFileSync(path, "utf8").matchAll(/"([^"\n]*\bfixed\b[^"\n]*)"/g)) {
-        if (pinnedLeft(classes) && !classes.includes("--rail-beside")) offending.push(`${relative(SRC, path)}: ${classes.slice(0, 80)}`);
+        const where = `${relative(SRC, path).split("\\").join("/")}: ${classes}`;
+        if (pinnedLeft(classes) && !classes.includes("--rail-beside") && !MEASURED.has(where)) offending.push(where.slice(0, 120));
       }
     }
     expect(offending).toEqual([]);
