@@ -399,12 +399,14 @@ describe("VPS install output", () => {
     expect(document.querySelector("[data-vps-term]")?.textContent).toContain("Installing dusk bot · Done");
   });
 
-  it("keeps unknown progress indeterminate within the original installer layout", async () => {
+  // since e35ca4cf3 the install is one percentage of the whole, never bytes; the move keeps an indeterminate bar
+  it("shows the install as one percentage, never bytes, and keeps the move's unknown progress indeterminate", async () => {
     const now = Date.now();
     const view: VpsLinkView = { ...EMPTY_VIEW, stage: "installing", steps: [{ id: "app", status: "running", progress: { kind: "download", receivedBytes: 20 } }], activity: { updatedAt: now, progressAt: now - 45_000 } };
     await act(async () => { root.render(createElement(InstallScreen, { view, onRetry: () => {} })); });
-    expect(document.querySelector("[role='progressbar']")?.hasAttribute("aria-valuenow")).toBe(false);
-    expect(document.querySelector("[role=progressbar]")?.getAttribute("aria-valuetext")).toContain("20 B downloaded");
+    expect(document.querySelector("[role='progressbar']")?.getAttribute("aria-valuenow")).toBe("0");
+    expect(document.querySelector("[role=progressbar]")?.getAttribute("aria-valuetext")).toBe("0%");
+    expect(document.body.textContent).not.toContain("20 B");
     const moved = { ...EMPTY_VIEW, stage: "moving" as const, server: SERVER, activity: view.activity, move: { step: "backup" as const, status: "running" as const } };
     const fake = fakeBridge();
     await act(async () => { root.render(createElement(MoveScreen, { view: moved, preview: null, previewError: "", onReload: () => {}, bridge: fake.bridge, onMove: () => {}, onBack: () => {} })); });
