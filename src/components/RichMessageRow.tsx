@@ -6,6 +6,7 @@ import { BugReportNote } from "./BugReportNote";
 import { GoalRunRow } from "./GoalRunCard";
 import { HelperKeySuggestion } from "./HelperKeySuggestion";
 import { MessageBoundary } from "./MessageBoundary";
+import { WatchSuggestion } from "./WatchSuggestion";
 import { WidgetMessage } from "./widget/WidgetMessage";
 
 export function richRowKind(message: Message): Message["kind"] {
@@ -20,7 +21,9 @@ export function richRowKind(message: Message): Message["kind"] {
 export function RichMessageRow({ botId, botName, threadId, message }: { botId: string; botName: string; threadId?: string; message: Message }) {
   return (
     <MessageBoundary fallbackText={message.text ?? ""}>
-      {message.setupSuggestion
+      {message.setupSuggestion?.kind === "watch"
+        ? <WatchSuggestion threadId={threadId} message={message} />
+        : message.setupSuggestion
         ? <HelperKeySuggestion threadId={threadId} message={message} />
         : message.kind === "goal.run"
           ? <GoalRunRow botId={botId} threadId={threadId} message={message} />

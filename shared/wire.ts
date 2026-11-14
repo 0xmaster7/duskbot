@@ -492,8 +492,10 @@ export interface WireMessage extends HelperIntroField, SetupCardFields, WaitLine
    * bots' work) rather than the bot: replayed to the bot only as labelled
    * data, never as its own words, and never edited by a bot. */
   serverCard?: true;
-  /** A setup suggestion the device renders in its own words (server/host/helper-suggestion.ts); `text` is the English. */
-  setupSuggestion?: { kind: "helperKey"; answer?: "notNow" };
+  /** A setup suggestion the device renders in its own words; `text` is the English. `helperKey`: add a helper-model key
+   * (server/host/helper-suggestion.ts). `watch`: turn on the proactive bot's "Keep an eye on my day" routine
+   * (server/host/proactive.ts). */
+  setupSuggestion?: { kind: "helperKey"; answer?: "notNow" } | { kind: "watch"; answer?: "on" | "notNow" };
   /** A person's line Set me up turned into a setup request: the bot reads it as `/setup <text>`; the chat shows `text`. */
   setupRequest?: true;
   /** app rows (kind "app"): bot HTML or an MCP server's UI. `text` is always the readable fallback. */

@@ -113,6 +113,8 @@ const RAW_SCENARIOS: GalleryScenario[] = [
       row("activity", { tool: { name: "recovery: Reconnected to the browser." } }),
       row("activity", { tool: { name: "error: The model provider is overloaded.", partial: true } }),
       row("text", { setupSuggestion: { kind: "helperKey" }, text: "Add a key so I can help faster." }),
+      row("text", { setupSuggestion: { kind: "watch" }, text: "Want me to keep an eye on your day?" }),
+      row("text", { setupSuggestion: { kind: "watch", answer: "on" }, text: "Want me to keep an eye on your day?" }),
       bot("Done for now."),
     ],
   },

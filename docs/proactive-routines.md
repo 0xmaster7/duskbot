@@ -1,9 +1,14 @@
 # Proactive routines
 
 Dusk keeps an eye on the person's day with one ordinary routine,
-"Keep an eye on my day". It is made once, with no button, on a personal install
-or Cloud that can reach connected apps, and it is built from four upgrades every
-routine can use, plus the helper models for the inbox.
+"Keep an eye on my day". It is never made without a yes: on a personal install
+or Cloud that can reach connected apps, Dusk posts one card in its chat with
+**Turn it on** and **Not now**. Turn it on makes the routine, daily at 08:00 in
+the person's time zone (the computer's clock, or the owner's zone on a Cloud).
+Not now is kept and the card never comes back. An install that already made the
+routine, or whose bot already has a briefing routine, is never asked, and a
+watch it made earlier on a 15-minute schedule is left as it is. It is built from
+four upgrades every routine can use, plus the helper models for the inbox.
 The bot that is proactive is the one `proactiveOwner` names
 (`server/host/proactive-owner.ts`): the place's Dusk, shown in the sidebar or
 not, and the main Chief only where there is no Dusk. A Team Cloud member's
@@ -142,8 +147,9 @@ there is no brief at all. Its row says
   record (from the person's device, so a Cloud is not stuck on UTC), the
   important rows by id, and recent dismissals with the sender's address. The
   senders and subjects it shows are read back from Gmail by id after a restart.
-- `watch.json`: that the default routine was made, so it is never made again,
-  and the bot each briefing routine was handed to.
+- `watch.json`: that the routine was made (or one was already there), so it is
+  never made or suggested again; the one suggestion card posted; Not now, so it
+  is never asked again; and the bot each briefing routine was handed to.
 - A card or brief message the server built carries `serverCard`. A bot can't
   edit it, and it replays into a turn only as records. Dismiss, on today's brief
   card from before the brief was a message, works only for the owner or an

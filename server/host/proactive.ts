@@ -1,7 +1,7 @@
 // The proactive main agent, wired from ordinary routines: the checks a routine runs before any AI turn, the
-// read-and-draft fence its runs work inside, the brief its results become, and the proactive bot's default "Keep an eye
-// on my day" routine, created once with no button on a personal install or a personal Cloud that can reach connected
-// apps, and never on a team's. The brief is there only while that routine is on.
+// read-and-draft fence its runs work inside, the brief its results become, and the proactive bot's "Keep an eye on my
+// day" routine: suggested once in its chat on a personal install or a personal Cloud that can reach connected apps, made
+// only when the person turns it on, and never on a team's. The brief is there only while that routine is on.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
@@ -10,7 +10,7 @@ import type { NeedsYouItem } from "../../shared/today.ts";
 import type { RuntimeEvent } from "../../shared/runtime-events.ts";
 import { connectorAccessDecision } from "../../shared/connector-scopes.ts";
 import type { Notification } from "../../shared/notification.ts";
-import type { RequestAuth } from "../request-auth.ts";
+import { ownerOrAdmin, type RequestAuth } from "../request-auth.ts";
 import { writeFileAtomic } from "../atomic.ts";
 import type { AppConfig } from "../config.ts";
 import { createConnectedReads, READ_APPS, type ReadApp } from "../connected-reads.ts";
@@ -23,7 +23,7 @@ import type { BotRecord, Store } from "../store.ts";
 import { deciderEnabled, type Decider } from "../decider/index.ts";
 import type { Extractor } from "../extractor/index.ts";
 import { createBrief, type BriefDeps } from "./brief.ts";
-import { WATCH_EVERY_MINUTES, WATCH_INSTRUCTIONS, WATCH_NAME } from "./default-watch.ts";
+import { WATCH_INSTRUCTIONS, WATCH_NAME, WATCH_SUGGESTION_TEXT, watchSchedule } from "./default-watch.ts";
 import { createHelperSuggestion } from "./helper-suggestion.ts";
 import { createInboxTriage } from "./inbox-triage.ts";
 import { mainChief, proactiveOwner } from "./proactive-owner.ts";
@@ -39,8 +39,12 @@ const MAX_HANDED = 50;
 const watchSchema = z.object({
   version: z.literal(1),
   routineId: z.string().max(512).optional(),
-  /** The default routine was made here: it is never made again. */
+  /** The default routine was made here, or one was already on the bot: it is never made or suggested again. */
   createdAt: z.number().finite().nonnegative().optional(),
+  /** The one card that suggested the routine: it is never posted again. */
+  offered: z.object({ at: z.number().finite().nonnegative(), threadId: z.string().max(512), messageId: z.string().max(512) }).optional(),
+  /** Not now on that card: kept, and never asked again. */
+  notNowAt: z.number().finite().nonnegative().optional(),
   /** Each briefing routine, by id, and the proactive bot it was placed on: it is handed to a bot once, so one the person
    * moves off it later is left where they put it. */
   handed: z.record(z.string().max(512), z.string().max(512)).optional(),
@@ -202,10 +206,11 @@ export function createProactive(deps: ProactiveDeps) {
     remember({ ...kept, handed: Object.fromEntries(Object.entries(handed).slice(-MAX_HANDED)) });
   }
 
-  /** The proactive bot's default routine, once, when connected apps are there to read: pausing or deleting it is how it
-   * is switched off, so it is never made again. Asked at start and every minute, since a Cloud's access arrives later,
-   * and a Dusk can arrive after the routine was made. */
-  function ensureWatch(): Routine | null {
+  /** The proactive bot's "Keep an eye on my day", suggested once in its chat when connected apps are there to read, and
+   * made only on Turn it on. One already on the bot counts as made, so nothing is suggested. Asked at start and every
+   * minute, since a Cloud's access arrives later, and a Dusk can arrive after the routine was made. Returns the card
+   * posted now. */
+  function ensureWatch(): string | null {
     const manager = deps.routines();
     const bot = owner();
     if (deps.team || deps.frozen?.() || !manager || !bot) return null;
@@ -215,16 +220,47 @@ export function createProactive(deps: ProactiveDeps) {
       console.warn(`watch: not handed over yet: ${error instanceof Error ? error.message : String(error)}`);
       return null;
     }
-    if (!composio.configured(cfg) || watchRecord().createdAt) return null;
+    const kept = watchRecord();
+    if (!composio.configured(cfg) || kept.createdAt || kept.offered || kept.notNowAt) return null;
+    const existing = manager.listRoutines().find((routine) => routine.botId === bot.id && isWatch(routine));
+    if (existing) {
+      remember({ ...kept, routineId: existing.id, createdAt: Date.now(), handed: { ...kept.handed, [existing.id]: bot.id } });
+      return null;
+    }
+    const threadId = deps.mainThread(bot.id);
+    if (!threadId || deps.threadBusy(bot.id, threadId)) return null;
+    const message = store.appendMessage(threadId, { role: "bot", kind: "text", text: WATCH_SUGGESTION_TEXT, setupSuggestion: { kind: "watch" } });
+    store.patchTask(bot.id, threadId, { unread: true });
+    remember({ ...kept, offered: { at: Date.now(), threadId, messageId: message.id } });
+    return message.id;
+  }
+
+  /** Turn it on or Not now on the suggestion card: only the owner or an admin, only on the card this posted. Turn it on
+   * makes the routine on the proactive bot, once; a second answer changes nothing. */
+  function answerWatch(threadId: string, messageId: string, answer: "on" | "notNow", auth: RequestAuth): "kept" | "refused" | "unknown" | "unavailable" {
+    const kept = watchRecord();
+    const offer = kept.offered;
+    const row = offer && offer.threadId === threadId && offer.messageId === messageId ? store.messagesFor(threadId).find((one) => one.id === messageId) : undefined;
+    if (!row || row.setupSuggestion?.kind !== "watch") return "unknown";
+    if (!ownerOrAdmin(auth)) return "refused";
+    if (row.setupSuggestion.answer || kept.createdAt || kept.notNowAt) return "kept";
+    if (answer === "notNow") {
+      remember({ ...kept, notNowAt: Date.now() });
+      store.patchMessage(threadId, messageId, { setupSuggestion: { kind: "watch", answer: "notNow" } });
+      return "kept";
+    }
+    const manager = deps.routines();
+    const bot = owner();
+    if (deps.team || deps.frozen?.() || !manager || !bot) return "unavailable";
     const existing = manager.listRoutines().find((routine) => routine.botId === bot.id && isWatch(routine));
     const routine = existing ?? manager.create({
-      name: WATCH_NAME, prompt: WATCH_INSTRUCTIONS, botId: bot.id, enabled: true, timeoutMinutes: 15,
-      schedule: { type: "interval", everyMinutes: WATCH_EVERY_MINUTES, anchorAt: Date.now() + WATCH_EVERY_MINUTES * 60_000 },
+      name: WATCH_NAME, prompt: WATCH_INSTRUCTIONS, botId: bot.id, enabled: true, timeoutMinutes: 15, schedule: watchSchedule(),
       checks: ["calendar", "mail", "runs"], access: "read-and-draft", deliver: "brief",
     });
     if (!existing) deps.owned(routine);
-    remember({ ...watchRecord(), routineId: routine.id, createdAt: Date.now(), handed: { ...watchRecord().handed, [routine.id]: bot.id } });
-    return routine;
+    remember({ ...kept, routineId: routine.id, createdAt: Date.now(), handed: { ...kept.handed, [routine.id]: bot.id } });
+    store.patchMessage(threadId, messageId, { setupSuggestion: { kind: "watch", answer: "on" } });
+    return "kept";
   }
 
   let timer: ReturnType<typeof setInterval> | null = null;
@@ -238,6 +274,7 @@ export function createProactive(deps: ProactiveDeps) {
       return suggestion.notNow(threadId, messageId, auth, address ? [address] : []);
     },
     ensureWatch,
+    answerWatch,
     /** A routine run's turn ended: a briefing run's answer becomes the brief's rows. */
     runSettled: (run: RoutineRun, turnId: string | undefined): void => void brief.consume(run, turnId).catch((error: unknown) => console.warn("brief: a run's answer was not kept", error)),
     start(): void {

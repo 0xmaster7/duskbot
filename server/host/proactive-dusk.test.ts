@@ -64,12 +64,19 @@ const watchRun = (routine: Routine, fields: Partial<RoutineRun>): RoutineRun => 
   scheduledFor: Date.now(), status: "completed", manual: false, checkKey: "key-1", deliver: "brief", access: "read-and-draft", createdAt: Date.now() - 60_000, ...fields,
 });
 
+/** The watch suggested in the proactive bot's chat, and turned on there. */
+function turnOn(place: ReturnType<typeof start>): Routine {
+  const card = place.proactive.ensureWatch()!;
+  expect(place.proactive.answerWatch(proactiveOwner(place.store)!.threadId, card, "on", { kind: "loopback", scopes: ["admin", "client"] })).toBe("kept");
+  return place.briefing().find((routine) => routine.name === WATCH_NAME)!;
+}
+
 /** An install from before Dusk owned the watch: its Chief made it, and Dusk joined later. */
 function existingInstall() {
   const first = start();
   const clive = first.store.createBot({ name: "Clive" });
   first.store.setChiefOfStaff(clive.id);
-  const watch = first.proactive.ensureWatch()!;
+  const watch = turnOn(first);
   expect(watch.botId).toBe(clive.id);
   return { first, clive, watch };
 }
@@ -80,24 +87,24 @@ describe("Dusk keeps an eye on the day", () => {
     rmSync(DATA_DIR, { recursive: true, force: true });
   });
 
-  it("on a new install, its Dusk is the Chief and gets the one watch, once", () => {
+  it("on a new install, its Dusk is the Chief and gets the one watch, once it is turned on", () => {
     const first = start();
     first.store.seedIfEmpty();
     const maus = ensureDefaultBot(first.store, { dataDir: DATA_DIR })!;
     expect(maus).toMatchObject({ chiefOfStaff: true, defaultBot: {} });
-    expect(first.proactive.ensureWatch()).toMatchObject({ name: WATCH_NAME, botId: maus.id, enabled: true });
+    expect(turnOn(first)).toMatchObject({ name: WATCH_NAME, botId: maus.id, enabled: true });
     const again = start();
     expect(again.proactive.ensureWatch()).toBeNull();
     expect(again.briefing().map((routine) => routine.botId)).toEqual([maus.id]);
   });
 
-  it("on an install where Dusk comes later, the watch is made on Dusk, not the Chief", () => {
+  it("on an install where Dusk comes later, the watch is suggested and made on Dusk, not the Chief", () => {
     const first = start();
     const clive = first.store.createBot({ name: "Clive" });
     first.store.setChiefOfStaff(clive.id);
     const maus = ensureDefaultBot(first.store, { dataDir: DATA_DIR })!;
     expect(proactiveOwner(first.store)?.id).toBe(maus.id);
-    expect(first.proactive.ensureWatch()!.botId).toBe(maus.id);
+    expect(turnOn(first).botId).toBe(maus.id);
     expect(start().briefing()).toHaveLength(1);
   });
 
@@ -227,8 +234,8 @@ describe("Dusk keeps an eye on the day", () => {
     expect(after.notified.at(-1)).toMatchObject({ kind: "brief", botId: maus.id, threadId: hidden.threadId });
     expect(await after.proactive.brief.active("desktop", "UTC")).toMatchObject({ open: { botId: maus.id, threadId: hidden.threadId } });
     await after.proactive.checks.check(moved, { manual: true });
-    expect(after.store.messagesFor(hidden.threadId).filter((message) => message.setupSuggestion)).toHaveLength(1);
-    expect(after.store.messagesFor(clive.threadId).filter((message) => message.setupSuggestion)).toEqual([]);
+    expect(after.store.messagesFor(hidden.threadId).filter((message) => message.setupSuggestion?.kind === "helperKey")).toHaveLength(1);
+    expect(after.store.messagesFor(clive.threadId).filter((message) => message.setupSuggestion?.kind === "helperKey")).toEqual([]);
     expect(watch.id).toBe(moved.id);
   });
 
@@ -290,7 +297,7 @@ describe("Dusk keeps an eye on the day", () => {
     const cloud = start();
     cloud.store.seedIfEmpty();
     const starter = ensureDefaultBot(cloud.store, { dataDir: DATA_DIR })!;
-    const own = cloud.proactive.ensureWatch()!;
+    const own = turnOn(cloud);
     expect(own.botId).toBe(starter.id);
     const take = async (key: string, record: unknown, runs?: unknown) => {
       let status = 0;
