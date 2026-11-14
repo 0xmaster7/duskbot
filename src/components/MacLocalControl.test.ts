@@ -28,7 +28,7 @@ describe("Mac local computer status", () => {
   it("does not turn a missing reason into a claimed permission diagnosis", () => {
     fixture.localComputer = { available: false, status: "unavailable" } as DesktopCapabilities["localComputer"];
     const markup = renderToStaticMarkup(createElement(MacLocalControl));
-    expect(markup).toContain("Local computer control is not ready");
+    expect(markup).toContain("To use this Mac, turn on Accessibility and Screen Recording for dusk bot in System Settings, then retry.");
     expect(markup).not.toContain("Accessibility is required");
     expect(markup).not.toContain("relaunch dusk bot</button>");
   });
